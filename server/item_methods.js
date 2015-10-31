@@ -129,7 +129,7 @@ concludeDisplay = function(item_id) {
 
         else {
             updateGalleryDetails(items.findOne(item_id).owner);
-            calcMVP(Meteor.userId());
+            calcMVP(items.findOne(item_id).owner);
         }
     });
 }

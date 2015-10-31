@@ -127,8 +127,11 @@ var reroll_coefficients = {
 }
 
 getItemValue = function(item_id, type) {
-    try {
-        var item_object = items.findOne({'_id': item_id});
+    return getItemObjectValue(items.findOne(item_id), type);
+}
+
+getItemObjectValue = function(item_object, type) {
+    if (item_object) {
         var artwork_object = artworks.findOne({'_id': item_object.artwork_id});
 
         var min = rarity_values[artwork_object.rarity].min;
@@ -160,7 +163,7 @@ getItemValue = function(item_id, type) {
         }
     }
 
-    catch(error) {
+    else {
         console.log("getItemValue: " + error.message);
         console.log("item_id: " + item_id);
         return undefined;

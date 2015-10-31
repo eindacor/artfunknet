@@ -49,9 +49,9 @@ createAuction = function(item_id, starting, buy_now, duration) {
 }
 
 var getMVPData = function() {
-    var all_items = items.find({'status': {$nin: ['unclaimed', 'for_sale']}}).fetch()
+    var all_items = items.find({'status': {$nin: ['unclaimed', 'for_sale']}}).fetch();
     all_items.sort(function(first, second) {
-        return getItemValue(first._id, 'actual') < getItemValue(second._id, 'actual');
+        return getItemObjectValue(second, 'actual') - getItemObjectValue(first, 'actual');
     });
 
     all_items = all_items.slice(0, 20);
