@@ -1,5 +1,4 @@
 var loginNewUser = function(user_object) {
-    console.log('logging in');
     Meteor.loginWithPassword(user_object.email, user_object.password, function(login_error) {
         if (!login_error)
             Router.go('/');

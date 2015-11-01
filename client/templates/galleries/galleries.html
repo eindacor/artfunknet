@@ -19,7 +19,7 @@
 				</tr>
 				{{#each table_data.gallery}}
 					{{#with galleryInfo this}}
-					<tr class="gallery-row" data-owner="{{owner}}">
+					<tr class="gallery-row {{#if paid}}paid{{else}}af-color{{/if}}" data-owner="{{owner}}">
 						<td>{{owner}}</td>
 						<td>
 						{{#each attribute}}

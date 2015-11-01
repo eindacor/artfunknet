@@ -25,6 +25,15 @@ var setAdminData = function(set_id, value) {
 			});
 			break;
 
+		case 'set_xp':
+			Meteor.call('setXP', Number(value), function(error) {
+				if (error)
+					console.log(error.message);
+
+				else updateAdminData();
+			})
+			break;
+
 		case 'set_daily_drop': 
 			Meteor.call('updateDailyDropCount', Number(value), function(error) {
 				if (error)

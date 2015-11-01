@@ -28,6 +28,12 @@ Meteor.methods({
 		}
 	},
 
+	'setXP': function(value) {
+		if (adminValidated()) {
+			Meteor.users.update(Meteor.user()._id, {$set: {'profile.xp': value}});
+		}
+	},
+
 	'resetDailyDrop': function() {
 		if (adminValidated()) {
 			Meteor.users.update(Meteor.user()._id, {$set: {'profile.last_drop': moment().add(-1, "days")._d.toISOString()}});
@@ -86,6 +92,7 @@ Meteor.methods({
 			return {
 				'npcs': attributes.find({'type': "primary"}).fetch(),
 				'player_level': user_object.profile.level,
+				'player_xp': user_object.profile.xp,
 				'daily_drop_count': admin_settings.daily_drop_count,
 				'crate_drop_count': admin_settings.crate_drop_count,
 				'bank_balance': user_object.profile.bank_balance

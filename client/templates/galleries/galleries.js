@@ -69,6 +69,7 @@ Template.galleryTable.helpers({
 
 			gallery_object.attribute = attribute_array;
 			gallery_object.fee_text = getCommaSeparatedValue(gallery_object.entry_fee);
+			gallery_object.paid = gallery_object.owner_id == Meteor.userId() || Meteor.users.findOne({'_id': Meteor.userId(), 'profile.gallery_tickets.owner_id': gallery_object.owner_id}) != undefined;
 			return gallery_object;
 		}
 
