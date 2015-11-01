@@ -52,12 +52,17 @@ var generateContent = function() {
 }
 
 var updateContent = function() {
+    Meteor.users.update({}, {$set: {'profile.gallery_tickets': []}}, {multi: true})
     npcs.remove({});
     var all_users = Meteor.users.find();
     all_users.forEach(function(db_object) {
         updateGalleryDetails(db_object._id);
         calcMVP(db_object._id);
     })
+
+    attributes.update({'title': "entry_fee_reduction"}, {$set: {'title': "gallery_manager", 'description': "gallery manager bonus", 'npc_name': "Gallery Manager"}});
+    items.update({'attributes.title': "entry_fee_reduction"}, 
+        {$set: {'attributes.$.title': "gallery_manager", 'attributes.$.description': "gallery manager bonus", 'attributes.$.npc_name': "Gallery Manager"}})
 }
 
 Meteor.startup(function() {

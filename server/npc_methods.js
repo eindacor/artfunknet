@@ -52,8 +52,8 @@ Meteor.methods({
 			case "preservationist_bonus": 
 				npc_interaction = preservationistInteraction(npc_object);
 				break;
-			case "entry_fee_reduction": //DISABLE - reduce entry fee
-				npc_interaction = {'message': "A portion of your entry fee has been refunded."};
+			case "gallery_manager":
+				npc_interaction = galleryManagerInteraction(npc_object);
 				break;
 			case "set_xp_visitors": //DISABLE - give portion of set xp to visitors
 				npc_interaction = {'message': "You have been given 0xp for sets in this permanent collection."};
@@ -64,10 +64,10 @@ Meteor.methods({
 			case "auctioneer_bonus": //DISABLE - provide access to private bot auction
 				npc_interaction = {'message': "You have met an auctioneer."};
 				break;
-			case "dealer_bonus": //DISABLE - offer rare paintings to buy
+			case "dealer_bonus":
 				npc_interaction = artDealerInteraction(npc_object);
 				break;
-			case "collector_bonus": //DISABLE - offer money for painting
+			case "collector_bonus":
 				npc_interaction = collectorInteraction(npc_object);
 				break;
 			case "designer_bonus": //DISABLE - give discount to store
@@ -76,7 +76,7 @@ Meteor.methods({
 			case "forger_bonus": //DISABLE - give access to black market
 				npc_interaction = {'message': "You have met an art forger."};
 				break;
-			case "art_expert_bonus": //DISABLE - reduce roll count of one of your paintings
+			case "art_expert_bonus":
 				npc_interaction = artExpertInteraction(npc_object);
 				break;
 			case "historian_bonus": //DISABLE - quiz players for xp
@@ -102,6 +102,12 @@ Meteor.methods({
 	}
 })
 
+var own_gallery_amplifier = 1.75;
+
+var isOwnGallery = function(npc_object) {
+	return npc_object.owner_id == Meteor.userId();
+}
+
 var enthusiastInteraction = function(npc_object) {
 	var xp_chunk_percentage;
 
@@ -112,17 +118,20 @@ var enthusiastInteraction = function(npc_object) {
 		case 'platinum' : xp_chunk_percentage = .5; break;
 	};
 
+	if (isOwnGallery(npc_object))
+		xp_chunk_percentage *= own_gallery_amplifier;
+
 	var xp_chunk = getXPChunk(Meteor.user().profile.level);
 	var xp_won = Math.floor(xp_chunk * xp_chunk_percentage);
 
-	var message = "You have met an art enthusiast who recently attended one of your gallery's events. They rave about your collection, and thank you for the experience. You have earned " + xp_won + "xp!";
+	var message = "You have met an art enthusiast who recently attended one of your gallery's events. They rave about your collection, and thank you for the experience. You have earned " + getCommaSeparatedValue(xp_won) + "xp!";
 
 	addXP(Meteor.userId(), xp_won);
 	return {'message': message}
 }
 
 var benefactorInteraction = function(npc_object) {
-	var max_donation = 200000;
+	var max_donation = 50000 + (150000 * playerRatio(Meteor.user()));
 	var donation_amount;
 
 	switch(npc_object.quality) {
@@ -131,6 +140,9 @@ var benefactorInteraction = function(npc_object) {
 		case 'gold' : donation_amount = max_donation * .7; break;
 		case 'platinum' : donation_amount = max_donation * .9; break;
 	};
+
+	if (isOwnGallery(npc_object))
+		donation_amount *= own_gallery_amplifier;
 
 	var money_won = Math.floor(donation_amount + ((Math.random() * .1) * max_donation));
 
@@ -141,7 +153,12 @@ var benefactorInteraction = function(npc_object) {
 }
 
 var donorInteraction = function(npc_object) {
-	generateItems(Meteor.userId(), npc_object.quality, 2);
+	var drop_count = 2;
+
+	if (isOwnGallery(npc_object))
+		drop_count += 1;
+
+	generateItems(Meteor.userId(), npc_object.quality, drop_count);
 
 	var message = "You have met a donor who would like to contribute to your collection. You may claim your gift in the loot area.";
 
@@ -157,12 +174,15 @@ var preservationistInteraction = function(npc_object) {
 		return {'message' : "You have met a preservationist, but you don't currently own any works that can be refurbished"};
 
 	switch(npc_object.quality) {
-		case 'bronze': repair_amount = .1; break;
-		case 'silver': repair_amount = .15; break;
-		case 'gold': repair_amount = .2; break;
-		case 'platinum': repair_amount = .25; break;
+		case 'bronze': repair_amount = .08; break;
+		case 'silver': repair_amount = .1; break;
+		case 'gold': repair_amount = .12; break;
+		case 'platinum': repair_amount = .14; break;
 		default: repair_amount = 0; break;
 	}
+
+	if (isOwnGallery(npc_object))
+		repair_amount *= own_gallery_amplifier;
 
 	var artwork_object = artworks.findOne(lowest_item.artwork_id);
 
@@ -200,6 +220,9 @@ var artExpertInteraction = function(npc_object) {
 		default: roll_reduction = 0; break;
 	}
 
+	if (isOwnGallery(npc_object))
+		roll_reduction += 2;
+
 	var artwork_object = artworks.findOne(highest_item.artwork_id);
 
 	var new_count;
@@ -221,11 +244,14 @@ var collectorInteraction = function(npc_object) {
 
 	switch(npc_object.quality) {
 		case 'bronze': offer_multiplier = 1.8; break;
-		case 'silver': offer_multiplier = 2.2; break;
-		case 'gold': offer_multiplier = 2.6; break;
-		case 'platinum': offer_multiplier = 3; break;
+		case 'silver': offer_multiplier = 2.0; break;
+		case 'gold': offer_multiplier = 2.2; break;
+		case 'platinum': offer_multiplier = 2.4; break;
 		default: offer_multiplier = 0; break;
 	}
+
+	if (isOwnGallery(npc_object))
+		offer_multiplier *= own_gallery_amplifier;
 
 	var random_claimed = selectRandomPainting({'owner': Meteor.userId(), 'status': "claimed"});
 
@@ -241,9 +267,89 @@ var collectorInteraction = function(npc_object) {
 }
 
 var artDealerInteraction = function(npc_object) {
-	generateItemsForSale(Meteor.userId(), npc_object.quality, 6);
+	var drop_count = 4;
+
+	if (isOwnGallery(npc_object))
+		drop_count += 2;
+
+	generateItemsForSale(Meteor.userId(), npc_object.quality, drop_count);
 
 	var message = "You have met an Art Dealer who would like you to consider a few offers. Go to the store to view their inventory.";
-
 	return {'message': message}
+}
+
+var extendTicket = function() {
+
+}
+
+var galleryManagerInteraction = function(npc_object) {
+	var extension_time;
+	// extension_time must be > ticket expiration check (5)
+	if (isOwnGallery(npc_object))
+		extension_time = 10;
+
+	else extension_time = 10;
+
+	var extension_multiplier;
+		
+	switch(npc_object.quality) {
+		case 'bronze': extension_multiplier = 1; break;
+		case 'silver': extension_multiplier = 1.2; break;
+		case 'gold': extension_multiplier = 1.4; break;
+		case 'platinum': extension_multiplier = 1.6; break;
+		default: extension_multiplier = 0; break;
+	}
+
+	extension_time = Math.floor(extension_time * extension_multiplier);
+
+	if (isOwnGallery(npc_object)) {
+		var gallery_tickets = Meteor.user().profile.gallery_tickets;
+		if (gallery_tickets.length != 0) {		
+			var gallery_count = 2;
+			var galleries_extended = [];
+			while (galleries_extended.length < gallery_count && gallery_tickets.length > 0) {
+				var random_index = Math.floor(Math.random() * gallery_tickets.length)
+				galleries_extended.push(gallery_tickets[random_index]);
+				gallery_tickets.splice(random_index, 1);
+			}
+	
+			var owner_names = [];
+			for (var i=0; i < galleries_extended.length; i++) {
+				owner_names.push(Meteor.users.findOne(galleries_extended[i].owner_id).profile.screen_name)
+				var current_expiration = moment(galleries_extended[i].expiration);
+				var new_expiration = current_expiration.add(extension_time, 'minutes')._d.toISOString();
+				var gallery_id = galleries_extended[i].owner_id;
+	
+				Meteor.users.update({'_id': Meteor.userId(), 'profile.gallery_tickets.owner_id' : gallery_id}, 
+					{$set: {'profile.gallery_tickets.$.expiration': new_expiration, 'profile.gallery_tickets.$.unique_id': new Mongo.ObjectID()._str }})
+			}
+	
+			var message = "You have met a gallery manager. Your access to the following galleries has been extended by " + extension_time + " minutes: " + owner_names.toString().replace(/,/g, ", ");
+			return {'message': message};
+		}
+
+		else {
+			var message = "You have met a gallery manager, but they are unable to extend your access to any galleries.";
+			return {'message': message};
+		}
+	}
+
+	else {
+		var gallery_tickets = Meteor.user().profile.gallery_tickets;
+		var new_expiration;
+
+		for (var i=0; i < gallery_tickets.length; i++) {
+			if (gallery_tickets[i].owner_id == npc_object.owner_id) {
+				var current_expiration = moment(gallery_tickets[i].expiration);
+				var new_expiration = current_expiration.add(extension_time, 'minutes')._d.toISOString();
+				break;
+			}
+		}
+
+		Meteor.users.update({'_id': Meteor.userId(), 'profile.gallery_tickets.owner_id' : npc_object.owner_id}, 
+				{$set: {'profile.gallery_tickets.$.expiration': new_expiration, 'profile.gallery_tickets.$.unique_id': new Mongo.ObjectID()._str }});
+
+		var message = "You have met a gallery manager. Your access to this gallery has been extended by " + extension_time + " minutes.";
+		return {'message': message};
+	}
 }

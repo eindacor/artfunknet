@@ -93,7 +93,7 @@ function giveXPOnTimeout(user_id, percentage, time_offset) {
     }, time_offset);
 }
 
-var check_ticket_frequency = 600000; //once every 10 minutes
+var check_ticket_frequency = 300000; //once every 5 minutes
 // check_ticket_frequency = 30000; //once every 30 seconds
 Meteor.setInterval((function() {
     var next_check = moment().add(check_ticket_frequency, 'milliseconds');
@@ -105,16 +105,16 @@ Meteor.setInterval((function() {
         for (var i=0; i < db_object.profile.gallery_tickets.length; i++) {
             if (db_object.profile.gallery_tickets[i].expiration < next_string) {
                 var time_from_now = check_ticket_frequency - (next_check - moment(db_object.profile.gallery_tickets[i].expiration));
-                removeTicketOnTimeout(db_object._id, db_object.profile.gallery_tickets[i].owner_id, time_from_now);
+                removeTicketOnTimeout(db_object._id, db_object.profile.gallery_tickets[i].unique_id, time_from_now);
             }
         }
     });
 
 }), check_ticket_frequency);
 
-function removeTicketOnTimeout(buyer_id, owner_id, time_offset) {
+function removeTicketOnTimeout(buyer_id, unique_id, time_offset) {
     Meteor.setTimeout(function() {
-        Meteor.users.update(buyer_id, {$pull : {'profile.gallery_tickets' : {'owner_id': owner_id}}});
+        Meteor.users.update(buyer_id, {$pull : {'profile.gallery_tickets' : {'unique_id': unique_id}}});
     }, time_offset);
 }
 

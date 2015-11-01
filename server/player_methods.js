@@ -79,6 +79,10 @@ getCapSetterObject = function(player_level) {
     return setter_object;
 }
 
+playerRatio = function(player_object) {
+    return player_object.profile.level / player_level_max;
+}
+
 calcMVP = function(user_id) {
     var mvp = {
         'item_id': "",
@@ -284,7 +288,8 @@ Meteor.methods({
 
         var ticket_object = {
             'owner_id': owner_id,
-            'expiration': ticket_expiration
+            'expiration': ticket_expiration,
+            'unique_id': new Mongo.ObjectID()._str
         }
 
         Meteor.users.update(buyer_id, {$push: {'profile.gallery_tickets': ticket_object}})
