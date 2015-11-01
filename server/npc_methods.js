@@ -131,14 +131,14 @@ var enthusiastInteraction = function(npc_object) {
 }
 
 var benefactorInteraction = function(npc_object) {
-	var max_donation = 50000 + (150000 * playerRatio(Meteor.user()));
+	var max_donation = 50000 + (250000 * playerRatio(Meteor.user()));
 	var donation_amount;
 
 	switch(npc_object.quality) {
-		case 'bronze' : donation_amount = max_donation * .3; break;
-		case 'silver' : donation_amount = max_donation * .5; break;
-		case 'gold' : donation_amount = max_donation * .7; break;
-		case 'platinum' : donation_amount = max_donation * .9; break;
+		case 'bronze' : donation_amount = max_donation * .4; break;
+		case 'silver' : donation_amount = max_donation * .6; break;
+		case 'gold' : donation_amount = max_donation * .8; break;
+		case 'platinum' : donation_amount = max_donation * 1; break;
 	};
 
 	if (isOwnGallery(npc_object))
@@ -243,7 +243,7 @@ var collectorInteraction = function(npc_object) {
 	var offer_multiplier;
 
 	switch(npc_object.quality) {
-		case 'bronze': offer_multiplier = 1.8; break;
+		case 'bronze': offer_multiplier = 1.6; break;
 		case 'silver': offer_multiplier = 2.0; break;
 		case 'gold': offer_multiplier = 2.2; break;
 		case 'platinum': offer_multiplier = 2.4; break;
@@ -278,17 +278,13 @@ var artDealerInteraction = function(npc_object) {
 	return {'message': message}
 }
 
-var extendTicket = function() {
-
-}
-
 var galleryManagerInteraction = function(npc_object) {
 	var extension_time;
 	// extension_time must be > ticket expiration check (5)
 	if (isOwnGallery(npc_object))
-		extension_time = 10;
+		extension_time = 20;
 
-	else extension_time = 10;
+	else extension_time = 20;
 
 	var extension_multiplier;
 		

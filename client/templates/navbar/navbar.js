@@ -9,16 +9,18 @@ Template.navbar.helpers({
 			var ticket_array = [];
 			for (var i=0; i < tickets.length; i++) {
 				var gallery_object = galleries.findOne({'owner_id' : tickets[i].owner_id});
-				var unmet_npcs = npcs.find({'owner_id': gallery_object.owner_id, 'players_met': {$ne: Meteor.userId()}}).count();
-
 				if (gallery_object) {
-					var ticket_object = {
-						'owner_name' : gallery_object.owner,
-						'owner_id' : tickets[i].owner_id,
-						'expiration_string' : getTimeString(moment(tickets[i].expiration)),
-						'unmet_npcs' : unmet_npcs > 0
+					var unmet_npcs = npcs.find({'owner_id': gallery_object.owner_id, 'players_met': {$ne: Meteor.userId()}}).count();
+
+					if (gallery_object) {
+						var ticket_object = {
+							'owner_name' : gallery_object.owner,
+							'owner_id' : tickets[i].owner_id,
+							'expiration_string' : getTimeString(moment(tickets[i].expiration)),
+							'unmet_npcs' : unmet_npcs > 0
+						}
+						ticket_array.push(ticket_object);
 					}
-					ticket_array.push(ticket_object);
 				}
 			}
 

@@ -62,7 +62,8 @@ var updateContent = function() {
 
     attributes.update({'title': "entry_fee_reduction"}, {$set: {'title': "gallery_manager", 'description': "gallery manager bonus", 'npc_name': "Gallery Manager"}});
     items.update({'attributes.title': "entry_fee_reduction"}, 
-        {$set: {'attributes.$.title': "gallery_manager", 'attributes.$.description': "gallery manager bonus", 'attributes.$.npc_name': "Gallery Manager"}})
+        {$set: {'attributes.$.title': "gallery_manager", 'attributes.$.description': "gallery manager bonus", 'attributes.$.npc_name': "Gallery Manager"}}, 
+        {multi: true})
 }
 
 Meteor.startup(function() {
