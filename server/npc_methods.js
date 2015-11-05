@@ -246,7 +246,7 @@ var collectorInteraction = function(npc_object) {
 		case 'bronze': offer_multiplier = 1.2; break;
 		case 'silver': offer_multiplier = 1.4; break;
 		case 'gold': offer_multiplier = 1.6; break;
-		case 'platinum': offer_multiplier = 8; break;
+		case 'platinum': offer_multiplier = 1.8; break;
 		default: offer_multiplier = 0; break;
 	}
 
