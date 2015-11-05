@@ -1,38 +1,44 @@
 <template name="itemInfo">
 	<div class="template-itemInfo">
-		<div class="col-xs-12 no-margin">
-			<div class="info-area">
-				{{#with itemData this}}
-
-				<h4 class="{{rarity}}">{{title}}</h4>
-				<p>{{artist}}, {{date}}</p>
-				<p><span class="{{rarity}}"><strong>{{rarity}}</strong></span></p>
-				<p>{{medium}}</p>
-				<p>{{height}} x {{width}}</p>
-				<p>condition: <span style="color: {{getHTMLColorFromValue condition}}">{{condition_text}}</span></p>
-				<p>estimated value: ${{getItemValue item_id "actual"}}</p>
-				<p>xp rating: <span style="color: {{getHTMLColorFromValue xp_rating}}">{{xp_rating_text}}</span></p>
-				<p>roll count: {{roll_count}}</p>
-				<p class="item-attributes">
-				{{#each attribute}}
-					<i data-attribute_description="{{this.description}}" data-attribute_value="{{this.value}}" style="color: {{getHTMLColorFromValue this.value}}" class="{{#if ../is_permanent}}permanent{{/if}} item-attribute fa {{this.icon}}"></i>
-				{{/each}}
-				</p>
-
-				{{/with}}	
-			</div>		
-		</div>
-	</div>
-</template>
-
-<template name="itemThumbnail">
-	<div class="template-itemThumbnail">
-		{{#with imageInfo this}}
-		<div class="col-xs-12 no-padding no-margin img-container" style="padding-top: {{padding_top}}px">
-			<div class="image-background">
-				<img class="image-thumb" data-item_id="{{item_id}}" src="/img/paintings/{{filename}}" width="{{image_width}}" height="{{image_height}}"/>
+		<div class="card-container {{item_data.rarity}}-item" style="background: url('/img/paintings/{{item_data.filename}}') center; background-size: {{#with imageSize item_data.width item_data.height}}{{image_width}}px {{image_height}}px{{/with}}">
+			<div class="row no-margin card-info">
+				<div class="card-header col-xs-12">
+					<div class="row no-margin">
+						<div class="header-basic-info">
+							<p class="item-title">{{item_data.title}}</p>
+							<p>{{item_data.artist}}</p>
+						</div>
+					</div>
+					<div class="row no-margin">
+						<div class="header-details">
+							<p>{{item_data.date}}</p>
+							<p><span class="{{item_data.rarity}}"><strong>{{item_data.rarity}}</strong></span></p>
+							<p>{{item_data.medium}}</p>
+							<p>{{item_data.height}} x {{item_data.width}}</p>
+							<p>condition: <span style="color: {{getHTMLColorFromValue item_data.condition}}">{{item_data.condition_text}}</span></p>
+							<p>estimated value: ${{getItemValue item_data._id "actual"}}</p>
+							<p>xp rating: <span style="color: {{getHTMLColorFromValue item_data.xp_rating}}">{{item_data.xp_rating_text}}</span></p>
+							<p>roll count: {{item_data.roll_count}}</p>
+						</div>
+					</div>
+				</div>
+				<div class="card-footer col-xs-12">
+					<div class="row no-margin">
+						<div class="footer-details">
+							{{#each item_data.attributes}}
+								<p><i style="color: {{getHTMLColorFromValue this.value}}" class="{{#if ../is_permanent}}permanent{{/if}} fa {{this.icon}}"></i> {{this.description}} ({{attributeLevel this.value}})</p>
+							{{/each}}
+						</div>
+					</div>
+					<div class="row no-margin">
+						<div class="footer-basic-info">
+							{{#each item_data.attributes}}
+								<i data-attribute_description="{{this.description}}" data-attribute_value="{{this.value}}" style="color: {{getHTMLColorFromValue this.value}}" class="{{#if ../is_permanent}}permanent{{/if}} item-attribute fa {{this.icon}}"></i>
+							{{/each}}
+						</div>
+					</div>
+				</div>
 			</div>
 		</div>
-		{{/with}}
 	</div>
 </template>

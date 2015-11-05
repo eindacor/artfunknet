@@ -13,27 +13,8 @@
 		<p>Note: your inventory is currently full. You will be unable to add new artwork to your inventory</p>
 		{{/if}}
 
-		{{#each for_sale}}
-			<div class="item-card" data-painting-id="{{this._id}}">
-				<div class="row no-padding no-margin">
-					<div class="col-xs-7 no-padding no-margin">
-						{{>forSaleInfo this._id}}
-					</div>
-					<div class="col-xs-5 no-padding no-margin">
-						<div class="image-thumbnail">
-							{{> itemThumbnail this._id}}
-						</div>
-					</div>
-				</div>
-				<div class="row button-area no-padding no-margin">
-					<div class="col-xs-10">
-						<button data-item_id="{{this._id}}" class="purchase-button {{#if canPurchase this._id}}enabled{{else}}disabled{{/if}}">purchase - ${{getItemValue this._id "dealer"}}</button>
-					</div>
-					<div class="col-xs-2">
-						<span><i data-item_id="{{this._id}}" class="enabled decline fa fa-times"></i></span>
-					</div>
-				</div>
-			</div>
+		{{#each cardData for_sale}}
+			{{>itemInfo item_data=this}}
 		{{/each}}
 
 	</div>

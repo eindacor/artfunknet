@@ -8,29 +8,8 @@
 		<p>Note: your inventory is currently full. You will be unable to add new artwork to your inventory</p>
 		{{/if}}
 
-		{{#each drop}}
-			<div class="item-card" data-painting-id="{{this._id}}">
-				<div class="row no-padding no-margin">
-					<div class="col-xs-7 no-padding no-margin">
-						{{>itemInfo this._id}}
-					</div>
-					<div class="col-xs-5 no-padding no-margin">
-						<div class="image-thumbnail">
-							{{> itemThumbnail this._id}}
-						</div>
-						<div class="col-xs-12">
-							<div class="row button-area">
-								<div class="col-xs-6">
-									<span><i data-item_id="{{this._id}}" class="{{#if full}}disabled{{else}}enabled{{/if}} add-to-inventory fa fa-plus"></i></span>
-								</div>
-								<div class="col-xs-6">
-									<span><i data-item_id="{{this._id}}" class="enabled quick-sell fa fa-usd"></i></span>
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
+		{{#each cardData drop}}
+			{{>itemInfo item_data=this}}
 		{{/each}}
 
 	</div>

@@ -1,49 +1,50 @@
-Template.itemInfo.helpers({
-	'itemData' : function(item_id) {
-		var item_object = items.findOne(item_id);
-		if (item_object != undefined) {
-			
-			var artwork_object = artworks.findOne(item_object.artwork_id);
+var div_size_tracker = new Tracker.Dependency;
+var card_container_width;
+var card_container_height;
 
-			var item_data_object = {
-				'title' : artwork_object.title,
-				'date' : artwork_object.date,
-				'artist' : artwork_object.artist,
-				'rarity' : artwork_object.rarity,
-				'medium' : artwork_object.medium,
-				'width' : artwork_object.width,
-				'height' : artwork_object.height,
-				'condition_text' : Math.floor(item_object.condition * 100) + '%',
-				'condition' : item_object.condition,
-				'attribute' : item_object.attributes,
-				'item_id' : item_object._id,
-				'xp_rating' : item_object.xp_rating,
-				'xp_rating_text' : Math.floor(item_object.xp_rating * 100),
-				'roll_count' : item_object.roll_count,
-				'is_permanent' : item_object.status == "permanent"
+Template.itemInfo.rendered = function() {
+	if ($('.card-container').length != 0) {
+		card_container_height = $('.card-container').css('height').replace("px", "");
+		card_container_width = $('.card-container').css('width').replace("px", ""); 
+		div_size_tracker.changed();
+	}
+}
+
+Template.itemInfo.helpers({
+	'attributeLevel' : function(value) {
+		return Math.floor(value * 100);
+	},
+
+	'imageSize' : function(width, height) {
+		div_size_tracker.depend();
+
+		if ($('.card-container').length != 0) {
+			var max_width = card_container_width;
+			var max_height = card_container_height;
+			console.log(width + " x " + height);
+
+			var original_ratio = width / height;
+			console.log("original ratio: " + original_ratio);
+
+			var height_when_width_maxed = max_width / original_ratio;
+			console.log("height when width maxed: " + height_when_width_maxed);
+
+			if (height_when_width_maxed < max_height) {
+				return {
+					'image_width': Math.floor(original_ratio * max_height),
+					'image_height': max_height
+				}
 			}
 
-			return item_data_object;
+			else return {
+				'image_width': max_width,
+				'image_height': max_width / original_ratio
+			} 
 		}
 
-		else {
-			return {
-				'title' : "",
-				'date' : "",
-				'artist' : "",
-				'rarity' : "",
-				'medium' : "",
-				'width' : "",
-				'height' : "",
-				'condition_text' : "",
-				'condition' : "",
-				'attribute' : "",
-				'item_id' : "",
-				'xp_rating' : "",
-				'xp_rating_text' : "",
-				'roll_count' : "",
-				'is_permanent' : false
-			}
+		else return {
+			'image_width': 20,
+			'image_height': 20
 		}
 	}
 })
@@ -103,7 +104,9 @@ Template.itemThumbnail.helpers({
 				'padding_top' : 0,
 			};
 		}
-	}
+	},
+
+
 })
 
 Template.itemThumbnail.events({
