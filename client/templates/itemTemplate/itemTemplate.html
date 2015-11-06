@@ -1,6 +1,6 @@
 <template name="itemInfo">
 	<div class="template-itemInfo">
-		<div class="card-container {{item_data.rarity}}-item" style="background: url('/img/paintings/{{item_data.filename}}') center; background-size: {{#with imageSize item_data.width item_data.height}}{{image_width}}px {{image_height}}px{{/with}}">
+		<div data-item_id="{{item_data._id}}" class="card-container {{item_data.rarity}}-item" style="background: url('/img/paintings/{{item_data.filename}}') center; background-size: {{#with imageSize item_data.width item_data.height}}{{image_width}}px {{image_height}}px{{/with}}">
 			<div class="row no-margin card-info">
 				<div class="card-header col-xs-12">
 					<div class="row no-margin">
@@ -9,6 +9,7 @@
 							<p>{{item_data.artist}}</p>
 						</div>
 					</div>
+
 					<div class="row no-margin">
 						<div class="header-details">
 							<p>{{item_data.date}}</p>
@@ -24,12 +25,30 @@
 				</div>
 				<div class="card-footer col-xs-12">
 					<div class="row no-margin">
+						<div class="button-area">
+							{{#if isEqual item_data.status "displayed"}}
+							<div class="col-xs-12 no-padding">
+								<span class="remaining-text">on display - {{time_remaining item_data}}</span>
+							</div>
+							{{else}}
+								
+							<span class="quick-sell {{#if can_reroll_sell_permanent item_data}}enabled{{else}}disabled{{/if}}"><i data-item_id="{{item_data._id}}" class="fa fa-usd"></i></span>	
+							<span class="auction {{#if can_auction item_data}}enabled{{else}}disabled{{/if}}"><i data-item_id="{{item_data._id}}" class="fa fa-gavel"></i></span>					
+							<span class="display {{#if can_display item_data}}enabled{{else}}disabled{{/if}}"><i data-item_id="{{item_data._id}}" class="fa fa-picture-o"></i></span>				
+							<span class="reroll {{#if can_reroll_sell_permanent item_data}}enabled{{else}}disabled{{/if}}"><i data-item_id="{{item_data._id}}" class="fa fa-magic"></i></span>		
+							<span class="perm-collection {{#if can_reroll_sell_permanent item_data}}{{#if isEqual item_data.status 'permanent'}}active af-color{{else}}inactive{{/if}}{{else}}disabled{{/if}}"><i data-item_id="{{this._id}}" class="fa fa-heart"></i></span>
+
+							{{/if}}
+						</div>
+					</div>
+
+					<!-- <div class="row no-margin">
 						<div class="footer-details">
 							{{#each item_data.attributes}}
 								<p><i style="color: {{getHTMLColorFromValue this.value}}" class="{{#if ../is_permanent}}permanent{{/if}} fa {{this.icon}}"></i> {{this.description}} ({{attributeLevel this.value}})</p>
 							{{/each}}
 						</div>
-					</div>
+					</div> -->
 					<div class="row no-margin">
 						<div class="footer-basic-info">
 							{{#each item_data.attributes}}

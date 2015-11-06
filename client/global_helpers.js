@@ -48,6 +48,10 @@ Template.registerHelper('positionFromIndex', function(index) {
 	return index + 1;
 })
 
+Template.registerHelper('isEqual', function(first, second) {
+	return first == second;
+})
+
 Template.registerHelper('cardData', function(item_array) {
 	//create list object and add rarity_rank, feature_count, artist, title, date
 	var display_objects = [];

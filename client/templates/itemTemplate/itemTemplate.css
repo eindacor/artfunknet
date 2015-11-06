@@ -1,25 +1,3 @@
-.template-itemTemplate .artwork {
-	margin: 20px;
-	border-top: 1px solid gray;
-}
-
-.template-itemTemplate .image-thumb {
-	margin: 24px auto;
-	text-align: center;
-	background-color: white;
-	opacity: .5;
-}
-
-.template-itemThumbnail .img-container {
-	text-align: center;
-	vertical-align: middle;
-	height: 250px;
-}
-
-.template-itemThumbnail .image-thumb:hover {
-	cursor: pointer;
-}
-
 .template-itemInfo .item-attribute {
 	color: black;
 	font-size: 1.5em;
@@ -91,6 +69,10 @@
 	height: 100%;
 }
 
+.template-itemInfo .card-container:hover .button-area {
+	display: block;
+}
+
 .template-itemInfo .card-header {
 	background-color: white;
 	opacity: .90;
@@ -143,9 +125,42 @@
 	display: block;
 }
 
-.template-itemInfo .footer-details {
+.template-itemInfo .footer-details, .template-itemInfo .button-area  {
 	display: none;
 	border-bottom: 1px solid black;
 	margin-bottom: 12px;
 	padding-bottom: 4px;
+}
+
+.template-itemInfo .button-area {
+	background-color: none;
+	opacity: 1;
+	font-size: 2rem;
+	text-align: center;
+	vertical-align: middle;
+	margin: 4px auto;
+}
+
+.template-itemInfo .button-area i {
+	margin: 0px 8px;
+}
+
+.template-itemInfo .button-area .disabled{
+	opacity: .3;
+}
+
+.template-itemInfo .button-area .enabled {
+	color: black;
+	opacity: .5;
+}
+
+.template-itemInfo .button-area .enabled:hover, .template-itemInfo .button-area .inactive:hover {
+	opacity: 1;
+	cursor: pointer;
+	color: black;
+}
+
+.template-itemInfo .button-area .active:hover {
+	cursor: pointer;
+	opacity: .5;
 }
