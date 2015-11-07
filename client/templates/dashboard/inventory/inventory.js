@@ -94,6 +94,12 @@ Template.inventory.helpers({
 	'valueColor' : function(value) {
 		return 255 - Math.floor(value * 255);
 	},
+});
+
+Template.inventory.events({
+	'click #toggle-view' : function() {
+		Session.set('list_view', !Session.get('list_view'));
+	}
 })
 
 Template.inventory.created = function() {

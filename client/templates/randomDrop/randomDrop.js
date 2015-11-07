@@ -42,33 +42,7 @@ Template.randomDrop.helpers({
 Template.randomDrop.events ({
 	'click #drop-button.enabled' :function() {
 		Modal.show("dropAnimationModal");
-	},
-
-	'click .add-to-inventory.enabled' : function(element) {
-		var item_id = $(element.target).data('item_id');
-		Meteor.call('claimArtwork', item_id, function(error) {
-			if (error)
-				console.log(error.message);
-		});
-	},
-
-	'click .quick-sell' : function(element) {
-		var item_id = $(element.target).data('item_id');
-		Session.set('selectedItem', item_id);
-		Modal.show('quickSellModal');
-	},
-
-	'mouseover .quick-sell' : function(event) {
-		var enabled = $(event.target).hasClass("enabled");
-		var footnote_string = "sell artwork" + (enabled ? "" : " (unavailable)");
-		setFootnote(footnote_string, Math.floor(Math.random() * 100000));
-	},
-
-	'mouseover .add-to-inventory' : function(event) {
-		var enabled = $(event.target).hasClass("enabled");
-		var footnote_string = "add to inventory" + (enabled ? "" : " (unavailable)");
-		setFootnote(footnote_string, Math.floor(Math.random() * 100000));
-	},
+	}
 })
 
 Template.randomDrop.rendered = function() {

@@ -2,6 +2,10 @@ var div_size_tracker = new Tracker.Dependency;
 var card_container_width;
 var card_container_height;
 
+var itemOwned = function(card_object) {
+	return Meteor.user() && card_object.owner == Meteor.userId() && card_object.status != 'for_sale';
+}
+
 Template.itemInfo.rendered = function() {
 	if ($('.card-container').length != 0) {
 		card_container_height = $('.card-container').css('height').replace("px", "");
@@ -47,7 +51,7 @@ Template.itemInfo.helpers({
 
 	'time_remaining': function(display_object) {
 		if (display_object.status == 'displayed') {
-			var expiration = moment(item_object.display_details.end);
+			var expiration = moment(display_object.display_details.end);
 			var now = moment(Session.get('now'));
 			var remaining = expiration - now;
 
@@ -59,7 +63,7 @@ Template.itemInfo.helpers({
 	},
 
 	'can_display' : function(display_object) {
-		if (Meteor.userId()) {
+		if (itemOwned(display_object)) {
 			return items.find({'owner' : Meteor.userId(), 'status' : 'displayed'}).count() < Meteor.user().profile.display_cap && 
 				items.find({'owner' : Meteor.userId(), 'status' : 'displayed', 'artwork_id' : display_object.artwork_id}).count() == 0 &&
 				display_object.status == 'claimed';
@@ -69,7 +73,7 @@ Template.itemInfo.helpers({
 	},
 
 	'can_auction' : function(display_object) {
-		if (Meteor.userId()) {
+		if (itemOwned(display_object)) {
 			return items.find({'owner' : Meteor.userId(), 'status' : 'auctioned'}).count() < Meteor.user().profile.auction_cap &&
 				display_object.status == 'claimed';
 		}
@@ -77,55 +81,69 @@ Template.itemInfo.helpers({
 		else return false;
 	},
 
-	'can_reroll_sell_permanent' : function(display_object) {
-		return display_object.status == 'claimed';
+	'can_sell' : function(display_object) {
+		return itemOwned(display_object) && (display_object.status == 'claimed' || display_object.status == 'unclaimed');
+	},
+
+	'can_reroll' : function(display_object) {
+		return itemOwned(display_object) && display_object.status == 'claimed';
+	},
+
+	'can_claim' : function(display_object) {
+		return itemOwned(display_object) && display_object.status == 'unclaimed';
+	},
+
+	'can_permanent' : function(display_object) {
+		return itemOwned(display_object) && (display_object.status == "claimed" || display_object.status == "permanent");
+	},
+
+	'can_purchase' : function(display_object) {
+		//replace with actual validation
+		return true;
+	},
+
+	'can_decline' : function(display_object) {
+		return display_object.status == "for_sale" && display_object.owner == Meteor.userId();
 	}
 })
 
 Template.itemInfo.events({
-	'mouseover .item-attribute' : function(element) {
-		var attribute_id = element.target.dataset.attribute_id;
-		var value = Math.floor(Number(element.target.dataset.attribute_value) * 100);
-		var description = element.target.dataset.attribute_description;
-		var hover_string = "level " + value + " " + description;
-		setFootnote(hover_string, Math.floor(Math.random() * 1000));
+	'click .card-container' : function(element) {
+		var target = $(element.target);
+		var item_id = target.closest('.card-container').data('item_id');
+		target.closest('.card-container').hasClass('selected') ? target.closest('.card-container').removeClass('selected') : target.closest('.card-container').addClass('selected');
 	},
 
 	'click .quick-sell.enabled' : function(element) {
+		element.stopPropagation();
 		var item_id = $(element.target).closest('.card-container').data('item_id');
 		Session.set('selectedItem', item_id);
 		Modal.show('quickSellModal');
 	},
 
 	'click .auction.enabled' : function(element) {
+		element.stopPropagation();
 		var item_id = $(element.target).closest('.card-container').data('item_id');
 		Session.set('selectedItem', item_id);
 		Modal.show('createAuctionModal');
 	},
 
 	'click .display.enabled' : function(element, template) {
+		element.stopPropagation();
 		var item_id = $(element.target).closest('.card-container').data('item_id');
 		Session.set('selectedItem', item_id);
 		Modal.show('onDisplayModal');
 	},
 
-	'click #toggle-view' : function() {
-		Session.set('list_view', !Session.get('list_view'));
-	},
-
-	'click .preview.enabled' : function(element) {
-		var item_id = $(element.target).closest('.card-container').data('item_id');
-		Session.set('selectedItem', item_id);
-		Modal.show('fullViewModal');
-	},
-
 	'click .reroll.enabled' : function(element) {
+		element.stopPropagation();
 		var item_id = $(element.target).closest('.card-container').data('item_id');
 		Session.set('selectedItem', item_id);
 		Modal.show('rerollModal');
 	},
 
 	'click .perm-collection.inactive' : function(element) {
+		element.stopPropagation();
 		var item_id = $(element.target).closest('.card-container').data('item_id');
 		Meteor.call('setItemPermanentCollectionStatus' , item_id, true, function(error) {
 			if (error)
@@ -134,11 +152,52 @@ Template.itemInfo.events({
 	},
 
 	'click .perm-collection.active' : function(element) {
+		element.stopPropagation();
 		var item_id = $(element.target).closest('.card-container').data('item_id');
 		Meteor.call('setItemPermanentCollectionStatus' , item_id, false, function(error) {
 			if (error)
 				console.log(error.message)
 		})
+	},
+
+	'click .claim.enabled' : function(element) {
+		element.stopPropagation();
+		var item_id = $(element.target).closest('.card-container').data('item_id');
+		Meteor.call('claimArtwork', item_id, function(error) {
+			if (error)
+				console.log(error.message);
+		});
+	},
+
+	'click .purchase.enabled' : function(element) {
+		element.stopPropagation();
+		var item_id = $(element.target).closest('.card-container').data('item_id');
+		Meteor.call('purchaseItemFromDealer', item_id, function(error) {
+			if(error)
+				console.log(error.message);
+		})
+	},
+
+	'click .decline.enabled' : function(element) {
+		element.stopPropagation();
+		var item_id = $(element.target).closest('.card-container').data('item_id');
+		Meteor.call('declineItem', item_id, function(error) {
+			if(error)
+				console.log(error.message);
+		})
+	},
+
+	'click .preview' : function(element) {
+		element.stopPropagation();
+		var item_id = $(element.target).closest('.card-container').data('item_id');
+		Session.set('selectedItem', item_id);
+		Modal.show('fullViewModal');
+	},
+
+	'mouseover .claim' : function(event) {
+		var enabled = $(event.target).closest('span.claim').hasClass("enabled");
+		var footnote_string = "add to inventory" + (enabled ? "" : " (unavailable)");
+		setFootnote(footnote_string, Math.floor(Math.random() * 100000));
 	},
 
 	'mouseover .list-item-attribute' : function(element) {
@@ -176,62 +235,40 @@ Template.itemInfo.events({
 		var footnote_string = active ? "remove from permanent collection" : "add to permanent collection";
 		setFootnote(footnote_string, Math.floor(Math.random() * 100000));
 	},
-})
 
-Template.itemThumbnail.helpers({
-	'imageInfo' : function(item_id) {
-		try {
-			var item_object = items.findOne(item_id);
-			var artwork_object = artworks.findOne(item_object.artwork_id);
-
-			var overall_dimension = 210;
-			var max_dimension = 200;
-
-			var width = artwork_object.width;
-			var height = artwork_object.height;
-			var ratio = width / height;
-
-			var info_object = {
-				'item_id' : item_id,
-				'image_width' : 0,
-				'image_height' : 0,
-				'filename' : artwork_object.filename,
-				'imageURL' : artwork_object.img_link == "" ? "http://go-grafix.com/data/wallpapers/35/painting-626297-1920x1080-hq-dsk-wallpapers.jpg" : artwork_object.img_link
-			};
-
-			if (width > height) {
-				info_object.image_width = max_dimension;
-				info_object.image_height = Math.floor(max_dimension / ratio);
-			}
-
-			else {
-				info_object.image_height = max_dimension;
-				info_object.image_width = Math.floor(max_dimension * ratio);
-			}
-
-			info_object.padding_top = Math.floor((overall_dimension - info_object.image_height) / 2);
-
-			return info_object;
-		}
-
-		catch(error) {
-			return {
-				'item_id' : "",
-				'image_width' : 0,
-				'image_height' : 0,
-				'imageURL' : "",
-				'padding_top' : 0,
-			};
-		}
+	'mouseover .purchase' : function(event) {
+		var enabled = $(event.target).closest('span.purchase').hasClass("enabled");
+		var footnote_string = "purchase" + (enabled ? "" : " (unavailable)");
+		setFootnote(footnote_string, Math.floor(Math.random() * 100000));
 	},
 
-
-})
-
-Template.itemThumbnail.events({
-	'click .image-thumb' : function(element) {
-		var item_id = $(element.target).data('item_id');
-		Session.set('selectedItem', item_id);
-		Modal.show('fullViewModal');
+	'mouseover .decline' : function(event) {
+		var enabled = $(event.target).closest('span.decline').hasClass("enabled");
+		var footnote_string = "reroll attribute values" + (enabled ? "" : " (unavailable)");
+		setFootnote(footnote_string, Math.floor(Math.random() * 100000));
 	},
+
+	'mouseover .preview' : function(event) {
+		var footnote_string = "preview";
+		setFootnote(footnote_string, Math.floor(Math.random() * 100000));
+	},
+
+	'mouseover .item-attribute' : function(element) {
+		var attribute_id = element.target.dataset.attribute_id;
+		var value = Math.floor(Number(element.target.dataset.attribute_value) * 100);
+		var description = element.target.dataset.attribute_description;
+		var hover_string = "level " + value + " " + description;
+		setFootnote(hover_string, Math.floor(Math.random() * 1000));
+	},
+
 })
+
+
+
+// Template.itemThumbnail.events({
+// 	'click .image-thumb' : function(element) {
+// 		var item_id = $(element.target).data('item_id');
+// 		Session.set('selectedItem', item_id);
+// 		Modal.show('fullViewModal');
+// 	},
+// })
