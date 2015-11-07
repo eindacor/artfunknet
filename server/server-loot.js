@@ -145,6 +145,8 @@ getItemObjectValue = function(item_object, type) {
         var lowest_possible = mint_value * condition_min_coefficient;
         var condition_factor = lowest_possible + ((mint_value - lowest_possible) * parseFloat(item_object.condition));
         var actual_value = Math.floor(condition_factor);
+        if (item_object.foil)
+            (actual_value *= 1.618);
 
         var sell_value = Math.floor(actual_value * .5);
         var purchase_value = Math.floor(actual_value * 1.5);
@@ -155,7 +157,7 @@ getItemObjectValue = function(item_object, type) {
         switch(type) {
             case "sell": return sell_value;
             case "purchase": return purchase_value;
-            case "actual": return actual_value;
+            case "actual": return Math.floor(actual_value);
             case "auction_min": return auction_min;
             case "collector" : return collector_offer; 
             case "dealer" : return dealer_offer; 
@@ -247,17 +249,9 @@ generateItems = function(user_id, quality, count) {
         default: map_amplifier = 0; break;
     }
 
-    // var rarity_map = rarity_maps[quality];
     var item_ids = [];
 
     for (var i=0; i < parseInt(count); i++) {
-        // var rarity_roll;
-
-        // if (quality == "pearl" && Meteor.user().emails[0].address == "jpollack320@gmail.com")
-        //     rarity_roll = "masterpiece";
-
-        // else rarity_roll = JepLoot.catRoll(rarity_map);
-
         var rarity_roll = JepLoot.catRoll(getSmartRarityMap(Meteor.users.findOne(user_id).profile.level, map_amplifier));
 
         var possibilities = artworks.find({'rarity': rarity_roll}).fetch();
@@ -271,7 +265,8 @@ generateItems = function(user_id, quality, count) {
             'status' : 'unclaimed',
             'date_created' : new Date(),
             'xp_rating' : getXPRating(),
-            'roll_count' : 0
+            'roll_count' : 0,
+            'foil': Math.random() < .01
         });
 
         item_ids.push(new_item_id);
@@ -296,7 +291,8 @@ generateItemsFromRarity = function(user_id, rarity, count) {
                 'status' : 'unclaimed',
                 'date_created' : new Date(),
                 'xp_rating' : getXPRating(),
-                'roll_count' : 0
+                'roll_count' : 0,
+                'foil': Math.random() < .01
             });
 
             item_ids.push(new_item_id);
@@ -320,17 +316,9 @@ generateItemsForSale = function(user_id, quality, count) {
         default: map_amplifier = 0; break;
     }
 
-    // var rarity_map = rarity_maps[quality];
     var item_ids = [];
 
     for (var i=0; i < parseInt(count); i++) {
-        // var rarity_roll;
-
-        // if (quality == "pearl" && Meteor.user().emails[0].address == "jpollack320@gmail.com")
-        //     rarity_roll = "masterpiece";
-
-        // else rarity_roll = JepLoot.catRoll(rarity_map);
-
         var rarity_roll = JepLoot.catRoll(getSmartRarityMap(Meteor.users.findOne(user_id).profile.level, map_amplifier));
 
         var possibilities = artworks.find({'rarity': rarity_roll}).fetch();
@@ -369,7 +357,8 @@ generateItemsForSaleFromRarity = function(user_id, rarity, count) {
                 'status' : 'for_sale',
                 'date_created' : new Date(),
                 'xp_rating' : getXPRating(),
-                'roll_count' : 0
+                'roll_count' : 0,
+                'foil': Math.random() < .01
             });
 
             item_ids.push(new_item_id);

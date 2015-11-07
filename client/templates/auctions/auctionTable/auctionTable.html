@@ -14,19 +14,19 @@
 				</tr>
 				{{#each this.auction}}
 					{{#with auction_info this}}
-					<tr data-auction_id="{{auction_id}}" id="{{#if winning}}winning{{else}}{{#if losing}}losing{{/if}}{{/if}}">
+					<tr data-auction_id="{{_id}}" id="{{#if winning}}winning{{else}}{{#if losing}}losing{{/if}}{{/if}}">
 						<td>
 							{{#with thumbnailInfo item_id}}
 							<img class="image-thumb preview enabled" src="/img/paintings/{{filename}}" width="{{image_width}}" height="{{image_height}}"/>
 							{{/with}}
 						</td>
-						{{#with time_remaining expiration}}
+						{{#with time_remaining expiration_date}}
 						<td class="{{#if soon}}soon{{/if}}">{{remaining}}</td>
 						{{/with}}
 						<td>{{#if owned}}*{{/if}}{{title}}</td>
 						<td>{{date}}</td>
 						<td>{{artist}}</td>
-						<td><span class="{{rarity}}"><strong>{{rarity}}</strong></span></td>
+						<td><span class="{{rarity}}"><strong>{{rarity}}</strong></span>{{#if foil}}<span class="af-color"> foil</span>{{/if}}</td>
 						<td style="color: rgb({{attributeColor condition}}, 0, 0)" >{{condition_text}}</td>
 						<td>
 						{{#each attribute}}
@@ -35,8 +35,8 @@
 						</td>
 						<td style="color: rgb({{attributeColor xp_rating}}, 0, 0)" >{{xp_rating_text}}</td>
 						<td>{{roll_count}}</td>
-						<td class="{{#if history}}highlight{{/if}}">{{current_bid auction_id}}</td>
-						<td>{{buy_now}}</td>
+						<td class="{{#if has_history}}highlight{{/if}}">{{displayAsMoneyValue bid_minimum}}</td>
+						<td>{{buy_now_text}}</td>
 						<td class="action-buttons">						
 							<span class="place-bid {{#if biddable}}enabled{{else}}disabled{{/if}}" data-auction_id="{{auction_id}}"><i class="fa fa-usd"></i></span>
 							<span class="view-history {{#if history}}enabled{{else}}disabled{{/if}}" data-auction_id="{{auction_id}}"><i class="fa fa-history"></i></span>

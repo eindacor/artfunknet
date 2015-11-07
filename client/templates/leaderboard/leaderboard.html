@@ -29,7 +29,7 @@
 					<p class="highlight">{{displayAsMoneyValue this.value}}</p>
 				</div> 
 				<div class="col-xs-1">
-					<p class="{{this.rarity}}">{{this.rarity}}</p>
+					<p class="{{this.rarity}}">{{this.rarity}}{{#if this.foil}}<span class="af-color"> foil</span>{{/if}}</p>
 				</div> 
 			</div>
 			{{/each}}

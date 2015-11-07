@@ -15,6 +15,10 @@ Template.itemInfo.rendered = function() {
 }
 
 Template.itemInfo.helpers({
+	'isFoil' : function() {
+		return Math.random() < .2;
+	},
+
 	'attributeLevel' : function(value) {
 		return Math.floor(value * 100);
 	},
@@ -90,7 +94,8 @@ Template.itemInfo.helpers({
 	},
 
 	'can_claim' : function(display_object) {
-		return itemOwned(display_object) && display_object.status == 'unclaimed';
+		return items.find({'owner' : Meteor.userId(), 'status' : {$nin: ['unclaimed', 'for_sale']}}).count() < Meteor.user().profile.inventory_cap &&
+			itemOwned(display_object) && display_object.status == 'unclaimed';
 	},
 
 	'can_permanent' : function(display_object) {
@@ -243,8 +248,7 @@ Template.itemInfo.events({
 	},
 
 	'mouseover .decline' : function(event) {
-		var enabled = $(event.target).closest('span.decline').hasClass("enabled");
-		var footnote_string = "reroll attribute values" + (enabled ? "" : " (unavailable)");
+		var footnote_string = "decline";
 		setFootnote(footnote_string, Math.floor(Math.random() * 100000));
 	},
 

@@ -27,6 +27,37 @@
 	opacity: .95;
 }
 
+@-webkit-keyframes Test {
+    0%{background-position:0% 50%}
+    50%{background-position:100% 50%}
+    100%{background-position:0% 50%}
+}
+@-moz-keyframes Test {
+    0%{background-position:0% 50%}
+    50%{background-position:100% 50%}
+    100%{background-position:0% 50%}
+}
+@-o-keyframes Test {
+    0%{background-position:0% 50%}
+    50%{background-position:100% 50%}
+    100%{background-position:0% 50%}
+}
+@keyframes Test {
+    0%{background-position:0% 50%}
+    50%{background-position:100% 50%}
+    100%{background-position:0% 50%}
+}
+
+.template-itemInfo .foil {
+	opacity: .95;
+	background: linear-gradient(270deg, white, #ffe2c3, #FDF, white, #FDF, #ffe2c3, white);
+	background-size: 300% 300%;
+	-webkit-animation: Test 10s ease infinite;
+	-moz-animation: Test 10s ease infinite;
+	-o-animation: Test 10s ease infinite;
+	animation: Test 10s ease infinite;
+}
+
 .template-itemInfo .card-container:hover {
 	opacity: 1;
 	cursor: pointer;
@@ -94,6 +125,7 @@
 	border-top: 1px solid black;
 	margin-top: 12px;
 	padding-top: 4px;
+	margin-bottom: 12px;
 }
 
 .template-itemInfo .item-title {
@@ -132,13 +164,13 @@
 	padding-bottom: 4px;
 }
 
-.template-itemInfo .selected {
+/*.template-itemInfo .selected {
 	border: 1px solid #F3C;
 }
 
 .template-itemInfo .selected .card-header, .template-itemInfo .selected .card-footer {
 	background-color: #FDF;
-}
+}*/
 
 .template-itemInfo .button-area {
 	background-color: none;
