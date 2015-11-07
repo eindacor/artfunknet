@@ -4,7 +4,7 @@ var item_count;
 var thinnest_image_width = 20;
 var pixels_per_centimeter;
 var click_location, original_offset;
-var overall_width = 0;
+var offset_max = 0;
 
 
 var setGallery = function(screen_name, template_data) {
@@ -178,21 +178,24 @@ Template.userGallery.events ({
 		click_location = Number(element.screenX);
 		original_offset = Number($('.image-container').css('margin-left').replace("px", ""));
 
-		overall_width = 0;
+		offset_max = 0;
+		var overall_width = 0;
 		for (var i=0; i < $('.painting-container').length; i++) {
 			overall_width += Number($('.painting-container:eq(' + i + ')').css('width').replace("px", ""));
+			overall_width += Number($('.painting-container:eq(' + i + ')').css('margin-right').replace("px", ""));
+			overall_width += Number($('.painting-container:eq(' + i + ')').css('margin-left').replace("px", ""));
 		}
 
-		//adds padding * 3 instead of 2 to adjust for shift below
-		overall_width += (Number($('#gallery-wall').css('padding-left').replace("px", "")) * 3);
-		overall_width -= Math.floor(Number($('#gallery-wall').css('width').replace("px", "")) / 2);
+		overall_width += Number($('#gallery-wall').css('padding-left').replace("px", ""));
+		overall_width += Number($('#gallery-wall').css('padding-right').replace("px", ""));
+		offset_max = overall_width - Math.floor(Number($('#gallery-wall').css('width').replace("px", "")));
 	},
 
 	'mousemove #gallery-wall' : function(element) {
 		if (click_location !== undefined && original_offset !== undefined) {
 			var movement = click_location - Number(element.screenX);
 			var new_offset = original_offset - movement;
-			if (new_offset < 0 && new_offset > overall_width * -1) {
+			if (new_offset < 0 && new_offset > offset_max * -1) {
 				$('.image-container').css('margin-left', new_offset + "px");
 				$('#gallery-floor').css('background-position', new_offset + "px");
 			}

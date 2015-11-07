@@ -94,7 +94,7 @@
 	display: block;
 	overflow: hidden;
 	white-space: nowrap;
-	margin: 0px 24px 0px 24px !important;
+	margin: 0px 0px 0px 0px !important;
 	padding: 64px 64px 128px 64px !important;
 	border-bottom: 1px solid black;
 	background-color: #EEEEEE;
@@ -127,7 +127,7 @@
 }
 
 #gallery-floor {
-	margin: 0px 24px 64px 24px !important;
+	margin: 0px 0px 64px 0px !important;
 	background-color: gray;
 	height: 96px;
 	background: url("https://s3.amazonaws.com/com.artfunkel.artwork/textures/floor_wood.jpg");
