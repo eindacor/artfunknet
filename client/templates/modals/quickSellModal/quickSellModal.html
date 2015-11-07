@@ -7,7 +7,7 @@
 	                <h4>Sell <span class="highlight af-color">{{title}}</span> by <span class="highlight af-color">{{artist}}</span> for <span class="highlight">${{getItemValue item_id "sell"}}?</span></h4>
 			        {{/with}}
 	            	{{#with imageInfo itemId}}
-					<img class="image-thumb" src="/img/paintings/{{filename}}" width="{{image_width}}" height="{{image_height}}"/>
+					<img class="image-thumb" src="{{getImageURL filename}}" width="{{image_width}}" height="{{image_height}}"/>
 					<div class="row">
 				        <button id="sell-artwork" type="button" class="btn btn-default">sell</button>
 				        <button id="close-button" type="button" class="btn btn-default">close</button>
