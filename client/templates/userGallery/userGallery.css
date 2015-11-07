@@ -89,3 +89,60 @@
 .template-userGallery #enter-button.disabled:hover {
 	cursor: default;
 }
+
+#gallery-wall {
+	display: block;
+	overflow: hidden;
+	white-space: nowrap;
+	margin: 0px 24px 0px 24px !important;
+	padding: 64px 64px 128px 64px !important;
+	border-bottom: 1px solid black;
+	background-color: #EEEEEE;
+	cursor: grab;
+}
+
+#gallery-wall:active {
+	cursor: grabbing;
+}
+
+#gallery-wall .item{
+	display: inline-block;
+	border: 6px solid black;
+	padding: 10px;
+	-webkit-box-shadow: 6px 6px 0px 0px rgba(0,0,0,0.21);
+	-moz-box-shadow: 6px 6px 0px 0px rgba(0,0,0,0.21);
+	box-shadow: 6px 6px 0px 0px rgba(0,0,0,0.21);
+}
+
+#gallery-wall .painting-container {
+	display: inline-block;
+	margin: 0px 48px;
+}
+
+#gallery-wall .item img{
+	display: block;
+	width: 300px;
+	height: auto;
+	cursor: pointer;
+}
+
+#gallery-floor {
+	margin: 0px 24px 64px 24px !important;
+	background-color: gray;
+	height: 96px;
+	background: url("https://s3.amazonaws.com/com.artfunkel.artwork/textures/floor_wood.jpg");
+	background-size: 400px 100px;
+}
+
+.template-userGallery .plackard {
+	margin-left: 12px;
+	width: 36px;
+	height: 24px;
+	background-color: white;
+	display: inline-block;
+	-webkit-box-shadow: 2px 2px 0px 0px rgba(0,0,0,0.21);
+	-moz-box-shadow: 2px 2px 0px 0px rgba(0,0,0,0.21);
+	box-shadow: 2px 2px 0px 0px rgba(0,0,0,0.21);
+	cursor: pointer;
+}
+

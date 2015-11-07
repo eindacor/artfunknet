@@ -1,4 +1,11 @@
 var galleryContentTracker = new Tracker.Dependency;
+var item_count;
+
+var thinnest_image_width = 20;
+var pixels_per_centimeter;
+var click_location, original_offset;
+var overall_width = 0;
+
 
 var setGallery = function(screen_name, template_data) {
 	Meteor.call('getUserGallery', screen_name, function(error, result) {
@@ -8,6 +15,7 @@ var setGallery = function(screen_name, template_data) {
 		else {
 			template_data["gallery_data"] = result;
 			galleryContentTracker.changed();
+			pixels_per_centimeter = thinnest_image_width / artworks.findOne({}, {sort: {'width': 1}}).width;
 		}
 	});
 }
@@ -84,6 +92,25 @@ Template.userGallery.helpers({
 
 	'unmet' : function(npc_id) {
 		return npcs.findOne(npc_id).players_met.indexOf(Meteor.userId()) == -1;
+	},
+
+	'getFilename' : function(artwork_id) {
+		return artworks.findOne(artwork_id).filename;
+	},
+
+	'carousel_rendered' : function() {
+		return Session.get('carouselRendered');
+	},
+
+	'calcWidth' : function(artwork_id) {
+		if (pixels_per_centimeter === undefined) {
+			return 0;
+		}
+
+		else {
+			var artwork_object = artworks.findOne(artwork_id);
+			return Math.floor(artwork_object.width * pixels_per_centimeter);
+		}
 	}
 })
 
@@ -125,6 +152,14 @@ Template.userGallery.events ({
 		}
 	},
 
+	'click .item img' : function(element) {
+		console.log("clicked");
+	},
+
+	'mousedown .item' : function(element) {
+		element.stopPropagation();
+	},
+
 	'mouseover .npc' : function(element) {
 		var npc_id = element.target.dataset.npc_id;
 
@@ -137,6 +172,36 @@ Template.userGallery.events ({
 			hover_string += " (already met)";
 
 		setFootnote(hover_string, Math.floor(Math.random() * 1000));
+	},
+
+	'mousedown #gallery-wall' : function(element) {
+		click_location = Number(element.screenX);
+		original_offset = Number($('.image-container').css('margin-left').replace("px", ""));
+
+		overall_width = 0;
+		for (var i=0; i < $('.painting-container').length; i++) {
+			overall_width += Number($('.painting-container:eq(' + i + ')').css('width').replace("px", ""));
+		}
+
+		//adds padding * 3 instead of 2 to adjust for shift below
+		overall_width += (Number($('#gallery-wall').css('padding-left').replace("px", "")) * 3);
+		overall_width -= Math.floor(Number($('#gallery-wall').css('width').replace("px", "")) / 2);
+	},
+
+	'mousemove #gallery-wall' : function(element) {
+		if (click_location !== undefined && original_offset !== undefined) {
+			var movement = click_location - Number(element.screenX);
+			var new_offset = original_offset - movement;
+			if (new_offset < 0 && new_offset > overall_width * -1) {
+				$('.image-container').css('margin-left', new_offset + "px");
+				$('#gallery-floor').css('background-position', new_offset + "px");
+			}
+		}
+	},
+
+	'mouseup #gallery-wall' : function(element) {
+		click_location = undefined;
+		original_offset = undefined;
 	}
 })
 
