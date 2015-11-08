@@ -111,7 +111,7 @@ Template.adminTools.events({
 
 	'click .text-field' : function(element) {
 		var current = $(element.target).html();
-		$(element.target).replaceWith('<input class="set-field" value="' + current + '"></textarea>');
+		$(element.target).replaceWith('<input class="set-field" value="' + current + '"></input>');
 	},
 
 	'blur .set-field' : function(element) {
@@ -133,6 +133,21 @@ Template.adminTools.events({
 			setAdminData(set_id, value);
         }
     },
+
+    'click #generate-item' : function(element) {
+    	var artwork_id = $('#artwork-id').val();
+    	var condition = $('#condition').val();
+    	var xp_rating = $('#xp-rating').val();
+    	var foil = $('.foil-selector').val() == "true";
+
+    	Meteor.call('generateItemFromArtworkID', Meteor.userId(), artwork_id, Number(condition) / 100, Number(xp_rating) / 100, foil, function(error, result) {
+    		if (error)
+    			console.log(error.message);
+
+    		if (result === undefined)
+    			console.log("an error has occurred");
+    	});
+    }
 })
 
 Template.adminTools.helpers({

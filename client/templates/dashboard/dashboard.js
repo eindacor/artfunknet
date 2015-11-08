@@ -15,7 +15,8 @@ Template.dashboard.helpers({
 				'auction_max' : user_object.profile.auction_cap,
 				'private_max' : user_object.profile.pc_cap,
 				'entry_fee' : "$" + getCommaSeparatedValue(user_object.profile.entry_fee),
-				'ticket_max' : user_object.profile.ticket_cap
+				'ticket_max' : user_object.profile.ticket_cap,
+				'has_tickets' : user_object.profile.gallery_tickets.length !== 0
 			}
 
 			return data_object;

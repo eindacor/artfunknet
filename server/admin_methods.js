@@ -98,5 +98,13 @@ Meteor.methods({
 				'bank_balance': user_object.profile.bank_balance
 			}
 		}
+	},
+
+	'generateItemFromArtworkID' : function(user_id, artwork_id, condition, xp_rating, foil) {
+		if (adminValidated()) {
+			return generateItemFromArtworkID(user_id, artwork_id, condition, xp_rating, foil);
+		}
+
+		else return undefined;
 	}
 })

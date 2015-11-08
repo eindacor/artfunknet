@@ -33,16 +33,16 @@
 							<p>current exhibition value: <span class="highlight af-color">${{display_value}}</span></p>
 						</div>
 						<div class="row">
-							<p>items exhibited: <span class="highlight af-color">{{display_count}}</span> (max: {{display_max}})</p>
+							<p>items exhibited: <span class="highlight af-color">{{display_count}}</span> ({{display_max}} max)</p>
 						</div>
 						<div class="row">
-							<p>paintings owned: <span class="highlight af-color">{{inventory_count}}</span> (max: {{inventory_max}})</p>
+							<p>paintings owned: <span class="highlight af-color">{{inventory_count}}</span> ({{inventory_max}} max)</p>
 						</div>
 						<div class="row">
-							<p>auctions active: <span class="highlight af-color">{{auction_count}}</span> (max: {{auction_max}})</p>
+							<p>auctions active: <span class="highlight af-color">{{auction_count}}</span> ({{auction_max}} max)</p>
 						</div>
 						<div class="row">	
-							<p>permanent collection: <span class="highlight af-color">{{private_count}}</span> (max: {{private_max}})</p>
+							<p>permanent collection: <span class="highlight af-color">{{private_count}}</span> ({{private_max}} max)</p>
 						</div>
 						<div class="row">
 							<p>gallery entry fee: <span class="highlight af-color">{{entry_fee}}</span> <!-- <i id="edit-fee" class="fa fa-pencil-square-o"></i> --></p>
@@ -53,10 +53,12 @@
 	            	</div>
 				</div>		
 				<div class="row ticket-info">
-					{{#each ticket}}
-					<a href="/user/{{owner_name}}" class="ticket-button {{#if unmet_npcs}}af-color{{else}}npcs-met{{/if}}"><i data-expiration_string="{{expiration_string}}" data-owner_name="{{owner_name}}" class="fa fa-ticket"></i></a>
-					{{/each}}
-					<p class="ticket-max">(max: {{ticket_max}})</p>
+					{{#if has_tickets}}
+						{{#each ticket}}
+						<a href="/user/{{owner_name}}" class="ticket-button {{#if unmet_npcs}}af-color{{else}}npcs-met{{/if}}"><i data-expiration_string="{{expiration_string}}" data-owner_name="{{owner_name}}" class="fa fa-ticket"></i></a>
+						{{/each}}
+						<p class="ticket-max">({{ticket_max}} max)</p>
+					{{/if}}
 				</div>
 			</div>
 

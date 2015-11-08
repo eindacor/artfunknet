@@ -302,6 +302,29 @@ generateItemsFromRarity = function(user_id, rarity, count) {
     return item_ids;
 }
 
+generateItemFromArtworkID = function(user_id, artwork_id, condition, xp_rating, foil) {
+    if (Meteor.user().profile.user_type == "admin") {
+        var artwork_object = artworks.findOne(artwork_id);
+        if (artwork_object) {
+            var new_item_id = items.insert({
+                'artwork_id' : artwork_id,
+                'condition' : condition,
+                'attributes' : getAttributes(artwork_object.rarity),
+                'owner' : user_id,
+                'status' : 'unclaimed',
+                'date_created' : new Date(),
+                'xp_rating' : xp_rating,
+                'roll_count' : 0,
+                'foil': foil
+            });
+
+            return new_item_id;
+        }
+    }
+
+    else return undefined;
+}
+
 generateItemsForSale = function(user_id, quality, count) {
     if (Meteor.users.findOne(user_id) === undefined)
         return;
@@ -332,7 +355,8 @@ generateItemsForSale = function(user_id, quality, count) {
             'status' : 'for_sale',
             'date_created' : new Date(),
             'xp_rating' : getXPRating(),
-            'roll_count' : 0
+            'roll_count' : 0,
+            'foil': Math.random() < .01
         });
 
         item_ids.push(new_item_id);
