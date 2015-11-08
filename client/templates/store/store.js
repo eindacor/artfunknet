@@ -58,22 +58,6 @@ Template.store.events ({
 
 			Router.go("/loot");
 		})
-	},
-
-	'click .purchase-button.enabled' : function(element) {
-		var item_id = $(element.target).data('item_id');
-		Meteor.call('purchaseItemFromDealer', item_id, function(error) {
-			if(error)
-				console.log(error.message);
-		})
-	},
-
-	'click .decline.enabled' : function(element) {
-		var item_id = $(element.target).data('item_id');
-		Meteor.call('declineItem', item_id, function(error) {
-			if(error)
-				console.log(error.message);
-		})
 	}
 })
 

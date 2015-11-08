@@ -30,7 +30,7 @@
 	<div class="template-galleryItemThumbnail">
 		{{#with imageInfo this}}
 		<div class="col-xs-12 no-padding no-margin img-container" style="padding-top: {{padding_top}}px">
-			<img class="image-thumb" data-item_id="{{item_id}}" src="/img/paintings/{{filename}}" width="{{image_width}}" height="{{image_height}}"/>
+			<img class="image-thumb" data-item_id="{{item_id}}" src="{{getImageURL filename}}" width="{{image_width}}" height="{{image_height}}"/>
 		</div>
 		{{/with}}
 	</div>

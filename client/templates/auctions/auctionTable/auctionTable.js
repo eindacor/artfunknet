@@ -69,9 +69,8 @@ Template.auctionTable.helpers({
 
 	'auction_info' : function(auction_object) {
 		try {
+			var list_object = auction_object;
 			var item_object = items.findOne({'_id': auction_object.item_id});
-			//retrieve artwork data to use as a foundation for the list object
-			var list_object = artworks.findOne({'_id': item_object.artwork_id});
 			var bids = auction_object.bid_history.length;
 			var winning_id = (bids > 0 ? auction_object.bid_history[bids - 1].user_id : undefined);
 			var has_bid = false;
@@ -93,26 +92,19 @@ Template.auctionTable.helpers({
 			}
 
 			list_object.condition_text = Math.floor((item_object.condition * 100)) + '%';
-			list_object.condition = item_object.condition;
-			list_object.auction_id = auction_object._id;
 			list_object.biddable = 
 				Meteor.userId() && 
 				(item_object.owner != Meteor.userId()) && 
 				(auction_object.bid_minimum <= Meteor.user().profile.bank_balance) && 
 				items.find({'owner' : Meteor.userId(), 'status' : {$ne : 'unclaimed'}}).count() < Meteor.user().profile.inventory_cap;
-			list_object.expiration = auction_object.expiration_date;
-			list_object.buy_now = auction_object.buy_now == -1 ? "-" : "$" + getCommaSeparatedValue(auction_object.buy_now),
-			list_object.history = auction_object.bid_history.length > 0;
+			list_object.buy_now_text = auction_object.buy_now == -1 ? "-" : "$" + getCommaSeparatedValue(auction_object.buy_now),
+			list_object.has_history = auction_object.bid_history.length > 0;
 			list_object.winning = (winning_id == Meteor.userId()) && Meteor.userId();
 			list_object.losing = (winning_id != Meteor.userId() && winning_id && has_bid);
-			list_object.seller = auction_object.seller;
-			list_object.item_id = item_object._id;
 			list_object.owned = items.find({'owner': Meteor.userId(), 'artwork_id': list_object._id}).count() > 0;
 			list_object.attribute = displayed_attributes;
 			//list_object.base_attribute = base_attributes;
-			list_object.xp_rating = item_object.xp_rating;
 			list_object.xp_rating_text = Math.floor(item_object.xp_rating * 100);
-			list_object.roll_count = item_object.roll_count;
 
 			return list_object;
 		}

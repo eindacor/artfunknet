@@ -48,6 +48,14 @@ Template.registerHelper('positionFromIndex', function(index) {
 	return index + 1;
 })
 
+Template.registerHelper('isEqual', function(first, second) {
+	return first == second;
+})
+
+Template.registerHelper('getImageURL', function(filename) {
+	return "https://s3.amazonaws.com/com.artfunkel.artwork/full_images/" + filename;
+})
+
 Template.registerHelper('cardData', function(item_array) {
 	//create list object and add rarity_rank, feature_count, artist, title, date
 	var display_objects = [];

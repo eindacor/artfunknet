@@ -12,63 +12,40 @@
 				</div>
 				<h1 class="af-color">Player Gallery - {{screen_name}}</h1>
 
-				{{#with galleryData screen_name}}
-					{{#if displayed_shown}}
-					<h2>Featured Works</h2>
+				<div id="gallery-wall">
+					<div class="image-container">
+					{{#with galleryData screen_name}}
 						{{#each displayed}}
-							<div class="item-card" data-painting-id="{{this._id}}">
-								<div class="row no-padding no-margin">
-									<div class="col-xs-7 no-padding no-margin">
-										{{>galleryItemInfo this._id}}
-									</div>
-									<div class="col-xs-5 no-padding no-margin">
-										<div class="image-thumbnail">
-											{{>galleryItemThumbnail this._id}}
-										</div>
-										<div class="col-xs-12">
-											<div class="row button-area">
-												<span class="remaining-text">{{time_remaining this._id}}</span>
-											</div>
-										</div>
-									</div>
-								</div>
-							</div>
+							{{> galleryItem this}}
 						{{/each}}
-					{{/if}}
 					
-					{{#if permanent_shown}}
-					<h2>Permanent Collection</h2>
 						{{#each permanent}}
-							<div class="item-card" data-painting-id="{{this._id}}">
-								<div class="row no-padding no-margin">
-									<div class="col-xs-7 no-padding no-margin">
-										{{>galleryItemInfo this._id}}
-									</div>
-									<div class="col-xs-5 no-padding no-margin">
-										<div class="image-thumbnail">
-											{{>galleryItemThumbnail this._id}}
-										</div>
-										<div class="col-xs-12">
-											<div class="row button-area">
-												<span class="remaining-text">{{time_remaining this._id}}</span>
-											</div>
-										</div>
-									</div>
-								</div>
-							</div>
+							{{> galleryItem this}}
 						{{/each}}
-					{{/if}}
-				{{/with}}
-			
-
-			{{else}}
-				<div class="col-xs-12">
-					<div class="row">
-						<h4>entry fee: <span class="highlight af-color">{{entry_fee_text}}</span></h4>
-						<button class="{{#if pay_fee_enabled}}enabled{{else}}disabled{{/if}}" id="enter-button" data-owner_id="{{owner_id}}">pay fee</button>
+					{{/with}}
 					</div>
 				</div>
+				<div id="gallery-floor"></div>
+			
+			{{else}}
+				<div class="row">
+					<h4>entry fee: <span class="highlight af-color">{{entry_fee_text}}</span></h4>
+					<button class="{{#if pay_fee_enabled}}enabled{{else}}disabled{{/if}}" id="enter-button" data-owner_id="{{owner_id}}">pay fee</button>
+				</div>
 			{{/if}}
+			{{/with}}
+		</div>
+	</div>
+</template>
+
+<template name="galleryItem">
+	<div class="painting-container" data-item_id="{{this._id}}">
+		<div class="item"><img src="{{#with getFilename this.artwork_id}}{{getImageURL this}}{{/with}}" style="width: {{calcWidth this.artwork_id}}px"></div>
+		<div class="plackard">
+			{{#with plackardData this.artwork_id}}
+				<p>{{title}}</p>
+				<p>{{artist}}, {{date}}</p>
+				<p class="{{this.rarity}}">{{rarity}}</p>
 			{{/with}}
 		</div>
 	</div>

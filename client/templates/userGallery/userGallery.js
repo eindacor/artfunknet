@@ -1,4 +1,11 @@
 var galleryContentTracker = new Tracker.Dependency;
+var item_count;
+
+var thinnest_image_width = 20;
+var pixels_per_centimeter;
+var click_location, original_offset;
+var offset_max = 0;
+
 
 var setGallery = function(screen_name, template_data) {
 	Meteor.call('getUserGallery', screen_name, function(error, result) {
@@ -8,6 +15,7 @@ var setGallery = function(screen_name, template_data) {
 		else {
 			template_data["gallery_data"] = result;
 			galleryContentTracker.changed();
+			pixels_per_centimeter = thinnest_image_width / artworks.findOne({}, {sort: {'width': 1}}).width;
 		}
 	});
 }
@@ -84,6 +92,10 @@ Template.userGallery.helpers({
 
 	'unmet' : function(npc_id) {
 		return npcs.findOne(npc_id).players_met.indexOf(Meteor.userId()) == -1;
+	},
+
+	'carousel_rendered' : function() {
+		return Session.get('carouselRendered');
 	}
 })
 
@@ -137,6 +149,39 @@ Template.userGallery.events ({
 			hover_string += " (already met)";
 
 		setFootnote(hover_string, Math.floor(Math.random() * 1000));
+	},
+
+	'mousedown #gallery-wall' : function(element) {
+		click_location = Number(element.screenX);
+		original_offset = Number($('.image-container').css('margin-left').replace("px", ""));
+
+		offset_max = 0;
+		var overall_width = 0;
+		for (var i=0; i < $('.painting-container').length; i++) {
+			overall_width += Number($('.painting-container:eq(' + i + ')').css('width').replace("px", ""));
+			overall_width += Number($('.painting-container:eq(' + i + ')').css('margin-right').replace("px", ""));
+			overall_width += Number($('.painting-container:eq(' + i + ')').css('margin-left').replace("px", ""));
+		}
+
+		overall_width += Number($('#gallery-wall').css('padding-left').replace("px", ""));
+		overall_width += Number($('#gallery-wall').css('padding-right').replace("px", ""));
+		offset_max = overall_width - Math.floor(Number($('#gallery-wall').css('width').replace("px", "")));
+	},
+
+	'mousemove #gallery-wall' : function(element) {
+		if (click_location !== undefined && original_offset !== undefined) {
+			var movement = click_location - Number(element.screenX);
+			var new_offset = original_offset - movement;
+			if (new_offset < 0 && new_offset > offset_max * -1) {
+				$('.image-container').css('margin-left', new_offset + "px");
+				$('#gallery-floor').css('background-position', new_offset + "px");
+			}
+		}
+	},
+
+	'mouseup #gallery-wall' : function(element) {
+		click_location = undefined;
+		original_offset = undefined;
 	}
 })
 
@@ -150,3 +195,36 @@ Template.userGallery.created = function() {
 Template.userGallery.destroyed = function() {
 	Meteor.clearInterval(this.handle);
 }
+
+Template.galleryItem.helpers({
+	'getFilename' : function(artwork_id) {
+		return artworks.findOne(artwork_id).filename;
+	},
+
+	'calcWidth' : function(artwork_id) {
+		if (pixels_per_centimeter === undefined) {
+			return 0;
+		}
+
+		else {
+			var artwork_object = artworks.findOne(artwork_id);
+			return Math.floor(artwork_object.width * pixels_per_centimeter);
+		}
+	},
+
+	'plackardData' : function(artwork_id) {
+		return artworks.findOne(artwork_id);
+	}
+});
+
+Template.galleryItem.events({
+	'click .item img' : function(element) {
+		var item_id = $(element.target).closest('.painting-container').data().item_id;
+		Session.set('selectedItem', item_id);
+		Modal.show('fullViewModal');
+	},
+
+	'mousedown .item' : function(element) {
+		element.stopPropagation();
+	},
+})

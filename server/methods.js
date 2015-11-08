@@ -36,7 +36,8 @@ createAuction = function(item_id, starting, buy_now, duration) {
                 'xp_rating': item_object.xp_rating,
                 'feature_count': item_object.attributes.length,
                 'rarity_rank' : rarity_rank,
-                'roll_count' : item_object.roll_count
+                'roll_count' : item_object.roll_count,
+                'foil' : item_object.foil
             };
 
             auctions.insert(auction_object);
@@ -66,6 +67,7 @@ var getMVPData = function() {
             'value': getItemValue(all_items[i]._id, 'actual'),
             'rarity': artwork_object.rarity,
             'condition': all_items[i].condition,
+            'foil': all_items[i].foil
         }
 
         mvp_array.push(leaderboard_object);

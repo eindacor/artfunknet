@@ -3,19 +3,6 @@
 	border-top: 1px solid gray;
 }
 
-.template-inventory .button-area {
-	font-size: 1em;
-	height: 36px;
-	text-align: center;
-	vertical-align: middle;
-	margin-top: 12px;
-}
-
-.template-inventory .button-area > div {
-	font-size: 1.5em;
-	text-align: center;
-}
-
 .template-inventory .remaining-text {
 	font-size: .6em;
 }
@@ -33,26 +20,6 @@
 	line-height: .75;
 	vertical-align: middle;
 	margin-top: -6px;
-}
-
-.template-inventory .button-area .disabled{
-	opacity: .5;
-}
-
-.template-inventory .button-area .enabled {
-	color: black;
-	opacity: .5;
-}
-
-.template-inventory .button-area .enabled:hover, .template-inventory .button-area .inactive:hover {
-	opacity: 1;
-	cursor: pointer;
-	color: black;
-}
-
-.template-inventory .button-area .active:hover {
-	cursor: pointer;
-	opacity: .5;
 }
 
 

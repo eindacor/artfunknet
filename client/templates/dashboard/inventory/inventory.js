@@ -8,58 +8,6 @@ Template.inventory.helpers({
 		return item_object && item_object.status == 'displayed';
 	},
 
-	'permanent' : function(item_id) {
-		var item_object = items.findOne(item_id);
-		return item_object && item_object.status == 'permanent';
-	},
-
-	'time_remaining': function(item_id) {
-		var item_object = items.findOne(item_id);
-
-		if (item_object.status == 'displayed') {
-			var expiration = moment(item_object.display_details.end);
-			var now = moment(Session.get('now'));
-			var remaining = expiration - now;
-
-			var remaining_text = remaining > 0 ? getCountdownString(remaining) : "expired";
-			return remaining_text;
-		}
-
-		else return "";
-	},
-
-	'can_display' : function(display_object) {
-		if (Meteor.userId()) {
-			return items.find({'owner' : Meteor.userId(), 'status' : 'displayed'}).count() < Meteor.user().profile.display_cap && 
-				items.find({'owner' : Meteor.userId(), 'status' : 'displayed', 'artwork_id' : display_object.artwork_id}).count() == 0 &&
-				display_object.status != 'permanent';
-		}
-
-		else return false;
-	},
-
-	'can_auction' : function(display_object) {
-		if (Meteor.userId()) {
-			return items.find({'owner' : Meteor.userId(), 'status' : 'auctioned'}).count() < Meteor.user().profile.auction_cap &&
-				display_object.status != 'permanent';
-		}
-
-		else return false;
-	},
-
-	'can_reroll' : function(display_object) {
-		return display_object.status != 'permanent';
-	},
-
-	'can_sell' : function(display_object) {
-		return display_object.status != 'permanent';
-	},
-
-	'can_permanent' : function(display_object) {
-		return items.find({'owner' : Meteor.userId(), 'status' : 'permanent'}).count() < Meteor.user().profile.pc_cap ||
-			display_object.status == 'permanent';
-	},
-
 	'list_view' : function() {
 		return Session.get('list_view');
 	},
@@ -146,95 +94,12 @@ Template.inventory.helpers({
 	'valueColor' : function(value) {
 		return 255 - Math.floor(value * 255);
 	},
-})
+});
 
-Template.inventory.events ({
-	'click .quick-sell.enabled' : function(element) {
-		var item_id = $(element.target).data('item_id');
-		Session.set('selectedItem', item_id);
-		Modal.show('quickSellModal');
-	},
-
-	'click .auction.enabled' : function(element) {
-		var item_id = $(element.target).data('item_id');
-		Session.set('selectedItem', item_id);
-		Modal.show('createAuctionModal');
-	},
-
-	'click .display.enabled' : function(element, template) {
-		var item_id = $(element.target).data('item_id');
-		Session.set('selectedItem', item_id);
-		Modal.show('onDisplayModal');
-	},
-
+Template.inventory.events({
 	'click #toggle-view' : function() {
 		Session.set('list_view', !Session.get('list_view'));
-	},
-
-	'click .preview.enabled' : function(element) {
-		var item_id = $(element.target).closest('tr').data('item_id');
-		Session.set('selectedItem', item_id);
-		Modal.show('fullViewModal');
-	},
-
-	'click .reroll.enabled' : function(element) {
-		var item_id = $(element.target).data('item_id');
-		Session.set('selectedItem', item_id);
-		Modal.show('rerollModal');
-	},
-
-	'click .perm-collection.inactive' : function(element) {
-		var item_id = $(element.target).data('item_id');
-		Meteor.call('setItemPermanentCollectionStatus' , item_id, true, function(error) {
-			if (error)
-				console.log(error.message)
-		})
-	},
-
-	'click .perm-collection.active' : function(element) {
-		var item_id = $(element.target).data('item_id');
-		Meteor.call('setItemPermanentCollectionStatus' , item_id, false, function(error) {
-			if (error)
-				console.log(error.message)
-		})
-	},
-
-	'mouseover .list-item-attribute' : function(element) {
-		var value = Math.floor(Number(element.target.dataset.attribute_value) * 100);
-		var description = element.target.dataset.attribute_title;
-		setFootnote("level " + value + " " + description, Math.floor(Math.random() * 100000));
-	},
-
-	'mouseover .quick-sell' : function(event) {
-		var enabled = $(event.target).closest('span.quick-sell').hasClass("enabled");
-		var footnote_string = "sell artwork" + (enabled ? "" : " (unavailable)");
-		setFootnote(footnote_string, Math.floor(Math.random() * 100000));
-	},
-
-	'mouseover .auction' : function(event) {
-		var enabled = $(event.target).closest('span.auction').hasClass("enabled");
-		var footnote_string = "auction artwork" + (enabled ? "" : " (unavailable)");
-		setFootnote(footnote_string, Math.floor(Math.random() * 100000));
-	},
-
-	'mouseover .display' : function(event) {
-		var enabled = $(event.target).closest('span.display').hasClass("enabled");
-		var footnote_string = "display artwork" + (enabled ? "" : " (unavailable)");
-		setFootnote(footnote_string, Math.floor(Math.random() * 100000));
-	},
-
-	'mouseover .reroll' : function(event) {
-		var enabled = $(event.target).closest('span.reroll').hasClass("enabled");
-		var footnote_string = "reroll attribute values" + (enabled ? "" : " (unavailable)");
-		setFootnote(footnote_string, Math.floor(Math.random() * 100000));
-	},
-
-	'mouseover .perm-collection' : function(event) {
-		var active = $(event.target).closest('span.perm-collection').hasClass("active");
-		var footnote_string = active ? "remove from permanent collection" : "add to permanent collection";
-		setFootnote(footnote_string, Math.floor(Math.random() * 100000));
-	},
-
+	}
 })
 
 Template.inventory.created = function() {
