@@ -106,5 +106,23 @@ Meteor.methods({
 		}
 
 		else return undefined;
+	},
+
+	'addFieldToProfiles' : function(field_name, default_value) {
+		if (adminValidated()) {
+			var setter = {};
+
+			var key_string = "profile." + field_name;
+
+			switch(default_value) {
+				case "{}": setter[key_string] = {};
+				case "[]": setter[key_string] = [];
+				default: setter[key_string] = default_value;
+			}
+
+			Meteor.users.update({}, {$set: setter}, {multi: true});
+		}
+
+		else return undefined;
 	}
 })

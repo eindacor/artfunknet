@@ -31,10 +31,10 @@
 
 				<div class="row">
 					{{#each wall_finish}}
-						<img class="wall-finish-thumbnail" src="{{getTextureURL filename}}">
+						<img data-gallery_finish_id="{{_id}}" class="wall-finish-thumbnail" src="{{getTextureURL filename}}">
 					{{/each}}
 					{{#each floor_finish}}
-						<img class="floor-finish-thumbnail" src="{{getTextureURL filename}}">
+						<img data-gallery_finish_id="{{_id}}" class="floor-finish-thumbnail" src="{{getTextureURL filename}}">
 					{{/each}}
 				</div>
 			
