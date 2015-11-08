@@ -94,9 +94,13 @@ Template.userGallery.helpers({
 		return npcs.findOne(npc_id).players_met.indexOf(Meteor.userId()) == -1;
 	},
 
-	'carousel_rendered' : function() {
-		return Session.get('carouselRendered');
-	}
+	'wall_finish' : function() {
+		return gallery_finishes.find({'type': "wall finish"}).fetch();
+	},
+
+	'floor_finish' : function() {
+		return gallery_finishes.find({'type': "floor finish"}).fetch();
+	},
 })
 
 Template.userGallery.events ({
@@ -183,6 +187,18 @@ Template.userGallery.events ({
 	'mouseup #gallery-wall' : function(element) {
 		click_location = undefined;
 		original_offset = undefined;
+	},
+
+	'click .wall-finish-thumbnail' : function(element) {
+		var html_string = "url(" + element.target.src + ")";
+		$('#gallery-wall').css('background', html_string);
+		$('#gallery-wall').css('background-size', "150px 150px");
+	},
+
+	'click .floor-finish-thumbnail' : function(element) {
+		var html_string = "url(" + element.target.src + ")";
+		$('#gallery-floor').css('background', html_string);
+		$('#gallery-floor').css('background-size', "200px 100px");
 	}
 })
 

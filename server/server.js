@@ -92,6 +92,12 @@ Meteor.startup(function() {
         }
     }
 
+    if (gallery_finishes.find().count() == 0) {
+        for (var i=0; i < gallery_finish_data.length; i++) {
+            gallery_finishes.insert(gallery_finish_data[i]);
+        }
+    }
+
     if (Meteor.users.find().count() == 0) {
         var player_1 = {
             "username": "jpollack320@gmail.com",

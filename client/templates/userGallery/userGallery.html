@@ -28,6 +28,15 @@
 					</div>
 				</div>
 				<div id="gallery-floor"></div>
+
+				<div class="row">
+					{{#each wall_finish}}
+						<img class="wall-finish-thumbnail" src="{{getTextureURL filename}}">
+					{{/each}}
+					{{#each floor_finish}}
+						<img class="floor-finish-thumbnail" src="{{getTextureURL filename}}">
+					{{/each}}
+				</div>
 			
 			{{else}}
 				<div class="row">
