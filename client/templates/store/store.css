@@ -3,10 +3,6 @@
 	border-top: 1px solid gray;
 }
 
-.template-store p {
-	margin: 5px 20px;
-}
-
 .template-store .decline.disabled{
 	opacity: .5;
 }
@@ -61,6 +57,14 @@
 	border: 1px solid #93CFCF;
 	color: #93CFCF;
 }
-.template-store .purchase-button {
-	font-size: .75em;
+
+.template-store .store-item-container {
+	display: inline-block;
+}
+
+.template-store .price-text {
+	margin-top: -20px;
+	margin-bottom: 20px;
+	text-align: center;
+	font-size: 2rem;
 }

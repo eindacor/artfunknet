@@ -177,10 +177,8 @@ Template.itemInfo.events({
 	'click .purchase.enabled' : function(element) {
 		element.stopPropagation();
 		var item_id = $(element.target).closest('.card-container').data('item_id');
-		Meteor.call('purchaseItemFromDealer', item_id, function(error) {
-			if(error)
-				console.log(error.message);
-		})
+		Session.set('selectedItem', item_id);
+		Modal.show('purchaseModal');
 	},
 
 	'click .decline.enabled' : function(element) {
@@ -213,7 +211,7 @@ Template.itemInfo.events({
 
 	'mouseover .quick-sell' : function(event) {
 		var enabled = $(event.target).closest('span.quick-sell').hasClass("enabled");
-		var footnote_string = "sell artwork" + (enabled ? "" : " (unavailable)");
+		var footnote_string = "discard artwork" + (enabled ? "" : " (unavailable)");
 		setFootnote(footnote_string, Math.floor(Math.random() * 100000));
 	},
 
