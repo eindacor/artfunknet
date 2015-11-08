@@ -175,6 +175,7 @@ Template.userGallery.events ({
 			if (new_offset < 0 && new_offset > offset_max * -1) {
 				$('.image-container').css('margin-left', new_offset + "px");
 				$('#gallery-floor').css('background-position', new_offset + "px");
+				$('#gallery-wall').css('background-position', new_offset + "px");
 			}
 		}
 	},

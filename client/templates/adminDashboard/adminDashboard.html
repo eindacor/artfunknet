@@ -21,6 +21,18 @@
 							{{/each}}
 						</select>
 					</div>
+
+					<div class="row item-creation">
+						<h4 class="af-color">Generate Item</h4>
+						<p>artwork id: <input class="item-create-field" id="artwork-id"></p>
+						<p>condition: <input class="item-create-field" id="condition"></p>
+						<p>xp rating: <input class="item-create-field" id="xp-rating"></p>
+						<select class="foil-selector">
+							<option value="true">true</option>
+							<option value="false">false</option>
+						</select>
+						<p><button id="generate-item">generate item</button></p>
+					</div>
 				{{/with}}
 			</div>
 		</div>
@@ -35,7 +47,6 @@
 					<p>{{label}}: </p>
 				</div>
 				<div class="col-xs-8">
-					<!-- <textarea class="set-field" placeholder="enter value"></textarea> -->
 					<p class="text-field">{{current}}</p>
 				</div>
 				

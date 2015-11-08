@@ -13,16 +13,18 @@
 				<h1 class="af-color">Player Gallery - {{screen_name}}</h1>
 
 				<div id="gallery-wall">
-					<div class="image-container">
-					{{#with galleryData screen_name}}
-						{{#each displayed}}
-							{{> galleryItem this}}
-						{{/each}}
-					
-						{{#each permanent}}
-							{{> galleryItem this}}
-						{{/each}}
-					{{/with}}
+					<div class="wall-wash">
+						<div class="image-container">
+						{{#with galleryData screen_name}}
+							{{#each displayed}}
+								{{> galleryItem this}}
+							{{/each}}
+						
+							{{#each permanent}}
+								{{> galleryItem this}}
+							{{/each}}
+						{{/with}}
+						</div>
 					</div>
 				</div>
 				<div id="gallery-floor"></div>
