@@ -16,17 +16,11 @@
 					<div class="image-container">
 					{{#with galleryData screen_name}}
 						{{#each displayed}}
-						<div class="painting-container">
-							<div class="item"><img src="{{#with getFilename artwork_id}}{{getImageURL this}}{{/with}}" style="width: {{calcWidth artwork_id}}px"></div>
-							<div class="plackard"></div>
-						</div>
+							{{> galleryItem this}}
 						{{/each}}
 					
 						{{#each permanent}}
-						<div class="painting-container">
-							<div class="item"><img src="{{#with getFilename artwork_id}}{{getImageURL this}}{{/with}}" style="width: {{calcWidth artwork_id}}px"></div>
-							<div class="plackard"></div>
-						</div>
+							{{> galleryItem this}}
 						{{/each}}
 					{{/with}}
 					</div>
@@ -39,6 +33,19 @@
 					<button class="{{#if pay_fee_enabled}}enabled{{else}}disabled{{/if}}" id="enter-button" data-owner_id="{{owner_id}}">pay fee</button>
 				</div>
 			{{/if}}
+			{{/with}}
+		</div>
+	</div>
+</template>
+
+<template name="galleryItem">
+	<div class="painting-container" data-item_id="{{this._id}}">
+		<div class="item"><img src="{{#with getFilename this.artwork_id}}{{getImageURL this}}{{/with}}" style="width: {{calcWidth this.artwork_id}}px"></div>
+		<div class="plackard">
+			{{#with plackardData this.artwork_id}}
+				<p>{{title}}</p>
+				<p>{{artist}}, {{date}}</p>
+				<p class="{{this.rarity}}">{{rarity}}</p>
 			{{/with}}
 		</div>
 	</div>

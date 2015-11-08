@@ -99,6 +99,12 @@
 	border-bottom: 1px solid black;
 	background-color: #EEEEEE;
 	cursor: grab;
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
 }
 
 #gallery-wall:active {
@@ -135,14 +141,20 @@
 }
 
 .template-userGallery .plackard {
+	padding: 3px;
 	margin-left: 12px;
-	width: 36px;
-	height: 24px;
 	background-color: white;
 	display: inline-block;
 	-webkit-box-shadow: 2px 2px 0px 0px rgba(0,0,0,0.21);
 	-moz-box-shadow: 2px 2px 0px 0px rgba(0,0,0,0.21);
 	box-shadow: 2px 2px 0px 0px rgba(0,0,0,0.21);
 	cursor: pointer;
+	padding-left: 4px;
+}
+
+.template-userGallery .plackard p {
+	font-size: .2rem;
+	line-height: 2px;
+	margin: 0px;
 }
 

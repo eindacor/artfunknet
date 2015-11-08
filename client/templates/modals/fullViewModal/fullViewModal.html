@@ -5,7 +5,6 @@
 	            <div class="modal-content container">
 	            	{{#with itemData}}
 	                <h4><span class="highlight af-color">{{title}}</span> by <span class="highlight af-color">{{artist}}</span></h4>
-	                <h5>Estimated value: <span class="highlight">${{getItemValue itemId "actual"}}</span></h5>
 			        {{/with}}
 	            	{{#with imageInfo itemId}}
 					<img class="image-thumb" src="{{getImageURL filename}}" width="{{image_width}}" height="{{image_height}}"/>

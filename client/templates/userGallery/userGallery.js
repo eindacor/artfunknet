@@ -94,23 +94,8 @@ Template.userGallery.helpers({
 		return npcs.findOne(npc_id).players_met.indexOf(Meteor.userId()) == -1;
 	},
 
-	'getFilename' : function(artwork_id) {
-		return artworks.findOne(artwork_id).filename;
-	},
-
 	'carousel_rendered' : function() {
 		return Session.get('carouselRendered');
-	},
-
-	'calcWidth' : function(artwork_id) {
-		if (pixels_per_centimeter === undefined) {
-			return 0;
-		}
-
-		else {
-			var artwork_object = artworks.findOne(artwork_id);
-			return Math.floor(artwork_object.width * pixels_per_centimeter);
-		}
 	}
 })
 
@@ -150,14 +135,6 @@ Template.userGallery.events ({
 				}
 			})
 		}
-	},
-
-	'click .item img' : function(element) {
-		console.log("clicked");
-	},
-
-	'mousedown .item' : function(element) {
-		element.stopPropagation();
 	},
 
 	'mouseover .npc' : function(element) {
@@ -218,3 +195,36 @@ Template.userGallery.created = function() {
 Template.userGallery.destroyed = function() {
 	Meteor.clearInterval(this.handle);
 }
+
+Template.galleryItem.helpers({
+	'getFilename' : function(artwork_id) {
+		return artworks.findOne(artwork_id).filename;
+	},
+
+	'calcWidth' : function(artwork_id) {
+		if (pixels_per_centimeter === undefined) {
+			return 0;
+		}
+
+		else {
+			var artwork_object = artworks.findOne(artwork_id);
+			return Math.floor(artwork_object.width * pixels_per_centimeter);
+		}
+	},
+
+	'plackardData' : function(artwork_id) {
+		return artworks.findOne(artwork_id);
+	}
+});
+
+Template.galleryItem.events({
+	'click .item img' : function(element) {
+		var item_id = $(element.target).closest('.painting-container').data().item_id;
+		Session.set('selectedItem', item_id);
+		Modal.show('fullViewModal');
+	},
+
+	'mousedown .item' : function(element) {
+		element.stopPropagation();
+	},
+})
