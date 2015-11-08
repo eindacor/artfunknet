@@ -1,4 +1,4 @@
-Template.quickSellModal.helpers({
+Template.purchaseModal.helpers({
 	'itemId' : function() {
 		if (Session.get('selectedItem')) 
 			return Session.get('selectedItem');
@@ -6,7 +6,7 @@ Template.quickSellModal.helpers({
 		else return "";
 	},
 
-	'sellData' : function() {
+	'purchaseData' : function() {
 		try {
 			if (Session.get('selectedItem')) {
 				var item_object = items.findOne(Session.get('selectedItem'));
@@ -73,18 +73,18 @@ Template.quickSellModal.helpers({
 	},
 })
 
-Template.quickSellModal.events({
+Template.purchaseModal.events({
 	'click #close-button' : function() {
-		Modal.hide('quickSellModal');
+		Modal.hide('purchaseModal');
 	},
 
-	'click #sell-artwork' : function() {
+	'click #purchase-artwork' : function() {
 		if (Session.get('selectedItem')) {
-			Meteor.call('sellArtwork', Session.get('selectedItem'), function(error) {
+			Meteor.call('purchaseItemFromDealer', Session.get('selectedItem'), function(error) {
 				if (error)
 					console.log(error.message);
 
-				else Modal.hide('quickSellModal');
+				else Modal.hide('purchaseModal');
 			});
 		}
 	}

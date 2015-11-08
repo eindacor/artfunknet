@@ -14,7 +14,10 @@
 		{{/if}}
 
 		{{#each cardData for_sale}}
-			{{>itemInfo item_data=this purchase_button=true decline_button=true preview_button=true}}
+			<div class="store-item-container">
+				{{>itemInfo item_data=this purchase_button=true decline_button=true preview_button=true}}
+				<p class="price-text">cost - ${{getItemValue this._id "dealer"}}</p>
+			</div>
 		{{/each}}
 
 	</div>
