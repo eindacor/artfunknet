@@ -351,10 +351,9 @@ var galleryManagerInteraction = function(npc_object) {
 }
 
 var designerInteraction = function(npc_object) {
-	var new_finish_chance = .5
 	var gallery_finish_count = gallery_finishes.find({'quality': npc_object.quality}).count();
 	var random_index = Math.floor(Math.random() * gallery_finish_count);
-	random_index = 1; // for debugging
+	//random_index = 1; // for debugging
 	var random_selection = gallery_finishes.findOne({'quality': npc_object.quality}, {skip: random_index});
 
 	var user_object = Meteor.user();
@@ -380,7 +379,7 @@ var designerInteraction = function(npc_object) {
 		var existing_xp_rating = user_object.profile.gallery_finishes.owned[category_string][random_selection._id].xp_rating;
 
 		var xp_rating_increase = .02;
-		
+
 		if (isOwnGallery(npc_object))
 			xp_rating_increase *= 2;
 
