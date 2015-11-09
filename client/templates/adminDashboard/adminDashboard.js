@@ -147,6 +147,38 @@ Template.adminTools.events({
     		if (result === undefined)
     			console.log("an error has occurred");
     	});
+    },
+
+    'click #modify-profiles' : function(element) {
+    	var field_name = $('#profile-add-field').val();
+    	var entered_value = $('#profile-add-value').val();
+    	var value;
+
+    	if (field_name === "" || field_name.indexOf(" ") != -1)
+    		console.log("invalid request");
+
+    	if (typeof(entered_value) == "string" && entered_value.length == 0) {
+    		if (confirm("warning: This action could potentially erase data from the player database. Are you sure you want to do this?"))
+    			value = "";
+
+    		else return;
+    	}
+
+    	else if (entered_value === "false")
+    		value = false;
+
+    	else if (entered_value === "true")
+    		value = true;
+
+    	else if (isNaN(entered_value)) 
+    		value = entered_value;
+
+    	else value = Number(entered_value);
+    	
+    	Meteor.call('updateProfiles', field_name, value, function(error) {
+    		if (error)
+    			console.log(error.message);
+    	})
     }
 })
 

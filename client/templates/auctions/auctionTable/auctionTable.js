@@ -96,7 +96,7 @@ Template.auctionTable.helpers({
 				Meteor.userId() && 
 				(item_object.owner != Meteor.userId()) && 
 				(auction_object.bid_minimum <= Meteor.user().profile.bank_balance) && 
-				items.find({'owner' : Meteor.userId(), 'status' : {$ne : 'unclaimed'}}).count() < Meteor.user().profile.inventory_cap;
+				items.find({'owner' : Meteor.userId(), 'status' : {$nin : ['unclaimed', 'for_sale']}}).count() < Meteor.user().profile.inventory_cap;
 			list_object.buy_now_text = auction_object.buy_now == -1 ? "-" : "$" + getCommaSeparatedValue(auction_object.buy_now),
 			list_object.has_history = auction_object.bid_history.length > 0;
 			list_object.winning = (winning_id == Meteor.userId()) && Meteor.userId();
@@ -123,7 +123,11 @@ Template.auctionTable.helpers({
 			var item_object = items.findOne(item_id);
 			var artwork_object = artworks.findOne(item_object.artwork_id);
 			var auction_object = auctions.findOne({'item_id' : item_id}); 
-			var biddable = (item_object.owner != Meteor.userId()) && (auction_object.bid_minimum <= Meteor.user().profile.bank_balance);
+			var biddable = 
+				Meteor.userId() && 
+				(item_object.owner != Meteor.userId()) && 
+				(auction_object.bid_minimum <= Meteor.user().profile.bank_balance) && 
+				items.find({'owner' : Meteor.userId(), 'status' : {$nin : ['unclaimed', 'for_sale']}}).count() < Meteor.user().profile.inventory_cap;
 
 			var max_dimension = 40;
 

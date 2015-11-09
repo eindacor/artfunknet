@@ -106,5 +106,24 @@ Meteor.methods({
 		}
 
 		else return undefined;
+	},
+
+	'updateProfiles' : function(field_name, value) {
+		if (adminValidated()) {
+			var setter = {};
+			var key_string = "profile." + field_name;
+
+			value = (value === "[]" ? [] : value);
+			value = (value === "{}" ? {} : value);
+
+			setter[key_string] = value;
+
+			if (typeof(value) == "string" && value.length == 0)
+				Meteor.users.update({}, {$unset: setter}, {multi: true});
+
+			else Meteor.users.update({}, {$set: setter}, {multi: true});
+		}
+
+		else return undefined;
 	}
 })

@@ -56,6 +56,10 @@ Template.registerHelper('getImageURL', function(filename) {
 	return "https://s3.amazonaws.com/com.artfunkel.artwork/full_images/" + filename;
 })
 
+Template.registerHelper('getTextureURL', function(filename) {
+	return "https://s3.amazonaws.com/com.artfunkel.artwork/textures/" + filename;
+})
+
 Template.registerHelper('cardData', function(item_array) {
 	//create list object and add rarity_rank, feature_count, artist, title, date
 	var display_objects = [];

@@ -71,7 +71,7 @@ Meteor.methods({
 				npc_interaction = collectorInteraction(npc_object);
 				break;
 			case "designer_bonus": //DISABLE - give discount to store
-				npc_interaction = {'message': "You have met a designer."};
+				npc_interaction = designerInteraction(npc_object);
 				break;
 			case "forger_bonus": //DISABLE - give access to black market
 				npc_interaction = {'message': "You have met an art forger."};
@@ -347,5 +347,72 @@ var galleryManagerInteraction = function(npc_object) {
 
 		var message = "You have met a gallery manager. Your access to this gallery has been extended by " + extension_time + " minutes.";
 		return {'message': message};
+	}
+}
+
+var designerInteraction = function(npc_object) {
+	var gallery_finish_count = gallery_finishes.find({'quality': npc_object.quality}).count();
+	var random_index = Math.floor(Math.random() * gallery_finish_count);
+	//random_index = 1; // for debugging
+	var random_selection = gallery_finishes.findOne({'quality': npc_object.quality}, {skip: random_index});
+
+	var user_object = Meteor.user();
+	var category_string = (random_selection.type == "wall finish" ? "wall_finishes" : "floor_finishes");
+	
+	if (user_object.profile.gallery_finishes.owned[category_string][random_selection._id] == undefined) {
+		var user_finish_object = {
+			'filename': random_selection.filename,
+			'saturation': 1,
+			'xp_rating': .1
+		}
+
+		var set_object = {};
+		var array_selector_string = "profile.gallery_finishes.owned." + (random_selection.type == "wall finish" ? "wall_finishes." : "floor_finishes.") + random_selection._id;
+		set_object[array_selector_string] = user_finish_object;
+		Meteor.users.update(Meteor.userId(), {$set: set_object});
+		var message = "You have met a designer, who has provided you with a new finish for your gallery!";
+		return {'message': message, 'type': "designer_bonus", 'filename': random_selection.filename};
+	}
+
+	//user already owns that finish,
+	else if (user_object.profile.gallery_finishes.owned[category_string][random_selection._id].xp_rating < 1){
+		var existing_xp_rating = user_object.profile.gallery_finishes.owned[category_string][random_selection._id].xp_rating;
+
+		var xp_rating_increase = .02;
+
+		if (isOwnGallery(npc_object))
+			xp_rating_increase *= 2;
+
+		var new_xp_rating = (existing_xp_rating + xp_rating_increase > 1 ? 1 : existing_xp_rating + xp_rating_increase)
+		
+		var finish_setter = {};
+		var array_selector_string = "profile.gallery_finishes.owned." + category_string + "." + random_selection._id + ".xp_rating";
+		finish_setter[array_selector_string] = new_xp_rating;
+		Meteor.users.update(Meteor.userId(), {$set: finish_setter});
+		var message = "You have met a designer. The XP rating of this finish has increased from " + Math.floor(existing_xp_rating * 100) + " to " + Math.floor(new_xp_rating * 100) + "!";
+		return {'message': message, 'type': "designer_bonus", 'filename': random_selection.filename};
+	}
+
+	//finish xp_rating already maxed out, give xp
+	else {
+		var xp_chunk_percentage;
+
+		switch(npc_object.quality) {
+			case 'bronze' : xp_chunk_percentage = .3; break;
+			case 'silver' : xp_chunk_percentage = .4; break;
+			case 'gold' : xp_chunk_percentage = .5; break;
+			case 'platinum' : xp_chunk_percentage = .6; break;
+		};
+
+		if (isOwnGallery(npc_object))
+			xp_chunk_percentage *= own_gallery_amplifier;
+
+		var xp_chunk = getXPChunk(Meteor.user().profile.level);
+		var xp_won = Math.floor(xp_chunk * xp_chunk_percentage);
+
+		var message = "You have met a designer, who is impressed by one of the finishes in your collection. You have earned " + getCommaSeparatedValue(xp_won) + "xp!";
+
+		addXP(Meteor.userId(), xp_won);
+		return {'message': message, 'type': "designer_bonus", 'filename': random_selection.filename};
 	}
 }

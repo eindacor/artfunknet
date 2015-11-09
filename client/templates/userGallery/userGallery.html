@@ -12,22 +12,47 @@
 				</div>
 				<h1 class="af-color">Player Gallery - {{screen_name}}</h1>
 
-				<div id="gallery-wall">
-					<div class="wall-wash">
-						<div class="image-container">
-						{{#with galleryData screen_name}}
-							{{#each displayed}}
-								{{> galleryItem this}}
-							{{/each}}
-						
-							{{#each permanent}}
-								{{> galleryItem this}}
-							{{/each}}
-						{{/with}}
+				{{#with galleryData screen_name}}
+				<div id="gallery-wall" style="background: url({{getTextureURL finish_data.wall_filename}}) repeat scroll 0% 0% / 250px 250px">
+					<div class="wall-wash" style="background-color: rgba(255, 255, 255, {{finish_data.wall_wash}}">
+						<div class="image-container">		
+						{{#each displayed}}
+							{{> galleryItem this}}
+						{{/each}}
+					
+						{{#each permanent}}
+							{{> galleryItem this}}
+						{{/each}}		
 						</div>
 					</div>
 				</div>
-				<div id="gallery-floor"></div>
+				<div id="gallery-floor" style="background: url({{getTextureURL finish_data.floor_filename}}) repeat scroll 0% 0% / 200px 100px"></div>
+				{{/with}}
+
+				{{#if canEdit screen_name}}
+				<div class="row edit-area">
+					<div class="col-xs-6 finish-section">
+						<div class="col-xs-12">
+							<h3>Wall Finishes</h3>
+							<div class="row">
+								{{#each wall_finish}}
+									<img data-gallery_finish_id="{{finish_id}}" class="wall-finish-thumbnail" src="{{getTextureURL filename}}">
+								{{/each}}
+							</div>
+							<div class="row">
+								<p>adjust opacity</p>
+								<div class="col-xs-6" id="saturation-slider"></div>
+							</div>
+						</div>
+					</div>
+					<div class="col-xs-6 finish-section">
+					<h3>Floor Finishes</h3>
+					{{#each floor_finish}}
+						<img data-gallery_finish_id="{{finish_id}}" class="floor-finish-thumbnail" src="{{getTextureURL filename}}">
+					{{/each}}
+					</div>
+				</div>
+				{{/if}}
 			
 			{{else}}
 				<div class="row">

@@ -16,6 +16,22 @@ var setGallery = function(screen_name, template_data) {
 			template_data["gallery_data"] = result;
 			galleryContentTracker.changed();
 			pixels_per_centimeter = thinnest_image_width / artworks.findOne({}, {sort: {'width': 1}}).width;
+			
+			if (Meteor.user().profile.screen_name === screen_name) {
+				var active_id = Meteor.user().profile.gallery_finishes.active.wall_finish;
+				var current_saturation = Meteor.user().profile.gallery_finishes.owned.wall_finishes[active_id].saturation;
+				$('#saturation-slider').slider({
+					'value': Math.floor(current_saturation * 100),
+					'max': 100,
+					'min': 0,
+					'change': function(event, ui) {
+						Meteor.call('updateWallFinishSaturation', active_id, (ui.value / 100), function(error) {
+							if (error)
+								console.log(error.message)
+						});
+					}
+				});
+			}
 		}
 	});
 }
@@ -38,7 +54,8 @@ Template.userGallery.helpers({
 			'displayed_shown' : this['gallery_data'].displayed.length,
 			'displayed' : this['gallery_data'].displayed,
 			'permanent_shown' : this['gallery_data'].permanent.length,
-			'permanent' : this['gallery_data'].permanent
+			'permanent' : this['gallery_data'].permanent,
+			'finish_data' : this['gallery_data'].finish_data
 		};
 	},
 
@@ -94,13 +111,39 @@ Template.userGallery.helpers({
 		return npcs.findOne(npc_id).players_met.indexOf(Meteor.userId()) == -1;
 	},
 
-	'carousel_rendered' : function() {
-		return Session.get('carouselRendered');
+	'wall_finish' : function() {
+		var user_object = Meteor.user();
+		var key_array = Object.keys(user_object.profile.gallery_finishes.owned.wall_finishes);
+		var finish_array = [];
+		for (var i=0; i < key_array.length; i++) {
+			var finish_id = key_array[i];
+			var finish_object = user_object.profile.gallery_finishes.owned.wall_finishes[finish_id];
+			finish_object.finish_id = finish_id;
+			finish_array.push(finish_object);
+		}
+		return finish_array;
+	},
+
+	'floor_finish' : function() {
+		var user_object = Meteor.user();
+		var key_array = Object.keys(user_object.profile.gallery_finishes.owned.floor_finishes);
+		var finish_array = [];
+		for (var i=0; i < key_array.length; i++) {
+			var finish_id = key_array[i];
+			var finish_object = user_object.profile.gallery_finishes.owned.floor_finishes[finish_id];
+			finish_object.finish_id = finish_id;
+			finish_array.push(finish_object);
+		}
+		return finish_array;
+	},
+
+	'canEdit' : function(screen_name) {
+		return Meteor.user().profile.screen_name === screen_name;
 	}
 })
 
 Template.userGallery.events ({
-	'click #enter-button' : function(element) {
+	'click #enter-button.enabled' : function(element) {
 		var owner_id = element.target.dataset.owner_id;
 		Meteor.call('purchaseTicket', Meteor.userId(), owner_id, function(error) {
 			if (error)
@@ -117,13 +160,15 @@ Template.userGallery.events ({
 
 				else {
 					try {
+						Session.set('npc_interaction', interaction_object);
 						switch(interaction_object.type) {
 							case "collector_bonus": 
-								Session.set('npc_interaction', interaction_object);
 								Modal.show("collectorOfferModal");
 								break;
+							case "designer_bonus":
+								Modal.show("designerModal");
+								break;
 							default: 
-								Session.set('npc_interaction', interaction_object);
 								Modal.show("standardNPCMessageModal");
 								break;
 						}
@@ -165,7 +210,8 @@ Template.userGallery.events ({
 
 		overall_width += Number($('#gallery-wall').css('padding-left').replace("px", ""));
 		overall_width += Number($('#gallery-wall').css('padding-right').replace("px", ""));
-		offset_max = overall_width - Math.floor(Number($('#gallery-wall').css('width').replace("px", "")));
+		//offset_max = overall_width - Math.floor(Number($('#gallery-wall').css('width').replace("px", "")));
+		offset_max = overall_width;
 	},
 
 	'mousemove #gallery-wall' : function(element) {
@@ -183,6 +229,30 @@ Template.userGallery.events ({
 	'mouseup #gallery-wall' : function(element) {
 		click_location = undefined;
 		original_offset = undefined;
+	},
+
+	'click .wall-finish-thumbnail' : function(element) {
+		var html_string = "url(" + element.target.src + ")";
+		$('#gallery-wall').css('background', html_string);
+		$('#gallery-wall').css('background-size', "200px 100px");
+
+		var finish_id = $(element.target).data().gallery_finish_id;
+		Meteor.call('setActiveFinish', finish_id, "wall", function(error) {
+			if (error)
+				console.log(error.message)
+		})
+	},
+
+	'click .floor-finish-thumbnail' : function(element) {
+		var html_string = "url(" + element.target.src + ")";
+		$('#gallery-floor').css('background', html_string);
+		$('#gallery-floor').css('background-size', "200px 100px");
+
+		var finish_id = $(element.target).data().gallery_finish_id;
+		Meteor.call('setActiveFinish', finish_id, "floor", function(error) {
+			if (error)
+				console.log(error.message)
+		})
 	}
 })
 
