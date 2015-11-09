@@ -58,9 +58,9 @@ var updateContent = function() {
     all_users.forEach(function(db_object) {
         updateGalleryDetails(db_object._id);
         calcMVP(db_object._id);
-    })
+    });
 
-    if (Meteor.users.findOne() && Meteor.users.findOne().profile.gallery_finishes == undefined) {      
+    if (Meteor.users.findOne().profile.gallery_finishes === undefined) {      
         var default_wall = gallery_finishes.findOne({'filename': "plaster.jpg"});   
         var wall_finish_object = {
             'filename': default_wall.filename,
@@ -102,8 +102,6 @@ Meteor.startup(function() {
 
 	if (artists.find({}).count() == 0 && artworks.find({}).count() == 0)
 		generateContent();
-
-    updateContent();
 
     // for (var i=0; i<51; i++) {
     //     console.log("level " + i);
@@ -174,6 +172,8 @@ Meteor.startup(function() {
         createUser(player_3);
         createUser(admin);
     }
+
+    updateContent();
 })
 
 function waitForUserAdded(userId, attempts){
