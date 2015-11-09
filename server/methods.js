@@ -140,6 +140,7 @@ Meteor.methods({
         }
 
         catch(error) {
+            console.log(error);
             return {
                 'displayed' : [],
                 'permanent' : [],
