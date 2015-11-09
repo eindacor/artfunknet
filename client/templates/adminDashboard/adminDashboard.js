@@ -151,22 +151,31 @@ Template.adminTools.events({
 
     'click #modify-profiles' : function(element) {
     	var field_name = $('#profile-add-field').val();
-    	var default_value = $('#profile-add-value').val();
+    	var entered_value = $('#profile-add-value').val();
+    	var value;
 
-    	if (field_name == "" || field_name.indexOf(" ") != -1)
+    	if (field_name === "" || field_name.indexOf(" ") != -1)
     		console.log("invalid request");
 
-    	default_value = (isNaN(default_value) ? default_value : Number(default_value));
-    	default_value = default_value == "true" ? true : default_value;
-    	default_value = default_value == "false" ? false : default_value;
+    	if (typeof(entered_value) == "string" && entered_value.length == 0) {
+    		if (confirm("warning: This action could potentially erase data from the player database. Are you sure you want to do this?"))
+    			value = "";
 
-    	if (default_value === ""){
-    		if (!confirm("warning: This action could potentially erase data from the player database. Are you sure you want to do this?"))
-    			return;
+    		else return;
     	}
 
+    	else if (entered_value === "false")
+    		value = false;
+
+    	else if (entered_value === "true")
+    		value = true;
+
+    	else if (isNaN(entered_value)) 
+    		value = entered_value;
+
+    	else value = Number(entered_value);
     	
-    	Meteor.call('addFieldToProfiles', field_name, default_value, function(error) {
+    	Meteor.call('updateProfiles', field_name, value, function(error) {
     		if (error)
     			console.log(error.message);
     	})

@@ -1,0 +1,12 @@
+.template-designerModal img {
+	margin: 24px;
+}
+
+.template-designerModal .modal-content {
+	padding-bottom: 48px;
+	text-align: center;
+}
+
+.template-designerModal .highlight {
+	font-weight: bold;
+}

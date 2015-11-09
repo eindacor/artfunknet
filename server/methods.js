@@ -114,17 +114,26 @@ Meteor.methods({
 
     'getUserGallery' : function(screen_name) {
         var user_object = Meteor.users.findOne({'profile.screen_name' : screen_name});
+        var floor_finish_id = user_object.profile.gallery_finishes.active.floor_finish;
+        var wall_finish_id = user_object.profile.gallery_finishes.active.wall_finish;
 
         if (user_object) {
             return {
                 'displayed': items.find({'owner': user_object._id, 'status': 'displayed'}).fetch(),
                 'permanent': items.find({'owner': user_object._id, 'status': 'permanent'}).fetch(),
+                'finish_data': {
+                    'floor_filename': user_object.profile.gallery_finishes.owned.floor_finishes[floor_finish_id].filename,
+                    'wall_filename': user_object.profile.gallery_finishes.owned.wall_finishes[wall_finish_id].filename,
+                    'wall_wash': (1 - user_object.profile.gallery_finishes.owned.wall_finishes[wall_finish_id].saturation).toFixed(1)
+                }             
             }
         }
 
         else return {
             'displayed' : [],
-            'permanent' : []
+            'permanent' : [],
+            'floor_filename' : "",
+            'wall_filename' : ""
         }
     },
 

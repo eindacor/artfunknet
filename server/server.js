@@ -60,10 +60,40 @@ var updateContent = function() {
         calcMVP(db_object._id);
     })
 
-    attributes.update({'title': "entry_fee_reduction"}, {$set: {'title': "gallery_manager", 'description': "gallery manager bonus", 'npc_name': "Gallery Manager"}});
-    items.update({'attributes.title': "entry_fee_reduction"}, 
-        {$set: {'attributes.$.title': "gallery_manager", 'attributes.$.description': "gallery manager bonus", 'attributes.$.npc_name': "Gallery Manager"}}, 
-        {multi: true})
+    if (Meteor.users.findOne() && Meteor.users.findOne().profile.gallery_finishes == undefined) {      
+        var default_wall = gallery_finishes.findOne({'filename': "plaster.jpg"});   
+        var wall_finish_object = {
+            'filename': default_wall.filename,
+            'saturation': 1,
+            'xp_rating': .1
+        };
+
+        var wall_setter_object = {};
+        wall_setter_object[default_wall._id] = wall_finish_object;
+
+        var default_floor = gallery_finishes.findOne({'filename': "carpet_gray.jpg"});
+        var floor_finish_object = {
+            'filename': default_floor.filename,
+            'saturation': 1,
+            'xp_rating': .1
+        };
+
+        var floor_setter_object = {};
+        floor_setter_object[default_floor._id] = floor_finish_object;
+
+        var user_gallery_finishes = {
+            'active': {
+                'floor_finish': default_floor._id,
+                'wall_finish': default_wall._id
+            },
+            'owned': {
+                'floor_finishes': floor_setter_object,
+                'wall_finishes': wall_setter_object
+            }
+        }
+
+        Meteor.users.update({}, {$set: {'profile.gallery_finishes': user_gallery_finishes}}, {multi: true});
+    }
 }
 
 Meteor.startup(function() {

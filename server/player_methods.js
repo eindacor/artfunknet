@@ -22,6 +22,37 @@ createUser = function(user_object, callback){
     user_object.profile.gallery_value = 0;
     user_object.profile.gallery_score = 0;
 
+    var default_wall = gallery_finishes.findOne({'filename': "plaster.jpg"});   
+    var wall_finish_object = {
+        'filename': default_wall.filename,
+        'saturation': 1,
+        'xp_rating': .1
+    };
+
+    var wall_setter_object = {};
+    wall_setter_object[default_wall._id] = wall_finish_object;
+
+    var default_floor = gallery_finishes.findOne({'filename': "carpet_gray.jpg"});
+    var floor_finish_object = {
+        'filename': default_floor.filename,
+        'saturation': 1,
+        'xp_rating': .1
+    };
+
+    var floor_setter_object = {};
+    floor_setter_object[default_floor._id] = floor_finish_object;
+
+    user_object.profile.gallery_finishes = {
+        'active': {
+            'floor_finish': default_floor._id,
+            'wall_finish': default_wall._id
+        },
+        'owned': {
+            'floor_finishes': floor_setter_object,
+            'wall_finishes': wall_setter_object
+        }
+    }
+
     return Accounts.createUser(user_object, callback);
 }
 
@@ -53,7 +84,7 @@ selectRandomPainting = function(selector) {
 
 getCapSetterObject = function(player_level) {
     var cap_min_max_object = {
-        'inventory_cap': {'start': 9, 'end': 50},
+        'inventory_cap': {'start': 15, 'end': 64},
         'display_cap': {'start': 5, 'end': 12},
         'auction_cap': {'start': 5, 'end': 12},
         'ticket_cap': {'start': 3, 'end': 10},
@@ -305,5 +336,19 @@ Meteor.methods({
         
         Meteor.users.update(Meteor.userId(), {$set: {'profile.entry_fee' : value}});
         galleries.update({'owner_id' : Meteor.userId()}, {$set: {'entry_fee' : value}});
+    },
+
+    'setActiveFinish' : function(finish_id, type) {
+        var setter = {};
+        var key_string = "profile.gallery_finishes.active." + (type == "floor" ? "floor_finish" : "wall_finish");
+        setter[key_string] = finish_id;
+        Meteor.users.update(Meteor.userId(), {$set: setter})
+    },
+
+    'updateWallFinishSaturation' : function(finish_id, value) {
+        var setter = {};
+        var setter_string = "profile.gallery_finishes.owned.wall_finishes." + finish_id + ".saturation";
+        setter[setter_string] = value;
+        Meteor.users.update(Meteor.userId(), {$set: setter});
     }
 })
