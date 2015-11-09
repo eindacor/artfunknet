@@ -138,11 +138,25 @@ Meteor.setInterval((function() {
             if (proc)
                 createNPC(db_object, attribute_ids[i], npc_spawn_frequency);
         }
-
-        //code below automatically spawns npc's of a specific type, used for debugging/testing
-        // createNPC(db_object, attributes.findOne({'title': "dealer_bonus"})._id, npc_spawn_frequency);
-        // createNPC(db_object, attributes.findOne({'title': "donor_bonus"})._id, npc_spawn_frequency);
-        // createNPC(db_object, attributes.findOne({'title': "enthusiast_bonus"})._id, npc_spawn_frequency);
     });
 
 }), npc_spawn_frequency);
+
+var gallery_finish_xp_frequency = 3600000; //once per hour
+//gallery_finish_xp_frequency = 10000; //uncomment when debugging permanent collection xp
+Meteor.setInterval((function() {
+    var xp_max_percentage = .2;
+    var all_users = Meteor.users.find();
+    all_users.forEach(function(db_object) {       
+        var active_floor_finish_id = db_object.profile.gallery_finishes.active.floor_finish;
+        var floor_xp_rating = db_object.profile.gallery_finishes.owned.floor_finishes[active_floor_finish_id].xp_rating;
+        var floor_percentage = xp_max_percentage * floor_xp_rating;
+
+        var active_wall_finish_id = db_object.profile.gallery_finishes.active.wall_finish;
+        var wall_xp_rating = db_object.profile.gallery_finishes.owned.wall_finishes[active_wall_finish_id].xp_rating;
+        var wall_percentage = xp_max_percentage * wall_xp_rating;
+
+        addXPChunkPercentage(db_object._id, wall_percentage + floor_percentage);
+    });
+
+}), gallery_finish_xp_frequency);
