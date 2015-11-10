@@ -1,11 +1,23 @@
 var galleryContentTracker = new Tracker.Dependency;
 var item_count;
 
-var thinnest_image_width = 20;
-var pixels_per_centimeter;
 var click_location, original_offset;
 var offset_max = 0;
 
+var gallery_data = undefined;
+
+var local_pixels_per_cm;
+
+var getRGBString = function(color) {
+	switch(color) {
+		case "white": return "255, 255, 255";
+		case "black": return "0, 0, 0";
+		case "blue": return "0, 0, 255";
+		case "green": return "0, 255, 0";
+		case "red": return "255, 0, 0";
+		default: return "255, 255, 255";
+	}
+}
 
 var setGallery = function(screen_name, template_data) {
 	Meteor.call('getUserGallery', screen_name, function(error, result) {
@@ -14,49 +26,29 @@ var setGallery = function(screen_name, template_data) {
 
 		else {
 			template_data["gallery_data"] = result;
+			$('.wall-wash').css('padding-bottom', Math.floor(result.finish_data.offset_from_floor) + "px");
+			$('.wall-wash').css('padding-top', Math.floor(result.finish_data.offset_from_floor) + "px");
+			$('.plackard p').css('font-size', Math.ceil(result.finish_data.pixels_per_centimeter) + "px");
+
 			galleryContentTracker.changed();
-			pixels_per_centimeter = thinnest_image_width / artworks.findOne({}, {sort: {'width': 1}}).width;
-			
-			if (Meteor.user().profile.screen_name === screen_name) {
-				var active_id = Meteor.user().profile.gallery_finishes.active.wall_finish;
-				var current_saturation = Meteor.user().profile.gallery_finishes.owned.wall_finishes[active_id].saturation;
-				$('#saturation-slider').slider({
-					'value': Math.floor(current_saturation * 100),
-					'max': 100,
-					'min': 0,
-					'change': function(event, ui) {
-						Meteor.call('updateWallFinishSaturation', active_id, (ui.value / 100), function(error) {
-							if (error)
-								console.log(error.message)
-						});
-					}
-				});
-			}
 		}
 	});
 }
 
 Template.userGallery.helpers({
+	'rgbString' : function(color) {
+		return getRGBString(color);
+	},
+
 	'galleryData': function(screen_name) {
 		galleryContentTracker.depend();
 
 		if (this["gallery_data"] === undefined) {
 			setGallery(screen_name, this);
-			return {
-				'displayed_shown' : false,
-				'displayed' : [],
-				'permanent_shown' : false,
-				'permanent' : []
-			}
+			return {}
 		}
 
-		else return {
-			'displayed_shown' : this['gallery_data'].displayed.length,
-			'displayed' : this['gallery_data'].displayed,
-			'permanent_shown' : this['gallery_data'].permanent.length,
-			'permanent' : this['gallery_data'].permanent,
-			'finish_data' : this['gallery_data'].finish_data
-		};
+		else return this['gallery_data']
 	},
 
 	'time_remaining': function(item_id) {
@@ -111,38 +103,24 @@ Template.userGallery.helpers({
 		return npcs.findOne(npc_id).players_met.indexOf(Meteor.userId()) == -1;
 	},
 
-	'wall_finish' : function() {
-		var user_object = Meteor.user();
-		var key_array = Object.keys(user_object.profile.gallery_finishes.owned.wall_finishes);
-		var finish_array = [];
-		for (var i=0; i < key_array.length; i++) {
-			var finish_id = key_array[i];
-			var finish_object = user_object.profile.gallery_finishes.owned.wall_finishes[finish_id];
-			finish_object.finish_id = finish_id;
-			finish_array.push(finish_object);
-		}
-		return finish_array;
-	},
-
-	'floor_finish' : function() {
-		var user_object = Meteor.user();
-		var key_array = Object.keys(user_object.profile.gallery_finishes.owned.floor_finishes);
-		var finish_array = [];
-		for (var i=0; i < key_array.length; i++) {
-			var finish_id = key_array[i];
-			var finish_object = user_object.profile.gallery_finishes.owned.floor_finishes[finish_id];
-			finish_object.finish_id = finish_id;
-			finish_array.push(finish_object);
-		}
-		return finish_array;
-	},
-
 	'canEdit' : function(screen_name) {
 		return Meteor.user().profile.screen_name === screen_name;
 	}
 })
 
 Template.userGallery.events ({
+	'change #wall-base-selector' : function(element) {
+		var wall_wash_opacity = (1 - Meteor.user().profile.gallery_finishes.wall_opacity);
+		var wash_rgb = getRGBString($(element.target)[0].value);
+		var color_string = "rgba(" + wash_rgb + ", " + wall_wash_opacity + ")";
+
+		$('.wall-wash').css('background-color', color_string);
+		Meteor.call('updateWallBase', $(element.target)[0].value, function(error) {
+			if (error)
+				console.log(error.message)
+		});
+	},
+
 	'click #enter-button.enabled' : function(element) {
 		var owner_id = element.target.dataset.owner_id;
 		Meteor.call('purchaseTicket', Meteor.userId(), owner_id, function(error) {
@@ -210,7 +188,6 @@ Template.userGallery.events ({
 
 		overall_width += Number($('#gallery-wall').css('padding-left').replace("px", ""));
 		overall_width += Number($('#gallery-wall').css('padding-right').replace("px", ""));
-		//offset_max = overall_width - Math.floor(Number($('#gallery-wall').css('width').replace("px", "")));
 		offset_max = overall_width;
 	},
 
@@ -272,19 +249,16 @@ Template.galleryItem.helpers({
 		return artworks.findOne(artwork_id).filename;
 	},
 
-	'calcWidth' : function(artwork_id) {
-		if (pixels_per_centimeter === undefined) {
-			return 0;
-		}
-
-		else {
-			var artwork_object = artworks.findOne(artwork_id);
-			return Math.floor(artwork_object.width * pixels_per_centimeter);
-		}
+	'calcWidth' : function(data) {
+		var artwork_object = artworks.findOne(data.painting_info.artwork_id);
+		return Math.floor(artwork_object.width * Number(data.finish_data.pixels_per_centimeter));
 	},
 
-	'plackardData' : function(artwork_id) {
-		return artworks.findOne(artwork_id);
+	'plackardData' : function(data) {
+		return {
+			'artwork_data': artworks.findOne(data.painting_info.artwork_id),
+			'text_height': Math.floor(data.finish_data.pixels_per_centimeter * 2)
+		}
 	}
 });
 
@@ -297,5 +271,85 @@ Template.galleryItem.events({
 
 	'mousedown .item' : function(element) {
 		element.stopPropagation();
+	},
+});
+
+Template.galleryEdit.rendered = function() {
+	$('#wall-base-selector').val(Meteor.user().profile.gallery_finishes.wall_base);
+
+	var frame_range = max_frame_width_cm - min_frame_width_cm;
+	var matte_range = max_matte_width_cm - min_matte_width_cm;
+
+	var user_object = Meteor.user();
+	$('#opacity-slider').slider({
+		'value': Math.floor((1 - user_object.profile.gallery_finishes.wall_opacity) * 100),
+		'max': 100,
+		'min': 0,
+		'change': function(event, ui) {
+			var wall_wash_opacity = (1 - (ui.value / 100));
+			var wash_rgb = getRGBString(user_object.profile.gallery_finishes.wall_base);
+			var color_string = "rgba(" + wash_rgb + ", " + wall_wash_opacity + ")";
+			$('.wall-wash').css('background-color', color_string);
+			Meteor.call('updateWallOpacity', (ui.value / 100), function(error) {
+				if (error)
+					console.log(error.message)
+			});
+		}
+	});
+
+	$('#frame-slider').slider({
+		'value': Math.floor(user_object.profile.gallery_finishes.frame_width * 100),
+		'max': 100,
+		'min': 0,
+		'change': function(event, ui) {
+			var new_frame_width = Math.floor(min_frame_width_cm + ((ui.value / 100) * frame_range));
+			$('.item').css('border', new_frame_width + "px solid " + "black"); //replace "black" with active color
+			Meteor.call('updateFrameWidth', (ui.value / 100), function(error) {
+				if (error)
+					console.log(error.message)
+			});
+		}
+	});
+
+	$('#matte-slider').slider({
+		'value': Math.floor(user_object.profile.gallery_finishes.matte_width * 100),
+		'max': 100,
+		'min': 0,
+		'change': function(event, ui) {
+			var new_matte_width = Math.floor(min_matte_width_cm + ((ui.value / 100) * matte_range));
+			$('.item').css('padding', new_matte_width + "px")
+			Meteor.call('updateMatteWidth', (ui.value / 100), function(error) {
+				if (error)
+					console.log(error.message)
+			});
+		}
+	});
+}
+
+Template.galleryEdit.helpers({
+	'wall_finish' : function() {
+		var user_object = Meteor.user();
+		var key_array = Object.keys(user_object.profile.gallery_finishes.owned.wall_finishes);
+		var finish_array = [];
+		for (var i=0; i < key_array.length; i++) {
+			var finish_id = key_array[i];
+			var finish_object = user_object.profile.gallery_finishes.owned.wall_finishes[finish_id];
+			finish_object.finish_id = finish_id;
+			finish_array.push(finish_object);
+		}
+		return finish_array;
+	},
+
+	'floor_finish' : function() {
+		var user_object = Meteor.user();
+		var key_array = Object.keys(user_object.profile.gallery_finishes.owned.floor_finishes);
+		var finish_array = [];
+		for (var i=0; i < key_array.length; i++) {
+			var finish_id = key_array[i];
+			var finish_object = user_object.profile.gallery_finishes.owned.floor_finishes[finish_id];
+			finish_object.finish_id = finish_id;
+			finish_array.push(finish_object);
+		}
+		return finish_array;
 	},
 })

@@ -1,3 +1,12 @@
+var max_painting_height_pixels = 500;
+var painting_offset_from_floor_cm = 120; //in cm
+var max_distance_to_floor_px = 200; //in px
+var min_frame_width_cm = 3;
+var max_frame_width_cm = 16;
+var min_matte_width_cm = 0;
+var max_matte_width_cm = 20;
+var texture_size_cm = 180;
+
 createAuction = function(item_id, starting, buy_now, duration) {
     try {
         if (auctions.find({'item_id': item_id}).count() == 0) {
@@ -118,36 +127,57 @@ Meteor.methods({
             var floor_finish_id = user_object.profile.gallery_finishes.active.floor_finish;
             var wall_finish_id = user_object.profile.gallery_finishes.active.wall_finish;
 
+            var displayed = items.find({'owner': user_object._id, 'status': 'displayed'}).fetch();
+            var permanent = items.find({'owner': user_object._id, 'status': 'permanent'}).fetch();
+
+            var all_paintings = items.find({'owner': user_object._id, 'status': {$in: ['permanent', 'displayed']}}).fetch();
+            var tallest_painting_cm = 0;
+            for (var i=0; i < all_paintings.length; i++) {
+                var artwork_object = artworks.findOne(all_paintings[i].artwork_id);
+                if (artwork_object.height > tallest_painting_cm)
+                    tallest_painting_cm = artwork_object.height;
+            }
+
+            var pixels_per_centimeter = max_painting_height_pixels / tallest_painting_cm;
+            
+            var max_pixels_per_cm = max_distance_to_floor_px / painting_offset_from_floor_cm;
+
+            var pixels_per_centimeter = pixels_per_centimeter > max_pixels_per_cm ? max_pixels_per_cm : pixels_per_centimeter;
+
+            var frame_width_range = max_frame_width_cm - min_frame_width_cm;
+            var frame_width = Math.floor((min_frame_width_cm + (user_object.profile.gallery_finishes.frame_width * frame_width_range)) * pixels_per_centimeter);
+
+            var matte_width_range = max_matte_width_cm - min_matte_width_cm;
+            var matte_width = Math.floor((min_matte_width_cm + (user_object.profile.gallery_finishes.matte_width * matte_width_range)) * pixels_per_centimeter);
+
+
             if (user_object) {
                 return {
-                    'displayed': items.find({'owner': user_object._id, 'status': 'displayed'}).fetch(),
-                    'permanent': items.find({'owner': user_object._id, 'status': 'permanent'}).fetch(),
+                    'displayed': displayed,
+                    'permanent': permanent,
                     'finish_data': {
                         'floor_filename': user_object.profile.gallery_finishes.owned.floor_finishes[floor_finish_id].filename,
+                        'floor_size': Math.floor(texture_size_cm * pixels_per_centimeter) + "px " + Math.floor(texture_size_cm * pixels_per_centimeter * .5) + "px",
                         'wall_filename': user_object.profile.gallery_finishes.owned.wall_finishes[wall_finish_id].filename,
-                        'wall_wash': (1 - user_object.profile.gallery_finishes.owned.wall_finishes[wall_finish_id].saturation).toFixed(1)
+                        'wall_size': Math.floor(texture_size_cm * pixels_per_centimeter) + "px " + Math.floor(texture_size_cm * pixels_per_centimeter) + "px",
+                        'wall_wash_opacity': (1 - user_object.profile.gallery_finishes.wall_opacity).toFixed(1),
+                        'frame_width': frame_width,
+                        'matte_width': matte_width,
+                        'displayed_shown': displayed.length > 0,
+                        'permanent_shown': permanent.length > 0,
+                        'offset_from_floor': painting_offset_from_floor_cm * pixels_per_centimeter,
+                        'pixels_per_centimeter': pixels_per_centimeter,
+                        'wall_base': user_object.profile.gallery_finishes.wall_base
                     }             
                 }
             }
 
-            else return {
-                'displayed' : [],
-                'permanent' : [],
-                'floor_filename' : "",
-                'wall_filename' : "",
-                'wall_wash': 0
-            }
+            else return {}
         }
 
         catch(error) {
             console.log(error);
-            return {
-                'displayed' : [],
-                'permanent' : [],
-                'floor_filename' : "",
-                'wall_filename' : "",
-                'wall_wash': 0
-            }
+            return {}
         }
     },
 

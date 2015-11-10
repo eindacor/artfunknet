@@ -59,41 +59,6 @@ var updateContent = function() {
         updateGalleryDetails(db_object._id);
         calcMVP(db_object._id);
     });
-
-    if (Meteor.users.findOne().profile.gallery_finishes === undefined) {      
-        var default_wall = gallery_finishes.findOne({'filename': "plaster.jpg"});   
-        var wall_finish_object = {
-            'filename': default_wall.filename,
-            'saturation': 1,
-            'xp_rating': .1
-        };
-
-        var wall_setter_object = {};
-        wall_setter_object[default_wall._id] = wall_finish_object;
-
-        var default_floor = gallery_finishes.findOne({'filename': "carpet_gray.jpg"});
-        var floor_finish_object = {
-            'filename': default_floor.filename,
-            'saturation': 1,
-            'xp_rating': .1
-        };
-
-        var floor_setter_object = {};
-        floor_setter_object[default_floor._id] = floor_finish_object;
-
-        var user_gallery_finishes = {
-            'active': {
-                'floor_finish': default_floor._id,
-                'wall_finish': default_wall._id
-            },
-            'owned': {
-                'floor_finishes': floor_setter_object,
-                'wall_finishes': wall_setter_object
-            }
-        }
-
-        Meteor.users.update({}, {$set: {'profile.gallery_finishes': user_gallery_finishes}}, {multi: true});
-    }
 }
 
 Meteor.startup(function() {
@@ -102,17 +67,6 @@ Meteor.startup(function() {
 
 	if (artists.find({}).count() == 0 && artworks.find({}).count() == 0)
 		generateContent();
-
-    // for (var i=0; i<51; i++) {
-    //     console.log("level " + i);
-    //     console.log(testMap(getSmartRarityMap(i, 0)));
-    //     console.log(testMap(getSmartRarityMap(i, 1)));
-    // }
-
-    //clear out expired tickets
-    //conclude expired auctions
-    //conclude expired displays
-    //clear out expired npcs
 
     if (attributes.find().count() == 0) {
         for (var i=0; i < attribute_data.length; i++) {
@@ -124,6 +78,11 @@ Meteor.startup(function() {
         for (var i=0; i < gallery_finish_data.length; i++) {
             gallery_finishes.insert(gallery_finish_data[i]);
         }
+    }
+
+    for (var i=0; i < gallery_finish_data.length; i++) {
+        if (gallery_finishes.findOne({'filename': gallery_finish_data[i].filename}) == undefined)
+            gallery_finishes.insert(gallery_finish_data[i]);
     }
 
     if (Meteor.users.find().count() == 0) {

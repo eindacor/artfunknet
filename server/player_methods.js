@@ -166,13 +166,13 @@ updateGalleryDetails = function(user_id) {
         var attribute_values = {};
 
         //remove from db if no items present
-        if (attribute_ids.length == 0) {
-            var gallery_object = galleries.findOne({'owner_id' : user_id});
-            if (gallery_object != undefined)
-                galleries.remove(gallery_object._id);
+        // if (attribute_ids.length == 0) {
+        //     var gallery_object = galleries.findOne({'owner_id' : user_id});
+        //     if (gallery_object != undefined)
+        //         galleries.remove(gallery_object._id);
 
-            return;
-        }
+        //     return;
+        // }
         
         for (var i=0; i < attribute_ids.length; i++) {
             var attribute_id = attribute_ids[i];
@@ -345,10 +345,19 @@ Meteor.methods({
         Meteor.users.update(Meteor.userId(), {$set: setter})
     },
 
-    'updateWallFinishSaturation' : function(finish_id, value) {
-        var setter = {};
-        var setter_string = "profile.gallery_finishes.owned.wall_finishes." + finish_id + ".saturation";
-        setter[setter_string] = value;
-        Meteor.users.update(Meteor.userId(), {$set: setter});
+    'updateWallOpacity' : function(value) {
+        Meteor.users.update(Meteor.userId(), {$set: {'profile.gallery_finishes.wall_opacity': value}});
+    },
+
+    'updateFrameWidth' : function(value) {
+        Meteor.users.update(Meteor.userId(), {$set: {'profile.gallery_finishes.frame_width': value}});
+    },
+
+    'updateMatteWidth' : function(value) {
+        Meteor.users.update(Meteor.userId(), {$set: {'profile.gallery_finishes.matte_width': value}});
+    },
+
+    'updateWallBase' : function(value) {
+        Meteor.users.update(Meteor.userId(), {$set: {'profile.gallery_finishes.wall_base': value}});
     }
 })
