@@ -46,7 +46,11 @@
 
 <template name="galleryItem">
 	<div class="painting-container" data-item_id="{{painting_info._id}}">
-		<div class="item" style="padding: {{finish_data.matte_width}}px; border: {{finish_data.frame_width}}px solid black"><img src="{{#with getFilename painting_info.artwork_id}}{{getImageURL this}}{{/with}}" style="width: {{calcWidth this}}px"></div>
+		<div class="item" style="padding: {{finish_data.matte_width}}px; border: {{finish_data.frame_width}}px solid black">
+			<div style="width: {{calcWidth this}}px; height: {{calcHeight this}}px; background: url({{#with getFilename painting_info.artwork_id}}{{getImageURL this}}{{/with}}); background-size: 100% auto">
+				{{#if painting_info.foil}}<div class="foil"></div>{{/if}}
+			</div>
+		</div>
 		{{#with plackardData this}}
 		<div class="plackard" style="width: {{width}}px; height: {{height}}px; font-size: {{text_height}}px">
 			<p>{{artwork_data.title}}</p>
