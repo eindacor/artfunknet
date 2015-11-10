@@ -254,6 +254,11 @@ Template.galleryItem.helpers({
 		return Math.floor(artwork_object.width * Number(data.finish_data.pixels_per_centimeter));
 	},
 
+	'calcHeight' : function(data) {
+		var artwork_object = artworks.findOne(data.painting_info.artwork_id);
+		return Math.floor(artwork_object.height * Number(data.finish_data.pixels_per_centimeter));
+	},
+
 	'plackardData' : function(data) {
 		return {
 			'artwork_data': artworks.findOne(data.painting_info.artwork_id),
