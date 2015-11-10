@@ -259,20 +259,26 @@ Meteor.methods({
     },
 
     'setItemPermanentCollectionStatus' : function(item_id, set_to_permanent) {
-        var item_object = set_to_permanent ? canSetPermanent(item_id) : canUnsetPermanent(item_id);
-        if (item_object) {
-            if (set_to_permanent) {
-                items.update(item_id, {$set: {'status' : 'permanent'}});
-                items.update(item_id, {$set: {'permanent_post' : moment()._d.toISOString()}});
+        try {
+            var item_object = set_to_permanent ? canSetPermanent(item_id) : canUnsetPermanent(item_id);
+            if (item_object) {
+                if (set_to_permanent) {
+                    items.update(item_id, {$set: {'status' : 'permanent'}});
+                    items.update(item_id, {$set: {'permanent_post' : moment()._d.toISOString()}});
+                }
+
+                else {
+                    items.update(item_id, {$set: {'status' : 'claimed'}});
+                    items.update(item_id, {$unset: {'permanent_post' : ""}});
+                }
             }
 
-            else {
-                items.update(item_id, {$set: {'status' : 'claimed'}});
-                items.update(item_id, {$unset: {'permanent_post' : ""}});
-            }
+            else throw "invalid operation";
         }
 
-        else throw "invalid operation";
+        catch(error) {
+            console.log(error);
+        }
     },
 
     'sellArtwork' : function(item_id) {

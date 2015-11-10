@@ -53,10 +53,16 @@ Template.registerHelper('isEqual', function(first, second) {
 })
 
 Template.registerHelper('getImageURL', function(filename) {
+	if (filename == undefined || filename == "undefined")
+		return "";
+	
 	return "https://s3.amazonaws.com/com.artfunkel.artwork/full_images/" + filename;
 })
 
 Template.registerHelper('getTextureURL', function(filename) {
+	if (filename == undefined || filename == "undefined")
+		return "";
+	
 	return "https://s3.amazonaws.com/com.artfunkel.artwork/textures/" + filename;
 })
 

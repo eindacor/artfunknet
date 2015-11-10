@@ -145,7 +145,7 @@ Meteor.setInterval((function() {
 var gallery_finish_xp_frequency = 3600000; //once per hour
 //gallery_finish_xp_frequency = 10000; //uncomment when debugging permanent collection xp
 Meteor.setInterval((function() {
-    var xp_max_percentage = .2;
+    var xp_max_percentage = .1;
     var all_users = Meteor.users.find();
     all_users.forEach(function(db_object) {       
         var active_floor_finish_id = db_object.profile.gallery_finishes.active.floor_finish;
