@@ -1,10 +1,12 @@
+var ticket_holder_tracker = new Tracker.Dependency;
+
 Template.galleryTable.helpers({
 	'header' : function(table_data) {
 		var header_array = [
 			{ 'text' : 'owner', 'sort_id' : 'owner', 'table_id' : table_data.table_id  },
 			{ 'text' : 'attributes', 'sort_id' : undefined, 'table_id' : table_data.table_id  },
 			{ 'text' : 'entry fee', 'sort_id' : 'entry_fee', 'table_id' : table_data.table_id  },
-			{ 'text' : 'current visitors', 'sort_id' : undefined, 'table_id' : table_data.table_id  },
+			{ 'text' : 'ticket-holders', 'sort_id' : undefined, 'table_id' : table_data.table_id  },
 		];
 
 		return header_array;
@@ -28,7 +30,7 @@ Template.galleryTable.helpers({
 
 		var pageData = {
 			'identifier': pagination_id,
-			'totalResults': Meteor.users.find({}).count(),
+			'totalResults': galleries.find({'score': {$ne : 0}}).count(),
 			'resultsPerPage': 10,
 			'pageNumbersDisplayed': 7,
 		}
@@ -36,7 +38,7 @@ Template.galleryTable.helpers({
 		var skip_amount = Number(pageData.resultsPerPage * Session.get(pagination_id + '_current'));
 
 		//var gallery_array = Meteor.users.find( {}, { sort: sort_query, skip: skip_amount, limit: pageData.resultsPerPage } ).fetch();
-		var gallery_array = galleries.find( {}, { sort: sort_query, skip: skip_amount, limit: pageData.resultsPerPage } ).fetch();
+		var gallery_array = galleries.find( {'score': {$ne : 0}}, { sort: sort_query, skip: skip_amount, limit: pageData.resultsPerPage } ).fetch();
 
 		if (gallery_array.length < Number(pageData.resultsPerPage * Session.get(pagination_id + '_current')))
 			Session.set('pagination_id' + '_current', Session.get(pagination_id + '_current') - 1);
@@ -50,10 +52,12 @@ Template.galleryTable.helpers({
 		}
 	},
 
+	'currentTicketHolders' : function(owner_id) {
+		return 5;
+	},
+
 	'galleryInfo' : function(gallery_object) {
 		try {
-			gallery_object.current_visitors = 10;
-
 			var attribute_array = [];
 			var gallery_details = gallery_object.attribute_values;
 			var attribute_ids = Object.keys(gallery_object.attribute_values);

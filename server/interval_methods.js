@@ -25,7 +25,7 @@ var auction_bot_frequency = 3600000; //once per hour
 var max_bot_auctions = 2;
 Meteor.setInterval((function() {
     if (auctions.find({'bid_history.user_id' : "auction_bot"}).count() < max_bot_auctions) {
-        var potential_auctions = auctions.find({'bid_history' : [], 'rarity' : {$nin : ['legendary', 'masterpiece']}}).fetch();
+        var potential_auctions = auctions.find({'foil': false, 'bid_history' : [], 'rarity' : {$nin : ['legendary', 'masterpiece']}}).fetch();
         var qualifying_auctions = [];
 
         for (var i=0; i < potential_auctions.length; i++) {

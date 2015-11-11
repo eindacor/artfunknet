@@ -1,6 +1,6 @@
-var max_painting_height_pixels = 500;
+var max_painting_height_pixels = 350;
 var painting_offset_from_floor_cm = 120; //in cm
-var max_distance_to_floor_px = 200; //in px
+var max_distance_to_floor_px = 150; //in px
 var min_frame_width_cm = 3;
 var max_frame_width_cm = 16;
 var min_matte_width_cm = 0;

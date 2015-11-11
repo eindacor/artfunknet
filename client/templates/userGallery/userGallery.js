@@ -174,9 +174,9 @@ Template.userGallery.events ({
 		setFootnote(hover_string, Math.floor(Math.random() * 1000));
 	},
 
-	'mousedown #gallery-wall' : function(element) {
+	'mousedown .window-crop' : function(element) {
 		click_location = Number(element.screenX);
-		original_offset = Number($('.image-container').css('margin-left').replace("px", ""));
+		original_offset = Number($('.rendered-scene').css('margin-left').replace("px", ""));
 
 		offset_max = 0;
 		var overall_width = 0;
@@ -186,24 +186,23 @@ Template.userGallery.events ({
 			overall_width += Number($('.painting-container:eq(' + i + ')').css('margin-left').replace("px", ""));
 		}
 
-		overall_width += Number($('#gallery-wall').css('padding-left').replace("px", ""));
-		overall_width += Number($('#gallery-wall').css('padding-right').replace("px", ""));
-		offset_max = overall_width;
+		overall_width += Number($('.wall-wash').css('padding-left').replace("px", ""));
+		overall_width += Number($('.wall-wash').css('padding-right').replace("px", ""));
+
+		offset_max = overall_width - $('.window-crop').width();
 	},
 
-	'mousemove #gallery-wall' : function(element) {
+	'mousemove .window-crop' : function(element) {
 		if (click_location !== undefined && original_offset !== undefined) {
 			var movement = click_location - Number(element.screenX);
 			var new_offset = original_offset - movement;
 			if (new_offset < 0 && new_offset > offset_max * -1) {
-				$('.image-container').css('margin-left', new_offset + "px");
-				$('#gallery-floor').css('background-position', new_offset + "px");
-				$('#gallery-wall').css('background-position', new_offset + "px");
+				$('.rendered-scene').css('margin-left', new_offset + "px");
 			}
 		}
 	},
 
-	'mouseup #gallery-wall' : function(element) {
+	'mouseup .window-crop' : function(element) {
 		click_location = undefined;
 		original_offset = undefined;
 	},
@@ -268,7 +267,7 @@ Template.galleryItem.helpers({
 });
 
 Template.galleryItem.events({
-	'click .item img' : function(element) {
+	'click .item' : function(element) {
 		var item_id = $(element.target).closest('.painting-container').data().item_id;
 		Session.set('selectedItem', item_id);
 		Modal.show('fullViewModal');
