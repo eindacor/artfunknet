@@ -291,7 +291,7 @@ generateItemFromArtworkID = function(user_id, artwork_id, condition, xp_rating, 
             'date_created' : new Date(),
             'xp_rating' : xp_rating === undefined ? getXPRating() : xp_rating,
             'roll_count' : 0,
-            'foil': foil === undefined ? (! !!seasonal && Math.random() < .01) : foil,
+            'foil': foil === undefined ? (seasonal_ids.indexOf(artwork_id) == -1 && Math.random() < .01) : foil,
             'seasonal': seasonal === undefined ? seasonal_ids.indexOf(artwork_id) != -1 : seasonal,
             'lottery': lottery === undefined ? false : lottery
         });
