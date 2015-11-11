@@ -158,7 +158,7 @@ var donorInteraction = function(npc_object) {
 	if (isOwnGallery(npc_object))
 		drop_count += 1;
 
-	generateItems(Meteor.userId(), npc_object.quality, drop_count);
+	generateItems(Meteor.userId(), npc_object.quality, drop_count, "unclaimed");
 
 	var message = "You have met a donor who would like to contribute to your collection. You may claim your gift in the loot area.";
 
@@ -272,7 +272,7 @@ var artDealerInteraction = function(npc_object) {
 	if (isOwnGallery(npc_object))
 		drop_count += 2;
 
-	generateItemsForSale(Meteor.userId(), npc_object.quality, drop_count);
+	generateItems(Meteor.userId(), npc_object.quality, drop_count, "for_sale");
 
 	var message = "You have met an Art Dealer who would like you to consider a few offers. Go to the store to view their inventory.";
 	return {'message': message}

@@ -49,8 +49,25 @@
 }
 
 .template-itemInfo .foil {
-	opacity: .95;
-	background: linear-gradient(270deg, white, #ffe2c3, #FDF, white, #FDF, #ffe2c3, white);
+	background: linear-gradient(60deg, white, #ffe2c3, #FDF, white, #FDF, #ffe2c3, white);
+	background-size: 300% 300%;
+	-webkit-animation: Test 10s ease infinite;
+	-moz-animation: Test 10s ease infinite;
+	-o-animation: Test 10s ease infinite;
+	animation: Test 10s ease infinite;
+}
+
+.template-itemInfo .seasonal {
+	background: linear-gradient(60deg, white, rgb(220,255,220), rgb(220,220,255), white, rgb(220,220,255), rgb(220,255,220), white);
+	background-size: 300% 300%;
+	-webkit-animation: Test 10s ease infinite;
+	-moz-animation: Test 10s ease infinite;
+	-o-animation: Test 10s ease infinite;
+	animation: Test 10s ease infinite;
+}
+
+.template-itemInfo .lottery {
+	background: linear-gradient(60deg, white, #FFEF99, #FFEF99, white, #FFEF99, #FFEF99, white);
 	background-size: 300% 300%;
 	-webkit-animation: Test 10s ease infinite;
 	-moz-animation: Test 10s ease infinite;

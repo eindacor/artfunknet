@@ -54,7 +54,7 @@ Meteor.methods({
 
 	'generateForSale': function() {
 		if (adminValidated()) {
-			generateItemsForSale(Meteor.userId(), "platinum", admin_settings.daily_drop_count);
+			generateItems(Meteor.userId(), "platinum", admin_settings.daily_drop_count, "for_sale");
 		}
 	},
 
@@ -95,14 +95,23 @@ Meteor.methods({
 				'player_xp': user_object.profile.xp,
 				'daily_drop_count': admin_settings.daily_drop_count,
 				'crate_drop_count': admin_settings.crate_drop_count,
-				'bank_balance': user_object.profile.bank_balance
+				'bank_balance': user_object.profile.bank_balance,
+				'seasonal_ids': seasonal_ids
 			}
 		}
 	},
 
-	'generateItemFromArtworkID' : function(user_id, artwork_id, condition, xp_rating, foil) {
+	'generateItemFromArtworkID' : function(user_id, artwork_id, condition, xp_rating, foil, seasonal, lottery) {
 		if (adminValidated()) {
-			return generateItemFromArtworkID(user_id, artwork_id, condition, xp_rating, foil);
+			return generateItemFromArtworkID(user_id, artwork_id, condition, xp_rating, foil, seasonal, lottery, "unclaimed");
+		}
+
+		else return undefined;
+	},
+
+	'generateRandomItemFromArtworkID' : function(user_id, artwork_id) {
+		if (adminValidated()) {
+			return generateItemFromArtworkID(user_id, artwork_id, undefined, undefined, undefined, undefined, false, "unclaimed");
 		}
 
 		else return undefined;
@@ -125,5 +134,14 @@ Meteor.methods({
 		}
 
 		else return undefined;
+	}, 
+
+	'setSeasonal' : function(id_array) {
+		for (var i=0; i < id_array.length; i++) {
+			if (artworks.findOne(id_array[i]) == undefined)
+				return;
+		}
+
+		seasonal_ids = id_array;
 	}
 })

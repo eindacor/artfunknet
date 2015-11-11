@@ -61,16 +61,20 @@ var setAdminData = function(set_id, value) {
 			})
 			break;
 
+		case 'set_seasonal':
+			var ids_string = value;
+			var id_array = ids_string.replace(/ /g , "").split(",");
+			Meteor.call('setSeasonal', id_array, function(error) {
+				if (error)
+					console.log(error.message);
+			});
+
 		default: return;
 	}
 
 	adminDataTracker.changed();
 }
 
-// "set_level" current=player_level button_id="level-set" button_label="set level"}}
-// 					{{> settable_field set_id="set_daily_drop" current=daily_drop_count button_id="update-daily-drop-count" button_label="daily drop count"}}
-// 					{{> settable_field set_id="set_crate_drop" current=crate_drop_count button_id="update-crate-drop-count" button_label="crate count"}}
-// 					{{> settable_field set_id="set_bank_balance"
 
 Template.adminTools.events({
 	'click #reset-daily' : function(element) {
@@ -78,6 +82,31 @@ Template.adminTools.events({
 			if (error)
 				console.log(error.message);
 		})
+	},
+
+	'click #new-seasonals' : function(element) {
+		var seasonal_count = 1;
+		var id_array = [];
+		for (var i=0; i < seasonal_count; i++) {
+			var selector = {
+				'._id': {$nin: id_array}, 
+				'rarity': {
+					$in: ["legendary", "masterpiece"]
+				}
+			};
+
+			var artwork_object = artworks.findOne(selector, {skip: Math.floor(Math.random() * artworks.find(selector).count())});
+
+			if (artwork_object)
+				id_array.push(artwork_object._id);
+		}
+
+		Meteor.call('setSeasonal', id_array, function(error) {
+			if (error)
+				console.log(error.message);
+
+			else updateAdminData();
+		});
 	},
 
 	'click #generate-for-sale' : function(element) {
@@ -135,12 +164,26 @@ Template.adminTools.events({
     },
 
     'click #generate-item' : function(element) {
-    	var artwork_id = $('#artwork-id').val();
+    	var artwork_id = $('#generate-artwork-id').val();
     	var condition = $('#condition').val();
     	var xp_rating = $('#xp-rating').val();
     	var foil = $('.foil-selector').val() == "true";
+    	var seasonal = $('.seasonal-selector').val() == "true";
+    	var lottery = $('.lottery-selector').val();
 
-    	Meteor.call('generateItemFromArtworkID', Meteor.userId(), artwork_id, Number(condition) / 100, Number(xp_rating) / 100, foil, function(error, result) {
+    	Meteor.call('generateItemFromArtworkID', Meteor.userId(), artwork_id, Number(condition) / 100, Number(xp_rating) / 100, foil, seasonal, Number(lottery), function(error, result) {
+    		if (error)
+    			console.log(error.message);
+
+    		if (result === undefined)
+    			console.log("an error has occurred");
+    	});
+    },
+
+    'click #generate-random-item' : function(element) {
+    	var artwork_id = $('#random-artwork-id').val();
+
+    	Meteor.call('generateRandomItemFromArtworkID', Meteor.userId(), artwork_id, function(error, result) {
     		if (error)
     			console.log(error.message);
 

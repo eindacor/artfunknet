@@ -43,10 +43,13 @@ createAuction = function(item_id, starting, buy_now, duration) {
                 'seller': user_object.profile.screen_name,
                 'date': artwork_object.date,
                 'xp_rating': item_object.xp_rating,
+                //TODO update to include overall score
                 'feature_count': item_object.attributes.length,
                 'rarity_rank' : rarity_rank,
                 'roll_count' : item_object.roll_count,
-                'foil' : item_object.foil
+                'foil' : item_object.foil,
+                'lottery' : item_object.lottery,
+                'seasonal' : item_object.seasonal
             };
 
             auctions.insert(auction_object);
@@ -76,7 +79,9 @@ var getMVPData = function() {
             'value': getItemValue(all_items[i]._id, 'actual'),
             'rarity': artwork_object.rarity,
             'condition': all_items[i].condition,
-            'foil': all_items[i].foil
+            'foil': all_items[i].foil,
+            'lottery': all_items[i].lottery,
+            'seasonal': all_items[i].seasonal,
         }
 
         mvp_array.push(leaderboard_object);

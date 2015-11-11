@@ -22,14 +22,14 @@
 				<div class="col-xs-2">
 					<p class="highlight">{{this.owner}}</p>
 				</div> 
-				<div class="col-xs-5">
+				<div class="col-xs-4">
 					<p><span class="highlight">{{this.title}}</span> by <span class="highlight">{{this.artist}}</span></p>
 				</div> 
 				<div class="col-xs-2">
 					<p class="highlight">{{displayAsMoneyValue this.value}}</p>
 				</div> 
-				<div class="col-xs-1">
-					<p class="{{this.rarity}}">{{this.rarity}}{{#if this.foil}}<span class="af-color"> foil</span>{{/if}}</p>
+				<div class="col-xs-2">
+					<p class="{{this.rarity}}">{{this.rarity}}{{#if this.foil}}<span class="af-color"> foil</span>{{/if}}{{#if this.seasonal}}<span class="common"> seasonal</span>{{/if}}{{#if this.lottery}}<span class="gold"> lottery {{this.lottery}}</span>{{/if}}</p>
 				</div> 
 			</div>
 			{{/each}}

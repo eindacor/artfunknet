@@ -8,6 +8,8 @@
 					{{> settable_field set_id="set_daily_drop" current=daily_drop_count button_id="update-daily-drop-count" label="daily drop count"}}
 					{{> settable_field set_id="set_crate_drop" current=crate_drop_count button_id="update-crate-drop-count" label="crate count"}}
 					{{> settable_field set_id="set_bank_balance" current=bank_balance button_id="set-bank-balance" label="bank balance"}}
+					{{> settable_field set_id="set_seasonal" current=seasonal_ids button_id="set-seasonal" label="seasonal items"}}
+					{{> adminButton button_id="new-seasonals" button_label="new seasonals"}}
 					{{> adminButton button_id="reset-daily" button_label="reset daily drop"}}
 					{{> adminButton button_id="clear-unclaimed" button_label="clear unclaimed"}}
 					{{> adminButton button_id="generate-for-sale" button_label="generate for-sale"}}
@@ -24,14 +26,43 @@
 
 					<div class="row item-creation">
 						<h4 class="af-color">Generate Item</h4>
-						<p>artwork id: <input class="item-create-field" id="artwork-id"></p>
+						<p>artwork id: <input class="item-create-field" id="generate-artwork-id"></p>
 						<p>condition: <input class="item-create-field" id="condition"></p>
 						<p>xp rating: <input class="item-create-field" id="xp-rating"></p>
-						<select class="foil-selector">
-							<option value="true">true</option>
-							<option value="false">false</option>
-						</select>
+						<p>foil:
+							<select class="foil-selector">
+								<option value="false">false</option>
+								<option value="true">true</option>
+							</select>
+						</p>
+						<p>seasonal:
+							<select class="seasonal-selector">
+								<option value="false">false</option>
+								<option value="true">true</option>
+							</select>
+						</p>
+						<p>lottery:
+							<select class="lottery-selector">
+								<option value="0">0</option>
+								<option value="1">1</option>
+								<option value="2">2</option>
+								<option value="3">3</option>
+								<option value="4">4</option>
+								<option value="5">5</option>
+								<option value="6">6</option>
+								<option value="7">7</option>
+								<option value="8">8</option>
+								<option value="9">9</option>
+								<option value="10">10</option>
+							</select>
+						</p>
 						<p><button id="generate-item">generate item</button></p>
+					</div>
+
+					<div class="row random-item-creation">
+						<h4 class="af-color">Generate Item</h4>
+						<p>artwork id: <input class="random-item-create-field" id="random-artwork-id"></p>
+						<p><button id="generate-random-item">randomize item</button></p>
 					</div>
 
 					<div class="row profile-modification">

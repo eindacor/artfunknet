@@ -263,6 +263,10 @@ Template.galleryItem.helpers({
 			'artwork_data': artworks.findOne(data.painting_info.artwork_id),
 			'text_height': Math.floor(data.finish_data.pixels_per_centimeter * 2)
 		}
+	},
+
+	'shimmer' : function(data) {
+		return data.painting_info.foil || data.painting_info.seasonal || data.painting_info.lottery;
 	}
 });
 

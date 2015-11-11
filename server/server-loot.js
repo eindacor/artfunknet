@@ -1,3 +1,5 @@
+seasonal_ids = ["DLDMiW3S4JufHjByT", "Q8wG5TJrCF4T5poZ3"];
+
 bronze_rarity_map = {
     'common': 60,
     'uncommon': 12,
@@ -145,8 +147,22 @@ getItemObjectValue = function(item_object, type) {
         var lowest_possible = mint_value * condition_min_coefficient;
         var condition_factor = lowest_possible + ((mint_value - lowest_possible) * parseFloat(item_object.condition));
         var actual_value = Math.floor(condition_factor);
-        if (item_object.foil)
-            (actual_value *= 1.618);
+        var display_value = actual_value * 2;
+
+        if (item_object.foil) {
+            actual_value *= 2;
+            display_value *= 1.2;
+        }
+
+        else if(item_object.seasonal) {
+            actual_value *= 5;
+            display_value *= 1.5;
+        }
+
+        else if(item_object.lottery && item_object.lottery != 0) {
+            actual_value *= (10 * item_object.lottery);
+            display_value *= 2;
+        }
 
         var sell_value = Math.floor(actual_value * .5);
         var purchase_value = Math.floor(actual_value * 1.5);
@@ -161,12 +177,12 @@ getItemObjectValue = function(item_object, type) {
             case "auction_min": return auction_min;
             case "collector" : return collector_offer; 
             case "dealer" : return dealer_offer; 
+            case "display" : return display_value;
             default: return undefined;
         }
     }
 
     else {
-        console.log("getItemValue: " + error.message);
         console.log("item_id: " + item_id);
         return undefined;
     }
@@ -235,7 +251,7 @@ lookupCrateCost = function(quality, count) {
     return Math.floor(total_average * count * rarity_inflation_coefficient[quality]);
 }
 
-generateItems = function(user_id, quality, count) {
+generateItems = function(user_id, quality, count, status) {
     if (Meteor.users.findOne(user_id) === undefined)
         return;
 
@@ -253,158 +269,45 @@ generateItems = function(user_id, quality, count) {
 
     for (var i=0; i < parseInt(count); i++) {
         var rarity_roll = JepLoot.catRoll(getSmartRarityMap(Meteor.users.findOne(user_id).profile.level, map_amplifier));
-
         var possibilities = artworks.find({'rarity': rarity_roll}).fetch();
         var random_index = Math.floor(Math.random() * possibilities.length);
+        var rolled_id = possibilities[random_index]._id;
 
+        generateItemFromArtworkID(user_id, rolled_id, undefined, undefined, undefined, undefined, false, status);
+    }
+
+    return true;
+}
+
+generateItemFromArtworkID = function(user_id, artwork_id, condition, xp_rating, foil, seasonal, lottery, status) {
+    var artwork_object = artworks.findOne(artwork_id);
+    if (artwork_object) {
         var new_item_id = items.insert({
-            'artwork_id' : possibilities[random_index]._id,
-            'condition' : getCondition(),
-            'attributes' : getAttributes(rarity_roll),
+            'artwork_id' : artwork_id,
+            'condition' : condition === undefined ? getCondition() : condition,
+            'attributes' : getAttributes(artwork_object.rarity),
             'owner' : user_id,
-            'status' : 'unclaimed',
+            'status' : status,
             'date_created' : new Date(),
-            'xp_rating' : getXPRating(),
+            'xp_rating' : xp_rating === undefined ? getXPRating() : xp_rating,
             'roll_count' : 0,
-            'foil': Math.random() < .01
+            'foil': foil === undefined ? (! !!seasonal && Math.random() < .01) : foil,
+            'seasonal': seasonal === undefined ? seasonal_ids.indexOf(artwork_id) != -1 : seasonal,
+            'lottery': lottery === undefined ? false : lottery
         });
 
-        item_ids.push(new_item_id);
-    }
-
-    return item_ids;
-}
-
-generateItemsFromRarity = function(user_id, rarity, count) {
-    var item_ids = [];
-
-    if (Meteor.user().emails[0].address == "jpollack320@gmail.com") {
-        var possibilities = artworks.find({'rarity': rarity}).fetch();
-        for (var i=0; i < parseInt(count); i++) {
-            var random_index = Math.floor(Math.random() * possibilities.length);
-
-            var new_item_id = items.insert({
-                'artwork_id' : possibilities[random_index]._id,
-                'condition' : getCondition(),
-                'attributes' : getAttributes(rarity),
-                'owner' : user_id,
-                'status' : 'unclaimed',
-                'date_created' : new Date(),
-                'xp_rating' : getXPRating(),
-                'roll_count' : 0,
-                'foil': Math.random() < .01
-            });
-
-            item_ids.push(new_item_id);
-        }
-    }
-
-    return item_ids;
-}
-
-generateItemFromArtworkID = function(user_id, artwork_id, condition, xp_rating, foil) {
-    if (Meteor.user().profile.user_type == "admin") {
-        var artwork_object = artworks.findOne(artwork_id);
-        if (artwork_object) {
-            var new_item_id = items.insert({
-                'artwork_id' : artwork_id,
-                'condition' : condition,
-                'attributes' : getAttributes(artwork_object.rarity),
-                'owner' : user_id,
-                'status' : 'unclaimed',
-                'date_created' : new Date(),
-                'xp_rating' : xp_rating,
-                'roll_count' : 0,
-                'foil': foil
-            });
-
-            return new_item_id;
-        }
+        return new_item_id;
     }
 
     else return undefined;
 }
 
-generateItemsForSale = function(user_id, quality, count) {
-    if (Meteor.users.findOne(user_id) === undefined)
-        return;
-
-    var map_amplifier;
-
-    switch(quality) {
-        case 'bronze': map_amplifier = 0; break;
-        case 'silver': map_amplifier = .2; break;
-        case 'gold': map_amplifier = .4; break;
-        case 'platinum': map_amplifier = .8; break;
-        default: map_amplifier = 0; break;
-    }
-
-    var item_ids = [];
-
-    for (var i=0; i < parseInt(count); i++) {
-        var rarity_roll = JepLoot.catRoll(getSmartRarityMap(Meteor.users.findOne(user_id).profile.level, map_amplifier));
-
-        var possibilities = artworks.find({'rarity': rarity_roll}).fetch();
-        var random_index = Math.floor(Math.random() * possibilities.length);
-
-        var new_item_id = items.insert({
-            'artwork_id' : possibilities[random_index]._id,
-            'condition' : getCondition(),
-            'attributes' : getAttributes(rarity_roll),
-            'owner' : user_id,
-            'status' : 'for_sale',
-            'date_created' : new Date(),
-            'xp_rating' : getXPRating(),
-            'roll_count' : 0,
-            'foil': Math.random() < .01
-        });
-
-        item_ids.push(new_item_id);
-    }
-
-    return item_ids;
-}
-
-generateItemsForSaleFromRarity = function(user_id, rarity, count) {
-    var item_ids = [];
-
-    if (Meteor.user().emails[0].address == "jpollack320@gmail.com") {
-        var possibilities = artworks.find({'rarity': rarity}).fetch();
-        for (var i=0; i < parseInt(count); i++) {
-            var random_index = Math.floor(Math.random() * possibilities.length);
-
-            var new_item_id = items.insert({
-                'artwork_id' : possibilities[random_index]._id,
-                'condition' : getCondition(),
-                'attributes' : getAttributes(rarity),
-                'owner' : user_id,
-                'status' : 'for_sale',
-                'date_created' : new Date(),
-                'xp_rating' : getXPRating(),
-                'roll_count' : 0,
-                'foil': Math.random() < .01
-            });
-
-            item_ids.push(new_item_id);
-        }
-    }
-
-    return item_ids;
-}
-
 getAttributes = function(rarity) {
     var primary_count = attribute_quantities[rarity].primary;
-    var secondary_count = attribute_quantities[rarity].secondary;
-    // var default_count = attributes.find({'type' : "default"}).count();
-
     var total_primary = attributes.find({'type' : "primary"}).count();
-    var total_secondary = attributes.find({'type' : "secondary"}).count();
-    var total_default = attributes.find({'type' : "default"}).count();
 
     var primary_ids = [];
-    var secondary_ids = [];
     var primary_attributes = [];
-    var secondary_attributes = [];
 
     for (var i=0; i < primary_count; i++) {
         var remaining = attributes.find({'type' : "primary", '_id' : {$nin: primary_ids}}).count();
@@ -414,24 +317,10 @@ getAttributes = function(rarity) {
         primary_ids.push(random_attribute._id)
     }
 
-    for (var i=0; i < secondary_count; i++) {
-        var remaining = attributes.find({'type' : "secondary", '_id' : {$nin: secondary_ids}}).count();
-        var random_index = Math.floor(Math.random() * remaining);
-        var random_attribute = attributes.findOne({'type' : "secondary", '_id' : {$nin: secondary_ids}}, {skip: random_index});
-        secondary_attributes.push(random_attribute);
-        secondary_ids.push(random_attribute._id)
-    }
+    for (var i=0; i < primary_attributes.length; i++)
+        primary_attributes[i].value = getAttributeValue();
 
-    // var default_attributes = attributes.find({'type' : "default"}).fetch();
-
-    var all_attributes = primary_attributes.concat(secondary_attributes);
-    // all_attributes = all_attributes.concat(default_attributes);
-
-    for (var i=0; i < all_attributes.length; i++) {
-        all_attributes[i].value = getAttributeValue();
-    }
-
-    return all_attributes;
+    return primary_attributes;
 }
 
 getXPRating = function() {
@@ -467,7 +356,7 @@ Meteor.methods({
         if (Meteor.user() && dailyDropIsEnabled()) {
             var rolled_quality = getRolledCrateQuality();
 
-            generateItems(Meteor.userId(), rolled_quality, admin_settings.daily_drop_count);
+            generateItems(Meteor.userId(), rolled_quality, admin_settings.daily_drop_count, "unclaimed");
    
             var now = moment().toISOString();
             Meteor.users.update(Meteor.userId(), {$set: {'profile.last_drop' : now}});
@@ -481,7 +370,7 @@ Meteor.methods({
     'openCrate' : function(user_id, quality) {
         var cost = lookupCrateCost(quality, admin_settings.crate_drop_count);
         if (Meteor.userId() && Meteor.userId() == user_id && cost < Meteor.user().profile.bank_balance) {
-            generateItems(user_id, quality, admin_settings.crate_drop_count);
+            generateItems(user_id, quality, admin_settings.crate_drop_count, "unclaimed");
             chargeAccount(user_id, cost);
         }
 
@@ -523,12 +412,12 @@ smart_loot_map = {
     },
 
     'uncommon': {
-        'min_player_level': .39,
+        'min_player_level': .399,
         'max_player_level': .3
     },
 
     'rare': {
-        'min_player_level': .009899,
+        'min_player_level': .000899,
         'max_player_level': .5949
     },
 

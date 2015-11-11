@@ -83,12 +83,9 @@ Template.auctionTable.helpers({
 			}
 
 			var displayed_attributes = [];
-			//var base_attributes = [];
 			for(var i=0; i < item_object.attributes.length; i++) {
-				if (item_object.attributes[i].type != 'default')
+				if (item_object.attributes[i].type == 'primary')
 					displayed_attributes.push(item_object.attributes[i]);
-
-				//else base_attributes.push(item_object.attributes[i]);
 			}
 
 			list_object.condition_text = Math.floor((item_object.condition * 100)) + '%';
@@ -103,7 +100,6 @@ Template.auctionTable.helpers({
 			list_object.losing = (winning_id != Meteor.userId() && winning_id && has_bid);
 			list_object.owned = items.find({'owner': Meteor.userId(), 'artwork_id': list_object._id}).count() > 0;
 			list_object.attribute = displayed_attributes;
-			//list_object.base_attribute = base_attributes;
 			list_object.xp_rating_text = Math.floor(item_object.xp_rating * 100);
 
 			return list_object;
