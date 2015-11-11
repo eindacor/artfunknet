@@ -49,7 +49,7 @@
 </template>
 
 <template name="galleryItem">
-	<div class="painting-container" data-item_id="{{painting_info._id}}">
+	<div class="painting-container" data-item_id="{{painting_info._id}}" style="margin: 0px {{calcMargin this}}px 0px {{calcMargin this}}px">
 		<div class="item" style="padding: {{finish_data.matte_width}}px; border: {{finish_data.frame_width}}px solid black">
 			<div style="width: {{calcWidth this}}px; height: {{calcHeight this}}px; background: url({{#with getFilename painting_info.artwork_id}}{{getImageURL this}}{{/with}}); background-size: 100% auto">
 				{{#if shimmer this}}<div class="foil" style="width: {{calcWidth this}}px; height: {{calcHeight this}}px"></div>{{/if}}
