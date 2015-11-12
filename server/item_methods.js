@@ -351,13 +351,13 @@ Meteor.methods({
 
             for (var i=0; i < attribute_array.length; i++) {
                 if (attribute_array[i]._id == attribute_id) {
-                    attribute_array[i].value = getAttributeValue();
+                    attribute_array[i].value = getAttributeValue(0);
                     break;
                 }
             }
 
-            items.update(item_id, {$set: {'attributes' : attribute_array}});
-            items.update(item_id, {$set : {'roll_count' : roll_count + 1}});
+            items.update(item_id, {$set: {'attributes' : attribute_array, 'roll_count' : roll_count + 1}});
+            // items.update(item_id, {$set : {'roll_count' : roll_count + 1}});
             chargeAccount(Meteor.userId(), getRerollCost(item_id));
         }
 
@@ -388,10 +388,17 @@ Meteor.methods({
             var random_attribute = attributes.findOne({'type' : attribute_type, '_id' : {$nin: attribute_ids}}, {skip: random_index});
 
             attribute_array[target_attribute_index] = random_attribute;
-            attribute_array[target_attribute_index].value = getAttributeValue();
+            attribute_array[target_attribute_index].value = getAttributeValue(0);
 
-            items.update(item_id, {$set: {'attributes' : attribute_array}});
-            items.update(item_id, {$set : {'roll_count' : roll_count + 1}});
+            // attribute_array.sort(function(first, second) {
+            //     if (first.description > second.description)
+            //         return 1;
+
+            //     else return -1;
+            // });
+
+            items.update(item_id, {$set: {'attributes' : attribute_array, 'roll_count' : roll_count + 1}});
+            // items.update(item_id, {$set : {'roll_count' : roll_count + 1}});
             chargeAccount(Meteor.userId(), getRerollCost(item_id));
         }
 

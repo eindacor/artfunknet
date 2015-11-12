@@ -109,6 +109,17 @@ Template.itemInfo.helpers({
 
 	'can_decline' : function(display_object) {
 		return display_object.status == "for_sale" && display_object.owner == Meteor.userId();
+	},
+
+	'sortedAttributes' : function(attributes) {
+		attributes.sort(function(first, second) {
+	        if (first.description > second.description)
+	            return 1;
+
+	        else return -1;
+	    });
+
+	    return attributes;
 	}
 })
 

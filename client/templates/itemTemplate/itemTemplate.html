@@ -65,7 +65,7 @@
 					<div class="row no-margin">
 						<div class="footer-basic-info">
 							<div class="col-xs-11 no-padding">
-							{{#each item_data.attributes}}
+							{{#each sortedAttributes item_data.attributes}}
 								<i data-attribute_description="{{this.description}}" data-attribute_value="{{this.value}}" style="color: {{getHTMLColorFromValue this.value}}" class="{{#if ../is_permanent}}permanent{{/if}} item-attribute fa {{this.icon}}"></i>
 							{{/each}}
 							</div>

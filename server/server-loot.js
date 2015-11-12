@@ -318,7 +318,14 @@ getAttributes = function(rarity) {
     }
 
     for (var i=0; i < primary_attributes.length; i++)
-        primary_attributes[i].value = getAttributeValue();
+        primary_attributes[i].value = getAttributeValue(i);
+
+    // primary_attributes.sort(function(first, second) {
+    //     if (first.description > second.description)
+    //         return 1;
+
+    //     else return -1;
+    // });
 
     return primary_attributes;
 }
@@ -337,13 +344,13 @@ getXPRating = function() {
     return Number((xp_rating / 100).toFixed(2));
 }
 
-getAttributeValue = function() {
+getAttributeValue = function(multiplier) {
     var tier_map = {
-        0 : 2,
-        1 : 3,
-        2 : 3,
-        3 : 2,
-        4 : 1
+        0 : 1 + (multiplier * 0),
+        1 : 2 + (multiplier * 1),
+        2 : 3 + (multiplier * 2),
+        3 : 2 + (multiplier * 3),
+        4 : 1 + (multiplier * 4)
     };
 
     var random_tier = Number(JepLoot.catRoll(tier_map));
