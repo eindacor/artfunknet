@@ -50,7 +50,11 @@ createUser = function(user_object, callback){
         'owned': {
             'floor_finishes': floor_setter_object,
             'wall_finishes': wall_setter_object
-        }
+        },
+        'wall_opacity': 1,
+        'frame_width': .5,
+        'matte_width': .5,
+        'wall_base': "white"
     }
 
     return Accounts.createUser(user_object, callback);
