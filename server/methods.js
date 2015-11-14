@@ -5,7 +5,7 @@ var min_frame_width_cm = 3;
 var max_frame_width_cm = 16;
 var min_matte_width_cm = 0;
 var max_matte_width_cm = 20;
-var texture_size_cm = 180;
+var texture_size_cm = 300;
 
 createAuction = function(item_id, starting, buy_now, duration) {
     try {

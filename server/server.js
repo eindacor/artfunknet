@@ -52,6 +52,7 @@ var generateContent = function() {
 }
 
 var updateContent = function() {
+    addNewContent();
     gallery_tickets.remove({});
     npcs.remove({});
     var all_users = Meteor.users.find();
@@ -62,7 +63,7 @@ var updateContent = function() {
 
     var legacy_auctions = auctions.find({'expiration_date': {$ne: undefined}});
     legacy_auctions.forEach(function(db_object) {
-        var expiration_date = db_object.expiration_date;
+        var expiration_date = moment(db_object.expiration_date);
         auctions.update(db_object._id, {
             $set: {
                 'expiration': expiration_date._d.toISOString()

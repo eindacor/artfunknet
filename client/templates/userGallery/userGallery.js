@@ -225,7 +225,7 @@ Template.userGallery.events ({
 		var source = container.find('.floor-finish-thumbnail')[0].src;
 
 		$('#gallery-floor').css('background', source);
-		$('#gallery-floor').css('background-size', "200px 100px");
+		$('#gallery-floor').css('background-size', "400px 200px");
 
 		Meteor.call('setActiveFinish', finish_id, "floor", function(error) {
 			if (error)
