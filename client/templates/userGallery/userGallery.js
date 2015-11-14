@@ -205,24 +205,28 @@ Template.userGallery.events ({
 		original_offset = undefined;
 	},
 
-	'click .wall-finish-thumbnail' : function(element) {
-		var html_string = "url(" + element.target.src + ")";
-		$('#gallery-wall').css('background', html_string);
-		$('#gallery-wall').css('background-size', "200px 100px");
+	'click .wall-finish-container' : function(element) {
+		var container = $(element.target).closest('.wall-finish-container');
+		var finish_id = container.data().gallery_finish_id;
+		var source = container.find('.wall-finish-thumbnail')[0].src;
+		
+		$('#gallery-wall').css('background', source);
+		$('#gallery-wall').css('background-size', "200px 200px");
 
-		var finish_id = $(element.target).data().gallery_finish_id;
 		Meteor.call('setActiveFinish', finish_id, "wall", function(error) {
 			if (error)
 				console.log(error.message)
 		})
 	},
 
-	'click .floor-finish-thumbnail' : function(element) {
-		var html_string = "url(" + element.target.src + ")";
-		$('#gallery-floor').css('background', html_string);
+	'click .floor-finish-container' : function(element) {
+		var container = $(element.target).closest('.floor-finish-container');
+		var finish_id = container.data().gallery_finish_id;
+		var source = container.find('.floor-finish-thumbnail')[0].src;
+
+		$('#gallery-floor').css('background', source);
 		$('#gallery-floor').css('background-size', "200px 100px");
 
-		var finish_id = $(element.target).data().gallery_finish_id;
 		Meteor.call('setActiveFinish', finish_id, "floor", function(error) {
 			if (error)
 				console.log(error.message)
@@ -345,6 +349,7 @@ Template.galleryEdit.helpers({
 			var finish_id = key_array[i];
 			var finish_object = user_object.profile.gallery_finishes.owned.wall_finishes[finish_id];
 			finish_object.finish_id = finish_id;
+			finish_object.xp_rating_text = Math.floor(finish_object.xp_rating * 100);
 			finish_array.push(finish_object);
 		}
 		return finish_array;
@@ -358,6 +363,7 @@ Template.galleryEdit.helpers({
 			var finish_id = key_array[i];
 			var finish_object = user_object.profile.gallery_finishes.owned.floor_finishes[finish_id];
 			finish_object.finish_id = finish_id;
+			finish_object.xp_rating_text = Math.floor(finish_object.xp_rating * 100);
 			finish_array.push(finish_object);
 		}
 		return finish_array;
