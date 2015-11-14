@@ -302,6 +302,11 @@ Meteor.methods({
     },
 
     'sellArtwork' : function(item_id) {
+        if (Meteor.user().profile.user_type == "admin") {
+            items.remove(item_id);
+            return;
+        }
+
         var item_object = canSellItem(item_id);
         if (item_object) {
             var value = getItemValue(item_id, 'sell');

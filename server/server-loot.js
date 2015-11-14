@@ -1,4 +1,4 @@
-seasonal_ids = ["DLDMiW3S4JufHjByT", "Q8wG5TJrCF4T5poZ3"];
+seasonal_ids = ["xtCiaet3j7XgYquAm"];
 
 bronze_rarity_map = {
     'common': 60,
