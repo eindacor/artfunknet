@@ -53,7 +53,7 @@ Template.galleryTable.helpers({
 	},
 
 	'currentTicketHolders' : function(owner_id) {
-		return 5;
+		return getCommaSeparatedValue(gallery_tickets.find({'gallery_owner': owner_id}).count());
 	},
 
 	'galleryInfo' : function(gallery_object) {
@@ -73,7 +73,7 @@ Template.galleryTable.helpers({
 
 			gallery_object.attribute = attribute_array;
 			gallery_object.fee_text = getCommaSeparatedValue(gallery_object.entry_fee);
-			gallery_object.paid = gallery_object.owner_id == Meteor.userId() || Meteor.users.findOne({'_id': Meteor.userId(), 'profile.gallery_tickets.owner_id': gallery_object.owner_id}) != undefined;
+			gallery_object.paid = Meteor.userId() == gallery_object.owner_id || gallery_tickets.findOne({'ticketholder': Meteor.userId(), 'gallery_owner': gallery_object.owner_id}) != undefined;
 			return gallery_object;
 		}
 

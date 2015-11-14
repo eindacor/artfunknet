@@ -24,7 +24,9 @@
 			    {{#if currentUser}}
 		    	<div class="col-xs-6 no-padding">
 					{{#each ticket}}
-					<a href="/user/{{owner_name}}" class="ticket-button {{#if unmet_npcs}}af-color{{else}}npcs-met{{/if}}"><i data-expiration_string="{{expiration_string}}" data-owner_name="{{owner_name}}" class="fa fa-ticket"></i></a>
+						{{#with ticketData this}}
+						<a href="/user/{{owner_name}}" class="ticket-button {{#if unmet_npcs}}af-color{{else}}npcs-met{{/if}}"><i data-expiration_string="{{expiration_string}}" data-owner_name="{{owner_name}}" class="fa fa-ticket"></i></a>
+						{{/with}}
 					{{/each}}
 				</div>
 				{{/if}}

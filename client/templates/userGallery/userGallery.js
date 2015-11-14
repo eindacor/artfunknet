@@ -73,9 +73,7 @@ Template.userGallery.helpers({
 			var viewer_object = Meteor.user();
 			var tickets_maxed = viewer_object.profile.gallery_tickets.length >= viewer_object.profile.ticket_cap;
 			var insufficient_funds = gallery_object.entry_fee > viewer_object.profile.bank_balance;
-			var paid = viewer_object.profile.gallery_tickets.some(function(ticket_object) {
-				return ticket_object.owner_id == gallery_object.owner_id;
-			});
+			var paid = gallery_tickets.findOne({'ticketholder': Meteor.userId(), 'gallery_owner': gallery_object.owner_id}) != undefined;
 
 			return {
 				'paid' : paid || screen_name == viewer_object.profile.screen_name,

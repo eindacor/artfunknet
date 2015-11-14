@@ -229,8 +229,10 @@ Meteor.methods({
             if (user_object.password != confirmed_password)
                 errors.push("Password fields do not match");
 
-            if (user_object.profile.screen_name == "" || Meteor.users.find({'profile.screen_name': user_object.profile.screen_name}).count() > 0)
-                errors.push("Invalid user handle");
+            if (user_object.profile.screen_name == "" 
+                    || Meteor.users.find({'profile.screen_name': user_object.profile.screen_name}).count() > 0 
+                    || user_object.profile.screen_name.toLowerCase() == "artfunkel")
+                errors.push("Invalid user name");
 
             if (user_object.profile.screen_name.indexOf('.') != -1 || user_object.profile.screen_name.indexOf(' ') != -1)
                 errors.push("Username contains invalid characters");
@@ -315,8 +317,7 @@ Meteor.methods({
     },
 
     'purchaseTicket' : function(buyer_id, owner_id) {
-        var ticket_duration = 30;
-        // ticket_duration = 1;
+        var ticket_duration = 30; // minutes
         var ticket_expiration = moment().add(ticket_duration, 'minutes')._d.toISOString();
         var entry_fee = Meteor.users.findOne(owner_id).profile.entry_fee;
 
@@ -324,12 +325,12 @@ Meteor.methods({
             return;
 
         var ticket_object = {
-            'owner_id': owner_id,
-            'expiration': ticket_expiration,
-            'unique_id': new Mongo.ObjectID()._str
-        }
+            'ticketholder': buyer_id,
+            'gallery_owner': owner_id,
+            'expiration': ticket_expiration
+        };
 
-        Meteor.users.update(buyer_id, {$push: {'profile.gallery_tickets': ticket_object}})
+        var new_id = gallery_tickets.insert(ticket_object);
 
         addFunds(owner_id, entry_fee);
         addXPChunkPercentage(owner_id, .02);

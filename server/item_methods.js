@@ -1,8 +1,10 @@
-concludeAuction = function(auction_id) {
-    var auction_object = auctions.findOne(auction_id);
-    var item_object = items.findOne({'_id': auction_object.item_id});
+var failedAuction = function(auction_object, item_object) {
+    if (auction_object.seller == "Artfunkel, Inc.") {
+        items.remove(item_object._id);
+        return;
+    }
 
-    if (auction_object.bid_history.length == 0) {
+    else {
         items.update(item_object._id, {$set: {'status' : 'claimed'}});
 
         auctions.remove({'_id': auction_object._id});
@@ -18,16 +20,19 @@ concludeAuction = function(auction_id) {
         };
         alerts.insert(alert_object);
     }
+}
 
-    else {
-        var bid_history = auction_object.bid_history;
-        var highest_bid = { 'amount' : 0 }
+var successfulAuction = function(auction_object, item_object) {
+    var bid_history = auction_object.bid_history;
+    var highest_bid = { 'amount' : 0 };
 
-        for (var i=0; i < bid_history.length; i++) {
-            if (bid_history[i].amount > highest_bid.amount)
-                highest_bid = bid_history[i];
-        }
+    for (var i=0; i < bid_history.length; i++) {
+        if (bid_history[i].amount > highest_bid.amount)
+            highest_bid = bid_history[i];
+    }
 
+    // alert auctioner
+    if (auction_object.seller != "Artfunkel, Inc.") {
         var sale_message = "You have successfully auctioned " + auction_object.title + " by " + auction_object.artist + " for $" + getCommaSeparatedValue(auction_object.current_price)
         var alert_sale_object = {
             'user_id' : item_object.owner,
@@ -38,49 +43,64 @@ concludeAuction = function(auction_id) {
             'time' : moment()
         };
         alerts.insert(alert_sale_object);
+    }
 
-        if (highest_bid.user_id != "auction_bot") {
-            var win_message = "You have won " + auction_object.title + " by " + auction_object.artist + " in the auction house for $" + getCommaSeparatedValue(auction_object.current_price);
-            var alert_win_object = {
-                'user_id' : highest_bid.user_id,
-                'message' : win_message,
-                'link' : '/',
-                'icon' : 'fa-gavel',
-                'sentiment' : "good",
-                'time' : moment()
-            };
-            alerts.insert(alert_win_object);
-        }
+    // alert winner
+    if (highest_bid.user_id != "auction_bot") {
+        var win_message = "You have won " + auction_object.title + " by " + auction_object.artist + " in the auction house for $" + getCommaSeparatedValue(auction_object.current_price);
+        var alert_win_object = {
+            'user_id' : highest_bid.user_id,
+            'message' : win_message,
+            'link' : '/',
+            'icon' : 'fa-gavel',
+            'sentiment' : "good",
+            'time' : moment()
+        };
+        alerts.insert(alert_win_object);
+    }
 
-        var XPChunkValue;
+    var XPChunkValue;
 
-        switch(auction_object.rarity) {
-            case 'common' : XPChunkValue = .5; break;
-            case 'uncommon' : XPChunkValue = .6; break;
-            case 'rare' : XPChunkValue = .7; break;
-            case 'legendary' : XPChunkValue = .8; break;
-            case 'masterpiece' : XPChunkValue = 1; break;
-            default: break;
-        }
-            
+    switch(auction_object.rarity) {
+        case 'common' : XPChunkValue = .5; break;
+        case 'uncommon' : XPChunkValue = .6; break;
+        case 'rare' : XPChunkValue = .7; break;
+        case 'legendary' : XPChunkValue = .8; break;
+        case 'masterpiece' : XPChunkValue = 1; break;
+        default: break;
+    }
+
+    if (item_object.owner != "Artfunkel, Inc.") {
         addXPChunkPercentage(item_object.owner, XPChunkValue);
         addFunds(item_object.owner, highest_bid.amount);
-
-        if (highest_bid.user_id != "auction_bot") {
-            addXPChunkPercentage(highest_bid.user_id, XPChunkValue);
-            transferAuctionItem(item_object._id, item_object.owner, highest_bid.user_id);
-        }
-
-        else {
-            items.remove(item_object._id);
-            calcMVP(item_object.owner);
-        }
-
-        auctions.remove({'_id': auction_id}, function(error) {
-            if (error)
-                console.log(error.message);
-        });
     }
+
+    if (highest_bid.user_id != "auction_bot") {
+        addXPChunkPercentage(highest_bid.user_id, XPChunkValue);
+        transferAuctionItem(item_object._id, item_object.owner, highest_bid.user_id);
+    }
+
+    else {
+        items.remove(item_object._id);
+        calcMVP(item_object.owner);
+    }
+}
+
+concludeAuction = function(auction_id) {
+    var auction_object = auctions.findOne(auction_id);
+    var item_object = items.findOne({'_id': auction_object.item_id});
+
+    if (auction_object.bid_history.length == 0)
+        failedAuction(auction_object, item_object);
+
+    else {
+        successfulAuction(auction_object, item_object);
+    }
+
+    auctions.remove({'_id': auction_id}, function(error) {
+        if (error)
+            console.log(error.message);
+    });
 }
 
 transferAuctionItem = function(item_id, owner_id, winner_id) {
@@ -289,11 +309,14 @@ Meteor.methods({
                 throw "invalid amount";
 
             addFunds(Meteor.userId(), value);
-            items.remove(item_id, function(error) {
+            items.update(item_id, {$set: {'owner': "Artfunkel, Inc.", 'status': "auctioned"}} ,function(error) {
                 if (error)
                     console.log(error.message);
 
-                else calcMVP(Meteor.userId());
+                else {
+                    calcMVP(Meteor.userId());
+                    createAuction(item_id, getItemValue(item_id, "sell"), -1, 30);
+                }
             });
         }
 

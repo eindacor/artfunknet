@@ -53,12 +53,11 @@
 	            	</div>
 				</div>		
 				<div class="row ticket-info">
-					{{#if has_tickets}}
-						{{#each ticket}}
-						<a href="/user/{{owner_name}}" class="ticket-button {{#if unmet_npcs}}af-color{{else}}npcs-met{{/if}}"><i data-expiration_string="{{expiration_string}}" data-owner_name="{{owner_name}}" class="fa fa-ticket"></i></a>
-						{{/each}}
-						<p class="ticket-max">({{ticket_max}} max)</p>
-					{{/if}}
+				{{#each ticket}}
+					{{#with ticketData this}}
+					<a href="/user/{{owner_name}}" class="ticket-button {{#if unmet_npcs}}af-color{{else}}npcs-met{{/if}}"><i data-expiration_string="{{expiration_string}}" data-owner_name="{{owner_name}}" class="fa fa-ticket"></i></a>
+					{{/with}}
+				{{/each}}
 				</div>
 			</div>
 

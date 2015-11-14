@@ -166,9 +166,9 @@ getItemObjectValue = function(item_object, type) {
 
         var sell_value = Math.floor(actual_value * .5);
         var purchase_value = Math.floor(actual_value * 1.5);
-        var dealer_offer = Math.floor(actual_value * 1.2);
+        var dealer_offer = Math.floor(actual_value * .9);
         var auction_min = Math.floor(sell_value * .8);
-        var collector_offer = Math.floor(actual_value * 2);
+        var collector_offer = Math.floor(actual_value * 1.2);
 
         switch(type) {
             case "sell": return sell_value;

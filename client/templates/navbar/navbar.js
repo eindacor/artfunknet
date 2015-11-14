@@ -4,32 +4,26 @@ Template.navbar.helpers({
 	},
 
 	'ticket' : function() {
-		try {
-			var tickets = Meteor.user().profile.gallery_tickets;
-			var ticket_array = [];
-			for (var i=0; i < tickets.length; i++) {
-				var gallery_object = galleries.findOne({'owner_id' : tickets[i].owner_id});
-				if (gallery_object) {
-					var unmet_npcs = npcs.find({'owner_id': gallery_object.owner_id, 'players_met': {$ne: Meteor.userId()}}).count();
+		return gallery_tickets.find({'ticketholder': Meteor.userId()});
+	},
 
-					if (gallery_object) {
-						var ticket_object = {
-							'owner_name' : gallery_object.owner,
-							'owner_id' : tickets[i].owner_id,
-							'expiration_string' : getTimeString(moment(tickets[i].expiration)),
-							'unmet_npcs' : unmet_npcs > 0
-						}
-						ticket_array.push(ticket_object);
-					}
+	'ticketData' : function(ticket_object) {
+		var gallery_object = galleries.findOne({'owner_id' : ticket_object.gallery_owner});
+		if (gallery_object) {
+			var unmet_npcs = npcs.findOne({'owner_id': gallery_object.owner_id, 'players_met': {$ne: Meteor.userId()}});
+
+			if (gallery_object) {
+				var displayed_object = {
+					'owner_name' : gallery_object.owner,
+					'owner_id' : ticket_object.gallery_owner,
+					'expiration_string' : getTimeString(moment(ticket_object.expiration)),
+					'unmet_npcs' : (unmet_npcs != undefined)
 				}
+
+				return displayed_object;
 			}
 
-			return ticket_array;
-		}
-
-		catch(error) {
-			console.log(error.message);
-			return [];
+			else return {};
 		}
 	},
 
@@ -58,5 +52,11 @@ Template.navbar.events({
 		var button_title = element.target.dataset.title;
 
 		setFootnote(button_title, Math.floor(Math.random() * 1000));
-	}
+	},
+
+	'mouseover .ticket-button i' : function(element) {
+		var owner_name = element.target.dataset.owner_name;
+		var expiration_string = element.target.dataset.expiration_string;
+		setFootnote("Visit gallery of " + owner_name + ". Expires " + expiration_string + ".", Math.floor(Math.random() * 100000));
+	},
 })

@@ -222,7 +222,7 @@ Template.itemInfo.events({
 
 	'mouseover .quick-sell' : function(event) {
 		var enabled = $(event.target).closest('span.quick-sell').hasClass("enabled");
-		var footnote_string = "discard artwork" + (enabled ? "" : " (unavailable)");
+		var footnote_string = "sell artwork" + (enabled ? "" : " (unavailable)");
 		setFootnote(footnote_string, Math.floor(Math.random() * 100000));
 	},
 

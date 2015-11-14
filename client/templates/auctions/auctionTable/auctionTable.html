@@ -20,7 +20,7 @@
 							<img class="image-thumb preview enabled" src="{{getImageURL filename}}" width="{{image_width}}" height="{{image_height}}"/>
 							{{/with}}
 						</td>
-						{{#with time_remaining expiration_date}}
+						{{#with time_remaining expiration}}
 						<td class="{{#if soon}}soon{{/if}}">{{remaining}}</td>
 						{{/with}}
 						<td>{{#if owned}}*{{/if}}{{title}}</td>
@@ -38,8 +38,8 @@
 						<td class="{{#if has_history}}highlight{{/if}}">{{displayAsMoneyValue bid_minimum}}</td>
 						<td>{{buy_now_text}}</td>
 						<td class="action-buttons">						
-							<span class="place-bid {{#if biddable}}enabled{{else}}disabled{{/if}}" data-auction_id="{{auction_id}}"><i class="fa fa-usd"></i></span>
-							<span class="view-history {{#if history}}enabled{{else}}disabled{{/if}}" data-auction_id="{{auction_id}}"><i class="fa fa-history"></i></span>
+							<span class="place-bid {{#if isBiddable this}}enabled{{else}}disabled{{/if}}" data-auction_id="{{auction_id}}"><i class="fa fa-usd"></i></span>
+							<span class="view-history {{#if has_history}}enabled{{else}}disabled{{/if}}" data-auction_id="{{auction_id}}"><i class="fa fa-history"></i></span>
 						</td>
 						<td><a href="/user/{{seller}}">{{seller}}</a></td>
 					</tr>

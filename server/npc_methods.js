@@ -131,6 +131,7 @@ var enthusiastInteraction = function(npc_object) {
 }
 
 var benefactorInteraction = function(npc_object) {
+	// max_donation is determined by how close the player is to max level
 	var max_donation = 50000 + (250000 * playerRatio(Meteor.user()));
 	var donation_amount;
 
@@ -141,9 +142,11 @@ var benefactorInteraction = function(npc_object) {
 		case 'platinum' : donation_amount = max_donation * 1; break;
 	};
 
+	// returns true if the player met the npc in his/her own gallery
 	if (isOwnGallery(npc_object))
 		donation_amount *= own_gallery_amplifier;
 
+	// adjust randomly to vary amount won
 	var money_won = Math.floor(donation_amount + ((Math.random() * .1) * max_donation));
 
 	var message = "You have met a benefactor who would like to make a donation. You have recieved $" + getCommaSeparatedValue(money_won) + "!";
@@ -279,13 +282,7 @@ var artDealerInteraction = function(npc_object) {
 }
 
 var galleryManagerInteraction = function(npc_object) {
-	var extension_time;
-	// extension_time must be > ticket expiration check (5)
-	if (isOwnGallery(npc_object))
-		extension_time = 20;
-
-	else extension_time = 20;
-
+	var extension_time = 20;
 	var extension_multiplier;
 		
 	switch(npc_object.quality) {
@@ -299,27 +296,20 @@ var galleryManagerInteraction = function(npc_object) {
 	extension_time = Math.floor(extension_time * extension_multiplier);
 
 	if (isOwnGallery(npc_object)) {
-		var gallery_tickets = Meteor.user().profile.gallery_tickets;
-		if (gallery_tickets.length != 0) {		
-			var gallery_count = 2;
-			var galleries_extended = [];
-			while (galleries_extended.length < gallery_count && gallery_tickets.length > 0) {
-				var random_index = Math.floor(Math.random() * gallery_tickets.length)
-				galleries_extended.push(gallery_tickets[random_index]);
-				gallery_tickets.splice(random_index, 1);
-			}
-	
+		var extended_ticket_count = 3;
+		var extendable_tickets = gallery_tickets.find({'ticketholder': Meteor.userId()}).fetch();
+
+		if (extendable_tickets.length > 0) {
+			var selected = extendable_tickets.sort(function(first, second) {return Math.random() - Math.random()}).slice(0, extended_ticket_count);
+
 			var owner_names = [];
-			for (var i=0; i < galleries_extended.length; i++) {
-				owner_names.push(Meteor.users.findOne(galleries_extended[i].owner_id).profile.screen_name)
-				var current_expiration = moment(galleries_extended[i].expiration);
+			for (var i=0; i < selected.length; i++) {
+				var current_expiration = moment(selected[i].expiration);
 				var new_expiration = current_expiration.add(extension_time, 'minutes')._d.toISOString();
-				var gallery_id = galleries_extended[i].owner_id;
-	
-				Meteor.users.update({'_id': Meteor.userId(), 'profile.gallery_tickets.owner_id' : gallery_id}, 
-					{$set: {'profile.gallery_tickets.$.expiration': new_expiration, 'profile.gallery_tickets.$.unique_id': new Mongo.ObjectID()._str }})
+				gallery_tickets.update(selected[i]._id, {$set: {'expiration': new_expiration}});
+				owner_names.push(Meteor.users.findOne(selected[i].gallery_owner).profile.screen_name)
 			}
-	
+
 			var message = "You have met a gallery manager. Your access to the following galleries has been extended by " + extension_time + " minutes: " + owner_names.toString().replace(/,/g, ", ");
 			return {'message': message};
 		}
@@ -331,19 +321,9 @@ var galleryManagerInteraction = function(npc_object) {
 	}
 
 	else {
-		var gallery_tickets = Meteor.user().profile.gallery_tickets;
-		var new_expiration;
-
-		for (var i=0; i < gallery_tickets.length; i++) {
-			if (gallery_tickets[i].owner_id == npc_object.owner_id) {
-				var current_expiration = moment(gallery_tickets[i].expiration);
-				var new_expiration = current_expiration.add(extension_time, 'minutes')._d.toISOString();
-				break;
-			}
-		}
-
-		Meteor.users.update({'_id': Meteor.userId(), 'profile.gallery_tickets.owner_id' : npc_object.owner_id}, 
-				{$set: {'profile.gallery_tickets.$.expiration': new_expiration, 'profile.gallery_tickets.$.unique_id': new Mongo.ObjectID()._str }});
+		var current_expiration = moment(gallery_tickets.findOne({'ticketholder': Meteor.userId(), 'gallery_owner': npc_object.owner_id}).expiration);
+		var new_expiration = current_expiration.add(extension_time, 'minutes')._d.toISOString();
+		gallery_tickets.update({'ticketholder': Meteor.userId(), 'gallery_owner': npc_object.owner_id}, {$set: {'expiration': new_expiration}});
 
 		var message = "You have met a gallery manager. Your access to this gallery has been extended by " + extension_time + " minutes.";
 		return {'message': message};

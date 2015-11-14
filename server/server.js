@@ -52,12 +52,26 @@ var generateContent = function() {
 }
 
 var updateContent = function() {
-    Meteor.users.update({}, {$set: {'profile.gallery_tickets': []}}, {multi: true})
+    gallery_tickets.remove({});
     npcs.remove({});
     var all_users = Meteor.users.find();
     all_users.forEach(function(db_object) {
         updateGalleryDetails(db_object._id);
         calcMVP(db_object._id);
+    });
+
+    var legacy_auctions = auctions.find({'expiration_date': {$ne: undefined}});
+    legacy_auctions.forEach(function(db_object) {
+        var expiration_date = db_object.expiration_date;
+        auctions.update(db_object._id, {
+            $set: {
+                'expiration': expiration_date._d.toISOString()
+            }, 
+
+            $unset: {
+                'expiration_date': ""
+            }
+        });
     });
 }
 

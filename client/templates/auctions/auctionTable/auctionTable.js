@@ -27,7 +27,7 @@ Template.auctionTable.helpers({
 	'header' : function(table_data) {
 		var header_array = [
 			{ 'text' : 'view', 'sort_id' : undefined, 'table_id' : table_data.table_id  },
-			{ 'text' : 'remaining', 'sort_id' : 'expiration_date', 'table_id' : table_data.table_id  },
+			{ 'text' : 'remaining', 'sort_id' : 'expiration', 'table_id' : table_data.table_id  },
 			{ 'text' : 'title', 'sort_id' : 'title', 'table_id' : table_data.table_id  },
 			{ 'text' : 'date', 'sort_id' : 'date', 'table_id' : table_data.table_id  },
 			{ 'text' : 'artist', 'sort_id' : 'artist', 'table_id' : table_data.table_id  },
@@ -94,7 +94,7 @@ Template.auctionTable.helpers({
 				(item_object.owner != Meteor.userId()) && 
 				(auction_object.bid_minimum <= Meteor.user().profile.bank_balance) && 
 				items.find({'owner' : Meteor.userId(), 'status' : {$nin : ['unclaimed', 'for_sale']}}).count() < Meteor.user().profile.inventory_cap;
-			list_object.buy_now_text = auction_object.buy_now == -1 ? "-" : "$" + getCommaSeparatedValue(auction_object.buy_now),
+			list_object.buy_now_text = auction_object.buy_now == -1 ? "-" : "$" + getCommaSeparatedValue(auction_object.buy_now);
 			list_object.has_history = auction_object.bid_history.length > 0;
 			list_object.winning = (winning_id == Meteor.userId()) && Meteor.userId();
 			list_object.losing = (winning_id != Meteor.userId() && winning_id && has_bid);
@@ -108,6 +108,10 @@ Template.auctionTable.helpers({
 		catch(error) {
 			return {};
 		}
+	},
+
+	'isBiddable' : function(list_object) {
+		return list_object.biddable && list_object.expiration > Session.get('now');
 	},
 
 	'attributeColor' : function(value) {
@@ -204,7 +208,7 @@ Template.auctionTable.events({
 Template.auctionTable.created = function() {
 	this.handle = Meteor.setInterval((function() {
 		var now = moment();
-		Session.set('now', now.toISOString());
+		Session.set('now', now._d.toISOString());
 	}), 1000);
 }
 

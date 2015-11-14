@@ -16,7 +16,6 @@ Template.dashboard.helpers({
 				'private_max' : user_object.profile.pc_cap,
 				'entry_fee' : "$" + getCommaSeparatedValue(user_object.profile.entry_fee),
 				'ticket_max' : user_object.profile.ticket_cap,
-				'has_tickets' : user_object.profile.gallery_tickets.length !== 0
 			}
 
 			return data_object;
@@ -84,31 +83,28 @@ Template.dashboard.helpers({
 	},
 
 	'ticket' : function() {
-		try {
-			var tickets = Meteor.user().profile.gallery_tickets;
-			var ticket_array = [];
-			for (var i=0; i < tickets.length; i++) {
-				var gallery_object = galleries.findOne({'owner_id' : tickets[i].owner_id});
-				var met_npcs = npcs.find({'owner_id': gallery_object.owner_id, 'players_met': {$ne: Meteor.userId()}}).count();
+		return gallery_tickets.find({'ticketholder': Meteor.userId()});
+	},
 
-				if (gallery_object) {
-					var ticket_object = {
-						'owner_name' : gallery_object.owner,
-						'owner_id' : tickets[i].owner_id,
-						'expiration_string' : getTimeString(moment(tickets[i].expiration)),
-						'unmet_npcs' : met_npcs > 0
-					}
-					ticket_array.push(ticket_object);
+	'ticketData' : function(ticket_object) {
+		var gallery_object = galleries.findOne({'owner_id' : ticket_object.gallery_owner});
+		if (gallery_object) {
+			var unmet_npcs = npcs.findOne({'owner_id': gallery_object.owner_id, 'players_met': {$ne: Meteor.userId()}});
+
+			if (gallery_object) {
+				var displayed_object = {
+					'owner_name' : gallery_object.owner,
+					'owner_id' : ticket_object.gallery_owner,
+					'expiration_string' : getTimeString(moment(ticket_object.expiration)),
+					'unmet_npcs' : (unmet_npcs != undefined)
 				}
+
+				return displayed_object;
 			}
 
-			return ticket_array;
+			else return {};
 		}
-
-		catch(error) {
-			return [];
-		}
-	}
+	},
 })
 
 Template.dashboard.events({
