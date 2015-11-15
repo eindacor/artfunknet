@@ -1,0 +1,23 @@
+.template-historianModal .modal-content {
+	padding-bottom: 48px;
+}
+
+.template-historianModal .highlight {
+	font-weight: bold;
+}
+
+.template-historianModal .target-text {
+	font-size: 2rem;
+}
+
+.template-historianModal .modal-section {
+	margin: 24px 48px;
+}
+
+.template-historianModal .button-area {
+	text-align: center
+}
+
+.template-historianModal .message-area {
+	font-size: 1.5rem;
+}

@@ -103,7 +103,13 @@ Meteor.methods({
 
 	'generateItemFromArtworkID' : function(user_id, artwork_id, condition, xp_rating, foil, seasonal, lottery) {
 		if (adminValidated()) {
-			return generateItemFromArtworkID(user_id, artwork_id, condition, xp_rating, foil, seasonal, lottery, "unclaimed");
+			if (user_id == "")
+				return generateItemFromArtworkID(Meteor.userId(), artwork_id, condition, xp_rating, foil, seasonal, lottery, "unclaimed");
+
+			else if (Meteor.users.findOne(user_id) == undefined)
+				return false;
+
+			else return generateItemFromArtworkID(user_id, artwork_id, condition, xp_rating, foil, seasonal, lottery, "unclaimed");
 		}
 
 		else return undefined;
@@ -111,7 +117,13 @@ Meteor.methods({
 
 	'generateRandomItemFromArtworkID' : function(user_id, artwork_id) {
 		if (adminValidated()) {
-			return generateItemFromArtworkID(user_id, artwork_id, undefined, undefined, undefined, undefined, false, "unclaimed");
+			if (user_id == "")
+				return generateItemFromArtworkID(user_id, artwork_id, undefined, undefined, undefined, undefined, false, "unclaimed");
+
+			else if (Meteor.users.findOne(user_id) == undefined)
+				return false;
+
+			else return generateItemFromArtworkID(user_id, artwork_id, undefined, undefined, undefined, undefined, false, "unclaimed");
 		}
 
 		else return undefined;
@@ -143,5 +155,24 @@ Meteor.methods({
 		}
 
 		seasonal_ids = id_array;
-	}
+	},
+
+	'alertAllUsers' : function(message) {
+        if (adminValidated()) {
+            var all_users = Meteor.users.find({'profile.user_type': {$ne: "admin"}});
+
+            all_users.forEach(function(db_object) {
+                var alert_object = {
+                    'user_id' : db_object._id,
+                    'message' : message,
+                    'link' : '/',
+                    'icon' : 'fa-exclamation',
+                    'sentiment' : "neutral",
+                    'time' : moment()
+                };
+
+                alerts.insert(alert_object);
+            })
+	    }
+    },
 })

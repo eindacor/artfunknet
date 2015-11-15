@@ -26,6 +26,7 @@
 
 					<div class="row item-creation">
 						<h4 class="af-color">Generate Item</h4>
+						<p>user id: <input class="item-create-field" id="generate-user-id"></p>
 						<p>artwork id: <input class="item-create-field" id="generate-artwork-id"></p>
 						<p>condition: <input class="item-create-field" id="condition"></p>
 						<p>xp rating: <input class="item-create-field" id="xp-rating"></p>
@@ -65,11 +66,17 @@
 						<p><button id="generate-random-item">randomize item</button></p>
 					</div>
 
-					<div class="row profile-modification">
+					<!-- <div class="row profile-modification">
 						<h4 class="af-color">Profile Modification</h4>
 						<p>field to modify: <input class="profile-mod-field" id="profile-add-field"></p>
 						<p>value: <input class="profile-mod-field" id="profile-add-value"></p>
 						<p><button id="modify-profiles">modify profiles</button></p>
+					</div> -->
+
+					<div class="row alert-users-area">
+						<h4 class="af-color">Alert All Users</h4>
+						<textarea class="admin-textarea" id="alert-users-text"></textarea>
+						<p><button id="alert-users">submit</button></p>
 					</div>
 				{{/with}}
 			</div>

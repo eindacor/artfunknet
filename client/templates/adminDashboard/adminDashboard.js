@@ -164,6 +164,7 @@ Template.adminTools.events({
     },
 
     'click #generate-item' : function(element) {
+    	var user_id = $('#generate-user-id').val()
     	var artwork_id = $('#generate-artwork-id').val();
     	var condition = $('#condition').val();
     	var xp_rating = $('#xp-rating').val();
@@ -171,7 +172,7 @@ Template.adminTools.events({
     	var seasonal = $('.seasonal-selector').val() == "true";
     	var lottery = $('.lottery-selector').val();
 
-    	Meteor.call('generateItemFromArtworkID', Meteor.userId(), artwork_id, Number(condition) / 100, Number(xp_rating) / 100, foil, seasonal, Number(lottery), function(error, result) {
+    	Meteor.call('generateItemFromArtworkID', user_id, artwork_id, Number(condition) / 100, Number(xp_rating) / 100, foil, seasonal, Number(lottery), function(error, result) {
     		if (error)
     			console.log(error.message);
 
@@ -219,6 +220,14 @@ Template.adminTools.events({
     	else value = Number(entered_value);
     	
     	Meteor.call('updateProfiles', field_name, value, function(error) {
+    		if (error)
+    			console.log(error.message);
+    	})
+    },
+
+    'click #alert-users' : function(element) {
+    	var message = $('#alert-users-text')[0].value;
+    	Meteor.call('alertAllUsers', message, function(error) {
     		if (error)
     			console.log(error.message);
     	})

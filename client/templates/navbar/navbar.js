@@ -44,6 +44,31 @@ Template.navbar.helpers({
 
 	'hasVisitors' : function() {
 		return npcs.findOne({'owner_id': Meteor.userId(), 'players_met': {$ne: Meteor.userId()}}) !== undefined;
+	},
+
+	'hasQuest' : function() {
+		return quests.findOne({'owner_id': Meteor.userId()}) !== undefined;
+	},
+
+	'hasCompletedQuest' : function() {
+		var all_quests = quests.find({'owner_id': Meteor.userId()}).fetch();
+		var completed_found = false;
+
+		for (var i=0; i<all_quests.length; i++) {
+			var target_ids = all_quests[i].target;
+			var has_completed = true;
+			for (var n=0; n<target_ids.length; n++) {
+				if (items.findOne({'owner': Meteor.userId(), 'artwork_id': target_ids[n], 'status': {$nin: ['unclaimed', 'for_sale']}}) == undefined) {
+					has_completed = false;
+					break;
+				}
+			}
+
+			if (has_completed)
+				return true;
+		};
+
+		return false;
 	}
 })
 

@@ -127,11 +127,17 @@ calcMVP = function(user_id) {
     var items_owned = items.find({'owner': user_id, 'status': {$nin: ['for_sale, unclaimed']}});
     var collection_total = 0;
     items_owned.forEach(function(db_object) {
-        var value = getItemValue(db_object._id, 'actual');
-        collection_total += value;
-        if (value > mvp.value) {
-            mvp.item_id = db_object._id;
-            mvp.value = value;
+        try {
+            var value = getItemValue(db_object._id, 'actual');
+            collection_total += value;
+            if (value > mvp.value) {
+                mvp.item_id = db_object._id;
+                mvp.value = value;
+            }
+        }
+        catch(error) {
+            console.log(error.message);
+            console.log(db_object);
         }
     });
 
@@ -273,26 +279,6 @@ Meteor.methods({
         chargeAccount(user_id, amount);
     },
 
-    'alertAllUsers' : function(message) {
-        var admin = Meteor.user().emails[0].address == "jpollack320@gmail.com";
-        if (admin) {
-            var all_users = Meteor.users.find();
-
-            all_users.forEach(function(db_object) {
-                var alert_object = {
-                    'user_id' : db_object._id,
-                    'message' : message,
-                    'link' : '/',
-                    'icon' : 'fa-exclamation',
-                    'sentiment' : "neutral",
-                    'time' : moment()
-                };
-
-                alerts.insert(alert_object);
-            })
-        }
-    },
-
     'clearAlerts' : function() {
         alerts.remove({'user_id' : Meteor.userId()});
     },
@@ -370,5 +356,32 @@ Meteor.methods({
 
     'updateWallBase' : function(value) {
         Meteor.users.update(Meteor.userId(), {$set: {'profile.gallery_finishes.wall_base': value}});
+    },
+
+    'turnInQuest' : function(quest_id) {
+        if (canTurnInQuest(quest_id)) {
+            var quest_object = quests.findOne(quest_id);
+
+            addXP(Meteor.userId(), quest_object.reward.xp);
+            addFunds(Meteor.userId(), quest_object.reward.money);
+
+            if (quest_object.reward.item != undefined) {
+                var rarity = quest_object.reward.item.rarity;
+                var count = artworks.find({'_id': {$nin: seasonal_ids}, 'rarity': rarity}).count();
+                var random_index = Math.floor(Math.random() * count);
+                var random_artwork_id = artworks.findOne({'_id': {$nin: seasonal_ids}, 'rarity': rarity}, {skip: random_index})._id;
+
+                generateItemFromArtworkID(Meteor.userId(), random_artwork_id, undefined, undefined, quest_object.reward.item.foil, undefined, false, "unclaimed");
+            }
+
+            quests.remove(quest_id);
+        }
+    },
+
+    'cancelQuest' : function(quest_id) {
+        console.log(quest_id);
+        var quest_object = quests.findOne(quest_id);
+        if (quest_object && quest_object.owner_id == Meteor.userId())
+            quests.remove(quest_id);
     }
 })

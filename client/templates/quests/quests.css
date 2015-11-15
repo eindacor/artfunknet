@@ -1,0 +1,23 @@
+.template-quests .quest-container {
+	display: block;
+	margin-bottom: 48px;
+}
+
+.template-quests .highlight {
+	font-weight: bold;
+}
+
+.template-quests .target-text {
+	font-size: 2rem;
+}
+
+.template-quests .disabled {
+	opacity: .5;
+	cursor: default;
+}
+
+.template-quests .quest-button {
+	font-size: 1.5rem;
+	height: 36px;
+	width: 200px;
+}

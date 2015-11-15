@@ -89,3 +89,19 @@ canSellToCollector = function(item_id) {
 	var status_ok = item_object && (item_object.status == "claimed" || item_object.status == "permanent");
 	return owned && status_ok ? item_object : undefined;
 }
+
+canTurnInQuest = function(quest_id) {
+	var quest_object = quests.findOne(quest_id);
+	if (quest_object == undefined || quest_object.target == undefined || quest_object.target.length == 0)
+		return false;
+
+	if (quest_object.owner_id != Meteor.userId())
+		return false;
+
+	for (var i=0; i<quest_object.target.length; i++) {
+		if (items.findOne({'artwork_id': quest_object.target[i], 'owner': Meteor.userId(), 'status': {$nin: ['unclaimed', 'for_sale']}}) == undefined)
+			return false
+	}
+
+	return true;
+}

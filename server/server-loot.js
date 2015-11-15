@@ -184,6 +184,7 @@ getItemObjectValue = function(item_object, type) {
 
     else {
         console.log("item_id: " + item_id);
+        console.log("item_object: " + item_object);
         return undefined;
     }
 }
@@ -268,7 +269,7 @@ generateItems = function(user_id, quality, count, status) {
     var item_ids = [];
 
     for (var i=0; i < parseInt(count); i++) {
-        var rarity_roll = JepLoot.catRoll(getSmartRarityMap(Meteor.users.findOne(user_id).profile.level, map_amplifier));
+        var rarity_roll = JepLoot.catRoll(getSmartRarityMap(Meteor.user().profile.level, map_amplifier));
         var possibilities = artworks.find({'rarity': rarity_roll}).fetch();
         var random_index = Math.floor(Math.random() * possibilities.length);
         var rolled_id = possibilities[random_index]._id;
@@ -319,13 +320,6 @@ getAttributes = function(rarity) {
 
     for (var i=0; i < primary_attributes.length; i++)
         primary_attributes[i].value = getAttributeValue(i);
-
-    // primary_attributes.sort(function(first, second) {
-    //     if (first.description > second.description)
-    //         return 1;
-
-    //     else return -1;
-    // });
 
     return primary_attributes;
 }
@@ -504,4 +498,19 @@ testMap = function(loot_map) {
     }
 
     return roll_counts;
+}
+
+getRandomArtworkIDsFromRarity = function(count, rarity) {
+    var ids_selected = [];
+
+    while (ids_selected.length < count && artworks.findOne({'_id': {$nin: ids_selected}, 'rarity': rarity}) != undefined) {
+        var selector = {
+            '_id': {$nin: ids_selected}, 
+            'rarity': rarity
+        };
+
+        ids_selected.push(artworks.findOne(selector, {skip: Math.floor(Math.random() * artworks.find(selector).count())})._id);
+    }
+
+    return ids_selected;
 }

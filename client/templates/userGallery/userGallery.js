@@ -144,6 +144,9 @@ Template.userGallery.events ({
 							case "designer_bonus":
 								Modal.show("designerModal");
 								break;
+							case "historian_bonus":
+								Modal.show("historianModal");
+								break;
 							default: 
 								Modal.show("standardNPCMessageModal");
 								break;

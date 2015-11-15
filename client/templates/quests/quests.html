@@ -1,0 +1,29 @@
+<template name="quests">
+	<div class="template-quests">
+		<div class="container">
+			{{#each quest}}
+			<div class="quest-container row">
+				<div class="row">
+					<div class="col-xs-6">
+					{{#each quest_target this}}
+						{{#if acquired _id}}
+							<p class="target-text green-text highlight"><i class="fa fa-check-square-o"></i> {{title}} by {{artist}}</p>
+						{{else}}
+							<p class="target-text"><i class="fa fa-square-o"></i> {{title}} by {{artist}}</p>
+						{{/if}}
+					{{/each}}
+					</div>
+					<div class="col-xs-6">
+
+					</div>
+				</div>
+				<div class="row">
+					<button data-quest_id="{{_id}}" class="quest-button turn-in-button {{#if hasCompleted _id}}enabled{{else}}disabled{{/if}}">get reward</button>
+					<button data-quest_id="{{_id}}" class="quest-button cancel-quest">cancel quest</button>
+				</div>
+			</div>
+
+			{{/each}}
+		</div>
+	</div>
+</template>

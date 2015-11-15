@@ -80,7 +80,7 @@ Meteor.methods({
 				npc_interaction = artExpertInteraction(npc_object);
 				break;
 			case "historian_bonus": //DISABLE - quiz players for xp
-				npc_interaction = {'message': "You have met an historian."};
+				npc_interaction = historianInteraction(npc_object);
 				break;
 			case "market_expert_bonus": //DISABLE - analyze auction house and return deals
 				npc_interaction = {'message': "You have met a market expert."};
@@ -395,4 +395,113 @@ var designerInteraction = function(npc_object) {
 		addXP(Meteor.userId(), xp_won);
 		return {'message': message, 'type': "designer_bonus", 'filename': random_selection.filename};
 	}
+}
+
+var generateQuest = function(rarity) {
+	var player_ratio = playerRatio(Meteor.user());
+    var max_money = 50000 + (250000 * player_ratio);
+    var player_level = Meteor.user().profile.level;
+
+	// rarity to find has to vary based on player level
+	var rarity_to_find;
+	if (player_ratio < .25)
+		rarity_to_find = "common";
+
+	else if (player_ratio < .5)
+		rarity_to_find = "uncommon";
+
+	else rarity_to_find = "rare";
+
+	var reward;
+    var target;
+
+	switch(rarity) {
+		case 'common' :
+			target = getRandomArtworkIDsFromRarity(3, rarity_to_find);
+			reward = {
+				'money': Math.floor(max_money * .4),
+				'xp': Math.floor(getXPChunk(player_level) * .6),
+				'item': undefined
+			};
+			break;
+
+		case 'uncommon' : 
+			target = getRandomArtworkIDsFromRarity(3, rarity_to_find);
+			reward = {
+				'money': Math.floor(max_money * .6),
+				'xp': Math.floor(getXPChunk(player_level) * .7),
+				'item': undefined 
+			};
+			break;
+
+		case 'rare' : 
+			target = getRandomArtworkIDsFromRarity(3, rarity_to_find);
+			reward = {
+				'money': Math.floor(max_money * .8),
+				'xp': Math.floor(getXPChunk(player_level) * .8),
+				'item': undefined 
+			};
+			break;
+
+		case 'legendary' : 
+			target = getRandomArtworkIDsFromRarity(3, rarity_to_find);
+			reward = {
+				'money': Math.floor(max_money * 1),
+				'xp': Math.floor(getXPChunk(player_level) * .9),
+				'item': {
+					'rarity': "legendary",
+					'foil': false
+				} 
+			};
+			break;
+
+		case 'masterpiece' : 
+			target = getRandomArtworkIDsFromRarity(3, rarity_to_find);
+			reward = {
+				'money': Math.floor(max_money * 2),
+				'xp': Math.floor(getXPChunk(player_level) * 1),
+				'item': {
+					'rarity': "legendary",
+					'foil': true
+				} 
+			};
+			break;
+
+		default: return undefined;
+	};
+
+	return {
+		'owner_id': Meteor.userId(),
+		'target': target,
+		'reward': reward
+	}
+
+}
+
+var historianInteraction = function(npc_object) {
+	var max_quest_count = 8;
+	if (quests.find({'owner_id': Meteor.userId()}).count() >= max_quest_count) {
+		var message = "You have men an art historian who is looking for a few specific items, but you currently have too many tasks on your schedule to help them.";
+		return {'type': undefined, 'message': message};
+	}
+
+	var map_amplifier;
+
+	switch(npc_object.quality) {
+        case 'bronze': map_amplifier = 0; break;
+        case 'silver': map_amplifier = .2; break;
+        case 'gold': map_amplifier = .4; break;
+        case 'platinum': map_amplifier = .8; break;
+        default: map_amplifier = 0; break;
+    }
+
+    var rarity_roll = JepLoot.catRoll(getSmartRarityMap(Meteor.user().profile.level, map_amplifier));
+
+    var quest_object = generateQuest(rarity_roll);
+
+    quests.insert(quest_object);
+
+    var message = "You have met an art historian who is looking for a few specific items and would like your help. Visit the quests area to see what they need and acquire the artwork listed to claim your reward.";
+
+    return {'type': "historian_bonus", 'quest': quest_object};
 }
