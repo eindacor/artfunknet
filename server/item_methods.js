@@ -320,7 +320,7 @@ Meteor.methods({
 
                 else {
                     calcMVP(Meteor.userId());
-                    createAuction(item_id, getItemValue(item_id, "sell"), -1, 30);
+                    createAuction(item_id, getItemValue(item_id, "sell"), -1, 120);
                 }
             });
         }

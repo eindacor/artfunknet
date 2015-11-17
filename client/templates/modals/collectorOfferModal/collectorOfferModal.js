@@ -112,6 +112,10 @@ Template.collectorOfferModal.helpers({
 
 	'attributeValueText' : function(value) {
 		return Math.floor(value * 100);
+	},
+
+	'isQuestItem' : function(artwork_id) {
+		return quests.findOne({'owner_id': Meteor.userId(), 'target': {$in: [artwork_id]}}) != undefined;
 	}
 })
 

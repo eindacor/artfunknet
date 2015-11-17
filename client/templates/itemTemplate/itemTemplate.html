@@ -22,7 +22,14 @@
 							<p>roll count: {{item_data.roll_count}}</p>
 						</div>
 					</div>
+
+					{{#if isQuestItem item_data.artwork_id}}
+					<div class="row no-margin quest-indicator-area">
+						<i class="green-text fa fa-flag-checkered"></i>
+					</div>
+				{{/if}}
 				</div>
+
 				<div class="card-footer col-xs-12 {{#if item_data.foil}}foil{{/if}} {{#if item_data.seasonal}}seasonal{{/if}} {{#if item_data.lottery}}lottery{{/if}}">
 					<div class="row no-margin">
 						<div class="button-area">

@@ -120,6 +120,10 @@ Template.itemInfo.helpers({
 	    });
 
 	    return attributes;
+	},
+
+	'isQuestItem' : function(artwork_id) {
+		return quests.findOne({'owner_id': Meteor.userId(), 'target': {$in: [artwork_id]}}) != undefined;
 	}
 })
 

@@ -23,7 +23,7 @@
 						{{#with time_remaining expiration}}
 						<td class="{{#if soon}}soon{{/if}}">{{remaining}}</td>
 						{{/with}}
-						<td>{{#if owned}}*{{/if}}{{title}}</td>
+						<td class="{{#if isQuestItem artwork_id}}green-text{{/if}}">{{#if owned}}*{{/if}}{{title}}</td>
 						<td>{{date}}</td>
 						<td>{{artist}}</td>
 						<td><span class="{{rarity}}"><strong>{{rarity}}</strong></span>{{#if foil}}<span class="af-color"> foil</span>{{/if}}{{#if seasonal}}<span class="common"> seasonal</span>{{/if}}{{#if lottery}}<span class="gold"> lottery {{lottery}}</span>{{/if}}</td>

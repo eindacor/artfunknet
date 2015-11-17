@@ -6,6 +6,10 @@
 	            	{{#with offerData}}
 	                <h4>You have met an Art Collector who has been looking for one of the items in your permanent collection. They have offered you <span class="highlight af-color">${{offer}}</span> for <span class="highlight af-color">{{title}}</span> by <span class="highlight af-color">{{artist}}</span>. The estimated value of this item is <span class="highlight">${{getItemValue item._id "actual"}}.</span></h4>
 
+	                {{#if isQuestItem item.artwork_id}}
+	                	<h5 class="green-text">this is a quest item</h5>
+	                {{/if}}
+
 	            	{{#with imageInfo item._id}}
 					<img class="image-thumb" src="{{getImageURL filename}}" width="{{image_width}}" height="{{image_height}}"/>
 			        {{/with}}

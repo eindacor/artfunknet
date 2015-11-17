@@ -101,6 +101,7 @@ Template.auctionTable.helpers({
 			list_object.owned = items.find({'owner': Meteor.userId(), 'artwork_id': list_object._id}).count() > 0;
 			list_object.attribute = displayed_attributes;
 			list_object.xp_rating_text = Math.floor(item_object.xp_rating * 100);
+			list_object.artwork_id = item_object.artwork_id;
 
 			return list_object;
 		}
@@ -171,6 +172,10 @@ Template.auctionTable.helpers({
 			return items.find({'owner' : Meteor.userId(), 'status' : {$nin : ['unclaimed', 'for_sale']}}).count() >= Meteor.user().profile.inventory_cap;
 
 		else return false;
+	},
+
+	'isQuestItem' : function(artwork_id) {
+		return quests.findOne({'owner_id': Meteor.userId(), 'target': {$in: [artwork_id]}}) != undefined;
 	}
 });
 

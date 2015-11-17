@@ -221,3 +221,11 @@
 	cursor: pointer;
 	opacity: .5;
 }
+
+.template-itemInfo .quest-indicator-area {
+	background-color: rgba(0,0,0,0) !important;
+	position: absolute;
+	display: block;
+	font-size: 3rem;
+	margin-top: 12px;
+}
