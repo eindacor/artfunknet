@@ -124,6 +124,23 @@ Template.itemInfo.helpers({
 
 	'isQuestItem' : function(artwork_id) {
 		return quests.findOne({'owner_id': Meteor.userId(), 'target': {$in: [artwork_id]}}) != undefined;
+	},
+
+	'isSought' : function(artwork_id) {
+		var is_sought = false;
+		if (false && Meteor.user().profile.market_expert) {
+			var quest_list = quests.find({'owner': {$ne: Meteor.userId()}, 'target': {$in: [artwork_id]}}).fetch();
+
+			for (var i=0; i<quest_list.length; i++) {
+				var quest_owner = quest_list[i].owner_id;
+				if (items.findOne({'owner': quest_owner, 'artwork_id': artwork_id}) == undefined)
+					return true;
+			};
+
+			return false;
+		}
+
+		else return false;
 	}
 })
 

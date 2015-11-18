@@ -23,11 +23,15 @@
 						</div>
 					</div>
 
-					{{#if isQuestItem item_data.artwork_id}}
-					<div class="row no-margin quest-indicator-area">
-						<i class="green-text fa fa-flag-checkered"></i>
-					</div>
-				{{/if}}
+					
+					<div class="row no-margin indicator-area">
+						{{#if isQuestItem item_data.artwork_id}}
+							<i class="green-text fa fa-flag-checkered"></i>
+						{{/if}}
+						{{#if isSought item_data.artwork_id}}
+							<i class="blue-text fa fa-area-chart"></i>
+						{{/if}}
+					</div>			
 				</div>
 
 				<div class="card-footer col-xs-12 {{#if item_data.foil}}foil{{/if}} {{#if item_data.seasonal}}seasonal{{/if}} {{#if item_data.lottery}}lottery{{/if}}">
