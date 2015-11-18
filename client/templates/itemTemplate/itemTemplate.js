@@ -127,6 +127,7 @@ Template.itemInfo.helpers({
 	},
 
 	'isSought' : function(artwork_id) {
+		//TODO move these checks to server to prevent access from client console
 		var is_sought = false;
 		if (false && Meteor.user().profile.market_expert) {
 			var quest_list = quests.find({'owner': {$ne: Meteor.userId()}, 'target': {$in: [artwork_id]}}).fetch();

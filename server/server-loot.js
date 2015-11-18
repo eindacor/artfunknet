@@ -164,7 +164,7 @@ getItemObjectValue = function(item_object, type) {
             display_value *= 2;
         }
 
-        var sell_value = Math.floor(actual_value * .5);
+        var sell_value = Math.floor(actual_value * .8);
         var purchase_value = Math.floor(actual_value * 1.5);
         var dealer_offer = Math.floor(actual_value * .9);
         var auction_min = Math.floor(sell_value * .8);
