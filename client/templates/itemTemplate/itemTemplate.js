@@ -1,9 +1,23 @@
 var div_size_tracker = new Tracker.Dependency;
+var sought_tracker = new Tracker.Dependency;
 var card_container_width;
 var card_container_height;
+var sought_status = {};
 
 var itemOwned = function(card_object) {
 	return Meteor.user() && card_object.owner == Meteor.userId() && card_object.status != 'for_sale';
+}
+
+var updateSoughtStatus = function() {
+	Meteor.call('getSoughtStatus', function(error, result) {
+		if (error)
+			console.log(error.message)
+
+		else if (result != undefined) {
+			sought_status = result;
+			sought_tracker.changed();
+		}
+	});
 }
 
 Template.itemInfo.rendered = function() {
@@ -128,20 +142,12 @@ Template.itemInfo.helpers({
 
 	'isSought' : function(artwork_id) {
 		//TODO move these checks to server to prevent access from client console
-		var is_sought = false;
-		if (false && Meteor.user().profile.market_expert) {
-			var quest_list = quests.find({'owner': {$ne: Meteor.userId()}, 'target': {$in: [artwork_id]}}).fetch();
-
-			for (var i=0; i<quest_list.length; i++) {
-				var quest_owner = quest_list[i].owner_id;
-				if (items.findOne({'owner': quest_owner, 'artwork_id': artwork_id}) == undefined)
-					return true;
-			};
-
-			return false;
+		sought_tracker.depend();
+		if (sought_status.artwork_id == undefined) {
+			
 		}
 
-		else return false;
+		
 	}
 })
 

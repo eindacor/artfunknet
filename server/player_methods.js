@@ -383,5 +383,29 @@ Meteor.methods({
         var quest_object = quests.findOne(quest_id);
         if (quest_object && quest_object.owner_id == Meteor.userId())
             quests.remove(quest_id);
+    },
+
+    'getSoughtStatus' : function() {
+        if (Meteor.user().profile.market_expert > moment()._d.toISOString()) {
+            var sought_status = {};
+            items.find({'owner': Meteor.userId()}).forEach(function(db_object) {
+                var artwork_id = db_object.artwork_id;
+                if (sought_status.artwork_id != undefined)
+                    return;
+
+                quests.find({'owner': {$ne: Meteor.userId()}, 'target': {$in: [db_object.artwork_id]}}).forEach(function(quest_object) {
+                    var quest_owner = quest_object.owner_id;
+                    if (items.findOne({'owner': quest_owner, 'artwork_id': artwork_id}) == undefined) {
+                        sought_status[artwork_id] == true;
+                        return;
+                    }
+                });
+
+                if (sought_status[artwork_id] == undefined)
+                    sought_status[artwork_id] = false;
+            })
+        }
+
+        else return undefined;
     }
 })
