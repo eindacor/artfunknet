@@ -246,15 +246,15 @@ var collectorInteraction = function(npc_object) {
 	var offer_multiplier;
 
 	switch(npc_object.quality) {
-		case 'bronze': offer_multiplier = 1.2; break;
-		case 'silver': offer_multiplier = 1.4; break;
-		case 'gold': offer_multiplier = 1.6; break;
-		case 'platinum': offer_multiplier = 1.8; break;
+		case 'bronze': offer_multiplier = 1; break;
+		case 'silver': offer_multiplier = 1.1; break;
+		case 'gold': offer_multiplier = 1.2; break;
+		case 'platinum': offer_multiplier = 1.3; break;
 		default: offer_multiplier = 0; break;
 	}
 
 	if (isOwnGallery(npc_object))
-		offer_multiplier *= own_gallery_amplifier;
+		offer_multiplier *= 1.4;
 
 	var random_claimed = selectRandomPainting({'owner': Meteor.userId(), 'status': "claimed"});
 
@@ -408,9 +408,9 @@ var generateQuest = function(rarity) {
 		rarity_to_find = "common";
 
 	else if (player_ratio < .5)
-		rarity_to_find = "uncommon";
+		rarity_to_find = ["common", "uncommon"][Math.floor(Math.random() * 2)];
 
-	else rarity_to_find = "rare";
+	else rarity_to_find = ["common", "uncommon", "rare"][Math.floor(Math.random() * 3)];
 
 	var reward;
     var target;
