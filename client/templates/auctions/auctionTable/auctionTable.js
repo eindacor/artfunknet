@@ -98,7 +98,7 @@ Template.auctionTable.helpers({
 			list_object.has_history = auction_object.bid_history.length > 0;
 			list_object.winning = (winning_id == Meteor.userId()) && Meteor.userId();
 			list_object.losing = (winning_id != Meteor.userId() && winning_id && has_bid);
-			list_object.owned = items.find({'owner': Meteor.userId(), 'artwork_id': list_object._id}).count() > 0;
+			list_object.owned = items.find({'owner': Meteor.userId(), 'artwork_id': item_object.artwork_id}).count() > 0;
 			list_object.attribute = displayed_attributes;
 			list_object.xp_rating_text = Math.floor(item_object.xp_rating * 100);
 			list_object.artwork_id = item_object.artwork_id;
