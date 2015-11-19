@@ -519,7 +519,7 @@ var historianInteraction = function(npc_object) {
 var marketExpertInteraction = function(npc_object) {
 	var user_object = Meteor.user();
 
-	var market_expert_duration = 10; //minutes
+	var market_expert_duration = 13; //minutes
 	var market_expert_duration_extension = 3; // minutes
 	var market_expert_rating = .75;
 	var market_expert_rating_increase = .01;
@@ -553,8 +553,8 @@ var marketExpertInteraction = function(npc_object) {
 	}
 
 	if (isOwnGallery) {
-		market_expert_duration = Math.floor(market_expert_duration * 1.2);
-		market_expert_duration_extension = Math.floor(market_expert_duration_extension * 1.2);
+		market_expert_duration = Math.floor(market_expert_duration * 2);
+		market_expert_duration_extension = Math.floor(market_expert_duration_extension * 2);
 		market_expert_rating += .02;
 		market_expert_rating_increase += .02;
 	}
