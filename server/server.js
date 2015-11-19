@@ -1,9 +1,6 @@
 var generateContent = function() {
     var fs = Npm.require('fs');
 
-    console.log("artist count: " + artist_data.length);
-    console.log("artwork count: " + painting_data.length);
-
 	for (var i=0; i < artist_data.length; i++) {
 		artists.insert(artist_data[i]);
 	}
@@ -60,6 +57,15 @@ var updateContent = function() {
         updateGalleryDetails(db_object._id);
         calcMVP(db_object._id);
     });
+
+    // temp code
+    artworks.find().forEach(function(db_object) {
+        if (db_object.active === undefined)
+            artworks.update(db_object._id, {$set: {'active': true}});
+    })
+
+    artworks.update({}, {$unset: {'img_link': "", 'img_height': ""}}, {multi: true});
+    // temp code
 }
 
 Meteor.startup(function() {

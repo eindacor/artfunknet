@@ -519,9 +519,9 @@ var historianInteraction = function(npc_object) {
 var marketExpertInteraction = function(npc_object) {
 	var user_object = Meteor.user();
 
-	var market_expert_duration = 20; //minutes
-	var market_expert_duration_extension = 10; // minutes
-	var market_expert_rating = .8;
+	var market_expert_duration = 10; //minutes
+	var market_expert_duration_extension = 3; // minutes
+	var market_expert_rating = .75;
 	var market_expert_rating_increase = .01;
 
 	switch(npc_object.quality) {
@@ -532,24 +532,31 @@ var marketExpertInteraction = function(npc_object) {
 			market_expert_rating_increase += .01;
 			break;
         case 'silver': 
-			market_expert_duration += 4;
-			market_expert_duration_extension += 4; 
+			market_expert_duration += 3;
+			market_expert_duration_extension += 3; 
 			market_expert_rating += .02;
 			market_expert_rating_increase += .02; 
 			break;
         case 'gold': 
-			market_expert_duration += 6;
-			market_expert_duration_extension += 6; 
+			market_expert_duration += 4;
+			market_expert_duration_extension += 4; 
 			market_expert_rating += .03;
 			market_expert_rating_increase += .03;
 			break;
         case 'platinum': 
-			market_expert_duration += 8;
-			market_expert_duration_extension += 8; 
+			market_expert_duration += 5;
+			market_expert_duration_extension += 5; 
 			market_expert_rating += .04;
 			market_expert_rating_increase += .04;
 			break;
-        default: map_amplifier = 0; break;
+        default: break;
+	}
+
+	if (isOwnGallery) {
+		market_expert_duration = Math.floor(market_expert_duration * 1.2);
+		market_expert_duration_extension = Math.floor(market_expert_duration_extension * 1.2);
+		market_expert_rating += .02;
+		market_expert_rating_increase += .02;
 	}
 
 	var message;
