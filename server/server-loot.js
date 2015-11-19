@@ -270,7 +270,7 @@ generateItems = function(user_id, quality, count, status) {
 
     for (var i=0; i < parseInt(count); i++) {
         var rarity_roll = JepLoot.catRoll(getSmartRarityMap(Meteor.user().profile.level, map_amplifier));
-        var possibilities = artworks.find({'rarity': rarity_roll}).fetch();
+        var possibilities = artworks.find({'rarity': rarity_roll, 'active': true}).fetch();
         var random_index = Math.floor(Math.random() * possibilities.length);
         var rolled_id = possibilities[random_index]._id;
 
