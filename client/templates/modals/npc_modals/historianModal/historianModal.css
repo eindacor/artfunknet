@@ -2,6 +2,10 @@
 	padding-bottom: 48px;
 }
 
+.template-historianModal .modal-dialog {
+	width: 60%;
+}
+
 .template-historianModal .highlight {
 	font-weight: bold;
 }

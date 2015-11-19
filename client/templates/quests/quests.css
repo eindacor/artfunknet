@@ -1,23 +1,33 @@
-.template-quests .quest-container {
+.template-questTemplate .quest-container {
 	display: block;
 	margin-bottom: 48px;
+	border: 1px solid black;
+	padding: 24px 48px;
 }
 
-.template-quests .highlight {
+.template-questTemplate .highlight {
 	font-weight: bold;
 }
 
-.template-quests .target-text {
-	font-size: 2rem;
+.template-questTemplate .target-text {
+	font-size: 1.6rem;
 }
 
-.template-quests .disabled {
+.template-questTemplate .disabled {
 	opacity: .5;
 	cursor: default;
 }
 
-.template-quests .quest-button {
+.template-questTemplate .quest-button {
 	font-size: 1.5rem;
 	height: 36px;
-	width: 200px;
+	width: 160px;
+}
+
+.template-questTemplate .quest-title {
+	font-size: 1.8rem;
+}
+
+.template-questTemplate .reward-info {
+	font-size: 1.5rem;
 }

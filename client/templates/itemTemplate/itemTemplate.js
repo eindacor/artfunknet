@@ -8,13 +8,13 @@ var itemOwned = function(card_object) {
 	return Meteor.user() && card_object.owner == Meteor.userId() && card_object.status != 'for_sale';
 }
 
-var updateSoughtStatus = function() {
-	Meteor.call('getSoughtStatus', function(error, result) {
+var updateSoughtStatus = function(artwork_id) {
+	Meteor.call('getSoughtStatus', artwork_id, function(error, result) {
 		if (error)
 			console.log(error.message)
 
-		else if (result != undefined) {
-			sought_status = result;
+		else if (result !== undefined) {
+			sought_status[artwork_id] = result;
 			sought_tracker.changed();
 		}
 	});
@@ -26,6 +26,8 @@ Template.itemInfo.rendered = function() {
 		card_container_width = $('.card-container').css('width').replace("px", ""); 
 		div_size_tracker.changed();
 	}
+
+	sought_status = {};
 }
 
 Template.itemInfo.helpers({
@@ -142,12 +144,17 @@ Template.itemInfo.helpers({
 
 	'isSought' : function(artwork_id) {
 		//TODO move these checks to server to prevent access from client console
-		sought_tracker.depend();
-		if (sought_status.artwork_id == undefined) {
-			
+		if (Meteor.user().profile.market_expert.expiration > moment()._d.toISOString()) {
+			sought_tracker.depend();
+			if (sought_status[artwork_id] === undefined) {
+				updateSoughtStatus(artwork_id);
+				return false;
+			}
+
+			else return sought_status[artwork_id];
 		}
 
-		
+		else return false;
 	}
 })
 

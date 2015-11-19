@@ -1,6 +1,7 @@
 <template name="leaderboard">
 	<div class="template-leaderboard">
 		<div class="container">
+			<h1 class="af-color">Leaderboard</h1>
 			{{#with leaderboard_data}}
 				{{> mvp mvp_data}}
 				{{> galleryScore gallery_score_data}}
@@ -13,7 +14,7 @@
 <template name="mvp">
 	<div class="row list-mvp">
 		<div class="template-galleryScore col-xs-12">
-			<h2 class="af-color">Most Valuable Items</h2>
+			<h3 class="af-color">Most Valuable Items</h3>
 			{{#each this}}
 			<div class="row list-row">
 				<div class="col-xs-1">
@@ -40,7 +41,7 @@
 <template name="galleryScore">
 	<div class="row list-section">
 		<div class="template-galleryScore col-xs-12 col-md-6 col-lg-3">
-			<h2 class="af-color">Gallery Score</h2>
+			<h3 class="af-color">Gallery Score</h3>
 			{{#each this}}
 				{{#if this.score}}
 				<div class="row list-row">
@@ -63,7 +64,7 @@
 <template name="galleryValue">
 	<div class="row list-section">
 		<div class="template-galleryValue col-xs-12 col-md-6 col-lg-3">
-			<h2 class="af-color">Gallery Value</h2>
+			<h3 class="af-color">Gallery Value</h3>
 			{{#each this}}
 				{{#if this.value}}
 				<div class="row list-row">

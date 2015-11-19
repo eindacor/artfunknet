@@ -8,10 +8,6 @@
 	font-weight: 500;
 }
 
-.template-leaderboard h2 {
-	font-weight: 600;
-}
-
 .template-leaderboard .list-row:nth-child(odd) {
 	background-color: #EEEEEE;
 }

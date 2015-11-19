@@ -8,15 +8,7 @@
 	            		<p>You have met an art historian who has been looking for a few specific works to study. Acquire the following pieces, and recieve your reward. You can track your progress and report your findings in the quests (<i class="fa fa-flag-checkered"></i>) menu.</p>
 	            	</div>           	
 	                <div class="row modal-section quest-container">
-						<div class="col-xs-12">
-						{{#each quest_target this.quest}}
-							{{#if acquired _id}}
-								<p class="target-text green-text highlight"><i class="fa fa-check-square-o"></i> {{title}} by {{artist}}</p>
-							{{else}}
-								<p class="target-text"><i class="fa fa-square-o"></i> {{title}} by {{artist}}</p>
-							{{/if}}
-						{{/each}}
-						</div>
+						{{> questTemplate quest}}
 					</div>
 					<div class="row modal-section button-area">
 						<button id="close-button" type="button" class="btn btn-default">close</button>

@@ -514,3 +514,7 @@ getRandomArtworkIDsFromRarity = function(count, rarity) {
 
     return ids_selected;
 }
+
+getRandomArtworkIDFromRarity = function(rarity) {
+    return artworks.findOne({'rarity': rarity}, {skip: Math.floor(Math.random() * artworks.find({'rarity': rarity}).count())})._id;
+}

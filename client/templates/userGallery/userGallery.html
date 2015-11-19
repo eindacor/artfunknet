@@ -2,6 +2,7 @@
 	<div class="template-userGallery">
 		<div class="container">
 			{{#with entryInfo screen_name}}
+			<h1 class="af-color">Player Gallery - {{screen_name}}</h1>		
 			{{#if paid}}
 				<div class="row no-padding no-margin">
 					<div class="npc-area">
@@ -10,8 +11,7 @@
 						{{/each}}
 					</div>
 				</div>
-				<h1 class="af-color">Player Gallery - {{screen_name}}</h1>
-
+				
 				{{#with galleryData screen_name}}
 				<div class="window-crop row">
 					<div class="rendered-scene">

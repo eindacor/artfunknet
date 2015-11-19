@@ -83,7 +83,7 @@ Meteor.methods({
 				npc_interaction = historianInteraction(npc_object);
 				break;
 			case "market_expert_bonus": //DISABLE - analyze auction house and return deals
-				npc_interaction = {'message': "You have met a market expert."};
+				npc_interaction = marketExpertInteraction(npc_object);
 				break;
 			case "entry_fee_reduction_members": //DISABLE = reduce entry fee for members
 			case "set_xp_members": //DISABLE - give portion of set xp to members
@@ -397,27 +397,40 @@ var designerInteraction = function(npc_object) {
 	}
 }
 
+var generateTarget = function() {
+	var default_target_count = 3;
+	var target = [];
+
+	for (var i=0; i<default_target_count; i++) {
+		var rarity_rolled = JepLoot.catRoll(getSmartRarityMap(Meteor.user().profile.level, 0));
+
+		if (rarity_rolled == "legendary" || rarity_rolled == "masterpiece")
+			rarity_rolled = "rare";
+
+		var rolled_id = getRandomArtworkIDFromRarity(rarity_rolled);
+
+		while (target.indexOf(rolled_id) != -1) {
+			rolled_id = getRandomArtworkIDFromRarity(rarity_rolled)
+		}
+
+		target.push(rolled_id);
+	}
+
+	return target;
+}
+
 var generateQuest = function(rarity) {
 	var player_ratio = playerRatio(Meteor.user());
     var max_money = 100000 + (500000 * player_ratio);
     var player_level = Meteor.user().profile.level;
 
-	// rarity to find has to vary based on player level
-	var rarity_to_find;
-	if (player_ratio < .25)
-		rarity_to_find = "common";
+    var reward;
 
-	else if (player_ratio < .5)
-		rarity_to_find = ["common", "uncommon"][Math.floor(Math.random() * 2)];
-
-	else rarity_to_find = ["common", "uncommon", "rare"][Math.floor(Math.random() * 3)];
-
-	var reward;
-    var target;
+    //rarity = "legendary";
+    //rarity = "masterpiece";
 
 	switch(rarity) {
 		case 'common' :
-			target = getRandomArtworkIDsFromRarity(3, rarity_to_find);
 			reward = {
 				'money': Math.floor(max_money * .4),
 				'xp': Math.floor(getXPChunk(player_level) * .6),
@@ -426,7 +439,6 @@ var generateQuest = function(rarity) {
 			break;
 
 		case 'uncommon' : 
-			target = getRandomArtworkIDsFromRarity(3, rarity_to_find);
 			reward = {
 				'money': Math.floor(max_money * .6),
 				'xp': Math.floor(getXPChunk(player_level) * .7),
@@ -435,7 +447,6 @@ var generateQuest = function(rarity) {
 			break;
 
 		case 'rare' : 
-			target = getRandomArtworkIDsFromRarity(3, rarity_to_find);
 			reward = {
 				'money': Math.floor(max_money * .8),
 				'xp': Math.floor(getXPChunk(player_level) * .8),
@@ -444,7 +455,6 @@ var generateQuest = function(rarity) {
 			break;
 
 		case 'legendary' : 
-			target = getRandomArtworkIDsFromRarity(3, rarity_to_find);
 			reward = {
 				'money': Math.floor(max_money * 1),
 				'xp': Math.floor(getXPChunk(player_level) * .9),
@@ -456,7 +466,6 @@ var generateQuest = function(rarity) {
 			break;
 
 		case 'masterpiece' : 
-			target = getRandomArtworkIDsFromRarity(3, rarity_to_find);
 			reward = {
 				'money': Math.floor(max_money * 2),
 				'xp': Math.floor(getXPChunk(player_level) * 1),
@@ -472,8 +481,9 @@ var generateQuest = function(rarity) {
 
 	return {
 		'owner_id': Meteor.userId(),
-		'target': target,
-		'reward': reward
+		'target': generateTarget(),
+		'reward': reward,
+		'rarity': rarity
 	}
 
 }
@@ -504,4 +514,73 @@ var historianInteraction = function(npc_object) {
     var message = "You have met an art historian who is looking for a few specific items and would like your help. Visit the quests area to see what they need and acquire the artwork listed to claim your reward.";
 
     return {'type': "historian_bonus", 'quest': quest_object};
+}
+
+var marketExpertInteraction = function(npc_object) {
+	var user_object = Meteor.user();
+
+	var market_expert_duration = 20; //minutes
+	var market_expert_duration_extension = 10; // minutes
+	var market_expert_rating = .8;
+	var market_expert_rating_increase = .01;
+
+	switch(npc_object.quality) {
+		case 'bronze': 
+			market_expert_duration += 2;
+			market_expert_duration_extension += 2; 
+			market_expert_rating += .01;
+			market_expert_rating_increase += .01;
+			break;
+        case 'silver': 
+			market_expert_duration += 4;
+			market_expert_duration_extension += 4; 
+			market_expert_rating += .02;
+			market_expert_rating_increase += .02; 
+			break;
+        case 'gold': 
+			market_expert_duration += 6;
+			market_expert_duration_extension += 6; 
+			market_expert_rating += .03;
+			market_expert_rating_increase += .03;
+			break;
+        case 'platinum': 
+			market_expert_duration += 8;
+			market_expert_duration_extension += 8; 
+			market_expert_rating += .04;
+			market_expert_rating_increase += .04;
+			break;
+        default: map_amplifier = 0; break;
+	}
+
+	var message;
+
+	if (user_object.profile.market_expert.expiration < moment()._d.toISOString()) {
+		var expiration_time = moment().add(market_expert_duration, 'minutes');
+		Meteor.users.update(user_object._id, {$set: {
+			'profile.market_expert.expiration': expiration_time._d.toISOString(), 
+			'profile.market_expert.rating': market_expert_rating
+		}});
+
+		message = "You have met a market expert. They will help you identify in-demand items for the next " + market_expert_duration + " minutes (expires " + getTimeString(expiration_time) +  ") with " + Math.floor(market_expert_rating * 100) + "% accuracy.";
+	}
+
+	else {
+		var new_expiration = moment(user_object.profile.market_expert.expiration).add(market_expert_duration_extension, 'minutes');
+		Meteor.users.update(user_object._id, {$set: {
+			'profile.market_expert.expiration': new_expiration._d.toISOString()
+		}});
+
+		if (user_object.profile.market_expert.rating == 1) {
+			message = "You have met another market expert. Your access to market analysis has been extended by " + market_expert_duration_extension + " minutes (expires " + getTimeString(new_expiration) + "), and remains 100% accurate.";
+		}
+
+		else {
+			var new_accuracy = user_object.profile.market_expert.rating + market_expert_rating_increase > 1 ? 1 : user_object.profile.market_expert.rating + market_expert_rating_increase;
+			Meteor.users.update(user_object._id, {$set: { 'profile.market_expert.rating': new_accuracy}});
+
+			message = "You have met another market expert. Your access to market analysis has been extended by " + market_expert_duration_extension + " minutes (expires " + getTimeString(new_expiration) + "), and is now " + Math.floor(new_accuracy * 100) + "% accurate.";
+		}
+	}
+
+	return {'message': message};
 }

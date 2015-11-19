@@ -1,29 +1,46 @@
 <template name="quests">
 	<div class="template-quests">
 		<div class="container">
+			<h1 class="af-color">Quests</h1>
 			{{#each quest}}
-			<div class="quest-container row">
-				<div class="row">
-					<div class="col-xs-6">
+				{{> questTemplate this}}
+			{{/each}}
+		</div>
+	</div>
+</template>
+
+<template name="questTemplate">
+	<div class="template-questTemplate">
+		<div class="quest-container row">
+			<div class="row">
+				<p class="quest-title {{rarity}}">{{rarity}} quest</p>
+				<div class="col-xs-12 col-md-8">
+					<p>targets:</p>
 					{{#each quest_target this}}
 						{{#if acquired _id}}
 							<p class="target-text green-text highlight"><i class="fa fa-check-square-o"></i> {{title}} by {{artist}}</p>
 						{{else}}
-							<p class="target-text"><i class="fa fa-square-o"></i> {{title}} by {{artist}}</p>
+							<p class="target-text"><i class="fa fa-square-o"></i> {{title}} by {{artist}} (<span class="{{artwork_rarity _id}}">{{artwork_rarity _id}}</span>)</p>
 						{{/if}}
 					{{/each}}
-					</div>
-					<div class="col-xs-6">
-
-					</div>
 				</div>
-				<div class="row">
-					<button data-quest_id="{{_id}}" class="quest-button turn-in-button {{#if hasCompleted _id}}enabled{{else}}disabled{{/if}}">get reward</button>
-					<button data-quest_id="{{_id}}" class="quest-button cancel-quest">cancel quest</button>
+				<div class="col-xs-12 col-md-4">
+					<div class="reward-info">
+						<p>reward:</p>
+						<p class="af-color">{{commaSeparatedValue reward.xp}}xp</p>
+						<p class="af-color">{{displayAsMoneyValue reward.money}}</p>
+						{{#if reward.item}}
+							<p class="af-color">special {{#if reward.item.foil}}foil {{/if}}item</p>
+						{{/if}}
+					</div>
 				</div>
 			</div>
-
-			{{/each}}
+			{{#if _id}}
+			<div class="row">
+				<button data-quest_id="{{_id}}" class="quest-button turn-in-button {{#if hasCompleted _id}}enabled{{else}}disabled{{/if}}">get reward</button>
+				<button data-quest_id="{{_id}}" class="quest-button cancel-quest">cancel quest</button>
+			</div>
+			{{/if}}
 		</div>
 	</div>
 </template>

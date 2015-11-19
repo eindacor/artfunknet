@@ -2,6 +2,7 @@
 	{{#if userIsAdmin}}
 		<div class="template-adminTools">
 			<div class="container">
+				<h1 class="af-color">Admin Tools</h1>
 				{{#with adminData}}
 					{{> settable_field set_id="set_level" current=player_level button_id="level-set" label="player level"}}
 					{{> settable_field set_id="set_xp" current=player_xp id="xp-set" label="xp"}}
@@ -66,12 +67,12 @@
 						<p><button id="generate-random-item">randomize item</button></p>
 					</div>
 
-					<!-- <div class="row profile-modification">
+					<div class="row profile-modification">
 						<h4 class="af-color">Profile Modification</h4>
 						<p>field to modify: <input class="profile-mod-field" id="profile-add-field"></p>
 						<p>value: <input class="profile-mod-field" id="profile-add-value"></p>
 						<p><button id="modify-profiles">modify profiles</button></p>
-					</div> -->
+					</div>
 
 					<div class="row alert-users-area">
 						<h4 class="af-color">Alert All Users</h4>

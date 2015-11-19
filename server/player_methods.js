@@ -21,6 +21,10 @@ createUser = function(user_object, callback){
     user_object.profile.gallery_tickets = [];
     user_object.profile.gallery_value = 0;
     user_object.profile.gallery_score = 0;
+    user_object.profile.market_expert = {
+        'expiration': moment().add(-1, 'days')._d.toISOString(),
+        'rating': .8
+    };
 
     var default_wall = gallery_finishes.findOne({'filename': "plaster.jpg"});   
     var wall_finish_object = {
@@ -385,27 +389,21 @@ Meteor.methods({
             quests.remove(quest_id);
     },
 
-    'getSoughtStatus' : function() {
-        if (Meteor.user().profile.market_expert > moment()._d.toISOString()) {
-            var sought_status = {};
-            items.find({'owner': Meteor.userId()}).forEach(function(db_object) {
-                var artwork_id = db_object.artwork_id;
-                if (sought_status.artwork_id != undefined)
+    'getSoughtStatus' : function(artwork_id) {
+        if (Meteor.user().profile.market_expert.expiration > moment()._d.toISOString()) {
+            var is_sought = false;
+            quests.find({'owner': {$ne: Meteor.userId()}, 'target': {$in: [artwork_id]}}).forEach(function(quest_object) {
+                if (is_sought)
                     return;
 
-                quests.find({'owner': {$ne: Meteor.userId()}, 'target': {$in: [db_object.artwork_id]}}).forEach(function(quest_object) {
-                    var quest_owner = quest_object.owner_id;
-                    if (items.findOne({'owner': quest_owner, 'artwork_id': artwork_id}) == undefined) {
-                        sought_status[artwork_id] == true;
-                        return;
-                    }
-                });
+                var quest_owner = quest_object.owner_id;
+                if (items.findOne({'owner': quest_owner, 'artwork_id': artwork_id}) == undefined)
+                    is_sought = true;
+            });
 
-                if (sought_status[artwork_id] == undefined)
-                    sought_status[artwork_id] = false;
-            })
+            return JepLoot.booRoll(Meteor.user().profile.market_expert.rating) ? is_sought : !is_sought;
         }
 
-        else return undefined;
+        else return false;
     }
 })

@@ -3,6 +3,11 @@
 	padding: 48px 0px;
 }
 
+.template-dashboard .dash-section:first-child {
+	border: none;
+	padding-top: 0px;
+}
+
 .template-dashboard .xp-bar {
 	background-color: #777777;
 	width: 100%;
