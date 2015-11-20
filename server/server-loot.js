@@ -305,15 +305,15 @@ generateItemFromArtworkID = function(user_id, artwork_id, condition, xp_rating, 
 
 getAttributes = function(rarity) {
     var primary_count = attribute_quantities[rarity].primary;
-    var total_primary = attributes.find({'type' : "primary"}).count();
+    var total_primary = attributes.find({'type' : "primary", 'active': true}).count();
 
     var primary_ids = [];
     var primary_attributes = [];
 
     for (var i=0; i < primary_count; i++) {
-        var remaining = attributes.find({'type' : "primary", '_id' : {$nin: primary_ids}}).count();
+        var remaining = attributes.find({'type' : "primary", 'active': true, '_id' : {$nin: primary_ids}}).count();
         var random_index = Math.floor(Math.random() * remaining);
-        var random_attribute = attributes.findOne({'type' : "primary", '_id' : {$nin: primary_ids}}, {skip: random_index});
+        var random_attribute = attributes.findOne({'type' : "primary", 'active': true, '_id' : {$nin: primary_ids}}, {skip: random_index});
         primary_attributes.push(random_attribute);
         primary_ids.push(random_attribute._id)
     }

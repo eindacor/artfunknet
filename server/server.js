@@ -59,12 +59,7 @@ var updateContent = function() {
     });
 
     // temp code
-    artworks.find().forEach(function(db_object) {
-        if (db_object.active === undefined)
-            artworks.update(db_object._id, {$set: {'active': true}});
-    })
-
-    artworks.update({}, {$unset: {'img_link': "", 'img_height': ""}}, {multi: true});
+    attributes.update({'type': "primary"}, {$set: {'active': true}}, {multi: true});
     // temp code
 }
 
