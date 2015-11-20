@@ -411,9 +411,9 @@ Meteor.methods({
                 }
             }
 
-            var remaining = attributes.find({'type' : attribute_type, '_id' : {$nin: attribute_ids}}).count();
+            var remaining = attributes.find({'type' : attribute_type, '_id' : {$nin: attribute_ids}, 'active': true}).count();
             var random_index = Math.floor(Math.random() * remaining);
-            var random_attribute = attributes.findOne({'type' : attribute_type, '_id' : {$nin: attribute_ids}}, {skip: random_index});
+            var random_attribute = attributes.findOne({'type' : attribute_type, '_id' : {$nin: attribute_ids}, 'active': true}, {skip: random_index});
 
             attribute_array[target_attribute_index] = random_attribute;
             attribute_array[target_attribute_index].value = getAttributeValue(0);

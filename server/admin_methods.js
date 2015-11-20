@@ -175,4 +175,35 @@ Meteor.methods({
             })
 	    }
     },
+
+    'toggleAttributeStatus' : function(attribute_id) {
+    	if (adminValidated()) {
+    		attributes.update(attribute_id, {$set: {'active': !(attributes.findOne(attribute_id).active)}});
+    	}
+    },
+
+    'generateDBString' : function() {
+    	if (adminValidated()) {
+    		var attribute_data = attributes.find().fetch();
+    		var attribute_string = "var downloaded_attribute_data = " + encodeURIComponent(JSON.stringify(attribute_data)) + "; ";
+
+    		var user_data = Meteor.users.find().fetch();
+    		var user_string = "var downloaded_user_data = " + encodeURIComponent(JSON.stringify(user_data)) + "; ";
+
+    		var artwork_data = artworks.find().fetch();
+    		var artwork_string = "var downloaded_artwork_data = " + encodeURIComponent(JSON.stringify(artwork_data)) + "; ";
+
+    		var item_data = items.find().fetch();
+    		var item_string = "var downloaded_item_data = " + encodeURIComponent(JSON.stringify(item_data)) + "; ";
+
+    		var artist_data = artists.find().fetch();
+    		var artist_string = "var downloaded_artist_data = " + encodeURIComponent(JSON.stringify(artist_data)) + "; ";
+
+			var data_string = "text/json;charset=utf-8," + attribute_string + user_string + artwork_string + item_string + artist_string;
+
+			return data_string;
+    	}
+
+    	else return undefined;
+    }
 })

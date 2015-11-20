@@ -20,3 +20,11 @@
 	width: 100%;
 	height: 64px;
 }
+
+.template-adminTools .attribute-toggle {
+	cursor: pointer;
+}
+
+.template-adminTools .attribute-toggle:hover {
+	background-color: #EEEEEE;
+}

@@ -231,6 +231,33 @@ Template.adminTools.events({
     		if (error)
     			console.log(error.message);
     	})
+    },
+
+    'click .attribute-toggle' : function(element) {
+    	var attribute_id = $(element.target).closest('.attribute-toggle').data().attribute_id;
+    	Meteor.call('toggleAttributeStatus', attribute_id, function(error) {
+    		if (error)
+    			console.log(error);
+    	})
+    },
+
+    'click #generate-link' : function() {
+    	var attribute_data = attributes.find().fetch();
+		var data = "text/json;charset=utf-8," + "var downloaded_attribute_data = " + encodeURIComponent(JSON.stringify(attribute_data)) + "; ";
+
+		Meteor.call('generateDBString', function(error, result) {
+			if (error)
+				console.log(error.message);
+
+			else {
+				console.log(result);
+				var download_link = $('<a>download databases</a>');
+				download_link.attr("href", 'data:' + result);
+				download_link.attr("download", 'data.json');
+
+				$('#download-area').append(download_link);
+			}
+		})
     }
 })
 
@@ -242,6 +269,10 @@ Template.adminTools.helpers({
 			updateAdminData();
 
 		else return admin_data;
+	},
+
+	'attribute' : function() {
+		return attributes.find();
 	}
 })
 

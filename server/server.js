@@ -60,6 +60,7 @@ var updateContent = function() {
 
     // temp code
     attributes.update({'type': "primary"}, {$set: {'active': true}}, {multi: true});
+    attributes.remove({'type': {$ne: "primary"}});
     // temp code
 }
 

@@ -79,6 +79,21 @@
 						<textarea class="admin-textarea" id="alert-users-text"></textarea>
 						<p><button id="alert-users">submit</button></p>
 					</div>
+
+					<div class="row attributes-area">
+						<div class="col-xs-4">
+							<h4 class="af-color">Active Attributes</h4>
+							{{#each attribute}}
+							<p class="attribute-toggle" data-attribute_id="{{_id}}">{{#if active}}<i class="green-text fa fa-check-square-o"></i>{{else}}<i class="fa fa-square-o"></i>{{/if}} {{title}}</p>
+							{{/each}}
+						</div>
+					</div>
+
+					<div class="row attributes-area">
+						<h4 class="af-color">Download Databases</h4>
+						<p><button id="generate-link">generate link</button></p>
+						<div id="download-area"></div>
+						</div>
 				{{/with}}
 			</div>
 		</div>
