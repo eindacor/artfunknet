@@ -64,7 +64,7 @@ Template.galleryTable.helpers({
 
 			for (var i=0; i < attribute_ids.length; i++) {
 				var attribute_object = attributes.findOne(attribute_ids[i]);
-				if (attribute_object.type == "secondary")
+				if (attribute_object == undefined || attribute_object.type == "secondary")
 					continue;
 				
 				attribute_object.value = gallery_object.attribute_values[attribute_ids[i]];
