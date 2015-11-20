@@ -81,33 +81,33 @@
 }
 
 .template-itemInfo .masterpiece-item {
-	-webkit-box-shadow: 0px 0px 6px 1px #44DDDD;
-	-moz-box-shadow: 0px 0px 6px 1px #44DDDD;
-	box-shadow: 0px 0px 6px 1px #44DDDD; 
+	-webkit-box-shadow: 0px 0px 6px 2px #44DDDD;
+	-moz-box-shadow: 0px 0px 6px 2px #44DDDD;
+	box-shadow: 0px 0px 6px 2px #44DDDD; 
 }
 
 .template-itemInfo .legendary-item {
-	-webkit-box-shadow: 0px 0px 6px 1px orange;
-	-moz-box-shadow: 0px 0px 6px 1px orange;
-	box-shadow: 0px 0px 6px 1px orange; 
+	-webkit-box-shadow: 0px 0px 6px 2px orange;
+	-moz-box-shadow: 0px 0px 6px 2px orange;
+	box-shadow: 0px 0px 6px 2px orange; 
 }
 
 .template-itemInfo .rare-item {
-	-webkit-box-shadow: 0px 0px 6px 1px #CCCC00;
-	-moz-box-shadow: 0px 0px 6px 1px #CCCC00;
-	box-shadow: 0px 0px 6px 1px #CCCC00; 
+	-webkit-box-shadow: 0px 0px 6px 2px #CCCC00;
+	-moz-box-shadow: 0px 0px 6px 2px #CCCC00;
+	box-shadow: 0px 0px 6px 2px #CCCC00; 
 }
 
 .template-itemInfo .uncommon-item {
-	-webkit-box-shadow: 0px 0px 6px 1px blue;
-	-moz-box-shadow: 0px 0px 6px 1px blue;
-	box-shadow: 0px 0px 6px 1px blue; 
+	-webkit-box-shadow: 0px 0px 6px 2px blue;
+	-moz-box-shadow: 0px 0px 6px 2px blue;
+	box-shadow: 0px 0px 6px 2px blue; 
 }
 
 .template-itemInfo .common-item {
-	-webkit-box-shadow: 0px 0px 6px 1px green;
-	-moz-box-shadow: 0px 0px 6px 1px green;
-	box-shadow: 0px 0px 6px 1px green; 
+	-webkit-box-shadow: 0px 0px 6px 2px green;
+	-moz-box-shadow: 0px 0px 6px 2px green;
+	box-shadow: 0px 0px 6px 2px green; 
 }
 
 .template-itemInfo .card-info {
