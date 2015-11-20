@@ -67,7 +67,16 @@
 }
 
 .template-itemInfo .lottery {
-	background: linear-gradient(60deg, white, #FFEF99, #FFEF99, white, #FFEF99, #FFEF99, white);
+	background: linear-gradient(60deg, white, #ddccff, #ddccff, white, #ddccff, #ddccff, white);
+	background-size: 300% 300%;
+	-webkit-animation: Test 10s ease infinite;
+	-moz-animation: Test 10s ease infinite;
+	-o-animation: Test 10s ease infinite;
+	animation: Test 10s ease infinite;
+}
+
+.template-itemInfo .limited {
+	background: linear-gradient(60deg, white, #D7F7F2, #D9C7FF, white, #D9C7FF, #D7F7F2, white);
 	background-size: 300% 300%;
 	-webkit-animation: Test 10s ease infinite;
 	-moz-animation: Test 10s ease infinite;

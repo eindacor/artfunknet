@@ -2,7 +2,7 @@
 	<div class="template-itemInfo">
 		<div data-item_id="{{item_data._id}}" class="card-container {{item_data.rarity}}-item" style="background: url('{{getImageURL item_data.filename}}') center; background-size: {{#with imageSize item_data.width item_data.height}}{{image_width}}px {{image_height}}px{{/with}}">
 			<div class="row no-margin card-info">
-				<div class="card-header col-xs-12 {{#if item_data.foil}}foil{{/if}} {{#if item_data.seasonal}}seasonal{{/if}} {{#if item_data.lottery}}lottery{{/if}}">
+				<div class="card-header col-xs-12 {{#if item_data.foil}}foil{{/if}} {{#if item_data.seasonal}}seasonal{{/if}} {{#if item_data.lottery}}lottery{{/if}} {{#if item_data.limited}}limited{{/if}}">
 					<div class="row no-margin">
 						<div class="header-basic-info">
 							<p class="item-title">{{item_data.title}}</p>
