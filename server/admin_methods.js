@@ -199,7 +199,24 @@ Meteor.methods({
     		var artist_data = artists.find().fetch();
     		var artist_string = "var downloaded_artist_data = " + encodeURIComponent(JSON.stringify(artist_data)) + "; ";
 
-			var data_string = "text/json;charset=utf-8," + attribute_string + user_string + artwork_string + item_string + artist_string;
+    		var auction_data = auctions.find().fetch();
+    		var auction_string = "var downloaded_auction_data = " + encodeURIComponent(JSON.stringify(auction_data)) + "; ";
+
+    		var gallery_finish_data = gallery_finishes.find().fetch();
+    		var gallery_finish_string = "var downloaded_gallery_finish_data = " + encodeURIComponent(JSON.stringify(gallery_finish_data)) + "; ";
+
+    		var quest_data = quests.find().fetch();
+    		var quest_string = "var downloaded_quest_data = " + encodeURIComponent(JSON.stringify(quest_data)) + "; ";
+
+			var data_string = "text/json;charset=utf-8," + 
+				attribute_string + 
+				user_string + 
+				artwork_string + 
+				item_string + 
+				artist_string +
+				auction_string + 
+				gallery_finish_string + 
+				quest_string;
 
 			return data_string;
     	}
