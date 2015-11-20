@@ -103,7 +103,7 @@ Meteor.setInterval((function() {
         var attribute_ids = Object.keys(attribute_values);
         for (var i=0; i < attribute_ids.length; i++) {
             var attribute_object = attributes.findOne(attribute_ids[i]);
-            if (attribute_object == undefined || attributes.findOne(attribute_ids[i]).type == "secondary")
+            if (attribute_object == undefined || attribute_object.type == "secondary")
                 continue;
             
             var proc_chance = default_spawn_chance * attribute_values[attribute_ids[i]];
