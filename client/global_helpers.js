@@ -67,7 +67,7 @@ Template.registerHelper('getTextureURL', function(filename) {
 	return "https://s3.amazonaws.com/com.artfunkel.artwork/textures/" + filename;
 })
 
-Template.registerHelper('cardData', function(item_array) {
+Template.registerHelper('cardArray', function(item_array) {
 	//create list object and add rarity_rank, feature_count, artist, title, date
 	var display_objects = [];
 
@@ -108,4 +108,38 @@ Template.registerHelper('cardData', function(item_array) {
 	});
 
 	return display_objects;
+})
+
+Template.registerHelper('cardData', function(item) {
+	//create list object and add rarity_rank, feature_count, artist, title, date
+	if (item) {
+		var artwork_object = artworks.findOne(item.artwork_id);
+		var display_object = item;
+
+		var rarity_rank;
+		switch(artwork_object.rarity) {
+			case "common": rarity_rank = 0; break;
+			case "uncommon": rarity_rank = 1; break;
+			case "rare": rarity_rank = 2; break;
+			case "legendary": rarity_rank = 3; break;
+			case "masterpiece": rarity_rank = 4; break;
+			default: rarity_rank = 0; break;
+		}
+
+		display_object.rarity_rank = rarity_rank;
+		display_object.feature_count = item.attributes.length;
+		display_object.artist = artwork_object.artist;
+		display_object.title = artwork_object.title;
+		display_object.date = artwork_object.date;
+		display_object.rarity = artwork_object.rarity;
+		display_object.width = artwork_object.width;
+		display_object.height = artwork_object.height;
+		display_object.condition_text = Math.floor((item.condition * 100)) + '%';
+		display_object.xp_rating_text = Math.floor(item.xp_rating * 100);
+		display_object.filename = artwork_object.filename;
+
+		return display_object;
+	}
+
+	else return undefined;
 })

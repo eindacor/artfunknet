@@ -12,7 +12,7 @@
 				{{/each}}
 				</tr>
 
-				{{#each cardData owned}}
+				{{#each cardArray owned}}
 				<tr data-item_id="{{_id}}">
 					<td>
 						{{#with thumbnailInfo _id}}
@@ -69,7 +69,7 @@
 				</tr>
 			</table>
 
-			{{#each cardData owned}}
+			{{#each cardArray owned}}
 				{{>itemInfo item_data=this sell_button=true auction_button=true display_button=true reroll_button=true permanent_button=true preview_button=true}}
 			{{/each}}
 

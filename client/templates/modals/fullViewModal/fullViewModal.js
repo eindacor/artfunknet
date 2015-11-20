@@ -1,63 +1,56 @@
+var full_size_tracker = new Tracker.Dependency;
+
+var full_container_width;
+var full_container_height;
+
 Template.fullViewModal.helpers({
-	'itemId' : function() {
-		if (Session.get('selectedItem')) 
-			return Session.get('selectedItem');
+	'imageSize' : function(width, height) {
+		full_size_tracker.depend();
 
-		else return "";
-	},
+		if ($('.inner-container').length != 0) {
+			var max_width = full_container_width;
+			var max_height = full_container_height;
 
-	'itemData' : function() {
-		try {
-			if (Session.get('selectedItem')) {
-				var item_object = items.findOne(Session.get('selectedItem'));
-				var artwork_object = artworks.findOne(item_object.artwork_id);
-					
+			var original_ratio = width / height;
+
+			var height_when_width_maxed = max_width / original_ratio;
+
+			if (height_when_width_maxed > max_height) {
 				return {
-					'title' : artwork_object.title,
-					'artist' : artwork_object.artist,
+					'image_width': Math.floor(original_ratio * max_height),
+					'image_height': max_height
 				}
 			}
 
 			else return {
-				'title' : "",
-				'artist' : "",
-			}
+				'image_width': max_width,
+				'image_height': max_width / original_ratio
+			} 
 		}
 
-		catch(error) {
-			return {
-				'title' : "",
-				'artist' : "",
-			}
+		else return {
+			'image_width': 20,
+			'image_height': 20
 		}
 	},
 
-	'imageInfo' : function(item_id) {
-		try {
-			var item_object = items.findOne(item_id);
-			var artwork_object = artworks.findOne(item_object.artwork_id);
-
-			var info_object = {
-				'filename' : artwork_object.filename,
-			};
-
-			return info_object;
-		}
-
-		catch(error) {
-			return {
-				'filename' : ""
-			};
-		}
-	},
-})
-
-Template.fullViewModal.events({
-	'click #close-button' : function() {
-		Modal.hide('fullViewModal');
+	'getRarity' : function(artwork_id) {
+		return artworks.findOne(artwork_id).rarity;
 	}
 })
 
 Template.fullViewModal.rendered = function() {
-	Session.set('actual_value', false);
-};
+	if ($('.inner-container').length != 0) {
+		full_container_height = $('.inner-container').css('height').replace("px", "");
+		full_container_width = $('.inner-container').css('width').replace("px", ""); 
+		full_size_tracker.changed();
+	}
+
+	sought_status = {};
+}
+
+Template.fullViewModal.events({
+	'click .close-button': function() {
+		$('.template-modalTemplate').remove();
+	}
+})

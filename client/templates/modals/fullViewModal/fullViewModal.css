@@ -1,12 +1,90 @@
-.template-fullViewModal img {
-	margin: 24px;
+.template-fullViewModal .action-buttons {
+	text-align: right;
+	font-size: 3rem;
+	color: white;
 }
 
-.template-fullViewModal .modal-content {
-	padding-bottom: 48px;
+.template-fullViewModal .item-containers {
+	width: 100%;
+	height: 100%;
+	position: fixed;
+}
+
+.template-fullViewModal .left-panel {
+	height: 100vh;
 	text-align: center;
+	padding: 24px;
 }
 
-.template-fullViewModal .highlight {
-	font-weight: bold;
+.template-fullViewModal .right-panel {
+	height: 100vh;
+}
+
+.template-fullViewModal .img-container {
+	position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex; /* add */
+    justify-content: center; /* add to align horizontal */
+    align-items: center; /* add to align vertical */
+    padding: 36px;
+    height: 100%;
+}
+
+.template-fullViewModal .inner-container {
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex; /* add */
+    justify-content: center; /* add to align horizontal */
+    align-items: center; /* add to align vertical */
+	height: 100%;
+	width: 100%;
+}
+
+.template-fullViewModal .close-button {
+	margin: 48px;
+	opacity: .8;
+	cursor: pointer;
+}
+
+.template-fullViewModal .close-button:hover {
+	opacity: 1;
+}
+
+.template-fullViewModal .img-container img {
+	border: 2px solid white;
+}
+
+.template-fullViewModal .img-container .masterpiece-item {
+	-webkit-box-shadow: 0px 0px 6px 6px #44DDDD;
+	-moz-box-shadow: 0px 0px 6px 6px #44DDDD;
+	box-shadow: 0px 0px 6px 6px #44DDDD; 
+}
+
+.template-fullViewModal .img-container .legendary-item {
+	-webkit-box-shadow: 0px 0px 6px 6px orange;
+	-moz-box-shadow: 0px 0px 6px 6px orange;
+	box-shadow: 0px 0px 6px 6px orange; 
+}
+
+.template-fullViewModal .img-container .rare-item {
+	-webkit-box-shadow: 0px 0px 6px 6px #CCCC00;
+	-moz-box-shadow: 0px 0px 6px 6px #CCCC00;
+	box-shadow: 0px 0px 6px 6px #CCCC00; 
+}
+
+.template-fullViewModal .img-container .uncommon-item {
+	-webkit-box-shadow: 0px 0px 6px 6px blue;
+	-moz-box-shadow: 0px 0px 6px 6px blue;
+	box-shadow: 0px 0px 6px 6px blue; 
+}
+
+.template-fullViewModal .img-container .common-item {
+	-webkit-box-shadow: 0px 0px 6px 6px green;
+	-moz-box-shadow: 0px 0px 6px 6px green;
+	box-shadow: 0px 0px 6px 6px green; 
 }

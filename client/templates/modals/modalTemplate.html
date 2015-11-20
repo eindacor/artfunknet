@@ -1,0 +1,9 @@
+<template name="modalTemplate">
+	<div class="template-modalTemplate">
+		<div class="modal-container col-xs-12">
+			{{#if isEqual modal_name "fullViewModal"}}
+				{{> fullViewModal modal_data}}
+			{{/if}}
+		</div>
+	</div>
+</template>

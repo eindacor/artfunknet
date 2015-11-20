@@ -10,20 +10,20 @@ var addNewGalleryFinishes = function() {
 };
 
 var new_artworks = [
-	{
-	    "artist": "Pablo Picasso",
-	    "title": "Women of Algiers",
-	    "date": 1955,
-	    "genre": "cubist",
-	    "rarity": "legendary",
-	    "medium": "Oil",
-	    "value_scale": 0.92,
-	    "height": 114,
-	    "width": 146.4,
-	    "filename": "picasso_women.jpg",
-	    "nsfw": false,
-	    "active": true,
-  	},
+	// {
+	//     "artist": "Pablo Picasso",
+	//     "title": "Women of Algiers",
+	//     "date": 1955,
+	//     "genre": "cubist",
+	//     "rarity": "legendary",
+	//     "medium": "Oil",
+	//     "value_scale": 0.92,
+	//     "height": 114,
+	//     "width": 146.4,
+	//     "filename": "picasso_women.jpg",
+	//     "nsfw": false,
+	//     "active": true,
+ //  	},
 ];
 
 var addNewArtworks = function() {

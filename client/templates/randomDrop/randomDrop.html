@@ -9,7 +9,7 @@
 		<p>Note: your inventory is currently full. You will be unable to add new artwork to your inventory</p>
 		{{/if}}
 
-		{{#each cardData drop}}
+		{{#each cardArray drop}}
 			{{>itemInfo item_data=this claim_button=true sell_button=true preview_button=true}}
 		{{/each}}
 

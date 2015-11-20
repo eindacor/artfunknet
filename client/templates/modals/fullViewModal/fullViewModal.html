@@ -1,17 +1,25 @@
 <template name="fullViewModal">
 	<div class="template-fullViewModal">
-	    <div style="z-index:9999999999999999;" class="modal fade">
-	        <div class="modal-dialog">
-	            <div class="modal-content container">
-	            	{{#with itemData}}
-	                <h4><span class="highlight af-color">{{title}}</span> by <span class="highlight af-color">{{artist}}</span></h4>
-			        {{/with}}
-	            	{{#with imageInfo itemId}}
-					<img class="image-thumb" src="{{getImageURL filename}}" width="{{image_width}}" height="{{image_height}}"/>
-			        <button id="close-button" type="button" class="btn btn-default">close</button>
-			        {{/with}}
-	            </div>
-	        </div>
-	    </div>
+		<div class="row item-containers">
+			<div class="left-panel col-xs-12 col-md-9">
+				<div class="img-container">
+					<div class="inner-container">
+						<img class="{{getRarity this.item_data.artwork_id}}-item" src="{{getImageURL this.item_data.filename}}" style="{{#with imageSize this.item_data.width this.item_data.height}}width: {{image_width}}px; height: {{image_height}}px;{{/with}}">
+					</div>
+				</div>
+			</div>
+			<div class="right-panel col-xs-12 col-md-3">
+				<div class="row action-buttons">
+					<div class="col-xs-12">
+						<i class="close-button fa fa-times"></i>
+					</div>
+				</div>
+				<div class="card-view">
+					{{#with cardData this.item_data}}
+						{{>itemInfo item_data=this}}
+					{{/with}}
+				</div>
+			</div>
+		</div>
 	</div>
 </template>

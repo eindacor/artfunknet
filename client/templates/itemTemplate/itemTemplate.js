@@ -155,6 +155,10 @@ Template.itemInfo.helpers({
 		}
 
 		else return false;
+	},
+
+	'isOwner' : function(owner_id) {
+		return Meteor.userId() == owner_id;
 	}
 })
 
@@ -162,7 +166,15 @@ Template.itemInfo.events({
 	'click .card-container' : function(element) {
 		var target = $(element.target);
 		var item_id = target.closest('.card-container').data('item_id');
-		target.closest('.card-container').hasClass('selected') ? target.closest('.card-container').removeClass('selected') : target.closest('.card-container').addClass('selected');
+		//target.closest('.card-container').hasClass('selected') ? target.closest('.card-container').removeClass('selected') : target.closest('.card-container').addClass('selected');
+		if ($('.template-modalTemplate').length == 0) {
+			Blaze.renderWithData(Template.modalTemplate, {
+				'modal_name': "fullViewModal", 
+				'modal_data': {
+					'item_data': items.findOne(item_id)
+				}
+			}, $('body')[0]);
+		}
 	},
 
 	'click .quick-sell.enabled' : function(element) {
@@ -239,8 +251,12 @@ Template.itemInfo.events({
 	'click .preview' : function(element) {
 		element.stopPropagation();
 		var item_id = $(element.target).closest('.card-container').data('item_id');
-		Session.set('selectedItem', item_id);
-		Modal.show('fullViewModal');
+		Blaze.renderWithData(Template.modalTemplate, {
+			'modal_name': "fullViewModal", 
+			'modal_data': {
+				'item_data': items.findOne(item_id)
+			}
+		}, $('body')[0]);
 	},
 
 	'mouseover .claim' : function(event) {

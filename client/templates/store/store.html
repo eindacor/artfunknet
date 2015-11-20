@@ -14,7 +14,7 @@
 		<p>Note: your inventory is currently full. You will be unable to add new artwork to your inventory</p>
 		{{/if}}
 
-		{{#each cardData for_sale}}
+		{{#each cardArray for_sale}}
 			<div class="store-item-container">
 				{{>itemInfo item_data=this purchase_button=true decline_button=true preview_button=true}}
 				<p class="price-text">cost - ${{getItemValue this._id "dealer"}}</p>

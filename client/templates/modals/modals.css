@@ -1,0 +1,15 @@
+.template-modalTemplate {
+	background-color: rgba(0,0,0,.85);
+	position: fixed;
+	top: 0px;
+	bottom: 0px;
+	right: 0px;
+	left: 0px;
+	z-index: 999999;
+}
+
+.template-modalTemplate .modal-container {
+	z-index: 9999999;
+	position: absolute;
+	padding: 0px 24px;
+}

@@ -282,8 +282,12 @@ Template.galleryItem.helpers({
 Template.galleryItem.events({
 	'click .item' : function(element) {
 		var item_id = $(element.target).closest('.painting-container').data().item_id;
-		Session.set('selectedItem', item_id);
-		Modal.show('fullViewModal');
+		Blaze.renderWithData(Template.modalTemplate, {
+			'modal_name': "fullViewModal", 
+			'modal_data': {
+				'item_data': items.findOne(item_id)
+			}
+		}, $('body')[0]);
 	},
 
 	'mousedown .item' : function(element) {
