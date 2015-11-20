@@ -250,7 +250,6 @@ Template.adminTools.events({
 				console.log(error.message);
 
 			else {
-				console.log(result);
 				var download_link = $('<a>download databases</a>');
 				download_link.attr("href", 'data:' + result);
 				download_link.attr("download", 'data.json');
