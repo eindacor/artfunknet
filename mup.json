@@ -2,7 +2,8 @@
   // Server authentication info
   "servers": [
     {
-      "host": "52.32.36.42",
+	  "host": "52.32.122.222",
+      //"host": "52.32.36.42",
       "username": "ubuntu",
       //"password": "password"
       // or pem file (ssh based authentication)
@@ -34,7 +35,7 @@
 
   // Configure environment
   "env": {
-    "ROOT_URL": "http://artfunkel.com",
+    "ROOT_URL": "http://artfunkelgame.com",
     "PORT": 80
   },
 
