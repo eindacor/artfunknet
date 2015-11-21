@@ -90,7 +90,6 @@ Meteor.methods({
 
 		if (user_object) {
 			return {
-				'npcs': attributes.find({'type': "primary"}).fetch(),
 				'player_level': user_object.profile.level,
 				'player_xp': user_object.profile.xp,
 				'daily_drop_count': admin_settings.daily_drop_count,
@@ -222,5 +221,19 @@ Meteor.methods({
     	}
 
     	else return undefined;
+    },
+
+    'updateLockedAttributes': function(artwork_id, attribute_id_array) {
+    	if (adminValidated()) {
+    		artworks.update(artwork_id, {$set: {'locked_attributes': attribute_id_array}});
+	        items.find().forEach(function(db_object) {
+		        var item_attributes = db_object.attributes;
+		        for (var i=0; i<item_attributes.length; i++) {
+		            item_attributes[i].locked = attributeIsLocked(db_object.artwork_id, item_attributes[i]._id);
+		        }
+
+		        items.update(db_object._id, {$set: {'attributes': item_attributes}});
+		    })
+    	}
     }
 })

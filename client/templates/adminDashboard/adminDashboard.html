@@ -3,98 +3,124 @@
 		<div class="template-adminTools">
 			<div class="container">
 				<h1 class="af-color">Admin Tools</h1>
-				{{#with adminData}}
-					{{> settable_field set_id="set_level" current=player_level button_id="level-set" label="player level"}}
-					{{> settable_field set_id="set_xp" current=player_xp id="xp-set" label="xp"}}
-					{{> settable_field set_id="set_daily_drop" current=daily_drop_count button_id="update-daily-drop-count" label="daily drop count"}}
-					{{> settable_field set_id="set_crate_drop" current=crate_drop_count button_id="update-crate-drop-count" label="crate count"}}
-					{{> settable_field set_id="set_bank_balance" current=bank_balance button_id="set-bank-balance" label="bank balance"}}
-					{{> settable_field set_id="set_seasonal" current=seasonal_ids button_id="set-seasonal" label="seasonal items"}}
-					{{> adminButton button_id="new-seasonals" button_label="new seasonals"}}
-					{{> adminButton button_id="reset-daily" button_label="reset daily drop"}}
-					{{> adminButton button_id="clear-unclaimed" button_label="clear unclaimed"}}
-					{{> adminButton button_id="generate-for-sale" button_label="generate for-sale"}}
-					{{> adminButton button_id="clear-for-sale" button_label="clear for-sale"}}
+				<div class="row tools-section">
+					<h4 class="af-color">Profile Modifier</h4>
+					<div class="col-xs-12">
+					{{#with adminData}}
+						{{> settable_field set_id="set_level" current=player_level button_id="level-set" label="player level"}}
+						{{> settable_field set_id="set_xp" current=player_xp id="xp-set" label="xp"}}
+						{{> settable_field set_id="set_daily_drop" current=daily_drop_count button_id="update-daily-drop-count" label="daily drop count"}}
+						{{> settable_field set_id="set_crate_drop" current=crate_drop_count button_id="update-crate-drop-count" label="crate count"}}
+						{{> settable_field set_id="set_bank_balance" current=bank_balance button_id="set-bank-balance" label="bank balance"}}
+						{{> settable_field set_id="set_seasonal" current=seasonal_ids button_id="set-seasonal" label="seasonal items"}}
+						{{> adminButton button_id="new-seasonals" button_label="new seasonals"}}
+						{{> adminButton button_id="reset-daily" button_label="reset daily drop"}}
+						{{> adminButton button_id="clear-unclaimed" button_label="clear unclaimed"}}
+						{{> adminButton button_id="generate-for-sale" button_label="generate for-sale"}}
+						{{> adminButton button_id="clear-for-sale" button_label="clear for-sale"}}
+					{{/with}}
+					</div>
+				</div>
 
-					<div class="row">
-						<button id="generate-npc" class="set-button">generate npc</button>
-						<select class="npc-selector">
-							{{#each npcs}}
-							<option value="{{_id}}">{{description}}</option>
-							{{/each}}
+				<div class="row tools-section">
+					<h4 class="af-color">Generate NPC</h4>
+					<button id="generate-npc" class="set-button">generate npc</button>
+					<select class="npc-selector">
+						{{#each npc}}
+						<option value="{{_id}}">{{npc_name}}</option>
+						{{/each}}
+					</select>
+				</div>
+
+				<div class="row tools-section item-creation">
+					<h4 class="af-color">Generate Item</h4>
+					<p>user id: <input class="item-create-field" id="generate-user-id"></p>
+					<p>artwork id: <input class="item-create-field" id="generate-artwork-id"></p>
+					<p>condition: <input class="item-create-field" id="condition"></p>
+					<p>xp rating: <input class="item-create-field" id="xp-rating"></p>
+					<p>foil:
+						<select class="foil-selector">
+							<option value="false">false</option>
+							<option value="true">true</option>
 						</select>
-					</div>
+					</p>
+					<p>seasonal:
+						<select class="seasonal-selector">
+							<option value="false">false</option>
+							<option value="true">true</option>
+						</select>
+					</p>
+					<p>lottery:
+						<select class="lottery-selector">
+							<option value="0">0</option>
+							<option value="1">1</option>
+							<option value="2">2</option>
+							<option value="3">3</option>
+							<option value="4">4</option>
+							<option value="5">5</option>
+							<option value="6">6</option>
+							<option value="7">7</option>
+							<option value="8">8</option>
+							<option value="9">9</option>
+							<option value="10">10</option>
+						</select>
+					</p>
+					<p><button id="generate-item">generate item</button></p>
+				</div>
 
-					<div class="row item-creation">
-						<h4 class="af-color">Generate Item</h4>
-						<p>user id: <input class="item-create-field" id="generate-user-id"></p>
-						<p>artwork id: <input class="item-create-field" id="generate-artwork-id"></p>
-						<p>condition: <input class="item-create-field" id="condition"></p>
-						<p>xp rating: <input class="item-create-field" id="xp-rating"></p>
-						<p>foil:
-							<select class="foil-selector">
-								<option value="false">false</option>
-								<option value="true">true</option>
+				<div class="row tools-section random-item-creation">
+					<h4 class="af-color">Generate Randomized Item</h4>
+					<p>artwork id: <input class="random-item-create-field" id="random-artwork-id"></p>
+					<p><button id="generate-random-item">randomize item</button></p>
+				</div>
+
+				<!-- <div class="row tools-section profile-modification">
+					<h4 class="af-color">Profile Modification</h4>
+					<p>field to modify: <input class="profile-mod-field" id="profile-add-field"></p>
+					<p>value: <input class="profile-mod-field" id="profile-add-value"></p>
+					<p><button id="modify-profiles">modify profiles</button></p>
+				</div> -->
+
+				<div class="row tools-section alert-users-area">
+					<h4 class="af-color">Alert All Users</h4>
+					<textarea class="admin-textarea" id="alert-users-text"></textarea>
+					<p><button id="alert-users">submit</button></p>
+				</div>
+
+				<div class="row tools-section attributes-area">
+					<div class="col-xs-4">
+						<h4 class="af-color">Active Attributes</h4>
+						{{#each attribute}}
+						<p class="attribute-toggle" data-attribute_id="{{_id}}">{{#if active}}<i class="green-text fa fa-check-square-o"></i>{{else}}<i class="fa fa-square-o"></i>{{/if}} {{title}}</p>
+						{{/each}}
+					</div>
+				</div>
+
+				<div class="row tools-section database-area">
+					<h4 class="af-color">Download Databases</h4>
+					<p><button id="generate-link">generate link</button></p>
+					<div id="download-area"></div>
+				</div>
+
+				<div class="row tools-section legendary-attributes">
+					<h4 class="af-color">Set Legendary Attributes</h4>
+					{{#each legendary_found}}
+					<div class="row">
+						<div data-artwork_id="{{_id}}" class="col-xs-6 legendary-container">
+							<p class="{{rarity}}">{{title}} by {{artist}}</p>
+							{{#each locked_attributes}}
+							<select class="attribute-selector">
+								<option value="{{this}}">{{npcName this}}</option>
+								{{#each selectorChoice ../locked_attributes}}
+									<option value="{{_id}}">{{npc_name}}</option>
+								{{/each}}
 							</select>
-						</p>
-						<p>seasonal:
-							<select class="seasonal-selector">
-								<option value="false">false</option>
-								<option value="true">true</option>
-							</select>
-						</p>
-						<p>lottery:
-							<select class="lottery-selector">
-								<option value="0">0</option>
-								<option value="1">1</option>
-								<option value="2">2</option>
-								<option value="3">3</option>
-								<option value="4">4</option>
-								<option value="5">5</option>
-								<option value="6">6</option>
-								<option value="7">7</option>
-								<option value="8">8</option>
-								<option value="9">9</option>
-								<option value="10">10</option>
-							</select>
-						</p>
-						<p><button id="generate-item">generate item</button></p>
-					</div>
-
-					<div class="row random-item-creation">
-						<h4 class="af-color">Generate Item</h4>
-						<p>artwork id: <input class="random-item-create-field" id="random-artwork-id"></p>
-						<p><button id="generate-random-item">randomize item</button></p>
-					</div>
-
-					<div class="row profile-modification">
-						<h4 class="af-color">Profile Modification</h4>
-						<p>field to modify: <input class="profile-mod-field" id="profile-add-field"></p>
-						<p>value: <input class="profile-mod-field" id="profile-add-value"></p>
-						<p><button id="modify-profiles">modify profiles</button></p>
-					</div>
-
-					<div class="row alert-users-area">
-						<h4 class="af-color">Alert All Users</h4>
-						<textarea class="admin-textarea" id="alert-users-text"></textarea>
-						<p><button id="alert-users">submit</button></p>
-					</div>
-
-					<div class="row attributes-area">
-						<div class="col-xs-4">
-							<h4 class="af-color">Active Attributes</h4>
-							{{#each attribute}}
-							<p class="attribute-toggle" data-attribute_id="{{_id}}">{{#if active}}<i class="green-text fa fa-check-square-o"></i>{{else}}<i class="fa fa-square-o"></i>{{/if}} {{title}}</p>
 							{{/each}}
 						</div>
 					</div>
+					{{/each}}
+				</div>
 
-					<div class="row attributes-area">
-						<h4 class="af-color">Download Databases</h4>
-						<p><button id="generate-link">generate link</button></p>
-						<div id="download-area"></div>
-						</div>
-				{{/with}}
 			</div>
 		</div>
 	{{/if}}

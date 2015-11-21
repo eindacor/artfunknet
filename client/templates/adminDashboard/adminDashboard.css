@@ -28,3 +28,13 @@
 .template-adminTools .attribute-toggle:hover {
 	background-color: #EEEEEE;
 }
+
+.template-adminTools .legendary-container {
+	border: 1px solid black;
+	margin: 12px 0px;
+	padding: 12px 24px;
+}
+
+.template-adminTools .tools-section {
+	border-top: 1px solid black;
+}

@@ -379,7 +379,7 @@ Meteor.methods({
 
             for (var i=0; i < attribute_array.length; i++) {
                 if (attribute_array[i]._id == attribute_id) {
-                    attribute_array[i].value = getAttributeValue(0);
+                    attribute_array[i].value = attributeIsLocked(item_object.artwork_id, attribute_id) ? getLockedAttributeValue() : getAttributeValue(0);
                     break;
                 }
             }
@@ -394,7 +394,7 @@ Meteor.methods({
 
     'rerollAttribute' : function(item_id, attribute_id) {
     	var item_object = canRerollItem(item_id);
-        if (item_object) {
+        if (item_object && !attributeIsLocked(item_object.artwork_id, attribute_id)) {
             var attribute_type = attributes.findOne(attribute_id).type;
             var roll_count = item_object.roll_count;
             var attribute_array = item_object.attributes;
@@ -417,6 +417,7 @@ Meteor.methods({
 
             attribute_array[target_attribute_index] = random_attribute;
             attribute_array[target_attribute_index].value = getAttributeValue(0);
+            attribute_array[target_attribute_index].locked = attributeIsLocked(item_object.artwork_id, random_attribute._id);
 
             // attribute_array.sort(function(first, second) {
             //     if (first.description > second.description)
@@ -430,7 +431,7 @@ Meteor.methods({
             chargeAccount(Meteor.userId(), getRerollCost(item_id));
         }
 
-        else throw "invalid operation";
+        else return false;
     },
 
 })

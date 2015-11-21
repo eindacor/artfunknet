@@ -257,6 +257,20 @@ Template.adminTools.events({
 				$('#download-area').append(download_link);
 			}
 		})
+    },
+
+    'change .attribute-selector' : function(event) {
+    	var container = $(event.target).closest('.legendary-container');
+    	var attribute_id_array = [];
+
+    	for (var i=0; i < container.find('.attribute-selector').length; i++) {
+    		attribute_id_array.push(container.find('.attribute-selector:eq(' + i + ')').val());
+    	}
+
+    	Meteor.call('updateLockedAttributes', container.data().artwork_id, attribute_id_array, function(error) {
+    		if (error)
+    			console.log(error.message);
+    	})
     }
 })
 
@@ -272,6 +286,22 @@ Template.adminTools.helpers({
 
 	'attribute' : function() {
 		return attributes.find();
+	},
+
+	'selectorChoice' : function(locked_attribute_ids) {
+		return attributes.find({'_id': {$nin: locked_attribute_ids}, 'active': true});
+	},
+
+	'legendary_found' : function() {
+		return artworks.find({'rarity': {$in: ["masterpiece", "legendary"]}});
+	},
+
+	'npcName' : function(attribute_id) {
+		return attributes.findOne(attribute_id).npc_name;
+	},
+
+	'npc' : function() {
+		return attributes.find({'active': true}).fetch()
 	}
 })
 

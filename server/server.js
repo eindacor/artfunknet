@@ -59,7 +59,34 @@ var updateContent = function() {
     });
 
     // temp code
-    
+    attributes.update({}, {$unset: {'value': ""}}, {multi: true});
+    artworks.update({'rarity': {$in: ["masterpiece", "legendary"]}}, {$unset: {'locked_attributes': ""}}, {multi: true});
+    artworks.find({'rarity': {$in: ["masterpiece", "legendary"]}}).forEach(function(db_object) {
+        if (db_object.locked_attributes == undefined) {
+            var random_attributes = [];
+            var attribute_count = db_object.rarity == "legendary" ? 2 : 3;
+
+            while (random_attributes.length < attribute_count) {
+                var selector = {'_id': {$nin: random_attributes}, 'active': true};
+                var count = attributes.find(selector).count();
+                if (count == 0)
+                    break;
+                
+                random_attributes.push(attributes.findOne(selector, {skip: Math.floor(Math.random() * count)})._id);
+            }
+
+            artworks.update(db_object._id, {$set: {'locked_attributes': random_attributes}});
+        }
+    })
+
+    items.find().forEach(function(db_object) {
+        var item_attributes = db_object.attributes;
+        for (var i=0; i<item_attributes.length; i++) {
+            item_attributes[i].locked = attributeIsLocked(db_object.artwork_id, item_attributes[i]._id);
+        }
+
+        items.update(db_object._id, {$set: {'attributes': item_attributes}});
+    })
     // temp code
 }
 

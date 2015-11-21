@@ -1,0 +1,22 @@
+<template name="lookup">
+	<div class="template-lookup">
+		<div class="row legendary-lookup-area">
+			<h4 class="af-color">Lookup Legendary</h4>
+			<select class="attribute-selector" id="attribute-selector-one">
+				<option value="any">all</option>
+				{{#each selectorOneChoice}}
+					<option value="{{_id}}">{{npc_name}}</option>
+				{{/each}}
+			</select>
+			<select class="attribute-selector" id="attribute-selector-two">
+				<option value="any">all</option>
+				{{#each selectorTwoChoice}}
+					<option value="{{_id}}">{{npc_name}}</option>
+				{{/each}}
+			</select>
+			{{#each artwork_found}}
+				<p class="{{rarity}}">{{title}} by {{artist}}</p>
+			{{/each}}
+		</div>
+	</div>
+</template>

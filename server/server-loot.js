@@ -286,7 +286,7 @@ generateItemFromArtworkID = function(user_id, artwork_id, condition, xp_rating, 
         var new_item_id = items.insert({
             'artwork_id' : artwork_id,
             'condition' : condition === undefined ? getCondition() : condition,
-            'attributes' : getAttributes(artwork_object.rarity),
+            'attributes' : getAttributes(artwork_object.rarity, artwork_id),
             'owner' : user_id,
             'status' : status,
             'date_created' : new Date(),
@@ -303,25 +303,37 @@ generateItemFromArtworkID = function(user_id, artwork_id, condition, xp_rating, 
     else return undefined;
 }
 
-getAttributes = function(rarity) {
-    var primary_count = attribute_quantities[rarity].primary;
+attributeIsLocked = function(artwork_id, attribute_id) {
+    return artworks.findOne({'_id': artwork_id, 'locked_attributes': {$in: [attribute_id]}}) != undefined;
+}
+
+getAttributes = function(rarity, artwork_id) {
+    var att_count = attribute_quantities[rarity].primary;
     var total_primary = attributes.find({'type' : "primary", 'active': true}).count();
 
-    var primary_ids = [];
-    var primary_attributes = [];
+    var locked_att_ids = artworks.findOne(artwork_id).locked_attributes;
 
-    for (var i=0; i < primary_count; i++) {
-        var remaining = attributes.find({'type' : "primary", 'active': true, '_id' : {$nin: primary_ids}}).count();
+    var att_ids = locked_att_ids == undefined ? [] : locked_att_ids;
+
+    var attribute_array = attributes.find({'_id': {$in: att_ids}}).fetch();
+
+    var atts_to_add = att_count - attribute_array.length;
+
+    for (var i=0; i < atts_to_add; i++) {
+        var remaining = attributes.find({'type' : "primary", 'active': true, '_id' : {$nin: att_ids}}).count();
         var random_index = Math.floor(Math.random() * remaining);
-        var random_attribute = attributes.findOne({'type' : "primary", 'active': true, '_id' : {$nin: primary_ids}}, {skip: random_index});
-        primary_attributes.push(random_attribute);
-        primary_ids.push(random_attribute._id)
+        var random_attribute = attributes.findOne({'type' : "primary", 'active': true, '_id' : {$nin: att_ids}}, {skip: random_index});
+        attribute_array.push(random_attribute);
+        att_ids.push(random_attribute._id)
     }
 
-    for (var i=0; i < primary_attributes.length; i++)
-        primary_attributes[i].value = getAttributeValue(i);
+    for (var i=0; i < attribute_array.length; i++) {
+        var locked = attributeIsLocked(artwork_id, attribute_array[i]._id);
+        attribute_array[i].value = locked ? getLockedAttributeValue() : getAttributeValue(0);
+        attribute_array[i].locked = locked;
+    }
 
-    return primary_attributes;
+    return attribute_array;
 }
 
 getXPRating = function() {
@@ -350,6 +362,10 @@ getAttributeValue = function(multiplier) {
     var random_tier = Number(JepLoot.catRoll(tier_map));
     var attribute_rating = (random_tier * 20) + (Math.random() * 20);
     return Number((attribute_rating / 100).toFixed(2));
+}
+
+getLockedAttributeValue = function() {
+    return Number((.8 + (getAttributeValue(0) * .2)).toFixed(2));
 }
 
 Meteor.methods({
