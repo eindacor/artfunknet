@@ -58,9 +58,7 @@ var updateContent = function() {
         calcMVP(db_object._id);
     });
 
-    // temp code
-    attributes.update({}, {$unset: {'value': ""}}, {multi: true});
-    artworks.update({'rarity': {$in: ["masterpiece", "legendary"]}}, {$unset: {'locked_attributes': ""}}, {multi: true});
+    //gives new legendaries locked attributes if they have none
     artworks.find({'rarity': {$in: ["masterpiece", "legendary"]}}).forEach(function(db_object) {
         if (db_object.locked_attributes == undefined) {
             var random_attributes = [];
@@ -79,14 +77,8 @@ var updateContent = function() {
         }
     })
 
-    // items.find().forEach(function(db_object) {
-    //     var item_attributes = db_object.attributes;
-    //     for (var i=0; i<item_attributes.length; i++) {
-    //         item_attributes[i].locked = attributeIsLocked(db_object.artwork_id, item_attributes[i]._id);
-    //     }
+    // temp code
 
-    //     items.update(db_object._id, {$set: {'attributes': item_attributes}});
-    // })
     // temp code
 }
 
