@@ -79,14 +79,14 @@ var updateContent = function() {
         }
     })
 
-    items.find().forEach(function(db_object) {
-        var item_attributes = db_object.attributes;
-        for (var i=0; i<item_attributes.length; i++) {
-            item_attributes[i].locked = attributeIsLocked(db_object.artwork_id, item_attributes[i]._id);
-        }
+    // items.find().forEach(function(db_object) {
+    //     var item_attributes = db_object.attributes;
+    //     for (var i=0; i<item_attributes.length; i++) {
+    //         item_attributes[i].locked = attributeIsLocked(db_object.artwork_id, item_attributes[i]._id);
+    //     }
 
-        items.update(db_object._id, {$set: {'attributes': item_attributes}});
-    })
+    //     items.update(db_object._id, {$set: {'attributes': item_attributes}});
+    // })
     // temp code
 }
 
