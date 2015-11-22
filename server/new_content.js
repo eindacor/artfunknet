@@ -24,6 +24,51 @@ var new_artworks = [
 	//     "nsfw": false,
 	//     "active": true,
  //  	},
+
+ 	{
+	    "artist": "Landon Wilson",
+	    "title": "Fahrenheit 454",
+	    "date": 2013,
+	    "genre": "contemporary",
+	    "rarity": "rare",
+	    "medium": "Oil on Board",
+	    "value_scale": 0.71,
+	    "height": 50.8,
+	    "width": 40.64,
+	    "filename": "wilson_fahrenheit.jpg",
+	    "nsfw": false,
+	    "active": true,
+  	},
+
+  	{
+	    "artist": "Landon Wilson",
+	    "title": "Brother In Arms",
+	    "date": 2011,
+	    "genre": "contemporary",
+	    "rarity": "common",
+	    "medium": "acrylic and oil on canvas",
+	    "value_scale": 0.81,
+	    "height": 76.2,
+	    "width": 122,
+	    "filename": "wilson_brother.jpg",
+	    "nsfw": false,
+	    "active": true,
+  	},
+
+  	{
+	    "artist": "Landon Wilson",
+	    "title": "Space Ellipses",
+	    "date": 2013,
+	    "genre": "contemporary",
+	    "rarity": "uncommon",
+	    "medium": "oil and digital",
+	    "value_scale": 0.42,
+	    "height": 40.64,
+	    "width": 35.56,
+	    "filename": "wilson_space.jpg",
+	    "nsfw": false,
+	    "active": true,
+  	},
 ];
 
 var addNewArtworks = function() {
@@ -34,7 +79,6 @@ var addNewArtworks = function() {
 			object_to_insert.artist_id = artist_object._id;
 
 			var inserted_id = artworks.insert(object_to_insert);
-			console.log("inserted: " + inserted_id);
 		}
 	}
 }

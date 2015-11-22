@@ -1,6 +1,9 @@
 var adminDataTracker = new Tracker.Dependency;
+var user_tracker = new Tracker.Dependency;
 
 var admin_data = undefined;
+
+var all_users = [];
 
 var updateAdminData = function() {
 	Meteor.call('getAdminData', function(error, result) {
@@ -10,6 +13,18 @@ var updateAdminData = function() {
 		else {
 			admin_data = result
 			adminDataTracker.changed();
+		}
+	})
+}
+
+var updateUsers = function() {
+	Meteor.call('getUsers', function(error, result) {
+		if (error)
+			console.log(error.message);
+
+		else {
+			all_users = result;
+			user_tracker.changed();
 		}
 	})
 }
@@ -164,7 +179,7 @@ Template.adminTools.events({
     },
 
     'click #generate-item' : function(element) {
-    	var user_id = $('#generate-user-id').val()
+    	var user_id = $('.user-selector').val();
     	var artwork_id = $('#generate-artwork-id').val();
     	var condition = $('#condition').val();
     	var xp_rating = $('#xp-rating').val();
@@ -183,8 +198,9 @@ Template.adminTools.events({
 
     'click #generate-random-item' : function(element) {
     	var artwork_id = $('#random-artwork-id').val();
+    	var user_id = $('.user-selector-random').val();
 
-    	Meteor.call('generateRandomItemFromArtworkID', Meteor.userId(), artwork_id, function(error, result) {
+    	Meteor.call('generateRandomItemFromArtworkID', user_id, artwork_id, function(error, result) {
     		if (error)
     			console.log(error.message);
 
@@ -302,6 +318,25 @@ Template.adminTools.helpers({
 
 	'npc' : function() {
 		return attributes.find({'active': true}).fetch()
+	},
+
+	'user' : function() {
+		user_tracker.depend();
+
+		if (all_users.length == 0) {
+			updateUsers();
+			return [];
+		}
+
+		else return all_users;
+	},
+
+	'current_user' : function() {
+		return Meteor.user().profile.screen_name;
+	},
+
+	'current_id' : function() {
+		return Meteor.userId();
 	}
 })
 

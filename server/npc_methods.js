@@ -553,8 +553,8 @@ var marketExpertInteraction = function(npc_object) {
 	}
 
 	if (isOwnGallery) {
-		market_expert_duration = Math.floor(market_expert_duration * 2);
-		market_expert_duration_extension = Math.floor(market_expert_duration_extension * 2);
+		market_expert_duration = Math.floor(market_expert_duration * 2.5);
+		market_expert_duration_extension = Math.floor(market_expert_duration_extension * 2.5);
 		market_expert_rating += .02;
 		market_expert_rating_increase += .02;
 	}

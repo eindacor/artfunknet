@@ -34,7 +34,12 @@
 
 				<div class="row tools-section item-creation">
 					<h4 class="af-color">Generate Item</h4>
-					<p>user id: <input class="item-create-field" id="generate-user-id"></p>
+					<select class="user-selector">
+						<option value="{{current_id}}">{{current_user}}</option>
+						{{#each user}}
+							<option value="{{_id}}">{{profile.screen_name}}</option>
+						{{/each}}
+					</select>
 					<p>artwork id: <input class="item-create-field" id="generate-artwork-id"></p>
 					<p>condition: <input class="item-create-field" id="condition"></p>
 					<p>xp rating: <input class="item-create-field" id="xp-rating"></p>
@@ -70,6 +75,12 @@
 
 				<div class="row tools-section random-item-creation">
 					<h4 class="af-color">Generate Randomized Item</h4>
+					<select class="user-selector-random">
+						<option value="{{current_id}}">{{current_user}}</option>
+						{{#each user}}
+							<option value="{{_id}}">{{profile.screen_name}}</option>
+						{{/each}}
+					</select>
 					<p>artwork id: <input class="random-item-create-field" id="random-artwork-id"></p>
 					<p><button id="generate-random-item">randomize item</button></p>
 				</div>
