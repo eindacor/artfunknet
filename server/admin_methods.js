@@ -181,6 +181,53 @@ Meteor.methods({
     	}
     },
 
+    'toggleArtworkActivity' : function(artwork_id) {
+    	if (adminValidated()) {
+    		artworks.update(artwork_id, {$set: {'active': !(artworks.findOne(artwork_id).active)}});
+    	}
+    },
+
+    'toggleArtworkNSFW' : function(artwork_id) {
+    	if (adminValidated()) {
+    		artworks.update(artwork_id, {$set: {'nsfw': !(artworks.findOne(artwork_id).nsfw)}});
+    	}
+    },
+
+    'setArtworkRarity' : function(artwork_id, rarity) {
+    	if (adminValidated()) {
+	    	var artwork_object = artworks.findOne(artwork_id);
+	    	if (rarity == "legendary" || rarity == "masterpiece") {
+	            var random_attributes = [];
+	            var attribute_count = rarity == "legendary" ? 2 : 3;
+
+	            while (random_attributes.length < attribute_count) {
+	                var selector = {'_id': {$nin: random_attributes}, 'active': true};
+	                var count = attributes.find(selector).count();
+	                if (count == 0)
+	                    break;
+	                
+	                random_attributes.push(attributes.findOne(selector, {skip: Math.floor(Math.random() * count)})._id);
+	            }
+
+	            artworks.update(artwork_id, {$set: {'locked_attributes': random_attributes, 'rarity': rarity}});
+	        }
+
+	        else artworks.update(artwork_id, {$unset: {'locked_attributes': ""}, $set: {'rarity': rarity}});
+	    }
+
+	    //TODO update auctions
+    },
+
+    'setArtworkArtist' : function(artwork_id, artist_id) {
+    	if (adminValidated()) {
+    		var artist_object = artists.findOne(artist_id); 
+    		if (artist_object)
+    			artworks.update(artwork_id, {$set: {'artist': artist_object.artist_name, 'artist_id': artist_object._id}})
+    	}
+
+    	//TODO update auctions
+    },
+
     'generateDBString' : function() {
     	if (adminValidated()) {
     		var attribute_data = attributes.find().fetch();
@@ -240,6 +287,16 @@ Meteor.methods({
     'getUsers': function() {
     	if (adminValidated()) {
     		return Meteor.users.find({'_id': {$ne: Meteor.userId()}}, {sort: {'profile.screen_name': -1}}).fetch();
+    	}
+    },
+
+    'updateArtworkData': function(artwork_id, artwork_object) {
+    	if (adminValidated()) {
+    		if (isNaN(artwork_object.date) || isNaN(artwork_object.value_scale) || isNaN(artwork_object.height) || isNaN(artwork_object.width))
+    			return undefined;
+
+    		artworks.update(artwork_id, {$set: artwork_object});
+    		return true;
     	}
     }
 })

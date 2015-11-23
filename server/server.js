@@ -58,9 +58,11 @@ var updateContent = function() {
         calcMVP(db_object._id);
     });
 
+    var overwrite_locked_attributes = false;
+
     //gives new legendaries locked attributes if they have none
     artworks.find({'rarity': {$in: ["masterpiece", "legendary"]}}).forEach(function(db_object) {
-        if (db_object.locked_attributes == undefined) {
+        if (db_object.locked_attributes == undefined && overwrite_locked_attributes) {
             var random_attributes = [];
             var attribute_count = db_object.rarity == "legendary" ? 2 : 3;
 
@@ -85,9 +87,6 @@ var updateContent = function() {
 Meteor.startup(function() {
     setupMail();
     fs = Npm.require('fs');
-
-	if (artists.find({}).count() == 0 && artworks.find({}).count() == 0)
-		generateContent();
 
     if (attributes.find().count() == 0) {
         for (var i=0; i < attribute_data.length; i++) {
@@ -148,10 +147,13 @@ Meteor.startup(function() {
         };
 
         createUser(player_1);
-        createUser(player_2);
+        // createUser(player_2);
         createUser(player_3);
         createUser(admin);
     }
+
+    if (artists.find({}).count() == 0 && artworks.find({}).count() == 0)
+        generateContent();
 
     updateContent();
 })

@@ -38,3 +38,24 @@
 .template-adminTools .tools-section {
 	border-top: 1px solid black;
 }
+
+.template-adminTools .artwork-selector {
+	width: 600px;
+}
+
+.template-adminTools #artwork-mod-container {
+	margin: 24px 0px;
+}
+
+.template-adminTools .artwork-mod-fields {
+	margin: 12px 0px;
+}
+
+.template-adminTools .text-field:hover {
+	background-color: #EEEEEE;
+	cursor: pointer;
+}
+
+.template-adminTools .set-field {
+	width: 100%;
+}

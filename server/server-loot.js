@@ -308,32 +308,40 @@ attributeIsLocked = function(artwork_id, attribute_id) {
 }
 
 getAttributes = function(rarity, artwork_id) {
-    var att_count = attribute_quantities[rarity].primary;
-    var total_primary = attributes.find({'type' : "primary", 'active': true}).count();
+    try {
+        var att_count = attribute_quantities[rarity].primary;
+        var total_primary = attributes.find({'type' : "primary", 'active': true}).count();
 
-    var locked_att_ids = artworks.findOne(artwork_id).locked_attributes;
+        var locked_att_ids = artworks.findOne(artwork_id).locked_attributes;
 
-    var att_ids = locked_att_ids == undefined ? [] : locked_att_ids;
+        var att_ids = locked_att_ids == undefined ? [] : locked_att_ids;
 
-    var attribute_array = attributes.find({'_id': {$in: att_ids}}).fetch();
+        var attribute_array = attributes.find({'_id': {$in: att_ids}}).fetch();
 
-    var atts_to_add = att_count - attribute_array.length;
+        var atts_to_add = att_count - attribute_array.length;
 
-    for (var i=0; i < atts_to_add; i++) {
-        var remaining = attributes.find({'type' : "primary", 'active': true, '_id' : {$nin: att_ids}}).count();
-        var random_index = Math.floor(Math.random() * remaining);
-        var random_attribute = attributes.findOne({'type' : "primary", 'active': true, '_id' : {$nin: att_ids}}, {skip: random_index});
-        attribute_array.push(random_attribute);
-        att_ids.push(random_attribute._id)
+        for (var i=0; i < atts_to_add; i++) {
+            var remaining = attributes.find({'type' : "primary", 'active': true, '_id' : {$nin: att_ids}}).count();
+            var random_index = Math.floor(Math.random() * remaining);
+            var random_attribute = attributes.findOne({'type' : "primary", 'active': true, '_id' : {$nin: att_ids}}, {skip: random_index});
+            attribute_array.push(random_attribute);
+            att_ids.push(random_attribute._id)
+        }
+
+        for (var i=0; i < attribute_array.length; i++) {
+            var locked = attributeIsLocked(artwork_id, attribute_array[i]._id);
+            attribute_array[i].value = locked ? getLockedAttributeValue() : getAttributeValue(0);
+            attribute_array[i].locked = locked;
+        }
+
+        return attribute_array;
     }
 
-    for (var i=0; i < attribute_array.length; i++) {
-        var locked = attributeIsLocked(artwork_id, attribute_array[i]._id);
-        attribute_array[i].value = locked ? getLockedAttributeValue() : getAttributeValue(0);
-        attribute_array[i].locked = locked;
+    catch(error) {
+        console.log(error);
+        console.log(artwork_id);
+        console.log(rarity);
     }
-
-    return attribute_array;
 }
 
 getXPRating = function() {
