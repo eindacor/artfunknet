@@ -1,4 +1,3 @@
-.template-standardNPCMessageModal .modal-content {
-	padding-bottom: 48px;
-	text-align: center;
+.template-standardNPCMessageModal p.modal-message {
+	font-size: 2rem;
 }

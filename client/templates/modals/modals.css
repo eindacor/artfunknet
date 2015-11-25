@@ -1,3 +1,8 @@
+@keyframes opacity_fade {
+    0%{opacity:0}
+    100%{opacity:1}
+}
+
 .template-modalTemplate {
 	background-color: rgba(0,0,0,.85);
 	position: fixed;
@@ -6,6 +11,10 @@
 	right: 0px;
 	left: 0px;
 	z-index: 999999;
+	-webkit-animation: opacity_fade .25s ease;
+	-moz-animation: opacity_fade .25s ease;
+	-o-animation: opacity_fade .25s ease;
+	animation: opacity_fade .25s ease;
 }
 
 .template-modalTemplate .modal-container {
@@ -42,7 +51,7 @@
 	text-align: center;
 	width: 80%;
 	margin: auto;
-	font-size: 3rem;
+	font-size: 2rem;
 }
 
 .template-modalTemplate .modal-message-area, .template-modalTemplate .modal-button-area {

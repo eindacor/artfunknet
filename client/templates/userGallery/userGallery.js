@@ -149,7 +149,12 @@ Template.userGallery.events ({
 								Modal.show("historianModal");
 								break;
 							default: 
-								Modal.show("standardNPCMessageModal");
+								Blaze.renderWithData(Template.modalTemplate, {
+									'modal_name': "standardNPCMessageModal", 
+									'modal_data': {
+										'interaction_object': interaction_object
+									}
+								}, $('body')[0]);
 								break;
 						}
 					}
