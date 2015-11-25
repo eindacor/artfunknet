@@ -9,3 +9,10 @@ Template.modalTemplate.events({
 		$('.template-modalTemplate').remove();
 	}
 })
+
+Template.modalTemplate.rendered = function() {
+	$(document).on('keyup', function(event) {
+		if (event.keyCode == 27)
+			$('.template-modalTemplate').remove();
+	})
+}
