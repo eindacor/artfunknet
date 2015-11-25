@@ -194,8 +194,13 @@ Template.auctionTable.events({
 
 	'click .preview.enabled' : function(element) {
 		var auction_id = $(element.target).closest('tr').data('auction_id');
-		Session.set('selectedAuction', auction_id);
-		Modal.show('previewModal');
+		var item_id = auctions.findOne({'auction_id': auction_id}).item_id;
+		Blaze.renderWithData(Template.modalTemplate, {
+			'modal_name': "fullViewModal", 
+			'modal_data': {
+				'item_data': items.findOne(item_id)
+			}
+		}, $('body')[0]);
 	},
 
 	'click .item-attribute' : function(element) {
