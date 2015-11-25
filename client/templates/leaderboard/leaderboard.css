@@ -17,6 +17,11 @@
 	padding: 8px;
 }
 
+.template-leaderboard .mvp-row:hover {
+	background-color: #FFFFBB;
+	cursor: pointer;
+}
+
 .template-leaderboard .list-section {
 	margin-top: 48px;
 }

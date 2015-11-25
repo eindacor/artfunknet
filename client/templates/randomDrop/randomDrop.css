@@ -16,12 +16,8 @@
 }
 
 .template-randomDrop .crate-buttons button {
-	background-color: white;
+	background-color: black;
 	width: 260px;
 	font-weight: bold;
 	font-size: 1em;
-}
-
-#drop-button {
-	background-color: black;
 }

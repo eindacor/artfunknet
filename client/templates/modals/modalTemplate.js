@@ -3,3 +3,9 @@ Template.modalTemplate.helpers({
 		console.log(modal_data);
 	}
 })
+
+Template.modalTemplate.events({
+	'click .close-button': function() {
+		$('.template-modalTemplate').remove();
+	}
+})

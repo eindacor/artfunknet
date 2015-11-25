@@ -41,6 +41,9 @@
 				<div class="row">
 					<h4>entry fee: <span class="highlight af-color">{{entry_fee_text}}</span></h4>
 					<button class="{{#if pay_fee_enabled}}enabled{{else}}disabled{{/if}}" id="enter-button" data-owner_id="{{owner_id}}">pay fee</button>
+					{{#if tickets_maxed}}
+						<p>You have reached your ticket limit</p>
+					{{/if}}
 				</div>
 			{{/if}}
 			{{/with}}

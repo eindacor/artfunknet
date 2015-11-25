@@ -28,7 +28,7 @@ Template.auctions.helpers({
 
 		if (auction_array.length < Number(pageData.resultsPerPage * Session.get(pagination_id + '_current')))
 			Session.set('pagination_id' + '_current', Session.get(pagination_id + '_current') - 1);
-		
+
 		return {
 			'tableData' : {
 				'auction' : auction_array,

@@ -48,9 +48,3 @@ Template.fullViewModal.rendered = function() {
 
 	sought_status = {};
 }
-
-Template.fullViewModal.events({
-	'click .close-button': function() {
-		$('.template-modalTemplate').remove();
-	}
-})
