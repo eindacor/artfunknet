@@ -59,3 +59,12 @@
 .template-adminTools .set-field {
 	width: 100%;
 }
+
+.template-adminTools #artwork-mod-table > tr > td {
+	width: 50%;
+	padding: 4px;
+}
+
+.template-adminTools #artwork-mod-table input {
+	width: 100%;
+}

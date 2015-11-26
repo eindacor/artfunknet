@@ -140,6 +140,7 @@
 
 .template-itemInfo .card-header p {
 	margin: 0px;
+	line-height: 1.5rem;
 }
 
 .template-itemInfo .card-header:hover .header-details {
@@ -237,4 +238,8 @@
 	display: block;
 	font-size: 3rem;
 	margin-top: 12px;
+}
+
+.template-itemInfo .flavor-text {
+	padding-top: 12px;
 }

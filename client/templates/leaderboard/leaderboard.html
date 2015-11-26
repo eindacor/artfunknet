@@ -16,7 +16,7 @@
 		<div class="template-galleryScore col-xs-12">
 			<h3 class="af-color">Most Valuable Items</h3>
 			{{#each this}}
-			<div class="row list-row">
+			<div class="row list-row mvp-row" data-item_id="{{this.item_id}}">
 				<div class="col-xs-1">
 					<p>{{positionFromIndex @index}}.</p>
 				</div> 
@@ -40,7 +40,7 @@
 
 <template name="galleryScore">
 	<div class="row list-section">
-		<div class="template-galleryScore col-xs-12 col-md-6 col-lg-3">
+		<div class="template-galleryScore col-xs-12 col-md-6">
 			<h3 class="af-color">Gallery Score</h3>
 			{{#each this}}
 				{{#if this.score}}
@@ -63,7 +63,7 @@
 
 <template name="galleryValue">
 	<div class="row list-section">
-		<div class="template-galleryValue col-xs-12 col-md-6 col-lg-3">
+		<div class="template-galleryValue col-xs-12 col-md-6">
 			<h3 class="af-color">Gallery Value</h3>
 			{{#each this}}
 				{{#if this.value}}

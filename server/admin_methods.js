@@ -295,8 +295,58 @@ Meteor.methods({
     		if (isNaN(artwork_object.date) || isNaN(artwork_object.value_scale) || isNaN(artwork_object.height) || isNaN(artwork_object.width))
     			return undefined;
 
+    		var legendary_attributes = getLegendaryAttributes(artwork_object.rarity);
+
+    		if (legendary_attributes)
+    			artwork_object.locked_attributes = legendary_attributes;
+
+	        else artworks.update(artwork_id, {$unset: {'locked_attributes': ""}});
+
     		artworks.update(artwork_id, {$set: artwork_object});
     		return true;
     	}
+    },
+
+    'addNewArtwork': function(artwork_object) {
+    	if (adminValidated()) {
+    		var legendary_attributes = getLegendaryAttributes(artwork_object.rarity);
+
+    		if (legendary_attributes)
+    			artwork_object.locked_attributes = legendary_attributes;
+
+    		return artworks.insert(artwork_object);
+    	}
+
+    	else return undefined;
+    },
+
+    'removeArtwork': function(artwork_id) {
+    	if (adminValidated()) {
+    		artworks.remove(artwork_id);
+    		items.find({'artwork_id': artwork_id}).forEach(function(db_object) {
+    			auctions.remove({'item_id': db_object._id}, {multi: true});
+    			items.remove(dbo_object._id);
+    		});
+    	}
     }
 })
+
+var getLegendaryAttributes = function(rarity) {
+	if (rarity == "legendary" || rarity == "masterpiece") {
+        var random_attributes = [];
+        var attribute_count = rarity == "legendary" ? 2 : 3;
+
+        while (random_attributes.length < attribute_count) {
+            var selector = {'_id': {$nin: random_attributes}, 'active': true};
+            var count = attributes.find(selector).count();
+            if (count == 0)
+                break;
+            
+            random_attributes.push(attributes.findOne(selector, {skip: Math.floor(Math.random() * count)})._id);
+        }
+
+        return random_attributes;
+    }
+
+    else return undefined;
+}

@@ -1,24 +1,22 @@
 <template name="fullViewModal">
-	<div class="template-fullViewModal">
-		<div class="row item-containers">
-			<div class="left-panel col-xs-12 col-md-9">
-				<div class="img-container">
-					<div class="inner-container">
-						<img class="{{getRarity this.item_data.artwork_id}}-item" src="{{getImageURL this.item_data.filename}}" style="{{#with imageSize this.item_data.width this.item_data.height}}width: {{image_width}}px; height: {{image_height}}px;{{/with}}">
-					</div>
+	<div class="template-fullViewModal col-xs-12">
+		<div class="left-panel col-xs-9">
+			<div class="img-container">
+				<div class="inner-container">
+					<img class="{{getRarity this.item_data.artwork_id}}-item" src="{{getImageURL this.item_data.filename}}" style="{{#with imageSize this.item_data.width this.item_data.height}}width: {{image_width}}px; height: {{image_height}}px;{{/with}}">
 				</div>
 			</div>
-			<div class="right-panel col-xs-12 col-md-3">
-				<div class="row action-buttons">
-					<div class="col-xs-12">
-						<i class="close-button fa fa-times"></i>
-					</div>
+		</div>
+		<div class="right-panel col-xs-3">
+			<div class="row action-buttons">
+				<div class="col-xs-12">
+					<i class="close-button fa fa-times"></i>
 				</div>
-				<div class="card-view">
-					{{#with cardData this.item_data}}
-						{{>itemInfo item_data=this}}
-					{{/with}}
-				</div>
+			</div>
+			<div class="card-view">
+				{{#with cardData this.item_data}}
+					{{>itemInfo item_data=this}}
+				{{/with}}
 			</div>
 		</div>
 	</div>

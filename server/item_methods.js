@@ -90,10 +90,10 @@ concludeAuction = function(auction_id) {
     var auction_object = auctions.findOne(auction_id);
     var item_object = items.findOne({'_id': auction_object.item_id});
 
-    if (auction_object.bid_history.length == 0)
+    if (item_object && auction_object.bid_history.length == 0)
         failedAuction(auction_object, item_object);
 
-    else {
+    else if (item_object) {
         successfulAuction(auction_object, item_object);
     }
 

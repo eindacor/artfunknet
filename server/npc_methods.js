@@ -358,10 +358,10 @@ var designerInteraction = function(npc_object) {
 	else if (user_object.profile.gallery_finishes.owned[category_string][random_selection._id].xp_rating < 1){
 		var existing_xp_rating = user_object.profile.gallery_finishes.owned[category_string][random_selection._id].xp_rating;
 
-		var xp_rating_increase = .02;
+		var xp_rating_increase = .1;
 
 		if (isOwnGallery(npc_object))
-			xp_rating_increase *= 2;
+			xp_rating_increase *= 1.5;
 
 		var new_xp_rating = (existing_xp_rating + xp_rating_increase > 1 ? 1 : existing_xp_rating + xp_rating_increase)
 		

@@ -63,7 +63,7 @@ createAuction = function(item_id, starting, buy_now, duration) {
 
 var getMVPData = function() {
     var admin_id = Meteor.users.findOne({'profile.user_type': "admin"})._id;
-    var all_items = items.find({'owner': {$nin : [admin_id, "Artfunkel, Inc."]}, 'status': {$nin: ['unclaimed', 'for_sale']}}).fetch();
+    var all_items = items.find({'owner': {$nin : [admin_id, "Artfunkel, Inc."]}, 'status': {$nin: ['unclaimed', 'for_sale', 'claimed']}}).fetch();
     all_items.sort(function(first, second) {
         return getItemObjectValue(second, 'actual') - getItemObjectValue(first, 'actual');
     });
@@ -74,6 +74,7 @@ var getMVPData = function() {
     for (var i=0; i<all_items.length; i++) {
         var artwork_object = artworks.findOne(all_items[i].artwork_id);
         var leaderboard_object =  {
+            'item_id': all_items[i]._id,
             'artist': artwork_object.artist,
             'title': artwork_object.title,
             'owner': Meteor.users.findOne(all_items[i].owner).profile.screen_name,

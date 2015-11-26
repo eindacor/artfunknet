@@ -4,12 +4,6 @@
 	color: white;
 }
 
-.template-fullViewModal .item-containers {
-	width: 100%;
-	height: 100%;
-	position: fixed;
-}
-
 .template-fullViewModal .left-panel {
 	height: 100vh;
 	text-align: center;

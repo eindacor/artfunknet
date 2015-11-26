@@ -405,5 +405,61 @@ Meteor.methods({
         }
 
         else return false;
+    },
+
+    'getSellAllAmount' : function() {
+        var total_value = 0;
+        var valid_rarities = ["common", "uncommon", "rare"];
+        var item_ids = [];
+        items.find({
+            'owner': Meteor.userId(),
+            'status': "unclaimed", 
+            'foil': false, 
+            'seasonal': false, 
+            'lottery': false
+        }).forEach(function(db_object) {
+            if (valid_rarities.indexOf(artworks.findOne(db_object.artwork_id).rarity) != -1) {
+                total_value += getItemValue(db_object._id, "sell");
+                item_ids.push(db_object._id);
+            }
+        });
+
+        return total_value;
+    },
+
+    'sellAllUnclaimed' : function() {
+        if (Meteor.user().profile.user_type != "admin") {
+            var total_value = 0;
+            var valid_rarities = ["common", "uncommon", "rare"];
+            var item_ids = [];
+            items.find({
+                'owner': Meteor.userId(),
+                'status': "unclaimed", 
+                'foil': false, 
+                'seasonal': false, 
+                'lottery': false
+            }).forEach(function(db_object) {
+                if (valid_rarities.indexOf(artworks.findOne(db_object.artwork_id).rarity) != -1) {
+                    total_value += getItemValue(db_object._id, "sell");
+                    item_ids.push(db_object._id);
+                }
+            });
+
+            items.update({'_id': {$in: item_ids}}, {$set: {'owner': "Artfunkel, Inc.", 'status': "auctioned"}}, {multi: true} ,function(error) {
+                if (error)
+                    console.log(error.message);
+
+                else {
+                    calcMVP(Meteor.userId());
+
+                    for (var i=0; i<item_ids.length; i++) 
+                        createAuction(item_ids[i], getItemValue(item_ids[i], "sell"), -1, 120);
+                }
+            });
+
+            addFunds(Meteor.userId(), total_value);
+        }
+
+        else items.remove({'owner': Meteor.userId(), 'status': "unclaimed"});
     }
 })

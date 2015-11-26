@@ -17,11 +17,12 @@
 							<p>{{item_data.medium}}</p>
 							<p>{{item_data.height}} x {{item_data.width}}</p>
 							<p>condition: <span style="color: {{getHTMLColorFromValue item_data.condition}}">{{item_data.condition_text}}</span></p>
-							{{#if isOwner item_data.owner}}
+							<!-- {{#if isOwner item_data.owner}} -->
 								<p>estimated value: ${{getItemValue item_data._id "actual"}}</p>
-							{{/if}}
+							<!-- {{/if}} -->
 							<p>xp rating: <span style="color: {{getHTMLColorFromValue item_data.xp_rating}}">{{item_data.xp_rating_text}}</span></p>
 							<p>roll count: {{item_data.roll_count}}</p>
+							<p class="flavor-text af-color">{{item_data.flavor_text}}</p>
 						</div>
 					</div>
 					

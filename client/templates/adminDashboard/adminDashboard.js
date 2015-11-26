@@ -83,29 +83,7 @@ var setAdminData = function(set_id, value) {
 			Meteor.call('setSeasonal', id_array, function(error) {
 				if (error)
 					console.log(error.message);
-			});
-
-		case 'set_artwork_data': 
-    		var artwork_id = $('#artwork-mod-container')[0].dataset.artwork_id;
-
-			var artwork_object = {
-				'date': Number($('#artwork-mod-date.set-field').val()),
-				'filename': $('#artwork-mod-filename.set-field').val(),
-				'genre': $('#artwork-mod-genre.set-field').val(),
-				'height': Number($('#artwork-mod-height.set-field').val()),
-				'medium': $('#artwork-mod-medium.set-field').val(),
-				'title': $('#artwork-mod-title.set-field').val(),
-				'value_scale': Number($('#artwork-mod-value-scale.set-field').val()),
-				'width': Number($('#artwork-mod-width.set-field').val()),		
-			}
-
-			Meteor.call('updateArtworkData', artwork_id, artwork_object, function(error, result) {
-				if (error)
-					console.log(error.message);
-
-				else artwork_mod_tracker.changed();
-			});
-			break;
+			});    		
 
 		default: return;
 	}
@@ -326,47 +304,76 @@ Template.adminTools.events({
     	artwork_mod_tracker.changed();
     },
 
-    'change .active-selector' : function(element) {
-    	var container = $(element.target).closest('#artwork-mod-container');
-    	var status = container.find('.active-selector').val() == "true" ? true : false;
-    	var artwork_id = container[0].dataset.artwork_id;
-    	Meteor.call('toggleArtworkActivity', artwork_id, status, function(error) {
-    		if (error)
-    			console.log(error.message);
-    	})
-    },
+	'click #update-artwork': function(element) {
+		$(document.activeElement).blur();
 
-    'change .nsfw-selector' : function(element) {
-    	var container = $(element.target).closest('#artwork-mod-container');
-    	var status = container.find('.nsfw-selector').val() == "true" ? true : false;
-    	var artwork_id = container[0].dataset.artwork_id;
-    	Meteor.call('toggleArtworkNSFW', artwork_id, status, function(error) {
-    		if (error)
-    			console.log(error.message);
-    	})
-    },
+		var artwork_id = $('.artwork-selector').val();
 
-    'change .rarity-selector' : function(element) {
-    	var container = $(element.target).closest('#artwork-mod-container');
-    	var rarity = container.find('.rarity-selector').val();
-    	var artwork_id = container[0].dataset.artwork_id;
+		if (artwork_id == "unselected")
+			return;
 
-    	Meteor.call('setArtworkRarity', artwork_id, rarity, function(error) {
-    		if (error)
-    			console.log(error.message);
-    	})
-    },
+		var artwork_object = generateArtworkObject();
+		var artwork_keys = Object.keys(artwork_object);
 
-    'change .artwork-mod-artist-selector' : function(element) {
-    	var container = $(element.target).closest('#artwork-mod-container');
-    	var artist_id = container.find('.artwork-mod-artist-selector').val();
-    	var artwork_id = container[0].dataset.artwork_id;
-    	Meteor.call('setArtworkArtist', artwork_id, artist_id, function(error) {
-    		if (error)
-    			console.log(error.message);
-    	})
+		if (artwork_id == "new artwork") {
+			for (var i=0; i<artwork_keys.length; i++) {
+				var key = artwork_keys[i];
+				if (artwork_object[key] === "")
+					return;
+			}
+
+			Meteor.call('addNewArtwork', artwork_object, function(error, result) {
+				if (error)
+					console.log(error.message);
+
+				else {
+					$('.artwork-selector').append('<option value="' + result + '">' + artwork_object.artist + ' - ' + artwork_object.title + '</option>');
+					$('.artwork-selector').val(result);
+					artwork_mod_tracker.changed();
+				}
+			});
+		}
+
+		else {
+			var existing_artwork_object = (artworks.findOne(artwork_id));
+
+			for (var i=0; i<artwork_keys.length; i++) {
+				var key = artwork_keys[i];
+				if (artwork_object[key] === "")
+					artwork_object[key] = existing_artwork_object[key];
+			}
+
+			Meteor.call('updateArtworkData', artwork_id, artwork_object, function(error, result) {
+				if (error)
+					console.log(error.message);
+
+				else artwork_mod_tracker.changed();
+			});
+		}
 	}
 })
+
+var generateArtworkObject = function() {
+	var artist_object = artists.findOne($('#artwork-mod-container').find('.artwork-mod-artist-selector').val());
+
+	var artwork_object = {
+		'artist': artist_object.artist_name,
+		'artist_id': artist_object._id,
+		'date': Number($('#artwork-mod-date').val()),
+		'filename': $('#artwork-mod-filename').val(),
+		'genre': $('#artwork-mod-genre').val(),
+		'height': Number($('#artwork-mod-height').val()),
+		'medium': $('#artwork-mod-medium').val(),
+		'title': $('#artwork-mod-title').val(),
+		'value_scale': Number($('#artwork-mod-value-scale').val()),
+		'width': Number($('#artwork-mod-width').val()),		
+		'nsfw': $('#artwork-mod-container').find('.nsfw-selector').val() == "true" ? true : false,
+		'rarity': $('#artwork-mod-container').find('.rarity-selector').val(),
+		'active': $('#artwork-mod-container').find('.active-selector').val() == "true" ? true : false,
+	}
+
+	return artwork_object;
+}
 
 Template.adminTools.helpers({
 	'adminData' : function() {

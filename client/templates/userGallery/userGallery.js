@@ -71,11 +71,12 @@ Template.userGallery.helpers({
 
 		if (Meteor.user() && gallery_object) {
 			var viewer_object = Meteor.user();
-			var tickets_maxed = viewer_object.profile.gallery_tickets.length >= viewer_object.profile.ticket_cap;
+			var tickets_maxed = gallery_tickets.find({'ticketholder': Meteor.userId()}).count() >= Meteor.user().profile.ticket_cap;
 			var insufficient_funds = gallery_object.entry_fee > viewer_object.profile.bank_balance;
 			var paid = gallery_tickets.findOne({'ticketholder': Meteor.userId(), 'gallery_owner': gallery_object.owner_id}) != undefined;
 
 			return {
+				'tickets_maxed' : tickets_maxed,
 				'paid' : paid || screen_name == viewer_object.profile.screen_name,
 				'pay_fee_enabled' : !insufficient_funds && !tickets_maxed,
 				'entry_fee_text' : "$" + getCommaSeparatedValue(gallery_object.entry_fee),
@@ -148,7 +149,12 @@ Template.userGallery.events ({
 								Modal.show("historianModal");
 								break;
 							default: 
-								Modal.show("standardNPCMessageModal");
+								Blaze.renderWithData(Template.modalTemplate, {
+									'modal_name': "standardNPCMessageModal", 
+									'modal_data': {
+										'interaction_object': interaction_object
+									}
+								}, $('body')[0]);
 								break;
 						}
 					}

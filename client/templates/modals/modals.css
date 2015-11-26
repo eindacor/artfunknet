@@ -1,3 +1,8 @@
+@keyframes opacity_fade {
+    0%{opacity:0}
+    100%{opacity:1}
+}
+
 .template-modalTemplate {
 	background-color: rgba(0,0,0,.85);
 	position: fixed;
@@ -6,10 +11,62 @@
 	right: 0px;
 	left: 0px;
 	z-index: 999999;
+	-webkit-animation: opacity_fade .25s ease;
+	-moz-animation: opacity_fade .25s ease;
+	-o-animation: opacity_fade .25s ease;
+	animation: opacity_fade .25s ease;
 }
 
 .template-modalTemplate .modal-container {
 	z-index: 9999999;
+	width: 100%;
+	height: 100%;
+	position: fixed;
+	padding: 0px;
+}
+
+.template-fullViewModal .item-containers {
+	width: 100%;
+	height: 100%;
+	position: fixed;
+}
+
+.template-modalTemplate .modal-content-container {
 	position: absolute;
-	padding: 0px 24px;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex; /* add */
+    justify-content: center; /* add to align horizontal */
+    align-items: center; /* add to align vertical */
+    padding: 36px;
+    height: 100%;
+    width: 100%;
+    margin: 0px;
+}
+
+.template-modalTemplate .modal-message {
+	color: white;
+	text-align: center;
+	width: 80%;
+	margin: auto;
+	font-size: 2rem;
+}
+
+.template-modalTemplate .modal-message-area, .template-modalTemplate .modal-button-area {
+	display: block;
+	clear: both;
+	position: relative;
+	text-align: center;
+	margin-top: 24px;
+}
+
+.template-modalTemplate .modal-button {
+	border: 1px solid #777777;
+	margin: 0px 12px;
+}
+
+.template-modalTemplate .modal-button:hover {
+	background-color: #FF33CC;
 }

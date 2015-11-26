@@ -3,6 +3,9 @@
 		<h1 class="af-color">Loot</h1>
 		<div class="crate-buttons">
 			<button class="{{#if dailyDropEnabled}}enabled{{else}}disabled{{/if}}" id="drop-button">{{dailyDropText dailyDropEnabled}}</button>
+			{{#if has_unclaimed}}
+			<button id="sell-all">sell all</button>
+			{{/if}}
 		</div>
 
 		{{#if full}}
