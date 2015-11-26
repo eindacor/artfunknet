@@ -31,111 +31,150 @@
 					</select>
 				</div>
 
-				<div class="row artwork-mod tools-section">
-					<h4 class="af-color">Modify Artwork</h4>
-					<div data-artwork_id="{{selected_artwork._id}}" id="artwork-mod-container">	
-						<div class="artwork-mod-info col-xs-6">	
-							<select class="artwork-selector">
-								<option value="unselected">select artwork</option>
-								<option value="new artwork">-- create new artwork --</option>
-								{{#each artwork}}
-									<option value="{{_id}}">{{artist}} - {{title}}</option>
-								{{/each}}
-							</select>
-							<div class="artwork-mod-fields">
-								<table id="artwork-mod-table">
-									<tr>
-										<td>id: {{selected_artwork._id}}</td>
-									</tr>
-									<tr>
-										<td>title: </td>
-										<td><input id="artwork-mod-title" value="{{selected_artwork.title}}"></td>
-									</tr>
-									<tr>
-										<td>date: </td>
-										<td><input id="artwork-mod-date" value="{{selected_artwork.date}}"></td>
-									</tr>
-									<tr>
-										<td>genre: </td>
-										<td><input id="artwork-mod-genre" value="{{selected_artwork.genre}}"></td>
-									</tr>
-									<tr>
-										<td>medium: </td>
-										<td><input id="artwork-mod-medium" value="{{selected_artwork.medium}}"></td>
-									</tr>
-									<tr>
-										<td>value scale: </td>
-										<td><input id="artwork-mod-value-scale" value="{{selected_artwork.value_scale}}"></td>
-									</tr>
-									<tr>
-										<td>height: </td>
-										<td><input id="artwork-mod-height" value="{{selected_artwork.height}}"></td>
-									</tr>
-									<tr>
-										<td>width: </td>
-										<td><input id="artwork-mod-width" value="{{selected_artwork.width}}"></td>
-									</tr>
-									<tr>
-										<td>filename: </td>
-										<td><input id="artwork-mod-filename" value="{{selected_artwork.filename}}"></td>
-									</tr>
-									<tr>
-										<td>active:</td>
-										<td>
-											<select class="active-selector">
-												{{#if selected_artwork.active}}
-													<option value="true">true</option>
-													<option value="false">false</option>
-												{{else}}
-													<option value="false">false</option>
-													<option value="true">true</option>
-												{{/if}}
-											</select>
-										</td>
-									</tr>
-									<tr>
-										<td>nsfw:</td>
-										<td>
-											<select class="nsfw-selector">
-												{{#if selected_artwork.nsfw}}
-													<option value="true">true</option>
-													<option value="false">false</option>
-												{{else}}
-													<option value="false">false</option>
-													<option value="true">true</option>
-												{{/if}}
-											</select>
-										</td>
-									</tr>
-									<tr>
-										<td>rarity:</td>
-										<td>
-											<select class="rarity-selector">
-												<option class="{{selected_artwork.rarity}}" value="{{selected_artwork.rarity}}">{{selected_artwork.rarity}}</option>
-												{{#each rarity_choice selected_artwork.rarity}}
-													<option class="{{this}}" value="{{this}}">{{this}}</option>
-												{{/each}}
-											</select>
-										</td>
-									</tr>
-									<tr>
-										<td>artist:</td>
-										<td>
-											<select class="artwork-mod-artist-selector">
-												<option value="{{selected_artwork.artist_id}}">{{selected_artwork.artist}}</option>
-												{{#each artist_choice selected_artwork.artist_id}}
-													<option value="{{_id}}">{{artist_name}}</option>
-												{{/each}}
-											</select>
-										</td>
-									</tr>
-								</table>
+				<div class="row artist-mod tools-section">
+					<div class="row">
+						<h4 class="af-color">Modify Artist</h4>
+						<div data-artist_id="{{selected_artist._id}}" id="artist-mod-container">
+							<div class="artist-mod-info col-xs-6">
+								<select class="artist-mod-selector">
+									<option value="unselected">select artist</option>
+									<option value="new artist">-- create new artist --</option>
+									{{#each artists}}
+										<option value="{{_id}}">{{artist_name}}</option>
+									{{/each}}
+								</select>
+								<div class="artist-mod-fields">
+									<table id="artist-mod-table">
+										<tr>
+											<td>id: {{selected_artist._id}}</td>
+										</tr>
+										<tr>
+											<td>name: </td>
+											<td><input id="artist-mod-name" value="{{selected_artist.artist_name}}"></td>
+										</tr>
+										<tr>
+											<td>date of birth: </td>
+											<td><input id="artist-mod-date-of-birth" value="{{selected_artist.date_of_birth}}"></td>
+										</tr>
+										<tr>
+											<td>date of death: </td>
+											<td><input id="artist-mod-date-of-death" value="{{selected_artist.date_of_death}}"></td>
+										</tr>
+									</table>
+								</div>
 							</div>
 						</div>
-						<div class="artwork-mod-image col-xs-6">
-							{{#with imageSize selected_artwork.width selected_artwork.height}}
-							<img src="{{getImageURL selected_artwork.filename}}" width="{{image_width}}px" height="{{image_height}}px" />
-							{{/with}}
+					</div>
+					<p><button id="update-artist">update artist</button></p>
+				</div>
+
+				<div class="row artwork-mod tools-section">
+					<div class="row">
+						<h4 class="af-color">Modify Artwork</h4>
+						<div data-artwork_id="{{selected_artwork._id}}" id="artwork-mod-container">	
+							<div class="artwork-mod-info col-xs-6">	
+								<select class="artwork-selector">
+									<option value="unselected">select artwork</option>
+									<option value="new artwork">-- create new artwork --</option>
+									{{#each artwork}}
+										<option value="{{_id}}">{{artist}} - {{title}}</option>
+									{{/each}}
+								</select>
+								<div class="artwork-mod-fields">
+									<table id="artwork-mod-table">
+										<tr>
+											<td>id: {{selected_artwork._id}}</td>
+										</tr>
+										<tr>
+											<td>title: </td>
+											<td><input id="artwork-mod-title" value="{{selected_artwork.title}}"></td>
+										</tr>
+										<tr>
+											<td>date: </td>
+											<td><input id="artwork-mod-date" value="{{selected_artwork.date}}"></td>
+										</tr>
+										<tr>
+											<td>genre: </td>
+											<td><input id="artwork-mod-genre" value="{{selected_artwork.genre}}"></td>
+										</tr>
+										<tr>
+											<td>medium: </td>
+											<td><input id="artwork-mod-medium" value="{{selected_artwork.medium}}"></td>
+										</tr>
+										<tr>
+											<td>value scale: </td>
+											<td><input id="artwork-mod-value-scale" value="{{selected_artwork.value_scale}}"></td>
+										</tr>
+										<tr>
+											<td>height: </td>
+											<td><input id="artwork-mod-height" value="{{selected_artwork.height}}"></td>
+										</tr>
+										<tr>
+											<td>width: </td>
+											<td><input id="artwork-mod-width" value="{{selected_artwork.width}}"></td>
+										</tr>
+										<tr>
+											<td>filename: </td>
+											<td><input id="artwork-mod-filename" value="{{selected_artwork.filename}}"></td>
+										</tr>
+										<tr>
+											<td>active:</td>
+											<td>
+												<select class="active-selector">
+													{{#if selected_artwork.active}}
+														<option value="true">true</option>
+														<option value="false">false</option>
+													{{else}}
+														<option value="false">false</option>
+														<option value="true">true</option>
+													{{/if}}
+												</select>
+											</td>
+										</tr>
+										<tr>
+											<td>nsfw:</td>
+											<td>
+												<select class="nsfw-selector">
+													{{#if selected_artwork.nsfw}}
+														<option value="true">true</option>
+														<option value="false">false</option>
+													{{else}}
+														<option value="false">false</option>
+														<option value="true">true</option>
+													{{/if}}
+												</select>
+											</td>
+										</tr>
+										<tr>
+											<td>rarity:</td>
+											<td>
+												<select class="rarity-selector">
+													<option class="{{selected_artwork.rarity}}" value="{{selected_artwork.rarity}}">{{selected_artwork.rarity}}</option>
+													{{#each rarity_choice selected_artwork.rarity}}
+														<option class="{{this}}" value="{{this}}">{{this}}</option>
+													{{/each}}
+												</select>
+											</td>
+										</tr>
+										<tr>
+											<td>artist:</td>
+											<td>
+												<select class="artwork-mod-artist-selector">
+													<option value="{{selected_artwork.artist_id}}">{{selected_artwork.artist}}</option>
+													{{#each artist_choice selected_artwork.artist_id}}
+														<option value="{{_id}}">{{artist_name}}</option>
+													{{/each}}
+												</select>
+											</td>
+										</tr>
+									</table>
+								</div>
+							</div>
+							<div class="artwork-mod-image col-xs-6">
+								{{#with imageSize selected_artwork.width selected_artwork.height}}
+								<img src="{{getImageURL selected_artwork.filename}}" width="{{image_width}}px" height="{{image_height}}px" />
+								{{/with}}
+							</div>
 						</div>
 					</div>
 					<p><button id="update-artwork">update artwork</button></p>

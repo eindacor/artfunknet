@@ -1,6 +1,7 @@
 var adminDataTracker = new Tracker.Dependency;
 var user_tracker = new Tracker.Dependency;
 var artwork_mod_tracker = new Tracker.Dependency;
+var artist_mod_tracker = new Tracker.Dependency;
 
 var admin_data = undefined;
 
@@ -304,6 +305,10 @@ Template.adminTools.events({
     	artwork_mod_tracker.changed();
     },
 
+    'change .artist-mod-selector' : function() {
+    	artist_mod_tracker.changed();
+    },
+
 	'click #update-artwork': function(element) {
 		$(document.activeElement).blur();
 
@@ -350,6 +355,54 @@ Template.adminTools.events({
 				else artwork_mod_tracker.changed();
 			});
 		}
+	},
+
+	'click #update-artist': function() {
+		$(document.activeElement).blur();
+
+		var artist_id = $('.artist-mod-selector').val();
+
+		if (artist_id == "unselected")
+			return;
+
+		var artist_object = generateArtistObject();
+		var artist_keys = Object.keys(artist_object);
+
+		if (artist_id == "new artist") {
+			for (var i=0; i<artist_keys.length; i++) {
+				var key = artist_keys[i];
+				if (artist_object[key] === "")
+					return;
+			}
+
+			Meteor.call('addNewArtist', artist_object, function(error, result) {
+				if (error)
+					console.log(error.message);
+
+				else {
+					$('.artist-mod-selector').append('<option value="' + result + '">' + artist_object.artist_name + '</option>');
+					$('.artist-mod-selector').val(result);
+					artist_mod_tracker.changed();
+				}
+			});
+		}
+
+		else {
+			var existing_artist_object = (artists.findOne(artist_id));
+
+			for (var i=0; i<artist_keys.length; i++) {
+				var key = artist_keys[i];
+				if (artist_object[key] === "")
+					artist_object[key] = existing_artist_object[key];
+			}
+
+			Meteor.call('updateArtistData', artist_id, artist_object, function(error, result) {
+				if (error)
+					console.log(error.message);
+
+				else artist_mod_tracker.changed();
+			});
+		}
 	}
 })
 
@@ -373,6 +426,16 @@ var generateArtworkObject = function() {
 	}
 
 	return artwork_object;
+}
+
+var generateArtistObject = function() {
+	var artist_object = {
+		'artist_name': $('#artist-mod-name').val(),
+		'date_of_birth': $('#artist-mod-date-of-birth').val(),
+		'date_of_death': $('#artist-mod-date-of-death').val(),
+	}
+
+	return artist_object;
 }
 
 Template.adminTools.helpers({
@@ -426,12 +489,20 @@ Template.adminTools.helpers({
 
 	'selected_artwork' : function() {
 		artwork_mod_tracker.depend();
-		var artwork_object = artworks.findOne($('.artwork-selector').val())
-		return artwork_object;
+		return artworks.findOne($('.artwork-selector').val());
+	},
+
+	'selected_artist' : function() {
+		artist_mod_tracker.depend();
+		return artists.findOne($('.artist-mod-selector').val());
 	},
 
 	'artwork' : function() {
 		return artworks.find({}, {sort: {'artist': 1}});
+	},
+
+	'artists' : function() {
+		return artists.find({}, {sort: {'artist_name': 1}});
 	},
 
 	'imageSize' : function(width, height) {
@@ -459,7 +530,7 @@ Template.adminTools.helpers({
 		var rarities = ["common", "uncommon", "rare", "legendary", "masterpiece"];
 		if (rarities.indexOf(current_rarity) != -1)
 			rarities.splice(rarities.indexOf(current_rarity), 1);
-		
+
 		return rarities;
 	},
 

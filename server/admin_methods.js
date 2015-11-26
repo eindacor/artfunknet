@@ -331,6 +331,28 @@ Meteor.methods({
 
     		items.remove({'artwork_id': artwork_id});
     	}
+    },
+
+    'updateArtistData': function(artist_id, artist_object) {
+    	if (adminValidated()) {
+    		artists.update(artist_id, {$set: artist_object});
+    		return true;
+    	}
+    },
+
+    'addNewArtist': function(artist_object) {
+    	if (adminValidated()) {
+    		artists.insert(artist_object);
+    	}
+
+    	else return undefined;
+    },
+
+    'removeArtist': function(artist_id) {
+    	if (adminValidated()) {
+    		artists.remove(artist_id); 		
+    		artworks.update({'artist_id': artist_id}, {$set: {'active': false}});
+    	}
     }
 })
 
