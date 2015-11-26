@@ -68,3 +68,11 @@
 .template-adminTools #artwork-mod-table input {
 	width: 100%;
 }
+
+.template-adminTools .artwork-selector > option{
+	width: 800px;
+	text-overflow: ellipsis;
+	white-space: pre-wrap;
+	overflow: hidden;
+	-webkit-appearance: none;
+}
