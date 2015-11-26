@@ -457,7 +457,9 @@ Template.adminTools.helpers({
 
 	'rarity_choice' : function(current_rarity) {
 		var rarities = ["common", "uncommon", "rare", "legendary", "masterpiece"];
-		rarities.splice(rarities.indexOf(current_rarity), 1);
+		if (rarities.indexOf(current_rarity) != -1)
+			rarities.splice(rarities.indexOf(current_rarity), 1);
+		
 		return rarities;
 	},
 

@@ -323,10 +323,13 @@ Meteor.methods({
     'removeArtwork': function(artwork_id) {
     	if (adminValidated()) {
     		artworks.remove(artwork_id);
-    		items.find({'artwork_id': artwork_id}).forEach(function(db_object) {
-    			auctions.remove({'item_id': db_object._id}, {multi: true});
-    			items.remove(dbo_object._id);
-    		});
+    		var all_items = items.find({'artwork_id': artwork_id}).fetch();
+
+    		for (var i=0; i<all_items.length; i++) {
+    			auctions.remove({'item_id': all_items[i]._id});
+    		};
+
+    		items.remove({'artwork_id': artwork_id});
     	}
     }
 })
