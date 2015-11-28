@@ -67,7 +67,7 @@
 }
 
 .template-itemInfo .lottery {
-	background: linear-gradient(60deg, white, #ddccff, #ddccff, white, #ddccff, #ddccff, white);
+	background: linear-gradient(60deg, white, #F0E9BD, #F0E9BD, white, #F0E9BD, #F0E9BD, white);
 	background-size: 300% 300%;
 	-webkit-animation: Test 10s ease infinite;
 	-moz-animation: Test 10s ease infinite;

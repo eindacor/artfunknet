@@ -59,32 +59,6 @@ Meteor.setInterval((function() {
     }
 }), auction_bot_frequency)
 
-var permanent_collection_xp_frequency = 3600000; //once per hour
-//permanent_collection_xp_frequency = 10000; //uncomment when debugging permanent collection xp
-Meteor.setInterval((function() {
-    var permanent_items = items.find({'status' : 'permanent'}).fetch();
-    for (var i=0; i < permanent_items.length; i++) {
-        var time_displayed = moment() - moment(permanent_items[i].permanent_post);
-
-        var periods_displayed = Math.floor(time_displayed / permanent_collection_xp_frequency);
-
-        var xp_max_percentage = .1;
-        var xp_increment = .01;
-        var percentage = periods_displayed * xp_increment <= xp_max_percentage ? periods_displayed * xp_increment : xp_max_percentage;
-
-        var time_til_next_xp = (permanent_collection_xp_frequency * (periods_displayed + 1)) - time_displayed;
-
-        //TODO see if this gives xp after paintings have been removed from permanent collection
-        giveXPOnTimeout(permanent_items[i].owner, percentage * permanent_items[i].xp_rating, time_til_next_xp);
-    }
-}), permanent_collection_xp_frequency);
-
-function giveXPOnTimeout(user_id, percentage, time_offset) {
-    Meteor.setTimeout(function() {
-        addXPChunkPercentage(user_id, percentage);
-    }, time_offset);
-}
-
 var check_ticket_frequency = 300000; //once every 5 minutes
 check_ticket_frequency = 10000; //once every 10 seconds
 Meteor.setInterval((function() {
@@ -116,21 +90,35 @@ Meteor.setInterval((function() {
 
 }), npc_spawn_frequency);
 
-var gallery_finish_xp_frequency = 3600000; //once per hour
-//gallery_finish_xp_frequency = 10000; //uncomment when debugging permanent collection xp
+var xp_frequency = 3600000; //once per hour
+//xp_frequency = 10000; //uncomment when debugging permanent collection xp
 Meteor.setInterval((function() {
-    var xp_max_percentage = .02;
+    var finish_xp_max_percentage = .02;
     var all_users = Meteor.users.find();
     all_users.forEach(function(db_object) {       
         var active_floor_finish_id = db_object.profile.gallery_finishes.active.floor_finish;
         var floor_xp_rating = db_object.profile.gallery_finishes.owned.floor_finishes[active_floor_finish_id].xp_rating;
-        var floor_percentage = xp_max_percentage * floor_xp_rating;
+        var floor_percentage = finish_xp_max_percentage * floor_xp_rating;
 
         var active_wall_finish_id = db_object.profile.gallery_finishes.active.wall_finish;
         var wall_xp_rating = db_object.profile.gallery_finishes.owned.wall_finishes[active_wall_finish_id].xp_rating;
-        var wall_percentage = xp_max_percentage * wall_xp_rating;
+        var wall_percentage = finish_xp_max_percentage * wall_xp_rating;
 
         addXPChunkPercentage(db_object._id, wall_percentage + floor_percentage);
     });
 
-}), gallery_finish_xp_frequency);
+    var pc_xp_max_percentage = .1;
+    var pc_xp_increment = .01;
+    items.find({'status' : 'permanent'}).forEach(function(db_object) {
+        var time_displayed = moment() - moment(db_object.permanent_post);
+
+        var periods_displayed = Math.floor(time_displayed / xp_frequency);
+
+        var percentage = periods_displayed * pc_xp_increment <= pc_xp_max_percentage ? periods_displayed * pc_xp_increment : pc_xp_max_percentage;
+
+        var time_til_next_xp = (xp_frequency * (periods_displayed + 1)) - time_displayed;
+
+        addXPChunkPercentage(db_object.owner, percentage * db_object.xp_rating);
+    });
+
+}), xp_frequency);

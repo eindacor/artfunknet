@@ -194,7 +194,7 @@ Template.auctionTable.events({
 
 	'click .preview.enabled' : function(element) {
 		var auction_id = $(element.target).closest('tr').data('auction_id');
-		var item_id = auctions.findOne({'auction_id': auction_id}).item_id;
+		var item_id = auctions.findOne(auction_id).item_id;
 		Blaze.renderWithData(Template.modalTemplate, {
 			'modal_name': "fullViewModal", 
 			'modal_data': {
