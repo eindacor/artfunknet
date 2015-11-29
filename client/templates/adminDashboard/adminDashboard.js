@@ -193,13 +193,14 @@ Template.adminTools.events({
     'click #generate-item' : function(element) {
     	var user_id = $('.user-selector').val();
     	var artwork_id = $('#generate-artwork-id').val();
-    	var condition = $('#condition').val();
-    	var xp_rating = $('#xp-rating').val();
-    	var foil = $('.foil-selector').val() == "true";
-    	var seasonal = $('.seasonal-selector').val() == "true";
-    	var lottery = $('.lottery-selector').val();
+    	var condition = $('#condition').val() == "" ? Math.random().toFixed(2) : Number($('#condition').val()) / 100;
+    	var xp_rating = $('#xp-rating').val() == "" ? Math.random().toFixed(2) : Number($('#xp-rating').val()) / 100;
+    	var foil = $('.type-selector').val() == "foil";
+    	var seasonal = $('.type-selector').val() == "seasonal";
+    	var lottery = isNaN($('.type-selector').val()) ? 0 : Number($('.type-selector').val());
+    	var original = $('.type-selector').val() == "original";
 
-    	Meteor.call('generateItemFromArtworkID', user_id, artwork_id, Number(condition) / 100, Number(xp_rating) / 100, foil, seasonal, Number(lottery), function(error, result) {
+    	Meteor.call('generateItemFromArtworkID', user_id, artwork_id, condition, xp_rating, foil, seasonal, Number(lottery), original, function(error, result) {
     		if (error)
     			console.log(error.message);
 
@@ -536,6 +537,18 @@ Template.adminTools.helpers({
 
 	'artist_choice' : function(current_artist_id) {
 		return artists.find({'_id': {$ne: current_artist_id}});
+	},
+
+	'lottery': function() {
+		var max_lottery_level = 10;
+
+		var lottery_values = [];
+
+		for (var i=0; i<max_lottery_level; i++) {
+			lottery_values.push(i + 1);
+		}
+
+		return lottery_values;
 	}
 })
 

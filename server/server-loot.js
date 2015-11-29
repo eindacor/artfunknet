@@ -164,6 +164,11 @@ getItemObjectValue = function(item_object, type) {
             display_value *= 2;
         }
 
+        else if(item_object.original) {
+            actual_value *= 8;
+            display_value *= 2;
+        }
+
         var sell_value = Math.floor(actual_value * .8);
         var purchase_value = Math.floor(actual_value * 1.5);
         var dealer_offer = Math.floor(actual_value * .9);
@@ -274,13 +279,13 @@ generateItems = function(user_id, quality, count, status) {
         var random_index = Math.floor(Math.random() * possibilities.length);
         var rolled_id = possibilities[random_index]._id;
 
-        generateItemFromArtworkID(user_id, rolled_id, undefined, undefined, undefined, undefined, false, status);
+        generateItemFromArtworkID(user_id, rolled_id, undefined, undefined, undefined, undefined, false, false, status);
     }
 
     return true;
 }
 
-generateItemFromArtworkID = function(user_id, artwork_id, condition, xp_rating, foil, seasonal, lottery, status) {
+generateItemFromArtworkID = function(user_id, artwork_id, condition, xp_rating, foil, seasonal, lottery, original, status) {
     var artwork_object = artworks.findOne(artwork_id);
     if (artwork_object) {
         var new_item_id = items.insert({
@@ -294,7 +299,8 @@ generateItemFromArtworkID = function(user_id, artwork_id, condition, xp_rating, 
             'roll_count' : 0,
             'foil': foil === undefined ? (seasonal_ids.indexOf(artwork_id) == -1 && Math.random() < .01) : foil,
             'seasonal': seasonal === undefined ? seasonal_ids.indexOf(artwork_id) != -1 : seasonal,
-            'lottery': lottery === undefined ? false : lottery
+            'lottery': lottery === undefined ? false : lottery,
+            'original': original === undefined ? false : original
         });
 
         return new_item_id;

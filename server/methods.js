@@ -49,7 +49,8 @@ createAuction = function(item_id, starting, buy_now, duration) {
                 'roll_count' : item_object.roll_count,
                 'foil' : item_object.foil,
                 'lottery' : item_object.lottery,
-                'seasonal' : item_object.seasonal
+                'seasonal' : item_object.seasonal,
+                'original' : item_object.original
             };
 
             auctions.insert(auction_object);

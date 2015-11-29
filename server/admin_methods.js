@@ -100,15 +100,15 @@ Meteor.methods({
 		}
 	},
 
-	'generateItemFromArtworkID' : function(user_id, artwork_id, condition, xp_rating, foil, seasonal, lottery) {
+	'generateItemFromArtworkID' : function(user_id, artwork_id, condition, xp_rating, foil, seasonal, lottery, original) {
 		if (adminValidated()) {
 			if (user_id == "" || Meteor.users.findOne(user_id).profile.user_type == "admin")
-				return generateItemFromArtworkID(Meteor.userId(), artwork_id, condition, xp_rating, foil, seasonal, lottery, "unclaimed");
+				return generateItemFromArtworkID(Meteor.userId(), artwork_id, condition, xp_rating, foil, seasonal, lottery, original, "unclaimed");
 
 			else if (Meteor.users.findOne(user_id) == undefined)
 				return false;
 
-			else return generateItemFromArtworkID(user_id, artwork_id, condition, xp_rating, foil, seasonal, lottery, "claimed");
+			else return generateItemFromArtworkID(user_id, artwork_id, condition, xp_rating, foil, seasonal, lottery, original, "claimed");
 		}
 
 		else return undefined;
@@ -117,12 +117,12 @@ Meteor.methods({
 	'generateRandomItemFromArtworkID' : function(user_id, artwork_id) {
 		if (adminValidated()) {
 			if (user_id == "" || Meteor.users.findOne(user_id).profile.user_type == "admin")
-				return generateItemFromArtworkID(user_id, artwork_id, undefined, undefined, undefined, undefined, false, "unclaimed");
+				return generateItemFromArtworkID(user_id, artwork_id, undefined, undefined, undefined, undefined, false, false, "unclaimed");
 
 			else if (Meteor.users.findOne(user_id) == undefined)
 				return false;
 
-			else return generateItemFromArtworkID(user_id, artwork_id, undefined, undefined, undefined, undefined, false, "claimed");
+			else return generateItemFromArtworkID(user_id, artwork_id, undefined, undefined, undefined, undefined, false, false, "claimed");
 		}
 
 		else return undefined;

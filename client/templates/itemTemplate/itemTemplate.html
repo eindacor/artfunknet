@@ -2,7 +2,7 @@
 	<div class="template-itemInfo">
 		<div data-item_id="{{item_data._id}}" class="card-container {{item_data.rarity}}-item" style="background: url('{{getImageURL item_data.filename}}') center; background-size: {{#with imageSize item_data.width item_data.height}}{{image_width}}px {{image_height}}px{{/with}}">
 			<div class="row no-margin card-info">
-				<div class="card-header col-xs-12 {{#if item_data.foil}}foil{{/if}} {{#if item_data.seasonal}}seasonal{{/if}} {{#if item_data.lottery}}lottery{{/if}} {{#if item_data.limited}}limited{{/if}}">
+				<div class="card-header col-xs-12 {{#if item_data.foil}}foil{{/if}} {{#if item_data.seasonal}}seasonal{{/if}} {{#if item_data.lottery}}lottery{{/if}} {{#if item_data.original}}original{{/if}}">
 					<div class="row no-margin">
 						<div class="header-basic-info">
 							<p class="item-title">{{item_data.title}}</p>
@@ -13,7 +13,7 @@
 					<div class="row no-margin">
 						<div class="header-details">
 							<p>{{item_data.date}}</p>
-							<p><span class="{{item_data.rarity}}"><strong>{{item_data.rarity}}</strong></span>{{#if item_data.foil}}<span class="af-color"> foil</span>{{/if}}{{#if item_data.seasonal}}<span class="common"> seasonal</span>{{/if}}{{#if item_data.lottery}}<span class="gold"> lottery {{item_data.lottery}}</span>{{/if}}</p>
+							<p><span class="{{item_data.rarity}}"><strong>{{item_data.rarity}}</strong></span>{{#if item_data.foil}}<span class="af-color"> foil</span>{{/if}}{{#if item_data.seasonal}}<span class="common"> seasonal</span>{{/if}}{{#if item_data.lottery}}<span class="gold"> lottery {{item_data.lottery}}</span>{{/if}}{{#if item_data.original}}<span class="purple-text"> original</span>{{/if}}</p>
 							<p>{{item_data.medium}}</p>
 							<p>{{item_data.height}} x {{item_data.width}}</p>
 							<p>condition: <span style="color: {{getHTMLColorFromValue item_data.condition}}">{{item_data.condition_text}}</span></p>

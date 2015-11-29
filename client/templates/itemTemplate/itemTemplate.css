@@ -67,7 +67,7 @@
 }
 
 .template-itemInfo .lottery {
-	background: linear-gradient(60deg, white, #F0E9BD, #F0E9BD, white, #F0E9BD, #F0E9BD, white);
+	background: linear-gradient(60deg, white, #FFF5C6, #FFF5C6, white, #FFF5C6, #FFF5C6, white);
 	background-size: 300% 300%;
 	-webkit-animation: Test 10s ease infinite;
 	-moz-animation: Test 10s ease infinite;
@@ -75,8 +75,8 @@
 	animation: Test 10s ease infinite;
 }
 
-.template-itemInfo .limited {
-	background: linear-gradient(60deg, white, #D7F7F2, #D9C7FF, white, #D9C7FF, #D7F7F2, white);
+.template-itemInfo .original {
+	background: linear-gradient(60deg, white, #E0E0F8, #DAD0F8, white, #DAD0F8, #E0E0F8, white);
 	background-size: 300% 300%;
 	-webkit-animation: Test 10s ease infinite;
 	-moz-animation: Test 10s ease infinite;

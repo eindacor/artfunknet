@@ -177,6 +177,10 @@ a {
 	color: orange !important;
 }
 
+.purple-text {
+	color: purple !important;
+}
+
 .modal-dialog {
 	border-radius: 0px;
 }

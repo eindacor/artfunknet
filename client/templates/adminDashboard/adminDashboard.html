@@ -191,31 +191,15 @@
 					<p>artwork id: <input class="item-create-field" id="generate-artwork-id"></p>
 					<p>condition: <input class="item-create-field" id="condition"></p>
 					<p>xp rating: <input class="item-create-field" id="xp-rating"></p>
-					<p>foil:
-						<select class="foil-selector">
-							<option value="false">false</option>
-							<option value="true">true</option>
-						</select>
-					</p>
-					<p>seasonal:
-						<select class="seasonal-selector">
-							<option value="false">false</option>
-							<option value="true">true</option>
-						</select>
-					</p>
-					<p>lottery:
-						<select class="lottery-selector">
-							<option value="0">0</option>
-							<option value="1">1</option>
-							<option value="2">2</option>
-							<option value="3">3</option>
-							<option value="4">4</option>
-							<option value="5">5</option>
-							<option value="6">6</option>
-							<option value="7">7</option>
-							<option value="8">8</option>
-							<option value="9">9</option>
-							<option value="10">10</option>
+					<p>type:
+						<select class="type-selector">
+							<option value="standard">standard</option>
+							<option value="foil">foil</option>
+							<option value="seasonal">seasonal</option>
+							<option value="original">original</option>
+							{{#each lottery}}
+								<option value="{{this}}">lottery {{this}}</option>
+							{{/each}}
 						</select>
 					</p>
 					<p><button id="generate-item">generate item</button></p>
