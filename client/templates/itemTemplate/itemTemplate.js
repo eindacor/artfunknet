@@ -102,7 +102,7 @@ Template.itemInfo.helpers({
 	},
 
 	'can_sell' : function(display_object) {
-		return itemOwned(display_object) && (display_object.status == 'claimed' || display_object.status == 'unclaimed');
+		return itemOwned(display_object) && (display_object.status == 'claimed' || display_object.status == 'unclaimed') && items.find({'owner': Meteor.userId(), 'status': {$nin: ["unclaimed", "for_sale"]}}).count() > 1;
 	},
 
 	'can_reroll' : function(display_object) {
@@ -211,6 +211,24 @@ Template.itemInfo.events({
 		Meteor.call('setItemPermanentCollectionStatus' , item_id, true, function(error) {
 			if (error)
 				console.log(error.message)
+
+			else {
+				if (Meteor.user().profile.tutorials.gallery && 
+					items.findOne({'owner': Meteor.userId(), 'status': "displayed"}) && 
+					items.findOne({'owner': Meteor.userId(), 'status': "permanent"})) 
+				{
+					Blaze.renderWithData(Template.modalTemplate, {
+						'modal_name': "tutorialModal", 
+						'modal_data': {
+							'tutorial_name': "gallery",
+							'next': undefined,
+							'activate': "my_gallery",
+							'image_filename': "tutorial/menu_gallery.png",
+							'message': "Now that you have an item on display, and an item in your permanent collection, you can see your items in your gallery. Go there when you're ready, by clicking the 'My Gallery' button in the menu."
+						}
+					}, $('body')[0]);
+				};
+			}
 		})
 	},
 

@@ -60,6 +60,13 @@ Template.registerHelper('getImageURL', function(filename) {
 	return "https://s3.amazonaws.com/com.artfunkel.artwork/full_images/" + filename;
 })
 
+Template.registerHelper('getS3ImageURL', function(filename) {
+	if (filename == undefined || filename == "undefined" || filename == "")
+		return "";
+	
+	return "http://s3.amazonaws.com/com.artfunkel.artwork/" + filename;
+})
+
 Template.registerHelper('getTextureURL', function(filename) {
 	if (filename == undefined || filename == "undefined" || filename == "")
 		return "";

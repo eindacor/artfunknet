@@ -28,6 +28,24 @@ Template.dropAnimationModal.events({
 			}
 		})
 
+		if (true || Meteor.user().profile.tutorials.info) {
+			Blaze.renderWithData(Template.modalTemplate, {
+				'modal_name': "tutorialModal", 
+				'modal_data': {
+					'tutorial_name': "info",
+					'next': {
+						'tutorial_name': "action_buttons",
+						'next': undefined,
+						'activate': "attributes",
+						'image_filename': "tutorial/action_buttons.png",
+						'message': "Cards have action buttons, which appear when you hover over an item. Add your new items to your inventory by clicking the appropriate action button on each, then return to the 'Home' section."
+					},
+					'activate': undefined,
+					'image_filename': "tutorial/info-area.png",
+					'message': "These items are now yours to claim! To get more info on each, hover over the top of the card to reveal that item's stats."
+				}
+			}, $('body')[0]);
+		}
 	},
 
 	'crateQuality' : function() {

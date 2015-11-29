@@ -26,6 +26,22 @@ createUser = function(user_object, callback){
         'rating': .8
     };
 
+    user_object.profile.tutorials = {
+        'welcome': true,
+        'loot': true,
+        'info': true,
+        'action_buttons': true,
+        'attributes': false,
+        'xp_rating': true,
+        'display': true,
+        'permanent': true,
+        'gallery': false,
+        'my_gallery': false,
+        'galleries': false,
+        'other_gallery': false,
+        'reroll_menu': false
+    }
+
     var default_wall = gallery_finishes.findOne({'filename': "plaster.jpg"});   
     var wall_finish_object = {
         'filename': default_wall.filename,
@@ -209,7 +225,41 @@ updateGalleryDetails = function(user_id) {
     }
 }
 
+resetTutorials = function(user_id) {
+    Meteor.users.update(user_id, {$set: {
+        'profile.tutorials': {
+            'welcome': true,
+            'loot': true,
+            'info': true,
+            'action_buttons': true,
+            'attributes': false,
+            'xp_rating': true,
+            'display': true,
+            'permanent': true,
+            'gallery': false,
+            'my_gallery': false,
+            'galleries': false,
+            'other_gallery': false,
+            'reroll_menu': false
+        }
+    }})
+}
+
 Meteor.methods({
+    'confirmTutorial': function(tutorial_name) {
+        var setter = {};
+        var setter_string = "profile.tutorials." + tutorial_name;
+        setter[setter_string] = false;
+        Meteor.users.update(Meteor.userId(), {$set: setter});
+    },
+
+    'activateTutorial': function(tutorial_name) {
+        var setter = {};
+        var setter_string = "profile.tutorials." + tutorial_name;
+        setter[setter_string] = true;
+        Meteor.users.update(Meteor.userId(), {$set: setter});
+    },
+
     'registerUser': function(user) {
         var emailExists = !! Meteor.users.findOne({ emails: { $elemMatch: { address: user.email } } });
         var screenNameExists;
