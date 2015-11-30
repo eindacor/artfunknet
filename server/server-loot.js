@@ -165,7 +165,7 @@ getItemObjectValue = function(item_object, type) {
         }
 
         else if(item_object.original) {
-            actual_value *= 8;
+            actual_value *= 7;
             display_value *= 2;
         }
 

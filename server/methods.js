@@ -85,6 +85,7 @@ var getMVPData = function() {
             'foil': all_items[i].foil,
             'lottery': all_items[i].lottery,
             'seasonal': all_items[i].seasonal,
+            'original': all_items[i].original
         }
 
         mvp_array.push(leaderboard_object);
