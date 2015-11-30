@@ -310,7 +310,7 @@ Template.galleryItem.helpers({
 	},
 
 	'shimmer' : function(data) {
-		return data.painting_info.foil || data.painting_info.seasonal || data.painting_info.lottery;
+		return data.painting_info.foil || data.painting_info.seasonal || data.painting_info.lottery || data.painting_info.original;
 	}
 });
 

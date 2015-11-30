@@ -25,6 +25,7 @@ Meteor.setInterval((function() {
             'foil': false, 
             'seasonal': false, 
             'lottery': false, 
+            'original': false,
             'owner': {$ne: "Artfunkel, Inc."}, 
             'bid_history' : [], 
             'rarity' : {$nin : ['legendary', 'masterpiece']}
