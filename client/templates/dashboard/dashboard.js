@@ -204,7 +204,7 @@ Template.dashboard.rendered = function() {
 					'image_filename': "tutorial/reroll_menu2.png",
 					'message': "For each attribute, you can modify the value, or the attribute itself. Rerolling the value generates a new rating at random, which could be more or less than what you started with."
 				},
-				'activate': "reroll_menu",
+				'activate': undefined,
 				'image_filename': "tutorial/reroll.png",
 				'message': "Often times you'll want to meet specific kinds of special visitors. A good way to do this is to optimize the attributes of your own paintings to be a specific type or a higher rating."
 			}
