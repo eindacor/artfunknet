@@ -421,7 +421,7 @@ var generateTarget = function() {
 
 var generateQuest = function(rarity) {
 	var player_ratio = playerRatio(Meteor.user());
-    var max_money = 100000 + (500000 * player_ratio);
+    var max_money = 200000 + (800000 * player_ratio);
     var player_level = Meteor.user().profile.level;
 
     var reward;
