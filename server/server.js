@@ -81,7 +81,10 @@ var updateContent = function() {
     })
 
     // temp code
-
+    items.find().forEach(function(db_object) {
+        if (db_object.original === undefined)
+            items.update(db_object._id, {$set: {'original': false}});
+    })
     // temp code
 }
 

@@ -419,7 +419,7 @@ var generateArtworkObject = function() {
 		'height': Number($('#artwork-mod-height').val()),
 		'medium': $('#artwork-mod-medium').val(),
 		'title': $('#artwork-mod-title').val(),
-		'value_scale': Number($('#artwork-mod-value-scale').val()),
+		'value_scale': $('#artwork-mod-value-scale').val() == "" ? Number(Math.random().toFixed(2)) : Number($('#artwork-mod-value-scale').val()),
 		'width': Number($('#artwork-mod-width').val()),		
 		'nsfw': $('#artwork-mod-container').find('.nsfw-selector').val() == "true" ? true : false,
 		'rarity': $('#artwork-mod-container').find('.rarity-selector').val(),
@@ -536,7 +536,7 @@ Template.adminTools.helpers({
 	},
 
 	'artist_choice' : function(current_artist_id) {
-		return artists.find({'_id': {$ne: current_artist_id}});
+		return artists.find({'_id': {$ne: current_artist_id}}, {sort: {'artist_name': 1}});
 	},
 
 	'lottery': function() {

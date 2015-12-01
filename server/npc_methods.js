@@ -256,7 +256,7 @@ var collectorInteraction = function(npc_object) {
 	if (isOwnGallery(npc_object))
 		offer_multiplier *= 1.4;
 
-	var random_claimed = selectRandomPainting({'owner': Meteor.userId(), 'status': "claimed"});
+	var random_claimed = selectRandomPainting({'owner': Meteor.userId(), 'status': "claimed", 'original': false, 'seasonal': {$ne: true}, 'lottery': {$in: [0, false]}});
 
 	if (random_claimed) {
 		var offer = Math.floor(getItemValue(random_claimed._id, "actual") * offer_multiplier);
