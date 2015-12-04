@@ -193,8 +193,8 @@ Template.adminTools.events({
     'click #generate-item' : function(element) {
     	var user_id = $('.user-selector').val();
     	var artwork_id = $('#generate-artwork-id').val();
-    	var condition = $('#condition').val() == "" ? Math.random().toFixed(2) : Number($('#condition').val()) / 100;
-    	var xp_rating = $('#xp-rating').val() == "" ? Math.random().toFixed(2) : Number($('#xp-rating').val()) / 100;
+    	var condition = $('#condition').val() == "" ? Number(Math.random().toFixed(2)) : Number($('#condition').val()) / 100;
+    	var xp_rating = $('#xp-rating').val() == "" ? Number(Math.random().toFixed(2)) : Number($('#xp-rating').val()) / 100;
     	var foil = $('.type-selector').val() == "foil";
     	var seasonal = $('.type-selector').val() == "seasonal";
     	var lottery = isNaN($('.type-selector').val()) ? 0 : Number($('.type-selector').val());
