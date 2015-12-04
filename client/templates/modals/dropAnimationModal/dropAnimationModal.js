@@ -28,7 +28,7 @@ Template.dropAnimationModal.events({
 			}
 		})
 
-		if (true || Meteor.user().profile.tutorials.info) {
+		if (Meteor.user().profile.tutorials.info) {
 			Blaze.renderWithData(Template.modalTemplate, {
 				'modal_name': "tutorialModal", 
 				'modal_data': {
