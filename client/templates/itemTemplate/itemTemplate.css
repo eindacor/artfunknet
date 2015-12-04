@@ -20,7 +20,7 @@
 	width: 280px;
 	height: 390px;
 	margin: 24px;
-	border-radius: 12px;
+	/*border-radius: 12px;*/
 	background: url("/img/paintings/steciw_amber.jpg") center;
 	border: 1px solid #555555;
 	padding: 0px;
@@ -132,8 +132,8 @@
 .template-itemInfo .card-header {
 	background-color: white;
 	opacity: .90;
-	border-top-left-radius: 12px;
-	border-top-right-radius: 12px;
+	/*border-top-left-radius: 12px;*/
+	/*border-top-right-radius: 12px;*/
 	padding: 8px 12px 4px 12px;
 	position: absolute;
 }
@@ -169,8 +169,8 @@
 .template-itemInfo .card-footer {
 	background-color: white;
 	opacity: .95;
-	border-bottom-left-radius: 12px;
-	border-bottom-right-radius: 12px;
+	/*border-bottom-left-radius: 12px;*/
+	/*border-bottom-right-radius: 12px;*/
 	padding: 8px 12px 4px 12px;
 	bottom: 0;
 	position: absolute;
