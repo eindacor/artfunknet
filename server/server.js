@@ -82,7 +82,7 @@ var updateContent = function() {
 
     // temp code
     items.find().forEach(function(db_object) {
-        if (teypof(db_object.condition) == "string")
+        if (typeof(db_object.condition) == "string")
             items.update(db_object._id, {$set: {'condition': Number(db_object.condition)}});
     })
     // temp code
