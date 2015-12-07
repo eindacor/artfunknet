@@ -31,6 +31,151 @@
 					</select>
 				</div>
 
+				<div class="row attribute-mod tools-section">
+					<div class="row">
+						<h4 class="af-color">Modify Attribute</h4>
+						<div data-artist_id="{{selected_attribute._id}}" id="attribute-mod-container">
+							<div class="attribute-mod-info col-xs-6">
+								<select class="attribute-mod-selector">
+									<option value="unselected">select attribute</option>
+									<option value="new attribute">-- create new attribute --</option>
+									{{#each attributes}}
+										<option value="{{_id}}">{{title}}</option>
+									{{/each}}
+								</select>
+								<div class="attribute-mod-fields">
+									<table id="attribute-mod-table">
+										<tr>
+											<td>id:</td>
+											<td>{{selected_attribute._id}}</td>
+										</tr>
+										<tr>
+											<td>icon:</td>
+											<td><i class="af-color fa {{selected_attribute.icon}}"></i></td>
+										</tr>
+										<tr>
+											<td>title: </td>
+											<td><input id="attribute-mod-title" value="{{selected_attribute.title}}"></td>
+										</tr>
+										<tr>
+											<td>description: </td>
+											<td><input id="attribute-mod-description" value="{{selected_attribute.description}}"></td>
+										</tr>
+										<tr>
+											<td>icon: </td>
+											<td><input id="attribute-mod-icon" value="{{selected_attribute.icon}}"></td>
+										</tr>
+										<tr>
+											<td>npc name: </td>
+											<td><input id="attribute-mod-npc-name" value="{{selected_attribute.npc_name}}"></td>
+										</tr>
+										<tr>
+											<td>code: </td>
+											<td><input id="attribute-mod-code" value="{{selected_attribute.code}}"></td>
+										</tr>
+										<tr>
+											<td>active:</td>
+											<td>
+												<select class="attribute-active-selector">
+													{{#if selected_attribute.active}}
+														<option value="true">true</option>
+														<option value="false">false</option>
+													{{else}}
+														<option value="false">false</option>
+														<option value="true">true</option>
+													{{/if}}
+												</select>
+											</td>
+										</tr>
+									</table>
+								</div>
+							</div>
+						</div>
+					</div>
+					<p><button id="update-attribute">update attribute</button></p>
+				</div>
+
+				<div class="row unique-attribute-mod tools-section">
+					<div class="row">
+						<h4 class="af-color">Modify Unique Attribute</h4>
+						<div data-artist_id="{{selected_unique_attribute._id}}" id="unique-attribute-mod-container">
+							<div class="unique-attribute-mod-info col-xs-6">
+								<select class="unique-attribute-mod-selector">
+									<option value="unselected">select unique attribute</option>
+									<option value="new unique attribute">-- create new unique attribute --</option>
+									{{#each unique_attributes}}
+										<option value="{{_id}}">{{title}}</option>
+									{{/each}}
+								</select>
+								<div class="unique-attribute-mod-fields">
+									<table id="unique-attribute-mod-table">
+										<tr>
+											<td>id:</td>
+											<td>{{selected_unique_attribute._id}}</td>
+										</tr>
+										<tr>
+											<td>title: </td>
+											<td><input id="unique-attribute-mod-title" value="{{selected_unique_attribute.title}}"></td>
+										</tr>
+										<tr>
+											<td>description: </td>
+											<td id="unique-description"><textarea id="unique-attribute-mod-description" value="{{selected_unique_attribute.description}}"></textarea></td>
+										</tr>
+										<tr>
+											<td>flavor text: </td>
+											<td><input id="unique-attribute-mod-flavor-text" value="{{selected_unique_attribute.flavor_text}}"></td>
+										</tr>
+										<tr>
+											<td>code: </td>
+											<td><input id="unique-attribute-mod-code" value="{{selected_unique_attribute.code}}"></td>
+										</tr>
+										<tr>
+											<td>active:</td>
+											<td>
+												<select class="unique-attribute-active-selector">
+													{{#if selected_unique_attribute.active}}
+														<option value="true">true</option>
+														<option value="false">false</option>
+													{{else}}
+														<option value="false">false</option>
+														<option value="true">true</option>
+													{{/if}}
+												</select>
+											</td>
+										</tr>
+										<tr>
+											<td>linked attributes:</td>
+											<td>
+												{{#each attributeLinkSelector selected_unique_attribute.linked_attributes}}
+													<select class="unique-link-attribute-selector">
+														<option value="{{this}}">{{attributeLinkDescription this}}</option>
+														{{#each attributeLinkChoice this}}
+															<option value="{{_id}}">{{description}}</option>
+														{{/each}}
+													</select>
+												{{/each}}
+												<!-- <select class="unique-link-attribute-selector" id="unique-link-attribute-selector-one">
+													<option value="unselected"> select </option>
+													{{#each uniqueLinkOneChoice selected_unique_attribute.linked_attributes}}
+														<option value="{{_id}}">{{description}}</option>
+													{{/each}}
+												</select>
+												<select class="unique-link-attribute-selector" id="unique-link-attribute-selector-two">
+													<option value="unselected"> select </option>
+													{{#each uniqueLinkTwoChoice selected_unique_attribute.linked_attributes}}
+														<option value="{{_id}}">{{description}}</option>
+													{{/each}}
+												</select> -->
+											</td>
+										</tr>
+									</table>
+								</div>
+							</div>
+						</div>
+					</div>
+					<p><button id="update-unique-attribute">update unique</button></p>
+				</div>
+
 				<div class="row artist-mod tools-section">
 					<div class="row">
 						<h4 class="af-color">Modify Artist</h4>
@@ -46,7 +191,8 @@
 								<div class="artist-mod-fields">
 									<table id="artist-mod-table">
 										<tr>
-											<td>id: {{selected_artist._id}}</td>
+											<td>id:</td>
+											<td>{{selected_artist._id}}</td>
 										</tr>
 										<tr>
 											<td>name: </td>
@@ -83,7 +229,8 @@
 								<div class="artwork-mod-fields">
 									<table id="artwork-mod-table">
 										<tr>
-											<td>id: {{selected_artwork._id}}</td>
+											<td>id:</td>
+											<td>{{selected_artwork._id}}</td>
 										</tr>
 										<tr>
 											<td>title: </td>

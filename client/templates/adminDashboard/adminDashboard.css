@@ -60,19 +60,32 @@
 	width: 100%;
 }
 
-.template-adminTools #artwork-mod-table > tr > td, .template-adminTools #artist-mod-table > tr > td {
+.template-adminTools #artwork-mod-table > tr > td, 
+.template-adminTools #artist-mod-table > tr > td, 
+.template-adminTools #attribute-mod-table > tr > td,
+.template-adminTools #unique-attribute-mod-table > tr > td {
 	width: 50%;
 	padding: 4px;
 }
 
-.template-adminTools #artwork-mod-table input, .template-adminTools #artist-mod-table input {
+.template-adminTools #artwork-mod-table input, 
+.template-adminTools #artist-mod-table input, 
+.template-adminTools #attribute-mod-table input,
+.template-adminTools #unique-attribute-mod-table input {
 	width: 100%;
 }
 
-.template-adminTools .artwork-selector > option, .template-adminTools .artist-mod-selector > option {
+.template-adminTools .artwork-selector > option, 
+.template-adminTools .artist-mod-selector > option, 
+.template-adminTools .attribute-mod-selector > option,
+.template-adminTools .unique-attribute-mod-selector > option {
 	width: 800px;
 	text-overflow: ellipsis;
 	white-space: pre-wrap;
 	overflow: hidden;
 	-webkit-appearance: none;
+}
+
+.template-adminTools #unique-attribute-mod-description {
+	height: 64px;
 }

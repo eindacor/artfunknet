@@ -2,6 +2,9 @@ var adminDataTracker = new Tracker.Dependency;
 var user_tracker = new Tracker.Dependency;
 var artwork_mod_tracker = new Tracker.Dependency;
 var artist_mod_tracker = new Tracker.Dependency;
+var attribute_mod_tracker = new Tracker.Dependency;
+var unique_attribute_mod_tracker = new Tracker.Dependency;
+var attribute_link_choice_tracker = new Tracker.Dependency;
 
 var admin_data = undefined;
 
@@ -310,6 +313,18 @@ Template.adminTools.events({
     	artist_mod_tracker.changed();
     },
 
+    'change .attribute-mod-selector' : function() {
+    	attribute_mod_tracker.changed();
+    },
+
+    'change .unique-attribute-mod-selector' : function() {
+    	unique_attribute_mod_tracker.changed();
+    },
+
+    'change .unique-link-attribute-selector' : function() {
+    	attribute_link_choice_tracker.changed();
+    },
+
 	'click #update-artwork': function(element) {
 		$(document.activeElement).blur();
 
@@ -404,6 +419,102 @@ Template.adminTools.events({
 				else artist_mod_tracker.changed();
 			});
 		}
+	},
+
+	'click #update-attribute': function() {
+		$(document.activeElement).blur();
+
+		var attribute_id = $('.attribute-mod-selector').val();
+
+		if (attribute_id == "unselected")
+			return;
+
+		var attribute_object = generateAttributeObject();
+		var attribute_keys = Object.keys(attribute_object);
+
+		if (attribute_id == "new attribute") {
+			for (var i=0; i<attribute_keys.length; i++) {
+				var key = attribute_keys[i];
+				if (attribute_object[key] === "")
+					return;
+			}
+
+			Meteor.call('addNewAttribute', attribute_object, function(error, result) {
+				if (error)
+					console.log(error.message);
+
+				else {
+					$('.attribute-mod-selector').append('<option value="' + result + '">' + attribute_object.description + '</option>');
+					$('.attribute-mod-selector').val(result);
+					attribute_mod_tracker.changed();
+				}
+			});
+		}
+
+		else {
+			var existing_attribute_object = (attributes.findOne(attribute_id));
+
+			for (var i=0; i<attribute_keys.length; i++) {
+				var key = attribute_keys[i];
+				if (attribute_object[key] === "")
+					attribute_object[key] = existing_attribute_object[key];
+			}
+
+			Meteor.call('updateAttributeData', attribute_id, attribute_object, function(error, result) {
+				if (error)
+					console.log(error.message);
+
+				else attribute_mod_tracker.changed();
+			});
+		}
+	},
+
+	'click #update-unique-attribute': function() {
+		$(document.activeElement).blur();
+
+		var unique_attribute_id = $('.unique-attribute-mod-selector').val();
+
+		if (unique_attribute_id == "unselected")
+			return;
+
+		var unique_attribute_object = generateUniqueAttributeObject();
+		var unique_attribute_keys = Object.keys(unique_attribute_object);
+
+		if (unique_attribute_id == "new unique attribute") {
+			for (var i=0; i<unique_attribute_keys.length; i++) {
+				var key = unique_attribute_keys[i];
+				if (unique_attribute_object[key] === "")
+					return;
+			}
+
+			Meteor.call('addNewUniqueAttribute', unique_attribute_object, function(error, result) {
+				if (error)
+					console.log(error.message);
+
+				else if (result) {
+					$('.unique-attribute-mod-selector').append('<option value="' + result + '">' + unique_attribute_object.title + '</option>');
+					$('.unique-attribute-mod-selector').val(result);
+					unique_attribute_mod_tracker.changed();
+				}
+			});
+		}
+
+		else {
+			var existing_unique_attribute_object = (unique_attributes.findOne(unique_attribute_id));
+
+			for (var i=0; i<unique_attribute_keys.length; i++) {
+				var key = unique_attribute_keys[i];
+				if (unique_attribute_object[key] === "")
+					unique_attribute_object[key] = existing_unique_attribute_object[key];
+			}
+
+			Meteor.call('updateUniqueAttributeData', unique_attribute_id, unique_attribute_object, function(error, result) {
+				if (error)
+					console.log(error.message);
+
+				else unique_attribute_mod_tracker.changed();
+			});
+		}
 	}
 })
 
@@ -437,6 +548,38 @@ var generateArtistObject = function() {
 	}
 
 	return artist_object;
+}
+
+var generateAttributeObject = function() {
+	var attribute_object = {
+		'title': $('#attribute-mod-title').val(),
+		'description': $('#attribute-mod-description').val(),
+		'icon': $('#attribute-mod-icon').val(),
+		'npc_name': $('#attribute-mod-npc-name').val(),
+		'code': $('#attribute-mod-code').val().toUpperCase(),
+		'active': $('#attribute-mod-container').find('.attribute-active-selector').val() == "true" ? true : false,
+	}
+
+	return attribute_object;
+}
+
+var generateUniqueAttributeObject = function() {
+	var selected_attribute_links = [];
+	var attribute_link_count = $('.unique-link-attribute-selector').length;
+	for (var i=0; i<attribute_link_count; i++) {
+		selected_attribute_links.push($('.unique-link-attribute-selector:eq(' + i + ')').val());
+	}
+
+	var unique_attribute_object = {
+		'title': $('#unique-attribute-mod-title').val(),
+		'description': $('#unique-attribute-mod-description').val(),
+		'flavor_text': $('#unique-attribute-mod-flavor-text').val(),
+		'code': $('#unique-attribute-mod-code').val(),
+		'active': $('#unique-attribute-mod-container').find('.unique-attribute-active-selector').val() == "true" ? true : false,
+		'linked_attributes': selected_attribute_links
+	}
+
+	return unique_attribute_object;
 }
 
 Template.adminTools.helpers({
@@ -498,12 +641,30 @@ Template.adminTools.helpers({
 		return artists.findOne($('.artist-mod-selector').val());
 	},
 
+	'selected_attribute' : function() {
+		attribute_mod_tracker.depend();
+		return attributes.findOne($('.attribute-mod-selector').val());
+	},
+
+	'selected_unique_attribute' : function() {
+		unique_attribute_mod_tracker.depend();
+		return unique_attributes.findOne($('.unique-attribute-mod-selector').val());
+	},
+
 	'artwork' : function() {
 		return artworks.find({}, {sort: {'artist': 1}});
 	},
 
 	'artists' : function() {
 		return artists.find({}, {sort: {'artist_name': 1}});
+	},
+
+	'attributes': function() {
+		return attributes.find({}, {sort: {'description': 1}});
+	},
+
+	'unique_attributes': function() {
+		return unique_attributes.find({}, {sort: {'title': 1}});
 	},
 
 	'imageSize' : function(width, height) {
@@ -549,6 +710,19 @@ Template.adminTools.helpers({
 		}
 
 		return lottery_values;
+	},
+
+	'attributeLinkSelector' : function(linked_attributes) {
+		return linked_attributes ? linked_attributes : ["unselected", "unselected"];
+	},
+
+	'attributeLinkDescription' : function(attribute_id) {
+		var attribute_object = attributes.findOne(attribute_id);
+		return attribute_object ? attribute_object.description : "-- select --";
+	},
+
+	'attributeLinkChoice' : function(attribute_id) {
+		return attributes.find({'_id': {$ne: attribute_id}, 'active': true});
 	}
 })
 

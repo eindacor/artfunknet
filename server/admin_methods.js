@@ -288,6 +288,8 @@ Meteor.methods({
     	if (adminValidated()) {
     		return Meteor.users.find({'_id': {$ne: Meteor.userId()}}, {sort: {'profile.screen_name': -1}}).fetch();
     	}
+
+    	else return undefined;
     },
 
     'updateArtworkData': function(artwork_id, artwork_object) {
@@ -305,6 +307,8 @@ Meteor.methods({
     		artworks.update(artwork_id, {$set: artwork_object});
     		return true;
     	}
+
+    	else return undefined;
     },
 
     'addNewArtwork': function(artwork_object) {
@@ -338,11 +342,13 @@ Meteor.methods({
     		artists.update(artist_id, {$set: artist_object});
     		return true;
     	}
+
+    	else return undefined;
     },
 
     'addNewArtist': function(artist_object) {
     	if (adminValidated()) {
-    		artists.insert(artist_object);
+    		return artists.insert(artist_object);
     	}
 
     	else return undefined;
@@ -353,8 +359,72 @@ Meteor.methods({
     		artists.remove(artist_id); 		
     		artworks.update({'artist_id': artist_id}, {$set: {'active': false}});
     	}
+    },
+
+    'updateAttributeData': function(attribute_id, attribute_object) {
+    	if (adminValidated()) {
+    		attributes.update(attribute_id, {$set: attribute_object});
+    		items.update({'attributes._id': attribute_id}, {$set: {
+    			'attributes.$.title': attribute_object.title, 
+    			'attributes.$.description': attribute_object.description, 
+    			'attributes.$.icon': attribute_object.icon, 
+    			'attributes.$.npc_name': attribute_object.npc_name, 
+    			'attributes.$.active': attribute_object.active
+    		}}, {multi: true});
+    		return true;
+    	}
+
+    	else return undefined;
+    },
+
+    'addNewAttribute': function(attribute_object) {
+    	if (adminValidated()) {
+    		return attributes.insert(attribute_object);
+    	}
+
+    	else return undefined;
+    },
+
+    'removeAttribute': function(attribute_id) {
+    	if (adminValidated()) {
+    		//TODO update db and items
+    	}
+    },
+
+    'updateUniqueAttributeData': function(unique_attribute_id, unique_attribute_object) {
+    	if (adminValidated() && linkedAttributesValid(unique_attribute_id, unique_attribute_object.linked_attributes)) {
+    		console.log(unique_attribute_object);
+    		unique_attributes.update(unique_attribute_id, {$set: unique_attribute_object});
+    		return true;
+    	}
+
+    	else return undefined;
+    },
+
+    'addNewUniqueAttribute': function(unique_attribute_object) {
+    	if (adminValidated() && linkedAttributesValid(undefined, unique_attribute_object.linked_attributes)) {
+    		console.log(unique_attribute_object);
+    		return unique_attributes.insert(unique_attribute_object);
+    	}
+
+    	else return undefined;
     }
 })
+
+var linkedAttributesValid = function(unique_attribute_id, attribute_array) {
+	if (unique_attributes.findOne({'_id': {$ne: unique_attribute_id}, 'linked_attributes': {$all: attribute_array}}) != undefined)
+		return false;
+
+	var attribute_array_copy = [];
+	for (var i=0; i<attribute_array.length; i++) {
+		if (attributes.findOne(attribute_array[i]) == undefined || attribute_array_copy.indexOf(attribute_array[i]) != -1)
+			return false;
+
+		else attribute_array_copy.push(attribute_array[i]);
+	}
+
+	return true;
+}
 
 var getLegendaryAttributes = function(rarity) {
 	if (rarity == "legendary" || rarity == "masterpiece") {
