@@ -243,3 +243,7 @@
 .template-itemInfo .flavor-text {
 	padding-top: 12px;
 }
+
+.template-itemInfo .locked {
+	text-shadow: 0.1em 0.1em 0.1em RGBA(255, 51, 204, .8);
+}

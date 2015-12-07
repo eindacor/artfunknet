@@ -717,6 +717,7 @@ Template.adminTools.helpers({
 	},
 
 	'attributeLinkDescription' : function(attribute_id) {
+		attribute_mod_tracker.depend();
 		var attribute_object = attributes.findOne(attribute_id);
 		return attribute_object ? attribute_object.description : "-- select --";
 	},

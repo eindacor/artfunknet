@@ -159,6 +159,18 @@ Template.itemInfo.helpers({
 
 	'isOwner' : function(owner_id) {
 		return Meteor.userId() == owner_id;
+	},
+
+	'flavorText' : function(item_object) {
+		var attribute_array = [];
+		item_object.attributes.forEach(function(attribute_object) {
+			if (attribute_object.locked)
+				attribute_array.push(attribute_object._id);
+		});
+
+		var unique_attribute = unique_attributes.findOne({'linked_attributes': {$all: attribute_array}});
+
+		return unique_attribute ? unique_attribute.flavor_text : undefined;
 	}
 })
 

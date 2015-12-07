@@ -128,6 +128,22 @@ var reroll_coefficients = {
     'masterpiece' : 1.14
 }
 
+procUniqueAttribute = function(unique_code) {
+    //TODO replace logic with DB tracking of artworks or items with unique attributes
+    var unique_attribute_object = unique_attributes.findOne({'code': unique_code});
+    if (unique_attribute_object == undefined)
+        return false;
+
+    var artworks_found = artworks.find({'locked_attributes': {$all: unique_attribute_object.linked_attributes}}).fetch();
+
+    for (var i=0; i<artworks_found.length; i++) {
+        if (items.findOne({'owner': Meteor.userId(), 'artwork_id': artworks_found[i]._id, 'status': "displayed"}))
+            return true;
+    }
+
+    return false;
+}
+
 getItemValue = function(item_id, type) {
     return getItemObjectValue(items.findOne(item_id), type);
 }

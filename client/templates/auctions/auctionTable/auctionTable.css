@@ -75,3 +75,7 @@
 .template-auctionTable .item-attribute {
 	font-size: 1.5em;
 }
+
+.template-auctionTable .locked {
+	text-shadow: 0.1em 0.1em 0.1em RGBA(255, 51, 204, .7);
+}

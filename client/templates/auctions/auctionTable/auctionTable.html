@@ -30,7 +30,7 @@
 						<td style="color: rgb({{attributeColor condition}}, 0, 0)" >{{condition_text}}</td>
 						<td>
 						{{#each attribute}}
-							<i data-attribute_title="{{this.description}}" data-attribute_value="{{this.value}}" style="color: rgb({{attributeColor this.value}}, 0, 0)" class="item-attribute fa {{this.icon}}"></i>
+							<i data-attribute_title="{{description}}" data-attribute_value="{{value}}" style="color: rgb({{attributeColor value}}, 0, 0)" class="{{#if locked}}locked{{/if}} item-attribute fa {{icon}}"></i>
 						{{/each}}
 						</td>
 						<td style="color: rgb({{attributeColor xp_rating}}, 0, 0)" >{{xp_rating_text}}</td>
