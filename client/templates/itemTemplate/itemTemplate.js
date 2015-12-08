@@ -167,6 +167,9 @@ Template.itemInfo.helpers({
 			if (attribute_object.locked)
 				attribute_array.push(attribute_object._id);
 		});
+		
+		if (attribute_array.length < 2);
+			return [];
 
 		return unique_attributes.find({'linked_attributes': {$all: attribute_array}});
 	}
