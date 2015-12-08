@@ -22,9 +22,9 @@
 							<!-- {{/if}} -->
 							<p>xp rating: <span style="color: {{getHTMLColorFromValue item_data.xp_rating}}">{{item_data.xp_rating_text}}</span></p>
 							<p>roll count: {{item_data.roll_count}}</p>
-							{{#if flavorText item_data}}
-								<p class="flavor-text af-color">"{{flavorText item_data}}"</p>
-							{{/if}}
+							{{#each unique_attribute item_data}}
+								<p class="flavor-text af-color {{#if ../item_data.permanent}}permanent{{/if}}">"{{flavor_text}}"</p>
+							{{/each}}
 						</div>
 					</div>
 					
@@ -81,7 +81,7 @@
 						<div class="footer-basic-info">
 							<div class="col-xs-11 no-padding">
 							{{#each sortedAttributes item_data.attributes}}
-								<i data-attribute_description="{{description}}" data-attribute_value="{{value}}" style="color: {{getHTMLColorFromValue value}}" class="{{#if locked}}locked{{/if}} item-attribute fa {{this.icon}}"></i>
+								<i data-attribute_description="{{description}}" data-attribute_value="{{value}}" style="color: {{getHTMLColorFromValue value}}" class="{{#if ../item_data.permanent}}permanent{{/if}} {{#if locked}}locked{{/if}} item-attribute fa {{this.icon}}"></i>
 							{{/each}}
 							</div>
 							<div class="col-xs-1 no-padding">

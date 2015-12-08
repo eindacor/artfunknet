@@ -130,7 +130,7 @@ var reroll_coefficients = {
 
 procUniqueAttribute = function(unique_code) {
     //TODO replace logic with DB tracking of artworks or items with unique attributes
-    var unique_attribute_object = unique_attributes.findOne({'code': unique_code});
+    var unique_attribute_object = unique_attributes.findOne({'code': unique_code, 'active': true});
     if (unique_attribute_object == undefined)
         return false;
 

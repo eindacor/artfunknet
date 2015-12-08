@@ -12,7 +12,7 @@
 }
 
 .template-itemInfo .permanent {
-	opacity: .1;
+	opacity: .3;
 }
 
 .template-itemInfo .card-container {
@@ -246,4 +246,8 @@
 
 .template-itemInfo .locked {
 	text-shadow: 0.1em 0.1em 0.1em RGBA(255, 51, 204, .8);
+}
+
+.template-itemInfo .remaining-text {
+	font-size: .6em;
 }

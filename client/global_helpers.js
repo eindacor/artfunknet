@@ -104,6 +104,7 @@ Template.registerHelper('cardArray', function(item_array) {
 		display_object.condition_text = Math.floor((db_object.condition * 100)) + '%';
 		display_object.xp_rating_text = Math.floor(db_object.xp_rating * 100);
 		display_object.filename = artwork_object.filename;
+		display_object.permanent = db_object.status == "permanent";
 
 		display_objects.push(display_object);
 	})
@@ -144,6 +145,7 @@ Template.registerHelper('cardData', function(item) {
 		display_object.condition_text = Math.floor((item.condition * 100)) + '%';
 		display_object.xp_rating_text = Math.floor(item.xp_rating * 100);
 		display_object.filename = artwork_object.filename;
+		display_object.permanent = item.status == "permanent";
 
 		return display_object;
 	}

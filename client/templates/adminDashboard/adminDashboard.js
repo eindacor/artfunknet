@@ -556,7 +556,6 @@ var generateAttributeObject = function() {
 		'description': $('#attribute-mod-description').val(),
 		'icon': $('#attribute-mod-icon').val(),
 		'npc_name': $('#attribute-mod-npc-name').val(),
-		'code': $('#attribute-mod-code').val().toUpperCase(),
 		'active': $('#attribute-mod-container').find('.attribute-active-selector').val() == "true" ? true : false,
 	}
 

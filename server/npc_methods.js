@@ -143,8 +143,15 @@ var benefactorInteraction = function(npc_object) {
 	};
 
 	// returns true if the player met the npc in his/her own gallery
-	if (isOwnGallery(npc_object))
+	if (isOwnGallery(npc_object)) {
 		donation_amount *= own_gallery_amplifier;
+
+		if (procUniqueAttribute("BENEFACTOR_MARKET_EXPERT_RATING_BONUS")) {
+			if (Meteor.user().profile.market_expert.expiration > moment()._d.toISOString()) {
+				donation_amount += (Meteor.user().profile.market_expert.rating * donation_amount);
+			}
+		}
+	}
 
 	// adjust randomly to vary amount won
 	var money_won = Math.floor(donation_amount + ((Math.random() * .1) * max_donation));
@@ -158,11 +165,12 @@ var benefactorInteraction = function(npc_object) {
 var donorInteraction = function(npc_object) {
 	var drop_count = 2;
 
-	if (isOwnGallery(npc_object))
+	if (isOwnGallery(npc_object)) {
 		drop_count += 1;
 
-	if (procUniqueAttribute("BONUS_DEALER_DONOR")) {
-		drop_count += 1;
+		if (procUniqueAttribute("BONUS_DEALER_DONOR")) {
+			drop_count += 1;
+		}
 	}
 
 	generateItems(Meteor.userId(), npc_object.quality, drop_count, "unclaimed");
@@ -176,15 +184,6 @@ var preservationistInteraction = function(npc_object) {
 	var repair_amount;
 	var target_item;
 
-	if (procUniqueAttribute("PRESERVATIONIST_HIGHEST")) {
-		target_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}, 'condition': {$lt: 1}}, {sort: {'condition': -1}});
-	}
-
-	else target_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}}, {sort: {'condition': 1}});
-
-	if (target_item == undefined || target_item.condition > .9)
-		return {'message' : "You have met a preservationist, but you don't currently own any works that can be refurbished"};
-
 	switch(npc_object.quality) {
 		case 'bronze': repair_amount = .08; break;
 		case 'silver': repair_amount = .1; break;
@@ -193,8 +192,20 @@ var preservationistInteraction = function(npc_object) {
 		default: repair_amount = 0; break;
 	}
 
-	if (isOwnGallery(npc_object))
+	if (isOwnGallery(npc_object)) {
 		repair_amount *= own_gallery_amplifier;
+
+		if (procUniqueAttribute("PRESERVATIONIST_HIGHEST")) {
+			target_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}, 'condition': {$lt: 1}}, {sort: {'condition': -1}});
+		}
+
+		else target_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}}, {sort: {'condition': 1}});
+	}
+
+	else target_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}}, {sort: {'condition': 1}});
+
+	if (target_item == undefined || target_item.condition > .9)
+		return {'message' : "You have met a preservationist, but you don't currently own any works that can be refurbished"};
 
 	var artwork_object = artworks.findOne(target_item.artwork_id);
 
@@ -208,7 +219,10 @@ var preservationistInteraction = function(npc_object) {
         if (error)
             console.log(error.message);
 
-        else calcMVP(Meteor.userId());
+        else {
+        	calcMVP(Meteor.userId());
+        	updateGalleryDetails(Meteor.userId());
+        }
     });
 
 	var message = "You have met a preservationist who has offered to refurbish one of your pieces. " + artwork_object.title + " by " + artwork_object.artist + " has increased in value.";
@@ -217,13 +231,6 @@ var preservationistInteraction = function(npc_object) {
 }
 
 var artExpertInteraction = function(npc_object) {
-	if (procUniqueAttribute("XP_FOR_ZERO_COUNTS")) {
-		var zero_count_items = items.find({'owner' : Meteor.userId(), 'status' : 'displayed', 'roll_count' : 0}).count();
-		for (var i=0; i<zero_count_items; i++) {
-			addXPChunkPercentage(Meteor.userId(), .1);
-		}
-	}
-
 	var roll_reduction;
 
 	var highest_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}, 'roll_count' : {$gt : 0}}, {sort: {'roll_count': -1}});
@@ -239,8 +246,21 @@ var artExpertInteraction = function(npc_object) {
 		default: roll_reduction = 0; break;
 	}
 
-	if (isOwnGallery(npc_object))
+	if (isOwnGallery(npc_object)) {
 		roll_reduction += 2;
+
+		if (procUniqueAttribute("XP_FOR_ZERO_COUNTS")) {
+			var zero_count_items = items.find({'owner' : Meteor.userId(), 'status' : 'displayed', 'roll_count' : 0}).count();
+			for (var i=0; i<zero_count_items; i++) {
+				addXPChunkPercentage(Meteor.userId(), .1);
+			}
+		}
+
+		if (procUniqueAttribute("DONOR_REROLL_DEDUCTION_BONUS")) {
+			if (npcs.findOne({'owner_id': Meteor.userId(), 'attribute_id': attributes.findOne({'npc_name': "Art Donor"})._id}) != undefined)
+				roll_reduction *= 2;
+		}
+	}
 
 	var artwork_object = artworks.findOne(highest_item.artwork_id);
 
@@ -269,13 +289,19 @@ var collectorInteraction = function(npc_object) {
 		default: offer_multiplier = 0; break;
 	}
 
-	if (isOwnGallery(npc_object))
-		offer_multiplier *= 1.4;
-
 	var random_claimed = selectRandomPainting({'owner': Meteor.userId(), 'status': "claimed", 'original': false, 'seasonal': {$ne: true}, 'lottery': {$in: [0, false]}});
 
 	if (random_claimed) {
+		if (isOwnGallery(npc_object)) {
+			offer_multiplier *= 1.4;
+
+			if (procUniqueAttribute("GOOD_CONDITION_COLLECTOR_BONUS") && random_claimed.condition > .8) {
+				offer_multiplier += 1;
+			}
+		}
+
 		var offer = Math.floor(getItemValue(random_claimed._id, "actual") * offer_multiplier);
+
 		return {'type': "collector_bonus", 'offer': offer, 'item': random_claimed};
 	}
 
@@ -288,12 +314,13 @@ var collectorInteraction = function(npc_object) {
 var artDealerInteraction = function(npc_object) {
 	var drop_count = 4;
 
-	if (procUniqueAttribute("BONUS_DEALER_DONOR")) {
-		drop_count += 1;
-	}
-
-	if (isOwnGallery(npc_object))
+	if (isOwnGallery(npc_object)) {
 		drop_count += 2;
+
+		if (procUniqueAttribute("BONUS_DEALER_DONOR")) {
+			drop_count += 1;
+		}
+	}
 
 	generateItems(Meteor.userId(), npc_object.quality, drop_count, "for_sale");
 
