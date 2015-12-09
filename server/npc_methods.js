@@ -204,6 +204,25 @@ var preservationistInteraction = function(npc_object) {
 		if (target_item && procUniqueAttribute(Meteor.userId(), "PRESERVATIONIST_CONDITION_BONUS") && target_item.condition > .8) {
 			addFunds(Meteor.userId(), Math.floor(getItemObjectValue(target_item, "display") * .5));
 		}
+
+		if (procUniqueAttribute(Meteor.userId(), "PRESERVATIONIST_FINISH_BOOST") && npcs.findOne({'owner_id': Meteor.userId(), 'attribute_id': attributes.findOne({'npc_name': "Designer"})._id}) != undefined) {
+			var increase_amount = .04;
+			var user_object = Meteor.user();
+			var current_wall = user_object.profile.gallery_finishes.active.wall_finish;
+			var current_floor = user_object.profile.gallery_finishes.active.floor_finish;
+			var current_wall_rating = user_object.profile.gallery_finishes.owned.wall_finishes[current_wall].xp_rating;
+			var current_floor_rating = user_object.profile.gallery_finishes.owned.floor_finishes[current_floor].xp_rating;
+
+			var setter = {};
+
+			var wall_setter_string = "profile.gallery_finishes.owned.wall_finishes." + current_wall + ".xp_rating";
+			setter[wall_setter_string] = Number((current_wall_rating + increase_amount).toFixed(2)) > 1 ? 1 : Number((current_wall_rating + increase_amount).toFixed(2));
+
+			var floor_setter_string = "profile.gallery_finishes.owned.floor_finishes." + current_floor + ".xp_rating";
+			setter[floor_setter_string] = Number((current_floor_rating + increase_amount).toFixed(2)) > 1 ? 1 : Number((current_floor_rating + increase_amount).toFixed(2));
+
+			Meteor.users.update(Meteor.userId(), {$set: setter});
+		}
 	}
 
 	else target_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}}, {sort: {'condition': 1}});

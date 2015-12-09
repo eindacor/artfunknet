@@ -393,7 +393,6 @@ Meteor.methods({
 
     'updateUniqueAttributeData': function(unique_attribute_id, unique_attribute_object) {
     	if (adminValidated() && linkedAttributesValid(unique_attribute_id, unique_attribute_object.linked_attributes)) {
-    		console.log(unique_attribute_object);
     		unique_attributes.update(unique_attribute_id, {$set: unique_attribute_object});
     		return true;
     	}
@@ -403,7 +402,6 @@ Meteor.methods({
 
     'addNewUniqueAttribute': function(unique_attribute_object) {
     	if (adminValidated() && linkedAttributesValid(undefined, unique_attribute_object.linked_attributes)) {
-    		console.log(unique_attribute_object);
     		return unique_attributes.insert(unique_attribute_object);
     	}
 
