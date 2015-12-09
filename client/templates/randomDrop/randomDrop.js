@@ -85,7 +85,7 @@ Template.randomDrop.rendered = function() {
 		Session.set('now', moment().toISOString());
 	}), 1000);
 
-	if (Meteor.user().profile.tutorials.loot) {
+	if (Meteor.user() && Meteor.user().profile.tutorials.loot) {
 		Blaze.renderWithData(Template.modalTemplate, {
 			'modal_name': "tutorialModal", 
 			'modal_data': {

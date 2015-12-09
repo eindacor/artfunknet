@@ -146,7 +146,7 @@ var benefactorInteraction = function(npc_object) {
 	if (isOwnGallery(npc_object)) {
 		donation_amount *= own_gallery_amplifier;
 
-		if (procUniqueAttribute("BENEFACTOR_MARKET_EXPERT_RATING_BONUS")) {
+		if (procUniqueAttribute(Meteor.userId(), "BENEFACTOR_MARKET_EXPERT_RATING_BONUS")) {
 			if (Meteor.user().profile.market_expert.expiration > moment()._d.toISOString()) {
 				donation_amount += (Meteor.user().profile.market_expert.rating * donation_amount);
 			}
@@ -168,7 +168,7 @@ var donorInteraction = function(npc_object) {
 	if (isOwnGallery(npc_object)) {
 		drop_count += 1;
 
-		if (procUniqueAttribute("BONUS_DEALER_DONOR")) {
+		if (procUniqueAttribute(Meteor.userId(), "BONUS_DEALER_DONOR")) {
 			drop_count += 1;
 		}
 	}
@@ -195,11 +195,15 @@ var preservationistInteraction = function(npc_object) {
 	if (isOwnGallery(npc_object)) {
 		repair_amount *= own_gallery_amplifier;
 
-		if (procUniqueAttribute("PRESERVATIONIST_HIGHEST")) {
+		if (procUniqueAttribute(Meteor.userId(), "PRESERVATIONIST_HIGHEST")) {
 			target_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}, 'condition': {$lt: 1}}, {sort: {'condition': -1}});
 		}
 
 		else target_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}}, {sort: {'condition': 1}});
+
+		if (target_item && procUniqueAttribute(Meteor.userId(), "PRESERVATIONIST_CONDITION_BONUS") && target_item.condition > .8) {
+			addFunds(Meteor.userId(), Math.floor(getItemObjectValue(target_item, "display") * .5));
+		}
 	}
 
 	else target_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}}, {sort: {'condition': 1}});
@@ -249,14 +253,14 @@ var artExpertInteraction = function(npc_object) {
 	if (isOwnGallery(npc_object)) {
 		roll_reduction += 2;
 
-		if (procUniqueAttribute("XP_FOR_ZERO_COUNTS")) {
+		if (procUniqueAttribute(Meteor.userId(), "XP_FOR_ZERO_COUNTS")) {
 			var zero_count_items = items.find({'owner' : Meteor.userId(), 'status' : 'displayed', 'roll_count' : 0}).count();
 			for (var i=0; i<zero_count_items; i++) {
 				addXPChunkPercentage(Meteor.userId(), .1);
 			}
 		}
 
-		if (procUniqueAttribute("DONOR_REROLL_DEDUCTION_BONUS")) {
+		if (procUniqueAttribute(Meteor.userId(), "DONOR_REROLL_DEDUCTION_BONUS")) {
 			if (npcs.findOne({'owner_id': Meteor.userId(), 'attribute_id': attributes.findOne({'npc_name': "Art Donor"})._id}) != undefined)
 				roll_reduction *= 2;
 		}
@@ -295,12 +299,34 @@ var collectorInteraction = function(npc_object) {
 		if (isOwnGallery(npc_object)) {
 			offer_multiplier *= 1.4;
 
-			if (procUniqueAttribute("GOOD_CONDITION_COLLECTOR_BONUS") && random_claimed.condition > .8) {
-				offer_multiplier += 1;
+			if (procUniqueAttribute(Meteor.userId(), "GOOD_CONDITION_COLLECTOR_BONUS") && random_claimed.condition > .8) {
+				offer_multiplier += .7;
+			}
+
+			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_ROLL_COUNT_BONUS") && random_claimed.roll_count == 0) {
+				offer_multiplier += .7;
+			}
+
+			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_SPECIAL_BONUS")) {
+				if (random_claimed.foil || random_claimed.original || random_claimed.lottery || random_claimed.seasonal)
+					offer_multiplier += 1;
+			}
+
+			if (procUniqueAttribute(Meteor.userId(), "COLLECTOR_DISPLAY_OFFER")) {
+				var random_displayed = selectRandomPainting({'owner': Meteor.userId(), 'status': "displayed"});
+
+				if (random_displayed) {
+					var donation_amount = Math.floor((getItemValue(random_displayed._id, "display") * .2) * offer_multiplier);
+					addFunds(Meteor.userId(), donation_amount);
+					var artwork_object = artworks.findOne(random_displayed.artwork_id);
+					var message = "You have met an Art Collector, who was admiring " + artwork_object.title + " by " + artwork_object.artist + ", currently on display in your gallery. They offer you $" + getCommaSeparatedValue(donation_amount) + " for their appreciation of the piece, and insist that you keep and maintain it for the world to enjoy.";
+					return {'message': message}
+				}
+
 			}
 		}
 
-		var offer = Math.floor(getItemValue(random_claimed._id, "actual") * offer_multiplier);
+		var offer = Math.floor(getItemValue(random_claimed._id, "display") * offer_multiplier);
 
 		return {'type': "collector_bonus", 'offer': offer, 'item': random_claimed};
 	}
@@ -317,7 +343,7 @@ var artDealerInteraction = function(npc_object) {
 	if (isOwnGallery(npc_object)) {
 		drop_count += 2;
 
-		if (procUniqueAttribute("BONUS_DEALER_DONOR")) {
+		if (procUniqueAttribute(Meteor.userId(), "BONUS_DEALER_DONOR")) {
 			drop_count += 1;
 		}
 	}

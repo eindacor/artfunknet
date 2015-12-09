@@ -168,10 +168,14 @@ Template.itemInfo.helpers({
 				attribute_array.push(attribute_object._id);
 		});
 		
-		if (attribute_array.length < 2);
+		if (attribute_array.length < 2 || attribute_array.length > 3)
 			return [];
 
-		return unique_attributes.find({'linked_attributes': {$all: attribute_array}});
+		else {
+			var first_id = attribute_array[0];
+			var second_id = attribute_array[1];
+			return unique_attributes.find({$and: [{'linked_attributes': {$in: [first_id]}}, {'linked_attributes': {$in: [second_id]}}]});
+		}
 	}
 })
 

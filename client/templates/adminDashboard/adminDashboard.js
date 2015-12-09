@@ -225,6 +225,18 @@ Template.adminTools.events({
     	});
     },
 
+    'click #generate-unique' : function(element) {
+    	var artwork_id = $(element.target).data().artwork_id;
+
+    	Meteor.call('generateRandomItemFromArtworkID', Meteor.userId(), artwork_id, function(error, result) {
+    		if (error)
+    			console.log(error.message);
+
+    		if (result === undefined)
+    			console.log("an error has occurred");
+    	});
+    },
+
     'click #modify-profiles' : function(element) {
     	var field_name = $('#profile-add-field').val();
     	var entered_value = $('#profile-add-value').val();
@@ -492,9 +504,10 @@ Template.adminTools.events({
 					console.log(error.message);
 
 				else if (result) {
-					$('.unique-attribute-mod-selector').append('<option value="' + result + '">' + unique_attribute_object.title + '</option>');
-					$('.unique-attribute-mod-selector').val(result);
+					// $('.unique-attribute-mod-selector').append('<option value="' + result + '">' + unique_attribute_object.title + '</option>');
+					// $('.unique-attribute-mod-selector').val(result);
 					unique_attribute_mod_tracker.changed();
+					$('.unique-attribute-mod-selector').val(result);
 				}
 			});
 		}
@@ -723,6 +736,17 @@ Template.adminTools.helpers({
 
 	'attributeLinkChoice' : function(attribute_id) {
 		return attributes.find({'_id': {$ne: attribute_id}, 'active': true});
+	},
+
+	'unique_legendary' : function() {
+		unique_attribute_mod_tracker.depend();
+
+		var unique_attribute_object = unique_attributes.findOne($('.unique-attribute-mod-selector').val());
+
+		if (unique_attribute_object)
+			return artworks.find({'locked_attributes': {$all : unique_attribute_object.linked_attributes}});
+
+		else return [];
 	}
 })
 

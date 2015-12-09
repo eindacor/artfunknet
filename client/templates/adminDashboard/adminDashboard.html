@@ -170,6 +170,10 @@
 						</div>
 					</div>
 					<p><button id="update-unique-attribute">update unique</button></p>
+					{{#each unique_legendary}}
+						<p>{{title}} by {{artist}}</p>
+						<p><button id="generate-unique" data-artwork_id="{{_id}}">generate artwork</button></p>
+					{{/each}}
 				</div>
 
 				<div class="row artist-mod tools-section">

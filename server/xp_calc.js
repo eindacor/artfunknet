@@ -85,6 +85,10 @@ levelUp = function(user_id) {
 }
 
 addXP = function(user_id, xp) {
+	if (procUniqueAttribute(user_id, "MONEY_FOR_XP")) {
+		addFunds(user_id, xp * 2);
+	}
+
 	var xp_to_add = xp;
 	var player_object = Meteor.users.findOne(user_id);
 	var player_level = player_object.profile.level;
