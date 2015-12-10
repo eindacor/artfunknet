@@ -283,6 +283,17 @@ Template.itemInfo.events({
 		})
 	},
 
+	'click .tags.enabled' : function(element) {
+		element.stopPropagation();
+		var item_id = $(element.target).closest('.card-container').data('item_id');
+		Blaze.renderWithData(Template.modalTemplate, {
+			'modal_name': "tagItemModal", 
+			'modal_data': {
+				'item_data': items.findOne(item_id)
+			}
+		}, $('body')[0]);
+	},
+
 	'click .preview' : function(element) {
 		element.stopPropagation();
 		var item_id = $(element.target).closest('.card-container').data('item_id');

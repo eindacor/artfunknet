@@ -316,7 +316,8 @@ generateItemFromArtworkID = function(user_id, artwork_id, condition, xp_rating, 
             'foil': foil === undefined ? (seasonal_ids.indexOf(artwork_id) == -1 && Math.random() < .01) : foil,
             'seasonal': seasonal === undefined ? seasonal_ids.indexOf(artwork_id) != -1 : seasonal,
             'lottery': lottery === undefined ? false : lottery,
-            'original': original === undefined ? false : original
+            'original': original === undefined ? false : original,
+            'tags': []
         });
 
         return new_item_id;

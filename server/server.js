@@ -81,7 +81,7 @@ var updateContent = function() {
     })
 
     // temp code
-
+    items.update({}, {$set: {'tags': []}}, {multi: true});
     // temp code
 }
 

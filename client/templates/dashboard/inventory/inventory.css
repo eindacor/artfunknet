@@ -88,3 +88,12 @@
 .template-inventory {
 	margin-bottom: 100px;
 }
+
+.template-inventory #tag-selector {
+	resize: none;
+	width: 100%;
+	height: 4rem;
+	font-size: 2rem;
+	margin-bottom: 24px;
+	padding: .4rem 2rem;
+}

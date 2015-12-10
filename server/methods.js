@@ -249,7 +249,7 @@ Meteor.methods({
                 chargeAccount(user_object._id, auction_object.buy_now);
                 var owner_id = item_object.owner;
                 addFunds(owner_id, auction_object.buy_now);
-                items.update({'_id': item_object._id}, {$set: {'status' : 'claimed', 'owner': user_object._id}});
+                items.update({'_id': item_object._id}, {$set: {'status' : 'claimed', 'owner': user_object._id, 'tags': []}});
                 auctions.remove({'_id': auction_id});
 
                 return;

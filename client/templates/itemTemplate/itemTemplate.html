@@ -42,7 +42,7 @@
 					<div class="row no-margin">
 						<div class="button-area">
 							{{#if isEqual item_data.status "displayed"}}
-								<p><span class="remaining-text">on display - {{time_remaining item_data}}</span></p>
+								<span class="remaining-text">on display - {{time_remaining item_data}}</span>
 							{{else}}
 
 								{{#if claim_button}}
@@ -72,7 +72,11 @@
 								{{#if decline_button}}
 									<span class="decline {{#if can_decline item_data}}enabled{{else}}disabled{{/if}}"><i data-item_id="{{item_data._id}}" class="fa fa-times"></i></span>		
 								{{/if}}
+								
 
+							{{/if}}
+							{{#if tag_button}}
+								<span class="tags enabled"><i data-item_id="{{item_data._id}}" class="fa fa-tags"></i></span>		
 							{{/if}}
 						</div>
 					</div>

@@ -1,0 +1,17 @@
+<template name="tagItemModal">
+	<div class="template-tagItemModal col-xs-12">
+		<div class="message-container">
+			<div class="modal-message-area">
+				{{#with artwork_data this.item_data.artwork_id}}
+				<p class="modal-message">Enter tags for <span class="af-color">{{title}}</span> by <span class="af-color">{{artist}}</span></p>
+				{{/with}}
+				<p>(separate tags with a comma, e.g. "primary, to auction, foils")</p>
+				<textarea id="tag-entry">{{this.item_data.tags}}</textarea>
+			</div>
+			<div class="modal-button-area">
+				<button class="modal-button ok-button" data-item_id="{{this.item_data._id}}">ok</button>
+				<button class="modal-button close-button">close</button>
+			</div>
+		</div>
+	</div>
+</template>

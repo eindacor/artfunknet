@@ -1,6 +1,14 @@
+var display_tracker = new Tracker.Dependency;
+var tags = [];
+
 Template.inventory.helpers({
 	'owned': function() {	
-		return items.find({'owner': Meteor.userId(), 'status': {$in : ['claimed', 'displayed', 'permanent']}}, {sort: {'aftwork_id' : 1}}).fetch();
+		display_tracker.depend();
+
+		if (tags.length == 0)
+			return items.find({'owner': Meteor.userId(), 'status': {$in : ['claimed', 'displayed', 'permanent']}}, {sort: {'aftwork_id' : 1}}).fetch();
+
+		else return items.find({'owner': Meteor.userId(), 'status': {$in : ['claimed', 'displayed', 'permanent']}, 'tags': {$in: tags}}, {sort: {'aftwork_id' : 1}}).fetch();
 	},
 	
 	'onDisplay' : function(item_id) {
@@ -99,6 +107,19 @@ Template.inventory.helpers({
 Template.inventory.events({
 	'click #toggle-view' : function() {
 		Session.set('list_view', !Session.get('list_view'));
+	},
+
+	'keyup #tag-selector': function(event) {
+		var entered = $('#tag-selector').val();
+		tags = commaSeparatedValuesToArray($('#tag-selector').val());
+		display_tracker.changed();
+	}, 
+
+	'keydown #tag-selector': function(event) {
+		if (event.keyCode == 13) {
+			$('#tag-selector').blur();
+			event.preventDefault();
+		}
 	}
 })
 

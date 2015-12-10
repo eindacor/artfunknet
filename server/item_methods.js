@@ -104,7 +104,7 @@ concludeAuction = function(auction_id) {
 }
 
 transferAuctionItem = function(item_id, owner_id, winner_id) {
-    items.update(item_id, {$set: {'status' : 'claimed', 'owner': winner_id}}, function(error) {
+    items.update(item_id, {$set: {'status' : 'claimed', 'owner': winner_id, 'tags': []}}, function(error) {
         if (error)
             console.log(error.message);
 
@@ -314,7 +314,7 @@ Meteor.methods({
                 throw "invalid amount";
 
             addFunds(Meteor.userId(), value);
-            items.update(item_id, {$set: {'owner': "Artfunkel, Inc.", 'status': "auctioned"}} ,function(error) {
+            items.update(item_id, {$set: {'owner': "Artfunkel, Inc.", 'status': "auctioned", 'tags': []}} ,function(error) {
                 if (error)
                     console.log(error.message);
 
@@ -364,6 +364,10 @@ Meteor.methods({
         }
 
         return errors;
+    },
+
+    'tagItem' : function(item_id, tags) {
+        items.update({'_id': item_id, 'owner': Meteor.userId()}, {$set: {'tags': tags}});
     },
 
     'getItemValue' : function(item_id, type) {
