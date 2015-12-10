@@ -135,6 +135,7 @@ Template.inventory.created = function() {
 
 Template.inventory.rendered = function() {
 	Blaze.getData($('.template-inventory')[0])["value_data"] = {};
+	tags = [];
 }
 
 Template.inventory.destroyed = function() {
