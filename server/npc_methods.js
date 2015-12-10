@@ -489,8 +489,7 @@ var designerInteraction = function(npc_object) {
 	}
 }
 
-var generateTarget = function() {
-	var default_target_count = 3;
+var generateTarget = function(default_target_count) {
 	var target = [];
 
 	for (var i=0; i<default_target_count; i++) {
@@ -511,7 +510,7 @@ var generateTarget = function() {
 	return target;
 }
 
-var generateQuest = function(rarity) {
+var generateQuest = function(rarity, is_own_gallery) {
 	var player_ratio = playerRatio(Meteor.user());
     var max_money = 200000 + (800000 * player_ratio);
     var player_level = Meteor.user().profile.level;
@@ -571,9 +570,14 @@ var generateQuest = function(rarity) {
 		default: return undefined;
 	};
 
+	var target_count = 3;
+	if (is_own_gallery && procUniqueAttribute(Meteor.userId(), "QUEST_TARGET_REDUCTION") && npcs.findOne({'owner_id': Meteor.userId(), 'attribute_id': attributes.findOne({'npc_name': "Designer"})._id}) != undefined) {
+		target_count--;
+	}
+
 	return {
 		'owner_id': Meteor.userId(),
-		'target': generateTarget(),
+		'target': generateTarget(target_count),
 		'reward': reward,
 		'rarity': rarity
 	}
@@ -582,7 +586,8 @@ var generateQuest = function(rarity) {
 
 var historianInteraction = function(npc_object) {
 	var max_quest_count = 8;
-	if (quests.find({'owner_id': Meteor.userId()}).count() >= max_quest_count) {
+	var quest_cap_bypass = isOwnGallery(npc_object) && procUniqueAttribute(Meteor.userId(), "QUEST_CAP_BYPASS");
+	if (quests.find({'owner_id': Meteor.userId()}).count() >= max_quest_count && !quest_cap_bypass) {
 		var message = "You have men an art historian who is looking for a few specific items, but you currently have too many tasks on your schedule to help them.";
 		return {'type': undefined, 'message': message};
 	}
@@ -599,7 +604,7 @@ var historianInteraction = function(npc_object) {
 
     var rarity_roll = JepLoot.catRoll(getSmartRarityMap(Meteor.user().profile.level, map_amplifier));
 
-    var quest_object = generateQuest(rarity_roll);
+    var quest_object = generateQuest(rarity_roll, isOwnGallery(npc_object));
 
     quests.insert(quest_object);
 
@@ -644,7 +649,7 @@ var marketExpertInteraction = function(npc_object) {
         default: break;
 	}
 
-	if (isOwnGallery) {
+	if (isOwnGallery(npc_object)) {
 		market_expert_duration = Math.floor(market_expert_duration * 2.5);
 		market_expert_duration_extension = Math.floor(market_expert_duration_extension * 2.5);
 		market_expert_rating += .02;

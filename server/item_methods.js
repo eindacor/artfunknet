@@ -357,6 +357,9 @@ Meteor.methods({
         if (errors.length == 0) {
             items.update({'_id': item_id}, {$set: {'status' : 'auctioned'}}, function() {
                 createAuction(item_id, starting, buy_now, duration);
+                if (procUniqueAttribute(Meteor.userId(), "XP_FOR_AUCTIONS") && Meteor.user().profile.market_expert.expiration > moment()._d.toISOString()) {
+                    addXPChunkPercentage(Meteor.userId(), .5)
+                }
             });
         }
 

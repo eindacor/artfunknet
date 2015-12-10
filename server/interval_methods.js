@@ -83,9 +83,12 @@ Meteor.setInterval((function() {
             
             var proc_chance = default_spawn_chance * attribute_values[attribute_ids[i]];
             var description = attributes.findOne(attribute_ids[i]).description;           
-            var proc = JepLoot.booRoll(proc_chance);
-            if (proc)
+            if (JepLoot.booRoll(proc_chance)) {
                 createNPC(db_object, attribute_ids[i], npc_spawn_frequency);
+
+                if (attribute_object.npc_name == "Designer" && procUniqueAttribute(db_object.owner_id, "DESIGNER_PAIRS") && Math.random() < .8)
+                    createNPC(db_object, attribute_ids[i], npc_spawn_frequency);
+            }
         }
     });
 
