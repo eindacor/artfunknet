@@ -131,11 +131,14 @@ Template.inventory.created = function() {
 		var now = moment();
 		Session.set('now', now.toISOString());
 	}), 1000);
+	tags = [];
+	display_tracker.changed();
 }
 
 Template.inventory.rendered = function() {
 	Blaze.getData($('.template-inventory')[0])["value_data"] = {};
 	tags = [];
+	display_tracker.changed();
 }
 
 Template.inventory.destroyed = function() {
