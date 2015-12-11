@@ -65,17 +65,14 @@ Template.forSaleInfo.helpers({
 	'itemData' : function(item_id) {
 		var item_object = items.findOne(item_id);
 		if (item_object != undefined) {
-			
-			var artwork_object = artworks.findOne(item_object.artwork_id);
-
 			var item_data_object = {
-				'title' : artwork_object.title,
-				'date' : artwork_object.date,
-				'artist' : artwork_object.artist,
-				'rarity' : artwork_object.rarity,
-				'medium' : artwork_object.medium,
-				'width' : artwork_object.width,
-				'height' : artwork_object.height,
+				'title' : item_object.artwork_data.title,
+				'date' : item_object.artwork_data.date,
+				'artist' : item_object.artwork_data.artist,
+				'rarity' : item_object.artwork_data.rarity,
+				'medium' : item_object.artwork_data.medium,
+				'width' : item_object.artwork_data.width,
+				'height' : item_object.artwork_data.height,
 				'condition_text' : Math.floor(item_object.condition * 100) + '%',
 				'condition' : item_object.condition,
 				'attribute' : item_object.attributes,

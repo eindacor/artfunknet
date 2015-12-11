@@ -54,17 +54,16 @@
 <template name="galleryItem">
 	<div class="painting-container" data-item_id="{{painting_info._id}}" style="margin: 0px {{calcMargin this}}px 0px {{calcMargin this}}px">
 		<div class="item" style="padding: {{finish_data.matte_width}}px; border: {{finish_data.frame_width}}px solid black">
-			<div style="width: {{calcWidth this}}px; height: {{calcHeight this}}px; background: url({{#with getFilename painting_info.artwork_id}}{{getImageURL this}}{{/with}}); background-size: 100% 100%">
+			<div style="width: {{calcWidth this}}px; height: {{calcHeight this}}px; background: url({{getImageURL painting_info.artwork_data.filename}}); background-size: 100% 100%">
 				{{#if shimmer this}}<div class="foil" style="width: {{calcWidth this}}px; height: {{calcHeight this}}px"></div>{{/if}}
 			</div>
 		</div>
-		{{#with plackardData this}}
-		<div class="plackard" style="width: {{width}}px; height: {{height}}px; font-size: {{text_height}}px">
-			<p>{{artwork_data.title}}</p>
-			<p>{{artwork_data.artist}}, {{artwork_data.date}}</p>
-			<p class="{{artwork_data.rarity}}">{{artwork_data.rarity}}</p>
+		
+		<div class="plackard" style="{{#with plackardData this}}font-size: {{text_height}}px{{/with}}">
+			<p>{{painting_info.artwork_data.title}}</p>
+			<p>{{painting_info.artwork_data.artist}}, {{painting_info.artwork_data.date}}</p>
+			<p class="{{painting_info.artwork_data.rarity}}">{{painting_info.artwork_data.rarity}}</p>
 		</div>
-		{{/with}}
 	</div>
 </template>
 

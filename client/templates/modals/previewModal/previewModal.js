@@ -26,7 +26,6 @@ Template.previewModal.helpers({
 	'imageInfo' : function(item_id) {
 		try {
 			var item_object = items.findOne(item_id);
-			var artwork_object = artworks.findOne(item_object.artwork_id);
 			var auction_object = auctions.findOne(Session.get('selectedAuction')); 
 			var biddable = 
 				(item_object.owner != Meteor.userId()) && 
@@ -35,16 +34,15 @@ Template.previewModal.helpers({
 
 			var max_dimension = 400;
 
-			var width = artwork_object.width;
-			var height = artwork_object.height;
+			var width = item_object.artwork_data.width;
+			var height = item_object.artwork_data.height;
 			var ratio = width / height;
 
 			var info_object = {
 				'image_width' : 0,
 				'image_height' : 0,
 				'biddable' : biddable,
-				'filename' : artwork_object.filename,
-				'imageURL' : artwork_object.img_link == "" ? "http://go-grafix.com/data/wallpapers/35/painting-626297-1920x1080-hq-dsk-wallpapers.jpg" : artwork_object.img_link
+				'filename' : item_object.artwork_data.filename
 			};
 
 			if (width > height) {

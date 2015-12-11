@@ -73,11 +73,10 @@ Template.onDisplayModal.helpers({
 	'itemData' : function() {
 		var item_object = items.findOne(Session.get('selectedItem'));
 		if (!!item_object) {
-			var artwork_object = artworks.findOne(item_object.artwork_id);
 			return {
 				'item_id' : item_object._id,
-				'title' : artwork_object.title,
-				'artist' : artwork_object.artist
+				'title' : item_object.artwork_data.title,
+				'artist' : item_object.artwork_data.artist
 			}
 		}
 

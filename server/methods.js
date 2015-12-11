@@ -141,7 +141,7 @@ Meteor.methods({
             var tallest_painting_cm = 0;
             for (var i=0; i < all_items.length; i++) {
                 if (all_items[i].artwork_data.height > tallest_painting_cm)
-                    tallest_painting_cm = all_items[i].height;
+                    tallest_painting_cm = all_items[i].artwork_data.height;
             }
 
             var pixels_per_centimeter = max_painting_height_pixels / tallest_painting_cm;
@@ -155,7 +155,6 @@ Meteor.methods({
 
             var matte_width_range = max_matte_width_cm - min_matte_width_cm;
             var matte_width = Math.floor((min_matte_width_cm + (user_object.profile.gallery_finishes.matte_width * matte_width_range)) * pixels_per_centimeter);
-
 
             if (user_object) {
                 return {

@@ -48,7 +48,9 @@ Template.userGallery.helpers({
 			return {}
 		}
 
-		else return this['gallery_data']
+		else {
+			return this['gallery_data'];
+		}
 	},
 
 	'time_remaining': function(item_id) {
@@ -273,7 +275,7 @@ Template.userGallery.destroyed = function() {
 }
 
 Template.userGallery.rendered = function() {
-	if (this.data.screen_name == Meteor.user().profile.screen_name && Meteor.user().profile.tutorials.my_gallery) 
+	if (Meteor.user() && this.data.screen_name == Meteor.user().profile.screen_name && Meteor.user().profile.tutorials.my_gallery) 
 	{
 		Blaze.renderWithData(Template.modalTemplate, {
 			'modal_name': "tutorialModal", 
@@ -289,18 +291,12 @@ Template.userGallery.rendered = function() {
 }
 
 Template.galleryItem.helpers({
-	'getFilename' : function(artwork_id) {
-		return artworks.findOne(artwork_id).filename;
-	},
-
 	'calcWidth' : function(data) {
-		var artwork_object = artworks.findOne(data.painting_info.artwork_id);
-		return Math.floor(artwork_object.width * Number(data.finish_data.pixels_per_centimeter));
+		return Math.floor(data.painting_info.artwork_data.width * Number(data.finish_data.pixels_per_centimeter));
 	},
 
 	'calcHeight' : function(data) {
-		var artwork_object = artworks.findOne(data.painting_info.artwork_id);
-		return Math.floor(artwork_object.height * Number(data.finish_data.pixels_per_centimeter));
+		return Math.floor(data.painting_info.artwork_data.height * Number(data.finish_data.pixels_per_centimeter));
 	},
 
 	'calcMargin' : function(data) {
@@ -309,7 +305,6 @@ Template.galleryItem.helpers({
 
 	'plackardData' : function(data) {
 		return {
-			'artwork_data': artworks.findOne(data.painting_info.artwork_id),
 			'text_height': Math.floor(data.finish_data.pixels_per_centimeter * 2)
 		}
 	},

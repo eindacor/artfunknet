@@ -31,11 +31,9 @@ Template.rerollModal.helpers({
 	'itemData' : function() {
 		var item_object = items.findOne(Session.get('selectedItem'));
 		if (!!item_object) {
-			var artwork_object = artworks.findOne(item_object.artwork_id);
-
 			return {
-				'title' : artwork_object.title,
-				'artist' : artwork_object.artist,
+				'title' : item_object.artwork_data.title,
+				'artist' : item_object.artwork_data.artist,
 				'xp_rating' : Math.floor(item_object.xp_rating * 100),
 				'roll_count' : item_object.roll_count,
 				'attribute' : item_object.attributes,

@@ -3,16 +3,14 @@ Template.galleryItemInfo.helpers({
 		var item_object = items.findOne(item_id);
 		if (item_object != undefined) {
 			
-			var artwork_object = artworks.findOne(item_object.artwork_id);
-
 			var item_data_object = {
-				'title' : artwork_object.title,
-				'date' : artwork_object.date,
-				'artist' : artwork_object.artist,
-				'rarity' : artwork_object.rarity,
-				'medium' : artwork_object.medium,
-				'width' : artwork_object.width,
-				'height' : artwork_object.height,
+				'title' : item_object.artwork_data.title,
+				'date' : item_object.artwork_data.date,
+				'artist' : item_object.artwork_data.artist,
+				'rarity' : item_object.artwork_data.rarity,
+				'medium' : item_object.artwork_data.medium,
+				'width' : item_object.artwork_data.width,
+				'height' : item_object.artwork_data.height,
 				'condition_text' : Math.floor(item_object.condition * 100) + '%',
 				'condition' : item_object.condition,
 				'attribute' : item_object.attributes,
@@ -50,21 +48,19 @@ Template.galleryItemThumbnail.helpers({
 	'imageInfo' : function(item_id) {
 		try {
 			var item_object = items.findOne(item_id);
-			var artwork_object = artworks.findOne(item_object.artwork_id);
 
 			var overall_dimension = 210;
 			var max_dimension = 200;
 
-			var width = artwork_object.width;
-			var height = artwork_object.height;
+			var width = item_object.artwork_data.width;
+			var height = item_object.artwork_data.height;
 			var ratio = width / height;
 
 			var info_object = {
 				'item_id' : item_id,
 				'image_width' : 0,
 				'image_height' : 0,
-				'filename' : artwork_object.filename,
-				'imageURL' : artwork_object.img_link == "" ? "http://go-grafix.com/data/wallpapers/35/painting-626297-1920x1080-hq-dsk-wallpapers.jpg" : artwork_object.img_link
+				'filename' : item_object.artwork_data.filename,
 			};
 
 			if (width > height) {
