@@ -167,8 +167,11 @@ Template.registerHelper('itemPermissions', function(item_object) {
 			'reroll': item_controlled && item_object.status == "claimed",
 			'claim': item_controlled && item_object.status == "unclaimed" && items.find({'owner' : Meteor.userId(), 'status' : {$nin: ['unclaimed', 'for_sale']}}).count() < Meteor.user().profile.inventory_cap,
 			'permanent': item_controlled && (item_object.status == "claimed" || item_object.status == "permanent"),
-			'can_purchase': item_object.owner == Meteor.userId() && item_object.status == 'for_sale' && items.find({'owner' : Meteor.userId(), 'status' : {$nin: ['unclaimed', 'for_sale']}}).count() < Meteor.user().profile.inventory_cap,
-			'decline': item_object.status == "for_sale" && item_object.owner == Meteor.userId()
+			'purchase': item_object.owner == Meteor.userId() && item_object.status == 'for_sale' && items.find({'owner' : Meteor.userId(), 'status' : {$nin: ['unclaimed', 'for_sale']}}).count() < Meteor.user().profile.inventory_cap,
+			'decline': item_object.status == "for_sale" && item_object.owner == Meteor.userId(),
+			'display': item_controlled && items.find({'owner' : Meteor.userId(), 'status' : 'displayed'}).count() < Meteor.user().profile.display_cap && 
+				items.find({'owner' : Meteor.userId(), 'status' : {$in: ['displayed', 'permanent']}, 'artwork_id' : item_object.artwork_id}).count() == 0 &&
+				item_object.status == 'claimed'
 		}
 
 		return permission_object;

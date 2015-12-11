@@ -31,14 +31,6 @@ Template.itemInfo.rendered = function() {
 }
 
 Template.itemInfo.helpers({
-	'isFoil' : function() {
-		return Math.random() < .2;
-	},
-
-	'attributeLevel' : function(value) {
-		return Math.floor(value * 100);
-	},
-
 	'imageSize' : function(width, height) {
 		div_size_tracker.depend();
 
@@ -85,51 +77,6 @@ Template.itemInfo.helpers({
 
 		var remaining_text = remaining > 0 ? getCountdownString(remaining) : "expired";
 		return remaining_text;
-	},
-
-	'can_display' : function(display_object) {
-		if (itemOwned(display_object)) {
-			return items.find({'owner' : Meteor.userId(), 'status' : 'displayed'}).count() < Meteor.user().profile.display_cap && 
-				items.find({'owner' : Meteor.userId(), 'status' : 'displayed', 'artwork_id' : display_object.artwork_id}).count() == 0 &&
-				display_object.status == 'claimed';
-		}
-
-		else return false;
-	},
-
-	'can_auction' : function(display_object) {
-		if (itemOwned(display_object)) {
-			return items.find({'owner' : Meteor.userId(), 'status' : 'auctioned'}).count() < Meteor.user().profile.auction_cap &&
-				display_object.status == 'claimed';
-		}
-
-		else return false;
-	},
-
-	'can_sell' : function(display_object) {
-		return itemOwned(display_object) && (display_object.status == 'claimed' || display_object.status == 'unclaimed') && items.find({'owner': Meteor.userId(), 'status': {$nin: ["unclaimed", "for_sale"]}}).count() > 1;
-	},
-
-	'can_reroll' : function(display_object) {
-		return itemOwned(display_object) && display_object.status == 'claimed';
-	},
-
-	'can_claim' : function(display_object) {
-		return items.find({'owner' : Meteor.userId(), 'status' : {$nin: ['unclaimed', 'for_sale']}}).count() < Meteor.user().profile.inventory_cap &&
-			itemOwned(display_object) && display_object.status == 'unclaimed';
-	},
-
-	'can_permanent' : function(display_object) {
-		return itemOwned(display_object) && (display_object.status == "claimed" || display_object.status == "permanent");
-	},
-
-	'can_purchase' : function(display_object) {
-		//replace with actual validation
-		return true;
-	},
-
-	'can_decline' : function(display_object) {
-		return display_object.status == "for_sale" && display_object.owner == Meteor.userId();
 	},
 
 	'sortedAttributes' : function(attributes) {
@@ -202,8 +149,10 @@ Template.itemInfo.events({
 	'click .quick-sell.enabled' : function(element) {
 		element.stopPropagation();
 		var item_id = $(element.target).closest('.card-container').data('item_id');
-		Session.set('selectedItem', item_id);
-		Modal.show('quickSellModal');
+		Blaze.renderWithData(Template.modalTemplate, {
+			'modal_name': "quickSellModal", 
+			'modal_data': items.findOne(item_id)
+		}, $('body')[0]);
 	},
 
 	'click .auction.enabled' : function(element) {

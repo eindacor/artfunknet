@@ -1,20 +1,14 @@
 <template name="quickSellModal">
-	<div class="template-quickSellModal">
-	    <div style="z-index:9999999999999999;" class="modal fade">
-	        <div class="modal-dialog">
-	            <div class="modal-content container">
-	            	{{#with sellData}}
-	                <h4>Sell <span class="highlight af-color">{{title}}</span> by <span class="highlight af-color">{{artist}}</span> for <span class="highlight">${{getItemValue item_id "sell"}}?</span></h4>
-			        {{/with}}
-	            	{{#with imageInfo itemId}}
-					<img class="image-thumb" src="{{getImageURL filename}}" width="{{image_width}}" height="{{image_height}}"/>
-					<div class="row">
-				        <button id="sell-artwork" type="button" class="btn btn-default">sell</button>
-				        <button id="close-button" type="button" class="btn btn-default">close</button>
-				    </div>
-			        {{/with}}
-	            </div>
-	        </div>
-	    </div>
+	<div class="template-quickSellModal col-xs-12">
+		<div class="message-container">
+			<div class="modal-message-area">
+				{{>itemInfo item_data=this}}
+				<p class="modal-message">Sell <span class="af-color">{{this.artwork_data.title}}</span> by <span class="af-color">{{this.artwork_data.artist}}</span> for <span class="highlight">${{getItemValue this._id "sell"}}</span>?</p>
+			</div>
+			<div class="modal-button-area">
+				<button class="modal-button" id="sell-artwork" data-item_id="{{this._id}}">ok</button>
+				<button class="modal-button close-button">close</button>
+			</div>
+		</div>
 	</div>
 </template>
