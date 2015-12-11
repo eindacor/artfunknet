@@ -1,6 +1,6 @@
 Template.store.helpers({
 	'for_sale': function() {
-		return items.find({'owner': Meteor.userId(), 'status': 'for_sale'}).fetch();
+		return items.find({'owner': Meteor.userId(), 'status': 'for_sale'});
 	},
 
 	'quality' : function() {

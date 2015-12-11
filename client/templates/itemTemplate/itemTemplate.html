@@ -90,7 +90,7 @@
 
 					<div class="row no-margin">
 						<div class="footer-basic-info">
-							<div class="col-xs-11 no-padding">
+							<div class="col-xs-11 no-padding attribute-area">
 							{{#each sortedAttributes item_data.attributes}}
 								<i data-attribute_description="{{description}}" data-attribute_value="{{value}}" style="color: {{getHTMLColorFromValue value}}" class="{{#if ../item_data.permanent}}permanent{{/if}} {{#if locked}}locked{{/if}} item-attribute fa {{this.icon}}"></i>
 							{{/each}}

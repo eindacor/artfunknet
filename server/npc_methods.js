@@ -340,9 +340,19 @@ var collectorInteraction = function(npc_object) {
 			}
 		}
 
-		var offer = Math.floor(getItemValue(random_claimed._id, "display") * offer_multiplier);
+		var offer_amount = Math.floor(getItemValue(random_claimed._id, "display") * offer_multiplier);
 
-		return {'type': "collector_bonus", 'offer': offer, 'item': random_claimed};
+		var offer_id = npc_data.insert({
+			'owner': Meteor.userId(),
+			'timestamp': moment()._d.toISOString(),
+			'type': "collector offer",
+			'data': {
+				'offer_amount': offer_amount,
+				'item_id': random_claimed._id
+			}
+		})
+
+		return {'type': "collector_bonus", 'offer_id': offer_id, 'item': random_claimed};
 	}
 
 	else {

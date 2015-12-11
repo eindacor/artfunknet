@@ -264,16 +264,23 @@ Meteor.methods({
         return errors;
     },
 
-    'acceptCollectorOffer' : function(interaction_object) {
-        var item_object = canSellToCollector(interaction_object.item._id);
-        if (item_object) {
-            addFunds(Meteor.userId(), interaction_object.offer);
-            items.remove(item_object._id, function(error) {
+    'acceptCollectorOffer' : function(offer_id) {
+        var offer_object = npc_data.findOne(offer_id);
+        if (offer_object && Meteor.userId() == offer_object.owner) {
+            addFunds(offer_object.owner, offer_object.data.offer_amount);
+            items.remove(offer_object.data.item_id, function(error) {
                 if (error)
                     console.log(error.message);
 
                 else calcMVP(Meteor.userId());
             });
+        }
+    },
+
+    'declineCollectorOffer' : function(offer_id) {
+        var offer_object = npc_data.findOne(offer_id);
+        if (offer_object && Meteor.userId() == offer_object.owner) {
+            npc_data.remove(offer_id);
         }
     },
 
@@ -301,11 +308,6 @@ Meteor.methods({
     },
 
     'sellArtwork' : function(item_id) {
-        if (Meteor.user().profile.user_type == "admin") {
-            items.remove(item_id);
-            return;
-        }
-
         var item_object = canSellItem(item_id);
         if (item_object) {
             var value = getItemValue(item_id, 'sell');
@@ -318,8 +320,12 @@ Meteor.methods({
                     console.log(error.message);
 
                 else {
-                    calcMVP(Meteor.userId());
-                    createAuction(item_id, getItemValue(item_id, "sell"), -1, 120);
+                    if (Meteor.user().profile.user_type != "admin") {
+                        calcMVP(Meteor.userId());
+                        createAuction(item_id, getItemValue(item_id, "sell"), -1, 120);
+                    }
+
+                    else items.remove(item_id);
                 }
             });
         }

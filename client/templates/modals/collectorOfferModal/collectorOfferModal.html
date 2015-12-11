@@ -1,79 +1,16 @@
 <template name="collectorOfferModal">
-	<div class="template-collectorOfferModal">
-	    <div style="z-index:9999999999999999;" class="modal fade">
-	        <div class="modal-dialog">
-	            <div class="modal-content container">
-	            	{{#with offerData}}
-	                <h4>You have met an Art Collector who has been looking for one of the items in your permanent collection. They have offered you <span class="highlight af-color">${{offer}}</span> for <span class="highlight af-color">{{title}}</span> by <span class="highlight af-color">{{artist}}</span>. The estimated value of this item is <span class="highlight">${{getItemValue item._id "actual"}}.</span></h4>
-
-	                {{#if isQuestItem item.artwork_id}}
-	                	<h5 class="green-text">this is a quest item</h5>
-	                {{/if}}
-
-	            	{{#with imageInfo item._id}}
-					<img class="image-thumb" src="{{getImageURL filename}}" width="{{image_width}}" height="{{image_height}}"/>
-			        {{/with}}
-
-			        <div class="item-stats">
-				        <div class="row attribute-row no-padding no-margin">
-		                	<div class="col-xs-7">
-		                		<p class="stat-description">xp rating:</p>
-		                	</div>
-		                	<div class="col-xs-4">
-		                		<p class="af-color highlight value-text">{{attributeValueText item.xp_rating}}</p>
-		                	</div>
-				        </div>
-
-				        {{#with attributeData item._id}}
-				        {{#if show_primary}}
-				        <div class="attribute-divider">
-				        	<p>Primary Attributes</p>
-				        </div>
-					        {{#each primary_attribute}}
-					         <div data-attribute_id="{{this._id}}" class="row attribute-row no-padding no-margin">
-			                	<div class="col-xs-1">
-			                		<i style="color: {{getHTMLColorFromValue this.value}}" class="item-attribute fa {{this.icon}}"></i>
-			                	</div>
-			                	<div class="col-xs-6">
-			                		<p class="stat-description">{{this.description}}:</p>
-			                	</div>
-			                	<div class="col-xs-4">
-			                		<p class="af-color highlight value-text">{{attributeValueText this.value}}</p>
-			                	</div>
-					        </div>
-					        {{/each}}
-					    {{/if}}
-
-					    {{#if show_secondary}}
-					    <div class="attribute-divider">
-				        	<p>Secondary Attributes</p>
-				        </div>
-					        {{#each secondary_attribute}}
-					         <div data-attribute_id="{{this._id}}" class="row attribute-row no-padding no-margin">
-			                	<div class="col-xs-1">
-			                		<i style="color: {{getHTMLColorFromValue this.value}}" class="item-attribute fa {{this.icon}}"></i>
-			                	</div>
-			                	<div class="col-xs-6">
-			                		<p class="stat-description">{{this.description}}:</p>
-			                	</div>
-			                	<div class="col-xs-4">
-			                		<p class="af-color highlight value-text">{{attributeValueText this.value}}</p>
-			                	</div>
-					        </div>
-					        {{/each}}
-					    {{/if}}
-					    {{/with}}
-
-				    </div>
-			        {{/with}}
-
-			        <div class="action-buttons row">
-				        <button id="accept-offer" type="button" class="btn btn-default">accept</button>
-				        <button id="close-button" type="button" class="btn btn-default">decline</button>
-				    </div>
-
-	            </div>
-	        </div>
-	    </div>
+	<div class="template-collectorOfferModal col-xs-12">
+		<div class="message-container">
+			<div class="modal-message-area">
+				{{#with itemData interaction_object.offer_id}}
+					{{>itemInfo item_data=this}}
+					<p class="modal-message">You have met an Art Collector who has been looking for one of the items in your permanent collection. They have offered you <span class="highlight af-color">${{offerAmount ../interaction_object.offer_id}}</span> for <span class="highlight af-color">{{artwork_data.title}}</span> by <span class="highlight af-color">{{artwork_data.artist}}</span>. The estimated value of this item is <span class="highlight">${{getItemValue _id "actual"}}.</span></p>
+				{{/with}}
+			</div>
+			<div class="modal-button-area">
+				<button id="accept-button" data-offer_id="{{interaction_object.offer_id}}" class="modal-button">accept</button>
+				<button id="decline-button" data-offer_id="{{interaction_object.offer_id}}" class="modal-button">decline</button>
+			</div>
+		</div>
 	</div>
 </template>

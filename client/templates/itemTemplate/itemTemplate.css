@@ -141,6 +141,7 @@
 .template-itemInfo .card-header p {
 	margin: 0px;
 	line-height: 1.5rem;
+	text-align: left;
 }
 
 .template-itemInfo .card-header:hover .header-details {
@@ -178,6 +179,7 @@
 
 .template-itemInfo .card-footer p {
 	margin: 0px;
+	text-align: left;
 }
 
 .template-itemInfo .card-footer:hover .footer-details {
@@ -210,6 +212,7 @@
 
 .template-itemInfo .button-area i {
 	margin: 0px 6px;
+	text-align: left;
 }
 
 .template-itemInfo .button-area .disabled{
@@ -230,6 +233,10 @@
 .template-itemInfo .button-area .active:hover {
 	cursor: pointer;
 	opacity: .5;
+}
+
+.template-itemInfo .attribute-area {
+	text-align: left;
 }
 
 .template-itemInfo .indicator-area {

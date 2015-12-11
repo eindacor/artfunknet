@@ -153,7 +153,12 @@ Template.userGallery.events ({
 						Session.set('npc_interaction', interaction_object);
 						switch(interaction_object.type) {
 							case "collector_bonus": 
-								Modal.show("collectorOfferModal");
+								Blaze.renderWithData(Template.modalTemplate, {
+									'modal_name': "collectorOfferModal", 
+									'modal_data': {
+										'interaction_object': interaction_object
+									}
+								}, $('body')[0]);
 								break;
 							case "designer_bonus":
 								Modal.show("designerModal");

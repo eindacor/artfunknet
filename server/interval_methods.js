@@ -92,6 +92,8 @@ Meteor.setInterval((function() {
         }
     });
 
+    npc_data.remove({'timestamp': {$lt: moment().add((npc_spawn_frequency * -1), "milliseconds")._d.toISOString()}});
+
 }), npc_spawn_frequency);
 
 var xp_frequency = 3600000; //once per hour
