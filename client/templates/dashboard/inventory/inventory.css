@@ -128,3 +128,7 @@
 .template-inventory .inventory-table {
 	margin-top: 24px;
 }
+
+.template-inventory .remaining-text {
+	font-size: .6em;
+}
