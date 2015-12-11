@@ -425,7 +425,7 @@ Meteor.methods({
                 var random_index = Math.floor(Math.random() * count);
                 var random_artwork_id = artworks.findOne({'_id': {$nin: seasonal_ids}, 'rarity': rarity}, {skip: random_index})._id;
 
-                generateItemFromArtworkID(Meteor.userId(), random_artwork_id, undefined, undefined, quest_object.reward.item.foil, undefined, false, false, "unclaimed");
+                generateItemFromArtworkID(Meteor.userId(), random_artwork_id, undefined, undefined, quest_object.reward.item.foil ? 1 : .01, undefined, false, false, "unclaimed");
             }
 
             quests.remove(quest_id);

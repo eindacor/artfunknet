@@ -128,6 +128,10 @@ Template.itemInfo.helpers({
 			var second_id = attribute_array[1];
 			return unique_attributes.find({$and: [{'linked_attributes': {$in: [first_id]}}, {'linked_attributes': {$in: [second_id]}}]});
 		}
+	},
+
+	'reroll_unique_enable' : function(item_object) {
+		return item_object.status == "displayed" && procUniqueAttribute(Meteor.userId(), "REROLL_DISPLAY_ENABLE") && npcs.findOne({'owner_id': Meteor.userId(), 'attribute_id': attributes.findOne({'npc_name': "Designer"})._id}) != undefined;
 	}
 })
 

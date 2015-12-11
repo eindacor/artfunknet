@@ -72,7 +72,7 @@
 					<td>{{artwork_data.title}}</td>
 					<td>{{artwork_data.date}}</td>
 					<td>{{artwork_data.artist}}</td>
-					<td><span class="{{artwork_data.rarity}}"><strong>{{artwork_data.rarity}}</strong></span></td>
+					<td><span class="{{artwork_data.rarity}}"><strong>{{artwork_data.rarity}}</strong></span>{{#if foil}}<span class="af-color"> foil</span>{{/if}}{{#if seasonal}}<span class="common"> seasonal</span>{{/if}}{{#if lottery}}<span class="gold"> lottery {{lottery}}</span>{{/if}}{{#if original}}<span class="purple-text"> original</span>{{/if}}</td>
 					<td>${{getItemValue _id "actual"}}</td>
 					<td>{{artwork_data.height}} x {{artwork_data.width}}</td>
 					<td style="color: rgb({{valueColor condition}}, 0, 0)" >%{{floatToPercentage condition}}</td>

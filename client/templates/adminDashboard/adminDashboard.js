@@ -198,12 +198,12 @@ Template.adminTools.events({
     	var artwork_id = $('#generate-artwork-id').val();
     	var condition = $('#condition').val() == "" ? Number(Math.random().toFixed(2)) : Number($('#condition').val()) / 100;
     	var xp_rating = $('#xp-rating').val() == "" ? Number(Math.random().toFixed(2)) : Number($('#xp-rating').val()) / 100;
-    	var foil = $('.type-selector').val() == "foil";
+    	var foil_chance = $('.type-selector').val() == "foil" ? 1 : .01;
     	var seasonal = $('.type-selector').val() == "seasonal";
     	var lottery = isNaN($('.type-selector').val()) ? 0 : Number($('.type-selector').val());
     	var original = $('.type-selector').val() == "original";
 
-    	Meteor.call('generateItemFromArtworkID', user_id, artwork_id, condition, xp_rating, foil, seasonal, Number(lottery), original, function(error, result) {
+    	Meteor.call('generateItemFromArtworkID', user_id, artwork_id, condition, xp_rating, foil_chance, seasonal, Number(lottery), original, function(error, result) {
     		if (error)
     			console.log(error.message);
 

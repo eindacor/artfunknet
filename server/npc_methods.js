@@ -151,6 +151,20 @@ var benefactorInteraction = function(npc_object) {
 				donation_amount += (Meteor.user().profile.market_expert.rating * donation_amount);
 			}
 		}
+
+		if (procUniqueAttribute(Meteor.userId(), "LONGEST_GALLERY_TICKET_BONUS")) {
+			var longest_ticket = gallery_tickets.findOne({'ticketholder': Meteor.userId()}, {sort: {'expiration': -1}});
+			if (longest_ticket) {
+				var time_left = moment(longest_ticket.expiration) - moment();
+				var hours_left = time_left / 3600000;
+				var bonus_amount = Math.floor(hours_left * 500000);
+
+				if (bonus_amount > 3000000)
+					bonus_amount = 3000000;
+
+				donation_amount += bonus_amount;
+			}
+		}
 	}
 
 	// adjust randomly to vary amount won
@@ -165,15 +179,21 @@ var benefactorInteraction = function(npc_object) {
 var donorInteraction = function(npc_object) {
 	var drop_count = 2;
 
+	var foil_chance = .01;
+
 	if (isOwnGallery(npc_object)) {
 		drop_count += 1;
 
 		if (procUniqueAttribute(Meteor.userId(), "BONUS_DEALER_DONOR")) {
 			drop_count += 1;
 		}
+
+		if (procUniqueAttribute(Meteor.userId(), "DONOR_FOIL_BONUS")) {
+			foil_chance = .02;
+		}
 	}
 
-	generateItems(Meteor.userId(), npc_object.quality, drop_count, "unclaimed");
+	generateItems(Meteor.userId(), npc_object.quality, drop_count, "unclaimed", foil_chance);
 
 	var message = "You have met a donor who would like to contribute to your collection. You may claim your gift in the loot area.";
 
@@ -364,15 +384,26 @@ var collectorInteraction = function(npc_object) {
 var artDealerInteraction = function(npc_object) {
 	var drop_count = 4;
 
+	var foil_chance = .01;
+
 	if (isOwnGallery(npc_object)) {
 		drop_count += 2;
 
 		if (procUniqueAttribute(Meteor.userId(), "BONUS_DEALER_DONOR")) {
 			drop_count += 1;
 		}
+
+		if (procUniqueAttribute(Meteor.userId(), "AUCTION_COUNT_DEALER_BONUS") && npcs.findOne({'owner_id': Meteor.userId(), 'attribute_id': attributes.findOne({'npc_name': "Market Expert"})._id}) != undefined) {
+			var auction_count = items.find({'owner': Meteor.userId(), 'status': "auctioned"}).count();
+			drop_count += Math.ceil(auction_count / 4);
+		}
+
+		if (procUniqueAttribute(Meteor.userId(), "DEALER_FOIL_BONUS")) {
+			foil_chance = .02;
+		}
 	}
 
-	generateItems(Meteor.userId(), npc_object.quality, drop_count, "for_sale");
+	generateItems(Meteor.userId(), npc_object.quality, drop_count, "for_sale", foil_chance);
 
 	var message = "You have met an Art Dealer who would like you to consider a few offers. Go to the store to view their inventory.";
 	return {'message': message}
