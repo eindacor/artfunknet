@@ -42,37 +42,42 @@
 					<div class="row no-margin">
 						<div class="button-area">
 							{{#if isEqual item_data.status "displayed"}}
-								<span class="remaining-text">on display - {{time_remaining item_data}}</span>
+								<span class="remaining-text">on display - {{display_time_remaining item_data}}</span>
 							{{else}}
 
-								{{#if claim_button}}
-									<span class="claim {{#if can_claim item_data}}enabled{{else}}disabled{{/if}}"><i data-item_id="{{item_data._id}}" class="fa fa-plus"></i></span>		
-								{{/if}}
-								{{#if sell_button}}
-									<span class="quick-sell {{#if can_sell item_data}}enabled{{else}}disabled{{/if}}"><i data-item_id="{{item_data._id}}" class="fa fa-usd"></i></span>	
-								{{/if}}
-								{{#if auction_button}}
-									<span class="auction {{#if can_auction item_data}}enabled{{else}}disabled{{/if}}"><i data-item_id="{{item_data._id}}" class="fa fa-gavel"></i></span>
-								{{/if}}	
-								{{#if display_button}}				
-									<span class="display {{#if can_display item_data}}enabled{{else}}disabled{{/if}}"><i data-item_id="{{item_data._id}}" class="fa fa-picture-o"></i></span>	
-								{{/if}}			
-								{{#if reroll_button}}
-									<span class="reroll {{#if can_reroll item_data}}enabled{{else}}disabled{{/if}}"><i data-item_id="{{item_data._id}}" class="fa fa-magic"></i></span>		
-								{{/if}}
-								{{#if permanent_button}}
-									<span class="perm-collection {{#if can_permanent item_data}}{{#if isEqual item_data.status 'permanent'}}active af-color{{else}}inactive{{/if}}{{else}}disabled{{/if}}"><i data-item_id="{{this._id}}" class="fa fa-heart"></i></span>
-								{{/if}}
-								{{#if preview_button}}
-									<span class="preview enabled"><i data-item_id="{{item_data._id}}" class="fa fa-eye"></i></span>		
-								{{/if}}
-								{{#if purchase_button}}
-									<span class="purchase {{#if can_purchase item_data}}enabled{{else}}disabled{{/if}}"><i data-item_id="{{item_data._id}}" class="fa fa-tag"></i></span>		
-								{{/if}}
-								{{#if decline_button}}
-									<span class="decline {{#if can_decline item_data}}enabled{{else}}disabled{{/if}}"><i data-item_id="{{item_data._id}}" class="fa fa-times"></i></span>		
-								{{/if}}
+								{{#if isEqual item_data.status "auctioned"}}
+									<span class="remaining-text">auctioned - {{auction_time_remaining item_data}}</span>
+								{{else}}
+
+									{{#if claim_button}}
+										<span class="claim {{#if can_claim item_data}}enabled{{else}}disabled{{/if}}"><i data-item_id="{{item_data._id}}" class="fa fa-plus"></i></span>		
+									{{/if}}
+									{{#if sell_button}}
+										<span class="quick-sell {{#if can_sell item_data}}enabled{{else}}disabled{{/if}}"><i data-item_id="{{item_data._id}}" class="fa fa-usd"></i></span>	
+									{{/if}}
+									{{#if auction_button}}
+										<span class="auction {{#if can_auction item_data}}enabled{{else}}disabled{{/if}}"><i data-item_id="{{item_data._id}}" class="fa fa-gavel"></i></span>
+									{{/if}}	
+									{{#if display_button}}				
+										<span class="display {{#if can_display item_data}}enabled{{else}}disabled{{/if}}"><i data-item_id="{{item_data._id}}" class="fa fa-picture-o"></i></span>	
+									{{/if}}			
+									{{#if reroll_button}}
+										<span class="reroll {{#if can_reroll item_data}}enabled{{else}}disabled{{/if}}"><i data-item_id="{{item_data._id}}" class="fa fa-magic"></i></span>		
+									{{/if}}
+									{{#if permanent_button}}
+										<span class="perm-collection {{#if can_permanent item_data}}{{#if isEqual item_data.status 'permanent'}}active af-color{{else}}inactive{{/if}}{{else}}disabled{{/if}}"><i data-item_id="{{this._id}}" class="fa fa-heart"></i></span>
+									{{/if}}
+									{{#if preview_button}}
+										<span class="preview enabled"><i data-item_id="{{item_data._id}}" class="fa fa-eye"></i></span>		
+									{{/if}}
+									{{#if purchase_button}}
+										<span class="purchase {{#if can_purchase item_data}}enabled{{else}}disabled{{/if}}"><i data-item_id="{{item_data._id}}" class="fa fa-tag"></i></span>		
+									{{/if}}
+									{{#if decline_button}}
+										<span class="decline {{#if can_decline item_data}}enabled{{else}}disabled{{/if}}"><i data-item_id="{{item_data._id}}" class="fa fa-times"></i></span>		
+									{{/if}}
 								
+								{{/if}}
 
 							{{/if}}
 							{{#if tag_button}}

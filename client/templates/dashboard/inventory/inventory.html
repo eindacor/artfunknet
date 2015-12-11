@@ -1,12 +1,10 @@
 <template name="inventory">
 	<div class="template-inventory">
 		<h1>Inventory</h1>
-		<h3 id="toggle-view" class="enabled"><i class="fa fa-list {{#if list_view}}af-color{{/if}}"></i></h3>
-		<textarea id="tag-selector" placeholder="search by tags (separate tags with a comma, e.g. 'primary, to auction, foils')"></textarea>
-
-		<div class="row inventory-management">
-			<h3 class="enabled"><i id="toggle-filters" class="fa fa-filter"></i></h3>
+		<div class="row inventory-management no-padding">
+			<h3 class="view-buttons"><i id="toggle-view" class="fa fa-list {{#if list_view}}af-color{{/if}}"></i><i id="toggle-filters" class="fa fa-filter"></i></h3>
 			<div class="row all-filters">
+				<textarea id="tag-selector" placeholder="search by tags (separate tags with a comma, e.g. 'primary, to auction, foils')"></textarea>
 				<div class="sort-area col-xs-12 col-md-4">
 					<p class="filter-title">sort:</p>
 					<select id="sort-selector">
@@ -62,20 +60,13 @@
 		</div>
 
 		<div class="row">
-			<!-- {{#if list_view}} -->
-			{{#if false}}
-			<table class="auction-table" data-table_id="{{this.table_id}}">
-				<tr>
-				{{#each listHeader}}
-					{{> inventoryHeaderTemplate this}}
-				{{/each}}
-				</tr>
-
+			{{#if list_view}}
+			<table class="inventory-table" data-table_id="{{this.table_id}}">
 				{{#each owned}}
 				<tr data-item_id="{{_id}}">
 					<td>
 						{{#with thumbnailInfo _id}}
-						<img class="image-thumb preview enabled" src="/img/paintings/{{filename}}" width="{{image_width}}" height="{{image_height}}"/>
+						<img class="image-thumb preview enabled" src="{{getImageURL filename}}" width="{{image_width}}" height="{{image_height}}"/>
 						{{/with}}
 					</td>
 					<td>{{artwork_data.title}}</td>
@@ -83,37 +74,34 @@
 					<td>{{artwork_data.artist}}</td>
 					<td><span class="{{artwork_data.rarity}}"><strong>{{artwork_data.rarity}}</strong></span></td>
 					<td>${{getItemValue _id "actual"}}</td>
-					<td>{{height}} x {{width}}</td>
-					<td style="color: rgb({{valueColor condition}}, 0, 0)" >{{condition_text}}</td>
+					<td>{{artwork_data.height}} x {{artwork_data.width}}</td>
+					<td style="color: rgb({{valueColor condition}}, 0, 0)" >%{{floatToPercentage condition}}</td>
 					<td>
 					{{#each attributes}}
 						<i data-attribute_title="{{this.description}}" data-attribute_value="{{this.value}}" style="color: rgb({{valueColor this.value}}, 0, 0)" class="list-item-attribute fa {{this.icon}}"></i>
 					{{/each}}
 					</td>
-					<td style="color: rgb({{valueColor xp_rating}}, 0, 0)" >{{xp_rating_text}}</td>
+					<td style="color: rgb({{valueColor xp_rating}}, 0, 0)" >{{floatToPercentage xp_rating}}</td>
 					<td>{{roll_count}}</td>
 					<td class="action-buttons no-padding">						
-						{{#if onDisplay this._id}}
-						<div class="col-xs-12 no-padding">
-							<span class="remaining-text">on display - {{time_remaining this._id}}</span>
-						</div>
+						{{#if isEqual status "displayed"}}
+							<span class="remaining-text">on display - {{display_time_remaining this}}</span>
 						{{else}}
-						<div class="col-xs-2 no-padding">
-							<span class="quick-sell {{#if can_sell this}}enabled{{else}}disabled{{/if}}"><i data-item_id="{{this._id}}" class="fa fa-usd"></i></span>
-						</div>
-						<div class="col-xs-2 no-padding">
-							<span class="auction {{#if can_auction this}}enabled{{else}}disabled{{/if}}"><i data-item_id="{{this._id}}" class="fa fa-gavel"></i></span>
-						</div>
-						<div class="col-xs-2 no-padding">
-							<span class="display {{#if can_display this}}enabled{{else}}disabled{{/if}}"><i data-item_id="{{this._id}}" class="fa fa-picture-o"></i></span>
-						</div>
-						<div class="col-xs-2 no-padding">
-							<span class="reroll {{#if can_reroll this}}enabled{{else}}disabled{{/if}}"><i data-item_id="{{this._id}}" class="fa fa-magic"></i></span>
-						</div>
-						<div class="col-xs-3 col-xs-offset-1 no-padding">
-							<span class="perm-collection {{#if permanent this._id}}active af-color{{else}}inactive{{/if}}"><i data-item_id="{{this._id}}" class="{{#if permanent this._id}}af-color{{/if}} fa fa-heart"></i></span>
-						</div>
+
+							{{#if isEqual status "auctioned"}}
+								<span class="remaining-text">auctioned - {{auction_time_remaining this}}</span>
+							{{else}}
+								{{#with itemPermissions this}}
+									<span class="quick-sell {{#if sell}}enabled{{else}}disabled{{/if}}"><i data-item_id="{{../_id}}" class="fa fa-usd"></i></span>	
+									<span class="auction {{#if auction}}enabled{{else}}disabled{{/if}}"><i data-item_id="{{../_id}}" class="fa fa-gavel"></i></span>			
+									<span class="display {{#if display}}enabled{{else}}disabled{{/if}}"><i data-item_id="{{../_id}}" class="fa fa-picture-o"></i></span>	
+									<span class="reroll {{#if reroll}}enabled{{else}}disabled{{/if}}"><i data-item_id="{{../_id}}" class="fa fa-magic"></i></span>		
+									<span class="perm-collection {{#if permanent}}{{#if isEqual ../status 'permanent'}}active af-color{{else}}inactive{{/if}}{{else}}disabled{{/if}}"><i data-item_id="{{_id}}" class="fa fa-heart"></i></span>
+								{{/with}}
+							{{/if}}
+
 						{{/if}}
+						<span class="tags enabled"><i data-item_id="{{_id}}" class="fa fa-tags"></i></span>		
 					</td>
 				</tr>
 				{{/each}}
@@ -132,11 +120,8 @@
 <template name="inventoryHeaderTemplate">
 	<th class="table-header" data-sort="{{sort_id}}" data-table_id="{{table_id}}">
 		<div class="row no-margin">
-			<div class="col-xs-8">
+			<div class="col-xs-12">
 				<p>{{text}}</p>
-			</div>
-			<div class="col-xs-4">
-				{{#with sorted this}}{{#if sort}}{{#if ascending}}<i class="fa fa-caret-up"></i>{{else}}<i class="fa fa-caret-down"></i>{{/if}}{{else}} {{/if}}{{/with}}
 			</div>
 		</div>
 	</th>

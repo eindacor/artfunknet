@@ -52,11 +52,6 @@ Template.inventory.helpers({
 		}
 	},
 
-	'onDisplay' : function(item_id) {
-		var item_object = items.findOne(item_id);
-		return item_object && item_object.status == 'displayed';
-	},
-
 	'list_view' : function() {
 		return Session.get('list_view');
 	},
@@ -75,21 +70,6 @@ Template.inventory.helpers({
 			{ 'text' : 'xp rating', 'sort_id' : 'xp_rating' },
 			{ 'text' : 'reroll count', 'sort_id' : 'roll_count' },
 			{ 'text' : 'actions', 'sort_id' : undefined },
-		];
-
-		return header_array;
-	},
-
-	'sortHeader' : function() {
-		var header_array = [
-			{ 'text' : 'title', 'sort_id' : 'title' },
-			{ 'text' : 'date', 'sort_id' : 'date' },
-			{ 'text' : 'artist', 'sort_id' : 'artist' },
-			{ 'text' : 'rarity', 'sort_id' : 'rarity_rank' },
-			{ 'text' : 'estimated value', 'sort_id' : 'estimated_value' },
-			{ 'text' : 'condition', 'sort_id' : 'condition' },
-			{ 'text' : 'features', 'sort_id' : 'feature_count' },
-			{ 'text' : 'xp rating', 'sort_id' : 'xp_rating' },
 		];
 
 		return header_array;
@@ -143,6 +123,24 @@ Template.inventory.helpers({
 	'valueColor' : function(value) {
 		return 255 - Math.floor(value * 255);
 	},
+
+	'display_time_remaining': function(item_object) {
+		var expiration = moment(item_object.display_details.end);
+		var now = moment(Session.get('now'));
+		var remaining = expiration - now;
+
+		var remaining_text = remaining > 0 ? getCountdownString(remaining) : "expired";
+		return remaining_text;
+	},
+
+	'auction_time_remaining': function(item_object) {
+		var expiration = moment(auctions.findOne({'item_id': item_object._id}).expiration);
+		var now = moment(Session.get('now'));
+		var remaining = expiration - now;
+
+		var remaining_text = remaining > 0 ? getCountdownString(remaining) : "expired";
+		return remaining_text;
+	}
 });
 
 Template.inventory.events({
@@ -261,7 +259,6 @@ Template.inventory.events({
 			target.addClass('af-color');
 			$('.all-filters').css('display', 'block');
 		}
-
 	}
 })
 

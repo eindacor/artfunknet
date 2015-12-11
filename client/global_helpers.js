@@ -156,3 +156,23 @@ Template.registerHelper('cardData', function(item) {
 
 	else return undefined;
 })
+
+Template.registerHelper('itemPermissions', function(item_object) {
+	if (Meteor.user()) {
+		var item_controlled = item_object.owner == Meteor.userId() && item_object.status != 'for_sale';
+
+		var permission_object = {
+			'auction': item_controlled && item_object.status == "claimed" && items.find({'owner' : Meteor.userId(), 'status' : 'auctioned'}).count() < Meteor.user().profile.auction_cap,
+			'sell': item_controlled && (item_object.status == 'claimed' || item_object.status == 'unclaimed') && items.find({'owner': Meteor.userId(), 'status': {$nin: ["unclaimed", "for_sale"]}}).count() > 1,
+			'reroll': item_controlled && item_object.status == "claimed",
+			'claim': item_controlled && item_object.status == "unclaimed" && items.find({'owner' : Meteor.userId(), 'status' : {$nin: ['unclaimed', 'for_sale']}}).count() < Meteor.user().profile.inventory_cap,
+			'permanent': item_controlled && (item_object.status == "claimed" || item_object.status == "permanent"),
+			'can_purchase': item_object.owner == Meteor.userId() && item_object.status == 'for_sale' && items.find({'owner' : Meteor.userId(), 'status' : {$nin: ['unclaimed', 'for_sale']}}).count() < Meteor.user().profile.inventory_cap,
+			'decline': item_object.status == "for_sale" && item_object.owner == Meteor.userId()
+		}
+
+		return permission_object;
+	}
+
+	else return undefined;
+})

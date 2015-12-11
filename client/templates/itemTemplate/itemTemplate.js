@@ -69,17 +69,22 @@ Template.itemInfo.helpers({
 		}
 	},
 
-	'time_remaining': function(display_object) {
-		if (display_object.status == 'displayed') {
-			var expiration = moment(display_object.display_details.end);
-			var now = moment(Session.get('now'));
-			var remaining = expiration - now;
+	'display_time_remaining': function(item_object) {
+		var expiration = moment(item_object.display_details.end);
+		var now = moment(Session.get('now'));
+		var remaining = expiration - now;
 
-			var remaining_text = remaining > 0 ? getCountdownString(remaining) : "expired";
-			return remaining_text;
-		}
+		var remaining_text = remaining > 0 ? getCountdownString(remaining) : "expired";
+		return remaining_text;
+	},
 
-		else return "";
+	'auction_time_remaining': function(item_object) {
+		var expiration = moment(auctions.findOne({'item_id': item_object._id}).expiration);
+		var now = moment(Session.get('now'));
+		var remaining = expiration - now;
+
+		var remaining_text = remaining > 0 ? getCountdownString(remaining) : "expired";
+		return remaining_text;
 	},
 
 	'can_display' : function(display_object) {

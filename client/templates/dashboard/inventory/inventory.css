@@ -71,9 +71,13 @@
 	font-size: 1.2em;
 }
 
-.template-inventory .enabled i:hover {
+.template-inventory .enabled i, .template-inventory .view-buttons i {
 	opacity: 1;
 	cursor: pointer;
+}
+
+.template-inventory .view-buttons i {
+	margin-right: 24px;
 }
 
 .template-inventory .disabled {
@@ -110,8 +114,8 @@
 }
 
 .template-inventory .all-filters {
-	border-top: 1px solid black;
-	border-bottom: 1px solid black;
+	border-top: 1px solid #DDD;
+	border-bottom: 1px solid #DDD;
 	padding: 12px 0px;
 	display: none;
 }
@@ -119,4 +123,8 @@
 .template-inventory .filter-title {
 	margin-bottom: 2px;
 	color: black;
+}
+
+.template-inventory .inventory-table {
+	margin-top: 24px;
 }

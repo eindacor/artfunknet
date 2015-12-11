@@ -13,12 +13,11 @@ createAuction = function(item_id, starting, buy_now, duration) {
             var post_date = moment();
             var expiration_date = moment(post_date).add(duration, 'minutes');
             var item_object = items.findOne(item_id);
-            var artwork_object = artworks.findOne(item_object.artwork_id);
             var user_object = Meteor.users.findOne(item_object.owner);
 
             var rarity_rank;
 
-            switch(artwork_object.rarity) {
+            switch(item_object.artwork_data.rarity) {
                 case 'common' : rarity_rank = 0; break;
                 case 'uncommon' : rarity_rank = 1; break;
                 case 'rare' : rarity_rank = 2; break;
@@ -35,13 +34,13 @@ createAuction = function(item_id, starting, buy_now, duration) {
                 'bid_minimum' : Math.floor(starting * 1.05),
                 'date_posted': post_date,
                 'expiration': expiration_date._d.toISOString(),
-                'title': artwork_object.title,
-                'artist': artwork_object.artist,
-                'rarity': artwork_object.rarity,
-                'medium': artwork_object.medium,
+                'title': item_object.artwork_data.title,
+                'artist': item_object.artwork_data.artist,
+                'rarity': item_object.artwork_data.rarity,
+                'medium': item_object.artwork_data.medium,
                 'condition': item_object.condition,
                 'seller': user_object ? user_object.profile.screen_name : "Artfunkel, Inc.",
-                'date': artwork_object.date,
+                'date': item_object.artwork_data.date,
                 'xp_rating': item_object.xp_rating,
                 //TODO update to include overall score
                 'feature_count': item_object.attributes.length,
