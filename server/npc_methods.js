@@ -230,8 +230,6 @@ var preservationistInteraction = function(npc_object) {
 	if (target_item == undefined || target_item.condition > .9)
 		return {'message' : "You have met a preservationist, but you don't currently own any works that can be refurbished"};
 
-	var artwork_object = artworks.findOne(target_item.artwork_id);
-
 	var new_condition;
 	if (repair_amount + target_item.condition > 1)
 		new_condition = 1;
@@ -248,7 +246,7 @@ var preservationistInteraction = function(npc_object) {
         }
     });
 
-	var message = "You have met a preservationist who has offered to refurbish one of your pieces. " + artwork_object.title + " by " + artwork_object.artist + " has increased in value.";
+	var message = "You have met a preservationist who has offered to refurbish one of your pieces. " + target_item.artwork_data.title + " by " + target_item.artwork_data.artist + " has increased in value.";
 
 	return {'message': message}
 }
@@ -285,8 +283,6 @@ var artExpertInteraction = function(npc_object) {
 		}
 	}
 
-	var artwork_object = artworks.findOne(highest_item.artwork_id);
-
 	var new_count;
 	if (highest_item.roll_count - roll_reduction < 0)
 		new_count = 0;
@@ -295,7 +291,7 @@ var artExpertInteraction = function(npc_object) {
 
 	items.update(highest_item._id, {$set: {'roll_count' : Number(new_count)}});
 
-	var message = "You have met an art expert who recently attended one of your events and was impressed by your collection. As a result, they have been spreading the word about your gallery. " + artwork_object.title + " by " + artwork_object.artist + " has had its roll count reduced to " + new_count + ".";
+	var message = "You have met an art expert who recently attended one of your events and was impressed by your collection. As a result, they have been spreading the word about your gallery. " + highest_item.artwork_data.title + " by " + highest_item.artwork_data.artist + " has had its roll count reduced to " + new_count + ".";
 
 	return {'message': message}
 }
@@ -337,8 +333,7 @@ var collectorInteraction = function(npc_object) {
 				if (random_displayed) {
 					var donation_amount = Math.floor((getItemValue(random_displayed._id, "display") * .2) * offer_multiplier);
 					addFunds(Meteor.userId(), donation_amount);
-					var artwork_object = artworks.findOne(random_displayed.artwork_id);
-					var message = "You have met an Art Collector, who was admiring " + artwork_object.title + " by " + artwork_object.artist + ", currently on display in your gallery. They offer you $" + getCommaSeparatedValue(donation_amount) + " for their appreciation of the piece, and insist that you keep and maintain it for the world to enjoy.";
+					var message = "You have met an Art Collector, who was admiring " + random_displayed.artwork_data.title + " by " + random_displayed.artwork_data.artist + ", currently on display in your gallery. They offer you $" + getCommaSeparatedValue(donation_amount) + " for their appreciation of the piece, and insist that you keep and maintain it for the world to enjoy.";
 					return {'message': message}
 				}
 

@@ -193,41 +193,6 @@ Meteor.methods({
     	}
     },
 
-    'setArtworkRarity' : function(artwork_id, rarity) {
-    	if (adminValidated()) {
-	    	var artwork_object = artworks.findOne(artwork_id);
-	    	if (rarity == "legendary" || rarity == "masterpiece") {
-	            var random_attributes = [];
-	            var attribute_count = rarity == "legendary" ? 2 : 3;
-
-	            while (random_attributes.length < attribute_count) {
-	                var selector = {'_id': {$nin: random_attributes}, 'active': true};
-	                var count = attributes.find(selector).count();
-	                if (count == 0)
-	                    break;
-	                
-	                random_attributes.push(attributes.findOne(selector, {skip: Math.floor(Math.random() * count)})._id);
-	            }
-
-	            artworks.update(artwork_id, {$set: {'locked_attributes': random_attributes, 'rarity': rarity}});
-	        }
-
-	        else artworks.update(artwork_id, {$unset: {'locked_attributes': ""}, $set: {'rarity': rarity}});
-	    }
-
-	    //TODO update auctions
-    },
-
-    'setArtworkArtist' : function(artwork_id, artist_id) {
-    	if (adminValidated()) {
-    		var artist_object = artists.findOne(artist_id); 
-    		if (artist_object)
-    			artworks.update(artwork_id, {$set: {'artist': artist_object.artist_name, 'artist_id': artist_object._id}})
-    	}
-
-    	//TODO update auctions
-    },
-
     'generateDBString' : function() {
     	if (adminValidated()) {
     		var attribute_data = attributes.find().fetch();
@@ -254,6 +219,9 @@ Meteor.methods({
     		var quest_data = quests.find().fetch();
     		var quest_string = "var downloaded_quest_data = " + encodeURIComponent(JSON.stringify(quest_data)) + "; ";
 
+            var unique_attribute_data = unique_attributes.find().fetch();
+            var unique_attribute_string = "var downloaded_unique_attribute_data = " + encodeURIComponent(JSON.stringify(unique_attribute_data)) + "; ";
+
 			var data_string = "text/json;charset=utf-8," + 
 				attribute_string + 
 				user_string + 
@@ -262,7 +230,8 @@ Meteor.methods({
 				artist_string +
 				auction_string + 
 				gallery_finish_string + 
-				quest_string;
+				quest_string +
+                unique_attribute_string;
 
 			return data_string;
     	}
@@ -305,8 +274,13 @@ Meteor.methods({
 	        else artworks.update(artwork_id, {$unset: {'locked_attributes': ""}});
 
     		artworks.update(artwork_id, {$set: artwork_object}, {multi: true}, function(error) {
-                var artwork_data = artworks.findOne(artwork_id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}});
-                items.update({'artwork_id': artwork_id}, {$set: {'artwork_data': artwork_data}}, {multi: true});
+                if (error)
+                    console.log(error.message)
+
+                else {
+                    var artwork_data = artworks.findOne(artwork_id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}});
+                    items.update({'artwork_id': artwork_id}, {$set: {'artwork_data': artwork_data}}, {multi: true});
+                }
             });
 
     		return true;

@@ -4,7 +4,6 @@ var generateContent = function() {
 	}
 
     try {
-
     	for (var i=0; i < painting_data.length; i++) {
     		var artist_id = artists.findOne({"artist_name": painting_data[i].artist})._id;
     		var artwork_object = painting_data[i];

@@ -72,14 +72,13 @@ var getMVPData = function() {
 
     var mvp_array = [];
     for (var i=0; i<all_items.length; i++) {
-        var artwork_object = artworks.findOne(all_items[i].artwork_id);
         var leaderboard_object =  {
             'item_id': all_items[i]._id,
-            'artist': artwork_object.artist,
-            'title': artwork_object.title,
+            'artist': all_items[i].artwork_data.artist,
+            'title': all_items[i].artwork_data.title,
             'owner': Meteor.users.findOne(all_items[i].owner).profile.screen_name,
             'value': getItemValue(all_items[i]._id, 'actual'),
-            'rarity': artwork_object.rarity,
+            'rarity': all_items[i].artwork_data.rarity,
             'condition': all_items[i].condition,
             'foil': all_items[i].foil,
             'lottery': all_items[i].lottery,
@@ -138,12 +137,11 @@ Meteor.methods({
             var displayed = items.find({'owner': user_object._id, 'status': 'displayed'}).fetch();
             var permanent = items.find({'owner': user_object._id, 'status': 'permanent'}).fetch();
 
-            var all_paintings = items.find({'owner': user_object._id, 'status': {$in: ['permanent', 'displayed']}}).fetch();
+            var all_items = items.find({'owner': user_object._id, 'status': {$in: ['permanent', 'displayed']}}).fetch();
             var tallest_painting_cm = 0;
-            for (var i=0; i < all_paintings.length; i++) {
-                var artwork_object = artworks.findOne(all_paintings[i].artwork_id);
-                if (artwork_object.height > tallest_painting_cm)
-                    tallest_painting_cm = artwork_object.height;
+            for (var i=0; i < all_items.length; i++) {
+                if (all_items[i].artwork_data.height > tallest_painting_cm)
+                    tallest_painting_cm = all_items[i].height;
             }
 
             var pixels_per_centimeter = max_painting_height_pixels / tallest_painting_cm;

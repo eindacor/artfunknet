@@ -117,12 +117,11 @@ transferAuctionItem = function(item_id, owner_id, winner_id) {
 
 concludeDisplay = function(item_id) {
     var item_object = items.findOne(item_id);
-    var artwork_object = artworks.findOne(item_object.artwork_id);
     var money_earned = item_object.display_details.money;
     var user_id = item_object.owner;
     var xp_earned = item_object.display_details.xp;
 
-    var display_message = "Your exhibition of " + artwork_object.title + " by " + artwork_object.artist + " has concluded. You have earned $" + getCommaSeparatedValue(money_earned);
+    var display_message = "Your exhibition of " + item_object.artwork_data.title + " by " + item_object.artwork_data.artist + " has concluded. You have earned $" + getCommaSeparatedValue(money_earned);
     var alert_win_object = {
         'user_id' : user_id,
         'message' : display_message,
