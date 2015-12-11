@@ -277,6 +277,16 @@ Template.inventory.created = function() {
 Template.inventory.rendered = function() {
 	Blaze.getData($('.template-inventory')[0])["value_data"] = {};
 	tags = [];
+	sorter = "artwork_data.title";
+	ascending = 1;
+	status_filter = {'status': {$in: ['claimed', 'displayed', 'permanent', 'auctioned']}};
+	rarity_filter =  {'artwork_data.rarity': {$in: ['common', 'uncommon', 'rare', 'legendary', 'masterpiece']}};
+
+	lottery_filter = {'lottery': {$ne: undefined}};
+	foil_filter = {'foil': {$ne: undefined}};
+	seasonal_filter = {'seasonal': {$ne: undefined}};
+	original_filter = {'original': {$ne: undefined}};
+	standard_filter = {};
 	display_tracker.changed();
 }
 
