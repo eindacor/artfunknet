@@ -97,3 +97,26 @@
 	margin-bottom: 24px;
 	padding: .4rem 2rem;
 }
+
+.template-inventory .filter-checkboxes label {
+	font-weight: normal !important;
+	padding: 0px 2px;
+	margin: 0px;
+}
+
+.template-inventory .filter-checkboxes input {
+	padding: 0px 2px;
+	margin-right: 8px;
+}
+
+.template-inventory .all-filters {
+	border-top: 1px solid black;
+	border-bottom: 1px solid black;
+	padding: 12px 0px;
+	display: none;
+}
+
+.template-inventory .filter-title {
+	margin-bottom: 2px;
+	color: black;
+}

@@ -302,12 +302,12 @@ generateItems = function(user_id, quality, count, status) {
 }
 
 generateItemFromArtworkID = function(user_id, artwork_id, condition, xp_rating, foil, seasonal, lottery, original, status) {
-    var artwork_object = artworks.findOne(artwork_id);
-    if (artwork_object) {
+    var artwork_data = artworks.findOne(artwork_id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}});
+    if (artwork_data) {
         var new_item_id = items.insert({
             'artwork_id' : artwork_id,
             'condition' : condition === undefined ? getCondition() : condition,
-            'attributes' : getAttributes(artwork_object.rarity, artwork_id),
+            'attributes' : getAttributes(artwork_data.rarity, artwork_id),
             'owner' : user_id,
             'status' : status,
             'date_created' : new Date(),
@@ -317,7 +317,8 @@ generateItemFromArtworkID = function(user_id, artwork_id, condition, xp_rating, 
             'seasonal': seasonal === undefined ? seasonal_ids.indexOf(artwork_id) != -1 : seasonal,
             'lottery': lottery === undefined ? false : lottery,
             'original': original === undefined ? false : original,
-            'tags': []
+            'tags': [],
+            'artwork_data': artwork_data
         });
 
         return new_item_id;

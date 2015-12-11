@@ -547,6 +547,7 @@ var generateArtworkObject = function() {
 		'width': Number($('#artwork-mod-width').val()),		
 		'nsfw': $('#artwork-mod-container').find('.nsfw-selector').val() == "true" ? true : false,
 		'rarity': $('#artwork-mod-container').find('.rarity-selector').val(),
+		'rarity_value': rarityValueFromString($('#artwork-mod-container').find('.rarity-selector').val()),
 		'active': $('#artwork-mod-container').find('.active-selector').val() == "true" ? true : false,
 	}
 

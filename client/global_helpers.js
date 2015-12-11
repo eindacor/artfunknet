@@ -74,6 +74,10 @@ Template.registerHelper('getTextureURL', function(filename) {
 	return "https://s3.amazonaws.com/com.artfunkel.artwork/textures/" + filename;
 })
 
+Template.registerHelper('floatToPercentage', function(value) {
+	return Math.floor(value * 100);
+})
+
 Template.registerHelper('cardArray', function(item_array) {
 	//create list object and add rarity_rank, feature_count, artist, title, date
 	var display_objects = [];

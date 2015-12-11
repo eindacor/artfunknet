@@ -1,16 +1,57 @@
 var display_tracker = new Tracker.Dependency;
 var tags = [];
+var sorter = "artwork_data.title";
+var ascending = 1;
+var status_filter = {'status': {$in: ['claimed', 'displayed', 'permanent', 'auctioned']}};
+var rarity_filter =  {'artwork_data.rarity': {$in: ['common', 'uncommon', 'rare', 'legendary', 'masterpiece']}};
+
+var lottery_filter = {'lottery': {$ne: undefined}};
+var foil_filter = {'foil': {$ne: undefined}};
+var seasonal_filter = {'seasonal': {$ne: undefined}};
+var original_filter = {'original': {$ne: undefined}};
+var standard_filter = {};
 
 Template.inventory.helpers({
 	'owned': function() {	
 		display_tracker.depend();
+		var sorter_object = {};
+		sorter_object[sorter] = ascending;
 
-		if (tags.length == 0)
-			return items.find({'owner': Meteor.userId(), 'status': {$in : ['claimed', 'displayed', 'permanent']}}, {sort: {'aftwork_id' : 1}}).fetch();
+		if (tags.length == 0) {
+			var filter_array = [
+				{'owner': Meteor.userId()}, 
+				lottery_filter, 
+				foil_filter, 
+				seasonal_filter, 
+				original_filter,
+				standard_filter,
+				status_filter,
+				rarity_filter
+			];
 
-		else return items.find({'owner': Meteor.userId(), 'status': {$in : ['claimed', 'displayed', 'permanent']}, 'tags': {$in: tags}}, {sort: {'aftwork_id' : 1}}).fetch();
+			return items.find({
+				$and: filter_array
+			}, {sort: sorter_object});
+		}
+
+		else {
+			var filter_array = [
+				{'owner': Meteor.userId(), 'tags': {$in: tags}}, 
+				lottery_filter, 
+				foil_filter, 
+				seasonal_filter, 
+				original_filter,
+				standard_filter,
+				status_filter,
+				rarity_filter
+			];
+
+			return items.find({
+				$and: filter_array
+			}, {sort: sorter_object});
+		}
 	},
-	
+
 	'onDisplay' : function(item_id) {
 		var item_object = items.findOne(item_id);
 		return item_object && item_object.status == 'displayed';
@@ -120,6 +161,107 @@ Template.inventory.events({
 			$('#tag-selector').blur();
 			event.preventDefault();
 		}
+	},
+
+	'change #sort-selector': function(event) {
+		sorter = $(event.target).val();
+		display_tracker.changed();
+	},
+
+	'change #order-selector': function(event) {
+		ascending = Number($(event.target).val());
+		display_tracker.changed();
+	}, 
+
+	'change #card-type-checkbox': function() {
+		 for (var i=0; i<$('input[type=checkbox].type-select').length; i++) {
+		 	var checked = $('input[type=checkbox].type-select:eq(' + i + ')')[0].checked
+		 	switch($('input[type=checkbox].type-select:eq(' + i + ')').val()) {
+		 		case "standard": 		
+		 			if (checked)
+		 				standard_filter = {};
+
+		 			else standard_filter = {$or: [{'foil': {$ne: false}}, {'seasonal': {$ne: false}}, {'original': {$ne: false}}, {'lottery': {$nin: [0, undefined, false]}}]};
+
+		 			break;
+
+		 		case "foil":
+		 			if (checked)
+		 				foil_filter = {'foil': {$ne: undefined}};
+
+		 			else foil_filter = {'foil': false};
+
+		 			break;
+
+		 		case "seasonal":
+		 			if (checked)
+		 				seasonal_filter = {'seasonal': {$ne: undefined}};
+
+		 			else seasonal_filter = {'seasonal': false};
+
+		 			break;
+
+		 		case "original":
+		 			if (checked)
+		 				original_filter = {'original': {$ne: undefined}};
+
+		 			else original_filter = {'original': false};
+
+		 			break;
+
+		 		case "lottery":
+		 			if (checked)
+		 				lottery_filter = {'lottery': {$ne: undefined}};
+
+		 			else lottery_filter = {'lottery': {$in: [0, undefined, false]}};
+
+		 			break;
+
+		 		default: break;
+		 	}
+		 }
+
+		 display_tracker.changed();
+	},
+
+	'change #card-status-checkbox': function() {
+		var valid_statuses = [];
+		for (var i=0; i<$('input[type=checkbox].status-select').length; i++) {
+		 	var checked = $('input[type=checkbox].status-select:eq(' + i + ')')[0].checked;
+		 	if (checked)
+		 		valid_statuses.push($('input[type=checkbox].status-select:eq(' + i + ')').val())
+		}
+
+		status_filter = {'status': {$in: valid_statuses}};
+
+		display_tracker.changed();
+	},
+
+	'change #card-rarity-checkbox': function() {
+		var valid_rarities = [];
+		for (var i=0; i<$('input[type=checkbox].rarity-select').length; i++) {
+		 	var checked = $('input[type=checkbox].rarity-select:eq(' + i + ')')[0].checked;
+		 	if (checked)
+		 		valid_rarities.push($('input[type=checkbox].rarity-select:eq(' + i + ')').val())
+		}
+
+		rarity_filter = {'artwork_data.rarity': {$in: valid_rarities}};
+
+		display_tracker.changed();
+	},
+
+	'click #toggle-filters': function(element) {
+		var target = $(element.target);
+		if (target.hasClass('af-color')) {
+			target.removeClass('af-color');
+			$('.all-filters').css('display', 'none');
+		}
+
+		else {
+			target.addClass('af-color');
+			$('.all-filters').css('display', 'block');
+		}
+
 	}
 })
 
@@ -144,26 +286,3 @@ Template.inventory.rendered = function() {
 Template.inventory.destroyed = function() {
 	Meteor.clearInterval(this.handle);
 }
-
-//	HEADERS
-Template.inventoryHeaderTemplate.events({
-	'click th': function(element) {
-		var sort = $(element.target).closest('.table-header').data('sort');
-
-		if (sort && Session.get('inventory_sort')) {
-			var ascending = (Session.get('inventory_sort') != sort ? true : !Session.get('inventory_ascending'));
-			Session.set('inventory_ascending', ascending);
-			Session.set('inventory_sort', sort);
-		}
-	}
-})
-
-Template.inventoryHeaderTemplate.helpers({
-	'sorted' : function() {
-		var table_id = this.table_id;
-		return {
-			'sort' : Session.get('inventory_sort') == this.sort_id,
-			'ascending' : Session.get('inventory_ascending')
-		}
-	}
-})

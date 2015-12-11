@@ -3,6 +3,64 @@
 		<h1>Inventory</h1>
 		<h3 id="toggle-view" class="enabled"><i class="fa fa-list {{#if list_view}}af-color{{/if}}"></i></h3>
 		<textarea id="tag-selector" placeholder="search by tags (separate tags with a comma, e.g. 'primary, to auction, foils')"></textarea>
+
+		<div class="row inventory-management">
+			<h3 class="enabled"><i id="toggle-filters" class="fa fa-filter"></i></h3>
+			<div class="row all-filters">
+				<div class="sort-area col-xs-12 col-md-4">
+					<p class="filter-title">sort:</p>
+					<select id="sort-selector">
+						<option value="artwork_data.title">title</option>
+						<option value="artwork_data.date">date</option>
+						<option value="artwork_data.artist">artist</option>
+						<option value="artwork_data.rarity_value">rarity</option>
+						<option value="condition">condition</option>
+						<option value="xp_rating">xp_rating</option>
+					</select>
+					<select id="order-selector">
+						<option value="1">ascending</option>
+						<option value="-1">descending</option>
+					</select>
+				</div>
+
+				<div class="filter-area col-xs-12 col-md-8">
+					<div class="row">
+						<div class="col-xs-4">
+							<p class="filter-title">card type:</p>
+							<div class="filter-checkboxes">
+								<label><input class="type-select" type="checkbox" id="card-type-checkbox" value="standard" checked>standard</label><br>
+								<label><input class="type-select" type="checkbox" id="card-type-checkbox" value="foil" checked>foil</label><br>
+								<label><input class="type-select" type="checkbox" id="card-type-checkbox" value="seasonal" checked>seasonal</label><br>
+								<label><input class="type-select" type="checkbox" id="card-type-checkbox" value="lottery" checked>lottery</label><br>
+								<label><input class="type-select" type="checkbox" id="card-type-checkbox" value="original" checked>original</label>
+							</div>
+						</div>
+
+						<div class="col-xs-4">
+							<p class="filter-title">status:</p>
+							<div class="filter-checkboxes">
+								<label><input class="status-select" type="checkbox" id="card-status-checkbox" value="claimed" checked>inventory</label><br>
+								<label><input class="status-select" type="checkbox" id="card-status-checkbox" value="permanent" checked>permanent collection</label><br>
+								<label><input class="status-select" type="checkbox" id="card-status-checkbox" value="displayed" checked>on display</label><br>
+								<label><input class="status-select" type="checkbox" id="card-status-checkbox" value="auctioned" checked>auctioned</label>
+							</div>
+						</div>
+
+						<div class="col-xs-4">
+							<p class="filter-title">rarity:</p>
+							<div class="filter-checkboxes">
+								<label><input class="rarity-select" type="checkbox" id="card-rarity-checkbox" value="common" checked>common</label><br>
+								<label><input class="rarity-select" type="checkbox" id="card-rarity-checkbox" value="uncommon" checked>uncommon</label><br>
+								<label><input class="rarity-select" type="checkbox" id="card-rarity-checkbox" value="rare" checked>rare</label><br>
+								<label><input class="rarity-select" type="checkbox" id="card-rarity-checkbox" value="legendary" checked>legendary</label><br>
+								<label><input class="rarity-select" type="checkbox" id="card-rarity-checkbox" value="masterpiece" checked>masterpiece</label>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
 		<div class="row">
 			<!-- {{#if list_view}} -->
 			{{#if false}}
@@ -13,17 +71,17 @@
 				{{/each}}
 				</tr>
 
-				{{#each cardArray owned}}
+				{{#each owned}}
 				<tr data-item_id="{{_id}}">
 					<td>
 						{{#with thumbnailInfo _id}}
 						<img class="image-thumb preview enabled" src="/img/paintings/{{filename}}" width="{{image_width}}" height="{{image_height}}"/>
 						{{/with}}
 					</td>
-					<td>{{title}}</td>
-					<td>{{date}}</td>
-					<td>{{artist}}</td>
-					<td><span class="{{rarity}}"><strong>{{rarity}}</strong></span></td>
+					<td>{{artwork_data.title}}</td>
+					<td>{{artwork_data.date}}</td>
+					<td>{{artwork_data.artist}}</td>
+					<td><span class="{{artwork_data.rarity}}"><strong>{{artwork_data.rarity}}</strong></span></td>
 					<td>${{getItemValue _id "actual"}}</td>
 					<td>{{height}} x {{width}}</td>
 					<td style="color: rgb({{valueColor condition}}, 0, 0)" >{{condition_text}}</td>
@@ -62,15 +120,7 @@
 			</table>
 			{{else}}
 
-			<table class="auction-table" data-table_id="{{this.table_id}}">
-				<tr>
-				{{#each sortHeader}}
-					{{> inventoryHeaderTemplate this}}
-				{{/each}}
-				</tr>
-			</table>
-
-			{{#each cardArray owned}}
+			{{#each owned}}
 				{{>itemInfo item_data=this sell_button=true auction_button=true display_button=true reroll_button=true permanent_button=true tag_button=true}}
 			{{/each}}
 

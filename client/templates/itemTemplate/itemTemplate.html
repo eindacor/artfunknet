@@ -1,26 +1,26 @@
 <template name="itemInfo">
 	<div class="template-itemInfo">
-		<div data-item_id="{{item_data._id}}" class="card-container {{item_data.rarity}}-item" style="background: url('{{getImageURL item_data.filename}}') center; background-size: {{#with imageSize item_data.width item_data.height}}{{image_width}}px {{image_height}}px{{/with}}">
+		<div data-item_id="{{item_data._id}}" class="card-container {{item_data.artwork_data.rarity}}-item" style="background: url('{{getImageURL item_data.artwork_data.filename}}') center; background-size: {{#with imageSize item_data.artwork_data.width item_data.artwork_data.height}}{{image_width}}px {{image_height}}px{{/with}}">
 			<div class="row no-margin card-info">
 				<div class="card-header col-xs-12 {{#if item_data.foil}}foil{{/if}} {{#if item_data.seasonal}}seasonal{{/if}} {{#if item_data.lottery}}lottery{{/if}} {{#if item_data.original}}original{{/if}}">
 					<div class="row no-margin">
 						<div class="header-basic-info">
-							<p class="item-title">{{item_data.title}}</p>
-							<p>{{item_data.artist}}</p>
+							<p class="item-title">{{item_data.artwork_data.title}}</p>
+							<p>{{item_data.artwork_data.artist}}</p>
 						</div>
 					</div>
 
 					<div class="row no-margin">
 						<div class="header-details">
-							<p>{{item_data.date}}</p>
-							<p><span class="{{item_data.rarity}}"><strong>{{item_data.rarity}}</strong></span>{{#if item_data.foil}}<span class="af-color"> foil</span>{{/if}}{{#if item_data.seasonal}}<span class="common"> seasonal</span>{{/if}}{{#if item_data.lottery}}<span class="gold"> lottery {{item_data.lottery}}</span>{{/if}}{{#if item_data.original}}<span class="purple-text"> original</span>{{/if}}</p>
-							<p>{{item_data.medium}}</p>
-							<p>{{item_data.height}} x {{item_data.width}}</p>
-							<p>condition: <span style="color: {{getHTMLColorFromValue item_data.condition}}">{{item_data.condition_text}}</span></p>
+							<p>{{item_data.artwork_data.date}}</p>
+							<p><span class="{{item_data.artwork_data.rarity}}"><strong>{{item_data.artwork_data.rarity}}</strong></span>{{#if item_data.foil}}<span class="af-color"> foil</span>{{/if}}{{#if item_data.seasonal}}<span class="common"> seasonal</span>{{/if}}{{#if item_data.lottery}}<span class="gold"> lottery {{item_data.lottery}}</span>{{/if}}{{#if item_data.original}}<span class="purple-text"> original</span>{{/if}}</p>
+							<p>{{item_data.artwork_data.medium}}</p>
+							<p>{{item_data.artwork_data.height}} x {{item_data.artwork_data.width}}</p>
+							<p>condition: <span style="color: {{getHTMLColorFromValue item_data.condition}}">%{{floatToPercentage item_data.condition}}</span></p>
 							<!-- {{#if isOwner item_data.owner}} -->
 								<p>estimated value: ${{getItemValue item_data._id "actual"}}</p>
 							<!-- {{/if}} -->
-							<p>xp rating: <span style="color: {{getHTMLColorFromValue item_data.xp_rating}}">{{item_data.xp_rating_text}}</span></p>
+							<p>xp rating: <span style="color: {{getHTMLColorFromValue item_data.xp_rating}}">{{floatToPercentage item_data.xp_rating}}</span></p>
 							<p>roll count: {{item_data.roll_count}}</p>
 							{{#each unique_attribute item_data}}
 								<p class="flavor-text af-color {{#if ../item_data.permanent}}permanent{{/if}}">"{{flavor_text}}"</p>
@@ -89,7 +89,7 @@
 							{{/each}}
 							</div>
 							<div class="col-xs-1 no-padding">
-								<p><span style="color: {{getHTMLColorFromValue item_data.xp_rating}}">{{item_data.xp_rating_text}}</span></p>
+								<p><span style="color: {{getHTMLColorFromValue item_data.xp_rating}}">{{floatToPercentage item_data.xp_rating}}</span></p>
 							</div>
 						</div>
 					</div>

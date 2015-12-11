@@ -304,7 +304,11 @@ Meteor.methods({
 
 	        else artworks.update(artwork_id, {$unset: {'locked_attributes': ""}});
 
-    		artworks.update(artwork_id, {$set: artwork_object});
+    		artworks.update(artwork_id, {$set: artwork_object}, {multi: true}, function(error) {
+                var artwork_data = artworks.findOne(artwork_id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}});
+                items.update({'artwork_id': artwork_id}, {$set: {'artwork_data': artwork_data}}, {multi: true});
+            });
+
     		return true;
     	}
 
@@ -339,7 +343,10 @@ Meteor.methods({
 
     'updateArtistData': function(artist_id, artist_object) {
     	if (adminValidated()) {
-    		artists.update(artist_id, {$set: artist_object});
+    		artists.update(artist_id, {$set: artist_object}, {multi: true}, function(error) {
+                artworks.update({'artist_id': artist_id}, {$set: {'artist': artist_object.artist_name}});
+                items.update({'artwork_data.artist_id': artist_id}, {$set: {'artwork_data.artist': artist_object.artist_name}});
+            });
     		return true;
     	}
 

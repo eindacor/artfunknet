@@ -1,7 +1,5 @@
 var generateContent = function() {
-    var fs = Npm.require('fs');
-
-	for (var i=0; i < artist_data.length; i++) {
+    for (var i=0; i < artist_data.length; i++) {
 		artists.insert(artist_data[i]);
 	}
 
@@ -15,29 +13,6 @@ var generateContent = function() {
     		artworks.insert(artwork_object, function(artwork_insert_error, inserted_id) {
                 if (artwork_insert_error)
                     console.log(artwork_insert_error.message);
-
-                else {
-                    // var added_artwork = artworks.findOne(inserted_id);
-                    // var image = fs.readFileSync('./assets/app/' + added_artwork.filename);
-                    // var newFile = new FS.File();
-                    // newFile.attachData(image, {type: 'image/bmp'}, function(attach_error) {
-                    //     if (attach_error)
-                    //         console.log(attach_error.message);
-
-                    //     else {
-                    //         newFile.name(added_artwork.filename);
-                    //         artworkImages.insert(newFile, function(image_insert_error, inserted_image_id) {
-                    //             if(image_insert_error)
-                    //                 console.log(image_insert_error.message);
-
-                    //             else {
-                    //                 console.log("image added: " + inserted_image_id);
-                    //                 artworkImages.update(inserted_image_id, {$set: {'artwork_id' : added_artwork._id}});
-                    //             }
-                    //         });
-                    //     }
-                    // });
-                }
             });
     	}
     }
@@ -81,7 +56,12 @@ var updateContent = function() {
     })
 
     // temp code
-
+    artworks.find({}, {fields: {'active': 0, 'value_scale': 0}}).forEach(function(db_object) {
+        var artwork_id = db_object._id;
+        artworks.update(artwork_id, {$set: {'rarity_value': rarityValueFromString(db_object.rarity)}});
+        delete db_object["_id"];
+        items.update({'artwork_id': artwork_id}, {$set: {'artwork_data': db_object}}, {multi: true});
+    })
     // temp code
 }
 
