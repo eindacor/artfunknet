@@ -8,6 +8,9 @@
 				<button class="{{buttonQuality}}-button crate-button {{#if enabled}}enabled{{else}}disabled{{/if}}" data-button_quality="{{buttonQuality}}">{{buttonQuality}} crate - {{crateCost}}</button>
 				{{/with}}
 			{{/each}}
+			{{#if has_for_sale}}
+			<button id="decline-all">decline all</button>
+			{{/if}}
 		</div>
 
 		{{#if full}}

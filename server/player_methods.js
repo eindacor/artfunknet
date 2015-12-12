@@ -487,12 +487,11 @@ Meteor.methods({
                 'status': "unclaimed", 
                 'foil': false, 
                 'seasonal': false, 
-                'lottery': false
+                'lottery': false,
+                'artwork_data.rarity': {$in: valid_rarities}
             }).forEach(function(db_object) {
-                if (valid_rarities.indexOf(artworks.findOne(db_object.artwork_id).rarity) != -1) {
-                    total_value += getItemValue(db_object._id, "sell");
-                    item_ids.push(db_object._id);
-                }
+                total_value += getItemValue(db_object._id, "sell");
+                item_ids.push(db_object._id);
             });
 
             items.update({'_id': {$in: item_ids}}, {$set: {'owner': "Artfunkel, Inc.", 'status': "auctioned"}}, {multi: true} ,function(error) {
@@ -511,5 +510,16 @@ Meteor.methods({
         }
 
         else items.remove({'owner': Meteor.userId(), 'status': "unclaimed"});
+    },
+
+    'clearAllForSale' : function() {
+        items.remove({
+            'owner': Meteor.userId(),
+            'status': "for_sale", 
+            'foil': false, 
+            'seasonal': false, 
+            'lottery': false, 
+            'artwork_data.rarity': {$in: ["common", "uncommon", "rare"]}
+        });
     }
 })

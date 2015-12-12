@@ -55,12 +55,7 @@ var updateContent = function() {
     })
 
     // temp code
-    artworks.find({}, {fields: {'active': 0, 'value_scale': 0}}).forEach(function(db_object) {
-        var artwork_id = db_object._id;
-        artworks.update(artwork_id, {$set: {'rarity_value': rarityValueFromString(db_object.rarity)}});
-        delete db_object["_id"];
-        items.update({'artwork_id': artwork_id}, {$set: {'artwork_data': db_object}}, {multi: true});
-    })
+    
     // temp code
 }
 

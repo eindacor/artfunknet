@@ -46,6 +46,17 @@ Template.store.helpers({
 
 	'canPurchase' : function(item_id) {
 		return true;
+	},
+
+	'has_for_sale': function() {
+		return items.findOne({
+            'owner': Meteor.userId(),
+            'status': "for_sale", 
+            'foil': false, 
+            'seasonal': false, 
+            'lottery': false, 
+            'artwork_data.rarity': {$in: ["common", "uncommon", "rare"]}
+        }) != undefined;
 	}
 })
 
@@ -57,6 +68,13 @@ Template.store.events ({
 				console.log(error.message);
 
 			Router.go("/loot");
+		})
+	},
+
+	'click #decline-all' : function() {
+		Meteor.call('clearAllForSale', function(error) {
+			if (error)
+				console.log(error.message);
 		})
 	}
 })
