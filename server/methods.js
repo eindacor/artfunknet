@@ -343,27 +343,6 @@ Meteor.methods({
         return lookupCrateCost(quality, admin_settings.crate_drop_count);
     },
 
-    'rerollXPRating' : function(item_id) {
-        if (canRerollItem(item_id)) {
-            var item_object = items.findOne(item_id);
-            if (item_object != undefined) {
-                var roll_count = item_object.roll_count;
-                items.update(item_id, {$set : {'xp_rating' : getXPRating()}});
-                items.update(item_id, {$set : {'roll_count' : roll_count + 1}});
-                chargeAccount(Meteor.userId(), getRerollCost(item_id));
-            }
-        }
-    },
-
-    'resetXPRatings' : function() {
-        var item_objects = items.find();
-        item_objects.forEach(function(db_object) {
-            var xp_rating = getXPRating();
-            items.update(db_object._id, {$set: {'xp_rating' : xp_rating}});
-            auctions.update({'item_id' : db_object._id}, {$set: {'xp_rating' : xp_rating}}, {multi : true});
-        })
-    },
-
     'resetRollCounts' : function() {
         items.update({}, {$set : {'roll_count' : 0}}, {multi : true});
         auctions.update({}, {$set : {'roll_count' : 0}}, {multi : true});

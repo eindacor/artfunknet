@@ -106,7 +106,7 @@ attribute_quantities = {
     }
 }
 
-getCondition = function() {
+getCondition = function(min_value) {
     var tier_map = {
         0 : 2,
         1 : 3,
@@ -117,7 +117,10 @@ getCondition = function() {
 
     var random_tier = Number(JepLoot.catRoll(tier_map));
     var condition = (random_tier * 20) + (Math.random() * 20);
-    return Number((condition / 100).toFixed(2));
+    var condition_float = Number((condition / 100).toFixed(2));
+    condition_float = Number((min_value + (condition_float * (1 - min_value))).toFixed(2));
+
+    return condition_float;
 }
 
 var reroll_coefficients = {
@@ -209,16 +212,9 @@ getRolledCrateQuality = function() {
 getRerollCost = function(item_id) {
     var item_object = items.findOne(item_id);
 
-    var roll_count;
+    var roll_count = item_object.roll_count < 0 ? 0 : item_object.roll_count;
 
-    if (item_object.roll_count == undefined) {
-        items.update(item_id, {$set : {'roll_count' : 0}});
-        roll_count = 0;
-    }
-
-    else roll_count = item_object.roll_count;
-
-    var rarity = artworks.findOne(item_object.artwork_id).rarity;
+    var rarity = item_object.artwork_data.rarity;
     var reroll_coefficient = reroll_coefficients[rarity];
     var average_value = Math.floor((rarity_values[rarity].max + rarity_values[rarity].min) / 2);
 
@@ -257,7 +253,7 @@ lookupCrateCost = function(quality, count) {
     return Math.floor(total_average * count * rarity_inflation_coefficient[quality]);
 }
 
-generateItems = function(user_id, quality, count, status, foil_chance) {
+generateItems = function(user_id, quality, count, status, foil_chance, xp_rating_min, condition_min) {
     if (Meteor.users.findOne(user_id) === undefined)
         return;
 
@@ -279,23 +275,23 @@ generateItems = function(user_id, quality, count, status, foil_chance) {
         var random_index = Math.floor(Math.random() * possibilities.length);
         var rolled_id = possibilities[random_index]._id;
 
-        generateItemFromArtworkID(user_id, rolled_id, undefined, undefined, foil_chance, undefined, false, false, status);
+        generateItemFromArtworkID(user_id, rolled_id, undefined, undefined, foil_chance, undefined, false, false, status, xp_rating_min, condition_min);
     }
 
     return true;
 }
 
-generateItemFromArtworkID = function(user_id, artwork_id, condition, xp_rating, foil_chance, seasonal, lottery, original, status) {
+generateItemFromArtworkID = function(user_id, artwork_id, condition, xp_rating, foil_chance, seasonal, lottery, original, status, xp_rating_min, condition_min) {
     var artwork_data = artworks.findOne(artwork_id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}});
     if (artwork_data) {
         var new_item_id = items.insert({
             'artwork_id' : artwork_id,
-            'condition' : condition === undefined ? getCondition() : condition,
+            'condition' : condition === undefined ? getCondition(condition_min) : condition,
             'attributes' : getAttributes(artwork_data.rarity, artwork_id),
             'owner' : user_id,
             'status' : status,
             'date_created' : new Date(),
-            'xp_rating' : xp_rating === undefined ? getXPRating() : xp_rating,
+            'xp_rating' : xp_rating === undefined ? getXPRating(xp_rating_min) : xp_rating,
             'roll_count' : 0,
             'foil': seasonal_ids.indexOf(artwork_id) == -1 && Math.random() < foil_chance,
             'seasonal': seasonal === undefined ? seasonal_ids.indexOf(artwork_id) != -1 : seasonal,
@@ -338,7 +334,7 @@ getAttributes = function(rarity, artwork_id) {
 
         for (var i=0; i < attribute_array.length; i++) {
             var locked = attributeIsLocked(artwork_id, attribute_array[i]._id);
-            attribute_array[i].value = locked ? getLockedAttributeValue() : getAttributeValue(0);
+            attribute_array[i].value = locked ? getLockedAttributeValue() : getAttributeValue(0, 0);
             attribute_array[i].locked = locked;
         }
 
@@ -352,7 +348,7 @@ getAttributes = function(rarity, artwork_id) {
     }
 }
 
-getXPRating = function() {
+getXPRating = function(min_value) {
     var tier_map = {
         0 : 2,
         1 : 3,
@@ -363,10 +359,14 @@ getXPRating = function() {
 
     var random_tier = Number(JepLoot.catRoll(tier_map));
     var xp_rating = (random_tier * 20) + (Math.random() * 20);
-    return Number((xp_rating / 100).toFixed(2));
+    var xp_rating_float = Number((xp_rating / 100).toFixed(2));
+
+    xp_rating_float = Number((min_value + (xp_rating_float * (1 - min_value))).toFixed(2));
+
+    return xp_rating_float;
 }
 
-getAttributeValue = function(multiplier) {
+getAttributeValue = function(multiplier, min_value) {
     var tier_map = {
         0 : 1 + (multiplier * 0),
         1 : 2 + (multiplier * 1),
@@ -377,11 +377,15 @@ getAttributeValue = function(multiplier) {
 
     var random_tier = Number(JepLoot.catRoll(tier_map));
     var attribute_rating = (random_tier * 20) + (Math.random() * 20);
-    return Number((attribute_rating / 100).toFixed(2));
+    var attribute_rating_float = Number((attribute_rating / 100).toFixed(2));
+
+    attribute_rating_float = Number((min_value + (attribute_rating_float * (1 - min_value))).toFixed(2));
+
+    return attribute_rating_float;
 }
 
 getLockedAttributeValue = function() {
-    return Number((.8 + (getAttributeValue(0) * .2)).toFixed(2));
+    return Number((.8 + (getAttributeValue(0, 0) * .2)).toFixed(2));
 }
 
 Meteor.methods({
@@ -395,7 +399,7 @@ Meteor.methods({
                 foil_chance = .02;
             }
 
-            generateItems(Meteor.userId(), rolled_quality, admin_settings.daily_drop_count, "unclaimed", foil_chance);
+            generateItems(Meteor.userId(), rolled_quality, admin_settings.daily_drop_count, "unclaimed", foil_chance, 0, 0);
    
             var now = moment().toISOString();
             Meteor.users.update(Meteor.userId(), {$set: {'profile.last_drop' : now}});
@@ -415,7 +419,7 @@ Meteor.methods({
                 foil_chance = .02;
             }
 
-            generateItems(user_id, quality, admin_settings.crate_drop_count, "unclaimed", foil_chance);
+            generateItems(user_id, quality, admin_settings.crate_drop_count, "unclaimed", foil_chance, 0, 0);
             chargeAccount(user_id, cost);
         }
 

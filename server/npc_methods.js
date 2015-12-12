@@ -178,8 +178,8 @@ var benefactorInteraction = function(npc_object) {
 
 var donorInteraction = function(npc_object) {
 	var drop_count = 2;
-
 	var foil_chance = .01;
+	var condition_min = 0;
 
 	if (isOwnGallery(npc_object)) {
 		drop_count += 1;
@@ -191,9 +191,13 @@ var donorInteraction = function(npc_object) {
 		if (procUniqueAttribute(Meteor.userId(), "DONOR_FOIL_BONUS")) {
 			foil_chance = .02;
 		}
+
+		if (procUniqueAttribute(Meteor.userId(), "DONOR_CONDITION_MIN")) {
+			condition_min = .8;
+		}
 	}
 
-	generateItems(Meteor.userId(), npc_object.quality, drop_count, "unclaimed", foil_chance);
+	generateItems(Meteor.userId(), npc_object.quality, drop_count, "unclaimed", foil_chance, 0, condition_min);
 
 	var message = "You have met a donor who would like to contribute to your collection. You may claim your gift in the loot area.";
 
@@ -274,11 +278,6 @@ var preservationistInteraction = function(npc_object) {
 var artExpertInteraction = function(npc_object) {
 	var roll_reduction;
 
-	var highest_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}, 'roll_count' : {$gt : 0}}, {sort: {'roll_count': -1}});
-
-	if (highest_item == undefined)
-		return {'message' : "You have met an art expert, but you don't currently own any works that can be improved. Try re-rolling painting attributes to improve a piece's ratings."};
-
 	switch(npc_object.quality) {
 		case 'bronze': roll_reduction = 1; break;
 		case 'silver': roll_reduction = 2; break;
@@ -286,6 +285,8 @@ var artExpertInteraction = function(npc_object) {
 		case 'platinum': roll_reduction = 4; break;
 		default: roll_reduction = 0; break;
 	}
+
+	var roll_count_min = 0;
 
 	if (isOwnGallery(npc_object)) {
 		roll_reduction += 2;
@@ -301,11 +302,20 @@ var artExpertInteraction = function(npc_object) {
 			if (npcs.findOne({'owner_id': Meteor.userId(), 'attribute_id': attributes.findOne({'npc_name': "Art Donor"})._id}) != undefined)
 				roll_reduction *= 2;
 		}
+
+		if (procUniqueAttribute(Meteor.userId(), "NEGATIVE_ROLL_COUNTS")) {
+			roll_count_min = -5;
+		}
 	}
 
+	var highest_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}, 'roll_count' : {$gt : roll_count_min}}, {sort: {'roll_count': -1}});
+
+	if (highest_item == undefined)
+		return {'message' : "You have met an art expert, but you don't currently own any works that can be improved. Try re-rolling painting attributes to improve a piece's ratings."};
+
 	var new_count;
-	if (highest_item.roll_count - roll_reduction < 0)
-		new_count = 0;
+	if (highest_item.roll_count - roll_reduction < roll_count_min)
+		new_count = roll_count_min;
 
 	else new_count = highest_item.roll_count - roll_reduction;
 
@@ -385,6 +395,7 @@ var artDealerInteraction = function(npc_object) {
 	var drop_count = 4;
 
 	var foil_chance = .01;
+	var min_xp_rating = 0;
 
 	if (isOwnGallery(npc_object)) {
 		drop_count += 2;
@@ -401,9 +412,13 @@ var artDealerInteraction = function(npc_object) {
 		if (procUniqueAttribute(Meteor.userId(), "DEALER_FOIL_BONUS")) {
 			foil_chance = .02;
 		}
+
+		if (procUniqueAttribute(Meteor.userId(), "DEALER_XP_RATING_MIN")) {
+			min_xp_rating = .8;
+		}
 	}
 
-	generateItems(Meteor.userId(), npc_object.quality, drop_count, "for_sale", foil_chance);
+	generateItems(Meteor.userId(), npc_object.quality, drop_count, "for_sale", foil_chance, min_xp_rating, 0);
 
 	var message = "You have met an Art Dealer who would like you to consider a few offers. Go to the store to view their inventory.";
 	return {'message': message}
@@ -607,8 +622,20 @@ var generateQuest = function(rarity, is_own_gallery) {
 	};
 
 	var target_count = 3;
-	if (is_own_gallery && procUniqueAttribute(Meteor.userId(), "QUEST_TARGET_REDUCTION") && npcs.findOne({'owner_id': Meteor.userId(), 'attribute_id': attributes.findOne({'npc_name': "Designer"})._id}) != undefined) {
-		target_count--;
+
+	if (is_own_gallery) {
+		if (procUniqueAttribute(Meteor.userId(), "QUEST_TARGET_REDUCTION") && npcs.findOne({'owner_id': Meteor.userId(), 'attribute_id': attributes.findOne({'npc_name': "Designer"})._id}) != undefined) {
+			target_count--;
+		}
+
+		if (procUniqueAttribute(Meteor.userId(), "QUEST_XP_BONUS")) {
+			reward.xp = Math.floor(reward.xp * 1.5);
+		}
+
+		if (procUniqueAttribute(Meteor.userId(), "MARKET_EXPERT_QUEST_BONUS")) {
+			var auction_count = items.find({'owner': Meteor.userId(), 'status': "auctioned"}).count();
+			reward.money = Math.floor(reward.money * (1 + (auction_count * .08)));
+		}
 	}
 
 	return {

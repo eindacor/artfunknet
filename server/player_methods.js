@@ -425,7 +425,7 @@ Meteor.methods({
                 var random_index = Math.floor(Math.random() * count);
                 var random_artwork_id = artworks.findOne({'_id': {$nin: seasonal_ids}, 'rarity': rarity}, {skip: random_index})._id;
 
-                generateItemFromArtworkID(Meteor.userId(), random_artwork_id, undefined, undefined, quest_object.reward.item.foil ? 1 : .01, undefined, false, false, "unclaimed");
+                generateItemFromArtworkID(Meteor.userId(), random_artwork_id, undefined, undefined, quest_object.reward.item.foil ? 1 : .01, undefined, false, false, "unclaimed", 0, 0);
             }
 
             quests.remove(quest_id);
@@ -466,12 +466,11 @@ Meteor.methods({
             'status': "unclaimed", 
             'foil': false, 
             'seasonal': false, 
-            'lottery': false
+            'lottery': false,
+            'artwork_data.rarity': {$in: valid_rarities}
         }).forEach(function(db_object) {
-            if (valid_rarities.indexOf(artworks.findOne(db_object.artwork_id).rarity) != -1) {
-                total_value += getItemValue(db_object._id, "sell");
-                item_ids.push(db_object._id);
-            }
+            total_value += getItemValue(db_object._id, "sell");
+            item_ids.push(db_object._id);
         });
 
         return total_value;

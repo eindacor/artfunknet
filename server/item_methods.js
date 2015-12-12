@@ -383,6 +383,23 @@ Meteor.methods({
         return getRerollCost(item_id);
     },
 
+    'rerollXPRating' : function(item_id) {
+        if (canRerollItem(item_id)) {
+            var item_object = items.findOne(item_id);
+            if (item_object != undefined) {
+                var roll_count = item_object.roll_count;
+                var min_roll_value = 0;
+
+                if (procUniqueAttribute(Meteor.userId(), "MARKET_EXPERT_ROLL_BONUS") && npcs.findOne({'owner_id': Meteor.userId(), 'attribute_id': attributes.findOne({'npc_name': "Market Expert"})._id}) != undefined) {
+                    var min_roll_value = .5;
+                }
+        
+                items.update(item_id, {$set : {'xp_rating' : getXPRating(min_roll_value), 'roll_count': roll_count + 1}});
+                chargeAccount(Meteor.userId(), getRerollCost(item_id));
+            }
+        }
+    },
+
     'rerollAttributeValue' : function(item_id, attribute_id) {
     	var item_object = canRerollItem(item_id);
         if (item_object) {
@@ -391,7 +408,11 @@ Meteor.methods({
 
             for (var i=0; i < attribute_array.length; i++) {
                 if (attribute_array[i]._id == attribute_id) {
-                    attribute_array[i].value = attributeIsLocked(item_object.artwork_id, attribute_id) ? getLockedAttributeValue() : getAttributeValue(0);
+                    var min_roll_value = 0;
+                    if (procUniqueAttribute(Meteor.userId(), "MARKET_EXPERT_ROLL_BONUS") && npcs.findOne({'owner_id': Meteor.userId(), 'attribute_id': attributes.findOne({'npc_name': "Market Expert"})._id}) != undefined) {
+                        var min_roll_value = .5;
+                    }
+                    attribute_array[i].value = attributeIsLocked(item_object.artwork_id, attribute_id) ? getLockedAttributeValue() : getAttributeValue(0, min_roll_value);
                     break;
                 }
             }
@@ -428,7 +449,14 @@ Meteor.methods({
             var random_attribute = attributes.findOne({'type' : attribute_type, '_id' : {$nin: attribute_ids}, 'active': true}, {skip: random_index});
 
             attribute_array[target_attribute_index] = random_attribute;
-            attribute_array[target_attribute_index].value = getAttributeValue(0);
+
+            var roll_value_min = 0;
+
+            if (procUniqueAttribute(Meteor.userId(), "MARKET_EXPERT_ROLL_BONUS") && npcs.findOne({'owner_id': Meteor.userId(), 'attribute_id': attributes.findOne({'npc_name': "Market Expert"})._id}) != undefined) {
+                roll_value_min = .5;
+            }
+
+            attribute_array[target_attribute_index].value = getAttributeValue(0, roll_value_min);
             attribute_array[target_attribute_index].locked = attributeIsLocked(item_object.artwork_id, random_attribute._id);
 
             // attribute_array.sort(function(first, second) {
