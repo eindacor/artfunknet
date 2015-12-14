@@ -46,7 +46,7 @@ Template.randomDrop.helpers({
             'status': "unclaimed", 
             'foil': false, 
             'seasonal': false, 
-            'lottery': false
+            'lottery': 0
         }).fetch();
 
         for (var i=0; i<potential_items.length; i++) {
