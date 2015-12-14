@@ -54,7 +54,7 @@ Template.store.helpers({
             'status': "for_sale", 
             'foil': false, 
             'seasonal': false, 
-            'lottery': false, 
+            'lottery': 0, 
             'artwork_data.rarity': {$in: ["common", "uncommon", "rare"]}
         }) != undefined;
 	}
