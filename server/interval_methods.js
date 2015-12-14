@@ -69,7 +69,7 @@ Meteor.setInterval((function() {
 var npc_spawn_frequency = 600000; // 10 minutes
 // npc_spawn_frequency = 10000; // 10 seconds
 Meteor.setInterval((function() {
-    var default_spawn_chance = .5;
+    // var default_spawn_chance = .5;
 
     var gallery_objects = galleries.find();
     gallery_objects.forEach(function(db_object) {
@@ -81,7 +81,8 @@ Meteor.setInterval((function() {
             if (attribute_object == undefined || attribute_object.type == "secondary")
                 continue;
             
-            var proc_chance = default_spawn_chance * attribute_values[attribute_ids[i]];
+            // var proc_chance = default_spawn_chance * attribute_values[attribute_ids[i]];
+            var proc_chance = Math.pow((attribute_values[attribute_ids[i]] * .8), 2);
             var description = attributes.findOne(attribute_ids[i]).description;           
             if (JepLoot.booRoll(proc_chance)) {
                 createNPC(db_object, attribute_ids[i], npc_spawn_frequency);
