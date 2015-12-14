@@ -71,12 +71,18 @@ Template.itemInfo.helpers({
 	},
 
 	'auction_time_remaining': function(item_object) {
-		var expiration = moment(auctions.findOne({'item_id': item_object._id}).expiration);
-		var now = moment(Session.get('now'));
-		var remaining = expiration - now;
+		var auction_object = auctions.findOne({'item_id': item_object._id});
 
-		var remaining_text = remaining > 0 ? getCountdownString(remaining) : "expired";
-		return remaining_text;
+		if (auction_object) {
+			var expiration = moment(auction_object.expiration);
+			var now = moment(Session.get('now'));
+			var remaining = expiration - now;
+
+			var remaining_text = remaining > 0 ? getCountdownString(remaining) : "expired";
+			return remaining_text;
+		}
+
+		else return "expired";
 	},
 
 	'sortedAttributes' : function(attributes) {

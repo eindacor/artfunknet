@@ -28,16 +28,16 @@ Template.auctionTable.helpers({
 		var header_array = [
 			{ 'text' : 'view', 'sort_id' : undefined, 'table_id' : table_data.table_id  },
 			{ 'text' : 'remaining', 'sort_id' : 'expiration', 'table_id' : table_data.table_id  },
-			{ 'text' : 'title', 'sort_id' : 'title', 'table_id' : table_data.table_id  },
-			{ 'text' : 'date', 'sort_id' : 'date', 'table_id' : table_data.table_id  },
-			{ 'text' : 'artist', 'sort_id' : 'artist', 'table_id' : table_data.table_id  },
-			{ 'text' : 'rarity', 'sort_id' : 'rarity_rank', 'table_id' : table_data.table_id  },
+			{ 'text' : 'title', 'sort_id' : 'item_data.title', 'table_id' : table_data.table_id  },
+			{ 'text' : 'date', 'sort_id' : 'item_data.date', 'table_id' : table_data.table_id  },
+			{ 'text' : 'artist', 'sort_id' : 'item_data.artist', 'table_id' : table_data.table_id  },
+			{ 'text' : 'rarity', 'sort_id' : 'item_data.rarity_value', 'table_id' : table_data.table_id  },
 			// { 'text' : 'dimensions', 'sort_id' : undefined, 'table_id' : table_data.table_id  },
-			{ 'text' : 'condition', 'sort_id' : 'condition', 'table_id' : table_data.table_id  },
-			{ 'text' : 'features', 'sort_id' : 'feature_count', 'table_id' : table_data.table_id  },
-			{ 'text' : 'xp rating', 'sort_id' : 'xp_rating', 'table_id' : table_data.table_id  },
-			{ 'text' : 'roll count', 'sort_id' : 'roll_count', 'table_id' : table_data.table_id  },
-			{ 'text' : 'current bid', 'sort_id' : 'current_price', 'table_id' : table_data.table_id  },
+			{ 'text' : 'condition', 'sort_id' : 'item_data.condition', 'table_id' : table_data.table_id  },
+			{ 'text' : 'features', 'sort_id' : undefined, 'table_id' : table_data.table_id  },
+			{ 'text' : 'xp rating', 'sort_id' : 'item_data.xp_rating', 'table_id' : table_data.table_id  },
+			{ 'text' : 'roll count', 'sort_id' : 'item_data.roll_count', 'table_id' : table_data.table_id  },
+			{ 'text' : 'current bid', 'sort_id' : 'current_bid', 'table_id' : table_data.table_id  },
 			{ 'text' : 'buy now', 'sort_id' : 'buy_now', 'table_id' : table_data.table_id  },
 			{ 'text' : 'actions', 'sort_id' : undefined, 'table_id' : table_data.table_id  },
 			{ 'text' : 'seller', 'sort_id' : 'seller', 'table_id' : table_data.table_id }
@@ -71,16 +71,6 @@ Template.auctionTable.helpers({
 		try {
 			var list_object = auction_object;
 			var item_object = items.findOne({'_id': auction_object.item_id});
-			var bids = auction_object.bid_history.length;
-			var winning_id = (bids > 0 ? auction_object.bid_history[bids - 1].user_id : undefined);
-			var has_bid = false;
-
-			for (var n=0; n < auction_object.bid_history.length; n++) {
-				if (auction_object.bid_history[n].user_id == Meteor.userId()) {
-					has_bid = true;
-					break;
-				}
-			}
 
 			var displayed_attributes = [];
 			for(var i=0; i < item_object.attributes.length; i++) {
@@ -88,20 +78,23 @@ Template.auctionTable.helpers({
 					displayed_attributes.push(item_object.attributes[i]);
 			}
 
-			list_object.condition_text = Math.floor((item_object.condition * 100)) + '%';
+			list_object.expiration = auction_object.expiration;
+			var funds_available = auction_object.min_bid <= Meteor.user().profile.bank_balance || Meteor.users.findOne({'_id': Meteor.userId(), 'profile.auction_data.winning': {$in: [auction_object._id]}}) != undefined;
+			
 			list_object.biddable = 
 				Meteor.userId() && 
 				(item_object.owner != Meteor.userId()) && 
-				(auction_object.bid_minimum <= Meteor.user().profile.bank_balance) && 
+				funds_available && 
 				items.find({'owner' : Meteor.userId(), 'status' : {$nin : ['unclaimed', 'for_sale']}}).count() < Meteor.user().profile.inventory_cap;
-			list_object.buy_now_text = auction_object.buy_now == -1 ? "-" : "$" + getCommaSeparatedValue(auction_object.buy_now);
-			list_object.has_history = auction_object.bid_history.length > 0;
-			list_object.winning = (winning_id == Meteor.userId()) && Meteor.userId();
-			list_object.losing = (winning_id != Meteor.userId() && winning_id && has_bid);
-			list_object.owned = items.find({'owner': Meteor.userId(), 'artwork_id': item_object.artwork_id}).count() > 0;
+
+			list_object.winning = Meteor.users.findOne({'_id': Meteor.userId(), 'profile.auction_data.winning': {$in: [auction_object._id]}}) != undefined;
+			list_object.losing = Meteor.users.findOne({'_id': Meteor.userId(), 'profile.auction_data.winning': {$in: [auction_object._id]}}) == undefined &&
+				Meteor.users.findOne({'_id': Meteor.userId(), 'profile.auction_data.watching': {$in: [auction_object._id]}}) != undefined;
+
+			list_object.owned = items.findOne({'owner': Meteor.userId(), 'artwork_id': item_object.artwork_id}) != undefined;
 			list_object.attribute = displayed_attributes;
-			list_object.xp_rating_text = Math.floor(item_object.xp_rating * 100);
 			list_object.artwork_id = item_object.artwork_id;
+			list_object.buy_now_text = auction_object.buy_now == -1 ? "-" : "$" + getCommaSeparatedValue(auction_object.buy_now);
 
 			return list_object;
 		}
@@ -112,7 +105,7 @@ Template.auctionTable.helpers({
 	},
 
 	'isBiddable' : function(list_object) {
-		return list_object.biddable && list_object.expiration > Session.get('now');
+		return list_object.biddable && list_object.expiration > moment()._d.toISOString();
 	},
 
 	'attributeColor' : function(value) {
@@ -174,14 +167,23 @@ Template.auctionTable.helpers({
 
 	'isQuestItem' : function(artwork_id) {
 		return quests.findOne({'owner_id': Meteor.userId(), 'target': {$in: [artwork_id]}}) != undefined;
+	},
+
+	'market_expert': function() {
+		return moment() < moment(Meteor.user().profile.market_expert.expiration);
 	}
 });
 
 Template.auctionTable.events({
 	'click .place-bid.enabled' : function(element) {
 		var auction_id = $(element.target).closest('tr').data('auction_id');
-		Session.set('selectedAuction', auction_id);
-		Modal.show('placeBidModal');
+
+		Blaze.renderWithData(Template.modalTemplate, {
+			'modal_name': "placeBidModal", 
+			'modal_data': {
+				'auction_id': auction_id
+			}
+		}, $('body')[0]);
 	},
 
 	'click .view-history.enabled' : function(element) {

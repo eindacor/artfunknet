@@ -23,24 +23,21 @@
 						{{#with time_remaining expiration}}
 						<td class="{{#if soon}}soon{{/if}}">{{remaining}}</td>
 						{{/with}}
-						<td class="{{#if isQuestItem artwork_id}}green-text{{/if}}">{{#if owned}}*{{/if}}{{title}}</td>
-						<td>{{date}}</td>
-						<td>{{artist}}</td>
-						<td><span class="{{rarity}}"><strong>{{rarity}}</strong></span>{{#if foil}}<span class="af-color"> foil</span>{{/if}}{{#if seasonal}}<span class="common"> seasonal</span>{{/if}}{{#if lottery}}<span class="gold"> lottery {{lottery}}</span>{{/if}}{{#if original}}<span class="purple-text"> original</span>{{/if}}</td>
-						<td style="color: rgb({{attributeColor condition}}, 0, 0)" >{{condition_text}}</td>
+						<td class="{{#if isQuestItem artwork_id}}green-text{{/if}}">{{#if owned}}*{{/if}}{{item_data.title}}</td>
+						<td>{{item_data.date}}</td>
+						<td>{{item_data.artist}}</td>
+						<td><span class="{{item_data.rarity}}"><strong>{{item_data.rarity}}</strong></span>{{#if item_data.foil}}<span class="af-color"> foil</span>{{/if}}{{#if item_data.seasonal}}<span class="common"> seasonal</span>{{/if}}{{#if item_data.lottery}}<span class="gold"> lottery {{item_data.lottery}}</span>{{/if}}{{#if item_data.original}}<span class="purple-text"> original</span>{{/if}}</td>
+						<td style="color: rgb({{attributeColor condition}}, 0, 0)" >{{#if market_expert}}{{floatToPercentage item_data.condition}}{{else}}?{{/if}}</td>
 						<td>
 						{{#each attribute}}
 							<i data-attribute_title="{{description}}" data-attribute_value="{{value}}" style="color: rgb({{attributeColor value}}, 0, 0)" class="{{#if locked}}locked{{/if}} item-attribute fa {{icon}}"></i>
 						{{/each}}
 						</td>
-						<td style="color: rgb({{attributeColor xp_rating}}, 0, 0)" >{{xp_rating_text}}</td>
-						<td>{{roll_count}}</td>
-						<td class="{{#if has_history}}highlight{{/if}}">{{displayAsMoneyValue bid_minimum}}</td>
+						<td style="{{#if market_expert}}color: rgb({{attributeColor item_data.xp_rating}}, 0, 0){{/if}}">{{#if market_expert}}{{floatToPercentage item_data.xp_rating}}{{else}}?{{/if}}</td>
+						<td>{{#if market_expert}}{{item_data.roll_count}}{{else}}?{{/if}}</td>
+						<td class="{{#if has_bid}}highlight{{/if}}">{{displayAsMoneyValue min_bid}}</td>
 						<td>{{buy_now_text}}</td>
-						<td class="action-buttons">						
-							<span class="place-bid {{#if isBiddable this}}enabled{{else}}disabled{{/if}}" data-auction_id="{{auction_id}}"><i class="fa fa-usd"></i></span>
-							<span class="view-history {{#if has_history}}enabled{{else}}disabled{{/if}}" data-auction_id="{{auction_id}}"><i class="fa fa-history"></i></span>
-						</td>
+						<td class="action-buttons"><span class="place-bid {{#if isBiddable this}}enabled{{else}}disabled{{/if}}" data-auction_id="{{auction_id}}"><i class="fa fa-usd"></i></span></td>
 						<td><a href="/user/{{seller}}">{{seller}}</a></td>
 					</tr>
 					{{/with}}

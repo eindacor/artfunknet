@@ -20,44 +20,44 @@ var auction_bot_frequency = 3600000; //once per hour
 // auction_bot_frequency = 10000;
 var max_bot_auctions = 2;
 Meteor.setInterval((function() {
-    if (auctions.find({'bid_history.user_id' : "auction_bot"}).count() < max_bot_auctions) {
-        var potential_auctions = auctions.find({
-            'foil': false, 
-            'seasonal': false, 
-            'lottery': false, 
-            'original': false,
-            'owner': {$ne: "Artfunkel, Inc."}, 
-            'bid_history' : [], 
-            'rarity' : {$nin : ['legendary', 'masterpiece']}
-        }).fetch();
+    // if (auctions.find({'bid_history.user_id' : "auction_bot"}).count() < max_bot_auctions) {
+    //     var potential_auctions = auctions.find({
+    //         'foil': false, 
+    //         'seasonal': false, 
+    //         'lottery': false, 
+    //         'original': false,
+    //         'owner': {$ne: "Artfunkel, Inc."}, 
+    //         'bid_history' : [], 
+    //         'rarity' : {$nin : ['legendary', 'masterpiece']}
+    //     }).fetch();
 
-        var qualifying_auctions = [];
+    //     var qualifying_auctions = [];
 
-        for (var i=0; i < potential_auctions.length; i++) {
-            var item_object = items.findOne(potential_auctions[i].item_id);
-            var actual_value = getItemValue(item_object._id, 'actual');
-            var asking_value = potential_auctions[i].current_price;
-            var difference = asking_value - actual_value;
-            if (difference / actual_value < .5)
-                qualifying_auctions.push(potential_auctions[i]);
-        }
+    //     for (var i=0; i < potential_auctions.length; i++) {
+    //         var item_object = items.findOne(potential_auctions[i].item_id);
+    //         var actual_value = getItemValue(item_object._id, 'actual');
+    //         var asking_value = potential_auctions[i].current_price;
+    //         var difference = asking_value - actual_value;
+    //         if (difference / actual_value < .5)
+    //             qualifying_auctions.push(potential_auctions[i]);
+    //     }
 
-        if (qualifying_auctions.length > 0) {
-            var random_auction = qualifying_auctions[Math.floor(Math.random() * (qualifying_auctions.length))];
-            var bid_object = {
-                'user_id': "auction_bot",
-                'amount' : random_auction.bid_minimum,
-                'date' : moment(),
-            }
+    //     if (qualifying_auctions.length > 0) {
+    //         var random_auction = qualifying_auctions[Math.floor(Math.random() * (qualifying_auctions.length))];
+    //         var bid_object = {
+    //             'user_id': "auction_bot",
+    //             'amount' : random_auction.bid_minimum,
+    //             'date' : moment(),
+    //         }
 
-            auctions.update(
-                random_auction._id, {
-                    $push: {'bid_history' : bid_object},
-                    $set: {'current_price' : random_auction.bid_minimum, 'bid_minimum' : Math.floor(random_auction.bid_minimum * 1.05)}
-                }
-            );
-        }
-    }
+    //         auctions.update(
+    //             random_auction._id, {
+    //                 $push: {'bid_history' : bid_object},
+    //                 $set: {'current_price' : random_auction.bid_minimum, 'bid_minimum' : Math.floor(random_auction.bid_minimum * 1.05)}
+    //             }
+    //         );
+    //     }
+    // }
 }), auction_bot_frequency)
 
 var check_ticket_frequency = 300000; //once every 5 minutes

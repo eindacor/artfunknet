@@ -55,7 +55,7 @@ var updateContent = function() {
     })
 
     // temp code
-    
+    Meteor.users.update({}, {$set: {'profile.auction_data.winning': [], 'profile.auction_data.watching': []}}, {multi: true});
     // temp code
 }
 

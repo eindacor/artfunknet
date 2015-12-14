@@ -1,34 +1,35 @@
 <template name="placeBidModal">
-	<div class="template-placeBidModal">
-	    <div style="z-index:9999999999999999;" class="modal fade">
-	        <div class="modal-dialog">
-	            <div class="modal-content container">
-	            	{{#with auctionData}}
-	                <h4>Place your bid for <span class="highlight af-color">{{title}}</span> by <span class="highlight af-color">{{artist}}</span></h4>
+	<div class="template-placeBidModal col-xs-12">
+		<div class="message-container">
+			{{#with auctionData auction_id}}
+				<div class="modal-message-area">
+					<p class="modal-message">Place your bid for <span class="highlight af-color">{{item_data.title}}</span> by <span class="highlight af-color">{{item_data.artist}}</span></p>
 	                <div class="row quick-bid">
-			            <button id="bid-minimum" type="button" class="btn btn-default">bid minimum - ${{minimum}}</button>
+			            <button id="bid-minimum" type="button" class="modal-button">bid minimum - {{displayAsMoneyValue min_bid}}</button>
 			            {{#if canBuy}}
-			            <button id="buy-now" type="button" class="btn btn-default">buy now - ${{buy_now}}</button>
+			            <button id="buy-now" type="button" class="modal-button">buy now - ${{buy_now}}</button>
 			            {{/if}}
 			        </div>
-                	<div class="row">
-                		<p>funds available: ${{balance}}</p>
-                	</div>
+	            	<div class="row">
+	            		<p class="modal-message">funds available: ${{balance highest_bid}}</p>
+	            		{{#if highest_bid}}
+	            			<p class="modal-message">previous bid: {{displayAsMoneyValue highest_bid}}</p>
+	            		{{/if}}
+	            	</div>
 	                <div class="row">
 		                <textarea id="bid-amount" placeholder="bid amount"></textarea>
 		            </div>
-		            <div class="row modal-buttons">
-			            <button id="ok-modal" type="button" class="btn btn-default">ok</button>
-			            <button id="cancel-modal" type="button" class="btn btn-default" data-dismiss="modal">cancel</button>
-			        </div>
-			        <div class="errors">
-		            	{{#each error}}
-		            	<p class="error-text">{{this}}</p>
-		            	{{/each}}
-	            	</div>
-			        {{/with}}
-	            </div>
-	        </div>
-	    </div>
+				</div>
+				<div class="modal-button-area">
+					<button id="ok-modal" type="button" class="modal-button">ok</button>
+					<button class="modal-button close-button">close</button>
+				</div>
+				<div class="errors">
+	            	{{#each error}}
+	            	<p class="error-text">{{this}}</p>
+	            	{{/each}}
+	        	</div>
+	        {{/with}}
+		</div>
 	</div>
 </template>

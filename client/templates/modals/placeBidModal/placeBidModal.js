@@ -1,114 +1,122 @@
+var auction_info_tracker = new Tracker.Dependency;
+var auction_error_tracker = new Tracker.Dependency;
+var auction_object;
+var available_balance;
+var auction_errors;
+
 Template.placeBidModal.rendered = function() {
 	$('.errors').hide();
+    auction_errors = undefined;
+
+    Meteor.call('getAuctionInfo', this.data.auction_id, function(error, result) {
+        if (error)
+            console.log(error.message)
+
+        else {
+            auction_object = result;
+            
+            if (result.highest_bid)
+                available_balance = result.highest_bid + Meteor.user().profile.bank_balance;
+
+            else available_balance = Meteor.user().profile.bank_balance;
+
+            auction_info_tracker.changed();
+        }
+    })
 }
 
 Template.placeBidModal.helpers({
-	'auctionData' : function() {
-		var auction_object = auctions.findOne(Session.get('selectedAuction'));
-		if (!!auction_object) {
-			return {
-				'title' : auction_object.title,
-				'artist' : auction_object.artist,
-				'minimum' : getCommaSeparatedValue(auction_object.bid_minimum),
-				'buy_now' : getCommaSeparatedValue(auction_object.buy_now),
-				'balance' : getCommaSeparatedValue(Meteor.user().profile.bank_balance.toString())
-			}
-		}
-
-		else return {
-			'title' : "",
-			'artist' : "",
-			'minimum' : "",
-			'buy_now' : "",
-			'balance' : ""
-		}
+	'auctionData' : function(auction_id) {
+        auction_info_tracker.depend();
+        return auction_object;
 	},
 
 	'error' : function() {
-		return Session.get('placeBidErrors');
+        auction_error_tracker.depend();
+		return auction_errors;
 	},
 
 	'canBuy' : function() {
-		var auction_object = auctions.findOne(Session.get('selectedAuction'));
-		return !!auction_object && auction_object.buy_now != -1 && Meteor.user().profile.bank_balance >= auction_object.buy_now;
-	}
+		return auction_object && auction_object.buy_now != -1 && available_balance >= auction_object.buy_now;
+	},
+
+    'balance': function(highest_bid) {
+        auction_info_tracker.depend();
+        if (available_balance)
+            return getCommaSeparatedValue(available_balance);
+
+        else return undefined;
+    }
 })
 
 Template.placeBidModal.events({
-    "click #cancel-modal": function(event, template){
-    	//event.preventDefault();
-    	Session.set('selectedAuction', undefined);
-        Modal.hide('placeBidModal');
-        Session.set('placeBidErrors', []);
-    },
-
     'click #ok-modal': function(event, template) {
-    	//event.preventDefault();
-    	var errors = [];
-    	var auction_object = auctions.findOne(Session.get('selectedAuction'));
-    	var bid_amount = getAmountFromInput(template.find('#bid-amount').value);
-        
-    	if (! !!auction_object) 
-    		errors.push("auction not found");
+    	auction_errors = [];
 
-    	if (bid_amount < auction_object.bid_minimum)
-    		errors.push("bid must be at least $" + getCommaSeparatedValue(auction_object.bid_minimum));
+        if (auction_object) {
+        	var bid_amount = getAmountFromInput(template.find('#bid-amount').value);
+            var currently_winning = Meteor.users.findOne({'_id': Meteor.userId(), 'profile.auction_data.winning': {$in: [auction_object._id]}}) != undefined;
 
-    	if (bid_amount > Meteor.user().profile.bank_balance)
-    		errors.push("bid amount exceeds available funds");
+            if (! !!auction_object) 
+        		auction_errors.push("auction not found");
 
-    	if (errors.length > 0) {
-    		Session.set('placeBidErrors', errors);
-    		$('.errors').show();
-    	}
+        	if (bid_amount < auction_object.min_bid)
+        		auction_errors.push("bid must be at least $" + getCommaSeparatedValue(auction_object.min_bid));
 
-    	else {
-    		Meteor.call('placeBid', auction_object._id, bid_amount, function(error) {
-    			if (error)
-    				console.log(error.message);
-    		});
+        	if (bid_amount > available_balance)
+        		auction_errors.push("bid amount exceeds available funds");
 
-    		Session.set('placeBidErrors', []);
-    		$('.errors').hide();
-	    	Modal.hide('placeBidModal');
-	    }
+        	if (auction_errors.length == 0) {
+        		Meteor.call('placeBid', auction_object._id, bid_amount, function(error) {
+        			if (error) 
+        				console.log(error.message);
+
+                    else $('.template-modalTemplate').remove();
+        		});	
+    	    }
+
+            else auction_error_tracker.changed();
+        }
     },
 
     'click #bid-minimum' : function(event, template) {
-    	var auction_object = auctions.findOne(Session.get('selectedAuction'));
-    	if (! !!auction_object) 
-    		Session.set('placeBidError', "auction not found")
+        auction_errors = [];
 
-    	if (Session.get('placeBidError'))
-    		$('.errors').show();
+        if (auction_object) {
+            if (auction_object.min_bid > available_balance)
+                auction_errors.push("bid amount exceeds available funds");
 
-    	else {
-    		Meteor.call('placeBid', auction_object._id, auction_object.bid_minimum, function(error) {
-    			if (error)
-    				console.log(error.message);
-    		});
+            if (auction_errors.length == 0) {
+                Meteor.call('placeBid', auction_object._id, auction_object.min_bid, function(error) {
+                    if (error)
+                        console.log(error.message);
 
-    		$('.errors').hide();
-	    	Modal.hide('placeBidModal');
-	    }
+                    else $('.template-modalTemplate').remove();
+                });
+            }
+
+            else auction_error_tracker.changed();
+        }
     },
 
     'click #buy-now' : function(event, template) {
-    	var auction_object = auctions.findOne(Session.get('selectedAuction'));
-    	if (! !!auction_object) 
-    		Session.set('placeBidError', "auction not found")
+        auction_errors = [];
 
-    	if (Session.get('placeBidError'))
-    		$('.errors').show();
+        if (auction_object) {
+            if (auction_object.buy_now == -1) 
+                auction_errors.push("this item cannot be purchased");
 
-    	else {
-    		Meteor.call('placeBid', auction_object._id, auction_object.buy_now, function(error) {
-    			if (error)
-    				console.log(error.message);
-    		});
+            if (auction_object.buy_now > available_balance)
+                auction_errors.push("bid amount exceeds available funds");
 
-    		$('.errors').hide();
-	    	Modal.hide('placeBidModal');
-	    }
+            if (auction_errors.length == 0) {
+                Meteor.call('placeBid', auction_object._id, auction_object.buy_now, function(error) {
+                    if (error)
+                        console.log(error.message);
+
+                    else $('.template-modalTemplate').remove();
+                });
+            }
+        }
     },
 })
