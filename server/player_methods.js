@@ -466,7 +466,7 @@ Meteor.methods({
             'status': "unclaimed", 
             'foil': false, 
             'seasonal': false, 
-            'lottery': false,
+            'lottery': 0,
             'artwork_data.rarity': {$in: valid_rarities}
         }).forEach(function(db_object) {
             total_value += getItemValue(db_object._id, "sell");
@@ -486,7 +486,7 @@ Meteor.methods({
                 'status': "unclaimed", 
                 'foil': false, 
                 'seasonal': false, 
-                'lottery': false,
+                'lottery': 0,
                 'artwork_data.rarity': {$in: valid_rarities}
             }).forEach(function(db_object) {
                 total_value += getItemValue(db_object._id, "sell");
@@ -517,7 +517,7 @@ Meteor.methods({
             'status': "for_sale", 
             'foil': false, 
             'seasonal': false, 
-            'lottery': false, 
+            'lottery': 0, 
             'artwork_data.rarity': {$in: ["common", "uncommon", "rare"]}
         });
     }
