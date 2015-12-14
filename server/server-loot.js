@@ -295,7 +295,7 @@ generateItemFromArtworkID = function(user_id, artwork_id, condition, xp_rating, 
             'roll_count' : 0,
             'foil': seasonal_ids.indexOf(artwork_id) == -1 && Math.random() < foil_chance,
             'seasonal': seasonal === undefined ? seasonal_ids.indexOf(artwork_id) != -1 : seasonal,
-            'lottery': lottery === undefined ? false : lottery,
+            'lottery': lottery === undefined ? 0 : lottery,
             'original': original === undefined ? false : original,
             'tags': [],
             'artwork_data': artwork_data
