@@ -29,9 +29,11 @@
 						<td><span class="{{item_data.rarity}}"><strong>{{item_data.rarity}}</strong></span>{{#if item_data.foil}}<span class="af-color"> foil</span>{{/if}}{{#if item_data.seasonal}}<span class="common"> seasonal</span>{{/if}}{{#if item_data.lottery}}<span class="gold"> lottery {{item_data.lottery}}</span>{{/if}}{{#if item_data.original}}<span class="purple-text"> original</span>{{/if}}</td>
 						<td style="color: rgb({{attributeColor condition}}, 0, 0)" >{{#if market_expert}}{{floatToPercentage item_data.condition}}{{else}}?{{/if}}</td>
 						<td>
-						{{#each attribute}}
-							<i data-attribute_title="{{description}}" data-attribute_value="{{value}}" style="color: rgb({{attributeColor value}}, 0, 0)" class="{{#if locked}}locked{{/if}} item-attribute fa {{icon}}"></i>
-						{{/each}}
+						{{#if market_expert}}
+							{{#each attribute}}
+								<i data-attribute_title="{{description}}" data-attribute_value="{{value}}" style="color: rgb({{attributeColor value}}, 0, 0)" class="{{#if locked}}locked{{/if}} item-attribute fa {{icon}}"></i>
+							{{/each}}
+						{{else}}?{{/if}}
 						</td>
 						<td style="{{#if market_expert}}color: rgb({{attributeColor item_data.xp_rating}}, 0, 0){{/if}}">{{#if market_expert}}{{floatToPercentage item_data.xp_rating}}{{else}}?{{/if}}</td>
 						<td>{{#if market_expert}}{{item_data.roll_count}}{{else}}?{{/if}}</td>
