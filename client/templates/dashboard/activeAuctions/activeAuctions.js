@@ -28,7 +28,7 @@ Template.activeAuctions.helpers({
 		    sort_query[Session.get(table_id + '_sort')] = asc;
 		}
 
-	    var auction_array = auctions.find({'bid_history.user_id' : Meteor.userId()}, {sort: sort_query}).fetch();
+	    var auction_array = auctions.find({'_id': {$in: Meteor.user().profile.auction_data.watching}}, {sort: sort_query}).fetch();
 
 		return {
 			'auction' : auction_array,

@@ -196,6 +196,12 @@ var notifyFormerWinner = function(auction_object, new_winner_id, bought) {
     else return undefined;
 }
 
+var removeAuction = function(auction_id) {
+    auctions.remove(auction_id);
+    Meteor.users.update({'profile.auction_data.winning': {$in: [auction_id]}}, {$pull: {'profile.auction_data.winning': auction_id}});
+    Meteor.users.update({'profile.auction_data.watching': {$in: [auction_id]}}, {$pull: {'profile.auction_data.watching': auction_id}}, {multi: true});
+}
+
 Meteor.methods({
     'placeBid': function(auction_id, amount) {
         var auction_object = auctions.findOne(auction_id);
@@ -212,15 +218,14 @@ Meteor.methods({
             return;
 
         if (amount >= auction_object.buy_now && auction_object.buy_now != -1) {
-            refundWinner(auction_object, Meteor.userId(), auction_object.highest_bid, true);
-            // notifyAuctioner(auction_object, true);
-            // notifyWinner
-            chargeAccount(Meteor.userId(), auction_object.buy_now);
             items.update({'_id': auction_object.item_id}, {$set: {'status' : 'claimed', 'owner': Meteor.userId(), 'tags': []}}, function(error) {
+                refundWinner(auction_object, Meteor.userId(), auction_object.highest_bid, true);
+                chargeAccount(Meteor.userId(), auction_object.buy_now);
+                var seller_id = Meteor.users.findOne({'profile.screen_name': auction_object.seller})._id;
                 if (auction_object.seller != "Artfunkel, Inc.") {
-                    var message = "Someone has purchased " + auction_object.item_data.title + " by " + auction_object.item_data.artist;
+                    var message = "Someone has purchased " + auction_object.item_data.title + " by " + auction_object.item_data.artist + " for $" + getCommaSeparatedValue(auction_object.buy_no);
                     var alert_object = {
-                        'user_id' : Meteor.users.findOne({'profile.screen_name': auction_object.seller})._id,
+                        'user_id' : seller_id,
                         'message' : message,
                         'link' : '/',
                         'icon' : 'fa-gavel',
@@ -229,11 +234,12 @@ Meteor.methods({
                     };
 
                     alerts.insert(alert_object);
+
+                    removeAuction(auction_id);
+                    addFunds(seller_id, auction_object.buy_now);
                 }
             });
-            auctions.remove(auction_id);
-
-            Meteor.users.update({'profile.auction_data.winning': {$in: [auction_id]}}, {$pull: {'profile.auction_data.winning': auction_id}});
+            
             return;
         }
 
