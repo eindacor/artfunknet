@@ -669,7 +669,24 @@ Template.adminTools.events({
 });
 
 var generateRarityMap = function() {
-	return undefined;
+	var rarity_map = {
+		'common': [],
+		'uncommon': [],
+		'rare': [],
+		'legendary': [],
+		'masterpiece': []
+	}
+	
+	for (var i=0; i<$('.rarity-row').length; i++) {
+		var current_row = $('.rarity-row:eq(' + i + ')');
+		var rarity = current_row.data().rarity;
+		for (var n=0; n<current_row.find('.rarity-map-value-input').length; n++) {
+			var current_input = current_row.find('.rarity-map-value-input:eq(' + n + ')');
+			var rarity_map[rarity].push(current_input.val());
+		}
+	}
+	
+	return rarity_map;
 }
 
 var generateArtworkObject = function() {
@@ -767,8 +784,20 @@ Template.adminTools.helpers({
 		return artwork_rarities;
 	},
 
-	'increment': function() {
-		return [0, 10, 20, 30, 40 , 50];
+	'increment': function(rarity) {
+		graph_data_tracker.depend();
+		if (graph_data) {
+			var increment_array = [];
+			for (var i=0; i<6; i++) {
+				increment_array.push({
+					'level': i * 10,
+					'value': graph_data[rarity][i]
+				})
+			}
+			return increment_array;
+		}
+		
+		else return undefined;
 	},
 
 	'attribute' : function() {
