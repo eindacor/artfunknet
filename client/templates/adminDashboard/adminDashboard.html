@@ -7,9 +7,17 @@
 				<div class="row tools-section">
 					<h4 class="af-color">Drop Data</h4>
 					<canvas id="drop-chart" width="1000px" height="600px">{{updateChart}}</canvas>
+					<table id="rarity-map-table">
 					{{#each rarity}}
-						<p class="rarity-row {{this}}" data-rarity="{{this}}">{{#each increment}}<input class="rarity-map-value-input" data-increment_value="{{this}}" value="{{this}}">{{/each}}</p>
+						<tr class="rarity-row {{this}}" data-rarity="{{this}}">
+							{{#each increment this}}
+							<td>
+								<input class="rarity-map-value-input" data-level="{{level}}" value="{{value}}">
+							</td>
+							{{/each}}
+						</tr>
 					{{/each}}
+					</table>
 				</div>
 
 				<div class="row tools-section">
