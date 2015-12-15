@@ -5,8 +5,10 @@ var artist_mod_tracker = new Tracker.Dependency;
 var attribute_mod_tracker = new Tracker.Dependency;
 var unique_attribute_mod_tracker = new Tracker.Dependency;
 var attribute_link_choice_tracker = new Tracker.Dependency;
+var graph_data_tracker = new Tracker.Dependency;
 
 var admin_data = undefined;
+var graph_data;
 
 var all_users = [];
 
@@ -95,6 +97,127 @@ var setAdminData = function(set_id, value) {
 	adminDataTracker.changed();
 }
 
+var drawRarityGraph = function() {
+	graph_data_tracker.depend();
+	if (graph_data) {
+		try {
+			console.log(graph_data);
+			var options = {
+
+			    ///Boolean - Whether grid lines are shown across the chart
+			    scaleShowGridLines : true,
+
+			    //String - Colour of the grid lines
+			    scaleGridLineColor : "rgba(0,0,0,.05)",
+
+			    //Number - Width of the grid lines
+			    scaleGridLineWidth : 1,
+
+			    //Boolean - Whether to show horizontal lines (except X axis)
+			    scaleShowHorizontalLines: true,
+
+			    //Boolean - Whether to show vertical lines (except Y axis)
+			    scaleShowVerticalLines: true,
+
+			    //Boolean - Whether the line is curved between points
+			    bezierCurve : true,
+
+			    //Number - Tension of the bezier curve between points
+			    bezierCurveTension : 0.4,
+
+			    //Boolean - Whether to show a dot for each point
+			    pointDot : true,
+
+			    //Number - Radius of each point dot in pixels
+			    pointDotRadius : 4,
+
+			    //Number - Pixel width of point dot stroke
+			    pointDotStrokeWidth : 1,
+
+			    //Number - amount extra to add to the radius to cater for hit detection outside the drawn point
+			    pointHitDetectionRadius : 20,
+
+			    //Boolean - Whether to show a stroke for datasets
+			    datasetStroke : true,
+
+			    //Number - Pixel width of dataset stroke
+			    datasetStrokeWidth : 2,
+
+			    //Boolean - Whether to fill the dataset with a colour
+			    datasetFill : true,
+
+			    //String - A legend template
+			    legendTemplate : "<ul class=\"<%=name.toLowerCase()%>-legend\"><% for (var i=0; i<datasets.length; i++){%><li><span style=\"background-color:<%=datasets[i].strokeColor%>\"></span><%if(datasets[i].label){%><%=datasets[i].label%><%}%></li><%}%></ul>"
+
+			};
+
+
+			var data = {
+			    labels: ["0", "10", "20", "30", "40", "50"],
+			    datasets: [
+			        {
+			            label: "common drops",
+			            fillColor: "rgba(0,255,0,0)",
+			            strokeColor: "rgba(0,255,0,1)",
+			            pointColor: "rgba(0,255,0,.5)",
+			            pointStrokeColor: "rgba(0,255,0,1)",
+			            pointHighlightFill: "#fff",
+			            pointHighlightStroke: "rgba(0,255,0,1)",
+			            data: graph_data.common
+			        },
+			        {
+			            label: "uncommon drops",
+			            fillColor: "rgba(0,0,255,0)",
+			            strokeColor: "rgba(0,0,255,1)",
+			            pointColor: "rgba(0,0,255,.5)",
+			            pointStrokeColor: "rgba(0,0,255,1)",
+			            pointHighlightFill: "#fff",
+			            pointHighlightStroke: "rgba(0,0,255,1)",
+			            data: graph_data.uncommon
+			        },
+			        {
+			            label: "rare drops",
+			            fillColor: "rgba(255,255,0,0)",
+			            strokeColor: "rgba(255,255,0,1)",
+			            pointColor: "rgba(255,255,0,.5)",
+			            pointStrokeColor: "rgba(255,255,0,1)",
+			            pointHighlightFill: "#fff",
+			            pointHighlightStroke: "rgba(255,255,0,1)",
+			            data: graph_data.rare
+			        },
+			        {
+			            label: "legendary drops",
+			            fillColor: "rgba(255,150,0,0)",
+			            strokeColor: "rgba(255,150,0,1)",
+			            pointColor: "rgba(255,150,0,.5)",
+			            pointStrokeColor: "rgba(255,150,0,1)",
+			            pointHighlightFill: "#fff",
+			            pointHighlightStroke: "rgba(255,150,0,1)",
+			            data: graph_data.legendary
+			        },
+			        {
+			            label: "masterpiece drops",
+			            fillColor: "rgba(150,255,255,0)",
+			            strokeColor: "rgba(150,255,255,1)",
+			            pointColor: "rgba(150,255,255,.5)",
+			            pointStrokeColor: "rgba(150,255,255,1)",
+			            pointHighlightFill: "#fff",
+			            pointHighlightStroke: "rgba(150,255,255,1)",
+			            data: graph_data.masterpiece
+			        }
+			    ]
+			};
+
+
+			var ctx = document.getElementById("drop-chart").getContext("2d");
+			var myLineChart = new Chart(ctx).Line(data, options);	
+		}
+
+		catch(error) {
+			console.log(error.message);
+		}
+	}
+}
 
 Template.adminTools.events({
 	'click #reset-daily' : function(element) {
@@ -528,8 +651,26 @@ Template.adminTools.events({
 				else unique_attribute_mod_tracker.changed();
 			});
 		}
+	},
+
+	'click #save-rarity-map': function() {
+		var rarity_map = generateRarityMap();
+
+		Meteor.call('updateSmartMap', rarity_map, function(error, result) {
+			if (error)
+				console.log(error.message);
+
+			else {
+				graph_data = result;
+				graph_data_tracker.changed();
+			}
+		})
 	}
-})
+});
+
+var generateRarityMap = function() {
+	return undefined;
+}
 
 var generateArtworkObject = function() {
 	var artist_object = artists.findOne($('#artwork-mod-container').find('.artwork-mod-artist-selector').val());
@@ -603,6 +744,31 @@ Template.adminTools.helpers({
 			updateAdminData();
 
 		else return admin_data;
+	},
+
+	'updateChart': function() {
+		console.log($('#drop-chart').length);
+
+		setTimeout(function() {
+			console.log("test");
+			Meteor.call('updateSmartMap', undefined, function(error, result) {
+				if (error)
+					console.log(error.message);
+
+				else {
+					graph_data = result;
+					drawRarityGraph();
+				}
+			})
+		}, 3000);		
+	},
+
+	'rarity': function() {
+		return artwork_rarities;
+	},
+
+	'increment': function() {
+		return [0, 10, 20, 30, 40 , 50];
 	},
 
 	'attribute' : function() {

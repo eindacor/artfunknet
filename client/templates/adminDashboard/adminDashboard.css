@@ -89,3 +89,9 @@
 .template-adminTools #unique-attribute-mod-description {
 	height: 64px;
 }
+
+.template-adminTools .rarity-map-value-input {
+	padding: 0px 12px;
+	margin: 4px 8px;
+	width: 150px;
+}

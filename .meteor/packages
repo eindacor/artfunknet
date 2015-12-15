@@ -27,3 +27,4 @@ cfs:standard-packages
 cfs:filesystem
 accounts-ui
 mrt:jquery-ui
+chart:chart

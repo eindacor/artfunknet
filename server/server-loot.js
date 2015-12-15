@@ -424,129 +424,192 @@ Meteor.methods({
         }
 
         else console.log("insufficient funds");
+    },
+
+    'getGraphData': function() {
+        return getGraphData();
+    },
+
+    'updateSmartMap': function(revised_smart_map) {
+        console.log("getting smart map");
+        if (revised_smart_map) {
+            smart_map = revised_smart_map;
+        }
+
+        return getGraphData();
     }
 })
 
-// smart_loot_map = {
-//     'common': {
-//         'min_player_level': 100000,
-//         'max_player_level': 100
-//     },
-
-//     'uncommon': {
-//         'min_player_level': 90000,
-//         'max_player_level': 200
-//     },
-
-//     'rare': {
-//         'min_player_level': 70000,
-//         'max_player_level': 600
-//     },
-
-//     'legendary': {
-//         'min_player_level': 1000,
-//         'max_player_level': 10
-//     },
-
-//     'masterpiece': {
-//         'min_player_level': 100,
-//         'max_player_level': 1
-//     }
-// }
-
-smart_loot_map = {
-    'common': {
-        'min_player_level': .6,
-        'max_player_level': .1
-    },
-
-    'uncommon': {
-        'min_player_level': .399,
-        'max_player_level': .3
-    },
-
-    'rare': {
-        'min_player_level': .000899,
-        'max_player_level': .5949
-    },
-
-    'legendary': {
-        'min_player_level': .0001,
-        'max_player_level': .005
-    },
-
-    'masterpiece': {
-        'min_player_level': .000001,
-        'max_player_level': .0001
-    }
-}
-
-// bronze_rarity_map = {
-//     'common': 60,
-//     'uncommon': 12,
-//     'rare': 0,
-//     'legendary': 0,
-//     'masterpiece': 0
-// }
-
-getSmartRarityMap = function(player_level, amplifier) {
-    var player_weight = player_level / player_level_max;
-    var rarities = ['common', 'uncommon', 'rare', 'legendary', 'masterpiece'];
-
-    var rarity_map = {};
-
-    for (var i=0; i < rarities.length; i++) {
-        var rarity = rarities[i];
-        var rarity_map_range = smart_loot_map[rarity].max_player_level - smart_loot_map[rarity].min_player_level;
-        var weighted_value = 100000 * (smart_loot_map[rarity].min_player_level + (player_weight * rarity_map_range));
-
-        var max_reduction_coefficient;
-        switch(rarity) {
-            case "common": max_reduction_coefficient = .8; break;
-            case "uncommon": max_reduction_coefficient = .4; break;
-            case "rare": max_reduction_coefficient = .2; break;
-            case "legendary": max_reduction_coefficient = .1; break;
-        }
-        
-        weighted_value = weighted_value * (1 - (max_reduction_coefficient * amplifier));
-        rarity_map[rarity] = Math.floor(weighted_value);
-    }
-
-    return rarity_map;
-}
-
-calculateMapChances = function(loot_map) {
-    var map_keys = Object.keys(loot_map);
-    var sum_total = 0;
-    for (var i=0; i<map_keys.length; i++) {
-        sum_total += loot_map[map_keys[i]];
-    }
-
-    var map_chances = {};
-
-    for (var i=0; i<map_keys.length; i++) {
-        map_chances[map_keys[i]] = loot_map[map_keys[i]] / sum_total;
-    }
-
-    return map_chances;
-}
-
-testMap = function(loot_map) {
-    var roll_counts = {
-        'common': 0,
-        'uncommon': 0,
-        'rare': 0,
-        'legendary': 0,
-        'masterpiece': 0
+var getGraphData = function() {
+    var graph_data = {
+        'common': [],
+        'uncommon': [],
+        'rare': [],
+        'legendary': [],
+        'masterpiece': []
     };
 
-    for (var i=0; i < 10000; i++) {
-        var rarity_rolled = JepLoot.catRoll(loot_map);
-        roll_counts[rarity_rolled] += 1;
+    for (var i=0; i < 51; i+=10) {
+        var percentage_map = calcPercentageMap(i);
+
+        artwork_rarities.forEach(function(rarity) {
+            graph_data[rarity].push(percentage_map[rarity]);
+        });
     }
 
-    return roll_counts;
+    return graph_data;
 }
+
+smart_map = {
+    0: {
+        'common': 700000,
+        'uncommon': 200000,
+        'rare': 100000,
+        'legendary': 0,
+        'masterpiece': 0,
+    },
+    10: {
+        'common': 500000,
+        'uncommon': 400000,
+        'rare': 100000,
+        'legendary': 0,
+        'masterpiece': 0,
+    },
+    20: {
+        'common': 300000,
+        'uncommon': 500000,
+        'rare': 200000,
+        'legendary': 0,
+        'masterpiece': 0,
+    },
+    30: {
+        'common': 300000,
+        'uncommon': 600000,
+        'rare': 100000,
+        'legendary': 0,
+        'masterpiece': 0,
+    },
+    40: {
+        'common': 200000,
+        'uncommon': 400000,
+        'rare': 400000,
+        'legendary': 10,
+        'masterpiece': 0,
+    },
+    50: {
+        'common': 500000,
+        'uncommon': 400000,
+        'rare': 100000,
+        'legendary': 100,
+        'masterpiece': 10,
+    },
+}
+
+var rarities = ['common', 'uncommon', 'rare', 'legendary', 'masterpiece'];
+
+var calcMap = function(level) {
+    if (level >= 50)
+        return smart_map[50];
+
+    else {
+        var first_index = Math.floor(level / 10) * 10;
+        var second_index = Math.ceil(level / 10) * 10;
+        var map_one = smart_map[first_index];
+        var map_two = smart_map[second_index];
+
+        var level_ratio = (level % 10) / 10;
+
+        var generated_map = {};
+
+        rarities.forEach(function(rarity) {
+            var difference = map_two[rarity] - map_one[rarity];
+            var value = Math.ceil(map_one[rarity] + (level_ratio * difference));
+            generated_map[rarity] = value;
+        });
+
+        return generated_map;
+    }
+}
+
+var calcPercentageMap = function(level) {
+    var generated_map = calcMap(level);
+
+    var value_total = 0;
+
+    var percentage_map = {};
+
+    rarities.forEach(function(rarity) {
+        value_total += generated_map[rarity];
+    });
+
+    rarities.forEach(function(rarity) {
+        var percent_chance = generated_map[rarity] / value_total;
+        percentage_map[rarity] = percent_chance;
+    });
+
+    return percentage_map;
+};
+
+// getSmartRarityMap = function(player_level, amplifier) {
+//     var player_weight = player_level / player_level_max;
+//     var rarities = ['common', 'uncommon', 'rare', 'legendary', 'masterpiece'];
+
+//     var rarity_map = {};
+
+//     for (var i=0; i < rarities.length; i++) {
+//         var rarity = rarities[i];
+//         var rarity_map_range = smart_loot_map[rarity].max_player_level - smart_loot_map[rarity].min_player_level;
+//         var weighted_value = 100000 * (smart_loot_map[rarity].min_player_level + (player_weight * rarity_map_range));
+
+//         var max_reduction_coefficient;
+//         switch(rarity) {
+//             case "common": max_reduction_coefficient = .8; break;
+//             case "uncommon": max_reduction_coefficient = .4; break;
+//             case "rare": max_reduction_coefficient = .2; break;
+//             case "legendary": max_reduction_coefficient = .1; break;
+//         }
+        
+//         weighted_value = weighted_value * (1 - (max_reduction_coefficient * amplifier));
+//         rarity_map[rarity] = Math.floor(weighted_value);
+//     }
+
+//     return rarity_map;
+// }
+
+// calculateMapChances = function(loot_map) {
+//     var map_keys = Object.keys(loot_map);
+//     var sum_total = 0;
+//     for (var i=0; i<map_keys.length; i++) {
+//         sum_total += loot_map[map_keys[i]];
+//     }
+
+//     var map_chances = {};
+
+//     for (var i=0; i<map_keys.length; i++) {
+//         map_chances[map_keys[i]] = loot_map[map_keys[i]] / sum_total;
+//     }
+
+//     return map_chances;
+// }
+
+
+
+// testMap = function(loot_map) {
+//     var roll_counts = {
+//         'common': 0,
+//         'uncommon': 0,
+//         'rare': 0,
+//         'legendary': 0,
+//         'masterpiece': 0
+//     };
+
+//     for (var i=0; i < 10000; i++) {
+//         var rarity_rolled = JepLoot.catRoll(loot_map);
+//         roll_counts[rarity_rolled] += 1;
+//     }
+
+//     return roll_counts;
+// }
 
 getRandomArtworkIDsFromRarity = function(count, rarity) {
     var ids_selected = [];
