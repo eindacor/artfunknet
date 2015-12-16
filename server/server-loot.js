@@ -475,7 +475,7 @@ var getGraphData = function() {
     return graph_data;
 }
 
-smart_map = {"0":{"common":70000,"uncommon":20000,"rare":1000,"legendary":0,"masterpiece":0},"10":{"common":50000,"uncommon":40000,"rare":3000,"legendary":0,"masterpiece":0},"20":{"common":40000,"uncommon":65000,"rare":10000,"legendary":0,"masterpiece":0},"30":{"common":13000,"uncommon":30000,"rare":10000,"legendary":0,"masterpiece":0},"40":{"common":15000,"uncommon":30000,"rare":30000,"legendary":500,"masterpiece":0},"50":{"common":20000,"uncommon":35000,"rare":70000,"legendary":1000,"masterpiece":10}};
+smart_map = {"0":{"common":70000,"uncommon":20000,"rare":1000,"legendary":0,"masterpiece":0},"10":{"common":50000,"uncommon":40000,"rare":3000,"legendary":0,"masterpiece":0},"20":{"common":40000,"uncommon":65000,"rare":10000,"legendary":0,"masterpiece":0},"30":{"common":13000,"uncommon":30000,"rare":10000,"legendary":0,"masterpiece":0},"40":{"common":14000,"uncommon":32000,"rare":25000,"legendary":400,"masterpiece":0},"50":{"common":2500,"uncommon":4000,"rare":6000,"legendary":120,"masterpiece":2}};
 
 var rarities = ['common', 'uncommon', 'rare', 'legendary', 'masterpiece'];
 
