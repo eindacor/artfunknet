@@ -55,9 +55,8 @@ var updateContent = function() {
     })
 
     // temp code
-    Meteor.users.update({}, {$set: {'profile.auction_data.winning': [], 'profile.auction_data.watching': []}}, {multi: true});
-    items.update({'lottery': undefined}, {$set: {'lottery': 0}}, {multi: true});
-    items.update({'lottery': false}, {$set: {'lottery': 0}}, {multi: true});
+    items.update({}, {$set: {'lottery': 0}}, {multi: true});
+    items.update({}, {$set: {'seasonal': false}}, {multi: true});
     // temp code
 }
 
