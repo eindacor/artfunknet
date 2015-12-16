@@ -647,32 +647,39 @@ var generateQuest = function(rarity, is_own_gallery) {
 }
 
 var historianInteraction = function(npc_object) {
-	var max_quest_count = 8;
-	var quest_cap_bypass = isOwnGallery(npc_object) && procUniqueAttribute(Meteor.userId(), "QUEST_CAP_BYPASS", undefined);
-	if (quests.find({'owner_id': Meteor.userId()}).count() >= max_quest_count && !quest_cap_bypass) {
-		var message = "You have men an art historian who is looking for a few specific items, but you currently have too many tasks on your schedule to help them.";
-		return {'type': undefined, 'message': message};
+	try {
+		var max_quest_count = 8;
+		var quest_cap_bypass = isOwnGallery(npc_object) && procUniqueAttribute(Meteor.userId(), "QUEST_CAP_BYPASS", undefined);
+		if (quests.find({'owner_id': Meteor.userId()}).count() >= max_quest_count && !quest_cap_bypass) {
+			var message = "You have men an art historian who is looking for a few specific items, but you currently have too many tasks on your schedule to help them.";
+			return {'type': undefined, 'message': message};
+		}
+	
+		var map_amplifier;
+	
+		switch(npc_object.quality) {
+	        case 'bronze': map_amplifier = 0; break;
+	        case 'silver': map_amplifier = .2; break;
+	        case 'gold': map_amplifier = .4; break;
+	        case 'platinum': map_amplifier = .8; break;
+	        default: map_amplifier = 0; break;
+		}
+	
+	    var rarity_roll = JepLoot.catRoll(getSmartRarityMap(Meteor.user().profile.level, map_amplifier));
+	
+	    var quest_object = generateQuest(rarity_roll, isOwnGallery(npc_object));
+	
+	    quests.insert(quest_object);
+	
+	    var message = "You have met an art historian who is looking for a few specific items and would like your help. Visit the quests area to see what they need and acquire the artwork listed to claim your reward.";
+	
+	    return {'type': "historian_bonus", 'quest': quest_object};
 	}
-
-	var map_amplifier;
-
-	switch(npc_object.quality) {
-        case 'bronze': map_amplifier = 0; break;
-        case 'silver': map_amplifier = .2; break;
-        case 'gold': map_amplifier = .4; break;
-        case 'platinum': map_amplifier = .8; break;
-        default: map_amplifier = 0; break;
-    }
-
-    var rarity_roll = JepLoot.catRoll(getSmartRarityMap(Meteor.user().profile.level, map_amplifier));
-
-    var quest_object = generateQuest(rarity_roll, isOwnGallery(npc_object));
-
-    quests.insert(quest_object);
-
-    var message = "You have met an art historian who is looking for a few specific items and would like your help. Visit the quests area to see what they need and acquire the artwork listed to claim your reward.";
-
-    return {'type': "historian_bonus", 'quest': quest_object};
+	
+	catch(error) {
+		var message = "error: " + error.message;
+		return {'message': message};
+	}
 }
 
 var marketExpertInteraction = function(npc_object) {
