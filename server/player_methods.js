@@ -425,7 +425,7 @@ Meteor.methods({
                 var random_index = Math.floor(Math.random() * count);
                 var random_artwork_id = artworks.findOne({'_id': {$nin: seasonal_ids}, 'rarity': rarity}, {skip: random_index})._id;
 
-                generateItemFromArtworkID(Meteor.userId(), random_artwork_id, undefined, undefined, quest_object.reward.item.foil ? 1 : .01, undefined, false, false, "unclaimed", 0, 0);
+                generateItemFromArtworkID(Meteor.userId(), random_artwork_id, undefined, undefined, quest_object.reward.item.foil ? 1 : .01, undefined, 0, false, "unclaimed", 0, 0);
             }
 
             quests.remove(quest_id);
@@ -459,7 +459,6 @@ Meteor.methods({
 
     'getSellAllAmount' : function() {
         var total_value = 0;
-        var valid_rarities = ["common", "uncommon", "rare"];
         var item_ids = [];
         items.find({
             'owner': Meteor.userId(),
@@ -467,7 +466,7 @@ Meteor.methods({
             'foil': false, 
             'seasonal': false, 
             'lottery': 0,
-            'artwork_data.rarity': {$in: valid_rarities}
+            'artwork_data.rarity': {$in: ["common", "uncommon", "rare"]}
         }).forEach(function(db_object) {
             total_value += getItemValue(db_object._id, "sell");
             item_ids.push(db_object._id);
@@ -479,7 +478,6 @@ Meteor.methods({
     'sellAllUnclaimed' : function() {
         if (Meteor.user().profile.user_type != "admin") {
             var total_value = 0;
-            var valid_rarities = ["common", "uncommon", "rare"];
             var item_ids = [];
             items.find({
                 'owner': Meteor.userId(),
@@ -487,7 +485,7 @@ Meteor.methods({
                 'foil': false, 
                 'seasonal': false, 
                 'lottery': 0,
-                'artwork_data.rarity': {$in: valid_rarities}
+                'artwork_data.rarity': {$in: ["common", "uncommon", "rare"]}
             }).forEach(function(db_object) {
                 total_value += getItemValue(db_object._id, "sell");
                 item_ids.push(db_object._id);

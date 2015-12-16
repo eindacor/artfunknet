@@ -18,6 +18,17 @@
 						</tr>
 					{{/each}}
 					</table>
+					<p><button id="save-rarity-map">update</button></p>
+					{{#with test_results}}
+					<p><span class="common">common</span>: {{common}} ({{calcPercentage common}})</p>
+					<p><span class="uncommon">uncommon</span>: {{uncommon}} ({{calcPercentage uncommon}})</p>
+					<p><span class="rare">rare</span>: {{rare}} ({{calcPercentage rare}})</p>
+					<p><span class="legendary">legendary</span>: {{legendary}} ({{calcPercentage legendary}})</p>
+					<p><span class="masterpiece">masterpiece</span>: {{masterpiece}} ({{calcPercentage masterpiece}})</p>
+					{{/with}}
+					<p><input class="test-map-level" value="50"></p>
+					<p><button id="test-rarity-map">test</button></p>
+					<p>{{current_map}}</p>
 				</div>
 
 				<div class="row tools-section">
@@ -31,9 +42,7 @@
 						{{> settable_field set_id="set_seasonal" current=seasonal_ids button_id="set-seasonal" label="seasonal items"}}
 						{{> adminButton button_id="new-seasonals" button_label="new seasonals"}}
 						{{> adminButton button_id="reset-daily" button_label="reset daily drop"}}
-						{{> adminButton button_id="clear-unclaimed" button_label="clear unclaimed"}}
 						{{> adminButton button_id="generate-for-sale" button_label="generate for-sale"}}
-						{{> adminButton button_id="clear-for-sale" button_label="clear for-sale"}}
 					</div>
 				</div>
 

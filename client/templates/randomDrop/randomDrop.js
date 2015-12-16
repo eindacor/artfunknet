@@ -39,22 +39,14 @@ Template.randomDrop.helpers({
 	},
 
 	'has_unclaimed' : function() {
-		var valid_rarities = ["common", "uncommon", "rare"];
-
-		var potential_items = items.find({
+		return items.find({
 			'owner': Meteor.userId(),
             'status': "unclaimed", 
             'foil': false, 
             'seasonal': false, 
-            'lottery': 0
-        }).fetch();
-
-        for (var i=0; i<potential_items.length; i++) {
-        	if (valid_rarities.indexOf(artworks.findOne(potential_items[i].artwork_id).rarity) != -1)
-        		return true;
-        }
-
-        return false;
+            'lottery': 0,
+            'artwork_data.rarity': {$in: ['common', 'uncommon', 'rare']}
+		}).count();
 	}
 })
 

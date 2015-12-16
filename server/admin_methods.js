@@ -58,18 +58,6 @@ Meteor.methods({
 		}
 	},
 
-	'clearUnclaimed': function() {
-		if (adminValidated()) {
-			items.remove({'owner': Meteor.user()._id, 'status': "unclaimed"});
-		}
-	},
-
-	'clearForSale': function() {
-		if (adminValidated()) {
-			items.remove({'owner': Meteor.user()._id, 'status': "for_sale"});
-		}
-	},
-
 	'generateNPC': function(attribute_id) {
 		if (adminValidated()) {
 			gallery_object = galleries.findOne({'owner_id': Meteor.userId()});
@@ -108,7 +96,7 @@ Meteor.methods({
 			else if (Meteor.users.findOne(user_id) == undefined)
 				return false;
 
-			else return generateItemFromArtworkID(user_id, artwork_id, condition, xp_rating, foil_chance, seasonal, lottery, original, "claimed");
+			else return generateItemFromArtworkID(user_id, artwork_id, condition, xp_rating, foil_chance, seasonal, lottery, original, "claimed", 0, 0);
 		}
 
 		else return undefined;
@@ -117,12 +105,12 @@ Meteor.methods({
 	'generateRandomItemFromArtworkID' : function(user_id, artwork_id) {
 		if (adminValidated()) {
 			if (user_id == "" || Meteor.users.findOne(user_id).profile.user_type == "admin")
-				return generateItemFromArtworkID(user_id, artwork_id, undefined, undefined, .01, undefined, false, false, "unclaimed", 0, 0);
+				return generateItemFromArtworkID(user_id, artwork_id, undefined, undefined, .01, undefined, 0, false, "unclaimed", 0, 0);
 
 			else if (Meteor.users.findOne(user_id) == undefined)
 				return false;
 
-			else return generateItemFromArtworkID(user_id, artwork_id, undefined, undefined, .01, undefined, false, false, "claimed", 0, 0);
+			else return generateItemFromArtworkID(user_id, artwork_id, undefined, undefined, .01, undefined, 0, false, "claimed", 0, 0);
 		}
 
 		else return undefined;

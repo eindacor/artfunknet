@@ -6,9 +6,12 @@ var attribute_mod_tracker = new Tracker.Dependency;
 var unique_attribute_mod_tracker = new Tracker.Dependency;
 var attribute_link_choice_tracker = new Tracker.Dependency;
 var graph_data_tracker = new Tracker.Dependency;
+var test_result_tracker = new Tracker.Dependency;
 
 var admin_data = undefined;
 var graph_data;
+var map_data;
+var test_results;
 
 var all_users = [];
 
@@ -101,7 +104,6 @@ var drawRarityGraph = function() {
 	graph_data_tracker.depend();
 	if (graph_data) {
 		try {
-			console.log(graph_data);
 			var options = {
 
 			    ///Boolean - Whether grid lines are shown across the chart
@@ -208,8 +210,9 @@ var drawRarityGraph = function() {
 			    ]
 			};
 
-
-			var ctx = document.getElementById("drop-chart").getContext("2d");
+			var canvas = document.getElementById("drop-chart");
+			var ctx = canvas.getContext("2d");
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
 			var myLineChart = new Chart(ctx).Line(data, options);	
 		}
 
@@ -254,20 +257,6 @@ Template.adminTools.events({
 
 	'click #generate-for-sale' : function(element) {
 		Meteor.call('generateForSale', function(error) {
-			if (error)
-				console.log(error.message);
-		})
-	},
-
-	'click #clear-unclaimed' : function(element) {
-		Meteor.call('clearUnclaimed', function(error) {
-			if (error)
-				console.log(error.message);
-		})
-	},
-
-	'click #clear-for-sale' : function(element) {
-		Meteor.call('clearForSale', function(error) {
 			if (error)
 				console.log(error.message);
 		})
@@ -655,35 +644,49 @@ Template.adminTools.events({
 
 	'click #save-rarity-map': function() {
 		var rarity_map = generateRarityMap();
-
 		Meteor.call('updateSmartMap', rarity_map, function(error, result) {
 			if (error)
 				console.log(error.message);
 
 			else {
-				graph_data = result;
+				graph_data = result.graph_data;
+				map_data = result.map_data;
+				drawRarityGraph();
 				graph_data_tracker.changed();
+			}
+		})
+	},
+
+	'click #test-rarity-map': function() {
+		var player_level = $('.test-map-level').val();
+
+		if (isNaN(player_level))
+			return;
+
+		Meteor.call('getTestResults', Number(player_level), function(error, result) {
+			if (error) 
+				console.log(error.message)
+
+			else {
+				test_results = result;
+				test_result_tracker.changed();
 			}
 		})
 	}
 });
 
 var generateRarityMap = function() {
-	var rarity_map = {
-		'common': [],
-		'uncommon': [],
-		'rare': [],
-		'legendary': [],
-		'masterpiece': []
-	}
+	var rarity_map = {};
 	
-	for (var i=0; i<$('.rarity-row').length; i++) {
-		var current_row = $('.rarity-row:eq(' + i + ')');
-		var rarity = current_row.data().rarity;
-		for (var n=0; n<current_row.find('.rarity-map-value-input').length; n++) {
-			var current_input = current_row.find('.rarity-map-value-input:eq(' + n + ')');
-			var rarity_map[rarity].push(current_input.val());
-		}
+	for (var i=0; i<$('.rarity-map-value-input').length; i++) {
+		var current_cell = $('.rarity-map-value-input:eq(' + i + ')');
+		var level = Number(current_cell.data().level);
+		var rarity = current_cell.closest('.rarity-row').data().rarity;
+		
+		if (rarity_map[level] == undefined)
+			rarity_map[level] = {};
+
+		rarity_map[level][rarity] = Number(current_cell.val());
 	}
 	
 	return rarity_map;
@@ -764,17 +767,16 @@ Template.adminTools.helpers({
 	},
 
 	'updateChart': function() {
-		console.log($('#drop-chart').length);
-
 		setTimeout(function() {
-			console.log("test");
 			Meteor.call('updateSmartMap', undefined, function(error, result) {
 				if (error)
 					console.log(error.message);
 
 				else {
-					graph_data = result;
+					graph_data = result.graph_data;
+					map_data = result.map_data;
 					drawRarityGraph();
+					graph_data_tracker.changed();
 				}
 			})
 		}, 3000);		
@@ -784,20 +786,50 @@ Template.adminTools.helpers({
 		return artwork_rarities;
 	},
 
+	'current_map': function() {
+		graph_data_tracker.depend();
+		if (map_data)
+			return JSON.stringify(map_data);
+
+		else return undefined;
+	},
+
+	'calcPercentage': function(drops) {
+		return "%" + ((drops / 10000) * 100).toFixed(2);
+	},
+
 	'increment': function(rarity) {
 		graph_data_tracker.depend();
-		if (graph_data) {
+		if (map_data) {
 			var increment_array = [];
-			for (var i=0; i<6; i++) {
+			for (var i=0; i<51; i += 10) {
 				increment_array.push({
-					'level': i * 10,
-					'value': graph_data[rarity][i]
+					'level': i,
+					'value': map_data[i][rarity]
 				})
 			}
 			return increment_array;
 		}
 		
 		else return undefined;
+	},
+
+	'test_results': function() {
+		test_result_tracker.depend();
+		if (test_results)
+			return test_results;
+
+		else {
+			Meteor.call('getTestResults', 50, function(error, result) {
+				if (error) 
+					console.log(error.message)
+
+				else {
+					test_results = result;
+					test_result_tracker.changed();
+				}
+			})
+		}
 	},
 
 	'attribute' : function() {

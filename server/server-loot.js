@@ -275,7 +275,7 @@ generateItems = function(user_id, quality, count, status, foil_chance, xp_rating
         var random_index = Math.floor(Math.random() * possibilities.length);
         var rolled_id = possibilities[random_index]._id;
 
-        generateItemFromArtworkID(user_id, rolled_id, undefined, undefined, foil_chance, undefined, false, false, status, xp_rating_min, condition_min);
+        generateItemFromArtworkID(user_id, rolled_id, undefined, undefined, foil_chance, undefined, 0, false, status, xp_rating_min, condition_min);
     }
 
     return true;
@@ -431,12 +431,18 @@ Meteor.methods({
     },
 
     'updateSmartMap': function(revised_smart_map) {
-        console.log("getting smart map");
         if (revised_smart_map) {
             smart_map = revised_smart_map;
         }
 
-        return getGraphData();
+        return {
+            'graph_data': getGraphData(),
+            'map_data': smart_map
+        }
+    },
+
+    'getTestResults': function(level) {
+        return testMap(getSmartRarityMap(level, 0));
     }
 })
 
@@ -460,54 +466,11 @@ var getGraphData = function() {
     return graph_data;
 }
 
-smart_map = {
-    0: {
-        'common': 700000,
-        'uncommon': 200000,
-        'rare': 100000,
-        'legendary': 0,
-        'masterpiece': 0,
-    },
-    10: {
-        'common': 500000,
-        'uncommon': 400000,
-        'rare': 100000,
-        'legendary': 0,
-        'masterpiece': 0,
-    },
-    20: {
-        'common': 300000,
-        'uncommon': 500000,
-        'rare': 200000,
-        'legendary': 0,
-        'masterpiece': 0,
-    },
-    30: {
-        'common': 300000,
-        'uncommon': 600000,
-        'rare': 100000,
-        'legendary': 0,
-        'masterpiece': 0,
-    },
-    40: {
-        'common': 200000,
-        'uncommon': 400000,
-        'rare': 400000,
-        'legendary': 10,
-        'masterpiece': 0,
-    },
-    50: {
-        'common': 500000,
-        'uncommon': 400000,
-        'rare': 100000,
-        'legendary': 100,
-        'masterpiece': 10,
-    },
-}
+smart_map = {"0":{"common":70000,"uncommon":20000,"rare":1000,"legendary":0,"masterpiece":0},"10":{"common":50000,"uncommon":40000,"rare":3000,"legendary":0,"masterpiece":0},"20":{"common":40000,"uncommon":65000,"rare":10000,"legendary":0,"masterpiece":0},"30":{"common":13000,"uncommon":30000,"rare":10000,"legendary":0,"masterpiece":0},"40":{"common":15000,"uncommon":30000,"rare":30000,"legendary":500,"masterpiece":0},"50":{"common":20000,"uncommon":35000,"rare":70000,"legendary":1000,"masterpiece":10}};
 
 var rarities = ['common', 'uncommon', 'rare', 'legendary', 'masterpiece'];
 
-var calcMap = function(level) {
+var getSmartRarityMap = function(level, amplifier) {
     if (level >= 50)
         return smart_map[50];
 
@@ -532,7 +495,7 @@ var calcMap = function(level) {
 }
 
 var calcPercentageMap = function(level) {
-    var generated_map = calcMap(level);
+    var generated_map = getSmartRarityMap(level, 0);
 
     var value_total = 0;
 
@@ -594,22 +557,22 @@ var calcPercentageMap = function(level) {
 
 
 
-// testMap = function(loot_map) {
-//     var roll_counts = {
-//         'common': 0,
-//         'uncommon': 0,
-//         'rare': 0,
-//         'legendary': 0,
-//         'masterpiece': 0
-//     };
+testMap = function(loot_map) {
+    var roll_counts = {
+        'common': 0,
+        'uncommon': 0,
+        'rare': 0,
+        'legendary': 0,
+        'masterpiece': 0
+    };
 
-//     for (var i=0; i < 10000; i++) {
-//         var rarity_rolled = JepLoot.catRoll(loot_map);
-//         roll_counts[rarity_rolled] += 1;
-//     }
+    for (var i=0; i < 10000; i++) {
+        var rarity_rolled = JepLoot.catRoll(loot_map);
+        roll_counts[rarity_rolled] += 1;
+    }
 
-//     return roll_counts;
-// }
+    return roll_counts;
+}
 
 getRandomArtworkIDsFromRarity = function(count, rarity) {
     var ids_selected = [];
