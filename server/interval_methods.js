@@ -87,7 +87,7 @@ Meteor.setInterval((function() {
             if (JepLoot.booRoll(proc_chance)) {
                 createNPC(db_object, attribute_ids[i], npc_spawn_frequency);
 
-                if (attribute_object.npc_name == "Designer" && procUniqueAttribute(db_object.owner_id, "DESIGNER_PAIRS") && Math.random() < .8)
+                if (attribute_object.npc_name == "Designer" && procUniqueAttribute(db_object.owner_id, "DESIGNER_PAIRS", undefined) && Math.random() < .8)
                     createNPC(db_object, attribute_ids[i], npc_spawn_frequency);
             }
         }

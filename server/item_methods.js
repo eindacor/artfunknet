@@ -245,7 +245,7 @@ Meteor.methods({
         if (errors.length == 0) {
             items.update({'_id': item_id}, {$set: {'status' : 'auctioned'}}, function() {
                 createAuction(item_id, starting, buy_now, duration);
-                if (procUniqueAttribute(Meteor.userId(), "XP_FOR_AUCTIONS") && Meteor.user().profile.market_expert.expiration > moment()._d.toISOString()) {
+                if (procUniqueAttribute(Meteor.userId(), "XP_FOR_AUCTIONS", undefined) && Meteor.user().profile.market_expert.expiration > moment()._d.toISOString()) {
                     addXPChunkPercentage(Meteor.userId(), .5)
                 }
             });
@@ -271,13 +271,18 @@ Meteor.methods({
             var item_object = items.findOne(item_id);
             if (item_object != undefined) {
                 var roll_count = item_object.roll_count;
-                var min_roll_value = 0;
+                var roll_value_min = 0;
 
-                if (procUniqueAttribute(Meteor.userId(), "MARKET_EXPERT_ROLL_BONUS") && npcs.findOne({'owner_id': Meteor.userId(), 'attribute_id': attributes.findOne({'npc_name': "Market Expert"})._id}) != undefined) {
-                    var min_roll_value = .5;
+                if (procUniqueAttribute(Meteor.userId(), "MARKET_EXPERT_ROLL_BONUS", "Market Expert")) {
+                    var roll_value_min = .4;
+                }
+
+                if (procUniqueAttribute(Meteor.userId(), "ROLL_COUNT_REROLL_BONUS", undefined)) {
+                    if (item_object.roll_count > 10 || item_object.roll_count < 0)
+                        roll_value_min += .5;
                 }
         
-                items.update(item_id, {$set : {'xp_rating' : getXPRating(min_roll_value), 'roll_count': roll_count + 1}});
+                items.update(item_id, {$set : {'xp_rating' : getXPRating(roll_value_min), 'roll_count': roll_count + 1}});
                 chargeAccount(Meteor.userId(), getRerollCost(item_id));
             }
         }
@@ -291,17 +296,22 @@ Meteor.methods({
 
             for (var i=0; i < attribute_array.length; i++) {
                 if (attribute_array[i]._id == attribute_id) {
-                    var min_roll_value = 0;
-                    if (procUniqueAttribute(Meteor.userId(), "MARKET_EXPERT_ROLL_BONUS") && npcs.findOne({'owner_id': Meteor.userId(), 'attribute_id': attributes.findOne({'npc_name': "Market Expert"})._id}) != undefined) {
-                        var min_roll_value = .5;
+                    var roll_value_min = 0;
+                    if (procUniqueAttribute(Meteor.userId(), "MARKET_EXPERT_ROLL_BONUS", "Market Expert")) {
+                        var roll_value_min = .4;
                     }
-                    attribute_array[i].value = attributeIsLocked(item_object.artwork_id, attribute_id) ? getLockedAttributeValue() : getAttributeValue(0, min_roll_value);
+
+                    if (procUniqueAttribute(Meteor.userId(), "ROLL_COUNT_REROLL_BONUS", undefined)) {
+                        if (item_object.roll_count > 10 || item_object.roll_count < 0)
+                            roll_value_min += .5;
+                    }
+
+                    attribute_array[i].value = attributeIsLocked(item_object.artwork_id, attribute_id) ? getLockedAttributeValue() : getAttributeValue(0, roll_value_min);
                     break;
                 }
             }
 
             items.update(item_id, {$set: {'attributes' : attribute_array, 'roll_count' : roll_count + 1}});
-            // items.update(item_id, {$set : {'roll_count' : roll_count + 1}});
             chargeAccount(Meteor.userId(), getRerollCost(item_id));
         }
 
@@ -335,8 +345,13 @@ Meteor.methods({
 
             var roll_value_min = 0;
 
-            if (procUniqueAttribute(Meteor.userId(), "MARKET_EXPERT_ROLL_BONUS") && npcs.findOne({'owner_id': Meteor.userId(), 'attribute_id': attributes.findOne({'npc_name': "Market Expert"})._id}) != undefined) {
-                roll_value_min = .5;
+            if (procUniqueAttribute(Meteor.userId(), "MARKET_EXPERT_ROLL_BONUS", "Market Expert")) {
+                roll_value_min += .4;
+            }
+
+            if (procUniqueAttribute(Meteor.userId(), "ROLL_COUNT_REROLL_BONUS", undefined)) {
+                if (item_object.roll_count > 10 || item_object.roll_count < 0)
+                    roll_value_min += .5;
             }
 
             attribute_array[target_attribute_index].value = getAttributeValue(0, roll_value_min);

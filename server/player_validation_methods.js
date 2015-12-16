@@ -50,7 +50,7 @@ canRerollItem = function(item_id) {
 	var item_object = items.findOne(item_id);
 	var item_owned = Meteor.userId() && item_object && item_object.owner == Meteor.userId();
 	var can_afford = getRerollCost(item_id) <= Meteor.user().profile.bank_balance;
-	var unique_bypass = procUniqueAttribute(Meteor.userId(), "REROLL_DISPLAY_ENABLE") && npcs.findOne({'owner_id': Meteor.userId(), 'attribute_id': attributes.findOne({'npc_name': "Designer"})._id}) != undefined;
+	var unique_bypass = procUniqueAttribute(Meteor.userId(), "REROLL_DISPLAY_ENABLE", "Designer");
 	var valid_status = item_object.status == "claimed" || unique_bypass;
 	return can_afford && item_owned && valid_status ? item_object : undefined;
 }

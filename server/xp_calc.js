@@ -85,7 +85,7 @@ levelUp = function(user_id) {
 }
 
 addXP = function(user_id, xp) {
-	if (procUniqueAttribute(user_id, "MONEY_FOR_XP")) {
+	if (procUniqueAttribute(user_id, "MONEY_FOR_XP", undefined)) {
 		addFunds(user_id, xp * 2);
 	}
 

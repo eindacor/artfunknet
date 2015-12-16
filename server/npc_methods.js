@@ -146,13 +146,13 @@ var benefactorInteraction = function(npc_object) {
 	if (isOwnGallery(npc_object)) {
 		donation_amount *= own_gallery_amplifier;
 
-		if (procUniqueAttribute(Meteor.userId(), "BENEFACTOR_MARKET_EXPERT_RATING_BONUS")) {
+		if (procUniqueAttribute(Meteor.userId(), "BENEFACTOR_MARKET_EXPERT_RATING_BONUS", undefined)) {
 			if (Meteor.user().profile.market_expert.expiration > moment()._d.toISOString()) {
 				donation_amount += (Meteor.user().profile.market_expert.rating * donation_amount);
 			}
 		}
 
-		if (procUniqueAttribute(Meteor.userId(), "LONGEST_GALLERY_TICKET_BONUS")) {
+		if (procUniqueAttribute(Meteor.userId(), "LONGEST_GALLERY_TICKET_BONUS", undefined)) {
 			var longest_ticket = gallery_tickets.findOne({'ticketholder': Meteor.userId()}, {sort: {'expiration': -1}});
 			if (longest_ticket) {
 				var time_left = moment(longest_ticket.expiration) - moment();
@@ -184,15 +184,15 @@ var donorInteraction = function(npc_object) {
 	if (isOwnGallery(npc_object)) {
 		drop_count += 1;
 
-		if (procUniqueAttribute(Meteor.userId(), "BONUS_DEALER_DONOR")) {
+		if (procUniqueAttribute(Meteor.userId(), "BONUS_DEALER_DONOR", undefined)) {
 			drop_count += 1;
 		}
 
-		if (procUniqueAttribute(Meteor.userId(), "DONOR_FOIL_BONUS")) {
+		if (procUniqueAttribute(Meteor.userId(), "DONOR_FOIL_BONUS", undefined)) {
 			foil_chance = .02;
 		}
 
-		if (procUniqueAttribute(Meteor.userId(), "DONOR_CONDITION_MIN")) {
+		if (procUniqueAttribute(Meteor.userId(), "DONOR_CONDITION_MIN", undefined)) {
 			condition_min = .8;
 		}
 	}
@@ -219,17 +219,17 @@ var preservationistInteraction = function(npc_object) {
 	if (isOwnGallery(npc_object)) {
 		repair_amount *= own_gallery_amplifier;
 
-		if (procUniqueAttribute(Meteor.userId(), "PRESERVATIONIST_HIGHEST")) {
+		if (procUniqueAttribute(Meteor.userId(), "PRESERVATIONIST_HIGHEST", undefined)) {
 			target_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}, 'condition': {$lt: 1}}, {sort: {'condition': -1}});
 		}
 
 		else target_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}}, {sort: {'condition': 1}});
 
-		if (target_item && procUniqueAttribute(Meteor.userId(), "PRESERVATIONIST_CONDITION_BONUS") && target_item.condition > .8) {
+		if (target_item && procUniqueAttribute(Meteor.userId(), "PRESERVATIONIST_CONDITION_BONUS", undefined) && target_item.condition > .8) {
 			addFunds(Meteor.userId(), Math.floor(getItemObjectValue(target_item, "display") * .5));
 		}
 
-		if (procUniqueAttribute(Meteor.userId(), "PRESERVATIONIST_FINISH_BOOST") && npcs.findOne({'owner_id': Meteor.userId(), 'attribute_id': attributes.findOne({'npc_name': "Designer"})._id}) != undefined) {
+		if (procUniqueAttribute(Meteor.userId(), "PRESERVATIONIST_FINISH_BOOST", "Designer")) {
 			var increase_amount = .04;
 			var user_object = Meteor.user();
 			var current_wall = user_object.profile.gallery_finishes.active.wall_finish;
@@ -291,19 +291,18 @@ var artExpertInteraction = function(npc_object) {
 	if (isOwnGallery(npc_object)) {
 		roll_reduction += 2;
 
-		if (procUniqueAttribute(Meteor.userId(), "XP_FOR_ZERO_COUNTS")) {
+		if (procUniqueAttribute(Meteor.userId(), "XP_FOR_ZERO_COUNTS", undefined)) {
 			var zero_count_items = items.find({'owner' : Meteor.userId(), 'status' : 'displayed', 'roll_count' : 0}).count();
 			for (var i=0; i<zero_count_items; i++) {
 				addXPChunkPercentage(Meteor.userId(), .1);
 			}
 		}
 
-		if (procUniqueAttribute(Meteor.userId(), "DONOR_REROLL_DEDUCTION_BONUS")) {
-			if (npcs.findOne({'owner_id': Meteor.userId(), 'attribute_id': attributes.findOne({'npc_name': "Art Donor"})._id}) != undefined)
+		if (procUniqueAttribute(Meteor.userId(), "DONOR_REROLL_DEDUCTION_BONUS", "Art Donor")) {
 				roll_reduction *= 2;
 		}
 
-		if (procUniqueAttribute(Meteor.userId(), "NEGATIVE_ROLL_COUNTS")) {
+		if (procUniqueAttribute(Meteor.userId(), "NEGATIVE_ROLL_COUNTS", undefined)) {
 			roll_count_min = -5;
 		}
 	}
@@ -344,20 +343,20 @@ var collectorInteraction = function(npc_object) {
 		if (isOwnGallery(npc_object)) {
 			offer_multiplier *= 1.4;
 
-			if (procUniqueAttribute(Meteor.userId(), "GOOD_CONDITION_COLLECTOR_BONUS") && random_claimed.condition > .8) {
+			if (procUniqueAttribute(Meteor.userId(), "GOOD_CONDITION_COLLECTOR_BONUS", undefined) && random_claimed.condition > .8) {
 				offer_multiplier += .7;
 			}
 
-			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_ROLL_COUNT_BONUS") && random_claimed.roll_count == 0) {
+			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_ROLL_COUNT_BONUS", undefined) && random_claimed.roll_count == 0) {
 				offer_multiplier += .7;
 			}
 
-			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_SPECIAL_BONUS")) {
+			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_SPECIAL_BONUS", undefined)) {
 				if (random_claimed.foil || random_claimed.original || random_claimed.lottery || random_claimed.seasonal)
 					offer_multiplier += 1;
 			}
 
-			if (procUniqueAttribute(Meteor.userId(), "COLLECTOR_DISPLAY_OFFER")) {
+			if (procUniqueAttribute(Meteor.userId(), "COLLECTOR_DISPLAY_OFFER", undefined)) {
 				var random_displayed = selectRandomPainting({'owner': Meteor.userId(), 'status': "displayed"});
 
 				if (random_displayed) {
@@ -400,20 +399,20 @@ var artDealerInteraction = function(npc_object) {
 	if (isOwnGallery(npc_object)) {
 		drop_count += 2;
 
-		if (procUniqueAttribute(Meteor.userId(), "BONUS_DEALER_DONOR")) {
+		if (procUniqueAttribute(Meteor.userId(), "BONUS_DEALER_DONOR", undefined)) {
 			drop_count += 1;
 		}
 
-		if (procUniqueAttribute(Meteor.userId(), "AUCTION_COUNT_DEALER_BONUS") && npcs.findOne({'owner_id': Meteor.userId(), 'attribute_id': attributes.findOne({'npc_name': "Market Expert"})._id}) != undefined) {
+		if (procUniqueAttribute(Meteor.userId(), "AUCTION_COUNT_DEALER_BONUS", "Market Expert")) {
 			var auction_count = items.find({'owner': Meteor.userId(), 'status': "auctioned"}).count();
 			drop_count += Math.ceil(auction_count / 4);
 		}
 
-		if (procUniqueAttribute(Meteor.userId(), "DEALER_FOIL_BONUS")) {
+		if (procUniqueAttribute(Meteor.userId(), "DEALER_FOIL_BONUS", undefined)) {
 			foil_chance = .02;
 		}
 
-		if (procUniqueAttribute(Meteor.userId(), "DEALER_XP_RATING_MIN")) {
+		if (procUniqueAttribute(Meteor.userId(), "DEALER_XP_RATING_MIN", undefined)) {
 			min_xp_rating = .8;
 		}
 	}
@@ -624,15 +623,15 @@ var generateQuest = function(rarity, is_own_gallery) {
 	var target_count = 3;
 
 	if (is_own_gallery) {
-		if (procUniqueAttribute(Meteor.userId(), "QUEST_TARGET_REDUCTION") && npcs.findOne({'owner_id': Meteor.userId(), 'attribute_id': attributes.findOne({'npc_name': "Designer"})._id}) != undefined) {
+		if (procUniqueAttribute(Meteor.userId(), "QUEST_TARGET_REDUCTION", "Designer")) {
 			target_count--;
 		}
 
-		if (procUniqueAttribute(Meteor.userId(), "QUEST_XP_BONUS")) {
+		if (procUniqueAttribute(Meteor.userId(), "QUEST_XP_BONUS", undefined)) {
 			reward.xp = Math.floor(reward.xp * 1.5);
 		}
 
-		if (procUniqueAttribute(Meteor.userId(), "MARKET_EXPERT_QUEST_BONUS")) {
+		if (procUniqueAttribute(Meteor.userId(), "MARKET_EXPERT_QUEST_BONUS", undefined)) {
 			var auction_count = items.find({'owner': Meteor.userId(), 'status': "auctioned"}).count();
 			reward.money = Math.floor(reward.money * (1 + (auction_count * .08)));
 		}
@@ -649,7 +648,7 @@ var generateQuest = function(rarity, is_own_gallery) {
 
 var historianInteraction = function(npc_object) {
 	var max_quest_count = 8;
-	var quest_cap_bypass = isOwnGallery(npc_object) && procUniqueAttribute(Meteor.userId(), "QUEST_CAP_BYPASS");
+	var quest_cap_bypass = isOwnGallery(npc_object) && procUniqueAttribute(Meteor.userId(), "QUEST_CAP_BYPASS", undefined);
 	if (quests.find({'owner_id': Meteor.userId()}).count() >= max_quest_count && !quest_cap_bypass) {
 		var message = "You have men an art historian who is looking for a few specific items, but you currently have too many tasks on your schedule to help them.";
 		return {'type': undefined, 'message': message};

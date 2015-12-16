@@ -82,7 +82,7 @@ Template.registerHelper('itemPermissions', function(item_object) {
 	if (Meteor.user()) {
 		var item_controlled = item_object.owner == Meteor.userId() && item_object.status != 'for_sale';
 
-		var force_reroll = item_controlled && procUniqueAttribute(Meteor.userId(), "REROLL_DISPLAY_ENABLE") && npcs.findOne({'owner_id': Meteor.userId(), 'attribute_id': attributes.findOne({'npc_name': "Designer"})._id}) != undefined;
+		var force_reroll = item_controlled && procUniqueAttribute(Meteor.userId(), "REROLL_DISPLAY_ENABLE", "Designer");
 
 		var permission_object = {
 			'item_data': item_object,

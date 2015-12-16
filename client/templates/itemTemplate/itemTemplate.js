@@ -137,7 +137,7 @@ Template.itemInfo.helpers({
 	},
 
 	'reroll_unique_enable' : function(item_object) {
-		return item_object.status == "displayed" && procUniqueAttribute(Meteor.userId(), "REROLL_DISPLAY_ENABLE") && npcs.findOne({'owner_id': Meteor.userId(), 'attribute_id': attributes.findOne({'npc_name': "Designer"})._id}) != undefined;
+		return item_object.status == "displayed" && procUniqueAttribute(Meteor.userId(), "REROLL_DISPLAY_ENABLE", "Designer");
 	}
 })
 

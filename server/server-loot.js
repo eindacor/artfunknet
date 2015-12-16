@@ -395,7 +395,7 @@ Meteor.methods({
 
             var foil_chance = .01;
 
-            if (procUniqueAttribute(Meteor.userId(), "DAILY_FOIL_BONUS")) {
+            if (procUniqueAttribute(Meteor.userId(), "DAILY_FOIL_BONUS", undefined)) {
                 foil_chance = .02;
             }
 
@@ -415,7 +415,7 @@ Meteor.methods({
         if (Meteor.userId() && Meteor.userId() == user_id && cost < Meteor.user().profile.bank_balance) {
             var foil_chance = .01;
 
-            if (procUniqueAttribute(Meteor.userId(), "CRATE_FOIL_BONUS")) {
+            if (procUniqueAttribute(Meteor.userId(), "CRATE_FOIL_BONUS", undefined)) {
                 foil_chance = .02;
             }
 

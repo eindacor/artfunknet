@@ -782,7 +782,7 @@ Template.adminTools.helpers({
 		}, 3000);		
 	},
 
-	'rarity': function() {
+	'artwork_rarities': function() {
 		return artwork_rarities;
 	},
 
