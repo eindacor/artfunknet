@@ -55,8 +55,7 @@ var updateContent = function() {
     })
 
     // temp code
-    items.update({}, {$set: {'lottery': 0}}, {multi: true});
-    items.update({}, {$set: {'seasonal': false}}, {multi: true});
+
     // temp code
 }
 
