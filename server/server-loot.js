@@ -178,6 +178,10 @@ getItemObjectValue = function(item_object, type) {
         var auction_min = Math.floor(sell_value * .8);
         var collector_offer = Math.floor(actual_value * 1.2);
 
+        if (procUniqueAttribute(Meteor.userId, "DEALER_DISCOUNT", undefined)) {
+            dealer_offer = Math.floor(dealer_offer * .75);
+        }
+
         switch(type) {
             case "sell": return sell_value;
             case "purchase": return purchase_value;
@@ -219,6 +223,11 @@ getRerollCost = function(item_id) {
     var average_value = Math.floor((rarity_values[rarity].max + rarity_values[rarity].min) / 2);
 
     var reroll_cost = (rarity_values[rarity].min * .1) * Math.pow(reroll_coefficient, roll_count);
+
+    if (procUniqueAttribute(Meteor.userId, "REROLL_DISCOUNT", undefined)) {
+        reroll_cost = Math.floor(reroll_cost * .75);
+    }
+
     return Math.floor(reroll_cost);
 }
 
