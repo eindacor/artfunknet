@@ -359,7 +359,7 @@ var collectorInteraction = function(npc_object) {
 				var random_displayed = selectRandomPainting({'owner': Meteor.userId(), 'status': "displayed"});
 
 				if (random_displayed) {
-					var donation_amount = Math.floor((getItemValue(random_displayed._id, "display") * .2) * offer_multiplier);
+					var donation_amount = Math.floor((getItemValue(random_displayed._id, "display", Meteor.userId()) * .2) * offer_multiplier);
 					addFunds(Meteor.userId(), donation_amount);
 					var message = "You have met an Art Collector, who was admiring " + random_displayed.artwork_data.title + " by " + random_displayed.artwork_data.artist + ", currently on display in your gallery. They offer you $" + getCommaSeparatedValue(donation_amount) + " for their appreciation of the piece, and insist that you keep and maintain it for the world to enjoy.";
 					return {'message': message}
@@ -368,7 +368,7 @@ var collectorInteraction = function(npc_object) {
 			}
 		}
 
-		var offer_amount = Math.floor(getItemValue(random_claimed._id, "display") * offer_multiplier);
+		var offer_amount = Math.floor(getItemValue(random_claimed._id, "display", Meteor.userId()) * offer_multiplier);
 
 		var offer_id = npc_data.insert({
 			'owner': Meteor.userId(),
