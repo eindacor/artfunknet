@@ -11,7 +11,7 @@ var getMVPData = function() {
     var admin_id = Meteor.users.findOne({'profile.user_type': "admin"})._id;
     var all_items = items.find({'owner': {$nin : [admin_id, "Artfunkel, Inc."]}, 'status': {$nin: ['unclaimed', 'for_sale', 'claimed']}}).fetch();
     all_items.sort(function(first, second) {
-        return getItemObjectValue(second, 'actual') - getItemObjectValue(first, 'actual');
+        return getItemObjectValue(second, 'actual', undefined) - getItemObjectValue(first, 'actual', undefined);
     });
 
     all_items = all_items.slice(0, 20);
@@ -23,7 +23,7 @@ var getMVPData = function() {
             'artist': all_items[i].artwork_data.artist,
             'title': all_items[i].artwork_data.title,
             'owner': Meteor.users.findOne(all_items[i].owner).profile.screen_name,
-            'value': getItemValue(all_items[i]._id, 'actual'),
+            'value': getItemValue(all_items[i]._id, 'actual', all_items[i].owner),
             'rarity': all_items[i].artwork_data.rarity,
             'condition': all_items[i].condition,
             'foil': all_items[i].foil,
@@ -162,7 +162,7 @@ Meteor.methods({
         var collection_total = 0;
         var item_objects = items.find({'owner' : user_id, 'status' : {$ne: 'unclaimed'}});
         item_objects.forEach(function(db_object) {
-            collection_total += getItemValue(db_object._id, 'actual');
+            collection_total += getItemValue(db_object._id, 'actual', user_id);
         });
 
         return collection_total;
@@ -172,7 +172,7 @@ Meteor.methods({
         var display_total = 0;
         var item_objects = items.find({'owner' : user_id, 'status' : 'displayed'});
         item_objects.forEach(function(db_object) {
-            display_total += getItemValue(db_object._id, 'actual');
+            display_total += getItemValue(db_object._id, 'actual', user_id);
         });
 
         return display_total;
