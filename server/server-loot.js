@@ -231,20 +231,8 @@ getRerollCost = function(item_id) {
     return Math.floor(reroll_cost);
 }
 
-//calculates crate costs based on rarity maps and qulity maps
-lookupCrateCost = function(quality, count) {
-
-    var map_amplifier;
-
-    switch(quality) {
-        case 'bronze': map_amplifier = 0; break;
-        case 'silver': map_amplifier = .2; break;
-        case 'gold': map_amplifier = .4; break;
-        case 'platinum': map_amplifier = .8; break;
-        default: map_amplifier = 0; break;
-    }
-
-    var smart_loot_map = getSmartRarityMap(Meteor.user().profile.level, map_amplifier);
+getAverageDropValue = function(player_level, amplifier) {
+    var smart_loot_map = getSmartRarityMap(player_level, amplifier);
 
     var total_proportions = 0;
     for (var i=0; i < artwork_rarities.length; i++) {
@@ -255,11 +243,28 @@ lookupCrateCost = function(quality, count) {
     var total_average = 0;
     for (var i=0; i < artwork_rarities.length; i++) {
         var rarity = artwork_rarities[i];
-        var average_value = Math.floor((rarity_values[rarity].min + rarity_values[rarity].max) / 2)
+        var average_value = (rarity_values[rarity].min + rarity_values[rarity].max) / 2
         total_average += (average_value * (smart_loot_map[rarity] / total_proportions));
     }
 
-    return Math.floor(total_average * count * rarity_inflation_coefficient[quality]);
+    return Math.floor(total_average);
+}
+
+//calculates crate costs based on rarity maps and qulity maps
+lookupCrateCost = function(quality, count) {
+    var map_amplifier;
+
+    switch(quality) {
+        case 'bronze': map_amplifier = 0; break;
+        case 'silver': map_amplifier = .2; break;
+        case 'gold': map_amplifier = .4; break;
+        case 'platinum': map_amplifier = .8; break;
+        default: map_amplifier = 0; break;
+    }
+
+    var average_drop_value = getAverageDropValue(Meteor.user().profile.level, map_amplifier);
+
+    return Math.floor(average_drop_value * count * rarity_inflation_coefficient[quality]);
 }
 
 generateItems = function(user_id, quality, count, status, foil_chance, xp_rating_min, condition_min) {
@@ -451,6 +456,8 @@ Meteor.methods({
     },
 
     'getTestResults': function(level) {
+        console.log(getSmartRarityMap(level, 0));
+        console.log(getSmartRarityMap(level, 1));
         return testMap(getSmartRarityMap(level, 0));
     }
 })
@@ -479,7 +486,7 @@ smart_map = {"0":{"common":70000,"uncommon":20000,"rare":1000,"legendary":0,"mas
 
 var rarities = ['common', 'uncommon', 'rare', 'legendary', 'masterpiece'];
 
-var getSmartRarityMap = function(level, amplifier) {
+getSmartRarityMap = function(level, amplifier) {
     if (level >= 50)
         return smart_map[50];
 
@@ -495,8 +502,22 @@ var getSmartRarityMap = function(level, amplifier) {
 
         rarities.forEach(function(rarity) {
             var difference = map_two[rarity] - map_one[rarity];
-            var value = Math.ceil(map_one[rarity] + (level_ratio * difference));
-            generated_map[rarity] = value;
+            var value = map_one[rarity] + (level_ratio * difference);
+
+            var max_reduction_coefficient;
+
+            switch(rarity) {
+                case "common": max_reduction_coefficient = .4; break;
+                case "uncommon": max_reduction_coefficient = .3; break;
+                case "rare": max_reduction_coefficient = .2; break;
+                case "legendary": max_reduction_coefficient = .1; break;
+                case "masterpiece": max_reduction_coefficient = 0; break;
+                default: max_reduction_coefficient = 1; break;
+            }
+            
+            weighted_value = value * (1 - (max_reduction_coefficient * amplifier));
+
+            generated_map[rarity] = Math.ceil(weighted_value);
         });
 
         return generated_map;

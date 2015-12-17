@@ -131,8 +131,7 @@ var enthusiastInteraction = function(npc_object) {
 }
 
 var benefactorInteraction = function(npc_object) {
-	// max_donation is determined by how close the player is to max level
-	var max_donation = 50000 + (250000 * playerRatio(Meteor.user()));
+	var max_donation = getAverageDropValue(Meteor.user().profile.level, 0) * 2;
 	var donation_amount;
 
 	switch(npc_object.quality) {
@@ -561,14 +560,10 @@ var generateTarget = function(default_target_count) {
 }
 
 var generateQuest = function(rarity, is_own_gallery) {
-	var player_ratio = playerRatio(Meteor.user());
-    var max_money = 200000 + (800000 * player_ratio);
+    var max_money = getAverageDropValue(Meteor.user().profile.level, 0) * 10;
     var player_level = Meteor.user().profile.level;
 
     var reward;
-
-    //rarity = "legendary";
-    //rarity = "masterpiece";
 
 	switch(rarity) {
 		case 'common' :
