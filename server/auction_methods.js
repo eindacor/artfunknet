@@ -100,6 +100,8 @@ var successfulAuction = function(auction_object, winning_user) {
 
         else {
             var previous_owner = Meteor.users.findOne({'profile.screen_name': auction_object.seller});
+            var item_object = items.findOne(auction_object.item_id);
+            var new_winner_id = item_object.owner;
 
             if (previous_owner) {
                 var sale_message = "You have successfully auctioned " + auction_object.item_data.title + " by " + auction_object.item_data.artist + " for $" + getCommaSeparatedValue(auction_object.current_bid)
@@ -127,6 +129,11 @@ var successfulAuction = function(auction_object, winning_user) {
                 'time' : moment()
             };
             alerts.insert(alert_win_object);
+            
+            if (procuUniqueAttribute(new_winner_id, "AUCTION_WIN_CONDITION_INCREASE", undefined) {
+                if (item_object.condition < .5)
+                    items.update(item_object._id, {$set: {'condition': .9}});
+            }
 
             calcMVP(winning_user._id); 
             Meteor.users.update({'profile.auction_data.winning': {$in: [auction_object._id]}}, {$pull: {'profile.auction_data.winning': auction_object._id}}); 
