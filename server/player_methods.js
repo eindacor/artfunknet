@@ -148,7 +148,7 @@ calcMVP = function(user_id) {
     var collection_total = 0;
     items_owned.forEach(function(db_object) {
         try {
-            var value = getItemValue(db_object._id, 'actual');
+            var value = getItemValue(db_object._id, 'actual', user_id);
             collection_total += value;
             if (value > mvp.value) {
                 mvp.item_id = db_object._id;
@@ -173,7 +173,7 @@ updateGalleryDetails = function(user_id) {
         var attribute_rating_total = 0;
         var attribute_totals = {};
         for (var i=0; i < items_on_display.length; i++) {
-            gallery_value += getItemValue(items_on_display[i]._id, 'actual');
+            gallery_value += getItemValue(items_on_display[i]._id, 'actual', user_id);
             var item_attributes = items_on_display[i].attributes;
             for (var n=0; n < item_attributes.length; n++) {
                 var attribute_id = item_attributes[n]._id;
@@ -468,7 +468,7 @@ Meteor.methods({
             'lottery': 0,
             'artwork_data.rarity': {$in: ["common", "uncommon", "rare"]}
         }).forEach(function(db_object) {
-            total_value += getItemValue(db_object._id, "sell");
+            total_value += getItemValue(db_object._id, "sell", Meteor.userId());
             item_ids.push(db_object._id);
         });
 
@@ -487,7 +487,7 @@ Meteor.methods({
                 'lottery': 0,
                 'artwork_data.rarity': {$in: ["common", "uncommon", "rare"]}
             }).forEach(function(db_object) {
-                total_value += getItemValue(db_object._id, "sell");
+                total_value += getItemValue(db_object._id, "sell", Meteor.userid());
                 item_ids.push(db_object._id);
             });
 
@@ -499,7 +499,7 @@ Meteor.methods({
                     calcMVP(Meteor.userId());
 
                     for (var i=0; i<item_ids.length; i++) 
-                        createAuction(item_ids[i], getItemValue(item_ids[i], "sell"), -1, 120);
+                        createAuction(item_ids[i], getItemValue(item_ids[i], "sell", Meteor.userId()), -1, 120);
                 }
             });
 
