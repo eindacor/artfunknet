@@ -17,7 +17,7 @@ createAuction = function(item_id, starting, buy_now, duration) {
                 default: rarity_rank = 0; break;
             }
 
-            var increment = Math.floor(.02 * getItemValue(item_id, "actual"));
+            var increment = Math.floor(.02 * getItemValue(item_id, "actual", undefined));
 
             var auction_object = {
                 'item_id': item_id,
