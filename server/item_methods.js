@@ -41,7 +41,7 @@ getDisplayDetails = function(item_id, duration) {
     // 6 hours
     // 12 hours
     // 1 day
-    var display_amount = getItemValue(item_id, 'display');
+    var display_amount = getItemValue(item_id, 'display', items.findOne(item_id).owner);
     var xp_chunk = getXPChunk(Meteor.user().profile.level);
     var xp_rating = items.findOne(item_id).xp_rating;
     var xp_value = (xp_chunk * .5) + (xp_chunk * .5 * xp_rating);
@@ -113,7 +113,7 @@ Meteor.methods({
     'purchaseItemFromDealer' : function(item_id) {
         var item_object = canPurchaseItemFromDealer(item_id);
         if (item_object) {
-            chargeAccount(Meteor.userId(), getItemValue(item_id, "dealer"));
+            chargeAccount(Meteor.userId(), getItemValue(item_id, "dealer", Meteor.userId()));
             items.update(item_id, {$set: {'status': "claimed"}}, function(error) {
                 if (error)
                     console.log(error.message);
@@ -193,7 +193,7 @@ Meteor.methods({
     'sellArtwork' : function(item_id) {
         var item_object = canSellItem(item_id);
         if (item_object) {
-            var value = getItemValue(item_id, 'sell');
+            var value = getItemValue(item_id, 'sell', Meteor.userId());
             if (isNaN(value))
                 throw "invalid amount";
 
@@ -205,7 +205,7 @@ Meteor.methods({
                 else {
                     if (Meteor.user().profile.user_type != "admin") {
                         calcMVP(Meteor.userId());
-                        createAuction(item_id, getItemValue(item_id, "sell"), -1, 120);
+                        createAuction(item_id, getItemValue(item_id, "sell", undefined), -1, 120);
                     }
 
                     else items.remove(item_id);
@@ -234,7 +234,7 @@ Meteor.methods({
             errors.push("invalid duration");
 
         if (item_object) {        
-            var minimum = getItemValue(item_id, "auction_min");
+            var minimum = getItemValue(item_id, "auction_min", Meteor.userId());
             if (Number(starting) < minimum)
                 errors.push("starting value must be greater than $" + getCommaSeparatedValue(minimum));
 
@@ -258,8 +258,8 @@ Meteor.methods({
         items.update({'_id': item_id, 'owner': Meteor.userId()}, {$set: {'tags': tags}});
     },
 
-    'getItemValue' : function(item_id, type) {
-        return getItemValue(item_id, type);
+    'getItemValue' : function(item_id, type, user_id) {
+        return getItemValue(item_id, type, user_id);
     },
 
     'getRerollCost' : function(item_id) {
