@@ -1,7 +1,7 @@
 var item_value_dep = new Tracker.Dependency;
 
 var addItemValueToView = function(item_id, value_type, view) {
-	Meteor.call('getItemValue', item_id, value_type, function(error, result) {
+	Meteor.call('getItemValue', item_id, value_type, Meteor.userId(), function(error, result) {
 		if (error)
 			console.log(error.message);
 
