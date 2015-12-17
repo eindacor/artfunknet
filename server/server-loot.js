@@ -131,11 +131,11 @@ var reroll_coefficients = {
     'masterpiece' : 1.14
 }
 
-getItemValue = function(item_id, type) {
-    return getItemObjectValue(items.findOne(item_id), type);
+getItemValue = function(item_id, type, user_id) {
+    return getItemObjectValue(items.findOne(item_id), type, user_id);
 }
 
-getItemObjectValue = function(item_object, type) {
+getItemObjectValue = function(item_object, type, user_id) {
     if (item_object) {
         var artwork_object = artworks.findOne({'_id': item_object.artwork_id});
 
@@ -178,7 +178,7 @@ getItemObjectValue = function(item_object, type) {
         var auction_min = Math.floor(sell_value * .8);
         var collector_offer = Math.floor(actual_value * 1.2);
 
-        if (procUniqueAttribute(Meteor.userId, "DEALER_DISCOUNT", undefined)) {
+        if (procUniqueAttribute(Meteor.userId, "DEALER_DISCOUNT", user_id)) {
             dealer_offer = Math.floor(dealer_offer * .75);
         }
 
