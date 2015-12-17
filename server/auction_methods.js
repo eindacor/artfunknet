@@ -229,6 +229,12 @@ Meteor.methods({
                 refundWinner(auction_object, Meteor.userId(), auction_object.highest_bid, true);
                 chargeAccount(Meteor.userId(), auction_object.buy_now);
                 var seller_id = Meteor.users.findOne({'profile.screen_name': auction_object.seller})._id;
+                
+                if (procuUniqueAttribute(Meteor.userId(), "AUCTION_WIN_CONDITION_INCREASE", undefined) {
+                    if (auction_object.item_data.condition < .5)
+                        items.update(auction_object.item_id, {$set: {'condition': .9}});
+                }
+            
                 if (auction_object.seller != "Artfunkel, Inc.") {
                     var message = "Someone has purchased " + auction_object.item_data.title + " by " + auction_object.item_data.artist + " for $" + getCommaSeparatedValue(auction_object.buy_no);
                     var alert_object = {
