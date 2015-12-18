@@ -118,7 +118,12 @@ Meteor.methods({
                 if (error)
                     console.log(error.message);
 
-                else calcMVP(Meteor.userId());
+                else {
+                	calcMVP(Meteor.userId());
+                	if (procUniqueAttribute(Meteor.userId(), "XP_FROM_DEALER_PURCHASES", undefined)) {
+                		addXPChunkPercentage(Meteor.userId(), items.findOne(item_id).xp_rating);
+                	}
+                }
             });
         }
     },
