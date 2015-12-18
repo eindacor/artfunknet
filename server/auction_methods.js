@@ -130,7 +130,7 @@ var successfulAuction = function(auction_object, winning_user) {
             };
             alerts.insert(alert_win_object);
             
-            if (procuUniqueAttribute(new_winner_id, "AUCTION_WIN_CONDITION_INCREASE", undefined) {
+            if (procUniqueAttribute(new_winner_id, "AUCTION_WIN_CONDITION_INCREASE", undefined)) {
                 if (item_object.condition < .5)
                     items.update(item_object._id, {$set: {'condition': .9}});
             }
@@ -230,7 +230,7 @@ Meteor.methods({
                 chargeAccount(Meteor.userId(), auction_object.buy_now);
                 var seller_id = Meteor.users.findOne({'profile.screen_name': auction_object.seller})._id;
                 
-                if (procuUniqueAttribute(Meteor.userId(), "AUCTION_WIN_CONDITION_INCREASE", undefined) {
+                if (procUniqueAttribute(Meteor.userId(), "AUCTION_WIN_CONDITION_INCREASE", undefined)) {
                     if (auction_object.item_data.condition < .5)
                         items.update(auction_object.item_id, {$set: {'condition': .9}});
                 }
