@@ -179,6 +179,7 @@ var donorInteraction = function(npc_object) {
 	var drop_count = 2;
 	var foil_chance = .01;
 	var condition_min = 0;
+	var min_xp_rating = 0;
 
 	if (isOwnGallery(npc_object)) {
 		drop_count += 1;
@@ -194,9 +195,13 @@ var donorInteraction = function(npc_object) {
 		if (procUniqueAttribute(Meteor.userId(), "DONOR_CONDITION_MIN", undefined)) {
 			condition_min = .8;
 		}
+
+		if (procUniqueAttribute(Meteor.userId(), "DONOR_XP_RATING_MIN", undefined)) {
+			min_xp_rating = .8;
+		}
 	}
 
-	generateItems(Meteor.userId(), npc_object.quality, drop_count, "unclaimed", foil_chance, 0, condition_min);
+	generateItems(Meteor.userId(), npc_object.quality, drop_count, "unclaimed", foil_chance, min_xp_rating, condition_min);
 
 	var message = "You have met a donor who would like to contribute to your collection. You may claim your gift in the loot area.";
 
@@ -409,10 +414,6 @@ var artDealerInteraction = function(npc_object) {
 
 		if (procUniqueAttribute(Meteor.userId(), "DEALER_FOIL_BONUS", undefined)) {
 			foil_chance = .02;
-		}
-
-		if (procUniqueAttribute(Meteor.userId(), "DEALER_XP_RATING_MIN", undefined)) {
-			min_xp_rating = .8;
 		}
 	}
 
