@@ -433,7 +433,6 @@ Meteor.methods({
     },
 
     'cancelQuest' : function(quest_id) {
-        console.log(quest_id);
         var quest_object = quests.findOne(quest_id);
         if (quest_object && quest_object.owner_id == Meteor.userId())
             quests.remove(quest_id);
@@ -487,7 +486,7 @@ Meteor.methods({
                 'lottery': 0,
                 'artwork_data.rarity': {$in: ["common", "uncommon", "rare"]}
             }).forEach(function(db_object) {
-                total_value += getItemValue(db_object._id, "sell", Meteor.userid());
+                total_value += getItemValue(db_object._id, "sell", Meteor.userId());
                 item_ids.push(db_object._id);
             });
 

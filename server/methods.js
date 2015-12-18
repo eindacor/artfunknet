@@ -150,18 +150,11 @@ Meteor.methods({
             var rolled = getRolledCrateQuality();
             roll_map[rolled] += 1;
         }
-
-        console.log("bronze: " + roll_map.bronze);
-        console.log("silver: " + roll_map.silver);
-        console.log("gold: " + roll_map.gold);
-        console.log("platinum: " + roll_map.platinum);
-        console.log("diamond: " + roll_map.diamond);
     },
 
     'getCollectionValue' : function(user_id) {
         var collection_total = 0;
-        var item_objects = items.find({'owner' : user_id, 'status' : {$ne: 'unclaimed'}});
-        item_objects.forEach(function(db_object) {
+        items.find({'owner' : user_id, 'status' : {$ne: 'unclaimed'}}).forEach(function(db_object) {
             collection_total += getItemValue(db_object._id, 'actual', user_id);
         });
 

@@ -466,8 +466,6 @@ Meteor.methods({
     },
 
     'getTestResults': function(level) {
-        console.log(getSmartRarityMap(level, 0));
-        console.log(getSmartRarityMap(level, 1));
         return testMap(getSmartRarityMap(level, 0));
     }
 })

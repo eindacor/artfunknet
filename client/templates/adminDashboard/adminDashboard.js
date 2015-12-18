@@ -849,7 +849,7 @@ Template.adminTools.helpers({
 	},
 
 	'npc' : function() {
-		return attributes.find({'active': true}).fetch()
+		return attributes.find({'active': true});
 	},
 
 	'user' : function() {
