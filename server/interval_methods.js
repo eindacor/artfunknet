@@ -35,7 +35,7 @@ Meteor.setInterval((function() {
 
     //     for (var i=0; i < potential_auctions.length; i++) {
     //         var item_object = items.findOne(potential_auctions[i].item_id);
-    //         var actual_value = getItemValue(item_object._id, 'actual');
+    //         var actual_value = getItemValue(item_object._id, 'actual', undefined);
     //         var asking_value = potential_auctions[i].current_price;
     //         var difference = asking_value - actual_value;
     //         if (difference / actual_value < .5)
