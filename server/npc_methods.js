@@ -460,7 +460,7 @@ var artDealerInteraction = function(npc_object) {
 			foil_chance = .02;
 		}
 
-		if (procUniqueAttribute(Meteor.userid(), "DISPLAY_CONDITION_DEALER_BOOST", undefined)) {
+		if (procUniqueAttribute(Meteor.userId(), "DISPLAY_CONDITION_DEALER_BOOST", undefined)) {
 			if (items.findOne({'owner': Meteor.userId(), 'status': "displayed", 'condition': {$lt: .7}}) == undefined) {
 				drop_count += 1;
 			}

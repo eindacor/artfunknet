@@ -1,0 +1,12 @@
+<template name="wiki">
+	<div class="template-wiki container">
+		<div class="unique-attribute-area">
+			{{#each unique_attribute}}
+			<div class="unique-container">
+				<h4 class="af-color">"{{flavor_text}}"</h4>
+				<p class="description-text">{{description}}</p>
+			</div>
+			{{/each}}
+		</div>
+	</div>
+</template>
