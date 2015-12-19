@@ -151,6 +151,29 @@ var benefactorInteraction = function(npc_object) {
 			}
 		}
 
+		if (procUniqueAttribute(Meteor.userId(), "GALLERY_FINISH_BENEFACTOR_BONUS", undefined)) {
+			var floor_finishes = Meteor.user().profile.gallery_finishes.owned.floor_finishes;
+			var floor_finish_rating_total = 0;
+			var floor_finish_keys = Object.keys(floor_finishes);
+			for (var i=0; i<floor_finish_keys.length; i++) {
+				floor_finish_rating_total += floor_finishes[floor_finish_keys[i]].xp_rating;
+			}
+
+			var floor_finish_average = floor_finish_rating_total / floor_finish_keys.length;
+
+			var wall_finishes = Meteor.user().profile.gallery_finishes.owned.wall_finishes;
+			var wall_finish_rating_total = 0;
+			var wall_finish_keys = Object.keys(wall_finishes);
+			for (var i=0; i<wall_finish_keys.length; i++) {
+				wall_finish_rating_total += wall_finishes[wall_finish_keys[i]].xp_rating;
+			}
+
+			var wall_finish_average = wall_finish_rating_total / wall_finish_keys.length;
+
+			var total_average = (wall_finish_average + floor_finish_average) / 2;
+			donation_amount += getAverageDropValue(Meteor.user().profile.level, total_average * total_average);
+		}
+
 		if (procUniqueAttribute(Meteor.userId(), "LONGEST_GALLERY_TICKET_BONUS", undefined)) {
 			var longest_ticket = gallery_tickets.findOne({'ticketholder': Meteor.userId()}, {sort: {'expiration': -1}});
 			if (longest_ticket) {
@@ -198,6 +221,27 @@ var donorInteraction = function(npc_object) {
 
 		if (procUniqueAttribute(Meteor.userId(), "DONOR_XP_RATING_MIN", undefined)) {
 			min_xp_rating = .8;
+		}
+
+		if (procUniqueAttribute(Meteor.userId(), "DONOR_DROP_QUALITY_BOOST", undefined)) {
+			npc_object.quality = "platinum";
+		}
+
+		if (procUniqueAttribute(Meteor.userId(), "DONOR_QUEST_ITEM_CHANCE", undefined)) {
+			var quest_item_ids = [];
+			quests.find({'owner_id': Meteor.userId()}).forEach(function(db_object) {
+				var targets = db_object.target;
+				for (var i=0; i<targets.length; i++) {
+					if (quest_item_ids.indexOf(targets[i]) == -1)
+						quest_item_ids.push(targets[i]);
+				}
+			});
+
+			if (Math.random() < .2 && quest_item_ids.length) {
+				var random_index = Math.floor(Math.random() * quest_item_ids.length);
+				drop_count -= 1;
+				generateItemFromArtworkID(Meteor.userId(), quest_item_ids[random_index], undefined, undefined, foil_chance, false, 0, false, "unclaimed", min_xp_rating, condition_min);
+			}
 		}
 	}
 
@@ -303,7 +347,7 @@ var artExpertInteraction = function(npc_object) {
 		}
 
 		if (procUniqueAttribute(Meteor.userId(), "DONOR_REROLL_DEDUCTION_BONUS", "Art Donor")) {
-				roll_reduction *= 2;
+			roll_reduction *= 2;
 		}
 
 		if (procUniqueAttribute(Meteor.userId(), "NEGATIVE_ROLL_COUNTS", undefined)) {
@@ -414,6 +458,29 @@ var artDealerInteraction = function(npc_object) {
 
 		if (procUniqueAttribute(Meteor.userId(), "DEALER_FOIL_BONUS", undefined)) {
 			foil_chance = .02;
+		}
+
+		if (procUniqueAttribute(Meteor.userid(), "DISPLAY_CONDITION_DEALER_BOOST", undefined)) {
+			if (items.findOne({'owner': Meteor.userId(), 'status': "displayed", 'condition': {$lt: .7}}) == undefined) {
+				drop_count += 1;
+			}
+		}
+
+		if (procUniqueAttribute(Meteor.userId(), "DEALER_QUEST_ITEM_CHANCE", undefined)) {
+			var quest_item_ids = [];
+			quests.find({'owner_id': Meteor.userId()}).forEach(function(db_object) {
+				var targets = db_object.target;
+				for (var i=0; i<targets.length; i++) {
+					if (quest_item_ids.indexOf(targets[i]) == -1)
+						quest_item_ids.push(targets[i]);
+				}
+			});
+
+			if (Math.random() < .2 && quest_item_ids.length) {
+				var random_index = Math.floor(Math.random() * quest_item_ids.length);
+				drop_count -= 1;
+				generateItemFromArtworkID(Meteor.userId(), quest_item_ids[random_index], undefined, undefined, foil_chance, false, 0, false, "for_sale", min_xp_rating, 0);
+			}
 		}
 	}
 
