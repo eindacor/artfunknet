@@ -135,6 +135,13 @@ var successfulAuction = function(auction_object, winning_user) {
                     items.update(item_object._id, {$set: {'condition': .9}});
             }
 
+            if (procUniqueAttribute(new_winner_id, "AUCTION_WIN_TICKET_EXTENSION", undefined)) {
+                gallery_tickets.find({'ticketholder': new_winner_id}).forEach(function(db_object) {
+                    var new_expiration = moment(db_object.expiration).add(30, "minutes");
+                    gallery_tickets.update(db_object._id, {$set: {'expiration': new_expiration._d.toISOString()}});
+                })
+            }
+
             calcMVP(winning_user._id); 
             Meteor.users.update({'profile.auction_data.winning': {$in: [auction_object._id]}}, {$pull: {'profile.auction_data.winning': auction_object._id}}); 
             Meteor.users.update({}, {$pull: {'profile.auction_data.watching': auction_object._id}}, {multi: true});   
@@ -233,6 +240,13 @@ Meteor.methods({
                 if (procUniqueAttribute(Meteor.userId(), "AUCTION_WIN_CONDITION_INCREASE", undefined)) {
                     if (auction_object.item_data.condition < .5)
                         items.update(auction_object.item_id, {$set: {'condition': .9}});
+                }
+
+                if (procUniqueAttribute(Meteor.userId(), "AUCTION_WIN_TICKET_EXTENSION", undefined)) {
+                    gallery_tickets.find({'ticketholder': Meteor.userId()}).forEach(function(db_object) {
+                        var new_expiration = moment(db_object.expiration).add(30, "minutes");
+                        gallery_tickets.update(db_object._id, {$set: {'expiration': new_expiration._d.toISOString()}});
+                    })
                 }
             
                 if (auction_object.seller != "Artfunkel, Inc.") {

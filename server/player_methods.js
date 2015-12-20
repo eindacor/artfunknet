@@ -428,6 +428,20 @@ Meteor.methods({
                 generateItemFromArtworkID(Meteor.userId(), random_artwork_id, undefined, undefined, quest_object.reward.item.foil ? 1 : .01, undefined, 0, false, "unclaimed", 0, 0);
             }
 
+            if (procUniqueAttribute(Meteor.userId(), "ROLL_VALUE_QUEST_BONUS", undefined)) {
+                var random_displayed = selectRandomPainting({'owner': Meteor.userId(), 'status': "displayed"});
+                if (random_displayed) {
+                    var attributes = random_displayed.attributes;
+                    var random_index = Math.floor(Math.random() * attributes.length);
+                    var setter_string = "attributes." + random_index + ".value";
+                    if (attributes[random_index].value < 1) {
+                        var setter_object = {};
+                        setter_object[setter_string] = attributes[random_index].value + .01;
+                        items.update(random_displayed._id, {$set: setter_object});
+                    }
+                }
+            }
+
             quests.remove(quest_id);
         }
     },
