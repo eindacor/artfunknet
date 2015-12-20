@@ -5,7 +5,7 @@
 				<div class="card-header col-xs-12 {{#if item_data.foil}}foil{{/if}} {{#if item_data.seasonal}}seasonal{{/if}} {{#if item_data.lottery}}lottery{{/if}} {{#if item_data.original}}original{{/if}}">
 					<div class="row no-margin">
 						<div class="header-basic-info">
-							<p class="item-title">{{item_data.artwork_data.title}}</p>
+							<p class="item-title">{{#if already_owns item_data._id}}*{{/if}}{{item_data.artwork_data.title}}</p>
 							<p>{{item_data.artwork_data.artist}}</p>
 						</div>
 					</div>

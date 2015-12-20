@@ -138,6 +138,21 @@ Template.itemInfo.helpers({
 
 	'reroll_unique_enable' : function(item_object) {
 		return item_object.status == "displayed" && procUniqueAttribute(Meteor.userId(), "REROLL_DISPLAY_ENABLE", "Designer");
+	},
+
+	'already_owns': function(item_id) {
+		// returns true if the viewer owns a claimed copy of this item, and the item is not owned or claimed by the viewer
+		var item_belongs_to_other = items.findOne(item_id).owner != Meteor.userId();
+		var item_is_unclaimed = items.findOne({'_id': item_id, 'status': {$in: ['unclaimed', 'for_sale']}}) != undefined;
+		var show_already_owns = item_belongs_to_other || item_is_unclaimed;
+
+		if (show_already_owns) {
+			var artwork_id = items.findOne(item_id).artwork_id;
+			var valid_statuses = ['claimed', 'permanent', 'displayed', 'auctioned'];
+			return items.findOne({'owner': Meteor.userId(), 'status': {$in: valid_statuses}, 'artwork_id': artwork_id});
+		}
+
+		else return false;
 	}
 })
 

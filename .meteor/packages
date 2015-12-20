@@ -28,3 +28,4 @@ cfs:filesystem
 accounts-ui
 mrt:jquery-ui
 chart:chart
+percolate:synced-cron

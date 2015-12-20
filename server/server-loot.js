@@ -1,4 +1,5 @@
 seasonal_ids = ["xtCiaet3j7XgYquAm"];
+lottery_level = 1;
 
 bronze_rarity_map = {
     'common': 60,
@@ -184,12 +185,12 @@ getItemObjectValue = function(item_object, type, user_id) {
 
         if (procUniqueAttribute(user_id, "QUEST_ITEM_SELL_BONUS", undefined)) {
             if (quests.findOne({'owner_id': user_id, 'target': {$in: [item_object.artwork_id]}}))
-                sell_value = Math.floor(sell_value * 2);
+                sell_value = Math.floor(sell_value * 1.5);
         }
 
         if (procUniqueAttribute(user_id, "UNCLAIMED_ITEM_SELL_BONUS", undefined)) {
             if (item_object.status == "unclaimed")
-                sell_value = Math.floor(sell_value * 2);
+                sell_value = Math.floor(sell_value * 1.5);
         }
 
         switch(type) {

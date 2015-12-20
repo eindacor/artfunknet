@@ -105,6 +105,14 @@ Template.dashboard.helpers({
 			else return {};
 		}
 	},
+
+	'max_level': function() {
+		return Meteor.user().profile.level >= 50;
+	},
+
+	'tokens': function() {
+		return Meteor.user().profile.xp;
+	}
 })
 
 Template.dashboard.events({

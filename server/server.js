@@ -131,6 +131,52 @@ Meteor.startup(function() {
         generateContent();
 
     updateContent();
+
+    SyncedCron.add({
+        name: 'Lottery Draw',
+        schedule: function(parser) {
+            // parser is a later.parse object
+            // return parser.text('every 10 seconds');
+            return parser.text('on the first day of the month');
+        },
+        job: function() {
+            if (Meteor.users.find({'profile.level': 50}).count() < 3)
+                return;
+
+            if (Math.random() < .1) {
+                var user_map = {};
+                Meteor.users.find({'profile.level': 50}).forEach(function(db_object) {
+                    user_map[db_object._id] = db_object.profile.xp;
+                });
+
+                var winning_id = JepLoot.catRoll(user_map);
+
+                var artwork_id = Math.random() < .0001 ? getRandomArtworkIDFromRarity("masterpiece") : getRandomArtworkIDFromRarity("legendary");
+
+                generateItemFromArtworkID(winning_id, artwork_id, undefined, undefined, 0, false, lottery_level, false, "claimed", 0, 0);
+                lottery_level = 1;
+
+                var message = "Congratulations, you have won this month's lottery draw!";
+
+                var alert_object = {
+                    'user_id' : winning_id,
+                    'message' : message,
+                    'link' : '/',
+                    'icon' : 'fa-gavel',
+                    'sentiment' : "good",
+                    'time' : moment()
+                };
+
+                alerts.insert(alert_object);
+            }
+
+            else lottery_level + 1 == 11 ? lottery_level = 10 : lottery_level++;
+
+            console.log(lottery_level);
+        }
+    });
+
+    SyncedCron.start();
 })
 
 function waitForUserAdded(userId, attempts){
