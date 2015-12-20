@@ -10,13 +10,16 @@ getXPChunk = function(current_level) {
 }
 
 getXPGoal = function(current_level) {
-	return Math.floor(starting_xp * (Math.pow(xp_exponent, current_level)));
+	if (current_level < 50)
+		return Math.floor(starting_xp * (Math.pow(xp_exponent, current_level)));
+
+	else return 01;
 }
 
-levelUp = function(user_id) {
+levelUp = function(user_id, level_count) {
 	try {
 		var current_level = Meteor.users.findOne(user_id).profile.level;
-		var level_hit = current_level + 1;
+		var level_hit = current_level + level_count;
 		Meteor.users.update(user_id, {$set : {'profile.level' : level_hit}});
 
 		var level_message = "You have reached level " + level_hit + "!";
@@ -93,29 +96,33 @@ addXP = function(user_id, xp) {
 	var player_object = Meteor.users.findOne(user_id);
 	var player_level = player_object.profile.level;
 	var player_xp = player_object.profile.xp;
+	var updated_xp = player_xp;
 	var level_up_count = 0;
 
 	while (xp_to_add > 0) {
-		var remaining_xp = getXPGoal(player_level) - player_xp;
+		var xp_goal = getXPGoal(player_level + level_up_count);
+		if (xp_goal != -1) {
+			var remaining_xp = xp_goal - player_xp;
 
-		if (remaining_xp > xp_to_add) {
-			player_xp += xp_to_add;
-			xp_to_add = 0;
+			if (remaining_xp > xp_to_add) {
+				player_xp += xp_to_add;
+				xp_to_add = 0;
+			}
+
+			else {
+				level_up_count++;
+				player_xp = 0;
+				xp_to_add -= remaining_xp;
+			}
 		}
 
 		else {
-			level_up_count++;
-			player_level++;
-			player_xp = 0;
-			xp_to_add -= remaining_xp;
+			player_xp += xp_to_add;
+			xp_to_add = 0;
 		}
 	}
 
-	for (var i=0; i < level_up_count; i++) {
-		Meteor.setTimeout(function(){
-			levelUp(user_id);
-		}, 2000);
-	}
+	levelUp(user_id, level_up_count);
 
 	Meteor.users.update(user_id, {$set: {'profile.xp' : player_xp}});
 }
