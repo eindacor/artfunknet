@@ -109,7 +109,7 @@ selectRandomPainting = function(selector) {
 getCapSetterObject = function(player_level) {
     var cap_min_max_object = {
         'inventory_cap': {'start': 15, 'end': 64},
-        'display_cap': {'start': 5, 'end': 12},
+        'display_cap': {'start': 5, 'end': 10},
         'auction_cap': {'start': 5, 'end': 12},
         'ticket_cap': {'start': 3, 'end': 10},
         'pc_cap': {'start': 5, 'end': 12},
