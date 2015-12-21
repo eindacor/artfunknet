@@ -13,7 +13,7 @@ getXPGoal = function(current_level) {
 	if (current_level < 50)
 		return Math.floor(starting_xp * (Math.pow(xp_exponent, current_level)));
 
-	else return 01;
+	else return -1;
 }
 
 levelUp = function(user_id, level_count) {
@@ -96,7 +96,6 @@ addXP = function(user_id, xp) {
 	var player_object = Meteor.users.findOne(user_id);
 	var player_level = player_object.profile.level;
 	var player_xp = player_object.profile.xp;
-	var updated_xp = player_xp;
 	var level_up_count = 0;
 
 	while (xp_to_add > 0) {

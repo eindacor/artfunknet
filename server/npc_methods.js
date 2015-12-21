@@ -118,8 +118,14 @@ var enthusiastInteraction = function(npc_object) {
 		case 'platinum' : xp_chunk_percentage = .5; break;
 	};
 
-	if (isOwnGallery(npc_object))
+	if (isOwnGallery(npc_object)) {
 		xp_chunk_percentage *= own_gallery_amplifier;
+
+		if (procUniqueAttribute(Meteor.userId(), "ENTHUSIAST_DAILY_DROP_REDUCTION", undefined)) {
+			var drop_reduced = moment(Meteor.user().profile.last_drop).add(-30, "minutes")._d.toISOString();
+			Meteor.users.update(Meteor.userId(), {$set: {'profile.last_drop': drop_reduced}});
+		}
+	}
 
 	var xp_chunk = getXPChunk(Meteor.user().profile.level);
 	var xp_won = Math.floor(xp_chunk * xp_chunk_percentage);

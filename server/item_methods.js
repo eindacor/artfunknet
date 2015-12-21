@@ -105,6 +105,11 @@ Meteor.methods({
         var item_object = canDeclineItem(item_id);
         if (item_object) {
             items.remove(item_object._id);
+
+            if (procUniqueAttribute(item_object.owner, "DECLINE_DEALER_DESIGNER_SPAWN", undefined)) {
+                if (Math.random() < .1)
+                    createNPC(galleries.findOne({'owner_id': Meteor.userId()}), attributes.findOne({'npc_name': "Designer"})._id, 600000);
+            }
         }
 
         else throw "invalid operation";
@@ -123,6 +128,10 @@ Meteor.methods({
                 	if (procUniqueAttribute(Meteor.userId(), "XP_FROM_DEALER_PURCHASES", undefined)) {
                 		addXPChunkPercentage(Meteor.userId(), items.findOne(item_id).xp_rating);
                 	}
+
+                    if (procUniqueAttribute(Meteor.userId(), "DEALER_PURCHASE_ROLL_COUNT_SET", undefined)) {
+                        items.update(item_id, {$set: {'roll_count': -20}});
+                    }
                 }
             });
         }

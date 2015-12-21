@@ -140,7 +140,7 @@ Meteor.startup(function() {
             return parser.text('at 10:00 am on Monday');
         },
         job: function() {
-            if (Meteor.users.find({'profile.level': 50}).count() < 3 && false)
+            if (Meteor.users.find({'profile.level': 50}).count() < 3)
                 return;
 
             if (Math.random() < .1) {

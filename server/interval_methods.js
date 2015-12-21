@@ -71,8 +71,7 @@ var npc_spawn_frequency = 600000; // 10 minutes
 Meteor.setInterval((function() {
     // var default_spawn_chance = .5;
 
-    var gallery_objects = galleries.find();
-    gallery_objects.forEach(function(db_object) {
+    galleries.find().forEach(function(db_object) {
         npcs.remove({'owner_id': db_object.owner_id});
         var attribute_values = db_object.attribute_values;
         var attribute_ids = Object.keys(attribute_values);
