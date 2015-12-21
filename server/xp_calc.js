@@ -6,7 +6,10 @@ var max_level = 50;
 
 getXPChunk = function(current_level) {
 	var chunk_percentage = starting_max_chunk * (Math.pow(chunk_exponent, current_level));
-	return Math.floor(chunk_percentage * getXPGoal(current_level));
+	if (getXPGoal(current_level) != -1)
+		return Math.floor(chunk_percentage * getXPGoal(current_level));
+
+	else return Math.floor(chunk_percentage * getXPGoal(49));
 }
 
 getXPGoal = function(current_level) {
