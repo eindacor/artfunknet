@@ -55,7 +55,7 @@ var updateContent = function() {
     })
 
     // temp code
-	alerts.remove({});
+
     // temp code
 }
 
