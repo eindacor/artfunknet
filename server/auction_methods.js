@@ -250,7 +250,7 @@ Meteor.methods({
                 }
             
                 if (auction_object.seller != "Artfunkel, Inc.") {
-                    var message = "Someone has purchased " + auction_object.item_data.title + " by " + auction_object.item_data.artist + " for $" + getCommaSeparatedValue(auction_object.buy_no);
+                    var message = "Someone has purchased " + auction_object.item_data.title + " by " + auction_object.item_data.artist + " for $" + getCommaSeparatedValue(auction_object.buy_now);
                     var alert_object = {
                         'user_id' : seller_id,
                         'message' : message,
