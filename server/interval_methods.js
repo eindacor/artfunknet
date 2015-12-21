@@ -13,6 +13,8 @@ Meteor.setInterval((function() {
 
     var creation_cutoff = moment().add(-10, 'minutes')._d;
     items.remove({'status' : {$in: ['unclaimed', 'for_sale']}, 'date_created' : {$lt : creation_cutoff}});
+    
+    alerts.remove({'time': {$lt: moment().add(-48, "hours")._d.toISOString()}});
 
 }), check_frequency);
 
