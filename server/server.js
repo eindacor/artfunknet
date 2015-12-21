@@ -137,10 +137,10 @@ Meteor.startup(function() {
         schedule: function(parser) {
             // parser is a later.parse object
             // return parser.text('every 10 seconds');
-            return parser.text('on the first day of the month');
+            return parser.text('at 10:00 am on Monday');
         },
         job: function() {
-            if (Meteor.users.find({'profile.level': 50}).count() < 3)
+            if (Meteor.users.find({'profile.level': 50}).count() < 3 && false)
                 return;
 
             if (Math.random() < .1) {
@@ -156,23 +156,40 @@ Meteor.startup(function() {
                 generateItemFromArtworkID(winning_id, artwork_id, undefined, undefined, 0, false, lottery_level, false, "claimed", 0, 0);
                 lottery_level = 1;
 
-                var message = "Congratulations, you have won this month's lottery draw!";
+                var message = "This week's lottery winner is " + Meteor.users.findOne(winning_id).profile.screen_name + ". Congratulations!!!";
+                Meteor.users.find({'profile.level': 50}).forEach(function(db_object) {
+                    var alert_object = {
+                        'user_id' : db_object._id,
+                        'message' : message,
+                        'link' : '/',
+                        'icon' : 'fa-gavel',
+                        'sentiment' : "good",
+                        'time' : moment()
+                    };
 
-                var alert_object = {
-                    'user_id' : winning_id,
-                    'message' : message,
-                    'link' : '/',
-                    'icon' : 'fa-gavel',
-                    'sentiment' : "good",
-                    'time' : moment()
-                };
+                    alerts.insert(alert_object);
+                });
 
-                alerts.insert(alert_object);
+                Meteor.users.update({'profile.level': 50}, {$set: {'profile.xp': 0}}, {multi: true})
             }
 
-            else lottery_level + 1 == 11 ? lottery_level = 10 : lottery_level++;
+            else {
+                lottery_level + 1 == 11 ? lottery_level = 10 : lottery_level++;
 
-            console.log(lottery_level);
+                var message = "This week there's no lottery winner. New Lottery Level: " + lottery_level;
+                Meteor.users.find({'profile.level': 50}).forEach(function(db_object) {
+                    var alert_object = {
+                        'user_id' : db_object._id,
+                        'message' : message,
+                        'link' : '/',
+                        'icon' : 'fa-gavel',
+                        'sentiment' : "good",
+                        'time' : moment()
+                    };
+
+                    alerts.insert(alert_object);
+                });
+            }
         }
     });
 
