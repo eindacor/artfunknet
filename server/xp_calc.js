@@ -121,7 +121,8 @@ addXP = function(user_id, xp) {
 		}
 	}
 
-	levelUp(user_id, level_up_count);
+	if (level_up_count > 0)
+		levelUp(user_id, level_up_count);
 
 	Meteor.users.update(user_id, {$set: {'profile.xp' : player_xp}});
 }
