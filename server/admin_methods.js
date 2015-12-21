@@ -155,7 +155,7 @@ Meteor.methods({
                     'link' : '/',
                     'icon' : 'fa-exclamation',
                     'sentiment' : "neutral",
-                    'time' : moment()
+                    'time' : moment()._d.toISOString()
                 };
 
                 alerts.insert(alert_object);
