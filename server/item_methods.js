@@ -11,7 +11,7 @@ concludeDisplay = function(item_id) {
         'link' : '/',
         'icon' : 'fa-usd',
         'sentiment' : "good",
-        'time' : moment()
+        'time' : moment()._d.toISOString()
     };
     alerts.insert(alert_win_object);
 
