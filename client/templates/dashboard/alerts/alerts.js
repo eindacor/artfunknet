@@ -4,7 +4,7 @@ Template.alerts.helpers({
 	},
 
 	'timestamp' : function(alert_object) {
-		return getTimeString(alert_object.time);
+		return getTimeString(moment(alert_object.time));
 		//return "test";
 	}
 })
