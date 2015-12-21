@@ -29,7 +29,7 @@ levelUp = function(user_id, level_count) {
 	        'link' : '/',
 	        'icon' : 'fa-star',
 	        'sentiment' : "good",
-	        'time' : moment()
+	        'time' : moment()._d.toISOString()
 	    };
 
 	    alerts.insert(alert_object, function(error) {
@@ -72,7 +72,7 @@ levelUp = function(user_id, level_count) {
 		        'link' : '/',
 		        'icon' : 'fa-star',
 		        'sentiment' : "good",
-		        'time' : moment()
+		        'time' : moment()._d.toISOString()
 		    };
 
 		    alerts.insert(alert_object, function(error) {
