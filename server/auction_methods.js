@@ -79,7 +79,7 @@ var failedAuction = function(auction_object) {
                     'link' : '/',
                     'icon' : 'fa-gavel',
                     'sentiment' : "neutral",
-                    'time' : moment()
+                    'time' : moment()._d.toISOString()
                 };
                 alerts.insert(alert_object);
             }
@@ -111,7 +111,7 @@ var successfulAuction = function(auction_object, winning_user) {
                     'link' : '/',
                     'icon' : 'fa-gavel',
                     'sentiment' : "good",
-                    'time' : moment()
+                    'time' : moment()._d.toISOString()
                 };
                 alerts.insert(alert_sale_object);
 
@@ -126,7 +126,7 @@ var successfulAuction = function(auction_object, winning_user) {
                 'link' : '/',
                 'icon' : 'fa-gavel',
                 'sentiment' : "good",
-                'time' : moment()
+                'time' : moment()._d.toISOString()
             };
             alerts.insert(alert_win_object);
             
@@ -186,7 +186,7 @@ var notifyFormerWinner = function(auction_object, new_winner_id, bought) {
                 'link' : '/',
                 'icon' : 'fa-gavel',
                 'sentiment' : "bad",
-                'time' : moment()
+                'time' : moment()._d.toISOString()
             };
 
             alerts.insert(alert_object);
@@ -200,7 +200,7 @@ var notifyFormerWinner = function(auction_object, new_winner_id, bought) {
                 'link' : '/',
                 'icon' : 'fa-gavel',
                 'sentiment' : "bad",
-                'time' : moment()
+                'time' : moment()._d.toISOString()
             };
 
             alerts.insert(alert_object);
@@ -257,7 +257,7 @@ Meteor.methods({
                         'link' : '/',
                         'icon' : 'fa-gavel',
                         'sentiment' : "good",
-                        'time' : moment()
+                        'time' : moment()._d.toISOString()
                     };
 
                     alerts.insert(alert_object);
