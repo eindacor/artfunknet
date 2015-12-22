@@ -169,7 +169,10 @@ Meteor.methods({
                 if (error)
                     console.log(error.message);
 
-                else calcMVP(Meteor.userId());
+                else {
+                    calcMVP(Meteor.userId());
+                    npc_data.remove(offer_id);
+                }
             });
         }
     },
