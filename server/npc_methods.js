@@ -392,23 +392,22 @@ var collectorInteraction = function(npc_object) {
 		default: offer_multiplier = 0; break;
 	}
 
-	var collector_target;
+	var collector_target = undefined;
+	var target_status = "claimed";
 
 	if (isOwnGallery(npc_object)) {
 		if (procUniqueAttribute(Meteor.userId(), "COLLECTOR_FOR_SALE_OFFER")) {
-			collector_target = selectRandomPainting({'owner': Meteor.userId(), 'status': "for_sale"});
+			target_status = "for_sale";
 
 			if (collector_target)
 				offer_multiplier += 1;
 		}
 
-		if (procUniqueAttribute(Meteor.userId(), "COLLECTOR_DISPLAY_OFFER", undefined) && collector_target == undefined) {
-			collector_target = selectRandomPainting({'owner': Meteor.userId(), 'status': "displayed"});
-		}
+		if (procUniqueAttribute(Meteor.userId(), "COLLECTOR_DISPLAY_OFFER", undefined) && target_status == "claimed")
+			target_status = "displayed";
 	}
-
-	if (collector_target == undefined)
-		collector_target = selectRandomPainting({'owner': Meteor.userId(), 'status': "claimed", 'original': false, 'seasonal': {$ne: true}, 'lottery': {$in: [0, false]}});
+	
+	collector_target = selectRandomPainting({'owner': Meteor.userId(), 'status': target_status});
 
 	if (collector_target) {
 		if (isOwnGallery(npc_object)) {
@@ -465,7 +464,7 @@ var collectorInteraction = function(npc_object) {
 				return {'message': message}
 			}
 
-			if (procUniqueAttribute(Meteor.userId(), "COLLECTOR_DISPLAY_OFFER", undefined)) {
+			if (target_status == "displayed") {
 				var donation_amount = Math.floor((getItemValue(collector_target._id, "display", Meteor.userId()) * .2) * offer_multiplier) + offer_bonus;
 				addFunds(Meteor.userId(), donation_amount);
 				var message = "You have met an Art Collector, who was admiring " + collector_target.artwork_data.title + " by " + collector_target.artwork_data.artist + ", currently on display in your gallery. They offer you $" + getCommaSeparatedValue(donation_amount) + " for their appreciation of the piece, and insist that you keep and maintain it for the world to enjoy.";
