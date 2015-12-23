@@ -392,22 +392,36 @@ var collectorInteraction = function(npc_object) {
 		default: offer_multiplier = 0; break;
 	}
 
-	var random_claimed = selectRandomPainting({'owner': Meteor.userId(), 'status': "claimed", 'original': false, 'seasonal': {$ne: true}, 'lottery': {$in: [0, false]}});
+	var collector_target;
 
-	if (random_claimed) {
+	if (isOwnGallery(npc_object)) {
+		if (procUniqueAttribute(Meteor.userId(), "COLLECTOR_FOR_SALE_OFFER")) {
+			collector_target = selectRandomPainting({'owner': Meteor.userId(), 'status': "for_sale"});
+
+			if (collector_target)
+				offer_multiplier += 1;
+		}
+
+		if (procUniqueAttribute(Meteor.userId(), "COLLECTOR_DISPLAY_OFFER", undefined) && collector_target == undefined) {
+			collector_target = selectRandomPainting({'owner': Meteor.userId(), 'status': "displayed"});
+		}
+	}
+
+	if (collector_target == undefined)
+		collector_target = selectRandomPainting({'owner': Meteor.userId(), 'status': "claimed", 'original': false, 'seasonal': {$ne: true}, 'lottery': {$in: [0, false]}});
+
+	if (collector_target) {
 		if (isOwnGallery(npc_object)) {
-			offer_multiplier *= 1.4;
+			offer_multiplier += .5;
 
-			if (procUniqueAttribute(Meteor.userId(), "GOOD_CONDITION_COLLECTOR_BONUS", undefined) && random_claimed.condition > .8) {
+			if (procUniqueAttribute(Meteor.userId(), "GOOD_CONDITION_COLLECTOR_BONUS", undefined) && collector_target.condition > .8)
 				offer_multiplier += .7;
-			}
 
-			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_ROLL_COUNT_BONUS", undefined) && random_claimed.roll_count == 0) {
+			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_ROLL_COUNT_BONUS", undefined) && collector_target.roll_count == 0)
 				offer_multiplier += .7;
-			}
 
 			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_SPECIAL_BONUS", undefined)) {
-				if (random_claimed.foil || random_claimed.original || random_claimed.lottery || random_claimed.seasonal)
+				if (collector_target.foil || collector_target.original || collector_target.lottery || collector_target.seasonal)
 					offer_multiplier += 1;
 			}
 
@@ -445,18 +459,14 @@ var collectorInteraction = function(npc_object) {
 			}
 
 			if (procUniqueAttribute(Meteor.userId(), "COLLECTOR_DISPLAY_OFFER", undefined)) {
-				var random_displayed = selectRandomPainting({'owner': Meteor.userId(), 'status': "displayed"});
-
-				if (random_displayed) {
-					var donation_amount = Math.floor((getItemValue(random_displayed._id, "display", Meteor.userId()) * .2) * offer_multiplier);
-					addFunds(Meteor.userId(), donation_amount);
-					var message = "You have met an Art Collector, who was admiring " + random_displayed.artwork_data.title + " by " + random_displayed.artwork_data.artist + ", currently on display in your gallery. They offer you $" + getCommaSeparatedValue(donation_amount) + " for their appreciation of the piece, and insist that you keep and maintain it for the world to enjoy.";
-					return {'message': message}
-				}
+				var donation_amount = Math.floor((getItemValue(collector_target._id, "display", Meteor.userId()) * .2) * offer_multiplier) + offer_bonus;
+				addFunds(Meteor.userId(), donation_amount);
+				var message = "You have met an Art Collector, who was admiring " + collector_target.artwork_data.title + " by " + collector_target.artwork_data.artist + ", currently on display in your gallery. They offer you $" + getCommaSeparatedValue(donation_amount) + " for their appreciation of the piece, and insist that you keep and maintain it for the world to enjoy.";
+				return {'message': message}
 			}
 		}
 
-		var offer_amount = Math.floor(getItemValue(random_claimed._id, "display", Meteor.userId()) * offer_multiplier) + offer_bonus;
+		var offer_amount = Math.floor(getItemValue(collector_target._id, "display", Meteor.userId()) * offer_multiplier) + offer_bonus;
 
 		var offer_id = npc_data.insert({
 			'owner': Meteor.userId(),
@@ -464,15 +474,15 @@ var collectorInteraction = function(npc_object) {
 			'type': "collector offer",
 			'data': {
 				'offer_amount': offer_amount,
-				'item_id': random_claimed._id
+				'item_id': collector_target._id
 			}
 		})
 
-		return {'type': "collector_bonus", 'offer_id': offer_id, 'item': random_claimed};
+		return {'type': "collector_bonus", 'offer_id': offer_id, 'item': collector_target};
 	}
 
 	else {
-		var message = "You have met an Art Collector that would love to add to their collection, but you don't seem to have any paintings available for donation. Art collectors will only ask for paintings that are not on display or in your permanent collection.";
+		var message = "You have met an Art Collector that would love to add to their collection, but you don't seem to have any paintings available.";
 		return {'message': message}
 	}
 }
