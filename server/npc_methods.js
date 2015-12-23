@@ -458,6 +458,13 @@ var collectorInteraction = function(npc_object) {
 				offer_bonus += highest_value;
 			}
 
+			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_XP_REWARD", "Art Enthusiast")) {
+				var xp_reward = Math.floor(.25 * ((offer_multiplier * getXPChunk(Meteor.user().profile.level)) + offer_bonus));
+				var message = "You have met an Art Collector, who was admiring " + collector_target.artwork_data.title + " by " + collector_target.artwork_data.artist + ", currently on display in your gallery. You have gained " + getCommaSeparatedValue(xp_reward) + "xp.";
+				addXP(Meteor.userId(), xp_reward);
+				return {'message': message}
+			}
+
 			if (procUniqueAttribute(Meteor.userId(), "COLLECTOR_DISPLAY_OFFER", undefined)) {
 				var donation_amount = Math.floor((getItemValue(collector_target._id, "display", Meteor.userId()) * .2) * offer_multiplier) + offer_bonus;
 				addFunds(Meteor.userId(), donation_amount);
