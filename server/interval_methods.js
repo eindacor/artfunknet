@@ -86,10 +86,19 @@ Meteor.setInterval((function() {
             var proc_chance = Math.pow((attribute_values[attribute_ids[i]] * .8), 2);
             var description = attributes.findOne(attribute_ids[i]).description;           
             if (JepLoot.booRoll(proc_chance)) {
-                createNPC(db_object, attribute_ids[i], npc_spawn_frequency);
+                var npc_quality = getNPCQuality(Meteor.users.findOne(db_object.owner_id).profile.level);
+                createNPC(db_object, attribute_ids[i], npc_spawn_frequency, npc_quality);
 
                 if (attribute_object.npc_name == "Designer" && procUniqueAttribute(db_object.owner_id, "DESIGNER_PAIRS", undefined) && Math.random() < .8)
-                    createNPC(db_object, attribute_ids[i], npc_spawn_frequency);
+                    createNPC(db_object, attribute_ids[i], npc_spawn_frequency, "bronze");
+                    
+                if (npc_quality == "platinum" && procUniqueAttribute(db_object.owner_id, "COLLECTOR_DONOR_PAIR", undefined)) {\
+                    if (attribute_object.npc_name == "Art Collector")
+                        createNPC(db_object, attributes.findOne({'npc_name': "Art Donor"})._id, npc_spawn_frequency, "bronze")
+                        
+                    else if (attribute_object.npc_name == "Art Donor")
+                        createNPC(db_object, attributes.findOne({'npc_name': "Art Collector"})._id, npc_spawn_frequency, "bronze")
+                }
             }
         }
     });
