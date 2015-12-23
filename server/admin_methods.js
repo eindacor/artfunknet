@@ -63,7 +63,7 @@ Meteor.methods({
 			gallery_object = galleries.findOne({'owner_id': Meteor.userId()});
 
 			if (gallery_object)
-				createNPC(gallery_object, attribute_id, 0);
+				createNPC(gallery_object, attribute_id, 0, getNPCQuality(Meteor.user().profile.level));
 		}
 	},
 
