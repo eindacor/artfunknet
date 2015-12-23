@@ -411,6 +411,28 @@ var collectorInteraction = function(npc_object) {
 					offer_multiplier += 1;
 			}
 
+			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_FINISH_RATING_BONUS", undefined)) {
+				var high_finish_count = 0;
+				var floor_finishes = Meteor.user().profile.gallery_finishes.owned.floor_finishes;
+				var floor_finish_keys = Object.keys(floor_finishes);
+				for (var i=0; i<floor_finish_keys; i++) {
+					var key = floor_finish_keys[i];
+					if (floor_finishes[key].xp_rating > .8)
+						high_finish_count++;
+				}
+
+				var wall_finishes = Meteor.user().profile.gallery_finishes.owned.wall_finishes;
+				var wall_finish_keys = Object.keys(wall_finishes);
+				for (var i=0; i<wall_finish_keys; i++) {
+					var key = wall_finish_keys[i];
+					if (wall_finishes[key].xp_rating > .8)
+						high_finish_count++;
+				}
+
+				var finish_bonus = high_finish_count * .02;
+				offer_multiplier += (finish_bonus > .5 ? .5 : finish_bonus);
+			}
+
 			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_AUCTION_BONUS", undefined)) {
 				var highest_value = 0;
 				items.find({'owner': Meteor.userId(), 'status': "auctioned"}).forEach(function(db_object) {
@@ -564,12 +586,27 @@ var designerInteraction = function(npc_object) {
 
 	var user_object = Meteor.user();
 	var category_string = (random_selection.type == "wall finish" ? "wall_finishes" : "floor_finishes");
+
+	var designer_bonus = 0;
+
+	if (isOwnGallery(npc_object)) {
+		designer_bonus += .1;
+
+		if (procUniqueAttribute(Meteor.userId(), "DESIGNER_ENTHUSIAST_BONUS", "Art Enthusiast")) {
+			designer_bonus += .2
+		}
+
+		if (procUniqueAttribute(Meteor.userId(), "DESIGNER_MARKET_EXPERT_BONUS", undefined)) {
+			if (Meteor.user().profile.market_expert.expiration > moment()._d.toISOString())
+				designer_bonus += (.15 * Meteor.user().profile.market_expert.rating * Meteor.user().profile.market_expert.rating)
+		}
+	}
 	
 	if (user_object.profile.gallery_finishes.owned[category_string][random_selection._id] == undefined) {
 		var user_finish_object = {
 			'filename': random_selection.filename,
 			'saturation': 1,
-			'xp_rating': .1
+			'xp_rating': .1 + designer_bonus
 		}
 
 		var set_object = {};
@@ -580,14 +617,11 @@ var designerInteraction = function(npc_object) {
 		return {'message': message, 'type': "designer_bonus", 'filename': random_selection.filename};
 	}
 
-	//user already owns that finish,
+	//user already owns that finish, increase rating
 	else if (user_object.profile.gallery_finishes.owned[category_string][random_selection._id].xp_rating < 1){
 		var existing_xp_rating = user_object.profile.gallery_finishes.owned[category_string][random_selection._id].xp_rating;
 
-		var xp_rating_increase = .1;
-
-		if (isOwnGallery(npc_object))
-			xp_rating_increase *= 1.5;
+		var xp_rating_increase = .1 + designer_bonus;
 
 		var new_xp_rating = (existing_xp_rating + xp_rating_increase > 1 ? 1 : existing_xp_rating + xp_rating_increase)
 		
@@ -610,8 +644,7 @@ var designerInteraction = function(npc_object) {
 			case 'platinum' : xp_chunk_percentage = .6; break;
 		};
 
-		if (isOwnGallery(npc_object))
-			xp_chunk_percentage *= own_gallery_amplifier;
+		xp_chunk_percentage += designer_bonus;
 
 		var xp_chunk = getXPChunk(Meteor.user().profile.level);
 		var xp_won = Math.floor(xp_chunk * xp_chunk_percentage);

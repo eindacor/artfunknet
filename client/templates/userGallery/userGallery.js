@@ -304,8 +304,14 @@ Template.galleryItem.helpers({
 	},
 
 	'plackardData' : function(data) {
-		return {
-			'text_height': Math.floor(data.finish_data.pixels_per_centimeter * 2)
+		try {
+			return {
+				'text_height': Math.floor(data.finish_data.pixels_per_centimeter * 2)
+			}
+		}
+
+		catch(error) {
+			console.log(error);
 		}
 	},
 
