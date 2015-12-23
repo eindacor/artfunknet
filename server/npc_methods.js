@@ -16,9 +16,9 @@ getNPCQuality = function(player_level) {
 	return JepLoot.catRoll(npc_quality_map);
 }
 
-createNPC = function(gallery_object, attribute_id, duration) {
+createNPC = function(gallery_object, attribute_id, duration, npc_quality) {
     var npc_object = {
-        'quality' : getNPCQuality(Meteor.users.findOne(gallery_object.owner_id).profile.level),
+        'quality' : npc_quality,
         'attribute_id' : attribute_id,
         'owner_id' : gallery_object.owner_id,
         'expiration' : moment().add(duration, 'milliseconds')._d.toISOString(),
