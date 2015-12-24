@@ -292,27 +292,24 @@ Template.userGallery.rendered = function() {
 
 Template.galleryItem.helpers({
 	'calcWidth' : function(data) {
-		return Math.floor(data.painting_info.artwork_data.width * Number(data.finish_data.pixels_per_centimeter));
+		if (data)
+			return Math.floor(data.painting_info.artwork_data.width * Number(data.finish_data.pixels_per_centimeter));
 	},
 
 	'calcHeight' : function(data) {
-		return Math.floor(data.painting_info.artwork_data.height * Number(data.finish_data.pixels_per_centimeter));
+		if (data)
+			return Math.floor(data.painting_info.artwork_data.height * Number(data.finish_data.pixels_per_centimeter));
 	},
 
 	'calcMargin' : function(data) {
-		return Math.floor(80 * Number(data.finish_data.pixels_per_centimeter));
+		if (data)
+			return Math.floor(80 * Number(data.finish_data.pixels_per_centimeter));
 	},
 
 	'plackardData' : function(data) {
-		try {
-			return {
-				'text_height': Math.floor(data.finish_data.pixels_per_centimeter * 2)
-			}
-		}
+		if (data)
+			return {'text_height': Math.floor(data.finish_data.pixels_per_centimeter * 2)};
 
-		catch(error) {
-			console.log(error);
-		}
 	},
 
 	'shimmer' : function(data) {

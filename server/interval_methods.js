@@ -63,7 +63,7 @@ Meteor.setInterval((function() {
 }), auction_bot_frequency)
 
 var check_ticket_frequency = 300000; //once every 5 minutes
-check_ticket_frequency = 10000; //once every 10 seconds
+// check_ticket_frequency = 10000; //once every 10 seconds
 Meteor.setInterval((function() {
     gallery_tickets.remove({'expiration': {$lt : moment()._d.toISOString()}});
 }), check_ticket_frequency);
@@ -71,7 +71,7 @@ Meteor.setInterval((function() {
 var npc_spawn_frequency = 600000; // 10 minutes
 // npc_spawn_frequency = 10000; // 10 seconds
 Meteor.setInterval((function() {
-    // var default_spawn_chance = .5;
+    var spawn_coefficient = .8;
 
     galleries.find().forEach(function(db_object) {
         npcs.remove({'owner_id': db_object.owner_id});
@@ -82,9 +82,13 @@ Meteor.setInterval((function() {
             if (attribute_object == undefined || attribute_object.type == "secondary")
                 continue;
             
-            // var proc_chance = default_spawn_chance * attribute_values[attribute_ids[i]];
-            var proc_chance = Math.pow((attribute_values[attribute_ids[i]] * .8), 2);
-            var description = attributes.findOne(attribute_ids[i]).description;           
+            var proc_chance = Math.pow((attribute_values[attribute_ids[i]] * spawn_coefficient), 2);
+            
+            if (attribute_object.npc_name == "Art Donor" && procUniqueAttribute(db_object.owner_id, "DONOR_SPAWN_BOOST", undefined)) {
+                if (Meteor.user().profile.market_expert.expiration < moment()._d.toISOString())
+                    proc_chance += .3;
+            }
+
             if (JepLoot.booRoll(proc_chance)) {
                 var npc_quality = getNPCQuality(Meteor.users.findOne(db_object.owner_id).profile.level);
                 createNPC(db_object, attribute_ids[i], npc_spawn_frequency, npc_quality);
@@ -92,7 +96,7 @@ Meteor.setInterval((function() {
                 if (attribute_object.npc_name == "Designer" && procUniqueAttribute(db_object.owner_id, "DESIGNER_PAIRS", undefined) && Math.random() < .8)
                     createNPC(db_object, attribute_ids[i], npc_spawn_frequency, "bronze");
                     
-                if (npc_quality == "platinum" && procUniqueAttribute(db_object.owner_id, "COLLECTOR_DONOR_PAIR", undefined)) {\
+                if ((npc_quality == "platinum" || npc_quality == "gold") && procUniqueAttribute(db_object.owner_id, "COLLECTOR_DONOR_PAIR", undefined)) {
                     if (attribute_object.npc_name == "Art Collector")
                         createNPC(db_object, attributes.findOne({'npc_name': "Art Donor"})._id, npc_spawn_frequency, "bronze")
                         

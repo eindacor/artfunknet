@@ -233,7 +233,7 @@ var donorInteraction = function(npc_object) {
 			npc_object.quality = "platinum";
 		}
 
-		if (procUniqueAttribute(Meteor.userId(), "DONOR_QUEST_ITEM_CHANCE", undefined)) {
+		if (procUniqueAttribute(Meteor.userId(), "DONOR_QUEST_ITEM_CHANCE", undefined) && Math.random() < .2) {
 			var quest_item_ids = [];
 			quests.find({'owner_id': Meteor.userId()}).forEach(function(db_object) {
 				var targets = db_object.target;
@@ -243,7 +243,7 @@ var donorInteraction = function(npc_object) {
 				}
 			});
 
-			if (Math.random() < .2 && quest_item_ids.length) {
+			if (quest_item_ids.length) {
 				var random_index = Math.floor(Math.random() * quest_item_ids.length);
 				drop_count -= 1;
 				generateItemFromArtworkID(Meteor.userId(), quest_item_ids[random_index], undefined, undefined, foil_chance, false, 0, false, "unclaimed", min_xp_rating, condition_min);
@@ -300,6 +300,15 @@ var preservationistInteraction = function(npc_object) {
 			setter[floor_setter_string] = Number((current_floor_rating + increase_amount).toFixed(2)) > 1 ? 1 : Number((current_floor_rating + increase_amount).toFixed(2));
 
 			Meteor.users.update(Meteor.userId(), {$set: setter});
+		}
+
+		if (procUniqueAttribute(Meteor.userId(), "PC_XP_RATING_BOOST", undefined)) {
+			var random_permanent = selectRandomPainting({'owner': Meteor.userId(), 'status': "permanent", 'xp_rating': {'$lt': 1}});
+
+			if (random_permanent)
+				items.update(random_permanent._id, {$set: {'xp_rating': Number((random_permanent.xp_rating + .01).toFixed(2))}});
+
+			else addXPChunkPercentage(Meteor.userId(), .5);
 		}
 	}
 
@@ -407,17 +416,17 @@ var collectorInteraction = function(npc_object) {
 			target_status = "displayed";
 	}
 	
-	collector_target = selectRandomPainting({'owner': Meteor.userId(), 'status': target_status});
+	collector_target = c
 
 	if (collector_target) {
 		if (isOwnGallery(npc_object)) {
 			offer_multiplier += .5;
 
 			if (procUniqueAttribute(Meteor.userId(), "GOOD_CONDITION_COLLECTOR_BONUS", undefined) && collector_target.condition > .8)
-				offer_multiplier += .7;
+				offer_multiplier += .5;
 
 			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_ROLL_COUNT_BONUS", undefined) && collector_target.roll_count == 0)
-				offer_multiplier += .7;
+				offer_multiplier += .5;
 
 			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_SPECIAL_BONUS", undefined)) {
 				if (collector_target.foil || collector_target.original || collector_target.lottery || collector_target.seasonal)
@@ -476,6 +485,7 @@ var collectorInteraction = function(npc_object) {
 
 		var offer_id = npc_data.insert({
 			'owner': Meteor.userId(),
+			'host': npc_object.owner_id,
 			'timestamp': moment()._d.toISOString(),
 			'type': "collector offer",
 			'data': {

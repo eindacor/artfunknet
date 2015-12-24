@@ -170,6 +170,25 @@ Meteor.methods({
                     console.log(error.message);
 
                 else {
+                    console.log(offer_object.host);
+                    console.log(Meteor.userId());
+                    if (Meteor.userId() == offer_object.host &&
+                        procUniqueAttribute(Meteor.userId(), "COLLECTOR_QUEST_ITEM", undefined) && 
+                        Math.random() < 1) {
+                        var quest_item_ids = [];
+                        quests.find({'owner_id': Meteor.userId()}).forEach(function(db_object) {
+                            var targets = db_object.target;
+                            for (var i=0; i<targets.length; i++) {
+                                if (quest_item_ids.indexOf(targets[i]) == -1)
+                                    quest_item_ids.push(targets[i]);
+                            }
+                        });
+
+                        if (quest_item_ids.length) {
+                            var random_index = Math.floor(Math.random() * quest_item_ids.length);
+                            generateItemFromArtworkID(Meteor.userId(), quest_item_ids[random_index], undefined, undefined, undefined, false, 0, false, "unclaimed", 0, 0);
+                        };
+                    };
                     calcMVP(Meteor.userId());
                     npc_data.remove(offer_id);
                 }
