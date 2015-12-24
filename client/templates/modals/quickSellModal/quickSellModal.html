@@ -3,7 +3,7 @@
 		<div class="message-container">
 			<div class="modal-message-area">
 				{{>itemInfo item_data=this}}
-				<p class="modal-message">Sell <span class="af-color">{{this.artwork_data.title}}</span> by <span class="af-color">{{this.artwork_data.artist}}</span> for <span class="highlight">${{getItemValue this._id "sell"}}</span>?</p>
+				<p class="modal-message">Sell <span class="af-color work-title">{{this.artwork_data.title}}</span> by <span class="af-color">{{this.artwork_data.artist}}</span> for <span class="highlight">${{getItemValue this._id "sell"}}</span>?</p>
 			</div>
 			<div class="modal-button-area">
 				<button class="modal-button" id="sell-artwork" data-item_id="{{this._id}}">ok</button>

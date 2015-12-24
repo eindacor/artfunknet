@@ -45,6 +45,10 @@ button {
 	margin-bottom: 0px;
 }
 
+.work-title {
+	font-style: italic;
+}
+
 .preview-window {
 	background-color: #DDDDDD;
 	width: 480px;

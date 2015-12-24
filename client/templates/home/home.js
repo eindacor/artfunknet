@@ -1,4 +1,5 @@
 var window_size_tracker = new Tracker.Dependency;
+var background_tracker = new Tracker.Dependency;
 var image_width = undefined;
 var image_height = undefined;
 var margin_top = undefined;
@@ -7,16 +8,17 @@ var selected_artwork = undefined;
 
 var setBackground = function() {
 	var query;
+	var excluded_works = ['Saturn Divouring His Son', 'Vitruvian Man'];
 	if (selected_artwork) 
-		query = {'filename': {"$ne": selected_artwork.filename}, 'rarity': {"$in": ['legendary', 'masterpiece']}};
+		query = {'title': {"$nin": excluded_works}, 'filename': {"$ne": selected_artwork.filename}, 'rarity': {"$in": ['legendary', 'masterpiece']}};
 
-	else query = {'rarity': {"$in": ['legendary', 'masterpiece']}};
+	else query = {'title': {"$nin": excluded_works}, 'rarity': {"$in": ['legendary', 'masterpiece']}};
 
 	var random_index = Math.floor(Math.random() * artworks.find(query).count());
 
 	selected_artwork = artworks.findOne(query, {skip: random_index});
 
-	console.log(selected_artwork.title + " by " + selected_artwork.artist);
+	background_tracker.changed();
 	
 	resizeBackground();
 }
@@ -47,10 +49,34 @@ var resizeBackground = function() {
 	}
 }
 
-Template.home.rendered = function() {
-	Meteor.setTimeout(function() {setBackground();}, 500);
+var loginNewUser = function(user_object) {
+    Meteor.loginWithPassword(user_object.email, user_object.password, function(login_error) {
+        if (!login_error)
+            Router.go('/');
 
-	window.onresize = function() {resizeBackground()};
+        else console.log("error logging in newly created user: " + login_error.message);
+    });
+}
+
+var validateCreateLogin = function(user_object, confirmed_password) {
+    //this method returns an array of errors encountered
+    Meteor.call('validateCreateLogin', user_object, confirmed_password, function(error, returned_errors) {
+        if (error) {
+            console.log(error.message);
+        }
+
+        else if (returned_errors.length) {
+            console.log('errors: ' + returned_errors)
+            Session.set('registrationErrors', returned_errors);
+            $('#errors').show();
+        }
+
+        else {
+            Session.set('registrationErrors', []);
+            $('#errors').hide();  
+            loginNewUser(user_object); 
+        }
+    });
 }
 
 Template.home.helpers({
@@ -66,13 +92,80 @@ Template.home.helpers({
 				'margin_left': margin_left
 			};
 		}
-	}
+	},
+
+	'work_title': function() {
+		background_tracker.depend();
+		if (selected_artwork)
+			return selected_artwork.title;
+	},
+
+	'work_artist': function() {
+		background_tracker.depend();
+		if (selected_artwork)
+			return selected_artwork.artist;
+	},
+
+	'error' : function() {
+        var errors = Session.get('registrationErrors');
+        return errors;
+    }
 })
+
+Template.home.events({
+    'click button#login': function(event, template) {
+        event.preventDefault();
+        $(event.target).blur();
+
+        var email = template.find('#login-email').value.toLowerCase();
+        var password = template.find('#login-password').value;
+
+        Meteor.loginWithPassword(email, password, function(error){
+            if(error){
+                alert('Login attempt failed. Please try again.');
+            }
+        });  
+    },
+
+    'click #register-button' : function(event, template) {
+        event.preventDefault();
+
+        var user_object = {
+            "username": template.find('#email').value,
+            "email": template.find('#email').value.toLowerCase(),
+            "password": template.find('#password').value,
+            "profile": {
+                "screen_name": template.find('#screen_name').value,
+                'user_type': "player"
+            }
+        };
+
+        validateCreateLogin(user_object, template.find('#rtpassword').value);
+    },
+
+    'click #register-link': function() {
+    	$('#login-area').hide();
+    	$('#register-area').show();
+    },
+
+    'click #login-link': function() {
+    	$('#register-area').hide();
+    	$('#login-area').show();
+    }
+});
 
 Template.home.created = function() {
 	this.handle = Meteor.setInterval((function() {
 		setBackground();
 	}), 20000);
+}
+
+Template.home.rendered = function() {
+	$('#errors').hide();
+	$('#register-area').hide();
+	Meteor.setTimeout(function() {setBackground();}, 500);
+
+	window.onresize = function() {resizeBackground()};
 }
 
 Template.auctionTable.destroyed = function() {

@@ -3,7 +3,7 @@
 		<div class="message-container">
 			{{#with auctionData auction_id}}
 				<div class="modal-message-area">
-					<p class="modal-message">Place your bid for <span class="highlight af-color">{{item_data.title}}</span> by <span class="highlight af-color">{{item_data.artist}}</span></p>
+					<p class="modal-message">Place your bid for <span class="highlight af-color work-title">{{item_data.title}}</span> by <span class="highlight af-color">{{item_data.artist}}</span></p>
 	                <div class="row quick-bid">
 			            <button id="bid-minimum" type="button" class="modal-button">bid minimum - {{displayAsMoneyValue min_bid}}</button>
 			            {{#if canBuy}}

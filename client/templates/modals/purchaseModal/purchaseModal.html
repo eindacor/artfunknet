@@ -4,7 +4,7 @@
 	        <div class="modal-dialog">
 	            <div class="modal-content container">
 	            	{{#with purchaseData}}
-	                <h4>Purchase <span class="highlight af-color">{{title}}</span> by <span class="highlight af-color">{{artist}}</span> for <span class="highlight">${{getItemValue item_id "dealer"}}?</span></h4>
+	                <h4>Purchase <span class="highlight af-color work-title">{{title}}</span> by <span class="highlight af-color">{{artist}}</span> for <span class="highlight">${{getItemValue item_id "dealer"}}?</span></h4>
 			        {{/with}}
 	            	{{#with imageInfo itemId}}
 					<img class="image-thumb" src="{{getImageURL filename}}" width="{{image_width}}" height="{{image_height}}"/>

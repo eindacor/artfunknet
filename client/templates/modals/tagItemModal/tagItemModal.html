@@ -3,7 +3,7 @@
 		<div class="message-container">
 			<div class="modal-message-area">
 				{{#with artwork_data this.item_data.artwork_id}}
-				<p class="modal-message">Enter tags for <span class="af-color">{{title}}</span> by <span class="af-color">{{artist}}</span></p>
+				<p class="modal-message">Enter tags for <span class="af-color work-title">{{title}}</span> by <span class="af-color">{{artist}}</span></p>
 				{{/with}}
 				<p>(separate tags with a comma, e.g. "primary, to auction, foils")</p>
 				<textarea id="tag-entry">{{this.item_data.tags}}</textarea>

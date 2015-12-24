@@ -18,9 +18,9 @@
 					<p>targets:</p>
 					{{#each quest_target this}}
 						{{#if acquired _id}}
-							<p class="target-text green-text highlight"><i class="fa fa-check-square-o"></i> {{title}} by {{artist}}</p>
+							<p class="target-text highlight"><i class="fa fa-check-square-o green-text"></i> <span class="work-title">{{title}}</span> by {{artist}}</p>
 						{{else}}
-							<p class="target-text"><i class="fa fa-square-o"></i> {{title}} by {{artist}} (<span class="{{artwork_rarity _id}}">{{artwork_rarity _id}}</span>)</p>
+							<p class="target-text"><i class="fa fa-square-o"></i> <span class="work-title">{{title}}</span> by {{artist}} (<span class="{{artwork_rarity _id}}">{{artwork_rarity _id}}</span>)</p>
 						{{/if}}
 					{{/each}}
 				</div>

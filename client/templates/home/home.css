@@ -9,7 +9,7 @@
 	bottom: 0px;
 	right: 0px;
 	left: 0px;
-	z-index: 999999;
+
 	-webkit-animation: opacity_fade .25s ease;
 	-moz-animation: opacity_fade .25s ease;
 	-o-animation: opacity_fade .25s ease;
@@ -17,7 +17,7 @@
 }
 
 .template-home .home-container {
-	z-index: 2147483647;
+
 	width: 100%;
 	height: 100%;
 	position: fixed;
@@ -42,8 +42,10 @@
 
 .template-home .jumbotron-image {
 	opacity: .15;
-	z-index: 1;
+
 	position: absolute;
+	padding: 0px;
+	margin: 0px;
 }
 
 .template-home p,
@@ -84,8 +86,72 @@
 	bottom: 0;
 	margin: 5rem auto;
 	width: 100%;
+	z-index: 600;
 }
 
 .template-home .highlight {
 	font-weight: bold;
+}
+
+.template-home .caption {
+	font-size: 1.2rem;
+	text-align: left;
+	position: absolute;
+	bottom: 0;
+	margin: 2rem;
+}
+
+.template-home .work-info {
+	color: black;
+}
+
+.template-home input {
+	border: 1px solid #CCC;
+	border-radius: 0;
+	margin: 1rem auto;
+}
+
+.template-home input:focus {
+	border: 1px solid black;
+	box-shadow: none;
+} 
+
+.template-home .home-button {
+	font-size: 1.5rem;
+	width: 100px;
+	height: 3rem;
+	margin-bottom: 3rem;
+}
+
+.template-home #register, .template-home #forgot, .template-home #back {
+	font-size: 1.2rem;
+}
+
+.template-home .signature > a:hover {
+	color: #F3C;
+} 
+
+.template-home #game-title {
+	text-align: center;
+}
+
+.template-home .password-instructions {
+	font-size: 1.2rem;
+	margin-top: 4rem;
+}
+
+.template-home #errors {
+	margin-top: 2rem;
+	color: red;
+}
+
+.template-home .error {
+	font-size: 1.4rem;
+	color: black;
+}
+
+.template-home .area-container {
+	width: 80%;
+	margin: auto;
+	max-width: 540px;
 }

@@ -290,6 +290,11 @@ Meteor.methods({
         try {
             var errors = [];
 
+            if (user_object.password.search(eval("/[A-Z]/")) == -1 ||
+                user_object.password.search(eval("/[a-z]/")) == -1 ||
+                user_object.password.search(eval("/[0-9]/")) == -1)
+                errors.push("Invalid Password");
+
             if (user_object.password != confirmed_password)
                 errors.push("Password fields do not match");
 
