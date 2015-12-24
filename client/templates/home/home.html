@@ -1,5 +1,8 @@
 <template name="home">
 	<div class="template-home">
+		{{#with jumbotron_image}}
+		<img class="jumbotron-image" src="{{getImageURL filename}}" style="width:{{width}}; height:{{height}}; margin-top:{{margin_top}}; margin-left:{{margin_left}}"/>
+		{{/with}}
 		<div class="home-container col-xs-12">
 			<div class="row home-content-container">
 				<div>
@@ -10,6 +13,6 @@
 				</div>
 			</div>
 		</div>
-		<p class="signature">created by <span class="af-color">Joe Pollack</span></p>
+		<p class="signature">created by <span class="af-color highlight">Joe Pollack</span></p>
 	</div>
 </template>

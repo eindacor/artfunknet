@@ -40,6 +40,12 @@
     margin: 0px;
 }
 
+.template-home .jumbotron-image {
+	opacity: .15;
+	z-index: 1;
+	position: absolute;
+}
+
 .template-home p,
 .template-home h1,
 .template-home h2, 
@@ -68,6 +74,7 @@
 
 .template-home p {
 	font-size: 2rem;
+	margin-bottom: 0rem;
 }
 
 .template-home .signature {
@@ -77,4 +84,8 @@
 	bottom: 0;
 	margin: 5rem auto;
 	width: 100%;
+}
+
+.template-home .highlight {
+	font-weight: bold;
 }
