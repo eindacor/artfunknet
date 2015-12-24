@@ -416,7 +416,7 @@ var collectorInteraction = function(npc_object) {
 			target_status = "displayed";
 	}
 	
-	collector_target = c
+	collector_target = selectRandomPainting({'owner': Meteor.userId(), 'status': target_status});
 
 	if (collector_target) {
 		if (isOwnGallery(npc_object)) {

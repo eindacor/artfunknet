@@ -170,8 +170,6 @@ Meteor.methods({
                     console.log(error.message);
 
                 else {
-                    console.log(offer_object.host);
-                    console.log(Meteor.userId());
                     if (Meteor.userId() == offer_object.host &&
                         procUniqueAttribute(Meteor.userId(), "COLLECTOR_QUEST_ITEM", undefined) && 
                         Math.random() < 1) {
