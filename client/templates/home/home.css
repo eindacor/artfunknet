@@ -1,0 +1,80 @@
+@keyframes opacity_fade {
+    0%{opacity:0}
+    100%{opacity:1}
+}
+
+.template-home {
+	position: fixed;
+	top: 0px;
+	bottom: 0px;
+	right: 0px;
+	left: 0px;
+	z-index: 999999;
+	-webkit-animation: opacity_fade .25s ease;
+	-moz-animation: opacity_fade .25s ease;
+	-o-animation: opacity_fade .25s ease;
+	animation: opacity_fade .25s ease;
+}
+
+.template-home .home-container {
+	z-index: 2147483647;
+	width: 100%;
+	height: 100%;
+	position: fixed;
+	padding: 0px;
+	background-image: 
+}
+
+.template-home .home-content-container {
+	position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex; /* add */
+    justify-content: center; /* add to align horizontal */
+    align-items: center; /* add to align vertical */
+    padding: 36px;
+    height: 100%;
+    width: 100%;
+    margin: 0px;
+}
+
+.template-home p,
+.template-home h1,
+.template-home h2, 
+ {
+	position: relative;
+	margin: auto 0px;
+	padding: auto 0px;
+}
+
+.template-home h1 {
+	font-size: 10rem;
+	padding: 0px;
+	vertical-align: bottom;
+	margin: 0px;
+	font-weight: 600;
+}
+
+.template-home h2 {
+	color: black;
+	margin-top: -1rem;
+	margin-bottom: 10rem;
+	text-align: center;
+	border-top: 1px solid #CCC;
+	padding-top: 1rem;
+}
+
+.template-home p {
+	font-size: 2rem;
+}
+
+.template-home .signature {
+	font-size: 1.75rem;
+	text-align: center;
+	position: absolute;
+	bottom: 0;
+	margin: 5rem auto;
+	width: 100%;
+}
