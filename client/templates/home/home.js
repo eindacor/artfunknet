@@ -8,7 +8,7 @@ var selected_artwork = undefined;
 
 var setBackground = function() {
 	var query;
-	var excluded_works = ['Saturn Divouring His Son', 'Vitruvian Man'];
+	var excluded_works = ['Saturn Divouring His Son', 'Vitruvian Man', 'Interior'];
 	if (selected_artwork) 
 		query = {'title': {"$nin": excluded_works}, 'filename': {"$ne": selected_artwork.filename}, 'rarity': {"$in": ['legendary', 'masterpiece']}};
 
@@ -157,7 +157,7 @@ Template.home.events({
 Template.home.created = function() {
 	this.handle = Meteor.setInterval((function() {
 		setBackground();
-	}), 20000);
+	}), 15000);
 }
 
 Template.home.rendered = function() {
