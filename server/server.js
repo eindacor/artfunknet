@@ -55,7 +55,23 @@ var updateContent = function() {
     })
 
     // temp code
-
+    metadata.remove({});
+    metadata.insert({
+        'drops': {
+            'legendary': {
+                'sources': {},
+                'player_level_avg': 0,
+                'count_total': 0,
+                'counts': {},
+            },
+            'masterpiece': {
+                'sources': {},
+                'player_level_avg': 0,
+                'count_total': 0,
+                'counts': {},
+            },
+        }
+    })
     // temp code
 }
 
@@ -153,7 +169,22 @@ Meteor.startup(function() {
 
                 var artwork_id = Math.random() < .0001 ? getRandomArtworkIDFromRarity("masterpiece") : getRandomArtworkIDFromRarity("legendary");
 
-                generateItemFromArtworkID(winning_id, artwork_id, undefined, undefined, 0, false, lottery_level, false, "claimed", 0, 0);
+                var item_generator = {
+                    'source': "lottery",
+                    'user_id': winning_id,
+                    'artwork_id': artwork_id,
+                    'condition': undefined,
+                    'xp_rating': undefined,
+                    'foil_chance': 0,
+                    'seasonal': false,
+                    'lottery': lottery_level,
+                    'original': false,
+                    'status': "claimed",
+                    'xp_rating_min': 0,
+                    'condition_min': 0
+                }
+
+                generateItemFromArtworkID(item_generator);
                 lottery_level = 1;
 
                 var message = "This week's lottery winner is " + Meteor.users.findOne(winning_id).profile.screen_name + ". Congratulations!!!";

@@ -430,7 +430,22 @@ Meteor.methods({
                 var random_index = Math.floor(Math.random() * count);
                 var random_artwork_id = artworks.findOne({'_id': {$nin: seasonal_ids}, 'rarity': rarity}, {skip: random_index})._id;
 
-                generateItemFromArtworkID(Meteor.userId(), random_artwork_id, undefined, undefined, quest_object.reward.item.foil ? 1 : .01, undefined, 0, false, "unclaimed", 0, 0);
+                var item_generator = {
+                    'source': "quest",
+                    'user_id': Meteor.userId(),
+                    'artwork_id': random_artwork_id,
+                    'condition': undefined,
+                    'xp_rating': undefined,
+                    'foil_chance': quest_object.reward.item.foil ? 1 : .01,
+                    'seasonal': undefined,
+                    'lottery': 0,
+                    'original': false,
+                    'status': "unclaimed",
+                    'xp_rating_min': 0,
+                    'condition_min': 0
+                }
+
+                generateItemFromArtworkID(item_generator);
             }
 
             if (procUniqueAttribute(Meteor.userId(), "ROLL_VALUE_QUEST_BONUS", undefined)) {

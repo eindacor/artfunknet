@@ -184,7 +184,23 @@ Meteor.methods({
 
                         if (quest_item_ids.length) {
                             var random_index = Math.floor(Math.random() * quest_item_ids.length);
-                            generateItemFromArtworkID(Meteor.userId(), quest_item_ids[random_index], undefined, undefined, undefined, false, 0, false, "unclaimed", 0, 0);
+
+                            var item_generator = {
+                                'source': "collector",
+                                'user_id': Meteor.userId(),
+                                'artwork_id': quest_item_ids[random_index],
+                                'condition': undefined,
+                                'xp_rating': undefined,
+                                'foil_chance': .01,
+                                'seasonal': undefined,
+                                'lottery': 0,
+                                'original': false,
+                                'status': "unclaimed",
+                                'xp_rating_min': 0,
+                                'condition_min': 0
+                            }
+
+                            generateItemFromArtworkID(item_generator);
                         };
                     };
                     calcMVP(Meteor.userId());

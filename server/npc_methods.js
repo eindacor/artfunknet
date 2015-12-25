@@ -246,12 +246,39 @@ var donorInteraction = function(npc_object) {
 			if (quest_item_ids.length) {
 				var random_index = Math.floor(Math.random() * quest_item_ids.length);
 				drop_count -= 1;
-				generateItemFromArtworkID(Meteor.userId(), quest_item_ids[random_index], undefined, undefined, foil_chance, false, 0, false, "unclaimed", min_xp_rating, condition_min);
+
+				var item_generator = {
+                    'source': "donor",
+                    'user_id': Meteor.userId(),
+                    'artwork_id': quest_item_ids[random_index],
+                    'condition': undefined,
+                    'xp_rating': undefined,
+                    'foil_chance': foil_chance,
+                    'seasonal': undefined,
+                    'lottery': 0,
+                    'original': false,
+                    'status': "unclaimed",
+                    'xp_rating_min': min_xp_rating,
+                    'condition_min': condition_min
+                }
+
+				generateItemFromArtworkID(item_generator);
 			}
 		}
 	}
 
-	generateItems(Meteor.userId(), npc_object.quality, drop_count, "unclaimed", foil_chance, min_xp_rating, condition_min);
+	var multi_item_generator = {
+        'source': "donor",
+        'user_id': Meteor.userId(),
+        'quality': npc_object.quality,
+        'count': drop_count,
+        'status': "unclaimed",
+        'foil_chance': foil_chance,
+        'xp_rating_min': min_xp_rating,
+        'condition_min': condition_min
+    }
+
+	generateItems(multi_item_generator);
 
 	var message = "You have met a donor who would like to contribute to your collection. You may claim your gift in the loot area.";
 
@@ -544,12 +571,39 @@ var artDealerInteraction = function(npc_object) {
 			if (Math.random() < .2 && quest_item_ids.length) {
 				var random_index = Math.floor(Math.random() * quest_item_ids.length);
 				drop_count -= 1;
-				generateItemFromArtworkID(Meteor.userId(), quest_item_ids[random_index], undefined, undefined, foil_chance, false, 0, false, "for_sale", min_xp_rating, 0);
+
+				var item_generator = {
+                    'source': "dealer",
+                    'user_id': Meteor.userId(),
+                    'artwork_id': quest_item_ids[random_index],
+                    'condition': undefined,
+                    'xp_rating': undefined,
+                    'foil_chance': foil_chance,
+                    'seasonal': undefined,
+                    'lottery': 0,
+                    'original': false,
+                    'status': "for_sale",
+                    'xp_rating_min': min_xp_rating,
+                    'condition_min': 0
+                }
+
+				generateItemFromArtworkID(item_generator);
 			}
 		}
 	}
 
-	generateItems(Meteor.userId(), npc_object.quality, drop_count, "for_sale", foil_chance, min_xp_rating, 0);
+	var multi_item_generator = {
+        'source': "dealer",
+        'user_id': Meteor.userId(),
+        'quality': npc_object.quality,
+        'count': drop_count,
+        'status': "for_sale",
+        'foil_chance': foil_chance,
+        'xp_rating_min': min_xp_rating,
+        'condition_min': 0
+    }
+
+	generateItems(multi_item_generator);
 
 	var message = "You have met an Art Dealer who would like you to consider a few offers. Go to the store to view their inventory.";
 	return {'message': message}

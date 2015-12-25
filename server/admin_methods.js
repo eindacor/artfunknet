@@ -54,7 +54,18 @@ Meteor.methods({
 
 	'generateForSale': function() {
 		if (adminValidated()) {
-			generateItems(Meteor.userId(), "platinum", admin_settings.daily_drop_count, "for_sale", .01, 0, 0);
+            var multi_item_generator = {
+                'source': "test",
+                'user_id': Meteor.userId(),
+                'quality': "platinum",
+                'count': admin_settings.daily_drop_count,
+                'status': "for_sale",
+                'foil_chance': .01,
+                'xp_rating_min': 0,
+                'condition_min': 0
+            }
+            
+            generateItems(multi_item_generator);
 		}
 	},
 
@@ -90,13 +101,46 @@ Meteor.methods({
 
 	'generateItemFromArtworkID' : function(user_id, artwork_id, condition, xp_rating, foil_chance, seasonal, lottery, original) {
 		if (adminValidated()) {
-			if (user_id == "" || Meteor.users.findOne(user_id).profile.user_type == "admin")
-				return generateItemFromArtworkID(Meteor.userId(), artwork_id, condition, xp_rating, foil_chance, seasonal, lottery, original, "unclaimed", 0, 0);
+			if (user_id == "" || Meteor.users.findOne(user_id).profile.user_type == "admin") {
+                var item_generator = {
+                    'source': "test",
+                    'user_id': Meteor.userId(),
+                    'artwork_id': artwork_id,
+                    'condition': condition,
+                    'xp_rating': xp_rating,
+                    'foil_chance': foil_chance,
+                    'seasonal': seasonal,
+                    'lottery': lottery,
+                    'original': original,
+                    'status': "unclaimed",
+                    'xp_rating_min': 0,
+                    'condition_min': 0
+                }
+
+				return generateItemFromArtworkID(item_generator);
+            }
 
 			else if (Meteor.users.findOne(user_id) == undefined)
 				return false;
 
-			else return generateItemFromArtworkID(user_id, artwork_id, condition, xp_rating, foil_chance, seasonal, lottery, original, "claimed", 0, 0);
+			else {
+                var item_generator = {
+                    'source': "admin",
+                    'user_id': user_id,
+                    'artwork_id': artwork_id,
+                    'condition': condition,
+                    'xp_rating': xp_rating,
+                    'foil_chance': foil_chance,
+                    'seasonal': seasonal,
+                    'lottery': lottery,
+                    'original': original,
+                    'status': "claimed",
+                    'xp_rating_min': 0,
+                    'condition_min': 0
+                }
+
+                return generateItemFromArtworkID(item_generator);
+            }
 		}
 
 		else return undefined;
@@ -104,13 +148,46 @@ Meteor.methods({
 
 	'generateRandomItemFromArtworkID' : function(user_id, artwork_id) {
 		if (adminValidated()) {
-			if (user_id == "" || Meteor.users.findOne(user_id).profile.user_type == "admin")
-				return generateItemFromArtworkID(user_id, artwork_id, undefined, undefined, .01, undefined, 0, false, "unclaimed", 0, 0);
+			if (user_id == "" || Meteor.users.findOne(user_id).profile.user_type == "admin") {
+                var item_generator = {
+                    'source': "test",
+                    'user_id': Meteor.userId(),
+                    'artwork_id': artwork_id,
+                    'condition': undefined,
+                    'xp_rating': undefined,
+                    'foil_chance': .01,
+                    'seasonal': undefined,
+                    'lottery': 0,
+                    'original': false,
+                    'status': "unclaimed",
+                    'xp_rating_min': 0,
+                    'condition_min': 0
+                }
+
+				return generateItemFromArtworkID(item_generator);
+            }
 
 			else if (Meteor.users.findOne(user_id) == undefined)
 				return false;
 
-			else return generateItemFromArtworkID(user_id, artwork_id, undefined, undefined, .01, undefined, 0, false, "claimed", 0, 0);
+			else {
+                var item_generator = {
+                    'source': "admin",
+                    'user_id': user_id,
+                    'artwork_id': artwork_id,
+                    'condition': undefined,
+                    'xp_rating': undefined,
+                    'foil_chance': .01,
+                    'seasonal': undefined,
+                    'lottery': 0,
+                    'original': false,
+                    'status': "claimed",
+                    'xp_rating_min': 0,
+                    'condition_min': 0
+                }
+
+                return generateItemFromArtworkID(user_id, artwork_id, undefined, undefined, .01, undefined, 0, false, "claimed", 0, 0);
+            }
 		}
 
 		else return undefined;

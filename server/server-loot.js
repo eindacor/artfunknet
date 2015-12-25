@@ -107,6 +107,35 @@ attribute_quantities = {
     }
 }
 
+logLegendary = function(source, item_object) {
+    if (item_object && source && source != "test") {
+        var rarity = item_object.artwork_data.rarity;
+        var specifier = {};
+        var specifier_string = "drops";
+        specifier[specifier_string] = {"$ne": undefined};
+
+        var rarity_object = metadata.findOne(specifier).drops[rarity];
+
+        if (rarity_object.sources[source] == undefined)
+            rarity_object.sources[source] = 1;
+
+        else rarity_object.sources[source] += 1;
+
+        if (rarity_object.counts[item_object.artwork_id] == undefined)
+            rarity_object.counts[item_object.artwork_id] = 1;
+
+        else rarity_object.counts[item_object.artwork_id] += 1;
+
+        rarity_object.player_level_avg = ((rarity_object.count_total * rarity_object.player_level_avg) + Meteor.users.findOne(item_object.owner).profile.level) / (rarity_object.count_total + 1);
+        rarity_object.count_total += 1
+
+        var setter = {};
+        var setter_string = "drops." + rarity;
+        setter[setter_string] = rarity_object;
+        metadata.update(specifier, {$set: setter});
+    }
+}
+
 getCondition = function(min_value) {
     var tier_map = {
         0 : 2,
@@ -278,13 +307,13 @@ lookupCrateCost = function(quality, count) {
     return Math.floor(average_drop_value * count * rarity_inflation_coefficient[quality]);
 }
 
-generateItems = function(user_id, quality, count, status, foil_chance, xp_rating_min, condition_min) {
-    if (Meteor.users.findOne(user_id) === undefined)
+generateItems = function(multi_item_generator) {
+    if (Meteor.users.findOne(multi_item_generator.user_id) === undefined)
         return;
 
     var map_amplifier;
 
-    switch(quality) {
+    switch(multi_item_generator.quality) {
         case 'bronze': map_amplifier = 0; break;
         case 'silver': map_amplifier = .2; break;
         case 'gold': map_amplifier = .4; break;
@@ -294,36 +323,63 @@ generateItems = function(user_id, quality, count, status, foil_chance, xp_rating
 
     var item_ids = [];
 
-    for (var i=0; i < parseInt(count); i++) {
-        var rarity_roll = JepLoot.catRoll(getSmartRarityMap(Meteor.user().profile.level, map_amplifier));
-        var possibilities = artworks.find({'rarity': rarity_roll, 'active': true}).fetch();
-        var random_index = Math.floor(Math.random() * possibilities.length);
-        var rolled_id = possibilities[random_index]._id;
+    for (var i=0; i < parseInt(multi_item_generator.count); i++) {
+        var rarity_roll = JepLoot.catRoll(getSmartRarityMap(Meteor.users.findOne(multi_item_generator.user_id).profile.level, map_amplifier));
+        var query = {'rarity': rarity_roll, 'active': true};
+        var match_count = artworks.find(query).count();
+        var rolled_id = artworks.findOne(query, {skip: Math.floor(Math.random() * match_count)})._id;
 
-        generateItemFromArtworkID(user_id, rolled_id, undefined, undefined, foil_chance, undefined, 0, false, status, xp_rating_min, condition_min);
+        var item_generator = {
+            'source': multi_item_generator.source,
+            'user_id': multi_item_generator.user_id,
+            'artwork_id': rolled_id,
+            'condition': undefined,
+            'xp_rating': undefined,
+            'foil_chance': multi_item_generator.foil_chance,
+            'seasonal': undefined,
+            'lottery': 0,
+            'original': false,
+            'status': multi_item_generator.status,
+            'xp_rating_min': multi_item_generator.xp_rating_min,
+            'condition_min': multi_item_generator.condition_min
+        }
+
+        generateItemFromArtworkID(item_generator);
     }
 
     return true;
 }
 
-generateItemFromArtworkID = function(user_id, artwork_id, condition, xp_rating, foil_chance, seasonal, lottery, original, status, xp_rating_min, condition_min) {
-    var artwork_data = artworks.findOne(artwork_id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}});
+
+
+//TODO instead of passing too many parameters, pass a JSON objecct with each parameter as a field
+generateItemFromArtworkID = function(item_generator) {
+    var artwork_data = artworks.findOne(item_generator.artwork_id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}});
     if (artwork_data) {
         var new_item_id = items.insert({
-            'artwork_id' : artwork_id,
-            'condition' : condition === undefined ? getCondition(condition_min) : condition,
-            'attributes' : getAttributes(artwork_data.rarity, artwork_id),
-            'owner' : user_id,
-            'status' : status,
+            'artwork_id' : item_generator.artwork_id,
+            'condition' : item_generator.condition === undefined ? getCondition(item_generator.condition_min) : item_generator.condition,
+            'attributes' : getAttributes(artwork_data.rarity, item_generator.artwork_id),
+            'owner' : item_generator.user_id,
+            'status' : item_generator.status,
             'date_created' : new Date(),
-            'xp_rating' : xp_rating === undefined ? getXPRating(xp_rating_min) : xp_rating,
+            'xp_rating' : item_generator.xp_rating === undefined ? getXPRating(item_generator.xp_rating_min) : item_generator.xp_rating,
             'roll_count' : 0,
-            'foil': seasonal_ids.indexOf(artwork_id) == -1 && Math.random() < foil_chance,
-            'seasonal': seasonal === undefined ? seasonal_ids.indexOf(artwork_id) != -1 : seasonal,
-            'lottery': lottery === undefined ? 0 : lottery,
-            'original': original === undefined ? false : original,
+            'foil': seasonal_ids.indexOf(item_generator.artwork_id) == -1 && Math.random() < item_generator.foil_chance,
+            'seasonal': item_generator.seasonal === undefined ? seasonal_ids.indexOf(item_generator.artwork_id) != -1 : item_generator.seasonal,
+            'lottery': item_generator.lottery === undefined ? 0 : item_generator.lottery,
+            'original': item_generator.original === undefined ? false : item_generator.original,
             'tags': [],
             'artwork_data': artwork_data
+        }, function(error, result) {
+            if (error)
+                console.log(error.message)
+
+            else {
+                var item_object = items.findOne(result);
+                if (item_object.artwork_data.rarity == "legendary" || item_object.artwork_data.rarity == "masterpiece")
+                    logLegendary(item_generator.source, item_object);
+            }
         });
 
         return new_item_id;
@@ -424,7 +480,18 @@ Meteor.methods({
                 foil_chance = .02;
             }
 
-            generateItems(Meteor.userId(), rolled_quality, admin_settings.daily_drop_count, "unclaimed", foil_chance, 0, 0);
+            var multi_item_generator = {
+                'source': "daily drop",
+                'user_id': Meteor.userId(),
+                'quality': rolled_quality,
+                'count': admin_settings.daily_drop_count,
+                'status': "unclaimed",
+                'foil_chance': foil_chance,
+                'xp_rating_min': 0,
+                'condition_min': 0
+            }
+
+            generateItems(multi_item_generator);
    
             var now = moment().toISOString();
             Meteor.users.update(Meteor.userId(), {$set: {'profile.last_drop' : now}});
@@ -444,7 +511,18 @@ Meteor.methods({
                 foil_chance = .02;
             }
 
-            generateItems(user_id, quality, admin_settings.crate_drop_count, "unclaimed", foil_chance, 0, 0);
+            var multi_item_generator = {
+                'source': "crate",
+                'user_id': user_id,
+                'quality': quality,
+                'count': admin_settings.crate_drop_count,
+                'status': "unclaimed",
+                'foil_chance': foil_chance,
+                'xp_rating_min': 0,
+                'condition_min': 0
+            }
+
+            generateItems(multi_item_generator);
             chargeAccount(user_id, cost);
         }
 
