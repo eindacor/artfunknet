@@ -15,12 +15,14 @@ concludeDisplay = function(item_id) {
     };
     alerts.insert(alert_win_object);
 
-    addFunds(user_id, money_earned);
+    addFunds("display", user_id, money_earned);
     addXP(user_id, xp_earned);
+    logXPChunkPercentage("display", item_object.display_details.xp_chunk_percentage);
 
     var null_display_details = {
         'money' : 0,
         'xp' : 0,
+        'xp_chunk_percentage': 0,
         'end' : ""
     };
 
@@ -44,34 +46,42 @@ getDisplayDetails = function(item_id, duration) {
     var display_amount = getItemValue(item_id, 'display', items.findOne(item_id).owner);
     var xp_chunk = getXPChunk(Meteor.user().profile.level);
     var xp_rating = items.findOne(item_id).xp_rating;
-    var xp_value = (xp_chunk * .5) + (xp_chunk * .5 * xp_rating);
+    var xp_chunk_percentage_value = .5 + (.5 * xp_rating);
+    var xp_value = xp_chunk_percentage_value * xp_chunk;
 
     //add bonuses from attributes
 
-    var money, xp;
+    var money, xp, xp_chunk_percentage;
     switch(Number(duration)) {
         case 1:
             money = display_amount * .00018 * duration;
             xp = xp_value * .0008 * duration;
+            xp_chunk_percentage = xp_chunk_percentage_value * .0008 * duration; 
             break;
         case 60:
             money = display_amount * .00012 * duration;
             xp = xp_value * .0001 * duration;
+            xp_chunk_percentage = xp_chunk_percentage_value * .0001 * duration;
             break;
         case 360:
             money = display_amount * .00014 * duration;
             xp = xp_value * .0002 * duration;
+            xp_chunk_percentage = xp_chunk_percentage_value * .0002 * duration;
             break;
         case 720:
             money = display_amount * .00016 * duration;
             xp = xp_value * .0003 * duration;
+            xp_chunk_percentage = xp_chunk_percentage_value * .0003 * duration;
             break;
         case 1440:
             money = display_amount * .00018 * duration;
             xp = xp_value * .0004 * duration;
+            xp_chunk_percentage = xp_chunk_percentage_value * .0004 * duration;
             break;
         default:
             money = 0;
+            xp = 0;
+            xp_chunk_percentage = 0;
             break;
     }
 
@@ -79,6 +89,7 @@ getDisplayDetails = function(item_id, duration) {
     var display_details = {
         'money' : Math.floor(Number(money.toFixed(2))),
         'xp' : Math.floor(xp),
+        'xp_chunk_percentage': Number(xp_chunk_percentage.toFixed(3)),
         'end' :end
         // 'end' : moment().add(1, 'minutes')._d.toISOString()
     }
@@ -126,7 +137,7 @@ Meteor.methods({
                 else {
                 	calcMVP(Meteor.userId());
                 	if (procUniqueAttribute(Meteor.userId(), "XP_FROM_DEALER_PURCHASES", undefined)) {
-                		addXPChunkPercentage(Meteor.userId(), items.findOne(item_id).xp_rating);
+                		addXPChunkPercentage("XP_FROM_DEALER_PURCHASES", Meteor.userId(), items.findOne(item_id).xp_rating);
                 	}
 
                     if (procUniqueAttribute(Meteor.userId(), "DEALER_PURCHASE_ROLL_COUNT_SET", undefined)) {
@@ -164,7 +175,7 @@ Meteor.methods({
     'acceptCollectorOffer' : function(offer_id) {
         var offer_object = npc_data.findOne(offer_id);
         if (offer_object && Meteor.userId() == offer_object.owner) {
-            addFunds(offer_object.owner, offer_object.data.offer_amount);
+            addFunds("collector", offer_object.owner, offer_object.data.offer_amount);
             items.remove(offer_object.data.item_id, function(error) {
                 if (error)
                     console.log(error.message);
@@ -247,7 +258,7 @@ Meteor.methods({
             if (isNaN(value))
                 throw "invalid amount";
 
-            addFunds(Meteor.userId(), value);
+            addFunds("sell item", Meteor.userId(), value);
             items.update(item_id, {$set: {'owner': "Artfunkel, Inc.", 'status': "auctioned", 'tags': []}} ,function(error) {
                 if (error)
                     console.log(error.message);
@@ -296,7 +307,7 @@ Meteor.methods({
             items.update({'_id': item_id}, {$set: {'status' : 'auctioned'}}, function() {
                 createAuction(item_id, starting, buy_now, duration);
                 if (procUniqueAttribute(Meteor.userId(), "XP_FOR_AUCTIONS", undefined) && Meteor.user().profile.market_expert.expiration > moment()._d.toISOString()) {
-                    addXPChunkPercentage(Meteor.userId(), .5)
+                    addXPChunkPercentage("XP_FOR_AUCTIONS", Meteor.userId(), .5)
                 }
             });
         }

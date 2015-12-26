@@ -133,11 +133,13 @@ var enthusiastInteraction = function(npc_object) {
 	var message = "You have met an art enthusiast who recently attended one of your gallery's events. They rave about your collection, and thank you for the experience. You have earned " + getCommaSeparatedValue(xp_won) + "xp!";
 
 	addXP(Meteor.userId(), xp_won);
+	logXPChunkPercentage("enthusiast", xp_chunk_percentage);
 	return {'message': message}
 }
 
 var benefactorInteraction = function(npc_object) {
 	var max_donation = getAverageDropValue(Meteor.user().profile.level, 0) * 2;
+	
 	var donation_amount;
 
 	switch(npc_object.quality) {
@@ -200,7 +202,7 @@ var benefactorInteraction = function(npc_object) {
 
 	var message = "You have met a benefactor who would like to make a donation. You have recieved $" + getCommaSeparatedValue(money_won) + "!";
 
-	addFunds(Meteor.userId(), money_won);
+	addFunds("benefactor", Meteor.userId(), money_won);
 	return {'message': message}
 }
 
@@ -307,7 +309,7 @@ var preservationistInteraction = function(npc_object) {
 		else target_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}}, {sort: {'condition': 1}});
 
 		if (target_item && procUniqueAttribute(Meteor.userId(), "PRESERVATIONIST_CONDITION_BONUS", undefined) && target_item.condition > .8) {
-			addFunds(Meteor.userId(), Math.floor(getItemObjectValue(target_item, "display") * .5));
+			addFunds("PRESERVATIONIST_CONDITION_BONUS", Meteor.userId(), Math.floor(getItemObjectValue(target_item, "display") * .5));
 		}
 
 		if (procUniqueAttribute(Meteor.userId(), "PRESERVATIONIST_FINISH_BOOST", "Designer")) {
@@ -335,7 +337,7 @@ var preservationistInteraction = function(npc_object) {
 			if (random_permanent)
 				items.update(random_permanent._id, {$set: {'xp_rating': Number((random_permanent.xp_rating + .01).toFixed(2))}});
 
-			else addXPChunkPercentage(Meteor.userId(), .5);
+			else addXPChunkPercentage("PC_XP_RATING_BOOST", Meteor.userId(), .5);
 		}
 	}
 
@@ -384,7 +386,7 @@ var artExpertInteraction = function(npc_object) {
 		if (procUniqueAttribute(Meteor.userId(), "XP_FOR_ZERO_COUNTS", undefined)) {
 			var zero_count_items = items.find({'owner' : Meteor.userId(), 'status' : 'displayed', 'roll_count' : 0}).count();
 			for (var i=0; i<zero_count_items; i++) {
-				addXPChunkPercentage(Meteor.userId(), .1);
+				addXPChunkPercentage("XP_FOR_ZERO_COUNTS", Meteor.userId(), .1);
 			}
 		}
 
@@ -494,15 +496,17 @@ var collectorInteraction = function(npc_object) {
 			}
 
 			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_XP_REWARD", "Art Enthusiast")) {
-				var xp_reward = Math.floor(.25 * ((offer_multiplier * getXPChunk(Meteor.user().profile.level)) + offer_bonus));
+				var xp_chunk_percentage = .25 * offer_multiplier;
+				var xp_reward = Math.floor(xp_chunk_percentage * (getXPChunk(Meteor.user().profile.level) + offer_bonus));
 				var message = "You have met an Art Collector, who was admiring " + collector_target.artwork_data.title + " by " + collector_target.artwork_data.artist + ", currently on display in your gallery. You have gained " + getCommaSeparatedValue(xp_reward) + "xp.";
 				addXP(Meteor.userId(), xp_reward);
+				logXPChunkPercentage("art collector unique", Number(xp_chunk_percentage.toFixed(3)));
 				return {'message': message}
 			}
 
 			if (target_status == "displayed") {
 				var donation_amount = Math.floor((getItemValue(collector_target._id, "display", Meteor.userId()) * .2) * offer_multiplier) + offer_bonus;
-				addFunds(Meteor.userId(), donation_amount);
+				addFunds("COLLECTOR_DISPLAY_OFFER", Meteor.userId(), donation_amount);
 				var message = "You have met an Art Collector, who was admiring " + collector_target.artwork_data.title + " by " + collector_target.artwork_data.artist + ", currently on display in your gallery. They offer you $" + getCommaSeparatedValue(donation_amount) + " for their appreciation of the piece, and insist that you keep and maintain it for the world to enjoy.";
 				return {'message': message}
 			}
@@ -732,6 +736,7 @@ var designerInteraction = function(npc_object) {
 		var message = "You have met a designer, who is impressed by one of the finishes in your collection. You have earned " + getCommaSeparatedValue(xp_won) + "xp!";
 
 		addXP(Meteor.userId(), xp_won);
+		logXPChunkPercentage("designer", xp_chunk_percentage);
 		return {'message': message, 'type': "designer_bonus", 'filename': random_selection.filename};
 	}
 }
@@ -761,57 +766,54 @@ var generateQuest = function(rarity, is_own_gallery) {
     var max_money = getAverageDropValue(Meteor.user().profile.level, 0) * 10;
     var player_level = Meteor.user().profile.level;
 
-    var reward;
+    var reward, reward_item, money_multiplier, xp_chunk_percentage;
 
 	switch(rarity) {
 		case 'common' :
-			reward = {
-				'money': Math.floor(max_money * .4),
-				'xp': Math.floor(getXPChunk(player_level) * .6),
-				'item': undefined
-			};
+			money_multiplier = .4;
+			xp_chunk_percentage = .6;
+			reward_item = undefined;
 			break;
 
 		case 'uncommon' : 
-			reward = {
-				'money': Math.floor(max_money * .6),
-				'xp': Math.floor(getXPChunk(player_level) * .7),
-				'item': undefined 
-			};
+			money_multiplier = .6;
+			xp_chunk_percentage = .7;
+			reward_item = undefined;
 			break;
 
 		case 'rare' : 
-			reward = {
-				'money': Math.floor(max_money * .8),
-				'xp': Math.floor(getXPChunk(player_level) * .8),
-				'item': undefined 
-			};
+			money_multiplier = .8;
+			xp_chunk_percentage = .8;
+			reward_item = undefined;
 			break;
 
 		case 'legendary' : 
-			reward = {
-				'money': Math.floor(max_money * 1),
-				'xp': Math.floor(getXPChunk(player_level) * .9),
-				'item': {
-					'rarity': "legendary",
-					'foil': false
-				} 
-			};
+			money_multiplier = 1;
+			xp_chunk_percentage = .9;
+			reward_item = {
+				'rarity': "legendary",
+				'foil': false
+			} 
 			break;
 
 		case 'masterpiece' : 
-			reward = {
-				'money': Math.floor(max_money * 2),
-				'xp': Math.floor(getXPChunk(player_level) * 1),
-				'item': {
-					'rarity': "legendary",
-					'foil': true
-				} 
-			};
+			money_multiplier = 1;
+			xp_chunk_percentage = 1;
+			reward_item = {
+				'rarity': "legendary",
+				'foil': true
+			} 
 			break;
 
 		default: return undefined;
 	};
+
+	reward = {
+		'money': max_money * money_multiplier,
+		'xp': Math.floor(getXPChunk(player_level) * xp_chunk_percentage),
+		'xp_chunk_percentage': xp_chunk_percentage,
+		'item': reward_item,
+	}
 
 	var target_count = 3;
 
@@ -822,6 +824,7 @@ var generateQuest = function(rarity, is_own_gallery) {
 
 		if (procUniqueAttribute(Meteor.userId(), "QUEST_XP_BONUS", undefined)) {
 			reward.xp = Math.floor(reward.xp * 1.5);
+			reward.xp_chunk_percentage = Number((reward.xp_chunk_percentage * 1.5).toFixed(3));
 		}
 
 		if (procUniqueAttribute(Meteor.userId(), "MARKET_EXPERT_QUEST_BONUS", undefined)) {

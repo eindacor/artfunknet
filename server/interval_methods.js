@@ -125,7 +125,7 @@ Meteor.setInterval((function() {
         var wall_xp_rating = db_object.profile.gallery_finishes.owned.wall_finishes[active_wall_finish_id].xp_rating;
         var wall_percentage = finish_xp_max_percentage * wall_xp_rating;
 
-        addXPChunkPercentage(db_object._id, wall_percentage + floor_percentage);
+        addXPChunkPercentage("finishes", db_object._id, wall_percentage + floor_percentage);
     });
 
     var pc_xp_max_percentage = .1;
@@ -139,7 +139,7 @@ Meteor.setInterval((function() {
 
         var time_til_next_xp = (xp_frequency * (periods_displayed + 1)) - time_displayed;
 
-        addXPChunkPercentage(db_object.owner, percentage * db_object.xp_rating);
+        addXPChunkPercentage("permanent collection", db_object.owner, percentage * db_object.xp_rating);
     });
 
 }), xp_frequency);

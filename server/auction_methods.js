@@ -90,7 +90,7 @@ var failedAuction = function(auction_object) {
 var successfulAuction = function(auction_object, winning_user) {
     var winning_bid = auction_object.current_bid;
     var refund = auction_object.highest_bid - winning_bid;
-    addFunds(winning_user._id, refund);
+    addFunds(undefined, winning_user._id, refund);
 
     var seller = items.findOne(auction_object.item_id).owner;
 
@@ -115,7 +115,7 @@ var successfulAuction = function(auction_object, winning_user) {
                 };
                 alerts.insert(alert_sale_object);
 
-                addFunds(previous_owner._id, auction_object.current_bid);
+                addFunds("auction", previous_owner._id, auction_object.current_bid);
                 calcMVP(previous_owner._id);
             }
 
@@ -164,7 +164,7 @@ var refundWinner = function(auction_object, new_winner, refund_amount, bought) {
     if (former_winner == undefined)
         return undefined;
 
-    addFunds(former_winner._id, refund_amount);
+    addFunds(undefined, former_winner._id, refund_amount);
 
     notifyFormerWinner(auction_object, new_winner, bought);
 
@@ -263,7 +263,7 @@ Meteor.methods({
                     alerts.insert(alert_object);
 
                     removeAuction(auction_id);
-                    addFunds(seller_id, auction_object.buy_now);
+                    addFunds("auction", seller_id, auction_object.buy_now);
                 }
             });
             

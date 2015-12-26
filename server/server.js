@@ -71,7 +71,19 @@ var updateContent = function() {
                 'counts': {},
             },
         }
-    })
+    });
+
+    metadata.insert({
+        'xp': {
+            'sources': {}
+        }
+    });
+
+    metadata.insert({
+        'money': {
+            'sources': {}
+        }
+    });
     // temp code
 }
 

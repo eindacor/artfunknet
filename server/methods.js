@@ -206,7 +206,7 @@ var refundHighestBid = function(auction_id) {
         }
 
         if (highest_bid.user_id != "auction_bot")
-            addFunds(highest_bid.user_id, highest_bid.amount);
+            addFunds(undefined, highest_bid.user_id, highest_bid.amount);
     }
 }
 

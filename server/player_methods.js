@@ -80,11 +80,13 @@ createUser = function(user_object, callback){
     return Accounts.createUser(user_object, callback);
 }
 
-addFunds = function(user_id, amount) {
+addFunds = function(source, user_id, amount) {
     if (isNaN(amount))
         throw "invalid amount";
 
     var actual_amount = Number(amount).toFixed(2);
+
+    logMoneyMade(source, actual_amount);
 
     var current_balance = Number(Meteor.users.findOne({'_id': user_id}).profile.bank_balance).toFixed(2);
     var new_balance = Number(current_balance) + Number(actual_amount);
@@ -346,14 +348,6 @@ Meteor.methods({
         alerts.remove(alert_id);
     },
 
-     'levelUp' : function() {
-        levelUp(Meteor.userId());
-    },
-
-    'addXP' : function(amount) {
-        addXP(Meteor.userId(), amount);
-    },
-
     'sendResetPasswordEmail': function(email_address) {
         var user = Meteor.users.findOne({"username": email_address});
 
@@ -381,8 +375,8 @@ Meteor.methods({
 
         var new_id = gallery_tickets.insert(ticket_object);
 
-        addFunds(owner_id, entry_fee);
-        addXPChunkPercentage(owner_id, .02);
+        addFunds("ticket sale", owner_id, entry_fee);
+        addXPChunkPercentage("gallery ticket purchased", owner_id, .02);
         chargeAccount(buyer_id, entry_fee);
     },
 
@@ -422,7 +416,8 @@ Meteor.methods({
             var quest_object = quests.findOne(quest_id);
 
             addXP(Meteor.userId(), quest_object.reward.xp);
-            addFunds(Meteor.userId(), quest_object.reward.money);
+            logXPChunkPercentage("quest", quest_object.reward.xp_chunk_percentage);
+            addFunds("quest", Meteor.userId(), quest_object.reward.money);
 
             if (quest_object.reward.item != undefined) {
                 var rarity = quest_object.reward.item.rarity;
@@ -541,7 +536,7 @@ Meteor.methods({
                 }
             });
 
-            addFunds(Meteor.userId(), total_value);
+            addFunds("sell item", Meteor.userId(), total_value);
         }
 
         else items.remove({'owner': Meteor.userId(), 'status': "unclaimed"});
