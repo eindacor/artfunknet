@@ -69,6 +69,13 @@ Meteor.methods({
 		}
 	},
 
+    'levelUp': function() {
+        if (adminValidated() && Meteor.user().profile.level < 50) {
+            var xp = getXPGoal(Meteor.user().profile.level);
+            addXP(Meteor.userId(), xp);
+        }
+    },
+
 	'generateNPC': function(attribute_id) {
 		if (adminValidated()) {
 			gallery_object = galleries.findOne({'owner_id': Meteor.userId()});

@@ -262,6 +262,13 @@ Template.adminTools.events({
 		})
 	},
 
+	'click #level-up' : function(element) {
+		Meteor.call('levelUp', function(error) {
+			if (error)
+				console.log(error.message);
+		})
+	},
+
 	'click #generate-npc' : function(element) {
 		var attribute_id = $('.npc-selector').val();
 		Meteor.call('generateNPC', attribute_id, function(error) {

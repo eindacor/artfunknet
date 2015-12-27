@@ -74,7 +74,8 @@ createUser = function(user_object, callback){
         'wall_opacity': 1,
         'frame_width': .5,
         'matte_width': .5,
-        'wall_base': "white"
+        'wall_base': "white",
+        'frame_color': "black"
     }
 
     return Accounts.createUser(user_object, callback);
