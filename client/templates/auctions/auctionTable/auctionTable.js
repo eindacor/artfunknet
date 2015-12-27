@@ -91,7 +91,7 @@ Template.auctionTable.helpers({
 			list_object.losing = Meteor.users.findOne({'_id': Meteor.userId(), 'profile.auction_data.winning': {$in: [auction_object._id]}}) == undefined &&
 				Meteor.users.findOne({'_id': Meteor.userId(), 'profile.auction_data.watching': {$in: [auction_object._id]}}) != undefined;
 
-			list_object.owned = items.findOne({'owner': Meteor.userId(), 'artwork_id': item_object.artwork_id}) != undefined;
+			list_object.owned = items.findOne({'owner': Meteor.userId(), 'artwork_id': item_object.artwork_id, 'status': {$nin: ['unclaimed', 'for_sale']}}) != undefined;
 			list_object.attribute = displayed_attributes;
 			list_object.artwork_id = item_object.artwork_id;
 			list_object.buy_now_text = auction_object.buy_now == -1 ? "-" : "$" + getCommaSeparatedValue(auction_object.buy_now);

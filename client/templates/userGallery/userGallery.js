@@ -122,6 +122,14 @@ Template.userGallery.events ({
 		});
 	},
 
+	'change #frame-color-selector' : function(element) {
+		$('.item').css('border-color', $(element.target)[0].value);
+		Meteor.call('updateFrameColor', $(element.target)[0].value, function(error) {
+			if (error)
+				console.log(error.message)
+		});
+	},
+
 	'click #enter-button.enabled' : function(element) {
 		var owner_id = element.target.dataset.owner_id;
 		Meteor.call('purchaseTicket', Meteor.userId(), owner_id, function(error) {
@@ -335,6 +343,7 @@ Template.galleryItem.events({
 
 Template.galleryEdit.rendered = function() {
 	$('#wall-base-selector').val(Meteor.user().profile.gallery_finishes.wall_base);
+	$('#frame-color-selector').val(Meteor.user().profile.gallery_finishes.frame_color);
 
 	var frame_range = max_frame_width_cm - min_frame_width_cm;
 	var matte_range = max_matte_width_cm - min_matte_width_cm;

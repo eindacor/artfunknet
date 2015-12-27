@@ -94,7 +94,7 @@ Meteor.methods({
             
             var max_pixels_per_cm = max_distance_to_floor_px / painting_offset_from_floor_cm;
 
-            var pixels_per_centimeter = pixels_per_centimeter > max_pixels_per_cm ? max_pixels_per_cm : pixels_per_centimeter;
+            pixels_per_centimeter = pixels_per_centimeter > max_pixels_per_cm ? max_pixels_per_cm : pixels_per_centimeter;
 
             var frame_width_range = max_frame_width_cm - min_frame_width_cm;
             var frame_width = Math.floor((min_frame_width_cm + (user_object.profile.gallery_finishes.frame_width * frame_width_range)) * pixels_per_centimeter);
@@ -114,6 +114,7 @@ Meteor.methods({
                         'wall_wash_opacity': (1 - user_object.profile.gallery_finishes.wall_opacity).toFixed(1),
                         'frame_width': frame_width,
                         'matte_width': matte_width,
+                        'frame_color': user_object.profile.gallery_finishes.frame_color,
                         'displayed_shown': displayed.length > 0,
                         'permanent_shown': permanent.length > 0,
                         'offset_from_floor': painting_offset_from_floor_cm * pixels_per_centimeter,

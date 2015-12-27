@@ -411,6 +411,10 @@ Meteor.methods({
         Meteor.users.update(Meteor.userId(), {$set: {'profile.gallery_finishes.wall_base': value}});
     },
 
+    'updateFrameColor': function(value) {
+        Meteor.users.update(Meteor.userId(), {$set: {'profile.gallery_finishes.frame_color': value}});
+    },
+
     'turnInQuest' : function(quest_id) {
         if (canTurnInQuest(quest_id)) {
             var quest_object = quests.findOne(quest_id);

@@ -55,6 +55,7 @@ var updateContent = function() {
     })
 
     // temp code
+    Meteor.users.update({}, {$set: {'profile.gallery_finishes.frame_color': "black"}}, {multi: true});
     metadata.remove({});
     metadata.insert({
         'drops': {

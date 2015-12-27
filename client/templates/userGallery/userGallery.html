@@ -53,7 +53,7 @@
 
 <template name="galleryItem">
 	<div class="painting-container" data-item_id="{{painting_info._id}}" style="margin: 0px {{calcMargin this}}px 0px {{calcMargin this}}px">
-		<div class="item" style="padding: {{finish_data.matte_width}}px; border: {{finish_data.frame_width}}px solid black">
+		<div class="item" style="padding: {{finish_data.matte_width}}px; border: {{finish_data.frame_width}}px solid {{finish_data.frame_color}}">
 			<div style="width: {{calcWidth this}}px; height: {{calcHeight this}}px; background: url({{getImageURL painting_info.artwork_data.filename}}); background-size: 100% 100%">
 				{{#if shimmer this}}<div class="foil" style="width: {{calcWidth this}}px; height: {{calcHeight this}}px"></div>{{/if}}
 			</div>
@@ -103,6 +103,19 @@
 							<option value="red">red</option>
 							<option value="green">green</option>
 							<option value="blue">blue</option>
+						</select>
+					</div>
+					<div class="row">
+						<p>frame color</p>
+						<select id="frame-color-selector">
+							<option value="black">black</option>
+							<option value="red">red</option>
+							<option value="green">green</option>
+							<option value="blue">blue</option>
+							<option value="orange">orange</option>
+							<option value="purple">purple</option>
+							<option value="yellow">yellow</option>
+							<option value="cyan">cyan</option>
 						</select>
 					</div>
 				</div>

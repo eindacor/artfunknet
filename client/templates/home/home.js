@@ -163,7 +163,7 @@ Template.home.created = function() {
 Template.home.rendered = function() {
 	$('#errors').hide();
 	$('#register-area').hide();
-	Meteor.setTimeout(function() {setBackground();}, 500);
+	Meteor.setTimeout(function() {setBackground();}, 1000);
 
 	window.onresize = function() {resizeBackground()};
 }

@@ -101,7 +101,7 @@ levelUp = function(user_id, level_count) {
 			var before_value = cap_object_before[key];
 			var after_value = cap_object_after[key];
 
-			if (before_value === after_value)
+			if (before_value < after_value)
 				continue;
 
 			var setter = {};
@@ -109,31 +109,33 @@ levelUp = function(user_id, level_count) {
 			setter[setter_key] = after_value;
 			Meteor.users.update(user_id, {$set : setter});
 
-			var message;
+			if (before_value < after_value) {
+				var message;
 
-			switch(key) {
-				case 'inventory_cap' : message = "Your inventory capacity has increased to " + after_value + "."; break;
-		        case 'display_cap' : message = "Your display capacity has increased to " + after_value + "."; break;
-		        case 'auction_cap' : message = "Your auction limit has increased to " + after_value + "."; break;
-		        case 'ticket_cap' : message = "Your ticket limit has increased to " + after_value + "."; break;
-		        case 'pc_cap' : message = "Your permanent collection capacity has increased to " + after_value + "."; break;
-		        case 'visitor_cap' : message = "Your gallery's visitor capacity has increased to " + after_value + "."; break;
-		        default: message = ""; break;
+				switch(key) {
+					case 'inventory_cap' : message = "Your inventory capacity has increased to " + after_value + "."; break;
+			        case 'display_cap' : message = "Your display capacity has increased to " + after_value + "."; break;
+			        case 'auction_cap' : message = "Your auction limit has increased to " + after_value + "."; break;
+			        case 'ticket_cap' : message = "Your ticket limit has increased to " + after_value + "."; break;
+			        case 'pc_cap' : message = "Your permanent collection capacity has increased to " + after_value + "."; break;
+			        case 'visitor_cap' : message = "Your gallery's visitor capacity has increased to " + after_value + "."; break;
+			        default: message = ""; break;
+				}
+
+				var alert_object = {
+			        'user_id' : user_id,
+			        'message' : message,
+			        'link' : '/',
+			        'icon' : 'fa-star',
+			        'sentiment' : "good",
+			        'time' : moment()._d.toISOString()
+			    };
+
+			    alerts.insert(alert_object, function(error) {
+			    	if(error)
+			    		console.log(error.message);
+			    });
 			}
-
-			var alert_object = {
-		        'user_id' : user_id,
-		        'message' : message,
-		        'link' : '/',
-		        'icon' : 'fa-star',
-		        'sentiment' : "good",
-		        'time' : moment()._d.toISOString()
-		    };
-
-		    alerts.insert(alert_object, function(error) {
-		    	if(error)
-		    		console.log(error.message);
-		    });
 		}
 	}
 
