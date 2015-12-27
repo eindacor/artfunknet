@@ -95,12 +95,6 @@ levelUp = function(user_id, level_count) {
 		var cap_object_before= getCapSetterObject(current_level);
 		var cap_object_after = getCapSetterObject(level_hit);
 
-		console.log("------");
-		console.log(cap_object_before);
-		console.log("------");
-		console.log(cap_object_after);
-		console.log("------");
-
 		var setter = {};
 
 		var cap_keys = Object.keys(cap_object_after);
@@ -108,8 +102,6 @@ levelUp = function(user_id, level_count) {
 			var key = cap_keys[i];
 			var before_value = cap_object_before[key];
 			var after_value = cap_object_after[key];
-
-			console.log(key + ": " + before_value + ", " + after_value);
 
 			var setter_key = "profile." + key;
 			setter[setter_key] = after_value;

@@ -153,6 +153,19 @@ Template.itemInfo.helpers({
 		}
 
 		else return false;
+	},
+
+	'showDetails': function(item_data) {
+		if (item_data.owner == Meteor.userId())
+			return true;
+
+		if (item_data.status == "displayed" || item_data.status == "permanent")
+			return true;
+
+		if (item_data.status == "auctioned" && Meteor.user().profile.market_expert.expiration > moment()._d.toISOString())
+			return true;
+
+		return false;
 	}
 })
 

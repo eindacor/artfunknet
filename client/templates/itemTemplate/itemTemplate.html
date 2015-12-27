@@ -16,12 +16,17 @@
 							<p><span class="{{item_data.artwork_data.rarity}}"><strong>{{item_data.artwork_data.rarity}}</strong></span>{{#if item_data.foil}}<span class="af-color"> foil</span>{{/if}}{{#if item_data.seasonal}}<span class="common"> seasonal</span>{{/if}}{{#if item_data.lottery}}<span class="gold"> lottery {{item_data.lottery}}</span>{{/if}}{{#if item_data.original}}<span class="purple-text"> original</span>{{/if}}</p>
 							<p>{{item_data.artwork_data.medium}}</p>
 							<p>{{item_data.artwork_data.height}} x {{item_data.artwork_data.width}}</p>
-							<p>condition: <span style="color: {{getHTMLColorFromValue item_data.condition}}">%{{floatToPercentage item_data.condition}}</span></p>
-							<!-- {{#if isOwner item_data.owner}} -->
+							{{#if showDetails item_data}}}
+								<p>condition: <span style="color: {{getHTMLColorFromValue item_data.condition}}">%{{floatToPercentage item_data.condition}}</span></p>
 								<p>estimated value: ${{getItemValue item_data._id "actual"}}</p>
-							<!-- {{/if}} -->
-							<p>xp rating: <span style="color: {{getHTMLColorFromValue item_data.xp_rating}}">{{floatToPercentage item_data.xp_rating}}</span></p>
-							<p>roll count: {{item_data.roll_count}}</p>
+								<p>xp rating: <span style="color: {{getHTMLColorFromValue item_data.xp_rating}}">{{floatToPercentage item_data.xp_rating}}</span></p>
+								<p>roll count: {{item_data.roll_count}}</p>
+							{{else}}
+								<p>condition: ?</p>
+								<p>estimated value: ?</p>
+								<p>xp rating: ?</p>
+								<p>roll count: ?</p>
+							{{/if}}
 							{{#each unique_attribute item_data}}
 								<p class="flavor-text af-color {{#if ../item_data.permanent}}permanent{{/if}}">"{{flavor_text}}"</p>
 							{{/each}}
