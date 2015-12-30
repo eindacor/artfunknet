@@ -16,7 +16,7 @@
 							<p><span class="{{item_data.artwork_data.rarity}}"><strong>{{item_data.artwork_data.rarity}}</strong></span>{{#if item_data.foil}}<span class="af-color"> foil</span>{{/if}}{{#if item_data.seasonal}}<span class="common"> seasonal</span>{{/if}}{{#if item_data.lottery}}<span class="gold"> lottery {{item_data.lottery}}</span>{{/if}}{{#if item_data.original}}<span class="purple-text"> original</span>{{/if}}</p>
 							<p>{{item_data.artwork_data.medium}}</p>
 							<p>{{item_data.artwork_data.height}} x {{item_data.artwork_data.width}}</p>
-							{{#if showDetails item_data}}}
+							{{#if showDetails item_data}}
 								<p>condition: <span style="color: {{getHTMLColorFromValue item_data.condition}}">%{{floatToPercentage item_data.condition}}</span></p>
 								<p>estimated value: ${{getItemValue item_data._id "actual"}}</p>
 								<p>xp rating: <span style="color: {{getHTMLColorFromValue item_data.xp_rating}}">{{floatToPercentage item_data.xp_rating}}</span></p>
