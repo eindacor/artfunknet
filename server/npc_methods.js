@@ -447,6 +447,9 @@ var collectorInteraction = function(npc_object) {
 	
 	collector_target = selectRandomPainting({'owner': Meteor.userId(), 'status': target_status});
 
+	if (collector_target == undefined && target_status != "claimed")
+		collector_target = selectRandomPainting({'owner': Meteor.userId(), 'status': "claimed"});
+
 	if (collector_target) {
 		if (isOwnGallery(npc_object)) {
 			offer_multiplier += .5;

@@ -22,6 +22,38 @@ var generateContent = function() {
     }
 }
 
+var resetMetaData = function() {
+    metadata.remove({});
+    metadata.insert({
+        'drops': {
+            'legendary': {
+                'sources': {},
+                'player_level_avg': 0,
+                'count_total': 0,
+                'counts': {},
+            },
+            'masterpiece': {
+                'sources': {},
+                'player_level_avg': 0,
+                'count_total': 0,
+                'counts': {},
+            },
+        }
+    });
+
+    metadata.insert({
+        'xp': {
+            'sources': {}
+        }
+    });
+
+    metadata.insert({
+        'money': {
+            'sources': {}
+        }
+    });
+}
+
 var updateContent = function() {
     addNewContent();
     gallery_tickets.remove({});
@@ -55,36 +87,7 @@ var updateContent = function() {
     })
 
     // temp code
-    Meteor.users.update({}, {$set: {'profile.gallery_finishes.frame_color': "black"}}, {multi: true});
-    metadata.remove({});
-    metadata.insert({
-        'drops': {
-            'legendary': {
-                'sources': {},
-                'player_level_avg': 0,
-                'count_total': 0,
-                'counts': {},
-            },
-            'masterpiece': {
-                'sources': {},
-                'player_level_avg': 0,
-                'count_total': 0,
-                'counts': {},
-            },
-        }
-    });
-
-    metadata.insert({
-        'xp': {
-            'sources': {}
-        }
-    });
-
-    metadata.insert({
-        'money': {
-            'sources': {}
-        }
-    });
+    
     // temp code
 }
 
