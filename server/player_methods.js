@@ -232,13 +232,13 @@ resetTutorials = function(user_id) {
     Meteor.users.update(user_id, {$set: {
         'profile.tutorials': {
             'welcome': true,
-            'loot': true,
-            'info': true,
-            'action_buttons': true,
+            'loot': false,
+            'info': false,
+            'action_buttons': false,
             'attributes': false,
-            'xp_rating': true,
-            'display': true,
-            'permanent': true,
+            'xp_rating': false,
+            'display': false,
+            'permanent': false,
             'gallery': false,
             'my_gallery': false,
             'galleries': false,
@@ -249,6 +249,10 @@ resetTutorials = function(user_id) {
 }
 
 Meteor.methods({
+    'resetTutorials': function() {
+        resetTutorials(Meteor.userId());
+    },
+
     'confirmTutorial': function(tutorial_name) {
         var setter = {};
         var setter_string = "profile.tutorials." + tutorial_name;

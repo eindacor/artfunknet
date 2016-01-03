@@ -33,3 +33,13 @@
 .template-help #visitor-description {
 	margin-bottom: 24px;
 }
+
+.template-help #reset-tutorials {
+	width: 500px;
+	font-size: 1.5rem;
+	margin: 0px auto;
+}
+
+.template-help .reset-section {
+	text-align: center;
+}

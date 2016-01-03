@@ -150,7 +150,7 @@ Template.dashboard.rendered = function() {
 			'modal_data': {
 				'tutorial_name': "welcome",
 				'next': undefined,
-				'activate': undefined,
+				'activate': "loot",
 				'image_filename': "tutorial/menu_loot.png",
 				'message': "Welcome to Artfunkel, an art collecting game for those poor people that can't afford to buy a Monet in real life. Let's start by getting you some paintings! Click on the 'Loot' icon in the menu."
 			}

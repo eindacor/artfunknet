@@ -1,4 +1,4 @@
-seasonal_ids = ["xtCiaet3j7XgYquAm"];
+seasonal_ids = ["WL2svx8MckZwhrWqb"];
 lottery_level = 1;
 
 bronze_rarity_map = {

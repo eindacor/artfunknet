@@ -83,7 +83,7 @@ Template.randomDrop.rendered = function() {
 			'modal_data': {
 				'tutorial_name': "loot",
 				'next': undefined,
-				'activate': undefined,
+				'activate': "info",
 				'image_filename': "tutorial/daily_drop.png",
 				'message': "This is the loot section! Whenever you recieve new paintings, they will show up here for you to claim. If you don't claim the items within 10 minutes, they'll disappear forever. Every 3 hours you're given a few random paintings to add to your collection, called the 'daily drop'. Click the button to see your items!"
 			}
