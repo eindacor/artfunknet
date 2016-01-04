@@ -384,7 +384,7 @@ var artExpertInteraction = function(npc_object) {
 		roll_reduction += 2;
 
 		if (procUniqueAttribute(Meteor.userId(), "XP_FOR_ZERO_COUNTS", undefined)) {
-			var zero_count_items = items.find({'owner' : Meteor.userId(), 'status' : 'displayed', 'roll_count' : 0}).count();
+			var zero_count_items = items.find({'owner' : Meteor.userId(), 'status' : 'displayed', 'roll_count' : {$lt: 1}}).count();
 			for (var i=0; i<zero_count_items; i++) {
 				addXPChunkPercentage("XP_FOR_ZERO_COUNTS", Meteor.userId(), .1);
 			}
@@ -457,7 +457,7 @@ var collectorInteraction = function(npc_object) {
 			if (procUniqueAttribute(Meteor.userId(), "GOOD_CONDITION_COLLECTOR_BONUS", undefined) && collector_target.condition > .8)
 				offer_multiplier += .5;
 
-			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_ROLL_COUNT_BONUS", undefined) && collector_target.roll_count == 0)
+			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_ROLL_COUNT_BONUS", undefined) && collector_target.roll_count <= 0)
 				offer_multiplier += .5;
 
 			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_SPECIAL_BONUS", undefined)) {
