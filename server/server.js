@@ -87,7 +87,9 @@ var updateContent = function() {
     })
 
     // temp code
-    
+    Meteor.users.find().forEach(function(db_object) {
+        updateGalleryDetails(db_object._id);
+    })
     // temp code
 }
 
@@ -172,7 +174,7 @@ Meteor.startup(function() {
             return parser.text('at 10:00 am on Monday');
         },
         job: function() {
-            if (Meteor.users.find({'profile.level': 50}).count() < 3)
+            if (Meteor.users.find({'profile.level': 50}).count() < 4)
                 return;
 
             if (Math.random() < .1) {
@@ -198,7 +200,7 @@ Meteor.startup(function() {
                     'status': "claimed",
                     'xp_rating_min': 0,
                     'condition_min': 0
-                }
+                };
 
                 generateItemFromArtworkID(item_generator);
                 lottery_level = 1;

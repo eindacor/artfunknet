@@ -165,6 +165,28 @@ getItemValue = function(item_id, type, user_id) {
     return getItemObjectValue(items.findOne(item_id), type, user_id);
 }
 
+// sumtotal of these values must equal 1
+var lowest_possible_value_coefficient = .5;
+var condition_coefficient_max = .3;
+var attribute_coefficient_max = .2;
+
+var getAttributeValueCoefficient = function(item_object) {
+    var attribute_array = item_object.attributes;
+
+    var total_rating = 0;
+    var rating_count = 0;
+
+    for (var i=0; i<attribute_array.length; i++) {
+        rating_count++;
+        total_rating += attribute_array[i].value;
+    }
+
+    if (rating_count)
+        return (total_rating / rating_count) * attribute_coefficient_max;
+
+    else return 0;
+}
+
 getItemObjectValue = function(item_object, type, user_id) {
     if (item_object) {
         var artwork_object = artworks.findOne({'_id': item_object.artwork_id});
@@ -176,10 +198,11 @@ getItemObjectValue = function(item_object, type, user_id) {
 
         var mint_value = Math.floor(min + (artwork_object.value_scale * range));
 
-        var condition_min_coefficient = .5;
-        var lowest_possible = mint_value * condition_min_coefficient;
-        var condition_factor = lowest_possible + ((mint_value - lowest_possible) * parseFloat(item_object.condition));
-        var actual_value = Math.floor(condition_factor);
+        var base_value = mint_value * lowest_possible_value_coefficient;
+        var condition_value = mint_value * condition_coefficient_max;
+        var attribute_value = mint_value * getAttributeValueCoefficient(item_object);
+
+        var actual_value = Math.floor(base_value + condition_value + attribute_value);
         var display_value = actual_value * 2;
 
         if (item_object.foil) {

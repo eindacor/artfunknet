@@ -71,23 +71,22 @@ Meteor.setInterval((function() {
 var npc_spawn_frequency = 600000; // 10 minutes
 // npc_spawn_frequency = 10000; // 10 seconds
 Meteor.setInterval((function() {
-    // var spawn_coefficient = .8;
-    var spawn_coefficient = 1;
-
     galleries.find().forEach(function(db_object) {
         npcs.remove({'owner_id': db_object.owner_id});
         var attribute_values = db_object.attribute_values;
         var attribute_ids = Object.keys(attribute_values);
+        var rarity_npc_coefficient = db_object.gallery_rarity_npc_coefficient;
+
         for (var i=0; i < attribute_ids.length; i++) {
             var attribute_object = attributes.findOne(attribute_ids[i]);
             if (attribute_object == undefined || attribute_object.type == "secondary")
                 continue;
             
-            var proc_chance = Math.pow((attribute_values[attribute_ids[i]] * spawn_coefficient), 2);
-            
+            var proc_chance = Math.pow((attribute_values[attribute_ids[i]] * rarity_npc_coefficient), 2);
+
             if (attribute_object.npc_name == "Art Donor" && procUniqueAttribute(db_object.owner_id, "DONOR_SPAWN_BOOST", undefined)) {
                 if (Meteor.user().profile.market_expert.expiration < moment()._d.toISOString())
-                    proc_chance += .3;
+                    proc_chance += .2;
             }
 
             if (JepLoot.booRoll(proc_chance)) {

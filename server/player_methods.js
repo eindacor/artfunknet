@@ -174,10 +174,26 @@ updateGalleryDetails = function(user_id) {
         var items_on_display = items.find({'owner' : user_id, 'status' : 'displayed'}).fetch();
         var gallery_value = 0;
         var attribute_rating_total = 0;
+        var rarity_npc_coefficient_total = 0;
+
         var attribute_totals = {};
         for (var i=0; i < items_on_display.length; i++) {
             gallery_value += getItemValue(items_on_display[i]._id, 'actual', user_id);
             var item_attributes = items_on_display[i].attributes;
+
+            var rarity_npc_coefficient;
+
+            switch(items_on_display[i].artwork_data.rarity) {
+                case "common": rarity_npc_coefficient = .76; break;
+                case "uncommon": rarity_npc_coefficient = .8; break;
+                case "rare": rarity_npc_coefficient = .88; break;
+                case "legendary": rarity_npc_coefficient = .96; break;
+                case "masterpiece": rarity_npc_coefficient = 1; break;
+                default: rarity_npc_coefficient = .5; break;
+            }
+
+            rarity_npc_coefficient_total += rarity_npc_coefficient;
+
             for (var n=0; n < item_attributes.length; n++) {
                 var attribute_id = item_attributes[n]._id;
                 var attribute_value = item_attributes[n].value;
@@ -193,20 +209,12 @@ updateGalleryDetails = function(user_id) {
         }
 
         var gallery_score = Math.floor(attribute_rating_total * 100);
+        var gallery_rarity_npc_coefficient = items_on_display.length ? rarity_npc_coefficient_total / items_on_display.length : 0;
 
         var display_cap = user_object.profile.display_cap;
         var attribute_ids = Object.keys(attribute_totals);
         var attribute_values = {};
 
-        //remove from db if no items present
-        // if (attribute_ids.length == 0) {
-        //     var gallery_object = galleries.findOne({'owner_id' : user_id});
-        //     if (gallery_object != undefined)
-        //         galleries.remove(gallery_object._id);
-
-        //     return;
-        // }
-        
         for (var i=0; i < attribute_ids.length; i++) {
             var attribute_id = attribute_ids[i];
             var attribute_rating = attribute_totals[attribute_id] / display_cap;
@@ -220,11 +228,19 @@ updateGalleryDetails = function(user_id) {
                 'attribute_values' : attribute_values,
                 'entry_fee' : user_object.profile.entry_fee,
                 'score': gallery_score,
-                'value': gallery_value
+                'value': gallery_value,
+                'gallery_rarity_npc_coefficient': gallery_rarity_npc_coefficient
             });
         }
 
-        else galleries.update({'owner_id' : user_id}, {$set: {'attribute_values' : attribute_values, 'score': gallery_score, 'value': gallery_value}});
+        else galleries.update({'owner_id' : user_id}, 
+            {$set: {
+                'attribute_values' : attribute_values, 
+                'score': gallery_score, 
+                'value': gallery_value,
+                'gallery_rarity_npc_coefficient': gallery_rarity_npc_coefficient
+            }
+        });
     }
 }
 
