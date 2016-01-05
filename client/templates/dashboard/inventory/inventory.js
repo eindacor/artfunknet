@@ -1,5 +1,6 @@
 var display_tracker = new Tracker.Dependency;
 var tags = [];
+var locked_attributes = [];
 var sorter = "artwork_data.title";
 var ascending = 1;
 var status_filter = {'status': {$in: ['claimed', 'displayed', 'permanent', 'auctioned']}};
@@ -17,39 +18,34 @@ Template.inventory.helpers({
 		var sorter_object = {};
 		sorter_object[sorter] = ascending;
 
-		if (tags.length == 0) {
-			var filter_array = [
-				{'owner': Meteor.userId()}, 
-				lottery_filter, 
-				foil_filter, 
-				seasonal_filter, 
-				original_filter,
-				standard_filter,
-				status_filter,
-				rarity_filter
-			];
+		var filter_array = [
+			lottery_filter, 
+			foil_filter, 
+			seasonal_filter, 
+			original_filter,
+			standard_filter,
+			status_filter,
+			rarity_filter
+		];
 
-			return items.find({
-				$and: filter_array
-			}, {sort: sorter_object});
+		var base_filter = {
+			'owner': Meteor.userId()
 		}
 
-		else {
-			var filter_array = [
-				{'owner': Meteor.userId(), 'tags': {$in: tags}}, 
-				lottery_filter, 
-				foil_filter, 
-				seasonal_filter, 
-				original_filter,
-				standard_filter,
-				status_filter,
-				rarity_filter
-			];
-
-			return items.find({
-				$and: filter_array
-			}, {sort: sorter_object});
+		if (tags.length > 0) {
+			base_filter.tags = {"$in": tags};
 		}
+
+		if (locked_attributes.length > 0) {
+			var key_string = "artwork_data.locked_attributes";
+			base_filter[key_string] = {"$in": locked_attributes};
+		}
+
+		filter_array.push(base_filter);
+
+		return items.find({
+			$and: filter_array
+		}, {sort: sorter_object});
 	},
 
 	'list_view' : function() {
@@ -138,6 +134,22 @@ Template.inventory.helpers({
 
 		var remaining_text = remaining > 0 ? getCountdownString(remaining) : "expired";
 		return remaining_text;
+	},
+
+	'locked_attribute': function() {
+		return attributes.find({'active': true});
+	},
+
+	'attributeName': function(attribute_id) {
+		return attributes.findOne(attribute_id).npc_name;
+	},
+
+	'showLockedAttributes': function() {
+		return items.findOne({
+			'owner': Meteor.userId(), 
+			'artwork_data.rarity': {$in: ['legendary', 'masterpiece']}, 
+			'status': {$nin: ['for_sale', 'unclaimed']}
+		});
 	}
 });
 
@@ -229,6 +241,17 @@ Template.inventory.events({
 		}
 
 		status_filter = {'status': {$in: valid_statuses}};
+
+		display_tracker.changed();
+	},
+
+	'change #locked-attribute-checkbox': function() {
+		locked_attributes = [];
+		for (var i=0; i<$('input[type=checkbox].locked-attribute-select').length; i++) {
+		 	var checked = $('input[type=checkbox].locked-attribute-select:eq(' + i + ')')[0].checked;
+		 	if (checked)
+		 		locked_attributes.push($('input[type=checkbox].locked-attribute-select:eq(' + i + ')').val())
+		}
 
 		display_tracker.changed();
 	},
