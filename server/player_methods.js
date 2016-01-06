@@ -25,6 +25,10 @@ createUser = function(user_object, callback){
         'expiration': moment().add(-1, 'days')._d.toISOString(),
         'rating': .8
     };
+    user_object.profile.designer = {
+        'expiration': moment().add(-1, 'days')._d.toISOString(),
+        'rating': 0
+    };
 
     user_object.profile.tutorials = {
         'welcome': true,
