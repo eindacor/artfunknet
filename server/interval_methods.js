@@ -73,9 +73,17 @@ var npc_spawn_frequency = 600000; // 10 minutes
 Meteor.setInterval((function() {
     galleries.find().forEach(function(db_object) {
         npcs.remove({'owner_id': db_object.owner_id});
+        
+        var owner_object = Meteor.users.findOne(db_object.owner_id);
+        
         var attribute_values = db_object.attribute_values;
         var attribute_ids = Object.keys(attribute_values);
         var rarity_npc_coefficient = db_object.gallery_rarity_npc_coefficient;
+        
+        var designer_active = owner_object.designer.expiration > moment()._d.toISOString();
+        
+        if (designer_active)
+            rarity_npc_coefficient += owner_object.designer.rating;
 
         for (var i=0; i < attribute_ids.length; i++) {
             var attribute_object = attributes.findOne(attribute_ids[i]);
