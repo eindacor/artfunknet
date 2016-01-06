@@ -184,12 +184,12 @@ updateGalleryDetails = function(user_id) {
             var rarity_npc_coefficient;
 
             switch(items_on_display[i].artwork_data.rarity) {
-                case "common": rarity_npc_coefficient = .76; break;
-                case "uncommon": rarity_npc_coefficient = .8; break;
-                case "rare": rarity_npc_coefficient = .88; break;
-                case "legendary": rarity_npc_coefficient = .96; break;
-                case "masterpiece": rarity_npc_coefficient = 1; break;
-                default: rarity_npc_coefficient = .5; break;
+                case "common": rarity_npc_coefficient = .78; break;
+                case "uncommon": rarity_npc_coefficient = .80; break;
+                case "rare": rarity_npc_coefficient = .84; break;
+                case "legendary": rarity_npc_coefficient = .88; break;
+                case "masterpiece": rarity_npc_coefficient = .9; break;
+                default: rarity_npc_coefficient = 0; break;
             }
 
             rarity_npc_coefficient_total += rarity_npc_coefficient;
