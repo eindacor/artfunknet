@@ -87,9 +87,7 @@ var updateContent = function() {
     })
 
     // temp code
-    Meteor.users.find().forEach(function(db_object) {
-        updateGalleryDetails(db_object._id);
-    })
+
     // temp code
 }
 
