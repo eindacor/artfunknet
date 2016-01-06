@@ -80,10 +80,10 @@ Meteor.setInterval((function() {
         var attribute_ids = Object.keys(attribute_values);
         var rarity_npc_coefficient = db_object.gallery_rarity_npc_coefficient;
         
-        var designer_active = owner_object.designer.expiration > moment()._d.toISOString();
+        var designer_active = owner_object.profile.designer.expiration > moment()._d.toISOString();
         
         if (designer_active)
-            rarity_npc_coefficient += owner_object.designer.rating;
+            rarity_npc_coefficient += owner_object.profile.designer.rating;
 
         for (var i=0; i < attribute_ids.length; i++) {
             var attribute_object = attributes.findOne(attribute_ids[i]);
