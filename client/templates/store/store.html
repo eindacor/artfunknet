@@ -24,6 +24,32 @@
 			</div>
 		{{/each}}
 
+		<div class="col-xs-6 finish-section">
+			<h3>Wall Finishes</h3>
+			<div class="row">
+				{{#each wall_finish}}
+				<div class="wall-finish-container" data-gallery_finish_id="{{_id}}" data-gallery_finish_filename="{{filename}}">
+					<img class="wall-finish-thumbnail" src="{{getTextureURL filename}}">
+					<div data-gallery_finish_id="{{_id}}" id="purchase-finish">
+						<p>purchase</p>
+					</div>
+				</div>
+				
+				{{/each}}
+			</div>
+		</div>
+		<div class="col-xs-6 finish-section">
+			<h3>Floor Finishes</h3>
+			<div class="row">
+				{{#each floor_finish}}
+				<div class="floor-finish-container" data-gallery_finish_id="{{_id}}" data-gallery_finish_filename="{{filename}}">
+					<img class="floor-finish-thumbnail" src="{{getTextureURL filename}}">
+				</div>
+				<button data-gallery_finish_id="{{_id}}" id="purchase-finish">purchase</button>
+				{{/each}}
+			</div>
+		</div>
+
 	</div>
 </template>
 

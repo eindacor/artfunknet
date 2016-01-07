@@ -57,7 +57,23 @@ Template.store.helpers({
             'lottery': 0, 
             'artwork_data.rarity': {$in: ["common", "uncommon", "rare"]}
         }) != undefined;
-	}
+	},
+
+	'wall_finish' : function() {
+		if (Meteor.user()) {
+			var owned_finishes = Meteor.user().profile.gallery_finishes.owned.wall_finishes;
+			var owned_ids = Object.keys(owned_finishes);
+			return gallery_finishes.find({'type': "wall finish", '_id': {$nin: owned_ids}});
+		}
+	},
+
+	'floor_finish' : function() {
+		if (Meteor.user()) {
+			var owned_finishes = Meteor.user().profile.gallery_finishes.owned.floor_finishes;
+			var owned_ids = Object.keys(owned_finishes);
+			return gallery_finishes.find({'type': "floor finish", '_id': {$nin: owned_ids}});
+		}
+	},
 })
 
 Template.store.events ({
@@ -76,6 +92,21 @@ Template.store.events ({
 			if (error)
 				console.log(error.message);
 		})
+	},
+
+	'click #purchase-finish': function(event) {
+		var finish_id = $(event.target).closest('div').data().gallery_finish_id;
+		var selected_finish = gallery_finishes.findOne(finish_id);
+		var user_finish_object = {
+			'filename': selected_finish.filename,
+			'saturation': 1,
+			'xp_rating': .1
+		}
+
+		var set_object = {};
+		var array_selector_string = "profile.gallery_finishes.owned." + (selected_finish.type == "wall finish" ? "wall_finishes." : "floor_finishes.") + selected_finish._id;
+		set_object[array_selector_string] = user_finish_object;
+		Meteor.users.update(Meteor.userId(), {$set: set_object});
 	}
 })
 

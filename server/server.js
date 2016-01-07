@@ -87,7 +87,14 @@ var updateContent = function() {
     })
 
     // temp code
-
+    Meteor.users.update({}, 
+    {$set: {
+    		'profile.designer': {
+    			'expiration': moment().add(-1, 'days')._d.toISOString(), 
+    			'rating': 0
+    		}
+    	}
+    }, {multi: true});
     // temp code
 }
 
