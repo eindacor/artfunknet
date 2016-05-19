@@ -579,8 +579,10 @@ Meteor.methods({
             }).count();
 
             for (var i=0; i<item_count; i++) {
-                if (Math.random() < .1)
-                    createNPC(galleries.findOne({'owner_id': Meteor.userId()}), attributes.findOne({'npc_name': "Designer"})._id, 600000);
+                if (Math.random() < .1) {
+                    var npc_quality = getNPCQuality(Meteor.users.findOne(Meteor.userId()).profile.level);
+                    createNPC(galleries.findOne({'owner_id': Meteor.userId()}), attributes.findOne({'npc_name': "Designer"})._id, 600000, npc_quality);
+                }
             }
         }
 
