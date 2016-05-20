@@ -118,8 +118,10 @@ Meteor.methods({
             items.remove(item_object._id);
 
             if (procUniqueAttribute(item_object.owner, "DECLINE_DEALER_DESIGNER_SPAWN", undefined)) {
-                if (Math.random() < .1)
-                    createNPC(galleries.findOne({'owner_id': Meteor.userId()}), attributes.findOne({'npc_name': "Designer"})._id, 600000);
+                if (Math.random() < .1) {
+                    var npc_quality = getNPCQuality(Meteor.user().profile.level);
+                    createNPC(galleries.findOne({'owner_id': Meteor.userId()}), attributes.findOne({'npc_name': "Designer"})._id, 600000, npc_quality);
+                }
             }
         }
 

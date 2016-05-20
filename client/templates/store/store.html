@@ -3,11 +3,9 @@
 		<h1 class="af-color">Store</h1>
 		<h4>bank balance: <span class="af-color">${{bank_balance}}</span></h4>
 		<div class="crate-buttons">
-			{{#each quality}}
-				{{#with dropButton this}}
-				<button class="{{buttonQuality}}-button crate-button {{#if enabled}}enabled{{else}}disabled{{/if}}" data-button_quality="{{buttonQuality}}">{{buttonQuality}} crate - {{crateCost}}</button>
-				{{/with}}
-			{{/each}}
+			{{#with dropButton}}
+			<button class="crate-button {{#if enabled}}enabled{{else}}disabled{{/if}}">purchase crate - {{crateCost}}</button>
+			{{/with}}
 			{{#if has_for_sale}}
 			<button id="decline-all">decline all</button>
 			{{/if}}

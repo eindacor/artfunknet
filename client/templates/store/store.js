@@ -3,28 +3,22 @@ Template.store.helpers({
 		return items.find({'owner': Meteor.userId(), 'status': 'for_sale'});
 	},
 
-	'quality' : function() {
-		return ["bronze", "silver", "gold", "platinum"];
-	},
-
-	'dropButton' : function(quality) {
-		Meteor.call('lookupCrateCost', quality, function(error, result) {
+	'dropButton' : function() {
+		Meteor.call('lookupCrateCost', "platinum", function(error, result) {
 			if (error)
 				console.log(error.message);
 
-			else Session.set(quality + 'Cost', Math.floor(result))
+			else Session.set("platinum" + 'Cost', Math.floor(result))
 		})
 
-		if (Session.get(quality + 'Cost') && Meteor.user()) {
+		if (Session.get("platinum" + 'Cost') && Meteor.user()) {
 			return {
-				'buttonQuality' : quality,
-				'crateCost' : "$" + getCommaSeparatedValue(Session.get(quality + 'Cost')),
-				'enabled' : Meteor.user().profile.bank_balance >= Session.get(quality + 'Cost')
+				'crateCost' : "$" + getCommaSeparatedValue(Session.get("platinum" + 'Cost')),
+				'enabled' : Meteor.user().profile.bank_balance >= Session.get("platinum" + 'Cost')
 			}
 		}
 
 		else return {
-			'buttonQuality' : quality,
 			'crateCost' : "",
 			'enabled' : false
 		}
@@ -62,8 +56,7 @@ Template.store.helpers({
 
 Template.store.events ({
 	'click .crate-button.enabled' : function(element) {
-		var quality = $(element.target).data('button_quality');
-		Meteor.call('openCrate', Meteor.userId(), quality, function(error, result) {
+		Meteor.call('openCrate', Meteor.userId(), "platinum", function(error, result) {
 			if (error)
 				console.log(error.message);
 

@@ -69,7 +69,7 @@ var updateContent = function() {
 
     //gives new legendaries locked attributes if they have none
     artworks.find({'rarity': {$in: ["masterpiece", "legendary"]}}).forEach(function(db_object) {
-        if (db_object.locked_attributes == undefined && overwrite_locked_attributes) {
+        if (db_object.locked_attributes == undefined || overwrite_locked_attributes || db_object.locked_attributes.length === 0) {
             var random_attributes = [];
             var attribute_count = db_object.rarity == "legendary" ? 2 : 3;
 
@@ -177,7 +177,7 @@ Meteor.startup(function() {
             if (Meteor.users.find({'profile.level': 50}).count() < 4)
                 return;
 
-            if (Math.random() < .1) {
+            if (Math.random() < .3) {
                 var user_map = {};
                 Meteor.users.find({'profile.level': 50}).forEach(function(db_object) {
                     user_map[db_object._id] = db_object.profile.xp;
@@ -219,7 +219,7 @@ Meteor.startup(function() {
                     alerts.insert(alert_object);
                 });
 
-                Meteor.users.update({'profile.level': 50}, {$set: {'profile.xp': 0}}, {multi: true})
+                Meteor.users.update({'profile.level': 50}, {$set: {'profile.xp': 0}}, {multi: true});
             }
 
             else {

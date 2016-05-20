@@ -33,29 +33,9 @@
 	background-color: black;
 }
 
-.template-store .bronze-button {
-	border: 1px solid #D8947D;
-	color: #D8947D;
-}
-
-.template-store .silver-button {
-	border: 1px solid #AAAAAA;
-	color: #AAAAAA;
-}
-
-.template-store .gold-button {
-	border: 1px solid #D8AF5C;
-	color: #D8AF5C;
-}
-
-.template-store .platinum-button {
-	border: 1px solid #BFBFBF;
-	color: #BFBFBF;
-}
-
-.template-store .diamond-button {
-	border: 1px solid #93CFCF;
-	color: #93CFCF;
+.template-store .crate-button {
+	border: 1px solid black;
+	color: black;
 }
 
 .template-store .store-item-container {
