@@ -313,22 +313,22 @@ var preservationistInteraction = function(npc_object) {
 		}
 
 		if (procUniqueAttribute(Meteor.userId(), "PRESERVATIONIST_FINISH_BOOST", "Designer")) {
-			var increase_amount = .04;
-			var user_object = Meteor.user();
-			var current_wall = user_object.profile.gallery_finishes.active.wall_finish;
-			var current_floor = user_object.profile.gallery_finishes.active.floor_finish;
-			var current_wall_rating = user_object.profile.gallery_finishes.owned.wall_finishes[current_wall].xp_rating;
-			var current_floor_rating = user_object.profile.gallery_finishes.owned.floor_finishes[current_floor].xp_rating;
+			// var increase_amount = .04;
+			// var user_object = Meteor.user();
+			// var current_wall = user_object.profile.gallery_finishes.active.wall_finish;
+			// var current_floor = user_object.profile.gallery_finishes.active.floor_finish;
+			// var current_wall_rating = user_object.profile.gallery_finishes.owned.wall_finishes[current_wall].xp_rating;
+			// var current_floor_rating = user_object.profile.gallery_finishes.owned.floor_finishes[current_floor].xp_rating;
 
-			var setter = {};
+			// var setter = {};
 
-			var wall_setter_string = "profile.gallery_finishes.owned.wall_finishes." + current_wall + ".xp_rating";
-			setter[wall_setter_string] = Number((current_wall_rating + increase_amount).toFixed(2)) > 1 ? 1 : Number((current_wall_rating + increase_amount).toFixed(2));
+			// var wall_setter_string = "profile.gallery_finishes.owned.wall_finishes." + current_wall + ".xp_rating";
+			// setter[wall_setter_string] = Number((current_wall_rating + increase_amount).toFixed(2)) > 1 ? 1 : Number((current_wall_rating + increase_amount).toFixed(2));
 
-			var floor_setter_string = "profile.gallery_finishes.owned.floor_finishes." + current_floor + ".xp_rating";
-			setter[floor_setter_string] = Number((current_floor_rating + increase_amount).toFixed(2)) > 1 ? 1 : Number((current_floor_rating + increase_amount).toFixed(2));
+			// var floor_setter_string = "profile.gallery_finishes.owned.floor_finishes." + current_floor + ".xp_rating";
+			// setter[floor_setter_string] = Number((current_floor_rating + increase_amount).toFixed(2)) > 1 ? 1 : Number((current_floor_rating + increase_amount).toFixed(2));
 
-			Meteor.users.update(Meteor.userId(), {$set: setter});
+			// Meteor.users.update(Meteor.userId(), {$set: setter});
 		}
 
 		if (procUniqueAttribute(Meteor.userId(), "PC_XP_RATING_BOOST", undefined)) {
@@ -666,58 +666,107 @@ var galleryManagerInteraction = function(npc_object) {
 }
 
 var designerInteraction = function(npc_object) {
-	var gallery_finish_count = gallery_finishes.find({'quality': npc_object.quality}).count();
-	var random_index = Math.floor(Math.random() * gallery_finish_count);
-	//random_index = 1; // for debugging
-	var random_selection = gallery_finishes.findOne({'quality': npc_object.quality}, {skip: random_index});
-
 	var user_object = Meteor.user();
-	var category_string = (random_selection.type == "wall finish" ? "wall_finishes" : "floor_finishes");
 
-	var designer_bonus = 0;
+	var designer_duration = 10; //minutes
+	var designer_duration_extension = 10; // minutes
+	var designer_rating = .01;
+	var designer_rating_increase = .01;
+
+	switch(npc_object.quality) {
+		case 'silver': 
+			designer_duration += 10;
+			designer_duration_extension += 10; 
+			designer_rating += .01;
+			designer_rating_increase += .01;
+			break;
+        case 'gold': 
+			designer_duration += 20;
+			designer_duration_extension += 20; 
+			designer_rating += .02;
+			designer_rating_increase += .02; 
+			break;
+        case 'platinum': 
+			designer_duration += 30;
+			designer_duration_extension += 30; 
+			designer_rating += .03;
+			designer_rating_increase += .03;
+			break;
+        default: break;
+	}
 
 	if (isOwnGallery(npc_object)) {
-		designer_bonus += .1;
-
-		if (procUniqueAttribute(Meteor.userId(), "DESIGNER_ENTHUSIAST_BONUS", "Art Enthusiast")) {
-			designer_bonus += .2
-		}
-
-		if (procUniqueAttribute(Meteor.userId(), "DESIGNER_MARKET_EXPERT_BONUS", undefined)) {
-			if (Meteor.user().profile.market_expert.expiration > moment()._d.toISOString())
-				designer_bonus += (.15 * Meteor.user().profile.market_expert.rating * Meteor.user().profile.market_expert.rating)
-		}
-	}
-	
-	if (user_object.profile.gallery_finishes.owned[category_string][random_selection._id] == undefined) {
-		var user_finish_object = {
-			'filename': random_selection.filename,
-			'saturation': 1,
-			'xp_rating': .1 + designer_bonus
-		}
-
-		var set_object = {};
-		var array_selector_string = "profile.gallery_finishes.owned." + (random_selection.type == "wall finish" ? "wall_finishes." : "floor_finishes.") + random_selection._id;
-		set_object[array_selector_string] = user_finish_object;
-		Meteor.users.update(Meteor.userId(), {$set: set_object});
-		var message = "You have met a designer, who has provided you with a new finish for your gallery!";
-		return {'message': message, 'type': "designer_bonus", 'filename': random_selection.filename};
+		designer_duration += 10;
+		designer_duration_extension += 10; 
+		designer_rating += .01;
+		designer_rating_increase += .01;
 	}
 
-	//user already owns that finish, increase rating
-	else if (user_object.profile.gallery_finishes.owned[category_string][random_selection._id].xp_rating < 1){
-		var existing_xp_rating = user_object.profile.gallery_finishes.owned[category_string][random_selection._id].xp_rating;
+	var message;
 
-		var xp_rating_increase = .1 + designer_bonus;
+	if (user_object.profile.designer.expiration < moment()._d.toISOString()) {
+		var expiration_time = moment().add(designer_duration, 'minutes');
+		Meteor.users.update(user_object._id, {$set: {
+			'profile.designer.expiration': expiration_time._d.toISOString(), 
+			'profile.designer.rating': designer_rating
+		}});
 
-		var new_xp_rating = (existing_xp_rating + xp_rating_increase > 1 ? 1 : existing_xp_rating + xp_rating_increase)
-		
-		var finish_setter = {};
-		var array_selector_string = "profile.gallery_finishes.owned." + category_string + "." + random_selection._id + ".xp_rating";
-		finish_setter[array_selector_string] = new_xp_rating;
-		Meteor.users.update(Meteor.userId(), {$set: finish_setter});
-		var message = "You have met a designer. The XP rating of this finish has increased from " + Math.floor(existing_xp_rating * 100) + " to " + Math.floor(new_xp_rating * 100) + "!";
-		return {'message': message, 'type': "designer_bonus", 'filename': random_selection.filename};
+		message = "You have met a designer. They will help you attract special visitors for the next " + designer_duration + " minutes (expires " + getTimeString(expiration_time) +  ").";
+	}
+
+	else {
+		var new_expiration = moment(user_object.profile.designer.expiration).add(designer_duration_extension, 'minutes');
+		Meteor.users.update(user_object._id, {$set: {
+			'profile.designer.expiration': new_expiration._d.toISOString()
+		}});
+
+		var new_accuracy = user_object.profile.designer.rating + designer_rating_increase > 1 ? 1 : user_object.profile.designer.rating + designer_rating_increase;
+		Meteor.users.update(user_object._id, {$set: { 'profile.designer.rating': new_accuracy}});
+
+		message = "Your access to a designer has been extended by " + designer_duration_extension + " minutes (expires " + getTimeString(new_expiration) + ").";
+	}
+
+	if (user_object.profile.gallery_finishes.owned.wall_finishes[current_wall].xp_rating < 1 || user_object.profile.gallery_finishes.owned.floor_finishes[current_floor].xp_rating < 1) {
+		var increase_amount;
+
+		switch(npc_object.quality) {
+			case 'bronze' : increase_amount = .01; break;
+			case 'silver' : increase_amount = .02; break;
+			case 'gold' : increase_amount = .03; break;
+			case 'platinum' : increase_amount = .04; break;
+			default: increase_amount = 0; break;
+		};
+
+		if (isOwnGallery(npc_object)) {
+			increase_amount += .01;
+
+			if (procUniqueAttribute(Meteor.userId(), "DESIGNER_ENTHUSIAST_BONUS", "Art Enthusiast")) {
+				increase_amount += .02;
+			}
+
+			if (procUniqueAttribute(Meteor.userId(), "DESIGNER_MARKET_EXPERT_BONUS", undefined)) {
+				if (Meteor.user().profile.market_expert.expiration > moment()._d.toISOString())
+					increase_amount += (.02 * Meteor.user().profile.market_expert.rating * Meteor.user().profile.market_expert.rating)
+			}
+		}
+
+		var user_object = Meteor.user();
+		var current_wall = user_object.profile.gallery_finishes.active.wall_finish;
+		var current_floor = user_object.profile.gallery_finishes.active.floor_finish;
+		var current_wall_rating = user_object.profile.gallery_finishes.owned.wall_finishes[current_wall].xp_rating;
+		var current_floor_rating = user_object.profile.gallery_finishes.owned.floor_finishes[current_floor].xp_rating;
+
+		var setter = {};
+
+		var wall_setter_string = "profile.gallery_finishes.owned.wall_finishes." + current_wall + ".xp_rating";
+		setter[wall_setter_string] = Number((current_wall_rating + increase_amount).toFixed(2)) > 1 ? 1 : Number((current_wall_rating + increase_amount).toFixed(2));
+
+		var floor_setter_string = "profile.gallery_finishes.owned.floor_finishes." + current_floor + ".xp_rating";
+		setter[floor_setter_string] = Number((current_floor_rating + increase_amount).toFixed(2)) > 1 ? 1 : Number((current_floor_rating + increase_amount).toFixed(2));
+
+		Meteor.users.update(Meteor.userId(), {$set: setter});
+
+		message += " In addition, the XP ratings of your gallery finishes have increased.";
 	}
 
 	//finish xp_rating already maxed out, give xp
@@ -736,12 +785,13 @@ var designerInteraction = function(npc_object) {
 		var xp_chunk = getXPChunk(Meteor.user().profile.level);
 		var xp_won = Math.floor(xp_chunk * xp_chunk_percentage);
 
-		var message = "You have met a designer, who is impressed by one of the finishes in your collection. You have earned " + getCommaSeparatedValue(xp_won) + "xp!";
+		message += " In addition, you have earned " + getCommaSeparatedValue(xp_won) + "xp!";
 
 		addXP(Meteor.userId(), xp_won);
 		logXPChunkPercentage("designer", xp_chunk_percentage);
-		return {'message': message, 'type': "designer_bonus", 'filename': random_selection.filename};
 	}
+
+	return {'message': message};
 }
 
 var generateTarget = function(default_target_count) {

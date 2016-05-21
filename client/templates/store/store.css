@@ -55,3 +55,24 @@
 	font-weight: bold;
 	font-size: 1em;
 }
+
+.template-store .wall-finish-container, .template-store .floor-finish-container {
+	width: 80px;
+	border: 1px solid black;
+	margin: 10px;
+	display: inline-block;
+	cursor: pointer;
+}
+
+.template-store .wall-finish-thumbnail, .template-store .floor-finish-thumbnail {
+	width: 100%;
+}
+
+.template-store .finish-section {
+	margin-bottom: 24px;
+}
+
+.template-store #purchase-finish {
+	width: 150px;
+	font-size: 1.5rem;
+}

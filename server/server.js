@@ -87,9 +87,14 @@ var updateContent = function() {
     })
 
     // temp code
-    Meteor.users.find().forEach(function(db_object) {
-        updateGalleryDetails(db_object._id);
-    })
+    Meteor.users.update({}, 
+    {$set: {
+    		'profile.designer': {
+    			'expiration': moment().add(-1, 'days')._d.toISOString(), 
+    			'rating': 0
+    		}
+    	}
+    }, {multi: true});
     // temp code
 }
 

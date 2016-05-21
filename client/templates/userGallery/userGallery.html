@@ -71,65 +71,65 @@
 	<div class="galleryEdit">
 		<div class="row edit-area">
 			<div class="col-xs-6 finish-section">
-				<div class="col-xs-12">
-					<h3>Wall Finishes</h3>
-					<div class="row">
-						{{#each wall_finish}}
-							<div class="wall-finish-container" data-gallery_finish_id="{{finish_id}}" data-gallery_finish_filename="{{filename}}">
-								<img class="wall-finish-thumbnail" src="{{getTextureURL filename}}">
-								<div class="xp-rating">
-									<span style="color: {{getHTMLColorFromValue xp_rating}}">{{xp_rating_text}}</span>
-								</div>
-							</div>
-						{{/each}}
+				<h3>Wall Finishes</h3>
+				<div class="row">
+					{{#each wall_finish}}
+					<div class="wall-finish-container" data-gallery_finish_id="{{finish_id}}" data-gallery_finish_filename="{{filename}}">
+						<img class="wall-finish-thumbnail" src="{{getTextureURL filename}}">
+						<div class="xp-rating">
+							<span style="color: {{getHTMLColorFromValue xp_rating}}">{{xp_rating_text}}</span>
+						</div>
 					</div>
-					<div class="row">
-						<p>wall pattern opacity</p>
-						<div class="col-xs-6" id="opacity-slider"></div>
-					</div>
-					<div class="row">
-						<p>frame width</p>
-						<div class="col-xs-6" id="frame-slider"></div>
-					</div>
-					<div class="row">
-						<p>matte width</p>
-						<div class="col-xs-6" id="matte-slider"></div>
-					</div>
-					<div class="row">
-						<p>wall base</p>
-						<select id="wall-base-selector">
-							<option value="white">white</option>
-							<option value="black">black</option>
-							<option value="red">red</option>
-							<option value="green">green</option>
-							<option value="blue">blue</option>
-						</select>
-					</div>
-					<div class="row">
-						<p>frame color</p>
-						<select id="frame-color-selector">
-							<option value="black">black</option>
-							<option value="red">red</option>
-							<option value="green">green</option>
-							<option value="blue">blue</option>
-							<option value="orange">orange</option>
-							<option value="purple">purple</option>
-							<option value="yellow">yellow</option>
-							<option value="cyan">cyan</option>
-						</select>
-					</div>
+					{{/each}}
+				</div>
+				<div class="row">
+					<p>wall pattern opacity</p>
+					<div class="col-xs-6" id="opacity-slider"></div>
+				</div>
+				<div class="row">
+					<p>frame width</p>
+					<div class="col-xs-6" id="frame-slider"></div>
+				</div>
+				<div class="row">
+					<p>matte width</p>
+					<div class="col-xs-6" id="matte-slider"></div>
+				</div>
+				<div class="row">
+					<p>wall base</p>
+					<select id="wall-base-selector">
+						<option value="white">white</option>
+						<option value="black">black</option>
+						<option value="red">red</option>
+						<option value="green">green</option>
+						<option value="blue">blue</option>
+					</select>
+				</div>
+				<div class="row">
+					<p>frame color</p>
+					<select id="frame-color-selector">
+						<option value="black">black</option>
+						<option value="red">red</option>
+						<option value="green">green</option>
+						<option value="blue">blue</option>
+						<option value="orange">orange</option>
+						<option value="purple">purple</option>
+						<option value="yellow">yellow</option>
+						<option value="cyan">cyan</option>
+					</select>
 				</div>
 			</div>
 			<div class="col-xs-6 finish-section">
-			<h3>Floor Finishes</h3>
-			{{#each floor_finish}}
-				<div class="floor-finish-container" data-gallery_finish_id="{{finish_id}}" data-gallery_finish_filename="{{filename}}">
-					<img class="floor-finish-thumbnail" src="{{getTextureURL filename}}">
-					<div class="xp-rating">
-						<span style="color: {{getHTMLColorFromValue xp_rating}}">{{xp_rating_text}}</span>
+				<h3>Floor Finishes</h3>
+				<div class="row">
+					{{#each floor_finish}}
+					<div class="floor-finish-container" data-gallery_finish_id="{{finish_id}}" data-gallery_finish_filename="{{filename}}">
+						<img class="floor-finish-thumbnail" src="{{getTextureURL filename}}">
+						<div class="xp-rating">
+							<span style="color: {{getHTMLColorFromValue xp_rating}}">{{xp_rating_text}}</span>
+						</div>
 					</div>
+					{{/each}}
 				</div>
-			{{/each}}
 			</div>
 		</div>
 	</div>
