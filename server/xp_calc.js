@@ -25,6 +25,9 @@ logXPChunkPercentage = function(source, chunk_percentage) {
         var specifier_string = "xp";
         specifier[specifier_string] = {"$ne": undefined};
 
+        if (metadata.findOne(specifier) == undefined)
+        	return;
+
         var xp_object = metadata.findOne(specifier).xp;
 
         if (xp_object.sources[source] == undefined) {
@@ -48,6 +51,9 @@ logMoneyMade = function(source, money_made) {
         var specifier = {};
         var specifier_string = "money";
         specifier[specifier_string] = {"$ne": undefined};
+
+        if (metadata.findOne(specifier) == undefined)
+        	return;
 
         var money_object = metadata.findOne(specifier).money;
 

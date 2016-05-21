@@ -223,7 +223,8 @@ Meteor.startup(function() {
             }
 
             else {
-                lottery_level + 1 == 11 ? lottery_level = 10 : lottery_level++;
+                if (lottery_level < 10)
+                    lottery_level++;
 
                 var message = "This week there's no lottery winner. New Lottery Level: " + lottery_level;
                 Meteor.users.find({'profile.level': 50}).forEach(function(db_object) {
