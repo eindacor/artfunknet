@@ -1,5 +1,5 @@
 .template-navbar .nav-icon {
-	font-size: 3.0rem;
+	font-size: 2.5rem;
 	margin-right: 20px;
 	color: white;
 	opacity: .75;
@@ -12,12 +12,14 @@
 .template-navbar {
 	background-color: black;
 	color: white;
-	height: 64px;
-	padding-top: 20px;
+	width: 100%;
+	position: absolute;
+	top: 0;
+	margin-top: 0px;
 }
 
-.template-navbar {
-	position: static;
+.template-navbar .navbar-section {
+	padding: 12px;
 }
 
 .template-navbar .ticket-info {
@@ -25,7 +27,7 @@
 }
 
 .template-navbar .ticket-button {
-	font-size: 3.0rem;
+	font-size: 2.0rem;
 	opacity: .75;
 }
 

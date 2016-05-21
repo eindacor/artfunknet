@@ -248,7 +248,12 @@
 }
 
 .template-itemInfo .flavor-text {
-	padding-top: 12px;
+	font-size: 1.1rem;
+	padding: 2px;
+}
+
+.template-itemInfo .flavor-area {
+	margin: 6px 0px;
 }
 
 .template-itemInfo .locked {

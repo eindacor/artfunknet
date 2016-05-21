@@ -130,9 +130,23 @@ Template.itemInfo.helpers({
 			return [];
 
 		else {
+			//TODO simplify, remove $and parameters and verify that it can match items from array
 			var first_id = attribute_array[0];
 			var second_id = attribute_array[1];
-			return unique_attributes.find({$and: [{'linked_attributes': {$in: [first_id]}}, {'linked_attributes': {$in: [second_id]}}]});
+
+			if (attribute_array.length == 2)
+				return unique_attributes.find({'linked_attributes': {$all: attribute_array}});
+
+			else {
+				var first_id = attribute_array[0];
+				var second_id = attribute_array[1];
+				var third_id = attribute_array[2];
+				return unique_attributes.find({ $or: [
+					{'linked_attributes': {$all: [first_id, second_id]}},
+					{'linked_attributes': {$all: [second_id, third_id]}},
+					{'linked_attributes': {$all: [first_id, third_id]}}
+				]});
+			}
 		}
 	},
 

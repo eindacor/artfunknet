@@ -1,39 +1,38 @@
 <template name="navbar">
-	<div class="template-navbar">
-		<div class="col-xs-12 no-padding pull-right">
-			<div class="container">
-				<div class="col-xs-6 no-padding">
-					<a href="/"><i data-title="Home" class="{{#if hasAlerts}}blue-text{{/if}} nav-icon fa fa-home"></i></a>
-						{{#if currentUser}}
-						<a href="/auctions"><i data-title="Auction House" class="nav-icon fa fa-gavel"></i></a>
-						<a href="/loot"><i data-title="Loot Section" class="{{#if hasLoot}}yellow-text{{/if}} nav-icon fa fa-gift"></i></a>
-						<a href="/store"><i data-title="Store" class="{{#if hasForSale}}green-text{{/if}} nav-icon fa fa-money"></i></a>
-						<a href="/galleries"><i data-title="Player Galleries" class="nav-icon fa fa-globe"></i></a>
-						<a href="/user/{{screen_name}}"><i data-title="My Gallery" class="{{#if hasVisitors}}af-color{{/if}} nav-icon fa fa-picture-o"></i></a>
-						<a href="/leaderboard"><i data-title="Leaderboard" class="nav-icon fa fa-trophy"></i></a>
-							{{#if hasQuest}}
-							<a href="/quests"><i data-title="Quests" class="{{#if hasCompletedQuest}}orange-text{{/if}} nav-icon fa fa-flag-checkered"></i></a>
-							{{/if}}
-				   		{{/if}}	    	
-				    	<a href="/help"><i data-title="Help" class="nav-icon fa fa-question"></i></a>
-				    	{{#if currentUser}}
-				    	<a href="/logout"><i data-title="Log Out" class="logout-button nav-icon fa fa-sign-out light-gray"></i></a>
-				    	{{/if}}	
-				    	{{#if userIsAdmin}}
-							<a href="/admin"><i data-title="Admin Tools" class="nav-icon fa fa-cog light-gray"></i></a>
+	<div class="template-navbar col-xs-12 no-padding pull-right">
+		<div class="container no-padding no-margin">
+			<div class="col-sm-8 col-xs-12 no-padding navbar-section">
+				<a href="/"><i data-title="Home" class="{{#if hasAlerts}}blue-text{{/if}} nav-icon fa fa-home"></i></a>
+					{{#if currentUser}}
+					<a href="/auctions"><i data-title="Auction House" class="nav-icon fa fa-gavel"></i></a>
+					<a href="/loot"><i data-title="Loot Section" class="{{#if hasLoot}}yellow-text{{/if}} nav-icon fa fa-gift"></i></a>
+					<a href="/store"><i data-title="Store" class="{{#if hasForSale}}green-text{{/if}} nav-icon fa fa-money"></i></a>
+					<a href="/galleries"><i data-title="Player Galleries" class="nav-icon fa fa-globe"></i></a>
+					<a href="/user/{{screen_name}}"><i data-title="My Gallery" class="{{#if hasVisitors}}af-color{{/if}} nav-icon fa fa-picture-o"></i></a>
+					<a href="/leaderboard"><i data-title="Leaderboard" class="nav-icon fa fa-trophy"></i></a>
+						{{#if hasQuest}}
+						<a href="/quests"><i data-title="Quests" class="{{#if hasCompletedQuest}}orange-text{{/if}} nav-icon fa fa-flag-checkered"></i></a>
 						{{/if}}
-				</div>
+			   		{{/if}}	    	
+			    	<a href="/help"><i data-title="Help" class="nav-icon fa fa-question"></i></a>
+			    	<a href="/wiki"><i data-title="Legendary Attributes" class="nav-icon fa fa-star"></i></a>
+			    	{{#if currentUser}}
+			    	<a href="/logout"><i data-title="Log Out" class="logout-button nav-icon fa fa-sign-out light-gray"></i></a>
+			    	{{/if}}	
+			    	{{#if userIsAdmin}}
+						<a href="/admin"><i data-title="Admin Tools" class="nav-icon fa fa-cog light-gray"></i></a>
+					{{/if}}
+			</div>
 
-			    {{#if currentUser}}
-		    	<div class="col-xs-6 no-padding">
-					{{#each ticket}}
-						{{#with ticketData this}}
-						<a href="/user/{{owner_name}}" class="ticket-button {{#if unmet_npcs}}af-color{{else}}npcs-met{{/if}}"><i data-expiration_string="{{expiration_string}}" data-owner_name="{{owner_name}}" class="fa fa-ticket"></i></a>
-						{{/with}}
-					{{/each}}
-				</div>
-				{{/if}}
-	        </div>
-	    </div>
-	</div>
+		    {{#if currentUser}}
+	    	<div class="col-sm-4 col-xs-12 no-padding navbar-section">
+				{{#each ticket}}
+					{{#with ticketData this}}
+					<a href="/user/{{owner_name}}" class="ticket-button {{#if unmet_npcs}}af-color{{else}}npcs-met{{/if}}"><i data-expiration_string="{{expiration_string}}" data-owner_name="{{owner_name}}" class="fa fa-ticket"></i></a>
+					{{/with}}
+				{{/each}}
+			</div>
+			{{/if}}
+        </div>
+    </div>
 </template>
