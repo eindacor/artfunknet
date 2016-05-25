@@ -68,6 +68,8 @@ localstorage@1.0.5
 logging@1.0.8
 meteor@1.1.7
 meteor-base@1.0.1
+meteorhacks:kadira@2.28.7
+meteorhacks:meteorx@1.4.1
 minifiers@1.1.7
 minimongo@1.0.9
 mobile-experience@1.0.1
