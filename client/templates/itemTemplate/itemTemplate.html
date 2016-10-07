@@ -1,6 +1,6 @@
 <template name="itemInfo">
 	<div class="template-itemInfo">
-		<div data-item_id="{{item_data._id}}" class="card-container {{item_data.artwork_data.rarity}}-item" style="background: url('{{getImageURL item_data.artwork_data.filename}}') center; background-size: {{#with imageSize item_data.artwork_data.width item_data.artwork_data.height}}{{image_width}}px {{image_height}}px{{/with}}">
+		<div data-item_id="{{item_data._id}}" class="card-container {{item_data.artwork_data.rarity}}-item" style="background: url('{{getCardImageURL item_data.artwork_data.filename}}') center; background-size: 280px 390px">
 			<div class="row no-margin card-info">
 				<div class="card-header col-xs-12 {{#if item_data.foil}}foil{{/if}} {{#if item_data.seasonal}}seasonal{{/if}} {{#if item_data.lottery}}lottery{{/if}} {{#if item_data.original}}original{{/if}}">
 					<div class="row no-margin">

@@ -7,7 +7,7 @@
 	                <h4>Purchase <span class="highlight af-color work-title">{{title}}</span> by <span class="highlight af-color">{{artist}}</span> for <span class="highlight">${{getItemValue item_id "dealer"}}?</span></h4>
 			        {{/with}}
 	            	{{#with imageInfo itemId}}
-					<img class="image-thumb" src="{{getImageURL filename}}" width="{{image_width}}" height="{{image_height}}"/>
+					<img class="image-thumb" src="{{getThumbImageURL filename}}"/>
 					<div class="row">
 				        <button id="purchase-artwork" type="button" class="btn btn-default">purchase</button>
 				        <button id="close-button" type="button" class="btn btn-default">close</button>

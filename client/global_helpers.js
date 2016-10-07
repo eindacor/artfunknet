@@ -60,6 +60,24 @@ Template.registerHelper('getImageURL', function(filename) {
 	return "https://s3.amazonaws.com/com.artfunkel.artwork/full_images/" + filename;
 })
 
+Template.registerHelper('getCardImageURL', function(filename) {
+	if (filename == undefined || filename == "undefined" || filename == "")
+		return "";
+
+	var image_name = filename.substring(0, filename.indexOf("."));
+	
+	return "https://s3.amazonaws.com/com.artfunkel.artwork/card_images/" + image_name + "_card.jpg";
+})
+
+Template.registerHelper('getThumbImageURL', function(filename) {
+	if (filename == undefined || filename == "undefined" || filename == "")
+		return "";
+	
+	var image_name = filename.substring(0, filename.indexOf("."));
+	
+	return "https://s3.amazonaws.com/com.artfunkel.artwork/thumbnail_images/" + image_name + "_thumb.jpg";
+})
+
 Template.registerHelper('getS3ImageURL', function(filename) {
 	if (filename == undefined || filename == "undefined" || filename == "")
 		return "";

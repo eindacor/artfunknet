@@ -7,7 +7,7 @@
 	                <h4><span class="highlight af-color work-title">{{title}}</span> by <span class="highlight af-color">{{artist}}</span></h4>
 			        {{/with}}
 	            	{{#with imageInfo itemId}}
-					<img class="image-thumb" src="{{getImageURL filename}}" width="{{image_width}}" height="{{image_height}}"/>
+					<img class="image-thumb" src="{{getThumbImageURL filename}}"/>
 					{{#if biddable}}
 			        <button id="place-bid" type="button" class="btn btn-default">place bid</button>
 			        {{/if}}

@@ -78,7 +78,7 @@
 				<tr data-item_id="{{_id}}">
 					<td>
 						{{#with thumbnailInfo _id}}
-						<img class="image-thumb preview enabled" src="{{getImageURL filename}}" width="{{image_width}}" height="{{image_height}}"/>
+						<img class="image-thumb preview enabled" src="{{getThumbImageURL filename}}"/>
 						{{/with}}
 					</td>
 					<td>{{artwork_data.title}}</td>

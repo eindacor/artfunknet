@@ -17,7 +17,7 @@
 					<tr data-auction_id="{{_id}}" id="{{#if winning}}winning{{else}}{{#if losing}}losing{{/if}}{{/if}}">
 						<td>
 							{{#with thumbnailInfo item_id}}
-							<img class="image-thumb preview enabled" src="{{getImageURL filename}}" width="{{image_width}}" height="{{image_height}}"/>
+							<img class="image-thumb preview enabled" src="{{getThumbImageURL filename}}"/>
 							{{/with}}
 						</td>
 						{{#with time_remaining expiration}}
