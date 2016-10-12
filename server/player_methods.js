@@ -329,8 +329,8 @@ Meteor.methods({
             if (user_object.profile.screen_name.indexOf('.') != -1 || user_object.profile.screen_name.indexOf(' ') != -1)
                 errors.push("Username contains invalid characters");
 
-            if (user_object.profile.screen_name.length < 8 || user_object.profile.screen_name > 16)
-                errors.push("Usernames must be between 8 and 16 characters");
+            if (user_object.profile.screen_name.length < 5 || user_object.profile.screen_name > 16)
+                errors.push("Usernames must be between 5 and 16 characters");
 
             if (user_object.email == "")
                 errors.push("Invalid email address");
