@@ -225,6 +225,10 @@ getItemObjectValue = function(item_object, type, user_id) {
             display_value *= 2;
         }
 
+        if (item_object.misprint){
+            display_value *= 20;
+        }
+
         var sell_value = Math.floor(actual_value * .8);
         var purchase_value = Math.floor(actual_value * 1.5);
         var dealer_offer = Math.floor(actual_value * .9);
@@ -362,6 +366,7 @@ generateItems = function(multi_item_generator) {
             'seasonal': undefined,
             'lottery': 0,
             'original': false,
+            'misprint': multi_item_generator.misprint_chance,
             'status': multi_item_generator.status,
             'xp_rating_min': multi_item_generator.xp_rating_min,
             'condition_min': multi_item_generator.condition_min
@@ -392,6 +397,7 @@ generateItemFromArtworkID = function(item_generator) {
             'seasonal': item_generator.seasonal === undefined ? seasonal_ids.indexOf(item_generator.artwork_id) != -1 : item_generator.seasonal,
             'lottery': item_generator.lottery === undefined ? 0 : item_generator.lottery,
             'original': item_generator.original === undefined ? false : item_generator.original,
+            'misprint': Math.random() < item_generator.misprint_chance,
             'tags': [],
             'artwork_data': artwork_data
         }, function(error, result) {
@@ -510,6 +516,7 @@ Meteor.methods({
                 'count': admin_settings.daily_drop_count,
                 'status': "unclaimed",
                 'foil_chance': foil_chance,
+                'misprint_chance': .0001,
                 'xp_rating_min': 0,
                 'condition_min': 0
             }
@@ -541,6 +548,7 @@ Meteor.methods({
                 'count': admin_settings.crate_drop_count,
                 'status': "unclaimed",
                 'foil_chance': foil_chance,
+                'misprint_chance': .0001,
                 'xp_rating_min': 0,
                 'condition_min': 0
             }
