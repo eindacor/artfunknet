@@ -460,6 +460,7 @@ Meteor.methods({
                     'seasonal': undefined,
                     'lottery': 0,
                     'original': false,
+                    'misprint_chance': .0001,
                     'status': "unclaimed",
                     'xp_rating_min': 0,
                     'condition_min': 0

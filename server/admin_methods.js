@@ -61,6 +61,7 @@ Meteor.methods({
                 'count': admin_settings.daily_drop_count,
                 'status': "for_sale",
                 'foil_chance': .01,
+                'misprint_chance': .0001,
                 'xp_rating_min': 0,
                 'condition_min': 0
             }
@@ -106,7 +107,7 @@ Meteor.methods({
 		}
 	},
 
-	'generateItemFromArtworkID' : function(user_id, artwork_id, condition, xp_rating, foil_chance, seasonal, lottery, original) {
+	'generateItemFromArtworkID' : function(user_id, artwork_id, condition, xp_rating, foil_chance, seasonal, lottery, original, misprint_chance) {
 		if (adminValidated()) {
 			if (user_id == "" || Meteor.users.findOne(user_id).profile.user_type == "admin") {
                 var item_generator = {
@@ -119,6 +120,7 @@ Meteor.methods({
                     'seasonal': seasonal,
                     'lottery': lottery,
                     'original': original,
+                    'misprint_chance': misprint_chance,
                     'status': "unclaimed",
                     'xp_rating_min': 0,
                     'condition_min': 0
@@ -141,6 +143,7 @@ Meteor.methods({
                     'seasonal': seasonal,
                     'lottery': lottery,
                     'original': original,
+                    'misprint_chance': misprint_chance,
                     'status': "claimed",
                     'xp_rating_min': 0,
                     'condition_min': 0
@@ -166,6 +169,7 @@ Meteor.methods({
                     'seasonal': undefined,
                     'lottery': 0,
                     'original': false,
+                    'misprint_chance': .0001,
                     'status': "unclaimed",
                     'xp_rating_min': 0,
                     'condition_min': 0
@@ -188,6 +192,7 @@ Meteor.methods({
                     'seasonal': undefined,
                     'lottery': 0,
                     'original': false,
+                    'misprint_chance': .0001,
                     'status': "claimed",
                     'xp_rating_min': 0,
                     'condition_min': 0

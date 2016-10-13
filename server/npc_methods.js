@@ -209,6 +209,7 @@ var benefactorInteraction = function(npc_object) {
 var donorInteraction = function(npc_object) {
 	var drop_count = 2;
 	var foil_chance = .01;
+	var misprint_chance = .0001;
 	var condition_min = 0;
 	var min_xp_rating = 0;
 
@@ -259,6 +260,7 @@ var donorInteraction = function(npc_object) {
                     'seasonal': undefined,
                     'lottery': 0,
                     'original': false,
+                    'misprint_chance': misprint_chance,
                     'status': "unclaimed",
                     'xp_rating_min': min_xp_rating,
                     'condition_min': condition_min
@@ -276,6 +278,7 @@ var donorInteraction = function(npc_object) {
         'count': drop_count,
         'status': "unclaimed",
         'foil_chance': foil_chance,
+        'misprint_chance': misprint_chance,
         'xp_rating_min': min_xp_rating,
         'condition_min': condition_min
     }
@@ -541,6 +544,7 @@ var artDealerInteraction = function(npc_object) {
 	var drop_count = 4;
 
 	var foil_chance = .01;
+	var misprint_chance = .0001;
 	var min_xp_rating = 0;
 
 	if (isOwnGallery(npc_object)) {
@@ -589,6 +593,7 @@ var artDealerInteraction = function(npc_object) {
                     'seasonal': undefined,
                     'lottery': 0,
                     'original': false,
+                    'misprint_chance': misprint_chance,
                     'status': "for_sale",
                     'xp_rating_min': min_xp_rating,
                     'condition_min': 0
@@ -606,6 +611,7 @@ var artDealerInteraction = function(npc_object) {
         'count': drop_count,
         'status': "for_sale",
         'foil_chance': foil_chance,
+        'misprint_chance': misprint_chance,
         'xp_rating_min': min_xp_rating,
         'condition_min': 0
     }
