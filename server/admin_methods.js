@@ -61,7 +61,7 @@ Meteor.methods({
                 'count': admin_settings.daily_drop_count,
                 'status': "for_sale",
                 'foil_chance': .01,
-                'misprint_chance': .0001,
+                'misprint_chance': global_misprint_chance,
                 'xp_rating_min': 0,
                 'condition_min': 0
             }
@@ -169,7 +169,7 @@ Meteor.methods({
                     'seasonal': undefined,
                     'lottery': 0,
                     'original': false,
-                    'misprint_chance': .0001,
+                    'misprint_chance': global_misprint_chance,
                     'status': "unclaimed",
                     'xp_rating_min': 0,
                     'condition_min': 0
@@ -192,7 +192,7 @@ Meteor.methods({
                     'seasonal': undefined,
                     'lottery': 0,
                     'original': false,
-                    'misprint_chance': .0001,
+                    'misprint_chance': global_misprint_chance,
                     'status': "claimed",
                     'xp_rating_min': 0,
                     'condition_min': 0
@@ -464,6 +464,19 @@ Meteor.methods({
     	}
 
     	else return undefined;
+    },
+
+    'getMisprints': function() {
+        if (adminValidated()) {
+            var misprints = [];
+            items.find().forEach(function(item_object) {
+                if (itemIsMisprinted(item_object))
+                    misprints.push(item_object);
+            });
+            return misprints;
+        }
+
+        else return [];
     }
 })
 

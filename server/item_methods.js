@@ -38,12 +38,19 @@ concludeDisplay = function(item_id) {
     });
 }
 
+itemIsMisprinted = function(item_object) {
+    return artworks.findOne({"artist": item_object.artwork_data.artist, "title": item_object.artwork_data.title}) == undefined;
+}
+
 getDisplayDetails = function(item_id, duration) {
     // 1 hour
     // 6 hours
     // 12 hours
     // 1 day
-    var display_amount = getItemValue(item_id, 'display', items.findOne(item_id).owner);
+
+    var item_object = items.findOne(item_id);
+
+    var display_amount = getItemObjectValue(item_object, 'display', item_object.owner);
     var xp_chunk = getXPChunk(Meteor.user().profile.level);
     var xp_rating = items.findOne(item_id).xp_rating;
     var xp_chunk_percentage_value = .5 + (.5 * xp_rating);
@@ -83,6 +90,11 @@ getDisplayDetails = function(item_id, duration) {
             xp = 0;
             xp_chunk_percentage = 0;
             break;
+    }
+
+    if (itemIsMisprinted(item_object)) {
+        money *= 20;
+        xp *= 20;
     }
 
     var end = moment().add(duration, 'minutes')._d.toISOString();
@@ -208,7 +220,7 @@ Meteor.methods({
                                 'seasonal': undefined,
                                 'lottery': 0,
                                 'original': false,
-                                'misprint_chance': .0001,
+                                'misprint_chance': global_misprint_chance,
                                 'status': "unclaimed",
                                 'xp_rating_min': 0,
                                 'condition_min': 0

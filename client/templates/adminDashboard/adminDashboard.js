@@ -423,6 +423,17 @@ Template.adminTools.events({
 		})
     },
 
+    'click #print-misprints' : function() {
+    	Meteor.call('getMisprints', function(error, result) {
+    		if (error)
+    			console.log(error.message);
+
+    		else {
+    			console.log(result);
+    		}
+    	})
+    },
+
     'change .attribute-selector' : function(event) {
     	var container = $(event.target).closest('.legendary-container');
     	var attribute_id_array = [];

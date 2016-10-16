@@ -1,5 +1,6 @@
 seasonal_ids = ["WL2svx8MckZwhrWqb"];
 lottery_level = 1;
+global_misprint_chance = .0001;
 
 bronze_rarity_map = {
     'common': 60,
@@ -225,10 +226,6 @@ getItemObjectValue = function(item_object, type, user_id) {
             display_value *= 2;
         }
 
-        if (item_object.misprint){
-            display_value *= 20;
-        }
-
         var sell_value = Math.floor(actual_value * .8);
         var purchase_value = Math.floor(actual_value * 1.5);
         var dealer_offer = Math.floor(actual_value * .9);
@@ -378,12 +375,31 @@ generateItems = function(multi_item_generator) {
     return true;
 }
 
+var misprintArtworkData = function(artwork_data) {
+    if (Math.random() < .5) {
+        var artist_name = artwork_data.artist;
+        var random_index = Math.random() * artist_name.length;
+        artwork_data.artist = artist_name.slice(0, random_index) + artist_name.slice(random_index + 1);
+    }
 
+    else {
+        var title = artwork_data.title;
+        var random_index = Math.random() * title.length;
+        artwork_data.title = title.slice(0, random_index) + title.slice(random_index + 1);
+    }
+
+    return artwork_data;
+}
 
 //TODO instead of passing too many parameters, pass a JSON objecct with each parameter as a field
 generateItemFromArtworkID = function(item_generator) {
+    var misprinted = Math.random() < item_generator.misprint_chance;
     var artwork_data = artworks.findOne(item_generator.artwork_id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}});
     if (artwork_data) {
+
+        if (misprinted)
+            artwork_data = misprintArtworkData(artwork_data);
+
         var new_item_id = items.insert({
             'artwork_id' : item_generator.artwork_id,
             'condition' : item_generator.condition === undefined ? getCondition(item_generator.condition_min) : item_generator.condition,
@@ -397,7 +413,6 @@ generateItemFromArtworkID = function(item_generator) {
             'seasonal': item_generator.seasonal === undefined ? seasonal_ids.indexOf(item_generator.artwork_id) != -1 : item_generator.seasonal,
             'lottery': item_generator.lottery === undefined ? 0 : item_generator.lottery,
             'original': item_generator.original === undefined ? false : item_generator.original,
-            'misprint': Math.random() < item_generator.misprint_chance,
             'tags': [],
             'artwork_data': artwork_data
         }, function(error, result) {
@@ -516,7 +531,7 @@ Meteor.methods({
                 'count': admin_settings.daily_drop_count,
                 'status': "unclaimed",
                 'foil_chance': foil_chance,
-                'misprint_chance': .0001,
+                'misprint_chance': global_misprint_chance,
                 'xp_rating_min': 0,
                 'condition_min': 0
             }
@@ -548,7 +563,7 @@ Meteor.methods({
                 'count': admin_settings.crate_drop_count,
                 'status': "unclaimed",
                 'foil_chance': foil_chance,
-                'misprint_chance': .0001,
+                'misprint_chance': global_misprint_chance,
                 'xp_rating_min': 0,
                 'condition_min': 0
             }
