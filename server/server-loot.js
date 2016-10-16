@@ -226,6 +226,10 @@ getItemObjectValue = function(item_object, type, user_id) {
             display_value *= 2;
         }
 
+        if (item_object.misprint){
+            display_value *= 20;
+        }
+
         var sell_value = Math.floor(actual_value * .8);
         var purchase_value = Math.floor(actual_value * 1.5);
         var dealer_offer = Math.floor(actual_value * .9);
@@ -413,6 +417,7 @@ generateItemFromArtworkID = function(item_generator) {
             'seasonal': item_generator.seasonal === undefined ? seasonal_ids.indexOf(item_generator.artwork_id) != -1 : item_generator.seasonal,
             'lottery': item_generator.lottery === undefined ? 0 : item_generator.lottery,
             'original': item_generator.original === undefined ? false : item_generator.original,
+            'misprint': Math.random() < item_generator.misprint_chance,
             'tags': [],
             'artwork_data': artwork_data
         }, function(error, result) {
