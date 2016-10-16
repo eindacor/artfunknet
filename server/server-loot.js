@@ -199,7 +199,7 @@ getItemObjectValue = function(item_object, type, user_id) {
         var mint_value = Math.floor(min + (artwork_object.value_scale * range));
 
         var base_value = mint_value * lowest_possible_value_coefficient;
-        var condition_value = mint_value * condition_coefficient_max;
+        var condition_value = mint_value * condition_coefficient_max * item_object.condition;
         var attribute_value = mint_value * getAttributeValueCoefficient(item_object);
 
         var actual_value = Math.floor(base_value + condition_value + attribute_value);
