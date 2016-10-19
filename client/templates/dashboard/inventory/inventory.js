@@ -1,3 +1,5 @@
+var inventory_tracker = new Tracker.Dependency;
+var inventory_array = undefined;
 var display_tracker = new Tracker.Dependency;
 var tags = [];
 var locked_attributes = [];
@@ -12,40 +14,56 @@ var seasonal_filter = {'seasonal': {$ne: undefined}};
 var original_filter = {'original': {$ne: undefined}};
 var standard_filter = {};
 
+var setInventoryData = function(filter_array, sorter_object) {
+	Meteor.call('getInventoryData', filter_array, sorter_object, function(error, result) {
+		if (error)
+			console.log(error.message);
+
+		else {
+			inventory_array = result;
+			inventory_tracker.changed();
+		}
+	});
+}
+
 Template.inventory.helpers({
 	'owned': function() {	
-		display_tracker.depend();
-		var sorter_object = {};
-		sorter_object[sorter] = ascending;
+		inventory_tracker.depend();
+		if (inventory_array == undefined)
+		{
+			display_tracker.depend();
+			var sorter_object = {};
+			sorter_object[sorter] = ascending;
 
-		var filter_array = [
-			lottery_filter, 
-			foil_filter, 
-			seasonal_filter, 
-			original_filter,
-			standard_filter,
-			status_filter,
-			rarity_filter
-		];
+			var filter_array = [
+				lottery_filter, 
+				foil_filter, 
+				seasonal_filter, 
+				original_filter,
+				standard_filter,
+				status_filter,
+				rarity_filter
+			];
 
-		var base_filter = {
-			'owner': Meteor.userId()
+			var base_filter = {
+				'owner': Meteor.userId()
+			}
+
+			if (tags.length > 0) {
+				base_filter.tags = {"$in": tags};
+			}
+
+			if (locked_attributes.length > 0) {
+				var key_string = "artwork_data.locked_attributes";
+				base_filter[key_string] = {"$in": locked_attributes};
+			}
+
+			filter_array.push(base_filter);
+
+			setInventoryData(filter_array, sorter_object);
 		}
 
-		if (tags.length > 0) {
-			base_filter.tags = {"$in": tags};
-		}
-
-		if (locked_attributes.length > 0) {
-			var key_string = "artwork_data.locked_attributes";
-			base_filter[key_string] = {"$in": locked_attributes};
-		}
-
-		filter_array.push(base_filter);
-
-		return items.find({
-			$and: filter_array
-		}, {sort: sorter_object});
+		else return inventory_array;
 	},
 
 	'list_view' : function() {

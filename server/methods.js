@@ -58,6 +58,15 @@ Meteor.methods({
         return owned_array;
     },
 
+    'getInventoryData': function(filter_array, sorter_object) {
+        var inventory_array = items.find({$and: filter_array}, {sort: sorter_object}).fetch();
+        console.log(filter_array);
+        console.log(sorter_object);
+        console.log(inventory_array);
+        //return inventory_array;
+        return items.find().fetch();
+    },
+
     'getAuctions' : function(sorter, ascending) {
         var asc = (ascending ? 1 : -1);
 
