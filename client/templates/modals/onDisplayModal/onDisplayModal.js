@@ -55,6 +55,8 @@ Template.onDisplayModal.events ({
 						}
 					}, $('body')[0]);
 				};
+
+				Session.set('refresh_inventory', true);
 			}
 		});			
     },

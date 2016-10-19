@@ -8,10 +8,10 @@ var ascending = 1;
 var status_filter = {'status': {$in: ['claimed', 'displayed', 'permanent', 'auctioned']}};
 var rarity_filter =  {'artwork_data.rarity': {$in: ['common', 'uncommon', 'rare', 'legendary', 'masterpiece']}};
 
-var lottery_filter = {'lottery': {$ne: undefined}};
-var foil_filter = {'foil': {$ne: undefined}};
-var seasonal_filter = {'seasonal': {$ne: undefined}};
-var original_filter = {'original': {$ne: undefined}};
+var lottery_filter = {'lottery': {$ne: null}};
+var foil_filter = {'foil': {$ne: null}};
+var seasonal_filter = {'seasonal': {$ne: null}};
+var original_filter = {'original': {$ne: null}};
 var standard_filter = {};
 
 var setInventoryData = function(filter_array, sorter_object) {
@@ -27,9 +27,13 @@ var setInventoryData = function(filter_array, sorter_object) {
 }
 
 Template.inventory.helpers({
+	'item_data' : function(item_id) {
+		return items.findOne(item_id);
+	},
+
 	'owned': function() {	
 		inventory_tracker.depend();
-		if (inventory_array == undefined)
+		if (inventory_array == undefined || Session.get('refresh_inventory'))
 		{
 			display_tracker.depend();
 			var sorter_object = {};
@@ -61,6 +65,7 @@ Template.inventory.helpers({
 			filter_array.push(base_filter);
 
 			setInventoryData(filter_array, sorter_object);
+			Session.set('refresh_inventory', false);
 		}
 
 		else return inventory_array;
@@ -207,13 +212,13 @@ Template.inventory.events({
 		 			if (checked)
 		 				standard_filter = {};
 
-		 			else standard_filter = {$or: [{'foil': {$ne: false}}, {'seasonal': {$ne: false}}, {'original': {$ne: false}}, {'lottery': {$nin: [0, undefined, false]}}]};
+		 			else standard_filter = {$or: [{'foil': {$ne: false}}, {'seasonal': {$ne: false}}, {'original': {$ne: false}}, {'lottery': {$nin: [0, null, false]}}]};
 
 		 			break;
 
 		 		case "foil":
 		 			if (checked)
-		 				foil_filter = {'foil': {$ne: undefined}};
+		 				foil_filter = {'foil': {$ne: null}};
 
 		 			else foil_filter = {'foil': false};
 
@@ -221,7 +226,7 @@ Template.inventory.events({
 
 		 		case "seasonal":
 		 			if (checked)
-		 				seasonal_filter = {'seasonal': {$ne: undefined}};
+		 				seasonal_filter = {'seasonal': {$ne: null}};
 
 		 			else seasonal_filter = {'seasonal': false};
 
@@ -229,7 +234,7 @@ Template.inventory.events({
 
 		 		case "original":
 		 			if (checked)
-		 				original_filter = {'original': {$ne: undefined}};
+		 				original_filter = {'original': {$ne: null}};
 
 		 			else original_filter = {'original': false};
 
@@ -237,9 +242,9 @@ Template.inventory.events({
 
 		 		case "lottery":
 		 			if (checked)
-		 				lottery_filter = {'lottery': {$ne: undefined}};
+		 				lottery_filter = {'lottery': {$ne: null}};
 
-		 			else lottery_filter = {'lottery': {$in: [0, undefined, false]}};
+		 			else lottery_filter = {'lottery': {$in: [0, null, false]}};
 
 		 			break;
 
@@ -302,6 +307,8 @@ Template.inventory.events({
 })
 
 Template.inventory.created = function() {
+	Session.set('inventory_refresh', false);
+	inventory_array = undefined;
 	Session.set('inventory_sort', 'title');
 	Session.set('inventory_ascending', true);
 	Session.set('list_view', false);
@@ -318,13 +325,13 @@ Template.inventory.rendered = function() {
 	tags = [];
 	sorter = "artwork_data.title";
 	ascending = 1;
-	status_filter = {'status': {$in: ['claimed', 'displayed', 'permanent', 'auctioned']}};
-	rarity_filter =  {'artwork_data.rarity': {$in: ['common', 'uncommon', 'rare', 'legendary', 'masterpiece']}};
+	status_filter = {'status': {'$in': ['claimed', 'displayed', 'permanent', 'auctioned']}};
+	rarity_filter =  {'artwork_data.rarity': {'$in': ['common', 'uncommon', 'rare', 'legendary', 'masterpiece']}};
 
-	lottery_filter = {'lottery': {$ne: undefined}};
-	foil_filter = {'foil': {$ne: undefined}};
-	seasonal_filter = {'seasonal': {$ne: undefined}};
-	original_filter = {'original': {$ne: undefined}};
+	lottery_filter = {'lottery': {$ne: null}};
+	foil_filter = {'foil': {'$ne': null}};
+	seasonal_filter = {'seasonal': {$ne: null}};
+	original_filter = {'original': {$ne: null}};
 	standard_filter = {};
 	display_tracker.changed();
 }

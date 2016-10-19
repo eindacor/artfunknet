@@ -3,6 +3,8 @@ var sought_tracker = new Tracker.Dependency;
 var card_container_width;
 var card_container_height;
 var sought_status = {};
+var item_data = undefined;
+var item_tracker = new Tracker.Dependency;
 
 var itemOwned = function(card_object) {
 	return Meteor.user() && card_object.owner == Meteor.userId() && card_object.status != 'for_sale';
@@ -20,6 +22,11 @@ var updateSoughtStatus = function(artwork_id) {
 	});
 }
 
+var getItemData = function(item_id) {
+	item_data = items.findOne(item_id);
+	item_tracker.changed();
+}
+
 Template.itemInfo.rendered = function() {
 	if ($('.card-container').length != 0) {
 		card_container_height = $('.card-container').css('height').replace("px", "");
@@ -31,6 +38,15 @@ Template.itemInfo.rendered = function() {
 }
 
 Template.itemInfo.helpers({
+	'item_data' : function(item_id) {
+		item_tracker.depend();
+		if (item_data = undefined || Session.get('item_refresh') == item_id) {
+			getItemData(item_id);
+		}
+
+		else return item_data;
+	},
+
 	'imageSize' : function(width, height) {
 		div_size_tracker.depend();
 

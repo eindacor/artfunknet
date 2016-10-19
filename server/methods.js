@@ -60,11 +60,7 @@ Meteor.methods({
 
     'getInventoryData': function(filter_array, sorter_object) {
         var inventory_array = items.find({$and: filter_array}, {sort: sorter_object}).fetch();
-        console.log(filter_array);
-        console.log(sorter_object);
-        console.log(inventory_array);
-        //return inventory_array;
-        return items.find().fetch();
+        return inventory_array;
     },
 
     'getAuctions' : function(sorter, ascending) {
@@ -180,7 +176,6 @@ Meteor.methods({
 
         return display_total;
     },
-
 
     'getDisplayDetails' : function(item_id, duration) {
         return getDisplayDetails(item_id, duration);
