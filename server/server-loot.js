@@ -163,6 +163,7 @@ var reroll_coefficients = {
 }
 
 getItemValue = function(item_id, type, user_id) {
+    console.log(item_id);
     return getItemObjectValue(items.findOne(item_id), type, user_id);
 }
 
@@ -281,9 +282,7 @@ getRolledCrateQuality = function() {
     return JepLoot.catRoll(roll_quality_map);
 }
 
-getRerollCost = function(item_id) {
-    var item_object = items.findOne(item_id);
-
+getRerollCost = function(item_object) {
     var roll_count = item_object.roll_count < 0 ? 0 : item_object.roll_count;
 
     var rarity = item_object.artwork_data.rarity;
@@ -367,7 +366,7 @@ generateItems = function(multi_item_generator) {
             'seasonal': undefined,
             'lottery': 0,
             'original': false,
-            'misprint': multi_item_generator.misprint_chance,
+            'misprint_chance': multi_item_generator.misprint_chance,
             'status': multi_item_generator.status,
             'xp_rating_min': multi_item_generator.xp_rating_min,
             'condition_min': multi_item_generator.condition_min

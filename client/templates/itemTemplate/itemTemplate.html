@@ -123,3 +123,9 @@
 		</div>
 	</div>
 </template>
+
+<template name="itemWrapper">
+	{{#with itemData item_data}}
+		{{>itemInfo item_data=this sell_button=../sell_button auction_button=../auction_button display_button=../display_button reroll_button=../reroll_button permanent_button=../permanent_button tag_button=../tag_button}}
+	{{/with}}
+</template>

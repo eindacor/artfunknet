@@ -3,8 +3,9 @@ var sought_tracker = new Tracker.Dependency;
 var card_container_width;
 var card_container_height;
 var sought_status = {};
-var item_data = undefined;
+var refreshed_item_data = undefined;
 var item_tracker = new Tracker.Dependency;
+var item_map = {};
 
 var itemOwned = function(card_object) {
 	return Meteor.user() && card_object.owner == Meteor.userId() && card_object.status != 'for_sale';
@@ -23,8 +24,9 @@ var updateSoughtStatus = function(artwork_id) {
 }
 
 var getItemData = function(item_id) {
-	item_data = items.findOne(item_id);
+	item_map[item_id] = items.findOne(item_id);
 	item_tracker.changed();
+	Session.set('item_refresh', undefined);
 }
 
 Template.itemInfo.rendered = function() {
@@ -37,16 +39,22 @@ Template.itemInfo.rendered = function() {
 	sought_status = {};
 }
 
-Template.itemInfo.helpers({
-	'item_data' : function(item_id) {
+Template.itemWrapper.helpers({
+	'itemData' : function(item_data) {
+		console.log(item_data._id);
 		item_tracker.depend();
-		if (item_data = undefined || Session.get('item_refresh') == item_id) {
-			getItemData(item_id);
+		if (item_map[item_data._id] == undefined)
+			item_map[item_data._id] = item_data;
+
+		else if (Session.get('item_refresh') == item_data._id) {
+			getItemData(item_data._id);
 		}
 
-		else return item_data;
+		return item_map[item_data._id];
 	},
+});
 
+Template.itemInfo.helpers({
 	'imageSize' : function(width, height) {
 		div_size_tracker.depend();
 

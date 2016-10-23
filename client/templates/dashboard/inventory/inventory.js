@@ -33,7 +33,8 @@ Template.inventory.helpers({
 
 	'owned': function() {	
 		inventory_tracker.depend();
-		if (inventory_array == undefined || Session.get('refresh_inventory'))
+		console.log("running owned");
+		if (inventory_array == undefined)
 		{
 			display_tracker.depend();
 			var sorter_object = {};
@@ -65,7 +66,6 @@ Template.inventory.helpers({
 			filter_array.push(base_filter);
 
 			setInventoryData(filter_array, sorter_object);
-			Session.set('refresh_inventory', false);
 		}
 
 		else return inventory_array;
@@ -307,7 +307,6 @@ Template.inventory.events({
 })
 
 Template.inventory.created = function() {
-	Session.set('inventory_refresh', false);
 	inventory_array = undefined;
 	Session.set('inventory_sort', 'title');
 	Session.set('inventory_ascending', true);

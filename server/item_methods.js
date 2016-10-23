@@ -339,7 +339,7 @@ Meteor.methods({
     },
 
     'getRerollCost' : function(item_id) {
-        return getRerollCost(item_id);
+        return getRerollCost(items.findOne(item_id));
     },
 
     'rerollXPRating' : function(item_id) {
@@ -358,8 +358,8 @@ Meteor.methods({
                         roll_value_min += .5;
                 }
         
+                chargeAccount(Meteor.userId(), getRerollCost(item_object));
                 items.update(item_id, {$set : {'xp_rating' : getXPRating(roll_value_min), 'roll_count': roll_count + 1}});
-                chargeAccount(Meteor.userId(), getRerollCost(item_id));
             }
         }
     },
@@ -387,8 +387,8 @@ Meteor.methods({
                 }
             }
 
+            chargeAccount(Meteor.userId(), getRerollCost(item_object));
             items.update(item_id, {$set: {'attributes' : attribute_array, 'roll_count' : roll_count + 1}});
-            chargeAccount(Meteor.userId(), getRerollCost(item_id));
         }
 
         else throw "invalid operation";
@@ -433,16 +433,8 @@ Meteor.methods({
             attribute_array[target_attribute_index].value = getAttributeValue(0, roll_value_min);
             attribute_array[target_attribute_index].locked = attributeIsLocked(item_object.artwork_id, random_attribute._id);
 
-            // attribute_array.sort(function(first, second) {
-            //     if (first.description > second.description)
-            //         return 1;
-
-            //     else return -1;
-            // });
-
+            chargeAccount(Meteor.userId(), getRerollCost(item_object));
             items.update(item_id, {$set: {'attributes' : attribute_array, 'roll_count' : roll_count + 1}});
-            // items.update(item_id, {$set : {'roll_count' : roll_count + 1}});
-            chargeAccount(Meteor.userId(), getRerollCost(item_id));
         }
 
         else return false;

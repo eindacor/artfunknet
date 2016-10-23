@@ -1,7 +1,7 @@
 Template.rerollModal.events ({
 	'click #cancel-modal' : function(event, template) {
     	Modal.hide("rerollModal");
-    	Session.set('refresh_inventory', true);
+    	Session.set('item_refresh', Session.get('selectedItem'));
     },
 
     'click .xp-reroll-button.enabled' : function() {
