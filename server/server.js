@@ -86,8 +86,8 @@ var updateContent = function() {
     })
 
     // temp code
-    Meteor.users.update({}, {$set: {'profile.entry_fee': "free"}}, {multi: true});
-    galleries.update({}, {$set: {'entry_fee': "free"}}, {multi: true});
+    Meteor.users.update({}, {$set: {'profile.entry_fee': "medium"}}, {multi: true});
+    galleries.update({}, {$set: {'entry_fee': "medium"}}, {multi: true});
     // temp code
 }
 
