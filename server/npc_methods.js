@@ -122,7 +122,7 @@ var enthusiastInteraction = function(npc_object) {
 		xp_chunk_percentage *= own_gallery_amplifier;
 
 		if (procUniqueAttribute(Meteor.userId(), "ENTHUSIAST_DAILY_DROP_REDUCTION", undefined)) {
-			var drop_reduced = moment(Meteor.user().profile.last_drop).add(-30, "minutes")._d.toISOString();
+			var drop_reduced = moment(Meteor.user().profile.last_drop).add(-5, "minutes")._d.toISOString();
 			Meteor.users.update(Meteor.userId(), {$set: {'profile.last_drop': drop_reduced}});
 		}
 	}
@@ -779,25 +779,25 @@ var generateQuest = function(rarity, is_own_gallery) {
 	switch(rarity) {
 		case 'common' :
 			money_multiplier = .4;
-			xp_chunk_percentage = .6;
+			xp_chunk_percentage = 1;
 			reward_item = undefined;
 			break;
 
 		case 'uncommon' : 
 			money_multiplier = .6;
-			xp_chunk_percentage = .7;
+			xp_chunk_percentage = 1.2;
 			reward_item = undefined;
 			break;
 
 		case 'rare' : 
 			money_multiplier = .8;
-			xp_chunk_percentage = .8;
+			xp_chunk_percentage = 1.4;
 			reward_item = undefined;
 			break;
 
 		case 'legendary' : 
 			money_multiplier = 1;
-			xp_chunk_percentage = .9;
+			xp_chunk_percentage = 1.6;
 			reward_item = {
 				'rarity': "legendary",
 				'foil': false
@@ -806,7 +806,7 @@ var generateQuest = function(rarity, is_own_gallery) {
 
 		case 'masterpiece' : 
 			money_multiplier = 1;
-			xp_chunk_percentage = 1;
+			xp_chunk_percentage = 1.8;
 			reward_item = {
 				'rarity': "legendary",
 				'foil': true

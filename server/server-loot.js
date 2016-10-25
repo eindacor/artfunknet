@@ -417,7 +417,6 @@ generateItemFromArtworkID = function(item_generator) {
             'seasonal': item_generator.seasonal === undefined ? seasonal_ids.indexOf(item_generator.artwork_id) != -1 : item_generator.seasonal,
             'lottery': item_generator.lottery === undefined ? 0 : item_generator.lottery,
             'original': item_generator.original === undefined ? false : item_generator.original,
-            'misprint': Math.random() < item_generator.misprint_chance,
             'tags': [],
             'artwork_data': artwork_data
         }, function(error, result) {

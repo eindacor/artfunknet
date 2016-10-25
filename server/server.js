@@ -171,7 +171,7 @@ Meteor.startup(function() {
         schedule: function(parser) {
             // parser is a later.parse object
             // return parser.text('every 10 seconds');
-            return parser.text('at 10:00 am on Monday');
+            return parser.text('every 2 weeks at 10:00 am');
         },
         job: function() {
             if (Meteor.users.find({'profile.level': 50}).count() < 4)
@@ -194,6 +194,7 @@ Meteor.startup(function() {
                     'condition': undefined,
                     'xp_rating': undefined,
                     'foil_chance': 0,
+                    'misprint_chance': .0001,
                     'seasonal': false,
                     'lottery': lottery_level,
                     'original': false,
