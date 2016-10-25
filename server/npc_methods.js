@@ -209,7 +209,6 @@ var benefactorInteraction = function(npc_object) {
 var donorInteraction = function(npc_object) {
 	var drop_count = 2;
 	var foil_chance = .01;
-	var misprint_chance = .0001;
 	var condition_min = 0;
 	var min_xp_rating = 0;
 

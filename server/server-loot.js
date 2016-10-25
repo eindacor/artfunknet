@@ -367,7 +367,7 @@ generateItems = function(multi_item_generator) {
             'seasonal': undefined,
             'lottery': 0,
             'original': false,
-            'misprint': multi_item_generator.misprint_chance,
+            'misprint_chance': multi_item_generator.misprint_chance,
             'status': multi_item_generator.status,
             'xp_rating_min': multi_item_generator.xp_rating_min,
             'condition_min': multi_item_generator.condition_min
