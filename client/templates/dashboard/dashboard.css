@@ -85,3 +85,7 @@
 	opacity: 1;
 	color: #FF33CC;
 }
+
+.template-adminTools .price-selector {
+	width: 600px;
+}

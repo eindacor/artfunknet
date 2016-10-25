@@ -311,7 +311,7 @@ var preservationistInteraction = function(npc_object) {
 		else target_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}}, {sort: {'condition': 1}});
 
 		if (target_item && procUniqueAttribute(Meteor.userId(), "PRESERVATIONIST_CONDITION_BONUS", undefined) && target_item.condition > .8) {
-			addFunds("PRESERVATIONIST_CONDITION_BONUS", Meteor.userId(), Math.floor(getItemObjectValue(target_item, "display") * .5));
+			addFunds("PRESERVATIONIST_CONDITION_BONUS", Meteor.userId(), Math.min( Math.floor(getItemObjectValue(target_item, "display") * .1), 100000) );
 		}
 
 		if (procUniqueAttribute(Meteor.userId(), "PRESERVATIONIST_FINISH_BOOST", "Designer")) {
@@ -454,17 +454,17 @@ var collectorInteraction = function(npc_object) {
 
 	if (collector_target) {
 		if (isOwnGallery(npc_object)) {
-			offer_multiplier += .5;
+			offer_multiplier += .4;
 
 			if (procUniqueAttribute(Meteor.userId(), "GOOD_CONDITION_COLLECTOR_BONUS", undefined) && collector_target.condition > .8)
-				offer_multiplier += .5;
+				offer_multiplier += .4;
 
 			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_ROLL_COUNT_BONUS", undefined) && collector_target.roll_count <= 0)
-				offer_multiplier += .5;
+				offer_multiplier += .4;
 
 			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_SPECIAL_BONUS", undefined)) {
 				if (collector_target.foil || collector_target.original || collector_target.lottery || collector_target.seasonal)
-					offer_multiplier += 1;
+					offer_multiplier += .8;
 			}
 
 			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_FINISH_RATING_BONUS", undefined)) {
@@ -486,7 +486,7 @@ var collectorInteraction = function(npc_object) {
 				}
 
 				var finish_bonus = high_finish_count * .02;
-				offer_multiplier += (finish_bonus > .5 ? .5 : finish_bonus);
+				offer_multiplier += (finish_bonus > .4 ? .4 : finish_bonus);
 			}
 
 			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_AUCTION_BONUS", undefined)) {

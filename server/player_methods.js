@@ -244,6 +244,17 @@ updateGalleryDetails = function(user_id) {
     }
 }
 
+getEntryFees = function(user_object) {
+    var average_drop_value = getAverageDropValue(user_object.profile.level, 1.0);
+    return {
+        'free': 0,
+        'low': Math.floor(average_drop_value * 0.2),
+        'medium': Math.floor(average_drop_value * 0.8),
+        'high': Math.floor(average_drop_value * 1.4),
+        'outrageous': Math.floor(average_drop_value * 2.0)
+    }
+}
+
 resetTutorials = function(user_id) {
     Meteor.users.update(user_id, {$set: {
         'profile.tutorials': {
@@ -385,7 +396,11 @@ Meteor.methods({
         var ticket_expiration = moment().add(ticket_duration, 'minutes')._d.toISOString();
         var entry_fee = Meteor.users.findOne(owner_id).profile.entry_fee;
 
-        if (entry_fee > Meteor.user().profile.bank_balance)
+        var buyer_object = Meteor.users.findOne(buyer_id);
+
+        var actual_amount = getEntryFees(buyer_object)[entry_fee];
+
+        if (actual_amount > buyer_object.profile.bank_balance)
             return;
 
         var ticket_object = {
@@ -396,13 +411,13 @@ Meteor.methods({
 
         var new_id = gallery_tickets.insert(ticket_object);
 
-        addFunds("ticket sale", owner_id, entry_fee);
+        addFunds("ticket sale", owner_id, actual_amount);
         addXPChunkPercentage("gallery ticket purchased", owner_id, .02);
-        chargeAccount(buyer_id, entry_fee);
+        chargeAccount(buyer_id, actual_amount);
     },
 
     'updateEntryFee' : function(value) {
-        if (value < 0)
+        if (value != "free" && value != "low" && value != "medium" && value != "high" && value != "outrageous")
             return;
         
         Meteor.users.update(Meteor.userId(), {$set: {'profile.entry_fee' : value}});

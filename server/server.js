@@ -56,11 +56,10 @@ var resetMetaData = function() {
 
 var updateContent = function() {
     addNewContent();
-    gallery_tickets.remove({});
+    //gallery_tickets.remove({});
     npcs.remove({});
     var all_users = Meteor.users.find();
     all_users.forEach(function(db_object) {
-        //resetTutorials(db_object._id);
         updateGalleryDetails(db_object._id);
         calcMVP(db_object._id);
     });
@@ -87,9 +86,8 @@ var updateContent = function() {
     })
 
     // temp code
-    Meteor.users.find().forEach(function(db_object) {
-        updateGalleryDetails(db_object._id);
-    })
+    Meteor.users.update({}, {$set: {'profile.entry_fee': "free"}}, {multi: true});
+    galleries.update({}, {$set: {'entry_fee': "free"}}, {multi: true});
     // temp code
 }
 

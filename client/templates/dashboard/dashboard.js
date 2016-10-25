@@ -14,7 +14,7 @@ Template.dashboard.helpers({
 				'inventory_max' : user_object.profile.inventory_cap,
 				'auction_max' : user_object.profile.auction_cap,
 				'private_max' : user_object.profile.pc_cap,
-				'entry_fee' : "$" + getCommaSeparatedValue(user_object.profile.entry_fee),
+				'entry_fee' : user_object.profile.entry_fee,
 				'ticket_max' : user_object.profile.ticket_cap,
 			}
 
@@ -112,6 +112,12 @@ Template.dashboard.helpers({
 
 	'tokens': function() {
 		return Meteor.user().profile.xp;
+	},
+
+	'unselected': function(current_tier) {
+		var tier_array = ["free", "low", "medium", "high", "outrageous"];
+		tier_array.splice(tier_array.indexOf(current_tier), 1);
+		return tier_array;
 	}
 })
 
@@ -128,6 +134,14 @@ Template.dashboard.events({
 
 	'change #entry-fee' : function() {
 		console.log($('#entry-fee').data().uiSlider.options.value);
+	},
+
+	'change .price-selector' : function() {
+		var entry_fee = $('.price-selector').val();
+		Meteor.call('updateEntryFee', entry_fee, function(error) {
+			if (error)
+				console.log(error.message);
+		});
 	}
 });
 

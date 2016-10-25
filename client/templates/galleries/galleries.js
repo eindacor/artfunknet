@@ -1,4 +1,18 @@
 var ticket_holder_tracker = new Tracker.Dependency;
+var entry_fee_tracker = new Tracker.Dependency;
+var entry_fees = undefined;
+
+var getEntryFees = function() {
+	Meteor.call('getEntryFees', function(error, result) {
+		if (error)
+			console.log(error.message)
+
+		else {
+			entry_fees = result;
+			entry_fee_tracker.changed();
+		}
+	})
+}
 
 Template.galleryTable.helpers({
 	'header' : function(table_data) {
@@ -72,7 +86,7 @@ Template.galleryTable.helpers({
 			}
 
 			gallery_object.attribute = attribute_array;
-			gallery_object.fee_text = getCommaSeparatedValue(gallery_object.entry_fee);
+			gallery_object.price_tier = gallery_object.entry_fee;
 			gallery_object.paid = Meteor.userId() == gallery_object.owner_id || gallery_tickets.findOne({'ticketholder': Meteor.userId(), 'gallery_owner': gallery_object.owner_id}) != undefined;
 			return gallery_object;
 		}
@@ -81,6 +95,15 @@ Template.galleryTable.helpers({
 			console.log(error);
 			return {};
 		}
+	},
+
+	'entryFee' : function(tier) {
+		entry_fee_tracker.depend();
+		if (entry_fees == undefined) {
+			getEntryFees();
+		}
+
+		else return getCommaSeparatedValue(entry_fees[tier]);
 	}
 });
 
@@ -121,6 +144,10 @@ Template.galleryHeaderTemplate.events({
 		}
 	}
 })
+
+Template.galleries.created = function() {
+	entry_fees = undefined;
+}
 
 Template.galleries.rendered = function() {
 	Session.set('galleries_ascending', true);

@@ -191,6 +191,10 @@ Meteor.methods({
             'chunk' : getXPChunk(current_level),
             'goal' : getXPGoal(current_level)
         }
+    },
+
+    'getEntryFees' : function() {
+        return getEntryFees(Meteor.user());
     }
 })
 

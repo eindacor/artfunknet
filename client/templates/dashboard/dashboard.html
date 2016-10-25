@@ -34,10 +34,14 @@
 						<p>paintings owned: <span class="highlight af-color">{{inventory_count}}</span> ({{inventory_max}} max)</p>					
 						<p>auctions active: <span class="highlight af-color">{{auction_count}}</span> ({{auction_max}} max)</p>						
 						<p>permanent collection: <span class="highlight af-color">{{private_count}}</span> ({{private_max}} max)</p>			
-						<p>gallery entry fee: <span class="highlight af-color">{{entry_fee}}</span></p>
-						<div class="row">
-							<div class="col-xs-12 col-md-6 col-lg-4" id="entry-fee"></div>
-						</div>
+						<p>gallery entry fee: 
+							<select class="price-selector">
+								<option selected="selected" value="{{entry_fee}}">{{entry_fee}}</option>
+								{{#each unselected entry_fee}}
+									<option value="{{this}}">{{this}}</option>
+								{{/each}}
+							</select>
+						</p>
 	            	</div>
 				</div>		
 				<div class="row ticket-info">

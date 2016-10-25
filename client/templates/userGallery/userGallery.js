@@ -1,4 +1,18 @@
 var galleryContentTracker = new Tracker.Dependency;
+var entry_fee_tracker = new Tracker.Dependency;
+var entry_fees = undefined;
+
+var getEntryFees = function() {
+	Meteor.call('getEntryFees', function(error, result) {
+		if (error)
+			console.log(error.message)
+
+		else {
+			entry_fees = result;
+			entry_fee_tracker.changed();
+		}
+	})
+}
 var item_count;
 
 var click_location, original_offset;
@@ -81,7 +95,7 @@ Template.userGallery.helpers({
 				'tickets_maxed' : tickets_maxed,
 				'paid' : paid || screen_name == viewer_object.profile.screen_name,
 				'pay_fee_enabled' : !insufficient_funds && !tickets_maxed,
-				'entry_fee_text' : "$" + getCommaSeparatedValue(gallery_object.entry_fee),
+				'price_tier' : gallery_object.entry_fee,
 				'screen_name' : screen_name,
 				'owner_id' : gallery_object.owner_id
 			}
@@ -106,6 +120,15 @@ Template.userGallery.helpers({
 
 	'canEdit' : function(screen_name) {
 		return Meteor.user().profile.screen_name === screen_name;
+	},
+
+	'entryFee' : function(tier) {
+		entry_fee_tracker.depend();
+		if (entry_fees == undefined) {
+			getEntryFees();
+		}
+
+		else return getCommaSeparatedValue(entry_fees[tier]);
 	}
 })
 
@@ -272,6 +295,7 @@ Template.userGallery.events ({
 })
 
 Template.userGallery.created = function() {
+	entry_fees = undefined;
 	this.handle = Meteor.setInterval((function() {
 		var now = moment();
 		Session.set('now', now.toISOString());
