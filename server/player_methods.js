@@ -17,7 +17,7 @@ createUser = function(user_object, callback){
     user_object.profile.last_drop = moment().add(-1, 'days')._d.toISOString();
     user_object.profile.level = 0;
     user_object.profile.xp = 0;
-    user_object.profile.entry_fee = 1000;
+    user_object.profile.entry_fee = "medium";
     user_object.profile.gallery_tickets = [];
     user_object.profile.gallery_value = 0;
     user_object.profile.gallery_score = 0;
@@ -492,7 +492,7 @@ Meteor.methods({
                     var setter_string = "attributes." + random_index + ".value";
                     if (attributes[random_index].value < 1) {
                         var setter_object = {};
-                        setter_object[setter_string] = attributes[random_index].value + .01;
+                        setter_object[setter_string] = Math.floor(Math.min(attributes[random_index].value + .02, 1));
                         items.update(random_displayed._id, {$set: setter_object});
                     }
                 }

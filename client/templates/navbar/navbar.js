@@ -1,3 +1,19 @@
+var quest_tracker = new Tracker.Dependency;
+var quest_statuses = {};
+
+var updateQuestStatus = function(quest_id) {
+	Meteor.call('canTurnInQuest', quest_id, function(error, result) {
+		if (error)
+			console.log(error.message)
+
+		else {
+			quest_statuses[quest_id] = result;
+			quest_tracker.changed();
+		}
+	});
+}
+
+
 Template.navbar.helpers({
 	'screen_name' : function() {
 		return Meteor.user().profile.screen_name;
@@ -52,19 +68,17 @@ Template.navbar.helpers({
 
 	'hasCompletedQuest' : function() {
 		var all_quests = quests.find({'owner_id': Meteor.userId()}).fetch();
-		var completed_found = false;
 
 		for (var i=0; i<all_quests.length; i++) {
-			var target_ids = all_quests[i].target;
-			var has_completed = true;
-			for (var n=0; n<target_ids.length; n++) {
-				if (items.findOne({'owner': Meteor.userId(), 'artwork_id': target_ids[n], 'status': {$nin: ['unclaimed', 'for_sale']}}) == undefined) {
-					has_completed = false;
-					break;
-				}
+			var quest_object = all_quests[i];
+			
+			var targets_found = 0;
+			for (var c=0; c < quest_object.target.length; c++) {
+				if (items.findOne({'artwork_id': quest_object.target[c], 'owner': Meteor.userId(), 'status': {$nin: ['unclaimed', 'for_sale']}}) != undefined)
+					targets_found++;
 			}
 
-			if (has_completed)
+			if (targets_found >= quest_object.min_requirement)
 				return true;
 		};
 
