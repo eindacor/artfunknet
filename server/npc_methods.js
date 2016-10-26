@@ -644,37 +644,31 @@ var galleryManagerInteraction = function(npc_object) {
 
 	extension_time = Math.floor(extension_time * extension_multiplier);
 
+	var extended_ticket_count = 1;
+
 	if (isOwnGallery(npc_object)) {
-		var extended_ticket_count = 3;
-		var extendable_tickets = gallery_tickets.find({'ticketholder': Meteor.userId()}).fetch();
+		extended_ticket_count += 2;
+	}
 
-		if (extendable_tickets.length > 0) {
-			var selected = extendable_tickets.sort(function(first, second) {return Math.random() - Math.random()}).slice(0, extended_ticket_count);
+	var extendable_tickets = gallery_tickets.find({'ticketholder': Meteor.userId()}).fetch();
 
-			var owner_names = [];
-			for (var i=0; i < selected.length; i++) {
-				var current_expiration = moment(selected[i].expiration);
-				var new_expiration = current_expiration.add(extension_time, 'minutes')._d.toISOString();
-				gallery_tickets.update(selected[i]._id, {$set: {'expiration': new_expiration}});
-				owner_names.push(Meteor.users.findOne(selected[i].gallery_owner).profile.screen_name)
-			}
+	if (extendable_tickets.length > 0) {
+		var selected = extendable_tickets.sort(function(first, second) {return Math.random() - Math.random()}).slice(0, extended_ticket_count);
 
-			var message = "You have met a gallery manager. Your access to the following galleries has been extended by " + extension_time + " minutes: " + owner_names.toString().replace(/,/g, ", ");
-			return {'message': message};
+		var owner_names = [];
+		for (var i=0; i < selected.length; i++) {
+			var current_expiration = moment(selected[i].expiration);
+			var new_expiration = current_expiration.add(extension_time, 'minutes')._d.toISOString();
+			gallery_tickets.update(selected[i]._id, {$set: {'expiration': new_expiration}});
+			owner_names.push(Meteor.users.findOne(selected[i].gallery_owner).profile.screen_name)
 		}
 
-		else {
-			var message = "You have met a gallery manager, but they are unable to extend your access to any galleries.";
-			return {'message': message};
-		}
+		var message = "You have met a gallery manager. Your access to the following galleries has been extended by " + extension_time + " minutes: " + owner_names.toString().replace(/,/g, ", ");
+		return {'message': message};
 	}
 
 	else {
-		var current_expiration = moment(gallery_tickets.findOne({'ticketholder': Meteor.userId(), 'gallery_owner': npc_object.owner_id}).expiration);
-		var new_expiration = current_expiration.add(extension_time, 'minutes')._d.toISOString();
-		gallery_tickets.update({'ticketholder': Meteor.userId(), 'gallery_owner': npc_object.owner_id}, {$set: {'expiration': new_expiration}});
-
-		var message = "You have met a gallery manager. Your access to this gallery has been extended by " + extension_time + " minutes.";
+		var message = "You have met a gallery manager, but they are unable to extend your access to any galleries.";
 		return {'message': message};
 	}
 }
