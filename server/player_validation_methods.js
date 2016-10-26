@@ -112,16 +112,13 @@ canTurnInQuest = function(quest_id) {
 
 canMeetNPC = function(npc_id) {
 	var npc_object = npcs.findOne(npc_id);
-	console.log(npc_object);
 
 	if (npc_object == undefined)
 		return false;
 
 	var can_meet = npc_object.players_met.indexOf(Meteor.userId()) == -1;
-	console.log(can_meet);
 	var is_own_npc = npc_object.owner_id == Meteor.userId();
 	var can_access_gallery = gallery_tickets.findOne({'ticketholder': Meteor.userId(), 'gallery_owner': npc_object.owner_id}) != undefined;
-	console.log(can_access_gallery);
 
 	return (can_meet && (is_own_npc || can_access_gallery));
 }
