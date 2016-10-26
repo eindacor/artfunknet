@@ -34,6 +34,9 @@ createNPC = function(gallery_object, attribute_id, duration, npc_quality) {
 
 Meteor.methods({
 	'interactWithNPC' : function(npc_id) {
+		if (!canMeetNPC(npc_id))
+			return {'message': "you can't do this anymore!"};
+
 		var npc_object = npcs.findOne(npc_id);
 
 		if (npc_object == undefined || npc_object.players_met.indexOf(Meteor.userId()) != -1)
