@@ -500,21 +500,30 @@ var collectorInteraction = function(npc_object) {
 				offer_bonus += highest_value;
 			}
 
+			var skip_offer = false;
+			var message = undefined;
 			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_XP_REWARD", "Art Enthusiast")) {
 				var xp_chunk_percentage = .25 * offer_multiplier;
 				var xp_reward = Math.floor(xp_chunk_percentage * (getXPChunk(Meteor.user().profile.level) + offer_bonus));
-				var message = "You have met an Art Collector, who was admiring " + collector_target.artwork_data.title + " by " + collector_target.artwork_data.artist + ", currently on display in your gallery. You have gained " + getCommaSeparatedValue(xp_reward) + "xp.";
+				message = "You have met an Art Collector, who was admiring " + collector_target.artwork_data.title + " by " + collector_target.artwork_data.artist + ", currently on display in your gallery. You have gained " + getCommaSeparatedValue(xp_reward) + "xp.";
 				addXP(Meteor.userId(), xp_reward);
 				logXPChunkPercentage("art collector unique", Number(xp_chunk_percentage.toFixed(3)));
-				return {'message': message}
+				skip_offer = true;
 			}
 
 			if (target_status == "displayed") {
 				var donation_amount = Math.floor((getItemValue(collector_target._id, "display", Meteor.userId()) * .2) * offer_multiplier) + offer_bonus;
 				addFunds("COLLECTOR_DISPLAY_OFFER", Meteor.userId(), donation_amount);
-				var message = "You have met an Art Collector, who was admiring " + collector_target.artwork_data.title + " by " + collector_target.artwork_data.artist + ", currently on display in your gallery. They offer you $" + getCommaSeparatedValue(donation_amount) + " for their appreciation of the piece, and insist that you keep and maintain it for the world to enjoy.";
-				return {'message': message}
+				
+				//skip_offer indicates the ART_COLLECTOR_XP_REWARD affix already proc'd
+				if (skip_offer)
+					return {'message': message + " In addition, they offer you $" + getCommaSeparatedValue(donation_amount) + " for their appreciation of the piece, and insist that you keep and maintain it for the world to enjoy."}
+
+				else return {'message': "You have met an Art Collector, who was admiring " + collector_target.artwork_data.title + " by " + collector_target.artwork_data.artist + ", currently on display in your gallery. They offer you $" + getCommaSeparatedValue(donation_amount) + " for their appreciation of the piece, and insist that you keep and maintain it for the world to enjoy."}
 			}
+
+			else if (skip_offer)
+				return {'message': message};
 		}
 
 		var offer_amount = Math.floor(getItemValue(collector_target._id, "display", Meteor.userId()) * offer_multiplier) + offer_bonus;
