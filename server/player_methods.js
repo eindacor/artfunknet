@@ -489,7 +489,7 @@ Meteor.methods({
                     var setter_string = "attributes." + random_index + ".value";
                     if (attributes[random_index].value < 1) {
                         var setter_object = {};
-                        setter_object[setter_string] = Math.floor(Math.min(attributes[random_index].value + .02, 1));
+                        setter_object[setter_string] = Math.min(attributes[random_index].value + .02, 1);
                         items.update(random_displayed._id, {$set: setter_object});
                     }
                 }
