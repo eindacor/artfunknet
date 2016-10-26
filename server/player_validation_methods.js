@@ -101,10 +101,11 @@ canTurnInQuest = function(quest_id) {
 	if (quest_object.owner_id != Meteor.userId())
 		return false;
 
+	var targets_found = 0;
 	for (var i=0; i<quest_object.target.length; i++) {
-		if (items.findOne({'artwork_id': quest_object.target[i], 'owner': Meteor.userId(), 'status': {$nin: ['unclaimed', 'for_sale']}}) == undefined)
-			return false
+		if (items.findOne({'artwork_id': quest_object.target[i], 'owner': Meteor.userId(), 'status': {$nin: ['unclaimed', 'for_sale']}}) != undefined)
+			targets_found++;
 	}
 
-	return true;
+	return targets_found >= quest_object.min_requirement;
 }

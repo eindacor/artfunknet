@@ -826,11 +826,12 @@ var generateQuest = function(rarity, is_own_gallery) {
 		'item': reward_item,
 	}
 
-	var target_count = 3;
+	var target_count = 4;
+	var min_requirement = 3;
 
 	if (is_own_gallery) {
 		if (procUniqueAttribute(Meteor.userId(), "QUEST_TARGET_REDUCTION", "Designer")) {
-			target_count--;
+			min_requirement--;
 		}
 
 		if (procUniqueAttribute(Meteor.userId(), "QUEST_XP_BONUS", undefined)) {
@@ -848,7 +849,8 @@ var generateQuest = function(rarity, is_own_gallery) {
 		'owner_id': Meteor.userId(),
 		'target': generateTarget(target_count),
 		'reward': reward,
-		'rarity': rarity
+		'rarity': rarity,
+		'min_requirement': min_requirement
 	}
 
 }

@@ -195,6 +195,20 @@ Meteor.methods({
 
     'getEntryFees' : function() {
         return getEntryFees(Meteor.user());
+    },
+
+    'canTurnInQuest': function(quest_id) {
+        return canTurnInQuest(quest_id);
+    },
+
+    'hasCompletedQuest': function() {
+        var all_quests = quests.find({'owner_id': Meteor.userId()}).fetch();
+        for (var i=0; i<all_quests.length; i++) {
+            if (canTurnInQuest(all_quests[i]._id))
+                return true;
+        }
+
+        return false;
     }
 })
 

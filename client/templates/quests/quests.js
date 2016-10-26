@@ -18,14 +18,15 @@ Template.questTemplate.helpers({
 	},
 
 	'hasCompleted' : function(quest_id) {
-		var target = quests.findOne(quest_id).target;
+		var quest_object = quests.findOne(quest_id)
 
-		for (var i=0; i<target.length; i++) {
-			if (items.findOne({'artwork_id': target[i], 'owner': Meteor.userId(), 'status': {$nin: ['unclaimed', 'for_sale']}}) == undefined)
-				return false;
+		var targets_found = 0;
+		for (var i=0; i < quest_object.target.length; i++) {
+			if (items.findOne({'artwork_id': quest_object.target[i], 'owner': Meteor.userId(), 'status': {$nin: ['unclaimed', 'for_sale']}}) != undefined)
+				targets_found++;
 		}
 
-		return true;
+		return targets_found >= quest_object.min_requirement;
 	},
 
 	'artwork_rarity' : function(artwork_id) {
