@@ -5,11 +5,12 @@ Template.dashboard.helpers({
 			var data_object = {
 				'screen_name' : user_object.profile.screen_name,
 				'bank_balance' : getCommaSeparatedValue(user_object.profile.bank_balance),
-				'display_count' : items.find({'owner' : Meteor.userId(), 'status' : 'displayed'}).count(),
-				'inventory_count' : items.find({'owner' : Meteor.userId(), 'status' : {$nin : ['unclaimed', 'for_sale']}}).count(),
-				'auction_count' : items.find({'owner' : Meteor.userId(), 'status' : 'auctioned'}).count(),
-				'alert_count' : alerts.find({'user_id' : Meteor.userId()}).count(),
-				'private_count' : items.find({'owner' : Meteor.userId(), 'status' : 'permanent'}).count(),
+				'display_count' : items.find({'owner' : user_object._id, 'status' : 'displayed'}).count(),
+				'inventory_count' : items.find({'owner' : user_object._id, 'status' : {$nin : ['unclaimed', 'for_sale']}}).count(),
+				'has_auctions' : (auctions.findOne({'seller' : user_object.profile.screen_name}) != undefined ||
+					auctions.findOne({'_id': {$in: user_object.profile.auction_data.watching}}) != undefined),
+				'alert_count' : alerts.find({'user_id' : user_object._id}).count(),
+				'private_count' : items.find({'owner' : user_object._id, 'status' : 'permanent'}).count(),
 				'display_max' : user_object.profile.display_cap,
 				'inventory_max' : user_object.profile.inventory_cap,
 				'auction_max' : user_object.profile.auction_cap,
