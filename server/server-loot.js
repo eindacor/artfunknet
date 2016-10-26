@@ -747,7 +747,8 @@ getRandomArtworkIDsFromRarity = function(count, rarity) {
     while (ids_selected.length < count && artworks.findOne({'_id': {$nin: ids_selected}, 'rarity': rarity}) != undefined) {
         var selector = {
             '_id': {$nin: ids_selected}, 
-            'rarity': rarity
+            'rarity': rarity,
+            'active': true
         };
 
         ids_selected.push(artworks.findOne(selector, {skip: Math.floor(Math.random() * artworks.find(selector).count())})._id);
@@ -757,5 +758,5 @@ getRandomArtworkIDsFromRarity = function(count, rarity) {
 }
 
 getRandomArtworkIDFromRarity = function(rarity) {
-    return artworks.findOne({'rarity': rarity}, {skip: Math.floor(Math.random() * artworks.find({'rarity': rarity}).count())})._id;
+    return artworks.findOne({'rarity': rarity, 'active': true}, {skip: Math.floor(Math.random() * artworks.find({'rarity': rarity}).count())})._id;
 }
