@@ -155,7 +155,7 @@ Template.userGallery.events ({
 
 	'click #enter-button.enabled' : function(element) {
 		var owner_id = element.target.dataset.owner_id;
-		Meteor.call('purchaseTicket', Meteor.userId(), owner_id, function(error) {
+		Meteor.call('purchaseTicket', owner_id, function(error) {
 			if (error)
 				console.log(error.message);
 

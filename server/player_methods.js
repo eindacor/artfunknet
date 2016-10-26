@@ -368,10 +368,6 @@ Meteor.methods({
         return Meteor.users.find({'emails.0.address': email_address}).count() > 0;
     },
 
-    'chargeAccount' : function(user_id, amount) {
-        chargeAccount(user_id, amount);
-    },
-
     'clearAlerts' : function() {
         alerts.remove({'user_id' : Meteor.userId()});
     },
@@ -391,7 +387,8 @@ Meteor.methods({
         else return null;
     },
 
-    'purchaseTicket' : function(buyer_id, owner_id) {
+    'purchaseTicket' : function(owner_id) {
+        var buyer_id = Meteor.userId();
         var ticket_duration = 30; // minutes
         var ticket_expiration = moment().add(ticket_duration, 'minutes')._d.toISOString();
         var entry_fee = Meteor.users.findOne(owner_id).profile.entry_fee;
