@@ -26,7 +26,7 @@ concludeDisplay = function(item_id) {
         'end' : ""
     };
 
-    var new_condition = item_object.condition < .1 ? item_object.condition : item_object.condition - .01;
+    var new_condition = item_object.condition < .6 ? item_object.condition : item_object.condition - .01;
     items.update(item_id, {$set: {'status' : 'claimed', 'display_details' : null_display_details, 'condition' : new_condition}}, function(error) {
         if (error)
             console.log(error.message);
