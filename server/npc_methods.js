@@ -294,7 +294,8 @@ var donorInteraction = function(npc_object) {
 
 var preservationistInteraction = function(npc_object) {
 	var repair_amount;
-	var target_item;
+	var target_item = undefined;
+	var message = undefined;
 
 	switch(npc_object.quality) {
 		case 'bronze': repair_amount = .08; break;
@@ -307,16 +308,20 @@ var preservationistInteraction = function(npc_object) {
 	if (isOwnGallery(npc_object)) {
 		repair_amount *= own_gallery_amplifier;
 
-		if (procUniqueAttribute(Meteor.userId(), "PRESERVATIONIST_HIGHEST", undefined)) {
-			target_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}, 'condition': {$lt: 1}}, {sort: {'condition': -1}});
-		}
+		// A) Preservationists now target the item with the highest condition (below 90%). If all items have a condition greater than 90, they select the lowest.
+		if (procUniqueAttribute(Meteor.userId(), "PRESERVATIONIST_HIGHEST", undefined))
+			target_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}, 'condition': {$lt: .9}}, {sort: {'condition': -1}});
 
-		else target_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}}, {sort: {'condition': 1}});
+		if (target_item == undefined) 
+			target_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}}, {sort: {'condition': 1}});
 
+		// B) If the preserved item already has a condition > 80, you earn money based on its value.
 		if (target_item && procUniqueAttribute(Meteor.userId(), "PRESERVATIONIST_CONDITION_BONUS", undefined) && target_item.condition > .8) {
+			message = "You have met a preservationist, who is in awe of the pristine quality of your displayed works. He immediately notifies his rich uncle who gives you a hefty donation.";
 			addFunds("PRESERVATIONIST_CONDITION_BONUS", Meteor.userId(), Math.min( Math.floor(getItemObjectValue(target_item, "display") * .1), 100000) );
 		}
 
+		// C) If you meet a preservationist with a designer present, the XP rating of your currently equipped finishes is increased. Finishes with a 100 rating give XP.
 		if (procUniqueAttribute(Meteor.userId(), "PRESERVATIONIST_FINISH_BOOST", "Designer")) {
 			var increase_amount = .04;
 			var user_object = Meteor.user();
@@ -325,37 +330,82 @@ var preservationistInteraction = function(npc_object) {
 			var current_wall_rating = user_object.profile.gallery_finishes.owned.wall_finishes[current_wall].xp_rating;
 			var current_floor_rating = user_object.profile.gallery_finishes.owned.floor_finishes[current_floor].xp_rating;
 
+			var wall_maxed = current_wall_rating > .99;
+			if (wall_maxed)
+				addXPChunkPercentage("PRESERVATIONIST_FINISH_BOOST", Meteor.userId(), .3);
+
+			var floor_maxed = current_floor_rating > .99;
+			if (floor_maxed)
+				addXPChunkPercentage("PRESERVATIONIST_FINISH_BOOST", Meteor.userId(), .3);
+
 			var setter = {};
+			var wall_setter_string = undefined;
+			var floor_setter_string = undefined;
 
-			var wall_setter_string = "profile.gallery_finishes.owned.wall_finishes." + current_wall + ".xp_rating";
-			setter[wall_setter_string] = Number((current_wall_rating + increase_amount).toFixed(2)) > 1 ? 1 : Number((current_wall_rating + increase_amount).toFixed(2));
+			if (!wall_maxed) {
+				wall_setter_string = "profile.gallery_finishes.owned.wall_finishes." + current_wall + ".xp_rating";
+				setter[wall_setter_string] = Math.min( Number((current_wall_rating + increase_amount).toFixed(2)), 1);
+			}
 
-			var floor_setter_string = "profile.gallery_finishes.owned.floor_finishes." + current_floor + ".xp_rating";
-			setter[floor_setter_string] = Number((current_floor_rating + increase_amount).toFixed(2)) > 1 ? 1 : Number((current_floor_rating + increase_amount).toFixed(2));
+			if (!floor_maxed) {
+				floor_setter_string = "profile.gallery_finishes.owned.floor_finishes." + current_floor + ".xp_rating";
+				setter[floor_setter_string] = Math.min( Number((current_floor_rating + increase_amount).toFixed(2)), 1);
+			}
 
-			Meteor.users.update(Meteor.userId(), {$set: setter});
+			if ((wall_setter_string != undefined && setter[wall_setter_string] != undefined) ||
+			 	(floor_setter_string != undefined && setter[floor_setter_string] != undefined)) {
+				Meteor.users.update(Meteor.userId(), {$set: setter});
+			}
+
+			if (message)
+				message = message + " He also marvels at your finishes, smelling your walls and gently caressing your floor.";
+
+			else message = "You have met a preservationist who marvels at your finishes, smelling your walls and gently caressing your floor.";
 		}
 
-		if (procUniqueAttribute(Meteor.userId(), "PC_XP_RATING_BOOST", undefined)) {
-			var random_permanent = selectRandomPainting({'owner': Meteor.userId(), 'status': "permanent", 'xp_rating': {'$lt': 1}});
+		// D) If you meet a preservationist with an enthusiast present, they select an item in your permanent collection. If the item has an XP rating > 90, or a condition > 80, you earn XP. If it has neither, it's XP rating or condition is increased.
+		if (procUniqueAttribute(Meteor.userId(), "PC_XP_RATING_BOOST", "Art Enthusiast")) {
+			var random_permanent = selectRandomPainting({'owner': Meteor.userId(), 'status': "permanent"});
 
-			if (random_permanent)
-				items.update(random_permanent._id, {$set: {'xp_rating': Number((random_permanent.xp_rating + .01).toFixed(2))}});
+			if (random_permanent) {
+				var criteria_met = false;
+				if (random_permanent.condition > .8) {
+					addXPChunkPercentage("PC_XP_RATING_BOOST - condition", Meteor.userId(), .3);
+					criteria_met = true;
+				}
 
-			else addXPChunkPercentage("PC_XP_RATING_BOOST", Meteor.userId(), .5);
+				if (random_permanent.xp_rating > .9) {
+					addXPChunkPercentage("PC_XP_RATING_BOOST - xp rating", Meteor.userId(), .3);
+					criteria_met = true;
+				}
+
+				if (!criteria_met) {
+					if (Math.random() < .5)
+						items.update(random_permanent._id, {$set: {'xp_rating': Math.min( Number((random_permanent.xp_rating + .01).toFixed(2)), 1 )}});
+
+					else items.update(random_permanent._id, {$set: {'condition': Math.min( Number((random_permanent.condition + .02).toFixed(2)), 1 )}});
+				}
+			}
+
+			if (message)
+				message = message + " They then comment on the quality of your permanent collection, and how well-kept it is.";
+
+			else message = "You have met a preservationist who comments on the quality of your permanent collection, and how well-kept it is."
 		}
 	}
 
 	else target_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}}, {sort: {'condition': 1}});
 
-	if (target_item == undefined || target_item.condition > .9)
-		return {'message' : "You have met a preservationist, but you don't currently own any works that can be refurbished"};
+	if (target_item == undefined || target_item.condition > .9) {
+		if (message)
+			message += " Unfortunately, they don't see any items in your collection they can improve.";
 
-	var new_condition;
-	if (repair_amount + target_item.condition > 1)
-		new_condition = 1;
+		else message = "You have met a preservationist, but you don't currently own any works that can be refurbished.";
 
-	else new_condition = repair_amount + target_item.condition;
+		return {'message' : message};
+	}
+
+	var new_condition = Math.min(repair_amount + target_item.condition, 1)
 
 	items.update(target_item._id, {$set: {'condition' : Number(new_condition)}}, function(error) {
         if (error)
@@ -367,7 +417,10 @@ var preservationistInteraction = function(npc_object) {
         }
     });
 
-	var message = "You have met a preservationist who has offered to refurbish one of your pieces. " + target_item.artwork_data.title + " by " + target_item.artwork_data.artist + " has increased in value.";
+	if (message)
+		message = message + " Finally, they offer to refurbish one of your pieces. " + target_item.artwork_data.title + " by " + target_item.artwork_data.artist + " has increased in value.";
+	
+	else message = "You have met a preservationist who has offered to refurbish one of your pieces. " + target_item.artwork_data.title + " by " + target_item.artwork_data.artist + " has increased in value.";
 
 	return {'message': message}
 }
