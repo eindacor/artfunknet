@@ -830,7 +830,7 @@ var generateTarget = function(default_target_count) {
 }
 
 var generateQuest = function(rarity, is_own_gallery) {
-    var money = getAverageDropValue(Meteor.user().profile.level, 0) * 12;
+    var money = getAverageDropValue(Meteor.user().profile.level, 0) * 10;
     var player_level = Meteor.user().profile.level;
 
     var reward, reward_item, money_multiplier, xp_chunk_percentage;
