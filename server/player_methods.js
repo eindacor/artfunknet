@@ -25,6 +25,7 @@ createUser = function(user_object, callback){
         'expiration': moment().add(-1, 'days')._d.toISOString(),
         'rating': .8
     };
+    user_object.profile.auction_data = {'winning': [], 'watching': []};
 
     user_object.profile.tutorials = {
         'welcome': true,
