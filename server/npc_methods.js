@@ -830,33 +830,33 @@ var generateTarget = function(default_target_count) {
 }
 
 var generateQuest = function(rarity, is_own_gallery) {
-    var max_money = getAverageDropValue(Meteor.user().profile.level, 0) * 10;
+    var money = getAverageDropValue(Meteor.user().profile.level, 0) * 12;
     var player_level = Meteor.user().profile.level;
 
     var reward, reward_item, money_multiplier, xp_chunk_percentage;
 
 	switch(rarity) {
 		case 'common' :
-			money_multiplier = .4;
-			xp_chunk_percentage = 1;
-			reward_item = undefined;
-			break;
-
-		case 'uncommon' : 
-			money_multiplier = .6;
+			money_multiplier = 1;
 			xp_chunk_percentage = 1.2;
 			reward_item = undefined;
 			break;
 
-		case 'rare' : 
-			money_multiplier = .8;
+		case 'uncommon' : 
+			money_multiplier = 1.2;
 			xp_chunk_percentage = 1.4;
 			reward_item = undefined;
 			break;
 
-		case 'legendary' : 
-			money_multiplier = 1;
+		case 'rare' : 
+			money_multiplier = 1.4;
 			xp_chunk_percentage = 1.6;
+			reward_item = undefined;
+			break;
+
+		case 'legendary' : 
+			money_multiplier = 1.6;
+			xp_chunk_percentage = 1.8;
 			reward_item = {
 				'rarity': "legendary",
 				'foil': false
@@ -864,8 +864,8 @@ var generateQuest = function(rarity, is_own_gallery) {
 			break;
 
 		case 'masterpiece' : 
-			money_multiplier = 1;
-			xp_chunk_percentage = 1.8;
+			money_multiplier = 1.8;
+			xp_chunk_percentage = 2;
 			reward_item = {
 				'rarity': "legendary",
 				'foil': true
@@ -876,7 +876,7 @@ var generateQuest = function(rarity, is_own_gallery) {
 	};
 
 	reward = {
-		'money': max_money * money_multiplier,
+		'money': money * money_multiplier,
 		'xp': Math.floor(getXPChunk(player_level) * xp_chunk_percentage),
 		'xp_chunk_percentage': xp_chunk_percentage,
 		'item': reward_item,
