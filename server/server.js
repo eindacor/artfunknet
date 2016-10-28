@@ -253,6 +253,21 @@ Meteor.startup(function() {
         }
     });
 
+    SyncedCron.add({
+        name: 'Seasonal Cycle',
+        schedule: function(parser) {
+            // parser is a later.parse object
+            //return parser.text('every 10 seconds');
+            return parser.text('every 1 months at 10:00 am on Monday');
+        },
+        job: function() {
+            var random_legendary = getRandomArtworkIDFromRarity("legendary");
+            var random_masterpiece = getRandomArtworkIDFromRarity("masterpiece");
+
+            metadata.update({'loot_data': {$ne: null}}, {$set: {'loot_data.seasonal_items': [random_legendary, random_masterpiece]}});
+        }
+    });
+
     SyncedCron.start();
 })
 
