@@ -51,3 +51,7 @@
 .template-navbar .af-color:hover {
 	opacity: 1;
 }
+
+.template-navbar .bright-orange-text {
+	color: #ffd78e;
+}

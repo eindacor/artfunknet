@@ -83,6 +83,25 @@ Template.navbar.helpers({
 		};
 
 		return false;
+	},
+
+	'hasFullyCompletedQuest' : function() {
+		var all_quests = quests.find({'owner_id': Meteor.userId()}).fetch();
+
+		for (var i=0; i<all_quests.length; i++) {
+			var quest_object = all_quests[i];
+			
+			var targets_found = 0;
+			for (var c=0; c < quest_object.target.length; c++) {
+				if (items.findOne({'artwork_id': quest_object.target[c], 'owner': Meteor.userId(), 'status': {$nin: ['unclaimed', 'for_sale']}}) != undefined)
+					targets_found++;
+			}
+
+			if (targets_found == quest_object.target.length)
+				return true;
+		};
+
+		return false;
 	}
 })
 

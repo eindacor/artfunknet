@@ -270,8 +270,10 @@ Meteor.methods({
         var item_object = canSellItem(item_id);
         if (item_object) {
             var value = getItemValue(item_id, 'sell', Meteor.userId());
-            if (isNaN(value))
+            if (isNaN(value)) {
+                console.log("isNaN returned for item value");
                 throw "invalid amount";
+            }
 
             addFunds("sell item", Meteor.userId(), value);
             items.update(item_id, {$set: {'owner': "Artfunkel, Inc.", 'status': "auctioned", 'tags': []}} ,function(error) {
