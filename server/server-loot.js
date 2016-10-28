@@ -1,6 +1,7 @@
 seasonal_ids = ["WL2svx8MckZwhrWqb"];
 lottery_level = 1;
 global_misprint_chance = .0001;
+global_foil_chance = .002;
 
 bronze_rarity_map = {
     'common': 60,
@@ -522,10 +523,10 @@ Meteor.methods({
         if (Meteor.user() && dailyDropIsEnabled()) {
             var rolled_quality = getRolledCrateQuality();
 
-            var foil_chance = .01;
+            var foil_chance = global_foil_chance;
 
             if (procUniqueAttribute(Meteor.userId(), "DAILY_FOIL_BONUS", undefined)) {
-                foil_chance = .02;
+                foil_chance *= 2;
             }
 
             var multi_item_generator = {
@@ -554,10 +555,10 @@ Meteor.methods({
     'openCrate' : function(user_id, quality) {
         var cost = lookupCrateCost(quality, admin_settings.crate_drop_count);
         if (Meteor.userId() && Meteor.userId() == user_id && cost < Meteor.user().profile.bank_balance) {
-            var foil_chance = .01;
+            var foil_chance = global_foil_chance;
 
             if (procUniqueAttribute(Meteor.userId(), "CRATE_FOIL_BONUS", undefined)) {
-                foil_chance = .02;
+                foil_chance *= 2;
             }
 
             var multi_item_generator = {

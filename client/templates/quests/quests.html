@@ -15,7 +15,7 @@
 			<div class="row">
 				<p class="quest-title {{rarity}}">{{rarity}} quest</p>
 				<div class="col-xs-12 col-md-8">
-					<p>targets:</p>
+					<p class="details">find {{min_requirement}} of the following:</p>
 					{{#each quest_target this}}
 						{{#if acquired _id}}
 							<p class="target-text highlight"><i class="fa fa-check-square-o green-text"></i> <span class="work-title">{{title}}</span> by {{artist}}</p>
@@ -26,7 +26,7 @@
 				</div>
 				<div class="col-xs-12 col-md-4">
 					<div class="reward-info">
-						<p>reward:</p>
+						<p class="details">reward:</p>
 						<p class="af-color">{{commaSeparatedValue reward.xp}}xp</p>
 						<p class="af-color">{{displayAsMoneyValue reward.money}}</p>
 						{{#if reward.item}}

@@ -211,7 +211,7 @@ var benefactorInteraction = function(npc_object) {
 
 var donorInteraction = function(npc_object) {
 	var drop_count = 2;
-	var foil_chance = .01;
+	var foil_chance = global_foil_chance;
 	var condition_min = 0;
 	var min_xp_rating = 0;
 
@@ -223,7 +223,7 @@ var donorInteraction = function(npc_object) {
 		}
 
 		if (procUniqueAttribute(Meteor.userId(), "DONOR_FOIL_BONUS", undefined)) {
-			foil_chance = .02;
+			foil_chance *= 2;
 		}
 
 		if (procUniqueAttribute(Meteor.userId(), "DONOR_CONDITION_MIN", undefined)) {
@@ -296,6 +296,7 @@ var preservationistInteraction = function(npc_object) {
 	var repair_amount;
 	var target_item = undefined;
 	var message = undefined;
+	var conditions_maxed_bonus = undefined;
 
 	switch(npc_object.quality) {
 		case 'bronze': repair_amount = .08; break;
@@ -392,15 +393,31 @@ var preservationistInteraction = function(npc_object) {
 
 			else message = "You have met a preservationist who comments on the quality of your permanent collection, and how well-kept it is."
 		}
+
+		conditions_maxed_bonus = 0.4;
 	}
 
-	else target_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}}, {sort: {'condition': 1}});
+	else {
+		target_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}}, {sort: {'condition': 1}});
+		conditions_maxed_bonus = 0.2;
+	}
 
-	if (target_item == undefined || target_item.condition > .9) {
+	if (target_item == undefined) {
 		if (message)
 			message += " Unfortunately, they don't see any items in your collection they can improve.";
 
 		else message = "You have met a preservationist, but you don't currently own any works that can be refurbished.";
+
+		return {'message' : message};
+	}
+
+	if (target_item.condition > .9) {
+		if (message)
+			message += " Unfortunately, they don't see any items in your collection they can improve. Then can only offer their gratitude.";
+
+		else message = "You have met a preservationist, but you don't currently own any works that can be refurbished. Then can only offer their gratitude.";
+
+		addXPChunkPercentage("preservationist (all items maxed)", Meteor.userId(), conditions_maxed_bonus);
 
 		return {'message' : message};
 	}
@@ -606,9 +623,7 @@ var collectorInteraction = function(npc_object) {
 
 var artDealerInteraction = function(npc_object) {
 	var drop_count = 4;
-
-	var foil_chance = .01;
-	var misprint_chance = .0001;
+	var foil_chance = global_foil_chance;
 	var min_xp_rating = 0;
 
 	if (isOwnGallery(npc_object)) {
@@ -625,7 +640,7 @@ var artDealerInteraction = function(npc_object) {
 		}
 
 		if (procUniqueAttribute(Meteor.userId(), "DEALER_FOIL_BONUS", undefined)) {
-			foil_chance = .02;
+			foil_chance *= 2;
 		}
 
 		if (procUniqueAttribute(Meteor.userId(), "DISPLAY_CONDITION_DEALER_BOOST", undefined)) {

@@ -193,8 +193,8 @@ Meteor.methods({
         }
     },
 
-    'getEntryFees' : function() {
-        return getEntryFees(Meteor.user());
+    'getEntryFee' : function(gallery_owner_id) {
+        return getEntryFee(Meteor.user(), Meteor.users.findOne(gallery_owner_id));
     },
 
     'canTurnInQuest': function(quest_id) {

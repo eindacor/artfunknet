@@ -216,7 +216,7 @@ Meteor.methods({
                                 'artwork_id': quest_item_ids[random_index],
                                 'condition': undefined,
                                 'xp_rating': undefined,
-                                'foil_chance': .01,
+                                'foil_chance': global_foil_chance,
                                 'seasonal': undefined,
                                 'lottery': 0,
                                 'original': false,

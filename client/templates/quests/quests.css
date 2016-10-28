@@ -25,9 +25,15 @@
 }
 
 .template-questTemplate .quest-title {
+	font-weight: bold;
 	font-size: 1.8rem;
 }
 
 .template-questTemplate .reward-info {
 	font-size: 1.5rem;
+}
+
+.template-questTemplate .details {
+	color: black;
+	text-decoration: underline;
 }

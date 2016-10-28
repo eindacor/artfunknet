@@ -245,14 +245,28 @@ updateGalleryDetails = function(user_id) {
     }
 }
 
-getEntryFees = function(user_object) {
-    var average_drop_value = getAverageDropValue(user_object.profile.level, 1.0);
-    return {
-        'free': 0,
-        'low': Math.floor(average_drop_value * 0.2),
-        'medium': Math.floor(average_drop_value * 0.8),
-        'high': Math.floor(average_drop_value * 1.4),
-        'outrageous': Math.floor(average_drop_value * 2.0)
+getEntryFee = function(buyer_object, owner_object) {
+    var base_cost = getAverageDropValue(buyer_object.profile.level, 1.0);
+    var player_level_differential = owner_object.profile.level - buyer_object.profile.level;
+
+    var diff_scale = Math.abs(player_level_differential) / 50;
+
+    var flat_cost; 
+    if (player_level_differential > 0)
+        flat_cost = base_cost + (base_cost * diff_scale * .5);
+
+    else flat_cost = base_cost - (base_cost * diff_scale * .5);
+
+    console.log("flat_cost: " + flat_cost);
+    console.log("diff_scale: " + diff_scale);
+
+    switch(owner_object.profile.entry_fee) {
+        case 'free': return 0;
+        case 'low': return Math.floor(flat_cost * 0.4);
+        case 'medium': return Math.floor(flat_cost * 0.6);
+        case 'high': return Math.floor(flat_cost * 0.8);
+        case 'outrageous': return Math.floor(flat_cost * 1.0);
+        default: return 0;
     }
 }
 
@@ -392,11 +406,12 @@ Meteor.methods({
         var buyer_id = Meteor.userId();
         var ticket_duration = 30; // minutes
         var ticket_expiration = moment().add(ticket_duration, 'minutes')._d.toISOString();
-        var entry_fee = Meteor.users.findOne(owner_id).profile.entry_fee;
+        var owner_object = Meteor.users.findOne(owner_id);
+        var entry_fee = owner_object.profile.entry_fee;
 
         var buyer_object = Meteor.users.findOne(buyer_id);
 
-        var actual_amount = getEntryFees(buyer_object)[entry_fee];
+        var actual_amount = getEntryFee(buyer_object, owner_object);
 
         if (actual_amount > buyer_object.profile.bank_balance)
             return;
@@ -451,11 +466,23 @@ Meteor.methods({
 
     'turnInQuest' : function(quest_id) {
         if (canTurnInQuest(quest_id)) {
+            var user_object = Meteor.user();
             var quest_object = quests.findOne(quest_id);
 
-            addXP(Meteor.userId(), quest_object.reward.xp);
-            logXPChunkPercentage("quest", quest_object.reward.xp_chunk_percentage);
-            addFunds("quest", Meteor.userId(), quest_object.reward.money);
+            var xp_recieved = quest_object.reward.xp;
+            var target_differential = items.find({'owner': user_object._id, 'status': {$nin: ['unclaimed', 'for_sale']}, 'artwork_id': {$in: quest_object.target}}).count() - quest_object.min_requirement;
+
+            xp_recieved += Math.floor(getXPChunk(user_object.profile.level) * target_differential * 0.1);
+            console.log("target diff: " + target_differential);
+
+            var foil_count = items.find({'owner': user_object._id, 'status': {$nin: ['unclaimed', 'for_sale']}, 'artwork_id': {$in: quest_object.target}, 'foil': true}).count();
+            console.log("foil count: " + foil_count);
+
+            xp_recieved += Math.floor(getXPChunk(user_object.profile.level) * foil_count * 0.1);
+
+            addXP(user_object._id, xp_recieved);
+            logXPChunkPercentage("quest", quest_object.reward.xp_chunk_percentage + (foil_count * 0.1) + (target_differential * 0.1));
+            addFunds("quest", user_object._id, quest_object.reward.money);
 
             if (quest_object.reward.item != undefined) {
                 var rarity = quest_object.reward.item.rarity;
@@ -465,11 +492,11 @@ Meteor.methods({
 
                 var item_generator = {
                     'source': "quest",
-                    'user_id': Meteor.userId(),
+                    'user_id': user_object._id,
                     'artwork_id': random_artwork_id,
                     'condition': undefined,
                     'xp_rating': undefined,
-                    'foil_chance': quest_object.reward.item.foil ? 1 : .01,
+                    'foil_chance': quest_object.reward.item.foil ? 1 : global_foil_chance,
                     'seasonal': undefined,
                     'lottery': 0,
                     'original': false,
@@ -482,7 +509,7 @@ Meteor.methods({
                 generateItemFromArtworkID(item_generator);
             }
 
-            if (procUniqueAttribute(Meteor.userId(), "ROLL_VALUE_QUEST_BONUS", undefined)) {
+            if (procUniqueAttribute(user_object._id, "ROLL_VALUE_QUEST_BONUS", undefined)) {
                 var random_displayed = selectRandomPainting({'owner': Meteor.userId(), 'status': "displayed"});
                 if (random_displayed) {
                     var attributes = random_displayed.attributes;
@@ -496,8 +523,8 @@ Meteor.methods({
                 }
             }
 
-            if (procUniqueAttribute(Meteor.userId(), "QUEST_TARGET_CONDITION_INCREASE", undefined)) {
-                items.update({'owner': Meteor.userId(), 'status': {$nin: ['unclaimed', 'for_sale']}, 'artwork_id': {$in: quest_object.target}}, {$set: {'condition': 1}}, {multi: true});
+            if (procUniqueAttribute(user_object._id, "QUEST_TARGET_CONDITION_INCREASE", undefined)) {
+                items.update({'owner': user_object._id, 'status': {$nin: ['unclaimed', 'for_sale']}, 'artwork_id': {$in: quest_object.target}}, {$set: {'condition': .9}}, {multi: true});
             }
 
             quests.remove(quest_id);
