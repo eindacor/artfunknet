@@ -473,10 +473,8 @@ Meteor.methods({
             var target_differential = items.find({'owner': user_object._id, 'status': {$nin: ['unclaimed', 'for_sale']}, 'artwork_id': {$in: quest_object.target}}).count() - quest_object.min_requirement;
 
             xp_recieved += Math.floor(getXPChunk(user_object.profile.level) * target_differential * 0.1);
-            console.log("target diff: " + target_differential);
 
             var foil_count = items.find({'owner': user_object._id, 'status': {$nin: ['unclaimed', 'for_sale']}, 'artwork_id': {$in: quest_object.target}, 'foil': true}).count();
-            console.log("foil count: " + foil_count);
 
             xp_recieved += Math.floor(getXPChunk(user_object.profile.level) * foil_count * 0.1);
 
