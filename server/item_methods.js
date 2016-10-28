@@ -216,11 +216,11 @@ Meteor.methods({
                                 'artwork_id': quest_item_ids[random_index],
                                 'condition': undefined,
                                 'xp_rating': undefined,
-                                'foil_chance': global_foil_chance,
+                                'foil_chance': getLootData().global_foil_chance,
                                 'seasonal': undefined,
                                 'lottery': 0,
                                 'original': false,
-                                'misprint_chance': global_misprint_chance,
+                                'misprint_chance': getLootData().global_misprint_chance,
                                 'status': "unclaimed",
                                 'xp_rating_min': 0,
                                 'condition_min': 0

@@ -103,6 +103,10 @@ Template.galleryTable.helpers({
 			getEntryFee(owner_id);
 		}
 
+		else if (entry_fees[owner_id] == -1) {
+			getEntryFee(owner_id);
+		}
+
 		else return getCommaSeparatedValue(entry_fees[owner_id]);
 	}
 });
@@ -145,11 +149,8 @@ Template.galleryHeaderTemplate.events({
 	}
 })
 
-Template.galleries.created = function() {
-	entry_fees = {};
-}
-
 Template.galleries.rendered = function() {
+	entry_fees = {};
 	Session.set('galleries_ascending', true);
 	Session.set('galleries_sort', "profile.screen_name");
 

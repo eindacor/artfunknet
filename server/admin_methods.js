@@ -60,8 +60,8 @@ Meteor.methods({
                 'quality': "platinum",
                 'count': admin_settings.daily_drop_count,
                 'status': "for_sale",
-                'foil_chance': global_foil_chance,
-                'misprint_chance': global_misprint_chance,
+                'foil_chance': getLootData().global_foil_chance,
+                'misprint_chance': getLootData().global_misprint_chance,
                 'xp_rating_min': 0,
                 'condition_min': 0
             }
@@ -102,7 +102,7 @@ Meteor.methods({
 				'daily_drop_count': admin_settings.daily_drop_count,
 				'crate_drop_count': admin_settings.crate_drop_count,
 				'bank_balance': user_object.profile.bank_balance,
-				'seasonal_ids': seasonal_ids
+				'seasonal_ids': getLootData().seasonal_items
 			}
 		}
 	},
@@ -165,11 +165,11 @@ Meteor.methods({
                     'artwork_id': artwork_id,
                     'condition': undefined,
                     'xp_rating': undefined,
-                    'foil_chance': global_foil_chance,
+                    'foil_chance': getLootData().global_foil_chance,
                     'seasonal': undefined,
                     'lottery': 0,
                     'original': false,
-                    'misprint_chance': global_misprint_chance,
+                    'misprint_chance': getLootData().global_misprint_chance,
                     'status': "unclaimed",
                     'xp_rating_min': 0,
                     'condition_min': 0
@@ -188,17 +188,17 @@ Meteor.methods({
                     'artwork_id': artwork_id,
                     'condition': undefined,
                     'xp_rating': undefined,
-                    'foil_chance': global_foil_chance,
+                    'foil_chance': getLootData().global_foil_chance,
                     'seasonal': undefined,
                     'lottery': 0,
                     'original': false,
-                    'misprint_chance': global_misprint_chance,
+                    'misprint_chance': getLootData().global_misprint_chance,
                     'status': "claimed",
                     'xp_rating_min': 0,
                     'condition_min': 0
                 }
 
-                return generateItemFromArtworkID(user_id, artwork_id, undefined, undefined, .01, undefined, 0, false, "claimed", 0, 0);
+                return generateItemFromArtworkID(item_generator);
             }
 		}
 
@@ -225,12 +225,14 @@ Meteor.methods({
 	}, 
 
 	'setSeasonal' : function(id_array) {
-		for (var i=0; i < id_array.length; i++) {
-			if (artworks.findOne(id_array[i]) == undefined)
-				return;
-		}
+        if (adminValidated()) {
+    		for (var i=0; i < id_array.length; i++) {
+    			if (artworks.findOne(id_array[i]) == undefined)
+    				return;
+    		}
 
-		seasonal_ids = id_array;
+            metadata.update({'loot_data': {$ne: null}}, {$set: {'loot_data.seasonal_items': id_array}});
+        }
 	},
 
 	'alertAllUsers' : function(message) {

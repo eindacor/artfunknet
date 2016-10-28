@@ -81,10 +81,18 @@ var updateContent = function() {
 
             artworks.update(db_object._id, {$set: {'locked_attributes': random_attributes}});
         }
-    })
+    });
 
     // temp code
-
+    if (metadata.findOne({'loot_data': {$ne: null}}) == undefined) {
+        var loot_data = {
+            'global_foil_chance': .005,
+            'global_misprint_chance': .0001,
+            'seasonal_items': [getRandomArtworkIDFromRarity("legendary")],
+            'lottery_level': 1
+        }
+        metadata.insert({'loot_data': loot_data});
+    }
     // temp code
 }
 
@@ -166,7 +174,7 @@ Meteor.startup(function() {
         schedule: function(parser) {
             // parser is a later.parse object
             // return parser.text('every 10 seconds');
-            return parser.text('every 2 weeks at 10:00 am');
+            return parser.text('every 2 weeks at 10:00 am on Tuesday');
         },
         job: function() {
             if (Meteor.users.find({'profile.level': 50}).count() < 4)
@@ -189,9 +197,9 @@ Meteor.startup(function() {
                     'condition': undefined,
                     'xp_rating': undefined,
                     'foil_chance': 0,
-                    'misprint_chance': .0001,
+                    'misprint_chance': getLootData().global_misprint_chance,
                     'seasonal': false,
-                    'lottery': lottery_level,
+                    'lottery': getLootData().lottery_level,
                     'original': false,
                     'status': "claimed",
                     'xp_rating_min': 0,
@@ -199,7 +207,7 @@ Meteor.startup(function() {
                 };
 
                 generateItemFromArtworkID(item_generator);
-                lottery_level = 1;
+                metadata.update({'loot_data': {$ne: null}}, {$set: {'loot_data.lottery_level': 1}});
 
                 var message = "This week's lottery winner is " + Meteor.users.findOne(winning_id).profile.screen_name + ". Congratulations!!!";
                 Meteor.users.find({'profile.level': 50}).forEach(function(db_object) {
@@ -219,22 +227,28 @@ Meteor.startup(function() {
             }
 
             else {
-                if (lottery_level < 10)
-                    lottery_level++;
+                if (getLootData().lottery_level < 10) {
+                    metadata.update({'loot_data': {$ne: null}}, {$set: {'loot_data.lottery_level': getLootData().lottery_level + 1}}, function(error) {
+                        if (error)
+                            console.log(error.message)
 
-                var message = "This week there's no lottery winner. New Lottery Level: " + lottery_level;
-                Meteor.users.find({'profile.level': 50}).forEach(function(db_object) {
-                    var alert_object = {
-                        'user_id' : db_object._id,
-                        'message' : message,
-                        'link' : '/',
-                        'icon' : 'fa-gavel',
-                        'sentiment' : "good",
-                        'time' : moment()
-                    };
+                        else {
+                            var message = "This week there's no lottery winner. New Lottery Level: " + getLootData().lottery_level;
+                            Meteor.users.find({'profile.level': 50}).forEach(function(db_object) {
+                                var alert_object = {
+                                    'user_id' : db_object._id,
+                                    'message' : message,
+                                    'link' : '/',
+                                    'icon' : 'fa-gavel',
+                                    'sentiment' : "good",
+                                    'time' : moment()
+                                };
 
-                    alerts.insert(alert_object);
-                });
+                                alerts.insert(alert_object);
+                            });
+                        }
+                    });
+                }
             }
         }
     });

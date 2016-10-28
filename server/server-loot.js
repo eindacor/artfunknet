@@ -1,8 +1,3 @@
-seasonal_ids = ["WL2svx8MckZwhrWqb"];
-lottery_level = 1;
-global_misprint_chance = .0001;
-global_foil_chance = .002;
-
 bronze_rarity_map = {
     'common': 60,
     'uncommon': 12,
@@ -107,6 +102,10 @@ attribute_quantities = {
         'primary' : 5,
         'secondary' : 3
     }
+}
+
+getLootData = function() {
+    return metadata.findOne({'loot_data': {$ne: null}}).loot_data;
 }
 
 logLegendary = function(source, item_object) {
@@ -396,7 +395,6 @@ var misprintArtworkData = function(artwork_data) {
     return artwork_data;
 }
 
-//TODO instead of passing too many parameters, pass a JSON objecct with each parameter as a field
 generateItemFromArtworkID = function(item_generator) {
     var misprinted = Math.random() < item_generator.misprint_chance;
     var artwork_data = artworks.findOne(item_generator.artwork_id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}});
@@ -404,6 +402,8 @@ generateItemFromArtworkID = function(item_generator) {
 
         if (misprinted)
             artwork_data = misprintArtworkData(artwork_data);
+
+        var loot_data = getLootData();
 
         var new_item_id = items.insert({
             'artwork_id' : item_generator.artwork_id,
@@ -414,8 +414,8 @@ generateItemFromArtworkID = function(item_generator) {
             'date_created' : new Date(),
             'xp_rating' : item_generator.xp_rating === undefined ? getXPRating(item_generator.xp_rating_min) : item_generator.xp_rating,
             'roll_count' : 0,
-            'foil': seasonal_ids.indexOf(item_generator.artwork_id) == -1 && Math.random() < item_generator.foil_chance,
-            'seasonal': item_generator.seasonal === undefined ? seasonal_ids.indexOf(item_generator.artwork_id) != -1 : item_generator.seasonal,
+            'foil': loot_data.seasonal_items.indexOf(item_generator.artwork_id) == -1 && Math.random() < item_generator.foil_chance,
+            'seasonal': item_generator.seasonal === undefined ? loot_data.seasonal_items.indexOf(item_generator.artwork_id) != -1 : item_generator.seasonal,
             'lottery': item_generator.lottery === undefined ? 0 : item_generator.lottery,
             'original': item_generator.original === undefined ? false : item_generator.original,
             'tags': [],
@@ -523,7 +523,7 @@ Meteor.methods({
         if (Meteor.user() && dailyDropIsEnabled()) {
             var rolled_quality = getRolledCrateQuality();
 
-            var foil_chance = global_foil_chance;
+            var foil_chance = getLootData().global_foil_chance;
 
             if (procUniqueAttribute(Meteor.userId(), "DAILY_FOIL_BONUS", undefined)) {
                 foil_chance *= 2;
@@ -536,7 +536,7 @@ Meteor.methods({
                 'count': admin_settings.daily_drop_count,
                 'status': "unclaimed",
                 'foil_chance': foil_chance,
-                'misprint_chance': global_misprint_chance,
+                'misprint_chance': getLootData().global_misprint_chance,
                 'xp_rating_min': 0,
                 'condition_min': 0
             }
@@ -555,7 +555,7 @@ Meteor.methods({
     'openCrate' : function(user_id, quality) {
         var cost = lookupCrateCost(quality, admin_settings.crate_drop_count);
         if (Meteor.userId() && Meteor.userId() == user_id && cost < Meteor.user().profile.bank_balance) {
-            var foil_chance = global_foil_chance;
+            var foil_chance = getLootData().global_foil_chance;
 
             if (procUniqueAttribute(Meteor.userId(), "CRATE_FOIL_BONUS", undefined)) {
                 foil_chance *= 2;
@@ -568,7 +568,7 @@ Meteor.methods({
                 'count': admin_settings.crate_drop_count,
                 'status': "unclaimed",
                 'foil_chance': foil_chance,
-                'misprint_chance': global_misprint_chance,
+                'misprint_chance': getLootData().global_misprint_chance,
                 'xp_rating_min': 0,
                 'condition_min': 0
             }

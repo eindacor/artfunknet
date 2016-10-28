@@ -126,6 +126,10 @@ Template.userGallery.helpers({
 			getEntryFee(owner_id);
 		}
 
+		else if (entry_fees[owner_id] == -1) {
+			getEntryFee(owner_id);
+		}
+
 		else return getCommaSeparatedValue(entry_fees[owner_id]);
 	}
 })
@@ -293,7 +297,6 @@ Template.userGallery.events ({
 })
 
 Template.userGallery.created = function() {
-	entry_fees = {};
 	this.handle = Meteor.setInterval((function() {
 		var now = moment();
 		Session.set('now', now.toISOString());
@@ -305,6 +308,7 @@ Template.userGallery.destroyed = function() {
 }
 
 Template.userGallery.rendered = function() {
+	entry_fees = {};
 	if (Meteor.user() && this.data.screen_name == Meteor.user().profile.screen_name && Meteor.user().profile.tutorials.my_gallery) 
 	{
 		Blaze.renderWithData(Template.modalTemplate, {

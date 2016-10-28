@@ -245,8 +245,13 @@ updateGalleryDetails = function(user_id) {
     }
 }
 
-getEntryFee = function(buyer_object, owner_object) {
+getEntryFee = function(buyer_object, owner_id) {
+    owner_object = Meteor.users.findOne(owner_id);
     var base_cost = getAverageDropValue(buyer_object.profile.level, 1.0);
+    if (owner_object == undefined || buyer_object == undefined) {
+        return -1;
+    }
+
     var player_level_differential = owner_object.profile.level - buyer_object.profile.level;
 
     var diff_scale = Math.abs(player_level_differential) / 50;
@@ -256,9 +261,6 @@ getEntryFee = function(buyer_object, owner_object) {
         flat_cost = base_cost + (base_cost * diff_scale * .5);
 
     else flat_cost = base_cost - (base_cost * diff_scale * .5);
-
-    console.log("flat_cost: " + flat_cost);
-    console.log("diff_scale: " + diff_scale);
 
     switch(owner_object.profile.entry_fee) {
         case 'free': return 0;
@@ -470,23 +472,31 @@ Meteor.methods({
             var quest_object = quests.findOne(quest_id);
 
             var xp_recieved = quest_object.reward.xp;
-            var target_differential = items.find({'owner': user_object._id, 'status': {$nin: ['unclaimed', 'for_sale']}, 'artwork_id': {$in: quest_object.target}}).count() - quest_object.min_requirement;
+            var unique_targets_found = [];
+            var unique_specials_found = [];
 
+            items.find({'owner': user_object._id, 'status': {$nin: ['unclaimed', 'for_sale']}, 'artwork_id': {$in: quest_object.target}}).forEach(function(item_object) {
+                if (unique_targets_found.indexOf(item_object.artwork_id) == -1)
+                    unique_targets_found.push(item_object.artwork_id);
+
+                if (unique_specials_found.indexOf(item_object.artwork_id) == -1 && (item_object.foil || item_object.original))
+                    unique_specials_found.push(item_object.artwork_id);
+            });
+
+            var target_differential = unique_targets_found.length - quest_object.min_requirement;
             xp_recieved += Math.floor(getXPChunk(user_object.profile.level) * target_differential * 0.1);
-
-            var foil_count = items.find({'owner': user_object._id, 'status': {$nin: ['unclaimed', 'for_sale']}, 'artwork_id': {$in: quest_object.target}, 'foil': true}).count();
-
-            xp_recieved += Math.floor(getXPChunk(user_object.profile.level) * foil_count * 0.1);
+            var special_count = unique_specials_found.length;
+            xp_recieved += Math.floor(getXPChunk(user_object.profile.level) * special_count * 0.1);
 
             addXP(user_object._id, xp_recieved);
-            logXPChunkPercentage("quest", quest_object.reward.xp_chunk_percentage + (foil_count * 0.1) + (target_differential * 0.1));
+            logXPChunkPercentage("quest", quest_object.reward.xp_chunk_percentage + (special_count * 0.1) + (target_differential * 0.1));
             addFunds("quest", user_object._id, quest_object.reward.money);
 
             if (quest_object.reward.item != undefined) {
                 var rarity = quest_object.reward.item.rarity;
-                var count = artworks.find({'_id': {$nin: seasonal_ids}, 'rarity': rarity}).count();
+                var count = artworks.find({'_id': {$nin: getLootData().seasonal_items}, 'rarity': rarity}).count();
                 var random_index = Math.floor(Math.random() * count);
-                var random_artwork_id = artworks.findOne({'_id': {$nin: seasonal_ids}, 'rarity': rarity}, {skip: random_index})._id;
+                var random_artwork_id = artworks.findOne({'_id': {$nin: getLootData().seasonal_items}, 'rarity': rarity}, {skip: random_index})._id;
 
                 var item_generator = {
                     'source': "quest",
@@ -494,11 +504,11 @@ Meteor.methods({
                     'artwork_id': random_artwork_id,
                     'condition': undefined,
                     'xp_rating': undefined,
-                    'foil_chance': quest_object.reward.item.foil ? 1 : global_foil_chance,
+                    'foil_chance': quest_object.reward.item.foil ? 1 : getLootData().global_foil_chance,
                     'seasonal': undefined,
                     'lottery': 0,
                     'original': false,
-                    'misprint_chance': global_misprint_chance,
+                    'misprint_chance': getLootData().global_misprint_chance,
                     'status': "unclaimed",
                     'xp_rating_min': 0,
                     'condition_min': 0
