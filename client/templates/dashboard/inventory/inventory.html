@@ -5,6 +5,17 @@
 			<h3 class="view-buttons"><i id="toggle-view" class="fa fa-list {{#if list_view}}af-color{{/if}}"></i><i id="toggle-filters" class="fa fa-filter"></i></h3>
 			<div class="row all-filters">
 				<textarea id="tag-selector" placeholder="search by tags (separate tags with a comma, e.g. 'primary, to auction, foils')"></textarea>
+				<div class="sort-area col-xs-12">
+					<p class="filter-title">display by tag:</p>
+					<select id="tagged-display-duration">
+            			<!-- <option value="1">1 minute</option> -->
+            			<option value="60">1 hour</option>
+            			<option value="360">6 hours</option>
+            			<option value="720">12 hours</option>
+            			<option value="1440">1 day</option>
+            		</select>
+            		<button id="display-by-tags" type="button" class="btn btn-default">display</button>
+				</div>
 				<div class="sort-area col-xs-12 col-md-4">
 					<p class="filter-title">sort:</p>
 					<select id="sort-selector">

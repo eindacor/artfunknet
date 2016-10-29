@@ -132,3 +132,13 @@
 .template-inventory .remaining-text {
 	font-size: .6em;
 }
+
+.template-inventory #display-by-tags {
+	background-color: black;
+	color: white;
+	border-radius: 0;
+	border: none; 
+	height: 20px;
+	width: 80px;
+	font-size: 1rem;
+}

@@ -643,5 +643,25 @@ Meteor.methods({
             'lottery': 0, 
             'artwork_data.rarity': {$in: ["common", "uncommon", "rare"]}
         });
+    },
+
+    'displayAllTagged': function(tag_array, duration) {
+        var player_object = Meteor.user();
+        var tagged_items = items.find({'owner': player_object._id, 'tags': {$in: tag_array}, 'status': {$ne: 'displayed'}}).fetch();
+        var has_capacity = items.find({'owner' : player_object._id, 'status' : "displayed"}).count() + tagged_items.length <= player_object.profile.display_cap;
+
+        if (!has_capacity)
+            return false;
+
+        for (var i=0; i<tagged_items.length; i++) {
+            if (!canDisplayItem(tagged_items[i]._id))
+                return false;
+        }
+
+        for (var i=0; i<tagged_items.length; i++) {
+            displayItem(tagged_items[i]._id, duration);
+        }
+
+        return true;
     }
 })

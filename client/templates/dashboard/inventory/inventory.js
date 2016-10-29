@@ -280,6 +280,19 @@ Template.inventory.events({
 			target.addClass('af-color');
 			$('.all-filters').css('display', 'block');
 		}
+	},
+
+	'click #display-by-tags': function() {
+		if ($('#tag-selector').val().length != 0) {
+			Meteor.call('displayAllTagged', tags, $('#tagged-display-duration').val(), function(error, result) {
+				if (error)
+					console.log(error.message)
+
+				if (result.length > 0) {
+					//show errors in UI
+				}
+			})
+		}
 	}
 })
 

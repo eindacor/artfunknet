@@ -109,6 +109,31 @@ getDisplayDetails = function(item_id, duration) {
     return display_details;
 }
 
+displayItem = function(item_id, duration) {
+    var errors = [];
+    var valid_durations = [1, 60, 360, 720, 1440];
+
+    if (isNaN(duration) || valid_durations.indexOf(Number(duration)) == -1)
+        errors.push("invalid duration");
+
+    var item_object = canDisplayItem(item_id);
+    if (item_object && errors.length == 0) {
+        var end = moment().add(duration, 'minutes');
+        var display_details = getDisplayDetails(item_id, duration);
+        items.update({'_id': item_id}, {$set: {'status' : 'displayed', 'display_details' : display_details}}, function(error) {
+            if (error)
+                console.log(error.message);
+
+            else updateGalleryDetails(item_object.owner);
+        });
+        return [];
+    }
+
+    else errors.push("invalid operation");
+
+    return errors;
+}
+
 Meteor.methods({
 	'claimArtwork' : function(item_id) {
 		var item_object = canClaimItem(item_id);
@@ -163,27 +188,7 @@ Meteor.methods({
     },
 
     'displayArtwork' : function(item_id, duration) {
-        var errors = [];
-
-        if (isNaN(duration))
-            errors.push("invalid duration");
-
-    	var item_object = canDisplayItem(item_id);
-        if (item_object) {
-            var end = moment().add(duration, 'minutes');
-            var display_details = getDisplayDetails(item_id, duration);
-            items.update({'_id': item_id}, {$set: {'status' : 'displayed', 'display_details' : display_details}}, function(error) {
-                if (error)
-                    console.log(error.message);
-
-                else updateGalleryDetails(item_object.owner);
-            });
-            return [];
-        }
-
-        else errors.push("invalid operation");
-
-        return errors;
+        return displayItem(item_id, duration);
     },
 
     'acceptCollectorOffer' : function(offer_id) {
