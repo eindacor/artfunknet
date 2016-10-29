@@ -18,7 +18,6 @@ Template.tagItemModal.events({
 	},
 
 	'keydown #tag-entry': function(event) {
-		console.log(event);
 		if (event.key == "Enter") {
 			event.preventDefault();
 
