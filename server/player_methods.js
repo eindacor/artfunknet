@@ -486,10 +486,10 @@ Meteor.methods({
             var target_differential = unique_targets_found.length - quest_object.min_requirement;
             xp_recieved += Math.floor(getXPChunk(user_object.profile.level) * target_differential * 0.5);
             var special_count = unique_specials_found.length;
-            xp_recieved += Math.floor(getXPChunk(user_object.profile.level) * special_count * 0.4);
+            xp_recieved += Math.floor(getXPChunk(user_object.profile.level) * special_count * 0.3);
 
             addXP(user_object._id, xp_recieved);
-            logXPChunkPercentage("quest", quest_object.reward.xp_chunk_percentage + (special_count * 0.4) + (target_differential * 0.5));
+            logXPChunkPercentage("quest", quest_object.reward.xp_chunk_percentage + (special_count * 0.3) + (target_differential * 0.5));
             addFunds("quest", user_object._id, quest_object.reward.money);
 
             if (quest_object.reward.item != undefined) {
