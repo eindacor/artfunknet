@@ -196,8 +196,7 @@ Meteor.methods({
 
                 else {
                     if (Meteor.userId() == offer_object.host &&
-                        procUniqueAttribute(Meteor.userId(), "COLLECTOR_QUEST_ITEM", undefined) && 
-                        Math.random() < 1) {
+                        procUniqueAttribute(Meteor.userId(), "COLLECTOR_QUEST_ITEM", undefined) && Math.random() < .25) {
                         var quest_item_ids = [];
                         quests.find({'owner_id': Meteor.userId()}).forEach(function(db_object) {
                             var targets = db_object.target;
@@ -333,7 +332,12 @@ Meteor.methods({
     },
 
     'tagItem' : function(item_id, tags) {
-        items.update({'_id': item_id, 'owner': Meteor.userId()}, {$set: {'tags': tags}});
+        var lower_case = [];
+        for (var i=0; i<tags.length; i++) {
+            lower_case.push(tags[i].toLowerCase())
+        }
+
+        items.update({'_id': item_id, 'owner': Meteor.userId()}, {$set: {'tags': lower_case}});
     },
 
     'getItemValue' : function(item_id, type, user_id) {

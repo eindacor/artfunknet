@@ -492,52 +492,59 @@ var artExpertInteraction = function(npc_object) {
 	return {'message': message}
 }
 
+var getRandomItemForSale = function() {
+	var tagged_items = items.find({'owner': Meteor.userId(), 'tags': {$in: ["for sale"]}, 'status': 'claimed'}).fetch();
+	var random_index = Math.floor(Math.random() * tagged_items.length);
+	return tagged_items[random_index];
+}
+
+var getRandomItemForSaleDisplayed = function() {
+	var tagged_items = items.find({'owner': Meteor.userId(), 'tags': {$in: ["for sale"]}, 'status': {$in: ['displayed', 'permanent']}}).fetch();
+	var random_index = Math.floor(Math.random() * tagged_items.length);
+	return tagged_items[random_index];
+}
+
 var collectorInteraction = function(npc_object) {
 	//TODO save interaction object to a DB, then return the id. This allows server-side verification that the offer was legitimate if the player accepts.
 	var offer_multiplier;
 	var offer_bonus = 0;
+	var message = undefined;
 
 	switch(npc_object.quality) {
-		case 'bronze': offer_multiplier = 1; break;
-		case 'silver': offer_multiplier = 1.1; break;
-		case 'gold': offer_multiplier = 1.2; break;
-		case 'platinum': offer_multiplier = 1.3; break;
+		case 'bronze': offer_multiplier = .4; break;
+		case 'silver': offer_multiplier = .5; break;
+		case 'gold': offer_multiplier = .6; break;
+		case 'platinum': offer_multiplier = .7; break;
 		default: offer_multiplier = 0; break;
 	}
 
-	var collector_target = undefined;
-	var target_status = "claimed";
+	var collector_target = undefined; 
 
-	if (isOwnGallery(npc_object)) {
-		if (procUniqueAttribute(Meteor.userId(), "COLLECTOR_FOR_SALE_OFFER")) {
-			target_status = "for_sale";
+	if (isOwnGallery(npc_object) && procUniqueAttribute(Meteor.userId(), "COLLECTOR_DISPLAY_OFFER", undefined)) {
+		collector_target = getRandomItemForSaleDisplayed();
 
-			if (collector_target)
-				offer_multiplier += 1;
-		}
-
-		if (procUniqueAttribute(Meteor.userId(), "COLLECTOR_DISPLAY_OFFER", undefined) && target_status == "claimed")
-			target_status = "displayed";
+		if (collector_target === undefined)
+			collector_target = selectRandomPainting({'owner': Meteor.userId(), 'status': {$in: ['displayed', 'permanent']}});
 	}
-	
-	collector_target = selectRandomPainting({'owner': Meteor.userId(), 'status': target_status});
 
-	if (collector_target == undefined && target_status != "claimed")
+	else collector_target = getRandomItemForSale();
+
+	if (collector_target == undefined)
 		collector_target = selectRandomPainting({'owner': Meteor.userId(), 'status': "claimed"});
 
 	if (collector_target) {
 		if (isOwnGallery(npc_object)) {
-			offer_multiplier += .4;
+			offer_multiplier += .3;
 
 			if (procUniqueAttribute(Meteor.userId(), "GOOD_CONDITION_COLLECTOR_BONUS", undefined) && collector_target.condition > .8)
-				offer_multiplier += .4;
+				offer_multiplier += .2;
 
 			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_ROLL_COUNT_BONUS", undefined) && collector_target.roll_count <= 0)
-				offer_multiplier += .4;
+				offer_multiplier += .2;
 
 			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_SPECIAL_BONUS", undefined)) {
 				if (collector_target.foil || collector_target.original || collector_target.lottery || collector_target.seasonal)
-					offer_multiplier += .8;
+					offer_multiplier += .2;
 			}
 
 			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_FINISH_RATING_BONUS", undefined)) {
@@ -559,47 +566,66 @@ var collectorInteraction = function(npc_object) {
 				}
 
 				var finish_bonus = high_finish_count * .02;
-				offer_multiplier += (finish_bonus > .4 ? .4 : finish_bonus);
+				offer_multiplier += Math.min(finish_bonus, .4);
 			}
 
 			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_AUCTION_BONUS", undefined)) {
 				var highest_value = 0;
 				items.find({'owner': Meteor.userId(), 'status': "auctioned"}).forEach(function(db_object) {
-					var item_value = getItemValue(db_object._id, "auction_min", Meteor.userId());
-					if (item_value > highest_value)
-						highest_value = item_value;
+					highest_value = Math.max(getItemValue(db_object._id, "auction_min", Meteor.userId()) * .4, highest_value);
 				})
 
 				offer_bonus += highest_value;
 			}
 
-			var skip_offer = false;
-			var message = undefined;
 			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_XP_REWARD", "Art Enthusiast")) {
 				var xp_chunk_percentage = .25 * offer_multiplier;
 				var xp_reward = Math.floor(xp_chunk_percentage * (getXPChunk(Meteor.user().profile.level) + offer_bonus));
 				message = "You have met an Art Collector, who was admiring " + collector_target.artwork_data.title + " by " + collector_target.artwork_data.artist + ", currently on display in your gallery. You have gained " + getCommaSeparatedValue(xp_reward) + "xp.";
 				addXP(Meteor.userId(), xp_reward);
 				logXPChunkPercentage("art collector unique", Number(xp_chunk_percentage.toFixed(3)));
-				skip_offer = true;
 			}
 
-			if (target_status == "displayed") {
-				var donation_amount = Math.floor((getItemValue(collector_target._id, "display", Meteor.userId()) * .2) * offer_multiplier) + offer_bonus;
+			if (procUniqueAttribute(Meteor.userId(), "COLLECTOR_DISPLAY_OFFER", undefined)) {
+				var donation_amount = Math.min(Math.floor((getItemValue(collector_target._id, "display", Meteor.userId()) * .2) * offer_multiplier) + offer_bonus, 800000);
 				addFunds("COLLECTOR_DISPLAY_OFFER", Meteor.userId(), donation_amount);
 				
 				//skip_offer indicates the ART_COLLECTOR_XP_REWARD affix already proc'd
-				if (skip_offer)
-					return {'message': message + " In addition, they offer you $" + getCommaSeparatedValue(donation_amount) + " for their appreciation of the piece, and insist that you keep and maintain it for the world to enjoy."}
-
-				else return {'message': "You have met an Art Collector, who was admiring " + collector_target.artwork_data.title + " by " + collector_target.artwork_data.artist + ", currently on display in your gallery. They offer you $" + getCommaSeparatedValue(donation_amount) + " for their appreciation of the piece, and insist that you keep and maintain it for the world to enjoy."}
+				if (message == undefined)
+					message = "You have met an Art Collector, who was admiring " + collector_target.artwork_data.title + " by " + collector_target.artwork_data.artist + ", currently on display in your gallery. They offer you $" + getCommaSeparatedValue(donation_amount) + " for their appreciation of the piece, and insist that you keep and maintain it for the world to enjoy.";
+					
+				else message += " In addition, they offer you $" + getCommaSeparatedValue(donation_amount) + " for their appreciation of the piece, and insist that you keep and maintain it for the world to enjoy.";
 			}
 
-			else if (skip_offer)
+			if (procUniqueAttribute(Meteor.userId(), "COLLECTOR_FOR_SALE_OFFER", undefined)) {
+				var multi_item_generator = {
+			        'source': "COLLECTOR_FOR_SALE_OFFER",
+			        'user_id': Meteor.userId(),
+			        'quality': npc_object.quality,
+			        'count': 2,
+			        'status': "for_sale",
+			        'foil_chance': getLootData().global_foil_chance,
+			        'misprint_chance': getLootData().global_misprint_chance,
+			        'xp_rating_min': 0,
+			        'condition_min': 0
+			    }
+
+				generateItems(multi_item_generator);
+
+				//if a message is already created by logic above, the collector offer is bypassed for money/xp, so return interaction
+				if (message != undefined) {
+					message += " They have also offered you some items from their collection, which can be found in the store."
+				}		
+
+				//else continue with message undefined, which will leave isOwnGallery block and proceed to actual offer
+			}
+
+			if (message != undefined)
 				return {'message': message};
 		}
 
-		var offer_amount = Math.floor(getItemValue(collector_target._id, "display", Meteor.userId()) * offer_multiplier) + offer_bonus;
+		var offer_amount = Math.floor(getItemValue(collector_target._id, "collector", Meteor.userId()) * offer_multiplier) + offer_bonus;
+		console.log(offer_amount);
 
 		var offer_id = npc_data.insert({
 			'owner': Meteor.userId(),
@@ -612,11 +638,15 @@ var collectorInteraction = function(npc_object) {
 			}
 		})
 
-		return {'type': "collector_bonus", 'offer_id': offer_id, 'item': collector_target};
+		if (isOwnGallery(npc_object) && procUniqueAttribute("COLLECTOR_FOR_SALE_OFFER", undefined)) {
+			message = "They have also offered you a few items from their collection, which can be found in the store.";
+		}
+
+		return {'type': "collector_bonus", 'offer_id': offer_id, 'item': collector_target, 'message': message};
 	}
 
 	else {
-		var message = "You have met an Art Collector that would love to add to their collection, but you don't seem to have any paintings available.";
+		message = "You have met an Art Collector that would love to add to their collection, but you don't seem to have any paintings available.";
 		return {'message': message}
 	}
 }
