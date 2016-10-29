@@ -318,16 +318,17 @@ Meteor.methods({
     	else return undefined;
     },
 
+    //TODO: horribly inefficient method, update
     'updateLockedAttributes': function(artwork_id, attribute_id_array) {
     	if (adminValidated()) {
     		artworks.update(artwork_id, {$set: {'locked_attributes': attribute_id_array}});
-	        items.find().forEach(function(db_object) {
+	        items.find({'artwork_id': artwork_id}).forEach(function(db_object) {
 		        var item_attributes = db_object.attributes;
 		        for (var i=0; i<item_attributes.length; i++) {
-		            item_attributes[i].locked = attributeIsLocked(db_object.artwork_id, item_attributes[i]._id);
+		            item_attributes[i].locked = attributeIsLocked(artwork_id, item_attributes[i]._id);
 		        }
 
-		        items.update(db_object._id, {$set: {'attributes': item_attributes}});
+		        items.update(db_object._id, {$set: {'attributes': item_attributes, 'artwork_data.locked_attributes': attribute_id_array}});
 		    })
     	}
     },
