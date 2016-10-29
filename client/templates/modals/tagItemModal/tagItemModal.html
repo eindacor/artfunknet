@@ -6,7 +6,7 @@
 				<p class="modal-message">Enter tags for <span class="af-color work-title">{{title}}</span> by <span class="af-color">{{artist}}</span></p>
 				{{/with}}
 				<p>(separate tags with a comma, e.g. "primary, to auction, foils")</p>
-				<textarea id="tag-entry">{{this.item_data.tags}}</textarea>
+				<textarea id="tag-entry" data-item_id="{{this.item_data._id}}">{{this.item_data.tags}}</textarea>
 			</div>
 			<div class="modal-button-area">
 				<button class="modal-button ok-button" data-item_id="{{this.item_data._id}}">ok</button>
