@@ -511,10 +511,10 @@ var collectorInteraction = function(npc_object) {
 	var message = undefined;
 
 	switch(npc_object.quality) {
-		case 'bronze': offer_multiplier = .4; break;
-		case 'silver': offer_multiplier = .5; break;
-		case 'gold': offer_multiplier = .6; break;
-		case 'platinum': offer_multiplier = .7; break;
+		case 'bronze': offer_multiplier = 1; break;
+		case 'silver': offer_multiplier = 1.1; break;
+		case 'gold': offer_multiplier = 1.2; break;
+		case 'platinum': offer_multiplier = 1.3; break;
 		default: offer_multiplier = 0; break;
 	}
 
