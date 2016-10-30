@@ -550,12 +550,6 @@ var collectorInteraction = function(npc_object) {
 					offer_multiplier += .2;
 			}
 
-			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_XP_REWARD", "Art Enthusiast")) {
-				xp_chunk_percentage = .75 * offer_multiplier;
-				offer_amount = Math.floor(xp_chunk_percentage * (getXPChunk(Meteor.user().profile.level) + offer_bonus));
-				xp_offer = true;
-			}
-
 			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_FINISH_RATING_BONUS", undefined)) {
 				var high_finish_count = 0;
 				var floor_finishes = Meteor.user().profile.gallery_finishes.owned.floor_finishes;
@@ -585,6 +579,12 @@ var collectorInteraction = function(npc_object) {
 				})
 
 				offer_bonus += highest_value;
+			}
+
+			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_XP_REWARD", "Art Enthusiast")) {
+				xp_chunk_percentage = .75 * offer_multiplier;
+				offer_amount = Math.floor(xp_chunk_percentage * (getXPChunk(Meteor.user().profile.level) + offer_bonus));
+				xp_offer = true;
 			}
 
 			if (procUniqueAttribute(Meteor.userId(), "COLLECTOR_DISPLAY_OFFER", undefined)) {
