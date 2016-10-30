@@ -509,6 +509,9 @@ var collectorInteraction = function(npc_object) {
 	var offer_multiplier;
 	var offer_bonus = 0;
 	var message = undefined;
+	var xp_offer = false;
+	var xp_chunk_percentage;
+	var offer_amount;
 
 	switch(npc_object.quality) {
 		case 'bronze': offer_multiplier = 1; break;
@@ -547,6 +550,12 @@ var collectorInteraction = function(npc_object) {
 					offer_multiplier += .2;
 			}
 
+			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_XP_REWARD", "Art Enthusiast")) {
+				xp_chunk_percentage = .75 * offer_multiplier;
+				offer_amount = Math.floor(xp_chunk_percentage * (getXPChunk(Meteor.user().profile.level) + offer_bonus));
+				xp_offer = true;
+			}
+
 			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_FINISH_RATING_BONUS", undefined)) {
 				var high_finish_count = 0;
 				var floor_finishes = Meteor.user().profile.gallery_finishes.owned.floor_finishes;
@@ -578,23 +587,18 @@ var collectorInteraction = function(npc_object) {
 				offer_bonus += highest_value;
 			}
 
-			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_XP_REWARD", "Art Enthusiast")) {
-				var xp_chunk_percentage = .25 * offer_multiplier;
-				var xp_reward = Math.floor(xp_chunk_percentage * (getXPChunk(Meteor.user().profile.level) + offer_bonus));
-				message = "You have met an Art Collector, who was admiring " + collector_target.artwork_data.title + " by " + collector_target.artwork_data.artist + ", currently on display in your gallery. You have gained " + getCommaSeparatedValue(xp_reward) + "xp.";
-				addXP(Meteor.userId(), xp_reward);
-				logXPChunkPercentage("art collector unique", Number(xp_chunk_percentage.toFixed(3)));
-			}
-
 			if (procUniqueAttribute(Meteor.userId(), "COLLECTOR_DISPLAY_OFFER", undefined)) {
-				var donation_amount = Math.min(Math.floor((getItemValue(collector_target._id, "display", Meteor.userId()) * .2) * offer_multiplier) + offer_bonus, 800000);
-				addFunds("COLLECTOR_DISPLAY_OFFER", Meteor.userId(), donation_amount);
-				
-				//skip_offer indicates the ART_COLLECTOR_XP_REWARD affix already proc'd
-				if (message == undefined)
+				if (xp_offer) {
+					addXP(Meteor.userId(), offer_amount);
+					logXPChunkPercentage("ART_COLLECTOR_XP_REWARD", Number(xp_chunk_percentage.toFixed(3)));
+					message = "You have met an Art Collector, who was admiring " + collector_target.artwork_data.title + " by " + collector_target.artwork_data.artist + ", currently on display in your gallery. You have earned " + getCommaSeparatedValue(offer_amount) + "xp for their appreciation of the piece, and insist that you keep and maintain it for the world to enjoy.";
+				}
+
+				else {
+					var donation_amount = Math.min(Math.floor((getItemValue(collector_target._id, "display", Meteor.userId()) * .2) * offer_multiplier) + offer_bonus, 800000);
+					addFunds("COLLECTOR_DISPLAY_OFFER", Meteor.userId(), donation_amount);
 					message = "You have met an Art Collector, who was admiring " + collector_target.artwork_data.title + " by " + collector_target.artwork_data.artist + ", currently on display in your gallery. They offer you $" + getCommaSeparatedValue(donation_amount) + " for their appreciation of the piece, and insist that you keep and maintain it for the world to enjoy.";
-					
-				else message += " In addition, they offer you $" + getCommaSeparatedValue(donation_amount) + " for their appreciation of the piece, and insist that you keep and maintain it for the world to enjoy.";
+				}
 			}
 
 			if (procUniqueAttribute(Meteor.userId(), "COLLECTOR_FOR_SALE_OFFER", undefined)) {
@@ -624,8 +628,9 @@ var collectorInteraction = function(npc_object) {
 				return {'message': message};
 		}
 
-		var offer_amount = Math.floor(getItemValue(collector_target._id, "collector", Meteor.userId()) * offer_multiplier) + offer_bonus;
-		console.log(offer_amount);
+		if (!xp_offer) {
+			offer_amount = Math.floor(getItemValue(collector_target._id, "collector", Meteor.userId()) * offer_multiplier) + offer_bonus;
+		}
 
 		var offer_id = npc_data.insert({
 			'owner': Meteor.userId(),
@@ -634,7 +639,9 @@ var collectorInteraction = function(npc_object) {
 			'type': "collector offer",
 			'data': {
 				'offer_amount': offer_amount,
-				'item_id': collector_target._id
+				'item_id': collector_target._id,
+				'xp_offer': xp_offer,
+				'xp_chunk': xp_chunk_percentage
 			}
 		})
 

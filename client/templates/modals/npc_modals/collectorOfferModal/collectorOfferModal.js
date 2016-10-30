@@ -5,6 +5,10 @@ Template.collectorOfferModal.helpers({
 
 	'offerAmount': function(offer_id) {
 		return getCommaSeparatedValue(npc_data.findOne(offer_id).data.offer_amount);
+	},
+
+	'xpOffer': function(offer_id) {
+		return npc_data.findOne(offer_id).data.xp_offer;
 	}
 })
 

@@ -194,7 +194,13 @@ Meteor.methods({
     'acceptCollectorOffer' : function(offer_id) {
         var offer_object = npc_data.findOne(offer_id);
         if (offer_object && Meteor.userId() == offer_object.owner) {
-            addFunds("collector", offer_object.owner, offer_object.data.offer_amount);
+            if (offer_object.data.xp_offer) {
+                addXP(Meteor.userId(), offer_object.data.offer_amount);
+                logXPChunkPercentage("ART_COLLECTOR_XP_REWARD", Number(offer_object.data.xp_chunk.toFixed(3)));
+            }
+            
+            else addFunds("collector", offer_object.owner, offer_object.data.offer_amount);
+
             items.remove(offer_object.data.item_id, function(error) {
                 if (error)
                     console.log(error.message);
