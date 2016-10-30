@@ -93,117 +93,115 @@ var updateContent = function() {
         metadata.insert({'loot_data': loot_data});
     }
 
-    if (metadata.findOne({'loot_data.rarity_maps': {$ne: null}}) == undefined) {
-        var smart_map = {
-            "0":{
-                "common":70000,
-                "uncommon":20000,
-                "rare":1000,
-                "legendary":0,
-                "masterpiece":0
-            },
-            "10":{
-                "common":50000,
-                "uncommon":40000,
-                "rare":3000,
-                "legendary":0,
-                "masterpiece":0
-            },
-            "20":{
-                "common":40000,
-                "uncommon":65000,
-                "rare":10000,
-                "legendary":0,
-                "masterpiece":0
-            },
-            "30":{
-                "common":13000,
-                "uncommon":30000,
-                "rare":10000,
-                "legendary":0,
-                "masterpiece":0
-            },
-            "40":{
-                "common":14000,
-                "uncommon":32000,
-                "rare":25000,
-                "legendary":400,
-                "masterpiece":0
-            },
-            "50":{
-                "common":2500,
-                "uncommon":4000,
-                "rare":6000,
-                "legendary":120,
-                "masterpiece":2
-            }
-        };
-
-        var rarity_values = {
-            'common' : {
-                'min' : 5000,
-                'max' : 25000
-            },
-
-            'uncommon' : {
-                'min' : 25000,
-                'max' : 65000
-            },
-
-            'rare' : {
-                'min' : 65000,
-                'max' : 225000
-            },
-
-            'legendary' : {
-                'min' : 225000,
-                'max' : 1505000
-            },
-
-            'masterpiece' : {
-                'min' : 1505000,
-                'max' : 21985000
-            },
+    var smart_map = {
+        "0":{
+            "common":70000,
+            "uncommon":20000,
+            "rare":1000,
+            "legendary":0,
+            "masterpiece":0
+        },
+        "10":{
+            "common":50000,
+            "uncommon":40000,
+            "rare":3000,
+            "legendary":0,
+            "masterpiece":0
+        },
+        "20":{
+            "common":40000,
+            "uncommon":65000,
+            "rare":10000,
+            "legendary":0,
+            "masterpiece":0
+        },
+        "30":{
+            "common":13000,
+            "uncommon":30000,
+            "rare":10000,
+            "legendary":0,
+            "masterpiece":0
+        },
+        "40":{
+            "common":14000,
+            "uncommon":32000,
+            "rare":25000,
+            "legendary":400,
+            "masterpiece":0
+        },
+        "50":{
+            "common":2500,
+            "uncommon":4000,
+            "rare":6000,
+            "legendary":120,
+            "masterpiece":2
         }
+    };
 
-        var rarity_inflation_coefficients = {
-            'bronze' : 1.2345,
-            'silver' : 1.6049,
-            'gold' : 1.975,
-            'platinum' : 2.345,
-            'diamond' : 50
-        }
+    var rarity_values = {
+        'common' : {
+            'min' : 5000,
+            'max' : 25000
+        },
 
-        var attribute_quantities = {
-            'common' : {
-                'primary' : 1,
-                'secondary' : 0
-            },
-            'uncommon' : {
-                'primary' : 2,
-                'secondary' : 0
-            },
-            'rare' : {
-                'primary' : 3,
-                'secondary' : 1
-            },
-            'legendary' : {
-                'primary' : 4,
-                'secondary' : 2
-            },
-            'masterpiece' : {
-                'primary' : 5,
-                'secondary' : 3
-            }
-        }
+        'uncommon' : {
+            'min' : 25000,
+            'max' : 65000
+        },
 
-        metadata.update({'loot_data': {$ne: null}}, {$set: {
-            'loot_data.smart_map': smart_map,
-            'loot_data.rarity_values' : rarity_values,
-            'loot_data.rarity_inflation_coefficients' : rarity_inflation_coefficients,
-            'loot_data.attribute_quantities' : attribute_quantities
-        }});
+        'rare' : {
+            'min' : 65000,
+            'max' : 225000
+        },
+
+        'legendary' : {
+            'min' : 225000,
+            'max' : 1505000
+        },
+
+        'masterpiece' : {
+            'min' : 1505000,
+            'max' : 21985000
+        },
     }
+
+    var rarity_inflation_coefficients = {
+        'bronze' : 1.2345,
+        'silver' : 1.6049,
+        'gold' : 1.975,
+        'platinum' : 2.345,
+        'diamond' : 50
+    }
+
+    var attribute_quantities = {
+        'common' : {
+            'primary' : 1,
+            'secondary' : 0
+        },
+        'uncommon' : {
+            'primary' : 2,
+            'secondary' : 0
+        },
+        'rare' : {
+            'primary' : 3,
+            'secondary' : 1
+        },
+        'legendary' : {
+            'primary' : 4,
+            'secondary' : 2
+        },
+        'masterpiece' : {
+            'primary' : 5,
+            'secondary' : 3
+        }
+    }
+
+    metadata.update({'loot_data': {$ne: null}}, {$set: {
+        'loot_data.smart_map': smart_map,
+        'loot_data.rarity_values' : rarity_values,
+        'loot_data.rarity_inflation_coefficients' : rarity_inflation_coefficients,
+        'loot_data.attribute_quantities' : attribute_quantities
+    }});
 
     // temp code
 
