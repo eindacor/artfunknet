@@ -48,8 +48,8 @@ Template.inventory.helpers({
 					for (var n=0; n<locked_attributes.length; n++) {
 						if (locked_attributes[i] != locked_attributes[n]) {
 							or_filter_array.push({'$and': [
-								{'artwork_data.locked_attributes': locked_attributes[n]},
-								{'artwork_data.locked_attributes': locked_attributes[i]}
+								{'artwork_data.locked_attributes': locked_attributes[i]},
+								{'artwork_data.locked_attributes': locked_attributes[n]}
 							]});
 						}
 					}
@@ -58,7 +58,30 @@ Template.inventory.helpers({
 				if (or_filter_array.length > 0)
 					base_filter['$or'] = or_filter_array;
 
-				else if (locked_attributes.length == 1)
+				else if (locked_attributes.length < 2)
+					base_filter['_id'] = null;
+			}
+
+			else if ($('#locked-filter').val() == "contains three") {
+				var or_filter_array = [];
+				for (var i=0; i<locked_attributes.length; i++) {
+					for (var n=0; n<locked_attributes.length; n++) {
+						for (var c=0; c<locked_attributes.length; c++) {
+							if (locked_attributes[i] != locked_attributes[n] && locked_attributes[i] != locked_attributes[c] && locked_attributes[n] != locked_attributes[c]) {
+								or_filter_array.push({'$and': [
+									{'artwork_data.locked_attributes': locked_attributes[i]},
+									{'artwork_data.locked_attributes': locked_attributes[n]},
+									{'artwork_data.locked_attributes': locked_attributes[c]}
+								]});
+							}
+						}
+					}
+				}
+				
+				if (or_filter_array.length > 0)
+					base_filter['$or'] = or_filter_array;
+
+				else if (locked_attributes.length < 3)
 					base_filter['_id'] = null;
 			}
 		}
