@@ -1,109 +1,3 @@
-bronze_rarity_map = {
-    'common': 60,
-    'uncommon': 12,
-    'rare': 0,
-    'legendary': 0,
-    'masterpiece': 0
-}
-
-silver_rarity_map = {
-    'common': 24,
-    'uncommon': 38,
-    'rare': 2,
-    'legendary': 0,
-    'masterpiece': 0
-}
-
-gold_rarity_map = {
-    'common': 400,
-    'uncommon': 900,
-    'rare': 400,
-    'legendary': 1,
-    'masterpiece': 0
-}
-
-platinum_rarity_map = {
-    'common': 100,
-    'uncommon': 200,
-    'rare': 600,
-    'legendary': 10,
-    'masterpiece': 1
-}
-
-diamond_rarity_map = {
-    'common': 0,
-    'uncommon': 0,
-    'rare': 0,
-    'legendary': 1000000,
-    'masterpiece': 1
-}
-
-rarity_values = {
-    'common' : {
-        'min' : 5000,
-        'max' : 25000
-    },
-
-    'uncommon' : {
-        'min' : 25000,
-        'max' : 65000
-    },
-
-    'rare' : {
-        'min' : 65000,
-        'max' : 225000
-    },
-
-    'legendary' : {
-        'min' : 225000,
-        'max' : 1505000
-    },
-
-    'masterpiece' : {
-        'min' : 1505000,
-        'max' : 21985000
-    },
-}
-
-rarity_inflation_coefficient = {
-    'bronze' : 1.2345,
-    'silver' : 1.6049,
-    'gold' : 1.975,
-    'platinum' : 2.345,
-    'diamond' : 50
-}
-
-rarity_maps = {
-    'bronze' : bronze_rarity_map,
-    'silver' : silver_rarity_map,
-    'gold' : gold_rarity_map,
-    'platinum' : platinum_rarity_map,
-    'diamond' : diamond_rarity_map
-}
-
-attribute_quantities = {
-    'common' : {
-        'primary' : 1,
-        'secondary' : 0
-    },
-    'uncommon' : {
-        'primary' : 2,
-        'secondary' : 0
-    },
-    'rare' : {
-        'primary' : 3,
-        'secondary' : 1
-    },
-    'legendary' : {
-        'primary' : 4,
-        'secondary' : 2
-    },
-    'masterpiece' : {
-        'primary' : 5,
-        'secondary' : 3
-    }
-}
-
 getLootData = function() {
     return metadata.findOne({'loot_data': {$ne: null}}).loot_data;
 }
@@ -190,6 +84,8 @@ var getAttributeValueCoefficient = function(item_object) {
 
 getItemObjectValue = function(item_object, type, user_id) {
     if (item_object) {
+        var rarity_values = getLootData().rarity_values;
+
         var artwork_object = artworks.findOne({'_id': item_object.artwork_id});
 
         var min = rarity_values[artwork_object.rarity].min;
@@ -263,6 +159,7 @@ getItemObjectValue = function(item_object, type, user_id) {
     }
 
     else {
+        console.log("undefined object...");
         console.log("item_id: " + item_id);
         console.log("item_object: " + item_object);
         return undefined;
@@ -282,6 +179,8 @@ getRolledCrateQuality = function() {
 }
 
 getRerollCost = function(item_id) {
+    var rarity_values = getLootData().rarity_values;
+
     var item_object = items.findOne(item_id);
 
     var roll_count = item_object.roll_count < 0 ? 0 : item_object.roll_count;
@@ -301,6 +200,7 @@ getRerollCost = function(item_id) {
 
 getAverageDropValue = function(player_level, amplifier) {
     var smart_loot_map = getSmartRarityMap(player_level, amplifier);
+    var rarity_values = getLootData().rarity_values;
 
     var total_proportions = 0;
     for (var i=0; i < artwork_rarities.length; i++) {
@@ -332,7 +232,7 @@ lookupCrateCost = function(quality, count) {
 
     var average_drop_value = getAverageDropValue(Meteor.user().profile.level, map_amplifier);
 
-    return Math.floor(average_drop_value * count * rarity_inflation_coefficient[quality]);
+    return Math.floor(average_drop_value * count * getLootData().rarity_inflation_coefficients[quality]);
 }
 
 generateItems = function(multi_item_generator) {
@@ -443,7 +343,7 @@ attributeIsLocked = function(artwork_id, attribute_id) {
 
 getAttributes = function(rarity, artwork_id) {
     try {
-        var att_count = attribute_quantities[rarity].primary;
+        var att_count = getLootData().attribute_quantities[rarity].primary;
         var total_primary = attributes.find({'type' : "primary", 'active': true}).count();
 
         var locked_att_ids = artworks.findOne(artwork_id).locked_attributes;
@@ -586,12 +486,13 @@ Meteor.methods({
 
     'updateSmartMap': function(revised_smart_map) {
         if (revised_smart_map) {
-            smart_map = revised_smart_map;
+            metadata.update({'loot_data': {$ne: null}}, {$set: {'loot_data.smart_map': revised_smart_map}});
+            setTimeout('', 2000);
         }
 
         return {
             'graph_data': getGraphData(),
-            'map_data': smart_map
+            'map_data': getLootData().smart_map
         }
     },
 
@@ -620,11 +521,11 @@ var getGraphData = function() {
     return graph_data;
 }
 
-smart_map = {"0":{"common":70000,"uncommon":20000,"rare":1000,"legendary":0,"masterpiece":0},"10":{"common":50000,"uncommon":40000,"rare":3000,"legendary":0,"masterpiece":0},"20":{"common":40000,"uncommon":65000,"rare":10000,"legendary":0,"masterpiece":0},"30":{"common":13000,"uncommon":30000,"rare":10000,"legendary":0,"masterpiece":0},"40":{"common":14000,"uncommon":32000,"rare":25000,"legendary":400,"masterpiece":0},"50":{"common":2500,"uncommon":4000,"rare":6000,"legendary":120,"masterpiece":2}};
-
 var rarities = ['common', 'uncommon', 'rare', 'legendary', 'masterpiece'];
 
 getSmartRarityMap = function(level, amplifier) {
+    var smart_map = getLootData().smart_map;
+
     if (level >= 50)
         return smart_map[50];
 

@@ -161,7 +161,6 @@ calcMVP = function(user_id) {
         }
         catch(error) {
             console.log(error.message);
-            console.log(db_object);
         }
     });
 
