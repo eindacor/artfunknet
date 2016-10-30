@@ -15,7 +15,7 @@ var standard_filter = {};
 var items_found = 0;
 var current_page = 0;
 var items_per_page = 10;
-var page_turned = false;
+var refresh_inventory = false;
 
 Template.inventory.helpers({
 	'owned': function() {	
@@ -93,11 +93,6 @@ Template.inventory.helpers({
 
 		filter_array.push(base_filter);	
 
-		if (!page_turned)
-			current_page = 0;
-
-		else page_turned = false;
-
 		var item_array = items.find({
 			$and: filter_array
 		}, {sort: sorter_object, skip: current_page * items_per_page, limit: items_per_page}).fetch();
@@ -105,6 +100,11 @@ Template.inventory.helpers({
 		items_found = items.find({
 			$and: filter_array
 		}, {sort: sorter_object}).count();
+
+		if (current_page * items_per_page > items_found) {
+			current_page = Math.floor(items_found / items_per_page);
+			display_tracker.changed();
+		}
 
 		page_tracker.changed();
 
@@ -375,7 +375,7 @@ Template.inventory.events({
 	'click #inventory-page-right': function() {
 		if (items_found >= (current_page * items_per_page) + items_per_page) {
 			current_page++;
-			page_turned = true;
+			refresh_inventory = false;
 			display_tracker.changed();
 		}
 	},
@@ -383,7 +383,7 @@ Template.inventory.events({
 	'click #inventory-page-left': function() {
 		if (current_page != 0) {
 			current_page--;
-			page_turned = true;
+			refresh_inventory = false;
 			display_tracker.changed();
 		}
 	}
@@ -417,7 +417,7 @@ Template.inventory.rendered = function() {
 	original_filter = {'original': {$ne: undefined}};
 	standard_filter = {};
 	var current_page = 0;
-	page_turned = false;
+	refresh_inventory = true;
 	items_found = 0;
 	display_tracker.changed();
 }
