@@ -1,4 +1,5 @@
 var display_tracker = new Tracker.Dependency;
+var page_tracker = new Tracker.Dependency;
 var tags = [];
 var locked_attributes = [];
 var sorter = "artwork_data.title";
@@ -11,6 +12,10 @@ var foil_filter = {'foil': {$ne: undefined}};
 var seasonal_filter = {'seasonal': {$ne: undefined}};
 var original_filter = {'original': {$ne: undefined}};
 var standard_filter = {};
+var items_found = 0;
+var current_page = 0;
+var items_per_page = 10;
+var page_turned = false;
 
 Template.inventory.helpers({
 	'owned': function() {	
@@ -88,9 +93,22 @@ Template.inventory.helpers({
 
 		filter_array.push(base_filter);	
 
-		return items.find({
+		if (!page_turned)
+			current_page = 0;
+
+		else page_turned = false;
+
+		var item_array = items.find({
 			$and: filter_array
-		}, {sort: sorter_object});
+		}, {sort: sorter_object, skip: current_page * items_per_page, limit: items_per_page}).fetch();
+
+		items_found = items.find({
+			$and: filter_array
+		}, {sort: sorter_object}).count();
+
+		page_tracker.changed();
+
+		return item_array;
 	},
 
 	'list_view' : function() {
@@ -195,6 +213,16 @@ Template.inventory.helpers({
 			'artwork_data.rarity': {$in: ['legendary', 'masterpiece']}, 
 			'status': {$nin: ['for_sale', 'unclaimed']}
 		});
+	},
+
+	'current_page': function() {
+		page_tracker.depend();
+		return current_page + 1;
+	},
+
+	'total_pages': function() {
+		page_tracker.depend();
+		return Math.floor(items_found / items_per_page) + 1;
 	}
 });
 
@@ -342,6 +370,22 @@ Template.inventory.events({
 				}
 			})
 		}
+	},
+
+	'click #inventory-page-right': function() {
+		if (items_found >= (current_page * items_per_page) + items_per_page) {
+			current_page++;
+			page_turned = true;
+			display_tracker.changed();
+		}
+	},
+
+	'click #inventory-page-left': function() {
+		if (current_page != 0) {
+			current_page--;
+			page_turned = true;
+			display_tracker.changed();
+		}
 	}
 })
 
@@ -358,6 +402,7 @@ Template.inventory.created = function() {
 }
 
 Template.inventory.rendered = function() {
+	Session.set('inventory_page', 0);
 	Blaze.getData($('.template-inventory')[0])["value_data"] = {};
 	tags = [];
 	locked_attributes = [];
@@ -371,9 +416,13 @@ Template.inventory.rendered = function() {
 	seasonal_filter = {'seasonal': {$ne: undefined}};
 	original_filter = {'original': {$ne: undefined}};
 	standard_filter = {};
+	var current_page = 0;
+	page_turned = false;
+	items_found = 0;
 	display_tracker.changed();
 }
 
 Template.inventory.destroyed = function() {
+	Session.set('inventory_page', undefined);
 	Meteor.clearInterval(this.handle);
 }

@@ -142,3 +142,24 @@
 	width: 80px;
 	font-size: 1rem;
 }
+
+.template-inventory .page-buttons {
+	text-align: center;
+}
+
+.template-inventory .page-button {
+	font-size: 3rem;
+	margin: 20px 80px 20px 80px;
+}
+
+.template-inventory .page-button:hover {
+	color: black;
+	cursor: pointer;
+}
+
+.template-inventory .page-indicators {
+	font-weight: bold;
+	color: black;
+	vertical-align: middle;
+	font-size: 2rem;
+}

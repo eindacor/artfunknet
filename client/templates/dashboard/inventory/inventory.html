@@ -2,7 +2,7 @@
 	<div class="template-inventory">
 		<h1>Inventory</h1>
 		<div class="row inventory-management no-padding">
-			<h3 class="view-buttons"><i id="toggle-view" class="fa fa-list {{#if list_view}}af-color{{/if}}"></i><i id="toggle-filters" class="fa fa-filter"></i></h3>
+			<h3 class="view-buttons"><!--i id="toggle-view" class="fa fa-list {{#if list_view}}af-color{{/if}}"></i--><i id="toggle-filters" class="fa fa-filter"></i></h3>
 			<div class="row all-filters">
 				<textarea id="tag-selector" placeholder="search by tags (separate tags with a comma, e.g. 'primary, to auction, foils')"></textarea>
 				<div class="sort-area col-xs-12">
@@ -84,6 +84,14 @@
 						
 					</div>
 				</div>
+			</div>
+		</div>
+
+		<div class="row">
+			<div class="col-xs-12 page-buttons">
+				<i id="inventory-page-left" class="page-button fa fa-caret-left"></i>
+				<span class="page-indicators">page {{current_page}}/{{total_pages}}</span>
+				<i id="inventory-page-right" class="page-button fa fa-caret-right"></i>	
 			</div>
 		</div>
 
