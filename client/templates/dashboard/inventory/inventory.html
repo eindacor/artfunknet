@@ -69,6 +69,10 @@
 						{{#if showLockedAttributes}}
 						<div class="col-xs-3">
 							<p class="filter-title">locked attributes:</p>
+							<select id="locked-filter">
+		            			<option value="contains one">contains one</option>
+		            			<option value="contains two">contains two</option>
+		            		</select>
 							<div class="filter-checkboxes">
 								{{#each locked_attribute}}
 								<label><input class="locked-attribute-select" type="checkbox" id="locked-attribute-checkbox" value="{{_id}}">{{attributeName _id}}</label><br>

@@ -37,11 +37,33 @@ Template.inventory.helpers({
 		}
 
 		if (locked_attributes.length > 0) {
-			var key_string = "artwork_data.locked_attributes";
-			base_filter[key_string] = {"$in": locked_attributes};
+			if ($('#locked-filter').val() == "contains one") {
+				var key_string = "artwork_data.locked_attributes";
+				base_filter[key_string] = {"$in": locked_attributes};
+			}
+
+			else if ($('#locked-filter').val() == "contains two") {
+				var or_filter_array = [];
+				for (var i=0; i<locked_attributes.length; i++) {
+					for (var n=0; n<locked_attributes.length; n++) {
+						if (locked_attributes[i] != locked_attributes[n]) {
+							or_filter_array.push({'$and': [
+								{'artwork_data.locked_attributes': locked_attributes[n]},
+								{'artwork_data.locked_attributes': locked_attributes[i]}
+							]});
+						}
+					}
+				}
+				
+				if (or_filter_array.length > 0)
+					base_filter['$or'] = or_filter_array;
+
+				else if (locked_attributes.length == 1)
+					base_filter['_id'] = null;
+			}
 		}
 
-		filter_array.push(base_filter);
+		filter_array.push(base_filter);	
 
 		return items.find({
 			$and: filter_array
@@ -266,6 +288,10 @@ Template.inventory.events({
 
 		rarity_filter = {'artwork_data.rarity': {$in: valid_rarities}};
 
+		display_tracker.changed();
+	},
+
+	'change #locked-filter': function() {
 		display_tracker.changed();
 	},
 
