@@ -16,7 +16,7 @@
             		</select>
             		<button id="display-by-tags" type="button" class="btn btn-default">display</button>
 				</div>
-				<div class="sort-area col-xs-12 col-md-4">
+				<div class="sort-area col-xs-12 col-md-2">
 					<p class="filter-title">sort:</p>
 					<select id="sort-selector">
 						<option value="artwork_data.title">title</option>
@@ -32,9 +32,9 @@
 					</select>
 				</div>
 
-				<div class="filter-area col-xs-12 col-md-8">
+				<div class="filter-area col-xs-12 col-md-10">
 					<div class="row">
-						<div class="col-xs-3">
+						<div class="col-xs-2">
 							<p class="filter-title">card type:</p>
 							<div class="filter-checkboxes">
 								<label><input class="type-select" type="checkbox" id="card-type-checkbox" value="standard" checked>standard</label><br>
@@ -45,7 +45,7 @@
 							</div>
 						</div>
 
-						<div class="col-xs-3">
+						<div class="col-xs-2">
 							<p class="filter-title">status:</p>
 							<div class="filter-checkboxes">
 								<label><input class="status-select" type="checkbox" id="card-status-checkbox" value="claimed" checked>inventory</label><br>
@@ -55,7 +55,7 @@
 							</div>
 						</div>
 
-						<div class="col-xs-3">
+						<div class="col-xs-2">
 							<p class="filter-title">rarity:</p>
 							<div class="filter-checkboxes">
 								<label><input class="rarity-select" type="checkbox" id="card-rarity-checkbox" value="common" checked>common</label><br>
@@ -66,8 +66,24 @@
 							</div>
 						</div>
 
+						<div class="col-xs-2">
+							<p class="filter-title">standard attributes:</p>
+							<select id="attribute-filter">
+		            			<option value="contains one">has at least one</option>
+		            			<option value="contains two">has at least two</option>
+		            			<option value="contains three">has at least three</option>
+		            			<option value="contains four">has at least four</option>
+		            			<!--option value="contains five">has five</option-->
+		            		</select>
+							<div class="filter-checkboxes">
+								{{#each locked_attribute}}
+								<label><input class="attribute-select" type="checkbox" id="attribute-checkbox" value="{{_id}}">{{attributeName _id}}</label><br>
+								{{/each}}
+							</div>
+						</div>
+
 						{{#if showLockedAttributes}}
-						<div class="col-xs-3">
+						<div class="col-xs-2">
 							<p class="filter-title">locked attributes:</p>
 							<select id="locked-filter">
 		            			<option value="contains one">has at least one</option>

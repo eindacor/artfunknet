@@ -2,6 +2,7 @@ var display_tracker = new Tracker.Dependency;
 var page_tracker = new Tracker.Dependency;
 var tags = [];
 var locked_attributes = [];
+var standard_attributes = [];
 var sorter = "artwork_data.title";
 var ascending = 1;
 var status_filter = {'status': {$in: ['claimed', 'displayed', 'permanent', 'auctioned']}};
@@ -16,6 +17,90 @@ var items_found = 0;
 var current_page = 0;
 var items_per_page = 10;
 var refresh_inventory = false;
+
+var validPermutation = function(permutation_array, permutation) {
+	for (var i=0; i<permutation.length; i++) {
+		if (permutation.indexOf(permutation[i]) != permutation.lastIndexOf(permutation[i])) {
+			return false;
+		}
+	}
+
+	for (var i=0; i<permutation_array.length; i++) {
+		var match_count = 0;
+		for (var n=0; n<permutation.length; n++) {
+			if (permutation_array[i].indexOf(permutation[n]) != -1) {
+				match_count++;
+			}
+		}
+
+		if (match_count == permutation.length) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+var createAndObjectFromPermutation = function(index_counter) {
+	var key_string = '$and';
+	var and_object = {};
+	var local_array = [];
+	for (var i=0; i<index_counter.length; i++) {	
+		var attribute_index = index_counter[i];
+		local_array.push({'attributes._id': standard_attributes[attribute_index]});
+	}
+	and_object[key_string] = local_array;
+	return and_object;
+}
+
+var incrementPermutation = function(permutation, num_digits, cursor) {
+	if (cursor == permutation.length)
+		return permutation;
+
+	else if (permutation[cursor] != num_digits - 1) {
+		permutation[cursor] = permutation[cursor] + 1;
+		return permutation;
+	}
+
+	else {
+		permutation[cursor] = 0;
+		return incrementPermutation(permutation.slice(), num_digits, cursor + 1)
+	}
+}
+
+var endPermutations = function(permutation, num_digits) {
+	for (var i=0; i<permutation.length; i++) {
+		if (permutation[i] != num_digits - 1)
+			return false;
+	}
+
+	return true;
+}
+
+var getPermutations = function(required) {
+	var permutation_array = [];
+	var object_array = [];
+	var index_counter = [];
+	var num_digits = standard_attributes.length;
+
+	for (var i=0; i<required; i++) {
+		index_counter.push(0);
+	}
+
+	var completed = false;
+	while (!completed) {
+		if (validPermutation(permutation_array, index_counter)) {
+			object_array.push(createAndObjectFromPermutation(index_counter));
+			permutation_array.push(index_counter.slice());
+		}
+
+		index_counter = incrementPermutation(index_counter.slice(), num_digits, 0);
+
+		completed = endPermutations(index_counter, num_digits);
+	}
+
+	return object_array;
+}
 
 Template.inventory.helpers({
 	'owned': function() {	
@@ -82,12 +167,57 @@ Template.inventory.helpers({
 						}
 					}
 				}
-				
+
 				if (or_filter_array.length > 0)
 					base_filter['$or'] = or_filter_array;
 
 				else if (locked_attributes.length < 3)
 					base_filter['_id'] = null;
+			}
+		}
+
+		if (standard_attributes.length > 0) {
+			switch($('#attribute-filter').val()) {
+				case "contains one": {
+					var key_string = "attributes._id";
+					base_filter[key_string] = {"$in": standard_attributes};
+				}
+				break;
+
+				case "contains two": {
+					if (standard_attributes.length > 1) {
+						var or_filter_array = getPermutations(2);
+
+						if (or_filter_array.length > 0)
+							base_filter['$or'] = or_filter_array;
+					}
+
+					else base_filter['_id'] = null;
+				} break;
+
+				case "contains three": {
+					if (standard_attributes.length > 2) {
+						var or_filter_array = getPermutations(3);
+
+						if (or_filter_array.length > 0)
+							base_filter['$or'] = or_filter_array;
+					}
+
+					else base_filter['_id'] = null;
+				} break;
+
+				case "contains four": {
+					if (standard_attributes.length > 3) {
+						var or_filter_array = getPermutations(4);
+
+						if (or_filter_array.length > 0)
+							base_filter['$or'] = or_filter_array;
+					}
+
+					else base_filter['_id'] = null;
+				} break;
+
+				default: base_filter['_id'] = null;
 			}
 		}
 
@@ -329,6 +459,17 @@ Template.inventory.events({
 		display_tracker.changed();
 	},
 
+	'change #attribute-checkbox': function() {
+		standard_attributes = [];
+		for (var i=0; i<$('input[type=checkbox].attribute-select').length; i++) {
+		 	var checked = $('input[type=checkbox].attribute-select:eq(' + i + ')')[0].checked;
+		 	if (checked)
+		 		standard_attributes.push($('input[type=checkbox].attribute-select:eq(' + i + ')').val())
+		}
+
+		display_tracker.changed();
+	},
+
 	'change #card-rarity-checkbox': function() {
 		var valid_rarities = [];
 		for (var i=0; i<$('input[type=checkbox].rarity-select').length; i++) {
@@ -343,6 +484,10 @@ Template.inventory.events({
 	},
 
 	'change #locked-filter': function() {
+		display_tracker.changed();
+	},
+
+	'change #attribute-filter': function() {
 		display_tracker.changed();
 	},
 
@@ -406,6 +551,7 @@ Template.inventory.rendered = function() {
 	Blaze.getData($('.template-inventory')[0])["value_data"] = {};
 	tags = [];
 	locked_attributes = [];
+	standard_attributes = [];
 	sorter = "artwork_data.title";
 	ascending = 1;
 	status_filter = {'status': {$in: ['claimed', 'displayed', 'permanent', 'auctioned']}};
@@ -416,7 +562,7 @@ Template.inventory.rendered = function() {
 	seasonal_filter = {'seasonal': {$ne: undefined}};
 	original_filter = {'original': {$ne: undefined}};
 	standard_filter = {};
-	var current_page = 0;
+	current_page = 0;
 	refresh_inventory = true;
 	items_found = 0;
 	display_tracker.changed();
