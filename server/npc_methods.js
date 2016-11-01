@@ -842,10 +842,10 @@ var designerInteraction = function(npc_object) {
 		var xp_chunk_percentage;
 
 		switch(npc_object.quality) {
-			case 'bronze' : xp_chunk_percentage = .3; break;
-			case 'silver' : xp_chunk_percentage = .4; break;
-			case 'gold' : xp_chunk_percentage = .5; break;
-			case 'platinum' : xp_chunk_percentage = .6; break;
+			case 'bronze' : xp_chunk_percentage = .1; break;
+			case 'silver' : xp_chunk_percentage = .12; break;
+			case 'gold' : xp_chunk_percentage = .14; break;
+			case 'platinum' : xp_chunk_percentage = .16; break;
 		};
 
 		xp_chunk_percentage += designer_bonus;
