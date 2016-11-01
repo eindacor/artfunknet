@@ -230,7 +230,7 @@ Template.inventory.helpers({
 			$and: filter_array
 		}, {sort: sorter_object}).count();
 
-		if (current_page * items_per_page >= items_found) {
+		if (current_page * items_per_page > items_found) {
 			current_page = Math.floor(items_found / items_per_page);
 			display_tracker.changed();
 		}
