@@ -230,8 +230,8 @@ Template.inventory.helpers({
 			$and: filter_array
 		}, {sort: sorter_object}).count();
 
-		if (current_page * items_per_page > items_found) {
-			current_page = Math.floor(items_found / items_per_page);
+		if (current_page * items_per_page >= items_found) {
+			current_page = Math.floor(items_found / items_per_page) - (items_found % items_per_page == 0 ? 1 : 0);
 			display_tracker.changed();
 		}
 
@@ -351,7 +351,7 @@ Template.inventory.helpers({
 
 	'total_pages': function() {
 		page_tracker.depend();
-		return Math.floor(items_found / items_per_page) + 1;
+		return Math.floor(items_found / items_per_page) + (items_found % items_per_page == 0 ? 0 : 1);
 	}
 });
 
@@ -517,7 +517,7 @@ Template.inventory.events({
 	},
 
 	'click #inventory-page-right': function() {
-		if (items_found >= (current_page * items_per_page) + items_per_page) {
+		if (items_found > (current_page * items_per_page) + items_per_page) {
 			current_page++;
 			display_tracker.changed();
 		}
