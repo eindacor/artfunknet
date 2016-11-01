@@ -574,16 +574,24 @@ var collectorInteraction = function(npc_object) {
 
 			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_AUCTION_BONUS", undefined)) {
 				var highest_value = 0;
+				var value_multiplier = .6;
 				items.find({'owner': Meteor.userId(), 'status': "auctioned"}).forEach(function(db_object) {
-					highest_value = Math.max(getItemValue(db_object._id, "auction_min", Meteor.userId()) * .4, highest_value);
+					highest_value = Math.max(getItemValue(db_object._id, "auction_min", Meteor.userId()) * value_multiplier, highest_value);
 				})
+
+				auctions.find({'_id': {$in: Meteor.user().profile.auction_data.winning}}).forEach(function(auction_object) {
+					highest_value = Math.max(getItemValue(auction_object.item_id, "auction_min", Meteor.userId()) * value_multiplier, highest_value);
+				});
+
+				highest_value = Math.min(highest_value, 200000);
 
 				offer_bonus += highest_value;
 			}
 
 			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_XP_REWARD", "Art Enthusiast")) {
-				xp_chunk_percentage = .75 * offer_multiplier;
-				offer_amount = Math.floor(xp_chunk_percentage * (getXPChunk(Meteor.user().profile.level) + offer_bonus));
+				xp_chunk_percentage = Math.min(.75 * offer_multiplier, 1);
+				var xp_bonus = Math.min(offer_bonus, getXPChunk(Meteor.user().profile.level) * .4);
+				offer_amount = Math.floor(xp_chunk_percentage * (getXPChunk(Meteor.user().profile.level) + xp_bonus));
 				xp_offer = true;
 			}
 
@@ -638,7 +646,7 @@ var collectorInteraction = function(npc_object) {
 			'timestamp': moment()._d.toISOString(),
 			'type': "collector offer",
 			'data': {
-				'offer_amount': offer_amount,
+				'offer_amount': Math.floor(offer_amount),
 				'item_id': collector_target._id,
 				'xp_offer': xp_offer,
 				'xp_chunk': xp_chunk_percentage

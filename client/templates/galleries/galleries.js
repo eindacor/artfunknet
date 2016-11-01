@@ -36,33 +36,13 @@ Template.galleryTable.helpers({
 		    sort_query[Session.get(table_id + '_sort')] = asc;
 		}
 
-		//required for pagination
-		var pagination_id = 'galleries';
-
-		if (Session.get(pagination_id + '_current') === undefined)
-			Session.set(pagination_id + '_current', 0);
-
-		var pageData = {
-			'identifier': pagination_id,
-			'totalResults': galleries.find({'score': {$ne : 0}}).count(),
-			'resultsPerPage': 10,
-			'pageNumbersDisplayed': 7,
-		}
-
-		var skip_amount = Number(pageData.resultsPerPage * Session.get(pagination_id + '_current'));
-
-		//var gallery_array = Meteor.users.find( {}, { sort: sort_query, skip: skip_amount, limit: pageData.resultsPerPage } ).fetch();
-		var gallery_array = galleries.find( {'score': {$ne : 0}}, { sort: sort_query, skip: skip_amount, limit: pageData.resultsPerPage } ).fetch();
-
-		if (gallery_array.length < Number(pageData.resultsPerPage * Session.get(pagination_id + '_current')))
-			Session.set('pagination_id' + '_current', Session.get(pagination_id + '_current') - 1);
+		var gallery_array = galleries.find( {'score': {$ne : 0}}, { sort: sort_query } ).fetch();
 		
 		return {
 			'table_data' : {
 				'gallery' : gallery_array,
 				'table_id' : table_id,
-			},	
-			'pageData' : pageData
+			}
 		}
 	},
 
