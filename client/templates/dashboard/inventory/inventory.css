@@ -144,12 +144,17 @@
 }
 
 .template-inventory .page-buttons {
+	height: 50px;
 	text-align: center;
+	min-height: 4em;
+	display: flex;
+	align-items:center;
 }
 
 .template-inventory .page-button {
 	font-size: 3rem;
 	margin: 20px 80px 20px 80px;
+	vertical-align: middle;
 }
 
 .template-inventory .page-button:hover {
@@ -162,4 +167,9 @@
 	color: black;
 	vertical-align: middle;
 	font-size: 2rem;
+}
+
+.template-inventory .button-wrapper {
+	flex: auto;
+	align-items:center;
 }

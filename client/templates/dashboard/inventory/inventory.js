@@ -16,7 +16,6 @@ var standard_filter = {};
 var items_found = 0;
 var current_page = 0;
 var items_per_page = 10;
-var refresh_inventory = false;
 
 var validPermutation = function(permutation_array, permutation) {
 	for (var i=0; i<permutation.length; i++) {
@@ -520,7 +519,6 @@ Template.inventory.events({
 	'click #inventory-page-right': function() {
 		if (items_found >= (current_page * items_per_page) + items_per_page) {
 			current_page++;
-			refresh_inventory = false;
 			display_tracker.changed();
 		}
 	},
@@ -528,9 +526,14 @@ Template.inventory.events({
 	'click #inventory-page-left': function() {
 		if (current_page != 0) {
 			current_page--;
-			refresh_inventory = false;
 			display_tracker.changed();
 		}
+	},
+
+	'change #page-count-select': function() {
+		items_per_page = Number($('#page-count-select').val());
+		console.log(items_per_page);
+		display_tracker.changed();
 	}
 })
 
@@ -563,8 +566,8 @@ Template.inventory.rendered = function() {
 	original_filter = {'original': {$ne: undefined}};
 	standard_filter = {};
 	current_page = 0;
-	refresh_inventory = true;
 	items_found = 0;
+	items_per_page = 10;
 	display_tracker.changed();
 }
 

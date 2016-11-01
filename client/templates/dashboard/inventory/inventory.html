@@ -104,10 +104,21 @@
 		</div>
 
 		<div class="row">
-			<div class="col-xs-12 page-buttons">
-				<i id="inventory-page-left" class="page-button fa fa-caret-left"></i>
-				<span class="page-indicators">page {{current_page}}/{{total_pages}}</span>
-				<i id="inventory-page-right" class="page-button fa fa-caret-right"></i>	
+			<div class="col-xs-9 page-buttons">
+				<div class="button-wrapper">
+					<i id="inventory-page-left" class="page-button fa fa-caret-left"></i>
+					<span class="page-indicators">page {{current_page}}/{{total_pages}}</span>
+					<i id="inventory-page-right" class="page-button fa fa-caret-right"></i>	
+				</div>
+			</div>
+			<div class="col-xs-3 page-buttons items_per_page">
+				<span class="filter-title">items per page: </span>
+				<select id="page-count-select">
+        			<option value="10">10</option>
+        			<option value="20">20</option>
+        			<option value="50">50</option>
+        			<option value="100">100</option>
+        		</select>
 			</div>
 		</div>
 
