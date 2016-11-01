@@ -351,7 +351,7 @@ Template.inventory.helpers({
 
 	'total_pages': function() {
 		page_tracker.depend();
-		return Math.floor(items_found / items_per_page);
+		return Math.floor(items_found / items_per_page) + 1;
 	}
 });
 
