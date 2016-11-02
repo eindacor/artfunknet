@@ -191,7 +191,7 @@ getRerollCost = function(item_id) {
 
     var reroll_cost = (rarity_values[rarity].min * .1) * Math.pow(reroll_coefficient, roll_count);
 
-    if (procUniqueAttribute(Meteor.userId, "REROLL_DISCOUNT", undefined)) {
+    if (procUniqueAttribute(Meteor.userId(), "REROLL_DISCOUNT", undefined)) {
         reroll_cost = Math.floor(reroll_cost * .75);
     }
 
@@ -236,7 +236,7 @@ lookupCrateCost = function(quality, count) {
 }
 
 generateItems = function(multi_item_generator) {
-    if (Meteor.users.findOne(multi_item_generator.user_id) === undefined)
+    if (Meteor.users.findOne(multi_item_generator.user_id) === undefined && multi_item_generator.user_id != "Artfunkel, Inc.")
         return [];
 
     var map_amplifier;
@@ -252,7 +252,7 @@ generateItems = function(multi_item_generator) {
     var item_ids = [];
 
     for (var i=0; i < parseInt(multi_item_generator.count); i++) {
-        var rarity_roll = JepLoot.catRoll(getSmartRarityMap(Meteor.users.findOne(multi_item_generator.user_id).profile.level, map_amplifier));
+        var rarity_roll = JepLoot.catRoll(getSmartRarityMap(Meteor.user().profile.level, map_amplifier));
         var query = {'rarity': rarity_roll, 'active': true};
         var match_count = artworks.find(query).count();
         var rolled_id = artworks.findOne(query, {skip: Math.floor(Math.random() * match_count)})._id;

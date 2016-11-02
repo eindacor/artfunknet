@@ -1014,6 +1014,7 @@ var marketExpertInteraction = function(npc_object) {
 
 	var market_expert_duration = 10; //minutes
 	var market_expert_duration_extension = 5; // minutes
+	var auction_count = 12;
 
 	switch(npc_object.quality) {
 		case 'bronze': 
@@ -1038,6 +1039,7 @@ var marketExpertInteraction = function(npc_object) {
 	if (isOwnGallery(npc_object)) {
 		market_expert_duration = Math.floor(market_expert_duration * 2.5);
 		market_expert_duration_extension = Math.floor(market_expert_duration_extension * 2.5);
+		auction_count += 4;
 	}
 
 	var message;
@@ -1058,6 +1060,34 @@ var marketExpertInteraction = function(npc_object) {
 		}});
 
 		message = "You have met another market expert. Your access to market analysis has been extended by " + market_expert_duration_extension + " minutes (expires " + getTimeString(new_expiration) + ").";
+	}
+
+	var auction_price_adjustment = 10;
+
+	if (procUniqueAttribute(Meteor.userId(), "PRIVATE_AUCTION_PRICE_REDUCTION", "Designer")) {
+			auction_price_adjustment = 6;
+	}
+
+	if (auctions.findOne({'viewer': Meteor.userId()}) == undefined) {
+		var multi_item_generator = {
+	        'source': "private auction",
+	        'user_id': "Artfunkel, Inc.",
+	        'quality': npc_object.quality,
+	        'count': auction_count,
+	        'status': "claimed",
+	        'foil_chance': getLootData().global_foil_chance,
+	        'misprint_chance': getLootData().global_misprint_chance,
+	        'xp_rating_min': 0,
+	        'condition_min': 0
+	    }
+
+		var item_ids = generateItems(multi_item_generator);
+
+		setTimeout("", 2);
+
+		items.find({'_id': {$in: item_ids}}).forEach(function(db_object) {
+			createAuction(db_object._id, getItemObjectValue(db_object, "actual", undefined) * auction_price_adjustment, -1, 10, Meteor.userId());
+		})
 	}
 
 	return {'message': message};

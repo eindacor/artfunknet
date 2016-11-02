@@ -41,6 +41,7 @@
 						<td>{{buy_now_text}}</td>
 						<td class="action-buttons"><span class="place-bid {{#if isBiddable this}}enabled{{else}}disabled{{/if}}" data-auction_id="{{auction_id}}"><i class="fa fa-usd"></i></span></td>
 						<td><a href="/user/{{seller}}">{{seller}}</a></td>
+						<td>{{isPrivate viewer}}</td>
 					</tr>
 					{{/with}}
 				{{/each}}

@@ -555,7 +555,16 @@ Meteor.methods({
                     return;
 
                 var quest_owner = quest_object.owner_id;
-                if (items.findOne({'owner': quest_owner, 'artwork_id': artwork_id}) == undefined)
+
+                var last_login = Meteor.users.findOne(quest_owner).profile.last_login;
+
+                var hours_since_last_login;
+                if (last_login != undefined)
+                    hours_since_last_login = (moment() - moment(hours_since_last_login)) / 3600000;
+
+                else hours_since_last_login = 999;
+
+                if (items.findOne({'owner': quest_owner, 'artwork_id': artwork_id}) == undefined && hours_since_last_login < 1)
                     is_sought = true;
             });
 

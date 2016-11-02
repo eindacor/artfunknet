@@ -40,7 +40,8 @@ Template.auctionTable.helpers({
 			{ 'text' : 'current bid', 'sort_id' : 'current_bid', 'table_id' : table_data.table_id  },
 			{ 'text' : 'buy now', 'sort_id' : 'buy_now', 'table_id' : table_data.table_id  },
 			{ 'text' : 'actions', 'sort_id' : undefined, 'table_id' : table_data.table_id  },
-			{ 'text' : 'seller', 'sort_id' : 'seller', 'table_id' : table_data.table_id }
+			{ 'text' : 'seller', 'sort_id' : 'seller', 'table_id' : table_data.table_id },
+			{ 'text' : 'private', 'sort_id' : 'viewer', 'table_id' : table_data.table_id}
 		];
 
 		return header_array;
@@ -100,6 +101,7 @@ Template.auctionTable.helpers({
 		}
 
 		catch(error) {
+			console.log(error.message);
 			return {};
 		}
 	},
@@ -171,6 +173,10 @@ Template.auctionTable.helpers({
 
 	'market_expert': function() {
 		return moment() < moment(Meteor.user().profile.market_expert.expiration);
+	},
+
+	'isPrivate': function(viewer) {
+		return (viewer == Meteor.userId() ? "private" : "public");
 	}
 });
 

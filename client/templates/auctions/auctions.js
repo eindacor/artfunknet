@@ -24,7 +24,7 @@ Template.auctions.helpers({
 
 		var skip_amount = Number(pageData.resultsPerPage * Session.get(pagination_id + '_current'));
 
-		var auction_array = auctions.find( {}, { sort: sort_query, skip: skip_amount, limit: pageData.resultsPerPage } ).fetch();
+		var auction_array = auctions.find( {'viewer': {$in: [Meteor.userId(), "public"]}}, { sort: sort_query, skip: skip_amount, limit: pageData.resultsPerPage } ).fetch();
 
 		if (auction_array.length < Number(pageData.resultsPerPage * Session.get(pagination_id + '_current')))
 			Session.set('pagination_id' + '_current', Session.get(pagination_id + '_current') - 1);

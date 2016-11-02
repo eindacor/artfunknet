@@ -84,10 +84,7 @@ var updateContent = function() {
     });
 
     // temp code
-    Meteor.users.find().forEach(function(db_object) {
-        if (db_object.profile.completed_quests == undefined)
-            Meteor.users.update({'_id': db_object._id}, {$set: {'profile.completed_quests': 0}});
-    })
+    auctions.update({'viewer': null}, {$set: {'viewer': "public"}}, {multi: true});
     // temp code
 }
 
@@ -294,3 +291,8 @@ Accounts.onCreateUser(function(options, user) {
 
     return user;
 });
+
+Accounts.onLogin(function(object) {
+    console.log(object.user._id);
+    Meteor.users.update({'_id': object.user._id}, {$set: {'profile.last_login': moment().toISOString()}});
+})
