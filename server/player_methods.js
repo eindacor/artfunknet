@@ -21,6 +21,7 @@ createUser = function(user_object, callback){
     user_object.profile.gallery_tickets = [];
     user_object.profile.gallery_value = 0;
     user_object.profile.gallery_score = 0;
+    user_object.profile.completed_quests = 0;
     user_object.profile.market_expert = {
         'expiration': moment().add(-1, 'days')._d.toISOString(),
         'rating': .8
@@ -490,6 +491,8 @@ Meteor.methods({
             addXP(user_object._id, xp_recieved);
             logXPChunkPercentage("quest", quest_object.reward.xp_chunk_percentage + (special_count * 0.3) + (target_differential * 0.5));
             addFunds("quest", user_object._id, quest_object.reward.money);
+
+            Meteor.users.update({'_id': Meteor.userId()}, {$inc: {'profile.completed_quests': 1}});
 
             if (quest_object.reward.item != undefined) {
                 var rarity = quest_object.reward.item.rarity;

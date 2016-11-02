@@ -17,6 +17,7 @@ Template.dashboard.helpers({
 				'private_max' : user_object.profile.pc_cap,
 				'entry_fee' : user_object.profile.entry_fee,
 				'ticket_max' : user_object.profile.ticket_cap,
+				'completed_quests': user_object.profile.completed_quests
 			}
 
 			return data_object;

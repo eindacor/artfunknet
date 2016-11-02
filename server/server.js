@@ -84,7 +84,10 @@ var updateContent = function() {
     });
 
     // temp code
-
+    Meteor.users.find().forEach(function(db_object) {
+        if (db_object.profile.completed_quests == undefined)
+            Meteor.users.update({'_id': db_object._id}, {$set: {'profile.completed_quests': 0}});
+    })
     // temp code
 }
 
@@ -120,16 +123,6 @@ Meteor.startup(function() {
             }
         };
 
-        var player_2 = {
-            "username": "peter.mooney90@gmail.com",
-            "email": "peter.mooney90@gmail.com",
-            "password": "Password123!",
-            "profile": {
-                'screen_name': "PMoons",
-                'user_type': "player"
-            }
-        }
-        
         var player_3 = {
             "username": "player@email.com",
             "email": "player@email.com",
