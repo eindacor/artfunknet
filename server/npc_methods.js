@@ -1012,35 +1012,25 @@ var historianInteraction = function(npc_object) {
 var marketExpertInteraction = function(npc_object) {
 	var user_object = Meteor.user();
 
-	var market_expert_duration = 8; //minutes
-	var market_expert_duration_extension = 3; // minutes
-	var market_expert_rating = .75;
-	var market_expert_rating_increase = .01;
+	var market_expert_duration = 10; //minutes
+	var market_expert_duration_extension = 5; // minutes
 
 	switch(npc_object.quality) {
 		case 'bronze': 
 			market_expert_duration += 2;
 			market_expert_duration_extension += 2; 
-			market_expert_rating += .01;
-			market_expert_rating_increase += .01;
 			break;
         case 'silver': 
 			market_expert_duration += 3;
 			market_expert_duration_extension += 3; 
-			market_expert_rating += .02;
-			market_expert_rating_increase += .02; 
 			break;
         case 'gold': 
 			market_expert_duration += 4;
 			market_expert_duration_extension += 4; 
-			market_expert_rating += .03;
-			market_expert_rating_increase += .03;
 			break;
         case 'platinum': 
 			market_expert_duration += 5;
 			market_expert_duration_extension += 5; 
-			market_expert_rating += .04;
-			market_expert_rating_increase += .04;
 			break;
         default: break;
 	}
@@ -1048,8 +1038,6 @@ var marketExpertInteraction = function(npc_object) {
 	if (isOwnGallery(npc_object)) {
 		market_expert_duration = Math.floor(market_expert_duration * 2.5);
 		market_expert_duration_extension = Math.floor(market_expert_duration_extension * 2.5);
-		market_expert_rating += .02;
-		market_expert_rating_increase += .02;
 	}
 
 	var message;
@@ -1057,11 +1045,10 @@ var marketExpertInteraction = function(npc_object) {
 	if (user_object.profile.market_expert.expiration < moment()._d.toISOString()) {
 		var expiration_time = moment().add(market_expert_duration, 'minutes');
 		Meteor.users.update(user_object._id, {$set: {
-			'profile.market_expert.expiration': expiration_time._d.toISOString(), 
-			'profile.market_expert.rating': market_expert_rating
+			'profile.market_expert.expiration': expiration_time._d.toISOString(),
 		}});
 
-		message = "You have met a market expert. They will help you identify in-demand items for the next " + market_expert_duration + " minutes (expires " + getTimeString(expiration_time) +  ") with " + Math.floor(market_expert_rating * 100) + "% accuracy.";
+		message = "You have met a market expert. They will help you identify in-demand items for the next " + market_expert_duration + " minutes (expires " + getTimeString(expiration_time) +  ").";
 	}
 
 	else {
@@ -1071,14 +1058,14 @@ var marketExpertInteraction = function(npc_object) {
 		}});
 
 		if (user_object.profile.market_expert.rating == 1) {
-			message = "You have met another market expert. Your access to market analysis has been extended by " + market_expert_duration_extension + " minutes (expires " + getTimeString(new_expiration) + "), and remains 100% accurate.";
+			message = "You have met another market expert. Your access to market analysis has been extended by " + market_expert_duration_extension + " minutes (expires " + getTimeString(new_expiration) + ").";
 		}
 
 		else {
 			var new_accuracy = user_object.profile.market_expert.rating + market_expert_rating_increase > 1 ? 1 : user_object.profile.market_expert.rating + market_expert_rating_increase;
 			Meteor.users.update(user_object._id, {$set: { 'profile.market_expert.rating': new_accuracy}});
 
-			message = "You have met another market expert. Your access to market analysis has been extended by " + market_expert_duration_extension + " minutes (expires " + getTimeString(new_expiration) + "), and is now " + Math.floor(new_accuracy * 100) + "% accurate.";
+			message = "You have met another market expert. Your access to market analysis has been extended by " + market_expert_duration_extension + " minutes (expires " + getTimeString(new_expiration) + ").";
 		}
 	}
 

@@ -1,4 +1,4 @@
-createAuction = function(item_id, starting, buy_now, duration) {
+createAuction = function(item_id, starting, buy_now, duration, viewer) {
     try {
         if (auctions.find({'item_id': item_id}).count() == 0) {
             var post_date = moment();
@@ -30,6 +30,7 @@ createAuction = function(item_id, starting, buy_now, duration) {
                 'date_posted': post_date,
                 'expiration': expiration._d.toISOString(),
                 'seller': user_object ? user_object.profile.screen_name : "Artfunkel, Inc.",
+                'viewer': viewer == undefined ? "public" : viewer,
                 'item_data': {
                     'title': item_object.artwork_data.title,
                     'artist': item_object.artwork_data.artist,

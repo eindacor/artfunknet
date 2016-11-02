@@ -559,7 +559,7 @@ Meteor.methods({
                     is_sought = true;
             });
 
-            return JepLoot.booRoll(Meteor.user().profile.market_expert.rating) ? is_sought : !is_sought;
+            return is_sought;
         }
 
         else return false;
@@ -607,7 +607,7 @@ Meteor.methods({
                     calcMVP(Meteor.userId());
 
                     for (var i=0; i<item_ids.length; i++) {
-                        createAuction(item_ids[i], getItemValue(item_ids[i], "sell", Meteor.userId()), -1, 120);
+                        createAuction(item_ids[i], getItemValue(item_ids[i], "sell", Meteor.userId()), -1, 120, "public");
                     }
                 }
             });

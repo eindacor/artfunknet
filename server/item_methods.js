@@ -293,7 +293,7 @@ Meteor.methods({
                 else {
                     if (Meteor.user().profile.user_type != "admin") {
                         calcMVP(Meteor.userId());
-                        createAuction(item_id, getItemValue(item_id, "sell", undefined), -1, 120);
+                        createAuction(item_id, getItemValue(item_id, "sell", undefined), -1, 120, "public");
                     }
 
                     else items.remove(item_id);
@@ -332,7 +332,7 @@ Meteor.methods({
 
         if (errors.length == 0) {
             items.update({'_id': item_id}, {$set: {'status' : 'auctioned'}}, function() {
-                createAuction(item_id, starting, buy_now, duration);
+                createAuction(item_id, starting, buy_now, duration, "public");
                 if (procUniqueAttribute(Meteor.userId(), "XP_FOR_AUCTIONS", undefined) && Meteor.user().profile.market_expert.expiration > moment()._d.toISOString()) {
                     addXPChunkPercentage("XP_FOR_AUCTIONS", Meteor.userId(), .5)
                 }

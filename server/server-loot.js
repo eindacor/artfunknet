@@ -237,7 +237,7 @@ lookupCrateCost = function(quality, count) {
 
 generateItems = function(multi_item_generator) {
     if (Meteor.users.findOne(multi_item_generator.user_id) === undefined)
-        return;
+        return [];
 
     var map_amplifier;
 
@@ -273,10 +273,10 @@ generateItems = function(multi_item_generator) {
             'condition_min': multi_item_generator.condition_min
         }
 
-        generateItemFromArtworkID(item_generator);
+        item_ids.push(generateItemFromArtworkID(item_generator));
     }
 
-    return true;
+    return item_ids;
 }
 
 var misprintArtworkData = function(artwork_data) {
