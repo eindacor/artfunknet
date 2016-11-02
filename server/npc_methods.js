@@ -1057,16 +1057,7 @@ var marketExpertInteraction = function(npc_object) {
 			'profile.market_expert.expiration': new_expiration._d.toISOString()
 		}});
 
-		if (user_object.profile.market_expert.rating == 1) {
-			message = "You have met another market expert. Your access to market analysis has been extended by " + market_expert_duration_extension + " minutes (expires " + getTimeString(new_expiration) + ").";
-		}
-
-		else {
-			var new_accuracy = user_object.profile.market_expert.rating + market_expert_rating_increase > 1 ? 1 : user_object.profile.market_expert.rating + market_expert_rating_increase;
-			Meteor.users.update(user_object._id, {$set: { 'profile.market_expert.rating': new_accuracy}});
-
-			message = "You have met another market expert. Your access to market analysis has been extended by " + market_expert_duration_extension + " minutes (expires " + getTimeString(new_expiration) + ").";
-		}
+		message = "You have met another market expert. Your access to market analysis has been extended by " + market_expert_duration_extension + " minutes (expires " + getTimeString(new_expiration) + ").";
 	}
 
 	return {'message': message};
