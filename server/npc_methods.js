@@ -64,9 +64,6 @@ Meteor.methods({
 			case "xp_visitors": //DISABLE - give portion of collection xp to visitors
 				npc_interaction = {'message': "You have been given 0xp for works in this permanent collection."};
 				break;
-			case "auctioneer_bonus": //DISABLE - provide access to private bot auction
-				npc_interaction = {'message': "You have met an auctioneer."};
-				break;
 			case "dealer_bonus":
 				npc_interaction = artDealerInteraction(npc_object);
 				break;
@@ -86,7 +83,7 @@ Meteor.methods({
 				npc_interaction = historianInteraction(npc_object);
 				break;
 			case "market_expert_bonus": //DISABLE - analyze auction house and return deals
-				npc_interaction = marketExpertInteraction(npc_object);
+				npc_interaction = auctioneerInteraction(npc_object);
 				break;
 			case "entry_fee_reduction_members": //DISABLE = reduce entry fee for members
 			case "set_xp_members": //DISABLE - give portion of set xp to members
@@ -1009,7 +1006,7 @@ var historianInteraction = function(npc_object) {
 	}
 }
 
-var marketExpertInteraction = function(npc_object) {
+var auctioneerInteraction = function(npc_object) {
 	var user_object = Meteor.user();
 
 	var market_expert_duration = 10; //minutes
