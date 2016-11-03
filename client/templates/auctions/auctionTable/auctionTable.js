@@ -71,20 +71,13 @@ Template.auctionTable.helpers({
 	'auction_info' : function(auction_object) {
 		try {
 			var list_object = auction_object;
-			var item_object = items.findOne({'_id': auction_object.item_id});
-
-			var displayed_attributes = [];
-			for(var i=0; i < item_object.attributes.length; i++) {
-				if (item_object.attributes[i].type == 'primary')
-					displayed_attributes.push(item_object.attributes[i]);
-			}
 
 			list_object.expiration = auction_object.expiration;
 			var funds_available = auction_object.min_bid <= Meteor.user().profile.bank_balance || Meteor.users.findOne({'_id': Meteor.userId(), 'profile.auction_data.winning': {$in: [auction_object._id]}}) != undefined;
 			
 			list_object.biddable = 
 				Meteor.userId() && 
-				(item_object.owner != Meteor.userId()) && 
+				(auction_object.seller != Meteor.user().profile.screen_name) && 
 				funds_available && 
 				items.find({'owner' : Meteor.userId(), 'status' : {$nin : ['unclaimed', 'for_sale']}}).count() < Meteor.user().profile.inventory_cap;
 
@@ -92,9 +85,9 @@ Template.auctionTable.helpers({
 			list_object.losing = Meteor.users.findOne({'_id': Meteor.userId(), 'profile.auction_data.winning': {$in: [auction_object._id]}}) == undefined &&
 				Meteor.users.findOne({'_id': Meteor.userId(), 'profile.auction_data.watching': {$in: [auction_object._id]}}) != undefined;
 
-			list_object.owned = items.findOne({'owner': Meteor.userId(), 'artwork_id': item_object.artwork_id, 'status': {$nin: ['unclaimed', 'for_sale']}}) != undefined;
-			list_object.attribute = displayed_attributes;
-			list_object.artwork_id = item_object.artwork_id;
+			list_object.owned = items.findOne({'owner': Meteor.userId(), 'artwork_id': auction_object.item_data.artwork_id, 'status': {$nin: ['unclaimed', 'for_sale']}}) != undefined;
+			list_object.attribute = auction_object.item_data.attributes;
+			list_object.artwork_id = auction_object.item_data.artwork_id;
 			list_object.buy_now_text = auction_object.buy_now == -1 ? "-" : "$" + getCommaSeparatedValue(auction_object.buy_now);
 
 			return list_object;
@@ -114,49 +107,13 @@ Template.auctionTable.helpers({
 		return 255 - Math.floor(value * 255);
 	},
 
-	'thumbnailInfo' : function(item_id) {
+	'thumbnailFilename' : function(artwork_id) {
 		try {
-			var item_object = items.findOne(item_id);
-			var auction_object = auctions.findOne({'item_id' : item_id}); 
-			var biddable = 
-				Meteor.userId() && 
-				(item_object.owner != Meteor.userId()) && 
-				(auction_object.bid_minimum <= Meteor.user().profile.bank_balance) && 
-				items.find({'owner' : Meteor.userId(), 'status' : {$nin : ['unclaimed', 'for_sale']}}).count() < Meteor.user().profile.inventory_cap;
-
-			var max_dimension = 40;
-
-			var width = item_object.artwork_data.width;
-			var height = item_object.artwork_data.height;
-			var ratio = width / height;
-
-			var info_object = {
-				'image_width' : 0,
-				'image_height' : 0,
-				'biddable' : biddable,
-				'filename' : item_object.artwork_data.filename,
-			};
-
-			if (width > height) {
-				info_object.image_width = max_dimension;
-				info_object.image_height = Math.floor(max_dimension / ratio);
-			}
-
-			else {
-				info_object.image_height = max_dimension;
-				info_object.image_width = Math.floor(max_dimension * ratio);
-			}
-
-			return info_object;
+			return artworks.findOne(artwork_id).filename;
 		}
 
 		catch(error) {
-			return {
-				'image_width' : 0,
-				'image_height' : 0,
-				'biddable' : false,
-				'filename' : ""
-			};
+			console.log(error.message);
 		}
 	},
 

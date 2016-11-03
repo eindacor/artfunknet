@@ -45,7 +45,9 @@ createAuction = function(item_id, starting, buy_now, duration, viewer) {
                     'foil' : item_object.foil,
                     'lottery' : item_object.lottery,
                     'seasonal' : item_object.seasonal,
-                    'original' : item_object.original
+                    'original' : item_object.original,
+                    'attributes': item_object.attributes,
+                    'artwork_id': item_object.artwork_id
                 }               
             };
 

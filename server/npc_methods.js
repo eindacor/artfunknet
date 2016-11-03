@@ -82,7 +82,7 @@ Meteor.methods({
 			case "historian_bonus": //DISABLE - quiz players for xp
 				npc_interaction = historianInteraction(npc_object);
 				break;
-			case "market_expert_bonus": //DISABLE - analyze auction house and return deals
+			case "auctioneer_bonus": //DISABLE - analyze auction house and return deals
 				npc_interaction = auctioneerInteraction(npc_object);
 				break;
 			case "entry_fee_reduction_members": //DISABLE = reduce entry fee for members

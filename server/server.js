@@ -85,6 +85,15 @@ var updateContent = function() {
 
     // temp code
     auctions.update({'viewer': null}, {$set: {'viewer': "public"}}, {multi: true});
+    auctions.find({'item_data.attributes': null}).forEach(function(db_object) {
+        var item_object = items.findOne(db_object.item_id);
+        auctions.update({'_id': db_object._id}, {$set: {'item_data.attributes': item_object.attributes}});
+    })
+
+    auctions.find({'item_data.artwork_id': null}).forEach(function(db_object) {
+        var item_object = items.findOne(db_object.item_id);
+        auctions.update({'_id': db_object._id}, {$set: {'item_data.artwork_id': item_object.artwork_id}});
+    })
     // temp code
 }
 
@@ -293,6 +302,5 @@ Accounts.onCreateUser(function(options, user) {
 });
 
 Accounts.onLogin(function(object) {
-    console.log(object.user._id);
     Meteor.users.update({'_id': object.user._id}, {$set: {'profile.last_login': moment().toISOString()}});
 })

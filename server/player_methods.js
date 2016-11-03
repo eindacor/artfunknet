@@ -674,5 +674,50 @@ Meteor.methods({
         }
 
         return true;
+    },
+
+    'getPublicAuctions': function(sort_query, filter_array, skip_amount, items_per_page) {
+        var has_auctioneer = Meteor.user().profile.market_expert.expiration < moment()._d.toISOString();
+
+        var fields_object = undefined;
+
+        if (has_auctioneer) {
+            fields_object = {
+                'item_id': 0,
+                'current_bid': 0,
+                'increment': 0,
+                'highest_bid': 0,
+                'viewer': 0
+            }
+        }
+
+        else {
+            fields_object = {
+                'item_id': 0,
+                'current_bid': 0,
+                'increment': 0,
+                'highest_bid': 0,
+                'viewer': 0,
+                'item_data.condition': 0,
+                'item_data.xp_rating': 0,
+                'item_data.feature_count': 0,
+                'item_data.roll_count': 0,
+                'item_data.attributes': 0
+            }
+        }
+
+        var auction_array = auctions.find({'viewer': {$in: ["public", Meteor.userId()]}}, {fields: fields_object}).fetch();
+
+        console.log(auction_array);
+
+        return auction_array;
+    },
+
+    'getWatchedAuctions': function(sort_query, filter_array, skip_amount, items_per_page) {
+        return auctions.find({'viewer': {$in: ["public", Meteor.userId()]}, 'item_id': {$in: Meteor.user().profile.auction_data.watching}}).fetch();
+    },
+
+    'getAuctionedItems': function(sort_query, filter_array, skip_amount, items_per_page) {
+        return auctions.find({'seller': Meteor.user().profile.screen_name}).fetch();
     }
 })

@@ -1,42 +1,72 @@
+var auction_house_tracker = new Tracker.Dependency;
+var page_tracker = new Tracker.Dependency;
+var auctions = [];
+var tags = [];
+var locked_attributes = [];
+var standard_attributes = [];
+var sorter = "artwork_data.title";
+var ascending = 1;
+var status_filter = {'status': {$in: ['claimed', 'displayed', 'permanent', 'auctioned']}};
+var rarity_filter =  {'artwork_data.rarity': {$in: ['common', 'uncommon', 'rare', 'legendary', 'masterpiece']}};
+
+var lottery_filter = {'lottery': {$ne: undefined}};
+var foil_filter = {'foil': {$ne: undefined}};
+var seasonal_filter = {'seasonal': {$ne: undefined}};
+var original_filter = {'original': {$ne: undefined}};
+var standard_filter = {};
+var items_found = 0;
+var current_page = 0;
+var items_per_page = 10;
+
+var auction_data = undefined;
+
+var getAuctions = function() {
+	var sorter_object = {};
+	sorter_object[sorter] = ascending;
+
+	var filter_array = [
+		lottery_filter, 
+		foil_filter, 
+		seasonal_filter, 
+		original_filter,
+		standard_filter,
+		status_filter,
+		rarity_filter
+	];
+
+	var base_filter = {
+		'owner': Meteor.userId()
+	}
+
+	if (tags.length > 0) {
+		base_filter.tags = {"$in": tags};
+	}
+
+	filter_array.push(base_filter);
+
+	Meteor.call('getPublicAuctions', {'sort': sorter_object}, {'$and': filter_array}, current_page * items_per_page, items_per_page, function(error, result) {
+		if (error)
+			console.log(error.message);
+
+		else {
+			auction_data = result;
+			auction_house_tracker.changed();
+		}
+	})
+}
+
 Template.auctions.helpers({
 	'auctionData' : function() {
-		var table_id = "main_auctions";
-
-		var sort_query = {};
-
-		if (Session.get(table_id + '_sort')) {
-			var asc = (Session.get(table_id + '_ascending') ? 1 : -1);
-		    sort_query[Session.get(table_id + '_sort')] = asc;
+		auction_house_tracker.depend();
+		if (auction_data == undefined) {
+			getAuctions();
+			return [];
 		}
 
-		//required for pagination
-		var pagination_id = 'main_auctions';
-
-		if (Session.get(pagination_id + '_current') === undefined)
-			Session.set(pagination_id + '_current', 0);
-
-		var pageData = {
-			'identifier': pagination_id,
-			'totalResults': auctions.find({}).count(),
-			'resultsPerPage': 10,
-			'pageNumbersDisplayed': 7,
-		}
-
-		var skip_amount = Number(pageData.resultsPerPage * Session.get(pagination_id + '_current'));
-
-		var auction_array = auctions.find( {'viewer': {$in: [Meteor.userId(), "public"]}}, { sort: sort_query, skip: skip_amount, limit: pageData.resultsPerPage } ).fetch();
-
-		if (auction_array.length < Number(pageData.resultsPerPage * Session.get(pagination_id + '_current')))
-			Session.set('pagination_id' + '_current', Session.get(pagination_id + '_current') - 1);
-
-		return {
-			'tableData' : {
-				'auction' : auction_array,
-				'table_id' : table_id,
-			},	
-			'pageData' : pageData
-		}
+		else return auction_data;
 	},
+
+
 });
 
 Template.auctions.rendered = function() {

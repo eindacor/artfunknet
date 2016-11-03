@@ -1,51 +1,48 @@
 <template name="auctionTable">
-	<div class="template-auctionTable">
+	<div class="row template-auctionTable">
 		{{#if full}}
 		<div class="col-xs-12 no-padding">
 			<p>Note: your inventory is currently full. You will be unable to place bids on any items in the Auction House.</p>
 		</div>
 		{{/if}}
 		<div class="col-xs-12 no-padding">
-			<table class="auction-table" data-table_id="{{this.table_id}}">
-				<tr>
-				{{#each header this}}
-					{{> headerTemplate this}}
-				{{/each}}
-				</tr>
-				{{#each this.auction}}
+			<div class="row" id="{{#if winning}}winning{{else}}{{#if losing}}losing{{/if}}{{/if}}">
+				{{#each this}}
+					<div class="row table-row">
 					{{#with auction_info this}}
-					<tr data-auction_id="{{_id}}" id="{{#if winning}}winning{{else}}{{#if losing}}losing{{/if}}{{/if}}">
-						<td>
-							{{#with thumbnailInfo item_id}}
-							<img class="image-thumb preview enabled" src="{{getThumbImageURL filename}}"/>
-							{{/with}}
-						</td>
-						{{#with time_remaining expiration}}
-						<td class="{{#if soon}}soon{{/if}}">{{remaining}}</td>
-						{{/with}}
-						<td class="{{#if isQuestItem artwork_id}}green-text{{/if}}">{{#if owned}}*{{/if}}{{item_data.title}}</td>
-						<td>{{item_data.date}}</td>
-						<td>{{item_data.artist}}</td>
-						<td><span class="{{item_data.rarity}}"><strong>{{item_data.rarity}}</strong></span>{{#if item_data.foil}}<span class="af-color"> foil</span>{{/if}}{{#if item_data.seasonal}}<span class="common"> seasonal</span>{{/if}}{{#if item_data.lottery}}<span class="gold"> lottery {{item_data.lottery}}</span>{{/if}}{{#if item_data.original}}<span class="purple-text"> original</span>{{/if}}</td>
-						<td style="color: rgb({{attributeColor condition}}, 0, 0)" >{{#if market_expert}}{{floatToPercentage item_data.condition}}{{else}}?{{/if}}</td>
-						<td>
-						{{#if market_expert}}
-							{{#each attribute}}
-								<i data-attribute_title="{{description}}" data-attribute_value="{{value}}" style="color: rgb({{attributeColor value}}, 0, 0)" class="{{#if locked}}locked{{/if}} item-attribute fa {{icon}}"></i>
-							{{/each}}
-						{{else}}?{{/if}}
-						</td>
-						<td style="{{#if market_expert}}color: rgb({{attributeColor item_data.xp_rating}}, 0, 0){{/if}}">{{#if market_expert}}{{floatToPercentage item_data.xp_rating}}{{else}}?{{/if}}</td>
-						<td>{{#if market_expert}}{{item_data.roll_count}}{{else}}?{{/if}}</td>
-						<td class="{{#if has_bid}}highlight{{/if}}">{{displayAsMoneyValue min_bid}}</td>
-						<td>{{buy_now_text}}</td>
-						<td class="action-buttons"><span class="place-bid {{#if isBiddable this}}enabled{{else}}disabled{{/if}}" data-auction_id="{{auction_id}}"><i class="fa fa-usd"></i></span></td>
-						<td><a href="/user/{{seller}}">{{seller}}</a></td>
-						<td>{{isPrivate viewer}}</td>
-					</tr>
+						<div class="col-xs-1 thumb-div"><img class="auction-thumb" src="{{#with thumbnailFilename item_data.artwork_id}}{{getThumbImageURL this}}{{/with}}"/></div>
+						<div class="col-xs-1 remaining-div">{{#with time_remaining expiration}}<span class="{{#if soon}}soon{{/if}}">{{remaining}}</span>{{/with}}</div>
+						<div class="col-xs-8">
+							<div class="row default-info">
+								<div class="col-xs-2 {{#if isQuestItem artwork_id}}green-text{{/if}}">{{#if owned}}*{{/if}}{{item_data.title}}</div>
+								<div class="col-xs-2">{{item_data.date}}</div>
+								<div class="col-xs-2">{{item_data.artist}}</div>
+								<div class="col-xs-2">
+									<span class="{{item_data.rarity}}"><strong>{{item_data.rarity}}</strong></span>{{#if item_data.foil}}<span class="af-color"> foil</span>{{/if}}{{#if item_data.seasonal}}<span class="common"> seasonal</span>{{/if}}{{#if item_data.lottery}}<span class="gold"> lottery {{item_data.lottery}}</span>{{/if}}{{#if item_data.original}}<span class="purple-text"> original</span>{{/if}}
+								</div>
+							</div>
+							<div class="row">
+								<div class="col-xs-1" style="color: rgb({{attributeColor condition}}, 0, 0)" >{{#if item_data.condition}}{{floatToPercentage item_data.condition}}{{else}}?{{/if}}</div>
+								<div class="col-xs-3">
+								{{#each attribute}}
+									<i data-attribute_title="{{description}}" data-attribute_value="{{value}}" style="color: rgb({{attributeColor value}}, 0, 0)" class="{{#if locked}}locked{{/if}} item-attribute fa {{icon}}"></i>
+								{{/each}}
+								</div>
+								<div class="col-xs-1" style="{{#if item_data.xp_rating}}color: rgb({{attributeColor item_data.xp_rating}}, 0, 0){{/if}}">{{#if item_data.xp_rating}}{{floatToPercentage item_data.xp_rating}}{{else}}?{{/if}}</div>
+								<div class="col-xs-1">{{#if item_data.roll_count}}{{item_data.roll_count}}{{else}}?{{/if}}</div>
+								<div class="col-xs-1 {{#if has_bid}}highlight{{/if}}">{{displayAsMoneyValue min_bid}}</div>
+								<div class="col-xs-1">{{buy_now_text}}</div>
+								<div class="col-xs-1 action-buttons place-bid {{#if isBiddable this}}enabled{{else}}disabled{{/if}}" data-auction_id="{{auction_id}}"><i class="fa fa-usd"></i></div>
+								<div class="col-xs-1"><a href="/user/{{seller}}">{{seller}}</a></div>
+							</div>
+						</div>
+						<div class="col-xs-2">
+
+						</div>
 					{{/with}}
+					</div>
 				{{/each}}
-			</table>
+			</div>
 		</div>
 		<div class="col-xs-12 no-padding">
 			<p>* denotes paintings you already own</p>
