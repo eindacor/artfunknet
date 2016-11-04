@@ -17,7 +17,7 @@
 			<div class="row item-table">
 				{{#each this}}
 					{{#with auction_info this}}
-						<div class="row table-row" id="{{#if isWinning _id}}winning{{else}}{{#if isLosing _id}}losing{{/if}}{{/if}}">
+						<div class="row table-row {{#if hideDetails}}details-hidden{{/if}}" id="{{#if isWinning _id}}winning{{else}}{{#if isLosing _id}}losing{{/if}}{{/if}}">
 							<div class="col-xs-1 thumb-div{{#if hideDetails}}-hidden{{/if}}"><img class="auction-thumb" src="{{#with thumbnailFilename item_data.artwork_id}}{{getThumbImageURL this}}{{/with}}"/></div>
 							{{#if hideDetails}}
 								<div class="col-xs-1 thumb-blank"></div>
@@ -41,7 +41,7 @@
 										</p>
 									</div>
 									<div class="col-xs-3">
-										<p>condition: <span style="color: rgb({{attributeColor item_data.condition}}, 0, 0)" >{{#if item_data.condition}}{{floatToPercentage item_data.condition}}{{else}}?{{/if}}</span></p>
+										<p>condition: <span style="color: rgb({{attributeColor item_data.condition}}, 0, 0)" >{{#if item_data.condition}}{{floatToPercentage item_data.condition}}%{{else}}?{{/if}}</span></p>
 										<p>xp rating: <span style="{{#if item_data.xp_rating}}color: rgb({{attributeColor item_data.xp_rating}}, 0, 0){{/if}}">{{#if item_data.xp_rating}}{{floatToPercentage item_data.xp_rating}}{{else}}?{{/if}}</span></p>
 									</div>
 									<div class="col-xs-3">
@@ -51,7 +51,7 @@
 								</div>
 							</div>
 							<div class="col-xs-2">
-								{{#if isBiddable this}}<button type="button" class="btn btn-default place-bid" data-auction_id="{{../_id}}">place bid</button>{{/if}}
+								{{#if isBiddable this}}<button type="button" class="btn btn-default place-bid{{#if hideDetails}}-hidden{{/if}}" data-auction_id="{{../_id}}">place bid</button>{{/if}}
 							</div>
 						</div>
 					{{/with}}

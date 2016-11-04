@@ -195,6 +195,8 @@ Template.auctionTable.events({
 	},
 
 	'click #refresh-auctions': function() {
+		sought_items = {};
+		sought_item_tracker.changed();
 		Session.set('refresh_auctions', true);
 	}
 })

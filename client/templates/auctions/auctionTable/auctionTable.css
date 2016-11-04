@@ -1,9 +1,17 @@
 .template-auctionTable .table-row {
-	border-bottom: 1px solid black;
+	border-bottom: 2px solid black;
 	padding: 10px 0px 10px 0px;
 }
 
+.template-auctionTable .table-row.details-hidden {
+	border-bottom: 1px solid black;
+}
+
 .template-auctionTable .table-row:first-child {
+	border-top: 2px solid black;
+}
+
+.template-auctionTable .table-row.details-hidden:first-child {
 	border-top: 1px solid black;
 }
 
@@ -23,7 +31,8 @@
 }
 
 .template-auctionTable .thumb-div-hidden, 
-.template-auctionTable .other-info-hidden, 
+.template-auctionTable .other-info-hidden,
+.template-auctionTable .place-bid-hidden, 
 .template-auctionTable .table-row:hover > .thumb-blank {
 	display: none;
 }
@@ -33,7 +42,8 @@
 }
 
 .template-auctionTable .table-row:hover > .thumb-div-hidden, 
-.template-auctionTable .table-row:hover > .col-xs-8 > .other-info-hidden {
+.template-auctionTable .table-row:hover > .col-xs-8 > .other-info-hidden,
+.template-auctionTable .table-row:hover > .col-xs-2 > .place-bid-hidden {
 	display: block;
 }
 
@@ -100,7 +110,8 @@
 	font-weight: bold;
 }
 
-.template-auctionTable #toggle-details, .template-auctionTable .place-bid {
+.template-auctionTable #toggle-details, .template-auctionTable .place-bid,
+.template-auctionTable #toggle-details, .template-auctionTable .place-bid-hidden {
 	background-color: black;
 	color: white;
 	border-radius: 0;
