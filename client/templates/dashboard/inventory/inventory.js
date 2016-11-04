@@ -359,10 +359,6 @@ Template.inventory.helpers({
 });
 
 Template.inventory.events({
-	'click #toggle-view' : function() {
-		Session.set('list_view', !Session.get('list_view'));
-	},
-
 	'keyup #tag-selector': function(event) {
 		var entered = $('#tag-selector').val();
 		tags = commaSeparatedValuesToArray($('#tag-selector').val());
@@ -535,7 +531,6 @@ Template.inventory.events({
 
 	'change #page-count-select': function() {
 		items_per_page = Number($('#page-count-select').val());
-		console.log(items_per_page);
 		display_tracker.changed();
 	}
 })

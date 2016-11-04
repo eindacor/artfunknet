@@ -149,7 +149,7 @@ Template.auctionTable.helpers({
 });
 
 Template.auctionTable.events({
-	'click .place-bid' : function(element) {
+	'click .place-bid-hidden, click .place-bid' : function(element) {
 		var auction_id = $(element.target).data('auction_id');
 		console.log(auction_id);
 

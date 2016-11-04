@@ -706,8 +706,28 @@ Meteor.methods({
             }
         }
 
-        var auction_array = auctions.find({'viewer': {$in: ["public", Meteor.userId()]}}, {fields: fields_object}).fetch();
-        return auction_array;
+        filter_array.push({'viewer': {$in: ["public", Meteor.userId()]}});
+
+        console.log(filter_array);
+
+        var auction_array = auctions.find(
+            {$and: filter_array}, 
+            {
+                fields: fields_object, 
+                skip: skip_amount, 
+                limit: items_per_page
+            }).fetch();
+
+        var total_items_found = auctions.find(
+            {$and: filter_array},  
+            {
+                fields: fields_object
+            }).count();
+
+        return {
+            'auction_data': auction_array,
+            'items_found': total_items_found
+        }
     },
 
     'getWatchedAuctions': function(sort_query, filter_array, skip_amount, items_per_page) {

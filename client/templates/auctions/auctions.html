@@ -2,6 +2,104 @@
 	<div class="template-auctions">
 		<div class="container">
 			<h1 class="af-color">Auction House</h1>
+			<div class="row inventory-management no-padding">
+			<h3 class="view-buttons"><!--i id="toggle-view" class="fa fa-list {{#if list_view}}af-color{{/if}}"></i--><i id="toggle-filters" class="fa fa-filter"></i></h3>
+			<div class="row all-filters">
+				<textarea id="tag-selector" placeholder="search by tags (separate tags with a comma, e.g. 'primary, to auction, foils')"></textarea>
+				<div class="sort-area col-xs-12 col-md-2">
+					<p class="filter-title">sort:</p>
+					<select id="sort-selector">
+						<option value="artwork_data.title">title</option>
+						<option value="artwork_data.date">date</option>
+						<option value="artwork_data.artist">artist</option>
+						<option value="artwork_data.rarity_value">rarity</option>
+						<option value="condition">condition</option>
+						<option value="xp_rating">xp_rating</option>
+					</select>
+					<select id="order-selector">
+						<option value="1">ascending</option>
+						<option value="-1">descending</option>
+					</select>
+				</div>
+
+				<div class="filter-area col-xs-12 col-md-10">
+					<div class="row">
+						<div class="col-xs-2">
+							<p class="filter-title">card type:</p>
+							<div class="filter-checkboxes">
+								<label><input class="type-select" type="checkbox" id="card-type-checkbox" value="standard" checked>standard</label><br>
+								<label><input class="type-select" type="checkbox" id="card-type-checkbox" value="foil" checked>foil</label><br>
+								<label><input class="type-select" type="checkbox" id="card-type-checkbox" value="seasonal" checked>seasonal</label><br>
+								<label><input class="type-select" type="checkbox" id="card-type-checkbox" value="lottery" checked>lottery</label><br>
+								<label><input class="type-select" type="checkbox" id="card-type-checkbox" value="original" checked>original</label>
+							</div>
+						</div>
+
+						<div class="col-xs-2">
+							<p class="filter-title">rarity:</p>
+							<div class="filter-checkboxes">
+								<label><input class="rarity-select" type="checkbox" id="card-rarity-checkbox" value="common" checked>common</label><br>
+								<label><input class="rarity-select" type="checkbox" id="card-rarity-checkbox" value="uncommon" checked>uncommon</label><br>
+								<label><input class="rarity-select" type="checkbox" id="card-rarity-checkbox" value="rare" checked>rare</label><br>
+								<label><input class="rarity-select" type="checkbox" id="card-rarity-checkbox" value="legendary" checked>legendary</label><br>
+								<label><input class="rarity-select" type="checkbox" id="card-rarity-checkbox" value="masterpiece" checked>masterpiece</label>
+							</div>
+						</div>
+
+						<!-- <div class="col-xs-2">
+							<p class="filter-title">standard attributes:</p>
+							<select id="attribute-filter">
+		            			<option value="contains one">has at least one</option>
+		            			<option value="contains two">has at least two</option>
+		            			<option value="contains three">has at least three</option>
+		            			<option value="contains four">has at least four</option>
+		            		</select>
+							<div class="filter-checkboxes">
+								{{#each locked_attribute}}
+								<label><input class="attribute-select" type="checkbox" id="attribute-checkbox" value="{{_id}}">{{attributeName _id}}</label><br>
+								{{/each}}
+							</div>
+						</div> -->
+
+						<!-- {{#if showLockedAttributes}}
+						<div class="col-xs-2">
+							<p class="filter-title">locked attributes:</p>
+							<select id="locked-filter">
+		            			<option value="contains one">has at least one</option>
+		            			<option value="contains two">has at least two</option>
+		            			<option value="contains three">has three</option>
+		            		</select>
+							<div class="filter-checkboxes">
+								{{#each locked_attribute}}
+								<label><input class="locked-attribute-select" type="checkbox" id="locked-attribute-checkbox" value="{{_id}}">{{attributeName _id}}</label><br>
+								{{/each}}
+							</div>
+						</div>
+						{{/if}} -->
+						
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="row">
+			<div class="col-xs-9 page-buttons">
+				<div class="button-wrapper">
+					<i id="auctions-page-left" class="page-button fa fa-caret-left"></i>
+					<span class="page-indicators">page {{current_page}}/{{total_pages}}</span>
+					<i id="auctions-page-right" class="page-button fa fa-caret-right"></i>	
+				</div>
+			</div>
+			<div class="col-xs-3 page-buttons items_per_page">
+				<span class="filter-title">items per page: </span>
+				<select id="page-count-select">
+        			<option value="10">10</option>
+        			<option value="20">20</option>
+        			<option value="50">50</option>
+        			<option value="100">100</option>
+        		</select>
+			</div>
+		</div>
 			{{refreshAuctions}}
 			{{>auctionTable auctionData}}
 		</div>

@@ -18,53 +18,6 @@
 	margin-top: -6px;
 }
 
-
-/*TABLE CSS*/
-.template-inventory table {
-	margin: auto;
-	width: 100%;
-	border: none;
-}
-
-.template-inventory td {
-	text-align: center;
-	border: none;
-}
-
-.template-inventory tr {
-	border: 1px solid gray;
-	height: 48px;
-}
-
-.template-inventory tr:nth-child(even) {
-	background-color: #EEEEEE;
-}
-
-.template-inventory tr:hover {
-	cursor: pointer;
-	background-color: #FFFFBB;
-}
-
-.template-inventory th {
-	background-color: black;
-	font-size: 1em;
-	color: white;
-	min-width: 120px;
-	text-align: center;
-	border-right: 1px solid white;
-	min-height: 80px;
-}
-
-.template-inventory th:hover {
-	background-color: #666666;
-	cursor: pointer;
-}
-
-.template-inventory .soon {
-	color: red;
-	font-weight: bold;
-}
-
 .template-inventory .action-buttons {
 	color: black;
 	opacity: .5;
