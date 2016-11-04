@@ -3,7 +3,7 @@ admin_settings = {
 	'crate_drop_count': 6,
 }
 
-var adminValidated = function() {
+adminValidated = function() {
 	var user_object = Meteor.user();
 	return user_object && user_object.profile.user_type == "admin";
 }

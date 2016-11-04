@@ -677,7 +677,7 @@ Meteor.methods({
     },
 
     'getPublicAuctions': function(sort_query, filter_array, skip_amount, items_per_page) {
-        var has_auctioneer = Meteor.user().profile.market_expert.expiration < moment()._d.toISOString();
+        var has_auctioneer = Meteor.user().profile.market_expert.expiration > moment()._d.toISOString();
 
         var fields_object = undefined;
 
@@ -707,9 +707,6 @@ Meteor.methods({
         }
 
         var auction_array = auctions.find({'viewer': {$in: ["public", Meteor.userId()]}}, {fields: fields_object}).fetch();
-
-        console.log(auction_array);
-
         return auction_array;
     },
 

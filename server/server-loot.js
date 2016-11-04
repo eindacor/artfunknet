@@ -485,6 +485,9 @@ Meteor.methods({
     },
 
     'updateSmartMap': function(revised_smart_map) {
+        if (!adminValidated())
+            return false;
+        
         if (revised_smart_map) {
             metadata.update({'loot_data': {$ne: null}}, {$set: {'loot_data.smart_map': revised_smart_map}});
             setTimeout('', 2000);

@@ -1,14 +1,47 @@
 .template-auctionTable .table-row {
-	border-bottom: 1px solid gray;
+	border-bottom: 1px solid black;
 	padding: 10px 0px 10px 0px;
 }
 
 .template-auctionTable .table-row:first-child {
-	border-top: 1px solid gray;
+	border-top: 1px solid black;
 }
 
 .template-auctionTable .table-row:nth-child(even) {
 	background-color: #EEEEEE;
+}
+
+.template-auctionTable .other-info p,
+.template-auctionTable .other-info-hidden p {
+	margin: 0;
+}
+
+.template-auctionTable .other-info,
+.template-auctionTable .other-info-hidden {
+	padding: 10px 0px 0px 0px;
+	border-top: 1px solid gray;
+}
+
+.template-auctionTable .thumb-div-hidden, 
+.template-auctionTable .other-info-hidden, 
+.template-auctionTable .table-row:hover > .thumb-blank {
+	display: none;
+}
+
+.template-auctionTable .other-info {
+	border-top: 1px solid gray;	
+}
+
+.template-auctionTable .table-row:hover > .thumb-div-hidden, 
+.template-auctionTable .table-row:hover > .col-xs-8 > .other-info-hidden {
+	display: block;
+}
+
+
+.template-auctionTable .thumb-div, .template-auctionTable .thumb-div-hidden, .template-auctionTable .remaining-div {
+	text-align: center;
+	padding: auto;
+	vertical-align: middle;
 }
 
 .template-auctionTable #winning {
@@ -17,11 +50,6 @@
 
 .template-auctionTable #losing {
 	background-color: #FFE6E6;
-}
-
-.template-auctionTable .table-row:hover {
-	cursor: pointer;
-	background-color: #FFFFBB;
 }
 
 .template-auctionTable .soon {
@@ -62,12 +90,34 @@
 	max-height: 48px;
 }
 
-.template-auctionTable .thumb-div, .template-auctionTable .remaining-div {
-	text-align: center;
-	padding: auto;
-	vertical-align: middle;
+.template-auctionTable .default-text {
+	color: black;
+	font-size: 1.5rem;
 }
 
-.template-auctionTable .default-info {
-	border-bottom: 1px solid gray;
+.template-auctionTable .quest-text {
+	color: green;
+	font-weight: bold;
+}
+
+.template-auctionTable #toggle-details, .template-auctionTable .place-bid {
+	background-color: black;
+	color: white;
+	border-radius: 0;
+	border: none; 
+	height: 30px;
+	width: 120px;
+	font-size: 1.2rem;
+}
+
+.template-auctionTable #toggle-details {
+	margin-bottom: 10px;
+}
+
+.template-auctionTable #refresh-auctions {
+	font-size: 2rem;
+	text-align: right;
+	margin-right: 0;
+	cursor: pointer;
+	float: right;
 }

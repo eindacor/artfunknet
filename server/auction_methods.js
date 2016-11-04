@@ -333,6 +333,8 @@ Meteor.methods({
     'getAuctionInfo': function(auction_id) {
         var current_winner = Meteor.users.findOne({'_id': Meteor.userId(), 'profile.auction_data.winning': {$in: [auction_id]}}) != undefined;
         var auction_object = auctions.findOne(auction_id);
+        console.log(auction_object);
+        console.log(auction_id);
 
         if (!current_winner)
             auction_object.highest_bid = undefined;

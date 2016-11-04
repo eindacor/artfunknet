@@ -66,10 +66,16 @@ Template.auctions.helpers({
 		else return auction_data;
 	},
 
-
+	'refreshAuctions' : function() {
+		if (Session.get("refresh_auctions")) {
+			Session.set("refresh_auctions", undefined);
+			auction_data = undefined;
+			auction_house_tracker.changed();
+		}
+	}
 });
 
 Template.auctions.rendered = function() {
-	Session.set('main_auctions_ascending', true);
-	Session.set('main_auctions_sort', "expiration_date");
+	auctions = [];
+	getAuctions();
 }
