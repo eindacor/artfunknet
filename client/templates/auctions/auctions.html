@@ -9,12 +9,22 @@
 				<div class="sort-area col-xs-12 col-md-2">
 					<p class="filter-title">sort:</p>
 					<select id="sort-selector">
-						<option value="artwork_data.title">title</option>
-						<option value="artwork_data.date">date</option>
-						<option value="artwork_data.artist">artist</option>
-						<option value="artwork_data.rarity_value">rarity</option>
-						<option value="condition">condition</option>
-						<option value="xp_rating">xp_rating</option>
+						<option value="remaining">time remaining</option>
+						<option value="current bid">current bid</option>
+						<option value="seller">seller</option>
+						<option value="title">title</option>
+						<option value="artist">artist</option>
+						<option value="date">date</option>
+						<option value="medium">medium</option>
+						<option value="rarity">rarity</option>
+						<option value="foil">foil</option>
+						<option value="lottery">lottery</option>
+						<option value="seasonal">seasonal</option>
+						{{#if has_auctioneer}}
+							<option value="condition">condition</option>
+							<option value="roll count">roll count</option>
+							<option value="xp rating">xp rating</option>
+						{{/if}}
 					</select>
 					<select id="order-selector">
 						<option value="1">ascending</option>
@@ -43,6 +53,17 @@
 								<label><input class="rarity-select" type="checkbox" id="card-rarity-checkbox" value="rare" checked>rare</label><br>
 								<label><input class="rarity-select" type="checkbox" id="card-rarity-checkbox" value="legendary" checked>legendary</label><br>
 								<label><input class="rarity-select" type="checkbox" id="card-rarity-checkbox" value="masterpiece" checked>masterpiece</label>
+							</div>
+						</div>
+
+						<div class="col-xs-2">
+							<p class="filter-title">quest:</p>
+							<div class="filter-checkboxes">
+								<label><input name="quest-status" class="type-select" type="radio" id="quest-type-radio" value="all" checked>all items</label><br>
+								<label><input name="quest-status" class="type-select" type="radio" id="quest-type-radio" value="quest">quest items</label><br>
+								{{#if has_auctioneer}}
+									<label><input name="quest-status" class="type-select" type="radio" id="quest-type-radio" value="sought">sought items</label><br>
+								{{/if}}
 							</div>
 						</div>
 

@@ -151,7 +151,6 @@ Template.auctionTable.helpers({
 Template.auctionTable.events({
 	'click .place-bid-hidden, click .place-bid' : function(element) {
 		var auction_id = $(element.target).data('auction_id');
-		console.log(auction_id);
 
 		Blaze.renderWithData(Template.modalTemplate, {
 			'modal_name': "placeBidModal", 
@@ -180,7 +179,6 @@ Template.auctionTable.events({
 
 	'click .item-attribute' : function(element) {
 		var attribute_id = element.target.dataset.attribute_title;
-		console.log(attribute_id);
 	},
 
 	'mouseover .item-attribute' : function(element) {
@@ -195,8 +193,6 @@ Template.auctionTable.events({
 	},
 
 	'click #refresh-auctions': function() {
-		sought_items = {};
-		sought_item_tracker.changed();
 		Session.set('refresh_auctions', true);
 	}
 })

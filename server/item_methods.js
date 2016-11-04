@@ -134,6 +134,29 @@ displayItem = function(item_id, duration) {
     return errors;
 }
 
+getSoughtStatus = function(user_id, artwork_id) {
+    var is_sought = false;
+    quests.find({'owner_id': {'$ne': user_id}, 'target': {$in: [artwork_id]}}).forEach(function(quest_object) {
+        if (is_sought)
+            return;
+
+        var quest_owner = quest_object.owner_id;
+
+        var last_login = Meteor.users.findOne(quest_owner).profile.last_login;
+
+        var hours_since_last_login;
+        if (last_login != undefined)
+            hours_since_last_login = (moment() - moment(hours_since_last_login)) / 3600000;
+
+        else hours_since_last_login = 999;
+
+        if (items.findOne({'owner': quest_owner, 'artwork_id': artwork_id}) == undefined && hours_since_last_login < 1)
+            is_sought = true;
+    });
+
+    return is_sought;
+}
+
 Meteor.methods({
 	'claimArtwork' : function(item_id) {
 		var item_object = canClaimItem(item_id);
