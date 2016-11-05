@@ -1,12 +1,12 @@
 var auction_house_tracker = new Tracker.Dependency;
 var page_tracker = new Tracker.Dependency;
 var auctions = [];
-var tags = [];
 var locked_attributes = [];
 var standard_attributes = [];
 var sorter = "expiration";
 var ascending = 1;
 var rarity_filter =  {'item_data.rarity': {$in: ['common', 'uncommon', 'rare', 'legendary', 'masterpiece']}};
+var exclusivity_filter = {};
 
 var lottery_filter = {'item_data.lottery': {$ne: null}};
 var foil_filter = {'item_data.foil': {$ne: null}};
@@ -17,8 +17,9 @@ var items_found = 0;
 var current_page = 0;
 var items_per_page = 10;
 var quest_status = "all";
-
 var auction_data = undefined;
+
+var search_keywords = [];
 
 var getAuctions = function() {
 	var sorter_object = {};
@@ -30,14 +31,11 @@ var getAuctions = function() {
 		seasonal_filter, 
 		original_filter,
 		standard_filter,
-		rarity_filter
+		rarity_filter,
+		exclusivity_filter
 	];
 
 	var base_filter = {}
-
-	if (tags.length > 0) {
-		base_filter.tags = {"$in": tags};
-	}
 
 	filter_array.push(base_filter);
 
@@ -98,15 +96,15 @@ Template.auctions.helpers({
 });
 
 Template.auctions.events({
-	'keyup #tag-selector': function(event) {
-		var entered = $('#tag-selector').val();
-		tags = commaSeparatedValuesToArray($('#tag-selector').val());
+	'keyup #search-selector': function(event) {
+		var entered = $('#search-selector').val();
+		search_keywords = commaSeparatedValuesToArray($('#search-selector').val());
 		auction_house_tracker.changed();
 	}, 
 
-	'keydown #tag-selector': function(event) {
+	'keydown #search-selector': function(event) {
 		if (event.keyCode == 13) {
-			$('#tag-selector').blur();
+			$('#search-selector').blur();
 			event.preventDefault();
 		}
 	},
@@ -235,6 +233,22 @@ Template.auctions.events({
 		auction_house_tracker.changed();
 	},
 
+	'change #exclusivity-checkbox': function() {
+		var valid_exclusivity = [];
+		for (var i=0; i<$('input[type=checkbox].exclusivity-select').length; i++) {
+		 	var checked = $('input[type=checkbox].exclusivity-select:eq(' + i + ')')[0].checked;
+		 	if (checked) {
+		 		var value = $('input[type=checkbox].exclusivity-select:eq(' + i + ')').val();
+		 		valid_exclusivity.push(value == "public" ? "public" : Meteor.userId());
+		 	}
+		}
+
+		exclusivity_filter = {'viewer': {$in: valid_exclusivity}};
+
+		auction_data = undefined;
+		auction_house_tracker.changed();
+	},
+
 	'change #locked-filter': function() {
 		auction_house_tracker.changed();
 	},
@@ -286,7 +300,19 @@ Template.auctions.events({
 })
 
 Template.auctions.rendered = function() {
+	sorter = "expiration";
+	ascending = 1;
+	rarity_filter =  {'item_data.rarity': {$in: ['common', 'uncommon', 'rare', 'legendary', 'masterpiece']}};
+	exclusivity_filter = {'viewer': {$in: ["public", Meteor.userId()]}};
+	lottery_filter = {'item_data.lottery': {$ne: null}};
+	foil_filter = {'item_data.foil': {$ne: null}};
+	seasonal_filter = {'item_data.seasonal': {$ne: null}};
+	original_filter = {'item_data.original': {$ne: null}};
+	standard_filter = {};
+	items_found = 0;
+	current_page = 0;
+	items_per_page = 10;
 	quest_status = "all";
-	auctions = [];
+	auction_data = {};
 	getAuctions();
 }

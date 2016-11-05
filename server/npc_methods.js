@@ -153,10 +153,6 @@ var benefactorInteraction = function(npc_object) {
 	if (isOwnGallery(npc_object)) {
 		donation_amount *= own_gallery_amplifier;
 
-		if (procUniqueAttribute(Meteor.userId(), "BENEFACTOR_MARKET_EXPERT_RATING_BONUS", undefined)) {
-
-		}
-
 		if (procUniqueAttribute(Meteor.userId(), "GALLERY_FINISH_BENEFACTOR_BONUS", undefined)) {
 			var floor_finishes = Meteor.user().profile.gallery_finishes.owned.floor_finishes;
 			var floor_finish_rating_total = 0;
@@ -802,10 +798,6 @@ var designerInteraction = function(npc_object) {
 		if (procUniqueAttribute(Meteor.userId(), "DESIGNER_ENTHUSIAST_BONUS", "Art Enthusiast")) {
 			designer_bonus += .2
 		}
-
-		if (procUniqueAttribute(Meteor.userId(), "DESIGNER_MARKET_EXPERT_BONUS", undefined)) {
-
-		}
 	}
 	
 	if (user_object.profile.gallery_finishes.owned[category_string][random_selection._id] == undefined) {
@@ -987,9 +979,7 @@ var historianInteraction = function(npc_object) {
 		}
 	
 	    var rarity_roll = JepLoot.catRoll(getSmartRarityMap(Meteor.user().profile.level, map_amplifier));
-	
 	    var quest_object = generateQuest(rarity_roll, isOwnGallery(npc_object));
-	
 	    quests.insert(quest_object);
 	
 	    var message = "You have met an art historian who is looking for a few specific items and would like your help. Visit the quests area to see what they need and acquire the artwork listed to claim your reward.";
@@ -1008,7 +998,7 @@ var auctioneerInteraction = function(npc_object) {
 
 	var market_expert_duration = 10; //minutes
 	var market_expert_duration_extension = 5; // minutes
-	var auction_count = 12;
+	var auction_count = 7;
 
 	switch(npc_object.quality) {
 		case 'bronze': 
@@ -1033,7 +1023,7 @@ var auctioneerInteraction = function(npc_object) {
 	if (isOwnGallery(npc_object)) {
 		market_expert_duration = Math.floor(market_expert_duration * 2.5);
 		market_expert_duration_extension = Math.floor(market_expert_duration_extension * 2.5);
-		auction_count += 4;
+		auction_count += 3;
 	}
 
 	var message;
@@ -1044,7 +1034,7 @@ var auctioneerInteraction = function(npc_object) {
 			'profile.market_expert.expiration': expiration_time._d.toISOString(),
 		}});
 
-		message = "You have met a market expert. They will help you identify in-demand items for the next " + market_expert_duration + " minutes (expires " + getTimeString(expiration_time) +  ").";
+		message = "You have met an auctioneer. They will help you identify in-demand items for the next " + market_expert_duration + " minutes (expires " + getTimeString(expiration_time) +  ").";
 	}
 
 	else {
@@ -1053,16 +1043,16 @@ var auctioneerInteraction = function(npc_object) {
 			'profile.market_expert.expiration': new_expiration._d.toISOString()
 		}});
 
-		message = "You have met another market expert. Your access to market analysis has been extended by " + market_expert_duration_extension + " minutes (expires " + getTimeString(new_expiration) + ").";
+		message = "You have met another auctioneer. Your access to market analysis has been extended by " + market_expert_duration_extension + " minutes (expires " + getTimeString(new_expiration) + ").";
 	}
 
-	var auction_price_adjustment = 10;
+	
+	if (auctions.findOne({'viewer': Meteor.userId()}) == undefined && (npc_object.quality == "gold" || npc_object.quality == "platinum")) {
+		var auction_price_adjustment = 4;
+		if (procUniqueAttribute(Meteor.userId(), "PRIVATE_AUCTION_PRICE_REDUCTION", undefined)) {
+				auction_price_adjustment = 3;
+		}
 
-	if (procUniqueAttribute(Meteor.userId(), "PRIVATE_AUCTION_PRICE_REDUCTION", "Designer")) {
-			auction_price_adjustment = 6;
-	}
-
-	if (auctions.findOne({'viewer': Meteor.userId()}) == undefined) {
 		var multi_item_generator = {
 	        'source': "private auction",
 	        'user_id': "Artfunkel, Inc.",
@@ -1079,9 +1069,12 @@ var auctioneerInteraction = function(npc_object) {
 
 		setTimeout("", 2);
 
+		// private_auction_duration is instantiated in auction_methods.js
 		items.find({'_id': {$in: item_ids}}).forEach(function(db_object) {
-			createAuction(db_object._id, getItemObjectValue(db_object, "actual", undefined) * auction_price_adjustment, -1, 10, Meteor.userId());
+			createAuction(db_object._id, getItemObjectValue(db_object, "actual", undefined) * auction_price_adjustment, -1, private_auction_duration / 60000, Meteor.userId());
 		})
+
+		message += " They have also given you exclusive access to some items available in a private auction. Visit the auction house to make a bid."
 	}
 
 	return {'message': message};

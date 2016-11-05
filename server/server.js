@@ -55,7 +55,6 @@ var resetMetaData = function() {
 }
 
 var updateContent = function() {
-    addNewContent();
     var all_users = Meteor.users.find();
     all_users.forEach(function(db_object) {
         updateGalleryDetails(db_object._id);

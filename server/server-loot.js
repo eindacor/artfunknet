@@ -21,8 +21,12 @@ logLegendary = function(source, item_object) {
 
         else rarity_object.counts[item_object.artwork_id] += 1;
 
-        rarity_object.player_level_avg = ((rarity_object.count_total * rarity_object.player_level_avg) + Meteor.users.findOne(item_object.owner).profile.level) / (rarity_object.count_total + 1);
-        rarity_object.count_total += 1
+        var owner_object = Meteor.users.findOne(item_object.owner);;
+
+        if (owner_object) {
+            rarity_object.player_level_avg = ((rarity_object.count_total * rarity_object.player_level_avg) + Meteor.users.findOne(item_object.owner).profile.level) / (rarity_object.count_total + 1);
+            rarity_object.count_total += 1
+        }
 
         var setter = {};
         var setter_string = "drops." + rarity;

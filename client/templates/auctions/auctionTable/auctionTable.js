@@ -131,6 +131,10 @@ Template.auctionTable.helpers({
 		return hide_details;
 	},
 
+	'minBid': function(auction_id) {
+		return getCommaSeparatedValue(auctions.findOne(auction_id).min_bid);
+	},
+
 	'isWinning': function(auction_id) {
 		return Meteor.user().profile.auction_data.winning.indexOf(auction_id) != -1;
 	},

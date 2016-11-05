@@ -132,3 +132,16 @@
 	cursor: pointer;
 	float: right;
 }
+
+.template-auctionTable .no-auctions {
+	font-size: 2.5rem;
+	color: black;
+	text-align: center;
+	margin: auto;
+	padding: 60px;
+	background-color: #EEEEEE;
+	font-weight: bold;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}

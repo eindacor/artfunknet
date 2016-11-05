@@ -717,7 +717,8 @@ Meteor.methods({
             }
         }
 
-        filter_array.push({'viewer': {$in: ["public", Meteor.userId()]}});
+        var now = moment()._d.toISOString();
+        filter_array.push({'expiration': {$gt : now}});
 
         var auction_array = auctions.find(
             {$and: filter_array}, 
