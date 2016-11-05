@@ -1,6 +1,8 @@
 var sought_item_tracker = new Tracker.Dependency;
+var already_winning_tracker = new Tracker.Dependency;
 var details_tracker = new Tracker.Dependency;
 var sought_items = {};
+var already_winning = {};
 var hide_details = true;
 
 var getSoughtStatus = function(artwork_id) {
@@ -11,6 +13,18 @@ var getSoughtStatus = function(artwork_id) {
 		else {
 			sought_items[artwork_id] = result;
 			sought_item_tracker.changed();
+		}
+	})
+}
+
+var getAlreadyWinning = function(auction_id) {
+	Meteor.call('getAlreadyWinningElsewhere', auction_id, function(error, result) {
+		if (error)
+			console.log(error.message)
+
+		else {
+			already_winning[auction_id] = result;
+			already_winning_tracker.changed();
 		}
 	})
 }
@@ -103,6 +117,15 @@ Template.auctionTable.helpers({
 		else return sought_items[artwork_id];
 	},
 
+	'isAlreadyWinning': function(auction_id) {
+		already_winning_tracker.depend();
+		if (already_winning[auction_id] == undefined) {
+			getAlreadyWinning(auction_id);
+		}
+
+		else return already_winning[auction_id];
+	},
+
 	'hideDetails': function() {
 		details_tracker.depend();
 		return hide_details;
@@ -181,6 +204,8 @@ Template.auctionTable.events({
 	},
 
 	'click #refresh-auctions': function() {
+		sought_items = {};
+		already_winning = {};
 		Session.set('refresh_auctions', true);
 	}
 })
@@ -198,4 +223,5 @@ Template.auctionTable.destroyed = function() {
 
 Template.auctionTable.rendered = function() {
 	sought_items = {};
+	already_winning = {};
 }

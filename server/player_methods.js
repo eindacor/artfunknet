@@ -23,9 +23,10 @@ createUser = function(user_object, callback){
     user_object.profile.gallery_score = 0;
     user_object.profile.completed_quests = 0;
     user_object.profile.market_expert = {
-        'expiration': moment().add(-1, 'days')._d.toISOString(),
-        'rating': .8
+        'expiration': moment().add(-1, 'days')._d.toISOString()
     };
+    user_object.profile.last_login = moment()._d.toISOString();
+    user_object.profile.last_logout = moment()._d.toISOString();
     user_object.profile.auction_data = {'winning': [], 'watching': []};
 
     user_object.profile.tutorials = {
@@ -773,4 +774,13 @@ Meteor.methods({
             'items_found': total_items_found
         }
     },
+
+    'getAlreadyWinningElsewhere': function(auction_id) {
+        var artwork_id = auctions.findOne(auction_id).item_data.artwork_id;
+        // id is not in winning
+        // id of auction with same artwork_id is in winning
+
+        return auctions.findOne({'_id': {$in: Meteor.user().profile.auction_data.winning}, 'item_data.artwork_id': artwork_id}) != undefined && 
+            Meteor.user().profile.auction_data.winning.indexOf(auction_id) == -1;
+    }
 })

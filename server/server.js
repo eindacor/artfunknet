@@ -93,6 +93,9 @@ var updateContent = function() {
         var item_object = items.findOne(db_object.item_id);
         auctions.update({'_id': db_object._id}, {$set: {'item_data.artwork_id': item_object.artwork_id}});
     })
+
+    Meteor.users.update({}, {$set: {'profile.last_login': moment().subtract(2, 'days')._d.toISOString()}}, {multi: true});
+    Meteor.users.update({}, {$set: {'profile.last_logout': moment().subtract(1, 'days')._d.toISOString()}}, {multi: true});
     // temp code
 }
 

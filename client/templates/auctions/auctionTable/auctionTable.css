@@ -146,3 +146,7 @@
 	align-items: center;
 	justify-content: center;
 }
+
+.template-auctionTable .legend {
+	margin-top: 20px;
+}

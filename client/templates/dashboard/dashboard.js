@@ -23,7 +23,6 @@ var getWatchingAndWinningAuctions = function(user_id) {
 	sorter_object[sorter] = ascending;
 	var user_object = Meteor.user();
 	var winning_and_watching = user_object.profile.auction_data.winning.concat(user_object.profile.auction_data.watching);
-	console.log(winning_and_watching);
 
 	var filter_array = [
 		{'_id': {$in: winning_and_watching}}
@@ -68,7 +67,6 @@ var getPlayerAuctions = function(user_id) {
 
 Template.dashboard.helpers({
 	'watchedAuctionData' : function() {
-		console.log("populating watched");
 		auction_house_tracker.depend();
 		if (watched_auction_data == undefined) {
 			getWatchingAndWinningAuctions(Meteor.userId());
@@ -79,7 +77,6 @@ Template.dashboard.helpers({
 	},
 
 	'playerAuctionData' : function() {
-		console.log("populating player");
 		auction_house_tracker.depend();
 		if (player_auction_data == undefined) {
 			getPlayerAuctions(Meteor.userId());
