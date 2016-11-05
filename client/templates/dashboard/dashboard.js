@@ -106,7 +106,7 @@ Template.dashboard.helpers({
 				'screen_name' : user_object.profile.screen_name,
 				'bank_balance' : getCommaSeparatedValue(user_object.profile.bank_balance),
 				'display_count' : items.find({'owner' : user_object._id, 'status' : 'displayed'}).count(),
-				'inventory_count' : items.find({'owner' : user_object._id, 'status' : {$nin : ['unclaimed', 'for_sale']}}).count(),
+				'inventory_count' : items.find({'owner' : user_object._id, 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}}).count(),
 				'has_watched_auctions' : has_watched_auctions,
 				'has_player_auctions' : has_player_auctions,
 				'has_auctions': has_watched_auctions || has_player_auctions,

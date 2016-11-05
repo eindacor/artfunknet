@@ -4,10 +4,6 @@ var card_container_width;
 var card_container_height;
 var sought_status = {};
 
-var itemOwned = function(card_object) {
-	return Meteor.user() && card_object.owner == Meteor.userId() && card_object.status != 'for_sale';
-}
-
 var updateSoughtStatus = function(artwork_id) {
 	Meteor.call('getSoughtStatus', artwork_id, function(error, result) {
 		if (error)
@@ -155,9 +151,9 @@ Template.itemInfo.helpers({
 	},
 
 	'already_owns': function(item_id) {
-		// returns true if the viewer owns a claimed copy of this item, and the item is not owned or claimed by the viewer
+		// returns true if the viewer owns a claimed copy of this item, and the item itself is not owned or claimed by the viewer
 		var item_belongs_to_other = items.findOne(item_id).owner != Meteor.userId();
-		var item_is_unclaimed = items.findOne({'_id': item_id, 'status': {$in: ['unclaimed', 'for_sale']}}) != undefined;
+		var item_is_unclaimed = items.findOne({'_id': item_id, 'status': {$in: ['unclaimed', 'for_sale', 'won']}}) != undefined;
 		var show_already_owns = item_belongs_to_other || item_is_unclaimed;
 
 		if (show_already_owns) {

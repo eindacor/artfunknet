@@ -343,7 +343,7 @@ Template.inventory.helpers({
 		return items.findOne({
 			'owner': Meteor.userId(), 
 			'artwork_data.rarity': {$in: ['legendary', 'masterpiece']}, 
-			'status': {$nin: ['for_sale', 'unclaimed']}
+			'status': {$nin: ['for_sale', 'unclaimed', 'won']}
 		});
 	},
 

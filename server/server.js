@@ -96,6 +96,10 @@ var updateContent = function() {
 
     Meteor.users.update({}, {$set: {'profile.last_login': moment().subtract(2, 'days')._d.toISOString()}}, {multi: true});
     Meteor.users.update({}, {$set: {'profile.last_logout': moment().subtract(1, 'days')._d.toISOString()}}, {multi: true});
+
+    items.find({'date_received': null}).forEach(function(item_object) {
+        items.update({'_id': item_object._id}, {$set: {'date_received': moment(item_object.date_created)._d.toISOString()}});
+    })
     // temp code
 }
 

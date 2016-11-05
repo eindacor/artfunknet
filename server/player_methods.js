@@ -150,7 +150,7 @@ calcMVP = function(user_id) {
         'value': 0
     }
 
-    var items_owned = items.find({'owner': user_id, 'status': {$nin: ['for_sale, unclaimed']}});
+    var items_owned = items.find({'owner': user_id, 'status': {$nin: ['for_sale, unclaimed', 'won']}});
     var collection_total = 0;
     items_owned.forEach(function(db_object) {
         try {
@@ -476,7 +476,7 @@ Meteor.methods({
             var unique_targets_found = [];
             var unique_specials_found = [];
 
-            items.find({'owner': user_object._id, 'status': {$nin: ['unclaimed', 'for_sale']}, 'artwork_id': {$in: quest_object.target}}).forEach(function(item_object) {
+            items.find({'owner': user_object._id, 'status': {$nin: ['unclaimed', 'for_sale', 'won']}, 'artwork_id': {$in: quest_object.target}}).forEach(function(item_object) {
                 if (unique_targets_found.indexOf(item_object.artwork_id) == -1)
                     unique_targets_found.push(item_object.artwork_id);
 
@@ -535,7 +535,7 @@ Meteor.methods({
             }
 
             if (procUniqueAttribute(user_object._id, "QUEST_TARGET_CONDITION_INCREASE", undefined)) {
-                items.update({'owner': user_object._id, 'status': {$nin: ['unclaimed', 'for_sale']}, 'artwork_id': {$in: quest_object.target}}, {$set: {'condition': .9}}, {multi: true});
+                items.update({'owner': user_object._id, 'status': {$nin: ['unclaimed', 'for_sale', 'won']}, 'artwork_id': {$in: quest_object.target}}, {$set: {'condition': .9}}, {multi: true});
             }
 
             quests.remove(quest_id);
@@ -776,10 +776,10 @@ Meteor.methods({
     },
 
     'getAlreadyWinningElsewhere': function(auction_id) {
+        if (auctions.findOne(auction_id) == undefined)
+            return false;
+        
         var artwork_id = auctions.findOne(auction_id).item_data.artwork_id;
-        // id is not in winning
-        // id of auction with same artwork_id is in winning
-
         return auctions.findOne({'_id': {$in: Meteor.user().profile.auction_data.winning}, 'item_data.artwork_id': artwork_id}) != undefined && 
             Meteor.user().profile.auction_data.winning.indexOf(auction_id) == -1;
     }

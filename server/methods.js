@@ -9,7 +9,7 @@ var texture_size_cm = 300;
 
 var getMVPData = function() {
     var admin_id = Meteor.users.findOne({'profile.user_type': "admin"})._id;
-    var all_items = items.find({'owner': {$nin : [admin_id, "Artfunkel, Inc."]}, 'status': {$nin: ['unclaimed', 'for_sale', 'claimed']}}).fetch();
+    var all_items = items.find({'owner': {$nin : [admin_id, "Artfunkel, Inc."]}, 'status': {$nin: ['unclaimed', 'for_sale', 'claimed', 'won']}}).fetch();
     all_items.sort(function(first, second) {
         return getItemObjectValue(second, 'actual', undefined) - getItemObjectValue(first, 'actual', undefined);
     });
@@ -155,7 +155,7 @@ Meteor.methods({
 
     'getCollectionValue' : function(user_id) {
         var collection_total = 0;
-        items.find({'owner' : user_id, 'status' : {$ne: 'unclaimed'}}).forEach(function(db_object) {
+        items.find({'owner' : Meteor.userId(), 'status' : {$in: ['unclaimed', 'displayed', 'permanent']}}).forEach(function(db_object) {
             collection_total += getItemValue(db_object._id, 'actual', user_id);
         });
 

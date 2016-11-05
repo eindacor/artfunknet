@@ -58,14 +58,14 @@ canRerollItem = function(item_id) {
 canSellItem = function(item_id) {
 	var item_object = items.findOne(item_id);
 	var owned = Meteor.userId() && item_object && item_object.owner == Meteor.userId();
-	var status_ok = item_object && (item_object.status == "claimed" || item_object.status == "unclaimed");
+	var status_ok = item_object && (item_object.status == "claimed" || item_object.status == "unclaimed" || item_object.status == "won");
 	return owned && status_ok ? item_object : undefined;
 }
 
 canClaimItem = function(item_id) {
 	var item_object = items.findOne(item_id);
 	var owned = Meteor.userId() && item_object && item_object.owner == Meteor.userId();
-	var status_ok = item_object && item_object.status == "unclaimed";
+	var status_ok = item_object && (item_object.status == "unclaimed" || item_object.status == "won");
 	var not_full = !inventoryIsFull();
 	return owned && status_ok && not_full ? item_object : undefined;
 }
@@ -103,7 +103,7 @@ canTurnInQuest = function(quest_id) {
 
 	var targets_found = 0;
 	for (var i=0; i<quest_object.target.length; i++) {
-		if (items.findOne({'artwork_id': quest_object.target[i], 'owner': Meteor.userId(), 'status': {$nin: ['unclaimed', 'for_sale']}}) != undefined)
+		if (items.findOne({'artwork_id': quest_object.target[i], 'owner': Meteor.userId(), 'status': {$nin: ['unclaimed', 'for_sale', 'won']}}) != undefined)
 			targets_found++;
 	}
 
