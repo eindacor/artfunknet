@@ -300,6 +300,10 @@ Accounts.onCreateUser(function(options, user) {
     return user;
 });
 
-Accounts.onLogin(function(object) {
-    Meteor.users.update({'_id': object.user._id}, {$set: {'profile.last_login': moment().toISOString()}});
+Accounts.onLogin(function(user_object) {
+    Meteor.users.update({'_id': user_object.user._id}, {$set: {'profile.last_login': moment()._d.toISOString()}});
+})
+
+Accounts.onLogout(function(user_object) {
+    Meteor.users.update({'_id': user_object.user._id}, {$set: {'profile.last_logout': moment()._d.toISOString()}});
 })

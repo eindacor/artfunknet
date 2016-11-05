@@ -1,6 +1,5 @@
 var auction_house_tracker = new Tracker.Dependency;
 var page_tracker = new Tracker.Dependency;
-var auctions = [];
 var locked_attributes = [];
 var standard_attributes = [];
 var sorter = "expiration";
@@ -129,8 +128,6 @@ Template.auctions.events({
 			case "xp rating": sorter = "item_data.xp_rating"; break;
 			default: sorter = "item_data.title"; break;
 		}
-
-		console.log(sorter);
 
 		auction_data = undefined;
 		auction_house_tracker.changed();

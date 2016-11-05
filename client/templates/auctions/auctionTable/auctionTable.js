@@ -15,29 +15,6 @@ var getSoughtStatus = function(artwork_id) {
 	})
 }
 
-Template.headerTemplate.events({
-	'click th': function(element) {
-		var sort = $(element.target).closest('.table-header').data('sort');
-		var table_id = $(element.target).closest('.auction-table').data('table_id');
-
-		if (sort && Session.get(table_id + '_sort')) {
-			var ascending = (Session.get(table_id + '_sort') != sort ? true : !Session.get(table_id + '_ascending'));
-			Session.set(table_id + '_ascending', ascending);
-			Session.set(table_id + '_sort', sort);
-		}
-	}
-})
-
-Template.headerTemplate.helpers({
-	'sorted' : function() {
-		var table_id = this.table_id;
-		return {
-			'sort' : Session.get(table_id + '_sort') == this.sort_id,
-			'ascending' : Session.get(table_id + '_ascending')
-		}
-	}
-})
-
 //	AUCTION TABLE
 Template.auctionTable.helpers({
 	'time_remaining': function(expiration_date) {
@@ -149,6 +126,14 @@ Template.auctionTable.helpers({
 
 	'rollCount': function(roll_count) {
 		return roll_count !== undefined;
+	},
+
+	'refresh_auction_details': function() {
+		if (Session.get('toggle_auction_details', true)) {
+			hide_details = !hide_details;
+			details_tracker.changed();
+			Session.set('toggle_auction_details', undefined);
+		}
 	}
 });
 
@@ -192,8 +177,7 @@ Template.auctionTable.events({
 	},
 
 	'click #toggle-details' : function() {
-		hide_details = !hide_details;
-		details_tracker.changed();
+		Session.set('toggle_auction_details', true);
 	},
 
 	'click #refresh-auctions': function() {

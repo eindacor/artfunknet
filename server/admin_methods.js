@@ -237,9 +237,7 @@ Meteor.methods({
 
 	'alertAllUsers' : function(message) {
         if (adminValidated()) {
-            var all_users = Meteor.users.find({'profile.user_type': {$ne: "admin"}});
-
-            all_users.forEach(function(db_object) {
+            Meteor.users.find().forEach(function(db_object) {
                 var alert_object = {
                     'user_id' : db_object._id,
                     'message' : message,

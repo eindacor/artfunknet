@@ -279,7 +279,7 @@ var botBid = function(auction_object, bid_increase_coefficient) {
 var auction_bot_frequency = 10000;
 private_auction_duration = 300000;
 var procs_per_minute = 60000 / auction_bot_frequency;
-var max_bids_per_minute = 3;
+var max_bids_per_minute = 2;
 var proc_chance = max_bids_per_minute / procs_per_minute;
 Meteor.setInterval((function() {
     auctions.find({'viewer': {$ne: "public"}}).forEach(function(auction_object) {  

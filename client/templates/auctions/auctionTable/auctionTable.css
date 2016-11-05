@@ -110,8 +110,9 @@
 	font-weight: bold;
 }
 
-.template-auctionTable #toggle-details, .template-auctionTable .place-bid,
-.template-auctionTable #toggle-details, .template-auctionTable .place-bid-hidden {
+.template-auctionTable #toggle-details, 
+.template-auctionTable .place-bid,
+.template-auctionTable .place-bid-hidden {
 	background-color: black;
 	color: white;
 	border-radius: 0;

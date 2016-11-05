@@ -5,18 +5,21 @@
 			<p>Note: your inventory is currently full. You will be unable to place bids on any items in the Auction House.</p>
 		</div>
 		{{/if}}
-		{{#if this}}
+		{{#if auction_data}}
 		<div class="col-xs-12 no-padding">
 			<div class="row">
+				{{refresh_auction_details}}
+				{{#if hide_ui}}{{else}}
 				<div class="col-xs-2">
 					<button id="toggle-details" type="button" class="btn btn-default">{{#if hideDetails}}show {{else}}hide {{/if}}details</button>
 				</div>
 				<div class="col-xs-2 col-xs-offset-8">
 					<i id="refresh-auctions" class="blue-text fa fa-refresh"></i>
 				</div>
+				{{/if}}
 			</div>
 			<div class="row item-table">
-				{{#each this}}
+				{{#each auction_data}}
 					{{#with auction_info this}}
 						<div class="row table-row {{#if hideDetails}}details-hidden{{/if}}" id="{{#if isWinning _id}}winning{{else}}{{#if isLosing _id}}losing{{/if}}{{/if}}">
 							<div class="col-xs-1 thumb-div{{#if hideDetails}}-hidden{{/if}}"><img class="auction-thumb" src="{{#with thumbnailFilename item_data.artwork_id}}{{getThumbImageURL this}}{{/with}}"/></div>
@@ -59,26 +62,15 @@
 				{{/each}}
 			</div>
 		</div>
+		{{#if hide_ui}}{{else}}
 		<div class="col-xs-12 no-padding">
 			<p>* denotes paintings you already own</p>
 		</div>
+		{{/if}}
 		{{else}}
 			<div class="no-auctions">
 				<p>there are no auctions to display</p>
 			</div>
 		{{/if}}	
 	</div>
-</template>
-
-<template name="headerTemplate">
-	<th class="table-header" data-sort="{{sort_id}}" data-table_id="{{table_id}}">
-		<div class="row no-margin">
-			<div class="col-xs-8">
-				<p>{{text}}</p>
-			</div>
-			<div class="col-xs-4">
-				{{#with sorted this}}{{#if sort}}{{#if ascending}}<i class="fa fa-caret-up"></i>{{else}}<i class="fa fa-caret-down"></i>{{/if}}{{else}} {{/if}}{{/with}}
-			</div>
-		</div>
-	</th>
 </template>
