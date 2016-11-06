@@ -157,9 +157,7 @@ var benefactorInteraction = function(npc_object) {
 		donation_amount *= own_gallery_amplifier;
 
 		if (procUniqueAttribute(Meteor.userId(), "BENEFACTOR_MARKET_EXPERT_RATING_BONUS", undefined)) {
-			if (Meteor.user().profile.market_expert.expiration > moment()._d.toISOString()) {
-				donation_amount += (Meteor.user().profile.market_expert.rating * donation_amount);
-			}
+			
 		}
 
 		if (procUniqueAttribute(Meteor.userId(), "GALLERY_FINISH_BENEFACTOR_BONUS", undefined)) {
@@ -809,8 +807,7 @@ var designerInteraction = function(npc_object) {
 		}
 
 		if (procUniqueAttribute(Meteor.userId(), "DESIGNER_MARKET_EXPERT_BONUS", undefined)) {
-			if (Meteor.user().profile.market_expert.expiration > moment()._d.toISOString())
-				designer_bonus += (.15 * Meteor.user().profile.market_expert.rating * Meteor.user().profile.market_expert.rating)
+
 		}
 	}
 	
