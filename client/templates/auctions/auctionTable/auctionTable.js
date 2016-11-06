@@ -53,6 +53,7 @@ Template.auctionTable.helpers({
 	},
 
 	'auction_info' : function(auction_object) {
+		Session.get('refresh_auctions');
 		try {
 			var list_object = auction_object;
 

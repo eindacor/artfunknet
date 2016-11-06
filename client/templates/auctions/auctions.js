@@ -46,16 +46,24 @@ var getAuctions = function() {
 			auction_data = result.auction_data;
 			items_found = result.items_found;
 
-			if (items_found == 0)
+			if (items_found == 0 && current_page != 0) {
 				current_page = 0;
+				auction_data = undefined;
+				auction_house_tracker.changed();
+				return;
+			}
 
 			else if (current_page * items_per_page >= items_found) {
 				current_page = Math.floor(items_found / items_per_page) - (items_found % items_per_page == 0 ? 1 : 0);
+				auction_data = undefined;
 				auction_house_tracker.changed();
+				return;
 			}
 
-			page_tracker.changed();
-			auction_house_tracker.changed();
+			else {
+				page_tracker.changed();
+				auction_house_tracker.changed();
+			}
 		}
 	})
 }
@@ -77,6 +85,8 @@ Template.auctions.helpers({
 			auction_data = undefined;
 			auction_house_tracker.changed();
 		}
+
+		return true;
 	},
 
 	'current_page': function() {
