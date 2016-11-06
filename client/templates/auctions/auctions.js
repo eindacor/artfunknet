@@ -22,7 +22,6 @@ var auction_data = undefined;
 var search_keywords = [];
 
 var getAuctions = function() {
-	console.log("getting auctions");
 	var sorter_object = {};
 	sorter_object[sorter] = ascending;
 
@@ -111,7 +110,6 @@ Template.auctions.helpers({
 
 	'refreshAuctions' : function() {
 		if (Session.get("refresh_auctions")) {
-			console.log("run refresh")
 			Session.set("refresh_auctions", undefined);
 			auction_data = undefined;
 			item_count_tracker.changed();

@@ -97,7 +97,7 @@
 }
 
 .template-auctionTable .auction-thumb {
-	max-height: 48px;
+	cursor: pointer;
 }
 
 .template-auctionTable .default-text {

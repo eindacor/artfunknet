@@ -22,14 +22,14 @@
 				{{#each auction_data}}
 					{{#with auction_info this}}
 						<div class="row table-row {{#if hideDetails}}details-hidden{{/if}}" id="{{#if isWinning _id}}winning{{else}}{{#if isLosing _id}}losing{{/if}}{{/if}}">
-							<div class="col-xs-1 thumb-div{{#if hideDetails}}-hidden{{/if}}"><img class="auction-thumb" src="{{#with thumbnailFilename item_data.artwork_id}}{{getThumbImageURL this}}{{/with}}"/></div>
+							<div class="col-xs-1 thumb-div{{#if hideDetails}}-hidden{{/if}}"><img class="auction-thumb" data-auction_id="{{_id}}" src="{{#with thumbnailFilename item_data.artwork_id}}{{getThumbImageURL this}}{{/with}}"/></div>
 							{{#if hideDetails}}
 								<div class="col-xs-1 thumb-blank"></div>
 							{{/if}}
 							<div class="col-xs-1 remaining-div">{{#with time_remaining expiration}}<span class="{{#if soon}}soon{{/if}}">{{remaining}}</span>{{/with}}</div>
 							<div class="col-xs-8">
 								<div class="row default-info">
-									<div class="col-xs-5 default-text">{{#if owned}}<i class="green-text fa fa-check"></i>{{/if}} {{#if isAlreadyWinning _id}}<i class="teal-text fa fa-clock-o"></i>{{/if}} {{#if isQuestItem artwork_id}}<i class="orange-text fa fa-flag-checkered"></i>{{/if}} {{#if isSought artwork_id}}<i class="blue-text fa fa-bullhorn"></i>{{/if}} {{item_data.artist}} - {{item_data.title}} ({{item_data.date}})</div>
+									<div class="col-xs-5 default-text">{{#if owned}}<i class="green-text fa fa-check"></i>{{/if}} {{#if isAlreadyWinning _id}}<i class="purple-text fa fa-clock-o"></i>{{/if}} {{#if isQuestItem artwork_id}}<i class="orange-text fa fa-flag-checkered"></i>{{/if}} {{#if isSought artwork_id}}<i class="blue-text fa fa-bullhorn"></i>{{/if}} {{item_data.artist}} - {{item_data.title}} ({{item_data.date}})</div>
 									<div class="col-xs-2 default-text">
 										<span class="{{item_data.rarity}}"><strong>{{item_data.rarity}}</strong></span>{{#if item_data.foil}}<span class="af-color"> foil</span>{{/if}}{{#if item_data.seasonal}}<span class="common"> seasonal</span>{{/if}}{{#if item_data.lottery}}<span class="gold"> lottery {{item_data.lottery}}</span>{{/if}}{{#if item_data.original}}<span class="purple-text"> original</span>{{/if}}
 									</div>
@@ -64,7 +64,7 @@
 				{{#if hide_ui}}{{else}}
 				<div class="col-xs-12 no-padding legend">
 					<p><i class="green-text fa fa-check"></i> already owned</p>
-					<p><i class="teal-text fa fa-clock-o"></i> already winning in another auction</p>
+					<p><i class="purple-text fa fa-clock-o"></i> already winning in another auction</p>
 					<p><i class="orange-text fa fa-flag-checkered"></i> quest item</p>
 					<p><i class="blue-text fa fa-bullhorn"></i> sought item (requires auctioneer bonus)</p>
 				</div>
