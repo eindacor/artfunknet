@@ -55,7 +55,6 @@ var resetMetaData = function() {
 }
 
 var updateContent = function() {
-    addNewContent();
     var all_users = Meteor.users.find();
     all_users.forEach(function(db_object) {
         updateGalleryDetails(db_object._id);
@@ -84,9 +83,22 @@ var updateContent = function() {
     });
 
     // temp code
-    Meteor.users.find().forEach(function(db_object) {
-        if (db_object.profile.completed_quests == undefined)
-            Meteor.users.update({'_id': db_object._id}, {$set: {'profile.completed_quests': 0}});
+    auctions.update({'viewer': null}, {$set: {'viewer': "public"}}, {multi: true});
+    auctions.find({'item_data.attributes': null}).forEach(function(db_object) {
+        var item_object = items.findOne(db_object.item_id);
+        auctions.update({'_id': db_object._id}, {$set: {'item_data.attributes': item_object.attributes}});
+    })
+
+    auctions.find({'item_data.artwork_id': null}).forEach(function(db_object) {
+        var item_object = items.findOne(db_object.item_id);
+        auctions.update({'_id': db_object._id}, {$set: {'item_data.artwork_id': item_object.artwork_id}});
+    })
+
+    Meteor.users.update({}, {$set: {'profile.last_login': moment().subtract(2, 'days')._d.toISOString()}}, {multi: true});
+    Meteor.users.update({}, {$set: {'profile.last_logout': moment().subtract(1, 'days')._d.toISOString()}}, {multi: true});
+
+    items.find({'date_received': null}).forEach(function(item_object) {
+        items.update({'_id': item_object._id}, {$set: {'date_received': moment(item_object.date_created)._d.toISOString()}});
     })
     // temp code
 }
@@ -294,3 +306,11 @@ Accounts.onCreateUser(function(options, user) {
 
     return user;
 });
+
+Accounts.onLogin(function(user_object) {
+    Meteor.users.update({'_id': user_object.user._id}, {$set: {'profile.last_login': moment()._d.toISOString()}});
+})
+
+Accounts.onLogout(function(user_object) {
+    Meteor.users.update({'_id': user_object.user._id}, {$set: {'profile.last_logout': moment()._d.toISOString()}});
+})

@@ -1,14 +1,115 @@
+var auction_house_tracker = new Tracker.Dependency;
+var page_tracker = new Tracker.Dependency;
+// var locked_attributes = [];
+// var standard_attributes = [];
+var sorter = "expiration";
+var ascending = 1;
+// var rarity_filter =  {'item_data.rarity': {$in: ['common', 'uncommon', 'rare', 'legendary', 'masterpiece']}};
+// var exclusivity_filter = {};
+
+// var lottery_filter = {'item_data.lottery': {$ne: null}};
+// var foil_filter = {'item_data.foil': {$ne: null}};
+// var seasonal_filter = {'item_data.seasonal': {$ne: null}};
+// var original_filter = {'item_data.original': {$ne: null}};
+// var standard_filter = {};
+var items_found = 0;
+var current_page = 0;
+var items_per_page = 100;
+var watched_auction_data = undefined;
+var player_auction_data = undefined;
+
+var getWatchingAndWinningAuctions = function(user_id) {
+	var sorter_object = {};
+	sorter_object[sorter] = ascending;
+	var user_object = Meteor.user();
+	var winning_and_watching = user_object.profile.auction_data.winning.concat(user_object.profile.auction_data.watching);
+
+	var filter_array = [
+		{'_id': {$in: winning_and_watching}}
+	];
+
+	// var base_filter = {}
+	// filter_array.push(base_filter);
+
+	Meteor.call('getPlayerAuctions', sorter_object, filter_array, current_page * items_per_page, items_per_page, "all", function(error, result) {
+		if (error)
+			console.log(error.message);
+
+		else {
+			watched_auction_data = result.auction_data;
+			auction_house_tracker.changed();
+		}
+	})
+}
+
+var getPlayerAuctions = function(user_id) {
+	var sorter_object = {};
+	sorter_object[sorter] = ascending;
+	var user_object = Meteor.user();
+
+	var filter_array = [
+		{'seller': user_object.profile.screen_name}
+	];
+
+	// var base_filter = {}
+	// filter_array.push(base_filter);
+
+	Meteor.call('getPlayerAuctions', sorter_object, filter_array, current_page * items_per_page, items_per_page, "all", function(error, result) {
+		if (error)
+			console.log(error.message);
+
+		else {
+			player_auction_data = result.auction_data;
+			auction_house_tracker.changed();
+		}
+	})
+}
+
 Template.dashboard.helpers({
+	'watchedAuctionData' : function() {
+		auction_house_tracker.depend();
+		if (watched_auction_data == undefined) {
+			getWatchingAndWinningAuctions(Meteor.userId());
+			return [];
+		}
+
+		else return watched_auction_data;
+	},
+
+	'playerAuctionData' : function() {
+		auction_house_tracker.depend();
+		if (player_auction_data == undefined) {
+			getPlayerAuctions(Meteor.userId());
+			return [];
+		}
+
+		else return player_auction_data;
+	},
+
+	'refreshAuctions' : function() {
+		if (Session.get("refresh_auctions")) {
+			Session.set("refresh_auctions", undefined);
+			var watched_auction_data = undefined;
+			var player_auction_data = undefined;
+			auction_house_tracker.changed();
+		}
+	},
+
 	'userData' : function() {
 		if (Meteor.user()) {
 			var user_object = Meteor.user();
+
+			var has_watched_auctions = user_object.profile.auction_data.winning.length > 0 || user_object.profile.auction_data.watching.length > 0;
+			var has_player_auctions = auctions.findOne({'seller' : user_object.profile.screen_name}) != undefined;
+
 			var data_object = {
 				'screen_name' : user_object.profile.screen_name,
 				'bank_balance' : getCommaSeparatedValue(user_object.profile.bank_balance),
 				'display_count' : items.find({'owner' : user_object._id, 'status' : 'displayed'}).count(),
-				'inventory_count' : items.find({'owner' : user_object._id, 'status' : {$nin : ['unclaimed', 'for_sale']}}).count(),
-				'has_auctions' : (auctions.findOne({'seller' : user_object.profile.screen_name}) != undefined ||
-					auctions.findOne({'_id': {$in: user_object.profile.auction_data.watching}}) != undefined),
+				'inventory_count' : items.find({'owner' : user_object._id, 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}}).count(),
+				'has_watched_auctions' : has_watched_auctions,
+				'has_player_auctions' : has_player_auctions,
+				'has_auctions': has_watched_auctions || has_player_auctions,
 				'alert_count' : alerts.find({'user_id' : user_object._id}).count(),
 				'private_count' : items.find({'owner' : user_object._id, 'status' : 'permanent'}).count(),
 				'display_max' : user_object.profile.display_cap,
@@ -144,10 +245,29 @@ Template.dashboard.events({
 			if (error)
 				console.log(error.message);
 		});
+	},
+
+	'click #toggle-details' : function() {
+		Session.set('toggle_auction_details', true);
+	},
+
+	'click #refresh-auctions': function() {
+		watched_auction_data = undefined;
+		player_auction_data = undefined;
+		auction_house_tracker.changed();
 	}
 });
 
 Template.dashboard.rendered = function() {
+	sorter = "expiration";
+	ascending = 1;
+	items_found = 0;
+	current_page = 0;
+	items_per_page = 100;
+	watched_auction_data = undefined;
+	player_auction_data = undefined;
+	auction_house_tracker.changed();
+
 	$('#entry-fee').slider({
 		'value': Meteor.user().profile.entry_fee,
 		'max': 100000,

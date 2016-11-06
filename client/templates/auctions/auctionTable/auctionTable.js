@@ -1,51 +1,36 @@
-//	HEADERS
-Template.headerTemplate.events({
-	'click th': function(element) {
-		var sort = $(element.target).closest('.table-header').data('sort');
-		var table_id = $(element.target).closest('.auction-table').data('table_id');
+var sought_item_tracker = new Tracker.Dependency;
+var already_winning_tracker = new Tracker.Dependency;
+var details_tracker = new Tracker.Dependency;
+var sought_items = {};
+var already_winning = {};
+var hide_details = true;
 
-		if (sort && Session.get(table_id + '_sort')) {
-			var ascending = (Session.get(table_id + '_sort') != sort ? true : !Session.get(table_id + '_ascending'));
-			Session.set(table_id + '_ascending', ascending);
-			Session.set(table_id + '_sort', sort);
-		}
-	}
-})
+var getSoughtStatus = function(artwork_id) {
+	Meteor.call('getSoughtStatus', artwork_id, function(error, result) {
+		if (error)
+			console.log(error.message)
 
-Template.headerTemplate.helpers({
-	'sorted' : function() {
-		var table_id = this.table_id;
-		return {
-			'sort' : Session.get(table_id + '_sort') == this.sort_id,
-			'ascending' : Session.get(table_id + '_ascending')
+		else {
+			sought_items[artwork_id] = result;
+			sought_item_tracker.changed();
 		}
-	}
-})
+	})
+}
+
+var getAlreadyWinning = function(auction_id) {
+	Meteor.call('getAlreadyWinningElsewhere', auction_id, function(error, result) {
+		if (error)
+			console.log(error.message)
+
+		else {
+			already_winning[auction_id] = result;
+			already_winning_tracker.changed();
+		}
+	})
+}
 
 //	AUCTION TABLE
 Template.auctionTable.helpers({
-	'header' : function(table_data) {
-		var header_array = [
-			{ 'text' : 'view', 'sort_id' : undefined, 'table_id' : table_data.table_id  },
-			{ 'text' : 'remaining', 'sort_id' : 'expiration', 'table_id' : table_data.table_id  },
-			{ 'text' : 'title', 'sort_id' : 'item_data.title', 'table_id' : table_data.table_id  },
-			{ 'text' : 'date', 'sort_id' : 'item_data.date', 'table_id' : table_data.table_id  },
-			{ 'text' : 'artist', 'sort_id' : 'item_data.artist', 'table_id' : table_data.table_id  },
-			{ 'text' : 'rarity', 'sort_id' : 'item_data.rarity_value', 'table_id' : table_data.table_id  },
-			// { 'text' : 'dimensions', 'sort_id' : undefined, 'table_id' : table_data.table_id  },
-			{ 'text' : 'condition', 'sort_id' : 'item_data.condition', 'table_id' : table_data.table_id  },
-			{ 'text' : 'features', 'sort_id' : undefined, 'table_id' : table_data.table_id  },
-			{ 'text' : 'xp rating', 'sort_id' : 'item_data.xp_rating', 'table_id' : table_data.table_id  },
-			{ 'text' : 'roll count', 'sort_id' : 'item_data.roll_count', 'table_id' : table_data.table_id  },
-			{ 'text' : 'current bid', 'sort_id' : 'current_bid', 'table_id' : table_data.table_id  },
-			{ 'text' : 'buy now', 'sort_id' : 'buy_now', 'table_id' : table_data.table_id  },
-			{ 'text' : 'actions', 'sort_id' : undefined, 'table_id' : table_data.table_id  },
-			{ 'text' : 'seller', 'sort_id' : 'seller', 'table_id' : table_data.table_id }
-		];
-
-		return header_array;
-	},
-
 	'time_remaining': function(expiration_date) {
 		var expiration = moment(expiration_date);
 		var now = moment(Session.get('now'));
@@ -68,38 +53,29 @@ Template.auctionTable.helpers({
 	},
 
 	'auction_info' : function(auction_object) {
+		Session.get('refresh_auctions');
 		try {
 			var list_object = auction_object;
-			var item_object = items.findOne({'_id': auction_object.item_id});
-
-			var displayed_attributes = [];
-			for(var i=0; i < item_object.attributes.length; i++) {
-				if (item_object.attributes[i].type == 'primary')
-					displayed_attributes.push(item_object.attributes[i]);
-			}
 
 			list_object.expiration = auction_object.expiration;
 			var funds_available = auction_object.min_bid <= Meteor.user().profile.bank_balance || Meteor.users.findOne({'_id': Meteor.userId(), 'profile.auction_data.winning': {$in: [auction_object._id]}}) != undefined;
 			
 			list_object.biddable = 
 				Meteor.userId() && 
-				(item_object.owner != Meteor.userId()) && 
+				(auction_object.seller != Meteor.user().profile.screen_name) && 
 				funds_available && 
-				items.find({'owner' : Meteor.userId(), 'status' : {$nin : ['unclaimed', 'for_sale']}}).count() < Meteor.user().profile.inventory_cap;
+				items.find({'owner' : Meteor.userId(), 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}}).count() < Meteor.user().profile.inventory_cap;
 
-			list_object.winning = Meteor.users.findOne({'_id': Meteor.userId(), 'profile.auction_data.winning': {$in: [auction_object._id]}}) != undefined;
-			list_object.losing = Meteor.users.findOne({'_id': Meteor.userId(), 'profile.auction_data.winning': {$in: [auction_object._id]}}) == undefined &&
-				Meteor.users.findOne({'_id': Meteor.userId(), 'profile.auction_data.watching': {$in: [auction_object._id]}}) != undefined;
-
-			list_object.owned = items.findOne({'owner': Meteor.userId(), 'artwork_id': item_object.artwork_id, 'status': {$nin: ['unclaimed', 'for_sale']}}) != undefined;
-			list_object.attribute = displayed_attributes;
-			list_object.artwork_id = item_object.artwork_id;
+			list_object.owned = items.findOne({'owner': Meteor.userId(), 'artwork_id': auction_object.item_data.artwork_id, 'status': {$nin: ['unclaimed', 'for_sale', 'won']}}) != undefined;
+			list_object.attribute = auction_object.item_data.attributes;
+			list_object.artwork_id = auction_object.item_data.artwork_id;
 			list_object.buy_now_text = auction_object.buy_now == -1 ? "-" : "$" + getCommaSeparatedValue(auction_object.buy_now);
 
 			return list_object;
 		}
 
 		catch(error) {
+			console.log(error.message);
 			return {};
 		}
 	},
@@ -112,55 +88,19 @@ Template.auctionTable.helpers({
 		return 255 - Math.floor(value * 255);
 	},
 
-	'thumbnailInfo' : function(item_id) {
+	'thumbnailFilename' : function(artwork_id) {
 		try {
-			var item_object = items.findOne(item_id);
-			var auction_object = auctions.findOne({'item_id' : item_id}); 
-			var biddable = 
-				Meteor.userId() && 
-				(item_object.owner != Meteor.userId()) && 
-				(auction_object.bid_minimum <= Meteor.user().profile.bank_balance) && 
-				items.find({'owner' : Meteor.userId(), 'status' : {$nin : ['unclaimed', 'for_sale']}}).count() < Meteor.user().profile.inventory_cap;
-
-			var max_dimension = 40;
-
-			var width = item_object.artwork_data.width;
-			var height = item_object.artwork_data.height;
-			var ratio = width / height;
-
-			var info_object = {
-				'image_width' : 0,
-				'image_height' : 0,
-				'biddable' : biddable,
-				'filename' : item_object.artwork_data.filename,
-			};
-
-			if (width > height) {
-				info_object.image_width = max_dimension;
-				info_object.image_height = Math.floor(max_dimension / ratio);
-			}
-
-			else {
-				info_object.image_height = max_dimension;
-				info_object.image_width = Math.floor(max_dimension * ratio);
-			}
-
-			return info_object;
+			return artworks.findOne(artwork_id).filename;
 		}
 
 		catch(error) {
-			return {
-				'image_width' : 0,
-				'image_height' : 0,
-				'biddable' : false,
-				'filename' : ""
-			};
+			console.log(error.message);
 		}
 	},
 
 	'full' : function() {
 		if (Meteor.userId())
-			return items.find({'owner' : Meteor.userId(), 'status' : {$nin : ['unclaimed', 'for_sale']}}).count() >= Meteor.user().profile.inventory_cap;
+			return items.find({'owner' : Meteor.userId(), 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}}).count() >= Meteor.user().profile.inventory_cap;
 
 		else return false;
 	},
@@ -169,14 +109,65 @@ Template.auctionTable.helpers({
 		return quests.findOne({'owner_id': Meteor.userId(), 'target': {$in: [artwork_id]}}) != undefined;
 	},
 
-	'market_expert': function() {
-		return moment() < moment(Meteor.user().profile.market_expert.expiration);
+	'isSought' : function(artwork_id) {
+		sought_item_tracker.depend();
+		if (sought_items[artwork_id] == undefined) {
+			getSoughtStatus(artwork_id);
+		}
+
+		else return sought_items[artwork_id];
+	},
+
+	'isAlreadyWinning': function(auction_id) {
+		already_winning_tracker.depend();
+		if (already_winning[auction_id] == undefined) {
+			getAlreadyWinning(auction_id);
+		}
+
+		else return already_winning[auction_id];
+	},
+
+	'hideDetails': function() {
+		details_tracker.depend();
+		return hide_details;
+	},
+
+	'minBid': function(auction_id) {
+		var auction_object = auctions.findOne(auction_id);
+		if (auction_object)
+			return getCommaSeparatedValue(auction_object.min_bid);
+
+		else return "-";
+	},
+
+	'isWinning': function(auction_id) {
+		return Meteor.user().profile.auction_data.winning.indexOf(auction_id) != -1;
+	},
+
+	'isLosing': function(auction_id) {
+		return Meteor.user().profile.auction_data.winning.indexOf(auction_id) == -1 && Meteor.user().profile.auction_data.watching.indexOf(auction_id) != -1;;
+	},
+
+	'linkSeller': function(seller) {
+		return seller != "Artfunkel, Inc.";
+	},
+
+	'rollCount': function(roll_count) {
+		return roll_count !== undefined;
+	},
+
+	'refresh_auction_details': function() {
+		if (Session.get('toggle_auction_details', true)) {
+			hide_details = !hide_details;
+			details_tracker.changed();
+			Session.set('toggle_auction_details', undefined);
+		}
 	}
 });
 
 Template.auctionTable.events({
-	'click .place-bid.enabled' : function(element) {
-		var auction_id = $(element.target).closest('tr').data('auction_id');
+	'click .place-bid-hidden, click .place-bid' : function(element) {
+		var auction_id = $(element.target).data('auction_id');
 
 		Blaze.renderWithData(Template.modalTemplate, {
 			'modal_name': "placeBidModal", 
@@ -192,8 +183,8 @@ Template.auctionTable.events({
 		Modal.show('auctionHistoryModal');
 	},
 
-	'click .preview.enabled' : function(element) {
-		var auction_id = $(element.target).closest('tr').data('auction_id');
+	'click .auction-thumb' : function(element) {
+		var auction_id = $(element.target).data('auction_id');
 		var item_id = auctions.findOne(auction_id).item_id;
 		Blaze.renderWithData(Template.modalTemplate, {
 			'modal_name': "fullViewModal", 
@@ -205,13 +196,22 @@ Template.auctionTable.events({
 
 	'click .item-attribute' : function(element) {
 		var attribute_id = element.target.dataset.attribute_title;
-		console.log(attribute_id);
 	},
 
 	'mouseover .item-attribute' : function(element) {
 		var value = Math.floor(Number(element.target.dataset.attribute_value) * 100);
 		var description = element.target.dataset.attribute_title;
 		setFootnote("level " + value + " " + description, Math.floor(Math.random() * 100000));
+	},
+
+	'click #toggle-details' : function() {
+		Session.set('toggle_auction_details', true);
+	},
+
+	'click #refresh-auctions': function() {
+		sought_items = {};
+		already_winning = {};
+		Session.set('refresh_auctions', true);
 	}
 })
 
@@ -224,4 +224,9 @@ Template.auctionTable.created = function() {
 
 Template.auctionTable.destroyed = function() {
 	Meteor.clearInterval(this.handle);
+}
+
+Template.auctionTable.rendered = function() {
+	sought_items = {};
+	already_winning = {};
 }

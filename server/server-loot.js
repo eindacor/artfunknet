@@ -21,8 +21,12 @@ logLegendary = function(source, item_object) {
 
         else rarity_object.counts[item_object.artwork_id] += 1;
 
-        rarity_object.player_level_avg = ((rarity_object.count_total * rarity_object.player_level_avg) + Meteor.users.findOne(item_object.owner).profile.level) / (rarity_object.count_total + 1);
-        rarity_object.count_total += 1
+        var owner_object = Meteor.users.findOne(item_object.owner);;
+
+        if (owner_object) {
+            rarity_object.player_level_avg = ((rarity_object.count_total * rarity_object.player_level_avg) + Meteor.users.findOne(item_object.owner).profile.level) / (rarity_object.count_total + 1);
+            rarity_object.count_total += 1
+        }
 
         var setter = {};
         var setter_string = "drops." + rarity;
@@ -191,7 +195,7 @@ getRerollCost = function(item_id) {
 
     var reroll_cost = (rarity_values[rarity].min * .1) * Math.pow(reroll_coefficient, roll_count);
 
-    if (procUniqueAttribute(Meteor.userId, "REROLL_DISCOUNT", undefined)) {
+    if (procUniqueAttribute(Meteor.userId(), "REROLL_DISCOUNT", undefined)) {
         reroll_cost = Math.floor(reroll_cost * .75);
     }
 
@@ -236,7 +240,7 @@ lookupCrateCost = function(quality, count) {
 }
 
 generateItems = function(multi_item_generator) {
-    if (Meteor.users.findOne(multi_item_generator.user_id) === undefined)
+    if (Meteor.users.findOne(multi_item_generator.user_id) === undefined && multi_item_generator.user_id != "Artfunkel, Inc.")
         return [];
 
     var map_amplifier;
@@ -252,7 +256,7 @@ generateItems = function(multi_item_generator) {
     var item_ids = [];
 
     for (var i=0; i < parseInt(multi_item_generator.count); i++) {
-        var rarity_roll = JepLoot.catRoll(getSmartRarityMap(Meteor.users.findOne(multi_item_generator.user_id).profile.level, map_amplifier));
+        var rarity_roll = JepLoot.catRoll(getSmartRarityMap(Meteor.user().profile.level, map_amplifier));
         var query = {'rarity': rarity_roll, 'active': true};
         var match_count = artworks.find(query).count();
         var rolled_id = artworks.findOne(query, {skip: Math.floor(Math.random() * match_count)})._id;
@@ -311,7 +315,8 @@ generateItemFromArtworkID = function(item_generator) {
             'attributes' : getAttributes(artwork_data.rarity, item_generator.artwork_id),
             'owner' : item_generator.user_id,
             'status' : item_generator.status,
-            'date_created' : new Date(),
+            'date_created' : moment()._d.toISOString(),
+            'date_received': moment()._d.toISOString(),
             'xp_rating' : item_generator.xp_rating === undefined ? getXPRating(item_generator.xp_rating_min) : item_generator.xp_rating,
             'roll_count' : 0,
             'foil': loot_data.seasonal_items.indexOf(item_generator.artwork_id) == -1 && Math.random() < item_generator.foil_chance,
@@ -485,6 +490,9 @@ Meteor.methods({
     },
 
     'updateSmartMap': function(revised_smart_map) {
+        if (!adminValidated())
+            return false;
+        
         if (revised_smart_map) {
             metadata.update({'loot_data': {$ne: null}}, {$set: {'loot_data.smart_map': revised_smart_map}});
             setTimeout('', 2000);

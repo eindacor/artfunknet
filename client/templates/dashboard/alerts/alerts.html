@@ -1,22 +1,23 @@
 <template name="alerts">
 	<div class="template-alerts">
-		<h1>Alerts</h1>
-		<button id="clear-all">clear all</button>
 		{{#if alert}}
-		<table>
-			{{#each alert}}
-			<tr data-alert_id="{{_id}}">
-				<td>{{timestamp this}}</td>
-				<td class="{{sentiment}}">{{message}}</td>
-				<td><a href="{{link}}"><i class="fa {{icon}}"></i></a></td>
-				<td class="dismiss-alert"><i class="fa fa-times"></i></td>
-			</tr>
-			{{/each}}
-		</table>
-		{{else}}
-
-		<h4>no alerts at this time</h4>
-
+		<div class="row">
+			<div class="col-xs-2">
+				<button id="clear-all">clear alerts</button>
+			</div>
+			<div class="col-xs-10">	
+				<table>
+					{{#each alert}}
+					<tr data-alert_id="{{_id}}">
+						<td>{{timestamp this}}</td>
+						<td class="{{sentiment}}">{{message}}</td>
+						<td><a href="{{link}}"><i class="fa {{icon}}"></i></a></td>
+						<td class="dismiss-alert"><i class="fa fa-times"></i></td>
+					</tr>
+					{{/each}}
+				</table>
+			</div>
+		</div>
 		{{/if}}
 	</div>
 </template>

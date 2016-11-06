@@ -89,3 +89,27 @@
 .template-adminTools .price-selector {
 	width: 600px;
 }
+
+.template-dashboard .alert-area {
+	margin-top: 20px;
+}
+
+/* ---AUCTION DATA --- */
+.template-dashboard #toggle-details {
+	background-color: black;
+	color: white;
+	border-radius: 0;
+	border: none; 
+	height: 30px;
+	width: 120px;
+	font-size: 1.2rem;
+	margin-bottom: 10px;
+}
+
+.template-dashboard #refresh-auctions {
+	font-size: 2rem;
+	text-align: right;
+	margin-right: 0;
+	cursor: pointer;
+	float: right;
+}

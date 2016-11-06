@@ -1,66 +1,79 @@
 <template name="auctionTable">
-	<div class="template-auctionTable">
+	<div class="row template-auctionTable">
 		{{#if full}}
 		<div class="col-xs-12 no-padding">
 			<p>Note: your inventory is currently full. You will be unable to place bids on any items in the Auction House.</p>
 		</div>
-		{{/if}}
+		{{/if}}	
 		<div class="col-xs-12 no-padding">
-			<table class="auction-table" data-table_id="{{this.table_id}}">
-				<tr>
-				{{#each header this}}
-					{{> headerTemplate this}}
-				{{/each}}
-				</tr>
-				{{#each this.auction}}
+			<div class="row">
+				{{refresh_auction_details}}
+				{{#if hide_ui}}{{else}}
+				<div class="col-xs-2">
+					<button id="toggle-details" type="button" class="btn btn-default">{{#if hideDetails}}show {{else}}hide {{/if}}details</button>
+				</div>
+				<div class="col-xs-2 col-xs-offset-8">
+					<i id="refresh-auctions" class="blue-text fa fa-refresh"></i>
+				</div>
+				{{/if}}
+			</div>
+			{{#if auction_data}}
+			<div class="row item-table">
+				{{#each auction_data}}
 					{{#with auction_info this}}
-					<tr data-auction_id="{{_id}}" id="{{#if winning}}winning{{else}}{{#if losing}}losing{{/if}}{{/if}}">
-						<td>
-							{{#with thumbnailInfo item_id}}
-							<img class="image-thumb preview enabled" src="{{getThumbImageURL filename}}"/>
-							{{/with}}
-						</td>
-						{{#with time_remaining expiration}}
-						<td class="{{#if soon}}soon{{/if}}">{{remaining}}</td>
-						{{/with}}
-						<td class="{{#if isQuestItem artwork_id}}green-text{{/if}}">{{#if owned}}*{{/if}}{{item_data.title}}</td>
-						<td>{{item_data.date}}</td>
-						<td>{{item_data.artist}}</td>
-						<td><span class="{{item_data.rarity}}"><strong>{{item_data.rarity}}</strong></span>{{#if item_data.foil}}<span class="af-color"> foil</span>{{/if}}{{#if item_data.seasonal}}<span class="common"> seasonal</span>{{/if}}{{#if item_data.lottery}}<span class="gold"> lottery {{item_data.lottery}}</span>{{/if}}{{#if item_data.original}}<span class="purple-text"> original</span>{{/if}}</td>
-						<td style="color: rgb({{attributeColor condition}}, 0, 0)" >{{#if market_expert}}{{floatToPercentage item_data.condition}}{{else}}?{{/if}}</td>
-						<td>
-						{{#if market_expert}}
-							{{#each attribute}}
-								<i data-attribute_title="{{description}}" data-attribute_value="{{value}}" style="color: rgb({{attributeColor value}}, 0, 0)" class="{{#if locked}}locked{{/if}} item-attribute fa {{icon}}"></i>
-							{{/each}}
-						{{else}}?{{/if}}
-						</td>
-						<td style="{{#if market_expert}}color: rgb({{attributeColor item_data.xp_rating}}, 0, 0){{/if}}">{{#if market_expert}}{{floatToPercentage item_data.xp_rating}}{{else}}?{{/if}}</td>
-						<td>{{#if market_expert}}{{item_data.roll_count}}{{else}}?{{/if}}</td>
-						<td class="{{#if has_bid}}highlight{{/if}}">{{displayAsMoneyValue min_bid}}</td>
-						<td>{{buy_now_text}}</td>
-						<td class="action-buttons"><span class="place-bid {{#if isBiddable this}}enabled{{else}}disabled{{/if}}" data-auction_id="{{auction_id}}"><i class="fa fa-usd"></i></span></td>
-						<td><a href="/user/{{seller}}">{{seller}}</a></td>
-					</tr>
+						<div class="row table-row {{#if hideDetails}}details-hidden{{/if}}" id="{{#if isWinning _id}}winning{{else}}{{#if isLosing _id}}losing{{/if}}{{/if}}">
+							<div class="col-xs-1 thumb-div{{#if hideDetails}}-hidden{{/if}}"><img class="auction-thumb" data-auction_id="{{_id}}" src="{{#with thumbnailFilename item_data.artwork_id}}{{getThumbImageURL this}}{{/with}}"/></div>
+							{{#if hideDetails}}
+								<div class="col-xs-1 thumb-blank"></div>
+							{{/if}}
+							<div class="col-xs-1 remaining-div">{{#with time_remaining expiration}}<span class="{{#if soon}}soon{{/if}}">{{remaining}}</span>{{/with}}</div>
+							<div class="col-xs-8">
+								<div class="row default-info">
+									<div class="col-xs-5 default-text">{{#if owned}}<i class="green-text fa fa-check"></i>{{/if}} {{#if isAlreadyWinning _id}}<i class="purple-text fa fa-clock-o"></i>{{/if}} {{#if isQuestItem artwork_id}}<i class="orange-text fa fa-flag-checkered"></i>{{/if}} {{#if isSought artwork_id}}<i class="blue-text fa fa-bullhorn"></i>{{/if}} {{item_data.artist}} - {{item_data.title}} ({{item_data.date}})</div>
+									<div class="col-xs-2 default-text">
+										<span class="{{item_data.rarity}}"><strong>{{item_data.rarity}}</strong></span>{{#if item_data.foil}}<span class="af-color"> foil</span>{{/if}}{{#if item_data.seasonal}}<span class="common"> seasonal</span>{{/if}}{{#if item_data.lottery}}<span class="gold"> lottery {{item_data.lottery}}</span>{{/if}}{{#if item_data.original}}<span class="purple-text"> original</span>{{/if}}
+									</div>
+									<div class="col-xs-2">bid min: <span class="default-text {{#if has_bid}}highlight{{/if}}">${{minBid _id}}</span></div>
+									<div class="col-xs-2">buy now: <span class="default-text">{{buy_now_text}}</span></div>
+								</div>
+								<div class="row other-info{{#if hideDetails}}-hidden{{/if}}">
+									<div class="col-xs-12">
+										<p> 
+										{{#each attribute}}
+											<i data-attribute_title="{{description}}" data-attribute_value="{{value}}" style="color: rgb({{attributeColor value}}, 0, 0)" class="{{#if locked}}locked{{/if}} item-attribute fa {{icon}}"></i>
+										{{/each}}
+										</p>
+									</div>
+									<div class="col-xs-3">
+										<p>condition: <span style="color: rgb({{attributeColor item_data.condition}}, 0, 0)" >{{#if item_data.condition}}{{floatToPercentage item_data.condition}}%{{else}}?{{/if}}</span></p>
+										<p>xp rating: <span style="{{#if item_data.xp_rating}}color: rgb({{attributeColor item_data.xp_rating}}, 0, 0){{/if}}">{{#if item_data.xp_rating}}{{floatToPercentage item_data.xp_rating}}{{else}}?{{/if}}</span></p>
+									</div>
+									<div class="col-xs-3">
+										<p>roll count: {{#if rollCount item_data.roll_count}}{{item_data.roll_count}}{{else}}?{{/if}}</p>
+										<p>seller: {{#if linkSeller seller}}<a href="/user/{{seller}}">{{seller}}</a>{{else}}Artfunkel, Inc.{{/if}}</p>
+									</div>
+								</div>
+							</div>
+							<div class="col-xs-2">
+								{{#if isBiddable this}}<button type="button" class="btn btn-default place-bid{{#if hideDetails}}-hidden{{/if}}" data-auction_id="{{../_id}}">place bid</button>{{/if}}
+							</div>
+						</div>
 					{{/with}}
 				{{/each}}
-			</table>
-		</div>
-		<div class="col-xs-12 no-padding">
-			<p>* denotes paintings you already own</p>
-		</div>
+			</div>
+				{{#if hide_ui}}{{else}}
+				<div class="col-xs-12 no-padding legend">
+					<p><i class="green-text fa fa-check"></i> already owned</p>
+					<p><i class="purple-text fa fa-clock-o"></i> already winning in another auction</p>
+					<p><i class="orange-text fa fa-flag-checkered"></i> quest item</p>
+					<p><i class="blue-text fa fa-bullhorn"></i> sought item (requires auctioneer bonus)</p>
+				</div>
+				{{/if}}
+			{{else}}
+				<div class="no-auctions">
+					<p>there are no auctions to display</p>
+				</div>
+			{{/if}}	
+		</div>		
 	</div>
-</template>
-
-<template name="headerTemplate">
-	<th class="table-header" data-sort="{{sort_id}}" data-table_id="{{table_id}}">
-		<div class="row no-margin">
-			<div class="col-xs-8">
-				<p>{{text}}</p>
-			</div>
-			<div class="col-xs-4">
-				{{#with sorted this}}{{#if sort}}{{#if ascending}}<i class="fa fa-caret-up"></i>{{else}}<i class="fa fa-caret-down"></i>{{/if}}{{else}} {{/if}}{{/with}}
-			</div>
-		</div>
-	</th>
 </template>

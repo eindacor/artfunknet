@@ -71,7 +71,10 @@ Template.placeBidModal.events({
         			if (error) 
         				console.log(error.message);
 
-                    else $('.template-modalTemplate').remove();
+                    else {
+                        Session.set("refreshAuctions", true);
+                        $('.template-modalTemplate').remove();
+                    }
         		});	
     	    }
 
@@ -91,7 +94,10 @@ Template.placeBidModal.events({
                     if (error)
                         console.log(error.message);
 
-                    else $('.template-modalTemplate').remove();
+                    else {
+                        Session.set("refresh_auctions", true);
+                        $('.template-modalTemplate').remove();
+                    }
                 });
             }
 
@@ -114,7 +120,10 @@ Template.placeBidModal.events({
                     if (error)
                         console.log(error.message);
 
-                    else $('.template-modalTemplate').remove();
+                    else {
+                        Session.set("refreshAuctions", true);
+                        $('.template-modalTemplate').remove();
+                    }
                 });
             }
         }

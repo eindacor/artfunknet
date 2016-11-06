@@ -64,9 +64,6 @@ Meteor.methods({
 			case "xp_visitors": //DISABLE - give portion of collection xp to visitors
 				npc_interaction = {'message': "You have been given 0xp for works in this permanent collection."};
 				break;
-			case "auctioneer_bonus": //DISABLE - provide access to private bot auction
-				npc_interaction = {'message': "You have met an auctioneer."};
-				break;
 			case "dealer_bonus":
 				npc_interaction = artDealerInteraction(npc_object);
 				break;
@@ -85,8 +82,8 @@ Meteor.methods({
 			case "historian_bonus": //DISABLE - quiz players for xp
 				npc_interaction = historianInteraction(npc_object);
 				break;
-			case "market_expert_bonus": //DISABLE - analyze auction house and return deals
-				npc_interaction = marketExpertInteraction(npc_object);
+			case "auctioneer_bonus": //DISABLE - analyze auction house and return deals
+				npc_interaction = auctioneerInteraction(npc_object);
 				break;
 			case "entry_fee_reduction_members": //DISABLE = reduce entry fee for members
 			case "set_xp_members": //DISABLE - give portion of set xp to members
@@ -155,10 +152,6 @@ var benefactorInteraction = function(npc_object) {
 	// returns true if the player met the npc in his/her own gallery
 	if (isOwnGallery(npc_object)) {
 		donation_amount *= own_gallery_amplifier;
-
-		if (procUniqueAttribute(Meteor.userId(), "BENEFACTOR_MARKET_EXPERT_RATING_BONUS", undefined)) {
-			
-		}
 
 		if (procUniqueAttribute(Meteor.userId(), "GALLERY_FINISH_BENEFACTOR_BONUS", undefined)) {
 			var floor_finishes = Meteor.user().profile.gallery_finishes.owned.floor_finishes;
@@ -805,10 +798,6 @@ var designerInteraction = function(npc_object) {
 		if (procUniqueAttribute(Meteor.userId(), "DESIGNER_ENTHUSIAST_BONUS", "Art Enthusiast")) {
 			designer_bonus += .2
 		}
-
-		if (procUniqueAttribute(Meteor.userId(), "DESIGNER_MARKET_EXPERT_BONUS", undefined)) {
-
-		}
 	}
 	
 	if (user_object.profile.gallery_finishes.owned[category_string][random_selection._id] == undefined) {
@@ -990,9 +979,7 @@ var historianInteraction = function(npc_object) {
 		}
 	
 	    var rarity_roll = JepLoot.catRoll(getSmartRarityMap(Meteor.user().profile.level, map_amplifier));
-	
 	    var quest_object = generateQuest(rarity_roll, isOwnGallery(npc_object));
-	
 	    quests.insert(quest_object);
 	
 	    var message = "You have met an art historian who is looking for a few specific items and would like your help. Visit the quests area to see what they need and acquire the artwork listed to claim your reward.";
@@ -1006,11 +993,12 @@ var historianInteraction = function(npc_object) {
 	}
 }
 
-var marketExpertInteraction = function(npc_object) {
+var auctioneerInteraction = function(npc_object) {
 	var user_object = Meteor.user();
 
 	var market_expert_duration = 10; //minutes
 	var market_expert_duration_extension = 5; // minutes
+	var auction_count = 7;
 
 	switch(npc_object.quality) {
 		case 'bronze': 
@@ -1035,6 +1023,7 @@ var marketExpertInteraction = function(npc_object) {
 	if (isOwnGallery(npc_object)) {
 		market_expert_duration = Math.floor(market_expert_duration * 2.5);
 		market_expert_duration_extension = Math.floor(market_expert_duration_extension * 2.5);
+		auction_count += 3;
 	}
 
 	var message;
@@ -1045,7 +1034,7 @@ var marketExpertInteraction = function(npc_object) {
 			'profile.market_expert.expiration': expiration_time._d.toISOString(),
 		}});
 
-		message = "You have met a market expert. They will help you identify in-demand items for the next " + market_expert_duration + " minutes (expires " + getTimeString(expiration_time) +  ").";
+		message = "You have met an auctioneer. They will help you identify in-demand items for the next " + market_expert_duration + " minutes (expires " + getTimeString(expiration_time) +  ").";
 	}
 
 	else {
@@ -1054,7 +1043,38 @@ var marketExpertInteraction = function(npc_object) {
 			'profile.market_expert.expiration': new_expiration._d.toISOString()
 		}});
 
-		message = "You have met another market expert. Your access to market analysis has been extended by " + market_expert_duration_extension + " minutes (expires " + getTimeString(new_expiration) + ").";
+		message = "You have met another auctioneer. Your access to market analysis has been extended by " + market_expert_duration_extension + " minutes (expires " + getTimeString(new_expiration) + ").";
+	}
+
+	
+	if (auctions.findOne({'viewer': Meteor.userId()}) == undefined && (npc_object.quality == "gold" || npc_object.quality == "platinum")) {
+		var auction_price_adjustment = 4;
+		if (procUniqueAttribute(Meteor.userId(), "PRIVATE_AUCTION_PRICE_REDUCTION", undefined)) {
+				auction_price_adjustment = 3;
+		}
+
+		var multi_item_generator = {
+	        'source': "private auction",
+	        'user_id': "Artfunkel, Inc.",
+	        'quality': npc_object.quality,
+	        'count': auction_count,
+	        'status': "claimed",
+	        'foil_chance': getLootData().global_foil_chance,
+	        'misprint_chance': getLootData().global_misprint_chance,
+	        'xp_rating_min': 0,
+	        'condition_min': 0
+	    }
+
+		var item_ids = generateItems(multi_item_generator);
+
+		setTimeout("", 2);
+
+		// private_auction_duration is instantiated in auction_methods.js
+		items.find({'_id': {$in: item_ids}}).forEach(function(db_object) {
+			createAuction(db_object._id, getItemObjectValue(db_object, "actual", undefined) * auction_price_adjustment, -1, private_auction_duration / 60000, Meteor.userId());
+		})
+
+		message += " They have also given you exclusive access to some items available in a private auction. Visit the auction house to make a bid."
 	}
 
 	return {'message': message};

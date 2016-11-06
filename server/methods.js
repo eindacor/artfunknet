@@ -9,7 +9,7 @@ var texture_size_cm = 300;
 
 var getMVPData = function() {
     var admin_id = Meteor.users.findOne({'profile.user_type': "admin"})._id;
-    var all_items = items.find({'owner': {$nin : [admin_id, "Artfunkel, Inc."]}, 'status': {$nin: ['unclaimed', 'for_sale', 'claimed']}}).fetch();
+    var all_items = items.find({'owner': {$nin : [admin_id, "Artfunkel, Inc."]}, 'status': {$nin: ['unclaimed', 'for_sale', 'claimed', 'won']}}).fetch();
     all_items.sort(function(first, second) {
         return getItemObjectValue(second, 'actual', undefined) - getItemObjectValue(first, 'actual', undefined);
     });
@@ -56,22 +56,6 @@ Meteor.methods({
         });
 
         return owned_array;
-    },
-
-    'getAuctions' : function(sorter, ascending) {
-        var asc = (ascending ? 1 : -1);
-
-        var sort_query = {};
-        sort_query[sorter] = asc;
-
-        var auction_objects = auctions.find({}, {fields : {'_id': 1}}, {sort: sort_query}).fetch();
-        var auction_array = [];
-
-        for (var i=0; i < auction_objects.length; i++) {
-            auction_array.push(auction_objects[i]._id);
-        };
-
-        return auction_array;
     },
 
     'getUserGallery' : function(screen_name) {
@@ -155,7 +139,7 @@ Meteor.methods({
 
     'getCollectionValue' : function(user_id) {
         var collection_total = 0;
-        items.find({'owner' : user_id, 'status' : {$ne: 'unclaimed'}}).forEach(function(db_object) {
+        items.find({'owner' : Meteor.userId(), 'status' : {$in: ['unclaimed', 'displayed', 'permanent']}}).forEach(function(db_object) {
             collection_total += getItemValue(db_object._id, 'actual', user_id);
         });
 

@@ -23,9 +23,10 @@ createUser = function(user_object, callback){
     user_object.profile.gallery_score = 0;
     user_object.profile.completed_quests = 0;
     user_object.profile.market_expert = {
-        'expiration': moment().add(-1, 'days')._d.toISOString(),
-        'rating': .8
+        'expiration': moment().add(-1, 'days')._d.toISOString()
     };
+    user_object.profile.last_login = moment()._d.toISOString();
+    user_object.profile.last_logout = moment()._d.toISOString();
     user_object.profile.auction_data = {'winning': [], 'watching': []};
 
     user_object.profile.tutorials = {
@@ -149,7 +150,7 @@ calcMVP = function(user_id) {
         'value': 0
     }
 
-    var items_owned = items.find({'owner': user_id, 'status': {$nin: ['for_sale, unclaimed']}});
+    var items_owned = items.find({'owner': user_id, 'status': {$nin: ['for_sale, unclaimed', 'won']}});
     var collection_total = 0;
     items_owned.forEach(function(db_object) {
         try {
@@ -475,7 +476,7 @@ Meteor.methods({
             var unique_targets_found = [];
             var unique_specials_found = [];
 
-            items.find({'owner': user_object._id, 'status': {$nin: ['unclaimed', 'for_sale']}, 'artwork_id': {$in: quest_object.target}}).forEach(function(item_object) {
+            items.find({'owner': user_object._id, 'status': {$nin: ['unclaimed', 'for_sale', 'won']}, 'artwork_id': {$in: quest_object.target}}).forEach(function(item_object) {
                 if (unique_targets_found.indexOf(item_object.artwork_id) == -1)
                     unique_targets_found.push(item_object.artwork_id);
 
@@ -534,7 +535,7 @@ Meteor.methods({
             }
 
             if (procUniqueAttribute(user_object._id, "QUEST_TARGET_CONDITION_INCREASE", undefined)) {
-                items.update({'owner': user_object._id, 'status': {$nin: ['unclaimed', 'for_sale']}, 'artwork_id': {$in: quest_object.target}}, {$set: {'condition': .9}}, {multi: true});
+                items.update({'owner': user_object._id, 'status': {$nin: ['unclaimed', 'for_sale', 'won']}, 'artwork_id': {$in: quest_object.target}}, {$set: {'condition': .9}}, {multi: true});
             }
 
             quests.remove(quest_id);
@@ -549,17 +550,7 @@ Meteor.methods({
 
     'getSoughtStatus' : function(artwork_id) {
         if (Meteor.user().profile.market_expert.expiration > moment()._d.toISOString()) {
-            var is_sought = false;
-            quests.find({'owner': {$ne: Meteor.userId()}, 'target': {$in: [artwork_id]}}).forEach(function(quest_object) {
-                if (is_sought)
-                    return;
-
-                var quest_owner = quest_object.owner_id;
-                if (items.findOne({'owner': quest_owner, 'artwork_id': artwork_id}) == undefined)
-                    is_sought = true;
-            });
-
-            return is_sought;
+            return getSoughtStatus(Meteor.userId(), artwork_id);
         }
 
         else return false;
@@ -665,5 +656,178 @@ Meteor.methods({
         }
 
         return true;
+    },
+
+    'getAuctionCount': function(filter_array, quest_status) {
+        var has_auctioneer = Meteor.user().profile.market_expert.expiration > moment()._d.toISOString();
+        var fields_object = undefined;
+        var target_array = [];
+
+        if (quest_status == "quest") {
+            quests.find({'owner_id': Meteor.userId()}).forEach(function(quest_object) {
+                var combined_array = target_array.concat(quest_object.target);
+                target_array = combined_array;
+            });
+
+            filter_array.push({'item_data.artwork_id': {'$in': target_array}});
+        }
+
+        if (has_auctioneer) {
+            fields_object = {
+                'item_id': 0,
+                'current_bid': 0,
+                'increment': 0,
+                'highest_bid': 0,
+                'viewer': 0
+            }
+
+            if (quest_status == "sought") {
+                quests.find({'owner_id': {'$ne': Meteor.userId()}}).forEach(function(quest_object) {
+                    for (var i=0; i<quest_object.target.length; i++) {
+                        if (getSoughtStatus(Meteor.userId(), quest_object.target[i]) && target_array.indexOf(quest_object.target[i]) == -1)
+                            target_array.push(quest_object.target[i]);
+                    }
+                });
+
+                filter_array.push({'item_data.artwork_id': {'$in': target_array}});
+            }
+        }
+
+        else {
+            fields_object = {
+                'item_id': 0,
+                'current_bid': 0,
+                'increment': 0,
+                'highest_bid': 0,
+                'viewer': 0,
+                'item_data.condition': 0,
+                'item_data.xp_rating': 0,
+                'item_data.feature_count': 0,
+                'item_data.roll_count': 0,
+                'item_data.attributes': 0
+            }
+        }
+
+        var now = moment()._d.toISOString();
+        filter_array.push({'expiration': {$gt : now}});
+
+        return total_items_found = auctions.find({$and: filter_array}, {fields: fields_object}).count();
+    },
+
+    'getAuctions': function(sort_object, filter_array, skip_amount, items_per_page, quest_status) {
+        var has_auctioneer = Meteor.user().profile.market_expert.expiration > moment()._d.toISOString();
+        var fields_object = undefined;
+        var target_array = [];
+
+        if (quest_status == "quest") {
+            quests.find({'owner_id': Meteor.userId()}).forEach(function(quest_object) {
+                var combined_array = target_array.concat(quest_object.target);
+                target_array = combined_array;
+            });
+
+            filter_array.push({'item_data.artwork_id': {'$in': target_array}});
+        }
+
+        if (has_auctioneer) {
+            fields_object = {
+                'item_id': 0,
+                'current_bid': 0,
+                'increment': 0,
+                'highest_bid': 0,
+                'viewer': 0
+            }
+
+            if (quest_status == "sought") {
+                quests.find({'owner_id': {'$ne': Meteor.userId()}}).forEach(function(quest_object) {
+                    for (var i=0; i<quest_object.target.length; i++) {
+                        if (getSoughtStatus(Meteor.userId(), quest_object.target[i]) && target_array.indexOf(quest_object.target[i]) == -1)
+                            target_array.push(quest_object.target[i]);
+                    }
+                });
+
+                filter_array.push({'item_data.artwork_id': {'$in': target_array}});
+            }
+        }
+
+        else {
+            fields_object = {
+                'item_id': 0,
+                'current_bid': 0,
+                'increment': 0,
+                'highest_bid': 0,
+                'viewer': 0,
+                'item_data.condition': 0,
+                'item_data.xp_rating': 0,
+                'item_data.feature_count': 0,
+                'item_data.roll_count': 0,
+                'item_data.attributes': 0
+            }
+
+            if (sort_object.item_data != undefined && (
+                sort_object.item_data.xp_rating != undefined ||
+                sort_object.item_data.roll_count != undefined ||
+                sort_object.item_data.condition != undefined)) {
+                return {
+                    'auction_data': [],
+                    'items_found': 0
+                };
+            }
+        }
+
+        var now = moment()._d.toISOString();
+        filter_array.push({'expiration': {$gt : now}});
+
+        var auction_array = auctions.find(
+            {$and: filter_array}, 
+            {
+                fields: fields_object, 
+                sort: sort_object,
+                skip: skip_amount, 
+                limit: items_per_page
+            }).fetch();
+
+        return auction_array;
+    },
+
+    'getPlayerAuctions': function(sort_object, filter_array, skip_amount, items_per_page) {
+        var now = moment()._d.toISOString();
+        filter_array.push({'expiration': {$gt : now}});
+
+        var fields_object = {
+            'item_id': 0,
+            'current_bid': 0,
+            'increment': 0,
+            'highest_bid': 0,
+            'viewer': 0
+        }
+
+        var auction_array = auctions.find(
+            {$and: filter_array}, 
+            {
+                fields: fields_object, 
+                sort: sort_object,
+                skip: skip_amount, 
+                limit: items_per_page
+            }).fetch();
+
+        var total_items_found = auctions.find(
+            {$and: filter_array},  
+            {
+                fields: fields_object
+            }).count();
+
+        return {
+            'auction_data': auction_array,
+            'items_found': total_items_found
+        }
+    },
+
+    'getAlreadyWinningElsewhere': function(auction_id) {
+        if (auctions.findOne(auction_id) == undefined)
+            return false;
+
+        var artwork_id = auctions.findOne(auction_id).item_data.artwork_id;
+        return auctions.findOne({'_id': {$in: Meteor.user().profile.auction_data.winning}, 'item_data.artwork_id': artwork_id}) != undefined && 
+            Meteor.user().profile.auction_data.winning.indexOf(auction_id) == -1;
     }
 })

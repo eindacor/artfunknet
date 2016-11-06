@@ -51,7 +51,7 @@ Template.navbar.helpers({
 	},
 
 	'hasLoot' : function() {
-		return items.findOne({'owner': Meteor.userId(), 'status': "unclaimed"}) !== undefined;
+		return items.findOne({'owner': Meteor.userId(), 'status': {$in: ["unclaimed", "won"]}}) !== undefined;
 	},
 
 	'hasForSale' : function() {
@@ -74,7 +74,7 @@ Template.navbar.helpers({
 			
 			var targets_found = 0;
 			for (var c=0; c < quest_object.target.length; c++) {
-				if (items.findOne({'artwork_id': quest_object.target[c], 'owner': Meteor.userId(), 'status': {$nin: ['unclaimed', 'for_sale']}}) != undefined)
+				if (items.findOne({'artwork_id': quest_object.target[c], 'owner': Meteor.userId(), 'status': {$nin: ['unclaimed', 'for_sale', 'won']}}) != undefined)
 					targets_found++;
 			}
 
@@ -93,7 +93,7 @@ Template.navbar.helpers({
 			
 			var targets_found = 0;
 			for (var c=0; c < quest_object.target.length; c++) {
-				if (items.findOne({'artwork_id': quest_object.target[c], 'owner': Meteor.userId(), 'status': {$nin: ['unclaimed', 'for_sale']}}) != undefined)
+				if (items.findOne({'artwork_id': quest_object.target[c], 'owner': Meteor.userId(), 'status': {$nin: ['unclaimed', 'for_sale', 'won']}}) != undefined)
 					targets_found++;
 			}
 

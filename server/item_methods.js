@@ -134,6 +134,35 @@ displayItem = function(item_id, duration) {
     return errors;
 }
 
+getSoughtStatus = function(user_id, artwork_id) {
+    var is_sought = false;
+    quests.find({'owner_id': {'$ne': user_id}, 'target': {$in: [artwork_id]}}).forEach(function(quest_object) {
+        if (is_sought)
+            return;
+
+        var quest_owner = quest_object.owner_id;
+        var now = moment()._d.toISOString();
+        var last_login = Meteor.users.findOne(quest_owner).profile.last_login;
+        var last_logout = Meteor.users.findOne(quest_owner).profile.last_logout;
+
+        if (last_login == undefined)
+            Meteor.users.update({'_id': quest_owner}, {$set: {'profile.last_login': now}});
+
+        if (last_logout == undefined)
+            Meteor.users.update({'_id': quest_owner}, {$set: {'profile.last_logout': now}});
+
+        var still_logged_in = last_login > last_logout;
+        var hours_since_last_login = (moment() - moment(last_login)) / 3600000;
+        console.log(Meteor.users.findOne(quest_owner).profile.screen_name + " still logged in: " + still_logged_in);
+
+        // if player doesn't have item, has been active within the last hour, or is still logged in
+        if (items.findOne({'owner': quest_owner, 'artwork_id': artwork_id}) == undefined && (hours_since_last_login < 1 || still_logged_in))
+            is_sought = true;
+    });
+
+    return is_sought;
+}
+
 Meteor.methods({
 	'claimArtwork' : function(item_id) {
 		var item_object = canClaimItem(item_id);

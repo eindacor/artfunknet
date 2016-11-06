@@ -2,3 +2,72 @@
 	text-align: center;
 	margin-bottom: 100px;
 }
+
+/* --FILTER CSS --*/
+.template-auctions .page-buttons {
+	height: 50px;
+	text-align: center;
+	min-height: 4em;
+	display: flex;
+	align-items:center;
+}
+
+.template-auctions .page-button {
+	font-size: 3rem;
+	margin: 20px 80px 20px 80px;
+	vertical-align: middle;
+}
+
+.template-auctions .page-button:hover {
+	color: black;
+	cursor: pointer;
+}
+
+.template-auctions .page-indicators {
+	font-weight: bold;
+	color: black;
+	vertical-align: middle;
+	font-size: 2rem;
+}
+
+.template-auctions .button-wrapper {
+	flex: auto;
+	align-items:center;
+}
+
+.template-auctions #tag-selector {
+	resize: none;
+	width: 100%;
+	height: 4rem;
+	font-size: 2rem;
+	margin-bottom: 24px;
+	padding: .4rem 2rem;
+}
+
+.template-auctions .filter-checkboxes label {
+	font-weight: normal !important;
+	padding: 0px 2px;
+	margin: 0px;
+}
+
+.template-auctions .filter-checkboxes input {
+	padding: 0px 2px;
+	margin-right: 8px;
+}
+
+.template-auctions .all-filters {
+	border-top: 1px solid #DDD;
+	border-bottom: 1px solid #DDD;
+	padding: 12px 0px;
+	display: none;
+}
+
+.template-auctions .filter-title {
+	margin-bottom: 2px;
+	color: black;
+}
+
+.template-auctions .view-buttons i {
+	opacity: 1;
+	cursor: pointer;
+}

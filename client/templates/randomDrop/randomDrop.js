@@ -8,7 +8,7 @@ var drop_frequency = 10800000 //once every 3 hours
 
 Template.randomDrop.helpers({
 	'drop': function() {
-		return items.find({'owner': Meteor.userId(), 'status': 'unclaimed'});
+		return items.find({'owner': Meteor.userId(), 'status': {$in: ['unclaimed', 'won']}});
 	},
 
 	'dailyDropEnabled' : function() {
@@ -33,7 +33,7 @@ Template.randomDrop.helpers({
 
 	'full' : function() {
 		if (Meteor.userId() && Meteor.user())
-			return items.find({'owner' : Meteor.userId(), 'status' : {$nin : ['unclaimed', 'for_sale']}}).count() >= Meteor.user().profile.inventory_cap;
+			return items.find({'owner' : Meteor.userId(), 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}}).count() >= Meteor.user().profile.inventory_cap;
 
 		else return false;
 	},
@@ -41,7 +41,7 @@ Template.randomDrop.helpers({
 	'has_unclaimed' : function() {
 		return items.find({
 			'owner': Meteor.userId(),
-            'status': "unclaimed", 
+            'status': {$in: ["unclaimed", "won"]}, 
             'foil': false, 
             'seasonal': false, 
             'lottery': 0,

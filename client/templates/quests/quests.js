@@ -6,7 +6,7 @@ Template.quests.helpers({
 
 Template.questTemplate.helpers({
 	'acquired' : function(artwork_id) {
-		return items.findOne({'artwork_id': artwork_id, 'owner': Meteor.userId(), 'status': {$nin: ['unclaimed', 'for_sale', 'auctioned']}}) != undefined
+		return items.findOne({'artwork_id': artwork_id, 'owner': Meteor.userId(), 'status': {$nin: ['unclaimed', 'for_sale', 'auctioned', 'won']}}) != undefined
 	},
 
 	'quest_target' : function(quest_object) {
@@ -22,7 +22,7 @@ Template.questTemplate.helpers({
 
 		var targets_found = 0;
 		for (var i=0; i < quest_object.target.length; i++) {
-			if (items.findOne({'artwork_id': quest_object.target[i], 'owner': Meteor.userId(), 'status': {$nin: ['unclaimed', 'for_sale']}}) != undefined)
+			if (items.findOne({'artwork_id': quest_object.target[i], 'owner': Meteor.userId(), 'status': {$nin: ['unclaimed', 'for_sale', 'won']}}) != undefined)
 				targets_found++;
 		}
 

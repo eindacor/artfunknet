@@ -33,7 +33,7 @@
 						<p>items exhibited: <span class="highlight af-color">{{display_count}}</span> ({{display_max}} max)</p>					
 						<p>paintings owned: <span class="highlight af-color">{{inventory_count}}</span> ({{inventory_max}} max)</p>										
 						<p>permanent collection: <span class="highlight af-color">{{private_count}}</span> ({{private_max}} max)</p>		
-						<p>completed qeusts: <span class="highlight af-color">{{completed_quests}}</span></p>		
+						<p>completed quests: <span class="highlight af-color">{{completed_quests}}</span></p>		
 						<p>gallery entry fee: 
 							<select class="price-selector">
 								<option selected="selected" value="{{entry_fee}}">{{entry_fee}}</option>
@@ -52,18 +52,46 @@
 				{{/each}}
 					<p>ticket limit: {{ticket_max}}</p>
 				</div>
-			</div>
 
-			{{#if alert_count}}
-			<div class="row dash-section">
-				{{> alerts}}
+				<div class="alert-area">
+				{{#if alert_count}}
+					{{> alerts}}
+				{{/if}}
+				</div>
 			</div>
-			{{/if}}
-
-			{{#if has_auctions}}
+			<!-- {{#if has_auctions}}
 			<div class="row dash-section">
 				{{> activeAuctions}}
 			</div>
+			{{/if}} -->
+
+			{{#if has_auctions}}
+				<div class="row dash-section">
+					<div class="col-xs-2">
+						<button id="toggle-details" type="button" class="btn btn-default">toggle details</button>
+					</div>
+					<div class="col-xs-2 col-xs-offset-8">
+						<i id="refresh-auctions" class="blue-text fa fa-refresh"></i>
+					</div>
+					{{refreshAuctions}}
+					{{#if has_watched_auctions}}
+					<div class="col-xs-12">
+						<h3>watched auctions</h3>
+						<div class="col-xs-12">		
+							{{>auctionTable auction_data=watchedAuctionData hide_ui=true}}
+						</div>
+					</div>
+					{{/if}}
+
+					{{#if has_player_auctions}}
+					<div class="col-xs-12">
+						<h3>your auctions</h3>
+						<div class="col-xs-12">		
+							{{>auctionTable auction_data=playerAuctionData hide_ui=true}}
+						</div>
+					</div>
+					{{/if}}
+				</div>
 			{{/if}}
 
 			{{#if inventory_count}}
