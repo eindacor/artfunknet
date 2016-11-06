@@ -658,7 +658,63 @@ Meteor.methods({
         return true;
     },
 
-    'getPublicAuctions': function(sort_object, filter_array, skip_amount, items_per_page, quest_status) {
+    'getAuctionCount': function(filter_array, quest_status) {
+        var has_auctioneer = Meteor.user().profile.market_expert.expiration > moment()._d.toISOString();
+        var fields_object = undefined;
+        var target_array = [];
+
+        if (quest_status == "quest") {
+            quests.find({'owner_id': Meteor.userId()}).forEach(function(quest_object) {
+                var combined_array = target_array.concat(quest_object.target);
+                target_array = combined_array;
+            });
+
+            filter_array.push({'item_data.artwork_id': {'$in': target_array}});
+        }
+
+        if (has_auctioneer) {
+            fields_object = {
+                'item_id': 0,
+                'current_bid': 0,
+                'increment': 0,
+                'highest_bid': 0,
+                'viewer': 0
+            }
+
+            if (quest_status == "sought") {
+                quests.find({'owner_id': {'$ne': Meteor.userId()}}).forEach(function(quest_object) {
+                    for (var i=0; i<quest_object.target.length; i++) {
+                        if (getSoughtStatus(Meteor.userId(), quest_object.target[i]) && target_array.indexOf(quest_object.target[i]) == -1)
+                            target_array.push(quest_object.target[i]);
+                    }
+                });
+
+                filter_array.push({'item_data.artwork_id': {'$in': target_array}});
+            }
+        }
+
+        else {
+            fields_object = {
+                'item_id': 0,
+                'current_bid': 0,
+                'increment': 0,
+                'highest_bid': 0,
+                'viewer': 0,
+                'item_data.condition': 0,
+                'item_data.xp_rating': 0,
+                'item_data.feature_count': 0,
+                'item_data.roll_count': 0,
+                'item_data.attributes': 0
+            }
+        }
+
+        var now = moment()._d.toISOString();
+        filter_array.push({'expiration': {$gt : now}});
+
+        return total_items_found = auctions.find({$and: filter_array}, {fields: fields_object}).count();
+    },
+
+    'getAuctions': function(sort_object, filter_array, skip_amount, items_per_page, quest_status) {
         var has_auctioneer = Meteor.user().profile.market_expert.expiration > moment()._d.toISOString();
         var fields_object = undefined;
         var target_array = [];
@@ -730,16 +786,7 @@ Meteor.methods({
                 limit: items_per_page
             }).fetch();
 
-        var total_items_found = auctions.find(
-            {$and: filter_array},  
-            {
-                fields: fields_object
-            }).count();
-
-        return {
-            'auction_data': auction_array,
-            'items_found': total_items_found
-        }
+        return auction_array;
     },
 
     'getPlayerAuctions': function(sort_object, filter_array, skip_amount, items_per_page) {
@@ -778,7 +825,7 @@ Meteor.methods({
     'getAlreadyWinningElsewhere': function(auction_id) {
         if (auctions.findOne(auction_id) == undefined)
             return false;
-        
+
         var artwork_id = auctions.findOne(auction_id).item_data.artwork_id;
         return auctions.findOne({'_id': {$in: Meteor.user().profile.auction_data.winning}, 'item_data.artwork_id': artwork_id}) != undefined && 
             Meteor.user().profile.auction_data.winning.indexOf(auction_id) == -1;

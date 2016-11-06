@@ -129,7 +129,8 @@
         		</select>
 			</div>
 		</div>
-			{{refreshAuctions}}
+			{{#if refreshAuctions}}{{/if}}
+			{{#if itemCount}}{{/if}}
 			{{>auctionTable auction_data=auctionData}}
 		</div>
 	</div>

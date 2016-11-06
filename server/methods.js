@@ -58,22 +58,6 @@ Meteor.methods({
         return owned_array;
     },
 
-    'getAuctions' : function(sorter, ascending) {
-        var asc = (ascending ? 1 : -1);
-
-        var sort_query = {};
-        sort_query[sorter] = asc;
-
-        var auction_objects = auctions.find({}, {fields : {'_id': 1}}, {sort: sort_query}).fetch();
-        var auction_array = [];
-
-        for (var i=0; i < auction_objects.length; i++) {
-            auction_array.push(auction_objects[i]._id);
-        };
-
-        return auction_array;
-    },
-
     'getUserGallery' : function(screen_name) {
         try {
             var user_object = Meteor.users.findOne({'profile.screen_name' : screen_name});

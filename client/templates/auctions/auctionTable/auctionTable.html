@@ -4,8 +4,7 @@
 		<div class="col-xs-12 no-padding">
 			<p>Note: your inventory is currently full. You will be unable to place bids on any items in the Auction House.</p>
 		</div>
-		{{/if}}
-		{{#if auction_data}}
+		{{/if}}	
 		<div class="col-xs-12 no-padding">
 			<div class="row">
 				{{refresh_auction_details}}
@@ -18,6 +17,7 @@
 				</div>
 				{{/if}}
 			</div>
+			{{#if auction_data}}
 			<div class="row item-table">
 				{{#each auction_data}}
 					{{#with auction_info this}}
@@ -29,7 +29,7 @@
 							<div class="col-xs-1 remaining-div">{{#with time_remaining expiration}}<span class="{{#if soon}}soon{{/if}}">{{remaining}}</span>{{/with}}</div>
 							<div class="col-xs-8">
 								<div class="row default-info">
-									<div class="col-xs-5 default-text">{{#if owned}}<i class="green-text fa fa-check"></i>{{/if}} {{#if isAlreadyWinning _id}}<i class="green-text fa fa-clock-o"></i>{{/if}} {{#if isQuestItem artwork_id}}<i class="green-text fa fa-flag-checkered"></i>{{/if}} {{#if isSought artwork_id}}<i class="blue-text fa fa-bullhorn"></i>{{/if}} {{item_data.artist}} - {{item_data.title}} ({{item_data.date}})</div>
+									<div class="col-xs-5 default-text">{{#if owned}}<i class="green-text fa fa-check"></i>{{/if}} {{#if isAlreadyWinning _id}}<i class="teal-text fa fa-clock-o"></i>{{/if}} {{#if isQuestItem artwork_id}}<i class="orange-text fa fa-flag-checkered"></i>{{/if}} {{#if isSought artwork_id}}<i class="blue-text fa fa-bullhorn"></i>{{/if}} {{item_data.artist}} - {{item_data.title}} ({{item_data.date}})</div>
 									<div class="col-xs-2 default-text">
 										<span class="{{item_data.rarity}}"><strong>{{item_data.rarity}}</strong></span>{{#if item_data.foil}}<span class="af-color"> foil</span>{{/if}}{{#if item_data.seasonal}}<span class="common"> seasonal</span>{{/if}}{{#if item_data.lottery}}<span class="gold"> lottery {{item_data.lottery}}</span>{{/if}}{{#if item_data.original}}<span class="purple-text"> original</span>{{/if}}
 									</div>
@@ -61,19 +61,19 @@
 					{{/with}}
 				{{/each}}
 			</div>
-		</div>
-		{{#if hide_ui}}{{else}}
-		<div class="col-xs-12 no-padding legend">
-			<p><i class="green-text fa fa-check"></i> already owned</p>
-			<p><i class="gray-text fa fa-clock-o"></i> already winning in another auction</p>
-			<p><i class="orange-text fa fa-flag-checkered"></i> quest item</p>
-			<p><i class="blue-text fa fa-bullhorn"></i> sought item (requires auctioneer bonus)</p>
-		</div>
-		{{/if}}
-		{{else}}
-			<div class="no-auctions">
-				<p>there are no auctions to display</p>
-			</div>
-		{{/if}}	
+				{{#if hide_ui}}{{else}}
+				<div class="col-xs-12 no-padding legend">
+					<p><i class="green-text fa fa-check"></i> already owned</p>
+					<p><i class="teal-text fa fa-clock-o"></i> already winning in another auction</p>
+					<p><i class="orange-text fa fa-flag-checkered"></i> quest item</p>
+					<p><i class="blue-text fa fa-bullhorn"></i> sought item (requires auctioneer bonus)</p>
+				</div>
+				{{/if}}
+			{{else}}
+				<div class="no-auctions">
+					<p>there are no auctions to display</p>
+				</div>
+			{{/if}}	
+		</div>		
 	</div>
 </template>
