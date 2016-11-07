@@ -165,11 +165,6 @@ Meteor.methods({
         return lookupCrateCost(quality, admin_settings.crate_drop_count);
     },
 
-    'resetRollCounts' : function() {
-        items.update({}, {$set : {'roll_count' : 0}}, {multi : true});
-        auctions.update({}, {$set : {'roll_count' : 0}}, {multi : true});
-    },
-
     'getXPData' : function(current_level) {
         return {
             'chunk' : getXPChunk(current_level),
