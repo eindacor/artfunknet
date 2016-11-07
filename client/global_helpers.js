@@ -118,14 +118,14 @@ Template.registerHelper('itemPermissions', function(item_object) {
 			'claim':
 				item_controlled && 
 				(item_object.status == "unclaimed" || item_object.status == "won") && 
-				items.find({'owner' : Meteor.userId(), 'status' : {$nin: ['unclaimed', 'for_sale', 'won']}}).count() < Meteor.user().profile.inventory_cap,
+				items.find({'owner' : Meteor.userId(), 'status' : {$nin: ['unclaimed', 'for_sale', 'won']}, 'original': {$ne: true}}).count() < Meteor.user().profile.inventory_cap,
 			'permanent': 
 				item_controlled && 
 				(item_object.status == "claimed" || item_object.status == "permanent"),
 			'purchase': 
 				item_object.owner == Meteor.userId() && 
 				item_object.status == 'for_sale' && 
-				items.find({'owner' : Meteor.userId(), 'status' : {$nin: ['unclaimed', 'for_sale', 'won']}}).count() < Meteor.user().profile.inventory_cap,
+				items.find({'owner' : Meteor.userId(), 'status' : {$nin: ['unclaimed', 'for_sale', 'won']}, 'original': {$ne: true}}).count() < Meteor.user().profile.inventory_cap,
 			'decline': 
 				item_object.status == "for_sale" && 
 				item_object.owner == Meteor.userId(),

@@ -64,7 +64,7 @@ Template.auctionTable.helpers({
 				Meteor.userId() && 
 				(auction_object.seller != Meteor.user().profile.screen_name) && 
 				funds_available && 
-				items.find({'owner' : Meteor.userId(), 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}}).count() < Meteor.user().profile.inventory_cap;
+				items.find({'owner' : Meteor.userId(), 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}, 'original': {$ne: true}}).count() < Meteor.user().profile.inventory_cap;
 
 			list_object.owned = items.findOne({'owner': Meteor.userId(), 'artwork_id': auction_object.item_data.artwork_id, 'status': {$nin: ['unclaimed', 'for_sale', 'won']}}) != undefined;
 			list_object.attribute = auction_object.item_data.attributes;
@@ -100,7 +100,7 @@ Template.auctionTable.helpers({
 
 	'full' : function() {
 		if (Meteor.userId())
-			return items.find({'owner' : Meteor.userId(), 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}}).count() >= Meteor.user().profile.inventory_cap;
+			return items.find({'owner' : Meteor.userId(), 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}, 'original': {$ne: true}}).count() >= Meteor.user().profile.inventory_cap;
 
 		else return false;
 	},

@@ -26,7 +26,7 @@ Template.store.helpers({
 
 	'full' : function() {
 		if (Meteor.userId() && Meteor.user())
-			return items.find({'owner' : Meteor.userId(), 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}}).count() >= Meteor.user().profile.inventory_cap;
+			return items.find({'owner' : Meteor.userId(), 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}, 'original': {$ne: true}}).count() >= Meteor.user().profile.inventory_cap;
 
 		else return false;
 	},

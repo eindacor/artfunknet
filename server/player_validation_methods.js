@@ -11,7 +11,7 @@ dailyDropIsEnabled = function() {
 }
 
 inventoryIsFull = function() {
-	return items.find({'owner': Meteor.userId(), 'status' : {$in: ['claimed', 'displayed', 'auctioned', 'permanent']}}).count() >= Meteor.user().profile.inventory_cap;
+	return items.find({'owner': Meteor.userId(), 'status' : {$in: ['claimed', 'displayed', 'auctioned', 'permanent']}, 'original': {$ne: true}}).count() >= Meteor.user().profile.inventory_cap;
 }
 
 itemIsOwnedAndClaimed = function(item_id) {
