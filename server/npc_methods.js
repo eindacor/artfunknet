@@ -1068,7 +1068,7 @@ var auctioneerInteraction = function(npc_object) {
 
 		// private_auction_duration is instantiated in auction_methods.js
 		items.find({'_id': {$in: item_ids}}).forEach(function(db_object) {
-			createAuction(db_object._id, getItemObjectValue(db_object, "actual", undefined) * auction_price_adjustment, -1, private_auction_duration / 60000, Meteor.userId());
+			createAuction(db_object._id, Math.floor(getItemObjectValue(db_object, "actual", undefined) * auction_price_adjustment), -1, private_auction_duration / 60000, Meteor.userId());
 		})
 
 		message += " They have also given you exclusive access to some items available in a private auction. Visit the auction house to make a bid."
