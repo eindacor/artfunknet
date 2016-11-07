@@ -998,7 +998,7 @@ var auctioneerInteraction = function(npc_object) {
 
 	var market_expert_duration = 10; //minutes
 	var market_expert_duration_extension = 5; // minutes
-	var auction_count = 7;
+	var auction_count = 8;
 
 	switch(npc_object.quality) {
 		case 'bronze': 
@@ -1023,7 +1023,7 @@ var auctioneerInteraction = function(npc_object) {
 	if (isOwnGallery(npc_object)) {
 		market_expert_duration = Math.floor(market_expert_duration * 2.5);
 		market_expert_duration_extension = Math.floor(market_expert_duration_extension * 2.5);
-		auction_count += 3;
+		auction_count += 6;
 	}
 
 	var message;
@@ -1050,7 +1050,7 @@ var auctioneerInteraction = function(npc_object) {
 	if (auctions.findOne({'viewer': Meteor.userId()}) == undefined && (npc_object.quality == "gold" || npc_object.quality == "platinum")) {
 		var auction_price_adjustment = 4;
 		if (procUniqueAttribute(Meteor.userId(), "PRIVATE_AUCTION_PRICE_REDUCTION", undefined)) {
-				auction_price_adjustment = 3;
+				auction_price_adjustment = 2.5;
 		}
 
 		var multi_item_generator = {

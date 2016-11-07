@@ -5,7 +5,7 @@ var card_container_height;
 var sought_status = {};
 
 var updateSoughtStatus = function(artwork_id) {
-	Meteor.call('getSoughtStatus', artwork_id, function(error, result) {
+	Meteor.call('getSoughtStatus', artwork_id, true, function(error, result) {
 		if (error)
 			console.log(error.message)
 

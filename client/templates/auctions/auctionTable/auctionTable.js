@@ -6,7 +6,7 @@ var already_winning = {};
 var hide_details = true;
 
 var getSoughtStatus = function(artwork_id) {
-	Meteor.call('getSoughtStatus', artwork_id, function(error, result) {
+	Meteor.call('getSoughtStatus', artwork_id, false, function(error, result) {
 		if (error)
 			console.log(error.message)
 

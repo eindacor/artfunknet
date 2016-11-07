@@ -548,9 +548,9 @@ Meteor.methods({
             quests.remove(quest_id);
     },
 
-    'getSoughtStatus' : function(artwork_id) {
+    'getSoughtStatus' : function(artwork_id, only_sought_if_not_in_auction_house) {
         if (Meteor.user().profile.market_expert.expiration > moment()._d.toISOString()) {
-            return getSoughtStatus(Meteor.userId(), artwork_id);
+            return getSoughtStatus(Meteor.userId(), artwork_id, only_sought_if_not_in_auction_house);
         }
 
         else return false;
@@ -684,7 +684,7 @@ Meteor.methods({
             if (quest_status == "sought") {
                 quests.find({'owner_id': {'$ne': Meteor.userId()}}).forEach(function(quest_object) {
                     for (var i=0; i<quest_object.target.length; i++) {
-                        if (getSoughtStatus(Meteor.userId(), quest_object.target[i]) && target_array.indexOf(quest_object.target[i]) == -1)
+                        if (getSoughtStatus(Meteor.userId(), quest_object.target[i], false) && target_array.indexOf(quest_object.target[i]) == -1)
                             target_array.push(quest_object.target[i]);
                     }
                 });
@@ -740,7 +740,7 @@ Meteor.methods({
             if (quest_status == "sought") {
                 quests.find({'owner_id': {'$ne': Meteor.userId()}}).forEach(function(quest_object) {
                     for (var i=0; i<quest_object.target.length; i++) {
-                        if (getSoughtStatus(Meteor.userId(), quest_object.target[i]) && target_array.indexOf(quest_object.target[i]) == -1)
+                        if (getSoughtStatus(Meteor.userId(), quest_object.target[i], false) && target_array.indexOf(quest_object.target[i]) == -1)
                             target_array.push(quest_object.target[i]);
                     }
                 });
