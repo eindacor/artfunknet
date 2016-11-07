@@ -344,12 +344,17 @@ Meteor.methods({
     		if (isNaN(artwork_object.date) || isNaN(artwork_object.value_scale) || isNaN(artwork_object.height) || isNaN(artwork_object.width))
     			return undefined;
 
+            var original_object = artworks.findOne(artwork_id);
+            var new_rarity = original_object.rarity != artwork_object.rarity;
     		var legendary_attributes = getLegendaryAttributes(artwork_object.rarity);
 
-    		if (legendary_attributes)
+    		if (legendary_attributes && new_rarity) {
     			artwork_object.locked_attributes = legendary_attributes;
+            }
 
-	        else artworks.update(artwork_id, {$unset: {'locked_attributes': ""}});
+	        else if (artwork_object.rarity != "legendary" && artwork_object.rarity != "masterpiece") {
+                artworks.update(artwork_id, {$unset: {'locked_attributes': ""}});
+            }
 
     		artworks.update(artwork_id, {$set: artwork_object}, {multi: true}, function(error) {
                 if (error)
