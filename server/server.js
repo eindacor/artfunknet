@@ -83,23 +83,7 @@ var updateContent = function() {
     });
 
     // temp code
-    auctions.update({'viewer': null}, {$set: {'viewer': "public"}}, {multi: true});
-    auctions.find({'item_data.attributes': null}).forEach(function(db_object) {
-        var item_object = items.findOne(db_object.item_id);
-        auctions.update({'_id': db_object._id}, {$set: {'item_data.attributes': item_object.attributes}});
-    })
 
-    auctions.find({'item_data.artwork_id': null}).forEach(function(db_object) {
-        var item_object = items.findOne(db_object.item_id);
-        auctions.update({'_id': db_object._id}, {$set: {'item_data.artwork_id': item_object.artwork_id}});
-    })
-
-    Meteor.users.update({}, {$set: {'profile.last_login': moment().subtract(2, 'days')._d.toISOString()}}, {multi: true});
-    Meteor.users.update({}, {$set: {'profile.last_logout': moment().subtract(1, 'days')._d.toISOString()}}, {multi: true});
-
-    items.find({'date_received': null}).forEach(function(item_object) {
-        items.update({'_id': item_object._id}, {$set: {'date_received': moment(item_object.date_created)._d.toISOString()}});
-    })
     // temp code
 }
 

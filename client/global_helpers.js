@@ -125,7 +125,7 @@ Template.registerHelper('itemPermissions', function(item_object) {
 			'purchase': 
 				item_object.owner == Meteor.userId() && 
 				item_object.status == 'for_sale' && 
-				items.find({'owner' : Meteor.userId(), 'status' : {$nin: ['unclaimed', 'for_sale']}}).count() < Meteor.user().profile.inventory_cap,
+				items.find({'owner' : Meteor.userId(), 'status' : {$nin: ['unclaimed', 'for_sale', 'won']}}).count() < Meteor.user().profile.inventory_cap,
 			'decline': 
 				item_object.status == "for_sale" && 
 				item_object.owner == Meteor.userId(),
