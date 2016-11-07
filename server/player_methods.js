@@ -561,7 +561,7 @@ Meteor.methods({
         var item_ids = [];
         items.find({
             'owner': Meteor.userId(),
-            'status': "unclaimed", 
+            'status': {$in: ["unclaimed", "won"]}, 
             'foil': false, 
             'seasonal': false, 
             'lottery': 0,
@@ -580,7 +580,7 @@ Meteor.methods({
             var item_ids = [];
             items.find({
                 'owner': Meteor.userId(),
-                'status': "unclaimed", 
+                'status': {$in: ["unclaimed", "won"]}, 
                 'foil': false, 
                 'seasonal': false, 
                 'lottery': 0,
@@ -606,7 +606,7 @@ Meteor.methods({
             addFunds("sell item", Meteor.userId(), total_value);
         }
 
-        else items.remove({'owner': Meteor.userId(), 'status': "unclaimed"});
+        else items.remove({'owner': Meteor.userId(), 'status': {$in: ["unclaimed", "won"]}});
     },
 
     'clearAllForSale' : function() {
