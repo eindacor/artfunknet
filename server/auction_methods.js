@@ -240,7 +240,7 @@ var botBid = function(auction_object, bid_increase_coefficient) {
 
             else {
                 current_bid = amount;
-                min_bid = amount + auction_object.increment;     
+                min_bid = Math.floor(amount + auction_object.increment);     
             }
         }
 
