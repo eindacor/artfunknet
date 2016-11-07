@@ -138,7 +138,7 @@ var enthusiastInteraction = function(npc_object) {
 }
 
 var benefactorInteraction = function(npc_object) {
-	var max_donation = getAverageDropValue(Meteor.user().profile.level, 0) * 2;
+	var max_donation = getAverageDropValue(Meteor.user().profile.level, 0) * 5;
 	
 	var donation_amount;
 
@@ -181,10 +181,7 @@ var benefactorInteraction = function(npc_object) {
 			if (longest_ticket) {
 				var time_left = moment(longest_ticket.expiration) - moment();
 				var hours_left = time_left / 3600000;
-				var bonus_amount = Math.floor(hours_left * 500000);
-
-				if (bonus_amount > 3000000)
-					bonus_amount = 3000000;
+				var bonus_amount = Math.min(Math.floor(hours_left * 200000), 1000000);
 
 				donation_amount += bonus_amount;
 			}
