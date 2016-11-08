@@ -116,7 +116,7 @@ getCapSetterObject = function(player_level) {
     var cap_min_max_object = {
         'inventory_cap': {'start': 15, 'end': 64},
         'display_cap': {'start': 5, 'end': 10},
-        'auction_cap': {'start': 5, 'end': 12},
+        'auction_cap': {'start': 8, 'end': 16},
         'ticket_cap': {'start': 3, 'end': 10},
         'pc_cap': {'start': 5, 'end': 12},
         'visitor_cap': {'start': 20, 'end': 200},

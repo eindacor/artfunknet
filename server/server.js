@@ -59,27 +59,21 @@ var updateContent = function() {
     all_users.forEach(function(db_object) {
         updateGalleryDetails(db_object._id);
         calcMVP(db_object._id);
-    });
 
-    var overwrite_locked_attributes = false;
+        var cap_object = getCapSetterObject(db_object.profile.level);
 
-    //gives new legendaries locked attributes if they have none
-    artworks.find({'rarity': {$in: ["masterpiece", "legendary"]}}).forEach(function(db_object) {
-        if (db_object.locked_attributes == undefined || overwrite_locked_attributes || db_object.locked_attributes.length === 0) {
-            var random_attributes = [];
-            var attribute_count = db_object.rarity == "legendary" ? 2 : 3;
+        var setter = {};
 
-            while (random_attributes.length < attribute_count) {
-                var selector = {'_id': {$nin: random_attributes}, 'active': true};
-                var count = attributes.find(selector).count();
-                if (count == 0)
-                    break;
-                
-                random_attributes.push(attributes.findOne(selector, {skip: Math.floor(Math.random() * count)})._id);
-            }
+        var cap_keys = Object.keys(cap_object);
+        for (var i=0; i < cap_keys.length; i++) {
+            var key = cap_keys[i];
+            var value = cap_object[key];
 
-            artworks.update(db_object._id, {$set: {'locked_attributes': random_attributes}});
+            var setter_key = "profile." + key;
+            setter[setter_key] = value;
         }
+
+        Meteor.users.update(db_object._id, {$set : setter});
     });
 
     // temp code
