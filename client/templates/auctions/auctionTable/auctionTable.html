@@ -29,7 +29,7 @@
 							<div class="col-xs-1 remaining-div">{{#with time_remaining expiration}}<span class="{{#if soon}}soon{{/if}}">{{remaining}}</span>{{/with}}</div>
 							<div class="col-xs-8">
 								<div class="row default-info">
-									<div class="col-xs-1 default-text">{{#if owned}}<i class="green-text fa fa-check"></i>{{/if}} {{#if isUnclaimed artwork_id}}<i class="gold-text fa fa-gift"></i>{{/if}} {{#if isAlreadyWinning _id}}<i class="purple-text fa fa-clock-o"></i>{{/if}} {{#if isQuestItem artwork_id}}<i class="orange-text fa fa-flag-checkered"></i>{{/if}} {{#if isSought artwork_id}}<i class="blue-text fa fa-bullhorn"></i>{{/if}} </div>
+									<div class="col-xs-2 default-text">{{#if owned}}<i class="green-text fa fa-check"></i>{{/if}} {{#if isUnclaimed artwork_id}}<i class="gold-text fa fa-gift"></i>{{/if}} {{#if isAlreadyWinning _id}}<i class="purple-text fa fa-clock-o"></i>{{/if}} {{#if isQuestItem artwork_id}}<i class="orange-text fa fa-flag-checkered"></i>{{/if}} {{#if isSought artwork_id}}<i class="blue-text fa fa-bullhorn"></i>{{/if}} </div>
 									<div class="col-xs-4 default-text">{{item_data.artist}} - {{item_data.title}} ({{item_data.date}})</div>
 									<div class="col-xs-2 default-text">
 										<span class="{{item_data.rarity}}"><strong>{{item_data.rarity}}</strong></span>{{#if item_data.foil}}<span class="af-color"> foil</span>{{/if}}{{#if item_data.seasonal}}<span class="common"> seasonal</span>{{/if}}{{#if item_data.lottery}}<span class="gold"> lottery {{item_data.lottery}}</span>{{/if}}{{#if item_data.original}}<span class="purple-text"> original</span>{{/if}}
@@ -38,14 +38,14 @@
 									<div class="col-xs-2">buy now: <span class="default-text">{{buy_now_text}}</span></div>
 								</div>
 								<div class="row other-info{{#if hideDetails}}-hidden{{/if}}">
-									<div class="col-xs-12">
+									<div class="col-xs-11 col-xs-offset-2">
 										<p> 
 										{{#each attribute}}
 											<i data-attribute_title="{{description}}" data-attribute_value="{{value}}" style="color: rgb({{attributeColor value}}, 0, 0)" class="{{#if locked}}locked{{/if}} item-attribute fa {{icon}}"></i>
 										{{/each}}
 										</p>
 									</div>
-									<div class="col-xs-3">
+									<div class="col-xs-3 col-xs-offset-2">
 										<p>condition: <span style="color: rgb({{attributeColor item_data.condition}}, 0, 0)" >{{#if item_data.condition}}{{floatToPercentage item_data.condition}}%{{else}}?{{/if}}</span></p>
 										<p>xp rating: <span style="{{#if item_data.xp_rating}}color: rgb({{attributeColor item_data.xp_rating}}, 0, 0){{/if}}">{{#if item_data.xp_rating}}{{floatToPercentage item_data.xp_rating}}{{else}}?{{/if}}</span></p>
 									</div>
