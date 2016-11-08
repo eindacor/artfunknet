@@ -30,7 +30,8 @@ canDisplayItem = function(item_id) {
 
 canAuctionItem = function(item_id) {
 	var item_object = itemIsOwnedAndClaimed(item_id);
-	var can_auction = items.find({'owner' : Meteor.userId(), 'status' : "auctioned"}).count() < Meteor.user().profile.auction_cap;
+	var has_auctioneer = Meteor.user().profile.market_expert.expiration > moment()._d.toISOString();
+	var can_auction = items.find({'owner' : Meteor.userId(), 'status' : "auctioned"}).count() < Math.floor(Meteor.user().profile.auction_cap * (has_auctioneer ? 1.5 : 1));
 	return can_auction ? item_object : undefined; 
 }
 
@@ -121,4 +122,28 @@ canMeetNPC = function(npc_id) {
 	var can_access_gallery = gallery_tickets.findOne({'ticketholder': Meteor.userId(), 'gallery_owner': npc_object.owner_id}) != undefined;
 
 	return (can_meet && (is_own_npc || can_access_gallery));
+}
+
+canBidOnItem = function(auction_id) {
+	var auction_object = auctions.findOne(auction_id);
+	var bidder_object = Meteor.user();
+
+	if (auction_object == undefined)
+		return false;
+
+	if (auction_object.seller == bidder_object.profile.screen_name)
+		return false;
+
+	if (inventoryIsFull())
+		return false;
+
+	var has_auctioneer = bidder_object.profile.market_expert.expiration > moment()._d.toISOString();
+	if (Meteor.user().profile.auction_data.winning.length >= Math.floor(Meteor.user().profile.auction_cap * (has_auctioneer ? 1.5 : 1)) && Meteor.user().profile.auction_data.winning.indexOf(auction_object._id) == -1)
+		return false;
+
+	var current_winner = Meteor.users.findOne({'profile.auction_data.winning': {$in: [auction_object._id]}});
+    var bidder_is_winner = current_winner && current_winner._id == bidder_object._id;
+	var available_balance = bidder_is_winner ? bidder_object.profile.bank_balance + auction_object.highest_bid : bidder_object.profile.bank_balance;
+
+	return available_balance >= auction_object.min_bid;
 }

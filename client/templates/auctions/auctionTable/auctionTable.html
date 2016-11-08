@@ -56,7 +56,7 @@
 								</div>
 							</div>
 							<div class="col-xs-2">
-								{{#if isBiddable this}}<button type="button" class="btn btn-default place-bid{{#if hideDetails}}-hidden{{/if}}" data-auction_id="{{../_id}}">place bid</button>{{/if}}
+								{{#if isBiddable this}}<button type="button" class="btn btn-default place-bid{{#if hideDetails}}-hidden{{/if}}" data-auction_id="{{../_id}}">place bid</button>{{else}}<span class="disabled-text{{#if hideDetails}}-hidden{{/if}}">bidding disabled</span>{{/if}}
 							</div>
 						</div>
 					{{/with}}

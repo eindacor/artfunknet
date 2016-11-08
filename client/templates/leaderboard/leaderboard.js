@@ -8,6 +8,7 @@ var setLeaderboardData = function() {
 			console.log(error.message);
 
 		else {
+			console.log(result);
 			leaderboard_data = result;
 			leaderboard_data_tracker.changed();
 		}

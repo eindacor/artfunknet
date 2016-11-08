@@ -6,6 +6,7 @@
 				{{> mvp mvp_data}}
 				{{> galleryScore gallery_score_data}}
 				{{> galleryValue gallery_value_data}}
+				{{> questsCompleted quests_completed_data}}
 			{{/with}}
 		</div>
 	</div>
@@ -76,6 +77,29 @@
 					</div> 
 					<div class="col-xs-5">
 						<p class="highlight">{{displayAsMoneyValue this.value}}</p>
+					</div> 
+				</div>
+				{{/if}}
+			{{/each}}
+		</div>
+	</div>
+</template>
+
+<template name="questsCompleted">
+	<div class="row list-section">
+		<div class="template-galleryValue col-xs-12 col-md-6">
+			<h3 class="af-color">Quests Completed</h3>
+			{{#each this}}
+				{{#if this.profile.completed_quests}}
+				<div class="row list-row">
+					<div class="col-xs-1">
+						<p>{{positionFromIndex @index}}.</p>
+					</div> 
+					<div class="col-xs-6">
+						<p class="highlight">{{this.profile.screen_name}}</p>
+					</div> 
+					<div class="col-xs-5">
+						<p class="highlight">{{commaSeparatedValue this.profile.completed_quests}}</p>
 					</div> 
 				</div>
 				{{/if}}

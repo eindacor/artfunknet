@@ -59,12 +59,14 @@ Template.auctionTable.helpers({
 
 			list_object.expiration = auction_object.expiration;
 			var funds_available = auction_object.min_bid <= Meteor.user().profile.bank_balance || Meteor.users.findOne({'_id': Meteor.userId(), 'profile.auction_data.winning': {$in: [auction_object._id]}}) != undefined;
-			
+			var has_auctioneer = Meteor.user().profile.market_expert.expiration > moment()._d.toISOString();
+
 			list_object.biddable = 
 				Meteor.userId() && 
 				(auction_object.seller != Meteor.user().profile.screen_name) && 
 				funds_available && 
-				items.find({'owner' : Meteor.userId(), 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}, 'original': {$ne: true}}).count() < Meteor.user().profile.inventory_cap;
+				items.find({'owner' : Meteor.userId(), 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}, 'original': {$ne: true}}).count() < Meteor.user().profile.inventory_cap &&
+				(Meteor.user().profile.auction_data.winning.length < Math.floor(Meteor.user().profile.auction_cap * (has_auctioneer ? 1.5 : 1)) || Meteor.user().profile.auction_data.winning.indexOf(auction_object._id) != -1);
 
 			list_object.owned = items.findOne({'owner': Meteor.userId(), 'artwork_id': auction_object.item_data.artwork_id, 'status': {$nin: ['unclaimed', 'for_sale', 'won']}}) != undefined;
 			list_object.attribute = auction_object.item_data.attributes;

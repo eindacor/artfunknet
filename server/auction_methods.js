@@ -324,6 +324,9 @@ Meteor.setInterval((function() {
 }), auction_bot_frequency)
 
 var placeBid = function(bidder_id, auction_id, amount) {
+    if (!canBidOnItem(auction_id))
+        return false;
+    
     var bidder_object = Meteor.users.findOne(bidder_id);
     var auction_object = auctions.findOne(auction_id);
 

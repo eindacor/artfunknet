@@ -101,6 +101,7 @@ Template.dashboard.helpers({
 
 			var has_watched_auctions = user_object.profile.auction_data.winning.length > 0 || user_object.profile.auction_data.watching.length > 0;
 			var has_player_auctions = auctions.findOne({'seller' : user_object.profile.screen_name}) != undefined;
+			var has_auctioneer = Meteor.user().profile.market_expert.expiration > moment()._d.toISOString();
 
 			var data_object = {
 				'screen_name' : user_object.profile.screen_name,
@@ -114,11 +115,13 @@ Template.dashboard.helpers({
 				'private_count' : items.find({'owner' : user_object._id, 'status' : 'permanent'}).count(),
 				'display_max' : user_object.profile.display_cap,
 				'inventory_max' : user_object.profile.inventory_cap,
-				'auction_max' : user_object.profile.auction_cap,
 				'private_max' : user_object.profile.pc_cap,
 				'entry_fee' : user_object.profile.entry_fee,
 				'ticket_max' : user_object.profile.ticket_cap,
-				'completed_quests': user_object.profile.completed_quests
+				'completed_quests': user_object.profile.completed_quests,
+				'auctioned_items': auctions.find({'seller': user_object.profile.screen_name}).count(),
+				'winning_auctions': user_object.profile.auction_data.winning.length,
+				'auction_cap': Math.floor(user_object.profile.auction_cap * (has_auctioneer ? 1.5 : 1))
 			}
 
 			return data_object;

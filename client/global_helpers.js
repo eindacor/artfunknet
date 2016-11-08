@@ -101,13 +101,14 @@ Template.registerHelper('itemPermissions', function(item_object) {
 		var item_controlled = item_object.owner == Meteor.userId() && item_object.status != 'for_sale';
 
 		var force_reroll = item_controlled && procUniqueAttribute(Meteor.userId(), "REROLL_DISPLAY_ENABLE", "Designer") && item_object.status != "unclaimed" && item_object.status != "won";
+		var has_auctioneer = Meteor.user().profile.market_expert.expiration < moment()._d.toISOString();
 
 		var permission_object = {
 			'item_data': item_object,
 			'auction': 
 				item_controlled && 
 				item_object.status == "claimed" && 
-				items.find({'owner' : Meteor.userId(), 'status' : 'auctioned'}).count() < Meteor.user().profile.auction_cap,
+				items.find({'owner' : Meteor.userId(), 'status' : 'auctioned'}).count() < Math.floor(Meteor.user().profile.auction_cap * (has_auctioneer ? 1.5 : 1)),
 			'sell': 
 				item_controlled && 
 				(item_object.status == 'claimed' || item_object.status == 'unclaimed' || item_object.status == "won") && 
