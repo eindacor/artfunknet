@@ -1,5 +1,6 @@
 body {
 	color: #777777;
+	/*font-family: helvetica;*/
 	font-family: courier;
 }
 
@@ -183,6 +184,10 @@ a {
 
 .purple-text {
 	color: purple !important;
+}
+
+.gold-text {
+	color: #ffcc00 !important;
 }
 
 .modal-dialog {

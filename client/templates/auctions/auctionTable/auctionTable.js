@@ -118,6 +118,11 @@ Template.auctionTable.helpers({
 		else return sought_items[artwork_id];
 	},
 
+	'isUnclaimed': function(artwork_id) {
+		console.log(artwork_id);
+		return items.findOne({'owner': Meteor.userId(), 'artwork_id': artwork_id, 'status': {$in: ['unclaimed', 'won']}}) != undefined;
+	},
+
 	'isAlreadyWinning': function(auction_id) {
 		already_winning_tracker.depend();
 		if (already_winning[auction_id] == undefined) {
