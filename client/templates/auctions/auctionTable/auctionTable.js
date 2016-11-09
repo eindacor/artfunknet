@@ -64,7 +64,7 @@ Template.auctionTable.helpers({
 
 			var auctions_maxed = bidder_object.profile.auction_data.winning.length >= Math.floor(bidder_object.profile.auction_cap * (has_auctioneer ? 1.5 : 1));
 			var currently_winning = bidder_object.profile.auction_data.winning.indexOf(auction_object._id) != -1;
-			var inventory_full = items.find({'owner' : bidder_object._id, 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}, 'original': {$ne: true}}).count() <= bidder_object.profile.inventory_cap;
+			var inventory_full = items.find({'owner' : bidder_object._id, 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}, 'original': {$ne: true}}).count() >= bidder_object.profile.inventory_cap;
 			var item_is_original = auction_object.item_data.original;
 
 			var available_balance = currently_winning ? bidder_object.profile.bank_balance + auction_object.highest_bid : bidder_object.profile.bank_balance;
