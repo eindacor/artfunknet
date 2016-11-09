@@ -666,7 +666,7 @@ var artDealerInteraction = function(npc_object) {
 			drop_count += 1;
 		}
 
-		if (procUniqueAttribute(Meteor.userId(), "AUCTION_COUNT_DEALER_BONUS", "Market Expert")) {
+		if (procUniqueAttribute(Meteor.userId(), "AUCTION_COUNT_DEALER_BONUS", "Auctioneer")) {
 			var auction_count = items.find({'owner': Meteor.userId(), 'status': "auctioned"}).count();
 			auction_count += Meteor.user().profile.auction_data.watching.length;
 			drop_count += Math.ceil(auction_count / 4);

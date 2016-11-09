@@ -14,7 +14,7 @@ Meteor.setInterval((function() {
     var creation_cutoff = moment().add(-10, 'minutes')._d.toISOString();
     items.remove({'status' : {$in: ['unclaimed', 'for_sale']}, 'date_received' : {$lt : creation_cutoff}});
 
-    var auction_win_cutoff = moment().add(-10, 'hours')._d.toISOString();
+    var auction_win_cutoff = moment().add(-8, 'hours')._d.toISOString();
     items.remove({'status': 'won', 'date_received' : {$lt : auction_win_cutoff}});
     
     alerts.remove({'time': {$lt: moment().add(-48, "hours")._d.toISOString()}});
@@ -35,6 +35,7 @@ Meteor.setInterval((function() {
         var attribute_values = db_object.attribute_values;
         var attribute_ids = Object.keys(attribute_values);
         var rarity_npc_coefficient = db_object.gallery_rarity_npc_coefficient;
+	var owner_object = Meteor.users.findOne(db_object.owner_id);
 
         for (var i=0; i < attribute_ids.length; i++) {
             var attribute_object = attributes.findOne(attribute_ids[i]);
@@ -44,7 +45,7 @@ Meteor.setInterval((function() {
             var proc_chance = Math.pow((attribute_values[attribute_ids[i]] * rarity_npc_coefficient), 2);
 
             if (attribute_object.npc_name == "Art Donor" && procUniqueAttribute(db_object.owner_id, "DONOR_SPAWN_BOOST", undefined)) {
-                if (Meteor.user().profile.market_expert.expiration < moment()._d.toISOString())
+                if (owner_object.profile.market_expert.expiration < moment()._d.toISOString())
                     proc_chance += .2;
             }
 

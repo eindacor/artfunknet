@@ -392,7 +392,7 @@ Meteor.methods({
                 var roll_count = item_object.roll_count;
                 var roll_value_min = 0;
 
-                if (procUniqueAttribute(Meteor.userId(), "MARKET_EXPERT_ROLL_BONUS", "Market Expert")) {
+                if (procUniqueAttribute(Meteor.userId(), "MARKET_EXPERT_ROLL_BONUS", "Auctioneer")) {
                     var roll_value_min = .4;
                 }
 
@@ -416,7 +416,7 @@ Meteor.methods({
             for (var i=0; i < attribute_array.length; i++) {
                 if (attribute_array[i]._id == attribute_id) {
                     var roll_value_min = 0;
-                    if (procUniqueAttribute(Meteor.userId(), "MARKET_EXPERT_ROLL_BONUS", "Market Expert")) {
+                    if (procUniqueAttribute(Meteor.userId(), "MARKET_EXPERT_ROLL_BONUS", "Auctioneer")) {
                         var roll_value_min = .4;
                     }
 
@@ -464,7 +464,7 @@ Meteor.methods({
 
             var roll_value_min = 0;
 
-            if (procUniqueAttribute(Meteor.userId(), "MARKET_EXPERT_ROLL_BONUS", "Market Expert")) {
+            if (procUniqueAttribute(Meteor.userId(), "MARKET_EXPERT_ROLL_BONUS", "Auctioneer")) {
                 roll_value_min += .4;
             }
 
