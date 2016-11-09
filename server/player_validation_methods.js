@@ -67,7 +67,7 @@ canClaimItem = function(item_id) {
 	var item_object = items.findOne(item_id);
 	var owned = Meteor.userId() && item_object && item_object.owner == Meteor.userId();
 	var status_ok = item_object && (item_object.status == "unclaimed" || item_object.status == "won");
-	var not_full = !inventoryIsFull();
+	var not_full = !inventoryIsFull() || item_object.original;
 	return owned && status_ok && not_full ? item_object : undefined;
 }
 
@@ -83,7 +83,7 @@ canPurchaseItemFromDealer = function(item_id) {
 	var owned = Meteor.userId() && item_object && item_object.owner == Meteor.userId();
 	var status_ok = item_object && item_object.status == "for_sale";
 	var can_afford = Meteor.userId() && getItemValue(item_id, "dealer", item_object.owner) <= Meteor.user().profile.bank_balance;
-	var not_full = !inventoryIsFull();
+	var not_full = !inventoryIsFull() || item_object.original;;
 	return owned && status_ok && can_afford && not_full ? item_object : undefined;
 }
 
@@ -134,18 +134,18 @@ canBidOnItem = function(auction_id) {
 	if (auction_object.seller == bidder_object.profile.screen_name)
 		return false;
 
-	if (inventoryIsFull())
-		return false;
-
 	var has_auctioneer = bidder_object.profile.market_expert.expiration > moment()._d.toISOString();
-	if (Meteor.user().profile.auction_data.winning.length >= Math.floor(Meteor.user().profile.auction_cap * (has_auctioneer ? 1.5 : 1)) && 
-		Meteor.user().profile.auction_data.winning.indexOf(auction_object._id) == -1 &&
-		auction_object.item_data.original != true)
+	var auctions_maxed = Meteor.user().profile.auction_data.winning.length >= Math.floor(Meteor.user().profile.auction_cap * (has_auctioneer ? 1.5 : 1));
+	var currently_winning = Meteor.user().profile.auction_data.winning.indexOf(auction_id) != -1;
+	var item_is_original = auction_object.item_data.original;
+
+	if (auctions_maxed && !currently_winning) 
 		return false;
 
-	var current_winner = Meteor.users.findOne({'profile.auction_data.winning': {$in: [auction_object._id]}});
-    var bidder_is_winner = current_winner && current_winner._id == bidder_object._id;
-	var available_balance = bidder_is_winner ? bidder_object.profile.bank_balance + auction_object.highest_bid : bidder_object.profile.bank_balance;
+	if (inventoryIsFull() && !item_is_original)
+		return false;
+
+	var available_balance = currently_winning ? bidder_object.profile.bank_balance + auction_object.highest_bid : bidder_object.profile.bank_balance;
 
 	return available_balance >= auction_object.min_bid;
 }

@@ -57,18 +57,47 @@ Template.auctionTable.helpers({
 		try {
 			var list_object = auction_object;
 
-			list_object.expiration = auction_object.expiration;
-			var funds_available = auction_object.min_bid <= Meteor.user().profile.bank_balance || Meteor.users.findOne({'_id': Meteor.userId(), 'profile.auction_data.winning': {$in: [auction_object._id]}}) != undefined;
-			var has_auctioneer = Meteor.user().profile.market_expert.expiration > moment()._d.toISOString();
+			var bidder_object = Meteor.user();
 
-			list_object.biddable = 
-				Meteor.userId() && 
-				(auction_object.seller != Meteor.user().profile.screen_name) && 
-				funds_available && 
-				items.find({'owner' : Meteor.userId(), 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}, 'original': {$ne: true}}).count() < Meteor.user().profile.inventory_cap &&
-					(Meteor.user().profile.auction_data.winning.length < Math.floor(Meteor.user().profile.auction_cap * (has_auctioneer ? 1.5 : 1)) || 
-					Meteor.user().profile.auction_data.winning.indexOf(auction_object._id) != -1 ||
-					auction_object.item_data.original == true);
+			list_object.expiration = auction_object.expiration;
+			var has_auctioneer = bidder_object.profile.market_expert.expiration > moment()._d.toISOString();
+
+			var auctions_maxed = bidder_object.profile.auction_data.winning.length >= Math.floor(bidder_object.profile.auction_cap * (has_auctioneer ? 1.5 : 1));
+			var currently_winning = bidder_object.profile.auction_data.winning.indexOf(auction_object._id) != -1;
+			var inventory_full = items.find({'owner' : bidder_object._id, 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}, 'original': {$ne: true}}).count() <= bidder_object.profile.inventory_cap;
+			var item_is_original = auction_object.item_data.original;
+
+			var available_balance = currently_winning ? bidder_object.profile.bank_balance + auction_object.highest_bid : bidder_object.profile.bank_balance;
+			var funds_available = auction_object.min_bid <= available_balance;
+
+			var biddable = true;
+			var reason = undefined;
+
+			if (Meteor.userId() == undefined)
+				biddable = false;
+
+			else if (auction_object.seller == Meteor.user().profile.screen_name)
+				biddable = false;
+
+			else if (!funds_available && !currently_winning) {
+				biddable = false;
+				reason = "insufficient funds";
+			}
+
+			else if (auctions_maxed && !currently_winning) {
+				biddable = false;
+				reason = "auction limit met";
+			}
+
+			else if (inventory_full && !item_is_original) {
+				biddable = false;
+				reason = "inventory full";
+			}
+
+			list_object.bid_status = {
+				'biddable': biddable,
+				'reason': reason
+			};
 
 			list_object.owned = items.findOne({'owner': Meteor.userId(), 'artwork_id': auction_object.item_data.artwork_id, 'status': {$nin: ['unclaimed', 'for_sale', 'won']}}) != undefined;
 			list_object.attribute = auction_object.item_data.attributes;
@@ -85,7 +114,7 @@ Template.auctionTable.helpers({
 	},
 
 	'isBiddable' : function(list_object) {
-		return list_object.biddable && list_object.expiration > moment()._d.toISOString();
+		return list_object.bid_status.biddable && list_object.expiration > moment()._d.toISOString();
 	},
 
 	'attributeColor' : function(value) {

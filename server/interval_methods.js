@@ -14,7 +14,7 @@ Meteor.setInterval((function() {
     var creation_cutoff = moment().add(-10, 'minutes')._d.toISOString();
     items.remove({'status' : {$in: ['unclaimed', 'for_sale']}, 'date_received' : {$lt : creation_cutoff}});
 
-    var auction_win_cutoff = moment().add(-8, 'hours')._d.toISOString();
+    var auction_win_cutoff = moment().add(-10, 'hours')._d.toISOString();
     items.remove({'status': 'won', 'date_received' : {$lt : auction_win_cutoff}});
     
     alerts.remove({'time': {$lt: moment().add(-48, "hours")._d.toISOString()}});
@@ -35,7 +35,7 @@ Meteor.setInterval((function() {
         var attribute_values = db_object.attribute_values;
         var attribute_ids = Object.keys(attribute_values);
         var rarity_npc_coefficient = db_object.gallery_rarity_npc_coefficient;
-	var owner_object = Meteor.users.findOne(db_object.owner_id);
+        var owner_object = Meteor.users.findOne(db_object.owner_id);
 
         for (var i=0; i < attribute_ids.length; i++) {
             var attribute_object = attributes.findOne(attribute_ids[i]);
