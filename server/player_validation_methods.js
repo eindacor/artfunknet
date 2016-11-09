@@ -138,7 +138,9 @@ canBidOnItem = function(auction_id) {
 		return false;
 
 	var has_auctioneer = bidder_object.profile.market_expert.expiration > moment()._d.toISOString();
-	if (Meteor.user().profile.auction_data.winning.length >= Math.floor(Meteor.user().profile.auction_cap * (has_auctioneer ? 1.5 : 1)) && Meteor.user().profile.auction_data.winning.indexOf(auction_object._id) == -1)
+	if (Meteor.user().profile.auction_data.winning.length >= Math.floor(Meteor.user().profile.auction_cap * (has_auctioneer ? 1.5 : 1)) && 
+		Meteor.user().profile.auction_data.winning.indexOf(auction_object._id) == -1 &&
+		auction_object.item_data.original != true)
 		return false;
 
 	var current_winner = Meteor.users.findOne({'profile.auction_data.winning': {$in: [auction_object._id]}});

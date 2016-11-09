@@ -31,7 +31,10 @@
 						<p>collection value: <span class="highlight af-color">${{collection_value}}</span></p>				
 						<p>current exhibition value: <span class="highlight af-color">${{display_value}}</span></p>					
 						<p>items exhibited: <span class="highlight af-color">{{display_count}}</span> ({{display_max}} max)</p>					
-						<p>paintings owned: <span class="highlight af-color">{{inventory_count}}</span> ({{inventory_max}} max)</p>										
+						<p>paintings owned: <span class="highlight af-color">{{inventory_count}}</span> ({{inventory_max}} max)</p>
+						{{#if original_count}}
+							<p>originals owned: <span class="highlight purple-text">{{original_count}}</span></p>
+						{{/if}}										
 						<p>permanent collection: <span class="highlight af-color">{{private_count}}</span> ({{private_max}} max)</p>		
 						<p>completed quests: <span class="highlight af-color">{{completed_quests}}</span></p>	
 						<p>auctioned items: <span class="highlight af-color">{{auctioned_items}}</span> ({{auction_cap}} max)</p>
