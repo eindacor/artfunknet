@@ -109,6 +109,18 @@ getDisplayDetails = function(item_id, duration) {
     return display_details;
 }
 
+logItemObjectDisplay = function(item_object) {
+    var rarity = item_object.artwork_data.rarity;
+
+    if (Meteor.user().profile.checklists.displayed[rarity].indexOf(item_object.artwork_id) == -1) {
+        var owned_string = "profile.checklists.displayed." + rarity;
+        var push_object = {};
+        push_object[owned_string] = item_object.artwork_id;
+
+        Meteor.users.update(Meteor.userId(), {$push: push_object});
+    }
+}
+
 displayItem = function(item_id, duration) {
     var errors = [];
     var valid_durations = [1, 60, 360, 720, 1440];
@@ -124,7 +136,9 @@ displayItem = function(item_id, duration) {
             if (error)
                 console.log(error.message);
 
-            else updateGalleryDetails(item_object.owner);
+            else {
+                updateGalleryDetails(item_object.owner);
+            }
         });
         return [];
     }
@@ -160,17 +174,42 @@ getSoughtStatus = function(user_id, artwork_id, only_sought_if_not_in_auction_ho
     return is_sought;
 }
 
+claimItemObject = function(user_id, item_object) {
+    var success = true;
+    var user_object = Meteor.users.findOne(user_id);
+
+    if (user_object == undefined)
+        return false;
+
+    items.update({'_id': item_object._id}, {$set: {'owner': user_id, 'status' : 'claimed'}}, function(error) {
+        if (error) {
+            console.log(error.message);
+            success = false;
+        }
+
+        else {
+            calcMVP(user_id);
+            var rarity = item_object.artwork_data.rarity;
+
+            if (user_object.profile.checklists.owned[rarity].indexOf(item_object.artwork_id) == -1) {
+                var owned_string = "profile.checklists.owned." + rarity;
+                var push_object = {};
+                push_object[owned_string] = item_object.artwork_id;
+
+                Meteor.users.update(user_id, {$push: push_object});
+            }
+
+        }
+    });
+
+    return success;
+}
+
 Meteor.methods({
 	'claimArtwork' : function(item_id) {
 		var item_object = canClaimItem(item_id);
-        if (item_object) {
-            items.update({'_id': item_id}, {$set: {'status' : 'claimed'}}, function(error) {
-                if (error)
-                    console.log(error.message);
-
-                else calcMVP(Meteor.userId());
-            });
-        }
+        if (item_object) 
+            claimItemObject(Meteor.userId(), item_object);
 
         else throw "invalid operation";
     },
@@ -195,21 +234,19 @@ Meteor.methods({
         var item_object = canPurchaseItemFromDealer(item_id);
         if (item_object) {
             chargeAccount(Meteor.userId(), getItemValue(item_id, "dealer", Meteor.userId()));
-            items.update(item_id, {$set: {'status': "claimed"}}, function(error) {
-                if (error)
-                    console.log(error.message);
+            var claimed = claimItemObject(Meteor.userId(), item_object);
+            if (!claimed) {
+                console.log("unsuccessful purchase");
+                return;
+            }
 
-                else {
-                	calcMVP(Meteor.userId());
-                	if (procUniqueAttribute(Meteor.userId(), "XP_FROM_DEALER_PURCHASES", undefined)) {
-                		addXPChunkPercentage("XP_FROM_DEALER_PURCHASES", Meteor.userId(), items.findOne(item_id).xp_rating * .25);
-                	}
+            if (procUniqueAttribute(Meteor.userId(), "XP_FROM_DEALER_PURCHASES", undefined)) {
+                addXPChunkPercentage("XP_FROM_DEALER_PURCHASES", Meteor.userId(), items.findOne(item_id).xp_rating * .25);
+            }
 
-                    if (procUniqueAttribute(Meteor.userId(), "DEALER_PURCHASE_ROLL_COUNT_SET", undefined)) {
-                        items.update(item_id, {$set: {'roll_count': -20}});
-                    }
-                }
-            });
+            if (procUniqueAttribute(Meteor.userId(), "DEALER_PURCHASE_ROLL_COUNT_SET", undefined)) {
+                items.update(item_id, {$set: {'roll_count': -20}});
+            }
         }
     },
 
@@ -286,6 +323,7 @@ Meteor.methods({
                 if (set_to_permanent) {
                     items.update(item_id, {$set: {'status' : 'permanent'}});
                     items.update(item_id, {$set: {'permanent_post' : moment()._d.toISOString()}});
+                    logItemObjectDisplay(item_object);
                 }
 
                 else {

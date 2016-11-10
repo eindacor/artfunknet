@@ -43,7 +43,24 @@ createUser = function(user_object, callback){
         'galleries': false,
         'other_gallery': false,
         'reroll_menu': false
-    }
+    };
+
+    var blank_list_object = {
+        'common': [],
+        'uncommon': [],
+        'rare': [],
+        'legendary': [],
+        'masterpiece': []
+    };
+
+    user_object.profile.checklists = {
+        'owned': blank_list_object,
+        'seen': blank_list_object,
+        'displayed': blank_list_object,
+        'purchased': blank_list_object,
+        'sold': blank_list_object,
+        'auctioned': blank_list_object
+    };
 
     var default_wall = gallery_finishes.findOne({'filename': "plaster.jpg"});   
     var wall_finish_object = {
@@ -829,5 +846,34 @@ Meteor.methods({
         var artwork_id = auctions.findOne(auction_id).item_data.artwork_id;
         return auctions.findOne({'_id': {$in: Meteor.user().profile.auction_data.winning}, 'item_data.artwork_id': artwork_id}) != undefined && 
             Meteor.user().profile.auction_data.winning.indexOf(auction_id) == -1;
+    },
+
+    'getChecklistByRarity': function(rarity) {
+        var fields_object = {};
+        var categories = ['owned', 'seen', 'displayed'];
+        // var categories = ['owned', 'seen', 'displayed', 'purchased', 'sold', 'auctioned'];
+
+        for (var i=0; i<categories.length; i++) {
+            var key_string = "profile.checklists." + categories[i] + "." + rarity;
+            fields_object[key_string] = 1;
+        }
+
+        return Meteor.users.findOne(
+            {'_id': Meteor.userId()}, 
+            {
+                fields: fields_object
+            }).profile.checklists;
+
+        console.log(found.profile.checklists.owned[rarity]);
+
+
+        /*
+        'owned': blank_list_object,
+        'seen': blank_list_object,
+        'displayed': blank_list_object,
+        'purchased': blank_list_object,
+        'sold': blank_list_object,
+        'auctioned': blank_list_object
+        */
     }
 })

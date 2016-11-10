@@ -144,7 +144,7 @@ Meteor.methods({
                     'lottery': lottery,
                     'original': original,
                     'misprint_chance': misprint_chance,
-                    'status': "claimed",
+                    'status': "won",
                     'xp_rating_min': 0,
                     'condition_min': 0
                 }
@@ -193,7 +193,7 @@ Meteor.methods({
                     'lottery': 0,
                     'original': false,
                     'misprint_chance': getLootData().global_misprint_chance,
-                    'status': "claimed",
+                    'status': "won",
                     'xp_rating_min': 0,
                     'condition_min': 0
                 }

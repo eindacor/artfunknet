@@ -190,6 +190,10 @@ a {
 	color: #ffcc00 !important;
 }
 
+.red-text {
+	color: red !important;
+}
+
 .modal-dialog {
 	border-radius: 0px;
 }

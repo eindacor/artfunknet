@@ -77,7 +77,49 @@ var updateContent = function() {
     });
 
     // temp code
+    var blank_list_object = {
+        'common': [],
+        'uncommon': [],
+        'rare': [],
+        'legendary': [],
+        'masterpiece': []
+    };
 
+    var checklists_object = {
+        'owned': blank_list_object,
+        'seen': blank_list_object,
+        'displayed': blank_list_object,
+        // 'purchased': blank_list_object,
+        // 'sold': blank_list_object,
+        // 'auctioned': blank_list_object,
+        // 'won': blank_list_object,
+    };
+
+    Meteor.users.update({'profile.checklists': null}, {$set: {'profile.checklists': checklists_object}}, {multi: true});
+
+    items.find({'status': {$in: ['displayed', 'permanent']}}).forEach(function(item_object) {
+        var user_object = Meteor.users.findOne(item_object.owner);
+        var rarity = item_object.artwork_data.rarity;
+        if (user_object.profile.checklists.displayed[rarity].indexOf(item_object.artwork_id) == -1) {
+            var owned_string = "profile.checklists.displayed." + rarity;
+            var push_object = {};
+            push_object[owned_string] = item_object.artwork_id;
+
+            Meteor.users.update(user_object._id, {$push: push_object});
+        }
+    });
+
+    items.find({'status': {$in: ['claimed', 'auctioned', 'displayed', 'permanent']}}).forEach(function(item_object) {
+        var user_object = Meteor.users.findOne(item_object.owner);
+        var rarity = item_object.artwork_data.rarity;
+        if (user_object.profile.checklists.owned[rarity].indexOf(item_object.artwork_id) == -1) {
+            var owned_string = "profile.checklists.owned." + rarity;
+            var push_object = {};
+            push_object[owned_string] = item_object.artwork_id;
+
+            Meteor.users.update(user_object._id, {$push: push_object});
+        }
+    });
     // temp code
 }
 

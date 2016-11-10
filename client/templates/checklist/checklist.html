@@ -1,3 +1,45 @@
 <template name="checklist">
-
+	<div class="template-checklist">
+		<div class="container">
+			<h1 class="af-color">item checklist</h1>
+			<div class="rarity-tabs row">
+			{{#each rarity}}
+				<div class="rarity-tab {{#if selected this}}selected{{/if}} col-xs-2 {{this}}" data-rarity="{{this}}">{{this}}</div>
+			{{/each}}
+				<div class="blank-tab col-xs-2" data-rarity="{{this}}"> </div>
+			</div>
+			<div class="artwork-area row">
+				<div class="row">
+					<div class="page-buttons button-wrapper">
+						<i id="auctions-page-left" class="page-button fa fa-caret-left"></i>
+						<span class="page-indicators">page {{#with page_info}}{{current_page}}/{{total_pages}}{{/with}}</span>
+						<i id="auctions-page-right" class="page-button fa fa-caret-right"></i>	
+					</div>
+					<!-- <div class="col-xs-3 page-buttons items_per_page">
+						<span class="filter-title">items per page: </span>
+						<select id="page-count-select">
+		        			<option value="10">10</option>
+		        			<option value="20">20</option>
+		        			<option value="50">50</option>
+		        			<option value="100">100</option>
+		        		</select>
+					</div> -->
+				</div>
+				<div class="row category-headers">
+					<div class="category-column col-xs-4">artwork</div>
+					{{#each category}}
+						<div class="category-column headers col-xs-1">{{this}}</div>
+					{{/each}}
+				</div>
+				{{#each artwork}}
+				<div class="row category-row">
+					<div class="artwork-info col-xs-4 no-padding">{{artist}} - {{title}}</div>
+					{{#each category}}
+						<div class="category-column col-xs-1"><i class="green-text fa fa-check {{#if fulfilled ../_id this}}{{else}}unfulfilled{{/if}}"></i></div>
+					{{/each}}	
+				</div>
+				{{/each}}
+			</div>
+		</div>
+	</div>
 </template>
