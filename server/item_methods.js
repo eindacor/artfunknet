@@ -202,7 +202,7 @@ Meteor.methods({
                 else {
                 	calcMVP(Meteor.userId());
                 	if (procUniqueAttribute(Meteor.userId(), "XP_FROM_DEALER_PURCHASES", undefined)) {
-                		addXPChunkPercentage("XP_FROM_DEALER_PURCHASES", Meteor.userId(), items.findOne(item_id).xp_rating);
+                		addXPChunkPercentage("XP_FROM_DEALER_PURCHASES", Meteor.userId(), items.findOne(item_id).xp_rating * .25);
                 	}
 
                     if (procUniqueAttribute(Meteor.userId(), "DEALER_PURCHASE_ROLL_COUNT_SET", undefined)) {
