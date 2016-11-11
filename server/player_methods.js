@@ -45,13 +45,20 @@ createUser = function(user_object, callback){
         'reroll_menu': false
     };
 
-    var blank_list_object = {
-        'common': [],
-        'uncommon': [],
-        'rare': [],
-        'legendary': [],
-        'masterpiece': []
+    var black_checklist_item = {
+        'common': {},
+        'uncommon': {},
+        'rare': {},
+        'legendary': {},
+        'masterpiece': {}
     };
+
+    /*
+        artwork_id: 1234567,
+        'foil': true,
+        'original': true,
+        'seasonal': true,
+    */
 
     user_object.profile.checklists = {
         'owned': blank_list_object,
@@ -308,6 +315,28 @@ resetTutorials = function(user_id) {
             'reroll_menu': false
         }
     }})
+}
+
+addItemObjectToChecklist = function(user_id, category, item_object) {
+    if (item_object == undefined)
+        return false;
+
+    var card_types = ['foil', 'original', 'seasonal', 'lottery'];
+    var setter_object = {};
+    var setter_string = 'profile.checklists.' + category + '.' + item_object.artwork_data.rarity + '.' + item_object.artwork_id;
+
+    var checklist_object = Meteor.users.findOne(user_id).profile.checklists[category][item_object.artwork_data.rarity][item_object.artwork_id];
+
+    if (checklist_object == undefined) {
+        checklist_object = {}
+    }
+
+    for (var i=0; i<card_types.length; i++) {
+        checklist_object[card_types[i]] = checklist_object[card_types[i]] || item_object[card_types[i]];
+    }
+
+    setter_object[setter_string] = checklist_object;
+    Meteor.users.update(user_id, {$set: setter_object});
 }
 
 Meteor.methods({

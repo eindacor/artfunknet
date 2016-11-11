@@ -190,15 +190,7 @@ claimItemObject = function(user_id, item_object) {
         else {
             calcMVP(user_id);
             var rarity = item_object.artwork_data.rarity;
-
-            if (user_object.profile.checklists.owned[rarity].indexOf(item_object.artwork_id) == -1) {
-                var owned_string = "profile.checklists.owned." + rarity;
-                var push_object = {};
-                push_object[owned_string] = item_object.artwork_id;
-
-                Meteor.users.update(user_id, {$push: push_object});
-            }
-
+            addItemObjectToChecklist(user_id, 'owned', item_object);
         }
     });
 
