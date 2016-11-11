@@ -9,10 +9,16 @@
 	display: flex;
 	align-items: center;
 	text-align: center;
+	background-color: #EEEEEE;
+}
+
+.template-checklist .blank-tab {
+	background-color: white;
 }
 
 .template-checklist .rarity-tab.selected {
 	border-bottom: none;
+	background-color: white;
 }
 
 .template-checklist .blank-tab {
