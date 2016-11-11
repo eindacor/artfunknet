@@ -109,10 +109,6 @@ getDisplayDetails = function(item_id, duration) {
     return display_details;
 }
 
-logItemObjectDisplay = function(item_object) {
-    addItemObjectToChecklist(Meteor.userId(), 'displayed', item_object);
-}
-
 displayItem = function(item_id, duration) {
     var errors = [];
     var valid_durations = [1, 60, 360, 720, 1440];
@@ -129,6 +125,7 @@ displayItem = function(item_id, duration) {
                 console.log(error.message);
 
             else {
+                addItemObjectToChecklist(item_object.owner, 'displayed', item_object);
                 updateGalleryDetails(item_object.owner);
             }
         });
@@ -307,7 +304,7 @@ Meteor.methods({
                 if (set_to_permanent) {
                     items.update(item_id, {$set: {'status' : 'permanent'}});
                     items.update(item_id, {$set: {'permanent_post' : moment()._d.toISOString()}});
-                    logItemObjectDisplay(item_object);
+                    addItemObjectToChecklist(Meteor.userId(), 'displayed', item_object);
                 }
 
                 else {
