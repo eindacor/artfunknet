@@ -150,5 +150,7 @@ Template.checklist.events({
 Template.checklist.rendered = function() {
 	current_page = 0;
 	checklist_object = undefined;
+	count_object = undefined;
+	getChecklistCounts(rarity_shown);
 	getChecklistByRarity(rarity_shown);
 }

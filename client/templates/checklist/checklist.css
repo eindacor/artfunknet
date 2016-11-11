@@ -102,3 +102,9 @@
 	color: black;
 	margin: 0;
 }
+
+.template-checklist .category-header {
+	margin: 0 0 -6px 0;
+	font-size: 2rem;
+	padding-bottom: 0;
+}

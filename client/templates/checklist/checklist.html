@@ -18,10 +18,13 @@
 				</div>
 				{{#with checklist_counts}}
 				<div class="row category-headers">
-					<div class="category-column col-xs-4">artwork ({{total}})</div>
-					<div class="category-column headers col-xs-2">owned ({{owned.standard}}|<span class="af-color">{{owned.foil}}</span>|<span class="green-text">{{owned.seasonal}}</span>|<span class="gold-text">{{owned.lottery}}</span>|<span class="af-color">{{owned.original}}</span>)</div>
-					<div class="category-column headers col-xs-2">seen ({{seen.standard}}|<span class="af-color">{{seen.foil}}</span>|<span class="green-text">{{seen.seasonal}}</span>|<span class="gold-text">{{seen.lottery}}</span>|<span class="af-color">{{seen.original}}</span>)</div>
-					<div class="category-column headers col-xs-2">displayed ({{displayed.standard}}|<span class="af-color">{{displayed.foil}}</span>|<span class="green-text">{{displayed.seasonal}}</span>|<span class="gold-text">{{displayed.lottery}}</span>|<span class="af-color">{{displayed.original}}</span>)</div>
+					<div class="category-column col-xs-4">
+						<p class="category-header">artwork</p>
+						<p class="counts">({{total}})</p>
+					</div>
+					{{> countHeader name="owned" count_object=owned}}
+					{{> countHeader name="seen" count_object=seen}}
+					{{> countHeader name="displayed" count_object=displayed}}
 				</div>
 				{{/with}}
 				{{#each artwork}}
@@ -33,8 +36,8 @@
 							{{#if this}}<i class="check black-text fa fa-check "></i>
 								{{#if foil}}<i class="check af-color fa fa-check"></i>{{/if}}
 								{{#if seasonal}}<i class="check green-text fa fa-check"></i>{{/if}}
-								{{#if original}}<i class="check purple-text fa fa-check"></i>{{/if}}
 								{{#if lottery}}<i class="check gold-text fa fa-check "></i>{{/if}}
+								{{#if original}}<i class="check purple-text fa fa-check"></i>{{/if}}
 							{{/if}}
 							{{/with}}
 						</div>
@@ -46,9 +49,17 @@
 				<p><i class="check fa fa-check "></i> - standard</p>
 				<p><i class="check af-color fa fa-check"></i> - foil</p>
 				<p><i class="check green-text fa fa-check"></i> - seasonal</p>
-				<p><i class="check purple-text fa fa-check"></i> - original</p>
 				<p><i class="check gold-text fa fa-check "></i> - lottery</p>
+				<p><i class="check purple-text fa fa-check"></i> - original</p>
 			</div>
 		</div>
+	</div>
+</template>
+
+<template name="countHeader">
+	<div class="category-column headers col-xs-2">
+		<p class="category-header">{{name}}</p> 
+		<p class="counts">({{count_object.standard}}|<span class="af-color">{{count_object.foil}}</span>|<span class="green-text">{{count_object.seasonal}}</span>|<span class="gold-text">{{count_object.lottery}}</span>|<span class="purple-text">{{count_object.original}}</span>)
+		</p>
 	</div>
 </template>
