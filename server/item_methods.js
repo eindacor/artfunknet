@@ -110,15 +110,7 @@ getDisplayDetails = function(item_id, duration) {
 }
 
 logItemObjectDisplay = function(item_object) {
-    var rarity = item_object.artwork_data.rarity;
-
-    if (Meteor.user().profile.checklists.displayed[rarity].indexOf(item_object.artwork_id) == -1) {
-        var owned_string = "profile.checklists.displayed." + rarity;
-        var push_object = {};
-        push_object[owned_string] = item_object.artwork_id;
-
-        Meteor.users.update(Meteor.userId(), {$push: push_object});
-    }
+    addItemObjectToChecklist(Meteor.userId(), 'displayed', item_object);
 }
 
 displayItem = function(item_id, duration) {

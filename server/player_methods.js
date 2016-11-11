@@ -476,6 +476,11 @@ Meteor.methods({
         addFunds("ticket sale", owner_id, actual_amount);
         addXPChunkPercentage("gallery ticket purchased", owner_id, .02);
         chargeAccount(buyer_id, actual_amount);
+
+        items.find({'owner': owner_id, 'status': {$in: ['displayed', 'permanent']}}).forEach(function(item_object) {
+            addItemObjectToChecklist(Meteor.userId(), 'seen', item_object);
+        })
+
     },
 
     'updateEntryFee' : function(value) {
@@ -892,17 +897,5 @@ Meteor.methods({
             {
                 fields: fields_object
             }).profile.checklists;
-
-        console.log(found.profile.checklists.owned[rarity]);
-
-
-        /*
-        'owned': blank_list_object,
-        'seen': blank_list_object,
-        'displayed': blank_list_object,
-        'purchased': blank_list_object,
-        'sold': blank_list_object,
-        'auctioned': blank_list_object
-        */
     }
 })

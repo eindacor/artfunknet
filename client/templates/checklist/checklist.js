@@ -65,7 +65,14 @@ Template.checklist.helpers({
 				return false;
 			}
 
-	  		else return checklist_object[category][rarity_shown].indexOf(artwork_id) != -1;
+	  		else {
+	  			var fulfilled_object = checklist_object[category][rarity_shown][artwork_id];
+
+	  			if (fulfilled_object)
+	  				return fulfilled_object;
+
+	  			else return false;
+	  		}
 	  	}
 
 	  	catch(error)

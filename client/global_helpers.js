@@ -26,6 +26,11 @@ Template.registerHelper('getItemValue', function(item_id, value_type) {
 	}
 })
 
+Template.registerHelper('consoleLogThis', function(the_thing) {
+	console.log(the_thing);
+	return true;
+})
+
 Template.registerHelper('getHTMLColorFromValue', function(value) {
 	var red_value = 255 - Math.floor(value * 255);
 	var color_string = "rgb(" + red_value + " , 0, 0)";
