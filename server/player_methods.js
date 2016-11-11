@@ -318,7 +318,7 @@ resetTutorials = function(user_id) {
 }
 
 addItemObjectToChecklist = function(user_id, category, item_object) {
-    if (item_object == undefined)
+    if (item_object == undefined || Meteor.users.findOne(user_id) == undefined)
         return false;
 
     var card_types = ['foil', 'original', 'seasonal', 'lottery'];
