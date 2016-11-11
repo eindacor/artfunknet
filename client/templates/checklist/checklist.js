@@ -1,7 +1,9 @@
 var checklist_tracker = new Tracker.Dependency;
+var count_tracker = new Tracker.Dependency;
 var page_tracker = new Tracker.Dependency;
 var checklist_object = undefined;
 var rarity_shown = "common";
+var count_object = undefined;
 
 var items_found = 0;
 var current_page = 0;
@@ -19,7 +21,28 @@ var getChecklistByRarity = function(rarity) {
 	})
 }
 
+var getChecklistCounts = function(rarity) {
+	Meteor.call('getChecklistCounts', rarity, function(error, result) {
+		if (error)
+			console.log(error.message)
+
+		else {
+			count_object = result;
+			count_tracker.changed();
+		}
+	})
+}
+
 Template.checklist.helpers({
+	'checklist_counts': function() {
+		count_tracker.depend();
+		if (count_object == undefined) {
+			getChecklistCounts(rarity_shown);
+		}
+
+		else return count_object;
+	},
+
 	'checklist_data': function() {
 		checklist_tracker.depend();
 		if (checklist_object == undefined) {
@@ -102,6 +125,8 @@ Template.checklist.events({
 	'click .rarity-tab': function(element) {
 		rarity_shown = $(element.target).data().rarity;
 		checklist_object = undefined;
+		count_object = undefined;
+		getChecklistCounts(rarity_shown);
 		getChecklistByRarity(rarity_shown);
 	},
 

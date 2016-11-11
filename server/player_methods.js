@@ -897,5 +897,60 @@ Meteor.methods({
             {
                 fields: fields_object
             }).profile.checklists;
+    },
+
+    'getChecklistCounts': function(rarity) {
+        var categories = ['owned', 'seen', 'displayed'];
+        var type_array = ['foil', 'original', 'lottery', 'seasonal'];
+        var checklist_object = Meteor.user().profile.checklists;
+
+        if (checklist_object == undefined)
+            return {};
+        
+        var count_object = {
+            'total': artworks.find({'active': true, 'rarity': rarity}).count(),
+            'owned': {
+                'standard': 0,
+                'foil': 0,
+                'seasonal': 0,
+                'original': 0,
+                'lottery': 0
+            },
+
+            'seen': {
+                'standard': 0,
+                'foil': 0,
+                'seasonal': 0,
+                'original': 0,
+                'lottery': 0
+            },
+
+            'displayed': {
+                'standard': 0,
+                'foil': 0,
+                'seasonal': 0,
+                'original': 0,
+                'lottery': 0
+            },
+        };
+
+        var user_object = Meteor.user();
+
+        artworks.find({'active': true, 'rarity': rarity}).forEach(function(artwork_object) {
+            for (var n=0; n<categories.length; n++) {
+                var category = categories[n];
+                if (user_object.profile.checklists[category][rarity][artwork_object._id] != undefined) {
+                    count_object[category].standard++;
+
+                    for (var i=0; i<type_array.length; i++) {
+                        var type = type_array[i];
+                        if (user_object.profile.checklists[category][rarity][artwork_object._id][type])
+                            count_object[category][type]++;
+                    }
+                }
+            }
+        })
+
+        return count_object;
     }
 })

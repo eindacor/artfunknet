@@ -15,22 +15,15 @@
 						<span class="page-indicators">page {{#with page_info}}{{current_page}}/{{total_pages}}{{/with}}</span>
 						<i id="auctions-page-right" class="page-button fa fa-caret-right"></i>	
 					</div>
-					<!-- <div class="col-xs-3 page-buttons items_per_page">
-						<span class="filter-title">items per page: </span>
-						<select id="page-count-select">
-		        			<option value="10">10</option>
-		        			<option value="20">20</option>
-		        			<option value="50">50</option>
-		        			<option value="100">100</option>
-		        		</select>
-					</div> -->
 				</div>
+				{{#with checklist_counts}}
 				<div class="row category-headers">
-					<div class="category-column col-xs-4">artwork</div>
-					{{#each category}}
-						<div class="category-column headers col-xs-2">{{this}}</div>
-					{{/each}}
+					<div class="category-column col-xs-4">artwork ({{total}})</div>
+					<div class="category-column headers col-xs-2">owned ({{owned.standard}}|<span class="af-color">{{owned.foil}}</span>|<span class="green-text">{{owned.seasonal}}</span>|<span class="gold-text">{{owned.lottery}}</span>|<span class="af-color">{{owned.original}}</span>)</div>
+					<div class="category-column headers col-xs-2">seen ({{seen.standard}}|<span class="af-color">{{seen.foil}}</span>|<span class="green-text">{{seen.seasonal}}</span>|<span class="gold-text">{{seen.lottery}}</span>|<span class="af-color">{{seen.original}}</span>)</div>
+					<div class="category-column headers col-xs-2">displayed ({{displayed.standard}}|<span class="af-color">{{displayed.foil}}</span>|<span class="green-text">{{displayed.seasonal}}</span>|<span class="gold-text">{{displayed.lottery}}</span>|<span class="af-color">{{displayed.original}}</span>)</div>
 				</div>
+				{{/with}}
 				{{#each artwork}}
 				<div class="row category-row">
 					<div class="artwork-info col-xs-4 no-padding">{{artist}} - {{title}}</div>
