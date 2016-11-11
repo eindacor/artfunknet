@@ -162,6 +162,10 @@ a {
 	color: #FF6600;
 }
 
+.black-text {
+	color: black !important;
+}
+
 .af-color {
 	color: #FF33CC;
 }

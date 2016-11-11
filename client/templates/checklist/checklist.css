@@ -93,3 +93,12 @@
 .template-checklist .check {
 	font-size: 2rem;
 }
+
+.template-checklist .legend {
+	margin-top: 16px;
+}
+
+.template-checklist .legend p{
+	color: black;
+	margin: 0;
+}
