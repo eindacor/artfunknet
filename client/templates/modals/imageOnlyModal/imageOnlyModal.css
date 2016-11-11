@@ -1,0 +1,45 @@
+
+.template-imageOnlyModal .inner-container {
+	display: flex; /* add */
+    justify-content: center; /* add to align horizontal */
+    align-items: center; /* add to align vertical */
+    height: 100vh;
+    width: 100vw;
+}
+
+
+.template-imageOnlyModal .img-container img {
+	border: 2px solid white;
+	max-width: 90%;
+	height: 90%;
+}
+
+.template-imageOnlyModal .img-container .masterpiece-item {
+	-webkit-box-shadow: 0px 0px 6px 6px #44DDDD;
+	-moz-box-shadow: 0px 0px 6px 6px #44DDDD;
+	box-shadow: 0px 0px 6px 6px #44DDDD; 
+}
+
+.template-imageOnlyModal .img-container .legendary-item {
+	-webkit-box-shadow: 0px 0px 6px 6px orange;
+	-moz-box-shadow: 0px 0px 6px 6px orange;
+	box-shadow: 0px 0px 6px 6px orange; 
+}
+
+.template-imageOnlyModal .img-container .rare-item {
+	-webkit-box-shadow: 0px 0px 6px 6px #CCCC00;
+	-moz-box-shadow: 0px 0px 6px 6px #CCCC00;
+	box-shadow: 0px 0px 6px 6px #CCCC00; 
+}
+
+.template-imageOnlyModal .img-container .uncommon-item {
+	-webkit-box-shadow: 0px 0px 6px 6px blue;
+	-moz-box-shadow: 0px 0px 6px 6px blue;
+	box-shadow: 0px 0px 6px 6px blue; 
+}
+
+.template-imageOnlyModal .img-container .common-item {
+	-webkit-box-shadow: 0px 0px 6px 6px green;
+	-moz-box-shadow: 0px 0px 6px 6px green;
+	box-shadow: 0px 0px 6px 6px green; 
+}

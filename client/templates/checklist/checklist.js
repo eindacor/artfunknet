@@ -145,6 +145,19 @@ Template.checklist.events({
 			getChecklistByRarity(rarity_shown);
 		}
 	},
+
+	'click .category-row' : function(element) {
+		var artwork_id = $(element.target).closest('.category-row').data('artwork_id');
+		console.log(artwork_id);
+		var artwork_object = artworks.findOne(artwork_id);
+		console.log(artwork_object);
+		Blaze.renderWithData(Template.modalTemplate, {
+			'modal_name': "imageOnlyModal", 
+			'modal_data': {
+				'artwork_data': artwork_object
+			}
+		}, $('body')[0]);
+	},
 })
 
 Template.checklist.rendered = function() {

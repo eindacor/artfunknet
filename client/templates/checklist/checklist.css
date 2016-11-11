@@ -70,6 +70,7 @@
 .template-checklist .category-row {
 	display: block;
 	padding: 4px 16px 4px 16px;
+	cursor: pointer;
 }
 
 .template-checklist .category-headers {
@@ -88,6 +89,10 @@
 
 .template-checklist .category-row:nth-child(odd) {
 	background-color: #EEEEEE;
+}
+
+.template-checklist .category-row:hover {
+	background-color: #FFFFBB;
 }
 
 .template-checklist .check {
