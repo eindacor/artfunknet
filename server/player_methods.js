@@ -610,13 +610,21 @@ Meteor.methods({
     'getSellAllAmount' : function() {
         var total_value = 0;
         var item_ids = [];
+
+        var quest_targets = [];
+
+        quests.find({'owner_id': Meteor.userId()}).forEach(function(quest_object) {
+            quest_targets = quest_targets.concat(quest_object.target);
+        });
+
         items.find({
             'owner': Meteor.userId(),
             'status': {$in: ["unclaimed", "won"]}, 
             'foil': false, 
             'seasonal': false, 
             'lottery': 0,
-            'artwork_data.rarity': {$in: ["common", "uncommon", "rare"]}
+            'artwork_data.rarity': {$in: ["common", "uncommon", "rare"]},
+            'artwork_id': {$nin: quest_targets}
         }).forEach(function(db_object) {
             total_value += getItemValue(db_object._id, "sell", Meteor.userId());
             item_ids.push(db_object._id);
@@ -629,13 +637,21 @@ Meteor.methods({
         if (Meteor.user().profile.user_type != "admin") {
             var total_value = 0;
             var item_ids = [];
+
+            var quest_targets = [];
+
+            quests.find({'owner_id': Meteor.userId()}).forEach(function(quest_object) {
+                quest_targets = quest_targets.concat(quest_object.target);
+            });
+
             items.find({
                 'owner': Meteor.userId(),
                 'status': {$in: ["unclaimed", "won"]}, 
                 'foil': false, 
                 'seasonal': false, 
                 'lottery': 0,
-                'artwork_data.rarity': {$in: ["common", "uncommon", "rare"]}
+                'artwork_data.rarity': {$in: ["common", "uncommon", "rare"]},
+                'artwork_id': {$nin: quest_targets}
             }).forEach(function(db_object) {
                 total_value += getItemValue(db_object._id, "sell", Meteor.userId());
                 item_ids.push(db_object._id);
@@ -661,6 +677,12 @@ Meteor.methods({
     },
 
     'clearAllForSale' : function() {
+        var quest_targets = [];
+
+        quests.find({'owner_id': Meteor.userId()}).forEach(function(quest_object) {
+            quest_targets = quest_targets.concat(quest_object.target);
+        });
+
         if (procUniqueAttribute(Meteor.userId(), "DECLINE_DEALER_DESIGNER_SPAWN", undefined)) {
             var item_count = items.find({
                 'owner': Meteor.userId(),
@@ -668,11 +690,12 @@ Meteor.methods({
                 'foil': false, 
                 'seasonal': false, 
                 'lottery': 0, 
-                'artwork_data.rarity': {$in: ["common", "uncommon", "rare"]}
+                'artwork_data.rarity': {$in: ["common", "uncommon", "rare"]},
+                'artwork_id': {$nin: quest_targets}
             }).count();
 
             for (var i=0; i<item_count; i++) {
-                if (Math.random() < .1) {
+                if (Math.random() < .04) {
                     var npc_quality = getNPCQuality(Meteor.user().profile.level);
                     createNPC(galleries.findOne({'owner_id': Meteor.userId()}), attributes.findOne({'npc_name': "Designer"})._id, 600000, npc_quality);
                 }
@@ -685,7 +708,8 @@ Meteor.methods({
             'foil': false, 
             'seasonal': false, 
             'lottery': 0, 
-            'artwork_data.rarity': {$in: ["common", "uncommon", "rare"]}
+            'artwork_data.rarity': {$in: ["common", "uncommon", "rare"]},
+            'artwork_id': {$nin: quest_targets}
         });
     },
 

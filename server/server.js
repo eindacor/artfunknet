@@ -77,31 +77,7 @@ var updateContent = function() {
     });
 
     // temp code
-    var black_checklist_item = {
-        'common': {},
-        'uncommon': {},
-        'rare': {},
-        'legendary': {},
-        'masterpiece': {}
-    };
 
-    var checklists_object = {
-        'owned': black_checklist_item,
-        'seen': black_checklist_item,
-        'displayed': black_checklist_item,
-    };
-
-    Meteor.users.update({'profile.checklists': null}, {$set: {'profile.checklists': checklists_object}}, {multi: true});
-
-    items.find({'status': {$in: ['displayed', 'permanent']}}).forEach(function(item_object) {
-        var rarity = item_object.artwork_data.rarity;
-        addItemObjectToChecklist(item_object.owner, 'displayed', item_object);
-    });
-
-    items.find({'status': {$in: ['claimed', 'auctioned', 'displayed', 'permanent']}}).forEach(function(item_object) {
-        var rarity = item_object.artwork_data.rarity;
-        addItemObjectToChecklist(item_object.owner, 'owned', item_object);
-    });
     // temp code
 }
 
@@ -128,16 +104,6 @@ Meteor.startup(function() {
 
     if (Meteor.users.find().count() == 0) {
         var player_1 = {
-            "username": "jpollack320@gmail.com",
-            "email": "jpollack320@gmail.com",
-            "password": "password",
-            "profile": {
-                'screen_name': "EindacorDS",
-                'user_type': "player"
-            }
-        };
-
-        var player_3 = {
             "username": "player@email.com",
             "email": "player@email.com",
             "password": "password",
@@ -158,8 +124,6 @@ Meteor.startup(function() {
         };
 
         createUser(player_1);
-        // createUser(player_2);
-        createUser(player_3);
         createUser(admin);
     }
 

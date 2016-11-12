@@ -126,6 +126,7 @@ displayItem = function(item_id, duration) {
 
             else {
                 addItemObjectToChecklist(item_object.owner, 'displayed', item_object);
+                addItemObjectToChecklist(item_object.owner, 'seen', item_object);
                 updateGalleryDetails(item_object.owner);
             }
         });
@@ -305,6 +306,7 @@ Meteor.methods({
                     items.update(item_id, {$set: {'status' : 'permanent'}});
                     items.update(item_id, {$set: {'permanent_post' : moment()._d.toISOString()}});
                     addItemObjectToChecklist(Meteor.userId(), 'displayed', item_object);
+                    addItemObjectToChecklist(Meteor.userId(), 'seen', item_object);
                 }
 
                 else {
