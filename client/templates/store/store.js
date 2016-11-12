@@ -1,27 +1,34 @@
+var crate_tracker = new Tracker.Dependency;
+var crate_objects = undefined;
+
+var getCrates = function() {
+	Meteor.call('getCrates', function(error, result) {
+		if (error)
+			console.log(error.message);
+
+		else {
+			crate_objects = result;
+			crate_tracker.changed();
+		}
+	})
+}
+
 Template.store.helpers({
 	'for_sale': function() {
 		return items.find({'owner': Meteor.userId(), 'status': 'for_sale'});
 	},
 
-	'dropButton' : function() {
-		Meteor.call('lookupCrateCost', "platinum", function(error, result) {
-			if (error)
-				console.log(error.message);
+	'can_afford': function(cost) {
+		return Meteor.user().profile.bank_balance >= cost;
+	},
 
-			else Session.set("platinum" + 'Cost', Math.floor(result))
-		})
-
-		if (Session.get("platinum" + 'Cost') && Meteor.user()) {
-			return {
-				'crateCost' : "$" + getCommaSeparatedValue(Session.get("platinum" + 'Cost')),
-				'enabled' : Meteor.user().profile.bank_balance >= Session.get("platinum" + 'Cost')
-			}
+	'crate_button' : function() {
+		crate_tracker.depend();
+		if (crate_objects == undefined) {
+			getCrates();
 		}
 
-		else return {
-			'crateCost' : "",
-			'enabled' : false
-		}
+		else return crate_objects;
 	},
 
 	'full' : function() {
@@ -56,7 +63,8 @@ Template.store.helpers({
 
 Template.store.events ({
 	'click .crate-button.enabled' : function(element) {
-		Meteor.call('openCrate', Meteor.userId(), "platinum", function(error, result) {
+		var crate_size = ($(element.target).data().crate_size);
+		Meteor.call('openCrate', crate_size, function(error, result) {
 			if (error)
 				console.log(error.message);
 
@@ -124,3 +132,8 @@ Template.forSaleInfo.events({
 		setFootnote(hover_string, Math.floor(Math.random() * 1000));
 	}
 })
+
+Template.store.rendered = function() {
+	crate_objects = undefined;
+	getCrates();
+}

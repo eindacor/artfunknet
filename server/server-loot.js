@@ -457,9 +457,18 @@ Meteor.methods({
         else return undefined;
     },
 
-    'openCrate' : function(user_id, quality) {
-        var cost = lookupCrateCost(quality, admin_settings.crate_drop_count);
-        if (Meteor.userId() && Meteor.userId() == user_id && cost < Meteor.user().profile.bank_balance) {
+    'openCrate' : function(size) {
+        var approved_sizes = ['small', 'medium', 'large'];
+        if (approved_sizes.indexOf(size) == -1)
+            return false;
+
+        var quality = 'platinum'; 
+        var crate_object = getCrateData(size, quality);
+
+        if (crate_object == undefined)
+            return false;
+
+        if (Meteor.userId() && crate_object.cost < Meteor.user().profile.bank_balance) {
             var foil_chance = getLootData().global_foil_chance;
 
             if (procUniqueAttribute(Meteor.userId(), "CRATE_FOIL_BONUS", undefined)) {
@@ -467,10 +476,10 @@ Meteor.methods({
             }
 
             var multi_item_generator = {
-                'source': "crate",
-                'user_id': user_id,
+                'source': crate_object.size + " crate",
+                'user_id': Meteor.userId(),
                 'quality': quality,
-                'count': admin_settings.crate_drop_count,
+                'count': crate_object.count,
                 'status': "unclaimed",
                 'foil_chance': foil_chance,
                 'misprint_chance': getLootData().global_misprint_chance,
@@ -479,10 +488,19 @@ Meteor.methods({
             }
 
             generateItems(multi_item_generator);
-            chargeAccount(user_id, cost);
+            chargeAccount(Meteor.userId(), crate_object.cost);
         }
 
         else console.log("insufficient funds");
+    },
+
+    'getCrates' : function() {
+        var sizes = ['small', 'medium', 'large'];
+        var crate_objects = [];
+        for (var i=0; i<sizes.length; i++) {
+            crate_objects.push(getCrateData(sizes[i], 'platinum'));
+        }
+        return crate_objects;
     },
 
     'getGraphData': function() {
@@ -508,6 +526,34 @@ Meteor.methods({
         return testMap(getSmartRarityMap(level, 0));
     }
 })
+
+var getCrateData = function(size, quality) {
+    var output_count;
+
+    switch(size) {
+        case "small": output_count = 6; break;
+        case "medium": output_count = 18; break;
+        case "large": output_count = 54; break;
+        default: break;
+    }
+
+    var cost = lookupCrateCost('platinum', output_count);
+
+    switch(size) {
+        case "small": cost *= 1.4; break;
+        case "medium": cost *= 1.2; break;
+        case "large": break;
+        default: break;
+    }
+
+    var crate_object = {
+        'cost': Math.floor(cost),
+        'count': output_count,
+        'size': size
+    }
+
+    return crate_object;
+}
 
 var getGraphData = function() {
     var graph_data = {
