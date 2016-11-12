@@ -1,6 +1,7 @@
 var display_tracker = new Tracker.Dependency;
 var page_tracker = new Tracker.Dependency;
 var tags = [];
+var search_terms = [];
 var locked_attributes = [];
 var standard_attributes = [];
 var sorter = "artwork_data.title";
@@ -16,6 +17,24 @@ var standard_filter = {};
 var items_found = 0;
 var current_page = 0;
 var items_per_page = 10;
+
+var generateQueryFromSearchTerms = function() {
+	if (search_terms.length == 0)
+		return undefined;
+
+	var or_array = [];
+
+	for (var i=0; i<search_terms.length; i++) {
+		var term = search_terms[i];
+		var term_array = [
+			{'artwork_data.artist': {$regex: term, $options: 'i'}},
+			{'artwork_data.title': {$regex: term, $options: 'i'}}
+		]
+		or_array = or_array.concat(term_array);
+	}
+	var or_object = {$or: or_array};
+	return or_object;
+}
 
 var validPermutation = function(permutation_array, permutation) {
 	for (var i=0; i<permutation.length; i++) {
@@ -103,144 +122,155 @@ var getPermutations = function(required) {
 
 Template.inventory.helpers({
 	'owned': function() {	
-		display_tracker.depend();
-		var sorter_object = {};
-		sorter_object[sorter] = ascending;
+		try {
+			display_tracker.depend();
+			var sorter_object = {};
+			sorter_object[sorter] = ascending;
 
-		var filter_array = [
-			lottery_filter, 
-			foil_filter, 
-			seasonal_filter, 
-			original_filter,
-			standard_filter,
-			status_filter,
-			rarity_filter
-		];
+			var filter_array = [
+				lottery_filter, 
+				foil_filter, 
+				seasonal_filter, 
+				original_filter,
+				standard_filter,
+				status_filter,
+				rarity_filter
+			];
 
-		var base_filter = {
-			'owner': Meteor.userId()
-		}
-
-		if (tags.length > 0) {
-			base_filter.tags = {"$in": tags};
-		}
-
-		if (locked_attributes.length > 0) {
-			if ($('#locked-filter').val() == "contains one") {
-				var key_string = "artwork_data.locked_attributes";
-				base_filter[key_string] = {"$in": locked_attributes};
+			var search_term_query = generateQueryFromSearchTerms();
+			if (search_term_query != undefined) {
+				filter_array.push(search_term_query);
 			}
 
-			else if ($('#locked-filter').val() == "contains two") {
-				var or_filter_array = [];
-				for (var i=0; i<locked_attributes.length; i++) {
-					for (var n=0; n<locked_attributes.length; n++) {
-						if (locked_attributes[i] != locked_attributes[n]) {
-							or_filter_array.push({'$and': [
-								{'artwork_data.locked_attributes': locked_attributes[i]},
-								{'artwork_data.locked_attributes': locked_attributes[n]}
-							]});
-						}
-					}
+			var base_filter = {
+				'owner': Meteor.userId()
+			}
+
+			if (tags.length > 0) {
+				base_filter.tags = {"$in": tags};
+			}
+
+			if (locked_attributes.length > 0) {
+				if ($('#locked-filter').val() == "contains one") {
+					var key_string = "artwork_data.locked_attributes";
+					base_filter[key_string] = {"$in": locked_attributes};
 				}
-				
-				if (or_filter_array.length > 0)
-					base_filter['$or'] = or_filter_array;
 
-				else if (locked_attributes.length < 2)
-					base_filter['_id'] = null;
-			}
-
-			else if ($('#locked-filter').val() == "contains three") {
-				var or_filter_array = [];
-				for (var i=0; i<locked_attributes.length; i++) {
-					for (var n=0; n<locked_attributes.length; n++) {
-						for (var c=0; c<locked_attributes.length; c++) {
-							if (locked_attributes[i] != locked_attributes[n] && locked_attributes[i] != locked_attributes[c] && locked_attributes[n] != locked_attributes[c]) {
+				else if ($('#locked-filter').val() == "contains two") {
+					var or_filter_array = [];
+					for (var i=0; i<locked_attributes.length; i++) {
+						for (var n=0; n<locked_attributes.length; n++) {
+							if (locked_attributes[i] != locked_attributes[n]) {
 								or_filter_array.push({'$and': [
 									{'artwork_data.locked_attributes': locked_attributes[i]},
-									{'artwork_data.locked_attributes': locked_attributes[n]},
-									{'artwork_data.locked_attributes': locked_attributes[c]}
+									{'artwork_data.locked_attributes': locked_attributes[n]}
 								]});
 							}
 						}
 					}
+					
+					if (or_filter_array.length > 0)
+						base_filter['$or'] = or_filter_array;
+
+					else if (locked_attributes.length < 2)
+						base_filter['_id'] = null;
 				}
 
-				if (or_filter_array.length > 0)
-					base_filter['$or'] = or_filter_array;
+				else if ($('#locked-filter').val() == "contains three") {
+					var or_filter_array = [];
+					for (var i=0; i<locked_attributes.length; i++) {
+						for (var n=0; n<locked_attributes.length; n++) {
+							for (var c=0; c<locked_attributes.length; c++) {
+								if (locked_attributes[i] != locked_attributes[n] && locked_attributes[i] != locked_attributes[c] && locked_attributes[n] != locked_attributes[c]) {
+									or_filter_array.push({'$and': [
+										{'artwork_data.locked_attributes': locked_attributes[i]},
+										{'artwork_data.locked_attributes': locked_attributes[n]},
+										{'artwork_data.locked_attributes': locked_attributes[c]}
+									]});
+								}
+							}
+						}
+					}
 
-				else if (locked_attributes.length < 3)
-					base_filter['_id'] = null;
-			}
-		}
+					if (or_filter_array.length > 0)
+						base_filter['$or'] = or_filter_array;
 
-		if (standard_attributes.length > 0) {
-			switch($('#attribute-filter').val()) {
-				case "contains one": {
-					var key_string = "attributes._id";
-					base_filter[key_string] = {"$in": standard_attributes};
+					else if (locked_attributes.length < 3)
+						base_filter['_id'] = null;
 				}
-				break;
-
-				case "contains two": {
-					if (standard_attributes.length > 1) {
-						var or_filter_array = getPermutations(2);
-
-						if (or_filter_array.length > 0)
-							base_filter['$or'] = or_filter_array;
-					}
-
-					else base_filter['_id'] = null;
-				} break;
-
-				case "contains three": {
-					if (standard_attributes.length > 2) {
-						var or_filter_array = getPermutations(3);
-
-						if (or_filter_array.length > 0)
-							base_filter['$or'] = or_filter_array;
-					}
-
-					else base_filter['_id'] = null;
-				} break;
-
-				case "contains four": {
-					if (standard_attributes.length > 3) {
-						var or_filter_array = getPermutations(4);
-
-						if (or_filter_array.length > 0)
-							base_filter['$or'] = or_filter_array;
-					}
-
-					else base_filter['_id'] = null;
-				} break;
-
-				default: base_filter['_id'] = null;
 			}
+
+			if (standard_attributes.length > 0) {
+				switch($('#attribute-filter').val()) {
+					case "contains one": {
+						var key_string = "attributes._id";
+						base_filter[key_string] = {"$in": standard_attributes};
+					}
+					break;
+
+					case "contains two": {
+						if (standard_attributes.length > 1) {
+							var or_filter_array = getPermutations(2);
+
+							if (or_filter_array.length > 0)
+								base_filter['$or'] = or_filter_array;
+						}
+
+						else base_filter['_id'] = null;
+					} break;
+
+					case "contains three": {
+						if (standard_attributes.length > 2) {
+							var or_filter_array = getPermutations(3);
+
+							if (or_filter_array.length > 0)
+								base_filter['$or'] = or_filter_array;
+						}
+
+						else base_filter['_id'] = null;
+					} break;
+
+					case "contains four": {
+						if (standard_attributes.length > 3) {
+							var or_filter_array = getPermutations(4);
+
+							if (or_filter_array.length > 0)
+								base_filter['$or'] = or_filter_array;
+						}
+
+						else base_filter['_id'] = null;
+					} break;
+
+					default: base_filter['_id'] = null;
+				}
+			}
+
+			filter_array.push(base_filter);	
+
+			var item_array = items.find({
+				$and: filter_array
+			}, {sort: sorter_object, skip: current_page * items_per_page, limit: items_per_page}).fetch();
+
+			items_found = items.find({
+				$and: filter_array
+			}, {sort: sorter_object}).count();
+
+			if (items_found == 0)
+				current_page = 0;
+
+			else if (current_page * items_per_page >= items_found) {
+				current_page = Math.floor(items_found / items_per_page) - (items_found % items_per_page == 0 ? 1 : 0);
+				display_tracker.changed();
+			}
+
+			page_tracker.changed();
+
+			return item_array;
 		}
 
-		filter_array.push(base_filter);	
-
-		var item_array = items.find({
-			$and: filter_array
-		}, {sort: sorter_object, skip: current_page * items_per_page, limit: items_per_page}).fetch();
-
-		items_found = items.find({
-			$and: filter_array
-		}, {sort: sorter_object}).count();
-
-		if (items_found == 0)
-			current_page = 0;
-
-		else if (current_page * items_per_page >= items_found) {
-			current_page = Math.floor(items_found / items_per_page) - (items_found % items_per_page == 0 ? 1 : 0);
-			display_tracker.changed();
+		catch(error) {
+			console.log(error.message);
 		}
-
-		page_tracker.changed();
-
-		return item_array;
 	},
 
 	'list_view' : function() {
@@ -360,8 +390,16 @@ Template.inventory.helpers({
 
 Template.inventory.events({
 	'keyup #tag-selector': function(event) {
-		var entered = $('#tag-selector').val();
-		tags = commaSeparatedValuesToArray($('#tag-selector').val());
+		var entered = commaSeparatedValuesToArray($('#tag-selector').val());
+		tags = [];
+		search_terms = [];
+		for (var i=0; i<entered.length; i++) {
+			if (entered[i][0] == '#' && entered[i].length > 1)
+				tags.push(entered[i].substring(1));
+
+			else search_terms.push(entered[i]);
+		}
+
 		display_tracker.changed();
 	}, 
 
@@ -503,7 +541,7 @@ Template.inventory.events({
 	},
 
 	'click #display-by-tags': function() {
-		if ($('#tag-selector').val().length != 0) {
+		if (tags.length > 0) {
 			Meteor.call('displayAllTagged', tags, $('#tagged-display-duration').val(), function(error, result) {
 				if (error)
 					console.log(error.message)
@@ -551,6 +589,7 @@ Template.inventory.rendered = function() {
 	Session.set('inventory_page', 0);
 	Blaze.getData($('.template-inventory')[0])["value_data"] = {};
 	tags = [];
+	search_terms = [];
 	locked_attributes = [];
 	standard_attributes = [];
 	sorter = "artwork_data.title";

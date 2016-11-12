@@ -1,6 +1,7 @@
 var auction_house_tracker = new Tracker.Dependency;
 var page_tracker = new Tracker.Dependency;
 var item_count_tracker = new Tracker.Dependency;
+var search_terms = [];
 var locked_attributes = [];
 var standard_attributes = [];
 var sorter = "expiration";
@@ -19,7 +20,23 @@ var items_per_page = 10;
 var quest_status = "all";
 var auction_data = undefined;
 
-var search_keywords = [];
+var generateQueryFromSearchTerms = function() {
+	if (search_terms.length == 0)
+		return undefined;
+
+	var or_array = [];
+
+	for (var i=0; i<search_terms.length; i++) {
+		var term = search_terms[i];
+		var term_array = [
+			{'item_data.artist': {$regex: term, $options: 'i'}},
+			{'item_data.title': {$regex: term, $options: 'i'}}
+		]
+		or_array = or_array.concat(term_array);
+	}
+	var or_object = {$or: or_array};
+	return or_object;
+}
 
 var getAuctions = function() {
 	var sorter_object = {};
@@ -38,6 +55,11 @@ var getAuctions = function() {
 	var base_filter = {}
 
 	filter_array.push(base_filter);
+
+	var search_term_query = generateQueryFromSearchTerms();
+	if (search_term_query != undefined) {
+		filter_array.push(search_term_query);
+	}
 
 	var current_page_before_refresh = current_page;
 	if (items_found == 0 && current_page_before_refresh != 0) {
@@ -335,7 +357,20 @@ Template.auctions.events({
 		quest_status = event.target.value;
 		auction_data = undefined;
 		item_count_tracker.changed();
-	}
+	},
+
+	'keyup #search-field': function(event) {
+		search_terms = commaSeparatedValuesToArray($('#search-field').val());
+		auction_data = undefined;
+		item_count_tracker.changed();
+	}, 
+
+	'keydown #search-field': function(event) {
+		if (event.keyCode == 13) {
+			$('#tag-selector').blur();
+			event.preventDefault();
+		}
+	},
 })
 
 Template.auctions.rendered = function() {
@@ -354,4 +389,5 @@ Template.auctions.rendered = function() {
 	quest_status = "all";
 	auction_data = {};
 	getAuctions();
+	var search_terms = [];
 }
