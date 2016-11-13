@@ -280,13 +280,10 @@ var getExpansionSlotCost = function(user_object) {
     else return 0;
 }
 
-var total_spent = 0;
 var purchaseExpansionSlot = function(user_object) {
     if (user_object.profile.expansion_slots < getMaxExpansionSlots()) {
         var cost = getExpansionSlotCost(user_object);
         if (user_object.profile.bank_balance >= cost) {
-            total_spent += cost;
-            console.log(getCommaSeparatedValue(total_spent));
             chargeAccount(user_object._id, cost);
             Meteor.users.update(user_object._id, {$inc: {'profile.expansion_slots': 1}});
         }
