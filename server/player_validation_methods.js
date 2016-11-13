@@ -10,10 +10,6 @@ dailyDropIsEnabled = function() {
 	else return false;
 }
 
-inventoryIsFull = function() {
-	return items.find({'owner': Meteor.userId(), 'status' : {$in: ['claimed', 'displayed', 'auctioned', 'permanent']}, 'original': {$ne: true}}).count() >= Meteor.user().profile.inventory_cap;
-}
-
 itemIsOwnedAndClaimed = function(item_id) {
 	var item_object = items.findOne(item_id);
 	var owned = Meteor.userId() && item_object && item_object.owner == Meteor.userId();
@@ -67,7 +63,7 @@ canClaimItem = function(item_id) {
 	var item_object = items.findOne(item_id);
 	var owned = Meteor.userId() && item_object && item_object.owner == Meteor.userId();
 	var status_ok = item_object && (item_object.status == "unclaimed" || item_object.status == "won");
-	var not_full = !inventoryIsFull() || item_object.original;
+	var not_full = !inventoryIsFull(Meteor.user()) || item_object.original;
 	return owned && status_ok && not_full ? item_object : undefined;
 }
 
@@ -83,7 +79,7 @@ canPurchaseItemFromDealer = function(item_id) {
 	var owned = Meteor.userId() && item_object && item_object.owner == Meteor.userId();
 	var status_ok = item_object && item_object.status == "for_sale";
 	var can_afford = Meteor.userId() && getItemValue(item_id, "dealer", item_object.owner) <= Meteor.user().profile.bank_balance;
-	var not_full = !inventoryIsFull() || item_object.original;;
+	var not_full = !inventoryIsFull(Meteor.user()) || item_object.original;;
 	return owned && status_ok && can_afford && not_full ? item_object : undefined;
 }
 
@@ -142,7 +138,7 @@ canBidOnItem = function(auction_id) {
 	if (auctions_maxed && !currently_winning) 
 		return false;
 
-	if (inventoryIsFull() && !item_is_original)
+	if (inventoryIsFull(Meteor.user()) && !item_is_original)
 		return false;
 
 	var available_balance = currently_winning ? bidder_object.profile.bank_balance + auction_object.highest_bid : bidder_object.profile.bank_balance;

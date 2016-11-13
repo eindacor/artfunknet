@@ -33,6 +33,10 @@
 	margin-right: 24px;
 }
 
+.template-inventory h3.view-buttons {
+	margin-top: 0px;
+}
+
 .template-inventory .disabled {
 	opacity: .2;
 	cursor: default;
@@ -46,12 +50,12 @@
 	margin-bottom: 100px;
 }
 
-.template-inventory #tag-selector {
+.template-inventory #search-area {
 	resize: none;
 	width: 100%;
 	height: 4rem;
 	font-size: 2rem;
-	margin-bottom: 24px;
+	margin-bottom: 12px;
 	padding: .4rem 2rem;
 }
 

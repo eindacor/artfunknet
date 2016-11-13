@@ -28,6 +28,7 @@ createUser = function(user_object, callback){
     user_object.profile.last_login = moment()._d.toISOString();
     user_object.profile.last_logout = moment()._d.toISOString();
     user_object.profile.auction_data = {'winning': [], 'watching': []};
+    user_object.profile.expansion_slots = 0;
 
     user_object.profile.tutorials = {
         'welcome': true,
@@ -268,6 +269,27 @@ updateGalleryDetails = function(user_id) {
             }
         });
     }
+}
+ 
+var getExpansionSlotCost = function(user_object) {
+    if (user_object.profile.expansion_slots < getMaxExpansionSlots()) {
+        var cost = Math.floor(1000000 * Math.pow(1.3, user_object.profile.expansion_slots));
+        return cost;
+    }   
+
+    else return 0;
+}
+
+var purchaseExpansionSlot = function(user_object) {
+    if (user_object.profile.expansion_slots < getMaxExpansionSlots()) {
+        var cost = getExpansionSlotCost(user_object);
+        if (user_object.profile.bank_balance >= cost) {
+            chargeAccount(user_object._id, cost);
+            Meteor.users.update(user_object._id, {$inc: {'profile.expansion_slots': 1}});
+        }
+    }   
+
+    else return false;
 }
 
 getEntryFee = function(buyer_object, owner_id) {
@@ -976,5 +998,13 @@ Meteor.methods({
         })
 
         return count_object;
+    },
+
+    'getExpansionSlotCost': function() {
+        return getExpansionSlotCost(Meteor.user());
+    },
+
+    'purchaseExpansionSlot': function() {
+        return purchaseExpansionSlot(Meteor.user());
     }
 })

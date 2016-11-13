@@ -115,7 +115,7 @@ Template.dashboard.helpers({
 				'alert_count' : alerts.find({'user_id' : user_object._id}).count(),
 				'private_count' : items.find({'owner' : user_object._id, 'status' : 'permanent'}).count(),
 				'display_max' : user_object.profile.display_cap,
-				'inventory_max' : user_object.profile.inventory_cap,
+				'inventory_max' : user_object.profile.inventory_cap + user_object.profile.expansion_slots,
 				'private_max' : user_object.profile.pc_cap,
 				'entry_fee' : user_object.profile.entry_fee,
 				'ticket_max' : user_object.profile.ticket_cap,
