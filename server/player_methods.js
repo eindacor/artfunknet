@@ -272,7 +272,7 @@ updateGalleryDetails = function(user_id) {
  
 var getExpansionSlotCost = function(user_object) {
     if (user_object.profile.expansion_slots < getMaxExpansionSlots()) {
-        var cost = Math.floor(1000000 * Math.pow(1.3, user_object.profile.expansion_slots));
+        var cost = Math.floor(1000000 * Math.pow(1.35, user_object.profile.expansion_slots));
         return cost;
     }   
 
