@@ -269,6 +269,30 @@ updateGalleryDetails = function(user_id) {
         });
     }
 }
+ 
+var getExpansionSlotCost = function(user_object) {
+    if (user_object.profile.expansion_slots < getMaxExpansionSlots()) {
+        var cost = Math.floor(1000000 * Math.pow(1.3, user_object.profile.expansion_slots));
+        return cost;
+    }   
+
+    else return 0;
+}
+
+var total_spent = 0;
+var purchaseExpansionSlot = function(user_object) {
+    if (user_object.profile.expansion_slots < getMaxExpansionSlots()) {
+        var cost = getExpansionSlotCost(user_object);
+        if (user_object.profile.bank_balance >= cost) {
+            total_spent += cost;
+            console.log(getCommaSeparatedValue(total_spent));
+            chargeAccount(user_object._id, cost);
+            Meteor.users.update(user_object._id, {$inc: {'profile.expansion_slots': 1}});
+        }
+    }   
+
+    else return false;
+}
 
 getEntryFee = function(buyer_object, owner_id) {
     owner_object = Meteor.users.findOne(owner_id);
@@ -976,5 +1000,13 @@ Meteor.methods({
         })
 
         return count_object;
+    },
+
+    'getExpansionSlotCost': function() {
+        return getExpansionSlotCost(Meteor.user());
+    },
+
+    'purchaseExpansionSlot': function() {
+        return purchaseExpansionSlot(Meteor.user());
     }
 })

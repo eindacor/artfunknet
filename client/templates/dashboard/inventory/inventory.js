@@ -389,8 +389,8 @@ Template.inventory.helpers({
 });
 
 Template.inventory.events({
-	'keyup #tag-selector': function(event) {
-		var entered = commaSeparatedValuesToArray($('#tag-selector').val());
+	'keyup #search-area': function(event) {
+		var entered = commaSeparatedValuesToArray($('#search-area').val());
 		tags = [];
 		search_terms = [];
 		for (var i=0; i<entered.length; i++) {
@@ -403,9 +403,9 @@ Template.inventory.events({
 		display_tracker.changed();
 	}, 
 
-	'keydown #tag-selector': function(event) {
+	'keydown #search-area': function(event) {
 		if (event.keyCode == 13) {
-			$('#tag-selector').blur();
+			$('#search-area').blur();
 			event.preventDefault();
 		}
 	},

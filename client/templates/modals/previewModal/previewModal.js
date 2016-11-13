@@ -30,7 +30,7 @@ Template.previewModal.helpers({
 			var biddable = 
 				(item_object.owner != Meteor.userId()) && 
 				(auction_object.bid_minimum <= Meteor.user().profile.bank_balance) &&
-				items.find({'owner' : Meteor.userId(), 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}, 'original': {$ne: true}}).count() < Meteor.user().profile.inventory_cap;
+				!inventoryIsFull(Meteor.user());
 
 			var max_dimension = 400;
 

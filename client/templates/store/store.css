@@ -7,7 +7,8 @@
 	opacity: .5;
 }
 
-.template-store .crate-buttons .disabled{
+.template-store .crate-buttons .disabled, 
+.template-store .inventory-expansion-button .disabled{
 	opacity: .5;
 }
 
@@ -22,7 +23,8 @@
 	color: black;
 }
 
-.template-store .crate-buttons button {
+.template-store .crate-buttons button,
+.template-store .inventory-expansion-button button{
 	background-color: white;
 	width: 260px;
 	font-weight: bold;
@@ -33,7 +35,8 @@
 	background-color: black;
 }
 
-.template-store .crate-button {
+.template-store .crate-button,
+.template-store .inventory-expansion-button {
 	border: 1px solid black;
 	color: black;
 }

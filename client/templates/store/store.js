@@ -1,5 +1,19 @@
 var crate_tracker = new Tracker.Dependency;
+var expansion_tracker = new Tracker.Dependency;
 var crate_objects = undefined;
+var expansion_cost = undefined;
+
+var getExpansionSlotCost = function() {
+	Meteor.call('getExpansionSlotCost', function(error, result) {
+		if (error)
+			console.log(error)
+
+		else {
+			expansion_cost = result;
+			expansion_tracker.changed();
+		}
+	});
+}
 
 var getCrates = function() {
 	Meteor.call('getCrates', function(error, result) {
@@ -19,7 +33,10 @@ Template.store.helpers({
 	},
 
 	'can_afford': function(cost) {
-		return Meteor.user().profile.bank_balance >= cost;
+		if (cost)
+			return Meteor.user().profile.bank_balance >= cost;
+
+		else return false;
 	},
 
 	'crate_button' : function() {
@@ -33,7 +50,7 @@ Template.store.helpers({
 
 	'full' : function() {
 		if (Meteor.userId() && Meteor.user())
-			return items.find({'owner' : Meteor.userId(), 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}, 'original': {$ne: true}}).count() >= Meteor.user().profile.inventory_cap;
+			return inventoryIsFull(Meteor.user());
 
 		else return false;
 	},
@@ -58,6 +75,28 @@ Template.store.helpers({
             'lottery': 0, 
             'artwork_data.rarity': {$in: ["common", "uncommon", "rare"]}
         }) != undefined;
+	},
+
+	'can_expand': function() {
+		if (Meteor.user())
+			return Meteor.user().profile.expansion_slots < getMaxExpansionSlots();
+
+		else return false;
+	},
+
+	'expansion_cost': function() {
+		expansion_tracker.depend();
+		if (expansion_cost == undefined)
+			getExpansionSlotCost();
+
+		else return expansion_cost;
+	},
+
+	'expansions_remaining': function() {
+		if (Meteor.user())
+			return getMaxExpansionSlots() - Meteor.user().profile.expansion_slots;
+
+		else return 0;
 	}
 })
 
@@ -76,6 +115,15 @@ Template.store.events ({
 		Meteor.call('clearAllForSale', function(error) {
 			if (error)
 				console.log(error.message);
+		})
+	},
+
+	'click .inventory-expansion-button.enabled' : function() {
+		Meteor.call('purchaseExpansionSlot', function(error, result) {
+			if (error)
+				console.log(error)
+
+			else getExpansionSlotCost();
 		})
 	}
 })
@@ -135,5 +183,7 @@ Template.forSaleInfo.events({
 
 Template.store.rendered = function() {
 	crate_objects = undefined;
+	expansion_cost = undefined;
 	getCrates();
+	getExpansionSlotCost();
 }
