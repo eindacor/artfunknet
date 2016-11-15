@@ -62,12 +62,9 @@ createUser = function(user_object, callback){
     */
 
     user_object.profile.checklists = {
-        'owned': blank_list_object,
-        'seen': blank_list_object,
-        'displayed': blank_list_object,
-        'purchased': blank_list_object,
-        'sold': blank_list_object,
-        'auctioned': blank_list_object
+        'owned': black_checklist_item, 
+        'seen': black_checklist_item, 
+        'displayed': black_checklist_item 
     };
 
     var default_wall = gallery_finishes.findOne({'filename': "plaster.jpg"});   
