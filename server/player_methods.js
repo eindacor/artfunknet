@@ -684,7 +684,7 @@ Meteor.methods({
                     calcMVP(Meteor.userId());
 
                     for (var i=0; i<item_ids.length; i++) {
-                        if (Math.random() < 0.5) {
+                        if (Math.random() < .5) {
                             createAuction(item_ids[i], getItemValue(item_ids[i], "sell", Meteor.userId()), -1, 120, "public");
                         }
 
