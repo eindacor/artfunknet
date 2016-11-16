@@ -340,7 +340,14 @@ Meteor.methods({
                 else {
                     if (Meteor.user().profile.user_type != "admin") {
                         calcMVP(Meteor.userId());
-                        createAuction(item_id, getItemValue(item_id, "sell", undefined), -1, 120, "public");
+
+                        if (Math.random() < 0.5) {
+                            createAuction(item_id, getItemValue(item_id, "sell", undefined), -1, 120, "public");
+                        }
+
+                        else {
+                            items.remove({'_id': item_id});
+                        }
                     }
 
                     else items.remove(item_id);
