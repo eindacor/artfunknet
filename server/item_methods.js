@@ -171,7 +171,7 @@ claimItemObject = function(user_id, item_object) {
     if (user_object == undefined)
         return false;
 
-    items.update({'_id': item_object._id}, {$set: {'owner': user_id, 'status' : 'claimed'}}, function(error) {
+    items.update({'_id': item_object._id}, {$set: {'owner': user_id, 'status' : 'claimed', 'date_received': moment()._d.toISOString()}}, function(error) {
         if (error) {
             console.log(error.message);
             success = false;
@@ -181,6 +181,10 @@ claimItemObject = function(user_id, item_object) {
             calcMVP(user_id);
             var rarity = item_object.artwork_data.rarity;
             addItemObjectToChecklist(user_id, 'owned', item_object);
+            if (user_object.profile.vintage_select) {
+                Meteor.users.update(user_id, {$set: {'profile.vintage_select': false}});
+                items.remove({'owner': user_id, 'status': 'won'}, {multi: true});
+            }
         }
     });
 

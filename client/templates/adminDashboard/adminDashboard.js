@@ -322,8 +322,9 @@ Template.adminTools.events({
     	var seasonal = $('.type-selector').val() == "seasonal";
     	var lottery = isNaN($('.type-selector').val()) ? 0 : Number($('.type-selector').val());
     	var original = $('.type-selector').val() == "original";
+    	var vintage = $('.vintage-selector').val() == "true";
 
-    	Meteor.call('generateItemFromArtworkID', user_id, artwork_id, condition, xp_rating, foil_chance, seasonal, Number(lottery), original, misprint_chance, function(error, result) {
+    	Meteor.call('generateItemFromArtworkID', user_id, artwork_id, condition, xp_rating, foil_chance, seasonal, Number(lottery), original, vintage, misprint_chance, function(error, result) {
     		if (error)
     			console.log(error.message);
 

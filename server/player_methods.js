@@ -1,4 +1,5 @@
 player_level_max = 50;
+var starting_balance = 100000;
 
 createUser = function(user_object, callback){
     // if (!user_object.profile.photo)
@@ -13,7 +14,7 @@ createUser = function(user_object, callback){
         user_object.profile[key] = value;
     }
 
-    user_object.profile.bank_balance = 100000;
+    user_object.profile.bank_balance = starting_balance;
     user_object.profile.last_drop = moment().add(-1, 'days')._d.toISOString();
     user_object.profile.level = 0;
     user_object.profile.xp = 0;
@@ -1010,5 +1011,100 @@ Meteor.methods({
 
     'purchaseExpansionSlot': function() {
         return purchaseExpansionSlot(Meteor.user());
+    },
+
+    'vintageMode': function() {
+        if (auctions.findOne({'seller': Meteor.user().profile.screen_name}) != undefined || 
+            Meteor.user().profile.auction_data.winning.length > 0 ||
+            Meteor.user().profile.level < player_level_max) {
+            return false;
+        }
+
+        var new_bank_balance = starting_balance + Math.floor(starting_balance * (Meteor.user().profile.vintage_count + 1));
+        items.remove({'owner': Meteor.userId(), 'status': {$in: ['for_sale', 'unclaimed', 'won']}}, {multi: true});
+
+        // reset gallery finishes
+        var default_wall = gallery_finishes.findOne({'filename': "plaster.jpg"});   
+        var wall_finish_object = {
+            'filename': default_wall.filename,
+            'saturation': 1,
+            'xp_rating': .1
+        };
+
+        var wall_setter_object = {};
+        wall_setter_object[default_wall._id] = wall_finish_object;
+
+        var default_floor = gallery_finishes.findOne({'filename': "carpet_gray.jpg"});
+        var floor_finish_object = {
+            'filename': default_floor.filename,
+            'saturation': 1,
+            'xp_rating': .1
+        };
+
+        var floor_setter_object = {};
+        floor_setter_object[default_floor._id] = floor_finish_object;
+
+        Meteor.users.update(Meteor.userId(), {
+            $inc: {'profile.vintage_count': 1}, 
+            $set: {
+                'profile.vintage_select': true, 
+                'profile.level': 0, 
+                'profile.bank_balance': new_bank_balance, 
+                'profile.xp': 0,
+                'profile.expansion_slots': 0,
+                'profile.completed_quests': 0,
+                'profile.last_drop': moment().add(-1, 'days')._d.toISOString(),
+                'profile.gallery_finishes': {
+                    'active': {
+                        'floor_finish': default_floor._id,
+                        'wall_finish': default_wall._id
+                    },
+                    'owned': {
+                        'floor_finishes': floor_setter_object,
+                        'wall_finishes': wall_setter_object
+                    },
+                    'wall_opacity': 1,
+                    'frame_width': .5,
+                    'matte_width': .5,
+                    'wall_base': "white",
+                    'frame_color': "black"
+                }
+            }
+        }, function() {
+            updateGalleryDetails(Meteor.userId());
+        });
+
+        items.find({'owner': Meteor.userId(), 'vintage': {$ne: true}}).forEach(function(item_object) {
+            console.log(item_object.artwork_data.title);
+        });
+
+        items.update({'owner': Meteor.userId(), 'vintage': {$ne: true}}, {
+            $set: {
+                'status': 'won',
+                'vintage': true,
+                'display_details': {
+                    'money' : 0,
+                    'xp' : 0,
+                    'xp_chunk_percentage': 0,
+                    'end' : ""
+                }
+            }
+        }, {multi: true});
+
+        quests.remove({'owner_id': Meteor.userId()}, {multi: true});
+
+        // reset profile limits
+        var cap_object = getCapSetterObject(0);
+        var setter = {};
+        var cap_keys = Object.keys(cap_object);
+        for (var i=0; i < cap_keys.length; i++) {
+            var key = cap_keys[i];
+            var value = cap_object[key];
+
+            var setter_key = "profile." + key;
+            setter[setter_key] = value;
+        }
+
+        Meteor.users.update(Meteor.userId(), {$set : setter});
     }
 })

@@ -13,6 +13,7 @@ var lottery_filter = {'lottery': {$ne: undefined}};
 var foil_filter = {'foil': {$ne: undefined}};
 var seasonal_filter = {'seasonal': {$ne: undefined}};
 var original_filter = {'original': {$ne: undefined}};
+var vintage_filter = {'vintage': {$ne: undefined}};
 var standard_filter = {};
 var items_found = 0;
 var current_page = 0;
@@ -132,6 +133,7 @@ Template.inventory.helpers({
 				foil_filter, 
 				seasonal_filter, 
 				original_filter,
+				vintage_filter,
 				standard_filter,
 				status_filter,
 				rarity_filter
@@ -428,7 +430,9 @@ Template.inventory.events({
 		 			if (checked)
 		 				standard_filter = {};
 
-		 			else standard_filter = {$or: [{'foil': {$ne: false}}, {'seasonal': {$ne: false}}, {'original': {$ne: false}}, {'lottery': {$nin: [0, undefined, false]}}]};
+		 			else {
+		 				standard_filter = {$or: [{'foil': {$ne: false}}, {'seasonal': {$ne: false}}, {'original': {$ne: false}}, {'vintage': {$ne: false}}, {'lottery': {$nin: [0, undefined, false]}}]};
+		 			}
 
 		 			break;
 
@@ -461,6 +465,14 @@ Template.inventory.events({
 		 				lottery_filter = {'lottery': {$ne: undefined}};
 
 		 			else lottery_filter = {'lottery': {$in: [0, undefined, false]}};
+
+		 			break;
+
+		 		case "vintage": 
+		 			if (checked)
+		 				vintage_filter = {'vintage': {$ne: undefined}};
+
+		 			else vintage_filter = {'vintage': false};
 
 		 			break;
 
@@ -601,6 +613,7 @@ Template.inventory.rendered = function() {
 	foil_filter = {'foil': {$ne: undefined}};
 	seasonal_filter = {'seasonal': {$ne: undefined}};
 	original_filter = {'original': {$ne: undefined}};
+	vintage_filter = {'vintage': {$ne: undefined}};
 	standard_filter = {};
 	current_page = 0;
 	items_found = 0;

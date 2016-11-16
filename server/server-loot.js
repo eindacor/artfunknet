@@ -117,7 +117,7 @@ getItemObjectValue = function(item_object, type, user_id) {
         }
 
         else if(item_object.lottery && item_object.lottery != 0) {
-            actual_value *= (10 * item_object.lottery);
+            actual_value *= (8 * item_object.lottery);
             display_value *= 2;
         }
 
@@ -130,10 +130,15 @@ getItemObjectValue = function(item_object, type, user_id) {
             display_value *= 20;
         }
 
+        if (item_object.vintage){
+            actual_value *= 2;
+            display_value *= 1.5;
+        }
+
         var sell_value = Math.floor(actual_value * .8);
         var purchase_value = Math.floor(actual_value * 1.5);
         var dealer_offer = Math.floor(actual_value * .9);
-        var auction_min = Math.floor(sell_value * .8);
+        var auction_min = Math.floor(sell_value);
         var collector_offer = Math.floor(actual_value * 1.2);
 
         if (procUniqueAttribute(user_id, "DEALER_DISCOUNT", undefined)) {
@@ -271,6 +276,7 @@ generateItems = function(multi_item_generator) {
             'seasonal': undefined,
             'lottery': 0,
             'original': false,
+            'vintage': false,
             'misprint_chance': multi_item_generator.misprint_chance,
             'status': multi_item_generator.status,
             'xp_rating_min': multi_item_generator.xp_rating_min,
@@ -323,6 +329,7 @@ generateItemFromArtworkID = function(item_generator) {
             'seasonal': item_generator.seasonal === undefined ? loot_data.seasonal_items.indexOf(item_generator.artwork_id) != -1 : item_generator.seasonal,
             'lottery': item_generator.lottery === undefined ? 0 : item_generator.lottery,
             'original': item_generator.original === undefined ? false : item_generator.original,
+            'vintage': item_generator.vintage === undefined ? false : item_generator.vintage,
             'tags': [],
             'artwork_data': artwork_data
         }, function(error, result) {

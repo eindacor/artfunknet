@@ -107,8 +107,10 @@ Template.dashboard.helpers({
 				'screen_name' : user_object.profile.screen_name,
 				'bank_balance' : getCommaSeparatedValue(user_object.profile.bank_balance),
 				'display_count' : items.find({'owner' : user_object._id, 'status' : 'displayed'}).count(),
-				'inventory_count' : items.find({'owner' : user_object._id, 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}, 'original': {$ne: true}}).count(),
+				'inventory_count' : items.find({'owner' : user_object._id, 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}, 'original': {$ne: true}, 'vintage': {$ne: true}}).count(),
+				'has_items': items.find({'owner' : user_object._id, 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}}).count(),
 				'original_count' : items.find({'owner' : user_object._id, 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}, 'original': true}).count(),
+				'vintage_items': items.find({'owner' : user_object._id, 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}, 'vintage': true}).count(),
 				'has_watched_auctions' : has_watched_auctions,
 				'has_player_auctions' : has_player_auctions,
 				'has_auctions': has_watched_auctions || has_player_auctions,
@@ -124,7 +126,8 @@ Template.dashboard.helpers({
 				'completed_quests': user_object.profile.completed_quests,
 				'auctioned_items': auctions.find({'seller': user_object.profile.screen_name}).count(),
 				'winning_auctions': user_object.profile.auction_data.winning.length,
-				'auction_cap': Math.floor(user_object.profile.auction_cap * (has_auctioneer ? 1.5 : 1))
+				'auction_cap': Math.floor(user_object.profile.auction_cap * (has_auctioneer ? 1.5 : 1)),
+				'vintage_count': user_object.profile.vintage_count
 			}
 
 			return data_object;

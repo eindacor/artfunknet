@@ -77,7 +77,9 @@ var updateContent = function() {
     });
 
     // temp code
-    Meteor.users.update({'profile.money_spent_on_crates': null}, {$set: {'profile.money_spent_on_crates': 0}}, {multi: true});
+    Meteor.users.update({'profile.vintage_count': null}, {$set: {'profile.vintage_count': 0}}, {multi: true});
+    Meteor.users.update({'profile.vintage_select': null}, {$set: {'profile.vintage_select': false}}, {multi: true});
+    items.update({'vintage': null}, {$set: {'vintage': false}}, {multi: true});
     // temp code
 }
 
