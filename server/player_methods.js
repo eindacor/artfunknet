@@ -684,7 +684,13 @@ Meteor.methods({
                     calcMVP(Meteor.userId());
 
                     for (var i=0; i<item_ids.length; i++) {
-                        createAuction(item_ids[i], getItemValue(item_ids[i], "sell", Meteor.userId()), -1, 120, "public");
+                        if (Math.random() < 0.5) {
+                            createAuction(item_ids[i], getItemValue(item_ids[i], "sell", Meteor.userId()), -1, 120, "public");
+                        }
+
+                        else {
+                            items.remove({'_id': item_ids[i]});
+                        }
                     }
                 }
             });
