@@ -113,3 +113,8 @@
 	cursor: pointer;
 	float: right;
 }
+
+.template-dashboard #vintage-mode {
+	font-size: 2rem;
+	cursor: pointer;
+}

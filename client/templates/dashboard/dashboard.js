@@ -264,7 +264,14 @@ Template.dashboard.events({
 		watched_auction_data = undefined;
 		player_auction_data = undefined;
 		auction_house_tracker.changed();
-	}
+	},
+
+	'click #vintage-mode': function() {
+		Blaze.renderWithData(Template.modalTemplate, {
+			'modal_name': "vintageModal", 
+			'modal_data': undefined
+		}, $('body')[0]);
+}
 });
 
 Template.dashboard.rendered = function() {
