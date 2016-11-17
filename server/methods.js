@@ -140,8 +140,8 @@ Meteor.methods({
 
     'getCollectionValue' : function(user_id) {
         var collection_total = 0;
-        items.find({'owner' : Meteor.userId(), 'status' : {$in: ['unclaimed', 'displayed', 'permanent']}}).forEach(function(db_object) {
-            collection_total += getItemValue(db_object._id, 'actual', user_id);
+        items.find({'owner' : Meteor.userId(), 'status' : {$in: ['claimed', 'displayed', 'permanent']}}).forEach(function(db_object) {
+            collection_total += getItemValue(db_object._id, 'actual', Meteor.userId());
         });
 
         return collection_total;
