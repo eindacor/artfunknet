@@ -1,10 +1,29 @@
-Template.registerHelper('getItemValue', function(item_id, value_type) {
-	var item_object = items.findOne(item_id);
-	if (item_object) {
-		return getCommaSeparatedValue(item_object.values[value_type]);
-	}
+var item_value_dep = new Tracker.Dependency;
 
-	else return 0;
+var addItemValueToView = function(item_id, value_type, view) {
+	Meteor.call('getItemValue', item_id, value_type, Meteor.userId(), function(error, result) {
+		if (error)
+			console.log(error.message);
+
+		else {
+			Blaze.getData(view)[item_id + "_value"] = result;
+			item_value_dep.changed();
+		}
+	})
+}
+
+Template.registerHelper('getItemValue', function(item_id, value_type) {
+	if (item_id) {
+		item_value_dep.depend();
+		var value_data = Blaze.getData(Blaze.currentView)[item_id + "_value"];
+		if (value_data) 		
+			return getCommaSeparatedValue(value_data);
+
+		else {
+			addItemValueToView(item_id, value_type, Blaze.currentView);
+			return "";
+		}
+	}
 })
 
 Template.registerHelper('consoleLogThis', function(the_thing) {

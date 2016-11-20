@@ -646,51 +646,47 @@ Meteor.methods({
     },
 
     'sellAllUnclaimed' : function() {
-        if (Meteor.user().profile.user_type != "admin") {
-            var total_value = 0;
-            var item_ids = [];
+        var total_value = 0;
+        var item_ids = [];
 
-            var quest_targets = [];
+        var quest_targets = [];
 
-            quests.find({'owner_id': Meteor.userId()}).forEach(function(quest_object) {
-                quest_targets = quest_targets.concat(quest_object.target);
-            });
+        quests.find({'owner_id': Meteor.userId()}).forEach(function(quest_object) {
+            quest_targets = quest_targets.concat(quest_object.target);
+        });
 
-             //TODO add legendary procs for sell amounts here
-            items.find({
-                'owner': Meteor.userId(),
-                'status': {$in: ["unclaimed", "won"]}, 
-                'foil': false, 
-                'seasonal': false, 
-                'lottery': 0,
-                'artwork_data.rarity': {$in: ["common", "uncommon", "rare"]},
-                'artwork_id': {$nin: quest_targets}
-            }).forEach(function(db_object) {
-                total_value += getItemObjectValueByType(db_object, "sell", Meteor.userId());
-                item_ids.push(db_object._id);
-            });
+         //TODO add legendary procs for sell amounts here
+        items.find({
+            'owner': Meteor.userId(),
+            'status': {$in: ["unclaimed", "won"]}, 
+            'foil': false, 
+            'seasonal': false, 
+            'lottery': 0,
+            'artwork_data.rarity': {$in: ["common", "uncommon", "rare"]},
+            'artwork_id': {$nin: quest_targets}
+        }).forEach(function(db_object) {
+            total_value += getItemObjectValueByType(db_object, "sell", Meteor.userId());
+            item_ids.push(db_object._id);
+        });
 
-            items.update({'_id': {$in: item_ids}}, {$set: {'owner': "Artfunkel, Inc.", 'status': "auctioned"}}, {multi: true} ,function(error) {
-                if (error)
-                    console.log(error.message);
+        items.update({'_id': {$in: item_ids}}, {$set: {'owner': "Artfunkel, Inc.", 'status': "auctioned"}}, {multi: true} ,function(error) {
+            if (error)
+                console.log(error.message);
 
-                else {
-                    for (var i=0; i<item_ids.length; i++) {
-                        if (Math.random() < .5) {
-                            createAuction(item_ids[i], getItemObjectValueByType(items.findOne(item_ids[i]), "actual", Meteor.userId()), -1, 120, "public");
-                        }
+            else {
+                for (var i=0; i<item_ids.length; i++) {
+                    if (Math.random() < .5 && Meteor.user().profile.user_type != "admin") {
+                        createAuction(item_ids[i], getItemObjectValueByType(items.findOne(item_ids[i]), "actual", Meteor.userId()), -1, 120, "public");
+                    }
 
-                        else {
-                            items.remove({'_id': item_ids[i]});
-                        }
+                    else {
+                        items.remove({'_id': item_ids[i]});
                     }
                 }
-            });
+            }
+        });
 
-            addFunds("sell item", Meteor.userId(), total_value);
-        }
-
-        else items.remove({'owner': Meteor.userId(), 'status': {$in: ["unclaimed", "won"]}});
+        addFunds("sell item", Meteor.userId(), total_value);
     },
 
     'clearAllForSale' : function() {

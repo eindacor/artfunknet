@@ -112,7 +112,7 @@ updateItemObjectValues = function(item_object) {
     values_object.sell = Math.floor(actual_value * .8);
     values_object.purchase = Math.floor(actual_value * 1.5);
     values_object.actual = Math.floor(actual_value);
-    values_object.auction_min = Math.floor(sell_value * .8);
+    values_object.auction_min = Math.floor(values_object.sell * .8);
     values_object.collector = Math.floor(actual_value * 1.2);
     values_object.dealer = Math.floor(actual_value * .9);
     values_object.display = Math.floor(display_value);
@@ -143,32 +143,39 @@ var getAttributeValueCoefficient = function(item_object) {
 }
 
 getItemObjectValueByType = function(item_object, type, user_id) {
-    if (item_object) {
-        var base_value = item_object.values[type];
+    try {
+        if (item_object) {
+            var base_value = item_object.values[type];
 
-        if (type == "dealer" && procUniqueAttribute(user_id, "DEALER_DISCOUNT", undefined)) {
-            base_value *= .75;
-        }
-
-        if (type == "sell") {
-            if (quests.findOne({'owner_id': user_id, 'target': {$in: [item_object.artwork_id]}}) &&
-                procUniqueAttribute(user_id, "QUEST_ITEM_SELL_BONUS", undefined)) {
-                base_value *= 1.5;
+            if (type == "dealer" && procUniqueAttribute(user_id, "DEALER_DISCOUNT", undefined)) {
+                base_value *= .75;
             }
 
-            if (item_object.status == "unclaimed" && 
-                procUniqueAttribute(user_id, "UNCLAIMED_ITEM_SELL_BONUS", undefined)) {
-                base_value *= 1.5;
+            if (type == "sell") {
+                if (quests.findOne({'owner_id': user_id, 'target': {$in: [item_object.artwork_id]}}) &&
+                    procUniqueAttribute(user_id, "QUEST_ITEM_SELL_BONUS", undefined)) {
+                    base_value *= 1.5;
+                }
+
+                if (item_object.status == "unclaimed" && 
+                    procUniqueAttribute(user_id, "UNCLAIMED_ITEM_SELL_BONUS", undefined)) {
+                    base_value *= 1.5;
+                }
             }
+
+            return Math.floor(base_value);
         }
 
-        return Math.floor(base_value);
+        else {
+            console.log("undefined object...");
+            console.log("item_object: " + item_object);
+            return undefined;
+        }
     }
 
-    else {
-        console.log("undefined object...");
-        console.log("item_object: " + item_object);
-        return undefined;
+    catch (error) {
+        console.log(error.message);
+        console.log(item_object);
     }
 }
 
