@@ -2,24 +2,20 @@
 	<div class="template-galleryItemInfo">
 		<div class="col-xs-12 no-margin">
 			<div class="info-area">
-				{{#with itemData this}}
-
-				<h4 class="{{rarity}}">{{title}}</h4>
-				<p>{{artist}}, {{date}}</p>
-				<p><span class="{{rarity}}"><strong>{{rarity}}</strong></span></p>
-				<p>{{medium}}</p>
-				<p>{{height}} x {{width}}</p>
-				<p>condition: <span style="color: {{getHTMLColorFromValue condition}}">{{condition_text}}</span></p>
-				<p>estimated value: ${{getItemValue item_id "actual"}}</p>
-				<p>xp rating: <span style="color: {{getHTMLColorFromValue xp_rating}}">{{xp_rating_text}}</span></p>
-				<p class="item-attributes">
-				{{#if is_not_permanent}}
-					{{#each attribute}}
+				{{#with item_data this}}
+					<h4 class="{{artwork_data.rarity}}">{{artwork_data.title}}</h4>
+					<p>{{artwork_data.artist}}, {{artwork_data.date}}</p>
+					<p><span class="{{artwork_data.rarity}}"><strong>{{artwork_data.rarity}}</strong></span></p>
+					<p>{{artwork_data.medium}}</p>
+					<p>{{artwork_data.height}} x {{artwork_data.width}}</p>
+					<p>condition: <span style="color: {{getHTMLColorFromValue condition}}">{{condition_text condition}}</span></p>
+					<p>estimated value: ${{getItemObjectValue this "actual"}}</p>
+					<p>xp rating: <span style="color: {{getHTMLColorFromValue xp_rating}}">{{xp_rating_text xp_rating}}</span></p>
+					<p class="item-attributes">
+					{{#each attributes}}
 						<i data-attribute_description="{{this.description}}" data-attribute_value="{{this.value}}" style="color: {{getHTMLColorFromValue this.value}}" class="item-attribute fa {{this.icon}}"></i>
 					{{/each}}
-				{{/if}}
-				</p>
-
+					</p>
 				{{/with}}	
 			</div>		
 		</div>

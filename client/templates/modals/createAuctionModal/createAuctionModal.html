@@ -4,11 +4,11 @@
 	        <div class="modal-dialog">
 	            <div class="modal-content container">
 	            	{{#with itemData}}
-	                <h4>Create an auction for <span class="highlight af-color work-title">{{title}}</span> by <span class="highlight af-color">{{artist}}</span></h4>
+	                <h4>Create an auction for <span class="highlight af-color work-title">{{artwork_data.title}}</span> by <span class="highlight af-color">{{artwork_data.artist}}</span></h4>
 	                <div class="auction-parameters">
 		                <div class="row starting-info">
 		                	<div class="col-xs-12 parameter">
-		                		<textarea id="starting-amount" placeholder="starting price - ${{getItemValue item_id 'auction_min'}} min."></textarea>
+		                		<textarea id="starting-amount" placeholder="starting price - ${{getItemObjectValue this 'auction_min'}} min."></textarea>
 		                	</div>
 				        </div>
 

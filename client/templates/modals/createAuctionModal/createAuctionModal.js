@@ -32,21 +32,7 @@ Template.createAuctionModal.events ({
 
 Template.createAuctionModal.helpers({
 	'itemData' : function() {
-		var item_object = items.findOne(Session.get('selectedItem'));
-		if (!!item_object) {
-			return {
-				'item_id' : item_object._id,
-				'title' : item_object.artwork_data.title,
-				'artist' : item_object.artwork_data.artist,
-			}
-		}
-
-		else return {
-			'title' : "",
-			'artist' : "",
-			'buy_now' : "",
-			'balance' : ""
-		}
+		return items.findOne(Session.get('selectedItem'));
 	},
 
 	'error' : function() {

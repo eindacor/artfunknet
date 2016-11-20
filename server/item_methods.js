@@ -408,10 +408,6 @@ Meteor.methods({
         items.update({'_id': item_id, 'owner': Meteor.userId()}, {$set: {'tags': lower_case}});
     },
 
-    'getItemValue' : function(item_id, type, user_id) {
-        return getItemObjectValueByType(items.findOne(item_id), type, user_id);
-    },
-
     'getRerollCost' : function(item_id) {
         return getRerollCost(item_id);
     },

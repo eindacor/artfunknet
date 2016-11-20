@@ -60,6 +60,11 @@ var reroll_coefficients = {
     'masterpiece' : 1.14
 }
 
+// sumtotal of these values must equal 1
+var lowest_possible_value_coefficient = .5;
+var condition_coefficient_max = .3;
+var attribute_coefficient_max = .2;
+
 updateItemObjectValues = function(item_object) {
     if (items.findOne(item_object._id) == undefined)
         return false;
@@ -120,11 +125,6 @@ updateItemObjectValues = function(item_object) {
     items.update(item_object._id, {$set: {'values': values_object}});
 }
 
-// sumtotal of these values must equal 1
-var lowest_possible_value_coefficient = .5;
-var condition_coefficient_max = .3;
-var attribute_coefficient_max = .2;
-
 var getAttributeValueCoefficient = function(item_object) {
     var attribute_array = item_object.attributes;
 
@@ -140,43 +140,6 @@ var getAttributeValueCoefficient = function(item_object) {
         return (total_rating / rating_count) * attribute_coefficient_max;
 
     else return 0;
-}
-
-getItemObjectValueByType = function(item_object, type, user_id) {
-    try {
-        if (item_object) {
-            var base_value = item_object.values[type];
-
-            if (type == "dealer" && procUniqueAttribute(user_id, "DEALER_DISCOUNT", undefined)) {
-                base_value *= .75;
-            }
-
-            if (type == "sell") {
-                if (quests.findOne({'owner_id': user_id, 'target': {$in: [item_object.artwork_id]}}) &&
-                    procUniqueAttribute(user_id, "QUEST_ITEM_SELL_BONUS", undefined)) {
-                    base_value *= 1.5;
-                }
-
-                if (item_object.status == "unclaimed" && 
-                    procUniqueAttribute(user_id, "UNCLAIMED_ITEM_SELL_BONUS", undefined)) {
-                    base_value *= 1.5;
-                }
-            }
-
-            return Math.floor(base_value);
-        }
-
-        else {
-            console.log("undefined object...");
-            console.log("item_object: " + item_object);
-            return undefined;
-        }
-    }
-
-    catch (error) {
-        console.log(error.message);
-        console.log(item_object);
-    }
 }
 
 getRolledCrateQuality = function() {

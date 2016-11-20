@@ -18,7 +18,7 @@
 							<p>{{item_data.artwork_data.height}} x {{item_data.artwork_data.width}}</p>
 							{{#if showDetails item_data}}
 								<p>condition: <span style="color: {{getHTMLColorFromValue item_data.condition}}">%{{floatToPercentage item_data.condition}}</span></p>
-								<p>estimated value: ${{getItemValue item_data._id "actual"}}</p>
+								<p>estimated value: {{displayAsMoneyValue item_data.values.actual}}</p>
 								<p>xp rating: <span style="color: {{getHTMLColorFromValue item_data.xp_rating}}">{{floatToPercentage item_data.xp_rating}}</span></p>
 								<p>roll count: {{item_data.roll_count}}</p>
 							{{else}}
