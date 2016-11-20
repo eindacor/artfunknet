@@ -29,6 +29,7 @@ createUser = function(user_object, callback){
     user_object.profile.last_logout = moment()._d.toISOString();
     user_object.profile.auction_data = {'winning': [], 'watching': []};
     user_object.profile.expansion_slots = 0;
+    user_object.profile.money_spent_on_crates = 0;
 
     user_object.profile.tutorials = {
         'welcome': true,
@@ -270,7 +271,7 @@ updateGalleryDetails = function(user_id) {
  
 var getExpansionSlotCost = function(user_object) {
     if (user_object.profile.expansion_slots < getMaxExpansionSlots()) {
-        var cost = Math.floor(1000000 * Math.pow(1.3, user_object.profile.expansion_slots));
+        var cost = Math.floor(1000000 * Math.pow(1.2, user_object.profile.expansion_slots));
         return cost;
     }   
 

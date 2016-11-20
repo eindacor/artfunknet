@@ -77,13 +77,6 @@ Template.store.helpers({
         }) != undefined;
 	},
 
-	'can_expand': function() {
-		if (Meteor.user())
-			return Meteor.user().profile.expansion_slots < getMaxExpansionSlots();
-
-		else return false;
-	},
-
 	'expansion_cost': function() {
 		expansion_tracker.depend();
 		if (expansion_cost == undefined)
@@ -92,9 +85,9 @@ Template.store.helpers({
 		else return expansion_cost;
 	},
 
-	'expansions_remaining': function() {
+	'expansion_number': function() {
 		if (Meteor.user())
-			return getMaxExpansionSlots() - Meteor.user().profile.expansion_slots;
+			return Meteor.user().profile.expansion_slots + 1;
 
 		else return 0;
 	}

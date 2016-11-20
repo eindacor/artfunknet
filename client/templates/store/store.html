@@ -6,9 +6,7 @@
 			{{#each crate_button}}
 			<button data-crate_size="{{size}}" class="crate-button {{#if can_afford cost}}enabled{{else}}disabled{{/if}}">{{size}} crate ({{count}} items)<p>{{displayAsMoneyValue cost}}</p></button>
 			{{/each}}
-			{{#if can_expand}}
-			<button class="inventory-expansion-button {{#if can_afford expansion_cost}}enabled{{else}}disabled{{/if}}">inventory expansion ({{expansions_remaining}} left)<p>{{displayAsMoneyValue expansion_cost}}</p></button>
-			{{/if}}
+			<button class="inventory-expansion-button {{#if can_afford expansion_cost}}enabled{{else}}disabled{{/if}}">inventory expansion (#{{expansion_number}})<p>{{displayAsMoneyValue expansion_cost}}</p></button>
 		</div>
 		<div class="row">
 			{{#if has_for_sale}}
