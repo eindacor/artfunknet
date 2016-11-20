@@ -307,7 +307,7 @@ var preservationistInteraction = function(npc_object) {
 		// B) If the preserved item already has a condition > 80, you earn money based on its value.
 		if (target_item && procUniqueAttribute(Meteor.userId(), "PRESERVATIONIST_CONDITION_BONUS", undefined) && target_item.condition > .8) {
 			message = "You have met a preservationist, who is in awe of the pristine quality of your displayed works. He immediately notifies his rich uncle who gives you a hefty donation.";
-			addFunds("PRESERVATIONIST_CONDITION_BONUS", Meteor.userId(), Math.min( Math.floor(getItemObjectValue(target_item, "display") * .1), 100000) );
+			addFunds("PRESERVATIONIST_CONDITION_BONUS", Meteor.userId(), Math.min( Math.floor(target_item.values.display * .1), 100000) );
 		}
 
 		// C) If you meet a preservationist with a designer present, the XP rating of your currently equipped finishes is increased. Finishes with a 100 rating give XP.
@@ -563,12 +563,12 @@ var collectorInteraction = function(npc_object) {
 			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_AUCTION_BONUS", undefined)) {
 				var highest_value = 0;
 				var value_multiplier = .6;
-				items.find({'owner': Meteor.userId(), 'status': "auctioned"}).forEach(function(db_object) {
-					highest_value = Math.max(getItemValue(db_object._id, "auction_min", Meteor.userId()) * value_multiplier, highest_value);
+				items.find({'owner': Meteor.userId(), 'status': "auctioned"}).forEach(function(item_object) {
+					highest_value = Math.max(item_object.values.auction_min * value_multiplier, highest_value);
 				})
 
 				auctions.find({'_id': {$in: Meteor.user().profile.auction_data.winning}}).forEach(function(auction_object) {
-					highest_value = Math.max(getItemValue(auction_object.item_id, "auction_min", Meteor.userId()) * value_multiplier, highest_value);
+					highest_value = Math.max(items.findOne(auction_object.item_id).values.auction_min * value_multiplier, highest_value);
 				});
 
 				highest_value = Math.min(highest_value, 200000);
@@ -591,7 +591,7 @@ var collectorInteraction = function(npc_object) {
 				}
 
 				else {
-					var donation_amount = Math.min(Math.floor((getItemValue(collector_target._id, "display", Meteor.userId()) * .2) * offer_multiplier) + offer_bonus, 800000);
+					var donation_amount = Math.min(Math.floor((collector_target.values.display * .2) * offer_multiplier) + offer_bonus, 800000);
 					addFunds("COLLECTOR_DISPLAY_OFFER", Meteor.userId(), donation_amount);
 					message = "You have met an Art Collector, who was admiring " + collector_target.artwork_data.title + " by " + collector_target.artwork_data.artist + ", currently on display in your gallery. They offer you $" + getCommaSeparatedValue(donation_amount) + " for their appreciation of the piece, and insist that you keep and maintain it for the world to enjoy.";
 				}
@@ -625,7 +625,7 @@ var collectorInteraction = function(npc_object) {
 		}
 
 		if (!xp_offer) {
-			offer_amount = Math.floor(getItemValue(collector_target._id, "collector", Meteor.userId()) * offer_multiplier) + offer_bonus;
+			offer_amount = Math.floor(collector_target.values.collector * offer_multiplier) + offer_bonus;
 		}
 
 		var offer_id = npc_data.insert({
@@ -1067,8 +1067,8 @@ var auctioneerInteraction = function(npc_object) {
 		setTimeout("", 2);
 
 		// private_auction_duration is instantiated in auction_methods.js
-		items.find({'_id': {$in: item_ids}}).forEach(function(db_object) {
-			createAuction(db_object._id, Math.floor(getItemObjectValue(db_object, "actual", undefined) * auction_price_adjustment), -1, private_auction_duration / 60000, Meteor.userId());
+		items.find({'_id': {$in: item_ids}}).forEach(function(item_object) {
+			createAuction(item_object._id, Math.floor(item_object.values.actual * auction_price_adjustment), -1, private_auction_duration / 60000, Meteor.userId());
 		})
 
 		message += " They have also given you exclusive access to some items available in a private auction. Visit the auction house to make a bid."

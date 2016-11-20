@@ -175,12 +175,12 @@ calcMVP = function(user_id) {
 
     var items_owned = items.find({'owner': user_id, 'status': {$nin: ['for_sale, unclaimed', 'won']}});
     var collection_total = 0;
-    items_owned.forEach(function(db_object) {
+    items_owned.forEach(function(item_object) {
         try {
-            var value = getItemValue(db_object._id, 'actual', user_id);
+            var value = item_object.values.actual;
             collection_total += value;
             if (value > mvp.value) {
-                mvp.item_id = db_object._id;
+                mvp.item_id = item_object._id;
                 mvp.value = value;
             }
         }
@@ -203,7 +203,7 @@ updateGalleryDetails = function(user_id) {
 
         var attribute_totals = {};
         for (var i=0; i < items_on_display.length; i++) {
-            gallery_value += getItemValue(items_on_display[i]._id, 'actual', user_id);
+            gallery_value += items_on_display[i].values.actual;
             var item_attributes = items_on_display[i].attributes;
 
             var rarity_npc_coefficient;
@@ -637,6 +637,7 @@ Meteor.methods({
             quest_targets = quest_targets.concat(quest_object.target);
         });
 
+        //TODO add legendary procs for sell amounts here
         items.find({
             'owner': Meteor.userId(),
             'status': {$in: ["unclaimed", "won"]}, 
@@ -664,6 +665,7 @@ Meteor.methods({
                 quest_targets = quest_targets.concat(quest_object.target);
             });
 
+             //TODO add legendary procs for sell amounts here
             items.find({
                 'owner': Meteor.userId(),
                 'status': {$in: ["unclaimed", "won"]}, 
@@ -684,6 +686,7 @@ Meteor.methods({
                 else {
                     calcMVP(Meteor.userId());
 
+                     //TODO add legendary procs for sell amounts here
                     for (var i=0; i<item_ids.length; i++) {
                         if (Math.random() < .5) {
                             createAuction(item_ids[i], getItemValue(item_ids[i], "sell", Meteor.userId()), -1, 120, "public");

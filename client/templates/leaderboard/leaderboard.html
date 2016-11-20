@@ -19,21 +19,21 @@
 		<div class="template-galleryScore col-xs-12">
 			<h3 class="af-color">Most Valuable Items</h3>
 			{{#each this}}
-			<div class="row list-row mvp-row" data-item_id="{{this.item_id}}">
+			<div class="row list-row mvp-row" data-item_id="{{_id}}">
 				<div class="col-xs-1">
 					<p>{{positionFromIndex @index}}.</p>
 				</div> 
 				<div class="col-xs-2">
-					<p class="highlight">{{this.owner}}</p>
+					<p class="highlight">{{owner_name _id}}</p>
 				</div> 
 				<div class="col-xs-4">
-					<p><span class="highlight work-title">{{this.title}}</span> by <span class="highlight">{{this.artist}}</span></p>
+					<p><span class="highlight work-title">{{artwork_data.title}}</span> by <span class="highlight">{{artwork_data.artist}}</span></p>
 				</div> 
 				<div class="col-xs-2">
-					<p class="highlight">{{displayAsMoneyValue this.value}}</p>
+					<p class="highlight">{{displayAsMoneyValue values.actual}}</p>
 				</div> 
 				<div class="col-xs-2">
-					<p class="{{this.rarity}}">{{this.rarity}}{{#if this.foil}}<span class="af-color"> foil</span>{{/if}}{{#if this.seasonal}}<span class="common"> seasonal</span>{{/if}}{{#if this.original}}<span class="purple-text"> original</span>{{/if}}{{#if this.lottery}}<span class="gold"> lottery {{this.lottery}}</span>{{/if}}</p>
+					<p class="{{artwork_data.rarity}}">{{artwork_data.rarity}}{{#if foil}}<span class="af-color"> foil</span>{{/if}}{{#if seasonal}}<span class="common"> seasonal</span>{{/if}}{{#if original}}<span class="purple-text"> original</span>{{/if}}{{#if lottery}}<span class="gold"> lottery {{lottery}}</span>{{/if}}{{#if vintage}}<span class="vintage-text"> vintage</span>{{/if}}</p>
 				</div> 
 			</div>
 			{{/each}}

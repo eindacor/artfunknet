@@ -60,6 +60,20 @@ var reroll_coefficients = {
     'masterpiece' : 1.14
 }
 
+updateItemObjectValues = function(item_object) {
+    if (items.findOne(item_object._id) == undefined)
+        return false;
+
+    var value_types = ["sell", "purchase", "actual", "auction_min", "collector", "dealer", "display"];
+    var values_object = {};
+
+    for (var i=0; i<value_types.length; i++) {
+        values_object[value_types[i]] = getItemObjectValue(item_object, value_types[i], item_object.owner);
+    }
+
+    items.update(item_object._id, {$set: {'values': values_object}});
+}
+
 getItemValue = function(item_id, type, user_id) {
     return getItemObjectValue(items.findOne(item_id), type, user_id);
 }
@@ -136,19 +150,19 @@ getItemObjectValue = function(item_object, type, user_id) {
         var auction_min = Math.floor(sell_value * .8);
         var collector_offer = Math.floor(actual_value * 1.2);
 
-        if (procUniqueAttribute(user_id, "DEALER_DISCOUNT", undefined)) {
-            dealer_offer = Math.floor(dealer_offer * .75);
-        }
+        // if (procUniqueAttribute(user_id, "DEALER_DISCOUNT", undefined)) {
+        //     dealer_offer = Math.floor(dealer_offer * .75);
+        // }
 
-        if (procUniqueAttribute(user_id, "QUEST_ITEM_SELL_BONUS", undefined)) {
-            if (quests.findOne({'owner_id': user_id, 'target': {$in: [item_object.artwork_id]}}))
-                sell_value = Math.floor(sell_value * 1.5);
-        }
+        // if (procUniqueAttribute(user_id, "QUEST_ITEM_SELL_BONUS", undefined)) {
+        //     if (quests.findOne({'owner_id': user_id, 'target': {$in: [item_object.artwork_id]}}))
+        //         sell_value = Math.floor(sell_value * 1.5);
+        // }
 
-        if (procUniqueAttribute(user_id, "UNCLAIMED_ITEM_SELL_BONUS", undefined)) {
-            if (item_object.status == "unclaimed")
-                sell_value = Math.floor(sell_value * 1.5);
-        }
+        // if (procUniqueAttribute(user_id, "UNCLAIMED_ITEM_SELL_BONUS", undefined)) {
+        //     if (item_object.status == "unclaimed")
+        //         sell_value = Math.floor(sell_value * 1.5);
+        // }
 
         switch(type) {
             case "sell": return sell_value;

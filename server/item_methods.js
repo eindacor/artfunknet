@@ -32,8 +32,9 @@ concludeDisplay = function(item_id) {
             console.log(error.message);
 
         else {
-            updateGalleryDetails(items.findOne(item_id).owner);
-            calcMVP(items.findOne(item_id).owner);
+            updateGalleryDetails(item_object.owner);
+            calcMVP(item_object.owner);
+            updateItemObjectValues(item_object);
         }
     });
 }
@@ -50,7 +51,7 @@ getDisplayDetails = function(item_id, duration) {
 
     var item_object = items.findOne(item_id);
 
-    var display_amount = getItemObjectValue(item_object, 'display', item_object.owner);
+    var display_amount = item_object.values.display;
     var xp_chunk = getXPChunk(Meteor.user().profile.level);
     var xp_rating = items.findOne(item_id).xp_rating;
     var xp_chunk_percentage_value = .5 + (.5 * xp_rating);
@@ -376,7 +377,7 @@ Meteor.methods({
             errors.push("invalid duration");
 
         if (item_object) {        
-            var minimum = getItemValue(item_id, "auction_min", Meteor.userId());
+            var minimum = item_object.values.auction_min;
             if (Number(starting) < minimum)
                 errors.push("starting value must be greater than $" + getCommaSeparatedValue(minimum));
 
@@ -518,5 +519,13 @@ Meteor.methods({
 
         else return false;
     },
+
+    'lookupOwner': function(item_id) {
+        var item_object = items.findOne(item_id);
+        if (item_object)
+            return Meteor.users.findOne(item_object.owner).profile.screen_name;
+
+        else return undefined;
+    }
 
 })

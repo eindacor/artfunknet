@@ -77,7 +77,9 @@ var updateContent = function() {
     });
 
     // temp code
-    Meteor.users.update({'profile.money_spent_on_crates': null}, {$set: {'profile.money_spent_on_crates': 0}}, {multi: true});
+    items.find({'values': null}).forEach(function(item_object) {
+        updateItemObjectValues(item_object);
+    });
     // temp code
 }
 
