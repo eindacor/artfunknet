@@ -85,9 +85,9 @@ Template.store.helpers({
 		else return expansion_cost;
 	},
 
-	'expansions_remaining': function() {
+	'expansion_number': function() {
 		if (Meteor.user())
-			return getMaxExpansionSlots() - Meteor.user().profile.expansion_slots;
+			return Meteor.user().profile.expansion_slots + 1;
 
 		else return 0;
 	}
