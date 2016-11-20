@@ -17,7 +17,7 @@ createAuction = function(item_id, starting, buy_now, duration, viewer) {
                 default: rarity_rank = 0; break;
             }
 
-            var increment = Math.floor(.02 * getItemObjectValueByType(item_object, 'actual', user_object._id));
+            var increment = Math.floor(.02 * getItemObjectValueByType(item_object, 'actual', user_object == undefined ? undefined : user_object._id));
 
             var auction_object = {
                 'item_id': item_id,
@@ -56,7 +56,7 @@ createAuction = function(item_id, starting, buy_now, duration, viewer) {
     }
 
     catch(error) {
-        console.log(error.message);
+        console.log("createAuction: " + error.message);
     }
 }
 

@@ -116,6 +116,9 @@ Template.itemInfo.helpers({
 	},
 
 	'unique_attribute' : function(item_object) {
+		if (item_object.attributes == undefined)
+			return [];
+
 		var attribute_array = [];
 		item_object.attributes.forEach(function(attribute_object) {
 			if (attribute_object.locked)
@@ -171,16 +174,7 @@ Template.itemInfo.helpers({
 	},
 
 	'showDetails': function(item_data) {
-		if (item_data.owner == Meteor.userId())
-			return true;
-
-		if (item_data.status == "displayed" || item_data.status == "permanent")
-			return true;
-
-		if (item_data.status == "auctioned" && Meteor.user().profile.market_expert.expiration > moment()._d.toISOString())
-			return true;
-
-		return false;
+		return item_data.xp_rating != undefined;
 	}
 })
 

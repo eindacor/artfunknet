@@ -997,5 +997,28 @@ Meteor.methods({
 
     'purchaseExpansionSlot': function() {
         return purchaseExpansionSlot(Meteor.user());
+    },
+
+    'getAuctionPreviewItemObject': function(auction_id) {
+        var auction_object = auctions.findOne(auction_id);
+        if (auction_object == undefined)
+            return {};
+
+        var has_auctioneer = Meteor.user().profile.market_expert.expiration > moment()._d.toISOString();
+
+        var fields_object = {
+            'artwork_data': 1
+        };
+
+        if (has_auctioneer || auction_object.seller == Meteor.user().profile.screen_name) {
+            fields_object.condition = 1;
+            fields_object.values = 1;
+            fields_object.xp_rating = 1;
+            fields_object.roll_count = 1;
+            fields_object.attributes = 1;
+        }
+
+        var item_object = items.findOne(auction_object.item_id, {fields: fields_object});
+        return item_object;
     }
 })

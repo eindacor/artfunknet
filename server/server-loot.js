@@ -66,63 +66,81 @@ var condition_coefficient_max = .3;
 var attribute_coefficient_max = .2;
 
 updateItemObjectValues = function(item_object) {
-    if (items.findOne(item_object._id) == undefined)
+    try {
+        if (items.findOne(item_object._id) == undefined)
+            return false;
+
+        items.update(item_object._id, {$set: {'values': getItemObjectValues(item_object)}});
+    }
+
+    catch (error) {
+        console.log("updateItemObjectValues: " + error.message);
         return false;
+    }
+}
 
-    var value_types = ["sell", "purchase", "actual", "auction_min", "collector", "dealer", "display"];
-    var values_object = {};
+var getItemObjectValues = function(item_object) {
+    try {
+        var value_types = ["sell", "purchase", "actual", "auction_min", "collector", "dealer", "display"];
+        var values_object = {};
 
-    var rarity_values = getLootData().rarity_values;
+        var rarity_values = getLootData().rarity_values;
 
-    var artwork_object = artworks.findOne({'_id': item_object.artwork_id});
+        var artwork_object = artworks.findOne({'_id': item_object.artwork_id});
 
-    var min = rarity_values[artwork_object.rarity].min;
-    var max = rarity_values[artwork_object.rarity].max;
+        var min = rarity_values[artwork_object.rarity].min;
+        var max = rarity_values[artwork_object.rarity].max;
 
-    var range = max - min;
+        var range = max - min;
 
-    var mint_value = Math.floor(min + (artwork_object.value_scale * range));
+        var mint_value = Math.floor(min + (artwork_object.value_scale * range));
 
-    var base_value = mint_value * lowest_possible_value_coefficient;
-    var condition_value = mint_value * condition_coefficient_max * item_object.condition;
-    var attribute_value = mint_value * getAttributeValueCoefficient(item_object);
+        var base_value = mint_value * lowest_possible_value_coefficient;
+        var condition_value = mint_value * condition_coefficient_max * item_object.condition;
+        var attribute_value = mint_value * getAttributeValueCoefficient(item_object);
 
-    var actual_value = Math.floor(base_value + condition_value + attribute_value);
-    var display_value = actual_value * 2;
+        var actual_value = Math.floor(base_value + condition_value + attribute_value);
+        var display_value = actual_value * 2;
 
-    if (item_object.foil) {
-        actual_value *= 2;
-        display_value *= 1.2;
+        if (item_object.foil) {
+            actual_value *= 2;
+            display_value *= 1.2;
+        }
+
+        else if(item_object.seasonal) {
+            actual_value *= 5;
+            display_value *= 1.5;
+        }
+
+        else if(item_object.lottery && item_object.lottery != 0) {
+            actual_value *= (10 * item_object.lottery);
+            display_value *= 2;
+        }
+
+        else if(item_object.original) {
+            actual_value *= 7;
+            display_value *= 2;
+        }
+
+        if (item_object.misprint){
+            display_value *= 20;
+        }
+
+        values_object.sell = Math.floor(actual_value * .8);
+        values_object.purchase = Math.floor(actual_value * 1.5);
+        values_object.actual = Math.floor(actual_value);
+        values_object.auction_min = Math.floor(values_object.sell * .8);
+        values_object.collector = Math.floor(actual_value * 1.2);
+        values_object.dealer = Math.floor(actual_value * .9);
+        values_object.display = Math.floor(display_value);
+
+        return values_object;
     }
 
-    else if(item_object.seasonal) {
-        actual_value *= 5;
-        display_value *= 1.5;
+    catch (error) {
+        console.log("getItemObjectValues: " + error.message);
+        return {};
     }
-
-    else if(item_object.lottery && item_object.lottery != 0) {
-        actual_value *= (10 * item_object.lottery);
-        display_value *= 2;
-    }
-
-    else if(item_object.original) {
-        actual_value *= 7;
-        display_value *= 2;
-    }
-
-    if (item_object.misprint){
-        display_value *= 20;
-    }
-
-    values_object.sell = Math.floor(actual_value * .8);
-    values_object.purchase = Math.floor(actual_value * 1.5);
-    values_object.actual = Math.floor(actual_value);
-    values_object.auction_min = Math.floor(values_object.sell * .8);
-    values_object.collector = Math.floor(actual_value * 1.2);
-    values_object.dealer = Math.floor(actual_value * .9);
-    values_object.display = Math.floor(display_value);
-
-    items.update(item_object._id, {$set: {'values': values_object}});
 }
 
 var getAttributeValueCoefficient = function(item_object) {
@@ -281,7 +299,7 @@ generateItemFromArtworkID = function(item_generator) {
 
         var loot_data = getLootData();
 
-        var new_item_id = items.insert({
+        var new_item_object = {
             'artwork_id' : item_generator.artwork_id,
             'condition' : item_generator.condition === undefined ? getCondition(item_generator.condition_min) : item_generator.condition,
             'attributes' : getAttributes(artwork_data.rarity, item_generator.artwork_id),
@@ -297,16 +315,17 @@ generateItemFromArtworkID = function(item_generator) {
             'original': item_generator.original === undefined ? false : item_generator.original,
             'tags': [],
             'artwork_data': artwork_data
-        }, function(error, result) {
+        };
+
+        new_item_object.values = getItemObjectValues(new_item_object);
+
+        var new_item_id = items.insert(new_item_object, function(error, result) {
             if (error)
                 console.log(error.message)
 
             else {
-                var item_object = items.findOne(result);
-                if (item_object.artwork_data.rarity == "legendary" || item_object.artwork_data.rarity == "masterpiece")
-                    logLegendary(item_generator.source, item_object);
-
-                updateItemObjectValues(item_object);
+                if (new_item_object.artwork_data.rarity == "legendary" || new_item_object.artwork_data.rarity == "masterpiece")
+                    logLegendary(item_generator.source, new_item_object);
             }
         });
 

@@ -1089,7 +1089,7 @@ var auctioneerInteraction = function(npc_object) {
 
 		var item_ids = generateItems(multi_item_generator);
 
-		setTimeout("", 2);
+		setTimeout("", 2000);
 
 		// private_auction_duration is instantiated in auction_methods.js
 		items.find({'_id': {$in: item_ids}}).forEach(function(item_object) {
