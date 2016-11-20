@@ -4,7 +4,7 @@
 			{{#with userData}}
 			<div class="row dash-section">
 				<div class="row">
-					<h2 class="af-color">{{screen_name}}{{#if vintage_count}} ({{vintage_count}}){{/if}}</h2>
+					<span class="gamertag af-color">{{screen_name}}</span>{{#if vintage_count}} ({{vintage_count}}){{/if}}
 				</div>
 				<div class="row">
 					<div class="col-xs-6 no-padding">
@@ -28,18 +28,18 @@
 				</div>
 				<div class="row player-info">
 					<div class="col-xs-12">
-						<p>bank balance: <span class="highlight af-color">${{bank_balance}}</span></p>	
-						<p>collection value: <span class="highlight af-color">${{collection_value}}</span></p>				
-						<p>current exhibition value: <span class="highlight af-color">${{display_value}}</span></p>					
-						<p>items exhibited: <span class="highlight af-color">{{display_count}}</span> ({{display_max}} max)</p>					
-						<p>paintings owned: <span class="highlight af-color">{{inventory_count}}</span> ({{inventory_max}} {{#if expansion_slots}}+ {{expansion_slots}} = {{max_total}}{{/if}} max)</p>
-						<p>originals owned: <span class="highlight purple-text">{{original_count}}</span></p>	
-						<p>vintage items owned: <span class="highlight vintage-text">{{vintage_items}}</span></p>									
-						<p>permanent collection: <span class="highlight af-color">{{private_count}}</span> ({{private_max}} max)</p>		
-						<p>completed quests: <span class="highlight af-color">{{completed_quests}}</span></p>	
-						<p>auctioned items: <span class="highlight af-color">{{auctioned_items}}</span> ({{auction_cap}} max)</p>
-						<p>winning auctions: <span class="highlight af-color">{{winning_auctions}}</span> ({{auction_cap}} max)</p>		
-						<p>gallery entry fee: 
+						<p class="player-data">bank balance: <span class="highlight af-color">${{bank_balance}}</span></p>	
+						<p class="player-data">collection value: <span class="highlight af-color">${{collection_value}}</span></p>				
+						<p class="player-data">current exhibition value: <span class="highlight af-color">${{display_value}}</span></p>					
+						<p class="player-data">items exhibited: <span class="highlight af-color">{{display_count}}</span> ({{display_max}} max)</p>					
+						<p class="player-data">paintings owned: <span class="highlight af-color">{{inventory_count}}</span> ({{inventory_max}} {{#if expansion_slots}}+ {{expansion_slots}} = {{max_total}}{{/if}} max)</p>
+						<p class="player-data">originals owned: <span class="highlight purple-text">{{original_count}}</span></p>	
+						<p class="player-data">vintage items owned: <span class="highlight vintage-text">{{vintage_items}}</span></p>									
+						<p class="player-data">permanent collection: <span class="highlight af-color">{{private_count}}</span> ({{private_max}} max)</p>		
+						<p class="player-data">completed quests: <span class="highlight af-color">{{completed_quests}}</span></p>	
+						<p class="player-data">auctioned items: <span class="highlight af-color">{{auctioned_items}}</span> ({{auction_cap}} max)</p>
+						<p class="player-data">winning auctions: <span class="highlight af-color">{{winning_auctions}}</span> ({{auction_cap}} max)</p>		
+						<p class="player-data">gallery entry fee: 
 							<select class="price-selector">
 								<option selected="selected" value="{{entry_fee}}">{{entry_fee}}</option>
 								{{#each unselected entry_fee}}

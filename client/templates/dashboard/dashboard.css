@@ -94,6 +94,14 @@
 	margin-top: 20px;
 }
 
+.template-dashboard .gamertag {
+	font-size: 3rem;
+}
+
+.template-dashboard p.player-data {
+	margin-bottom: 0;
+}
+
 /* ---AUCTION DATA --- */
 .template-dashboard #toggle-details {
 	background-color: black;

@@ -152,6 +152,11 @@ Template.itemInfo.helpers({
 
 	'already_owns': function(item_id) {
 		// returns true if the viewer owns a claimed copy of this item, and the item itself is not owned or claimed by the viewer
+		var item_object = items.findOne(item_id);
+
+		if (item_object == undefined)
+			return false;
+		
 		var item_belongs_to_other = items.findOne(item_id).owner != Meteor.userId();
 		var item_is_unclaimed = items.findOne({'_id': item_id, 'status': {$in: ['unclaimed', 'for_sale', 'won']}}) != undefined;
 		var show_already_owns = item_belongs_to_other || item_is_unclaimed;

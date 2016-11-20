@@ -1052,7 +1052,6 @@ Meteor.methods({
                     'profile.level': 0, 
                     'profile.bank_balance': new_bank_balance, 
                     'profile.xp': 0,
-                    'profile.expansion_slots': 0,
                     'profile.completed_quests': 0,
                     'profile.last_drop': moment().add(-1, 'days')._d.toISOString(),
                     'profile.gallery_finishes': {
@@ -1102,7 +1101,7 @@ Meteor.methods({
                 setter[setter_key] = value;
             }
 
-            Meteor.users.update(Meteor.userId(), {$set : setter});
+            Meteor.users.update({'owner_id': Meteor.userId()}, {$set : setter});
         }
 
         catch (error) {

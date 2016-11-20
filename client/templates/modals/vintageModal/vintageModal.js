@@ -4,7 +4,7 @@ Template.vintageModal.events({
 			if (error)
 				console.log(error.message);
 
-			$('.template-vintageModal').remove();
+			$('.template-modalTemplate').remove();
 		});
 	}
 })
