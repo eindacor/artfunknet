@@ -8,12 +8,12 @@ var max_matte_width_cm = 20;
 var texture_size_cm = 300;
 
 var getMVPData = function() {
-    var admin_ids = [];
+    var admin_ids = ['Artfunkel, Inc.'];
     Meteor.users.find({'profile.user_type': "admin"}).forEach(function(user_object) {
         admin_ids.push(user_object._id);
     });
 
-    return items.find({'owner': {$nin: admin_ids}}, {limit: 20, sort: {'values.actual': -1}}).fetch();   
+    return items.find({'owner': {$nin: admin_ids}, 'status': {$nin: ["unclaimed", "won", "for_sale"]}}, {limit: 20, sort: {'values.actual': -1}}).fetch();   
 }
 
 Meteor.methods({

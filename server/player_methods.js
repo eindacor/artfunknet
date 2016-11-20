@@ -1065,6 +1065,7 @@ Meteor.methods({
                 $set: {
                     'status': 'won',
                     'vintage': true,
+                    'date_received': moment()._d.toISOString(),
                     'display_details': {
                         'money' : 0,
                         'xp' : 0,
@@ -1095,7 +1096,7 @@ Meteor.methods({
             console.log(error.message);
         }
     },
-    
+
     'getAuctionPreviewItemObject': function(auction_id) {
         var auction_object = auctions.findOne(auction_id);
         if (auction_object == undefined)
