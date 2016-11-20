@@ -60,34 +60,30 @@ var reroll_coefficients = {
     'masterpiece' : 1.14
 }
 
-getItemValue = function(item_id, type, user_id) {
-    return getItemObjectValue(items.findOne(item_id), type, user_id);
-}
-
 // sumtotal of these values must equal 1
 var lowest_possible_value_coefficient = .5;
 var condition_coefficient_max = .3;
 var attribute_coefficient_max = .2;
 
-var getAttributeValueCoefficient = function(item_object) {
-    var attribute_array = item_object.attributes;
+updateItemObjectValues = function(item_object) {
+    try {
+        if (items.findOne(item_object._id) == undefined)
+            return false;
 
-    var total_rating = 0;
-    var rating_count = 0;
-
-    for (var i=0; i<attribute_array.length; i++) {
-        rating_count++;
-        total_rating += attribute_array[i].value;
+        items.update(item_object._id, {$set: {'values': getItemObjectValues(item_object)}});
     }
 
-    if (rating_count)
-        return (total_rating / rating_count) * attribute_coefficient_max;
-
-    else return 0;
+    catch (error) {
+        console.log("updateItemObjectValues: " + error.message);
+        return false;
+    }
 }
 
-getItemObjectValue = function(item_object, type, user_id) {
-    if (item_object) {
+var getItemObjectValues = function(item_object) {
+    try {
+        var value_types = ["sell", "purchase", "actual", "auction_min", "collector", "dealer", "display"];
+        var values_object = {};
+
         var rarity_values = getLootData().rarity_values;
 
         var artwork_object = artworks.findOne({'_id': item_object.artwork_id});
@@ -135,44 +131,38 @@ getItemObjectValue = function(item_object, type, user_id) {
             display_value *= 1.5;
         }
 
-        var sell_value = Math.floor(actual_value * .8);
-        var purchase_value = Math.floor(actual_value * 1.5);
-        var dealer_offer = Math.floor(actual_value * .9);
-        var auction_min = Math.floor(sell_value);
-        var collector_offer = Math.floor(actual_value * 1.2);
+        values_object.sell = Math.floor(actual_value * .8);
+        values_object.purchase = Math.floor(actual_value * 1.5);
+        values_object.actual = Math.floor(actual_value);
+        values_object.auction_min = Math.floor(values_object.sell * .8);
+        values_object.collector = Math.floor(actual_value * 1.2);
+        values_object.dealer = Math.floor(actual_value * .9);
+        values_object.display = Math.floor(display_value);
 
-        if (procUniqueAttribute(user_id, "DEALER_DISCOUNT", undefined)) {
-            dealer_offer = Math.floor(dealer_offer * .75);
-        }
-
-        if (procUniqueAttribute(user_id, "QUEST_ITEM_SELL_BONUS", undefined)) {
-            if (quests.findOne({'owner_id': user_id, 'target': {$in: [item_object.artwork_id]}}))
-                sell_value = Math.floor(sell_value * 1.5);
-        }
-
-        if (procUniqueAttribute(user_id, "UNCLAIMED_ITEM_SELL_BONUS", undefined)) {
-            if (item_object.status == "unclaimed")
-                sell_value = Math.floor(sell_value * 1.5);
-        }
-
-        switch(type) {
-            case "sell": return sell_value;
-            case "purchase": return purchase_value;
-            case "actual": return Math.floor(actual_value);
-            case "auction_min": return auction_min;
-            case "collector" : return collector_offer; 
-            case "dealer" : return dealer_offer; 
-            case "display" : return display_value;
-            default: return undefined;
-        }
+        return values_object;
     }
 
-    else {
-        console.log("undefined object...");
-        console.log("item_id: " + item_id);
-        console.log("item_object: " + item_object);
-        return undefined;
+    catch (error) {
+        console.log("getItemObjectValues: " + error.message);
+        return {};
     }
+}
+
+var getAttributeValueCoefficient = function(item_object) {
+    var attribute_array = item_object.attributes;
+
+    var total_rating = 0;
+    var rating_count = 0;
+
+    for (var i=0; i<attribute_array.length; i++) {
+        rating_count++;
+        total_rating += attribute_array[i].value;
+    }
+
+    if (rating_count)
+        return (total_rating / rating_count) * attribute_coefficient_max;
+
+    else return 0;
 }
 
 getRolledCrateQuality = function() {
@@ -315,7 +305,7 @@ generateItemFromArtworkID = function(item_generator) {
 
         var loot_data = getLootData();
 
-        var new_item_id = items.insert({
+        var new_item_object = {
             'artwork_id' : item_generator.artwork_id,
             'condition' : item_generator.condition === undefined ? getCondition(item_generator.condition_min) : item_generator.condition,
             'attributes' : getAttributes(artwork_data.rarity, item_generator.artwork_id),
@@ -332,14 +322,17 @@ generateItemFromArtworkID = function(item_generator) {
             'vintage': item_generator.vintage === undefined ? false : item_generator.vintage,
             'tags': [],
             'artwork_data': artwork_data
-        }, function(error, result) {
+        };
+
+        new_item_object.values = getItemObjectValues(new_item_object);
+
+        var new_item_id = items.insert(new_item_object, function(error, result) {
             if (error)
                 console.log(error.message)
 
             else {
-                var item_object = items.findOne(result);
-                if (item_object.artwork_data.rarity == "legendary" || item_object.artwork_data.rarity == "masterpiece")
-                    logLegendary(item_generator.source, item_object);
+                if (new_item_object.artwork_data.rarity == "legendary" || new_item_object.artwork_data.rarity == "masterpiece")
+                    logLegendary(item_generator.source, new_item_object);
             }
         });
 

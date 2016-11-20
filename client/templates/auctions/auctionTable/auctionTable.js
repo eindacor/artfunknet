@@ -5,6 +5,22 @@ var sought_items = {};
 var already_winning = {};
 var hide_details = true;
 
+var getAuctionPreviewItemObject = function(auction_id) {
+	Meteor.call('getAuctionPreviewItemObject', auction_id, function(error, result) {
+		if (error)
+			console.log(error.message);
+
+		else {
+			Blaze.renderWithData(Template.modalTemplate, {
+				'modal_name': "fullViewModal", 
+				'modal_data': {
+					'item_data': result
+				}
+			}, $('body')[0]);
+		}
+	})
+}
+
 var getSoughtStatus = function(artwork_id) {
 	Meteor.call('getSoughtStatus', artwork_id, false, function(error, result) {
 		if (error)
@@ -222,13 +238,7 @@ Template.auctionTable.events({
 
 	'click .auction-thumb' : function(element) {
 		var auction_id = $(element.target).data('auction_id');
-		var item_id = auctions.findOne(auction_id).item_id;
-		Blaze.renderWithData(Template.modalTemplate, {
-			'modal_name': "fullViewModal", 
-			'modal_data': {
-				'item_data': items.findOne(item_id)
-			}
-		}, $('body')[0]);
+		getAuctionPreviewItemObject(auction_id);		
 	},
 
 	'click .item-attribute' : function(element) {

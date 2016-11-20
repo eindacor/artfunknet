@@ -1,46 +1,14 @@
 Template.galleryItemInfo.helpers({
-	'itemData' : function(item_id) {
-		var item_object = items.findOne(item_id);
-		if (item_object != undefined) {
-			
-			var item_data_object = {
-				'title' : item_object.artwork_data.title,
-				'date' : item_object.artwork_data.date,
-				'artist' : item_object.artwork_data.artist,
-				'rarity' : item_object.artwork_data.rarity,
-				'medium' : item_object.artwork_data.medium,
-				'width' : item_object.artwork_data.width,
-				'height' : item_object.artwork_data.height,
-				'condition_text' : Math.floor(item_object.condition * 100) + '%',
-				'condition' : item_object.condition,
-				'attribute' : item_object.attributes,
-				'item_id' : item_object._id,
-				'xp_rating' : item_object.xp_rating,
-				'xp_rating_text' : Math.floor(item_object.xp_rating * 100),
-				'is_not_permanent' : item_object.status != "permanent"
-			}
+	'item_data': function(item_id) {
+		return items.findOne(item_id);
+	},
 
-			return item_data_object;
-		}
+	'condition_text': function(condition) {
+		return Math.floor(condition * 100) + '%';
+	},
 
-		else {
-			return {
-				'title' : "",
-				'date' : "",
-				'artist' : "",
-				'rarity' : "",
-				'medium' : "",
-				'width' : "",
-				'height' : "",
-				'condition_text' : "",
-				'condition' : "",
-				'attribute' : "",
-				'item_id' : "",
-				'xp_rating' : "",
-				'xp_rating_text' : "",
-				'is_not_permanent' : ""
-			}
-		}
+	'xp_rating_text': function(xp_rating) {
+		return Math.floor(xp_rating * 100);
 	}
 })
 

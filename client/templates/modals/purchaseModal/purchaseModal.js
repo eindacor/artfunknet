@@ -1,34 +1,12 @@
 Template.purchaseModal.helpers({
-	'itemId' : function() {
-		if (Session.get('selectedItem')) 
-			return Session.get('selectedItem');
-
-		else return "";
-	},
-
-	'purchaseData' : function() {
-		try {
-			if (Session.get('selectedItem')) {
-				var item_object = items.findOne(Session.get('selectedItem'));
-					
-				return {
-					'item_id' : item_object._id,
-					'title' : item_object.artwork_data.title,
-					'artist' : item_object.artwork_data.artist,
-				}
-			}
-
-			else return {
-				'title' : "",
-				'artist' : "",
-			}
+	'item_data' : function() {
+		if (Session.get('selectedItem')) {
+			return items.findOne(Session.get('selectedItem'));
 		}
 
-		catch(error) {
-			return {
-				'title' : "",
-				'artist' : "",
-			}
+		else return {
+			'title' : "",
+			'artist' : "",
 		}
 	},
 

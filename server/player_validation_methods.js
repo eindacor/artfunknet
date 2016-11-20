@@ -78,7 +78,8 @@ canPurchaseItemFromDealer = function(item_id) {
 	var item_object = items.findOne(item_id);
 	var owned = Meteor.userId() && item_object && item_object.owner == Meteor.userId();
 	var status_ok = item_object && item_object.status == "for_sale";
-	var can_afford = Meteor.userId() && getItemValue(item_id, "dealer", item_object.owner) <= Meteor.user().profile.bank_balance;
+	 //TODO add legendary procs for dealer amounts here
+	var can_afford = Meteor.userId() && getItemObjectValueByType(item_object, "dealer", Meteor.userId()) <= Meteor.user().profile.bank_balance;
 	var not_full = !inventoryIsFull(Meteor.user()) || item_object.original;;
 	return owned && status_ok && can_afford && not_full ? item_object : undefined;
 }

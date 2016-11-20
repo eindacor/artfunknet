@@ -58,8 +58,6 @@ var updateContent = function() {
     var all_users = Meteor.users.find();
     all_users.forEach(function(db_object) {
         updateGalleryDetails(db_object._id);
-        calcMVP(db_object._id);
-
         var cap_object = getCapSetterObject(db_object.profile.level);
 
         var setter = {};
@@ -80,6 +78,9 @@ var updateContent = function() {
     Meteor.users.update({'profile.vintage_count': null}, {$set: {'profile.vintage_count': 0}}, {multi: true});
     Meteor.users.update({'profile.vintage_select': null}, {$set: {'profile.vintage_select': false}}, {multi: true});
     items.update({'vintage': null}, {$set: {'vintage': false}}, {multi: true});
+    items.find({'values': null}).forEach(function(item_object) {
+        updateItemObjectValues(item_object);
+    });
     // temp code
 }
 

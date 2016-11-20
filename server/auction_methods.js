@@ -17,7 +17,7 @@ createAuction = function(item_id, starting, buy_now, duration, viewer) {
                 default: rarity_rank = 0; break;
             }
 
-            var increment = Math.floor(.02 * getItemValue(item_id, "actual", undefined));
+            var increment = Math.floor(.02 * getItemObjectValueByType(item_object, 'actual', user_object == undefined ? undefined : user_object._id));
 
             var auction_object = {
                 'item_id': item_id,
@@ -56,7 +56,7 @@ createAuction = function(item_id, starting, buy_now, duration, viewer) {
     }
 
     catch(error) {
-        console.log(error.message);
+        console.log("createAuction: " + error.message);
     }
 }
 
@@ -119,7 +119,6 @@ var successfulAuction = function(auction_object, winning_user) {
                 alerts.insert(alert_sale_object);
 
                 addFunds("auction", previous_owner._id, auction_object.current_bid);
-                calcMVP(previous_owner._id);
             }
 
             var win_message = "You have won " + auction_object.item_data.title + " by " + auction_object.item_data.artist + " in the auction house for $" + getCommaSeparatedValue(auction_object.current_bid);
@@ -134,8 +133,16 @@ var successfulAuction = function(auction_object, winning_user) {
             alerts.insert(alert_win_object);
             
             if (procUniqueAttribute(new_winner_id, "AUCTION_WIN_CONDITION_INCREASE", undefined)) {
-                if (item_object.condition < .5)
-                    items.update(item_object._id, {$set: {'condition': .9}});
+                if (item_object.condition < .5) {
+                    items.update(item_object._id, {$set: {'condition': .9}}, function(error) {
+                        if (error)
+                            console.log(error)
+
+                        else {
+                            updateItemObjectValues(items.findOne(item_object._id));
+                        }
+                    });
+                }
             }
 
             if (procUniqueAttribute(new_winner_id, "AUCTION_WIN_TICKET_EXTENSION", undefined)) {
@@ -145,7 +152,6 @@ var successfulAuction = function(auction_object, winning_user) {
                 })
             }
 
-            calcMVP(winning_user._id); 
             Meteor.users.update({'profile.auction_data.winning': {$in: [auction_object._id]}}, {$pull: {'profile.auction_data.winning': auction_object._id}}); 
             Meteor.users.update({}, {$pull: {'profile.auction_data.watching': auction_object._id}}, {multi: true});   
         }
@@ -348,8 +354,16 @@ var placeBid = function(bidder_id, auction_id, amount) {
             var seller_id = Meteor.users.findOne({'profile.screen_name': auction_object.seller})._id;
             
             if (procUniqueAttribute(bidder_id, "AUCTION_WIN_CONDITION_INCREASE", undefined)) {
-                if (auction_object.item_data.condition < .5)
-                    items.update(auction_object.item_id, {$set: {'condition': .9}});
+                if (auction_object.item_data.condition < .5) {
+                    items.update(auction_object.item_id, {$set: {'condition': .9}}, function(error) {
+                        if (error)
+                            console.log(error.message)
+
+                        else {
+                            updateItemObjectValues(items.findOne(auction_object.item_id));
+                        }
+                    });
+                }
             }
 
             if (procUniqueAttribute(bidder_id, "AUCTION_WIN_TICKET_EXTENSION", undefined)) {

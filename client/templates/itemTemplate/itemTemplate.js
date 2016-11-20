@@ -116,6 +116,9 @@ Template.itemInfo.helpers({
 	},
 
 	'unique_attribute' : function(item_object) {
+		if (item_object.attributes == undefined)
+			return [];
+
 		var attribute_array = [];
 		item_object.attributes.forEach(function(attribute_object) {
 			if (attribute_object.locked)
@@ -157,7 +160,7 @@ Template.itemInfo.helpers({
 		if (item_object == undefined)
 			return false;
 		
-		var item_belongs_to_other = items.findOne(item_id).owner != Meteor.userId();
+		var item_belongs_to_other = item_object.owner != Meteor.userId();
 		var item_is_unclaimed = items.findOne({'_id': item_id, 'status': {$in: ['unclaimed', 'for_sale', 'won']}}) != undefined;
 		var show_already_owns = item_belongs_to_other || item_is_unclaimed;
 
@@ -171,16 +174,7 @@ Template.itemInfo.helpers({
 	},
 
 	'showDetails': function(item_data) {
-		if (item_data.owner == Meteor.userId())
-			return true;
-
-		if (item_data.status == "displayed" || item_data.status == "permanent")
-			return true;
-
-		if (item_data.status == "auctioned" && Meteor.user().profile.market_expert.expiration > moment()._d.toISOString())
-			return true;
-
-		return false;
+		return item_data.xp_rating != undefined;
 	}
 })
 

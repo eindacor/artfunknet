@@ -3,11 +3,11 @@
 		<div class="message-container">
 			<div class="modal-message-area">
 				{{#with itemData interaction_object.offer_id}}
-					{{>itemInfo item_data=this}}
+					{{>itemInfo item_data=this tag_button=true}}
 					{{#if xpOffer ../interaction_object.offer_id}}
 					<p class="modal-message">You have met an Art Collector who has been looking for one of the items in your collection. They don't have much money, but would be forever greatful if you gave them <span class="highlight af-color work-title">{{artwork_data.title}}</span> by <span class="highlight af-color">{{artwork_data.artist}}</span>. If accepted, you will earn <span class="highlight af-color">{{offerAmount ../interaction_object.offer_id}}xp</span></p>
 					{{else}}
-					<p class="modal-message">You have met an Art Collector who has been looking for one of the items in your collection. They have offered you <span class="highlight af-color">${{offerAmount ../interaction_object.offer_id}}</span> for <span class="highlight af-color work-title">{{artwork_data.title}}</span> by <span class="highlight af-color">{{artwork_data.artist}}</span>. The estimated value of this item is <span class="highlight">${{getItemValue _id "actual"}}.</span></p>
+					<p class="modal-message">You have met an Art Collector who has been looking for one of the items in your collection. They have offered you <span class="highlight af-color">${{offerAmount ../interaction_object.offer_id}}</span> for <span class="highlight af-color work-title">{{artwork_data.title}}</span> by <span class="highlight af-color">{{artwork_data.artist}}</span>. The estimated value of this item is <span class="highlight">${{getItemObjectValue this "actual"}}.</span></p>
 					{{/if}}
 					{{#if interaction_object.message}}
 					<p class="modal-message">{{interaction_object.message}}</p>
