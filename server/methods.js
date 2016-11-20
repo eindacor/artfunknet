@@ -121,7 +121,7 @@ Meteor.methods({
     'getCollectionValue' : function(user_id) {
         var collection_total = 0;
         items.find({'owner' : Meteor.userId(), 'status' : {$in: ['claimed', 'displayed', 'permanent']}}).forEach(function(item_object) {
-            collection_total += item_object.values.actual;
+            collection_total += getItemObjectValueByType(item_object, 'actual', Meteor.userId());
         });
 
         return collection_total;
@@ -129,9 +129,8 @@ Meteor.methods({
 
     'getExhibitionValue' : function(user_id) {
         var display_total = 0;
-        var item_objects = items.find({'owner' : user_id, 'status' : 'displayed'});
-        item_objects.forEach(function(item_object) {
-            display_total += item_object.values.actual;
+        items.find({'owner' : user_id, 'status' : 'displayed'}).forEach(function(item_object) {
+            display_total += getItemObjectValueByType(item_object, 'actual', Meteor.userId());
         });
 
         return display_total;

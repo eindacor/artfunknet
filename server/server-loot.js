@@ -67,15 +67,57 @@ updateItemObjectValues = function(item_object) {
     var value_types = ["sell", "purchase", "actual", "auction_min", "collector", "dealer", "display"];
     var values_object = {};
 
-    for (var i=0; i<value_types.length; i++) {
-        values_object[value_types[i]] = getItemObjectValue(item_object, value_types[i], item_object.owner);
+    var rarity_values = getLootData().rarity_values;
+
+    var artwork_object = artworks.findOne({'_id': item_object.artwork_id});
+
+    var min = rarity_values[artwork_object.rarity].min;
+    var max = rarity_values[artwork_object.rarity].max;
+
+    var range = max - min;
+
+    var mint_value = Math.floor(min + (artwork_object.value_scale * range));
+
+    var base_value = mint_value * lowest_possible_value_coefficient;
+    var condition_value = mint_value * condition_coefficient_max * item_object.condition;
+    var attribute_value = mint_value * getAttributeValueCoefficient(item_object);
+
+    var actual_value = Math.floor(base_value + condition_value + attribute_value);
+    var display_value = actual_value * 2;
+
+    if (item_object.foil) {
+        actual_value *= 2;
+        display_value *= 1.2;
     }
 
-    items.update(item_object._id, {$set: {'values': values_object}});
-}
+    else if(item_object.seasonal) {
+        actual_value *= 5;
+        display_value *= 1.5;
+    }
 
-getItemValue = function(item_id, type, user_id) {
-    return getItemObjectValue(items.findOne(item_id), type, user_id);
+    else if(item_object.lottery && item_object.lottery != 0) {
+        actual_value *= (10 * item_object.lottery);
+        display_value *= 2;
+    }
+
+    else if(item_object.original) {
+        actual_value *= 7;
+        display_value *= 2;
+    }
+
+    if (item_object.misprint){
+        display_value *= 20;
+    }
+
+    values_object.sell = Math.floor(actual_value * .8);
+    values_object.purchase = Math.floor(actual_value * 1.5);
+    values_object.actual = Math.floor(actual_value);
+    values_object.auction_min = Math.floor(sell_value * .8);
+    values_object.collector = Math.floor(actual_value * 1.2);
+    values_object.dealer = Math.floor(actual_value * .9);
+    values_object.display = Math.floor(display_value);
+
+    items.update(item_object._id, {$set: {'values': values_object}});
 }
 
 // sumtotal of these values must equal 1
@@ -100,85 +142,31 @@ var getAttributeValueCoefficient = function(item_object) {
     else return 0;
 }
 
-getItemObjectValue = function(item_object, type, user_id) {
+getItemObjectValueByType = function(item_object, type, user_id) {
     if (item_object) {
-        var rarity_values = getLootData().rarity_values;
+        var base_value = item_object.values[type];
 
-        var artwork_object = artworks.findOne({'_id': item_object.artwork_id});
-
-        var min = rarity_values[artwork_object.rarity].min;
-        var max = rarity_values[artwork_object.rarity].max;
-
-        var range = max - min;
-
-        var mint_value = Math.floor(min + (artwork_object.value_scale * range));
-
-        var base_value = mint_value * lowest_possible_value_coefficient;
-        var condition_value = mint_value * condition_coefficient_max * item_object.condition;
-        var attribute_value = mint_value * getAttributeValueCoefficient(item_object);
-
-        var actual_value = Math.floor(base_value + condition_value + attribute_value);
-        var display_value = actual_value * 2;
-
-        if (item_object.foil) {
-            actual_value *= 2;
-            display_value *= 1.2;
+        if (type == "dealer" && procUniqueAttribute(user_id, "DEALER_DISCOUNT", undefined)) {
+            base_value *= .75;
         }
 
-        else if(item_object.seasonal) {
-            actual_value *= 5;
-            display_value *= 1.5;
+        if (type == "sell") {
+            if (quests.findOne({'owner_id': user_id, 'target': {$in: [item_object.artwork_id]}}) &&
+                procUniqueAttribute(user_id, "QUEST_ITEM_SELL_BONUS", undefined)) {
+                base_value *= 1.5;
+            }
+
+            if (item_object.status == "unclaimed" && 
+                procUniqueAttribute(user_id, "UNCLAIMED_ITEM_SELL_BONUS", undefined)) {
+                base_value *= 1.5;
+            }
         }
 
-        else if(item_object.lottery && item_object.lottery != 0) {
-            actual_value *= (10 * item_object.lottery);
-            display_value *= 2;
-        }
-
-        else if(item_object.original) {
-            actual_value *= 7;
-            display_value *= 2;
-        }
-
-        if (item_object.misprint){
-            display_value *= 20;
-        }
-
-        var sell_value = Math.floor(actual_value * .8);
-        var purchase_value = Math.floor(actual_value * 1.5);
-        var dealer_offer = Math.floor(actual_value * .9);
-        var auction_min = Math.floor(sell_value * .8);
-        var collector_offer = Math.floor(actual_value * 1.2);
-
-        // if (procUniqueAttribute(user_id, "DEALER_DISCOUNT", undefined)) {
-        //     dealer_offer = Math.floor(dealer_offer * .75);
-        // }
-
-        // if (procUniqueAttribute(user_id, "QUEST_ITEM_SELL_BONUS", undefined)) {
-        //     if (quests.findOne({'owner_id': user_id, 'target': {$in: [item_object.artwork_id]}}))
-        //         sell_value = Math.floor(sell_value * 1.5);
-        // }
-
-        // if (procUniqueAttribute(user_id, "UNCLAIMED_ITEM_SELL_BONUS", undefined)) {
-        //     if (item_object.status == "unclaimed")
-        //         sell_value = Math.floor(sell_value * 1.5);
-        // }
-
-        switch(type) {
-            case "sell": return sell_value;
-            case "purchase": return purchase_value;
-            case "actual": return Math.floor(actual_value);
-            case "auction_min": return auction_min;
-            case "collector" : return collector_offer; 
-            case "dealer" : return dealer_offer; 
-            case "display" : return display_value;
-            default: return undefined;
-        }
+        return Math.floor(base_value);
     }
 
     else {
         console.log("undefined object...");
-        console.log("item_id: " + item_id);
         console.log("item_object: " + item_object);
         return undefined;
     }
@@ -347,6 +335,8 @@ generateItemFromArtworkID = function(item_generator) {
                 var item_object = items.findOne(result);
                 if (item_object.artwork_data.rarity == "legendary" || item_object.artwork_data.rarity == "masterpiece")
                     logLegendary(item_generator.source, item_object);
+
+                updateItemObjectValues(item_object);
             }
         });
 

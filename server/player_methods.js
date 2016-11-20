@@ -167,31 +167,6 @@ playerRatio = function(player_object) {
     return player_object.profile.level / player_level_max;
 }
 
-calcMVP = function(user_id) {
-    var mvp = {
-        'item_id': "",
-        'value': 0
-    }
-
-    var items_owned = items.find({'owner': user_id, 'status': {$nin: ['for_sale, unclaimed', 'won']}});
-    var collection_total = 0;
-    items_owned.forEach(function(item_object) {
-        try {
-            var value = item_object.values.actual;
-            collection_total += value;
-            if (value > mvp.value) {
-                mvp.item_id = item_object._id;
-                mvp.value = value;
-            }
-        }
-        catch(error) {
-            console.log(error.message);
-        }
-    });
-
-    Meteor.users.update(user_id, {$set: {'profile.mvp': mvp, 'profile.collection_value': collection_total}});
-}
-
 updateGalleryDetails = function(user_id) {
     var user_object = Meteor.users.findOne(user_id);
 
@@ -203,7 +178,7 @@ updateGalleryDetails = function(user_id) {
 
         var attribute_totals = {};
         for (var i=0; i < items_on_display.length; i++) {
-            gallery_value += items_on_display[i].values.actual;
+            gallery_value += getItemObjectValueByType(items_on_display[i], 'actual', user_id)
             var item_attributes = items_on_display[i].attributes;
 
             var rarity_npc_coefficient;
@@ -597,16 +572,32 @@ Meteor.methods({
                     var attributes = random_displayed.attributes;
                     var random_index = Math.floor(Math.random() * attributes.length);
                     var setter_string = "attributes." + random_index + ".value";
-                    if (attributes[random_index].value < 1) {
+                    if (attributes[random_index].value < .9) {
                         var setter_object = {};
                         setter_object[setter_string] = Math.min(attributes[random_index].value + .02, 1);
-                        items.update(random_displayed._id, {$set: setter_object});
+                        items.update(random_displayed._id, {$set: setter_object}, function(error) {
+                            if (error)
+                                console.log(error.message)
+
+                            else {
+                                updateItemObjectValues(items.findOne(random_displayed._id));
+                            }
+                        });
                     }
                 }
             }
 
             if (procUniqueAttribute(user_object._id, "QUEST_TARGET_CONDITION_INCREASE", undefined)) {
-                items.update({'owner': user_object._id, 'status': {$nin: ['unclaimed', 'for_sale', 'won']}, 'artwork_id': {$in: quest_object.target}}, {$set: {'condition': .9}}, {multi: true});
+                items.update({'owner': user_object._id, 'status': {$nin: ['unclaimed', 'for_sale', 'won']}, 'artwork_id': {$in: quest_object.target}}, {$set: {'condition': .9}}, {multi: true}, function(error) {
+                    if (error)
+                        console.log(error.message)
+
+                    else {
+                        items.find({'owner': user_object._id, 'status': {$nin: ['unclaimed', 'for_sale', 'won']}}).forEach(function(item_object) {
+                            updateItemObjectValues(item_object);
+                        })
+                    }
+                });
             }
 
             quests.remove(quest_id);
@@ -647,7 +638,7 @@ Meteor.methods({
             'artwork_data.rarity': {$in: ["common", "uncommon", "rare"]},
             'artwork_id': {$nin: quest_targets}
         }).forEach(function(db_object) {
-            total_value += getItemValue(db_object._id, "sell", Meteor.userId());
+            total_value += getItemObjectValueByType(db_object, "sell", Meteor.userId());
             item_ids.push(db_object._id);
         });
 
@@ -675,7 +666,7 @@ Meteor.methods({
                 'artwork_data.rarity': {$in: ["common", "uncommon", "rare"]},
                 'artwork_id': {$nin: quest_targets}
             }).forEach(function(db_object) {
-                total_value += getItemValue(db_object._id, "sell", Meteor.userId());
+                total_value += getItemObjectValueByType(db_object, "sell", Meteor.userId());
                 item_ids.push(db_object._id);
             });
 
@@ -684,12 +675,9 @@ Meteor.methods({
                     console.log(error.message);
 
                 else {
-                    calcMVP(Meteor.userId());
-
-                     //TODO add legendary procs for sell amounts here
                     for (var i=0; i<item_ids.length; i++) {
                         if (Math.random() < .5) {
-                            createAuction(item_ids[i], getItemValue(item_ids[i], "sell", Meteor.userId()), -1, 120, "public");
+                            createAuction(item_ids[i], getItemObjectValueByType(items.findOne(item_ids[i]), "actual", Meteor.userId()), -1, 120, "public");
                         }
 
                         else {

@@ -33,8 +33,7 @@ concludeDisplay = function(item_id) {
 
         else {
             updateGalleryDetails(item_object.owner);
-            calcMVP(item_object.owner);
-            updateItemObjectValues(item_object);
+            updateItemObjectValues(items.findOne(item_id));
         }
     });
 }
@@ -179,7 +178,6 @@ claimItemObject = function(user_id, item_object) {
         }
 
         else {
-            calcMVP(user_id);
             var rarity = item_object.artwork_data.rarity;
             addItemObjectToChecklist(user_id, 'owned', item_object);
         }
@@ -216,7 +214,7 @@ Meteor.methods({
     'purchaseItemFromDealer' : function(item_id) {
         var item_object = canPurchaseItemFromDealer(item_id);
         if (item_object) {
-            chargeAccount(Meteor.userId(), getItemValue(item_id, "dealer", Meteor.userId()));
+            chargeAccount(Meteor.userId(), getItemObjectValueByType(item_object, "dealer", Meteor.userId()));
             var claimed = claimItemObject(Meteor.userId(), item_object);
             if (!claimed) {
                 console.log("unsuccessful purchase");
@@ -228,7 +226,14 @@ Meteor.methods({
             }
 
             if (procUniqueAttribute(Meteor.userId(), "DEALER_PURCHASE_ROLL_COUNT_SET", undefined)) {
-                items.update(item_id, {$set: {'roll_count': -20}});
+                items.update(item_id, {$set: {'roll_count': -20}}, function(error) {
+                    if (error)
+                        console.log(error.message)
+
+                    else {
+                        updateItemObjectValues(items.findOne(item_id));
+                    }
+                });
             }
         }
     },
@@ -285,7 +290,6 @@ Meteor.methods({
                             generateItemFromArtworkID(item_generator);
                         };
                     };
-                    calcMVP(Meteor.userId());
                     npc_data.remove(offer_id);
                 }
             });
@@ -304,13 +308,13 @@ Meteor.methods({
             var item_object = set_to_permanent ? canSetPermanent(item_id) : canUnsetPermanent(item_id);
             if (item_object) {
                 if (set_to_permanent) {
-                    items.update(item_id, {$set: {'status' : 'permanent'}});
-                    items.update(item_id, {$set: {'permanent_post' : moment()._d.toISOString()}});
+                    items.update(item_id, {$set: {'status' : 'permanent', 'permanent_post' : moment()._d.toISOString()}});
                     addItemObjectToChecklist(Meteor.userId(), 'displayed', item_object);
                     addItemObjectToChecklist(Meteor.userId(), 'seen', item_object);
                 }
 
                 else {
+                    // TODO should probably just be items.update(item_id, {$set: {'status' : 'claimed'}, $unset: {'permanent_post' : ""}});
                     items.update(item_id, {$set: {'status' : 'claimed'}});
                     items.update(item_id, {$unset: {'permanent_post' : ""}});
                 }
@@ -327,7 +331,7 @@ Meteor.methods({
     'sellArtwork' : function(item_id) {
         var item_object = canSellItem(item_id);
         if (item_object) {
-            var value = getItemValue(item_id, 'sell', Meteor.userId());
+            var value = getItemObjectValueByType(item_object, 'sell', Meteor.userId());
             if (isNaN(value)) {
                 console.log("isNaN returned for item value");
                 throw "invalid amount";
@@ -340,10 +344,8 @@ Meteor.methods({
 
                 else {
                     if (Meteor.user().profile.user_type != "admin") {
-                        calcMVP(Meteor.userId());
-
                         if (Math.random() < 0.5) {
-                            createAuction(item_id, getItemValue(item_id, "sell", undefined), -1, 120, "public");
+                            createAuction(item_id, getItemObjectValueByType(item_object, "sell", Meteor.userId()), -1, 120, "public");
                         }
 
                         else {
@@ -377,7 +379,7 @@ Meteor.methods({
             errors.push("invalid duration");
 
         if (item_object) {        
-            var minimum = item_object.values.auction_min;
+            var minimum = getItemObjectValueByType(item_object, 'auction_min', Meteor.userId());
             if (Number(starting) < minimum)
                 errors.push("starting value must be greater than $" + getCommaSeparatedValue(minimum));
 
@@ -407,7 +409,7 @@ Meteor.methods({
     },
 
     'getItemValue' : function(item_id, type, user_id) {
-        return getItemValue(item_id, type, user_id);
+        return getItemObjectValueByType(items.findOne(item_id), type, user_id);
     },
 
     'getRerollCost' : function(item_id) {
@@ -422,16 +424,23 @@ Meteor.methods({
                 var roll_value_min = 0;
 
                 if (procUniqueAttribute(Meteor.userId(), "MARKET_EXPERT_ROLL_BONUS", "Auctioneer")) {
-                    var roll_value_min = .4;
+                    var roll_value_min = .3;
                 }
 
                 if (procUniqueAttribute(Meteor.userId(), "ROLL_COUNT_REROLL_BONUS", undefined)) {
                     if (item_object.roll_count > 10 || item_object.roll_count < 0)
-                        roll_value_min += .5;
+                        roll_value_min += .3;
                 }
         
-                items.update(item_id, {$set : {'xp_rating' : getXPRating(roll_value_min), 'roll_count': roll_count + 1}});
                 chargeAccount(Meteor.userId(), getRerollCost(item_id));
+                items.update(item_id, {$set : {'xp_rating' : getXPRating(roll_value_min), 'roll_count': roll_count + 1}}, function(error) {
+                    if (error)
+                        console.log(error.message)
+
+                    else {
+                        updateItemObjectValues(items.findOne(item_id));
+                    }
+                });               
             }
         }
     },
@@ -446,12 +455,12 @@ Meteor.methods({
                 if (attribute_array[i]._id == attribute_id) {
                     var roll_value_min = 0;
                     if (procUniqueAttribute(Meteor.userId(), "MARKET_EXPERT_ROLL_BONUS", "Auctioneer")) {
-                        var roll_value_min = .4;
+                        var roll_value_min = .3;
                     }
 
                     if (procUniqueAttribute(Meteor.userId(), "ROLL_COUNT_REROLL_BONUS", undefined)) {
                         if (item_object.roll_count > 10 || item_object.roll_count < 0)
-                            roll_value_min += .5;
+                            roll_value_min += .3;
                     }
 
                     attribute_array[i].value = attributeIsLocked(item_object.artwork_id, attribute_id) ? getLockedAttributeValue() : getAttributeValue(0, roll_value_min);
@@ -459,8 +468,15 @@ Meteor.methods({
                 }
             }
 
-            items.update(item_id, {$set: {'attributes' : attribute_array, 'roll_count' : roll_count + 1}});
             chargeAccount(Meteor.userId(), getRerollCost(item_id));
+            items.update(item_id, {$set: {'attributes' : attribute_array, 'roll_count' : roll_count + 1}}, function(error) {
+                if (error)
+                    console.log(error.message)
+
+                else {
+                    updateItemObjectValues(items.findOne(item_id));
+                }
+            });         
         }
 
         else throw "invalid operation";
@@ -505,16 +521,16 @@ Meteor.methods({
             attribute_array[target_attribute_index].value = getAttributeValue(0, roll_value_min);
             attribute_array[target_attribute_index].locked = attributeIsLocked(item_object.artwork_id, random_attribute._id);
 
-            // attribute_array.sort(function(first, second) {
-            //     if (first.description > second.description)
-            //         return 1;
-
-            //     else return -1;
-            // });
-
-            items.update(item_id, {$set: {'attributes' : attribute_array, 'roll_count' : roll_count + 1}});
-            // items.update(item_id, {$set : {'roll_count' : roll_count + 1}});
             chargeAccount(Meteor.userId(), getRerollCost(item_id));
+            items.update(item_id, {$set: {'attributes' : attribute_array, 'roll_count' : roll_count + 1}}, function(error) {
+                if (error)
+                    console.log(error.message)
+
+                else {
+                    updateItemObjectValues(items.findOne(item_id));
+                }
+            });
+            
         }
 
         else return false;

@@ -58,8 +58,6 @@ var updateContent = function() {
     var all_users = Meteor.users.find();
     all_users.forEach(function(db_object) {
         updateGalleryDetails(db_object._id);
-        calcMVP(db_object._id);
-
         var cap_object = getCapSetterObject(db_object.profile.level);
 
         var setter = {};
