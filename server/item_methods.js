@@ -182,7 +182,7 @@ claimItemObject = function(user_id, item_object) {
             addItemObjectToChecklist(user_id, 'owned', item_object);
             if (user_object.profile.vintage_select) {
                 Meteor.users.update(user_id, {$set: {'profile.vintage_select': false}});
-                items.remove({'owner': user_id, 'status': 'won'}, {multi: true});
+                items.remove({'owner': user_id, 'status': 'won'});
             }
         }
     });

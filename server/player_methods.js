@@ -1009,7 +1009,7 @@ Meteor.methods({
             }
 
             var new_bank_balance = starting_balance + Math.floor(starting_balance * (Meteor.user().profile.vintage_count + 1));
-            items.remove({'owner': Meteor.userId(), 'status': {$in: ['for_sale', 'unclaimed', 'won']}}, {multi: true});
+            items.remove({'owner': Meteor.userId(), 'status': {$in: ['for_sale', 'unclaimed', 'won']}});
 
             // reset gallery finishes
             var default_wall = gallery_finishes.findOne({'filename': "plaster.jpg"});   
@@ -1032,50 +1032,65 @@ Meteor.methods({
             var floor_setter_object = {};
             floor_setter_object[default_floor._id] = floor_finish_object;
 
-            Meteor.users.update(Meteor.userId(), {
-                $inc: {'profile.vintage_count': 1}, 
-                $set: {
-                    'profile.vintage_select': true, 
-                    'profile.level': 0, 
-                    'profile.bank_balance': new_bank_balance, 
-                    'profile.xp': 0,
-                    'profile.completed_quests': 0,
-                    'profile.last_drop': moment().add(-1, 'days')._d.toISOString(),
-                    'profile.gallery_finishes': {
-                        'active': {
-                            'floor_finish': default_floor._id,
-                            'wall_finish': default_wall._id
-                        },
-                        'owned': {
-                            'floor_finishes': floor_setter_object,
-                            'wall_finishes': wall_setter_object
-                        },
-                        'wall_opacity': 1,
-                        'frame_width': .5,
-                        'matte_width': .5,
-                        'wall_base': "white",
-                        'frame_color': "black"
+            Meteor.users.update(
+                Meteor.userId(),                //selector
+                {                               //modifier
+                    $inc: {'profile.vintage_count': 1}, 
+                    $set: {
+                        'profile.vintage_select': true, 
+                        'profile.level': 0, 
+                        'profile.bank_balance': new_bank_balance, 
+                        'profile.xp': 0,
+                        'profile.completed_quests': 0,
+                        'profile.last_drop': moment().add(-1, 'days')._d.toISOString(),
+                        'profile.gallery_finishes': {
+                            'active': {
+                                'floor_finish': default_floor._id,
+                                'wall_finish': default_wall._id
+                            },
+                            'owned': {
+                                'floor_finishes': floor_setter_object,
+                                'wall_finishes': wall_setter_object
+                            },
+                            'wall_opacity': 1,
+                            'frame_width': .5,
+                            'matte_width': .5,
+                            'wall_base': "white",
+                            'frame_color': "black"
+                        }
                     }
                 }
-            }, function() {
-                updateGalleryDetails(Meteor.userId());
+            );
+
+            items.find({'owner': Meteor.userId(), 'vintage': {$ne: true}}).forEach(function(item_object) {
+                items.update(
+                    {'_id': item_object._id},        //selector
+                    {                               //modifier 
+                        $set: {
+                            'status': 'won',
+                            'vintage': true,
+                            'date_received': moment()._d.toISOString(),
+                            'display_details': {
+                                'money' : 0,
+                                'xp' : 0,
+                                'xp_chunk_percentage': 0,
+                                'end' : ""
+                            }
+                        }
+                    }, 
+                    function(error) {               //callback
+                        if (error)
+                            console.log(error.message);
+
+                        else {
+                            updateItemObjectValues(items.findOne(item_object._id));
+                            updateGalleryDetails(Meteor.userId());              
+                        }
+                    }
+                );         
             });
 
-            items.update({'owner': Meteor.userId(), 'vintage': {$ne: true}}, {
-                $set: {
-                    'status': 'won',
-                    'vintage': true,
-                    'date_received': moment()._d.toISOString(),
-                    'display_details': {
-                        'money' : 0,
-                        'xp' : 0,
-                        'xp_chunk_percentage': 0,
-                        'end' : ""
-                    }
-                }
-            }, {multi: true});
-
-            quests.remove({'owner_id': Meteor.userId()}, {multi: true});
+            quests.remove({'owner_id': Meteor.userId()});
 
             // reset profile limits
             var cap_object = getCapSetterObject(0);
