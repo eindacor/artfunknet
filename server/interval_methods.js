@@ -107,3 +107,11 @@ Meteor.setInterval((function() {
     });
 
 }), xp_frequency);
+
+var item_count_frequency = 30000; //30 seconds
+Meteor.setInterval((function() {
+    Meteor.users.find().forEach(function(user_object) {
+        var items_owned = items.find({'owner': user_object._id, 'status': {$in: ['claimed', 'displayed', 'permanent']}}).count();
+        Meteor.users.update({'_id': user_object._id}, {$set: {'profile.items_owned': items_owned}});
+    });
+}), item_count_frequency);

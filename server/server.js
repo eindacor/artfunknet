@@ -77,7 +77,7 @@ var updateContent = function() {
     });
 
     // temp code
-    Meteor.users.update({'profile.expansion_slots': null}, {$set: {'profile.expansion_slots': 0}}, {multi: true});
+    Meteor.users.update({'profile.money_spent_on_crates': null}, {$set: {'profile.money_spent_on_crates': 0}}, {multi: true});
     // temp code
 }
 

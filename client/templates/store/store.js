@@ -77,13 +77,6 @@ Template.store.helpers({
         }) != undefined;
 	},
 
-	'can_expand': function() {
-		if (Meteor.user())
-			return Meteor.user().profile.expansion_slots < getMaxExpansionSlots();
-
-		else return false;
-	},
-
 	'expansion_cost': function() {
 		expansion_tracker.depend();
 		if (expansion_cost == undefined)

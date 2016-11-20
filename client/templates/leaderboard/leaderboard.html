@@ -7,6 +7,8 @@
 				{{> galleryScore gallery_score_data}}
 				{{> galleryValue gallery_value_data}}
 				{{> questsCompleted quests_completed_data}}
+				{{> itemsOwned items_owned_data}}
+				{{> moneySpentOnCrates money_spent_crates_data}}
 			{{/with}}
 		</div>
 	</div>
@@ -87,7 +89,7 @@
 
 <template name="questsCompleted">
 	<div class="row list-section">
-		<div class="template-galleryValue col-xs-12 col-md-6">
+		<div class="template-questsCompleted col-xs-12 col-md-6">
 			<h3 class="af-color">Quests Completed</h3>
 			{{#each this}}
 				{{#if this.profile.completed_quests}}
@@ -100,6 +102,52 @@
 					</div> 
 					<div class="col-xs-5">
 						<p class="highlight">{{commaSeparatedValue this.profile.completed_quests}}</p>
+					</div> 
+				</div>
+				{{/if}}
+			{{/each}}
+		</div>
+	</div>
+</template>
+
+<template name="itemsOwned">
+	<div class="row list-section">
+		<div class="template-itemsOwned col-xs-12 col-md-6">
+			<h3 class="af-color">Items Owned</h3>
+			{{#each this}}
+				{{#if this.profile.items_owned}}
+				<div class="row list-row">
+					<div class="col-xs-1">
+						<p>{{positionFromIndex @index}}.</p>
+					</div> 
+					<div class="col-xs-6">
+						<p class="highlight">{{this.profile.screen_name}}</p>
+					</div> 
+					<div class="col-xs-5">
+						<p class="highlight">{{commaSeparatedValue this.profile.items_owned}}</p>
+					</div> 
+				</div>
+				{{/if}}
+			{{/each}}
+		</div>
+	</div>
+</template>
+
+<template name="moneySpentOnCrates">
+	<div class="row list-section">
+		<div class="template-moneySpentOnCrates col-xs-12 col-md-6">
+			<h3 class="af-color">Money Spent on Crates</h3>
+			{{#each this}}
+				{{#if this.profile.money_spent_on_crates}}
+				<div class="row list-row">
+					<div class="col-xs-1">
+						<p>{{positionFromIndex @index}}.</p>
+					</div> 
+					<div class="col-xs-6">
+						<p class="highlight">{{this.profile.screen_name}}</p>
+					</div> 
+					<div class="col-xs-5">
+						<p class="highlight">{{displayAsMoneyValue this.profile.money_spent_on_crates}}</p>
 					</div> 
 				</div>
 				{{/if}}
