@@ -89,9 +89,66 @@
 	cursor: pointer;
 }
 
-@keyframes border_animation,
-@-webkit-keyframes border_animation,
-@-moz-keyframes border_animation,
+@keyframes border_animation {
+	0%{
+		-webkit-box-shadow: 0px 0px 10px 2px #44DDDD;
+		-moz-box-shadow: 0px 0px 10px 2px #44DDDD;
+		box-shadow: 0px 0px 10px 2px #44DDDD;
+	}
+
+    50%{
+		-webkit-box-shadow: 0px 0px 20px 2px #44DDDD;
+		-moz-box-shadow: 0px 0px 20px 2px #44DDDD;
+		box-shadow: 0px 0px 20px 2px #44DDDD;
+	}
+
+	100%{
+		-webkit-box-shadow: 0px 0px 10px 2px #44DDDD;
+		-moz-box-shadow: 0px 0px 10px 2px #44DDDD;
+		box-shadow: 0px 0px 10px 2px #44DDDD;
+	}
+}
+
+@-webkit-keyframes border_animation {
+	0%{
+		-webkit-box-shadow: 0px 0px 10px 2px #44DDDD;
+		-moz-box-shadow: 0px 0px 10px 2px #44DDDD;
+		box-shadow: 0px 0px 10px 2px #44DDDD;
+	}
+
+    50%{
+		-webkit-box-shadow: 0px 0px 20px 2px #44DDDD;
+		-moz-box-shadow: 0px 0px 20px 2px #44DDDD;
+		box-shadow: 0px 0px 20px 2px #44DDDD;
+	}
+
+	100%{
+		-webkit-box-shadow: 0px 0px 10px 2px #44DDDD;
+		-moz-box-shadow: 0px 0px 10px 2px #44DDDD;
+		box-shadow: 0px 0px 10px 2px #44DDDD;
+	}
+}
+
+@-moz-keyframes border_animation {
+	0%{
+		-webkit-box-shadow: 0px 0px 10px 2px #44DDDD;
+		-moz-box-shadow: 0px 0px 10px 2px #44DDDD;
+		box-shadow: 0px 0px 10px 2px #44DDDD;
+	}
+
+    50%{
+		-webkit-box-shadow: 0px 0px 20px 2px #44DDDD;
+		-moz-box-shadow: 0px 0px 20px 2px #44DDDD;
+		box-shadow: 0px 0px 20px 2px #44DDDD;
+	}
+
+	100%{
+		-webkit-box-shadow: 0px 0px 10px 2px #44DDDD;
+		-moz-box-shadow: 0px 0px 10px 2px #44DDDD;
+		box-shadow: 0px 0px 10px 2px #44DDDD;
+	}
+}
+
 @-o-keyframes border_animation {
 	0%{
 		-webkit-box-shadow: 0px 0px 10px 2px #44DDDD;
