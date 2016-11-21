@@ -13,7 +13,7 @@ var getMVPData = function() {
         admin_ids.push(user_object._id);
     });
 
-    return items.find({'owner': {$nin: admin_ids}, 'status': {$nin: ["unclaimed", "won", "for_sale"]}}, {limit: 20, sort: {'values.actual': -1}}).fetch();   
+    return items.find({'owner': {$nin: admin_ids}, 'status': {$in: ["displayed", "permanent"]}}, {limit: 20, sort: {'values.actual': -1}}).fetch();   
 }
 
 Meteor.methods({
