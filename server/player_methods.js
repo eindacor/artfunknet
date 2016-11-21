@@ -1011,6 +1011,13 @@ Meteor.methods({
             var new_bank_balance = starting_balance + Math.floor(starting_balance * (Meteor.user().profile.vintage_count + 1));
             items.remove({'owner': Meteor.userId(), 'status': {$in: ['for_sale', 'unclaimed', 'won']}});
 
+            while (items.findOne({'owner': Meteor.userId(), 'status': {$in: ['for_sale', 'unclaimed', 'won']}}) != undefined) {
+                setTimeout("", 1000);
+                console.log("checking");
+            }
+
+            var has_items_to_claim = items.findOne({'owner': Meteor.userId(), 'vintage': {$ne: true}, 'original': {$ne: true}}) != undefined;
+
             // reset gallery finishes
             var default_wall = gallery_finishes.findOne({'filename': "plaster.jpg"});   
             var wall_finish_object = {
@@ -1037,7 +1044,7 @@ Meteor.methods({
                 {                               //modifier
                     $inc: {'profile.vintage_count': 1}, 
                     $set: {
-                        'profile.vintage_select': true, 
+                        'profile.vintage_select': has_items_to_claim, 
                         'profile.level': 0, 
                         'profile.bank_balance': new_bank_balance, 
                         'profile.xp': 0,
@@ -1062,7 +1069,7 @@ Meteor.methods({
                 }
             );
 
-            items.find({'owner': Meteor.userId(), 'vintage': {$ne: true}}).forEach(function(item_object) {
+            items.find({'owner': Meteor.userId(), 'vintage': {$ne: true}, 'original': {$ne: true}}).forEach(function(item_object) {
                 items.update(
                     {'_id': item_object._id},        //selector
                     {                               //modifier 
