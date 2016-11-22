@@ -105,7 +105,7 @@ getDisplayDetails = function(item_id, duration) {
     }
 
     var money = Math.floor(money_per_hour * hours_to_display * duration_scalar);
-    var xp_chunk_percentage = xp_chunk_per_hour * hours_to_display * duration_scalar;
+    var xp_chunk_percentage = xp_chunk_per_hour * hours_to_display * duration_scalar * .5;
     var xp = Math.floor(getXPChunk(Meteor.user().profile.level) * xp_chunk_percentage);
 
     if (itemIsMisprinted(item_object)) {
