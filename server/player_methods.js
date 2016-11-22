@@ -31,6 +31,8 @@ createUser = function(user_object, callback){
     user_object.profile.auction_data = {'winning': [], 'watching': []};
     user_object.profile.expansion_slots = 0;
     user_object.profile.money_spent_on_crates = 0;
+    user_object.profile.vintage_select = false;
+    user_object.profile.vintage_count = 0;
 
     user_object.profile.tutorials = {
         'welcome': true,
