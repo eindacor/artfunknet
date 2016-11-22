@@ -19,6 +19,12 @@ Meteor.setInterval((function() {
     
     alerts.remove({'time': {$lt: moment().add(-48, "hours")._d.toISOString()}});
 
+    Meteor.users.find().forEach(function(user_object) {
+        if (auctions.findOne({'_id': {$in: user_object.profile.auction_data.watching}}) == undefined) {
+            Meteor.users.update({'_id': user_object._id}, {$set: {'watching': []}});
+        }
+    });
+
 }), check_frequency);
 
 var check_ticket_frequency = 300000; //once every 5 minutes
