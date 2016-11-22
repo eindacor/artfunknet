@@ -275,42 +275,7 @@ Meteor.methods({
                 if (error)
                     console.log(error.message);
 
-                else {
-                    if (Meteor.userId() == offer_object.host &&
-                        procUniqueAttribute(Meteor.userId(), "COLLECTOR_QUEST_ITEM", undefined) && Math.random() < .25) {
-                        var quest_item_ids = [];
-                        quests.find({'owner_id': Meteor.userId()}).forEach(function(db_object) {
-                            var targets = db_object.target;
-                            for (var i=0; i<targets.length; i++) {
-                                if (quest_item_ids.indexOf(targets[i]) == -1)
-                                    quest_item_ids.push(targets[i]);
-                            }
-                        });
-
-                        if (quest_item_ids.length) {
-                            var random_index = Math.floor(Math.random() * quest_item_ids.length);
-
-                            var item_generator = {
-                                'source': "collector",
-                                'user_id': Meteor.userId(),
-                                'artwork_id': quest_item_ids[random_index],
-                                'condition': undefined,
-                                'xp_rating': undefined,
-                                'foil_chance': getLootData().global_foil_chance,
-                                'seasonal': undefined,
-                                'lottery': 0,
-                                'original': false,
-                                'misprint_chance': getLootData().global_misprint_chance,
-                                'status': "unclaimed",
-                                'xp_rating_min': 0,
-                                'condition_min': 0
-                            }
-
-                            generateItemFromArtworkID(item_generator);
-                        };
-                    };
-                    npc_data.remove(offer_id);
-                }
+                else  npc_data.remove(offer_id);
             });
         }
     },

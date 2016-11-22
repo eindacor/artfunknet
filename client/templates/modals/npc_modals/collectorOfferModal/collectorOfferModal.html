@@ -9,8 +9,8 @@
 					{{else}}
 					<p class="modal-message">You have met an Art Collector who has been looking for one of the items in your collection. They have offered you <span class="highlight af-color">${{offerAmount ../interaction_object.offer_id}}</span> for <span class="highlight af-color work-title">{{artwork_data.title}}</span> by <span class="highlight af-color">{{artwork_data.artist}}</span>. The estimated value of this item is <span class="highlight">${{getItemObjectValue this "actual"}}.</span></p>
 					{{/if}}
-					{{#if interaction_object.message}}
-					<p class="modal-message">{{interaction_object.message}}</p>
+					{{#if ../interaction_object.message}}
+					<p class="modal-message">{{../interaction_object.message}}</p>
 					{{/if}}
 				{{/with}}
 			</div>
