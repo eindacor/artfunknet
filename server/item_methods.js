@@ -47,50 +47,66 @@ getDisplayDetails = function(item_id, duration) {
     // 6 hours
     // 12 hours
     // 1 day
+    var acceptable_durations = [60, 360, 720, 1440];
+    if (acceptable_durations.indexOf(parseInt(duration, 10)) == -1) {
+        return {
+            'money' : 0,
+            'xp' : 0,
+            'xp_chunk_percentage': 0,
+            'end' : moment()._d.toISOString()
+        }
+    }
 
     var item_object = items.findOne(item_id);
 
-    var display_amount = item_object.values.display;
-    var xp_chunk = getXPChunk(Meteor.user().profile.level);
-    var xp_rating = items.findOne(item_id).xp_rating;
-    var xp_chunk_percentage_value = .5 + (.5 * xp_rating);
-    var xp_value = xp_chunk_percentage_value * xp_chunk;
+    var display_amount = getAverageDropValue(Meteor.users.findOne(item_object.owner).profile.level, 1);
 
-    //add bonuses from attributes
-
-    var money, xp, xp_chunk_percentage;
-    switch(Number(duration)) {
-        case 1:
-            money = display_amount * .00018 * duration;
-            xp = xp_value * .0008 * duration;
-            xp_chunk_percentage = xp_chunk_percentage_value * .0008 * duration; 
-            break;
-        case 60:
-            money = display_amount * .00012 * duration;
-            xp = xp_value * .0001 * duration;
-            xp_chunk_percentage = xp_chunk_percentage_value * .0001 * duration;
-            break;
-        case 360:
-            money = display_amount * .00014 * duration;
-            xp = xp_value * .0002 * duration;
-            xp_chunk_percentage = xp_chunk_percentage_value * .0002 * duration;
-            break;
-        case 720:
-            money = display_amount * .00016 * duration;
-            xp = xp_value * .0003 * duration;
-            xp_chunk_percentage = xp_chunk_percentage_value * .0003 * duration;
-            break;
-        case 1440:
-            money = display_amount * .00018 * duration;
-            xp = xp_value * .0004 * duration;
-            xp_chunk_percentage = xp_chunk_percentage_value * .0004 * duration;
-            break;
-        default:
-            money = 0;
-            xp = 0;
-            xp_chunk_percentage = 0;
-            break;
+    switch(item_object.artwork_data.rarity) {
+        case "common": break;
+        case "uncommon": display_amount *= 5; break;
+        case "rare": display_amount *= 10; break;
+        case "legendary": display_amount *= 15; break;
+        case "masterpiece": display_amount *= 20; break;
+        default: break;
     }
+
+    if (item_object.foil) {
+        display_amount *= 1.2;
+    }
+
+    if(item_object.seasonal) {
+        display_amount *= 1.5;
+    }
+
+    if(item_object.lottery && item_object.lottery != 0) {
+        display_amount *= 2;
+    }
+
+    if(item_object.original) {
+        display_amount *= 2;
+    }
+
+    if (item_object.vintage){
+        display_amount *= 1.5;
+    }
+
+    display_amount = Math.floor(display_amount + (display_amount * item_object.condition * artworks.findOne(item_object.artwork_id).value_scale));
+
+    var money_per_hour = display_amount * .02;
+    var xp_chunk_per_hour = .01 + (.01 * item_object.xp_rating);
+    var duration_scalar;
+    var hours_to_display = Math.floor(Number(duration) / 60);
+
+    switch(hours_to_display) {
+        case 1: duration_scalar = 1; break;
+        case 6: duration_scalar = 2; break;
+        case 12: duration_scalar = 3; break;
+        case 24: duration_scalar = 4; break;
+    }
+
+    var money = Math.floor(money_per_hour * hours_to_display * duration_scalar);
+    var xp_chunk_percentage = xp_chunk_per_hour * hours_to_display * duration_scalar;
+    var xp = Math.floor(getXPChunk(Meteor.user().profile.level) * xp_chunk_percentage);
 
     if (itemIsMisprinted(item_object)) {
         money *= 20;
@@ -99,11 +115,10 @@ getDisplayDetails = function(item_id, duration) {
 
     var end = moment().add(duration, 'minutes')._d.toISOString();
     var display_details = {
-        'money' : Math.floor(Number(money.toFixed(2))),
-        'xp' : Math.floor(xp),
+        'money' : money,
+        'xp' : xp,
         'xp_chunk_percentage': Number(xp_chunk_percentage.toFixed(3)),
         'end' :end
-        // 'end' : moment().add(1, 'minutes')._d.toISOString()
     }
 
     return display_details;
