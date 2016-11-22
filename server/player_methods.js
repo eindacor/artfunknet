@@ -568,24 +568,29 @@ Meteor.methods({
             }
 
             if (procUniqueAttribute(user_object._id, "ROLL_VALUE_QUEST_BONUS", undefined)) {
-                var random_displayed = selectRandomPainting({'owner': Meteor.userId(), 'status': "displayed"});
-                if (random_displayed) {
-                    var attributes = random_displayed.attributes;
-                    var random_index = Math.floor(Math.random() * attributes.length);
-                    var setter_string = "attributes." + random_index + ".value";
-                    if (attributes[random_index].value < .9) {
-                        var setter_object = {};
-                        setter_object[setter_string] = Math.min(attributes[random_index].value + .02, 1);
-                        items.update(random_displayed._id, {$set: setter_object}, function(error) {
-                            if (error)
-                                console.log(error.message)
+                var selector = {'attributes.value': {$lt: .9}};
+                items.update(selector, {$inc: {'attributes.$.value': .01}}, {skip: Math.floor(items.find(selector).count() * Math.random())});
 
-                            else {
-                                updateItemObjectValues(items.findOne(random_displayed._id));
-                            }
-                        });
-                    }
-                }
+
+                // items.update({'attributes.value': {$lt: .9}}, {$inc: {'attributes.$.value': .01}})
+                // var random_displayed = selectRandomPainting({'owner': Meteor.userId(), 'status': "displayed", 'attributes.value': {$lt: .9}});
+                // if (random_displayed) {
+                //     var attributes = random_displayed.attributes;
+                //     var random_index = Math.floor(Math.random() * attributes.length);
+                //     var setter_string = "attributes." + random_index + ".value";
+                //     if (attributes[random_index].value < .9) {
+                //         var setter_object = {};
+                //         setter_object[setter_string] = Math.min(attributes[random_index].value + .02, 1);
+                //         items.update(random_displayed._id, {$set: setter_object}, function(error) {
+                //             if (error)
+                //                 console.log(error.message)
+
+                //             else {
+                //                 updateItemObjectValues(items.findOne(random_displayed._id));
+                //             }
+                //         });
+                //     }
+                // }
             }
 
             if (procUniqueAttribute(user_object._id, "QUEST_TARGET_CONDITION_INCREASE", undefined)) {

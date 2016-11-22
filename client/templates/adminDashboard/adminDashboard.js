@@ -692,6 +692,13 @@ Template.adminTools.events({
 				test_result_tracker.changed();
 			}
 		})
+	},
+
+	'click #give-quest-items': function() {
+		Meteor.call('giveQuestItems', function(error) {
+			if (error)
+				console.log(error.message)
+		})
 	}
 });
 
