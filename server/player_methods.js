@@ -568,29 +568,20 @@ Meteor.methods({
             }
 
             if (procUniqueAttribute(user_object._id, "ROLL_VALUE_QUEST_BONUS", undefined)) {
-                var selector = {'attributes.value': {$lt: .9}};
-                items.update(selector, {$inc: {'attributes.$.value': .01}}, {skip: Math.floor(items.find(selector).count() * Math.random())});
+                var selector = {'status': 'displayed', 'attributes.value': {'$lt': .9}};
+                var item_object = items.findOne(selector, {skip: Math.floor(items.find(selector).count() * Math.random())});
 
+                if (item_object) {
+                    var qualifying_attributes = [];
+                    for (var i=0; i<item_object.attributes.length; i++) {
+                        if (item_object.attributes[i].value < .9)
+                            qualifying_attributes.push(item_object.attributes[i]._id);
+                    }
+                    var random_index = Math.floor(Math.random() * qualifying_attributes.length);
+                    var attribute_id = qualifying_attributes[random_index];
 
-                // items.update({'attributes.value': {$lt: .9}}, {$inc: {'attributes.$.value': .01}})
-                // var random_displayed = selectRandomPainting({'owner': Meteor.userId(), 'status': "displayed", 'attributes.value': {$lt: .9}});
-                // if (random_displayed) {
-                //     var attributes = random_displayed.attributes;
-                //     var random_index = Math.floor(Math.random() * attributes.length);
-                //     var setter_string = "attributes." + random_index + ".value";
-                //     if (attributes[random_index].value < .9) {
-                //         var setter_object = {};
-                //         setter_object[setter_string] = Math.min(attributes[random_index].value + .02, 1);
-                //         items.update(random_displayed._id, {$set: setter_object}, function(error) {
-                //             if (error)
-                //                 console.log(error.message)
-
-                //             else {
-                //                 updateItemObjectValues(items.findOne(random_displayed._id));
-                //             }
-                //         });
-                //     }
-                // }
+                    items.update({'status': 'displayed', 'attributes._id': attribute_id}, {$inc: {'attributes.$.value': .02}});
+                }
             }
 
             if (procUniqueAttribute(user_object._id, "QUEST_TARGET_CONDITION_INCREASE", undefined)) {

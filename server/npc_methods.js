@@ -1006,7 +1006,7 @@ var generateQuest = function(rarity, is_own_gallery) {
 	};
 
 	reward = {
-		'money': money * money_multiplier,
+		'money': Math.floor(money * money_multiplier),
 		'xp': Math.floor(getXPChunk(player_level) * xp_chunk_percentage),
 		'xp_chunk_percentage': xp_chunk_percentage,
 		'item': reward_item,
