@@ -485,6 +485,38 @@ Meteor.methods({
         }
 
         else return [];
+    },
+
+    'giveQuestItems': function() {
+        if (adminValidated()) {
+            quests.find({'owner_id': Meteor.userId()}).forEach(function(quest_object) {
+                var targets = quest_object.target;
+                for (var i=0; i<targets.length; i++) {
+                    var artwork_id = targets[i];
+                    if (items.findOne({'owner': Meteor.userId(), 'artwork_id': artwork_id}) == undefined) {
+                        var item_generator = {
+                            'source': "test",
+                            'user_id': Meteor.userId(),
+                            'artwork_id': artwork_id,
+                            'condition': undefined,
+                            'xp_rating': undefined,
+                            'foil_chance': undefined,
+                            'seasonal': undefined,
+                            'lottery': undefined,
+                            'original': undefined,
+                            'vintage': undefined,
+                            'misprint_chance': undefined,
+                            'status': "unclaimed",
+                            'xp_rating_min': 0,
+                            'condition_min': 0
+                        }
+
+                        generateItemFromArtworkID(item_generator);
+                    }
+                }
+                
+            })
+        }
     }
 })
 

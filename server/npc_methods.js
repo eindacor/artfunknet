@@ -524,6 +524,7 @@ var collectorInteraction = function(npc_object) {
 	var xp_offer = false;
 	var xp_chunk_percentage;
 	var offer_amount;
+	var quest_item_given = false;
 
 	switch(npc_object.quality) {
 		case 'bronze': offer_multiplier = 1; break;
@@ -637,14 +638,56 @@ var collectorInteraction = function(npc_object) {
 
 				generateItems(multi_item_generator);
 
-				//if a message is already created by logic above, the collector offer is bypassed for money/xp, so return interaction
+				//if a message is already created by logic above, the collector offer is bypassed for money/xp, so add to message
 				if (message != undefined) {
-					message += " They have also offered you some items from their collection, which can be found in the store."
+					message += " They have also offered to sell you some items from their collection, which can be found in the store."
 				}		
 
 				//else continue with message undefined, which will leave isOwnGallery block and proceed to actual offer
 			}
 
+			if (procUniqueAttribute(Meteor.userId(), "COLLECTOR_QUEST_ITEM", undefined) && Math.random() < .25) {
+                var quest_item_ids = [];
+                quests.find({'owner_id': Meteor.userId()}).forEach(function(quest_object) {
+                    var targets = quest_object.target;
+                    for (var i=0; i<targets.length; i++) {
+                        if (quest_item_ids.indexOf(targets[i]) == -1)
+                            quest_item_ids.push(targets[i]);
+                    }
+                });
+
+                if (quest_item_ids.length) {
+                    var random_index = Math.floor(Math.random() * quest_item_ids.length);
+
+                    var item_generator = {
+                        'source': "collector",
+                        'user_id': Meteor.userId(),
+                        'artwork_id': quest_item_ids[random_index],
+                        'condition': undefined,
+                        'xp_rating': undefined,
+                        'foil_chance': getLootData().global_foil_chance,
+                        'seasonal': undefined,
+                        'lottery': 0,
+                        'original': false,
+                        'misprint_chance': getLootData().global_misprint_chance,
+                        'status': "unclaimed",
+                        'xp_rating_min': 0,
+                        'condition_min': 0
+                    }
+
+                    generateItemFromArtworkID(item_generator);
+                };
+
+                //if a message is already created by logic above, the collector offer is bypassed for money/xp, so add to message
+                if (message != undefined) {
+					message += " In addition, they noticed you were looking for a few items, and want to give you a piece from their collection."
+				}
+
+				//else continue with message undefined, which will leave isOwnGallery block and proceed to actual offer
+				quest_item_given = true;
+            };
+
+			// if a message has been generated, the display offer legendary has been proc'ed
 			if (message != undefined)
 				return {'message': message};
 		}
@@ -666,11 +709,29 @@ var collectorInteraction = function(npc_object) {
 			}
 		})
 
+		// TODO refactor interaction so procs below are only checked once
 		if (isOwnGallery(npc_object) && procUniqueAttribute("COLLECTOR_FOR_SALE_OFFER", undefined)) {
 			message = "They have also offered you a few items from their collection, which can be found in the store.";
 		}
 
-		return {'type': "collector_bonus", 'offer_id': offer_id, 'item': collector_target, 'message': message};
+		if (quest_item_given) {
+            if (message != undefined) {
+				message += " In addition, they noticed you were looking for a few items, and want to give you a piece from their collection.";
+			}
+
+			else message = "They also noticed you were looking for a few items, and want to give you a piece from their collection.";
+        };
+
+        var interaction_object = {
+        	'type': "collector_bonus", 
+        	'offer_id': offer_id, 
+        	'item': collector_target, 
+        	'message': message
+        };
+
+        console.log(interaction_object);
+
+		return interaction_object;
 	}
 
 	else {
@@ -945,7 +1006,7 @@ var generateQuest = function(rarity, is_own_gallery) {
 	};
 
 	reward = {
-		'money': money * money_multiplier,
+		'money': Math.floor(money * money_multiplier),
 		'xp': Math.floor(getXPChunk(player_level) * xp_chunk_percentage),
 		'xp_chunk_percentage': xp_chunk_percentage,
 		'item': reward_item,
@@ -984,9 +1045,12 @@ var generateQuest = function(rarity, is_own_gallery) {
 var historianInteraction = function(npc_object) {
 	try {
 		var max_quest_count = 8;
-		var quest_cap_bypass = isOwnGallery(npc_object) && procUniqueAttribute(Meteor.userId(), "QUEST_CAP_BYPASS", undefined);
-		if (quests.find({'owner_id': Meteor.userId()}).count() >= max_quest_count && !quest_cap_bypass) {
-			var message = "You have men an art historian who is looking for a few specific items, but you currently have too many tasks on your schedule to help them.";
+
+		if (isOwnGallery(npc_object) && procUniqueAttribute(Meteor.userId(), "QUEST_CAP_BYPASS", undefined))
+			max_quest_count = 20;
+
+		if (quests.find({'owner_id': Meteor.userId()}).count() >= max_quest_count) {
+			var message = "You have met an art historian who is looking for a few specific items, but you currently have too many tasks on your schedule to help them.";
 			return {'type': undefined, 'message': message};
 		}
 	

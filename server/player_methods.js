@@ -527,7 +527,7 @@ Meteor.methods({
                 if (unique_targets_found.indexOf(item_object.artwork_id) == -1)
                     unique_targets_found.push(item_object.artwork_id);
 
-                if (unique_specials_found.indexOf(item_object.artwork_id) == -1 && (item_object.foil || item_object.original))
+                if (unique_specials_found.indexOf(item_object.artwork_id) == -1 && (item_object.foil || item_object.original || item_object.vintage))
                     unique_specials_found.push(item_object.artwork_id);
             });
 
@@ -568,23 +568,19 @@ Meteor.methods({
             }
 
             if (procUniqueAttribute(user_object._id, "ROLL_VALUE_QUEST_BONUS", undefined)) {
-                var random_displayed = selectRandomPainting({'owner': Meteor.userId(), 'status': "displayed"});
-                if (random_displayed) {
-                    var attributes = random_displayed.attributes;
-                    var random_index = Math.floor(Math.random() * attributes.length);
-                    var setter_string = "attributes." + random_index + ".value";
-                    if (attributes[random_index].value < .9) {
-                        var setter_object = {};
-                        setter_object[setter_string] = Math.min(attributes[random_index].value + .02, 1);
-                        items.update(random_displayed._id, {$set: setter_object}, function(error) {
-                            if (error)
-                                console.log(error.message)
+                var selector = {'status': 'displayed', 'attributes.value': {'$lt': .9}};
+                var item_object = items.findOne(selector, {skip: Math.floor(items.find(selector).count() * Math.random())});
 
-                            else {
-                                updateItemObjectValues(items.findOne(random_displayed._id));
-                            }
-                        });
+                if (item_object) {
+                    var qualifying_attributes = [];
+                    for (var i=0; i<item_object.attributes.length; i++) {
+                        if (item_object.attributes[i].value < .9)
+                            qualifying_attributes.push(item_object.attributes[i]._id);
                     }
+                    var random_index = Math.floor(Math.random() * qualifying_attributes.length);
+                    var attribute_id = qualifying_attributes[random_index];
+
+                    items.update({'status': 'displayed', 'attributes._id': attribute_id}, {$inc: {'attributes.$.value': .02}});
                 }
             }
 
