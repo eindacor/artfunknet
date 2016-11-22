@@ -527,7 +527,7 @@ Meteor.methods({
                 if (unique_targets_found.indexOf(item_object.artwork_id) == -1)
                     unique_targets_found.push(item_object.artwork_id);
 
-                if (unique_specials_found.indexOf(item_object.artwork_id) == -1 && (item_object.foil || item_object.original))
+                if (unique_specials_found.indexOf(item_object.artwork_id) == -1 && (item_object.foil || item_object.original || item_object.vintage))
                     unique_specials_found.push(item_object.artwork_id);
             });
 
