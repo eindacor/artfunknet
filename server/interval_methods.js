@@ -126,7 +126,7 @@ Meteor.setInterval((function() {
 }), item_count_frequency);
 
 var lottery_check_frequency = 60000; //once per minute
-lottery_check_frequency = 10000; //once per 10 second
+//lottery_check_frequency = 10000; //once per 10 second
 Meteor.setInterval((function() {
     var lottery_draw_time = metadata.findOne({'lottery_draw': {$ne: null}}).lottery_draw;
    
@@ -243,7 +243,7 @@ Meteor.setInterval((function() {
     }
    
     var next_draw = moment(lottery_draw_time).add(1, "weeks")._d.toISOString();
-    // var next_draw = moment(lottery_draw_time).add(10, "seconds")._d.toISOString();
+    //var next_draw = moment(lottery_draw_time).add(10, "seconds")._d.toISOString();
     metadata.update({'lottery_draw': {$ne: null}}, {$set: {'lottery_draw': next_draw}});
 
 }), lottery_check_frequency);
