@@ -79,7 +79,7 @@ updateItemObjectValues = function(item_object) {
     }
 }
 
-var getItemObjectValues = function(item_object) {
+getItemObjectValues = function(item_object) {
     try {
         var value_types = ["sell", "purchase", "actual", "auction_min", "collector", "dealer", "display"];
         var values_object = {};
