@@ -77,10 +77,10 @@ var updateContent = function() {
     // temp code
     if (metadata.findOne({'lottery_draw': {$ne: null}}) == undefined) {
         metadata.insert({
-            //'lottery_draw': moment().add(30, 'seconds')._d.toISOString(),
-            'lottery_draw': moment('2016-11-24 12:00')._d.toISOString(),
+            'lottery_draw': moment().add(30, 'seconds')._d.toISOString(),
+            //'lottery_draw': moment('2016-11-24 12:00')._d.toISOString(),
             'previous_winner': undefined,
-            'lottery_level': 0
+            'lottery_level': 1
         });
     }
     // temp code

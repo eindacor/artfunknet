@@ -126,12 +126,14 @@ Meteor.setInterval((function() {
 }), item_count_frequency);
 
 var lottery_check_frequency = 60000; //once per minute
-//lottery_check_frequency = 10000; //once per 10 seconds
+lottery_check_frequency = 10000; //once per 10 second
 Meteor.setInterval((function() {
     var lottery_draw_time = metadata.findOne({'lottery_draw': {$ne: null}}).lottery_draw;
    
     if (moment()._d.toISOString() < lottery_draw_time)
         return;
+
+    var lottery_level = metadata.findOne({'lottery_draw': {$ne: null}}).lottery_level;
        
     if (Math.random() < .2) {
         var user_map = {};
@@ -170,7 +172,7 @@ Meteor.setInterval((function() {
             'foil_chance': 0,
             'misprint_chance': getLootData().global_misprint_chance,
             'seasonal': false,
-            'lottery': getLootData().lottery_level,
+            'lottery': lottery_level,
             'original': false,
             'status': "claimed",
             'xp_rating_min': 0,
@@ -178,7 +180,7 @@ Meteor.setInterval((function() {
         };
 
         generateItemFromArtworkID(item_generator);
-        metadata.update({'loot_data': {$ne: null}}, {$set: {'loot_data.lottery_level': 1}});
+        metadata.update({'lottery_draw': {$ne: null}}, {$set: {'lottery_level': 1}});
        
         var winning_name = bot_won ? "Artfunkel, Inc." : Meteor.users.findOne(winning_id).profile.screen_name;
 
@@ -200,13 +202,13 @@ Meteor.setInterval((function() {
     }
 
     else {
-        if (getLootData().lottery_level < 10) {
-            metadata.update({'loot_data': {$ne: null}}, {$inc: {'loot_data.lottery_level': 1}}, function(error) {
+        if (lottery_level < 10) {
+            metadata.update({'lottery_draw': {$ne: null}}, {$inc: {'lottery_level': 1}}, function(error) {
                 if (error)
                     console.log(error.message)
 
                 else {
-                    var message = "This week there's no lottery winner. New Lottery Level: " + getLootData().lottery_level;
+                    var message = "This week there's no lottery winner. New Lottery Level: " + metadata.findOne({'lottery_draw': {$ne: null}}).lottery_level;
                     Meteor.users.find({'profile.level': 50}).forEach(function(db_object) {
                         var alert_object = {
                             'user_id' : db_object._id,
