@@ -138,7 +138,7 @@ Meteor.startup(function() {
             return parser.text('every 2 weeks at 10:00 am on Tuesday');
         },
         job: function() {
-            if (Meteor.users.find({'profile.level': 50}).count() < 4)
+            if (Meteor.users.find({'profile.level': 50, 'profile.user_type': {$ne: "admin"}}).count() < 4)
                 return;
 
             if (Math.random() < .3) {
