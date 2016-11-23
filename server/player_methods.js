@@ -582,7 +582,7 @@ Meteor.methods({
                     var random_index = Math.floor(Math.random() * qualifying_attributes.length);
                     var attribute_id = qualifying_attributes[random_index];
 
-                    items.update({'status': 'displayed', 'attributes._id': attribute_id}, {$inc: {'attributes.$.value': .02}});
+                    items.update({'_id': item_object._id, 'status': 'displayed', 'attributes._id': attribute_id}, {$inc: {'attributes.$.value': .02}});
                 }
             }
 

@@ -729,8 +729,6 @@ var collectorInteraction = function(npc_object) {
         	'message': message
         };
 
-        console.log(interaction_object);
-
 		return interaction_object;
 	}
 

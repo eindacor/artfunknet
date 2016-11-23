@@ -75,7 +75,13 @@ var updateContent = function() {
     });
 
     // temp code
-    
+    if (metadata.findOne({'lottery_draw': {$ne: null}}) == undefined) {
+        metadata.insert({
+            'lottery_draw': moment('2016-11-24 12:00')._d.toISOString(),
+            'previous_winner': undefined,
+            'lottery_level': 1
+        });
+    }
     // temp code
 }
 
@@ -129,91 +135,6 @@ Meteor.startup(function() {
         generateContent();
 
     updateContent();
-
-    SyncedCron.add({
-        name: 'Lottery Draw',
-        schedule: function(parser) {
-            // parser is a later.parse object
-            // return parser.text('every 10 seconds');
-            return parser.text('every 2 weeks at 10:00 am on Tuesday');
-        },
-        job: function() {
-            return;
-            if (Meteor.users.find({'profile.level': 50, 'profile.user_type': {$ne: "admin"}}).count() < 4)
-                return;
-
-            if (Math.random() < .3) {
-                var user_map = {};
-                Meteor.users.find({'profile.level': 50}).forEach(function(db_object) {
-                    user_map[db_object._id] = db_object.profile.xp;
-                });
-
-                var winning_id = JepLoot.catRoll(user_map);
-
-                var artwork_id = Math.random() < .0001 ? getRandomArtworkIDFromRarity("masterpiece") : getRandomArtworkIDFromRarity("legendary");
-
-                var item_generator = {
-                    'source': "lottery",
-                    'user_id': winning_id,
-                    'artwork_id': artwork_id,
-                    'condition': undefined,
-                    'xp_rating': undefined,
-                    'foil_chance': 0,
-                    'misprint_chance': getLootData().global_misprint_chance,
-                    'seasonal': false,
-                    'lottery': getLootData().lottery_level,
-                    'original': false,
-                    'status': "claimed",
-                    'xp_rating_min': 0,
-                    'condition_min': 0
-                };
-
-                generateItemFromArtworkID(item_generator);
-                metadata.update({'loot_data': {$ne: null}}, {$set: {'loot_data.lottery_level': 1}});
-
-                var message = "This week's lottery winner is " + Meteor.users.findOne(winning_id).profile.screen_name + ". Congratulations!!!";
-                Meteor.users.find({'profile.level': 50}).forEach(function(db_object) {
-                    var alert_object = {
-                        'user_id' : db_object._id,
-                        'message' : message,
-                        'link' : '/',
-                        'icon' : 'fa-gavel',
-                        'sentiment' : "good",
-                        'time' : moment()
-                    };
-
-                    alerts.insert(alert_object);
-                });
-
-                Meteor.users.update({'profile.level': 50}, {$set: {'profile.xp': 0}}, {multi: true});
-            }
-
-            else {
-                if (getLootData().lottery_level < 10) {
-                    metadata.update({'loot_data': {$ne: null}}, {$set: {'loot_data.lottery_level': getLootData().lottery_level + 1}}, function(error) {
-                        if (error)
-                            console.log(error.message)
-
-                        else {
-                            var message = "This week there's no lottery winner. New Lottery Level: " + getLootData().lottery_level;
-                            Meteor.users.find({'profile.level': 50}).forEach(function(db_object) {
-                                var alert_object = {
-                                    'user_id' : db_object._id,
-                                    'message' : message,
-                                    'link' : '/',
-                                    'icon' : 'fa-gavel',
-                                    'sentiment' : "good",
-                                    'time' : moment()
-                                };
-
-                                alerts.insert(alert_object);
-                            });
-                        }
-                    });
-                }
-            }
-        }
-    });
 
     SyncedCron.add({
         name: 'Seasonal Cycle',
