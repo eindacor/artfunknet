@@ -587,16 +587,7 @@ Meteor.methods({
             }
 
             if (procUniqueAttribute(user_object._id, "QUEST_TARGET_CONDITION_INCREASE", undefined)) {
-                items.update({'owner': user_object._id, 'status': {$nin: ['unclaimed', 'for_sale', 'won']}, 'artwork_id': {$in: quest_object.target}}, {$set: {'condition': .9}}, {multi: true}, function(error) {
-                    if (error)
-                        console.log(error.message)
-
-                    else {
-                        items.find({'owner': user_object._id, 'status': {$nin: ['unclaimed', 'for_sale', 'won']}}).forEach(function(item_object) {
-                            updateItemObjectValues(item_object);
-                        })
-                    }
-                });
+                updateItemsBySelector({'owner': user_object._id, 'status': {$nin: ['unclaimed', 'for_sale', 'won']}, {}, {$set: {'condition': .9}});
             }
 
             quests.remove(quest_id);
@@ -1068,8 +1059,8 @@ Meteor.methods({
             );
 
             items.find({'owner': Meteor.userId(), 'vintage': {$ne: true}, 'original': {$ne: true}}).forEach(function(item_object) {
-                items.update(
-                    {'_id': item_object._id},        //selector
+                updateItem(
+                    item_object._id,                //selector
                     {                               //modifier 
                         $set: {
                             'status': 'won',
@@ -1081,15 +1072,6 @@ Meteor.methods({
                                 'xp_chunk_percentage': 0,
                                 'end' : ""
                             }
-                        }
-                    }, 
-                    function(error) {               //callback
-                        if (error)
-                            console.log(error.message);
-
-                        else {
-                            updateItemObjectValues(items.findOne(item_object._id));
-                            updateGalleryDetails(Meteor.userId());              
                         }
                     }
                 );         

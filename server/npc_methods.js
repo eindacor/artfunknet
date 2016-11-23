@@ -415,10 +415,7 @@ var preservationistInteraction = function(npc_object) {
 
 	var new_condition = Math.min(repair_amount + target_item.condition, 1)
 
-	updateItem(target_item._id, {$set: {'condition' : Number(new_condition)}}, function() {
-    	updateGalleryDetails(Meteor.userId());
-    	updateItemObjectValues(items.findOne(target_item._id));
-    });
+	updateItem(target_item._id, {$set: {'condition' : Number(new_condition)}});
 
 	if (message)
 		message = message + " Finally, they offer to refurbish one of your pieces. " + target_item.artwork_data.title + " by " + target_item.artwork_data.artist + " has increased in value.";

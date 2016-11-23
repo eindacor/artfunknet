@@ -194,8 +194,7 @@ updateItem = function(item_id, modifier, callback) {
             if (item_object == undefined)
                 return false;
 
-            if (item_object.status == 'displayed')
-                updateGalleryDetails(item_object.owner);
+            updateGalleryDetails(item_object.owner);
 
             if (callback == undefined)
                 items.update({'_id': item_id}, {$set: {'values': getItemObjectValues(items.findOne(item_id))}});
