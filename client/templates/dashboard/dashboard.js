@@ -150,7 +150,8 @@ Template.dashboard.helpers({
 					'xp_remaining' : getCommaSeparatedValue(xp_data.goal - Meteor.user().profile.xp),
 					'current_level' : Meteor.user().profile.level,
 					'current_xp' : getCommaSeparatedValue(Meteor.user().profile.xp),
-					'xp_goal' : getCommaSeparatedValue(xp_data.goal)
+					'xp_goal' : getCommaSeparatedValue(xp_data.goal),
+					'tickets': Meteor.user().profile.lottery_tickets
 				};
 
 				Session.set('xp_data', xp_object);

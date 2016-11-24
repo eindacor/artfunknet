@@ -18,6 +18,7 @@ createUser = function(user_object, callback){
     user_object.profile.last_drop = moment().add(-1, 'days')._d.toISOString();
     user_object.profile.level = 0;
     user_object.profile.xp = 0;
+    user_object.profile.lottery_tickets = 0;
     user_object.profile.entry_fee = "medium";
     user_object.profile.gallery_tickets = [];
     user_object.profile.gallery_value = 0;
@@ -348,7 +349,6 @@ var getSellAllData= function(user_id) {
             if (items.findOne({'owner': user_id, 'status': {$nin: ['unclaimed', 'for_sale', 'won']}, 'artwork_id': quest_object.target[i]}) == undefined)
                 quest_targets.push(quest_object.target[i]);
         }
-        //quest_targets = quest_targets.concat(quest_object.target);
     });
 
     //TODO add legendary procs for sell amounts here
@@ -555,7 +555,8 @@ Meteor.methods({
             var user_object = Meteor.user();
             var quest_object = quests.findOne(quest_id);
 
-            var xp_recieved = quest_object.reward.xp;
+            var base_xp = quest_object.reward.xp;
+            var xp_recieved = base_xp;
             var unique_targets_found = [];
             var unique_specials_found = [];
 
@@ -568,9 +569,9 @@ Meteor.methods({
             });
 
             var target_differential = unique_targets_found.length - quest_object.min_requirement;
-            xp_recieved += Math.floor(getXPChunk(user_object.profile.level) * target_differential * 0.5);
+            xp_recieved += Math.floor(base_xp * target_differential * 0.4);
             var special_count = unique_specials_found.length;
-            xp_recieved += Math.floor(getXPChunk(user_object.profile.level) * special_count * 0.3);
+            xp_recieved += Math.floor(base_xp * special_count * 0.2);
 
             addXP(user_object._id, xp_recieved);
             logXPChunkPercentage("quest", quest_object.reward.xp_chunk_percentage + (special_count * 0.3) + (target_differential * 0.5));
@@ -1027,6 +1028,7 @@ Meteor.methods({
                         'profile.level': 0, 
                         'profile.bank_balance': new_bank_balance, 
                         'profile.xp': 0,
+                        'profile.lottery_tickets': 0,
                         'profile.completed_quests': 0,
                         'profile.last_drop': moment().add(-1, 'days')._d.toISOString(),
                         'profile.gallery_finishes': {

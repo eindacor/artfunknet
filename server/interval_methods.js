@@ -69,7 +69,7 @@ Meteor.setInterval((function() {
                 if (attribute_object.npc_name == "Designer" && procUniqueAttribute(db_object.owner_id, "DESIGNER_PAIRS", undefined) && Math.random() < .2)
                     createNPC(db_object, attribute_ids[i], npc_spawn_frequency, "bronze");
                     
-                if ((npc_quality == "platinum") && Math.random() < .5 && procUniqueAttribute(db_object.owner_id, "COLLECTOR_DONOR_PAIR", undefined)) {
+                if ((npc_quality == "platinum") && procUniqueAttribute(db_object.owner_id, "COLLECTOR_DONOR_PAIR", undefined)) {
                     if (attribute_object.npc_name == "Art Collector")
                         createNPC(db_object, attributes.findOne({'npc_name': "Art Donor"})._id, npc_spawn_frequency, "bronze")
                         
@@ -128,122 +128,124 @@ Meteor.setInterval((function() {
 var lottery_check_frequency = 60000; //once per minute
 //lottery_check_frequency = 10000; //once per 10 second
 Meteor.setInterval((function() {
-    // var lottery_draw_time = metadata.findOne({'lottery_draw': {$ne: null}}).lottery_draw;
+    return;
+
+    var lottery_draw_time = metadata.findOne({'lottery_draw': {$ne: null}}).lottery_draw;
    
-    // if (moment()._d.toISOString() < lottery_draw_time)
-    //     return;
+    if (moment()._d.toISOString() < lottery_draw_time)
+        return;
 
-    // var lottery_level = metadata.findOne({'lottery_draw': {$ne: null}}).lottery_level;
+    var lottery_level = metadata.findOne({'lottery_draw': {$ne: null}}).lottery_level;
        
-    // if (Math.random() < .2) {
-    //     var user_map = {};
-    //     var xp_average = 0;
-    //     var player_count = 0;
-    //     Meteor.users.find({'profile.level': 50, 'profile.user_type': {$ne: "admin"}, 'profile.xp': {$gt: 0}}).forEach(function(user_object) {
-    //         user_map[user_object._id] = user_object.profile.xp;
-    //         xp_average = ((xp_average * player_count) + user_object.profile.xp) / (player_count + 1);
-    //         player_count++;
-    //     });
+    if (Math.random() < .2) {
+        var user_map = {};
+        var tickets_average = 0;
+        var player_count = 0;
+        Meteor.users.find({'profile.level': 50, 'profile.user_type': {$ne: "admin"}, 'profile.lottery_tickets': {$gt: 0}}).forEach(function(user_object) {
+            user_map[user_object._id] = user_object.profile.lottery_tickets;
+            tickets_average = ((tickets_average * player_count) + user_object.profile.lottery_tickets) / (player_count + 1);
+            player_count++;
+        });
        
-    //     var min_players_required = 100;
-    //     if (player_count < min_players_required) {
-    //         for (var i=0; i<(min_players_required - player_count); i++) {
-    //             var bot_string = new Meteor.Collection.ObjectID()._str;
-    //             user_map[bot_string] = (xp_average == 0 ? 1 : xp_average);
-    //         }
-    //     }
+        var min_players_required = 100;
+        if (player_count < min_players_required) {
+            for (var i=0; i<(min_players_required - player_count); i++) {
+                var bot_string = new Meteor.Collection.ObjectID()._str;
+                user_map[bot_string] = (tickets_average == 0 ? 1 : tickets_average);
+            }
+        }
 
-    //     var winning_id = JepLoot.catRoll(user_map);
+        var winning_id = JepLoot.catRoll(user_map);
        
-    //     var bot_won = Meteor.users.findOne(winning_id) == undefined;
+        var bot_won = Meteor.users.findOne(winning_id) == undefined;
        
-    //     if (bot_won) {
-    //         winning_id = Meteor.users.findOne({'profile.screen_name': "admin"})._id;
-    //     }
+        if (bot_won) {
+            winning_id = Meteor.users.findOne({'profile.screen_name': "admin"})._id;
+        }
 
-    //     var artwork_id = Math.random() < .0001 ? getRandomArtworkIDFromRarity("masterpiece") : getRandomArtworkIDFromRarity("legendary");
+        var artwork_id = Math.random() < .0001 ? getRandomArtworkIDFromRarity("masterpiece") : getRandomArtworkIDFromRarity("legendary");
 
-    //     var item_generator = {
-    //         'source': "lottery",
-    //         'user_id': winning_id,
-    //         'artwork_id': artwork_id,
-    //         'condition': undefined,
-    //         'xp_rating': undefined,
-    //         'foil_chance': 0,
-    //         'misprint_chance': getLootData().global_misprint_chance,
-    //         'seasonal': false,
-    //         'lottery': lottery_level,
-    //         'original': false,
-    //         'status': "claimed",
-    //         'xp_rating_min': 0,
-    //         'condition_min': 0
-    //     };
+        var item_generator = {
+            'source': "lottery",
+            'user_id': winning_id,
+            'artwork_id': artwork_id,
+            'condition': undefined,
+            'xp_rating': undefined,
+            'foil_chance': 0,
+            'misprint_chance': getLootData().global_misprint_chance,
+            'seasonal': false,
+            'lottery': lottery_level,
+            'original': false,
+            'status': "claimed",
+            'xp_rating_min': 0,
+            'condition_min': 0
+        };
 
-    //     generateItemFromArtworkID(item_generator);
-    //     metadata.update({'lottery_draw': {$ne: null}}, {$set: {'lottery_level': 1}});
+        generateItemFromArtworkID(item_generator);
+        metadata.update({'lottery_draw': {$ne: null}}, {$set: {'lottery_level': 1}});
        
-    //     var winning_name = bot_won ? "Artfunkel, Inc." : Meteor.users.findOne(winning_id).profile.screen_name;
+        var winning_name = bot_won ? "Artfunkel, Inc." : Meteor.users.findOne(winning_id).profile.screen_name;
 
-    //     var message = "This week's lottery winner is " + winning_name + ". Congratulations!!!";
-    //     Meteor.users.find({'profile.level': 50}).forEach(function(db_object) {
-    //         var alert_object = {
-    //             'user_id' : db_object._id,
-    //             'message' : message,
-    //             'link' : '/',
-    //             'icon' : 'fa-gavel',
-    //             'sentiment' : "good",
-    //             'time' : moment()
-    //         };
+        var message = "This week's lottery winner is " + winning_name + ". Congratulations!!!";
+        Meteor.users.find({'profile.level': 50}).forEach(function(db_object) {
+            var alert_object = {
+                'user_id' : db_object._id,
+                'message' : message,
+                'link' : '/',
+                'icon' : 'fa-gavel',
+                'sentiment' : "good",
+                'time' : moment()
+            };
 
-    //         alerts.insert(alert_object);
-    //     });
+            alerts.insert(alert_object);
+        });
 
-    //     Meteor.users.update({'profile.level': 50}, {$set: {'profile.xp': 0}}, {multi: true});
-    // }
+        Meteor.users.update({'profile.level': 50}, {$set: {'profile.lottery_tickets': 0}}, {multi: true});
+    }
 
-    // else {
-    //     if (lottery_level < 10) {
-    //         metadata.update({'lottery_draw': {$ne: null}}, {$inc: {'lottery_level': 1}}, function(error) {
-    //             if (error)
-    //                 console.log(error.message)
+    else {
+        if (lottery_level < 10) {
+            metadata.update({'lottery_draw': {$ne: null}}, {$inc: {'lottery_level': 1}}, function(error) {
+                if (error)
+                    console.log(error.message)
 
-    //             else {
-    //                 var message = "This week there's no lottery winner. New Lottery Level: " + metadata.findOne({'lottery_draw': {$ne: null}}).lottery_level;
-    //                 Meteor.users.find({'profile.level': 50}).forEach(function(db_object) {
-    //                     var alert_object = {
-    //                         'user_id' : db_object._id,
-    //                         'message' : message,
-    //                         'link' : '/',
-    //                         'icon' : 'fa-gavel',
-    //                         'sentiment' : "good",
-    //                         'time' : moment()
-    //                     };
+                else {
+                    var message = "This week there's no lottery winner. New Lottery Level: " + metadata.findOne({'lottery_draw': {$ne: null}}).lottery_level;
+                    Meteor.users.find({'profile.level': 50}).forEach(function(db_object) {
+                        var alert_object = {
+                            'user_id' : db_object._id,
+                            'message' : message,
+                            'link' : '/',
+                            'icon' : 'fa-gavel',
+                            'sentiment' : "good",
+                            'time' : moment()
+                        };
 
-    //                     alerts.insert(alert_object);
-    //                 });
-    //             }
-    //         });
-    //     }
+                        alerts.insert(alert_object);
+                    });
+                }
+            });
+        }
 
-    //     else {
-    //         var message = "This week there's no lottery winner. The Lottery Level remains at 10!";
-    //         Meteor.users.find({'profile.level': 50}).forEach(function(db_object) {
-    //             var alert_object = {
-    //                 'user_id' : db_object._id,
-    //                 'message' : message,
-    //                 'link' : '/',
-    //                 'icon' : 'fa-gavel',
-    //                 'sentiment' : "good",
-    //                 'time' : moment()
-    //             };
+        else {
+            var message = "This week there's no lottery winner. The Lottery Level remains at 10!";
+            Meteor.users.find({'profile.level': 50}).forEach(function(db_object) {
+                var alert_object = {
+                    'user_id' : db_object._id,
+                    'message' : message,
+                    'link' : '/',
+                    'icon' : 'fa-gavel',
+                    'sentiment' : "good",
+                    'time' : moment()
+                };
 
-    //             alerts.insert(alert_object);
-    //         });
-    //     }
-    // }
+                alerts.insert(alert_object);
+            });
+        }
+    }
    
-    // var next_draw = moment(lottery_draw_time).add(1, "weeks")._d.toISOString();
-    // //var next_draw = moment(lottery_draw_time).add(10, "seconds")._d.toISOString();
-    // metadata.update({'lottery_draw': {$ne: null}}, {$set: {'lottery_draw': next_draw}});
+    var next_draw = moment(lottery_draw_time).add(1, "weeks")._d.toISOString();
+    //next_draw = moment(lottery_draw_time).add(10, "seconds")._d.toISOString();
+    metadata.update({'lottery_draw': {$ne: null}}, {$set: {'lottery_draw': next_draw}});
 
 }), lottery_check_frequency);

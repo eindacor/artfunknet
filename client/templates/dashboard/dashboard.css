@@ -24,6 +24,10 @@
 	position: absolute;
 }
 
+.template-dashboard .xp-level.max {
+	background-color: #E8BF6C;
+}
+
 .template-dashboard .level-text {
 	color: white;
 	padding-left: 12px;
