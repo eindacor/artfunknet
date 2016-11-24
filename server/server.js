@@ -75,13 +75,21 @@ var updateContent = function() {
     });
 
     // temp code
-    if (metadata.findOne({'lottery_draw': {$ne: null}}) == undefined) {
-        metadata.insert({
-            'lottery_draw': moment('2016-11-24 12:00')._d.toISOString(),
-            'previous_winner': undefined,
-            'lottery_level': 1
-        });
-    }
+    metadata.update({'lottery_draw': {$ne: null}}, {$set: {
+        'lottery_draw': moment('2016-12-01 12:00')._d.toISOString(),
+        'previous_winner': undefined,
+        'lottery_level': 1
+    }});
+
+    //metadata.update({'lottery_draw': {$ne: null}}, {$set: {'lottery_draw': moment().add(10, 'seconds')._d.toISOString()}});
+
+    Meteor.users.update({'profile.lottery_tickets': null}, {$set: {'profile.lottery_tickets': 0}}, {multi: true});
+    Meteor.users.find({'profile.level': 50, 'profile.lottery_tickets': 0}).forEach(function(user_object) {
+        var xp_goal = getXPGoal(50);
+        var tickets_earned = Math.floor(user_object.profile.xp / xp_goal);
+        var xp_left = user_object.profile.xp % xp_goal;
+        Meteor.users.update(user_object._id, {$set: {'profile.xp': xp_left, 'profile.lottery_tickets': tickets_earned}});
+    })
     // temp code
 }
 

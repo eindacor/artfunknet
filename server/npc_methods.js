@@ -307,7 +307,7 @@ var preservationistInteraction = function(npc_object) {
 		// B) If the preserved item already has a condition > 80, you earn money based on its value.
 		if (target_item && procUniqueAttribute(Meteor.userId(), "PRESERVATIONIST_CONDITION_BONUS", undefined) && target_item.condition > .8) {
 			message = "You have met a preservationist, who is in awe of the pristine quality of your displayed works. He immediately notifies his rich uncle who gives you a hefty donation.";
-			addFunds("PRESERVATIONIST_CONDITION_BONUS", Meteor.userId(), Math.min( Math.floor(getItemObjectValueByType(target_item, 'display', Meteor.userId()) * .1), 100000) );
+			addFunds("PRESERVATIONIST_CONDITION_BONUS", Meteor.userId(), Math.min( Math.floor(getItemObjectValueByType(target_item, 'actual', Meteor.userId())), 1000000) );
 		}
 
 		// C) If you meet a preservationist with a designer present, the XP rating of your currently equipped finishes is increased. Finishes with a 100 rating give XP.
@@ -370,25 +370,11 @@ var preservationistInteraction = function(npc_object) {
 
 				if (!criteria_met) {
 					if (Math.random() < .5) {
-						items.update(random_permanent._id, {$set: {'xp_rating': Math.min( Number((random_permanent.xp_rating + .01).toFixed(2)), 1 )}}, function(error) {
-							if (error)
-								console.log(error.message);
-
-							else {
-								updateItemObjectValues(items.findOne(random_permanent._id));
-							}
-						});
+						updateItem(random_permanent._id, {$set: {'xp_rating': Math.min( Number((random_permanent.xp_rating + .01).toFixed(2)), 1 )}});
 					}
 
 					else {
-						items.update(random_permanent._id, {$set: {'condition': Math.min( Number((random_permanent.condition + .02).toFixed(2)), 1 )}}, function(error) {
-							if (error)
-								console.log(error.message);
-
-							else {
-								updateItemObjectValues(items.findOne(random_permanent._id));
-							}
-						});
+						updateItem(random_permanent._id, {$set: {'condition': Math.min( Number((random_permanent.condition + .02).toFixed(2)), 1 )}});
 					}
 				}
 			}
@@ -429,15 +415,7 @@ var preservationistInteraction = function(npc_object) {
 
 	var new_condition = Math.min(repair_amount + target_item.condition, 1)
 
-	items.update(target_item._id, {$set: {'condition' : Number(new_condition)}}, function(error) {
-        if (error)
-            console.log(error.message);
-
-        else {
-        	updateGalleryDetails(Meteor.userId());
-        	updateItemObjectValues(items.findOne(target_item._id));
-        }
-    });
+	updateItem(target_item._id, {$set: {'condition' : Number(new_condition)}});
 
 	if (message)
 		message = message + " Finally, they offer to refurbish one of your pieces. " + target_item.artwork_data.title + " by " + target_item.artwork_data.artist + " has increased in value.";
@@ -490,14 +468,7 @@ var artExpertInteraction = function(npc_object) {
 
 	else new_count = highest_item.roll_count - roll_reduction;
 
-	items.update(highest_item._id, {$set: {'roll_count' : Number(new_count)}}, function(error) {
-		if (error)
-			console.log(error.message)
-
-		else {
-			updateItemObjectValues(items.findOne(highest_item._id));
-		}
-	});
+	updateItem(highest_item._id, {$set: {'roll_count' : Number(new_count)}});
 
 	var message = "You have met an art expert who recently attended one of your events and was impressed by your collection. As a result, they have been spreading the word about your gallery. " + highest_item.artwork_data.title + " by " + highest_item.artwork_data.artist + " has had its roll count reduced to " + new_count + ".";
 

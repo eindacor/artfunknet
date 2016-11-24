@@ -328,7 +328,7 @@ Meteor.methods({
 		            item_attributes[i].locked = attributeIsLocked(artwork_id, item_attributes[i]._id);
 		        }
 
-		        items.update(db_object._id, {$set: {'attributes': item_attributes, 'artwork_data.locked_attributes': attribute_id_array}});
+                updateItem(db_object._id, {$set: {'attributes': item_attributes, 'artwork_data.locked_attributes': attribute_id_array}})
 		    })
     	}
     },
@@ -364,7 +364,7 @@ Meteor.methods({
 
                 else {
                     var artwork_data = artworks.findOne(artwork_id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}});
-                    items.update({'artwork_id': artwork_id}, {$set: {'artwork_data': artwork_data}}, {multi: true});
+                    updateItemsBySelector({'artwork_id': artwork_id}, {$set: {'artwork_data': artwork_data}});
                 }
             });
 
@@ -404,7 +404,7 @@ Meteor.methods({
     	if (adminValidated()) {
     		artists.update(artist_id, {$set: artist_object}, {multi: true}, function(error) {
                 artworks.update({'artist_id': artist_id}, {$set: {'artist': artist_object.artist_name}});
-                items.update({'artwork_data.artist_id': artist_id}, {$set: {'artwork_data.artist': artist_object.artist_name}});
+                updateItemsBySelector({'artwork_data.artist_id': artist_id}, {$set: {'artwork_data.artist': artist_object.artist_name}});
             });
     		return true;
     	}
@@ -430,13 +430,13 @@ Meteor.methods({
     'updateAttributeData': function(attribute_id, attribute_object) {
     	if (adminValidated()) {
     		attributes.update(attribute_id, {$set: attribute_object});
-    		items.update({'attributes._id': attribute_id}, {$set: {
+    		updateItemsBySelector({'attributes._id': attribute_id}, {$set: {
     			'attributes.$.title': attribute_object.title, 
     			'attributes.$.description': attribute_object.description, 
     			'attributes.$.icon': attribute_object.icon, 
     			'attributes.$.npc_name': attribute_object.npc_name, 
     			'attributes.$.active': attribute_object.active
-    		}}, {multi: true});
+    		}});
     		return true;
     	}
 

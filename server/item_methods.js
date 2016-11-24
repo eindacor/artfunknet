@@ -27,15 +27,7 @@ concludeDisplay = function(item_id) {
     };
 
     var new_condition = item_object.condition < .6 ? item_object.condition : item_object.condition - .01;
-    items.update(item_id, {$set: {'status' : 'claimed', 'display_details' : null_display_details, 'condition' : new_condition}}, function(error) {
-        if (error)
-            console.log(error.message);
-
-        else {
-            updateGalleryDetails(item_object.owner);
-            updateItemObjectValues(items.findOne(item_id));
-        }
-    });
+    updateItem(item_id, {$set: {'status' : 'claimed', 'display_details' : null_display_details, 'condition' : new_condition}});
 }
 
 itemIsMisprinted = function(item_object) {
@@ -135,15 +127,9 @@ displayItem = function(item_id, duration) {
     if (item_object && errors.length == 0) {
         var end = moment().add(duration, 'minutes');
         var display_details = getDisplayDetails(item_id, duration);
-        items.update({'_id': item_id}, {$set: {'status' : 'displayed', 'display_details' : display_details}}, function(error) {
-            if (error)
-                console.log(error.message);
-
-            else {
-                addItemObjectToChecklist(item_object.owner, 'displayed', item_object);
-                addItemObjectToChecklist(item_object.owner, 'seen', item_object);
-                updateGalleryDetails(item_object.owner);
-            }
+        updateItem(item_id, {$set: {'status' : 'displayed', 'display_details' : display_details}}, function() {
+            addItemObjectToChecklist(item_object.owner, 'displayed', item_object);
+            addItemObjectToChecklist(item_object.owner, 'seen', item_object);
         });
         return [];
     }
@@ -186,23 +172,53 @@ claimItemObject = function(user_id, item_object) {
     if (user_object == undefined)
         return false;
 
-    items.update({'_id': item_object._id}, {$set: {'owner': user_id, 'status' : 'claimed', 'date_received': moment()._d.toISOString()}}, function(error) {
-        if (error) {
-            console.log(error.message);
-            success = false;
-        }
-
-        else {
-            var rarity = item_object.artwork_data.rarity;
-            addItemObjectToChecklist(user_id, 'owned', item_object);
-            if (user_object.profile.vintage_select) {
-                Meteor.users.update(user_id, {$set: {'profile.vintage_select': false}});
-                items.remove({'owner': user_id, 'status': 'won'});
-            }
+    updateItem(item_object._id, {$set: {'owner': user_id, 'status' : 'claimed', 'date_received': moment()._d.toISOString()}}, function(error) {
+        var rarity = item_object.artwork_data.rarity;
+        addItemObjectToChecklist(user_id, 'owned', item_object);
+        if (user_object.profile.vintage_select) {
+            Meteor.users.update(user_id, {$set: {'profile.vintage_select': false}});
+            items.remove({'owner': user_id, 'status': 'won'});
         }
     });
 
     return success;
+}
+
+updateItem = function(item_id, modifier, callback) {
+    items.update(item_id, modifier, function(error) {
+        if (error)
+            console.log("updateItem: " + error.message);
+
+        else {
+            var item_object = items.findOne(item_id);
+            if (item_object == undefined)
+                return false;
+
+            updateGalleryDetails(item_object.owner);
+
+            if (callback == undefined)
+                items.update({'_id': item_id}, {$set: {'values': getItemObjectValues(items.findOne(item_id))}});
+
+            else items.update({'_id': item_id}, {$set: {'values': getItemObjectValues(items.findOne(item_id))}}, callback);
+        }
+    })
+}
+
+updateItemsBySelector = function(selector, modifier, callback) {
+    items.update(selector, modifier, {multi: true}, function(error) {
+        if (error)
+            console.log("updateItemsBySelector: " + error.message)
+
+        else {
+            items.find(selector).forEach(function(item_object) {
+                updateGalleryDetails(item_object.owner);
+                items.update({'_id': item_object._id}, {$set: {'values': getItemObjectValues(items.findOne(item_object._id))}})
+            });
+
+            if (callback != undefined)
+                callback();
+        }
+    })
 }
 
 Meteor.methods({
@@ -245,14 +261,7 @@ Meteor.methods({
             }
 
             if (procUniqueAttribute(Meteor.userId(), "DEALER_PURCHASE_ROLL_COUNT_SET", undefined)) {
-                items.update(item_id, {$set: {'roll_count': -20}}, function(error) {
-                    if (error)
-                        console.log(error.message)
-
-                    else {
-                        updateItemObjectValues(items.findOne(item_id));
-                    }
-                });
+                updateItem(item_id, {$set: {'roll_count': -20}});
             }
         }
     },
@@ -292,15 +301,13 @@ Meteor.methods({
             var item_object = set_to_permanent ? canSetPermanent(item_id) : canUnsetPermanent(item_id);
             if (item_object) {
                 if (set_to_permanent) {
-                    items.update(item_id, {$set: {'status' : 'permanent', 'permanent_post' : moment()._d.toISOString()}});
+                    updateItem(item_id, {$set: {'status' : 'permanent', 'permanent_post' : moment()._d.toISOString()}});
                     addItemObjectToChecklist(Meteor.userId(), 'displayed', item_object);
                     addItemObjectToChecklist(Meteor.userId(), 'seen', item_object);
                 }
 
                 else {
-                    // TODO should probably just be items.update(item_id, {$set: {'status' : 'claimed'}, $unset: {'permanent_post' : ""}});
-                    items.update(item_id, {$set: {'status' : 'claimed'}});
-                    items.update(item_id, {$unset: {'permanent_post' : ""}});
+                    updateItem(item_id, {$set: {'status' : 'claimed'}, $unset: {'permanent_post' : ""}});
                 }
             }
 
@@ -322,23 +329,18 @@ Meteor.methods({
             }
 
             addFunds("sell item", Meteor.userId(), value);
-            items.update(item_id, {$set: {'owner': "Artfunkel, Inc.", 'status': "auctioned", 'tags': []}} ,function(error) {
-                if (error)
-                    console.log(error.message);
-
-                else {
-                    if (Meteor.user().profile.user_type != "admin") {
-                        if (Math.random() < 0.5) {
-                            createAuction(item_id, getItemObjectValueByType(item_object, "actual", Meteor.userId()), -1, 120, "public");
-                        }
-
-                        else {
-                            items.remove({'_id': item_id});
-                        }
+            updateItem(item_id, {$set: {'owner': "Artfunkel, Inc.", 'status': "auctioned", 'tags': []}} ,function() {
+                if (Meteor.user().profile.user_type != "admin") {
+                    if (Math.random() < 0.5) {
+                        createAuction(item_id, getItemObjectValueByType(item_object, "actual", Meteor.userId()), -1, 120, "public");
                     }
 
-                    else items.remove(item_id);
+                    else {
+                        items.remove({'_id': item_id});
+                    }
                 }
+
+                else items.remove(item_id);
             });
         }
 
@@ -372,7 +374,7 @@ Meteor.methods({
         }
 
         if (errors.length == 0) {
-            items.update({'_id': item_id}, {$set: {'status' : 'auctioned'}}, function() {
+            updateItem(item_id, {$set: {'status' : 'auctioned'}}, function() {
                 createAuction(item_id, starting, buy_now, duration, "public");
                 if (procUniqueAttribute(Meteor.userId(), "XP_FOR_AUCTIONS", undefined) && Meteor.user().profile.market_expert.expiration > moment()._d.toISOString()) {
                     addXPChunkPercentage("XP_FOR_AUCTIONS", Meteor.userId(), .5)
@@ -389,7 +391,7 @@ Meteor.methods({
             lower_case.push(tags[i].toLowerCase())
         }
 
-        items.update({'_id': item_id, 'owner': Meteor.userId()}, {$set: {'tags': lower_case}});
+        updateItem(item_id, {$set: {'tags': lower_case}});
     },
 
     'getRerollCost' : function(item_id) {
@@ -412,15 +414,8 @@ Meteor.methods({
                         roll_value_min += .3;
                 }
         
-                chargeAccount(Meteor.userId(), getRerollCost(item_id));
-                items.update(item_id, {$set : {'xp_rating' : getXPRating(roll_value_min), 'roll_count': roll_count + 1}}, function(error) {
-                    if (error)
-                        console.log(error.message)
-
-                    else {
-                        updateItemObjectValues(items.findOne(item_id));
-                    }
-                });               
+                chargeAccount(Meteor.userId(), getRerollCost(item_id));    
+                updateItem(item_id, {$set : {'xp_rating' : getXPRating(roll_value_min), 'roll_count': roll_count + 1}});      
             }
         }
     },
@@ -449,14 +444,7 @@ Meteor.methods({
             }
 
             chargeAccount(Meteor.userId(), getRerollCost(item_id));
-            items.update(item_id, {$set: {'attributes' : attribute_array, 'roll_count' : roll_count + 1}}, function(error) {
-                if (error)
-                    console.log(error.message)
-
-                else {
-                    updateItemObjectValues(items.findOne(item_id));
-                }
-            });         
+            updateItem(item_id, {$set: {'attributes' : attribute_array, 'roll_count' : roll_count + 1}});         
         }
 
         else throw "invalid operation";
@@ -502,14 +490,7 @@ Meteor.methods({
             attribute_array[target_attribute_index].locked = attributeIsLocked(item_object.artwork_id, random_attribute._id);
 
             chargeAccount(Meteor.userId(), getRerollCost(item_id));
-            items.update(item_id, {$set: {'attributes' : attribute_array, 'roll_count' : roll_count + 1}}, function(error) {
-                if (error)
-                    console.log(error.message)
-
-                else {
-                    updateItemObjectValues(items.findOne(item_id));
-                }
-            });
+            updateItem(item_id, {$set: {'attributes' : attribute_array, 'roll_count' : roll_count + 1}});
             
         }
 

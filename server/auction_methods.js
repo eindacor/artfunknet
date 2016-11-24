@@ -68,7 +68,7 @@ var failedAuction = function(auction_object) {
     }
 
     else {
-        items.update(auction_object.item_id, {$set: {'status' : 'claimed'}}, function(error) {
+        updateItem(auction_object.item_id, {$set: {'status' : 'claimed'}}, function(error) {
             if (error)
                 console.log(error.message);
 
@@ -97,7 +97,7 @@ var successfulAuction = function(auction_object, winning_user) {
 
     var seller = items.findOne(auction_object.item_id).owner;
 
-    items.update(auction_object.item_id, {$set: {'status' : 'won', 'owner': winning_user._id, 'tags': [], 'date_received': moment()._d.toISOString()}}, function(error) {
+    updateItem(auction_object.item_id, {$set: {'status' : 'won', 'owner': winning_user._id, 'tags': [], 'date_received': moment()._d.toISOString()}}, function(error) {
         if (error)
             console.log(error.message);
 
@@ -134,14 +134,7 @@ var successfulAuction = function(auction_object, winning_user) {
             
             if (procUniqueAttribute(new_winner_id, "AUCTION_WIN_CONDITION_INCREASE", undefined)) {
                 if (item_object.condition < .5) {
-                    items.update(item_object._id, {$set: {'condition': .9}}, function(error) {
-                        if (error)
-                            console.log(error)
-
-                        else {
-                            updateItemObjectValues(items.findOne(item_object._id));
-                        }
-                    });
+                    updateItem(item_object._id, {$set: {'condition': .9}});
                 }
             }
 
@@ -348,21 +341,14 @@ var placeBid = function(bidder_id, auction_id, amount) {
         return;
 
     if (amount >= auction_object.buy_now && auction_object.buy_now != -1) {
-        items.update({'_id': auction_object.item_id}, {$set: {'status' : 'won', 'owner': bidder_id, 'tags': [], 'date_received': moment()._d.toISOString()}}, function(error) {
+        itemUpdate(auction_object.item_id, {$set: {'status' : 'won', 'owner': bidder_id, 'tags': [], 'date_received': moment()._d.toISOString()}}, function(error) {
             refundWinner(auction_object, bidder_id, auction_object.highest_bid, true);
             chargeAccount(bidder_id, auction_object.buy_now);
             var seller_id = Meteor.users.findOne({'profile.screen_name': auction_object.seller})._id;
             
             if (procUniqueAttribute(bidder_id, "AUCTION_WIN_CONDITION_INCREASE", undefined)) {
                 if (auction_object.item_data.condition < .5) {
-                    items.update(auction_object.item_id, {$set: {'condition': .9}}, function(error) {
-                        if (error)
-                            console.log(error.message)
-
-                        else {
-                            updateItemObjectValues(items.findOne(auction_object.item_id));
-                        }
-                    });
+                    updateItem(auction_object.item_id, {$set: {'condition': .9}});
                 }
             }
 

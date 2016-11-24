@@ -66,10 +66,10 @@ Meteor.setInterval((function() {
                 var npc_quality = getNPCQuality(Meteor.users.findOne(db_object.owner_id).profile.level);
                 createNPC(db_object, attribute_ids[i], npc_spawn_frequency, npc_quality);
 
-                if (attribute_object.npc_name == "Designer" && procUniqueAttribute(db_object.owner_id, "DESIGNER_PAIRS", undefined) && Math.random() < .3)
+                if (attribute_object.npc_name == "Designer" && procUniqueAttribute(db_object.owner_id, "DESIGNER_PAIRS", undefined) && Math.random() < .2)
                     createNPC(db_object, attribute_ids[i], npc_spawn_frequency, "bronze");
                     
-                if ((npc_quality == "platinum" || npc_quality == "gold") && procUniqueAttribute(db_object.owner_id, "COLLECTOR_DONOR_PAIR", undefined)) {
+                if ((npc_quality == "platinum") && procUniqueAttribute(db_object.owner_id, "COLLECTOR_DONOR_PAIR", undefined)) {
                     if (attribute_object.npc_name == "Art Collector")
                         createNPC(db_object, attributes.findOne({'npc_name': "Art Donor"})._id, npc_spawn_frequency, "bronze")
                         
@@ -128,6 +128,8 @@ Meteor.setInterval((function() {
 var lottery_check_frequency = 60000; //once per minute
 //lottery_check_frequency = 10000; //once per 10 second
 Meteor.setInterval((function() {
+    return;
+
     var lottery_draw_time = metadata.findOne({'lottery_draw': {$ne: null}}).lottery_draw;
    
     if (moment()._d.toISOString() < lottery_draw_time)
@@ -137,11 +139,11 @@ Meteor.setInterval((function() {
        
     if (Math.random() < .2) {
         var user_map = {};
-        var xp_average = 0;
+        var tickets_average = 0;
         var player_count = 0;
-        Meteor.users.find({'profile.level': 50, 'profile.user_type': {$ne: "admin"}, 'profile.xp': {$gt: 0}}).forEach(function(user_object) {
-            user_map[user_object._id] = user_object.profile.xp;
-            xp_average = ((xp_average * player_count) + user_object.profile.xp) / (player_count + 1);
+        Meteor.users.find({'profile.level': 50, 'profile.user_type': {$ne: "admin"}, 'profile.lottery_tickets': {$gt: 0}}).forEach(function(user_object) {
+            user_map[user_object._id] = user_object.profile.lottery_tickets;
+            tickets_average = ((tickets_average * player_count) + user_object.profile.lottery_tickets) / (player_count + 1);
             player_count++;
         });
        
@@ -149,7 +151,7 @@ Meteor.setInterval((function() {
         if (player_count < min_players_required) {
             for (var i=0; i<(min_players_required - player_count); i++) {
                 var bot_string = new Meteor.Collection.ObjectID()._str;
-                user_map[bot_string] = (xp_average == 0 ? 1 : xp_average);
+                user_map[bot_string] = (tickets_average == 0 ? 1 : tickets_average);
             }
         }
 
@@ -198,7 +200,7 @@ Meteor.setInterval((function() {
             alerts.insert(alert_object);
         });
 
-        Meteor.users.update({'profile.level': 50}, {$set: {'profile.xp': 0}}, {multi: true});
+        Meteor.users.update({'profile.level': 50}, {$set: {'profile.lottery_tickets': 0}}, {multi: true});
     }
 
     else {
@@ -243,7 +245,7 @@ Meteor.setInterval((function() {
     }
    
     var next_draw = moment(lottery_draw_time).add(1, "weeks")._d.toISOString();
-    //var next_draw = moment(lottery_draw_time).add(10, "seconds")._d.toISOString();
+    //next_draw = moment(lottery_draw_time).add(10, "seconds")._d.toISOString();
     metadata.update({'lottery_draw': {$ne: null}}, {$set: {'lottery_draw': next_draw}});
 
 }), lottery_check_frequency);

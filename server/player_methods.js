@@ -18,6 +18,7 @@ createUser = function(user_object, callback){
     user_object.profile.last_drop = moment().add(-1, 'days')._d.toISOString();
     user_object.profile.level = 0;
     user_object.profile.xp = 0;
+    user_object.profile.lottery_tickets = 0;
     user_object.profile.entry_fee = "medium";
     user_object.profile.gallery_tickets = [];
     user_object.profile.gallery_value = 0;
@@ -337,6 +338,39 @@ addItemObjectToChecklist = function(user_id, category, item_object) {
     Meteor.users.update(user_id, {$set: setter_object});
 }
 
+var getSellAllData= function(user_id) {
+    var total_value = 0;
+    var item_ids = [];
+
+    var quest_targets = [];
+
+    quests.find({'owner_id': user_id}).forEach(function(quest_object) {
+        for (var i=0; i<quest_object.target.length; i++) {
+            if (items.findOne({'owner': user_id, 'status': {$nin: ['unclaimed', 'for_sale', 'won']}, 'artwork_id': quest_object.target[i]}) == undefined)
+                quest_targets.push(quest_object.target[i]);
+        }
+    });
+
+    //TODO add legendary procs for sell amounts here
+    items.find({
+        'owner': user_id,
+        'status': {$in: ["unclaimed", "won"]}, 
+        'foil': false, 
+        'seasonal': false, 
+        'lottery': 0,
+        'artwork_data.rarity': {$in: ["common", "uncommon", "rare"]},
+        'artwork_id': {$nin: quest_targets}
+    }).forEach(function(item_object) {
+        total_value += getItemObjectValueByType(item_object, "sell", user_id);
+        item_ids.push(item_object._id);
+    });
+
+    return {
+        'value': total_value,
+        'ids': item_ids
+    }
+}
+
 Meteor.methods({
     'resetTutorials': function() {
         resetTutorials(Meteor.userId());
@@ -521,7 +555,8 @@ Meteor.methods({
             var user_object = Meteor.user();
             var quest_object = quests.findOne(quest_id);
 
-            var xp_recieved = quest_object.reward.xp;
+            var base_xp = quest_object.reward.xp;
+            var xp_recieved = base_xp;
             var unique_targets_found = [];
             var unique_specials_found = [];
 
@@ -534,9 +569,9 @@ Meteor.methods({
             });
 
             var target_differential = unique_targets_found.length - quest_object.min_requirement;
-            xp_recieved += Math.floor(getXPChunk(user_object.profile.level) * target_differential * 0.5);
+            xp_recieved += Math.floor(base_xp * target_differential * 0.4);
             var special_count = unique_specials_found.length;
-            xp_recieved += Math.floor(getXPChunk(user_object.profile.level) * special_count * 0.3);
+            xp_recieved += Math.floor(base_xp * special_count * 0.2);
 
             addXP(user_object._id, xp_recieved);
             logXPChunkPercentage("quest", quest_object.reward.xp_chunk_percentage + (special_count * 0.3) + (target_differential * 0.5));
@@ -582,21 +617,12 @@ Meteor.methods({
                     var random_index = Math.floor(Math.random() * qualifying_attributes.length);
                     var attribute_id = qualifying_attributes[random_index];
 
-                    items.update({'_id': item_object._id, 'status': 'displayed', 'attributes._id': attribute_id}, {$inc: {'attributes.$.value': .02}});
+                    updateItem({'_id': item_object._id, 'status': 'displayed', 'attributes._id': attribute_id}, {$inc: {'attributes.$.value': .02}});
                 }
             }
 
             if (procUniqueAttribute(user_object._id, "QUEST_TARGET_CONDITION_INCREASE", undefined)) {
-                items.update({'owner': user_object._id, 'status': {$nin: ['unclaimed', 'for_sale', 'won']}, 'artwork_id': {$in: quest_object.target}}, {$set: {'condition': .9}}, {multi: true}, function(error) {
-                    if (error)
-                        console.log(error.message)
-
-                    else {
-                        items.find({'owner': user_object._id, 'status': {$nin: ['unclaimed', 'for_sale', 'won']}}).forEach(function(item_object) {
-                            updateItemObjectValues(item_object);
-                        })
-                    }
-                });
+                updateItemsBySelector({'owner': user_object._id, 'status': {$nin: ['unclaimed', 'for_sale', 'won']}, 'artwork_id': {$in: quest_object.target}}, {$set: {'condition': .9}});
             }
 
             quests.remove(quest_id);
@@ -618,74 +644,30 @@ Meteor.methods({
     },
 
     'getSellAllAmount' : function() {
-        var total_value = 0;
-        var item_ids = [];
-
-        var quest_targets = [];
-
-        quests.find({'owner_id': Meteor.userId()}).forEach(function(quest_object) {
-            quest_targets = quest_targets.concat(quest_object.target);
-        });
-
-        //TODO add legendary procs for sell amounts here
-        items.find({
-            'owner': Meteor.userId(),
-            'status': {$in: ["unclaimed", "won"]}, 
-            'foil': false, 
-            'seasonal': false, 
-            'lottery': 0,
-            'artwork_data.rarity': {$in: ["common", "uncommon", "rare"]},
-            'artwork_id': {$nin: quest_targets}
-        }).forEach(function(db_object) {
-            total_value += getItemObjectValueByType(db_object, "sell", Meteor.userId());
-            item_ids.push(db_object._id);
-        });
-
-        return total_value;
+        return getSellAllData(Meteor.userId()).value;
     },
 
     'sellAllUnclaimed' : function() {
-        var total_value = 0;
-        var item_ids = [];
+        var sell_all_data = getSellAllData(Meteor.userId());
 
-        var quest_targets = [];
-
-        quests.find({'owner_id': Meteor.userId()}).forEach(function(quest_object) {
-            quest_targets = quest_targets.concat(quest_object.target);
-        });
-
-         //TODO add legendary procs for sell amounts here
-        items.find({
-            'owner': Meteor.userId(),
-            'status': {$in: ["unclaimed", "won"]}, 
-            'foil': false, 
-            'seasonal': false, 
-            'lottery': 0,
-            'artwork_data.rarity': {$in: ["common", "uncommon", "rare"]},
-            'artwork_id': {$nin: quest_targets}
-        }).forEach(function(db_object) {
-            total_value += getItemObjectValueByType(db_object, "sell", Meteor.userId());
-            item_ids.push(db_object._id);
-        });
-
-        items.update({'_id': {$in: item_ids}}, {$set: {'owner': "Artfunkel, Inc.", 'status': "auctioned"}}, {multi: true} ,function(error) {
+        updateItemsBySelector({'_id': {$in: sell_all_data.ids}}, {$set: {'owner': "Artfunkel, Inc.", 'status': "auctioned"}}, function(error) {
             if (error)
                 console.log(error.message);
 
             else {
-                for (var i=0; i<item_ids.length; i++) {
+                for (var i=0; i<sell_all_data.ids.length; i++) {
                     if (Math.random() < .5 && Meteor.user().profile.user_type != "admin") {
-                        createAuction(item_ids[i], getItemObjectValueByType(items.findOne(item_ids[i]), "actual", Meteor.userId()), -1, 120, "public");
+                        createAuction(sell_all_data.ids[i], getItemObjectValueByType(items.findOne(sell_all_data.ids[i]), "actual", Meteor.userId()), -1, 120, "public");
                     }
 
                     else {
-                        items.remove({'_id': item_ids[i]});
+                        items.remove({'_id': sell_all_data.ids[i]});
                     }
                 }
             }
         });
 
-        addFunds("sell item", Meteor.userId(), total_value);
+        addFunds("sell item", Meteor.userId(), sell_all_data.value);
     },
 
     'clearAllForSale' : function() {
@@ -1046,6 +1028,7 @@ Meteor.methods({
                         'profile.level': 0, 
                         'profile.bank_balance': new_bank_balance, 
                         'profile.xp': 0,
+                        'profile.lottery_tickets': 0,
                         'profile.completed_quests': 0,
                         'profile.last_drop': moment().add(-1, 'days')._d.toISOString(),
                         'profile.gallery_finishes': {
@@ -1068,8 +1051,8 @@ Meteor.methods({
             );
 
             items.find({'owner': Meteor.userId(), 'vintage': {$ne: true}, 'original': {$ne: true}}).forEach(function(item_object) {
-                items.update(
-                    {'_id': item_object._id},        //selector
+                updateItem(
+                    item_object._id,                //selector
                     {                               //modifier 
                         $set: {
                             'status': 'won',
@@ -1081,15 +1064,6 @@ Meteor.methods({
                                 'xp_chunk_percentage': 0,
                                 'end' : ""
                             }
-                        }
-                    }, 
-                    function(error) {               //callback
-                        if (error)
-                            console.log(error.message);
-
-                        else {
-                            updateItemObjectValues(items.findOne(item_object._id));
-                            updateGalleryDetails(Meteor.userId());              
                         }
                     }
                 );         

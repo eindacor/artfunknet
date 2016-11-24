@@ -65,21 +65,7 @@ var lowest_possible_value_coefficient = .5;
 var condition_coefficient_max = .3;
 var attribute_coefficient_max = .2;
 
-updateItemObjectValues = function(item_object) {
-    try {
-        if (items.findOne(item_object._id) == undefined)
-            return false;
-
-        items.update(item_object._id, {$set: {'values': getItemObjectValues(item_object)}});
-    }
-
-    catch (error) {
-        console.log("updateItemObjectValues: " + error.message);
-        return false;
-    }
-}
-
-var getItemObjectValues = function(item_object) {
+getItemObjectValues = function(item_object) {
     try {
         var value_types = ["sell", "purchase", "actual", "auction_min", "collector", "dealer", "display"];
         var values_object = {};
