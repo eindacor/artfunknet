@@ -66,10 +66,10 @@ Meteor.setInterval((function() {
                 var npc_quality = getNPCQuality(Meteor.users.findOne(db_object.owner_id).profile.level);
                 createNPC(db_object, attribute_ids[i], npc_spawn_frequency, npc_quality);
 
-                if (attribute_object.npc_name == "Designer" && procUniqueAttribute(db_object.owner_id, "DESIGNER_PAIRS", undefined) && Math.random() < .3)
+                if (attribute_object.npc_name == "Designer" && procUniqueAttribute(db_object.owner_id, "DESIGNER_PAIRS", undefined) && Math.random() < .2)
                     createNPC(db_object, attribute_ids[i], npc_spawn_frequency, "bronze");
                     
-                if ((npc_quality == "platinum" || npc_quality == "gold") && procUniqueAttribute(db_object.owner_id, "COLLECTOR_DONOR_PAIR", undefined)) {
+                if ((npc_quality == "platinum") && Math.random() < .5 && procUniqueAttribute(db_object.owner_id, "COLLECTOR_DONOR_PAIR", undefined)) {
                     if (attribute_object.npc_name == "Art Collector")
                         createNPC(db_object, attributes.findOne({'npc_name': "Art Donor"})._id, npc_spawn_frequency, "bronze")
                         

@@ -581,13 +581,12 @@ Meteor.methods({
                     }
                     var random_index = Math.floor(Math.random() * qualifying_attributes.length);
                     var attribute_id = qualifying_attributes[random_index];
-
-                    items.update({'_id': item_object._id, 'status': 'displayed', 'attributes._id': attribute_id}, {$inc: {'attributes.$.value': .02}});
+                    updateItem({'_id': item_object._id, 'status': 'displayed', 'attributes._id': attribute_id}, {$inc: {'attributes.$.value': .02}});
                 }
             }
 
             if (procUniqueAttribute(user_object._id, "QUEST_TARGET_CONDITION_INCREASE", undefined)) {
-                updateItemsBySelector({'owner': user_object._id, 'status': {$nin: ['unclaimed', 'for_sale', 'won']}, {}, {$set: {'condition': .9}});
+                updateItemsBySelector({'owner': user_object._id, 'status': {$nin: ['unclaimed', 'for_sale', 'won']}, 'artwork_id': {$in: quest_object.target}}, {$set: {'condition': .9}});
             }
 
             quests.remove(quest_id);
@@ -659,7 +658,7 @@ Meteor.methods({
             item_ids.push(db_object._id);
         });
 
-        items.update({'_id': {$in: item_ids}}, {$set: {'owner': "Artfunkel, Inc.", 'status': "auctioned"}}, {multi: true} ,function(error) {
+        updateItemsBySelector({'_id': {$in: item_ids}}, {$set: {'owner': "Artfunkel, Inc.", 'status': "auctioned"}}, function(error) {
             if (error)
                 console.log(error.message);
 

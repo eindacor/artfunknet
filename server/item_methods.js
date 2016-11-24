@@ -204,10 +204,21 @@ updateItem = function(item_id, modifier, callback) {
     })
 }
 
-updateItemsBySelector = function(selector, options, modifier, callback) {
-    items.find(selector, options).forEach(function(item_object) {
-        updateItem(item_object._id, modifier, callback);
-    });
+updateItemsBySelector = function(selector, modifier, callback) {
+    items.update(selector, modifier, {multi: true}, function(error) {
+        if (error)
+            console.log("updateItemsBySelector: " + error.message)
+
+        else {
+            items.find(selector).forEach(function(item_object) {
+                updateGalleryDetails(item_object.owner);
+                items.update({'_id': item_object._id}, {$set: {'values': getItemObjectValues(items.findOne(item_object._id))}})
+            });
+
+            if (callback != undefined)
+                callback();
+        }
+    })
 }
 
 Meteor.methods({

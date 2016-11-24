@@ -341,7 +341,7 @@ var placeBid = function(bidder_id, auction_id, amount) {
         return;
 
     if (amount >= auction_object.buy_now && auction_object.buy_now != -1) {
-        items.update({'_id': auction_object.item_id}, {$set: {'status' : 'won', 'owner': bidder_id, 'tags': [], 'date_received': moment()._d.toISOString()}}, function(error) {
+        itemUpdate(auction_object.item_id, {$set: {'status' : 'won', 'owner': bidder_id, 'tags': [], 'date_received': moment()._d.toISOString()}}, function(error) {
             refundWinner(auction_object, bidder_id, auction_object.highest_bid, true);
             chargeAccount(bidder_id, auction_object.buy_now);
             var seller_id = Meteor.users.findOne({'profile.screen_name': auction_object.seller})._id;
