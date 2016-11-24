@@ -9,17 +9,20 @@
 				<div class="row">
 					<div class="col-xs-6 no-padding">
 						{{#if max_level}}
-						<div class="xp-bar">
-							{{#with xpData}}
-							<div class="xp-level max" style= "width : {{xp_completion}}%"></div>
-							<div class="level-text">
-								<p>lottery tickets: {{tickets}}</p>
+						<div class="row">
+							<div class="xp-bar">
+								{{#with xpData}}
+								<div class="xp-level max" style= "width : {{xp_completion}}%"></div>
+								<div class="level-text">
+									<p>lottery tickets: {{tickets}}</p>
+								</div>
+								<div class="goal-text">
+									<p class="highlight">{{current_xp}} / {{xp_goal}}</p>
+								</div>
+								{{/with}}
 							</div>
-							<div class="goal-text">
-								<p class="highlight">{{current_xp}} / {{xp_goal}}</p>
-							</div>
-							{{/with}}
 						</div>
+						<div class="row"><button id="vintage-mode" class="vintage-button">vintage <i class="fa fa-backward"></i></button></div>
 						{{else}}
 						<div class="xp-bar">
 							{{#with xpData}}
