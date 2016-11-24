@@ -674,8 +674,11 @@ Meteor.methods({
         var quest_targets = [];
 
         quests.find({'owner_id': Meteor.userId()}).forEach(function(quest_object) {
-            quest_targets = quest_targets.concat(quest_object.target);
-        });
+        for (var i=0; i<quest_object.target.length; i++) {
+            if (items.findOne({'owner': Meteor.userId(), 'status': {$nin: ['unclaimed', 'for_sale', 'won']}, 'artwork_id': quest_object.target[i]}) == undefined)
+                quest_targets.push(quest_object.target[i]);
+        }
+    });
 
         if (procUniqueAttribute(Meteor.userId(), "DECLINE_DEALER_DESIGNER_SPAWN", undefined)) {
             var item_count = items.find({
