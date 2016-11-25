@@ -1,7 +1,7 @@
 <template name="navbar">
 	<div class="template-navbar col-xs-12 no-padding pull-right">
 		<div class="container no-padding no-margin">
-			<div class="col-sm-6 col-xs-12 no-padding navbar-section">
+			<div class="col-sm-5 col-xs-12 no-padding navbar-section">
 				<a href="/"><i data-title="Home" class="{{#if hasAlerts}}blue-text{{/if}} nav-icon fa fa-home"></i></a>
 					{{#if currentUser}}
 					<a href="/auctions"><i data-title="Auction House" class="nav-icon fa fa-gavel"></i></a>
@@ -35,7 +35,7 @@
 			</div>
 			{{/if}}
 			{{#if currentUser}}			
-		    	<div class="col-sm-3 col-xs-12 no-padding navbar-section">
+		    	<div class="col-sm-4 col-xs-12 no-padding navbar-section">
 		    		<div class="row">
 		    			{{#with notifications}}
 			    			<div class="notification-area col-xs-2">
@@ -43,12 +43,12 @@
 								<span class="notification af-color">{{commaSeparatedValue amount}}xp</span>
 							{{/each}}
 							</div>
-							<div class="notification-area col-xs-2 col-xs-offset-2">
+							<div class="notification-area col-xs-2">
 							{{#each money}}
 								<span class="notification {{#if isNegative amount}}red-text{{else}}green-text{{/if}}">{{displayAsMoneyValue amount}}</span>
 							{{/each}}
 							</div>
-							<div class="notification-area col-xs-8 col-xs-offset-4">
+							<div class="notification-area col-xs-8">
 							{{#each procs}}
 								<div class="notification af-color">
 									<p>{{title}}</p>
