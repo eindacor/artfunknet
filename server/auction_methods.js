@@ -132,10 +132,8 @@ var successfulAuction = function(auction_object, winning_user) {
             };
             alerts.insert(alert_win_object);
             
-            if (procUniqueAttribute(new_winner_id, "AUCTION_WIN_CONDITION_INCREASE", undefined)) {
-                if (item_object.condition < .5) {
-                    updateItem(item_object._id, {$set: {'condition': .9}});
-                }
+            if (item_object.condition < .5 && procUniqueAttribute(new_winner_id, "AUCTION_WIN_CONDITION_INCREASE", undefined)) {
+                updateItem(item_object._id, {$set: {'condition': .9}});
             }
 
             if (procUniqueAttribute(new_winner_id, "AUCTION_WIN_TICKET_EXTENSION", undefined)) {
@@ -346,10 +344,8 @@ var placeBid = function(bidder_id, auction_id, amount) {
             chargeAccount(bidder_id, auction_object.buy_now);
             var seller_id = Meteor.users.findOne({'profile.screen_name': auction_object.seller})._id;
             
-            if (procUniqueAttribute(bidder_id, "AUCTION_WIN_CONDITION_INCREASE", undefined)) {
-                if (auction_object.item_data.condition < .5) {
-                    updateItem(auction_object.item_id, {$set: {'condition': .9}});
-                }
+            if (auction_object.item_data.condition < .5 && procUniqueAttribute(bidder_id, "AUCTION_WIN_CONDITION_INCREASE", undefined)) {
+                updateItem(auction_object.item_id, {$set: {'condition': .9}});
             }
 
             if (procUniqueAttribute(bidder_id, "AUCTION_WIN_TICKET_EXTENSION", undefined)) {

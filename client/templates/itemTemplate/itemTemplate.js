@@ -150,7 +150,7 @@ Template.itemInfo.helpers({
 	},
 
 	'reroll_unique_enable' : function(item_object) {
-		return item_object.status == "displayed" && procUniqueAttribute(Meteor.userId(), "REROLL_DISPLAY_ENABLE", "Designer");
+		return item_object.status == "displayed" && procUniqueAttribute(Meteor.userId(), "REROLL_DISPLAY_ENABLE", "Designer", true);
 	},
 
 	'already_owns': function(item_id) {

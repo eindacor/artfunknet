@@ -121,7 +121,7 @@ addFunds = function(source, user_id, amount) {
 
     var current_balance = Number(Meteor.users.findOne({'_id': user_id}).profile.bank_balance).toFixed(2);
     var new_balance = Number(current_balance) + Number(actual_amount);
-    Meteor.users.update(user_id, {$set: {"profile.bank_balance" : Math.floor(new_balance)}});
+    Meteor.users.update(user_id, {$set: {"profile.bank_balance" : Math.floor(new_balance)}, $push: {'profile.notifications': {'type': "money", 'amount': amount}}});
 }
 
 chargeAccount = function(user_id, amount) {
@@ -132,7 +132,7 @@ chargeAccount = function(user_id, amount) {
 
     var current_balance = Number(Meteor.users.findOne({'_id': user_id}).profile.bank_balance).toFixed(2);
     var new_balance = Number(current_balance) - Number(actual_amount);
-    Meteor.users.update(user_id, {$set: {"profile.bank_balance" : Math.floor(new_balance)}});
+    Meteor.users.update(user_id, {$set: {"profile.bank_balance" : Math.floor(new_balance)}, $push: {'profile.notifications': {'type': "spend", 'amount': amount}}});
 }
 
 selectRandomPainting = function(selector) {

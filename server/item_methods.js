@@ -235,11 +235,9 @@ Meteor.methods({
         if (item_object) {
             items.remove(item_object._id);
 
-            if (procUniqueAttribute(item_object.owner, "DECLINE_DEALER_DESIGNER_SPAWN", undefined)) {
-                if (Math.random() < .1) {
-                    var npc_quality = getNPCQuality(Meteor.user().profile.level);
-                    createNPC(galleries.findOne({'owner_id': Meteor.userId()}), attributes.findOne({'npc_name': "Designer"})._id, 600000, npc_quality);
-                }
+            if (Math.random() < .1 && procUniqueAttribute(item_object.owner, "DECLINE_DEALER_DESIGNER_SPAWN", undefined)) {
+                var npc_quality = getNPCQuality(Meteor.user().profile.level);
+                createNPC(galleries.findOne({'owner_id': Meteor.userId()}), attributes.findOne({'npc_name': "Designer"})._id, 600000, npc_quality);
             }
         }
 
@@ -376,7 +374,7 @@ Meteor.methods({
         if (errors.length == 0) {
             updateItem(item_id, {$set: {'status' : 'auctioned'}}, function() {
                 createAuction(item_id, starting, buy_now, duration, "public");
-                if (procUniqueAttribute(Meteor.userId(), "XP_FOR_AUCTIONS", undefined) && Meteor.user().profile.market_expert.expiration > moment()._d.toISOString()) {
+                if (Meteor.user().profile.market_expert.expiration > moment()._d.toISOString() && procUniqueAttribute(Meteor.userId(), "XP_FOR_AUCTIONS", undefined)) {
                     addXPChunkPercentage("XP_FOR_AUCTIONS", Meteor.userId(), .5)
                 }
             });
@@ -409,9 +407,8 @@ Meteor.methods({
                     var roll_value_min = .3;
                 }
 
-                if (procUniqueAttribute(Meteor.userId(), "ROLL_COUNT_REROLL_BONUS", undefined)) {
-                    if (item_object.roll_count > 10 || item_object.roll_count < 0)
-                        roll_value_min += .3;
+                if ((item_object.roll_count > 10 || item_object.roll_count < 0) && procUniqueAttribute(Meteor.userId(), "ROLL_COUNT_REROLL_BONUS", undefined)) {
+                    roll_value_min += .3;
                 }
         
                 chargeAccount(Meteor.userId(), getRerollCost(item_id));    
@@ -433,9 +430,8 @@ Meteor.methods({
                         var roll_value_min = .3;
                     }
 
-                    if (procUniqueAttribute(Meteor.userId(), "ROLL_COUNT_REROLL_BONUS", undefined)) {
-                        if (item_object.roll_count > 10 || item_object.roll_count < 0)
-                            roll_value_min += .3;
+                    if ((item_object.roll_count > 10 || item_object.roll_count < 0) && procUniqueAttribute(Meteor.userId(), "ROLL_COUNT_REROLL_BONUS", undefined)) {
+                        roll_value_min += .3;
                     }
 
                     attribute_array[i].value = attributeIsLocked(item_object.artwork_id, attribute_id) ? getLockedAttributeValue() : getAttributeValue(0, roll_value_min);
@@ -481,9 +477,8 @@ Meteor.methods({
                 roll_value_min += .4;
             }
 
-            if (procUniqueAttribute(Meteor.userId(), "ROLL_COUNT_REROLL_BONUS", undefined)) {
-                if (item_object.roll_count > 10 || item_object.roll_count < 0)
-                    roll_value_min += .5;
+            if ((item_object.roll_count > 10 || item_object.roll_count < 0) && procUniqueAttribute(Meteor.userId(), "ROLL_COUNT_REROLL_BONUS", undefined)) {
+                roll_value_min += .5;
             }
 
             attribute_array[target_attribute_index].value = getAttributeValue(0, roll_value_min);

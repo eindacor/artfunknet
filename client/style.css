@@ -166,6 +166,10 @@ a {
 	color: black !important;
 }
 
+.gray-text {
+	color: gray !important;
+}
+
 .af-color {
 	color: #FF33CC;
 }

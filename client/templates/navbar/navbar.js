@@ -102,6 +102,10 @@ Template.navbar.helpers({
 		};
 
 		return false;
+	},
+
+	'notification': function() {
+		return Meteor.user().profile.notifications;
 	}
 })
 
@@ -118,3 +122,13 @@ Template.navbar.events({
 		setFootnote("Visit gallery of " + owner_name + ". Expires " + expiration_string + ".", Math.floor(Math.random() * 100000));
 	},
 })
+
+Template.navbar.rendered = function() {
+	$('.notification').bind('afterShow', function() {
+		console.log("detected");
+	})
+}
+
+jQuery(function($) {
+	$('.notification').bind('isV')
+});

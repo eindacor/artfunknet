@@ -1,6 +1,6 @@
 .template-navbar .nav-icon {
 	font-size: 2.5rem;
-	margin-right: 20px;
+	margin-right: 14px;
 	color: white;
 	opacity: .75;
 }
@@ -54,4 +54,44 @@
 
 .template-navbar .bright-orange-text {
 	color: #ffd78e;
+}
+
+@-webkit-keyframes notification_animation {
+    0% {
+    	margin-top: 10px;
+    	opacity: 1;
+    }
+    50% {
+    	opacity: 1;
+    }
+    100% {
+    	margin-top: 50px;
+    	opacity: 0;
+    }
+}
+/*@-moz-keyframes notification_animation {
+    0%{margin-top: 0px;}
+    100%{margin-top: 20px;}
+}
+@-o-keyframes notification_animation {
+    0%{margin-top: 0px;}
+    100%{margin-top: 20px;}
+}
+@keyframes notification_animation {
+    0%{margin-top: 0px;}
+    100%{margin-top: 20px;}
+}*/
+
+.template-navbar .notification {
+	position: absolute;
+	font-weight: bold;
+	font-size: 1.5rem;
+	-webkit-animation: notification_animation 2s ease forwards;
+	/*-moz-animation: notification_animation 2s ease infinite;
+	-o-animation: notification_animation 2s ease infinite;
+	animation: notification_animation 2s ease infinite;*/
+}
+
+.template-navbar .notification p {
+	margin-bottom: -6px;
 }

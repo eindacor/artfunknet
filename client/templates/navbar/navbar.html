@@ -1,7 +1,7 @@
 <template name="navbar">
 	<div class="template-navbar col-xs-12 no-padding pull-right">
 		<div class="container no-padding no-margin">
-			<div class="col-sm-8 col-xs-12 no-padding navbar-section">
+			<div class="col-sm-6 col-xs-12 no-padding navbar-section">
 				<a href="/"><i data-title="Home" class="{{#if hasAlerts}}blue-text{{/if}} nav-icon fa fa-home"></i></a>
 					{{#if currentUser}}
 					<a href="/auctions"><i data-title="Auction House" class="nav-icon fa fa-gavel"></i></a>
@@ -26,13 +26,39 @@
 			</div>
 
 		    {{#if currentUser}}
-	    	<div class="col-sm-4 col-xs-12 no-padding navbar-section">
+	    	<div class="col-sm-3 col-xs-12 no-padding navbar-section">
 				{{#each ticket}}
 					{{#with ticketData this}}
 					<a href="/user/{{owner_name}}" class="ticket-button {{#if unmet_npcs}}af-color{{else}}npcs-met{{/if}}"><i data-expiration_string="{{expiration_string}}" data-owner_name="{{owner_name}}" class="fa fa-ticket"></i></a>
 					{{/with}}
 				{{/each}}
 			</div>
+			{{/if}}
+			{{#if currentUser}}			
+		    	<div class="col-sm-3 col-xs-12 no-padding navbar-section">
+		    		<div class="row">
+			    		{{#each notification}}
+			    		{{#if isEqual type "xp"}}
+						<div class="notification-area col-xs-2"><span class="notification af-color">{{commaSeparatedValue amount}}xp</span></div>
+						{{/if}}
+						{{#if isEqual type "money"}}
+						<div class="notification-area col-xs-2 col-xs-offset-2"><span class="notification green-text">{{displayAsMoneyValue amount}}</span></div>
+						{{/if}}
+						{{#if isEqual type "spend"}}
+						<div class="notification-area col-xs-2 col-xs-offset-2"><span class="notification red-text">-{{displayAsMoneyValue amount}}</span></div>
+						{{/if}}
+						{{#if isEqual type "proc"}}
+						<div class="notification-area col-xs-8 col-xs-offset-4">
+							<div class="notification af-color">
+								<p>{{title}}</p>
+								<p><span class="gray-text" style="font-size: 1.2rem">{{artist}}</span></p>
+								<!-- <p>{{code}}</p> -->
+							</div>
+						</div>
+						{{/if}}
+						{{/each}}
+					</div>
+				</div>			
 			{{/if}}
         </div>
     </div>

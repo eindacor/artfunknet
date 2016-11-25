@@ -57,8 +57,10 @@ Meteor.setInterval((function() {
             
             var proc_chance = Math.pow((attribute_values[attribute_ids[i]] * rarity_npc_coefficient), 2);
 
-            if (attribute_object.npc_name == "Art Donor" && procUniqueAttribute(db_object.owner_id, "DONOR_SPAWN_BOOST", undefined)) {
-                if (owner_object.profile.market_expert.expiration < moment()._d.toISOString())
+            if (attribute_object.npc_name == "Art Donor" && 
+                owner_object.profile.market_expert.expiration < moment()._d.toISOString() && 
+                procUniqueAttribute(db_object.owner_id, "DONOR_SPAWN_BOOST", undefined) 
+                ){
                     proc_chance += .2;
             }
 
@@ -66,7 +68,7 @@ Meteor.setInterval((function() {
                 var npc_quality = getNPCQuality(Meteor.users.findOne(db_object.owner_id).profile.level);
                 createNPC(db_object, attribute_ids[i], npc_spawn_frequency, npc_quality);
 
-                if (attribute_object.npc_name == "Designer" && procUniqueAttribute(db_object.owner_id, "DESIGNER_PAIRS", undefined) && Math.random() < .2)
+                if (attribute_object.npc_name == "Designer" && Math.random() < .2 && procUniqueAttribute(db_object.owner_id, "DESIGNER_PAIRS", undefined))
                     createNPC(db_object, attribute_ids[i], npc_spawn_frequency, "bronze");
                     
                 if ((npc_quality == "platinum") && procUniqueAttribute(db_object.owner_id, "COLLECTOR_DONOR_PAIR", undefined)) {
@@ -151,7 +153,7 @@ Meteor.setInterval((function() {
         if (player_count < min_players_required) {
             for (var i=0; i<(min_players_required - player_count); i++) {
                 var bot_string = new Meteor.Collection.ObjectID()._str;
-                user_map[bot_string] = (tickets_average == 0 ? 1 : tickets_average);
+                user_map[bot_string] = (tickets_average < 2 ? 1 : Math.floor(tickets_average / 2));
             }
         }
 
@@ -249,3 +251,8 @@ Meteor.setInterval((function() {
     metadata.update({'lottery_draw': {$ne: null}}, {$set: {'lottery_draw': next_draw}});
 
 }), lottery_check_frequency);
+
+var notification_clear_frequency = 10000;
+Meteor.setInterval((function() {
+    Meteor.users.update({}, {$set: {'profile.notifications': []}}, {multi: true});
+}), notification_clear_frequency);

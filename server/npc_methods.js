@@ -134,7 +134,7 @@ var enthusiastInteraction = function(npc_object) {
 
 	addXP(Meteor.userId(), xp_won);
 	logXPChunkPercentage("enthusiast", xp_chunk_percentage);
-	return {'message': message}
+	// return {'message': message}
 }
 
 var benefactorInteraction = function(npc_object) {
@@ -194,7 +194,7 @@ var benefactorInteraction = function(npc_object) {
 	var message = "You have met a benefactor who would like to make a donation. You have recieved $" + getCommaSeparatedValue(money_won) + "!";
 
 	addFunds("benefactor", Meteor.userId(), money_won);
-	return {'message': message}
+	// return {'message': message}
 }
 
 var donorInteraction = function(npc_object) {
@@ -226,7 +226,7 @@ var donorInteraction = function(npc_object) {
 			npc_object.quality = "platinum";
 		}
 
-		if (procUniqueAttribute(Meteor.userId(), "DONOR_QUEST_ITEM_CHANCE", undefined) && Math.random() < .2) {
+		if (Math.random() < .2 && procUniqueAttribute(Meteor.userId(), "DONOR_QUEST_ITEM_CHANCE", undefined)) {
 			var quest_item_ids = [];
 			quests.find({'owner_id': Meteor.userId()}).forEach(function(db_object) {
 				var targets = db_object.target;
@@ -305,7 +305,7 @@ var preservationistInteraction = function(npc_object) {
 			target_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}}, {sort: {'condition': 1}});
 
 		// B) If the preserved item already has a condition > 80, you earn money based on its value.
-		if (target_item && procUniqueAttribute(Meteor.userId(), "PRESERVATIONIST_CONDITION_BONUS", undefined) && target_item.condition > .8) {
+		if (target_item && target_item.condition > .8 && procUniqueAttribute(Meteor.userId(), "PRESERVATIONIST_CONDITION_BONUS", undefined)) {
 			message = "You have met a preservationist, who is in awe of the pristine quality of your displayed works. He immediately notifies his rich uncle who gives you a hefty donation.";
 			addFunds("PRESERVATIONIST_CONDITION_BONUS", Meteor.userId(), Math.min( Math.floor(getItemObjectValueByType(target_item, 'actual', Meteor.userId())), 1000000) );
 		}
@@ -523,14 +523,14 @@ var collectorInteraction = function(npc_object) {
 		if (isOwnGallery(npc_object)) {
 			offer_multiplier += .3;
 
-			if (procUniqueAttribute(Meteor.userId(), "GOOD_CONDITION_COLLECTOR_BONUS", undefined) && collector_target.condition > .8)
+			if (collector_target.condition > .8 && procUniqueAttribute(Meteor.userId(), "GOOD_CONDITION_COLLECTOR_BONUS", undefined))
 				offer_multiplier += .2;
 
-			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_ROLL_COUNT_BONUS", undefined) && collector_target.roll_count <= 0)
+			if (collector_target.roll_count <= 0 && procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_ROLL_COUNT_BONUS", undefined))
 				offer_multiplier += .2;
 
-			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_SPECIAL_BONUS", undefined)) {
-				if (collector_target.foil || collector_target.original || collector_target.lottery || collector_target.seasonal)
+			if ((collector_target.foil || collector_target.original || collector_target.lottery || collector_target.seasonal) && 
+				procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_SPECIAL_BONUS", undefined)) {
 					offer_multiplier += .2;
 			}
 
@@ -617,7 +617,7 @@ var collectorInteraction = function(npc_object) {
 				//else continue with message undefined, which will leave isOwnGallery block and proceed to actual offer
 			}
 
-			if (procUniqueAttribute(Meteor.userId(), "COLLECTOR_QUEST_ITEM", undefined) && Math.random() < .25) {
+			if (Math.random() < .25 && procUniqueAttribute(Meteor.userId(), "COLLECTOR_QUEST_ITEM", undefined)) {
                 var quest_item_ids = [];
                 quests.find({'owner_id': Meteor.userId()}).forEach(function(quest_object) {
                     var targets = quest_object.target;
@@ -731,10 +731,8 @@ var artDealerInteraction = function(npc_object) {
 			foil_chance *= 2;
 		}
 
-		if (procUniqueAttribute(Meteor.userId(), "DISPLAY_CONDITION_DEALER_BOOST", undefined)) {
-			if (items.findOne({'owner': Meteor.userId(), 'status': "displayed", 'condition': {$lt: .7}}) == undefined) {
-				drop_count += 1;
-			}
+		if ((items.findOne({'owner': Meteor.userId(), 'status': "displayed", 'condition': {$lt: .7}}) == undefined) &&procUniqueAttribute(Meteor.userId(), "DISPLAY_CONDITION_DEALER_BOOST", undefined)) {
+			drop_count += 1;
 		}
 
 		if (procUniqueAttribute(Meteor.userId(), "DEALER_QUEST_ITEM_CHANCE", undefined)) {

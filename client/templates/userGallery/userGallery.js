@@ -185,6 +185,9 @@ Template.userGallery.events ({
 
 				else {
 					try {
+						if (interaction_object == undefined)
+							return;
+
 						Session.set('npc_interaction', interaction_object);
 						switch(interaction_object.type) {
 							case "collector_bonus": 
