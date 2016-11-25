@@ -81,7 +81,7 @@ var updateContent = function() {
         'lottery_level': 1
     }});
 
-    Meteor.users.update({}, {$set: {'profile.notifications': {'procs': [], 'xp': [], 'money': []}}}, {multi: true});
+    Meteor.users.update({}, {$set: {'profile.notifications': {'procs': [], 'xp': [], 'money': [], 'store': [], 'loot': []}}}, {multi: true});
 
     //metadata.update({'lottery_draw': {$ne: null}}, {$set: {'lottery_draw': moment().add(10, 'seconds')._d.toISOString()}});
 

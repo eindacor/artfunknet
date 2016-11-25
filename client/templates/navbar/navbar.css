@@ -5,6 +5,16 @@
 	opacity: .75;
 }
 
+.template-navbar .icon-row {
+	padding: 8px;
+	margin: 0px;
+	display: block;
+}
+
+.template-navbar .icon-section a{
+	margin-top: 0px;
+}
+
 .template-navbar .nav-icon:hover {
 	opacity: 1;
 }
@@ -16,12 +26,8 @@
 	position: fixed;
 	top: 0;
 	margin-top: 0px;
-	z-index: 999999;
+	z-index: 999999999;
 	border-bottom: 2px solid white;
-}
-
-.template-navbar .navbar-section {
-	padding: 8px;
 }
 
 .template-navbar .ticket-info {
@@ -71,29 +77,65 @@
     	opacity: 0;
     }
 }
-/*@-moz-keyframes notification_animation {
-    0%{margin-top: 0px;}
-    100%{margin-top: 20px;}
+
+@-moz-keyframes notification_animation {
+    0% {
+    	margin-top: 10px;
+    	opacity: 1;
+    }
+    50% {
+    	opacity: 1;
+    }
+    100% {
+    	margin-top: 50px;
+    	opacity: 0;
+    }
 }
 @-o-keyframes notification_animation {
-    0%{margin-top: 0px;}
-    100%{margin-top: 20px;}
+    0% {
+    	margin-top: 10px;
+    	opacity: 1;
+    }
+    50% {
+    	opacity: 1;
+    }
+    100% {
+    	margin-top: 50px;
+    	opacity: 0;
+    }
 }
 @keyframes notification_animation {
-    0%{margin-top: 0px;}
-    100%{margin-top: 20px;}
-}*/
+    0% {
+    	margin-top: 10px;
+    	opacity: 1;
+    }
+    50% {
+    	opacity: 1;
+    }
+    100% {
+    	margin-top: 50px;
+    	opacity: 0;
+    }
+}
 
 .template-navbar .notification {
 	position: absolute;
 	font-weight: bold;
 	font-size: 1.5rem;
+	text-shadow: 1px 1px rgba(0,0,0,0.3);
+	
+	/*text-shadow: 1px 1px black;*/
 	-webkit-animation: notification_animation 2s ease forwards;
-	/*-moz-animation: notification_animation 2s ease infinite;
-	-o-animation: notification_animation 2s ease infinite;
-	animation: notification_animation 2s ease infinite;*/
+	/*-moz-animation: notification_animation 2s ease forwards;
+	-o-animation: notification_animation 2s ease forwards;
+	animation: notification_animation 2s ease forwards;*/
 }
 
 .template-navbar .notification p {
 	margin-bottom: -6px;
+}
+
+.template-navbar .notification .money, 
+.template-navbar .notification .xp {
+	white-space: nowrap;
 }

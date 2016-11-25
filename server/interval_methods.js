@@ -256,8 +256,12 @@ var notification_clear_frequency = 2000;
 Meteor.setInterval((function() {
     var now = moment()._d.toISOString();
     Meteor.users.update({}, {
-        $pull: {'profile.notifications.procs': {'expiration': {$lt: now}}},
-        $pull: {'profile.notifications.xp': {'expiration': {$lt: now}}},
-        $pull: {'profile.notifications.money': {'expiration': {$lt: now}}}
+        $pull: {
+            'profile.notifications.procs': {'expiration': {$lt: now}},
+            'profile.notifications.xp': {'expiration': {$lt: now}},
+            'profile.notifications.money': {'expiration': {$lt: now}},
+            'profile.notifications.loot': {'expiration': {$lt: now}},
+            'profile.notifications.store': {'expiration': {$lt: now}}
+        },
     }, {multi: true});
 }), notification_clear_frequency);

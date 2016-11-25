@@ -262,6 +262,14 @@ generateItems = function(multi_item_generator) {
         item_ids.push(generateItemFromArtworkID(item_generator));
     }
 
+    if (multi_item_generator.status == "for_sale") {
+        Meteor.users.update(multi_item_generator.user_id, {$push: {'profile.notifications.store': {'expiration': moment().add(5, "seconds")._d.toISOString(), 'amount': multi_item_generator.count}}});
+    }
+
+    else if (multi_item_generator.status == "unclaimed" || multi_item_generator.status == "won") {
+        Meteor.users.update(multi_item_generator.user_id, {$push: {'profile.notifications.loot': {'expiration': moment().add(5, "seconds")._d.toISOString(), 'amount': multi_item_generator.count}}});
+    }
+
     return item_ids;
 }
 

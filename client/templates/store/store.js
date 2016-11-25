@@ -99,8 +99,6 @@ Template.store.events ({
 		Meteor.call('openCrate', crate_size, function(error, result) {
 			if (error)
 				console.log(error.message);
-
-			Router.go("/loot");
 		})
 	},
 
