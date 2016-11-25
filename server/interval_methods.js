@@ -252,7 +252,7 @@ Meteor.setInterval((function() {
 
 }), lottery_check_frequency);
 
-var notification_clear_frequency = 2000;
+var notification_clear_frequency = 10000;
 Meteor.setInterval((function() {
     var now = moment()._d.toISOString();
     Meteor.users.update({}, {

@@ -125,10 +125,10 @@
 	text-shadow: 1px 1px rgba(0,0,0,0.3);
 	
 	/*text-shadow: 1px 1px black;*/
-	-webkit-animation: notification_animation 2s ease forwards;
-	/*-moz-animation: notification_animation 2s ease forwards;
-	-o-animation: notification_animation 2s ease forwards;
-	animation: notification_animation 2s ease forwards;*/
+	-webkit-animation: notification_animation 4s ease forwards;
+	/*-moz-animation: notification_animation 4s ease forwards;
+	-o-animation: notification_animation 4s ease forwards;
+	animation: notification_animation 4s ease forwards;*/
 }
 
 .template-navbar .notification p {
