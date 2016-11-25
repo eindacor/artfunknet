@@ -252,7 +252,12 @@ Meteor.setInterval((function() {
 
 }), lottery_check_frequency);
 
-var notification_clear_frequency = 10000;
+var notification_clear_frequency = 2000;
 Meteor.setInterval((function() {
-    Meteor.users.update({}, {$set: {'profile.notifications': []}}, {multi: true});
+    var now = moment()._d.toISOString();
+    Meteor.users.update({}, {
+        $pull: {'profile.notifications.procs': {'expiration': {$lt: now}}},
+        $pull: {'profile.notifications.xp': {'expiration': {$lt: now}}},
+        $pull: {'profile.notifications.money': {'expiration': {$lt: now}}}
+    }, {multi: true});
 }), notification_clear_frequency);

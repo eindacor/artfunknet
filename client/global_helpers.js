@@ -18,7 +18,13 @@ Template.registerHelper('userIsAdmin', function() {
 })
 
 Template.registerHelper('displayAsMoneyValue', function(value) {
-	return "$" + getCommaSeparatedValue(value);
+	if (value < 0) {
+		var string_value = getCommaSeparatedValue(value);
+		var new_string = string_value.slice(0, 1) + "$" + string_value.slice(1);
+		return new_string;
+	}
+	
+	else return "$" + getCommaSeparatedValue(value);
 })
 
 Template.registerHelper('commaSeparatedValue', function(value) {

@@ -37,26 +37,27 @@
 			{{#if currentUser}}			
 		    	<div class="col-sm-3 col-xs-12 no-padding navbar-section">
 		    		<div class="row">
-			    		{{#each notification}}
-			    		{{#if isEqual type "xp"}}
-						<div class="notification-area col-xs-2"><span class="notification af-color">{{commaSeparatedValue amount}}xp</span></div>
-						{{/if}}
-						{{#if isEqual type "money"}}
-						<div class="notification-area col-xs-2 col-xs-offset-2"><span class="notification green-text">{{displayAsMoneyValue amount}}</span></div>
-						{{/if}}
-						{{#if isEqual type "spend"}}
-						<div class="notification-area col-xs-2 col-xs-offset-2"><span class="notification red-text">-{{displayAsMoneyValue amount}}</span></div>
-						{{/if}}
-						{{#if isEqual type "proc"}}
-						<div class="notification-area col-xs-8 col-xs-offset-4">
-							<div class="notification af-color">
-								<p>{{title}}</p>
-								<p><span class="gray-text" style="font-size: 1.2rem">{{artist}}</span></p>
-								<!-- <p>{{code}}</p> -->
+		    			{{#with notifications}}
+			    			<div class="notification-area col-xs-2">
+				    		{{#each xp}}
+								<span class="notification af-color">{{commaSeparatedValue amount}}xp</span>
+							{{/each}}
 							</div>
-						</div>
-						{{/if}}
-						{{/each}}
+							<div class="notification-area col-xs-2 col-xs-offset-2">
+							{{#each money}}
+								<span class="notification {{#if isNegative amount}}red-text{{else}}green-text{{/if}}">{{displayAsMoneyValue amount}}</span>
+							{{/each}}
+							</div>
+							<div class="notification-area col-xs-8 col-xs-offset-4">
+							{{#each procs}}
+								<div class="notification af-color">
+									<p>{{title}}</p>
+									<p><span class="gray-text" style="font-size: 1.2rem">{{artist}}</span></p>
+									<!-- <p>{{code}}</p> -->
+								</div>	
+							{{/each}}
+							</div>
+						{{/with}}
 					</div>
 				</div>			
 			{{/if}}

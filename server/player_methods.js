@@ -34,6 +34,11 @@ createUser = function(user_object, callback){
     user_object.profile.money_spent_on_crates = 0;
     user_object.profile.vintage_select = false;
     user_object.profile.vintage_count = 0;
+    user_object.profile.notifications = {
+        'procs': [],
+        'money': [],
+        'xp': []
+    }
 
     user_object.profile.tutorials = {
         'welcome': true,
@@ -121,7 +126,7 @@ addFunds = function(source, user_id, amount) {
 
     var current_balance = Number(Meteor.users.findOne({'_id': user_id}).profile.bank_balance).toFixed(2);
     var new_balance = Number(current_balance) + Number(actual_amount);
-    Meteor.users.update(user_id, {$set: {"profile.bank_balance" : Math.floor(new_balance)}, $push: {'profile.notifications': {'type': "money", 'amount': amount}}});
+    Meteor.users.update(user_id, {$set: {"profile.bank_balance" : Math.floor(new_balance)}, $push: {'profile.notifications.money': {'expiration': moment().add(5, "seconds")._d.toISOString(), 'amount': amount}}});
 }
 
 chargeAccount = function(user_id, amount) {
@@ -132,7 +137,7 @@ chargeAccount = function(user_id, amount) {
 
     var current_balance = Number(Meteor.users.findOne({'_id': user_id}).profile.bank_balance).toFixed(2);
     var new_balance = Number(current_balance) - Number(actual_amount);
-    Meteor.users.update(user_id, {$set: {"profile.bank_balance" : Math.floor(new_balance)}, $push: {'profile.notifications': {'type': "spend", 'amount': amount}}});
+    Meteor.users.update(user_id, {$set: {"profile.bank_balance" : Math.floor(new_balance)}, $push: {'profile.notifications.money': {'expiration': moment().add(5, "seconds")._d.toISOString(), 'amount': -1 *amount}}});
 }
 
 selectRandomPainting = function(selector) {

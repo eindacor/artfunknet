@@ -104,8 +104,12 @@ Template.navbar.helpers({
 		return false;
 	},
 
-	'notification': function() {
+	'notifications': function() {
 		return Meteor.user().profile.notifications;
+	},
+
+	'isNegative': function(amount) {
+		return amount < 0;
 	}
 })
 
