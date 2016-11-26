@@ -1,5 +1,6 @@
 var auction_house_tracker = new Tracker.Dependency;
 var page_tracker = new Tracker.Dependency;
+var current_section_tracker = new Tracker.Dependency;
 // var locked_attributes = [];
 // var standard_attributes = [];
 var sorter = "expiration";
@@ -17,6 +18,7 @@ var current_page = 0;
 var items_per_page = 100;
 var watched_auction_data = undefined;
 var player_auction_data = undefined;
+var current_section = "info";
 
 var getWatchingAndWinningAuctions = function(user_id) {
 	var sorter_object = {};
@@ -137,101 +139,9 @@ Template.dashboard.helpers({
 		else return {};
 	},
 
-	'xpData' : function() {
-		Meteor.call('getXPData', Meteor.user().profile.level, function(error, result) {
-			if (error)
-				console.log(error.message);
-
-			else {
-				var xp_data = result;
-				var completion = (Meteor.user().profile.xp / xp_data.goal) * 100;
-				var xp_object = {
-					'xp_completion' : Math.floor(completion) > 100 ? 100 : Math.floor(completion),
-					'xp_remaining' : getCommaSeparatedValue(xp_data.goal - Meteor.user().profile.xp),
-					'current_level' : Meteor.user().profile.level,
-					'current_xp' : getCommaSeparatedValue(Meteor.user().profile.xp),
-					'xp_goal' : getCommaSeparatedValue(xp_data.goal),
-					'tickets': Meteor.user().profile.lottery_tickets
-				};
-
-				Session.set('xp_data', xp_object);
-			}
-		});
-
-		if (Session.get('xp_data'))
-			return Session.get('xp_data');
-
-		else return {
-			'xp_completion' : 0,
-			'xp_remaining' : 0,
-			'current_level' : 0
-		}
-	},
-
-	'collection_value' : function() {
-		Meteor.call('getCollectionValue', Meteor.userId(), function(error, result) {
-			if (error)
-				console.log(error.message);
-
-			else Session.set('collection_value', result);
-		});
-
-		if (Session.get('collection_value') !== undefined)
-			return getCommaSeparatedValue(Session.get('collection_value'));
-
-		else return "";
-	},
-
-	'display_value' : function() {
-		Meteor.call('getExhibitionValue', Meteor.userId(), function(error, result) {
-			if (error)
-				console.log(error.message);
-
-			else Session.set('display_value', result);
-		});
-
-		if (Session.get('display_value') !== undefined)
-			return getCommaSeparatedValue(Session.get('display_value'));
-
-		else return "";
-	},
-
-	'ticket' : function() {
-		return gallery_tickets.find({'ticketholder': Meteor.userId()});
-	},
-
-	'ticketData' : function(ticket_object) {
-		var gallery_object = galleries.findOne({'owner_id' : ticket_object.gallery_owner});
-		if (gallery_object) {
-			var unmet_npcs = npcs.findOne({'owner_id': gallery_object.owner_id, 'players_met': {$ne: Meteor.userId()}});
-
-			if (gallery_object) {
-				var displayed_object = {
-					'owner_name' : gallery_object.owner,
-					'owner_id' : ticket_object.gallery_owner,
-					'expiration_string' : getTimeString(moment(ticket_object.expiration)),
-					'unmet_npcs' : (unmet_npcs != undefined)
-				}
-
-				return displayed_object;
-			}
-
-			else return {};
-		}
-	},
-
-	'max_level': function() {
-		return Meteor.user().profile.level >= 50;
-	},
-
-	'tokens': function() {
-		return Meteor.user().profile.xp;
-	},
-
-	'unselected': function(current_tier) {
-		var tier_array = ["free", "low", "medium", "high", "outrageous"];
-		tier_array.splice(tier_array.indexOf(current_tier), 1);
-		return tier_array;
+	'current_section': function() {
+		current_section_tracker.depend();
+		return current_section;
 	}
 })
 
@@ -273,7 +183,12 @@ Template.dashboard.events({
 			'modal_name': "vintageModal", 
 			'modal_data': undefined
 		}, $('body')[0]);
-}
+	},
+
+	'click .dash-icon': function(event) {
+		current_section = $(event.target).data().section_name;
+		current_section_tracker.changed();
+	}
 });
 
 Template.dashboard.rendered = function() {
@@ -373,3 +288,103 @@ Template.dashboard.rendered = function() {
 		}, $('body')[0]);
 	}
 }
+
+Template.info.helpers({
+	'xpData' : function() {
+		Meteor.call('getXPData', Meteor.user().profile.level, function(error, result) {
+			if (error)
+				console.log(error.message);
+
+			else {
+				var xp_data = result;
+				var completion = (Meteor.user().profile.xp / xp_data.goal) * 100;
+				var xp_object = {
+					'xp_completion' : Math.floor(completion) > 100 ? 100 : Math.floor(completion),
+					'xp_remaining' : getCommaSeparatedValue(xp_data.goal - Meteor.user().profile.xp),
+					'current_level' : Meteor.user().profile.level,
+					'current_xp' : getCommaSeparatedValue(Meteor.user().profile.xp),
+					'xp_goal' : getCommaSeparatedValue(xp_data.goal),
+					'tickets': Meteor.user().profile.lottery_tickets
+				};
+
+				Session.set('xp_data', xp_object);
+			}
+		});
+
+		if (Session.get('xp_data'))
+			return Session.get('xp_data');
+
+		else return {
+			'xp_completion' : 0,
+			'xp_remaining' : 0,
+			'current_level' : 0
+		}
+	},
+
+	'collection_value' : function() {
+		Meteor.call('getCollectionValue', Meteor.userId(), function(error, result) {
+			if (error)
+				console.log(error.message);
+
+			else Session.set('collection_value', result);
+		});
+
+		if (Session.get('collection_value') !== undefined)
+			return getCommaSeparatedValue(Session.get('collection_value'));
+
+		else return "";
+	},
+
+	'display_value' : function() {
+		Meteor.call('getExhibitionValue', Meteor.userId(), function(error, result) {
+			if (error)
+				console.log(error.message);
+
+			else Session.set('display_value', result);
+		});
+
+		if (Session.get('display_value') !== undefined)
+			return getCommaSeparatedValue(Session.get('display_value'));
+
+		else return "";
+	},
+
+	'ticket' : function() {
+		return gallery_tickets.find({'ticketholder': Meteor.userId()});
+	},
+
+	'ticketData' : function(ticket_object) {
+		var gallery_object = galleries.findOne({'owner_id' : ticket_object.gallery_owner});
+		if (gallery_object) {
+			var unmet_npcs = npcs.findOne({'owner_id': gallery_object.owner_id, 'players_met': {$ne: Meteor.userId()}});
+
+			if (gallery_object) {
+				var displayed_object = {
+					'owner_name' : gallery_object.owner,
+					'owner_id' : ticket_object.gallery_owner,
+					'expiration_string' : getTimeString(moment(ticket_object.expiration)),
+					'unmet_npcs' : (unmet_npcs != undefined)
+				}
+
+				return displayed_object;
+			}
+
+			else return {};
+		}
+	},
+
+	'max_level': function() {
+		return Meteor.user().profile.level >= 50;
+	},
+
+	'tokens': function() {
+		return Meteor.user().profile.xp;
+	},
+
+	'unselected': function(current_tier) {
+		var tier_array = ["free", "low", "medium", "high", "outrageous"];
+		tier_array.splice(tier_array.indexOf(current_tier), 1);
+		return tier_array;
+	},
+
+})
