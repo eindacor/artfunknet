@@ -30,12 +30,17 @@
 	border-bottom: 2px solid white;
 }
 
+.template-navbar .ticket-area {
+	text-align: center;
+	margin-top: 10px;
+}
+
 .template-navbar .ticket-info {
 	margin-top: 24px;
 }
 
 .template-navbar .ticket-button {
-	font-size: 1.8rem;
+	font-size: 2rem;
 	opacity: .75;
 }
 

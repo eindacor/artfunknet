@@ -62,7 +62,7 @@
 			</div>
 
 		    {{#if currentUser}}
-	    	<div class="col-sm-3 col-xs-12 no-padding navbar-section">
+	    	<div class="col-sm-3 col-xs-12 no-padding navbar-section ticket-area">
 				{{#each ticket}}
 					{{#with ticketData this}}
 					<a href="/user/{{owner_name}}" class="ticket-button {{#if unmet_npcs}}af-color{{else}}npcs-met{{/if}}"><i data-expiration_string="{{expiration_string}}" data-owner_name="{{owner_name}}" class="fa fa-ticket"></i></a>
