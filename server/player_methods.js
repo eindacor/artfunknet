@@ -39,6 +39,17 @@ createUser = function(user_object, callback){
         'money': [],
         'xp': []
     }
+    user_object.profile.settings = {
+        'quick_purchase': false,
+        'auction_items_to_inventory': false,
+        'quick_sell_options': {
+            'foil': false,
+            'legendary': false,
+            'seasonal': false,
+            'quest_items': false,
+            'sought': true
+        }
+    };
 
     user_object.profile.tutorials = {
         'welcome': true,
