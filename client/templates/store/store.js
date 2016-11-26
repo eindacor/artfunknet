@@ -55,13 +55,6 @@ Template.store.helpers({
 		else return false;
 	},
 
-	'bank_balance' : function() {
-		if (Meteor.userId() && Meteor.user())
-			return getCommaSeparatedValue(Meteor.user().profile.bank_balance);
-
-		else return 0;
-	},
-
 	'canPurchase' : function(item_id) {
 		return true;
 	},

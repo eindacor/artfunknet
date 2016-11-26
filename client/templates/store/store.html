@@ -1,7 +1,6 @@
 <template name="store">
 	<div class="template-store container">
 		<h1 class="af-color">Store</h1>
-		<h4>bank balance: <span class="af-color">${{bank_balance}}</span></h4>
 		<div class="crate-buttons row">
 			{{#each crate_button}}
 			<button data-crate_size="{{size}}" class="crate-button {{#if can_afford cost}}enabled{{else}}disabled{{/if}}">{{size}} crate ({{count}} items)<p>{{displayAsMoneyValue cost}}</p></button>
