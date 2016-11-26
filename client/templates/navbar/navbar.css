@@ -119,6 +119,7 @@
 }
 
 .template-navbar .notification {
+	margin-bottom: 12px;
 	/*position: absolute;
 	font-weight: bold;
 	font-size: 1.5rem;
@@ -148,4 +149,11 @@
 
 .tempalte-navbar .spacer {
 	line-height: 2rem;
+}
+
+.template-navbar .balance,
+.template-navbar .current_xp {
+	font-weight: bold;
+	position: absolute;
+	margin-top: 10px;
 }

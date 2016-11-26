@@ -7,109 +7,62 @@ var notifications = {
 	'store': [],
 	'procs': []
 };
-var notification_ids_rendered = [];
-
-//get notifications
-//set var
-//run addnotifications
-//	run for loop adding each element
-//unset var
-//
 
 var getNotificationAppendString = function(notification_object, type) {
 	switch (type) {
-		case "procs": return '<div class="notification af-color"><p>' + notification_object.title + '</p><p><span class="gray-text" style="font-size: 1.2rem">' + notification_object.artist + '</span></p></div>';
+		case "procs": return '<div id="' + notification_object.id + '" class="notification ' + type + '"><p class="af-color">' + notification_object.title + '</p><p><span class="gray-text" style="font-size: 1.2rem">' + notification_object.artist + '</span></p></div>';
 		case "money": 
 			var value_is_positive = notification_object.amount > 0;
 			var render_class = value_is_positive ? 'green-text' : 'red-text';
 			var value_string = (value_is_positive ? '+' : '') + getMoneyValue(notification_object.amount);
-			return '<span class="notification ' + render_class + '">' + value_string + '</span>';
-		case "xp": return '<span class="notification af-color">+' + getCommaSeparatedValue(notification_object.amount) + 'xp</span>';
-		case "store": return '<span class="notification green-text">+' + notification_object.amount + '</span>';
-		case "loot": return '<span class="notification gold-text">+' + notification_object.amount + '</span>';
+			return '<p><span id="' + notification_object.id + '" class="notification ' + type + ' ' + render_class + '">' + value_string + '</span></p>';
+		case "xp": return '<p><span id="' + notification_object.id + '" class="notification ' + type + ' af-color">+' + getCommaSeparatedValue(notification_object.amount) + 'xp</span></p>';
+		case "store": return '<p><span id="' + notification_object.id + '" class="notification ' + type + ' green-text">+' + notification_object.amount + '</span></p>';
+		case "loot": return '<p><span id="' + notification_object.id + '" class="notification ' + type + ' gold-text">+' + notification_object.amount + '</span></p>';
 		default: return '<p>something did not work</p>';
 	}
 }
 
-// var addNotifications = function(type) {
-
-// }
-
-// var addProcNotifications = function() {
-// 	try {
-// 		$('.notification-wrapper.procs').remove();
-// 		$target_area = $('.notification-area.procs');
-// 		var unique_id = new Meteor.Collection.ObjectID()._str;
-// 		$target_area.append('<div id="' + unique_id + '" class="notification-wrapper af-color procs"></div>');
-// 		$wrapper = $('.notification-wrapper.procs');
-// 		for (var i=0; i<Meteor.user().profile.notifications.procs.length; i++) {
-// 			$wrapper.append('<div class="notification af-color"><p>' + Meteor.user().profile.notifications.procs[i].title + '</p><p><span class="gray-text" style="font-size: 1.2rem">' + Meteor.user().profile.notifications.procs[i].id + '</span></p></div>');
-// 		};
-
-// 		Meteor.call('removeNotifications', 'procs', function(error) {
-// 			if (error)
-// 				console.log(error.message);
-// 		})
-		
-// 		setTimeout(function() {
-// 			$('#' + unique_id).remove();
-// 		}, 5000);
-// 	}
-
-// 	catch (error) {
-// 		console.log(error.message);
-// 	}
-// }
-
-// var addMoneyNotifications = function() {
-// 	try {
-// 		$('.notification-wrapper.money').remove();
-// 		$target_area = $('.notification-area.money');
-// 		var unique_id = new Meteor.Collection.ObjectID()._str;
-// 		$target_area.append('<div id="' + unique_id + '" class="notification-wrapper af-color money"></div>');
-// 		$wrapper = $('.notification-wrapper.money');
-// 		for (var i=0; i<Meteor.user().profile.notifications.money.length; i++) {
-// 			var notification_object = Meteor.user().profile.notifications.money[i];
-// 			var value_is_positive = notification_object.amount > 0;
-// 			var render_class = value_is_positive ? 'red-text' : 'green-text';
-// 			var value_string = (value_is_positive ? '+' : '-') + getCommaSeparatedValue(notification_object.amount);
-// 			$wrapper.append('<span class="notification ' + render_class + '">' + value_string + '</span>');
-// 		};
-
-// 		Meteor.call('removeNotifications', 'money', function(error) {
-// 			if (error)
-// 				console.log(error.message);
-// 		})
-		
-// 		setTimeout(function() {
-// 			$('#' + unique_id).remove();
-// 		}, 5000);
-// 	}
-
-// 	catch (error) {
-// 		console.log(error.message);
-// 	}
-// }
+//find existing visible notifications
+//if new notification is already present, skip
+//if opacity of notifications is
 
 var addNotifications = function(type) {
 	try {
-		$('.notification-wrapper.' + type).remove();
-		$target_area = $('.notification-area.' + type);
-		var unique_id = new Meteor.Collection.ObjectID()._str;
-		$target_area.append('<div id="' + unique_id + '" class="notification-wrapper ' + type + '"></div>');
-		$wrapper = $('.notification-wrapper.' + type);
-		for (var i=0; i<Meteor.user().profile.notifications[type].length; i++) {
-			$wrapper.append(getNotificationAppendString(Meteor.user().profile.notifications[type][i], type));
-		};
+		//if notifications are already visible, append to existing wrapper
+		if ($('.notification-wrapper.' + type).length > 0 && Number($('.notification-wrapper.' + type).css('opacity')) == 1) {
+			$wrapper = $('.notification-wrapper.' + type);
+			for (var i=0; i<Meteor.user().profile.notifications[type].length; i++) {
+				if ($('#' + Meteor.user().profile.notifications[type][i].id).length == 0)
+					$wrapper.append(getNotificationAppendString(Meteor.user().profile.notifications[type][i], type));
+			};
 
-		Meteor.call('removeNotifications', type, function(error) {
-			if (error)
-				console.log(error.message);
-		})
-		
-		setTimeout(function() {
-			$('#' + unique_id).remove();
-		}, 5000);
+			Meteor.call('removeNotifications', type, function(error) {
+				if (error)
+					console.log(error.message);
+			})
+		}
+
+		// else create a new wrapper with new elements
+		else {
+			$target_area = $('.notification-area.' + type);
+			var unique_id = new Meteor.Collection.ObjectID()._str;
+			$target_area.append('<div id="' + unique_id + '" class="notification-wrapper ' + type + '"></div>');
+			$wrapper = $('.notification-wrapper.' + type);
+			for (var i=0; i<Meteor.user().profile.notifications[type].length; i++) {
+				if ($('#' + Meteor.user().profile.notifications[type][i].id).length == 0)
+					$wrapper.append(getNotificationAppendString(Meteor.user().profile.notifications[type][i], type));
+			};
+
+			Meteor.call('removeNotifications', type, function(error) {
+				if (error)
+					console.log(error.message);
+			})
+			
+			setTimeout(function() {
+				$('#' + unique_id).remove();
+			}, 5000);
+		}
 	}
 
 	catch (error) {
@@ -227,6 +180,14 @@ Template.navbar.helpers({
 
 	'isNegative': function(amount) {
 		return amount < 0;
+	},
+
+	'bank_balance': function() {
+		return getMoneyValue(Meteor.user().profile.bank_balance);
+	},
+
+	'current_xp': function() {
+		return getCommaSeparatedValue(Meteor.user().profile.xp);
 	}
 })
 

@@ -62,7 +62,7 @@
 			</div>
 
 		    {{#if currentUser}}
-	    	<div class="col-sm-4 col-xs-12 no-padding navbar-section">
+	    	<div class="col-sm-3 col-xs-12 no-padding navbar-section">
 				{{#each ticket}}
 					{{#with ticketData this}}
 					<a href="/user/{{owner_name}}" class="ticket-button {{#if unmet_npcs}}af-color{{else}}npcs-met{{/if}}"><i data-expiration_string="{{expiration_string}}" data-owner_name="{{owner_name}}" class="fa fa-ticket"></i></a>
@@ -71,7 +71,7 @@
 			</div>
 			{{/if}}
 			{{#if currentUser}}			
-		    	<div class="col-sm-4 col-xs-12 no-padding navbar-section">
+		    	<div class="col-sm-5 col-xs-12 no-padding navbar-section">
 		    		<!-- <div class="row">
 		    			{{#with notifications}}
 			    			<div class="notification-area col-xs-2 xp">
@@ -100,14 +100,16 @@
 						{{/with}}
 					</div> -->
 					<div class="row">
+						<div class="notification-area col-xs-8 procs">
+							<!-- {{#with notifications "procs"}}{{/with}} -->
+						</div>
 						<div class="notification-area col-xs-2 money">
+							<div class="balance green-text">{{bank_balance}}</div>
 							{{#with notifications "money"}}{{/with}}
 						</div>
 						<div class="notification-area col-xs-2 xp">
+							<div class="current_xp af-color">{{current_xp}}xp</div>
 							{{#with notifications "xp"}}{{/with}}
-						</div>
-						<div class="notification-area col-xs-8 procs">
-							{{#with notifications "procs"}}{{/with}}
 						</div>
 					</div>
 				</div>			
