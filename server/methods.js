@@ -17,6 +17,10 @@ var getMVPData = function() {
 }
 
 Meteor.methods({
+    'getNow': function() {
+        return moment()._d.toISOString();
+    },
+
     'getLeaderboardData' : function() {
         return {
             'mvp_data': getMVPData(),

@@ -11,23 +11,16 @@
 								<a href="/auctions"><i data-title="Auction House" class="nav-icon fa fa-gavel"></i></a>
 							</dev>
 							<dev class="col-xs-1  icon-section">
-								<a href="/loot"><i data-title="Loot Section" class="{{#if hasLoot}}yellow-text{{/if}} nav-icon fa fa-gift"></i>
-									{{#with notifications}}
-										{{#each loot}}
-										<span class="notification gold-text">+{{amount}}</span>
-										{{/each}}
-									{{/with}}
-								</a>
-								
+								<a href="/loot"><i data-title="Loot Section" class="{{#if hasLoot}}yellow-text{{/if}} nav-icon fa fa-gift"></i></a>
+								<div class="notification-area loot">
+									{{#with notifications "loot"}}{{/with}}
+								</div>
 							</dev>
 							<dev class="col-xs-1  icon-section">
-								<a href="/store"><i data-title="Store" class="{{#if hasForSale}}green-text{{/if}} nav-icon fa fa-money"></i>
-									{{#with notifications}}
-										{{#each store}}
-										<span class="notification green-text">+{{amount}}</span>
-										{{/each}}
-									{{/with}}
-								</a>
+								<a href="/store"><i data-title="Store" class="{{#if hasForSale}}green-text{{/if}} nav-icon fa fa-money"></i></a>
+								<div class="notification-area store">
+									{{#with notifications "store"}}{{/with}}
+								</div>
 							</dev>
 							<dev class="col-xs-1  icon-section">
 								<a href="/galleries"><i data-title="Player Galleries" class="nav-icon fa fa-globe"></i></a>
@@ -53,16 +46,18 @@
 					    <dev class="col-xs-1  icon-section">
 					    	<a href="/wiki"><i data-title="Legendary Attributes" class="nav-icon fa fa-star"></i></a>
 					    </dev>
-					    {{#if currentUser}}
-					    <!-- <dev class="col-xs-1  icon-section">
-					    	<a href="/logout"><i data-title="Log Out" class="logout-button nav-icon fa fa-sign-out light-gray"></i></a>
-					    </dev> -->
-					    {{/if}}	
 					    {{#if userIsAdmin}}
 					    <dev class="col-xs-1  icon-section">
 							<a href="/admin"><i data-title="Admin Tools" class="nav-icon fa fa-cog light-gray"></i></a>
 						</dev>
+						{{else}}
+							{{#if currentUser}}
+							<dev class="col-xs-1  icon-section">
+						    	<a href="/logout"><i data-title="Log Out" class="logout-button nav-icon fa fa-sign-out light-gray"></i></a>
+						    </dev>
+						   {{/if}}
 						{{/if}}
+
 				</dev>
 			</div>
 
@@ -77,28 +72,43 @@
 			{{/if}}
 			{{#if currentUser}}			
 		    	<div class="col-sm-4 col-xs-12 no-padding navbar-section">
-		    		<div class="row">
+		    		<!-- <div class="row">
 		    			{{#with notifications}}
 			    			<div class="notification-area col-xs-2 xp">
-				    		{{#each xp}}
-								<span class="notification af-color">{{commaSeparatedValue amount}}xp</span>
-							{{/each}}
+			    			{{#if xp}}
+			    				<div class="notification-wrapper xp">
+					    		{{#each xp}}
+									<span class="notification af-color">+{{commaSeparatedValue amount}}xp</span>
+								{{/each}}
+								</div>
+							{{/if}}
 							</div>
 							<div class="notification-area col-xs-2 money">
-							{{#each money}}
-								<span class="notification {{#if isNegative amount}}red-text{{else}}green-text{{/if}}">{{displayAsMoneyValue amount}}</span>
-							{{/each}}
+							{{#if money}}
+								<div class="notification-wrapper money">
+								{{#each money}}
+									<span class="notification {{#if isNegative amount}}red-text{{else}}green-text{{/if}}">{{#if isNegative amount}}{{else}}+{{/if}}{{displayAsMoneyValue amount}}</span>
+								{{/each}}
+								</div>
+							{{/if}}
 							</div>
 							<div class="notification-area col-xs-8">
-							{{#each procs}}
-								<div class="notification af-color">
-									<p>{{title}}</p>
-									<p><span class="black-text" style="font-size: 1.2rem">{{artist}}</span></p>
-									<!-- <p>{{code}}</p> -->
-								</div>	
-							{{/each}}
+								<div class="notification-wrapper procs">
+									
+								</div>
 							</div>
 						{{/with}}
+					</div> -->
+					<div class="row">
+						<div class="notification-area col-xs-2 money">
+							{{#with notifications "money"}}{{/with}}
+						</div>
+						<div class="notification-area col-xs-2 xp">
+							{{#with notifications "xp"}}{{/with}}
+						</div>
+						<div class="notification-area col-xs-8 procs">
+							{{#with notifications "procs"}}{{/with}}
+						</div>
 					</div>
 				</div>			
 			{{/if}}

@@ -119,16 +119,22 @@
 }
 
 .template-navbar .notification {
-	position: absolute;
+	/*position: absolute;
 	font-weight: bold;
 	font-size: 1.5rem;
-	text-shadow: 1px 1px rgba(0,0,0,0.3);
+	margin-bottom: 4px;
+	/*text-shadow: 1px 1px rgba(0,0,0,0.8);*/
 	
 	/*text-shadow: 1px 1px black;*/
-	-webkit-animation: notification_animation 4s ease forwards;
+	/*-webkit-animation: notification_animation 4s ease infinite;
 	/*-moz-animation: notification_animation 4s ease forwards;
 	-o-animation: notification_animation 4s ease forwards;
 	animation: notification_animation 4s ease forwards;*/
+}
+
+.template-navbar .notification-wrapper {
+	position: absolute;
+	-webkit-animation: notification_animation 4s ease forwards;
 }
 
 .template-navbar .notification p {
@@ -138,4 +144,8 @@
 .template-navbar .notification .money, 
 .template-navbar .notification .xp {
 	white-space: nowrap;
+}
+
+.tempalte-navbar .spacer {
+	line-height: 2rem;
 }

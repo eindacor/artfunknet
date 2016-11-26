@@ -277,7 +277,7 @@ var donorInteraction = function(npc_object) {
 
 	var message = "You have met a donor who would like to contribute to your collection. You may claim your gift in the loot area.";
 
-	return {'message': message}
+	// return {'message': message}
 }
 
 var preservationistInteraction = function(npc_object) {
@@ -785,7 +785,7 @@ var artDealerInteraction = function(npc_object) {
 	generateItems(multi_item_generator);
 
 	var message = "You have met an Art Dealer who would like you to consider a few offers. Go to the store to view their inventory.";
-	return {'message': message}
+	// return {'message': message}
 }
 
 var galleryManagerInteraction = function(npc_object) {

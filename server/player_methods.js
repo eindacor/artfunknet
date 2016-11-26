@@ -1120,5 +1120,12 @@ Meteor.methods({
 
         var item_object = items.findOne(auction_object.item_id, {fields: fields_object});
         return item_object;
+    },
+
+    'removeNotifications': function(type) {
+        var setter_string = 'profile.notifications.' + type;
+        setter_object = {};
+        setter_object[setter_string] = [];
+        Meteor.users.update(Meteor.userId(), {$set: setter_object});
     }
 })
