@@ -411,6 +411,22 @@ var getSellAllData= function(user_id) {
     }
 }
 
+getMaxQuests = function(npc_object) {
+    if ((npc_object == undefined || isOwnGallery(npc_object)) && procUniqueAttribute(Meteor.userId(), "QUEST_CAP_BYPASS", undefined)) {
+        return 20;
+    } else {
+        return 8;
+    }
+}
+
+getActiveQuests = function() {
+    return quests.find({'owner_id': Meteor.userId()}).count();
+}
+
+canAcceptQuest = function(npc_object) {
+    return (getActiveQuests() < getMaxQuests(npc_object));
+}
+
 Meteor.methods({
     'resetTutorials': function() {
         resetTutorials(Meteor.userId());
@@ -675,6 +691,18 @@ Meteor.methods({
         var quest_object = quests.findOne(quest_id);
         if (quest_object && quest_object.owner_id == Meteor.userId())
             quests.remove(quest_id);
+    },
+
+    'getMaxQuests' : function(npc_object) {
+        return getMaxQuests(npc_object);
+    },
+
+    'getActiveQuests' : function() {
+        return getActiveQuests();
+    },
+
+    'canAcceptQuest' : function(npc_object) {
+        return canAcceptQuest(npc_object)
     },
 
     'getSoughtStatus' : function(artwork_id, only_sought_if_not_in_auction_house) {

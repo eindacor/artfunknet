@@ -5,3 +5,8 @@
 	</div>
 	{{> footnote}}
 </template>
+
+<!--It is necessary to provide a "key" parameter that matches a valid meteor call to this template-->
+<template name="meteorValue">
+	<span id="{{displayValueFromMeteor key}}">Loading</span>
+</template>
