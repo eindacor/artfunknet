@@ -104,7 +104,7 @@ Meteor.methods({
 
 var own_gallery_amplifier = 1.75;
 
-var isOwnGallery = function(npc_object) {
+isOwnGallery = function(npc_object) {
 	return npc_object.owner_id == Meteor.userId();
 }
 
@@ -957,12 +957,8 @@ var generateQuest = function(rarity, is_own_gallery) {
 
 var historianInteraction = function(npc_object) {
 	try {
-		var max_quest_count = 8;
 
-		if (isOwnGallery(npc_object) && procUniqueAttribute(Meteor.userId(), "QUEST_CAP_BYPASS", undefined))
-			max_quest_count = 20;
-
-		if (quests.find({'owner_id': Meteor.userId()}).count() >= max_quest_count) {
+		if (!canAcceptQuest(npc_object)) {
 			var message = "You have met an art historian who is looking for a few specific items, but you currently have too many tasks on your schedule to help them.";
 			return {'type': undefined, 'message': message};
 		}
