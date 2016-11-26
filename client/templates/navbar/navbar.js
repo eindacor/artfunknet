@@ -12,7 +12,7 @@ var getNotificationAppendString = function(notification_object, type) {
 	switch (type) {
 		case "procs": return '<div id="' + notification_object.id + '" class="notification ' + type + '"><p class="af-color">' + notification_object.title + '</p><p><span class="gray-text" style="font-size: 1.2rem">' + notification_object.artist + '</span></p></div>';
 		case "money": 
-			var value_is_positive = notification_object.amount > 0;
+			var value_is_positive = notification_object.amount >= 0;
 			var render_class = value_is_positive ? 'green-text' : 'red-text';
 			var value_string = (value_is_positive ? '+' : '') + getMoneyValue(notification_object.amount);
 			return '<p><span id="' + notification_object.id + '" class="notification ' + type + ' ' + render_class + '">' + value_string + '</span></p>';
