@@ -2,7 +2,8 @@ createAuction = function(item_id, starting, buy_now, duration, viewer) {
     try {
         if (auctions.find({'item_id': item_id}).count() == 0) {
             var post_date = moment();
-            var expiration = moment(post_date).add(duration, 'minutes');
+            //var expiration = moment(post_date).add(duration, 'minutes');
+            var expiration = moment(post_date).add(1, 'minutes');
             var item_object = items.findOne(item_id);
             var user_object = Meteor.users.findOne(item_object.owner);
 
@@ -97,7 +98,10 @@ var successfulAuction = function(auction_object, winning_user) {
 
     var seller = items.findOne(auction_object.item_id).owner;
 
-    updateItem(auction_object.item_id, {$set: {'status' : 'won', 'owner': winning_user._id, 'tags': [], 'date_received': moment()._d.toISOString()}}, function(error) {
+    var send_item_to_inventory = winning_user.profile.settings.auction_items_to_inventory && !inventoryIsFull(winning_user);
+    var new_status = send_item_to_inventory ? 'claimed' : 'won';
+
+    updateItem(auction_object.item_id, {$set: {'status' : new_status, 'owner': winning_user._id, 'tags': [], 'date_received': moment()._d.toISOString()}}, function(error) {
         if (error)
             console.log(error.message);
 
@@ -145,6 +149,10 @@ var successfulAuction = function(auction_object, winning_user) {
 
             Meteor.users.update({'profile.auction_data.winning': {$in: [auction_object._id]}}, {$pull: {'profile.auction_data.winning': auction_object._id}}); 
             Meteor.users.update({}, {$pull: {'profile.auction_data.watching': auction_object._id}}, {multi: true});   
+
+            if (winning_user.profile.settings.animations_enabled) {
+                Meteor.users.update(winning_user._id, {$push: {'profile.notifications.loot': {'id': new Meteor.Collection.ObjectID()._str, 'expiration': moment().add(5, "seconds")._d.toISOString(), 'amount': 1}}});
+            }
         }
     });
 
