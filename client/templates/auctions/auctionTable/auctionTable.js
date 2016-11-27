@@ -3,7 +3,7 @@ var already_winning_tracker = new Tracker.Dependency;
 var details_tracker = new Tracker.Dependency;
 var sought_items = {};
 var already_winning = {};
-var hide_details = true;
+var hide_details = false;
 
 var getAuctionPreviewItemObject = function(auction_id) {
 	Meteor.call('getAuctionPreviewItemObject', auction_id, function(error, result) {

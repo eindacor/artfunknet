@@ -18,7 +18,7 @@ var current_page = 0;
 var items_per_page = 100;
 var watched_auction_data = undefined;
 var player_auction_data = undefined;
-var current_section = "info";
+var current_section = "home";
 
 var getWatchingAndWinningAuctions = function(user_id) {
 	var sorter_object = {};
@@ -68,35 +68,6 @@ var getPlayerAuctions = function(user_id) {
 }
 
 Template.dashboard.helpers({
-	'watchedAuctionData' : function() {
-		auction_house_tracker.depend();
-		if (watched_auction_data == undefined) {
-			getWatchingAndWinningAuctions(Meteor.userId());
-			return [];
-		}
-
-		else return watched_auction_data;
-	},
-
-	'playerAuctionData' : function() {
-		auction_house_tracker.depend();
-		if (player_auction_data == undefined) {
-			getPlayerAuctions(Meteor.userId());
-			return [];
-		}
-
-		else return player_auction_data;
-	},
-
-	'refreshAuctions' : function() {
-		if (Session.get("refresh_auctions")) {
-			Session.set("refresh_auctions", undefined);
-			var watched_auction_data = undefined;
-			var player_auction_data = undefined;
-			auction_house_tracker.changed();
-		}
-	},
-
 	'userData' : function() {
 		if (Meteor.user()) {
 			var user_object = Meteor.user();
@@ -114,9 +85,6 @@ Template.dashboard.helpers({
 				'has_items': items.find({'owner' : user_object._id, 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}}).count(),
 				'original_count' : items.find({'owner' : user_object._id, 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}, 'original': true}).count(),
 				'vintage_items': items.find({'owner' : user_object._id, 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}, 'vintage': true}).count(),
-				'has_watched_auctions' : has_watched_auctions,
-				'has_player_auctions' : has_player_auctions,
-				'has_auctions': has_watched_auctions || has_player_auctions,
 				'alert_count' : alerts.find({'user_id' : user_object._id}).count(),
 				'private_count' : items.find({'owner' : user_object._id, 'status' : 'permanent'}).count(),
 				'display_max' : user_object.profile.display_cap,
@@ -128,7 +96,6 @@ Template.dashboard.helpers({
 				'ticket_max' : user_object.profile.ticket_cap,
 				'completed_quests': user_object.profile.completed_quests,
 				'auctioned_items': auctions.find({'seller': user_object.profile.screen_name}).count(),
-				'winning_auctions': user_object.profile.auction_data.winning.length,
 				'auction_cap': Math.floor(user_object.profile.auction_cap * (has_auctioneer ? 1.5 : 1)),
 				'vintage_count': user_object.profile.vintage_count
 			}
@@ -172,12 +139,6 @@ Template.dashboard.events({
 		Session.set('toggle_auction_details', true);
 	},
 
-	'click #refresh-auctions': function() {
-		watched_auction_data = undefined;
-		player_auction_data = undefined;
-		auction_house_tracker.changed();
-	},
-
 	'click #vintage-mode': function() {
 		Blaze.renderWithData(Template.modalTemplate, {
 			'modal_name': "vintageModal", 
@@ -185,8 +146,8 @@ Template.dashboard.events({
 		}, $('body')[0]);
 	},
 
-	'click .dash-icon': function(event) {
-		current_section = $(event.target).data().section_name;
+	'click .dash-tab': function(event) {
+		current_section = $(event.target).closest('.dash-tab').data().section_name;
 		current_section_tracker.changed();
 	}
 });
@@ -387,4 +348,43 @@ Template.info.helpers({
 		return tier_array;
 	},
 
+})
+
+Template.myAuctions.helpers({
+	'watchedAuctionData' : function() {
+		auction_house_tracker.depend();
+		if (watched_auction_data == undefined) {
+			getWatchingAndWinningAuctions(Meteor.userId());
+			return [];
+		}
+
+		else return watched_auction_data;
+	},
+
+	'playerAuctionData' : function() {
+		auction_house_tracker.depend();
+		if (player_auction_data == undefined) {
+			getPlayerAuctions(Meteor.userId());
+			return [];
+		}
+
+		else return player_auction_data;
+	},
+
+	'refreshAuctions' : function() {
+		if (Session.get("refresh_auctions")) {
+			Session.set("refresh_auctions", undefined);
+			var watched_auction_data = undefined;
+			var player_auction_data = undefined;
+			auction_house_tracker.changed();
+		}
+	}
+})
+
+Template.myAuctions.events({
+	'click #refresh-auctions': function() {
+		watched_auction_data = undefined;
+		player_auction_data = undefined;
+		auction_house_tracker.changed();
+	}
 })

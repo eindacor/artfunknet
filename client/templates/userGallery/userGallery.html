@@ -1,8 +1,11 @@
 <template name="userGallery">
 	<div class="template-userGallery">
-		<div class="container">
+		<div class="{{#if own_gallery}}{{else}}container{{/if}}">
 			{{#with entryInfo screen_name}}
-			<h1 class="af-color">Player Gallery - {{screen_name}}</h1>		
+			{{#if ../own_gallery}}
+			{{else}}
+			<h1 class="af-color">Player Gallery - {{screen_name}}</h1>	
+			{{/if}}	
 			{{#if paid}}
 				<div class="row no-padding no-margin">
 					<div class="npc-area">
@@ -35,7 +38,7 @@
 				</div>
 				{{/with}}
 
-				{{#if canEdit screen_name}}
+				{{#if ../own_gallery}}
 					{{> galleryEdit}}
 				{{/if}}
 			

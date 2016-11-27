@@ -2,35 +2,22 @@
 	<div class="template-dashboard">
 		<div class="container">
 			{{#with userData}}
-			<div class="row dash-section">
+			<div class="row no-padding no-margin">
 				<div class="row">
 					<span class="gamertag af-color">{{screen_name}}</span>{{#if vintage_count}} ({{vintage_count}}){{/if}}
 				</div>
-				<div class="row dashboard-tab-area">
-					<dev class="col-xs-1">					
-						<i data-section_name="info" class="dash-icon fa fa-info"></i>
-					</dev>
-					<dev class="col-xs-1">
-						<i data-section_name="inventory" class="dash-icon fa fa-archive"></i>
-					</dev>
-					<dev class="col-xs-1">
-						<i data-section_name="loot" class="{{#if hasLoot}}yellow-text{{/if}} dash-icon fa fa-gift"></i>
-					</dev>
-					<dev class="col-xs-1">
-						<i data-section_name="gallery" class="{{#if hasVisitors}}af-color{{/if}} dash-icon fa fa-picture-o"></i>
-					</dev>
-					<dev class="col-xs-1">
-						<i data-section_name="checklist" class="dash-icon fa fa-list"></i>
-					</dev>
-					<dev class="col-xs-1">					
-						<i data-section_name="quests" class="{{#if hasFullyCompletedQuest}}orange-text{{else}}{{#if hasCompletedQuest}}bright-orange-text{{/if}}{{/if}} dash-icon fa fa-flag-checkered"></i>
-					</dev>
-					<dev class="col-xs-1">
-						<i data-section_name="settings" class="dash-icon fa fa-gear"></i>
-					</dev>
+				<div class="dashboard-tab-area">
+					{{> dashboardTab current_section=current_section section_title="home" icon="home"}}
+					{{> dashboardTab current_section=current_section section_title="inventory" icon="archive"}}
+					{{> dashboardTab current_section=current_section section_title="loot" icon="gift"}}
+					{{> dashboardTab current_section=current_section section_title="gallery" icon="picture-o"}}
+					{{> dashboardTab current_section=current_section section_title="checklist" icon="list"}}
+					{{> dashboardTab current_section=current_section section_title="quests" icon="flag-checkered"}}
+					{{> dashboardTab current_section=current_section section_title="myAuctions" icon="bullhorn"}}
+					{{> dashboardTab current_section=current_section section_title="settings" icon="wrench"}}
 				</div>
-				<div class="row no-padding no-margin">
-					{{#if isEqual current_section "info"}}
+				<div class="row no-padding no-margin dash-templates">
+					{{#if isEqual current_section "home"}}
 						{{> info userData=userData}}
 					{{/if}}
 					{{#if isEqual current_section "inventory"}}
@@ -46,48 +33,35 @@
 						{{> quests}}
 					{{/if}}
 					{{#if isEqual current_section "gallery"}}
-						{{> userGallery screen_name=screen_name}}
+						{{> userGallery screen_name=screen_name own_gallery=true}}
+					{{/if}}
+					{{#if isEqual current_section "myAuctions"}}
+						{{> myAuctions}}
 					{{/if}}
 				</div>
 			</div>
-			<!-- {{#if has_auctions}}
-			<div class="row dash-section">
-				{{> activeAuctions}}
-			</div>
-			{{/if}} -->
-
-			{{#if has_auctions}}
-				<div class="row dash-section">
-					<div class="col-xs-2">
-						<button id="toggle-details" type="button" class="btn btn-default">toggle details</button>
-					</div>
-					<div class="col-xs-2 col-xs-offset-8">
-						<i id="refresh-auctions" class="blue-text fa fa-refresh"></i>
-					</div>
-					{{refreshAuctions}}
-					{{#if has_watched_auctions}}
-					<div class="col-xs-12">
-						<h3>watched auctions</h3>
-						<div class="col-xs-12">		
-							{{>auctionTable auction_data=watchedAuctionData hide_ui=true}}
-						</div>
-					</div>
-					{{/if}}
-
-					{{#if has_player_auctions}}
-					<div class="col-xs-12">
-						<h3>your auctions</h3>
-						<div class="col-xs-12">		
-							{{>auctionTable auction_data=playerAuctionData hide_ui=true}}
-						</div>
-					</div>
-					{{/if}}
-				</div>
-			{{/if}}
-
 			{{/with}}
 		</div>
 	</div>
+</template>
+
+<template name="dashboardTab">
+	<dev class="dash-tab" data-section_name="{{section_title}}">	
+		<dev class="title-wrapper {{#if isEqual current_section section_title}}current{{/if}}">				
+			<span class="{{#if isEqual current_section section_title}}af-color current{{else}}black-text{{/if}}">{{section_title}}</span>
+		</dev>
+	</dev>
+</template>
+
+<template name="dashboardTab2">
+	<dev class="dash-tab" data-section_name="{{section_title}}">	
+		<dev class="icon-wrapper {{#if isEqual current_section section_title}}current{{/if}}">				
+			<i class="dash-icon fa fa-{{icon}} {{#if isEqual current_section section_title}}af-color current{{/if}}"></i>
+		</dev>
+		<dev class="title-wrapper">				
+			<p class="black-text">{{section_title}}</p>
+		</dev>
+	</dev>
 </template>
 
 <template name="info">
@@ -165,10 +139,31 @@
 	{{/with}}
 </template>
 
-<template name="loot">
+<template name="settings">
 
 </template>
 
-<template name="settings">
+<template name="myAuctions">
+	<div class="row dash-section">
+		<div class="col-xs-2">
+			<button id="toggle-details" type="button" class="btn btn-default">toggle details</button>
+		</div>
+		<div class="col-xs-2 col-xs-offset-8">
+			<i id="refresh-auctions" class="blue-text fa fa-refresh"></i>
+		</div>
+		{{refreshAuctions}}
+		<div class="col-xs-12">
+			<h3>watched auctions</h3>
+			<div class="col-xs-12">		
+				{{>auctionTable auction_data=watchedAuctionData hide_ui=true}}
+			</div>
+		</div>
 
+		<div class="col-xs-12">
+			<h3>your auctions</h3>
+			<div class="col-xs-12">		
+				{{>auctionTable auction_data=playerAuctionData hide_ui=true}}
+			</div>
+		</div>
+	</div>
 </template>

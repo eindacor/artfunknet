@@ -1,11 +1,8 @@
 <template name="quests">
 	<div class="template-quests">
-		<div class="container">
-			<h1 class="af-color">Quests</h1>
-			{{#each quest}}
-				{{> questTemplate this}}
-			{{/each}}
-		</div>
+		{{#each quest}}
+			{{> questTemplate this}}
+		{{/each}}
 	</div>
 </template>
 

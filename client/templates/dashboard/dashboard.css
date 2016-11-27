@@ -106,9 +106,67 @@
 	margin-bottom: 0;
 }
 
+.template-dashboard .dashboard-tab-area {
+	/*border: 1px solid black;
+	padding: 20px 20px 10px 20px;
+	margin: 5px -15px 15px -15px;
+	position: absolute;*/
+
+	border: 1px solid black;
+	padding: 10px 20px 10px 20px;
+	margin: 15px -15px 15px -15px;
+	position: absolute;
+}
+
+.template-dashboard .dash-templates {
+	margin-top: 120px;
+}
+
 .template-dashboard .dash-icon {
+	font-size: 3rem;
+}
+
+.template-dashboard .dash-tab > p,
+.template-dashboard .dash-tab > i {
+	display: flex;
+	margin: auto;
+	position: absolute;
+}
+.template-dashboard .dash-tab > p {
+	/*margin-bottom: 20px;*/
+}
+
+.template-dashboard .dash-tab {
+	display: inline-block;
+	/*padding-top: 10px;*/
+	/*height: 50px;*/
+	width: 120px;
 	cursor: pointer;
-	font-size: 2rem;
+}
+
+.template-dashboard .dash-tab:hover > .title-wrapper,
+.template-dashboard .dash-tab:hover > .icon-wrapper {
+	opacity: 1;
+}
+
+.template-dashboard .icon-wrapper,
+.template-dashboard .title-wrapper {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.template-dashboard .title-wrapper {
+	margin-top: 0px;
+	opacity: .5;
+}
+
+.template-dashboard .icon-wrapper {
+	opacity: .5;
+}
+
+.template-dashboard .current {
+	opacity: 1;
 }
 
 /* ---AUCTION DATA --- */

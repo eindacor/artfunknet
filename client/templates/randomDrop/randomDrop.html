@@ -1,20 +1,20 @@
 <template name="randomDrop">
-	<div class="template-randomDrop container">
-		<h1 class="af-color">Loot</h1>
-		<div class="crate-buttons">
-			<button class="{{#if dailyDropEnabled}}enabled{{else}}disabled{{/if}}" id="drop-button">{{dailyDropText dailyDropEnabled}}</button>
-			{{#if has_unclaimed}}
-			<button id="sell-all">sell all</button>
+	<div class="template-randomDrop">
+		<div class="row no-padding">
+			<div class="crate-buttons">
+				<button class="{{#if dailyDropEnabled}}enabled{{else}}disabled{{/if}}" id="drop-button">{{dailyDropText dailyDropEnabled}}</button>
+				{{#if has_unclaimed}}
+				<button id="sell-all">sell all</button>
+				{{/if}}
+			</div>
+
+			{{#if full}}
+			<p>Note: your inventory is currently full. You will be unable to add new artwork to your inventory</p>
 			{{/if}}
+
+			{{#each drop}}
+				{{>itemInfo item_data=this claim_button=true sell_button=true}}
+			{{/each}}
 		</div>
-
-		{{#if full}}
-		<p>Note: your inventory is currently full. You will be unable to add new artwork to your inventory</p>
-		{{/if}}
-
-		{{#each drop}}
-			{{>itemInfo item_data=this claim_button=true sell_button=true}}
-		{{/each}}
-
 	</div>
 </template>
