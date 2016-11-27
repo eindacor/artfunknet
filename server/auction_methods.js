@@ -76,15 +76,7 @@ var failedAuction = function(auction_object) {
                 auctions.remove(auction_object._id);
 
                 var message = "Your auction has ended for " + auction_object.item_data.title + " by " + auction_object.item_data.artist + " without a sale";
-                var alert_object = {
-                    'user_id' : items.findOne(auction_object.item_id).owner,
-                    'message' : message,
-                    'link' : '/',
-                    'icon' : 'fa-gavel',
-                    'sentiment' : "neutral",
-                    'time' : moment()._d.toISOString()
-                };
-                alerts.insert(alert_object);
+                alertPlayers(items.findOne(auction_object.item_id).owner, message, 'fa-gavel', 'neutral');
             }
         });
     }
@@ -111,29 +103,12 @@ var successfulAuction = function(auction_object, winning_user) {
 
             if (previous_owner) {
                 var sale_message = "You have successfully auctioned " + auction_object.item_data.title + " by " + auction_object.item_data.artist + " for $" + getCommaSeparatedValue(auction_object.current_bid)
-                var alert_sale_object = {
-                    'user_id' : previous_owner._id,
-                    'message' : sale_message,
-                    'link' : '/',
-                    'icon' : 'fa-gavel',
-                    'sentiment' : "good",
-                    'time' : moment()._d.toISOString()
-                };
-                alerts.insert(alert_sale_object);
-
+                alertPlayers(previous_owner._id, message, 'fa-gavel', 'good');
                 addFunds("auction", previous_owner._id, auction_object.current_bid);
             }
 
-            var win_message = "You have won " + auction_object.item_data.title + " by " + auction_object.item_data.artist + " in the auction house for $" + getCommaSeparatedValue(auction_object.current_bid);
-            var alert_win_object = {
-                'user_id' : items.findOne(auction_object.item_id).owner,
-                'message' : win_message,
-                'link' : '/',
-                'icon' : 'fa-gavel',
-                'sentiment' : "good",
-                'time' : moment()._d.toISOString()
-            };
-            alerts.insert(alert_win_object);
+            var message = "You have won " + auction_object.item_data.title + " by " + auction_object.item_data.artist + " in the auction house for $" + getCommaSeparatedValue(auction_object.current_bid);
+            alertPlayers(items.findOne(auction_object.item_id).owner, message, 'fa-gavel', 'good');
             
             if (item_object.condition < .5 && procUniqueAttribute(new_winner_id, "AUCTION_WIN_CONDITION_INCREASE", undefined)) {
                 updateItem(item_object._id, {$set: {'condition': .9}});
@@ -187,30 +162,12 @@ var notifyFormerWinner = function(auction_object, new_winner_id, bought) {
     if (new_winner_id != former_winner._id) {
         if (bought) {
             var message = "Someone has purchased one of your watched items: " + auction_object.item_data.title + " by " + auction_object.item_data.artist;
-            var alert_object = {
-                'user_id' : former_winner._id,
-                'message' : message,
-                'link' : '/',
-                'icon' : 'fa-gavel',
-                'sentiment' : "bad",
-                'time' : moment()._d.toISOString()
-            };
-
-            alerts.insert(alert_object);
+            alertPlayers(former_winner._id, message, 'fa-gavel', 'bad');
         }
 
         else {
             var message = "Someone has outbid you on one of your watched items: " + auction_object.item_data.title + " by " + auction_object.item_data.artist;
-            var alert_object = {
-                'user_id' : former_winner._id,
-                'message' : message,
-                'link' : '/',
-                'icon' : 'fa-gavel',
-                'sentiment' : "bad",
-                'time' : moment()._d.toISOString()
-            };
-
-            alerts.insert(alert_object);
+            alertPlayers(former_winner._id, message, 'fa-gavel', 'bad');
         }
     }
 
@@ -364,17 +321,7 @@ var placeBid = function(bidder_id, auction_id, amount) {
         
             if (auction_object.seller != "Artfunkel, Inc.") {
                 var message = "Someone has purchased " + auction_object.item_data.title + " by " + auction_object.item_data.artist + " for $" + getCommaSeparatedValue(auction_object.buy_now);
-                var alert_object = {
-                    'user_id' : seller_id,
-                    'message' : message,
-                    'link' : '/',
-                    'icon' : 'fa-gavel',
-                    'sentiment' : "good",
-                    'time' : moment()._d.toISOString()
-                };
-
-                alerts.insert(alert_object);
-
+                alertPlayers(seller_id, message, 'fa-gavel', 'good');
                 removeAuction(auction_id);
                 addFunds("auction", seller_id, auction_object.buy_now);
             }

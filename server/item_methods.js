@@ -4,16 +4,8 @@ concludeDisplay = function(item_id) {
     var user_id = item_object.owner;
     var xp_earned = item_object.display_details.xp;
 
-    var display_message = "Your exhibition of " + item_object.artwork_data.title + " by " + item_object.artwork_data.artist + " has concluded. You have earned $" + getCommaSeparatedValue(money_earned);
-    var alert_win_object = {
-        'user_id' : user_id,
-        'message' : display_message,
-        'link' : '/',
-        'icon' : 'fa-usd',
-        'sentiment' : "good",
-        'time' : moment()._d.toISOString()
-    };
-    alerts.insert(alert_win_object);
+    var message = "Your exhibition of " + item_object.artwork_data.title + " by " + item_object.artwork_data.artist + " has concluded. You have earned $" + getCommaSeparatedValue(money_earned);
+    alertPlayers(user_id, message, 'fa-usd', 'good');
 
     addFunds("display", user_id, money_earned);
     addXP(user_id, xp_earned);

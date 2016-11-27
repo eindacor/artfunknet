@@ -130,6 +130,21 @@ createUser = function(user_object, callback){
     return Accounts.createUser(user_object, callback);
 }
 
+alertPlayers = function(query, message, icon, sentiment) {
+    Meteor.users.find(query).forEach(function(user_object) {
+        var alert_object = {
+            'user_id' : user_object._id,
+            'message' : message,
+            'link' : '/',
+            'icon' : icon,
+            'sentiment' : sentiment,
+            'time' : moment()._d.toISOString()
+        };
+
+        alerts.insert(alert_object);
+    });
+}
+
 addFunds = function(source, user_id, amount) {
     if (isNaN(amount))
         throw "invalid amount";
@@ -1056,8 +1071,6 @@ Meteor.methods({
                         'profile.level': 0, 
                         'profile.bank_balance': new_bank_balance, 
                         'profile.xp': 0,
-                        'profile.lottery_tickets': 0,
-                        'profile.completed_quests': 0,
                         'profile.last_drop': moment().add(-1, 'days')._d.toISOString(),
                         'profile.gallery_finishes': {
                             'active': {

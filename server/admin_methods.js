@@ -239,18 +239,7 @@ Meteor.methods({
 
 	'alertAllUsers' : function(message) {
         if (adminValidated()) {
-            Meteor.users.find().forEach(function(db_object) {
-                var alert_object = {
-                    'user_id' : db_object._id,
-                    'message' : message,
-                    'link' : '/',
-                    'icon' : 'fa-exclamation',
-                    'sentiment' : "neutral",
-                    'time' : moment()._d.toISOString()
-                };
-
-                alerts.insert(alert_object);
-            })
+            alertPlayers({}, message, 'fa-exclamation', 'neutral');
 	    }
     },
 

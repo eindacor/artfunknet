@@ -84,19 +84,7 @@ levelUp = function(user_id, level_count) {
 			Meteor.users.update(user_id, {$set : {'profile.level' : level_hit}});
 
 			var level_message = "You have reached level " + level_hit + "!";
-			var alert_object = {
-		        'user_id' : user_id,
-		        'message' : level_message,
-		        'link' : '/',
-		        'icon' : 'fa-star',
-		        'sentiment' : "good",
-		        'time' : moment()._d.toISOString()
-		    };
-
-		    alerts.insert(alert_object, function(error) {
-		    	if(error)
-		    		console.log(error.message);
-		    });
+			alertPlayers(user_id, level_message, 'fa-star', 'good');
 
 			var cap_object_before= getCapSetterObject(current_level);
 			var cap_object_after = getCapSetterObject(level_hit);
@@ -125,19 +113,7 @@ levelUp = function(user_id, level_count) {
 				        default: message = ""; break;
 					}
 
-					var alert_object = {
-				        'user_id' : user_id,
-				        'message' : message,
-				        'link' : '/',
-				        'icon' : 'fa-star',
-				        'sentiment' : "good",
-				        'time' : moment()._d.toISOString()
-				    };
-
-				    alerts.insert(alert_object, function(error) {
-				    	if(error)
-				    		console.log(error.message);
-				    });
+					alertPlayers(user_id, message, 'fa-star', 'good');
 				}
 			}
 

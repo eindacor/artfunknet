@@ -143,7 +143,7 @@ Meteor.setInterval((function() {
         var user_map = {};
         var tickets_average = 0;
         var player_count = 0;
-        Meteor.users.find({'profile.level': 50, 'profile.user_type': {$ne: "admin"}, 'profile.lottery_tickets': {$gt: 0}}).forEach(function(user_object) {
+        Meteor.users.find({'profile.user_type': {$ne: "admin"}, 'profile.lottery_tickets': {$gt: 0}}).forEach(function(user_object) {
             user_map[user_object._id] = user_object.profile.lottery_tickets;
             tickets_average = ((tickets_average * player_count) + user_object.profile.lottery_tickets) / (player_count + 1);
             player_count++;
@@ -189,20 +189,9 @@ Meteor.setInterval((function() {
         var winning_name = bot_won ? "Artfunkel, Inc." : Meteor.users.findOne(winning_id).profile.screen_name;
 
         var message = "This week's lottery winner is " + winning_name + ". Congratulations!!!";
-        Meteor.users.find({'profile.level': 50}).forEach(function(db_object) {
-            var alert_object = {
-                'user_id' : db_object._id,
-                'message' : message,
-                'link' : '/',
-                'icon' : 'fa-gavel',
-                'sentiment' : "good",
-                'time' : moment()
-            };
 
-            alerts.insert(alert_object);
-        });
-
-        Meteor.users.update({'profile.level': 50}, {$set: {'profile.lottery_tickets': 0}}, {multi: true});
+        alertPlayers({}, message, 'fa-exclamation', 'good');
+        Meteor.users.update({'profile.lottery_tickets': {$gt: 0}}, {$set: {'profile.lottery_tickets': 0}}, {multi: true});
     }
 
     else {
@@ -213,36 +202,14 @@ Meteor.setInterval((function() {
 
                 else {
                     var message = "This week there's no lottery winner. New Lottery Level: " + metadata.findOne({'lottery_draw': {$ne: null}}).lottery_level;
-                    Meteor.users.find({'profile.level': 50}).forEach(function(db_object) {
-                        var alert_object = {
-                            'user_id' : db_object._id,
-                            'message' : message,
-                            'link' : '/',
-                            'icon' : 'fa-gavel',
-                            'sentiment' : "good",
-                            'time' : moment()
-                        };
-
-                        alerts.insert(alert_object);
-                    });
+                    alertPlayers({}, message, 'fa-exclamation', 'bad');
                 }
             });
         }
 
         else {
             var message = "This week there's no lottery winner. The Lottery Level remains at 10!";
-            Meteor.users.find({'profile.level': 50}).forEach(function(db_object) {
-                var alert_object = {
-                    'user_id' : db_object._id,
-                    'message' : message,
-                    'link' : '/',
-                    'icon' : 'fa-gavel',
-                    'sentiment' : "good",
-                    'time' : moment()
-                };
-
-                alerts.insert(alert_object);
-            });
+            alertPlayers({}, message, 'fa-exclamation', 'bad');
         }
     }
    
