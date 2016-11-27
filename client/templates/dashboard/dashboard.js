@@ -109,6 +109,10 @@ Template.dashboard.helpers({
 	'current_section': function() {
 		current_section_tracker.depend();
 		return current_section;
+	},
+
+	'setSection': function(section_name) {
+		current_section = section_name;
 	}
 })
 
@@ -146,10 +150,10 @@ Template.dashboard.events({
 		}, $('body')[0]);
 	},
 
-	'click .dash-tab': function(event) {
-		current_section = $(event.target).closest('.dash-tab').data().section_name;
-		current_section_tracker.changed();
-	}
+	// 'click .dash-tab': function(event) {
+	// 	current_section = $(event.target).closest('.dash-tab').data().section_name;
+	// 	current_section_tracker.changed();
+	// }
 });
 
 Template.dashboard.rendered = function() {

@@ -1,10 +1,10 @@
 <template name="userGallery">
 	<div class="template-userGallery">
-		<div class="{{#if own_gallery}}{{else}}container{{/if}}">
+		<div class="{{#if from_dashboard}}{{else}}container{{/if}}">
 			{{#with entryInfo screen_name}}
-			{{#if ../own_gallery}}
+			{{#if ../from_dashboard}}
 			{{else}}
-			<h1 class="af-color">Player Gallery - {{screen_name}}</h1>	
+			<h1 class="af-color">player gallery - {{screen_name}}</h1>	
 			{{/if}}	
 			{{#if paid}}
 				<div class="row no-padding no-margin">
@@ -38,8 +38,12 @@
 				</div>
 				{{/with}}
 
-				{{#if ../own_gallery}}
+				{{#if ../from_dashboard}}
 					{{> galleryEdit}}
+				{{else}}
+					{{#if ../own_gallery}}
+						{{> galleryEdit}}
+					{{/if}}
 				{{/if}}
 			
 			{{else}}

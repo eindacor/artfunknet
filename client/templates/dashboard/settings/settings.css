@@ -1,0 +1,24 @@
+.template-settings .boolean-wrapper {
+	font-size: 1.5em;
+}
+
+.template-settings .setting-description {
+	margin-left: 12px;
+}
+
+.template-settings .subset-title {
+	font-size: 1.5em;
+	color: black;
+}
+
+.template-settings .setting-subset {
+	margin-top: 16px;
+}
+
+.template-settings .setting-subset > .boolean-wrapper {
+	margin-left: 10px;
+}
+
+.template-settings .boolean-wrapper > i {
+	cursor: pointer;
+}

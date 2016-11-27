@@ -1,13 +1,14 @@
 <template name="dashboard">
 	<div class="template-dashboard">
 		<div class="container">
+			{{setSection specified_section}}
 			{{#with userData}}
 			<div class="row no-padding no-margin">
 				<div class="row">
 					<span class="gamertag af-color">{{screen_name}}</span>{{#if vintage_count}} ({{vintage_count}}){{/if}}
 				</div>
 				<div class="dashboard-tab-area">
-					{{> dashboardTab current_section=current_section section_title="home" icon="home"}}
+					{{> dashboardTab current_section=current_section section_title="profile" icon="profile"}}
 					{{> dashboardTab current_section=current_section section_title="inventory" icon="archive"}}
 					{{> dashboardTab current_section=current_section section_title="loot" icon="gift"}}
 					{{> dashboardTab current_section=current_section section_title="gallery" icon="picture-o"}}
@@ -17,7 +18,7 @@
 					{{> dashboardTab current_section=current_section section_title="settings" icon="wrench"}}
 				</div>
 				<div class="row no-padding no-margin dash-templates">
-					{{#if isEqual current_section "home"}}
+					{{#if isEqual current_section "profile"}}
 						{{> info userData=userData}}
 					{{/if}}
 					{{#if isEqual current_section "inventory"}}
@@ -33,10 +34,13 @@
 						{{> quests}}
 					{{/if}}
 					{{#if isEqual current_section "gallery"}}
-						{{> userGallery screen_name=screen_name own_gallery=true}}
+						{{> userGallery screen_name=screen_name from_dashboard=true}}
 					{{/if}}
 					{{#if isEqual current_section "myAuctions"}}
 						{{> myAuctions}}
+					{{/if}}
+					{{#if isEqual current_section "settings"}}
+						{{> settings}}
 					{{/if}}
 				</div>
 			</div>
@@ -46,11 +50,13 @@
 </template>
 
 <template name="dashboardTab">
-	<dev class="dash-tab" data-section_name="{{section_title}}">	
-		<dev class="title-wrapper {{#if isEqual current_section section_title}}current{{/if}}">				
-			<span class="{{#if isEqual current_section section_title}}af-color current{{else}}black-text{{/if}}">{{section_title}}</span>
+	<a href="/dashboard/{{section_title}}">
+		<dev class="dash-tab" data-section_name="{{section_title}}">	
+			<dev class="title-wrapper {{#if isEqual current_section section_title}}current{{/if}}">				
+				<span class="{{#if isEqual current_section section_title}}af-color current{{else}}black-text{{/if}}">{{section_title}}</span>
+			</dev>
 		</dev>
-	</dev>
+	</a>
 </template>
 
 <template name="info">
@@ -118,10 +124,6 @@
 	</div>
 	<div class="row"><button id="vintage-mode" class="vintage-button">vintage <i class="fa fa-backward"></i></button></div>	
 	{{/with}}
-</template>
-
-<template name="settings">
-
 </template>
 
 <template name="myAuctions">

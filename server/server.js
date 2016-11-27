@@ -83,10 +83,11 @@ var updateContent = function() {
 
     Meteor.users.update({}, {$set: {'profile.notifications': {'procs': [], 'xp': [], 'money': [], 'store': [], 'loot': []}}}, {multi: true});
 
-    Meteor.users.update({'profile.settings': null}, {$set: {
+    Meteor.users.update({}, {$set: {
         'profile.settings': {
             'quick_purchase': false,
             'auction_items_to_inventory': false,
+            'animations_enabled': true,
             'quick_sell_options': {
                 'foil': false,
                 'legendary': false,

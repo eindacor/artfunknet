@@ -42,6 +42,7 @@ createUser = function(user_object, callback){
     user_object.profile.settings = {
         'quick_purchase': false,
         'auction_items_to_inventory': false,
+        'animations_enabled': true,
         'quick_sell_options': {
             'foil': false,
             'legendary': false,
@@ -137,7 +138,10 @@ addFunds = function(source, user_id, amount) {
 
     var current_balance = Number(Meteor.users.findOne({'_id': user_id}).profile.bank_balance).toFixed(2);
     var new_balance = Number(current_balance) + Number(actual_amount);
-    Meteor.users.update(user_id, {$set: {"profile.bank_balance" : Math.floor(new_balance)}, $push: {'profile.notifications.money': {'id': new Meteor.Collection.ObjectID()._str, 'expiration': moment().add(5, "seconds")._d.toISOString(), 'amount': amount}}});
+    Meteor.users.update(user_id, {$set: {"profile.bank_balance" : Math.floor(new_balance)}});
+    if (Meteor.users.findOne(user_id).profile.settings.animations_enabled) {
+        Meteor.users.update(user_id, {$push: {'profile.notifications.money': {'id': new Meteor.Collection.ObjectID()._str, 'expiration': moment().add(5, "seconds")._d.toISOString(), 'amount': amount}}});
+    }
 }
 
 chargeAccount = function(user_id, amount) {
@@ -148,7 +152,9 @@ chargeAccount = function(user_id, amount) {
 
     var current_balance = Number(Meteor.users.findOne({'_id': user_id}).profile.bank_balance).toFixed(2);
     var new_balance = Number(current_balance) - Number(actual_amount);
-    Meteor.users.update(user_id, {$set: {"profile.bank_balance" : Math.floor(new_balance)}, $push: {'profile.notifications.money': {'id': new Meteor.Collection.ObjectID()._str, 'expiration': moment().add(5, "seconds")._d.toISOString(), 'amount': -1 *amount}}});
+    if (Meteor.users.findOne(user_id).profile.settings.animations_enabled) {
+        Meteor.users.update(user_id, {$push: {'profile.notifications.money': {'id': new Meteor.Collection.ObjectID()._str, 'expiration': moment().add(5, "seconds")._d.toISOString(), 'amount': -1 * amount}}});
+    }
 }
 
 selectRandomPainting = function(selector) {
@@ -1137,6 +1143,21 @@ Meteor.methods({
         var setter_string = 'profile.notifications.' + type;
         setter_object = {};
         setter_object[setter_string] = [];
+        Meteor.users.update(Meteor.userId(), {$set: setter_object});
+    },
+
+    'setPlayerSetting': function(setting_name, status) {
+        var setter_string = 'profile.settings.' + setting_name;
+
+        var validity_check_object = {};
+        validity_check_object._id = Meteor.userId();
+        validity_check_object[setter_string] = {$ne: null};
+        if (Meteor.users.findOne(validity_check_object) == undefined) {
+            return false;
+        }
+
+        var setter_object = {};
+        setter_object[setter_string] = status;
         Meteor.users.update(Meteor.userId(), {$set: setter_object});
     }
 })

@@ -184,7 +184,10 @@ addXP = function(user_id, xp) {
 	if (level_up_count > 0)
 		levelUp(user_id, level_up_count);
 
-	Meteor.users.update(user_id, {$set: {'profile.xp' : player_xp}, $push: {'profile.notifications.xp': {'id': new Meteor.Collection.ObjectID()._str, 'expiration': moment().add(5, "seconds")._d.toISOString(), 'amount': xp}}});
+	Meteor.users.update(user_id, {$set: {'profile.xp' : player_xp}});
+	if (Meteor.users.findOne(user_id).profile.settings.animations_enabled) {
+        Meteor.users.update(user_id, {$push: {'profile.notifications.xp': {'id': new Meteor.Collection.ObjectID()._str, 'expiration': moment().add(5, "seconds")._d.toISOString(), 'amount': xp}}});
+    }
 }
 
 addXPChunkPercentage = function(source, user_id, chunk_percentage) {

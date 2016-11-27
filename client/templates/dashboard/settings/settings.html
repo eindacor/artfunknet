@@ -1,0 +1,27 @@
+<template name="settings">
+	<div class="template-settings">
+		{{#with user_data}}
+			{{>settingsBoolean status=profile.settings.quick_purchase name="quick_purchase" description="enable one-click purchasing"}}
+			{{>settingsBoolean status=profile.settings.auction_items_to_inventory name="auction_items_to_inventory" description="send auctions won to inventory"}}
+			{{>settingsBoolean status=profile.settings.animations_enabled name="animations_enabled" description="notification animations enabled"}}
+			<div class="setting-subset">
+				<span class="subset-title">quick-sell settings:</span>
+				{{>settingsBoolean status=profile.settings.quick_sell_options.standard name="quick_sell_options.standard" description="standard items"}}
+				{{>settingsBoolean status=profile.settings.quick_sell_options.foil name="quick_sell_options.foil" description="foil items"}}
+				{{>settingsBoolean status=profile.settings.quick_sell_options.legendary name="quick_sell_options.legendary" description="legendary items"}}
+				{{>settingsBoolean status=profile.settings.quick_sell_options.quest_items name="quick_sell_options.quest_items" description="quest items"}}
+				{{>settingsBoolean status=profile.settings.quick_sell_options.seasonal name="quick_sell_options.seasonal" description="seasonal items"}}
+			</div>
+		{{/with}}
+	</div>
+</template>
+
+<template name="settingsBoolean">
+	<div class="boolean-wrapper">
+	{{#if status}}
+		<i class="fa fa-check-square-o green-text setting-true" data-setting_name="{{name}}"></i><span class="setting-description">{{description}}</span>
+	{{else}}
+		<i class="fa fa-square-o setting-false" data-setting_name="{{name}}"></i><span class="setting-description">{{description}}</span>
+	{{/if}}
+	</div>
+</template>
