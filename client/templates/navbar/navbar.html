@@ -1,7 +1,7 @@
 <template name="navbar">
 	<div class="template-navbar col-xs-12 no-padding pull-right">
 		<div class="container no-padding no-margin">
-			<div class="col-sm-4 col-xs-12 no-padding navbar-section">
+			<div class="col-sm-5 col-xs-12 no-padding navbar-section">
 				<dev class="row icon-row">
 					<dev class="col-xs-1 icon-section">
 						<a href="/"><i data-title="Home" class="{{#if hasAlerts}}blue-text{{/if}} nav-icon fa fa-home"></i></a>
@@ -74,34 +74,7 @@
 			</div>
 			{{/if}}
 			{{#if currentUser}}			
-		    	<div class="col-sm-5 col-xs-12 no-padding navbar-section">
-		    		<!-- <div class="row">
-		    			{{#with notifications}}
-			    			<div class="notification-area col-xs-2 xp">
-			    			{{#if xp}}
-			    				<div class="notification-wrapper xp">
-					    		{{#each xp}}
-									<span class="notification af-color">+{{commaSeparatedValue amount}}xp</span>
-								{{/each}}
-								</div>
-							{{/if}}
-							</div>
-							<div class="notification-area col-xs-2 money">
-							{{#if money}}
-								<div class="notification-wrapper money">
-								{{#each money}}
-									<span class="notification {{#if isNegative amount}}red-text{{else}}green-text{{/if}}">{{#if isNegative amount}}{{else}}+{{/if}}{{displayAsMoneyValue amount}}</span>
-								{{/each}}
-								</div>
-							{{/if}}
-							</div>
-							<div class="notification-area col-xs-8">
-								<div class="notification-wrapper procs">
-									
-								</div>
-							</div>
-						{{/with}}
-					</div> -->
+		    	<div class="col-sm-4 col-xs-12 no-padding navbar-section">
 					<div class="row">
 						<div class="notification-area col-xs-6 procs">
 							<!-- {{#with notifications "procs"}}{{/with}} -->

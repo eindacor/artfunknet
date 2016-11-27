@@ -1,16 +1,24 @@
 <template name="settings">
 	<div class="template-settings">
 		{{#with user_data}}
-			{{>settingsBoolean status=profile.settings.quick_purchase name="quick_purchase" description="enable one-click purchasing"}}
-			{{>settingsBoolean status=profile.settings.auction_items_to_inventory name="auction_items_to_inventory" description="send auctions won to inventory"}}
-			{{>settingsBoolean status=profile.settings.animations_enabled name="animations_enabled" description="notification animations enabled"}}
-			<div class="setting-subset">
-				<span class="subset-title">quick-sell settings:</span>
-				{{>settingsBoolean status=profile.settings.quick_sell_options.standard name="quick_sell_options.standard" description="standard items"}}
-				{{>settingsBoolean status=profile.settings.quick_sell_options.foil name="quick_sell_options.foil" description="foil items"}}
-				{{>settingsBoolean status=profile.settings.quick_sell_options.legendary name="quick_sell_options.legendary" description="legendary items"}}
-				{{>settingsBoolean status=profile.settings.quick_sell_options.quest_items name="quick_sell_options.quest_items" description="quest items"}}
-				{{>settingsBoolean status=profile.settings.quick_sell_options.seasonal name="quick_sell_options.seasonal" description="seasonal items"}}
+			<div class="row no-margin no-padding" id="name-change-area">
+				<textarea id="new-name" placeholder="change gamertag"></textarea><button id="change-name">update</button>
+			</div>
+			{{#if name_error}}
+				<p class="red-text">{{name_error}}</p>
+			{{/if}}
+			<div class="row no-margin no-padding">
+				{{>settingsBoolean status=profile.settings.quick_purchase name="quick_purchase" description="enable one-click purchasing"}}
+				{{>settingsBoolean status=profile.settings.auction_items_to_inventory name="auction_items_to_inventory" description="send auctions won to inventory"}}
+				{{>settingsBoolean status=profile.settings.animations_enabled name="animations_enabled" description="notification animations enabled"}}
+				<div class="setting-subset">
+					<span class="subset-title">quick-sell settings:</span>
+					{{>settingsBoolean status=profile.settings.quick_sell_options.standard name="quick_sell_options.standard" description="standard items"}}
+					{{>settingsBoolean status=profile.settings.quick_sell_options.foil name="quick_sell_options.foil" description="foil items"}}
+					{{>settingsBoolean status=profile.settings.quick_sell_options.legendary name="quick_sell_options.legendary" description="legendary items"}}
+					{{>settingsBoolean status=profile.settings.quick_sell_options.quest_items name="quick_sell_options.quest_items" description="quest items"}}
+					{{>settingsBoolean status=profile.settings.quick_sell_options.seasonal name="quick_sell_options.seasonal" description="seasonal items"}}
+				</div>
 			</div>
 		{{/with}}
 	</div>

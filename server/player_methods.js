@@ -52,6 +52,8 @@ createUser = function(user_object, callback){
         }
     };
 
+    user_object.profile.last_name_change = moment()._d.toISOString();
+
     user_object.profile.tutorials = {
         'welcome': true,
         'loot': true,
@@ -1159,5 +1161,30 @@ Meteor.methods({
         var setter_object = {};
         setter_object[setter_string] = status;
         Meteor.users.update(Meteor.userId(), {$set: setter_object});
+    },
+
+    'changeScreenName': function(desired_name) {
+        if (desired_name == Meteor.user().profile.screen_name)
+            return;
+
+        if (Meteor.user().profile.screen_name == "admin" || desired_name == "Artfunkel, Inc.")
+            return "invalid operation";
+
+        else if (Meteor.users.findOne({'profile.screen_name': desired_name}) != undefined) {
+            return "that name is unavailable";
+        }
+
+        else if (desired_name.length < 5 || desired_name > 16)  {
+            return "names must be between 5 and 16 characters long";
+        }
+
+        else if (Meteor.user().profile.last_name_change > moment().add(-1, 'days')._d.toISOString()) {
+            return "you can only modify your player name once per day";
+        }
+
+        else {
+            Meteor.users.update(Meteor.userId(), {$set: {'profile.screen_name': desired_name, 'profile.last_name_change': moment()._d.toISOString()}});
+            galleries.update({'owner_id': Meteor.userId()}, {$set: {'owner': desired_name}})
+        }
     }
 })

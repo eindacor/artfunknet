@@ -22,3 +22,26 @@
 .template-settings .boolean-wrapper > i {
 	cursor: pointer;
 }
+
+.template-settings #new-name {
+	resize: none;
+	width: 300px;
+	height: 3rem;
+	font-size: 1.5rem;
+	margin-bottom: 12px;
+	padding: .2rem 2rem;
+}
+
+.template-settings #change-name {
+	height: 3rem;
+	font-size: 1.5rem;
+	margin-bottom: 12px;
+	padding: .2rem 2rem;
+	width: auto;
+}
+
+.template-settings #new-name,
+.template-settings #change-name {
+	display: inline-block;
+	float: left;
+}
