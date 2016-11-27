@@ -154,6 +154,7 @@ chargeAccount = function(user_id, amount) {
 
     var current_balance = Number(Meteor.users.findOne({'_id': user_id}).profile.bank_balance).toFixed(2);
     var new_balance = Number(current_balance) - Number(actual_amount);
+    Meteor.users.update(user_id, {$set: {"profile.bank_balance" : Math.floor(new_balance)}});
     if (Meteor.users.findOne(user_id).profile.settings.animations_enabled) {
         Meteor.users.update(user_id, {$push: {'profile.notifications.money': {'id': new Meteor.Collection.ObjectID()._str, 'expiration': moment().add(5, "seconds")._d.toISOString(), 'amount': -1 * amount}}});
     }

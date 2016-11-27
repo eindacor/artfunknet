@@ -80,28 +80,6 @@ var updateContent = function() {
         'previous_winner': undefined,
         'lottery_level': 1
     }});
-
-    Meteor.users.update({}, {$set: {'profile.notifications': {'procs': [], 'xp': [], 'money': [], 'store': [], 'loot': []}}}, {multi: true});
-
-    Meteor.users.update({}, {$set: {
-        'profile.last_name_change': moment().add(-2, 'days')._d.toISOString(),
-        'profile.settings': {
-            'quick_purchase': false,
-            'auction_items_to_inventory': false,
-            'animations_enabled': true,
-            'quick_sell_options': {
-                'foil': false,
-                'legendary': false,
-                'masterpiece': false,
-                'seasonal': false,
-                'quest_items': false,
-                'standard': false
-            }
-        }
-    }}, {multi: true})
-
-    //metadata.update({'lottery_draw': {$ne: null}}, {$set: {'lottery_draw': moment().add(10, 'seconds')._d.toISOString()}});
-
     // temp code
 }
 
