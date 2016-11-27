@@ -77,9 +77,12 @@ var updateContent = function() {
     // temp code
     metadata.update({'lottery_draw': {$ne: null}}, {$set: {
         'lottery_draw': moment('2016-12-01 12:00')._d.toISOString(),
+        //'lottery_draw': moment().add(10, 'seconds')._d.toISOString(),
         'previous_winner': undefined,
         'lottery_level': 1
     }});
+
+    auctions.update({}, {$set: {'expiration': moment().add(10, 'seconds')._d.toISOString()}});
     // temp code
 }
 

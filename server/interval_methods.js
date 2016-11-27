@@ -130,7 +130,7 @@ Meteor.setInterval((function() {
 var lottery_check_frequency = 60000; //once per minute
 //lottery_check_frequency = 10000; //once per 10 second
 Meteor.setInterval((function() {
-    return;
+    //return;
 
     var lottery_draw_time = metadata.findOne({'lottery_draw': {$ne: null}}).lottery_draw;
    
@@ -162,12 +162,14 @@ Meteor.setInterval((function() {
         var bot_won = Meteor.users.findOne(winning_id) == undefined;
        
         if (bot_won) {
-            winning_id = Meteor.users.findOne({'profile.screen_name': "admin"})._id;
+            winning_id = "Artfunkel, Inc.";
         }
 
         var artwork_id = Math.random() < .0001 ? getRandomArtworkIDFromRarity("masterpiece") : getRandomArtworkIDFromRarity("legendary");
+        var _id = new Meteor.Collection.ObjectID()._str;
 
         var item_generator = {
+            '_id': _id,
             'source': "lottery",
             'user_id': winning_id,
             'artwork_id': artwork_id,
@@ -183,7 +185,13 @@ Meteor.setInterval((function() {
             'condition_min': 0
         };
 
-        generateItemFromArtworkID(item_generator);
+        generateItemFromArtworkID(item_generator, function() {
+            if (winning_id == "Artfunkel, Inc.") {
+                updateItem(_id, {$set: {'status': "auctioned", 'tags': []}}, function() {
+                    createAuction(_id, getItemObjectValueByType(items.findOne(_id), "actual", "Artfunkel, Inc.") * 20, -1, 120, "public");
+                });
+            }
+        });
         metadata.update({'lottery_draw': {$ne: null}}, {$set: {'lottery_level': 1}});
        
         var winning_name = bot_won ? "Artfunkel, Inc." : Meteor.users.findOne(winning_id).profile.screen_name;

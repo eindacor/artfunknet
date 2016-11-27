@@ -1140,7 +1140,12 @@ Meteor.methods({
         var has_auctioneer = Meteor.user().profile.market_expert.expiration > moment()._d.toISOString();
 
         var fields_object = {
-            'artwork_data': 1
+            'artwork_data': 1,
+            'lottery': 1,
+            'seasonal': 1,
+            'foil': 1,
+            'original': 1,
+            'vintage': 1
         };
 
         if (has_auctioneer || auction_object.seller == Meteor.user().profile.screen_name) {

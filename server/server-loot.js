@@ -99,7 +99,7 @@ getItemObjectValues = function(item_object) {
         }
 
         else if(item_object.lottery && item_object.lottery != 0) {
-            actual_value *= (8 * item_object.lottery);
+            actual_value *= 30 + (10 * item_object.lottery);
             display_value *= 2;
         }
 
@@ -291,7 +291,7 @@ var misprintArtworkData = function(artwork_data) {
     return artwork_data;
 }
 
-generateItemFromArtworkID = function(item_generator) {
+generateItemFromArtworkID = function(item_generator, callback) {
     var misprinted = Math.random() < item_generator.misprint_chance;
     var artwork_data = artworks.findOne(item_generator.artwork_id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}});
     if (artwork_data) {
@@ -320,6 +320,9 @@ generateItemFromArtworkID = function(item_generator) {
             'artwork_data': artwork_data
         };
 
+        if (item_generator._id != undefined)
+            new_item_object._id = item_generator._id;
+
         new_item_object.values = getItemObjectValues(new_item_object);
 
         var new_item_id = items.insert(new_item_object, function(error, result) {
@@ -329,6 +332,9 @@ generateItemFromArtworkID = function(item_generator) {
             else {
                 if (new_item_object.artwork_data.rarity == "legendary" || new_item_object.artwork_data.rarity == "masterpiece")
                     logLegendary(item_generator.source, new_item_object);
+
+                if (callback != undefined)
+                    callback();
             }
         });
 
