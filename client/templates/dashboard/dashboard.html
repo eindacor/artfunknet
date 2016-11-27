@@ -53,17 +53,6 @@
 	</dev>
 </template>
 
-<template name="dashboardTab2">
-	<dev class="dash-tab" data-section_name="{{section_title}}">	
-		<dev class="icon-wrapper {{#if isEqual current_section section_title}}current{{/if}}">				
-			<i class="dash-icon fa fa-{{icon}} {{#if isEqual current_section section_title}}af-color current{{/if}}"></i>
-		</dev>
-		<dev class="title-wrapper">				
-			<p class="black-text">{{section_title}}</p>
-		</dev>
-	</dev>
-</template>
-
 <template name="info">
 	{{#with userData}}
 	<div class="row">
