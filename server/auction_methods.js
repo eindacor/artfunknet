@@ -2,8 +2,7 @@ createAuction = function(item_id, starting, buy_now, duration, viewer) {
     try {
         if (auctions.find({'item_id': item_id}).count() == 0) {
             var post_date = moment();
-            //var expiration = moment(post_date).add(duration, 'minutes');
-            var expiration = moment(post_date).add(1, 'minutes');
+            var expiration = moment(post_date).add(duration, 'minutes');
             var item_object = items.findOne(item_id);
             var user_object = Meteor.users.findOne(item_object.owner);
 
