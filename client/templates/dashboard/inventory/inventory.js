@@ -122,6 +122,21 @@ var getPermutations = function(required) {
 	return object_array;
 }
 
+var addQueryFromKeywordAndSliceTags = function(base_filter, keyword) {
+	switch(keyword) {
+		case "new": 
+			base_filter.date_received = {'$gt': moment(current_time).add(-1, 'hours')._d.toISOString()};
+			break;
+		default: break;
+	}
+
+	if (tags.indexOf(keyword) != -1) {		
+		while (tags.indexOf(keyword) != -1) {
+			tags.splice(tags.indexOf(keyword), 1);
+		}
+	}
+}
+
 Template.inventory.helpers({
 	'owned': function() {	
 		try {
@@ -150,12 +165,7 @@ Template.inventory.helpers({
 			}
 
 			if (tags.length > 0) {
-				if (tags.indexOf("new") != -1) {
-					base_filter.date_received = {'$gt': moment(current_time).add(-1, 'hours')._d.toISOString()};
-					while (tags.indexOf("new") != -1) {
-						tags.splice(tags.indexOf("new"), 1);
-					}
-				}
+				addQueryFromKeywordAndSliceTags(base_filter, "new");
 
 				if (tags.length > 0) {
 					base_filter.tags = {"$in": tags};
@@ -258,7 +268,6 @@ Template.inventory.helpers({
 			}
 
 			filter_array.push(base_filter);	
-			console.log(filter_array);
 
 			var item_array = items.find({
 				$and: filter_array
