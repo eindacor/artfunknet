@@ -71,3 +71,23 @@
 	opacity: 1;
 	cursor: pointer;
 }
+
+/* ---MYAUCTION DATA --- */
+.template-myAuctions #toggle-details {
+	background-color: black;
+	color: white;
+	border-radius: 0;
+	border: none; 
+	height: 30px;
+	width: 120px;
+	font-size: 1.2rem;
+	margin-bottom: 10px;
+}
+
+.template-myAuctions #refresh-auctions {
+	font-size: 2rem;
+	text-align: right;
+	margin-right: 0;
+	cursor: pointer;
+	float: right;
+}

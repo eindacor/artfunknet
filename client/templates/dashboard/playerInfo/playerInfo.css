@@ -1,0 +1,102 @@
+.template-playerInfo #vintage-mode {
+	font-size: 1.5rem;
+	cursor: pointer;
+	background-color: #dbbca4;
+	width: 120px;
+	height: 30px;
+	margin-top: 40px;
+}
+
+.template-playerInfo .xp-bar {
+	background-color: #777777;
+	width: 100%;
+	height: 24px;
+	padding: 0px;
+	margin: 0px;
+	position: absolute;
+}
+
+.template-playerInfo .xp-level {
+	background-color: #FF33CC;
+	height: 24px;
+	padding: 0px;
+	position: absolute;
+}
+
+.template-playerInfo .xp-level.max {
+	background-color: #E8BF6C;
+}
+
+.template-playerInfo .level-text {
+	color: white;
+	padding-left: 12px;
+	font-weight: bold;
+	position: absolute;
+	margin-top: 3px;
+}
+
+.template-playerInfo .goal-text {
+	color: white;
+	padding-left: 12px;
+	position: absolute;
+	right: 0px;
+	padding-right: 12px;
+	margin-top: 3px;
+}
+
+.template-playerInfo .highlight {
+	font-weight: bold;
+}
+
+.template-playerInfo .player-info {
+	margin-top: 40px;
+}
+
+.template-playerInfo .player-info p {
+	font-size: 1.2em;
+}
+
+.template-playerInfo #edit-fee {
+	font-size: 1em;
+}
+
+.template-playerInfo #edit-fee:hover {
+	color: black;
+	opacity: 1em;
+	cursor: pointer;
+}
+
+.template-playerInfo .ticket-info {
+	margin-top: 24px;
+}
+
+.template-playerInfo .ticket-button {
+	font-size: 3em;
+	opacity: .5;
+}
+
+.template-playerInfo .npcs-met {
+	color: #777777;
+}
+
+.template-playerInfo .npcs-met:hover {
+	opacity: 1;
+	color: #777777;
+}
+
+.template-playerInfo .af-color:hover {
+	opacity: 1;
+	color: #FF33CC;
+}
+
+.template-adminTools .price-selector {
+	width: 600px;
+}
+
+.template-playerInfo .alert-area {
+	margin-top: 20px;
+}
+
+.template-playerInfo p.player-data {
+	margin-bottom: 0;
+}
