@@ -172,6 +172,10 @@ Meteor.methods({
         }
 
         return false;
+    },
+
+    'getCurrentTime': function() {
+        return moment()._d.toISOString();
     }
 })
 

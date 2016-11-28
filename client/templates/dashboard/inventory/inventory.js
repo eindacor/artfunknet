@@ -18,6 +18,7 @@ var standard_filter = {};
 var items_found = 0;
 var current_page = 0;
 var items_per_page = 10;
+var current_time = undefined;
 
 var generateQueryFromSearchTerms = function() {
 	if (search_terms.length == 0)
@@ -149,7 +150,16 @@ Template.inventory.helpers({
 			}
 
 			if (tags.length > 0) {
-				base_filter.tags = {"$in": tags};
+				if (tags.indexOf("new") != -1) {
+					base_filter.date_received = {'$gt': moment(current_time).add(-1, 'hours')._d.toISOString()};
+					while (tags.indexOf("new") != -1) {
+						tags.splice(tags.indexOf("new"), 1);
+					}
+				}
+
+				if (tags.length > 0) {
+					base_filter.tags = {"$in": tags};
+				}
 			}
 
 			if (locked_attributes.length > 0) {
@@ -248,6 +258,7 @@ Template.inventory.helpers({
 			}
 
 			filter_array.push(base_filter);	
+			console.log(filter_array);
 
 			var item_array = items.find({
 				$and: filter_array
@@ -396,8 +407,9 @@ Template.inventory.events({
 		tags = [];
 		search_terms = [];
 		for (var i=0; i<entered.length; i++) {
-			if (entered[i][0] == '#' && entered[i].length > 1)
+			if (entered[i][0] == '#' && entered[i].length > 1) {
 				tags.push(entered[i].substring(1));
+			}
 
 			else search_terms.push(entered[i]);
 		}
@@ -619,6 +631,15 @@ Template.inventory.rendered = function() {
 	items_found = 0;
 	items_per_page = 10;
 	display_tracker.changed();
+
+	Meteor.call('getCurrentTime', function(error, result) {
+		if (error)
+			console.log(error.message)
+
+		else {
+			current_time = result;
+		}
+	})
 }
 
 Template.inventory.destroyed = function() {
