@@ -123,6 +123,9 @@ var getPermutations = function(required) {
 }
 
 var addQueryFromKeywordAndSliceTags = function(base_filter, keyword) {
+	if (tags.indexOf(keyword) == -1)
+		return;
+
 	switch(keyword) {
 		case "new": 
 			base_filter.date_received = {'$gt': moment(current_time).add(-1, 'hours')._d.toISOString()};
@@ -155,6 +158,17 @@ Template.inventory.helpers({
 				rarity_filter
 			];
 
+			tags = [];
+			search_terms = [];
+			var tags_entered = commaSeparatedValuesToArray($('#search-area').val());
+			for (var i=0; i<tags_entered.length; i++) {
+				if (tags_entered[i][0] == '#' && tags_entered[i].length > 1) {
+					tags.push(tags_entered[i].substring(1));
+				}
+
+				else search_terms.push(tags_entered[i]);
+			}
+
 			var search_term_query = generateQueryFromSearchTerms();
 			if (search_term_query != undefined) {
 				filter_array.push(search_term_query);
@@ -163,6 +177,7 @@ Template.inventory.helpers({
 			var base_filter = {
 				'owner': Meteor.userId()
 			}
+
 
 			if (tags.length > 0) {
 				addQueryFromKeywordAndSliceTags(base_filter, "new");
@@ -412,17 +427,6 @@ Template.inventory.helpers({
 
 Template.inventory.events({
 	'keyup #search-area': function(event) {
-		var entered = commaSeparatedValuesToArray($('#search-area').val());
-		tags = [];
-		search_terms = [];
-		for (var i=0; i<entered.length; i++) {
-			if (entered[i][0] == '#' && entered[i].length > 1) {
-				tags.push(entered[i].substring(1));
-			}
-
-			else search_terms.push(entered[i]);
-		}
-
 		display_tracker.changed();
 	}, 
 
