@@ -130,8 +130,6 @@ Meteor.setInterval((function() {
 var lottery_check_frequency = 60000; //once per minute
 //lottery_check_frequency = 10000; //once per 10 second
 Meteor.setInterval((function() {
-    //return;
-
     var lottery_draw_time = metadata.findOne({'lottery_draw': {$ne: null}}).lottery_draw;
    
     if (moment()._d.toISOString() < lottery_draw_time)
@@ -149,7 +147,7 @@ Meteor.setInterval((function() {
             player_count++;
         });
        
-        var min_players_required = 100;
+        var min_players_required = metadata.findOne({'lottery_draw': {$ne: null}}).lottery_draw.min_players_required;
         if (player_count < min_players_required) {
             for (var i=0; i<(min_players_required - player_count); i++) {
                 var bot_string = new Meteor.Collection.ObjectID()._str;
@@ -160,13 +158,25 @@ Meteor.setInterval((function() {
         var winning_id = JepLoot.catRoll(user_map);
        
         var bot_won = Meteor.users.findOne(winning_id) == undefined;
+        var _id = new Meteor.Collection.ObjectID()._str;
        
         if (bot_won) {
             winning_id = "Artfunkel, Inc.";
         }
 
+        else {
+            metadata.update({'lottery_draw': {$ne: null}}, {
+                $push: {
+                    'previous_winners': {
+                        'user_id': winning_id, 
+                        'time': moment()._d.toISOString(), 
+                        'item_id': _id
+                    }
+                }
+            });
+        }
+
         var artwork_id = Math.random() < .0001 ? getRandomArtworkIDFromRarity("masterpiece") : getRandomArtworkIDFromRarity("legendary");
-        var _id = new Meteor.Collection.ObjectID()._str;
 
         var item_generator = {
             '_id': _id,
@@ -240,7 +250,7 @@ Meteor.setInterval((function() {
             'loot_data.seasonal_rotation': moment(next_rotation).add(1, 'months')._d.toISOString() 
             //'loot_data.seasonal_rotation': moment(next_rotation).add(10, 'seconds')._d.toISOString() 
         }}, function() {
-            console.log(metadata.findOne({'loot_data': {$ne: null}}).loot_data.seasonal_items);
+            //TODO add alert for new seasonal items
         });
     }
     
