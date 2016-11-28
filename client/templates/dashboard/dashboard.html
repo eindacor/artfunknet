@@ -2,10 +2,9 @@
 	<div class="template-dashboard">
 		<div class="container">
 			{{setSection specified_section}}
-			{{#with userData}}
 			<div class="row no-padding no-margin">
 				<div class="row">
-					<span class="gamertag af-color">{{screen_name}}</span>{{#if vintage_count}} ({{vintage_count}}){{/if}}
+					<span class="gamertag af-color">{{screen_name}}</span>{{#if vintage_level}} ({{vintage_level}}){{/if}}
 				</div>
 				<div class="dashboard-tab-area">
 					{{> dashboardTab current_section=current_section section_title="profile" icon="profile"}}
@@ -44,7 +43,6 @@
 					{{/if}}
 				</div>
 			</div>
-			{{/with}}
 		</div>
 	</div>
 </template>
@@ -60,7 +58,7 @@
 </template>
 
 <template name="info">
-	{{#with userData}}
+	{{#with user_object}}
 	<div class="row">
 		<div class="col-xs-6 no-padding">
 			{{#if max_level}}
@@ -69,10 +67,10 @@
 					{{#with xpData}}
 					<div class="xp-level max" style= "width : {{xp_completion}}%"></div>
 					<div class="level-text">
-						<p>lottery tickets: {{tickets}}</p>
+						<p>lottery tickets: {{commaSeparatedValue ../profile.lottery_tickets}}</p>
 					</div>
 					<div class="goal-text">
-						<p class="highlight">{{current_xp}} / {{xp_goal}}</p>
+						<p class="highlight">{{commaSeparatedValue ../profile.xp}} / {{xp_goal}}</p>
 					</div>
 					{{/with}}
 				</div>
@@ -82,10 +80,10 @@
 				{{#with xpData}}
 				<div class="xp-level" style= "width : {{xp_completion}}%"></div>
 				<div class="level-text">
-					<p>level {{current_level}}</p>
+					<p>level {{../profile.level}}</p>
 				</div>
 				<div class="goal-text">
-					<p class="highlight">{{current_xp}} / {{xp_goal}}</p>
+					<p class="highlight">{{commaSeparatedValue ../profile.xp}} / {{xp_goal}}</p>
 				</div>
 				{{/with}}
 			</div>
@@ -94,61 +92,38 @@
 	</div>
 	<div class="row player-info">
 		<div class="col-xs-4 no-margin no-padding">
-			<p class="player-data">bank balance: <span class="highlight af-color">${{bank_balance}}</span></p>	
+			<p class="player-data">bank balance: <span class="highlight af-color">{{displayAsMoneyValue profile.bank_balance}}</span></p>	
+			{{#if max_level}}
+			{{else}}
+			<p class="player-data">lottery tickets: <span class="highlight gold-text">{{profile.lottery_tickets}}</span></p>	
+			{{/if}}
 			<p class="player-data">collection value: <span class="highlight af-color">${{collection_value}}</span></p>				
 			<p class="player-data">current exhibition value: <span class="highlight af-color">${{display_value}}</span></p>					
-			<p class="player-data">items exhibited: <span class="highlight af-color">{{display_count}}</span> ({{display_max}} max)</p>					
+			<p class="player-data">items exhibited: <span class="highlight af-color">{{display_count}}</span> ({{profile.display_cap}} max)</p>					
 			<p class="player-data">paintings owned: <span class="highlight af-color">{{inventory_count}}</span></p>
 			<p class="player-data">inventory space available: <span class="highlight af-color">{{slots_available}}</span></p>	
 			<p class="player-data">originals owned: <span class="highlight purple-text">{{original_count}}</span></p>	
-			<p class="player-data">vintage items owned: <span class="highlight vintage-text">{{vintage_items}}</span></p>									
-			<p class="player-data">permanent collection: <span class="highlight af-color">{{private_count}}</span> ({{private_max}} max)</p>		
-			<p class="player-data">completed quests: <span class="highlight af-color">{{completed_quests}}</span></p>	
+			<p class="player-data">vintage items owned: <span class="highlight vintage-text">{{vintage_count}}</span></p>									
+			<p class="player-data">permanent collection: <span class="highlight af-color">{{permanent_count}}</span> ({{profile.pc_cap}} max)</p>		
+			<p class="player-data">completed quests: <span class="highlight af-color">{{commaSeparatedValue profile.completed_quests}}</span></p>	
 			<!-- <p class="player-data">auctioned items: <span class="highlight af-color">{{auctioned_items}}</span> ({{auction_cap}} max)</p>
 			<p class="player-data">winning auctions: <span class="highlight af-color">{{winning_auctions}}</span> ({{auction_cap}} max)</p>	 -->	
-			<p class="player-data">ticket limit: <span class="highlight af-color">{{ticket_max}}</span></p>	
+			<p class="player-data">gallery ticket limit: <span class="highlight af-color">{{profile.ticket_cap}}</span></p>	
 			<p class="player-data">gallery entry fee: 
 				<select class="price-selector">
-					<option selected="selected" value="{{entry_fee}}">{{entry_fee}}</option>
-					{{#each unselected entry_fee}}
+					<option selected="selected" value="{{entry_fee}}">{{profile.entry_fee}}</option>
+					{{#each unselected profile.entry_fee}}
 						<option value="{{this}}">{{this}}</option>
 					{{/each}}
 				</select>
 			</p>
     	</div>
     	<div class="col-xs-8 no-margin no-padding alert-area">
-		{{#if alert_count}}
 			{{> alerts}}
-		{{/if}}
 		</div>
 	</div>
 	{{#if max_level}}
 	<div class="row"><button id="vintage-mode" class="vintage-button">vintage <i class="fa fa-backward"></i></button></div>	
 	{{/if}}
 	{{/with}}
-</template>
-
-<template name="myAuctions">
-	<div class="row dash-section">
-		<div class="col-xs-2">
-			<button id="toggle-details" type="button" class="btn btn-default">toggle details</button>
-		</div>
-		<div class="col-xs-2 col-xs-offset-8">
-			<i id="refresh-auctions" class="blue-text fa fa-refresh"></i>
-		</div>
-		{{refreshAuctions}}
-		<div class="col-xs-12">
-			<h3>watched auctions</h3>
-			<div class="col-xs-12">		
-				{{>auctionTable auction_data=watchedAuctionData hide_ui=true}}
-			</div>
-		</div>
-
-		<div class="col-xs-12">
-			<h3>your auctions</h3>
-			<div class="col-xs-12">		
-				{{>auctionTable auction_data=playerAuctionData hide_ui=true}}
-			</div>
-		</div>
-	</div>
 </template>

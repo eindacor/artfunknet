@@ -391,3 +391,78 @@ Template.auctions.rendered = function() {
 	getAuctions();
 	var search_terms = [];
 }
+
+
+// DATA USED IN myAuctions TEMPLATE BELOW
+
+var watched_auctions = undefined;
+var player_auctions = undefined;
+var my_auctions_tracker = new Tracker.Dependency;
+
+var getWatchingAndWinningAuctions = function(user_id) {
+	Meteor.call('getWatchedAndWinningAuctions', function(error, result) {
+		if (error)
+			console.log(error.message);
+
+		else {
+			watched_auctions = result;
+			my_auctions_tracker.changed();
+		}
+	})
+}
+
+var getPlayerAuctions = function(user_id) {
+	Meteor.call('getPlayerAuctions', function(error, result) {
+		if (error)
+			console.log(error.message);
+
+		else {
+			player_auctions = result;
+			my_auctions_tracker.changed();
+		}
+	})
+}
+
+Template.myAuctions.helpers({
+	'watchedAuctionData' : function() {
+		my_auctions_tracker.depend();
+		if (watched_auctions == undefined) {
+			getWatchingAndWinningAuctions(Meteor.userId());
+			return [];
+		}
+
+		else return watched_auctions;
+	},
+
+	'playerAuctionData' : function() {
+		my_auctions_tracker.depend();
+		if (player_auctions == undefined) {
+			getPlayerAuctions(Meteor.userId());
+		}
+
+		else return player_auctions;
+	},
+
+	'refreshAuctions' : function() {
+		if (Session.get("refresh_auctions")) {
+			Session.set("refresh_auctions", undefined);
+			watched_auctions = undefined;
+			player_auctions = undefined;
+			my_auctions_tracker.changed();
+		}
+	}
+})
+
+Template.myAuctions.events({
+	'click #refresh-auctions': function() {
+		watched_auctions = undefined;
+		player_auctions = undefined;
+		my_auctions_tracker.changed();
+	}
+})
+
+Template.myAuctions.rendered = function() {
+	watched_auctions = undefined;
+	player_auctions = undefined;
+	my_auctions_tracker.changed();
+}

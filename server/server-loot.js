@@ -526,7 +526,7 @@ Meteor.methods({
     },
 
     'getTestResults': function(level) {
-        return testMap(getSmartRarityMap(level, 0));
+        return testMap(getSmartRarityMap(level, 1));
     }
 })
 
