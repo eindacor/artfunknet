@@ -123,6 +123,9 @@ var getPermutations = function(required) {
 }
 
 var addQueryFromKeywordAndSliceTags = function(base_filter, keyword) {
+	if (tags.indexOf(keyword) == -1)
+		return;
+
 	switch(keyword) {
 		case "new": 
 			base_filter.date_received = {'$gt': moment(current_time).add(-1, 'hours')._d.toISOString()};
