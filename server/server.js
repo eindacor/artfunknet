@@ -82,7 +82,10 @@ var updateContent = function() {
         'lottery_level': 1
     }});
 
-    auctions.update({}, {$set: {'expiration': moment().add(10, 'seconds')._d.toISOString()}});
+    metadata.update({'loot_data': {$ne: null}}, {$set: {
+        'loot_data.seasonal_rotation':  moment('2016-12-01 12:00')._d.toISOString()
+        //'loot_data.seasonal_rotation':  moment().add(10, 'seconds')._d.toISOString()
+    }})
     // temp code
 }
 
@@ -136,23 +139,6 @@ Meteor.startup(function() {
         generateContent();
 
     updateContent();
-
-    SyncedCron.add({
-        name: 'Seasonal Cycle',
-        schedule: function(parser) {
-            // parser is a later.parse object
-            //return parser.text('every 10 seconds');
-            return parser.text('every 1 months at 10:00 am on Monday');
-        },
-        job: function() {
-            var random_legendary = getRandomArtworkIDFromRarity("legendary");
-            var random_masterpiece = getRandomArtworkIDFromRarity("masterpiece");
-
-            metadata.update({'loot_data': {$ne: null}}, {$set: {'loot_data.seasonal_items': [random_legendary, random_masterpiece]}});
-        }
-    });
-
-    SyncedCron.start();
 })
 
 function waitForUserAdded(userId, attempts){

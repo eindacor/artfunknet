@@ -227,6 +227,25 @@ Meteor.setInterval((function() {
 
 }), lottery_check_frequency);
 
+var seasonal_rotation_check = 60000;
+//seasonal_rotation_check = 10000;
+Meteor.setInterval((function() {
+    var next_rotation = metadata.findOne({'loot_data': {$ne: null}}).loot_data.seasonal_rotation;
+    if (next_rotation < moment()._d.toISOString()) {
+        var random_legendary = getRandomArtworkIDFromRarity("legendary");
+        var random_masterpiece = getRandomArtworkIDFromRarity("masterpiece");
+
+        metadata.update({'loot_data': {$ne: null}}, {$set: {
+            'loot_data.seasonal_items': [random_legendary, random_masterpiece], 
+            'loot_data.seasonal_rotation': moment(next_rotation).add(1, 'months')._d.toISOString() 
+            //'loot_data.seasonal_rotation': moment(next_rotation).add(10, 'seconds')._d.toISOString() 
+        }}, function() {
+            console.log(metadata.findOne({'loot_data': {$ne: null}}).loot_data.seasonal_items);
+        });
+    }
+    
+}), seasonal_rotation_check);
+
 var notification_clear_frequency = 10000;
 Meteor.setInterval((function() {
     var now = moment()._d.toISOString();
