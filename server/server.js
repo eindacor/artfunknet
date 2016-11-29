@@ -80,6 +80,8 @@ var updateContent = function() {
         var default_lottery_tickets = 1 + vintage_level;
         Meteor.users.update(user_object._id, {$set: {'profile.lottery_tickets': default_lottery_tickets}});
     });
+
+    items.update({}, {$pull: {'tags': "for sale"}}, {multi: true});
     // temp code
 }
 
