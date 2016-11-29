@@ -49,38 +49,50 @@ Template.placeBidModal.helpers({
     }
 })
 
+var placeBid = function(template) {
+    auction_errors = [];
+
+    if (auction_object) {
+        var bid_amount = getAmountFromInput(template.find('#bid-amount').value);
+        var currently_winning = Meteor.users.findOne({'_id': Meteor.userId(), 'profile.auction_data.winning': {$in: [auction_object._id]}}) != undefined;
+
+        if (! !!auction_object) 
+            auction_errors.push("auction not found");
+
+        if (bid_amount < auction_object.min_bid)
+            auction_errors.push("bid must be at least $" + getCommaSeparatedValue(auction_object.min_bid));
+
+        if (bid_amount > available_balance)
+            auction_errors.push("bid amount exceeds available funds");
+
+        if (auction_errors.length == 0) {
+            Meteor.call('placeBid', auction_object._id, bid_amount, function(error) {
+                if (error) 
+                    console.log(error.message);
+
+                else {
+                    Session.set("refreshAuctions", true);
+                    $('.template-modalTemplate').remove();
+                }
+            }); 
+        }
+
+        else auction_error_tracker.changed();
+    }
+}
+
 Template.placeBidModal.events({
     'click #ok-modal': function(event, template) {
-    	auction_errors = [];
-
-        if (auction_object) {
-        	var bid_amount = getAmountFromInput(template.find('#bid-amount').value);
-            var currently_winning = Meteor.users.findOne({'_id': Meteor.userId(), 'profile.auction_data.winning': {$in: [auction_object._id]}}) != undefined;
-
-            if (! !!auction_object) 
-        		auction_errors.push("auction not found");
-
-        	if (bid_amount < auction_object.min_bid)
-        		auction_errors.push("bid must be at least $" + getCommaSeparatedValue(auction_object.min_bid));
-
-        	if (bid_amount > available_balance)
-        		auction_errors.push("bid amount exceeds available funds");
-
-        	if (auction_errors.length == 0) {
-        		Meteor.call('placeBid', auction_object._id, bid_amount, function(error) {
-        			if (error) 
-        				console.log(error.message);
-
-                    else {
-                        Session.set("refreshAuctions", true);
-                        $('.template-modalTemplate').remove();
-                    }
-        		});	
-    	    }
-
-            else auction_error_tracker.changed();
-        }
+    	placeBid(template);
     },
+
+    'keydown #bid-amount': function(event, template) {
+        if (event.key == "Enter") {
+            event.preventDefault();
+
+            placeBid(template);
+        }
+    }, 
 
     'click #bid-minimum' : function(event, template) {
         auction_errors = [];

@@ -1195,10 +1195,11 @@ Meteor.methods({
     },
 
     'changeScreenName': function(desired_name) {
-        if (desired_name == Meteor.user().profile.screen_name)
+        var previous_name = Meteor.user().profile.screen_name;
+        if (desired_name == previous_name)
             return;
 
-        if (Meteor.user().profile.screen_name == "admin" || desired_name == "Artfunkel, Inc.")
+        if (previous_name == "admin" || desired_name == "Artfunkel, Inc.")
             return "invalid operation";
 
         else if (Meteor.users.findOne({'profile.screen_name': desired_name}) != undefined) {
@@ -1214,8 +1215,9 @@ Meteor.methods({
         }
 
         else {
-            Meteor.users.update(Meteor.userId(), {$set: {'profile.screen_name': desired_name, 'profile.last_name_change': moment()._d.toISOString()}});
             galleries.update({'owner_id': Meteor.userId()}, {$set: {'owner': desired_name}})
+            auctions.update({'seller': previous_name}, {$set: {'seller': desired_name}}, {multi: true});
+            Meteor.users.update(Meteor.userId(), {$set: {'profile.screen_name': desired_name, 'profile.last_name_change': moment()._d.toISOString()}});
         }
     }
 })
