@@ -130,6 +130,14 @@ var addQueryFromKeywordAndSliceTags = function(base_filter, keyword) {
 		case "new": 
 			base_filter.date_received = {'$gt': moment(current_time).add(-1, 'hours')._d.toISOString()};
 			break;
+		case "dupes": 
+			var dupe_list = [];
+			items.find({'owner': Meteor.userId()}).forEach(function(item_object) {
+				if (items.find({'owner': Meteor.userId(), 'artwork_id': item_object.artwork_id}).count() > 1)
+					dupe_list.push(item_object.artwork_id);
+			});
+			base_filter.artwork_id = {'$in': dupe_list};
+			break;
 		default: break;
 	}
 
@@ -181,6 +189,7 @@ Template.inventory.helpers({
 
 			if (tags.length > 0) {
 				addQueryFromKeywordAndSliceTags(base_filter, "new");
+				addQueryFromKeywordAndSliceTags(base_filter, "dupes");
 
 				if (tags.length > 0) {
 					base_filter.tags = {"$in": tags};
