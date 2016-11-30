@@ -2,6 +2,7 @@ var display_tracker = new Tracker.Dependency;
 var page_tracker = new Tracker.Dependency;
 var tags = [];
 var search_terms = [];
+var keywords = [];
 var locked_attributes = [];
 var standard_attributes = [];
 var sorter = "artwork_data.title";
@@ -122,29 +123,18 @@ var getPermutations = function(required) {
 	return object_array;
 }
 
-var addQueryFromKeywordAndSliceTags = function(base_filter, keyword) {
-	if (tags.indexOf(keyword) == -1)
-		return;
-
-	switch(keyword) {
-		case "new": 
-			base_filter.date_received = {'$gt': moment(current_time).add(-1, 'hours')._d.toISOString()};
-			break;
-		case "dupes": 
-			var dupe_list = [];
-			items.find({'owner': Meteor.userId()}).forEach(function(item_object) {
-				if (items.find({'owner': Meteor.userId(), 'artwork_id': item_object.artwork_id}).count() > 1)
-					dupe_list.push(item_object.artwork_id);
-			});
-			base_filter.artwork_id = {'$in': dupe_list};
-			break;
-		default: break;
+var addQueriesFromKeywords = function(base_filter) {
+	if (keywords.indexOf("new") != -1) {
+		base_filter.date_received = {'$gt': moment(current_time).add(-1, 'hours')._d.toISOString()};
 	}
 
-	if (tags.indexOf(keyword) != -1) {		
-		while (tags.indexOf(keyword) != -1) {
-			tags.splice(tags.indexOf(keyword), 1);
-		}
+	if (keywords.indexOf("dupes") != -1) {
+		var dupe_list = [];
+		items.find({'owner': Meteor.userId()}).forEach(function(item_object) {
+			if (items.find({'owner': Meteor.userId(), 'artwork_id': item_object.artwork_id}).count() > 1)
+				dupe_list.push(item_object.artwork_id);
+		});
+		base_filter.artwork_id = {'$in': dupe_list};
 	}
 }
 
@@ -168,13 +158,20 @@ Template.inventory.helpers({
 
 			tags = [];
 			search_terms = [];
-			var tags_entered = commaSeparatedValuesToArray($('#search-area').val());
-			for (var i=0; i<tags_entered.length; i++) {
-				if (tags_entered[i][0] == '#' && tags_entered[i].length > 1) {
-					tags.push(tags_entered[i].substring(1));
+			keywords = [];
+			var terms_entered = commaSeparatedValuesToArray($('#search-area').val());
+			for (var i=0; i<terms_entered.length; i++) {
+				if (terms_entered[i][0] == '#' && terms_entered[i].length > 1) {
+					tags.push(terms_entered[i].substring(1));
 				}
 
-				else search_terms.push(tags_entered[i]);
+				else if (terms_entered[i][0] == "*" && terms_entered[i].length > 1) {
+					keywords.push(terms_entered[i].substring(1));
+				}
+
+				else if (terms_entered[i] != "*") {
+					search_terms.push(terms_entered[i]);
+				}
 			}
 
 			var search_term_query = generateQueryFromSearchTerms();
@@ -186,14 +183,10 @@ Template.inventory.helpers({
 				'owner': Meteor.userId()
 			}
 
+			addQueriesFromKeywords(base_filter);
 
 			if (tags.length > 0) {
-				addQueryFromKeywordAndSliceTags(base_filter, "new");
-				addQueryFromKeywordAndSliceTags(base_filter, "dupes");
-
-				if (tags.length > 0) {
-					base_filter.tags = {"$in": tags};
-				}
+				base_filter.tags = {"$in": tags};
 			}
 
 			if (locked_attributes.length > 0) {
@@ -636,6 +629,7 @@ Template.inventory.rendered = function() {
 	Blaze.getData($('.template-inventory')[0])["value_data"] = {};
 	tags = [];
 	search_terms = [];
+	keywords = [];
 	locked_attributes = [];
 	standard_attributes = [];
 	sorter = "artwork_data.title";
