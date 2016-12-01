@@ -75,16 +75,16 @@ var updateContent = function() {
     });
 
     // temp code
-    metadata.update({'lottery_draw': {$ne: null}}, {
-        $set: {
-            'lottery_draw': moment('2016-12-01 12:00')._d.toISOString(),
-            //'lottery_draw': moment().add(10, 'seconds')._d.toISOString(),
-            'previous_winners': [],
-            'lottery_level': 1,
-            'min_players_required': 100
-        }, 
-        $unset: {'previous_winner': ""}
-    });
+//     metadata.update({'lottery_draw': {$ne: null}}, {
+//         $set: {
+//             'lottery_draw': moment('2016-12-01 12:00')._d.toISOString(),
+//             //'lottery_draw': moment().add(10, 'seconds')._d.toISOString(),
+//             'previous_winners': [],
+//             'lottery_level': 1,
+//             'min_players_required': 100
+//         }, 
+//         $unset: {'previous_winner': ""}
+//     });
 
     metadata.update({'loot_data': {$ne: null}}, {$set: {
         'loot_data.seasonal_rotation':  moment('2016-12-01 12:00')._d.toISOString()
