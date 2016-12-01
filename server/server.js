@@ -85,11 +85,6 @@ var updateContent = function() {
 //         }, 
 //         $unset: {'previous_winner': ""}
 //     });
-
-    metadata.update({'loot_data': {$ne: null}}, {$set: {
-        'loot_data.seasonal_rotation':  moment('2016-12-01 12:00')._d.toISOString()
-        //'loot_data.seasonal_rotation':  moment().add(10, 'seconds')._d.toISOString()
-    }})
     // temp code
 }
 
