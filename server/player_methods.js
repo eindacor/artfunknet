@@ -536,7 +536,7 @@ Meteor.methods({
 
         if (actual_amount > buyer_object.profile.bank_balance
             || buyer_id === owner_id 
-            || gallery_tickets.findOne({"ticketholder":buyer_id, "gallery_owner":owner_id, 'expiration': {$gt : now}}) !== undefined)
+            || gallery_tickets.findOne({"ticketholder":buyer_id, "gallery_owner":owner_id, 'expiration': {$gt : moment()._d.toISOString()}}) !== undefined)
             return;
 
         var ticket_object = {
