@@ -534,7 +534,9 @@ Meteor.methods({
 
         var actual_amount = getEntryFee(buyer_object, owner_object);
 
-        if (actual_amount > buyer_object.profile.bank_balance)
+        if (actual_amount > buyer_object.profile.bank_balance
+            || buyer_id === owner_id 
+            || gallery_tickets.findOne({"ticketholder":buyer_id, "gallery_owner":owner_id, 'expiration': {$gt : now}}) !== undefined)
             return;
 
         var ticket_object = {
