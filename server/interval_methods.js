@@ -209,7 +209,11 @@ Meteor.setInterval((function() {
         var message = "This week's lottery winner is " + winning_name + ". Congratulations!!!";
 
         alertPlayers({}, message, 'fa-exclamation', 'good');
-        Meteor.users.update({'profile.lottery_tickets': {$gt: 0}}, {$set: {'profile.lottery_tickets': 0}}, {multi: true});
+        Meteor.users.find().forEach(function(user_object) {
+            var vintage_level = user_object.profile.vintage_count;
+            var default_lottery_tickets = 1 + vintage_level;
+            Meteor.users.update(user_object._id, {$set: {'profile.lottery_tickets': default_lottery_tickets}});
+        });
     }
 
     else {

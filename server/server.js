@@ -85,6 +85,12 @@ var updateContent = function() {
 //         }, 
 //         $unset: {'previous_winner': ""}
 //     });
+
+    Meteor.users.find({'profile.lottery_tickets': 0}).forEach(function(user_object) {
+        var vintage_level = user_object.profile.vintage_count;
+        var default_lottery_tickets = 1 + vintage_level;
+        Meteor.users.update(user_object._id, {$set: {'profile.lottery_tickets': default_lottery_tickets}});
+    });
     // temp code
 }
 
