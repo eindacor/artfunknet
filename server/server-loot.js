@@ -93,17 +93,17 @@ getItemObjectValues = function(item_object) {
             display_value *= 1.2;
         }
 
-        else if(item_object.seasonal) {
+        if(item_object.seasonal) {
             actual_value *= 5;
             display_value *= 1.5;
         }
 
-        else if(item_object.lottery && item_object.lottery != 0) {
+        if(item_object.lottery && item_object.lottery != 0) {
             actual_value *= 30 + (10 * item_object.lottery);
             display_value *= 2;
         }
 
-        else if(item_object.original) {
+        if(item_object.original) {
             actual_value *= 7;
             display_value *= 2;
         }
