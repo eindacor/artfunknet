@@ -15,7 +15,6 @@ Meteor.setInterval((function() {
     items.remove({'status' : {$in: ['unclaimed', 'for_sale']}, 'date_received' : {$lt : creation_cutoff}});
 
     var auction_win_cutoff = moment().add(-12, 'hours')._d.toISOString();
-    //auction_win_cutoff = moment().add(-12, 'seconds')._d.toISOString();
     items.remove({'status': 'won', 'date_received' : {$lt : auction_win_cutoff}, 'lottery': 0});
 
     // create auction for lottery items won instead of removing
@@ -39,13 +38,11 @@ Meteor.setInterval((function() {
 }), 60000);
 
 var check_ticket_frequency = 300000; //once every 5 minutes
-// check_ticket_frequency = 10000; //once every 10 seconds
 Meteor.setInterval((function() {
     gallery_tickets.remove({'expiration': {$lt : moment()._d.toISOString()}});
 }), check_ticket_frequency);
 
 var npc_spawn_frequency = 600000; // 10 minutes
-// npc_spawn_frequency = 10000; // 10 seconds
 Meteor.setInterval((function() {
     galleries.find().forEach(function(db_object) {
         npcs.remove({'owner_id': db_object.owner_id});
@@ -95,7 +92,6 @@ Meteor.setInterval((function() {
 }), npc_spawn_frequency);
 
 var xp_frequency = 3600000; //once per hour
-//xp_frequency = 10000; //uncomment when debugging permanent collection xp
 Meteor.setInterval((function() {
     var finish_xp_max_percentage = .02;
     var all_users = Meteor.users.find();
@@ -136,7 +132,6 @@ Meteor.setInterval((function() {
 }), item_count_frequency);
 
 var lottery_check_frequency = 60000; //once per minute
-//lottery_check_frequency = 10000; //once per 10 second
 Meteor.setInterval((function() {
     var lottery_draw_time = metadata.findOne({'lottery_draw': {$ne: null}}).lottery_draw;
    
@@ -244,13 +239,11 @@ Meteor.setInterval((function() {
     }
    
     var next_draw = moment(lottery_draw_time).add(1, "weeks")._d.toISOString();
-    //next_draw = moment(lottery_draw_time).add(10, "seconds")._d.toISOString();
     metadata.update({'lottery_draw': {$ne: null}}, {$set: {'lottery_draw': next_draw}});
 
 }), lottery_check_frequency);
 
 var seasonal_rotation_check = 60000;
-//seasonal_rotation_check = 10000;
 Meteor.setInterval((function() {
     var next_rotation = metadata.findOne({'loot_data': {$ne: null}}).loot_data.seasonal_rotation;
     if (next_rotation < moment()._d.toISOString()) {
@@ -260,7 +253,6 @@ Meteor.setInterval((function() {
         metadata.update({'loot_data': {$ne: null}}, {$set: {
             'loot_data.seasonal_items': [random_legendary, random_masterpiece], 
             'loot_data.seasonal_rotation': moment(next_rotation).add(1, 'months')._d.toISOString() 
-            //'loot_data.seasonal_rotation': moment(next_rotation).add(10, 'seconds')._d.toISOString() 
         }}, function() {
             //TODO add alert for new seasonal items
         });
