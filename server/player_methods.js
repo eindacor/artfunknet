@@ -18,7 +18,7 @@ createUser = function(user_object, callback){
     user_object.profile.last_drop = moment().add(-1, 'days')._d.toISOString();
     user_object.profile.level = 0;
     user_object.profile.xp = 0;
-    user_object.profile.lottery_tickets = 0;
+    user_object.profile.lottery_tickets = 1;
     user_object.profile.entry_fee = "medium";
     user_object.profile.gallery_tickets = [];
     user_object.profile.gallery_value = 0;
@@ -1077,11 +1077,11 @@ Meteor.methods({
             Meteor.users.update(
                 Meteor.userId(),                //selector
                 {                               //modifier
-                    $inc: {'profile.vintage_count': 1}, 
+                    $inc: {'profile.vintage_count': 1, 'profile.lottery_tickets': 1}, 
                     $set: {
                         'profile.vintage_select': has_items_to_claim, 
                         'profile.level': 0, 
-                        'profile.bank_balance': new_bank_balance, 
+                        'profile.bank_balance': new_bank_balance,
                         'profile.xp': 0,
                         'profile.last_drop': moment().add(-1, 'days')._d.toISOString(),
                         'profile.gallery_finishes': {

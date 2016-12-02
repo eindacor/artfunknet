@@ -270,12 +270,14 @@ Meteor.methods({
             
             else addFunds("collector", offer_object.owner, offer_object.data.offer_amount);
 
-            items.remove(offer_object.data.item_id, function(error) {
-                if (error)
-                    console.log(error.message);
+            if (!offer_object.data.does_not_collect) {
+                items.remove(offer_object.data.item_id, function(error) {
+                    if (error)
+                        console.log(error.message);
 
-                else  npc_data.remove(offer_id);
-            });
+                    else  npc_data.remove(offer_id);
+                });
+            }
         }
     },
 

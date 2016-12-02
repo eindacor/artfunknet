@@ -15,7 +15,14 @@ Meteor.setInterval((function() {
     items.remove({'status' : {$in: ['unclaimed', 'for_sale']}, 'date_received' : {$lt : creation_cutoff}});
 
     var auction_win_cutoff = moment().add(-12, 'hours')._d.toISOString();
-    items.remove({'status': 'won', 'date_received' : {$lt : auction_win_cutoff}});
+    items.remove({'status': 'won', 'date_received' : {$lt : auction_win_cutoff}, 'lottery': 0});
+
+    // create auction for lottery items won instead of removing
+    items.find({'status': 'won', 'date_received' : {$lt : auction_win_cutoff}, 'lottery': {$ne: 0}}).forEach(function(item_object) {
+        updateItem(item_object._id, {$set: {'owner': "Artfunkel, Inc.", 'status': "auctioned", 'tags': []}}, function() {
+            createAuction(item_object._id, getItemObjectValueByType(items.findOne(item_object._id), "actual", "Artfunkel, Inc.") * 10, -1, 120, "public");
+        });
+    });
     
     alerts.remove({'time': {$lt: moment().add(-48, "hours")._d.toISOString()}});
 
@@ -31,13 +38,11 @@ Meteor.setInterval((function() {
 }), 60000);
 
 var check_ticket_frequency = 300000; //once every 5 minutes
-// check_ticket_frequency = 10000; //once every 10 seconds
 Meteor.setInterval((function() {
     gallery_tickets.remove({'expiration': {$lt : moment()._d.toISOString()}});
 }), check_ticket_frequency);
 
 var npc_spawn_frequency = 600000; // 10 minutes
-// npc_spawn_frequency = 10000; // 10 seconds
 Meteor.setInterval((function() {
     galleries.find().forEach(function(db_object) {
         npcs.remove({'owner_id': db_object.owner_id});
@@ -87,7 +92,6 @@ Meteor.setInterval((function() {
 }), npc_spawn_frequency);
 
 var xp_frequency = 3600000; //once per hour
-//xp_frequency = 10000; //uncomment when debugging permanent collection xp
 Meteor.setInterval((function() {
     var finish_xp_max_percentage = .02;
     var all_users = Meteor.users.find();
@@ -128,7 +132,6 @@ Meteor.setInterval((function() {
 }), item_count_frequency);
 
 var lottery_check_frequency = 60000; //once per minute
-//lottery_check_frequency = 10000; //once per 10 second
 Meteor.setInterval((function() {
     var lottery_draw_time = metadata.findOne({'lottery_draw': {$ne: null}}).lottery_draw;
    
@@ -190,7 +193,7 @@ Meteor.setInterval((function() {
             'seasonal': false,
             'lottery': lottery_level,
             'original': false,
-            'status': "claimed",
+            'status': "won",
             'xp_rating_min': 0,
             'condition_min': 0
         };
@@ -198,7 +201,7 @@ Meteor.setInterval((function() {
         generateItemFromArtworkID(item_generator, function() {
             if (winning_id == "Artfunkel, Inc.") {
                 updateItem(_id, {$set: {'status': "auctioned", 'tags': []}}, function() {
-                    createAuction(_id, getItemObjectValueByType(items.findOne(_id), "actual", "Artfunkel, Inc.") * 20, -1, 120, "public");
+                    createAuction(_id, getItemObjectValueByType(items.findOne(_id), "actual", "Artfunkel, Inc.") * 10, -1, 120, "public");
                 });
             }
         });
@@ -209,7 +212,11 @@ Meteor.setInterval((function() {
         var message = "This week's lottery winner is " + winning_name + ". Congratulations!!!";
 
         alertPlayers({}, message, 'fa-exclamation', 'good');
-        Meteor.users.update({'profile.lottery_tickets': {$gt: 0}}, {$set: {'profile.lottery_tickets': 0}}, {multi: true});
+        Meteor.users.find().forEach(function(user_object) {
+            var vintage_level = user_object.profile.vintage_count;
+            var default_lottery_tickets = 1 + vintage_level;
+            Meteor.users.update(user_object._id, {$set: {'profile.lottery_tickets': default_lottery_tickets}});
+        });
     }
 
     else {
@@ -232,13 +239,11 @@ Meteor.setInterval((function() {
     }
    
     var next_draw = moment(lottery_draw_time).add(1, "weeks")._d.toISOString();
-    //next_draw = moment(lottery_draw_time).add(10, "seconds")._d.toISOString();
     metadata.update({'lottery_draw': {$ne: null}}, {$set: {'lottery_draw': next_draw}});
 
 }), lottery_check_frequency);
 
 var seasonal_rotation_check = 60000;
-//seasonal_rotation_check = 10000;
 Meteor.setInterval((function() {
     var next_rotation = metadata.findOne({'loot_data': {$ne: null}}).loot_data.seasonal_rotation;
     if (next_rotation < moment()._d.toISOString()) {
@@ -248,7 +253,6 @@ Meteor.setInterval((function() {
         metadata.update({'loot_data': {$ne: null}}, {$set: {
             'loot_data.seasonal_items': [random_legendary, random_masterpiece], 
             'loot_data.seasonal_rotation': moment(next_rotation).add(1, 'months')._d.toISOString() 
-            //'loot_data.seasonal_rotation': moment(next_rotation).add(10, 'seconds')._d.toISOString() 
         }}, function() {
             //TODO add alert for new seasonal items
         });

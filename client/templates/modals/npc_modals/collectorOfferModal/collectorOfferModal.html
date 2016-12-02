@@ -2,21 +2,24 @@
 	<div class="template-collectorOfferModal col-xs-12">
 		<div class="message-container">
 			<div class="modal-message-area">
-				{{#with itemData interaction_object.offer_id}}
-					{{>itemInfo item_data=this tag_button=true}}
-					{{#if xpOffer ../interaction_object.offer_id}}
-					<p class="modal-message">You have met an Art Collector who has been looking for one of the items in your collection. They don't have much money, but would be forever greatful if you gave them <span class="highlight af-color work-title">{{artwork_data.title}}</span> by <span class="highlight af-color">{{artwork_data.artist}}</span>. If accepted, you will earn <span class="highlight af-color">{{offerAmount ../interaction_object.offer_id}}xp</span></p>
-					{{else}}
-					<p class="modal-message">You have met an Art Collector who has been looking for one of the items in your collection. They have offered you <span class="highlight af-color">${{offerAmount ../interaction_object.offer_id}}</span> for <span class="highlight af-color work-title">{{artwork_data.title}}</span> by <span class="highlight af-color">{{artwork_data.artist}}</span>. The estimated value of this item is <span class="highlight">${{getItemObjectValue this "actual"}}.</span></p>
-					{{/if}}
-					{{#if ../interaction_object.message}}
-					<p class="modal-message">{{../interaction_object.message}}</p>
-					{{/if}}
-				{{/with}}
-			</div>
-			<div class="modal-button-area">
-				<button id="accept-button" data-offer_id="{{interaction_object.offer_id}}" class="modal-button">accept</button>
-				<button id="decline-button" data-offer_id="{{interaction_object.offer_id}}" class="modal-button">decline</button>
+			{{#if interaction_object.does_not_collect}}
+				{{>itemInfo item_data=interaction_object.item}}
+				{{#if interaction_object.xp_offer}}
+					<p class="modal-message">You have met an Art Collector, who was admiring <span class="highlight af-color work-title">{{interaction_object.item.artwork_data.title}}</span> by <span class="highlight af-color">{{interaction_object.item.artwork_data.artist}}</span>, in your collection. You have earned <span class="highlight af-color">{{commaSeparatedValue interaction_object.offer_amount}}xp</span> for their appreciation of the piece, and ask that you keep and maintain it for the world to enjoy.</p>
+				{{else}}
+					<p class="modal-message">You have met an Art Collector, who was admiring <span class="highlight af-color work-title">{{interaction_object.item.artwork_data.title}}</span> by <span class="highlight af-color">{{interaction_object.item.artwork_data.artist}}</span>, in your collection. They have offered you <span class="highlight af-color">{{displayAsMoneyValue interaction_object.offer_amount}}</span> for keeping the work in such fantastic condition, and ask that you keep and maintain it for the world to enjoy.</p>
+				{{/if}}
+			{{else}}
+				{{>itemInfo item_data=interaction_object.item}}
+				{{#if interaction_object.xp_offer}}
+					<p class="modal-message">You have met an Art Collector who has been looking for one of the items in your collection. They don't have much money, so you humbly offer them <span class="highlight af-color work-title">{{interaction_object.item.artwork_data.title}}</span> by <span class="highlight af-color">{{interaction_object.item.artwork_data.artist}}</span> for nothing more than a few kind words. You have earned <span class="highlight af-color">{{commaSeparatedValue interaction_object.offer_amount}}xp</span></p>
+				{{else}}
+					<p class="modal-message">You have met an Art Collector who has been looking for one of the items in your collection. They have purchased <span class="highlight af-color work-title">{{interaction_object.item.artwork_data.title}}</span> by <span class="highlight af-color">{{interaction_object.item.artwork_data.artist}}</span> for <span class="highlight af-color">{{displayAsMoneyValue interaction_object.offer_amount}}</span>.</p>
+				{{/if}}				
+			{{/if}}
+				<div class="modal-button-area">
+					<button id="accept-button" class="modal-button">ok</button>
+				</div>
 			</div>
 		</div>
 	</div>

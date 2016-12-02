@@ -75,16 +75,11 @@ var updateContent = function() {
     });
 
     // temp code
-//     metadata.update({'lottery_draw': {$ne: null}}, {
-//         $set: {
-//             'lottery_draw': moment('2016-12-01 12:00')._d.toISOString(),
-//             //'lottery_draw': moment().add(10, 'seconds')._d.toISOString(),
-//             'previous_winners': [],
-//             'lottery_level': 1,
-//             'min_players_required': 100
-//         }, 
-//         $unset: {'previous_winner': ""}
-//     });
+    Meteor.users.find({'profile.lottery_tickets': 0}).forEach(function(user_object) {
+        var vintage_level = user_object.profile.vintage_count;
+        var default_lottery_tickets = 1 + vintage_level;
+        Meteor.users.update(user_object._id, {$set: {'profile.lottery_tickets': default_lottery_tickets}});
+    });
     // temp code
 }
 
