@@ -15,7 +15,15 @@ Meteor.setInterval((function() {
     items.remove({'status' : {$in: ['unclaimed', 'for_sale']}, 'date_received' : {$lt : creation_cutoff}});
 
     var auction_win_cutoff = moment().add(-12, 'hours')._d.toISOString();
-    items.remove({'status': 'won', 'date_received' : {$lt : auction_win_cutoff}});
+    //auction_win_cutoff = moment().add(-12, 'seconds')._d.toISOString();
+    items.remove({'status': 'won', 'date_received' : {$lt : auction_win_cutoff}, 'lottery': 0});
+
+    // create auction for lottery items won instead of removing
+    items.find({'status': 'won', 'date_received' : {$lt : auction_win_cutoff}, 'lottery': {$ne: 0}}).forEach(function(item_object) {
+        updateItem(item_object._id, {$set: {'owner': "Artfunkel, Inc.", 'status': "auctioned", 'tags': []}}, function() {
+            createAuction(item_object._id, getItemObjectValueByType(items.findOne(item_object._id), "actual", "Artfunkel, Inc.") * 10, -1, 120, "public");
+        });
+    });
     
     alerts.remove({'time': {$lt: moment().add(-48, "hours")._d.toISOString()}});
 
@@ -190,7 +198,7 @@ Meteor.setInterval((function() {
             'seasonal': false,
             'lottery': lottery_level,
             'original': false,
-            'status': "claimed",
+            'status': "won",
             'xp_rating_min': 0,
             'condition_min': 0
         };
@@ -198,7 +206,7 @@ Meteor.setInterval((function() {
         generateItemFromArtworkID(item_generator, function() {
             if (winning_id == "Artfunkel, Inc.") {
                 updateItem(_id, {$set: {'status': "auctioned", 'tags': []}}, function() {
-                    createAuction(_id, getItemObjectValueByType(items.findOne(_id), "actual", "Artfunkel, Inc.") * 20, -1, 120, "public");
+                    createAuction(_id, getItemObjectValueByType(items.findOne(_id), "actual", "Artfunkel, Inc.") * 10, -1, 120, "public");
                 });
             }
         });
