@@ -5,9 +5,9 @@
 			{{#if interaction_object.does_not_collect}}
 				{{>itemInfo item_data=interaction_object.item}}
 				{{#if interaction_object.xp_offer}}
-					<p class="modal-message">You have met an Art Collector, who was admiring <span class="highlight af-color work-title">{{interaction_object.item.artwork_data.title}}</span> by <span class="highlight af-color">{{interaction_object.item.artwork_data.artist}}</span>, in your collection. You have earned <span class="highlight af-color">{{commaSeparatedValue interaction_object.offer_amount}}xp</span> for their appreciation of the piece, and ask that you keep and maintain it for the world to enjoy."</p>
+					<p class="modal-message">You have met an Art Collector, who was admiring <span class="highlight af-color work-title">{{interaction_object.item.artwork_data.title}}</span> by <span class="highlight af-color">{{interaction_object.item.artwork_data.artist}}</span>, in your collection. You have earned <span class="highlight af-color">{{commaSeparatedValue interaction_object.offer_amount}}xp</span> for their appreciation of the piece, and ask that you keep and maintain it for the world to enjoy.</p>
 				{{else}}
-					<p class="modal-message">You have met an Art Collector, who was admiring <span class="highlight af-color work-title">{{interaction_object.item.artwork_data.title}}</span> by <span class="highlight af-color">{{interaction_object.item.artwork_data.artist}}</span>, in your collection. They have offered you <span class="highlight af-color">{{displayAsMoneyValue interaction_object.offer_amount}}</span> for keeping the work in such fantastic work, and ask that you keep and maintain it for the world to enjoy."</p>
+					<p class="modal-message">You have met an Art Collector, who was admiring <span class="highlight af-color work-title">{{interaction_object.item.artwork_data.title}}</span> by <span class="highlight af-color">{{interaction_object.item.artwork_data.artist}}</span>, in your collection. They have offered you <span class="highlight af-color">{{displayAsMoneyValue interaction_object.offer_amount}}</span> for keeping the work in such fantastic condition, and ask that you keep and maintain it for the world to enjoy.</p>
 				{{/if}}
 			{{else}}
 				{{>itemInfo item_data=interaction_object.item}}
@@ -18,7 +18,7 @@
 				{{/if}}				
 			{{/if}}
 				<div class="modal-button-area">
-					<button id="accept-button" class="modal-button">accept</button>
+					<button id="accept-button" class="modal-button">ok</button>
 				</div>
 			</div>
 		</div>

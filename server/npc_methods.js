@@ -482,7 +482,6 @@ var getRandomItemForSale = function() {
 }
 
 var collectorInteraction = function(npc_object) {
-	//TODO save interaction object to a DB, then return the id. This allows server-side verification that the offer was legitimate if the player accepts.
 	var message = undefined;
 	var xp_offer = false;
 	var xp_chunk_percentage;
@@ -510,6 +509,7 @@ var collectorInteraction = function(npc_object) {
 			offer_multiplier *= own_gallery_amplifier;
 
 			xp_offer = procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_XP_REWARD", "Art Enthusiast");
+			xp_offer = false;
 
 			if (collector_target.condition > .8 && procUniqueAttribute(Meteor.userId(), "GOOD_CONDITION_COLLECTOR_BONUS", undefined))
 				offer_multiplier += standard_legendary_increment;
@@ -632,7 +632,7 @@ var collectorInteraction = function(npc_object) {
             logXPChunkPercentage("ART_COLLECTOR_XP_REWARD", Number(xp_chunk_percentage.toFixed(3)));
 		}
 
-		var does_not_collect = isOwnGallery(npc_object) && Math.random() < .4 && procUniqueAttribute("COLLECTOR_DOES_NOT_COLLECT", undefined);
+		var does_not_collect = isOwnGallery(npc_object) && Math.random() < .4 && procUniqueAttribute(Meteor.userId(), "COLLECTOR_DOES_NOT_COLLECT", undefined);
 
 		if (!does_not_collect) {
             items.remove(collector_target._id, function(error) {
