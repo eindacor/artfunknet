@@ -635,10 +635,7 @@ var collectorInteraction = function(npc_object) {
 		var does_not_collect = isOwnGallery(npc_object) && Math.random() < .4 && procUniqueAttribute(Meteor.userId(), "COLLECTOR_DOES_NOT_COLLECT", undefined);
 
 		if (!does_not_collect) {
-            items.remove(collector_target._id, function(error) {
-                if (error)
-                    console.log(error.message);
-            });
+			removeItem(collector_target._id, "collector", undefined)
         }
 
 		var interaction_object = {

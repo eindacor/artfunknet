@@ -385,7 +385,9 @@ Meteor.methods({
     			auctions.remove({'item_id': all_items[i]._id});
     		};
 
-    		items.remove({'artwork_id': artwork_id});
+            items.find({'artwork_id': artwork_id}).forEach(function(item_object) {
+                removeItem(item_object._id, "admin", undefined);
+            })
     	}
     },
 

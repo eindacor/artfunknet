@@ -62,7 +62,7 @@ createAuction = function(item_id, starting, buy_now, duration, viewer) {
 
 var failedAuction = function(auction_object) {
     if (auction_object.seller == "Artfunkel, Inc.") {
-        items.remove(auction_object.item_id);
+        removeItem(auction_object.item_id, "failedAuction", undefined);
         auctions.remove(auction_object._id);
         return;
     }

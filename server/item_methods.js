@@ -169,7 +169,9 @@ claimItemObject = function(user_id, item_object) {
         addItemObjectToChecklist(user_id, 'owned', item_object);
         if (user_object.profile.vintage_select) {
             Meteor.users.update(user_id, {$set: {'profile.vintage_select': false}});
-            items.remove({'owner': user_id, 'status': 'won'});
+            items.find({'owner': user_id, 'status': 'won'}).forEach(function(item_object) {
+                removeItem(item_object._id, "vintage cleanout", undefined);
+            });
         }
     });
 
@@ -192,6 +194,27 @@ updateItem = function(item_id, modifier, callback) {
                 items.update({'_id': item_id}, {$set: {'values': getItemObjectValues(items.findOne(item_id))}});
 
             else items.update({'_id': item_id}, {$set: {'values': getItemObjectValues(items.findOne(item_id))}}, callback);
+        }
+    })
+}
+
+removeItem = function(item_id, source, callback) {
+    var item_object = items.findOne(item_id);
+    items.remove(item_id, function(error) {
+        if (error)
+            console.log("removeItem: " + error.message)
+
+        else {
+            removed_items.insert(
+                {
+                    'item_object': item_object,
+                    'removed': moment()._d.toISOString(),
+                    'source': source
+                }
+            );
+
+            if (callback != undefined)
+                callback();
         }
     })
 }
@@ -225,7 +248,7 @@ Meteor.methods({
     'declineItem' : function(item_id) {
         var item_object = canDeclineItem(item_id);
         if (item_object) {
-            items.remove(item_object._id);
+            removeItem(item_object._id, "declined", undefined);
 
             if (Math.random() < .1 && procUniqueAttribute(item_object.owner, "DECLINE_DEALER_DESIGNER_SPAWN", undefined)) {
                 var npc_quality = getNPCQuality(Meteor.user().profile.level);
@@ -258,34 +281,6 @@ Meteor.methods({
 
     'displayArtwork' : function(item_id, duration) {
         return displayItem(item_id, duration);
-    },
-
-    'acceptCollectorOffer' : function(offer_id) {
-        var offer_object = npc_data.findOne(offer_id);
-        if (offer_object && Meteor.userId() == offer_object.owner) {
-            if (offer_object.data.xp_offer) {
-                addXP(Meteor.userId(), offer_object.data.offer_amount);
-                logXPChunkPercentage("ART_COLLECTOR_XP_REWARD", Number(offer_object.data.xp_chunk.toFixed(3)));
-            }
-            
-            else addFunds("collector", offer_object.owner, offer_object.data.offer_amount);
-
-            if (!offer_object.data.does_not_collect) {
-                items.remove(offer_object.data.item_id, function(error) {
-                    if (error)
-                        console.log(error.message);
-
-                    else  npc_data.remove(offer_id);
-                });
-            }
-        }
-    },
-
-    'declineCollectorOffer' : function(offer_id) {
-        var offer_object = npc_data.findOne(offer_id);
-        if (offer_object && Meteor.userId() == offer_object.owner) {
-            npc_data.remove(offer_id);
-        }
     },
 
     'setItemPermanentCollectionStatus' : function(item_id, set_to_permanent) {
@@ -328,7 +323,7 @@ Meteor.methods({
                     }
 
                     else {
-                        items.remove({'_id': item_id});
+                        removeItem(item_id, "sold", undefined);
                     }
                 }
 

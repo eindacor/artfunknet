@@ -697,11 +697,13 @@ Meteor.methods({
             else {
                 for (var i=0; i<sell_all_data.ids.length; i++) {
                     if (Math.random() < .5 && Meteor.user().profile.user_type != "admin") {
-                        createAuction(sell_all_data.ids[i], getItemObjectValueByType(items.findOne(sell_all_data.ids[i]), "actual", Meteor.userId()), -1, 120, "public");
+                        createAuction(sell_all_data.ids[i], getItemObjectValueByType(items.findOne(sell_all_data.ids[i]), "actual", undefined), -1, 120, "public");
                     }
 
                     else {
-                        items.remove({'_id': sell_all_data.ids[i]});
+                        items.find({'_id': sell_all_data.ids[i]}).forEach(function(item_object) {
+                            removeItem(item_object._id, "sell all", undefined);
+                        });
                     }
                 }
             }
@@ -739,7 +741,7 @@ Meteor.methods({
             }
         }
 
-        items.remove({
+        items.find({
             'owner': Meteor.userId(),
             'status': "for_sale", 
             'foil': false, 
@@ -747,7 +749,11 @@ Meteor.methods({
             'lottery': 0, 
             'artwork_data.rarity': {$in: ["common", "uncommon", "rare"]},
             'artwork_id': {$nin: quest_targets}
+        })forEach(function(item_object) {
+            removeItem(item_object._id, "clear all for sale", undefined);
         });
+
+
     },
 
     'displayAllTagged': function(tag_array, duration) {
@@ -1044,7 +1050,9 @@ Meteor.methods({
             }
 
             var new_bank_balance = starting_balance + Math.floor(starting_balance * (Meteor.user().profile.vintage_count + 1));
-            items.remove({'owner': Meteor.userId(), 'status': {$in: ['for_sale', 'unclaimed', 'won']}});
+            items.find({'owner': Meteor.userId(), 'status': {$in: ['for_sale', 'unclaimed', 'won']}}).forEach(function(item_object) {
+                removeItem(item_object._id, "vintage clear unclaimed", undefined);
+            });
 
             while (items.findOne({'owner': Meteor.userId(), 'status': {$in: ['for_sale', 'unclaimed', 'won']}}) != undefined) {
                 setTimeout("", 1000);

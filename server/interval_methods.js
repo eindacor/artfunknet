@@ -1,21 +1,25 @@
 var check_frequency = 10000;
 Meteor.setInterval((function() {
     var now = moment()._d.toISOString();
-    var finished_displays = items.find({'status' : 'displayed', 'display_details.end': {$lt : now}});
-    finished_displays.forEach(function(db_object) {
+    items.find({'status' : 'displayed', 'display_details.end': {$lt : now}}).forEach(function(db_object) {
         concludeDisplay(db_object._id);
     });
 
-    var expired_auctions = auctions.find({'expiration': {$lt : now}});
-    expired_auctions.forEach(function(db_object) {
+    auctions.find({'expiration': {$lt : now}}).forEach(function(db_object) {
         concludeAuction(db_object._id);
     });
 
+    removed_items.remove({'removed': {$lt: moment().subtract(1, 'hours')}});
+
     var creation_cutoff = moment().add(-10, 'minutes')._d.toISOString();
-    items.remove({'status' : {$in: ['unclaimed', 'for_sale']}, 'date_received' : {$lt : creation_cutoff}});
+    items.find({'status' : {$in: ['unclaimed', 'for_sale']}, 'date_received' : {$lt : creation_cutoff}}).forEach(function(item_object) {
+        removeItem(item_object._id, "failed to claim (" + item_object.status + ")", undefined);
+    })
 
     var auction_win_cutoff = moment().add(-12, 'hours')._d.toISOString();
-    items.remove({'status': 'won', 'date_received' : {$lt : auction_win_cutoff}, 'lottery': 0});
+    items.find({'status': 'won', 'date_received' : {$lt : auction_win_cutoff}, 'lottery': 0}).forEach(function(item_object) {
+        removeItem(item_object._id, "failed to claim (won)", undefined);
+    })
 
     // create auction for lottery items won instead of removing
     items.find({'status': 'won', 'date_received' : {$lt : auction_win_cutoff}, 'lottery': {$ne: 0}}).forEach(function(item_object) {
