@@ -103,7 +103,7 @@ var successfulAuction = function(auction_object, winning_user) {
 
             if (previous_owner) {
                 var sale_message = "You have successfully auctioned " + auction_object.item_data.title + " by " + auction_object.item_data.artist + " for $" + getCommaSeparatedValue(auction_object.current_bid)
-                alertPlayers(previous_owner._id, sale_message 'fa-gavel', 'good');
+                alertPlayers(previous_owner._id, sale_message, 'fa-gavel', 'good');
                 addFunds("auction", previous_owner._id, auction_object.current_bid);
             }
 
