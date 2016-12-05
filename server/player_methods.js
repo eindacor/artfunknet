@@ -696,7 +696,7 @@ Meteor.methods({
 
             else {
                 for (var i=0; i<sell_all_data.ids.length; i++) {
-                    if (Math.random() < .5 && Meteor.user().profile.user_type != "admin") {
+                    if (false && Math.random() < .5 && Meteor.user().profile.user_type != "admin") {
                         createAuction(sell_all_data.ids[i], getItemObjectValueByType(items.findOne(sell_all_data.ids[i]), "actual", Meteor.userId()), -1, 120, "public");
                     }
 

@@ -323,7 +323,7 @@ Meteor.methods({
             addFunds("sell item", Meteor.userId(), value);
             updateItem(item_id, {$set: {'owner': "Artfunkel, Inc.", 'status': "auctioned", 'tags': []}} ,function() {
                 if (Meteor.user().profile.user_type != "admin") {
-                    if (Math.random() < 0.5) {
+                    if (false && Math.random() < 0.5) {
                         createAuction(item_id, getItemObjectValueByType(item_object, "actual", Meteor.userId()), -1, 120, "public");
                     }
 
