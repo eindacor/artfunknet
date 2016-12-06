@@ -9,7 +9,7 @@ Meteor.setInterval((function() {
         concludeAuction(db_object._id);
     });
 
-    removed_items.remove({'removed': {$lt: moment().subtract(1, 'hours')}});
+    //removed_items.remove({'removed': {$lt: moment().subtract(1, 'hours')}});
 
     var creation_cutoff = moment().add(-10, 'minutes')._d.toISOString();
     items.find({'status' : {$in: ['unclaimed', 'for_sale']}, 'date_received' : {$lt : creation_cutoff}}).forEach(function(item_object) {

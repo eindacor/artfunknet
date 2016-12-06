@@ -749,7 +749,7 @@ Meteor.methods({
             'lottery': 0, 
             'artwork_data.rarity': {$in: ["common", "uncommon", "rare"]},
             'artwork_id': {$nin: quest_targets}
-        })forEach(function(item_object) {
+        }).forEach(function(item_object) {
             removeItem(item_object._id, "clear all for sale", undefined);
         });
 

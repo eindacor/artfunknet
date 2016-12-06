@@ -205,13 +205,13 @@ removeItem = function(item_id, source, callback) {
             console.log("removeItem: " + error.message)
 
         else {
-            removed_items.insert(
-                {
-                    'item_object': item_object,
-                    'removed': moment()._d.toISOString(),
-                    'source': source
-                }
-            );
+            // removed_items.insert(
+            //     {
+            //         'item_object': item_object,
+            //         'removed': moment()._d.toISOString(),
+            //         'source': source
+            //     }
+            // );
 
             if (callback != undefined)
                 callback();
