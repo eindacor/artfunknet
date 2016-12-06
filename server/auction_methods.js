@@ -103,7 +103,7 @@ var successfulAuction = function(auction_object, winning_user) {
 
             if (previous_owner) {
                 var sale_message = "You have successfully auctioned " + auction_object.item_data.title + " by " + auction_object.item_data.artist + " for $" + getCommaSeparatedValue(auction_object.current_bid)
-                alertPlayers(previous_owner._id, message, 'fa-gavel', 'good');
+                alertPlayers(previous_owner._id, sale_message, 'fa-gavel', 'good');
                 addFunds("auction", previous_owner._id, auction_object.current_bid);
             }
 
@@ -134,10 +134,18 @@ var successfulAuction = function(auction_object, winning_user) {
 }
 
 concludeAuction = function(auction_id) {
+	try {
     var winner = Meteor.users.findOne({'profile.auction_data.winning': {$in: [auction_id]}});
     var auction_object = auctions.findOne(auction_id);
 
     winner ? successfulAuction(auction_object, winner) : failedAuction(auction_object);
+	}
+
+	catch(error) {
+		//console.log("in concludeAuction (" + auction_id + ")");
+		//console.log(auctions.findOne(auction_id));
+		//console.log(error.message);
+	}
 }
 
 var refundWinner = function(auction_object, new_winner, refund_amount, bought) {

@@ -534,7 +534,9 @@ Meteor.methods({
 
         var actual_amount = getEntryFee(buyer_object, owner_object);
 
-        if (actual_amount > buyer_object.profile.bank_balance)
+        if (actual_amount > buyer_object.profile.bank_balance
+            || buyer_id === owner_id 
+            || gallery_tickets.findOne({"ticketholder":buyer_id, "gallery_owner":owner_id, 'expiration': {$gt : moment()._d.toISOString()}}) !== undefined)
             return;
 
         var ticket_object = {
@@ -690,23 +692,8 @@ Meteor.methods({
     'sellAllUnclaimed' : function() {
         var sell_all_data = getSellAllData(Meteor.userId());
 
-        updateItemsBySelector({'_id': {$in: sell_all_data.ids}}, {$set: {'owner': "Artfunkel, Inc.", 'status': "auctioned"}}, function(error) {
-            if (error)
-                console.log(error.message);
-
-            else {
-                for (var i=0; i<sell_all_data.ids.length; i++) {
-                    if (Math.random() < .5 && Meteor.user().profile.user_type != "admin") {
-                        createAuction(sell_all_data.ids[i], getItemObjectValueByType(items.findOne(sell_all_data.ids[i]), "actual", undefined), -1, 120, "public");
-                    }
-
-                    else {
-                        items.find({'_id': sell_all_data.ids[i]}).forEach(function(item_object) {
-                            removeItem(item_object._id, "sell all", undefined);
-                        });
-                    }
-                }
-            }
+        items.find({'_id': sell_all_data.ids[i]}).forEach(function(item_object) {
+            removeItem(item_object._id, "sell all", undefined);
         });
 
         addFunds("sell item", Meteor.userId(), sell_all_data.value);
