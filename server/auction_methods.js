@@ -135,16 +135,21 @@ var successfulAuction = function(auction_object, winning_user) {
 
 concludeAuction = function(auction_id) {
 	try {
-    var winner = Meteor.users.findOne({'profile.auction_data.winning': {$in: [auction_id]}});
-    var auction_object = auctions.findOne(auction_id);
+        var winner = Meteor.users.findOne({'profile.auction_data.winning': {$in: [auction_id]}});
+        var auction_object = auctions.findOne(auction_id);
 
-    winner ? successfulAuction(auction_object, winner) : failedAuction(auction_object);
+        if (items.findOne(auction_object.item_id) == undefined) {
+            //console.log("null auction detected: " + auction_object._id + "(item id: " + auction_object.item_id + ")");
+            return false;
+        }
+
+        winner ? successfulAuction(auction_object, winner) : failedAuction(auction_object);
 	}
 
 	catch(error) {
-		//console.log("in concludeAuction (" + auction_id + ")");
-		//console.log(auctions.findOne(auction_id));
-		//console.log(error.message);
+		console.log("in concludeAuction (" + auction_id + ")");
+		console.log(auctions.findOne(auction_id));
+		console.log(error.message);
 	}
 }
 
