@@ -1054,13 +1054,16 @@ Meteor.methods({
             Meteor.users.update(
                 Meteor.userId(),                //selector
                 {                               //modifier
-                    $inc: {'profile.vintage_count': 1, 'profile.lottery_tickets': 1}, 
+                    $inc: {'profile.vintage_count': 1}, 
                     $set: {
                         'profile.vintage_select': has_items_to_claim, 
                         'profile.level': 0, 
                         'profile.bank_balance': new_bank_balance,
                         'profile.xp': 0,
                         'profile.last_drop': moment().add(-1, 'days')._d.toISOString(),
+                        // +2 because the user's vintage level has not yet been incremented
+                        'profile.lottery_tickets': Meteor.user().profile.vintage_count + 2,
+                        'profile.expansion_slots': 0,
                         'profile.gallery_finishes': {
                             'active': {
                                 'floor_finish': default_floor._id,
