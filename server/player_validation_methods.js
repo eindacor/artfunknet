@@ -142,7 +142,7 @@ canBidOnItem = function(auction_id) {
 	if (inventoryIsFull(Meteor.user()) && !item_is_original)
 		return false;
 
-	var available_balance = currently_winning ? bidder_object.profile.bank_balance + auction_object.highest_bid : bidder_object.profile.bank_balance;
+	var available_balance = currently_winning ? bidder_object.profile.bank_balance + auction_object.current_bid : bidder_object.profile.bank_balance;
 
 	return available_balance >= auction_object.min_bid;
 }

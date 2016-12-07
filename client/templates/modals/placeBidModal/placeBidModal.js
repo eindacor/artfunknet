@@ -1,12 +1,12 @@
 var auction_info_tracker = new Tracker.Dependency;
 var auction_error_tracker = new Tracker.Dependency;
 var auction_object;
-var available_balance;
-var auction_errors;
+var available_balance = undefined;
+var auction_errors = [];
 
 Template.placeBidModal.rendered = function() {
 	$('.errors').hide();
-    auction_errors = undefined;
+    auction_errors = [];
 
     Meteor.call('getAuctionInfo', this.data.auction_id, function(error, result) {
         if (error)
@@ -15,8 +15,8 @@ Template.placeBidModal.rendered = function() {
         else {
             auction_object = result;
             
-            if (result.highest_bid)
-                available_balance = result.highest_bid + Meteor.user().profile.bank_balance;
+            if (Meteor.user().profile.auction_data.winning.indexOf(auction_object._id) != -1)
+                available_balance = auction_object.current_bid + Meteor.user().profile.bank_balance;
 
             else available_balance = Meteor.user().profile.bank_balance;
 
@@ -26,7 +26,7 @@ Template.placeBidModal.rendered = function() {
 }
 
 Template.placeBidModal.helpers({
-	'auctionData' : function(auction_id) {
+	'auctionData' : function() {
         auction_info_tracker.depend();
         return auction_object;
 	},
@@ -37,15 +37,18 @@ Template.placeBidModal.helpers({
 	},
 
 	'canBuy' : function() {
-		return auction_object && auction_object.buy_now != -1 && available_balance >= auction_object.buy_now;
+        auction_info_tracker.depend();
+		return auction_object && auction_object.buy_now != -1 && available_balance >= auction_object.buy_now && Meteor.user().profile.screen_name != auction_object.seller;
 	},
 
-    'balance': function(highest_bid) {
+    'available_balance': function() {
         auction_info_tracker.depend();
-        if (available_balance)
-            return getCommaSeparatedValue(available_balance);
+        return getCommaSeparatedValue(available_balance);
+    },
 
-        else return undefined;
+    'currently_winning': function() {
+        auction_info_tracker.depend();
+        return auction_object && Meteor.user().profile.auction_data.winning.indexOf(auction_object._id) != -1;
     }
 })
 

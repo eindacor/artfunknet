@@ -178,38 +178,3 @@ Meteor.methods({
         return moment()._d.toISOString();
     }
 })
-
-var refundHighestBid = function(auction_id) {
-    var auction_object = auctions.findOne({'_id': auction_id});
-    var bid_history = auction_object.bid_history;
-
-    if (bid_history.length > 0) {
-        var highest_bid = {'amount' : 0}
-
-        for (var n=0; n < bid_history.length; n++) {
-            if (bid_history[n].amount > highest_bid.amount)
-                highest_bid = bid_history[n];
-        }
-
-        if (highest_bid.user_id != "auction_bot")
-            addFunds(undefined, highest_bid.user_id, highest_bid.amount);
-    }
-}
-
-var getHighestBidder = function(auction_id) {
-    var auction_object = auctions.findOne({'_id': auction_id});
-    var bid_history = auction_object.bid_history;
-
-    if (bid_history.length > 0) {
-        var highest_bid = {'amount' : 0}
-
-        for (var n=0; n < bid_history.length; n++) {
-            if (bid_history[n].amount > highest_bid.amount)
-                highest_bid = bid_history[n];
-        }
-
-        return highest_bid.user_id;
-    }
-
-    else return undefined;
-}

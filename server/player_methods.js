@@ -782,7 +782,7 @@ Meteor.methods({
                 'item_id': 0,
                 'current_bid': 0,
                 'increment': 0,
-                'highest_bid': 0,
+                'min_bid': 0,
                 'viewer': 0
             }
 
@@ -803,7 +803,7 @@ Meteor.methods({
                 'item_id': 0,
                 'current_bid': 0,
                 'increment': 0,
-                'highest_bid': 0,
+                'min_bid': 0,
                 'viewer': 0,
                 'item_data.condition': 0,
                 'item_data.xp_rating': 0,
@@ -837,9 +837,7 @@ Meteor.methods({
         if (has_auctioneer) {
             fields_object = {
                 'item_id': 0,
-                'current_bid': 0,
                 'increment': 0,
-                'highest_bid': 0,
                 'viewer': 0
             }
 
@@ -858,9 +856,7 @@ Meteor.methods({
         else {
             fields_object = {
                 'item_id': 0,
-                'current_bid': 0,
                 'increment': 0,
-                'highest_bid': 0,
                 'viewer': 0,
                 'item_data.condition': 0,
                 'item_data.xp_rating': 0,
@@ -897,20 +893,9 @@ Meteor.methods({
 
     'getPlayerAuctions': function() {
         var now = moment()._d.toISOString();
-        var fields_object = {
-            'item_id': 0,
-            'current_bid': 0,
-            'increment': 0,
-            'highest_bid': 0,
-            'viewer': 0
-        }
 
         var auction_array = auctions.find(
-            {'expiration': {$gt : now}, 'seller': Meteor.user().profile.screen_name}, 
-            {
-                fields: fields_object, 
-                sort: {'expiration': 1}
-            }
+            {'expiration': {$gt : now}, 'seller': Meteor.user().profile.screen_name}, {sort: {'expiration': 1}}
         ).fetch();
 
         return auction_array;
@@ -922,9 +907,7 @@ Meteor.methods({
         var now = moment()._d.toISOString();
         var fields_object = {
             'item_id': 0,
-            'current_bid': 0,
             'increment': 0,
-            'highest_bid': 0,
             'viewer': 0
         }
 
@@ -1043,7 +1026,6 @@ Meteor.methods({
 
             while (items.findOne({'owner': Meteor.userId(), 'status': {$in: ['for_sale', 'unclaimed', 'won']}}) != undefined) {
                 setTimeout("", 1000);
-                console.log("checking");
             }
 
             var has_items_to_claim = items.findOne({'owner': Meteor.userId(), 'vintage': {$ne: true}, 'original': {$ne: true}}) != undefined;

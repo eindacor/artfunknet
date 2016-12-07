@@ -1,7 +1,7 @@
 <template name="placeBidModal">
 	<div class="template-placeBidModal col-xs-12">
 		<div class="message-container">
-			{{#with auctionData auction_id}}
+			{{#with auctionData}}
 				<div class="modal-message-area">
 					<p class="modal-message">Place your bid for <span class="highlight af-color work-title">{{item_data.title}}</span> by <span class="highlight af-color">{{item_data.artist}}</span></p>
 	                <div class="row quick-bid">
@@ -11,9 +11,9 @@
 			            {{/if}}
 			        </div>
 	            	<div class="row">
-	            		<p class="modal-message">funds available: ${{balance highest_bid}}</p>
-	            		{{#if highest_bid}}
-	            			<p class="modal-message">previous bid: {{displayAsMoneyValue highest_bid}}</p>
+	            		<p class="modal-message">funds available: ${{available_balance}}</p>
+	            		{{#if currently_winning}}
+	            			<p class="modal-message">previous bid: {{displayAsMoneyValue current_bid}}</p>
 	            		{{/if}}
 	            	</div>
 	                <div class="row">
