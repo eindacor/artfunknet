@@ -692,7 +692,7 @@ Meteor.methods({
     'sellAllUnclaimed' : function() {
         var sell_all_data = getSellAllData(Meteor.userId());
 
-        items.find({'_id': sell_all_data.ids[i]}).forEach(function(item_object) {
+        items.find({'_id': {$in: sell_all_data.ids}}).forEach(function(item_object) {
             removeItem(item_object._id, "sell all", undefined);
         });
 

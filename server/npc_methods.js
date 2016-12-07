@@ -1058,7 +1058,7 @@ var auctioneerInteraction = function(npc_object) {
 	        'user_id': "Artfunkel, Inc.",
 	        'quality': npc_object.quality,
 	        'count': auction_count,
-	        'status': "claimed",
+	        'status': "auctioned",
 	        'foil_chance': getLootData().global_foil_chance,
 	        'misprint_chance': getLootData().global_misprint_chance,
 	        'xp_rating_min': 0,

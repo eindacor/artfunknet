@@ -32,6 +32,7 @@ Meteor.setInterval((function() {
 
 }), check_frequency);
 
+// TODO refactor auctions so this isn't necessary
 // clear invalid watching lists
 Meteor.setInterval((function() {
     Meteor.users.find().forEach(function(user_object) {
