@@ -233,7 +233,8 @@ var procs_per_minute = 60000 / auction_bot_frequency;
 var max_bids_per_minute = 2;
 var proc_chance = max_bids_per_minute / procs_per_minute;
 Meteor.setInterval((function() {
-    auctions.find({'viewer': {$ne: "public"}}).forEach(function(auction_object) {  
+    var now = moment()._d.toISOString();
+    auctions.find({'viewer': {$ne: "public"}, 'expiration': {$gt: now}}).forEach(function(auction_object) {  
         item_object = items.findOne(auction_object.item_id);
         if (item_object == undefined) {
             return;
