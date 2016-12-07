@@ -186,14 +186,16 @@ var notifyFormerWinner = function(auction_object, new_winner_id, bought) {
 }
 
 var removeAuction = function(auction_id, callback) {
+    var auction_object = auctions.findOne(auction_id);
     auctions.remove(auction_id, function(error) {
         if (error) {
             console.log("removeAuction: " + error.message)
         }
 
         else {
-            if (callback != undefined)
+            if (callback != undefined) {
                 callback();
+            }
 
             Meteor.users.update({'profile.auction_data.winning': {$in: [auction_id]}}, {$pull: {'profile.auction_data.winning': auction_id}});
             Meteor.users.update({'profile.auction_data.watching': {$in: [auction_id]}}, {$pull: {'profile.auction_data.watching': auction_id}}, {multi: true});
@@ -232,8 +234,13 @@ var max_bids_per_minute = 2;
 var proc_chance = max_bids_per_minute / procs_per_minute;
 Meteor.setInterval((function() {
     auctions.find({'viewer': {$ne: "public"}}).forEach(function(auction_object) {  
-        var actual_value = getItemObjectValueByType(items.findOne(auction_object.item_id), 'actual', undefined);
-        if (auction_object.current_bid >= actual_value * 8)
+        item_object = items.findOne(auction_object.item_id);
+        if (item_object == undefined) {
+            return;
+        }
+
+        var actual_value = getItemObjectValueByType(item_object, 'actual', undefined);
+        if (auction_object.current_bid >= actual_value * 8 || actual_value == undefined)
             return;
 
         var actual_proc_chance = proc_chance;

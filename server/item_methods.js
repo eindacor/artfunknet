@@ -202,9 +202,9 @@ removeItem = function(item_id, source, callback) {
     var item_object = items.findOne(item_id);
 
     if (auctions.findOne({'item_id': item_id}) != undefined) {
-        console.log("auction item delete prevented: " + item_id);
-        console.log("auction id: " + auctions.findOne({'item_id': item_id})._id);
-        console.log("source: " + source);
+        // console.log("auction item delete prevented: " + item_id);
+        // console.log("auction id: " + auctions.findOne({'item_id': item_id})._id);
+        // console.log("source: " + source);
         return false;
     }
 
