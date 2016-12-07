@@ -80,6 +80,16 @@ var updateContent = function() {
         var default_lottery_tickets = 1 + vintage_level;
         Meteor.users.update(user_object._id, {$set: {'profile.lottery_tickets': default_lottery_tickets}});
     });
+
+    Meteor.users.find().forEach(function(user_object) {
+        if (auctions.findOne({'_id': {$in: user_object.profile.auction_data.watching}}) == undefined) {
+            Meteor.users.update({'_id': user_object._id}, {$set: {'profile.auction_data.watching': []}});
+        }
+
+        if (auctions.findOne({'_id': {$in: user_object.profile.auction_data.winning}}) == undefined) {
+            Meteor.users.update({'_id': user_object._id}, {$set: {'profile.auction_data.winning': []}});
+        }
+    });
     // temp code
 }
 

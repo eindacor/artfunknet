@@ -38,6 +38,10 @@ Meteor.setInterval((function() {
         if (auctions.findOne({'_id': {$in: user_object.profile.auction_data.watching}}) == undefined) {
             Meteor.users.update({'_id': user_object._id}, {$set: {'profile.auction_data.watching': []}});
         }
+
+        if (auctions.findOne({'_id': {$in: user_object.profile.auction_data.winning}}) == undefined) {
+            Meteor.users.update({'_id': user_object._id}, {$set: {'profile.auction_data.winning': []}});
+        }
     });
 }), 60000);
 
