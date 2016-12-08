@@ -83,22 +83,6 @@ Template.registerHelper('floatToPercentage', function(value) {
 	return Math.floor(value * 100);
 })
 
-/**
-This function will create a unique span whose content will be filled by the result of the supplied meteor call.
-The meteor call cannot take any arguments, and should return a plain value. 
-
-This is a space-saving tool that the meteorValue template uses to display one-off values.
-*/
-Template.registerHelper('displayValueFromMeteor', function(meteorCall) {
-	var identifier = meteorCall + "-" + Math.random().toString(36).substring(7);
-	// console.log(identifier);
-	Meteor.call(meteorCall, function(error, result) {
-		$("#"+identifier).text(result);
-	});
-
-	return identifier;
-})
-
 Template.registerHelper('itemPermissions', function(item_object) {
 	if (Meteor.user()) {
 		var item_controlled = item_object.owner == Meteor.userId() && item_object.status != 'for_sale';

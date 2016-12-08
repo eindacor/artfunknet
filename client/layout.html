@@ -6,7 +6,11 @@
 	{{> footnote}}
 </template>
 
-<!--It is necessary to provide a "key" parameter that matches a valid meteor call to this template-->
+<!--
+	It is necessary to provide a "key" parameter that matches a valid meteor call to this template
+	The resulting template will have a uniquely generated identifier, and will replace the content of the span 
+	with the plain result of the meteor call. 
+-->
 <template name="meteorValue">
-	<span id="{{displayValueFromMeteor key}}">Loading</span>
+	<span id="{{displayValueFromMeteor key}}"><i class="nav-icon fa fa-clock-o"></i></span>
 </template>
