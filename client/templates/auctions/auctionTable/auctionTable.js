@@ -85,10 +85,7 @@ Template.auctionTable.helpers({
 
 			var available_balance = currently_winning ? bidder_object.profile.bank_balance + auction_object.current_bid : bidder_object.profile.bank_balance;
 			var funds_available = auction_object.min_bid <= available_balance;
-			console.log(funds_available);
-			console.log(auction_object.min_bid);
-			console.log(available_balance);
-
+			
 			var biddable = true;
 			var reason = undefined;
 
