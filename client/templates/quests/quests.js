@@ -1,6 +1,9 @@
 Template.quests.helpers({
 	'quest' : function() {
 		return quests.find({'owner_id': Meteor.userId()});
+	},
+	'activeQuests': function() {
+		return quests.find({'owner_id': Meteor.userId()}).count();
 	}
 })
 
