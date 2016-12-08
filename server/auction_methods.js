@@ -233,8 +233,8 @@ var procs_per_minute = 60000 / auction_bot_frequency;
 var max_bids_per_minute = 2;
 var proc_chance = max_bids_per_minute / procs_per_minute;
 Meteor.setInterval((function() {
-    var now = moment()._d.toISOString();
-    auctions.find({'viewer': {$ne: "public"}, 'expiration': {$gt: now}}).forEach(function(auction_object) {  
+    var bot_auction_cutoff = moment().add(10, "seconds")._d.toISOString();
+    auctions.find({'viewer': {$ne: "public"}, 'expiration': {$gt: bot_auction_cutoff}}).forEach(function(auction_object) {  
         item_object = items.findOne(auction_object.item_id);
         if (item_object == undefined) {
             return;
@@ -354,9 +354,6 @@ var placeBid = function(bidder_id, auction_id, amount) {
     else return false;
 
     Meteor.users.update({'_id': bidder_id, 'profile.auction_data.watching': {$nin: [auction_id]}}, {$push: {'profile.auction_data.watching': auction_id}});
-
-    if (moment(auction_object.expiration) - moment() < 10000)
-        auctions.update(auction_object._id, {$set: {'expiration': moment().add(10, 'seconds')._d.toISOString()}});
 }
 
 Meteor.methods({
