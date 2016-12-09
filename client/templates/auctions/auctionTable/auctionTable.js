@@ -94,7 +94,7 @@ Template.auctionTable.helpers({
 			if (Meteor.userId() == undefined)
 				biddable = false;
 
-			else if (biddable_rarities.indexOf(auction_object.item_data.rarity) == -1) {
+			else if (auction_object.viewer == "public" && biddable_rarities.indexOf(auction_object.item_data.rarity) == -1) {
 				biddable = false;
 				reason = "insufficient player level";
 			}

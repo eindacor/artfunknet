@@ -838,7 +838,6 @@ Meteor.methods({
             fields_object = {
                 'item_id': 0,
                 'increment': 0,
-                'viewer': 0
             }
 
             if (quest_status == "sought") {
@@ -857,7 +856,6 @@ Meteor.methods({
             fields_object = {
                 'item_id': 0,
                 'increment': 0,
-                'viewer': 0,
                 'item_data.condition': 0,
                 'item_data.xp_rating': 0,
                 'item_data.feature_count': 0,
