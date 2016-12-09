@@ -1062,7 +1062,7 @@ Meteor.methods({
                         'profile.xp': 0,
                         'profile.last_drop': moment().add(-1, 'days')._d.toISOString(),
                         // +2 because the user's vintage level has not yet been incremented
-                        'profile.lottery_tickets': Meteor.user().profile.vintage_count + 2,
+                        // 'profile.lottery_tickets': Meteor.user().profile.vintage_count + 2,
                         'profile.expansion_slots': 0,
                         'profile.gallery_finishes': {
                             'active': {
@@ -1116,7 +1116,7 @@ Meteor.methods({
                 setter[setter_key] = value;
             }
 
-            Meteor.users.update({'owner_id': Meteor.userId()}, {$set : setter});
+            Meteor.users.update(Meteor.userId(), {$set : setter});
         }
 
         catch (error) {
