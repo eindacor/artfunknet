@@ -5,6 +5,8 @@ var sought_items = {};
 var already_winning = {};
 var hide_details = false;
 
+var biddable_rarities = ["common"];
+
 var getAuctionPreviewItemObject = function(auction_id) {
 	Meteor.call('getAuctionPreviewItemObject', auction_id, function(error, result) {
 		if (error)
@@ -92,8 +94,15 @@ Template.auctionTable.helpers({
 			if (Meteor.userId() == undefined)
 				biddable = false;
 
-			else if (auction_object.seller == Meteor.user().profile.screen_name)
+			else if (biddable_rarities.indexOf(auction_object.item_data.rarity) == -1) {
 				biddable = false;
+				reason = "insufficient player level";
+			}
+
+			else if (auction_object.seller == Meteor.user().profile.screen_name) {
+				biddable = false;
+				reason = "you are the seller";
+			}
 
 			else if (!funds_available && !currently_winning) {
 				biddable = false;
@@ -276,4 +285,18 @@ Template.auctionTable.destroyed = function() {
 Template.auctionTable.rendered = function() {
 	sought_items = {};
 	already_winning = {};
+	biddable_rarities = ["common"];
+
+	var player_level = Meteor.user().profile.level;
+	if (player_level >= 20)
+		biddable_rarities.push("uncommon");
+
+	if (player_level >= 30)
+		biddable_rarities.push("rare");
+
+	if (player_level >= 40)
+		biddable_rarities.push("legendary");
+
+	if (player_level >= 50)
+		biddable_rarities.push("masterpiece");
 }

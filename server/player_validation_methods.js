@@ -125,6 +125,25 @@ canBidOnItem = function(auction_id) {
 	var auction_object = auctions.findOne(auction_id);
 	var bidder_object = Meteor.user();
 
+	var biddable_rarities = ["common"];
+
+	var player_level = bidder_object.profile.level;
+	if (player_level >= 20)
+		biddable_rarities.push("uncommon");
+
+	if (player_level >= 30)
+		biddable_rarities.push("rare");
+
+	if (player_level >= 40)
+		biddable_rarities.push("legendary");
+
+	if (player_level >= 50)
+		biddable_rarities.push("masterpiece");
+
+	if (biddable_rarities.indexOf(auction_object.item_data.rarity) == -1) {
+		return false;
+	}
+
 	if (auction_object == undefined)
 		return false;
 
