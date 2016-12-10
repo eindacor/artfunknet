@@ -305,7 +305,7 @@ generateItemFromArtworkID = function(item_generator, callback) {
         var new_item_object = {
             'artwork_id' : item_generator.artwork_id,
             'condition' : item_generator.condition === undefined ? getCondition(item_generator.condition_min) : item_generator.condition,
-            'attributes' : getAttributes(artwork_data.rarity, item_generator.artwork_id),
+            'attributes' : getAttributesNew(item_generator.artwork_id),
             'owner' : item_generator.user_id,
             'status' : item_generator.status,
             'date_created' : moment()._d.toISOString(),

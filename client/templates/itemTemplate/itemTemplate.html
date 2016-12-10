@@ -102,6 +102,9 @@
 						<div class="footer-basic-info">
 							<div class="col-xs-11 no-padding attribute-area">
 							{{#if showDetails item_data}}
+								{{#each sortedAttributes item_data.attributes}}
+									<i data-attribute_description="{{description}}" data-attribute_value="{{value}}" class="{{#if ../item_data.permanent}}permanent{{/if}} old {{#if locked}}special{{/if}} item-attribute fa {{this.icon}}"></i>
+								{{/each}}
 								{{#each sortedAttributes item_data.attributes.locked}}
 									<i data-attribute_description="{{description}}" data-attribute_value="{{value}}" style="color: {{getHTMLColorFromValue value}}" class="{{#if ../item_data.permanent}}permanent{{/if}} locked item-attribute fa {{this.icon}}"></i>
 								{{/each}}

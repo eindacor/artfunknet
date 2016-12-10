@@ -341,6 +341,11 @@
 	text-shadow: 0.1em 0.1em 0.1em RGBA(0, 0, 0, .2);
 }
 */
+
+.template-itemInfo .old {
+	color: blue;
+}
+
 .template-itemInfo .special {
 	text-shadow: 0.1em 0.1em 0.1em RGBA(255, 51, 204, .8);
 }
