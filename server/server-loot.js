@@ -217,7 +217,8 @@ lookupCrateCost = function(quality, count) {
 
     var average_drop_value = getAverageDropValue(Meteor.user().profile.level, map_amplifier);
 
-    return Math.floor(average_drop_value * count * getLootData().rarity_inflation_coefficients[quality]);
+    //TODO remove hardcoded multiplier and adjust rarity_inflation_coefficients on DB
+    return Math.floor(average_drop_value * count * getLootData().rarity_inflation_coefficients[quality] * 1.75);
 }
 
 generateItems = function(multi_item_generator) {
