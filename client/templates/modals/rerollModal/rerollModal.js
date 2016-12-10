@@ -36,7 +36,7 @@ Template.rerollModal.helpers({
 				'artist' : item_object.artwork_data.artist,
 				'xp_rating' : Math.floor(item_object.xp_rating * 100),
 				'roll_count' : item_object.roll_count,
-				'attribute' : item_object.attributes,
+				'attributes' : item_object.attributes,
 
 			}
 		}
@@ -46,7 +46,7 @@ Template.rerollModal.helpers({
 			'artist' : "",
 			'xp_rating' : "",
 			'roll_count' : "",
-			'attribute' : []
+			'attributes' : []
 		}
 	},
 
@@ -88,10 +88,6 @@ Template.rerollModal.helpers({
 			return Session.get('can_reroll');
 
 		else return false;
-	},
-
-	'valueColor' : function(value) {
-		return 255 - Math.floor(value * 255);
 	},
 
 	'attributeValueText' : function(value) {

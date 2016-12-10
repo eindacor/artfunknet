@@ -349,10 +349,47 @@ attributeIsLocked = function(artwork_id, attribute_id) {
     return artworks.findOne({'_id': artwork_id, 'locked_attributes': {$in: [attribute_id]}}) != undefined;
 }
 
+getAttributesNew = function(artwork_id) {
+    var artwork_object = artworks.findOne(artwork_id);
+    var all_attributes = [];
+    var attributes_object = {
+        'locked': [],
+        'unlocked': [],
+        'special': []
+    }
+
+    for (var i=0; artwork_object.special_attributes && i<artwork_object.special_attributes.length; i++) {
+        var attribute_object = attributes.findOne(artwork_object.special_attributes[i]);
+        attribute_object.value = getAttributeValue(0, .8);
+        attributes_object.special.push(attribute_object);
+        all_attributes.push(attribute_object._id);
+    }
+
+    var locked_count = Math.random() < (1/200) ? 0 : 1;
+    var unlocked_count = artwork_object.rarity == "common" ? 1 - locked_count : 2 - locked_count;
+
+    for (var i=0; i<locked_count; i++) {
+        var query = {'_id': {$nin: all_attributes}, 'active': true};
+        var attribute_object = attributes.findOne(query, {skip: Math.floor(Math.random() * attributes.find(query).count())});
+        attribute_object.value = getAttributeValue(0, .5);
+        attributes_object.locked.push(attribute_object);
+        all_attributes.push(attribute_object._id);
+    }
+
+    for (var i=0; i<unlocked_count; i++) {
+        var query = {'_id': {$nin: all_attributes}, 'active': true};
+        var attribute_object = attributes.findOne(query, {skip: Math.floor(Math.random() * attributes.find(query).count())});
+        attribute_object.value = getAttributeValue(0, .5);
+        attributes_object.unlocked.push(attribute_object);
+        all_attributes.push(attribute_object._id);
+    }
+
+    return attributes_object;
+}
+
 getAttributes = function(rarity, artwork_id) {
     try {
-        var att_count = getLootData().attribute_quantities[rarity].primary;
-        var total_primary = attributes.find({'type' : "primary", 'active': true}).count();
+        var att_count = getLootData().attribute_quantities[rarity];
 
         var locked_att_ids = artworks.findOne(artwork_id).locked_attributes;
 
@@ -363,9 +400,9 @@ getAttributes = function(rarity, artwork_id) {
         var atts_to_add = att_count - attribute_array.length;
 
         for (var i=0; i < atts_to_add; i++) {
-            var remaining = attributes.find({'type' : "primary", 'active': true, '_id' : {$nin: att_ids}}).count();
+            var remaining = attributes.find({'active': true, '_id' : {$nin: att_ids}}).count();
             var random_index = Math.floor(Math.random() * remaining);
-            var random_attribute = attributes.findOne({'type' : "primary", 'active': true, '_id' : {$nin: att_ids}}, {skip: random_index});
+            var random_attribute = attributes.findOne({'active': true, '_id' : {$nin: att_ids}}, {skip: random_index});
             attribute_array.push(random_attribute);
             att_ids.push(random_attribute._id)
         }

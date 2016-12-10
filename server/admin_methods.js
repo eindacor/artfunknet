@@ -526,7 +526,7 @@ var linkedAttributesValid = function(unique_attribute_id, attribute_array) {
 	return true;
 }
 
-var getLegendaryAttributes = function(rarity) {
+getLegendaryAttributes = function(rarity) {
 	if (rarity == "legendary" || rarity == "masterpiece") {
         var random_attributes = [];
         var attribute_count = rarity == "legendary" ? 2 : 3;

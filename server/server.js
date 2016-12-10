@@ -80,6 +80,67 @@ var updateContent = function() {
         var default_lottery_tickets = 1 + vintage_level;
         Meteor.users.update(user_object._id, {$set: {'profile.lottery_tickets': default_lottery_tickets}});
     });
+
+    attributes.update({}, {$unset: {'type': ""}}, {multi: true});
+    metadata.find({'loot_data': {$ne: null}}).forEach(function(db_object) {
+        // loot data has already been updated
+        if (db_object.loot_data.attribute_quantities.common.primary == undefined)
+            return;
+
+        var attribute_quantities = {};
+        var rarities = ["common", "uncommon", "rare", "legendary", "masterpiece"];
+        for (var i=0; i<rarities.length; i++) {
+            attribute_quantities[rarities[i]] = db_object.loot_data.attribute_quantities[rarities[i]].primary;
+        }
+        metadata.update(db_object._id, {$set: {'loot_data.attribute_quantities': attribute_quantities}})
+    })
+
+    // artworks.find({'rarity': {$in: ["rare", "legendary", "masterpiece"]}}).forEach(function(artwork_object) {
+    //     if (artwork_object.rarity == "rare")
+    //         artworks.update(artwork_object._id, {$unset: {'special_attributes': "", 'unique_attributes': ""}});
+
+    //     else artworks.update(artwork_object._id, {$set: {'locked_attributes': getLegendaryAttributes(artwork_object.rarity)}, $unset: {'special_attributes': "", 'unique_attributes': ""}});
+    // })
+
+    artworks.find({'rarity': {$in: ["rare", "legendary", "masterpiece"]}}).forEach(function(artwork_object) {
+        // rare items get a random special attribute
+        if (artwork_object.rarity == "rare") {
+            var random_index = Math.floor(Math.random() * attributes.find({'active': true}).count());
+            var random_attribute = attributes.findOne({'active': true}, {skip: random_index});
+            artworks.update(artwork_object._id, {$set: {'special_attributes': [random_attribute._id]}});
+        }
+
+        //legendaries and masterpieces have their "locked attributes" set to "sepcial attributes", then recieve a new field "unique attributes"
+        else {
+            artworks.update(artwork_object._id, {$set: {'special_attributes': artwork_object.locked_attributes}, $unset: {'locked_attributes': ""}}, function() {
+                var unique_list = [];
+                var new_artwork_object = artworks.findOne(artwork_object._id);
+                for (var i=0; i<new_artwork_object.special_attributes.length; i++) {
+                    for (var n=0; n<new_artwork_object.special_attributes.length; n++) {
+                        if (i != n) {
+                            var unique_attribute = unique_attributes.findOne({'linked_attributes': {$all: [new_artwork_object.special_attributes[i], new_artwork_object.special_attributes[n]]}});
+
+                            if (unique_list.indexOf(unique_attribute._id) == -1)
+                                unique_list.push(unique_attribute._id);
+                        }
+                    }
+                }
+
+                artworks.update(new_artwork_object._id, {$set: {'unique_attributes': unique_list}, $unset: {'legendary_attributes': ""}}, function() {
+                    items.update({'artwork_id': new_artwork_object._id}, {$set: {'artwork_data.unique_attributes': unique_list}}, {multi: true});
+                });
+            });
+        }
+    });
+
+    while (items.findOne({'rarity': {$in: ["legendary", "masterpiece"]}, 'artwork_data.unique_attributes': null}) != undefined) {
+        console.log("waiting...");
+        setTimeout("", 2000);
+    }
+
+    items.find().forEach(function(item_object) {
+        items.update(item_object._id, {$set: {'attributes': getAttributesNew(item_object.artwork_id)}});
+    })
     // temp code
 }
 

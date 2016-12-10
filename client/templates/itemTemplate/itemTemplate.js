@@ -115,38 +115,11 @@ Template.itemInfo.helpers({
 		return Meteor.userId() == owner_id;
 	},
 
-	'unique_attribute' : function(item_object) {
-		if (item_object.attributes == undefined)
-			return [];
+	'unique_attribute' : function(unique_attribute_array) {
+		if (unique_attribute_array)
+			return unique_attributes.find({'_id': {$in: unique_attribute_array}});
 
-		var attribute_array = [];
-		item_object.attributes.forEach(function(attribute_object) {
-			if (attribute_object.locked)
-				attribute_array.push(attribute_object._id);
-		});
-		
-		if (attribute_array.length < 2 || attribute_array.length > 3)
-			return [];
-
-		else {
-			//TODO simplify, remove $and parameters and verify that it can match items from array
-			var first_id = attribute_array[0];
-			var second_id = attribute_array[1];
-
-			if (attribute_array.length == 2)
-				return unique_attributes.find({'linked_attributes': {$all: attribute_array}});
-
-			else {
-				var first_id = attribute_array[0];
-				var second_id = attribute_array[1];
-				var third_id = attribute_array[2];
-				return unique_attributes.find({ $or: [
-					{'linked_attributes': {$all: [first_id, second_id]}},
-					{'linked_attributes': {$all: [second_id, third_id]}},
-					{'linked_attributes': {$all: [first_id, third_id]}}
-				]});
-			}
-		}
+		else return [];
 	},
 
 	'reroll_unique_enable' : function(item_object) {
