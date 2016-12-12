@@ -295,6 +295,7 @@ var misprintArtworkData = function(artwork_data) {
 generateItemFromArtworkID = function(item_generator, callback) {
     var misprinted = Math.random() < item_generator.misprint_chance;
     var artwork_data = artworks.findOne(item_generator.artwork_id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}});
+
     if (artwork_data) {
 
         if (misprinted)
@@ -306,7 +307,7 @@ generateItemFromArtworkID = function(item_generator, callback) {
             'artwork_id' : item_generator.artwork_id,
             'condition' : item_generator.condition === undefined ? getCondition(item_generator.condition_min) : item_generator.condition,
             'attributes' : getAttributes(item_generator.artwork_id),
-            'active_unique_attribute': artwork_data.unique_attributes.length > 0 ? artwork_data.unique_attributes[0] : undefined,
+            'active_unique_attribute': artwork_data.unique_attributes ? artwork_data.unique_attributes[0] : undefined,
             'owner' : item_generator.user_id,
             'status' : item_generator.status,
             'date_created' : moment()._d.toISOString(),
@@ -366,8 +367,8 @@ getAttributes = function(artwork_id) {
         all_attributes.push(attribute_object._id);
     }
 
-    var locked_count = Math.random() < (1/200) ? 0 : 1;
-    var unlocked_count = artwork_object.rarity == "common" ? 1 - locked_count : 2 - locked_count;
+    var locked_count = Math.random() < (1/20) ? 0 : 1;
+    var unlocked_count = artwork_object.rarity == "common" ? 1 : 2 - locked_count;
 
     for (var i=0; i<locked_count; i++) {
         var query = {'_id': {$nin: all_attributes}, 'active': true};
@@ -380,7 +381,7 @@ getAttributes = function(artwork_id) {
     for (var i=0; i<unlocked_count; i++) {
         var query = {'_id': {$nin: all_attributes}, 'active': true};
         var attribute_object = attributes.findOne(query, {skip: Math.floor(Math.random() * attributes.find(query).count())});
-        attribute_object.value = getAttributeValue(0, .5);
+        attribute_object.value = getAttributeValue(0, 0);
         attributes_object.unlocked.push(attribute_object);
         all_attributes.push(attribute_object._id);
     }

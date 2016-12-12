@@ -125,7 +125,7 @@ Template.auctionTable.helpers({
 			};
 
 			list_object.owned = items.findOne({'owner': Meteor.userId(), 'artwork_id': auction_object.item_data.artwork_id, 'status': {$nin: ['unclaimed', 'for_sale', 'won']}}) != undefined;
-			list_object.attribute = auction_object.item_data.attributes;
+			list_object.attributes = auction_object.item_data.attributes;
 			list_object.artwork_id = auction_object.item_data.artwork_id;
 			list_object.buy_now_text = auction_object.buy_now == -1 ? "-" : "$" + getCommaSeparatedValue(auction_object.buy_now);
 
@@ -224,7 +224,21 @@ Template.auctionTable.helpers({
 			details_tracker.changed();
 			Session.set('toggle_auction_details', undefined);
 		}
-	}
+	},
+
+	'sortedAttributes' : function(attributes) {
+		if (attributes.length == undefined)
+			return [];
+		
+		attributes.sort(function(first, second) {
+	        if (first.description > second.description)
+	            return 1;
+
+	        else return -1;
+	    });
+
+	    return attributes;
+	},
 });
 
 Template.auctionTable.events({

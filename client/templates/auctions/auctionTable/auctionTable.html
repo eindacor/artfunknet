@@ -40,8 +40,16 @@
 								<div class="row other-info{{#if hideDetails}}-hidden{{/if}}">
 									<div class="col-xs-11 col-xs-offset-2">
 										<p> 
-										{{#each attribute}}
-											<i data-attribute_title="{{description}}" data-attribute_value="{{value}}" style="color: rgb({{attributeColor value}}, 0, 0)" class="{{#if locked}}locked{{/if}} item-attribute fa {{icon}}"></i>
+										{{#each sortedAttributes attributes.unlocked}}
+											<i data-attribute_title="{{description}}" data-attribute_value="{{value}}" style="color: rgb({{attributeColor value}}, 0, 0)" class="item-attribute fa {{icon}}"></i>
+										{{/each}}
+										{{#if attributes.locked}}|{{/if}}
+										{{#each sortedAttributes attributes.locked}}
+											<i data-attribute_title="{{description}}" data-attribute_value="{{value}}" style="color: rgb({{attributeColor value}}, 0, 0)" class="locked item-attribute fa {{icon}}"></i>
+										{{/each}}
+										{{#if attributes.special}}|{{/if}}
+										{{#each sortedAttributes attributes.special}}
+											<i data-attribute_title="{{description}}" data-attribute_value="{{value}}" style="color: rgb({{attributeColor value}}, 0, 0)" class="special item-attribute fa {{icon}}"></i>
 										{{/each}}
 										</p>
 									</div>
