@@ -305,7 +305,8 @@ generateItemFromArtworkID = function(item_generator, callback) {
         var new_item_object = {
             'artwork_id' : item_generator.artwork_id,
             'condition' : item_generator.condition === undefined ? getCondition(item_generator.condition_min) : item_generator.condition,
-            'attributes' : getAttributesNew(item_generator.artwork_id),
+            'attributes' : getAttributes(item_generator.artwork_id),
+            'active_unique_attribute': artwork_data.unique_attributes.length > 0 ? artwork_data.unique_attributes[0] : undefined,
             'owner' : item_generator.user_id,
             'status' : item_generator.status,
             'date_created' : moment()._d.toISOString(),
@@ -349,7 +350,7 @@ attributeIsLocked = function(artwork_id, attribute_id) {
     return artworks.findOne({'_id': artwork_id, 'locked_attributes': {$in: [attribute_id]}}) != undefined;
 }
 
-getAttributesNew = function(artwork_id) {
+getAttributes = function(artwork_id) {
     var artwork_object = artworks.findOne(artwork_id);
     var all_attributes = [];
     var attributes_object = {
@@ -387,9 +388,10 @@ getAttributesNew = function(artwork_id) {
     return attributes_object;
 }
 
-getAttributes = function(rarity, artwork_id) {
+getAttributesLegacy = function(artwork_id) {
     try {
-        var att_count = getLootData().attribute_quantities[rarity];
+        var artwork_object = artworks.findOne(artwork_id);
+        var att_count = getLootData().attribute_quantities[artwork_object.rarity];
 
         var locked_att_ids = artworks.findOne(artwork_id).locked_attributes;
 

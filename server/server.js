@@ -96,29 +96,82 @@ var updateContent = function() {
         metadata.update(db_object._id, {$set: {'loot_data.attribute_quantities': attribute_quantities}})
     })
 
-    var reset_db = false;
+    var revert_to_legacy = false;
 
-    if (reset_db) {
+    var db_is_legacy = artworks.findOne({'rarity': "legendary", 'unique_attributes': {$ne: null}}) == undefined;
+
+    if (revert_to_legacy && !db_is_legacy) {
+        /* old schema...
+            artworks:
+                {
+                    ...
+                    'locked_attributes': [<attribute_id>],
+                    'unique_attributes': null,
+                    'special_attributes': [<attribute_id>]
+                }
+
+            items: 
+                {
+                    ...
+                    'active_unique_attribute': null,
+                    'artwork_data': artworks.findOne(artwork_id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}})
+                }
+        */
         artworks.find({'rarity': {$in: ["rare", "legendary", "masterpiece"]}}).forEach(function(artwork_object) {
-            if (artwork_object.rarity == "rare")
-                artworks.update(artwork_object._id, {$unset: {'special_attributes': "", 'unique_attributes': ""}});
+            if (["common", "uncommon", "rare"].indexOf(artwork_object.rarity) != -1) {
+                artworks.update(artwork_object._id, {$unset: {'unique_attributes': "", 'special_attributes': ""}}, function() {
+                    items.find({'artwork_id': artwork_object._id}).forEach(function(item_object) {
+                        items.update(item_object._id, {$set: {'attributes': getAttributesLegacy(item_object.artwork_id), 'artwork_data': artworks.findOne(artwork_object._id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}})}, $unset: {'active_unique_attribute': ""}});
+                    });
+                });
+            }
 
-            else artworks.update(artwork_object._id, {$set: {'locked_attributes': getLegendaryAttributes(artwork_object.rarity)}, $unset: {'special_attributes': "", 'unique_attributes': ""}});
+            else {
+                artworks.update(artwork_object._id, {$set: {'locked_attributes': getLegendaryAttributes(artwork_object.rarity)}, $unset: {'special_attributes': "", 'unique_attributes': ""}}, function() {
+                    items.find({'artwork_id': artwork_object._id}).forEach(function(item_object) {
+                        items.update(item_object._id, {$set: {'attributes': getAttributesLegacy(item_object.artwork_id), 'artwork_data': artworks.findOne(artwork_object._id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}})}, $unset: {'active_unique_attribute': ""}})
+                    })
+                });
+            }
         })
     }
 
-    else {
+    else if (!revert_to_legacy && db_is_legacy) {
+        /* new schema...
+            artworks:
+                {
+                    ...
+                    'unique_attributes': [<unique_code>],
+                    'special_attributes': [<attribute_id>]
+                }
+
+            items: 
+                {
+                    ...
+                    'active_unique_attribute': <unique_id>,
+                    'artwork_data': artworks.findOne(artwork_id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}})
+                }
+        */
         artworks.find({'rarity': {$in: ["rare", "legendary", "masterpiece"]}}).forEach(function(artwork_object) {
+            if (["common", "uncommon"].indexOf(artwork_object.rarity) != -1) {
+                artworks.update(artwork_object._id, {$set: {'unique_attributes': [], 'special_attributes': []}}, function() {
+                    items.update({'artwork_id': artwork_object._id}, {$set: {'active_unique_attribute': undefined, 'artwork_data': artworks.findOne(artwork_object._id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}})}}, {multi: true});
+                })
+            }
+
             // rare items get a random special attribute
-            if (artwork_object.rarity == "rare") {
+            else if (artwork_object.rarity == "rare") {
                 var random_index = Math.floor(Math.random() * attributes.find({'active': true}).count());
                 var random_attribute = attributes.findOne({'active': true}, {skip: random_index});
-                artworks.update(artwork_object._id, {$set: {'special_attributes': [random_attribute._id]}});
+                artworks.update(artwork_object._id, {$set: {'special_attributes': [random_attribute._id]}}, function() {
+                    items.update({'artwork_id': artwork_object._id}, {$set: {'active_unique_attribute': undefined, 'artwork_data': artworks.findOne(artwork_object._id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}})}}, {multi: true});
+                });
             }
 
             //legendaries and masterpieces have their "locked attributes" set to "sepcial attributes", then recieve a new field "unique attributes"
             else {
                 if (artwork_object.locked_attributes == undefined) {
+                    console.log("locked attributes undefined");
                     return;
                 }
 
@@ -126,6 +179,7 @@ var updateContent = function() {
                     var unique_list = [];
                     var new_artwork_object = artworks.findOne(artwork_object._id);
                     if (new_artwork_object.special_attributes == undefined) {
+                        console.log("special attributes undefined");
                         return;
                     }
 
@@ -134,14 +188,22 @@ var updateContent = function() {
                             if (i != n) {
                                 var unique_attribute = unique_attributes.findOne({'linked_attributes': {$all: [new_artwork_object.special_attributes[i], new_artwork_object.special_attributes[n]]}});
 
-                                if (unique_list.indexOf(unique_attribute._id) == -1)
-                                    unique_list.push(unique_attribute._id);
+                                if (unique_list.indexOf(unique_attribute.code) == -1)
+                                    unique_list.push(unique_attribute.code);
                             }
                         }
                     }
 
                     artworks.update(new_artwork_object._id, {$set: {'unique_attributes': unique_list}, $unset: {'legendary_attributes': ""}}, function() {
-                        items.update({'artwork_id': new_artwork_object._id}, {$set: {'artwork_data.unique_attributes': unique_list}}, {multi: true});
+                        items.update(
+                            {'artwork_id': new_artwork_object._id}, 
+                            {
+                                $set: {
+                                    'artwork_data': artworks.findOne(new_artwork_object._id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}}), 
+                                    'active_unique_attribute': unique_list[0]
+                                }
+                            }, {multi: true}
+                        );
                     });
                 });
             }
@@ -151,7 +213,7 @@ var updateContent = function() {
             console.log("waiting...");
         }
 
-        items.find({'attributes.locked': null}).forEach(function(item_object) {
+        items.find({'attributes.unlocked': null}).forEach(function(item_object) {
             var current_attributes = item_object.attributes;
 
             // set one of the rare's attributes to locked before attributes are converted, if none of existing attributes match artwork's specials, set the first attribute to be the special

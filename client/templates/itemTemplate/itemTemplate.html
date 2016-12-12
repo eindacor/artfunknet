@@ -28,9 +28,9 @@
 								<p>roll count: ?</p>
 							{{/if}}
 							<div class="flavor-area">
-							{{#each unique_attribute item_data.artwork_data.unique_attributes}}
+							{{#with unique_attribute_data item_data.active_unique_attribute}}
 								<p class="flavor-text af-color {{#if ../item_data.permanent}}permanent{{/if}}">"{{flavor_text}}"</p>
-							{{/each}}
+							{{/with}}
 							</div>
 						</div>
 					</div>

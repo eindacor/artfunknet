@@ -115,11 +115,11 @@ Template.itemInfo.helpers({
 		return Meteor.userId() == owner_id;
 	},
 
-	'unique_attribute' : function(unique_attribute_array) {
-		if (unique_attribute_array)
-			return unique_attributes.find({'_id': {$in: unique_attribute_array}});
+	'unique_attribute_data' : function(unique_attribute_code) {
+		if (unique_attribute_code)
+			return unique_attributes.findOne({'code': unique_attribute_code});
 
-		else return [];
+		else return undefined;
 	},
 
 	'reroll_unique_enable' : function(item_object) {
