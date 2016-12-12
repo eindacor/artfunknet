@@ -52,6 +52,22 @@ canRerollItem = function(item_id) {
 	return can_afford && item_owned && valid_status ? item_object : undefined;
 }
 
+canRerollItemAttribute = function(item_id, attribute_id) {
+	var item_object = canRerollItem(item_id);
+
+	if (item_object == undefined)
+		return undefined;
+
+	var unlocked_attributes = item_object.attributes.unlocked;
+
+	for (var i=0; i<unlocked_attributes.length; i++) {
+		if (attribute_id == unlocked_attributes[i]._id)
+			return item_object;
+	}
+
+	return undefined;
+}
+
 canSellItem = function(item_id) {
 	var item_object = items.findOne(item_id);
 	var owned = Meteor.userId() && item_object && item_object.owner == Meteor.userId();

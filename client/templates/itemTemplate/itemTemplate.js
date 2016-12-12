@@ -82,6 +82,9 @@ Template.itemInfo.helpers({
 	},
 
 	'sortedAttributes' : function(attributes) {
+		if (attributes.length == undefined)
+			return [];
+		
 		attributes.sort(function(first, second) {
 	        if (first.description > second.description)
 	            return 1;

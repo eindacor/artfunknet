@@ -83,3 +83,7 @@
 	margin-top: 24px;
 	color: black !important;
 }
+
+.template-rerollModal .special {
+	text-shadow: 0.1em 0.1em 0.1em RGBA(255, 51, 204, .8);
+}

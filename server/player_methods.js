@@ -211,23 +211,24 @@ playerRatio = function(player_object) {
     return player_object.profile.level / player_level_max;
 }
 
+//TODO look into meteorhacks:aggregate package to simplify this and avoid for loops
 updateGalleryDetails = function(user_id) {
     var user_object = Meteor.users.findOne(user_id);
 
     if (user_object) {
-        var items_on_display = items.find({'owner' : user_id, 'status' : 'displayed'}).fetch();
         var gallery_value = 0;
         var attribute_rating_total = 0;
         var rarity_npc_coefficient_total = 0;
-
         var attribute_totals = {};
-        for (var i=0; i < items_on_display.length; i++) {
-            gallery_value += getItemObjectValueByType(items_on_display[i], 'actual', user_id)
-            var item_attributes = items_on_display[i].attributes;
+        var display_count = items.find({'owner' : user_id, 'status' : 'displayed'}).count();
+
+        items.find({'owner' : user_id, 'status' : 'displayed'}).forEach(function(item_object) {
+            gallery_value += getItemObjectValueByType(item_object, 'actual', user_id)
+            var item_attributes = item_object.attributes.locked.concat(item_object.attributes.unlocked.concat(item_object.attributes.special));
 
             var rarity_npc_coefficient;
 
-            switch(items_on_display[i].artwork_data.rarity) {
+            switch(item_object.artwork_data.rarity) {
                 case "common": rarity_npc_coefficient = .76; break;
                 case "uncommon": rarity_npc_coefficient = .8; break;
                 case "rare": rarity_npc_coefficient = .88; break;
@@ -241,6 +242,7 @@ updateGalleryDetails = function(user_id) {
             for (var n=0; n < item_attributes.length; n++) {
                 var attribute_id = item_attributes[n]._id;
                 var attribute_value = item_attributes[n].value;
+                attribute_rating_total += item_attributes[n].value
 
                 if (item_attributes[n].type == "primary")
                     attribute_rating_total += attribute_value;
@@ -250,10 +252,10 @@ updateGalleryDetails = function(user_id) {
 
                 else attribute_totals[attribute_id] += attribute_value;
             }
-        }
+        });
 
         var gallery_score = Math.floor(attribute_rating_total * 100);
-        var gallery_rarity_npc_coefficient = items_on_display.length ? rarity_npc_coefficient_total / items_on_display.length : 0;
+        var gallery_rarity_npc_coefficient = display_count ? rarity_npc_coefficient_total / display_count : 0;
 
         var display_cap = user_object.profile.display_cap;
         var attribute_ids = Object.keys(attribute_totals);

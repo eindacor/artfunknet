@@ -188,7 +188,10 @@ updateItem = function(item_id, modifier, callback) {
             if (item_object == undefined)
                 return false;
 
-            updateGalleryDetails(item_object.owner);
+            if (item_object.status == "displayed" || item_object.status == "permanent") {
+                console.log("updating gallery");
+                updateGalleryDetails(item_object.owner);
+            }
 
             if (callback == undefined)
                 items.update({'_id': item_id}, {$set: {'values': getItemObjectValues(items.findOne(item_id))}});
@@ -202,9 +205,6 @@ removeItem = function(item_id, source, callback) {
     var item_object = items.findOne(item_id);
 
     if (auctions.findOne({'item_id': item_id}) != undefined) {
-        // console.log("auction item delete prevented: " + item_id);
-        // console.log("auction id: " + auctions.findOne({'item_id': item_id})._id);
-        // console.log("source: " + source);
         return false;
     }
 
@@ -234,7 +234,9 @@ updateItemsBySelector = function(selector, modifier, callback) {
 
         else {
             items.find(selector).forEach(function(item_object) {
-                updateGalleryDetails(item_object.owner);
+                if (item_object.status == "displayed" || item_object.status == "permanent")
+                    updateGalleryDetails(item_object.owner);
+
                 items.update({'_id': item_object._id}, {$set: {'values': getItemObjectValues(items.findOne(item_object._id))}})
             });
 
@@ -243,6 +245,100 @@ updateItemsBySelector = function(selector, modifier, callback) {
         }
     })
 }
+
+var getRerollMin = function(user_id, attribute_type, item_object) {
+    var min_roll = 0;
+    switch(attribute_type) {
+        case "unlocked": min_roll = 0; break;
+        case "locked": min_roll = .5; break;
+        case "special": min_roll = .8; break;
+        default: break;
+    }
+
+    var delta = 1 - min_roll;
+
+    if (procUniqueAttribute(user_id, "MARKET_EXPERT_ROLL_BONUS", "Auctioneer")) {
+        min_roll += (delta * .3);
+    }
+
+    if ((item_object.roll_count > 10 || item_object.roll_count < 0) && procUniqueAttribute(user_id, "ROLL_COUNT_REROLL_BONUS", undefined)) {
+        min_roll += (delta * .3);
+    }
+
+    return min_roll;
+}
+
+rerollAttributeValue = function(user_id, item_id, attribute_id) {
+    var item_object = canRerollItem(item_id);
+    if (item_object) {
+        var roll_count = item_object.roll_count;
+        var attributes_object = item_object.attributes;
+
+        var attribute_type = undefined;
+
+        if (items.findOne({'_id': item_id, 'attributes.unlocked._id': attribute_id}) != undefined) {
+            attribute_type = "unlocked";
+        }
+
+        else if (items.findOne({'_id': item_id, 'attributes.locked._id': attribute_id}) != undefined) {
+            attribute_type = "locked";
+        }
+
+        else if (items.findOne({'_id': item_id, 'attributes.special._id': attribute_id}) != undefined) {
+            attribute_type = "special";
+        }
+
+        else return false;
+
+        var roll_value_min = getRerollMin(user_id, attribute_type, item_object);
+        var value = getAttributeValue(0, roll_value_min);
+
+        chargeAccount(user_id, getRerollCost(item_id));
+
+        var setter_object = {};
+        var setter_string = "attributes." + attribute_type + ".$.value";
+        setter_object[setter_string] = value;
+
+        var query_object = {'_id': item_id};
+        var query_string = "attributes." + attribute_type + "._id";
+        query_object[query_string] = attribute_id;
+        updateItem(query_object, {$set: setter_object, $inc: {'roll_count' : 1}});         
+    }
+
+    else throw "invalid operation";
+}
+
+rerollAttribute = function(user_id, item_id, attribute_id) {
+    var item_object = canRerollItemAttribute(item_id, attribute_id);
+    try {
+        if (item_object) {
+            var roll_count = item_object.roll_count;
+            var unlocked_attribute_array = item_object.attributes.unlocked;
+
+            var attribute_ids = []
+            for (var i=0; i < unlocked_attribute_array.length; i++) {
+                attribute_ids.push(unlocked_attribute_array[i]._id);
+            }
+
+            var remaining = attributes.find({'_id' : {$nin: attribute_ids}, 'active': true}).count();
+            var random_index = Math.floor(Math.random() * remaining);
+            var random_attribute = attributes.findOne({'_id' : {$nin: attribute_ids}, 'active': true}, {skip: random_index});
+
+            var roll_value_min = getRerollMin(user_id, "unlocked", item_object);
+            random_attribute.value = getAttributeValue(0, roll_value_min);
+
+            chargeAccount(user_id, getRerollCost(item_id));
+            updateItem({'_id': item_id, 'attributes.unlocked._id': attribute_id}, {$set: {'attributes.unlocked.$' : random_attribute,}, $inc: {'roll_count' : 1}});
+        }
+
+        else return false;
+    } catch(error) {
+        console.log(error);
+        console.log(item_object);
+    }
+}
+
+
 
 Meteor.methods({
 	'claimArtwork' : function(item_id) {
@@ -403,78 +499,11 @@ Meteor.methods({
     },
 
     'rerollAttributeValue' : function(item_id, attribute_id) {
-    	var item_object = canRerollItem(item_id);
-        if (item_object) {
-            var roll_count = item_object.roll_count;
-            var attribute_array = item_object.attributes;
-
-            for (var i=0; i < attribute_array.length; i++) {
-                if (attribute_array[i]._id == attribute_id) {
-                    var roll_value_min = 0;
-                    if (procUniqueAttribute(Meteor.userId(), "MARKET_EXPERT_ROLL_BONUS", "Auctioneer")) {
-                        var roll_value_min = .3;
-                    }
-
-                    if ((item_object.roll_count > 10 || item_object.roll_count < 0) && procUniqueAttribute(Meteor.userId(), "ROLL_COUNT_REROLL_BONUS", undefined)) {
-                        roll_value_min += .3;
-                    }
-
-                    attribute_array[i].value = attributeIsLocked(item_object.artwork_id, attribute_id) ? getLockedAttributeValue() : getAttributeValue(0, roll_value_min);
-                    break;
-                }
-            }
-
-            chargeAccount(Meteor.userId(), getRerollCost(item_id));
-            updateItem(item_id, {$set: {'attributes' : attribute_array, 'roll_count' : roll_count + 1}});         
-        }
-
-        else throw "invalid operation";
+    	return rerollAttributeValue(Meteor.userId(), item_id, attribute_id);
     },
 
     'rerollAttribute' : function(item_id, attribute_id) {
-    	var item_object = canRerollItem(item_id);
-        if (item_object && !attributeIsLocked(item_object.artwork_id, attribute_id)) {
-            var attribute_type = attributes.findOne(attribute_id).type;
-            var roll_count = item_object.roll_count;
-            var attribute_array = item_object.attributes;
-
-            var attribute_ids = []
-            for (var i=0; i < attribute_array.length; i++)
-                attribute_ids.push(attribute_array[i]._id);
-
-            var target_attribute_index;
-            for (var i=0; i < attribute_array.length; i++) {
-                if (attribute_array[i]._id == attribute_id) {
-                    target_attribute_index = i;
-                    break;
-                }
-            }
-
-            var remaining = attributes.find({'type' : attribute_type, '_id' : {$nin: attribute_ids}, 'active': true}).count();
-            var random_index = Math.floor(Math.random() * remaining);
-            var random_attribute = attributes.findOne({'type' : attribute_type, '_id' : {$nin: attribute_ids}, 'active': true}, {skip: random_index});
-
-            attribute_array[target_attribute_index] = random_attribute;
-
-            var roll_value_min = 0;
-
-            if (procUniqueAttribute(Meteor.userId(), "MARKET_EXPERT_ROLL_BONUS", "Auctioneer")) {
-                roll_value_min += .4;
-            }
-
-            if ((item_object.roll_count > 10 || item_object.roll_count < 0) && procUniqueAttribute(Meteor.userId(), "ROLL_COUNT_REROLL_BONUS", undefined)) {
-                roll_value_min += .5;
-            }
-
-            attribute_array[target_attribute_index].value = getAttributeValue(0, roll_value_min);
-            attribute_array[target_attribute_index].locked = attributeIsLocked(item_object.artwork_id, random_attribute._id);
-
-            chargeAccount(Meteor.userId(), getRerollCost(item_id));
-            updateItem(item_id, {$set: {'attributes' : attribute_array, 'roll_count' : roll_count + 1}});
-            
-        }
-
-        else return false;
+    	return rerollAttribute(Meteor.userId(), item_id, attribute_id);
     },
 
     'lookupOwner': function(item_id) {
