@@ -368,25 +368,17 @@ Meteor.methods({
     		if (isNaN(artwork_object.date) || isNaN(artwork_object.value_scale) || isNaN(artwork_object.height) || isNaN(artwork_object.width))
     			return undefined;
 
-            var original_object = artworks.findOne(artwork_id);
-            var new_rarity = original_object.rarity != artwork_object.rarity;
-    		var legendary_attributes = getLegendaryAttributes(artwork_object.rarity);
-
-    		if (legendary_attributes && new_rarity) {
-    			artwork_object.locked_attributes = legendary_attributes;
-            }
-
-	        else if (artwork_object.rarity != "legendary" && artwork_object.rarity != "masterpiece") {
-                artworks.update(artwork_id, {$unset: {'locked_attributes': ""}});
-            }
-
     		artworks.update(artwork_id, {$set: artwork_object}, {multi: true}, function(error) {
                 if (error)
                     console.log(error.message)
 
                 else {
                     var artwork_data = artworks.findOne(artwork_id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}});
-                    updateItemsBySelector({'artwork_id': artwork_id}, {$set: {'artwork_data': artwork_data}});
+                    items.find({'artwork_id': artwork_id}).forEach(function(item_object) {
+                        updateItem(item_object._id, {$set: {'artwork_data': artwork_data}}, function() {
+                            updateItemAttributesWithNewArtworkData(item_object._id);
+                        })                       
+                    })
                 }
             });
 
@@ -577,4 +569,31 @@ getLegendaryAttributes = function(rarity) {
     }
 
     else return undefined;
+}
+
+getRandomSpecialAttributes = function(rarity) {
+    if (["rare", "legendary", "masterpiece"].indexOf(rarity) != -1) {
+        var random_attributes = [];
+        var attribute_count = undefined;
+
+        switch(rarity) {
+            case "rare": attribute_count = 1; break;
+            case "legendary": attribute_count = 2; break;
+            case "masterpiece": attribute_count = 3; break;
+            default: attribute_count = 0; break;
+        }
+
+        while (random_attributes.length < attribute_count) {
+            var selector = {'_id': {$nin: random_attributes}, 'active': true};
+            var count = attributes.find(selector).count();
+            if (count == 0)
+                break;
+            
+            random_attributes.push(attributes.findOne(selector, {skip: Math.floor(Math.random() * count)})._id);
+        }
+
+        return random_attributes;
+    }
+
+    else return [];
 }

@@ -7,6 +7,14 @@ var unique_attribute_mod_tracker = new Tracker.Dependency;
 var attribute_link_choice_tracker = new Tracker.Dependency;
 var graph_data_tracker = new Tracker.Dependency;
 var test_result_tracker = new Tracker.Dependency;
+var selected_artwork_special_attributes_selected = [];
+var selected_artwork_special_attributes_selected_tracker = new Tracker.Dependency;
+var special_attribute_unique_attribute_tracker = new Tracker.Dependency;
+var special_attribute_unique_attributes = [];
+var generate_artwork_errors = [];
+var generate_artwork_error_tracker = new Tracker.Dependency;
+
+var selected_artwork = undefined;
 
 var admin_data = undefined;
 var graph_data;
@@ -14,6 +22,36 @@ var map_data;
 var test_results;
 
 var all_users = [];
+
+var updateSelectedSpecialAttributeDOM = function() {
+	$wrapper = $('.special-attribute-section');
+	$wrapper.empty();
+	attributes.find({'active': true}).forEach(function(attribute_object) {
+		if (selected_artwork_special_attributes_selected.indexOf(attribute_object._id) != -1) {
+			$wrapper.append('<label><input class="special-attribute-select" type="checkbox" id="special-attribute-checkbox" value="' + attribute_object._id + '" checked>' + attribute_object.npc_name + '</label><br>');
+		}
+
+		else {
+			$wrapper.append('<label><input class="special-attribute-select" type="checkbox" id="special-attribute-checkbox" value="' + attribute_object._id + '">' + attribute_object.npc_name + '</label><br>');
+		}
+	})
+}
+
+var updateUniqueAttributesFromSpecialAttributeSelected = function() {
+	special_attribute_unique_attributes = [];
+    for (var i=0; i<selected_artwork_special_attributes_selected.length; i++) {
+        for (var n=0; n<selected_artwork_special_attributes_selected.length; n++) {
+            if (i != n) {
+                var unique_attribute = unique_attributes.findOne({'linked_attributes': {$all: [selected_artwork_special_attributes_selected[i], selected_artwork_special_attributes_selected[n]]}});
+
+                if (special_attribute_unique_attributes.indexOf(unique_attribute.code) == -1)
+                    special_attribute_unique_attributes.push(unique_attribute.code);
+            }
+        }
+    }
+
+    special_attribute_unique_attribute_tracker.changed();
+}
 
 var updateAdminData = function() {
 	Meteor.call('getAdminData', function(error, result) {
@@ -435,22 +473,19 @@ Template.adminTools.events({
     	})
     },
 
-    'change .attribute-selector' : function(event) {
-    	var container = $(event.target).closest('.legendary-container');
-    	var attribute_id_array = [];
-
-    	for (var i=0; i < container.find('.attribute-selector').length; i++) {
-    		attribute_id_array.push(container.find('.attribute-selector:eq(' + i + ')').val());
-    	}
-
-    	Meteor.call('updateSpecialAttributes', container.data().artwork_id, attribute_id_array, function(error) {
-    		if (error)
-    			console.log(error.message);
-    	})
-    },
-
     'change .artwork-selector' : function() {
-    	artwork_mod_tracker.changed();
+    	special_attribute_unique_attributes = [];
+    	selected_artwork_special_attributes_selected = [];
+
+    	var artwork_object = artworks.findOne($('.artwork-selector').val());
+		if (artwork_object) {
+			selected_artwork_special_attributes_selected = artwork_object.special_attributes ? artwork_object.special_attributes : [];
+			updateSelectedSpecialAttributeDOM();
+		}
+
+		selected_artwork = artwork_object;
+		updateUniqueAttributesFromSpecialAttributeSelected();
+		artwork_mod_tracker.changed();
     },
 
     'change .artist-mod-selector' : function() {
@@ -478,6 +513,11 @@ Template.adminTools.events({
 			return;
 
 		var artwork_object = generateArtworkObject();
+
+		generate_artwork_error_tracker.changed();
+		if (artwork_object == undefined)
+			return;
+
 		var artwork_keys = Object.keys(artwork_object);
 
 		if (artwork_id == "new artwork") {
@@ -641,7 +681,7 @@ Template.adminTools.events({
 					unique_attribute_mod_tracker.changed();
 					$('.unique-attribute-mod-selector').val(result);
 				}
-			});
+			});g
 		}
 
 		else {
@@ -699,6 +739,20 @@ Template.adminTools.events({
 			if (error)
 				console.log(error.message)
 		})
+	},
+
+	'change .special-attribute-select': function(event) {
+		var checked = $(event.target)[0].checked;
+		var attribute_id = $(event.target).val();
+		if (checked && selected_artwork_special_attributes_selected.indexOf(attribute_id) == -1) {
+			selected_artwork_special_attributes_selected.push($(event.target).val());
+		}
+
+		if (!checked && selected_artwork_special_attributes_selected.indexOf(attribute_id) != -1) {
+			selected_artwork_special_attributes_selected.splice(selected_artwork_special_attributes_selected.indexOf(attribute_id), 1));
+		}
+
+		updateUniqueAttributesFromSpecialAttributeSelected();
 	}
 });
 
@@ -722,6 +776,23 @@ var generateRarityMap = function() {
 var generateArtworkObject = function() {
 	var artist_object = artists.findOne($('#artwork-mod-container').find('.artwork-mod-artist-selector').val());
 
+	generate_artwork_errors = [];
+	var specified_rarity = $('#artwork-mod-container').find('.rarity-selector').val();
+
+	var special_attributes_expected;
+
+	switch(specified_rarity) {
+		case "rare": special_attributes_expected = 1; break;
+		case "legendary": special_attributes_expected = 2; break;
+		case "masterpiece": special_attributes_expected = 3; break;
+		default: special_attributes_expected = 0;
+	}
+
+	if (selected_artwork_special_attributes_selected.length != special_attributes_expected) {
+		generate_artwork_errors.push(specified_rarity + " artworks require " + special_attributes_expected + " special attributes");
+		return undefined;
+	}
+
 	var artwork_object = {
 		'artist': artist_object.artist_name,
 		'artist_id': artist_object._id,
@@ -734,9 +805,11 @@ var generateArtworkObject = function() {
 		'value_scale': $('#artwork-mod-value-scale').val() == "" ? Number(Math.random().toFixed(2)) : Number($('#artwork-mod-value-scale').val()),
 		'width': Number($('#artwork-mod-width').val()),		
 		'nsfw': $('#artwork-mod-container').find('.nsfw-selector').val() == "true" ? true : false,
-		'rarity': $('#artwork-mod-container').find('.rarity-selector').val(),
+		'rarity': specified_rarity,
 		'rarity_value': rarityValueFromString($('#artwork-mod-container').find('.rarity-selector').val()),
 		'active': $('#artwork-mod-container').find('.active-selector').val() == "true" ? true : false,
+		'special_attributes': selected_artwork_special_attributes_selected,
+		'unique_attributes': special_attribute_unique_attributes
 	}
 
 	return artwork_object;
@@ -898,9 +971,19 @@ Template.adminTools.helpers({
 		return Meteor.userId();
 	},
 
+	'artwork_unique_attribute': function() {
+		special_attribute_unique_attribute_tracker.depend();
+		return special_attribute_unique_attributes;
+	},
+
 	'selected_artwork' : function() {
 		artwork_mod_tracker.depend();
-		return artworks.findOne($('.artwork-selector').val());
+		return selected_artwork;
+	},
+
+	'generate_artwork_error': function() {
+		generate_artwork_error_tracker.depend();
+		return generate_artwork_errors;
 	},
 
 	'selected_artist' : function() {
@@ -1006,5 +1089,8 @@ Template.adminTools.helpers({
 })
 
 Template.adminTools.rendered = function() {
+	special_attribute_unique_attributes = [];
+	selected_artwork_special_attributes_selected = [];
+	generate_artwork_errors = [];
 	updateAdminData();
 }
