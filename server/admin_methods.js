@@ -348,8 +348,7 @@ Meteor.methods({
 
                     else active_unique_attribute = undefined;
 
-                    updateItem(item_object._id, {$set: {'artwork_data': artwork_data, 'active_unique_attribute': active_unique_attribute}});
-                    updateItemAttributesWithNewArtworkData(item_object._id);
+                    updateItem(item_object._id, {$set: {'artwork_data': artwork_data, 'active_unique_attribute': active_unique_attribute}}, updateItemAttributesWithNewArtworkData(item_object._id));     
                 })
             });
 	        

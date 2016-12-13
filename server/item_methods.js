@@ -198,7 +198,11 @@ var searchArrayForSpecialAttributes = function(special_ids, item_object, new_att
             new_attribute_object.special.push(item_object.attributes[attribute_type][i]);
         }
 
-        else new_attribute_object[attribute_type].push(item_object.attributes[attribute_type][i]);
+        else if (attribute_type != "special") {
+            new_attribute_object[attribute_type].push(item_object.attributes[attribute_type][i]);
+        }
+
+        else continue;
 
         all_new_attributes.push(item_object.attributes[attribute_type][i]._id);
     }
@@ -258,8 +262,7 @@ updateItemAttributesWithNewArtworkData = function(item_id) {
             all_new_attributes.push(attribute_object._id);
         }
 
-        //TODO this updateItem call removes the item
-        //updateItem(item_id, {'attributes': new_attribute_object}, undefined);
+        updateItem(item_id, {$set: {'attributes': new_attribute_object}});
     }
 }
 
