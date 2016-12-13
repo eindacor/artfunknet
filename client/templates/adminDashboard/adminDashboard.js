@@ -749,7 +749,7 @@ Template.adminTools.events({
 		}
 
 		if (!checked && selected_artwork_special_attributes_selected.indexOf(attribute_id) != -1) {
-			selected_artwork_special_attributes_selected.splice(selected_artwork_special_attributes_selected.indexOf(attribute_id), 1));
+			selected_artwork_special_attributes_selected.splice(selected_artwork_special_attributes_selected.indexOf(attribute_id), 1);
 		}
 
 		updateUniqueAttributesFromSpecialAttributeSelected();
