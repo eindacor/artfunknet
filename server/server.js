@@ -96,47 +96,9 @@ var updateContent = function() {
         metadata.update(db_object._id, {$set: {'loot_data.attribute_quantities': attribute_quantities}})
     })
 
-    var revert_to_legacy = false;
-
     var db_is_legacy = artworks.findOne({'rarity': "legendary", 'unique_attributes': {$ne: null}}) == undefined;
 
-    if (revert_to_legacy && !db_is_legacy) {
-        /* old schema...
-            artworks:
-                {
-                    ...
-                    'locked_attributes': [<attribute_id>],
-                    'unique_attributes': null,
-                    'special_attributes': [<attribute_id>]
-                }
-
-            items: 
-                {
-                    ...
-                    'active_unique_attribute': null,
-                    'artwork_data': artworks.findOne(artwork_id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}})
-                }
-        */
-        artworks.find({'rarity': {$in: ["rare", "legendary", "masterpiece"]}}).forEach(function(artwork_object) {
-            if (["common", "uncommon", "rare"].indexOf(artwork_object.rarity) != -1) {
-                artworks.update(artwork_object._id, {$unset: {'unique_attributes': "", 'special_attributes': ""}}, function() {
-                    items.find({'artwork_id': artwork_object._id}).forEach(function(item_object) {
-                        items.update(item_object._id, {$set: {'attributes': getAttributesLegacy(item_object.artwork_id), 'artwork_data': artworks.findOne(artwork_object._id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}})}, $unset: {'active_unique_attribute': ""}});
-                    });
-                });
-            }
-
-            else {
-                artworks.update(artwork_object._id, {$set: {'locked_attributes': getLegendaryAttributes(artwork_object.rarity)}, $unset: {'special_attributes': "", 'unique_attributes': ""}}, function() {
-                    items.find({'artwork_id': artwork_object._id}).forEach(function(item_object) {
-                        items.update(item_object._id, {$set: {'attributes': getAttributesLegacy(item_object.artwork_id), 'artwork_data': artworks.findOne(artwork_object._id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}})}, $unset: {'active_unique_attribute': ""}})
-                    })
-                });
-            }
-        })
-    }
-
-    else if (!revert_to_legacy && db_is_legacy) {
+    if (db_is_legacy) {
         /* new schema...
             artworks:
                 {
@@ -239,8 +201,8 @@ var updateContent = function() {
 
             var new_attributes_object = {'locked': [], 'unlocked': [], 'special': []};
 
-            var locked_count = Math.random() < (1/200) ? 0 : 1;
             var locked_attributes_added = 0;
+            var locked_count = item_object.artwork_data.rarity == "common" || Math.random() < (1/20) ? 0 : 1;
 
             for (var i=0; i<current_attributes.length; i++) {
                 var attribute_id = current_attributes[i]._id;

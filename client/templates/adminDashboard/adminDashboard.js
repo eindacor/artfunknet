@@ -443,7 +443,7 @@ Template.adminTools.events({
     		attribute_id_array.push(container.find('.attribute-selector:eq(' + i + ')').val());
     	}
 
-    	Meteor.call('updateLockedAttributes', container.data().artwork_id, attribute_id_array, function(error) {
+    	Meteor.call('updateSpecialAttributes', container.data().artwork_id, attribute_id_array, function(error) {
     		if (error)
     			console.log(error.message);
     	})

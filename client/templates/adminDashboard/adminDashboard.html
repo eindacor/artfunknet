@@ -441,10 +441,10 @@
 					<div class="row">
 						<div data-artwork_id="{{_id}}" class="col-xs-6 legendary-container">
 							<p class="{{rarity}}">{{title}} by {{artist}}</p>
-							{{#each locked_attributes}}
+							{{#each special_attributes}}
 							<select class="attribute-selector">
 								<option value="{{this}}">{{npcName this}}</option>
-								{{#each selectorChoice ../locked_attributes}}
+								{{#each selectorChoice ../special_attributes}}
 									<option value="{{_id}}">{{npc_name}}</option>
 								{{/each}}
 							</select>

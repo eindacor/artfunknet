@@ -191,7 +191,7 @@ Template.inventory.helpers({
 
 			if (locked_attributes.length > 0) {
 				if ($('#locked-filter').val() == "contains one") {
-					var key_string = "artwork_data.locked_attributes";
+					var key_string = "artwork_data.attributes.special";
 					base_filter[key_string] = {"$in": locked_attributes};
 				}
 
@@ -201,8 +201,8 @@ Template.inventory.helpers({
 						for (var n=0; n<locked_attributes.length; n++) {
 							if (locked_attributes[i] != locked_attributes[n]) {
 								or_filter_array.push({'$and': [
-									{'artwork_data.locked_attributes': locked_attributes[i]},
-									{'artwork_data.locked_attributes': locked_attributes[n]}
+									{'artwork_data.attributes.special': locked_attributes[i]},
+									{'artwork_data.attributes.special': locked_attributes[n]}
 								]});
 							}
 						}
@@ -222,9 +222,9 @@ Template.inventory.helpers({
 							for (var c=0; c<locked_attributes.length; c++) {
 								if (locked_attributes[i] != locked_attributes[n] && locked_attributes[i] != locked_attributes[c] && locked_attributes[n] != locked_attributes[c]) {
 									or_filter_array.push({'$and': [
-										{'artwork_data.locked_attributes': locked_attributes[i]},
-										{'artwork_data.locked_attributes': locked_attributes[n]},
-										{'artwork_data.locked_attributes': locked_attributes[c]}
+										{'artwork_data.attributes.special': locked_attributes[i]},
+										{'artwork_data.attributes.special': locked_attributes[n]},
+										{'artwork_data.attributes.special': locked_attributes[c]}
 									]});
 								}
 							}

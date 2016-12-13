@@ -135,7 +135,7 @@ getItemObjectValues = function(item_object) {
 }
 
 var getAttributeValueCoefficient = function(item_object) {
-    var attribute_array = item_object.attributes;
+    var attribute_array = getAllItemObjectAttributes(item_object);
 
     var total_rating = 0;
     var rating_count = 0;
@@ -345,10 +345,6 @@ generateItemFromArtworkID = function(item_generator, callback) {
     }
 
     else return undefined;
-}
-
-attributeIsLocked = function(artwork_id, attribute_id) {
-    return artworks.findOne({'_id': artwork_id, 'locked_attributes': {$in: [attribute_id]}}) != undefined;
 }
 
 getAttributes = function(artwork_id) {

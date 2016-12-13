@@ -307,18 +307,52 @@ Meteor.methods({
     	else return undefined;
     },
 
-    //TODO: horribly inefficient method, update
-    'updateLockedAttributes': function(artwork_id, attribute_id_array) {
-    	if (adminValidated()) {
-    		artworks.update(artwork_id, {$set: {'locked_attributes': attribute_id_array}});
-	        items.find({'artwork_id': artwork_id}).forEach(function(db_object) {
-		        var item_attributes = db_object.attributes;
-		        for (var i=0; i<item_attributes.length; i++) {
-		            item_attributes[i].locked = attributeIsLocked(artwork_id, item_attributes[i]._id);
-		        }
+    /* new schema...
+        artworks:
+            {
+                ...
+                'unique_attributes': [<unique_code>],
+                'special_attributes': [<attribute_id>]
+            }
 
-                updateItem(db_object._id, {$set: {'attributes': item_attributes, 'artwork_data.locked_attributes': attribute_id_array}})
-		    })
+        items: 
+            {
+                ...
+                'active_unique_attribute': <unique_id>,
+                'artwork_data': artworks.findOne(artwork_id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}})
+            }
+    */
+
+    //TODO: horribly inefficient method, update
+    'updateSpecialAttributes': function(artwork_id, attribute_id_array) {
+    	if (adminValidated()) {
+            var unique_list = [];
+            for (var i=0; i<attribute_id_array.length; i++) {
+                for (var n=0; n<attribute_id_array.length; n++) {
+                    if (i != n) {
+                        var unique_attribute = unique_attributes.findOne({'linked_attributes': {$all: [attribute_id_array[i], attribute_id_array[n]]}});
+
+                        if (unique_list.indexOf(unique_attribute.code) == -1)
+                            unique_list.push(unique_attribute.code);
+                    }
+                }
+            }
+
+    		artworks.update(artwork_id, {$set: {'special_attributes': attribute_id_array, 'unique_attributes': unique_list}}, function() {
+                items.find({'artwork_id': artwork_id}).forEach(function(item_object) {
+                    var artwork_data = artworks.findOne(artwork_id);
+
+                    var active_unique_attribute = item_object.active_unique_attribute;
+                    if (unique_list.length > 0)
+                        active_unique_attribute = unique_list[0];
+
+                    else active_unique_attribute = undefined;
+
+                    updateItem(item_object._id, {$set: {'artwork_data': artwork_data, 'active_unique_attribute': active_unique_attribute}});
+                    updateItemAttributesWithNewArtworkData(item_object._id);
+                })
+            });
+	        
     	}
     },
 

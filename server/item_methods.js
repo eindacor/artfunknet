@@ -178,6 +178,91 @@ claimItemObject = function(user_id, item_object) {
     return success;
 }
 
+getAllItemObjectAttributes = function(item_object) {
+    var all_attributes = [];
+    if (item_object.attributes.locked && item_object.attributes.locked.length > 0)
+        all_attributes = all_attributes.concat(item_object.attributes.locked);
+
+    if (item_object.attributes.unlocked && item_object.attributes.unlocked.length > 0)
+        all_attributes = all_attributes.concat(item_object.attributes.unlocked);
+
+    if (item_object.attributes.special && item_object.attributes.special.length > 0)
+        all_attributes = all_attributes.concat(item_object.attributes.special);
+
+    return all_attributes;
+}
+
+var searchArrayForSpecialAttributes = function(special_ids, item_object, new_attribute_object, attribute_type, all_new_attributes) {
+    for (var i=0; i<item_object.attributes[attribute_type].length; i++) {
+        if (special_ids.indexOf(item_object.attributes[attribute_type][i]._id) != -1) {
+            new_attribute_object.special.push(item_object.attributes[attribute_type][i]);
+        }
+
+        else new_attribute_object[attribute_type].push(item_object.attributes[attribute_type][i]);
+
+        all_new_attributes.push(item_object.attributes[attribute_type][i]._id);
+    }
+}
+
+updateItemAttributesWithNewArtworkData = function(item_id) {
+    var item_object = items.findOne(item_id);
+    var artwork_object = artworks.findOne(item_object.artwork_id);
+
+    if (item_object && artwork_object) {
+        var all_new_attributes = [];
+        var new_attribute_object = {'locked': [], 'unlocked': [], 'special': []}
+        var special_ids = artwork_object.special_attributes;
+
+        searchArrayForSpecialAttributes(special_ids, item_object, new_attribute_object, "unlocked", all_new_attributes);
+        searchArrayForSpecialAttributes(special_ids, item_object, new_attribute_object, "locked", all_new_attributes);
+        searchArrayForSpecialAttributes(special_ids, item_object, new_attribute_object, "special", all_new_attributes);
+
+        var locked_count = item_object.attributes.locked.length;
+        var unlocked_count = item_object.attributes.unlocked.length;
+        // add displaced special attributes to locked/unlocked
+        for (var i=0; i<item_object.attributes.special.length; i++) {
+            if (special_ids.indexOf(item_object.attributes.special[i]._id) == -1) {
+                if (new_attribute_object.locked.length < locked_count) {
+                    new_attribute_object.locked.push(item_object.attributes.special[i]);
+                }
+
+                else if (new_attribute_object.unlocked.length < unlocked_count) {
+                    new_attribute_object.unlocked.push(item_object.attributes.special[i]);
+                }           
+            }
+        }
+
+        while (locked_count > new_attribute_object.locked.length) {
+            var query = {'_id': {$nin: all_new_attributes}, 'active': true};
+            var attribute_object = attributes.findOne(query, {skip: Math.floor(Math.random() * attributes.find(query).count())});
+            attribute_object.value = getAttributeValue(0, .5);
+            new_attribute_object.locked.push(attribute_object);
+            all_new_attributes.push(attribute_object._id);
+        }
+
+        while (unlocked_count > new_attribute_object.unlocked.length) {
+            var query = {'_id': {$nin: all_new_attributes}, 'active': true};
+            var attribute_object = attributes.findOne(query, {skip: Math.floor(Math.random() * attributes.find(query).count())});
+            attribute_object.value = getAttributeValue(0, 0);
+            new_attribute_object.unlocked.push(attribute_object);
+            all_new_attributes.push(attribute_object._id);
+        }
+
+        for (var i=0; i<special_ids.length; i++) {
+            if (all_new_attributes.indexOf(special_ids[i]) != -1)
+                continue;
+
+            var attribute_object = attributes.findOne({'_id': special_ids[i], 'active': true});
+            attribute_object.value = getAttributeValue(0, .8);
+            new_attribute_object.special.push(attribute_object);
+            all_new_attributes.push(attribute_object._id);
+        }
+
+        //TODO this updateItem call removes the item
+        //updateItem(item_id, {'attributes': new_attribute_object}, undefined);
+    }
+}
+
 updateItem = function(item_id, modifier, callback) {
     items.update(item_id, modifier, function(error) {
         if (error)
@@ -189,14 +274,15 @@ updateItem = function(item_id, modifier, callback) {
                 return false;
 
             if (item_object.status == "displayed" || item_object.status == "permanent") {
-                console.log("updating gallery");
                 updateGalleryDetails(item_object.owner);
             }
 
-            if (callback == undefined)
-                items.update({'_id': item_id}, {$set: {'values': getItemObjectValues(items.findOne(item_id))}});
+            var newItemObjectValues =  getItemObjectValues(item_object);
+            if (callback == undefined) {           
+                items.update(item_id, {$set: {'values': newItemObjectValues}});
+            }
 
-            else items.update({'_id': item_id}, {$set: {'values': getItemObjectValues(items.findOne(item_id))}}, callback);
+            else items.update(item_id, {$set: {'values': newItemObjectValues}}, callback);
         }
     })
 }

@@ -224,7 +224,7 @@ updateGalleryDetails = function(user_id) {
 
         items.find({'owner' : user_id, 'status' : 'displayed'}).forEach(function(item_object) {
             gallery_value += getItemObjectValueByType(item_object, 'actual', user_id)
-            var item_attributes = item_object.attributes.locked.concat(item_object.attributes.unlocked.concat(item_object.attributes.special));
+            var item_attributes = getAllItemObjectAttributes(item_object);
 
             var rarity_npc_coefficient;
 
@@ -427,6 +427,34 @@ getActiveQuests = function() {
 
 canAcceptQuest = function(npc_object) {
     return (getActiveQuests() < getMaxQuests(npc_object));
+
+var increaseRandomAttribute = function(user_id, attribute_type) {
+    var selector = {'owner': user_id, 'status': 'displayed'};
+    var selector_string = "attributes." + attribute_type + ".value";
+    selector[selector_string] = {'$lt': .9};
+    var item_object = items.findOne(selector, {skip: Math.floor(items.find(selector).count() * Math.random())});
+
+    if (item_object) {
+        var qualifying_attributes = [];
+        for (var i=0; i<item_object.attributes.length; i++) {
+            if (item_object.attributes[i].value < .9)
+                qualifying_attributes.push(item_object.attributes[i]._id);
+        }
+        var random_index = Math.floor(Math.random() * qualifying_attributes.length);
+        var attribute_id = qualifying_attributes[random_index];
+        var update_selector = {'_id': item_object._id, 'status': 'displayed'};
+        var update_selector_string = "attributes." + attribute_type + "._id";
+        update_selector[update_selector_string] = attribute_id;
+        
+        var incrementer = {};
+        var incrementer_string = "attributes." + attribute_type + ".$.value";
+        incrementer[incrementer_string] = .02;
+
+        updateItem(update_selector, {$inc: incrementer_string});
+        return true;
+    }
+
+    else return false;
 }
 
 Meteor.methods({
@@ -665,19 +693,13 @@ Meteor.methods({
             }
 
             if (procUniqueAttribute(user_object._id, "ROLL_VALUE_QUEST_BONUS", undefined)) {
-                var selector = {'status': 'displayed', 'attributes.value': {'$lt': .9}};
-                var item_object = items.findOne(selector, {skip: Math.floor(items.find(selector).count() * Math.random())});
+                var attribute_found = false;
+                var attribute_types = ["unlocked", "locked", "special"];
 
-                if (item_object) {
-                    var qualifying_attributes = [];
-                    for (var i=0; i<item_object.attributes.length; i++) {
-                        if (item_object.attributes[i].value < .9)
-                            qualifying_attributes.push(item_object.attributes[i]._id);
-                    }
-                    var random_index = Math.floor(Math.random() * qualifying_attributes.length);
-                    var attribute_id = qualifying_attributes[random_index];
-
-                    updateItem({'_id': item_object._id, 'status': 'displayed', 'attributes._id': attribute_id}, {$inc: {'attributes.$.value': .02}});
+                while (!attribute_found && attribute_types.length > 0) {
+                    var random_index = Math.floor(Math.random() * attribute_types.length);
+                    attribute_found = increaseRandomAttribute(attribute_types[random_index]);
+                    attribute_types.splice(random_index, 1);
                 }
             }
 
