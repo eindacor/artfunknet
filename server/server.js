@@ -133,7 +133,6 @@ var updateContent = function() {
             //legendaries and masterpieces have their "locked attributes" set to "sepcial attributes", then recieve a new field "unique attributes"
             else {
                 if (artwork_object.locked_attributes == undefined) {
-                    console.log("locked attributes undefined");
                     return;
                 }
 
@@ -141,7 +140,6 @@ var updateContent = function() {
                     var unique_list = [];
                     var new_artwork_object = artworks.findOne(artwork_object._id);
                     if (new_artwork_object.special_attributes == undefined) {
-                        console.log("special attributes undefined");
                         return;
                     }
 
@@ -226,6 +224,56 @@ var updateContent = function() {
 
             items.update(item_object._id, {$set: {'attributes': new_attributes_object}});
         })
+    }
+
+    var unique_combos = [];
+    var all_attributes = attributes.find({'active': true}).fetch();
+
+    var tooSimilar = function(first, second) {
+        var similarity_count = 0;
+        for (var i=0; i<first.length; i++) {
+            if (second.indexOf(first[i]) != -1) {
+                similarity_count++;
+            }
+        }
+       
+        return similarity_count > 1;
+    }
+
+    for (var i=0; i<all_attributes.length; i++) {
+        for (var n=0; n<all_attributes.length; n++) {
+            if (i==n) {
+                continue;
+            };
+           
+            for (var c=0; c<all_attributes.length; c++) {
+                if (c==n || c==i) {
+                    continue;
+                }
+               
+                var combo = [i, n, c];
+                var match_found = false;
+                for (var j=0; j<unique_combos.length && match_found==false; j++) {
+                    if (tooSimilar(combo, unique_combos[j]))
+                        match_found = true;
+                };
+               
+                if (!match_found) {
+                    unique_combos.push(combo);
+                };
+            }
+        }
+    }
+
+    for (var i=0; i<unique_combos.length; i++) {
+        var combo = unique_combos[i];
+        var attribute_id_array = [all_attributes[combo[0]]._id, all_attributes[combo[1]]._id, all_attributes[combo[2]]._id]
+        var artwork_object = artworks.findOne({'rarity': "masterpiece"}, {skip: i});
+        artworks.update(artwork_object._id, {$set: {'special_attributes': attribute_id_array}}, function() {
+            items.find({'artwork_id': artwork_object._id}).forEach(function(item_object) {
+                updateItemAttributesWithNewArtworkData(item_object._id);
+            })
+        });
     }
     // temp code
 }
