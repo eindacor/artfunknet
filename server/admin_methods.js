@@ -251,13 +251,13 @@ Meteor.methods({
 
     'toggleArtworkActivity' : function(artwork_id) {
     	if (adminValidated()) {
-    		artworks.update(artwork_id, {$set: {'active': !(artworks.findOne(artwork_id).active)}});
+            updateArtwork(artwork_id, {$set: {'active': !(artworks.findOne(artwork_id).active)}});
     	}
     },
 
     'toggleArtworkNSFW' : function(artwork_id) {
     	if (adminValidated()) {
-    		artworks.update(artwork_id, {$set: {'nsfw': !(artworks.findOne(artwork_id).nsfw)}});
+            updateArtwork(artwork_id, {$set: {'nsfw': !(artworks.findOne(artwork_id).nsfw)}});
     	}
     },
 
@@ -338,20 +338,7 @@ Meteor.methods({
                 }
             }
 
-    		artworks.update(artwork_id, {$set: {'special_attributes': attribute_id_array, 'unique_attributes': unique_list}}, function() {
-                items.find({'artwork_id': artwork_id}).forEach(function(item_object) {
-                    var artwork_data = artworks.findOne(artwork_id);
-
-                    var active_unique_attribute = item_object.active_unique_attribute;
-                    if (unique_list.length > 0)
-                        active_unique_attribute = unique_list[0];
-
-                    else active_unique_attribute = undefined;
-
-                    updateItem(item_object._id, {$set: {'artwork_data': artwork_data, 'active_unique_attribute': active_unique_attribute}}, updateItemAttributesWithNewArtworkData(item_object._id));     
-                })
-            });
-	        
+            updateArtwork(artwork_id, {$set: {'special_attributes': attribute_id_array, 'unique_attributes': unique_list}});
     	}
     },
 
@@ -368,20 +355,7 @@ Meteor.methods({
     		if (isNaN(artwork_object.date) || isNaN(artwork_object.value_scale) || isNaN(artwork_object.height) || isNaN(artwork_object.width))
     			return undefined;
 
-    		artworks.update(artwork_id, {$set: artwork_object}, {multi: true}, function(error) {
-                if (error)
-                    console.log(error.message)
-
-                else {
-                    var artwork_data = artworks.findOne(artwork_id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}});
-                    items.find({'artwork_id': artwork_id}).forEach(function(item_object) {
-                        updateItem(item_object._id, {$set: {'artwork_data': artwork_data}}, function() {
-                            updateItemAttributesWithNewArtworkData(item_object._id);
-                        })                       
-                    })
-                }
-            });
-
+            updateArtwork(artwork_id, {$set: artwork_object});
     		return true;
     	}
 
@@ -419,8 +393,9 @@ Meteor.methods({
     'updateArtistData': function(artist_id, artist_object) {
     	if (adminValidated()) {
     		artists.update(artist_id, {$set: artist_object}, {multi: true}, function(error) {
-                artworks.update({'artist_id': artist_id}, {$set: {'artist': artist_object.artist_name}});
-                updateItemsBySelector({'artwork_data.artist_id': artist_id}, {$set: {'artwork_data.artist': artist_object.artist_name}});
+                artworks.find({'artist_id': artist_id}).forEach(function(artwork_object) {
+                    updateArtwork(artwork_object._id, {$set: {'artist': artist_object.artist_name}});
+                })
             });
     		return true;
     	}
@@ -434,13 +409,6 @@ Meteor.methods({
     	}
 
     	else return undefined;
-    },
-
-    'removeArtist': function(artist_id) {
-    	if (adminValidated()) {
-    		artists.remove(artist_id); 		
-    		artworks.update({'artist_id': artist_id}, {$set: {'active': false}});
-    	}
     },
 
     'updateAttributeData': function(attribute_id, attribute_object) {

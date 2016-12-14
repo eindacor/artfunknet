@@ -306,6 +306,23 @@ updateItemAttributesWithNewArtworkData = function(item_id) {
     }
 }
 
+updateArtwork = function(artwork_id, modifier) {
+    artworks.update(artwork_id, modifier, function(error) {
+        if (error)
+            console.log("updateArtwork: " + error.message)
+
+        else {
+            var artwork_object = artworks.findOne(artwork_id);
+            if (artwork_object == undefined)
+                return false;
+
+            items.find({'artwork_id': artwork_object._id}).forEach(function(item_object) {
+                updateItemAttributesWithNewArtworkData(item_object._id);
+            });
+        }
+    })
+}
+
 updateItem = function(item_id, modifier, callback) {
     items.update(item_id, modifier, function(error) {
         if (error)
