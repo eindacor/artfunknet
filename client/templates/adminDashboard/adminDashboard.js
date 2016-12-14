@@ -1046,8 +1046,13 @@ Template.adminTools.helpers({
 		return rarities;
 	},
 
-	'artist_choice' : function(current_artist_id) {
-		return artists.find({'_id': {$ne: current_artist_id}}, {sort: {'artist_name': 1}});
+	'artist_choice' : function(current_artist_name) {
+		return artists.find({'artist_name': {$ne: current_artist_name}}, {sort: {'artist_name': 1}});
+	},
+
+	'selected_artwork_artist_id': function(current_artist_name) {
+		var artist_object = artists.findOne({'artist_name': current_artist_name});
+		return artist_object ? artist_object._id : undefined;
 	},
 
 	'lottery': function() {
