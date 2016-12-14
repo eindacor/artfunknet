@@ -372,10 +372,10 @@ Template.adminTools.events({
     },
 
     'click #generate-random-item' : function(element) {
-    	var artwork_id = $('#random-artwork-id').val();
-    	var user_id = $('.user-selector-random').val();
+    	if (selected_artwork == undefined)
+    		return;
 
-    	Meteor.call('generateRandomItemFromArtworkID', user_id, artwork_id, function(error, result) {
+    	Meteor.call('generateRandomItemFromArtworkID', Meteor.userId(), selected_artwork._id, function(error, result) {
     		if (error)
     			console.log(error.message);
 
@@ -1089,6 +1089,7 @@ Template.adminTools.helpers({
 })
 
 Template.adminTools.rendered = function() {
+	selected_artwork = undefined;
 	special_attribute_unique_attributes = [];
 	selected_artwork_special_attributes_selected = [];
 	generate_artwork_errors = [];

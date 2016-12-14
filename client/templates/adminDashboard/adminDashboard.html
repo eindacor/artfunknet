@@ -367,6 +367,7 @@
 						{{/each}}
 					</div>
 					<p><button id="update-artwork">update artwork</button></p>
+					<p><button id="generate-random-item">generate item</button></p>
 				</div>
 
 				<div class="row tools-section item-creation">
@@ -405,19 +406,6 @@
 					</p>
 					<p><button id="generate-item">generate item</button></p>
 				</div>
-
-				<div class="row tools-section random-item-creation">
-					<h4 class="af-color">Generate Randomized Item</h4>
-					<select class="user-selector-random">
-						<option value="{{current_id}}">{{current_user}}</option>
-						{{#each user}}
-							<option value="{{_id}}">{{profile.screen_name}}</option>
-						{{/each}}
-					</select>
-					<p>artwork id: <input class="random-item-create-field" id="random-artwork-id"></p>
-					<p><button id="generate-random-item">randomize item</button></p>
-				</div>
-
 				<div class="row tools-section alert-users-area">
 					<h4 class="af-color">Alert All Users</h4>
 					<textarea class="admin-textarea" id="alert-users-text"></textarea>

@@ -192,13 +192,13 @@ getAllItemObjectAttributes = function(item_object) {
     return all_attributes;
 }
 
-var searchArrayForSpecialAttributes = function(special_ids, item_object, new_attribute_object, attribute_type, all_new_attributes) {
+var searchArrayForSpecialAttributes = function(special_ids, item_object, new_attribute_object, attribute_type, all_new_attributes, attribute_counts) {
     for (var i=0; i<item_object.attributes[attribute_type].length; i++) {
         if (special_ids.indexOf(item_object.attributes[attribute_type][i]._id) != -1) {
             new_attribute_object.special.push(item_object.attributes[attribute_type][i]);
         }
 
-        else if (attribute_type != "special") {
+        else if (attribute_type != "special" && new_attribute_object[attribute_type].length < attribute_counts[attribute_type]) {
             new_attribute_object[attribute_type].push(item_object.attributes[attribute_type][i]);
         }
 
@@ -217,26 +217,66 @@ updateItemAttributesWithNewArtworkData = function(item_id) {
         var new_attribute_object = {'locked': [], 'unlocked': [], 'special': []}
         var special_ids = artwork_object.special_attributes;
 
-        searchArrayForSpecialAttributes(special_ids, item_object, new_attribute_object, "unlocked", all_new_attributes);
-        searchArrayForSpecialAttributes(special_ids, item_object, new_attribute_object, "locked", all_new_attributes);
-        searchArrayForSpecialAttributes(special_ids, item_object, new_attribute_object, "special", all_new_attributes);
+        var item_was_unlocked = item_object.attributes.locked.length == 0;
+        var attribute_counts = undefined;
 
-        var locked_count = item_object.attributes.locked.length;
-        var unlocked_count = item_object.attributes.unlocked.length;
+        switch(artwork_object.rarity) {
+            case "common": 
+                attribute_counts = {
+                    'locked': item_was_unlocked ? 0 : 1, 
+                    'unlocked': item_was_unlocked ? 1 : 0, 
+                    'special': 0
+                }; 
+                break;
+            case "uncommon":
+                 attribute_counts = {
+                    'locked': item_was_unlocked ? 0 : 1, 
+                    'unlocked': item_was_unlocked ? 2 : 1, 
+                    'special': 0
+                }; 
+                break;
+            case "rare":
+                 attribute_counts = {
+                    'locked': item_was_unlocked ? 0 : 1, 
+                    'unlocked': item_was_unlocked ? 2 : 1, 
+                    'special': 1
+                }; 
+                break;
+            case "legendary": 
+                attribute_counts = {
+                    'locked': item_was_unlocked ? 0 : 1, 
+                    'unlocked': item_was_unlocked ? 2 : 1, 
+                    'special': 2
+                }; 
+                break;
+            case "masterpiece":
+                 attribute_counts = {
+                    'locked': item_was_unlocked ? 0 : 1, 
+                    'unlocked': item_was_unlocked ? 2 : 1, 
+                    'special': 3
+                }; 
+                break;
+            default: throw "unidentified rarity";
+        }
+
+        searchArrayForSpecialAttributes(special_ids, item_object, new_attribute_object, "unlocked", all_new_attributes, attribute_counts);
+        searchArrayForSpecialAttributes(special_ids, item_object, new_attribute_object, "locked", all_new_attributes, attribute_counts);
+        searchArrayForSpecialAttributes(special_ids, item_object, new_attribute_object, "special", all_new_attributes, attribute_counts);
+
         // add displaced special attributes to locked/unlocked
         for (var i=0; i<item_object.attributes.special.length; i++) {
             if (special_ids.indexOf(item_object.attributes.special[i]._id) == -1) {
-                if (new_attribute_object.locked.length < locked_count) {
+                if (new_attribute_object.locked.length < attribute_counts.locked) {
                     new_attribute_object.locked.push(item_object.attributes.special[i]);
                 }
 
-                else if (new_attribute_object.unlocked.length < unlocked_count) {
+                else if (new_attribute_object.unlocked.length < attribute_counts.unlocked) {
                     new_attribute_object.unlocked.push(item_object.attributes.special[i]);
                 }           
             }
         }
 
-        while (locked_count > new_attribute_object.locked.length) {
+        while (attribute_counts.locked > new_attribute_object.locked.length) {
             var query = {'_id': {$nin: all_new_attributes}, 'active': true};
             var attribute_object = attributes.findOne(query, {skip: Math.floor(Math.random() * attributes.find(query).count())});
             attribute_object.value = getAttributeValue(0, .5);
@@ -244,7 +284,7 @@ updateItemAttributesWithNewArtworkData = function(item_id) {
             all_new_attributes.push(attribute_object._id);
         }
 
-        while (unlocked_count > new_attribute_object.unlocked.length) {
+        while (attribute_counts.unlocked > new_attribute_object.unlocked.length) {
             var query = {'_id': {$nin: all_new_attributes}, 'active': true};
             var attribute_object = attributes.findOne(query, {skip: Math.floor(Math.random() * attributes.find(query).count())});
             attribute_object.value = getAttributeValue(0, 0);
