@@ -91,3 +91,17 @@
 	cursor: pointer;
 	float: right;
 }
+
+.template-myAuctions #toggle-details {
+	background-color: black;
+	color: white;
+	border-radius: 0;
+	border: none; 
+	height: 30px;
+	width: 120px;
+	font-size: 1.2rem;
+}
+
+.template-myAuctions #toggle-details {
+	margin-bottom: 10px;
+}
