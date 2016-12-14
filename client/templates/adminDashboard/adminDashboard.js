@@ -24,17 +24,43 @@ var test_results;
 var all_users = [];
 
 var updateSelectedSpecialAttributeDOM = function() {
-	$wrapper = $('.special-attribute-section');
-	$wrapper.empty();
-	attributes.find({'active': true}).forEach(function(attribute_object) {
-		if (selected_artwork_special_attributes_selected.indexOf(attribute_object._id) != -1) {
-			$wrapper.append('<label><input class="special-attribute-select" type="checkbox" id="special-attribute-checkbox" value="' + attribute_object._id + '" checked>' + attribute_object.npc_name + '</label><br>');
+	try {
+		$wrapper = $('.special-attribute-section');
+		$wrapper.empty();
+		attributes.find({'active': true}).forEach(function(attribute_object) {
+			if (selected_artwork_special_attributes_selected.indexOf(attribute_object._id) != -1) {
+				$wrapper.append('<label><input class="special-attribute-select" type="checkbox" id="special-attribute-checkbox" value="' + attribute_object._id + '" checked>' + attribute_object.npc_name + '</label><br>');
+			}
+
+			else {
+				$wrapper.append('<label><input class="special-attribute-select" type="checkbox" id="special-attribute-checkbox" value="' + attribute_object._id + '">' + attribute_object.npc_name + '</label><br>');
+			}
+		})
+	} catch(error) {
+		console.log(error.message);
+	}
+}
+
+var updateSelectedArtistDOM = function() {
+	try {
+		$wrapper = $('.artwork-mod-artist-selector');
+		$wrapper.empty();
+		if (selected_artwork != undefined) {
+			$wrapper.append('<option value="'+ artists.findOne({'artist_name': selected_artwork.artist})._id +'">'+ selected_artwork.artist +'</option>');
+			artists.find({'artist_name': {$ne: selected_artwork.artists}}, {sort: {'artist_name': 1}}).forEach(function(artist_object) {
+				$wrapper.append('<option value="'+ artist_object._id +'">'+ artist_object.artist_name +'</option>');
+			})
 		}
 
 		else {
-			$wrapper.append('<label><input class="special-attribute-select" type="checkbox" id="special-attribute-checkbox" value="' + attribute_object._id + '">' + attribute_object.npc_name + '</label><br>');
+			$wrapper.append('<option value="'+ undefined +'"></option>');
+			artists.find({}, {sort: {'artist_name': 1}}).forEach(function(artist_object) {
+				$wrapper.append('<option value="'+ artist_object._id +'">'+ artist_object.artist_name +'</option>');
+			})
 		}
-	})
+	} catch(error) {
+		console.log(error.message);
+	}
 }
 
 var updateUniqueAttributesFromSpecialAttributeSelected = function() {
@@ -480,10 +506,11 @@ Template.adminTools.events({
     	var artwork_object = artworks.findOne($('.artwork-selector').val());
 		if (artwork_object) {
 			selected_artwork_special_attributes_selected = artwork_object.special_attributes ? artwork_object.special_attributes : [];
-			updateSelectedSpecialAttributeDOM();
 		}
 
 		selected_artwork = artwork_object;
+		updateSelectedSpecialAttributeDOM();
+		updateSelectedArtistDOM();
 		updateUniqueAttributesFromSpecialAttributeSelected();
 		artwork_mod_tracker.changed();
     },
@@ -521,6 +548,7 @@ Template.adminTools.events({
 		var artwork_keys = Object.keys(artwork_object);
 
 		if (artwork_id == "new artwork") {
+			artwork_object._id = new Meteor.Collection.ObjectID()._str;
 			for (var i=0; i<artwork_keys.length; i++) {
 				var key = artwork_keys[i];
 				if (artwork_object[key] === "")
@@ -534,6 +562,7 @@ Template.adminTools.events({
 				else {
 					$('.artwork-selector').append('<option value="' + result + '">' + artwork_object.artist + ' - ' + artwork_object.title + '</option>');
 					$('.artwork-selector').val(result);
+					selected_artwork = artwork_object;
 					artwork_mod_tracker.changed();
 				}
 			});
@@ -552,7 +581,10 @@ Template.adminTools.events({
 				if (error)
 					console.log(error.message);
 
-				else artwork_mod_tracker.changed();
+				else {
+					selected_artwork = artwork_object;
+					artwork_mod_tracker.changed();
+				}
 			});
 		}
 	},
@@ -779,6 +811,33 @@ var generateArtworkObject = function() {
 	generate_artwork_errors = [];
 	var specified_rarity = $('#artwork-mod-container').find('.rarity-selector').val();
 
+	if ($('#artwork-mod-date').val().length == 0 || isNaN($('#artwork-mod-date').val()))
+		generate_artwork_errors.push("invalid date");
+
+	if ($('#artwork-mod-filename').val().length == 0)
+		generate_artwork_errors.push("invalid filename");
+
+	if ($('#artwork-mod-genre').val().length == 0)
+		generate_artwork_errors.push("invalid genre");
+
+	if ($('#artwork-mod-height').val().length == 0 || isNaN($('#artwork-mod-height').val()))
+		generate_artwork_errors.push("invalid height");
+
+	if ($('#artwork-mod-width').val().length == 0 || isNaN($('#artwork-mod-width').val()))
+		generate_artwork_errors.push("invalid width");
+
+	if ($('#artwork-mod-medium').val().length == 0)
+		generate_artwork_errors.push("invalid medium");
+
+	if ($('#artwork-mod-title').val().length == 0)
+		generate_artwork_errors.push("invalid title");
+
+	if (artist_object == undefined)
+		generate_artwork_errors.push("invalid artist");
+
+	if (specified_rarity == undefined || specified_rarity.length == 0)
+		generate_artwork_errors.push("invalid rarity");
+
 	var special_attributes_expected;
 
 	switch(specified_rarity) {
@@ -790,8 +849,10 @@ var generateArtworkObject = function() {
 
 	if (selected_artwork_special_attributes_selected.length != special_attributes_expected) {
 		generate_artwork_errors.push(specified_rarity + " artworks require " + special_attributes_expected + " special attributes");
-		return undefined;
 	}
+
+	if (generate_artwork_errors.length > 0)
+		return undefined;
 
 	var artwork_object = {
 		'artist': artist_object.artist_name,
@@ -1095,6 +1156,8 @@ Template.adminTools.helpers({
 
 Template.adminTools.rendered = function() {
 	selected_artwork = undefined;
+	updateSelectedSpecialAttributeDOM();
+	updateSelectedArtistDOM();
 	special_attribute_unique_attributes = [];
 	selected_artwork_special_attributes_selected = [];
 	generate_artwork_errors = [];
