@@ -25,29 +25,19 @@ Template.rerollModal.events ({
 				console.log(error.message);
 		});
     },
+
+	'click i.setting-false': function(event) {
+		var unique_attribute_id = $(event.target).data().unique_attribute_id;
+		Meteor.call('setActiveUniqueAttribute', Session.get('selectedItem'), unique_attribute_id, function(error) {
+			if (error)
+				console.log(error.message)
+		})
+	}
 })
 
 Template.rerollModal.helpers({
 	'itemData' : function() {
-		var item_object = items.findOne(Session.get('selectedItem'));
-		if (!!item_object) {
-			return {
-				'title' : item_object.artwork_data.title,
-				'artist' : item_object.artwork_data.artist,
-				'xp_rating' : Math.floor(item_object.xp_rating * 100),
-				'roll_count' : item_object.roll_count,
-				'attributes' : item_object.attributes,
-
-			}
-		}
-
-		else return {
-			'title' : "",
-			'artist' : "",
-			'xp_rating' : "",
-			'roll_count' : "",
-			'attributes' : []
-		}
+		return items.findOne(Session.get('selectedItem'));
 	},
 
 	'error' : function() {
@@ -92,5 +82,11 @@ Template.rerollModal.helpers({
 
 	'attributeValueText' : function(value) {
 		return Math.floor(value * 100);
+	},
+
+	'unique_attribute_data': function(unique_code) {
+		var unique_object = unique_attributes.findOne({'code': unique_code});
+		unique_object.current_selected = items.findOne(Session.get('selectedItem')).active_unique_attribute == unique_code;
+		return unique_object;
 	}
 })

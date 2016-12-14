@@ -32,7 +32,8 @@
 	border-bottom: 1px solid black;
 }
 
-.template-rerollModal .reroll-options {
+.template-rerollModal .reroll-options,
+.template-rerollModal .legendary-attribute-area  {
 	border-bottom: 1px solid black;
 	margin-bottom: 24px;
 	padding: 24px;
@@ -52,7 +53,9 @@
 	margin-bottom: 12px;
 }
 
-.template-rerollModal .reroll-value-button, .template-rerollModal .reroll-attribute-button, .template-rerollModal .xp-reroll-button {
+.template-rerollModal .reroll-value-button, 
+.template-rerollModal .reroll-attribute-button, 
+.template-rerollModal .xp-reroll-button {
 	font-size: 1em;
 	width: 120px;
 	height: 24px;
@@ -86,4 +89,17 @@
 
 .template-rerollModal .special {
 	text-shadow: 0.1em 0.1em 0.1em RGBA(255, 51, 204, .8);
+}
+
+.template-rerollModal .flavor-text,
+.template-rerollModal .description {
+	text-align: left;
+}
+
+.template-rerollModal .unique-section {
+	margin-bottom: 20px;
+}
+
+.template-rerollModal .setting-false {
+	cursor: pointer;
 }
