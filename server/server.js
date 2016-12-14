@@ -269,7 +269,20 @@ var updateContent = function() {
         var combo = unique_combos[i];
         var attribute_id_array = [all_attributes[combo[0]]._id, all_attributes[combo[1]]._id, all_attributes[combo[2]]._id]
         var artwork_object = artworks.findOne({'rarity': "masterpiece"}, {skip: i});
-        artworks.update(artwork_object._id, {$set: {'special_attributes': attribute_id_array}}, function() {
+
+        var unique_list = [];
+        for (var c=0; c<attribute_id_array.length; c++) {
+            for (var n=0; n<attribute_id_array.length; n++) {
+                if (c != n) {
+                    var unique_attribute = unique_attributes.findOne({'linked_attributes': {$all: [attribute_id_array[c], attribute_id_array[n]]}});
+
+                    if (unique_list.indexOf(unique_attribute.code) == -1)
+                        unique_list.push(unique_attribute.code);
+                }
+            }
+        }
+
+        artworks.update(artwork_object._id, {$set: {'special_attributes': attribute_id_array, 'unique_attributes': unique_list}}, function() {
             items.find({'artwork_id': artwork_object._id}).forEach(function(item_object) {
                 updateItemAttributesWithNewArtworkData(item_object._id);
             })

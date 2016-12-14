@@ -210,7 +210,7 @@ var searchArrayForSpecialAttributes = function(special_ids, item_object, new_att
 
 updateItemAttributesWithNewArtworkData = function(item_id) {
     var item_object = items.findOne(item_id);
-    var artwork_object = artworks.findOne(item_object.artwork_id);
+    var artwork_object = artworks.findOne(item_object.artwork_id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}});
 
     if (item_object && artwork_object) {
         var all_new_attributes = [];
@@ -302,7 +302,7 @@ updateItemAttributesWithNewArtworkData = function(item_id) {
             all_new_attributes.push(attribute_object._id);
         }
 
-        updateItem(item_id, {$set: {'attributes': new_attribute_object, 'active_unique_attribute': artwork_object.unique_attributes && artwork_object.unique_attributes.length > 0 ? artwork_object.unique_attributes[0] : undefined}});
+        updateItem(item_id, {$set: {'artwork_data': artwork_object, 'attributes': new_attribute_object, 'active_unique_attribute': artwork_object.unique_attributes && artwork_object.unique_attributes.length > 0 ? artwork_object.unique_attributes[0] : undefined}});
     }
 }
 
