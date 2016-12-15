@@ -333,9 +333,7 @@ updateItem = function(item_id, modifier, callback) {
             if (item_object == undefined)
                 return false;
 
-            if (item_object.status == "displayed" || item_object.status == "permanent") {
-                updateGalleryDetails(item_object.owner);
-            }
+            updateGalleryDetails(item_object.owner);
 
             var newItemObjectValues =  getItemObjectValues(item_object);
             if (callback == undefined) {           

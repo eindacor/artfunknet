@@ -244,6 +244,9 @@ updateGalleryDetails = function(user_id) {
                 var attribute_value = item_attributes[n].value;
                 attribute_rating_total += item_attributes[n].value
 
+                if (item_attributes[n].type == "primary")
+                    attribute_rating_total += attribute_value;
+
                 if (attribute_totals[attribute_id] === undefined)
                     attribute_totals[attribute_id] = attribute_value;
 
@@ -424,6 +427,7 @@ getActiveQuests = function() {
 
 canAcceptQuest = function(npc_object) {
     return (getActiveQuests() < getMaxQuests(npc_object));
+}
 
 var increaseRandomAttribute = function(user_id, attribute_type) {
     var selector = {'owner': user_id, 'status': 'displayed'};
@@ -1246,18 +1250,5 @@ Meteor.methods({
             auctions.update({'seller': previous_name}, {$set: {'seller': desired_name}}, {multi: true});
             Meteor.users.update(Meteor.userId(), {$set: {'profile.screen_name': desired_name, 'profile.last_name_change': moment()._d.toISOString()}});
         }
-    },
-
-    'setActiveUniqueAttribute': function(item_id, unique_attribute_id) {
-        var item_object = canRerollItem(item_id);
-        if (item_object == undefined)
-            return false;
-        
-        var unique_object = unique_attributes.findOne(unique_attribute_id);
-
-        if (item_object.artwork_data.unique_attributes.indexOf(unique_object.code) == -1)
-            return false;
-
-        else updateItem(item_id, {$set: {'active_unique_attribute': unique_object.code}});
     }
 })
