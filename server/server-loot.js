@@ -363,8 +363,17 @@ getAttributes = function(artwork_id) {
         all_attributes.push(attribute_object._id);
     }
 
-    var locked_count = Math.random() < (1/20) ? 0 : 1;
-    var unlocked_count = artwork_object.rarity == "common" ? 1 : 2 - locked_count;
+    var locked_count = 1;
+    var unlocked_count = 1;
+    var item_is_unlocked = Math.random() < (1/20) || artwork_object.rarity == "common";
+    
+    if (artwork_object.rarity == "common")
+        locked_count = 0;
+
+    else if (item_is_unlocked) {
+        unlocked_count = 2;
+        locked_count = 0;
+    }
 
     for (var i=0; i<locked_count; i++) {
         var query = {'_id': {$nin: all_attributes}, 'active': true};
