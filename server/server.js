@@ -75,26 +75,7 @@ var updateContent = function() {
     });
 
     // temp code
-    Meteor.users.find({'profile.lottery_tickets': 0}).forEach(function(user_object) {
-        var vintage_level = user_object.profile.vintage_count;
-        var default_lottery_tickets = 1 + vintage_level;
-        Meteor.users.update(user_object._id, {$set: {'profile.lottery_tickets': default_lottery_tickets}});
-    });
-
     attributes.update({}, {$unset: {'type': ""}}, {multi: true});
-
-    metadata.find({'loot_data': {$ne: null}}).forEach(function(db_object) {
-        // loot data has already been updated
-        if (db_object.loot_data.attribute_quantities.common.primary == undefined)
-            return;
-
-        var attribute_quantities = {};
-        var rarities = ["common", "uncommon", "rare", "legendary", "masterpiece"];
-        for (var i=0; i<rarities.length; i++) {
-            attribute_quantities[rarities[i]] = db_object.loot_data.attribute_quantities[rarities[i]].primary;
-        }
-        metadata.update(db_object._id, {$set: {'loot_data.attribute_quantities': attribute_quantities}})
-    })
 
     var db_is_legacy = artworks.findOne({'rarity': "legendary", 'unique_attributes': {$ne: null}}) == undefined;
 
