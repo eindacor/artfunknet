@@ -227,7 +227,7 @@ Template.auctionTable.helpers({
 	},
 
 	'sortedAttributes' : function(attributes) {
-		if (attributes.length == undefined)
+		if (attributes == undefined || attributes.length == undefined)
 			return [];
 		
 		attributes.sort(function(first, second) {

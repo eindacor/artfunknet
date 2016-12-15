@@ -457,16 +457,18 @@ rerollAttribute = function(user_id, item_id, attribute_id) {
     try {
         if (item_object) {
             var roll_count = item_object.roll_count;
-            var unlocked_attribute_array = item_object.attributes.unlocked;
 
-            var attribute_ids = []
-            for (var i=0; i < unlocked_attribute_array.length; i++) {
-                attribute_ids.push(unlocked_attribute_array[i]._id);
+            var attribute_ids = [];
+            var attribute_objects = getAllItemObjectAttributes(item_object)
+
+            for (var i=0; i<attribute_objects.length; i++) {
+                attribute_ids.push(attribute_objects[i]._id);
             }
 
-            var remaining = attributes.find({'_id' : {$nin: attribute_ids}, 'active': true}).count();
+            var selector = {'_id' : {'$nin': attribute_ids}, 'active': true};
+            var remaining = attributes.find(selector).count();
             var random_index = Math.floor(Math.random() * remaining);
-            var random_attribute = attributes.findOne({'_id' : {$nin: attribute_ids}, 'active': true}, {skip: random_index});
+            var random_attribute = attributes.findOne(selector, {skip: random_index});
 
             var roll_value_min = getRerollMin(user_id, "unlocked", item_object);
             random_attribute.value = getAttributeValue(0, roll_value_min);
