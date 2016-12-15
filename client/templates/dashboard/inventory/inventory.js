@@ -3,7 +3,7 @@ var page_tracker = new Tracker.Dependency;
 var tags = [];
 var search_terms = [];
 var keywords = [];
-var locked_attributes = [];
+var special_attributes = [];
 var standard_attributes = [];
 var sorter = "artwork_data.title";
 var ascending = 1;
@@ -68,7 +68,11 @@ var createAndObjectFromPermutation = function(index_counter) {
 	var local_array = [];
 	for (var i=0; i<index_counter.length; i++) {	
 		var attribute_index = index_counter[i];
-		local_array.push({'attributes._id': standard_attributes[attribute_index]});
+		local_array.push({$or: [
+			{'attributes.locked._id': standard_attributes[attribute_index]},
+			{'attributes.unlocked._id': standard_attributes[attribute_index]},
+			{'attributes.special._id': standard_attributes[attribute_index]}
+		]});
 	}
 	and_object[key_string] = local_array;
 	return and_object;
@@ -189,20 +193,20 @@ Template.inventory.helpers({
 				base_filter.tags = {"$in": tags};
 			}
 
-			if (locked_attributes.length > 0) {
+			if (special_attributes.length > 0) {
 				if ($('#locked-filter').val() == "contains one") {
-					var key_string = "artwork_data.attributes.special";
-					base_filter[key_string] = {"$in": locked_attributes};
+					var key_string = "attributes.special._id";
+					base_filter[key_string] = {"$in": special_attributes};
 				}
 
 				else if ($('#locked-filter').val() == "contains two") {
 					var or_filter_array = [];
-					for (var i=0; i<locked_attributes.length; i++) {
-						for (var n=0; n<locked_attributes.length; n++) {
-							if (locked_attributes[i] != locked_attributes[n]) {
+					for (var i=0; i<special_attributes.length; i++) {
+						for (var n=0; n<special_attributes.length; n++) {
+							if (special_attributes[i] != special_attributes[n]) {
 								or_filter_array.push({'$and': [
-									{'artwork_data.attributes.special': locked_attributes[i]},
-									{'artwork_data.attributes.special': locked_attributes[n]}
+									{'attributes.special._id': special_attributes[i]},
+									{'attributes.special._id': special_attributes[n]}
 								]});
 							}
 						}
@@ -211,20 +215,20 @@ Template.inventory.helpers({
 					if (or_filter_array.length > 0)
 						base_filter['$or'] = or_filter_array;
 
-					else if (locked_attributes.length < 2)
+					else if (special_attributes.length < 2)
 						base_filter['_id'] = null;
 				}
 
 				else if ($('#locked-filter').val() == "contains three") {
 					var or_filter_array = [];
-					for (var i=0; i<locked_attributes.length; i++) {
-						for (var n=0; n<locked_attributes.length; n++) {
-							for (var c=0; c<locked_attributes.length; c++) {
-								if (locked_attributes[i] != locked_attributes[n] && locked_attributes[i] != locked_attributes[c] && locked_attributes[n] != locked_attributes[c]) {
+					for (var i=0; i<special_attributes.length; i++) {
+						for (var n=0; n<special_attributes.length; n++) {
+							for (var c=0; c<special_attributes.length; c++) {
+								if (special_attributes[i] != special_attributes[n] && special_attributes[i] != special_attributes[c] && special_attributes[n] != special_attributes[c]) {
 									or_filter_array.push({'$and': [
-										{'artwork_data.attributes.special': locked_attributes[i]},
-										{'artwork_data.attributes.special': locked_attributes[n]},
-										{'artwork_data.attributes.special': locked_attributes[c]}
+										{'attributes.special._id': special_attributes[i]},
+										{'attributes.special._id': special_attributes[n]},
+										{'attributes.special._id': special_attributes[c]}
 									]});
 								}
 							}
@@ -234,7 +238,7 @@ Template.inventory.helpers({
 					if (or_filter_array.length > 0)
 						base_filter['$or'] = or_filter_array;
 
-					else if (locked_attributes.length < 3)
+					else if (special_attributes.length < 3)
 						base_filter['_id'] = null;
 				}
 			}
@@ -243,7 +247,11 @@ Template.inventory.helpers({
 				switch($('#attribute-filter').val()) {
 					case "contains one": {
 						var key_string = "attributes._id";
-						base_filter[key_string] = {"$in": standard_attributes};
+						base_filter['$or'] = [
+							{'attributes.locked._id': {$in : standard_attributes}},
+							{'attributes.unlocked._id': {$in : standard_attributes}},
+							{'attributes.special._id': {$in : standard_attributes}}
+						]
 					}
 					break;
 
@@ -524,11 +532,11 @@ Template.inventory.events({
 	},
 
 	'change #locked-attribute-checkbox': function() {
-		locked_attributes = [];
+		special_attributes = [];
 		for (var i=0; i<$('input[type=checkbox].locked-attribute-select').length; i++) {
 		 	var checked = $('input[type=checkbox].locked-attribute-select:eq(' + i + ')')[0].checked;
 		 	if (checked)
-		 		locked_attributes.push($('input[type=checkbox].locked-attribute-select:eq(' + i + ')').val())
+		 		special_attributes.push($('input[type=checkbox].locked-attribute-select:eq(' + i + ')').val())
 		}
 
 		display_tracker.changed();
@@ -630,7 +638,7 @@ Template.inventory.rendered = function() {
 	tags = [];
 	search_terms = [];
 	keywords = [];
-	locked_attributes = [];
+	special_attributes = [];
 	standard_attributes = [];
 	sorter = "artwork_data.title";
 	ascending = 1;

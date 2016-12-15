@@ -244,9 +244,6 @@ updateGalleryDetails = function(user_id) {
                 var attribute_value = item_attributes[n].value;
                 attribute_rating_total += item_attributes[n].value
 
-                if (item_attributes[n].type == "primary")
-                    attribute_rating_total += attribute_value;
-
                 if (attribute_totals[attribute_id] === undefined)
                     attribute_totals[attribute_id] = attribute_value;
 
