@@ -100,3 +100,8 @@
 .template-playerInfo p.player-data {
 	margin-bottom: 0;
 }
+
+.template-playerInfo .feedback {
+	margin-top: 20px;
+	color: black;
+}
