@@ -146,7 +146,7 @@ Meteor.methods({
                     'original': original,
                     'vintage': vintage,
                     'misprint_chance': misprint_chance,
-                    'status': "won",
+                    'status': "claimed",
                     'xp_rating_min': 0,
                     'condition_min': 0
                 }
