@@ -103,13 +103,7 @@ Template.userGallery.helpers({
 	},
 
 	'npc' : function(owner_id) {
-		var primary_attributes = attributes.find({'type' : "primary"}).fetch();
-		var primary_ids = [];
-		primary_attributes.forEach(function(db_object) {
-			primary_ids.push(db_object._id);
-		});
-
-		return npcs.find({'owner_id' : owner_id, 'attribute_id' : {$in : primary_ids}});
+		return npcs.find({'owner_id' : owner_id});
 	},
 
 	'unmet' : function(npc_id) {

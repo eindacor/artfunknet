@@ -470,24 +470,6 @@ Template.adminTools.events({
     	})
     },
 
-    'click #generate-link' : function() {
-    	var attribute_data = attributes.find().fetch();
-		var data = "text/json;charset=utf-8," + "var downloaded_attribute_data = " + encodeURIComponent(JSON.stringify(attribute_data)) + "; ";
-
-		Meteor.call('generateDBString', function(error, result) {
-			if (error)
-				console.log(error.message);
-
-			else {
-				var download_link = $('<a>download databases</a>');
-				download_link.attr("href", 'data:' + result);
-				download_link.attr("download", 'data.json');
-
-				$('#download-area').append(download_link);
-			}
-		})
-    },
-
     'click #print-misprints' : function() {
     	Meteor.call('getMisprints', function(error, result) {
     		if (error)
@@ -1148,7 +1130,7 @@ Template.adminTools.helpers({
 		var unique_attribute_object = unique_attributes.findOne($('.unique-attribute-mod-selector').val());
 
 		if (unique_attribute_object)
-			return artworks.find({'locked_attributes': {$all : unique_attribute_object.linked_attributes}});
+			return artworks.find({'unique_attributes': {$in : [unique_attribute_object.code]}});
 
 		else return [];
 	}

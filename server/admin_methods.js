@@ -261,52 +261,6 @@ Meteor.methods({
     	}
     },
 
-    'generateDBString' : function() {
-    	if (adminValidated()) {
-    		var attribute_data = attributes.find().fetch();
-    		var attribute_string = "var downloaded_attribute_data = " + encodeURIComponent(JSON.stringify(attribute_data)) + "; ";
-
-    		var user_data = Meteor.users.find().fetch();
-    		var user_string = "var downloaded_user_data = " + encodeURIComponent(JSON.stringify(user_data)) + "; ";
-
-    		var artwork_data = artworks.find().fetch();
-    		var artwork_string = "var downloaded_artwork_data = " + encodeURIComponent(JSON.stringify(artwork_data)) + "; ";
-
-    		var item_data = items.find().fetch();
-    		var item_string = "var downloaded_item_data = " + encodeURIComponent(JSON.stringify(item_data)) + "; ";
-
-    		var artist_data = artists.find().fetch();
-    		var artist_string = "var downloaded_artist_data = " + encodeURIComponent(JSON.stringify(artist_data)) + "; ";
-
-    		var auction_data = auctions.find().fetch();
-    		var auction_string = "var downloaded_auction_data = " + encodeURIComponent(JSON.stringify(auction_data)) + "; ";
-
-    		var gallery_finish_data = gallery_finishes.find().fetch();
-    		var gallery_finish_string = "var downloaded_gallery_finish_data = " + encodeURIComponent(JSON.stringify(gallery_finish_data)) + "; ";
-
-    		var quest_data = quests.find().fetch();
-    		var quest_string = "var downloaded_quest_data = " + encodeURIComponent(JSON.stringify(quest_data)) + "; ";
-
-            var unique_attribute_data = unique_attributes.find().fetch();
-            var unique_attribute_string = "var downloaded_unique_attribute_data = " + encodeURIComponent(JSON.stringify(unique_attribute_data)) + "; ";
-
-			var data_string = "text/json;charset=utf-8," + 
-				attribute_string + 
-				user_string + 
-				artwork_string + 
-				item_string + 
-				artist_string +
-				auction_string + 
-				gallery_finish_string + 
-				quest_string +
-                unique_attribute_string;
-
-			return data_string;
-    	}
-
-    	else return undefined;
-    },
-
     /* new schema...
         artworks:
             {
