@@ -54,14 +54,16 @@ Meteor.methods({
 
 	'generateForSale': function() {
 		if (adminValidated()) {
+            var loot_data = getLootData();
             var multi_item_generator = {
                 'source': "test",
                 'user_id': Meteor.userId(),
                 'quality': "platinum",
                 'count': admin_settings.daily_drop_count,
                 'status': "for_sale",
-                'foil_chance': getLootData().global_foil_chance,
-                'misprint_chance': getLootData().global_misprint_chance,
+                'foil_chance': loot_data.global_foil_chance,
+                'unlocked_chance': loot_data.global_unlocked_chance,
+                'misprint_chance': loot_data.global_misprint_chance,
                 'xp_rating_min': 0,
                 'condition_min': 0
             }
@@ -107,7 +109,7 @@ Meteor.methods({
 		}
 	},
 
-	'generateItemFromArtworkID' : function(user_id, artwork_id, condition, xp_rating, foil_chance, seasonal, lottery, original, vintage, misprint_chance) {
+	'generateItemFromArtworkID' : function(user_id, artwork_id, condition, xp_rating, foil_chance, unlocked_chance, seasonal, lottery, original, vintage, misprint_chance) {
 		if (adminValidated()) {
 			if (user_id == "" || Meteor.users.findOne(user_id).profile.user_type == "admin") {
                 var item_generator = {
@@ -117,6 +119,7 @@ Meteor.methods({
                     'condition': condition,
                     'xp_rating': xp_rating,
                     'foil_chance': foil_chance,
+                    'unlocked_chance': unlocked_chance,
                     'seasonal': seasonal,
                     'lottery': lottery,
                     'original': original,
@@ -141,6 +144,7 @@ Meteor.methods({
                     'condition': condition,
                     'xp_rating': xp_rating,
                     'foil_chance': foil_chance,
+                    'unlocked_chance': unlocked_chance,
                     'seasonal': seasonal,
                     'lottery': lottery,
                     'original': original,
@@ -160,6 +164,7 @@ Meteor.methods({
 
 	'generateRandomItemFromArtworkID' : function(user_id, artwork_id) {
 		if (adminValidated()) {
+            var loot_data = getLootData();
 			if (user_id == "" || Meteor.users.findOne(user_id).profile.user_type == "admin") {
                 var item_generator = {
                     'source': "test",
@@ -167,11 +172,12 @@ Meteor.methods({
                     'artwork_id': artwork_id,
                     'condition': undefined,
                     'xp_rating': undefined,
-                    'foil_chance': getLootData().global_foil_chance,
+                    'foil_chance': loot_data.global_foil_chance,
+                    'unlocked_chance': loot_data.global_unlocked_chance,
                     'seasonal': undefined,
                     'lottery': 0,
                     'original': false,
-                    'misprint_chance': getLootData().global_misprint_chance,
+                    'misprint_chance': loot_data.global_misprint_chance,
                     'status': "unclaimed",
                     'xp_rating_min': 0,
                     'condition_min': 0
@@ -190,11 +196,12 @@ Meteor.methods({
                     'artwork_id': artwork_id,
                     'condition': undefined,
                     'xp_rating': undefined,
-                    'foil_chance': getLootData().global_foil_chance,
+                    'foil_chance': loot_data.global_foil_chance,
+                    'unlocked_chance': loot_data.global_unlocked_chance,
                     'seasonal': undefined,
                     'lottery': 0,
                     'original': false,
-                    'misprint_chance': getLootData().global_misprint_chance,
+                    'misprint_chance': loot_data.global_misprint_chance,
                     'status': "won",
                     'xp_rating_min': 0,
                     'condition_min': 0
@@ -439,6 +446,7 @@ Meteor.methods({
                             'condition': undefined,
                             'xp_rating': undefined,
                             'foil_chance': undefined,
+                            'unlocked_chance': undefined,
                             'seasonal': undefined,
                             'lottery': undefined,
                             'original': undefined,

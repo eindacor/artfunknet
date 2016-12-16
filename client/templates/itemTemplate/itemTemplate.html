@@ -13,7 +13,27 @@
 					<div class="row no-margin">
 						<div class="header-details">
 							<p>{{item_data.artwork_data.date}}</p>
-							<p><span class="{{item_data.artwork_data.rarity}}"><strong>{{item_data.artwork_data.rarity}}</strong></span>{{#if item_data.foil}}<span class="af-color"> foil</span>{{/if}}{{#if item_data.seasonal}}<span class="common"> seasonal</span>{{/if}}{{#if item_data.lottery}}<span class="gold"> lottery {{item_data.lottery}}</span>{{/if}}{{#if item_data.original}}<span class="purple-text"> original</span>{{/if}}{{#if item_data.vintage}}<span class="vintage-text"> vintage</span>{{/if}}</p>
+							<p>
+								<span class="{{item_data.artwork_data.rarity}}"><strong>{{item_data.artwork_data.rarity}}</strong></span>
+								{{#if item_data.foil}}
+								<span class="af-color"> foil</span>
+								{{/if}}
+								{{#if item_data.seasonal}}
+								<span class="common"> seasonal</span>
+								{{/if}}
+								{{#if item_data.lottery}}
+								<span class="gold"> lottery {{item_data.lottery}}</span>
+								{{/if}}
+								{{#if item_data.original}}
+								<span class="purple-text"> original</span>
+								{{/if}}
+								{{#if item_data.vintage}}
+								<span class="vintage-text"> vintage</span>
+								{{/if}}
+								{{#if item_data.unlocked}}
+								<span class="silver-text"> unlocked</span>
+								{{/if}}
+							</p>
 							<p>{{item_data.artwork_data.medium}}</p>
 							<p>{{item_data.artwork_data.height}} x {{item_data.artwork_data.width}}</p>
 							{{#if showDetails item_data}}
@@ -101,24 +121,17 @@
 					<div class="row no-margin">
 						<div class="footer-basic-info">
 							<div class="col-xs-11 no-padding attribute-area">
-							{{#if showDetails item_data}}
-								{{#each sortedAttributes item_data.attributes}}
-									<i data-attribute_description="{{description}}" data-attribute_value="{{value}}" class="{{#if ../item_data.permanent}}permanent{{/if}} old {{#if locked}}special{{/if}} item-attribute fa {{this.icon}}"></i>
-								{{/each}}
 								{{#each sortedAttributes item_data.attributes.unlocked}}
-									<i data-attribute_description="{{description}}" data-attribute_value="{{value}}" style="color: {{getHTMLColorFromValue value}}" class="{{#if isEqual ../item_data.status 'permanent'}}permanent{{/if}} item-attribute fa {{this.icon}}"></i>
+									<i data-attribute_description="{{description}}" data-attribute_value="{{value}}" style="color: {{getHTMLColorFromValue value}}" class="{{#if isEqual ../item_data.status 'permanent'}}permanent{{/if}} item-attribute fa {{icon}}"></i>
 								{{/each}}
 								{{#if item_data.attributes.locked}}|{{/if}}
 								{{#each sortedAttributes item_data.attributes.locked}}
-									<i data-attribute_description="{{description}}" data-attribute_value="{{value}}" style="color: {{getHTMLColorFromValue value}}" class="{{#if isEqual ../item_data.status 'permanent'}}permanent{{/if}} locked item-attribute fa {{this.icon}}"></i>
+									<i data-attribute_description="{{description}}" data-attribute_value="{{value}}" style="color: {{getHTMLColorFromValue value}}" class="{{#if isEqual ../item_data.status 'permanent'}}permanent{{/if}} locked item-attribute fa {{icon}}"></i>
 								{{/each}}
 								{{#if item_data.attributes.special}}|{{/if}}
 								{{#each sortedAttributes item_data.attributes.special}}
-									<i data-attribute_description="{{description}}" data-attribute_value="{{value}}" style="color: {{getHTMLColorFromValue value}}" class="{{#if isEqual ../item_data.status 'permanent'}}permanent{{/if}} special item-attribute fa {{this.icon}}"></i>
+									<i data-attribute_description="{{description}}" data-attribute_value="{{value}}" style="color: {{getHTMLColorFromValue value}}" class="{{#if isEqual ../item_data.status 'permanent'}}permanent{{/if}} special item-attribute fa {{icon}}"></i>
 								{{/each}}
-							{{else}}
-								<p>?</p>
-							{{/if}}
 							</div>
 							<div class="col-xs-1 no-padding">
 								{{#if showDetails item_data}}

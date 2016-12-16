@@ -382,13 +382,14 @@ Template.adminTools.events({
     	var condition = $('#condition').val() == "" ? Number(Math.random().toFixed(2)) : Number($('#condition').val()) / 100;
     	var xp_rating = $('#xp-rating').val() == "" ? Number(Math.random().toFixed(2)) : Number($('#xp-rating').val()) / 100;
     	var foil_chance = $('.type-selector').val() == "foil" ? 1 : .01;
+    	var unlocked_chance = $('.unlocked-selector').val() == "true" ? 1 : (1/20);
     	var misprint_chance = $('.misprint-selector').val() == "true" ? 1 : .0001;
     	var seasonal = $('.type-selector').val() == "seasonal";
     	var lottery = isNaN($('.type-selector').val()) ? 0 : Number($('.type-selector').val());
     	var original = $('.type-selector').val() == "original";
     	var vintage = $('.vintage-selector').val() == "true";
 
-    	Meteor.call('generateItemFromArtworkID', user_id, artwork_id, condition, xp_rating, foil_chance, seasonal, Number(lottery), original, vintage, misprint_chance, function(error, result) {
+    	Meteor.call('generateItemFromArtworkID', user_id, artwork_id, condition, xp_rating, foil_chance, unlocked_chance, seasonal, Number(lottery), original, vintage, misprint_chance, function(error, result) {
     		if (error)
     			console.log(error.message);
 

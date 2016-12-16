@@ -93,28 +93,28 @@ getItemObjectValues = function(item_object) {
             display_value *= 1.2;
         }
 
-        if(item_object.seasonal) {
+        if (item_object.seasonal) {
             actual_value *= 5;
             display_value *= 1.5;
         }
 
-        if(item_object.lottery && item_object.lottery != 0) {
+        if (item_object.lottery && item_object.lottery != 0) {
             actual_value *= 30 + (10 * item_object.lottery);
             display_value *= 2;
         }
 
-        if(item_object.original) {
+        if (item_object.original) {
             actual_value *= 7;
             display_value *= 2;
-        }
-
-        if (item_object.misprint){
-            display_value *= 20;
         }
 
         if (item_object.vintage){
             actual_value *= 2;
             display_value *= 1.5;
+        }
+
+        if (item_object.unlocked) {
+            actual_value *= 1.2;
         }
 
         values_object.sell = Math.floor(actual_value * .8);
@@ -250,6 +250,7 @@ generateItems = function(multi_item_generator) {
             'condition': undefined,
             'xp_rating': undefined,
             'foil_chance': multi_item_generator.foil_chance,
+            'unlocked_chance': multi_item_generator.unlocked_chance,
             'seasonal': undefined,
             'lottery': 0,
             'original': false,
@@ -293,20 +294,28 @@ var misprintArtworkData = function(artwork_data) {
 }
 
 generateItemFromArtworkID = function(item_generator, callback) {
-    var misprinted = Math.random() < item_generator.misprint_chance;
-    var artwork_data = artworks.findOne(item_generator.artwork_id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}});
+    
+    var artwork_data = artworks.findOne(item_generator.artwork_id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}}); 
 
     if (artwork_data) {
-
-        if (misprinted)
-            artwork_data = misprintArtworkData(artwork_data);
-
         var loot_data = getLootData();
+
+        var misprint_chance = item_generator.misprint_chance === undefined ? loot_data.global_misprint_chance : item_generator.misprint_chance;
+        var foil_chance = item_generator.foil_chance === undefined ? loot_data.global_foil_chance : item_generator.foil_chance;
+        var unlocked_chance = item_generator.unlocked_chance === undefined ? loot_data.global_unlocked_chance : item_generator.unlocked_chance;
+
+        var misprint = Math.random() < misprint_chance;
+        var foil = Math.random() < foil_chance;
+        var unlocked = artwork_data.rarity != "common" && Math.random() < unlocked_chance;
+
+        if (misprint)
+            artwork_data = misprintArtworkData(artwork_data);      
 
         var new_item_object = {
             'artwork_id' : item_generator.artwork_id,
             'condition' : item_generator.condition === undefined ? getCondition(item_generator.condition_min) : item_generator.condition,
-            'attributes' : getAttributes(item_generator.artwork_id),
+            'attributes' : getAttributes(artwork_data, unlocked),
+            'unlocked': unlocked,
             'active_unique_attribute': artwork_data.unique_attributes ? artwork_data.unique_attributes[0] : undefined,
             'owner' : item_generator.user_id,
             'status' : item_generator.status,
@@ -314,7 +323,7 @@ generateItemFromArtworkID = function(item_generator, callback) {
             'date_received': moment()._d.toISOString(),
             'xp_rating' : item_generator.xp_rating === undefined ? getXPRating(item_generator.xp_rating_min) : item_generator.xp_rating,
             'roll_count' : 0,
-            'foil': loot_data.seasonal_items.indexOf(item_generator.artwork_id) == -1 && Math.random() < item_generator.foil_chance,
+            'foil': foil,
             'seasonal': item_generator.seasonal === undefined ? loot_data.seasonal_items.indexOf(item_generator.artwork_id) != -1 : item_generator.seasonal,
             'lottery': item_generator.lottery === undefined ? 0 : item_generator.lottery,
             'original': item_generator.original === undefined ? false : item_generator.original,
@@ -347,8 +356,7 @@ generateItemFromArtworkID = function(item_generator, callback) {
     else return undefined;
 }
 
-getAttributes = function(artwork_id) {
-    var artwork_object = artworks.findOne(artwork_id);
+getAttributes = function(artwork_object, item_is_unlocked) {
     var all_attributes = [];
     var attributes_object = {
         'locked': [],
@@ -363,17 +371,8 @@ getAttributes = function(artwork_id) {
         all_attributes.push(attribute_object._id);
     }
 
-    var locked_count = 1;
-    var unlocked_count = 1;
-    var item_is_unlocked = Math.random() < (1/20) || artwork_object.rarity == "common";
-    
-    if (artwork_object.rarity == "common")
-        locked_count = 0;
-
-    else if (item_is_unlocked) {
-        unlocked_count = 2;
-        locked_count = 0;
-    }
+    var locked_count = artwork_object.rarity == "common" || item_is_unlocked ? 0 : 1;
+    var unlocked_count = artwork_object.rarity == "common" || !item_is_unlocked ? 1 : 2;
 
     for (var i=0; i<locked_count; i++) {
         var query = {'_id': {$nin: all_attributes}, 'active': true};
@@ -489,6 +488,7 @@ Meteor.methods({
                 'count': admin_settings.daily_drop_count,
                 'status': "unclaimed",
                 'foil_chance': foil_chance,
+                'unlocked_chance': getLootData().global_unlocked_chance,
                 'misprint_chance': getLootData().global_misprint_chance,
                 'xp_rating_min': 0,
                 'condition_min': 0
@@ -517,7 +517,8 @@ Meteor.methods({
             return false;
 
         if (Meteor.userId() && crate_object.cost < Meteor.user().profile.bank_balance) {
-            var foil_chance = getLootData().global_foil_chance;
+            var loot_data = getLootData();
+            var foil_chance = loot_data.global_foil_chance;
 
             if (procUniqueAttribute(Meteor.userId(), "CRATE_FOIL_BONUS", undefined)) {
                 foil_chance *= 2;
@@ -530,7 +531,8 @@ Meteor.methods({
                 'count': crate_object.count,
                 'status': "unclaimed",
                 'foil_chance': foil_chance,
-                'misprint_chance': getLootData().global_misprint_chance,
+                'unlocked_chance': loot_data.global_unlocked_chance,
+                'misprint_chance': loot_data.global_misprint_chance,
                 'xp_rating_min': 0,
                 'condition_min': 0
             }

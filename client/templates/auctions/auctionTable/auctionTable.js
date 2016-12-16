@@ -142,10 +142,6 @@ Template.auctionTable.helpers({
 		return list_object.bid_status.biddable && list_object.expiration > moment()._d.toISOString();
 	},
 
-	'attributeColor' : function(value) {
-		return 255 - Math.floor(value * 255);
-	},
-
 	'thumbnailFilename' : function(artwork_id) {
 		try {
 			return artworks.findOne(artwork_id).filename;
@@ -271,7 +267,7 @@ Template.auctionTable.events({
 	'mouseover .item-attribute' : function(element) {
 		var value = Math.floor(Number(element.target.dataset.attribute_value) * 100);
 		var description = element.target.dataset.attribute_title;
-		setFootnote("level " + value + " " + description, Math.floor(Math.random() * 100000));
+		setFootnote("level " + (isNaN(value) ? '?' : value) + " " + description, Math.floor(Math.random() * 100000));
 	},
 
 	'click #toggle-details' : function() {

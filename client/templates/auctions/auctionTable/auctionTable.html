@@ -41,21 +41,21 @@
 									<div class="col-xs-11 col-xs-offset-2">
 										<p> 
 										{{#each sortedAttributes attributes.unlocked}}
-											<i data-attribute_title="{{description}}" data-attribute_value="{{value}}" style="color: rgb({{attributeColor value}}, 0, 0)" class="item-attribute fa {{icon}}"></i>
+											<i data-attribute_title="{{description}}" data-attribute_value="{{value}}" style="color: {{getHTMLColorFromValue value}}" class="item-attribute fa {{icon}}"></i>
 										{{/each}}
 										{{#if attributes.locked}}|{{/if}}
 										{{#each sortedAttributes attributes.locked}}
-											<i data-attribute_title="{{description}}" data-attribute_value="{{value}}" style="color: rgb({{attributeColor value}}, 0, 0)" class="locked item-attribute fa {{icon}}"></i>
+											<i data-attribute_title="{{description}}" data-attribute_value="{{value}}" style="color: {{getHTMLColorFromValue value}}" class="locked item-attribute fa {{icon}}"></i>
 										{{/each}}
 										{{#if attributes.special}}|{{/if}}
 										{{#each sortedAttributes attributes.special}}
-											<i data-attribute_title="{{description}}" data-attribute_value="{{value}}" style="color: rgb({{attributeColor value}}, 0, 0)" class="special item-attribute fa {{icon}}"></i>
+											<i data-attribute_title="{{description}}" data-attribute_value="{{value}}" style="color: {{getHTMLColorFromValue value}}" class="special item-attribute fa {{icon}}"></i>
 										{{/each}}
 										</p>
 									</div>
 									<div class="col-xs-3 col-xs-offset-2">
-										<p>condition: <span style="color: rgb({{attributeColor item_data.condition}}, 0, 0)" >{{#if item_data.condition}}{{floatToPercentage item_data.condition}}%{{else}}?{{/if}}</span></p>
-										<p>xp rating: <span style="{{#if item_data.xp_rating}}color: rgb({{attributeColor item_data.xp_rating}}, 0, 0){{/if}}">{{#if item_data.xp_rating}}{{floatToPercentage item_data.xp_rating}}{{else}}?{{/if}}</span></p>
+										<p>condition: <span style="color: {{getHTMLColorFromValue item_data.condition}}" >{{#if item_data.condition}}{{floatToPercentage item_data.condition}}%{{else}}?{{/if}}</span></p>
+										<p>xp rating: <span style="{{#if item_data.xp_rating}}color: {{getHTMLColorFromValue item_data.xp_rating}}{{/if}}">{{#if item_data.xp_rating}}{{floatToPercentage item_data.xp_rating}}{{else}}?{{/if}}</span></p>
 									</div>
 									<div class="col-xs-3">
 										<p>roll count: {{#if rollCount item_data.roll_count}}{{item_data.roll_count}}{{else}}?{{/if}}</p>

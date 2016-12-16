@@ -190,6 +190,8 @@ Meteor.setInterval((function() {
 
         var artwork_id = Math.random() < .0001 ? getRandomArtworkIDFromRarity("masterpiece") : getRandomArtworkIDFromRarity("legendary");
 
+        var loot_data = getLootData();
+
         var item_generator = {
             '_id': _id,
             'source': "lottery",
@@ -197,8 +199,9 @@ Meteor.setInterval((function() {
             'artwork_id': artwork_id,
             'condition': undefined,
             'xp_rating': undefined,
-            'foil_chance': 0,
-            'misprint_chance': getLootData().global_misprint_chance,
+            'foil_chance': loot_data.global_foil_chance,
+            'unlocked_chance': loot_data.global_unlocked_chance,
+            'misprint_chance': loot_data.global_misprint_chance,
             'seasonal': false,
             'lottery': lottery_level,
             'original': false,

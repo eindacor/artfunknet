@@ -199,9 +199,10 @@ var benefactorInteraction = function(npc_object) {
 
 var donorInteraction = function(npc_object) {
 	var drop_count = 2;
-	var foil_chance = getLootData().global_foil_chance;
+	var loot_data = getLootData();
+	var foil_chance = loot_data.global_foil_chance;
 	var condition_min = 0;
-	var min_xp_rating = 0;
+	var min_xp_rating = 0;	
 
 	if (isOwnGallery(npc_object)) {
 		drop_count += 1;
@@ -239,7 +240,7 @@ var donorInteraction = function(npc_object) {
 			if (quest_item_ids.length) {
 				var random_index = Math.floor(Math.random() * quest_item_ids.length);
 				drop_count -= 1;
-
+			
 				var item_generator = {
                     'source': "donor",
                     'user_id': Meteor.userId(),
@@ -247,10 +248,11 @@ var donorInteraction = function(npc_object) {
                     'condition': undefined,
                     'xp_rating': undefined,
                     'foil_chance': foil_chance,
+                    'unlocked_chance': loot_data.global_unlocked_chance,
                     'seasonal': undefined,
                     'lottery': 0,
                     'original': false,
-                    'misprint_chance': getLootData().global_misprint_chance,
+                    'misprint_chance': loot_data.global_misprint_chance,
                     'status': "unclaimed",
                     'xp_rating_min': min_xp_rating,
                     'condition_min': condition_min
@@ -268,7 +270,8 @@ var donorInteraction = function(npc_object) {
         'count': drop_count,
         'status': "unclaimed",
         'foil_chance': foil_chance,
-        'misprint_chance': getLootData().global_misprint_chance,
+        'unlocked_chance': loot_data.global_unlocked_chance,
+        'misprint_chance': loot_data.global_misprint_chance,
         'xp_rating_min': min_xp_rating,
         'condition_min': condition_min
     }
@@ -569,6 +572,8 @@ var collectorInteraction = function(npc_object) {
 				else offer_bonus += (highest_xp_rating * .4)
 			}
 
+			var loot_data = getLootData();
+
 			if (procUniqueAttribute(Meteor.userId(), "COLLECTOR_FOR_SALE_OFFER", undefined)) {
 				var multi_item_generator = {
 			        'source': "COLLECTOR_FOR_SALE_OFFER",
@@ -576,8 +581,9 @@ var collectorInteraction = function(npc_object) {
 			        'quality': npc_object.quality,
 			        'count': 2,
 			        'status': "for_sale",
-			        'foil_chance': getLootData().global_foil_chance,
-			        'misprint_chance': getLootData().global_misprint_chance,
+			        'foil_chance': loot_data.global_foil_chance,
+			        'unlocked_chance': loot_data.global_unlocked_chance,
+			        'misprint_chance': loot_data.global_misprint_chance,
 			        'xp_rating_min': 0,
 			        'condition_min': 0
 			    }
@@ -604,11 +610,12 @@ var collectorInteraction = function(npc_object) {
                         'artwork_id': quest_item_ids[random_index],
                         'condition': undefined,
                         'xp_rating': undefined,
-                        'foil_chance': getLootData().global_foil_chance,
+                        'foil_chance': loot_data.global_foil_chance,
+                        'unlocked_chance': loot_data.global_unlocked_chance,
                         'seasonal': undefined,
                         'lottery': 0,
                         'original': false,
-                        'misprint_chance': getLootData().global_misprint_chance,
+                        'misprint_chance': loot_data.global_misprint_chance,
                         'status': "unclaimed",
                         'xp_rating_min': 0,
                         'condition_min': 0
@@ -658,7 +665,8 @@ var collectorInteraction = function(npc_object) {
 
 var artDealerInteraction = function(npc_object) {
 	var drop_count = 4;
-	var foil_chance = getLootData().global_foil_chance;
+	var loot_data = getLootData();
+	var foil_chance = loot_data.global_foil_chance;
 	var min_xp_rating = 0;
 
 	if (isOwnGallery(npc_object)) {
@@ -702,10 +710,11 @@ var artDealerInteraction = function(npc_object) {
                     'condition': undefined,
                     'xp_rating': undefined,
                     'foil_chance': foil_chance,
+                    'unlocked_chance': loot_data.global_unlocked_chance,
                     'seasonal': undefined,
                     'lottery': 0,
                     'original': false,
-                    'misprint_chance': getLootData().global_misprint_chance,
+                    'misprint_chance': loot_data.global_misprint_chance,
                     'status': "for_sale",
                     'xp_rating_min': min_xp_rating,
                     'condition_min': 0
@@ -723,7 +732,8 @@ var artDealerInteraction = function(npc_object) {
         'count': drop_count,
         'status': "for_sale",
         'foil_chance': foil_chance,
-        'misprint_chance': getLootData().global_misprint_chance,
+        'unlocked_chance': loot_data.global_unlocked_chance,
+        'misprint_chance': loot_data.global_misprint_chance,
         'xp_rating_min': min_xp_rating,
         'condition_min': 0
     }
@@ -1046,14 +1056,17 @@ var auctioneerInteraction = function(npc_object) {
 		auction_price_adjustment = 2.5;
 	}
 
+	var loot_data = getLootData();
+
 	var multi_item_generator = {
         'source': "private auction",
         'user_id': "Artfunkel, Inc.",
         'quality': npc_object.quality,
         'count': auction_count,
         'status': "auctioned",
-        'foil_chance': getLootData().global_foil_chance,
-        'misprint_chance': getLootData().global_misprint_chance,
+        'foil_chance': loot_data.global_foil_chance,
+        'unlocked_chance': loot_data.global_unlocked_chance,
+        'misprint_chance': loot_data.global_misprint_chance,
         'xp_rating_min': 0,
         'condition_min': 0
     }

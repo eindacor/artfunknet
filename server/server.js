@@ -22,38 +22,6 @@ var generateContent = function() {
     }
 }
 
-var resetMetaData = function() {
-    metadata.remove({});
-    metadata.insert({
-        'drops': {
-            'legendary': {
-                'sources': {},
-                'player_level_avg': 0,
-                'count_total': 0,
-                'counts': {},
-            },
-            'masterpiece': {
-                'sources': {},
-                'player_level_avg': 0,
-                'count_total': 0,
-                'counts': {},
-            },
-        }
-    });
-
-    metadata.insert({
-        'xp': {
-            'sources': {}
-        }
-    });
-
-    metadata.insert({
-        'money': {
-            'sources': {}
-        }
-    });
-}
-
 var updateContent = function() {
     var all_users = Meteor.users.find();
     all_users.forEach(function(db_object) {
@@ -75,7 +43,11 @@ var updateContent = function() {
     });
 
     // temp code
-
+    metadata.update({'loot_data': {$ne: null}}, {$set: {'loot_data.global_unlocked_chance': (1/20)}});
+    items.find().forEach(function(item_object) {
+        var unlocked = item_object.artwork_data.rarity != "common" && item_object.attributes.locked.length == 0;
+        updateItem(item_object._id, {$set: {'unlocked': unlocked}});
+    })
     // temp code
 }
 

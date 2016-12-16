@@ -8,6 +8,9 @@ Template.registerHelper('consoleLogThis', function(the_thing) {
 })
 
 Template.registerHelper('getHTMLColorFromValue', function(value) {
+	if (value === undefined)
+		return "rgb(180, 180, 180)";
+
 	var red_value = 255 - Math.floor(value * 255);
 	var color_string = "rgb(" + red_value + " , 0, 0)";
 	return color_string;

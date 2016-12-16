@@ -375,7 +375,7 @@ Template.itemInfo.events({
 		var attribute_id = element.target.dataset.attribute_id;
 		var value = Math.floor(Number(element.target.dataset.attribute_value) * 100);
 		var description = element.target.dataset.attribute_description;
-		var hover_string = "level " + value + " " + description;
+		var hover_string = "level " + (isNaN(value) ? '?' : value) + " " + description;
 		setFootnote(hover_string, Math.floor(Math.random() * 1000));
 	},
 

@@ -671,17 +671,20 @@ Meteor.methods({
                 var random_index = Math.floor(Math.random() * count);
                 var random_artwork_id = artworks.findOne({'_id': {$nin: getLootData().seasonal_items}, 'rarity': rarity}, {skip: random_index})._id;
 
+                var loot_data = getLootData();
+
                 var item_generator = {
                     'source': "quest",
                     'user_id': user_object._id,
                     'artwork_id': random_artwork_id,
                     'condition': undefined,
                     'xp_rating': undefined,
-                    'foil_chance': quest_object.reward.item.foil ? 1 : getLootData().global_foil_chance,
+                    'foil_chance': quest_object.reward.item.foil ? 1 : loot_data.global_foil_chance,
+                    'unlocked_chance': loot_data.global_unlocked_chance,
                     'seasonal': undefined,
                     'lottery': 0,
                     'original': false,
-                    'misprint_chance': getLootData().global_misprint_chance,
+                    'misprint_chance': loot_data.global_misprint_chance,
                     'status': "unclaimed",
                     'xp_rating_min': 0,
                     'condition_min': 0
@@ -910,7 +913,9 @@ Meteor.methods({
                 'item_data.xp_rating': 0,
                 'item_data.feature_count': 0,
                 'item_data.roll_count': 0,
-                'item_data.attributes': 0
+                'item_data.attributes.locked.value': 0,
+                'item_data.attributes.unlocked.value': 0,
+                'item_data.attributes.special.value': 0
             }
 
             if (sort_object.item_data != undefined && (
@@ -927,14 +932,23 @@ Meteor.methods({
         var now = moment()._d.toISOString();
         filter_array.push({'expiration': {$gt : now}});
 
-        var auction_array = auctions.find(
+        var auction_array = [];
+
+        auctions.find(
             {$and: filter_array}, 
             {
-                fields: fields_object, 
                 sort: sort_object,
                 skip: skip_amount, 
                 limit: items_per_page
-            }).fetch();
+            }
+        ).forEach(function(auction_object) {
+            if (auction_object.seller == Meteor.user().profile.screen_name)
+                auction_array.push(auction_object);
+
+            else {
+                auction_array.push(auctions.findOne(auction_object._id, {fields: fields_object}));
+            }
+        });
 
         return auction_array;
     },
@@ -1185,7 +1199,14 @@ Meteor.methods({
             'seasonal': 1,
             'foil': 1,
             'original': 1,
-            'vintage': 1
+            'vintage': 1,
+            'unlocked': 1,
+            'attributes.locked.icon': 1,
+            'attributes.locked.description': 1,
+            'attributes.unlocked.icon': 1,
+            'attributes.unlocked.description': 1,
+            'attributes.special.icon': 1,
+            'attributes.special.description': 1
         };
 
         if (has_auctioneer || auction_object.seller == Meteor.user().profile.screen_name) {
@@ -1193,7 +1214,9 @@ Meteor.methods({
             fields_object.values = 1;
             fields_object.xp_rating = 1;
             fields_object.roll_count = 1;
-            fields_object.attributes = 1;
+            fields_object["attributes.locked.value"] = 1;
+            fields_object["attributes.unlocked.value"] = 1;
+            fields_object["attributes.special.value"] = 1;
         }
 
         var item_object = items.findOne(auction_object.item_id, {fields: fields_object});
