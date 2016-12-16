@@ -33,7 +33,7 @@
 					<p class="highlight">{{displayAsMoneyValue values.actual}}</p>
 				</div> 
 				<div class="col-xs-2">
-					<p class="{{artwork_data.rarity}}">{{artwork_data.rarity}}{{#if foil}}<span class="af-color"> foil</span>{{/if}}{{#if seasonal}}<span class="common"> seasonal</span>{{/if}}{{#if original}}<span class="purple-text"> original</span>{{/if}}{{#if lottery}}<span class="gold"> lottery {{lottery}}</span>{{/if}}{{#if vintage}}<span class="vintage-text"> vintage</span>{{/if}}{{#if unlocked}}<span class="silver-text"> unlocked</span>{{/if}}</p>
+					{{> itemSignature item_data=this}}
 				</div> 
 			</div>
 			{{/each}}

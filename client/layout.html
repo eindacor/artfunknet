@@ -14,3 +14,27 @@
 <template name="meteorValue">
 	<span id="{{displayValueFromMeteor key}}"><i class="nav-icon fa fa-clock-o"></i></span>
 </template>
+
+<template name="itemSignature">
+	<p>
+		<span class="{{item_data.artwork_data.rarity}}"><strong>{{item_data.artwork_data.rarity}}</strong></span>
+		{{#if item_data.foil}}
+		<span class="af-color"> foil</span>
+		{{/if}}
+		{{#if item_data.seasonal}}
+		<span class="common"> seasonal</span>
+		{{/if}}
+		{{#if item_data.lottery}}
+		<span class="gold"> lottery {{item_data.lottery}}</span>
+		{{/if}}
+		{{#if item_data.original}}
+		<span class="purple-text"> original</span>
+		{{/if}}
+		{{#if item_data.vintage}}
+		<span class="vintage-text"> vintage</span>
+		{{/if}}
+		{{#if item_data.unlocked}}
+		<span class="silver-text"> unlocked</span>
+		{{/if}}
+	</p>
+</template>
