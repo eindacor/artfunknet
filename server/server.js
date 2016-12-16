@@ -43,11 +43,7 @@ var updateContent = function() {
     });
 
     // temp code
-    metadata.update({'loot_data': {$ne: null}}, {$set: {'loot_data.global_unlocked_chance': (1/20)}});
-    items.find().forEach(function(item_object) {
-        var unlocked = item_object.artwork_data.rarity != "common" && item_object.attributes.locked.length == 0;
-        updateItem(item_object._id, {$set: {'unlocked': unlocked}});
-    })
+
     // temp code
 }
 
