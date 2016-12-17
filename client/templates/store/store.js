@@ -28,8 +28,8 @@ var getCrates = function() {
 }
 
 Template.store.helpers({
-	'for_sale': function() {
-		return items.find({'owner': Meteor.userId(), 'status': 'for_sale'});
+	'item_set_statuses': function() {
+		return ['for_sale', 'displayed', 'permanent', 'auctioned'];
 	},
 
 	'can_afford': function(cost) {

@@ -12,9 +12,7 @@
 			<p>Note: your inventory is currently full. You will be unable to add new artwork to your inventory</p>
 			{{/if}}
 
-			{{#each drop}}
-				{{>itemInfo item_data=this claim_button=true sell_button=true}}
-			{{/each}}
+			{{> itemSet statuses=item_set_statuses}}
 		</div>
 	</div>
 </template>

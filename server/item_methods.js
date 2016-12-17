@@ -484,7 +484,18 @@ rerollAttribute = function(user_id, item_id, attribute_id) {
     }
 }
 
+var getItemArray = function(filter_array, sorter_object, current_page, items_per_page) {
+    var item_array = items.find({
+        $and: filter_array
+    }, {sort: sorter_object, skip: current_page * items_per_page, limit: items_per_page}).fetch();
 
+    var items_found = items.find({$and: filter_array}).count();
+
+    return {
+        'item_array': item_array,
+        'items_found': items_found
+    }
+}
 
 Meteor.methods({
 	'claimArtwork' : function(item_id) {
@@ -658,6 +669,12 @@ Meteor.methods({
             return Meteor.users.findOne(item_object.owner).profile.screen_name;
 
         else return undefined;
+    },
+
+    'getItemArray': function(filter_array, sorter_object, current_page, items_per_page) {
+        //TODO verify user is only searching items they have access to
+
+        return getItemArray(filter_array, sorter_object, current_page, items_per_page);
     }
 
 })

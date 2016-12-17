@@ -17,12 +17,7 @@
 		<p>Note: your inventory is currently full. You will be unable to add new artwork to your inventory</p>
 		{{/if}}
 
-		{{#each for_sale}}
-			<div class="store-item-container">
-				{{>itemInfo item_data=this purchase_button=true decline_button=true}}
-				<p class="price-text">cost - ${{getItemObjectValue this "dealer"}}</p>
-			</div>
-		{{/each}}
+		{{> itemSet statuses=item_set_statuses}}
 
 	</div>
 </template>

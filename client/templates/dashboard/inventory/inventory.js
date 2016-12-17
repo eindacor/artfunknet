@@ -143,6 +143,10 @@ var addQueriesFromKeywords = function(base_filter) {
 }
 
 Template.inventory.helpers({
+	'item_set_statuses': function() {
+		return ['claimed', 'displayed', 'permanent', 'auctioned'];
+	},
+
 	'owned': function() {	
 		try {
 			display_tracker.depend();
@@ -621,9 +625,6 @@ Template.inventory.events({
 })
 
 Template.inventory.created = function() {
-	Session.set('inventory_sort', 'title');
-	Session.set('inventory_ascending', true);
-	Session.set('list_view', false);
 	this.handle = Meteor.setInterval((function() {
 		var now = moment();
 		Session.set('now', now.toISOString());
@@ -633,7 +634,6 @@ Template.inventory.created = function() {
 }
 
 Template.inventory.rendered = function() {
-	Session.set('inventory_page', 0);
 	Blaze.getData($('.template-inventory')[0])["value_data"] = {};
 	tags = [];
 	search_terms = [];
