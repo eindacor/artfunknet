@@ -7,8 +7,8 @@ var drop_frequency = 10800000 //once every 3 hours
 // var drop_frequency = 1000 //once per second
 
 Template.randomDrop.helpers({
-	'drop': function() {
-		return items.find({'owner': Meteor.userId(), 'status': {$in: ['unclaimed', 'won']}});
+	'item_set_statuses': function() {
+		return ['unclaimed', 'won'];
 	},
 
 	'dailyDropEnabled' : function() {
