@@ -15,18 +15,6 @@
 	opacity: .2;
 }
 
-.template-itemInfo .card-container {
-	display: inline-block;
-	width: 280px;
-	height: 390px;
-	margin: 24px;
-	/*border-radius: 12px;*/
-	background: url("/img/paintings/steciw_amber.jpg") center;
-	border: 1px solid #555555;
-	padding: 0px;
-	opacity: .95;
-}
-
 @-webkit-keyframes card_effect {
     0%{background-position:0% 50%}
     50%{background-position:100% 50%}
@@ -206,10 +194,6 @@
 	height: 100%;
 }
 
-.template-itemInfo .card-container:hover .button-area {
-	display: block;
-}
-
 .template-itemInfo .card-header {
 	background-color: white;
 	opacity: .90;
@@ -267,53 +251,16 @@
 	display: block;
 }
 
-.template-itemInfo .footer-details, .template-itemInfo .button-area  {
-	display: none;
-	border-bottom: 1px solid black;
-	margin-bottom: 12px;
-	padding-bottom: 4px;
-}
-
-/*.template-itemInfo .selected {
-	border: 1px solid #F3C;
-}
-
-.template-itemInfo .selected .card-header, .template-itemInfo .selected .card-footer {
-	background-color: #FDF;
-}*/
-
-.template-itemInfo .button-area {
-	background-color: none;
-	opacity: 1;
-	font-size: 2rem;
-	text-align: center;
-	vertical-align: middle;
-	margin: 4px auto;
-}
-
-.template-itemInfo .button-area i {
-	margin: 0px 6px;
-	text-align: left;
-}
-
-.template-itemInfo .button-area .disabled{
-	opacity: .3;
-}
-
-.template-itemInfo .button-area .enabled {
-	color: black;
-	opacity: .5;
-}
-
-.template-itemInfo .button-area .enabled:hover, .template-itemInfo .button-area .inactive:hover {
-	opacity: 1;
-	cursor: pointer;
-	color: black;
-}
-
-.template-itemInfo .button-area .active:hover {
-	cursor: pointer;
-	opacity: .5;
+.template-itemInfo .card-container {
+	display: inline-block;
+	width: 280px;
+	height: 390px;
+	margin: 6px 20px;
+	/*border-radius: 12px;*/
+	background: url("/img/paintings/steciw_amber.jpg") center;
+	border: 1px solid #555555;
+	padding: 0px;
+	opacity: .95;
 }
 
 .template-itemInfo .attribute-area {

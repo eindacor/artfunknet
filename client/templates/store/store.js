@@ -29,7 +29,7 @@ var getCrates = function() {
 
 Template.store.helpers({
 	'item_set_statuses': function() {
-		return ['for_sale', 'displayed', 'permanent', 'auctioned'];
+		return ['for_sale'];
 	},
 
 	'can_afford': function(cost) {

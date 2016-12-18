@@ -112,7 +112,10 @@
 
 		<div class="row">
 			{{#each item_array statuses}}
-				{{>itemInfo item_data=this}}
+				<div data-item_id="{{this._id}}" class="item-container">
+					{{>itemInfo item_data=this}}
+					{{>itemActions item_data=this sell_button=true}}
+				</div>
 			{{/each}}
 		</div>
 	</div>

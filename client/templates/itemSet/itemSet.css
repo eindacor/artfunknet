@@ -57,3 +57,7 @@
 	flex: auto;
 	align-items:center;
 }
+
+.template-itemSet .item-container {
+	display: inline-block;
+}
