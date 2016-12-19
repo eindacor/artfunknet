@@ -45,6 +45,8 @@ Meteor.methods({
 		var attribute_object = attributes.findOne(npc_object.attribute_id);		
 		var npc_interaction = {};
 
+		addNPCMeeting(Meteor.user().profile.screen_name, attribute_object.npc_name);
+
 		switch(attribute_object.title) {
 			case "benefactor_bonus": 
 				npc_interaction = benefactorInteraction(npc_object);

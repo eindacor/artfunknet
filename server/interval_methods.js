@@ -1,3 +1,46 @@
+addNPCMeeting = function(user_name, npc_type) {
+    try {
+        var query = {};
+        var query_string = 'npc_interactions.' + user_name + '.' + npc_type;
+        var total_string = 'npc_interactions.' + user_name + '.total';
+        query[query_string] = {'$ne': null};
+
+        var setter_object = {};
+        setter_object[query_string] = 1;    // npc_interactions.Eindacor_DS.Gallery Manager: 1
+        setter_object[total_string] = 1;
+
+        if (metadata.findOne(query) == undefined) {    
+            metadata.update({'npc_interactions': {'$ne': null}}, {'$set': setter_object});
+        }
+
+        else {
+            metadata.update({'npc_interactions': {'$ne': null}}, {'$inc': setter_object});
+        }
+    } catch(error) {
+        console.log("addNPCMeeting: " + error.message);
+    }
+}
+
+var npc_meeting_clear = 3600000;
+Meteor.setInterval((function() {
+    var npc_interactions = metadata.findOne({'npc_interactions': {'$ne': null}}).npc_interactions;
+    var screen_names = Object.keys(npc_interactions);
+    for (var i=0; i<screen_names.length; i++) {
+        var screen_name = screen_names[i];
+        var total = npc_interactions[screen_name].total;
+
+        if (total == undefined)
+            continue;
+
+        console.log(screen_name + ": " + total + ' in past hour');
+        var setter_object = {};
+        var setter_string = 'npc_interactions.' + screen_name;
+        setter_object[setter_string] = {'total': 0};
+        metadata.update({'npc_interactions': {'$ne': null}}, {'$set': setter_object});
+    }
+
+}), npc_meeting_clear);
+
 var check_frequency = 10000;
 Meteor.setInterval((function() {
     var now = moment()._d.toISOString();
@@ -78,7 +121,7 @@ Meteor.setInterval((function() {
                     proc_chance += .2;
             }
 
-            if (JepLoot.booRoll(proc_chance)) {
+            if (Math.random() < proc_chance) {
                 var npc_quality = getNPCQuality(Meteor.users.findOne(db_object.owner_id).profile.level);
                 createNPC(db_object, attribute_ids[i], npc_spawn_frequency, npc_quality);
 
