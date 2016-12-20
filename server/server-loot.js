@@ -473,8 +473,6 @@ getLockedAttributeValue = function() {
 Meteor.methods({
     'giveDailyDrop' : function() {
         if (Meteor.user() && dailyDropIsEnabled()) {
-            var rolled_quality = getRolledCrateQuality();
-
             var foil_chance = getLootData().global_foil_chance;
 
             if (procUniqueAttribute(Meteor.userId(), "DAILY_FOIL_BONUS", undefined)) {
@@ -484,7 +482,7 @@ Meteor.methods({
             var multi_item_generator = {
                 'source': "daily drop",
                 'user_id': Meteor.userId(),
-                'quality': rolled_quality,
+                'quality': "platinum",
                 'count': admin_settings.daily_drop_count,
                 'status': "unclaimed",
                 'foil_chance': foil_chance,
@@ -499,10 +497,10 @@ Meteor.methods({
             var now = moment().toISOString();
             Meteor.users.update(Meteor.userId(), {$set: {'profile.last_drop' : now}});
 
-            return rolled_quality;    
+            return true;    
         }
 
-        else return undefined;
+        else return false;
     },
 
     'openCrate' : function(size) {

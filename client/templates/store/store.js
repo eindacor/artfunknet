@@ -99,6 +99,10 @@ Template.store.events ({
 		Meteor.call('clearAllForSale', function(error) {
 			if (error)
 				console.log(error.message);
+
+			else {
+				Session.set('update_set', true);
+			}
 		})
 	},
 

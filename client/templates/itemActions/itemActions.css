@@ -1,26 +1,17 @@
 .template-itemActions .button-area {
 	display: block;
 	background-color: none;
-	opacity: 1;
+	opacity: 0;
 	font-size: 2rem;
 	text-align: center;
 	vertical-align: middle;
 	margin: auto;
-	margin-bottom: 24px;
+	margin-bottom: 30px;
 }
 
 .template-itemActions .button-area i {
 	margin: 0px 6px;
 	text-align: left;
-}
-
-.template-itemActions .button-area .disabled{
-	opacity: .3;
-}
-
-.template-itemActions .button-area .enabled {
-	color: black;
-	opacity: .5;
 }
 
 .template-itemActions .button-area .enabled:hover, .template-itemActions .button-area .inactive:hover {
@@ -29,7 +20,6 @@
 	color: black;
 }
 
-.template-itemActions .button-area .active:hover {
-	cursor: pointer;
-	opacity: .5;
+.template-itemActions .button-area:hover {
+	opacity: 1;
 }

@@ -5,7 +5,10 @@ Template.quickSellModal.events({
 			if (error)
 				console.log(error.message);
 
-			else $('.template-modalTemplate').remove();;
+			else {
+				$('.template-modalTemplate').remove();
+				Session.set('update_set', true);
+			}
 		});
 	}
 })

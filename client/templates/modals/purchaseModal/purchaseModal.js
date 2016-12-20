@@ -60,7 +60,10 @@ Template.purchaseModal.events({
 				if (error)
 					console.log(error.message);
 
-				else Modal.hide('purchaseModal');
+				else {
+					Modal.hide('purchaseModal');
+					Session.set('update_set', true);
+				}
 			});
 		}
 	}

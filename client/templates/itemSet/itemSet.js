@@ -2,7 +2,7 @@ var display_tracker = new Tracker.Dependency;
 var page_tracker = new Tracker.Dependency;
 
 var status_filter;
-var item_array;
+var item_array = [];
 var tags = [];
 var search_terms = [];
 var keywords = [];
@@ -21,6 +21,7 @@ var standard_filter = {};
 var current_page = 0;
 var items_found = 0;
 var items_per_page = 10;
+var set_location;
 
 var generateQueryFromSearchTerms = function() {
 	if (search_terms.length == 0)
@@ -312,10 +313,11 @@ var getItemArray = function() {
 			display_tracker.changed();
 		}
 	})
+	Session.set('update_set', false);
 }
 
 var resetArrayAndUpdate = function() {
-	item_array = undefined;
+	Session.set('update_set', true);
 	display_tracker.changed();
 }
 
@@ -339,20 +341,33 @@ Template.itemSet.helpers({
 		if (statuses == undefined)
 			return [];
 
-		if (item_array == undefined) {
+		if (Session.get('update_set')) {
 			if (status_filter == undefined)
 				status_filter = {'status': {'$in': statuses}};
 
 			getItemArray();
 		}
 
-		else return item_array;
+		return item_array;
+	},
+
+	// 'trackUpdates': function() {
+	// 	if (Session.get('update_set')) {
+	// 		Session.set('update_set', false);
+	// 		resetArrayAndUpdate();
+	// 	}
+
+	// 	return Session.get('update_set');
+	// },
+
+	'setLocation': function(item_set_location) {
+		set_location = item_set_location;
 	}
 })
 
 Template.itemSet.events({
 	'keyup #search-area': function(event) {
-		item_array = undefined;
+		item_array = [];
 		display_tracker.changed();
 	}, 
 
@@ -533,7 +548,8 @@ Template.itemSet.events({
 })
 
 Template.itemSet.rendered = function() {
-	item_array = undefined;
+	set_location = undefined;
+	item_array = [];
 	tags = [];
 	search_terms = [];
 	keywords = [];
@@ -554,5 +570,15 @@ Template.itemSet.rendered = function() {
 	items_found = 0;
 	items_per_page = 10;
 	status_filter = undefined;
-	display_tracker.changed();
+	resetArrayAndUpdate();
+
+	this.handle = Meteor.setInterval((function() {
+		for (var i=0; i<$('.item-container').length; i++) {
+		 	var item_id = $('.item-container:eq(' + i + ')').data().item_id;
+		 	if (items.findOne(item_id) == undefined)
+		 		resetArrayAndUpdate();
+		}
+	}), 1000);
+
+	Session.set('update_set', true);
 }
