@@ -4,7 +4,10 @@ Template.sellAllModal.events({
 			if (error)
 				console.log(error.message);
 
-			$('.template-modalTemplate').remove();
+			else {
+				$('.template-modalTemplate').remove();
+				Session.set('update_set', true);
+			}
 		})
 	}
 })

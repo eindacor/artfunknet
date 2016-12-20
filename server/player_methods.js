@@ -1125,7 +1125,7 @@ Meteor.methods({
                         'profile.last_drop': moment().add(-1, 'days')._d.toISOString(),
                         // +2 because the user's vintage level has not yet been incremented
                         // 'profile.lottery_tickets': Meteor.user().profile.vintage_count + 2,
-                        'profile.expansion_slots': 0,
+                        // 'profile.expansion_slots': 0,
                         'profile.gallery_finishes': {
                             'active': {
                                 'floor_finish': default_floor._id,

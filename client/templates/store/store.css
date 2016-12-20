@@ -3,24 +3,9 @@
 	border-top: 1px solid gray;
 }
 
-.template-store .decline.disabled{
-	opacity: .5;
-}
-
 .template-store .crate-buttons .disabled, 
 .template-store .inventory-expansion-button .disabled{
 	opacity: .5;
-}
-
-.template-store .decline .enabled {
-	color: black;
-	opacity: .5;
-}
-
-.template-store .decline.enabled:hover {
-	opacity: 1;
-	cursor: pointer;
-	color: black;
 }
 
 .template-store .crate-buttons button,

@@ -578,19 +578,6 @@ Template.inventory.events({
 		display_tracker.changed();
 	},
 
-	'click #toggle-filters': function(element) {
-		var target = $(element.target);
-		if (target.hasClass('af-color')) {
-			target.removeClass('af-color');
-			$('.all-filters').css('display', 'none');
-		}
-
-		else {
-			target.addClass('af-color');
-			$('.all-filters').css('display', 'block');
-		}
-	},
-
 	'click #display-by-tags': function() {
 		if (tags.length > 0) {
 			Meteor.call('displayAllTagged', tags, $('#tagged-display-duration').val(), function(error, result) {

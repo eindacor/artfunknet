@@ -119,6 +119,10 @@ Template.navbar.helpers({
 	},
 
 	'hasLoot' : function() {
+		var last_drop = Meteor.user().profile.last_drop;
+		if ((moment(Session.get('now')) - moment(last_drop) > 10800000))
+			return true;
+
 		return items.findOne({'owner': Meteor.userId(), 'status': {$in: ["unclaimed", "won"]}}) !== undefined;
 	},
 
@@ -209,6 +213,10 @@ Template.navbar.rendered = function() {
 	$('.notification').bind('afterShow', function() {
 		console.log("detected");
 	})
+
+	this.handle = Meteor.setInterval((function() {
+		Session.set('now', moment().toISOString());
+	}), 1000);
 }
 
 jQuery(function($) {

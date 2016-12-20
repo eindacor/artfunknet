@@ -8,31 +8,33 @@
 				{{#if isEqual item_data.status "auctioned"}}
 					<span class="remaining-text">auctioned - {{auction_time_remaining item_data}}</span>
 				{{else}}
-					{{#if canClaim item_data}}
-						<span class="claim {{#if claim}}enabled{{else}}disabled{{/if}}"><i data-item_id="{{item_data._id}}" class="fa fa-plus"></i></span>		
-					{{/if}}
-					<span class="quick-sell {{#if sell}}enabled{{else}}disabled{{/if}}"><i data-item_id="{{item_data._id}}" class="fa fa-usd"></i></span>	
-					{{#if ../auction_button}}
-						<span class="auction {{#if auction}}enabled{{else}}disabled{{/if}}"><i data-item_id="{{item_data._id}}" class="fa fa-gavel"></i></span>
-					{{/if}}	
-					{{#if ../display_button}}				
-						<span class="display {{#if display}}enabled{{else}}disabled{{/if}}"><i data-item_id="{{item_data._id}}" class="fa fa-picture-o"></i></span>	
-					{{/if}}			
-					{{#if canReroll item_data}}
-						<span class="reroll {{#if reroll}}enabled{{else}}disabled{{/if}}"><i data-item_id="{{item_data._id}}" class="fa fa-magic"></i></span>		
-					{{/if}}
-					{{#if ../permanent_button}}
-						<span class="perm-collection {{#if permanent}}{{#if isEqual item_data.status 'permanent'}}active af-color{{else}}inactive{{/if}}{{else}}disabled{{/if}}"><i data-item_id="{{../item_data._id}}" class="fa fa-heart"></i></span>
-					{{/if}}
-					{{#if ../preview_button}}
-						<span class="preview enabled"><i data-item_id="{{item_data._id}}" class="fa fa-eye"></i></span>		
-					{{/if}}
-					{{#if canPurchase item_data}}
-						<span class="purchase {{#if purchase}}enabled{{else}}disabled{{/if}}"><i data-item_id="{{item_data._id}}" class="fa fa-tag"></i></span>		
-					{{/if}}
-					{{#if ../decline_button}}
-						<span class="decline {{#if decline}}enabled{{else}}disabled{{/if}}"><i data-item_id="{{item_data._id}}" class="fa fa-times"></i></span>		
-					{{/if}}				
+					{{#with itemPermissions item_data}}
+						{{#if claim}}
+							<span class="claim enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-plus"></i></span>		
+						{{/if}}
+						{{#if sell}}
+							<span class="quick-sell enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-usd"></i></span>
+						{{/if}}	
+						{{#if auction}}
+							<span class="auction enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-gavel"></i></span>
+						{{/if}}	
+						{{#if display}}				
+							<span class="display enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-picture-o"></i></span>	
+						{{/if}}			
+						{{#if reroll}}
+							<span class="reroll enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-magic"></i></span>		
+						{{/if}}
+						{{#if permanent}}
+							<span class="perm-collection {{#if isEqual ../item_data.status 'permanent'}}active af-color{{else}}inactive{{/if}}"><i data-item_id="{{../item_data._id}}" class="fa fa-heart"></i></span>
+						{{/if}}
+						{{#if purchase}}
+							<span class="purchase enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-shopping-cart"></i></span>		
+						{{/if}}
+						{{#if decline}}
+							<span class="decline enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-times"></i></span>		
+						{{/if}}	
+						<span class="tags enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-tags"></i></span>
+					{{/with}}			
 				{{/if}}
 
 			{{/if}}
