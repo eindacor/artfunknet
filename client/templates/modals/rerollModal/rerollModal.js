@@ -9,7 +9,7 @@ Template.rerollModal.events ({
     			console.log(error.message);
 
     		else {
-				Session.set('item_to_update', items.findOne(Session.get('selectedItem')));
+				Session.set('item_to_update', Session.get('selectedItem'));
 			}
     	});
     },
@@ -21,7 +21,7 @@ Template.rerollModal.events ({
 				console.log(error.message);
 
 			else {
-				Session.set('item_to_update', items.findOne(Session.get('selectedItem')));
+				Session.set('item_to_update', Session.get('selectedItem'));
 			}
 		});
     },
@@ -33,7 +33,7 @@ Template.rerollModal.events ({
 				console.log(error.message);
 
 			else {
-				Session.set('item_to_update', items.findOne(Session.get('selectedItem')));
+				Session.set('item_to_update', Session.get('selectedItem'));
 			}
 		});
     },
@@ -43,9 +43,9 @@ Template.rerollModal.events ({
 		Meteor.call('setActiveUniqueAttribute', Session.get('selectedItem'), unique_attribute_id, function(error) {
 			if (error)
 				console.log(error.message)
-			
+
 			else {
-				Session.set('item_to_update', items.findOne(Session.get('selectedItem')));
+				Session.set('item_to_update', Session.get('selectedItem'));
 			}
 		})
 	}
