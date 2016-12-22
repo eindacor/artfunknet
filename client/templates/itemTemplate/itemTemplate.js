@@ -27,66 +27,68 @@ Template.itemInfo.rendered = function() {
 }
 
 // reconstruct itemTemplate DOM to avoid rerendering of entire itemSet
-var updateItemTemplate = function(item_object) {
-	var target_container = $("[data-item_id='" + item_object._id + "']").find('.card-container');
+var updateItemTemplate = function(item_id) {
+	setTimeout(function() {
+		var item_object = items.findOne(item_id);
+		var target_container = $("[data-item_id='" + item_object._id + "']").find('.card-container');
 
-	if (target_container) {
-		setTimeout(function() {
-			target_container.find('#dynamic-value-stat').text("estimated value: " + getMoneyValue(items.findOne(item_object._id).values.actual));
-		}, 1000)	
-		target_container.find('#dynamic-xp-stat').text("xp rating: ");
-		target_container.find('#dynamic-xp-stat').append('<span style="color: ' + getHTMLColorFromValue(item_object.xp_rating) + '">' + item_object.xp_rating.toFixed(2) * 100 + '</span>')
-		target_container.find('#dynamic-roll-count-stat').text("roll count: " + item_object.roll_count);
+		if (target_container) {
+			target_container.find('#dynamic-value-stat').text("estimated value: " + getMoneyValue(item_object.values.actual));	
+			target_container.find('#dynamic-xp-stat').text("xp rating: ");
+			target_container.find('#dynamic-xp-stat').append('<span style="color: ' + getHTMLColorFromValue(item_object.xp_rating) + '">' + item_object.xp_rating.toFixed(2) * 100 + '</span>')
+			target_container.find('#dynamic-roll-count-stat').text("roll count: " + item_object.roll_count);
 
-		if (item_object.active_unique_attribute) {
-			target_container.find('.flavor-text').text('"' + unique_attributes.findOne({'code': item_object.active_unique_attribute}).flavor_text + '"');
-		}
-
-		var all_attributes = item_object.attributes.unlocked.concat(item_object.attributes.locked.concat(item_object.attributes.special));
-
-		for (var i=0; i<target_container.find('.attribute-area i').length; i++) {
-			var new_attribute = all_attributes[i];
-			var dom_attribute = target_container.find('.attribute-area i:eq(' + i + ')');
-
-			var dom_description = dom_attribute.data().attribute_description;
-			if (new_attribute.description != dom_description) {
-				dom_attribute.attr('data-attribute_description', new_attribute.description)
-
-				var class_count = dom_attribute[0].classList.length;
-				var previous_icon = dom_attribute[0].classList[class_count - 1];
-				dom_attribute.removeClass(previous_icon);
-				dom_attribute.addClass(new_attribute.icon);
+			if (item_object.active_unique_attribute) {
+				target_container.find('.flavor-text').text('"' + unique_attributes.findOne({'code': item_object.active_unique_attribute}).flavor_text + '"');
 			}
 
-			if (item_object.status == "permanent") {
-				if (!dom_attribute.hasClass('permanent'))
-					dom_attribute.addClass('permanent');
+			var all_attributes = item_object.attributes.unlocked.concat(item_object.attributes.locked.concat(item_object.attributes.special));
+
+			for (var i=0; i<target_container.find('.attribute-area i').length; i++) {
+				var new_attribute = all_attributes[i];
+				var dom_attribute = target_container.find('.attribute-area i:eq(' + i + ')');
+
+				var dom_description = dom_attribute.data().attribute_description;
+				if (new_attribute.description != dom_description) {
+					dom_attribute.attr('data-attribute_description', new_attribute.description)
+
+					var class_count = dom_attribute[0].classList.length;
+					var previous_icon = dom_attribute[0].classList[class_count - 1];
+					dom_attribute.removeClass(previous_icon);
+					dom_attribute.addClass(new_attribute.icon);
+				}
+
+				if (item_object.status == "permanent") {
+					if (!dom_attribute.hasClass('permanent'))
+						dom_attribute.addClass('permanent');
+				}
+
+				else if (dom_attribute.hasClass('permanent'))
+					dom_attribute.removeClass('permanent');
+
+				var dom_value = dom_attribute.data().attribute_value;
+				if (new_attribute.value != dom_value) {
+					dom_attribute.attr('data-attribute_value', new_attribute.value);
+					dom_attribute.attr('style', 'color: ' + getHTMLColorFromValue(new_attribute.value));
+				}
 			}
 
-			else if (dom_attribute.hasClass('permanent'))
-				dom_attribute.removeClass('permanent');
+			var dynamic_xp_wrapper = target_container.find('.dynamic-xp-rating');
+			dynamic_xp_wrapper.empty();
+			dynamic_xp_wrapper.append('<p><span style="color: ' + getHTMLColorFromValue(item_object.xp_rating) + '">' + item_object.xp_rating.toFixed(2) * 100 + '</span></p>')
 
-			var dom_value = dom_attribute.data().attribute_value;
-			if (new_attribute.value != dom_value) {
-				dom_attribute.attr('data-attribute_value', new_attribute.value);
-				dom_attribute.attr('style', 'color: ' + getHTMLColorFromValue(new_attribute.value));
+			console.log(item_object.status);
+			if (item_object.status == "displayed" || item_object.status == "auctioned") {
+				var status_mask = $('<div class="status-mask"></div>')
+				var icon = (item_object.status == "displayed" ? "fa-picture-o" : "fa-gavel");
+				status_mask.append('<p><i class="fa ' + icon + '"></i><p>');
+				target_container.prepend(status_mask);
 			}
+
+			updateItemActions(item_object);
 		}
-
-		var dynamic_xp_wrapper = target_container.find('.dynamic-xp-rating');
-		dynamic_xp_wrapper.empty();
-		dynamic_xp_wrapper.append('<p><span style="color: ' + getHTMLColorFromValue(item_object.xp_rating) + '">' + item_object.xp_rating.toFixed(2) * 100 + '</span></p>')
-
-		if (item_object.status == "displayed" || item_object.status == "auctioned") {
-			var status_mask = $('<div class="status-mask"></div>')
-			var icon = (item_object.status == "displayed" ? "fa-picture-o" : "fa-gavel");
-			status_mask.append('<p><i class="fa ' + icon + '"></i><p>');
-			target_container.prepend(status_mask);
-		}
-
-		updateItemActions(item_object);
-	}
-	Session.set('item_to_update', undefined)
+		Session.set('item_to_update', undefined)
+	}, 1000)
 }
 
 Template.itemInfo.helpers({
@@ -213,7 +215,7 @@ Template.itemInfo.helpers({
 	},
 
 	'trackItemChanges': function(item_id) {
-		if (Session.get('item_to_update') && Session.get('item_to_update')._id == item_id) {
+		if (Session.get('item_to_update') && Session.get('item_to_update') == item_id) {
 			updateItemTemplate(Session.get('item_to_update'));
 		}
 	}
