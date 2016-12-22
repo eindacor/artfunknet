@@ -15,6 +15,7 @@ Template.createAuctionModal.events ({
 			else if (error_list.length > 0) {
 				Session.set('createAuctionErrors', error_list);
 				$('.errors').show();
+				Session.set('item_to_update', items.findOne(item_id));
 			}
 
 			else {

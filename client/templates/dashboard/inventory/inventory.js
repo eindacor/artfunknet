@@ -394,23 +394,23 @@ Template.inventory.helpers({
 		return 255 - Math.floor(value * 255);
 	},
 
-	'display_time_remaining': function(item_object) {
-		var expiration = moment(item_object.display_details.end);
-		var now = moment(Session.get('now'));
-		var remaining = expiration - now;
+	// 'display_time_remaining': function(item_object) {
+	// 	var expiration = moment(item_object.display_details.end);
+	// 	var now = moment(Session.get('now'));
+	// 	var remaining = expiration - now;
 
-		var remaining_text = remaining > 0 ? getCountdownString(remaining) : "expired";
-		return remaining_text;
-	},
+	// 	var remaining_text = remaining > 0 ? getCountdownString(remaining) : "expired";
+	// 	return remaining_text;
+	// },
 
-	'auction_time_remaining': function(item_object) {
-		var expiration = moment(auctions.findOne({'item_id': item_object._id}).expiration);
-		var now = moment(Session.get('now'));
-		var remaining = expiration - now;
+	// 'auction_time_remaining': function(item_object) {
+	// 	var expiration = moment(auctions.findOne({'item_id': item_object._id}).expiration);
+	// 	var now = moment(Session.get('now'));
+	// 	var remaining = expiration - now;
 
-		var remaining_text = remaining > 0 ? getCountdownString(remaining) : "expired";
-		return remaining_text;
-	},
+	// 	var remaining_text = remaining > 0 ? getCountdownString(remaining) : "expired";
+	// 	return remaining_text;
+	// },
 
 	'locked_attribute': function() {
 		return attributes.find({'active': true});

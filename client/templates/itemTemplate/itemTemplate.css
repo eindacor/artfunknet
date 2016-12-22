@@ -77,6 +77,10 @@
 	cursor: pointer;
 }
 
+.template-itemInfo .card-container:hover > .status-mask {
+	opacity: .1;
+}
+
 @keyframes border_animation {
 	0%{
 		-webkit-box-shadow: 0px 0px 10px 2px #44DDDD;
@@ -299,4 +303,32 @@
 
 .template-itemInfo .remaining-text {
 	font-size: .6em;
+	color: black;
+	font-weight: bold;
+}
+
+.template-itemInfo .status-mask {
+	min-width: 100%;
+	min-height: 100%;
+	background-color: white;
+	opacity: .5;
+	float: left;
+	font-size: 6rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: rgb(80, 80, 80);
+}
+
+.template-itemInfo .status-info {
+	max-width: 100%;
+	text-align: center;
+}
+
+.template-itemInfo .status-mask p {
+	display: block;
+}
+
+.template-itemInfo .separator {
+	margin: 4px 4px;
 }

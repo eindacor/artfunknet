@@ -1,51 +1,36 @@
 <template name="itemActions">
 	<div class="template-itemActions">
 		<div class="button-area">
-			{{#if isEqual item_data.status "displayed"}}
-				<span class="remaining-text">on display - {{display_time_remaining item_data}}</span>
-			{{else}}
-
-				{{#if isEqual item_data.status "auctioned"}}
-					<span class="remaining-text">auctioned - {{auction_time_remaining item_data}}</span>
-				{{else}}
-					{{#with itemPermissions item_data}}
-						{{#if claim}}
-							<span class="claim enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-plus"></i></span>		
-						{{/if}}
-						{{#if sell}}
-							<span class="quick-sell enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-usd"></i></span>
-						{{/if}}	
-						{{#if auction}}
-							<span class="auction enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-gavel"></i></span>
-						{{/if}}	
-						{{#if display}}				
-							<span class="display enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-picture-o"></i></span>	
-						{{/if}}			
-						{{#if reroll}}
-							<span class="reroll enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-magic"></i></span>		
-						{{/if}}
-						{{#if permanent}}
-							<span class="perm-collection {{#if isEqual ../item_data.status 'permanent'}}active af-color{{else}}inactive{{/if}}"><i data-item_id="{{../item_data._id}}" class="fa fa-heart"></i></span>
-						{{/if}}
-						{{#if purchase}}
-							<span class="purchase enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-shopping-cart"></i></span>		
-						{{/if}}
-						{{#if decline}}
-							<span class="decline enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-times"></i></span>		
-						{{/if}}	
-						<span class="tags enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-tags"></i></span>
-					{{/with}}			
+			{{#with itemPermissions item_data}}
+				{{#if claim}}
+					<span class="claim enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-plus"></i></span>		
 				{{/if}}
-
-			{{/if}}
-			{{#if ../reroll_button}}
-				{{#if reroll_unique_enable item_data}}
-					<span class="reroll enabled"><i data-item_id="{{item_data._id}}" class="fa fa-magic"></i></span>	
+				{{#if sell}}
+					<span class="quick-sell enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-usd"></i></span>
 				{{/if}}	
-			{{/if}}
-			{{#if ../tag_button}}
-				<span class="tags enabled"><i data-item_id="{{item_data._id}}" class="fa fa-tags"></i></span>		
-			{{/if}}
+				{{#if auction}}
+					<span class="auction enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-gavel"></i></span>
+				{{/if}}	
+				{{#if display}}				
+					<span class="display enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-picture-o"></i></span>	
+				{{/if}}			
+				{{#if reroll}}
+					<span class="reroll enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-magic"></i></span>		
+				{{/if}}
+				{{#if permanent}}
+					<span class="perm-collection inactive"><i data-item_id="{{../item_data._id}}" class="fa fa-heart"></i></span>
+				{{/if}}
+				{{#if unpermanent}}
+					<span class="perm-collection active af-color"><i data-item_id="{{../item_data._id}}" class="fa fa-heart"></i></span>
+				{{/if}}
+				{{#if purchase}}
+					<span class="purchase enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-shopping-cart"></i></span>		
+				{{/if}}
+				{{#if decline}}
+					<span class="decline enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-times"></i></span>		
+				{{/if}}	
+				<span class="tags enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-tags"></i></span>
+			{{/with}}			
 		</div>
 	</div>
 </template>

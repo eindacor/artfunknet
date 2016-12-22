@@ -12,14 +12,18 @@
 .template-itemActions .button-area i {
 	margin: 0px 6px;
 	text-align: left;
+	cursor: pointer;
 }
 
 .template-itemActions .button-area .enabled:hover, .template-itemActions .button-area .inactive:hover {
 	opacity: 1;
-	cursor: pointer;
 	color: black;
 }
 
 .template-itemActions .button-area:hover {
 	opacity: 1;
+}
+
+.template-itemActions .button-area i.appended {
+	margin: 0px 12px;
 }

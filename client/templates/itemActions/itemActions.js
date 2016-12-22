@@ -1,24 +1,74 @@
+updateItemActions = function(item_object) {
+	var permissions = getPermissions(item_object);
+
+	var button_area = $("[data-item_id='" + item_object._id + "']").find('.template-itemActions').find('.button-area');
+	button_area.empty();
+	if (permissions.sell) {
+		button_area.append('<span class="quick-sell enabled"><i data-item_id="' + item_object._id + '" class="appended fa fa-usd"></i></span>');
+	}
+
+	if (permissions.claim) {
+		button_area.append('<span class="claim enabled"><i data-item_id="' + item_object._id + '" class="appended fa fa-plus"></i></span>');
+	}
+
+	if (permissions.auction) {
+		button_area.append('<span class="auction enabled"><i data-item_id="' + item_object._id + '" class="appended fa fa-gavel"></i></span>');
+	}
+
+	if (permissions.display) {
+		button_area.append('<span class="display enabled"><i data-item_id="' + item_object._id + '" class="appended fa fa-picture-o"></i></span>');
+	}
+
+	if (permissions.reroll) {
+		button_area.append('<span class="reroll enabled"><i data-item_id="' + item_object._id + '" class="appended fa fa-magic"></i></span>');
+	}
+
+	if (permissions.permanent) {
+		button_area.append('<span class="perm-collection inactive"><i data-item_id="' + item_object._id + '" class="appended fa fa-heart"></i></span>');
+	}
+
+	if (permissions.unpermanent) {
+		button_area.append('<span class="perm-collection active af-color"><i data-item_id="' + item_object._id + '" class="appended fa fa-heart"></i></span>');
+	}
+
+	if (permissions.purchase) {
+		button_area.append('<span class="purchase enabled"><i data-item_id="' + item_object._id + '" class="appended fa fa-shopping-cart"></i></span>');
+	}
+
+	if (permissions.decline) {
+		button_area.append('<span class="decline enabled"><i data-item_id="' + item_object._id + '" class="appended fa fa-times"></i></span>');
+	}
+
+	button_area.append('<span class="tags enabled"><i data-item_id="' + item_object._id + '" class="appended fa fa-tags"></i></span>');
+}
+
+var getPermissions = function(item_object) {
+	var sell = ['claimed', 'unclaimed'].indexOf(item_object.status) != -1;
+	var claim = ['unclaimed', 'won'].indexOf(item_object.status) != -1;
+	var reroll = ['claimed'].indexOf(item_object.status) != -1;
+	var purchase = ['for_sale'].indexOf(item_object.status) != -1;
+	var display = ['claimed'].indexOf(item_object.status) != -1;
+	var permanent = ['claimed'].indexOf(item_object.status) != -1;
+	var unpermanent = ['permanent'].indexOf(item_object.status) != -1;
+	var auction = ['claimed'].indexOf(item_object.status) != -1;
+	var decline = ['for_sale'].indexOf(item_object.status) != -1;
+
+	return {
+		'sell': sell,
+		'claim': claim,
+		'reroll': reroll,
+		'purchase': purchase,
+		'display': display,
+		'permanent': permanent,
+		'unpermanent': unpermanent,
+		'auction': auction,
+		'decline': decline
+	}
+}
+
 Template.itemActions.helpers({
 	'itemPermissions': function(item_data) {
-		var sell = ['claimed', 'unclaimed'].indexOf(item_data.status) != -1;
-		var claim = ['unclaimed', 'won'].indexOf(item_data.status) != -1;
-		var reroll = ['claimed'].indexOf(item_data.status) != -1;
-		var purchase = ['for_sale'].indexOf(item_data.status) != -1;
-		var display = ['claimed'].indexOf(item_data.status) != -1;
-		var permanent = ['claimed', 'permanent'].indexOf(item_data.status) != -1;
-		var auction = ['claimed'].indexOf(item_data.status) != -1;
-		var decline = ['for_sale'].indexOf(item_data.status) != -1;
-
-		return {
-			'sell': sell,
-			'claim': claim,
-			'reroll': reroll,
-			'purchase': purchase,
-			'display': display,
-			'permanent': permanent,
-			'auction': auction,
-			'decline': decline
-		}
+		return getPermissions(item_data);
 	},
 })
 
@@ -101,6 +151,8 @@ Template.itemActions.events({
 						}
 					}, $('body')[0]);
 				};
+
+				Session.set('item_to_update', items.findOne(item_id));
 			}
 		})
 	},
@@ -111,6 +163,10 @@ Template.itemActions.events({
 		Meteor.call('setItemPermanentCollectionStatus' , item_id, false, function(error) {
 			if (error)
 				console.log(error.message)
+
+			else {
+				Session.set('item_to_update', items.findOne(item_id));
+			}
 		})
 	},
 

@@ -444,7 +444,6 @@ getXPRating = function(min_value) {
     var xp_rating_float = Number((xp_rating / 100).toFixed(2));
 
     xp_rating_float = Number((min_value + (xp_rating_float * (1 - min_value))).toFixed(2));
-
     return xp_rating_float;
 }
 
@@ -462,7 +461,6 @@ getAttributeValue = function(multiplier, min_value) {
     var attribute_rating_float = Number((attribute_rating / 100).toFixed(2));
 
     attribute_rating_float = Number((min_value + (attribute_rating_float * (1 - min_value))).toFixed(2));
-
     return attribute_rating_float;
 }
 
