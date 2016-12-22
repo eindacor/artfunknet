@@ -7,6 +7,10 @@ Template.rerollModal.events ({
     	Meteor.call('rerollXPRating', Session.get('selectedItem'), function(error, result) {
     		if (error)
     			console.log(error.message);
+
+    		else {
+				Session.set('item_to_update', items.findOne(Session.get('selectedItem')));
+			}
     	});
     },
 
@@ -15,6 +19,10 @@ Template.rerollModal.events ({
 		Meteor.call('rerollAttributeValue', Session.get('selectedItem'), attribute_id, function(error, result) {
 			if (error)
 				console.log(error.message);
+
+			else {
+				Session.set('item_to_update', items.findOne(Session.get('selectedItem')));
+			}
 		});
     },
 
@@ -23,6 +31,10 @@ Template.rerollModal.events ({
 		Meteor.call('rerollAttribute', Session.get('selectedItem'), attribute_id, function(error, result) {
 			if (error)
 				console.log(error.message);
+
+			else {
+				Session.set('item_to_update', items.findOne(Session.get('selectedItem')));
+			}
 		});
     },
 
@@ -31,6 +43,10 @@ Template.rerollModal.events ({
 		Meteor.call('setActiveUniqueAttribute', Session.get('selectedItem'), unique_attribute_id, function(error) {
 			if (error)
 				console.log(error.message)
+			
+			else {
+				Session.set('item_to_update', items.findOne(Session.get('selectedItem')));
+			}
 		})
 	}
 })

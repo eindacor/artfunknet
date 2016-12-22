@@ -1,6 +1,23 @@
 <template name="itemInfo">
+	{{trackItemChanges item_data._id}}
 	<div class="template-itemInfo">
 		<div data-item_id="{{item_data._id}}" class="card-container {{item_data.artwork_data.rarity}}-item" style="background: url('{{getCardImageURL item_data.artwork_data.filename}}') center; background-size: 280px 390px">
+			{{#if isEqual item_data.status "displayed"}}
+				<div class="status-mask">
+					<div class="status-info">
+						<p><i class="fa fa-picture-o"></i></p>
+						<p class="remaining-text">{{display_time_remaining item_data}}</p>
+					</div>
+				</div>
+			{{/if}}
+			{{#if isEqual item_data.status "auctioned"}}
+				<div class="status-mask">
+					<div class="status-info">
+						<p><i class="fa fa-gavel"></i></p>
+						<p class="remaining-text">{{auction_time_remaining item_data}}</p>
+					</div>
+				</div>
+			{{/if}}
 			<div class="row no-margin card-info">
 				<div class="card-header col-xs-12 {{#if item_data.foil}}foil{{/if}} {{#if item_data.seasonal}}seasonal{{/if}} {{#if item_data.lottery}}lottery{{/if}} {{#if item_data.original}}original{{/if}}">
 					<div class="row no-margin">
@@ -17,10 +34,12 @@
 							<p>{{item_data.artwork_data.medium}}</p>
 							<p>{{item_data.artwork_data.height}} x {{item_data.artwork_data.width}}</p>
 							{{#if showDetails item_data}}
+							<div class="dynamic-stats">
 								<p>condition: <span style="color: {{getHTMLColorFromValue item_data.condition}}">%{{floatToPercentage item_data.condition}}</span></p>
-								<p>estimated value: {{displayAsMoneyValue item_data.values.actual}}</p>
-								<p>xp rating: <span style="color: {{getHTMLColorFromValue item_data.xp_rating}}">{{floatToPercentage item_data.xp_rating}}</span></p>
-								<p>roll count: {{item_data.roll_count}}</p>
+								<p id="dynamic-value-stat">estimated value: {{displayAsMoneyValue item_data.values.actual}}</p>
+								<p id="dynamic-xp-stat">xp rating: <span style="color: {{getHTMLColorFromValue item_data.xp_rating}}">{{floatToPercentage item_data.xp_rating}}</span></p>
+								<p id="dynamic-roll-count-stat">roll count: {{item_data.roll_count}}</p>
+							</div>
 							{{else}}
 								<p>condition: ?</p>
 								<p>estimated value: ?</p>
@@ -52,18 +71,20 @@
 								{{#each sortedAttributes item_data.attributes.unlocked}}
 									<i data-attribute_description="{{description}}" data-attribute_value="{{value}}" style="color: {{getHTMLColorFromValue value}}" class="{{#if isEqual ../item_data.status 'permanent'}}permanent{{/if}} item-attribute fa {{icon}}"></i>
 								{{/each}}
-								{{#if item_data.attributes.locked}}|{{/if}}
+								{{#if item_data.attributes.locked}}<span class="separator">|</span>{{/if}}
 								{{#each sortedAttributes item_data.attributes.locked}}
 									<i data-attribute_description="{{description}}" data-attribute_value="{{value}}" style="color: {{getHTMLColorFromValue value}}" class="{{#if isEqual ../item_data.status 'permanent'}}permanent{{/if}} locked item-attribute fa {{icon}}"></i>
 								{{/each}}
-								{{#if item_data.attributes.special}}|{{/if}}
+								{{#if item_data.attributes.special}}<span class="separator">|</span>{{/if}}
 								{{#each sortedAttributes item_data.attributes.special}}
 									<i data-attribute_description="{{description}}" data-attribute_value="{{value}}" style="color: {{getHTMLColorFromValue value}}" class="{{#if isEqual ../item_data.status 'permanent'}}permanent{{/if}} special item-attribute fa {{icon}}"></i>
 								{{/each}}
 							</div>
 							<div class="col-xs-1 no-padding">
 								{{#if showDetails item_data}}
-								<p><span style="color: {{getHTMLColorFromValue item_data.xp_rating}}">{{floatToPercentage item_data.xp_rating}}</span></p>
+								<div class="dynamic-xp-rating">
+									<p><span style="color: {{getHTMLColorFromValue item_data.xp_rating}}">{{floatToPercentage item_data.xp_rating}}</span></p>
+								</div>
 								{{else}}
 									<p>?</p>
 								{{/if}}
