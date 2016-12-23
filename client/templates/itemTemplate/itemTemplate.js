@@ -27,7 +27,7 @@ Template.itemInfo.rendered = function() {
 }
 
 // reconstruct itemTemplate DOM to avoid rerendering of entire itemSet
-var updateItemTemplate = function(item_id) {
+updateItemTemplate = function(item_id, delay) {
 	setTimeout(function() {
 		var item_object = items.findOne(item_id);
 		var target_container = $("[data-item_id='" + item_object._id + "']").find('.card-container');
@@ -77,7 +77,6 @@ var updateItemTemplate = function(item_id) {
 			dynamic_xp_wrapper.empty();
 			dynamic_xp_wrapper.append('<p><span style="color: ' + getHTMLColorFromValue(item_object.xp_rating) + '">' + item_object.xp_rating.toFixed(2) * 100 + '</span></p>')
 
-			console.log(item_object.status);
 			if (item_object.status == "displayed" || item_object.status == "auctioned") {
 				var status_mask = $('<div class="status-mask"></div>')
 				var icon = (item_object.status == "displayed" ? "fa-picture-o" : "fa-gavel");
@@ -87,8 +86,7 @@ var updateItemTemplate = function(item_id) {
 
 			updateItemActions(item_object);
 		}
-		Session.set('item_to_update', undefined)
-	}, 1000)
+	}, delay == undefined ? 0 : delay)
 }
 
 Template.itemInfo.helpers({
@@ -212,12 +210,6 @@ Template.itemInfo.helpers({
 
 	'showDetails': function(item_data) {
 		return item_data.xp_rating != undefined;
-	},
-
-	'trackItemChanges': function(item_id) {
-		if (Session.get('item_to_update') && Session.get('item_to_update') == item_id) {
-			updateItemTemplate(Session.get('item_to_update'));
-		}
 	}
 })
 

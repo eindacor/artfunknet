@@ -9,7 +9,7 @@ Template.rerollModal.events ({
     			console.log(error.message);
 
     		else {
-				Session.set('item_to_update', Session.get('selectedItem'));
+				updateItemTemplate(Session.get('selectedItem'), 100);
 			}
     	});
     },
@@ -21,7 +21,7 @@ Template.rerollModal.events ({
 				console.log(error.message);
 
 			else {
-				Session.set('item_to_update', Session.get('selectedItem'));
+				updateItemTemplate(Session.get('selectedItem'), 100);
 			}
 		});
     },
@@ -33,7 +33,7 @@ Template.rerollModal.events ({
 				console.log(error.message);
 
 			else {
-				Session.set('item_to_update', Session.get('selectedItem'));
+				updateItemTemplate(Session.get('selectedItem'), 100);
 			}
 		});
     },
@@ -45,7 +45,7 @@ Template.rerollModal.events ({
 				console.log(error.message)
 
 			else {
-				Session.set('item_to_update', Session.get('selectedItem'));
+				updateItemTemplate(Session.get('selectedItem'), 100);
 			}
 		})
 	}

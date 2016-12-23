@@ -1,5 +1,4 @@
 <template name="itemInfo">
-	{{trackItemChanges item_data._id}}
 	<div class="template-itemInfo">
 		<div data-item_id="{{item_data._id}}" class="card-container {{item_data.artwork_data.rarity}}-item" style="background: url('{{getCardImageURL item_data.artwork_data.filename}}') center; background-size: 280px 390px">
 			{{#if isEqual item_data.status "displayed"}}
