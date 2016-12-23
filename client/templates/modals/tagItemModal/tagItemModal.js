@@ -12,6 +12,10 @@ Template.tagItemModal.events({
 		Meteor.call('tagItem', item_id, tag_array, function(error) {
 			if (error)
 				console.log(error.message);
+
+			else {
+				Session.set('update_set', true);
+			}
 		});
 
 		$('.template-modalTemplate').remove();
@@ -27,6 +31,10 @@ Template.tagItemModal.events({
 			Meteor.call('tagItem', item_id, tag_array, function(error) {
 				if (error)
 					console.log(error.message);
+
+				else {
+					Session.set('update_set', true);
+				}
 			});
 
 			$('.template-modalTemplate').remove();
