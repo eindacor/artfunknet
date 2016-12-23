@@ -43,15 +43,7 @@ var updateContent = function() {
     });
 
     // temp code
-    var npcs_met_object = {
-        'bronze': 0,
-        'silver': 0,
-        'gold': 0,
-        'platinum': 0
-    };
-    Meteor.users.update({'profile.npcs_met': null}, {$set: {'profile.npcs_met': npcs_met_object}}, {multi: true});
-    if (metadata.findOne({'npc_clear_time': {$ne: null}}) == undefined)
-        metadata.insert({'npc_clear_time': moment().add(1, 'days')._d.toISOString()});
+
     // temp code
 }
 
