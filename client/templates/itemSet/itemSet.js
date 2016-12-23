@@ -131,7 +131,7 @@ var getPermutations = function(required) {
 
 var addQueriesFromKeywords = function(base_filter) {
 	if (keywords.indexOf("new") != -1) {
-		base_filter.date_received = {'$gt': moment(current_time).add(-1, 'hours')._d.toISOString()};
+		base_filter.date_received = {'$gt': moment().add(-1, 'hours')._d.toISOString()};
 	}
 
 	if (keywords.indexOf("dupes") != -1) {
@@ -367,8 +367,7 @@ Template.itemSet.helpers({
 
 Template.itemSet.events({
 	'keyup #search-area': function(event) {
-		item_array = [];
-		display_tracker.changed();
+		resetArrayAndUpdate();
 	}, 
 
 	'keydown #search-area': function(event) {
