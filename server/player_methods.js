@@ -21,14 +21,20 @@ createUser = function(user_object, callback){
     user_object.profile.lottery_tickets = 1;
     user_object.profile.entry_fee = "medium";
     user_object.profile.gallery_tickets = [];
+    user_object.profile.npcs_met = {
+        'bronze': 0,
+        'silver': 0,
+        'gold': 0,
+        'platinum': 0
+    };
     user_object.profile.gallery_value = 0;
     user_object.profile.gallery_score = 0;
     user_object.profile.completed_quests = 0;
     user_object.profile.market_expert = {
         'expiration': moment().add(-1, 'days')._d.toISOString()
     };
-    user_object.profile.last_login = moment()._d.toISOString();
-    user_object.profile.last_logout = moment()._d.toISOString();
+    user_object.profile.last_login = getNowISOString();
+    user_object.profile.last_logout = getNowISOString();
     user_object.profile.auction_data = {'winning': [], 'watching': []};
     user_object.profile.expansion_slots = 0;
     user_object.profile.money_spent_on_crates = 0;
@@ -52,7 +58,7 @@ createUser = function(user_object, callback){
         }
     };
 
-    user_object.profile.last_name_change = moment()._d.toISOString();
+    user_object.profile.last_name_change = getNowISOString();
 
     user_object.profile.tutorials = {
         'welcome': true,
@@ -138,7 +144,7 @@ alertPlayers = function(query, message, icon, sentiment) {
             'link' : '/',
             'icon' : icon,
             'sentiment' : sentiment,
-            'time' : moment()._d.toISOString()
+            'time' : getNowISOString()
         };
 
         alerts.insert(alert_object);
@@ -568,6 +574,9 @@ Meteor.methods({
     },
 
     'purchaseTicket' : function(owner_id) {
+        if (!canPurchaseTicket())
+            return false;
+
         var buyer_id = Meteor.userId();
         var ticket_duration = 30; // minutes
         var ticket_expiration = moment().add(ticket_duration, 'minutes')._d.toISOString();
@@ -580,7 +589,7 @@ Meteor.methods({
 
         if (actual_amount > buyer_object.profile.bank_balance
             || buyer_id === owner_id 
-            || gallery_tickets.findOne({"ticketholder":buyer_id, "gallery_owner":owner_id, 'expiration': {$gt : moment()._d.toISOString()}}) !== undefined)
+            || gallery_tickets.findOne({"ticketholder":buyer_id, "gallery_owner":owner_id, 'expiration': {$gt : getNowISOString()}}) !== undefined)
             return;
 
         var ticket_object = {
@@ -731,7 +740,7 @@ Meteor.methods({
     },
 
     'getSoughtStatus' : function(artwork_id, only_sought_if_not_in_auction_house) {
-        if (Meteor.user().profile.market_expert.expiration > moment()._d.toISOString()) {
+        if (Meteor.user().profile.market_expert.expiration > getNowISOString()) {
             return getSoughtStatus(Meteor.userId(), artwork_id, only_sought_if_not_in_auction_house);
         }
 
@@ -817,7 +826,7 @@ Meteor.methods({
     },
 
     'getAuctionCount': function(filter_array, quest_status) {
-        var has_auctioneer = Meteor.user().profile.market_expert.expiration > moment()._d.toISOString();
+        var has_auctioneer = Meteor.user().profile.market_expert.expiration > getNowISOString();
         var fields_object = undefined;
         var target_array = [];
 
@@ -866,7 +875,7 @@ Meteor.methods({
             }
         }
 
-        var now = moment()._d.toISOString();
+        var now = getNowISOString();
         filter_array.push({'expiration': {$gt : now}});
 
         return total_items_found = auctions.find({$and: filter_array}, {fields: fields_object}).count();
@@ -874,7 +883,7 @@ Meteor.methods({
 
     //TODO put logic into standalone method used by getAuctions, getPlayerAuctions, and getWatchedAndWinningAuctions
     'getAuctions': function(sort_object, filter_array, skip_amount, items_per_page, quest_status) {
-        var has_auctioneer = Meteor.user().profile.market_expert.expiration > moment()._d.toISOString();
+        var has_auctioneer = Meteor.user().profile.market_expert.expiration > getNowISOString();
         var fields_object = undefined;
         var target_array = [];
 
@@ -929,7 +938,7 @@ Meteor.methods({
             }
         }
 
-        var now = moment()._d.toISOString();
+        var now = getNowISOString();
         filter_array.push({'expiration': {$gt : now}});
 
         var auction_array = [];
@@ -954,7 +963,7 @@ Meteor.methods({
     },
 
     'getPlayerAuctions': function() {
-        var now = moment()._d.toISOString();
+        var now = getNowISOString();
 
         var auction_array = auctions.find(
             {'expiration': {$gt : now}, 'seller': Meteor.user().profile.screen_name}, {sort: {'expiration': 1}}
@@ -966,7 +975,7 @@ Meteor.methods({
     'getWatchedAndWinningAuctions': function() {
         var winning_and_watching = Meteor.user().profile.auction_data.winning.concat(Meteor.user().profile.auction_data.watching);
 
-        var now = moment()._d.toISOString();
+        var now = getNowISOString();
         var fields_object = {
             'item_id': 0,
             'increment': 0,
@@ -1152,7 +1161,7 @@ Meteor.methods({
                         $set: {
                             'status': 'won',
                             'vintage': true,
-                            'date_received': moment()._d.toISOString(),
+                            'date_received': getNowISOString(),
                             'display_details': {
                                 'money' : 0,
                                 'xp' : 0,
@@ -1191,7 +1200,7 @@ Meteor.methods({
         if (auction_object == undefined)
             return {};
 
-        var has_auctioneer = Meteor.user().profile.market_expert.expiration > moment()._d.toISOString();
+        var has_auctioneer = Meteor.user().profile.market_expert.expiration > getNowISOString();
 
         var fields_object = {
             'artwork_data': 1,
@@ -1268,12 +1277,12 @@ Meteor.methods({
         else {
             galleries.update({'owner_id': Meteor.userId()}, {$set: {'owner': desired_name}})
             auctions.update({'seller': previous_name}, {$set: {'seller': desired_name}}, {multi: true});
-            Meteor.users.update(Meteor.userId(), {$set: {'profile.screen_name': desired_name, 'profile.last_name_change': moment()._d.toISOString()}});
+            Meteor.users.update(Meteor.userId(), {$set: {'profile.screen_name': desired_name, 'profile.last_name_change': getNowISOString()}});
         }
     },
 
     'setActiveUniqueAttribute': function(item_id, unique_attribute_id) {
-        var item_object = canRerollItem(item_id);
+        var item_object = canChangeActiveUniqueAttribute(item_id);
         if (item_object == undefined)
             return false;
         

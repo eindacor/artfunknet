@@ -143,7 +143,7 @@ getSoughtStatus = function(user_id, artwork_id, only_sought_if_not_in_auction_ho
             return;
 
         var quest_owner = quest_object.owner_id;
-        var now = moment()._d.toISOString();
+        var now = getNowISOString();
         var last_login = Meteor.users.findOne(quest_owner).profile.last_login;
         var last_logout = Meteor.users.findOne(quest_owner).profile.last_logout;
         var still_logged_in = last_login > last_logout;

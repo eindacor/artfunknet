@@ -492,7 +492,7 @@ Meteor.methods({
 
             generateItems(multi_item_generator);
    
-            var now = moment().toISOString();
+            var now = getNowISOString();
             Meteor.users.update(Meteor.userId(), {$set: {'profile.last_drop' : now}});
 
             return true;    

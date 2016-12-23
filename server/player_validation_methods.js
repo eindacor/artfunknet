@@ -68,6 +68,14 @@ canRerollItemAttribute = function(item_id, attribute_id) {
 	return undefined;
 }
 
+canChangeActiveUniqueAttribute = function(item_id) {
+	var item_object = items.findOne(item_id);
+	var item_owned = Meteor.userId() && item_object && item_object.owner == Meteor.userId();
+	var unique_bypass = procUniqueAttribute(Meteor.userId(), "REROLL_DISPLAY_ENABLE", "Designer");
+	var valid_status = item_object.status == "claimed" || unique_bypass;
+	return item_owned && valid_status ? item_object : undefined;
+}
+
 canSellItem = function(item_id) {
 	var item_object = items.findOne(item_id);
 	var owned = Meteor.userId() && item_object && item_object.owner == Meteor.userId();
@@ -128,13 +136,23 @@ canMeetNPC = function(npc_id) {
 	var npc_object = npcs.findOne(npc_id);
 
 	if (npc_object == undefined)
-		return false;
+		return undefined;
+
+	var max_map = {
+		'bronze': 120,
+		'silver': 100,
+		'gold': 80,
+		'platinum': 60
+	};
+
+	if (Meteor.user().profile.npcs_met[npc_object.quality] >= max_map[npc_object.quality])
+		return undefined;
 
 	var can_meet = npc_object.players_met.indexOf(Meteor.userId()) == -1;
 	var is_own_npc = npc_object.owner_id == Meteor.userId();
 	var can_access_gallery = gallery_tickets.findOne({'ticketholder': Meteor.userId(), 'gallery_owner': npc_object.owner_id}) != undefined;
 
-	return (can_meet && (is_own_npc || can_access_gallery));
+	return (can_meet && (is_own_npc || can_access_gallery)) ? npc_object : undefined;
 }
 
 canBidOnItem = function(auction_id) {
@@ -182,4 +200,8 @@ canBidOnItem = function(auction_id) {
 	var available_balance = currently_winning ? bidder_object.profile.bank_balance + auction_object.current_bid : bidder_object.profile.bank_balance;
 
 	return available_balance >= auction_object.min_bid;
+}
+
+canPurchaseTicket = function() {
+	return gallery_tickets.find({'ticketholder': Meteor.userId()}).count() < Meteor.user().profile.ticket_cap;
 }
