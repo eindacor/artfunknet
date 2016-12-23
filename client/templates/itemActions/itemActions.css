@@ -9,6 +9,12 @@
 	margin-bottom: 30px;
 }
 
+@media (max-width: 900px) {
+	.template-itemActions .button-area {
+		opacity: 1;
+	} 
+}
+
 .template-itemActions .button-area i {
 	margin: 0px 6px;
 	text-align: left;
