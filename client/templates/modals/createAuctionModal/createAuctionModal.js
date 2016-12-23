@@ -15,13 +15,13 @@ Template.createAuctionModal.events ({
 			else if (error_list.length > 0) {
 				Session.set('createAuctionErrors', error_list);
 				$('.errors').show();
-				Session.set('item_to_update', item_id);
 			}
 
 			else {
 				Session.set('createAuctionErrors', []);
 				$('.errors').hide();
 				Modal.hide("createAuctionModal");
+				updateItemTemplate(item_id, 100);
 			}
 		}); 
     },

@@ -152,7 +152,7 @@ Template.itemActions.events({
 					}, $('body')[0]);
 				};
 
-				Session.set('item_to_update', item_id);
+				updateItemTemplate(item_id, 100);
 			}
 		})
 	},
@@ -165,7 +165,7 @@ Template.itemActions.events({
 				console.log(error.message)
 
 			else {
-				Session.set('item_to_update', item_id);
+				updateItemTemplate(item_id, 100);
 			}
 		})
 	},
