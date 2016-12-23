@@ -34,10 +34,16 @@ createNPC = function(gallery_object, attribute_id, duration, npc_quality) {
 
 Meteor.methods({
 	'interactWithNPC' : function(npc_id) {
-		if (!canMeetNPC(npc_id))
-			return {'message': "you can't do this anymore!"};
+		var npc_object = canMeetNPC(npc_id);
 
-		var npc_object = npcs.findOne(npc_id);
+		if (npc_object == undefined) 
+			return {'message': "You have met your daily npc limit for that type."};
+
+		var inc_object = {};
+		var inc_string = 'profile.npcs_met.' + npc_object.quality;
+		inc_object[inc_string] = 1;
+
+		Meteor.users.update(Meteor.userId(), {$inc: inc_object});
 
 		if (npc_object == undefined || npc_object.players_met.indexOf(Meteor.userId()) != -1)
 			return undefined;

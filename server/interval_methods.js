@@ -1,6 +1,11 @@
 var check_frequency = 10000;
+
+getNowISOString = function() {
+    return moment()._d.toISOString();
+}
+
 Meteor.setInterval((function() {
-    var now = moment()._d.toISOString();
+    var now = getNowISOString();
     items.find({'status' : 'displayed', 'display_details.end': {$lt : now}}).forEach(function(db_object) {
         concludeDisplay(db_object._id);
     });
@@ -272,9 +277,24 @@ Meteor.setInterval((function() {
     
 }), seasonal_rotation_check);
 
+var clear_npcs_met_check = 60000;
+Meteor.setInterval((function() {
+    var next_clear = metadata.findOne({'npc_clear_time': {$ne: null}}).npc_clear_time;
+    if (next_clear < moment()._d.toISOString()) {
+        var npcs_met_object = {
+            'bronze': 0,
+            'silver': 0,
+            'gold': 0,
+            'platinum': 0
+        };
+        Meteor.users.update({}, {$set: {'profile.npcs_met': npcs_met_object}}, {multi: true});
+        metadata.update({'npc_clear_time': {$ne: null}}, {$set: {'npc_clear_time': moment().add(1, 'days')._d.toISOString()}});
+    }
+}), clear_npcs_met_check);
+
 var notification_clear_frequency = 10000;
 Meteor.setInterval((function() {
-    var now = moment()._d.toISOString();
+    var now = getNowISOString();
     Meteor.users.update({}, {
         $pull: {
             'profile.notifications.procs': {'expiration': {$lt: now}},
