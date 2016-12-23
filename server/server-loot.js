@@ -1,7 +1,3 @@
-getLootData = function() {
-    return metadata.findOne({'loot_data': {$ne: null}}).loot_data;
-}
-
 logLegendary = function(source, item_object) {
     if (item_object && source && source != "test") {
         var rarity = item_object.artwork_data.rarity;
@@ -50,14 +46,6 @@ getCondition = function(min_value) {
     condition_float = Number((min_value + (condition_float * (1 - min_value))).toFixed(2));
 
     return condition_float;
-}
-
-var reroll_coefficients = {
-    'common' : 1.1,
-    'uncommon' : 1.11,
-    'rare' : 1.12,
-    'legendary' : 1.13,
-    'masterpiece' : 1.14
 }
 
 // sumtotal of these values must equal 1
@@ -161,26 +149,6 @@ getRolledCrateQuality = function() {
     }
 
     return JepLoot.catRoll(roll_quality_map);
-}
-
-getRerollCost = function(item_id) {
-    var rarity_values = getLootData().rarity_values;
-
-    var item_object = items.findOne(item_id);
-
-    var roll_count = item_object.roll_count < 0 ? 0 : item_object.roll_count;
-
-    var rarity = item_object.artwork_data.rarity;
-    var reroll_coefficient = reroll_coefficients[rarity];
-    var average_value = Math.floor((rarity_values[rarity].max + rarity_values[rarity].min) / 2);
-
-    var reroll_cost = (rarity_values[rarity].min * .1) * Math.pow(reroll_coefficient, roll_count);
-
-    if (procUniqueAttribute(Meteor.userId(), "REROLL_DISCOUNT", undefined)) {
-        reroll_cost = Math.floor(reroll_cost * .75);
-    }
-
-    return Math.floor(reroll_cost);
 }
 
 getAverageDropValue = function(player_level, amplifier) {
