@@ -43,26 +43,32 @@ updateItemActions = function(item_object) {
 }
 
 var getPermissions = function(item_object) {
-	var sell = ['claimed', 'unclaimed'].indexOf(item_object.status) != -1;
-	var claim = ['unclaimed', 'won'].indexOf(item_object.status) != -1;
-	var reroll = ['claimed'].indexOf(item_object.status) != -1;
-	var purchase = ['for_sale'].indexOf(item_object.status) != -1;
-	var display = ['claimed'].indexOf(item_object.status) != -1;
-	var permanent = ['claimed'].indexOf(item_object.status) != -1;
-	var unpermanent = ['permanent'].indexOf(item_object.status) != -1;
-	var auction = ['claimed'].indexOf(item_object.status) != -1;
-	var decline = ['for_sale'].indexOf(item_object.status) != -1;
+	try {
+		var sell = canSellItemObject(item_object);
+		var claim = canClaimItemObject(item_object);
+		var reroll = ['claimed'].indexOf(item_object.status) != -1;
+		var purchase = canPurchaseItemObjectFromDealer(item_object);
+		var display = canDisplayItemObject(item_object);
+		var permanent = canSetPermanentItemObject(item_object);
+		var unpermanent = canUnsetPermanentItemObject(item_object);
+		var auction = canAuctionItemObject(item_object);
+		var decline = canDeclineItemObject(item_object);
 
-	return {
-		'sell': sell,
-		'claim': claim,
-		'reroll': reroll,
-		'purchase': purchase,
-		'display': display,
-		'permanent': permanent,
-		'unpermanent': unpermanent,
-		'auction': auction,
-		'decline': decline
+		return {
+			'sell': sell,
+			'claim': claim,
+			'reroll': reroll,
+			'purchase': purchase,
+			'display': display,
+			'permanent': permanent,
+			'unpermanent': unpermanent,
+			'auction': auction,
+			'decline': decline
+		}
+	}
+
+	catch(error) {
+		console.log(error.message);
 	}
 }
 
