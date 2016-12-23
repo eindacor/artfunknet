@@ -53,7 +53,7 @@ Meteor.setInterval((function() {
 
 var check_ticket_frequency = 300000; //once every 5 minutes
 Meteor.setInterval((function() {
-    gallery_tickets.remove({'expiration': {$lt : moment()._d.toISOString()}});
+    gallery_tickets.remove({'expiration': {$lt : getNowISOString()}});
 }), check_ticket_frequency);
 
 var npc_spawn_frequency = 600000; // 10 minutes
@@ -77,7 +77,7 @@ Meteor.setInterval((function() {
             var proc_chance = Math.pow((attribute_values[attribute_ids[i]] * rarity_npc_coefficient), 2);
 
             if (attribute_object.npc_name == "Art Donor" && 
-                owner_object.profile.market_expert.expiration < moment()._d.toISOString() && 
+                owner_object.profile.market_expert.expiration < getNowISOString() && 
                 procUniqueAttribute(db_object.owner_id, "DONOR_SPAWN_BOOST", undefined) 
                 ){
                     proc_chance += .2;
@@ -149,7 +149,7 @@ var lottery_check_frequency = 60000; //once per minute
 Meteor.setInterval((function() {
     var lottery_draw_time = metadata.findOne({'lottery_draw': {$ne: null}}).lottery_draw;
    
-    if (moment()._d.toISOString() < lottery_draw_time)
+    if (getNowISOString() < lottery_draw_time)
         return;
 
     var lottery_level = metadata.findOne({'lottery_draw': {$ne: null}}).lottery_level;
@@ -186,7 +186,7 @@ Meteor.setInterval((function() {
                 $push: {
                     'previous_winners': {
                         'user_id': winning_id, 
-                        'time': moment()._d.toISOString(), 
+                        'time': getNowISOString(), 
                         'item_id': _id
                     }
                 }
@@ -263,7 +263,7 @@ Meteor.setInterval((function() {
 var seasonal_rotation_check = 60000;
 Meteor.setInterval((function() {
     var next_rotation = metadata.findOne({'loot_data': {$ne: null}}).loot_data.seasonal_rotation;
-    if (next_rotation < moment()._d.toISOString()) {
+    if (next_rotation < getNowISOString()) {
         var random_legendary = getRandomArtworkIDFromRarity("legendary");
         var random_masterpiece = getRandomArtworkIDFromRarity("masterpiece");
 
@@ -280,7 +280,7 @@ Meteor.setInterval((function() {
 var clear_npcs_met_check = 60000;
 Meteor.setInterval((function() {
     var next_clear = metadata.findOne({'npc_clear_time': {$ne: null}}).npc_clear_time;
-    if (next_clear < moment()._d.toISOString()) {
+    if (next_clear < getNowISOString()) {
         var npcs_met_object = {
             'bronze': 0,
             'silver': 0,
