@@ -45,6 +45,8 @@ createAuction = function(item_id, starting, buy_now, duration, viewer) {
                     'rarity_value' : item_object.artwork_data.rarity_value,
                     'roll_count' : item_object.roll_count,
                     'foil' : item_object.foil,
+                    'unlocked': item_object.unlocked,
+                    'vintage': item_object.vintage,
                     'lottery' : item_object.lottery,
                     'seasonal' : item_object.seasonal,
                     'original' : item_object.original,

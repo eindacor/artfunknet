@@ -32,7 +32,25 @@
 									<div class="col-xs-2 default-text">{{#if owned}}<i class="green-text fa fa-check"></i>{{/if}} {{#if isUnclaimed artwork_id}}<i class="gold-text fa fa-gift"></i>{{/if}} {{#if isAlreadyWinning _id}}<i class="purple-text fa fa-clock-o"></i>{{/if}} {{#if isQuestItem artwork_id}}<i class="orange-text fa fa-flag-checkered"></i>{{/if}} {{#if isSought artwork_id}}<i class="blue-text fa fa-bullhorn"></i>{{/if}} </div>
 									<div class="col-xs-4 default-text">{{item_data.artist}} - {{item_data.title}} ({{item_data.date}})</div>
 									<div class="col-xs-2 default-text">
-										<span class="{{item_data.rarity}}"><strong>{{item_data.rarity}}</strong></span>{{#if item_data.foil}}<span class="af-color"> foil</span>{{/if}}{{#if item_data.seasonal}}<span class="common"> seasonal</span>{{/if}}{{#if item_data.lottery}}<span class="gold"> lottery {{item_data.lottery}}</span>{{/if}}{{#if item_data.original}}<span class="purple-text"> original</span>{{/if}}
+										<span class="{{item_data.rarity}}"><strong>{{item_data.rarity}}</strong></span>
+										{{#if item_data.foil}}
+											<span class="af-color"> foil</span>
+										{{/if}}
+										{{#if item_data.seasonal}}
+											<span class="common"> seasonal</span>
+										{{/if}}
+										{{#if item_data.lottery}}
+											<span class="gold"> lottery {{item_data.lottery}}</span>
+										{{/if}}
+										{{#if item_data.original}}
+											<span class="purple-text"> original</span>
+										{{/if}}
+										{{#if item_data.vintage}}
+											<span class="vintage-text"> vintage</span>
+										{{/if}}
+										{{#if item_data.unlocked}}
+											<span class="silver-text"> unlocked</span>
+										{{/if}}
 									</div>
 									<div class="col-xs-2">bid min: <span class="default-text {{#if has_bid}}highlight{{/if}}">${{minBid _id}}</span></div>
 									<div class="col-xs-2">buy now: <span class="default-text">{{buy_now_text}}</span></div>
