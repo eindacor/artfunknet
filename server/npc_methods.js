@@ -33,7 +33,11 @@ createNPC = function(gallery_object, attribute_id, duration, npc_quality) {
 }
 
 Meteor.methods({
-	'interactWithNPC' : function(npc_id) {
+	'interactWithNPC': function(npc_id) {
+		return {'message': "trollface.obj"};
+	},
+
+	'interactWithNPC_lol' : function(npc_id) {
 		var npc_object = canMeetNPC(npc_id);
 
 		if (npc_object == undefined) 
