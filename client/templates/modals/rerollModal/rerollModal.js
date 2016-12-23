@@ -9,7 +9,7 @@ Template.rerollModal.events ({
     			console.log(error.message);
 
     		else {
-				updateItemTemplate(Session.get('selectedItem'), 100);
+				updateItemTemplate(Session.get('selectedItem'), 0);
 			}
     	});
     },
@@ -21,7 +21,7 @@ Template.rerollModal.events ({
 				console.log(error.message);
 
 			else {
-				updateItemTemplate(Session.get('selectedItem'), 100);
+				updateItemTemplate(Session.get('selectedItem'), 0);
 			}
 		});
     },
@@ -33,7 +33,7 @@ Template.rerollModal.events ({
 				console.log(error.message);
 
 			else {
-				updateItemTemplate(Session.get('selectedItem'), 100);
+				updateItemTemplate(Session.get('selectedItem'), 0);
 			}
 		});
     },
@@ -45,7 +45,7 @@ Template.rerollModal.events ({
 				console.log(error.message)
 
 			else {
-				updateItemTemplate(Session.get('selectedItem'), 100);
+				updateItemTemplate(Session.get('selectedItem'), 0);
 			}
 		})
 	}
@@ -81,19 +81,7 @@ Template.rerollModal.helpers({
 	},
 
 	'canReroll' : function() {
-		Meteor.call('getRerollCost', Session.get('selectedItem'), function(error, result) {
-			if (error)
-				console.log(error.message);
-
-			else {
-				Session.set('can_reroll', result <= Meteor.user().profile.bank_balance);
-			}
-		});
-
-		if (Session.get('can_reroll') !== undefined)
-			return Session.get('can_reroll');
-
-		else return false;
+		return canRerollItem(Session.get('selectedItem'));
 	},
 
 	'attributeValueText' : function(value) {

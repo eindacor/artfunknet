@@ -158,7 +158,7 @@ Template.itemActions.events({
 					}, $('body')[0]);
 				};
 
-				updateItemTemplate(item_id, 100);
+				updateItemTemplate(item_id, 10);
 			}
 		})
 	},
@@ -171,7 +171,7 @@ Template.itemActions.events({
 				console.log(error.message)
 
 			else {
-				updateItemTemplate(item_id, 100);
+				updateItemTemplate(item_id, 10);
 			}
 		})
 	},

@@ -56,7 +56,7 @@ Template.onDisplayModal.events ({
 					}, $('body')[0]);
 				};
 
-				updateItemTemplate(Session.get('selectedItem'), 1000);
+				updateItemTemplate(Session.get('selectedItem'), 100);
 			}
 		});			
     },

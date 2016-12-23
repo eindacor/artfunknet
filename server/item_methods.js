@@ -256,7 +256,7 @@ updateItemAttributesWithNewArtworkData = function(item_id) {
                     'special': 3
                 }; 
                 break;
-            default: throw "unidentified rarity";
+            default: return false;
         }
 
         searchArrayForSpecialAttributes(special_ids, item_object, new_attribute_object, "unlocked", all_new_attributes, attribute_counts);
@@ -449,7 +449,7 @@ rerollAttributeValue = function(user_id, item_id, attribute_id) {
         updateItem(query_object, {$set: setter_object, $inc: {'roll_count' : 1}});         
     }
 
-    else throw "invalid operation";
+    else return false;
 }
 
 rerollAttribute = function(user_id, item_id, attribute_id) {
@@ -472,9 +472,9 @@ rerollAttribute = function(user_id, item_id, attribute_id) {
 
             var roll_value_min = getRerollMin(user_id, "unlocked", item_object);
             random_attribute.value = getAttributeValue(0, roll_value_min);
-
-            chargeAccount(user_id, getRerollCost(item_id));
+     
             updateItem({'_id': item_id, 'attributes.unlocked._id': attribute_id}, {$set: {'attributes.unlocked.$' : random_attribute,}, $inc: {'roll_count' : 1}});
+            chargeAccount(user_id, getRerollCost(item_id));
         }
 
         else return false;
@@ -503,7 +503,7 @@ Meteor.methods({
         if (item_object) 
             claimItemObject(Meteor.userId(), item_object);
 
-        else throw "invalid operation";
+        else return false;
     },
 
     'declineItem' : function(item_id) {
@@ -517,7 +517,7 @@ Meteor.methods({
             }
         }
 
-        else throw "invalid operation";
+        else return false;
     },
 
     'purchaseItemFromDealer' : function(item_id) {
@@ -559,7 +559,7 @@ Meteor.methods({
                 }
             }
 
-            else throw "invalid operation";
+            else return false;
         }
 
         catch(error) {
@@ -580,7 +580,7 @@ Meteor.methods({
             removeItem(item_id, "sold", undefined);
         }
 
-        else throw "invalid operation";
+        else return false;
     },
 
     'auctionArtwork' : function(item_id, starting, buy_now, duration) {
