@@ -313,6 +313,7 @@ Template.userGallery.destroyed = function() {
 }
 
 Template.userGallery.rendered = function() {
+	gallery_data = undefined
 	entry_fees = {};
 	if (Meteor.user() && this.data.screen_name == Meteor.user().profile.screen_name && Meteor.user().profile.tutorials.my_gallery) 
 	{
