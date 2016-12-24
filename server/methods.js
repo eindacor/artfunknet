@@ -9,11 +9,17 @@ var texture_size_cm = 300;
 
 var getMVPData = function() {
     var admin_ids = ['Artfunkel, Inc.'];
+    var botter_ids = ["A5W6WmH9ZvPRBQ6ZR", "2f5wCTT3kF27xfmzo", "ktByWpesBidgHoqum"];
     Meteor.users.find({'profile.user_type': "admin"}).forEach(function(user_object) {
         admin_ids.push(user_object._id);
     });
 
-    return items.find({'owner': {$nin: admin_ids}, 'status': {$in: ["displayed", "permanent"]}}, {limit: 20, sort: {'values.actual': -1}}).fetch();   
+    return items.find({
+        $or: [
+            {'owner': {$nin: admin_ids.concat(botter_ids)}, 'status': {$in: ["displayed", "permanent"]}},
+            {'owner': {$in: botter_ids}, 'status': {$in: ["displayed", "permanent"]}, 'date_created': {$gt: "2016-12-23T05:07:59.955Z"}}
+        ]
+    }, {limit: 20, sort: {'values.actual': -1}}).fetch(); 
 }
 
 Meteor.methods({
