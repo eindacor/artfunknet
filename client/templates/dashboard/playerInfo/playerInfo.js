@@ -59,7 +59,7 @@ Template.playerInfo.helpers({
 	},
 
 	'slots_available': function() {
-		return Meteor.user().profile.inventory_cap + Meteor.user().profile.expansion_slots - items.find({'owner' : Meteor.userId(), 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}, 'original': {$ne: true}, 'vintage': {$ne: true}}).count();
+		return Meteor.user().profile.inventory_cap + (Meteor.user().profile.vintage_count * 2) + Meteor.user().profile.expansion_slots - items.find({'owner' : Meteor.userId(), 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}, 'original': {$ne: true}, 'vintage': {$ne: true}}).count();
 	},
 
 	'original_count': function() {
@@ -129,6 +129,17 @@ Template.playerInfo.helpers({
 		return tier_array;
 	},
 
+	'npcs_met': function(quality) {
+		return Meteor.user().profile.npcs_met[quality];
+	},
+
+	'npc_quality': function() {
+		return ["bronze", "silver", "gold", "platinum"];
+	},
+
+	'npc_max_meetings': function(quality) {
+		return npc_max_map[quality];
+	}
 })
 
 Template.playerInfo.rendered = function() {

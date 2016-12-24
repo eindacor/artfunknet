@@ -46,9 +46,6 @@ var interactWithNPC = function(npc_id) {
 
 	Meteor.users.update(Meteor.userId(), {$inc: inc_object});
 
-	if (npc_object == undefined || npc_object.players_met.indexOf(Meteor.userId()) != -1)
-		return undefined;
-
 	var attribute_object = attributes.findOne(npc_object.attribute_id);		
 	var npc_interaction = {};
 

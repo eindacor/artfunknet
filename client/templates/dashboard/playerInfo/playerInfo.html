@@ -48,6 +48,9 @@
 				<p class="player-data">vintage items owned: <span class="highlight vintage-text">{{vintage_count}}</span></p>									
 				<p class="player-data">permanent collection: <span class="highlight af-color">{{permanent_count}}</span> ({{profile.pc_cap}} max)</p>		
 				<p class="player-data">completed quests: <span class="highlight af-color">{{commaSeparatedValue profile.completed_quests}}</span></p>	
+				{{#each npc_quality}}
+				<p class="player-data"><span class="highlight {{this}}">{{this}}</span> characters met: <span class="hightlight af-color">{{npcs_met this}}</span> ({{npc_max_meetings this}} max)</p>
+				{{/each}}
 				<!-- <p class="player-data">auctioned items: <span class="highlight af-color">{{auctioned_items}}</span> ({{auction_cap}} max)</p>
 				<p class="player-data">winning auctions: <span class="highlight af-color">{{winning_auctions}}</span> ({{auction_cap}} max)</p>	 -->	
 				<p class="player-data">gallery ticket limit: <span class="highlight af-color">{{profile.ticket_cap}}</span></p>	
