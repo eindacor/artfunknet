@@ -1,5 +1,22 @@
 <template name="inventory">
 	<div class="template-inventory">
+		<div class="row">
+			<p class="filter-title">display by tag:</p>
+			<select id="tagged-display-duration">
+    			<!-- <option value="1">1 minute</option> -->
+    			<option value="60">1 hour</option>
+    			<option value="360">6 hours</option>
+    			<option value="720">12 hours</option>
+    			<option value="1440">1 day</option>
+    		</select>
+    		<select id="selected-tag">
+    			<option value="">-- select tag --</option>
+    			{{#each tag}}
+    				<option value="{{this}}">{{this}}</option>
+    			{{/each}}
+    		</select>
+			<button id="display-by-tags" type="button" class="btn btn-default">display</button>
+		</div>
 		{{> itemSet statuses=item_set_statuses}}
 	</div>
 </template>
