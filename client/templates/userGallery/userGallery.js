@@ -173,7 +173,7 @@ Template.userGallery.events ({
 	'click .npc.enabled' : function(element) {
 		var npc_id = element.target.dataset.npc_id;
 		if (npcs.findOne(npc_id).players_met.indexOf(Meteor.userId()) == -1) {
-			Meteor.call('interactWithNPC_lol', npc_id, function(error, interaction_object) {
+			Meteor.call('interactWithNPC', npc_id, function(error, interaction_object) {
 				if (error)
 					console.log(error.message);
 

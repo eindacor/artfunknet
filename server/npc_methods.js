@@ -32,83 +32,83 @@ createNPC = function(gallery_object, attribute_id, duration, npc_quality) {
     })
 }
 
+var interactWithNPC = function(npc_id) {
+	var npc_object = canMeetNPC(npc_id);
+
+	if (npc_object == undefined) 
+		return {'message': "You have met your daily npc limit for that type."};
+
+	var inc_object = {};
+	var inc_string = 'profile.npcs_met.' + npc_object.quality;
+	inc_object[inc_string] = 1;
+
+	Meteor.users.update(Meteor.userId(), {$inc: inc_object});
+
+	if (npc_object == undefined || npc_object.players_met.indexOf(Meteor.userId()) != -1)
+		return undefined;
+
+	var attribute_object = attributes.findOne(npc_object.attribute_id);		
+	var npc_interaction = {};
+
+	switch(attribute_object.title) {
+		case "benefactor_bonus": 
+			npc_interaction = benefactorInteraction(npc_object);
+			break;
+		case "donor_bonus": 
+			npc_interaction = donorInteraction(npc_object);
+			break;
+		case "preservationist_bonus": 
+			npc_interaction = preservationistInteraction(npc_object);
+			break;
+		case "gallery_manager":
+			npc_interaction = galleryManagerInteraction(npc_object);
+			break;
+		case "set_xp_visitors": //DISABLE - give portion of set xp to visitors
+			npc_interaction = {'message': "You have been given 0xp for sets in this permanent collection."};
+			break;
+		case "xp_visitors": //DISABLE - give portion of collection xp to visitors
+			npc_interaction = {'message': "You have been given 0xp for works in this permanent collection."};
+			break;
+		case "dealer_bonus":
+			npc_interaction = artDealerInteraction(npc_object);
+			break;
+		case "collector_bonus":
+			npc_interaction = collectorInteraction(npc_object);
+			break;
+		case "designer_bonus": //DISABLE - give discount to store
+			npc_interaction = designerInteraction(npc_object);
+			break;
+		case "forger_bonus": //DISABLE - give access to black market
+			npc_interaction = {'message': "You have met an art forger."};
+			break;
+		case "art_expert_bonus":
+			npc_interaction = artExpertInteraction(npc_object);
+			break;
+		case "historian_bonus": //DISABLE - quiz players for xp
+			npc_interaction = historianInteraction(npc_object);
+			break;
+		case "auctioneer_bonus": //DISABLE - analyze auction house and return deals
+			npc_interaction = auctioneerInteraction(npc_object);
+			break;
+		case "entry_fee_reduction_members": //DISABLE = reduce entry fee for members
+		case "set_xp_members": //DISABLE - give portion of set xp to members
+		case "xp_members": //DISABLE - give portion of xp to members
+		case "xp_per_visitor": //DISABLE - increase xp gain per visitor
+		case "money_per_visitor": //DISABLE - increase money earned for entry fee
+		case "bonus_money": //DISABLE - bonus money from feature paintings
+		case "enthusiast_bonus": //give xp
+			npc_interaction = enthusiastInteraction(npc_object);
+			break;
+		default: return undefined;
+	}
+
+	npcs.update(npc_id, {$push: {'players_met' : Meteor.userId()}});
+	return npc_interaction;
+}
+
 Meteor.methods({
-	'interactWithNPC': function(npc_id) {
-		return {'message': "trollface.obj"};
-	},
-
-	'interactWithNPC_lol' : function(npc_id) {
-		var npc_object = canMeetNPC(npc_id);
-
-		if (npc_object == undefined) 
-			return {'message': "You have met your daily npc limit for that type."};
-
-		var inc_object = {};
-		var inc_string = 'profile.npcs_met.' + npc_object.quality;
-		inc_object[inc_string] = 1;
-
-		Meteor.users.update(Meteor.userId(), {$inc: inc_object});
-
-		if (npc_object == undefined || npc_object.players_met.indexOf(Meteor.userId()) != -1)
-			return undefined;
-
-		var attribute_object = attributes.findOne(npc_object.attribute_id);		
-		var npc_interaction = {};
-
-		switch(attribute_object.title) {
-			case "benefactor_bonus": 
-				npc_interaction = benefactorInteraction(npc_object);
-				break;
-			case "donor_bonus": 
-				npc_interaction = donorInteraction(npc_object);
-				break;
-			case "preservationist_bonus": 
-				npc_interaction = preservationistInteraction(npc_object);
-				break;
-			case "gallery_manager":
-				npc_interaction = galleryManagerInteraction(npc_object);
-				break;
-			case "set_xp_visitors": //DISABLE - give portion of set xp to visitors
-				npc_interaction = {'message': "You have been given 0xp for sets in this permanent collection."};
-				break;
-			case "xp_visitors": //DISABLE - give portion of collection xp to visitors
-				npc_interaction = {'message': "You have been given 0xp for works in this permanent collection."};
-				break;
-			case "dealer_bonus":
-				npc_interaction = artDealerInteraction(npc_object);
-				break;
-			case "collector_bonus":
-				npc_interaction = collectorInteraction(npc_object);
-				break;
-			case "designer_bonus": //DISABLE - give discount to store
-				npc_interaction = designerInteraction(npc_object);
-				break;
-			case "forger_bonus": //DISABLE - give access to black market
-				npc_interaction = {'message': "You have met an art forger."};
-				break;
-			case "art_expert_bonus":
-				npc_interaction = artExpertInteraction(npc_object);
-				break;
-			case "historian_bonus": //DISABLE - quiz players for xp
-				npc_interaction = historianInteraction(npc_object);
-				break;
-			case "auctioneer_bonus": //DISABLE - analyze auction house and return deals
-				npc_interaction = auctioneerInteraction(npc_object);
-				break;
-			case "entry_fee_reduction_members": //DISABLE = reduce entry fee for members
-			case "set_xp_members": //DISABLE - give portion of set xp to members
-			case "xp_members": //DISABLE - give portion of xp to members
-			case "xp_per_visitor": //DISABLE - increase xp gain per visitor
-			case "money_per_visitor": //DISABLE - increase money earned for entry fee
-			case "bonus_money": //DISABLE - bonus money from feature paintings
-			case "enthusiast_bonus": //give xp
-				npc_interaction = enthusiastInteraction(npc_object);
-				break;
-			default: return undefined;
-		}
-
-		npcs.update(npc_id, {$push: {'players_met' : Meteor.userId()}});
-		return npc_interaction;
+	'interactWithNPC' : function(npc_id) {
+		return interactWithNPC(npc_id);
 	}
 })
 
