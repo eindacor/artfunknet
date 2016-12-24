@@ -2,6 +2,7 @@ var galleryContentTracker = new Tracker.Dependency;
 var wall_padding_tracker = new Tracker.Dependency;
 var entry_fee_tracker = new Tracker.Dependency;
 var entry_fees = {};
+var current_screen_name = undefined;
 
 var getEntryFee = function(owner_id) {
 	Meteor.call('getEntryFee', owner_id, function(error, result) {
@@ -45,7 +46,6 @@ var setGallery = function(screen_name, template_data) {
 }
 
 var setPadding = function() {
-	console.log($('.wall-wash').length);
 	$('.wall-wash').css('padding-bottom', Math.floor(gallery_data.finish_data.offset_from_floor) + "px");
 	$('.wall-wash').css('padding-top', Math.floor(gallery_data.finish_data.offset_from_floor) + "px");
 	$('.plackard p').css('font-size', Math.ceil(gallery_data.finish_data.pixels_per_centimeter) + "px");
@@ -69,6 +69,14 @@ Template.userGallery.helpers({
 
 	'galleryData': function(screen_name) {
 		galleryContentTracker.depend();
+		if (current_screen_name == undefined) {
+			current_screen_name = screen_name;
+		}
+
+		else if (current_screen_name != screen_name) {
+			current_screen_name = screen_name;
+			gallery_data = undefined;
+		}	
 
 		if (gallery_data === undefined) {
 			setGallery(screen_name, this);
@@ -313,7 +321,6 @@ Template.userGallery.destroyed = function() {
 }
 
 Template.userGallery.rendered = function() {
-	gallery_data = undefined
 	entry_fees = {};
 	if (Meteor.user() && this.data.screen_name == Meteor.user().profile.screen_name && Meteor.user().profile.tutorials.my_gallery) 
 	{
