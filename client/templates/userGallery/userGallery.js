@@ -1,4 +1,5 @@
 var galleryContentTracker = new Tracker.Dependency;
+var wall_padding_tracker = new Tracker.Dependency;
 var entry_fee_tracker = new Tracker.Dependency;
 var entry_fees = {};
 
@@ -37,14 +38,19 @@ var setGallery = function(screen_name, template_data) {
 			console.log(error.message);
 
 		else {
-			template_data["gallery_data"] = result;
-			$('.wall-wash').css('padding-bottom', Math.floor(result.finish_data.offset_from_floor) + "px");
-			$('.wall-wash').css('padding-top', Math.floor(result.finish_data.offset_from_floor) + "px");
-			$('.plackard p').css('font-size', Math.ceil(result.finish_data.pixels_per_centimeter) + "px");
-
+			gallery_data = result;
 			galleryContentTracker.changed();
 		}
 	});
+}
+
+var setPadding = function() {
+	console.log($('.wall-wash').length);
+	$('.wall-wash').css('padding-bottom', Math.floor(gallery_data.finish_data.offset_from_floor) + "px");
+	$('.wall-wash').css('padding-top', Math.floor(gallery_data.finish_data.offset_from_floor) + "px");
+	$('.plackard p').css('font-size', Math.ceil(gallery_data.finish_data.pixels_per_centimeter) + "px");
+	$('#gallery-wall').css('display', 'block');
+	wall_padding_tracker.changed();
 }
 
 Template.userGallery.helpers({
@@ -52,17 +58,23 @@ Template.userGallery.helpers({
 		return getRGBString(color);
 	},
 
+	'setPadding': function() {
+		setTimeout(function() {
+			wall_padding_tracker.depend()
+			if ($('.wall-wash').length > 0) {
+				setPadding();
+			}
+		}, 200)		
+	},
+
 	'galleryData': function(screen_name) {
 		galleryContentTracker.depend();
 
-		if (this["gallery_data"] === undefined) {
+		if (gallery_data === undefined) {
 			setGallery(screen_name, this);
-			return {}
 		}
 
-		else {
-			return this['gallery_data'];
-		}
+		return gallery_data;
 	},
 
 	'time_remaining': function(item_id) {
@@ -103,11 +115,7 @@ Template.userGallery.helpers({
 	},
 
 	'npc' : function(owner_id) {
-		return npcs.find({'owner_id' : owner_id});
-	},
-
-	'unmet' : function(npc_id) {
-		return npcs.findOne(npc_id).players_met.indexOf(Meteor.userId()) == -1;
+		return npcs.find({'owner_id' : owner_id, 'players_met': {$nin: [Meteor.userId()]}});
 	},
 
 	'canEdit' : function(screen_name) {

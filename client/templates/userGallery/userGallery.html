@@ -10,32 +10,33 @@
 				<div class="row no-padding no-margin">
 					<div class="npc-area">
 						{{#each npc owner_id}}
-							{{#if unmet _id}}
-								<i data-npc_id="{{_id}}" class="npc {{quality}} fa {{icon}} enabled"></i>
-							{{/if}}
+							<i data-npc_id="{{_id}}" class="npc {{quality}} fa {{icon}} enabled"></i>
 						{{/each}}
 					</div>
 				</div>
 				
 				{{#with galleryData screen_name}}
-				<div class="window-crop row">
-					<div class="rendered-scene">
-						<div id="gallery-wall" style="background: url({{getTextureURL finish_data.wall_filename}}) repeat scroll 0% 0% / {{finish_data.wall_size}}">
-							<div class="wall-wash" style="background-color: rgba({{rgbString finish_data.wall_base}}, {{finish_data.wall_wash_opacity}})">
-								<div class="image-container">	
-								{{#each displayed}}
-									{{> galleryItem painting_info=this finish_data=../finish_data}}
-								{{/each}}
-							
-								{{#each permanent}}
-									{{> galleryItem painting_info=this finish_data=../finish_data}}
-								{{/each}}		
+					{{#if this}}
+						<div class="window-crop row">
+							<div class="rendered-scene">
+								<div id="gallery-wall" style="background: url({{getTextureURL finish_data.wall_filename}}) repeat scroll 0% 0% / {{finish_data.wall_size}}">
+									<div class="wall-wash" style="background-color: rgba({{rgbString finish_data.wall_base}}, {{finish_data.wall_wash_opacity}})">
+										{{setPadding}}
+										<div class="image-container">	
+										{{#each displayed}}
+											{{> galleryItem painting_info=this finish_data=../finish_data}}
+										{{/each}}
+									
+										{{#each permanent}}
+											{{> galleryItem painting_info=this finish_data=../finish_data}}
+										{{/each}}		
+										</div>
+									</div>
 								</div>
+								<div id="gallery-floor" style="background: url({{getTextureURL finish_data.floor_filename}}) repeat scroll 0% 0% / {{finish_data.floor_size}}"></div>
 							</div>
 						</div>
-						<div id="gallery-floor" style="background: url({{getTextureURL finish_data.floor_filename}}) repeat scroll 0% 0% / {{finish_data.floor_size}}"></div>
-					</div>
-				</div>
+					{{/if}}
 				{{/with}}
 
 				{{#if ../from_dashboard}}
