@@ -32,6 +32,15 @@ Template.inventory.events({
 
 			Session.set('update_set', true);
 		})
+	},
+
+	'change #selected-tag': function() {
+		var selected_tag = $('#selected-tag').val();
+		if (selected_tag.length == 0)
+			return false;
+
+		$('#search-area').val('#' + selected_tag);
+		Session.set('update_set', true);
 	}
 })
 
