@@ -46,7 +46,7 @@ var getPermissions = function(item_object) {
 	try {
 		var sell = canSellItemObject(item_object);
 		var claim = canClaimItemObject(item_object);
-		var reroll = ['claimed'].indexOf(item_object.status) != -1;
+		var reroll = canRerollItemObject(item_object) || canChangeActiveUniqueAttributeItemObject(item_object);
 		var purchase = canPurchaseItemObjectFromDealer(item_object);
 		var display = canDisplayItemObject(item_object);
 		var permanent = canSetPermanentItemObject(item_object);
