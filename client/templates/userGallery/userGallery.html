@@ -1,4 +1,304 @@
 <template name="userGallery">
+<!-- WebVr Scripts -->
+<script>
+/*
+ * Debug parameters.
+ */
+WebVRConfig = {
+  /**
+   * webvr-polyfill configuration
+   */
+
+  // Forces availability of VR mode.
+  //FORCE_ENABLE_VR: true, // Default: false.
+  // Complementary filter coefficient. 0 for accelerometer, 1 for gyro.
+  //K_FILTER: 0.98, // Default: 0.98.
+  // How far into the future to predict during fast motion.
+  //PREDICTION_TIME_S: 0.040, // Default: 0.040 (in seconds).
+  // Flag to disable touch panner. In case you have your own touch controls
+  //TOUCH_PANNER_DISABLED: true, // Default: false.
+  // Enable yaw panning only, disabling roll and pitch. This can be useful for
+  // panoramas with nothing interesting above or below.
+  //YAW_ONLY: true, // Default: false.
+  // Enable the deprecated version of the API (navigator.getVRDevices).
+  //ENABLE_DEPRECATED_API: true, // Default: false.
+  // Scales the recommended buffer size reported by WebVR, which can improve
+  // performance. Making this very small can lower the effective resolution of
+  // your scene.
+  BUFFER_SCALE: 0.5, // default: 1.0
+  // Allow VRDisplay.submitFrame to change gl bindings, which is more
+  // efficient if the application code will re-bind it's resources on the
+  // next frame anyway.
+  // Dirty bindings include: gl.FRAMEBUFFER_BINDING, gl.CURRENT_PROGRAM,
+  // gl.ARRAY_BUFFER_BINDING, gl.ELEMENT_ARRAY_BUFFER_BINDING,
+  // and gl.TEXTURE_BINDING_2D for texture unit 0
+  // Warning: enabling this might lead to rendering issues.
+  //DIRTY_SUBMIT_FRAME_BINDINGS: true // default: false
+};
+</script>
+<!--  A polyfill for Promises. Needed for IE and Edge.  -->
+<!-- <script src="/webvr/01-es6-promise.js"></script> -->
+
+<!--  three.js 3d library  -->
+<!-- <script src="/webvr/02-three.js"></script> -->
+
+<!--  VRControls.js acquires positional information from connected VR devices and applies the transformations to a three.js camera object.   -->
+<!-- <script src="/webvr/03-VRControls.js"></script> -->
+
+<!--  VREffect.js handles stereo camera setup and rendering.  -->
+<!-- <script src="/webvr/04-VREffect.js"></script> -->
+
+<!--  A polyfill for WebVR using the Device{Motion,Orientation}Event API.  -->
+<script src="/webVR/02-webvr-polyfill.js"></script>
+
+<!--   Helps enter and exit VR mode, provides best practices while in VR.  -->
+<script src="/webVR/01-webvr-manager.js"></script>
+
+<script>
+
+setTimeout(function() {
+//Pull out scene preparation from rest of three.js code
+function prepareScene(scene) {
+  // create3dObjects(scene);
+  addLighting(scene);
+  addIntersectingTets(scene);
+  addSomeImages(scene);
+  loadArtwork(scene);
+}
+
+
+/*
+
+    Helper functions to encapsulate different tests
+
+*/
+
+function create3dObjects(scene) {
+  // Create 3D objects.
+  var tetGeometry = new THREE.TetrahedronGeometry(1);
+  var tetMaterial = new THREE.MeshNormalMaterial();
+  var tet = new THREE.Mesh(tetGeometry, tetMaterial);
+
+  // Position mesh
+  tet.position.set(2, controls.userHeight, -1);
+
+  // Add mesh to your three.js scene
+  scene.add(tet);
+}
+
+function addLighting(scene) {
+  var light = new THREE.AmbientLight( 0x404040 );
+  scene.add( light );
+
+  var light2 = new THREE.PointLight( 0xffffff, 1, 100 );
+  light2.intensity = 1;
+  scene.add( light2 );
+
+  var light3 = new THREE.DirectionalLight( 0xffffff );
+  light3.position.set( 0, 1, 1 ).normalize();
+  scene.add(light3);
+}
+
+function addIntersectingTets(scene) {
+  // create Five Intersecting Tetrahedra:
+  var tetGeometry = new THREE.TetrahedronGeometry(1);
+  var tet = new Array(5);
+  var fit = new THREE.Object3D();
+
+  var t = ((1 + Math.sqrt(5))/2);
+  var fturn = 6.283/5;
+  var axis = new THREE.Vector3( t, 1, 0 );
+  axis.normalize();
+
+  for(var i = 0; i < 5; i++) {
+    tet[i] = new THREE.Mesh(tetGeometry, new THREE.MeshLambertMaterial());
+    tet[i].rotateOnAxis(axis, i*fturn);
+    fit.add(tet[i]);
+  }
+
+  fit.position.set(-2, controls.userHeight+1, -2);
+  scene.add(fit);
+}
+
+function addSomeImages(scene) {
+  // Tip: Use a spherical camera or your phone to capture a spherical photo
+  // Add an equirectangular panorama
+  var pano;
+  var loader = new THREE.TextureLoader();
+  loader.load('/img/world.jpg', onTextureLoaded);
+
+  function onTextureLoaded(texture) {
+    var geometry = new THREE.SphereGeometry(1000, 32, 32);
+    var material = new THREE.MeshBasicMaterial({
+      map: texture,
+      side: THREE.BackSide
+    });
+    pano = new THREE.Mesh(geometry, material);
+    pano.position.y = 190;
+    scene.add(pano);
+  }
+}
+
+function loadArtwork(scene) {
+	items.find({owner:Meteor.userId(),status:"displayed"}).forEach(function(item) {
+		createArtwork(item, scene);
+	});
+}
+
+function createArtwork(item, scene) {
+	// Tip: Use a spherical camera or your phone to capture a spherical photo
+	// Add an equirectangular panorama
+	var pano;
+	var loader = new THREE.TextureLoader();
+	var link = "/img/mona.jpg";
+	loader.load(link, onArtworkLoaded);
+
+	function onArtworkLoaded(texture) {
+	var geometry = new THREE.CubeGeometry( 0, item.artwork_data.height/10.0, item.artwork_data.width/10.0 );
+	var material = new THREE.MeshBasicMaterial({
+	  map: texture,
+	  side: THREE.BackSide
+	});
+	pano = new THREE.Mesh(geometry, material);
+	pano.position.set(10, controls.userHeight, 0);
+	scene.add(pano);
+	console.log("added " + item.artwork_data.title);
+	}
+}
+
+
+
+/*
+
+
+Boilerplate Three.js code after this, I don't really know what it all does yet
+
+
+*/
+
+// Setup three.js WebGL renderer. Note: Antialiasing is a big performance hit.
+// Only enable it if you actually need to.
+var renderer = new THREE.WebGLRenderer({antialias: true});
+renderer.setPixelRatio(window.devicePixelRatio);
+
+// Append the canvas element created by the renderer to document body element.
+$('#vr').append(renderer.domElement);
+
+// Create a three.js scene.
+var scene = new THREE.Scene();
+
+// Create a three.js camera.
+var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
+
+var controls = new THREE.VRControls(camera);
+controls.standing = true;
+
+// Apply VR stereo rendering to renderer.
+var effect = new THREE.VREffect(renderer);
+effect.setSize(window.innerWidth-150, window.innerHeight);
+
+
+// Add a repeating grid  as a skybox.
+var boxSize = 5;
+var loader = new THREE.TextureLoader();
+loader.load('/img/box.png', onTextureLoaded);
+
+function onTextureLoaded(texture) {
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(boxSize, boxSize);
+
+  var geometry = new THREE.BoxGeometry(boxSize, boxSize, boxSize);
+  var material = new THREE.MeshBasicMaterial({
+    map: texture,
+    color: 0x01BE00,
+    side: THREE.BackSide
+  });
+
+  // Align the skybox to the floor (which is at y=0).
+  skybox = new THREE.Mesh(geometry, material);
+  skybox.position.y = boxSize/2;
+  scene.add(skybox);
+
+  // For high end VR devices like Vive and Oculus, take into account the stage
+  // parameters provided.
+  setupStage();
+}
+
+
+// Create a VR manager helper to enter and exit VR mode.
+var params = {
+  hideButton: false, // Default: false.
+  isUndistorted: false // Default: false.
+};
+var manager = new WebVRManager(renderer, effect, params);
+
+
+//Set up all your objects
+prepareScene(scene);
+
+window.addEventListener('resize', onResize, true);
+window.addEventListener('vrdisplaypresentchange', onResize, true);
+
+// Request animation frame loop function
+var lastRender = 0;
+function animate(timestamp) {
+  var delta = Math.min(timestamp - lastRender, 500);
+  lastRender = timestamp;
+
+  // Apply rotation to cube mesh
+  // cube.rotation.y += delta * 0.0006;
+
+  controls.update();
+  // Render the scene through the manager.
+  manager.render(scene, camera, timestamp);
+  effect.render(scene, camera);
+
+  vrDisplay.requestAnimationFrame(animate);
+}
+
+function onResize(e) {
+  effect.setSize(window.innerWidth, window.innerHeight);
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+}
+
+var vrDisplay;
+
+// Get the HMD, and if we're dealing with something that specifies
+// stageParameters, rearrange the scene.
+function setupStage() {
+  navigator.getVRDisplays().then(function(displays) {
+    if (displays.length > 0) {
+      vrDisplay = displays[0];
+      if (vrDisplay.stageParameters) {
+        setStageDimensions(vrDisplay.stageParameters);
+      }
+      vrDisplay.requestAnimationFrame(animate);
+    }
+  });
+}
+
+function setStageDimensions(stage) {
+  // Make the skybox fit the stage.
+  var material = skybox.material;
+  scene.remove(skybox);
+
+  // Size the skybox according to the size of the actual stage.
+  var geometry = new THREE.BoxGeometry(stage.sizeX, boxSize, stage.sizeZ);
+  skybox = new THREE.Mesh(geometry, material);
+
+  // Place it on the floor.
+  skybox.position.y = boxSize/2;
+  scene.add(skybox);
+
+  // Place the cube in the middle of the scene, at user height.
+  // cube.position.set(0, controls.userHeight, 0);
+}
+},1000);
+
+</script>
+
 	<div class="template-userGallery">
 		<div class="{{#if from_dashboard}}{{else}}container{{/if}}">
 			{{#with entryInfo screen_name}}
@@ -13,6 +313,9 @@
 							<i data-npc_id="{{_id}}" class="npc {{quality}} fa {{icon}} enabled"></i>
 						{{/each}}
 					</div>
+				</div>
+
+				<div id="vr">
 				</div>
 				
 				{{#with galleryData screen_name}}
