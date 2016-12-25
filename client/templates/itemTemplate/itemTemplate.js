@@ -19,6 +19,7 @@ var updateSoughtStatus = function(artwork_id) {
 }
 
 Template.itemInfo.rendered = function() {
+	checklist_data = undefined;
 	if ($('.card-container').length != 0) {
 		card_container_height = $('.card-container').css('height').replace("px", "");
 		card_container_width = $('.card-container').css('width').replace("px", ""); 
