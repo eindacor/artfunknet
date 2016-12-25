@@ -130,6 +130,11 @@ Template.navbar.helpers({
 		return npcs.findOne({'owner_id': Meteor.userId(), 'players_met': {$ne: Meteor.userId()}}) !== undefined;
 	},
 
+	'hasVintaged' : function() {
+		console.log("Vintage level : " + Meteor.user().profile.vintage_count);
+		return Meteor.user().profile.vintage_count >= 1;
+	},
+
 	'hasQuest' : function() {
 		return quests.findOne({'owner_id': Meteor.userId()}) !== undefined;
 	},

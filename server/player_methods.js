@@ -156,9 +156,7 @@ addFunds = function(source, user_id, amount) {
     var current_balance = Number(Meteor.users.findOne({'_id': user_id}).profile.bank_balance).toFixed(2);
     var new_balance = Number(current_balance) + Number(actual_amount);
     Meteor.users.update(user_id, {$set: {"profile.bank_balance" : Math.floor(new_balance)}});
-    if (Meteor.users.findOne(user_id).profile.settings.animations_enabled) {
-        Meteor.users.update(user_id, {$push: {'profile.notifications.money': {'id': new Meteor.Collection.ObjectID()._str, 'expiration': moment().add(5, "seconds")._d.toISOString(), 'amount': amount}}});
-    }
+    queueMoneyNotification(amount);
 }
 
 chargeAccount = function(user_id, amount) {
@@ -170,9 +168,7 @@ chargeAccount = function(user_id, amount) {
     var current_balance = Number(Meteor.users.findOne({'_id': user_id}).profile.bank_balance).toFixed(2);
     var new_balance = Number(current_balance) - Number(actual_amount);
     Meteor.users.update(user_id, {$set: {"profile.bank_balance" : Math.floor(new_balance)}});
-    if (Meteor.users.findOne(user_id).profile.settings.animations_enabled) {
-        Meteor.users.update(user_id, {$push: {'profile.notifications.money': {'id': new Meteor.Collection.ObjectID()._str, 'expiration': moment().add(5, "seconds")._d.toISOString(), 'amount': -1 * amount}}});
-    }
+    queueMoneyNotification(-1 * amount);
 }
 
 selectRandomPainting = function(selector) {
@@ -453,6 +449,26 @@ var increaseRandomAttribute = function(user_id, attribute_type) {
     }
 
     else return false;
+} 
+
+queueXPNotification = function(amount) {
+    queueNotification('profile.notifications.xp', amount)
+}
+
+queueMoneyNotification = function(amount) {
+    queueNotification('profile.notifications.money', amount);
+}
+
+var queueNotification = function(type, amount) {
+    var user_id = this.userId;
+    try {
+        if (Meteor.users.findOne(user_id).profile.settings.animations_enabled) {
+            Meteor.users.update(user_id, {$push: {type: {'id': new Meteor.Collection.ObjectID()._str, 'expiration': moment().add(5, "seconds")._d.toISOString(), 'amount': amount}}});
+        }
+    } catch (err) {
+        //hack fix to stop infinite display conclusions
+        console.log(err);
+    }
 }
 
 Meteor.methods({

@@ -43,16 +43,21 @@
 							{{/if}}
 							{{#if hasLoot}}
 							<dev class="col-xs-1  icon-section">
-								<a href="/dashboard/loot"><i data-title="Loot Section" class="yellow-text nav-icon fa fa-gift"></i></a>
+								<a href="/dashboard/loot"><i data-title="Loot Section" class="nav-icon fa fa-gift"></i></a>
 								<div class="notification-area loot">
 									{{#with notifications "loot"}}{{/with}}
 								</div>
 							</dev>
-							{{/if}}
+						{{/if}}
+						{{#if hasVintaged}}
+							<dev class="col-xs-1  icon-section">
+								<a href="/dashboard/staff"><i data-title="Human Resources" class="nav-icon fa fa-users"></i></a>
+							</dev>
+						{{/if}}
 						<dev class="col-xs-1  icon-section">
 					    	<a href="/logout"><i data-title="Log Out" class="logout-button nav-icon fa fa-sign-out light-gray"></i></a>
 					    </dev>
-					   {{/if}}
+					    {{/if}}
 					   {{#if userIsAdmin}}
 					    <dev class="col-xs-1  icon-section">
 							<a href="/admin"><i data-title="Admin Tools" class="nav-icon fa fa-cog light-gray"></i></a>

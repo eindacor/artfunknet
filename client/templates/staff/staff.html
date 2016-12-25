@@ -1,0 +1,49 @@
+<template name="staff">
+	<div class="col-xs-6">
+
+	<h2>New Hires</h2>
+	{{#each staff}}
+		{{> candidate this}}
+	{{/each}}
+
+	<h2>Current Staff</h2>
+	{{#each staff}}
+		{{> staffMember this}}
+	{{/each}}
+
+	</div>
+	<div class="col-xs-6">
+		<h3>Schedule</h3>
+	</div>
+</template>
+
+<template name="candidate">
+	<div class="template-staffTemplate">
+		<div class="staff-container candidate row">
+			{{>staffDetails this}}
+			<p>Hire Cost:</p>
+		</div>
+	</div>
+</template>
+
+<template name="staffMember">
+	<div class="template-staffTemplate">
+		<div class="staff-container row">
+			{{>staffDetails this}}
+			<p>Last Task:</p>
+		</div>
+	</div>
+</template>
+
+<template name="staffDetails">
+	<div>
+		<h3>{{name}}</h3>
+		<p>Upkeep: {{upkeep}}</p>
+		<div>
+			{{#each stats}}
+				<!-- Removed for now data-attribute_value="{{value}}" data-attribute_id="{{_id}}" -->
+				<i data-attribute_description="{{type}}" style="color: rgb({{getRatingColor proficiency}}, 0, 0)" class="attribute-icon fa {{getAttributeClass type}}"></i>
+			{{/each}}
+		</div>
+	</div>
+</template>
