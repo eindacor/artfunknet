@@ -332,3 +332,13 @@
 .template-itemInfo .separator {
 	margin: 4px 4px;
 }
+
+.template-itemInfo .checklist-indicators {
+	display: none;
+	border-bottom: 1px solid black;
+	margin-bottom: 6px;
+}
+
+.template-itemInfo .card-container:hover .checklist-indicators{
+	display: block;
+}

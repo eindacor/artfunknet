@@ -65,6 +65,19 @@
 
 				<div class="card-footer col-xs-12 {{#if item_data.foil}}foil{{/if}} {{#if item_data.seasonal}}seasonal{{/if}} {{#if item_data.lottery}}lottery{{/if}}">
 					<div class="row no-margin">
+						{{#with checklist_info item_data}}
+							{{#if this}}
+								<div class="checklist-indicators">
+									<i class="check black-text fa fa-check "></i>
+									{{#if foil}}<i class="check af-color fa fa-check"></i>{{/if}}
+									{{#if seasonal}}<i class="check green-text fa fa-check"></i>{{/if}}
+									{{#if lottery}}<i class="check gold-text fa fa-check "></i>{{/if}}
+									{{#if original}}<i class="check purple-text fa fa-check"></i>{{/if}}
+									{{#if unlocked}}<i class="check silver-text fa fa-check"></i>{{/if}}
+									{{#if vintage}}<i class="check vintage-text fa fa-check"></i>{{/if}}
+								</div>
+							{{/if}}
+						{{/with}}
 						<div class="footer-basic-info">
 							<div class="col-xs-11 no-padding attribute-area">
 								{{#each sortedAttributes item_data.attributes.unlocked}}

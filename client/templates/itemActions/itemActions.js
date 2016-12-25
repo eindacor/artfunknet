@@ -44,26 +44,28 @@ updateItemActions = function(item_object) {
 
 var getPermissions = function(item_object) {
 	try {
-		var sell = canSellItemObject(item_object);
-		var claim = canClaimItemObject(item_object);
-		var reroll = canRerollItemObject(item_object) || canChangeActiveUniqueAttributeItemObject(item_object);
-		var purchase = canPurchaseItemObjectFromDealer(item_object);
-		var display = canDisplayItemObject(item_object);
-		var permanent = canSetPermanentItemObject(item_object);
-		var unpermanent = canUnsetPermanentItemObject(item_object);
-		var auction = canAuctionItemObject(item_object);
-		var decline = canDeclineItemObject(item_object);
+		if (item_object) {
+			var sell = canSellItemObject(item_object);
+			var claim = canClaimItemObject(item_object);
+			var reroll = canRerollItemObject(item_object) || canChangeActiveUniqueAttributeItemObject(item_object);
+			var purchase = canPurchaseItemObjectFromDealer(item_object);
+			var display = canDisplayItemObject(item_object);
+			var permanent = canSetPermanentItemObject(item_object);
+			var unpermanent = canUnsetPermanentItemObject(item_object);
+			var auction = canAuctionItemObject(item_object);
+			var decline = canDeclineItemObject(item_object);
 
-		return {
-			'sell': sell,
-			'claim': claim,
-			'reroll': reroll,
-			'purchase': purchase,
-			'display': display,
-			'permanent': permanent,
-			'unpermanent': unpermanent,
-			'auction': auction,
-			'decline': decline
+			return {
+				'sell': sell,
+				'claim': claim,
+				'reroll': reroll,
+				'purchase': purchase,
+				'display': display,
+				'permanent': permanent,
+				'unpermanent': unpermanent,
+				'auction': auction,
+				'decline': decline
+			}
 		}
 	}
 

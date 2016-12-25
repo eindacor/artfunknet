@@ -1,8 +1,10 @@
 var div_size_tracker = new Tracker.Dependency;
 var sought_tracker = new Tracker.Dependency;
+var checklist_data_tracker = new Tracker.Dependency;
 var card_container_width;
 var card_container_height;
 var sought_status = {};
+var checklist_data;
 
 var updateSoughtStatus = function(artwork_id) {
 	Meteor.call('getSoughtStatus', artwork_id, true, function(error, result) {
@@ -210,6 +212,26 @@ Template.itemInfo.helpers({
 
 	'showDetails': function(item_data) {
 		return item_data.xp_rating != undefined;
+	},
+
+	'checklist_info': function(item_data) {
+		checklist_data_tracker.depend();
+
+		if (checklist_data == undefined) {
+			checklist_data = Meteor.user().profile.checklists.owned;
+			checklist_data_tracker.changed();
+		}
+
+		else {
+			var checklist_object;
+			if (checklist_data[item_data.artwork_data.rarity] != undefined) {
+				if (checklist_data[item_data.artwork_data.rarity][item_data.artwork_id] != undefined) {
+					checklist_object = checklist_data[item_data.artwork_data.rarity][item_data.artwork_id]
+				}
+			}
+
+			return checklist_object;
+		}
 	}
 })
 

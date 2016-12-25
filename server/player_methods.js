@@ -365,7 +365,7 @@ addItemObjectToChecklist = function(user_id, category, item_object) {
     if (item_object == undefined || Meteor.users.findOne(user_id) == undefined)
         return false;
 
-    var card_types = ['foil', 'original', 'seasonal', 'lottery'];
+    var card_types = ['foil', 'original', 'seasonal', 'lottery', 'unlocked', 'vintage'];
     var setter_object = {};
     var setter_string = 'profile.checklists.' + category + '.' + item_object.artwork_data.rarity + '.' + item_object.artwork_id;
 
@@ -1021,7 +1021,7 @@ Meteor.methods({
 
     'getChecklistCounts': function(rarity) {
         var categories = ['owned', 'seen', 'displayed'];
-        var type_array = ['foil', 'original', 'lottery', 'seasonal'];
+        var type_array = ['foil', 'original', 'lottery', 'seasonal', 'unlocked', 'vintage'];
         var checklist_object = Meteor.user().profile.checklists;
 
         if (checklist_object == undefined)
@@ -1034,7 +1034,9 @@ Meteor.methods({
                 'foil': 0,
                 'seasonal': 0,
                 'original': 0,
-                'lottery': 0
+                'lottery': 0,
+                'unlocked': 0,
+                'vintage': 0
             },
 
             'seen': {
@@ -1042,7 +1044,9 @@ Meteor.methods({
                 'foil': 0,
                 'seasonal': 0,
                 'original': 0,
-                'lottery': 0
+                'lottery': 0,
+                'unlocked': 0,
+                'vintage': 0
             },
 
             'displayed': {
@@ -1050,7 +1054,9 @@ Meteor.methods({
                 'foil': 0,
                 'seasonal': 0,
                 'original': 0,
-                'lottery': 0
+                'lottery': 0,
+                'unlocked': 0,
+                'vintage': 0
             },
         };
 

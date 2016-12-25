@@ -36,6 +36,8 @@
 							{{#if seasonal}}<i class="check green-text fa fa-check"></i>{{/if}}
 							{{#if lottery}}<i class="check gold-text fa fa-check "></i>{{/if}}
 							{{#if original}}<i class="check purple-text fa fa-check"></i>{{/if}}
+							{{#if unlocked}}<i class="check silver-text fa fa-check"></i>{{/if}}
+							{{#if vintage}}<i class="check vintage-text fa fa-check"></i>{{/if}}
 						{{/if}}
 						{{/with}}
 					</div>
@@ -49,6 +51,8 @@
 			<p><i class="check green-text fa fa-check"></i> - seasonal</p>
 			<p><i class="check gold-text fa fa-check "></i> - lottery</p>
 			<p><i class="check purple-text fa fa-check"></i> - original</p>
+			<p><i class="check silver-text fa fa-check"></i> - unlocked</p>
+			<p><i class="check vintage-text fa fa-check"></i> - vintage</p>
 		</div>
 	</div>
 </template>
@@ -56,7 +60,7 @@
 <template name="countHeader">
 	<div class="category-column headers col-xs-2">
 		<p class="category-header">{{name}}</p> 
-		<p class="counts">({{count_object.standard}}|<span class="af-color">{{count_object.foil}}</span>|<span class="green-text">{{count_object.seasonal}}</span>|<span class="gold-text">{{count_object.lottery}}</span>|<span class="purple-text">{{count_object.original}}</span>)
+		<p class="counts">({{count_object.standard}}|<span class="highlight af-color">{{count_object.foil}}</span>|<span class="highlight green-text">{{count_object.seasonal}}</span>|<span class="highlight gold-text">{{count_object.lottery}}</span>|<span class="highlight purple-text">{{count_object.original}}</span>|<span class="highlight silver-text">{{count_object.unlocked}}</span>|<span class="highlight vintage-text">{{count_object.vintage}}</span>)
 		</p>
 	</div>
 </template>
