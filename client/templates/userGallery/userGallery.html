@@ -61,7 +61,7 @@ setTimeout(function() {
 function prepareScene(scene) {
   // create3dObjects(scene);
   addLighting(scene);
-  addIntersectingTets(scene);
+  // addIntersectingTets(scene);
   addSomeImages(scene);
   loadArtwork(scene);
 }
@@ -140,30 +140,52 @@ function addSomeImages(scene) {
 }
 
 function loadArtwork(scene) {
+	var totalArtwork = 0;
 	items.find({owner:Meteor.userId(),status:"displayed"}).forEach(function(item) {
-		createArtwork(item, scene);
+		createArtwork(item, scene, totalArtwork++);
 	});
 }
 
-function createArtwork(item, scene) {
+function createArtwork(item, scene, position) {
 	// Tip: Use a spherical camera or your phone to capture a spherical photo
 	// Add an equirectangular panorama
 	var pano;
 	var loader = new THREE.TextureLoader();
-	var link = "/img/mona.jpg";
+	var filename = item.artwork_data.filename.replace(".","_card.");
+	var link = "http://s3.amazonaws.com/com.artfunkel.artwork/card_images/" + filename;
 	loader.load(link, onArtworkLoaded);
 
 	function onArtworkLoaded(texture) {
-	var geometry = new THREE.CubeGeometry( 0, item.artwork_data.height/10.0, item.artwork_data.width/10.0 );
-	var material = new THREE.MeshBasicMaterial({
-	  map: texture,
-	  side: THREE.BackSide
-	});
-	pano = new THREE.Mesh(geometry, material);
-	pano.position.set(10, controls.userHeight, 0);
-	scene.add(pano);
-	console.log("added " + item.artwork_data.title);
+
+		var geometry = new THREE.CubeGeometry( 0, item.artwork_data.height/10.0, item.artwork_data.width/10.0 );
+		var material = new THREE.MeshBasicMaterial({
+		  map: texture,
+		  side: THREE.BackSide
+		});
+
+		var rads = (360 / 10 * position) * (Math.PI/180);
+		var distance = item.artwork_data.width/5;
+		var z = Math.sin(rads) * distance;
+		var x = Math.cos(rads) * distance;
+
+		pano = new THREE.Mesh(geometry, material);
+		pano.position.set(x, item.artwork_data.height/20, z);
+		rotateAroundObjectAxis(pano, new THREE.Vector3(0,1,0), -rads);
+		
+		scene.add(pano);
+
+		console.log("added " + item.artwork_data.title);
 	}
+}
+
+// Rotate an object around an arbitrary axis in object space
+
+function rotateAroundObjectAxis(object, axis, radians) {
+	var rotObjectMatrix;
+    rotObjectMatrix = new THREE.Matrix4();
+    rotObjectMatrix.makeRotationAxis(axis.normalize(), radians);
+    object.matrix.multiply(rotObjectMatrix);
+    object.rotation.setFromRotationMatrix(object.matrix);
 }
 
 
@@ -199,7 +221,7 @@ effect.setSize(window.innerWidth-150, window.innerHeight);
 
 
 // Add a repeating grid  as a skybox.
-var boxSize = 5;
+var boxSize = 50;
 var loader = new THREE.TextureLoader();
 loader.load('/img/box.png', onTextureLoaded);
 
@@ -208,7 +230,7 @@ function onTextureLoaded(texture) {
   texture.wrapT = THREE.RepeatWrapping;
   texture.repeat.set(boxSize, boxSize);
 
-  var geometry = new THREE.BoxGeometry(boxSize, boxSize, boxSize);
+  var geometry = new THREE.BoxGeometry(boxSize, 0, boxSize);
   var material = new THREE.MeshBasicMaterial({
     map: texture,
     color: 0x01BE00,
@@ -217,7 +239,7 @@ function onTextureLoaded(texture) {
 
   // Align the skybox to the floor (which is at y=0).
   skybox = new THREE.Mesh(geometry, material);
-  skybox.position.y = boxSize/2;
+  skybox.position.y = 0;
   scene.add(skybox);
 
   // For high end VR devices like Vive and Oculus, take into account the stage
