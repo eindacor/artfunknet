@@ -251,7 +251,7 @@ function createCuboid(width, height, depth) {
 function create3dObjects(scene) {
   // Create 3D objects.
   var tetGeometry = new THREE.TetrahedronGeometry(1);
-  var tetMaterial = new THREE.MeshBasicMaterial();
+  var tetMaterial = new THREE.MeshNormalMaterial();
   var tet = new THREE.Mesh(tetGeometry, tetMaterial);
 
   // Position mesh
