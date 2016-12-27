@@ -277,7 +277,7 @@ Meteor.setInterval((function() {
     
 }), seasonal_rotation_check);
 
-var clear_npcs_met_check = 86400000;
+var clear_npcs_met_check = 60000;
 Meteor.setInterval((function() {
     var next_clear = metadata.findOne({'npc_clear_time': {$ne: null}}).npc_clear_time;
     if (next_clear < getNowISOString()) {
@@ -288,7 +288,7 @@ Meteor.setInterval((function() {
             'platinum': 0
         };
         Meteor.users.update({}, {$set: {'profile.npcs_met': npcs_met_object}}, {multi: true});
-        metadata.update({'npc_clear_time': {$ne: null}}, {$set: {'npc_clear_time': moment().add(1, 'days')._d.toISOString()}});
+        metadata.update({'npc_clear_time': {$ne: null}}, {$set: {'npc_clear_time': moment(next_clear).add(1, 'days')._d.toISOString()}});
         metadata.remove({'npc_limit_hits': {$ne: null}});
     }
 }), clear_npcs_met_check);
