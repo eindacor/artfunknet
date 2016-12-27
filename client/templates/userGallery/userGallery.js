@@ -22,6 +22,10 @@ var offset_max = 0;
 var gallery_data = undefined;
 var local_pixels_per_cm;
 
+printThing = function(thing) {
+	console.log(thing);
+}
+
 var getRGBString = function(color) {
 	switch(color) {
 		case "white": return "255, 255, 255";

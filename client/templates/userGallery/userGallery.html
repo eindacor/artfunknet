@@ -59,13 +59,188 @@ WebVRConfig = {
 setTimeout(function() {
 //Pull out scene preparation from rest of three.js code
 function prepareScene(scene) {
-  // create3dObjects(scene);
-  addLighting(scene);
-  // addIntersectingTets(scene);
-  addSomeImages(scene);
-  loadArtwork(scene);
+	try {
+		create3dObjects(scene);
+
+		var geo1 = createCuboid(.5, .5, .5);
+		var origin1 = new THREE.Vector3(-1, 1.2, -1);
+		addMaterialToGeometryAndAddToScene(geo1, 'https://s3.amazonaws.com/com.artfunkel.artwork/textures/wall_covering_41.jpg', scene, origin1, {'side': THREE.FrontSide});
+
+		var geo2 = createCuboid(2, 2, .1);
+		var origin2 = new THREE.Vector3(0, 1, 3);
+		addMaterialToGeometryAndAddToScene(geo2, 'https://s3.amazonaws.com/com.artfunkel.artwork/textures/wall_covering_32.jpg', scene, origin2, {'side': THREE.FrontSide});
+
+		var walls = createCuboid(20, 5, 20);
+		var walls_origin = new THREE.Vector3(0, 2.5, 0);
+		addMaterialToGeometryAndAddToScene(walls, 'https://s3.amazonaws.com/com.artfunkel.artwork/textures/brick_white.jpg', scene, walls_origin, {'side': THREE.BackSide}, new THREE.Vector2(5, 5));
+
+		var floor = createCuboid(20, 1, 20);
+		var floorigin = new THREE.Vector3(0, -.499, 0);
+		addMaterialToGeometryAndAddToScene(floor, 'https://s3.amazonaws.com/com.artfunkel.artwork/textures/hardwood_old.jpg', scene, floorigin, {'side': THREE.FrontSide}, new THREE.Vector2(10, 10));
+
+		addLighting(scene);
+		// addIntersectingTets(scene);
+		addSomeImages(scene);
+		loadArtwork(scene);
+	} catch(error) {
+		console.log(error.message);
+	}
 }
 
+/*
+	//WebGL Axes
+
+	         +y  -z
+	          | /
+	          |/
+	  -x -----+----- +x
+	         /|
+	        / |
+	      +z  |
+			 -y
+*/
+
+function addMaterialToGeometryAndAddToScene(geometry, image_path, scene, origin, material_configs, repeat_vec2) {
+	var loader = new THREE.TextureLoader();
+	loader.load(image_path, onTextureLoaded);
+
+	function onTextureLoaded(texture) {
+		if (repeat_vec2 != undefined) {
+			texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+			texture.repeat.set(repeat_vec2.x, repeat_vec2.y);
+		}
+
+		material_configs.map = texture;
+
+		var mat = new THREE.MeshBasicMaterial(material_configs);
+		var mesh = new THREE.Mesh(geometry, mat);
+		printThing(mesh);
+		mesh.position.set(origin.x, origin.y, origin.z);
+		scene.add(mesh);
+	}
+}
+
+function createCuboid(width, height, depth) {
+	var geometry = new THREE.Geometry();
+	var half_width = width / 2;
+	var half_height = height / 2;
+	var half_depth = depth / 2;
+
+	var left = half_width * -1;
+	var right = half_width;
+	var front = half_depth * -1;
+	var back = half_depth;
+	var top = half_height;
+	var bottom = half_height * -1;
+	/*
+		  F----G
+		 /|   /|   
+		B----C |
+		| E--|-H
+		|/   |/ 
+		A----D
+	*/
+	var vertices = [
+		new THREE.Vector3(left, bottom, front),		//A -> 0
+		new THREE.Vector3(left, top, front),		//B -> 1
+		new THREE.Vector3(right, top, front),		//C -> 2
+		new THREE.Vector3(right, bottom, front),	//D -> 3
+		new THREE.Vector3(left, bottom, back),		//E -> 4
+		new THREE.Vector3(left, top, back),			//F -> 5
+		new THREE.Vector3(right, top, back),		//G -> 6
+		new THREE.Vector3(right, bottom, back)		//H -> 7
+	];
+
+	geometry.vertices = vertices;
+
+	geometry.faceVertexUvs[0] = [];
+
+	//front
+	geometry.faces.push( new THREE.Face3(0,1,2) );	//ABC
+	geometry.faceVertexUvs[0].push([
+        new THREE.Vector2(0, 0),
+        new THREE.Vector2(0, 1),
+        new THREE.Vector2(1, 1)
+    ]);
+	geometry.faces.push( new THREE.Face3(0,2,3) );	//ACD
+	geometry.faceVertexUvs[0].push([
+        new THREE.Vector2(0, 0),
+        new THREE.Vector2(1, 1),
+        new THREE.Vector2(1, 0)
+    ]);
+
+	//left
+	geometry.faces.push( new THREE.Face3(4,5,1) );	//EFB
+	geometry.faceVertexUvs[0].push([
+        new THREE.Vector2(0, 0),
+        new THREE.Vector2(0, 1),
+        new THREE.Vector2(1, 1)
+    ]);
+	geometry.faces.push( new THREE.Face3(4,1,0) );	//EBA
+	geometry.faceVertexUvs[0].push([
+        new THREE.Vector2(0, 0),
+        new THREE.Vector2(1, 1),
+        new THREE.Vector2(1, 0)
+    ]);
+
+	//back
+	geometry.faces.push( new THREE.Face3(7,6,5) );	//HGF
+	geometry.faceVertexUvs[0].push([
+        new THREE.Vector2(0, 0),
+        new THREE.Vector2(0, 1),
+        new THREE.Vector2(1, 1)
+    ]);
+	geometry.faces.push( new THREE.Face3(7,5,4) );	//HFE
+	geometry.faceVertexUvs[0].push([
+        new THREE.Vector2(0, 0),
+        new THREE.Vector2(1, 1),
+        new THREE.Vector2(1, 0)
+    ]);
+
+	//right
+	geometry.faces.push( new THREE.Face3(3,2,6) );	//DCG
+	geometry.faceVertexUvs[0].push([
+        new THREE.Vector2(0, 0),
+        new THREE.Vector2(0, 1),
+        new THREE.Vector2(1, 1)
+    ]);
+	geometry.faces.push( new THREE.Face3(3,6,7) );	//DGH
+	geometry.faceVertexUvs[0].push([
+        new THREE.Vector2(0, 0),
+        new THREE.Vector2(1, 1),
+        new THREE.Vector2(1, 0)
+    ]);
+
+	//top
+	geometry.faces.push( new THREE.Face3(1,5,6) );	//BFG
+	geometry.faceVertexUvs[0].push([
+        new THREE.Vector2(0, 0),
+        new THREE.Vector2(0, 1),
+        new THREE.Vector2(1, 1)
+    ]);
+	geometry.faces.push( new THREE.Face3(1,6,2) );	//BGC
+	geometry.faceVertexUvs[0].push([
+        new THREE.Vector2(0, 0),
+        new THREE.Vector2(1, 1),
+        new THREE.Vector2(1, 0)
+    ]);
+
+	//bottom
+	geometry.faces.push( new THREE.Face3(4,0,3) );	//EAD
+	geometry.faceVertexUvs[0].push([
+        new THREE.Vector2(0, 0),
+        new THREE.Vector2(0, 1),
+        new THREE.Vector2(1, 1)
+    ]);
+	geometry.faces.push( new THREE.Face3(4,3,7) );	//EDH
+	geometry.faceVertexUvs[0].push([
+        new THREE.Vector2(0, 0),
+        new THREE.Vector2(1, 1),
+        new THREE.Vector2(1, 0)
+    ]);
+
+	return geometry;
+}
 
 /*
 
@@ -76,7 +251,7 @@ function prepareScene(scene) {
 function create3dObjects(scene) {
   // Create 3D objects.
   var tetGeometry = new THREE.TetrahedronGeometry(1);
-  var tetMaterial = new THREE.MeshNormalMaterial();
+  var tetMaterial = new THREE.MeshBasicMaterial();
   var tet = new THREE.Mesh(tetGeometry, tetMaterial);
 
   // Position mesh
@@ -134,7 +309,7 @@ function addSomeImages(scene) {
       side: THREE.BackSide
     });
     pano = new THREE.Mesh(geometry, material);
-    pano.position.y = 190;
+    pano.position.y = 0;
     scene.add(pano);
   }
 }
