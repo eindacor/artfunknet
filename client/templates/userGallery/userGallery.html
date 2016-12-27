@@ -70,8 +70,8 @@ function prepareScene(scene) {
 		var origin2 = new THREE.Vector3(0, 1, 3);
 		addMaterialToGeometryAndAddToScene(geo2, 'https://s3.amazonaws.com/com.artfunkel.artwork/textures/wall_covering_32.jpg', scene, origin2, {'side': THREE.FrontSide});
 
-		var walls = createCuboid(20, 5, 20);
-		var walls_origin = new THREE.Vector3(0, 2.5, 0);
+		var walls = createCuboid(20, 20, 20);
+		var walls_origin = new THREE.Vector3(0, -5, 0);
 		addMaterialToGeometryAndAddToScene(walls, 'https://s3.amazonaws.com/com.artfunkel.artwork/textures/brick_white.jpg', scene, walls_origin, {'side': THREE.BackSide}, new THREE.Vector2(5, 5));
 
 		var floor = createCuboid(20, 1, 20);
