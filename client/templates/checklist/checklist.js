@@ -165,3 +165,9 @@ Template.checklist.rendered = function() {
 	getChecklistCounts(rarity_shown);
 	getChecklistByRarity(rarity_shown);
 }
+
+Template.countHeader.helpers({
+	'legendary_or_masterpiece': function(rarity) {
+		return ['legendary', 'masterpiece'].indexOf(rarity) != -1;
+	}
+})
