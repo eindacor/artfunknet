@@ -1028,6 +1028,7 @@ Meteor.methods({
             return {};
         
         var count_object = {
+            'rarity': rarity,
             'total': artworks.find({'active': true, 'rarity': rarity}).count(),
             'owned': {
                 'standard': 0,

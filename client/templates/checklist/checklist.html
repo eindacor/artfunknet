@@ -20,9 +20,9 @@
 					<p class="category-header">artwork</p>
 					<p class="counts">({{total}})</p>
 				</div>
-				{{> countHeader name="owned" count_object=owned}}
-				{{> countHeader name="seen" count_object=seen}}
-				{{> countHeader name="displayed" count_object=displayed}}
+				{{> countHeader name="owned" count_object=owned rarity=this.rarity}}
+				{{> countHeader name="seen" count_object=seen rarity=this.rarity}}
+				{{> countHeader name="displayed" count_object=displayed rarity=this.rarity}}
 			</div>
 			{{/with}}
 			{{#each artwork}}
@@ -60,7 +60,20 @@
 <template name="countHeader">
 	<div class="category-column headers col-xs-2">
 		<p class="category-header">{{name}}</p> 
-		<p class="counts">({{count_object.standard}}|<span class="highlight af-color">{{count_object.foil}}</span>|<span class="highlight green-text">{{count_object.seasonal}}</span>|<span class="highlight gold-text">{{count_object.lottery}}</span>|<span class="highlight purple-text">{{count_object.original}}</span>|<span class="highlight silver-text">{{count_object.unlocked}}</span>|<span class="highlight vintage-text">{{count_object.vintage}}</span>)
-		</p>
+		{{#if isEqual rarity "common"}}
+			<p class="counts">
+				({{count_object.standard}}|<span class="highlight af-color">{{count_object.foil}}</span>|<span class="highlight purple-text">{{count_object.original}}</span>|<span class="highlight vintage-text">{{count_object.vintage}}</span>)
+			</p>
+		{{else}}
+			{{#if legendary_or_masterpiece rarity}}
+				<p class="counts">
+					({{count_object.standard}}|<span class="highlight af-color">{{count_object.foil}}</span>|<span class="highlight green-text">{{count_object.seasonal}}</span>|<span class="highlight gold-text">{{count_object.lottery}}</span>|<span class="highlight purple-text">{{count_object.original}}</span>|<span class="highlight silver-text">{{count_object.unlocked}}</span>|<span class="highlight vintage-text">{{count_object.vintage}}</span>)
+				</p>
+			{{else}}
+				<p class="counts">
+					({{count_object.standard}}|<span class="highlight af-color">{{count_object.foil}}</span>|<span class="highlight purple-text">{{count_object.original}}</span>|<span class="highlight silver-text">{{count_object.unlocked}}</span>|<span class="highlight vintage-text">{{count_object.vintage}}</span>)
+				</p>
+			{{/if}}
+		{{/if}}
 	</div>
 </template>
