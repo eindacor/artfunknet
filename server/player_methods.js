@@ -1097,7 +1097,12 @@ Meteor.methods({
                 return false;
             }
 
-            var new_bank_balance = starting_balance + Math.floor(starting_balance * (Meteor.user().profile.vintage_count + 1));
+            var crate_object = getCrateData("large", "platinum");
+            if (crate_object == undefined)
+                return false;
+
+            var crate_cost = crate_object.cost;
+            var new_bank_balance = starting_balance + Math.floor(crate_cost * (Meteor.user().profile.vintage_count + 1));
             items.find({'owner': Meteor.userId(), 'status': {$in: ['for_sale', 'unclaimed', 'won']}}).forEach(function(item_object) {
                 removeItem(item_object._id, "vintage clear unclaimed", undefined);
             });
