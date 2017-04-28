@@ -9,7 +9,7 @@ var texture_size_cm = 300;
 
 var getMVPData = function() {
     var admin_ids = ['Artfunkel, Inc.'];
-    var botter_ids = ["A5W6WmH9ZvPRBQ6ZR", "2f5wCTT3kF27xfmzo", "ktByWpesBidgHoqum"];
+    var botter_ids = ["A5W6WmH9ZvPRBQ6ZR", "ktByWpesBidgHoqum"];
     Meteor.users.find({'profile.user_type': "admin"}).forEach(function(user_object) {
         admin_ids.push(user_object._id);
     });
