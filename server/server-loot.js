@@ -505,8 +505,6 @@ Meteor.methods({
             chargeAccount(Meteor.userId(), crate_object.cost);
             Meteor.users.update(Meteor.userId(), {$inc: {'profile.money_spent_on_crates': crate_object.cost}});
         }
-
-        else console.log("insufficient funds");
     },
 
     'getCrates' : function() {
