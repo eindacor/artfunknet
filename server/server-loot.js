@@ -540,7 +540,7 @@ Meteor.methods({
     }
 })
 
-var getCrateData = function(size, quality) {
+getCrateData = function(size, quality) {
     var output_count;
 
     switch(size) {
