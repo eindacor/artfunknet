@@ -509,7 +509,9 @@ Meteor.methods({
     'declineItem' : function(item_id) {
         var item_object = canDeclineItem(item_id);
         if (item_object) {
-            removeItem(item_object._id, "declined", undefined);
+            updateItem(item_id, {$set: {'owner': "Artfunkel, Inc."}});
+            var starting = getItemObjectValues(item_object).auction_min;
+            createAuction(item_id, starting, -1, 60, "public");
 
             if (Math.random() < .1 && procUniqueAttribute(item_object.owner, "DECLINE_DEALER_DESIGNER_SPAWN", undefined)) {
                 var npc_quality = getNPCQuality(Meteor.user().profile.level);
