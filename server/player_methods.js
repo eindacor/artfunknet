@@ -84,13 +84,6 @@ createUser = function(user_object, callback){
         'masterpiece': {}
     };
 
-    /*
-        artwork_id: 1234567,
-        'foil': true,
-        'original': true,
-        'seasonal': true,
-    */
-
     user_object.profile.checklists = {
         'owned': black_checklist_item, 
         'seen': black_checklist_item, 
