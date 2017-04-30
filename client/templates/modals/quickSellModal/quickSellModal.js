@@ -1,7 +1,7 @@
 Template.quickSellModal.events({
 	'click #sell-artwork' : function(element) {
 		var item_id = $(element.target).data().item_id;
-		Meteor.call('sellArtwork', item_id, function(error) {
+		Meteor.call('sellItem', item_id, function(error) {
 			if (error)
 				console.log(error.message);
 

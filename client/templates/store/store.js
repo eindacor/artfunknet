@@ -96,7 +96,7 @@ Template.store.events ({
 	},
 
 	'click #decline-all' : function() {
-		Meteor.call('clearAllForSale', function(error) {
+		Meteor.call('declineAllForSale', function(error) {
 			if (error)
 				console.log(error.message);
 

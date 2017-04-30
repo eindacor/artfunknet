@@ -507,19 +507,7 @@ Meteor.methods({
     },
 
     'declineItem' : function(item_id) {
-        var item_object = canDeclineItem(item_id);
-        if (item_object) {
-            updateItem(item_id, {$set: {'owner': "Artfunkel, Inc."}});
-            var starting = getItemObjectValues(item_object).auction_min;
-            createAuction(item_id, starting, -1, 60, "public");
-
-            if (Math.random() < .1 && procUniqueAttribute(item_object.owner, "DECLINE_DEALER_DESIGNER_SPAWN", undefined)) {
-                var npc_quality = getNPCQuality(Meteor.user().profile.level);
-                createNPC(galleries.findOne({'owner_id': Meteor.userId()}), attributes.findOne({'npc_name': "Designer"})._id, 600000, npc_quality);
-            }
-        }
-
-        else return false;
+        return declineItem(item_id, Meteor.userId());
     },
 
     'purchaseItemFromDealer' : function(item_id) {
@@ -569,7 +557,7 @@ Meteor.methods({
         }
     },
 
-    'sellArtwork' : function(item_id) {
+    'sellItem' : function(item_id) {
         var item_object = canSellItem(item_id);
         if (item_object) {
             var value = getItemObjectValueByType(item_object, 'sell', Meteor.userId());

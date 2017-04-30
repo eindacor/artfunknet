@@ -54,7 +54,8 @@ createUser = function(user_object, callback){
             'legendary': false,
             'seasonal': false,
             'quest_items': false,
-            'sought': true
+            'sought': true,
+            'unlocked': false
         }
     };
 
@@ -376,31 +377,49 @@ addItemObjectToChecklist = function(user_id, category, item_object) {
     Meteor.users.update(user_id, {$set: setter_object});
 }
 
+declineItem = function(item_id, user_id) {
+    var item_object = canDeclineItem(item_id);
+    if (item_object) {
+        updateItem(item_id, {$set: {'owner': "Artfunkel, Inc."}});
+        var starting = getItemObjectValues(item_object).auction_min;
+        createAuction(item_id, starting, -1, 60, "public");
+
+        if (Math.random() < .1 && procUniqueAttribute(item_object.owner, "DECLINE_DEALER_DESIGNER_SPAWN", undefined)) {
+            var npc_quality = getNPCQuality(Meteor.user().profile.level);
+            createNPC(galleries.findOne({'owner_id': user_id}), attributes.findOne({'npc_name': "Designer"})._id, 600000, npc_quality);
+        }
+        return true;
+    }
+
+    else return false;
+}
+
+declineAllForSale = function(user_id) {
+    items.find({
+        'owner': Meteor.userId(),
+        'status': "for_sale", 
+    }).forEach(function(item_object) {
+        if (canQuickSell(Meteor.user(), item_object._id)) {
+            declineItem(item_object._id, Meteor.userId());
+        }
+    });
+}
+
 var getSellAllData= function(user_id) {
     var total_value = 0;
     var item_ids = [];
 
-    var quest_targets = [];
-
-    quests.find({'owner_id': user_id}).forEach(function(quest_object) {
-        for (var i=0; i<quest_object.target.length; i++) {
-            if (items.findOne({'owner': user_id, 'status': {$nin: ['unclaimed', 'for_sale', 'won']}, 'artwork_id': quest_object.target[i]}) == undefined)
-                quest_targets.push(quest_object.target[i]);
-        }
-    });
+    var user_object = Meteor.user();
 
     //TODO add legendary procs for sell amounts here
     items.find({
         'owner': user_id,
         'status': {$in: ["unclaimed", "won"]}, 
-        'foil': false, 
-        'seasonal': false, 
-        'lottery': 0,
-        'artwork_data.rarity': {$in: ["common", "uncommon", "rare"]},
-        'artwork_id': {$nin: quest_targets}
     }).forEach(function(item_object) {
-        total_value += getItemObjectValueByType(item_object, "sell", user_id);
-        item_ids.push(item_object._id);
+        if (canQuickSell(user_object, item_object._id)) {
+            total_value += getItemObjectValueByType(item_object, "sell", user_id);
+            item_ids.push(item_object._id);
+        }
     });
 
     return {
@@ -754,48 +773,8 @@ Meteor.methods({
         addFunds("sell item", Meteor.userId(), sell_all_data.value);
     },
 
-    'clearAllForSale' : function() {
-        var quest_targets = [];
-
-        quests.find({'owner_id': Meteor.userId()}).forEach(function(quest_object) {
-        for (var i=0; i<quest_object.target.length; i++) {
-            if (items.findOne({'owner': Meteor.userId(), 'status': {$nin: ['unclaimed', 'for_sale', 'won']}, 'artwork_id': quest_object.target[i]}) == undefined)
-                quest_targets.push(quest_object.target[i]);
-        }
-    });
-
-        if (procUniqueAttribute(Meteor.userId(), "DECLINE_DEALER_DESIGNER_SPAWN", undefined)) {
-            var item_count = items.find({
-                'owner': Meteor.userId(),
-                'status': "for_sale", 
-                'foil': false, 
-                'seasonal': false, 
-                'lottery': 0, 
-                'artwork_data.rarity': {$in: ["common", "uncommon", "rare"]},
-                'artwork_id': {$nin: quest_targets}
-            }).count();
-
-            for (var i=0; i<item_count; i++) {
-                if (Math.random() < .04) {
-                    var npc_quality = getNPCQuality(Meteor.user().profile.level);
-                    createNPC(galleries.findOne({'owner_id': Meteor.userId()}), attributes.findOne({'npc_name': "Designer"})._id, 600000, npc_quality);
-                }
-            }
-        }
-
-        items.find({
-            'owner': Meteor.userId(),
-            'status': "for_sale", 
-            'foil': false, 
-            'seasonal': false, 
-            'lottery': 0, 
-            'artwork_data.rarity': {$in: ["common", "uncommon", "rare"]},
-            'artwork_id': {$nin: quest_targets}
-        }).forEach(function(item_object) {
-            removeItem(item_object._id, "clear all for sale", undefined);
-        });
-
-
+    'declineAllForSale' : function() {
+        return declineAllForSale(Meteor.userId());
     },
 
     'displayAllTagged': function(tag_array, duration) {
