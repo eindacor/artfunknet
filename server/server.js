@@ -46,6 +46,8 @@ var updateContent = function() {
     Meteor.users.update({'profile.settings.quick_sell_options.unlocked': null}, {$set: {'profile.settings.quick_sell_options.unlocked': false}}, {multi: true});
     Meteor.users.update({'profile.settings.quick_sell_options.original': null}, {$set: {'profile.settings.quick_sell_options.original': false}}, {multi: true});
     Meteor.users.update({'profile.settings.quick_sell_options.lottery': null}, {$set: {'profile.settings.quick_sell_options.lottery': false}}, {multi: true});
+    Meteor.users.update({'profile.settings.quick_sell_options.vintage': null}, {$set: {'profile.settings.quick_sell_options.vintage': false}}, {multi: true});
+    Meteor.users.update({'profile.settings.quick_sell_options.unfound': null}, {$set: {'profile.settings.quick_sell_options.unfound': false}}, {multi: true});
     // temp code
 }
 
