@@ -39,14 +39,10 @@ Template.randomDrop.helpers({
 	},
 
 	'has_unclaimed' : function() {
-		return items.find({
+		return items.findOne({
 			'owner': Meteor.userId(),
-            'status': {$in: ["unclaimed", "won"]}, 
-            'foil': false, 
-            'seasonal': false, 
-            'lottery': 0,
-            'artwork_data.rarity': {$in: ['common', 'uncommon', 'rare']}
-		}).count();
+            'status': {$in: ["unclaimed", "won"]}
+		}) != undefined;
 	}
 })
 
