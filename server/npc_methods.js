@@ -309,12 +309,16 @@ var preservationistInteraction = function(npc_object) {
 	if (isOwnGallery(npc_object)) {
 		repair_amount *= own_gallery_amplifier;
 
-		// A) Preservationists now target the item with the highest condition (below 90%). If all items have a condition greater than 90, they select the lowest.
-		if (procUniqueAttribute(Meteor.userId(), "PRESERVATIONIST_HIGHEST", undefined))
-			target_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}, 'condition': {$lt: .9}}, {sort: {'condition': -1}});
+		var select_highest = procUniqueAttribute(Meteor.userId(), "PRESERVATIONIST_HIGHEST", undefined);
+		var sort_order = select_highest ? -1 : 1;
+		
+		target_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}, 'condition': {$lt: .9}}, {sort: {'condition': sort_order}});
 
-		if (target_item == undefined) 
-			target_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}}, {sort: {'condition': 1}});
+		if (target_item == undefined) {
+			var target_count = items.find({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}}).count();
+			var random_index = Math.floor(Math.random() * target_count);
+			target_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}}, {skip: random_index});
+		}
 
 		// B) If the preserved item already has a condition > 80, you earn money based on its value.
 		if (target_item && target_item.condition > .8 && procUniqueAttribute(Meteor.userId(), "PRESERVATIONIST_CONDITION_BONUS", undefined)) {
