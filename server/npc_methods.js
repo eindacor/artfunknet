@@ -297,6 +297,7 @@ var preservationistInteraction = function(npc_object) {
 	var target_item = undefined;
 	var message = undefined;
 	var conditions_maxed_bonus = undefined;
+	var condition_cutoff = .9;
 
 	switch(npc_object.quality) {
 		case 'bronze': repair_amount = .08; break;
@@ -312,13 +313,16 @@ var preservationistInteraction = function(npc_object) {
 		var select_highest = procUniqueAttribute(Meteor.userId(), "PRESERVATIONIST_HIGHEST", undefined);
 		var sort_order = select_highest ? -1 : 1;
 		
-		target_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}, 'condition': {$lt: .9}}, {sort: {'condition': sort_order}});
+		target_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}, 'condition': {$lt: condition_cutoff}}, {sort: {'condition': sort_order}});
 
+		// you have no repairable items < 90%, select an item at random
 		if (target_item == undefined) {
 			var target_count = items.find({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}}).count();
 			var random_index = Math.floor(Math.random() * target_count);
 			target_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}}, {skip: random_index});
 		}
+
+		conditions_maxed_bonus = 0.4;
 
 		// B) If the preserved item already has a condition > 80, you earn money based on its value.
 		if (target_item && target_item.condition > .8 && procUniqueAttribute(Meteor.userId(), "PRESERVATIONIST_CONDITION_BONUS", undefined)) {
@@ -400,12 +404,18 @@ var preservationistInteraction = function(npc_object) {
 
 			else message = "You have met a preservationist who comments on the quality of your permanent collection, and how well-kept it is."
 		}
-
-		conditions_maxed_bonus = 0.4;
 	}
 
 	else {
-		target_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}}, {sort: {'condition': 1}});
+		target_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}, 'condition': {$lt: condition_cutoff}}, {sort: {'condition': 1}});
+
+		// you have no repairable items < 90%, select an item at random
+		if (target_item == undefined) {
+			var target_count = items.find({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}}).count();
+			var random_index = Math.floor(Math.random() * target_count);
+			target_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}}, {skip: random_index});
+		}
+		
 		conditions_maxed_bonus = 0.2;
 	}
 
@@ -418,7 +428,8 @@ var preservationistInteraction = function(npc_object) {
 		return {'message' : message};
 	}
 
-	if (target_item.condition > .9) {
+	// if condition is > .9, all of your targets had a condition > .9, so it picked a target at random
+	if (target_item.condition > condition_cutoff) {
 		if (message)
 			message += " Unfortunately, they don't see any items in your collection they can improve. Then can only offer their gratitude.";
 
