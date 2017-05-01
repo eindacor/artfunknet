@@ -146,11 +146,6 @@ Meteor.methods({
         return display_total;
     },
 
-
-    'getDisplayDetails' : function(item_id, duration) {
-        return getDisplayDetails(item_id, duration);
-    },
-
     'lookupCrateCost' : function(quality) {
         return lookupCrateCost(quality, admin_settings.crate_drop_count);
     },

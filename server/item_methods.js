@@ -26,111 +26,6 @@ itemIsMisprinted = function(item_object) {
     return artworks.findOne({"artist": item_object.artwork_data.artist, "title": item_object.artwork_data.title}) == undefined;
 }
 
-getDisplayDetails = function(item_id, duration) {
-    // 1 hour
-    // 6 hours
-    // 12 hours
-    // 1 day
-    var acceptable_durations = [60, 360, 720, 1440];
-    if (acceptable_durations.indexOf(parseInt(duration, 10)) == -1) {
-        return {
-            'money' : 0,
-            'xp' : 0,
-            'xp_chunk_percentage': 0,
-            'end' : moment()._d.toISOString()
-        }
-    }
-
-    var item_object = items.findOne(item_id);
-
-    var display_amount = getAverageDropValue(Meteor.users.findOne(item_object.owner).profile.level, 1);
-
-    switch(item_object.artwork_data.rarity) {
-        case "common": break;
-        case "uncommon": display_amount *= 5; break;
-        case "rare": display_amount *= 10; break;
-        case "legendary": display_amount *= 15; break;
-        case "masterpiece": display_amount *= 20; break;
-        default: break;
-    }
-
-    if (item_object.foil) {
-        display_amount *= 1.2;
-    }
-
-    if(item_object.seasonal) {
-        display_amount *= 1.5;
-    }
-
-    if(item_object.lottery && item_object.lottery != 0) {
-        display_amount *= 2;
-    }
-
-    if(item_object.original) {
-        display_amount *= 2;
-    }
-
-    if (item_object.vintage){
-        display_amount *= 1.5;
-    }
-
-    display_amount = Math.floor(display_amount + (display_amount * item_object.condition * artworks.findOne(item_object.artwork_id).value_scale));
-
-    var money_per_hour = display_amount * .02;
-    var xp_chunk_per_hour = .01 + (.01 * item_object.xp_rating);
-    var duration_scalar;
-    var hours_to_display = Math.floor(Number(duration) / 60);
-
-    switch(hours_to_display) {
-        case 1: duration_scalar = 1; break;
-        case 6: duration_scalar = 2; break;
-        case 12: duration_scalar = 3; break;
-        case 24: duration_scalar = 4; break;
-    }
-
-    var money = Math.floor(money_per_hour * hours_to_display * duration_scalar);
-    var xp_chunk_percentage = xp_chunk_per_hour * hours_to_display * duration_scalar * .5;
-    var xp = Math.floor(getXPChunk(Meteor.user().profile.level) * xp_chunk_percentage);
-
-    if (itemIsMisprinted(item_object)) {
-        money *= 20;
-        xp *= 20;
-    }
-
-    var end = moment().add(duration, 'minutes')._d.toISOString();
-    var display_details = {
-        'money' : money,
-        'xp' : xp,
-        'xp_chunk_percentage': Number(xp_chunk_percentage.toFixed(3)),
-        'end' :end
-    }
-
-    return display_details;
-}
-
-displayItem = function(item_id, duration) {
-    var errors = [];
-    var valid_durations = [1, 60, 360, 720, 1440];
-
-    if (isNaN(duration) || valid_durations.indexOf(Number(duration)) == -1)
-        errors.push("invalid duration");
-
-    var item_object = canDisplayItem(item_id);
-    if (item_object && errors.length == 0) {
-        var end = moment().add(duration, 'minutes');
-        var display_details = getDisplayDetails(item_id, duration);
-        updateItem(item_id, {$set: {'status' : 'displayed', 'display_details' : display_details}}, function() {
-            addItemObjectToChecklist(item_object.owner, 'displayed', item_object);
-            addItemObjectToChecklist(item_object.owner, 'seen', item_object);
-        });
-        return [];
-    }
-
-    else errors.push("invalid operation");
-
-    return errors;
-}
-
 getSoughtStatus = function(user_id, artwork_id, only_sought_if_not_in_auction_house) {
     var is_sought = false;
 
@@ -155,27 +50,6 @@ getSoughtStatus = function(user_id, artwork_id, only_sought_if_not_in_auction_ho
     });
 
     return is_sought;
-}
-
-claimItemObject = function(user_id, item_object) {
-    var success = true;
-    var user_object = Meteor.users.findOne(user_id);
-
-    if (user_object == undefined)
-        return false;
-
-    updateItem(item_object._id, {$set: {'owner': user_id, 'status' : 'claimed', 'date_received': moment()._d.toISOString()}}, function(error) {
-        var rarity = item_object.artwork_data.rarity;
-        addItemObjectToChecklist(user_id, 'owned', item_object);
-        if (user_object.profile.vintage_select) {
-            Meteor.users.update(user_id, {$set: {'profile.vintage_select': false}});
-            items.find({'owner': user_id, 'status': 'won'}).forEach(function(item_object) {
-                removeItem(item_object._id, "vintage cleanout", undefined);
-            });
-        }
-    });
-
-    return success;
 }
 
 getAllItemObjectAttributes = function(item_object) {
@@ -390,99 +264,82 @@ updateItemsBySelector = function(selector, modifier, callback) {
     })
 }
 
-var getRerollMin = function(user_id, attribute_type, item_object) {
-    var min_roll = 0;
-    switch(attribute_type) {
-        case "unlocked": min_roll = 0; break;
-        case "locked": min_roll = .5; break;
-        case "special": min_roll = .8; break;
-        default: break;
-    }
+// rerollAttributeValue = function(user_id, item_id, attribute_id) {
+//     var item_reader = new itemReader(item_id);
+//     var permissions = new PlayerItemPermissions(Meteor.users.findOne(user_id), item_reader);
 
-    var delta = 1 - min_roll;
+//     if (permissions.canRerollItemAttribute(attribute_id)) {
+//         var item_object = item_reader.getItemObject();
+//         var roll_count = item_object.roll_count;
+//         var attributes_object = item_object.attributes;
 
-    if (procUniqueAttribute(user_id, "MARKET_EXPERT_ROLL_BONUS", "Auctioneer")) {
-        min_roll += (delta * .3);
-    }
+//         var attribute_type = undefined;
 
-    if ((item_object.roll_count > 10 || item_object.roll_count < 0) && procUniqueAttribute(user_id, "ROLL_COUNT_REROLL_BONUS", undefined)) {
-        min_roll += (delta * .3);
-    }
+//         if (items.findOne({'_id': item_id, 'attributes.unlocked._id': attribute_id}) != undefined) {
+//             attribute_type = "unlocked";
+//         }
 
-    return min_roll;
-}
+//         else if (items.findOne({'_id': item_id, 'attributes.locked._id': attribute_id}) != undefined) {
+//             attribute_type = "locked";
+//         }
 
-rerollAttributeValue = function(user_id, item_id, attribute_id) {
-    var item_object = canRerollItem(item_id);
-    if (item_object) {
-        var roll_count = item_object.roll_count;
-        var attributes_object = item_object.attributes;
+//         else if (items.findOne({'_id': item_id, 'attributes.special._id': attribute_id}) != undefined) {
+//             attribute_type = "special";
+//         }
 
-        var attribute_type = undefined;
+//         else return false;
 
-        if (items.findOne({'_id': item_id, 'attributes.unlocked._id': attribute_id}) != undefined) {
-            attribute_type = "unlocked";
-        }
+//         var roll_value_min = getRerollMin(user_id, attribute_type, item_object);
+//         var value = getAttributeValue(0, roll_value_min);
 
-        else if (items.findOne({'_id': item_id, 'attributes.locked._id': attribute_id}) != undefined) {
-            attribute_type = "locked";
-        }
+//         chargeAccount(user_id, getRerollCost(item_id));
 
-        else if (items.findOne({'_id': item_id, 'attributes.special._id': attribute_id}) != undefined) {
-            attribute_type = "special";
-        }
+//         var setter_object = {};
+//         var setter_string = "attributes." + attribute_type + ".$.value";
+//         setter_object[setter_string] = value;
 
-        else return false;
+//         var query_object = {'_id': item_id};
+//         var query_string = "attributes." + attribute_type + "._id";
+//         query_object[query_string] = attribute_id;
+//         updateItem(query_object, {$set: setter_object, $inc: {'roll_count' : 1}});         
+//     }
 
-        var roll_value_min = getRerollMin(user_id, attribute_type, item_object);
-        var value = getAttributeValue(0, roll_value_min);
+//     else return false;
+// }
 
-        chargeAccount(user_id, getRerollCost(item_id));
+// rerollAttribute = function(user_id, item_id, attribute_id) {
+//     var item_object = canRerollItemAttribute(item_id, attribute_id);
+//     try {
+//         var item_reader = new itemReader(item_id);
+//         var permissions = new PlayerItemPermissions(Meteor.users.findOne(user_id), item_reader);
+//         if (item_object) {
+//             var roll_count = item_object.roll_count;
 
-        var setter_object = {};
-        var setter_string = "attributes." + attribute_type + ".$.value";
-        setter_object[setter_string] = value;
+//             var attribute_ids = [];
+//             var attribute_objects = getAllItemObjectAttributes(item_object)
 
-        var query_object = {'_id': item_id};
-        var query_string = "attributes." + attribute_type + "._id";
-        query_object[query_string] = attribute_id;
-        updateItem(query_object, {$set: setter_object, $inc: {'roll_count' : 1}});         
-    }
+//             for (var i=0; i<attribute_objects.length; i++) {
+//                 attribute_ids.push(attribute_objects[i]._id);
+//             }
 
-    else return false;
-}
+//             var selector = {'_id' : {'$nin': attribute_ids}, 'active': true};
+//             var remaining = attributes.find(selector).count();
+//             var random_index = Math.floor(Math.random() * remaining);
+//             var random_attribute = attributes.findOne(selector, {skip: random_index});
 
-rerollAttribute = function(user_id, item_id, attribute_id) {
-    var item_object = canRerollItemAttribute(item_id, attribute_id);
-    try {
-        if (item_object) {
-            var roll_count = item_object.roll_count;
-
-            var attribute_ids = [];
-            var attribute_objects = getAllItemObjectAttributes(item_object)
-
-            for (var i=0; i<attribute_objects.length; i++) {
-                attribute_ids.push(attribute_objects[i]._id);
-            }
-
-            var selector = {'_id' : {'$nin': attribute_ids}, 'active': true};
-            var remaining = attributes.find(selector).count();
-            var random_index = Math.floor(Math.random() * remaining);
-            var random_attribute = attributes.findOne(selector, {skip: random_index});
-
-            var roll_value_min = getRerollMin(user_id, "unlocked", item_object);
-            random_attribute.value = getAttributeValue(0, roll_value_min);
+//             var roll_value_min = getRerollMin(user_id, "unlocked", item_object);
+//             random_attribute.value = getAttributeValue(0, roll_value_min);
      
-            updateItem({'_id': item_id, 'attributes.unlocked._id': attribute_id}, {$set: {'attributes.unlocked.$' : random_attribute,}, $inc: {'roll_count' : 1}});
-            chargeAccount(user_id, getRerollCost(item_id));
-        }
+//             updateItem({'_id': item_id, 'attributes.unlocked._id': attribute_id}, {$set: {'attributes.unlocked.$' : random_attribute,}, $inc: {'roll_count' : 1}});
+//             chargeAccount(user_id, getRerollCost(item_id));
+//         }
 
-        else return false;
-    } catch(error) {
-        console.log(error);
-        console.log(item_object);
-    }
-}
+//         else return false;
+//     } catch(error) {
+//         console.log(error);
+//         console.log(item_object);
+//     }
+// }
 
 var getItemArray = function(filter_array, sorter_object, current_page, items_per_page) {
     var item_array = items.find({
@@ -499,158 +356,68 @@ var getItemArray = function(filter_array, sorter_object, current_page, items_per
 
 Meteor.methods({
 	'claimArtwork' : function(item_id) {
-		var item_object = canClaimItem(item_id);
-        if (item_object) 
-            claimItemObject(Meteor.userId(), item_object);
-
-        else return false;
+        var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+        player_item_interface.claim();
     },
 
     'declineItem' : function(item_id) {
-        return declineItem(item_id, Meteor.userId());
+        var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+        player_item_interface.decline();
     },
 
     'purchaseItemFromDealer' : function(item_id) {
-        var item_object = canPurchaseItemFromDealer(item_id);
-        if (item_object) {
-            chargeAccount(Meteor.userId(), getItemObjectValueByType(item_object, "dealer", Meteor.userId()));
-            var claimed = claimItemObject(Meteor.userId(), item_object);
-            if (!claimed) {
-                console.log("unsuccessful purchase");
-                return;
-            }
-
-            if (procUniqueAttribute(Meteor.userId(), "XP_FROM_DEALER_PURCHASES", undefined)) {
-                addXPChunkPercentage("XP_FROM_DEALER_PURCHASES", Meteor.userId(), items.findOne(item_id).xp_rating * .25);
-            }
-
-            if (procUniqueAttribute(Meteor.userId(), "DEALER_PURCHASE_ROLL_COUNT_SET", undefined)) {
-                updateItem(item_id, {$set: {'roll_count': -20}});
-            }
-        }
+        var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+        player_item_interface.purchase();
     },
 
     'displayArtwork' : function(item_id, duration) {
-        return displayItem(item_id, duration);
+        var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+        return player_item_interface.display(duration);
     },
 
-    'setItemPermanentCollectionStatus' : function(item_id, set_to_permanent) {
-        try {
-            var item_object = set_to_permanent ? canSetPermanent(item_id) : canUnsetPermanent(item_id);
-            if (item_object) {
-                if (set_to_permanent) {
-                    updateItem(item_id, {$set: {'status' : 'permanent', 'permanent_post' : moment()._d.toISOString()}});
-                    addItemObjectToChecklist(Meteor.userId(), 'displayed', item_object);
-                    addItemObjectToChecklist(Meteor.userId(), 'seen', item_object);
-                }
-
-                else {
-                    updateItem(item_id, {$set: {'status' : 'claimed'}, $unset: {'permanent_post' : ""}});
-                }
-            }
-
-            else return false;
-        }
-
-        catch(error) {
-            console.log(error);
-        }
+    'setItemPermanentCollectionStatus' : function(item_id, new_status) {
+        var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+        player_item_interface.setPermanentStatus(new_status);
     },
 
     'sellItem' : function(item_id) {
-        var item_object = canSellItem(item_id);
-        if (item_object) {
-            var value = getItemObjectValueByType(item_object, 'sell', Meteor.userId());
-            if (isNaN(value)) {
-                console.log("isNaN returned for item value");
-                throw "invalid amount";
-            }
-
-            addFunds("sell item", Meteor.userId(), value);
-            removeItem(item_id, "sold", undefined);
-        }
-
-        else return false;
+        var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+        player_item_interface.sell();
     },
 
     'auctionArtwork' : function(item_id, starting, buy_now, duration) {
-    	var item_object = canAuctionItem(item_id);
+    	var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+        return player_item_interface.auction(starting, buy_now, duration);
+    },
 
-        var errors = [];
-
-        if (item_object == undefined)
-            errors.push("invalid action");
-
-        if (isNaN(starting))
-            errors.push("invalid starting value");
-
-        if (isNaN(buy_now))
-            errors.push("invalid buy now value");
-
-        if (duration == "default")
-            errors.push("invalid duration");
-
-        if (item_object) {        
-            var minimum = getItemObjectValueByType(item_object, 'auction_min', Meteor.userId());
-            if (Number(starting) < minimum)
-                errors.push("starting value must be greater than $" + getCommaSeparatedValue(minimum));
-
-            if (buy_now != -1 && Number(buy_now) < minimum )
-                errors.push("buy now value must be greater than $" + getCommaSeparatedValue(minimum));
-        }
-
-        if (errors.length == 0) {
-            updateItem(item_id, {$set: {'status' : 'auctioned'}}, function() {
-                createAuction(item_id, starting, buy_now, duration, "public");
-                if (Meteor.user().profile.market_expert.expiration > moment()._d.toISOString() && procUniqueAttribute(Meteor.userId(), "XP_FOR_AUCTIONS", undefined)) {
-                    addXPChunkPercentage("XP_FOR_AUCTIONS", Meteor.userId(), .5)
-                }
-            });
-        }
-
-        return errors;
+    'getDisplayDetails': function(item_id, duration) {
+        var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+        return player_item_interface.getDisplayDetails(duration);
     },
 
     'tagItem' : function(item_id, tags) {
-        var lower_case = [];
-        for (var i=0; i<tags.length; i++) {
-            lower_case.push(tags[i].toLowerCase())
-        }
-
-        updateItem(item_id, {$set: {'tags': lower_case}});
+        var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+        player_item_interface.tag(tags);
     },
 
     'getRerollCost' : function(item_id) {
-        return getRerollCost(item_id);
+        var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+        return player_item_interface.getRerollCost();
     },
 
     'rerollXPRating' : function(item_id) {
-        if (canRerollItem(item_id)) {
-            var item_object = items.findOne(item_id);
-            if (item_object != undefined) {
-                var roll_count = item_object.roll_count;
-                var roll_value_min = 0;
-
-                if (procUniqueAttribute(Meteor.userId(), "MARKET_EXPERT_ROLL_BONUS", "Auctioneer")) {
-                    var roll_value_min = .3;
-                }
-
-                if ((item_object.roll_count > 10 || item_object.roll_count < 0) && procUniqueAttribute(Meteor.userId(), "ROLL_COUNT_REROLL_BONUS", undefined)) {
-                    roll_value_min += .3;
-                }
-        
-                chargeAccount(Meteor.userId(), getRerollCost(item_id));    
-                updateItem(item_id, {$set : {'xp_rating' : getXPRating(roll_value_min), 'roll_count': roll_count + 1}});      
-            }
-        }
+        var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+        player_item_interface.rerollXPRating();
     },
 
     'rerollAttributeValue' : function(item_id, attribute_id) {
-    	return rerollAttributeValue(Meteor.userId(), item_id, attribute_id);
+        var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+        player_item_interface.rerollAttributeValue(attribute_id);
     },
 
     'rerollAttribute' : function(item_id, attribute_id) {
-    	return rerollAttribute(Meteor.userId(), item_id, attribute_id);
+    	var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+        player_item_interface.rerollAttribute(attribute_id);
     },
 
     'lookupOwner': function(item_id) {
