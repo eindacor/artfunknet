@@ -376,7 +376,10 @@ Meteor.methods({
     },
 
     'setItemPermanentCollectionStatus' : function(item_id, new_status) {
+        console.log(item_id);
+        console.log(new_status);
         var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+        console.log(player_item_interface);
         player_item_interface.setPermanentStatus(new_status);
     },
 
