@@ -264,83 +264,6 @@ updateItemsBySelector = function(selector, modifier, callback) {
     })
 }
 
-// rerollAttributeValue = function(user_id, item_id, attribute_id) {
-//     var item_reader = new itemReader(item_id);
-//     var permissions = new PlayerItemPermissions(Meteor.users.findOne(user_id), item_reader);
-
-//     if (permissions.canRerollItemAttribute(attribute_id)) {
-//         var item_object = item_reader.getItemObject();
-//         var roll_count = item_object.roll_count;
-//         var attributes_object = item_object.attributes;
-
-//         var attribute_type = undefined;
-
-//         if (items.findOne({'_id': item_id, 'attributes.unlocked._id': attribute_id}) != undefined) {
-//             attribute_type = "unlocked";
-//         }
-
-//         else if (items.findOne({'_id': item_id, 'attributes.locked._id': attribute_id}) != undefined) {
-//             attribute_type = "locked";
-//         }
-
-//         else if (items.findOne({'_id': item_id, 'attributes.special._id': attribute_id}) != undefined) {
-//             attribute_type = "special";
-//         }
-
-//         else return false;
-
-//         var roll_value_min = getRerollMin(user_id, attribute_type, item_object);
-//         var value = getAttributeValue(0, roll_value_min);
-
-//         chargeAccount(user_id, getRerollCost(item_id));
-
-//         var setter_object = {};
-//         var setter_string = "attributes." + attribute_type + ".$.value";
-//         setter_object[setter_string] = value;
-
-//         var query_object = {'_id': item_id};
-//         var query_string = "attributes." + attribute_type + "._id";
-//         query_object[query_string] = attribute_id;
-//         updateItem(query_object, {$set: setter_object, $inc: {'roll_count' : 1}});         
-//     }
-
-//     else return false;
-// }
-
-// rerollAttribute = function(user_id, item_id, attribute_id) {
-//     var item_object = canRerollItemAttribute(item_id, attribute_id);
-//     try {
-//         var item_reader = new itemReader(item_id);
-//         var permissions = new PlayerItemPermissions(Meteor.users.findOne(user_id), item_reader);
-//         if (item_object) {
-//             var roll_count = item_object.roll_count;
-
-//             var attribute_ids = [];
-//             var attribute_objects = getAllItemObjectAttributes(item_object)
-
-//             for (var i=0; i<attribute_objects.length; i++) {
-//                 attribute_ids.push(attribute_objects[i]._id);
-//             }
-
-//             var selector = {'_id' : {'$nin': attribute_ids}, 'active': true};
-//             var remaining = attributes.find(selector).count();
-//             var random_index = Math.floor(Math.random() * remaining);
-//             var random_attribute = attributes.findOne(selector, {skip: random_index});
-
-//             var roll_value_min = getRerollMin(user_id, "unlocked", item_object);
-//             random_attribute.value = getAttributeValue(0, roll_value_min);
-     
-//             updateItem({'_id': item_id, 'attributes.unlocked._id': attribute_id}, {$set: {'attributes.unlocked.$' : random_attribute,}, $inc: {'roll_count' : 1}});
-//             chargeAccount(user_id, getRerollCost(item_id));
-//         }
-
-//         else return false;
-//     } catch(error) {
-//         console.log(error);
-//         console.log(item_object);
-//     }
-// }
-
 var getItemArray = function(filter_array, sorter_object, current_page, items_per_page) {
     var item_array = items.find({
         $and: filter_array
@@ -376,10 +299,7 @@ Meteor.methods({
     },
 
     'setItemPermanentCollectionStatus' : function(item_id, new_status) {
-        console.log(item_id);
-        console.log(new_status);
         var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
-        console.log(player_item_interface);
         player_item_interface.setPermanentStatus(new_status);
     },
 
