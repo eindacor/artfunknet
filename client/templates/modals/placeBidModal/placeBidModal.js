@@ -69,7 +69,7 @@ var placeBid = function(template) {
             auction_errors.push("bid amount exceeds available funds");
 
         if (auction_errors.length == 0) {
-            Meteor.call('placeBid', auction_object._id, bid_amount, function(error) {
+            Meteor.call('placeBid', auction_object.item_id, bid_amount, function(error) {
                 if (error) 
                     console.log(error.message);
 
@@ -105,7 +105,7 @@ Template.placeBidModal.events({
                 auction_errors.push("bid amount exceeds available funds");
 
             if (auction_errors.length == 0) {
-                Meteor.call('placeBid', auction_object._id, auction_object.min_bid, function(error) {
+                Meteor.call('placeBid', auction_object.item_id, auction_object.min_bid, function(error) {
                     if (error)
                         console.log(error.message);
 
@@ -131,7 +131,7 @@ Template.placeBidModal.events({
                 auction_errors.push("bid amount exceeds available funds");
 
             if (auction_errors.length == 0) {
-                Meteor.call('placeBid', auction_object._id, auction_object.buy_now, function(error) {
+                Meteor.call('placeBid', auction_object.item_id, auction_object.buy_now, function(error) {
                     if (error)
                         console.log(error.message);
 

@@ -153,7 +153,7 @@ concludeAuction = function(auction_id) {
 	}
 }
 
-var refundWinner = function(auction_object, new_winner, refund_amount, bought) {
+refundWinner = function(auction_object, new_winner, refund_amount, bought) {
     var former_winner = Meteor.users.findOne({'profile.auction_data.winning': {$in: [auction_object._id]}});
 
     if (former_winner == undefined)
@@ -166,7 +166,7 @@ var refundWinner = function(auction_object, new_winner, refund_amount, bought) {
     return former_winner;
 }
 
-var notifyFormerWinner = function(auction_object, new_winner_id, bought) {
+notifyFormerWinner = function(auction_object, new_winner_id, bought) {
     var former_winner = Meteor.users.findOne({'profile.auction_data.winning': {$in: [auction_object._id]}});
 
     if (former_winner == undefined)
@@ -187,7 +187,7 @@ var notifyFormerWinner = function(auction_object, new_winner_id, bought) {
     else return undefined;
 }
 
-var removeAuction = function(auction_id, callback) {
+removeAuction = function(auction_id, callback) {
     var auction_object = auctions.findOne(auction_id);
     auctions.remove(auction_id, function(error) {
         if (error) {
@@ -286,81 +286,11 @@ Meteor.setInterval((function() {
     })
 }), auction_bot_frequency)
 
-var placeBid = function(bidder_id, auction_id, amount) {
-    if (!canBidOnItem(auction_id))
-        return false;
-    
-    var bidder_object = Meteor.users.findOne(bidder_id);
-    var auction_object = auctions.findOne(auction_id);
-
-    if (auction_object == undefined || amount < auction_object.min_bid)
-        return;
-
-    var current_winner = Meteor.users.findOne({'profile.auction_data.winning': {$in: [auction_object._id]}});
-    var bidder_is_winner = current_winner && current_winner._id == bidder_id;
-
-    var available_balance = bidder_is_winner ? bidder_object.profile.bank_balance + auction_object.current_bid : bidder_object.profile.bank_balance;
-
-    if (amount > available_balance)
-        return;
-
-    if (amount >= auction_object.buy_now && auction_object.buy_now != -1) {
-        updateItem(auction_object.item_id, {$set: {'status' : 'won', 'owner': bidder_id, 'tags': [], 'date_received': moment()._d.toISOString()}}, function(error) {
-            refundWinner(auction_object, bidder_id, auction_object.current_bid, true);
-            chargeAccount(bidder_id, auction_object.buy_now);
-            var seller_id = Meteor.users.findOne({'profile.screen_name': auction_object.seller})._id;
-            
-            if (auction_object.item_data.condition < .5 && procUniqueAttribute(bidder_id, "AUCTION_WIN_CONDITION_INCREASE", undefined)) {
-                updateItem(auction_object.item_id, {$set: {'condition': .9}});
-            }
-
-            if (procUniqueAttribute(bidder_id, "AUCTION_WIN_TICKET_EXTENSION", undefined)) {
-                gallery_tickets.find({'ticketholder': bidder_id}).forEach(function(db_object) {
-                    var new_expiration = moment(db_object.expiration).add(30, "minutes");
-                    gallery_tickets.update(db_object._id, {$set: {'expiration': new_expiration._d.toISOString()}});
-                })
-            }
-        
-            if (auction_object.seller != "Artfunkel, Inc.") {
-                var message = "Someone has purchased " + auction_object.item_data.title + " by " + auction_object.item_data.artist + " for $" + getCommaSeparatedValue(auction_object.buy_now);
-                alertPlayers(seller_id, message, 'fa-gavel', 'good');
-                removeAuction(auction_id);
-                addFunds("auction", seller_id, auction_object.buy_now);
-            }
-        });
-        
-        return;
-    }
-
-    else if (amount >= auction_object.min_bid) {
-        var current_bid = amount;
-        var min_bid = current_bid + auction_object.increment;
-
-        // refund still applies if bidder_is_winner. they will be refunded their previous bid and charged their new bid
-        refundWinner(auction_object, Meteor.userId(), auction_object.current_bid, false);
-
-        if (!bidder_is_winner) {
-            Meteor.users.update({'profile.auction_data.winning': {$in: [auction_id]}}, {$pull: {'profile.auction_data.winning': auction_id}}, function(error) {
-                Meteor.users.update(bidder_id, {$push: {'profile.auction_data.winning': auction_id}});
-            });
-        }
-
-        chargeAccount(bidder_id, amount);
-        auctions.update(auction_id, {$set: {
-            'min_bid': min_bid,
-            'current_bid': current_bid,
-            'has_bid': true
-        }});
-    }
-
-    else return false;
-
-    Meteor.users.update({'_id': bidder_id, 'profile.auction_data.watching': {$nin: [auction_id]}}, {$push: {'profile.auction_data.watching': auction_id}});
-}
 
 Meteor.methods({
-    'placeBid': function(auction_id, amount) {
-        return placeBid(Meteor.userId(), auction_id, amount);
+    'placeBid': function(item_id, amount) {
+        var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+        return player_item_interface.placeBid(amount);
     },
 
     'getAuctionInfo': function(auction_id) {
