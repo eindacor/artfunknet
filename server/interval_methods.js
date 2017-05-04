@@ -154,7 +154,7 @@ Meteor.setInterval((function() {
 
     var lottery_level = metadata.findOne({'lottery_draw': {$ne: null}}).lottery_level;
        
-    if (Math.random() < .2) {
+    if (Math.random() < .2 || lottery_level == 10) {
         var user_map = {};
         var tickets_average = 0;
         var player_count = 0;
