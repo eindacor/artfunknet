@@ -415,7 +415,7 @@ var preservationistInteraction = function(npc_object) {
 			var random_index = Math.floor(Math.random() * target_count);
 			target_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}}, {skip: random_index});
 		}
-		
+
 		conditions_maxed_bonus = 0.2;
 	}
 
