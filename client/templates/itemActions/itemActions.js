@@ -88,10 +88,8 @@ Template.itemActions.events({
 	'click .quick-sell.enabled' : function(element) {
 		element.stopPropagation();
 		var item_id = $(element.target).closest('.item-container').data('item_id');
-		var item_object = items.findOne(item_id);
-
-		var user_object = Meteor.user();
-		if (canQuickSell(Meteor.user(), item_id)) {
+		var permissions = getPlayerItemPermissions(Meteor.userId(), item_id);
+		if (permissions.canQuickDiscard()) {
 			Meteor.call('sellItem', item_id, function(error) {
 				if (error)
 					console.log(error.message);
@@ -113,83 +111,104 @@ Template.itemActions.events({
 	'click .auction.enabled' : function(element) {
 		element.stopPropagation();
 		var item_id = $(element.target).closest('.item-container').data('item_id');
-		Session.set('selectedItem', item_id);
-		Modal.show('createAuctionModal');
+		var permissions = getPlayerItemPermissions(Meteor.userId(), item_id);
+		if (permissions.canAuction()) {
+			Session.set('selectedItem', item_id);
+			Modal.show('createAuctionModal');
+		}
 	},
 
 	'click .display.enabled' : function(element, template) {
 		element.stopPropagation();
 		var item_id = $(element.target).closest('.item-container').data('item_id');
-		Session.set('selectedItem', item_id);
-		Modal.show('onDisplayModal');
+		var permissions = getPlayerItemPermissions(Meteor.userId(), item_id);
+		if (permissions.canDisplay()) {
+			Session.set('selectedItem', item_id);
+			Modal.show('onDisplayModal');
+		}
 	},
 
 	'click .reroll.enabled' : function(element) {
 		element.stopPropagation();
 		var item_id = $(element.target).closest('.item-container').data('item_id');
-		Session.set('selectedItem', item_id);
-		Modal.show('rerollModal');
+		var permissions = getPlayerItemPermissions(Meteor.userId(), item_id);
+		if (permissions.canReroll() || permissions.canChangeActiveUniqueAttribute()) {
+			Session.set('selectedItem', item_id);
+			Modal.show('rerollModal');
+		}
 	},
 
 	'click .perm-collection.inactive' : function(element) {
 		element.stopPropagation();
 		var item_id = $(element.target).closest('.item-container').data('item_id');
-		Meteor.call('setItemPermanentCollectionStatus' , item_id, true, function(error) {
-			if (error)
-				console.log(error.message)
+		var permissions = getPlayerItemPermissions(Meteor.userId(), item_id);
+		if (permissions.canSetPermanent()) {
+			Meteor.call('setItemPermanentCollectionStatus' , item_id, true, function(error) {
+				if (error)
+					console.log(error.message)
 
-			else {
-				if (Meteor.user().profile.tutorials.gallery && 
-					items.findOne({'owner': Meteor.userId(), 'status': "displayed"}) && 
-					items.findOne({'owner': Meteor.userId(), 'status': "permanent"})) 
-				{
-					Blaze.renderWithData(Template.modalTemplate, {
-						'modal_name': "tutorialModal", 
-						'modal_data': {
-							'tutorial_name': "gallery",
-							'next': undefined,
-							'activate': "my_gallery",
-							'image_filename': "tutorial/menu_gallery.png",
-							'message': "Now that you have an item on display, and an item in your permanent collection, you can see your items in your gallery. Go there when you're ready, by clicking the 'My Gallery' button in the menu."
-						}
-					}, $('body')[0]);
-				};
+				else {
+					if (Meteor.user().profile.tutorials.gallery && 
+						items.findOne({'owner': Meteor.userId(), 'status': "displayed"}) && 
+						items.findOne({'owner': Meteor.userId(), 'status': "permanent"})) 
+					{
+						Blaze.renderWithData(Template.modalTemplate, {
+							'modal_name': "tutorialModal", 
+							'modal_data': {
+								'tutorial_name': "gallery",
+								'next': undefined,
+								'activate': "my_gallery",
+								'image_filename': "tutorial/menu_gallery.png",
+								'message': "Now that you have an item on display, and an item in your permanent collection, you can see your items in your gallery. Go there when you're ready, by clicking the 'My Gallery' button in the menu."
+							}
+						}, $('body')[0]);
+					};
 
-				//updateItemTemplate(item_id, 10);
-			}
-		})
+					//updateItemTemplate(item_id, 10);
+				}
+			})
+		}
 	},
 
 	'click .perm-collection.active' : function(element) {
 		element.stopPropagation();
 		var item_id = $(element.target).closest('.item-container').data('item_id');
-		Meteor.call('setItemPermanentCollectionStatus' , item_id, false, function(error) {
-			if (error)
-				console.log(error.message)
+		var permissions = getPlayerItemPermissions(Meteor.userId(), item_id);
+			if (permissions.canUnsetPermanent()) {
+			Meteor.call('setItemPermanentCollectionStatus' , item_id, false, function(error) {
+				if (error)
+					console.log(error.message)
 
-			else {
-				//updateItemTemplate(item_id, 10);
-			}
-		})
+				else {
+					//updateItemTemplate(item_id, 10);
+				}
+			})
+		}
 	},
 
 	'click .claim.enabled' : function(element) {
 		element.stopPropagation();
 		var item_id = $(element.target).closest('.item-container').data('item_id');
-		Meteor.call('claimArtwork', item_id, function(error) {
-			if (error)
-				console.log(error.message);
+		var permissions = getPlayerItemPermissions(Meteor.userId(), item_id);
+		if (permissions.canClaim()) {
+			Meteor.call('claimArtwork', item_id, function(error) {
+				if (error)
+					console.log(error.message);
 
-			else {
-				Session.set('update_set', true);
-			}
-		});
+				else {
+					Session.set('update_set', true);
+				}
+			});
+		}
 	},
 
 	'click .purchase.enabled' : function(element) {
 		element.stopPropagation();
 		var item_id = $(element.target).closest('.item-container').data('item_id');
-		
+		var permissions = getPlayerItemPermissions(Meteor.userId(), item_id);
+		if (!permissions.canPurchase())
+			return;
+
 		if (Meteor.user().profile.settings.quick_purchase) {
 			Meteor.call('purchaseItemFromDealer', item_id, function(error) {
 				if (error)
@@ -210,24 +229,30 @@ Template.itemActions.events({
 	'click .decline.enabled' : function(element) {
 		element.stopPropagation();
 		var item_id = $(element.target).closest('.item-container').data('item_id');
-		Meteor.call('declineItem', item_id, function(error) {
-			if(error)
-				console.log(error.message);
+		var permissions = getPlayerItemPermissions(Meteor.userId(), item_id);
+		if (permissions.canDecline()) {
+			Meteor.call('declineItem', item_id, function(error) {
+				if(error)
+					console.log(error.message);
 
-			else {
-				Session.set('update_set', true);
-			}
-		})
+				else {
+					Session.set('update_set', true);
+				}
+			})
+		}
 	},
 
 	'click .tags.enabled' : function(element) {
 		element.stopPropagation();
 		var item_id = $(element.target).closest('.item-container').data('item_id');
-		Blaze.renderWithData(Template.modalTemplate, {
-			'modal_name': "tagItemModal", 
-			'modal_data': {
-				'item_data': items.findOne(item_id)
-			}
-		}, $('body')[0]);
+		var permissions = getPlayerItemPermissions(Meteor.userId(), item_id);
+		if (permissions.tag()) {
+			Blaze.renderWithData(Template.modalTemplate, {
+				'modal_name': "tagItemModal", 
+				'modal_data': {
+					'item_data': items.findOne(item_id)
+				}
+			}, $('body')[0]);
+		}
 	},
 })
