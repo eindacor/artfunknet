@@ -45,15 +45,19 @@ updateItemActions = function(item_object) {
 var getPermissions = function(item_object) {
 	try {
 		if (item_object) {
-			var sell = canSellItemObject(item_object);
-			var claim = canClaimItemObject(item_object);
-			var reroll = canRerollItemObject(item_object) || canChangeActiveUniqueAttributeItemObject(item_object);
-			var purchase = canPurchaseItemObjectFromDealer(item_object);
-			var display = canDisplayItemObject(item_object);
-			var permanent = canSetPermanentItemObject(item_object);
-			var unpermanent = canUnsetPermanentItemObject(item_object);
-			var auction = canAuctionItemObject(item_object);
-			var decline = canDeclineItemObject(item_object);
+			var permissions = getPlayerItemPermissions(Meteor.userId(), item_object._id);
+			if (permissions == undefined)
+				return undefined;
+			
+			var sell = permissions.canSell();
+			var claim = permissions.canClaim();
+			var reroll = permissions.canReroll() || permissions.canChangeActiveUniqueAttribute();
+			var purchase = permissions.canPurchase();
+			var display = permissions.canDisplay();
+			var permanent = permissions.canSetPermanent();
+			var unpermanent = permissions.canUnsetPermanent();
+			var auction = permissions.canAuction();
+			var decline = permissions.canDecline();
 
 			return {
 				'sell': sell,

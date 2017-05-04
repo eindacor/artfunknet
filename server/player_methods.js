@@ -355,53 +355,13 @@ resetTutorials = function(user_id) {
     }})
 }
 
-addItemObjectToChecklist = function(user_id, category, item_object) {
-    if (item_object == undefined || Meteor.users.findOne(user_id) == undefined)
-        return false;
-
-    var card_types = ['foil', 'original', 'seasonal', 'lottery', 'unlocked', 'vintage'];
-    var setter_object = {};
-    var setter_string = 'profile.checklists.' + category + '.' + item_object.artwork_data.rarity + '.' + item_object.artwork_id;
-
-    var checklist_object = Meteor.users.findOne(user_id).profile.checklists[category][item_object.artwork_data.rarity][item_object.artwork_id];
-
-    if (checklist_object == undefined) {
-        checklist_object = {}
-    }
-
-    for (var i=0; i<card_types.length; i++) {
-        checklist_object[card_types[i]] = checklist_object[card_types[i]] || item_object[card_types[i]];
-    }
-
-    setter_object[setter_string] = checklist_object;
-    Meteor.users.update(user_id, {$set: setter_object});
-}
-
-declineItem = function(item_id, user_id) {
-    var item_object = canDeclineItem(item_id);
-    if (item_object) {
-        updateItem(item_id, {$set: {'owner': "Artfunkel, Inc."}});
-        var starting = getItemObjectValues(item_object).auction_min;
-        createAuction(item_id, starting, -1, 60, "public");
-
-        if (Math.random() < .1 && procUniqueAttribute(item_object.owner, "DECLINE_DEALER_DESIGNER_SPAWN", undefined)) {
-            var npc_quality = getNPCQuality(Meteor.user().profile.level);
-            createNPC(galleries.findOne({'owner_id': user_id}), attributes.findOne({'npc_name': "Designer"})._id, 600000, npc_quality);
-        }
-        return true;
-    }
-
-    else return false;
-}
-
 declineAllForSale = function(user_id) {
     items.find({
         'owner': Meteor.userId(),
         'status': "for_sale", 
     }).forEach(function(item_object) {
-        if (canQuickSell(Meteor.user(), item_object._id)) {
-            declineItem(item_object._id, Meteor.userId());
-        }
+        var player_item_interface = new PlayerItemIF(Meteor.userId(), item_object._id);
+        player_item_interface.quickDecline();
     });
 }
 
@@ -416,7 +376,8 @@ var getSellAllData= function(user_id) {
         'owner': user_id,
         'status': {$in: ["unclaimed", "won"]}, 
     }).forEach(function(item_object) {
-        if (canQuickSell(user_object, item_object._id)) {
+        var permissions = getPlayerItemPermissions(Meteor.userId(), item_object._id);
+        if (permissions.canQuickDiscard()) {
             total_value += getItemObjectValueByType(item_object, "sell", user_id);
             item_ids.push(item_object._id);
         }

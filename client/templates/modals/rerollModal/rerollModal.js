@@ -61,19 +61,8 @@ Template.rerollModal.helpers({
 	},
 
 	'rerollCost' : function() {
-		Meteor.call('getRerollCost', Session.get('selectedItem'), function(error, result) {
-			if (error)
-				console.log(error.message);
-
-			else {
-				Session.set('reroll_cost', result);
-			}
-		});
-
-		if (Session.get('reroll_cost'))
-			return getCommaSeparatedValue(Session.get('reroll_cost'));
-
-		else return 0;
+		var player_item_interface = new PlayerItemIF(Meteor.userId(), Session.get('selectedItem'));
+		return getCommaSeparatedValue(player_item_interface.getRerollCost());
 	},
 
 	'bankBalance' : function() {
@@ -81,7 +70,8 @@ Template.rerollModal.helpers({
 	},
 
 	'canReroll' : function() {
-		return canRerollItem(Session.get('selectedItem'));
+		var permissions = getPlayerItemPermissions(Meteor.userId(), Session.get('selectedItem'));
+		return permissions.canReroll();
 	},
 
 	'attributeValueText' : function(value) {
