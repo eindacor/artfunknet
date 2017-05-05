@@ -5,8 +5,10 @@
 				<div class="mask-info-container">
 					<p><i class="fa fa-picture-o"></i></p>
 					{{#with display_details item_data._id}}
-					<p class="display-details">{{time_since_displayed}}</p>
-					<p class="display-details">{{displayAsMoneyValue earnings_per_hour}}/hr.</p>
+					{{#if earnings_per_hour}}
+						<p class="display-details">{{time_since_displayed}}</p>
+						<p class="display-details">{{displayAsMoneyValue earnings_per_hour}}/hr.</p>
+					{{/if}}
 					{{/with}}
 				</div>
 			</div>
