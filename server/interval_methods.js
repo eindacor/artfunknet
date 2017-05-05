@@ -137,6 +137,7 @@ Meteor.setInterval((function() {
 
 }), xp_frequency);
 
+var display_earning_check_frequency = 600000; //10 minutes
 // how long it takes to level up your item's earning value
 var level_duration = 86400000;
 var level_cap = 20;
@@ -179,7 +180,7 @@ Meteor.setInterval((function() {
     }
 
     else metadata.insert({'display_earnings_tick': moment()._d.toISOString()});
-}), display_earning_frequency);
+}), display_earning_check_frequency);
 
 
 
