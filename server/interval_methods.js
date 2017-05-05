@@ -165,8 +165,6 @@ Meteor.setInterval((function() {
 
                 var amplifier = Math.pow(1.1, Math.min(levels, level_cap));
                 var actual_reward = money_per_hour * amplifier;
-                console.log(levels);
-                console.log(Math.floor(actual_reward));
                 total_earnings += Math.floor(actual_reward);
             });
 
