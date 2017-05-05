@@ -1,22 +1,15 @@
 <template name="itemInfo">
 	<div class="template-itemInfo">
 		<div data-item_id="{{item_data._id}}" class="card-container {{item_data.artwork_data.rarity}}-item" style="background: url('{{getCardImageURL item_data.artwork_data.filename}}') center; background-size: 280px 390px">
-			{{#if isEqual item_data.status "displayed"}}
-				<div class="status-mask">
-					<div class="status-info">
-						<p><i class="fa fa-picture-o"></i></p>
-						<p class="remaining-text">{{display_time_remaining item_data}}</p>
-					</div>
-				</div>
-			{{/if}}
-			{{#if isEqual item_data.status "auctioned"}}
-				<div class="status-mask">
-					<div class="status-info">
-						<p><i class="fa fa-gavel"></i></p>
-						<p class="remaining-text">{{auction_time_remaining item_data}}</p>
-					</div>
-				</div>
-			{{/if}}
+			<div class="status-mask display {{#if displayedStatus item_data._id}}{{else}}hide{{/if}}">
+				<i class="fa fa-picture-o"></i>
+			</div>
+			<div class="status-mask auctioned {{#if auctionedStatus item_data._id}}{{else}}hide{{/if}}">
+				<i class="fa fa-gavel"></i>
+			</div>
+			<div class="status-mask permanent {{#if permanentStatus item_data._id}}{{else}}hide{{/if}}">
+				<i class="fa fa-heart"></i>
+			</div>
 			<div class="row no-margin card-info">
 				<div class="card-header col-xs-12 {{#if item_data.foil}}foil{{/if}} {{#if item_data.seasonal}}seasonal{{/if}} {{#if item_data.lottery}}lottery{{/if}} {{#if item_data.original}}original{{/if}}">
 					<div class="row no-margin">

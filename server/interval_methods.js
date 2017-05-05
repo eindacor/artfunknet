@@ -6,9 +6,9 @@ getNowISOString = function() {
 
 Meteor.setInterval((function() {
     var now = getNowISOString();
-    items.find({'status' : 'displayed', 'display_details.end': {$lt : now}}).forEach(function(db_object) {
-        concludeDisplay(db_object._id);
-    });
+    // items.find({'status' : 'displayed', 'display_details.end': {$lt : now}}).forEach(function(db_object) {
+    //     concludeDisplay(db_object._id);
+    // });
 
     auctions.find({'expiration': {$lt : now}}).forEach(function(db_object) {
         concludeAuction(db_object._id);
@@ -136,6 +136,52 @@ Meteor.setInterval((function() {
     });
 
 }), xp_frequency);
+
+// how long it takes to level up your item's earning value
+var level_duration = 86400000;
+var level_cap = 20;
+// how many level durations can pass before display ends
+var max_level_increment_periods = 30;
+Meteor.setInterval((function() {
+    if (metadata.findOne({'display_earnings_tick': {$ne: null}}) != undefined) {
+        var display_earning_time = metadata.findOne({'display_earnings_tick': {$ne: null}}).display_earnings_tick;
+
+        if (getNowISOString() < display_earning_time)
+            return;
+
+        Meteor.users.find().forEach(function(user_object) {
+            var total_earnings = 0;
+            items.find({'status': "displayed", 'owner': user_object._id}).forEach(function(item_object) {
+                var player_item_interface = new PlayerItemIF(item_object.owner, item_object._id);
+                var money_per_hour = player_item_interface.getDisplayValuePerHour();
+                var time_displayed = moment(display_earning_time) - moment(item_object.time_displayed);
+                var levels = Math.floor(time_displayed / level_duration);
+
+                if (levels >= max_level_increment_periods) {
+                    player_item_interface.undisplay();
+                    return;
+                }
+
+                var amplifier = Math.pow(1.1, Math.min(levels, level_cap));
+                var actual_reward = money_per_hour * amplifier;
+                console.log(levels);
+                console.log(Math.floor(actual_reward));
+                total_earnings += Math.floor(actual_reward);
+            });
+
+            if (total_earnings > 0)
+                addFunds("display earnings", user_object._id, Math.floor(total_earnings));
+        })
+
+        
+        var next_tick = moment(display_earning_time).add(1, "hours")._d.toISOString();
+        metadata.update({'display_earnings_tick': {$ne: null}}, {$set: {'display_earnings_tick': next_tick}});
+    }
+
+    else metadata.insert({'display_earnings_tick': moment()._d.toISOString()});
+}), display_earning_frequency);
+
+
 
 var item_count_frequency = 30000; //30 seconds
 Meteor.setInterval((function() {

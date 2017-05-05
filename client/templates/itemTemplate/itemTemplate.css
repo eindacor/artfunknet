@@ -307,7 +307,7 @@
 	font-weight: bold;
 }
 
-.template-itemInfo .status-mask {
+.template-itemInfo .status-mask{
 	min-width: 100%;
 	min-height: 100%;
 	background-color: white;
@@ -318,6 +318,10 @@
 	align-items: center;
 	justify-content: center;
 	color: rgb(80, 80, 80);
+}
+
+.template-itemInfo .status-mask.hide {
+	display: none;
 }
 
 .template-itemInfo .status-info {

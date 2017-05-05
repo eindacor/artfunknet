@@ -5,6 +5,7 @@ var card_container_width;
 var card_container_height;
 var sought_status = {};
 var checklist_data;
+var global_perm = false;
 
 var updateSoughtStatus = function(artwork_id) {
 	Meteor.call('getSoughtStatus', artwork_id, true, function(error, result) {
@@ -80,12 +81,7 @@ updateItemTemplate = function(item_id, delay) {
 			dynamic_xp_wrapper.empty();
 			dynamic_xp_wrapper.append('<p><span style="color: ' + getHTMLColorFromValue(item_object.xp_rating) + '">' + item_object.xp_rating.toFixed(2) * 100 + '</span></p>')
 
-			if (item_object.status == "displayed" || item_object.status == "auctioned") {
-				var status_mask = $('<div class="status-mask"></div>')
-				var icon = (item_object.status == "displayed" ? "fa-picture-o" : "fa-gavel");
-				status_mask.append('<p><i class="fa ' + icon + '"></i><p>');
-				target_container.prepend(status_mask);
-			}
+			target_container.remove('.status-mask');
 
 			updateItemActions(item_object);
 		}
@@ -122,29 +118,23 @@ Template.itemInfo.helpers({
 			'image_height': 20
 		}
 	},
-
-	'display_time_remaining': function(item_object) {
-		var expiration = moment(item_object.display_details.end);
-		var now = moment(Session.get('now'));
-		var remaining = expiration - now;
-
-		var remaining_text = remaining > 0 ? getCountdownString(remaining) : "expired";
-		return remaining_text;
+	//TODO replace below status methods with more elegant solution -> DOM modification from updatestatus
+	'permanentStatus' : function(item_id) {
+		var item_object = items.findOne(item_id);
+		if (item_object)
+			return item_object.status == "permanent";
 	},
 
-	'auction_time_remaining': function(item_object) {
-		var auction_object = auctions.findOne({'item_id': item_object._id});
+	'displayedStatus': function(item_id) {
+		var item_object = items.findOne(item_id);
+		if (item_object)
+			return item_object.status == "displayed";
+	},
 
-		if (auction_object) {
-			var expiration = moment(auction_object.expiration);
-			var now = moment(Session.get('now'));
-			var remaining = expiration - now;
-
-			var remaining_text = remaining > 0 ? getCountdownString(remaining) : "expired";
-			return remaining_text;
-		}
-
-		else return "expired";
+	'auctionedStatus': function(item_id) {
+		var item_object = items.findOne(item_id);
+		if (item_object)
+			return item_object.status == "auctioned";
 	},
 
 	'sortedAttributes' : function(attributes) {
@@ -233,6 +223,10 @@ Template.itemInfo.helpers({
 
 			return checklist_object;
 		}
+	},
+
+	'hide_mask': function(item_data) {
+		return item_data.status != "permanent" && item_data.status != "displayed" && item_data.status != "auctioned";
 	}
 })
 

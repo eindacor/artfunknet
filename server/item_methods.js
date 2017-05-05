@@ -293,9 +293,9 @@ Meteor.methods({
         player_item_interface.purchase();
     },
 
-    'displayArtwork' : function(item_id, duration) {
+    'setItemDisplayStatus' : function(item_id, new_status) {
         var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
-        return player_item_interface.display(duration);
+        return player_item_interface.setDisplayStatus(new_status);
     },
 
     'setItemPermanentCollectionStatus' : function(item_id, new_status) {

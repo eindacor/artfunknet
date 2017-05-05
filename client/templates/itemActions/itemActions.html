@@ -12,8 +12,11 @@
 					<span class="auction enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-gavel"></i></span>
 				{{/if}}	
 				{{#if display}}				
-					<span class="display enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-picture-o"></i></span>	
-				{{/if}}			
+					<span class="display inactive"><i data-item_id="{{../item_data._id}}" class="fa fa-picture-o"></i></span>	
+				{{/if}}	
+				{{#if undisplay}}	
+					<span class="display active af-color"><i data-item_id="{{../item_data._id}}" class="fa fa-picture-o"></i></span>
+				{{/if}}	
 				{{#if reroll}}
 					<span class="reroll enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-magic"></i></span>		
 				{{/if}}

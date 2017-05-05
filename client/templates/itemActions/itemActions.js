@@ -1,41 +1,45 @@
 updateItemActions = function(item_object) {
-	var permissions = getPermissions(item_object);
+	var permissions = getPlayerItemPermissions(Meteor.userId(), item_object._id);
 
 	var button_area = $("[data-item_id='" + item_object._id + "']").find('.template-itemActions').find('.button-area');
 	button_area.empty();
-	if (permissions.sell) {
+	if (permissions.canSell()) {
 		button_area.append('<span class="quick-sell enabled"><i data-item_id="' + item_object._id + '" class="appended fa fa-usd"></i></span>');
 	}
 
-	if (permissions.claim) {
+	if (permissions.canClaim()) {
 		button_area.append('<span class="claim enabled"><i data-item_id="' + item_object._id + '" class="appended fa fa-plus"></i></span>');
 	}
 
-	if (permissions.auction) {
+	if (permissions.canAuction()) {
 		button_area.append('<span class="auction enabled"><i data-item_id="' + item_object._id + '" class="appended fa fa-gavel"></i></span>');
 	}
 
-	if (permissions.display) {
-		button_area.append('<span class="display enabled"><i data-item_id="' + item_object._id + '" class="appended fa fa-picture-o"></i></span>');
+	if (permissions.canDisplay()) {
+		button_area.append('<span class="display inactive"><i data-item_id="' + item_object._id + '" class="appended fa fa-picture-o"></i></span>');
 	}
 
-	if (permissions.reroll) {
+	if (permissions.canUndisplay()) {
+		button_area.append('<span class="display active af-color"><i data-item_id="' + item_object._id + '" class="appended fa fa-picture-o"></i></span>');
+	}
+
+	if (permissions.canReroll() || permissions.canChangeActiveUniqueAttribute()) {
 		button_area.append('<span class="reroll enabled"><i data-item_id="' + item_object._id + '" class="appended fa fa-magic"></i></span>');
 	}
 
-	if (permissions.permanent) {
+	if (permissions.canSetPermanent()) {
 		button_area.append('<span class="perm-collection inactive"><i data-item_id="' + item_object._id + '" class="appended fa fa-heart"></i></span>');
 	}
 
-	if (permissions.unpermanent) {
+	if (permissions.canUnsetPermanent()) {
 		button_area.append('<span class="perm-collection active af-color"><i data-item_id="' + item_object._id + '" class="appended fa fa-heart"></i></span>');
 	}
 
-	if (permissions.purchase) {
+	if (permissions.canPurchase()) {
 		button_area.append('<span class="purchase enabled"><i data-item_id="' + item_object._id + '" class="appended fa fa-shopping-cart"></i></span>');
 	}
 
-	if (permissions.decline) {
+	if (permissions.canDecline()) {
 		button_area.append('<span class="decline enabled"><i data-item_id="' + item_object._id + '" class="appended fa fa-times"></i></span>');
 	}
 
@@ -54,6 +58,7 @@ var getPermissions = function(item_object) {
 			var reroll = permissions.canReroll() || permissions.canChangeActiveUniqueAttribute();
 			var purchase = permissions.canPurchase();
 			var display = permissions.canDisplay();
+			var undisplay = permissions.canUndisplay();
 			var permanent = permissions.canSetPermanent();
 			var unpermanent = permissions.canUnsetPermanent();
 			var auction = permissions.canAuction();
@@ -68,7 +73,8 @@ var getPermissions = function(item_object) {
 				'permanent': permanent,
 				'unpermanent': unpermanent,
 				'auction': auction,
-				'decline': decline
+				'decline': decline,
+				'undisplay': undisplay
 			}
 		}
 	}
@@ -118,13 +124,51 @@ Template.itemActions.events({
 		}
 	},
 
-	'click .display.enabled' : function(element, template) {
+	'click .display.inactive' : function(element, template) {
 		element.stopPropagation();
 		var item_id = $(element.target).closest('.item-container').data('item_id');
 		var permissions = getPlayerItemPermissions(Meteor.userId(), item_id);
 		if (permissions.canDisplay()) {
-			Session.set('selectedItem', item_id);
-			Modal.show('onDisplayModal');
+			Meteor.call('setItemDisplayStatus' , item_id, true, function(error) {
+				if (error)
+					console.log(error.message)
+
+				else {
+					if (Meteor.user().profile.tutorials.gallery && 
+						items.findOne({'owner': Meteor.userId(), 'status': "displayed"}) && 
+						items.findOne({'owner': Meteor.userId(), 'status': "permanent"})) 
+					{
+						Blaze.renderWithData(Template.modalTemplate, {
+							'modal_name': "tutorialModal", 
+							'modal_data': {
+								'tutorial_name': "gallery",
+								'next': undefined,
+								'activate': "my_gallery",
+								'image_filename': "tutorial/menu_gallery.png",
+								'message': "Now that you have an item on display, and an item in your permanent collection, you can see your items in your gallery. Go there when you're ready, by clicking the 'My Gallery' button in the menu."
+							}
+						}, $('body')[0]);
+					};
+
+					//updateItemTemplate(item_id, 10);
+				}
+			})
+		}
+	},
+
+	'click .display.active' : function(element) {
+		element.stopPropagation();
+		var item_id = $(element.target).closest('.item-container').data('item_id');
+		var permissions = getPlayerItemPermissions(Meteor.userId(), item_id);
+			if (permissions.canUndisplay()) {
+			Meteor.call('setItemDisplayStatus' , item_id, false, function(error) {
+				if (error)
+					console.log(error.message)
+
+				else {
+					//updateItemTemplate(item_id, 10);
+				}
+			})
 		}
 	},
 
@@ -246,7 +290,7 @@ Template.itemActions.events({
 		element.stopPropagation();
 		var item_id = $(element.target).closest('.item-container').data('item_id');
 		var permissions = getPlayerItemPermissions(Meteor.userId(), item_id);
-		if (permissions.tag()) {
+		if (permissions.canTag()) {
 			Blaze.renderWithData(Template.modalTemplate, {
 				'modal_name': "tagItemModal", 
 				'modal_data': {

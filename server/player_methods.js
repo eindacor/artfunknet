@@ -747,12 +747,14 @@ Meteor.methods({
             return false;
 
         for (var i=0; i<tagged_items.length; i++) {
-            if (!canDisplayItem(tagged_items[i]._id))
+            var permissions = getPlayerItemPermissions(Meteor.userId(), tagged_items[i]._id);
+            if (!permissions.canDisplay())
                 return false;
         }
 
         for (var i=0; i<tagged_items.length; i++) {
-            displayItem(tagged_items[i]._id, duration);
+            var player_item_interface = new PlayerItemIF(Meteor.userId(), tagged_items[i]._id);
+            player_item_interface.setDisplayStatus(true);
         }
 
         return true;
