@@ -313,11 +313,6 @@ Meteor.methods({
         return player_item_interface.auction(starting, buy_now, duration);
     },
 
-    'getDisplayDetails': function(item_id, duration) {
-        var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
-        return player_item_interface.getDisplayDetails(duration);
-    },
-
     'tagItem' : function(item_id, tags) {
         var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
         player_item_interface.tag(tags);
@@ -355,6 +350,23 @@ Meteor.methods({
         //TODO verify user is only searching items they have access to
 
         return getItemArray(filter_array, sorter_object, current_page, items_per_page);
+    },
+
+    'getDisplayDetails': function(item_id) {
+        var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+        if (player_item_interface.getItemReader().getStatus() == "displayed") {
+            var earnings_per_hour = player_item_interface.getDisplayValuePerHour(moment()._d.toISOString());
+            var time_since_displayed = player_item_interface.getItemReader().getItemObject().time_displayed;
+            return {
+                'earnings_per_hour' : earnings_per_hour,
+                'time_since_displayed': getDurationString(moment() - moment(time_since_displayed), false, "dhm")
+            }
+        }
+
+        else return {
+            'earnings_per_hour' : undefined,
+            'time_since_displayed': undefined
+        }
     }
 
 })

@@ -36,6 +36,15 @@
     100%{background-position:0% 50%}
 }
 
+.template-itemInfo .unlocked {
+	background: linear-gradient(60deg, white, #DBDBDB, #DBDBDB, white, #DBDBDB, #DBDBDB, white);
+	background-size: 300% 300%;
+	-webkit-animation: card_effect 10s ease infinite;
+	-moz-animation: card_effect 10s ease infinite;
+	-o-animation: card_effect 10s ease infinite;
+	animation: card_effect 10s ease infinite;
+}
+
 .template-itemInfo .foil {
 	background: linear-gradient(60deg, white, #ffe2c3, #FDF, white, #FDF, #ffe2c3, white);
 	background-size: 300% 300%;
@@ -75,10 +84,6 @@
 .template-itemInfo .card-container:hover {
 	opacity: 1;
 	cursor: pointer;
-}
-
-.template-itemInfo .card-container:hover > .status-mask {
-	opacity: .1;
 }
 
 @keyframes border_animation {
@@ -310,18 +315,23 @@
 .template-itemInfo .status-mask{
 	min-width: 100%;
 	min-height: 100%;
-	background-color: white;
-	opacity: .5;
+	background-color: rgba(256, 256, 256, .6);
 	float: left;
 	font-size: 6rem;
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	color: rgb(80, 80, 80);
+	color: black;
+	font-weight: bold;
 }
 
 .template-itemInfo .status-mask.hide {
 	display: none;
+}
+
+.template-itemInfo .card-container:hover > .status-mask {
+	background-color: rgba(256, 256, 256, 0);
+	opacity: 0;
 }
 
 .template-itemInfo .status-info {
@@ -329,8 +339,18 @@
 	text-align: center;
 }
 
-.template-itemInfo .status-mask p {
+.template-itemInfo .status-mask i, .template-itemInfo .status-mask p{
 	display: block;
+}
+
+.template-itemInfo .mask-info-container {
+	text-align: center;
+}
+
+.template-itemInfo .card-container .display-details {
+	font-size: 2rem;
+	opacity: 1;
+	z-index: 9999;
 }
 
 .template-itemInfo .separator {

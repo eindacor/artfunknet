@@ -137,12 +137,7 @@ Meteor.setInterval((function() {
 
 }), xp_frequency);
 
-var display_earning_check_frequency = 600000; //10 minutes
-// how long it takes to level up your item's earning value
-var level_duration = 86400000;
-var level_cap = 20;
-// how many level durations can pass before display ends
-var max_level_increment_periods = 30;
+// some vars defined in lib/time_constants.js
 Meteor.setInterval((function() {
     if (metadata.findOne({'display_earnings_tick': {$ne: null}}) != undefined) {
         var display_earning_time = metadata.findOne({'display_earnings_tick': {$ne: null}}).display_earnings_tick;
@@ -154,18 +149,18 @@ Meteor.setInterval((function() {
             var total_earnings = 0;
             items.find({'status': "displayed", 'owner': user_object._id}).forEach(function(item_object) {
                 var player_item_interface = new PlayerItemIF(item_object.owner, item_object._id);
-                var money_per_hour = player_item_interface.getDisplayValuePerHour();
-                var time_displayed = moment(display_earning_time) - moment(item_object.time_displayed);
-                var levels = Math.floor(time_displayed / level_duration);
+                var money_per_hour = player_item_interface.getDisplayValuePerHour(display_earning_time);
+                // var time_displayed = moment(display_earning_time) - moment(item_object.time_displayed);
+                // var display_levels = Math.floor(time_displayed / display_level_duration);
 
-                if (levels >= max_level_increment_periods) {
-                    player_item_interface.undisplay();
-                    return;
-                }
+                // if (display_levels >= display_level_max_increment_periods) {
+                //     player_item_interface.undisplay();
+                //     return;
+                // }
 
-                var amplifier = Math.pow(1.1, Math.min(levels, level_cap));
-                var actual_reward = money_per_hour * amplifier;
-                total_earnings += Math.floor(actual_reward);
+                // var amplifier = Math.pow(1.1, Math.min(display_levels, display_level_cap));
+                // var actual_reward = money_per_hour * amplifier;
+                total_earnings += money_per_hour;
             });
 
             if (total_earnings > 0)

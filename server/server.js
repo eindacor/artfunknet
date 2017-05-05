@@ -43,7 +43,7 @@ var updateContent = function() {
     });
 
     // temp code
-    items.update({'status': "displayed"}, {$set: {'status': "claimed"}}, {multi: true});
+
     // temp code
 }
 

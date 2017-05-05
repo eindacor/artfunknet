@@ -1,11 +1,13 @@
 var div_size_tracker = new Tracker.Dependency;
 var sought_tracker = new Tracker.Dependency;
 var checklist_data_tracker = new Tracker.Dependency;
+var display_details_tracker = new Tracker.Dependency;
 var card_container_width;
 var card_container_height;
 var sought_status = {};
 var checklist_data;
 var global_perm = false;
+var display_details_map = {};
 
 var updateSoughtStatus = function(artwork_id) {
 	Meteor.call('getSoughtStatus', artwork_id, true, function(error, result) {
@@ -20,6 +22,7 @@ var updateSoughtStatus = function(artwork_id) {
 }
 
 Template.itemInfo.rendered = function() {
+	display_details_map = {};
 	checklist_data = undefined;
 	if ($('.card-container').length != 0) {
 		card_container_height = $('.card-container').css('height').replace("px", "");
@@ -227,6 +230,23 @@ Template.itemInfo.helpers({
 
 	'hide_mask': function(item_data) {
 		return item_data.status != "permanent" && item_data.status != "displayed" && item_data.status != "auctioned";
+	},
+
+	'display_details': function(item_id) {
+		display_details_tracker.depend();
+		if (display_details_map[item_id] == undefined) {
+			Meteor.call('getDisplayDetails', item_id, function(error, result) {
+				if (error)
+					console.log(error)
+
+				else {
+					display_details_map[item_id] = result;
+					display_details_tracker.changed();
+				}
+			})
+		}
+		
+		return display_details_map[item_id];
 	}
 })
 
