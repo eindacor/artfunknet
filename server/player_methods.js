@@ -217,13 +217,17 @@ updateGalleryDetails = function(user_id) {
 
     if (user_object) {
         var gallery_value = 0;
+        var earnings_per_hour = 0;
         var attribute_rating_total = 0;
         var rarity_npc_coefficient_total = 0;
         var attribute_totals = {};
         var display_count = items.find({'owner' : user_id, 'status' : 'displayed'}).count();
 
+        var now = moment()._d.toISOString();
         items.find({'owner' : user_id, 'status' : 'displayed'}).forEach(function(item_object) {
-            gallery_value += getItemObjectValueByType(item_object, 'actual', user_id)
+            var player_item_interface = new PlayerItemIF(user_id, item_object._id);
+            gallery_value += player_item_interface.getValue('actual');
+            earnings_per_hour += player_item_interface.getDisplayValuePerHour(now);
             var item_attributes = getAllItemObjectAttributes(item_object);
 
             var rarity_npc_coefficient;
@@ -272,7 +276,8 @@ updateGalleryDetails = function(user_id) {
                 'entry_fee' : user_object.profile.entry_fee,
                 'score': gallery_score,
                 'value': gallery_value,
-                'gallery_rarity_npc_coefficient': gallery_rarity_npc_coefficient
+                'gallery_rarity_npc_coefficient': gallery_rarity_npc_coefficient,
+                'earnings_per_hour': earnings_per_hour
             });
         }
 
@@ -281,7 +286,8 @@ updateGalleryDetails = function(user_id) {
                 'attribute_values' : attribute_values, 
                 'score': gallery_score, 
                 'value': gallery_value,
-                'gallery_rarity_npc_coefficient': gallery_rarity_npc_coefficient
+                'gallery_rarity_npc_coefficient': gallery_rarity_npc_coefficient,
+                'earnings_per_hour': earnings_per_hour
             }
         });
     }
@@ -1238,5 +1244,21 @@ Meteor.methods({
             return false;
 
         else updateItem(item_id, {$set: {'active_unique_attribute': unique_object.code}});
+     },
+
+     'getDisplayValues': function() {
+        var value_total = 0;
+        var earnings_per_hour = 0;
+        var now = moment()._d.toISOString();
+        items.find({'owner' : Meteor.userId(), 'status' : 'displayed'}).forEach(function(item_object) {
+            var player_item_interface = new PlayerItemIF(Meteor.userId(), item_object._id);
+            value_total += player_item_interface.getValue('actual');
+            earnings_per_hour += player_item_interface.getDisplayValuePerHour(now);
+        });
+
+        return {
+            'value_total': value_total,
+            'earnings_per_hour': earnings_per_hour
+        };
      }
 })

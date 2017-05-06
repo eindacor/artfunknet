@@ -1,4 +1,10 @@
 var current_user_id = Meteor.userId();
+display_value_tracker = new Tracker.Dependency;
+var display_values;
+
+Template.playerInfo.rendered = function() {
+	display_values = undefined;
+}
 
 Template.playerInfo.events({
 	'change .price-selector' : function() {
@@ -101,18 +107,21 @@ Template.playerInfo.helpers({
 		else return "";
 	},
 
-	'display_value' : function() {
-		Meteor.call('getExhibitionValue', Meteor.userId(), function(error, result) {
-			if (error)
-				console.log(error.message);
+	'display_values': function() {
+		var gallery_object = galleries.findOne({'owner_id': Meteor.userId()});
+		try  {
+			return {
+				'value': gallery_object.value,
+				'earnings_per_hour': gallery_object.earnings_per_hour
+			}
+		}
 
-			else Session.set('display_value', result);
-		});
-
-		if (Session.get('display_value') !== undefined)
-			return getCommaSeparatedValue(Session.get('display_value'));
-
-		else return "";
+		catch (error) { 
+			return {
+				'gallery_value': 0,
+				'earnings_per_hour': 0
+			}
+		}
 	},
 
 	'ticket' : function() {

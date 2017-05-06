@@ -39,8 +39,11 @@
 				{{else}}
 				<p class="player-data">lottery tickets: <span class="highlight gold-text">{{profile.lottery_tickets}}</span></p>	
 				{{/if}}
-				<p class="player-data">collection value: <span class="highlight af-color">${{collection_value}}</span></p>				
-				<p class="player-data">current exhibition value: <span class="highlight af-color">${{display_value}}</span></p>					
+				<p class="player-data">collection value: <span class="highlight af-color">${{collection_value}}</span></p>	
+				{{#with display_values}}			
+				<p class="player-data">current exhibition value: <span class="highlight af-color">{{displayAsMoneyValue value}}</span></p>	
+				<p class="player-data">display earnings per hour: <span class="highlight af-color">{{displayAsMoneyValue earnings_per_hour}}</span></p>
+				{{/with}}				
 				<p class="player-data">items exhibited: <span class="highlight af-color">{{display_count}}</span> ({{profile.display_cap}} max)</p>					
 				<p class="player-data">paintings owned: <span class="highlight af-color">{{inventory_count}}</span></p>
 				<p class="player-data">inventory space available: <span class="highlight af-color">{{slots_available}}</span></p>	
