@@ -216,7 +216,7 @@ generateItems = function(multi_item_generator) {
             'user_id': multi_item_generator.user_id,
             'artwork_id': rolled_id,
             'condition': undefined,
-            'xp_rating': undefined,
+            'xp_rating': multi_item_generator.xp_rating_min,
             'foil_chance': multi_item_generator.foil_chance,
             'unlocked_chance': multi_item_generator.unlocked_chance,
             'seasonal': undefined,
@@ -225,7 +225,7 @@ generateItems = function(multi_item_generator) {
             'vintage': false,
             'misprint_chance': multi_item_generator.misprint_chance,
             'status': multi_item_generator.status,
-            'xp_rating_min': multi_item_generator.xp_rating_min,
+            // 'xp_rating_min': multi_item_generator.xp_rating_min,
             'condition_min': multi_item_generator.condition_min
         }
 
@@ -261,8 +261,7 @@ var misprintArtworkData = function(artwork_data) {
     return artwork_data;
 }
 
-generateItemFromArtworkID = function(item_generator, callback) {
-    
+generateItemFromArtworkID = function(item_generator, callback) {   
     var artwork_data = artworks.findOne(item_generator.artwork_id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}}); 
 
     if (artwork_data) {
@@ -289,7 +288,8 @@ generateItemFromArtworkID = function(item_generator, callback) {
             'status' : item_generator.status,
             'date_created' : moment()._d.toISOString(),
             'date_received': moment()._d.toISOString(),
-            'xp_rating' : item_generator.xp_rating === undefined ? getXPRating(item_generator.xp_rating_min) : item_generator.xp_rating,
+            'xp_rating' : item_generator.xp_rating === undefined ? 0 : item_generator.xp_rating,
+            //'xp_rating' : item_generator.xp_rating === undefined ? getXPRating(item_generator.xp_rating_min) : item_generator.xp_rating,
             'roll_count' : 0,
             'foil': foil,
             'seasonal': item_generator.seasonal === undefined ? loot_data.seasonal_items.indexOf(item_generator.artwork_id) != -1 : item_generator.seasonal,
@@ -398,22 +398,22 @@ getAttributesLegacy = function(artwork_id) {
     }
 }
 
-getXPRating = function(min_value) {
-    var tier_map = {
-        0 : 2,
-        1 : 3,
-        2 : 3,
-        3 : 2,
-        4 : 1
-    };
+// getXPRating = function(min_value) {
+//     var tier_map = {
+//         0 : 2,
+//         1 : 3,
+//         2 : 3,
+//         3 : 2,
+//         4 : 1
+//     };
 
-    var random_tier = Number(JepLoot.catRoll(tier_map));
-    var xp_rating = (random_tier * 20) + (Math.random() * 20);
-    var xp_rating_float = Number((xp_rating / 100).toFixed(2));
+//     var random_tier = Number(JepLoot.catRoll(tier_map));
+//     var xp_rating = (random_tier * 20) + (Math.random() * 20);
+//     var xp_rating_float = Number((xp_rating / 100).toFixed(2));
 
-    xp_rating_float = Number((min_value + (xp_rating_float * (1 - min_value))).toFixed(2));
-    return xp_rating_float;
-}
+//     xp_rating_float = Number((min_value + (xp_rating_float * (1 - min_value))).toFixed(2));
+//     return xp_rating_float;
+// }
 
 getAttributeValue = function(multiplier, min_value) {
     var tier_map = {
@@ -454,7 +454,7 @@ Meteor.methods({
                 'foil_chance': foil_chance,
                 'unlocked_chance': getLootData().global_unlocked_chance,
                 'misprint_chance': getLootData().global_misprint_chance,
-                'xp_rating_min': 0,
+                // 'xp_rating_min': 0,
                 'condition_min': 0
             }
 
@@ -497,7 +497,7 @@ Meteor.methods({
                 'foil_chance': foil_chance,
                 'unlocked_chance': loot_data.global_unlocked_chance,
                 'misprint_chance': loot_data.global_misprint_chance,
-                'xp_rating_min': 0,
+                // 'xp_rating_min': 0,
                 'condition_min': 0
             }
 

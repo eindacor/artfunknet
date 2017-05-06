@@ -323,10 +323,10 @@ Meteor.methods({
         return player_item_interface.getRerollCost();
     },
 
-    'rerollXPRating' : function(item_id) {
-        var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
-        player_item_interface.rerollXPRating();
-    },
+    // 'rerollXPRating' : function(item_id) {
+    //     var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+    //     player_item_interface.rerollXPRating();
+    // },
 
     'rerollAttributeValue' : function(item_id, attribute_id) {
         var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
@@ -359,30 +359,36 @@ Meteor.methods({
             var time_since_displayed = player_item_interface.getItemReader().getItemObject().time_displayed;
             return {
                 'earnings_per_hour' : earnings_per_hour,
-                'time_since_displayed': getDurationString(moment() - moment(time_since_displayed), false, "dhm")
+                'time_since_displayed': getDurationString(moment() - moment(time_since_displayed), false, "dhm"),
+                'display_level': player_item_interface.getDisplayLevel(),
+                'xp_per_hour': player_item_interface.getXPPerHour(moment()._d.toISOString())
             }
         }
 
         else return {
             'earnings_per_hour' : undefined,
-            'time_since_displayed': undefined
+            'xp_per_hour': undefined,
+            'time_since_displayed': undefined,
+            'display_level': undefined
         }
     },
 
     'getPermanentDetails': function(item_id) {
         var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
         if (player_item_interface.getItemReader().getStatus() == "permanent") {
-            var xp_per_hour = player_item_interface.getPermanentXPPerHour(moment()._d.toISOString());
+            var xp_per_hour = player_item_interface.getXPPerHour(moment()._d.toISOString());
             var time_since_displayed = player_item_interface.getItemReader().getItemObject().permanent_post;
             return {
                 'xp_per_hour' : xp_per_hour,
-                'time_since_displayed': getDurationString(moment() - moment(time_since_displayed), false, "dhm")
+                'time_since_displayed': getDurationString(moment() - moment(time_since_displayed), false, "dhm"),
+                'permanent_level': player_item_interface.getPermanentLevel()
             }
         }
 
         else return {
             'earnings_per_hour' : undefined,
-            'time_since_displayed': undefined
+            'time_since_displayed': undefined,
+            'permanent_level': undefined
         }
     }
 

@@ -229,7 +229,7 @@ updateGalleryDetails = function(user_id) {
             var player_item_interface = new PlayerItemIF(user_id, item_object._id);
             gallery_value += player_item_interface.getValue('actual');
             earnings_per_hour += player_item_interface.getDisplayValuePerHour(now);
-            xp_per_hour += player_item_interface.getPermanentXPPerHour(now);
+            xp_per_hour += player_item_interface.getXPPerHour(now);
             var item_attributes = getAllItemObjectAttributes(item_object);
 
             var rarity_npc_coefficient;
@@ -1269,9 +1269,9 @@ Meteor.methods({
      'getTotalXPPerHour': function() {
         var total_xp = 0;
         var now = moment()._d.toISOString();
-        items.find({'owner': Meteor.userId(), 'status': "permanent"}).forEach(function(item_object) {
+        items.find({'owner': Meteor.userId(), 'status': {$in: ["permanent", "displayed"]}}).forEach(function(item_object) {
             var player_item_interface = new PlayerItemIF(Meteor.userId(), item_object._id);
-            total_xp += player_item_interface.getPermanentXPPerHour(now);
+            total_xp += player_item_interface.getXPPerHour(now);
         })
         return total_xp;
      }
