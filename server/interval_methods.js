@@ -139,7 +139,8 @@ Meteor.setInterval((function() {
 
                 var display_level = player_item_interface.getDisplayLevel(display_earning_time);
 
-                if (display_level >= display_level_max_increment_periods) {
+                var player_interface = new Player(user_object._id);
+                if (!player_interface.isRecentlyActive()) {
                     player_item_interface.setDisplayStatus(false);
                 }
             });
