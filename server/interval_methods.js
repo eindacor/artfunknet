@@ -150,16 +150,6 @@ Meteor.setInterval((function() {
             items.find({'status': "displayed", 'owner': user_object._id}).forEach(function(item_object) {
                 var player_item_interface = new PlayerItemIF(item_object.owner, item_object._id);
                 var money_per_hour = player_item_interface.getDisplayValuePerHour(display_earning_time);
-                // var time_displayed = moment(display_earning_time) - moment(item_object.time_displayed);
-                // var display_levels = Math.floor(time_displayed / display_level_duration);
-
-                // if (display_levels >= display_level_max_increment_periods) {
-                //     player_item_interface.undisplay();
-                //     return;
-                // }
-
-                // var amplifier = Math.pow(1.1, Math.min(display_levels, display_level_cap));
-                // var actual_reward = money_per_hour * amplifier;
                 total_earnings += money_per_hour;
             });
 
