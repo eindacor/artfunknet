@@ -32,6 +32,7 @@ Meteor.methods({
             'mvp_data': getMVPData(),
             'gallery_score_data': galleries.find({}, {limit: 20, sort: {'score': -1}}).fetch(),
             'gallery_value_data': galleries.find({}, {limit: 20, sort: {'value': -1}}).fetch(),
+            'gallery_earnings_data': galleries.find({}, {limit: 20, sort: {'earnings_per_hour': -1}}).fetch(),
             'quests_completed_data': Meteor.users.find({'profile.user_type': {$ne: "adfmin"}}, {limit: 20, sort: {'profile.completed_quests': -1}, fields: {'profile.completed_quests': 1, 'profile.screen_name': 1}}).fetch(),
             'items_owned_data': Meteor.users.find({'profile.user_type': {$ne: 'admin'}}, {limit: 20, sort: {'profile.items_owned': -1}}).fetch(),
             'money_spent_crates_data': Meteor.users.find({'profile.user_type': {$ne: 'admin'}}, {limit: 20, sort: {'profile.money_spent_on_crates': -1}}).fetch(),

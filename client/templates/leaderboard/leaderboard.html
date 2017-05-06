@@ -6,6 +6,7 @@
 				{{> mvp mvp_data}}
 				{{> galleryScore gallery_score_data}}
 				{{> galleryValue gallery_value_data}}
+				{{> earningsPerHour gallery_earnings_data}}
 				{{> questsCompleted quests_completed_data}}
 				{{> itemsOwned items_owned_data}}
 				{{> moneySpentOnCrates money_spent_crates_data}}
@@ -79,6 +80,29 @@
 					</div> 
 					<div class="col-xs-5">
 						<p class="highlight">{{displayAsMoneyValue this.value}}</p>
+					</div> 
+				</div>
+				{{/if}}
+			{{/each}}
+		</div>
+	</div>
+</template>
+
+<template name="earningsPerHour">
+	<div class="row list-section">
+		<div class="template-earningsPerHour col-xs-12 col-md-6">
+			<h3 class="af-color">Gallery Earnings Per Hour</h3>
+			{{#each this}}
+				{{#if this.value}}
+				<div class="row list-row">
+					<div class="col-xs-1">
+						<p>{{positionFromIndex @index}}.</p>
+					</div> 
+					<div class="col-xs-6">
+						<p class="highlight">{{this.owner}}</p>
+					</div> 
+					<div class="col-xs-5">
+						<p class="highlight">{{displayAsMoneyValue this.earnings_per_hour}}</p>
 					</div> 
 				</div>
 				{{/if}}
