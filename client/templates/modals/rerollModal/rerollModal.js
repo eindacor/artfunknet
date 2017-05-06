@@ -3,16 +3,16 @@ Template.rerollModal.events ({
     	Modal.hide("rerollModal");
     },
 
-    'click .xp-reroll-button.enabled' : function() {
-    	Meteor.call('rerollXPRating', Session.get('selectedItem'), function(error, result) {
-    		if (error)
-    			console.log(error.message);
+   //  'click .xp-reroll-button.enabled' : function() {
+   //  	Meteor.call('rerollXPRating', Session.get('selectedItem'), function(error, result) {
+   //  		if (error)
+   //  			console.log(error.message);
 
-    		else {
-				updateItemTemplate(Session.get('selectedItem'), 0);
-			}
-    	});
-    },
+   //  		else {
+			// 	updateItemTemplate(Session.get('selectedItem'), 0);
+			// }
+   //  	});
+   //  },
 
     'click .reroll-value-button.enabled' : function(element) {
     	var attribute_id = $(element.target).data('attribute_id');

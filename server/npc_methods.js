@@ -255,7 +255,7 @@ var donorInteraction = function(npc_object) {
                     'user_id': Meteor.userId(),
                     'artwork_id': quest_item_ids[random_index],
                     'condition': undefined,
-                    'xp_rating': undefined,
+                    'xp_rating': min_xp_rating,
                     'foil_chance': foil_chance,
                     'unlocked_chance': loot_data.global_unlocked_chance,
                     'seasonal': undefined,
@@ -263,7 +263,7 @@ var donorInteraction = function(npc_object) {
                     'original': false,
                     'misprint_chance': loot_data.global_misprint_chance,
                     'status': "unclaimed",
-                    'xp_rating_min': min_xp_rating,
+                    // 'xp_rating_min': min_xp_rating,
                     'condition_min': condition_min
                 }
 
@@ -732,7 +732,7 @@ var artDealerInteraction = function(npc_object) {
                     'user_id': Meteor.userId(),
                     'artwork_id': quest_item_ids[random_index],
                     'condition': undefined,
-                    'xp_rating': undefined,
+                    'xp_rating': min_xp_rating,
                     'foil_chance': foil_chance,
                     'unlocked_chance': loot_data.global_unlocked_chance,
                     'seasonal': undefined,
@@ -740,7 +740,7 @@ var artDealerInteraction = function(npc_object) {
                     'original': false,
                     'misprint_chance': loot_data.global_misprint_chance,
                     'status': "for_sale",
-                    'xp_rating_min': min_xp_rating,
+                    // 'xp_rating_min': min_xp_rating,
                     'condition_min': 0
                 }
 

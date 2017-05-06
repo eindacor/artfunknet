@@ -132,10 +132,12 @@ Meteor.setInterval((function() {
 
         Meteor.users.find().forEach(function(user_object) {
             var total_earnings = 0;
+            var total_xp = 0;
             items.find({'status': "displayed", 'owner': user_object._id}).forEach(function(item_object) {
                 var player_item_interface = new PlayerItemIF(item_object.owner, item_object._id);
                 var money_per_hour = player_item_interface.getDisplayValuePerHour(display_earning_time);
                 total_earnings += money_per_hour;
+                total_xp += player_item_interface.getXPPerHour(display_earning_time);
 
                 var display_level = player_item_interface.getDisplayLevel(display_earning_time);
 
@@ -143,13 +145,21 @@ Meteor.setInterval((function() {
                 if (!player_interface.isRecentlyActive()) {
                     player_item_interface.setDisplayStatus(false);
                 }
+
+                if (Math.random() < .5) {
+                    var new_condition = item_object.condition < .5 ? item_object.condition : item_object.condition - .01;
+                    updateItem(item_object._id, {$set: {'condition' : new_condition}});
+                }
             });
 
             if (total_earnings > 0)
                 addFunds("display earnings", user_object._id, Math.floor(total_earnings));
+
+            if (total_xp > 0)
+                addXP(user_object._id, total_xp);
         })
  
-        var next_tick = moment(display_earning_time).add(1, "hours")._d.toISOString();
+        var next_tick = moment(display_earning_time).add(display_earning_frequency, "milliseconds")._d.toISOString();
         metadata.update({'display_earnings_tick': {$ne: null}}, {$set: {'display_earnings_tick': next_tick}});
     }
 
@@ -167,7 +177,7 @@ Meteor.setInterval((function() {
             var toal_xp = 0;
             items.find({'status': "permanent", 'owner': user_object._id}).forEach(function(item_object) {
                 var player_item_interface = new PlayerItemIF(item_object.owner, item_object._id);
-                var xp_per_hour = player_item_interface.getPermanentXPPerHour(xp_earning_time);
+                var xp_per_hour = player_item_interface.getXPPerHour(xp_earning_time);
                 toal_xp += xp_per_hour;
 
                 if (item_object.xp_rating < 1)
@@ -178,8 +188,7 @@ Meteor.setInterval((function() {
                 addXP(user_object._id, toal_xp);        
         })
         
-        var next_tick = moment(xp_earning_time).add(10, "seconds")._d.toISOString();
-        //var next_tick = moment(xp_earning_time).add(1, "hours")._d.toISOString();
+        var next_tick = moment(xp_earning_time).add(xp_earning_frequency, "milliseconds")._d.toISOString();
         metadata.update({'permanent_xp_tick': {$ne: null}}, {$set: {'permanent_xp_tick': next_tick}});
     }
 
