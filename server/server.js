@@ -43,7 +43,7 @@ var updateContent = function() {
     });
 
     // temp code
-
+    items.update({'status': "permanent"}, {$set: {'permanent_post': moment()._d.toISOString()}});
     // temp code
 }
 

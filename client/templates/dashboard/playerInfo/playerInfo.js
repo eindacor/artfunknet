@@ -107,12 +107,13 @@ Template.playerInfo.helpers({
 		else return "";
 	},
 
-	'display_values': function() {
+	'gallery_values': function() {
 		var gallery_object = galleries.findOne({'owner_id': Meteor.userId()});
 		try  {
 			return {
 				'value': gallery_object.value,
-				'earnings_per_hour': gallery_object.earnings_per_hour
+				'earnings_per_hour': gallery_object.earnings_per_hour,
+				'xp_per_hour': gallery_object.xp_per_hour
 			}
 		}
 

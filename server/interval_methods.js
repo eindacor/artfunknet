@@ -137,25 +137,53 @@ Meteor.setInterval((function() {
                 var money_per_hour = player_item_interface.getDisplayValuePerHour(display_earning_time);
                 total_earnings += money_per_hour;
 
-                var time_displayed = moment(display_earning_time) - moment(item_object.time_displayed);
-                var display_levels = Math.floor(time_displayed / display_level_duration);
+                var display_level = player_item_interface.getDisplayLevel(display_earning_time);
 
-                if (display_levels >= display_level_max_increment_periods) {
-                    player_item_interface.undisplay();
+                if (display_level >= display_level_max_increment_periods) {
+                    player_item_interface.setDisplayStatus(false);
                 }
             });
 
             if (total_earnings > 0)
                 addFunds("display earnings", user_object._id, Math.floor(total_earnings));
         })
-
-        
+ 
         var next_tick = moment(display_earning_time).add(1, "hours")._d.toISOString();
         metadata.update({'display_earnings_tick': {$ne: null}}, {$set: {'display_earnings_tick': next_tick}});
     }
 
     else metadata.insert({'display_earnings_tick': moment()._d.toISOString()});
 }), display_earning_check_frequency);
+
+Meteor.setInterval((function() {
+    if (metadata.findOne({'permanent_xp_tick': {$ne: null}}) != undefined) {
+        var xp_earning_time = metadata.findOne({'permanent_xp_tick': {$ne: null}}).permanent_xp_tick;
+
+        if (getNowISOString() < xp_earning_time)
+            return;
+
+        Meteor.users.find().forEach(function(user_object) {
+            var toal_xp = 0;
+            items.find({'status': "permanent", 'owner': user_object._id}).forEach(function(item_object) {
+                var player_item_interface = new PlayerItemIF(item_object.owner, item_object._id);
+                var xp_per_hour = player_item_interface.getPermanentXPPerHour(xp_earning_time);
+                toal_xp += xp_per_hour;
+
+                if (item_object.xp_rating < 1)
+                    updateItem(item_object._id, {$set: {'xp_rating': Math.min(item_object.xp_rating + .05, 1)}});
+            });
+
+            if (toal_xp > 0)
+                addXP(user_object._id, toal_xp);        
+        })
+        
+        var next_tick = moment(xp_earning_time).add(10, "seconds")._d.toISOString();
+        //var next_tick = moment(xp_earning_time).add(1, "hours")._d.toISOString();
+        metadata.update({'permanent_xp_tick': {$ne: null}}, {$set: {'permanent_xp_tick': next_tick}});
+    }
+
+    else metadata.insert({'permanent_xp_tick': moment()._d.toISOString()});
+}), permanent_xp_check_frequency);
 
 
 

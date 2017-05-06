@@ -367,6 +367,23 @@ Meteor.methods({
             'earnings_per_hour' : undefined,
             'time_since_displayed': undefined
         }
+    },
+
+    'getPermanentDetails': function(item_id) {
+        var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+        if (player_item_interface.getItemReader().getStatus() == "permanent") {
+            var xp_per_hour = player_item_interface.getPermanentXPPerHour(moment()._d.toISOString());
+            var time_since_displayed = player_item_interface.getItemReader().getItemObject().permanent_post;
+            return {
+                'xp_per_hour' : xp_per_hour,
+                'time_since_displayed': getDurationString(moment() - moment(time_since_displayed), false, "dhm")
+            }
+        }
+
+        else return {
+            'earnings_per_hour' : undefined,
+            'time_since_displayed': undefined
+        }
     }
 
 })

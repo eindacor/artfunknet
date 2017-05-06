@@ -218,6 +218,7 @@ updateGalleryDetails = function(user_id) {
     if (user_object) {
         var gallery_value = 0;
         var earnings_per_hour = 0;
+        var xp_per_hour = 0;
         var attribute_rating_total = 0;
         var rarity_npc_coefficient_total = 0;
         var attribute_totals = {};
@@ -228,6 +229,7 @@ updateGalleryDetails = function(user_id) {
             var player_item_interface = new PlayerItemIF(user_id, item_object._id);
             gallery_value += player_item_interface.getValue('actual');
             earnings_per_hour += player_item_interface.getDisplayValuePerHour(now);
+            xp_per_hour += player_item_interface.getPermanentXPPerHour(now);
             var item_attributes = getAllItemObjectAttributes(item_object);
 
             var rarity_npc_coefficient;
@@ -277,7 +279,8 @@ updateGalleryDetails = function(user_id) {
                 'score': gallery_score,
                 'value': gallery_value,
                 'gallery_rarity_npc_coefficient': gallery_rarity_npc_coefficient,
-                'earnings_per_hour': earnings_per_hour
+                'earnings_per_hour': earnings_per_hour,
+                'xp_per_hour': xp_per_hour
             });
         }
 
@@ -287,7 +290,8 @@ updateGalleryDetails = function(user_id) {
                 'score': gallery_score, 
                 'value': gallery_value,
                 'gallery_rarity_npc_coefficient': gallery_rarity_npc_coefficient,
-                'earnings_per_hour': earnings_per_hour
+                'earnings_per_hour': earnings_per_hour,
+                'xp_per_hour': xp_per_hour
             }
         });
     }
@@ -1260,5 +1264,15 @@ Meteor.methods({
             'value_total': value_total,
             'earnings_per_hour': earnings_per_hour
         };
+     },
+
+     'getTotalXPPerHour': function() {
+        var total_xp = 0;
+        var now = moment()._d.toISOString();
+        items.find({'owner': Meteor.userId(), 'status': "permanent"}).forEach(function(item_object) {
+            var player_item_interface = new PlayerItemIF(Meteor.userId(), item_object._id);
+            total_xp += player_item_interface.getPermanentXPPerHour(now);
+        })
+        return total_xp;
      }
 })
