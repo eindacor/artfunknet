@@ -105,7 +105,6 @@ Meteor.setInterval((function() {
 
 }), npc_spawn_frequency);
 
-var xp_frequency = 3600000; //once per hour
 Meteor.setInterval((function() {
     var finish_xp_max_percentage = .02;
     var all_users = Meteor.users.find();
@@ -121,21 +120,7 @@ Meteor.setInterval((function() {
         addXPChunkPercentage("finishes", db_object._id, wall_percentage + floor_percentage);
     });
 
-    var pc_xp_max_percentage = .1;
-    var pc_xp_increment = .01;
-    items.find({'status' : 'permanent'}).forEach(function(db_object) {
-        var time_displayed = moment() - moment(db_object.permanent_post);
-
-        var periods_displayed = Math.floor(time_displayed / xp_frequency);
-
-        var percentage = periods_displayed * pc_xp_increment <= pc_xp_max_percentage ? periods_displayed * pc_xp_increment : pc_xp_max_percentage;
-
-        var time_til_next_xp = (xp_frequency * (periods_displayed + 1)) - time_displayed;
-
-        addXPChunkPercentage("permanent collection", db_object.owner, percentage * db_object.xp_rating);
-    });
-
-}), xp_frequency);
+}), permanent_xp_check_frequency);
 
 // some vars defined in lib/time_constants.js
 Meteor.setInterval((function() {
@@ -151,6 +136,13 @@ Meteor.setInterval((function() {
                 var player_item_interface = new PlayerItemIF(item_object.owner, item_object._id);
                 var money_per_hour = player_item_interface.getDisplayValuePerHour(display_earning_time);
                 total_earnings += money_per_hour;
+
+                var time_displayed = moment(display_earning_time) - moment(item_object.time_displayed);
+                var display_levels = Math.floor(time_displayed / display_level_duration);
+
+                if (display_levels >= display_level_max_increment_periods) {
+                    player_item_interface.undisplay();
+                }
             });
 
             if (total_earnings > 0)
