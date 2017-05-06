@@ -7,8 +7,8 @@
 					{{#with display_details item_data._id}}
 					{{#if earnings_per_hour}}
 						<p class="display-details">{{time_since_displayed}} (lvl {{display_level}})</p>
-						<p class="display-details">{{displayAsMoneyValue earnings_per_hour}}/hr.</p>
-						<p class="display-details">{{commaSeparatedValue xp_per_hour}}xp/hr.</p>
+						<p class="display-details green-text">{{displayAsMoneyValue earnings_per_hour}}/hr.</p>
+						<p class="display-details af-color">{{commaSeparatedValue xp_per_hour}}xp/hr.</p>
 					{{/if}}
 					{{/with}}
 				</div>
@@ -22,7 +22,7 @@
 					{{#with permanent_details item_data._id}}
 					{{#if xp_per_hour}}
 						<p class="display-details">{{time_since_displayed}} (lvl {{permanent_level}})</p>
-						<p class="display-details">{{commaSeparatedValue xp_per_hour}}xp/hr.</p>
+						<p class="display-details af-color">{{commaSeparatedValue xp_per_hour}}xp/hr.</p>
 					{{/if}}
 					{{/with}}
 				</div>

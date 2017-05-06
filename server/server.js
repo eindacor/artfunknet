@@ -43,7 +43,9 @@ var updateContent = function() {
     });
 
     // temp code
-    items.update({'status': "permanent"}, {$set: {'permanent_post': moment()._d.toISOString()}});
+    items.update({'status': "permanent"}, {$set: {'permanent_post': moment()._d.toISOString()}}, {multi: true});
+    metadata.update({'display_earnings_tick': {$ne: null}}, {$set: {'display_earnings_tick': moment()._d.toISOString()}});
+    metadata.update({'permanent_xp_tick': {$ne: null}}, {$set: {'permanent_xp_tick': moment()._d.toISOString()}});
     // temp code
 }
 

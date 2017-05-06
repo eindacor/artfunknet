@@ -1,5 +1,3 @@
-var check_frequency = 10000;
-
 getNowISOString = function() {
     return moment()._d.toISOString();
 }
@@ -35,7 +33,7 @@ Meteor.setInterval((function() {
     
     alerts.remove({'time': {$lt: moment().add(-48, "hours")._d.toISOString()}});
 
-}), check_frequency);
+}), ONE_SECOND * 10);
 
 // TODO refactor auctions so this isn't necessary
 // clear invalid watching lists
@@ -120,47 +118,50 @@ Meteor.setInterval((function() {
         addXPChunkPercentage("finishes", db_object._id, wall_percentage + floor_percentage);
     });
 
-}), permanent_xp_check_frequency);
+}), finishes_check_frequency);
 
 // some vars defined in lib/time_constants.js
 Meteor.setInterval((function() {
     if (metadata.findOne({'display_earnings_tick': {$ne: null}}) != undefined) {
         var display_earning_time = metadata.findOne({'display_earnings_tick': {$ne: null}}).display_earnings_tick;
 
-        if (getNowISOString() < display_earning_time)
-            return;
+        if (getNowISOString() > display_earning_time) {
+            if (DEBUG) {
+                console.log("awarding display earnings: " + getNowISOString());
+            }
 
-        Meteor.users.find().forEach(function(user_object) {
-            var total_earnings = 0;
-            var total_xp = 0;
-            items.find({'status': "displayed", 'owner': user_object._id}).forEach(function(item_object) {
-                var player_item_interface = new PlayerItemIF(item_object.owner, item_object._id);
-                var money_per_hour = player_item_interface.getDisplayValuePerHour(display_earning_time);
-                total_earnings += money_per_hour;
-                total_xp += player_item_interface.getXPPerHour(display_earning_time);
+            Meteor.users.find().forEach(function(user_object) {
+                var total_earnings = 0;
+                var total_xp = 0;
+                items.find({'status': "displayed", 'owner': user_object._id}).forEach(function(item_object) {
+                    var player_item_interface = new PlayerItemIF(item_object.owner, item_object._id);
+                    var money_per_hour = player_item_interface.getDisplayValuePerHour(display_earning_time);
+                    total_earnings += money_per_hour;
+                    total_xp += player_item_interface.getXPPerHour(display_earning_time);
 
-                var display_level = player_item_interface.getDisplayLevel(display_earning_time);
+                    var display_level = player_item_interface.getDisplayLevel(display_earning_time);
 
-                var player_interface = new Player(user_object._id);
-                if (!player_interface.isRecentlyActive()) {
-                    player_item_interface.setDisplayStatus(false);
-                }
+                    var player_interface = new PlayerIF(user_object._id);
+                    if (!player_interface.isRecentlyActive()) {
+                        player_item_interface.setDisplayStatus(false);
+                    }
 
-                if (Math.random() < .5) {
-                    var new_condition = item_object.condition < .5 ? item_object.condition : item_object.condition - .01;
-                    updateItem(item_object._id, {$set: {'condition' : new_condition}});
-                }
-            });
+                    if (Math.random() < .5) {
+                        var new_condition = item_object.condition < .5 ? item_object.condition : item_object.condition - .01;
+                        updateItem(item_object._id, {$set: {'condition' : new_condition}});
+                    }
+                });
 
-            if (total_earnings > 0)
-                addFunds("display earnings", user_object._id, Math.floor(total_earnings));
+                if (total_earnings > 0)
+                    addFunds("display earnings", user_object._id, Math.floor(total_earnings));
 
-            if (total_xp > 0)
-                addXP(user_object._id, total_xp);
-        })
- 
-        var next_tick = moment(display_earning_time).add(display_earning_frequency, "milliseconds")._d.toISOString();
-        metadata.update({'display_earnings_tick': {$ne: null}}, {$set: {'display_earnings_tick': next_tick}});
+                if (total_xp > 0)
+                    addXP(user_object._id, total_xp);
+            })
+     
+            var next_tick = moment(display_earning_time).add(display_earning_frequency, "milliseconds")._d.toISOString();
+            metadata.update({'display_earnings_tick': {$ne: null}}, {$set: {'display_earnings_tick': next_tick}});
+        }
     }
 
     else metadata.insert({'display_earnings_tick': moment()._d.toISOString()});
@@ -170,26 +171,29 @@ Meteor.setInterval((function() {
     if (metadata.findOne({'permanent_xp_tick': {$ne: null}}) != undefined) {
         var xp_earning_time = metadata.findOne({'permanent_xp_tick': {$ne: null}}).permanent_xp_tick;
 
-        if (getNowISOString() < xp_earning_time)
-            return;
+        if (getNowISOString() > xp_earning_time) {
+            if (DEBUG) {
+                console.log("awarding xp: " + getNowISOString());
+            }
 
-        Meteor.users.find().forEach(function(user_object) {
-            var toal_xp = 0;
-            items.find({'status': "permanent", 'owner': user_object._id}).forEach(function(item_object) {
-                var player_item_interface = new PlayerItemIF(item_object.owner, item_object._id);
-                var xp_per_hour = player_item_interface.getXPPerHour(xp_earning_time);
-                toal_xp += xp_per_hour;
+            Meteor.users.find().forEach(function(user_object) {
+                var toal_xp = 0;
+                items.find({'status': "permanent", 'owner': user_object._id}).forEach(function(item_object) {
+                    var player_item_interface = new PlayerItemIF(item_object.owner, item_object._id);
+                    var xp_per_hour = player_item_interface.getXPPerHour(xp_earning_time);
+                    toal_xp += xp_per_hour;
 
-                if (item_object.xp_rating < 1)
-                    updateItem(item_object._id, {$set: {'xp_rating': Math.min(item_object.xp_rating + .05, 1)}});
-            });
+                    if (item_object.xp_rating < 1)
+                        updateItem(item_object._id, {$set: {'xp_rating': Math.min(item_object.xp_rating + .02, 1)}});
+                });
 
-            if (toal_xp > 0)
-                addXP(user_object._id, toal_xp);        
-        })
-        
-        var next_tick = moment(xp_earning_time).add(xp_earning_frequency, "milliseconds")._d.toISOString();
-        metadata.update({'permanent_xp_tick': {$ne: null}}, {$set: {'permanent_xp_tick': next_tick}});
+                if (toal_xp > 0)
+                    addXP(user_object._id, toal_xp);        
+            })
+            
+            var next_tick = moment(xp_earning_time).add(xp_earning_frequency, "milliseconds")._d.toISOString();
+            metadata.update({'permanent_xp_tick': {$ne: null}}, {$set: {'permanent_xp_tick': next_tick}});
+        }
     }
 
     else metadata.insert({'permanent_xp_tick': moment()._d.toISOString()});
