@@ -229,7 +229,7 @@ updateGalleryDetails = function(user_id) {
             var player_item_interface = new PlayerItemIF(user_id, item_object._id);
             gallery_value += player_item_interface.getValue('actual');
             earnings_per_hour += player_item_interface.getDisplayValuePerHour(now);
-            xp_per_hour += player_item_interface.getXPPerHour(now);
+            xp_per_hour += player_item_interface.getXPPerHour(now, "displayed");
             var item_attributes = getAllItemObjectAttributes(item_object);
 
             var rarity_npc_coefficient;
@@ -255,6 +255,11 @@ updateGalleryDetails = function(user_id) {
 
                 else attribute_totals[attribute_id] += attribute_value;
             }
+        });
+
+        items.find({'owner' : user_id, 'status' : 'permanent'}).forEach(function(item_object) {
+            var player_item_interface = new PlayerItemIF(user_id, item_object._id);
+            xp_per_hour += player_item_interface.getXPPerHour(now, "permanent");
         });
 
         var gallery_score = Math.floor(attribute_rating_total * 100);
@@ -1271,7 +1276,7 @@ Meteor.methods({
         var now = moment()._d.toISOString();
         items.find({'owner': Meteor.userId(), 'status': {$in: ["permanent", "displayed"]}}).forEach(function(item_object) {
             var player_item_interface = new PlayerItemIF(Meteor.userId(), item_object._id);
-            total_xp += player_item_interface.getXPPerHour(now);
+            total_xp += player_item_interface.getXPPerHour(now, item_object.status);
         })
         return total_xp;
      }

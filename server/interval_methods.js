@@ -137,7 +137,7 @@ Meteor.setInterval((function() {
                     var player_item_interface = new PlayerItemIF(item_object.owner, item_object._id);
                     var money_per_hour = player_item_interface.getDisplayValuePerHour(display_earning_time);
                     total_earnings += money_per_hour;
-                    total_xp += player_item_interface.getXPPerHour(display_earning_time);
+                    total_xp += player_item_interface.getXPPerHour(display_earning_time, "displayed");
 
                     var display_level = player_item_interface.getDisplayLevel(display_earning_time);
 
@@ -180,7 +180,7 @@ Meteor.setInterval((function() {
                 var toal_xp = 0;
                 items.find({'status': "permanent", 'owner': user_object._id}).forEach(function(item_object) {
                     var player_item_interface = new PlayerItemIF(item_object.owner, item_object._id);
-                    var xp_per_hour = player_item_interface.getXPPerHour(xp_earning_time);
+                    var xp_per_hour = player_item_interface.getXPPerHour(xp_earning_time, "permanent");
                     toal_xp += xp_per_hour;
 
                     if (item_object.xp_rating < 1)

@@ -361,7 +361,7 @@ Meteor.methods({
                 'earnings_per_hour' : earnings_per_hour,
                 'time_since_displayed': getDurationString(moment() - moment(time_since_displayed), false, "dhm"),
                 'display_level': player_item_interface.getDisplayLevel(),
-                'xp_per_hour': player_item_interface.getXPPerHour(moment()._d.toISOString())
+                'xp_per_hour': player_item_interface.getXPPerHour(moment()._d.toISOString(), "displayed")
             }
         }
 
@@ -376,7 +376,7 @@ Meteor.methods({
     'getPermanentDetails': function(item_id) {
         var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
         if (player_item_interface.getItemReader().getStatus() == "permanent") {
-            var xp_per_hour = player_item_interface.getXPPerHour(moment()._d.toISOString());
+            var xp_per_hour = player_item_interface.getXPPerHour(moment()._d.toISOString(), "permanent");
             var time_since_displayed = player_item_interface.getItemReader().getItemObject().permanent_post;
             return {
                 'xp_per_hour' : xp_per_hour,
