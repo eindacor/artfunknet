@@ -1229,16 +1229,8 @@ Meteor.methods({
     },
 
     'setActiveUniqueAttribute': function(item_id, unique_attribute_id) {
-        var item_object = canChangeActiveUniqueAttribute(item_id);
-        if (item_object == undefined)
-            return false;
-        
-        var unique_object = unique_attributes.findOne(unique_attribute_id);
-
-        if (item_object.artwork_data.unique_attributes.indexOf(unique_object.code) == -1)
-            return false;
-
-        else updateItem(item_id, {$set: {'active_unique_attribute': unique_object.code}});
+        var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+        player_item_interface.changeActiveUniqueAttribute(unique_attribute_id);
      },
 
      'getDisplayValues': function() {
