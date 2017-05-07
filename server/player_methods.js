@@ -325,27 +325,12 @@ var purchaseExpansionSlot = function(user_object) {
 
 getEntryFee = function(buyer_object, owner_id) {
     owner_object = Meteor.users.findOne(owner_id);
-    var base_cost = getAverageDropValue(buyer_object.profile.level, 1.0);
-    if (owner_object == undefined || buyer_object == undefined) {
-        return -1;
-    }
-
-    var player_level_differential = owner_object.profile.level - buyer_object.profile.level;
-
-    var diff_scale = Math.abs(player_level_differential) / 50;
-
-    var flat_cost; 
-    if (player_level_differential > 0)
-        flat_cost = base_cost + (base_cost * diff_scale * .5);
-
-    else flat_cost = base_cost - (base_cost * diff_scale * .5);
-
     switch(owner_object.profile.entry_fee) {
         case 'free': return 0;
-        case 'low': return Math.floor(flat_cost * 0.4);
-        case 'medium': return Math.floor(flat_cost * 0.6);
-        case 'high': return Math.floor(flat_cost * 0.8);
-        case 'outrageous': return Math.floor(flat_cost * 1.0);
+        case 'low': return 5;
+        case 'medium': return 50;
+        case 'high': return 500;
+        case 'outrageous': return 5000;
         default: return 0;
     }
 }
@@ -593,7 +578,8 @@ Meteor.methods({
         chargeAccount(buyer_id, actual_amount);
 
         items.find({'owner': owner_id, 'status': {$in: ['displayed', 'permanent']}}).forEach(function(item_object) {
-            addItemObjectToChecklist(Meteor.userId(), 'seen', item_object);
+            var player_item_interface = new PlayerItemIF(buyer_id, item_object);
+            player_item_interface.addToChecklist('seen');
         })
 
     },

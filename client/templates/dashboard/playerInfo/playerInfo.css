@@ -48,12 +48,23 @@
 	font-weight: bold;
 }
 
+.template-playerInfo .player-data-table {
+	width: 100%;
+}
+
 .template-playerInfo .player-info {
 	margin-top: 40px;
 }
 
-.template-playerInfo .player-info p {
-	font-size: 1.2em;
+.template-playerInfo .player-info td {
+	font-size: 1.5rem;
+	width: 50%;
+}
+
+.template-playerInfo .player-info td:nth-child(1) {
+	text-align: right;
+	padding-right: 10px;
+	color: black;
 }
 
 .template-playerInfo #edit-fee {
@@ -102,6 +113,6 @@
 }
 
 .template-playerInfo .feedback {
-	margin-top: 20px;
+	margin-top: 40px;
 	color: black;
 }

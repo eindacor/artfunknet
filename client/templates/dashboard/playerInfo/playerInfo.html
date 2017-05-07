@@ -33,43 +33,89 @@
 			</div>
 		</div>
 		<div class="row player-info">
-			<div class="col-xs-4 no-margin no-padding">
-				<p class="player-data">bank balance: <span class="highlight af-color">{{displayAsMoneyValue profile.bank_balance}}</span></p>	
-				{{#if max_level}}
-				{{else}}
-				<p class="player-data">lottery tickets: <span class="highlight gold-text">{{profile.lottery_tickets}}</span></p>	
-				{{/if}}
-				<p class="player-data">collection value: <span class="highlight af-color">${{collection_value}}</span></p>	
-				{{#with gallery_values}}			
-				<p class="player-data">current exhibition value: <span class="highlight af-color">{{displayAsMoneyValue value}}</span></p>	
-				<p class="player-data">display earnings per hour: <span class="highlight af-color">{{displayAsMoneyValue earnings_per_hour}}</span></p>
-				{{/with}}	
-				<p class="player-data">perm. collection: <span class="highlight af-color">{{permanent_count}}</span> ({{profile.pc_cap}} max)</p>
-				{{#with gallery_values}}
-				<p class="player-data">xp per hour: <span class="highlight af-color">{{commaSeparatedValue xp_per_hour}}</span></p>				
-				<p class="player-data">items exhibited: <span class="highlight af-color">{{display_count}}</span> ({{../profile.display_cap}} max)</p>					
-				<p class="player-data">paintings owned: <span class="highlight af-color">{{inventory_count}}</span></p>
-				<p class="player-data">inventory space available: <span class="highlight af-color">{{slots_available}}</span></p>	
-				<p class="player-data">originals owned: <span class="highlight purple-text">{{original_count}}</span></p>	
-				<p class="player-data">vintage items owned: <span class="highlight vintage-text">{{vintage_count}}</span></p>									
-				{{/with}}	
-				<p class="player-data">completed quests: <span class="highlight af-color">{{commaSeparatedValue profile.completed_quests}}</span></p>	
-				{{#each npc_quality}}
-				<p class="player-data"><span class="highlight {{this}}">{{this}}</span> characters met: <span class="highlight af-color">{{npcs_met this}}</span> ({{npc_max_meetings this}} max)</p>
-				{{/each}}
-				<!-- <p class="player-data">auctioned items: <span class="highlight af-color">{{auctioned_items}}</span> ({{auction_cap}} max)</p>
-				<p class="player-data">winning auctions: <span class="highlight af-color">{{winning_auctions}}</span> ({{auction_cap}} max)</p>	 -->	
-				<p class="player-data">gallery ticket limit: <span class="highlight af-color">{{profile.ticket_cap}}</span></p>	
-				<p class="player-data">gallery entry fee: 
-					<select class="price-selector">
-						<option selected="selected" value="{{entry_fee}}">{{profile.entry_fee}}</option>
-						{{#each unselected profile.entry_fee}}
-							<option value="{{this}}">{{this}}</option>
-						{{/each}}
-					</select>
-				</p>
+			<div class="col-xs-6 no-margin no-padding">
+				<table class="player-data-table">
+					<tr>
+						<td class="player-data">bank balance:</td>
+						<td class="highlight af-color">{{displayAsMoneyValue profile.bank_balance}}</td>
+					</tr>
+					{{#if max_level}}
+					{{else}}
+					<tr>
+						<td class="player-data">lottery tickets:</td>
+						<td class="highlight gold-text">{{profile.lottery_tickets}}</td>	
+					</tr>
+					{{/if}}
+					<tr>
+						<td class="player-data">collection value:</td>
+						<td class="highlight af-color">${{collection_value}}</td>	
+					</tr>
+					{{#with gallery_values}}			
+					<tr>
+						<td class="player-data">current exhibition value:</td>
+						<td class="highlight af-color">{{displayAsMoneyValue value}}</td>
+					</tr>	
+					<tr>
+						<td class="player-data">display earnings per hour:</td>
+						<td class="highlight af-color">{{displayAsMoneyValue earnings_per_hour}}</td>
+					</tr>
+					<tr>
+						<td class="player-data">xp per hour:</td>
+						<td class="highlight af-color">{{commaSeparatedValue xp_per_hour}}</td>
+					</tr>	
+					{{/with}}	
+					<tr>
+						<td class="player-data">perm. collection:</td>
+						<td><span class="highlight af-color">{{permanent_count}}</span> ({{profile.pc_cap}} max)</td>			
+					</tr>
+					<tr>
+						<td class="player-data">items exhibited:</td>
+						<td><span class="highlight af-color">{{display_count}}</span> ({{profile.display_cap}} max)</td>	
+					</tr>				
+					<tr>
+						<td class="player-data">paintings owned:</td>
+						<td class="highlight af-color">{{inventory_count}}</td>
+					</tr>
+					<tr>
+						<td class="player-data">inventory space available:</td>
+						<td class="highlight af-color">{{slots_available}}</td>
+					</tr>	
+					<tr>
+						<td class="player-data">originals owned:</td>
+						<td class="highlight purple-text">{{original_count}}</td>
+					</tr>	
+					<tr>
+						<td class="player-data">vintage items owned:</td>
+						<td class="highlight vintage-text">{{vintage_count}}</td>
+					</tr>									
+					<tr>
+						<td class="player-data">completed quests:</td>
+						<td class="highlight af-color">{{commaSeparatedValue profile.completed_quests}}</td>
+					</tr>	
+					{{#each npc_quality}}
+					<tr>
+						<td class="player-data"><span class="highlight {{this}}">{{this}}</span> visitors met:</td>
+						<td><span class="highlight af-color">{{npcs_met this}}</span> ({{npc_max_meetings this}} max)</td>
+					</tr>
+					{{/each}}
+					<tr>
+						<td class="player-data">gallery ticket limit:</td>
+						<td class="highlight af-color">{{profile.ticket_cap}}</td>
+					</tr>
+					<tr>	
+						<td class="player-data">gallery entry fee:</td>
+						<td>
+							<select class="price-selector">
+								<option selected="selected" value="{{entry_fee}}">{{profile.entry_fee}}</option>
+								{{#each unselected profile.entry_fee}}
+									<option value="{{this}}">{{this}}</option>
+								{{/each}}
+							</select>
+						</td>
+					</tr>
+				</table>
 	    	</div>
-	    	<div class="col-xs-8 no-margin no-padding alert-area">
+	    	<div class="col-xs-6 no-margin no-padding alert-area">
 				{{> alerts}}
 			</div>
 		</div>

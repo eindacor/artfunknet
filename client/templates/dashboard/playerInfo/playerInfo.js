@@ -120,7 +120,8 @@ Template.playerInfo.helpers({
 		catch (error) { 
 			return {
 				'gallery_value': 0,
-				'earnings_per_hour': 0
+				'earnings_per_hour': 0,
+				'xp_per_hour': 0
 			}
 		}
 	},

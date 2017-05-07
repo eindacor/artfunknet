@@ -267,6 +267,36 @@ Template.itemInfo.helpers({
 		}
 		
 		return permanent_details_map[item_id];
+	},
+
+	'card_types': function(item_data) {
+		var types = "";
+
+		if (item_data.foil) {
+			types += "foil ";
+		}
+
+		if (item_data.seasonal) {
+			types += "seasonal ";
+		}
+
+		if (item_data.lottery) {
+			types += "lottery ";
+		}
+
+		if (item_data.original) {
+			types += "original ";
+		}
+
+		if (item_data.unlocked) {
+			types += "unlocked ";
+		}
+
+		if (item_data.vintage) {
+			types += "vintage ";
+		}
+
+		return types;
 	}
 })
 

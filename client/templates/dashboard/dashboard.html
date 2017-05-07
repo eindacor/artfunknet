@@ -4,7 +4,7 @@
 			{{setSection specified_section}}
 			<div class="row no-padding no-margin">
 				<div class="row">
-					<span class="gamertag af-color">{{screen_name}}</span>{{#if vintage_level}} ({{vintage_level}}){{/if}}
+					<span class="gamertag af-color highlight">{{screen_name}}</span><span class="vintage-text">{{#if vintage_level}} v{{vintage_level}}{{/if}}</span>
 				</div>
 				<div class="dashboard-tab-area">
 					{{> dashboardTab current_section=current_section section_title="profile" icon="profile"}}

@@ -217,3 +217,7 @@ a {
 .modal-dialog {
 	border-radius: 0px;
 }
+
+.text-shadow {
+	text-shadow: .1rem .1rem #555555;
+}

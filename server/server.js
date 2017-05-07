@@ -42,6 +42,18 @@ var updateContent = function() {
         Meteor.users.update(db_object._id, {$set : setter});
     });
 
+    if (TEST_MODE) {
+        items.find({'status': {$in: ["displayed", "permanent"]}}).forEach(function(item_object) {
+            var random_days = Math.floor(Math.random() * 30);
+            var random_time = moment().add(random_days * -1, 'days')._d.toISOString();
+            var random_xp = Math.floor(Math.random() * 100) / 100;
+            if (item_object.status == "permanent")
+                updateItem(item_object._id, {$set: {'permanent_post': random_time, 'xp_rating': random_xp}});
+
+            else updateItem(item_object._id, {$set: {'time_displayed': random_time, 'xp_rating': random_xp}});
+        });
+    }
+
     // temp code
     // temp code
 }

@@ -347,11 +347,6 @@
 	text-align: center;
 }
 
-.template-itemInfo .mask-info-container .green-text,
-.template-itemInfo .mask-info-container .af-color {
-	text-shadow: 1px 1px #333333;
-}
-
 .template-itemInfo .card-container .display-details {
 	font-size: 2rem;
 	opacity: 1;

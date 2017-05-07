@@ -7,8 +7,8 @@
 					{{#with display_details item_data._id}}
 					{{#if earnings_per_hour}}
 						<p class="display-details">{{time_since_displayed}} (lvl {{display_level}})</p>
-						<p class="display-details green-text">{{displayAsMoneyValue earnings_per_hour}}/hr.</p>
-						<p class="display-details af-color">{{commaSeparatedValue xp_per_hour}}xp/hr.</p>
+						<p class="display-details green-text text-shadow">{{displayAsMoneyValue earnings_per_hour}}/hr.</p>
+						<p class="display-details af-color text-shadow">{{commaSeparatedValue xp_per_hour}}xp/hr.</p>
 					{{/if}}
 					{{/with}}
 				</div>
@@ -22,13 +22,13 @@
 					{{#with permanent_details item_data._id}}
 					{{#if xp_per_hour}}
 						<p class="display-details">{{time_since_displayed}} (lvl {{permanent_level}})</p>
-						<p class="display-details af-color">{{commaSeparatedValue xp_per_hour}}xp/hr.</p>
+						<p class="display-details af-color text-shadow">{{commaSeparatedValue xp_per_hour}}xp/hr.</p>
 					{{/if}}
 					{{/with}}
 				</div>
 			</div>
 			<div class="row no-margin card-info">
-				<div class="card-header col-xs-12 {{#if item_data.foil}}foil{{/if}} {{#if item_data.seasonal}}seasonal{{/if}} {{#if item_data.lottery}}lottery{{/if}} {{#if item_data.original}}original{{/if}} {{#if item_data.unlocked}}unlocked{{/if}}">
+				<div class="card-header col-xs-12 {{card_types item_data}}">
 					<div class="row no-margin">
 						<div class="header-basic-info">
 							<p class="item-title work-title">{{#if already_owns item_data._id}}* {{/if}}{{item_data.artwork_data.title}}</p>
@@ -73,7 +73,7 @@
 					</div>			
 				</div>
 
-				<div class="card-footer col-xs-12 {{#if item_data.foil}}foil{{/if}} {{#if item_data.seasonal}}seasonal{{/if}} {{#if item_data.lottery}}lottery{{/if}}">
+				<div class="card-footer col-xs-12 {{card_types item_data}}">
 					<div class="row no-margin">
 						{{#with checklist_info item_data}}
 							{{#if this}}
