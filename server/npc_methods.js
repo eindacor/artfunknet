@@ -713,6 +713,10 @@ var artDealerInteraction = function(npc_object) {
 			drop_count += 1;
 		}
 
+		if (procUniqueAttribute(Meteor.userId(), "XP_FROM_DEALER_PURCHASES", undefined)) {
+            min_xp_rating = .8;
+        }
+
 		if (procUniqueAttribute(Meteor.userId(), "DEALER_QUEST_ITEM_CHANCE", undefined)) {
 			var quest_item_ids = [];
 			quests.find({'owner_id': Meteor.userId()}).forEach(function(db_object) {
