@@ -276,8 +276,16 @@ Template.itemInfo.helpers({
 			types += "foil ";
 		}
 
+		if (item_data.unlocked) {
+			types += "unlocked ";
+		}
+
 		if (item_data.seasonal) {
 			types += "seasonal ";
+		}
+
+		if (item_data.vintage) {
+			types += "vintage ";
 		}
 
 		if (item_data.lottery) {
@@ -286,14 +294,6 @@ Template.itemInfo.helpers({
 
 		if (item_data.original) {
 			types += "original ";
-		}
-
-		if (item_data.unlocked) {
-			types += "unlocked ";
-		}
-
-		if (item_data.vintage) {
-			types += "vintage ";
 		}
 
 		return types;

@@ -55,6 +55,8 @@ var updateContent = function() {
     }
 
     // temp code
+    
+    items.update({'_id': "W6i6opvahRJ4koz3a"}, {$set: {'time_displayed': moment().add(-30, 'days')._d.toISOString()}});
     // temp code
 }
 

@@ -380,14 +380,47 @@ Template.adminTools.events({
     	var user_id = $('.user-selector').val();
     	var artwork_id = $('#generate-artwork-id').val();
     	var condition = $('#condition').val() == "" ? Number(Math.random().toFixed(2)) : Number($('#condition').val()) / 100;
-    	var xp_rating = $('#xp-rating').val() == "" ? Number(Math.random().toFixed(2)) : Number($('#xp-rating').val()) / 100;
-    	var foil_chance = $('.type-selector').val() == "foil" ? 1 : .01;
-    	var unlocked_chance = $('.unlocked-selector').val() == "true" ? 1 : (1/20);
-    	var misprint_chance = $('.misprint-selector').val() == "true" ? 1 : .0001;
-    	var seasonal = $('.type-selector').val() == "seasonal";
-    	var lottery = isNaN($('.type-selector').val()) ? 0 : Number($('.type-selector').val());
-    	var original = $('.type-selector').val() == "original";
-    	var vintage = $('.vintage-selector').val() == "true";
+    	var xp_rating = $('#xp-rating').val() == "" ? 0 : Number($('#xp-rating').val()) / 100;
+    	// var foil_chance = $('.type-selector').val() == "foil" ? 1 : .01;
+    	// var unlocked_chance = $('.unlocked-selector').val() == "true" ? 1 : (1/20);
+    	// var misprint_chance = $('.misprint-selector').val() == "true" ? 1 : .0001;
+    	// var seasonal = $('.type-selector').val() == "seasonal";
+    	// var lottery = isNaN($('.type-selector').val()) ? 0 : Number($('.type-selector').val());
+    	// var original = $('.type-selector').val() == "original";
+    	// var vintage = $('.vintage-selector').val() == "true";
+
+    	var loot_data = getLootData();
+		var foil_chance;
+    	var foil_selection = $('input:radio[name=foil_selector]:checked').val();
+    	if (foil_selection == "random")
+    		foil_chance = loot_data.global_foil_chance;
+
+    	else foil_chance = foil_selection == "true" ? 1 : 0;
+
+    	var unlocked_chance;
+    	var unlocked_selection = $('input:radio[name=unlocked_selector]:checked').val();
+    	if (unlocked_selection == "random")
+    		unlocked_chance = loot_data.global_unlocked_chance;
+
+    	else unlocked_chance = unlocked_selection == "true" ? 1 : 0;
+
+    	var seasonal;
+    	var seasonal_selection = $('input:radio[name=seasonal_selector]:checked').val();
+    	if (seasonal_selection == "season")
+    		seasonal = undefined;
+
+    	else seasonal = seasonal_selection == "true";
+
+    	var original = $('input:radio[name=original_selector]:checked').val() == "true";
+    	var vintage = $('input:radio[name=vintage_selector]:checked').val() == "true";
+    	var lottery = isNaN($('input:radio[name=lottery_selector]:checked').val()) ? 0 : Number($('input:radio[name=lottery_selector]:checked').val());
+
+    	var misprint_chance;
+    	var misprint_selection = $('input:radio[name=misprint_selector]:checked').val();
+    	if (misprint_selection == "random")
+    		misprint_chance = loot_data.global_misprint_chance;
+
+    	else misprint_chance = misprint_selection == "true" ? 1 : 0;
 
     	Meteor.call('generateItemFromArtworkID', user_id, artwork_id, condition, xp_rating, foil_chance, unlocked_chance, seasonal, Number(lottery), original, vintage, misprint_chance, function(error, result) {
     		if (error)
