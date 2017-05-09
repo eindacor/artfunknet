@@ -404,12 +404,16 @@ Meteor.methods({
 
     'updateUniqueAttributeData': function(unique_attribute_id, unique_attribute_object) {
     	if (adminValidated() && linkedAttributesValid(unique_attribute_id, unique_attribute_object.linked_attributes)) {
-    		unique_attributes.update(unique_attribute_id, {$set: unique_attribute_object});
+            unique_attributes.update(unique_attribute_id, {$set: unique_attribute_object}, function(error, count, status) {
+
+            });
     		return true;
     	}
 
     	else return undefined;
-    },
+    }
+
+    //TODO FIX THIS ^^^^^^^
 
     'addNewUniqueAttribute': function(unique_attribute_object) {
     	if (adminValidated() && linkedAttributesValid(undefined, unique_attribute_object.linked_attributes)) {

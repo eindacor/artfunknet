@@ -49,7 +49,7 @@ updateItemTemplate = function(item_id, delay) {
 			target_container.find('#dynamic-roll-count-stat').text("roll count: " + item_object.roll_count);
 
 			if (item_object.active_unique_attribute) {
-				target_container.find('.flavor-text').text('"' + unique_attributes.findOne({'code': item_object.active_unique_attribute}).flavor_text + '"');
+				target_container.find('.flavor-text').text('"' + unique_attributes.findOne({'_id': item_object.active_unique_attribute}).flavor_text + '"');
 			}
 
 			var all_attributes = item_object.attributes.unlocked.concat(item_object.attributes.locked.concat(item_object.attributes.special));

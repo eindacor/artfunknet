@@ -709,6 +709,10 @@ var artDealerInteraction = function(npc_object) {
 			foil_chance *= 2;
 		}
 
+		if (procUniqueAttribute(Meteor.userId(), "DEALER_XP_RATING_MIN", undefined)) {
+			min_xp_rating = .8;
+		}
+
 		if ((items.findOne({'owner': Meteor.userId(), 'status': "displayed", 'condition': {$lt: .7}}) == undefined) &&procUniqueAttribute(Meteor.userId(), "DISPLAY_CONDITION_DEALER_BOOST", undefined)) {
 			drop_count += 1;
 		}

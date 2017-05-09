@@ -70,8 +70,8 @@ var updateUniqueAttributesFromSpecialAttributeSelected = function() {
             if (i != n) {
                 var unique_attribute = unique_attributes.findOne({'linked_attributes': {$all: [selected_artwork_special_attributes_selected[i], selected_artwork_special_attributes_selected[n]]}});
 
-                if (special_attribute_unique_attributes.indexOf(unique_attribute.code) == -1)
-                    special_attribute_unique_attributes.push(unique_attribute.code);
+                if (special_attribute_unique_attributes.indexOf(unique_attribute._id) == -1)
+                    special_attribute_unique_attributes.push(unique_attribute._id);
             }
         }
     }
@@ -1131,7 +1131,7 @@ Template.adminTools.helpers({
 		var unique_attribute_object = unique_attributes.findOne($('.unique-attribute-mod-selector').val());
 
 		if (unique_attribute_object)
-			return artworks.find({'unique_attributes': {$in : [unique_attribute_object.code]}});
+			return artworks.find({'unique_attributes': {$in : [unique_attribute_object._id]}});
 
 		else return [];
 	}

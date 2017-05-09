@@ -55,6 +55,20 @@ var updateContent = function() {
     }
 
     // temp code
+    artworks.find({'rarity': {$in: ["legendary", "masterpiece"]}}).forEach(function(artwork_object) {
+        var unique_codes = artwork_object.unique_attributes;
+        var unique_ids = [];
+        for (var i=0; i<unique_codes.length; i++) {
+            var unique_attribute_object = unique_attributes.findOne({'code': unique_codes[i]});
+            if (unique_attribute_object)
+                unique_ids.push(unique_attribute_object._id);
+        }
+        artworks.update({'_id': artwork_object._id}, {$set: {'unique_attributes': unique_ids}}, function(error, count, status) {
+            items.find({'artwork_id': artwork_object._id}).forEach(function(item_object) {
+                updateItemAttributesWithNewArtworkData(item_object._id);
+            })
+        });
+    })
     // temp code
 }
 
