@@ -5,10 +5,6 @@ Template.galleryItemInfo.helpers({
 
 	'condition_text': function(condition) {
 		return Math.floor(condition * 100) + '%';
-	},
-
-	'xp_rating_text': function(xp_rating) {
-		return Math.floor(xp_rating * 100);
 	}
 })
 

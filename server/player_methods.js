@@ -67,7 +67,7 @@ createUser = function(user_object, callback){
         'info': true,
         'action_buttons': true,
         'attributes': false,
-        'xp_rating': true,
+        'level': true,
         'display': true,
         'permanent': true,
         'gallery': false,
@@ -343,7 +343,7 @@ resetTutorials = function(user_id) {
             'info': false,
             'action_buttons': false,
             'attributes': false,
-            'xp_rating': false,
+            'level': false,
             'display': false,
             'permanent': false,
             'gallery': false,
@@ -661,7 +661,7 @@ Meteor.methods({
                     'user_id': user_object._id,
                     'artwork_id': random_artwork_id,
                     'condition': undefined,
-                    'xp_rating': undefined,
+                    'level': 1,
                     'foil_chance': quest_object.reward.item.foil ? 1 : loot_data.global_foil_chance,
                     'unlocked_chance': loot_data.global_unlocked_chance,
                     'seasonal': undefined,
@@ -669,7 +669,6 @@ Meteor.methods({
                     'original': false,
                     'misprint_chance': loot_data.global_misprint_chance,
                     'status': "unclaimed",
-                    'xp_rating_min': 0,
                     'condition_min': 0
                 }
 
@@ -804,7 +803,7 @@ Meteor.methods({
                 'min_bid': 0,
                 'viewer': 0,
                 'item_data.condition': 0,
-                'item_data.xp_rating': 0,
+                'item_data.level': 0,
                 'item_data.feature_count': 0,
                 'item_data.roll_count': 0,
                 'item_data.attributes': 0
@@ -855,7 +854,7 @@ Meteor.methods({
                 'item_id': 0,
                 'increment': 0,
                 'item_data.condition': 0,
-                'item_data.xp_rating': 0,
+                'item_data.level': 0,
                 'item_data.feature_count': 0,
                 'item_data.roll_count': 0,
                 'item_data.attributes.locked.value': 0,
@@ -864,7 +863,7 @@ Meteor.methods({
             }
 
             if (sort_object.item_data != undefined && (
-                sort_object.item_data.xp_rating != undefined ||
+                sort_object.item_data.level != undefined ||
                 sort_object.item_data.roll_count != undefined ||
                 sort_object.item_data.condition != undefined)) {
                 return {
@@ -1168,7 +1167,7 @@ Meteor.methods({
         if (has_auctioneer || auction_object.seller == Meteor.user().profile.screen_name) {
             fields_object.condition = 1;
             fields_object.values = 1;
-            fields_object.xp_rating = 1;
+            fields_object.level = 1;
             fields_object.roll_count = 1;
             fields_object["attributes.locked.value"] = 1;
             fields_object["attributes.unlocked.value"] = 1;

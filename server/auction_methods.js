@@ -40,7 +40,7 @@ createAuction = function(item_id, starting, buy_now, duration, viewer) {
                     'medium': item_object.artwork_data.medium,
                     'condition': item_object.condition,
                     'date': item_object.artwork_data.date,
-                    'xp_rating': item_object.xp_rating,
+                    'level': item_object.level,
                     'feature_count': item_object.attributes.length,
                     'rarity_value' : item_object.artwork_data.rarity_value,
                     'roll_count' : item_object.roll_count,

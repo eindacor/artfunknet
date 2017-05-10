@@ -150,6 +150,20 @@ Template.playerInfo.helpers({
 
 	'npc_max_meetings': function(quality) {
 		return npc_max_map[quality];
+	},
+
+	'knowledge': function() {
+		var knowledge_array = [];
+		var user_object = Meteor.user();
+		for (var i=0; i<knowledge_types.length; i++) {
+			knowledge_array.push({
+				'color': artwork_rarities[i],
+				'amount': user_object.profile.knowledge[knowledge_types[i]],
+				'name': knowledge_types[i].replace("_", " ")
+			})
+		}
+
+		return knowledge_array;
 	}
 })
 

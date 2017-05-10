@@ -27,6 +27,10 @@ updateItemActions = function(item_object) {
 		button_area.append('<span class="reroll enabled"><i data-item_id="' + item_object._id + '" class="appended fa fa-magic"></i></span>');
 	}
 
+	if (permissions.canDonate()) {
+		button_area.append('<span class="donate enabled"><i data-item_id="' + item_object._id + '" class="appended fa fa-book"></i></span>');
+	}
+
 	if (permissions.canSetPermanent()) {
 		button_area.append('<span class="perm-collection inactive"><i data-item_id="' + item_object._id + '" class="appended fa fa-heart"></i></span>');
 	}
@@ -41,6 +45,10 @@ updateItemActions = function(item_object) {
 
 	if (permissions.canDecline()) {
 		button_area.append('<span class="decline enabled"><i data-item_id="' + item_object._id + '" class="appended fa fa-times"></i></span>');
+	}
+
+	if (permissions.canUpgrade()) {
+		button_area.append('<span class="upgrade enabled"><i data-item_id="' + item_object._id + '" class="appended fa fa-arrow-circle-up"></i></span>');
 	}
 
 	button_area.append('<span class="tags enabled"><i data-item_id="' + item_object._id + '" class="appended fa fa-tags"></i></span>');
@@ -63,6 +71,8 @@ var getPermissions = function(item_object) {
 			var unpermanent = permissions.canUnsetPermanent();
 			var auction = permissions.canAuction();
 			var decline = permissions.canDecline();
+			var donate = permissions.canDonate();
+			var upgrade = permissions.canUpgrade();
 
 			return {
 				'sell': sell,
@@ -74,7 +84,9 @@ var getPermissions = function(item_object) {
 				'unpermanent': unpermanent,
 				'auction': auction,
 				'decline': decline,
-				'undisplay': undisplay
+				'undisplay': undisplay,
+				'donate': donate,
+				'upgrade': upgrade
 			}
 		}
 	}
@@ -297,6 +309,45 @@ Template.itemActions.events({
 					'item_data': items.findOne(item_id)
 				}
 			}, $('body')[0]);
+		}
+	},
+
+	'click .donate.enabled' : function(element) {
+		element.stopPropagation();
+		var item_id = $(element.target).closest('.item-container').data('item_id');
+		var permissions = getPlayerItemPermissions(Meteor.userId(), item_id);
+		if (permissions.canQuickDiscard()) {
+			Meteor.call('donateItem', item_id, function(error) {
+				if (error)
+					console.log(error.message);
+
+				else {
+					Session.set('update_set', true);
+				}
+			});
+		}
+
+		else {
+			Blaze.renderWithData(Template.modalTemplate, {
+				'modal_name': "donateModal", 
+				'modal_data': items.findOne(item_id)
+			}, $('body')[0]);
+		}
+	},
+
+	'click .upgrade.enabled' : function(element) {
+		element.stopPropagation();
+		var item_id = $(element.target).closest('.item-container').data('item_id');
+		var permissions = getPlayerItemPermissions(Meteor.userId(), item_id);
+		if (permissions.canUpgrade()) {
+			Meteor.call('upgradeItem', item_id, function(error) {
+				if(error)
+					console.log(error.message);
+
+				else {
+					Session.set('update_set', true);
+				}
+			})
 		}
 	},
 })

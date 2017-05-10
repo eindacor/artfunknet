@@ -45,7 +45,6 @@ updateItemTemplate = function(item_id, delay) {
 		if (target_container) {
 			target_container.find('#dynamic-value-stat').text("estimated value: " + getMoneyValue(item_object.values.actual));	
 			target_container.find('#dynamic-xp-stat').text("xp rating: ");
-			target_container.find('#dynamic-xp-stat').append('<span style="color: ' + getHTMLColorFromValue(item_object.xp_rating) + '">' + item_object.xp_rating.toFixed(2) * 100 + '</span>')
 			target_container.find('#dynamic-roll-count-stat').text("roll count: " + item_object.roll_count);
 
 			if (item_object.active_unique_attribute) {
@@ -85,7 +84,7 @@ updateItemTemplate = function(item_id, delay) {
 
 			var dynamic_xp_wrapper = target_container.find('.dynamic-xp-rating');
 			dynamic_xp_wrapper.empty();
-			dynamic_xp_wrapper.append('<p><span style="color: ' + getHTMLColorFromValue(item_object.xp_rating) + '">' + item_object.xp_rating.toFixed(2) * 100 + '</span></p>')
+			dynamic_xp_wrapper.append('<p>' + item_object.level + '</p>')
 
 			target_container.remove('.status-mask');
 
@@ -208,7 +207,7 @@ Template.itemInfo.helpers({
 	},
 
 	'showDetails': function(item_data) {
-		return item_data.xp_rating != undefined;
+		return item_data.level != undefined;
 	},
 
 	'checklist_info': function(item_data) {

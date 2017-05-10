@@ -46,17 +46,28 @@ var updateContent = function() {
         items.find({'status': {$in: ["displayed", "permanent"]}}).forEach(function(item_object) {
             var random_days = Math.floor(Math.random() * 30);
             var random_time = moment().add(random_days * -1, 'days')._d.toISOString();
-            var random_xp = Math.floor(Math.random() * 100) / 100;
+            var random_level = Math.floor(Math.random() * 10) + 1;
             if (item_object.status == "permanent")
-                updateItem(item_object._id, {$set: {'permanent_post': random_time, 'xp_rating': random_xp}});
+                updateItem(item_object._id, {$set: {'permanent_post': random_time, 'level': random_level}});
 
-            else updateItem(item_object._id, {$set: {'time_displayed': random_time, 'xp_rating': random_xp}});
+            else updateItem(item_object._id, {$set: {'time_displayed': random_time, 'level': random_level}});
         });
     }
 
     // temp code
-    
-    items.update({'_id': "W6i6opvahRJ4koz3a"}, {$set: {'time_displayed': moment().add(-30, 'days')._d.toISOString()}});
+    var knowledge = {
+        'historical_data': 0,
+        'contextual_understanding': 0,
+        'pigment_identification': 0, 
+        'technical_comprehension': 0,
+        'artistic_vision': 0
+    }
+
+    Meteor.users.update({'knowledge': null}, {$set: {'profile.knowledge': knowledge}}, {multi: true});
+    items.find({'xp_rating': {$ne: null}}).forEach(function(item_object) {
+        var level = Math.min(Math.floor(item_object.xp_rating * 10) + 1, 10);
+        items.update({'_id': item_object._id}, {$set: {'level': level}, $unset: {'xp_rating': ""}});
+    });
     // temp code
 }
 

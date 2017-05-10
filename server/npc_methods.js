@@ -211,7 +211,7 @@ var donorInteraction = function(npc_object) {
 	var loot_data = getLootData();
 	var foil_chance = loot_data.global_foil_chance;
 	var condition_min = 0;
-	var min_xp_rating = 0;	
+	var level = 0;	
 
 	if (isOwnGallery(npc_object)) {
 		drop_count += 1;
@@ -229,7 +229,7 @@ var donorInteraction = function(npc_object) {
 		}
 
 		if (procUniqueAttribute(Meteor.userId(), "DONOR_XP_RATING_MIN", undefined)) {
-			min_xp_rating = .8;
+			level = 5;
 		}
 
 		if (procUniqueAttribute(Meteor.userId(), "DONOR_DROP_QUALITY_BOOST", undefined)) {
@@ -255,7 +255,7 @@ var donorInteraction = function(npc_object) {
                     'user_id': Meteor.userId(),
                     'artwork_id': quest_item_ids[random_index],
                     'condition': undefined,
-                    'xp_rating': min_xp_rating,
+                    'level': level,
                     'foil_chance': foil_chance,
                     'unlocked_chance': loot_data.global_unlocked_chance,
                     'seasonal': undefined,
@@ -263,7 +263,6 @@ var donorInteraction = function(npc_object) {
                     'original': false,
                     'misprint_chance': loot_data.global_misprint_chance,
                     'status': "unclaimed",
-                    // 'xp_rating_min': min_xp_rating,
                     'condition_min': condition_min
                 }
 
@@ -281,7 +280,6 @@ var donorInteraction = function(npc_object) {
         'foil_chance': foil_chance,
         'unlocked_chance': loot_data.global_unlocked_chance,
         'misprint_chance': loot_data.global_misprint_chance,
-        'xp_rating_min': min_xp_rating,
         'condition_min': condition_min
     }
 
@@ -383,14 +381,14 @@ var preservationistInteraction = function(npc_object) {
 					criteria_met = true;
 				}
 
-				if (random_permanent.xp_rating > .9) {
-					addXPChunkPercentage("PC_XP_RATING_BOOST - xp rating", Meteor.userId(), .3);
+				if (random_permanent.level > 5) {
+					addXPChunkPercentage("PC_XP_RATING_BOOST - level", Meteor.userId(), .3);
 					criteria_met = true;
 				}
 
 				if (!criteria_met) {
-					if (Math.random() < .5) {
-						updateItem(random_permanent._id, {$set: {'xp_rating': Math.min( Number((random_permanent.xp_rating + .01).toFixed(2)), 1 )}});
+					if (Math.random() < .5 && random_permanent.level < 5) {
+						updateItem(random_permanent._id, {$inc: {'level': 1}});
 					}
 
 					else {
@@ -528,7 +526,7 @@ var collectorInteraction = function(npc_object) {
 
 	if (collector_target) {
 		var base_value = Math.floor(getItemObjectValueByType(collector_target, 'actual', Meteor.userId()));
-		var base_chunk = .1 + (.1 * collector_target.xp_rating);
+		var base_chunk = .1 + (.2 * collector_target.level);
 		var offer_bonus = 0;
 		var standard_legendary_increment = .8;
 
@@ -573,27 +571,27 @@ var collectorInteraction = function(npc_object) {
 
 			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_AUCTION_BONUS", undefined)) {
 				var highest_value = 0;
-				var highest_xp_rating = 0;
+				var highest_level = 0;
 				
 				// find highest auction_min value for this player's auctions (must have a winning bid) as well as auctions they are winning
 				auctions.find({'seller': Meteor.user().profile.screen_name}).forEach(function(auction_object) {
 					if (Meteor.users.findOne({'profile.auction_data.winning': auction_object._id}) != undefined) {
 						var item_object = items.findOne(auction_object.item_id);
 						highest_value = Math.max(getItemObjectValueByType(item_object, 'auction_min', Meteor.userId()), highest_value);
-						highest_xp_rating = Math.max(item_object.xp_rating, highest_xp_rating);
+						highest_level = Math.max(item_object.level, highest_level);
 					}
 				});
 
 				auctions.find({'_id': {$in: Meteor.user().profile.auction_data.winning}}).forEach(function(auction_object) {
 					var item_object = items.findOne(auction_object.item_id);
 					highest_value = Math.max(getItemObjectValueByType(item_object, 'auction_min', Meteor.userId()), highest_value);
-					highest_xp_rating = Math.max(item_object.xp_rating, highest_xp_rating);
+					highest_level = Math.max(item_object.level, highest_level);
 				});
 
 				if (!xp_offer)
 					offer_bonus += Math.floor(highest_value * .5);
 
-				else offer_bonus += (highest_xp_rating * .4)
+				else offer_bonus += (highest_level * .4)
 			}
 
 			var loot_data = getLootData();
@@ -608,7 +606,6 @@ var collectorInteraction = function(npc_object) {
 			        'foil_chance': loot_data.global_foil_chance,
 			        'unlocked_chance': loot_data.global_unlocked_chance,
 			        'misprint_chance': loot_data.global_misprint_chance,
-			        'xp_rating_min': 0,
 			        'condition_min': 0
 			    }
 
@@ -633,7 +630,7 @@ var collectorInteraction = function(npc_object) {
                         'user_id': Meteor.userId(),
                         'artwork_id': quest_item_ids[random_index],
                         'condition': undefined,
-                        'xp_rating': undefined,
+                        'level': 1,
                         'foil_chance': loot_data.global_foil_chance,
                         'unlocked_chance': loot_data.global_unlocked_chance,
                         'seasonal': undefined,
@@ -641,7 +638,6 @@ var collectorInteraction = function(npc_object) {
                         'original': false,
                         'misprint_chance': loot_data.global_misprint_chance,
                         'status': "unclaimed",
-                        'xp_rating_min': 0,
                         'condition_min': 0
                     }
 
@@ -691,7 +687,7 @@ var artDealerInteraction = function(npc_object) {
 	var drop_count = 4;
 	var loot_data = getLootData();
 	var foil_chance = loot_data.global_foil_chance;
-	var min_xp_rating = 0;
+	var level = 1;
 
 	if (isOwnGallery(npc_object)) {
 		drop_count += 2;
@@ -714,7 +710,7 @@ var artDealerInteraction = function(npc_object) {
 		}
 
 		if (procUniqueAttribute(Meteor.userId(), "XP_FROM_DEALER_PURCHASES", undefined)) {
-            min_xp_rating = .8;
+            level = 5;
         }
 
 		if (procUniqueAttribute(Meteor.userId(), "DEALER_QUEST_ITEM_CHANCE", undefined)) {
@@ -736,7 +732,7 @@ var artDealerInteraction = function(npc_object) {
                     'user_id': Meteor.userId(),
                     'artwork_id': quest_item_ids[random_index],
                     'condition': undefined,
-                    'xp_rating': min_xp_rating,
+                    'level': level,
                     'foil_chance': foil_chance,
                     'unlocked_chance': loot_data.global_unlocked_chance,
                     'seasonal': undefined,
@@ -744,7 +740,6 @@ var artDealerInteraction = function(npc_object) {
                     'original': false,
                     'misprint_chance': loot_data.global_misprint_chance,
                     'status': "for_sale",
-                    // 'xp_rating_min': min_xp_rating,
                     'condition_min': 0
                 }
 
@@ -762,7 +757,6 @@ var artDealerInteraction = function(npc_object) {
         'foil_chance': foil_chance,
         'unlocked_chance': loot_data.global_unlocked_chance,
         'misprint_chance': loot_data.global_misprint_chance,
-        'xp_rating_min': min_xp_rating,
         'condition_min': 0
     }
 
@@ -1095,7 +1089,6 @@ var auctioneerInteraction = function(npc_object) {
         'foil_chance': loot_data.global_foil_chance,
         'unlocked_chance': loot_data.global_unlocked_chance,
         'misprint_chance': loot_data.global_misprint_chance,
-        'xp_rating_min': 0,
         'condition_min': 0
     }
 

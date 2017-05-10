@@ -187,7 +187,7 @@ Template.auctions.events({
 			case "title": sorter = "item_data.title"; break;
 			case "condition": sorter = "item_data.condition"; break;
 			case "roll count": sorter = "item_data.roll_count"; break;
-			case "xp rating": sorter = "item_data.xp_rating"; break;
+			case "level": sorter = "item_data.level"; break;
 			default: sorter = "item_data.title"; break;
 		}
 

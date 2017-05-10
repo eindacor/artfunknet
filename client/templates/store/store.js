@@ -132,8 +132,7 @@ Template.forSaleInfo.helpers({
 				'condition' : item_object.condition,
 				'attribute' : item_object.attributes,
 				'item_id' : item_object._id,
-				'xp_rating' : item_object.xp_rating,
-				'xp_rating_text' : Math.floor(item_object.xp_rating * 100)
+				'level' : item_object.level
 			}
 
 			return item_data_object;
@@ -152,8 +151,7 @@ Template.forSaleInfo.helpers({
 				'condition' : "",
 				'attribute' : "",
 				'item_id' : "",
-				'xp_rating' : "",
-				'xp_rating_text' : ""
+				'level' : "",
 			}
 		}
 	}

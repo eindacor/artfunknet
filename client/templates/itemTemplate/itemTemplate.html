@@ -46,7 +46,6 @@
 							<div class="dynamic-stats">
 								<p>condition: <span style="color: {{getHTMLColorFromValue item_data.condition}}">%{{floatToPercentage item_data.condition}}</span></p>
 								<p id="dynamic-value-stat">estimated value: {{displayAsMoneyValue item_data.values.actual}}</p>
-								<p id="dynamic-xp-stat">xp rating: <span style="color: {{getHTMLColorFromValue item_data.xp_rating}}">{{floatToPercentage item_data.xp_rating}}</span></p>
 								<p id="dynamic-roll-count-stat">roll count: {{item_data.roll_count}}</p>
 							</div>
 							{{else}}
@@ -105,7 +104,7 @@
 							<div class="col-xs-1 no-padding">
 								{{#if showDetails item_data}}
 								<div class="dynamic-xp-rating">
-									<p><span style="color: {{getHTMLColorFromValue item_data.xp_rating}}">{{floatToPercentage item_data.xp_rating}}</span></p>
+									<p>{{item_data.level}}</p>
 								</div>
 								{{else}}
 									<p>?</p>

@@ -73,7 +73,7 @@
 									</div>
 									<div class="col-xs-3 col-xs-offset-2">
 										<p>condition: <span style="color: {{getHTMLColorFromValue item_data.condition}}" >{{#if item_data.condition}}{{floatToPercentage item_data.condition}}%{{else}}?{{/if}}</span></p>
-										<p>xp rating: <span style="{{#if item_data.xp_rating}}color: {{getHTMLColorFromValue item_data.xp_rating}}{{/if}}">{{#if item_data.xp_rating}}{{floatToPercentage item_data.xp_rating}}{{else}}?{{/if}}</span></p>
+										<p>level: {{#if item_data.level}}{{item_data.level}}{{else}}?{{/if}}</p>
 									</div>
 									<div class="col-xs-3">
 										<p>roll count: {{#if rollCount item_data.roll_count}}{{item_data.roll_count}}{{else}}?{{/if}}</p>

@@ -40,7 +40,7 @@ Template.dashboard.rendered = function() {
 			'modal_data': {
 				'tutorial_name': "attributes",
 				'next': {
-					'tutorial_name': "xp_rating",
+					'tutorial_name': "level",
 					'next': {
 						'tutorial_name': "display",
 						'next': {

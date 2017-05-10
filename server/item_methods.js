@@ -308,6 +308,11 @@ Meteor.methods({
         player_item_interface.sell();
     },
 
+    'upgradeItem': function(item_id) {
+        var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+        player_item_interface.upgrade();
+    },
+
     'auctionArtwork' : function(item_id, starting, buy_now, duration) {
     	var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
         return player_item_interface.auction(starting, buy_now, duration);
@@ -318,15 +323,15 @@ Meteor.methods({
         player_item_interface.tag(tags);
     },
 
+    'donateItem': function(item_id) {
+        var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+        player_item_interface.donate();
+    },
+
     'getRerollCost' : function(item_id) {
         var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
         return player_item_interface.getRerollCost();
     },
-
-    // 'rerollXPRating' : function(item_id) {
-    //     var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
-    //     player_item_interface.rerollXPRating();
-    // },
 
     'rerollAttributeValue' : function(item_id, attribute_id) {
         var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);

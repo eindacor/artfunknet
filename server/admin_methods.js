@@ -64,7 +64,6 @@ Meteor.methods({
                 'foil_chance': loot_data.global_foil_chance,
                 'unlocked_chance': loot_data.global_unlocked_chance,
                 'misprint_chance': loot_data.global_misprint_chance,
-                'xp_rating_min': 0,
                 'condition_min': 0
             }
             
@@ -109,7 +108,7 @@ Meteor.methods({
 		}
 	},
 
-	'generateItemFromArtworkID' : function(user_id, artwork_id, condition, xp_rating, foil_chance, unlocked_chance, seasonal, lottery, original, vintage, misprint_chance) {
+	'generateItemFromArtworkID' : function(user_id, artwork_id, condition, level, foil_chance, unlocked_chance, seasonal, lottery, original, vintage, misprint_chance) {
 		if (adminValidated()) {
 			if (user_id == "" || Meteor.users.findOne(user_id).profile.user_type == "admin") {
                 var item_generator = {
@@ -117,7 +116,7 @@ Meteor.methods({
                     'user_id': Meteor.userId(),
                     'artwork_id': artwork_id,
                     'condition': condition,
-                    'xp_rating': xp_rating,
+                    'level': level,
                     'foil_chance': foil_chance,
                     'unlocked_chance': unlocked_chance,
                     'seasonal': seasonal,
@@ -126,7 +125,6 @@ Meteor.methods({
                     'vintage': vintage,
                     'misprint_chance': misprint_chance,
                     'status': "unclaimed",
-                    'xp_rating_min': 0,
                     'condition_min': 0
                 }
 
@@ -142,7 +140,7 @@ Meteor.methods({
                     'user_id': user_id,
                     'artwork_id': artwork_id,
                     'condition': condition,
-                    'xp_rating': xp_rating,
+                    'level': level,
                     'foil_chance': foil_chance,
                     'unlocked_chance': unlocked_chance,
                     'seasonal': seasonal,
@@ -151,7 +149,6 @@ Meteor.methods({
                     'vintage': vintage,
                     'misprint_chance': misprint_chance,
                     'status': "claimed",
-                    'xp_rating_min': 0,
                     'condition_min': 0
                 }
 
@@ -171,7 +168,7 @@ Meteor.methods({
                     'user_id': Meteor.userId(),
                     'artwork_id': artwork_id,
                     'condition': undefined,
-                    'xp_rating': undefined,
+                    'level': 1,
                     'foil_chance': loot_data.global_foil_chance,
                     'unlocked_chance': loot_data.global_unlocked_chance,
                     'seasonal': undefined,
@@ -179,7 +176,6 @@ Meteor.methods({
                     'original': false,
                     'misprint_chance': loot_data.global_misprint_chance,
                     'status': "unclaimed",
-                    'xp_rating_min': 0,
                     'condition_min': 0
                 }
 
@@ -195,7 +191,7 @@ Meteor.methods({
                     'user_id': user_id,
                     'artwork_id': artwork_id,
                     'condition': undefined,
-                    'xp_rating': undefined,
+                    'level': 1,
                     'foil_chance': loot_data.global_foil_chance,
                     'unlocked_chance': loot_data.global_unlocked_chance,
                     'seasonal': undefined,
@@ -203,7 +199,6 @@ Meteor.methods({
                     'original': false,
                     'misprint_chance': loot_data.global_misprint_chance,
                     'status': "won",
-                    'xp_rating_min': 0,
                     'condition_min': 0
                 }
 
@@ -444,7 +439,7 @@ Meteor.methods({
                             'user_id': Meteor.userId(),
                             'artwork_id': artwork_id,
                             'condition': undefined,
-                            'xp_rating': undefined,
+                            'level': 1,
                             'foil_chance': undefined,
                             'unlocked_chance': undefined,
                             'seasonal': undefined,
@@ -453,7 +448,6 @@ Meteor.methods({
                             'vintage': undefined,
                             'misprint_chance': undefined,
                             'status': "unclaimed",
-                            'xp_rating_min': 0,
                             'condition_min': 0
                         }
 

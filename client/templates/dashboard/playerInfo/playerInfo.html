@@ -39,6 +39,13 @@
 						<td class="player-data">bank balance:</td>
 						<td class="highlight af-color">{{displayAsMoneyValue profile.bank_balance}}</td>
 					</tr>
+					{{#each knowledge}}
+					<tr>
+						<td class="player-data"><span class="{{color}}">{{name}}</span>:</td>
+						<td class="highlight {{color}}">{{commaSeparatedValue amount}}</td>
+					</tr>
+					{{/each}}
+					<tr></tr>
 					{{#if max_level}}
 					{{else}}
 					<tr>
@@ -63,7 +70,8 @@
 						<td class="player-data">xp per hour:</td>
 						<td class="highlight af-color">{{commaSeparatedValue xp_per_hour}}</td>
 					</tr>	
-					{{/with}}	
+					{{/with}}
+					<tr></tr>	
 					<tr>
 						<td class="player-data">perm. collection:</td>
 						<td><span class="highlight af-color">{{permanent_count}}</span> ({{profile.pc_cap}} max)</td>			
@@ -87,7 +95,8 @@
 					<tr>
 						<td class="player-data">vintage items owned:</td>
 						<td class="highlight vintage-text">{{vintage_count}}</td>
-					</tr>									
+					</tr>	
+					<tr></tr>								
 					<tr>
 						<td class="player-data">completed quests:</td>
 						<td class="highlight af-color">{{commaSeparatedValue profile.completed_quests}}</td>
@@ -98,6 +107,7 @@
 						<td><span class="highlight af-color">{{npcs_met this}}</span> ({{npc_max_meetings this}} max)</td>
 					</tr>
 					{{/each}}
+					<tr></tr>
 					<tr>
 						<td class="player-data">gallery ticket limit:</td>
 						<td class="highlight af-color">{{profile.ticket_cap}}</td>

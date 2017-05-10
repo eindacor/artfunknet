@@ -20,4 +20,8 @@ PlayerIF = function(user_id) {
 		var time_passed = moment(now) - moment(last_npc_met);
 		return time_passed < recent_cutoff;
 	}
+
+	this.getKnowledge = function() {
+		return user_object.profile.knowledge;
+	}
 }

@@ -32,6 +32,12 @@
 				{{#if decline}}
 					<span class="decline enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-times"></i></span>		
 				{{/if}}	
+				{{#if upgrade}}
+					<span class="upgrade enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-arrow-circle-up"></i></span>		
+				{{/if}}	
+				{{#if donate}}
+					<span class="donate enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-book"></i></span>		
+				{{/if}}	
 				<span class="tags enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-tags"></i></span>
 			{{/with}}			
 		</div>

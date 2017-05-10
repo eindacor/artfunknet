@@ -182,9 +182,6 @@ Meteor.setInterval((function() {
                     var player_item_interface = new PlayerItemIF(item_object.owner, item_object._id);
                     var xp_per_hour = player_item_interface.getXPPerHour(xp_earning_time, "permanent");
                     toal_xp += xp_per_hour;
-
-                    if (item_object.xp_rating < 1)
-                        updateItem(item_object._id, {$set: {'xp_rating': Math.min(item_object.xp_rating + .02, 1)}});
                 });
 
                 if (toal_xp > 0)
@@ -267,7 +264,7 @@ Meteor.setInterval((function() {
             'user_id': winning_id,
             'artwork_id': artwork_id,
             'condition': undefined,
-            'xp_rating': undefined,
+            'level': 1,
             'foil_chance': loot_data.global_foil_chance,
             'unlocked_chance': loot_data.global_unlocked_chance,
             'misprint_chance': loot_data.global_misprint_chance,
@@ -275,7 +272,6 @@ Meteor.setInterval((function() {
             'lottery': lottery_level,
             'original': false,
             'status': "won",
-            'xp_rating_min': 0,
             'condition_min': 0
         };
 
