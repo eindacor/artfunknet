@@ -4,7 +4,7 @@
 	        <div class="modal-dialog">
 	            <div class="modal-content container">
 	            	{{#with itemData}}
-	                <h4>Reroll attributes for <span class="highlight af-color work-title">{{artwork_data.title}}</span> by <span class="highlight af-color">{{artwork_data.artist}}</span></h4>
+	                <h4>Mod <span class="highlight af-color work-title">{{artwork_data.title}}</span> by <span class="highlight af-color">{{artwork_data.artist}}</span></h4>
 	                <div class="reroll-info">
 		                <div class="row">
 		                	<h4>bank balance: <span class="af-color">${{bankBalance}}</span></h4>
@@ -14,9 +14,6 @@
 				    </div>
 
 				    <div class="reroll-options">
-				        <div class="attribute-divider">
-				        	<p>Attributes</p>
-				        </div>
 				        {{#each attributes.special}}
 				        <div data-attribute_id="{{this._id}}" class="row attribute-row no-padding no-margin">
 		                	{{> attributeTemplate attribute_data=this special=true}}
@@ -64,8 +61,30 @@
 
 				    </div>
 
+				    <div class="row reroll-options no-padding no-margin">
+				    	<div class="col-xs-6 col-xs-offset-1">
+				    		<div class="row">
+				    			<table class="const-info">
+				    				<tr>
+				    					<td><h5 class="highlight">Upgrade Cost</h5></td>
+				    				</tr>
+				    			{{#each upgradeCost this._id}}
+									<tr>
+										<td><span class="{{color}}">{{name}}</span>:</td>
+										<td class="{{#if can_afford}}highlight{{/if}}"><span class="{{color}}">{{commaSeparatedValue amount}}</span> (<span class="{{color}}">{{commaSeparatedValue available}}</span>)</td>
+									</tr>
+								{{/each}}
+								</table>
+				    		</div>
+				    	</div>
+				    	<div class="col-xs-3">
+				    		<h4 class="af-color highlight">Level {{level}}</h4>
+				    		<p><i class="fa fa-arrow-circle-o-up upgrade-button {{#if can_afford_upgrade this._id}}af-color{{/if}}"></i></p>
+				    	</div>
+				    </div>
+
 				    {{#if isEqual artwork_data.rarity "masterpiece"}}
-				    <div class="row legendary-attribute-area no-padding no-margin">
+				    <div class="row reroll-options no-padding no-margin">
 				    	{{#each artwork_data.unique_attributes}}
 				    		<div class="row unique-section">
 					    		{{#with unique_attribute_data this}}
@@ -91,7 +110,7 @@
 				    {{/if}}
 
 				    {{#if isEqual artwork_data.rarity "legendary"}}
-				    <div class="row legendary-attribute-area no-padding no-margin">
+				    <div class="row reroll-options no-padding no-margin">
 				    	{{#each artwork_data.unique_attributes}}
 				    		<div class="row unique-section">
 					    		{{#with unique_attribute_data this}}

@@ -81,6 +81,17 @@ Template.registerHelper('floatToPercentage', function(value) {
 	return Math.floor(value * 100);
 })
 
+Template.registerHelper('can_afford_upgrade', function(item_id) {
+	var item_permissions = getPlayerItemPermissions(Meteor.userId(), item_id);
+	try {
+		return item_permissions.canUpgrade();
+	}
+
+	catch(error) {
+		return false;
+	}
+})
+
 Template.registerHelper('itemPermissions', function(item_object) {
 	if (Meteor.user()) {
 		var item_controlled = item_object.owner == Meteor.userId() && item_object.status != 'for_sale';

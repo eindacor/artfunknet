@@ -3,18 +3,7 @@ Template.rerollModal.events ({
     	Modal.hide("rerollModal");
     },
 
-   //  'click .xp-reroll-button.enabled' : function() {
-   //  	Meteor.call('rerollXPRating', Session.get('selectedItem'), function(error, result) {
-   //  		if (error)
-   //  			console.log(error.message);
-
-   //  		else {
-			// 	updateItemTemplate(Session.get('selectedItem'), 0);
-			// }
-   //  	});
-   //  },
-
-    'click .reroll-value-button.enabled' : function(element) {
+   'click .reroll-value-button.enabled' : function(element) {
     	var attribute_id = $(element.target).data('attribute_id');
 		Meteor.call('rerollAttributeValue', Session.get('selectedItem'), attribute_id, function(error, result) {
 			if (error)
@@ -47,6 +36,13 @@ Template.rerollModal.events ({
 			else {
 				updateItemTemplate(Session.get('selectedItem'), 0);
 			}
+		})
+	},
+
+	'click .upgrade-button.af-color': function() {
+		Meteor.call('upgradeItem', Session.get('selectedItem'), function(error) {
+			if(error)
+				console.log(error);
 		})
 	}
 })
@@ -82,5 +78,29 @@ Template.rerollModal.helpers({
 		var unique_object = unique_attributes.findOne({'code': unique_code});
 		unique_object.current_selected = items.findOne(Session.get('selectedItem')).active_unique_attribute == unique_code;
 		return unique_object;
+	},
+
+	'upgradeCost': function(item_id) {
+		var cost_array = [];
+		var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+		var upgrade_cost = player_item_interface.getItemReader().getUpgradeCost();
+
+		for (var i=0; i<knowledge_types.length; i++) {
+			var type = knowledge_types[i];
+			if (upgrade_cost[type] != undefined) {
+				var amount_available = Meteor.user().profile.knowledge[type]
+				var amount = upgrade_cost[type];
+				cost_array.push({
+					'color': artwork_rarities[i],
+					'amount': amount,
+					'name': type.replace("_", " "),
+					'available': amount_available,
+					'can_afford': amount_available >= amount
+				})
+			}
+			
+		}
+
+		return cost_array;
 	}
 })

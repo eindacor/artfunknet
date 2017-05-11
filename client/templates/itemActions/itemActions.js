@@ -28,7 +28,7 @@ updateItemActions = function(item_object) {
 	}
 
 	if (permissions.canDonate()) {
-		button_area.append('<span class="donate enabled"><i data-item_id="' + item_object._id + '" class="appended fa fa-book"></i></span>');
+		button_area.append('<span class="donate enabled"><i data-item_id="' + item_object._id + '" class="appended fa fa-share-square"></i></span>');
 	}
 
 	if (permissions.canSetPermanent()) {
@@ -45,10 +45,6 @@ updateItemActions = function(item_object) {
 
 	if (permissions.canDecline()) {
 		button_area.append('<span class="decline enabled"><i data-item_id="' + item_object._id + '" class="appended fa fa-times"></i></span>');
-	}
-
-	if (permissions.canUpgrade()) {
-		button_area.append('<span class="upgrade enabled"><i data-item_id="' + item_object._id + '" class="appended fa fa-arrow-circle-up"></i></span>');
 	}
 
 	button_area.append('<span class="tags enabled"><i data-item_id="' + item_object._id + '" class="appended fa fa-tags"></i></span>');
@@ -72,7 +68,6 @@ var getPermissions = function(item_object) {
 			var auction = permissions.canAuction();
 			var decline = permissions.canDecline();
 			var donate = permissions.canDonate();
-			var upgrade = permissions.canUpgrade();
 
 			return {
 				'sell': sell,
@@ -85,8 +80,7 @@ var getPermissions = function(item_object) {
 				'auction': auction,
 				'decline': decline,
 				'undisplay': undisplay,
-				'donate': donate,
-				'upgrade': upgrade
+				'donate': donate
 			}
 		}
 	}
@@ -333,21 +327,5 @@ Template.itemActions.events({
 				'modal_data': items.findOne(item_id)
 			}, $('body')[0]);
 		}
-	},
-
-	'click .upgrade.enabled' : function(element) {
-		element.stopPropagation();
-		var item_id = $(element.target).closest('.item-container').data('item_id');
-		var permissions = getPlayerItemPermissions(Meteor.userId(), item_id);
-		if (permissions.canUpgrade()) {
-			Meteor.call('upgradeItem', item_id, function(error) {
-				if(error)
-					console.log(error.message);
-
-				else {
-					Session.set('update_set', true);
-				}
-			})
-		}
-	},
+	}
 })

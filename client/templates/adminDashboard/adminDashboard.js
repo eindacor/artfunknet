@@ -380,7 +380,7 @@ Template.adminTools.events({
     	var user_id = $('.user-selector').val();
     	var artwork_id = $('#generate-artwork-id').val();
     	var condition = $('#condition').val() == "" ? Number(Math.random().toFixed(2)) : Number($('#condition').val()) / 100;
-    	var level = isNaN($('input:radio[name=level_selector]:checked').val()) ? 0 : Number($('input:radio[name=level_selector]:checked').val());
+    	var level = isNaN($('input:radio[name=level_selector]:checked').val()) ? 1 : Number($('input:radio[name=level_selector]:checked').val());
     	var loot_data = getLootData();
 		var foil_chance;
     	var foil_selection = $('input:radio[name=foil_selector]:checked').val();
@@ -414,7 +414,26 @@ Template.adminTools.events({
 
     	else misprint_chance = misprint_selection == "true" ? 1 : 0;
 
-    	Meteor.call('generateItemFromArtworkID', user_id, artwork_id, condition, level, foil_chance, unlocked_chance, seasonal, Number(lottery), original, vintage, misprint_chance, function(error, result) {
+    	var item_generator = {
+            'source': "admin",
+            'user_id': user_id == "" ? Meteor.userId() : user_id,
+            'artwork_id': artwork_id,
+            'condition': condition,
+            'level': level,
+            'foil_chance': foil_chance,
+            'unlocked_chance': unlocked_chance,
+            'seasonal': seasonal,
+            'lottery': lottery,
+            'original': original,
+            'vintage': vintage,
+            'misprint_chance': misprint_chance,
+            'status': user_id == Meteor.userId() ? "unclaimed": "claimed",
+            'condition_min': 0
+        }
+
+        console.log(item_generator);
+
+    	Meteor.call('generateItemFromArtworkID', item_generator, function(error, result) {
     		if (error)
     			console.log(error.message);
 

@@ -108,52 +108,9 @@ Meteor.methods({
 		}
 	},
 
-	'generateItemFromArtworkID' : function(user_id, artwork_id, condition, level, foil_chance, unlocked_chance, seasonal, lottery, original, vintage, misprint_chance) {
+	'generateItemFromArtworkID' : function(item_generator) {
 		if (adminValidated()) {
-			if (user_id == "" || Meteor.users.findOne(user_id).profile.user_type == "admin") {
-                var item_generator = {
-                    'source': "test",
-                    'user_id': Meteor.userId(),
-                    'artwork_id': artwork_id,
-                    'condition': condition,
-                    'level': level,
-                    'foil_chance': foil_chance,
-                    'unlocked_chance': unlocked_chance,
-                    'seasonal': seasonal,
-                    'lottery': lottery,
-                    'original': original,
-                    'vintage': vintage,
-                    'misprint_chance': misprint_chance,
-                    'status': "unclaimed",
-                    'condition_min': 0
-                }
-
-				return generateItemFromArtworkID(item_generator);
-            }
-
-			else if (Meteor.users.findOne(user_id) == undefined)
-				return false;
-
-			else {
-                var item_generator = {
-                    'source': "admin",
-                    'user_id': user_id,
-                    'artwork_id': artwork_id,
-                    'condition': condition,
-                    'level': level,
-                    'foil_chance': foil_chance,
-                    'unlocked_chance': unlocked_chance,
-                    'seasonal': seasonal,
-                    'lottery': lottery,
-                    'original': original,
-                    'vintage': vintage,
-                    'misprint_chance': misprint_chance,
-                    'status': "claimed",
-                    'condition_min': 0
-                }
-
-                return generateItemFromArtworkID(item_generator);
-            }
+			return generateItemFromArtworkID(item_generator);
 		}
 
 		else return undefined;

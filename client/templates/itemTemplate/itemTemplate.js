@@ -296,6 +296,12 @@ Template.itemInfo.helpers({
 		}
 
 		return types;
+	},
+
+	'level': function(item_id) {
+		var item_object = items.findOne(item_id);
+		if (item_object)
+			return item_object.level;
 	}
 })
 
@@ -321,6 +327,16 @@ Template.itemInfo.events({
 		var hover_string = "level " + (isNaN(value) ? '?' : value) + " " + description;
 		setFootnote(hover_string, Math.floor(Math.random() * 1000));
 	},
+
+	'click .level-indicator': function(element) {
+		element.stopPropagation();
+		var item_id = $(element.target).closest('.item-container').data('item_id');
+		var permissions = getPlayerItemPermissions(Meteor.userId(), item_id);
+		if (permissions.canUpgrade()) {
+			Session.set('selectedItem', item_id);
+			Modal.show('rerollModal');
+		}
+	}
 
 })
 

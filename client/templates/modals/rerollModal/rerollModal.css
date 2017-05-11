@@ -35,7 +35,6 @@
 .template-rerollModal .reroll-options,
 .template-rerollModal .legendary-attribute-area  {
 	border-bottom: 1px solid black;
-	margin-bottom: 24px;
 	padding: 24px;
 }
 
@@ -75,7 +74,12 @@
 }
 
 .template-rerollModal .attribute-row {
-	padding: 8px;
+	padding: 8px 8px 2px 8px;
+	border-top: 1px solid #777777;
+}
+
+.template-rerollModal .attribute-row:nth-child(1) {
+	border-top: none;
 }
 
 .template-rerollModal .value-text {
@@ -97,9 +101,42 @@
 }
 
 .template-rerollModal .unique-section {
-	margin-bottom: 20px;
+	margin-bottom: 10px;
 }
 
 .template-rerollModal .setting-false {
 	cursor: pointer;
+}
+
+.template-rerollModal .cost-info td {
+	font-size: 1.5rem;
+	width: 50%;
+}
+
+.template-rerollModal .cost-info tr {
+	height: 10px;
+}
+
+.template-rerollModal td:nth-child(1) {
+	text-align: right;
+	padding-right: 10px;
+	color: black;
+}
+
+.template-rerollModal table {
+	text-align: left;
+}
+
+.template-rerollModal .upgrade-button {
+	font-size: 5rem;
+	cursor: pointer;
+	opacity: .6;
+}
+
+.template-rerollModal .upgrade-button.af-color:hover {
+	opacity: 1;
+}
+
+.template-rerollModal .modal-buttons {
+	margin-top: 24px;
 }

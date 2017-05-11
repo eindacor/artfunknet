@@ -6,7 +6,7 @@
 					<p><i class="fa fa-picture-o"></i></p>
 					{{#with display_details item_data._id}}
 					{{#if earnings_per_hour}}
-						<p class="display-details">{{time_since_displayed}} (lvl {{display_level}})</p>
+						<p class="display-details">{{time_since_displayed}}</p>
 						<p class="display-details green-text text-shadow">{{displayAsMoneyValue earnings_per_hour}}/hr.</p>
 						<p class="display-details af-color text-shadow">{{commaSeparatedValue xp_per_hour}}xp/hr.</p>
 					{{/if}}
@@ -21,7 +21,7 @@
 					<p><i class="fa fa-heart"></i></p>
 					{{#with permanent_details item_data._id}}
 					{{#if xp_per_hour}}
-						<p class="display-details">{{time_since_displayed}} (lvl {{permanent_level}})</p>
+						<p class="display-details">{{time_since_displayed}}</p>
 						<p class="display-details af-color text-shadow">{{commaSeparatedValue xp_per_hour}}xp/hr.</p>
 					{{/if}}
 					{{/with}}
@@ -88,7 +88,7 @@
 							{{/if}}
 						{{/with}}
 						<div class="footer-basic-info">
-							<div class="col-xs-11 no-padding attribute-area">
+							<div class="col-xs-8 no-padding attribute-area">
 								{{#each sortedAttributes item_data.attributes.unlocked}}
 									<i data-attribute_description="{{description}}" data-attribute_value="{{value}}" style="color: {{getHTMLColorFromValue value}}" class="{{#if isEqual ../item_data.status 'permanent'}}permanent{{/if}} item-attribute fa {{icon}}"></i>
 								{{/each}}
@@ -101,10 +101,10 @@
 									<i data-attribute_description="{{description}}" data-attribute_value="{{value}}" style="color: {{getHTMLColorFromValue value}}" class="{{#if isEqual ../item_data.status 'permanent'}}permanent{{/if}} special item-attribute fa {{icon}}"></i>
 								{{/each}}
 							</div>
-							<div class="col-xs-1 no-padding">
+							<div class="col-xs-4 no-padding">
 								{{#if showDetails item_data}}
-								<div class="dynamic-xp-rating">
-									<p>{{item_data.level}}</p>
+								<div class="level-area">
+									<p>lvl {{level item_data._id}} {{#if can_afford_upgrade item_data._id}}<span class="level-indicator af-color"><i class="fa fa-arrow-circle-o-up"></i></span>{{/if}}</p>
 								</div>
 								{{else}}
 									<p>?</p>

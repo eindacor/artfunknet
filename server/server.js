@@ -63,7 +63,7 @@ var updateContent = function() {
         'artistic_vision': 0
     }
 
-    Meteor.users.update({'knowledge': null}, {$set: {'profile.knowledge': knowledge}}, {multi: true});
+    Meteor.users.update({}, {$set: {'profile.knowledge': knowledge}}, {multi: true});
     items.find({'xp_rating': {$ne: null}}).forEach(function(item_object) {
         var level = Math.min(Math.floor(item_object.xp_rating * 10) + 1, 10);
         items.update({'_id': item_object._id}, {$set: {'level': level}, $unset: {'xp_rating': ""}});

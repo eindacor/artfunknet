@@ -1,0 +1,12 @@
+.template-donateModal img {
+	margin: 24px;
+}
+
+.template-donateModal .modal-content {
+	padding-bottom: 48px;
+	text-align: center;
+}
+
+.template-donateModal .highlight {
+	font-weight: bold;
+}

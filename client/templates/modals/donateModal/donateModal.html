@@ -1,0 +1,14 @@
+<template name="donateModal">
+	<div class="template-donateModal col-xs-12">
+		<div class="message-container">
+			<div class="modal-message-area">
+				{{>itemInfo item_data=this}}
+				<p class="modal-message">Donate <span class="af-color work-title">{{this.artwork_data.title}}</span> by <span class="af-color">{{this.artwork_data.artist}}</span> to a local university in exchange for knowledge?</p>
+			</div>
+			<div class="modal-button-area">
+				<button class="modal-button" id="donate-artwork" data-item_id="{{this._id}}">ok</button>
+				<button class="modal-button close-button">close</button>
+			</div>
+		</div>
+	</div>
+</template>

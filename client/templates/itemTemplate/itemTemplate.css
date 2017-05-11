@@ -354,7 +354,7 @@
 }
 
 .template-itemInfo .separator {
-	margin: 4px 4px;
+	margin: 4px 0px;
 }
 
 .template-itemInfo .checklist-indicators {
@@ -365,4 +365,12 @@
 
 .template-itemInfo .card-container:hover .checklist-indicators{
 	display: block;
+}
+
+.template-itemInfo .level-area {
+	text-align: right;
+	float: right;
+	padding-right: 8px;
+	color: black;
+	font-weight: bold;
 }
