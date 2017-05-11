@@ -354,7 +354,7 @@
 }
 
 .template-itemInfo .separator {
-	margin: 4px 0px;
+	margin: 4px -4px;
 }
 
 .template-itemInfo .checklist-indicators {

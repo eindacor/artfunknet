@@ -380,7 +380,7 @@ Template.adminTools.events({
     	var user_id = $('.user-selector').val();
     	var artwork_id = $('#generate-artwork-id').val();
     	var condition = $('#condition').val() == "" ? Number(Math.random().toFixed(2)) : Number($('#condition').val()) / 100;
-    	var level = isNaN($('input:radio[name=level_selector]:checked').val()) ? 1 : Number($('input:radio[name=level_selector]:checked').val());
+    	var level = isNaN($('#level').val()) || $('#level').val() == "" ? 1 : Math.min(Number($('#level').val()), MAX_ITEM_LEVEL);
     	var loot_data = getLootData();
 		var foil_chance;
     	var foil_selection = $('input:radio[name=foil_selector]:checked').val();
