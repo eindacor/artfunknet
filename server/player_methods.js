@@ -108,6 +108,14 @@ createUser = function(user_object, callback){
         'xp_rating': .1
     };
 
+    var knowledge_object = {
+        'historical_data': 0,
+        'contextual_understanding': 0,
+        'technical_comprehension': 0,
+        'artistic_vision': 0
+    }
+    user_object.profile.knowledge = knowledge_object;
+
     var floor_setter_object = {};
     floor_setter_object[default_floor._id] = floor_finish_object;
 
