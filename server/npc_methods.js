@@ -211,7 +211,7 @@ var donorInteraction = function(npc_object) {
 	var loot_data = getLootData();
 	var foil_chance = loot_data.global_foil_chance;
 	var condition_min = 0;
-	var level = 0;	
+	var level = 1;	
 
 	if (isOwnGallery(npc_object)) {
 		drop_count += 1;
