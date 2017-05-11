@@ -17,13 +17,13 @@
 				        {{#each attributes.special}}
 				        <div data-attribute_id="{{this._id}}" class="row attribute-row no-padding no-margin">
 		                	{{> attributeTemplate attribute_data=this special=true}}
-		                	<div class="col-xs-1">
-								<p class="af-color highlight value-text">{{attributeValueText this.value}}</p>
+		                	<div class="col-xs-3">
+								<p><span class="af-color highlight value-text">{{attributeValueText this.value}}</span> ({{min_roll ../_id "special"}} min)</p>
 							</div>
-							<div class="col-xs-3">
+							<div class="col-xs-2">
 								<button data-attribute_id="{{this._id}}" class="reroll-value-button {{#if canReroll}}enabled{{else}}disabled{{/if}}">value</button>
 							</div>
-							<div class="col-xs-3">
+							<div class="col-xs-2">
 		                		<i class="item-attribute fa fa-lock"></i>
 		                	</div>
 				        </div>
@@ -32,13 +32,13 @@
 				        {{#each attributes.locked}}
 				        <div data-attribute_id="{{this._id}}" class="row attribute-row no-padding no-margin">
 		                	{{> attributeTemplate attribute_data=this}}
-		                	<div class="col-xs-1">
-								<p class="af-color highlight value-text">{{attributeValueText this.value}}</p>
+		                	<div class="col-xs-3">
+								<p><span class="af-color highlight value-text">{{attributeValueText this.value}}</span> ({{min_roll ../_id "locked"}} min)</p>
 							</div>
-							<div class="col-xs-3">
+							<div class="col-xs-2">
 								<button data-attribute_id="{{this._id}}" class="reroll-value-button {{#if canReroll}}enabled{{else}}disabled{{/if}}">value</button>
 							</div>
-							<div class="col-xs-3">
+							<div class="col-xs-2">
 		                		<i class="item-attribute fa fa-lock"></i>
 		                	</div>
 				        </div>
@@ -47,13 +47,13 @@
 				        {{#each attributes.unlocked}}
 				        <div data-attribute_id="{{this._id}}" class="row attribute-row no-padding no-margin">
 		                	{{> attributeTemplate attribute_data=this}}
-		                	<div class="col-xs-1">
-								<p class="af-color highlight value-text">{{attributeValueText this.value}}</p>
+		                	<div class="col-xs-3">
+								<p><span class="af-color highlight value-text">{{attributeValueText this.value}}</span> ({{min_roll ../_id "unlocked"}} min)</p>
 							</div>
-							<div class="col-xs-3">
+							<div class="col-xs-2">
 								<button data-attribute_id="{{this._id}}" class="reroll-value-button {{#if canReroll}}enabled{{else}}disabled{{/if}}">value</button>
 							</div>
-		                	<div class="col-xs-3">
+		                	<div class="col-xs-2">
 		                		<button data-attribute_id="{{this._id}}" class="reroll-attribute-button {{#if canReroll}}enabled{{else}}disabled{{/if}}">attribute</button>
 		                	</div>
 				        </div>

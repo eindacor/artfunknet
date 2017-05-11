@@ -102,5 +102,10 @@ Template.rerollModal.helpers({
 		}
 
 		return cost_array;
+	},
+
+	'min_roll': function(item_id, type) {
+		var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+		return Math.floor(player_item_interface.getRerollMin(type) * 100);
 	}
 })
