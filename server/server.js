@@ -56,9 +56,9 @@ var updateContent = function() {
 
     // temp code
     var knowledge_object = {
-        'historical_data': 0,
-        'contextual_understanding': 0,
-        'technical_comprehension': 0,
+        'historical_data': 64,
+        'contextual_understanding': 16,
+        'technical_comprehension': 4,
         'artistic_vision': 0
     }
 
