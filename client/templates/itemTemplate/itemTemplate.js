@@ -331,11 +331,8 @@ Template.itemInfo.events({
 	'click .level-indicator': function(element) {
 		element.stopPropagation();
 		var item_id = $(element.target).closest('.item-container').data('item_id');
-		var permissions = getPlayerItemPermissions(Meteor.userId(), item_id);
-		if (permissions.canUpgrade()) {
-			Session.set('selectedItem', item_id);
-			Modal.show('rerollModal');
-		}
+		Session.set('selectedItem', item_id);
+		Modal.show('rerollModal');
 	}
 
 })

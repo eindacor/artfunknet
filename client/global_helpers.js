@@ -81,13 +81,24 @@ Template.registerHelper('floatToPercentage', function(value) {
 	return Math.floor(value * 100);
 })
 
-Template.registerHelper('can_afford_upgrade', function(item_id) {
+Template.registerHelper('canUpgrade', function(item_id) {
 	var item_permissions = getPlayerItemPermissions(Meteor.userId(), item_id);
 	try {
 		return item_permissions.canUpgrade();
 	}
 
 	catch(error) {
+		return false;
+	}
+})
+
+Template.registerHelper('canAffordUpgrade', function(item_id) {
+	var item_permissions = getPlayerItemPermissions(Meteor.userId(), item_id);
+	try {
+		return item_permissions.canAffordUpgrade();
+	}
+
+	catch (error) {
 		return false;
 	}
 })

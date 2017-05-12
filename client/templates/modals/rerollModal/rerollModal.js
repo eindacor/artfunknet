@@ -56,8 +56,8 @@ Template.rerollModal.helpers({
 		return Session.get('createAuctionErrors');
 	},
 
-	'rerollCost' : function() {
-		var player_item_interface = new PlayerItemIF(Meteor.userId(), Session.get('selectedItem'));
+	'rerollCost' : function(item_data) {
+		var player_item_interface = new PlayerItemIF(Meteor.userId(), item_data._id);
 		return getCommaSeparatedValue(player_item_interface.getRerollCost());
 	},
 
@@ -65,9 +65,14 @@ Template.rerollModal.helpers({
 		return getCommaSeparatedValue(Meteor.user().profile.bank_balance);
 	},
 
-	'canReroll' : function() {
-		var permissions = getPlayerItemPermissions(Meteor.userId(), Session.get('selectedItem'));
+	'canReroll' : function(item_data) {
+		var permissions = getPlayerItemPermissions(Meteor.userId(), item_data._id);
 		return permissions.canReroll();
+	},
+
+	'canChangeActiveUniqueAttribute' : function(item_data) {
+		var permissions = getPlayerItemPermissions(Meteor.userId(), item_data._id);
+		return permissions.canChangeActiveUniqueAttribute();
 	},
 
 	'attributeValueText' : function(value) {

@@ -23,10 +23,6 @@ updateItemActions = function(item_object) {
 		button_area.append('<span class="display active af-color"><i data-item_id="' + item_object._id + '" class="appended fa fa-picture-o"></i></span>');
 	}
 
-	if (permissions.canReroll() || permissions.canChangeActiveUniqueAttribute()) {
-		button_area.append('<span class="reroll enabled"><i data-item_id="' + item_object._id + '" class="appended fa fa-magic"></i></span>');
-	}
-
 	if (permissions.canDonate()) {
 		button_area.append('<span class="donate enabled"><i data-item_id="' + item_object._id + '" class="appended fa fa-share-square"></i></span>');
 	}
@@ -47,6 +43,7 @@ updateItemActions = function(item_object) {
 		button_area.append('<span class="decline enabled"><i data-item_id="' + item_object._id + '" class="appended fa fa-times"></i></span>');
 	}
 
+	button_area.append('<span class="reroll enabled"><i data-item_id="' + item_object._id + '" class="appended fa fa-magic"></i></span>');
 	button_area.append('<span class="tags enabled"><i data-item_id="' + item_object._id + '" class="appended fa fa-tags"></i></span>');
 }
 
@@ -59,7 +56,6 @@ var getPermissions = function(item_object) {
 			
 			var sell = permissions.canSell();
 			var claim = permissions.canClaim();
-			var reroll = permissions.canReroll() || permissions.canChangeActiveUniqueAttribute();
 			var purchase = permissions.canPurchase();
 			var display = permissions.canDisplay();
 			var undisplay = permissions.canUndisplay();
@@ -72,7 +68,6 @@ var getPermissions = function(item_object) {
 			return {
 				'sell': sell,
 				'claim': claim,
-				'reroll': reroll,
 				'purchase': purchase,
 				'display': display,
 				'permanent': permanent,
@@ -181,11 +176,8 @@ Template.itemActions.events({
 	'click .reroll.enabled' : function(element) {
 		element.stopPropagation();
 		var item_id = $(element.target).closest('.item-container').data('item_id');
-		var permissions = getPlayerItemPermissions(Meteor.userId(), item_id);
-		if (permissions.canReroll() || permissions.canChangeActiveUniqueAttribute()) {
-			Session.set('selectedItem', item_id);
-			Modal.show('rerollModal');
-		}
+		Session.set('selectedItem', item_id);
+		Modal.show('rerollModal');
 	},
 
 	'click .perm-collection.inactive' : function(element) {

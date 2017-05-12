@@ -87,7 +87,7 @@ getItemObjectValues = function(item_object) {
         }
 
         if (item_object.lottery && item_object.lottery != 0) {
-            actual_value *= 30 + (10 * item_object.lottery);
+            actual_value *= (10 + item_object.lottery);
             display_value *= 2;
         }
 

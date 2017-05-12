@@ -73,6 +73,10 @@
 	cursor: default;
 }
 
+.template-rerollModal .unique-section.disabled {
+	opacity: .5;
+}
+
 .template-rerollModal .attribute-row {
 	padding: 8px 8px 2px 8px;
 	border-top: 1px solid #777777;

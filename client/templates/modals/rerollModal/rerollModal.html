@@ -8,7 +8,7 @@
 	                <div class="reroll-info">
 		                <div class="row">
 		                	<h4>bank balance: <span class="af-color">${{bankBalance}}</span></h4>
-		                	<h4>reroll cost: <span class="af-color">${{rerollCost}}</span></h4>
+		                	<h4>reroll cost: <span class="af-color">${{rerollCost this}}</span></h4>
 		                	<h4>reroll count: <span class="af-color">{{roll_count}}</span></h4>
 				        </div>
 				    </div>
@@ -21,7 +21,7 @@
 								<p><span class="af-color highlight value-text">{{attributeValueText this.value}}</span> ({{min_roll ../_id "special"}} min)</p>
 							</div>
 							<div class="col-xs-2">
-								<button data-attribute_id="{{this._id}}" class="reroll-value-button {{#if canReroll}}enabled{{else}}disabled{{/if}}">value</button>
+								<button data-attribute_id="{{this._id}}" class="reroll-value-button {{#if canReroll .. this}}enabled{{else}}disabled{{/if}}">value</button>
 							</div>
 							<div class="col-xs-2">
 		                		<i class="item-attribute fa fa-lock"></i>
@@ -36,7 +36,7 @@
 								<p><span class="af-color highlight value-text">{{attributeValueText this.value}}</span> ({{min_roll ../_id "locked"}} min)</p>
 							</div>
 							<div class="col-xs-2">
-								<button data-attribute_id="{{this._id}}" class="reroll-value-button {{#if canReroll}}enabled{{else}}disabled{{/if}}">value</button>
+								<button data-attribute_id="{{this._id}}" class="reroll-value-button {{#if canReroll .. this}}enabled{{else}}disabled{{/if}}">value</button>
 							</div>
 							<div class="col-xs-2">
 		                		<i class="item-attribute fa fa-lock"></i>
@@ -51,10 +51,10 @@
 								<p><span class="af-color highlight value-text">{{attributeValueText this.value}}</span> ({{min_roll ../_id "unlocked"}} min)</p>
 							</div>
 							<div class="col-xs-2">
-								<button data-attribute_id="{{this._id}}" class="reroll-value-button {{#if canReroll}}enabled{{else}}disabled{{/if}}">value</button>
+								<button data-attribute_id="{{this._id}}" class="reroll-value-button {{#if canReroll .. this}}enabled{{else}}disabled{{/if}}">value</button>
 							</div>
 		                	<div class="col-xs-2">
-		                		<button data-attribute_id="{{this._id}}" class="reroll-attribute-button {{#if canReroll}}enabled{{else}}disabled{{/if}}">attribute</button>
+		                		<button data-attribute_id="{{this._id}}" class="reroll-attribute-button {{#if canReroll .. this}}enabled{{else}}disabled{{/if}}">attribute</button>
 		                	</div>
 				        </div>
 				        {{/each}}
@@ -79,14 +79,14 @@
 				    	</div>
 				    	<div class="col-xs-3">
 				    		<h4 class="af-color highlight">Level {{level}}</h4>
-				    		<p><i class="fa fa-arrow-circle-o-up upgrade-button {{#if can_afford_upgrade this._id}}af-color{{/if}}"></i></p>
+				    		<p><i class="fa fa-arrow-circle-o-up upgrade-button {{#if canUpgrade this._id}}af-color{{/if}}"></i></p>
 				    	</div>
 				    </div>
 
 				    {{#if isEqual artwork_data.rarity "masterpiece"}}
 				    <div class="row reroll-options no-padding no-margin">
 				    	{{#each artwork_data.unique_attributes}}
-				    		<div class="row unique-section">
+				    		<div class="row unique-section {{#if canChangeActiveUniqueAttribute .. this}}{{else}}disabled{{/if}}">
 					    		{{#with unique_attribute_data this}}
 					    		<div class="col-xs-1">
 					    			{{#if current_selected}}
@@ -112,7 +112,7 @@
 				    {{#if isEqual artwork_data.rarity "legendary"}}
 				    <div class="row reroll-options no-padding no-margin">
 				    	{{#each artwork_data.unique_attributes}}
-				    		<div class="row unique-section">
+				    		<div class="row unique-section {{#if canChangeActiveUniqueAttribute .. this}}{{else}}disabled{{/if}}">
 					    		{{#with unique_attribute_data this}}
 					    		<div class="col-xs-1"></div>
 					    		<div class="col-xs-10">

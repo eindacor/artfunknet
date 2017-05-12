@@ -17,9 +17,6 @@
 				{{#if undisplay}}	
 					<span class="display active af-color"><i data-item_id="{{../item_data._id}}" class="fa fa-picture-o"></i></span>
 				{{/if}}	
-				{{#if reroll}}
-					<span class="reroll enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-magic"></i></span>		
-				{{/if}}
 				{{#if permanent}}
 					<span class="perm-collection inactive"><i data-item_id="{{../item_data._id}}" class="fa fa-heart"></i></span>
 				{{/if}}
@@ -38,6 +35,7 @@
 				{{#if donate}}
 					<span class="donate enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-share-square"></i></span>		
 				{{/if}}	
+				<span class="reroll enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-magic"></i></span>
 				<span class="tags enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-tags"></i></span>
 			{{/with}}			
 		</div>
