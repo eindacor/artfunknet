@@ -294,6 +294,20 @@ Template.adminTools.events({
 		})
 	},
 
+	'click #give-resources': function() {
+		Meteor.call('giveResources', function(error) {
+			if (error)
+				console.log(error);
+		})
+	},
+
+	'click #reset-resources': function() {
+		Meteor.call('resetResources', function(error) {
+			if (error)
+				console.log(error);
+		})
+	},
+
 	'click #new-seasonals' : function(element) {
 		var seasonal_count = 1;
 		var id_array = [];

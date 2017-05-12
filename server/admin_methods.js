@@ -414,6 +414,30 @@ Meteor.methods({
                 
             })
         }
+    },
+
+    'resetResources': function() {
+        if (adminValidated()) {
+            var knowledge_object = {
+                'historical_data': 0,
+                'contextual_understanding': 0,
+                'technical_comprehension': 0,
+                'artistic_vision': 0
+            };
+            Meteor.users.update({'_id': Meteor.userId()}, {$set: {'profile.knowledge': knowledge_object}});
+        }
+    },
+
+    'giveResources': function() {
+        if (adminValidated()) {
+            var knowledge_object = {
+                'historical_data': 1000,
+                'contextual_understanding': 1000,
+                'technical_comprehension': 1000,
+                'artistic_vision': 1000
+            };
+            Meteor.users.update({'_id': Meteor.userId()}, {$set: {'profile.knowledge': knowledge_object}});
+        }
     }
 })
 

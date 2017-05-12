@@ -55,6 +55,14 @@ var updateContent = function() {
     }
 
     // temp code
+    var knowledge_object = {
+        'historical_data': 0,
+        'contextual_understanding': 0,
+        'technical_comprehension': 0,
+        'artistic_vision': 0
+    }
+
+    Meteor.users.update({}, {$set: {'profile.knowledge': knowledge_object}}, {multi: true});
     // temp code
 }
 
