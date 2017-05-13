@@ -70,8 +70,8 @@
 				    				</tr>
 				    			{{#each upgradeCost this._id}}
 									<tr>
-										<td><span class="{{color}}">{{name}}</span>:</td>
-										<td class="{{#if can_afford}}highlight{{/if}}"><span class="{{color}}">{{commaSeparatedValue amount}}</span> (<span class="{{color}}">{{commaSeparatedValue available}}</span>)</td>
+										<td><span style="color:{{getKnowledgeColorString type}}">{{name}}</span>:</td>
+										<td class="{{#if can_afford}}highlight{{/if}}"><span style="color:{{getKnowledgeColorString type}}">{{commaSeparatedValue amount}}</span> (<span style="color:{{getKnowledgeColorString type}}">{{commaSeparatedValue available}}</span>)</td>
 									</tr>
 								{{/each}}
 								</table>

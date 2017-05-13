@@ -100,7 +100,8 @@ Template.rerollModal.helpers({
 					'amount': amount,
 					'name': type.replace("_", " "),
 					'available': amount_available,
-					'can_afford': amount_available >= amount
+					'can_afford': amount_available >= amount,
+					'type': type
 				})
 			}
 			
