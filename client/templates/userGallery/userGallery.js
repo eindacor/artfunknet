@@ -214,6 +214,16 @@ Template.userGallery.events ({
 							case "historian_bonus":
 								Modal.show("historianModal");
 								break;
+							case "art_expert_bonus": 
+								if (interaction_object.knowledge_object != undefined) {
+									Blaze.renderWithData(Template.modalTemplate, {
+										'modal_name': "artExpertKnowledgeModal", 
+										'modal_data': {
+											'interaction_object': interaction_object
+										}
+									}, $('body')[0]);
+									break;
+								}
 							default: 
 								Blaze.renderWithData(Template.modalTemplate, {
 									'modal_name': "standardNPCMessageModal", 

@@ -10,6 +10,10 @@
 					{{> sellAllModal modal_data}}
 				{{/if}}
 
+				{{#if isEqual modal_name "donateAllModal"}}
+					{{> donateAllModal modal_data}}
+				{{/if}}
+
 				{{#if isEqual modal_name "standardNPCMessageModal"}}
 					{{> standardNPCMessageModal modal_data}}
 				{{/if}}
@@ -28,6 +32,10 @@
 
 				{{#if isEqual modal_name "collectorOfferModal"}}
 					{{> collectorOfferModal modal_data}}
+				{{/if}}
+
+				{{#if isEqual modal_name "artExpertKnowledgeModal"}}
+					{{> artExpertKnowledgeModal modal_data}}
 				{{/if}}
 
 				{{#if isEqual modal_name "placeBidModal"}}

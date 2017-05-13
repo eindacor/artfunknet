@@ -91,6 +91,15 @@ Template.randomDrop.events ({
 				}, $('body')[0]);
 			}
 		})
+	},
+
+	'click #donate-all' : function() {
+		Blaze.renderWithData(Template.modalTemplate, {
+			'modal_name': "donateAllModal", 
+			'modal_data': {
+				'donation_reward': undefined
+			}
+		}, $('body')[0]);
 	}
 })
 

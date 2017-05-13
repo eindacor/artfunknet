@@ -11,6 +11,14 @@ Template.registerHelper('getHTMLColorFromValue', function(value) {
 	return getHTMLColorFromValue(value);
 })
 
+Template.registerHelper('getKnowledgeColorString', function(type) {
+	var index = knowledge_types.indexOf(type);
+	var base_r = 150;
+	var base_g = 230;
+	var multiplier = Math.pow(.8, knowledge_types.length - index -1);
+	return "rgb(" + Math.floor(base_r * multiplier) + ", " + Math.floor(base_g * multiplier) + ", 0)";
+})
+
 Template.registerHelper('userIsAdmin', function() {
 	return Meteor.user() && Meteor.user().profile.user_type == "admin";
 })

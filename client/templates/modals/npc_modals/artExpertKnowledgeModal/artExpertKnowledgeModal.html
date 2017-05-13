@@ -1,0 +1,21 @@
+<template name="artExpertKnowledgeModal">
+	<div class="template-artExpertKnowledgeModal col-xs-12">
+		<div class="message-container">
+			<div class="modal-message-area">
+			{{>itemInfo item_data=interaction_object.item}}
+				<p class="modal-message">You have met an Art Expert, who shares his wisdom about one of your works, <span class="highlight af-color work-title">{{interaction_object.item.artwork_data.title}}</span> by <span class="highlight af-color">{{interaction_object.item.artwork_data.artist}}</span>.</p>
+				<p class="modal-message">You have gained the follwoing knowledge:</p>
+				<div class="knowledge-reward">
+				{{#each knowledge_tier interaction_object.knowledge_object}}
+					{{#if amount}}
+					<p class="knowledge-text"><span class="highlight" style="color:{{getKnowledgeColorString type}}">{{name}}</span>: <span class="highlight" style="color:{{getKnowledgeColorString type}}">{{amount}}</span></p>
+					{{/if}}
+				{{/each}}	
+				</div>	
+				<div class="modal-button-area">
+					<button id="accept-button" class="modal-button">ok</button>
+				</div>
+			</div>
+		</div>
+	</div>
+</template>

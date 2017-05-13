@@ -41,10 +41,35 @@
 					</tr>
 					{{#each knowledge}}
 					<tr>
-						<td class="player-data"><span class="{{color}}">{{name}}</span>:</td>
-						<td class="highlight {{color}}">{{commaSeparatedValue amount}}</td>
+						<td class="player-data"><span style="color:{{getKnowledgeColorString type}}">{{name}}</span>:</td>
+						<td>
+							<div class="row">
+								<div class="col-xs-2 no-margin no-padding craft-buttons">
+									<div class="row no-margin no-padding">
+										<div class="col-xs-6 no-margin no-padding">
+											{{#if can_increase_craft}}<i class="craft-up fa fa-caret-square-o-up" data-knowledge_type="{{type}}"></i>{{/if}}
+										</div>
+										<div class="col-xs-6 no-margin no-padding">
+											{{#if can_decrease_craft}}<i class="craft-down fa fa-caret-square-o-down" data-knowledge_type="{{type}}"></i>{{/if}}
+										</div>
+									</div>
+								</div>
+								<div class="col-xs-8 no-margin no-padding">
+									<span class="highlight" style="color:{{getKnowledgeColorString type}}">{{commaSeparatedValue amount}}</span> {{#if crafting}}-> <span style="color:red">{{commaSeparatedValue revised_amount}}</span>{{/if}} 
+								</div>
+								
+							</div>
+						</td>
 					</tr>
 					{{/each}}
+					<tr>
+					{{#if crafting_enabled}}
+						<td></td>
+						<td>
+							<button id="submit-conversion" type="button" class="btn btn-default">accept</button>
+						</td>
+					{{/if}}
+					</tr>
 					<tr></tr>
 					{{#if max_level}}
 					{{else}}

@@ -1,6 +1,10 @@
 var current_user_id = Meteor.userId();
 display_value_tracker = new Tracker.Dependency;
 var display_values;
+var craft_target = 0;
+var craft_type = undefined;
+var revised_knowledge = undefined;
+var craft_tracker = new Tracker.Dependency;
 
 Template.playerInfo.rendered = function() {
 	display_values = undefined;
@@ -20,6 +24,42 @@ Template.playerInfo.events({
 			'modal_name': "vintageModal", 
 			'modal_data': undefined
 		}, $('body')[0]);
+	},
+
+	'click .craft-up': function(event) {
+		craft_type = $(event.target).data().knowledge_type;
+		craft_target++;
+		craft_tracker.changed();
+		revised_knowledge = getRevisedKnowledgeFromTargetValue(craft_type, craft_target, Meteor.user().profile.knowledge);
+	},
+
+	'click .craft-down': function(event) {	
+		craft_target = Math.max(0, craft_target - 1);
+		if (craft_target == 0) {
+			craft_type = undefined;
+			revised_knowledge = undefined;
+		}
+
+		else {
+			craft_type = $(event.target).data().knowledge_type;
+			revised_knowledge = getRevisedKnowledgeFromTargetValue(craft_type, craft_target, Meteor.user().profile.knowledge);
+		}
+
+		craft_tracker.changed();
+	},
+
+	'click #submit-conversion': function() {
+		Meteor.call('convertKnowledge', craft_type, craft_target, function(error) {
+			if (error)
+				console.log(error)
+
+			else {
+				craft_type = undefined;
+				craft_target = 0;
+				revised_knowledge = undefined;
+				craft_tracker.changed();
+			}
+		})
 	}
 });
 
@@ -153,17 +193,31 @@ Template.playerInfo.helpers({
 	},
 
 	'knowledge': function() {
+		craft_tracker.depend();
 		var knowledge_array = [];
 		var user_object = Meteor.user();
+		var crafting_enabled = craft_type != undefined;
 		for (var i=0; i<knowledge_types.length; i++) {
+			var knowledge_type = knowledge_types[i];
+			var this_type_is_crafting_target = crafting_enabled && knowledge_type == craft_type;
 			knowledge_array.push({
 				'color': artwork_rarities[i],
 				'amount': user_object.profile.knowledge[knowledge_types[i]],
-				'name': knowledge_types[i].replace("_", " ")
+				'name': knowledge_type.replace("_", " "),
+				'type': knowledge_type,
+				'can_increase_craft': (!crafting_enabled || this_type_is_crafting_target) && (craft_target + 1) <= getMaxCraftable(knowledge_type, Meteor.user().profile.knowledge),
+				'can_decrease_craft': (!crafting_enabled || this_type_is_crafting_target) && craft_target != 0,
+				'revised_amount': revised_knowledge == undefined ? undefined : revised_knowledge[knowledge_type],
+				'crafting': crafting_enabled
 			})
 		}
 
 		return knowledge_array;
+	},
+
+	'crafting_enabled': function() {
+		craft_tracker.depend();
+		return revised_knowledge != undefined;
 	}
 })
 

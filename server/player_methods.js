@@ -742,6 +742,17 @@ Meteor.methods({
         addFunds("sell item", Meteor.userId(), sell_all_data.value);
     },
 
+    'donateAllUnclaimed' : function() {
+        var player_interface = new PlayerIF(Meteor.userId());
+        var discardable_ids = player_interface.getQuickDiscardableItemIds();
+
+        for (var i=0; i<discardable_ids.length; i++) {
+            var item_id = discardable_ids[i];
+            var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+            player_item_interface.donate();
+        }
+    },
+
     'declineAllForSale' : function() {
         return declineAllForSale(Meteor.userId());
     },
@@ -1264,5 +1275,14 @@ Meteor.methods({
             total_xp += player_item_interface.getXPPerHour(now, item_object.status);
         })
         return total_xp;
+     },
+
+     'convertKnowledge': function(craft_type, target) {
+        var max_craftable = getMaxCraftable(craft_type, Meteor.user().profile.knowledge);
+        if (target > max_craftable)
+            return;
+
+        var revised_knowledge = getRevisedKnowledgeFromTargetValue(craft_type, target, Meteor.user().profile.knowledge);
+        Meteor.users.update({'_id': Meteor.userId()}, {$set: {'profile.knowledge': revised_knowledge}});
      }
 })

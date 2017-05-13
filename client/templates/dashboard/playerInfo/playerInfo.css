@@ -120,3 +120,18 @@
 	margin-top: 40px;
 	color: black;
 }
+
+.template-playerInfo .craft-buttons {
+	padding-left: 12px
+}
+
+.template-playerInfo #submit-conversion {
+	background-color: black;
+	color: white;
+	border-radius: 0;
+	border: none; 
+	height: 20px;
+	width: 80px;
+	font-size: 1.5rem;
+	padding-top: 0px;
+}
