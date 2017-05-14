@@ -79,9 +79,9 @@ Template.rerollModal.helpers({
 		return Math.floor(value * 100);
 	},
 
-	'unique_attribute_data': function(unique_code) {
-		var unique_object = unique_attributes.findOne({'code': unique_code});
-		unique_object.current_selected = items.findOne(Session.get('selectedItem')).active_unique_attribute == unique_code;
+	'unique_attribute_data': function(unique_id) {
+		var unique_object = unique_attributes.findOne(unique_id);
+		unique_object.current_selected = items.findOne(Session.get('selectedItem')).active_unique_attribute == unique_id;
 		return unique_object;
 	},
 

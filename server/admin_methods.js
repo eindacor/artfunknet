@@ -220,22 +220,6 @@ Meteor.methods({
     	}
     },
 
-    /* new schema...
-        artworks:
-            {
-                ...
-                'unique_attributes': [<unique_code>],
-                'special_attributes': [<attribute_id>]
-            }
-
-        items: 
-            {
-                ...
-                'active_unique_attribute': <unique_id>,
-                'artwork_data': artworks.findOne(artwork_id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}})
-            }
-    */
-
     //TODO: horribly inefficient method, update
     'updateSpecialAttributes': function(artwork_id, attribute_id_array) {
     	if (adminValidated()) {
@@ -245,8 +229,8 @@ Meteor.methods({
                     if (i != n) {
                         var unique_attribute = unique_attributes.findOne({'linked_attributes': {$all: [attribute_id_array[i], attribute_id_array[n]]}});
 
-                        if (unique_list.indexOf(unique_attribute.code) == -1)
-                            unique_list.push(unique_attribute.code);
+                        if (unique_list.indexOf(unique_attribute._id) == -1)
+                            unique_list.push(unique_attribute._id);
                     }
                 }
             }

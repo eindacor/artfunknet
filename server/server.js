@@ -55,6 +55,37 @@ var updateContent = function() {
     }
 
     // temp code
+    items.find({'artwork_data.rarity': {$in: ["legendary", "masterpiece"]}}).forEach(function(item_object) {
+        var current_unique_array = item_object.artwork_data.unique_attributes;
+        var new_unique_array = [];
+
+        for (var i=0; i<current_unique_array.length; i++) {
+            var target_unique = unique_attributes.findOne({'code': current_unique_array[i]});
+            if (target_unique == undefined) {
+                return;
+            }
+
+            new_unique_array.push(target_unique._id);
+        }
+
+        items.update({'_id': item_object._id}, {$set: {'artwork_data.unique_attributes': new_unique_array, 'active_unique_attribute': new_unique_array[0]}});
+    })
+
+    artworks.find({'rarity': {$in: ["legendary", "masterpiece"]}}).forEach(function(artwork_object) {
+        var current_unique_array = artwork_object.unique_attributes;
+        var new_unique_array = [];
+
+        for (var i=0; i<current_unique_array.length; i++) {
+            var target_unique = unique_attributes.findOne({'code': current_unique_array[i]});
+            if (target_unique == undefined) {
+                return;
+            }
+
+            new_unique_array.push(target_unique._id);
+        }
+
+        artworks.update({'_id': artwork_object._id}, {$set: {'unique_attributes': new_unique_array}});
+    });
     // temp code
 }
 

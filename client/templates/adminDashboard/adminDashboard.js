@@ -1189,7 +1189,7 @@ Template.adminTools.helpers({
 		var unique_attribute_object = unique_attributes.findOne($('.unique-attribute-mod-selector').val());
 
 		if (unique_attribute_object)
-			return artworks.find({'unique_attributes': {$in : [unique_attribute_object.code]}});
+			return artworks.find({'unique_attributes': {$in : [unique_attribute_object._id]}});
 
 		else return [];
 	}
