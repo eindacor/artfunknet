@@ -276,9 +276,9 @@ Meteor.setInterval((function() {
             bid_increase_coefficient *= 2;
         }
 
-        if (procUniqueAttribute(Meteor.users.findOne(auction_object.viewer)._id, "DESIGNER_PRIVATE_BID_REDUCTION", "Designer")) {
-            bid_increase_coefficient *= .5;
-        }
+        // if (procUniqueAttribute(Meteor.users.findOne(auction_object.viewer)._id, "DESIGNER_PRIVATE_BID_REDUCTION", "Designer")) {
+        //     bid_increase_coefficient *= .5;
+        // }
 
         if (Math.random() < actual_proc_chance) {
             botBid(auction_object, bid_increase_coefficient);

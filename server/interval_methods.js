@@ -54,7 +54,8 @@ Meteor.setInterval((function() {
     gallery_tickets.remove({'expiration': {$lt : getNowISOString()}});
 }), check_ticket_frequency);
 
-var npc_spawn_frequency = 600000; // 10 minutes
+var marketing_boost = .15;
+var base_proc_max = 1 - marketing_boost;
 Meteor.setInterval((function() {
     galleries.find().forEach(function(db_object) {
         npcs.remove({'owner_id': db_object.owner_id});
@@ -69,56 +70,38 @@ Meteor.setInterval((function() {
 
         for (var i=0; i < attribute_ids.length; i++) {
             var attribute_object = attributes.findOne(attribute_ids[i]);
-            if (attribute_object == undefined || attribute_object.type == "secondary")
+            if (attribute_object == undefined)
                 continue;
             
-            var proc_chance = Math.pow((attribute_values[attribute_ids[i]] * rarity_npc_coefficient), 2);
+            var base_proc = attribute_values[attribute_ids[i]] * rarity_npc_coefficient;
 
-            if (attribute_object.npc_name == "Art Donor" && 
-                owner_object.profile.market_expert.expiration < getNowISOString() && 
-                procUniqueAttribute(db_object.owner_id, "DONOR_SPAWN_BOOST", undefined) 
-                ){
-                    proc_chance += .2;
+            if (owner_object.profile.marketing_manager_spawn_boost_expiration < getNowISOString()) {
+                base_proc += marketing_boost;
             }
+
+            var proc_chance = Math.pow(base_proc, 2);
 
             if (Math.random() < proc_chance) {
                 var npc_quality = getNPCQuality(Meteor.users.findOne(db_object.owner_id).profile.level);
-                createNPC(db_object, attribute_ids[i], npc_spawn_frequency, npc_quality);
+                createNPC(db_object, attribute_ids[i], NPC_SPAWN_FREQUENCY, npc_quality);
 
-                if (attribute_object.npc_name == "Designer" && Math.random() < .2 && procUniqueAttribute(db_object.owner_id, "DESIGNER_PAIRS", undefined))
-                    createNPC(db_object, attribute_ids[i], npc_spawn_frequency, "bronze");
+                // if (attribute_object.npc_name == "Designer" && Math.random() < .2 && procUniqueAttribute(db_object.owner_id, "DESIGNER_PAIRS", undefined))
+                //     createNPC(db_object, attribute_ids[i], NPC_SPAWN_FREQUENCY, "bronze");
                     
                 if ((npc_quality == "platinum") && procUniqueAttribute(db_object.owner_id, "COLLECTOR_DONOR_PAIR", undefined)) {
                     if (attribute_object.npc_name == "Art Collector")
-                        createNPC(db_object, attributes.findOne({'npc_name': "Art Donor"})._id, npc_spawn_frequency, "bronze")
+                        createNPC(db_object, attributes.findOne({'npc_name': "Art Donor"})._id, NPC_SPAWN_FREQUENCY, "bronze")
                         
                     else if (attribute_object.npc_name == "Art Donor")
-                        createNPC(db_object, attributes.findOne({'npc_name': "Art Collector"})._id, npc_spawn_frequency, "bronze")
+                        createNPC(db_object, attributes.findOne({'npc_name': "Art Collector"})._id, NPC_SPAWN_FREQUENCY, "bronze")
                 }
             }
         }
     });
 
-    npc_data.remove({'timestamp': {$lt: moment().add((npc_spawn_frequency * -1), "milliseconds")._d.toISOString()}});
+    npc_data.remove({'timestamp': {$lt: moment().add((NPC_SPAWN_FREQUENCY * -1), "milliseconds")._d.toISOString()}});
 
-}), npc_spawn_frequency);
-
-Meteor.setInterval((function() {
-    var finish_xp_max_percentage = .02;
-    var all_users = Meteor.users.find();
-    all_users.forEach(function(db_object) {       
-        var active_floor_finish_id = db_object.profile.gallery_finishes.active.floor_finish;
-        var floor_xp_rating = db_object.profile.gallery_finishes.owned.floor_finishes[active_floor_finish_id].xp_rating;
-        var floor_percentage = finish_xp_max_percentage * floor_xp_rating;
-
-        var active_wall_finish_id = db_object.profile.gallery_finishes.active.wall_finish;
-        var wall_xp_rating = db_object.profile.gallery_finishes.owned.wall_finishes[active_wall_finish_id].xp_rating;
-        var wall_percentage = finish_xp_max_percentage * wall_xp_rating;
-
-        addXPChunkPercentage("finishes", db_object._id, wall_percentage + floor_percentage);
-    });
-
-}), finishes_check_frequency);
+}), NPC_SPAWN_FREQUENCY);
 
 // some vars defined in lib/time_constants.js
 Meteor.setInterval((function() {

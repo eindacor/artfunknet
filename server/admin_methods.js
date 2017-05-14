@@ -311,13 +311,31 @@ Meteor.methods({
     'updateAttributeData': function(attribute_id, attribute_object) {
     	if (adminValidated()) {
     		attributes.update(attribute_id, {$set: attribute_object});
-    		updateItemsBySelector({'attributes._id': attribute_id}, {$set: {
-    			'attributes.$.title': attribute_object.title, 
-    			'attributes.$.description': attribute_object.description, 
-    			'attributes.$.icon': attribute_object.icon, 
-    			'attributes.$.npc_name': attribute_object.npc_name, 
-    			'attributes.$.active': attribute_object.active
-    		}});
+    		updateItemsBySelector({'attributes.unlocked._id': attribute_id}, {$set: {
+                'attributes.unlocked.$.title': attribute_object.title, 
+                'attributes.unlocked.$.description': attribute_object.description, 
+                'attributes.unlocked.$.icon': attribute_object.icon, 
+                'attributes.unlocked.$.npc_name': attribute_object.npc_name, 
+                'attributes.unlocked.$.active': attribute_object.active
+            }});
+
+            updateItemsBySelector({'attributes.locked._id': attribute_id}, {$set: {
+                'attributes.locked.$.title': attribute_object.title, 
+                'attributes.locked.$.description': attribute_object.description, 
+                'attributes.locked.$.icon': attribute_object.icon, 
+                'attributes.locked.$.npc_name': attribute_object.npc_name, 
+                'attributes.locked.$.active': attribute_object.active
+            }});
+
+            updateItemsBySelector({'attributes.special._id': attribute_id}, {$set: {
+                'attributes.special.$.title': attribute_object.title, 
+                'attributes.special.$.description': attribute_object.description, 
+                'attributes.special.$.icon': attribute_object.icon, 
+                'attributes.special.$.npc_name': attribute_object.npc_name, 
+                'attributes.special.$.active': attribute_object.active
+            }});
+
+            npcs.update({'attribute_id': attribute_id}, {$set: {'icon': attribute_object.icon}}, {multi: true});
     		return true;
     	}
 

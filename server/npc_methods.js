@@ -74,8 +74,8 @@ var interactWithNPC = function(npc_id) {
 		case "collector_bonus":
 			npc_interaction = collectorInteraction(npc_object);
 			break;
-		case "designer_bonus": //DISABLE - give discount to store
-			npc_interaction = designerInteraction(npc_object);
+		case "marketing_manager_bonus":
+			npc_interaction = marketingManagerInteraction(npc_object);
 			break;
 		case "forger_bonus": //DISABLE - give access to black market
 			npc_interaction = {'message': "You have met an art forger."};
@@ -161,29 +161,6 @@ var benefactorInteraction = function(npc_object) {
 	// returns true if the player met the npc in his/her own gallery
 	if (isOwnGallery(npc_object)) {
 		donation_amount *= own_gallery_amplifier;
-
-		if (procUniqueAttribute(Meteor.userId(), "GALLERY_FINISH_BENEFACTOR_BONUS", undefined)) {
-			var floor_finishes = Meteor.user().profile.gallery_finishes.owned.floor_finishes;
-			var floor_finish_rating_total = 0;
-			var floor_finish_keys = Object.keys(floor_finishes);
-			for (var i=0; i<floor_finish_keys.length; i++) {
-				floor_finish_rating_total += floor_finishes[floor_finish_keys[i]].xp_rating;
-			}
-
-			var floor_finish_average = floor_finish_rating_total / floor_finish_keys.length;
-
-			var wall_finishes = Meteor.user().profile.gallery_finishes.owned.wall_finishes;
-			var wall_finish_rating_total = 0;
-			var wall_finish_keys = Object.keys(wall_finishes);
-			for (var i=0; i<wall_finish_keys.length; i++) {
-				wall_finish_rating_total += wall_finishes[wall_finish_keys[i]].xp_rating;
-			}
-
-			var wall_finish_average = wall_finish_rating_total / wall_finish_keys.length;
-
-			var total_average = (wall_finish_average + floor_finish_average) / 2;
-			donation_amount += getAverageDropValue(Meteor.user().profile.level, total_average * total_average);
-		}
 
 		if (procUniqueAttribute(Meteor.userId(), "LONGEST_GALLERY_TICKET_BONUS", undefined)) {
 			var longest_ticket = gallery_tickets.findOne({'ticketholder': Meteor.userId()}, {sort: {'expiration': -1}});
@@ -328,49 +305,7 @@ var preservationistInteraction = function(npc_object) {
 			addFunds("PRESERVATIONIST_CONDITION_BONUS", Meteor.userId(), Math.min( Math.floor(getItemObjectValueByType(target_item, 'actual', Meteor.userId())), 1000000) );
 		}
 
-		// C) If you meet a preservationist with a designer present, the XP rating of your currently equipped finishes is increased. Finishes with a 100 rating give XP.
-		if (procUniqueAttribute(Meteor.userId(), "PRESERVATIONIST_FINISH_BOOST", "Designer")) {
-			var increase_amount = .04;
-			var user_object = Meteor.user();
-			var current_wall = user_object.profile.gallery_finishes.active.wall_finish;
-			var current_floor = user_object.profile.gallery_finishes.active.floor_finish;
-			var current_wall_rating = user_object.profile.gallery_finishes.owned.wall_finishes[current_wall].xp_rating;
-			var current_floor_rating = user_object.profile.gallery_finishes.owned.floor_finishes[current_floor].xp_rating;
-
-			var wall_maxed = current_wall_rating > .99;
-			if (wall_maxed)
-				addXPChunkPercentage("PRESERVATIONIST_FINISH_BOOST", Meteor.userId(), .3);
-
-			var floor_maxed = current_floor_rating > .99;
-			if (floor_maxed)
-				addXPChunkPercentage("PRESERVATIONIST_FINISH_BOOST", Meteor.userId(), .3);
-
-			var setter = {};
-			var wall_setter_string = undefined;
-			var floor_setter_string = undefined;
-
-			if (!wall_maxed) {
-				wall_setter_string = "profile.gallery_finishes.owned.wall_finishes." + current_wall + ".xp_rating";
-				setter[wall_setter_string] = Math.min( Number((current_wall_rating + increase_amount).toFixed(2)), 1);
-			}
-
-			if (!floor_maxed) {
-				floor_setter_string = "profile.gallery_finishes.owned.floor_finishes." + current_floor + ".xp_rating";
-				setter[floor_setter_string] = Math.min( Number((current_floor_rating + increase_amount).toFixed(2)), 1);
-			}
-
-			if ((wall_setter_string != undefined && setter[wall_setter_string] != undefined) ||
-			 	(floor_setter_string != undefined && setter[floor_setter_string] != undefined)) {
-				Meteor.users.update(Meteor.userId(), {$set: setter});
-			}
-
-			if (message)
-				message = message + " He also marvels at your finishes, smelling your walls and gently caressing your floor.";
-
-			else message = "You have met a preservationist who marvels at your finishes, smelling your walls and gently caressing your floor.";
-		}
-
-		// D) If you meet a preservationist with an enthusiast present, they select an item in your permanent collection. If the item has an XP rating > 90, or a condition > 80, you earn XP. If it has neither, it's XP rating or condition is increased.
+		// C) If you meet a preservationist with an enthusiast present, they select an item in your permanent collection. If the item has an XP rating > 90, or a condition > 80, you earn XP. If it has neither, it's XP rating or condition is increased.
 		if (procUniqueAttribute(Meteor.userId(), "PC_XP_RATING_BOOST", "Art Enthusiast")) {
 			var random_permanent = selectRandomPainting({'owner': Meteor.userId(), 'status': "permanent"});
 
@@ -563,28 +498,6 @@ var collectorInteraction = function(npc_object) {
 			if ((collector_target.foil || collector_target.original || collector_target.lottery || collector_target.seasonal) && 
 				procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_SPECIAL_BONUS", undefined)) {
 					offer_multiplier += standard_legendary_increment * 4;
-			}
-
-			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_FINISH_RATING_BONUS", undefined)) {
-				var high_finish_count = 0;
-				var floor_finishes = Meteor.user().profile.gallery_finishes.owned.floor_finishes;
-				var floor_finish_keys = Object.keys(floor_finishes);
-				for (var i=0; i<floor_finish_keys; i++) {
-					var key = floor_finish_keys[i];
-					if (floor_finishes[key].xp_rating > .8)
-						high_finish_count++;
-				}
-
-				var wall_finishes = Meteor.user().profile.gallery_finishes.owned.wall_finishes;
-				var wall_finish_keys = Object.keys(wall_finishes);
-				for (var i=0; i<wall_finish_keys; i++) {
-					var key = wall_finish_keys[i];
-					if (wall_finishes[key].xp_rating > .8)
-						high_finish_count++;
-				}
-
-				var finish_bonus = high_finish_count * .05;
-				offer_multiplier += Math.min(finish_bonus, standard_legendary_increment);
 			}
 
 			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_AUCTION_BONUS", undefined)) {
@@ -827,80 +740,6 @@ var galleryManagerInteraction = function(npc_object) {
 	}
 }
 
-var designerInteraction = function(npc_object) {
-	var gallery_finish_count = gallery_finishes.find({'quality': npc_object.quality}).count();
-	var random_index = Math.floor(Math.random() * gallery_finish_count);
-	//random_index = 1; // for debugging
-	var random_selection = gallery_finishes.findOne({'quality': npc_object.quality}, {skip: random_index});
-
-	var user_object = Meteor.user();
-	var category_string = (random_selection.type == "wall finish" ? "wall_finishes" : "floor_finishes");
-
-	var designer_bonus = 0;
-
-	if (isOwnGallery(npc_object)) {
-		designer_bonus += .1;
-
-		if (procUniqueAttribute(Meteor.userId(), "DESIGNER_ENTHUSIAST_BONUS", "Art Enthusiast")) {
-			designer_bonus += .2
-		}
-	}
-	
-	if (user_object.profile.gallery_finishes.owned[category_string][random_selection._id] == undefined) {
-		var user_finish_object = {
-			'filename': random_selection.filename,
-			'saturation': 1,
-			'xp_rating': .1 + designer_bonus
-		}
-
-		var set_object = {};
-		var array_selector_string = "profile.gallery_finishes.owned." + (random_selection.type == "wall finish" ? "wall_finishes." : "floor_finishes.") + random_selection._id;
-		set_object[array_selector_string] = user_finish_object;
-		Meteor.users.update(Meteor.userId(), {$set: set_object});
-		var message = "You have met a designer, who has provided you with a new finish for your gallery!";
-		return {'message': message, 'type': "designer_bonus", 'filename': random_selection.filename};
-	}
-
-	//user already owns that finish, increase rating
-	else if (user_object.profile.gallery_finishes.owned[category_string][random_selection._id].xp_rating < 1){
-		var existing_xp_rating = user_object.profile.gallery_finishes.owned[category_string][random_selection._id].xp_rating;
-
-		var xp_rating_increase = .1 + designer_bonus;
-
-		var new_xp_rating = (existing_xp_rating + xp_rating_increase > 1 ? 1 : existing_xp_rating + xp_rating_increase)
-		
-		var finish_setter = {};
-		var array_selector_string = "profile.gallery_finishes.owned." + category_string + "." + random_selection._id + ".xp_rating";
-		finish_setter[array_selector_string] = new_xp_rating;
-		Meteor.users.update(Meteor.userId(), {$set: finish_setter});
-		var message = "You have met a designer. The XP rating of this finish has increased from " + Math.floor(existing_xp_rating * 100) + " to " + Math.floor(new_xp_rating * 100) + "!";
-		return {'message': message, 'type': "designer_bonus", 'filename': random_selection.filename};
-	}
-
-	//finish xp_rating already maxed out, give xp
-	else {
-		var xp_chunk_percentage;
-
-		switch(npc_object.quality) {
-			case 'bronze' : xp_chunk_percentage = .1; break;
-			case 'silver' : xp_chunk_percentage = .12; break;
-			case 'gold' : xp_chunk_percentage = .14; break;
-			case 'platinum' : xp_chunk_percentage = .16; break;
-		};
-
-		xp_chunk_percentage += designer_bonus;
-
-		var xp_chunk = getXPChunk(Meteor.user().profile.level);
-		var xp_won = Math.floor(xp_chunk * xp_chunk_percentage);
-
-		var message = "You have met a designer, who is impressed by one of the finishes in your collection. You have earned " + getCommaSeparatedValue(xp_won) + "xp!";
-
-		addXP(Meteor.userId(), xp_won);
-		logXPChunkPercentage("designer", xp_chunk_percentage);
-		return {'message': message, 'type': "designer_bonus", 'filename': random_selection.filename};
-	}
-}
-
 var generateTarget = function(default_target_count) {
 	var target = [];
 
@@ -979,9 +818,9 @@ var generateQuest = function(rarity, is_own_gallery) {
 	var min_requirement = 3;
 
 	if (is_own_gallery) {
-		if (procUniqueAttribute(Meteor.userId(), "QUEST_TARGET_REDUCTION", "Designer")) {
-			min_requirement--;
-		}
+		// if (procUniqueAttribute(Meteor.userId(), "QUEST_TARGET_REDUCTION", "Designer")) {
+		// 	min_requirement--;
+		// }
 
 		if (procUniqueAttribute(Meteor.userId(), "QUEST_XP_BONUS", undefined)) {
 			reward.xp = Math.floor(reward.xp * 1.5);
