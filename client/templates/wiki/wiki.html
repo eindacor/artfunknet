@@ -1,13 +1,29 @@
 <template name="wiki">
 	<div class="template-wiki container">
 		<h1 class="af-color">Legendary Attributes</h1>
-		<div class="unique-attribute-area">
-			{{#each unique_attribute}}
-			<div class="unique-container">
-				<h4 class="af-color">"{{flavor_text}}"</h4>
-				<p class="description-text">{{description}}</p>
-			</div>
+		<table id="legendary-attribute-matrix">
+			<tr>
+				<td></td>
+				{{#each attribute}}
+				<td>{{npc_name}}</td>
+				{{/each}}
+			</tr>
+			{{#each attribute}}
+			<tr class="legendary-row">
+				<td>{{npc_name}}</td>
+				{{#each intersection this}}
+				{{#if is_null}}
+				<td class="null"></td>
+				{{else}}
+				<td class="legendary-column">
+					<p class="black-text highlight">{{title}}</p>
+					<p class="af-color">"{{flavor_text}}"</p>
+					<p>{{description}}</p>
+				</td>
+				{{/if}}
+				{{/each}}
+			</tr>
 			{{/each}}
-		</div>
+		</table>
 	</div>
 </template>

@@ -9,3 +9,40 @@
 .template-wiki h4 {
 	margin-bottom: 0px;
 }
+
+.template-wiki .null {
+	background-color: #888888;
+}
+
+.template-wiki td {
+	width: 200px;
+	border: 1px solid black;
+	min-width: 200px;
+	padding: 4px 10px;
+}
+
+.template-wiki td:nth-child(1) {
+	min-width: 50px;
+	background-color: #555555;
+ 	color: white;
+ 	font-weight: bold;
+ 	font-size: 1.4rem;
+ 	border: 1px solid white;
+}
+
+.template-wiki table {
+	border: 1px solid black;
+	font-size: 1.2rem;
+}
+
+.template-wiki tr:nth-child(even) {
+	background-color: #EEEEEE;
+}
+
+.template-wiki tr:nth-child(1) > td {
+ 	background-color: #555555;
+ 	color: white;
+ 	font-weight: bold;
+ 	font-size: 1.4rem;
+ 	border: 1px solid white;
+ }

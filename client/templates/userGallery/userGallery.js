@@ -230,9 +230,6 @@ Template.userGallery.events ({
 									}
 								}, $('body')[0]);
 								break;
-							case "designer_bonus":
-								Modal.show("designerModal");
-								break;
 							case "historian_bonus":
 								Modal.show("historianModal");
 								break;
