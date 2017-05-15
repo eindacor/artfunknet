@@ -80,12 +80,26 @@ Meteor.setInterval((function() {
             var proc_chance = gallery_object.procs[attribute_ids[i]];
 
             if (Math.random() < proc_chance) {
+                var attribute_object = attributes.findOne(attribute_ids[i]);
+                var npc_quality;
+
+                if (attribute_object.npc_name == "Art Collector" && procUniqueAttribute(gallery_object.owner_id, "COLLECTOR_MAX_QUALITY"), undefined) {
+                    if (owner_object.profile.npcs_met.platinum < npc_max_map.platinum)
+                        npc_quality = "platinum";
+
+                    else if (owner_object.profile.npcs_met.gold < npc_max_map.gold) 
+                        npc_quality = "gold";
+
+                    else if (owner_object.profile.npcs_met.siler < npc_max_map.silver) 
+                        npc_quality = "silver";
+
+                    else if (owner_object.profile.npcs_met.bronze < npc_max_map.bronze) 
+                        npc_quality = "bronze";
+                }
+
                 var npc_quality = getNPCQuality(Meteor.users.findOne(gallery_object.owner_id).profile.level);
                 createNPC(gallery_object, attribute_ids[i], NPC_SPAWN_FREQUENCY, npc_quality);
 
-                // if (attribute_object.npc_name == "Designer" && Math.random() < .2 && procUniqueAttribute(gallery_object.owner_id, "DESIGNER_PAIRS", undefined))
-                //     createNPC(gallery_object, attribute_ids[i], NPC_SPAWN_FREQUENCY, "bronze");
-                    
                 if ((npc_quality == "platinum") && procUniqueAttribute(gallery_object.owner_id, "COLLECTOR_DONOR_PAIR", undefined)) {
                     if (attribute_object.npc_name == "Art Collector")
                         createNPC(gallery_object, attributes.findOne({'npc_name': "Art Donor"})._id, NPC_SPAWN_FREQUENCY, "bronze")

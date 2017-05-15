@@ -36,18 +36,34 @@ marketingManagerInteraction = function(npc_object) {
 
 	if (isOwnGallery(npc_object)) {
 		npc_spawn_boost_coefficient = 1;
+		var gallery_object;
+		var npc_spawn_quality = "bronze";
+
+		if (procUniqueAttribute(Meteor.userId(), "DEALER_PLATINUM_MARKETING_SPAWN", "Art Dealer"))
+			npc_spawn_quality = "platinum";
+
+		if (procUniqueAttribute(Meteor.userId(), "DONOR_PLATINUM_MARKETING_SPAWN", "Art Donor"))
+			npc_spawn_quality = "platinum";
 
 		if (procUniqueAttribute(Meteor.userId(), "MARKETING_VISITOR_SPAWN_CHANCE_BOOST", "Gallery Manager")) {
 			npc_spawn_chance += .4;
 		}
 
-		if (Math.random() < npc_spawn_chance) {
-			var gallery_object = galleries.findOne({'owner_id': npc_object.owner_id});
+		if (procUniqueAttribute(Meteor.userId(), "MARKETING_PRESERVATIONIST_VISITOR_SPAWN", "Preservationist")) {
+			gallery_object = galleries.findOne({'owner_id': npc_object.owner_id});
+			createNPC(gallery_object, attributes.findOne({'npc_name': "Preservationist"})._id, NPC_SPAWN_FREQUENCY, npc_spawn_quality);
+		}
+
+		if (Math.random() < npc_spawn_chance) {			
+			if (gallery_object == undefined)
+				gallery_object = galleries.findOne({'owner_id': npc_object.owner_id});
+			
 			var filter = {'active': true, '_id': {'$ne': npc_object.attribute_id}};
 			var attribute_count = attributes.find(filter).count();
 			var random_index = Math.floor(Math.random() * attribute_count);
 			var attribute_object = attributes.findOne(filter, {skip: random_index});
-			createNPC(gallery_object, attribute_object._id, NPC_SPAWN_FREQUENCY, "bronze");
+
+			createNPC(gallery_object, attribute_object._id, NPC_SPAWN_FREQUENCY, npc_spawn_quality);
 		}
 	}
 

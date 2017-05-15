@@ -1,0 +1,87 @@
+donorInteraction = function(npc_object) {
+	var drop_count = 2;
+	var loot_data = getLootData();
+	var foil_chance = loot_data.global_foil_chance;
+	var condition_min = 0;
+	var level = 1;	
+
+	if (isOwnGallery(npc_object)) {
+		drop_count += 1;
+
+		if (procUniqueAttribute(Meteor.userId(), "BONUS_DEALER_DONOR", undefined)) {
+			drop_count += 1;
+		}
+
+		if (procUniqueAttribute(Meteor.userId(), "DONOR_AUCTIONEER_TRADE", "Auctioneer")) {
+			drop_count -= 1;
+		}
+
+		if (procUniqueAttribute(Meteor.userId(), "DONOR_FOIL_BONUS", undefined)) {
+			foil_chance *= 2;
+		}
+
+		if (procUniqueAttribute(Meteor.userId(), "DONOR_CONDITION_MIN", undefined)) {
+			condition_min = .8;
+		}
+
+		if (procUniqueAttribute(Meteor.userId(), "DONOR_XP_RATING_MIN", undefined)) {
+			level = 5;
+		}
+
+		if (procUniqueAttribute(Meteor.userId(), "DONOR_DROP_QUALITY_BOOST", undefined)) {
+			npc_object.quality = "platinum";
+		}
+
+		if (Math.random() < .2 && procUniqueAttribute(Meteor.userId(), "DONOR_QUEST_ITEM_CHANCE", undefined)) {
+			var quest_item_ids = [];
+			quests.find({'owner_id': Meteor.userId()}).forEach(function(db_object) {
+				var targets = db_object.target;
+				for (var i=0; i<targets.length; i++) {
+					if (quest_item_ids.indexOf(targets[i]) == -1)
+						quest_item_ids.push(targets[i]);
+				}
+			});
+
+			if (quest_item_ids.length) {
+				var random_index = Math.floor(Math.random() * quest_item_ids.length);
+				drop_count -= 1;
+			
+				var item_generator = {
+                    'source': "donor",
+                    'user_id': Meteor.userId(),
+                    'artwork_id': quest_item_ids[random_index],
+                    'condition': undefined,
+                    'level': level,
+                    'foil_chance': foil_chance,
+                    'unlocked_chance': loot_data.global_unlocked_chance,
+                    'seasonal': undefined,
+                    'lottery': 0,
+                    'original': false,
+                    'misprint_chance': loot_data.global_misprint_chance,
+                    'status': "unclaimed",
+                    'condition_min': condition_min
+                }
+
+				generateItemFromArtworkID(item_generator);
+			}
+		}
+	}
+
+	var multi_item_generator = {
+        'source': "donor",
+        'user_id': Meteor.userId(),
+        'quality': npc_object.quality,
+        'count': drop_count,
+        'status': "unclaimed",
+        'foil_chance': foil_chance,
+        'unlocked_chance': loot_data.global_unlocked_chance,
+        'misprint_chance': loot_data.global_misprint_chance,
+        'condition_min': condition_min
+    }
+
+	generateItems(multi_item_generator);
+
+	var message = "You have met a donor who would like to contribute to your collection. You may claim your gift in the loot area.";
+
+	// return {'message': message}
+}
