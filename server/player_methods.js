@@ -272,7 +272,7 @@ updateGalleryDetails = function(user_id) {
         var gallery_score = Math.floor(attribute_rating_total * 100);
         var gallery_rarity_npc_coefficient = display_count ? rarity_npc_coefficient_total / display_count : 0;
 
-        var player_level_coefficient_min = .8;
+        var player_level_coefficient_min = .9;
         var player_level_coefficient_delta = 1 - player_level_coefficient_min;
         var player_level_coefficient = player_level_coefficient_min + ((user_object.profile.level / PLAYER_LEVEL_MAX) * player_level_coefficient_delta);
 
@@ -288,15 +288,17 @@ updateGalleryDetails = function(user_id) {
             var attribute_rating = attribute_totals[attribute_id] / display_cap;
             attribute_values[attribute_id] = attribute_rating;
 
-            var base_proc = attribute_rating * gallery_rarity_npc_coefficient * player_level_coefficient * BASE_NPC_PROC_MAX;
+            var base_proc = attribute_rating * gallery_rarity_npc_coefficient * player_level_coefficient;
+
+            var squared_proc = Math.pow(base_proc, 2);
+            squared_proc *= BASE_NPC_PROC_MAX;
 
             if (proc_boost) {
                 var proc_boost_value = user_object.profile.marketing_manager_spawn_boost_coefficient * MARKETING_PROC_BOOST;
-                base_proc += proc_boost_value;
+                squared_proc += proc_boost_value;
             }
 
-            //var proc_chance = Math.pow(base_proc, 2);
-            procs[attribute_id] = base_proc.toFixed(2);
+            procs[attribute_id] = squared_proc.toFixed(2);
         }
 
         if (galleries.findOne({"owner_id" : user_id}) == undefined) {
