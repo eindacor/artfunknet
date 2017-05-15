@@ -83,9 +83,9 @@ Meteor.methods({
                     'displayed': displayed,
                     'permanent': permanent,
                     'finish_data': {
-                        'floor_filename': user_object.profile.gallery_finishes.owned.floor_finishes[floor_finish_id].filename,
+                        'floor_filename': gallery_finishes.findOne(floor_finish_id).filename,
                         'floor_size': Math.floor(texture_size_cm * pixels_per_centimeter) + "px " + Math.floor(texture_size_cm * pixels_per_centimeter * .5) + "px",
-                        'wall_filename': user_object.profile.gallery_finishes.owned.wall_finishes[wall_finish_id].filename,
+                        'wall_filename': gallery_finishes.findOne(wall_finish_id).filename,
                         'wall_size': Math.floor(texture_size_cm * pixels_per_centimeter) + "px " + Math.floor(texture_size_cm * pixels_per_centimeter) + "px",
                         'wall_wash_opacity': (1 - user_object.profile.gallery_finishes.wall_opacity).toFixed(1),
                         'frame_width': frame_width,

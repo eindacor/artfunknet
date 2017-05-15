@@ -628,50 +628,6 @@ var calcPercentageMap = function(level) {
     return percentage_map;
 };
 
-// getSmartRarityMap = function(player_level, amplifier) {
-//     var player_weight = player_level / PLAYER_LEVEL_MAX;
-//     var rarities = ['common', 'uncommon', 'rare', 'legendary', 'masterpiece'];
-
-//     var rarity_map = {};
-
-//     for (var i=0; i < rarities.length; i++) {
-//         var rarity = rarities[i];
-//         var rarity_map_range = smart_loot_map[rarity].max_player_level - smart_loot_map[rarity].min_player_level;
-//         var weighted_value = 100000 * (smart_loot_map[rarity].min_player_level + (player_weight * rarity_map_range));
-
-//         var max_reduction_coefficient;
-//         switch(rarity) {
-//             case "common": max_reduction_coefficient = .8; break;
-//             case "uncommon": max_reduction_coefficient = .4; break;
-//             case "rare": max_reduction_coefficient = .2; break;
-//             case "legendary": max_reduction_coefficient = .1; break;
-//         }
-        
-//         weighted_value = weighted_value * (1 - (max_reduction_coefficient * amplifier));
-//         rarity_map[rarity] = Math.floor(weighted_value);
-//     }
-
-//     return rarity_map;
-// }
-
-// calculateMapChances = function(loot_map) {
-//     var map_keys = Object.keys(loot_map);
-//     var sum_total = 0;
-//     for (var i=0; i<map_keys.length; i++) {
-//         sum_total += loot_map[map_keys[i]];
-//     }
-
-//     var map_chances = {};
-
-//     for (var i=0; i<map_keys.length; i++) {
-//         map_chances[map_keys[i]] = loot_map[map_keys[i]] / sum_total;
-//     }
-
-//     return map_chances;
-// }
-
-
-
 testMap = function(loot_map) {
     var roll_counts = {
         'common': 0,

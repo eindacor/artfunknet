@@ -46,11 +46,13 @@ var setGallery = function(screen_name, template_data) {
 }
 
 var setPadding = function() {
-	$('.wall-wash').css('padding-bottom', Math.floor(gallery_data.finish_data.offset_from_floor) + "px");
-	$('.wall-wash').css('padding-top', Math.floor(gallery_data.finish_data.offset_from_floor) + "px");
-	$('.plackard p').css('font-size', Math.ceil(gallery_data.finish_data.pixels_per_centimeter) + "px");
-	$('#gallery-wall').css('display', 'block');
-	wall_padding_tracker.changed();
+	if (gallery_data) {
+		$('.wall-wash').css('padding-bottom', Math.floor(gallery_data.finish_data.offset_from_floor) + "px");
+		$('.wall-wash').css('padding-top', Math.floor(gallery_data.finish_data.offset_from_floor) + "px");
+		$('.plackard p').css('font-size', Math.ceil(gallery_data.finish_data.pixels_per_centimeter) + "px");
+		$('#gallery-wall').css('display', 'block');
+		wall_padding_tracker.changed();
+	}
 }
 
 Template.userGallery.helpers({
@@ -141,6 +143,26 @@ Template.userGallery.helpers({
 		}
 
 		else return getCommaSeparatedValue(entry_fees[owner_id]);
+	},
+
+	'wall_finish_filename': function() {
+		galleryContentTracker.depend();
+		if (current_screen_name && current_screen_name == Meteor.user().profile.screen_name)
+			return gallery_finishes.findOne(Meteor.user().profile.gallery_finishes.active.wall_finish).filename;
+
+		else {	
+			return gallery_data.finish_data.wall_filename;
+		}
+	},
+
+	'floor_finish_filename': function() {
+		galleryContentTracker.depend();
+		if (current_screen_name && current_screen_name == Meteor.user().profile.screen_name)
+			return gallery_finishes.findOne(Meteor.user().profile.gallery_finishes.active.floor_finish).filename;
+
+		else {
+			return gallery_data.finish_data.floor_filename;
+		}
 	}
 })
 
@@ -301,6 +323,8 @@ Template.userGallery.events ({
 		Meteor.call('setActiveFinish', finish_id, "wall", function(error) {
 			if (error)
 				console.log(error.message)
+
+			else galleryContentTracker.changed();
 		})
 	},
 
@@ -315,6 +339,8 @@ Template.userGallery.events ({
 		Meteor.call('setActiveFinish', finish_id, "floor", function(error) {
 			if (error)
 				console.log(error.message)
+
+			else galleryContentTracker.changed();
 		})
 	}
 })
@@ -445,30 +471,10 @@ Template.galleryEdit.rendered = function() {
 
 Template.galleryEdit.helpers({
 	'wall_finish' : function() {
-		var user_object = Meteor.user();
-		var key_array = Object.keys(user_object.profile.gallery_finishes.owned.wall_finishes);
-		var finish_array = [];
-		for (var i=0; i < key_array.length; i++) {
-			var finish_id = key_array[i];
-			var finish_object = user_object.profile.gallery_finishes.owned.wall_finishes[finish_id];
-			finish_object.finish_id = finish_id;
-			finish_object.xp_rating_text = Math.floor(finish_object.xp_rating * 100);
-			finish_array.push(finish_object);
-		}
-		return finish_array;
+		return gallery_finishes.find({'type': "wall finish"});
 	},
 
 	'floor_finish' : function() {
-		var user_object = Meteor.user();
-		var key_array = Object.keys(user_object.profile.gallery_finishes.owned.floor_finishes);
-		var finish_array = [];
-		for (var i=0; i < key_array.length; i++) {
-			var finish_id = key_array[i];
-			var finish_object = user_object.profile.gallery_finishes.owned.floor_finishes[finish_id];
-			finish_object.finish_id = finish_id;
-			finish_object.xp_rating_text = Math.floor(finish_object.xp_rating * 100);
-			finish_array.push(finish_object);
-		}
-		return finish_array;
+		return gallery_finishes.find({'type': "floor finish"});
 	},
 })

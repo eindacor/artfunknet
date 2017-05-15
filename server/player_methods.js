@@ -351,14 +351,18 @@ var purchaseExpansionSlot = function(user_object) {
 
 getEntryFee = function(buyer_object, owner_id) {
     owner_object = Meteor.users.findOne(owner_id);
-    switch(owner_object.profile.entry_fee) {
-        case 'free': return 0;
-        case 'low': return 5;
-        case 'medium': return 50;
-        case 'high': return 500;
-        case 'outrageous': return 5000;
-        default: return 0;
+    if (owner_object) {
+        switch(owner_object.profile.entry_fee) {
+            case 'free': return 0;
+            case 'low': return 5;
+            case 'medium': return 50;
+            case 'high': return 500;
+            case 'outrageous': return 5000;
+            default: return 0;
+        }
     }
+
+    else return 0;
 }
 
 resetTutorials = function(user_id) {
@@ -622,7 +626,7 @@ Meteor.methods({
         var setter = {};
         var key_string = "profile.gallery_finishes.active." + (type == "floor" ? "floor_finish" : "wall_finish");
         setter[key_string] = finish_id;
-        Meteor.users.update(Meteor.userId(), {$set: setter})
+        Meteor.users.update(Meteor.userId(), {$set: setter});
     },
 
     'updateWallOpacity' : function(value) {

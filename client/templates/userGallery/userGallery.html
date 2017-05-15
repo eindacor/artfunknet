@@ -19,7 +19,7 @@
 					{{#if this}}
 						<div class="window-crop row">
 							<div class="rendered-scene">
-								<div id="gallery-wall" style="background: url({{getTextureURL finish_data.wall_filename}}) repeat scroll 0% 0% / {{finish_data.wall_size}}">
+								<div id="gallery-wall" style="background: url({{getTextureURL wall_finish_filename}}) repeat scroll 0% 0% / {{finish_data.wall_size}}">
 									<div class="wall-wash" style="background-color: rgba({{rgbString finish_data.wall_base}}, {{finish_data.wall_wash_opacity}})">
 										{{setPadding}}
 										<div class="image-container">	
@@ -33,7 +33,7 @@
 										</div>
 									</div>
 								</div>
-								<div id="gallery-floor" style="background: url({{getTextureURL finish_data.floor_filename}}) repeat scroll 0% 0% / {{finish_data.floor_size}}"></div>
+								<div id="gallery-floor" style="background: url({{getTextureURL floor_finish_filename}}) repeat scroll 0% 0% / {{finish_data.floor_size}}"></div>
 							</div>
 						</div>
 					{{/if}}
@@ -85,11 +85,8 @@
 					<h3>Wall Finishes</h3>
 					<div class="row">
 						{{#each wall_finish}}
-							<div class="wall-finish-container" data-gallery_finish_id="{{finish_id}}" data-gallery_finish_filename="{{filename}}">
+							<div class="wall-finish-container" data-gallery_finish_id="{{_id}}" data-gallery_finish_filename="{{filename}}">
 								<img class="wall-finish-thumbnail" src="{{getTextureURL filename}}">
-								<div class="xp-rating">
-									<span style="color: {{getHTMLColorFromValue xp_rating}}">{{xp_rating_text}}</span>
-								</div>
 							</div>
 						{{/each}}
 					</div>
@@ -133,11 +130,8 @@
 			<div class="col-xs-6 finish-section">
 			<h3>Floor Finishes</h3>
 			{{#each floor_finish}}
-				<div class="floor-finish-container" data-gallery_finish_id="{{finish_id}}" data-gallery_finish_filename="{{filename}}">
+				<div class="floor-finish-container" data-gallery_finish_id="{{_id}}" data-gallery_finish_filename="{{filename}}">
 					<img class="floor-finish-thumbnail" src="{{getTextureURL filename}}">
-					<div class="xp-rating">
-						<span style="color: {{getHTMLColorFromValue xp_rating}}">{{xp_rating_text}}</span>
-					</div>
 				</div>
 			{{/each}}
 			</div>
