@@ -23,7 +23,7 @@
 						<td>{{owner}}</td>
 						<td>
 						{{#each attribute}}
-							<i data-attribute_description="{{description}}" data-attribute_value="{{value}}" data-attribute_id="{{_id}}" style="color: rgb({{getRatingColor value}}, 0, 0)" class="gallery-attribute fa {{icon}}"></i>
+							<i data-attribute_description="{{description}}" data-attribute_value="{{value}}" data-attribute_id="{{_id}}" style="color: rgb({{getRatingColor value}}, 0, 0)" class="gallery-attribute fa {{icon}}"></i> {{proc}}%
 						{{/each}}
 						</td>
 						<td>${{entryFee price_tier owner_id}}</td>

@@ -1,13 +1,30 @@
 marketingManagerInteraction = function(npc_object) {
 	var spawn_boost_time = ONE_MINUTE * 10;
 	var extension_multiplier;
+	var npc_spawn_chance;
+	var npc_spawn_boost_coefficient = .5;
 		
 	switch(npc_object.quality) {
-		case 'bronze': extension_multiplier = 1; break;
-		case 'silver': extension_multiplier = 1.2; break;
-		case 'gold': extension_multiplier = 1.4; break;
-		case 'platinum': extension_multiplier = 1.6; break;
-		default: extension_multiplier = 0; break;
+		case 'bronze': 
+			extension_multiplier = 1; 
+			npc_spawn_chance = .2;
+			break;
+		case 'silver': 
+			extension_multiplier = 1.2; 
+			npc_spawn_chance = .3;
+			break;
+		case 'gold': 
+			extension_multiplier = 1.4; 
+			npc_spawn_chance = .4;
+			break;
+		case 'platinum': 
+			extension_multiplier = 1.6; 
+			npc_spawn_chance = .5;
+			break;
+		default: 
+			extension_multiplier = 0; 
+			npc_spawn_chance = 0;
+			break;
 	}
 
 	var extension_time = Math.floor(spawn_boost_time * extension_multiplier);
@@ -16,13 +33,15 @@ marketingManagerInteraction = function(npc_object) {
 
 	var previous_time = Meteor.user().profile.marketing_manager_spawn_boost_expiration;
 	var extension_string = getNowISOString() > previous_time ? "the next " + Math.floor(extension_time / ONE_MINUTE) : Math.floor(extension_time / ONE_MINUTE) + " more";
-	console.log(previous_time);
-	console.log(moment()._d.toISOString());
 
 	if (isOwnGallery(npc_object)) {
-		var new_npc_spawn_chance = .5;
+		npc_spawn_boost_coefficient = 1;
 
-		if (Math.random() < new_npc_spawn_chance) {
+		if (procUniqueAttribute(Meteor.userId(), "MARKETING_VISITOR_SPAWN_CHANCE_BOOST", "Gallery Manager")) {
+			npc_spawn_chance += .4;
+		}
+
+		if (Math.random() < npc_spawn_chance) {
 			var gallery_object = galleries.findOne({'owner_id': npc_object.owner_id});
 			var filter = {'active': true, '_id': {'$ne': npc_object.attribute_id}};
 			var attribute_count = attributes.find(filter).count();
@@ -32,10 +51,13 @@ marketingManagerInteraction = function(npc_object) {
 		}
 	}
 
-	console.log(extension_time);
+	if (Meteor.user().profile.marketing_manager_spawn_boost_coefficient != undefined) {
+		npc_spawn_boost_coefficient = Math.max(Meteor.user().profile.marketing_manager_spawn_boost_coefficient, npc_spawn_boost_coefficient);
+	}
+
 	var new_time = getNowISOString() > previous_time ? moment().add(extension_time, 'milliseconds')._d.toISOString() : moment(previous_time).add(extension_time, 'milliseconds')._d.toISOString();
-	console.log(new_time);
-	Meteor.users.update(Meteor.userId(), {$set: {'profile.marketing_manager_spawn_boost_expiration': new_time}});
+	Meteor.users.update(Meteor.userId(), {$set: {'profile.marketing_manager_spawn_boost_expiration': new_time, 'profile.marketing_manager_spawn_boost_coefficient': npc_spawn_boost_coefficient}});
+	updateGalleryDetails(Meteor.userId());
 
 	return {'message': "You have met a marketing manager, who has spread the word about your gallery. Your gallery will have a better chance of attracting visitors for " + extension_string + " minutes"}
 }

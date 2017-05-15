@@ -62,6 +62,7 @@ Template.galleryTable.helpers({
 					continue;
 				
 				attribute_object.value = gallery_object.attribute_values[attribute_ids[i]];
+				attribute_object.proc = Math.floor(100 * gallery_object.procs[attribute_ids[i]]);
 				attribute_array.push(attribute_object);
 			}
 

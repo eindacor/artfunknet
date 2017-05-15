@@ -54,46 +54,44 @@ Meteor.setInterval((function() {
     gallery_tickets.remove({'expiration': {$lt : getNowISOString()}});
 }), check_ticket_frequency);
 
+var check_marketing_manager_frequency = ONE_SECOND * 30;
+Meteor.setInterval((function() {
+    Meteor.users.find({'profile.marketing_manager_spawn_boost_expiration': {$lt: getNowISOString()}}).forEach(function(user_object) {
+        Meteor.users.update(user_object._id, {$unset: {'profile.marketing_manager_spawn_boost_expiration': "", 'profile.marketing_manager_spawn_boost_coefficient': ""}});
+        updateGalleryDetails(user_object._id);
+    })
+}), check_marketing_manager_frequency);
+
 var marketing_boost = .15;
 var base_proc_max = 1 - marketing_boost;
 Meteor.setInterval((function() {
-    galleries.find().forEach(function(db_object) {
-        npcs.remove({'owner_id': db_object.owner_id});
+    galleries.find().forEach(function(gallery_object) {
+        npcs.remove({'owner_id': gallery_object.owner_id});
 
-        if (db_object.gallery_rarity_npc_coefficient <= 0)
+        if (gallery_object.gallery_rarity_npc_coefficient <= 0)
             return;
 
-        var attribute_values = db_object.attribute_values;
+        var attribute_values = gallery_object.attribute_values;
         var attribute_ids = Object.keys(attribute_values);
-        var rarity_npc_coefficient = db_object.gallery_rarity_npc_coefficient;
-        var owner_object = Meteor.users.findOne(db_object.owner_id);
+        var rarity_npc_coefficient = gallery_object.gallery_rarity_npc_coefficient;
+        var owner_object = Meteor.users.findOne(gallery_object.owner_id);
 
         for (var i=0; i < attribute_ids.length; i++) {
-            var attribute_object = attributes.findOne(attribute_ids[i]);
-            if (attribute_object == undefined)
-                continue;
-            
-            var base_proc = attribute_values[attribute_ids[i]] * rarity_npc_coefficient;
-
-            if (owner_object.profile.marketing_manager_spawn_boost_expiration < getNowISOString()) {
-                base_proc += marketing_boost;
-            }
-
-            var proc_chance = Math.pow(base_proc, 2);
+            var proc_chance = gallery_object.procs[attribute_ids[i]];
 
             if (Math.random() < proc_chance) {
-                var npc_quality = getNPCQuality(Meteor.users.findOne(db_object.owner_id).profile.level);
-                createNPC(db_object, attribute_ids[i], NPC_SPAWN_FREQUENCY, npc_quality);
+                var npc_quality = getNPCQuality(Meteor.users.findOne(gallery_object.owner_id).profile.level);
+                createNPC(gallery_object, attribute_ids[i], NPC_SPAWN_FREQUENCY, npc_quality);
 
-                // if (attribute_object.npc_name == "Designer" && Math.random() < .2 && procUniqueAttribute(db_object.owner_id, "DESIGNER_PAIRS", undefined))
-                //     createNPC(db_object, attribute_ids[i], NPC_SPAWN_FREQUENCY, "bronze");
+                // if (attribute_object.npc_name == "Designer" && Math.random() < .2 && procUniqueAttribute(gallery_object.owner_id, "DESIGNER_PAIRS", undefined))
+                //     createNPC(gallery_object, attribute_ids[i], NPC_SPAWN_FREQUENCY, "bronze");
                     
-                if ((npc_quality == "platinum") && procUniqueAttribute(db_object.owner_id, "COLLECTOR_DONOR_PAIR", undefined)) {
+                if ((npc_quality == "platinum") && procUniqueAttribute(gallery_object.owner_id, "COLLECTOR_DONOR_PAIR", undefined)) {
                     if (attribute_object.npc_name == "Art Collector")
-                        createNPC(db_object, attributes.findOne({'npc_name': "Art Donor"})._id, NPC_SPAWN_FREQUENCY, "bronze")
+                        createNPC(gallery_object, attributes.findOne({'npc_name': "Art Donor"})._id, NPC_SPAWN_FREQUENCY, "bronze")
                         
                     else if (attribute_object.npc_name == "Art Donor")
-                        createNPC(db_object, attributes.findOne({'npc_name': "Art Collector"})._id, NPC_SPAWN_FREQUENCY, "bronze")
+                        createNPC(gallery_object, attributes.findOne({'npc_name': "Art Collector"})._id, NPC_SPAWN_FREQUENCY, "bronze")
                 }
             }
         }

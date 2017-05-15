@@ -629,7 +629,7 @@ var calcPercentageMap = function(level) {
 };
 
 // getSmartRarityMap = function(player_level, amplifier) {
-//     var player_weight = player_level / player_level_max;
+//     var player_weight = player_level / PLAYER_LEVEL_MAX;
 //     var rarities = ['common', 'uncommon', 'rare', 'legendary', 'masterpiece'];
 
 //     var rarity_map = {};

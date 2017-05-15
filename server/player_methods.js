@@ -1,4 +1,3 @@
-player_level_max = 50;
 var starting_balance = 100000;
 
 createUser = function(user_object, callback){
@@ -207,7 +206,7 @@ getCapSetterObject = function(player_level) {
 
         var range = end - start;
 
-        var value = Math.floor(start + (range * (player_level / player_level_max)));
+        var value = Math.floor(start + (range * (player_level / PLAYER_LEVEL_MAX)));
 
         setter_object[key] = value;
     }
@@ -216,7 +215,7 @@ getCapSetterObject = function(player_level) {
 }
 
 playerRatio = function(player_object) {
-    return player_object.profile.level / player_level_max;
+    return player_object.profile.level / PLAYER_LEVEL_MAX;
 }
 
 //TODO look into meteorhacks:aggregate package to simplify this and avoid for loops
@@ -243,9 +242,9 @@ updateGalleryDetails = function(user_id) {
             var rarity_npc_coefficient;
 
             switch(item_object.artwork_data.rarity) {
-                case "common": rarity_npc_coefficient = .76; break;
-                case "uncommon": rarity_npc_coefficient = .8; break;
-                case "rare": rarity_npc_coefficient = .88; break;
+                case "common": rarity_npc_coefficient = .84; break;
+                case "uncommon": rarity_npc_coefficient = .88; break;
+                case "rare": rarity_npc_coefficient = .92; break;
                 case "legendary": rarity_npc_coefficient = .96; break;
                 case "masterpiece": rarity_npc_coefficient = 1; break;
                 default: rarity_npc_coefficient = .5; break;
@@ -273,14 +272,31 @@ updateGalleryDetails = function(user_id) {
         var gallery_score = Math.floor(attribute_rating_total * 100);
         var gallery_rarity_npc_coefficient = display_count ? rarity_npc_coefficient_total / display_count : 0;
 
+        var player_level_coefficient_min = .8;
+        var player_level_coefficient_delta = 1 - player_level_coefficient_min;
+        var player_level_coefficient = player_level_coefficient_min + ((user_object.profile.level / PLAYER_LEVEL_MAX) * player_level_coefficient_delta);
+
         var display_cap = user_object.profile.display_cap;
         var attribute_ids = Object.keys(attribute_totals);
         var attribute_values = {};
+        var procs = {};
+
+        var proc_boost = user_object.profile.marketing_manager_spawn_boost_expiration != undefined && user_object.profile.marketing_manager_spawn_boost_expiration > moment()._d.toISOString();
 
         for (var i=0; i < attribute_ids.length; i++) {
             var attribute_id = attribute_ids[i];
             var attribute_rating = attribute_totals[attribute_id] / display_cap;
             attribute_values[attribute_id] = attribute_rating;
+
+            var base_proc = attribute_rating * gallery_rarity_npc_coefficient * player_level_coefficient * BASE_NPC_PROC_MAX;
+
+            if (proc_boost) {
+                var proc_boost_value = user_object.profile.marketing_manager_spawn_boost_coefficient * MARKETING_PROC_BOOST;
+                base_proc += proc_boost_value;
+            }
+
+            //var proc_chance = Math.pow(base_proc, 2);
+            procs[attribute_id] = base_proc.toFixed(2);
         }
 
         if (galleries.findOne({"owner_id" : user_id}) == undefined) {
@@ -288,6 +304,7 @@ updateGalleryDetails = function(user_id) {
                 'owner_id' : user_id,
                 'owner' : user_object.profile.screen_name,
                 'attribute_values' : attribute_values,
+                'procs': procs,
                 'entry_fee' : user_object.profile.entry_fee,
                 'score': gallery_score,
                 'value': gallery_value,
@@ -300,6 +317,7 @@ updateGalleryDetails = function(user_id) {
         else galleries.update({'owner_id' : user_id}, 
             {$set: {
                 'attribute_values' : attribute_values, 
+                'procs': procs,
                 'score': gallery_score, 
                 'value': gallery_value,
                 'gallery_rarity_npc_coefficient': gallery_rarity_npc_coefficient,
@@ -1047,7 +1065,7 @@ Meteor.methods({
         try {
             if (auctions.findOne({'seller': Meteor.user().profile.screen_name}) != undefined || 
                 Meteor.user().profile.auction_data.winning.length > 0 ||
-                Meteor.user().profile.level < player_level_max) {
+                Meteor.user().profile.level < PLAYER_LEVEL_MAX) {
                 return false;
             }
 

@@ -86,8 +86,6 @@ var updateContent = function() {
 
         artworks.update({'_id': artwork_object._id}, {$set: {'unique_attributes': new_unique_array}});
     });
-
-    Meteor.users.update({'profile.marketing_manager_spawn_boost_expiration': null}, {$set: {'profile.marketing_manager_spawn_boost_expiration': moment()._d.toISOString()}}, {multi: true});
     // temp code
 }
 

@@ -78,7 +78,7 @@ levelUp = function(user_id, level_count) {
 	try {
 		var current_level = Meteor.users.findOne(user_id).profile.level;
 		var level_hit = current_level;
-		if (current_level != player_level_max) {
+		if (current_level != PLAYER_LEVEL_MAX) {
 			level_hit++;
 
 			Meteor.users.update(user_id, {$set : {'profile.level' : level_hit}});
