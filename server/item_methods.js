@@ -359,7 +359,17 @@ Meteor.methods({
 
     'getDisplayDetails': function(item_id) {
         try {
-            var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+            var item_object = items.findOne(item_id);
+            if (item_object == undefined) {
+                return {
+                    'earnings_per_hour' : undefined,
+                    'xp_per_hour': undefined,
+                    'time_since_displayed': undefined,
+                    'display_level': undefined
+                }
+            }
+
+            var player_item_interface = new PlayerItemIF(item_object.owner, item_id);
             if (player_item_interface.getItemReader().getStatus() == "displayed") {
                 var earnings_per_hour = player_item_interface.getDisplayValuePerHour(moment()._d.toISOString());
                 var time_since_displayed = player_item_interface.getItemReader().getItemObject().time_displayed;
