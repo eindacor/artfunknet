@@ -653,7 +653,8 @@ Meteor.methods({
 
     'turnInQuest' : function(quest_id) {
         if (canTurnInQuest(quest_id)) {
-            var user_object = Meteor.user();
+            var player_interface = new PlayerIF(Meteor.userId());
+            var user_object = player_interface.getUserObject();
             var quest_object = quests.findOne(quest_id);
 
             var base_xp = quest_object.reward.xp;
@@ -662,8 +663,14 @@ Meteor.methods({
             var unique_specials_found = [];
 
             items.find({'owner': user_object._id, 'status': {$nin: ['unclaimed', 'for_sale', 'won']}, 'artwork_id': {$in: quest_object.target}}).forEach(function(item_object) {
-                if (unique_targets_found.indexOf(item_object.artwork_id) == -1)
+                if (unique_targets_found.indexOf(item_object.artwork_id) == -1) {
                     unique_targets_found.push(item_object.artwork_id);
+                    if (procUniqueAttribute(Meteor.userId(), "KNOWLEDGE_FOR_QUESTS", undefined)) {
+                        var item_reader = new ItemReader(item_object._id);
+                        var knowledge_object = item_reader.getDonationReward();                 
+                        player_interface.giveKnowledge(knowledge_object);
+                    }
+                }
 
                 if (unique_specials_found.indexOf(item_object.artwork_id) == -1 && (item_object.foil || item_object.original || item_object.vintage))
                     unique_specials_found.push(item_object.artwork_id);
@@ -705,17 +712,6 @@ Meteor.methods({
                 }
 
                 generateItemFromArtworkID(item_generator);
-            }
-
-            if (procUniqueAttribute(user_object._id, "ROLL_VALUE_QUEST_BONUS", undefined)) {
-                var attribute_found = false;
-                var attribute_types = ["unlocked", "locked", "special"];
-
-                while (!attribute_found && attribute_types.length > 0) {
-                    var random_index = Math.floor(Math.random() * attribute_types.length);
-                    attribute_found = increaseRandomAttribute(attribute_types[random_index]);
-                    attribute_types.splice(random_index, 1);
-                }
             }
 
             if (procUniqueAttribute(user_object._id, "QUEST_TARGET_CONDITION_INCREASE", undefined)) {
