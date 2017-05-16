@@ -651,81 +651,14 @@ Meteor.methods({
         Meteor.users.update(Meteor.userId(), {$set: {'profile.gallery_finishes.frame_color': value}});
     },
 
-    'turnInQuest' : function(quest_id) {
-        if (canTurnInQuest(quest_id)) {
-            var player_interface = new PlayerIF(Meteor.userId());
-            var user_object = player_interface.getUserObject();
-            var quest_object = quests.findOne(quest_id);
-
-            var base_xp = quest_object.reward.xp;
-            var xp_recieved = base_xp;
-            var unique_targets_found = [];
-            var unique_specials_found = [];
-
-            items.find({'owner': user_object._id, 'status': {$nin: ['unclaimed', 'for_sale', 'won']}, 'artwork_id': {$in: quest_object.target}}).forEach(function(item_object) {
-                if (unique_targets_found.indexOf(item_object.artwork_id) == -1) {
-                    unique_targets_found.push(item_object.artwork_id);
-                    if (procUniqueAttribute(Meteor.userId(), "KNOWLEDGE_FOR_QUESTS", undefined)) {
-                        var item_reader = new ItemReader(item_object._id);
-                        var knowledge_object = item_reader.getDonationReward();                 
-                        player_interface.giveKnowledge(knowledge_object);
-                    }
-                }
-
-                if (unique_specials_found.indexOf(item_object.artwork_id) == -1 && (item_object.foil || item_object.original || item_object.vintage))
-                    unique_specials_found.push(item_object.artwork_id);
-            });
-
-            var target_differential = unique_targets_found.length - quest_object.min_requirement;
-            xp_recieved += Math.floor(base_xp * target_differential * 0.4);
-            var special_count = unique_specials_found.length;
-            xp_recieved += Math.floor(base_xp * special_count * 0.2);
-
-            addXP(user_object._id, xp_recieved);
-            logXPChunkPercentage("quest", quest_object.reward.xp_chunk_percentage + (special_count * 0.3) + (target_differential * 0.5));
-            addFunds("quest", user_object._id, quest_object.reward.money);
-
-            Meteor.users.update({'_id': Meteor.userId()}, {$inc: {'profile.completed_quests': 1}});
-
-            if (quest_object.reward.item != undefined) {
-                var rarity = quest_object.reward.item.rarity;
-                var count = artworks.find({'_id': {$nin: getLootData().seasonal_items}, 'rarity': rarity}).count();
-                var random_index = Math.floor(Math.random() * count);
-                var random_artwork_id = artworks.findOne({'_id': {$nin: getLootData().seasonal_items}, 'rarity': rarity}, {skip: random_index})._id;
-
-                var loot_data = getLootData();
-
-                var item_generator = {
-                    'source': "quest",
-                    'user_id': user_object._id,
-                    'artwork_id': random_artwork_id,
-                    'condition': undefined,
-                    'level': 1,
-                    'foil_chance': quest_object.reward.item.foil ? 1 : loot_data.global_foil_chance,
-                    'unlocked_chance': loot_data.global_unlocked_chance,
-                    'seasonal': undefined,
-                    'lottery': 0,
-                    'original': false,
-                    'misprint_chance': loot_data.global_misprint_chance,
-                    'status': "unclaimed",
-                    'condition_min': 0
-                }
-
-                generateItemFromArtworkID(item_generator);
-            }
-
-            if (procUniqueAttribute(user_object._id, "QUEST_TARGET_CONDITION_INCREASE", undefined)) {
-                updateItemsBySelector({'owner': user_object._id, 'status': {$nin: ['unclaimed', 'for_sale', 'won']}, 'artwork_id': {$in: quest_object.target}}, {$set: {'condition': .9}});
-            }
-
-            quests.remove(quest_id);
-        }
+    'turnInQuest' : function(quest_id, sell, donate) {
+        var player_interface = new PlayerIF(Meteor.userId());
+        player_interface.turnInQuest(quest_id, sell, donate);
     },
 
     'cancelQuest' : function(quest_id) {
-        var quest_object = quests.findOne(quest_id);
-        if (quest_object && quest_object.owner_id == Meteor.userId())
-            quests.remove(quest_id);
+        var player_interface = new PlayerIF(Meteor.userId());
+        player_interface.cancelQuest(quest_id);
     },
 
     'getMaxQuests' : function(npc_object) {

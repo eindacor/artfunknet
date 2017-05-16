@@ -39,7 +39,7 @@ Template.questTemplate.helpers({
 
 Template.questTemplate.events({
 	'click .turn-in-button.enabled' : function(element) {
-		Meteor.call('turnInQuest', $(element.target).data().quest_id, function(error) {
+		Meteor.call('turnInQuest', $(element.target).data().quest_id, false, false, function(error) {
 			if (error)
 				console.log(error.message);
 		})
@@ -47,6 +47,20 @@ Template.questTemplate.events({
 
 	'click .cancel-quest' : function(element) {
 		Meteor.call('cancelQuest', $(element.target).data().quest_id, function(error) {
+			if (error)
+				console.log(error.message);
+		})
+	},
+
+	'click .turn-in-and-sell.enabled' : function(element) {
+		Meteor.call('turnInQuest', $(element.target).data().quest_id, true, false, function(error) {
+			if (error)
+				console.log(error.message);
+		})
+	},
+
+	'click .turn-in-and-donate.enabled' : function(element) {
+		Meteor.call('turnInQuest', $(element.target).data().quest_id, false, true, function(error) {
 			if (error)
 				console.log(error.message);
 		})

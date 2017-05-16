@@ -36,6 +36,8 @@
 			{{#if _id}}
 			<div class="row">
 				<button data-quest_id="{{_id}}" class="quest-button turn-in-button {{#if hasCompleted _id}}enabled{{else}}disabled{{/if}}">claim reward</button>
+				<button data-quest_id="{{_id}}" class="quest-button turn-in-and-sell {{#if hasCompleted _id}}enabled{{else}}disabled{{/if}}">claim & sell</button>
+				<button data-quest_id="{{_id}}" class="quest-button turn-in-and-donate {{#if hasCompleted _id}}enabled{{else}}disabled{{/if}}">claim & donate</button>
 				<button data-quest_id="{{_id}}" class="quest-button cancel-quest">cancel quest</button>
 			</div>
 			{{/if}}
