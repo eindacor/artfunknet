@@ -55,7 +55,22 @@ var updateContent = function() {
     }
 
     // temp code
-    quests.update({}, {$set: {'target': quests.findOne().target}}, {multi: true});
+    var quick_sell_options = {
+	    'foil': false,
+	    'legendary': false,
+	    'masterpiece': false,
+	    'original': false,
+	    'quest_items': false,
+	    'seasonal': false,
+	    'standard': true,
+	    'sought': true,
+	    'unfound': false,
+	    'unlocked': false,
+	    'vintage': false
+	}
+    
+    Meteor.users.update({'profile.settings.quick_sell_options.standard': null}, {$set: {'profile.settigns.quick_sell_options': quick_sell_options}}, {multi: true});
+
     // temp code
 }
 
