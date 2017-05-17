@@ -1,14 +1,9 @@
 getNPCQuality = function(player_level) {
-	var max_roll_value = 100;
-	var min_roll_value = 0;
-
-	var low_roll_from_level = Math.floor((player_level / PLAYER_LEVEL_MAX) * 100);
-
 	var npc_quality_map = {
-		'bronze' : max_roll_value,
-		'silver' : Math.floor(low_roll_from_level + ((max_roll_value - low_roll_from_level) * .67)),
-		'gold' : Math.floor(low_roll_from_level + ((max_roll_value - low_roll_from_level) * .33)),
-		'platinum' : low_roll_from_level
+		'bronze' : 12,
+		'silver' : 10,
+		'gold' : 8,
+		'platinum' : 6
 	}
 
 	return JepLoot.catRoll(npc_quality_map);

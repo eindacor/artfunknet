@@ -41,9 +41,9 @@ artExpertInteraction = function(npc_object) {
 		var target = items.findOne({'owner': Meteor.userId(), 'status': 'displayed'}, {skip: random_index});
 		var item_reader = new ItemReader(target._id);
 		var unit_value = item_reader.getUnitValue();
-		var random_modifier = 1 + ((.5 - Math.random()) * .2);
+		var random_modifier = .2 + (.2 * Math.random());
 		var modified_value = unit_value * random_modifier;
-		var knowledge_object = convertUnitValueToKnowledge(Math.floor(modified_value * .5));
+		var knowledge_object = convertUnitValueToKnowledge(Math.max(Math.floor(modified_value), 2));
 		var player_interface = new PlayerIF(Meteor.userId());
 		player_interface.giveKnowledge(knowledge_object);
 		return {
