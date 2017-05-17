@@ -46,15 +46,20 @@ createUser = function(user_object, callback){
     }
     user_object.profile.settings = {
         'quick_purchase': false,
-        'auction_items_to_inventory': false,
-        'animations_enabled': true,
+        'auction_items_to_inventory': true,
+        'animations_enabled': false,
         'quick_sell_options': {
             'foil': false,
             'legendary': false,
-            'seasonal': false,
+            'masterpiece': false,
+            'original': false,
             'quest_items': false,
+            'seasonal': false,
+            'standard': true,
             'sought': true,
-            'unlocked': false
+            'unfound': false,
+            'unlocked': false,
+            'vintage': false
         }
     };
 
