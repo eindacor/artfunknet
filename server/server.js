@@ -69,7 +69,7 @@ var updateContent = function() {
 	    'vintage': false
 	}
     
-    Meteor.users.update({'profile.settings.quick_sell_options.standard': null}, {$set: {'profile.settigns.quick_sell_options': quick_sell_options}}, {multi: true});
+    Meteor.users.update({'profile.settings.quick_sell_options.standard': null}, {$set: {'profile.settings.quick_sell_options': quick_sell_options}}, {multi: true});
 
     // temp code
 }
