@@ -24,7 +24,7 @@ artDealerInteraction = function(npc_object) {
 			drop_count += 1;
 		}
 
-		if (procUniqueAttribute(Meteor.userId(), "XP_FROM_DEALER_PURCHASES", undefined)) {
+		if (procUniqueAttribute(Meteor.userId(), "DEALER_LEVEL_MIN", undefined)) {
             level = 5;
         }
 
@@ -72,7 +72,8 @@ artDealerInteraction = function(npc_object) {
         'foil_chance': foil_chance,
         'unlocked_chance': loot_data.global_unlocked_chance,
         'misprint_chance': loot_data.global_misprint_chance,
-        'condition_min': 0
+        'condition_min': 0,
+        'level': level
     }
 
 	generateItems(multi_item_generator);

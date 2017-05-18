@@ -64,7 +64,8 @@ Meteor.methods({
                 'foil_chance': loot_data.global_foil_chance,
                 'unlocked_chance': loot_data.global_unlocked_chance,
                 'misprint_chance': loot_data.global_misprint_chance,
-                'condition_min': 0
+                'condition_min': 0,
+                'level': 1
             }
             
             generateItems(multi_item_generator);

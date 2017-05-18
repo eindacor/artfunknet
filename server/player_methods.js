@@ -59,7 +59,8 @@ createUser = function(user_object, callback){
             'sought': true,
             'unfound': false,
             'unlocked': false,
-            'vintage': false
+            'vintage': false,
+            'lottery': false
         }
     };
 

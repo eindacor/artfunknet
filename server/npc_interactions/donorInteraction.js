@@ -24,7 +24,7 @@ donorInteraction = function(npc_object) {
 			condition_min = .8;
 		}
 
-		if (procUniqueAttribute(Meteor.userId(), "DONOR_XP_RATING_MIN", undefined)) {
+		if (procUniqueAttribute(Meteor.userId(), "DONOR_LEVEL_MIN", undefined)) {
 			level = 5;
 		}
 
@@ -76,7 +76,8 @@ donorInteraction = function(npc_object) {
         'foil_chance': foil_chance,
         'unlocked_chance': loot_data.global_unlocked_chance,
         'misprint_chance': loot_data.global_misprint_chance,
-        'condition_min': condition_min
+        'condition_min': condition_min,
+        'level': level
     }
 
 	generateItems(multi_item_generator);
