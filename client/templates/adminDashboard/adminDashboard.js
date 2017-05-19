@@ -445,8 +445,6 @@ Template.adminTools.events({
             'condition_min': 0
         }
 
-        console.log(item_generator);
-
     	Meteor.call('generateItemFromArtworkID', item_generator, function(error, result) {
     		if (error)
     			console.log(error.message);
