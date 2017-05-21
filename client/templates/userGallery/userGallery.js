@@ -55,6 +55,10 @@ var setPadding = function() {
 	}
 }
 
+var interactWithNPC = function() {
+
+}
+
 Template.userGallery.helpers({
 	'rgbString' : function(color) {
 		return getRGBString(color);
@@ -208,56 +212,65 @@ Template.userGallery.events ({
 		})
 	},
 
-	'click .npc.enabled' : function(element) {
+	'mousedown .npc.enabled' : function(element) {
 		var npc_id = element.target.dataset.npc_id;
-		if (npcs.findOne(npc_id).players_met.indexOf(Meteor.userId()) == -1) {
-			Meteor.call('interactWithNPC', npc_id, function(error, interaction_object) {
-				if (error)
-					console.log(error.message);
+		if (element.which == 1) {
+			if (npcs.findOne(npc_id).players_met.indexOf(Meteor.userId()) == -1) {
+				Meteor.call('interactWithNPC', npc_id, function(error, interaction_object) {
+					if (error)
+						console.log(error.message);
 
-				else {
-					try {
-						if (interaction_object == undefined)
-							return;
+					else {
+						try {
+							if (interaction_object == undefined)
+								return;
 
-						Session.set('npc_interaction', interaction_object);
-						switch(interaction_object.type) {
-							case "collector_bonus": 
-								Blaze.renderWithData(Template.modalTemplate, {
-									'modal_name': "collectorOfferModal", 
-									'modal_data': {
-										'interaction_object': interaction_object
-									}
-								}, $('body')[0]);
-								break;
-							case "historian_bonus":
-								Modal.show("historianModal");
-								break;
-							case "art_expert_bonus": 
-								if (interaction_object.knowledge_object != undefined) {
+							Session.set('npc_interaction', interaction_object);
+							switch(interaction_object.type) {
+								case "collector_bonus": 
 									Blaze.renderWithData(Template.modalTemplate, {
-										'modal_name': "artExpertKnowledgeModal", 
+										'modal_name': "collectorOfferModal", 
 										'modal_data': {
 											'interaction_object': interaction_object
 										}
 									}, $('body')[0]);
 									break;
-								}
-							default: 
-								Blaze.renderWithData(Template.modalTemplate, {
-									'modal_name': "standardNPCMessageModal", 
-									'modal_data': {
-										'interaction_object': interaction_object
+								case "historian_bonus":
+									Modal.show("historianModal");
+									break;
+								case "art_expert_bonus": 
+									if (interaction_object.knowledge_object != undefined) {
+										Blaze.renderWithData(Template.modalTemplate, {
+											'modal_name': "artExpertKnowledgeModal", 
+											'modal_data': {
+												'interaction_object': interaction_object
+											}
+										}, $('body')[0]);
+										break;
 									}
-								}, $('body')[0]);
-								break;
+								default: 
+									Blaze.renderWithData(Template.modalTemplate, {
+										'modal_name': "standardNPCMessageModal", 
+										'modal_data': {
+											'interaction_object': interaction_object
+										}
+									}, $('body')[0]);
+									break;
+							}
+						}
+
+						catch(error) {
+							console.log(error.message);
 						}
 					}
+				})
+			}
+		}
 
-					catch(error) {
-						console.log(error.message);
-					}
-				}
+		else if (element.which == 3) {
+			Meteor.call('ignoreNPC', npc_id, function(error) {
+				if (error)
+					console.log(error)
 			})
 		}
 	},
@@ -355,6 +368,11 @@ Template.userGallery.destroyed = function() {
 
 Template.userGallery.rendered = function() {
 	entry_fees = {};
+
+	$('.template-userGallery').contextmenu(function() {
+		return false;
+	});
+
 	if (Meteor.user() && this.data.screen_name == Meteor.user().profile.screen_name && Meteor.user().profile.tutorials.my_gallery) 
 	{
 		Blaze.renderWithData(Template.modalTemplate, {

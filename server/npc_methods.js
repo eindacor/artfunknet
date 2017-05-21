@@ -25,6 +25,19 @@ createNPC = function(gallery_object, attribute_id, duration, npc_quality) {
     })
 }
 
+var ignoreNPC = function(npc_id) {
+	var npc_validation_response = canMeetNPC(npc_id);
+	var npc_object = npc_validation_response.npc_object;
+
+	if (npc_object == undefined) {
+		return {'message': npc_validation_response.error};
+	}
+
+	Meteor.users.update(Meteor.userId(), {$set: {'profile.last_npc_met': moment()._d.toISOString()}});
+	npcs.update(npc_id, {$push: {'players_met' : Meteor.userId()}});
+	return true;
+}
+
 var interactWithNPC = function(npc_id) {
 	var npc_validation_response = canMeetNPC(npc_id)
 	var npc_object = npc_validation_response.npc_object;
@@ -101,6 +114,10 @@ var interactWithNPC = function(npc_id) {
 Meteor.methods({
 	'interactWithNPC' : function(npc_id) {
 		return interactWithNPC(npc_id);
+	}, 
+
+	'ignoreNPC': function(npc_id) {
+		return ignoreNPC(npc_id);
 	}
 })
 
