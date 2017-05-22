@@ -55,7 +55,6 @@ var updateContent = function() {
     }
 
     // temp code
-    Meteor.users.update({'profile.settings.lottery_eligible': null}, {$set: {'profile.settings.lottery_eligible': true}}, {multi: true});
     // temp code
 }
 

@@ -151,24 +151,28 @@ getRolledCrateQuality = function() {
     return JepLoot.catRoll(roll_quality_map);
 }
 
-getAverageDropValue = function(player_level, amplifier) {
-    var smart_loot_map = getSmartRarityMap(player_level, amplifier);
+getAverageDropValueFromMap = function(rarity_map) {
     var rarity_values = getLootData().rarity_values;
 
     var total_proportions = 0;
     for (var i=0; i < artwork_rarities.length; i++) {
         var rarity = artwork_rarities[i];
-        total_proportions += smart_loot_map[rarity];
+        total_proportions += rarity_map[rarity];
     }
 
     var total_average = 0;
     for (var i=0; i < artwork_rarities.length; i++) {
         var rarity = artwork_rarities[i];
         var average_value = (rarity_values[rarity].min + rarity_values[rarity].max) / 2
-        total_average += (average_value * (smart_loot_map[rarity] / total_proportions));
+        total_average += (average_value * (rarity_map[rarity] / total_proportions));
     }
 
     return Math.floor(total_average);
+}
+
+getAverageDropValue = function(player_level, amplifier) {
+    var smart_loot_map = getSmartRarityMap(player_level, amplifier);
+    return getAverageDropValueFromMap(smart_loot_map);
 }
 
 //calculates crate costs based on rarity maps and qulity maps
