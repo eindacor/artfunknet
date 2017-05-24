@@ -5,6 +5,21 @@
 			{{#each crate_button}}
 			<button data-crate_size="{{size}}" class="crate-button {{#if can_afford cost}}enabled{{else}}disabled{{/if}}">{{size}} crate ({{count}} items)<p>{{displayAsMoneyValue cost}}</p></button>
 			{{/each}}
+			{{#each dynamic_crate}}
+			<button data-crate_id="{{_id}}" class="crate-button {{#if can_afford_dynamic cost}}enabled{{else}}disabled{{/if}}">
+				{{#each seeds}}
+					{{#if isEqual type "rarity"}}
+					<p class="{{value}}">{{value}}</p>
+					{{/if}}
+					{{#if isEqual type "attribute"}}
+					<p><i class="fa {{attribute_icon value}}"></i></p>
+					{{/if}}
+					{{#if isEqual type "item_type"}}
+					<p class="{{value}}">{{value}}</p>
+					{{/if}}
+				{{/each}}
+				<p>{{displayAsMoneyValue cost}}</p></button>
+			{{/each}}
 			<button class="inventory-expansion-button {{#if can_afford expansion_cost}}enabled{{else}}disabled{{/if}}">inventory expansion (#{{expansion_number}})<p>{{displayAsMoneyValue expansion_cost}}</p></button>
 		</div>
 		<div class="row">

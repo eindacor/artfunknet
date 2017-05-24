@@ -824,6 +824,13 @@ Template.adminTools.events({
 		}
 
 		updateUniqueAttributesFromSpecialAttributeSelected();
+	},
+
+	'click #refresh-dynamic-crates': function() {
+		Meteor.call('refreshDynamicCrates', function(error) {
+			if (error)
+				console.log(error);
+		})
 	}
 });
 

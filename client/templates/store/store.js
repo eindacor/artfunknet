@@ -2,6 +2,8 @@ var crate_tracker = new Tracker.Dependency;
 var expansion_tracker = new Tracker.Dependency;
 var crate_objects = undefined;
 var expansion_cost = undefined;
+var dynamic_crates = undefined;
+var dynamic_crate_tracker = new Tracker.Dependency;
 
 var getExpansionSlotCost = function() {
 	Meteor.call('getExpansionSlotCost', function(error, result) {
@@ -27,6 +29,18 @@ var getCrates = function() {
 	})
 }
 
+var getDynamicCrates = function() {
+	Meteor.call('getDynamicCrates', function(error, result) {
+		if (error)
+			console.log(error)
+
+		else {
+			dynamic_crates = result;
+			dynamic_crate_tracker.changed();
+		}
+	})
+}
+
 Template.store.helpers({
 	'item_set_statuses': function() {
 		return ['for_sale'];
@@ -37,6 +51,23 @@ Template.store.helpers({
 			return Meteor.user().profile.bank_balance >= cost;
 
 		else return false;
+	},
+
+	'dynamic_crate': function() {
+		if (dynamic_crates == undefined) {
+			getDynamicCrates();
+		}
+
+		return dynamic_crates;
+	},
+
+	'can_afford_dynamic': function(cost) {
+		var player_interface = new PlayerIF(Meteor.userId());
+		return player_interface.getBankBalance() >= cost;
+	},
+
+	'attribute_icon': function(attribute_id) {
+		return attributes.findOne(attribute_id).icon;
 	},
 
 	'crate_button' : function() {
@@ -88,11 +119,21 @@ Template.store.helpers({
 
 Template.store.events ({
 	'click .crate-button.enabled' : function(element) {
-		var crate_size = ($(element.target).data().crate_size);
-		Meteor.call('openCrate', crate_size, function(error, result) {
-			if (error)
-				console.log(error.message);
-		})
+		var crate_id = $(element.target).data().crate_id;
+		if (crate_id != undefined) {
+			Meteor.call('openDynamicCrate', crate_id, function(error) {
+				if (error)
+					console.log(error);
+			});
+		}
+
+		else {
+			var crate_size = ($(element.target).data().crate_size);
+			Meteor.call('openCrate', crate_size, function(error, result) {
+				if (error)
+					console.log(error.message);
+			})
+		}
 	},
 
 	'click #decline-all' : function() {
@@ -170,6 +211,7 @@ Template.forSaleInfo.events({
 Template.store.rendered = function() {
 	crate_objects = undefined;
 	expansion_cost = undefined;
+	dynamic_crates = undefined;
 	getCrates();
 	getExpansionSlotCost();
 }

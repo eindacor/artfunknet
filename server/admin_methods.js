@@ -443,10 +443,19 @@ Meteor.methods({
         }
     },
 
+<<<<<<< ae3a9179b69ce96db8982935cba496a1c284c6fa
     'drawLottery': function() {
         if (adminValidated()) {
             var force_draw = true;
             drawLottery(force_draw);
+=======
+    'refreshDynamicCrates': function() {
+        if (adminValidated()) {
+            crates.remove({});
+            for (var i=0; i<6; i++) {
+                createCrate();
+            }
+>>>>>>> crate creation implemented
         }
     }
 })

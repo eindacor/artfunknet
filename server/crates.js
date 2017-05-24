@@ -29,6 +29,10 @@ PlayerCrateIF = function(user_id, crate_id) {
 		return 1;
 	}
 
+	this.canAfford = function() {
+		return this.getCost() < player_interface.getBankBalance();
+	}
+
 	this.getCost = function() {
 		var crate_seeds = crate_object.seeds;
 		var cost_amplifier = 1;
@@ -50,7 +54,7 @@ PlayerCrateIF = function(user_id, crate_id) {
 			}
 		}
 
-		return Math.floor(original_cost * cost_amplifier * crate_object.item_count);
+		return Math.floor(original_cost * cost_amplifier * crate_object.item_count * getLootData().rarity_inflation_coefficients["platinum"] * 1.75);
 	}
 
 	this.getRarityMap = function() {
@@ -95,7 +99,7 @@ PlayerCrateIF = function(user_id, crate_id) {
 	this.open = function() {
 		var crate_cost = this.getCost();
 
-	    if (crate_cost < player_interface.getBankBalance()) {
+	    if (this.canAfford()) {
 	        var multi_item_generator = {
 	            'source': "dynamic crate",
 	            'user_id': player_interface.getId(),
@@ -300,9 +304,94 @@ generateItemFromArtworkIDRevised = function(item_generator, callback) {
     else return undefined;
 }
 
+var getCrateSeeds = function() {
+	var crate_seed_array = [];
+	var attributes_added = [];
+	var rarities_added = [];
+	var types_added = [];
+
+	var seed_map = {
+		'rarity': 1,
+		'attribute': 1,
+		'item_type': 1
+	}
+
+	var add_seed = true;
+
+	while(add_seed) {
+		var seed_type_roll = JepLoot.catRoll(seed_map);
+
+		switch(seed_type_roll) {
+			case "rarity": 
+				var elligible_rarities = [];
+				for (var i=2; i<artwork_rarities.length; i++) {
+					if (rarities_added.indexOf(artwork_rarities[i]) == -1) {
+						elligible_rarities.push(artwork_rarities[i]);
+					}
+				}
+
+				if (elligible_rarities.length > 0) {
+					var random_index = Math.floor(Math.random() * elligible_rarities.length);
+					crate_seed_array.push({'type': seed_type_roll, 'value': elligible_rarities[random_index]});
+					rarities_added.push(elligible_rarities[random_index]);
+				}
+				break;
+			case "attribute":
+				var query_object = {'_id': {$nin: attributes_added}, 'active': true};
+				var attribute_count = attributes.find(query_object).count();
+				var random_index = Math.floor(Math.random() * attribute_count);
+				var random_attribute = attributes.findOne(query_object, {skip: random_index});
+				crate_seed_array.push({'type': seed_type_roll, 'value': random_attribute._id});
+				attributes_added.push(random_attribute._id); 
+				break;
+			case "item_type": 
+				var potential_types = ["foil", "seasonal", "unlocked"];
+				var elligible_types = [];
+				for (var i=0; i<potential_types.length; i++) {
+					if (types_added.indexOf(potential_types[i]) == -1) {
+						elligible_types.push(potential_types[i]);
+					}
+				}
+
+				if (elligible_types.length > 0) {
+					var random_index = Math.floor(Math.random() * elligible_types.length);
+					crate_seed_array.push({'type': seed_type_roll, 'value': elligible_types[random_index]});
+					types_added.push(elligible_types[random_index]);
+				}
+				break;
+
+			default: break;
+		}
+
+		add_seed = Math.random() < .2 && crate_seed_array.length < 4;
+	}
+
+	return crate_seed_array;
+}
+
+createCrate = function() {
+	crates.insert({'owner_id': undefined, 'type': "public", 'seeds': getCrateSeeds(), 'item_count': 6});
+}
+
 Meteor.methods({
-	'openDynamicCrate': function() {
-		var player_crate_interface = new PlayerCrateIF(Meteor.userId(), crates.findOne()._id);
-    	player_crate_interface.open();
+	'openDynamicCrate': function(crate_id) {
+		try {
+			var player_crate_interface = new PlayerCrateIF(Meteor.userId(), crate_id);
+	    	player_crate_interface.open();
+	    }
+
+	    catch (error) {
+	    	console.log(error);
+	    }
+	},
+
+	'getDynamicCrates': function() {
+		var crate_objects = crates.find({$or: [{'owner_id': Meteor.userId()}, {'owner_id': null}, {'type': "public"}]}).fetch();
+		for (var i=0; i<crate_objects.length; i++) {
+			var player_crate_interface = new PlayerCrateIF(Meteor.userId(), crate_objects[i]._id);
+    		crate_objects[i].cost = player_crate_interface.getCost();
+		}
+
+		return crate_objects;
 	}
 })
