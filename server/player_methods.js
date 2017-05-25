@@ -18,7 +18,6 @@ createUser = function(user_object, callback){
     user_object.profile.level = 0;
     user_object.profile.xp = 0;
     user_object.profile.lottery_tickets = 1;
-    user_object.profile.lottery_eligible = true;
     user_object.profile.entry_fee = "medium";
     user_object.profile.gallery_tickets = [];
     user_object.profile.npcs_met = {
