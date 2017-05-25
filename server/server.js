@@ -55,7 +55,7 @@ var updateContent = function() {
     }
 
     // temp code
-    Meteor.users.update({'profile.settings.quick_sell_options.lottery': null}, {$set: {'profile.settings.quick_sell_options.lottery': false}}, {multi: true});
+    Meteor.users.update({'profile.settings.lottery_eligible': null}, {$set: {'profile.settings.lottery_eligible': true}}, {multi: true});
     // temp code
 }
 

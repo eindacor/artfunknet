@@ -71,13 +71,20 @@
 					{{/if}}
 					</tr>
 					<tr></tr>
-					{{#if max_level}}
-					{{else}}
 					<tr>
 						<td class="player-data">lottery tickets:</td>
 						<td class="highlight gold-text">{{profile.lottery_tickets}}</td>	
 					</tr>
-					{{/if}}
+					<tr>
+						<td class="player-data">lottery eligible:</td>
+						<td style="cursor: pointer; font-size: 2rem;">
+						{{#if profile.settings.lottery_eligible}}
+							<i class="fa fa-check-square-o green-text lottery-eligible-true"></i>
+						{{else}}
+							<i class="fa fa-square-o lottery-eligible-false"></i>
+						{{/if}}
+						</td>
+					</tr>
 					<tr>
 						<td class="player-data">collection value:</td>
 						<td class="highlight af-color">${{collection_value}}</td>	

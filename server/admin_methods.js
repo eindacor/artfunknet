@@ -441,6 +441,13 @@ Meteor.methods({
             };
             Meteor.users.update({'_id': Meteor.userId()}, {$set: {'profile.knowledge': knowledge_object}});
         }
+    },
+
+    'drawLottery': function() {
+        if (adminValidated()) {
+            var force_draw = true;
+            drawLottery(force_draw);
+        }
     }
 })
 

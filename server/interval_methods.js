@@ -201,9 +201,8 @@ Meteor.setInterval((function() {
     });
 }), item_count_frequency);
 
-var lottery_check_frequency = 60000; //once per minute
-Meteor.setInterval((function() {
-    var lottery_draw_time = metadata.findOne({'lottery_draw': {$ne: null}}).lottery_draw;
+drawLottery = function(force_draw) {
+    var lottery_draw_time = force_draw ? getNowISOString() : metadata.findOne({'lottery_draw': {$ne: null}}).lottery_draw;
    
     if (getNowISOString() < lottery_draw_time)
         return;
@@ -214,7 +213,13 @@ Meteor.setInterval((function() {
         var user_map = {};
         var tickets_average = 0;
         var player_count = 0;
-        Meteor.users.find({'profile.user_type': {$ne: "admin"}, 'profile.lottery_tickets': {$gt: 0}}).forEach(function(user_object) {
+        var user_query_object = {
+            'profile.user_type': {$ne: "admin"}, 
+            'profile.lottery_tickets': {$gt: 0},
+            'profile.settings.lottery_eligible': true
+        }
+        
+        Meteor.users.find(user_query_object).forEach(function(user_object) {
             user_map[user_object._id] = user_object.profile.lottery_tickets;
             tickets_average = ((tickets_average * player_count) + user_object.profile.lottery_tickets) / (player_count + 1);
             player_count++;
@@ -284,7 +289,7 @@ Meteor.setInterval((function() {
         var message = "This week's lottery winner is " + winning_name + ". Congratulations!!!";
 
         alertPlayers({}, message, 'fa-exclamation', 'good');
-        Meteor.users.find().forEach(function(user_object) {
+        Meteor.users.find(user_query_object).forEach(function(user_object) {
             var vintage_level = user_object.profile.vintage_count;
             var default_lottery_tickets = 1 + vintage_level;
             Meteor.users.update(user_object._id, {$set: {'profile.lottery_tickets': default_lottery_tickets}});
@@ -312,7 +317,12 @@ Meteor.setInterval((function() {
    
     var next_draw = moment(lottery_draw_time).add(1, "weeks")._d.toISOString();
     metadata.update({'lottery_draw': {$ne: null}}, {$set: {'lottery_draw': next_draw}});
+}
 
+var lottery_check_frequency = 60000; //once per minute
+Meteor.setInterval((function() {
+    var force_draw = false;
+    drawLottery(force_draw);
 }), lottery_check_frequency);
 
 var seasonal_rotation_check = 60000;

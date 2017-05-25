@@ -60,6 +60,20 @@ Template.playerInfo.events({
 				craft_tracker.changed();
 			}
 		})
+	},
+
+	'click i.lottery-eligible-true': function(event) {
+		Meteor.call('setPlayerSetting', "lottery_eligible", false, function(error) {
+			if (error)
+				console.log(error.message);
+		})
+	},
+
+	'click i.lottery-eligible-false': function(event) {
+		Meteor.call('setPlayerSetting', "lottery_eligible", true, function(error) {
+			if (error)
+				console.log(error.message);
+		})
 	}
 });
 
