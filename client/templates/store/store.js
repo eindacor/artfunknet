@@ -54,6 +54,7 @@ Template.store.helpers({
 	},
 
 	'dynamic_crate': function() {
+		dynamic_crate_tracker.depend();
 		if (dynamic_crates == undefined) {
 			getDynamicCrates();
 		}
@@ -67,7 +68,9 @@ Template.store.helpers({
 	},
 
 	'attribute_icon': function(attribute_id) {
-		return attributes.findOne(attribute_id).icon;
+		var attribute_object = attributes.findOne(attribute_id);
+		if (attribute_object)
+			return attribute_object.icon;
 	},
 
 	'crate_button' : function() {
@@ -114,6 +117,30 @@ Template.store.helpers({
 			return Meteor.user().profile.expansion_slots + 1;
 
 		else return 0;
+	},
+
+	'crate_rarities': function(crate_object) {
+		var seeds = crate_object.seeds;
+		var crate_rarities = [];
+		for (var i=0; i<seeds.length; i++) {
+			if (seeds[i].type == "rarity") {
+				crate_rarities.push(seeds[i].value)
+			}
+		}
+
+		return crate_rarities;
+	},
+
+	'crate_types': function(crate_object) {
+		var seeds = crate_object.seeds;
+		var crate_item_types = [];
+		for (var i=0; i<seeds.length; i++) {
+			if (seeds[i].type == "item_type") {
+				crate_item_types.push(seeds[i].value)
+			}
+		}
+
+		return crate_item_types;
 	}
 })
 
@@ -154,6 +181,14 @@ Template.store.events ({
 
 			else getExpansionSlotCost();
 		})
+	},
+
+	'click .crate-image': function(element) {
+		var crate_id = $(element.target).data().crate_id;
+		Meteor.call('openDynamicCrate', crate_id, function(error) {
+			if (error)
+				console.log(error);
+		});
 	}
 })
 
@@ -212,6 +247,7 @@ Template.store.rendered = function() {
 	crate_objects = undefined;
 	expansion_cost = undefined;
 	dynamic_crates = undefined;
+	getDynamicCrates();
 	getCrates();
 	getExpansionSlotCost();
 }

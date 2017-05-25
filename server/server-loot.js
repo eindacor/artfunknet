@@ -176,21 +176,10 @@ getAverageDropValue = function(player_level, amplifier) {
 }
 
 //calculates crate costs based on rarity maps and qulity maps
-lookupCrateCost = function(quality, count) {
-    var map_amplifier;
+lookupCrateCost = function(count) {
+    var average_drop_value = getAverageDropValue(Meteor.user().profile.level, 1);
 
-    switch(quality) {
-        case 'bronze': map_amplifier = 0; break;
-        case 'silver': map_amplifier = .2; break;
-        case 'gold': map_amplifier = .4; break;
-        case 'platinum': map_amplifier = .8; break;
-        default: map_amplifier = 0; break;
-    }
-
-    var average_drop_value = getAverageDropValue(Meteor.user().profile.level, map_amplifier);
-
-    //TODO remove hardcoded multiplier and adjust rarity_inflation_coefficients on DB
-    return Math.floor(average_drop_value * count * getLootData().rarity_inflation_coefficients[quality] * 1.75);
+    return Math.floor(average_drop_value * count * CRATE_UPCHARGE_COEFFICIENT);
 }
 
 generateItems = function(multi_item_generator) {
@@ -460,7 +449,7 @@ Meteor.methods({
             return false;
 
         var quality = 'platinum'; 
-        var crate_object = getCrateData(size, quality);
+        var crate_object = getCrateData(size);
 
         if (crate_object == undefined)
             return false;
@@ -496,7 +485,7 @@ Meteor.methods({
         var sizes = ['small', 'medium', 'large'];
         var crate_objects = [];
         for (var i=0; i<sizes.length; i++) {
-            crate_objects.push(getCrateData(sizes[i], 'platinum'));
+            crate_objects.push(getCrateData(sizes[i]));
         }
         return crate_objects;
     },
@@ -525,7 +514,7 @@ Meteor.methods({
     }
 })
 
-getCrateData = function(size, quality) {
+getCrateData = function(size) {
     var output_count;
 
     switch(size) {
@@ -535,7 +524,7 @@ getCrateData = function(size, quality) {
         default: break;
     }
 
-    var cost = lookupCrateCost('platinum', output_count);
+    var cost = lookupCrateCost(output_count);
 
     switch(size) {
         case "small": cost *= 1.4; break;

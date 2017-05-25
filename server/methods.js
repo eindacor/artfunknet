@@ -147,10 +147,6 @@ Meteor.methods({
         return display_total;
     },
 
-    'lookupCrateCost' : function(quality) {
-        return lookupCrateCost(quality, admin_settings.crate_drop_count);
-    },
-
     'getXPData' : function(current_level) {
         return {
             'chunk' : getXPChunk(current_level),

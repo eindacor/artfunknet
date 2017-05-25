@@ -36,7 +36,7 @@ PlayerCrateIF = function(user_id, crate_id) {
 	this.getCost = function() {
 		var crate_seeds = crate_object.seeds;
 		var cost_amplifier = 1;
-		var original_loot_map = getSmartRarityMap(player_interface.getPlayerLevel(), .8);
+		var original_loot_map = getSmartRarityMap(player_interface.getPlayerLevel(), 1);
 		var original_cost = getAverageDropValueFromMap(original_loot_map);
 
 		var revised_loot_map = this.getRarityMap(user_id, crate_id);
@@ -54,7 +54,7 @@ PlayerCrateIF = function(user_id, crate_id) {
 			}
 		}
 
-		return Math.floor(original_cost * cost_amplifier * crate_object.item_count * getLootData().rarity_inflation_coefficients["platinum"] * 1.75);
+		return Math.floor(original_cost * cost_amplifier * crate_object.item_count * CRATE_UPCHARGE_COEFFICIENT);
 	}
 
 	this.getRarityMap = function() {
@@ -310,6 +310,10 @@ var getCrateSeeds = function() {
 	var rarities_added = [];
 	var types_added = [];
 
+	var rarity_seed_max = 3;
+	var type_seed_max = 1;
+	var attribute_seed_max = 3;
+
 	var seed_map = {
 		'rarity': 1,
 		'attribute': 1,
@@ -330,10 +334,11 @@ var getCrateSeeds = function() {
 					}
 				}
 
-				if (elligible_rarities.length > 0) {
-					var random_index = Math.floor(Math.random() * elligible_rarities.length);
-					crate_seed_array.push({'type': seed_type_roll, 'value': elligible_rarities[random_index]});
-					rarities_added.push(elligible_rarities[random_index]);
+				var random_index = Math.floor(Math.random() * elligible_rarities.length);
+				crate_seed_array.push({'type': seed_type_roll, 'value': elligible_rarities[random_index]});
+				rarities_added.push(elligible_rarities[random_index]);
+				if (rarities_added.length == rarity_seed_max || elligible_rarities.length == 1) {
+					delete seed_map[seed_type_roll];
 				}
 				break;
 			case "attribute":
@@ -343,30 +348,43 @@ var getCrateSeeds = function() {
 				var random_attribute = attributes.findOne(query_object, {skip: random_index});
 				crate_seed_array.push({'type': seed_type_roll, 'value': random_attribute._id});
 				attributes_added.push(random_attribute._id); 
+				if (attributes_added.length == attribute_seed_max) {
+					delete seed_map[seed_type_roll];
+				}
 				break;
 			case "item_type": 
-				var potential_types = ["foil", "seasonal", "unlocked"];
 				var elligible_types = [];
-				for (var i=0; i<potential_types.length; i++) {
-					if (types_added.indexOf(potential_types[i]) == -1) {
-						elligible_types.push(potential_types[i]);
+				for (var i=0; i<CARD_TYPES.length; i++) {
+					if (types_added.indexOf(CARD_TYPES[i]) == -1) {
+						elligible_types.push(CARD_TYPES[i]);
 					}
 				}
 
-				if (elligible_types.length > 0) {
-					var random_index = Math.floor(Math.random() * elligible_types.length);
-					crate_seed_array.push({'type': seed_type_roll, 'value': elligible_types[random_index]});
-					types_added.push(elligible_types[random_index]);
+				var random_index = Math.floor(Math.random() * elligible_types.length);
+				crate_seed_array.push({'type': seed_type_roll, 'value': elligible_types[random_index]});
+				types_added.push(elligible_types[random_index]);
+				if (rarities_added.length == rarity_seed_max || elligible_types.length == 1) {
+					delete seed_map[seed_type_roll];
 				}
 				break;
 
 			default: break;
 		}
 
-		add_seed = Math.random() < .2 && crate_seed_array.length < 4;
+		add_seed = Math.random() < .6 && crate_seed_array.length < 4;
 	}
 
 	return crate_seed_array;
+}
+
+refreshCrates = function() {
+	crates.remove({});
+    for (var i=0; i<20; i++) {
+        createCrate();
+    }
+
+    crates.insert({'owner_id': undefined, 'type': "public", 'seeds': [{'type': "rarity", 'value': "rare"}, {'type': "rarity", 'value': "legendary"}, {'type': "rarity", 'value': "masterpiece"}], 'item_count': 6});
+    crates.insert({'owner_id': undefined, 'type': "public", 'seeds': [{'type': "attribute", 'value': attributes.findOne({'active': true}, {skip: 0})._id}, {'type': "attribute", 'value': attributes.findOne({'active': true}, {skip: 1})._id}, {'type': "attribute", 'value': attributes.findOne({'active': true}, {skip: 2})._id}], 'item_count': 6});
 }
 
 createCrate = function() {

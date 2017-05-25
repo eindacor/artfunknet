@@ -1011,7 +1011,7 @@ Meteor.methods({
                 return false;
             }
 
-            var crate_object = getCrateData("large", "platinum");
+            var crate_object = getCrateData("large");
             if (crate_object == undefined)
                 return false;
 

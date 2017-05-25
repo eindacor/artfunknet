@@ -55,6 +55,7 @@ var updateContent = function() {
     }
 
     // temp code
+    refreshCrates();
     // temp code
 }
 

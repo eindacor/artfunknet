@@ -44,3 +44,176 @@
 	font-size: 1em;
 	margin-top: 20px;
 }
+
+.template-store .crate-cost-section {
+	text-align: center;
+}
+
+.template-store .dynamic-crate-area {
+	margin-top: 20px;
+}
+
+.template-store .crate-container {
+	color: black;
+}
+
+.template-store .crate-info {
+	text-align: center;
+	color: black;
+	perspective: 300px;
+	perspective-origin: 100% 0%;
+}
+
+.template-store .attribute-icon {
+	font-size: 3.5rem;
+	opacity: .6;
+	position: absolute;
+	display: inline-block;
+}
+
+.template-store .attribute-icon:nth-child(1) {
+	transform: rotateY(45deg);
+	margin-left: -75px;
+	margin-top: 85px;
+}
+
+.template-store .attribute-icon:nth-child(2) {
+	transform: rotateY(-10deg);
+	margin-left: -160px;
+	margin-top: 110px;
+}
+
+.template-store .attribute-icon:nth-child(3) {
+	transform: rotateY(45deg);
+	margin-left: -95px;
+	margin-top: 130px;
+}
+
+.template-store img.crate-image {
+	cursor: pointer;
+	padding: 10px;
+}
+
+.template-store img.masterpiece { 
+    -webkit-filter: drop-shadow(0px 0px 9px #44DDDD);
+    filter:         drop-shadow(0px 0px 9px #44DDDD); 
+
+}
+
+.template-store img.legendary { 
+    -webkit-filter: drop-shadow(0px 0px 6px orange);
+    filter:         drop-shadow(0px 0px 6px orange); 
+}
+
+.template-store img.rare { 
+    -webkit-filter: drop-shadow(0px 0px 3px #CCCC00);
+    filter:         drop-shadow(0px 0px 3px #CCCC00);  
+}
+
+@-webkit-keyframes rl_animation {
+	0% {
+		-webkit-filter: drop-shadow(0px 0px 3px #CCCC00); 
+	}
+
+    50% {
+		-webkit-filter: drop-shadow(0px 0px 6px orange);
+	}
+
+	100% {
+		-webkit-filter: drop-shadow(0px 0px 3px #CCCC00);
+	}
+}
+
+@-webkit-keyframes rm_animation {
+	0% {
+		-webkit-filter: drop-shadow(0px 0px 3px #CCCC00); 
+	}
+
+    50% {
+		-webkit-filter: drop-shadow(0px 0px 9px #44DDDD);
+	}
+
+	100% {
+		-webkit-filter: drop-shadow(0px 0px 3px #CCCC00);
+	}
+}
+
+@-webkit-keyframes lm_animation {
+	0% {
+		-webkit-filter: drop-shadow(0px 0px 6px orange); 
+	}
+
+    50% {
+		-webkit-filter: drop-shadow(0px 0px 9px #44DDDD);
+	}
+
+	100% {
+		-webkit-filter: drop-shadow(0px 0px 6px orange);
+	}
+}
+
+@-webkit-keyframes rlm_animation {
+	0% {
+		-webkit-filter: drop-shadow(0px 0px 3px #CCCC00); 
+	}
+
+    25% {
+		-webkit-filter: drop-shadow(0px 0px 6px orange);
+	}
+
+	50% {
+		-webkit-filter: drop-shadow(0px 0px 9px #44DDDD);
+	}
+
+	75% {
+		-webkit-filter: drop-shadow(0px 0px 6px orange);
+	}
+
+	100% {
+		-webkit-filter: drop-shadow(0px 0px 3px #CCCC00); 
+	}
+}
+
+.template-store img.rare.legendary { 
+    -webkit-animation: rl_animation 4s ease infinite;  
+}
+
+.template-store img.rare.masterpiece { 
+    -webkit-animation: rm_animation 4s ease infinite;  
+}
+
+.template-store img.legendary.masterpiece { 
+    -webkit-animation: lm_animation 4s ease infinite; 
+}
+
+.template-store img.rare.legendary.masterpiece { 
+    -webkit-animation: rlm_animation 4s ease infinite;
+}
+
+@-webkit-keyframes background_effect {
+    0%{background-position:0% 50%}
+    50%{background-position:100% 50%}
+    100%{background-position:0% 50%}
+}
+
+.template-store .foil {
+	background: linear-gradient(60deg, white, #ffe2c3, #FDF, white, #FDF, #ffe2c3, white);
+	background-size: 300% 300%;
+	-webkit-animation: background_effect 10s ease infinite;
+}
+
+.template-store .unlocked {
+	background: linear-gradient(60deg, white, #DBDBDB, #DBDBDB, white, #DBDBDB, #DBDBDB, white);
+	background-size: 300% 300%;
+	-webkit-animation: background_effect 10s ease infinite;
+}
+
+.template-store .seasonal {
+	background: linear-gradient(60deg, white, rgb(220,255,220), rgb(220,220,255), white, rgb(220,220,255), rgb(220,255,220), white);
+	background-size: 300% 300%;
+	-webkit-animation: background_effect 10s ease infinite;
+}
+
+.template-store .type-mask {
+	display: inline-block;
+}
