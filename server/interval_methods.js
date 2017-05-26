@@ -371,3 +371,8 @@ Meteor.setInterval((function() {
         },
     }, {multi: true});
 }), notification_clear_frequency);
+
+
+Meteor.setInterval((function() {
+    refreshCrates();
+}), DYNAMIC_CRATE_REFRESH_FREQUENCY)

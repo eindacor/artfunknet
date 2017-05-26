@@ -18,7 +18,8 @@
 					<i class="attribute-icon fa {{attribute_icon value}}"></i>
 				{{/if}}
 				{{/each}}
-				<p class="crate-cost-section">{{displayAsMoneyValue cost}}</p>
+				<p class="crate-cost-section">{{displayAsMoneyValue cost}} ({{dynamic_remaining _id}} remaining)</p>
+				<p class="crate-cost-section">required level: {{level_requirement}}</p>
 			</div>
 			{{/each}}
 		</div>

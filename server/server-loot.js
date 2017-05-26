@@ -77,12 +77,12 @@ getItemObjectValues = function(item_object) {
         var display_value = actual_value * 2;
 
         if (item_object.foil) {
-            actual_value *= 2;
+            actual_value *= FOIL_VALUE_BUFF;
             display_value *= 1.2;
         }
 
         if (item_object.seasonal) {
-            actual_value *= 5;
+            actual_value *= SEASONAL_VALUE_BUFF;
             display_value *= 1.5;
         }
 
@@ -102,7 +102,7 @@ getItemObjectValues = function(item_object) {
         }
 
         if (item_object.unlocked) {
-            actual_value *= 1.2;
+            actual_value *= UNLOCKED_VALUE_BUFF;
         }
 
         values_object.sell = Math.floor(actual_value * .8);
@@ -151,8 +151,15 @@ getRolledCrateQuality = function() {
     return JepLoot.catRoll(roll_quality_map);
 }
 
-getAverageDropValueFromMap = function(rarity_map) {
+calcSeasonalChance = function(rarity) {
+    var item_count = artworks.find({'rarity': rarity, 'active': true}).count();
+    return 1 / item_count;
+}
+
+getAverageDropValueFromMap = function(rarity_map, foil_chance, unlocked_chance, seasonal_amplifier) {
     var rarity_values = getLootData().rarity_values;
+    foil_chance = Math.min(foil_chance, 1);
+    unlocked_chance = Math.min(unlocked_chance, 1);
 
     var total_proportions = 0;
     for (var i=0; i < artwork_rarities.length; i++) {
@@ -163,16 +170,28 @@ getAverageDropValueFromMap = function(rarity_map) {
     var total_average = 0;
     for (var i=0; i < artwork_rarities.length; i++) {
         var rarity = artwork_rarities[i];
-        var average_value = (rarity_values[rarity].min + rarity_values[rarity].max) / 2
-        total_average += (average_value * (rarity_map[rarity] / total_proportions));
+        var average_rarity_value = (rarity_values[rarity].min + rarity_values[rarity].max) / 2
+
+        if (rarity == "legendary" || rarity == "masterpiece") {
+            var seasonal_chance = Math.min(calcSeasonalChance(rarity) * seasonal_amplifier, 1);
+            average_rarity_value = (average_rarity_value * (1 - seasonal_chance)) + (average_rarity_value * seasonal_chance * SEASONAL_VALUE_BUFF);
+        }
+
+        total_average += (average_rarity_value * (rarity_map[rarity] / total_proportions));
     }
+
+    total_average = (total_average * (1 - foil_chance)) + (total_average * foil_chance * FOIL_VALUE_BUFF);
+    total_average = (total_average * (1 - unlocked_chance)) + (total_average * unlocked_chance * UNLOCKED_VALUE_BUFF);
+
+
 
     return Math.floor(total_average);
 }
 
 getAverageDropValue = function(player_level, amplifier) {
     var smart_loot_map = getSmartRarityMap(player_level, amplifier);
-    return getAverageDropValueFromMap(smart_loot_map);
+    var loot_data = getLootData();
+    return getAverageDropValueFromMap(smart_loot_map, loot_data.global_foil_chance, loot_data.global_unlocked_chance, 1);
 }
 
 //calculates crate costs based on rarity maps and qulity maps

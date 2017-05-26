@@ -97,6 +97,8 @@ createUser = function(user_object, callback){
         'displayed': black_checklist_item 
     };
 
+    user_object.profile.crate_purchases = {};
+
     var default_wall = gallery_finishes.findOne({'filename': "plaster.jpg"});   
     var wall_finish_object = {
         'filename': default_wall.filename,

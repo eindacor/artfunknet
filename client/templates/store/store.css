@@ -71,19 +71,19 @@
 	display: inline-block;
 }
 
-.template-store .attribute-icon:nth-child(1) {
+.template-store i.attribute-icon:nth-child(2) {
 	transform: rotateY(45deg);
 	margin-left: -75px;
 	margin-top: 85px;
 }
 
-.template-store .attribute-icon:nth-child(2) {
+.template-store i.attribute-icon:nth-child(3) {
 	transform: rotateY(-10deg);
 	margin-left: -160px;
 	margin-top: 110px;
 }
 
-.template-store .attribute-icon:nth-child(3) {
+.template-store i.attribute-icon:nth-child(4) {
 	transform: rotateY(45deg);
 	margin-left: -95px;
 	margin-top: 130px;
@@ -210,6 +210,30 @@
 
 .template-store .seasonal {
 	background: linear-gradient(60deg, white, rgb(220,255,220), rgb(220,220,255), white, rgb(220,220,255), rgb(220,255,220), white);
+	background-size: 300% 300%;
+	-webkit-animation: background_effect 10s ease infinite;
+}
+
+.template-store .foil.unlocked {
+	background: linear-gradient(60deg, white, #ffe2c3, #FDF, white, #FDF, #ffe2c3, white, #DBDBDB, #DBDBDB, white, #DBDBDB, #DBDBDB, white);
+	background-size: 300% 300%;
+	-webkit-animation: background_effect 10s ease infinite;
+}
+
+.template-store .foil.seasonal {
+	background: linear-gradient(60deg, white, #ffe2c3, #FDF, white, #FDF, #ffe2c3, white, rgb(220,255,220), rgb(220,220,255), white, rgb(220,220,255), rgb(220,255,220), white);
+	background-size: 300% 300%;
+	-webkit-animation: background_effect 10s ease infinite;
+}
+
+.template-store .unlocked.seasonal {
+	background: linear-gradient(60deg, white, #DBDBDB, #DBDBDB, white, #DBDBDB, #DBDBDB, white, rgb(220,255,220), rgb(220,220,255), white, rgb(220,220,255), rgb(220,255,220), white);
+	background-size: 300% 300%;
+	-webkit-animation: background_effect 10s ease infinite;
+}
+
+.template-store .foil.unlocked.seasonal {
+	background: linear-gradient(60deg, white, #ffe2c3, #FDF, white, #FDF, #ffe2c3, white, #DBDBDB, #DBDBDB, white, #DBDBDB, #DBDBDB, white, rgb(220,255,220), rgb(220,220,255), white, rgb(220,220,255), rgb(220,255,220), white);
 	background-size: 300% 300%;
 	-webkit-animation: background_effect 10s ease infinite;
 }

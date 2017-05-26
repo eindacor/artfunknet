@@ -67,6 +67,14 @@ Template.store.helpers({
 		return player_interface.getBankBalance() >= cost;
 	},
 
+	'dynamic_remaining': function(crate_id) {
+		if (Meteor.user().profile.crate_purchases[crate_id] == undefined) {
+			return DYNAMIC_CRATE_PURCHASE_LIMIT;
+		}
+
+		else return DYNAMIC_CRATE_PURCHASE_LIMIT - Meteor.user().profile.crate_purchases[crate_id];
+	},
+
 	'attribute_icon': function(attribute_id) {
 		var attribute_object = attributes.findOne(attribute_id);
 		if (attribute_object)
