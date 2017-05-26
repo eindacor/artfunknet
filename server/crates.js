@@ -99,12 +99,12 @@ PlayerCrateIF = function(user_id, crate_id) {
 				var rarity_boost_rate;
 				switch(crate_seeds[i].value) {
 					case "rare": rarity_boost_rate = 2; break;
-					case "legendary": rarity_boost_rate = 2; break
-					case "masterpiece": rarity_boost_rate = 2; break;
+					case "legendary": rarity_boost_rate = 1.5; break
+					case "masterpiece": rarity_boost_rate = 1.5; break;
 					default: rarity_boost_rate = 1; break;
 				}
 
-				loot_map[crate_seeds[i].value] *= rarity_boost_rate;
+				Math.floor(loot_map[crate_seeds[i].value] *= rarity_boost_rate);
 			}
 		}
 
@@ -123,7 +123,7 @@ PlayerCrateIF = function(user_id, crate_id) {
 
 		for (var i=0; i<crate_seeds.length; i++) {
 			if (crate_seeds[i].type == "attribute") {
-				attribute_map[crate_seeds[i].value] *= 5;
+				attribute_map[crate_seeds[i].value] *= 3;
 			}
 		}
 
@@ -185,7 +185,7 @@ PlayerCrateIF = function(user_id, crate_id) {
 		    }
 	    }
 
-	    this.printCrate();
+	    // this.printCrate();
 	}
 }
 
@@ -407,8 +407,8 @@ var getCrateSeeds = function() {
 		switch(seed_type_roll) {
 			case "rarity": 
 				var rarity_selection_map = {
-					'rare': 5,
-					'legendary': 2,
+					'rare': 10,
+					'legendary': 3,
 					'masterpiece': 1
 				};
 
