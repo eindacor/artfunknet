@@ -454,6 +454,14 @@ Meteor.methods({
         if (adminValidated()) {
             refreshCrates();
         }
+    },
+
+    'updateItemValues': function() {
+        if (adminValidated()) {
+            items.find().forEach(function(item_object) {
+                updateItem(item_object._id, {$set: {'status': item_object.status}});
+            })
+        }
     }
 })
 
