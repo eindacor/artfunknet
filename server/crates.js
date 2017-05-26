@@ -5,7 +5,7 @@ PlayerCrateIF = function(user_id, crate_id) {
 	if (crate_object == undefined)
 		throw "invalid crate id: " + crate_id;
 
-	var global_type_buff = 5;
+	var global_type_buff = 2;
 
 	var crateContainsTypeBuff = function(item_type) {
 		var crate_seeds = crate_object.seeds;
