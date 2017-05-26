@@ -56,9 +56,6 @@ var updateContent = function() {
 
     // temp code
     refreshCrates();
-    items.find().forEach(function(item_object) {
-        updateItem(item_object._id, {$set: {'status': item_object.status}});
-    })
     // temp code
 }
 
