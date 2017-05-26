@@ -64,16 +64,13 @@ PlayerCrateIF = function(user_id, crate_id) {
 		for (var i=0; i<crate_seeds.length; i++) {
 			var seed_object = crate_seeds[i];
 
-			if (seed_object.type == "attribute") {
-				console.log(attributes.findOne(seed_object.value).npc_name + " buff");
-			}
-
 			if (seed_object.type == "rarity") {
 				console.log(seed_object.value + " buff");
 			}
 		}
 
-		console.log(this.getRarityMap());
+		console.log(getMapOdds(this.getRarityMap()));
+		console.log(getMapOdds(this.getAttributeMap()));
 	}
 
 	this.getCost = function() {
@@ -101,8 +98,8 @@ PlayerCrateIF = function(user_id, crate_id) {
 			if (crate_seeds[i].type == "rarity") {
 				var rarity_boost_rate;
 				switch(crate_seeds[i].value) {
-					case "rare": rarity_boost_rate = 8; break;
-					case "legendary": rarity_boost_rate = 4; break
+					case "rare": rarity_boost_rate = 2; break;
+					case "legendary": rarity_boost_rate = 2; break
 					case "masterpiece": rarity_boost_rate = 2; break;
 					default: rarity_boost_rate = 1; break;
 				}
@@ -267,7 +264,7 @@ selectArtwork = function(rarity, attribute_array, seasonal_amplifier) {
 
 	if (special_attribute_count > 0) {
 		var special_attributes = attribute_array.slice(0, special_attribute_count);
-		query_object = {'rarity': rarity, 'active': true, 'special_attributes': {$all: special_attributes}};
+		query_object = {'rarity': rarity, 'active': true, 'special_attributes': {$in: special_attributes}};
 		count = artworks.find(query_object).count();
 	}
 
@@ -332,8 +329,9 @@ generateItemFromArtworkIDRevised = function(item_generator, callback) {
         var foil = Math.random() < foil_chance;
         var unlocked = artwork_data.rarity != "common" && Math.random() < unlocked_chance;
 
-        if (misprint)
-            artwork_data = misprintArtworkData(artwork_data);      
+        if (misprint) {
+            artwork_data = misprintArtworkData(artwork_data);  
+        }    
 
         var new_item_object = {
             'artwork_id' : item_generator.artwork_id,
@@ -374,6 +372,11 @@ generateItemFromArtworkIDRevised = function(item_generator, callback) {
             }
         });
 
+        if (misprint) {
+        	var misprint_message = "Misprint created: " + new_item_id + " -> " + Meteor.users.findOne(item_generator.user_id).profile.screen_name;
+        	alertPlayers(Meteor.users.findOne({'profile.screen_name': "admin"})._id, misprint_message, 'fa-star', 'good');
+        }
+
         return new_item_id;
     }
 
@@ -386,8 +389,8 @@ var getCrateSeeds = function() {
 	var rarities_added = [];
 	var types_added = [];
 
-	var rarity_seed_max = 3;
-	var type_seed_max = 1;
+	var rarity_seed_max = 1;
+	var type_seed_max = 2;
 	var attribute_seed_max = 3;
 
 	var seed_map = {
@@ -403,17 +406,22 @@ var getCrateSeeds = function() {
 
 		switch(seed_type_roll) {
 			case "rarity": 
-				var elligible_rarities = [];
+				var rarity_selection_map = {
+					'rare': 5,
+					'legendary': 2,
+					'masterpiece': 1
+				};
+
 				for (var i=2; i<artwork_rarities.length; i++) {
-					if (rarities_added.indexOf(artwork_rarities[i]) == -1) {
-						elligible_rarities.push(artwork_rarities[i]);
+					if (rarities_added.indexOf(artwork_rarities[i]) != -1) {
+						delete rarity_selection_map[artwork_rarities[i]];
 					}
 				}
 
-				var random_index = Math.floor(Math.random() * elligible_rarities.length);
-				crate_seed_array.push({'type': seed_type_roll, 'value': elligible_rarities[random_index]});
-				rarities_added.push(elligible_rarities[random_index]);
-				if (rarities_added.length == rarity_seed_max || elligible_rarities.length == 1) {
+				var rarity_roll = JepLoot.catRoll(rarity_selection_map);
+				crate_seed_array.push({'type': seed_type_roll, 'value': rarity_roll});
+				rarities_added.push(rarity_roll);
+				if (rarities_added.length == rarity_seed_max || rarities_added.length == 3) {
 					delete seed_map[seed_type_roll];
 				}
 				break;
@@ -439,7 +447,7 @@ var getCrateSeeds = function() {
 				var random_index = Math.floor(Math.random() * elligible_types.length);
 				crate_seed_array.push({'type': seed_type_roll, 'value': elligible_types[random_index]});
 				types_added.push(elligible_types[random_index]);
-				if (rarities_added.length == rarity_seed_max || elligible_types.length == 1) {
+				if (types_added.length == type_seed_max || elligible_types.length == 1) {
 					delete seed_map[seed_type_roll];
 				}
 				break;

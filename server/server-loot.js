@@ -54,7 +54,6 @@ var condition_coefficient_max = .3;
 var attribute_coefficient_max = .2;
 
 getItemObjectValues = function(item_object) {
-    var value_types = ["sell", "purchase", "actual", "auction_min", "collector", "dealer", "display"];
     var values_object = {};
 
     var rarity_values = getLootData().rarity_values;
@@ -62,8 +61,6 @@ getItemObjectValues = function(item_object) {
     var artwork_object = artworks.findOne({'_id': item_object.artwork_id});
 
     if (artwork_object == undefined) {
-        console.log(item_object.artwork_id);
-        console.log(item_object);
         return values_object;
     }
 
@@ -79,36 +76,33 @@ getItemObjectValues = function(item_object) {
     var attribute_value = mint_value * getAttributeValueCoefficient(item_object);
 
     var actual_value = Math.floor(base_value + condition_value + attribute_value);
-    var display_value = actual_value * 2;
 
     if (item_object.foil) {
         actual_value *= FOIL_VALUE_BUFF;
-        display_value *= 1.2;
     }
 
     if (item_object.seasonal) {
         actual_value *= SEASONAL_VALUE_BUFF;
-        display_value *= 1.5;
     }
 
     if (item_object.lottery && item_object.lottery != 0) {
-        actual_value *= (10 + item_object.lottery);
-        display_value *= 2;
+        actual_value *= (BASE_LOTTERY_VALUE_BUFF + (item_object.lottery * LOTTERY_LEVEL_VALUE_BUFF));
     }
 
     if (item_object.original) {
-        actual_value *= 7;
-        display_value *= 2;
+        actual_value *= ORIGINAL_VALUE_BUFF;
     }
 
     if (item_object.vintage){
-        actual_value *= 2;
-        display_value *= 1.5;
+        actual_value *= VINTAGE_VALUE_BUFF;
     }
 
     if (item_object.unlocked) {
         actual_value *= UNLOCKED_VALUE_BUFF;
     }
+
+    var item_level_amplifier = 1 + (item_object.level * ITEM_LEVEL_VALUE_BUFF);
+    actual_value *= item_level_amplifier;
 
     values_object.sell = Math.floor(actual_value * .8);
     values_object.purchase = Math.floor(actual_value * 1.5);
@@ -116,7 +110,6 @@ getItemObjectValues = function(item_object) {
     values_object.auction_min = Math.floor(values_object.sell * .8);
     values_object.collector = Math.floor(actual_value * 1.2);
     values_object.dealer = Math.floor(actual_value * .9);
-    values_object.display = Math.floor(display_value);
 
     return values_object;
 }
@@ -326,6 +319,11 @@ generateItemFromArtworkID = function(item_generator, callback) {
                     callback();
             }
         });
+
+        if (misprint) {
+            var misprint_message = "Misprint created: " + new_item_id + " -> " + Meteor.users.findOne(item_generator.user_id).profile.screen_name;
+            alertPlayers(Meteor.users.findOne({'profile.screen_name': "admin"})._id, misprint_message, 'fa-star', 'good');
+        }
 
         return new_item_id;
     }
