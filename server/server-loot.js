@@ -54,72 +54,71 @@ var condition_coefficient_max = .3;
 var attribute_coefficient_max = .2;
 
 getItemObjectValues = function(item_object) {
-    try {
-        var value_types = ["sell", "purchase", "actual", "auction_min", "collector", "dealer", "display"];
-        var values_object = {};
+    var value_types = ["sell", "purchase", "actual", "auction_min", "collector", "dealer", "display"];
+    var values_object = {};
 
-        var rarity_values = getLootData().rarity_values;
+    var rarity_values = getLootData().rarity_values;
 
-        var artwork_object = artworks.findOne({'_id': item_object.artwork_id});
+    var artwork_object = artworks.findOne({'_id': item_object.artwork_id});
 
-        var min = rarity_values[artwork_object.rarity].min;
-        var max = rarity_values[artwork_object.rarity].max;
-
-        var range = max - min;
-
-        var mint_value = Math.floor(min + (artwork_object.value_scale * range));
-
-        var base_value = mint_value * lowest_possible_value_coefficient;
-        var condition_value = mint_value * condition_coefficient_max * item_object.condition;
-        var attribute_value = mint_value * getAttributeValueCoefficient(item_object);
-
-        var actual_value = Math.floor(base_value + condition_value + attribute_value);
-        var display_value = actual_value * 2;
-
-        if (item_object.foil) {
-            actual_value *= FOIL_VALUE_BUFF;
-            display_value *= 1.2;
-        }
-
-        if (item_object.seasonal) {
-            actual_value *= SEASONAL_VALUE_BUFF;
-            display_value *= 1.5;
-        }
-
-        if (item_object.lottery && item_object.lottery != 0) {
-            actual_value *= (10 + item_object.lottery);
-            display_value *= 2;
-        }
-
-        if (item_object.original) {
-            actual_value *= 7;
-            display_value *= 2;
-        }
-
-        if (item_object.vintage){
-            actual_value *= 2;
-            display_value *= 1.5;
-        }
-
-        if (item_object.unlocked) {
-            actual_value *= UNLOCKED_VALUE_BUFF;
-        }
-
-        values_object.sell = Math.floor(actual_value * .8);
-        values_object.purchase = Math.floor(actual_value * 1.5);
-        values_object.actual = Math.floor(actual_value);
-        values_object.auction_min = Math.floor(values_object.sell * .8);
-        values_object.collector = Math.floor(actual_value * 1.2);
-        values_object.dealer = Math.floor(actual_value * .9);
-        values_object.display = Math.floor(display_value);
-
+    if (artwork_object == undefined) {
+        console.log(item_object.artwork_id);
+        console.log(item_object);
         return values_object;
     }
 
-    catch (error) {
-        console.log("getItemObjectValues: " + error.message);
-        return {};
+    var min = rarity_values[artwork_object.rarity].min;
+    var max = rarity_values[artwork_object.rarity].max;
+
+    var range = max - min;
+
+    var mint_value = Math.floor(min + (artwork_object.value_scale * range));
+
+    var base_value = mint_value * lowest_possible_value_coefficient;
+    var condition_value = mint_value * condition_coefficient_max * item_object.condition;
+    var attribute_value = mint_value * getAttributeValueCoefficient(item_object);
+
+    var actual_value = Math.floor(base_value + condition_value + attribute_value);
+    var display_value = actual_value * 2;
+
+    if (item_object.foil) {
+        actual_value *= FOIL_VALUE_BUFF;
+        display_value *= 1.2;
     }
+
+    if (item_object.seasonal) {
+        actual_value *= SEASONAL_VALUE_BUFF;
+        display_value *= 1.5;
+    }
+
+    if (item_object.lottery && item_object.lottery != 0) {
+        actual_value *= (10 + item_object.lottery);
+        display_value *= 2;
+    }
+
+    if (item_object.original) {
+        actual_value *= 7;
+        display_value *= 2;
+    }
+
+    if (item_object.vintage){
+        actual_value *= 2;
+        display_value *= 1.5;
+    }
+
+    if (item_object.unlocked) {
+        actual_value *= UNLOCKED_VALUE_BUFF;
+    }
+
+    values_object.sell = Math.floor(actual_value * .8);
+    values_object.purchase = Math.floor(actual_value * 1.5);
+    values_object.actual = Math.floor(actual_value);
+    values_object.auction_min = Math.floor(values_object.sell * .8);
+    values_object.collector = Math.floor(actual_value * 1.2);
+    values_object.dealer = Math.floor(actual_value * .9);
+    values_object.display = Math.floor(display_value);
+
+    return values_object;
 }
 
 var getAttributeValueCoefficient = function(item_object) {

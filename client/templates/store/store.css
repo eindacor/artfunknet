@@ -241,3 +241,7 @@
 .template-store .type-mask {
 	display: inline-block;
 }
+
+.template-store .crate-info.disabled {
+	opacity: .2;
+}

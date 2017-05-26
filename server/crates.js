@@ -501,6 +501,7 @@ Meteor.methods({
 		for (var i=0; i<crate_objects.length; i++) {
 			var player_crate_interface = new PlayerCrateIF(Meteor.userId(), crate_objects[i]._id);
     		crate_objects[i].cost = player_crate_interface.getCost();
+    		crate_objects[i].can_open = player_crate_interface.canOpen();
 		}
 
 		return crate_objects;

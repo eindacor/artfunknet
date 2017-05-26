@@ -62,11 +62,6 @@ Template.store.helpers({
 		return dynamic_crates;
 	},
 
-	'can_afford_dynamic': function(cost) {
-		var player_interface = new PlayerIF(Meteor.userId());
-		return player_interface.getBankBalance() >= cost;
-	},
-
 	'dynamic_remaining': function(crate_id) {
 		if (Meteor.user().profile.crate_purchases[crate_id] == undefined) {
 			return DYNAMIC_CRATE_PURCHASE_LIMIT;
@@ -196,6 +191,8 @@ Template.store.events ({
 		Meteor.call('openDynamicCrate', crate_id, function(error) {
 			if (error)
 				console.log(error);
+
+			getDynamicCrates();
 		});
 	}
 })

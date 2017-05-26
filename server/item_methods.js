@@ -209,7 +209,7 @@ updateItem = function(item_id, modifier, callback) {
 
             updateGalleryDetails(item_object.owner);
 
-            var newItemObjectValues =  getItemObjectValues(item_object);
+            var newItemObjectValues = getItemObjectValues(item_object);
             if (callback == undefined) {           
                 items.update(item_id, {$set: {'values': newItemObjectValues}});
             }
