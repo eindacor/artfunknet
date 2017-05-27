@@ -33,7 +33,7 @@ preservationistInteraction = function(npc_object) {
 		// B) If the preserved item already has a condition > 80, you earn money based on its value.
 		if (target_item && target_item.condition > .8 && procUniqueAttribute(Meteor.userId(), "PRESERVATIONIST_CONDITION_BONUS", undefined)) {
 			message = "You have met a preservationist, who is in awe of the pristine quality of your displayed works. He immediately notifies his rich uncle who gives you a hefty donation.";
-			addFunds("PRESERVATIONIST_CONDITION_BONUS", Meteor.userId(), Math.min( Math.floor(getItemObjectValueByType(target_item, 'actual', Meteor.userId())), 1000000) );
+			addFunds("PRESERVATIONIST_CONDITION_BONUS", Meteor.userId(), Math.min( Math.floor(getItemObjectValueByType(target_item, 'actual', Meteor.userId())), 500000) );
 		}
 
 		// C) If you meet a preservationist with an enthusiast present, they select an item in your permanent collection. If the item has an XP rating > 90, or a condition > 80, you earn XP. If it has neither, it's XP rating or condition is increased.

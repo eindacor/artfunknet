@@ -225,37 +225,39 @@ Template.userGallery.events ({
 							if (interaction_object == undefined)
 								return;
 
-							Session.set('npc_interaction', interaction_object);
-							switch(interaction_object.type) {
-								case "collector_bonus": 
-									Blaze.renderWithData(Template.modalTemplate, {
-										'modal_name': "collectorOfferModal", 
-										'modal_data': {
-											'interaction_object': interaction_object
-										}
-									}, $('body')[0]);
-									break;
-								case "historian_bonus":
-									Modal.show("historianModal");
-									break;
-								case "art_expert_bonus": 
-									if (interaction_object.knowledge_object != undefined) {
+							if (Meteor.user().profile.settings.show_npc_modals) {
+								Session.set('npc_interaction', interaction_object);
+								switch(interaction_object.type) {
+									case "collector_bonus": 
 										Blaze.renderWithData(Template.modalTemplate, {
-											'modal_name': "artExpertKnowledgeModal", 
+											'modal_name': "collectorOfferModal", 
 											'modal_data': {
 												'interaction_object': interaction_object
 											}
 										}, $('body')[0]);
 										break;
-									}
-								default: 
-									Blaze.renderWithData(Template.modalTemplate, {
-										'modal_name': "standardNPCMessageModal", 
-										'modal_data': {
-											'interaction_object': interaction_object
+									case "historian_bonus":
+										Modal.show("historianModal");
+										break;
+									case "art_expert_bonus": 
+										if (interaction_object.knowledge_object != undefined) {
+											Blaze.renderWithData(Template.modalTemplate, {
+												'modal_name': "artExpertKnowledgeModal", 
+												'modal_data': {
+													'interaction_object': interaction_object
+												}
+											}, $('body')[0]);
+											break;
 										}
-									}, $('body')[0]);
-									break;
+									default: 
+										Blaze.renderWithData(Template.modalTemplate, {
+											'modal_name': "standardNPCMessageModal", 
+											'modal_data': {
+												'interaction_object': interaction_object
+											}
+										}, $('body')[0]);
+										break;
+								}
 							}
 						}
 

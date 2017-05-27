@@ -49,6 +49,7 @@ createUser = function(user_object, callback){
         'auction_items_to_inventory': true,
         'animations_enabled': false,
         'lottery_eligible': true,
+        'show_npc_modals': true,
         'quick_sell_options': {
             'foil': false,
             'legendary': false,

@@ -55,7 +55,7 @@ var updateContent = function() {
     }
 
     // temp code
-    refreshCrates();
+    Meteor.users.update({}, {$set: {'profile.settings.show_npc_modals': true}}, {multi: true});
     // temp code
 }
 
