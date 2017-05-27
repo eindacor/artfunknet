@@ -104,6 +104,11 @@ var successfulAuction = function(auction_object, winning_user) {
             var item_object = items.findOne(auction_object.item_id);
             var new_winner_id = item_object.owner;
 
+            if (item_object.status == "claimed") {
+                var player_item_interface = new PlayerItemIF(new_winner_id, item_object._id);
+                player_item_interface.addToChecklist('owned');
+            }
+
             if (previous_owner) {
                 var sale_message = "You have successfully auctioned " + auction_object.item_data.title + " by " + auction_object.item_data.artist + " for $" + getCommaSeparatedValue(auction_object.current_bid)
                 alertPlayers(previous_owner._id, sale_message, 'fa-gavel', 'good');
