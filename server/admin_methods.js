@@ -459,7 +459,7 @@ Meteor.methods({
     'updateItemValues': function() {
         if (adminValidated()) {
             items.find().forEach(function(item_object) {
-                updateItem(item_object._id, {$set: {'status': item_object.status}});
+                items.update(item_object._id, {$set: {'values': getItemObjectValues(item_object)}});
             })
         }
     }
