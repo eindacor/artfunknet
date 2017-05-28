@@ -2,7 +2,83 @@
 	<div class="template-galleries">
 		<div class="container">
 			<h1 class="af-color">Galleries</h1>
-			{{>galleryTable}}
+			<!-- {{>galleryTable}} -->
+			<div class="row gallery-list">
+				<div class="col-xs-12">
+					{{#each gallery}}
+						{{> galleryCard this}}
+					{{/each}}
+				</div>
+			</div>
+		</div>
+	</div>
+</template>
+
+<template name="galleryCard">
+	<div class="row gallery-container template-galleryCard">
+		<div class="col-xs-12 gallery-card">
+			{{#with galleryInfo this}}
+			<div class="row gallery-card-contents">
+				<div class="col-xs-1 avatar-section">
+				</div>
+				<div class="col-xs-8 gallery-data">
+					<div class="row profile-data">
+						<p class="owner-name">{{owner}}</p>
+					</div>
+					<div class="row attribute-data">
+						<table>
+							<tr>
+								{{#each attribute}}
+								<td>
+									<i data-attribute_description="{{description}}" data-attribute_value="{{value}}" data-attribute_id="{{_id}}" style="color: rgb({{getRatingColor value}}, 0, 0)" class="gallery-attribute fa {{icon}}"></i>
+								</td>
+								<td>
+									<span class="procs">{{proc}}%</span>
+								</td>
+								{{/each}}
+							</tr>
+						</table>
+					</div>
+					<div class="row score-and-value">
+						<div class="col-xs-4 gallery-score no-padding">
+							<p>score: {{commaSeparatedValue score}}</p>
+						</div>
+						<div class="col-xs-4 gallery-value">
+							<p>value: {{displayAsMoneyValue value}}</p>
+						</div>
+					</div>
+				</div>
+				<div class="col-xs-2 entry-data">
+					{{#if paid}}
+					<div class="row enter-gallery">
+						<i data-owner="{{owner}}" class="can-enter enter-button fa fa-sign-in"></i>
+					</div>
+					{{else}}
+					<div class="row entry-fee">
+						<p>${{entryFee price_tier owner_id}}</p>
+					</div>
+					<div class="row purchase-options">
+						<div class="col-xs-6 purchase-ticket">
+							<i data-owner="{{owner}}" class="can-enter purchase-button fa fa-ticket af-color"></i>
+						</div>
+						<div class="col-xs-6 purchase-ticket-and-enter">
+							<i data-owner="{{owner}}" class="can-enter purchase-and-enter-button fa fa-sign-in af-color"></i>
+						</div>
+					</div>
+					{{/if}}
+				</div>
+				<div class="col-xs-1 favorite-section">
+					<div class="row">
+						<i data-gallery_id="{{_id}}" class="favorite-button fa {{#if favorite _id}}fa-star gold-text{{else}}fa-star-o{{/if}}"></i>
+					</div>
+					<div class="row">
+						{{#if currentTicketHolders owner_id}}
+						<p class="ticketholders"><i class="fa fa-user"></i> {{currentTicketHolders owner_id}}</p>
+						{{/if}}
+					</div>
+				</div>
+			</div>
+			{{/with}}
 		</div>
 	</div>
 </template>

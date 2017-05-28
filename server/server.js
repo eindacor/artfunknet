@@ -55,7 +55,7 @@ var updateContent = function() {
     }
 
     // temp code
-    Meteor.users.update({}, {$set: {'profile.settings.show_npc_modals': true}}, {multi: true});
+    Meteor.users.update({'profile.favorite_galleries': null}, {$set: {'profile.favorite_galleries': []}}, {multi: true});
     // temp code
 }
 

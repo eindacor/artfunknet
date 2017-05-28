@@ -1,69 +1,97 @@
-.template-galleryTable table {
-	margin: auto;
-	width: 100%;
-	border: none;
+.template-galleryCard .attribute-data {
+	border-bottom: 1px solid rgba(0, 0, 0, .3);
 }
 
-.template-galleryTable td {
-	text-align: center;
-	border: none;
-}
-
-.template-galleryTable tr {
-	border: 1px solid gray;
-	height: 48px;
-}
-
-.template-galleryTable tr:nth-child(even) {
-	background-color: #EEEEEE;
-}
-
-.template-galleryTable tr:hover {
-	cursor: pointer;
-	background-color: #FFFFBB;
-}
-
-.template-galleryTable th {
-	background-color: black;
-	font-size: 1em;
-	color: white;
-	min-width: 120px;
-	text-align: center;
-	border-right: 1px solid white;
-	min-height: 80px;
-}
-
-.template-galleryTable th:hover {
-	background-color: #666666;
-	cursor: pointer;
-}
-
-.template-galleryTable .soon {
-	color: red;
+.template-galleryCard .owner-name {
 	font-weight: bold;
-}
-
-.template-galleryTable .action-buttons i {
+	font-size: 1.8rem;
 	color: black;
-	opacity: .5;
-	font-size: 1.2em;
+	margin-bottom: 6px
 }
 
-.template-galleryTable .enabled i:hover {
+.template-galleryCard .gallery-card-contents {
+	border: 1px solid rgba(0, 0, 0, .8);
+	margin: 10px 0px;
+	padding: 6px 0px 0px 0px;
+	box-shadow: 4px 4px 2px rgba(0, 0, 0, .3);
+}
+
+.template-galleryCard .score-and-value {
+	color: black;
+}
+
+.template-galleryCard .procs {
+	display: none;
+}
+
+.template-galleryCard .gallery-card:hover .procs {
+	display: block;
+}
+
+.template-galleryCard td {
+	font-size: 1.8rem;
+	width: 30px;
+	text-align: left;
+}
+
+.template-galleryCard td:nth-child(odd) {
+	width: 24px;
+	text-align: right;
+}
+
+.template-galleryCard td:nth-child(even) {
+	font-size: 1.2rem;
+	padding-left: 4px;
+}
+
+.template-galleryCard .gallery-score > p, .template-galleryCard .gallery-value > p{
+	margin-bottom: 4px;
+}
+
+.template-galleryCard .entry-data {
+	text-align: center;
+	color: black;
+}
+
+.template-galleryCard .entry-fee {
+	font-weight: bold;
+	font-size: 1.6rem;
+}
+
+.template-galleryCard .purchase-options {
+	font-size: 3rem;
+}
+
+.template-galleryCard .purchase-ticket {
+	border-right: 1px solid rgba(0, 0, 0, .3);
+	text-align: right;
+}
+
+.template-galleryCard .purchase-ticket-and-enter {
+	text-align: left;
+}
+
+.template-galleryCard .can-enter {
+	opacity: .6;
+	cursor: pointer;
+}
+
+.template-galleryCard .can-enter:hover {
 	opacity: 1;
-	cursor: pointer;
 }
 
-.template-galleryTable .disabled {
-	opacity: .2;
-	cursor: default;
+.template-galleryCard .enter-button{
+	font-size: 4rem;
+	padding-bottom: 0px;
+	vertical-align: text-bottom;
+	margin-top: 16px;
 }
 
-.template-galleryTable .highlight {
-	font-weight: bold;
+.template-galleryCard .ticketholders {
 	color: black;
 }
 
-.template-galleryTable .gallery-attribute {
-	font-size: 1.5em;
+.template-galleryCard .favorite-button {
+	font-size: 1.8rem;
+	cursor: pointer;
 }

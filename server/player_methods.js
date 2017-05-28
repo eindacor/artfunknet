@@ -39,6 +39,7 @@ createUser = function(user_object, callback){
     user_object.profile.money_spent_on_crates = 0;
     user_object.profile.vintage_select = false;
     user_object.profile.vintage_count = 0;
+    user_object.profile.favorite_galleries = [];
     user_object.profile.notifications = {
         'procs': [],
         'money': [],
@@ -588,14 +589,21 @@ Meteor.methods({
         else return null;
     },
 
-    'purchaseTicket' : function(owner_id) {
+    'purchaseTicket' : function(owner_screen_name) {
         if (!canPurchaseTicket())
             return false;
+
+        var owner_object = Meteor.users.findOne({'profile.screen_name': owner_screen_name});
+
+        if (owner_object == undefined)
+            return false;
+
+        var owner_id = owner_object._id;
 
         var buyer_id = Meteor.userId();
         var ticket_duration = 30; // minutes
         var ticket_expiration = moment().add(ticket_duration, 'minutes')._d.toISOString();
-        var owner_object = Meteor.users.findOne(owner_id);
+        
         var entry_fee = owner_object.profile.entry_fee;
 
         var buyer_object = Meteor.users.findOne(buyer_id);
@@ -1247,5 +1255,18 @@ Meteor.methods({
 
         var revised_knowledge = getRevisedKnowledgeFromTargetValue(craft_type, target, Meteor.user().profile.knowledge);
         Meteor.users.update({'_id': Meteor.userId()}, {$set: {'profile.knowledge': revised_knowledge}});
+     },
+
+     'toggleFavoriteGallery': function(gallery_id) {
+        if (galleries.findOne(gallery_id) == undefined)
+            return false;
+
+        if (Meteor.user().profile.favorite_galleries.indexOf(gallery_id) == -1) {
+            Meteor.users.update({'_id': Meteor.userId()}, {$push: {'profile.favorite_galleries': gallery_id}});
+        }
+
+        else {
+            Meteor.users.update({'_id': Meteor.userId()}, {$pull: {'profile.favorite_galleries': gallery_id}});
+        }
      }
 })
