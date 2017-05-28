@@ -7,6 +7,13 @@ PlayerCrateIF = function(user_id, crate_id) {
 
 	var global_type_buff = 2;
 
+	switch(crate_object.quality) {
+		case "bronze": global_type_buff = 1.6; break;
+		case "silver": global_type_buff = 1.8; break;
+		case "gold": global_type_buff = 2; break;
+		case "platinum": global_type_buff = 2.2; break;
+	}
+
 	var crateContainsTypeBuff = function(item_type) {
 		var crate_seeds = crate_object.seeds;
 		for (var i=0; i<crate_seeds.length; i++) {
@@ -88,7 +95,7 @@ PlayerCrateIF = function(user_id, crate_id) {
 			}
 		}
 
-		return Math.floor(average_drop_value * crate_object.item_count * CRATE_UPCHARGE_COEFFICIENT * DYNAMIC_CRATE_DISCOUNT_COEFFICIENT);
+		return Math.floor(average_drop_value * crate_object.item_count * CRATE_UPCHARGE_COEFFICIENT);
 	}
 
 	this.getRarityMap = function() {
@@ -97,14 +104,27 @@ PlayerCrateIF = function(user_id, crate_id) {
 		for (var i=0; i<crate_seeds.length; i++) {
 			if (crate_seeds[i].type == "rarity") {
 				var rarity_boost_rate;
+				var boost_rate_multiplier;
+
+				switch (crate_object.quality) {
+					case "bronze": boost_rate_multiplier = 1; break;
+					case "silver": boost_rate_multiplier = 1.1; break;
+					case "gold": boost_rate_multiplier = 1.2; break;
+					case "platinum": boost_rate_multiplier = 1.3; break;
+					default: boost_rate_multiplier = 1; break;
+				}
+
 				switch(crate_seeds[i].value) {
 					case "rare": rarity_boost_rate = 2; break;
-					case "legendary": rarity_boost_rate = 1.5; break
-					case "masterpiece": rarity_boost_rate = 1.5; break;
+					case "legendary": rarity_boost_rate = 1.4; break
+					case "masterpiece": rarity_boost_rate = 1.4; break;
 					default: rarity_boost_rate = 1; break;
 				}
 
-				Math.floor(loot_map[crate_seeds[i].value] *= rarity_boost_rate);
+				var base_rarity_map_value = loot_map[crate_seeds[i].value];
+				var boosted_rarity_map_value = Math.floor(base_rarity_map_value * rarity_boost_rate * boost_rate_multiplier);
+
+				loot_map[crate_seeds[i].value] = boosted_rarity_map_value;
 			}
 		}
 
@@ -121,9 +141,20 @@ PlayerCrateIF = function(user_id, crate_id) {
 			attribute_map[attribute_object._id] = 1;
 		}
 
+		var attribute_map_value_boost;
+		switch (crate_object.quality) {
+			case "bronze": attribute_map_value_boost = 2; break;
+			case "silver": attribute_map_value_boost = 3; break;
+			case "gold": attribute_map_value_boost = 4; break;
+			case "platinum": attribute_map_value_boost = 5; break;
+			default: attribute_map_value_boost = 1; break;
+		}
+
 		for (var i=0; i<crate_seeds.length; i++) {
 			if (crate_seeds[i].type == "attribute") {
-				attribute_map[crate_seeds[i].value] *= 3;
+				var base_map_value = attribute_map[crate_seeds[i].value];
+				var boosted_map_value = Math.floor(base_map_value * attribute_map_value_boost);
+				attribute_map[crate_seeds[i].value] = boosted_map_value;
 			}
 		}
 
@@ -383,7 +414,7 @@ generateItemFromArtworkIDRevised = function(item_generator, callback) {
     else return undefined;
 }
 
-var getCrateSeeds = function() {
+var getCrateSeeds = function(crate_quality) {
 	var crate_seed_array = [];
 	var attributes_added = [];
 	var rarities_added = [];
@@ -400,17 +431,60 @@ var getCrateSeeds = function() {
 	}
 
 	var add_seed = true;
+	var seed_proc;
+
+	switch(crate_quality) {
+		case "bronze": seed_proc = .2; break;
+		case "silver": seed_proc = .4; break;
+		case "gold": seed_proc = .6; break;
+		case "platinum": seed_proc = .8; break;
+		default: seed_proc = 0; break;
+	}
 
 	while(add_seed) {
 		var seed_type_roll = JepLoot.catRoll(seed_map);
 
 		switch(seed_type_roll) {
 			case "rarity": 
-				var rarity_selection_map = {
-					'rare': 10,
-					'legendary': 3,
-					'masterpiece': 1
-				};
+				var rarity_selection_map;
+
+				switch(crate_quality) {
+					case "bronze": 
+						rarity_selection_map = {
+							'rare': 25,
+							'legendary': 5,
+							'masterpiece': 1
+						};
+						break;
+					case "silver": 
+						rarity_selection_map = {
+							'rare': 16,
+							'legendary': 4,
+							'masterpiece': 1
+						};
+						break;
+					case "gold": 
+						rarity_selection_map = {
+							'rare': 9,
+							'legendary': 3,
+							'masterpiece': 1
+						};
+						break;
+					case "platinum": 
+						rarity_selection_map = {
+							'rare': 4,
+							'legendary': 2,
+							'masterpiece': 1
+						};
+						break;
+					default: 
+						rarity_selection_map = {
+							'rare': 25,
+							'legendary': 5,
+							'masterpiece': 1
+						};
+						break;
+				}
 
 				for (var i=2; i<artwork_rarities.length; i++) {
 					if (rarities_added.indexOf(artwork_rarities[i]) != -1) {
@@ -455,7 +529,7 @@ var getCrateSeeds = function() {
 			default: break;
 		}
 
-		add_seed = Math.random() < .6 && crate_seed_array.length < 4;
+		add_seed = Math.random() < seed_proc && crate_seed_array.length < 4;
 	}
 
 	return crate_seed_array;
@@ -470,8 +544,28 @@ refreshCrates = function() {
 }
 
 createCrate = function() {
-	var crate_seeds = getCrateSeeds();
 	var level_requirement = 0;
+	var crate_quality_map = {
+		'bronze': 4,
+		'silver': 3,
+		'gold': 2,
+		'platinum': 1 
+	}
+
+	var crate_quality_roll = JepLoot.catRoll(crate_quality_map);
+
+	var crate_seeds = getCrateSeeds(crate_quality_roll);
+
+	var base_crate_duration = ONE_HOUR * 6;
+	var crate_duration;
+
+	switch(crate_quality_roll) {
+		case 'bronze': crate_duration = base_crate_duration * 1; break;
+		case 'silver': crate_duration = base_crate_duration * 2; break;
+		case 'gold': crate_duration = base_crate_duration * 3; break;
+		case 'platinum': crate_duration = base_crate_duration * 4; break;
+		default: crate_duration = base_crate_duration; break;
+	}
 
 	for (var i=0; i<crate_seeds.length; i++) {
 		var seed_object = crate_seeds[i];
@@ -481,6 +575,7 @@ createCrate = function() {
 				case "rare": level_requirement = Math.max(level_requirement, 20); break;
 				case "legendary": level_requirement = Math.max(level_requirement, 30); break;
 				case "masterpiece": level_requirement = Math.max(level_requirement, 40); break;
+				default: level_requirement = 0; break;
 			}
 		}
 
@@ -489,7 +584,7 @@ createCrate = function() {
 		}
 	}
 
-	crates.insert({'owner_id': undefined, 'type': "public", 'seeds': crate_seeds, 'item_count': 6, 'level_requirement': level_requirement});
+	crates.insert({'owner_id': undefined, 'type': "public", 'quality': crate_quality_roll, 'seeds': crate_seeds, 'item_count': 6, 'level_requirement': level_requirement, 'expiration': moment().add(crate_duration, 'milliseconds')._d.toISOString()});
 }
 
 Meteor.methods({

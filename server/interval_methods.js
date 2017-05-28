@@ -374,5 +374,13 @@ Meteor.setInterval((function() {
 
 
 Meteor.setInterval((function() {
-    refreshCrates();
-}), DYNAMIC_CRATE_REFRESH_FREQUENCY)
+    crates.find({$or: [{'expiration': {$lt: getNowISOString()}}, {'expiration': null}]}).forEach(function(crate_object) {
+        crates.remove({'_id': crate_object._id});
+        createCrate();
+    })
+
+    var current_dynamic_crate_count = crates.find().count();
+    for (var i=0; i<DYNAMIC_CRATE_COUNT - current_dynamic_crate_count; i++) {
+        createCrate();
+    }
+}), DYNAMIC_CRATE_CHECK_FREQUENCY)

@@ -54,8 +54,12 @@ var updateContent = function() {
         });
     }
 
+    var current_dynamic_crate_count = crates.find().count();
+    for (var i=0; i<DYNAMIC_CRATE_COUNT - current_dynamic_crate_count; i++) {
+        createCrate();
+    }
+
     // temp code
-    Meteor.users.update({'profile.favorite_galleries': null}, {$set: {'profile.favorite_galleries': []}}, {multi: true});
     // temp code
 }
 
