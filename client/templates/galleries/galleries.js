@@ -1,6 +1,20 @@
 var ticket_holder_tracker = new Tracker.Dependency;
 var entry_fee_tracker = new Tracker.Dependency;
+var gallery_avatars_tracker = new Tracker.Dependency;
 var entry_fees = {};
+var gallery_avatars = {};
+
+var getGalleryAvatar = function(owner_id) {
+	Meteor.call('getGalleryAvatar', owner_id, function(error, result) {
+		if (error)
+			console.log(error)
+
+		else {
+			gallery_avatars[owner_id] = result;
+			gallery_avatars_tracker.changed();
+		}
+	});
+}
 
 var getEntryFee = function(owner_id) {
 	Meteor.call('getEntryFee', owner_id, function(error, result) {
@@ -75,8 +89,13 @@ Template.galleryCard.helpers({
 		return gallery_tickets.find({'ticketholder': Meteor.userId()}).count() < Meteor.user().profile.ticket_cap;
 	},
 
-	'avatar_image': function(gallery_id) {
-		return "avatar.jpg";
+	'avatar_image': function(owner_id) {
+		gallery_avatars_tracker.depend();
+		if (gallery_avatars[owner_id] == undefined) {
+			getGalleryAvatar(owner_id);
+		}
+
+		return gallery_avatars[owner_id];
 	}
 })
 
@@ -197,6 +216,7 @@ Template.galleryHeaderTemplate.events({
 
 Template.galleries.rendered = function() {
 	entry_fees = {};
+	gallery_avatars = {};
 	Session.set('galleries_ascending', true);
 	Session.set('galleries_sort', "profile.screen_name");
 
