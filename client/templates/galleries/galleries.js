@@ -30,7 +30,7 @@ var getEntryFee = function(owner_id) {
 
 Template.galleries.helpers({
 	'gallery': function() {
-		return galleries.find({'score': {$gt: 0}});
+		return galleries.find({'score': {$gt: 0}}, {sort: {'score': -1}});
 	}
 })
 
