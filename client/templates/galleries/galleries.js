@@ -69,6 +69,14 @@ Template.galleryCard.helpers({
 
 	'currentTicketHolders' : function(owner_id) {
 		return gallery_tickets.find({'gallery_owner': owner_id}).count();
+	},
+
+	'canPurchaseTicket': function() {
+		return gallery_tickets.find({'ticketholder': Meteor.userId()}).count() < Meteor.user().profile.ticket_cap;
+	},
+
+	'avatar_image': function(gallery_id) {
+		return "avatar.jpg";
 	}
 })
 

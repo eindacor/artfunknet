@@ -18,8 +18,9 @@
 	<div class="row gallery-container template-galleryCard">
 		<div class="col-xs-12 gallery-card">
 			{{#with galleryInfo this}}
-			<div class="row gallery-card-contents">
-				<div class="col-xs-1 avatar-section">
+			<div class="row gallery-card-contents no-padding no-margin">
+				<div class="col-xs-1 avatar-section no-padding no-margin">
+					<img class="avatar-image" src="/img/{{avatar_image _id}}"/>
 				</div>
 				<div class="col-xs-8 gallery-data">
 					<div class="row profile-data">
@@ -54,17 +55,23 @@
 						<i data-owner="{{owner}}" class="can-enter enter-button fa fa-sign-in"></i>
 					</div>
 					{{else}}
-					<div class="row entry-fee">
-						<p>${{entryFee price_tier owner_id}}</p>
-					</div>
-					<div class="row purchase-options">
-						<div class="col-xs-6 purchase-ticket">
-							<i data-owner="{{owner}}" class="can-enter purchase-button fa fa-ticket af-color"></i>
+						{{#if canPurchaseTicket}}
+						<div class="row entry-fee">
+							<p>${{entryFee price_tier owner_id}}</p>
 						</div>
-						<div class="col-xs-6 purchase-ticket-and-enter">
-							<i data-owner="{{owner}}" class="can-enter purchase-and-enter-button fa fa-sign-in af-color"></i>
+						<div class="row purchase-options">
+							<div class="col-xs-6 purchase-ticket">
+								<i data-owner="{{owner}}" class="can-enter purchase-button fa fa-ticket af-color"></i>
+							</div>
+							<div class="col-xs-6 purchase-ticket-and-enter">
+								<i data-owner="{{owner}}" class="can-enter purchase-and-enter-button fa fa-sign-in af-color"></i>
+							</div>
 						</div>
-					</div>
+						{{else}}
+						<div class="row">
+							<p class="ticket-limit">limit reached</p>
+						</div>
+						{{/if}}
 					{{/if}}
 				</div>
 				<div class="col-xs-1 favorite-section">
