@@ -63,7 +63,10 @@ Template.galleries.events({
 			if (error)
 				console.log(error);
 
-			else can_buy_all_favorites_tracker.changed();
+			else {
+				can_buy_all_favorites = undefined;
+				can_buy_all_favorites_tracker.changed();
+			}
 		})
 	}
 })
@@ -161,6 +164,11 @@ Template.galleryCard.events({
 		Meteor.call('purchaseTicket', gallery_id, function(result, error) {
 			if (error)
 				console.log(error.message);
+
+			else {
+				can_buy_all_favorites = undefined;
+				can_buy_all_favorites_tracker.changed();
+			}
 		})
 	},
 
