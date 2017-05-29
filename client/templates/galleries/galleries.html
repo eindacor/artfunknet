@@ -1,8 +1,16 @@
 <template name="galleries">
 	<div class="template-galleries">
 		<div class="container">
-			<h1 class="af-color">Galleries</h1>
-			<!-- {{>galleryTable}} -->
+			<div class="row">
+				<div class="col-xs-10">
+					<h1 class="af-color">Galleries</h1>
+				</div>
+				<div class="col-xs-2">
+					{{#if canBuyAllFavorites}}
+						<button id="buy-all-favorites-button"><i class="fa fa-ticket"></i><i class="fa fa-star"></i></button>	
+					{{/if}}
+				</div>
+			</div>
 			<div class="row gallery-list">
 				<div class="col-xs-12">
 					{{#each gallery}}
@@ -52,7 +60,7 @@
 				<div class="col-xs-2 entry-data">
 					{{#if paid}}
 					<div class="row enter-gallery">
-						<i data-owner="{{owner}}" class="can-enter enter-button fa fa-sign-in"></i>
+						<i data-owner_screen_name="{{owner}}" class="can-enter enter-button fa fa-sign-in"></i>
 					</div>
 					{{else}}
 						{{#if canPurchaseTicket}}
@@ -61,10 +69,10 @@
 						</div>
 						<div class="row purchase-options">
 							<div class="col-xs-6 purchase-ticket">
-								<i data-owner="{{owner}}" class="can-enter purchase-button fa fa-ticket af-color"></i>
+								<i data-gallery_id="{{_id}}" class="can-enter purchase-button fa fa-ticket af-color"></i>
 							</div>
 							<div class="col-xs-6 purchase-ticket-and-enter">
-								<i data-owner="{{owner}}" class="can-enter purchase-and-enter-button fa fa-sign-in af-color"></i>
+								<i data-gallery_id="{{_id}}" data-owner_screen_name="{{owner}}" class="can-enter purchase-and-enter-button fa fa-sign-in af-color"></i>
 							</div>
 						</div>
 						{{else}}
@@ -76,7 +84,9 @@
 				</div>
 				<div class="col-xs-1 favorite-section">
 					<div class="row">
-						<i data-gallery_id="{{_id}}" class="favorite-button fa {{#if favorite _id}}fa-star gold-text{{else}}fa-star-o{{/if}}"></i>
+						{{#if playerIsNotOwner owner_id}}
+							<i data-gallery_id="{{_id}}" class="favorite-button fa {{#if favorite _id}}fa-star gold-text{{else}}fa-star-o{{/if}}"></i>
+						{{/if}}
 					</div>
 					<div class="row">
 						{{#if currentTicketHolders owner_id}}
@@ -88,47 +98,4 @@
 			{{/with}}
 		</div>
 	</div>
-</template>
-
-<template name="galleryTable">
-	<div class="template-galleryTable">
-		{{#with galleryData}}
-		<div class="col-xs-12 no-padding">
-			<table class="gallery-table" data-table_id="{{table_data.table_id}}">
-				<tr>
-				{{#each header table_data}}
-					{{> galleryHeaderTemplate this}}
-				{{/each}}
-				</tr>
-				{{#each table_data.gallery}}
-					{{#with galleryInfo this}}
-					<tr class="gallery-row {{#if paid}}paid{{else}}af-color{{/if}}" data-owner="{{owner}}">
-						<td>{{owner}}</td>
-						<td>
-						{{#each attribute}}
-							<i data-attribute_description="{{description}}" data-attribute_value="{{value}}" data-attribute_id="{{_id}}" style="color: rgb({{getRatingColor value}}, 0, 0)" class="gallery-attribute fa {{icon}}"></i> {{proc}}%
-						{{/each}}
-						</td>
-						<td>${{entryFee price_tier owner_id}}</td>
-						<td>{{currentTicketHolders owner_id}}</td>
-					</tr>
-					{{/with}}
-				{{/each}}
-			</table>
-		</div>
-		{{/with}}
-	</div>
-</template>
-
-<template name="galleryHeaderTemplate">
-	<th class="table-header" data-sort="{{sort_id}}" data-table_id="{{table_id}}">
-		<div class="row no-margin">
-			<div class="col-xs-8">
-				<p>{{text}}</p>
-			</div>
-			<div class="col-xs-4">
-				{{#with sorted this}}{{#if sort}}{{#if ascending}}<i class="fa fa-caret-up"></i>{{else}}<i class="fa fa-caret-down"></i>{{/if}}{{else}} {{/if}}{{/with}}
-			</div>
-		</div>
-	</th>
 </template>

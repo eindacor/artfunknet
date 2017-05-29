@@ -362,7 +362,7 @@ var purchaseExpansionSlot = function(user_object) {
     else return false;
 }
 
-getEntryFee = function(buyer_object, owner_id) {
+getEntryFee = function(owner_id) {
     owner_object = Meteor.users.findOne(owner_id);
     if (owner_object) {
         switch(owner_object.profile.entry_fee) {
@@ -589,49 +589,9 @@ Meteor.methods({
         else return null;
     },
 
-    'purchaseTicket' : function(owner_screen_name) {
-        if (!canPurchaseTicket())
-            return false;
-
-        var owner_object = Meteor.users.findOne({'profile.screen_name': owner_screen_name});
-
-        if (owner_object == undefined)
-            return false;
-
-        var owner_id = owner_object._id;
-
-        var buyer_id = Meteor.userId();
-        var ticket_duration = 30; // minutes
-        var ticket_expiration = moment().add(ticket_duration, 'minutes')._d.toISOString();
-        
-        var entry_fee = owner_object.profile.entry_fee;
-
-        var buyer_object = Meteor.users.findOne(buyer_id);
-
-        var actual_amount = getEntryFee(buyer_object, owner_object);
-
-        if (actual_amount > buyer_object.profile.bank_balance
-            || buyer_id === owner_id 
-            || gallery_tickets.findOne({"ticketholder":buyer_id, "gallery_owner":owner_id, 'expiration': {$gt : getNowISOString()}}) !== undefined)
-            return;
-
-        var ticket_object = {
-            'ticketholder': buyer_id,
-            'gallery_owner': owner_id,
-            'expiration': ticket_expiration
-        };
-
-        var new_id = gallery_tickets.insert(ticket_object);
-
-        addFunds("ticket sale", owner_id, actual_amount);
-        addXPChunkPercentage("gallery ticket purchased", owner_id, .02);
-        chargeAccount(buyer_id, actual_amount);
-
-        items.find({'owner': owner_id, 'status': {$in: ['displayed', 'permanent']}}).forEach(function(item_object) {
-            var player_item_interface = new PlayerItemIF(buyer_id, item_object);
-            player_item_interface.addToChecklist('seen');
-        })
-
+    'purchaseTicket' : function(gallery_id) {
+        var player_interface = new PlayerIF(Meteor.userId());
+        return player_interface.purchaseTicket(gallery_id);
     },
 
     'updateEntryFee' : function(value) {
@@ -1281,5 +1241,15 @@ Meteor.methods({
         var image_name = filename.substring(0, filename.indexOf("."));
     
         return "https://s3.amazonaws.com/com.artfunkel.artwork/avatars/" + image_name + "_avatar.jpg";
+     },
+
+     'getCanBuyAllFavorites': function() {
+        var player_interface = new PlayerIF(Meteor.userId());
+        return player_interface.canBuyAllFavorites();
+     },
+
+     'buyAllFavorites': function() {
+        var player_interface = new PlayerIF(Meteor.userId());
+        return player_interface.buyAllFavorites();
      }
 })

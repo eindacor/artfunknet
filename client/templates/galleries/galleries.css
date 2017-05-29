@@ -112,3 +112,22 @@
 .template-galleryCard .entry-data, .template-galleryCard .favorite-section {
 	padding-top: 6px;
 }
+
+.template-galleries #buy-all-favorites-button {
+	color: white;
+	font-size: 1.8rem;
+	cursor: pointer;
+	background-color: #ffcc00;
+	margin-top: 20px;
+	width: 60px;
+	padding: 0px;
+	opacity: .6;
+}
+
+.template-galleries #buy-all-favorites-button > i {
+	padding: 6px;
+}
+
+.template-galleries #buy-all-favorites-button:hover {
+	opacity: 1;
+}

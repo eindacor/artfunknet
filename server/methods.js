@@ -155,7 +155,7 @@ Meteor.methods({
     },
 
     'getEntryFee' : function(gallery_owner_id) {
-        return getEntryFee(Meteor.user(), gallery_owner_id);
+        return getEntryFee(gallery_owner_id);
     },
 
     'canTurnInQuest': function(quest_id) {

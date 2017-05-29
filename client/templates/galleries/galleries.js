@@ -1,8 +1,10 @@
 var ticket_holder_tracker = new Tracker.Dependency;
 var entry_fee_tracker = new Tracker.Dependency;
 var gallery_avatars_tracker = new Tracker.Dependency;
+var can_buy_all_favorites_tracker = new Tracker.Dependency;
 var entry_fees = {};
 var gallery_avatars = {};
+var can_buy_all_favorites = undefined;
 
 var getGalleryAvatar = function(owner_id) {
 	Meteor.call('getGalleryAvatar', owner_id, function(error, result) {
@@ -28,9 +30,41 @@ var getEntryFee = function(owner_id) {
 	})
 }
 
+var getCanBuyAllFavorites = function() {
+	Meteor.call('getCanBuyAllFavorites', function(error, result) {
+		if (error)
+			console.log(error);
+
+		else {
+			can_buy_all_favorites = result;
+			can_buy_all_favorites_tracker.changed();
+		}
+	})
+}
+
 Template.galleries.helpers({
 	'gallery': function() {
 		return galleries.find({'score': {$gt: 0}}, {sort: {'score': -1}});
+	},
+
+	'canBuyAllFavorites': function() {
+		can_buy_all_favorites_tracker.depend();
+		if (can_buy_all_favorites == undefined) {
+			getCanBuyAllFavorites();
+		}
+
+		return can_buy_all_favorites;
+	}
+})
+
+Template.galleries.events({
+	'click #buy-all-favorites-button': function() {
+		Meteor.call('buyAllFavorites', function(error, result) {
+			if (error)
+				console.log(error);
+
+			else can_buy_all_favorites_tracker.changed();
+		})
 	}
 })
 
@@ -96,31 +130,35 @@ Template.galleryCard.helpers({
 		}
 
 		return gallery_avatars[owner_id];
+	},
+
+	'playerIsNotOwner': function(owner_id) {
+		return owner_id != Meteor.userId();
 	}
 })
 
 Template.galleryCard.events({
 	'click .can-enter.enter-button' : function(element) {
-		console.log(element);
-		var owner = $(element.target).data().owner;
-		Router.go('/user/' + owner);	
+		var owner_screen_name = $(element.target).data().owner_screen_name;
+		Router.go('/user/' + owner_screen_name);	
 	},
 
 	'click .can-enter.purchase-and-enter-button' : function(element) {
-		var owner = $(element.target).data().owner;
-		Meteor.call('purchaseTicket', owner, function(result, error) {
+		var gallery_id = $(element.target).data().gallery_id;
+		var owner_screen_name = $(element.target).data().owner_screen_name;
+		Meteor.call('purchaseTicket', gallery_id, function(result, error) {
 			if (error)
 				console.log(error.message);
 
 			else {
-				Router.go('/user/' + owner);
+				Router.go('/user/' + owner_screen_name);
 			}
 		})
 	},
 
 	'click .can-enter.purchase-button' : function(element) {
-		var owner = $(element.target).data().owner;
-		Meteor.call('purchaseTicket', owner, function(result, error) {
+		var gallery_id = $(element.target).data().gallery_id;
+		Meteor.call('purchaseTicket', gallery_id, function(result, error) {
 			if (error)
 				console.log(error.message);
 		})
@@ -131,92 +169,19 @@ Template.galleryCard.events({
 		Meteor.call('toggleFavoriteGallery', gallery_id, function(result, error) {
 			if (error)
 				console.log(error.message);
-		})
-	}
-})
 
-Template.galleryTable.helpers({
-	'header' : function(table_data) {
-		var header_array = [
-			{ 'text' : 'owner', 'sort_id' : 'owner', 'table_id' : table_data.table_id  },
-			{ 'text' : 'attributes', 'sort_id' : undefined, 'table_id' : table_data.table_id  },
-			{ 'text' : 'entry fee', 'sort_id' : 'entry_fee', 'table_id' : table_data.table_id  },
-			{ 'text' : 'ticket-holders', 'sort_id' : undefined, 'table_id' : table_data.table_id  },
-		];
-
-		return header_array;
-	},
-
-	'gallery': function() {
-		return galleries.find();
-	},
-
-	'galleryData' : function() {
-		var table_id = "galleries";
-
-		var sort_query = {};
-
-		if (Session.get(table_id + '_sort')) {
-			var asc = (Session.get(table_id + '_ascending') ? 1 : -1);
-		    sort_query[Session.get(table_id + '_sort')] = asc;
-		}
-
-		var gallery_array = galleries.find( {'score': {$ne : 0}}, { sort: sort_query } ).fetch();
-		
-		return {
-			'table_data' : {
-				'gallery' : gallery_array,
-				'table_id' : table_id,
+			else {
+				can_buy_all_favorites = undefined;
+				can_buy_all_favorites_tracker.changed();
 			}
-		}
-	},
-
-	'currentTicketHolders' : function(owner_id) {
-		return getCommaSeparatedValue(gallery_tickets.find({'gallery_owner': owner_id}).count());
-	}
-});
-
-Template.galleryTable.events({
-	'mouseover .gallery-attribute' : function(element) {
-		var attribute_id = element.target.dataset.attribute_id;
-		var value = Math.floor(Number(element.target.dataset.attribute_value) * 100);
-		var description = element.target.dataset.attribute_description;
-		var hover_string = "level " + value + " " + description;
-		setFootnote(hover_string, 4);
-	},
-
-	'click .gallery-row' : function(element) {
-		var owner = $(element.target).closest('.gallery-row').data().owner;
-		Router.go('/user/' + owner);	
-	}
-})
-
-Template.galleryHeaderTemplate.helpers({
-	'sorted' : function() {
-		var table_id = this.table_id;
-		return {
-			'sort' : Session.get(table_id + '_sort') == this.sort_id,
-			'ascending' : Session.get(table_id + '_ascending')
-		}
-	}
-})
-
-Template.galleryHeaderTemplate.events({
-	'click th': function(element) {
-		var sort = $(element.target).closest('.table-header').data('sort');
-		var table_id = $(element.target).closest('.gallery-table').data('table_id');
-
-		if (sort && Session.get(table_id + '_sort')) {
-			var ascending = (Session.get(table_id + '_sort') != sort ? true : !Session.get(table_id + '_ascending'));
-			Session.set(table_id + '_ascending', ascending);
-			Session.set(table_id + '_sort', sort);
-		}
+		})
 	}
 })
 
 Template.galleries.rendered = function() {
 	entry_fees = {};
 	gallery_avatars = {};
+	can_buy_all_favorites = undefined
 	Session.set('galleries_ascending', true);
 	Session.set('galleries_sort', "profile.screen_name");
 
