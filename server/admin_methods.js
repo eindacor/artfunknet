@@ -63,6 +63,7 @@ Meteor.methods({
                 'status': "for_sale",
                 'foil_chance': loot_data.global_foil_chance,
                 'unlocked_chance': loot_data.global_unlocked_chance,
+                'auraless_chance': loot_data.global_auraless_chance,
                 'misprint_chance': loot_data.global_misprint_chance,
                 'condition_min': 0,
                 'level': 1
@@ -129,6 +130,7 @@ Meteor.methods({
                     'level': 1,
                     'foil_chance': loot_data.global_foil_chance,
                     'unlocked_chance': loot_data.global_unlocked_chance,
+                    'auraless_chance': loot_data.global_auraless_chance,
                     'seasonal': undefined,
                     'lottery': 0,
                     'original': false,
@@ -152,6 +154,7 @@ Meteor.methods({
                     'level': 1,
                     'foil_chance': loot_data.global_foil_chance,
                     'unlocked_chance': loot_data.global_unlocked_chance,
+                    'auraless_chance': loot_data.global_auraless_chance,
                     'seasonal': undefined,
                     'lottery': 0,
                     'original': false,

@@ -410,6 +410,13 @@ Template.adminTools.events({
 
     	else unlocked_chance = unlocked_selection == "true" ? 1 : 0;
 
+    	var auraless_chance;
+    	var auraless_selection = $('input:radio[name=auraless_selector]:checked').val();
+    	if (auraless_selection == "random")
+    		auraless_chance = loot_data.global_auraless_chance;
+
+    	else auraless_chance = auraless_selection == "true" ? 1 : 0;
+
     	var seasonal;
     	var seasonal_selection = $('input:radio[name=seasonal_selector]:checked').val();
     	if (seasonal_selection == "season")
@@ -436,6 +443,7 @@ Template.adminTools.events({
             'level': level,
             'foil_chance': foil_chance,
             'unlocked_chance': unlocked_chance,
+            'auraless_chance': auraless_chance,
             'seasonal': seasonal,
             'lottery': lottery,
             'original': original,
