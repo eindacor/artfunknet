@@ -557,6 +557,9 @@ createCrate = function() {
 	var crate_seeds = getCrateSeeds(crate_quality_roll);
 
 	var base_crate_duration = ONE_HOUR * 6;
+	if (DEBUG)
+		base_crate_duration = ONE_MINUTE;
+	
 	var crate_duration;
 
 	switch(crate_quality_roll) {
