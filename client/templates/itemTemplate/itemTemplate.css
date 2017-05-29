@@ -197,6 +197,10 @@
 	box-shadow: 0px 0px 6px 2px green; 
 }
 
+.template-itemInfo .auraless {
+	box-shadow: 3px 3px 0px rgba(0, 0, 0, .2);
+}
+
 .template-itemInfo .card-info {
 	position: relative;
 	width: 100%;

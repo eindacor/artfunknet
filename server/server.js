@@ -60,6 +60,7 @@ var updateContent = function() {
     }
 
     // temp code
+    metadata.update({'loot_data': {$ne: null}}, {$set: {'loot_data.global_auraless_chance': .5}});
     // temp code
 }
 

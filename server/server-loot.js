@@ -223,6 +223,7 @@ generateItems = function(multi_item_generator) {
             'level': multi_item_generator.level,
             'foil_chance': multi_item_generator.foil_chance,
             'unlocked_chance': multi_item_generator.unlocked_chance,
+            'auraless_chance': multi_item_generator.auraless_chance,
             'seasonal': undefined,
             'lottery': 0,
             'original': false,
@@ -273,10 +274,12 @@ generateItemFromArtworkID = function(item_generator, callback) {
         var misprint_chance = item_generator.misprint_chance === undefined ? loot_data.global_misprint_chance : item_generator.misprint_chance;
         var foil_chance = item_generator.foil_chance === undefined ? loot_data.global_foil_chance : item_generator.foil_chance;
         var unlocked_chance = item_generator.unlocked_chance === undefined ? loot_data.global_unlocked_chance : item_generator.unlocked_chance;
+        var auraless_chance = item_generator.auraless_chance === undefined ? loot_data.global_auraless_chance : item_generator.auraless_chance;
 
         var misprint = Math.random() < misprint_chance;
         var foil = Math.random() < foil_chance;
         var unlocked = artwork_data.rarity != "common" && Math.random() < unlocked_chance;
+        var auraless = Math.random() < auraless_chance;
 
         if (misprint)
             artwork_data = misprintArtworkData(artwork_data);      
@@ -294,6 +297,7 @@ generateItemFromArtworkID = function(item_generator, callback) {
             'level' : item_generator.level === undefined ? 1 : item_generator.level,
             'roll_count' : 0,
             'foil': foil,
+            'auraless': auraless,
             'seasonal': item_generator.seasonal === undefined ? loot_data.seasonal_items.indexOf(item_generator.artwork_id) != -1 : item_generator.seasonal,
             'lottery': item_generator.lottery === undefined ? 0 : item_generator.lottery,
             'original': item_generator.original === undefined ? false : item_generator.original,

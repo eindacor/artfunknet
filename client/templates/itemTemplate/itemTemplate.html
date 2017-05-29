@@ -1,6 +1,6 @@
 <template name="itemInfo">
 	<div class="template-itemInfo">
-		<div data-item_id="{{item_data._id}}" class="card-container {{item_data.artwork_data.rarity}}-item" style="background: url('{{getCardImageURL item_data.artwork_data.filename}}') center; background-size: 280px 390px">
+		<div data-item_id="{{item_data._id}}" class="card-container {{#if item_data.auraless}}auraless{{else}}{{item_data.artwork_data.rarity}}-item{{/if}}" style="background: url('{{getCardImageURL item_data.artwork_data.filename}}') center; background-size: 280px 390px">
 			<div class="status-mask {{#if displayedStatus item_data._id}}{{else}}hide{{/if}}">
 				<div class="mask-info-container">
 					<p><i class="fa fa-picture-o"></i></p>
