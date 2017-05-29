@@ -18,8 +18,10 @@
 					<i class="attribute-icon fa {{attribute_icon value}}"></i>
 				{{/if}}
 				{{/each}}
+				<p class="{{quality}} highlight">limited {{quality}} crate</p>
 				<p class="crate-cost-section">{{displayAsMoneyValue cost}} ({{dynamic_remaining _id}} remaining)</p>
 				<p class="crate-cost-section">required level: {{level_requirement}}</p>
+				<p class="highlight">{{crate_time_left expiration}}</p>
 			</div>
 			{{/each}}
 		</div>

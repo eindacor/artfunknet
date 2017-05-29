@@ -245,3 +245,7 @@
 .template-store .crate-info.disabled {
 	opacity: .2;
 }
+
+.template-store .crate-info > p {
+	margin-bottom: 0px;
+}

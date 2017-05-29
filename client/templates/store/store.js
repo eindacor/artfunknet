@@ -144,6 +144,11 @@ Template.store.helpers({
 		}
 
 		return crate_item_types;
+	},
+
+	'crate_time_left': function(crate_expiration) {
+		var remaining = moment(crate_expiration) - moment(Session.get('now'));
+		return getCountdownString(remaining);
 	}
 })
 
@@ -255,4 +260,8 @@ Template.store.rendered = function() {
 	getDynamicCrates();
 	getCrates();
 	getExpansionSlotCost();
+
+	this.handle = Meteor.setInterval((function() {
+		Session.set('now', moment().toISOString());
+	}), 1000);
 }
