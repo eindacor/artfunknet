@@ -1091,6 +1091,10 @@ Meteor.methods({
             );
 
             items.find({'owner': Meteor.userId(), 'vintage': {$ne: true}, 'original': {$ne: true}}).forEach(function(item_object) {
+                if (itemIsMisprinted(item_object)) {
+                    return;
+                }
+
                 updateItem(
                     item_object._id,                //selector
                     {                               //modifier 
