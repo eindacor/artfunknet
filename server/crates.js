@@ -123,6 +123,9 @@ PlayerCrateIF = function(user_id, crate_id) {
 
 				var base_rarity_map_value = loot_map[crate_seeds[i].value];
 				var boosted_rarity_map_value = Math.floor(base_rarity_map_value * rarity_boost_rate * boost_rate_multiplier);
+				var map_delta = boosted_rarity_map_value - base_rarity_map_value;
+				// remove delta from common drop chance to ensure higher-tier drop rates stay the same
+				loot_map.common -= map_delta;
 
 				loot_map[crate_seeds[i].value] = boosted_rarity_map_value;
 			}
@@ -216,7 +219,8 @@ PlayerCrateIF = function(user_id, crate_id) {
 		    }
 	    }
 
-	    // this.printCrate();
+	    if (DEBUG)
+	    	this.printCrate();
 	}
 }
 
