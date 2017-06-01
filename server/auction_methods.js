@@ -248,7 +248,7 @@ Meteor.setInterval((function() {
         }
 
         var actual_value = getItemObjectValueByType(item_object, 'actual', undefined);
-        if (auction_object.current_bid >= actual_value * 8 || actual_value == undefined)
+        if (auction_object.current_bid >= actual_value * 3 || actual_value == undefined)
             return;
 
         var actual_proc_chance = proc_chance;
