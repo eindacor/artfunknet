@@ -1,4 +1,4 @@
-benefactorInteraction = function(npc_object) {
+benefactorInteraction = function(npc_object, player_interface) {
 	var max_donation = getAverageDropValue(Meteor.user().profile.level, 0) * 6;
 	
 	var donation_amount;
@@ -37,6 +37,6 @@ benefactorInteraction = function(npc_object) {
 
 	var message = "You have met a benefactor who would like to make a donation. You have recieved $" + getCommaSeparatedValue(money_won) + "!";
 
-	addFunds("benefactor", Meteor.userId(), money_won);
+	player_interface.addFunds("benefactor", money_won);
 	// return {'message': message}
 }

@@ -102,7 +102,7 @@ var generateQuest = function(rarity, is_own_gallery) {
 
 }
 
-historianInteraction = function(npc_object) {
+historianInteraction = function(npc_object, player_interface) {
 	try {
 
 		if (!canAcceptQuest(npc_object)) {

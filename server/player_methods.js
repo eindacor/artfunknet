@@ -163,36 +163,6 @@ alertPlayers = function(query, message, icon, sentiment) {
     });
 }
 
-addFunds = function(source, user_id, amount) {
-    if (isNaN(amount))
-        throw "invalid amount";
-
-    var actual_amount = Number(amount).toFixed(2);
-
-    logMoneyMade(source, actual_amount);
-
-    var current_balance = Number(Meteor.users.findOne({'_id': user_id}).profile.bank_balance).toFixed(2);
-    var new_balance = Number(current_balance) + Number(actual_amount);
-    Meteor.users.update(user_id, {$set: {"profile.bank_balance" : Math.floor(new_balance)}});
-    if (Meteor.users.findOne(user_id).profile.settings.animations_enabled) {
-        Meteor.users.update(user_id, {$push: {'profile.notifications.money': {'id': new Meteor.Collection.ObjectID()._str, 'expiration': moment().add(5, "seconds")._d.toISOString(), 'amount': amount}}});
-    }
-}
-
-chargeAccount = function(user_id, amount) {
-    if (isNaN(amount))
-        throw "invalid amount";
-
-    var actual_amount = Number(amount).toFixed(2);
-
-    var current_balance = Number(Meteor.users.findOne({'_id': user_id}).profile.bank_balance).toFixed(2);
-    var new_balance = Number(current_balance) - Number(actual_amount);
-    Meteor.users.update(user_id, {$set: {"profile.bank_balance" : Math.floor(new_balance)}});
-    if (Meteor.users.findOne(user_id).profile.settings.animations_enabled) {
-        Meteor.users.update(user_id, {$push: {'profile.notifications.money': {'id': new Meteor.Collection.ObjectID()._str, 'expiration': moment().add(5, "seconds")._d.toISOString(), 'amount': -1 * amount}}});
-    }
-}
-
 selectRandomPainting = function(selector) {
     return items.findOne(selector, {skip: Math.floor(Math.random() * items.find(selector).count())});
 }
@@ -227,254 +197,6 @@ getCapSetterObject = function(player_level) {
 
 playerRatio = function(player_object) {
     return player_object.profile.level / PLAYER_LEVEL_MAX;
-}
-
-//TODO look into meteorhacks:aggregate package to simplify this and avoid for loops
-updateGalleryDetails = function(user_id) {
-    var user_object = Meteor.users.findOne(user_id);
-
-    if (user_object) {
-        var gallery_value = 0;
-        var earnings_per_hour = 0;
-        var xp_per_hour = 0;
-        var attribute_rating_total = 0;
-        var rarity_npc_coefficient_total = 0;
-        var attribute_totals = {};
-        var display_count = items.find({'owner' : user_id, 'status' : 'displayed'}).count();
-
-        var now = moment()._d.toISOString();
-        items.find({'owner' : user_id, 'status' : 'displayed'}).forEach(function(item_object) {
-            var player_item_interface = new PlayerItemIF(user_id, item_object._id);
-            gallery_value += player_item_interface.getValue('actual');
-            earnings_per_hour += player_item_interface.getDisplayValuePerHour(now);
-            xp_per_hour += player_item_interface.getXPPerHour(now, "displayed");
-            var item_attributes = getAllItemObjectAttributes(item_object);
-
-            var rarity_npc_coefficient;
-
-            switch(item_object.artwork_data.rarity) {
-                case "common": rarity_npc_coefficient = .84; break;
-                case "uncommon": rarity_npc_coefficient = .88; break;
-                case "rare": rarity_npc_coefficient = .92; break;
-                case "legendary": rarity_npc_coefficient = .96; break;
-                case "masterpiece": rarity_npc_coefficient = 1; break;
-                default: rarity_npc_coefficient = .5; break;
-            }
-
-            rarity_npc_coefficient_total += rarity_npc_coefficient;
-
-            for (var n=0; n < item_attributes.length; n++) {
-                var attribute_id = item_attributes[n]._id;
-                var attribute_value = item_attributes[n].value;
-                attribute_rating_total += item_attributes[n].value
-
-                if (attribute_totals[attribute_id] === undefined)
-                    attribute_totals[attribute_id] = attribute_value;
-
-                else attribute_totals[attribute_id] += attribute_value;
-            }
-        });
-
-        items.find({'owner' : user_id, 'status' : 'permanent'}).forEach(function(item_object) {
-            var player_item_interface = new PlayerItemIF(user_id, item_object._id);
-            xp_per_hour += player_item_interface.getXPPerHour(now, "permanent");
-        });
-
-        var gallery_score = Math.floor(attribute_rating_total * 100);
-        var gallery_rarity_npc_coefficient = display_count ? rarity_npc_coefficient_total / display_count : 0;
-
-        var player_level_coefficient_min = .9;
-        var player_level_coefficient_delta = 1 - player_level_coefficient_min;
-        var player_level_coefficient = player_level_coefficient_min + ((user_object.profile.level / PLAYER_LEVEL_MAX) * player_level_coefficient_delta);
-
-        var display_cap = user_object.profile.display_cap;
-        var attribute_ids = Object.keys(attribute_totals);
-        var attribute_values = {};
-        var procs = {};
-
-        var proc_boost = user_object.profile.marketing_manager_spawn_boost_expiration != undefined && user_object.profile.marketing_manager_spawn_boost_expiration > moment()._d.toISOString();
-
-        for (var i=0; i < attribute_ids.length; i++) {
-            var attribute_id = attribute_ids[i];
-            var attribute_rating = attribute_totals[attribute_id] / display_cap;
-            attribute_values[attribute_id] = attribute_rating;
-
-            var base_proc = attribute_rating * gallery_rarity_npc_coefficient * player_level_coefficient;
-
-            var squared_proc = Math.pow(base_proc, 2);
-            squared_proc *= BASE_NPC_PROC_MAX;
-
-            if (proc_boost) {
-                var proc_boost_value = user_object.profile.marketing_manager_spawn_boost_coefficient * MARKETING_PROC_BOOST;
-                squared_proc += proc_boost_value;
-            }
-
-            procs[attribute_id] = squared_proc.toFixed(2);
-        }
-
-        if (galleries.findOne({"owner_id" : user_id}) == undefined) {
-            galleries.insert({
-                'owner_id' : user_id,
-                'owner' : user_object.profile.screen_name,
-                'attribute_values' : attribute_values,
-                'procs': procs,
-                'entry_fee' : user_object.profile.entry_fee,
-                'score': gallery_score,
-                'value': gallery_value,
-                'gallery_rarity_npc_coefficient': gallery_rarity_npc_coefficient,
-                'earnings_per_hour': earnings_per_hour,
-                'xp_per_hour': xp_per_hour
-            });
-        }
-
-        else galleries.update({'owner_id' : user_id}, 
-            {$set: {
-                'attribute_values' : attribute_values, 
-                'procs': procs,
-                'score': gallery_score, 
-                'value': gallery_value,
-                'gallery_rarity_npc_coefficient': gallery_rarity_npc_coefficient,
-                'earnings_per_hour': earnings_per_hour,
-                'xp_per_hour': xp_per_hour
-            }
-        });
-    }
-}
- 
-var getExpansionSlotCost = function(user_object) {
-    if (user_object.profile.expansion_slots < getMaxExpansionSlots()) {
-        var cost = Math.floor(1000000 * Math.pow(1.2, user_object.profile.expansion_slots));
-        return cost;
-    }   
-
-    else return 0;
-}
-
-var purchaseExpansionSlot = function(user_object) {
-    if (user_object.profile.expansion_slots < getMaxExpansionSlots()) {
-        var cost = getExpansionSlotCost(user_object);
-        if (user_object.profile.bank_balance >= cost) {
-            chargeAccount(user_object._id, cost);
-            Meteor.users.update(user_object._id, {$inc: {'profile.expansion_slots': 1}});
-        }
-    }   
-
-    else return false;
-}
-
-getEntryFee = function(owner_id) {
-    owner_object = Meteor.users.findOne(owner_id);
-    if (owner_object) {
-        switch(owner_object.profile.entry_fee) {
-            case 'free': return 0;
-            case 'low': return 5;
-            case 'medium': return 50;
-            case 'high': return 500;
-            case 'outrageous': return 5000;
-            default: return 0;
-        }
-    }
-
-    else return 0;
-}
-
-resetTutorials = function(user_id) {
-    Meteor.users.update(user_id, {$set: {
-        'profile.tutorials': {
-            'welcome': true,
-            'loot': false,
-            'info': false,
-            'action_buttons': false,
-            'attributes': false,
-            'level': false,
-            'display': false,
-            'permanent': false,
-            'gallery': false,
-            'my_gallery': false,
-            'galleries': false,
-            'other_gallery': false,
-            'reroll_menu': false
-        }
-    }})
-}
-
-declineAllForSale = function(user_id) {
-    items.find({
-        'owner': Meteor.userId(),
-        'status': "for_sale", 
-    }).forEach(function(item_object) {
-        var player_item_interface = new PlayerItemIF(Meteor.userId(), item_object._id);
-        player_item_interface.quickDecline();
-    });
-}
-
-var getSellAllData= function(user_id) {
-    var total_value = 0;
-    var item_ids = [];
-
-    var user_object = Meteor.user();
-
-    //TODO add legendary procs for sell amounts here
-    items.find({
-        'owner': user_id,
-        'status': {$in: ["unclaimed", "won"]}, 
-    }).forEach(function(item_object) {
-        var permissions = getPlayerItemPermissions(Meteor.userId(), item_object._id);
-        if (permissions.canQuickDiscard()) {
-            total_value += getItemObjectValueByType(item_object, "sell", user_id);
-            item_ids.push(item_object._id);
-        }
-    });
-
-    return {
-        'value': total_value,
-        'ids': item_ids
-    }
-}
-
-getMaxQuests = function(npc_object) {
-    if ((npc_object == undefined || isOwnGallery(npc_object)) && procUniqueAttribute(Meteor.userId(), "QUEST_CAP_BYPASS", undefined)) {
-        return 20;
-    } else {
-        return 8;
-    }
-}
-
-getActiveQuests = function() {
-    return quests.find({'owner_id': Meteor.userId()}).count();
-}
-
-canAcceptQuest = function(npc_object) {
-    return (getActiveQuests() < getMaxQuests(npc_object));
-}
-
-var increaseRandomAttribute = function(user_id, attribute_type) {
-    var selector = {'owner': user_id, 'status': 'displayed'};
-    var selector_string = "attributes." + attribute_type + ".value";
-    selector[selector_string] = {'$lt': .9};
-    var item_object = items.findOne(selector, {skip: Math.floor(items.find(selector).count() * Math.random())});
-
-    if (item_object) {
-        var qualifying_attributes = [];
-        for (var i=0; i<item_object.attributes.length; i++) {
-            if (item_object.attributes[i].value < .9)
-                qualifying_attributes.push(item_object.attributes[i]._id);
-        }
-        var random_index = Math.floor(Math.random() * qualifying_attributes.length);
-        var attribute_id = qualifying_attributes[random_index];
-        var update_selector = {'_id': item_object._id, 'status': 'displayed'};
-        var update_selector_string = "attributes." + attribute_type + "._id";
-        update_selector[update_selector_string] = attribute_id;
-        
-        var incrementer = {};
-        var incrementer_string = "attributes." + attribute_type + ".$.value";
-        incrementer[incrementer_string] = .02;
-
-        updateItem(update_selector, {$inc: incrementer_string});
-        return true;
-    }
-
-    else return false;
 }
 
 Meteor.methods({
@@ -640,15 +362,18 @@ Meteor.methods({
     },
 
     'getMaxQuests' : function(npc_object) {
-        return getMaxQuests(npc_object);
+        var player_interface = new PlayerIF(Meteor.userId());
+        return player_interface.getMaxQuests(npc_object);
     },
 
     'getActiveQuests' : function() {
-        return getActiveQuests();
+        var player_interface = new PlayerIF(Meteor.userId());
+        return player_interface.getActiveQuests();
     },
 
     'canAcceptQuest' : function(npc_object) {
-        return canAcceptQuest(npc_object)
+        var player_interface = new PlayerIF(Meteor.userId());
+        return player_interface.canAcceptQuest(npc_object)
     },
 
     'getSoughtStatus' : function(artwork_id, only_sought_if_not_in_auction_house) {
@@ -660,28 +385,18 @@ Meteor.methods({
     },
 
     'getSellAllAmount' : function() {
-        return getSellAllData(Meteor.userId()).value;
+        var player_interface = new PlayerIF(Meteor.userId());
+        return player_interface.getSellAllData().value;
     },
 
     'sellAllUnclaimed' : function() {
-        var sell_all_data = getSellAllData(Meteor.userId());
-
-        items.find({'_id': {$in: sell_all_data.ids}}).forEach(function(item_object) {
-            removeItem(item_object._id, "sell all", undefined);
-        });
-
-        addFunds("sell item", Meteor.userId(), sell_all_data.value);
+        var player_interface = new PlayerIF(Meteor.userId());
+        player_interface.sellAllUnclaimed();
     },
 
     'donateAllUnclaimed' : function() {
         var player_interface = new PlayerIF(Meteor.userId());
-        var discardable_ids = player_interface.getQuickDiscardableItemIds();
-
-        for (var i=0; i<discardable_ids.length; i++) {
-            var item_id = discardable_ids[i];
-            var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
-            player_item_interface.donate();
-        }
+        player_interface.donateAllUnclaimed();
     },
 
     'declineAllForSale' : function() {
@@ -689,25 +404,8 @@ Meteor.methods({
     },
 
     'displayAllTagged': function(tag_array, duration) {
-        var player_object = Meteor.user();
-        var tagged_items = items.find({'owner': player_object._id, 'tags': {$in: tag_array}, 'status': {$ne: 'displayed'}}).fetch();
-        var has_capacity = items.find({'owner' : player_object._id, 'status' : "displayed"}).count() + tagged_items.length <= player_object.profile.display_cap;
-
-        if (!has_capacity)
-            return false;
-
-        for (var i=0; i<tagged_items.length; i++) {
-            var permissions = getPlayerItemPermissions(Meteor.userId(), tagged_items[i]._id);
-            if (!permissions.canDisplay())
-                return false;
-        }
-
-        for (var i=0; i<tagged_items.length; i++) {
-            var player_item_interface = new PlayerItemIF(Meteor.userId(), tagged_items[i]._id);
-            player_item_interface.setDisplayStatus(true);
-        }
-
-        return true;
+        var player_interface = new PlayerIF(Meteor.userId());
+        player_interface.displayAllTagged(tag_array, duration);
     },
 
     'getAuctionCount': function(filter_array, quest_status) {
@@ -967,11 +665,13 @@ Meteor.methods({
     },
 
     'getExpansionSlotCost': function() {
-        return getExpansionSlotCost(Meteor.user());
+        var player_interface = new PlayerIF(Meteor.userId());
+        return player_interface.getExpansionSlotCost();
     },
 
     'purchaseExpansionSlot': function() {
-        return purchaseExpansionSlot(Meteor.user());
+        var player_interface = new PlayerIF(Meteor.userId());
+        return player_interface.purchaseExpansionSlot();
     },
 
     'vintageMode': function() {
@@ -1182,34 +882,18 @@ Meteor.methods({
     },
 
     'setActiveUniqueAttribute': function(item_id, unique_attribute_id) {
-        var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+        var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.userId()), new ItemReader(item_id));
         player_item_interface.changeActiveUniqueAttribute(unique_attribute_id);
      },
 
      'getDisplayValues': function() {
-        var value_total = 0;
-        var earnings_per_hour = 0;
-        var now = moment()._d.toISOString();
-        items.find({'owner' : Meteor.userId(), 'status' : 'displayed'}).forEach(function(item_object) {
-            var player_item_interface = new PlayerItemIF(Meteor.userId(), item_object._id);
-            value_total += player_item_interface.getValue('actual');
-            earnings_per_hour += player_item_interface.getDisplayValuePerHour(now);
-        });
-
-        return {
-            'value_total': value_total,
-            'earnings_per_hour': earnings_per_hour
-        };
+        var player_interface = new PlayerIF(Meteor.userId());
+        return player_interface.getDisplayValues();
      },
 
      'getTotalXPPerHour': function() {
-        var total_xp = 0;
-        var now = moment()._d.toISOString();
-        items.find({'owner': Meteor.userId(), 'status': {$in: ["permanent", "displayed"]}}).forEach(function(item_object) {
-            var player_item_interface = new PlayerItemIF(Meteor.userId(), item_object._id);
-            total_xp += player_item_interface.getXPPerHour(now, item_object.status);
-        })
-        return total_xp;
+        var player_interface = new PlayerIF(Meteor.userId());
+        return player_interface.getTotalXPPerHour();
      },
 
      'convertKnowledge': function(craft_type, target) {

@@ -265,6 +265,16 @@ var misprintArtworkData = function(artwork_data) {
 }
 
 generateItemFromArtworkID = function(item_generator, callback) {   
+    var owner_interface; 
+    try {
+        owner_interface = new PlayerIF(item_generator.user_id);
+    }
+
+    catch {
+        if (item_generator.user_id != "Artfunkel, Inc.")
+            return;
+    }
+    
     var artwork_data = artworks.findOne(item_generator.artwork_id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}}); 
 
     if (artwork_data) {
@@ -322,7 +332,8 @@ generateItemFromArtworkID = function(item_generator, callback) {
 
         if (misprint) {
             var misprint_message = "Misprint created: " + new_item_id + " -> " + Meteor.users.findOne(item_generator.user_id).profile.screen_name;
-            alertPlayers(Meteor.users.findOne({'profile.screen_name': "admin"})._id, misprint_message, 'fa-star', 'good');
+            var admin_interface = new PlayerIF(Meteor.users.findOne({'profile.screen_name': "admin"})._id);
+            admin_interface.alert(misprint_message, 'fa-star', 'good');
         }
 
         return new_item_id;
@@ -460,6 +471,7 @@ Meteor.methods({
     },
 
     'openCrate' : function(size) {
+        var player_interface = new PlayerIF(Meteor.userId());
         var approved_sizes = ['small', 'medium', 'large'];
         if (approved_sizes.indexOf(size) == -1)
             return false;
@@ -470,17 +482,17 @@ Meteor.methods({
         if (crate_object == undefined)
             return false;
 
-        if (Meteor.userId() && crate_object.cost < Meteor.user().profile.bank_balance) {
+        if (player_interface.getId() && crate_object.cost < player_interface.getBankBalance()) {
             var loot_data = getLootData();
             var foil_chance = loot_data.global_foil_chance;
 
-            if (procUniqueAttribute(Meteor.userId(), "CRATE_FOIL_BONUS", undefined)) {
+            if (procUniqueAttribute(player_interface.getId(), "CRATE_FOIL_BONUS", undefined)) {
                 foil_chance *= 2;
             }
 
             var multi_item_generator = {
                 'source': crate_object.size + " crate",
-                'user_id': Meteor.userId(),
+                'user_id': player_interface.getId(),
                 'quality': quality,
                 'count': crate_object.count,
                 'status': "unclaimed",
@@ -492,8 +504,8 @@ Meteor.methods({
             }
 
             generateItems(multi_item_generator);
-            chargeAccount(Meteor.userId(), crate_object.cost);
-            Meteor.users.update(Meteor.userId(), {$inc: {'profile.money_spent_on_crates': crate_object.cost}});
+            player_interface.chargeAccount(crate_object.cost);
+            Meteor.users.update(player_interface.getId(), {$inc: {'profile.money_spent_on_crates': crate_object.cost}});
         }
     },
 

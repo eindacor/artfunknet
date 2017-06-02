@@ -1,4 +1,4 @@
-donorInteraction = function(npc_object) {
+donorInteraction = function(npc_object, player_interface) {
 	var drop_count = 2;
 	var loot_data = getLootData();
 	var foil_chance = loot_data.global_foil_chance;

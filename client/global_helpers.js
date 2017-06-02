@@ -89,24 +89,13 @@ Template.registerHelper('floatToPercentage', function(value) {
 	return Math.floor(value * 100);
 })
 
+//TODO collaps helpers into single object
 Template.registerHelper('canUpgrade', function(item_id) {
-	var item_permissions = getPlayerItemPermissions(Meteor.userId(), item_id);
-	try {
-		return item_permissions.canUpgrade();
-	}
-
-	catch(error) {
-		return false;
-	}
+	var permissions = new PlayerItemPermissions(new PlayerIF(Meteor.userId()), new ItemReader(item_id));
+	return permissions.canUpgrade();
 })
 
 Template.registerHelper('canAffordUpgrade', function(item_id) {
-	var item_permissions = getPlayerItemPermissions(Meteor.userId(), item_id);
-	try {
-		return item_permissions.canAffordUpgrade();
-	}
-
-	catch (error) {
-		return false;
-	}
+	var permissions = new PlayerItemPermissions(new PlayerIF(Meteor.userId()), new ItemReader(item_id));
+	return permissions.canAffordUpgrade();
 })

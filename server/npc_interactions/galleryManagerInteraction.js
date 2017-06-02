@@ -1,4 +1,4 @@
-galleryManagerInteraction = function(npc_object) {
+galleryManagerInteraction = function(npc_object, player_interface) {
 	var extension_time = 20;
 	var extension_multiplier;
 		

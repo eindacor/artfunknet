@@ -24,9 +24,10 @@ var generateContent = function() {
 
 var updateContent = function() {
     var all_users = Meteor.users.find();
-    all_users.forEach(function(db_object) {
-        updateGalleryDetails(db_object._id);
-        var cap_object = getCapSetterObject(db_object.profile.level);
+    all_users.forEach(function(user_object) {
+        var player_interface = new PlayerIF(user_object._id);
+        player_interface.updateGalleryDetails();
+        var cap_object = getCapSetterObject(user_object.profile.level);
 
         var setter = {};
 
@@ -39,7 +40,7 @@ var updateContent = function() {
             setter[setter_key] = value;
         }
 
-        Meteor.users.update(db_object._id, {$set : setter});
+        Meteor.users.update(user_object._id, {$set : setter});
     });
 
     if (TEST_MODE) {
@@ -60,6 +61,7 @@ var updateContent = function() {
     }
 
     // temp code
+    crates.remove({});
     // temp code
 }
 

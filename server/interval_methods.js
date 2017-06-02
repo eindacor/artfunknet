@@ -4,15 +4,10 @@ getNowISOString = function() {
 
 Meteor.setInterval((function() {
     var now = getNowISOString();
-    // items.find({'status' : 'displayed', 'display_details.end': {$lt : now}}).forEach(function(db_object) {
-    //     concludeDisplay(db_object._id);
-    // });
 
     auctions.find({'expiration': {$lt : now}}).forEach(function(db_object) {
         concludeAuction(db_object._id);
     });
-
-    //removed_items.remove({'removed': {$lt: moment().subtract(1, 'hours')}});
 
     var creation_cutoff = moment().add(-10, 'minutes')._d.toISOString();
     items.find({'status' : {$in: ['unclaimed', 'for_sale']}, 'date_received' : {$lt : creation_cutoff}}).forEach(function(item_object) {
@@ -57,8 +52,9 @@ Meteor.setInterval((function() {
 var check_marketing_manager_frequency = ONE_SECOND * 30;
 Meteor.setInterval((function() {
     Meteor.users.find({'profile.marketing_manager_spawn_boost_expiration': {$lt: getNowISOString()}}).forEach(function(user_object) {
+        var player_interface = new PlayerIF(user_object._id);
         Meteor.users.update(user_object._id, {$unset: {'profile.marketing_manager_spawn_boost_expiration': "", 'profile.marketing_manager_spawn_boost_coefficient': ""}});
-        updateGalleryDetails(user_object._id);
+        player_interface.updateGalleryDetails();
     })
 }), check_marketing_manager_frequency);
 
@@ -126,17 +122,17 @@ Meteor.setInterval((function() {
             }
 
             Meteor.users.find().forEach(function(user_object) {
+                var player_interface = new PlayerIF(user_object._id);
                 var total_earnings = 0;
                 var total_xp = 0;
-                items.find({'status': "displayed", 'owner': user_object._id}).forEach(function(item_object) {
-                    var player_item_interface = new PlayerItemIF(item_object.owner, item_object._id);
+                items.find({'status': "displayed", 'owner': player_interface.getId()}).forEach(function(item_object) {
+                    var player_item_interface = new PlayerItemIF(player_interface, new ItemReader(item_object._id));
                     var money_per_hour = player_item_interface.getDisplayValuePerHour(display_earning_time);
                     total_earnings += money_per_hour;
                     total_xp += player_item_interface.getXPPerHour(display_earning_time, "displayed");
 
                     var display_level = player_item_interface.getDisplayLevel(display_earning_time);
-
-                    var player_interface = new PlayerIF(user_object._id);
+        
                     if (!player_interface.isRecentlyActive()) {
                         player_item_interface.setDisplayStatus(false);
                     }
@@ -148,10 +144,10 @@ Meteor.setInterval((function() {
                 });
 
                 if (total_earnings > 0)
-                    addFunds("display earnings", user_object._id, Math.floor(total_earnings));
+                    player_interface.addFunds("display earnings", Math.floor(total_earnings));
 
                 if (total_xp > 0)
-                    addXP(user_object._id, total_xp);
+                    player_interface.addXP(total_xp);
             })
      
             var next_tick = moment(display_earning_time).add(display_earning_frequency, "milliseconds")._d.toISOString();
@@ -173,14 +169,15 @@ Meteor.setInterval((function() {
 
             Meteor.users.find().forEach(function(user_object) {
                 var toal_xp = 0;
+                var player_interface = new PlayerIF(user_object._id);
                 items.find({'status': "permanent", 'owner': user_object._id}).forEach(function(item_object) {
-                    var player_item_interface = new PlayerItemIF(item_object.owner, item_object._id);
+                    var player_item_interface = new PlayerItemIF(player_interface, new ItemReader(item_object._id));
                     var xp_per_hour = player_item_interface.getXPPerHour(xp_earning_time, "permanent");
                     toal_xp += xp_per_hour;
                 });
 
                 if (toal_xp > 0)
-                    addXP(user_object._id, toal_xp);        
+                    player_interface.addXP(user_object._id, toal_xp);        
             })
             
             var next_tick = moment(xp_earning_time).add(xp_earning_frequency, "milliseconds")._d.toISOString();

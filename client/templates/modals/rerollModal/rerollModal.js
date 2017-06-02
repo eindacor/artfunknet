@@ -57,7 +57,7 @@ Template.rerollModal.helpers({
 	},
 
 	'rerollCost' : function(item_data) {
-		var player_item_interface = new PlayerItemIF(Meteor.userId(), item_data._id);
+		var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.userId()), new ItemReader(item_data._id));
 		return getCommaSeparatedValue(player_item_interface.getRerollCost());
 	},
 
@@ -66,12 +66,12 @@ Template.rerollModal.helpers({
 	},
 
 	'canReroll' : function(item_data) {
-		var permissions = getPlayerItemPermissions(Meteor.userId(), item_data._id);
+		var permissions = new PlayerItemPermissions(new PlayerIF(Meteor.userId()), new ItemReader(item_data._id));
 		return permissions.canReroll();
 	},
 
 	'canChangeActiveUniqueAttribute' : function(item_data) {
-		var permissions = getPlayerItemPermissions(Meteor.userId(), item_data._id);
+		var permissions = new PlayerItemPermissions(new PlayerIF(Meteor.userId()), new ItemReader(item_data._id));
 		return permissions.canChangeActiveUniqueAttribute();
 	},
 
@@ -87,7 +87,7 @@ Template.rerollModal.helpers({
 
 	'upgradeCost': function(item_id) {
 		var cost_array = [];
-		var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+		var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.userId()), new ItemReader(item_id));
 		var upgrade_cost = player_item_interface.getItemReader().getUpgradeCost();
 
 		for (var i=0; i<knowledge_types.length; i++) {
@@ -111,7 +111,7 @@ Template.rerollModal.helpers({
 	},
 
 	'min_roll': function(item_id, type) {
-		var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+		var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.userId()), new ItemReader(item_id));
 		return Math.floor(player_item_interface.getRerollMin(type) * 100);
 	}
 })

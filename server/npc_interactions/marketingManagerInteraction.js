@@ -1,4 +1,4 @@
-marketingManagerInteraction = function(npc_object) {
+marketingManagerInteraction = function(npc_object, player_interface) {
 	var spawn_boost_time = ONE_MINUTE * 10;
 	var extension_multiplier;
 	var npc_spawn_chance;
@@ -73,7 +73,7 @@ marketingManagerInteraction = function(npc_object) {
 
 	var new_time = getNowISOString() > previous_time ? moment().add(extension_time, 'milliseconds')._d.toISOString() : moment(previous_time).add(extension_time, 'milliseconds')._d.toISOString();
 	Meteor.users.update(Meteor.userId(), {$set: {'profile.marketing_manager_spawn_boost_expiration': new_time, 'profile.marketing_manager_spawn_boost_coefficient': npc_spawn_boost_coefficient}});
-	updateGalleryDetails(Meteor.userId());
+	player_interface.updateGalleryDetails();
 
 	return {'message': "You have met a marketing manager, who has spread the word about your gallery. Your gallery will have a better chance of attracting visitors for " + extension_string + " minutes"}
 }

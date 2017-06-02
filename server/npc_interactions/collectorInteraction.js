@@ -4,7 +4,7 @@ var getRandomItemForSale = function() {
 	return tagged_items[random_index];
 }
 
-collectorInteraction = function(npc_object) {
+collectorInteraction = function(npc_object, player_interface) {
 	var message = undefined;
 	var xp_offer = false;
 	var xp_chunk_percentage;
@@ -126,13 +126,13 @@ collectorInteraction = function(npc_object) {
 		var offer_amount;
 		if (!xp_offer) {
 			offer_amount = Math.floor((base_value * offer_multiplier) + offer_bonus);
-			addFunds("collector", Meteor.userId(), offer_amount);
+			player_interface.addFunds("collector", offer_amount);
 		}
 
 		else {
 			xp_chunk_percentage = (base_chunk * offer_multiplier) + offer_bonus;
 			offer_amount = Math.floor(getXPChunk(Meteor.user().profile.level) * xp_chunk_percentage);
-			addXP(Meteor.userId(), offer_amount);
+			player_interface.addXP(offer_amount);
             logXPChunkPercentage("ART_COLLECTOR_XP_REWARD", Number(xp_chunk_percentage.toFixed(3)));
 		}
 

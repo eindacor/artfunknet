@@ -1,4 +1,4 @@
-enthusiastInteraction = function(npc_object) {
+enthusiastInteraction = function(npc_object, player_interface) {
 	var xp_chunk_percentage;
 
 	switch(npc_object.quality) {
@@ -27,7 +27,7 @@ enthusiastInteraction = function(npc_object) {
 
 	var message = "You have met an art enthusiast who recently attended one of your gallery's events. They rave about your collection, and thank you for the experience. You have earned " + getCommaSeparatedValue(xp_won) + "xp!";
 
-	addXP(Meteor.userId(), xp_won);
+	player_interface.addXP(xp_won);
 	logXPChunkPercentage("enthusiast", xp_chunk_percentage);
 	// return {'message': message}
 }

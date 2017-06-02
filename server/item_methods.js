@@ -1,27 +1,3 @@
-concludeDisplay = function(item_id) {
-    var item_object = items.findOne(item_id);
-    var money_earned = item_object.display_details.money;
-    var user_id = item_object.owner;
-    var xp_earned = item_object.display_details.xp;
-
-    var message = "Your exhibition of " + item_object.artwork_data.title + " by " + item_object.artwork_data.artist + " has concluded. You have earned $" + getCommaSeparatedValue(money_earned);
-    alertPlayers(user_id, message, 'fa-usd', 'good');
-
-    addFunds("display", user_id, money_earned);
-    addXP(user_id, xp_earned);
-    logXPChunkPercentage("display", item_object.display_details.xp_chunk_percentage);
-
-    var null_display_details = {
-        'money' : 0,
-        'xp' : 0,
-        'xp_chunk_percentage': 0,
-        'end' : ""
-    };
-
-    var new_condition = item_object.condition < .6 ? item_object.condition : item_object.condition - .01;
-    updateItem(item_id, {$set: {'status' : 'claimed', 'display_details' : null_display_details, 'condition' : new_condition}});
-}
-
 itemIsMisprinted = function(item_object) {
     return artworks.findOne({"artist": item_object.artwork_data.artist, "title": item_object.artwork_data.title}) == undefined;
 }
@@ -207,7 +183,8 @@ updateItem = function(item_id, modifier, callback) {
             if (item_object == undefined)
                 return false;
 
-            updateGalleryDetails(item_object.owner);
+            var player_interface = new PlayerIF(item_object.owner);
+            player_interface.updateGalleryDetails();
 
             var newItemObjectValues = getItemObjectValues(item_object);
             if (callback == undefined) {           
@@ -252,8 +229,10 @@ updateItemsBySelector = function(selector, modifier, callback) {
 
         else {
             items.find(selector).forEach(function(item_object) {
-                if (item_object.status == "displayed" || item_object.status == "permanent")
-                    updateGalleryDetails(item_object.owner);
+                if (item_object.status == "displayed" || item_object.status == "permanent") {
+                    var player_interface = new PlayerIF(item_object.owner);
+                    player_interface.updateGalleryDetails();
+                }
 
                 items.update({'_id': item_object._id}, {$set: {'values': getItemObjectValues(items.findOne(item_object._id))}})
             });
@@ -279,67 +258,67 @@ var getItemArray = function(filter_array, sorter_object, current_page, items_per
 
 Meteor.methods({
 	'claimArtwork' : function(item_id) {
-        var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+        var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.userId()), new ItemReader(item_id));
         player_item_interface.claim();
     },
 
     'declineItem' : function(item_id) {
-        var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+        var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.userId()), new ItemReader(item_id));
         player_item_interface.decline();
     },
 
     'purchaseItemFromDealer' : function(item_id) {
-        var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+        var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.userId()), new ItemReader(item_id));
         player_item_interface.purchase();
     },
 
     'setItemDisplayStatus' : function(item_id, new_status) {
-        var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+        var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.userId()), new ItemReader(item_id));
         return player_item_interface.setDisplayStatus(new_status);
     },
 
     'setItemPermanentCollectionStatus' : function(item_id, new_status) {
-        var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+        var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.userId()), new ItemReader(item_id));
         player_item_interface.setPermanentStatus(new_status);
     },
 
     'sellItem' : function(item_id) {
-        var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+        var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.userId()), new ItemReader(item_id));
         player_item_interface.sell();
     },
 
     'upgradeItem': function(item_id) {
-        var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+        var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.userId()), new ItemReader(item_id));
         player_item_interface.upgrade();
     },
 
     'auctionArtwork' : function(item_id, starting, buy_now, duration) {
-    	var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+    	var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.userId()), new ItemReader(item_id));
         return player_item_interface.auction(starting, buy_now, duration);
     },
 
     'tagItem' : function(item_id, tags) {
-        var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+        var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.userId()), new ItemReader(item_id));
         player_item_interface.tag(tags);
     },
 
     'donateItem': function(item_id) {
-        var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+        var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.userId()), new ItemReader(item_id));
         player_item_interface.donate();
     },
 
     'getRerollCost' : function(item_id) {
-        var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+        var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.userId()), new ItemReader(item_id));
         return player_item_interface.getRerollCost();
     },
 
     'rerollAttributeValue' : function(item_id, attribute_id) {
-        var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+        var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.userId()), new ItemReader(item_id));
         player_item_interface.rerollAttributeValue(attribute_id);
     },
 
     'rerollAttribute' : function(item_id, attribute_id) {
-    	var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+    	var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.userId()), new ItemReader(item_id));
         player_item_interface.rerollAttribute(attribute_id);
     },
 
@@ -359,17 +338,7 @@ Meteor.methods({
 
     'getDisplayDetails': function(item_id) {
         try {
-            var item_object = items.findOne(item_id);
-            if (item_object == undefined) {
-                return {
-                    'earnings_per_hour' : undefined,
-                    'xp_per_hour': undefined,
-                    'time_since_displayed': undefined,
-                    'display_level': undefined
-                }
-            }
-
-            var player_item_interface = new PlayerItemIF(item_object.owner, item_id);
+            var player_item_interface = new PlayerItemIF(new PlayerIF(item_object.owner), new ItemReader(item_id));
             if (player_item_interface.getItemReader().getStatus() == "displayed") {
                 var earnings_per_hour = player_item_interface.getDisplayValuePerHour(moment()._d.toISOString());
                 var time_since_displayed = player_item_interface.getItemReader().getItemObject().time_displayed;
@@ -401,7 +370,7 @@ Meteor.methods({
 
     'getPermanentDetails': function(item_id) {
         try {
-            var player_item_interface = new PlayerItemIF(Meteor.userId(), item_id);
+            var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.userId()), new ItemReader(item_id));
             if (player_item_interface.getItemReader().getStatus() == "permanent") {
                 var xp_per_hour = player_item_interface.getXPPerHour(moment()._d.toISOString(), "permanent");
                 var time_since_displayed = player_item_interface.getItemReader().getItemObject().permanent_post;
