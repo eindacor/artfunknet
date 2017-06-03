@@ -73,7 +73,8 @@ var failedAuction = function(auction_object) {
     }
 
     else {
-        updateItem(auction_object.item_id, {$set: {'status' : 'claimed'}}, function(error) {
+        var item_interface = new ItemIF(auction_object.item_id);
+        item_interface.updateItem({$set: {'status' : 'claimed'}}, function(error) {
             if (error)
                 console.log(error.message);
 
@@ -91,24 +92,26 @@ var failedAuction = function(auction_object) {
 var successfulAuction = function(auction_object, winning_user) {
     var winning_bid = auction_object.current_bid;
 
-    var seller = items.findOne(auction_object.item_id).owner;
+    var item_interface = new ItemIF(auction_object.item_id);
+    var seller = item_interface.getItemObject().owner;
 
     var send_item_to_inventory = winning_user.profile.settings.auction_items_to_inventory && !inventoryIsFull(winning_user);
     var new_status = send_item_to_inventory ? 'claimed' : 'won';
-
-    updateItem(auction_object.item_id, {$set: {'status' : new_status, 'owner': winning_user._id, 'tags': [], 'date_received': moment()._d.toISOString()}}, function(error) {
+    
+    item_interface.updateItem({$set: {'status' : new_status, 'owner': winning_user._id, 'tags': [], 'date_received': moment()._d.toISOString()}}, function(error) {
         if (error)
             console.log(error.message);
 
         else {
             var previous_owner = Meteor.users.findOne({'profile.screen_name': auction_object.seller});
-            var previous_owner_interface = new PlayerIF(previous_owner._id);
-            var item_object = items.findOne(auction_object.item_id);
+            var previous_owner_interface = new PlayerIF(previous_owner);
+            var nested_item_interface = new ItemIF(auction_object.item_id);
+            var item_object = nested_item_interface.getItemObject();
             var new_winner_id = item_object.owner;
             var winner_interface = new PlayerIF(new_winner_id);
 
             if (item_object.status == "claimed") {
-                var player_item_interface = new PlayerItemIF(new PlayerIF(new_winner_id), new ItemReader(item_object._id));
+                var player_item_interface = new PlayerItemIF(winner_interface, nested_item_interface);
                 player_item_interface.addToChecklist('owned');
             }
 
@@ -122,7 +125,7 @@ var successfulAuction = function(auction_object, winning_user) {
             winner_interface.alert(message, 'fa-gavel', 'good');
             
             if (item_object.condition < .5 && procUniqueAttribute(new_winner_id, "AUCTION_WIN_CONDITION_INCREASE", undefined)) {
-                updateItem(item_object._id, {$set: {'condition': .9}});
+                nested_item_interface.updateItem({$set: {'condition': .9}});
             }
 
             if (procUniqueAttribute(new_winner_id, "AUCTION_WIN_TICKET_EXTENSION", undefined)) {
@@ -163,7 +166,7 @@ concludeAuction = function(auction_id) {
 
 refundWinner = function(auction_object, new_winner, refund_amount, bought) {
     var former_winner = Meteor.users.findOne({'profile.auction_data.winning': {$in: [auction_object._id]}});
-    var former_winner_interface = new PlayerIF(former_winner._id);
+    var former_winner_interface = new PlayerIF(former_winner);
 
     if (former_winner == undefined)
         return undefined;
@@ -177,7 +180,7 @@ refundWinner = function(auction_object, new_winner, refund_amount, bought) {
 
 notifyFormerWinner = function(auction_object, new_winner_id, bought) {
     var former_winner = Meteor.users.findOne({'profile.auction_data.winning': {$in: [auction_object._id]}});
-    var former_winner_interface = new PlayerIF(Meteor.users.findOne({'profile.auction_data.winning': {$in: [auction_object._id]}})._id);
+    var former_winner_interface = new PlayerIF(former_winner);
 
     if (former_winner == undefined)
         return;
@@ -299,7 +302,7 @@ Meteor.setInterval((function() {
 
 Meteor.methods({
     'placeBid': function(item_id, amount) {
-        var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.userId()), new ItemReader(item_id));
+        var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
         return player_item_interface.placeBid(amount);
     },
 

@@ -105,7 +105,7 @@ var generateQuest = function(rarity, is_own_gallery) {
 historianInteraction = function(npc_object, player_interface) {
 	try {
 
-		if (!canAcceptQuest(npc_object)) {
+		if (!player_interface.canAcceptQuest(npc_object)) {
 			var message = "You have met an art historian who is looking for a few specific items, but you currently have too many tasks on your schedule to help them.";
 			return {'type': undefined, 'message': message};
 		}

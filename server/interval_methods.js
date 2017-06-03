@@ -5,44 +5,31 @@ getNowISOString = function() {
 Meteor.setInterval((function() {
     var now = getNowISOString();
 
-    auctions.find({'expiration': {$lt : now}}).forEach(function(db_object) {
+    getFromCollection("interval_methods.js conclude auctions", auctions, {'expiration': {$lt : now}}).forEach(function(db_object) {
         concludeAuction(db_object._id);
     });
 
     var creation_cutoff = moment().add(-10, 'minutes')._d.toISOString();
-    items.find({'status' : {$in: ['unclaimed', 'for_sale']}, 'date_received' : {$lt : creation_cutoff}}).forEach(function(item_object) {
+    getFromCollection("interval_methods.js remove unclaimed", items, {'status' : {$in: ['unclaimed', 'for_sale']}, 'date_received' : {$lt : creation_cutoff}}).forEach(function(item_object) {
         removeItem(item_object._id, "failed to claim (" + item_object.status + ")", undefined);
     })
 
     var auction_win_cutoff = moment().add(-12, 'hours')._d.toISOString();
-    items.find({'status': 'won', 'date_received' : {$lt : auction_win_cutoff}, 'lottery': 0}).forEach(function(item_object) {
+    getFromCollection("interval_methods.js remove unclaimed won", items, {'status': 'won', 'date_received' : {$lt : auction_win_cutoff}, 'lottery': 0}).forEach(function(item_object) {
         removeItem(item_object._id, "failed to claim (won)", undefined);
     })
 
     // create auction for lottery items won instead of removing
-    items.find({'status': 'won', 'date_received' : {$lt : auction_win_cutoff}, 'lottery': {$ne: 0}}).forEach(function(item_object) {
-        updateItem(item_object._id, {$set: {'owner': "Artfunkel, Inc.", 'status': "auctioned", 'tags': []}}, function() {
-            createAuction(item_object._id, getItemObjectValueByType(items.findOne(item_object._id), "actual", "Artfunkel, Inc.") * 10, -1, 120, "public");
+    getFromCollection("interval_methods.js reclaim lottery items", items, {'status': 'won', 'date_received' : {$lt : auction_win_cutoff}, 'lottery': {$ne: 0}}).forEach(function(item_object) {
+        var item_interface = new ItemIF(item_object);
+        item_interface.updateItem({$set: {'owner': "Artfunkel, Inc.", 'status': "auctioned", 'tags': []}}, function() {
+            createAuction(item_object._id, getItemObjectValueByType(getOneFromCollection("interval_methods.js", items, item_object._id), "actual", "Artfunkel, Inc.") * 10, -1, 120, "public");
         });
     });
     
     alerts.remove({'time': {$lt: moment().add(-48, "hours")._d.toISOString()}});
 
 }), ONE_SECOND * 10);
-
-// TODO refactor auctions so this isn't necessary
-// clear invalid watching lists
-Meteor.setInterval((function() {
-    Meteor.users.find().forEach(function(user_object) {
-        if (auctions.findOne({'_id': {$in: user_object.profile.auction_data.watching}}) == undefined) {
-            Meteor.users.update({'_id': user_object._id}, {$set: {'profile.auction_data.watching': []}});
-        }
-
-        if (auctions.findOne({'_id': {$in: user_object.profile.auction_data.winning}}) == undefined) {
-            Meteor.users.update({'_id': user_object._id}, {$set: {'profile.auction_data.winning': []}});
-        }
-    });
-}), 60000);
 
 var check_ticket_frequency = 300000; //once every 5 minutes
 Meteor.setInterval((function() {
@@ -51,8 +38,8 @@ Meteor.setInterval((function() {
 
 var check_marketing_manager_frequency = ONE_SECOND * 30;
 Meteor.setInterval((function() {
-    Meteor.users.find({'profile.marketing_manager_spawn_boost_expiration': {$lt: getNowISOString()}}).forEach(function(user_object) {
-        var player_interface = new PlayerIF(user_object._id);
+    getFromCollection("interval_methods.js", Meteor.users, {'profile.marketing_manager_spawn_boost_expiration': {$lt: getNowISOString()}}).forEach(function(user_object) {
+        var player_interface = new PlayerIF(user_object);
         Meteor.users.update(user_object._id, {$unset: {'profile.marketing_manager_spawn_boost_expiration': "", 'profile.marketing_manager_spawn_boost_coefficient': ""}});
         player_interface.updateGalleryDetails();
     })
@@ -61,7 +48,7 @@ Meteor.setInterval((function() {
 var marketing_boost = .15;
 var base_proc_max = 1 - marketing_boost;
 Meteor.setInterval((function() {
-    galleries.find().forEach(function(gallery_object) {
+    getFromCollection("interval_methods.js", galleries, {}).forEach(function(gallery_object) {
         npcs.remove({'owner_id': gallery_object.owner_id});
 
         if (gallery_object.gallery_rarity_npc_coefficient <= 0)
@@ -70,13 +57,13 @@ Meteor.setInterval((function() {
         var attribute_values = gallery_object.attribute_values;
         var attribute_ids = Object.keys(attribute_values);
         var rarity_npc_coefficient = gallery_object.gallery_rarity_npc_coefficient;
-        var owner_object = Meteor.users.findOne(gallery_object.owner_id);
+        var owner_object = getOneFromCollection("interval_methods.js", Meteor.users, gallery_object.owner_id);
 
         for (var i=0; i < attribute_ids.length; i++) {
             var proc_chance = gallery_object.procs[attribute_ids[i]];
 
             if (Math.random() < proc_chance) {
-                var attribute_object = attributes.findOne(attribute_ids[i]);
+                var attribute_object = getOneFromCollection("interval_methods.js", attributes, attribute_ids[i]);
                 var npc_quality;
 
                 if (attribute_object.npc_name == "Art Collector" && procUniqueAttribute(gallery_object.owner_id, "COLLECTOR_MAX_QUALITY"), undefined) {
@@ -93,15 +80,15 @@ Meteor.setInterval((function() {
                         npc_quality = "bronze";
                 }
 
-                var npc_quality = getNPCQuality(Meteor.users.findOne(gallery_object.owner_id).profile.level);
+                var npc_quality = getNPCQuality(getOneFromCollection("interval_methods.js", Meteor.users, gallery_object.owner_id).profile.level);
                 createNPC(gallery_object, attribute_ids[i], NPC_SPAWN_FREQUENCY, npc_quality);
 
                 if ((npc_quality == "platinum") && procUniqueAttribute(gallery_object.owner_id, "COLLECTOR_DONOR_PAIR", undefined)) {
                     if (attribute_object.npc_name == "Art Collector")
-                        createNPC(gallery_object, attributes.findOne({'npc_name': "Art Donor"})._id, NPC_SPAWN_FREQUENCY, "bronze")
+                        createNPC(gallery_object, getOneFromCollection("interval_methods.js", attributes, {'npc_name': "Art Donor"})._id, NPC_SPAWN_FREQUENCY, "bronze")
                         
                     else if (attribute_object.npc_name == "Art Donor")
-                        createNPC(gallery_object, attributes.findOne({'npc_name': "Art Collector"})._id, NPC_SPAWN_FREQUENCY, "bronze")
+                        createNPC(gallery_object, getOneFromCollection("interval_methods.js", attributes, {'npc_name': "Art Collector"})._id, NPC_SPAWN_FREQUENCY, "bronze")
                 }
             }
         }
@@ -113,20 +100,21 @@ Meteor.setInterval((function() {
 
 // some vars defined in lib/time_constants.js
 Meteor.setInterval((function() {
-    if (metadata.findOne({'display_earnings_tick': {$ne: null}}) != undefined) {
-        var display_earning_time = metadata.findOne({'display_earnings_tick': {$ne: null}}).display_earnings_tick;
+    if (getOneFromCollection("interval_methods.js", metadata, {'display_earnings_tick': {$ne: null}}) != undefined) {
+        var display_earning_time = getOneFromCollection("interval_methods.js", metadata, {'display_earnings_tick': {$ne: null}}).display_earnings_tick;
 
         if (getNowISOString() > display_earning_time) {
             if (DEBUG) {
                 console.log("awarding display earnings: " + getNowISOString());
             }
 
-            Meteor.users.find().forEach(function(user_object) {
-                var player_interface = new PlayerIF(user_object._id);
+            getFromCollection("interval_methods.js", Meteor.users, {}).forEach(function(user_object) {
+                var player_interface = new PlayerIF(user_object);
                 var total_earnings = 0;
                 var total_xp = 0;
-                items.find({'status': "displayed", 'owner': player_interface.getId()}).forEach(function(item_object) {
-                    var player_item_interface = new PlayerItemIF(player_interface, new ItemReader(item_object._id));
+                getFromCollection("interval_methods.js", items, {'status': "displayed", 'owner': player_interface.getId()}).forEach(function(item_object) {
+                    var item_interface = new ItemIF(item_object);
+                    var player_item_interface = new PlayerItemIF(player_interface, item_interface);
                     var money_per_hour = player_item_interface.getDisplayValuePerHour(display_earning_time);
                     total_earnings += money_per_hour;
                     total_xp += player_item_interface.getXPPerHour(display_earning_time, "displayed");
@@ -139,7 +127,7 @@ Meteor.setInterval((function() {
 
                     if (Math.random() < .5) {
                         var new_condition = item_object.condition < .5 ? item_object.condition : item_object.condition - .01;
-                        updateItem(item_object._id, {$set: {'condition' : new_condition}});
+                        item_interface.updateItem({$set: {'condition' : new_condition}});
                     }
                 });
 
@@ -159,19 +147,19 @@ Meteor.setInterval((function() {
 }), display_earning_check_frequency);
 
 Meteor.setInterval((function() {
-    if (metadata.findOne({'permanent_xp_tick': {$ne: null}}) != undefined) {
-        var xp_earning_time = metadata.findOne({'permanent_xp_tick': {$ne: null}}).permanent_xp_tick;
+    if (getOneFromCollection("interval_methods.js", metadata, {'permanent_xp_tick': {$ne: null}}) != undefined) {
+        var xp_earning_time = getOneFromCollection("interval_methods.js", metadata, {'permanent_xp_tick': {$ne: null}}).permanent_xp_tick;
 
         if (getNowISOString() > xp_earning_time) {
             if (DEBUG) {
                 console.log("awarding xp: " + getNowISOString());
             }
 
-            Meteor.users.find().forEach(function(user_object) {
+            getFromCollection("interval_methods.js", Meteor.users, {}).forEach(function(user_object) {
                 var toal_xp = 0;
-                var player_interface = new PlayerIF(user_object._id);
-                items.find({'status': "permanent", 'owner': user_object._id}).forEach(function(item_object) {
-                    var player_item_interface = new PlayerItemIF(player_interface, new ItemReader(item_object._id));
+                var player_interface = new PlayerIF(user_object);
+                getFromCollection("interval_methods.js", items, {'status': "permanent", 'owner': user_object._id}).forEach(function(item_object) {
+                    var player_item_interface = new PlayerItemIF(player_interface, new ItemIF(item_object));
                     var xp_per_hour = player_item_interface.getXPPerHour(xp_earning_time, "permanent");
                     toal_xp += xp_per_hour;
                 });
@@ -188,23 +176,13 @@ Meteor.setInterval((function() {
     else metadata.insert({'permanent_xp_tick': moment()._d.toISOString()});
 }), permanent_xp_check_frequency);
 
-
-
-var item_count_frequency = 30000; //30 seconds
-Meteor.setInterval((function() {
-    Meteor.users.find().forEach(function(user_object) {
-        var items_owned = items.find({'owner': user_object._id, 'status': {$in: ['claimed', 'displayed', 'permanent']}}).count();
-        Meteor.users.update({'_id': user_object._id}, {$set: {'profile.items_owned': items_owned}});
-    });
-}), item_count_frequency);
-
 drawLottery = function(force_draw) {
-    var lottery_draw_time = force_draw ? getNowISOString() : metadata.findOne({'lottery_draw': {$ne: null}}).lottery_draw;
+    var lottery_draw_time = force_draw ? getNowISOString() : getOneFromCollection("interval_methods.js", metadata, {'lottery_draw': {$ne: null}}).lottery_draw;
    
     if (getNowISOString() < lottery_draw_time)
         return;
 
-    var lottery_level = metadata.findOne({'lottery_draw': {$ne: null}}).lottery_level;
+    var lottery_level = getOneFromCollection("interval_methods.js", metadata, {'lottery_draw': {$ne: null}}).lottery_level;
        
     if (Math.random() < .2 || lottery_level == 10) {
         var user_map = {};
@@ -216,13 +194,13 @@ drawLottery = function(force_draw) {
             'profile.settings.lottery_eligible': true
         }
         
-        Meteor.users.find(user_query_object).forEach(function(user_object) {
+        getFromCollection("interval_methods.js", Meteor.users, user_query_object).forEach(function(user_object) {
             user_map[user_object._id] = user_object.profile.lottery_tickets;
             tickets_average = ((tickets_average * player_count) + user_object.profile.lottery_tickets) / (player_count + 1);
             player_count++;
         });
        
-        var min_players_required = metadata.findOne({'lottery_draw': {$ne: null}}).lottery_draw.min_players_required;
+        var min_players_required = getOneFromCollection("interval_methods.js", metadata, {'lottery_draw': {$ne: null}}).lottery_draw.min_players_required;
         if (player_count < min_players_required) {
             for (var i=0; i<(min_players_required - player_count); i++) {
                 var bot_string = new Meteor.Collection.ObjectID()._str;
@@ -232,7 +210,7 @@ drawLottery = function(force_draw) {
 
         var winning_id = JepLoot.catRoll(user_map);
        
-        var bot_won = Meteor.users.findOne(winning_id) == undefined;
+        var bot_won = getOneFromCollection("interval_methods.js", Meteor.users, winning_id) == undefined;
         var _id = new Meteor.Collection.ObjectID()._str;
        
         if (bot_won) {
@@ -274,19 +252,20 @@ drawLottery = function(force_draw) {
 
         generateItemFromArtworkID(item_generator, function() {
             if (winning_id == "Artfunkel, Inc.") {
-                updateItem(_id, {$set: {'status': "auctioned", 'tags': []}}, function() {
-                    createAuction(_id, getItemObjectValueByType(items.findOne(_id), "actual", "Artfunkel, Inc.") * 10, -1, 120, "public");
+                var item_interface = new ItemIF(_id);
+                item_interface.updateItem({$set: {'status': "auctioned", 'tags': []}}, function() {
+                    createAuction(_id, getItemObjectValueByType(getOneFromCollection("interval_methods.js", items, _id), "actual", "Artfunkel, Inc.") * 10, -1, 120, "public");
                 });
             }
         });
         metadata.update({'lottery_draw': {$ne: null}}, {$set: {'lottery_level': 1}});
        
-        var winning_name = bot_won ? "Artfunkel, Inc." : Meteor.users.findOne(winning_id).profile.screen_name;
+        var winning_name = bot_won ? "Artfunkel, Inc." : getOneFromCollection("interval_methods.js", Meteor.users, winning_id).profile.screen_name;
 
         var message = "This week's lottery winner is " + winning_name + ". Congratulations!!!";
 
         alertPlayers({}, message, 'fa-exclamation', 'good');
-        Meteor.users.find(user_query_object).forEach(function(user_object) {
+        getFromCollection("interval_methods.js", Meteor.users, user_query_object).forEach(function(user_object) {
             var vintage_level = user_object.profile.vintage_count;
             var default_lottery_tickets = 1 + vintage_level;
             Meteor.users.update(user_object._id, {$set: {'profile.lottery_tickets': default_lottery_tickets}});
@@ -300,7 +279,7 @@ drawLottery = function(force_draw) {
                     console.log(error.message)
 
                 else {
-                    var message = "This week there's no lottery winner. New Lottery Level: " + metadata.findOne({'lottery_draw': {$ne: null}}).lottery_level;
+                    var message = "This week there's no lottery winner. New Lottery Level: " + getOneFromCollection("interval_methods.js", metadata, {'lottery_draw': {$ne: null}}).lottery_level;
                     alertPlayers({}, message, 'fa-exclamation', 'bad');
                 }
             });
@@ -324,7 +303,7 @@ Meteor.setInterval((function() {
 
 var seasonal_rotation_check = 60000;
 Meteor.setInterval((function() {
-    var next_rotation = metadata.findOne({'loot_data': {$ne: null}}).loot_data.seasonal_rotation;
+    var next_rotation = getOneFromCollection("interval_methods.js", metadata, {'loot_data': {$ne: null}}).loot_data.seasonal_rotation;
     if (next_rotation < getNowISOString()) {
         var random_legendary = getRandomArtworkIDFromRarity("legendary");
         var random_masterpiece = getRandomArtworkIDFromRarity("masterpiece");
@@ -341,7 +320,7 @@ Meteor.setInterval((function() {
 
 var clear_npcs_met_check = 60000;
 Meteor.setInterval((function() {
-    var next_clear = metadata.findOne({'npc_clear_time': {$ne: null}}).npc_clear_time;
+    var next_clear = getOneFromCollection("interval_methods.js", metadata, {'npc_clear_time': {$ne: null}}).npc_clear_time;
     if (next_clear < getNowISOString()) {
         var npcs_met_object = {
             'bronze': 0,
@@ -371,12 +350,12 @@ Meteor.setInterval((function() {
 
 
 Meteor.setInterval((function() {
-    crates.find({$or: [{'expiration': {$lt: getNowISOString()}}, {'expiration': null}]}).forEach(function(crate_object) {
+    getFromCollection("interval_methods.js", crates, {$or: [{'expiration': {$lt: getNowISOString()}}, {'expiration': null}]}).forEach(function(crate_object) {
         crates.remove({'_id': crate_object._id});
         createCrate();
     })
 
-    var current_dynamic_crate_count = crates.find().count();
+    var current_dynamic_crate_count = getFromCollection("interval_methods.js", crates, {}).count();
     for (var i=0; i<DYNAMIC_CRATE_COUNT - current_dynamic_crate_count; i++) {
         createCrate();
     }

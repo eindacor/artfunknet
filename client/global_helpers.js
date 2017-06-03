@@ -91,11 +91,11 @@ Template.registerHelper('floatToPercentage', function(value) {
 
 //TODO collaps helpers into single object
 Template.registerHelper('canUpgrade', function(item_id) {
-	var permissions = new PlayerItemPermissions(new PlayerIF(Meteor.userId()), new ItemReader(item_id));
+	var permissions = new PlayerItemPermissions(new PlayerIF(Meteor.user()), new ItemIF(item_id));
 	return permissions.canUpgrade();
 })
 
 Template.registerHelper('canAffordUpgrade', function(item_id) {
-	var permissions = new PlayerItemPermissions(new PlayerIF(Meteor.userId()), new ItemReader(item_id));
+	var permissions = new PlayerItemPermissions(new PlayerIF(Meteor.user()), new ItemIF(item_id));
 	return permissions.canAffordUpgrade();
 })

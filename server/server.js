@@ -25,7 +25,7 @@ var generateContent = function() {
 var updateContent = function() {
     var all_users = Meteor.users.find();
     all_users.forEach(function(user_object) {
-        var player_interface = new PlayerIF(user_object._id);
+        var player_interface = new PlayerIF(user_object);
         player_interface.updateGalleryDetails();
         var cap_object = getCapSetterObject(user_object.profile.level);
 
@@ -42,18 +42,6 @@ var updateContent = function() {
 
         Meteor.users.update(user_object._id, {$set : setter});
     });
-
-    if (TEST_MODE) {
-        items.find({'status': {$in: ["displayed", "permanent"]}}).forEach(function(item_object) {
-            var random_days = Math.floor(Math.random() * 30);
-            var random_time = moment().add(random_days * -1, 'days')._d.toISOString();
-            var random_level = Math.floor(Math.random() * 10) + 1;
-            if (item_object.status == "permanent")
-                updateItem(item_object._id, {$set: {'permanent_post': random_time, 'level': random_level}});
-
-            else updateItem(item_object._id, {$set: {'time_displayed': random_time, 'level': random_level}});
-        });
-    }
 
     var current_dynamic_crate_count = crates.find().count();
     for (var i=0; i<DYNAMIC_CRATE_COUNT - current_dynamic_crate_count; i++) {

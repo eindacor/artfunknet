@@ -201,7 +201,8 @@ playerRatio = function(player_object) {
 
 Meteor.methods({
     'resetTutorials': function() {
-        resetTutorials(Meteor.userId());
+        var player_interface = new PlayerIF(Meteor.user());
+        player_interface.resetTutorials();
     },
 
     'confirmTutorial': function(tutorial_name) {
@@ -312,7 +313,7 @@ Meteor.methods({
     },
 
     'purchaseTicket' : function(gallery_id) {
-        var player_interface = new PlayerIF(Meteor.userId());
+        var player_interface = new PlayerIF(Meteor.user());
         return player_interface.purchaseTicket(gallery_id);
     },
 
@@ -352,27 +353,27 @@ Meteor.methods({
     },
 
     'turnInQuest' : function(quest_id, sell, donate) {
-        var player_interface = new PlayerIF(Meteor.userId());
+        var player_interface = new PlayerIF(Meteor.user());
         player_interface.turnInQuest(quest_id, sell, donate);
     },
 
     'cancelQuest' : function(quest_id) {
-        var player_interface = new PlayerIF(Meteor.userId());
+        var player_interface = new PlayerIF(Meteor.user());
         player_interface.cancelQuest(quest_id);
     },
 
     'getMaxQuests' : function(npc_object) {
-        var player_interface = new PlayerIF(Meteor.userId());
+        var player_interface = new PlayerIF(Meteor.user());
         return player_interface.getMaxQuests(npc_object);
     },
 
     'getActiveQuests' : function() {
-        var player_interface = new PlayerIF(Meteor.userId());
+        var player_interface = new PlayerIF(Meteor.user());
         return player_interface.getActiveQuests();
     },
 
     'canAcceptQuest' : function(npc_object) {
-        var player_interface = new PlayerIF(Meteor.userId());
+        var player_interface = new PlayerIF(Meteor.user());
         return player_interface.canAcceptQuest(npc_object)
     },
 
@@ -385,26 +386,27 @@ Meteor.methods({
     },
 
     'getSellAllAmount' : function() {
-        var player_interface = new PlayerIF(Meteor.userId());
+        var player_interface = new PlayerIF(Meteor.user());
         return player_interface.getSellAllData().value;
     },
 
     'sellAllUnclaimed' : function() {
-        var player_interface = new PlayerIF(Meteor.userId());
+        var player_interface = new PlayerIF(Meteor.user());
         player_interface.sellAllUnclaimed();
     },
 
     'donateAllUnclaimed' : function() {
-        var player_interface = new PlayerIF(Meteor.userId());
+        var player_interface = new PlayerIF(Meteor.user());
         player_interface.donateAllUnclaimed();
     },
 
     'declineAllForSale' : function() {
-        return declineAllForSale(Meteor.userId());
+        var player_interface = new PlayerIF(Meteor.user());
+        return player_interface.declineAllForSale(); 
     },
 
     'displayAllTagged': function(tag_array, duration) {
-        var player_interface = new PlayerIF(Meteor.userId());
+        var player_interface = new PlayerIF(Meteor.user());
         player_interface.displayAllTagged(tag_array, duration);
     },
 
@@ -665,12 +667,12 @@ Meteor.methods({
     },
 
     'getExpansionSlotCost': function() {
-        var player_interface = new PlayerIF(Meteor.userId());
+        var player_interface = new PlayerIF(Meteor.user());
         return player_interface.getExpansionSlotCost();
     },
 
     'purchaseExpansionSlot': function() {
-        var player_interface = new PlayerIF(Meteor.userId());
+        var player_interface = new PlayerIF(Meteor.user());
         return player_interface.purchaseExpansionSlot();
     },
 
@@ -751,12 +753,12 @@ Meteor.methods({
             );
 
             items.find({'owner': Meteor.userId(), 'vintage': {$ne: true}, 'original': {$ne: true}}).forEach(function(item_object) {
+                var item_interface = new ItemIF(item_object);
                 if (itemIsMisprinted(item_object)) {
                     return;
                 }
 
-                updateItem(
-                    item_object._id,                //selector
+                item_interface.updateItem(
                     {                               //modifier 
                         $set: {
                             'status': 'won',
@@ -882,17 +884,17 @@ Meteor.methods({
     },
 
     'setActiveUniqueAttribute': function(item_id, unique_attribute_id) {
-        var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.userId()), new ItemReader(item_id));
+        var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
         player_item_interface.changeActiveUniqueAttribute(unique_attribute_id);
      },
 
      'getDisplayValues': function() {
-        var player_interface = new PlayerIF(Meteor.userId());
+        var player_interface = new PlayerIF(Meteor.user());
         return player_interface.getDisplayValues();
      },
 
      'getTotalXPPerHour': function() {
-        var player_interface = new PlayerIF(Meteor.userId());
+        var player_interface = new PlayerIF(Meteor.user());
         return player_interface.getTotalXPPerHour();
      },
 
@@ -928,12 +930,12 @@ Meteor.methods({
      },
 
      'getCanBuyAllFavorites': function() {
-        var player_interface = new PlayerIF(Meteor.userId());
+        var player_interface = new PlayerIF(Meteor.user());
         return player_interface.canBuyAllFavorites();
      },
 
      'buyAllFavorites': function() {
-        var player_interface = new PlayerIF(Meteor.userId());
+        var player_interface = new PlayerIF(Meteor.user());
         return player_interface.buyAllFavorites();
      }
 })

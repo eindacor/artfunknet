@@ -34,7 +34,6 @@ Meteor.methods({
             'gallery_value_data': galleries.find({}, {limit: 20, sort: {'value': -1}}).fetch(),
             'gallery_earnings_data': galleries.find({}, {limit: 20, sort: {'earnings_per_hour': -1}}).fetch(),
             'quests_completed_data': Meteor.users.find({'profile.user_type': {$ne: "adfmin"}}, {limit: 20, sort: {'profile.completed_quests': -1}, fields: {'profile.completed_quests': 1, 'profile.screen_name': 1}}).fetch(),
-            'items_owned_data': Meteor.users.find({'profile.user_type': {$ne: 'admin'}}, {limit: 20, sort: {'profile.items_owned': -1}}).fetch(),
             'money_spent_crates_data': Meteor.users.find({'profile.user_type': {$ne: 'admin'}}, {limit: 20, sort: {'profile.money_spent_on_crates': -1}}).fetch(),
         }
     },
@@ -155,17 +154,18 @@ Meteor.methods({
     },
 
     'getEntryFee' : function(gallery_owner_id) {
-        return getEntryFee(gallery_owner_id);
+        var player_interface = new PlayerIF(gallery_owner_id);
+        return player_interface.getEntryFee();
     },
 
     'canTurnInQuest': function(quest_id) {
-        var player_interface = new PlayerIF(Meteor.userId());
+        var player_interface = new PlayerIF(Meteor.user());
         return player_interface.canTurnInQuest(quest_id);
     },
 
     'hasCompletedQuest': function() {
         var all_quests = quests.find({'owner_id': Meteor.userId()}).fetch();
-        var player_interface = new PlayerIF(Meteor.userId());
+        var player_interface = new PlayerIF(Meteor.user());
         for (var i=0; i<all_quests.length; i++) {
             if (player_interface.canTurnInQuest(all_quests[i]._id))
                 return true;

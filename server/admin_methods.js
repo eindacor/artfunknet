@@ -75,14 +75,14 @@ Meteor.methods({
     'levelUp': function() {
         if (adminValidated() && Meteor.user().profile.level < 50) {
             var xp = getXPGoal(Meteor.user().profile.level);
-            var player_interface = new PLayerIF(Meteor.userId());
+            var player_interface = new PLayerIF(Meteor.user());
             player_interface.addXP(xp);
         }
     },
 
 	'generateNPC': function(attribute_id) {
 		if (adminValidated()) {
-			gallery_object = galleries.findOne({'owner_id': Meteor.userId()});
+			gallery_object = getOneFromCollection("admin_methods.js", galleries, {'owner_id': Meteor.userId()});
 
 			if (gallery_object)
 				createNPC(gallery_object, attribute_id, 0, getNPCQuality(Meteor.user().profile.level));
@@ -121,7 +121,7 @@ Meteor.methods({
 	'generateRandomItemFromArtworkID' : function(user_id, artwork_id) {
 		if (adminValidated()) {
             var loot_data = getLootData();
-			if (user_id == "" || Meteor.users.findOne(user_id).profile.user_type == "admin") {
+			if (user_id == "" || getOneFromCollection("admin_methods.js", Meteor.users, user_id).profile.user_type == "admin") {
                 var item_generator = {
                     'source': "test",
                     'user_id': Meteor.userId(),
@@ -394,7 +394,7 @@ Meteor.methods({
                 var targets = quest_object.target;
                 for (var i=0; i<targets.length; i++) {
                     var artwork_id = targets[i];
-                    if (items.findOne({'owner': Meteor.userId(), 'artwork_id': artwork_id}) == undefined) {
+                    if (getOneFromCollection("admin_methods.js", items, {'owner': Meteor.userId(), 'artwork_id': artwork_id}) == undefined) {
                         var item_generator = {
                             'source': "test",
                             'user_id': Meteor.userId(),
@@ -463,6 +463,14 @@ Meteor.methods({
                 items.update(item_object._id, {$set: {'values': getItemObjectValues(item_object)}});
             })
         }
+    },
+
+    'getDBCalls': function() {
+        console.log(db_calls);
+    },
+
+    'clearDBCalls': function() {
+        db_calls = 0;
     }
 })
 

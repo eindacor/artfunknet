@@ -1,3 +1,18 @@
+var player_item_interface;
+var player_interface;
+var item_interface;
+var player_item_permissions;
+var interface_tracker = new Tracker.Dependency;
+
+updateInterfaces = function() {
+	console.log("UPDATING");
+	item_interface = new ItemIF(Session.get('selectedItem'));
+	player_interface = new PlayerIF(Meteor.user());
+	player_item_interface = new PlayerItemIF(player_interface, item_interface);
+	player_item_permissions = new PlayerItemPermissions(player_interface, item_interface); 
+	interface_tracker.changed();
+}
+
 Template.rerollModal.events ({
 	'click #cancel-modal' : function(event, template) {
     	Modal.hide("rerollModal");
@@ -10,7 +25,8 @@ Template.rerollModal.events ({
 				console.log(error.message);
 
 			else {
-				updateItemTemplate(Session.get('selectedItem'), 0);
+				//updateItemTemplate(Session.get('selectedItem'), 0);
+				updateInterfaces();
 			}
 		});
     },
@@ -22,7 +38,8 @@ Template.rerollModal.events ({
 				console.log(error.message);
 
 			else {
-				updateItemTemplate(Session.get('selectedItem'), 0);
+				//updateItemTemplate(Session.get('selectedItem'), 0);
+				updateInterfaces();
 			}
 		});
     },
@@ -34,7 +51,8 @@ Template.rerollModal.events ({
 				console.log(error.message)
 
 			else {
-				updateItemTemplate(Session.get('selectedItem'), 0);
+				//updateItemTemplate(Session.get('selectedItem'), 0);
+				updateInterfaces();
 			}
 		})
 	},
@@ -43,13 +61,23 @@ Template.rerollModal.events ({
 		Meteor.call('upgradeItem', Session.get('selectedItem'), function(error) {
 			if(error)
 				console.log(error);
+
+			else {
+				updateInterfaces();
+			}
 		})
 	}
 })
 
+Template.rerollModal.rendered = function() {
+	updateInterfaces();
+}
+
 Template.rerollModal.helpers({
 	'itemData' : function() {
-		return items.findOne(Session.get('selectedItem'));
+		interface_tracker.depend();
+		if (item_interface)
+			return item_interface.getItemObject();
 	},
 
 	'error' : function() {
@@ -57,22 +85,27 @@ Template.rerollModal.helpers({
 	},
 
 	'rerollCost' : function(item_data) {
-		var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.userId()), new ItemReader(item_data._id));
-		return getCommaSeparatedValue(player_item_interface.getRerollCost());
+		interface_tracker.depend();
+		if (player_item_interface)
+			return getCommaSeparatedValue(player_item_interface.getRerollCost());
 	},
 
 	'bankBalance' : function() {
-		return getCommaSeparatedValue(Meteor.user().profile.bank_balance);
+		interface_tracker.depend();
+		if (player_item_interface)
+			return getCommaSeparatedValue(player_interface.getBankBalance());
 	},
 
 	'canReroll' : function(item_data) {
-		var permissions = new PlayerItemPermissions(new PlayerIF(Meteor.userId()), new ItemReader(item_data._id));
-		return permissions.canReroll();
+		interface_tracker.depend();
+		if (player_item_permissions)
+			return player_item_permissions.canReroll();
 	},
 
 	'canChangeActiveUniqueAttribute' : function(item_data) {
-		var permissions = new PlayerItemPermissions(new PlayerIF(Meteor.userId()), new ItemReader(item_data._id));
-		return permissions.canChangeActiveUniqueAttribute();
+		interface_tracker.depend();
+		if (player_item_permissions)
+			return player_item_permissions.canChangeActiveUniqueAttribute();
 	},
 
 	'attributeValueText' : function(value) {
@@ -86,9 +119,9 @@ Template.rerollModal.helpers({
 	},
 
 	'upgradeCost': function(item_id) {
+		interface_tracker.depend();
 		var cost_array = [];
-		var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.userId()), new ItemReader(item_id));
-		var upgrade_cost = player_item_interface.getItemReader().getUpgradeCost();
+		var upgrade_cost = player_item_interface.getItemIF().getUpgradeCost();
 
 		for (var i=0; i<knowledge_types.length; i++) {
 			var type = knowledge_types[i];
@@ -111,7 +144,7 @@ Template.rerollModal.helpers({
 	},
 
 	'min_roll': function(item_id, type) {
-		var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.userId()), new ItemReader(item_id));
+		interface_tracker.depend();
 		return Math.floor(player_item_interface.getRerollMin(type) * 100);
 	}
 })

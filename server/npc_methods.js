@@ -10,13 +10,15 @@ getNPCQuality = function(player_level) {
 }
 
 createNPC = function(gallery_object, attribute_id, duration, npc_quality) {
+	var attribute_object = getOneFromCollection("createNPC()", attributes, attribute_id);
     var npc_object = {
         'quality' : npc_quality,
         'attribute_id' : attribute_id,
         'owner_id' : gallery_object.owner_id,
         'expiration' : moment().add(duration, 'milliseconds')._d.toISOString(),
         'players_met' : [],
-        'icon' : attributes.findOne(attribute_id).icon
+        'icon' : attribute_object.icon,
+        'npc_name': attribute_object.npc_name
     }
 
     npcs.insert(npc_object, function(error, inserted_id) {
@@ -39,7 +41,7 @@ var ignoreNPC = function(npc_id) {
 }
 
 var interactWithNPC = function(npc_id) {
-	var player_interface = new PlayerIf(Meteor.userId());
+	var player_interface = new PlayerIF(Meteor.user());
 	var npc_validation_response = canMeetNPC(npc_id)
 	var npc_object = npc_validation_response.npc_object;
 

@@ -30,7 +30,7 @@ artExpertInteraction = function(npc_object, player_interface) {
 		}
 	}
 
-	var highest_item = items.findOne({'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}, 'roll_count' : {$gt : roll_count_min}}, {sort: {'roll_count': -1}});
+	var highest_item = getOneFromCollection("artExpertInteraction", items, {'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}, 'roll_count' : {$gt : roll_count_min}}, {sort: {'roll_count': -1}});
 
 	if (highest_item == undefined) {
 		var display_count = items.find({'owner': Meteor.userId(), 'status': 'displayed'}).count();
@@ -38,13 +38,13 @@ artExpertInteraction = function(npc_object, player_interface) {
 			return {'message' : "You have met an art expert, but you have no items on display for them to discuss."};
 
 		var random_index = Math.floor(Math.random() * display_count);
-		var target = items.findOne({'owner': Meteor.userId(), 'status': 'displayed'}, {skip: random_index});
-		var item_reader = new ItemReader(target._id);
-		var unit_value = item_reader.getUnitValue();
+		var target = getOneFromCollection("artExpertInteraction", items, {'owner': Meteor.userId(), 'status': 'displayed'}, {skip: random_index});
+		var item_interface = new ItemIF(target);
+		var unit_value = item_interface.getUnitValue();
 		var random_modifier = .2 + (.2 * Math.random());
 		var modified_value = unit_value * random_modifier;
 		var knowledge_object = convertUnitValueToKnowledge(Math.max(Math.floor(modified_value), 2));
-		var player_interface = new PlayerIF(Meteor.userId());
+		var player_interface = new PlayerIF(Meteor.user());
 		player_interface.giveKnowledge(knowledge_object);
 		return {
 			'type': "art_expert_bonus",
@@ -59,7 +59,8 @@ artExpertInteraction = function(npc_object, player_interface) {
 
 	else new_count = highest_item.roll_count - roll_reduction;
 
-	updateItem(highest_item._id, {$set: {'roll_count' : Number(new_count)}});
+	var item_interface = new ItemIF(highest_item);
+	item_interface.updateItem({$set: {'roll_count' : Number(new_count)}});
 
 	var message = "You have met an art expert who recently attended one of your events and was impressed by your collection. As a result, they have been spreading the word about your gallery. " + highest_item.artwork_data.title + " by " + highest_item.artwork_data.artist + " has had its roll count reduced to " + new_count + ".";
 

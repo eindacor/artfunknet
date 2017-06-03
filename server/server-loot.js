@@ -270,7 +270,7 @@ generateItemFromArtworkID = function(item_generator, callback) {
         owner_interface = new PlayerIF(item_generator.user_id);
     }
 
-    catch {
+    catch (error) {
         if (item_generator.user_id != "Artfunkel, Inc.")
             return;
     }
@@ -332,7 +332,7 @@ generateItemFromArtworkID = function(item_generator, callback) {
 
         if (misprint) {
             var misprint_message = "Misprint created: " + new_item_id + " -> " + Meteor.users.findOne(item_generator.user_id).profile.screen_name;
-            var admin_interface = new PlayerIF(Meteor.users.findOne({'profile.screen_name': "admin"})._id);
+            var admin_interface = new PlayerIF(Meteor.users.findOne({'profile.screen_name': "admin"}));
             admin_interface.alert(misprint_message, 'fa-star', 'good');
         }
 
@@ -471,7 +471,7 @@ Meteor.methods({
     },
 
     'openCrate' : function(size) {
-        var player_interface = new PlayerIF(Meteor.userId());
+        var player_interface = new PlayerIF(Meteor.user());
         var approved_sizes = ['small', 'medium', 'large'];
         if (approved_sizes.indexOf(size) == -1)
             return false;

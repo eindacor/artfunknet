@@ -356,7 +356,7 @@ generateItemFromArtworkIDRevised = function(item_generator, callback) {
 		owner_interface = new PlayerIF(item_generator.user_id);
 	}
 
-	catch {
+	catch (error) {
 		if (item_generator.user_id != "Artfunkel, Inc.")
 			return;
 	}
@@ -419,7 +419,7 @@ generateItemFromArtworkIDRevised = function(item_generator, callback) {
 
         if (misprint) {
         	var misprint_message = "Misprint created: " + new_item_id + " -> " + Meteor.users.findOne(item_generator.user_id).profile.screen_name;
-        	var admin_interface = new PlayerIF(Meteor.users.findOne({'profile.screen_name': "admin"})._id);
+        	var admin_interface = new PlayerIF(Meteor.users.findOne({'profile.screen_name': "admin"}));
         	admin_interface.alert(misprint_message, 'fa-star', 'good');
         }
 
@@ -608,7 +608,7 @@ createCrate = function() {
 Meteor.methods({
 	'openDynamicCrate': function(crate_id) {
 		try {
-			var player_crate_interface = new PlayerCrateIF(new PlayerIF(Meteor.userId()), crate_id);
+			var player_crate_interface = new PlayerCrateIF(new PlayerIF(Meteor.user()), crate_id);
 	    	player_crate_interface.open();
 	    }
 
@@ -620,7 +620,7 @@ Meteor.methods({
 	'getDynamicCrates': function() {
 		var crate_objects = crates.find({$or: [{'owner_id': Meteor.userId()}, {'owner_id': null}, {'type': "public"}]}).fetch();
 		for (var i=0; i<crate_objects.length; i++) {
-			var player_crate_interface = new PlayerCrateIF(new PlayerIF(Meteor.userId()), crate_objects[i]._id);
+			var player_crate_interface = new PlayerCrateIF(new PlayerIF(Meteor.user()), crate_objects[i]._id);
     		crate_objects[i].cost = player_crate_interface.getCost();
     		crate_objects[i].can_open = player_crate_interface.canOpen();
 		}
