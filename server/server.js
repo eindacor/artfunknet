@@ -1,47 +1,23 @@
-var generateContent = function() {
-    for (var i=0; i < artist_data.length; i++) {
-		artists.insert(artist_data[i]);
-	}
-
-    try {
-    	for (var i=0; i < painting_data.length; i++) {
-    		var artist_id = artists.findOne({"artist_name": painting_data[i].artist})._id;
-    		var artwork_object = painting_data[i];
-    		artwork_object.genre = artwork_object.genre.toLowerCase();
-    		artwork_object.artist_id = artist_id;
-    		artworks.insert(artwork_object, function(artwork_insert_error, inserted_id) {
-                if (artwork_insert_error)
-                    console.log(artwork_insert_error.message);
-            });
-    	}
-    }
-
-    catch(error) {
-        console.log("error adding artwork to DBs:");
-        console.log(error.message);
-    }
-}
-
 var updateContent = function() {
     var all_users = Meteor.users.find();
-    all_users.forEach(function(user_object) {
-        var player_interface = new PlayerIF(user_object);
-        player_interface.updateGalleryDetails();
-        var cap_object = getCapSetterObject(user_object.profile.level);
+    // all_users.forEach(function(user_object) {
+    //     var player_interface = new PlayerIF(user_object);
+    //     player_interface.updateGalleryDetails();
+    //     var cap_object = getCapSetterObject(user_object.profile.level);
 
-        var setter = {};
+    //     var setter = {};
 
-        var cap_keys = Object.keys(cap_object);
-        for (var i=0; i < cap_keys.length; i++) {
-            var key = cap_keys[i];
-            var value = cap_object[key];
+    //     var cap_keys = Object.keys(cap_object);
+    //     for (var i=0; i < cap_keys.length; i++) {
+    //         var key = cap_keys[i];
+    //         var value = cap_object[key];
 
-            var setter_key = "profile." + key;
-            setter[setter_key] = value;
-        }
+    //         var setter_key = "profile." + key;
+    //         setter[setter_key] = value;
+    //     }
 
-        Meteor.users.update(user_object._id, {$set : setter});
-    });
+    //     Meteor.users.update(user_object._id, {$set : setter});
+    // });
 
     var current_dynamic_crate_count = crates.find().count();
     for (var i=0; i<DYNAMIC_CRATE_COUNT - current_dynamic_crate_count; i++) {
@@ -50,11 +26,21 @@ var updateContent = function() {
 
     // temp code
     crates.remove({});
-    items.find({'reroll_cost': null}).forEach(function(item_object) {
-        var item_interface = new ItemIF(item_object);
-        var artwork_object = artworks.findOne(item_object.artwork_id); 
-        item_interface.updateItem({$set: {'artwork_data.value_scale': artwork_object.value_scale}});
+    Meteor.users.find().forEach(function(user_object){
+        var all_items = items.find({'owner': user_object._id, 'reroll_cost': null}).fetch();
+        for (var i=0; i<all_items.length; i++) {
+            var item_object = all_items[i];
+            var item_interface = new ItemIF(item_object);
+            var artwork_object = artworks.findOne(item_object.artwork_id); 
+            item_interface.updateItem({$set: {'artwork_data.value_scale': artwork_object.value_scale}}, true);
+        };
+
+        if (all_items.length > 0) {
+            var player_interface = new PlayerIF(user_object);
+            player_interface.updateGalleryDetails();
+        }
     })
+    
     //temp code
 }
 
@@ -103,9 +89,6 @@ Meteor.startup(function() {
         createUser(player_1);
         createUser(admin);
     }
-
-    if (artists.find({}).count() == 0 && artworks.find({}).count() == 0)
-        generateContent();
 
     updateContent();
 })

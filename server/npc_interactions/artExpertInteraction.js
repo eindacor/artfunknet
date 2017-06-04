@@ -60,7 +60,8 @@ artExpertInteraction = function(npc_object, player_interface) {
 	else new_count = highest_item.roll_count - roll_reduction;
 
 	var item_interface = new ItemIF(highest_item);
-	item_interface.updateItem({$set: {'roll_count' : Number(new_count)}});
+	//TODO update if roll counts effect value
+	item_interface.updateItem({$set: {'roll_count' : Number(new_count)}}, true);
 
 	var message = "You have met an art expert who recently attended one of your events and was impressed by your collection. As a result, they have been spreading the word about your gallery. " + highest_item.artwork_data.title + " by " + highest_item.artwork_data.artist + " has had its roll count reduced to " + new_count + ".";
 

@@ -758,21 +758,19 @@ Meteor.methods({
                     return;
                 }
 
-                item_interface.updateItem(
-                    {                               //modifier 
-                        $set: {
-                            'status': 'won',
-                            'vintage': true,
-                            'date_received': getNowISOString(),
-                            'display_details': {
-                                'money' : 0,
-                                'xp' : 0,
-                                'xp_chunk_percentage': 0,
-                                'end' : ""
-                            }
+                item_interface.updateItem({                               //modifier 
+                    $set: {
+                        'status': 'won',
+                        'vintage': true,
+                        'date_received': getNowISOString(),
+                        'display_details': {
+                            'money' : 0,
+                            'xp' : 0,
+                            'xp_chunk_percentage': 0,
+                            'end' : ""
                         }
                     }
-                );         
+                }, true);         
             });
 
             quests.remove({'owner_id': Meteor.userId()});

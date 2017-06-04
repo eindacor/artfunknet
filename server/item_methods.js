@@ -152,7 +152,7 @@ updateItemAttributesWithNewArtworkData = function(item_interface) {
             all_new_attributes.push(attribute_object._id);
         }
 
-        item_interface.updateItem({$set: {'artwork_data': artwork_object, 'attributes': new_attribute_object, 'active_unique_attribute': artwork_object.unique_attributes && artwork_object.unique_attributes.length > 0 ? artwork_object.unique_attributes[0] : undefined}});
+        item_interface.updateItem({$set: {'artwork_data': artwork_object, 'attributes': new_attribute_object, 'active_unique_attribute': artwork_object.unique_attributes && artwork_object.unique_attributes.length > 0 ? artwork_object.unique_attributes[0] : undefined}}, false);
     }
 }
 

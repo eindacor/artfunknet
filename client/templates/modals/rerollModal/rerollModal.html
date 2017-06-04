@@ -8,7 +8,7 @@
 	                <div class="reroll-info">
 		                <div class="row">
 		                	<h4>bank balance: <span class="af-color">${{bankBalance}}</span></h4>
-		                	<h4>reroll cost: <span class="af-color">${{rerollCost this}}</span></h4>
+		                	<h4>reroll cost: <span class="af-color">${{rerollCost}}</span></h4>
 		                	<h4>reroll count: <span class="af-color">{{roll_count}}</span></h4>
 				        </div>
 				    </div>
@@ -18,10 +18,10 @@
 				        <div data-attribute_id="{{this._id}}" class="row attribute-row no-padding no-margin">
 		                	{{> attributeTemplate attribute_data=this special=true}}
 		                	<div class="col-xs-3">
-								<p><span class="af-color highlight value-text">{{attributeValueText this.value}}</span> ({{min_roll ../_id "special"}} min)</p>
+								<p><span class="af-color highlight value-text">{{attributeValueText this.value}}</span> ({{min_roll "special"}} min)</p>
 							</div>
 							<div class="col-xs-2">
-								<button data-attribute_id="{{this._id}}" class="reroll-value-button {{#if canReroll .. this}}enabled{{else}}disabled{{/if}}">value</button>
+								<button data-attribute_id="{{this._id}}" class="reroll-value-button {{#if canReroll}}enabled{{else}}disabled{{/if}}">value</button>
 							</div>
 							<div class="col-xs-2">
 		                		<i class="item-attribute fa fa-lock"></i>
@@ -33,10 +33,10 @@
 				        <div data-attribute_id="{{this._id}}" class="row attribute-row no-padding no-margin">
 		                	{{> attributeTemplate attribute_data=this}}
 		                	<div class="col-xs-3">
-								<p><span class="af-color highlight value-text">{{attributeValueText this.value}}</span> ({{min_roll ../_id "locked"}} min)</p>
+								<p><span class="af-color highlight value-text">{{attributeValueText this.value}}</span> ({{min_roll "locked"}} min)</p>
 							</div>
 							<div class="col-xs-2">
-								<button data-attribute_id="{{this._id}}" class="reroll-value-button {{#if canReroll .. this}}enabled{{else}}disabled{{/if}}">value</button>
+								<button data-attribute_id="{{this._id}}" class="reroll-value-button {{#if canReroll}}enabled{{else}}disabled{{/if}}">value</button>
 							</div>
 							<div class="col-xs-2">
 		                		<i class="item-attribute fa fa-lock"></i>
@@ -48,13 +48,13 @@
 				        <div data-attribute_id="{{this._id}}" class="row attribute-row no-padding no-margin">
 		                	{{> attributeTemplate attribute_data=this}}
 		                	<div class="col-xs-3">
-								<p><span class="af-color highlight value-text">{{attributeValueText this.value}}</span> ({{min_roll ../_id "unlocked"}} min)</p>
+								<p><span class="af-color highlight value-text">{{attributeValueText this.value}}</span> ({{min_roll "unlocked"}} min)</p>
 							</div>
 							<div class="col-xs-2">
-								<button data-attribute_id="{{this._id}}" class="reroll-value-button {{#if canReroll .. this}}enabled{{else}}disabled{{/if}}">value</button>
+								<button data-attribute_id="{{this._id}}" class="reroll-value-button {{#if canReroll}}enabled{{else}}disabled{{/if}}">value</button>
 							</div>
 		                	<div class="col-xs-2">
-		                		<button data-attribute_id="{{this._id}}" class="reroll-attribute-button {{#if canReroll .. this}}enabled{{else}}disabled{{/if}}">attribute</button>
+		                		<button data-attribute_id="{{this._id}}" class="reroll-attribute-button {{#if canReroll}}enabled{{else}}disabled{{/if}}">attribute</button>
 		                	</div>
 				        </div>
 				        {{/each}}
@@ -68,7 +68,7 @@
 				    				<tr>
 				    					<td><h5 class="highlight">Upgrade Cost</h5></td>
 				    				</tr>
-				    			{{#each upgradeCost this._id}}
+				    			{{#each upgradeCost}}
 									<tr>
 										<td><span style="color:{{getKnowledgeColorString type}}">{{name}}</span>:</td>
 										<td class="{{#if can_afford}}highlight{{/if}}"><span style="color:{{getKnowledgeColorString type}}">{{commaSeparatedValue amount}}</span> (<span style="color:{{getKnowledgeColorString type}}">{{commaSeparatedValue available}}</span>)</td>
@@ -86,7 +86,7 @@
 				    {{#if isEqual artwork_data.rarity "masterpiece"}}
 				    <div class="row reroll-options no-padding no-margin">
 				    	{{#each artwork_data.unique_attributes}}
-				    		<div class="row unique-section {{#if canChangeActiveUniqueAttribute .. this}}{{else}}disabled{{/if}}">
+				    		<div class="row unique-section {{#if canChangeActiveUniqueAttribute}}{{else}}disabled{{/if}}">
 					    		{{#with unique_attribute_data this}}
 					    		<div class="col-xs-1">
 					    			{{#if current_selected}}
@@ -112,7 +112,7 @@
 				    {{#if isEqual artwork_data.rarity "legendary"}}
 				    <div class="row reroll-options no-padding no-margin">
 				    	{{#each artwork_data.unique_attributes}}
-				    		<div class="row unique-section {{#if canChangeActiveUniqueAttribute .. this}}{{else}}disabled{{/if}}">
+				    		<div class="row unique-section {{#if canChangeActiveUniqueAttribute}}{{else}}disabled{{/if}}">
 					    		{{#with unique_attribute_data this}}
 					    		<div class="col-xs-1"></div>
 					    		<div class="col-xs-10">

@@ -5,7 +5,6 @@ var player_item_permissions;
 var interface_tracker = new Tracker.Dependency;
 
 updateInterfaces = function() {
-	console.log("UPDATING");
 	item_interface = new ItemIF(Session.get('selectedItem'));
 	player_interface = new PlayerIF(Meteor.user());
 	player_item_interface = new PlayerItemIF(player_interface, item_interface);
@@ -25,7 +24,6 @@ Template.rerollModal.events ({
 				console.log(error.message);
 
 			else {
-				//updateItemTemplate(Session.get('selectedItem'), 0);
 				updateInterfaces();
 			}
 		});
@@ -38,7 +36,6 @@ Template.rerollModal.events ({
 				console.log(error.message);
 
 			else {
-				//updateItemTemplate(Session.get('selectedItem'), 0);
 				updateInterfaces();
 			}
 		});
@@ -51,7 +48,6 @@ Template.rerollModal.events ({
 				console.log(error.message)
 
 			else {
-				//updateItemTemplate(Session.get('selectedItem'), 0);
 				updateInterfaces();
 			}
 		})
@@ -78,16 +74,18 @@ Template.rerollModal.helpers({
 		interface_tracker.depend();
 		if (item_interface)
 			return item_interface.getItemObject();
+
+		else updateInterfaces();
 	},
 
 	'error' : function() {
 		return Session.get('createAuctionErrors');
 	},
 
-	'rerollCost' : function(item_data) {
+	'rerollCost' : function() {
 		interface_tracker.depend();
-		if (player_item_interface)
-			return getCommaSeparatedValue(player_item_interface.getRerollCost());
+		if (item_interface)
+			return getCommaSeparatedValue(item_interface.getRerollCost());
 	},
 
 	'bankBalance' : function() {
@@ -96,14 +94,14 @@ Template.rerollModal.helpers({
 			return getCommaSeparatedValue(player_interface.getBankBalance());
 	},
 
-	'canReroll' : function(item_data) {
+	'canReroll' : function() {
 		interface_tracker.depend();
 		if (player_item_permissions) {
 			return player_item_permissions.canReroll();
 		}
 	},
 
-	'canChangeActiveUniqueAttribute' : function(item_data) {
+	'canChangeActiveUniqueAttribute' : function() {
 		interface_tracker.depend();
 		if (player_item_permissions)
 			return player_item_permissions.canChangeActiveUniqueAttribute();
@@ -119,7 +117,7 @@ Template.rerollModal.helpers({
 		return unique_object;
 	},
 
-	'upgradeCost': function(item_id) {
+	'upgradeCost': function() {
 		interface_tracker.depend();
 		var cost_array = [];
 		var upgrade_cost = player_item_interface.getItemIF().getUpgradeCost();
@@ -144,7 +142,7 @@ Template.rerollModal.helpers({
 		return cost_array;
 	},
 
-	'min_roll': function(item_id, type) {
+	'min_roll': function(type) {
 		interface_tracker.depend();
 		return Math.floor(player_item_interface.getRerollMin(type) * 100);
 	}

@@ -74,7 +74,7 @@ var failedAuction = function(auction_object) {
 
     else {
         var item_interface = new ItemIF(auction_object.item_id);
-        item_interface.updateItem({$set: {'status' : 'claimed'}}, function(error) {
+        item_interface.updateItem({$set: {'status' : 'claimed'}}, false, function(error) {
             if (error)
                 console.log(error.message);
 
@@ -98,7 +98,7 @@ var successfulAuction = function(auction_object, winning_user) {
     var send_item_to_inventory = winning_user.profile.settings.auction_items_to_inventory && !inventoryIsFull(winning_user);
     var new_status = send_item_to_inventory ? 'claimed' : 'won';
     
-    item_interface.updateItem({$set: {'status' : new_status, 'owner': winning_user._id, 'tags': [], 'date_received': moment()._d.toISOString()}}, function(error) {
+    item_interface.updateItem({$set: {'status' : new_status, 'owner': winning_user._id, 'tags': [], 'date_received': moment()._d.toISOString()}}, false, function(error) {
         if (error)
             console.log(error.message);
 
@@ -125,7 +125,7 @@ var successfulAuction = function(auction_object, winning_user) {
             winner_interface.alert(message, 'fa-gavel', 'good');
             
             if (item_object.condition < .5 && procUniqueAttribute(new_winner_id, "AUCTION_WIN_CONDITION_INCREASE", undefined)) {
-                nested_item_interface.updateItem({$set: {'condition': .9}});
+                nested_item_interface.updateItem({$set: {'condition': .9}}, false);
             }
 
             if (procUniqueAttribute(new_winner_id, "AUCTION_WIN_TICKET_EXTENSION", undefined)) {

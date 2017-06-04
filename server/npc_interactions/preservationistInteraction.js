@@ -55,11 +55,11 @@ preservationistInteraction = function(npc_object, player_interface) {
 
 				if (!criteria_met) {
 					if (Math.random() < .5 && random_permanent.level < 5) {
-						random_permanent_interface.updateItem({$inc: {'level': 1}});
+						random_permanent_interface.updateItem({$inc: {'level': 1}}, false);
 					}
 
 					else {
-						random_permanent_interface.updateItem({$set: {'condition': Math.min( Number((random_permanent.condition + .02).toFixed(2)), 1 )}});
+						random_permanent_interface.updateItem({$set: {'condition': Math.min( Number((random_permanent.condition + .02).toFixed(2)), 1 )}}, false);
 					}
 				}
 			}
@@ -108,7 +108,7 @@ preservationistInteraction = function(npc_object, player_interface) {
 	var new_condition = Math.min(repair_amount + target_item.condition, 1)
 
 	var target_item_interface = new ItemIF(target_item);
-	target_item_interface.updateItem({$set: {'condition' : Number(new_condition)}});
+	target_item_interface.updateItem({$set: {'condition' : Number(new_condition)}}, false);
 
 	if (message)
 		message = message + " Finally, they offer to refurbish one of your pieces. " + target_item.artwork_data.title + " by " + target_item.artwork_data.artist + " has increased in value.";

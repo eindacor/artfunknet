@@ -22,7 +22,7 @@ Meteor.setInterval((function() {
     // create auction for lottery items won instead of removing
     getFromCollection("interval_methods.js reclaim lottery items", items, {'status': 'won', 'date_received' : {$lt : auction_win_cutoff}, 'lottery': {$ne: 0}}).forEach(function(item_object) {
         var item_interface = new ItemIF(item_object);
-        item_interface.updateItem({$set: {'owner': "Artfunkel, Inc.", 'status': "auctioned", 'tags': []}}, function() {
+        item_interface.updateItem({$set: {'owner': "Artfunkel, Inc.", 'status': "auctioned", 'tags': []}}, true, function() {
             createAuction(item_object._id, getItemObjectValueByType(getOneFromCollection("interval_methods.js", items, item_object._id), "actual", "Artfunkel, Inc.") * 10, -1, 120, "public");
         });
     });
@@ -112,7 +112,12 @@ Meteor.setInterval((function() {
                 var player_interface = new PlayerIF(user_object);
                 var total_earnings = 0;
                 var total_xp = 0;
-                getFromCollection("interval_methods.js", items, {'status': "displayed", 'owner': player_interface.getId()}).forEach(function(item_object) {
+                var all_displayed = getFromCollection("interval_methods.js", items, {'status': "displayed", 'owner': player_interface.getId()}).fetch();
+
+                var update_gallery = false;
+
+                for (var i=0; i<all_displayed.length; i++) {
+                    var item_object = all_displayed[i];
                     var item_interface = new ItemIF(item_object);
                     var player_item_interface = new PlayerItemIF(player_interface, item_interface);
                     var money_per_hour = player_item_interface.getDisplayValuePerHour(display_earning_time);
@@ -127,15 +132,19 @@ Meteor.setInterval((function() {
 
                     if (Math.random() < .5) {
                         var new_condition = item_object.condition < .5 ? item_object.condition : item_object.condition - .01;
-                        item_interface.updateItem({$set: {'condition' : new_condition}});
+                        item_interface.updateItem({$set: {'condition' : new_condition}}, true);
+                        update_gallery = true;
                     }
-                });
+                };
 
                 if (total_earnings > 0)
                     player_interface.addFunds("display earnings", Math.floor(total_earnings));
 
                 if (total_xp > 0)
                     player_interface.addXP(total_xp);
+
+                if (update_gallery)
+                    player_interface.updateGalleryDetails();
             })
      
             var next_tick = moment(display_earning_time).add(display_earning_frequency, "milliseconds")._d.toISOString();
@@ -253,7 +262,7 @@ drawLottery = function(force_draw) {
         generateItemFromArtworkID(item_generator, function() {
             if (winning_id == "Artfunkel, Inc.") {
                 var item_interface = new ItemIF(_id);
-                item_interface.updateItem({$set: {'status': "auctioned", 'tags': []}}, function() {
+                item_interface.updateItem({$set: {'status': "auctioned", 'tags': []}}, true, function() {
                     createAuction(_id, getItemObjectValueByType(getOneFromCollection("interval_methods.js", items, _id), "actual", "Artfunkel, Inc.") * 10, -1, 120, "public");
                 });
             }
