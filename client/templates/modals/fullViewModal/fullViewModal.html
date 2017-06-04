@@ -3,7 +3,7 @@
 		<div class="left-panel col-xs-9">
 			<div class="img-container">
 				<div class="inner-container">
-					<img class="{{this.item_data.artwork_data.rarity}}-item" src="{{getImageURL this.item_data.artwork_data.filename}}" style="{{#with imageSize this.item_data.artwork_data.width this.item_data.artwork_data.height}}width: {{image_width}}px; height: {{image_height}}px;{{/with}}">
+					<img class="{{this.item_object.artwork_data.rarity}}-item" src="{{getImageURL this.item_object.artwork_data.filename}}" style="{{#with imageSize this.item_object.artwork_data.width this.item_object.artwork_data.height}}width: {{image_width}}px; height: {{image_height}}px;{{/with}}">
 				</div>
 			</div>
 		</div>
@@ -14,7 +14,7 @@
 				</div>
 			</div>
 			<div class="card-view">
-				{{>itemInfo item_data=this.item_data}}
+				{{>itemInfo item_data=this.item_object}}
 			</div>
 		</div>
 	</div>
