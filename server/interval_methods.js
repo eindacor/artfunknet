@@ -137,17 +137,20 @@ Meteor.setInterval((function() {
                     }
                 };
 
-                if (total_earnings > 0)
+                if (total_earnings > 0) {
                     player_interface.addFunds("display earnings", Math.floor(total_earnings));
+                }
 
-                if (total_xp > 0)
+                if (total_xp > 0) {
                     player_interface.addXP(total_xp);
+                }
 
-                if (update_gallery)
+                if (update_gallery) {
                     player_interface.updateGalleryDetails();
+                }
             })
      
-            var next_tick = moment(display_earning_time).add(display_earning_frequency, "milliseconds")._d.toISOString();
+            var next_tick = moment().add(display_earning_frequency, "milliseconds")._d.toISOString();
             metadata.update({'display_earnings_tick': {$ne: null}}, {$set: {'display_earnings_tick': next_tick}});
         }
     }
@@ -165,19 +168,20 @@ Meteor.setInterval((function() {
             }
 
             getFromCollection("interval_methods.js", Meteor.users, {}).forEach(function(user_object) {
-                var toal_xp = 0;
+                var total_xp = 0;
                 var player_interface = new PlayerIF(user_object);
                 getFromCollection("interval_methods.js", items, {'status': "permanent", 'owner': user_object._id}).forEach(function(item_object) {
                     var player_item_interface = new PlayerItemIF(player_interface, new ItemIF(item_object));
                     var xp_per_hour = player_item_interface.getXPPerHour(xp_earning_time, "permanent");
-                    toal_xp += xp_per_hour;
+                    total_xp += xp_per_hour;
                 });
 
-                if (toal_xp > 0)
-                    player_interface.addXP(user_object._id, toal_xp);        
+                if (total_xp > 0) {
+                    player_interface.addXP(total_xp);      
+                }  
             })
             
-            var next_tick = moment(xp_earning_time).add(xp_earning_frequency, "milliseconds")._d.toISOString();
+            var next_tick = moment().add(xp_earning_frequency, "milliseconds")._d.toISOString();
             metadata.update({'permanent_xp_tick': {$ne: null}}, {$set: {'permanent_xp_tick': next_tick}});
         }
     }

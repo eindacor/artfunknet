@@ -81,6 +81,10 @@ getItemObjectValues = function(item_object) {
 
     var range = max - min;
 
+    if (item_object.artwork_data.value_scale == undefined) {
+        item_object.artwork_data.value_scale = artworks.findOne({'_id': item_object.artwork_id}).value_scale;
+    }
+
     var mint_value = Math.floor(min + (item_object.artwork_data.value_scale * range));
 
     var base_value = mint_value * lowest_possible_value_coefficient;
@@ -122,6 +126,15 @@ getItemObjectValues = function(item_object) {
     values_object.auction_min = Math.floor(values_object.sell * .8);
     values_object.collector = Math.floor(actual_value * 1.2);
     values_object.dealer = Math.floor(actual_value * .9);
+
+    var all_keys = Object.keys(values_object);
+    for (var i=0; i<all_keys.length; i++) {
+        var key = all_keys[i];
+        if (isNaN(values_object[key])) {
+            console.log("invalid value.... " + key + ": " + values_object[key])
+            values_object[key] = 0;
+        }
+    }
 
     return values_object;
 }
@@ -445,10 +458,6 @@ Meteor.methods({
         if (Meteor.user() && dailyDropIsEnabled()) {
             var foil_chance = getLootData().global_foil_chance;
 
-            if (procUniqueAttribute(Meteor.userId(), "DAILY_FOIL_BONUS", undefined)) {
-                foil_chance *= 2;
-            }
-
             var multi_item_generator = {
                 'source': "daily drop",
                 'user_id': Meteor.userId(),
@@ -488,10 +497,6 @@ Meteor.methods({
         if (player_interface.getId() && crate_object.cost < player_interface.getBankBalance()) {
             var loot_data = getLootData();
             var foil_chance = loot_data.global_foil_chance;
-
-            if (procUniqueAttribute(player_interface.getId(), "CRATE_FOIL_BONUS", undefined)) {
-                foil_chance *= 2;
-            }
 
             var multi_item_generator = {
                 'source': crate_object.size + " crate",

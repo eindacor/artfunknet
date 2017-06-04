@@ -458,10 +458,27 @@ Meteor.methods({
     },
 
     'updateItemValues': function() {
-        if (adminValidated()) {
-            items.find().forEach(function(item_object) {
-                items.update(item_object._id, {$set: {'values': getItemObjectValues(item_object)}});
-            })
+        try {
+            if (adminValidated()) {
+                Meteor.users.find().forEach(function(user_object){
+                    var all_items = items.find().fetch();
+                    for (var i=0; i<all_items.length; i++) {
+                        var item_object = all_items[i];
+                        var reroll_cost = getItemObjectRollCost(item_object);
+                        var object_values = getItemObjectValues(item_object);
+                        items.update({'_id': item_object._id}, {$set: {'values': object_values, 'reroll_cost': reroll_cost}});
+                    }
+
+                    if (all_items.length > 0) {
+                        var player_interface = new PlayerIF(user_object);
+                        player_interface.updateGalleryDetails();
+                    }
+                })
+            }
+        }
+
+        catch (error) {
+            console.log(error);
         }
     },
 
