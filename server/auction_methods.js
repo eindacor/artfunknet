@@ -166,10 +166,11 @@ concludeAuction = function(auction_id) {
 
 refundWinner = function(auction_object, new_winner, refund_amount, bought) {
     var former_winner = Meteor.users.findOne({'profile.auction_data.winning': {$in: [auction_object._id]}});
-    var former_winner_interface = new PlayerIF(former_winner);
 
     if (former_winner == undefined)
         return undefined;
+    
+    var former_winner_interface = new PlayerIF(former_winner);
 
     former_winner_interface.addFunds(undefined, refund_amount);
 
