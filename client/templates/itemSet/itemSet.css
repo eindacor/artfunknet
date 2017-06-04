@@ -41,7 +41,12 @@
 	margin: 20px 80px 20px 80px;
 	vertical-align: middle;
 }
-.template-itemSet .page-button:hover {
+
+.template-itemSet .page-button.disabled {
+	opacity: 0;
+}
+
+.template-itemSet .page-button.enabled:hover {
 	color: black;
 	cursor: pointer;
 }

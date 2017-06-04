@@ -103,7 +103,7 @@ Template.itemActions.events({
 					console.log(error.message);
 
 				else {
-					Session.set('update_set', true);
+					refreshItemSet();
 				}
 			});
 		}
@@ -152,7 +152,7 @@ Template.itemActions.events({
 						}, $('body')[0]);
 					};
 
-					//updateItemTemplate(item_id, 10);
+					refreshItemSet();
 				}
 			})
 		}
@@ -162,13 +162,13 @@ Template.itemActions.events({
 		element.stopPropagation();
 		var item_id = $(element.target).closest('.item-container').data('item_id');
 		var permissions = new PlayerItemPermissions(new PlayerIF(Meteor.user()), new ItemIF(item_id));
-			if (permissions.canUndisplay()) {
+		if (permissions.canUndisplay()) {
 			Meteor.call('setItemDisplayStatus' , item_id, false, function(error) {
 				if (error)
 					console.log(error.message)
 
 				else {
-					//updateItemTemplate(item_id, 10);
+					refreshItemSet();
 				}
 			})
 		}
@@ -207,7 +207,7 @@ Template.itemActions.events({
 						}, $('body')[0]);
 					};
 
-					//updateItemTemplate(item_id, 10);
+					refreshItemSet();
 				}
 			})
 		}
@@ -223,7 +223,7 @@ Template.itemActions.events({
 					console.log(error.message)
 
 				else {
-					//updateItemTemplate(item_id, 10);
+					refreshItemSet();
 				}
 			})
 		}
@@ -239,7 +239,7 @@ Template.itemActions.events({
 					console.log(error.message);
 
 				else {
-					Session.set('update_set', true);
+					refreshItemSet();
 				}
 			});
 		}
@@ -258,7 +258,7 @@ Template.itemActions.events({
 					console.log(error.message);
 
 				else {
-					Session.set('update_set', true);
+					refreshItemSet();
 				}
 			});
 		}
@@ -279,7 +279,7 @@ Template.itemActions.events({
 					console.log(error.message);
 
 				else {
-					Session.set('update_set', true);
+					refreshItemSet();
 				}
 			})
 		}
@@ -309,7 +309,7 @@ Template.itemActions.events({
 					console.log(error.message);
 
 				else {
-					Session.set('update_set', true);
+					refreshItemSet();
 				}
 			});
 		}

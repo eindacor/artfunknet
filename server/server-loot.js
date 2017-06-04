@@ -53,23 +53,35 @@ var lowest_possible_value_coefficient = .5;
 var condition_coefficient_max = .3;
 var attribute_coefficient_max = .2;
 
+getItemObjectRollCost = function(item_object) {
+    var roll_count = item_object.roll_count < 0 ? 0 : item_object.roll_count;
+
+    var reroll_coefficient;
+    switch(item_object.artwork_data.rarity) {
+        case 'common' : reroll_coefficient = 1.1; break;
+        case 'uncommon' : reroll_coefficient = 1.11; break;
+        case 'rare' : reroll_coefficient = 1.12; break;
+        case 'legendary' : reroll_coefficient = 1.13; break;
+        case 'masterpiece' : reroll_coefficient = 1.14; break;
+        default: reroll_coefficient - 1.14; break;
+    }
+
+    var rarity_values = getLootData().rarity_values;
+    var reroll_cost = Math.floor((rarity_values[item_object.artwork_data.rarity].min * .1) * Math.pow(reroll_coefficient, roll_count));
+    return reroll_cost;
+}
+
 getItemObjectValues = function(item_object) {
     var values_object = {};
 
     var rarity_values = getLootData().rarity_values;
 
-    var artwork_object = artworks.findOne({'_id': item_object.artwork_id});
-
-    if (artwork_object == undefined) {
-        return values_object;
-    }
-
-    var min = rarity_values[artwork_object.rarity].min;
-    var max = rarity_values[artwork_object.rarity].max;
+    var min = rarity_values[item_object.artwork_data.rarity].min;
+    var max = rarity_values[item_object.artwork_data.rarity].max;
 
     var range = max - min;
 
-    var mint_value = Math.floor(min + (artwork_object.value_scale * range));
+    var mint_value = Math.floor(min + (item_object.artwork_data.value_scale * range));
 
     var base_value = mint_value * lowest_possible_value_coefficient;
     var condition_value = mint_value * condition_coefficient_max * item_object.condition;
@@ -265,17 +277,7 @@ var misprintArtworkData = function(artwork_data) {
 }
 
 generateItemFromArtworkID = function(item_generator, callback) {   
-    var owner_interface; 
-    try {
-        owner_interface = new PlayerIF(item_generator.user_id);
-    }
-
-    catch (error) {
-        if (item_generator.user_id != "Artfunkel, Inc.")
-            return;
-    }
-    
-    var artwork_data = artworks.findOne(item_generator.artwork_id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}}); 
+    var artwork_data = artworks.findOne(item_generator.artwork_id, {fields: {'active': 0}}); 
 
     if (artwork_data) {
         var loot_data = getLootData();
@@ -316,6 +318,7 @@ generateItemFromArtworkID = function(item_generator, callback) {
             new_item_object._id = item_generator._id;
 
         new_item_object.values = getItemObjectValues(new_item_object);
+        new_item_object.reroll_cost = getItemObjectRollCost(new_item_object);
 
         var new_item_id = items.insert(new_item_object, function(error, result) {
             if (error)

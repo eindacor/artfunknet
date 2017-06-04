@@ -50,7 +50,12 @@ var updateContent = function() {
 
     // temp code
     crates.remove({});
-    // temp code
+    items.find({'reroll_cost': null}).forEach(function(item_object) {
+        var item_interface = new ItemIF(item_object);
+        var artwork_object = artworks.findOne(item_object.artwork_id); 
+        item_interface.updateItem({$set: {'artwork_data.value_scale': artwork_object.value_scale}});
+    })
+    //temp code
 }
 
 Meteor.startup(function() {

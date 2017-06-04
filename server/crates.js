@@ -351,17 +351,7 @@ getItemAttributes = function(artwork_object, item_is_unlocked, attribute_map) {
 }
 
 generateItemFromArtworkIDRevised = function(item_generator, callback) {  
-	var owner_interface; 
-	try {
-		owner_interface = new PlayerIF(item_generator.user_id);
-	}
-
-	catch (error) {
-		if (item_generator.user_id != "Artfunkel, Inc.")
-			return;
-	}
-
-    var artwork_data = artworks.findOne(item_generator.artwork_id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}}); 
+	var artwork_data = artworks.findOne(item_generator.artwork_id, {fields: {'active': 0}}); 
 
     if (artwork_data) {
         var loot_data = getLootData();
@@ -403,6 +393,7 @@ generateItemFromArtworkIDRevised = function(item_generator, callback) {
             new_item_object._id = item_generator._id;
 
         new_item_object.values = getItemObjectValues(new_item_object);
+        new_item_object.reroll_cost = getItemObjectRollCost(new_item_object);
 
         var new_item_id = items.insert(new_item_object, function(error, result) {
             if (error)

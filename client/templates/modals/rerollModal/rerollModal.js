@@ -98,8 +98,9 @@ Template.rerollModal.helpers({
 
 	'canReroll' : function(item_data) {
 		interface_tracker.depend();
-		if (player_item_permissions)
+		if (player_item_permissions) {
 			return player_item_permissions.canReroll();
+		}
 	},
 
 	'canChangeActiveUniqueAttribute' : function(item_data) {

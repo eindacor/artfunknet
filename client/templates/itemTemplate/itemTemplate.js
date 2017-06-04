@@ -37,61 +37,61 @@ Template.itemInfo.rendered = function() {
 }
 
 // reconstruct itemTemplate DOM to avoid rerendering of entire itemSet
-updateItemTemplate = function(item_id, delay) {
-	setTimeout(function() {
-		var item_object = items.findOne(item_id);
-		var target_container = $("[data-item_id='" + item_object._id + "']").find('.card-container');
+// updateItemTemplate = function(item_id, delay) {
+// 	setTimeout(function() {
+// 		var item_object = items.findOne(item_id);
+// 		var target_container = $("[data-item_id='" + item_object._id + "']").find('.card-container');
 
-		if (target_container) {
-			target_container.find('#dynamic-value-stat').text("estimated value: " + getMoneyValue(item_object.values.actual));	
-			target_container.find('#dynamic-xp-stat').text("xp rating: ");
-			target_container.find('#dynamic-roll-count-stat').text("roll count: " + item_object.roll_count);
+// 		if (target_container) {
+// 			target_container.find('#dynamic-value-stat').text("estimated value: " + getMoneyValue(item_object.values.actual));	
+// 			target_container.find('#dynamic-xp-stat').text("xp rating: ");
+// 			target_container.find('#dynamic-roll-count-stat').text("roll count: " + item_object.roll_count);
 
-			if (item_object.active_unique_attribute) {
-				target_container.find('.flavor-text').text('"' + unique_attributes.findOne(item_object.active_unique_attribute).flavor_text + '"');
-			}
+// 			if (item_object.active_unique_attribute) {
+// 				target_container.find('.flavor-text').text('"' + unique_attributes.findOne(item_object.active_unique_attribute).flavor_text + '"');
+// 			}
 
-			var all_attributes = item_object.attributes.unlocked.concat(item_object.attributes.locked.concat(item_object.attributes.special));
+// 			var all_attributes = item_object.attributes.unlocked.concat(item_object.attributes.locked.concat(item_object.attributes.special));
 
-			for (var i=0; i<target_container.find('.attribute-area i').length; i++) {
-				var new_attribute = all_attributes[i];
-				var dom_attribute = target_container.find('.attribute-area i:eq(' + i + ')');
+// 			for (var i=0; i<target_container.find('.attribute-area i').length; i++) {
+// 				var new_attribute = all_attributes[i];
+// 				var dom_attribute = target_container.find('.attribute-area i:eq(' + i + ')');
 
-				var dom_description = dom_attribute.data().attribute_description;
-				if (new_attribute.description != dom_description) {
-					dom_attribute.attr('data-attribute_description', new_attribute.description)
+// 				var dom_description = dom_attribute.data().attribute_description;
+// 				if (new_attribute.description != dom_description) {
+// 					dom_attribute.attr('data-attribute_description', new_attribute.description)
 
-					var class_count = dom_attribute[0].classList.length;
-					var previous_icon = dom_attribute[0].classList[class_count - 1];
-					dom_attribute.removeClass(previous_icon);
-					dom_attribute.addClass(new_attribute.icon);
-				}
+// 					var class_count = dom_attribute[0].classList.length;
+// 					var previous_icon = dom_attribute[0].classList[class_count - 1];
+// 					dom_attribute.removeClass(previous_icon);
+// 					dom_attribute.addClass(new_attribute.icon);
+// 				}
 
-				if (item_object.status == "permanent") {
-					if (!dom_attribute.hasClass('permanent'))
-						dom_attribute.addClass('permanent');
-				}
+// 				if (item_object.status == "permanent") {
+// 					if (!dom_attribute.hasClass('permanent'))
+// 						dom_attribute.addClass('permanent');
+// 				}
 
-				else if (dom_attribute.hasClass('permanent'))
-					dom_attribute.removeClass('permanent');
+// 				else if (dom_attribute.hasClass('permanent'))
+// 					dom_attribute.removeClass('permanent');
 
-				var dom_value = dom_attribute.data().attribute_value;
-				if (new_attribute.value != dom_value) {
-					dom_attribute.attr('data-attribute_value', new_attribute.value);
-					dom_attribute.attr('style', 'color: ' + getHTMLColorFromValue(new_attribute.value));
-				}
-			}
+// 				var dom_value = dom_attribute.data().attribute_value;
+// 				if (new_attribute.value != dom_value) {
+// 					dom_attribute.attr('data-attribute_value', new_attribute.value);
+// 					dom_attribute.attr('style', 'color: ' + getHTMLColorFromValue(new_attribute.value));
+// 				}
+// 			}
 
-			var dynamic_xp_wrapper = target_container.find('.dynamic-xp-rating');
-			dynamic_xp_wrapper.empty();
-			dynamic_xp_wrapper.append('<p>' + item_object.level + '</p>')
+// 			var dynamic_xp_wrapper = target_container.find('.dynamic-xp-rating');
+// 			dynamic_xp_wrapper.empty();
+// 			dynamic_xp_wrapper.append('<p>' + item_object.level + '</p>')
 
-			target_container.remove('.status-mask');
+// 			target_container.remove('.status-mask');
 
-			updateItemActions(item_object);
-		}
-	}, delay == undefined ? 0 : delay)
-}
+// 			updateItemActions(item_object);
+// 		}
+// 	}, delay == undefined ? 0 : delay)
+// }
 
 Template.itemInfo.helpers({
 	'imageSize' : function(width, height) {
@@ -124,20 +124,17 @@ Template.itemInfo.helpers({
 		}
 	},
 	//TODO replace below status methods with more elegant solution -> DOM modification from updatestatus
-	'permanentStatus' : function(item_id) {
-		var item_object = items.findOne(item_id);
+	'permanentStatus' : function(item_object) {
 		if (item_object)
 			return item_object.status == "permanent";
 	},
 
-	'displayedStatus': function(item_id) {
-		var item_object = items.findOne(item_id);
+	'displayedStatus': function(item_object) {
 		if (item_object)
 			return item_object.status == "displayed";
 	},
 
-	'auctionedStatus': function(item_id) {
-		var item_object = items.findOne(item_id);
+	'auctionedStatus': function(item_object) {
 		if (item_object)
 			return item_object.status == "auctioned";
 	},
@@ -186,19 +183,17 @@ Template.itemInfo.helpers({
 		else return undefined;
 	},
 
-	'already_owns': function(item_id) {
+	'already_owns': function(item_object) {
 		// returns true if the viewer owns a claimed copy of this item, and the item itself is not owned or claimed by the viewer
-		var item_object = items.findOne(item_id);
-
 		if (item_object == undefined)
 			return false;
-		
+
 		var item_belongs_to_other = item_object.owner != Meteor.userId();
-		var item_is_unclaimed = items.findOne({'_id': item_id, 'status': {$in: ['unclaimed', 'for_sale', 'won']}}) != undefined;
+		var item_is_unclaimed = ['unclaimed', 'for_sale', 'won'].indexOf(item_object.status) != -1
 		var show_already_owns = item_belongs_to_other || item_is_unclaimed;
 
 		if (show_already_owns) {
-			var artwork_id = items.findOne(item_id).artwork_id;
+			var artwork_id = item_object.artwork_id;
 			var valid_statuses = ['claimed', 'permanent', 'displayed', 'auctioned'];
 			return items.findOne({'owner': Meteor.userId(), 'status': {$in: valid_statuses}, 'artwork_id': artwork_id});
 		}
@@ -206,11 +201,11 @@ Template.itemInfo.helpers({
 		else return false;
 	},
 
-	'showDetails': function(item_data) {
-		return item_data.level != undefined;
+	'showDetails': function(item_object) {
+		return item_object.level != undefined;
 	},
 
-	'checklist_info': function(item_data) {
+	'checklist_info': function(item_object) {
 		checklist_data_tracker.depend();
 
 		if (checklist_data == undefined) {
@@ -220,9 +215,9 @@ Template.itemInfo.helpers({
 
 		else {
 			var checklist_object;
-			if (checklist_data[item_data.artwork_data.rarity] != undefined) {
-				if (checklist_data[item_data.artwork_data.rarity][item_data.artwork_id] != undefined) {
-					checklist_object = checklist_data[item_data.artwork_data.rarity][item_data.artwork_id]
+			if (checklist_data[item_object.artwork_data.rarity] != undefined) {
+				if (checklist_data[item_object.artwork_data.rarity][item_object.artwork_id] != undefined) {
+					checklist_object = checklist_data[item_object.artwork_data.rarity][item_object.artwork_id]
 				}
 			}
 
@@ -230,78 +225,72 @@ Template.itemInfo.helpers({
 		}
 	},
 
-	'hide_mask': function(item_data) {
-		return item_data.status != "permanent" && item_data.status != "displayed" && item_data.status != "auctioned";
+	'hide_mask': function(item_object) {
+		return item_object.status != "permanent" && item_object.status != "displayed" && item_object.status != "auctioned";
 	},
 
-	'display_details': function(item_id) {
+	'display_details': function(item_object) {
 		display_details_tracker.depend();
-		if (display_details_map[item_id] == undefined) {
-			Meteor.call('getDisplayDetails', item_id, function(error, result) {
+		if (display_details_map[item_object._id] == undefined) {
+			Meteor.call('getDisplayDetails', item_object, function(error, result) {
 				if (error)
 					console.log(error)
 
 				else {
-					display_details_map[item_id] = result;
+					display_details_map[item_object._id] = result;
 					display_details_tracker.changed();
 				}
 			})
 		}
 		
-		return display_details_map[item_id];
+		return display_details_map[item_object._id];
 	},
 
-	'permanent_details': function(item_id) {
+	'permanent_details': function(item_object) {
 		permanent_details_tracker.depend();
-		if (permanent_details_map[item_id] == undefined) {
-			Meteor.call('getPermanentDetails', item_id, function(error, result) {
+		if (permanent_details_map[item_object._id] == undefined) {
+			Meteor.call('getPermanentDetails', item_object, function(error, result) {
 				if (error)
 					console.log(error)
 
 				else {
-					permanent_details_map[item_id] = result;
+					permanent_details_map[item_object._id] = result;
 					permanent_details_tracker.changed();
 				}
 			})
 		}
 		
-		return permanent_details_map[item_id];
+		return permanent_details_map[item_object._id];
 	},
 
-	'card_types': function(item_data) {
+	'card_types': function(item_object) {
 		var types = "";
 
-		if (item_data.foil) {
+		if (item_object.foil) {
 			types += "foil ";
 		}
 
-		if (item_data.unlocked) {
+		if (item_object.unlocked) {
 			types += "unlocked ";
 		}
 
-		if (item_data.seasonal) {
+		if (item_object.seasonal) {
 			types += "seasonal ";
 		}
 
-		if (item_data.vintage) {
+		if (item_object.vintage) {
 			types += "vintage ";
 		}
 
-		if (item_data.lottery) {
+		if (item_object.lottery) {
 			types += "lottery ";
 		}
 
-		if (item_data.original) {
+		if (item_object.original) {
 			types += "original ";
 		}
 
 		return types;
-	},
-
-	'level': function(item_id) {
-		var item_object = items.findOne(item_id);
-		if (item_object)
-			return item_object.level;
 	}
 })
 
@@ -314,7 +303,7 @@ Template.itemInfo.events({
 			Blaze.renderWithData(Template.modalTemplate, {
 				'modal_name': "fullViewModal", 
 				'modal_data': {
-					'item_data': items.findOne(item_id)
+					'item_object': items.findOne(item_id)
 				}
 			}, $('body')[0]);
 		}

@@ -179,7 +179,7 @@ updateItem = function(query, modifier, callback) {
             console.log("updateItem: " + error.message);
 
         else {
-            var item_object = items.findOne(item_id);
+            var item_object = items.findOne(query);
             if (item_object == undefined)
                 return false;
 
@@ -205,10 +205,10 @@ updateItem = function(query, modifier, callback) {
 
             var newItemObjectValues = getItemObjectValues(item_object);
             if (callback == undefined) {           
-                items.update(item_id, {$set: {'values': newItemObjectValues, 'reroll_cost': reroll_cost}});
+                items.update(query, {$set: {'values': newItemObjectValues, 'reroll_cost': reroll_cost}});
             }
 
-            else items.update(item_id, {$set: {'values': newItemObjectValues, 'reroll_cost': reroll_cost}}, callback);
+            else items.update(query, {$set: {'values': newItemObjectValues, 'reroll_cost': reroll_cost}}, callback);
         }
     })
 }
@@ -373,11 +373,11 @@ Meteor.methods({
         return getItemArray(filter_array, sorter_object, current_page, items_per_page);
     },
 
-    'getDisplayDetails': function(item_id) {
+    'getDisplayDetails': function(item) {
         try {
-            var item_interface = new ItemIF(item_id);
+            var item_interface = new ItemIF(item);
             var player_item_interface = new PlayerItemIF(new PlayerIF(item_interface.getItemObject().owner), item_interface);
-            if (player_item_interface.getItemIF().getStatus() == "displayed") {
+            if (item_interface.getStatus() == "displayed") {
                 var earnings_per_hour = player_item_interface.getDisplayValuePerHour(moment()._d.toISOString());
                 var time_since_displayed = player_item_interface.getItemIF().getItemObject().time_displayed;
                 return {
@@ -406,11 +406,11 @@ Meteor.methods({
         }
     },
 
-    'getPermanentDetails': function(item_id) {
+    'getPermanentDetails': function(item) {
         try {
-            var item_interface = new ItemIF(item_id);
+            var item_interface = new ItemIF(item);
             var player_item_interface = new PlayerItemIF(new PlayerIF(item_interface.getItemObject().owner), item_interface);
-            if (player_item_interface.getItemIF().getStatus() == "permanent") {
+            if (item_interface.getStatus() == "permanent") {
                 var xp_per_hour = player_item_interface.getXPPerHour(moment()._d.toISOString(), "permanent");
                 var time_since_displayed = player_item_interface.getItemIF().getItemObject().permanent_post;
                 return {
