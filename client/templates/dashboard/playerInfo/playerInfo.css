@@ -135,3 +135,19 @@
 	font-size: 1.5rem;
 	padding-top: 0px;
 }
+
+.template-playerInfo .social-logo {
+	height: 50px;
+	margin-right: 16px;
+	opacity: .6;
+	margin-bottom: 16px;
+}
+
+.template-playerInfo .social-logo:hover {
+	opacity: 1;
+}
+
+.template-playerInfo .feedback {
+	border-top: 1px solid rgba(0,0,0,.3);
+	padding-top: 20px;
+}
