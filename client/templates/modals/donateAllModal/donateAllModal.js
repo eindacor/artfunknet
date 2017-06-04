@@ -6,7 +6,7 @@ Template.donateAllModal.events({
 
 			else {
 				$('.template-modalTemplate').remove();
-				Session.set('update_set', true);
+				updatePages();
 			}
 		})
 	}

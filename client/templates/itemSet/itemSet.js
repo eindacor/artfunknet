@@ -1,5 +1,6 @@
 var display_tracker = new Tracker.Dependency;
-var page_tracker = new Tracker.Dependency;
+page_tracker = new Tracker.Dependency;
+item_getter_tracker = new Tracker.Dependency;
 
 var status_filter;
 var item_array = [];
@@ -22,6 +23,10 @@ var current_page = 0;
 var items_found = 0;
 var items_per_page = 10;
 var set_location;
+
+var getter_query;
+
+var item_getter;
 
 var generateQueryFromSearchTerms = function() {
 	if (search_terms.length == 0)
@@ -81,17 +86,23 @@ var createAndObjectFromPermutation = function(index_counter) {
 }
 
 var incrementPermutation = function(permutation, num_digits, cursor) {
-	if (cursor == permutation.length)
-		return permutation;
+	try {
+		if (cursor == permutation.length)
+			return permutation;
 
-	else if (permutation[cursor] != num_digits - 1) {
-		permutation[cursor] = permutation[cursor] + 1;
-		return permutation;
+		else if (permutation[cursor] != num_digits - 1) {
+			permutation[cursor] = permutation[cursor] + 1;
+			return permutation;
+		}
+
+		else {
+			permutation[cursor] = 0;
+			return incrementPermutation(permutation.slice(), num_digits, cursor + 1)
+		}
 	}
 
-	else {
-		permutation[cursor] = 0;
-		return incrementPermutation(permutation.slice(), num_digits, cursor + 1)
+	catch(error) {
+		console.log(error);
 	}
 }
 
@@ -144,7 +155,27 @@ var addQueriesFromKeywords = function(base_filter) {
 	}
 }
 
-var getItemArray = function() {
+refreshItemSet = function() {
+	updatePages();
+	//item_getter_tracker.changed();
+}
+
+updatePages = function() {
+	if (getter_query) {
+		items_found = items.find(getter_query).count();
+
+		if (items_found == 0)
+			current_page = 0;
+
+		else if (current_page * items_per_page >= items_found) {
+			current_page = Math.floor(items_found / items_per_page) - (items_found % items_per_page == 0 ? 1 : 0);
+		}
+
+		page_tracker.changed();
+	}
+}
+
+var updateItemGetter = function() {
 	var sorter_object = {};
 	sorter_object[sorter] = ascending;
 
@@ -292,33 +323,17 @@ var getItemArray = function() {
 		}
 	}
 
-	filter_array.push(base_filter);	
+	getter_query = {$and: filter_array};
+	getter_query.owner = Meteor.userId();
 
-	Meteor.call('getItemArray', filter_array, sorter_object, current_page, items_per_page, function(error, result) {
-		if (error)
-			console.log(error.message)
+	updatePages();
 
-		else {
-			item_array = result.item_array;
-			items_found = result.items_found;
+	item_getter = {
+		'query': getter_query,
+		'options': {sort: sorter_object, skip: current_page * items_per_page, limit: items_per_page}
+	}
 
-			if (items_found == 0)
-				current_page = 0;
-
-			else if (current_page * items_per_page >= items_found) {
-				current_page = Math.floor(items_found / items_per_page) - (items_found % items_per_page == 0 ? 1 : 0);
-			}
-
-			page_tracker.changed();
-			display_tracker.changed();
-		}
-	})
-	Session.set('update_set', false);
-}
-
-var resetArrayAndUpdate = function() {
-	Session.set('update_set', true);
-	display_tracker.changed();
+	item_getter_tracker.changed();
 }
 
 Template.itemSet.helpers({
@@ -337,28 +352,21 @@ Template.itemSet.helpers({
 	},
 
 	'item_array': function(statuses) {
-		display_tracker.depend();
-		if (statuses == undefined)
+		item_getter_tracker.depend();
+
+		if (status_filter === undefined) {
+			status_filter = {'status': {$in: statuses}};
+			updateItemGetter();
 			return [];
-
-		if (Session.get('update_set')) {
-			if (status_filter == undefined)
-				status_filter = {'status': {'$in': statuses}};
-
-			getItemArray();
 		}
 
-		return item_array;
+		if (item_getter == undefined) {
+			updateItemGetter();
+			return [];
+		}
+
+		return items.find(item_getter.query, item_getter.options);
 	},
-
-	// 'trackUpdates': function() {
-	// 	if (Session.get('update_set')) {
-	// 		Session.set('update_set', false);
-	// 		resetArrayAndUpdate();
-	// 	}
-
-	// 	return Session.get('update_set');
-	// },
 
 	'setLocation': function(item_set_location) {
 		set_location = item_set_location;
@@ -367,7 +375,7 @@ Template.itemSet.helpers({
 
 Template.itemSet.events({
 	'keyup #search-area': function(event) {
-		resetArrayAndUpdate();
+		updateItemGetter();
 	}, 
 
 	'keydown #search-area': function(event) {
@@ -379,12 +387,12 @@ Template.itemSet.events({
 
 	'change #sort-selector': function(event) {
 		sorter = $(event.target).val();
-		resetArrayAndUpdate();
+		updateItemGetter();
 	},
 
 	'change #order-selector': function(event) {
 		ascending = Number($(event.target).val());
-		resetArrayAndUpdate();
+		updateItemGetter();
 	}, 
 
 	'change #card-type-checkbox': function() {
@@ -453,7 +461,7 @@ Template.itemSet.events({
 		 	}
 		 }
 
-		 resetArrayAndUpdate();
+		updateItemGetter();
 	},
 
 	'change #card-status-checkbox': function() {
@@ -466,7 +474,7 @@ Template.itemSet.events({
 
 		status_filter = {'status': {'$in': valid_statuses}};
 
-		resetArrayAndUpdate();
+		updateItemGetter();
 	},
 
 	'change #locked-attribute-checkbox': function() {
@@ -477,7 +485,7 @@ Template.itemSet.events({
 		 		special_attributes.push($('input[type=checkbox].locked-attribute-select:eq(' + i + ')').val())
 		}
 
-		resetArrayAndUpdate();
+		updateItemGetter();
 	},
 
 	'change #attribute-checkbox': function() {
@@ -488,7 +496,7 @@ Template.itemSet.events({
 		 		standard_attributes.push($('input[type=checkbox].attribute-select:eq(' + i + ')').val())
 		}
 
-		resetArrayAndUpdate();
+		updateItemGetter();
 	},
 
 	'change #card-rarity-checkbox': function() {
@@ -501,15 +509,15 @@ Template.itemSet.events({
 
 		rarity_filter = {'artwork_data.rarity': {$in: valid_rarities}};
 
-		resetArrayAndUpdate();
+		updateItemGetter();
 	},
 
 	'change #locked-filter': function() {
-		resetArrayAndUpdate();
+		updateItemGetter();
 	},
 
 	'change #attribute-filter': function() {
-		resetArrayAndUpdate();
+		updateItemGetter();
 	},
 
 	//TODO figure out why below logic is reversed
@@ -524,30 +532,35 @@ Template.itemSet.events({
 			target.addClass('af-color');
 			$('.all-filters').css('display', 'block');
 		}
+
+		updateItemGetter();
 	},
 
 	'click #inventory-page-right': function() {
 		if (items_found > (current_page * items_per_page) + items_per_page) {
 			current_page++;
-			resetArrayAndUpdate();
 		}
+
+		updateItemGetter();
 	},
 
 	'click #inventory-page-left': function() {
 		if (current_page > 0) {
 			current_page--;
-			resetArrayAndUpdate();
 		}
+
+		updateItemGetter();
 	},
 
 	'change #page-count-select': function() {
 		items_per_page = Number($('#page-count-select').val());
-		resetArrayAndUpdate();
+		updateItemGetter();
 	}
 })
 
 Template.itemSet.rendered = function() {
 	set_location = undefined;
+	getter_query = undefined;
 	item_array = [];
 	tags = [];
 	search_terms = [];
@@ -567,17 +580,8 @@ Template.itemSet.rendered = function() {
 	standard_filter = {};
 	current_page = 0;
 	items_found = 0;
-	items_per_page = 10;
 	status_filter = undefined;
-	resetArrayAndUpdate();
-
-	this.handle = Meteor.setInterval((function() {
-		for (var i=0; i<$('.item-container').length; i++) {
-		 	var item_id = $('.item-container:eq(' + i + ')').data().item_id;
-		 	if (items.findOne(item_id) == undefined)
-		 		resetArrayAndUpdate();
-		}
-	}), 1000);
-
-	Session.set('update_set', true);
+	items_per_page = 10;
+	item_getter = undefined;
+	item_getter_tracker.changed();
 }

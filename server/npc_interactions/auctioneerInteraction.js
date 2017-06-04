@@ -1,4 +1,4 @@
-auctioneerInteraction = function(npc_object) {
+auctioneerInteraction = function(npc_object, player_interface) {
 	var user_object = Meteor.user();
 
 	var market_expert_duration = 10; //minutes

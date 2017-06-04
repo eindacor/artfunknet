@@ -1,32 +1,9 @@
-var generateContent = function() {
-    for (var i=0; i < artist_data.length; i++) {
-		artists.insert(artist_data[i]);
-	}
-
-    try {
-    	for (var i=0; i < painting_data.length; i++) {
-    		var artist_id = artists.findOne({"artist_name": painting_data[i].artist})._id;
-    		var artwork_object = painting_data[i];
-    		artwork_object.genre = artwork_object.genre.toLowerCase();
-    		artwork_object.artist_id = artist_id;
-    		artworks.insert(artwork_object, function(artwork_insert_error, inserted_id) {
-                if (artwork_insert_error)
-                    console.log(artwork_insert_error.message);
-            });
-    	}
-    }
-
-    catch(error) {
-        console.log("error adding artwork to DBs:");
-        console.log(error.message);
-    }
-}
-
 var updateContent = function() {
     var all_users = Meteor.users.find();
-    all_users.forEach(function(db_object) {
-        updateGalleryDetails(db_object._id);
-        var cap_object = getCapSetterObject(db_object.profile.level);
+    all_users.forEach(function(user_object) {
+        var player_interface = new PlayerIF(user_object);
+        player_interface.updateGalleryDetails();
+        var cap_object = getCapSetterObject(user_object.profile.level);
 
         var setter = {};
 
@@ -39,20 +16,8 @@ var updateContent = function() {
             setter[setter_key] = value;
         }
 
-        Meteor.users.update(db_object._id, {$set : setter});
+        Meteor.users.update(user_object._id, {$set : setter});
     });
-
-    if (TEST_MODE) {
-        items.find({'status': {$in: ["displayed", "permanent"]}}).forEach(function(item_object) {
-            var random_days = Math.floor(Math.random() * 30);
-            var random_time = moment().add(random_days * -1, 'days')._d.toISOString();
-            var random_level = Math.floor(Math.random() * 10) + 1;
-            if (item_object.status == "permanent")
-                updateItem(item_object._id, {$set: {'permanent_post': random_time, 'level': random_level}});
-
-            else updateItem(item_object._id, {$set: {'time_displayed': random_time, 'level': random_level}});
-        });
-    }
 
     var current_dynamic_crate_count = crates.find().count();
     for (var i=0; i<DYNAMIC_CRATE_COUNT - current_dynamic_crate_count; i++) {
@@ -60,7 +25,8 @@ var updateContent = function() {
     }
 
     // temp code
-    // temp code
+    crates.remove({});
+    //temp code
 }
 
 Meteor.startup(function() {
@@ -108,9 +74,6 @@ Meteor.startup(function() {
         createUser(player_1);
         createUser(admin);
     }
-
-    if (artists.find({}).count() == 0 && artworks.find({}).count() == 0)
-        generateContent();
 
     updateContent();
 })

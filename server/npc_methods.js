@@ -10,13 +10,15 @@ getNPCQuality = function(player_level) {
 }
 
 createNPC = function(gallery_object, attribute_id, duration, npc_quality) {
+	var attribute_object = getOneFromCollection("createNPC()", attributes, attribute_id);
     var npc_object = {
         'quality' : npc_quality,
         'attribute_id' : attribute_id,
         'owner_id' : gallery_object.owner_id,
         'expiration' : moment().add(duration, 'milliseconds')._d.toISOString(),
         'players_met' : [],
-        'icon' : attributes.findOne(attribute_id).icon
+        'icon' : attribute_object.icon,
+        'npc_name': attribute_object.npc_name
     }
 
     npcs.insert(npc_object, function(error, inserted_id) {
@@ -39,6 +41,7 @@ var ignoreNPC = function(npc_id) {
 }
 
 var interactWithNPC = function(npc_id) {
+	var player_interface = new PlayerIF(Meteor.user());
 	var npc_validation_response = canMeetNPC(npc_id)
 	var npc_object = npc_validation_response.npc_object;
 
@@ -57,16 +60,16 @@ var interactWithNPC = function(npc_id) {
 
 	switch(attribute_object.title) {
 		case "benefactor_bonus": 
-			npc_interaction = benefactorInteraction(npc_object);
+			npc_interaction = benefactorInteraction(npc_object, player_interface);
 			break;
 		case "donor_bonus": 
-			npc_interaction = donorInteraction(npc_object);
+			npc_interaction = donorInteraction(npc_object, player_interface);
 			break;
 		case "preservationist_bonus": 
-			npc_interaction = preservationistInteraction(npc_object);
+			npc_interaction = preservationistInteraction(npc_object, player_interface);
 			break;
 		case "gallery_manager":
-			npc_interaction = galleryManagerInteraction(npc_object);
+			npc_interaction = galleryManagerInteraction(npc_object, player_interface);
 			break;
 		case "set_xp_visitors": //DISABLE - give portion of set xp to visitors
 			npc_interaction = {'message': "You have been given 0xp for sets in this permanent collection."};
@@ -75,25 +78,25 @@ var interactWithNPC = function(npc_id) {
 			npc_interaction = {'message': "You have been given 0xp for works in this permanent collection."};
 			break;
 		case "dealer_bonus":
-			npc_interaction = artDealerInteraction(npc_object);
+			npc_interaction = artDealerInteraction(npc_object, player_interface);
 			break;
 		case "collector_bonus":
-			npc_interaction = collectorInteraction(npc_object);
+			npc_interaction = collectorInteraction(npc_object, player_interface);
 			break;
 		case "marketing_manager_bonus":
-			npc_interaction = marketingManagerInteraction(npc_object);
+			npc_interaction = marketingManagerInteraction(npc_object, player_interface);
 			break;
 		case "forger_bonus": //DISABLE - give access to black market
 			npc_interaction = {'message': "You have met an art forger."};
 			break;
 		case "art_expert_bonus":
-			npc_interaction = artExpertInteraction(npc_object);
+			npc_interaction = artExpertInteraction(npc_object, player_interface);
 			break;
 		case "historian_bonus": //DISABLE - quiz players for xp
-			npc_interaction = historianInteraction(npc_object);
+			npc_interaction = historianInteraction(npc_object, player_interface);
 			break;
 		case "auctioneer_bonus": //DISABLE - analyze auction house and return deals
-			npc_interaction = auctioneerInteraction(npc_object);
+			npc_interaction = auctioneerInteraction(npc_object, player_interface);
 			break;
 		case "entry_fee_reduction_members": //DISABLE = reduce entry fee for members
 		case "set_xp_members": //DISABLE - give portion of set xp to members
@@ -102,7 +105,7 @@ var interactWithNPC = function(npc_id) {
 		case "money_per_visitor": //DISABLE - increase money earned for entry fee
 		case "bonus_money": //DISABLE - bonus money from feature paintings
 		case "enthusiast_bonus": //give xp
-			npc_interaction = enthusiastInteraction(npc_object);
+			npc_interaction = enthusiastInteraction(npc_object, player_interface);
 			break;
 		default: return undefined;
 	}

@@ -8,7 +8,6 @@
 				{{> galleryValue gallery_value_data}}
 				{{> earningsPerHour gallery_earnings_data}}
 				{{> questsCompleted quests_completed_data}}
-				{{> itemsOwned items_owned_data}}
 				{{> moneySpentOnCrates money_spent_crates_data}}
 			{{/with}}
 		</div>
@@ -126,29 +125,6 @@
 					</div> 
 					<div class="col-xs-5">
 						<p class="highlight">{{commaSeparatedValue this.profile.completed_quests}}</p>
-					</div> 
-				</div>
-				{{/if}}
-			{{/each}}
-		</div>
-	</div>
-</template>
-
-<template name="itemsOwned">
-	<div class="row list-section">
-		<div class="template-itemsOwned col-xs-12 col-md-6">
-			<h3 class="af-color">Items Owned</h3>
-			{{#each this}}
-				{{#if this.profile.items_owned}}
-				<div class="row list-row">
-					<div class="col-xs-1">
-						<p>{{positionFromIndex @index}}.</p>
-					</div> 
-					<div class="col-xs-6">
-						<p class="highlight">{{this.profile.screen_name}}</p>
-					</div> 
-					<div class="col-xs-5">
-						<p class="highlight">{{commaSeparatedValue this.profile.items_owned}}</p>
 					</div> 
 				</div>
 				{{/if}}

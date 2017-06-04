@@ -1,4 +1,4 @@
-preservationistInteraction = function(npc_object) {
+preservationistInteraction = function(npc_object, player_interface) {
 	var repair_amount;
 	var target_item = undefined;
 	var message = undefined;
@@ -33,32 +33,33 @@ preservationistInteraction = function(npc_object) {
 		// B) If the preserved item already has a condition > 80, you earn money based on its value.
 		if (target_item && target_item.condition > .8 && procUniqueAttribute(Meteor.userId(), "PRESERVATIONIST_CONDITION_BONUS", undefined)) {
 			message = "You have met a preservationist, who is in awe of the pristine quality of your displayed works. He immediately notifies his rich uncle who gives you a hefty donation.";
-			addFunds("PRESERVATIONIST_CONDITION_BONUS", Meteor.userId(), Math.min( Math.floor(getItemObjectValueByType(target_item, 'actual', Meteor.userId())), 500000) );
+			player_interface.addFunds("PRESERVATIONIST_CONDITION_BONUS", Math.min( Math.floor(getItemObjectValueByType(target_item, 'actual', Meteor.userId())), 500000) );
 		}
 
 		// C) If you meet a preservationist with an enthusiast present, they select an item in your permanent collection. If the item has an XP rating > 90, or a condition > 80, you earn XP. If it has neither, it's XP rating or condition is increased.
 		if (procUniqueAttribute(Meteor.userId(), "PC_XP_RATING_BOOST", "Art Enthusiast")) {
 			var random_permanent = selectRandomPainting({'owner': Meteor.userId(), 'status': "permanent"});
+			var random_permanent_interface = new ItemIF(random_permanent);
 
 			if (random_permanent) {
 				var criteria_met = false;
 				if (random_permanent.condition > .8) {
-					addXPChunkPercentage("PC_XP_RATING_BOOST - condition", Meteor.userId(), .3);
+					player_interface.addXPChunkPercentage("PC_XP_RATING_BOOST - condition", .3);
 					criteria_met = true;
 				}
 
 				if (random_permanent.level > 5) {
-					addXPChunkPercentage("PC_XP_RATING_BOOST - level", Meteor.userId(), .3);
+					player_interface.addXPChunkPercentage("PC_XP_RATING_BOOST - level", .3);
 					criteria_met = true;
 				}
 
 				if (!criteria_met) {
 					if (Math.random() < .5 && random_permanent.level < 5) {
-						updateItem(random_permanent._id, {$inc: {'level': 1}});
+						random_permanent_interface.updateItem({$inc: {'level': 1}}, false);
 					}
 
 					else {
-						updateItem(random_permanent._id, {$set: {'condition': Math.min( Number((random_permanent.condition + .02).toFixed(2)), 1 )}});
+						random_permanent_interface.updateItem({$set: {'condition': Math.min( Number((random_permanent.condition + .02).toFixed(2)), 1 )}}, false);
 					}
 				}
 			}
@@ -99,14 +100,15 @@ preservationistInteraction = function(npc_object) {
 
 		else message = "You have met a preservationist, but you don't currently own any works that can be refurbished. Then can only offer their gratitude.";
 
-		addXPChunkPercentage("preservationist (all items maxed)", Meteor.userId(), conditions_maxed_bonus);
+		player_interface.addXPChunkPercentage("preservationist (all items maxed)", conditions_maxed_bonus);
 
 		return {'message' : message};
 	}
 
 	var new_condition = Math.min(repair_amount + target_item.condition, 1)
 
-	updateItem(target_item._id, {$set: {'condition' : Number(new_condition)}});
+	var target_item_interface = new ItemIF(target_item);
+	target_item_interface.updateItem({$set: {'condition' : Number(new_condition)}}, false);
 
 	if (message)
 		message = message + " Finally, they offer to refurbish one of your pieces. " + target_item.artwork_data.title + " by " + target_item.artwork_data.artist + " has increased in value.";

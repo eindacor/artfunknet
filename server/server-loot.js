@@ -53,23 +53,39 @@ var lowest_possible_value_coefficient = .5;
 var condition_coefficient_max = .3;
 var attribute_coefficient_max = .2;
 
+getItemObjectRollCost = function(item_object) {
+    var roll_count = item_object.roll_count < 0 ? 0 : item_object.roll_count;
+
+    var reroll_coefficient;
+    switch(item_object.artwork_data.rarity) {
+        case 'common' : reroll_coefficient = 1.1; break;
+        case 'uncommon' : reroll_coefficient = 1.11; break;
+        case 'rare' : reroll_coefficient = 1.12; break;
+        case 'legendary' : reroll_coefficient = 1.13; break;
+        case 'masterpiece' : reroll_coefficient = 1.14; break;
+        default: reroll_coefficient - 1.14; break;
+    }
+
+    var rarity_values = getLootData().rarity_values;
+    var reroll_cost = Math.floor((rarity_values[item_object.artwork_data.rarity].min * .1) * Math.pow(reroll_coefficient, roll_count));
+    return reroll_cost;
+}
+
 getItemObjectValues = function(item_object) {
     var values_object = {};
 
     var rarity_values = getLootData().rarity_values;
 
-    var artwork_object = artworks.findOne({'_id': item_object.artwork_id});
-
-    if (artwork_object == undefined) {
-        return values_object;
-    }
-
-    var min = rarity_values[artwork_object.rarity].min;
-    var max = rarity_values[artwork_object.rarity].max;
+    var min = rarity_values[item_object.artwork_data.rarity].min;
+    var max = rarity_values[item_object.artwork_data.rarity].max;
 
     var range = max - min;
 
-    var mint_value = Math.floor(min + (artwork_object.value_scale * range));
+    if (item_object.artwork_data.value_scale == undefined) {
+        item_object.artwork_data.value_scale = artworks.findOne({'_id': item_object.artwork_id}).value_scale;
+    }
+
+    var mint_value = Math.floor(min + (item_object.artwork_data.value_scale * range));
 
     var base_value = mint_value * lowest_possible_value_coefficient;
     var condition_value = mint_value * condition_coefficient_max * item_object.condition;
@@ -110,6 +126,15 @@ getItemObjectValues = function(item_object) {
     values_object.auction_min = Math.floor(values_object.sell * .8);
     values_object.collector = Math.floor(actual_value * 1.2);
     values_object.dealer = Math.floor(actual_value * .9);
+
+    var all_keys = Object.keys(values_object);
+    for (var i=0; i<all_keys.length; i++) {
+        var key = all_keys[i];
+        if (isNaN(values_object[key])) {
+            console.log("invalid value.... " + key + ": " + values_object[key])
+            values_object[key] = 0;
+        }
+    }
 
     return values_object;
 }
@@ -265,7 +290,7 @@ var misprintArtworkData = function(artwork_data) {
 }
 
 generateItemFromArtworkID = function(item_generator, callback) {   
-    var artwork_data = artworks.findOne(item_generator.artwork_id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}}); 
+    var artwork_data = artworks.findOne(item_generator.artwork_id, {fields: {'active': 0}}); 
 
     if (artwork_data) {
         var loot_data = getLootData();
@@ -306,6 +331,7 @@ generateItemFromArtworkID = function(item_generator, callback) {
             new_item_object._id = item_generator._id;
 
         new_item_object.values = getItemObjectValues(new_item_object);
+        new_item_object.reroll_cost = getItemObjectRollCost(new_item_object);
 
         var new_item_id = items.insert(new_item_object, function(error, result) {
             if (error)
@@ -322,7 +348,8 @@ generateItemFromArtworkID = function(item_generator, callback) {
 
         if (misprint) {
             var misprint_message = "Misprint created: " + new_item_id + " -> " + Meteor.users.findOne(item_generator.user_id).profile.screen_name;
-            alertPlayers(Meteor.users.findOne({'profile.screen_name': "admin"})._id, misprint_message, 'fa-star', 'good');
+            var admin_interface = new PlayerIF(Meteor.users.findOne({'profile.screen_name': "admin"}));
+            admin_interface.alert(misprint_message, 'fa-star', 'good');
         }
 
         return new_item_id;
@@ -431,10 +458,6 @@ Meteor.methods({
         if (Meteor.user() && dailyDropIsEnabled()) {
             var foil_chance = getLootData().global_foil_chance;
 
-            if (procUniqueAttribute(Meteor.userId(), "DAILY_FOIL_BONUS", undefined)) {
-                foil_chance *= 2;
-            }
-
             var multi_item_generator = {
                 'source': "daily drop",
                 'user_id': Meteor.userId(),
@@ -460,6 +483,7 @@ Meteor.methods({
     },
 
     'openCrate' : function(size) {
+        var player_interface = new PlayerIF(Meteor.user());
         var approved_sizes = ['small', 'medium', 'large'];
         if (approved_sizes.indexOf(size) == -1)
             return false;
@@ -470,17 +494,13 @@ Meteor.methods({
         if (crate_object == undefined)
             return false;
 
-        if (Meteor.userId() && crate_object.cost < Meteor.user().profile.bank_balance) {
+        if (player_interface.getId() && crate_object.cost < player_interface.getBankBalance()) {
             var loot_data = getLootData();
             var foil_chance = loot_data.global_foil_chance;
 
-            if (procUniqueAttribute(Meteor.userId(), "CRATE_FOIL_BONUS", undefined)) {
-                foil_chance *= 2;
-            }
-
             var multi_item_generator = {
                 'source': crate_object.size + " crate",
-                'user_id': Meteor.userId(),
+                'user_id': player_interface.getId(),
                 'quality': quality,
                 'count': crate_object.count,
                 'status': "unclaimed",
@@ -492,8 +512,8 @@ Meteor.methods({
             }
 
             generateItems(multi_item_generator);
-            chargeAccount(Meteor.userId(), crate_object.cost);
-            Meteor.users.update(Meteor.userId(), {$inc: {'profile.money_spent_on_crates': crate_object.cost}});
+            player_interface.chargeAccount(crate_object.cost);
+            Meteor.users.update(player_interface.getId(), {$inc: {'profile.money_spent_on_crates': crate_object.cost}});
         }
     },
 

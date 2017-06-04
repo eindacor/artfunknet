@@ -1,5 +1,5 @@
-PlayerCrateIF = function(user_id, crate_id) {
-	var player_interface = new PlayerIF(user_id);
+PlayerCrateIF = function(player_interface, crate_id) {
+	var user_id = player_interface.getId();
 	var crate_object = crates.findOne(crate_id);
 
 	if (crate_object == undefined)
@@ -202,7 +202,7 @@ PlayerCrateIF = function(user_id, crate_id) {
 	        }
 
 	        generateItemsRevised(multi_item_generator);
-	        chargeAccount(user_id, crate_cost);
+	        player_interface.chargeAccount(crate_cost);
 
 	        if (player_interface.getUserObject().profile.crate_purchases[crate_id] == undefined) {
 	        	var setter_object = {};
@@ -350,8 +350,8 @@ getItemAttributes = function(artwork_object, item_is_unlocked, attribute_map) {
     return attributes_object;
 }
 
-generateItemFromArtworkIDRevised = function(item_generator, callback) {   
-    var artwork_data = artworks.findOne(item_generator.artwork_id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}}); 
+generateItemFromArtworkIDRevised = function(item_generator, callback) {  
+	var artwork_data = artworks.findOne(item_generator.artwork_id, {fields: {'active': 0}}); 
 
     if (artwork_data) {
         var loot_data = getLootData();
@@ -393,6 +393,7 @@ generateItemFromArtworkIDRevised = function(item_generator, callback) {
             new_item_object._id = item_generator._id;
 
         new_item_object.values = getItemObjectValues(new_item_object);
+        new_item_object.reroll_cost = getItemObjectRollCost(new_item_object);
 
         var new_item_id = items.insert(new_item_object, function(error, result) {
             if (error)
@@ -409,7 +410,8 @@ generateItemFromArtworkIDRevised = function(item_generator, callback) {
 
         if (misprint) {
         	var misprint_message = "Misprint created: " + new_item_id + " -> " + Meteor.users.findOne(item_generator.user_id).profile.screen_name;
-        	alertPlayers(Meteor.users.findOne({'profile.screen_name': "admin"})._id, misprint_message, 'fa-star', 'good');
+        	var admin_interface = new PlayerIF(Meteor.users.findOne({'profile.screen_name': "admin"}));
+        	admin_interface.alert(misprint_message, 'fa-star', 'good');
         }
 
         return new_item_id;
@@ -597,7 +599,7 @@ createCrate = function() {
 Meteor.methods({
 	'openDynamicCrate': function(crate_id) {
 		try {
-			var player_crate_interface = new PlayerCrateIF(Meteor.userId(), crate_id);
+			var player_crate_interface = new PlayerCrateIF(new PlayerIF(Meteor.user()), crate_id);
 	    	player_crate_interface.open();
 	    }
 
@@ -609,7 +611,7 @@ Meteor.methods({
 	'getDynamicCrates': function() {
 		var crate_objects = crates.find({$or: [{'owner_id': Meteor.userId()}, {'owner_id': null}, {'type': "public"}]}).fetch();
 		for (var i=0; i<crate_objects.length; i++) {
-			var player_crate_interface = new PlayerCrateIF(Meteor.userId(), crate_objects[i]._id);
+			var player_crate_interface = new PlayerCrateIF(new PlayerIF(Meteor.user()), crate_objects[i]._id);
     		crate_objects[i].cost = player_crate_interface.getCost();
     		crate_objects[i].can_open = player_crate_interface.canOpen();
 		}

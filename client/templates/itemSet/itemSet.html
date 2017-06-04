@@ -94,10 +94,10 @@
 
 		<div class="row">
 			<div class="col-xs-9 page-buttons">
-				<div class="button-wrapper">
-					<i id="inventory-page-left" class="page-button fa fa-caret-left"></i>
+				<div class="row button-wrapper">
+					<i id="inventory-page-left" class="page-button fa fa-caret-left {{#if isEqual current_page '1'}}disabled{{else}}enabled{{/if}}"></i>	
 					<span class="page-indicators">page {{current_page}}/{{total_pages}}</span>
-					<i id="inventory-page-right" class="page-button fa fa-caret-right"></i>	
+					<i id="inventory-page-right" class="page-button fa fa-caret-right {{#if isEqual current_page total_pages}}disabled{{else}}enabled{{/if}}"></i>	
 				</div>
 			</div>
 			<div class="col-xs-3 page-buttons items_per_page">

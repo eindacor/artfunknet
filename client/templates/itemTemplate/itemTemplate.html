@@ -1,10 +1,10 @@
 <template name="itemInfo">
 	<div class="template-itemInfo">
 		<div data-item_id="{{item_data._id}}" class="card-container {{item_data.artwork_data.rarity}}-item" style="background: url('{{getCardImageURL item_data.artwork_data.filename}}') center; background-size: 280px 390px">
-			<div class="status-mask {{#if displayedStatus item_data._id}}{{else}}hide{{/if}}">
+			<div class="status-mask {{#if displayedStatus item_data}}{{else}}hide{{/if}}">
 				<div class="mask-info-container">
 					<p><i class="fa fa-picture-o"></i></p>
-					{{#with display_details item_data._id}}
+					{{#with display_details item_data}}
 					{{#if earnings_per_hour}}
 						<p class="display-details">{{time_since_displayed}}</p>
 						<p class="display-details green-text text-shadow">{{displayAsMoneyValue earnings_per_hour}}/hr.</p>
@@ -13,13 +13,13 @@
 					{{/with}}
 				</div>
 			</div>
-			<div class="status-mask {{#if auctionedStatus item_data._id}}{{else}}hide{{/if}}">
+			<div class="status-mask {{#if auctionedStatus item_data}}{{else}}hide{{/if}}">
 				<i class="fa fa-gavel"></i>
 			</div>
-			<div class="status-mask {{#if permanentStatus item_data._id}}{{else}}hide{{/if}}">
+			<div class="status-mask {{#if permanentStatus item_data}}{{else}}hide{{/if}}">
 				<div class="mask-info-container">
 					<p><i class="fa fa-heart"></i></p>
-					{{#with permanent_details item_data._id}}
+					{{#with permanent_details item_data}}
 					{{#if xp_per_hour}}
 						<p class="display-details">{{time_since_displayed}}</p>
 						<p class="display-details af-color text-shadow">{{commaSeparatedValue xp_per_hour}}xp/hr.</p>
@@ -31,7 +31,7 @@
 				<div class="card-header col-xs-12 {{card_types item_data}}">
 					<div class="row no-margin">
 						<div class="header-basic-info">
-							<p class="item-title work-title">{{#if already_owns item_data._id}}* {{/if}}{{item_data.artwork_data.title}}</p>
+							<p class="item-title work-title">{{#if already_owns item_data}}* {{/if}}{{item_data.artwork_data.title}}</p>
 							<p>{{item_data.artwork_data.artist}}</p>
 						</div>
 					</div>
@@ -104,7 +104,7 @@
 							<div class="col-xs-4 no-padding">
 								{{#if showDetails item_data}}
 								<div class="level-area">
-									<p>lvl {{level item_data._id}} {{#if canAffordUpgrade item_data._id}}<span class="level-indicator af-color"><i class="fa fa-arrow-circle-o-up"></i></span>{{/if}}</p>
+									<p>lvl {{item_data.level}} {{#if canAffordUpgrade item_data}}<span class="level-indicator af-color"><i class="fa fa-arrow-circle-o-up"></i></span>{{/if}}</p>
 								</div>
 								{{else}}
 									<p>?</p>

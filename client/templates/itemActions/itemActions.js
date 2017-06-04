@@ -1,5 +1,5 @@
 updateItemActions = function(item_object) {
-	var permissions = getPlayerItemPermissions(Meteor.userId(), item_object._id);
+	var permissions = new PlayerItemPermissions(new PlayerIF(Meteor.user()), new ItemIF(item_object));
 
 	var button_area = $("[data-item_id='" + item_object._id + "']").find('.template-itemActions').find('.button-area');
 	button_area.empty();
@@ -50,7 +50,8 @@ updateItemActions = function(item_object) {
 var getPermissions = function(item_object) {
 	try {
 		if (item_object) {
-			var permissions = getPlayerItemPermissions(Meteor.userId(), item_object._id);
+			var permissions = new PlayerItemPermissions(new PlayerIF(Meteor.user()), new ItemIF(item_object));
+
 			if (permissions == undefined)
 				return undefined;
 			
@@ -95,14 +96,14 @@ Template.itemActions.events({
 	'click .quick-sell.enabled' : function(element) {
 		element.stopPropagation();
 		var item_id = $(element.target).closest('.item-container').data('item_id');
-		var permissions = getPlayerItemPermissions(Meteor.userId(), item_id);
+		var permissions = new PlayerItemPermissions(new PlayerIF(Meteor.user()), new ItemIF(item_id));
 		if (permissions.canQuickDiscard()) {
 			Meteor.call('sellItem', item_id, function(error) {
 				if (error)
 					console.log(error.message);
 
 				else {
-					Session.set('update_set', true);
+					refreshItemSet();
 				}
 			});
 		}
@@ -118,7 +119,7 @@ Template.itemActions.events({
 	'click .auction.enabled' : function(element) {
 		element.stopPropagation();
 		var item_id = $(element.target).closest('.item-container').data('item_id');
-		var permissions = getPlayerItemPermissions(Meteor.userId(), item_id);
+		var permissions = new PlayerItemPermissions(new PlayerIF(Meteor.user()), new ItemIF(item_id));
 		if (permissions.canAuction()) {
 			Session.set('selectedItem', item_id);
 			Modal.show('createAuctionModal');
@@ -128,7 +129,7 @@ Template.itemActions.events({
 	'click .display.inactive' : function(element, template) {
 		element.stopPropagation();
 		var item_id = $(element.target).closest('.item-container').data('item_id');
-		var permissions = getPlayerItemPermissions(Meteor.userId(), item_id);
+		var permissions = new PlayerItemPermissions(new PlayerIF(Meteor.user()), new ItemIF(item_id));
 		if (permissions.canDisplay()) {
 			Meteor.call('setItemDisplayStatus' , item_id, true, function(error) {
 				if (error)
@@ -151,7 +152,7 @@ Template.itemActions.events({
 						}, $('body')[0]);
 					};
 
-					//updateItemTemplate(item_id, 10);
+					refreshItemSet();
 				}
 			})
 		}
@@ -160,14 +161,14 @@ Template.itemActions.events({
 	'click .display.active' : function(element) {
 		element.stopPropagation();
 		var item_id = $(element.target).closest('.item-container').data('item_id');
-		var permissions = getPlayerItemPermissions(Meteor.userId(), item_id);
-			if (permissions.canUndisplay()) {
+		var permissions = new PlayerItemPermissions(new PlayerIF(Meteor.user()), new ItemIF(item_id));
+		if (permissions.canUndisplay()) {
 			Meteor.call('setItemDisplayStatus' , item_id, false, function(error) {
 				if (error)
 					console.log(error.message)
 
 				else {
-					//updateItemTemplate(item_id, 10);
+					refreshItemSet();
 				}
 			})
 		}
@@ -183,7 +184,7 @@ Template.itemActions.events({
 	'click .perm-collection.inactive' : function(element) {
 		element.stopPropagation();
 		var item_id = $(element.target).closest('.item-container').data('item_id');
-		var permissions = getPlayerItemPermissions(Meteor.userId(), item_id);
+		var permissions = new PlayerItemPermissions(new PlayerIF(Meteor.user()), new ItemIF(item_id));
 		if (permissions.canSetPermanent()) {
 			Meteor.call('setItemPermanentCollectionStatus' , item_id, true, function(error) {
 				if (error)
@@ -206,7 +207,7 @@ Template.itemActions.events({
 						}, $('body')[0]);
 					};
 
-					//updateItemTemplate(item_id, 10);
+					refreshItemSet();
 				}
 			})
 		}
@@ -215,14 +216,14 @@ Template.itemActions.events({
 	'click .perm-collection.active' : function(element) {
 		element.stopPropagation();
 		var item_id = $(element.target).closest('.item-container').data('item_id');
-		var permissions = getPlayerItemPermissions(Meteor.userId(), item_id);
+		var permissions = new PlayerItemPermissions(new PlayerIF(Meteor.user()), new ItemIF(item_id));
 			if (permissions.canUnsetPermanent()) {
 			Meteor.call('setItemPermanentCollectionStatus' , item_id, false, function(error) {
 				if (error)
 					console.log(error.message)
 
 				else {
-					//updateItemTemplate(item_id, 10);
+					refreshItemSet();
 				}
 			})
 		}
@@ -231,14 +232,14 @@ Template.itemActions.events({
 	'click .claim.enabled' : function(element) {
 		element.stopPropagation();
 		var item_id = $(element.target).closest('.item-container').data('item_id');
-		var permissions = getPlayerItemPermissions(Meteor.userId(), item_id);
+		var permissions = new PlayerItemPermissions(new PlayerIF(Meteor.user()), new ItemIF(item_id));
 		if (permissions.canClaim()) {
 			Meteor.call('claimArtwork', item_id, function(error) {
 				if (error)
 					console.log(error.message);
 
 				else {
-					Session.set('update_set', true);
+					refreshItemSet();
 				}
 			});
 		}
@@ -247,7 +248,7 @@ Template.itemActions.events({
 	'click .purchase.enabled' : function(element) {
 		element.stopPropagation();
 		var item_id = $(element.target).closest('.item-container').data('item_id');
-		var permissions = getPlayerItemPermissions(Meteor.userId(), item_id);
+		var permissions = new PlayerItemPermissions(new PlayerIF(Meteor.user()), new ItemIF(item_id));
 		if (!permissions.canPurchase())
 			return;
 
@@ -257,7 +258,7 @@ Template.itemActions.events({
 					console.log(error.message);
 
 				else {
-					Session.set('update_set', true);
+					refreshItemSet();
 				}
 			});
 		}
@@ -271,14 +272,14 @@ Template.itemActions.events({
 	'click .decline.enabled' : function(element) {
 		element.stopPropagation();
 		var item_id = $(element.target).closest('.item-container').data('item_id');
-		var permissions = getPlayerItemPermissions(Meteor.userId(), item_id);
+		var permissions = new PlayerItemPermissions(new PlayerIF(Meteor.user()), new ItemIF(item_id));
 		if (permissions.canDecline()) {
 			Meteor.call('declineItem', item_id, function(error) {
 				if(error)
 					console.log(error.message);
 
 				else {
-					Session.set('update_set', true);
+					refreshItemSet();
 				}
 			})
 		}
@@ -287,7 +288,7 @@ Template.itemActions.events({
 	'click .tags.enabled' : function(element) {
 		element.stopPropagation();
 		var item_id = $(element.target).closest('.item-container').data('item_id');
-		var permissions = getPlayerItemPermissions(Meteor.userId(), item_id);
+		var permissions = new PlayerItemPermissions(new PlayerIF(Meteor.user()), new ItemIF(item_id));
 		if (permissions.canTag()) {
 			Blaze.renderWithData(Template.modalTemplate, {
 				'modal_name': "tagItemModal", 
@@ -301,14 +302,14 @@ Template.itemActions.events({
 	'click .donate.enabled' : function(element) {
 		element.stopPropagation();
 		var item_id = $(element.target).closest('.item-container').data('item_id');
-		var permissions = getPlayerItemPermissions(Meteor.userId(), item_id);
+		var permissions = new PlayerItemPermissions(new PlayerIF(Meteor.user()), new ItemIF(item_id));
 		if (permissions.canQuickDiscard()) {
 			Meteor.call('donateItem', item_id, function(error) {
 				if (error)
 					console.log(error.message);
 
 				else {
-					Session.set('update_set', true);
+					refreshItemSet();
 				}
 			});
 		}

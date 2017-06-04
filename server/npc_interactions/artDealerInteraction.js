@@ -1,4 +1,4 @@
-artDealerInteraction = function(npc_object) {
+artDealerInteraction = function(npc_object, player_interface) {
 	var drop_count = 4;
 	var loot_data = getLootData();
 	var foil_chance = loot_data.global_foil_chance;
