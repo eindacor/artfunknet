@@ -151,6 +151,7 @@ concludeAuction = function(auction_id) {
 
         var item_object = items.findOne(auction_object.item_id);
         if (item_object == undefined || item_object.status != "auctioned") {
+            auctions.remove({'_id': auction_id});
             //console.log("null auction detected: " + auction_object._id + "(item id: " + auction_object.item_id + ")");
             return false;
         }
