@@ -124,6 +124,7 @@ Template.placeBidModal.events({
         auction_errors = [];
 
         if (auction_object) {
+            console.log(auction_object);
             if (auction_object.buy_now == -1) 
                 auction_errors.push("this item cannot be purchased");
 
