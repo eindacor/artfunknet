@@ -333,8 +333,6 @@ var updateItemGetter = function() {
 		'options': {sort: sorter_object, skip: current_page * items_per_page, limit: items_per_page}
 	}
 
-	console.log(getter_query);
-
 	item_getter_tracker.changed();
 }
 
@@ -475,14 +473,12 @@ Template.itemSet.events({
 		}
 
 		status_filter = {'status': {'$in': valid_statuses}};
-
 		updateItemGetter();
 	},
 
 	'change #special-attribute-checkbox': function() {
 		special_attributes = [];
 		for (var i=0; i<$('input[type=checkbox].special-attribute-select').length; i++) {
-			console.log($('input[type=checkbox].special-attribute-select:eq(' + i + ')').val());
 		 	var checked = $('input[type=checkbox].special-attribute-select:eq(' + i + ')')[0].checked;
 		 	if (checked)
 		 		special_attributes.push($('input[type=checkbox].special-attribute-select:eq(' + i + ')').val())
