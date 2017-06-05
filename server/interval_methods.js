@@ -204,7 +204,8 @@ drawLottery = function(force_draw) {
         var user_query_object = {
             'profile.user_type': {$ne: "admin"}, 
             'profile.lottery_tickets': {$gt: 0},
-            'profile.settings.lottery_eligible': true
+            'profile.settings.lottery_eligible': true,
+            'profile.active': true
         }
         
         getFromCollection("interval_methods.js", Meteor.users, user_query_object).forEach(function(user_object) {
