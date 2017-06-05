@@ -323,8 +323,8 @@ var updateItemGetter = function() {
 		}
 	}
 
+	filter_array.push(base_filter);
 	getter_query = {$and: filter_array};
-	getter_query.owner = Meteor.userId();
 
 	updatePages();
 
@@ -332,6 +332,8 @@ var updateItemGetter = function() {
 		'query': getter_query,
 		'options': {sort: sorter_object, skip: current_page * items_per_page, limit: items_per_page}
 	}
+
+	console.log(getter_query);
 
 	item_getter_tracker.changed();
 }
@@ -477,12 +479,13 @@ Template.itemSet.events({
 		updateItemGetter();
 	},
 
-	'change #locked-attribute-checkbox': function() {
+	'change #special-attribute-checkbox': function() {
 		special_attributes = [];
-		for (var i=0; i<$('input[type=checkbox].locked-attribute-select').length; i++) {
-		 	var checked = $('input[type=checkbox].locked-attribute-select:eq(' + i + ')')[0].checked;
+		for (var i=0; i<$('input[type=checkbox].special-attribute-select').length; i++) {
+			console.log($('input[type=checkbox].special-attribute-select:eq(' + i + ')').val());
+		 	var checked = $('input[type=checkbox].special-attribute-select:eq(' + i + ')')[0].checked;
 		 	if (checked)
-		 		special_attributes.push($('input[type=checkbox].locked-attribute-select:eq(' + i + ')').val())
+		 		special_attributes.push($('input[type=checkbox].special-attribute-select:eq(' + i + ')').val())
 		}
 
 		updateItemGetter();
