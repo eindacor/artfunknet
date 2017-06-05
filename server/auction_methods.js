@@ -149,7 +149,8 @@ concludeAuction = function(auction_id) {
         var winner = Meteor.users.findOne({'profile.auction_data.winning': {$in: [auction_id]}});
         var auction_object = auctions.findOne(auction_id);
 
-        if (items.findOne(auction_object.item_id) == undefined) {
+        var item_object = items.findOne(auction_object.item_id);
+        if (item_object == undefined || item_object.status != "auctioned") {
             //console.log("null auction detected: " + auction_object._id + "(item id: " + auction_object.item_id + ")");
             return false;
         }

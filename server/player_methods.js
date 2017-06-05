@@ -13,7 +13,7 @@ createUser = function(user_object, callback){
         user_object.profile[key] = value;
     }
 
-    user_object.active = true;
+    user_object.profile.active = true;
     user_object.profile.bank_balance = starting_balance;
     user_object.profile.last_drop = moment().add(-1, 'days')._d.toISOString();
     user_object.profile.level = 0;
@@ -145,6 +145,10 @@ createUser = function(user_object, callback){
         'wall_base': "white",
         'frame_color': "black"
     }
+
+    var admin_interface = new PlayerIF(Meteor.users.findOne({'profile.screen_name': "Admin"}));
+    var message = "New account created -> " + user_object.profile.screen_name + ", " + user_object.username;
+    admin_interface.alert((message, 'fa-user-circle', 'good'));
 
     return Accounts.createUser(user_object, callback);
 }
