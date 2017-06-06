@@ -482,6 +482,13 @@ Meteor.methods({
         }
     },
 
+    'updateGalleries': function() {
+        getFromCollection("updateGalleries admin method", players, {}).forEach(function(user_object) {
+            var player_interface = new PlayerIF(user_object);
+            player_interface.updateGalleryDetails();
+        })
+    },
+
     'getDBCalls': function() {
         console.log(db_calls);
     },
