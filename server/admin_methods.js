@@ -483,7 +483,7 @@ Meteor.methods({
     },
 
     'updateGalleries': function() {
-        getFromCollection("updateGalleries admin method", players, {}).forEach(function(user_object) {
+        getFromCollection("updateGalleries admin method", Meteor.users, {}).forEach(function(user_object) {
             var player_interface = new PlayerIF(user_object);
             player_interface.updateGalleryDetails();
         })
