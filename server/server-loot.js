@@ -49,8 +49,8 @@ getCondition = function(min_value) {
 }
 
 // sumtotal of these values must equal 1
-var lowest_possible_value_coefficient = .5;
-var condition_coefficient_max = .3;
+var lowest_possible_value_coefficient = .4;
+var condition_coefficient_max = .4;
 var attribute_coefficient_max = .2;
 
 getItemObjectRollCost = function(item_object) {
