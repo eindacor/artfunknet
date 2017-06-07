@@ -139,6 +139,11 @@ Template.itemInfo.helpers({
 			return item_object.status == "auctioned";
 	},
 
+	'repairingStatus': function(item_object) {
+		if (item_object)
+			return item_object.status == "repairing";
+	},
+
 	'sortedAttributes' : function(attributes) {
 		if (attributes.length == undefined)
 			return [];

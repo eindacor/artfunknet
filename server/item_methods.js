@@ -324,6 +324,11 @@ Meteor.methods({
         player_item_interface.setForSaleTag(new_status);
     },
 
+    'setItemRepairingStatus' : function(item_id, new_status) {
+        var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
+        player_item_interface.setRepairingStatus(new_status);
+    },
+
     'sellItem' : function(item_id) {
         var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
         player_item_interface.sell();

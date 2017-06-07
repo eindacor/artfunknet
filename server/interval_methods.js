@@ -98,9 +98,11 @@ Meteor.setInterval((function() {
 
 }), NPC_SPAWN_FREQUENCY);
 
+// TODO consolidate xp, display, repairing ticks if possible
 // some vars defined in lib/time_constants.js
 Meteor.setInterval((function() {
-    if (getOneFromCollection("interval_methods.js", metadata, {'display_earnings_tick': {$ne: null}}) != undefined) {
+    var tick_object = getOneFromCollection("interval_methods.js", metadata, {'display_earnings_tick': {$ne: null}});
+    if (tick_object != undefined) {
         var display_earning_time = getOneFromCollection("interval_methods.js", metadata, {'display_earnings_tick': {$ne: null}}).display_earnings_tick;
 
         if (getNowISOString() > display_earning_time) {
@@ -159,8 +161,9 @@ Meteor.setInterval((function() {
 }), display_earning_check_frequency);
 
 Meteor.setInterval((function() {
-    if (getOneFromCollection("interval_methods.js", metadata, {'permanent_xp_tick': {$ne: null}}) != undefined) {
-        var xp_earning_time = getOneFromCollection("interval_methods.js", metadata, {'permanent_xp_tick': {$ne: null}}).permanent_xp_tick;
+    var tick_object = getOneFromCollection("interval_methods.js", metadata, {'permanent_xp_tick': {$ne: null}});
+    if (tick_object != undefined) {
+        var xp_earning_time = tick_object.permanent_xp_tick;
 
         if (getNowISOString() > xp_earning_time) {
             if (DEBUG) {
@@ -188,6 +191,35 @@ Meteor.setInterval((function() {
 
     else metadata.insert({'permanent_xp_tick': moment()._d.toISOString()});
 }), permanent_xp_check_frequency);
+
+Meteor.setInterval((function() {
+    var tick_object = getOneFromCollection("interval_methods.js", metadata, {'repairing_tick': {$ne: null}});
+    if (tick_object != undefined) {
+        if (DEBUG)
+            console.log("tick repairs");
+        
+        var repairing_tick_time = getOneFromCollection("interval_methods.js", metadata, {'repairing_tick': {$ne: null}}).repairing_tick;
+
+        if (getNowISOString() > repairing_tick_time) {
+            if (DEBUG) {
+                console.log("repairing items: " + getNowISOString());
+            }
+
+            getFromCollection("interval_methods.js", Meteor.users, {}).forEach(function(user_object) {
+                var player_interface = new PlayerIF(user_object);
+                getFromCollection("interval_methods.js", items, {'status': "repairing", 'owner': user_object._id}).forEach(function(item_object) {
+                    var player_item_interface = new PlayerItemIF(player_interface, new ItemIF(item_object));
+                    player_item_interface.repairItem(REPAIRING_IMPROVEMENT_VALUE);
+                });
+            })
+            
+            var next_tick = moment().add(REPAIRING_TICK_FREQUENCY, "milliseconds")._d.toISOString();
+            metadata.update({'repairing_tick': {$ne: null}}, {$set: {'repairing_tick': next_tick}});
+        }
+    }
+
+    else metadata.insert({'repairing_tick': moment()._d.toISOString()});
+}), REPAIRING_CHECK_FREQUENCY);
 
 drawLottery = function(force_draw) {
     var lottery_draw_time = force_draw ? getNowISOString() : getOneFromCollection("interval_methods.js", metadata, {'lottery_draw': {$ne: null}}).lottery_draw;

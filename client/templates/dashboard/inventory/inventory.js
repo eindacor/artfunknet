@@ -1,6 +1,6 @@
 Template.inventory.helpers({
 	'item_set_statuses': function() {
-		return ['claimed', 'displayed', 'permanent', 'auctioned'];
+		return ['claimed', 'displayed', 'permanent', 'auctioned', 'repairing'];
 	},
 
 	'tag': function() {

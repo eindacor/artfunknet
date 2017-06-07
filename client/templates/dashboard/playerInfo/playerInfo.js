@@ -114,6 +114,10 @@ Template.playerInfo.helpers({
 		return items.find({'owner' : current_user_id, 'status' : 'displayed'}).count();
 	},
 
+	'repairing_count': function() {
+		return items.find({'owner' : current_user_id, 'status' : 'repairing'}).count();
+	},
+
 	'inventory_count': function() {
 		return items.find({'owner' : current_user_id, 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}}).count();
 	},

@@ -41,7 +41,13 @@
 				{{/if}}
 				{{#if untag_for_sale}}
 					<span class="tag-for-sale active af-color"><i data-item_id="{{../item_data._id}}" class="fa fa-binoculars"></i></span>
-				{{/if}}			
+				{{/if}}	
+				{{#if repairing}}
+					<span class="repairing inactive"><i data-item_id="{{../item_data._id}}" class="fa fa-wrench"></i></span>
+				{{/if}}
+				{{#if unrepairing}}
+					<span class="repairing active af-color"><i data-item_id="{{../item_data._id}}" class="fa fa-wrench"></i></span>
+				{{/if}}		
 				<span class="tags enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-tags"></i></span>
 			</p>
 			{{/with}}			
