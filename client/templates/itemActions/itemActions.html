@@ -23,6 +23,12 @@
 				{{#if unpermanent}}
 					<span class="perm-collection active af-color"><i data-item_id="{{../item_data._id}}" class="fa fa-heart"></i></span>
 				{{/if}}
+				{{#if repairing}}
+					<span class="repairing inactive"><i data-item_id="{{../item_data._id}}" class="fa fa-wrench"></i></span>
+				{{/if}}
+				{{#if unrepairing}}
+					<span class="repairing active af-color"><i data-item_id="{{../item_data._id}}" class="fa fa-wrench"></i></span>
+				{{/if}}
 				{{#if purchase}}
 					<span class="purchase enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-shopping-cart"></i></span>		
 				{{/if}}
