@@ -130,7 +130,7 @@ Meteor.setInterval((function() {
                         player_item_interface.setDisplayStatus(false);
                     }
 
-                    if (Math.random() < .5) {
+                    if (Math.random() < .2) {
                         var new_condition = item_object.condition < .5 ? item_object.condition : item_object.condition - .01;
                         item_interface.updateItem({$set: {'condition' : new_condition}}, true);
                         update_gallery = true;
