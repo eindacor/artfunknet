@@ -195,9 +195,6 @@ Meteor.setInterval((function() {
 Meteor.setInterval((function() {
     var tick_object = getOneFromCollection("interval_methods.js", metadata, {'repairing_tick': {$ne: null}});
     if (tick_object != undefined) {
-        if (DEBUG)
-            console.log("tick repairs");
-        
         var repairing_tick_time = getOneFromCollection("interval_methods.js", metadata, {'repairing_tick': {$ne: null}}).repairing_tick;
 
         if (getNowISOString() > repairing_tick_time) {
