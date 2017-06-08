@@ -30,6 +30,11 @@ benefactorInteraction = function(npc_object, player_interface) {
 			var multiplier = 1 + (npcs.find({'owner_id': Meteor.userId()}).count() * .1)
 			donation_amount *= multiplier;
 		}
+
+		if (procUniqueAttribute(Meteor.userId(), "BENEFACTOR_CONDITION_BONUS", undefined)) {
+			var multiplier = 1 + (getFromCollection("benefactorInteraction", items, {'owner': Meteor.userId(), 'status': "displayed", 'condition': {$gt: .9}}).count() * .05);
+			donation_amount *= multiplier;
+		}
 	}
 
 	// adjust randomly to vary amount won
