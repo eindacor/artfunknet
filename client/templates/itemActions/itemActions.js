@@ -43,6 +43,14 @@ updateItemActions = function(item_object) {
 		button_area.append('<span class="decline enabled"><i data-item_id="' + item_object._id + '" class="appended fa fa-times"></i></span>');
 	}
 
+	if (permissions.canTagForSale()) {
+		button_area.append('<span class="tag-for-sale inactive"><i data-item_id="' + item_object._id + '" class="appended fa fa-binoculars"></i></span>');
+	}
+
+	if (permissions.canUntagForSale()) {
+		button_area.append('<span class="tag-for-sale active af-color"><i data-item_id="' + item_object._id + '" class="appended fa fa-binoculars"></i></span>');
+	}
+
 	button_area.append('<span class="reroll enabled"><i data-item_id="' + item_object._id + '" class="appended fa fa-magic"></i></span>');
 	button_area.append('<span class="tags enabled"><i data-item_id="' + item_object._id + '" class="appended fa fa-tags"></i></span>');
 }
@@ -65,6 +73,8 @@ var getPermissions = function(item_object) {
 			var auction = permissions.canAuction();
 			var decline = permissions.canDecline();
 			var donate = permissions.canDonate();
+			var tag_for_sale = permissions.canTagForSale();
+			var untag_for_sale = permissions.canUntagForSale();
 
 			return {
 				'sell': sell,
@@ -76,7 +86,9 @@ var getPermissions = function(item_object) {
 				'auction': auction,
 				'decline': decline,
 				'undisplay': undisplay,
-				'donate': donate
+				'donate': donate,
+				'tag_for_sale': tag_for_sale,
+				'untag_for_sale': untag_for_sale
 			}
 		}
 	}
@@ -219,6 +231,38 @@ Template.itemActions.events({
 		var permissions = new PlayerItemPermissions(new PlayerIF(Meteor.user()), new ItemIF(item_id));
 			if (permissions.canUnsetPermanent()) {
 			Meteor.call('setItemPermanentCollectionStatus' , item_id, false, function(error) {
+				if (error)
+					console.log(error.message)
+
+				else {
+					refreshItemSet();
+				}
+			})
+		}
+	},
+
+	'click .tag-for-sale.inactive': function(element) {
+		element.stopPropagation();
+		var item_id = $(element.target).closest('.item-container').data('item_id');
+		var permissions = new PlayerItemPermissions(new PlayerIF(Meteor.user()), new ItemIF(item_id));
+			if (permissions.canTagForSale()) {
+			Meteor.call('setForSaleTag' , item_id, true, function(error) {
+				if (error)
+					console.log(error.message)
+
+				else {
+					refreshItemSet();
+				}
+			})
+		}
+	},
+
+	'click .tag-for-sale.active': function(element) {
+		element.stopPropagation();
+		var item_id = $(element.target).closest('.item-container').data('item_id');
+		var permissions = new PlayerItemPermissions(new PlayerIF(Meteor.user()), new ItemIF(item_id));
+			if (permissions.canUntagForSale()) {
+			Meteor.call('setForSaleTag' , item_id, false, function(error) {
 				if (error)
 					console.log(error.message)
 

@@ -2,6 +2,7 @@
 	<div class="template-itemActions">
 		<div class="button-area">
 			{{#with itemPermissions item_data}}
+			<p class="button-row">
 				{{#if claim}}
 					<span class="claim enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-plus"></i></span>		
 				{{/if}}
@@ -11,6 +12,18 @@
 				{{#if auction}}
 					<span class="auction enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-gavel"></i></span>
 				{{/if}}	
+				{{#if purchase}}
+					<span class="purchase enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-shopping-cart"></i></span>		
+				{{/if}}
+				{{#if decline}}
+					<span class="decline enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-times"></i></span>		
+				{{/if}}	
+				{{#if donate}}
+					<span class="donate enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-share-square"></i></span>		
+				{{/if}}	
+				<span class="reroll enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-magic"></i></span>
+			</p>
+			<p class="button-row">
 				{{#if display}}				
 					<span class="display inactive"><i data-item_id="{{../item_data._id}}" class="fa fa-picture-o"></i></span>	
 				{{/if}}	
@@ -23,20 +36,14 @@
 				{{#if unpermanent}}
 					<span class="perm-collection active af-color"><i data-item_id="{{../item_data._id}}" class="fa fa-heart"></i></span>
 				{{/if}}
-				{{#if purchase}}
-					<span class="purchase enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-shopping-cart"></i></span>		
+				{{#if tag_for_sale}}
+					<span class="tag-for-sale inactive"><i data-item_id="{{../item_data._id}}" class="fa fa-binoculars"></i></span>
 				{{/if}}
-				{{#if decline}}
-					<span class="decline enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-times"></i></span>		
-				{{/if}}	
-				{{#if upgrade}}
-					<span class="upgrade enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-arrow-circle-up"></i></span>		
-				{{/if}}	
-				{{#if donate}}
-					<span class="donate enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-share-square"></i></span>		
-				{{/if}}	
-				<span class="reroll enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-magic"></i></span>
+				{{#if untag_for_sale}}
+					<span class="tag-for-sale active af-color"><i data-item_id="{{../item_data._id}}" class="fa fa-binoculars"></i></span>
+				{{/if}}			
 				<span class="tags enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-tags"></i></span>
+			</p>
 			{{/with}}			
 		</div>
 	</div>
