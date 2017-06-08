@@ -14,14 +14,14 @@
 				{{/if}}	
 				{{#if purchase}}
 					<span class="purchase enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-shopping-cart"></i></span>		
-				{{/if}}
-				{{#if decline}}
-					<span class="decline enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-times"></i></span>		
 				{{/if}}	
 				{{#if donate}}
 					<span class="donate enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-share-square"></i></span>		
 				{{/if}}	
 				<span class="reroll enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-magic"></i></span>
+				{{#if decline}}
+					<span class="decline enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-times"></i></span>		
+				{{/if}}	
 			</p>
 			<p class="button-row">
 				{{#if display}}				

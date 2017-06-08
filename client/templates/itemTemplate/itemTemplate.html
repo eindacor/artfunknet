@@ -3,7 +3,7 @@
 		<div data-item_id="{{item_data._id}}" class="card-container {{item_data.artwork_data.rarity}}-item" style="background: url('{{getCardImageURL item_data.artwork_data.filename}}') center; background-size: 280px 390px">
 			<div class="status-mask {{#if displayedStatus item_data}}{{else}}hide{{/if}}">
 				<div class="mask-info-container">
-					<p><i class="fa fa-picture-o"></i></p>
+					<p><i class="text-shadow fa fa-picture-o"></i></p>
 					{{#with display_details item_data}}
 					{{#if earnings_per_hour}}
 						<p class="display-details">{{time_since_displayed}}</p>
@@ -14,14 +14,17 @@
 				</div>
 			</div>
 			<div class="status-mask {{#if auctionedStatus item_data}}{{else}}hide{{/if}}">
-				<i class="fa fa-gavel"></i>
+				<i class="text-shadow fa fa-gavel"></i>
 			</div>
 			<div class="status-mask {{#if repairingStatus item_data}}{{else}}hide{{/if}}">
-				<i class="fa fa-wrench"></i>
+				<div class="mask-info-container">
+					<p><i class="text-shadow fa fa-wrench {{#if isEqual item_data.condition 1}}green-text{{/if}}"></i></p>
+					<p class="display-details text-shadow {{#if isEqual item_data.condition 1}}green-text{{/if}}">{{floatToPercentage item_data.condition}}%</p>
+				</div>
 			</div>
 			<div class="status-mask {{#if permanentStatus item_data}}{{else}}hide{{/if}}">
 				<div class="mask-info-container">
-					<p><i class="fa fa-heart"></i></p>
+					<p><i class="text-shadow fa fa-heart"></i></p>
 					{{#with permanent_details item_data}}
 					{{#if xp_per_hour}}
 						<p class="display-details">{{time_since_displayed}}</p>

@@ -143,7 +143,7 @@ Template.itemInfo.helpers({
 		if (item_object)
 			return item_object.status == "repairing";
 	},
-
+	
 	'sortedAttributes' : function(attributes) {
 		if (attributes.length == undefined)
 			return [];

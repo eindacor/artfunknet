@@ -25,7 +25,7 @@ var updateContent = function() {
     }
 
     // temp code
-    crates.remove({});
+    
     //temp code
 }
 
