@@ -108,7 +108,6 @@ var successfulAuction = function(auction_object, winning_user) {
 
         else {
             var previous_owner = Meteor.users.findOne({'profile.screen_name': auction_object.seller});
-            var previous_owner_interface = new PlayerIF(previous_owner);
             var nested_item_interface = new ItemIF(auction_object.item_id);
             var item_object = nested_item_interface.getItemObject();
             var new_winner_id = item_object.owner;
@@ -120,6 +119,7 @@ var successfulAuction = function(auction_object, winning_user) {
             }
 
             if (previous_owner) {
+                var previous_owner_interface = new PlayerIF(previous_owner);
                 var sale_message = "You have successfully auctioned " + auction_object.item_data.title + " by " + auction_object.item_data.artist + " for $" + getCommaSeparatedValue(auction_object.current_bid)
                 previous_owner_interface.alert(sale_message, 'fa-gavel', 'good');
                 previous_owner_interface.addFunds("auction", auction_object.current_bid);
@@ -128,11 +128,11 @@ var successfulAuction = function(auction_object, winning_user) {
             var message = "You have won " + auction_object.item_data.title + " by " + auction_object.item_data.artist + " in the auction house for $" + getCommaSeparatedValue(auction_object.current_bid);
             winner_interface.alert(message, 'fa-gavel', 'good');
             
-            if (item_object.condition < .5 && procUniqueAttribute(new_winner_id, "AUCTION_WIN_CONDITION_INCREASE", undefined)) {
+            if (item_object.condition < .5 && winner_interface.procUniqueAttribute("AUCTION_WIN_CONDITION_INCREASE", undefined)) {
                 nested_item_interface.updateItem({$set: {'condition': .9}}, false);
             }
 
-            if (procUniqueAttribute(new_winner_id, "AUCTION_WIN_TICKET_EXTENSION", undefined)) {
+            if (winner_interface.procUniqueAttribute("AUCTION_WIN_TICKET_EXTENSION", undefined)) {
                 gallery_tickets.find({'ticketholder': new_winner_id}).forEach(function(db_object) {
                     var new_expiration = moment(db_object.expiration).add(30, "minutes");
                     gallery_tickets.update(db_object._id, {$set: {'expiration': new_expiration._d.toISOString()}});
