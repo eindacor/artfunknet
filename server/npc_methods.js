@@ -53,7 +53,7 @@ var interactWithNPC = function(npc_id) {
 	var inc_string = 'profile.npcs_met.' + npc_object.quality;
 	inc_object[inc_string] = 1;
 
-	Meteor.users.update(Meteor.userId(), {$set: {'profile.last_npc_met': moment()._d.toISOString()}, $inc: inc_object});
+	Meteor.users.update(player_interface.getId(), {$set: {'profile.last_npc_met': moment()._d.toISOString()}, $inc: inc_object});
 
 	var attribute_object = attributes.findOne(npc_object.attribute_id);		
 	var npc_interaction = {};
