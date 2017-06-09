@@ -204,13 +204,13 @@ Meteor.setInterval((function() {
 
             getFromCollection("interval_methods.js", Meteor.users, {}).forEach(function(user_object) {
                 var player_interface = new PlayerIF(user_object);
-                var repair_value_boost = procUniqueAttribute(user_object._id, "ITEM_LEVEL_REPAIR_BOOST", undefined) ? true : false;
-                var repair_value = REPAIRING_IMPROVEMENT_VALUE;
-                if (repair_value_boost) {
-                    repair_value += (item_object.level * .01);
-                }
+                var repair_value_boost = procUniqueAttribute(user_object._id, "ITEM_LEVEL_REPAIR_BOOST", undefined) ? true : false;       
 
                 getFromCollection("interval_methods.js", items, {'status': "repairing", 'owner': user_object._id}).forEach(function(item_object) {
+                    var repair_value = REPAIRING_IMPROVEMENT_VALUE;
+                    if (repair_value_boost) {
+                        repair_value += (item_object.level * .01);
+                    }
                     var player_item_interface = new PlayerItemIF(player_interface, new ItemIF(item_object));
                     player_item_interface.repairItem(repair_value);
                 });

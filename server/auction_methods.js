@@ -1,5 +1,9 @@
 createAuction = function(item_id, starting, buy_now, duration, viewer) {
     try {
+        if (DEBUG) {
+            duration = 1;
+        }
+
         if (auctions.find({'item_id': item_id}).count() == 0) {
             var post_date = moment();
             var expiration = moment(post_date).add(duration, 'minutes');
