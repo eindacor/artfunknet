@@ -11,7 +11,8 @@
 					{{> dashboardTab current_section=current_section section_title="inventory" icon="archive"}}
 					{{> dashboardTab current_section=current_section section_title="loot" icon="gift"}}
 					{{> dashboardTab current_section=current_section section_title="gallery" icon="picture-o"}}
-					{{> dashboardTab current_section=current_section section_title="checklist" icon="list"}}
+					<!-- {{> dashboardTab current_section=current_section section_title="checklist" icon="list"}} -->
+					{{> dashboardTab current_section=current_section section_title="archive" icon="archive"}}
 					{{> dashboardTab current_section=current_section section_title="quests" icon="flag-checkered"}}
 					{{> dashboardTab current_section=current_section section_title="my auctions" icon="bullhorn"}}
 					{{> dashboardTab current_section=current_section section_title="settings" icon="wrench"}}
@@ -26,8 +27,11 @@
 					{{#if isEqual current_section "loot"}}
 						{{> randomDrop}}
 					{{/if}}
-					{{#if isEqual current_section "checklist"}}
+					<!-- {{#if isEqual current_section "checklist"}}
 						{{> checklist}}
+					{{/if}} -->
+					{{#if isEqual current_section "archive"}}
+						{{> archive}}
 					{{/if}}
 					{{#if isEqual current_section "quests"}}
 						{{> quests}}

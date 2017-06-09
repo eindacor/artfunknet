@@ -31,7 +31,7 @@ Meteor.setInterval((function() {
 
 }), ONE_SECOND * 10);
 
-var check_ticket_frequency = 300000; //once every 5 minutes
+var check_ticket_frequency = ONE_MINUTE * 5;
 Meteor.setInterval((function() {
     gallery_tickets.remove({'expiration': {$lt : getNowISOString()}});
 }), check_ticket_frequency);

@@ -110,7 +110,7 @@
 							<div class="col-xs-4 no-padding">
 								{{#if showDetails item_data}}
 								<div class="level-area">
-									<p>lvl {{item_data.level}} {{#if canAffordUpgrade item_data}}<span class="level-indicator af-color"><i class="fa fa-arrow-circle-o-up"></i></span>{{/if}}</p>
+									<p>lvl {{item_data.level}} {{#if isEqual item_data.status "archived"}}{{else}}{{#if canAffordUpgrade item_data}}<span class="level-indicator af-color"><i class="fa fa-arrow-circle-o-up"></i></span>{{/if}}{{/if}}</p>
 								</div>
 								{{else}}
 									<p>?</p>

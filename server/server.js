@@ -25,15 +25,6 @@ var updateContent = function() {
     }
 
     // temp code
-    getFromCollection("updateContent", Meteor.users, {}).forEach(function(user_object) {
-        var all_auctions = user_object.profile.auction_data.winning.concat(user_object.profile.auction_data.watching);
-        for (var i=0; i<all_auctions.length; i++) {
-            var auction_id = all_auctions[i];
-            if (auctions.findOne(auction_id) == undefined) {
-                Meteor.users.update({}, {$pull: {'profile.auction_data.winning': {$in: [auction_id]}, 'profile.auction_data.watching': {$in: [auction_id]}}}, {multi: true});
-            }
-        }
-    })
     //temp code
 }
 
