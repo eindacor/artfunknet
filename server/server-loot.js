@@ -219,8 +219,12 @@ lookupCrateCost = function(count) {
 }
 
 generateItems = function(multi_item_generator) {
-    if (Meteor.users.findOne(multi_item_generator.user_id) === undefined && multi_item_generator.user_id != "Artfunkel, Inc.")
+    var user_object = Meteor.users.findOne(multi_item_generator.user_id);
+
+    if (user_object === undefined && multi_item_generator.user_id != "Artfunkel, Inc.")
         return [];
+
+    var player_level = user_object ? user_object.profile.level : 50;
 
     var map_amplifier;
 
@@ -235,7 +239,7 @@ generateItems = function(multi_item_generator) {
     var item_ids = [];
 
     for (var i=0; i < parseInt(multi_item_generator.count); i++) {
-        var rarity_roll = JepLoot.catRoll(getSmartRarityMap(Meteor.user().profile.level, map_amplifier));
+        var rarity_roll = JepLoot.catRoll(getSmartRarityMap(player_level, map_amplifier));
         var query = {'rarity': rarity_roll, 'active': true};
         var match_count = artworks.find(query).count();
         var rolled_id = artworks.findOne(query, {skip: Math.floor(Math.random() * match_count)})._id;
@@ -260,7 +264,7 @@ generateItems = function(multi_item_generator) {
         item_ids.push(generateItemFromArtworkID(item_generator));
     }
 
-    if (Meteor.users.findOne(multi_item_generator.user_id) != undefined && Meteor.users.findOne(multi_item_generator.user_id).profile.settings.animations_enabled) {
+    if (user_object != undefined && user_object.profile.settings.animations_enabled) {
         if (multi_item_generator.status == "for_sale") {
             Meteor.users.update(multi_item_generator.user_id, {$push: {'profile.notifications.store': {'id': new Meteor.Collection.ObjectID()._str, 'expiration': moment().add(5, "seconds")._d.toISOString(), 'amount': multi_item_generator.count}}});
         }

@@ -14,7 +14,7 @@ benefactorInteraction = function(npc_object, player_interface) {
 	if (isOwnGallery(npc_object)) {
 		donation_amount *= OWN_GALLERY_NPC_AMPLIFIER;
 
-		if (procUniqueAttribute(Meteor.userId(), "LONGEST_GALLERY_TICKET_BONUS", undefined)) {
+		if (player_interface.procUniqueAttribute("LONGEST_GALLERY_TICKET_BONUS", undefined)) {
 			var longest_ticket = gallery_tickets.findOne({'ticketholder': Meteor.userId()}, {sort: {'expiration': -1}});
 			if (longest_ticket) {
 				var time_left = moment(longest_ticket.expiration) - moment();
@@ -26,12 +26,12 @@ benefactorInteraction = function(npc_object, player_interface) {
 			}
 		}
 
-		if (procUniqueAttribute(Meteor.userId(), "BENEFACTOR_VISITOR_COUNT_BONUS", undefined)) {
+		if (player_interface.procUniqueAttribute("BENEFACTOR_VISITOR_COUNT_BONUS", undefined)) {
 			var multiplier = 1 + (npcs.find({'owner_id': Meteor.userId()}).count() * .1)
 			donation_amount *= multiplier;
 		}
 
-		if (procUniqueAttribute(Meteor.userId(), "BENEFACTOR_CONDITION_BONUS", undefined)) {
+		if (player_interface.procUniqueAttribute("BENEFACTOR_CONDITION_BONUS", undefined)) {
 			var multiplier = 1 + (getFromCollection("benefactorInteraction", items, {'owner': Meteor.userId(), 'status': "displayed", 'condition': {$gt: .9}}).count() * .05);
 			donation_amount *= multiplier;
 		}

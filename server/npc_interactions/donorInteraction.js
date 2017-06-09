@@ -8,31 +8,31 @@ donorInteraction = function(npc_object, player_interface) {
 	if (isOwnGallery(npc_object)) {
 		drop_count += 1;
 
-		if (procUniqueAttribute(Meteor.userId(), "BONUS_DEALER_DONOR", undefined)) {
+		if (player_interface.procUniqueAttribute("BONUS_DEALER_DONOR", undefined)) {
 			drop_count += 1;
 		}
 
-		if (procUniqueAttribute(Meteor.userId(), "DONOR_AUCTIONEER_TRADE", "Auctioneer")) {
+		if (player_interface.procUniqueAttribute("DONOR_AUCTIONEER_TRADE", "Auctioneer")) {
 			drop_count -= 1;
 		}
 
-		if (procUniqueAttribute(Meteor.userId(), "DONOR_FOIL_BONUS", undefined)) {
+		if (player_interface.procUniqueAttribute("DONOR_FOIL_BONUS", undefined)) {
 			foil_chance *= 2;
 		}
 
-		if (procUniqueAttribute(Meteor.userId(), "DONOR_CONDITION_MIN", undefined)) {
+		if (player_interface.procUniqueAttribute("DONOR_CONDITION_MIN", undefined)) {
 			condition_min = .8;
 		}
 
-		if (procUniqueAttribute(Meteor.userId(), "DONOR_LEVEL_MIN", undefined)) {
+		if (player_interface.procUniqueAttribute("DONOR_LEVEL_MIN", undefined)) {
 			level = 5;
 		}
 
-		if (procUniqueAttribute(Meteor.userId(), "DONOR_DROP_QUALITY_BOOST", undefined)) {
+		if (player_interface.procUniqueAttribute("DONOR_DROP_QUALITY_BOOST", undefined)) {
 			npc_object.quality = "platinum";
 		}
 
-		if (Math.random() < .2 && procUniqueAttribute(Meteor.userId(), "DONOR_QUEST_ITEM_CHANCE", undefined)) {
+		if (Math.random() < .2 && player_interface.procUniqueAttribute("DONOR_QUEST_ITEM_CHANCE", undefined)) {
 			var quest_item_ids = [];
 			quests.find({'owner_id': Meteor.userId()}).forEach(function(db_object) {
 				var targets = db_object.target;

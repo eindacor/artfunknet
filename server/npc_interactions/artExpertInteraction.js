@@ -14,18 +14,18 @@ artExpertInteraction = function(npc_object, player_interface) {
 	if (isOwnGallery(npc_object)) {
 		roll_reduction += 2;
 
-		if (procUniqueAttribute(Meteor.userId(), "XP_FOR_ZERO_COUNTS", undefined)) {
+		if (player_interface.procUniqueAttribute("XP_FOR_ZERO_COUNTS", undefined)) {
 			var zero_count_items = items.find({'owner' : Meteor.userId(), 'status' : 'displayed', 'roll_count' : {$lt: 1}}).count();
 			for (var i=0; i<zero_count_items; i++) {
 				player_interface.addXPChunkPercentage("XP_FOR_ZERO_COUNTS", .1);
 			}
 		}
 
-		if (procUniqueAttribute(Meteor.userId(), "DONOR_REROLL_DEDUCTION_BONUS", "Art Donor")) {
+		if (player_interface.procUniqueAttribute("DONOR_REROLL_DEDUCTION_BONUS", "Art Donor")) {
 			roll_reduction *= 2;
 		}
 
-		if (procUniqueAttribute(Meteor.userId(), "NEGATIVE_ROLL_COUNTS", undefined)) {
+		if (player_interface.procUniqueAttribute("NEGATIVE_ROLL_COUNTS", undefined)) {
 			roll_count_min = -5;
 		}
 	}
@@ -33,18 +33,17 @@ artExpertInteraction = function(npc_object, player_interface) {
 	var highest_item = getOneFromCollection("artExpertInteraction", items, {'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}, 'roll_count' : {$gt : roll_count_min}}, {sort: {'roll_count': -1}});
 
 	if (highest_item == undefined) {
-		var display_count = items.find({'owner': Meteor.userId(), 'status': 'displayed'}).count();
+		var display_count = items.find({'owner': player_interface.getId(), 'status': 'displayed'}).count();
 		if (display_count == 0)
 			return {'message' : "You have met an art expert, but you have no items on display for them to discuss."};
 
 		var random_index = Math.floor(Math.random() * display_count);
-		var target = getOneFromCollection("artExpertInteraction", items, {'owner': Meteor.userId(), 'status': 'displayed'}, {skip: random_index});
+		var target = getOneFromCollection("artExpertInteraction", items, {'owner': player_interface.getId(), 'status': 'displayed'}, {skip: random_index});
 		var item_interface = new ItemIF(target);
 		var unit_value = item_interface.getUnitValue();
 		var random_modifier = .2 + (.2 * Math.random());
 		var modified_value = unit_value * random_modifier;
 		var knowledge_object = convertUnitValueToKnowledge(Math.max(Math.floor(modified_value), 2));
-		var player_interface = new PlayerIF(Meteor.user());
 		player_interface.giveKnowledge(knowledge_object);
 		return {
 			'type': "art_expert_bonus",

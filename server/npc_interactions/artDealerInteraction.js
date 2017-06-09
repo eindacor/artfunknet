@@ -7,28 +7,28 @@ artDealerInteraction = function(npc_object, player_interface) {
 	if (isOwnGallery(npc_object)) {
 		drop_count += 2;
 
-		if (procUniqueAttribute(player_interface.getId(), "BONUS_DEALER_DONOR", undefined)) {
+		if (player_interface.procUniqueAttribute("BONUS_DEALER_DONOR", undefined)) {
 			drop_count += 1;
 		}
 
-		if (procUniqueAttribute(player_interface.getUserObject().profile.auction_data.winning.length > 0 && player_interface.getId(), "AUCTION_COUNT_DEALER_BONUS", "Auctioneer")) {
+		if (player_interface.getUserObject().profile.auction_data.winning.length > 0 && player_interface.procUniqueAttribute("AUCTION_COUNT_DEALER_BONUS", "Auctioneer")) {
 			var auction_count = player_interface.getUserObject().profile.auction_data.winning.length;
 			drop_count += Math.min(Math.ceil(auction_count / 4), 3);
 		}
 
-		if (procUniqueAttribute(player_interface.getId(), "DEALER_FOIL_BONUS", undefined)) {
+		if (player_interface.procUniqueAttribute("DEALER_FOIL_BONUS", undefined)) {
 			foil_chance *= 2;
 		}
 
-		if ((items.findOne({'owner': player_interface.getId(), 'status': "displayed", 'condition': {$lt: .7}}) == undefined) &&procUniqueAttribute(player_interface.getId(), "DISPLAY_CONDITION_DEALER_BOOST", undefined)) {
+		if ((items.findOne({'owner': player_interface.getId(), 'status': "displayed", 'condition': {$lt: .7}}) == undefined) && player_interface.procUniqueAttribute("DISPLAY_CONDITION_DEALER_BOOST", undefined)) {
 			drop_count += 1;
 		}
 
-		if (procUniqueAttribute(player_interface.getId(), "DEALER_LEVEL_MIN", undefined)) {
+		if (player_interface.procUniqueAttribute("DEALER_LEVEL_MIN", undefined)) {
             level = 5;
         }
 
-		if (procUniqueAttribute(player_interface.getId(), "DEALER_QUEST_ITEM_CHANCE", undefined)) {
+		if (player_interface.procUniqueAttribute("DEALER_QUEST_ITEM_CHANCE", undefined)) {
 			var quest_item_ids = [];
 			quests.find({'owner_id': player_interface.getId()}).forEach(function(quest_object) {
 				var targets = quest_object.target;

@@ -76,16 +76,16 @@ var generateQuest = function(rarity, is_own_gallery) {
 	var min_requirement = 3;
 
 	if (is_own_gallery) {
-		if (procUniqueAttribute(Meteor.userId(), "QUEST_TARGET_REDUCTION", "Marketing Manager")) {
+		if (player_interface.procUniqueAttribute("QUEST_TARGET_REDUCTION", "Marketing Manager")) {
 			min_requirement--;
 		}
 
-		if (procUniqueAttribute(Meteor.userId(), "QUEST_XP_BONUS", undefined)) {
+		if (player_interface.procUniqueAttribute("QUEST_XP_BONUS", undefined)) {
 			reward.xp = Math.floor(reward.xp * 1.5);
 			reward.xp_chunk_percentage = Number((reward.xp_chunk_percentage * 1.5).toFixed(3));
 		}
 
-		if (procUniqueAttribute(Meteor.userId(), "MARKET_EXPERT_QUEST_BONUS", undefined)) {
+		if (player_interface.procUniqueAttribute("MARKET_EXPERT_QUEST_BONUS", undefined)) {
 			//var auction_count = items.find({'owner': Meteor.userId(), 'status': "auctioned"}).count();
 			var auction_count = Meteor.user().profile.auction_data.winning.length;
 			reward.money = Math.floor(reward.money * (1 + (auction_count * .06)));

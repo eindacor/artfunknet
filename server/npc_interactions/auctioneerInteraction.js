@@ -30,7 +30,7 @@ auctioneerInteraction = function(npc_object, player_interface) {
 		market_expert_duration_extension = Math.floor(market_expert_duration_extension * 2.5);
 		auction_count += 3;
 
-		if (procUniqueAttribute(user_object._id, "DONOR_AUCTIONEER_TRADE", "Art Donor")) {
+		if (player_interface.procUniqueAttribute("DONOR_AUCTIONEER_TRADE", "Art Donor")) {
 			auction_count += 4;
 		}
 	}
@@ -56,7 +56,7 @@ auctioneerInteraction = function(npc_object, player_interface) {
 	}
 
 	var auction_price_adjustment = 4;
-	if (isOwnGallery(npc_object) && procUniqueAttribute(Meteor.userId(), "PRIVATE_AUCTION_PRICE_REDUCTION", undefined)) {
+	if (isOwnGallery(npc_object) && player_interface.procUniqueAttribute("PRIVATE_AUCTION_PRICE_REDUCTION", undefined)) {
 		auction_price_adjustment = 2.5;
 	}
 

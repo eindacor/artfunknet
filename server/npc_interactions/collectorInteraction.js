@@ -31,21 +31,21 @@ collectorInteraction = function(npc_object, player_interface) {
 		if (isOwnGallery(npc_object)) {
 			offer_multiplier *= OWN_GALLERY_NPC_AMPLIFIER;
 
-			xp_offer = procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_XP_REWARD", "Art Enthusiast");
+			xp_offer = player_interface.procUniqueAttribute("ART_COLLECTOR_XP_REWARD", "Art Enthusiast");
 			xp_offer = false;
 
-			if (collector_target.condition > .8 && procUniqueAttribute(Meteor.userId(), "GOOD_CONDITION_COLLECTOR_BONUS", undefined))
+			if (collector_target.condition > .8 && player_interface.procUniqueAttribute("GOOD_CONDITION_COLLECTOR_BONUS", undefined))
 				offer_multiplier += standard_legendary_increment;
 
-			if (collector_target.roll_count <= 0 && procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_ROLL_COUNT_BONUS", undefined))
+			if (collector_target.roll_count <= 0 && player_interface.procUniqueAttribute("ART_COLLECTOR_ROLL_COUNT_BONUS", undefined))
 				offer_multiplier += standard_legendary_increment;
 
 			if ((collector_target.foil || collector_target.original || collector_target.lottery || collector_target.seasonal) && 
-				procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_SPECIAL_BONUS", undefined)) {
+				player_interface.procUniqueAttribute("ART_COLLECTOR_SPECIAL_BONUS", undefined)) {
 					offer_multiplier += standard_legendary_increment * 4;
 			}
 
-			if (procUniqueAttribute(Meteor.userId(), "ART_COLLECTOR_AUCTION_BONUS", undefined)) {
+			if (player_interface.procUniqueAttribute("ART_COLLECTOR_AUCTION_BONUS", undefined)) {
 				var highest_value = 0;
 				var highest_level = 0;
 				
@@ -72,7 +72,7 @@ collectorInteraction = function(npc_object, player_interface) {
 
 			var loot_data = getLootData();
 
-			if (procUniqueAttribute(Meteor.userId(), "COLLECTOR_FOR_SALE_OFFER", undefined)) {
+			if (player_interface.procUniqueAttribute("COLLECTOR_FOR_SALE_OFFER", undefined)) {
 				var multi_item_generator = {
 			        'source': "COLLECTOR_FOR_SALE_OFFER",
 			        'user_id': Meteor.userId(),
@@ -89,7 +89,7 @@ collectorInteraction = function(npc_object, player_interface) {
 				generateItems(multi_item_generator);
 			}
 
-			if (Math.random() < .25 && procUniqueAttribute(Meteor.userId(), "COLLECTOR_QUEST_ITEM", undefined)) {
+			if (Math.random() < .25 && player_interface.procUniqueAttribute("COLLECTOR_QUEST_ITEM", undefined)) {
                 var quest_item_ids = [];
                 quests.find({'owner_id': Meteor.userId()}).forEach(function(quest_object) {
                     var targets = quest_object.target;
@@ -136,7 +136,7 @@ collectorInteraction = function(npc_object, player_interface) {
             logXPChunkPercentage("ART_COLLECTOR_XP_REWARD", Number(xp_chunk_percentage.toFixed(3)));
 		}
 
-		var does_not_collect = isOwnGallery(npc_object) && Math.random() < .4 && procUniqueAttribute(Meteor.userId(), "COLLECTOR_DOES_NOT_COLLECT", undefined);
+		var does_not_collect = isOwnGallery(npc_object) && Math.random() < .4 && player_interface.procUniqueAttribute("COLLECTOR_DOES_NOT_COLLECT", undefined);
 
 		if (!does_not_collect) {
 			removeItem(collector_target._id, "collector", undefined)

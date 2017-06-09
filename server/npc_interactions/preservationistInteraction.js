@@ -32,7 +32,7 @@ preservationistInteraction = function(npc_object, player_interface) {
 	var query = target_display ? display_query : claimed_query;
 	var backup_query = target_display ? claimed_query : display_query;
 
-	var force_own_gallery = !isOwnGallery(npc_object) && procUniqueAttribute(player_interface.getId(), "PRESERVATIONIST_REWARD_BONUS", undefined);
+	var force_own_gallery = !isOwnGallery(npc_object) && player_interface.procUniqueAttribute("PRESERVATIONIST_REWARD_BONUS", undefined);
 	if (isOwnGallery(npc_object) || force_own_gallery) {
 		repair_amount *= OWN_GALLERY_NPC_AMPLIFIER;		
 	}
