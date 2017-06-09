@@ -30,7 +30,7 @@ var updateContent = function() {
         for (var i=0; i<all_auctions.length; i++) {
             var auction_id = all_auctions[i];
             if (auctions.findOne(auction_id) == undefined) {
-                Meteor.users.update({}, {$pull: {'user_object.profile.auction_data.winning': {$in: [auction_id]}, 'user_object.profile.auction_data.watching': {$in: [auction_id]}}}, {multi: true});
+                Meteor.users.update({}, {$pull: {'profile.auction_data.winning': {$in: [auction_id]}, 'profile.auction_data.watching': {$in: [auction_id]}}}, {multi: true});
             }
         }
     })
