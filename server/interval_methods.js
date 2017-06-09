@@ -22,8 +22,8 @@ Meteor.setInterval((function() {
     // create auction for lottery items won instead of removing
     getFromCollection("interval_methods.js reclaim lottery items", items, {'status': 'won', 'date_received' : {$lt : auction_win_cutoff}, 'lottery': {$ne: 0}}).forEach(function(item_object) {
         var item_interface = new ItemIF(item_object);
-        item_interface.updateItem({$set: {'owner': "Artfunkel, Inc.", 'status': "auctioned", 'tags': []}}, true, function() {
-            createAuction(item_object._id, getItemObjectValueByType(getOneFromCollection("interval_methods.js", items, item_object._id), "actual", "Artfunkel, Inc."), -1, 1440, "public");
+        item_interface.updateItem({$set: {'owner': BOT_USER_NAME, 'status': "auctioned", 'tags': []}}, true, function() {
+            createAuction(item_object._id, getItemObjectValueByType(getOneFromCollection("interval_methods.js", items, item_object._id), "actual", BOT_USER_NAME), -1, 1440, "public");
         });
     });
     
@@ -263,7 +263,7 @@ drawLottery = function(force_draw) {
         var _id = new Meteor.Collection.ObjectID()._str;
        
         if (bot_won) {
-            winning_id = "Artfunkel, Inc.";
+            winning_id = BOT_USER_NAME;
         }
 
         else {
@@ -300,16 +300,16 @@ drawLottery = function(force_draw) {
         };
 
         generateItemFromArtworkID(item_generator, function() {
-            if (winning_id == "Artfunkel, Inc.") {
+            if (winning_id == BOT_USER_NAME) {
                 var item_interface = new ItemIF(_id);
                 item_interface.updateItem({$set: {'status': "auctioned", 'tags': []}}, true, function() {
-                    createAuction(_id, getItemObjectValueByType(getOneFromCollection("interval_methods.js", items, _id), "actual", "Artfunkel, Inc.") * 10, -1, 120, "public");
+                    createAuction(_id, getItemObjectValueByType(getOneFromCollection("interval_methods.js", items, _id), "actual", BOT_USER_NAME) * 10, -1, 120, "public");
                 });
             }
         });
         metadata.update({'lottery_draw': {$ne: null}}, {$set: {'lottery_level': 1}});
        
-        var winning_name = bot_won ? "Artfunkel, Inc." : getOneFromCollection("interval_methods.js", Meteor.users, winning_id).profile.screen_name;
+        var winning_name = bot_won ? BOT_USER_NAME : getOneFromCollection("interval_methods.js", Meteor.users, winning_id).profile.screen_name;
 
         var message = "This week's lottery winner is " + winning_name + ". Congratulations!!!";
 

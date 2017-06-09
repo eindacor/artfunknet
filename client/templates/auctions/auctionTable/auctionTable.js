@@ -207,7 +207,7 @@ Template.auctionTable.helpers({
 	},
 
 	'linkSeller': function(seller) {
-		return seller != "Artfunkel, Inc.";
+		return seller != BOT_USER_NAME;
 	},
 
 	'rollCount': function(roll_count) {

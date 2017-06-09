@@ -64,7 +64,7 @@ auctioneerInteraction = function(npc_object, player_interface) {
 
 	var multi_item_generator = {
         'source': "private auction",
-        'user_id': "Artfunkel, Inc.",
+        'user_id': BOT_USER_NAME,
         'quality': npc_object.quality,
         'count': auction_count,
         'status': "auctioned",

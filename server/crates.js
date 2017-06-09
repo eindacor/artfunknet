@@ -225,7 +225,7 @@ PlayerCrateIF = function(player_interface, crate_id) {
 }
 
 generateItemsRevised = function(multi_item_generator) {
-    if (Meteor.users.findOne(multi_item_generator.user_id) === undefined && multi_item_generator.user_id != "Artfunkel, Inc.")
+    if (Meteor.users.findOne(multi_item_generator.user_id) === undefined && multi_item_generator.user_id != BOT_USER_NAME)
         return [];
 
     var item_ids = [];

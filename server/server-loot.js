@@ -221,7 +221,7 @@ lookupCrateCost = function(count) {
 generateItems = function(multi_item_generator) {
     var user_object = Meteor.users.findOne(multi_item_generator.user_id);
 
-    if (user_object === undefined && multi_item_generator.user_id != "Artfunkel, Inc.")
+    if (user_object === undefined && multi_item_generator.user_id != BOT_USER_NAME)
         return [];
 
     var player_level = user_object ? user_object.profile.level : 50;

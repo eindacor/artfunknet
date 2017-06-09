@@ -35,7 +35,7 @@ createAuction = function(item_id, starting, buy_now, duration, viewer) {
                 'min_bid': starting,
                 'date_posted': post_date._d.toISOString(),
                 'expiration': expiration._d.toISOString(),
-                'seller': user_object ? user_object.profile.screen_name : "Artfunkel, Inc.",
+                'seller': user_object ? user_object.profile.screen_name : BOT_USER_NAME,
                 'viewer': viewer == undefined ? "public" : viewer,
                 'item_data': {
                     'title': item_object.artwork_data.title,
@@ -69,7 +69,7 @@ createAuction = function(item_id, starting, buy_now, duration, viewer) {
 }
 
 var failedAuction = function(auction_object) {
-    if (auction_object.seller == "Artfunkel, Inc.") {
+    if (auction_object.seller == BOT_USER_NAME) {
         removeAuction(auction_object._id, function() {
             removeItem(auction_object.item_id, "failedAuction", undefined);
         });
@@ -236,7 +236,7 @@ var botBid = function(auction_object, bid_increase_coefficient) {
 
     // indicates previous winner was player
     if (current_winner != undefined) {
-        refundWinner(auction_object, "Artfunkel, Inc.", auction_object.current_bid, false);
+        refundWinner(auction_object, BOT_USER_NAME, auction_object.current_bid, false);
         Meteor.users.update({'profile.auction_data.winning': {$in: [auction_object._id]}}, {$pull: {'profile.auction_data.winning': auction_object._id}});
     }
     

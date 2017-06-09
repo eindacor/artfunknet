@@ -4,7 +4,7 @@ createUser = function(user_object, callback){
     // if (!user_object.profile.photo)
     //     user_object.profile.photo = getDefaultProfileImageId()
 
-    if (user_object.profile.screen_name == "Artfunkel, Inc.") {
+    if (user_object.profile.screen_name == BOT_USER_NAME) {
         throw "Invalid gamertag";
     }
 
@@ -869,7 +869,7 @@ Meteor.methods({
         if (desired_name == previous_name)
             return;
 
-        if (previous_name == "admin" || desired_name == "Artfunkel, Inc.")
+        if (previous_name == "admin" || desired_name == BOT_USER_NAME)
             return "invalid operation";
 
         else if (Meteor.users.findOne({'profile.screen_name': desired_name}) != undefined) {
