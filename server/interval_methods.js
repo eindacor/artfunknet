@@ -23,7 +23,7 @@ Meteor.setInterval((function() {
     getFromCollection("interval_methods.js reclaim lottery items", items, {'status': 'won', 'date_received' : {$lt : auction_win_cutoff}, 'lottery': {$ne: 0}}).forEach(function(item_object) {
         var item_interface = new ItemIF(item_object);
         item_interface.updateItem({$set: {'owner': "Artfunkel, Inc.", 'status': "auctioned", 'tags': []}}, true, function() {
-            createAuction(item_object._id, getItemObjectValueByType(getOneFromCollection("interval_methods.js", items, item_object._id), "actual", "Artfunkel, Inc.") * 10, -1, 120, "public");
+            createAuction(item_object._id, getItemObjectValueByType(getOneFromCollection("interval_methods.js", items, item_object._id), "actual", "Artfunkel, Inc."), -1, 1440, "public");
         });
     });
     
