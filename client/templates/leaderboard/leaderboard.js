@@ -71,7 +71,7 @@ Template.leaderboard.events({
 		Blaze.renderWithData(Template.modalTemplate, {
 			'modal_name': "fullViewModal", 
 			'modal_data': {
-				'item_data': item_object
+				'item_object': item_object
 			}
 		}, $('body')[0]);
 	}

@@ -16,7 +16,7 @@ var getAuctionPreviewItemObject = function(auction_id) {
 			Blaze.renderWithData(Template.modalTemplate, {
 				'modal_name': "fullViewModal", 
 				'modal_data': {
-					'item_data': result
+					'item_object': result
 				}
 			}, $('body')[0]);
 		}

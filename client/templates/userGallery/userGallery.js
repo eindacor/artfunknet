@@ -424,7 +424,7 @@ Template.galleryItem.events({
 		Blaze.renderWithData(Template.modalTemplate, {
 			'modal_name': "fullViewModal", 
 			'modal_data': {
-				'item_data': items.findOne(item_id)
+				'item_object': items.findOne(item_id)
 			}
 		}, $('body')[0]);
 	},
