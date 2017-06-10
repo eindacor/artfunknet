@@ -2,22 +2,46 @@
 	<div class="template-archiveModal col-xs-12">
 		<div class="message-container">
 			<div class="modal-message-area">
-				<div class="archive-modal-section">
-					{{>itemInfo item_data=this}}
-					{{#with replaced_item this}}
+				<div class="row archive-modal-section">
+					<div class="col-xs-12 displace-row">
+						<div class="row">
+							{{#if replaced_item this}}
+								<div class="col-xs-4 no-margin no-padding left">
+									{{>itemInfo item_data=this}}
+								</div>
+								{{#with replaced_item this}}
+									<div class="col-xs-4 no-margin no-padding displace-area">
+										<i class="fa fa-arrows-h"></i>
+									</div>
+									<div class="col-xs-4 no-margin no-padding right">
+										{{>itemInfo item_data=this}}
+									</div>
+								{{/with}}
+							{{else}}
+								<div class="col-xs-12">
+									{{>itemInfo item_data=this}}
+								</div>
+							{{/if}}
+						</div>
+					</div>
+
+					
+					<!-- {{#with replaced_item this}}
 						{{#if this}}
-							{{>itemInfo item_data=this}}
+							<div class="col-xs-4">
+								<div class="displace-area">
+									<i class="fa fa-arrows-h"></i>
+								</div>
+							</div>
+							<div class="col-xs-4">
+								{{>itemInfo item_data=this}}
+							</div>
 						{{/if}}
-					{{/with}}
+					{{/with}} -->
 				</div>
-				<div class="archive-modal-section">
+				<div class="row archive-modal-section">
 					<p>
 						{{#each category this}}
-							<!-- {{#if isEqual @index 0}}
-								<option selected="selected" value="{{this}}"><span class="this">{{this}}</span></option>
-							{{else}}
-								<option value="{{this}}"><span class="this">{{this}}</span></option>
-							{{/if}} -->
 							<div class="category-wrapper">
 							{{#if isEqual this selected_category}}
 								<i class="fa fa-check-square-o green-text category-selected" data-category="{{this}}"></i><span class="category-description {{this}}-text">{{this}}</span>

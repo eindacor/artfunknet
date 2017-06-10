@@ -304,6 +304,11 @@ Meteor.methods({
         player_item_interface.decline();
     },
 
+    'deleteItem' : function(item_id) {
+        var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
+        player_item_interface.delete();
+    },
+
     'purchaseItemFromDealer' : function(item_id) {
         var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
         player_item_interface.purchase();

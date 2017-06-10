@@ -41,3 +41,30 @@
 .template-archiveModal .archive-modal-section {
 	margin: 20px 0px 20px 0px;
 }
+
+.template-archiveModal .displace-area {
+	font-size: 3rem;
+	color: white;
+	margin: 0px;
+	width: 300px;
+}
+
+.template-archiveModal .displace-area > i {
+	font-size: 20rem;
+}
+
+.template-archiveModal .left {
+}
+
+.template-archiveModal .right {
+	margin-left: -20px;
+}
+
+.template-archiveModal .displace-row {
+	display: flex;
+}
+
+.template-archiveModal .displace-row > .row{
+	align-content: center;
+	margin: auto;
+}
