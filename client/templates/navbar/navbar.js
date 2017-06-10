@@ -146,7 +146,7 @@ Template.navbar.helpers({
 			
 			var targets_found = 0;
 			for (var c=0; c < quest_object.target.length; c++) {
-				if (items.findOne({'artwork_id': quest_object.target[c], 'owner': Meteor.userId(), 'status': {$nin: ['unclaimed', 'for_sale', 'won']}}) != undefined)
+				if (items.findOne({'artwork_id': quest_object.target[c], 'owner': Meteor.userId(), 'status': {$nin: ['unclaimed', 'for_sale', 'won', 'archived']}}) != undefined)
 					targets_found++;
 			}
 
@@ -165,7 +165,7 @@ Template.navbar.helpers({
 			
 			var targets_found = 0;
 			for (var c=0; c < quest_object.target.length; c++) {
-				if (items.findOne({'artwork_id': quest_object.target[c], 'owner': Meteor.userId(), 'status': {$nin: ['unclaimed', 'for_sale', 'won']}}) != undefined)
+				if (items.findOne({'artwork_id': quest_object.target[c], 'owner': Meteor.userId(), 'status': {$nin: ['unclaimed', 'for_sale', 'won', 'archived']}}) != undefined)
 					targets_found++;
 			}
 
