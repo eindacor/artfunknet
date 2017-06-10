@@ -1,0 +1,9 @@
+.template-archive #show-displaced {
+	font-size: 1.5rem;
+	cursor: pointer;
+	background-color: red;
+	width: 200px;
+	height: 30px;
+	margin-top: 40px;
+	font-weight: bold;
+}

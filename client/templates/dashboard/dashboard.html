@@ -27,9 +27,6 @@
 					{{#if isEqual current_section "loot"}}
 						{{> randomDrop}}
 					{{/if}}
-					<!-- {{#if isEqual current_section "checklist"}}
-						{{> checklist}}
-					{{/if}} -->
 					{{#if isEqual current_section "archive"}}
 						{{> archive}}
 					{{/if}}
@@ -54,8 +51,12 @@
 <template name="dashboardTab">
 	<a href="/dashboard/{{section_title}}">
 		<dev class="dash-tab" data-section_name="{{section_title}}">	
-			<dev class="title-wrapper {{#if isEqual current_section section_title}}current{{/if}}">				
+			<dev class="title-wrapper {{#if isEqual current_section section_title}}current{{/if}}">	
+			{{#if has_displaced section_title}}			
+				<span class="current red-text">{{section_title}}</span>
+			{{else}}
 				<span class="{{#if isEqual current_section section_title}}af-color current{{else}}black-text{{/if}}">{{section_title}}</span>
+			{{/if}}
 			</dev>
 		</dev>
 	</a>

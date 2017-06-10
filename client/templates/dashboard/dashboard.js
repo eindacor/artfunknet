@@ -20,6 +20,12 @@ Template.dashboard.helpers({
 	}
 })
 
+Template.dashboardTab.helpers({
+	'has_displaced': function(section_name) {
+		return section_name == "archive" && new PlayerIF(Meteor.user()).hasDisplacedItems();
+	}
+})
+
 Template.dashboard.rendered = function() {
 	if (Meteor.user().profile.tutorials.welcome) {
 		Blaze.renderWithData(Template.modalTemplate, {

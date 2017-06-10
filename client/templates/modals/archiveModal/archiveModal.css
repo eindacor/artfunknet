@@ -19,3 +19,25 @@
 	color: red;
 	font-weight: bold;
 }
+
+.tempalte-archiveModal .category-selector {
+	font-size: 3rem;
+}
+
+.template-archiveModal .category-wrapper {
+	font-size: 2em;
+	font-weight: bold;
+}
+
+.template-archiveModal .category-wrapper > i {
+	cursor: pointer;
+	margin-right: 12px;
+}
+
+.template-archiveModal .standard-text {
+	color: white;
+}
+
+.template-archiveModal .archive-modal-section {
+	margin: 20px 0px 20px 0px;
+}

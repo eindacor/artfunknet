@@ -20,6 +20,11 @@ Template.archiveModal.events({
 		replaced_item_tracker.changed();
     },
 
+    'click .category-unselected': function(element) {
+    	category = $(element.target).data().category;
+    	replaced_item_tracker.changed();
+    }
+
 })
 
 Template.archiveModal.helpers({
@@ -36,7 +41,16 @@ Template.archiveModal.helpers({
 			replaced_item_tracker.changed();
 		}
 
-		else return new PlayerItemIF(new PlayerIF(Meteor.userId()), item_interface).getDisplacedArchiveItem(category);
+		else {
+			var displaced_item = new PlayerItemIF(new PlayerIF(Meteor.userId()), item_interface).getDisplacedArchiveItem(category);
+			displaced_item.archive_category = undefined;
+			return displaced_item;
+		}
+	},
+
+	'selected_category': function() {
+		replaced_item_tracker.depend();
+		return category;
 	}
 })
 

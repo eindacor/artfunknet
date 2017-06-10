@@ -144,6 +144,22 @@ a {
 	color: #A3FFFF;
 }
 
+.foil-text {
+	color: #FF33CC;
+}
+
+.seasonal-text {
+	color: green;
+}
+
+.unlocked-text {
+	color: gray !important;
+}
+
+.lottery-text {
+	color: #E8BF6C;
+}
+
 .no-padding {
 	padding: 0px;
 }

@@ -157,7 +157,7 @@ var addQueriesFromKeywords = function(base_filter) {
 
 refreshItemSet = function() {
 	updatePages();
-	//item_getter_tracker.changed();
+	updateItemGetter();
 }
 
 updatePages = function() {

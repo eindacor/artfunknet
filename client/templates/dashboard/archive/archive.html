@@ -1,5 +1,10 @@
 <template name="archive">
 	<div class="template-archive">
-		{{> itemSet statuses=item_set_statuses}}
+		{{#if has_displaced}}
+		<div class="row"><button id="show-displaced">show displaced</button></div>	
+		{{/if}}
+		<div class="row">
+			{{> itemSet statuses=item_set_statuses}}
+		</div>
 	</div>
 </template>
