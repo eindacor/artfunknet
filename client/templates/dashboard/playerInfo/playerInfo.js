@@ -119,11 +119,11 @@ Template.playerInfo.helpers({
 	},
 
 	'inventory_count': function() {
-		return items.find({'owner' : current_user_id, 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}}).count();
+		return items.find({'owner' : current_user_id, 'status' : {$nin : ['unclaimed', 'for_sale', 'won', 'archived']}}).count();
 	},
 
 	'slots_available': function() {
-		return Meteor.user().profile.inventory_cap + (Meteor.user().profile.vintage_count * 2) + Meteor.user().profile.expansion_slots - items.find({'owner' : Meteor.userId(), 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}, 'original': {$ne: true}, 'vintage': {$ne: true}}).count();
+		return Meteor.user().profile.inventory_cap + (Meteor.user().profile.vintage_count * 2) + Meteor.user().profile.expansion_slots - items.find({'owner' : Meteor.userId(), 'status' : {$nin : ['unclaimed', 'for_sale', 'won', 'archived']}, 'original': {$ne: true}, 'vintage': {$ne: true}}).count();
 	},
 
 	'original_count': function() {
