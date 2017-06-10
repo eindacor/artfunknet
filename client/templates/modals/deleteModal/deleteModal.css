@@ -1,0 +1,12 @@
+.template-deleteModal img {
+	margin: 24px;
+}
+
+.template-deleteModal .modal-content {
+	padding-bottom: 48px;
+	text-align: center;
+}
+
+.template-deleteModal .highlight {
+	font-weight: bold;
+}

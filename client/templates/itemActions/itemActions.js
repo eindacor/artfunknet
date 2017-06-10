@@ -284,14 +284,10 @@ Template.itemActions.events({
 	'click .delete.enabled' : function(element) {
 		element.stopPropagation();
 		var item_id = $(element.target).closest('.item-container').data('item_id');
-		Meteor.call('deleteItem', item_id, function(error) {
-			if(error)
-				console.log(error.message);
-
-			else {
-				updatePages();
-			}
-		})
+		Blaze.renderWithData(Template.modalTemplate, {
+			'modal_name': "deleteModal", 
+			'modal_data': items.findOne(item_id)
+		}, $('body')[0]);
 	},
 
 	'click .archive.enabled' : function(element) {

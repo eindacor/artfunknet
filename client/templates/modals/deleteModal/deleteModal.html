@@ -1,0 +1,14 @@
+<template name="deleteModal">
+	<div class="template-deleteModal col-xs-12">
+		<div class="message-container">
+			<div class="modal-message-area">
+				{{>itemInfo item_data=this}}
+				<p class="modal-message">Permanently remove <span class="af-color work-title">{{this.artwork_data.title}}</span> by <span class="af-color">{{this.artwork_data.artist}}</span> from the game?</p>
+			</div>
+			<div class="modal-button-area">
+				<button class="modal-button" id="delete-item" data-item_id="{{this._id}}">ok</button>
+				<button class="modal-button close-button">close</button>
+			</div>
+		</div>
+	</div>
+</template>

@@ -380,3 +380,11 @@
 	color: black;
 	font-weight: bold;
 }
+
+.template-itemInfo .standard-text {
+	color: black;
+}
+
+.template-itemInfo .-text {
+	color: red;
+}

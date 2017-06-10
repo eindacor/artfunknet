@@ -69,30 +69,28 @@
 					</div>
 					
 					<div class="row no-margin indicator-area">
-						{{#if isQuestItem item_data.artwork_id}}
-							<i class="green-text fa fa-flag-checkered"></i>
-						{{/if}}
-						{{#if isSought item_data.artwork_id}}
-							<i class="blue-text fa fa-area-chart"></i>
+						{{#if isEqual item_data.status "archived"}}
+							<i class="{{item_data.archive_category}}-text fa fa-archive text-shadow"></i>
+						{{else}}
+							{{#if isQuestItem item_data.artwork_id}}
+								<i class="green-text fa fa-flag-checkered text-shadow"></i>
+							{{/if}}
+							{{#if isSought item_data.artwork_id}}
+								<i class="blue-text fa fa-area-chart text-shadow"></i>
+							{{/if}}
 						{{/if}}
 					</div>			
 				</div>
 
 				<div class="card-footer col-xs-12 {{card_types item_data}}">
 					<div class="row no-margin">
-						{{#with checklist_info item_data}}
-							{{#if this}}
-								<div class="checklist-indicators">
-									<i class="check black-text fa fa-check "></i>
-									{{#if foil}}<i class="check af-color fa fa-check"></i>{{/if}}
-									{{#if seasonal}}<i class="check green-text fa fa-check"></i>{{/if}}
-									{{#if lottery}}<i class="check gold-text fa fa-check "></i>{{/if}}
-									{{#if original}}<i class="check purple-text fa fa-check"></i>{{/if}}
-									{{#if unlocked}}<i class="check silver-text fa fa-check"></i>{{/if}}
-									{{#if vintage}}<i class="check vintage-text fa fa-check"></i>{{/if}}
-								</div>
-							{{/if}}
-						{{/with}}
+						{{#if hasArchived item_data}}
+						<div class="checklist-indicators">
+						{{#each archive_indicator item_data}}
+							<i class="check {{this}}-text fa fa-archive"></i>
+						{{/each}}
+						</div>
+						{{/if}}
 						<div class="footer-basic-info">
 							<div class="col-xs-8 no-padding attribute-area">
 								{{#each sortedAttributes item_data.attributes.unlocked}}

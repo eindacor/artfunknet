@@ -210,24 +210,19 @@ Template.itemInfo.helpers({
 		return item_object.level != undefined;
 	},
 
-	'checklist_info': function(item_object) {
-		checklist_data_tracker.depend();
+	'hasArchived': function(item_object) {
+		return items.findOne({'owner': Meteor.userId(), 'status': "archived", 'archive_category': {$ne: null}, 'artwork_id': item_object.artwork_id}) != undefined;
+	},
 
-		if (checklist_data == undefined) {
-			checklist_data = Meteor.user().profile.checklists.owned;
-			checklist_data_tracker.changed();
-		}
-
-		else {
-			var checklist_object;
-			if (checklist_data[item_object.artwork_data.rarity] != undefined) {
-				if (checklist_data[item_object.artwork_data.rarity][item_object.artwork_id] != undefined) {
-					checklist_object = checklist_data[item_object.artwork_data.rarity][item_object.artwork_id]
-				}
+	'archive_indicator': function(item_object) {
+		var archive_indicators = [];
+		for (var i=0; i<ARCHIVE_CATEGORIES.length; i++) {
+			if (getOneFromCollection("itemTemplate.js:archive_indicator", items, {'owner': Meteor.userId(), 'archive_category': ARCHIVE_CATEGORIES[i], 'artwork_id': item_object.artwork_id}) != undefined) {
+				archive_indicators.push(ARCHIVE_CATEGORIES[i]);
 			}
-
-			return checklist_object;
 		}
+
+		return archive_indicators;
 	},
 
 	'hide_mask': function(item_object) {
