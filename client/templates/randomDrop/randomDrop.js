@@ -100,6 +100,15 @@ Template.randomDrop.events ({
 				'donation_reward': undefined
 			}
 		}, $('body')[0]);
+	},
+
+	'click #archive-all' : function() {
+		Blaze.renderWithData(Template.modalTemplate, {
+			'modal_name': "archiveAllModal", 
+			'modal_data': {
+				'donation_reward': undefined
+			}
+		}, $('body')[0]);
 	}
 })
 

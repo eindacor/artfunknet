@@ -1,12 +1,10 @@
 var div_size_tracker = new Tracker.Dependency;
 var sought_tracker = new Tracker.Dependency;
-var checklist_data_tracker = new Tracker.Dependency;
 var display_details_tracker = new Tracker.Dependency;
 var permanent_details_tracker = new Tracker.Dependency;
 var card_container_width;
 var card_container_height;
 var sought_status = {};
-var checklist_data;
 var global_perm = false;
 var display_details_map = {};
 var permanent_details_map = {};
@@ -26,7 +24,6 @@ var updateSoughtStatus = function(artwork_id) {
 Template.itemInfo.rendered = function() {
 	display_details_map = {};
 	permanent_details_map = {};
-	checklist_data = undefined;
 	if ($('.card-container').length != 0) {
 		card_container_height = $('.card-container').css('height').replace("px", "");
 		card_container_width = $('.card-container').css('width').replace("px", ""); 

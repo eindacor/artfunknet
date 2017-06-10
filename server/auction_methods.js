@@ -115,7 +115,6 @@ var successfulAuction = function(auction_object, winning_user) {
 
             if (item_object.status == "claimed") {
                 var player_item_interface = new PlayerItemIF(winner_interface, nested_item_interface);
-                player_item_interface.addToChecklist('owned');
             }
 
             if (previous_owner) {

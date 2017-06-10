@@ -25,6 +25,7 @@ var updateContent = function() {
     }
 
     // temp code
+    Meteor.users.update({}, {$unset: {'profile.checklists': ""}}, {multi: true});
     //temp code
 }
 

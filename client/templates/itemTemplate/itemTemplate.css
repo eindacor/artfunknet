@@ -363,13 +363,13 @@
 	margin: 4px -4px;
 }
 
-.template-itemInfo .checklist-indicators {
+.template-itemInfo .archive-indicators {
 	display: none;
 	border-bottom: 1px solid black;
 	margin-bottom: 6px;
 }
 
-.template-itemInfo .card-container:hover .checklist-indicators{
+.template-itemInfo .card-container:hover .archive-indicators{
 	display: block;
 }
 

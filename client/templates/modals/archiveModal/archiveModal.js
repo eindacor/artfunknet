@@ -34,17 +34,27 @@ Template.archiveModal.helpers({
 	},
 
 	'replaced_item': function(item_data) {
-		replaced_item_tracker.depend();
-		var item_interface = new ItemIF(item_data);
-		if (category == undefined) {
-			category = item_interface.getArchiveCategories()[0];
-			replaced_item_tracker.changed();
+		try {
+			replaced_item_tracker.depend();
+			var item_interface = new ItemIF(item_data);
+			if (category == undefined) {
+				category = item_interface.getArchiveCategories()[0];
+				replaced_item_tracker.changed();
+			}
+
+			else {
+				var displaced_item = new PlayerItemIF(new PlayerIF(Meteor.userId()), item_interface).getDisplacedArchiveItem(category);
+				if (displaced_item) {
+					displaced_item.archive_category = undefined;
+					return displaced_item;
+				}
+
+				else return undefined;
+			}
 		}
 
-		else {
-			var displaced_item = new PlayerItemIF(new PlayerIF(Meteor.userId()), item_interface).getDisplacedArchiveItem(category);
-			displaced_item.archive_category = undefined;
-			return displaced_item;
+		catch (error) {
+			console.log(error);
 		}
 	},
 

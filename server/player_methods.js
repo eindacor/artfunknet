@@ -90,20 +90,6 @@ createUser = function(user_object, callback){
         'reroll_menu': false
     };
 
-    var black_checklist_item = {
-        'common': {},
-        'uncommon': {},
-        'rare': {},
-        'legendary': {},
-        'masterpiece': {}
-    };
-
-    user_object.profile.checklists = {
-        'owned': black_checklist_item, 
-        'seen': black_checklist_item, 
-        'displayed': black_checklist_item 
-    };
-
     user_object.profile.crate_purchases = {};
 
     var default_wall = gallery_finishes.findOne({'filename': "plaster.jpg"});   
@@ -410,6 +396,11 @@ Meteor.methods({
         player_interface.donateAllUnclaimed();
     },
 
+    'archiveAllUnclaimed' : function() {
+        var player_interface = new PlayerIF(Meteor.user());
+        player_interface.archiveAllUnclaimed();
+    },
+
     'declineAllForSale' : function() {
         var player_interface = new PlayerIF(Meteor.user());
         return player_interface.declineAllForSale(); 
@@ -595,85 +586,6 @@ Meteor.methods({
         var artwork_id = auctions.findOne(auction_id).item_data.artwork_id;
         return auctions.findOne({'_id': {$in: Meteor.user().profile.auction_data.winning}, 'item_data.artwork_id': artwork_id}) != undefined && 
             Meteor.user().profile.auction_data.winning.indexOf(auction_id) == -1;
-    },
-
-    'getChecklistByRarity': function(rarity) {
-        var fields_object = {};
-        var categories = ['owned', 'seen', 'displayed'];
-        // var categories = ['owned', 'seen', 'displayed', 'purchased', 'sold', 'auctioned'];
-
-        for (var i=0; i<categories.length; i++) {
-            var key_string = "profile.checklists." + categories[i] + "." + rarity;
-            fields_object[key_string] = 1;
-        }
-
-        return Meteor.users.findOne(
-            {'_id': Meteor.userId()}, 
-            {
-                fields: fields_object
-            }).profile.checklists;
-    },
-
-    'getChecklistCounts': function(rarity) {
-        var categories = ['owned', 'seen', 'displayed'];
-        var type_array = ['foil', 'original', 'lottery', 'seasonal', 'unlocked', 'vintage'];
-        var checklist_object = Meteor.user().profile.checklists;
-
-        if (checklist_object == undefined)
-            return {};
-        
-        var count_object = {
-            'rarity': rarity,
-            'total': artworks.find({'active': true, 'rarity': rarity}).count(),
-            'owned': {
-                'standard': 0,
-                'foil': 0,
-                'seasonal': 0,
-                'original': 0,
-                'lottery': 0,
-                'unlocked': 0,
-                'vintage': 0
-            },
-
-            'seen': {
-                'standard': 0,
-                'foil': 0,
-                'seasonal': 0,
-                'original': 0,
-                'lottery': 0,
-                'unlocked': 0,
-                'vintage': 0
-            },
-
-            'displayed': {
-                'standard': 0,
-                'foil': 0,
-                'seasonal': 0,
-                'original': 0,
-                'lottery': 0,
-                'unlocked': 0,
-                'vintage': 0
-            },
-        };
-
-        var user_object = Meteor.user();
-
-        artworks.find({'active': true, 'rarity': rarity}).forEach(function(artwork_object) {
-            for (var n=0; n<categories.length; n++) {
-                var category = categories[n];
-                if (user_object.profile.checklists[category][rarity][artwork_object._id] != undefined) {
-                    count_object[category].standard++;
-
-                    for (var i=0; i<type_array.length; i++) {
-                        var type = type_array[i];
-                        if (user_object.profile.checklists[category][rarity][artwork_object._id][type])
-                            count_object[category][type]++;
-                    }
-                }
-            }
-        })
-
-        return count_object;
     },
 
     'getExpansionSlotCost': function() {
