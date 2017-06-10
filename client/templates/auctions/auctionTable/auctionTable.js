@@ -75,14 +75,15 @@ Template.auctionTable.helpers({
 		try {
 			var list_object = auction_object;
 
-			var bidder_object = Meteor.user();
+			var bidder_interface = new PlayerIF(Meteor.user());
+			var bidder_object = bidder_interface.getUserObject();
 
 			list_object.expiration = auction_object.expiration;
 			var has_auctioneer = bidder_object.profile.market_expert.expiration > moment()._d.toISOString();
 
 			var auctions_maxed = bidder_object.profile.auction_data.winning.length >= Math.floor(bidder_object.profile.auction_cap * (has_auctioneer ? 1.5 : 1));
 			var currently_winning = bidder_object.profile.auction_data.winning.indexOf(auction_object._id) != -1;
-			var inventory_full = inventoryIsFull(bidder_object);
+			var inventory_full = bidder_interface.inventoryIsFull();
 			var item_is_original = auction_object.item_data.original;
 
 			var available_balance = currently_winning ? bidder_object.profile.bank_balance + auction_object.current_bid : bidder_object.profile.bank_balance;
@@ -150,13 +151,6 @@ Template.auctionTable.helpers({
 		catch(error) {
 			console.log(error.message);
 		}
-	},
-
-	'full' : function() {
-		if (Meteor.userId())
-			inventoryIsFull(Meteor.user());
-
-		else return false;
 	},
 
 	'isQuestItem' : function(artwork_id) {

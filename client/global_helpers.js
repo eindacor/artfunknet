@@ -99,3 +99,8 @@ Template.registerHelper('canAffordUpgrade', function(item_data) {
 	var permissions = new PlayerItemPermissions(new PlayerIF(Meteor.user()), new ItemIF(item_data));
 	return permissions.canAffordUpgrade();
 })
+
+Template.registerHelper('inventoryIsFull', function() {
+	var player_interface = new PlayerIF(Meteor.user());
+	return player_interface.inventoryIsFull();
+})

@@ -27,10 +27,11 @@ Template.previewModal.helpers({
 		try {
 			var item_object = items.findOne(item_id);
 			var auction_object = auctions.findOne(Session.get('selectedAuction')); 
+			var player_interface = new PlayerIF(Meteor.user());
 			var biddable = 
 				(item_object.owner != Meteor.userId()) && 
 				(auction_object.bid_minimum <= Meteor.user().profile.bank_balance) &&
-				!inventoryIsFull(Meteor.user());
+				!player_interface.inventoryIsFull();
 
 			var max_dimension = 400;
 

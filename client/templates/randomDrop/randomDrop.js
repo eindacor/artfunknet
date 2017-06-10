@@ -31,13 +31,6 @@ Template.randomDrop.helpers({
 		}
 	},
 
-	'full' : function() {
-		if (Meteor.userId() && Meteor.user())
-			return inventoryIsFull(Meteor.user());
-
-		else return false;
-	},
-
 	'has_unclaimed' : function() {
 		return items.findOne({
 			'owner': Meteor.userId(),

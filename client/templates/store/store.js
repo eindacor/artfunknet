@@ -85,13 +85,6 @@ Template.store.helpers({
 		else return crate_objects;
 	},
 
-	'full' : function() {
-		if (Meteor.userId() && Meteor.user())
-			return inventoryIsFull(Meteor.user());
-
-		else return false;
-	},
-
 	'canPurchase' : function(item_id) {
 		return true;
 	},
