@@ -296,6 +296,10 @@ Template.itemInfo.helpers({
 		}
 
 		return types;
+	},
+
+	'displaced': function(item_object) {
+		return item_object.status == "archived" && item_object.archive_category == undefined;
 	}
 })
 

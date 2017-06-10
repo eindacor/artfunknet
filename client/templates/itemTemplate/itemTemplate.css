@@ -197,6 +197,12 @@
 	box-shadow: 0px 0px 6px 2px green; 
 }
 
+.template-itemInfo .displaced-item {
+	-webkit-box-shadow: 0px 0px 6px 2px red;
+	-moz-box-shadow: 0px 0px 6px 2px red;
+	box-shadow: 0px 0px 6px 2px red; 
+}
+
 .template-itemInfo .card-info {
 	position: relative;
 	width: 100%;

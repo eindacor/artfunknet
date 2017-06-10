@@ -762,7 +762,7 @@ Meteor.methods({
                 }
             );
 
-            items.find({'owner': Meteor.userId(), 'vintage': {$ne: true}, 'original': {$ne: true}}).forEach(function(item_object) {
+            items.find({'owner': Meteor.userId(), 'vintage': {$ne: true}, 'original': {$ne: true}, 'status': {$ne: "archived"}}).forEach(function(item_object) {
                 var item_interface = new ItemIF(item_object);
                 if (itemIsMisprinted(item_object)) {
                     return;

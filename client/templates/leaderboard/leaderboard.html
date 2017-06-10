@@ -6,6 +6,8 @@
 				{{> mvp mvp_data}}
 				{{> galleryScore gallery_score_data}}
 				{{> galleryValue gallery_value_data}}
+				{{> archiveValue archive_data.value_data}}
+				{{> archiveCount archive_data.count_data}}
 				{{> earningsPerHour gallery_earnings_data}}
 				{{> questsCompleted quests_completed_data}}
 				{{> moneySpentOnCrates money_spent_crates_data}}
@@ -79,6 +81,52 @@
 					</div> 
 					<div class="col-xs-5">
 						<p class="highlight">{{displayAsMoneyValue this.value}}</p>
+					</div> 
+				</div>
+				{{/if}}
+			{{/each}}
+		</div>
+	</div>
+</template>
+
+<template name="archiveValue">
+	<div class="row list-section">
+		<div class="template-archiveValue col-xs-12 col-md-6">
+			<h3 class="af-color">Archive Value</h3>
+			{{#each this}}
+				{{#if this.value}}
+				<div class="row list-row">
+					<div class="col-xs-1">
+						<p>{{positionFromIndex @index}}.</p>
+					</div> 
+					<div class="col-xs-6">
+						<p class="highlight">{{user_name this.owner}}</p>
+					</div> 
+					<div class="col-xs-5">
+						<p class="highlight">{{displayAsMoneyValue this.value}}</p>
+					</div> 
+				</div>
+				{{/if}}
+			{{/each}}
+		</div>
+	</div>
+</template>
+
+<template name="archiveCount">
+	<div class="row list-section">
+		<div class="template-archiveCount col-xs-12 col-md-6">
+			<h3 class="af-color">Archived Items</h3>
+			{{#each this}}
+				{{#if this.count}}
+				<div class="row list-row">
+					<div class="col-xs-1">
+						<p>{{positionFromIndex @index}}.</p>
+					</div> 
+					<div class="col-xs-6">
+						<p class="highlight">{{user_name this.owner}}</p>
+					</div> 
+					<div class="col-xs-5">
+						<p class="highlight">{{commaSeparatedValue this.count}}</p>
 					</div> 
 				</div>
 				{{/if}}

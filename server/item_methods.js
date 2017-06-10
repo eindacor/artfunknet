@@ -369,9 +369,9 @@ Meteor.methods({
         player_item_interface.rerollAttribute(attribute_id);
     },
 
-    'archiveItem': function(item_id) {
+    'archiveItem': function(item_id, category) {
         var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
-        player_item_interface.archive();
+        player_item_interface.archive(category);
     },
 
     'lookupOwner': function(item_id) {
@@ -380,6 +380,17 @@ Meteor.methods({
             return Meteor.users.findOne(item_object.owner).profile.screen_name;
 
         else return undefined;
+    },
+
+    'lookupUser': function(user_id) {
+        try {
+            var player_interface = new PlayerIF(user_id);
+            return player_interface.getUserObject().profile.screen_name;
+        }
+
+        catch(error) {
+            return undefined;
+        }  
     },
 
     'getItemArray': function(filter_array, sorter_object, current_page, items_per_page) {

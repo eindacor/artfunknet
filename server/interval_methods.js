@@ -45,6 +45,80 @@ Meteor.setInterval((function() {
     })
 }), check_marketing_manager_frequency);
 
+Meteor.setInterval((function() {
+    var admin_ids = ['Artfunkel, Inc.'];
+    Meteor.users.find({'profile.user_type': "admin"}).forEach(function(user_object) {
+        admin_ids.push(user_object._id);
+    });
+
+    if (DEBUG)
+        admin_ids = [];
+
+    var match_object = {
+        'status': "archived",
+        'archive_category': {$ne: null},
+        'owner': {$nin: admin_ids}
+    };
+
+    var aggregated_values = items.aggregate([
+        { $match: match_object}, 
+        {$group: {
+            _id: {owner: "$owner"},
+            total_value: { $sum: "$values.actual" }
+        }},
+        {$sort: {
+            total_value: -1
+        }}
+    ]);
+
+    var value_objects = [];
+    for (var i=0; i<aggregated_values.length; i++) {
+        value_objects.push({
+            'owner': aggregated_values[i]._id.owner,
+            'value': aggregated_values[i].total_value
+        })
+    }
+
+    var aggregated_counts = items.aggregate([
+        { $match: match_object}, 
+        {$group: {
+            _id: {owner: "$owner"},
+            count: { $sum: 1 }
+        }},
+        {$sort: {
+            count: -1
+        }}
+    ]);
+
+    var count_objects = [];
+    for (var i=0; i<aggregated_counts.length; i++) {
+        count_objects.push({
+            'owner': aggregated_counts[i]._id.owner,
+            'count': aggregated_counts[i].count
+        })
+    }
+
+    var archive_data = {
+        'value_data': value_objects,
+        'count_data': count_objects
+    }
+
+    if (metadata.findOne({'archive_data': {$ne: null}}) == undefined) {
+        metadata.insert({
+            'archive_data': archive_data
+        })
+    }
+
+    else metadata.update({'archive_data': {$ne: null}}, {$set: {'archive_data': archive_data}});
+
+}), DEBUG ? ONE_SECOND * 10 : ONE_MINUTE);
+
+Meteor.setInterval((function() {
+    var cutoff_duration = DEBUG ? ONE_SECOND * 20 : ONE_HOUR;
+    var displaced_cutoff = moment().add(cutoff_duration * -1, "milliseconds")._d.toISOString();
+    items.remove({'status': "archived", 'archive_category': null, 'time_archived': {$lt: displaced_cutoff}})
+}), DEBUG ? ONE_SECOND * 10 : ONE_MINUTE)
+
 var marketing_boost = .15;
 var base_proc_max = 1 - marketing_boost;
 Meteor.setInterval((function() {

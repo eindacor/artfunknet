@@ -22,6 +22,46 @@ var getMVPData = function() {
     }, {limit: 20, sort: {'values.actual': -1}}).fetch(); 
 }
 
+var sortArchives = function(a, b) {
+    if (a.total_value < b.total_value)
+        return 1;
+    if (a.total_value > b.total_value)
+        return -1;
+    return 0;
+}
+
+// var getArchiveData = function() {
+//     var admin_ids = ['Artfunkel, Inc.'];
+//     Meteor.users.find({'profile.user_type': "admin"}).forEach(function(user_object) {
+//         admin_ids.push(user_object._id);
+//     });
+
+//     var aggregated_values = items.aggregate([
+//         { $match: {
+//             'status': "archived",
+//             'archive_category': {$ne: null},
+//             'owner': {$nin: admin_ids}
+//         }}, 
+//         {$group: {
+//             _id: {owner: "$owner"},
+//             total_value: { $sum: "$values.actual" }
+//         }},
+//         {$sort: {
+//             total_value: -1
+//         }}
+//     ]);
+
+//     var archive_objects = [];
+//     for (var i=0; i<aggregated_values.length; i++) {
+//         archive_objects.push({
+//             'owner': aggregated_values[i]._id.owner,
+//             'value': aggregated_values[i].total_value
+//         })
+//     }
+//     return archive_objects;
+
+// }
+
 Meteor.methods({
     'getNow': function() {
         return getNowISOString();
@@ -33,8 +73,9 @@ Meteor.methods({
             'gallery_score_data': galleries.find({}, {limit: 20, sort: {'score': -1}}).fetch(),
             'gallery_value_data': galleries.find({}, {limit: 20, sort: {'value': -1}}).fetch(),
             'gallery_earnings_data': galleries.find({}, {limit: 20, sort: {'earnings_per_hour': -1}}).fetch(),
-            'quests_completed_data': Meteor.users.find({'profile.user_type': {$ne: "adfmin"}}, {limit: 20, sort: {'profile.completed_quests': -1}, fields: {'profile.completed_quests': 1, 'profile.screen_name': 1}}).fetch(),
+            'quests_completed_data': Meteor.users.find({'profile.user_type': {$ne: "admin"}}, {limit: 20, sort: {'profile.completed_quests': -1}, fields: {'profile.completed_quests': 1, 'profile.screen_name': 1}}).fetch(),
             'money_spent_crates_data': Meteor.users.find({'profile.user_type': {$ne: 'admin'}}, {limit: 20, sort: {'profile.money_spent_on_crates': -1}}).fetch(),
+            'archive_data': metadata.findOne({'archive_data': {$ne: null}}).archive_data
         }
     },
 
@@ -130,7 +171,7 @@ Meteor.methods({
 
     'getCollectionValue' : function(user_id) {
         var collection_total = 0;
-        items.find({'owner' : Meteor.userId(), 'status' : {$in: ['claimed', 'displayed', 'permanent']}}).forEach(function(item_object) {
+        items.find({'owner' : Meteor.userId(), 'status' : {$in: ['claimed', 'displayed', 'permanent', 'repairing']}}).forEach(function(item_object) {
             collection_total += getItemObjectValueByType(item_object, 'actual', Meteor.userId());
         });
 

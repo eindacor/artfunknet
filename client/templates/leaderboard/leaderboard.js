@@ -1,6 +1,8 @@
 var leaderboard_data = undefined;
 var leaderboard_data_tracker = new Tracker.Dependency;
 var name_tracker = new Tracker.Dependency;
+var user_tracker = new Tracker.Dependency;
+var user_map = {};
 var item_owners = {};
 
 var lookupOwner = function(item_id) {
@@ -11,6 +13,18 @@ var lookupOwner = function(item_id) {
 		else {
 			item_owners[item_id] = result;
 			name_tracker.changed();
+		}
+	});
+}
+
+var lookupUser = function(user_id) {
+	Meteor.call('lookupUser', user_id, function(error, result) {
+		if (error)
+			console.log(error)
+
+		else {
+			user_map[user_id] = result;
+			user_tracker.changed();
 		}
 	});
 }
@@ -35,10 +49,28 @@ Template.leaderboard.helpers({
 		}
 
 		else return leaderboard_data;
-	},
+	}
+})
 
-	'rank' : function(index) {
-		return index + 1;
+Template.archiveValue.helpers({
+	'user_name': function(user_id) {
+		user_tracker.depend();
+		if (user_map[user_id] == undefined) {
+			lookupUser(user_id);
+		}
+
+		else return user_map[user_id];
+	}
+})
+
+Template.archiveCount.helpers({
+	'user_name': function(user_id) {
+		user_tracker.depend();
+		if (user_map[user_id] == undefined) {
+			lookupUser(user_id);
+		}
+
+		else return user_map[user_id];
 	}
 })
 
