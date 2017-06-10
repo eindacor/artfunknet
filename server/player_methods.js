@@ -401,6 +401,11 @@ Meteor.methods({
         player_interface.archiveAllUnclaimed();
     },
 
+    'deleteAllDisplaced': function() {
+        var player_interface = new PlayerIF(Meteor.user());
+        player_interface.deleteAllDisplaced();
+    },
+
     'declineAllForSale' : function() {
         var player_interface = new PlayerIF(Meteor.user());
         return player_interface.declineAllForSale(); 

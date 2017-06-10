@@ -1,7 +1,7 @@
 <template name="archive">
 	<div class="template-archive">
 		{{#if has_displaced}}
-		<div class="row"><button id="show-displaced">show displaced</button></div>	
+		<div class="row"><button class="displaced-button" id="show-displaced">show displaced</button><button class="displaced-button" id="delete-all-displaced"><span class="highlight">delete</span> displaced</button></div>	
 		{{/if}}
 		<div class="row">
 			{{> itemSet statuses=item_set_statuses}}

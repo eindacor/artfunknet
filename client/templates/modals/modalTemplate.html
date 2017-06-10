@@ -18,6 +18,10 @@
 					{{> archiveAllModal modal_data}}
 				{{/if}}
 
+				{{#if isEqual modal_name "deleteAllDisplacedModal"}}
+					{{> deleteAllDisplacedModal modal_data}}
+				{{/if}}
+
 				{{#if isEqual modal_name "standardNPCMessageModal"}}
 					{{> standardNPCMessageModal modal_data}}
 				{{/if}}

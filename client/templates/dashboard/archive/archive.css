@@ -1,9 +1,17 @@
-.template-archive #show-displaced {
+.template-archive .displaced-button {
 	font-size: 1.5rem;
 	cursor: pointer;
-	background-color: red;
 	width: 200px;
 	height: 30px;
 	margin-top: 40px;
+	font-weight: bold;
+	margin-right: 20px;
+}
+
+.template-archive #delete-all-displaced {
+	background-color: red;
+}
+
+.template-archive .highlight {
 	font-weight: bold;
 }
