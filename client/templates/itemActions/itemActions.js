@@ -292,7 +292,7 @@ Template.itemActions.events({
 
 	'click .archive.enabled' : function(element) {
 		element.stopPropagation();
-		var item_id = $(element.target).closest('.item-container').data('item_id');
+		var item_id = $(element.target).data('item_id');
 		Blaze.renderWithData(Template.modalTemplate, {
 			'modal_name': "archiveModal", 
 			'modal_data': items.findOne(item_id)

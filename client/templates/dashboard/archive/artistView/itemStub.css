@@ -1,0 +1,394 @@
+.template-itemStub .item-attribute {
+	color: black;
+	font-size: 1.5em;
+}
+
+.template-itemStub .item-attributes {
+	margin-top: 12px;
+}
+
+.template-itemStub .item-attribute:hover {
+	cursor: default;
+}
+
+@-webkit-keyframes card_effect {
+    0%{background-position:0% 50%}
+    50%{background-position:100% 50%}
+    100%{background-position:0% 50%}
+}
+@-moz-keyframes card_effect {
+    0%{background-position:0% 50%}
+    50%{background-position:100% 50%}
+    100%{background-position:0% 50%}
+}
+@-o-keyframes card_effect {
+    0%{background-position:0% 50%}
+    50%{background-position:100% 50%}
+    100%{background-position:0% 50%}
+}
+@keyframes card_effect {
+    0%{background-position:0% 50%}
+    50%{background-position:100% 50%}
+    100%{background-position:0% 50%}
+}
+
+.template-itemStub .unlocked {
+	background: linear-gradient(60deg, white, #DBDBDB, #DBDBDB, white, #DBDBDB, #DBDBDB, white);
+	background-size: 300% 300%;
+	-webkit-animation: card_effect 10s ease infinite;
+	-moz-animation: card_effect 10s ease infinite;
+	-o-animation: card_effect 10s ease infinite;
+	animation: card_effect 10s ease infinite;
+}
+
+.template-itemStub .foil {
+	background: linear-gradient(60deg, white, #ffe2c3, #FDF, white, #FDF, #ffe2c3, white);
+	background-size: 300% 300%;
+	-webkit-animation: card_effect 10s ease infinite;
+	-moz-animation: card_effect 10s ease infinite;
+	-o-animation: card_effect 10s ease infinite;
+	animation: card_effect 10s ease infinite;
+}
+
+.template-itemStub .seasonal {
+	background: linear-gradient(60deg, white, rgb(220,255,220), rgb(220,220,255), white, rgb(220,220,255), rgb(220,255,220), white);
+	background-size: 300% 300%;
+	-webkit-animation: card_effect 10s ease infinite;
+	-moz-animation: card_effect 10s ease infinite;
+	-o-animation: card_effect 10s ease infinite;
+	animation: card_effect 10s ease infinite;
+}
+
+.template-itemStub .lottery {
+	background: linear-gradient(60deg, white, #FFF5C6, #FFF5C6, white, #FFF5C6, #FFF5C6, white);
+	background-size: 300% 300%;
+	-webkit-animation: card_effect 10s ease infinite;
+	-moz-animation: card_effect 10s ease infinite;
+	-o-animation: card_effect 10s ease infinite;
+	animation: card_effect 10s ease infinite;
+}
+
+.template-itemStub .original {
+	background: linear-gradient(60deg, white, #E0E0F8, #DAD0F8, white, #DAD0F8, #E0E0F8, white);
+	background-size: 300% 300%;
+	-webkit-animation: card_effect 10s ease infinite;
+	-moz-animation: card_effect 10s ease infinite;
+	-o-animation: card_effect 10s ease infinite;
+	animation: card_effect 10s ease infinite;
+}
+
+.template-itemStub .card-container:hover {
+	opacity: 1;
+	cursor: pointer;
+}
+
+@keyframes border_animation {
+	0%{
+		-webkit-box-shadow: 0px 0px 10px 2px #44DDDD;
+		-moz-box-shadow: 0px 0px 10px 2px #44DDDD;
+		box-shadow: 0px 0px 10px 2px #44DDDD;
+	}
+
+    50%{
+		-webkit-box-shadow: 0px 0px 20px 2px #44DDDD;
+		-moz-box-shadow: 0px 0px 20px 2px #44DDDD;
+		box-shadow: 0px 0px 20px 2px #44DDDD;
+	}
+
+	100%{
+		-webkit-box-shadow: 0px 0px 10px 2px #44DDDD;
+		-moz-box-shadow: 0px 0px 10px 2px #44DDDD;
+		box-shadow: 0px 0px 10px 2px #44DDDD;
+	}
+}
+
+@-webkit-keyframes border_animation {
+	0%{
+		-webkit-box-shadow: 0px 0px 10px 2px #44DDDD;
+		-moz-box-shadow: 0px 0px 10px 2px #44DDDD;
+		box-shadow: 0px 0px 10px 2px #44DDDD;
+	}
+
+    50%{
+		-webkit-box-shadow: 0px 0px 20px 2px #44DDDD;
+		-moz-box-shadow: 0px 0px 20px 2px #44DDDD;
+		box-shadow: 0px 0px 20px 2px #44DDDD;
+	}
+
+	100%{
+		-webkit-box-shadow: 0px 0px 10px 2px #44DDDD;
+		-moz-box-shadow: 0px 0px 10px 2px #44DDDD;
+		box-shadow: 0px 0px 10px 2px #44DDDD;
+	}
+}
+
+@-moz-keyframes border_animation {
+	0%{
+		-webkit-box-shadow: 0px 0px 10px 2px #44DDDD;
+		-moz-box-shadow: 0px 0px 10px 2px #44DDDD;
+		box-shadow: 0px 0px 10px 2px #44DDDD;
+	}
+
+    50%{
+		-webkit-box-shadow: 0px 0px 20px 2px #44DDDD;
+		-moz-box-shadow: 0px 0px 20px 2px #44DDDD;
+		box-shadow: 0px 0px 20px 2px #44DDDD;
+	}
+
+	100%{
+		-webkit-box-shadow: 0px 0px 10px 2px #44DDDD;
+		-moz-box-shadow: 0px 0px 10px 2px #44DDDD;
+		box-shadow: 0px 0px 10px 2px #44DDDD;
+	}
+}
+
+@-o-keyframes border_animation {
+	0%{
+		-webkit-box-shadow: 0px 0px 10px 2px #44DDDD;
+		-moz-box-shadow: 0px 0px 10px 2px #44DDDD;
+		box-shadow: 0px 0px 10px 2px #44DDDD;
+	}
+
+    50%{
+		-webkit-box-shadow: 0px 0px 20px 2px #44DDDD;
+		-moz-box-shadow: 0px 0px 20px 2px #44DDDD;
+		box-shadow: 0px 0px 20px 2px #44DDDD;
+	}
+
+	100%{
+		-webkit-box-shadow: 0px 0px 10px 2px #44DDDD;
+		-moz-box-shadow: 0px 0px 10px 2px #44DDDD;
+		box-shadow: 0px 0px 10px 2px #44DDDD;
+	}
+}
+
+.template-itemStub .masterpiece-item {
+	-webkit-animation: border_animation 2s ease infinite;
+	-moz-animation: border_animation 2s ease infinite;
+	-o-animation: border_animation 2s ease infinite;
+	animation: border_animation 2s ease infinite; 
+}
+
+.template-itemStub .legendary-item {
+	-webkit-box-shadow: 0px 0px 6px 2px orange;
+	-moz-box-shadow: 0px 0px 6px 2px orange;
+	box-shadow: 0px 0px 6px 2px orange; 
+}
+
+.template-itemStub .rare-item {
+	-webkit-box-shadow: 0px 0px 6px 2px #CCCC00;
+	-moz-box-shadow: 0px 0px 6px 2px #CCCC00;
+	box-shadow: 0px 0px 6px 2px #CCCC00; 
+}
+
+.template-itemStub .uncommon-item {
+	-webkit-box-shadow: 0px 0px 6px 2px blue;
+	-moz-box-shadow: 0px 0px 6px 2px blue;
+	box-shadow: 0px 0px 6px 2px blue; 
+}
+
+.template-itemStub .common-item {
+	-webkit-box-shadow: 0px 0px 6px 2px green;
+	-moz-box-shadow: 0px 0px 6px 2px green;
+	box-shadow: 0px 0px 6px 2px green; 
+}
+
+.template-itemStub .displaced-item {
+	-webkit-box-shadow: 0px 0px 6px 2px red;
+	-moz-box-shadow: 0px 0px 6px 2px red;
+	box-shadow: 0px 0px 6px 2px red; 
+}
+
+.template-itemStub .card-info {
+	position: relative;
+	width: 100%;
+	height: 100%;
+}
+
+.template-itemStub .card-header {
+	background-color: white;
+	opacity: .90;
+	/*border-top-left-radius: 12px;*/
+	/*border-top-right-radius: 12px;*/
+	padding: 8px 12px 4px 12px;
+	position: absolute;
+}
+
+.template-itemStub .card-header p {
+	margin: 0px;
+	line-height: 1.5rem;
+	text-align: left;
+}
+
+.template-itemStub .card-header:hover .header-details {
+	display: block;
+}
+
+.template-itemStub .header-details {
+	display: none;
+	border-top: 1px solid black;
+	margin-top: 12px;
+	padding-top: 4px;
+	margin-bottom: 12px;
+}
+
+.template-itemStub .item-title {
+	color: black;
+	font-weight: 600;
+	font-size: 1.6rem;
+	line-height: 12px;
+}
+
+.template-itemStub {
+	display: inline-block;
+}
+
+.template-itemStub .card-footer {
+	background-color: white;
+	opacity: .95;
+	/*border-bottom-left-radius: 12px;*/
+	/*border-bottom-right-radius: 12px;*/
+	padding: 8px 12px 4px 12px;
+	bottom: 0;
+	position: absolute;
+}
+
+.template-itemStub .card-footer p {
+	margin: 0px;
+	text-align: left;
+}
+
+.template-itemStub .card-footer:hover .footer-details {
+	display: block;
+}
+
+.template-itemStub .card-container {
+	display: inline-block;
+	width: 280px;
+	height: 390px;
+	margin: 6px 20px;
+	/*border-radius: 12px;*/
+	background: url("/img/paintings/steciw_amber.jpg") center;
+	border: 1px solid #555555;
+	padding: 0px;
+	opacity: .95;
+}
+
+.template-itemStub .attribute-area {
+	text-align: left;
+}
+
+.template-itemStub .indicator-area {
+	background-color: rgba(0,0,0,0) !important;
+	position: absolute;
+	display: block;
+	font-size: 3rem;
+	margin-top: 12px;
+}
+
+.template-itemStub .flavor-text {
+	font-size: 1.1rem;
+	padding: 2px;
+}
+
+.template-itemStub .flavor-area {
+	margin: 6px 0px;
+}
+
+/*.template-itemStub .locked {
+	text-shadow: 0.1em 0.1em 0.1em RGBA(0, 0, 0, .2);
+}
+*/
+
+.template-itemStub .old {
+	color: blue;
+}
+
+.template-itemStub .special {
+	text-shadow: 0.1em 0.1em 0.1em RGBA(255, 51, 204, .8);
+}
+
+.template-itemStub .remaining-text {
+	font-size: .6em;
+	color: black;
+	font-weight: bold;
+}
+
+.template-itemStub .status-mask{
+	min-width: 100%;
+	min-height: 100%;
+	background-color: rgba(256, 256, 256, .6);
+	float: left;
+	font-size: 6rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: black;
+	font-weight: bold;
+}
+
+.template-itemStub .status-mask.hide {
+	display: none;
+}
+
+.template-itemStub .card-container:hover > .status-mask {
+	background-color: rgba(256, 256, 256, 0);
+	opacity: 0;
+}
+
+.template-itemStub .status-info {
+	max-width: 100%;
+	text-align: center;
+}
+
+.template-itemStub .status-mask i, .template-itemStub .status-mask p{
+	display: block;
+}
+
+.template-itemStub .mask-info-container {
+	text-align: center;
+}
+
+.template-itemStub .card-container .display-details {
+	font-size: 2rem;
+	opacity: 1;
+	z-index: 9999;
+}
+
+.template-itemStub .separator {
+	margin: 4px -4px;
+}
+
+.template-itemStub .archive-indicators {
+	display: none;
+	border-bottom: 1px solid black;
+	margin-bottom: 6px;
+}
+
+.template-itemStub .card-container:hover .archive-indicators{
+	display: block;
+}
+
+.template-itemStub .level-area {
+	text-align: right;
+	float: right;
+	padding-right: 8px;
+	color: black;
+	font-weight: bold;
+}
+
+.template-itemStub .standard-text {
+	color: black;
+}
+
+.template-itemStub .-text {
+	color: red;
+}
+
+.template-itemStub {
+	opacity: .3;
+}
+
+.template-itemStub:hover {
+	opacity: 1;
+}

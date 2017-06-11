@@ -1,0 +1,87 @@
+.template-artistView .item-container {
+	display: inline-block;
+}
+
+.template-artistView .item-container:hover > .template-itemActions .button-area {
+	opacity: 1;
+}
+
+.template-itemStub .card-container {
+	display: inline-block;
+	width: 280px;
+	height: 390px;
+	margin: 6px 20px;
+	border: 1px solid #555555;
+	padding: 0px;
+	opacity: .95;
+}
+
+@-webkit-keyframes card_effect {
+    0%{background-position:0% 50%}
+    50%{background-position:100% 50%}
+    100%{background-position:0% 50%}
+}
+@-moz-keyframes card_effect {
+    0%{background-position:0% 50%}
+    50%{background-position:100% 50%}
+    100%{background-position:0% 50%}
+}
+@-o-keyframes card_effect {
+    0%{background-position:0% 50%}
+    50%{background-position:100% 50%}
+    100%{background-position:0% 50%}
+}
+@keyframes card_effect {
+    0%{background-position:0% 50%}
+    50%{background-position:100% 50%}
+    100%{background-position:0% 50%}
+}
+
+.template-itemStub .unlocked {
+	background: linear-gradient(60deg, white, #DBDBDB, #DBDBDB, white, #DBDBDB, #DBDBDB, white);
+	background-size: 300% 300%;
+	-webkit-animation: card_effect 10s ease infinite;
+	-moz-animation: card_effect 10s ease infinite;
+	-o-animation: card_effect 10s ease infinite;
+	animation: card_effect 10s ease infinite;
+}
+
+.template-itemStub .foil {
+	background: linear-gradient(60deg, white, #ffe2c3, #FDF, white, #FDF, #ffe2c3, white);
+	background-size: 300% 300%;
+	-webkit-animation: card_effect 10s ease infinite;
+	-moz-animation: card_effect 10s ease infinite;
+	-o-animation: card_effect 10s ease infinite;
+	animation: card_effect 10s ease infinite;
+}
+
+.template-itemStub .seasonal {
+	background: linear-gradient(60deg, white, rgb(220,255,220), rgb(220,220,255), white, rgb(220,220,255), rgb(220,255,220), white);
+	background-size: 300% 300%;
+	-webkit-animation: card_effect 10s ease infinite;
+	-moz-animation: card_effect 10s ease infinite;
+	-o-animation: card_effect 10s ease infinite;
+	animation: card_effect 10s ease infinite;
+}
+
+.template-itemStub .lottery {
+	background: linear-gradient(60deg, white, #FFF5C6, #FFF5C6, white, #FFF5C6, #FFF5C6, white);
+	background-size: 300% 300%;
+	-webkit-animation: card_effect 10s ease infinite;
+	-moz-animation: card_effect 10s ease infinite;
+	-o-animation: card_effect 10s ease infinite;
+	animation: card_effect 10s ease infinite;
+}
+
+.template-itemStub .original {
+	background: linear-gradient(60deg, white, #E0E0F8, #DAD0F8, white, #DAD0F8, #E0E0F8, white);
+	background-size: 300% 300%;
+	-webkit-animation: card_effect 10s ease infinite;
+	-moz-animation: card_effect 10s ease infinite;
+	-o-animation: card_effect 10s ease infinite;
+	animation: card_effect 10s ease infinite;
+}
+
+.template-itemStub .vintage {
+	background-color: #dbbca4;
+}

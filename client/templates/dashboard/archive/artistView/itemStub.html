@@ -1,0 +1,63 @@
+<template name="itemStub">
+	<div class="template-itemStub">
+		<div class="card-container {{artwork_data.rarity}}-item" style="background: url('{{getCardImageURL artwork_data.filename}}') center; background-size: 280px 390px">
+			<div class="row no-margin card-info">
+				<div class="card-header col-xs-12 {{archive_category}}">
+					<div class="row no-margin">
+						<div class="header-basic-info">
+							<p class="item-title work-title">{{artwork_data.title}}</p>
+							<p>{{artwork_data.artist}}</p>
+						</div>
+					</div>
+					<div class="row no-margin">
+						<div class="header-details">
+							<p>{{artwork_data.date}}</p>
+							{{> signatureStub rarity=artwork_data.rarity type=archive_category}}
+							<p>{{artwork_data.medium}}</p>
+							<p>{{artwork_data.height}} x {{artwork_data.width}}</p>
+							<p>condition: ?</p>
+							<p>estimated value: ?</p>
+							<p>roll count: ?</p>
+						</div>
+					</div>		
+				</div>
+
+				<div class="card-footer col-xs-12 {{archive_category}}">
+					<div class="row no-margin">
+						<div class="footer-basic-info">
+							<div class="col-xs-8 no-padding attribute-area">
+								<p>?</p>
+							</div>
+							<div class="col-xs-4 no-padding">
+								<div class="level-area">
+									<p>?</p>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</template>
+
+<template name="signatureStub">
+	<p>
+		<span class="{{rarity}}"><strong>{{rarity}}</strong></span>
+		{{#if isEqual type "foil"}}
+		<span class="af-color"> foil</span>
+		{{/if}}
+		{{#if isEqual type "seasonal"}}
+		<span class="common"> seasonal</span>
+		{{/if}}
+		{{#if isEqual type "lottery"}}
+		<span class="gold"> lottery {{item_data.lottery}}</span>
+		{{/if}}
+		{{#if isEqual type "vintage"}}
+		<span class="vintage-text"> vintage</span>
+		{{/if}}
+		{{#if isEqual type "unlocked"}}
+		<span class="silver-text"> unlocked</span>
+		{{/if}}
+	</p>
+</template>

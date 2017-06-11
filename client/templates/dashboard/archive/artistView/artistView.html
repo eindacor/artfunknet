@@ -1,0 +1,50 @@
+<template name="artistView">
+	<div class="row template-artistView no-margin no-padding">
+		<div class="col-xs-12 no-margin no-padding">
+			{{#each artist}}
+			<div class="row artist-container no-margin no-padding">
+				<div class="col-xs-12 no-margin no-padding">
+					<div class="row artist-info no-margin no-padding">
+						<div class="col-xs-12 no-margin no-padding">
+							{{this.artist_name}}
+						</div>
+					</div>
+					{{#if artist_selected this}}
+					<div class="row artwork-list no-margin no-padding">
+						<div class="col-xs-12 no-margin no-padding">
+							{{#each artwork this}}
+							<div class="row artwork-container no-margin no-padding">
+								<div class="col-xs-12 no-margin no-padding">
+									<div class="row artwork-info no-margin no-padding">
+										{{this.title}}
+									</div>
+									{{#if artwork_selected this}}
+									<div class="row">
+										{{#each archive_category this}}				
+											{{#if item_object .. this}}
+											<div data-item_id="{{this._id}}" class="item-container">
+												{{#with item_object .. this}}
+													{{>itemInfo item_data=this}}
+													{{>itemActions item_data=this sell_button=true}}
+												{{/with}}
+											</div>		
+											{{else}}
+											<div class="item-container">
+												{{>itemStub artwork_data=.. archive_category=this}}
+											</div>
+											{{/if}}
+										{{/each}}
+									</div>
+									{{/if}}
+								</div>
+							</div>
+							{{/each}}
+						</div>
+					</div>
+					{{/if}}
+				</div>
+			</div>
+			{{/each}}
+		</div>
+	</div>
+</template>
