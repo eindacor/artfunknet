@@ -3,6 +3,7 @@ var artist_array;
 var current_page;
 var total_pages;
 var match_query;
+var expanded_artists = [];
 
 var generateQueryFromSearchTerms = function(search_terms) {
 	if (search_terms.length == 0)
