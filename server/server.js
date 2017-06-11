@@ -26,33 +26,6 @@ var updateContent = function() {
     }
 
     // temp code
-    var rarities = ["legendary", "masterpiece"];
-
-    var match_object = {
-        'active': true,
-        'rarity': {$in: rarities}
-    };
-
-    var aggregate_artworks = artworks.aggregate([
-        { $match: match_object}, 
-        {$group: {_id: {artist_name: "$artist"} },
-        {$project: { _id: 0, day: "$_id", Total: 1 } },
-        {$sort: {"$_id" : 1} }
-    ]);
-
-    console.log(aggregate_artworks);
-
-
-    // var aggregated_values = items.aggregate([
-    //     { $match: match_object}, 
-    //     {$group: {
-    //         _id: {owner: "$owner"},
-    //         total_value: { $sum: "$values.actual" }
-    //     }},
-    //     {$sort: {
-    //         total_value: -1
-    //     }}
-    // ]);
     //temp code
 }
 

@@ -862,5 +862,45 @@ Meteor.methods({
      'buyAllFavorites': function() {
         var player_interface = new PlayerIF(Meteor.user());
         return player_interface.buyAllFavorites();
+     },
+
+     'getArchiveArtistsFromQuery': function(match_query, page, items_per_page) {
+        console.log(match_query);
+        var aggregate_artworks = artworks.aggregate([
+            {$match: match_query}, 
+            {$project: { _id: 0, artist: "$artist", artist_id: "$artist_id"} },
+            {$sort: {artist : 1} }
+        ]);
+
+        var unique_artist_array = _.uniq(aggregate_artworks, false, function(agg_object) {return agg_object.artist});
+
+        var current_page;
+        var total_pages;
+
+        var total_returned = unique_artist_array.length;
+
+        if (total_returned <= items_per_page) {
+            current_page = 1;
+            total_pages = 1;
+        }
+
+        else {
+            total_pages = Math.floor(total_returned / items_per_page) + 1;
+
+            if (total_returned < ((page - 1) * items_per_page) + 1) {
+                current_page = total_pages;
+            }
+
+            else current_page = page;
+        }
+
+        var skip = (current_page - 1) * items_per_page;
+        var count = items_per_page;
+
+        return {
+            'artist_array': unique_artist_array.slice(skip, skip + count),
+            'current_page': current_page,
+            'total_pages': total_pages
+        }
      }
 })
