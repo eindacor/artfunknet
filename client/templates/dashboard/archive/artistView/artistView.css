@@ -85,3 +85,12 @@
 .template-itemStub .vintage {
 	background-color: #dbbca4;
 }
+
+.template-artistView #search-area {
+	resize: none;
+	width: 100%;
+	height: 4rem;
+	font-size: 2rem;
+	margin-bottom: 12px;
+	padding: .4rem 2rem;
+}

@@ -865,7 +865,6 @@ Meteor.methods({
      },
 
      'getArchiveArtistsFromQuery': function(match_query, page, items_per_page) {
-        console.log(match_query);
         var aggregate_artworks = artworks.aggregate([
             {$match: match_query}, 
             {$project: { _id: 0, artist: "$artist", artist_id: "$artist_id"} },

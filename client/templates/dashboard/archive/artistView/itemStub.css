@@ -392,3 +392,11 @@
 .template-itemStub:hover {
 	opacity: 1;
 }
+
+.template-itemStub .artist-container {
+	
+}
+
+.template-itemStub .artwork-container {
+	padding-left: 20px;
+}

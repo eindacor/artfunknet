@@ -1,5 +1,23 @@
 <template name="artistView">
 	<div class="row template-artistView no-margin no-padding">
+		<textarea id="search-area" placeholder="search for artwork by artist name, title, medium, or genre"></textarea>
+		<div class="row">
+			<div class="col-xs-9 page-buttons">
+				<div class="row button-wrapper">
+					<i id="inventory-page-left" class="page-button fa fa-caret-left {{#if isEqual current_page '1'}}disabled{{else}}enabled{{/if}}"></i>	
+					<span class="page-indicators">page {{current_page}}/{{total_pages}}</span>
+					<i id="inventory-page-right" class="page-button fa fa-caret-right {{#if isEqual current_page total_pages}}disabled{{else}}enabled{{/if}}"></i>	
+				</div>
+			</div>
+			<div class="col-xs-3 page-buttons items_per_page">
+				<span class="filter-title">items per page: </span>
+				<select id="page-count-select">
+        			<option value="10">10</option>
+        			<option value="20">20</option>
+        			<option value="50">50</option>
+        		</select>
+			</div>
+		</div>
 		<div class="col-xs-12 no-margin no-padding">
 			{{#each artist}}
 			<div class="row artist-container no-margin no-padding">
@@ -13,13 +31,13 @@
 					<div class="row artwork-list no-margin no-padding">
 						<div class="col-xs-12 no-margin no-padding">
 							{{#each artwork this}}
-							<div class="row artwork-container no-margin no-padding">
-								<div class="col-xs-12 no-margin no-padding">
-									<div class="row artwork-info no-margin no-padding">
+							<div class="row no-margin">
+								<div class="col-xs-12 no-margin">
+									<div class="row artwork-info no-margin">
 										{{this.title}}
 									</div>
 									{{#if artwork_selected this}}
-									<div class="row">
+									<div class="row no-margin">
 										{{#each archive_category this}}				
 											{{#if item_object .. this}}
 											<div data-item_id="{{this._id}}" class="item-container">
