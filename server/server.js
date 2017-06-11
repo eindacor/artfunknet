@@ -1,4 +1,5 @@
 var updateContent = function() {
+    console.log("UPDATING CONTENT");
     var all_users = Meteor.users.find();
     all_users.forEach(function(user_object) {
         var player_interface = new PlayerIF(user_object);

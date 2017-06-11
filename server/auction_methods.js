@@ -99,8 +99,15 @@ var successfulAuction = function(auction_object, winning_user) {
     var item_interface = new ItemIF(auction_object.item_id);
     var seller = item_interface.getItemObject().owner;
 
-    var send_item_to_inventory = winning_user.profile.settings.auction_items_to_inventory && !inventoryIsFull(winning_user);
-    var new_status = send_item_to_inventory ? 'claimed' : 'won';
+    var winning_user_interface;
+    var send_item_to_inventory = true;
+    var new_status = "claimed";
+
+    try {
+        winning_user_interface = new PlayerIF(winning_user);
+        send_item_to_inventory = winning_user.profile.settings.auction_items_to_inventory && !winning_user_interface.inventoryIsFull();
+        new_status = send_item_to_inventory ? 'claimed' : 'won';
+    }
     
     item_interface.updateItem({$set: {'status' : new_status, 'owner': winning_user._id, 'tags': [], 'date_received': moment()._d.toISOString()}}, false, function(error) {
         if (error)
