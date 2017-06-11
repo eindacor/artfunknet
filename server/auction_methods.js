@@ -108,6 +108,10 @@ var successfulAuction = function(auction_object, winning_user) {
         send_item_to_inventory = winning_user.profile.settings.auction_items_to_inventory && !winning_user_interface.inventoryIsFull();
         new_status = send_item_to_inventory ? 'claimed' : 'won';
     }
+
+    catch (error) {
+        console.log(error);
+    }
     
     item_interface.updateItem({$set: {'status' : new_status, 'owner': winning_user._id, 'tags': [], 'date_received': moment()._d.toISOString()}}, false, function(error) {
         if (error)
