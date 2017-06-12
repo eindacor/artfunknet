@@ -1,3 +1,6 @@
+var artist_view = true;
+var archive_mode_tracker = new Tracker.Dependency;
+
 Template.archive.helpers({
 	'item_set_statuses': function() {
 		return ['archived'];
@@ -5,6 +8,11 @@ Template.archive.helpers({
 
 	'has_displaced': function() {
 		return new PlayerIF(Meteor.user()).hasDisplacedItems();
+	},
+
+	'artist_view': function() {
+		archive_mode_tracker.depend();
+		return artist_view;
 	}
 });
 
@@ -19,5 +27,10 @@ Template.archive.events({
 			'modal_name': "deleteAllDisplacedModal", 
 			'modal_data': {}
 		}, $('body')[0]);
+	},
+
+	'click .archive-mode-button': function() {
+		artist_view = !artist_view;
+		archive_mode_tracker.changed();
 	}
 })

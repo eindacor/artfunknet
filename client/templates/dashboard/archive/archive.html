@@ -1,11 +1,16 @@
 <template name="archive">
 	<div class="template-archive">
-		{{#if has_displaced}}
-		<div class="row"><button class="displaced-button" id="show-displaced">show displaced</button><button class="displaced-button" id="delete-all-displaced"><span class="highlight">delete</span> displaced</button></div>	
-		{{/if}}
-		<div class="row">
-			<!-- {{> itemSet statuses=item_set_statuses}} -->
-			{{> artistView}}
-		</div>
+			{{#if artist_view}}
+			<i class="af-color archive-mode-button fa fa-book"></i>
+				{{> artistView}}
+			{{else}}
+			<i class="af-color archive-mode-button fa fa-address-book"></i>
+				{{#if has_displaced}}
+					<div class="row"><button class="displaced-button" id="show-displaced">show displaced</button><button class="displaced-button" id="delete-all-displaced"><span class="highlight">delete</span> displaced</button></div>	
+				{{/if}}
+				<div class="row">
+				{{> itemSet statuses=item_set_statuses}}
+				</div>
+			{{/if}}
 	</div>
 </template>
