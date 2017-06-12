@@ -13,9 +13,21 @@ var generateQueryFromSearchTerms = function(search_terms) {
 		return undefined;
 
 	var or_array = [];
+	var and_or_array = [];
 
 	for (var i=0; i<search_terms.length; i++) {
 		var term = search_terms[i];
+
+		var mandatory = false;
+		if (term[term.length -1] == "!") {
+			mandatory = true;
+			term = term.slice(0, term.length -1);
+		}
+
+		if (term.length == 0) {
+			continue;
+		}
+
 		var term_array = [
 			{'artist': {'$regex': term, '$options': 'i'}},
 			{'title': {'$regex': term, '$options': 'i'}},
@@ -23,10 +35,27 @@ var generateQueryFromSearchTerms = function(search_terms) {
 			{'rarity': {'$regex': term, '$options': 'i'}},
 			{'medium': {'$regex': term, '$options': 'i'}}
 		]
+
+		if (mandatory) {
+			and_or_array.push({
+				'$or': term_array
+			});
+		}
+
 		or_array = or_array.concat(term_array);
 	}
-	var or_object = {'$or': or_array};
-	return or_object;
+
+	if (or_array.length > 0) {
+		and_or_array.push({'$or': or_array});
+	}
+
+	if (and_or_array.length == 0) {
+		return {};
+	}
+
+	else return {
+		'$and': and_or_array
+	}
 }
 
 var refreshArtistArray = function() {
