@@ -23,5 +23,9 @@
 }
 
 .template-leaderboard .list-section {
-	margin-top: 48px;
+	margin-top: 24px;
+}
+
+.template-leaderboard .list-section:first-child {
+	margin-top: 0px;
 }
