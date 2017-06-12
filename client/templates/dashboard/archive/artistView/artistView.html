@@ -22,25 +22,39 @@
 			{{#each artist}}
 			<div class="row artist-container no-margin no-padding">
 				<div class="col-xs-12 no-margin no-padding">
-					<div class="row artist-info no-margin no-padding">
-						<div class="col-xs-12 no-margin no-padding">
-							<i class="artist-collapse fa fa-caret-down" data-artist_id="this._id"></i>{{this.artist_name}}
+					<div class="row artist-info no-margin no-padding" data-artist_id="{{_id}}">
+						<div class="expand-collapse-container">
+							<i class="expand-collapse fa {{#if artist_selected this}}fa-caret-down{{else}}fa-caret-right{{/if}}" data-target_id="{{_id}}" data-type="artist"></i>
+						</div>
+						<div class="artist-name-container">
+							{{artist_name}}
+						</div>
+						<div class="artist-collection-data-container">
+							{{#with artwork_collection_data this}}{{total_items_archived}}/{{total_items_available}}{{/with}}
 						</div>
 					</div>
 					{{#if artist_selected this}}
 					<div class="row artwork-list no-margin no-padding">
 						<div class="col-xs-12 no-margin no-padding">
 							{{#each artwork this}}
-							<div class="row no-margin">
+							<div class="row artwork-container no-margin">
 								<div class="col-xs-12 no-margin">
-									<div class="row artwork-info no-margin">
-										<i class="artwork-expand fa fa-caret-right" data-artwork_id="this._id"></i>{{this.title}}
+									<div class="row artwork-info no-margin" data-artwork_id="{{_id}}">
+										<div class="expand-collapse-container">
+											<i class="expand-collapse fa {{#if artwork_selected this}}fa-caret-down{{else}}fa-caret-right{{/if}}" data-target_id="{{_id}}" data-type="artwork"></i>
+										</div>
+										<div class="artwork-title-container {{rarity}}">
+											{{title}}
+										</div>
+										<div class="item-collection-data-container">
+											{{#with item_collection_data this}}{{total_items_archived}}/{{total_items_available}}{{/with}}
+										</div>
 									</div>
 									{{#if artwork_selected this}}
-									<div class="row no-margin">
+									<div class="row no-margin category-container">
 										{{#each archive_category this}}				
 											{{#if item_object .. this}}
-											<div data-item_id="{{this._id}}" class="item-container">
+											<div data-item_id="{{_id}}" class="item-container">
 												{{#with item_object .. this}}
 													{{>itemInfo item_data=this}}
 													{{>itemActions item_data=this sell_button=true}}

@@ -94,3 +94,92 @@
 	margin-bottom: 12px;
 	padding: .4rem 2rem;
 }
+
+.template-artistView .artist-container {
+	border-top: 1px solid rgba(0,0,0,.6);
+}
+
+.template-artistView .artwork-container {
+	border-top: 1px solid rgba(0,0,0,.3);
+}
+
+.template-artistView .artwork-list {
+	padding-bottom: 12px;
+}
+
+.template-artistView .expand-collapse {
+	opacity: .6;
+	cursor: pointer;
+	font-size: 2rem;
+}
+
+.template-artistView .expand-collapse:hover {
+	opacity: 1;
+}
+
+.template-artistView .expand-collapse-container {
+	display: inline-block;
+}
+
+.template-artistView .artist-name-container {
+	display: inline-block;
+	color: black;
+	font-size: 1.5rem;
+	margin-left: 20px;
+	font-weight: bold;
+	margin-right: 20px;
+}
+
+.template-artistView .artist-info {
+	padding-top: 10px;
+	padding-bottom: 16px;
+	padding-left: 20px;
+	cursor: pointer;
+}
+
+.template-artistView .artist-info:hover {
+	background-color: rgba(0,0,0,.1);
+}
+
+.template-artistView .artwork-info {
+	padding-top: 5px;
+	padding-bottom: 5px;
+	padding-left: 20px;
+	cursor: pointer;
+}
+
+.template-artistView .artwork-info:hover {
+	background-color: rgba(0,0,0,.1);
+}
+
+.template-artistView .artist-collection-data-container {
+	display: inline-block;
+}
+
+.template-artistView .artwork-title-container {
+	display: inline-block;
+	margin-left: 20px;
+	margin-right: 20px;
+}
+
+.template-artistView .item-collection-data-container {
+	display: inline-block;
+}
+
+.template-artistView .artwork-list {
+	padding-left: 16px;
+}
+
+.template-artistView .category-container {
+	padding-top: 20px;
+}
+
+/*
+<div class="expand-collapse-container">
+											<i class="expand-collapse fa {{#if artwork_selected this}}fa-caret-down{{else}}fa-caret-right{{/if}}" data-target_id="{{this._id}}" data-type="artwork"></i>
+										</div>
+										<div class="artowrk-title-container">
+											{{this.title}}
+										</div>
+										<div class="item-collection-data-container">
+*/
