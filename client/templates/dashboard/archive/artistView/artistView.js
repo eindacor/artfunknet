@@ -1,5 +1,6 @@
 var artist_data_tracker = new Tracker.Dependency;
 var expanded_data_tracker = new Tracker.Dependency;
+var enforce_terms_tracker = new Tracker.Dependency;
 var artist_array;
 var current_page;
 var total_pages;
@@ -7,22 +8,16 @@ var match_query;
 var expanded_artist_ids = [];
 var expanded_artwork_ids = [];
 var artists_per_page = 10;
+var enforce_terms = false;
 
 var generateQueryFromSearchTerms = function(search_terms) {
 	if (search_terms.length == 0)
 		return undefined;
 
-	var or_array = [];
-	var and_or_array = [];
+	var query_array = [];
 
 	for (var i=0; i<search_terms.length; i++) {
 		var term = search_terms[i];
-
-		var mandatory = false;
-		if (term[term.length -1] == "!") {
-			mandatory = true;
-			term = term.slice(0, term.length -1);
-		}
 
 		if (term.length == 0) {
 			continue;
@@ -36,25 +31,27 @@ var generateQueryFromSearchTerms = function(search_terms) {
 			{'medium': {'$regex': term, '$options': 'i'}}
 		]
 
-		if (mandatory) {
-			and_or_array.push({
+		if (enforce_terms) {
+			query_array.push({
 				'$or': term_array
 			});
 		}
 
-		or_array = or_array.concat(term_array);
+		else query_array = query_array.concat(term_array);
 	}
 
-	if (or_array.length > 0) {
-		and_or_array.push({'$or': or_array});
-	}
-
-	if (and_or_array.length == 0) {
+	if (query_array.length == 0) {
 		return {};
 	}
 
+	else if (enforce_terms) {
+		return {
+			'$and': query_array
+		}
+	}
+
 	else return {
-		'$and': and_or_array
+		'$or': query_array
 	}
 }
 
@@ -180,6 +177,11 @@ Template.artistView.helpers({
 			'total_items_available': available_category_count,
 			'total_items_archived': items_archived
 		}
+	},
+
+	'enforce_terms': function() {
+		enforce_terms_tracker.depend();
+		return enforce_terms;
 	}
 })
 
@@ -214,29 +216,6 @@ Template.artistView.events({
 		refreshArtistArray();
 	},
 
-	// 'click .expand-collapse': function(event) {
-	// 	var type = $(event.target).data().type;
-	// 	var target_id = $(event.target).data().target_id;
-
-	// 	if (type == "artist") {
-	// 		if (expanded_artist_ids.indexOf(target_id) == -1) {
-	// 			expanded_artist_ids.push(target_id);
-	// 		}
-
-	// 		else expanded_artist_ids.splice(expanded_artist_ids.indexOf(target_id), 1);
-	// 	}
-
-	// 	else {
-	// 		if (expanded_artwork_ids.indexOf(target_id) == -1) {
-	// 			expanded_artwork_ids.push(target_id);
-	// 		}
-
-	// 		else expanded_artwork_ids.splice(expanded_artwork_ids.indexOf(target_id), 1);
-	// 	}
-
-	// 	expanded_data_tracker.changed();
-	// },
-
 	'click .artist-info': function(event) {
 		var artist_id = $(event.target).closest('.artist-info').data().artist_id;
 		if (expanded_artist_ids.indexOf(artist_id) == -1) {
@@ -257,5 +236,11 @@ Template.artistView.events({
 		else expanded_artwork_ids.splice(expanded_artwork_ids.indexOf(artwork_id), 1);
 
 		expanded_data_tracker.changed();
+	},
+
+	'click .enforce-terms': function() {
+		enforce_terms = !enforce_terms;
+		enforce_terms_tracker.changed();
+		refreshArtistArray();
 	}
 })

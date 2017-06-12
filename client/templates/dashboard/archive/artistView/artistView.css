@@ -203,6 +203,13 @@
 	font-size: 2rem;
 }
 
+.template-artistView .enforce-terms {
+	font-size: 1.5rem;
+	font-weight: bold;
+	width: 60px;
+	height: 24px;
+}
+
 /*
 <div class="expand-collapse-container">
 											<i class="expand-collapse fa {{#if artwork_selected this}}fa-caret-down{{else}}fa-caret-right{{/if}}" data-target_id="{{this._id}}" data-type="artwork"></i>

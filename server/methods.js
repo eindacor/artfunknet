@@ -21,7 +21,6 @@ var getMVPData = function(archive_status) {
     };
 
     var leaderboard_items = items.find(query_object, {limit: 20, sort: {'values.actual': -1}}).fetch();
-    console.log(leaderboard_items);
 
     return leaderboard_items; 
 }
