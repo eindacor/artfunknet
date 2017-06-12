@@ -174,6 +174,35 @@
 	padding-top: 20px;
 }
 
+.template-artistView .page-buttons {
+	height: 50px;
+	text-align: center;
+	min-height: 4em;
+	display: flex;
+	align-items:center;
+}
+.template-artistView .page-button {
+	font-size: 3rem;
+	margin: 20px 80px 20px 80px;
+	vertical-align: middle;
+}
+
+.template-artistView .page-button.disabled {
+	opacity: 0;
+}
+
+.template-artistView .page-button.enabled:hover {
+	color: black;
+	cursor: pointer;
+}
+
+.template-artistView .page-indicators {
+	font-weight: bold;
+	color: black;
+	vertical-align: middle;
+	font-size: 2rem;
+}
+
 /*
 <div class="expand-collapse-container">
 											<i class="expand-collapse fa {{#if artwork_selected this}}fa-caret-down{{else}}fa-caret-right{{/if}}" data-target_id="{{this._id}}" data-type="artwork"></i>
