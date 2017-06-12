@@ -7,19 +7,23 @@ var min_matte_width_cm = 0;
 var max_matte_width_cm = 20;
 var texture_size_cm = 300;
 
-var getMVPData = function() {
+var getMVPData = function(archive_status) {
     var admin_ids = ['Artfunkel, Inc.'];
     var botter_ids = ["A5W6WmH9ZvPRBQ6ZR", "ktByWpesBidgHoqum"];
     Meteor.users.find({'profile.user_type': "admin"}).forEach(function(user_object) {
         admin_ids.push(user_object._id);
     });
 
-    return items.find({
-        $or: [
-            {'owner': {$nin: admin_ids.concat(botter_ids)}, 'status': {$in: ["displayed", "permanent"]}},
-            {'owner': {$in: botter_ids}, 'status': {$in: ["displayed", "permanent"]}, 'date_created': {$gt: "2016-12-23T05:07:59.955Z"}}
-        ]
-    }, {limit: 20, sort: {'values.actual': -1}}).fetch(); 
+    var query_object = {
+        'owner': {$nin: admin_ids}, 
+        'status': {$in: archive_status ? ["archived"] : ["displayed", "permanent"]},
+        'archive_category': archive_status ? {'$ne': null} : null
+    };
+
+    var leaderboard_items = items.find(query_object, {limit: 20, sort: {'values.actual': -1}}).fetch();
+    console.log(leaderboard_items);
+
+    return leaderboard_items; 
 }
 
 var sortArchives = function(a, b) {
@@ -69,7 +73,8 @@ Meteor.methods({
 
     'getLeaderboardData' : function() {
         return {
-            'mvp_data': getMVPData(),
+            'mvp_data': getMVPData(false),
+            'archived_mvp_data': getMVPData(true),
             'gallery_score_data': galleries.find({}, {limit: 20, sort: {'score': -1}}).fetch(),
             'gallery_value_data': galleries.find({}, {limit: 20, sort: {'value': -1}}).fetch(),
             'gallery_earnings_data': galleries.find({}, {limit: 20, sort: {'earnings_per_hour': -1}}).fetch(),

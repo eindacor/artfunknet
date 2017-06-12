@@ -3,7 +3,8 @@
 		<div class="container">
 			<h1 class="af-color">Leaderboard</h1>
 			{{#with leaderboard_data}}
-				{{> mvp mvp_data}}
+				{{> mvp item_array=mvp_data board_title="most valuable items"}}
+				{{> mvp item_array=archived_mvp_data board_title="most valuable archived items"}}
 				{{> galleryScore gallery_score_data}}
 				{{> galleryValue gallery_value_data}}
 				{{> archiveValue archive_data.value_data}}
@@ -17,10 +18,10 @@
 </template>
 
 <template name="mvp">
-	<div class="row list-mvp">
+	<div class="row list-section">
 		<div class="template-galleryScore col-xs-12">
-			<h3 class="af-color">Most Valuable Items</h3>
-			{{#each this}}
+			<h3 class="af-color">{{this.board_title}}</h3>
+			{{#each this.item_array}}
 			<div class="row list-row mvp-row" data-item_id="{{_id}}">
 				<div class="col-xs-1">
 					<p>{{positionFromIndex @index}}.</p>
@@ -46,7 +47,7 @@
 <template name="galleryScore">
 	<div class="row list-section">
 		<div class="template-galleryScore col-xs-12 col-md-6">
-			<h3 class="af-color">Gallery Score</h3>
+			<h3 class="af-color">gallery score</h3>
 			{{#each this}}
 				{{#if this.score}}
 				<div class="row list-row">
@@ -69,7 +70,7 @@
 <template name="galleryValue">
 	<div class="row list-section">
 		<div class="template-galleryValue col-xs-12 col-md-6">
-			<h3 class="af-color">Gallery Value</h3>
+			<h3 class="af-color">gallery value</h3>
 			{{#each this}}
 				{{#if this.value}}
 				<div class="row list-row">
@@ -92,7 +93,7 @@
 <template name="archiveValue">
 	<div class="row list-section">
 		<div class="template-archiveValue col-xs-12 col-md-6">
-			<h3 class="af-color">Archive Value</h3>
+			<h3 class="af-color">archive value</h3>
 			{{#each this}}
 				{{#if this.value}}
 				<div class="row list-row">
@@ -115,7 +116,7 @@
 <template name="archiveCount">
 	<div class="row list-section">
 		<div class="template-archiveCount col-xs-12 col-md-6">
-			<h3 class="af-color">Archived Items</h3>
+			<h3 class="af-color">items archived</h3>
 			{{#each this}}
 				{{#if this.count}}
 				<div class="row list-row">
@@ -138,7 +139,7 @@
 <template name="earningsPerHour">
 	<div class="row list-section">
 		<div class="template-earningsPerHour col-xs-12 col-md-6">
-			<h3 class="af-color">Gallery Earnings Per Hour</h3>
+			<h3 class="af-color">gallery earnings per hour</h3>
 			{{#each this}}
 				{{#if this.value}}
 				<div class="row list-row">
@@ -161,7 +162,7 @@
 <template name="questsCompleted">
 	<div class="row list-section">
 		<div class="template-questsCompleted col-xs-12 col-md-6">
-			<h3 class="af-color">Quests Completed</h3>
+			<h3 class="af-color">quests completed</h3>
 			{{#each this}}
 				{{#if this.profile.completed_quests}}
 				<div class="row list-row">
@@ -184,7 +185,7 @@
 <template name="moneySpentOnCrates">
 	<div class="row list-section">
 		<div class="template-moneySpentOnCrates col-xs-12 col-md-6">
-			<h3 class="af-color">Money Spent on Crates</h3>
+			<h3 class="af-color">money spent on crates</h3>
 			{{#each this}}
 				{{#if this.profile.money_spent_on_crates}}
 				<div class="row list-row">
