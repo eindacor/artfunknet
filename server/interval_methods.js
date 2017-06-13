@@ -56,7 +56,7 @@ Meteor.setInterval((function() {
 
     var match_object = {
         'status': "archived",
-        'archive_category': {$ne: null},
+        'displaced': {$ne: true},
         'owner': {$nin: admin_ids}
     };
 
@@ -116,7 +116,7 @@ Meteor.setInterval((function() {
 Meteor.setInterval((function() {
     var cutoff_duration = DEBUG ? ONE_SECOND * 20 : ONE_HOUR;
     var displaced_cutoff = moment().add(cutoff_duration * -1, "milliseconds")._d.toISOString();
-    items.remove({'status': "archived", 'archive_category': null, 'time_archived': {$lt: displaced_cutoff}})
+    items.remove({'status': "archived", 'displaced': true, 'time_archived': {$lt: displaced_cutoff}})
 }), DEBUG ? ONE_SECOND * 10 : ONE_MINUTE)
 
 var marketing_boost = .15;

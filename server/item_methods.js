@@ -374,9 +374,9 @@ Meteor.methods({
         player_item_interface.rerollAttribute(attribute_id);
     },
 
-    'archiveItem': function(item_id, category) {
+    'archiveItem': function(item_id) {
         var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
-        player_item_interface.archive(category);
+        player_item_interface.archive();
     },
 
     'lookupOwner': function(item_id) {

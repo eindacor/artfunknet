@@ -90,6 +90,45 @@ var refreshArtistArray = function() {
 	expanded_data_tracker.changed();
 }
 
+var getArtworkCollectionData = function(player_interface, artwork_interface) {
+	var available_categories = artwork_interface.getPotentialArchiveCategories();
+
+	var player_has = 0;
+
+	for (var i=0; i<available_categories.length; i++) {
+		var category = available_categories[i];
+		if (player_interface.hasArchivedArtworkOfCategory(artwork_interface, category)) {
+			player_has++;
+		}
+	}
+
+	return {
+		'available': available_categories.length,
+		'has': player_has
+	};
+}
+
+var getArtistCollectionData = function(player_interface, artist_interface) {
+	var artwork_objects = getFromCollection("artistView.js:getArtistCollectionData", artworks, {'artist_id': artist_interface.getId()}).fetch();
+
+	var total_items_available = 0;
+	var player_has = 0;
+
+	for (var i=0; i<artwork_objects.length; i++) {
+		var artwork_interface = new ArtworkIF(artwork_objects[i]);
+
+		var artwork_collection_data = getArtworkCollectionData(player_interface, artwork_interface);
+
+		total_items_available += artwork_collection_data.available;
+		player_has += artwork_collection_data.has;
+	}
+
+	return {
+		'available': total_items_available,
+		'has': player_has
+	};
+}
+
 Template.artistView.rendered = function() {
 	artist_array = undefined;
 	current_page = 1;
@@ -136,8 +175,12 @@ Template.artistView.helpers({
 	},
 
 	'item_object': function(artwork_object, archive_category) {
-		var item_object = getOneFromCollection("artistView.js:item_object", items, {'owner': Meteor.userId(), 'artwork_id': artwork_object._id, 'status': "archived", 'archive_category': archive_category});
-		return item_object ? item_object : false;
+		var query_object = TYPE_QUERIES[archive_category];
+		query_object.owner = Meteor.userId();
+		query_object.artwork_id = artwork_object._id;
+		query_object.status = "archived";
+		query_object.displaced = false;
+		return getFromCollection("artistView.js:item_object", items, query_object);
 	},
 
 	'current_page': function() {
@@ -151,31 +194,20 @@ Template.artistView.helpers({
 	},
 
 	'artwork_collection_data': function(artist_object)  {
-		var artwork_objects = getFromCollection("artistView.js:artworks_archived", artworks, {'artist_id': artist_object._id}).fetch();
-		var artwork_count = artwork_objects.length;
-		var total_items_available = 0;
-		for (var i=0; i<artwork_objects.length; i++) {
-			var artwork_interface = new ArtworkIF(artwork_objects[i]);
-			var available_category_count = artwork_interface.getPotentialArchiveCategories().length;
-			total_items_available += available_category_count;
-		}
-
-		var total_items_archived = getFromCollection("artistView.js:artworks_archived", items, {'artwork_data.artist_id': artist_object._id, 'status': "archived", 'archive_category': {$ne: null}}).count();
+		var artwork_collection_data = getArtistCollectionData(new PlayerIF(Meteor.user()), new ArtistIF(artist_object));
 
 		return {
-			'total_items_available': total_items_available,
-			'total_items_archived': total_items_archived
+			'total_items_available': artwork_collection_data.available,
+			'total_items_archived': artwork_collection_data.has
 		}
 	},
 
 	'item_collection_data': function(artwork_object) {
-		var artwork_interface = new ArtworkIF(artwork_object);
-		var available_category_count = artwork_interface.getPotentialArchiveCategories().length;
-		var items_archived = getFromCollection("artistView.js:artworks_archived", items, {'artwork_id': artwork_object._id, 'status': "archived", 'archive_category': {$ne: null}}).count();
+		var item_collection_data = getArtworkCollectionData(new PlayerIF(Meteor.user()), new ArtworkIF(artwork_object));
 
 		return {
-			'total_items_available': available_category_count,
-			'total_items_archived': items_archived
+			'total_items_available': item_collection_data.available,
+			'total_items_archived': item_collection_data.has
 		}
 	},
 

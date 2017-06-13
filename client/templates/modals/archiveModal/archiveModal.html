@@ -24,33 +24,6 @@
 							{{/if}}
 						</div>
 					</div>
-
-					
-					<!-- {{#with replaced_item this}}
-						{{#if this}}
-							<div class="col-xs-4">
-								<div class="displace-area">
-									<i class="fa fa-arrows-h"></i>
-								</div>
-							</div>
-							<div class="col-xs-4">
-								{{>itemInfo item_data=this}}
-							</div>
-						{{/if}}
-					{{/with}} -->
-				</div>
-				<div class="row archive-modal-section">
-					<p>
-						{{#each category this}}
-							<div class="category-wrapper">
-							{{#if isEqual this selected_category}}
-								<i class="fa fa-check-square-o green-text category-selected" data-category="{{this}}"></i><span class="category-description {{this}}-text">{{this}}</span>
-							{{else}}
-								<i class="fa fa-square-o category-unselected" data-category="{{this}}"></i><span class="category-description {{this}}-text">{{this}}</span>
-							{{/if}}
-							</div>
-						{{/each}}
-					</p>
 				</div>
 				<div class="archive-modal-section">
 					{{#if isEqual this.status "archived"}}

@@ -1,6 +1,6 @@
 <template name="itemInfo">
 	<div class="template-itemInfo">
-		<div data-item_id="{{item_data._id}}" class="card-container {{#if displaced item_data}}displaced{{else}}{{item_data.artwork_data.rarity}}{{/if}}-item" style="background: url('{{getCardImageURL item_data.artwork_data.filename}}') center; background-size: 280px 390px">
+		<div data-item_id="{{item_data._id}}" class="card-container {{#if item_data.displaced}}displaced{{else}}{{item_data.artwork_data.rarity}}{{/if}}-item" style="background: url('{{getCardImageURL item_data.artwork_data.filename}}') center; background-size: 280px 390px">
 			<div class="status-mask {{#if displayedStatus item_data}}{{else}}hide{{/if}}">
 				<div class="mask-info-container">
 					<p><i class="text-shadow fa fa-picture-o"></i></p>
@@ -68,27 +68,26 @@
 					</div>
 					
 					<div class="row no-margin indicator-area">
-						{{#if isEqual item_data.status "archived"}}
-							<i class="{{item_data.archive_category}}-text fa fa-archive text-shadow"></i>
-						{{else}}
-							{{#if isQuestItem item_data.artwork_id}}
-								<i class="green-text fa fa-flag-checkered text-shadow"></i>
-							{{/if}}
-							{{#if isSought item_data.artwork_id}}
-								<i class="blue-text fa fa-area-chart text-shadow"></i>
-							{{/if}}
+						{{#if recommended_archive item_data}}
+							<i class="green-text fa fa-archive text-shadow"></i>
+						{{/if}}
+						{{#if isQuestItem item_data.artwork_id}}
+							<i class="green-text fa fa-flag-checkered text-shadow"></i>
+						{{/if}}
+						{{#if isSought item_data.artwork_id}}
+							<i class="blue-text fa fa-bullhorn text-shadow"></i>
 						{{/if}}
 					</div>			
 				</div>
 
 				<div class="card-footer col-xs-12 {{card_types item_data}}">
 					<div class="row no-margin">
-						{{#if hasArchived item_data}}
-						<div class="archive-indicators">
-						{{#each archive_indicator item_data}}
-							<i class="check {{this}}-text fa fa-archive"></i>
-						{{/each}}
-						</div>
+						{{#if archive_indicator item_data}}
+							<div class="archive-indicators">
+							{{#each archive_indicator item_data}}
+								<i class="check {{this}}-text fa fa-archive"></i>
+							{{/each}}
+							</div>
 						{{/if}}
 						<div class="footer-basic-info">
 							<div class="col-xs-8 no-padding attribute-area">

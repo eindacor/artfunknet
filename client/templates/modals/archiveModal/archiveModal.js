@@ -13,17 +13,7 @@ Template.archiveModal.events({
 				updatePages();
 			}
 		});
-	},
-
-	'change .category-selector' : function() {
-    	category = $('.category-selector').val();
-		replaced_item_tracker.changed();
-    },
-
-    'click .category-unselected': function(element) {
-    	category = $(element.target).data().category;
-    	replaced_item_tracker.changed();
-    }
+	}
 
 })
 
@@ -34,37 +24,10 @@ Template.archiveModal.helpers({
 	},
 
 	'replaced_item': function(item_data) {
-		try {
-			replaced_item_tracker.depend();
-			var item_interface = new ItemIF(item_data);
-			if (category == undefined) {
-				category = item_interface.getArchiveCategories()[0];
-				replaced_item_tracker.changed();
-			}
-
-			else {
-				var displaced_item = new PlayerItemIF(new PlayerIF(Meteor.userId()), item_interface).getDisplacedArchiveItem(category);
-				if (displaced_item) {
-					displaced_item.archive_category = undefined;
-					return displaced_item;
-				}
-
-				else return undefined;
-			}
-		}
-
-		catch (error) {
-			console.log(error);
-		}
-	},
-
-	'selected_category': function() {
-		replaced_item_tracker.depend();
-		return category;
+		var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_data)).getDisplacedArchiveItem();
 	}
 })
 
 Template.archiveModal.rendered = function() {
-	category = undefined;
 	replaced_item_tracker.changed();
 }

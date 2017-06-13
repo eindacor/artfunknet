@@ -17,7 +17,7 @@ var getMVPData = function(archive_status) {
     var query_object = {
         'owner': {$nin: admin_ids}, 
         'status': {$in: archive_status ? ["archived"] : ["displayed", "permanent"]},
-        'archive_category': archive_status ? {'$ne': null} : null
+        'displaced': archive_status ? {'$ne': true} : null
     };
 
     var leaderboard_items = items.find(query_object, {limit: 20, sort: {'values.actual': -1}}).fetch();
@@ -32,38 +32,6 @@ var sortArchives = function(a, b) {
         return -1;
     return 0;
 }
-
-// var getArchiveData = function() {
-//     var admin_ids = ['Artfunkel, Inc.'];
-//     Meteor.users.find({'profile.user_type': "admin"}).forEach(function(user_object) {
-//         admin_ids.push(user_object._id);
-//     });
-
-//     var aggregated_values = items.aggregate([
-//         { $match: {
-//             'status': "archived",
-//             'archive_category': {$ne: null},
-//             'owner': {$nin: admin_ids}
-//         }}, 
-//         {$group: {
-//             _id: {owner: "$owner"},
-//             total_value: { $sum: "$values.actual" }
-//         }},
-//         {$sort: {
-//             total_value: -1
-//         }}
-//     ]);
-
-//     var archive_objects = [];
-//     for (var i=0; i<aggregated_values.length; i++) {
-//         archive_objects.push({
-//             'owner': aggregated_values[i]._id.owner,
-//             'value': aggregated_values[i].total_value
-//         })
-//     }
-//     return archive_objects;
-
-// }
 
 Meteor.methods({
     'getNow': function() {

@@ -207,14 +207,12 @@ Template.itemInfo.helpers({
 		return item_object.level != undefined;
 	},
 
-	'hasArchived': function(item_object) {
-		return items.findOne({'owner': Meteor.userId(), 'status': "archived", 'archive_category': {$ne: null}, 'artwork_id': item_object.artwork_id}) != undefined;
-	},
-
 	'archive_indicator': function(item_object) {
 		var archive_indicators = [];
+		var player_interface = new PlayerIF(Meteor.userId());
+		var artwork_interface = new ArtworkIF(getOneFromCollection("ItemTemplate.js:archive_indicator", artworks, {'_id': item_object.artwork_id}));
 		for (var i=0; i<ARCHIVE_CATEGORIES.length; i++) {
-			if (getOneFromCollection("itemTemplate.js:archive_indicator", items, {'owner': Meteor.userId(), 'archive_category': ARCHIVE_CATEGORIES[i], 'artwork_id': item_object.artwork_id}) != undefined) {
+			if (player_interface.hasArchivedArtworkOfCategory(artwork_interface, ARCHIVE_CATEGORIES[i])) {
 				archive_indicators.push(ARCHIVE_CATEGORIES[i]);
 			}
 		}
@@ -290,8 +288,9 @@ Template.itemInfo.helpers({
 		return types;
 	},
 
-	'displaced': function(item_object) {
-		return item_object.status == "archived" && item_object.archive_category == undefined;
+	'recommended_archive': function(item_object) {
+		var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_object));
+		return player_item_interface.isRecommendedArchive();
 	}
 })
 

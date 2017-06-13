@@ -57,20 +57,24 @@
 									</div>
 									{{#if artwork_selected this}}
 									<div class="row no-margin category-container">
-										{{#each archive_category this}}				
-											{{#if item_object .. this}}
-											<div data-item_id="{{_id}}" class="item-container">
-												{{#with item_object .. this}}
-													{{>itemInfo item_data=this}}
-													{{>itemActions item_data=this sell_button=true}}
-												{{/with}}
-											</div>		
+										<div class="col-xs-12 no-margin">
+										{{#each archive_category this}}		
+											<div class="row archive-item-container">
+											{{#if item_object .. this}}		
+												{{#each item_object .. this}}
+													<div data-item_id="{{_id}}" class="item-container">
+														{{>itemInfo item_data=this}}
+														{{>itemActions item_data=this sell_button=true}}
+													</div>	
+												{{/each}}
 											{{else}}
-											<div class="item-container">
-												{{>itemStub artwork_data=.. archive_category=this}}
-											</div>
+												<div class="item-container">
+													{{>itemStub artwork_data=.. archive_category=this}}
+												</div>
 											{{/if}}
+											</div>
 										{{/each}}
+										</div>
 									</div>
 									{{/if}}
 								</div>

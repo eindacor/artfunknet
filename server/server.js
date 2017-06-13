@@ -26,6 +26,8 @@ var updateContent = function() {
     }
 
     // temp code
+    items.update({'status': "archived", 'archive_category': {$ne: null}}, {$set: {'displaced': false}, $unset: {'archive_category': ""}}, {multi: true});
+    items.update({'status': "archived", 'archive_category': null}, {$set: {'displaced': true}, $unset: {'archive_category': ""}}, {multi: true});
     //temp code
 }
 
