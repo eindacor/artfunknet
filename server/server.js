@@ -26,14 +26,6 @@ var updateContent = function() {
     }
 
     // temp code
-    items.update({'status': "archived", 'archive_category': {$ne: null}, 'displaced': null}, {$set: {'displaced': false}, $unset: {'archive_category': ""}}, {multi: true});
-    items.update({'status': "archived", 'archive_category': null, 'displaced': null}, {$set: {'displaced': true}, $unset: {'archive_category': ""}}, {multi: true});
-    Meteor.users.update({}, {$set: {'profile.settings.ignore_archive_recommendations': false}}, {multi: true});
-    items.find({'status': "archived"}).forEach(function(item_object) {
-        var item_interface = new ItemIF(item_object);
-        var archive_signature = item_interface.getArchiveSignature();
-        item_interface.updateItem({$set: {'archive_signature': archive_signature}}, true);
-    })
     //temp code
 }
 
