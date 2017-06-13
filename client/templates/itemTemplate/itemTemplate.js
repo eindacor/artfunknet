@@ -289,6 +289,9 @@ Template.itemInfo.helpers({
 	},
 
 	'recommended_archive': function(item_object) {
+		if (Meteor.user().profile.settings.ignore_archive_recommendations)
+			return false;
+		
 		var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_object));
 		return player_item_interface.isRecommendedArchive();
 	}

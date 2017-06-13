@@ -59,20 +59,38 @@
 									<div class="row no-margin category-container">
 										<div class="col-xs-12 no-margin">
 										{{#each archive_category this}}		
-											<div class="row archive-item-container">
-											{{#if item_object .. this}}		
-												{{#each item_object .. this}}
-													<div data-item_id="{{_id}}" class="item-container">
-														{{>itemInfo item_data=this}}
-														{{>itemActions item_data=this sell_button=true}}
-													</div>	
-												{{/each}}
-											{{else}}
-												<div class="item-container">
-													{{>itemStub artwork_data=.. archive_category=this}}
+										<div class="row category-container no-margin">
+											<div class="col-xs-12 no-margin">
+												<div class="row category-info no-margin" data-artwork_and_category="{{../_id}}_{{this}}">
+													<div class="expand-collapse-container">
+														<i class="expand-collapse fa {{#if category_selected .. this}}fa-caret-down{{else}}fa-caret-right{{/if}}"></i>
+													</div>
+													<div class="category-title-container {{this}}-text">
+														{{this}} {{#if item_collected .. this}}<i class="collected-check green-text fa fa-check"></i>{{/if}}
+													</div>
+													<div class="item-collection-data-container">
+														{{#with item_collection_data this}}{{total_items_archived}}/{{total_items_available}}{{/with}}
+													</div>
+													{{#if category_selected .. this}}
+													<div class="row archive-item-container">
+														{{#if item_object .. this}}		
+															{{#each item_object .. this}}
+																<div data-item_id="{{_id}}" class="item-container">
+																	{{>itemInfo item_data=this}}
+																	{{>itemActions item_data=this sell_button=true}}
+																</div>	
+															{{/each}}
+														{{else}}
+															<div class="item-container">
+																{{>itemStub artwork_data=.. archive_category=this}}
+																<div class="action-stub"></div>
+															</div>
+														{{/if}}
+													</div>
+													{{/if}}
 												</div>
-											{{/if}}
 											</div>
+										</div>		
 										{{/each}}
 										</div>
 									</div>

@@ -1,12 +1,14 @@
 var artist_data_tracker = new Tracker.Dependency;
 var expanded_data_tracker = new Tracker.Dependency;
 var enforce_terms_tracker = new Tracker.Dependency;
+var expanded_categories_tracker = new Tracker.Dependency;
 var artist_array;
 var current_page;
 var total_pages;
 var match_query;
 var expanded_artist_ids = [];
 var expanded_artwork_ids = [];
+var expanded_categories = [];
 var artists_per_page = 10;
 var enforce_terms = false;
 
@@ -58,6 +60,7 @@ var generateQueryFromSearchTerms = function(search_terms) {
 var refreshArtistArray = function() {
 	expanded_artist_ids = [];
 	expanded_artwork_ids = [];
+	expanded_categories = [];
 	var and_query_array = [{'active': true}];
 
 	var rarities_selected = artwork_rarities; //fetch from DOM
@@ -169,18 +172,41 @@ Template.artistView.helpers({
 		return expanded_artwork_ids.indexOf(artwork_object._id) != -1;
 	},
 
+	'category_selected': function(artwork_object, category) {
+		expanded_categories_tracker.depend();
+		return expanded_categories.indexOf(artwork_object._id + "_" + category) != -1;
+	},
+
+	'item_collected': function(artwork_object, category) {
+		var signature_query;
+		switch(category) {
+			case "standard": signature_query = {'archive_signature': "standard"}; break;
+			case "foil": signature_query = {'archive_signature': {'$regex': "f", '$options': 'i'}}; break;
+			case "unlocked": signature_query = {'archive_signature': {'$regex': "u", '$options': 'i'}}; break;
+			case "seasonal": signature_query = {'$and': [{'archive_signature': {'$ne': "standard"}}, {'archive_signature': {'$regex': "s", '$options': 'i'}}]}; break;
+			case "lottery": signature_query = {'archive_signature': {'$regex': "l", '$options': 'i'}}; break;
+			case "vintage": signature_query = {'archive_signature': {'$regex': "v", '$options': 'i'}}; break;
+		}
+
+		signature_query.owner = Meteor.userId();
+		signature_query.status = "archived";
+		signature_query.displaced = false;
+		signature_query.artwork_id = artwork_object._id;
+		return items.findOne(signature_query) != undefined;
+	},
+
 	'archive_category': function(artwork_object) {
 		var artwork_interface = new ArtworkIF(artwork_object);
 		return artwork_interface.getPotentialArchiveCategories();
 	},
 
 	'item_object': function(artwork_object, archive_category) {
-		var query_object = TYPE_QUERIES[archive_category];
+		var query_object = CATEGORY_QUERIES[archive_category];
 		query_object.owner = Meteor.userId();
 		query_object.artwork_id = artwork_object._id;
 		query_object.status = "archived";
 		query_object.displaced = false;
-		return getFromCollection("artistView.js:item_object", items, query_object);
+		return getFromCollection("artistView.js:item_object", items, query_object).fetch();
 	},
 
 	'current_page': function() {
@@ -268,6 +294,19 @@ Template.artistView.events({
 		else expanded_artwork_ids.splice(expanded_artwork_ids.indexOf(artwork_id), 1);
 
 		expanded_data_tracker.changed();
+	},
+
+	//artwork_and_category
+
+	'click .category-info': function(event) {
+		var artwork_and_category = $(event.target).closest('.category-info').data().artwork_and_category;
+		if (expanded_categories.indexOf(artwork_and_category) == -1) {
+			expanded_categories.push(artwork_and_category);
+		}
+
+		else expanded_categories.splice(expanded_categories.indexOf(artwork_and_category), 1);
+
+		expanded_categories_tracker.changed();
 	},
 
 	'click .enforce-terms': function() {

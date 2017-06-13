@@ -24,7 +24,8 @@ Template.archiveModal.helpers({
 	},
 
 	'replaced_item': function(item_data) {
-		var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_data)).getDisplacedArchiveItem();
+		var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_data));
+		return player_item_interface.getDisplacedArchiveItem();
 	}
 })
 
