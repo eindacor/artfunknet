@@ -2,6 +2,7 @@ var artist_data_tracker = new Tracker.Dependency;
 var expanded_data_tracker = new Tracker.Dependency;
 var enforce_terms_tracker = new Tracker.Dependency;
 var expanded_categories_tracker = new Tracker.Dependency;
+var rarity_selection_tracker = new Tracker.Dependency;
 var artist_array;
 var current_page;
 var total_pages;
@@ -9,6 +10,7 @@ var match_query;
 var expanded_artist_ids = [];
 var expanded_artwork_ids = [];
 var expanded_categories = [];
+var rarities_selected = artwork_rarities.slice();
 var artists_per_page = 10;
 var enforce_terms = false;
 
@@ -29,7 +31,6 @@ var generateQueryFromSearchTerms = function(search_terms) {
 			{'artist': {'$regex': term, '$options': 'i'}},
 			{'title': {'$regex': term, '$options': 'i'}},
 			// {'genre': {'$regex': term, '$options': 'i'}},
-			{'rarity': {'$regex': term, '$options': 'i'}},
 			{'medium': {'$regex': term, '$options': 'i'}}
 		]
 
@@ -63,7 +64,6 @@ var refreshArtistArray = function() {
 	expanded_categories = [];
 	var and_query_array = [{'active': true}];
 
-	var rarities_selected = artwork_rarities; //fetch from DOM
 	and_query_array.push({'rarity': {'$in': rarities_selected}});
 
 	var search_terms = commaSeparatedValuesToArray($('#search-area').val());
@@ -90,7 +90,9 @@ var refreshArtistArray = function() {
 			artist_data_tracker.changed();
 		}
 	})
+
 	expanded_data_tracker.changed();
+	rarity_selection_tracker.changed();
 }
 
 var getArtworkCollectionData = function(player_interface, artwork_interface) {
@@ -112,7 +114,7 @@ var getArtworkCollectionData = function(player_interface, artwork_interface) {
 }
 
 var getArtistCollectionData = function(player_interface, artist_interface) {
-	var artwork_objects = getFromCollection("artistView.js:getArtistCollectionData", artworks, {'artist_id': artist_interface.getId()}).fetch();
+	var artwork_objects = getFromCollection("artistView.js:getArtistCollectionData", artworks, {'artist_id': artist_interface.getId(), 'rarity': {$in: rarities_selected}}).fetch();
 
 	var total_items_available = 0;
 	var player_has = 0;
@@ -156,7 +158,7 @@ Template.artistView.helpers({
 	},
 
 	'artwork': function(artist_object) {
-		var and_query_array = [{'artist_id': artist_object._id, 'active': true}]
+		var and_query_array = [{'artist_id': artist_object._id, 'active': true, 'rarity': {$in: rarities_selected}}]
 		var search_terms = commaSeparatedValuesToArray($('#search-area').val());
 
 		var search_term_query = generateQueryFromSearchTerms(search_terms);
@@ -220,6 +222,7 @@ Template.artistView.helpers({
 	},
 
 	'artwork_collection_data': function(artist_object)  {
+		rarity_selection_tracker.depend();
 		var artwork_collection_data = getArtistCollectionData(new PlayerIF(Meteor.user()), new ArtistIF(artist_object));
 
 		return {
@@ -240,6 +243,15 @@ Template.artistView.helpers({
 	'enforce_terms': function() {
 		enforce_terms_tracker.depend();
 		return enforce_terms;
+	},
+
+	'artwork_rarity': function() {
+		return artwork_rarities;
+	},
+
+	'rarity_selected': function(rarity) {
+		rarity_selection_tracker.depend();
+		return rarities_selected.indexOf(rarity) != -1;
 	}
 })
 
@@ -312,6 +324,17 @@ Template.artistView.events({
 	'click .enforce-terms': function() {
 		enforce_terms = !enforce_terms;
 		enforce_terms_tracker.changed();
+		refreshArtistArray();
+	},
+
+	'click .rarity-button': function(event) {
+		var rarity = $(event.target).data().rarity;
+		if (rarities_selected.indexOf(rarity) == -1) {
+			rarities_selected.push(rarity);
+		}
+
+		else rarities_selected.splice(rarities_selected.indexOf(rarity), 1);
+
 		refreshArtistArray();
 	}
 })

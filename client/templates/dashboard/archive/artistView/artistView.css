@@ -233,6 +233,72 @@
 	height: 24px;
 }
 
+.template-artistView .rarity-button-container {
+	display: inline-block;
+	margin-bottom: 20px;
+}
+
+.template-artistView .rarity-button {
+	font-size: 1.5rem;
+	font-weight: bold;
+	height: 24px;
+	width: 120px;
+}
+
+.template-artistView .rarity-button.disabled {
+	background-color: white;
+	opacity: .6;
+}
+
+.template-artistView .rarity-button.enabled {
+	color: white;
+}
+
+.template-artistView .rarity-button.common.enabled {
+	background-color: green;
+}
+
+.template-artistView .rarity-button.common.disabled {
+	color: green;
+	border: 1px solid green;
+}
+
+.template-artistView .rarity-button.uncommon.enabled {
+	background-color: blue;
+}
+
+.template-artistView .rarity-button.uncommon.disabled {
+	color: blue;
+	border: 1px solid blue;
+}
+
+.template-artistView .rarity-button.rare.enabled {
+	background-color: #CCCC00;
+}
+
+.template-artistView .rarity-button.rare.disabled {
+	color: #CCCC00;
+	border: 1px solid #CCCC00;
+}
+
+.template-artistView .rarity-button.legendary.enabled {
+	background-color: orange;
+}
+
+.template-artistView .rarity-button.legendary.disabled {
+	color: orange;
+	border: 1px solid orange;
+}
+
+.template-artistView .rarity-button.masterpiece.enabled {
+	background-color: #44DDDD;
+}
+
+.template-artistView .rarity-button.masterpiece.disabled {
+	color: #44DDDD;
+	border: 1px solid #44DDDD;
+}
+
 .template-artistView .action-stub {
 	height: 40px;	
 }

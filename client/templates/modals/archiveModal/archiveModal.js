@@ -23,9 +23,11 @@ Template.archiveModal.helpers({
 		return item_interface.getArchiveCategories();
 	},
 
-	'replaced_item': function(item_data) {
+	'displaced_item': function(item_data) {
 		var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_data));
-		return player_item_interface.getDisplacedArchiveItem();
+		displaced_item = player_item_interface.getDisplacedArchiveItem();
+		displaced_item.displaced = true;
+		return displaced_item;
 	}
 })
 

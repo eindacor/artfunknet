@@ -293,9 +293,11 @@ Template.itemActions.events({
 	'click .archive.enabled' : function(element) {
 		element.stopPropagation();
 		var item_id = $(element.target).data('item_id');
+		var archive_target = items.findOne(item_id);
+		archive_target.displaced = false;
 		Blaze.renderWithData(Template.modalTemplate, {
 			'modal_name': "archiveModal", 
-			'modal_data': items.findOne(item_id)
+			'modal_data': archive_target
 		}, $('body')[0]);
 	},
 
