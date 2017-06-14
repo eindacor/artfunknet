@@ -293,7 +293,7 @@ Template.itemInfo.helpers({
 			return false;
 		
 		var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_object));
-		return player_item_interface.isRecommendedArchive();
+		return player_item_interface.getRecommendedStatus();
 	}
 })
 

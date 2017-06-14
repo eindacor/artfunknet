@@ -57,6 +57,7 @@ createUser = function(user_object, callback){
         'lottery_eligible': true,
         'show_npc_modals': true,
         'ignore_archive_recommendations': false,
+        'auto_archive_upgrades': false,
         'quick_sell_options': {
             'foil': false,
             'legendary': false,

@@ -68,9 +68,15 @@
 					</div>
 					
 					<div class="row no-margin indicator-area">
-						{{#if recommended_archive item_data}}
+						{{#with recommended_archive item_data}}
+							{{#if displaced_item}}
+								{{#if upgrade}}
+									<i class="green-text fa fa-level-up text-shadow"></i>
+								{{/if}}
+							{{else}}
 							<i class="green-text fa fa-archive text-shadow"></i>
-						{{/if}}
+							{{/if}}
+						{{/with}}
 						{{#if isQuestItem item_data.artwork_id}}
 							<i class="green-text fa fa-flag-checkered text-shadow"></i>
 						{{/if}}

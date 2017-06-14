@@ -54,7 +54,7 @@ Template.itemActions.helpers({
 
 	'recommended': function(item_data) {
 		var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.userId()), new ItemIF(item_data));
-		return player_item_interface.isRecommendedArchive();
+		return player_item_interface.getRecommendedStatus();
 	}
 })
 
