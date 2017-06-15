@@ -50,11 +50,6 @@ var getPermissions = function(item_object) {
 Template.itemActions.helpers({
 	'itemPermissions': function(item_data) {
 		return getPermissions(item_data);
-	},
-
-	'recommended': function(item_data) {
-		var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.userId()), new ItemIF(item_data));
-		return player_item_interface.getRecommendedStatus();
 	}
 })
 
