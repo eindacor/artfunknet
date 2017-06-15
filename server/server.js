@@ -26,7 +26,6 @@ var updateContent = function() {
     }
 
     // temp code
-    Meteor.users.update({}, {$set: {'profile.settings.auto_archive_upgrades': false}}, {multi: true});
     //temp code
 }
 
