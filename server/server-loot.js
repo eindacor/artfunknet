@@ -1,4 +1,8 @@
-LOOT_DATA = metadata.findOne({'loot_data': {$ne: null}}).loot_data;
+LOOT_DATA = undefined;
+
+getLootData = function() {
+    return JSON.parse(JSON.stringify(LOOT_DATA));
+}
 
 logLegendary = function(source, item_object) {
     if (item_object && source && source != "test") {
@@ -68,7 +72,7 @@ getItemObjectRollCost = function(item_object) {
         default: reroll_coefficient - 1.14; break;
     }
 
-    var rarity_values = LOOT_DATA.rarity_values;
+    var rarity_values = getLootData().rarity_values;
     var reroll_cost = Math.floor((rarity_values[item_object.artwork_data.rarity].min * .1) * Math.pow(reroll_coefficient, roll_count));
     return reroll_cost;
 }
@@ -76,7 +80,7 @@ getItemObjectRollCost = function(item_object) {
 getItemObjectValues = function(item_object) {
     var values_object = {};
 
-    var rarity_values = LOOT_DATA.rarity_values;
+    var rarity_values = getLootData().rarity_values;
 
     var min = rarity_values[item_object.artwork_data.rarity].min;
     var max = rarity_values[item_object.artwork_data.rarity].max;
@@ -176,7 +180,7 @@ calcSeasonalChance = function(rarity) {
 }
 
 getAverageDropValueFromMap = function(rarity_map, foil_chance, unlocked_chance, seasonal_amplifier) {
-    var rarity_values = LOOT_DATA.rarity_values;
+    var rarity_values = getLootData().rarity_values;
     foil_chance = Math.min(foil_chance, 1);
     unlocked_chance = Math.min(unlocked_chance, 1);
 
@@ -209,8 +213,7 @@ getAverageDropValueFromMap = function(rarity_map, foil_chance, unlocked_chance, 
 
 getAverageDropValue = function(player_level, amplifier) {
     var smart_loot_map = getSmartRarityMap(player_level, amplifier);
-    var loot_data = LOOT_DATA;
-    return getAverageDropValueFromMap(smart_loot_map, loot_data.global_foil_chance, loot_data.global_unlocked_chance, 1);
+    return getAverageDropValueFromMap(smart_loot_map, getLootData().global_foil_chance, getLootData().global_unlocked_chance, 1);
 }
 
 //calculates crate costs based on rarity maps and qulity maps
@@ -239,7 +242,7 @@ var misprintArtworkData = function(artwork_data) {
 // generateItemFromArtworkID = function(item_generator, callback) {   
 //     var artwork_data; 
 
-//     var loot_data = LOOT_DATA;
+//     var loot_data = getLootData();
 
 //     var misprint_chance = item_generator.misprint_chance === undefined ? loot_data.global_misprint_chance : item_generator.misprint_chance;
 //     var foil_chance = item_generator.foil_chance === undefined ? loot_data.global_foil_chance : item_generator.foil_chance;
@@ -363,7 +366,7 @@ getLockedAttributeValue = function() {
 Meteor.methods({
     'giveDailyDrop' : function() {
         if (Meteor.user() && dailyDropIsEnabled()) {
-            var foil_chance = LOOT_DATA.global_foil_chance;
+            var foil_chance = getLootData().global_foil_chance;
 
             var multi_item_generator = {
                 'source': "daily drop",
@@ -434,7 +437,7 @@ Meteor.methods({
         
         if (revised_smart_map) {
             metadata.update({'loot_data': {$ne: null}}, {$set: {'loot_data.smart_map': revised_smart_map}}, function() {
-                LOOT_DATA = metadata.findOne({'loot_data': {$ne: null}}).loot_data;
+                getLootData() = metadata.findOne({'loot_data': {$ne: null}}).loot_data;
             });
 
             setTimeout('', 2000);
@@ -442,7 +445,7 @@ Meteor.methods({
 
         return {
             'graph_data': getGraphData(),
-            'map_data': LOOT_DATA.smart_map
+            'map_data': getLootData().smart_map
         }
     },
 
@@ -502,7 +505,7 @@ var getGraphData = function() {
 var rarities = ['common', 'uncommon', 'rare', 'legendary', 'masterpiece'];
 
 getSmartRarityMap = function(level, amplifier) {
-    var smart_map = LOOT_DATA.smart_map;
+    var smart_map = getLootData().smart_map;
 
     if (level >= 50)
         return smart_map[50];

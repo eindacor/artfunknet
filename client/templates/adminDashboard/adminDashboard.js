@@ -395,18 +395,17 @@ Template.adminTools.events({
     	var artwork_id = $('#generate-artwork-id').val();
     	var condition = $('#condition').val() == "" ? Number(Math.random().toFixed(2)) : Number($('#condition').val()) / 100;
     	var level = isNaN($('#level').val()) || $('#level').val() == "" ? 1 : Math.min(Number($('#level').val()), MAX_ITEM_LEVEL);
-    	var loot_data = metadata.findOne({'loot_data': {$ne: null}}).loot_data;
 		var foil_chance;
     	var foil_selection = $('input:radio[name=foil_selector]:checked').val();
     	if (foil_selection == "random")
-    		foil_chance = loot_data.global_foil_chance;
+    		foil_chance = getLootData().global_foil_chance;
 
     	else foil_chance = foil_selection == "true" ? 1 : 0;
 
     	var unlocked_chance;
     	var unlocked_selection = $('input:radio[name=unlocked_selector]:checked').val();
     	if (unlocked_selection == "random")
-    		unlocked_chance = loot_data.global_unlocked_chance;
+    		unlocked_chance = getLootData().global_unlocked_chance;
 
     	else unlocked_chance = unlocked_selection == "true" ? 1 : 0;
 
@@ -424,7 +423,7 @@ Template.adminTools.events({
     	var misprint_chance;
     	var misprint_selection = $('input:radio[name=misprint_selector]:checked').val();
     	if (misprint_selection == "random")
-    		misprint_chance = loot_data.global_misprint_chance;
+    		misprint_chance = getLootData().global_misprint_chance;
 
     	else misprint_chance = misprint_selection == "true" ? 1 : 0;
 

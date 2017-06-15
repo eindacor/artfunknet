@@ -354,8 +354,6 @@ drawLottery = function(force_draw) {
 
         var artwork_interface = Math.random() < .0001 ? getRandomArtworkIFFromRarity("masterpiece") : getRandomArtworkIFFromRarity("legendary");
 
-        var loot_data = LOOT_DATA;
-
         var item_generator = {
             '_id': _id,
             'source': "lottery",
@@ -430,6 +428,7 @@ Meteor.setInterval((function() {
             'loot_data.seasonal_rotation': moment(next_rotation).add(1, 'months')._d.toISOString() 
         }}, function() {
             //TODO add alert for new seasonal items
+            LOOT_DATA = metadata.findOne({'loot_data': {$ne: null}}).loot_data;
         });
     }
     

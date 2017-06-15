@@ -24,7 +24,7 @@ PlayerCrateIF = function(player_interface, crate_id) {
 	}
 
 	this.getFoilChance = function() {
-		var chance = LOOT_DATA.global_foil_chance;
+		var chance = getLootData().global_foil_chance;
 		if (crateContainsTypeBuff("foil")) {
 			chance *= global_type_buff;
 		}
@@ -37,7 +37,7 @@ PlayerCrateIF = function(player_interface, crate_id) {
 	}
 
 	this.getUnlockedChance = function() {
-		var chance = LOOT_DATA.global_unlocked_chance;
+		var chance = getLootData().global_unlocked_chance;
 		if (crateContainsTypeBuff("unlocked")) {
 			chance *= global_type_buff;
 		}
@@ -46,7 +46,7 @@ PlayerCrateIF = function(player_interface, crate_id) {
 	}
 
 	this.getMisprintChance = function() {
-		return LOOT_DATA.global_misprint_chance;
+		return getLootData().global_misprint_chance;
 	}
 
 	this.getConditionMinimum = function() {
@@ -399,6 +399,7 @@ createCrate = function() {
 
 	crates.insert({'owner_id': undefined, 'type': "public", 'quality': crate_quality_roll, 'seeds': crate_seeds, 'item_count': 6, 'level_requirement': level_requirement, 'expiration': moment().add(crate_duration, 'milliseconds')._d.toISOString()});
 }
+
 
 Meteor.methods({
 	'openDynamicCrate': function(crate_id) {

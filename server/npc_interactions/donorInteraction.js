@@ -1,7 +1,6 @@
 donorInteraction = function(npc_object, player_interface) {
 	var drop_count = 2;
-	var loot_data = LOOT_DATA;
-	var foil_chance = loot_data.global_foil_chance;
+	var foil_chance = getLootData().global_foil_chance;
 	var condition_min = 0;
 	var level = 1;	
 

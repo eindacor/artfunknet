@@ -23,7 +23,7 @@ ItemGenerator = function() {
 	var selectArtwork = function(rarity, attribute_array, seasonal_amplifier) {
 	    if (rarity == "legendary" || rarity == "masterpiece") {
 	        if (Math.random() < (calcSeasonalChance(rarity) * seasonal_amplifier)) {
-	            return artworks.findOne({'_id': {$in: LOOT_DATA.seasonal_items}, 'active': true, 'rarity': rarity})._id;
+	            return artworks.findOne({'_id': {$in: getLootData().seasonal_items}, 'active': true, 'rarity': rarity})._id;
 	        }
 	    }
 
@@ -256,8 +256,8 @@ ItemGenerator = function() {
 
 		var foil;
 		if (item_generator_object.foil === undefined) {
-			var foil_chance = item_generator_object.foil_chance === undefined ? LOOT_DATA.global_foil_chance : item_generator_object.foil_chance;
-			foil = Math.Random() < foil_chance;
+			var foil_chance = item_generator_object.foil_chance === undefined ? getLootData().global_foil_chance : item_generator_object.foil_chance;
+			foil = Math.random() < foil_chance;
 		}
 
 		else {
@@ -270,8 +270,8 @@ ItemGenerator = function() {
 		}
 
 		else if (item_generator_object.unlocked === undefined) {
-			var unlocked_chance = item_generator_object.unlocked_chance === undefined ? LOOT_DATA.global_unlocked_chance : item_generator_object.unlocked_chance;
-			unlocked = Math.Random() < unlocked_chance;
+			var unlocked_chance = item_generator_object.unlocked_chance === undefined ? getLootData().global_unlocked_chance : item_generator_object.unlocked_chance;
+			unlocked = Math.random() < unlocked_chance;
 		}
 
 		else {
@@ -280,7 +280,7 @@ ItemGenerator = function() {
 
 		var misprint;
 		if (item_generator_object.misprint === undefined) {
-			var misprint_chance = item_generator_object.misprint_chance === undefined ? LOOT_DATA.global_misprint_chance : item_generator_object.misprint_chance;
+			var misprint_chance = item_generator_object.misprint_chance === undefined ? getLootData().global_misprint_chance : item_generator_object.misprint_chance;
 	    	misprint = Math.random() < misprint_chance;
 		}
 
@@ -306,7 +306,7 @@ ItemGenerator = function() {
 	        'roll_count' : 0,
 	        'foil': foil,
 	        'unlocked': unlocked,
-	        'seasonal': item_generator_object.seasonal === undefined ? LOOT_DATA.seasonal_items.indexOf(item_generator_object.artwork_id) != -1 : item_generator_object.seasonal,
+	        'seasonal': item_generator_object.seasonal === undefined ? getLootData().seasonal_items.indexOf(item_generator_object.artwork_id) != -1 : item_generator_object.seasonal,
 	        'lottery': item_generator_object.lottery === undefined ? 0 : item_generator_object.lottery,
 	        'original': item_generator_object.original === undefined ? false : item_generator_object.original,
 	        'vintage': item_generator_object.vintage === undefined ? false : item_generator_object.vintage,

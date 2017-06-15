@@ -30,6 +30,7 @@ var updateContent = function() {
 }
 
 Meteor.startup(function() {
+    LOOT_DATA = metadata.findOne({'loot_data': {$ne: null}}).loot_data;
     setupMail();
     fs = Npm.require('fs');
 

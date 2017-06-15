@@ -1,7 +1,6 @@
 artDealerInteraction = function(npc_object, player_interface) {
 	var drop_count = 4;
-	var loot_data = LOOT_DATA;
-	var foil_chance = loot_data.global_foil_chance;
+	var foil_chance = getLootData().global_foil_chance;
 	var level = 1;
 
 	if (isOwnGallery(npc_object)) {
