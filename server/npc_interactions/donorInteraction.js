@@ -48,21 +48,14 @@ donorInteraction = function(npc_object, player_interface) {
 			
 				var item_generator = {
                     'source': "donor",
-                    'user_id': Meteor.userId(),
-                    'artwork_id': quest_item_ids[random_index],
-                    'condition': undefined,
+                    'artwork_interface': new ArtworkIF(quest_item_ids[random_index]),
                     'level': level,
                     'foil_chance': foil_chance,
-                    'unlocked_chance': loot_data.global_unlocked_chance,
-                    'seasonal': undefined,
-                    'lottery': 0,
-                    'original': false,
-                    'misprint_chance': loot_data.global_misprint_chance,
                     'status': "unclaimed",
                     'condition_min': condition_min
                 }
 
-				generateItemFromArtworkID(item_generator);
+				ITEM_GENERATOR.generateSingle(item_generator, player_interface);
 			}
 		}
 	}

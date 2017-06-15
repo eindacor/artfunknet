@@ -102,9 +102,9 @@ Meteor.methods({
 		}
 	},
 
-	'generateItemFromArtworkID' : function(item_generator) {
+	'generateItemFromArtworkID' : function(item_generator, user_id) {
 		if (adminValidated()) {
-			return generateItemFromArtworkID(item_generator);
+            return ITEM_GENERATOR.generateSingle(item_generator, new PlayerIF(user_id));
 		}
 
 		else return undefined;
@@ -116,21 +116,11 @@ Meteor.methods({
 			if (user_id == "" || getOneFromCollection("admin_methods.js", Meteor.users, user_id).profile.user_type == "admin") {
                 var item_generator = {
                     'source': "test",
-                    'user_id': Meteor.userId(),
-                    'artwork_id': artwork_id,
-                    'condition': undefined,
-                    'level': 1,
-                    'foil_chance': loot_data.global_foil_chance,
-                    'unlocked_chance': loot_data.global_unlocked_chance,
-                    'seasonal': undefined,
-                    'lottery': 0,
-                    'original': false,
-                    'misprint_chance': loot_data.global_misprint_chance,
-                    'status': "unclaimed",
-                    'condition_min': 0
+                    'artwork_interface': new ArtworkIF(artwork_id),
+                    'status': "unclaimed"
                 }
 
-				return generateItemFromArtworkID(item_generator);
+                return ITEM_GENERATOR.generateSingle(item_generator, new PlayerIF(Meteor.user()));
             }
 
 			else if (Meteor.users.findOne(user_id) == undefined)
@@ -138,22 +128,12 @@ Meteor.methods({
 
 			else {
                 var item_generator = {
-                    'source': "admin",
-                    'user_id': user_id,
-                    'artwork_id': artwork_id,
-                    'condition': undefined,
-                    'level': 1,
-                    'foil_chance': loot_data.global_foil_chance,
-                    'unlocked_chance': loot_data.global_unlocked_chance,
-                    'seasonal': undefined,
-                    'lottery': 0,
-                    'original': false,
-                    'misprint_chance': loot_data.global_misprint_chance,
-                    'status': "won",
-                    'condition_min': 0
+                    'source': "test",
+                    'artwork_interface': new ArtworkIF(artwork_id),
+                    'status': "won"
                 }
 
-                return generateItemFromArtworkID(item_generator);
+                return ITEM_GENERATOR.generateSingle(item_generator, new PlayerIF(user_id));
             }
 		}
 
@@ -389,22 +369,11 @@ Meteor.methods({
                     if (getOneFromCollection("admin_methods.js", items, {'owner': Meteor.userId(), 'artwork_id': artwork_id}) == undefined) {
                         var item_generator = {
                             'source': "test",
-                            'user_id': Meteor.userId(),
-                            'artwork_id': artwork_id,
-                            'condition': undefined,
-                            'level': 1,
-                            'foil_chance': undefined,
-                            'unlocked_chance': undefined,
-                            'seasonal': undefined,
-                            'lottery': undefined,
-                            'original': undefined,
-                            'vintage': undefined,
-                            'misprint_chance': undefined,
-                            'status': "unclaimed",
-                            'condition_min': 0
+                            'artwork_interface': new ArtworkIF(artwork_id),
+                            'status': "unclaimed"
                         }
 
-                        generateItemFromArtworkID(item_generator);
+                        ITEM_GENERATOR.generateSingle(item_generator, new PlayerIF(Meteor.user()));
                     }
                 }
                 

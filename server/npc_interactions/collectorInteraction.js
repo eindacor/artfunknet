@@ -96,21 +96,11 @@ collectorInteraction = function(npc_object, player_interface) {
 
                     var item_generator = {
                         'source': "collector",
-                        'user_id': Meteor.userId(),
-                        'artwork_id': quest_item_ids[random_index],
-                        'condition': undefined,
-                        'level': 1,
-                        'foil_chance': loot_data.global_foil_chance,
-                        'unlocked_chance': loot_data.global_unlocked_chance,
-                        'seasonal': undefined,
-                        'lottery': 0,
-                        'original': false,
-                        'misprint_chance': loot_data.global_misprint_chance,
-                        'status': "unclaimed",
-                        'condition_min': 0
+                        'artwork_interface': new ArtworkIF(quest_item_ids[random_index]),
+                        'status': "unclaimed"
                     }
 
-                    generateItemFromArtworkID(item_generator);
+                    ITEM_GENERATOR.generateSingle(item_generator, player_interface)
                 };
             };
 		}

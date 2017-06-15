@@ -208,19 +208,85 @@ ItemGenerator = function() {
 
 	}
 
-	this.generateSingle = function(item_generator_object, player_interface) {
+	/*
+		item_generator_object fields:
+			---REQUIRED---
+			source
+			status
+			artwork_interface
+
+			---OPTIONAL---
+			rarity_map_level
+				or
+			rarity_map
+		
+			map_amplifier
+			seasonal_amplifier
+			attribute_map
+			level
+
+			condition
+				or
+			condition_min
+
+			foil
+				or
+			foil_chance
+
+			unlocked
+				or
+			unlocked_chance
+
+			misprint
+				or
+			misprint_chance
+
+			seasonal
+			lottery
+			vintage
+			original
+
+	*/
+
+	this.generateSingle = function(item_generator_object, player_interface, callback) {
 		var mandatory_fields = ["artwork_interface", "status"];
 		if (!hasMandatoryFields(item_generator_object, mandatory_fields)) {
 			throw "invalid item_generator_object: " + JSON.stringify(item_generator_object)
 		}
 
-	    var misprint_chance = item_generator_object.misprint_chance === undefined ? LOOT_DATA.global_misprint_chance : item_generator_object.misprint_chance;
-	    var foil_chance = item_generator_object.foil_chance === undefined ? LOOT_DATA.global_foil_chance : item_generator_object.foil_chance;
-	    var unlocked_chance = item_generator_object.unlocked_chance === undefined ? LOOT_DATA.global_unlocked_chance : item_generator_object.unlocked_chance;
+		var foil;
+		if (item_generator_object.foil === undefined) {
+			var foil_chance = item_generator_object.foil_chance === undefined ? LOOT_DATA.global_foil_chance : item_generator_object.foil_chance;
+			foil = Math.Random() < foil_chance;
+		}
 
-	    var misprint = Math.random() < misprint_chance;
-	    var foil = Math.random() < foil_chance;
-	    var unlocked = item_generator_object.artwork_interface.getRarity() != "common" && Math.random() < unlocked_chance;
+		else {
+			foil = item_generator_object.foil;
+		}
+
+		var unlocked;
+		if (item_generator_object.artwork_interface.getRarity() == "common") {
+			unlocked = false;
+		}
+
+		else if (item_generator_object.unlocked === undefined) {
+			var unlocked_chance = item_generator_object.unlocked_chance === undefined ? LOOT_DATA.global_unlocked_chance : item_generator_object.unlocked_chance;
+			unlocked = Math.Random() < unlocked_chance;
+		}
+
+		else {
+			unlocked = item_generator_object.unlocked;
+		}
+
+		var misprint;
+		if (item_generator_object.misprint === undefined) {
+			var misprint_chance = item_generator_object.misprint_chance === undefined ? LOOT_DATA.global_misprint_chance : item_generator_object.misprint_chance;
+	    	misprint = Math.random() < misprint_chance;
+		}
+
+		else {
+			misprint = item_generator_object.misprint;
+		}
 
 	    var artwork_data = misprint ? misprintArtworkData(item_generator_object.artwork_interface.getArtworkObject()) : item_generator_object.artwork_interface.getArtworkObject();
 
@@ -257,6 +323,10 @@ ItemGenerator = function() {
 
 	        else if (new_item_object.artwork_data.rarity == "legendary" || new_item_object.artwork_data.rarity == "masterpiece") {
 	        	logLegendary(item_generator_object.source, new_item_object);
+
+	        	if (callback) {
+	        		callback();
+	        	}
 	        }
 	    });
 

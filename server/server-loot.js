@@ -236,71 +236,71 @@ var misprintArtworkData = function(artwork_data) {
     return artwork_data;
 }
 
-generateItemFromArtworkID = function(item_generator, callback) {   
-    var artwork_data; 
+// generateItemFromArtworkID = function(item_generator, callback) {   
+//     var artwork_data; 
 
-    var loot_data = LOOT_DATA;
+//     var loot_data = LOOT_DATA;
 
-    var misprint_chance = item_generator.misprint_chance === undefined ? loot_data.global_misprint_chance : item_generator.misprint_chance;
-    var foil_chance = item_generator.foil_chance === undefined ? loot_data.global_foil_chance : item_generator.foil_chance;
-    var unlocked_chance = item_generator.unlocked_chance === undefined ? loot_data.global_unlocked_chance : item_generator.unlocked_chance;
+//     var misprint_chance = item_generator.misprint_chance === undefined ? loot_data.global_misprint_chance : item_generator.misprint_chance;
+//     var foil_chance = item_generator.foil_chance === undefined ? loot_data.global_foil_chance : item_generator.foil_chance;
+//     var unlocked_chance = item_generator.unlocked_chance === undefined ? loot_data.global_unlocked_chance : item_generator.unlocked_chance;
 
-    var misprint = Math.random() < misprint_chance;
-    var foil = Math.random() < foil_chance;
-    var artwork_interface = new ArtworkIF(item_generator.artwork_id);
-    var unlocked = artwork_interface.getRarity()!= "common" && Math.random() < unlocked_chance;
+//     var misprint = Math.random() < misprint_chance;
+//     var foil = Math.random() < foil_chance;
+//     var artwork_interface = new ArtworkIF(item_generator.artwork_id);
+//     var unlocked = artwork_interface.getRarity()!= "common" && Math.random() < unlocked_chance;
 
-    if (misprint)
-        artwork_data = misprintArtworkData(artwork_interface.getArtworkObject());      
+//     if (misprint)
+//         artwork_data = misprintArtworkData(artwork_interface.getArtworkObject());      
 
-    var new_item_object = {
-        'artwork_id' : item_generator.artwork_id,
-        'condition' : item_generator.condition === undefined ? getCondition(item_generator.condition_min) : item_generator.condition,
-        'attributes' : getAttributes(artwork_data, unlocked),
-        'unlocked': unlocked,
-        'active_unique_attribute': artwork_data.unique_attributes ? artwork_data.unique_attributes[0] : undefined,
-        'owner' : item_generator.user_id,
-        'status' : item_generator.status,
-        'date_created' : moment()._d.toISOString(),
-        'date_received': moment()._d.toISOString(),
-        'level' : item_generator.level === undefined ? 1 : item_generator.level,
-        'roll_count' : 0,
-        'foil': foil,
-        'seasonal': item_generator.seasonal === undefined ? loot_data.seasonal_items.indexOf(item_generator.artwork_id) != -1 : item_generator.seasonal,
-        'lottery': item_generator.lottery === undefined ? 0 : item_generator.lottery,
-        'original': item_generator.original === undefined ? false : item_generator.original,
-        'vintage': item_generator.vintage === undefined ? false : item_generator.vintage,
-        'tags': [],
-        'artwork_data': artwork_data
-    };
+//     var new_item_object = {
+//         'artwork_id' : item_generator.artwork_id,
+//         'condition' : item_generator.condition === undefined ? getCondition(item_generator.condition_min) : item_generator.condition,
+//         'attributes' : getAttributes(artwork_data, unlocked),
+//         'unlocked': unlocked,
+//         'active_unique_attribute': artwork_data.unique_attributes ? artwork_data.unique_attributes[0] : undefined,
+//         'owner' : item_generator.user_id,
+//         'status' : item_generator.status,
+//         'date_created' : moment()._d.toISOString(),
+//         'date_received': moment()._d.toISOString(),
+//         'level' : item_generator.level === undefined ? 1 : item_generator.level,
+//         'roll_count' : 0,
+//         'foil': foil,
+//         'seasonal': item_generator.seasonal === undefined ? loot_data.seasonal_items.indexOf(item_generator.artwork_id) != -1 : item_generator.seasonal,
+//         'lottery': item_generator.lottery === undefined ? 0 : item_generator.lottery,
+//         'original': item_generator.original === undefined ? false : item_generator.original,
+//         'vintage': item_generator.vintage === undefined ? false : item_generator.vintage,
+//         'tags': [],
+//         'artwork_data': artwork_data
+//     };
 
-    if (item_generator._id != undefined)
-        new_item_object._id = item_generator._id;
+//     if (item_generator._id != undefined)
+//         new_item_object._id = item_generator._id;
 
-    new_item_object.values = getItemObjectValues(new_item_object);
-    new_item_object.reroll_cost = getItemObjectRollCost(new_item_object);
+//     new_item_object.values = getItemObjectValues(new_item_object);
+//     new_item_object.reroll_cost = getItemObjectRollCost(new_item_object);
 
-    var new_item_id = items.insert(new_item_object, function(error, result) {
-        if (error)
-            console.log(error.message)
+//     var new_item_id = items.insert(new_item_object, function(error, result) {
+//         if (error)
+//             console.log(error.message)
 
-        else {
-            if (new_item_object.artwork_data.rarity == "legendary" || new_item_object.artwork_data.rarity == "masterpiece")
-                logLegendary(item_generator.source, new_item_object);
+//         else {
+//             if (new_item_object.artwork_data.rarity == "legendary" || new_item_object.artwork_data.rarity == "masterpiece")
+//                 logLegendary(item_generator.source, new_item_object);
 
-            if (callback != undefined)
-                callback();
-        }
-    });
+//             if (callback != undefined)
+//                 callback();
+//         }
+//     });
 
-    if (misprint) {
-        var misprint_message = "Misprint created: " + new_item_id + " -> " + Meteor.users.findOne(item_generator.user_id).profile.screen_name;
-        var admin_interface = new PlayerIF(Meteor.users.findOne({'profile.screen_name': "admin"}));
-        admin_interface.alert(misprint_message, 'fa-star', 'good');
-    }
+//     if (misprint) {
+//         var misprint_message = "Misprint created: " + new_item_id + " -> " + Meteor.users.findOne(item_generator.user_id).profile.screen_name;
+//         var admin_interface = new PlayerIF(Meteor.users.findOne({'profile.screen_name': "admin"}));
+//         admin_interface.alert(misprint_message, 'fa-star', 'good');
+//     }
 
-    return new_item_id;
-}
+//     return new_item_id;
+// }
 
 getAttributes = function(artwork_object, item_is_unlocked) {
     var all_attributes = [];
@@ -577,22 +577,7 @@ testMap = function(loot_map) {
     return roll_counts;
 }
 
-getRandomArtworkIDsFromRarity = function(count, rarity) {
-    var ids_selected = [];
 
-    while (ids_selected.length < count && artworks.findOne({'_id': {$nin: ids_selected}, 'rarity': rarity}) != undefined) {
-        var selector = {
-            '_id': {$nin: ids_selected}, 
-            'rarity': rarity,
-            'active': true
-        };
-
-        ids_selected.push(artworks.findOne(selector, {skip: Math.floor(Math.random() * artworks.find(selector).count())})._id);
-    }
-
-    return ids_selected;
-}
-
-getRandomArtworkIDFromRarity = function(rarity) {
-    return artworks.findOne({'rarity': rarity, 'active': true}, {skip: Math.floor(Math.random() * artworks.find({'rarity': rarity}).count())})._id;
+getRandomArtworkIFFromRarity = function(rarity) {
+    return new ArtworkIF(artworks.findOne({'rarity': rarity, 'active': true}, {skip: Math.floor(Math.random() * artworks.find({'rarity': rarity}).count())}));
 }

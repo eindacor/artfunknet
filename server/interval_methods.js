@@ -352,7 +352,7 @@ drawLottery = function(force_draw) {
             });
         }
 
-        var artwork_id = Math.random() < .0001 ? getRandomArtworkIDFromRarity("masterpiece") : getRandomArtworkIDFromRarity("legendary");
+        var artwork_interface = Math.random() < .0001 ? getRandomArtworkIFFromRarity("masterpiece") : getRandomArtworkIFFromRarity("legendary");
 
         var loot_data = LOOT_DATA;
 
@@ -360,20 +360,13 @@ drawLottery = function(force_draw) {
             '_id': _id,
             'source': "lottery",
             'user_id': winning_id,
-            'artwork_id': artwork_id,
-            'condition': undefined,
-            'level': 1,
-            'foil_chance': loot_data.global_foil_chance,
-            'unlocked_chance': loot_data.global_unlocked_chance,
-            'misprint_chance': loot_data.global_misprint_chance,
-            'seasonal': false,
+            'artwork_interface': artwork_interface,
             'lottery': lottery_level,
             'original': false,
-            'status': "won",
-            'condition_min': 0
+            'status': "won"
         };
 
-        generateItemFromArtworkID(item_generator, function() {
+        ITEM_GENERATOR.generateSingle(item_generator, new PlayerIF(winning_id), function() {
             if (winning_id == BOT_USER_NAME) {
                 var item_interface = new ItemIF(_id);
                 item_interface.updateItem({$set: {'status': "auctioned", 'tags': []}}, true, function() {
@@ -381,6 +374,7 @@ drawLottery = function(force_draw) {
                 });
             }
         });
+
         metadata.update({'lottery_draw': {$ne: null}}, {$set: {'lottery_level': 1}});
        
         var winning_name = bot_won ? BOT_USER_NAME : getOneFromCollection("interval_methods.js", Meteor.users, winning_id).profile.screen_name;
@@ -428,11 +422,11 @@ var seasonal_rotation_check = 60000;
 Meteor.setInterval((function() {
     var next_rotation = getOneFromCollection("interval_methods.js", metadata, {'loot_data': {$ne: null}}).loot_data.seasonal_rotation;
     if (next_rotation < getNowISOString()) {
-        var random_legendary = getRandomArtworkIDFromRarity("legendary");
-        var random_masterpiece = getRandomArtworkIDFromRarity("masterpiece");
+        var random_legendary = getRandomArtworkIFFromRarity("legendary");
+        var random_masterpiece = getRandomArtworkIFFromRarity("masterpiece");
 
         metadata.update({'loot_data': {$ne: null}}, {$set: {
-            'loot_data.seasonal_items': [random_legendary, random_masterpiece], 
+            'loot_data.seasonal_items': [random_legendary.getId(), random_masterpiece.getId()], 
             'loot_data.seasonal_rotation': moment(next_rotation).add(1, 'months')._d.toISOString() 
         }}, function() {
             //TODO add alert for new seasonal items

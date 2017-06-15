@@ -44,21 +44,13 @@ artDealerInteraction = function(npc_object, player_interface) {
 
 				var item_generator = {
                     'source': "dealer",
-                    'user_id': player_interface.getId(),
-                    'artwork_id': quest_item_ids[random_index],
-                    'condition': undefined,
+                    'artwork_interface': new ArtworkIF(quest_item_ids[random_index]),
                     'level': level,
                     'foil_chance': foil_chance,
-                    'unlocked_chance': loot_data.global_unlocked_chance,
-                    'seasonal': undefined,
-                    'lottery': 0,
-                    'original': false,
-                    'misprint_chance': loot_data.global_misprint_chance,
-                    'status': "for_sale",
-                    'condition_min': 0
+                    'status': "for_sale"
                 }
 
-				generateItemFromArtworkID(item_generator);
+                ITEM_GENERATOR.generateSingle(item_generator, player_interface);
 			}
 		}
 	}

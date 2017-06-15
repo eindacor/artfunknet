@@ -430,8 +430,7 @@ Template.adminTools.events({
 
     	var item_generator = {
             'source': "admin",
-            'user_id': user_id == "" ? Meteor.userId() : user_id,
-            'artwork_id': artwork_id,
+            'artwork_interface': new ArtworkIF(artwork_id),
             'condition': condition,
             'level': level,
             'foil_chance': foil_chance,
@@ -442,10 +441,9 @@ Template.adminTools.events({
             'vintage': vintage,
             'misprint_chance': misprint_chance,
             'status': user_id == Meteor.userId() ? "unclaimed": "claimed",
-            'condition_min': 0
         }
 
-    	Meteor.call('generateItemFromArtworkID', item_generator, function(error, result) {
+    	Meteor.call('generateItemFromArtworkID', item_generator, user_id, function(error, result) {
     		if (error)
     			console.log(error.message);
 
