@@ -70,23 +70,15 @@ collectorInteraction = function(npc_object, player_interface) {
 				else offer_bonus += (highest_level * .4)
 			}
 
-			var loot_data = getLootData();
-
 			if (player_interface.procUniqueAttribute("COLLECTOR_FOR_SALE_OFFER", undefined)) {
 				var multi_item_generator = {
 			        'source': "COLLECTOR_FOR_SALE_OFFER",
-			        'user_id': Meteor.userId(),
-			        'quality': npc_object.quality,
+			        'map_amplifier': getMapAmplifierFromNPC(npc_object),
 			        'count': 2,
-			        'status': "for_sale",
-			        'foil_chance': loot_data.global_foil_chance,
-			        'unlocked_chance': loot_data.global_unlocked_chance,
-			        'misprint_chance': loot_data.global_misprint_chance,
-			        'condition_min': 0, 
-			        'level': 1
+			        'status': "for_sale"
 			    }
 
-				generateItems(multi_item_generator);
+			    ITEM_GENERATOR.generateMultiple(multi_item_generator, player_interface);
 			}
 
 			if (Math.random() < .25 && player_interface.procUniqueAttribute("COLLECTOR_QUEST_ITEM", undefined)) {

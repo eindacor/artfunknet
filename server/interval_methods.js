@@ -354,7 +354,7 @@ drawLottery = function(force_draw) {
 
         var artwork_id = Math.random() < .0001 ? getRandomArtworkIDFromRarity("masterpiece") : getRandomArtworkIDFromRarity("legendary");
 
-        var loot_data = getLootData();
+        var loot_data = LOOT_DATA;
 
         var item_generator = {
             '_id': _id,

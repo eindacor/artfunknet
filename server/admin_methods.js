@@ -54,21 +54,13 @@ Meteor.methods({
 
 	'generateForSale': function() {
 		if (adminValidated()) {
-            var loot_data = getLootData();
             var multi_item_generator = {
                 'source': "test",
-                'user_id': Meteor.userId(),
-                'quality': "platinum",
                 'count': admin_settings.daily_drop_count,
-                'status': "for_sale",
-                'foil_chance': loot_data.global_foil_chance,
-                'unlocked_chance': loot_data.global_unlocked_chance,
-                'misprint_chance': loot_data.global_misprint_chance,
-                'condition_min': 0,
-                'level': 1
+                'status': "for_sale"
             }
-            
-            generateItems(multi_item_generator);
+
+            ITEM_GENERATOR.generateMultiple(multi_item_generator, new PlayerIF(Meteor.user()));
 		}
 	},
 
@@ -105,7 +97,7 @@ Meteor.methods({
 				'daily_drop_count': admin_settings.daily_drop_count,
 				'crate_drop_count': admin_settings.crate_drop_count,
 				'bank_balance': user_object.profile.bank_balance,
-				'seasonal_ids': getLootData().seasonal_items
+				'seasonal_ids': LOOT_DATA.seasonal_items
 			}
 		}
 	},
@@ -120,7 +112,7 @@ Meteor.methods({
 
 	'generateRandomItemFromArtworkID' : function(user_id, artwork_id) {
 		if (adminValidated()) {
-            var loot_data = getLootData();
+            var loot_data = LOOT_DATA;
 			if (user_id == "" || getOneFromCollection("admin_methods.js", Meteor.users, user_id).profile.user_type == "admin") {
                 var item_generator = {
                     'source': "test",

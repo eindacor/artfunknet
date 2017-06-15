@@ -1,6 +1,6 @@
 donorInteraction = function(npc_object, player_interface) {
 	var drop_count = 2;
-	var loot_data = getLootData();
+	var loot_data = LOOT_DATA;
 	var foil_chance = loot_data.global_foil_chance;
 	var condition_min = 0;
 	var level = 1;	
@@ -68,19 +68,16 @@ donorInteraction = function(npc_object, player_interface) {
 	}
 
 	var multi_item_generator = {
-        'source': "donor",
-        'user_id': Meteor.userId(),
-        'quality': npc_object.quality,
+        'source': "dealer",
         'count': drop_count,
         'status': "unclaimed",
+        'map_amplifier': getMapAmplifierFromNPC(npc_object),    
         'foil_chance': foil_chance,
-        'unlocked_chance': loot_data.global_unlocked_chance,
-        'misprint_chance': loot_data.global_misprint_chance,
-        'condition_min': condition_min,
-        'level': level
+        'level': level,
+        'condition_min': condition_min
     }
 
-	generateItems(multi_item_generator);
+	ITEM_GENERATOR.generateMultiple(multi_item_generator, player_interface);
 
 	var message = "You have met a donor who would like to contribute to your collection. You may claim your gift in the loot area.";
 

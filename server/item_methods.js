@@ -199,7 +199,7 @@ updateItem = function(query, modifier, callback) {
 
             }
 
-            var rarity_values = getLootData().rarity_values;
+            var rarity_values = LOOT_DATA.rarity_values;
 
             var reroll_cost = Math.floor((rarity_values[item_object.artwork_data.rarity].min * .1) * Math.pow(reroll_coefficient, roll_count));
 
@@ -220,7 +220,7 @@ updateItemsBySelector = function(selector, modifier, callback) {
 
         else {
             var player_list = [];
-            var rarity_values = getLootData().rarity_values;
+            var rarity_values = LOOT_DATA.rarity_values;
             items.find(selector).forEach(function(item_object) {
                 if (player_list.indexOf(item_object.owner) == -1)
                     player_list.push(item_object.owner);

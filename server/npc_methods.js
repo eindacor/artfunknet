@@ -127,3 +127,17 @@ Meteor.methods({
 isOwnGallery = function(npc_object) {
 	return npc_object.owner_id == Meteor.userId();
 }
+
+getMapAmplifierFromNPC = function(npc_object) {
+	var map_amplifier;
+
+	switch(npc_object.quality) {
+        case 'bronze': map_amplifier = 0; break;
+        case 'silver': map_amplifier = .2; break;
+        case 'gold': map_amplifier = .4; break;
+        case 'platinum': map_amplifier = .8; break;
+        default: map_amplifier = 0; break;
+    }
+
+    return map_amplifier;
+}

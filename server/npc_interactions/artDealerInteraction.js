@@ -1,6 +1,6 @@
 artDealerInteraction = function(npc_object, player_interface) {
 	var drop_count = 4;
-	var loot_data = getLootData();
+	var loot_data = LOOT_DATA;
 	var foil_chance = loot_data.global_foil_chance;
 	var level = 1;
 
@@ -65,18 +65,14 @@ artDealerInteraction = function(npc_object, player_interface) {
 
 	var multi_item_generator = {
         'source': "dealer",
-        'user_id': player_interface.getId(),
-        'quality': npc_object.quality,
         'count': drop_count,
         'status': "for_sale",
+        'map_amplifier': getMapAmplifierFromNPC(npc_object), 
         'foil_chance': foil_chance,
-        'unlocked_chance': loot_data.global_unlocked_chance,
-        'misprint_chance': loot_data.global_misprint_chance,
-        'condition_min': 0,
         'level': level
     }
 
-	generateItems(multi_item_generator);
+	ITEM_GENERATOR.generateMultiple(multi_item_generator, player_interface);
 
 	var message = "You have met an Art Dealer who would like you to consider a few offers. Go to the store to view their inventory.";
 	// return {'message': message}

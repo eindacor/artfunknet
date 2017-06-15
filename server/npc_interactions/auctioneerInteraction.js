@@ -60,22 +60,14 @@ auctioneerInteraction = function(npc_object, player_interface) {
 		auction_price_adjustment = 2.5;
 	}
 
-	var loot_data = getLootData();
-
 	var multi_item_generator = {
         'source': "private auction",
-        'user_id': BOT_USER_NAME,
-        'quality': npc_object.quality,
+        'map_amplifier': getMapAmplifierFromNPC(npc_object),
         'count': auction_count,
-        'status': "auctioned",
-        'foil_chance': loot_data.global_foil_chance,
-        'unlocked_chance': loot_data.global_unlocked_chance,
-        'misprint_chance': loot_data.global_misprint_chance,
-        'condition_min': 0, 
-        'level': 1
+        'status': "auctioned"
     }
 
-	var item_ids = generateItems(multi_item_generator);
+	var item_ids = ITEM_GENERATOR.generateMultiple(multi_item_generator, player_interface);
 
 	setTimeout("", 2000);
 

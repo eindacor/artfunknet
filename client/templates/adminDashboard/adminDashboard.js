@@ -395,7 +395,7 @@ Template.adminTools.events({
     	var artwork_id = $('#generate-artwork-id').val();
     	var condition = $('#condition').val() == "" ? Number(Math.random().toFixed(2)) : Number($('#condition').val()) / 100;
     	var level = isNaN($('#level').val()) || $('#level').val() == "" ? 1 : Math.min(Number($('#level').val()), MAX_ITEM_LEVEL);
-    	var loot_data = getLootData();
+    	var loot_data = metadata.findOne({'loot_data': {$ne: null}}).loot_data;
 		var foil_chance;
     	var foil_selection = $('input:radio[name=foil_selector]:checked').val();
     	if (foil_selection == "random")
