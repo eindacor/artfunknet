@@ -2,7 +2,7 @@
 	<div class="template-itemInfo">
 		{{#if show_price}}
 		<div class="item-price green-text text-shadow">
-			{{displayAsMoneyValue item_data.values.purchase}}
+			{{displayAsMoneyValue item_data.values.dealer}}
 		</div>
 		{{/if}}
 		<div data-item_id="{{item_data._id}}" class="card-container {{#if item_data.displaced}}displaced{{else}}{{item_data.artwork_data.rarity}}{{/if}}-item" style="background: url('{{getCardImageURL item_data.artwork_data.filename}}') center; background-size: 280px 390px">
