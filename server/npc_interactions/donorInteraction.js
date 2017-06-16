@@ -27,10 +27,6 @@ donorInteraction = function(npc_object, player_interface) {
 			level = 5;
 		}
 
-		if (player_interface.procUniqueAttribute("DONOR_DROP_QUALITY_BOOST", undefined)) {
-			npc_object.quality = "platinum";
-		}
-
 		if (Math.random() < .2 && player_interface.procUniqueAttribute("DONOR_QUEST_ITEM_CHANCE", undefined)) {
 			var quest_item_ids = [];
 			quests.find({'owner_id': Meteor.userId()}).forEach(function(db_object) {

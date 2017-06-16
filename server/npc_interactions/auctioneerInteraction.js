@@ -67,14 +67,12 @@ auctioneerInteraction = function(npc_object, player_interface) {
         'status': "auctioned"
     }
 
-	var item_ids = ITEM_GENERATOR.generateMultiple(multi_item_generator, player_interface);
+	var item_ids = ITEM_GENERATOR.generateMultiple(multi_item_generator, undefined, function(item_object) {
+		// private_auction_duration is instantiated in auction_methods.js
+		createAuction(item_object._id, Math.floor(getItemObjectValueByType(item_object, 'actual', player_interface.getId()) * auction_price_adjustment), -1, private_auction_duration / 60000, player_interface.getId());
+	});
 
 	setTimeout("", 2000);
-
-	// private_auction_duration is instantiated in auction_methods.js
-	items.find({'_id': {$in: item_ids}}).forEach(function(item_object) {
-		createAuction(item_object._id, Math.floor(getItemObjectValueByType(item_object, 'actual', Meteor.userId()) * auction_price_adjustment), -1, private_auction_duration / 60000, Meteor.userId());
-	})
 
 	message += " They have also given you exclusive access to some items available in a private auction. Visit the auction house to make a bid.";
 

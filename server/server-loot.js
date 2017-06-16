@@ -1,7 +1,8 @@
 LOOT_DATA = undefined;
 
 getLootData = function() {
-    return JSON.parse(JSON.stringify(LOOT_DATA));
+    var loot_data_copy = JSON.parse(JSON.stringify(LOOT_DATA));
+    return loot_data_copy;
 }
 
 logLegendary = function(source, item_object) {

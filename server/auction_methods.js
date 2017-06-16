@@ -13,17 +13,6 @@ createAuction = function(item_id, starting, buy_now, duration, viewer) {
 
             var user_object = Meteor.users.findOne(item_object.owner);
 
-            var rarity_rank;
-
-            switch(item_object.artwork_data.rarity) {
-                case 'common' : rarity_rank = 0; break;
-                case 'uncommon' : rarity_rank = 1; break;
-                case 'rare' : rarity_rank = 2; break;
-                case 'legendary' : rarity_rank = 3; break;
-                case 'masterpiece' : rarity_rank = 4; break;
-                default: rarity_rank = 0; break;
-            }
-
             var increment = Math.floor(.02 * getItemObjectValueByType(item_object, 'actual', user_object == undefined ? undefined : user_object._id));
 
             var auction_object = {

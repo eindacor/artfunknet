@@ -534,23 +534,15 @@ Meteor.methods({
         var now = getNowISOString();
         filter_array.push({'expiration': {$gt : now}});
 
-        var auction_array = [];
-
-        auctions.find(
+        var auction_array = auctions.find(
             {$and: filter_array}, 
             {
                 sort: sort_object,
                 skip: skip_amount, 
-                limit: items_per_page
+                limit: items_per_page,
+                fields: fields_object
             }
-        ).forEach(function(auction_object) {
-            if (auction_object.seller == Meteor.user().profile.screen_name)
-                auction_array.push(auction_object);
-
-            else {
-                auction_array.push(auctions.findOne(auction_object._id, {fields: fields_object}));
-            }
-        });
+        ).fetch();
 
         return auction_array;
     },

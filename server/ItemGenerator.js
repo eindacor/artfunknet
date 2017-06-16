@@ -153,7 +153,7 @@ ItemGenerator = function() {
 			misprint_chance
 	*/
 
-	this.generateMultiple = function(multi_item_generator_object, player_interface) {
+	this.generateMultiple = function(multi_item_generator_object, player_interface, callback) {
 		var mandatory_fields = ["source", "count", "status"];
 		if (!hasMandatoryFields(multi_item_generator_object, mandatory_fields)) {
 			throw "invalid multi_item_generator_object: " + JSON.stringify(multi_item_generator_object)
@@ -166,7 +166,7 @@ ItemGenerator = function() {
  		if (multi_item_generator_object.rarity_map === undefined) {
  			var player_level = player_interface === undefined ? PLAYER_LEVEL_MAX : player_interface.getPlayerLevel();
 	 		var rarity_map_level = multi_item_generator_object.rarity_map_level === undefined ? player_level : multi_item_generator_object.rarity_map_level;
-	 		var map_amplifier = multi_item_generator_object === undefined ? .8 : multi_item_generator_object.map_amplifier;
+	 		var map_amplifier = multi_item_generator_object.map_amplifier === undefined ? .8 : multi_item_generator_object.map_amplifier;
 
 	 		rarity_map = getSmartRarityMap(rarity_map_level, map_amplifier)
  		}
@@ -175,7 +175,6 @@ ItemGenerator = function() {
  			rarity_map = multi_item_generator_object.rarity_map;
  		}
 
- 		
  		var seasonal_amplifier = multi_item_generator_object.seasonal_amplifier === undefined ? 1 : multi_item_generator_object.seasonal_amplifier;
 
  		var attribute_map = multi_item_generator_object.attribute_map === undefined ? DEFAULT_ATTRIBUTE_MAP : multi_item_generator_object.attribute_map;
@@ -201,7 +200,7 @@ ItemGenerator = function() {
 	            'attribute_map': attribute_map
 	        }
 
-	        item_ids.push(this.generateSingle(item_generator, player_interface));
+	        item_ids.push(this.generateSingle(item_generator, player_interface, callback));
 	    }
 
 	    return item_ids;
@@ -247,6 +246,26 @@ ItemGenerator = function() {
 			original
 
 	*/
+
+	var insertItem = function(item_object, source, callback) {
+		var new_item_id = items.insert(item_object, function(error, result) {
+	        if (error)
+	            console.log(error.message)
+
+	        else {
+	        	item_object._id = result;
+	        	if (item_object.artwork_data.rarity == "legendary" || item_object.artwork_data.rarity == "masterpiece") {
+		        	logLegendary(source, item_object);
+		        }
+
+		        if (callback) {
+	        		callback(item_object);
+	        	}
+	        }
+	    });
+
+	    return new_item_id;
+	}
 
 	this.generateSingle = function(item_generator_object, player_interface, callback) {
 		var mandatory_fields = ["artwork_interface", "status"];
@@ -317,19 +336,8 @@ ItemGenerator = function() {
 	    new_item_object.values = getItemObjectValues(new_item_object);
 	    new_item_object.reroll_cost = getItemObjectRollCost(new_item_object);
 
-	    var new_item_id = items.insert(new_item_object, function(error, result) {
-	        if (error)
-	            console.log(error.message)
-
-	        else if (new_item_object.artwork_data.rarity == "legendary" || new_item_object.artwork_data.rarity == "masterpiece") {
-	        	logLegendary(item_generator_object.source, new_item_object);
-
-	        	if (callback) {
-	        		callback();
-	        	}
-	        }
-	    });
-
+	    var new_item_id = insertItem(new_item_object, item_generator_object.source, callback);
+	    
 	    if (misprint) {
 	    	var receiver = player_interface === undefined ? BOT_USER_NAME : player_interface.getUserObject().profile.screen_name;
 	    	var misprint_message = "Misprint created: " + new_item_id + " -> " + receiver;
