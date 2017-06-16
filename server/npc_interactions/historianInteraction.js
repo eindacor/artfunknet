@@ -7,19 +7,19 @@ var generateTarget = function(default_target_count) {
 		if (rarity_rolled == "legendary" || rarity_rolled == "masterpiece")
 			rarity_rolled = "rare";
 
-		var rolled_id = getRandomArtworkIDFromRarity(rarity_rolled);
+		var rolled_if = getRandomArtworkIFFromRarity(rarity_rolled);
 
-		while (target.indexOf(rolled_id) != -1) {
-			rolled_id = getRandomArtworkIDFromRarity(rarity_rolled)
+		while (target.indexOf(rolled_if.getId()) != -1) {
+			rolled_if = getRandomArtworkIFFromRarity(rarity_rolled)
 		}
 
-		target.push(rolled_id);
+		target.push(rolled_if.getId());
 	}
 
 	return target;
 }
 
-var generateQuest = function(rarity, is_own_gallery) {
+var generateQuest = function(rarity, is_own_gallery, player_interface) {
     var money = getAverageDropValue(Meteor.user().profile.level, 0) * 10;
     var player_level = Meteor.user().profile.level;
 
@@ -121,7 +121,7 @@ historianInteraction = function(npc_object, player_interface) {
 		}
 	
 	    var rarity_roll = JepLoot.catRoll(getSmartRarityMap(Meteor.user().profile.level, map_amplifier));
-	    var quest_object = generateQuest(rarity_roll, isOwnGallery(npc_object));
+	    var quest_object = generateQuest(rarity_roll, isOwnGallery(npc_object), player_interface);
 	    quests.insert(quest_object);
 	
 	    var message = "You have met an art historian who is looking for a few specific items and would like your help. Visit the quests area to see what they need and acquire the artwork listed to claim your reward.";
