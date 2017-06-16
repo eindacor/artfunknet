@@ -398,14 +398,14 @@ Template.adminTools.events({
 		var foil_chance;
     	var foil_selection = $('input:radio[name=foil_selector]:checked').val();
     	if (foil_selection == "random")
-    		foil_chance = getLootData().global_foil_chance;
+    		foil_chance = undefined;
 
     	else foil_chance = foil_selection == "true" ? 1 : 0;
 
     	var unlocked_chance;
     	var unlocked_selection = $('input:radio[name=unlocked_selector]:checked').val();
     	if (unlocked_selection == "random")
-    		unlocked_chance = getLootData().global_unlocked_chance;
+    		unlocked_chance = undefined;
 
     	else unlocked_chance = unlocked_selection == "true" ? 1 : 0;
 
@@ -423,13 +423,12 @@ Template.adminTools.events({
     	var misprint_chance;
     	var misprint_selection = $('input:radio[name=misprint_selector]:checked').val();
     	if (misprint_selection == "random")
-    		misprint_chance = getLootData().global_misprint_chance;
+    		misprint_chance = undefined;
 
     	else misprint_chance = misprint_selection == "true" ? 1 : 0;
 
     	var item_generator = {
             'source': "admin",
-            'artwork_interface': new ArtworkIF(artwork_id),
             'condition': condition,
             'level': level,
             'foil_chance': foil_chance,
@@ -442,7 +441,7 @@ Template.adminTools.events({
             'status': user_id == Meteor.userId() ? "unclaimed": "claimed",
         }
 
-    	Meteor.call('generateItemFromArtworkID', item_generator, user_id, function(error, result) {
+    	Meteor.call('generateItemFromArtworkID', item_generator, artwork_id, user_id, function(error, result) {
     		if (error)
     			console.log(error.message);
 

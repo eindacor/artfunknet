@@ -102,8 +102,9 @@ Meteor.methods({
 		}
 	},
 
-	'generateItemFromArtworkID' : function(item_generator, user_id) {
+	'generateItemFromArtworkID' : function(item_generator, artwork_id, user_id) {
 		if (adminValidated()) {
+            item_generator.artwork_interface = new ArtworkIF(artwork_id);
             return ITEM_GENERATOR.generateSingle(item_generator, new PlayerIF(user_id));
 		}
 

@@ -224,22 +224,6 @@ lookupCrateCost = function(count) {
     return Math.floor(average_drop_value * count * CRATE_UPCHARGE_COEFFICIENT);
 }
 
-var misprintArtworkData = function(artwork_data) {
-    if (Math.random() < .5) {
-        var artist_name = artwork_data.artist;
-        var random_index = Math.random() * artist_name.length;
-        artwork_data.artist = artist_name.slice(0, random_index) + artist_name.slice(random_index + 1);
-    }
-
-    else {
-        var title = artwork_data.title;
-        var random_index = Math.random() * title.length;
-        artwork_data.title = title.slice(0, random_index) + title.slice(random_index + 1);
-    }
-
-    return artwork_data;
-}
-
 // generateItemFromArtworkID = function(item_generator, callback) {   
 //     var artwork_data; 
 
