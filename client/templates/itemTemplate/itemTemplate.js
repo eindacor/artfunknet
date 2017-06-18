@@ -7,6 +7,7 @@ var sought_status = {};
 var global_perm = false;
 var display_details_map = {};
 var permanent_details_map = {};
+var item_interface = undefined;
 
 var updateSoughtStatus = function(artwork_id) {
 	Meteor.call('getSoughtStatus', artwork_id, true, function(error, result) {
@@ -180,20 +181,20 @@ Template.itemInfo.helpers({
 
 	'already_owns': function(item_object) {
 		// returns true if the viewer owns a claimed copy of this item, and the item itself is not owned or claimed by the viewer
-		if (item_object == undefined)
-			return false;
+		// if (item_object == undefined)
+		// 	return false;
 
-		var item_belongs_to_other = item_object.owner != Meteor.userId();
-		var item_is_unclaimed = ['unclaimed', 'for_sale', 'won'].indexOf(item_object.status) != -1
-		var show_already_owns = item_belongs_to_other || item_is_unclaimed;
+		// var item_belongs_to_other = item_object.owner != Meteor.userId();
+		// var item_is_unclaimed = ['unclaimed', 'for_sale', 'won'].indexOf(item_object.status) != -1
+		// var show_already_owns = item_belongs_to_other || item_is_unclaimed;
 
-		if (show_already_owns) {
-			var artwork_id = item_object.artwork_id;
-			var valid_statuses = ['claimed', 'displayed', 'auctioned'];
-			return items.findOne({'owner': Meteor.userId(), 'status': {$in: valid_statuses}, 'artwork_id': artwork_id});
-		}
+		// if (show_already_owns) {
+		// 	var artwork_id = item_object.artwork_id;
+		// 	var valid_statuses = ['claimed', 'displayed', 'auctioned'];
+		// 	return items.findOne({'owner': Meteor.userId(), 'status': {$in: valid_statuses}, 'artwork_id': artwork_id});
+		// }
 
-		else return false;
+		// else return false;
 	},
 
 	'showDetails': function(item_object) {
@@ -274,19 +275,19 @@ Template.itemInfo.helpers({
 })
 
 Template.itemInfo.events({
-	'click .card-container' : function(element) {
-		var target = $(element.target);
-		var item_id = target.closest('.card-container').data('item_id');
-		//target.closest('.card-container').hasClass('selected') ? target.closest('.card-container').removeClass('selected') : target.closest('.card-container').addClass('selected');
-		if ($('.template-modalTemplate').length == 0) {
-			Blaze.renderWithData(Template.modalTemplate, {
-				'modal_name': "fullViewModal", 
-				'modal_data': {
-					'item_object': items.findOne(item_id)
-				}
-			}, $('body')[0]);
-		}
-	},
+	// 'click .card-container' : function(element) {
+	// 	var target = $(element.target);
+	// 	var item_id = target.closest('.card-container').data('item_id');
+	// 	//target.closest('.card-container').hasClass('selected') ? target.closest('.card-container').removeClass('selected') : target.closest('.card-container').addClass('selected');
+	// 	if ($('.template-modalTemplate').length == 0) {
+	// 		Blaze.renderWithData(Template.modalTemplate, {
+	// 			'modal_name': "fullViewModal", 
+	// 			'modal_data': {
+	// 				'item_object': items.findOne(item_id)
+	// 			}
+	// 		}, $('body')[0]);
+	// 	}
+	// },
 
 	'mouseover .item-attribute' : function(element) {
 		var attribute_id = element.target.dataset.attribute_id;

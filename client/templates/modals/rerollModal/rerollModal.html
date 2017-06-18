@@ -1,20 +1,19 @@
-<template name="rerollModal">
+<template name="rerollModalOld">
 	<div class="template-rerollModal">
 	    <div style="z-index:9999999999999999;" class="modal fade">
 	        <div class="modal-dialog">
 	            <div class="modal-content container">
-	            	{{#with itemData}}
-	                <h4>Mod <span class="highlight af-color work-title">{{artwork_data.title}}</span> by <span class="highlight af-color">{{artwork_data.artist}}</span></h4>
+	                <!-- <h4>Mod <span class="highlight af-color work-title">{{item_data.artwork_data.title}}</span> by <span class="highlight af-color">{{item_data.artwork_data.artist}}</span></h4>
 	                <div class="reroll-info">
 		                <div class="row">
 		                	<h4>bank balance: <span class="af-color">${{bankBalance}}</span></h4>
 		                	<h4>reroll cost: <span class="af-color">${{rerollCost}}</span></h4>
 		                	<h4>reroll count: <span class="af-color">{{roll_count}}</span></h4>
 				        </div>
-				    </div>
+				    </div> -->
 
 				    <div class="reroll-options">
-				        {{#each attributes.special}}
+				        <!-- {{#each item_data.attributes.special}}
 				        <div data-attribute_id="{{this._id}}" class="row attribute-row no-padding no-margin">
 		                	{{> attributeTemplate attribute_data=this special=true}}
 		                	<div class="col-xs-3">
@@ -42,9 +41,9 @@
 		                		<i class="item-attribute fa fa-lock"></i>
 		                	</div>
 				        </div>
-				        {{/each}}
+				        {{/each}} -->
 
-				        {{#each attributes.unlocked}}
+				        {{#each this.item_data.attributes.unlocked}}
 				        <div data-attribute_id="{{this._id}}" class="row attribute-row no-padding no-margin">
 		                	{{> attributeTemplate attribute_data=this}}
 		                	<div class="col-xs-3">
@@ -61,7 +60,7 @@
 
 				    </div>
 
-				    <div class="row reroll-options no-padding no-margin">
+				    <!-- <div class="row reroll-options no-padding no-margin">
 				    	<div class="col-xs-6 col-xs-offset-1">
 				    		<div class="row">
 				    			<table class="const-info">
@@ -127,7 +126,7 @@
 					    	</div>
 				    	{{/each}}
 				    </div>
-				    {{/if}}
+				    {{/if}} -->
                 	
 		            <div class="row modal-buttons">
 			            <button id="cancel-modal" type="button" class="btn btn-default">close</button>
@@ -140,7 +139,6 @@
 		            	{{/each}}
 	            	</div>
 	            	{{/if}}
-			        {{/with}}
 	            </div>
 	        </div>
 	    </div>
@@ -153,5 +151,34 @@
 	</div>
 	<div class="col-xs-4">
 		<p class="roll-description {{#if locked}}orange-text{{/if}}">{{attribute_data.description}}:</p>
+	</div>
+</template>
+
+
+<template name="rerollModal">
+	<div class="template-archiveModal col-xs-12">
+		<div class="message-container">
+			<div class="modal-message-area">
+				<div class="reroll-container" data-item_id="_id">
+					<h4>Mod <span class="highlight af-color work-title">{{item_data.artwork_data.title}}</span> by <span class="highlight af-color">{{item_data.artwork_data.artist}}</span></h4>
+					{{#with attribute item_data}}
+						{{#each unlocked}}
+				        <div data-attribute_id="{{this._id}}" class="row attribute-row no-padding no-margin">
+		                	{{> attributeTemplate attribute_data=this}}
+		                	<div class="col-xs-3">
+								<p><span class="af-color highlight value-text">{{attributeValueText this.value}}</span> ({{min_roll "unlocked" ../../item_data}} min)</p>
+							</div>
+							<div class="col-xs-2">
+								<button data-attribute_id="{{this._id}}" class="reroll-value-button {{#if canReroll}}enabled{{else}}disabled{{/if}}">value</button>
+							</div>
+		                	<div class="col-xs-2">
+		                		<button data-attribute_id="{{this._id}}" class="reroll-attribute-button {{#if canReroll}}enabled{{else}}disabled{{/if}}">attribute</button>
+		                	</div>
+				        </div>
+				        {{/each}}
+				    {{/with}}
+			    </div>		        
+			</div>
+		</div>
 	</div>
 </template>

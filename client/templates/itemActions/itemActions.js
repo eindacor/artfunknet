@@ -132,8 +132,16 @@ Template.itemActions.events({
 	'click .reroll.enabled' : function(element) {
 		element.stopPropagation();
 		var item_id = $(element.target).closest('.item-container').data('item_id');
-		Session.set('selectedItem', item_id);
-		Modal.show('rerollModal');
+		// Session.set('selectedItem', item_id);
+		// Modal.show('rerollModal');
+		var item_interface = new ItemIF(item_id);
+		//$('.template-inventory').remove();
+		Blaze.renderWithData(Template.modalTemplate, {
+			'modal_name': "rerollModal", 
+			'modal_data': {
+				'item_data': item_interface.getItemObject()
+			}
+		}, $('body')[0]);
 	},
 
 	'click .perm-collection.inactive' : function(element) {
