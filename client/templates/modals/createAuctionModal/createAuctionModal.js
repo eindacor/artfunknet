@@ -21,7 +21,7 @@ Template.createAuctionModal.events ({
 				Session.set('createAuctionErrors', []);
 				$('.errors').hide();
 				Modal.hide("createAuctionModal");
-				updatePages();
+				updateItemArray();
 			}
 		}); 
     },

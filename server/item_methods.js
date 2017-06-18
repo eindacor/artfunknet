@@ -280,16 +280,37 @@ removeItem = function(item_id, source, callback) {
     })
 }
 
-var getItemArray = function(filter_array, sorter_object, current_page, items_per_page) {
-    var item_array = items.find({
-        $and: filter_array
-    }, {sort: sorter_object, skip: current_page * items_per_page, limit: items_per_page}).fetch();
+var getItemArray = function(match_query, sorter_object, page, items_per_page) {
+    var item_array = items.find(match_query, {sort: sorter_object}).fetch();
 
-    var items_found = items.find({$and: filter_array}).count();
+    var current_page;
+    var total_pages;
+
+    var total_returned = item_array.length;
+    console.log("returned: " + total_returned);
+
+    if (total_returned <= items_per_page) {
+        current_page = 1;
+        total_pages = 1;
+    }
+
+    else {
+        total_pages = Math.floor(total_returned / items_per_page) + 1;
+
+        if (total_returned < ((page - 1) * items_per_page) + 1) {
+            current_page = total_pages;
+        }
+
+        else current_page = page;
+    }
+
+    var skip = (current_page - 1) * items_per_page;
+    var count = items_per_page;
 
     return {
-        'item_array': item_array,
-        'items_found': items_found
+        'item_array': item_array.slice(skip, skip + count),
+        'current_page': current_page,
+        'total_pages': total_pages
     }
 }
 
@@ -365,6 +386,7 @@ Meteor.methods({
     },
 
     'rerollAttributeValue' : function(item_id, attribute_id) {
+        var now = moment();
         var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
         player_item_interface.rerollAttributeValue(attribute_id);
     },
@@ -398,10 +420,9 @@ Meteor.methods({
         }  
     },
 
-    'getItemArray': function(filter_array, sorter_object, current_page, items_per_page) {
+    'getItemArray': function(filter_array, sorter_object, page, items_per_page) {
         //TODO verify user is only searching items they have access to
-
-        return getItemArray(filter_array, sorter_object, current_page, items_per_page);
+        return getItemArray(filter_array, sorter_object, page, items_per_page);
     },
 
     'getDisplayDetails': function(item) {

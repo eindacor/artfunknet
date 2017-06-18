@@ -7,7 +7,7 @@ Template.quickSellModal.events({
 
 			else {
 				$('.template-modalTemplate').remove();
-				updatePages();
+				updateItemArray();
 			}
 		});
 	}

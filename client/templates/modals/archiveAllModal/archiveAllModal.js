@@ -6,7 +6,7 @@ Template.archiveAllModal.events({
 
 			else {
 				$('.template-modalTemplate').remove();
-				updatePages();
+				updateItemArray();
 			}
 		})
 	}

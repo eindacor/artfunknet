@@ -1,6 +1,6 @@
 var display_tracker = new Tracker.Dependency;
 page_tracker = new Tracker.Dependency;
-item_getter_tracker = new Tracker.Dependency;
+item_array_tracker = new Tracker.Dependency;
 
 var status_filter;
 var item_array = [];
@@ -19,10 +19,9 @@ var original_filter = {'original': {'$ne': null}};
 var unlocked_filter = {'unlocked': {'$ne': null}};
 var vintage_filter = {'vintage': {'$ne': null}};
 var standard_filter = {};
-var current_page = 0;
-var items_found = 0;
+var current_page;
+var total_pages;
 var items_per_page = 10;
-var set_location;
 
 var getter_query;
 
@@ -160,26 +159,10 @@ var addQueriesFromKeywords = function(base_filter) {
 }
 
 refreshItemSet = function() {
-	updatePages();
-	updateItemGetter();
+	updateItemArray();
 }
 
-updatePages = function() {
-	if (getter_query) {
-		items_found = items.find(getter_query).count();
-
-		if (items_found == 0)
-			current_page = 0;
-
-		else if (current_page * items_per_page >= items_found) {
-			current_page = Math.floor(items_found / items_per_page) - (items_found % items_per_page == 0 ? 1 : 0);
-		}
-
-		page_tracker.changed();
-	}
-}
-
-var updateItemGetter = function() {
+updateItemArray = function() {
 	var sorter_object = {};
 	sorter_object[sorter] = ascending;
 
@@ -328,16 +311,21 @@ var updateItemGetter = function() {
 	}
 
 	filter_array.push(base_filter);
-	getter_query = {$and: filter_array};
 
-	updatePages();
+	var match_query = {$and: filter_array};
 
-	item_getter = {
-		'query': getter_query,
-		'options': {sort: sorter_object, skip: current_page * items_per_page, limit: items_per_page}
-	}
+	Meteor.call('getItemArray', match_query, sorter_object, current_page, items_per_page, function(error, result) {
+		if (error) {
+			console.log(error);
+		}
 
-	item_getter_tracker.changed();
+		else {
+			item_array = result.item_array;
+			current_page = result.current_page;
+			total_pages = result.total_pages;
+			item_array_tracker.changed();
+		}
+	})
 }
 
 Template.itemSet.helpers({
@@ -346,40 +334,35 @@ Template.itemSet.helpers({
 	},
 
 	'current_page': function() {
-		page_tracker.depend();
-		return current_page + 1;
+		item_array_tracker.depend();
+		return current_page;
 	},
 
 	'total_pages': function() {
-		page_tracker.depend();
-		return Math.floor(items_found / items_per_page) + (items_found % items_per_page == 0 && items_found != 0 ? 0 : 1);
+		item_array_tracker.depend();
+		return total_pages;
 	},
 
 	'item_array': function(statuses) {
-		item_getter_tracker.depend();
+		item_array_tracker.depend();
 
 		if (status_filter === undefined) {
 			status_filter = {'status': {$in: statuses}};
-			updateItemGetter();
+			updateItemArray();
 			return [];
 		}
 
-		if (item_getter == undefined) {
-			updateItemGetter();
-			return [];
+		if (item_array == undefined) {
+			updateItemArray();
 		}
 
-		return items.find(item_getter.query, item_getter.options);
-	},
-
-	'setLocation': function(item_set_location) {
-		set_location = item_set_location;
+		return item_array;
 	}
 })
 
 Template.itemSet.events({
 	'keyup #search-area': function(event) {
-		updateItemGetter();
+		updateItemArray();
 	}, 
 
 	'keydown #search-area': function(event) {
@@ -389,14 +372,33 @@ Template.itemSet.events({
 		}
 	},
 
+	'click #inventory-page-right': function() {
+		var prior_current = current_page;
+		current_page = Math.min(current_page + 1, total_pages);
+		if (prior_current != current_page)
+			updateItemArray();
+	},
+
+	'click #inventory-page-left': function() {
+		var prior_current = current_page;
+		current_page = Math.max(current_page - 1, 1);
+		if (prior_current != current_page)
+			updateItemArray();
+	},
+
+	'change #page-count-select': function() {
+		items_per_page = Number($('#page-count-select').val());
+		updateItemArray();
+	},
+
 	'change #sort-selector': function(event) {
 		sorter = $(event.target).val();
-		updateItemGetter();
+		updateItemArray();
 	},
 
 	'change #order-selector': function(event) {
 		ascending = Number($(event.target).val());
-		updateItemGetter();
+		updateItemArray();
 	}, 
 
 	'change #card-type-checkbox': function() {
@@ -465,7 +467,7 @@ Template.itemSet.events({
 		 	}
 		 }
 
-		updateItemGetter();
+		updateItemArray();
 	},
 
 	'change #card-status-checkbox': function() {
@@ -477,7 +479,7 @@ Template.itemSet.events({
 		}
 
 		status_filter = {'status': {'$in': valid_statuses}};
-		updateItemGetter();
+		updateItemArray();
 	},
 
 	'change #special-attribute-checkbox': function() {
@@ -488,7 +490,7 @@ Template.itemSet.events({
 		 		special_attributes.push($('input[type=checkbox].special-attribute-select:eq(' + i + ')').val())
 		}
 
-		updateItemGetter();
+		updateItemArray();
 	},
 
 	'change #attribute-checkbox': function() {
@@ -499,7 +501,7 @@ Template.itemSet.events({
 		 		standard_attributes.push($('input[type=checkbox].attribute-select:eq(' + i + ')').val())
 		}
 
-		updateItemGetter();
+		updateItemArray();
 	},
 
 	'change #card-rarity-checkbox': function() {
@@ -512,15 +514,15 @@ Template.itemSet.events({
 
 		rarity_filter = {'artwork_data.rarity': {$in: valid_rarities}};
 
-		updateItemGetter();
+		updateItemArray();
 	},
 
 	'change #locked-filter': function() {
-		updateItemGetter();
+		updateItemArray();
 	},
 
 	'change #attribute-filter': function() {
-		updateItemGetter();
+		updateItemArray();
 	},
 
 	//TODO figure out why below logic is reversed
@@ -536,35 +538,11 @@ Template.itemSet.events({
 			$('.all-filters').css('display', 'block');
 		}
 
-		updateItemGetter();
-	},
-
-	'click #inventory-page-right': function() {
-		if (items_found > (current_page * items_per_page) + items_per_page) {
-			current_page++;
-		}
-
-		updateItemGetter();
-	},
-
-	'click #inventory-page-left': function() {
-		if (current_page > 0) {
-			current_page--;
-		}
-
-		updateItemGetter();
-	},
-
-	'change #page-count-select': function() {
-		items_per_page = Number($('#page-count-select').val());
-		updateItemGetter();
+		updateItemArray();
 	}
 })
 
 Template.itemSet.rendered = function() {
-	set_location = undefined;
-	getter_query = undefined;
-	item_array = [];
 	tags = [];
 	search_terms = [];
 	keywords = [];
@@ -581,10 +559,12 @@ Template.itemSet.rendered = function() {
 	unlocked_filter = {'unlocked': {'$ne': null}};
 	vintage_filter = {'vintage': {'$ne': null}};
 	standard_filter = {};
-	current_page = 0;
-	items_found = 0;
 	status_filter = undefined;
 	items_per_page = 10;
-	item_getter = undefined;
-	item_getter_tracker.changed();
+
+	item_array = undefined;
+	current_page = 1;
+	total_pages = 1;
+	items_per_page = 10;
+	updateItemArray();
 }

@@ -64,7 +64,7 @@ Template.itemActions.events({
 					console.log(error.message);
 
 				else {
-					updatePages();
+					updateItemArray();
 				}
 			});
 		}
@@ -111,7 +111,7 @@ Template.itemActions.events({
 					}, $('body')[0]);
 				};
 
-				updatePages();
+				updateItemArray();
 			}
 		})
 	},
@@ -124,7 +124,7 @@ Template.itemActions.events({
 				console.log(error.message)
 
 			else {
-				updatePages();
+				updateItemArray();
 			}
 		})
 	},
@@ -160,7 +160,7 @@ Template.itemActions.events({
 					}, $('body')[0]);
 				};
 
-				updatePages();
+				updateItemArray();
 			}
 		})
 	},
@@ -173,7 +173,7 @@ Template.itemActions.events({
 				console.log(error.message)
 
 			else {
-				updatePages();
+				updateItemArray();
 			}
 		})
 	},
@@ -184,10 +184,6 @@ Template.itemActions.events({
 		Meteor.call('setForSaleTag' , item_id, true, function(error) {
 			if (error)
 				console.log(error.message)
-
-			else {
-				updatePages();
-			}
 		})
 	},
 
@@ -197,10 +193,6 @@ Template.itemActions.events({
 		Meteor.call('setForSaleTag' , item_id, false, function(error) {
 			if (error)
 				console.log(error.message)
-
-			else {
-				updatePages();
-			}
 		})
 	},
 
@@ -212,7 +204,7 @@ Template.itemActions.events({
 				console.log(error.message)
 
 			else {
-				updatePages();
+				updateItemArray();
 			}
 		})
 	},
@@ -225,7 +217,7 @@ Template.itemActions.events({
 				console.log(error.message)
 
 			else {
-				updatePages();
+				updateItemArray();
 			}
 		})
 	},
@@ -238,7 +230,7 @@ Template.itemActions.events({
 				console.log(error.message);
 
 			else {
-				updatePages();
+				updateItemArray();
 			}
 		});
 	},
@@ -252,7 +244,7 @@ Template.itemActions.events({
 					console.log(error.message);
 
 				else {
-					updatePages();
+					updateItemArray();
 				}
 			});
 		}
@@ -271,7 +263,7 @@ Template.itemActions.events({
 				console.log(error.message);
 
 			else {
-				updatePages();
+				updateItemArray();
 			}
 		})
 	},
@@ -317,7 +309,7 @@ Template.itemActions.events({
 					console.log(error.message);
 
 				else {
-					updatePages();
+					updateItemArray();
 				}
 			});
 		}

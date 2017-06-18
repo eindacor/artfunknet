@@ -6,7 +6,7 @@ Template.donateAllModal.events({
 
 			else {
 				$('.template-modalTemplate').remove();
-				updatePages();
+				updateItemArray();
 			}
 		})
 	}

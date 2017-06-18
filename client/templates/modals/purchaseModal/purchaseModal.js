@@ -62,7 +62,7 @@ Template.purchaseModal.events({
 
 				else {
 					Modal.hide('purchaseModal');
-					updatePages();
+					updateItemArray();
 				}
 			});
 		}

@@ -6,7 +6,7 @@ Template.deleteAllDisplacedModal.events({
 
 			else {
 				$('.template-modalTemplate').remove();
-				updatePages();
+				updateItemArray();
 			}
 		})
 	}

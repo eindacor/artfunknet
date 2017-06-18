@@ -10,7 +10,7 @@ Template.archiveModal.events({
 
 			else {
 				$('.template-modalTemplate').remove();
-				updatePages();
+				updateItemArray();
 			}
 		});
 	}

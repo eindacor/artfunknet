@@ -7,7 +7,7 @@ Template.donateModal.events({
 
 			else {
 				$('.template-modalTemplate').remove();
-				updatePages();
+				updateItemArray();
 			}
 		});
 	}
