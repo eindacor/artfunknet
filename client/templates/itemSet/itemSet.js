@@ -153,6 +153,10 @@ var addQueriesFromKeywords = function(base_filter) {
 		});
 		base_filter.artwork_id = {'$in': dupe_list};
 	}
+
+	if (keywords.indexOf("permanent") != -1) {
+		base_filter.permanent = true;
+	}
 }
 
 refreshItemSet = function() {
