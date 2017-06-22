@@ -15,7 +15,7 @@ artExpertInteraction = function(npc_object, player_interface) {
 		roll_reduction += 2;
 
 		if (player_interface.procUniqueAttribute("XP_FOR_ZERO_COUNTS", undefined)) {
-			var zero_count_items = items.find({'owner' : Meteor.userId(), 'status' : 'displayed', 'roll_count' : {$lt: 1}}).count();
+			var zero_count_items = items.find({'owner' : Meteor.userId(), 'status' : "displayed", 'roll_count' : {$lt: 1}}).count();
 			for (var i=0; i<zero_count_items; i++) {
 				player_interface.addXPChunkPercentage("XP_FOR_ZERO_COUNTS", .1);
 			}
@@ -30,15 +30,15 @@ artExpertInteraction = function(npc_object, player_interface) {
 		}
 	}
 
-	var highest_item = getOneFromCollection("artExpertInteraction", items, {'owner' : Meteor.userId(), 'status' : {$in : ['claimed', 'displayed', 'permanent']}, 'roll_count' : {$gt : roll_count_min}}, {sort: {'roll_count': -1}});
+	var highest_item = getOneFromCollection("artExpertInteraction", items, {'owner' : Meteor.userId(), 'status' : {$in : ["claimed", "displayed"]}, 'roll_count' : {$gt : roll_count_min}}, {sort: {'roll_count': -1}});
 
 	if (highest_item == undefined) {
-		var display_count = items.find({'owner': player_interface.getId(), 'status': 'displayed'}).count();
+		var display_count = items.find({'owner': player_interface.getId(), 'status': "displayed"}).count();
 		if (display_count == 0)
 			return {'message' : "You have met an art expert, but you have no items on display for them to discuss."};
 
 		var random_index = Math.floor(Math.random() * display_count);
-		var target = getOneFromCollection("artExpertInteraction", items, {'owner': player_interface.getId(), 'status': 'displayed'}, {skip: random_index});
+		var target = getOneFromCollection("artExpertInteraction", items, {'owner': player_interface.getId(), 'status': "displayed"}, {skip: random_index});
 		var item_interface = new ItemIF(target);
 		var unit_value = item_interface.getUnitValue();
 		var random_modifier = .2 + (.2 * Math.random());

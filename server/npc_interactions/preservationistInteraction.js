@@ -24,7 +24,7 @@ preservationistInteraction = function(npc_object, player_interface) {
 		default: repair_amount = 0; break;
 	}
 
-	var display_query = {'owner': player_interface.getId(), 'status': {$in: ["permanent", "displayed"]}, 'condition': {$lt: 1}};
+	var display_query = {'owner': player_interface.getId(), 'status': 'displayed', 'condition': {$lt: 1}};
 	var claimed_query = {'owner': player_interface.getId(), 'status': "claimed", 'condition': {$lt: 1}};
 
 	var target_display = Math.random() < display_chance;

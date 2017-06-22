@@ -346,7 +346,8 @@ ItemGenerator = function() {
 	        'original': item_generator_object.original === undefined ? false : item_generator_object.original,
 	        'vintage': item_generator_object.vintage === undefined ? false : item_generator_object.vintage,
 	        'tags': [],
-	        'artwork_data': artwork_data
+	        'artwork_data': artwork_data,
+	        'permanent': false
 	    };
 
 	    new_item_object.values = getItemObjectValues(new_item_object);

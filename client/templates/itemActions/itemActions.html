@@ -3,9 +3,17 @@
 		{{#if isEqual item_data.status "archived"}}
 			<div class="button-area">
 				<p class="button-row archived">
-					<span class="tags enabled"><i data-item_id="{{item_data._id}}" class="fa fa-tags"></i></span>
-					<span class="archive enabled"><i data-item_id="{{item_data._id}}" class="fa fa-archive"></i></span>	
-					<span class="delete enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-times"></i></span>	
+					{{#with itemPermissions item_data}}
+						<span class="tags enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-tags"></i></span>
+						<span class="archive enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-archive"></i></span>	
+						<span class="delete enabled"><i data-item_id="{{../item_data._id}}" class="fa fa-times"></i></span>	
+						{{#if permanent}}
+							<span class="perm-collection inactive"><i data-item_id="{{../item_data._id}}" class="fa fa-heart"></i></span>
+						{{/if}}
+						{{#if unpermanent}}
+							<span class="perm-collection active af-color"><i data-item_id="{{../item_data._id}}" class="fa fa-heart"></i></span>
+						{{/if}}
+					{{/with}}
 				</p>
 			</div>
 		{{else}}

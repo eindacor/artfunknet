@@ -198,7 +198,7 @@ Meteor.setInterval((function() {
                     var player_item_interface = new PlayerItemIF(player_interface, item_interface);
                     var money_per_hour = player_item_interface.getDisplayValuePerHour(display_earning_time);
                     total_earnings += money_per_hour;
-                    total_xp += player_item_interface.getXPPerHour(display_earning_time, "displayed");
+                    total_xp += player_item_interface.getXPPerHour(display_earning_time);
 
                     var display_level = player_item_interface.getDisplayLevel(display_earning_time);
         
@@ -233,38 +233,6 @@ Meteor.setInterval((function() {
 
     else metadata.insert({'display_earnings_tick': moment()._d.toISOString()});
 }), display_earning_check_frequency);
-
-Meteor.setInterval((function() {
-    var tick_object = getOneFromCollection("interval_methods.js", metadata, {'permanent_xp_tick': {$ne: null}});
-    if (tick_object != undefined) {
-        var xp_earning_time = tick_object.permanent_xp_tick;
-
-        if (getNowISOString() > xp_earning_time) {
-            if (DEBUG) {
-                console.log("awarding xp: " + getNowISOString());
-            }
-
-            getFromCollection("interval_methods.js", Meteor.users, {}).forEach(function(user_object) {
-                var total_xp = 0;
-                var player_interface = new PlayerIF(user_object);
-                getFromCollection("interval_methods.js", items, {'status': "permanent", 'owner': user_object._id}).forEach(function(item_object) {
-                    var player_item_interface = new PlayerItemIF(player_interface, new ItemIF(item_object));
-                    var xp_per_hour = player_item_interface.getXPPerHour(xp_earning_time, "permanent");
-                    total_xp += xp_per_hour;
-                });
-
-                if (total_xp > 0) {
-                    player_interface.addXP(total_xp);      
-                }  
-            })
-            
-            var next_tick = moment().add(xp_earning_frequency, "milliseconds")._d.toISOString();
-            metadata.update({'permanent_xp_tick': {$ne: null}}, {$set: {'permanent_xp_tick': next_tick}});
-        }
-    }
-
-    else metadata.insert({'permanent_xp_tick': moment()._d.toISOString()});
-}), permanent_xp_check_frequency);
 
 Meteor.setInterval((function() {
     var tick_object = getOneFromCollection("interval_methods.js", metadata, {'repairing_tick': {$ne: null}});

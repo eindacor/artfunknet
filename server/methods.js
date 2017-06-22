@@ -14,11 +14,22 @@ var getMVPData = function(archive_status) {
         admin_ids.push(user_object._id);
     });
 
-    var query_object = {
-        'owner': {$nin: admin_ids}, 
-        'status': {$in: archive_status ? ["archived"] : ["displayed", "permanent"]},
-        'displaced': archive_status ? {'$ne': true} : null
-    };
+    var query_object;
+
+    if (archive_status) {
+        query_object = {
+            'owner': {$nin: admin_ids}, 
+            'displaced': false,
+            'status': "archived"
+        };
+    }
+
+    else {
+        query_object = {
+            'owner': {$nin: admin_ids}, 
+            $or: [{'status': "displayed"}, {'permanent': true}]
+        };
+    }
 
     var leaderboard_items = items.find(query_object, {limit: 20, sort: {'values.actual': -1}}).fetch();
 
@@ -68,10 +79,8 @@ Meteor.methods({
             var floor_finish_id = user_object.profile.gallery_finishes.active.floor_finish;
             var wall_finish_id = user_object.profile.gallery_finishes.active.wall_finish;
 
-            var displayed = items.find({'owner': user_object._id, 'status': 'displayed'}).fetch();
-            var permanent = items.find({'owner': user_object._id, 'status': 'permanent'}).fetch();
+            var all_items = items.find({'owner': user_object._id, $or: [{'permanent': true, 'displaced': {$ne: true}}, {'status': 'displayed'}]}).fetch();
 
-            var all_items = items.find({'owner': user_object._id, 'status': {$in: ['permanent', 'displayed']}}).fetch();
             var tallest_painting_cm = 0;
             for (var i=0; i < all_items.length; i++) {
                 if (all_items[i].artwork_data.height > tallest_painting_cm)
@@ -92,8 +101,7 @@ Meteor.methods({
 
             if (user_object) {
                 return {
-                    'displayed': displayed,
-                    'permanent': permanent,
+                    'displayed': all_items,
                     'finish_data': {
                         'floor_filename': gallery_finishes.findOne(floor_finish_id).filename,
                         'floor_size': Math.floor(texture_size_cm * pixels_per_centimeter) + "px " + Math.floor(texture_size_cm * pixels_per_centimeter * .5) + "px",
@@ -103,8 +111,6 @@ Meteor.methods({
                         'frame_width': frame_width,
                         'matte_width': matte_width,
                         'frame_color': user_object.profile.gallery_finishes.frame_color,
-                        'displayed_shown': displayed.length > 0,
-                        'permanent_shown': permanent.length > 0,
                         'offset_from_floor': painting_offset_from_floor_cm * pixels_per_centimeter,
                         'pixels_per_centimeter': pixels_per_centimeter,
                         'wall_base': user_object.profile.gallery_finishes.wall_base
@@ -143,7 +149,7 @@ Meteor.methods({
 
     'getCollectionValue' : function(user_id) {
         var collection_total = 0;
-        items.find({'owner' : Meteor.userId(), 'status' : {$in: ['claimed', 'displayed', 'permanent', 'repairing']}}).forEach(function(item_object) {
+        items.find({'owner' : Meteor.userId(), 'status' : {$in: ["claimed", "displayed", "repairing"]}}).forEach(function(item_object) {
             collection_total += getItemObjectValueByType(item_object, 'actual', Meteor.userId());
         });
 
@@ -152,7 +158,7 @@ Meteor.methods({
 
     'getExhibitionValue' : function(user_id) {
         var display_total = 0;
-        items.find({'owner' : user_id, 'status' : 'displayed'}).forEach(function(item_object) {
+        items.find({'owner' : user_id, 'status' : "displayed"}).forEach(function(item_object) {
             display_total += getItemObjectValueByType(item_object, 'actual', Meteor.userId());
         });
 

@@ -135,7 +135,7 @@ Template.playerInfo.helpers({
 	},
 
 	'permanent_count': function() {
-		return items.find({'owner' : current_user_id, 'status' : 'permanent'}).count();
+		return items.find({'owner' : current_user_id, 'permanent' : true}).count();
 	},
 
 	'max_total': function() {

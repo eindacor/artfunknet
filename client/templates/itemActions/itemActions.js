@@ -97,7 +97,7 @@ Template.itemActions.events({
 			else {
 				if (Meteor.user().profile.tutorials.gallery && 
 					items.findOne({'owner': Meteor.userId(), 'status': "displayed"}) && 
-					items.findOne({'owner': Meteor.userId(), 'status': "permanent"})) 
+					items.findOne({'owner': Meteor.userId(), 'permanent': true})) 
 				{
 					Blaze.renderWithData(Template.modalTemplate, {
 						'modal_name': "tutorialModal", 
@@ -146,7 +146,7 @@ Template.itemActions.events({
 			else {
 				if (Meteor.user().profile.tutorials.gallery && 
 					items.findOne({'owner': Meteor.userId(), 'status': "displayed"}) && 
-					items.findOne({'owner': Meteor.userId(), 'status': "permanent"})) 
+					items.findOne({'owner': Meteor.userId(), 'permanent': true})) 
 				{
 					Blaze.renderWithData(Template.modalTemplate, {
 						'modal_name': "tutorialModal", 

@@ -415,7 +415,7 @@ Meteor.methods({
                     'earnings_per_hour' : earnings_per_hour,
                     'time_since_displayed': getDurationString(moment() - moment(time_since_displayed), false, "dhm"),
                     'display_level': player_item_interface.getDisplayLevel(),
-                    'xp_per_hour': player_item_interface.getXPPerHour(moment()._d.toISOString(), "displayed")
+                    'xp_per_hour': player_item_interface.getXPPerHour(moment()._d.toISOString())
                 }
             }
 
@@ -433,38 +433,7 @@ Meteor.methods({
                 'xp_per_hour': undefined,
                 'time_since_displayed': undefined,
                 'display_level': undefined
-            }
-        }
-    },
-
-    'getPermanentDetails': function(item) {
-        try {
-            var item_interface = new ItemIF(item);
-            var player_item_interface = new PlayerItemIF(new PlayerIF(item_interface.getItemObject().owner), item_interface);
-            if (item_interface.getStatus() == "permanent") {
-                var xp_per_hour = player_item_interface.getXPPerHour(moment()._d.toISOString(), "permanent");
-                var time_since_displayed = player_item_interface.getItemIF().getItemObject().permanent_post;
-                return {
-                    'xp_per_hour' : xp_per_hour,
-                    'time_since_displayed': getDurationString(moment() - moment(time_since_displayed), false, "dhm"),
-                    'permanent_level': player_item_interface.getPermanentLevel()
-                }
-            }
-
-            else return {
-                'earnings_per_hour' : undefined,
-                'time_since_displayed': undefined,
-                'permanent_level': undefined
-            }
-        }
-
-        catch(error) {
-            return {
-                'earnings_per_hour' : undefined,
-                'time_since_displayed': undefined,
-                'permanent_level': undefined
             }
         }
     }
-
 })

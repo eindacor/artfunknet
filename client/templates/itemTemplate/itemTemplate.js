@@ -1,7 +1,6 @@
 var div_size_tracker = new Tracker.Dependency;
 var sought_tracker = new Tracker.Dependency;
 var display_details_tracker = new Tracker.Dependency;
-var permanent_details_tracker = new Tracker.Dependency;
 var card_container_width;
 var card_container_height;
 var sought_status = {};
@@ -23,7 +22,6 @@ var updateSoughtStatus = function(artwork_id) {
 
 Template.itemInfo.rendered = function() {
 	display_details_map = {};
-	permanent_details_map = {};
 	if ($('.card-container').length != 0) {
 		card_container_height = $('.card-container').css('height').replace("px", "");
 		card_container_width = $('.card-container').css('width').replace("px", ""); 
@@ -121,11 +119,6 @@ Template.itemInfo.helpers({
 		}
 	},
 	//TODO replace below status methods with more elegant solution -> DOM modification from updatestatus
-	'permanentStatus' : function(item_object) {
-		if (item_object)
-			return item_object.status == "permanent";
-	},
-
 	'displayedStatus': function(item_object) {
 		if (item_object)
 			return item_object.status == "displayed";
@@ -196,7 +189,7 @@ Template.itemInfo.helpers({
 
 		if (show_already_owns) {
 			var artwork_id = item_object.artwork_id;
-			var valid_statuses = ['claimed', 'permanent', 'displayed', 'auctioned'];
+			var valid_statuses = ['claimed', 'displayed', 'auctioned'];
 			return items.findOne({'owner': Meteor.userId(), 'status': {$in: valid_statuses}, 'artwork_id': artwork_id});
 		}
 
@@ -221,7 +214,7 @@ Template.itemInfo.helpers({
 	},
 
 	'hide_mask': function(item_object) {
-		return item_object.status != "permanent" && item_object.status != "displayed" && item_object.status != "auctioned";
+		return !item_object.permanent && item_object.status != "displayed" && item_object.status != "auctioned";
 	},
 
 	'display_details': function(item_object) {
@@ -239,23 +232,6 @@ Template.itemInfo.helpers({
 		}
 		
 		return display_details_map[item_object._id];
-	},
-
-	'permanent_details': function(item_object) {
-		permanent_details_tracker.depend();
-		if (permanent_details_map[item_object._id] == undefined) {
-			Meteor.call('getPermanentDetails', item_object, function(error, result) {
-				if (error)
-					console.log(error)
-
-				else {
-					permanent_details_map[item_object._id] = result;
-					permanent_details_tracker.changed();
-				}
-			})
-		}
-		
-		return permanent_details_map[item_object._id];
 	},
 
 	'card_types': function(item_object) {
