@@ -27,7 +27,7 @@
 					<p class="display-details text-shadow {{#if isEqual item_data.condition 1}}green-text{{/if}}">{{floatToPercentage item_data.condition}}%</p>
 				</div>
 			</div>
-			<div class="status-mask {{#if item_data.permanent}}{{else}}hide{{/if}}">
+			<div class="status-mask {{#if item_data.permanent}}{{#if repairingStatus item_data}}hide{{/if}}{{#if auctionedStatus item_data}}hide{{/if}}{{else}}hide{{/if}}">
 				<div class="mask-info-container">
 					<p><i class="text-shadow fa fa-heart"></i></p>
 				</div>
