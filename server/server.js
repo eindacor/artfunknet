@@ -26,9 +26,6 @@ var updateContent = function() {
     }
 
     // temp code
-    items.update({'status': {$ne: "permanent"}, 'permanent': {$ne: true}}, {$set: {'permanent': false}}, {multi: true}, function() {
-        items.update({'status': "permanent"}, {$set: {'permanent': true, 'status': "claimed"}, $unset: {'permanent_post' : ""}}, {multi: true});
-    })
     //temp code
 }
 
