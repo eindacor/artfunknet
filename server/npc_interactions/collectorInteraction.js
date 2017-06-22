@@ -20,6 +20,17 @@ collectorInteraction = function(npc_object, player_interface) {
 		default: offer_multiplier = 0; break;
 	}
 
+	if (isOwnGallery(npc_object) && player_interface.procUniqueAttribute("COLLECTOR_FOR_SALE_OFFER", undefined)) {
+		var multi_item_generator = {
+	        'source': "COLLECTOR_FOR_SALE_OFFER",
+	        'map_amplifier': getMapAmplifierFromNPC(npc_object),
+	        'count': 2,
+	        'status': "for_sale"
+	    }
+
+	    ITEM_GENERATOR.generateMultiple(multi_item_generator, player_interface);
+	}
+
 	var collector_target = getRandomItemForSale();
 
 	if (collector_target) {
@@ -68,17 +79,6 @@ collectorInteraction = function(npc_object, player_interface) {
 					offer_bonus += Math.floor(highest_value * .5);
 
 				else offer_bonus += (highest_level * .4)
-			}
-
-			if (player_interface.procUniqueAttribute("COLLECTOR_FOR_SALE_OFFER", undefined)) {
-				var multi_item_generator = {
-			        'source': "COLLECTOR_FOR_SALE_OFFER",
-			        'map_amplifier': getMapAmplifierFromNPC(npc_object),
-			        'count': 2,
-			        'status': "for_sale"
-			    }
-
-			    ITEM_GENERATOR.generateMultiple(multi_item_generator, player_interface);
 			}
 
 			if (Math.random() < .25 && player_interface.procUniqueAttribute("COLLECTOR_QUEST_ITEM", undefined)) {
