@@ -1,60 +1,93 @@
+getStatusMaskHTML = function(player_item_interface) {
+	var $status_mask = $("<div class='status-mask'></div>");
+	var item_object = player_item_interface.getItemIF().getItemObject();
+
+	switch(item_object.status) {
+		case "displayed":
+			var time_since_displayed = player_item_interface.getItemIF().getItemObject().time_displayed;	
+			var $mask_info_container = &("<div class='mask-info-container'></div>");
+			$mask_info_container.append($('<p><i class="text-shadow fa fa-picture-o"></i></p>'));
+			$mask_info_container.append($('<p class="display-details">' + getDurationString(moment() - moment(time_since_displayed), false, "dhm") + '</p>'));
+			$mask_info_container.append($('<p class="display-details greeb-text text-shadow">$' + getCommaSeparatedValue(player_item_interface.getDisplayValuePerHour()) + '/hr.</p>'));
+			$mask_info_container.append($('<p class="display-details af-color text-shadow">' + getCommaSeparatedValue(player_item_interface.getXPPerHour()) + 'xp/hr.</p>'));
+			$status_mask.append($mask_info_container);
+			break;
+		case "permanent":
+			var time_since_displayed = player_item_interface.getItemIF().getItemObject().time_displayed;
+			var $mask_info_container = &("<div class='mask-info-container'></div>");
+			$mask_info_container.append($('<p><i class="text-shadow fa fa-heart"></i></p>'));
+			$mask_info_container.append($('<p class="display-details">' + getDurationString(moment() - moment(time_since_displayed), false, "dhm") + '</p>'));
+			$mask_info_container.append($('<p class="display-details af-color text-shadow">' + getCommaSeparatedValue(player_item_interface.getXPPerHour()) + 'xp/hr.</p>'));
+			$status_mask.append($mask_info_container);
+			break;
+		case "auctioned":
+			var time_since_displayed = player_item_interface.getItemIF().getItemObject().time_displayed;
+			$status_mask.append($('<i class="text-shadow fa fa-gavel"></i>'));
+			break;
+		case "repairing":
+			var time_since_displayed = player_item_interface.getItemIF().getItemObject().time_displayed;
+			var $mask_info_container = &("<div class='mask-info-container'></div>");
+			if (item_object.condition < 1) {
+				$mask_info_container.append($('<p><i class="text-shadow fa fa-wrench green-text"></i></p>'));
+				$mask_info_container.append($('<p class="display-details green-text text-shadow">' + Math.floor(item_object.condition * 100) + '%</p>'));
+			}
+
+			else {
+				$mask_info_container.append($('<p><i class="text-shadow fa fa-wrench"></i></p>'));
+				$mask_info_container.append($('<p class="display-details text-shadow">' + Math.floor(item_object.condition * 100) + '%</p>'));
+			}
+
+			$status_mask.append($mask_info_container);
+			break;
+		default: break;
+	}
+
+	return $status_mask;
+}
+
+var getBasicInfoHTML = function(player_item_interface) {
+	var $container = $('<div class="row no-margin"></div>');
+	var $header_basic_info = $('<div class="header-basic-info"></div>');
+
+	var already_owns_string = player_item_interface.alreadyOwnsArtwork() ? "* " : " ";
+	$header_basic_info.append($('<p class="item-title work-title">' + already_owns_string + player_item_interface.getItemIF().getItemObject().artwork_data.title + '</p>'));
+	$header_basic_info.append($('<p>' + player_item_interface.getItemIF().getItemObject().artwork_data.title + '</p>'));
+
+	$container.append($header_basic_info);
+	return $container;
+}
+
+var getHeaderDetailsHTML = function(player_item_interface) {
+	var $container = $('<div class="row no-margin"></div>');
+	var $header_details = $('<div class="header-details"></div>');
+
+	$header_details.append($('<p>{{item_data.artwork_data.date}}</p>'));
+	$header_details.append(getItemSignatureHTML(player_item_interface.getItemIF()));
+	$header_details.append($('<p></p>'))
+
+	//TODO add rest of header details
+}
+
 buildHTMLFromItem = function(item_object) {
-	var item_interface = new ItemIF(item_object);
 	var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), item_interface);
 
 	var aura_string = item_object.displaced ? "displaced-item" : item_object.artwork_data.rarity + "-item";
 
 	var $item_html = $("<div data-item_id='" + item_object._id + "' class='card-container " + aura_string + "' style='background: url(\"https://s3.amazonaws.com/com.artfunkel.artwork/card_images/monet_san_card.jpg\") center; background-size: 280px 390px'></div>");
 
-	switch(item_object.status) {
-		case "displayed":
-			var $display_mask = $("<div class='status-mask'></div>");
-			var $mask_info_container = &("<div class='mask-info-container'></div>");
-			$mask_info_container.append($('<p class="display-details af-color text-shadow">' + getCommaSeparatedValue(player_item_interface.getXPPerHour()) + 'xp/hr.</p>'))
-			$mask_info_container.append($('<p class="display-details af-color text-shadow">' + getCommaSeparatedValue(player_item_interface.getXPPerHour()) + 'xp/hr.</p>'))
-	}
+	item_html.append(getStatusMaskHTML(player_item_interface));
+
+	var $card_info = $('<div class="row no-margin card-info"></div>');
+
+	var item_signature = getItemSignature(player_item_interface.getItemIF());
+	var $card_header = $('<div class="card-header col-xs-12 ' + item_signature + '"></div>');
+
+	$card_header.append(getBasicInfoHTML(player_item_interface));
 
 
-// 			<div class="status-mask {{#if displayedStatus item_data}}{{else}}hide{{/if}}">
-// 				<div class="mask-info-container">
-// 					<p><i class="text-shadow fa fa-picture-o"></i></p>
-// 					{{#with display_details item_data}}
-// 					{{#if earnings_per_hour}}
-// 						<p class="display-details">{{time_since_displayed}}</p>
-// 						<p class="display-details green-text text-shadow">{{displayAsMoneyValue earnings_per_hour}}/hr.</p>
-// 						<p class="display-details af-color text-shadow">{{commaSeparatedValue xp_per_hour}}xp/hr.</p>
-// 					{{/if}}
-// 					{{/with}}
-// 				</div>
-// 			</div>
-// 			<div class="status-mask {{#if auctionedStatus item_data}}{{else}}hide{{/if}}">
-// 				<i class="text-shadow fa fa-gavel"></i>
-// 			</div>
-// 			<div class="status-mask {{#if repairingStatus item_data}}{{else}}hide{{/if}}">
-// 				<div class="mask-info-container">
-// 					<p><i class="text-shadow fa fa-wrench {{#if isEqual item_data.condition 1}}green-text{{/if}}"></i></p>
-// 					<p class="display-details text-shadow {{#if isEqual item_data.condition 1}}green-text{{/if}}">{{floatToPercentage item_data.condition}}%</p>
-// 				</div>
-// 			</div>
-// 			<div class="status-mask {{#if permanentStatus item_data}}{{else}}hide{{/if}}">
-// 				<div class="mask-info-container">
-// 					<p><i class="text-shadow fa fa-heart"></i></p>
-// 					{{#with permanent_details item_data}}
-// 					{{#if xp_per_hour}}
-// 						<p class="display-details">{{time_since_displayed}}</p>
-// 						<p class="display-details af-color text-shadow">{{commaSeparatedValue xp_per_hour}}xp/hr.</p>
-// 					{{/if}}
-// 					{{/with}}
-// 				</div>
-// 			</div>
+
 // 			<div class="row no-margin card-info">
 // 				<div class="card-header col-xs-12 {{card_types item_data}}">
-// 					<div class="row no-margin">
-// 						<div class="header-basic-info">
-// 							<p class="item-title work-title">{{#if already_owns item_data}}* {{/if}}{{item_data.artwork_data.title}}</p>
-// 							<p>{{item_data.artwork_data.artist}}</p>
-// 						</div>
-// 					</div>
 
 // 					<div class="row no-margin">
 // 						<div class="header-details">
