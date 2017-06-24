@@ -16,7 +16,7 @@ artExpertInteraction = function(npc_object, player_interface) {
 	if (isOwnGallery(npc_object)) {
 		roll_reduction += 2;
 
-		donor_boost = player_interface.procUniqueAttribute("DONOR_REROLL_DEDUCTION_BONUS", "Art Donor");
+		donor_boost = player_interface.procUniqueAttribute("DONOR_EXPERT_BONUS", "Art Donor");
 
 		if (donor_boost) {
 			roll_reduction *= 2;
