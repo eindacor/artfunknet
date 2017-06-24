@@ -42,9 +42,6 @@ collectorInteraction = function(npc_object, player_interface) {
 		if (isOwnGallery(npc_object)) {
 			offer_multiplier *= OWN_GALLERY_NPC_AMPLIFIER;
 
-			xp_offer = player_interface.procUniqueAttribute("ART_COLLECTOR_XP_REWARD", "Art Enthusiast");
-			xp_offer = false;
-
 			if (collector_target.condition > .8 && player_interface.procUniqueAttribute("GOOD_CONDITION_COLLECTOR_BONUS", undefined))
 				offer_multiplier += standard_legendary_increment;
 
@@ -75,10 +72,7 @@ collectorInteraction = function(npc_object, player_interface) {
 					highest_level = Math.max(item_object.level, highest_level);
 				});
 
-				if (!xp_offer)
-					offer_bonus += Math.floor(highest_value * .5);
-
-				else offer_bonus += (highest_level * .4)
+				offer_bonus += Math.floor(highest_value * .5);
 			}
 
 			if (Math.random() < .25 && player_interface.procUniqueAttribute("COLLECTOR_QUEST_ITEM", undefined)) {
@@ -105,18 +99,9 @@ collectorInteraction = function(npc_object, player_interface) {
             };
 		}
 
-		var offer_amount;
-		if (!xp_offer) {
-			offer_amount = Math.floor((base_value * offer_multiplier) + offer_bonus);
-			player_interface.addFunds("collector", offer_amount);
-		}
+		var offer_amount = Math.floor((base_value * offer_multiplier) + offer_bonus);
+		player_interface.addFunds("collector", offer_amount);
 
-		else {
-			xp_chunk_percentage = (base_chunk * offer_multiplier) + offer_bonus;
-			offer_amount = Math.floor(getXPChunk(Meteor.user().profile.level) * xp_chunk_percentage);
-			player_interface.addXP(offer_amount);
-            logXPChunkPercentage("ART_COLLECTOR_XP_REWARD", Number(xp_chunk_percentage.toFixed(3)));
-		}
 
 		var does_not_collect = isOwnGallery(npc_object) && Math.random() < .4 && player_interface.procUniqueAttribute("COLLECTOR_DOES_NOT_COLLECT", undefined);
 

@@ -68,7 +68,7 @@ Meteor.methods({
         if (adminValidated() && Meteor.user().profile.level < 50) {
             var xp = getXPGoal(Meteor.user().profile.level);
             var player_interface = new PLayerIF(Meteor.user());
-            player_interface.addXP(xp);
+            player_interface.addXP(xp, false);
         }
     },
 

@@ -218,7 +218,7 @@ Meteor.setInterval((function() {
                 }
 
                 if (total_xp > 0) {
-                    player_interface.addXP(total_xp);
+                    player_interface.addXP(total_xp, true);
                 }
 
                 if (update_gallery) {

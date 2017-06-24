@@ -17,7 +17,7 @@ artExpertInteraction = function(npc_object, player_interface) {
 		if (player_interface.procUniqueAttribute("XP_FOR_ZERO_COUNTS", undefined)) {
 			var zero_count_items = items.find({'owner' : Meteor.userId(), 'status' : "displayed", 'roll_count' : {$lt: 1}}).count();
 			for (var i=0; i<zero_count_items; i++) {
-				player_interface.addXPChunkPercentage("XP_FOR_ZERO_COUNTS", .1);
+				player_interface.addXPChunkPercentage("XP_FOR_ZERO_COUNTS", .1, false);
 			}
 		}
 
