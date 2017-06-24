@@ -9,10 +9,18 @@ artExpertInteraction = function(npc_object, player_interface) {
 		default: roll_reduction = 0; break;
 	}
 
+	var donor_boost = false;
+
 	var roll_count_min = 0;
 
 	if (isOwnGallery(npc_object)) {
 		roll_reduction += 2;
+
+		donor_boost = player_interface.procUniqueAttribute("DONOR_REROLL_DEDUCTION_BONUS", "Art Donor");
+
+		if (donor_boost) {
+			roll_reduction *= 2;
+		}
 
 		if (player_interface.procUniqueAttribute("XP_FOR_ZERO_COUNTS", undefined)) {
 			var zero_count_items = items.find({'owner' : Meteor.userId(), 'status' : "displayed", 'roll_count' : {$lt: 1}}).count();
@@ -21,9 +29,7 @@ artExpertInteraction = function(npc_object, player_interface) {
 			}
 		}
 
-		if (player_interface.procUniqueAttribute("DONOR_REROLL_DEDUCTION_BONUS", "Art Donor")) {
-			roll_reduction *= 2;
-		}
+		
 
 		if (player_interface.procUniqueAttribute("NEGATIVE_ROLL_COUNTS", undefined)) {
 			roll_count_min = -5;
@@ -41,6 +47,11 @@ artExpertInteraction = function(npc_object, player_interface) {
 		var target = getOneFromCollection("artExpertInteraction", items, {'owner': player_interface.getId(), 'status': "displayed"}, {skip: random_index});
 		var item_interface = new ItemIF(target);
 		var unit_value = item_interface.getUnitValue();
+
+		if (donor_boost) {
+			unit_value *= 2;
+		}
+
 		var random_modifier = .2 + (.2 * Math.random());
 		var modified_value = unit_value * random_modifier;
 		var knowledge_object = convertUnitValueToKnowledge(Math.max(Math.floor(modified_value), 2));
