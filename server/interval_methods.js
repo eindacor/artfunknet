@@ -1,7 +1,3 @@
-getNowISOString = function() {
-    return moment()._d.toISOString();
-}
-
 Meteor.setInterval((function() {
     var now = getNowISOString();
 

@@ -109,12 +109,14 @@
 			</div>
 		</div>
 
-		<div class="row">
+		<div class="row item-array-area">
 			{{#each item_array statuses}}
-				<div data-item_id="{{this._id}}" class="item-container">
-					<!-- {{>itemInfo item_data=this show_price=../show_price}} -->
+				{{addToDom this}}
+				<!-- <div data-item_id="{{this._id}}" class="item-container">
+					{{addToDom this}}
+					{{>itemInfo item_data=this show_price=../show_price}}
 					{{>itemActions item_data=this sell_button=true}}
-				</div>
+				</div> -->
 			{{/each}}
 		</div>
 	</div>

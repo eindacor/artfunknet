@@ -287,7 +287,6 @@ var getItemArray = function(match_query, sorter_object, page, items_per_page) {
     var total_pages;
 
     var total_returned = item_array.length;
-    console.log("returned: " + total_returned);
 
     if (total_returned <= items_per_page) {
         current_page = 1;

@@ -329,6 +329,14 @@ updateItemArray = function() {
 }
 
 Template.itemSet.helpers({
+	'addToDom': function(item_object) {
+		var $item_container = $('<div data-item_id="' + item_object._id + '" class="item-container">');
+		var $item = $('<div class="template-itemInfo"></div>');
+		$item.append(getHTMLFromItem(item_object));
+		$item_container.append($item);
+		$('.item-array-area').append($item_container);
+	},
+
 	'attribute': function() {
 		return attributes.find({'active': true});
 	},

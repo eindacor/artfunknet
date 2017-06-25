@@ -1,6 +1,11 @@
 .template-itemInfo .item-attribute {
 	color: black;
 	font-size: 1.5em;
+	margin-right: 6px;
+}
+
+.template-itemInfo .separator {
+	margin-right: 4px;
 }
 
 .template-itemInfo .item-attributes {
@@ -299,7 +304,7 @@
 	margin: 6px 0px;
 }
 
-/*.template-itemInfo .locked {
+/*.template-itemInfo .locked-attribute {
 	text-shadow: 0.1em 0.1em 0.1em RGBA(0, 0, 0, .2);
 }
 */
@@ -308,7 +313,7 @@
 	color: blue;
 }
 
-.template-itemInfo .special {
+.template-itemInfo .special-attribute {
 	text-shadow: 0.1em 0.1em 0.1em RGBA(255, 51, 204, .8);
 }
 
@@ -357,10 +362,6 @@
 	font-size: 2rem;
 	opacity: 1;
 	z-index: 9999;
-}
-
-.template-itemInfo .separator {
-	margin: 4px -4px;
 }
 
 .template-itemInfo .archive-indicators {

@@ -275,19 +275,20 @@ Template.itemInfo.helpers({
 })
 
 Template.itemInfo.events({
-	// 'click .card-container' : function(element) {
-	// 	var target = $(element.target);
-	// 	var item_id = target.closest('.card-container').data('item_id');
-	// 	//target.closest('.card-container').hasClass('selected') ? target.closest('.card-container').removeClass('selected') : target.closest('.card-container').addClass('selected');
-	// 	if ($('.template-modalTemplate').length == 0) {
-	// 		Blaze.renderWithData(Template.modalTemplate, {
-	// 			'modal_name': "fullViewModal", 
-	// 			'modal_data': {
-	// 				'item_object': items.findOne(item_id)
-	// 			}
-	// 		}, $('body')[0]);
-	// 	}
-	// },
+	'click .card-container' : function(element) {
+		console.log("clicked");
+		var target = $(element.target);
+		var item_id = target.closest('.card-container').data('item_id');
+		//target.closest('.card-container').hasClass('selected') ? target.closest('.card-container').removeClass('selected') : target.closest('.card-container').addClass('selected');
+		if ($('.template-modalTemplate').length == 0) {
+			Blaze.renderWithData(Template.modalTemplate, {
+				'modal_name': "fullViewModal", 
+				'modal_data': {
+					'item_object': items.findOne(item_id)
+				}
+			}, $('body')[0]);
+		}
+	},
 
 	'mouseover .item-attribute' : function(element) {
 		var attribute_id = element.target.dataset.attribute_id;
