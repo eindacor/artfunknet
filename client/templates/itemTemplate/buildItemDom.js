@@ -304,7 +304,7 @@ var getSellFunction = function(player_item_interface) {
 
 var getAuctionFunction = function(player_item_interface) {
 	return function() {
-		if (permissions.canAuction()) {
+		if (player_item_interface.getPlayerItemPermissions().canAuction()) {
 			Session.set('selectedItem', player_item_interface.getItemIF().getId());
 			Modal.show('createAuctionModal');
 		}
@@ -598,8 +598,8 @@ getItemActionsHTML = function(player_item_interface) {
 }
 
 fillItemContainerByItemId = function(item_id, player_item_interface) {
-	var $item_container = $('<div class="item-container" id="item_' + item_id + '">');
-	fillItemContainer($item_container, player_item_interface);
+	var id_string = "#item_" + item_id;
+	fillItemContainer($(id_string), player_item_interface);
 }
 
 fillItemContainer = function(container, player_item_interface) {
