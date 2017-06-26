@@ -307,6 +307,23 @@ Template.itemInfo.events({
 
 })
 
+$(document).ready(function() {
+	$('.card-container').click(function() {
+		console.log("clicked");
+		// var target = $(element.target);
+		// var item_id = target.closest('.card-container').data('item_id');
+		// //target.closest('.card-container').hasClass('selected') ? target.closest('.card-container').removeClass('selected') : target.closest('.card-container').addClass('selected');
+		// if ($('.template-modalTemplate').length == 0) {
+		// 	Blaze.renderWithData(Template.modalTemplate, {
+		// 		'modal_name': "fullViewModal", 
+		// 		'modal_data': {
+		// 			'item_object': items.findOne(item_id)
+		// 		}
+		// 	}, $('body')[0]);
+		// }
+	})
+})
+
 
 
 // Template.itemThumbnail.events({

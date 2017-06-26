@@ -24,7 +24,10 @@ Template.rerollModal.events ({
 				console.log(error.message);
 
 			else {
-				updateInterfaces(items.findOne(item_interface.getId()));
+				var item_object = items.findOne(item_interface.getId());
+				updateInterfaces(item_object);
+				var container_id = "#item_" + item_object._id;
+				fillItemContainer($(container_id), new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_object)));
 			}
 		});
     },
@@ -36,7 +39,10 @@ Template.rerollModal.events ({
 				console.log(error.message);
 
 			else {
-				updateInterfaces(items.findOne(item_interface.getId()));
+				var item_object = items.findOne(item_interface.getId());
+				updateInterfaces(item_object);
+				var container_id = "#item_" + item_object._id;
+				fillItemContainer($(container_id), new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_object)));
 			}
 		});
     },

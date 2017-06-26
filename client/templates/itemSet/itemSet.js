@@ -19,9 +19,11 @@ var original_filter = {'original': {'$ne': null}};
 var unlocked_filter = {'unlocked': {'$ne': null}};
 var vintage_filter = {'vintage': {'$ne': null}};
 var standard_filter = {};
-var current_page;
+var current_page = 1;
 var total_pages;
 var items_per_page = 10;
+
+var set_statuses;
 
 var getter_query;
 
@@ -163,6 +165,11 @@ refreshItemSet = function() {
 }
 
 updateItemArray = function() {
+	if (status_filter === undefined) {
+		console.log("statuses undefined");
+		return;
+	}
+
 	var sorter_object = {};
 	sorter_object[sorter] = ascending;
 
@@ -323,6 +330,18 @@ updateItemArray = function() {
 			item_array = result.item_array;
 			current_page = result.current_page;
 			total_pages = result.total_pages;
+
+			$('.item-array-area').empty();
+
+			var player_interface = new PlayerIF(Meteor.user());
+
+			for (var i=0; i<result.item_array.length; i++) {
+				var player_item_interface = new PlayerItemIF(player_interface, new ItemIF(result.item_array[i]));
+				var $item_container = $('<div class="item-container" id="item_' + result.item_array[i]._id + '">');
+				fillItemContainer($item_container, player_item_interface);
+				$('.item-array-area').append($item_container);
+			}
+
 			item_array_tracker.changed();
 		}
 	})
@@ -332,8 +351,15 @@ Template.itemSet.helpers({
 	'addToDom': function(item_object) {
 		var $item_container = $('<div data-item_id="' + item_object._id + '" class="item-container">');
 		var $item = $('<div class="template-itemInfo"></div>');
-		$item.append(getHTMLFromItem(item_object));
+		var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_object));
+
+		$item.append(getHTMLFromItem(player_item_interface));
 		$item_container.append($item);
+
+		var $item_actions = $('<div class="template-itemActions"></div>');
+		$item_actions.append(getItemActionsHTML(player_item_interface));
+		$item_container.append($item_actions);
+
 		$('.item-array-area').append($item_container);
 	},
 
@@ -351,20 +377,47 @@ Template.itemSet.helpers({
 		return total_pages;
 	},
 
-	'item_array': function(statuses) {
-		item_array_tracker.depend();
+	// 'item_array': function(statuses) {
+	// 	item_array_tracker.depend();
 
-		if (status_filter === undefined) {
+	// 	if (status_filter === undefined) {
+	// 		status_filter = {'status': {$in: statuses}};
+	// 		updateItemArray();
+	// 		return [];
+	// 	}
+
+	// 	if (item_array == undefined) {
+	// 		updateItemArray();
+	// 	}
+
+	// 	return item_array;
+	// }
+
+	'setStatuses': function(statuses) {
+		if (set_statuses === undefined) {
+			set_statuses = statuses;
 			status_filter = {'status': {$in: statuses}};
 			updateItemArray();
-			return [];
+			return;
 		}
 
-		if (item_array == undefined) {
+		else if (statuses.length != set_statuses.length) {
+			set_statuses = statuses;
+			status_filter = {'status': {$in: statuses}};
 			updateItemArray();
+			return;
 		}
 
-		return item_array;
+		else {
+			for (var i=0; i<set_statuses.length; i++) {
+				if (set_statuses[i] != statuses[i]) {
+					set_statuses = statuses;
+					status_filter = {'status': {$in: statuses}};
+					updateItemArray();
+					return;
+				}
+			}
+		}
 	}
 })
 
@@ -567,12 +620,9 @@ Template.itemSet.rendered = function() {
 	unlocked_filter = {'unlocked': {'$ne': null}};
 	vintage_filter = {'vintage': {'$ne': null}};
 	standard_filter = {};
-	status_filter = undefined;
-	items_per_page = 10;
 
-	item_array = undefined;
-	current_page = 1;
-	total_pages = 1;
-	items_per_page = 10;
-	updateItemArray();
+	// current_page = 1;
+	// total_pages = 1;
+	// items_per_page = 10;
+	//updateItemArray();
 }
