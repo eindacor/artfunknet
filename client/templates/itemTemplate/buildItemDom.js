@@ -259,7 +259,7 @@ var getPermanentFunction = function(player_item_interface, desired_status) {
 				console.log(error.message)
 
 			else {
-				fillItemContainerByItemId(player_item_interface.getItemIF().getId(), player_item_interface);
+				updateItemArray();
 			}
 		})
 	}
@@ -272,7 +272,7 @@ var getClaimFunction = function(player_item_interface) {
 				console.log(error.message);
 
 			else {
-				updateItemArray()
+				updateItemArray();
 			}
 		});
 	}
@@ -286,7 +286,7 @@ var getSellFunction = function(player_item_interface) {
 					console.log(error.message);
 
 				else {
-					updateItemArray()
+					updateItemArray();
 				}
 			});
 		}
@@ -319,7 +319,7 @@ var getPurchaseFunction = function(player_item_interface) {
 					console.log(error.message);
 
 				else {
-					updateItemArray()
+					updateItemArray();
 				}
 			});
 		}
@@ -341,7 +341,7 @@ var getDonateFunction = function(player_item_interface) {
 					console.log(error.message);
 
 				else {
-					updateItemArray()
+					updateItemArray();
 				}
 			});
 		}
@@ -375,7 +375,7 @@ var getDeleteFunction = function(player_item_interface) {
 				console.log(error.message);
 
 			else {
-				updateItemArray()
+				updateItemArray();
 			}
 		})
 	}
@@ -388,7 +388,7 @@ var getDisplayFunction = function(player_item_interface, desired_status) {
 				console.log(error.message)
 
 			else {
-				updateItemArray()
+				updateItemArray();
 			}
 		})
 	}
@@ -401,7 +401,7 @@ var getForSaleFunction = function(player_item_interface, desired_status) {
 				console.log(error.message)
 
 			else {
-				fillItemContainerByItemId(player_item_interface.getItemIF().getId(), player_item_interface);
+				updateItemArray();
 			}
 		})
 	}
