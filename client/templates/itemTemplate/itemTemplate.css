@@ -1,11 +1,20 @@
 .template-itemInfo .item-attribute {
 	color: black;
 	font-size: 1.5em;
-	margin-right: 6px;
 }
 
 .template-itemInfo .separator {
-	margin-right: 4px;
+	margin: 4px -4px;
+}
+
+.template-itemInfo .item-attribute-built {
+	color: black;
+	font-size: 1.5em;
+	margin-right: 6px;
+}
+
+.template-itemInfo .separator-built {
+	margin-right: 6px;
 }
 
 .template-itemInfo .item-attributes {

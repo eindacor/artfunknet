@@ -424,6 +424,14 @@ Meteor.methods({
         return getItemArray(filter_array, sorter_object, page, items_per_page);
     },
 
+    'getDisplayDetailsFromInterface': function(user_object, item_object) {
+        var player_item_interface = new PlayerItemIF(new PlayerIF(user_object), new ItemIF(item_object));
+        return {
+            'xp_per_hour': player_item_interface.getXPPerHour(),
+            'money_per_hour': player_item_interface.getDisplayValuePerHour()
+        }
+    },
+
     'getDisplayDetails': function(item) {
         try {
             var item_interface = new ItemIF(item);

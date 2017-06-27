@@ -1,3 +1,22 @@
+var applyDisplayDetails = function(player_item_interface) {
+	Meteor.call('getDisplayDetailsFromInterface', player_item_interface.getPlayerIF().getUserObject(), player_item_interface.getItemIF().getItemObject(), function(error, result) {
+		if (error) {
+			console.log(error);
+		}
+
+		else {
+			var time_since_displayed = player_item_interface.getItemIF().getItemObject().time_displayed;
+			var container_id = '#display_mask_' + player_item_interface.getItemIF().getId();
+			var $mask_info_container = $(container_id);	
+			$mask_info_container.empty();
+			$mask_info_container.append($('<p><i class="text-shadow fa fa-picture-o"></i></p>'));
+			$mask_info_container.append($('<p class="display-details">' + getDurationString(moment() - moment(time_since_displayed), false, "dhm") + '</p>'));
+			$mask_info_container.append($('<p class="display-details green-text text-shadow">$' + getCommaSeparatedValue(result.money_per_hour) + '/hr.</p>'));
+			$mask_info_container.append($('<p class="display-details af-color text-shadow">' + getCommaSeparatedValue(result.xp_per_hour) + 'xp/hr.</p>'));
+		}
+	})
+}
+
 getStatusMaskHTML = function(player_item_interface) {
 	var $status_mask = $("<div class='status-mask'></div>");
 	var item_object = player_item_interface.getItemIF().getItemObject();
@@ -5,12 +24,14 @@ getStatusMaskHTML = function(player_item_interface) {
 	switch(item_object.status) {
 		case "displayed":
 			var time_since_displayed = player_item_interface.getItemIF().getItemObject().time_displayed;	
-			var $mask_info_container = $("<div class='mask-info-container'></div>");
+			var mask_id_string = 'display_mask_' + player_item_interface.getItemIF().getId();
+			var $mask_info_container = $("<div class='mask-info-container' id='" + mask_id_string + "'></div>");
 			$mask_info_container.append($('<p><i class="text-shadow fa fa-picture-o"></i></p>'));
 			$mask_info_container.append($('<p class="display-details">' + getDurationString(moment() - moment(time_since_displayed), false, "dhm") + '</p>'));
 			$mask_info_container.append($('<p class="display-details green-text text-shadow">$' + getCommaSeparatedValue(player_item_interface.getDisplayValuePerHour()) + '/hr.</p>'));
 			$mask_info_container.append($('<p class="display-details af-color text-shadow">' + getCommaSeparatedValue(player_item_interface.getXPPerHour()) + 'xp/hr.</p>'));
 			$status_mask.append($mask_info_container);
+			applyDisplayDetails(player_item_interface);
 			break;
 		case "permanent":
 			var time_since_displayed = player_item_interface.getItemIF().getItemObject().time_displayed;
@@ -123,7 +144,7 @@ var getIndicatorsHTML = function(player_item_interface) {
 }
 
 var getAttributeHTML = function(attribute, attribute_type) {
-	return $('<i data-attribute_description="' + attribute.description + '" data-attribute_value="' + attribute.value + '" style="color: ' + getHTMLColorFromValue(attribute.value) + '" class="' + attribute_type + '-attribute item-attribute fa ' + attribute.icon + '"></i>');
+	return $('<i data-attribute_description="' + attribute.description + '" data-attribute_value="' + attribute.value + '" style="color: ' + getHTMLColorFromValue(attribute.value) + '" class="' + attribute_type + '-attribute item-attribute-built fa ' + attribute.icon + '"></i>');
 }
 
 var getFooterHTML = function(player_item_interface) {
@@ -153,7 +174,7 @@ var getFooterHTML = function(player_item_interface) {
 	}
 
 	if (item_attributes.locked.length > 0) {
-		$attribute_area.append($('<span class="separator">|</span>'));
+		$attribute_area.append($('<span class="separator-built">|</span>'));
 
 		for (var i=0; i<item_attributes.locked.length; i++) {
 			$attribute_area.append(getAttributeHTML(item_attributes.locked[i], "locked"));
@@ -161,7 +182,7 @@ var getFooterHTML = function(player_item_interface) {
 	}
 
 	if (item_attributes.special.length > 0) {
-		$attribute_area.append($('<span class="separator">|</span>'));
+		$attribute_area.append($('<span class="separator-built">|</span>'));
 
 		for (var i=0; i<item_attributes.special.length; i++) {
 			$attribute_area.append(getAttributeHTML(item_attributes.special[i], "special"));
