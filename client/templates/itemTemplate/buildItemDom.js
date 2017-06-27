@@ -106,7 +106,7 @@ var getDetailsHTML = function(player_item_interface) {
 	$header_details.append($item_specs);
 
 	var rarity = player_item_interface.getItemIF().getRarity();
-	if (rarity == "legendary" || rarity == "masterpeice") {
+	if (rarity == "legendary" || rarity == "masterpiece") {
 		var $flavor_area = $('<div class="flavor-area"></div>');
 		var unique_flavor = unique_attributes.findOne(player_item_interface.getItemIF().getItemObject().active_unique_attribute).flavor_text;
 		$flavor_area.append($('<p class="flavor-text af-color">"' + unique_flavor + '"</p>'));
