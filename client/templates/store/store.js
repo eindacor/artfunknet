@@ -170,7 +170,7 @@ Template.store.events ({
 				console.log(error.message);
 
 			else {
-				Session.set('update_set', true);
+				updateItemArray();
 			}
 		})
 	},

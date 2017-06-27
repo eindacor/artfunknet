@@ -28,13 +28,13 @@ getStatusMaskHTML = function(player_item_interface) {
 			var time_since_displayed = player_item_interface.getItemIF().getItemObject().time_displayed;
 			var $mask_info_container = $("<div class='mask-info-container'></div>");
 			if (item_object.condition < 1) {
-				$mask_info_container.append($('<p><i class="text-shadow fa fa-wrench green-text"></i></p>'));
+				$mask_info_container.append($('<p><i class="text-shadow fa fa-wrench"></i></p>'));
 				$mask_info_container.append($('<p class="display-details text-shadow">' + Math.floor(item_object.condition * 100) + '%</p>'));
 			}
 
 			else {
-				$mask_info_container.append($('<p><i class="text-shadow fa fa-wrench"></i></p>'));
-				$mask_info_container.append($('<p class="display-details green-text text-shadow">' + Math.floor(item_object.condition * 100) + '%</p>'));
+				$mask_info_container.append($('<p><i class="text-shadow fa fa-wrench green-text"></i></p>'));
+				$mask_info_container.append($('<p class="display-details text-shadow green-text">' + Math.floor(item_object.condition * 100) + '%</p>'));
 			}
 
 			$status_mask.append($mask_info_container);
@@ -405,7 +405,11 @@ var getForSaleFunction = function(player_item_interface, desired_status) {
 				console.log(error.message)
 
 			else {
-				updateItemArray();
+				//updateItemArray();
+				var item_object = items.findOne(player_item_interface.getItemIF().getId());
+				updateInterfaces(item_object);
+				var container_id = "#item_" + item_object._id;
+				fillItemContainer($(container_id), new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_object)));
 			}
 		})
 	}
@@ -418,7 +422,11 @@ var getRepairingFunction = function(player_item_interface, desired_status) {
 				console.log(error.message)
 
 			else {
-				updateItemArray();
+				//updateItemArray();
+				var item_object = items.findOne(player_item_interface.getItemIF().getId());
+				updateInterfaces(item_object);
+				var container_id = "#item_" + item_object._id;
+				fillItemContainer($(container_id), new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_object)));
 			}
 		})
 	}
