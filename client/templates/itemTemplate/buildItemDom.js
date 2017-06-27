@@ -210,8 +210,12 @@ var getFooterHTML = function(player_item_interface) {
 }
 
 getHTMLFromItem = function(player_item_interface) {
-	
 	var item_object = player_item_interface.getItemIF().getItemObject();
+
+	var $div_wrapper = $('<div></div>');
+	if (player_item_interface.getItemIF().getStatus() == "for_sale") {
+		$div_wrapper.append($('<div class="item-price green-text text-shadow">' + getMoneyValue(item_object.values.dealer) + '</div>'));
+	}
 
 	var aura_string = item_object.displaced ? "displaced-item" : item_object.artwork_data.rarity + "-item";
 
@@ -249,7 +253,9 @@ getHTMLFromItem = function(player_item_interface) {
 	$card_info.append($card_footer);
 	$item_html.append($card_info);
 
-	return $item_html;
+	$div_wrapper.append($item_html);
+
+	return $div_wrapper;
 }
 
 var getTagFunction = function(player_item_interface) {
