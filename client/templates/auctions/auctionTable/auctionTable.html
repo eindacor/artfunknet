@@ -22,7 +22,7 @@
 				{{#each auction_data}}
 					{{#with auction_info this}}
 						<div class="row table-row {{#if hideDetails}}details-hidden{{/if}}" id="{{#if isWinning _id}}winning{{else}}{{#if isLosing _id}}losing{{/if}}{{/if}}">
-							<div class="col-xs-1 thumb-div{{#if hideDetails}}-hidden{{/if}}"><img class="auction-thumb" data-auction_id="{{_id}}" src="{{#with thumbnailFilename item_data.artwork_id}}{{getThumbImageURL this}}{{/with}}"/></div>
+							<div class="col-xs-1 thumb-div{{#if hideDetails}}-hidden{{/if}}"><img class="auction-thumb" data-auction_id="{{_id}}" src="{{getThumbImageURL artwork_data.filename artwork_data.file_extension}}"/></div>
 							{{#if hideDetails}}
 								<div class="col-xs-1 thumb-blank"></div>
 							{{/if}}

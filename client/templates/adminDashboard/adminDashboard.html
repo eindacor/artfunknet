@@ -296,6 +296,10 @@
 												<td><input id="artwork-mod-filename" value="{{selected_artwork.filename}}"></td>
 											</tr>
 											<tr>
+												<td>file extension: </td>
+												<td><input id="artwork-mod-file-extension" value="{{selected_artwork.file_extension}}"></td>
+											</tr>
+											<tr>
 												<td>active:</td>
 												<td>
 													<select class="active-selector">
@@ -345,7 +349,7 @@
 								</div>
 								<div class="artwork-mod-image col-xs-6">
 									{{#with imageSize selected_artwork.width selected_artwork.height}}
-									<img src="{{getImageURL selected_artwork.filename}}" width="{{image_width}}px" height="{{image_height}}px" />
+									<img src="{{getImageURL selected_artwork.filename selected_artwork.file_extension}}" width="{{image_width}}px" height="{{image_height}}px" />
 									{{/with}}
 								</div>
 							</div>

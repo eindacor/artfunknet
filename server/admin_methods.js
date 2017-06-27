@@ -112,32 +112,38 @@ Meteor.methods({
 	},
 
 	'generateRandomItemFromArtworkID' : function(user_id, artwork_id) {
-		if (adminValidated()) {
-			if (user_id == "" || getOneFromCollection("admin_methods.js", Meteor.users, user_id).profile.user_type == "admin") {
-                var item_generator = {
-                    'source': "test",
-                    'artwork_interface': new ArtworkIF(artwork_id),
-                    'status': "unclaimed"
+        try {
+    		if (adminValidated()) {
+    			if (user_id == "" || getOneFromCollection("admin_methods.js", Meteor.users, user_id).profile.user_type == "admin") {
+                    var item_generator = {
+                        'source': "test",
+                        'artwork_interface': new ArtworkIF(artwork_id),
+                        'status': "unclaimed"
+                    }
+
+                    return ITEM_GENERATOR.generateSingle(item_generator, new PlayerIF(Meteor.user()));
                 }
 
-                return ITEM_GENERATOR.generateSingle(item_generator, new PlayerIF(Meteor.user()));
-            }
+    			else if (Meteor.users.findOne(user_id) == undefined)
+    				return false;
 
-			else if (Meteor.users.findOne(user_id) == undefined)
-				return false;
+    			else {
+                    var item_generator = {
+                        'source': "test",
+                        'artwork_interface': new ArtworkIF(artwork_id),
+                        'status': "won"
+                    }
 
-			else {
-                var item_generator = {
-                    'source': "test",
-                    'artwork_interface': new ArtworkIF(artwork_id),
-                    'status': "won"
+                    return ITEM_GENERATOR.generateSingle(item_generator, new PlayerIF(user_id));
                 }
+    		}
 
-                return ITEM_GENERATOR.generateSingle(item_generator, new PlayerIF(user_id));
-            }
-		}
+    		else return undefined;
+        }
 
-		else return undefined;
+        catch(error) {
+            console.log(error);
+        }
 	},
 
 	'updateProfiles' : function(field_name, value) {

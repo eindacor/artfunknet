@@ -86,6 +86,7 @@ Template.home.helpers({
 		if (selected_artwork) {
 			return {
 				'filename': selected_artwork.filename,
+				'extension': selected_artwork.file_extension,
 				'width': image_width,
 				'height': image_height,
 				'margin_top': margin_top,

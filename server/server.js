@@ -26,6 +26,12 @@ var updateContent = function() {
     }
 
     // temp code
+    artworks.find({'file_extension': null}).forEach(function(artwork_object) {
+        var sliced_name = artwork_object.filename.slice(0, artwork_object.filename.indexOf('.'));
+        artworks.update({'_id': artwork_object._id}, {'$set': {'filename': sliced_name, 'file_extension': "jpg"}});
+        items.update({'artwork_id': artwork_object._id}, {$set: {'artwork_data.filename': sliced_name, 'artwork_data.file_extension': "jpg"}}, {multi: true});
+    })
+
     //temp code
 }
 

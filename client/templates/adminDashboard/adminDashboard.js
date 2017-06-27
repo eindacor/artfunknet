@@ -859,6 +859,11 @@ var generateArtworkObject = function() {
 	if ($('#artwork-mod-filename').val().length == 0)
 		generate_artwork_errors.push("invalid filename");
 
+	var file_extension = $('#artwork-mod-file-extension').val();
+	var valid_file_types = ["jpg", "png", "gif"];
+	if (file_extension.length == 0 || valid_file_types.indexOf(file_extension) == -1)
+		generate_artwork_errors.push("invalid file extension");
+
 	if ($('#artwork-mod-genre').val().length == 0)
 		generate_artwork_errors.push("invalid genre");
 
@@ -901,6 +906,7 @@ var generateArtworkObject = function() {
 		'artist_id': artist_object._id,
 		'date': Number($('#artwork-mod-date').val()),
 		'filename': $('#artwork-mod-filename').val(),
+		'file_extension': $('#artwork-mod-file-extension').val(),
 		'genre': $('#artwork-mod-genre').val(),
 		'height': Number($('#artwork-mod-height').val()),
 		'medium': $('#artwork-mod-medium').val(),

@@ -15,6 +15,7 @@ createAuction = function(item_id, starting, buy_now, duration, viewer) {
 
             var increment = Math.floor(.02 * getItemObjectValueByType(item_object, 'actual', user_object == undefined ? undefined : user_object._id));
 
+            //TODO let the item's artwork data replace separate artwork info fields
             var auction_object = {
                 'item_id': item_id,
                 'bid_history': [],
@@ -44,7 +45,8 @@ createAuction = function(item_id, starting, buy_now, duration, viewer) {
                     'seasonal' : item_object.seasonal,
                     'original' : item_object.original,
                     'attributes': item_object.attributes,
-                    'artwork_id': item_object.artwork_id
+                    'artwork_id': item_object.artwork_id,
+                    'artwork_data': item_object.artwork_data
                 }               
             };
 

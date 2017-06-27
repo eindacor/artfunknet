@@ -45,30 +45,26 @@ Template.registerHelper('isEqual', function(first, second) {
 	return first == second;
 })
 
-Template.registerHelper('getImageURL', function(filename) {
+Template.registerHelper('getImageURL', function(filename, extension) {
 	// return "img/uvtemplate.bmp";
 	if (filename == undefined || filename == "undefined" || filename == "")
 		return "";
 	
-	return "https://s3.amazonaws.com/com.artfunkel.artwork/full_images/" + filename;
+	return "https://s3.amazonaws.com/com.artfunkel.artwork/full_images/" + filename + '.' + extension;
 })
 
-Template.registerHelper('getCardImageURL', function(filename) {
-	if (filename == undefined || filename == "undefined" || filename == "")
-		return "";
-
-	var image_name = filename.substring(0, filename.indexOf("."));
-	
-	return "https://s3.amazonaws.com/com.artfunkel.artwork/card_images/" + image_name + "_card.jpg";
-})
-
-Template.registerHelper('getThumbImageURL', function(filename) {
+Template.registerHelper('getCardImageURL', function(filename, extension) {
 	if (filename == undefined || filename == "undefined" || filename == "")
 		return "";
 	
-	var image_name = filename.substring(0, filename.indexOf("."));
+	return "https://s3.amazonaws.com/com.artfunkel.artwork/card_images/" + filename + "_card." + extension;
+})
+
+Template.registerHelper('getThumbImageURL', function(filename, extension) {
+	if (filename == undefined || filename == "undefined" || filename == "")
+		return "";
 	
-	return "https://s3.amazonaws.com/com.artfunkel.artwork/thumbnail_images/" + image_name + "_thumb.jpg";
+	return "https://s3.amazonaws.com/com.artfunkel.artwork/thumbnail_images/" + filename + "_thumb." + extension;
 })
 
 Template.registerHelper('getS3ImageURL', function(filename) {

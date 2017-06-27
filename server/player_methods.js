@@ -842,10 +842,8 @@ Meteor.methods({
      'getGalleryAvatar': function(owner_id) {
         var best_item = items.findOne({'owner': owner_id, 'status': "displayed"}, {$sort: {'values.actual': 1}});
         var filename = best_item.artwork_data.filename;
-
-        var image_name = filename.substring(0, filename.indexOf("."));
     
-        return "https://s3.amazonaws.com/com.artfunkel.artwork/avatars/" + image_name + "_avatar.jpg";
+        return "https://s3.amazonaws.com/com.artfunkel.artwork/avatars/" + filename + "_avatar." + best_item.artwork_data.file_extension;
      },
 
      'getCanBuyAllFavorites': function() {
