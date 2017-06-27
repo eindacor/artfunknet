@@ -194,8 +194,9 @@ getHTMLFromItem = function(player_item_interface) {
 
 	var aura_string = item_object.displaced ? "displaced-item" : item_object.artwork_data.rarity + "-item";
 
-	var image_url = getArtworkImageURLFromFilename(item_object.artwork_data.filename, "card"); 
-	var $item_html = $('<div data-item_id="' + item_object._id + '" class="card-container ' + aura_string + '" style="background: url(' + image_url + ') center; background-size: 280px 390px"></div>');
+	var image_url = getArtworkImageURLFromFilename(item_object.artwork_data.filename, "card", item_object.artwork_data.file_extension); 
+	var image_width = item_object.artwork_data.file_extension == "gif" ? "700px" : "280px";
+	var $item_html = $('<div data-item_id="' + item_object._id + '" class="card-container ' + aura_string + '" style="background: url(' + image_url + ') center; background-size: ' + image_width + ' 390px"></div>');
 
 	var fullViewFunction = function() {
 		if ($('.template-modalTemplate').length == 0) {
@@ -366,12 +367,8 @@ var getDonateFunction = function(player_item_interface) {
 
 var getRerollFunction = function(player_item_interface) {
 	return function() {
-		Blaze.renderWithData(Template.modalTemplate, {
-			'modal_name': "rerollModal", 
-			'modal_data': {
-				'item_data': player_item_interface.getItemIF().getItemObject()
-			}
-		}, $('body')[0]);
+		Session.set('selectedItem', player_item_interface.getItemIF().getId());
+		Modal.show('rerollModal');
 	}
 }
 

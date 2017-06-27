@@ -621,8 +621,8 @@ Template.itemSet.rendered = function() {
 	vintage_filter = {'vintage': {'$ne': null}};
 	standard_filter = {};
 
-	// current_page = 1;
-	// total_pages = 1;
-	// items_per_page = 10;
-	//updateItemArray();
+	current_page = 1;
+	total_pages = 1;
+	items_per_page = 10;
+	updateItemArray();
 }
