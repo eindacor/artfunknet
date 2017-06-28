@@ -18,11 +18,12 @@ var applyDisplayDetails = function(player_item_interface) {
 }
 
 getStatusMaskHTML = function(player_item_interface) {
-	var $status_mask = $("<div class='status-mask'></div>");
+	var $status_mask = undefined;
 	var item_object = player_item_interface.getItemIF().getItemObject();
 
 	switch(item_object.status) {
 		case "displayed":
+			$status_mask = $("<div class='status-mask'></div>");
 			var time_since_displayed = player_item_interface.getItemIF().getItemObject().time_displayed;	
 			var mask_id_string = 'display_mask_' + player_item_interface.getItemIF().getId();
 			var $mask_info_container = $("<div class='mask-info-container' id='" + mask_id_string + "'></div>");
@@ -33,19 +34,13 @@ getStatusMaskHTML = function(player_item_interface) {
 			$status_mask.append($mask_info_container);
 			applyDisplayDetails(player_item_interface);
 			break;
-		case "permanent":
-			var time_since_displayed = player_item_interface.getItemIF().getItemObject().time_displayed;
-			var $mask_info_container = $("<div class='mask-info-container'></div>");
-			$mask_info_container.append($('<p><i class="text-shadow fa fa-heart"></i></p>'));
-			$mask_info_container.append($('<p class="display-details">' + getDurationString(moment() - moment(time_since_displayed), false, "dhm") + '</p>'));
-			$mask_info_container.append($('<p class="display-details af-color text-shadow">' + getCommaSeparatedValue(player_item_interface.getXPPerHour()) + 'xp/hr.</p>'));
-			$status_mask.append($mask_info_container);
-			break;
 		case "auctioned":
+			$status_mask = $("<div class='status-mask'></div>");
 			var time_since_displayed = player_item_interface.getItemIF().getItemObject().time_displayed;
 			$status_mask.append($('<i class="text-shadow fa fa-gavel"></i>'));
 			break;
 		case "repairing":
+			$status_mask = $("<div class='status-mask'></div>");
 			var time_since_displayed = player_item_interface.getItemIF().getItemObject().time_displayed;
 			var $mask_info_container = $("<div class='mask-info-container'></div>");
 			if (item_object.condition < 1) {
@@ -60,7 +55,15 @@ getStatusMaskHTML = function(player_item_interface) {
 
 			$status_mask.append($mask_info_container);
 			break;
-		default: break;
+		default: 
+			if (player_item_interface.getItemIF().getItemObject().permanent) {
+				$status_mask = $("<div class='status-mask'></div>");
+				var $mask_info_container = $("<div class='mask-info-container'></div>");
+				$mask_info_container.append($('<p><i class="text-shadow fa fa-heart"></i></p>'));
+				$status_mask.append($mask_info_container);
+			}
+
+			break;
 	}
 
 	return $status_mask;
@@ -237,7 +240,10 @@ getHTMLFromItem = function(player_item_interface) {
 	
 	$item_html.on('click', fullViewFunction);
 
-	$item_html.append(getStatusMaskHTML(player_item_interface));
+	var $status_mask = getStatusMaskHTML(player_item_interface);
+	if ($status_mask != undefined) {
+		$item_html.append($status_mask);
+	}
 
 	var $card_info = $('<div class="row no-margin card-info"></div>');
 
@@ -432,11 +438,11 @@ var getForSaleFunction = function(player_item_interface, desired_status) {
 				console.log(error.message)
 
 			else {
-				//updateItemArray();
-				var item_object = items.findOne(player_item_interface.getItemIF().getId());
-				updateInterfaces(item_object);
-				var container_id = "#item_" + item_object._id;
-				fillItemContainer($(container_id), new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_object)));
+				updateItemArray();
+				// var item_object = items.findOne(player_item_interface.getItemIF().getId());
+				// updateInterfaces(item_object);
+				// var container_id = "#item_" + item_object._id;
+				// fillItemContainer($(container_id), new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_object)));
 			}
 		})
 	}
@@ -449,11 +455,11 @@ var getRepairingFunction = function(player_item_interface, desired_status) {
 				console.log(error.message)
 
 			else {
-				//updateItemArray();
-				var item_object = items.findOne(player_item_interface.getItemIF().getId());
-				updateInterfaces(item_object);
-				var container_id = "#item_" + item_object._id;
-				fillItemContainer($(container_id), new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_object)));
+				updateItemArray();
+				// var item_object = items.findOne(player_item_interface.getItemIF().getId());
+				// updateInterfaces(item_object);
+				// var container_id = "#item_" + item_object._id;
+				// fillItemContainer($(container_id), new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_object)));
 			}
 		})
 	}
