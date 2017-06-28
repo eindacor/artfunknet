@@ -118,15 +118,13 @@ var getDetailsHTML = function(player_item_interface) {
 
 	$container.append($header_details);
 	return $container;
-
-	//TODO add rest of header details
 }
 
 var getIndicatorsHTML = function(player_item_interface) {
 	var $container = $('<div class="row no-margin indicator-area"></div>');
 	var recommended_status = player_item_interface.getRecommendedStatus();
 	if (recommended_status.displaced_item) {
-		if (recommended_status.updgrade) {
+		if (recommended_status.upgrade) {
 			$container.append($('<i class="green-text fa fa-level-up text-shadow"></i>'));
 		}
 	}
