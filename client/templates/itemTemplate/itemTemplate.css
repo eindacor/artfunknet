@@ -383,6 +383,10 @@
 	display: block;
 }
 
+.template-itemInfo .archive-indicators > i {
+	margin-right: 6px;
+}
+
 .template-itemInfo .level-area {
 	text-align: right;
 	float: right;
