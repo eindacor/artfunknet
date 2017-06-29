@@ -196,8 +196,21 @@ var getFooterHTML = function(player_item_interface) {
 	var show_details = true; //TODO replace with logic
 	if (show_details) {
 		var item_level = player_item_interface.getItemIF().getLevel();
-		var upgrade_html_string = player_item_interface.getPlayerItemPermissions().canAffordUpgrade() && player_item_interface.getItemIF().getStatus() != "archived" ? '<span class="level-indicator af-color"><i class="fa fa-arrow-circle-o-up"></i></span>' : "";
-		$level_area.append($('<div class="level-area"><p>lvl ' + item_level + ' ' + upgrade_html_string + '</p></div>'));
+		var $level_div = ($('<div class="level-area"></div>'));
+		var $level_text = ($('<p>lvl ' + item_level + ' </p>'));
+
+		if (player_item_interface.getPlayerItemPermissions().canAffordUpgrade() && player_item_interface.getItemIF().getStatus() != "archived") {
+			var $level_up_button = ($('<span class="af-color"><i class="fa fa-arrow-circle-o-up"></i></span>'));
+			$level_up_button.on('click', function(element) {
+				element.stopPropagation();
+				Session.set('selectedItem', player_item_interface.getItemIF().getId());
+				Modal.show('rerollModal');
+			})
+			$level_text.append($level_up_button);
+		}
+
+		$level_div.append($level_text);
+		$level_area.append($level_div);
 	}
 	
 	else {
