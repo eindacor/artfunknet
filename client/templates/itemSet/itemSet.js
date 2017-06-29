@@ -19,6 +19,7 @@ var original_filter = {'original': {'$ne': null}};
 var unlocked_filter = {'unlocked': {'$ne': null}};
 var vintage_filter = {'vintage': {'$ne': null}};
 var standard_filter = {};
+var permanent_filter = {'permanent': {'$ne': null}};
 var current_page = 1;
 var total_pages;
 var items_per_page = 10;
@@ -182,7 +183,8 @@ updateItemArray = function() {
 		vintage_filter,
 		standard_filter,
 		status_filter,
-		rarity_filter
+		rarity_filter,
+		permanent_filter
 	];
 
 	tags = [];
@@ -377,6 +379,10 @@ Template.itemSet.helpers({
 		return total_pages;
 	},
 
+	'permanent_sort': function(statuses) {
+		return statuses.indexOf("for_sale") == -1 && statuses.indexOf("won") == -1;
+	},
+
 	// 'item_array': function(statuses) {
 	// 	item_array_tracker.depend();
 
@@ -449,6 +455,18 @@ Template.itemSet.events({
 
 	'change #page-count-select': function() {
 		items_per_page = Number($('#page-count-select').val());
+		updateItemArray();
+	},
+
+	'change #permanent-selector': function() {
+		var selected = $('input[name=permanent-selector]:checked').val();
+		switch(selected) {
+			case "both": permanent_filter = {'permanent': {$ne: null}}; break;
+			case "permanent": permanent_filter = {'permanent': true}; break;
+			case "unpermanent": permanent_filter = {'permanent': false}; break;
+			default: break;
+		}
+
 		updateItemArray();
 	},
 
@@ -619,6 +637,7 @@ Template.itemSet.rendered = function() {
 	original_filter = {'original': {'$ne': null}};
 	unlocked_filter = {'unlocked': {'$ne': null}};
 	vintage_filter = {'vintage': {'$ne': null}};
+	permanent_filter = {'permanent': {$ne: null}};
 	standard_filter = {};
 
 	current_page = 1;

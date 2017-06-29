@@ -23,6 +23,17 @@
 
 				<div class="filter-area col-xs-12 col-md-10">
 					<div class="row">
+						{{#if permanent_sort statuses}}
+						<div class="col-xs-2">
+							<p class="filter-title">show items:</p>
+							<div class="filter-checkboxes">
+								<label><input class="type-select" type="radio" name="permanent-selector" id="permanent-selector" value="both" checked>all items</label><br>
+								<label><input class="type-select" type="radio" name="permanent-selector" id="permanent-selector" value="permanent">PC only</label><br>
+								<label><input class="type-select" type="radio" name="permanent-selector" id="permanent-selector" value="unpermanent">no PC</label><br>
+							</div>
+						</div>
+						{{/if}}
+
 						<div class="col-xs-2">
 							<p class="filter-title">card type:</p>
 							<div class="filter-checkboxes">
