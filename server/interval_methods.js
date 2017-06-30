@@ -282,6 +282,11 @@ drawLottery = function(force_draw) {
         }
         
         getFromCollection("interval_methods.js", Meteor.users, user_query_object).forEach(function(user_object) {
+            var player_interface = new PlayerIF(user_object);
+            if (!player_interface.isRecentlyActive()) {
+                return;
+            }
+
             user_map[user_object._id] = user_object.profile.lottery_tickets;
             tickets_average = ((tickets_average * player_count) + user_object.profile.lottery_tickets) / (player_count + 1);
             player_count++;
@@ -345,6 +350,11 @@ drawLottery = function(force_draw) {
 
         alertPlayers({}, message, 'fa-exclamation', 'good');
         getFromCollection("interval_methods.js", Meteor.users, user_query_object).forEach(function(user_object) {
+            var player_interface = new PlayerIF(user_object);
+            if (!player_interface.isRecentlyActive()) {
+                return;
+            }
+            
             var vintage_level = user_object.profile.vintage_count;
             var default_lottery_tickets = 1 + vintage_level;
             Meteor.users.update(user_object._id, {$set: {'profile.lottery_tickets': default_lottery_tickets}});
