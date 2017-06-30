@@ -26,6 +26,7 @@ var updateContent = function() {
     }
 
     // temp code
+    
     //temp code
 }
 
