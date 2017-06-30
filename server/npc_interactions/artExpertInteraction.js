@@ -29,14 +29,12 @@ artExpertInteraction = function(npc_object, player_interface) {
 			}
 		}
 
-		
-
 		if (player_interface.procUniqueAttribute("NEGATIVE_ROLL_COUNTS", undefined)) {
 			roll_count_min = -5;
 		}
 	}
 
-	var highest_item = getOneFromCollection("artExpertInteraction", items, {'owner' : Meteor.userId(), 'status' : {$in : ["claimed", "displayed"]}, 'roll_count' : {$gt : roll_count_min}}, {sort: {'roll_count': -1}});
+	var highest_item = getOneFromCollection("artExpertInteraction", items, {'owner' : Meteor.userId(), 'status' : {$in : ["claimed", "displayed", "repairing"]}, 'roll_count' : {$gt : roll_count_min}}, {sort: {'roll_count': -1}});
 
 	if (highest_item == undefined) {
 		var display_count = items.find({'owner': player_interface.getId(), 'status': "displayed"}).count();
