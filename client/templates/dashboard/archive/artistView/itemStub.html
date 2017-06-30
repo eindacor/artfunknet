@@ -1,6 +1,6 @@
 <template name="itemStub">
 	<div class="template-itemStub">
-		<div class="card-container {{artwork_data.rarity}}-item" style="background: url('{{getCardImageURL artwork_data.filename}}') center; background-size: 280px 390px">
+		<div class="card-container {{artwork_data.rarity}}-item" style="background: url('{{getCardImageURL artwork_data.filename artwork_data.file_extension}}') center; background-size: 280px 390px">
 			<div class="row no-margin card-info">
 				<div class="card-header col-xs-12 {{archive_category}}">
 					<div class="row no-margin">
