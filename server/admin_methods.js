@@ -468,12 +468,19 @@ Meteor.methods({
 
     'masterpieceAttributeReview': function() {
         if (adminValidated()) {
-            console.log("called");
             var permutation_array = [];
             var mp_permutations = [];
             var existing_mps = [];
             var clashing_existing_mps = [];
             var mp_clashes = [];
+            var desired_clashes = [];
+            var desired_permutations = [];
+
+            desired_permutations.push([attributes.findOne({'npc_name': "Art Donor"}).npc_name, attributes.findOne({'npc_name': "Art Dealer"}).npc_name, attributes.findOne({'npc_name': "Auctioneer"}).npc_name]);
+            desired_permutations.push([attributes.findOne({'npc_name': "Art Enthusiast"}).npc_name, attributes.findOne({'npc_name': "Art Historian"}).npc_name, attributes.findOne({'npc_name': "Marketing Manager"}).npc_name]);
+            desired_permutations.push([attributes.findOne({'npc_name': "Benefactor"}).npc_name, attributes.findOne({'npc_name': "Art Collector"}).npc_name, attributes.findOne({'npc_name': "Preservationist"}).npc_name]);
+            desired_permutations.push([attributes.findOne({'npc_name': "Benefactor"}).npc_name, attributes.findOne({'npc_name': "Art Expert"}).npc_name, attributes.findOne({'npc_name': "Preservationist"}).npc_name]);
+            desired_permutations.push([attributes.findOne({'npc_name': "Gallery Manager"}).npc_name, attributes.findOne({'npc_name': "Auctioneer"}).npc_name, attributes.findOne({'npc_name': "Marketing Manager"}).npc_name]);
 
             var attributeArraysAreSimilar = function(first, second) {
                 var match_count = 0;
@@ -492,6 +499,15 @@ Meteor.methods({
                     attribute_ids.push(attributes.findOne({'npc_name': attribute_array[i]})._id)
                 }
                 return artworks.findOne({'special_attributes': {$all: attribute_ids}});
+            }
+
+            var getPermutationFromMP = function(artwork_object) {
+                var attribute_array = artwork_object.special_attributes;
+                var permutation = [];
+                for (var i=0; i<attribute_array.length; i++) {
+                    permutation.push(attributes.findOne(attribute_array[i]).npc_name);
+                }
+                return permutation;
             }
 
             var permutationAlreadyFound = function(array_to_compare, attribute_array) {
@@ -517,7 +533,6 @@ Meteor.methods({
                         existing_mps.push(item_object.artwork_id);
                     }
 
-
                     var already_found = permutationAlreadyFound(mp_permutations, mp_permutation);
                     if (already_found) {
                         var mp_found = getMPFromPermutation(already_found);
@@ -537,6 +552,18 @@ Meteor.methods({
 
                     mp_permutations.push(mp_permutation);
                 });
+
+                for (var i=0; i<mp_permutations.length; i++) {
+                    var already_found = permutationAlreadyFound(desired_permutations, mp_permutations[i]);
+                    var mp = getMPFromPermutation(mp_permutations[i]);
+                    if (already_found) {
+                        desired_clashes.push({
+                            'desired_permutation': already_found,
+                            'clashing_mp': mp.title + " by " + mp.artist,
+                            'mp_permutation': getPermutationFromMP(mp)
+                        })
+                    }
+                }
 
                 var attribute_array = attributes.find({'active': true}).fetch();
                 for (var i=0; i<attribute_array.length; i++) {
@@ -568,37 +595,17 @@ Meteor.methods({
                         new_permutation = [first];
                     }
                 }
-
-                // console.log("current permutations: ");
-                // console.log(mp_permutations);
-
-                // console.log("other permutations: ");
-                // console.log(permutation_array);
             }
 
             getUniquePermutations();
-
-            // console.log("existing mps: ");
-            // artworks.find({'_id': {$in: existing_mps}, 'rarity': "masterpiece"}).forEach(function(artwork_object) {
-            //     console.log(artwork_object.title + " by " + artwork_object.artist);
-            // });
-
-            // console.log("unfound mps: ");
-            // artworks.find({'_id': {$nin: existing_mps}, 'rarity': "masterpiece"}).forEach(function(artwork_object) {
-            //     console.log(artwork_object.title + " by " + artwork_object.artist);
-            // });
-
-            // console.log("clashing mps: ");
-            // artworks.find({'_id': {$in: clashing_existing_mps}}).forEach(function(artwork_object) {
-            //     console.log(artwork_object.title + " by " + artwork_object.artist);
-            // });
 
             var results_object = {
                 'existing_permutations': mp_permutations,
                 'available_permutations': permutation_array,
                 'mp_clashes': mp_clashes,
                 'existing_mps': artworks.find({'_id': {$in: existing_mps}, 'rarity': "masterpiece"}).fetch(),
-                'unfound_mps': artworks.find({'_id': {$nin: existing_mps}, 'rarity': "masterpiece"}).fetch()
+                'unfound_mps': artworks.find({'_id': {$nin: existing_mps}, 'rarity': "masterpiece"}).fetch(),
+                'desired_clashes': desired_clashes
             };
 
             console.log(results_object);
