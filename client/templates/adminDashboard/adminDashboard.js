@@ -540,7 +540,7 @@ Template.adminTools.events({
 
     	var artwork_object = artworks.findOne($('.artwork-selector').val());
 		if (artwork_object) {
-			selected_artwork_special_attributes_selected = artwork_object.special_attributes.length > 0 ? artwork_object.special_attributes : [];
+			selected_artwork_special_attributes_selected = artwork_object.special_attributes && artwork_object.special_attributes.length > 0 ? artwork_object.special_attributes : [];
 		}
 
 		selected_artwork = artwork_object;
@@ -919,6 +919,10 @@ var generateArtworkObject = function() {
 		'active': $('#artwork-mod-container').find('.active-selector').val() == "true" ? true : false,
 		'special_attributes': selected_artwork_special_attributes_selected,
 		'unique_attributes': special_attribute_unique_attributes
+	}
+
+	if ($('#artwork-mod-id').text().length > 0) {
+		artwork_object._id = $('#artwork-mod-id').text();
 	}
 
 	return artwork_object;

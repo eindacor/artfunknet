@@ -467,151 +467,45 @@ Meteor.methods({
     },
 
     'masterpieceAttributeReview': function() {
-        if (adminValidated()) {
-            var permutation_array = [];
-            var mp_permutations = [];
-            var existing_mps = [];
-            var clashing_existing_mps = [];
-            var mp_clashes = [];
-            var desired_clashes = [];
-            var desired_permutations = [];
+        var attribute_distribution_map = {};
+        var attribute_pair_distribution_map = {};
+        var mp_map = {};
 
-            desired_permutations.push([attributes.findOne({'npc_name': "Art Donor"}).npc_name, attributes.findOne({'npc_name': "Art Dealer"}).npc_name, attributes.findOne({'npc_name': "Auctioneer"}).npc_name]);
-            desired_permutations.push([attributes.findOne({'npc_name': "Art Enthusiast"}).npc_name, attributes.findOne({'npc_name': "Art Historian"}).npc_name, attributes.findOne({'npc_name': "Marketing Manager"}).npc_name]);
-            desired_permutations.push([attributes.findOne({'npc_name': "Benefactor"}).npc_name, attributes.findOne({'npc_name': "Art Collector"}).npc_name, attributes.findOne({'npc_name': "Preservationist"}).npc_name]);
-            desired_permutations.push([attributes.findOne({'npc_name': "Benefactor"}).npc_name, attributes.findOne({'npc_name': "Art Expert"}).npc_name, attributes.findOne({'npc_name': "Preservationist"}).npc_name]);
-            desired_permutations.push([attributes.findOne({'npc_name': "Gallery Manager"}).npc_name, attributes.findOne({'npc_name': "Auctioneer"}).npc_name, attributes.findOne({'npc_name': "Marketing Manager"}).npc_name]);
+        attributes.find({'active': true}).forEach(function(attribute_object) {
+            attribute_distribution_map[attribute_object.npc_name] = artworks.find({'rarity': "masterpiece", 'special_attributes': {$in: [attribute_object._id]}}).fetch();
 
-            var attributeArraysAreSimilar = function(first, second) {
-                var match_count = 0;
-                for (var i=0; i<first.length; i++) {
-                    if (second.indexOf(first[i]) != -1) {
-                        match_count++;
-                    }
+            attributes.find({'active': true}).forEach(function(paired_attribute_object) {
+                if (paired_attribute_object._id == attribute_object._id) {
+                    return;
                 }
 
-                return match_count > 1;
-            }
+                var pair_items = artworks.find({'rarity': "masterpiece", $and: [{'special_attributes': attribute_object._id}, {'special_attributes': paired_attribute_object._id}]}).fetch();
 
-            var getMPFromPermutation = function(attribute_array) {
-                var attribute_ids = [];
-                for (var i=0; i<attribute_array.length; i++) {
-                    attribute_ids.push(attributes.findOne({'npc_name': attribute_array[i]})._id)
+                var pair_string_1 = paired_attribute_object.npc_name + "/" + attribute_object.npc_name;
+                var pair_string_2 = attribute_object.npc_name + "/" + paired_attribute_object.npc_name;
+
+                if (attribute_pair_distribution_map[pair_string_1] == undefined && attribute_pair_distribution_map[pair_string_2] == undefined) {
+                    attribute_pair_distribution_map[pair_string_1] = pair_items;
                 }
-                return artworks.findOne({'special_attributes': {$all: attribute_ids}});
-            }
+            });
+        })
 
-            var getPermutationFromMP = function(artwork_object) {
-                var attribute_array = artwork_object.special_attributes;
-                var permutation = [];
-                for (var i=0; i<attribute_array.length; i++) {
-                    permutation.push(attributes.findOne(attribute_array[i]).npc_name);
-                }
-                return permutation;
-            }
+        artworks.find({'rarity': "masterpiece", 'active': true}).forEach(function(artwork_object){
+            var special_attribute_array = [];
+            special_attribute_array.push(attributes.findOne(artwork_object.special_attributes[0]).npc_name);
+            special_attribute_array.push(attributes.findOne(artwork_object.special_attributes[1]).npc_name);
+            special_attribute_array.push(attributes.findOne(artwork_object.special_attributes[2]).npc_name);
+            var title_string = artwork_object.title + " by " + artwork_object.artist;
+            mp_map[title_string] = special_attribute_array;
+        });
 
-            var permutationAlreadyFound = function(array_to_compare, attribute_array) {
-                for (var i=0; i<array_to_compare.length; i++) {
-                    var found_permutation = array_to_compare[i];
+        var results_object = {
+            'attribute_distribution_map': attribute_distribution_map,
+            'attribute_pair_distribution_map': attribute_pair_distribution_map,
+            'mp_map': mp_map
+        };
 
-                    if (attributeArraysAreSimilar(attribute_array, found_permutation)) {
-                        return found_permutation;
-                    }
-                }
-
-                return undefined;
-            }
-
-            var getUniquePermutations = function() {
-                items.find({'artwork_data.rarity': "masterpiece", 'owner': {$ne: Meteor.users.findOne({'profile.screen_name': "admin"})._id}}).forEach(function(item_object) {
-                    var mp_permutation = [];
-                    for (var i=0; i<item_object.artwork_data.special_attributes.length; i++) {
-                        mp_permutation.push(attributes.findOne(item_object.artwork_data.special_attributes[i]).npc_name);
-                    }
-
-                    if (existing_mps.indexOf(item_object.artwork_id) == -1) {
-                        existing_mps.push(item_object.artwork_id);
-                    }
-
-                    var already_found = permutationAlreadyFound(mp_permutations, mp_permutation);
-                    if (already_found) {
-                        var mp_found = getMPFromPermutation(already_found);
-
-                        if (clashing_existing_mps.indexOf(item_object.artwork_id) == -1) {
-                            clashing_existing_mps.push(item_object.artwork_id);
-                        }
-
-                        if (clashing_existing_mps.indexOf(mp_found._id) == -1) {
-                            clashing_existing_mps.push(mp_found._id);
-                        }
-
-                        if (mp_found._id != item_object.artwork_id) {
-                            mp_clashes.push(mp_found.title + " by " + mp_found.artists + " & " + item_object.artwork_data.title + " by " + item_object.artwork_data.artist);
-                        }
-                    }
-
-                    mp_permutations.push(mp_permutation);
-                });
-
-                for (var i=0; i<mp_permutations.length; i++) {
-                    var already_found = permutationAlreadyFound(desired_permutations, mp_permutations[i]);
-                    var mp = getMPFromPermutation(mp_permutations[i]);
-                    if (already_found) {
-                        desired_clashes.push({
-                            'desired_permutation': already_found,
-                            'clashing_mp': mp.title + " by " + mp.artist,
-                            'mp_permutation': getPermutationFromMP(mp)
-                        })
-                    }
-                }
-
-                var attribute_array = attributes.find({'active': true}).fetch();
-                for (var i=0; i<attribute_array.length; i++) {
-                    var first = attribute_array[i].npc_name;
-                    var new_permutation = [first];
-                    for (var n=0; n<attribute_array.length; n++) {
-                        if (n == i) {
-                            continue;
-                        }
-
-                        var second = attribute_array[n].npc_name
-                        new_permutation.push(second);
-
-                        for (var c=0; c<attribute_array.length; c++) {
-                            if (c == i || c == n) {
-                                continue;
-                            }
-
-                            var third = attribute_array[c].npc_name;
-                            new_permutation.push(third)
-
-                            if (new_permutation.length == 3 && !permutationAlreadyFound(permutation_array, new_permutation) && !permutationAlreadyFound(mp_permutations, new_permutation)) {
-                                permutation_array.push(new_permutation);
-                            }
-
-                            new_permutation = [first, second];
-                        }
-
-                        new_permutation = [first];
-                    }
-                }
-            }
-
-            getUniquePermutations();
-
-            var results_object = {
-                'existing_permutations': mp_permutations,
-                'available_permutations': permutation_array,
-                'mp_clashes': mp_clashes,
-                'existing_mps': artworks.find({'_id': {$in: existing_mps}, 'rarity': "masterpiece"}).fetch(),
-                'unfound_mps': artworks.find({'_id': {$nin: existing_mps}, 'rarity': "masterpiece"}).fetch(),
-                'desired_clashes': desired_clashes
-            };
-
-            console.log(results_object);
-
-            return results_object;
-        }
+        return results_object;
     }
 })
 
