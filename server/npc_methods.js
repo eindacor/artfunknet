@@ -86,8 +86,8 @@ var interactWithNPC = function(npc_id) {
 		case "marketing_manager_bonus":
 			npc_interaction = marketingManagerInteraction(npc_object, player_interface);
 			break;
-		case "forger_bonus": //DISABLE - give access to black market
-			npc_interaction = {'message': "You have met an art forger."};
+		case "forger": //DISABLE - give access to black market
+			npc_interaction = forgerInteraction(npc_object, player_interface);
 			break;
 		case "art_expert_bonus":
 			npc_interaction = artExpertInteraction(npc_object, player_interface);

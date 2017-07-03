@@ -1,0 +1,102 @@
+<template name="itemStubView">
+	<div class="template-itemInfo">
+		<div class="card-container {{item_data.artwork_data.rarity}}-item" style="background: url('{{getCardImageURL item_data.artwork_data.filename item_data.artwork_data.file_extension}}') center; background-size: {{#if isEqual item_data.artwork_data.file_extension 'gif'}}700px{{else}}280px{{/if}} 390px">
+			<div class="row no-margin card-info">
+				<div class="card-header col-xs-12 {{card_types item_data}}">
+					<div class="row no-margin">
+						<div class="header-basic-info">
+							<p class="item-title work-title">{{item_data.artwork_data.title}}</p>
+							<p>{{item_data.artwork_data.artist}}</p>
+						</div>
+					</div>
+
+					<div class="row no-margin">
+						<div class="header-details">
+							<p>{{item_data.artwork_data.date}}</p>
+							{{> itemSignature item_data=item_data}}
+							<p>{{item_data.artwork_data.medium}}</p>
+							<p>{{item_data.artwork_data.height}} x {{item_data.artwork_data.width}}</p>
+							<div class="dynamic-stats">
+								{{#if item_data.condition}}
+								<p>condition: <span style="color: {{getHTMLColorFromValue item_data.condition}}">%{{floatToPercentage item_data.condition}}</span></p>
+								{{else}}
+								<p>condition: ?</p>
+								{{/if}}
+								{{#if item_data.values.actual}}
+								<p id="dynamic-value-stat">estimated value: {{displayAsMoneyValue item_data.values.actual}}</p>
+								{{else}}
+								<p id="dynamic-value-stat">estimated value: ?</p>
+								{{/if}}
+								{{#if item_data.roll_count}}
+								<p id="dynamic-roll-count-stat">roll count: {{item_data.roll_count}}</p>
+								{{else}}
+								<p id="dynamic-roll-count-stat">roll count: ?</p>
+								{{/if}}
+							</div>
+							<div class="flavor-area">
+							{{#with unique_attribute_data item_data.active_unique_attribute}}
+								<p class="flavor-text af-color {{#if ../item_data.permanent}}permanent{{/if}}">"{{flavor_text}}"</p>
+							{{/with}}
+							</div>
+						</div>
+					</div>
+					
+					<div class="row no-margin indicator-area">
+						{{#if isForgery item_data}}
+						<i class="red-text fa fa-paint-brush text-shadow"></i>
+						{{/if}}
+						{{#with recommended_archive item_data}}
+							{{#if displaced_item}}
+								{{#if upgrade}}
+									<i class="green-text fa fa-level-up text-shadow"></i>
+								{{/if}}
+							{{else}}
+							<i class="green-text fa fa-archive text-shadow"></i>
+							{{/if}}
+						{{/with}}
+						{{#if isQuestItem item_data.artwork_id}}
+							<i class="green-text fa fa-flag-checkered text-shadow"></i>
+						{{/if}}
+						{{#if isSought item_data.artwork_id}}
+							<i class="blue-text fa fa-bullhorn text-shadow"></i>
+						{{/if}}
+					</div>			
+				</div>
+
+				<div class="card-footer col-xs-12 {{card_types item_data}}">
+					<div class="row no-margin">
+						{{#if archive_indicator item_data}}
+							<div class="archive-indicators">
+							{{#each archive_indicator item_data}}
+								<i class="check {{this}}-text fa fa-archive"></i>
+							{{/each}}
+							</div>
+						{{/if}}
+						<div class="footer-basic-info">
+							<div class="col-xs-8 no-padding attribute-area">
+								{{#if item_data.attributes}}
+									{{#each sortedAttributes item_data.attributes.unlocked}}
+										<i data-attribute_description="{{description}}" data-attribute_value="{{value}}" style="color: {{getHTMLColorFromValue value}}" class="{{#if ../item_data.permanent}}permanent{{/if}} item-attribute fa {{icon}}"></i>
+									{{/each}}
+									{{#if item_data.attributes.locked}}<span class="separator">|</span>{{/if}}
+									{{#each sortedAttributes item_data.attributes.locked}}
+										<i data-attribute_description="{{description}}" data-attribute_value="{{value}}" style="color: {{getHTMLColorFromValue value}}" class="{{#if ../item_data.permanent}}permanent{{/if}} locked item-attribute fa {{icon}}"></i>
+									{{/each}}
+									{{#if item_data.attributes.special}}<span class="separator">|</span>{{/if}}
+									{{#each sortedAttributes item_data.attributes.special}}
+										<i data-attribute_description="{{description}}" data-attribute_value="{{value}}" style="color: {{getHTMLColorFromValue value}}" class="{{#if ../item_data.permanent}}permanent{{/if}} special item-attribute fa {{icon}}"></i>
+									{{/each}}
+								{{/if}}
+							</div>
+							<div class="col-xs-4 no-padding">
+								<div class="level-area">
+									<p>lvl {{item_data.level}}</p>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</template>

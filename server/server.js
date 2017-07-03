@@ -32,7 +32,8 @@ var updateContent = function() {
                 'authenticity': {
                     'forgery':  item_object.forgery ? true : false,
                     'liable': item_object.owner,
-                    'identified': item_object.forgery ? true : false
+                    'identified': item_object.forgery ? true : false, 
+                    'fee': 0
                 }
             },
             $unset: {
@@ -41,7 +42,9 @@ var updateContent = function() {
             }
         })
     })
-    Meteor.users.update({'profile.forgery_contracts': null}, {$set: {'profile.forgery_contracts': 0}});
+    // Meteor.users.update({'profile.forgery_contracts': null}, {$set: {'profile.forgery_contracts': 0}});
+    //TODO remove below
+    Meteor.users.update({}, {$set: {'profile.forgery_contracts': 3}}, {multi: true});
     //temp code
 }
 

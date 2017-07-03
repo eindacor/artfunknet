@@ -348,7 +348,8 @@ ItemGenerator = function() {
 	        'authenticity': {
 	        	'forgery':  item_generator_object.forgery === undefined ? false : item_generator_object.forgery,
 	        	'liable': player_interface === undefined ? BOT_USER_NAME : player_interface.getId(),
-	        	'identified': true
+	        	'identified': true,
+	        	'fee': 0
 	        },
 	        'tags': [],
 	        'artwork_data': artwork_data,
@@ -368,6 +369,41 @@ ItemGenerator = function() {
 	    }
 
 	    return new_item_id;
+	}
+
+	this.createForgedItem = function(forged_item_object, callback) {
+		var new_item_object = {
+	        'artwork_id' : forged_item_object.artwork_id,
+	        'condition' : forged_item_object.condition === undefined ? getCondition(0) : forged_item_object.condition,
+	        'attributes' : getItemAttributes(forged_item_object.artwork_data, forged_item_object.unlocked, DEFAULT_ATTRIBUTE_MAP),
+	        'active_unique_attribute': forged_item_object.artwork_data.unique_attributes ? forged_item_object.artwork_data.unique_attributes[0] : undefined,
+	        'owner' : forged_item_object.owner,
+	        'status' : "won",
+	        'date_created' : moment()._d.toISOString(),
+	        'date_received': moment()._d.toISOString(),
+	        'level' : forged_item_object.level,
+	        'roll_count' : forged_item_object.roll_count === undefined ? 0 : forged_item_object.roll_count,
+	        'foil': forged_item_object.foil,
+	        'unlocked': forged_item_object.unlocked,
+	        'seasonal': forged_item_object.seasonal,
+	        'lottery': forged_item_object.lottery,
+	        'original': false,
+	        'vintage': forged_item_object.vintage,
+	        'authenticity': {
+	        	'forgery': true,
+	        	'liable': forged_item_object.owner,
+	        	'identified': true,
+	        	'fee': 0
+	        },
+	        'tags': [],
+	        'artwork_data': forged_item_object.artwork_data,
+	        'permanent': false
+	    };
+
+	    new_item_object.values = getItemObjectValues(new_item_object);
+	    new_item_object.reroll_cost = getItemObjectRollCost(new_item_object);
+
+	    var new_item_id = insertItem(new_item_object, "forge", callback);
 	}
 }
 
