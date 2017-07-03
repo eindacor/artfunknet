@@ -6,39 +6,26 @@ var getPermissions = function(item_object) {
 			if (permissions == undefined)
 				return undefined;
 			
-			var sell = permissions.canSell();
-			var claim = permissions.canClaim();
-			var purchase = permissions.canPurchase();
-			var display = permissions.canDisplay();
-			var undisplay = permissions.canUndisplay();
-			var permanent = permissions.canSetPermanent();
-			var unpermanent = permissions.canUnsetPermanent();
-			var auction = permissions.canAuction();
-			var decline = permissions.canDecline();
-			var donate = permissions.canDonate();
-			var tag_for_sale = permissions.canTagForSale();
-			var untag_for_sale = permissions.canUntagForSale();
-			var repairing = permissions.canSetRepairing();
-			var unrepairing = permissions.canUnsetRepairing();
-			var archive = permissions.canArchive();
-
-			return {
-				'sell': sell,
-				'claim': claim,
-				'purchase': purchase,
-				'display': display,
-				'permanent': permanent,
-				'unpermanent': unpermanent,
-				'auction': auction,
-				'decline': decline,
-				'undisplay': undisplay,
-				'donate': donate,
-				'tag_for_sale': tag_for_sale,
-				'untag_for_sale': untag_for_sale,
-				'repairing': repairing,
-				'unrepairing': unrepairing,
-				'archive': archive
+			var permission_object = {
+				'sell': permissions.canSell(),
+				'claim': permissions.canClaim(),
+				'purchase': permissions.canPurchase(),
+				'display': permissions.canDisplay(),
+				'permanent': permissions.canSetPermanent(),
+				'unpermanent': permissions.canUnsetPermanent(),
+				'auction': permissions.canAuction(),
+				'decline': permissions.canDecline(),
+				'undisplay': permissions.canUndisplay(),
+				'donate': permissions.canDonate(),
+				'tag_for_sale': permissions.canTagForSale(),
+				'untag_for_sale': permissions.canUntagForSale(),
+				'repairing': permissions.canSetRepairing(),
+				'unrepairing': permissions.canUnsetRepairing(),
+				'archive': permissions.canArchive(),
+				'forge': permissions.canForge()
 			}
+
+			return permission_object;
 		}
 	}
 

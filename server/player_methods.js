@@ -44,6 +44,7 @@ createUser = function(user_object, callback){
     user_object.profile.money_spent_on_crates = 0;
     user_object.profile.vintage_select = false;
     user_object.profile.vintage_count = 0;
+    user_object.profile.forgery_contracts = 0;
     user_object.profile.favorite_galleries = [];
     user_object.profile.notifications = {
         'procs': [],
@@ -893,5 +894,12 @@ Meteor.methods({
             'current_page': current_page,
             'total_pages': total_pages
         }
+     },
+
+     'detectOwnForgery': function(user_object, item_id) {
+        var player_interface = new PlayerIF(user_object);
+        var item_interface = new ItemIF(item_id);
+
+        return player_interface.getId() == item_interface.getItemObject().owner && item_interface.getItemObject().authenticity.identified && item_interface.getItemObject().authenticity.forgery;
      }
 })

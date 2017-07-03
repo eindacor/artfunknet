@@ -400,6 +400,16 @@ Meteor.methods({
         player_item_interface.archive();
     },
 
+    'identifyItem': function(item_id) {
+        var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
+        player_item_interface.identify();
+    },
+
+    'redeemItem': function(item_id) {
+        var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
+        player_item_interface.redeem();
+    },
+
     'lookupOwner': function(item_id) {
         var item_object = items.findOne(item_id);
         if (item_object)

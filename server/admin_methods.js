@@ -506,6 +506,20 @@ Meteor.methods({
         };
 
         return results_object;
+    },
+
+    'forgeryTest': function(item_id) {
+        if (adminValidated()) {
+            var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
+            for (var i=0; i<100; i++) {
+                if (player_item_interface.procForgeryDetection()) {
+                    console.log("forgery detected after " + (i + 1) + " attempt(s)");
+                    return;
+                }
+            }
+
+            console.log ("forgery not detected");
+        }
     }
 })
 

@@ -418,6 +418,7 @@ Template.adminTools.events({
 
     	var original = $('input:radio[name=original_selector]:checked').val() == "true";
     	var vintage = $('input:radio[name=vintage_selector]:checked').val() == "true";
+    	var forgery = $('input:radio[name=forgery_selector]:checked').val() == "true";
     	var lottery = isNaN($('input:radio[name=lottery_selector]:checked').val()) ? 0 : Number($('input:radio[name=lottery_selector]:checked').val());
 
     	var misprint_chance;
@@ -439,6 +440,7 @@ Template.adminTools.events({
             'vintage': vintage,
             'misprint_chance': misprint_chance,
             'status': user_id == Meteor.userId() ? "unclaimed": "claimed",
+            'forgery': forgery
         }
 
     	Meteor.call('generateItemFromArtworkID', item_generator, artwork_id, user_id, function(error, result) {

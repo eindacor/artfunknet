@@ -345,6 +345,11 @@ ItemGenerator = function() {
 	        'lottery': item_generator_object.lottery === undefined ? 0 : item_generator_object.lottery,
 	        'original': item_generator_object.original === undefined ? false : item_generator_object.original,
 	        'vintage': item_generator_object.vintage === undefined ? false : item_generator_object.vintage,
+	        'authenticity': {
+	        	'forgery':  item_generator_object.forgery === undefined ? false : item_generator_object.forgery,
+	        	'liable': player_interface === undefined ? BOT_USER_NAME : player_interface.getId(),
+	        	'identified': true
+	        },
 	        'tags': [],
 	        'artwork_data': artwork_data,
 	        'permanent': false

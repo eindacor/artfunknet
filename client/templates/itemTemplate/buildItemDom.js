@@ -17,6 +17,22 @@ var applyDisplayDetails = function(player_item_interface) {
 	})
 }
 
+var applyForgeryStamp = function(player_item_interface) {
+	Meteor.call('detectOwnForgery', player_item_interface.getPlayerIF().getUserObject(), player_item_interface.getItemIF().getId(), function(error, result) {
+		if (error) {
+			console.log(error);
+		}
+
+		else if (result) {
+			var indicator_id = "#indicators_" + player_item_interface.getItemIF().getId();
+			if ($(indicator_id + " > i.fa-paint-brush").length == 0) {
+				var $container = $(indicator_id);
+				$container.append($('<i class="red-text fa fa-paint-brush text-shadow"></i>'));
+			}
+		}
+	})
+}
+
 getStatusMaskHTML = function(player_item_interface) {
 	var $status_mask = undefined;
 	var item_object = player_item_interface.getItemIF().getItemObject();
@@ -59,7 +75,7 @@ getStatusMaskHTML = function(player_item_interface) {
 			if (player_item_interface.getItemIF().getItemObject().permanent) {
 				$status_mask = $("<div class='status-mask'></div>");
 				var $mask_info_container = $("<div class='mask-info-container'></div>");
-				$mask_info_container.append($('<p><i class="text-shadow fa fa-heart"></i></p>'));
+				$mask_info_container.append($('<p><i class="text-shadow af-color fa fa-heart"></i></p>'));
 				$status_mask.append($mask_info_container);
 			}
 
@@ -121,7 +137,8 @@ var getDetailsHTML = function(player_item_interface) {
 }
 
 var getIndicatorsHTML = function(player_item_interface) {
-	var $container = $('<div class="row no-margin indicator-area"></div>');
+	var indicator_id = "indicators_" + player_item_interface.getItemIF().getId();
+	var $container = $('<div id="' + indicator_id + '" class="row no-margin indicator-area"></div>');
 	var recommended_status = player_item_interface.getRecommendedStatus();
 	if (recommended_status.displaced_item) {
 		if (recommended_status.upgrade) {
@@ -140,6 +157,8 @@ var getIndicatorsHTML = function(player_item_interface) {
 	// if (player_item_interface.isSought()) {
 	// 	$container.append($('<i class="blue-text fa fa-bullhorn text-shadow"></i>'));
 	// }
+
+	applyForgeryStamp(player_item_interface);
 
 	return $container;
 }
@@ -476,6 +495,43 @@ var getRepairingFunction = function(player_item_interface, desired_status) {
 	}
 }
 
+var getForgeFunction = function(player_item_interface) {
+	return function() {
+		Blaze.renderWithData(Template.modalTemplate, {
+			'modal_name': "forgeModal", 
+			'modal_data': player_item_interface.getItemIF().getItemObject()
+		}, $('body')[0]);
+	}
+}
+
+var getIdentifyFunction = function(player_item_interface) {
+	return function() {
+		Meteor.call('identifyItem' , player_item_interface.getItemIF().getId(), function(error) {
+			if (error)
+				console.log(error.message)
+
+			else {
+				var item_object = items.findOne(player_item_interface.getItemIF().getId());
+				var container_id = "#item_" + item_object._id;
+				fillItemContainer($(container_id), new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_object)));
+			}
+		})
+	}
+}
+
+var getRedeemFunction = function(player_item_interface) {
+	return function() {
+		Meteor.call('redeemItem' , player_item_interface.getItemIF().getId(), function(error) {
+			if (error)
+				console.log(error.message)
+
+			else {
+				updateItemArray();
+			}
+		})
+	}
+}
+
 var getActionFunction = function(action, player_item_interface) {
 	switch(action) {
 		case "tag": return getTagFunction(player_item_interface);
@@ -496,6 +552,9 @@ var getActionFunction = function(action, player_item_interface) {
 		case "untag_for_sale": return getForSaleFunction(player_item_interface, false);
 		case "repairing": return getRepairingFunction(player_item_interface, true);
 		case "unrepairing": return getRepairingFunction(player_item_interface, false);
+		case "forge": return getForgeFunction(player_item_interface);
+		case "identify": return getIdentifyFunction(player_item_interface);
+		case "redeem": return getRedeemFunction(player_item_interface);
 		default: return undefined;
 	}
 }
@@ -517,10 +576,6 @@ getItemActionsHTML = function(player_item_interface) {
 			$archive_button.on('click', getActionFunction("archive", player_item_interface));
 			$button_row.append($archive_button);
 
-			var $delete_button = $('<span class="delete enabled"><i class="fa fa-times"></i></span>');
-			$delete_button.on('click', getActionFunction("delete", player_item_interface));
-			$button_row.append($delete_button);
-
 			if (player_item_interface.getPlayerItemPermissions().canSetPermanent()) {
 				var $permanent_button = $('<span class="perm-collection inactive"><i class="fa fa-heart"></i></span>');
 				$permanent_button.on('click', getActionFunction("permanent", player_item_interface));
@@ -532,6 +587,16 @@ getItemActionsHTML = function(player_item_interface) {
 				$permanent_button.on('click', getActionFunction("unpermanent", player_item_interface));
 				$button_row.append($permanent_button);
 			}
+
+			if (player_item_interface.getPlayerItemPermissions().canForge()) {
+				var $forge_button = $('<span class="forge enabled"><i class="fa fa-paint-brush"></i></span>');
+				$forge_button.on('click', getActionFunction("forge", player_item_interface));
+				$button_row.append($forge_button);
+			}
+
+			var $delete_button = $('<span class="delete enabled"><i class="fa fa-times"></i></span>');
+			$delete_button.on('click', getActionFunction("delete", player_item_interface));
+			$button_row.append($delete_button);
 
 			$button_area.append($button_row);
 		}
@@ -583,6 +648,18 @@ getItemActionsHTML = function(player_item_interface) {
 				var $decline_button = $('<span class="decline enabled"><i class="fa fa-times"></i></span>');
 				$decline_button.on('click', getActionFunction("decline", player_item_interface));
 				$action_button_row.append($decline_button);
+			}
+
+			if (player_item_interface.getPlayerItemPermissions().canIdentify()) {
+				var $identify_button = $('<span class="decline enabled"><i class="fa fa-eye"></i></span>');
+				$identify_button.on('click', getActionFunction("identify", player_item_interface));
+				$action_button_row.append($identify_button);
+			}
+
+			if (player_item_interface.getPlayerItemPermissions().canRedeemForgery()) {
+				var $redeem_button = $('<span class="redeem enabled"><i class="fa fa-shield"></i></span>');
+				$redeem_button.on('click', getActionFunction("redeem", player_item_interface));
+				$action_button_row.append($redeem_button);
 			}
 
 			$button_area.append($action_button_row);

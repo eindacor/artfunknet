@@ -26,7 +26,22 @@ var updateContent = function() {
     }
 
     // temp code
-
+    items.find({'authenticity': null}).forEach(function(item_object) {
+        items.update(item_object._id, {
+            $set: {
+                'authenticity': {
+                    'forgery':  item_object.forgery ? true : false,
+                    'liable': item_object.owner,
+                    'identified': item_object.forgery ? true : false
+                }
+            },
+            $unset: {
+                'forgery': "",
+                'liable': ""
+            }
+        })
+    })
+    Meteor.users.update({'profile.forgery_contracts': null}, {$set: {'profile.forgery_contracts': 0}});
     //temp code
 }
 

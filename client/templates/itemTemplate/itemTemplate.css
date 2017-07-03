@@ -304,6 +304,10 @@
 	margin-top: 12px;
 }
 
+.template-itemInfo .indicator-area > i {
+	margin-right: 6px;
+}
+
 .template-itemInfo .flavor-text {
 	font-size: 1.1rem;
 	padding: 2px;

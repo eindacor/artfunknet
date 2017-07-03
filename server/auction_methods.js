@@ -103,8 +103,8 @@ var successfulAuction = function(auction_object, winning_user) {
     catch (error) {
         console.log(error);
     }
-    
-    item_interface.updateItem({$set: {'status' : new_status, 'owner': winning_user._id, 'tags': [], 'date_received': moment()._d.toISOString()}}, false, function(error) {
+
+    var updateCallback = function(error) {
         if (error)
             console.log(error.message);
 
@@ -146,7 +146,19 @@ var successfulAuction = function(auction_object, winning_user) {
 
             removeAuction(auction_object._id);
         }
-    });
+    }
+    
+    item_interface.updateItem({
+        $set: {
+            'status' : new_status, 
+            'owner': winning_user._id, 
+            'tags': [], 
+            'date_received': moment()._d.toISOString(),
+            'authenticity.identified': false,
+            'authenticity.fee': auction_object.current_bid,
+            'authenticity.liable': seller
+        }
+    }, true, updateCallback);
 }
 
 concludeAuction = function(auction_id) {
