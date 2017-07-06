@@ -124,8 +124,7 @@ Meteor.setInterval((function() {
         if (gallery_object.gallery_rarity_npc_coefficient <= 0)
             return;
 
-        var attribute_values = gallery_object.attribute_values;
-        var attribute_ids = Object.keys(attribute_values);
+        var attribute_ids = Object.keys(gallery_object.procs);
         var rarity_npc_coefficient = gallery_object.gallery_rarity_npc_coefficient;
         var owner_object = getOneFromCollection("interval_methods.js", Meteor.users, gallery_object.owner_id);
 
@@ -261,6 +260,14 @@ Meteor.setInterval((function() {
 
     else metadata.insert({'repairing_tick': moment()._d.toISOString()});
 }), REPAIRING_CHECK_FREQUENCY);
+
+Meteor.setInterval((function() {
+    var liability_cutoff = moment().subtract(ACQUISITION_LIABILITY_CUTOFF, 'milliseconds')._d.toISOString();
+    items.find({$and: [{'date_received': {$lt: liability_cutoff}, 'authenticity.identified': false}, {$where: function(){this.owner != this.authenticity.liable} }]}).forEach(function(item_object) {
+        items.update(item_object._id, {$set: {'authenticity.liable': item_object.owner}});
+    })
+
+}), LIABILITY_CHECK_FREQUENCY)
 
 drawLottery = function(force_draw) {
     var lottery_draw_time = force_draw ? getNowISOString() : getOneFromCollection("interval_methods.js", metadata, {'lottery_draw': {$ne: null}}).lottery_draw;

@@ -349,7 +349,8 @@ ItemGenerator = function() {
 	        	'forgery':  item_generator_object.forgery === undefined ? false : item_generator_object.forgery,
 	        	'liable': player_interface === undefined ? BOT_USER_NAME : player_interface.getId(),
 	        	'identified': true,
-	        	'fee': 0
+	        	'fee': 0,
+	        	'original_owner': player_interface === undefined ? BOT_USER_NAME : player_interface.getId()
 	        },
 	        'tags': [],
 	        'artwork_data': artwork_data,
@@ -393,7 +394,8 @@ ItemGenerator = function() {
 	        	'forgery': true,
 	        	'liable': forged_item_object.owner,
 	        	'identified': true,
-	        	'fee': 0
+	        	'fee': 0,
+	        	'original_owner': forged_item_object.owner
 	        },
 	        'tags': [],
 	        'artwork_data': forged_item_object.artwork_data,

@@ -144,6 +144,8 @@ var successfulAuction = function(auction_object, winning_user) {
                 Meteor.users.update(winning_user._id, {$push: {'profile.notifications.loot': {'id': new Meteor.Collection.ObjectID()._str, 'expiration': moment().add(5, "seconds")._d.toISOString(), 'amount': 1}}});
             }
 
+            var seller_item_interface = new PlayerItemIF(new PlayerIF(seller), item_interface);
+            seller_item_interface.makeLiable();
             removeAuction(auction_object._id);
         }
     }
@@ -155,8 +157,7 @@ var successfulAuction = function(auction_object, winning_user) {
             'tags': [], 
             'date_received': moment()._d.toISOString(),
             'authenticity.identified': false,
-            'authenticity.fee': auction_object.current_bid,
-            'authenticity.liable': seller
+            'authenticity.fee': auction_object.current_bid
         }
     }, true, updateCallback);
 }

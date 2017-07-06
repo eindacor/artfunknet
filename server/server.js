@@ -26,19 +26,16 @@ var updateContent = function() {
     }
 
     // temp code
-    items.find({'authenticity': null}).forEach(function(item_object) {
+    items.find().forEach(function(item_object) {
         items.update(item_object._id, {
             $set: {
                 'authenticity': {
                     'forgery':  item_object.forgery ? true : false,
                     'liable': item_object.owner,
                     'identified': item_object.forgery ? true : false, 
-                    'fee': 0
+                    'fee': 0,
+                    'original_owner': item_object.owner
                 }
-            },
-            $unset: {
-                'forgery': "",
-                'liable': ""
             }
         })
     })

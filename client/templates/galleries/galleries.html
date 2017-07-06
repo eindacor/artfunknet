@@ -39,7 +39,7 @@
 							<tr>
 								{{#each attribute}}
 								<td>
-									<i data-attribute_description="{{description}}" data-attribute_value="{{value}}" data-attribute_id="{{_id}}" style="color: rgb({{getRatingColor value}}, 0, 0)" class="gallery-attribute fa {{icon}}"></i>
+									<i data-attribute_description="{{description}}" data-attribute_id="{{_id}}" style="color: {{getHTMLColorFromValue proc}}" class="gallery-attribute fa {{icon}}"></i>
 								</td>
 								<td>
 									<span class="procs">{{proc}}%</span>

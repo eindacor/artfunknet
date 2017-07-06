@@ -75,13 +75,11 @@ Template.galleryCard.helpers({
 	'galleryInfo' : function(gallery_object) {
 		try {
 			var attribute_array = [];
-			var gallery_details = gallery_object.attribute_values;
-			var attribute_ids = Object.keys(gallery_object.attribute_values);
+			var attribute_ids = Object.keys(gallery_object.published_procs);
 
 			for (var i=0; i < attribute_ids.length; i++) {
 				var attribute_object = attributes.findOne(attribute_ids[i]);
-				attribute_object.value = gallery_object.attribute_values[attribute_ids[i]];
-				attribute_object.proc = Math.floor(100 * gallery_object.procs[attribute_ids[i]]);
+				attribute_object.proc = gallery_object.published_procs[attribute_ids[i]];
 				attribute_array.push(attribute_object);
 			}
 
