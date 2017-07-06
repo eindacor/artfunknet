@@ -11,13 +11,24 @@ getNPCQuality = function(player_level) {
 
 createNPC = function(gallery_object, attribute_id, duration, npc_quality) {
 	var attribute_object = getOneFromCollection("createNPC()", attributes, attribute_id);
+
+	var icon;
+
+	if (attribute_object.npc_name == "Forger") {
+		var attribute_query = {'active': true, 'npc_name': {$ne: "Forger"}};
+		var active_attribute_count = getFromCollection("createNPC()", attributes, attribute_query).count();
+		icon = attributes.findOne(attribute_query, {skip: Math.floor(Math.random() * active_attribute_count)}).icon;
+	}
+
+	else icon = attribute_object.icon;
+
     var npc_object = {
         'quality' : npc_quality,
         'attribute_id' : attribute_id,
         'owner_id' : gallery_object.owner_id,
         'expiration' : moment().add(duration, 'milliseconds')._d.toISOString(),
         'players_met' : [],
-        'icon' : attribute_object.icon,
+        'icon' : icon,
         'npc_name': attribute_object.npc_name
     }
 
