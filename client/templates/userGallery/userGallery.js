@@ -130,7 +130,11 @@ Template.userGallery.helpers({
 	},
 
 	'npc' : function(owner_id) {
-		return npcs.find({'owner_id' : owner_id, 'players_met': {$nin: [Meteor.userId()]}});
+		return npcs.find({'owner_id' : owner_id});
+	},
+
+	'already_met': function(npc_object) {
+		return npc_object.players_met.indexOf(Meteor.userId()) != -1;
 	},
 
 	'canEdit' : function(screen_name) {
