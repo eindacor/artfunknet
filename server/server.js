@@ -26,20 +26,7 @@ var updateContent = function() {
     }
 
     // temp code
-    items.find("JDKuCwmaLAEdbX6K7").forEach(function(item_object) {
-        var locked_attribute = item_object.attributes.locked[0];
-        var target_attribute = attributes.findOne({'npc_name': "Art Expert"});
-        var att_keys = Object.keys(locked_attribute);
-        for (var i=0; i<att_keys.length; i++) {
-            var key = att_keys[i];
-            if (key != "value") {
-                locked_attribute[key] = target_attribute[key];
-            }
-        }
 
-        var item_interface = new ItemIF(item_object);
-        item_interface.updateItem({$set: {'attributes.locked': [locked_attribute]}}, false);
-    })
     //temp code
 }
 
