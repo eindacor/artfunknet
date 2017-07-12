@@ -157,7 +157,8 @@ var successfulAuction = function(auction_object, winning_user) {
             'tags': [], 
             'date_received': moment()._d.toISOString(),
             'authenticity.identified': false,
-            'authenticity.fee': auction_object.current_bid
+            'authenticity.fee': auction_object.current_bid,
+            'authenticity.liability_pending': true
         }
     }, true, updateCallback);
 }
