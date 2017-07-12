@@ -263,8 +263,8 @@ Meteor.setInterval((function() {
 
 Meteor.setInterval((function() {
     var liability_cutoff = moment().subtract(ACQUISITION_LIABILITY_CUTOFF, 'milliseconds')._d.toISOString();
-    items.find({$and: [{'date_received': {$lt: liability_cutoff}, 'authenticity.identified': false}, {$where: function(){this.owner != this.authenticity.liable} }]}).forEach(function(item_object) {
-        items.update(item_object._id, {$set: {'authenticity.liable': item_object.owner}});
+    items.find({'date_received': {$lt: liability_cutoff}, 'authenticity.identified': false, 'authenticity.liability_pending': true}).forEach(function(item_object) {
+        items.update(item_object._id, {$set: {'authenticity.liable': item_object.owner, 'authenticity.liability_pending': false}});
     })
 
 }), LIABILITY_CHECK_FREQUENCY)

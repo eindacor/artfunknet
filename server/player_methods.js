@@ -173,7 +173,8 @@ getCapSetterObject = function(player_level) {
         'ticket_cap': {'start': 3, 'end': 10},
         'pc_cap': {'start': 5, 'end': 12},
         'visitor_cap': {'start': 20, 'end': 200},
-        'repairing_cap': {'start': 4, 'end': 12}
+        'repairing_cap': {'start': 4, 'end': 12},
+        'forgery_contract_cap': {'start': 8, 'end': 24}
     }
 
     var setter_object = {};

@@ -347,7 +347,9 @@ ItemGenerator = function() {
 	        'vintage': item_generator_object.vintage === undefined ? false : item_generator_object.vintage,
 	        'authenticity': {
 	        	'forgery':  item_generator_object.forgery === undefined ? false : item_generator_object.forgery,
+	        	'forgery_quality': item_generator.forgery_quality === undefined ? 1 : item_generator_object.forgery_quality,
 	        	'liable': player_interface === undefined ? BOT_USER_NAME : player_interface.getId(),
+	        	'liability_pending': false,
 	        	'identified': true,
 	        	'fee': 0,
 	        	'original_owner': player_interface === undefined ? BOT_USER_NAME : player_interface.getId()
@@ -392,7 +394,9 @@ ItemGenerator = function() {
 	        'vintage': forged_item_object.vintage,
 	        'authenticity': {
 	        	'forgery': true,
+	        	'forgery_quality': forged_item_object.forgery_quality,
 	        	'liable': forged_item_object.owner,
+	        	'liability_pending': false,
 	        	'identified': true,
 	        	'fee': 0,
 	        	'original_owner': forged_item_object.owner

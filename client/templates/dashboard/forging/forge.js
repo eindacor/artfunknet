@@ -1,7 +1,13 @@
 var forged_preview_tracker = new Tracker.Dependency;
+var forged_item_data;
 
-var getItemData = function() {
+var updateForgedItemData = function() {
 	var artwork_id = $('#artwork-selector').val();
+
+	if (artwork_id == undefined) {
+		return;
+	}
+
 	var item_data = {
 		'artwork_id': artwork_id,
 		'artwork_data': artworks.findOne(artwork_id),
@@ -10,10 +16,12 @@ var getItemData = function() {
 		'seasonal': $('input:radio[name=seasonal_selector]:checked').val() == "true",
 		'vintage': $('input:radio[name=vintage_selector]:checked').val() == "true",
 		'lottery': Number($('input:radio[name=lottery_selector]:checked').val()),
-		'level': Number($('input:radio[name=level_selector]:checked').val())
+		'level': Number($('input:radio[name=level_selector]:checked').val()),
+		'forgery_quality': .5
 	}
 
-	return item_data;
+	forged_item_data = item_data;
+	forged_preview_tracker.changed();
 }
 
 Template.forge.helpers({
@@ -34,32 +42,91 @@ Template.forge.helpers({
 	},
 
 	'isAdmin': function() {
-		return false;
-		//TODO return Meteor.user().profile.user_type == "admin";
+		//return false;
+		return Meteor.user().profile.user_type == "admin";
 	},
 
 	'forged_item_data': function() {
 		forged_preview_tracker.depend();
-		return getItemData();
+		if (forged_item_data == undefined) {
+			updateForgedItemData();
+		}
+
+		return forged_item_data;
 	},
 
 	'contract_count': function() {
 		return Meteor.user().profile.forgery_contracts;
+	},
+
+	'forgery_heat': function() {
+		forged_preview_tracker.depend();
+
+		if (forged_item_data == undefined) {
+			return 1;
+		}
+
+		else return getForgeryHeat(forged_item_data);
+	},
+
+	// FORGERY_HEAT_CATEGORY = {
+	//     'QUEST': "quest",
+	//     'SELL': "sell",
+	//     'DONATE': "donate",
+	//     'COLLECTOR': "collector"
+	// }
+
+	'forgery_heat_map': function() {
+		forged_preview_tracker.depend();
+
+		if (forged_item_data == undefined) {
+			return {};
+		}
+
+		else return {
+			'default': getForgeryHeat(forged_item_data),
+			'quest': getForgeryHeat(forged_item_data, FORGERY_HEAT_CATEGORY.QUEST),
+			'sell': getForgeryHeat(forged_item_data, FORGERY_HEAT_CATEGORY.SELL),
+			'donate': getForgeryHeat(forged_item_data, FORGERY_HEAT_CATEGORY.DONATE),
+			'collector': getForgeryHeat(forged_item_data, FORGERY_HEAT_CATEGORY.COLLECTOR),
+			'display': getForgeryHeat(forged_item_data, FORGERY_HEAT_CATEGORY.DISPLAY)
+		}
+	},
+
+	'forgery_heat_color': function(forgery_heat) {
+		var blue_value = Math.floor((1 - forgery_heat) * 255);
+		var red_value = Math.floor(forgery_heat * 255);
+		return "rgb(" + red_value + ", 0, " + blue_value + ")";
+	},
+
+	'heat_label': function(forgery_heat) {
+		if (forgery_heat < .2) {
+			return "very low";
+		}
+
+		else if (forgery_heat < .4) {
+			return "low";
+		}
+
+		else if (forgery_heat < .6) {
+			return "medium";
+		}
+
+		else if (forgery_heat < .8) {
+			return "high";
+		}
+
+		else return "very high";
 	}
 })
 
 Template.forge.events({
-	'click #forge-item': function() {
-		var item_data = getItemData();
-		console.log(item_data);
-	},
-
 	'change #artwork-selector, change #foil-select, change #unlocked-select, change #seasonal-select, change #vintage-select, change #lottery-select, change #level-select': function() {
-		forged_preview_tracker.changed();
+		updateForgedItemData();
 	},
 
 	'click #forge-item': function() {
-		Meteor.call('forgeItem', getItemData(), function(error, result) {
+		Meteor.call('forgeItem', forged_item_data, function(error, result) {
 			if (error) {
 				console.log(error.message);
 			}
@@ -68,5 +135,6 @@ Template.forge.events({
 })
 
 Template.forge.rendered = function() {
+	forged_item_data = undefined;
 	forged_preview_tracker.changed();
 }

@@ -1,0 +1,7 @@
+.template-forge .heat-text {
+	font-size: 2rem;
+}
+
+.template-forge .heat-text > span {
+	font-weight: bold;
+}

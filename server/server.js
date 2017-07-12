@@ -32,6 +32,7 @@ var updateContent = function() {
                 'authenticity': {
                     'forgery':  item_object.forgery ? true : false,
                     'liable': item_object.owner,
+                    'liability_pending': false,
                     'identified': item_object.forgery ? true : false, 
                     'fee': 0,
                     'original_owner': item_object.owner

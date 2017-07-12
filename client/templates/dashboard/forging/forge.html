@@ -25,9 +25,9 @@
 						<div class= "col-xs-1 type-selectors" id="foil-select">
 							<p class="af-color">Foil</p>
 							{{#if isAdmin}}
-							<label><input class="type-select" type="radio" name="foil_selector" value="random" checked>random</label><br>
-							<label><input class="type-select" type="radio" name="foil_selector" value="true">true</label><br>
 							<label><input class="type-select" type="radio" name="foil_selector" value="false">false</label><br>
+							<label><input class="type-select" type="radio" name="foil_selector" value="true">true</label><br>
+							<label><input class="type-select" type="radio" name="foil_selector" value="random" checked>random</label><br>
 							{{else}}
 							<label><input class="type-select" type="radio" name="foil_selector" value="false" checked>false</label><br>
 							<label><input class="type-select" type="radio" name="foil_selector" value="true">true</label><br>
@@ -37,9 +37,9 @@
 						<div class= "col-xs-1 type-selectors" id="unlocked-select">
 							<p class="af-color">Unlocked</p>
 							{{#if isAdmin}}
-							<label><input class="type-select" type="radio" name="unlocked_selector" value="random" checked>random</label><br>
-							<label><input class="type-select" type="radio" name="unlocked_selector" value="true">true</label><br>
 							<label><input class="type-select" type="radio" name="unlocked_selector" value="false">false</label><br>
+							<label><input class="type-select" type="radio" name="unlocked_selector" value="true">true</label><br>
+							<label><input class="type-select" type="radio" name="unlocked_selector" value="random" checked>random</label><br>
 							{{else}}
 							<label><input class="type-select" type="radio" name="unlocked_selector" value="false" checked>false</label><br>
 							<label><input class="type-select" type="radio" name="unlocked_selector" value="true">true</label><br>
@@ -48,9 +48,9 @@
 						<div class= "col-xs-1 type-selectors" id="seasonal-select">
 							<p class="af-color">Seasonal</p>
 							{{#if isAdmin}}
-							<label><input class="type-select" type="radio" name="seasonal_selector" value="season" checked>season</label><br>
-							<label><input class="type-select" type="radio" name="seasonal_selector" value="true">true</label><br>
 							<label><input class="type-select" type="radio" name="seasonal_selector" value="false">false</label><br>
+							<label><input class="type-select" type="radio" name="seasonal_selector" value="true">true</label><br>
+							<label><input class="type-select" type="radio" name="seasonal_selector" value="season" checked>season</label><br>
 							{{else}}
 							<label><input class="type-select" type="radio" name="seasonal_selector" value="false" checked>false</label><br>
 							<label><input class="type-select" type="radio" name="seasonal_selector" value="true">true</label><br>
@@ -103,16 +103,30 @@
 						{{#if isAdmin}}
 						<div class= "col-xs-1 type-selectors" id="misprint-select">
 							<p class="af-color">Misprint</p>
-							<label><input class="type-select" type="radio" name="misprint_selector" value="random" checked>random</label><br>
 							<label><input class="type-select" type="radio" name="misprint_selector" value="false">false</label><br>
 							<label><input class="type-select" type="radio" name="misprint_selector" value="true">true</label><br>
+							<label><input class="type-select" type="radio" name="misprint_selector" value="random" checked>random</label><br>
 						</div>
 						{{/if}}
 						<div class="col-xs-3 item-preview">
-							{{> itemStubView item_data=forged_item_data}}
+							{{#if forged_item_data}}
+								{{> itemStubView item_data=forged_item_data}}
+							{{/if}}
 						</div>
 					</div>
 				</p>
+				{{#if isAdmin}}
+					{{#with forgery_heat_map}}
+						<p class="heat-text">default heat level: <span style="color: {{forgery_heat_color default}}">{{heat_label default}} ({{default}})</span></p>
+						<p class="heat-text">quest heat level: <span style="color: {{forgery_heat_color quest}}">{{heat_label quest}} ({{quest}})</span></p>
+						<p class="heat-text">sell heat level: <span style="color: {{forgery_heat_color sell}}">{{heat_label sell}} ({{sell}})</span></p>
+						<p class="heat-text">donate heat level: <span style="color: {{forgery_heat_color donate}}">{{heat_label donate}} ({{donate}})</span></p>
+						<p class="heat-text">collector heat level: <span style="color: {{forgery_heat_color collector}}">{{heat_label collector}} ({{collector}})</span></p>
+						<p class="heat-text">display heat level: <span style="color: {{forgery_heat_color display}}">{{heat_label display}} ({{display}})</span></p>
+					{{/with}}
+				{{else}}
+				<p class="heat-text">heat level: <span style="color: {{forgery_heat_color forgery_heat}}">{{heat_label forgery_heat}}</span></p>
+				{{/if}}
 				<p><button id="forge-item">forge item</button></p>
 			{{else}}
 				<p>You currently have no forgery contracts.</p>
