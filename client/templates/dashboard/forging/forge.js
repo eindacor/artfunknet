@@ -17,7 +17,9 @@ var updateForgedItemData = function() {
 		'vintage': $('input:radio[name=vintage_selector]:checked').val() == "true",
 		'lottery': Number($('input:radio[name=lottery_selector]:checked').val()),
 		'level': Number($('input:radio[name=level_selector]:checked').val()),
-		'forgery_quality': .5
+		'authenticity': {
+			'forgery_quality': .5
+		}
 	}
 
 	forged_item_data = item_data;
