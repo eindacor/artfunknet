@@ -100,15 +100,22 @@ var updateForgedItemData = function() {
 		return;
 	}
 
+	var foil = $('input:radio[name=foil_selector]:checked').length == 0 ? false : $('input:radio[name=foil_selector]:checked').val() == "true";
+	var unlocked = $('input:radio[name=unlocked_selector]:checked').length == 0 ? false : $('input:radio[name=unlocked_selector]:checked').val() == "true";
+	var seasonal = $('input:radio[name=seasonal_selector]:checked').length == 0 ? false : $('input:radio[name=seasonal_selector]:checked').val() == "true";
+	var vintage = $('input:radio[name=vintage_selector]:checked').length == 0 ? false : $('input:radio[name=vintage_selector]:checked').val() == "true";
+	var lottery = $('input:radio[name=lottery_selector]:checked').length == 0 ? 0 : Number($('input:radio[name=lottery_selector]:checked').val());
+	var level = $('input:radio[name=level_selector]:checked').length == 0 ? 1 : Number($('input:radio[name=level_selector]:checked').val());
+
 	var item_data = {
 		'artwork_id': artwork_id_to_forge,
 		'artwork_data': artworks.findOne(artwork_id_to_forge),
-		'foil': $('input:radio[name=foil_selector]:checked').val() == "true",
-		'unlocked': $('input:radio[name=unlocked_selector]:checked').val() == "true",
-		'seasonal': $('input:radio[name=seasonal_selector]:checked').val() == "true",
-		'vintage': $('input:radio[name=vintage_selector]:checked').val() == "true",
-		'lottery': Number($('input:radio[name=lottery_selector]:checked').val()),
-		'level': Number($('input:radio[name=level_selector]:checked').val()),
+		'foil': foil,
+		'unlocked': unlocked,
+		'seasonal': seasonal,
+		'vintage': vintage,
+		'lottery': lottery,
+		'level': level,
 		'authenticity': {
 			'forgery_quality': .5
 		}
@@ -309,6 +316,7 @@ Template.forge.events({
 })
 
 Template.forge.rendered = function() {
+	artwork_id_to_forge = undefined;
 	forged_item_data = undefined;
 	forged_preview_tracker.changed();
 
