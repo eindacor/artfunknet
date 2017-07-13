@@ -2,6 +2,10 @@
 	font-size: 2rem;
 }
 
+.template-forge .cost-text {
+	font-size: 2rem;
+}
+
 .template-forge .heat-text > span {
 	font-weight: bold;
 }

@@ -1,5 +1,7 @@
 var forged_preview_tracker = new Tracker.Dependency;
+var forgery_cost_tracker = new Tracker.Dependency;
 var forged_item_data;
+var forgery_cost;
 
 var artist_data_tracker = new Tracker.Dependency;
 var expanded_data_tracker = new Tracker.Dependency;
@@ -95,6 +97,25 @@ var refreshArtistArray = function() {
 	// rarity_selection_tracker.changed();
 }
 
+var updateForgeryCost = function() {
+	if (forged_item_data == undefined) {
+		forged_cost = undefined;
+		forgery_cost_tracker.changed();
+		return;
+	}
+
+	Meteor.call('getForgeryCost', forged_item_data, function(error, result) {
+		if (error) {
+			console.log(error);
+		}
+
+		else {
+			forgery_cost = result;
+			forgery_cost_tracker.changed();
+		}
+	})
+}
+
 var updateForgedItemData = function() {
 	if (artwork_id_to_forge == undefined) {
 		return;
@@ -122,6 +143,7 @@ var updateForgedItemData = function() {
 	}
 
 	forged_item_data = item_data;
+	updateForgeryCost();
 	forged_preview_tracker.changed();
 }
 
@@ -244,6 +266,11 @@ Template.forge.helpers({
 	'artwork_selected': function() {
 		forged_preview_tracker.depend();
 		return artworks.findOne(artwork_id_to_forge);
+	},
+
+	'forgery_cost': function() {
+		forgery_cost_tracker.depend();
+		return forgery_cost;
 	}
 })
 

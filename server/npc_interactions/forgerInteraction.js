@@ -1,13 +1,13 @@
 forgerInteraction = function(npc_object, player_interface) {
-	var contract_count;
+	var contract_count = 1;
 
-	switch(npc_object.quality) {
-		case 'bronze': contract_count = 1; break;
-		case 'silver': contract_count = 2; break;
-		case 'gold': contract_count = 3; break;
-		case 'platinum': contract_count = 4; break;
-		default: contract_count = 0; break;
-	}
+	// switch(npc_object.quality) {
+	// 	case 'bronze': contract_count = 1; break;
+	// 	case 'silver': contract_count = 2; break;
+	// 	case 'gold': contract_count = 3; break;
+	// 	case 'platinum': contract_count = 4; break;
+	// 	default: contract_count = 0; break;
+	// }
 
 	player_interface.giveForgeryContracts(contract_count);
 

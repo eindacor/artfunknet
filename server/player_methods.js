@@ -905,7 +905,12 @@ Meteor.methods({
      },
 
      'forgeItem': function(forged_item_object) {
-        player_interface = new PlayerIF(Meteor.user());
+        var player_interface = new PlayerIF(Meteor.user());
         return player_interface.forgeItem(forged_item_object);
+     },
+
+     'getForgeryCost': function(forged_item_object) {
+        var player_interface = new PlayerIF(Meteor.user());
+        return player_interface.getForgeryCost(forged_item_object);
      }
 })

@@ -113,6 +113,9 @@
 					{{else}}
 					<p class="heat-text">heat level: <span style="color: {{forgery_heat_color forgery_heat}}">{{heat_label forgery_heat}}</span></p>
 					{{/if}}
+					{{#if forgery_cost}}
+					<p class="cost-text green-text text-shadow">{{displayAsMoneyValue forgery_cost}}</p>
+					{{/if}}
 					<p><button id="forge-item">forge item</button></p>
 					<p class="contract-count">fogery contracts remaining: {{contract_count}}</p>
 				{{else}}
