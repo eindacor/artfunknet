@@ -109,6 +109,7 @@
 
 .template-artistView .artwork-list {
 	padding-bottom: 12px;
+	padding-left: 16px;
 }
 
 .template-artistView .expand-collapse {
@@ -191,10 +192,6 @@
 
 .template-artistView .item-collection-data-container {
 	display: inline-block;
-}
-
-.template-artistView .artwork-list {
-	padding-left: 16px;
 }
 
 .template-artistView .page-buttons {

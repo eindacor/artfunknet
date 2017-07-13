@@ -5,3 +5,192 @@
 .template-forge .heat-text > span {
 	font-weight: bold;
 }
+
+.template-forge #search-area {
+	resize: none;
+	width: 100%;
+	height: 4rem;
+	font-size: 2rem;
+	margin-bottom: 12px;
+	padding: .4rem 2rem;
+}
+
+.template-forge .artist-container {
+	border-top: 1px solid rgba(0,0,0,.6);
+}
+
+.template-forge .artwork-container {
+	border-top: 1px solid rgba(0,0,0,.3);
+}
+
+.template-forge .artwork-list {
+	padding-bottom: 12px;
+	padding-left: 16px;
+}
+
+.template-forge .expand-collapse {
+	opacity: .6;
+	cursor: pointer;
+	font-size: 2rem;
+}
+
+.template-forge .expand-collapse:hover {
+	opacity: 1;
+}
+
+.template-forge .expand-collapse-container {
+	display: inline-block;
+}
+
+.template-forge .artist-name-container {
+	display: inline-block;
+	color: black;
+	font-size: 1.5rem;
+	margin-left: 20px;
+	font-weight: bold;
+	margin-right: 20px;
+}
+
+.template-forge .artist-info {
+	padding-top: 10px;
+	padding-bottom: 16px;
+	padding-left: 20px;
+	cursor: pointer;
+}
+
+.template-forge .artist-info:hover {
+	background-color: #ffe6f9;
+}
+
+.template-forge .artwork-info {
+	padding-top: 5px;
+	padding-bottom: 5px;
+	padding-left: 20px;
+	cursor: pointer;
+}
+
+.template-forge .artwork-info:hover {
+	background-color: #ffe6f9;
+}
+
+.template-forge .artwork-title-container {
+	display: inline-block;
+	margin-left: 20px;
+	margin-right: 20px;
+}
+
+.template-forge .page-buttons {
+	height: 50px;
+	text-align: center;
+	min-height: 4em;
+	display: flex;
+	align-items:center;
+}
+.template-forge .page-button {
+	font-size: 3rem;
+	margin: 20px 80px 20px 80px;
+	vertical-align: middle;
+}
+
+.template-forge .page-button.disabled {
+	opacity: 0;
+}
+
+.template-forge .page-button.enabled:hover {
+	color: black;
+	cursor: pointer;
+}
+
+.template-forge .page-indicators {
+	font-weight: bold;
+	color: black;
+	vertical-align: middle;
+	font-size: 2rem;
+}
+
+.template-forge .enforce-terms {
+	font-size: 1.5rem;
+	font-weight: bold;
+	width: 60px;
+	height: 24px;
+}
+
+.template-forge .rarity-button-container {
+	display: inline-block;
+	margin-bottom: 20px;
+}
+
+.template-forge .rarity-button {
+	font-size: 1.5rem;
+	font-weight: bold;
+	height: 24px;
+	width: 120px;
+}
+
+.template-forge .rarity-button.disabled {
+	background-color: white;
+	opacity: .6;
+}
+
+.template-forge .rarity-button.enabled {
+	color: white;
+}
+
+.template-forge .rarity-button.common.enabled {
+	background-color: green;
+}
+
+.template-forge .rarity-button.common.disabled {
+	color: green;
+	border: 1px solid green;
+}
+
+.template-forge .rarity-button.uncommon.enabled {
+	background-color: blue;
+}
+
+.template-forge .rarity-button.uncommon.disabled {
+	color: blue;
+	border: 1px solid blue;
+}
+
+.template-forge .rarity-button.rare.enabled {
+	background-color: #CCCC00;
+}
+
+.template-forge .rarity-button.rare.disabled {
+	color: #CCCC00;
+	border: 1px solid #CCCC00;
+}
+
+.template-forge .rarity-button.legendary.enabled {
+	background-color: orange;
+}
+
+.template-forge .rarity-button.legendary.disabled {
+	color: orange;
+	border: 1px solid orange;
+}
+
+.template-forge .rarity-button.masterpiece.enabled {
+	background-color: #44DDDD;
+}
+
+.template-forge .rarity-button.masterpiece.disabled {
+	color: #44DDDD;
+	border: 1px solid #44DDDD;
+}
+
+.template-forge #clear-artwork-selected {
+	cursor: pointer;
+	opacity: .6;
+	margin-right: 24px;
+}
+
+.template-forge #clear-artwork-selected:hover {
+	opacity: 1;
+}
+
+.template-forge h3 {
+	margin-bottom: 24px;
+}

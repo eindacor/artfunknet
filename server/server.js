@@ -26,11 +26,12 @@ var updateContent = function() {
     }
 
     // temp code
-    items.find().forEach(function(item_object) {
+    items.find({'authenticity': null}).forEach(function(item_object) {
         items.update(item_object._id, {
             $set: {
                 'authenticity': {
                     'forgery':  item_object.forgery ? true : false,
+                    'forgery_quality': Math.random(),
                     'liable': item_object.owner,
                     'liability_pending': false,
                     'identified': item_object.forgery ? true : false, 

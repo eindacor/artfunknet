@@ -2,132 +2,155 @@
 	<div class="template-forge">
 		<div class="row tools-section item-creation">
 			{{#if contract_count}}
-				<p class="contract-count">fogery contracts remaining: {{contract_count}}</p>
-				<h4 class="af-color">Generate Item</h4>
-				{{#if isAdmin}}
-				<select id="artwork-selector">
-					{{#each admin_artworks}}
-						<option value="{{_id}}">{{artist}} - {{title}}</option>
-					{{/each}}
-				</select>
-				<p>artwork id: <input class="item-create-field" id="generate-artwork-id"></p>
-				{{else}}
-				<select id="artwork-selector">
-					{{#each archived_artworks}}
-						{{#with artwork this}}
-						<option value="{{_id}}">{{artist}} - {{title}}</option>
-						{{/with}}
-					{{/each}}
-				</select>
-				{{/if}}		
-				<p>
-					<div class="row no-margin no-padding">
-						<div class= "col-xs-1 type-selectors" id="foil-select">
-							<p class="af-color">Foil</p>
-							{{#if isAdmin}}
-							<label><input class="type-select" type="radio" name="foil_selector" value="false">false</label><br>
-							<label><input class="type-select" type="radio" name="foil_selector" value="true">true</label><br>
-							<label><input class="type-select" type="radio" name="foil_selector" value="random" checked>random</label><br>
-							{{else}}
-							<label><input class="type-select" type="radio" name="foil_selector" value="false" checked>false</label><br>
-							<label><input class="type-select" type="radio" name="foil_selector" value="true">true</label><br>
-							{{/if}}
-							
-						</div>
-						<div class= "col-xs-1 type-selectors" id="unlocked-select">
-							<p class="af-color">Unlocked</p>
-							{{#if isAdmin}}
-							<label><input class="type-select" type="radio" name="unlocked_selector" value="false">false</label><br>
-							<label><input class="type-select" type="radio" name="unlocked_selector" value="true">true</label><br>
-							<label><input class="type-select" type="radio" name="unlocked_selector" value="random" checked>random</label><br>
-							{{else}}
-							<label><input class="type-select" type="radio" name="unlocked_selector" value="false" checked>false</label><br>
-							<label><input class="type-select" type="radio" name="unlocked_selector" value="true">true</label><br>
-							{{/if}}
-						</div>
-						<div class= "col-xs-1 type-selectors" id="seasonal-select">
-							<p class="af-color">Seasonal</p>
-							{{#if isAdmin}}
-							<label><input class="type-select" type="radio" name="seasonal_selector" value="false">false</label><br>
-							<label><input class="type-select" type="radio" name="seasonal_selector" value="true">true</label><br>
-							<label><input class="type-select" type="radio" name="seasonal_selector" value="season" checked>season</label><br>
-							{{else}}
-							<label><input class="type-select" type="radio" name="seasonal_selector" value="false" checked>false</label><br>
-							<label><input class="type-select" type="radio" name="seasonal_selector" value="true">true</label><br>
-							{{/if}}
-						</div>
-						{{#if isAdmin}}
-						<div class= "col-xs-1 type-selectors" id="original-select">
-							<p class="af-color">Original</p>
-							<label><input class="type-select" type="radio" name="original_selector" value="false" checked>false</label><br>	
-							<label><input class="type-select" type="radio" name="original_selector" value="true">true</label><br>				
-						</div>
-						<div class= "col-xs-1 type-selectors" id="forgery-select">
-							<p class="af-color">Forgery</p>
-							<label><input class="type-select" type="radio" name="forgery_selector" value="false" checked>false</label><br>
-							<label><input class="type-select" type="radio" name="forgery_selector" value="true">true</label><br>	
-						</div>
-						{{/if}}
-						<div class= "col-xs-1 type-selectors" id="vintage-select">
-							<p class="af-color">Vintage</p>
-							<label><input class="type-select" type="radio" name="vintage_selector" value="false" checked>false</label><br>
-							<label><input class="type-select" type="radio" name="vintage_selector" value="true">true</label><br>
-						</div>
-						<div class= "col-xs-1 type-selectors" id="lottery-select">
-							<p class="af-color">Lottery</p>
-							<label><input class="type-select" type="radio" name="lottery_selector" value="0" checked>no level</label><br>
-							<label><input class="type-select" type="radio" name="lottery_selector" value="1">1</label><br>
-							<label><input class="type-select" type="radio" name="lottery_selector" value="2">2</label><br>
-							<label><input class="type-select" type="radio" name="lottery_selector" value="3">3</label><br>
-							<label><input class="type-select" type="radio" name="lottery_selector" value="4">4</label><br>
-							<label><input class="type-select" type="radio" name="lottery_selector" value="5">5</label><br>
-							<label><input class="type-select" type="radio" name="lottery_selector" value="6">6</label><br>
-							<label><input class="type-select" type="radio" name="lottery_selector" value="7">7</label><br>
-							<label><input class="type-select" type="radio" name="lottery_selector" value="8">8</label><br>
-							<label><input class="type-select" type="radio" name="lottery_selector" value="9">9</label><br>
-							<label><input class="type-select" type="radio" name="lottery_selector" value="10">10</label><br>
-						</div>
-						<div class= "col-xs-1 type-selectors" id="level-select">
-							<p class="af-color">Level</p>
-							<label><input class="type-select" type="radio" name="level_selector" value="1" checked>1</label><br>
-							<label><input class="type-select" type="radio" name="level_selector" value="2">2</label><br>
-							<label><input class="type-select" type="radio" name="level_selector" value="3">3</label><br>
-							<label><input class="type-select" type="radio" name="level_selector" value="4">4</label><br>
-							<label><input class="type-select" type="radio" name="level_selector" value="5">5</label><br>
-							<label><input class="type-select" type="radio" name="level_selector" value="6">6</label><br>
-							<label><input class="type-select" type="radio" name="level_selector" value="7">7</label><br>
-							<label><input class="type-select" type="radio" name="level_selector" value="8">8</label><br>
-							<label><input class="type-select" type="radio" name="level_selector" value="9">9</label><br>
-							<label><input class="type-select" type="radio" name="level_selector" value="10">10</label><br>
-						</div>
-						{{#if isAdmin}}
-						<div class= "col-xs-1 type-selectors" id="misprint-select">
-							<p class="af-color">Misprint</p>
-							<label><input class="type-select" type="radio" name="misprint_selector" value="false">false</label><br>
-							<label><input class="type-select" type="radio" name="misprint_selector" value="true">true</label><br>
-							<label><input class="type-select" type="radio" name="misprint_selector" value="random" checked>random</label><br>
-						</div>
-						{{/if}}
-						<div class="col-xs-3 item-preview">
-							{{#if forged_item_data}}
-								{{> itemStubView item_data=forged_item_data}}
-							{{/if}}
-						</div>
-					</div>
-				</p>
-				{{#if isAdmin}}
-					{{#with forgery_heat_map}}
-						<p class="heat-text">default heat level: <span style="color: {{forgery_heat_color default}}">{{heat_label default}} ({{default}})</span></p>
-						<p class="heat-text">quest heat level: <span style="color: {{forgery_heat_color quest}}">{{heat_label quest}} ({{quest}})</span></p>
-						<p class="heat-text">sell heat level: <span style="color: {{forgery_heat_color sell}}">{{heat_label sell}} ({{sell}})</span></p>
-						<p class="heat-text">donate heat level: <span style="color: {{forgery_heat_color donate}}">{{heat_label donate}} ({{donate}})</span></p>
-						<p class="heat-text">collector heat level: <span style="color: {{forgery_heat_color collector}}">{{heat_label collector}} ({{collector}})</span></p>
-						<p class="heat-text">display heat level: <span style="color: {{forgery_heat_color display}}">{{heat_label display}} ({{display}})</span></p>
+				{{#if artwork_selected}}
+					{{#with artwork_selected}}
+					<h3><i id="clear-artwork-selected" class="fa fa-arrow-left" data-target_id="{{_id}}" data-type="artist"></i> forging <span class="af-color highlight">{{title}}</span> by <span class="af-color highlight">{{this.artist}}</span></h3>
 					{{/with}}
+					<p>
+						<div class="row no-margin no-padding">
+							<div class= "col-xs-1 type-selectors" id="foil-select">
+								<p class="af-color">Foil</p>
+								{{#if isAdmin}}
+								<label><input class="type-select" type="radio" name="foil_selector" value="false">false</label><br>
+								<label><input class="type-select" type="radio" name="foil_selector" value="true">true</label><br>
+								<label><input class="type-select" type="radio" name="foil_selector" value="random" checked>random</label><br>
+								{{else}}
+								<label><input class="type-select" type="radio" name="foil_selector" value="false" checked>false</label><br>
+								<label><input class="type-select" type="radio" name="foil_selector" value="true">true</label><br>
+								{{/if}}
+								
+							</div>
+							<div class= "col-xs-1 type-selectors" id="unlocked-select">
+								<p class="af-color">Unlocked</p>
+								{{#if isAdmin}}
+								<label><input class="type-select" type="radio" name="unlocked_selector" value="false">false</label><br>
+								<label><input class="type-select" type="radio" name="unlocked_selector" value="true">true</label><br>
+								<label><input class="type-select" type="radio" name="unlocked_selector" value="random" checked>random</label><br>
+								{{else}}
+								<label><input class="type-select" type="radio" name="unlocked_selector" value="false" checked>false</label><br>
+								<label><input class="type-select" type="radio" name="unlocked_selector" value="true">true</label><br>
+								{{/if}}
+							</div>
+							<div class= "col-xs-1 type-selectors" id="seasonal-select">
+								<p class="af-color">Seasonal</p>
+								{{#if isAdmin}}
+								<label><input class="type-select" type="radio" name="seasonal_selector" value="false">false</label><br>
+								<label><input class="type-select" type="radio" name="seasonal_selector" value="true">true</label><br>
+								<label><input class="type-select" type="radio" name="seasonal_selector" value="season" checked>season</label><br>
+								{{else}}
+								<label><input class="type-select" type="radio" name="seasonal_selector" value="false" checked>false</label><br>
+								<label><input class="type-select" type="radio" name="seasonal_selector" value="true">true</label><br>
+								{{/if}}
+							</div>
+							{{#if isAdmin}}
+							<div class= "col-xs-1 type-selectors" id="original-select">
+								<p class="af-color">Original</p>
+								<label><input class="type-select" type="radio" name="original_selector" value="false" checked>false</label><br>	
+								<label><input class="type-select" type="radio" name="original_selector" value="true">true</label><br>				
+							</div>
+							<div class= "col-xs-1 type-selectors" id="forgery-select">
+								<p class="af-color">Forgery</p>
+								<label><input class="type-select" type="radio" name="forgery_selector" value="false" checked>false</label><br>
+								<label><input class="type-select" type="radio" name="forgery_selector" value="true">true</label><br>	
+							</div>
+							{{/if}}
+							<div class= "col-xs-1 type-selectors" id="vintage-select">
+								<p class="af-color">Vintage</p>
+								<label><input class="type-select" type="radio" name="vintage_selector" value="false" checked>false</label><br>
+								<label><input class="type-select" type="radio" name="vintage_selector" value="true">true</label><br>
+							</div>
+							<div class= "col-xs-1 type-selectors" id="lottery-select">
+								<p class="af-color">Lottery</p>
+								<label><input class="type-select" type="radio" name="lottery_selector" value="0" checked>no level</label><br>
+								<label><input class="type-select" type="radio" name="lottery_selector" value="1">1</label><br>
+								<label><input class="type-select" type="radio" name="lottery_selector" value="2">2</label><br>
+								<label><input class="type-select" type="radio" name="lottery_selector" value="3">3</label><br>
+								<label><input class="type-select" type="radio" name="lottery_selector" value="4">4</label><br>
+								<label><input class="type-select" type="radio" name="lottery_selector" value="5">5</label><br>
+								<label><input class="type-select" type="radio" name="lottery_selector" value="6">6</label><br>
+								<label><input class="type-select" type="radio" name="lottery_selector" value="7">7</label><br>
+								<label><input class="type-select" type="radio" name="lottery_selector" value="8">8</label><br>
+								<label><input class="type-select" type="radio" name="lottery_selector" value="9">9</label><br>
+								<label><input class="type-select" type="radio" name="lottery_selector" value="10">10</label><br>
+							</div>
+							<div class= "col-xs-1 type-selectors" id="level-select">
+								<p class="af-color">Level</p>
+								<label><input class="type-select" type="radio" name="level_selector" value="1" checked>1</label><br>
+								<label><input class="type-select" type="radio" name="level_selector" value="2">2</label><br>
+								<label><input class="type-select" type="radio" name="level_selector" value="3">3</label><br>
+								<label><input class="type-select" type="radio" name="level_selector" value="4">4</label><br>
+								<label><input class="type-select" type="radio" name="level_selector" value="5">5</label><br>
+								<label><input class="type-select" type="radio" name="level_selector" value="6">6</label><br>
+								<label><input class="type-select" type="radio" name="level_selector" value="7">7</label><br>
+								<label><input class="type-select" type="radio" name="level_selector" value="8">8</label><br>
+								<label><input class="type-select" type="radio" name="level_selector" value="9">9</label><br>
+								<label><input class="type-select" type="radio" name="level_selector" value="10">10</label><br>
+							</div>
+							{{#if isAdmin}}
+							<div class= "col-xs-1 type-selectors" id="misprint-select">
+								<p class="af-color">Misprint</p>
+								<label><input class="type-select" type="radio" name="misprint_selector" value="false">false</label><br>
+								<label><input class="type-select" type="radio" name="misprint_selector" value="true">true</label><br>
+								<label><input class="type-select" type="radio" name="misprint_selector" value="random" checked>random</label><br>
+							</div>
+							{{/if}}
+							<div class="col-xs-3 item-preview">
+								{{#if forged_item_data}}
+									{{> itemStubView item_data=forged_item_data}}
+								{{/if}}
+							</div>
+						</div>
+					</p>
+					{{#if isAdmin}}
+						{{#with forgery_heat_map}}
+							<p class="heat-text">default heat level: <span style="color: {{forgery_heat_color default}}">{{heat_label default}} ({{default}})</span></p>
+							<p class="heat-text">quest heat level: <span style="color: {{forgery_heat_color quest}}">{{heat_label quest}} ({{quest}})</span></p>
+							<p class="heat-text">sell heat level: <span style="color: {{forgery_heat_color sell}}">{{heat_label sell}} ({{sell}})</span></p>
+							<p class="heat-text">donate heat level: <span style="color: {{forgery_heat_color donate}}">{{heat_label donate}} ({{donate}})</span></p>
+							<p class="heat-text">collector heat level: <span style="color: {{forgery_heat_color collector}}">{{heat_label collector}} ({{collector}})</span></p>
+							<p class="heat-text">display heat level: <span style="color: {{forgery_heat_color display}}">{{heat_label display}} ({{display}})</span></p>
+						{{/with}}
+					{{else}}
+					<p class="heat-text">heat level: <span style="color: {{forgery_heat_color forgery_heat}}">{{heat_label forgery_heat}}</span></p>
+					{{/if}}
+					<p><button id="forge-item">forge item</button></p>
+					<p class="contract-count">fogery contracts remaining: {{contract_count}}</p>
 				{{else}}
-				<p class="heat-text">heat level: <span style="color: {{forgery_heat_color forgery_heat}}">{{heat_label forgery_heat}}</span></p>
+					<textarea id="search-area" placeholder="search for artworks in your archive by artist name or title"></textarea>
+					<div class="col-xs-12 no-margin no-padding">
+						{{#each artist}}
+						<div class="row artist-container no-margin no-padding">
+							<div class="col-xs-12 no-margin no-padding">
+								<div class="row artist-info no-margin no-padding" data-artist_id="{{_id}}">
+									<div class="expand-collapse-container">
+										<i class="expand-collapse fa {{#if artist_selected this}}fa-caret-down{{else}}fa-caret-right{{/if}}" data-target_id="{{_id}}" data-type="artist"></i>
+									</div>
+									<div class="artist-name-container">
+										{{artist_name}}
+									</div>
+								</div>
+								{{#if artist_selected this}}
+								<div class="row artwork-list no-margin no-padding">
+									<div class="col-xs-12 no-margin no-padding">
+										{{#each artwork this}}
+										<div class="row artwork-container no-margin">
+											<div class="col-xs-12 no-margin">
+												<div class="row artwork-info no-margin" data-artwork_id="{{_id}}">
+													<div class="artwork-title-container {{rarity}}">
+														{{title}}
+													</div>
+												</div>
+											</div>
+										</div>
+										{{/each}}
+									</div>
+								</div>
+								{{/if}}
+							</div>
+						</div>
+						{{/each}}
+					</div>
 				{{/if}}
-				<p><button id="forge-item">forge item</button></p>
 			{{else}}
 				<p>You currently have no forgery contracts.</p>
 			{{/if}}
