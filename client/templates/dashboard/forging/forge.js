@@ -13,6 +13,7 @@ var total_pages;
 var match_query;
 var expanded_artist_ids = [];
 var rarities_selected = artwork_rarities.slice();
+var forgery_contract_selected_id;
 var artists_per_page = 10;
 var enforce_terms = false;
 
@@ -118,6 +119,7 @@ var updateForgeryCost = function() {
 
 var updateForgedItemData = function() {
 	if (artwork_id_to_forge == undefined) {
+		forged_preview_tracker.changed();
 		return;
 	}
 
@@ -127,6 +129,8 @@ var updateForgedItemData = function() {
 	var vintage = $('input:radio[name=vintage_selector]:checked').length == 0 ? false : $('input:radio[name=vintage_selector]:checked').val() == "true";
 	var lottery = $('input:radio[name=lottery_selector]:checked').length == 0 ? 0 : Number($('input:radio[name=lottery_selector]:checked').val());
 	var level = $('input:radio[name=level_selector]:checked').length == 0 ? 1 : Number($('input:radio[name=level_selector]:checked').val());
+
+	var forgery_quality = forgery_contracts.findOne(forgery_contract_selected_id).quality;
 
 	var item_data = {
 		'artwork_id': artwork_id_to_forge,
@@ -138,7 +142,7 @@ var updateForgedItemData = function() {
 		'lottery': lottery,
 		'level': level,
 		'authenticity': {
-			'forgery_quality': .5
+			'forgery_quality': forgery_quality
 		}
 	}
 
@@ -201,7 +205,11 @@ Template.forge.helpers({
 	},
 
 	'contract_count': function() {
-		return Meteor.user().profile.forgery_contracts;
+		return forgery_contracts.find({'owner_id': Meteor.userId()}).count();
+	},
+
+	'forgery_contract': function() {
+		return forgery_contracts.find({'owner_id': Meteor.userId()});
 	},
 
 	'forgery_heat': function() {
@@ -263,9 +271,34 @@ Template.forge.helpers({
 		else return "very high";
 	},
 
-	'artwork_selected': function() {
+	'artwork_and_contract_selected': function() {
 		forged_preview_tracker.depend();
-		return artworks.findOne(artwork_id_to_forge);
+		var artwork_selected = artworks.findOne(artwork_id_to_forge);
+
+		if (artwork_selected == undefined) {
+			return false;
+		}
+
+		var forgery_contract_selected = forgery_contracts.findOne(forgery_contract_selected_id);
+
+		if (forgery_contract_selected == undefined) {
+			return false;
+		}
+
+		else return {
+			'artwork_selected': artwork_selected,
+			'forgery_contract_selected': forgery_contract_selected
+		}
+	},
+
+	'artwork_id_selected': function() {
+		forged_preview_tracker.depend();
+		return artwork_id_to_forge;
+	},
+
+	'forgery_contract_id_selected': function() {
+		forged_preview_tracker.depend();
+		return forgery_contract_selected_id;
 	},
 
 	'forgery_cost': function() {
@@ -328,22 +361,40 @@ Template.forge.events({
 		expanded_data_tracker.changed();
 	},
 
-	'click .artwork-info': function(event) {
+	'click .artwork-info.unselected': function(event) {
 		var artwork_id = $(event.target).closest('.artwork-info').data().artwork_id;
 		artwork_id_to_forge = artwork_id;
 		forged_preview_tracker.changed();
 	},
 
+	'click .artwork-info.selected': function(event) {
+		artwork_id_to_forge = undefined;
+		updateForgedItemData();
+	},
+
 	'click #clear-artwork-selected': function(event) {
 		artwork_id_to_forge = undefined;
 		forged_item_data = undefined;
+		forgery_contract_selected_id = undefined;
 		refreshArtistArray();
 		forged_preview_tracker.changed();
+	},
+
+	'click .forgery-contract-container.unselected': function(event) {
+		var forgery_contract_id = $(event.target).closest('.forgery-contract-container.unselected').data().forgery_contract_id;
+		forgery_contract_selected_id = forgery_contract_id;
+		updateForgedItemData();
+	},
+
+	'click .forgery-contract-container.selected': function(event) {
+		forgery_contract_selected_id = undefined;
+		updateForgedItemData();
 	}
 })
 
 Template.forge.rendered = function() {
 	artwork_id_to_forge = undefined;
+	forgery_contract_selected_id = undefined;
 	forged_item_data = undefined;
 	forged_preview_tracker.changed();
 

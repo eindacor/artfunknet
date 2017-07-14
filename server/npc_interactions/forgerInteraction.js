@@ -9,7 +9,7 @@ forgerInteraction = function(npc_object, player_interface) {
 	// 	default: contract_count = 0; break;
 	// }
 
-	player_interface.giveForgeryContracts(contract_count);
+	player_interface.giveForgeryContracts(contract_count, npc_object);
 
 	var message = "You have met a Forger who has offered to make counterfeit copies of items from your archive.";
 	return {'message': message}

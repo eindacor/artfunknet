@@ -77,6 +77,10 @@
 	background-color: #ffe6f9;
 }
 
+.template-forge .artwork-info.selected {
+	background-color: rgb(200, 255, 200);
+}
+
 .template-forge .artwork-title-container {
 	display: inline-block;
 	margin-left: 20px;
@@ -197,4 +201,33 @@
 
 .template-forge h3 {
 	margin-bottom: 24px;
+}
+
+.template-forge .forgery-contract-container {
+	font-size: 3.5rem;
+	cursor: pointer;
+	opacity: .6;
+	display: inline-block;
+	text-align: center;
+	margin: 0px 12px;
+}
+
+.template-forge .forgery-contract-container:hover, .template-forge .forgery-contract-container.selected {
+	opacity: 1;
+}
+
+.template-forge .forgery-quality-text {
+	font-size: 1.5rem;
+}
+
+.template-forge .contract-icon {
+	margin-bottom: -10px;
+}
+
+.template-forge .fa-check {
+	margin-left: 24px;
+}
+
+.template-forge .forgery-contract-area {
+	margin-bottom: 20px;
 }
