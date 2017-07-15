@@ -10,6 +10,12 @@
 							<p class="forgery-quality-text">{{floatToPercentage quality}}</p>
 						</div>
 					{{/each}}
+					{{#if selected_forgery_contract_id}}
+						<div id="discard-forgery">
+							<i class="fa fa-trash"></i>
+							<p class="forgery-quality-text">discard</p>
+						</div>
+					{{/if}}
 				</div>
 				{{#if artwork_and_contract_selected}}
 					{{#with artwork_and_contract_selected}}

@@ -14,18 +14,6 @@ benefactorInteraction = function(npc_object, player_interface) {
 	if (isOwnGallery(npc_object)) {
 		donation_amount *= OWN_GALLERY_NPC_AMPLIFIER;
 
-		if (player_interface.procUniqueAttribute("LONGEST_GALLERY_TICKET_BONUS", undefined)) {
-			var longest_ticket = gallery_tickets.findOne({'ticketholder': Meteor.userId()}, {sort: {'expiration': -1}});
-			if (longest_ticket) {
-				var time_left = moment(longest_ticket.expiration) - moment();
-				var hours_left = time_left / 3600000;
-				//TODO scale to player level
-				var bonus_amount = Math.min(Math.floor(hours_left * 200000), 1000000);
-
-				donation_amount += bonus_amount;
-			}
-		}
-
 		if (player_interface.procUniqueAttribute("BENEFACTOR_VISITOR_COUNT_BONUS", undefined)) {
 			var multiplier = 1 + (npcs.find({'owner_id': Meteor.userId()}).count() * .1)
 			donation_amount *= multiplier;

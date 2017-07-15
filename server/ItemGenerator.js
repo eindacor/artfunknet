@@ -328,7 +328,7 @@ ItemGenerator = function() {
 	    var attribute_map = item_generator_object.attribute_map === undefined ? DEFAULT_ATTRIBUTE_MAP : item_generator_object.attribute_map;
 	    var condition_min = item_generator_object.condition_min === undefined ? 0 : item_generator_object.condition_min;
 
-	    var forgery_quality = item_generator_object.authenticity === undefined || item_generator_object.authenticity.forgery_quality === undefined ? Math.random() : item_generator_object.authenticity.forgery_quality;
+	    var forgery_quality = item_generator_object.authenticity === undefined || item_generator_object.authenticity.forgery_quality === undefined ? Number(Math.random().toFixed(3)) : item_generator_object.authenticity.forgery_quality;
 
 	    var new_item_object = {
 	        'artwork_id' : item_generator_object.artwork_interface.getId(),

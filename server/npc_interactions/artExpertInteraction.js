@@ -28,10 +28,6 @@ artExpertInteraction = function(npc_object, player_interface) {
 				player_interface.addXPChunkPercentage("XP_FOR_ZERO_COUNTS", .1, false);
 			}
 		}
-
-		if (player_interface.procUniqueAttribute("NEGATIVE_ROLL_COUNTS", undefined)) {
-			roll_count_min = -5;
-		}
 	}
 
 	var highest_item = getOneFromCollection("artExpertInteraction", items, {'owner' : Meteor.userId(), 'status' : {$in : ["claimed", "displayed", "repairing"]}, 'roll_count' : {$gt : roll_count_min}}, {sort: {'roll_count': -1}});

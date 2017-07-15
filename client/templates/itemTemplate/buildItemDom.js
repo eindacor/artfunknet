@@ -115,6 +115,12 @@ var getDetailsHTML = function(player_item_interface) {
 		$item_specs.append($('<p>condition: <span style="color: ' + getHTMLColorFromValue(condition) + '">' + Math.floor(condition * 100) + '%</span></p>'));
 		$item_specs.append($('<p id="dynamic-value-stat">estimated value: ' + getMoneyValue(player_item_interface.getItemIF().getItemObject().values.actual) + '</p>'));
 		$item_specs.append($('<p id="dynamic-roll-count-stat">roll count: ' + player_item_interface.getItemIF().getItemObject().roll_count + '</p>'));
+
+		if (player_item_interface.getItemIF().getItemObject().authenticity.forgery && player_item_interface.getItemIF().getItemObject().authenticity.identified) {
+			var forgery_quality = player_item_interface.getItemIF().getItemObject().authenticity.forgery_quality;
+			$item_specs.append($('<p id="forgery-quality-stat">forgery quality: <span style="color: ' + getHTMLColorFromValue(forgery_quality) + '">' + Math.floor(forgery_quality * 100) + '%</span></p>'));
+		}
+
 	}
 
 	else {
@@ -660,6 +666,12 @@ getItemActionsHTML = function(player_item_interface) {
 				var $redeem_button = $('<span class="redeem enabled"><i class="fa fa-shield"></i></span>');
 				$redeem_button.on('click', getActionFunction("redeem", player_item_interface));
 				$action_button_row.append($redeem_button);
+			}
+
+			if (player_item_interface.getPlayerItemPermissions().canDelete()) {
+				var $delete_button = $('<span class="delete enabled"><i class="fa fa-times"></i></span>');
+				$delete_button.on('click', getActionFunction("delete", player_item_interface));
+				$action_button_row.append($delete_button);
 			}
 
 			$button_area.append($action_button_row);

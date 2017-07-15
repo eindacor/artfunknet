@@ -45,10 +45,6 @@ marketingManagerInteraction = function(npc_object, player_interface) {
 		if (player_interface.procUniqueAttribute("DONOR_PLATINUM_MARKETING_SPAWN", "Art Donor"))
 			npc_spawn_quality = "platinum";
 
-		if (player_interface.procUniqueAttribute("MARKETING_VISITOR_SPAWN_CHANCE_BOOST", "Gallery Manager")) {
-			npc_spawn_chance += .4;
-		}
-
 		if (player_interface.procUniqueAttribute("MARKETING_PRESERVATIONIST_VISITOR_SPAWN", "Preservationist")) {
 			gallery_object = galleries.findOne({'owner_id': npc_object.owner_id});
 			createNPC(gallery_object, attributes.findOne({'npc_name': "Preservationist"})._id, NPC_SPAWN_FREQUENCY, npc_spawn_quality);

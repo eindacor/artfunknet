@@ -31,7 +31,7 @@ var updateContent = function() {
             $set: {
                 'authenticity': {
                     'forgery':  item_object.forgery ? true : false,
-                    'forgery_quality': Math.random(),
+                    'forgery_quality': Number(Math.random().toFixed(3)),
                     'liable': item_object.owner,
                     'liability_pending': false,
                     'identified': item_object.forgery ? true : false, 

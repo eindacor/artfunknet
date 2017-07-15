@@ -57,11 +57,6 @@ collectorInteraction = function(npc_object, player_interface) {
 			if (collector_target.roll_count <= 0 && player_interface.procUniqueAttribute("ART_COLLECTOR_ROLL_COUNT_BONUS", undefined))
 				offer_multiplier += standard_legendary_increment;
 
-			if ((collector_target.foil || collector_target.original || collector_target.lottery || collector_target.seasonal) && 
-				player_interface.procUniqueAttribute("ART_COLLECTOR_SPECIAL_BONUS", undefined)) {
-					offer_multiplier += standard_legendary_increment * 4;
-			}
-
 			if (player_interface.procUniqueAttribute("ART_COLLECTOR_AUCTION_BONUS", undefined)) {
 				var highest_value = 0;
 				var highest_level = 0;

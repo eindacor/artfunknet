@@ -203,13 +203,21 @@
 	margin-bottom: 24px;
 }
 
-.template-forge .forgery-contract-container {
+.template-forge .forgery-contract-container, .template-forge #discard-forgery {
 	font-size: 3.5rem;
 	cursor: pointer;
 	opacity: .6;
 	display: inline-block;
 	text-align: center;
 	margin: 0px 12px;
+}
+
+.template-forge #discard-forgery {
+	margin-left: 24px;
+}
+
+.template-forge #discard-forgery:hover {
+	opacity: 1;
 }
 
 .template-forge .forgery-contract-container:hover, .template-forge .forgery-contract-container.selected {

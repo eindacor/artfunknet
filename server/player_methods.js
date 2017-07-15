@@ -913,5 +913,10 @@ Meteor.methods({
      'getForgeryCost': function(forged_item_object, forgery_quality) {
         var player_interface = new PlayerIF(Meteor.user());
         return player_interface.getForgeryCost(forged_item_object, forgery_quality);
+     },
+
+     'discardForgeryContract': function(forgery_contract_id) {
+        var player_interface = new PlayerIF(Meteor.user());
+        player_interface.discardForgeryContract(forgery_contract_id);
      }
 })

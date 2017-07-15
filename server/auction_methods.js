@@ -133,13 +133,6 @@ var successfulAuction = function(auction_object, winning_user) {
                 nested_item_interface.updateItem({$set: {'condition': .9}}, false);
             }
 
-            if (winner_interface.procUniqueAttribute("AUCTION_WIN_TICKET_EXTENSION", undefined)) {
-                gallery_tickets.find({'ticketholder': new_winner_id}).forEach(function(db_object) {
-                    var new_expiration = moment(db_object.expiration).add(30, "minutes");
-                    gallery_tickets.update(db_object._id, {$set: {'expiration': new_expiration._d.toISOString()}});
-                })
-            } 
-
             if (winning_user.profile.settings.animations_enabled) {
                 Meteor.users.update(winning_user._id, {$push: {'profile.notifications.loot': {'id': new Meteor.Collection.ObjectID()._str, 'expiration': moment().add(5, "seconds")._d.toISOString(), 'amount': 1}}});
             }
@@ -156,7 +149,7 @@ var successfulAuction = function(auction_object, winning_user) {
             'owner': winning_user._id, 
             'tags': [], 
             'date_received': moment()._d.toISOString(),
-            'authenticity.identified': false,
+            'authenticity.identified': winning_user._id == item_interface.getItemObject().authenticity.original_owner,
             'authenticity.fee': auction_object.current_bid,
             'authenticity.liability_pending': true
         }

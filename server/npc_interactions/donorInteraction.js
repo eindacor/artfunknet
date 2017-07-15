@@ -15,10 +15,6 @@ donorInteraction = function(npc_object, player_interface) {
 			drop_count -= 1;
 		}
 
-		if (player_interface.procUniqueAttribute("DONOR_FOIL_BONUS", undefined)) {
-			foil_chance *= 2;
-		}
-
 		if (player_interface.procUniqueAttribute("DONOR_CONDITION_MIN", undefined)) {
 			condition_min = .8;
 		}

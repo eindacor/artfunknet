@@ -392,6 +392,21 @@ Template.forge.events({
 	'click .forgery-contract-container.selected': function(event) {
 		selected_forgery_contract_id = undefined;
 		updateForgedItemData();
+	},
+
+	'click #discard-forgery': function() {
+		if (selected_forgery_contract_id != undefined) {
+			Meteor.call('discardForgeryContract', selected_forgery_contract_id, function(error) {
+				if (error) {
+					console.log(error);
+				}
+
+				else {
+					selected_forgery_contract_id = undefined;
+					updateForgedItemData();
+				}
+			})
+		}
 	}
 })
 

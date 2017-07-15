@@ -11,11 +11,6 @@ enthusiastInteraction = function(npc_object, player_interface) {
 	if (isOwnGallery(npc_object)) {
 		xp_chunk_percentage *= OWN_GALLERY_NPC_AMPLIFIER;
 
-		if (player_interface.procUniqueAttribute("ENTHUSIAST_DAILY_DROP_REDUCTION", undefined)) {
-			var drop_reduced = moment(Meteor.user().profile.last_drop).add(-5, "minutes")._d.toISOString();
-			Meteor.users.update(Meteor.userId(), {$set: {'profile.last_drop': drop_reduced}});
-		}
-
 		if (player_interface.procUniqueAttribute("ENTHUSIAST_VISITOR_COUNT_BONUS", undefined)) {
 			var multiplier = 1 + (npcs.find({'owner_id': Meteor.userId()}).count() * .05)
 			xp_chunk_percentage *= multiplier;

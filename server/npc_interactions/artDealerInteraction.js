@@ -15,10 +15,6 @@ artDealerInteraction = function(npc_object, player_interface) {
 			drop_count += Math.min(Math.ceil(auction_count / 4), 3);
 		}
 
-		if (player_interface.procUniqueAttribute("DEALER_FOIL_BONUS", undefined)) {
-			foil_chance *= 2;
-		}
-
 		if ((items.findOne({'owner': player_interface.getId(), 'status': "displayed", 'condition': {$lt: .7}}) == undefined) && player_interface.procUniqueAttribute("DISPLAY_CONDITION_DEALER_BOOST", undefined)) {
 			drop_count += 1;
 		}
