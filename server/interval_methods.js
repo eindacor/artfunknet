@@ -216,6 +216,7 @@ Meteor.setInterval((function() {
 
                         if (player_item_interface.catchForgery(FORGERY_HEAT_CATEGORY.DISPLAY)) {
                             item_interface.punishForgeryOwner();
+                            player_item_interface.makeLiable();
                         }
                     }
 

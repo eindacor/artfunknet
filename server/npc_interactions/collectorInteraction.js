@@ -34,6 +34,15 @@ collectorInteraction = function(npc_object, player_interface) {
 	var collector_target = getRandomItemForSale();
 
 	if (collector_target) {
+		var item_interface = new ItemIF(collector_target);
+		var player_item_interface = new PlayerItemIF(player_interface, item_interface);
+
+		if (player_item_interface.catchForgery(FORGERY_HEAT_CATEGORY.COLLECTOR)) {
+            item_interface.punishForgeryOwner();
+            player_item_interface.makeLiable();
+            return {'message': "You have met a collector, who has identified an item you're selling to be a forgery!"};
+        }
+
 		var base_value = Math.floor(getItemObjectValueByType(collector_target, 'actual', Meteor.userId()));
 		var base_chunk = .1 + (.2 * collector_target.level);
 		var offer_bonus = 0;
@@ -101,7 +110,6 @@ collectorInteraction = function(npc_object, player_interface) {
 
 		var offer_amount = Math.floor((base_value * offer_multiplier) + offer_bonus);
 		player_interface.addFunds("collector", offer_amount);
-
 
 		var does_not_collect = isOwnGallery(npc_object) && Math.random() < .4 && player_interface.procUniqueAttribute("COLLECTOR_DOES_NOT_COLLECT", undefined);
 
