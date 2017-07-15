@@ -5,7 +5,7 @@
 				<div class="forgery-contract-area row">
 					<p>forgery contracts available:</p>
 					{{#each forgery_contract}}
-						<div class="forgery-contract-container {{#if isEqual forgery_contract_id_selected _id}}selected af-color{{else}}unselected{{/if}}" data-forgery_contract_id="{{_id}}">
+						<div class="forgery-contract-container {{#if isEqual selected_forgery_contract_id _id}}selected af-color{{else}}unselected{{/if}}" data-forgery_contract_id="{{_id}}">
 							<i class="fa fa-user-secret contract-icon"></i>
 							<p class="forgery-quality-text">{{floatToPercentage quality}}</p>
 						</div>

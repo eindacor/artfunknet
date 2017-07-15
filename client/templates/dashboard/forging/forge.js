@@ -13,7 +13,7 @@ var total_pages;
 var match_query;
 var expanded_artist_ids = [];
 var rarities_selected = artwork_rarities.slice();
-var forgery_contract_selected_id;
+var selected_forgery_contract_id;
 var artists_per_page = 10;
 var enforce_terms = false;
 
@@ -99,13 +99,13 @@ var refreshArtistArray = function() {
 }
 
 var updateForgeryCost = function() {
-	if (forged_item_data == undefined) {
+	if (forged_item_data == undefined || selected_forgery_contract_id == undefined) {
 		forged_cost = undefined;
 		forgery_cost_tracker.changed();
 		return;
 	}
 
-	Meteor.call('getForgeryCost', forged_item_data, function(error, result) {
+	Meteor.call('getForgeryCost', forged_item_data, forgery_contracts.findOne(selected_forgery_contract_id).quality, function(error, result) {
 		if (error) {
 			console.log(error);
 		}
@@ -118,7 +118,7 @@ var updateForgeryCost = function() {
 }
 
 var updateForgedItemData = function() {
-	if (artwork_id_to_forge == undefined) {
+	if (artwork_id_to_forge == undefined || selected_forgery_contract_id == undefined) {
 		forged_preview_tracker.changed();
 		return;
 	}
@@ -130,7 +130,7 @@ var updateForgedItemData = function() {
 	var lottery = $('input:radio[name=lottery_selector]:checked').length == 0 ? 0 : Number($('input:radio[name=lottery_selector]:checked').val());
 	var level = $('input:radio[name=level_selector]:checked').length == 0 ? 1 : Number($('input:radio[name=level_selector]:checked').val());
 
-	var forgery_quality = forgery_contracts.findOne(forgery_contract_selected_id).quality;
+	var forgery_quality = forgery_contracts.findOne(selected_forgery_contract_id).quality;
 
 	var item_data = {
 		'artwork_id': artwork_id_to_forge,
@@ -279,7 +279,7 @@ Template.forge.helpers({
 			return false;
 		}
 
-		var forgery_contract_selected = forgery_contracts.findOne(forgery_contract_selected_id);
+		var forgery_contract_selected = forgery_contracts.findOne(selected_forgery_contract_id);
 
 		if (forgery_contract_selected == undefined) {
 			return false;
@@ -296,9 +296,9 @@ Template.forge.helpers({
 		return artwork_id_to_forge;
 	},
 
-	'forgery_contract_id_selected': function() {
+	'selected_forgery_contract_id': function() {
 		forged_preview_tracker.depend();
-		return forgery_contract_selected_id;
+		return selected_forgery_contract_id;
 	},
 
 	'forgery_cost': function() {
@@ -313,10 +313,13 @@ Template.forge.events({
 	},
 
 	'click #forge-item': function() {
-		Meteor.call('forgeItem', forged_item_data, function(error, result) {
+		Meteor.call('forgeItem', forged_item_data, selected_forgery_contract_id, function(error, result) {
 			if (error) {
 				console.log(error.message);
 			}
+
+			selected_forgery_contract_id = undefined;
+			updateForgedItemData();
 		})
 	},
 
@@ -375,26 +378,26 @@ Template.forge.events({
 	'click #clear-artwork-selected': function(event) {
 		artwork_id_to_forge = undefined;
 		forged_item_data = undefined;
-		forgery_contract_selected_id = undefined;
+		selected_forgery_contract_id = undefined;
 		refreshArtistArray();
 		forged_preview_tracker.changed();
 	},
 
 	'click .forgery-contract-container.unselected': function(event) {
 		var forgery_contract_id = $(event.target).closest('.forgery-contract-container.unselected').data().forgery_contract_id;
-		forgery_contract_selected_id = forgery_contract_id;
+		selected_forgery_contract_id = forgery_contract_id;
 		updateForgedItemData();
 	},
 
 	'click .forgery-contract-container.selected': function(event) {
-		forgery_contract_selected_id = undefined;
+		selected_forgery_contract_id = undefined;
 		updateForgedItemData();
 	}
 })
 
 Template.forge.rendered = function() {
 	artwork_id_to_forge = undefined;
-	forgery_contract_selected_id = undefined;
+	selected_forgery_contract_id = undefined;
 	forged_item_data = undefined;
 	forged_preview_tracker.changed();
 

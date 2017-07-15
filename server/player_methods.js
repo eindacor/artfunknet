@@ -44,7 +44,8 @@ createUser = function(user_object, callback){
     user_object.profile.money_spent_on_crates = 0;
     user_object.profile.vintage_select = false;
     user_object.profile.vintage_count = 0;
-    user_object.profile.forgery_contracts = 0;
+    user_object.profile.spawn_reduction_coefficient = 1;
+    user_object.profile.spawn_reduction_end = getNowISOString();
     user_object.profile.favorite_galleries = [];
     user_object.profile.notifications = {
         'procs': [],
@@ -174,7 +175,7 @@ getCapSetterObject = function(player_level) {
         'pc_cap': {'start': 5, 'end': 12},
         'visitor_cap': {'start': 20, 'end': 200},
         'repairing_cap': {'start': 4, 'end': 12},
-        'forgery_contract_cap': {'start': 8, 'end': 24}
+        'forgery_contract_cap': {'start': 8, 'end': 16}
     }
 
     var setter_object = {};
@@ -904,13 +905,13 @@ Meteor.methods({
         return player_interface.getId() == item_interface.getItemObject().owner && item_interface.getItemObject().authenticity.identified && item_interface.getItemObject().authenticity.forgery;
      },
 
-     'forgeItem': function(forged_item_object) {
+     'forgeItem': function(forged_item_object, forgery_contract_id) {
         var player_interface = new PlayerIF(Meteor.user());
-        return player_interface.forgeItem(forged_item_object);
+        return player_interface.forgeItem(forged_item_object, forgery_contract_id);
      },
 
-     'getForgeryCost': function(forged_item_object) {
+     'getForgeryCost': function(forged_item_object, forgery_quality) {
         var player_interface = new PlayerIF(Meteor.user());
-        return player_interface.getForgeryCost(forged_item_object);
+        return player_interface.getForgeryCost(forged_item_object, forgery_quality);
      }
 })

@@ -165,7 +165,24 @@ Meteor.setInterval((function() {
 
     npc_data.remove({'timestamp': {$lt: moment().add((NPC_SPAWN_FREQUENCY * -1), "milliseconds")._d.toISOString()}});
 
+    //find  spawn penalties that have ended and update galleries
+    Meteor.users.find({'profile.spawn_reduction_end': {$lt: getNowISOString()}, 'profile.spawn_reduction_coefficient': {$lt: 1}}).forEach(function(user_object) {
+        Meteor.users.update({'_id': user_object._id}, {$set: {'profile.spawn_reduction_coefficient': 1}}, function() {
+            var player_interface = new PlayerIF(user_object);
+            player_interface.updateGalleryDetails();
+        })
+    })
+
 }), NPC_SPAWN_FREQUENCY);
+
+var rewardForger = function(item_interface, display_earning_time) {
+    var forger_interface = new PlayerIF(item_interface.getItemObject().authenticity.original_owner);
+    var forger_item_interface = new PlayerItemIF(forger_interface, item_interface);
+
+    var xp_earned = forger_item_interface.getXPPerHour(display_earning_time);
+
+    forger_interface.addXP(xp_earned, false);
+}
 
 // TODO consolidate xp, display, repairing ticks if possible
 // some vars defined in lib/time_constants.js
@@ -191,6 +208,17 @@ Meteor.setInterval((function() {
                     var item_object = all_displayed[i];
                     var item_interface = new ItemIF(item_object);
                     var player_item_interface = new PlayerItemIF(player_interface, item_interface);
+
+                    if (item_object.authenticity.forgery) {
+                        if (item_object.owner != item_object.authenticity.original_owner) {
+                            rewardForger(item_interface, display_earning_time);
+                        }
+
+                        if (player_item_interface.catchForgery(FORGERY_HEAT_CATEGORY.DISPLAY)) {
+                            item_interface.punishForgeryOwner();
+                        }
+                    }
+
                     var money_per_hour = player_item_interface.getDisplayValuePerHour(display_earning_time);
                     total_earnings += money_per_hour;
                     total_xp += player_item_interface.getXPPerHour(display_earning_time);

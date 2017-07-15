@@ -95,8 +95,8 @@ getItemObjectValues = function(item_object) {
     var mint_value = Math.floor(min + (item_object.artwork_data.value_scale * range));
 
     var base_value = mint_value * lowest_possible_value_coefficient;
-    var condition_value = item_object.condition === undefined ? mint_value * condition_coefficient_max : mint_value * condition_coefficient_max * item_object.condition;
-    var attribute_value = item_object.attributes === undefined ? mint_value * attribute_coefficient_max : mint_value * getAttributeValueCoefficient(item_object);
+    var condition_value = item_object.condition === undefined ? mint_value * condition_coefficient_max * .5 : mint_value * condition_coefficient_max * item_object.condition;
+    var attribute_value = item_object.attributes === undefined ? mint_value * attribute_coefficient_max * .5 : mint_value * getAttributeValueCoefficient(item_object);
 
     var actual_value = Math.floor(base_value + condition_value + attribute_value);
 

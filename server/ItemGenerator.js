@@ -376,7 +376,7 @@ ItemGenerator = function() {
 	    return new_item_id;
 	}
 
-	this.createForgedItem = function(forged_item_object, callback) {
+	this.createForgedItem = function(forged_item_object, forger_contract_object, callback) {
 		var new_item_object = {
 	        'artwork_id' : forged_item_object.artwork_id,
 	        'condition' : forged_item_object.condition === undefined ? getCondition(0) : forged_item_object.condition,
@@ -396,7 +396,7 @@ ItemGenerator = function() {
 	        'vintage': forged_item_object.vintage,
 	        'authenticity': {
 	        	'forgery': true,
-	        	'forgery_quality': forged_item_object.authenticity.forgery_quality,
+	        	'forgery_quality': forger_contract_object.quality,
 	        	'liable': forged_item_object.owner,
 	        	'liability_pending': false,
 	        	'identified': true,

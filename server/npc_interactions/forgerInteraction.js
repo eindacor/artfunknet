@@ -9,8 +9,16 @@ forgerInteraction = function(npc_object, player_interface) {
 	// 	default: contract_count = 0; break;
 	// }
 
-	player_interface.giveForgeryContracts(contract_count, npc_object);
+	var message;
 
-	var message = "You have met a Forger who has offered to make counterfeit copies of items from your archive.";
+	if (forgery_contracts.find({'owner_id': player_interface.getId()}).count() < player_interface.getUserObject().profile.forgery_contract_cap) {
+		player_interface.giveForgeryContracts(contract_count, npc_object);
+		message = "You have met a Forger who has offered to make counterfeit copies of items from your archive.";
+	}
+
+	else {
+		message = "You have met a Forger, but you're unable to take any new forgery contracts at this time.";
+	}
+
 	return {'message': message}
 }
