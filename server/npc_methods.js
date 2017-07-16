@@ -121,6 +121,10 @@ var interactWithNPC = function(npc_id) {
 		default: return undefined;
 	}
 
+	if (isOwnGallery(npc_object) && player_interface.procUniqueAttribute("MULTIPLE_VISITOR_INTERACTIONS", undefined) && Math.random() < .1) {
+        return npc_interaction;
+    }
+
 	npcs.update(npc_id, {$push: {'players_met' : Meteor.userId()}});
 	return npc_interaction;
 }

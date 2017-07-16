@@ -859,7 +859,69 @@ Meteor.methods({
         return player_interface.buyAllFavorites();
      },
 
-     'getArchiveArtistsFromQuery': function(match_query, page, items_per_page) {
+     'getArtistsFromQuery': function(match_query, page, items_per_page) {
+        var aggregate_artworks = artworks.aggregate([
+            {$match: match_query}, 
+            {$project: { _id: 0, artist: "$artist", artist_id: "$artist_id"} },
+            {$sort: {artist : 1} }
+        ]);
+
+        var unique_artist_array = _.uniq(aggregate_artworks, false, function(agg_object) {return agg_object.artist});
+
+        var current_page;
+        var total_pages;
+
+        var total_returned = unique_artist_array.length;
+
+        if (total_returned <= items_per_page) {
+            current_page = 1;
+            total_pages = 1;
+        }
+
+        else {
+            total_pages = Math.floor(total_returned / items_per_page) + 1;
+
+            if (total_returned < ((page - 1) * items_per_page) + 1) {
+                current_page = total_pages;
+            }
+
+            else current_page = page;
+        }
+
+        var skip = (current_page - 1) * items_per_page;
+        var count = items_per_page;
+
+        return {
+            'artist_array': unique_artist_array.slice(skip, skip + count),
+            'current_page': current_page,
+            'total_pages': total_pages
+        }
+     },
+
+     'getForgeableArtistsFromQuery': function(and_query_array, page, items_per_page) {
+        var valid_statuses;
+        var player_interface = new PlayerIF(Meteor.user());
+        if (player_interface.procUniqueAttribute("FORGE_FROM_INVENTORY", undefined)) {
+            valid_statuses = ["archived", "claimed", "reparing", "displayed"];
+        }
+
+        else valid_statuses = ["archived"];
+
+        var aggregate_items = items.aggregate([
+            {$match: {'owner': Meteor.userId(), 'status': {$in: valid_statuses}}}, 
+            {$project: { _id: 0, artist: "$artwork_data.artist", artist_id: "$artwork_data.artist_id"} },
+            {$sort: {artist : 1} }
+        ]);
+
+        var forgeable_artists = _.uniq(aggregate_items, false, function(agg_object) {return agg_object.artist_id});
+        var forgeable_artist_id_array = [];
+        for (var i=0; i<forgeable_artists.length; i++) {
+            forgeable_artist_id_array.push(forgeable_artists[i].artist_id);
+        }
+
+        and_query_array.push({'artist_id': {'$in': forgeable_artist_id_array}});
+        var match_query = {'$and': and_query_array};
+
         var aggregate_artworks = artworks.aggregate([
             {$match: match_query}, 
             {$project: { _id: 0, artist: "$artist", artist_id: "$artist_id"} },

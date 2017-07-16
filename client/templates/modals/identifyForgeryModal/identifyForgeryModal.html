@@ -1,0 +1,14 @@
+<template name="identifyForgeryModal">
+	<div class="template-identifyForgeryModal col-xs-12">
+		<div class="message-container">
+			<div class="modal-message-area">
+				{{>itemInfo item_data=this}}
+				<p class="modal-message">Spend <span class="red-text text-shadow">{{#with identify_cost _id}}{{displayAsMoneyValue this}}{{/with}}</span> to verify <span class="af-color work-title">{{this.artwork_data.title}}</span> by <span class="af-color">{{this.artwork_data.artist}}</span> is not a forgery?</p>
+			</div>
+			<div class="modal-button-area">
+				<button class="modal-button" id="identify-artwork" data-item_id="{{this._id}}">ok</button>
+				<button class="modal-button close-button">close</button>
+			</div>
+		</div>
+	</div>
+</template>

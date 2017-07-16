@@ -75,7 +75,7 @@ var refreshArtistArray = function() {
 
     match_query = {'$and' : and_query_array};
 
-    Meteor.call('getArchiveArtistsFromQuery', match_query, current_page, artists_per_page, function(error, result) {
+    Meteor.call('getArtistsFromQuery', match_query, current_page, artists_per_page, function(error, result) {
 		if (error) {
 			console.log(error);
 		}

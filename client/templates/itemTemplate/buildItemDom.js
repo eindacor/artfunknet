@@ -512,16 +512,10 @@ var getForgeFunction = function(player_item_interface) {
 
 var getIdentifyFunction = function(player_item_interface) {
 	return function() {
-		Meteor.call('identifyItem' , player_item_interface.getItemIF().getId(), function(error) {
-			if (error)
-				console.log(error.message)
-
-			else {
-				var item_object = items.findOne(player_item_interface.getItemIF().getId());
-				var container_id = "#item_" + item_object._id;
-				fillItemContainer($(container_id), new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_object)));
-			}
-		})
+		Blaze.renderWithData(Template.modalTemplate, {
+			'modal_name': "identifyForgeryModal", 
+			'modal_data': player_item_interface.getItemIF().getItemObject()
+		}, $('body')[0]);
 	}
 }
 

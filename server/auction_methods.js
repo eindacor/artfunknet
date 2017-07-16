@@ -133,6 +133,10 @@ var successfulAuction = function(auction_object, winning_user) {
                 nested_item_interface.updateItem({$set: {'condition': .9}}, false);
             }
 
+            if (Math.random() < IDENTIFY_FORGED_AUCTIONS_PROC && winner_interface.procUniqueAttribute("IDENTIFY_FORGED_AUCTIONS", undefined)) {
+                nested_item_interface.updateItem({$set: {'authenticity.identified': true}})
+            }
+
             if (winning_user.profile.settings.animations_enabled) {
                 Meteor.users.update(winning_user._id, {$push: {'profile.notifications.loot': {'id': new Meteor.Collection.ObjectID()._str, 'expiration': moment().add(5, "seconds")._d.toISOString(), 'amount': 1}}});
             }

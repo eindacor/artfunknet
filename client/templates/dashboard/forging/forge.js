@@ -76,9 +76,7 @@ var refreshArtistArray = function() {
 		and_query_array.push(search_term_query);
 	}
 
-    match_query = {'$and' : and_query_array};
-
-    Meteor.call('getArchiveArtistsFromQuery', match_query, current_page, artists_per_page, function(error, result) {
+    Meteor.call('getForgeableArtistsFromQuery', and_query_array, current_page, artists_per_page, function(error, result) {
 		if (error) {
 			console.log(error);
 		}
@@ -152,14 +150,6 @@ var updateForgedItemData = function() {
 }
 
 Template.forge.helpers({
-	'archived_artworks': function() {
-		var distinct_artworks = _.uniq(items.find({'status': "archived", 'displaced': false, 'owner': Meteor.userId()}, {sort: {'artwork_data.artist': 1}}).fetch().map(function(item_object) {
-			return item_object.artwork_id;
-		}), true);
-
-		return distinct_artworks;
-	},
-
 	'admin_artworks': function() {
 		return artworks.find({'active': true});
 	},
