@@ -473,5 +473,15 @@ Meteor.methods({
                 'display_level': undefined
             }
         }
+    },
+
+    'getRerollCost': function(item_id) {
+        var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
+        return player_item_interface.getRerollCost();
+    },
+
+    'getUpgradeCost': function(item_id) {
+        var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
+        return player_item_interface.getUpgradeCost();
     }
 })

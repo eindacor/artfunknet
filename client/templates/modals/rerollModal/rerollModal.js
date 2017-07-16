@@ -3,13 +3,48 @@ var player_interface;
 var item_interface;
 var player_item_permissions;
 var interface_tracker = new Tracker.Dependency;
+var reroll_cost_tracker = new Tracker.Dependency;
+var reroll_cost;
+var upgrade_cost_tracker = new Tracker.Dependency;
+var upgrade_cost;
 
 updateInterfaces = function() {
 	item_interface = new ItemIF(Session.get('selectedItem'));
 	player_interface = new PlayerIF(Meteor.user());
 	player_item_interface = new PlayerItemIF(player_interface, item_interface);
 	player_item_permissions = new PlayerItemPermissions(player_interface, item_interface); 
+	reroll_cost_tracker.changed();
 	interface_tracker.changed();
+}
+
+var updateRerollCost = function() {
+	if (item_interface) {
+		Meteor.call('getRerollCost', item_interface.getId(), function(error, result) {
+			if (error) {
+				console.log(error)
+			}
+
+			else {
+				reroll_cost = result;
+				reroll_cost_tracker.changed();
+			}
+		})
+	}
+}
+
+var updateUpgradeCost = function() {
+	if (item_interface) {
+		Meteor.call('getUpgradeCost', item_interface.getId(), function(error, result) {
+			if (error) {
+				console.log(error)
+			}
+
+			else {
+				upgrade_cost = result;
+				upgrade_cost_tracker.changed();
+			}
+		})
+	}
 }
 
 Template.rerollModal.events ({
@@ -78,6 +113,8 @@ Template.rerollModal.events ({
 })
 
 Template.rerollModal.rendered = function() {
+	reroll_cost = undefined;
+	upgrade_cost = undefined;
 	updateInterfaces();
 }
 
@@ -95,9 +132,12 @@ Template.rerollModal.helpers({
 	},
 
 	'rerollCost' : function() {
-		interface_tracker.depend();
-		if (player_item_interface)
-			return getCommaSeparatedValue(player_item_interface.getRerollCost());
+		reroll_cost_tracker.depend();
+		if (reroll_cost == undefined) {
+			updateRerollCost();
+		}
+
+		else return reroll_cost;
 	},
 
 	'bankBalance' : function() {
@@ -131,27 +171,34 @@ Template.rerollModal.helpers({
 
 	'upgradeCost': function() {
 		interface_tracker.depend();
-		var cost_array = [];
-		var upgrade_cost = player_item_interface.getItemIF().getUpgradeCost();
 
-		for (var i=0; i<knowledge_types.length; i++) {
-			var type = knowledge_types[i];
-			if (upgrade_cost[type] != undefined) {
-				var amount_available = Meteor.user().profile.knowledge[type]
-				var amount = upgrade_cost[type];
-				cost_array.push({
-					'color': artwork_rarities[i],
-					'amount': amount,
-					'name': type.replace("_", " "),
-					'available': amount_available,
-					'can_afford': amount_available >= amount,
-					'type': type
-				})
-			}
-			
+		upgrade_cost_tracker.depend();
+		if (upgrade_cost == undefined) {
+			updateUpgradeCost();
 		}
 
-		return cost_array;
+		else {
+			var cost_array = [];
+
+			for (var i=0; i<knowledge_types.length; i++) {
+				var type = knowledge_types[i];
+				if (upgrade_cost[type] != undefined) {
+					var amount_available = Meteor.user().profile.knowledge[type]
+					var amount = upgrade_cost[type];
+					cost_array.push({
+						'color': artwork_rarities[i],
+						'amount': amount,
+						'name': type.replace("_", " "),
+						'available': amount_available,
+						'can_afford': amount_available >= amount,
+						'type': type
+					})
+				}
+				
+			}
+
+			return cost_array;
+		}
 	},
 
 	'min_roll': function(type) {
