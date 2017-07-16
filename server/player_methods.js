@@ -907,6 +907,10 @@ Meteor.methods({
 
         else valid_statuses = ["archived"];
 
+        if (player_interface.procUniqueAttribute("DEALER_ITEM_FORGERY_DISCOUNT", undefined)) {
+            valid_statuses.push("for_sale");
+        }
+
         var aggregate_items = items.aggregate([
             {$match: {'owner': Meteor.userId(), 'status': {$in: valid_statuses}}}, 
             {$project: { _id: 0, artist: "$artwork_data.artist", artist_id: "$artwork_data.artist_id"} },
