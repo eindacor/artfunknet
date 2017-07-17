@@ -116,7 +116,7 @@ var getDetailsHTML = function(player_item_interface) {
 		$item_specs.append($('<p id="dynamic-value-stat">estimated value: ' + getMoneyValue(player_item_interface.getItemIF().getItemObject().values.actual) + '</p>'));
 		$item_specs.append($('<p id="dynamic-roll-count-stat">roll count: ' + player_item_interface.getItemIF().getItemObject().roll_count + '</p>'));
 
-		if (player_item_interface.getItemIF().getItemObject().authenticity.forgery && player_item_interface.getItemIF().getItemObject().authenticity.identified) {
+		if (player_item_interface.getItemIF().isIdentifiedForgery()) {
 			var forgery_quality = player_item_interface.getItemIF().getItemObject().authenticity.forgery_quality;
 			$item_specs.append($('<p id="forgery-quality-stat">forgery quality: <span style="color: ' + getHTMLColorFromValue(forgery_quality) + '">' + Math.floor(forgery_quality * 100) + '%</span></p>'));
 		}

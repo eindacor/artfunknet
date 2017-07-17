@@ -968,7 +968,7 @@ Meteor.methods({
         var player_interface = new PlayerIF(user_object);
         var item_interface = new ItemIF(item_id);
 
-        return player_interface.getId() == item_interface.getItemObject().owner && item_interface.getItemObject().authenticity.identified && item_interface.getItemObject().authenticity.forgery;
+        return player_interface.getId() == item_interface.getItemObject().owner && item_interface.isIdentifiedForgery();
      },
 
      'forgeItem': function(forged_item_object, forgery_contract_id) {

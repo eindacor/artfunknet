@@ -213,7 +213,9 @@ ItemGenerator = function() {
 	            'vintage': false,
 	            'misprint_chance': multi_item_generator_object.misprint_chance,
 	            'status': multi_item_generator_object.status,
-	            'attribute_map': attribute_map
+	            'attribute_map': attribute_map,
+	            'forgery': multi_item_generator_object.forgery,
+	            'forgery_quality': multi_item_generator_object.forgery_quality
 	        }
 
 	        item_ids.push(this.generateSingle(item_generator, player_interface, callback));
@@ -328,8 +330,6 @@ ItemGenerator = function() {
 	    var attribute_map = item_generator_object.attribute_map === undefined ? DEFAULT_ATTRIBUTE_MAP : item_generator_object.attribute_map;
 	    var condition_min = item_generator_object.condition_min === undefined ? 0 : item_generator_object.condition_min;
 
-	    var forgery_quality = item_generator_object.authenticity === undefined || item_generator_object.authenticity.forgery_quality === undefined ? Number(Math.random().toFixed(3)) : item_generator_object.authenticity.forgery_quality;
-
 	    var new_item_object = {
 	        'artwork_id' : item_generator_object.artwork_interface.getId(),
 	        'condition' : item_generator_object.condition === undefined ? getCondition(condition_min) : item_generator_object.condition,
@@ -349,7 +349,7 @@ ItemGenerator = function() {
 	        'vintage': item_generator_object.vintage === undefined ? false : item_generator_object.vintage,
 	        'authenticity': {
 	        	'forgery':  item_generator_object.forgery === undefined ? false : item_generator_object.forgery,
-	        	'forgery_quality': forgery_quality,
+	        	'forgery_quality': item_generator_object.forgery_quality === undefined ? Number(Math.random().toFixed(3)) : item_generator_object.forgery_quality,
 	        	'liable': player_interface === undefined ? BOT_USER_NAME : player_interface.getId(),
 	        	'liability_pending': false,
 	        	'identified': true,
