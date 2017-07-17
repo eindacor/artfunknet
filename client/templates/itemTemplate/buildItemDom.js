@@ -25,9 +25,9 @@ var applyForgeryStamp = function(player_item_interface) {
 
 		else if (result) {
 			var indicator_id = "#indicators_" + player_item_interface.getItemIF().getId();
-			if ($(indicator_id + " > i.fa-paint-brush").length == 0) {
+			if ($(indicator_id + " > i.fa-user-secret").length == 0) {
 				var $container = $(indicator_id);
-				$container.append($('<i class="red-text fa fa-paint-brush text-shadow"></i>'));
+				$container.append($('<i class="red-text fa fa-user-secret text-shadow"></i>'));
 			}
 		}
 	})
@@ -586,12 +586,6 @@ getItemActionsHTML = function(player_item_interface) {
 				var $permanent_button = $('<span class="perm-collection active af-color"><i class="fa fa-heart"></i></span>');
 				$permanent_button.on('click', getActionFunction("unpermanent", player_item_interface));
 				$button_row.append($permanent_button);
-			}
-
-			if (player_item_interface.getPlayerItemPermissions().canForge()) {
-				var $forge_button = $('<span class="forge enabled"><i class="fa fa-paint-brush"></i></span>');
-				$forge_button.on('click', getActionFunction("forge", player_item_interface));
-				$button_row.append($forge_button);
 			}
 
 			var $delete_button = $('<span class="delete enabled"><i class="fa fa-times"></i></span>');

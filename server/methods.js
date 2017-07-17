@@ -20,13 +20,15 @@ var getMVPData = function(archive_status) {
         query_object = {
             'owner': {$nin: admin_ids}, 
             'displaced': false,
-            'status': "archived"
+            'status': "archived",
+            'authenticity.forgery': false
         };
     }
 
     else {
         query_object = {
             'owner': {$nin: admin_ids}, 
+            'authenticity.forgery': false,
             $or: [{'status': "displayed"}, {'permanent': true}]
         };
     }

@@ -30,7 +30,7 @@ var updateContent = function() {
         items.update(item_object._id, {
             $set: {
                 'authenticity': {
-                    'forgery':  item_object.forgery ? true : false,
+                    'forgery':  false,
                     'forgery_quality': Number(Math.random().toFixed(3)),
                     'liable': item_object.owner,
                     'liability_pending': false,
@@ -41,7 +41,6 @@ var updateContent = function() {
             }
         })
     })
-    // Meteor.users.update({'profile.forgery_contracts': null}, {$set: {'profile.forgery_contracts': 0}});
     //TODO remove below
     Meteor.users.update({}, {$set: {'profile.spawn_reduction_coefficient': 1, 'profile.spawn_reduction_end': getNowISOString()}}, {multi: true});
     //temp code
