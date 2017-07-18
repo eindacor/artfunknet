@@ -244,6 +244,14 @@ Template.playerInfo.helpers({
 
 	'visitor_ignore_coefficient': function() {
 		return 1 - Meteor.user().profile.visitor_ignore_coefficient;
+	},
+
+	'forgery_contract_count': function() {
+		return forgery_contracts.find({'owner_id': Meteor.userId()}).count();
+	},
+
+	'forgery_contract_cap': function() {
+		return Meteor.user().profile.forgery_contract_cap;
 	}
 })
 

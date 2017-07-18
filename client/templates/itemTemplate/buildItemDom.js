@@ -121,6 +121,10 @@ var getDetailsHTML = function(player_item_interface) {
 			$item_specs.append($('<p id="forgery-quality-stat">forgery quality: <span style="color: ' + getHTMLColorFromValue(forgery_quality) + '">' + Math.floor(forgery_quality * 100) + '%</span></p>'));
 		}
 
+		else if (!player_item_interface.getItemIF().isForgery() && player_item_interface.getItemIF().isIdentified()) {
+			$item_specs.append($('<p id="verified-text" class="green-text"><i class="fa fa-check"></i> verified</p>'));
+		}
+
 	}
 
 	else {
@@ -645,7 +649,7 @@ getItemActionsHTML = function(player_item_interface) {
 			}
 
 			if (player_item_interface.getPlayerItemPermissions().canIdentify()) {
-				var $identify_button = $('<span class="decline enabled"><i class="fa fa-eye"></i></span>');
+				var $identify_button = $('<span class="decline enabled"><i class="fa fa-search"></i></span>');
 				$identify_button.on('click', getActionFunction("identify", player_item_interface));
 				$action_button_row.append($identify_button);
 			}

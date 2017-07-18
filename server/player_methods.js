@@ -623,7 +623,7 @@ Meteor.methods({
                 setTimeout("", 1000);
             }
 
-            var has_items_to_claim = items.findOne({'owner': Meteor.userId(), 'vintage': {$ne: true}, 'original': {$ne: true}}) != undefined;
+            var has_items_to_claim = items.findOne({'owner': Meteor.userId(), 'vintage': {$ne: true}, 'original': {$ne: true}, 'authenticity.forgery': false}) != undefined;
 
             // reset gallery finishes
             var default_wall = gallery_finishes.findOne({'filename': "plaster.jpg"});   
@@ -676,25 +676,32 @@ Meteor.methods({
                 }
             );
 
-            items.find({'owner': Meteor.userId(), 'vintage': {$ne: true}, 'original': {$ne: true}, 'status': {$ne: "archived"}}).forEach(function(item_object) {
+            items.find({'owner': Meteor.userId(), $or: [{'vintage': {$ne: true}}, {'authenticity.forgery': true}], 'original': {$ne: true}, 'status': {$ne: "archived"}}).forEach(function(item_object) {
                 var item_interface = new ItemIF(item_object);
                 if (itemIsMisprinted(item_object)) {
                     return;
                 }
 
-                item_interface.updateItem({                               //modifier 
-                    $set: {
-                        'status': 'won',
-                        'vintage': true,
-                        'date_received': getNowISOString(),
-                        'display_details': {
-                            'money' : 0,
-                            'xp' : 0,
-                            'xp_chunk_percentage': 0,
-                            'end' : ""
+                if (item_interface.isForgery()) {
+                    //TODO make this behavior apparent to player
+                    items.remove(item_interface.getId());
+                }
+
+                else {
+                    item_interface.updateItem({                              
+                        $set: {
+                            'status': 'won',
+                            'vintage': true,
+                            'date_received': getNowISOString(),
+                            'display_details': {
+                                'money' : 0,
+                                'xp' : 0,
+                                'xp_chunk_percentage': 0,
+                                'end' : ""
+                            }
                         }
-                    }
-                }, true);         
+                    }, true);  
+                }       
             });
 
             quests.remove({'owner_id': Meteor.userId()});
