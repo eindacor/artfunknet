@@ -1,5 +1,10 @@
 var updateContent = function() {
     console.log("UPDATING CONTENT");
+
+    // temp code
+
+    //temp code
+
     var all_users = Meteor.users.find();
     all_users.forEach(function(user_object) {
         var player_interface = new PlayerIF(user_object);
@@ -24,26 +29,6 @@ var updateContent = function() {
     for (var i=0; i<DYNAMIC_CRATE_COUNT - current_dynamic_crate_count; i++) {
         createCrate();
     }
-
-    // temp code
-    items.find({'authenticity': null}).forEach(function(item_object) {
-        items.update(item_object._id, {
-            $set: {
-                'authenticity': {
-                    'forgery':  false,
-                    'forgery_quality': Number(Math.random().toFixed(3)),
-                    'liable': item_object.owner,
-                    'liability_pending': false,
-                    'identified': item_object.forgery ? true : false, 
-                    'fee': 0,
-                    'original_owner': item_object.owner
-                }
-            }
-        })
-    })
-    //TODO remove below
-    Meteor.users.update({}, {$set: {'profile.visitor_ignore_coefficient': 0, 'profile.visitor_ignore_proc_count': 0}}, {multi: true});
-    //temp code
 }
 
 Meteor.startup(function() {
