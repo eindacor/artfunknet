@@ -143,6 +143,16 @@
 						<td><span class="highlight af-color">{{npcs_met this}}</span> ({{npc_max_meetings this}} max)</td>
 					</tr>
 					{{/each}}
+					<tr>
+						<td class="player-data">current reputation:</td>
+						<td><span class="highlight af-color">{{floatToPercentage visitor_ignore_coefficient}}%</span></td>
+					</tr>
+					{{#if visitor_ignore_proc_count}}
+					<tr>
+						<td class="player-data">clean reputation:</td>
+						<td><span class="highlight af-color">{{visitor_ignore_proc_count}}</span> interactions</td>
+					</tr>
+					{{/if}}
 					<tr></tr>
 					<tr>
 						<td class="player-data">gallery ticket limit:</td>

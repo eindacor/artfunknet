@@ -180,18 +180,19 @@ Template.registerHelper('isQuestItem', function(artwork_id) {
 })
 
 Template.registerHelper('isSought', function(artwork_id) {
+	return false;
 	//TODO move these checks to server to prevent access from client console
-	if (Meteor.user().profile.market_expert.expiration > moment()._d.toISOString()) {
-		sought_tracker.depend();
-		if (sought_status[artwork_id] === undefined) {
-			updateSoughtStatus(artwork_id);
-			return false;
-		}
+	// if (Meteor.user().profile.market_expert.expiration > moment()._d.toISOString()) {
+	// 	sought_tracker.depend();
+	// 	if (sought_status[artwork_id] === undefined) {
+	// 		updateSoughtStatus(artwork_id);
+	// 		return false;
+	// 	}
 
-		else return sought_status[artwork_id];
-	}
+	// 	else return sought_status[artwork_id];
+	// }
 
-	else return false;
+	// else return false;
 })
 
 Template.registerHelper('archive_indicator', function(item_object) {

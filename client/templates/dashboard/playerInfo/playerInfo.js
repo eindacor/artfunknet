@@ -236,6 +236,14 @@ Template.playerInfo.helpers({
 	'crafting_enabled': function() {
 		craft_tracker.depend();
 		return revised_knowledge != undefined;
+	},
+
+	'visitor_ignore_proc_count': function() {
+		return Meteor.user().profile.visitor_ignore_proc_count;
+	},
+
+	'visitor_ignore_coefficient': function() {
+		return 1 - Meteor.user().profile.visitor_ignore_coefficient;
 	}
 })
 
