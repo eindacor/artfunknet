@@ -126,6 +126,10 @@ Template.navbar.helpers({
 		return items.findOne({'owner': Meteor.userId(), 'status': {$in: ["unclaimed", "won"]}}) !== undefined;
 	},
 
+	'hasForgeryContracts': function() {
+		return forgery_contracts.findOne({'owner_id': Meteor.userId()}) != undefined;
+	},
+
 	'hasForSale' : function() {
 		return items.findOne({'owner': Meteor.userId(), 'status': "for_sale"}) !== undefined; 
 	},
