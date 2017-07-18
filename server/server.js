@@ -42,7 +42,7 @@ var updateContent = function() {
         })
     })
     //TODO remove below
-    Meteor.users.update({}, {$set: {'profile.spawn_reduction_coefficient': 1, 'profile.spawn_reduction_end': getNowISOString()}}, {multi: true});
+    Meteor.users.update({}, {$set: {'profile.visitor_ignore_coefficient': 0, 'profile.visitor_ignore_proc_count': 0}}, {multi: true});
     //temp code
 }
 

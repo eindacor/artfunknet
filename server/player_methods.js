@@ -44,8 +44,8 @@ createUser = function(user_object, callback){
     user_object.profile.money_spent_on_crates = 0;
     user_object.profile.vintage_select = false;
     user_object.profile.vintage_count = 0;
-    user_object.profile.spawn_reduction_coefficient = 1;
-    user_object.profile.spawn_reduction_end = getNowISOString();
+    user_object.profile.visitor_ignore_coefficient = 0;
+    user_object.profile.visitor_ignore_proc_count = 0;
     user_object.profile.favorite_galleries = [];
     user_object.profile.notifications = {
         'procs': [],

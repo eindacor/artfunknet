@@ -162,17 +162,6 @@ Meteor.setInterval((function() {
             }
         }
     });
-
-    npc_data.remove({'timestamp': {$lt: moment().add((NPC_SPAWN_FREQUENCY * -1), "milliseconds")._d.toISOString()}});
-
-    //find  spawn penalties that have ended and update galleries
-    Meteor.users.find({'profile.spawn_reduction_end': {$lt: getNowISOString()}, 'profile.spawn_reduction_coefficient': {$lt: 1}}).forEach(function(user_object) {
-        Meteor.users.update({'_id': user_object._id}, {$set: {'profile.spawn_reduction_coefficient': 1}}, function() {
-            var player_interface = new PlayerIF(user_object);
-            player_interface.updateGalleryDetails();
-        })
-    })
-
 }), NPC_SPAWN_FREQUENCY);
 
 var rewardForger = function(item_interface, display_earning_time) {

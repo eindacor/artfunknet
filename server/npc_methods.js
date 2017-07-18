@@ -60,72 +60,84 @@ var interactWithNPC = function(npc_id) {
 		return {'message': npc_validation_response.error};
 	}
 
-	var inc_object = {};
-	var inc_string = 'profile.npcs_met.' + npc_object.quality;
-	inc_object[inc_string] = 1;
+	var remember_interaction = true;
 
-	Meteor.users.update(player_interface.getId(), {$set: {'profile.last_npc_met': moment()._d.toISOString()}, $inc: inc_object});
+	if (isOwnGallery(npc_object) && player_interface.procUniqueAttribute("MULTIPLE_VISITOR_INTERACTIONS", undefined) && Math.random() < .1) {
+        remember_interaction = false;
+    }
 
-	var attribute_object = attributes.findOne(npc_object.attribute_id);		
+    if (remember_interaction) {
+    	npcs.update(npc_id, {$push: {'players_met' : Meteor.userId()}});
+    }
+
+    var current_visitor_ignore_proc_count = player_interface.getUserObject().profile.visitor_ignore_proc_count;
+    var current_visitor_ignore_coefficient = player_interface.getUserObject().profile.visitor_ignore_coefficient;
+
+    var ignore_player = current_visitor_ignore_coefficient > 0 && Math.random() < current_visitor_ignore_coefficient;
+
+    var inc_object = {};
+	var npcs_met_string = 'profile.npcs_met.' + npc_object.quality;
+	inc_object[npcs_met_string] = 1;
+	
+	var setter_object = {};
+	var last_met_string = 'profile.last_npc_met';
+	setter_object[last_met_string] = moment()._d.toISOString();
+
+    if (current_visitor_ignore_proc_count > 0) {
+    	var ignore_string = 'profile.visitor_ignore_proc_count';
+		inc_object[ignore_string] = -1;
+
+    	if (current_visitor_ignore_proc_count == 1) {
+    		var reset_ignore_string = 'profile.visitor_ignore_coefficient';
+    		setter_object[reset_ignore_string] = 0;
+    	}
+    }
+
+	Meteor.users.update(player_interface.getId(), {$set: setter_object, $inc: inc_object});
+
+	if (ignore_player) {
+		return {'message': "This visitor would rather not be associated with you at this time."}
+	}
+		
 	var npc_interaction = {};
 
-	switch(attribute_object.title) {
-		case "benefactor_bonus": 
+	switch(npc_object.npc_name) {
+		case "Benefactor": 
 			npc_interaction = benefactorInteraction(npc_object, player_interface);
 			break;
-		case "donor_bonus": 
+		case "Art Donor": 
 			npc_interaction = donorInteraction(npc_object, player_interface);
 			break;
-		case "preservationist_bonus": 
+		case "Preservationist": 
 			npc_interaction = preservationistInteraction(npc_object, player_interface);
 			break;
-		case "gallery_manager":
-			npc_interaction = galleryManagerInteraction(npc_object, player_interface);
-			break;
-		case "set_xp_visitors": //DISABLE - give portion of set xp to visitors
-			npc_interaction = {'message': "You have been given 0xp for sets in this permanent collection."};
-			break;
-		case "xp_visitors": //DISABLE - give portion of collection xp to visitors
-			npc_interaction = {'message': "You have been given 0xp for works in this permanent collection."};
-			break;
-		case "dealer_bonus":
+		case "Art Dealer":
 			npc_interaction = artDealerInteraction(npc_object, player_interface);
 			break;
-		case "collector_bonus":
+		case "Art Collector":
 			npc_interaction = collectorInteraction(npc_object, player_interface);
 			break;
-		case "marketing_manager_bonus":
+		case "Marketing Manager":
 			npc_interaction = marketingManagerInteraction(npc_object, player_interface);
 			break;
-		case "forger": //DISABLE - give access to black market
+		case "Forger":
 			npc_interaction = forgerInteraction(npc_object, player_interface);
 			break;
-		case "art_expert_bonus":
+		case "Art Expert":
 			npc_interaction = artExpertInteraction(npc_object, player_interface);
 			break;
-		case "historian_bonus": //DISABLE - quiz players for xp
+		case "Art Historian":
 			npc_interaction = historianInteraction(npc_object, player_interface);
 			break;
-		case "auctioneer_bonus": //DISABLE - analyze auction house and return deals
+		case "Auctioneer":
 			npc_interaction = auctioneerInteraction(npc_object, player_interface);
 			break;
-		case "entry_fee_reduction_members": //DISABLE = reduce entry fee for members
-		case "set_xp_members": //DISABLE - give portion of set xp to members
-		case "xp_members": //DISABLE - give portion of xp to members
-		case "xp_per_visitor": //DISABLE - increase xp gain per visitor
-		case "money_per_visitor": //DISABLE - increase money earned for entry fee
-		case "bonus_money": //DISABLE - bonus money from feature paintings
-		case "enthusiast_bonus": //give xp
+		case "Art Enthusiast":
 			npc_interaction = enthusiastInteraction(npc_object, player_interface);
 			break;
 		default: return undefined;
 	}
 
-	if (isOwnGallery(npc_object) && player_interface.procUniqueAttribute("MULTIPLE_VISITOR_INTERACTIONS", undefined) && Math.random() < .1) {
-        return npc_interaction;
-    }
-
-	npcs.update(npc_id, {$push: {'players_met' : Meteor.userId()}});
 	return npc_interaction;
 }
 
