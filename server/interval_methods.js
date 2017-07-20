@@ -115,6 +115,21 @@ Meteor.setInterval((function() {
     items.remove({'status': "archived", 'displaced': true, 'time_archived': {$lt: displaced_cutoff}})
 }), DEBUG ? ONE_SECOND * 10 : ONE_MINUTE)
 
+Meteor.setInterval((function() {
+    var multi_item_generator = {
+        'source': "generated auction",
+        'count': 20,
+        'status': "auctioned",
+        'forgery_chance': GENERATED_AUCTION_FORGERY_CHANCE
+    }
+
+    var duration = DEBUG ? ONE_MINUTE / 60000 : ONE_HOUR / 60000;
+
+    var item_ids = ITEM_GENERATOR.generateMultiple(multi_item_generator, undefined, function(item_object) {
+        createAuction(item_object._id, item_object.values.auction_min, -1, duration, "public");
+    });
+}), GENERATED_AUCTION_FREQUENCY);
+
 var marketing_boost = .15;
 var base_proc_max = 1 - marketing_boost;
 Meteor.setInterval((function() {

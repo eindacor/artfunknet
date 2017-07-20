@@ -167,6 +167,7 @@ ItemGenerator = function() {
 			foil_chance
 			unlocked_chance
 			misprint_chance
+			forgery_chance
 	*/
 
 	this.generateMultiple = function(multi_item_generator_object, player_interface, callback) {
@@ -194,11 +195,13 @@ ItemGenerator = function() {
  		var seasonal_amplifier = multi_item_generator_object.seasonal_amplifier === undefined ? 1 : multi_item_generator_object.seasonal_amplifier;
 
  		var attribute_map = multi_item_generator_object.attribute_map === undefined ? DEFAULT_ATTRIBUTE_MAP : multi_item_generator_object.attribute_map;
+ 		var forgery_chance = multi_item_generator_object.forgery_chance === undefined ? 0 : multi_item_generator_object.forgery_chance;
 
 	    for (var i=0; i < parseInt(multi_item_generator_object.count); i++) {
 	        var rarity_roll = JepLoot.catRoll(rarity_map);
 	        var attribute_array = getAttributeArray(rarity_roll, attribute_map);
 	        var artwork_interface = selectArtwork(rarity_roll, attribute_array, seasonal_amplifier);
+	        var forgery = multi_item_generator_object.forgery === undefined ? Math.random() < forgery_chance : multi_item_generator_object.forgery;
 
 	        var item_generator = {
 	            'source': multi_item_generator_object.source,
@@ -214,7 +217,7 @@ ItemGenerator = function() {
 	            'misprint_chance': multi_item_generator_object.misprint_chance,
 	            'status': multi_item_generator_object.status,
 	            'attribute_map': attribute_map,
-	            'forgery': multi_item_generator_object.forgery,
+	            'forgery': forgery,
 	            'forgery_quality': multi_item_generator_object.forgery_quality
 	        }
 
@@ -257,6 +260,9 @@ ItemGenerator = function() {
 			misprint
 				or
 			misprint_chance
+
+			forgery
+			forgery_quality
 
 			seasonal
 			lottery
