@@ -133,6 +133,12 @@ var successfulAuction = function(auction_object, winning_user) {
                 nested_item_interface.updateItem({$set: {'authenticity.identified': true}})
             }
 
+            if (winner_interface.procUniqueAttribute("KNOWLEDGE_FOR_AUCTION_WINS", undefined)) {
+                var unit_reward = nested_item_interface.getUnitValue() * 6;
+                var knowledge_reward = convertUnitValueToKnowledge(unit_reward);
+                winner_interface.giveKnowledge(knowledge_reward);
+            }
+
             if (winning_user.profile.settings.animations_enabled) {
                 Meteor.users.update(winning_user._id, {$push: {'profile.notifications.loot': {'id': new Meteor.Collection.ObjectID()._str, 'expiration': moment().add(5, "seconds")._d.toISOString(), 'amount': 1}}});
             }

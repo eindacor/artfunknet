@@ -20,7 +20,7 @@ artDealerInteraction = function(npc_object, player_interface) {
 		}
 
 		if (player_interface.procUniqueAttribute("DEALER_LEVEL_MIN", undefined)) {
-            level = 5;
+            level = 3;
         }
 
 		if (player_interface.procUniqueAttribute("DEALER_QUEST_ITEM_CHANCE", undefined)) {
