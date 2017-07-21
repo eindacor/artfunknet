@@ -32,7 +32,7 @@
 				</div>
 				<div class="col-xs-8 gallery-data">
 					<div class="row profile-data">
-						<p class="owner-name">{{owner}}</p>
+						<p class="owner-name">{{owner}} {{#with player_levels owner_id}}<span class="level-text">{{level}}</span>{{#if vintage_level}}<span class="vintage-text">v{{vintage_level}}</span>{{/if}}{{/with}}</p>
 					</div>
 					<div class="row attribute-data">
 						<table>

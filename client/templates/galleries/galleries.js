@@ -1,10 +1,24 @@
 var ticket_holder_tracker = new Tracker.Dependency;
 var entry_fee_tracker = new Tracker.Dependency;
 var gallery_avatars_tracker = new Tracker.Dependency;
+var player_levels_tracker = new Tracker.Dependency;
 var can_buy_all_favorites_tracker = new Tracker.Dependency;
 var entry_fees = {};
 var gallery_avatars = {};
 var can_buy_all_favorites = undefined;
+var player_levels = {};
+
+var getPlayerLevels = function(owner_id) {
+	Meteor.call('getPlayerLevels', owner_id, function(error, result) {
+		if (error)
+			console.log(error)
+
+		else {
+			player_levels[owner_id] = result;
+			player_levels_tracker.changed();
+		}
+	});
+}
 
 var getGalleryAvatar = function(owner_id) {
 	Meteor.call('getGalleryAvatar', owner_id, function(error, result) {
@@ -135,6 +149,15 @@ Template.galleryCard.helpers({
 
 	'playerIsNotOwner': function(owner_id) {
 		return owner_id != Meteor.userId();
+	},
+
+	'player_levels': function(owner_id) {
+		player_levels_tracker.depend();
+		if (player_levels[owner_id] == undefined) {
+			getPlayerLevels(owner_id);
+		}
+
+		return player_levels[owner_id];
 	}
 })
 

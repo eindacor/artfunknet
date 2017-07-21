@@ -856,6 +856,14 @@ Meteor.methods({
         return "https://s3.amazonaws.com/com.artfunkel.artwork/avatars/" + filename + "_avatar." + best_item.artwork_data.file_extension;
      },
 
+    'getPlayerLevels': function(owner_id) {
+        var user_object = Meteor.users.findOne(owner_id);
+        return {
+            'level': user_object.profile.level,
+            'vintage_level': user_object.profile.vintage_count
+        }
+     },
+
      'getCanBuyAllFavorites': function() {
         var player_interface = new PlayerIF(Meteor.user());
         return player_interface.canBuyAllFavorites();
