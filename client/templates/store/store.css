@@ -11,9 +11,12 @@
 .template-store .crate-buttons button,
 .template-store .inventory-expansion-button button{
 	background-color: white;
-	width: 260px;
 	font-weight: bold;
 	font-size: 1em;
+}
+
+.template-store button > p {
+	margin-bottom: 0px;
 }
 
 #drop-button {
@@ -39,7 +42,6 @@
 
 .template-store #decline-all {
 	background-color: black;
-	width: 260px;
 	font-weight: bold;
 	font-size: 1em;
 	margin-top: 20px;

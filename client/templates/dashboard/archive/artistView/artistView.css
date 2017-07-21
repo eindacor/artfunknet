@@ -226,8 +226,6 @@
 .template-artistView .enforce-terms {
 	font-size: 1.5rem;
 	font-weight: bold;
-	width: 60px;
-	height: 24px;
 }
 
 .template-artistView .rarity-button-container {
@@ -238,8 +236,6 @@
 .template-artistView .rarity-button {
 	font-size: 1.5rem;
 	font-weight: bold;
-	height: 24px;
-	width: 120px;
 }
 
 .template-artistView .rarity-button.disabled {

@@ -416,9 +416,14 @@ Meteor.methods({
         return player_interface.declineAllForSale(); 
     },
 
-    'displayAllTagged': function(tag_array, duration) {
+    'displayAllTagged': function(tag_array) {
         var player_interface = new PlayerIF(Meteor.user());
-        player_interface.displayAllTagged(tag_array, duration);
+        player_interface.displayAllTagged(tag_array);
+    },
+
+    'clearDisplay': function() {
+        var player_interface = new PlayerIF(Meteor.user());
+        player_interface.clearDisplay();
     },
 
     'getAuctionCount': function(filter_array, quest_status) {

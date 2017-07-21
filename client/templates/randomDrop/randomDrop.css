@@ -10,14 +10,3 @@
 .template-randomDrop .remaining-text {
 	font-size: .6em;
 }
-
-.pick-section, .template-dropAnimationModal .reward {
-	margin: 48px auto;
-}
-
-.template-randomDrop .crate-buttons button {
-	background-color: black;
-	width: 260px;
-	font-weight: bold;
-	font-size: 1em;
-}

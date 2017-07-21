@@ -6,7 +6,31 @@
 	font-weight: bold;
 	font-size: 1.8rem;
 	color: black;
-	margin-bottom: 6px
+	margin-bottom: 6px;
+	display: inline-block;
+}
+
+.template-galleries .level-text, .template-galleries .vintage-text {
+	border-radius: 50%;
+	padding: 4px;
+	font-size: 1.3rem;
+	min-width: 30px;
+	min-height: 30px;
+	max-width: 30px;
+	max-height: 30px;
+	display: inline-block;
+	font-weight: bold;
+	text-align: center;
+	vertical-align: middle;
+}
+
+.template-galleries .level-text {
+	border: 2px solid #ff00cc;	
+	color: black;
+}
+
+.template-galleries .vintage-text {
+	border: 2px solid #dbbca4;
 }
 
 .template-galleryCard .gallery-card-contents {
@@ -130,19 +154,4 @@
 
 .template-galleries #buy-all-favorites-button:hover {
 	opacity: 1;
-}
-
-.template-galleries .level-text {
-	border: 2px solid #ff00cc;
-	border-radius: 50%;
-	padding: 4px;
-	font-size: 1.2rem;
-}
-
-.template-galleries .vintage-text {
-	font-size: 1.2rem;
-	margin-left: 6px;
-	border: 2px solid #dbbca4;
-	border-radius: 50%;
-	padding: 4px;
 }

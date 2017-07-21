@@ -28,9 +28,11 @@ button {
 	color: white;
 	font-family: inherit;
 	cursor: pointer;
-	width: 200px;
+	font-weight: bold;
+	padding: 1rem 2rem;
+	/*width: 200px;
 	height: 40px;
-	font-size: 1.5em;
+	font-size: 1.5em;*/
 }
 
 .highlight {

@@ -22,15 +22,14 @@ Template.inventory.events({
 		if (selected_tag.length == 0)
 			return false;
 
-		Meteor.call('displayAllTagged', [selected_tag], $('#tagged-display-duration').val(), function(error, result) {
-			if (error)
-				console.log(error.message)
-
-			if (result.length > 0) {
-				//show errors in UI
+		Meteor.call('displayAllTagged', [selected_tag], function(error, result) {
+			if (error) {
+				console.log(error)
 			}
 
-			Session.set('update_set', true);
+			else {
+				updateItemArray();
+			}
 		})
 	},
 
@@ -40,7 +39,19 @@ Template.inventory.events({
 			return false;
 
 		$('#search-area').val('#' + selected_tag);
-		Session.set('update_set', true);
+		updateItemArray();
+	},
+
+	'click #clear-display': function() {
+		Meteor.call('clearDisplay', function(error) {
+			if (error) {
+				console.log(error)
+			}
+
+			else {
+				updateItemArray();
+			}
+		})
 	}
 })
 

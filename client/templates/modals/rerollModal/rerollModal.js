@@ -13,7 +13,10 @@ updateInterfaces = function() {
 	player_interface = new PlayerIF(Meteor.user());
 	player_item_interface = new PlayerItemIF(player_interface, item_interface);
 	player_item_permissions = new PlayerItemPermissions(player_interface, item_interface); 
+	reroll_cost = undefined;
+	upgrade_cost = undefined;
 	reroll_cost_tracker.changed();
+	upgrade_cost_tracker.changed();
 	interface_tracker.changed();
 }
 
@@ -113,8 +116,6 @@ Template.rerollModal.events ({
 })
 
 Template.rerollModal.rendered = function() {
-	reroll_cost = undefined;
-	upgrade_cost = undefined;
 	updateInterfaces();
 }
 

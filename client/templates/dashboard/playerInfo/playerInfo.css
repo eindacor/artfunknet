@@ -1,9 +1,6 @@
 .template-playerInfo #vintage-mode {
 	font-size: 1.5rem;
-	cursor: pointer;
 	background-color: #dbbca4;
-	width: 120px;
-	height: 30px;
 	margin-top: 40px;
 }
 
