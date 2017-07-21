@@ -56,8 +56,7 @@
 .template-rerollModal .reroll-attribute-button, 
 .template-rerollModal .xp-reroll-button {
 	font-size: 1em;
-	width: 100px;
-	height: 24px;
+	padding: 2px 8px;
 	margin-bottom: 12px;
 }
 

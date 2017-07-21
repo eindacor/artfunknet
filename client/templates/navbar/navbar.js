@@ -142,6 +142,10 @@ Template.navbar.helpers({
 		return quests.findOne({'owner_id': Meteor.userId()}) !== undefined;
 	},
 
+	'hasPrivateAuctions': function() {
+		return auctions.findOne({'viewer': Meteor.userId()}) != undefined;
+	},
+
 	'hasCompletedQuest' : function() {
 		var all_quests = quests.find({'owner_id': Meteor.userId()}).fetch();
 
