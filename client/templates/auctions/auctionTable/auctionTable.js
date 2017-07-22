@@ -88,6 +88,8 @@ Template.auctionTable.helpers({
 
 			var available_balance = currently_winning ? bidder_object.profile.bank_balance + auction_object.current_bid : bidder_object.profile.bank_balance;
 			var funds_available = auction_object.min_bid <= available_balance;
+			var bidding_start = moment(auction_object.date_posted).add(BID_FREEZE_DURATION, 'milliseconds');
+			var now = moment();
 			
 			var biddable = true;
 			var reason = undefined;
@@ -118,6 +120,28 @@ Template.auctionTable.helpers({
 			else if (inventory_full && !item_is_original) {
 				biddable = false;
 				reason = "inventory full";
+			}
+
+			else if (auction_object.buy_now != -1 && bidding_start > now) {
+				biddable = false;
+				var hours = bidding_start._d.getHours();
+				var pm_string = hours > 12 ? "pm" : "am";
+				var hours_string;
+
+				if (hours == 0) {
+					hours_string = 12;
+				}
+
+				else if (hours > 12) {
+					hours_string = hours - 12;
+				}
+
+				else hours_string = hours;
+
+				var minutes = bidding_start._d.getMinutes();
+				var minutes_string = minutes < 10 ? "0" + minutes : minutes;
+				var time_string = hours_string + ":" + minutes_string + pm_string;
+				reason = "bidding starts at " + time_string;
 			}
 
 			list_object.bid_status = {

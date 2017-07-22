@@ -660,26 +660,15 @@ Meteor.methods({
                         'profile.level': 0, 
                         'profile.bank_balance': new_bank_balance,
                         'profile.xp': 0,
-                        'profile.last_drop': moment().add(-1, 'days')._d.toISOString(),
-                        // 'profile.expansion_slots': 0,
-                        'profile.gallery_finishes': {
-                            'active': {
-                                'floor_finish': default_floor._id,
-                                'wall_finish': default_wall._id
-                            },
-                            'owned': {
-                                'floor_finishes': floor_setter_object,
-                                'wall_finishes': wall_setter_object
-                            },
-                            'wall_opacity': 1,
-                            'frame_width': .5,
-                            'matte_width': .5,
-                            'wall_base': "white",
-                            'frame_color': "black"
-                        }
+                        'profile.last_drop': moment().add(-1, 'days')._d.toISOString()
                     }
                 }
             );
+
+            items.find({'owner': Meteor.userId(), $or: [{$and: [{'vintage': true}, {'authenticity.forgery': false}]}, {'original': true}], 'status': {$ne: "archived"}}).forEach(function(item_object) {
+                var item_interface = new ItemIF(item_object);
+                item_interface.updateItem({$set: {'status': "claimed"}});
+            });
 
             items.find({'owner': Meteor.userId(), $or: [{'vintage': {$ne: true}}, {'authenticity.forgery': true}], 'original': {$ne: true}, 'status': {$ne: "archived"}}).forEach(function(item_object) {
                 var item_interface = new ItemIF(item_object);
