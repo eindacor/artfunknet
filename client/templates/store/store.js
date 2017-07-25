@@ -175,6 +175,26 @@ Template.store.events ({
 		})
 	},
 
+	'click #purchase-donate-all' : function() {
+		Blaze.renderWithData(Template.modalTemplate, {
+			'modal_name': "donateAllModal", 
+			'modal_data': {
+				'donation_reward': undefined,
+				'purchase': true
+			}
+		}, $('body')[0]);
+	},
+
+	'click #purchase-archive-all' : function() {
+		Blaze.renderWithData(Template.modalTemplate, {
+			'modal_name': "archiveAllModal", 
+			'modal_data': {
+				'donation_reward': undefined,
+				'purchase': true
+			}
+		}, $('body')[0]);
+	},
+
 	'click .inventory-expansion-button.enabled' : function() {
 		Meteor.call('purchaseExpansionSlot', function(error, result) {
 			if (error)

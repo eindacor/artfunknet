@@ -401,9 +401,19 @@ Meteor.methods({
         player_interface.donateAllUnclaimed();
     },
 
+    'purchaseAndDonateAllForSale': function() {
+        var player_interface = new PlayerIF(Meteor.user());
+        player_interface.purchaseAndDonateAllForSale();
+    },
+
     'archiveAllUnclaimed' : function() {
         var player_interface = new PlayerIF(Meteor.user());
         player_interface.archiveAllUnclaimed();
+    },
+
+    'purchaseAndArchiveAllForSale': function() {
+        var player_interface = new PlayerIF(Meteor.user());
+        player_interface.purchaseAndArchiveAllForSale();
     },
 
     'deleteAllDisplaced': function() {

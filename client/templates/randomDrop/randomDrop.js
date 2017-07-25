@@ -90,7 +90,8 @@ Template.randomDrop.events ({
 		Blaze.renderWithData(Template.modalTemplate, {
 			'modal_name': "donateAllModal", 
 			'modal_data': {
-				'donation_reward': undefined
+				'donation_reward': undefined,
+				'purchase': false
 			}
 		}, $('body')[0]);
 	},
@@ -99,7 +100,8 @@ Template.randomDrop.events ({
 		Blaze.renderWithData(Template.modalTemplate, {
 			'modal_name': "archiveAllModal", 
 			'modal_data': {
-				'donation_reward': undefined
+				'donation_reward': undefined,
+				'purchase': false
 			}
 		}, $('body')[0]);
 	}
