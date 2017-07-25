@@ -466,6 +466,19 @@ var getDisplayFunction = function(player_item_interface, desired_status) {
 
 			else {
 				updateItemArray();
+				var nested_player_interface = new PlayerIF(player_item_interface.getPlayerIF().getId());
+				var all_tutorial_items_displayed = items.find({'owner': nested_player_interface.getId(), 'status': "displayed", 'tutorial_item': true}).count() == items.find({'owner': nested_player_interface.getId(), 'tutorial_item': true}).count();
+				if (nested_player_interface.readyForTutorial("outro") && all_tutorial_items_displayed) {
+					Meteor.call('changeTutorialStep', true, function(error) {
+						if (error) {
+							console.log(error)
+						}
+
+						else {
+							buildTutorialContents();
+						}
+					})
+				}
 			}
 		})
 	}

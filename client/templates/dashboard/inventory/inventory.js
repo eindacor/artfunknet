@@ -58,3 +58,9 @@ Template.inventory.events({
 Template.inventory.destroyed = function() {
 	Session.set('inventory_page', undefined);
 }
+
+Template.inventory.rendered = function() {
+	var player_interface = new PlayerIF(Meteor.user());
+	refreshTutorial("inventory");
+	refreshTutorial("mod_intro");
+}

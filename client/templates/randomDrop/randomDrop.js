@@ -112,18 +112,20 @@ Template.randomDrop.rendered = function() {
 		Session.set('now', moment().toISOString());
 	}), 1000);
 
-	if (Meteor.user() && Meteor.user().profile.tutorials.loot) {
-		Blaze.renderWithData(Template.modalTemplate, {
-			'modal_name': "tutorialModal", 
-			'modal_data': {
-				'tutorial_name': "loot",
-				'next': undefined,
-				'activate': "info",
-				'image_filename': "tutorial/daily_drop.png",
-				'message': "This is the loot section! Whenever you recieve new paintings, they will show up here for you to claim. If you don't claim the items within 10 minutes, they'll disappear forever. Every 3 hours you're given a few random paintings to add to your collection, called the 'daily drop'. Click the button to see your items!"
-			}
-		}, $('body')[0]);
-	}
+	// if (Meteor.user() && Meteor.user().profile.tutorials.loot) {
+	// 	Blaze.renderWithData(Template.modalTemplate, {
+	// 		'modal_name': "tutorialModal", 
+	// 		'modal_data': {
+	// 			'tutorial_name': "loot",
+	// 			'next': undefined,
+	// 			'activate': "info",
+	// 			'image_filename': "tutorial/daily_drop.png",
+	// 			'message': "This is the loot section! Whenever you recieve new paintings, they will show up here for you to claim. If you don't claim the items within 10 minutes, they'll disappear forever. Every 3 hours you're given a few random paintings to add to your collection, called the 'daily drop'. Click the button to see your items!"
+	// 		}
+	// 	}, $('body')[0]);
+	// }
+
+	refreshTutorial("loot");
 };
 
 Template.randomDrop.destroyed = function() {

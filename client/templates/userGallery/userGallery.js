@@ -380,18 +380,32 @@ Template.userGallery.rendered = function() {
 		return false;
 	});
 
-	if (Meteor.user() && this.data.screen_name == Meteor.user().profile.screen_name && Meteor.user().profile.tutorials.my_gallery) 
-	{
-		Blaze.renderWithData(Template.modalTemplate, {
-			'modal_name': "tutorialModal", 
-			'modal_data': {
-				'tutorial_name': "my_gallery",
-				'next': undefined,
-				'activate': "galleries",
-				'image_filename': "tutorial/menu_galleries.png",
-				'message': "Here you can see all of the works you have on display and in your permanent collection. You can also customize the look of your gallery as you unlock more finishes. When you're done admiring your new space, click on the 'Galleries' menu button to see what other players are showing."
+	// if (Meteor.user() && this.data.screen_name == Meteor.user().profile.screen_name && Meteor.user().profile.tutorials.my_gallery) 
+	// {
+	// 	Blaze.renderWithData(Template.modalTemplate, {
+	// 		'modal_name': "tutorialModal", 
+	// 		'modal_data': {
+	// 			'tutorial_name': "my_gallery",
+	// 			'next': undefined,
+	// 			'activate': "galleries",
+	// 			'image_filename': "tutorial/menu_galleries.png",
+	// 			'message': "Here you can see all of the works you have on display and in your permanent collection. You can also customize the look of your gallery as you unlock more finishes. When you're done admiring your new space, click on the 'Galleries' menu button to see what other players are showing."
+	// 		}
+	// 	}, $('body')[0]);
+	// }
+
+	var own_gallery = Meteor.user() && this.data.screen_name == Meteor.user().profile.screen_name;
+	var player_interface = new PlayerIF(Meteor.user());
+	if ((player_interface.readyForTutorial("player_gallery") && !own_gallery) || (player_interface.readyForTutorial("my_gallery") && own_gallery)) {
+		Meteor.call('changeTutorialStep', true, function(error) {
+			if (error) {
+				console.log(error)
 			}
-		}, $('body')[0]);
+
+			else {
+				buildTutorialContents();
+			}
+		})
 	}
 }
 

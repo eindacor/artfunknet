@@ -214,17 +214,5 @@ Template.galleries.rendered = function() {
 	Session.set('galleries_ascending', true);
 	Session.set('galleries_sort', "profile.screen_name");
 
-	if (Meteor.user().profile.tutorials.galleries) 
-	{
-		Blaze.renderWithData(Template.modalTemplate, {
-			'modal_name': "tutorialModal", 
-			'modal_data': {
-				'tutorial_name': "galleries",
-				'next': undefined,
-				'activate': "other_gallery",
-				'image_filename': "tutorial/gallery_select.png",
-				'message': "Here you'll find all of the galleries created by other players, including information about the contents of each. The ratings in the 'Attributes' section indicate what kinds of special visitors are likely to show up in that gallery. Pick a gallery with an entry fee you can afford, click on that row, and pay to enter the gallery."
-			}
-		}, $('body')[0]);
-	}
+	refreshTutorial("galleries");
 }

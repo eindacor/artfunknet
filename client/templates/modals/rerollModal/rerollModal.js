@@ -57,6 +57,20 @@ Template.rerollModal.events ({
 
    'click .reroll-value-button.enabled' : function(element) {
     	var attribute_id = $(element.target).data('attribute_id');
+
+    	var player_interface = new PlayerIF(Meteor.user());
+		if (player_interface.readyForTutorial("display_modded")) {
+			Meteor.call('changeTutorialStep', true, function(error) {
+				if (error) {
+					console.log(error)
+				}
+
+				else {
+					buildTutorialContents();
+				}
+			})
+		}
+
 		Meteor.call('rerollAttributeValue', Session.get('selectedItem'), attribute_id, function(error, result) {
 			if (error)
 				console.log(error.message);
@@ -72,6 +86,20 @@ Template.rerollModal.events ({
 
     'click .reroll-attribute-button.enabled' : function(element) {
     	var attribute_id = $(element.target).data('attribute_id');
+
+    	var player_interface = new PlayerIF(Meteor.user());
+		if (player_interface.readyForTutorial("mod_value")) {
+			Meteor.call('changeTutorialStep', true, function(error) {
+				if (error) {
+					console.log(error)
+				}
+
+				else {
+					buildTutorialContents();
+				}
+			})
+		}
+
 		Meteor.call('rerollAttribute', Session.get('selectedItem'), attribute_id, function(error, result) {
 			if (error)
 				console.log(error.message);
@@ -117,6 +145,7 @@ Template.rerollModal.events ({
 
 Template.rerollModal.rendered = function() {
 	updateInterfaces();
+	refreshTutorial("mod_attribute");
 }
 
 Template.rerollModal.helpers({

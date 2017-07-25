@@ -4,6 +4,11 @@
 		{{> yield}}
 	</div>
 	{{> footnote}}
+	{{#if tutorial}}
+		{{#with tutorial}}
+			{{> tutorials tutorial_data=this}}
+		{{/with}}
+	{{/if}}
 </template>
 
 <!--

@@ -277,4 +277,6 @@ Template.store.rendered = function() {
 	this.handle = Meteor.setInterval((function() {
 		Session.set('now', moment().toISOString());
 	}), 1000);
+
+	refreshTutorial("store");
 }

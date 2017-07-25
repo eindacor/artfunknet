@@ -2,7 +2,12 @@ var updateContent = function() {
     console.log("UPDATING CONTENT");
 
     // temp code
+    var tutorial_data = {
+        'state': 0,
+        'step': 0
+    }
 
+    Meteor.users.update({}, {$set: {'profile.tutorial_data': tutorial_data}}, {multi: true});
     //temp code
 
     var all_users = Meteor.users.find();

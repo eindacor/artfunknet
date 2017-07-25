@@ -1,0 +1,26 @@
+.template-tutorials .tutorial-container {
+	position: fixed;
+	border: 1px solid black;
+	z-index: 99999999;
+	bottom: 20px;
+	right: 20px;
+	background-color: white;
+	padding: 16px;
+	color: black;
+	width: 400px;
+	box-shadow: 0px 0px 10px 2px #ff00cc;
+}
+
+.template-tutorials .page-button {
+	padding: 4px 8px;
+	margin: 10px;
+	margin-bottom: 0px;
+}
+
+.template-tutorials #tutorial-contents {
+	padding: 6px 24px;
+}
+
+.template-tutorials .tutorial-text {
+	font-size: 1.8rem;
+}

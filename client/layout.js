@@ -19,3 +19,17 @@ Template.meteorValue.helpers({
 		return identifier;
 	}
 })
+
+Template.layout.helpers({
+	'tutorial': function() {
+		if (Meteor.user() && TUTORIAL_STATES.indexOf("finished") != Meteor.user().profile.tutorial_data.state) {
+			return {
+				'state_name': TUTORIAL_STATES[Meteor.user().profile.tutorial_data.state],
+				'state': Meteor.user().profile.tutorial_data.state,
+				'step': Meteor.user().profile.tutorial_data.step
+			}
+		}
+
+		else return false;
+	}
+})

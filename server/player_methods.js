@@ -78,21 +78,26 @@ createUser = function(user_object, callback){
 
     user_object.profile.last_name_change = getNowISOString();
 
-    user_object.profile.tutorials = {
-        'welcome': true,
-        'loot': true,
-        'info': true,
-        'action_buttons': true,
-        'attributes': false,
-        'level': true,
-        'display': true,
-        'permanent': true,
-        'gallery': false,
-        'my_gallery': false,
-        'galleries': false,
-        'other_gallery': false,
-        'reroll_menu': false
-    };
+    // user_object.profile.tutorials = {
+    //     'welcome': true,
+    //     'loot': true,
+    //     'info': true,
+    //     'action_buttons': true,
+    //     'attributes': false,
+    //     'level': true,
+    //     'display': true,
+    //     'permanent': true,
+    //     'gallery': false,
+    //     'my_gallery': false,
+    //     'galleries': false,
+    //     'other_gallery': false,
+    //     'reroll_menu': false
+    // };
+
+    user_object.profile.tutorial_data = {
+        'state': 0,
+        'step': 0
+    }
 
     user_object.profile.crate_purchases = {};
 
@@ -1003,5 +1008,10 @@ Meteor.methods({
      'discardForgeryContract': function(forgery_contract_id) {
         var player_interface = new PlayerIF(Meteor.user());
         player_interface.discardForgeryContract(forgery_contract_id);
+     },
+
+     'changeTutorialStep': function(forward) {
+        var player_interface = new PlayerIF(Meteor.user());
+        player_interface.changeTutorialStep(forward);
      }
 })
