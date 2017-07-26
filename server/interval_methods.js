@@ -141,7 +141,8 @@ Meteor.setInterval((function() {
 
         var attribute_ids = Object.keys(gallery_object.procs);
         var rarity_npc_coefficient = gallery_object.gallery_rarity_npc_coefficient;
-        var owner_object = getOneFromCollection("interval_methods.js", Meteor.users, gallery_object.owner_id);
+        var owner_interface = new PlayerIF(gallery_object.owner_id);
+        var owner_object = owner_interface.getUserObject();
 
         for (var i=0; i < attribute_ids.length; i++) {
             var proc_chance = gallery_object.procs[attribute_ids[i]];
@@ -150,7 +151,7 @@ Meteor.setInterval((function() {
                 var attribute_object = getOneFromCollection("interval_methods.js", attributes, attribute_ids[i]);
                 var npc_quality;
 
-                if (attribute_object.npc_name == "Art Collector" && procUniqueAttribute(gallery_object.owner_id, "COLLECTOR_MAX_QUALITY"), undefined) {
+                if (attribute_object.npc_name == "Art Collector" && owner_interface.procUniqueAttribute("COLLECTOR_MAX_QUALITY"), undefined) {
                     if (owner_object.profile.npcs_met.platinum < npc_max_map.platinum)
                         npc_quality = "platinum";
 
@@ -167,7 +168,7 @@ Meteor.setInterval((function() {
                 var npc_quality = getNPCQuality(getOneFromCollection("interval_methods.js", Meteor.users, gallery_object.owner_id).profile.level);
                 createNPC(gallery_object, attribute_ids[i], NPC_SPAWN_FREQUENCY, npc_quality);
 
-                if ((npc_quality == "platinum") && procUniqueAttribute(gallery_object.owner_id, "COLLECTOR_DONOR_PAIR", undefined)) {
+                if ((npc_quality == "platinum") && owner_interface.procUniqueAttribute("COLLECTOR_DONOR_PAIR", undefined)) {
                     if (attribute_object.npc_name == "Art Collector")
                         createNPC(gallery_object, getOneFromCollection("interval_methods.js", attributes, {'npc_name': "Art Donor"})._id, NPC_SPAWN_FREQUENCY, "bronze")
                         
@@ -274,7 +275,7 @@ Meteor.setInterval((function() {
 
             getFromCollection("interval_methods.js", Meteor.users, {}).forEach(function(user_object) {
                 var player_interface = new PlayerIF(user_object);
-                var repair_value_boost = procUniqueAttribute(user_object._id, "ITEM_LEVEL_REPAIR_BOOST", undefined) ? true : false;       
+                var repair_value_boost = player_interface.procUniqueAttribute("ITEM_LEVEL_REPAIR_BOOST", undefined) ? true : false;       
 
                 getFromCollection("interval_methods.js", items, {'status': "repairing", 'owner': user_object._id}).forEach(function(item_object) {
                     var repair_value = REPAIRING_IMPROVEMENT_VALUE;
