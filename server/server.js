@@ -1,3 +1,36 @@
+// {
+//         "_id" : "2zHsGPYsdieTPr9f5",
+//         "owner_id" : "iXtSdJRNGJPagkPqv",
+//         "owner" : "some_guy",
+//         "attribute_values" : {
+
+//         },
+//         "entry_fee" : "medium",
+//         "score" : 0,
+//         "value" : 0,
+//         "gallery_rarity_npc_coefficient" : 0,
+//         "earnings_per_hour" : 0,
+//         "xp_per_hour" : 0,
+//         "procs" : {
+
+//         },
+//         "active_unique_attributes" : [],
+//         "published_procs" : {
+//         }
+// }
+
+// {
+//         "_id" : "HCCAbwYPdj6Pj9uRN",
+//         "quality" : "bronze",
+//         "attribute_id" : "mZH58WpgbKP9o9WZR",
+//         "owner_id" : "A5W6WmH9ZvPRBQ6ZR",
+//         "expiration" : "2017-07-26T22:53:46.773Z",
+//         "players_met" : [ ],
+//         "icon" : "fa-shopping-cart",
+//         "npc_name" : "Art Dealer"
+// }
+
+
 var updateContent = function() {
     console.log("UPDATING CONTENT");
 
@@ -8,6 +41,52 @@ var updateContent = function() {
     }
 
     Meteor.users.update({}, {$set: {'profile.tutorial_data': tutorial_data}}, {multi: true});
+
+    npcs.remove({'tutorial': true});
+
+    var npc_name = "Benefactor";
+    var benefactor_tutorial_npc = {
+        "quality" : "bronze",
+        "attribute_id" : attributes.findOne({'npc_name': npc_name})._id,  
+        "owner_id" : TUTORIAL_PLAYER_IDS[0],
+        "expiration" : null,
+        "players_met" : [ ],
+        "icon" : attributes.findOne({'npc_name': npc_name}).icon,
+        "npc_name" : npc_name,
+        'tutorial': true
+    }
+
+    npc_name = "Art Enthusiast";
+    var enthusiast_tutorial_npc = {
+        "quality" : "gold",
+        "attribute_id" : attributes.findOne({'npc_name': npc_name})._id,  
+        "owner_id" : TUTORIAL_PLAYER_IDS[0],
+        "expiration" : null,
+        "players_met" : [ ],
+        "icon" : attributes.findOne({'npc_name': npc_name}).icon,
+        "npc_name" : npc_name,
+        'tutorial': true
+    }
+
+    npc_name = "Art Donor";
+    var donor_tutorial_npc = {
+        "quality" : "silver",
+        "attribute_id" : attributes.findOne({'npc_name': npc_name})._id,   
+        "owner_id" : TUTORIAL_PLAYER_IDS[0],
+        "expiration" : null,
+        "players_met" : [ ],
+        "icon" : attributes.findOne({'npc_name': npc_name}).icon,
+        "npc_name" : npc_name,
+        'tutorial': true
+    }
+
+    npcs.insert(benefactor_tutorial_npc);
+    npcs.insert(enthusiast_tutorial_npc);
+    npcs.insert(donor_tutorial_npc);
+
+    galleries.update({'owner_id': {$in: TUTORIAL_PLAYER_IDS}}, {$set: {'tutorial': true}}, {multi: true});
+    npcs.update({'owner_id': {$in: TUTORIAL_PLAYER_IDS}}, {$set: {'tutorial': true}}, {multi: true});
+
     //temp code
 
     var all_users = Meteor.users.find();

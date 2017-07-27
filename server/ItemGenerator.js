@@ -198,7 +198,29 @@ ItemGenerator = function() {
  		var forgery_chance = multi_item_generator_object.forgery_chance === undefined ? 0 : multi_item_generator_object.forgery_chance;
 
 	    for (var i=0; i < parseInt(multi_item_generator_object.count); i++) {
-	        var rarity_roll = JepLoot.catRoll(rarity_map);
+	    	var rarity_roll;
+	    	if (player_interface != undefined && player_interface.tutorialMode()) {
+		    	rarity_roll = i % 2 == 0 ? "uncommon" : "common";
+		    	attribute_map = {};
+			    if (player_interface != undefined && player_interface.tutorialMode()) {
+			    	if (multi_item_generator_object.status == "unclaimed") {
+			    		var first_id = attributes.findOne({'npc_name': "Art Dealer"})._id;
+			    		var second_id = attributes.findOne({'npc_name': "Preservationist"})._id;
+			    		attribute_map[first_id] = 1;
+			    		attribute_map[second_id] = 1;
+			    	}
+
+			    	else if (multi_item_generator_object.status == "for_sale") {
+			    		var first_id = attributes.findOne({'npc_name': "Art Dealer"})._id;
+			    		var second_id = attributes.findOne({'npc_name': "Art Historian"})._id;
+			    		attribute_map[first_id] = 1;
+			    		attribute_map[second_id] = 1;
+			    	}
+			    }
+		    }
+
+	        else rarity_roll = JepLoot.catRoll(rarity_map);
+
 	        var attribute_array = getAttributeArray(rarity_roll, attribute_map);
 	        var artwork_interface = selectArtwork(rarity_roll, attribute_array, seasonal_amplifier);
 	        var forgery = multi_item_generator_object.forgery === undefined ? Math.random() < forgery_chance : multi_item_generator_object.forgery;
@@ -219,6 +241,10 @@ ItemGenerator = function() {
 	            'attribute_map': attribute_map,
 	            'forgery': forgery,
 	            'forgery_quality': multi_item_generator_object.forgery_quality
+	        }
+
+	        if (player_interface != undefined && player_interface.tutorialMode() && multi_item_generator_object.status == "for_sale") {
+	        	item_generator.unlocked = true;
 	        }
 
 	        item_ids.push(this.generateSingle(item_generator, player_interface, callback));
@@ -364,7 +390,8 @@ ItemGenerator = function() {
 	        },
 	        'tags': [],
 	        'artwork_data': artwork_data,
-	        'permanent': false
+	        'permanent': false,
+	        'tutorial': player_interface !== undefined && player_interface.tutorialMode()
 	    };
 
 	    new_item_object.values = getItemObjectValues(new_item_object);

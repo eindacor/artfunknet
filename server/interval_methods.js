@@ -133,7 +133,7 @@ Meteor.setInterval((function() {
 var marketing_boost = .15;
 var base_proc_max = 1 - marketing_boost;
 Meteor.setInterval((function() {
-    getFromCollection("interval_methods.js", galleries, {}).forEach(function(gallery_object) {
+    getFromCollection("interval_methods.js", galleries, {'tutorial': {$ne: true}}).forEach(function(gallery_object) {
         npcs.remove({'owner_id': gallery_object.owner_id});
 
         if (gallery_object.gallery_rarity_npc_coefficient <= 0)

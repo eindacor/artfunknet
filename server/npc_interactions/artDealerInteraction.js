@@ -50,6 +50,10 @@ artDealerInteraction = function(npc_object, player_interface) {
 		}
 	}
 
+	if (player_interface.tutorialMode()) {
+		drop_count = 1;
+	}
+
 	var multi_item_generator = {
         'source': "dealer",
         'count': drop_count,

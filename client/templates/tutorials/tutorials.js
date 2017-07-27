@@ -19,11 +19,11 @@ refreshTutorial = function(tutorial_name) {
 tutorial_builder = {
 	'intro': function(contents, step) {
 		switch(step) {
-			case 0: contents.append('<p>Welcome!!! Artfunkel is game about collecting rare and valuable artworks!</p>'); 
+			case 0: contents.append('<p>Welcome to Artfunkel, a game about collecting rare and valuable artwork!!!</p>'); 
 				break;
 			case 1: contents.append('<p>Works can be purchased from art dealers, given to you by donors, or found in crates you purchase.</p>'); 
 				break;
-			case 2: contents.append('<p>The best way to make money and get new art is to meet visitors in other galleries, click the <i class="af-color fa fa-globe"></i> button in the nav bar to check them out.</p>'); 
+			case 2: contents.append('<p>The best way to make money and get new art is to meet visitors in other galleries, click the <i class="af-color fa fa-globe"></i> button in the navigation bar to check them out.</p>'); 
 				break;
 		}
 	},
@@ -45,7 +45,7 @@ tutorial_builder = {
 				break;
 			case 1: contents.append('<p>This gallery has a benefactor (<i class="af-color fa fa-money"></i>) who gives you money, an enthusiast (<i class="af-color fa fa-smile-o"></i>) who gives you XP, and a donor (<i class="af-color fa fa-share-square fa-flip-horizontal"></i>) who gives you new artworks!</p>'); 
 				break;
-			case 2: contents.append('<p>Meet each visitor by clicking them, then click the <i class="af-color fa fa-gift"></i> button in the nav bar to check out your new loot!</p>'); 
+			case 2: contents.append('<p>Meet each visitor by clicking them, then click the <i class="af-color fa fa-gift"></i> button in the navigation bar to check out your new loot!</p>'); 
 				break;
 		}
 	},
@@ -69,35 +69,35 @@ tutorial_builder = {
 				break;
 			case 2: contents.append('<p>The icons at the bottom of each card indicate what visitors that item will attract to your gallery. You’ve got a few that attract art dealers (<i class="af-color fa fa-shopping-cart"></i>) and preservationists (<i class="af-color fa fa-wrench"></i>).</p>'); 
 				break;
-			case 3: contents.append('<p>Hover over the items and click the <i class="af-color fa fa-picture-o"></i> button to put them in your gallery.</p>')
+			case 3: contents.append('<p>Hover over the items and click the <i class="af-color fa fa-picture-o"></i> button to put them in your gallery, then click the same icon at the top of the screen.</p>')
 		}
 	},
 
 	'my_gallery': function(contents, step) {
 		switch(step) {
-			case 0: contents.append('<p>Now we’re in your personal gallery, and you’ve already attracted a few visitors! Visitors in your own gallery give you better bonuses than those in other galleries.</p>'); 
+			case 0: contents.append('<p>Now we’re in your personal gallery, and you’ve already attracted a visitor! Visitors in your own gallery give you better bonuses than those in other galleries.</p>'); 
 				break;
-			case 1: contents.append('<p>Meet each visitor, then click the <i class="af-color fa fa-shopping-cart"></i> button to see what kind of offers you got from the dealer.</p>'); 
+			case 1: contents.append('<p>Meet the Art Dealer, then click the <i class="af-color fa fa-shopping-cart"></i> button in the navigation bar to see what kind of offers you have in the store.</p>'); 
 				break;
 		}
 	},
 
 	'store': function(contents, step) {
 		switch(step) {
-			case 0: contents.append('<p>This is the store, where you can find purchasable crates of items  as well as offers you receive from art dealers.</p>'); 
+			case 0: contents.append('<p>This is the store, where you can find purchasable crates of items as well as offers you receive from art dealers.</p>'); 
 				break;
-			case 1: contents.append('<p>This dealer is offering a few items that look perfect for your gallery, purchase them by hovering over the item and clicking the shopping cart <icon> button.</p>'); 
+			case 1: contents.append('<p>The Dealer you met is offering an item that looks perfect for your gallery, purchase it by hovering over the item and clicking the shopping cart <icon> button.</p>'); 
 				break;
-			case 2: contents.append('<p>You’ll want to put these items up in your gallery too, but first we need to make a few modifications. Click <i class="af-color fa fa-home"></i> to return home, then head back to your inventory.</p>'); 
+			case 2: contents.append('<p>You’ll want to put this item up in your gallery too, but first we need to make a few modifications. Click <i class="af-color fa fa-home"></i> to return home, then head back to your inventory.</p>'); 
 				break;
 		}
 	},
 
 	'mod_intro': function(contents, step) {
 		switch(step) {
-			case 0: contents.append('<p>These items are ALMOST perfect for displaying. You’ll want to make sure all of your items have been optimized to attract the visitors you want most, which means you want all of your display items to have similar attributes.</p>'); 
+			case 0: contents.append('<p>Your new item is ALMOST perfect for displaying. You’ll want to make sure your gallery is optimized to attract the visitors you want most, which means all of your display items should have similar attributes.</p>'); 
 				break;
-			case 1: contents.append('<p>You can change certain attributes by hovering over an item and clicking the <i class="af-color fa fa-magic"></i> button. Do this to one of the items you just purchased.</p>'); 
+			case 1: contents.append('<p>You can change certain attributes by hovering over an item and clicking the <i class="af-color fa fa-magic"></i> button. Do this to the item you just purchased.</p>'); 
 				break;
 		}
 	},
@@ -106,7 +106,7 @@ tutorial_builder = {
 		switch(step) {
 			case 0: contents.append('<p>This is the Mod menu. Here you can spend money to modify attributes and their values to make an item a better fit for your gallery.</p>'); 
 				break;
-			case 1: contents.append('<p>That art expert will do you no good attracting more dealers and preservationists, so click the “attribute” button in that row to change it.</p>'); 
+			case 1: contents.append('<p>That Historian attribute will do you no good attracting more Dealers and Preservationists, so click the “attribute” button in that row to change it.</p>'); 
 				break;
 		}
 	},
@@ -167,6 +167,15 @@ Template.tutorialPageButtons.helpers({
 		var is_last_step = current_step == TUTORIAL_STATE_STEPS[current_state] - 1;
 
 		return !is_last_step;
+	},
+
+	'finish_button': function() {
+		var current_state = TUTORIAL_STATES[Meteor.user().profile.tutorial_data.state];
+		var current_step =  Meteor.user().profile.tutorial_data.step;
+
+		var is_last_step = current_step == TUTORIAL_STATE_STEPS[current_state] - 1;
+		var is_last_state = Meteor.user().profile.tutorial_data.state == TUTORIAL_STATES.length - 2;
+		return is_last_step && is_last_state;
 	}
 })
 
@@ -194,6 +203,17 @@ Template.tutorialPageButtons.events({
 			else {
 				buildTutorialContents();
 			}
+		})
+	},
+
+	'click .finish-button': function(event) {
+		event.stopPropagation();
+		Meteor.call('finishTutorials', function(error) {
+			if (error) {
+				console.log(error)
+			}
+
+			updateItemArray()
 		})
 	}
 })

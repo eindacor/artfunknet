@@ -201,19 +201,6 @@ Template.userGallery.events ({
 		Meteor.call('purchaseTicket', owner_id, function(error) {
 			if (error)
 				console.log(error.message);
-
-			else if (Meteor.user().profile.tutorials.other_gallery) {
-				Blaze.renderWithData(Template.modalTemplate, {
-					'modal_name': "tutorialModal", 
-					'modal_data': {
-						'tutorial_name': "other_gallery",
-						'next': undefined,
-						'activate': "reroll",
-						'image_filename': "tutorial/npc_area.png",
-						'message': "Here you can see all of the works this player has on display and in his/her permanent collection. You can also see what special visitors are currently in that gallery, and interact with them by clicking on the icons. When you're finished checking out this gallery, head back to the 'Home' section to learn more about painting attributes."
-					}
-				}, $('body')[0]);
-			}
 		})
 	},
 
@@ -380,23 +367,18 @@ Template.userGallery.rendered = function() {
 		return false;
 	});
 
-	// if (Meteor.user() && this.data.screen_name == Meteor.user().profile.screen_name && Meteor.user().profile.tutorials.my_gallery) 
-	// {
-	// 	Blaze.renderWithData(Template.modalTemplate, {
-	// 		'modal_name': "tutorialModal", 
-	// 		'modal_data': {
-	// 			'tutorial_name': "my_gallery",
-	// 			'next': undefined,
-	// 			'activate': "galleries",
-	// 			'image_filename': "tutorial/menu_galleries.png",
-	// 			'message': "Here you can see all of the works you have on display and in your permanent collection. You can also customize the look of your gallery as you unlock more finishes. When you're done admiring your new space, click on the 'Galleries' menu button to see what other players are showing."
-	// 		}
-	// 	}, $('body')[0]);
-	// }
-
 	var own_gallery = Meteor.user() && this.data.screen_name == Meteor.user().profile.screen_name;
 	var player_interface = new PlayerIF(Meteor.user());
 	if ((player_interface.readyForTutorial("player_gallery") && !own_gallery) || (player_interface.readyForTutorial("my_gallery") && own_gallery)) {
+
+		if (player_interface.readyForTutorial("my_gallery") && own_gallery) {
+			Meteor.call('createTutorialNpcs', function(error) {
+				if (error) {
+					console.log(error);
+				}
+			})
+		}
+
 		Meteor.call('changeTutorialStep', true, function(error) {
 			if (error) {
 				console.log(error)

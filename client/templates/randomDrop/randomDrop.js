@@ -49,25 +49,6 @@ Template.randomDrop.events ({
 				updateItemArray();
 			}
 		})
-
-		if (Meteor.user().profile.tutorials.info) {
-			Blaze.renderWithData(Template.modalTemplate, {
-				'modal_name': "tutorialModal", 
-				'modal_data': {
-					'tutorial_name': "info",
-					'next': {
-						'tutorial_name': "action_buttons",
-						'next': undefined,
-						'activate': "attributes",
-						'image_filename': "tutorial/action_buttons.png",
-						'message': "Cards have action buttons, which appear when you hover over an item. Add your new items to your inventory by clicking the appropriate action button on each, then return to the 'Home' section."
-					},
-					'activate': undefined,
-					'image_filename': "tutorial/info-area.png",
-					'message': "These items are now yours to claim! To get more info on each, hover over the top of the card to reveal that item's stats."
-				}
-			}, $('body')[0]);
-		}
 	},
 
 	'click #sell-all' : function() {
@@ -111,19 +92,6 @@ Template.randomDrop.rendered = function() {
 	this.handle = Meteor.setInterval((function() {
 		Session.set('now', moment().toISOString());
 	}), 1000);
-
-	// if (Meteor.user() && Meteor.user().profile.tutorials.loot) {
-	// 	Blaze.renderWithData(Template.modalTemplate, {
-	// 		'modal_name': "tutorialModal", 
-	// 		'modal_data': {
-	// 			'tutorial_name': "loot",
-	// 			'next': undefined,
-	// 			'activate': "info",
-	// 			'image_filename': "tutorial/daily_drop.png",
-	// 			'message': "This is the loot section! Whenever you recieve new paintings, they will show up here for you to claim. If you don't claim the items within 10 minutes, they'll disappear forever. Every 3 hours you're given a few random paintings to add to your collection, called the 'daily drop'. Click the button to see your items!"
-	// 		}
-	// 	}, $('body')[0]);
-	// }
 
 	refreshTutorial("loot");
 };

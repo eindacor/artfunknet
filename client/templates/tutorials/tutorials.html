@@ -9,78 +9,6 @@
 	</div>
 </template>
 
-<template name="templates_intro">
-	<div class="tutorial-text">
-		<p>test tutorial text!</p>
-	</div>
-</template>
-
-<template name="templates_galleries">
-	<div class="tutorial-text">
-		<p>test galleries text!</p>
-	</div>
-</template>
-
-<template name="templates_player_gallery">
-	<div class="tutorial-text">
-		<p>test player gallery text!</p>
-	</div>
-</template>
-
-<template name="templates_loot">
-	<div class="tutorial-text">
-		<p>test loot text!</p>
-	</div>
-</template>
-
-<template name="templates_inventory">
-	<div class="tutorial-text">
-		<p>test inventory text!</p>
-	</div>
-</template>
-
-<template name="templates_my_gallery">
-	<div class="tutorial-text">
-		<p>test my gallery text!</p>
-	</div>
-</template>
-
-<template name="templates_store">
-	<div class="tutorial-text">
-		<p>test store text!</p>
-	</div>
-</template>
-
-<template name="templates_mod_intro">
-	<div class="tutorial-text">
-		<p>test mod intro text!</p>
-	</div>
-</template>
-
-<template name="templates_mod_attribute">
-	<div class="tutorial-text">
-		<p>test mod attribute text!</p>
-	</div>
-</template>
-
-<template name="templates_mod_value">
-	<div class="tutorial-text">
-		<p>test mod value text!</p>
-	</div>
-</template>
-
-<template name="templates_display_modded">
-	<div class="tutorial-text">
-		<p>test display modded text!</p>
-	</div>
-</template>
-
-<template name="templates_outro">
-	<div class="tutorial-text">
-		<p>test outro text!</p>
-	</div>
-</template>
-
 <template name="tutorialPageButtons">
 	<div class="row">
 		<div class="col-xs-6">
@@ -91,6 +19,9 @@
 		<div class="col-xs-6">
 		{{#if next_button}}
 			<button class="page-button next-button">next</button>
+		{{/if}}
+		{{#if finish_button}}
+			<button class="page-button finish-button">finish</button>
 		{{/if}}
 		</div>
 	</div>

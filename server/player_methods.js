@@ -77,23 +77,6 @@ createUser = function(user_object, callback){
     };
 
     user_object.profile.last_name_change = getNowISOString();
-
-    // user_object.profile.tutorials = {
-    //     'welcome': true,
-    //     'loot': true,
-    //     'info': true,
-    //     'action_buttons': true,
-    //     'attributes': false,
-    //     'level': true,
-    //     'display': true,
-    //     'permanent': true,
-    //     'gallery': false,
-    //     'my_gallery': false,
-    //     'galleries': false,
-    //     'other_gallery': false,
-    //     'reroll_menu': false
-    // };
-
     user_object.profile.tutorial_data = {
         'state': 0,
         'step': 0
@@ -209,20 +192,6 @@ Meteor.methods({
     'resetTutorials': function() {
         var player_interface = new PlayerIF(Meteor.user());
         player_interface.resetTutorials();
-    },
-
-    'confirmTutorial': function(tutorial_name) {
-        var setter = {};
-        var setter_string = "profile.tutorials." + tutorial_name;
-        setter[setter_string] = false;
-        Meteor.users.update(Meteor.userId(), {$set: setter});
-    },
-
-    'activateTutorial': function(tutorial_name) {
-        var setter = {};
-        var setter_string = "profile.tutorials." + tutorial_name;
-        setter[setter_string] = true;
-        Meteor.users.update(Meteor.userId(), {$set: setter});
     },
 
     'registerUser': function(user) {
@@ -1013,5 +982,25 @@ Meteor.methods({
      'changeTutorialStep': function(forward) {
         var player_interface = new PlayerIF(Meteor.user());
         player_interface.changeTutorialStep(forward);
+     },
+
+     'createTutorialNpcs': function() {
+        var npc_name = "Art Dealer";
+        var dealer_npc = {
+            "quality" : "bronze",
+            "attribute_id" : attributes.findOne({'npc_name': npc_name})._id,  
+            "owner_id" : Meteor.userId(),
+            "expiration" : null,
+            "players_met" : [ ],
+            "icon" : attributes.findOne({'npc_name': npc_name}).icon,
+            "npc_name" : npc_name,
+            'tutorial': true
+        }
+        npcs.insert(dealer_npc);
+     },
+
+     'finishTutorials': function() {
+        var player_interface = new PlayerIF(Meteor.user());
+        player_interface.finishTutorials();
      }
 })

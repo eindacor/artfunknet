@@ -179,6 +179,15 @@ updateItemArray = function() {
 	var sorter_object = {};
 	sorter_object[sorter] = ascending;
 
+	var player_interface = new PlayerIF(Meteor.user());
+	var tutorial_filter;
+
+	if (player_interface.tutorialMode()) {
+		tutorial_filter = {'tutorial': true};
+	}
+
+	else tutorial_filter = {'tutorial': {$ne: true}};
+
 	var filter_array = [
 		lottery_filter, 
 		foil_filter, 
@@ -189,7 +198,8 @@ updateItemArray = function() {
 		standard_filter,
 		status_filter,
 		rarity_filter,
-		permanent_filter
+		permanent_filter,
+		tutorial_filter
 	];
 
 	tags = [];
