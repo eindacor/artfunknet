@@ -1,14 +1,6 @@
 var updateContent = function() {
     console.log("UPDATING CONTENT");
 
-    // temp code
-    var tutorial_data = {
-        'state': 0,
-        'step': 0
-    }
-
-    Meteor.users.update({}, {$set: {'profile.tutorial_data': tutorial_data}}, {multi: true});
-
     npcs.remove({'tutorial': true});
 
     var npc_name = "Benefactor";
@@ -54,6 +46,23 @@ var updateContent = function() {
     galleries.update({'owner_id': {$in: TUTORIAL_PLAYER_IDS}}, {$set: {'tutorial': true}}, {multi: true});
     npcs.update({'owner_id': {$in: TUTORIAL_PLAYER_IDS}}, {$set: {'tutorial': true}}, {multi: true});
 
+    Meteor.users.find().forEach(function(user_object) {       
+        var tutorial_player = TUTORIAL_PLAYER_IDS.indexOf(user_object._id) != -1;
+        var state = tutorial_player ? TUTORIAL_STATES.length - 1 : 0;
+
+        var callback;
+        if (tutorial_player) {
+            callback = function() {};
+        } 
+        else {
+            callback = function() {
+                var player_interface = new PlayerIF(user_object);
+                player_interface.beginTutorials();
+            }
+        }
+
+        Meteor.users.update(user_object._id, {$set: {'tutorial': tutorial_player, 'profile.tutorial_data': {'state': state, 'step': 0}}, $unset: {'profile.settigns': "", 'profile.tutorials': "", 'profile.gallery_tickets': "", 'profile.gallery_value': "", 'profile.gallery_score': ""}}, callback);
+    })
     //temp code
 
     var all_users = Meteor.users.find();

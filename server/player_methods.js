@@ -24,15 +24,12 @@ createUser = function(user_object, callback){
     user_object.profile.xp = 0;
     user_object.profile.lottery_tickets = 1;
     user_object.profile.entry_fee = "medium";
-    user_object.profile.gallery_tickets = [];
     user_object.profile.npcs_met = {
         'bronze': 0,
         'silver': 0,
         'gold': 0,
         'platinum': 0
     };
-    user_object.profile.gallery_value = 0;
-    user_object.profile.gallery_score = 0;
     user_object.profile.completed_quests = 0;
     user_object.profile.market_expert = {
         'expiration': moment().add(-1, 'days')._d.toISOString()
@@ -191,7 +188,7 @@ playerRatio = function(player_object) {
 Meteor.methods({
     'resetTutorials': function() {
         var player_interface = new PlayerIF(Meteor.user());
-        player_interface.resetTutorials();
+        player_interface.beginTutorials();
     },
 
     'registerUser': function(user) {

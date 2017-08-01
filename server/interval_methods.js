@@ -203,6 +203,10 @@ Meteor.setInterval((function() {
 
             getFromCollection("interval_methods.js", Meteor.users, {}).forEach(function(user_object) {
                 var player_interface = new PlayerIF(user_object);
+                if (player_interface.tutorialMode()) {
+                    return;
+                }
+                
                 var total_earnings = 0;
                 var total_xp = 0;
                 var all_displayed = getFromCollection("interval_methods.js", items, {'status': "displayed", 'owner': player_interface.getId()}).fetch();
