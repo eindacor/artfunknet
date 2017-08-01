@@ -440,8 +440,10 @@ var getDonateFunction = function(player_item_interface) {
 
 var getRerollFunction = function(player_item_interface) {
 	return function() {
-		Session.set('selectedItem', player_item_interface.getItemIF().getId());
-		Modal.show('rerollModal');
+		Blaze.renderWithData(Template.modalTemplate, {
+			'modal_name': "rerollModal", 
+			'modal_data': player_item_interface.getItemIF().getItemObject()
+		}, $('body')[0]);
 	}
 }
 

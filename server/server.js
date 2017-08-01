@@ -1,36 +1,3 @@
-// {
-//         "_id" : "2zHsGPYsdieTPr9f5",
-//         "owner_id" : "iXtSdJRNGJPagkPqv",
-//         "owner" : "some_guy",
-//         "attribute_values" : {
-
-//         },
-//         "entry_fee" : "medium",
-//         "score" : 0,
-//         "value" : 0,
-//         "gallery_rarity_npc_coefficient" : 0,
-//         "earnings_per_hour" : 0,
-//         "xp_per_hour" : 0,
-//         "procs" : {
-
-//         },
-//         "active_unique_attributes" : [],
-//         "published_procs" : {
-//         }
-// }
-
-// {
-//         "_id" : "HCCAbwYPdj6Pj9uRN",
-//         "quality" : "bronze",
-//         "attribute_id" : "mZH58WpgbKP9o9WZR",
-//         "owner_id" : "A5W6WmH9ZvPRBQ6ZR",
-//         "expiration" : "2017-07-26T22:53:46.773Z",
-//         "players_met" : [ ],
-//         "icon" : "fa-shopping-cart",
-//         "npc_name" : "Art Dealer"
-// }
-
-
 var updateContent = function() {
     console.log("UPDATING CONTENT");
 

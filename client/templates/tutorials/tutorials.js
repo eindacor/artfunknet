@@ -69,7 +69,7 @@ tutorial_builder = {
 				break;
 			case 2: contents.append('<p>The icons at the bottom of each card indicate what visitors that item will attract to your gallery. You’ve got a few that attract art dealers (<i class="af-color fa fa-shopping-cart"></i>) and preservationists (<i class="af-color fa fa-wrench"></i>).</p>'); 
 				break;
-			case 3: contents.append('<p>Hover over the items and click the <i class="af-color fa fa-picture-o"></i> button to put them in your gallery, then click the same icon at the top of the screen.</p>')
+			case 3: contents.append('<p>Hover over the items and click the <i class="af-color fa fa-picture-o"></i> button to put them in your gallery, then click the gallery tab on your dashboard.</p>')
 		}
 	},
 
@@ -86,7 +86,7 @@ tutorial_builder = {
 		switch(step) {
 			case 0: contents.append('<p>This is the store, where you can find purchasable crates of items as well as offers you receive from art dealers.</p>'); 
 				break;
-			case 1: contents.append('<p>The Dealer you met is offering an item that looks perfect for your gallery, purchase it by hovering over the item and clicking the shopping cart <icon> button.</p>'); 
+			case 1: contents.append('<p>The Dealer you met is offering an item that looks pretty good for your gallery, purchase it by hovering over the item and clicking the <i class="af-color fa fa-shopping-cart"></i> button.</p>'); 
 				break;
 			case 2: contents.append('<p>You’ll want to put this item up in your gallery too, but first we need to make a few modifications. Click <i class="af-color fa fa-home"></i> to return home, then head back to your inventory.</p>'); 
 				break;

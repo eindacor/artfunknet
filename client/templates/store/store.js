@@ -278,5 +278,16 @@ Template.store.rendered = function() {
 		Session.set('now', moment().toISOString());
 	}), 1000);
 
-	refreshTutorial("store");
+	var player_interface = new PlayerIF(Meteor.user());
+	if (player_interface.readyForTutorial("store") && items.findOne({'owner': player_interface.getId(), 'status': "for_sale", 'tutorial': true}) != undefined) {
+		Meteor.call('changeTutorialStep', true, function(error) {
+			if (error) {
+				console.log(error)
+			}
+
+			else {
+				buildTutorialContents();
+			}
+		})
+	}
 }

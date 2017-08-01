@@ -1,7 +1,7 @@
 .template-tutorials .tutorial-container {
 	position: fixed;
 	border: 1px solid black;
-	z-index: 99999999;
+	z-index: 999999999999;
 	bottom: 20px;
 	right: 20px;
 	background-color: white;

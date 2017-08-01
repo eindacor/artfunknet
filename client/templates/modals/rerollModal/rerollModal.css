@@ -1,5 +1,6 @@
-.template-rerollModal .modal-dialog {
-	width: 900px;
+.template-rerollModal {
+	background-color: white;
+	padding: 20px;
 }
 
 .template-rerollModal .highlight {

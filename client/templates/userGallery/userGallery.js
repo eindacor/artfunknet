@@ -369,7 +369,7 @@ Template.userGallery.rendered = function() {
 
 	var own_gallery = Meteor.user() && this.data.screen_name == Meteor.user().profile.screen_name;
 	var player_interface = new PlayerIF(Meteor.user());
-	if ((player_interface.readyForTutorial("player_gallery") && !own_gallery) || (player_interface.readyForTutorial("my_gallery") && own_gallery)) {
+	if ((player_interface.readyForTutorial("player_gallery") && !own_gallery) || (player_interface.readyForTutorial("my_gallery") && own_gallery && items.findOne({'status': "claimed"}) == undefined)) {
 
 		if (player_interface.readyForTutorial("my_gallery") && own_gallery) {
 			Meteor.call('createTutorialNpcs', function(error) {
