@@ -149,8 +149,13 @@ var addQueriesFromKeywords = function(base_filter) {
 
 	if (keywords.indexOf("dupes") != -1) {
 		var dupe_list = [];
-		items.find({'owner': Meteor.userId()}).forEach(function(item_object) {
-			if (items.find({'owner': Meteor.userId(), 'artwork_id': item_object.artwork_id}).count() > 1)
+		var valid_statuses = ["claimed", "repairing", "displayed", "auctioned"];
+		items.find({'owner': Meteor.userId(), 'status': {$in: valid_statuses}}).forEach(function(item_object) {
+			if (dupe_list.indexOf(item_object.artwork_id) != -1) {
+				return;
+			}
+			
+			if (items.find({'owner': Meteor.userId(), 'artwork_id': item_object.artwork_id, 'status': {$in: valid_statuses}}).count() > 1)
 				dupe_list.push(item_object.artwork_id);
 		});
 		base_filter.artwork_id = {'$in': dupe_list};
