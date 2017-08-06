@@ -97,7 +97,7 @@ createPlayer = function(user_object, callback){
 
     user_object.profile.last_name_change = getNowISOString();
     user_object.profile.tutorial_data = {
-        'state': 0,
+        'state': is_bot ? TUTORIAL_STATES.length - 1 : 0,
         'step': 0
     }
 

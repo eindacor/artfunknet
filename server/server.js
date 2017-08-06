@@ -1,4 +1,4 @@
-var updateBot = function(player_interface) {
+var updateBot = function(player_interface, attribute_list) {
     items.remove({'owner': player_interface.getId()}, function() {     
         Meteor.users.update(player_interface.getId(), {$set: {
             'profile.level': 50, 
@@ -6,7 +6,17 @@ var updateBot = function(player_interface) {
             'profile.tutorial_data.state': TUTORIAL_STATES.length - 1, 
             'profile.tutorial_data.step': 0}
         }, function() {
-            var attribute_list = ["Benefactor", "Art Donor", "Art Enthusiast", "Auctioneer", "Forger"];
+            if (attribute_list == undefined) {
+                attribute_list = [];
+                for (var i=0; i<5; i++) {
+                    var query = {'_id': {$nin: attribute_list}, 'active': true};
+                    var count = attributes.find(query).count();
+                    var random_index = Math.floor(Math.random() * count);
+                    var selected_attribute = attributes.findOne(query, {skip: random_index});
+                    attribute_list.push(selected_attribute.npc_name);
+                }
+            }
+
             var artwork_id_list = [];
             var attribute_map = {};
 
@@ -33,6 +43,7 @@ var updateBot = function(player_interface) {
 
             player_interface.refresh();
             for (var i=0; i<artwork_id_list.length; i++) {
+                console.log(player_interface.getUserObject().profile.screen_name);
                 var artwork_interface = new ArtworkIF(artwork_id_list[i]);
                 ITEM_GENERATOR.generateSingle({
                     'source': source,
@@ -50,8 +61,49 @@ var updateBot = function(player_interface) {
     }); 
 }
 
+var randomName = function() {
+    return new Meteor.Collection.ObjectID()._str;
+}
+
+var removeBots = function() {
+    Meteor.users.find({'profile.user_type': "bot"}).forEach(function(user_object) {
+        galleries.remove({'owner_id': user_object._id});
+        npcs.remove({'owner_id': user_object._id});
+        items.remove({'owner': user_object._id});
+        Meteor.users.remove(user_object._id);
+    })
+}
+
+var makeBots = function(quantity) {
+    for (var i=0; i<quantity; i++) {
+        var username = randomName();
+        var email = username + "@artfunkelbots.com";
+        var bot = {
+            "username": email,
+            "email": email,
+            "password": "bot_password",
+            "profile": {
+                'screen_name': username
+            }
+        };
+
+        createBot(bot);
+
+        var bot_object = undefined;
+        while (bot_object == undefined) {
+            bot_object = Meteor.users.findOne({'profile.screen_name': username});
+            if (bot_object != undefined) {
+                var bot_interface = new PlayerIF(bot_object);
+                updateBot(bot_interface);
+            }
+        }
+    }
+}
+
 var updateContent = function() {
     console.log("UPDATING CONTENT");
+
+    removeBots();
 
     npcs.remove({'tutorial': true});
     var npc_name = "Benefactor";
@@ -110,8 +162,11 @@ var updateContent = function() {
     })
     //temp code
 
-    var bot_interface = new PlayerIF(TUTORIAL_PLAYER_IDS[0]);
-    updateBot(bot_interface);
+    var tutorial_interface = new PlayerIF(TUTORIAL_PLAYER_IDS[0]);
+    var attribute_list = ["Benefactor", "Art Donor", "Art Enthusiast", "Auctioneer", "Forger"];
+    updateBot(tutorial_interface, attribute_list);
+
+    makeBots(30);
 
     Meteor.users.find().forEach(function(user_object) {
         var player_interface = new PlayerIF(user_object);
@@ -206,8 +261,4 @@ Accounts.onCreateUser(function(options, user) {
 
 Accounts.onLogin(function(user_object) {
     Meteor.users.update({'_id': user_object.user._id}, {$set: {'profile.last_login': moment()._d.toISOString()}});
-})
-
-Accounts.onLogout(function(user_object) {
-    Meteor.users.update({'_id': user_object.user._id}, {$set: {'profile.last_logout': moment()._d.toISOString()}});
 })

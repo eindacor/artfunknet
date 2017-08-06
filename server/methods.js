@@ -52,14 +52,19 @@ Meteor.methods({
     },
 
     'getLeaderboardData' : function() {
+        var bot_ids = [];
+        Meteor.users.find({'profile.user_type': "bot"}).forEach(function(user_object) {
+            bot_ids.push(user_object._id);
+        })
+
         return {
             'mvp_data': getMVPData(false),
             'archived_mvp_data': getMVPData(true),
-            'gallery_score_data': galleries.find({}, {limit: 20, sort: {'score': -1}}).fetch(),
-            'gallery_value_data': galleries.find({}, {limit: 20, sort: {'value': -1}}).fetch(),
-            'gallery_earnings_data': galleries.find({}, {limit: 20, sort: {'earnings_per_hour': -1}}).fetch(),
-            'quests_completed_data': Meteor.users.find({'profile.user_type': {$ne: "admin"}}, {limit: 20, sort: {'profile.completed_quests': -1}, fields: {'profile.completed_quests': 1, 'profile.screen_name': 1}}).fetch(),
-            'money_spent_crates_data': Meteor.users.find({'profile.user_type': {$ne: 'admin'}}, {limit: 20, sort: {'profile.money_spent_on_crates': -1}}).fetch(),
+            'gallery_score_data': galleries.find({'owner_id': {$nin: bot_ids}}, {limit: 20, sort: {'score': -1}}).fetch(),
+            'gallery_value_data': galleries.find({'owner_id': {$nin: bot_ids}}, {limit: 20, sort: {'value': -1}}).fetch(),
+            'gallery_earnings_data': galleries.find({'owner_id': {$nin: bot_ids}}, {limit: 20, sort: {'earnings_per_hour': -1}}).fetch(),
+            'quests_completed_data': Meteor.users.find({'profile.user_type': {$nin:["admin", "bot"]}}, {limit: 20, sort: {'profile.completed_quests': -1}, fields: {'profile.completed_quests': 1, 'profile.screen_name': 1}}).fetch(),
+            'money_spent_crates_data': Meteor.users.find({'profile.user_type': {$nin: ["admin", "bot"]}}, {limit: 20, sort: {'profile.money_spent_on_crates': -1}}).fetch(),
             'archive_data': metadata.findOne({'archive_data': {$ne: null}}).archive_data
         }
     },
