@@ -1,8 +1,59 @@
+var updateBot = function(player_interface) {
+    items.remove({'owner': player_interface.getId()}, function() {     
+        Meteor.users.update(player_interface.getId(), {$set: {
+            'profile.level': 50, 
+            'profile.last_npc_met': moment()._d.toISOString(), 
+            'profile.tutorial_data.state': TUTORIAL_STATES.length - 1, 
+            'profile.tutorial_data.step': 0}
+        }, function() {
+            var attribute_list = ["Benefactor", "Art Donor", "Art Enthusiast", "Auctioneer", "Forger"];
+            var artwork_id_list = [];
+            var attribute_map = {};
+
+            for (var i=0; i<attribute_list.length; i++) {
+                attribute_map[attributes.findOne({'npc_name': attribute_list[i]})._id] = 1;
+                for (var n=0; n<attribute_list.length; n++) {
+                    if (i == n) {
+                        continue;
+                    }
+
+                    var attribute_combination = [];
+                    attribute_combination.push(attributes.findOne({'npc_name': attribute_list[i]})._id);
+                    attribute_combination.push(attributes.findOne({'npc_name': attribute_list[n]})._id);
+
+                    var artwork_object = artworks.findOne({'rarity': "legendary", 'special_attributes': {$all: attribute_combination}});
+                    if (artwork_id_list.indexOf(artwork_object._id) == -1) {
+                        artwork_id_list.push(artwork_object._id);
+                    }
+                }
+            }
+
+            var source = "bot generated";
+            var status = "displayed";
+
+            player_interface.refresh();
+            for (var i=0; i<artwork_id_list.length; i++) {
+                var artwork_interface = new ArtworkIF(artwork_id_list[i]);
+                ITEM_GENERATOR.generateSingle({
+                    'source': source,
+                    'artwork_interface': artwork_interface,
+                    'status': status,
+                    'attribute_map': attribute_map,
+                    'min_roll_boost': .8
+                }, player_interface);
+            } 
+
+            player_interface.updateCaps();   
+            player_interface.refresh();
+            player_interface.updateGalleryDetails();
+        });
+    }); 
+}
+
 var updateContent = function() {
     console.log("UPDATING CONTENT");
 
     npcs.remove({'tutorial': true});
-
     var npc_name = "Benefactor";
     var benefactor_tutorial_npc = {
         "quality" : "bronze",
@@ -43,46 +94,31 @@ var updateContent = function() {
     npcs.insert(enthusiast_tutorial_npc);
     npcs.insert(donor_tutorial_npc);
 
-    galleries.update({'owner_id': {$in: TUTORIAL_PLAYER_IDS}}, {$set: {'tutorial': true}}, {multi: true});
-    npcs.update({'owner_id': {$in: TUTORIAL_PLAYER_IDS}}, {$set: {'tutorial': true}}, {multi: true});
-
+    //temp code
     Meteor.users.find().forEach(function(user_object) {       
-        var tutorial_player = TUTORIAL_PLAYER_IDS.indexOf(user_object._id) != -1;
-        var state = tutorial_player ? TUTORIAL_STATES.length - 1 : 0;
+        var tutorial_or_admin = TUTORIAL_PLAYER_IDS.indexOf(user_object._id) != -1 || user_object.profile.user_type == "admin";
 
-        var callback;
-        if (tutorial_player) {
-            callback = function() {};
-        } 
-        else {
-            callback = function() {
-                var player_interface = new PlayerIF(user_object);
-                player_interface.beginTutorials();
-            }
+        if (tutorial_or_admin) {
+            callback = function(){};
+        }
+        else callback = function() {
+            var player_interface = new PlayerIF(user_object);
+            player_interface.beginTutorials();
         }
 
-        Meteor.users.update(user_object._id, {$set: {'tutorial': tutorial_player, 'profile.tutorial_data': {'state': state, 'step': 0}}, $unset: {'profile.settigns': "", 'profile.tutorials': "", 'profile.gallery_tickets': "", 'profile.gallery_value': "", 'profile.gallery_score': ""}}, callback);
+        Meteor.users.update(user_object._id, {$set: {'profile.tutorial_data': {'state': 0, 'step': 0}}, $unset: {'profile.settigns': "", 'profile.tutorials': "", 'profile.gallery_tickets': "", 'profile.gallery_value': "", 'profile.gallery_score': ""}}, callback);
     })
     //temp code
 
-    var all_users = Meteor.users.find();
-    all_users.forEach(function(user_object) {
+    var bot_interface = new PlayerIF(TUTORIAL_PLAYER_IDS[0]);
+    updateBot(bot_interface);
+
+    Meteor.users.find().forEach(function(user_object) {
         var player_interface = new PlayerIF(user_object);
-        player_interface.updateGalleryDetails();
-        var cap_object = getCapSetterObject(user_object.profile.level);
-
-        var setter = {};
-
-        var cap_keys = Object.keys(cap_object);
-        for (var i=0; i < cap_keys.length; i++) {
-            var key = cap_keys[i];
-            var value = cap_object[key];
-
-            var setter_key = "profile." + key;
-            setter[setter_key] = value;
-        }
-
-        Meteor.users.update(user_object._id, {$set : setter});
+        player_interface.refresh();
+        player_interface.updateCaps();
+        player_interface.refresh();
+        player_interface.updateGalleryDetails();    
     });
 
     var current_dynamic_crate_count = crates.find().count();
@@ -114,28 +150,16 @@ Meteor.startup(function() {
     }
 
     if (Meteor.users.find().count() == 0) {
-        var player_1 = {
-            "username": "player@email.com",
-            "email": "player@email.com",
-            "password": "password",
-            "profile": {
-                'screen_name': "Buyer",
-                'user_type': "player"
-            }
-        };
-
         var admin = {
             "username": "admin@email.com",
             "email": "admin@email.com",
             "password": "admin_password",
             "profile": {
-                'screen_name': "admin",
-                'user_type': "admin"
+                'screen_name': "admin"
             }
         };
 
-        createUser(player_1);
-        createUser(admin);
+        createAdmin(admin);
     }
 
     updateContent();

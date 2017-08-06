@@ -1,8 +1,30 @@
 var starting_balance = 100000;
 
-createUser = function(user_object, callback){
+createUser = function(user_object, callback) {
+    user_object.profile.user_type = "player";
+    createPlayer(user_object, callback);
+}
+
+createAdmin = function(user_object, callback) {
+    user_object.profile.user_type = "admin";
+    createPlayer(user_object, callback);
+}
+
+createBot = function(user_object, callback) {
+    user_object.profile.user_type = "bot";
+    createPlayer(user_object, callback);
+}
+
+//TODO revise once entry fees are dynamic to randomize bot prices
+var getStartingEntryFee = function(is_bot) {
+    return "medium";
+}
+
+createPlayer = function(user_object, callback){
     // if (!user_object.profile.photo)
     //     user_object.profile.photo = getDefaultProfileImageId()
+
+    var is_bot = user_object.profile.user_type == "bot";
 
     if (user_object.profile.screen_name == BOT_USER_NAME) {
         throw "Invalid gamertag";
@@ -20,10 +42,10 @@ createUser = function(user_object, callback){
     user_object.profile.active = true;
     user_object.profile.bank_balance = starting_balance;
     user_object.profile.last_drop = moment().add(-1, 'days')._d.toISOString();
-    user_object.profile.level = 0;
+    user_object.profile.level = is_bot ? PLAYER_LEVEL_MAX : 0;
     user_object.profile.xp = 0;
     user_object.profile.lottery_tickets = 1;
-    user_object.profile.entry_fee = "medium";
+    user_object.profile.entry_fee = getStartingEntryFee(is_bot);
     user_object.profile.npcs_met = {
         'bronze': 0,
         'silver': 0,
@@ -186,7 +208,7 @@ playerRatio = function(player_object) {
 }
 
 Meteor.methods({
-    'resetTutorials': function() {
+    'beginTutorials': function() {
         var player_interface = new PlayerIF(Meteor.user());
         player_interface.beginTutorials();
     },

@@ -58,7 +58,7 @@ var getCanBuyAllFavorites = function() {
 
 Template.galleries.helpers({
 	'gallery': function() {
-		return galleries.find({'score': {$gt: 0}}, {sort: {'score': -1}});
+		return galleries.find({'visible': true, 'score': {$gt: 0}}, {sort: {'score': -1}}).fetch();
 	},
 
 	'canBuyAllFavorites': function() {
@@ -211,8 +211,6 @@ Template.galleries.rendered = function() {
 	entry_fees = {};
 	gallery_avatars = {};
 	can_buy_all_favorites = undefined
-	Session.set('galleries_ascending', true);
-	Session.set('galleries_sort', "profile.screen_name");
 
 	refreshTutorial("galleries");
 }

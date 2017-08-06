@@ -74,6 +74,14 @@ Template.playerInfo.events({
 			if (error)
 				console.log(error.message);
 		})
+	},
+
+	'click #tutorial-mode': function() {
+		Meteor.call('beginTutorials', function(error) {
+			if (error) {
+				console.log(error);
+			}
+		});
 	}
 });
 

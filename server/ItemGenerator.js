@@ -46,42 +46,42 @@ ItemGenerator = function() {
 		return new ArtworkIF(artworks.findOne(query_object, {skip: random_index}));
 	}
 
-	var getItemAttributes = function(artwork_object, item_is_unlocked, attribute_map) {
-		var attribute_map_copy = JSON.parse(JSON.stringify(attribute_map));
-	    var attributes_object = {
-	        'locked': [],
-	        'unlocked': [],
-	        'special': []
-	    }
+	// var getItemAttributes = function(artwork_object, item_is_unlocked, attribute_map) {
+	// 	var attribute_map_copy = JSON.parse(JSON.stringify(attribute_map));
+	//     var attributes_object = {
+	//         'locked': [],
+	//         'unlocked': [],
+	//         'special': []
+	//     }
 
-	    for (var i=0; artwork_object.special_attributes && i<artwork_object.special_attributes.length; i++) {
-	        var attribute_object = attributes.findOne(artwork_object.special_attributes[i]);
-	        attribute_object.value = getAttributeValue(0, .8);
-	        attributes_object.special.push(attribute_object);
-	        delete attribute_map_copy[attribute_object._id];
-	    }
+	//     for (var i=0; artwork_object.special_attributes && i<artwork_object.special_attributes.length; i++) {
+	//         var attribute_object = attributes.findOne(artwork_object.special_attributes[i]);
+	//         attribute_object.value = getAttributeValue(0, .8);
+	//         attributes_object.special.push(attribute_object);
+	//         delete attribute_map_copy[attribute_object._id];
+	//     }
 
-	    var locked_count = artwork_object.rarity == "common" || item_is_unlocked ? 0 : 1;
-	    var unlocked_count = artwork_object.rarity == "common" || !item_is_unlocked ? 1 : 2;
+	//     var locked_count = artwork_object.rarity == "common" || item_is_unlocked ? 0 : 1;
+	//     var unlocked_count = artwork_object.rarity == "common" || !item_is_unlocked ? 1 : 2;
 
-	    for (var i=0; i<locked_count; i++) {
-	    	var attribute_id = JepLoot.catRoll(attribute_map_copy);
-	        var attribute_object = attributes.findOne(attribute_id);
-	        attribute_object.value = getAttributeValue(0, .5);
-	        attributes_object.locked.push(attribute_object);
-	        delete attribute_map_copy[attribute_id];
-	    }
+	//     for (var i=0; i<locked_count; i++) {
+	//     	var attribute_id = JepLoot.catRoll(attribute_map_copy);
+	//         var attribute_object = attributes.findOne(attribute_id);
+	//         attribute_object.value = getAttributeValue(0, .5);
+	//         attributes_object.locked.push(attribute_object);
+	//         delete attribute_map_copy[attribute_id];
+	//     }
 
-	    for (var i=0; i<unlocked_count; i++) {
-	        var attribute_id = JepLoot.catRoll(attribute_map_copy);
-	        var attribute_object = attributes.findOne(attribute_id);
-	        attribute_object.value = getAttributeValue(0, 0);
-	        attributes_object.unlocked.push(attribute_object);
-	        delete attribute_map_copy[attribute_id];
-	    }
+	//     for (var i=0; i<unlocked_count; i++) {
+	//         var attribute_id = JepLoot.catRoll(attribute_map_copy);
+	//         var attribute_object = attributes.findOne(attribute_id);
+	//         attribute_object.value = getAttributeValue(0, 0);
+	//         attributes_object.unlocked.push(attribute_object);
+	//         delete attribute_map_copy[attribute_id];
+	//     }
 
-	    return attributes_object;
-	}
+	//     return attributes_object;
+	// }
 
 	var hasMandatoryFields = function(object, mandatory_fields) {
 		var keys = Object.keys(object);
@@ -94,7 +94,7 @@ ItemGenerator = function() {
 		return true;
 	}
 
-	var getItemAttributes = function(artwork_object, item_is_unlocked, attribute_map) {
+	var getItemAttributes = function(artwork_object, item_is_unlocked, attribute_map, roll_value_boost) {
 		var attribute_map_copy = JSON.parse(JSON.stringify(attribute_map));
 	    var attributes_object = {
 	        'locked': [],
@@ -102,9 +102,20 @@ ItemGenerator = function() {
 	        'special': []
 	    }
 
+	    var adjusted_min_roll = function(base_min_roll) {
+	    	if (roll_value_boost === undefined) {
+	    		return base_min_roll;
+	    	}
+
+	    	var delta = 1 - base_min_roll;
+	    	var adjustment = roll_value_boost * delta;
+	    	return Math.min(base_min_roll + adjustment, 1);
+	    }
+
 	    for (var i=0; artwork_object.special_attributes && i<artwork_object.special_attributes.length; i++) {
 	        var attribute_object = attributes.findOne(artwork_object.special_attributes[i]);
-	        attribute_object.value = getAttributeValue(0, .8);
+	        var min_roll = adjusted_min_roll(.8); 
+	        attribute_object.value = getAttributeValue(0, min_roll);
 	        attributes_object.special.push(attribute_object);
 	        delete attribute_map_copy[attribute_object._id];
 	    }
@@ -115,7 +126,8 @@ ItemGenerator = function() {
 	    for (var i=0; i<locked_count; i++) {
 	    	var attribute_id = JepLoot.catRoll(attribute_map_copy);
 	        var attribute_object = attributes.findOne(attribute_id);
-	        attribute_object.value = getAttributeValue(0, .5);
+	        var min_roll = adjusted_min_roll(.5); 
+	        attribute_object.value = getAttributeValue(0, min_roll);
 	        attributes_object.locked.push(attribute_object);
 	        delete attribute_map_copy[attribute_id];
 	    }
@@ -123,7 +135,8 @@ ItemGenerator = function() {
 	    for (var i=0; i<unlocked_count; i++) {
 	        var attribute_id = JepLoot.catRoll(attribute_map_copy);
 	        var attribute_object = attributes.findOne(attribute_id);
-	        attribute_object.value = getAttributeValue(0, 0);
+	        var min_roll = adjusted_min_roll(0); 
+	        attribute_object.value = getAttributeValue(0, min_roll);
 	        attributes_object.unlocked.push(attribute_object);
 	        delete attribute_map_copy[attribute_id];
 	    }
@@ -168,6 +181,7 @@ ItemGenerator = function() {
 			unlocked_chance
 			misprint_chance
 			forgery_chance
+			min_roll_boost
 	*/
 
 	this.generateMultiple = function(multi_item_generator_object, player_interface, callback) {
@@ -224,6 +238,7 @@ ItemGenerator = function() {
 	        var attribute_array = getAttributeArray(rarity_roll, attribute_map);
 	        var artwork_interface = selectArtwork(rarity_roll, attribute_array, seasonal_amplifier);
 	        var forgery = multi_item_generator_object.forgery === undefined ? Math.random() < forgery_chance : multi_item_generator_object.forgery;
+	        var min_roll_boost = multi_item_generator_object.min_roll_boost === undefined ? 0 : multi_item_generator_object.min_roll_boost;
 
 	        var item_generator = {
 	            'source': multi_item_generator_object.source,
@@ -240,7 +255,8 @@ ItemGenerator = function() {
 	            'status': multi_item_generator_object.status,
 	            'attribute_map': attribute_map,
 	            'forgery': forgery,
-	            'forgery_quality': multi_item_generator_object.forgery_quality
+	            'forgery_quality': multi_item_generator_object.forgery_quality,
+	            'min_roll_boost': min_roll_boost
 	        }
 
 	        if (player_interface != undefined && player_interface.tutorialMode() && multi_item_generator_object.status == "for_sale") {
@@ -252,6 +268,26 @@ ItemGenerator = function() {
 
 	    return item_ids;
 
+	}
+
+	var insertItem = function(item_object, source, callback) {
+		var new_item_id = items.insert(item_object, function(error, result) {
+	        if (error)
+	            console.log(error.message)
+
+	        else {
+	        	item_object._id = result;
+	        	if (item_object.artwork_data.rarity == "legendary" || item_object.artwork_data.rarity == "masterpiece") {
+		        	logLegendary(source, item_object);
+		        }
+
+		        if (callback) {
+	        		callback(item_object);
+	        	}
+	        }
+	    });
+
+	    return new_item_id;
 	}
 
 	/*
@@ -295,27 +331,8 @@ ItemGenerator = function() {
 			vintage
 			original
 
+			min_roll_boost
 	*/
-
-	var insertItem = function(item_object, source, callback) {
-		var new_item_id = items.insert(item_object, function(error, result) {
-	        if (error)
-	            console.log(error.message)
-
-	        else {
-	        	item_object._id = result;
-	        	if (item_object.artwork_data.rarity == "legendary" || item_object.artwork_data.rarity == "masterpiece") {
-		        	logLegendary(source, item_object);
-		        }
-
-		        if (callback) {
-	        		callback(item_object);
-	        	}
-	        }
-	    });
-
-	    return new_item_id;
-	}
 
 	this.generateSingle = function(item_generator_object, player_interface, callback) {
 		var mandatory_fields = ["artwork_interface", "status"];
@@ -361,11 +378,13 @@ ItemGenerator = function() {
 
 	    var attribute_map = item_generator_object.attribute_map === undefined ? DEFAULT_ATTRIBUTE_MAP : item_generator_object.attribute_map;
 	    var condition_min = item_generator_object.condition_min === undefined ? 0 : item_generator_object.condition_min;
+	    var min_roll_boost = item_generator_object.min_roll_boost === undefined ? 0 : item_generator_object.min_roll_boost;
+	    var tutorial =  player_interface !== undefined && player_interface.tutorialMode();
 
 	    var new_item_object = {
 	        'artwork_id' : item_generator_object.artwork_interface.getId(),
 	        'condition' : item_generator_object.condition === undefined ? getCondition(condition_min) : item_generator_object.condition,
-	        'attributes' : getItemAttributes(artwork_data, unlocked, attribute_map),
+	        'attributes' : getItemAttributes(artwork_data, unlocked, attribute_map, min_roll_boost),
 	        'active_unique_attribute': artwork_data.unique_attributes ? artwork_data.unique_attributes[0] : undefined,
 	        'owner' : player_interface === undefined ? BOT_USER_NAME : player_interface.getId(),
 	        'status' : item_generator_object.status,
@@ -391,7 +410,7 @@ ItemGenerator = function() {
 	        'tags': [],
 	        'artwork_data': artwork_data,
 	        'permanent': false,
-	        'tutorial': player_interface !== undefined && player_interface.tutorialMode()
+	        'tutorial': tutorial
 	    };
 
 	    new_item_object.values = getItemObjectValues(new_item_object);

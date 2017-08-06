@@ -148,3 +148,7 @@
 	border-top: 1px solid rgba(0,0,0,.3);
 	padding-top: 20px;
 }
+
+.template-playerInfo .tutorial {
+	margin-top: 20px;
+}

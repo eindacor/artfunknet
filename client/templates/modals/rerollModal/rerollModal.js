@@ -8,8 +8,8 @@ var reroll_cost;
 var upgrade_cost_tracker = new Tracker.Dependency;
 var upgrade_cost;
 
-updateInterfaces = function() {
-	item_interface = new ItemIF(Session.get('selectedItem'));
+updateInterfaces = function(item_object) {
+	item_interface = new ItemIF(item_object);
 	player_interface = new PlayerIF(Meteor.user());
 	player_item_interface = new PlayerItemIF(player_interface, item_interface);
 	player_item_permissions = new PlayerItemPermissions(player_interface, item_interface); 
@@ -71,7 +71,7 @@ Template.rerollModal.events ({
 			})
 		}
 
-		Meteor.call('rerollAttributeValue', Session.get('selectedItem'), attribute_id, function(error, result) {
+		Meteor.call('rerollAttributeValue', item_interface.getId(), attribute_id, function(error, result) {
 			if (error)
 				console.log(error.message);
 
@@ -100,7 +100,7 @@ Template.rerollModal.events ({
 			})
 		}
 
-		Meteor.call('rerollAttribute', Session.get('selectedItem'), attribute_id, function(error, result) {
+		Meteor.call('rerollAttribute', item_interface.getId(), attribute_id, function(error, result) {
 			if (error)
 				console.log(error.message);
 
@@ -115,7 +115,7 @@ Template.rerollModal.events ({
 
 	'click i.setting-false': function(event) {
 		var unique_attribute_id = $(event.target).data().unique_attribute_id;
-		Meteor.call('setActiveUniqueAttribute', Session.get('selectedItem'), unique_attribute_id, function(error) {
+		Meteor.call('setActiveUniqueAttribute', item_interface.getId(), unique_attribute_id, function(error) {
 			if (error)
 				console.log(error.message)
 
@@ -129,7 +129,7 @@ Template.rerollModal.events ({
 	},
 
 	'click .upgrade-button.af-color': function() {
-		Meteor.call('upgradeItem', Session.get('selectedItem'), function(error) {
+		Meteor.call('upgradeItem', item_interface.getId(), function(error) {
 			if(error)
 				console.log(error);
 
@@ -144,7 +144,7 @@ Template.rerollModal.events ({
 })
 
 Template.rerollModal.rendered = function() {
-	updateInterfaces();
+	updateInterfaces(this.data);
 	refreshTutorial("mod_attribute");
 }
 
@@ -195,7 +195,7 @@ Template.rerollModal.helpers({
 
 	'unique_attribute_data': function(unique_id) {
 		var unique_object = unique_attributes.findOne(unique_id);
-		unique_object.current_selected = items.findOne(Session.get('selectedItem')).active_unique_attribute == unique_id;
+		unique_object.current_selected = items.findOne(item_interface.getId()).active_unique_attribute == unique_id;
 		return unique_object;
 	},
 

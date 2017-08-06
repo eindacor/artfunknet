@@ -43,12 +43,9 @@ Meteor.setInterval((function() {
 
 Meteor.setInterval((function() {
     var admin_ids = ['Artfunkel, Inc.'];
-    Meteor.users.find({'profile.user_type': "admin"}).forEach(function(user_object) {
+    Meteor.users.find({'profile.user_type': {$in: ["admin", "bot"]}}).forEach(function(user_object) {
         admin_ids.push(user_object._id);
     });
-
-    if (DEBUG)
-        admin_ids = [];
 
     var match_object = {
         'status': "archived",
@@ -320,7 +317,7 @@ drawLottery = function(force_draw) {
         var tickets_average = 0;
         var player_count = 0;
         var user_query_object = {
-            'profile.user_type': {$ne: "admin"}, 
+            'profile.user_type': {$nin: ["admin", "bot"]}, 
             'profile.lottery_tickets': {$gt: 0},
             'profile.settings.lottery_eligible': true,
             'profile.active': true
