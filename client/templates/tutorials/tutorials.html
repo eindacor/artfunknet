@@ -12,6 +12,9 @@
 <template name="tutorialPageButtons">
 	<div class="row">
 		<div class="col-xs-6">
+		{{#if skip_button}}
+			<button class="page-button skip-button">skip tutorial</button>
+		{{/if}}
 		{{#if back_button}}
 			<button class="page-button back-button">back</button>
 		{{/if}}

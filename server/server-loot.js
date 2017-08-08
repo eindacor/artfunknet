@@ -278,10 +278,6 @@ getAttributeValue = function(multiplier, min_value) {
     return attribute_rating_float;
 }
 
-getLockedAttributeValue = function() {
-    return Number((.8 + (getAttributeValue(0, 0) * .2)).toFixed(2));
-}
-
 Meteor.methods({
     'giveDailyDrop' : function() {
         if (Meteor.user() && dailyDropIsEnabled()) {

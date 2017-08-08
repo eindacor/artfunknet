@@ -58,7 +58,11 @@ var getCanBuyAllFavorites = function() {
 
 Template.galleries.helpers({
 	'gallery': function() {
-		return galleries.find({'visible': true, 'score': {$gt: 0}}, {sort: {'score': -1}}).fetch();
+		var player_interface = new PlayerIF(Meteor.user());
+		if (player_interface.tutorialMode()) {
+			return galleries.find({'tutorial': true, 'score': {$gt: 0}}, {sort: {'score': -1}});
+		}
+		else return galleries.find({'tutorial': {$ne: true}, 'visible': true, 'score': {$gt: 0}}, {sort: {'score': -1}});
 	},
 
 	'canBuyAllFavorites': function() {

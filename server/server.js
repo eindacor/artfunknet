@@ -9,7 +9,7 @@ var updateBot = function(player_interface, attribute_list) {
             if (attribute_list == undefined) {
                 attribute_list = [];
                 for (var i=0; i<5; i++) {
-                    var query = {'_id': {$nin: attribute_list}, 'active': true};
+                    var query = {'npc_name': {$nin: attribute_list}, 'active': true};
                     var count = attributes.find(query).count();
                     var random_index = Math.floor(Math.random() * count);
                     var selected_attribute = attributes.findOne(query, {skip: random_index});
@@ -43,7 +43,6 @@ var updateBot = function(player_interface, attribute_list) {
 
             player_interface.refresh();
             for (var i=0; i<artwork_id_list.length; i++) {
-                console.log(player_interface.getUserObject().profile.screen_name);
                 var artwork_interface = new ArtworkIF(artwork_id_list[i]);
                 ITEM_GENERATOR.generateSingle({
                     'source': source,
@@ -166,7 +165,7 @@ var updateContent = function() {
     var attribute_list = ["Benefactor", "Art Donor", "Art Enthusiast", "Auctioneer", "Forger"];
     updateBot(tutorial_interface, attribute_list);
 
-    makeBots(30);
+    //makeBots(30);
 
     Meteor.users.find().forEach(function(user_object) {
         var player_interface = new PlayerIF(user_object);

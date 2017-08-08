@@ -59,17 +59,6 @@ Template.rerollModal.events ({
     	var attribute_id = $(element.target).data('attribute_id');
 
     	var player_interface = new PlayerIF(Meteor.user());
-		if (player_interface.readyForTutorial("display_modded")) {
-			Meteor.call('changeTutorialStep', true, function(error) {
-				if (error) {
-					console.log(error)
-				}
-
-				else {
-					buildTutorialContents();
-				}
-			})
-		}
 
 		Meteor.call('rerollAttributeValue', item_interface.getId(), attribute_id, function(error, result) {
 			if (error)
@@ -80,6 +69,7 @@ Template.rerollModal.events ({
 				updateInterfaces(item_object);
 				var container_id = "#item_" + item_object._id;
 				fillItemContainer($(container_id), new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_object)));
+				buildTutorialContents();
 			}
 		});
     },
@@ -88,17 +78,6 @@ Template.rerollModal.events ({
     	var attribute_id = $(element.target).data('attribute_id');
 
     	var player_interface = new PlayerIF(Meteor.user());
-		if (player_interface.readyForTutorial("mod_value")) {
-			Meteor.call('changeTutorialStep', true, function(error) {
-				if (error) {
-					console.log(error)
-				}
-
-				else {
-					buildTutorialContents();
-				}
-			})
-		}
 
 		Meteor.call('rerollAttribute', item_interface.getId(), attribute_id, function(error, result) {
 			if (error)
@@ -109,6 +88,7 @@ Template.rerollModal.events ({
 				updateInterfaces(item_object);
 				var container_id = "#item_" + item_object._id;
 				fillItemContainer($(container_id), new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_object)));
+				buildTutorialContents();
 			}
 		});
     },

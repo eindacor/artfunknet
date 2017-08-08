@@ -34,7 +34,7 @@ tutorial_builder = {
 				break;
 			case 1: contents.append('<p>When you hover your mouse over a gallery card, you’ll notice values pop up next to each icon. These icons represent visitor types, and the value shows the likelihood of that visitor type being in that gallery.</p>'); 
 				break;
-			case 2: contents.append('<p>Click on the <i class="af-color fa fa-sign-in"></i> button of the top gallery to pay the entry fee and enter to meet some visitors.</p>'); 
+			case 2: contents.append('<p>Click on the <i class="af-color fa fa-sign-in"></i> button of the gallery card to pay the entry fee and enter to meet some visitors.</p>'); 
 				break;
 		}
 	},
@@ -54,7 +54,7 @@ tutorial_builder = {
 		switch(step) {
 			case 0: contents.append('<p>Here’s the loot section of your player dashboard, where you’ll find all the items that have been donated to you, as well as items found in crates you purchase.</p>'); 
 				break;
-			case 1: contents.append('<p>Hovering over an artwork shows you the available actions for that item. You can add it to your inventory (<i class="af-color fa fa-plus"></i>), sell it (<i class="af-color fa fa-usd"></i>), donate it for knowledge (<i class="af-color fa fa-share-square"></i>), and lots more.</p>'); 
+			case 1: contents.append('<p>Hovering over an artwork shows you the available actions for that item, most of which are disabled for this tutorial.</p>'); 
 				break;
 			case 2: contents.append('<p>Go ahead and add these items to your inventory by hovering over them and clicking the <i class="af-color fa fa-plus"></i> button, then click on the inventory tab on your dashboard.</p>'); 
 				break;
@@ -124,7 +124,7 @@ tutorial_builder = {
 		switch(step) {
 			case 0: contents.append('<p>Perfect, 96 is way better than 12! Now this item is a much better fit for your gallery.</p>'); 
 				break;
-			case 1: contents.append('<p>Close the Mod menu and put your new items up with the rest of your works.</p>'); 
+			case 1: contents.append('<p>Close the Mod menu and put your newly-modded item up with the rest of your works.</p>'); 
 				break;
 		}
 	},
@@ -133,7 +133,7 @@ tutorial_builder = {
 		switch(step) {
 			case 0: contents.append('<p>You’ve now learned the basic mechanics of Artfunkel. Meet visitors, get new items, modify them as you wish, and curate your own gallery. But there’s an awful lot more to the game, including an auction house, artwork forging, quests, your personal archive, and a weekly lottery to name a few.</p>'); 
 				break;
-			case 1: contents.append('<p>To learn more about the game, please visit the wiki and join the discord channel, where you can ask for help or tips from the developer and/or seasoned Artfunkel veterans.</p>'); 
+			case 1: contents.append('<p>To learn more about the game, please visit the <a target="_blank" href="http://artfunkel.wikia.com/wiki/Artfunkel_Wiki">wiki</a> and join the <a target="_blank" href="https://discord.gg/A9baZCh">discord channel</a>, where you can ask for help or tips from the developer and/or seasoned Artfunkel veterans.</p>'); 
 				break;
 			case 2: contents.append('<p>Thanks for playing, and good luck!</p>')
 				break;
@@ -176,6 +176,11 @@ Template.tutorialPageButtons.helpers({
 		var is_last_step = current_step == TUTORIAL_STATE_STEPS[current_state] - 1;
 		var is_last_state = Meteor.user().profile.tutorial_data.state == TUTORIAL_STATES.length - 2;
 		return is_last_step && is_last_state;
+	},
+
+	'skip_button': function() {
+		var tutorial_data = Meteor.user().profile.tutorial_data;
+		return tutorial_data && tutorial_data.state == 0 && tutorial_data.step == 0;
 	}
 })
 
@@ -206,7 +211,7 @@ Template.tutorialPageButtons.events({
 		})
 	},
 
-	'click .finish-button': function(event) {
+	'click .finish-button, click .skip-button': function(event) {
 		event.stopPropagation();
 		Meteor.call('finishTutorials', function(error) {
 			if (error) {

@@ -60,7 +60,18 @@ Template.inventory.destroyed = function() {
 }
 
 Template.inventory.rendered = function() {
-	var player_interface = new PlayerIF(Meteor.user());
 	refreshTutorial("inventory");
-	refreshTutorial("mod_intro");
+
+	var player_interface = new PlayerIF(Meteor.user());
+	if (player_interface.readyForTutorial("mod_intro") && items.findOne({'owner': player_interface.getId(), 'status': "for_sale", 'tutorial': true}) == undefined) {
+		Meteor.call('changeTutorialStep', true, function(error) {
+			if (error) {
+				console.log(error)
+			}
+
+			else {
+				buildTutorialContents();
+			}
+		})
+	}
 }
