@@ -95,7 +95,7 @@ tutorial_builder = {
 
 	'mod_intro': function(contents, step) {
 		switch(step) {
-			case 0: contents.append('<p>Your new item is ALMOST perfect for displaying. You’ll want to make sure your gallery is optimized to attract the visitors you want most, which means all of your display items should have similar attributes.</p>'); 
+			case 0: contents.append('<p>Your new item is <span style="font-style:italic">ALMOST</span> perfect for displaying. You’ll want to make sure your gallery is optimized to attract the visitors you want most, which means all of your display items should have similar attributes.</p>'); 
 				break;
 			case 1: contents.append('<p>You can change certain attributes by hovering over an item and clicking the <i class="af-color fa fa-magic"></i> button. Do this to the item you just purchased.</p>'); 
 				break;

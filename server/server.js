@@ -149,15 +149,18 @@ var updateContent = function() {
     Meteor.users.find().forEach(function(user_object) {       
         var tutorial_or_admin = TUTORIAL_PLAYER_IDS.indexOf(user_object._id) != -1 || user_object.profile.user_type == "admin";
 
+        var state;
         if (tutorial_or_admin) {
+            state = TUTORIAL_STATES.length - 1;
             callback = function(){};
         }
         else callback = function() {
+            state = 0;
             var player_interface = new PlayerIF(user_object);
             player_interface.beginTutorials();
         }
 
-        Meteor.users.update(user_object._id, {$set: {'profile.tutorial_data': {'state': 0, 'step': 0}}, $unset: {'profile.settigns': "", 'profile.tutorials': "", 'profile.gallery_tickets': "", 'profile.gallery_value': "", 'profile.gallery_score': ""}}, callback);
+        Meteor.users.update(user_object._id, {$set: {'profile.tutorial_data': {'state': state, 'step': 0}}, $unset: {'profile.settigns': "", 'profile.tutorials': "", 'profile.gallery_tickets': "", 'profile.gallery_value': "", 'profile.gallery_score': ""}}, callback);
     })
     //temp code
 
@@ -165,15 +168,17 @@ var updateContent = function() {
     var attribute_list = ["Benefactor", "Art Donor", "Art Enthusiast", "Auctioneer", "Forger"];
     updateBot(tutorial_interface, attribute_list);
 
-    //makeBots(30);
+    //makeBots(10);
 
-    Meteor.users.find().forEach(function(user_object) {
-        var player_interface = new PlayerIF(user_object);
-        player_interface.refresh();
-        player_interface.updateCaps();
-        player_interface.refresh();
-        player_interface.updateGalleryDetails();    
-    });
+    Meteor.setTimeout(function() {
+         Meteor.users.find().forEach(function(user_object) {
+            var player_interface = new PlayerIF(user_object);
+            player_interface.refresh();
+            player_interface.updateCaps();
+            player_interface.refresh();
+            player_interface.updateGalleryDetails();    
+        });
+    }, 3000);
 
     var current_dynamic_crate_count = crates.find().count();
     for (var i=0; i<DYNAMIC_CRATE_COUNT - current_dynamic_crate_count; i++) {
