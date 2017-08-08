@@ -230,11 +230,7 @@ var getFooterHTML = function(player_item_interface) {
 
 		if (player_item_interface.getPlayerItemPermissions().canAffordUpgrade() && player_item_interface.getItemIF().getStatus() != "archived") {
 			var $level_up_button = ($('<span class="af-color"><i class="fa fa-arrow-circle-o-up"></i></span>'));
-			$level_up_button.on('click', function(element) {
-				element.stopPropagation();
-				Session.set('selectedItem', player_item_interface.getItemIF().getId());
-				Modal.show('rerollModal');
-			})
+			$level_up_button.on('click', getRerollFunction(player_item_interface))
 			$level_text.append($level_up_button);
 		}
 
