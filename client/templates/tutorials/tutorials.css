@@ -5,7 +5,7 @@
 	bottom: 20px;
 	right: 20px;
 	background-color: white;
-	padding: 16px;
+	padding: 8px 16px 16px 16px;
 	color: black;
 	width: 400px;
 	box-shadow: 0px 0px 10px 2px #ff00cc;
@@ -23,4 +23,13 @@
 
 .template-tutorials .tutorial-text {
 	font-size: 1.8rem;
+}
+
+.template-tutorials #exit-tutorial {
+	opacity: .6;
+	cursor: pointer;
+}
+
+.template-tutorials #exit-tutorial:hover {
+	opacity: 1;
 }

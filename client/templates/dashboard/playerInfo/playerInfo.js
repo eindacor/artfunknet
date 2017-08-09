@@ -200,6 +200,11 @@ Template.playerInfo.helpers({
 		return Meteor.user().profile.level >= 50;
 	},
 
+	'tutorial_mode': function() {
+		var player_interface = new PlayerIF(Meteor.user());
+		return player_interface.tutorialMode();
+	},
+
 	'unselected': function(current_tier) {
 		var tier_array = ["free", "low", "medium", "high", "outrageous"];
 		tier_array.splice(tier_array.indexOf(current_tier), 1);

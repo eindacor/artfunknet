@@ -155,6 +155,15 @@ Template.tutorials.rendered = function() {
 	buildTutorialContents();
 }
 
+Template.tutorials.events({
+	'click #exit-tutorial': function() {
+		Blaze.renderWithData(Template.modalTemplate, {
+			'modal_name': "exitTutorialModal", 
+			'modal_data': {}
+		}, $('body')[0]);
+	}
+})
+
 Template.tutorialPageButtons.helpers({
 	'back_button': function() {
 		return Meteor.user().profile.tutorial_data.step > 0;
