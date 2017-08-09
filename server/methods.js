@@ -10,7 +10,7 @@ var texture_size_cm = 300;
 var getMVPData = function(archive_status) {
     var admin_ids = ['Artfunkel, Inc.'];
     var botter_ids = ["A5W6WmH9ZvPRBQ6ZR", "ktByWpesBidgHoqum"];
-    Meteor.users.find({'profile.user_type': "admin"}).forEach(function(user_object) {
+    Meteor.users.find({$or: [{'profile.user_type': "admin"}, {'_id': {$in: TUTORIAL_PLAYER_IDS}}]}).forEach(function(user_object) {
         admin_ids.push(user_object._id);
     });
 
@@ -60,9 +60,9 @@ Meteor.methods({
         return {
             'mvp_data': getMVPData(false),
             'archived_mvp_data': getMVPData(true),
-            'gallery_score_data': galleries.find({'owner_id': {$nin: bot_ids}}, {limit: 20, sort: {'score': -1}}).fetch(),
-            'gallery_value_data': galleries.find({'owner_id': {$nin: bot_ids}}, {limit: 20, sort: {'value': -1}}).fetch(),
-            'gallery_earnings_data': galleries.find({'owner_id': {$nin: bot_ids}}, {limit: 20, sort: {'earnings_per_hour': -1}}).fetch(),
+            'gallery_score_data': galleries.find({'tutorial': {$ne: true}, 'owner_id': {$nin: bot_ids}}, {limit: 20, sort: {'score': -1}}).fetch(),
+            'gallery_value_data': galleries.find({'tutorial': {$ne: true}, 'owner_id': {$nin: bot_ids}}, {limit: 20, sort: {'value': -1}}).fetch(),
+            'gallery_earnings_data': galleries.find({'tutorial': {$ne: true}, 'owner_id': {$nin: bot_ids}}, {limit: 20, sort: {'earnings_per_hour': -1}}).fetch(),
             'quests_completed_data': Meteor.users.find({'profile.user_type': {$nin:["admin", "bot"]}}, {limit: 20, sort: {'profile.completed_quests': -1}, fields: {'profile.completed_quests': 1, 'profile.screen_name': 1}}).fetch(),
             'money_spent_crates_data': Meteor.users.find({'profile.user_type': {$nin: ["admin", "bot"]}}, {limit: 20, sort: {'profile.money_spent_on_crates': -1}}).fetch(),
             'archive_data': metadata.findOne({'archive_data': {$ne: null}}).archive_data
