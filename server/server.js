@@ -146,27 +146,7 @@ var updateContent = function() {
     npcs.insert(donor_tutorial_npc);
 
     //temp code
-    Meteor.users.find().forEach(function(user_object) {       
-        var tutorial_or_admin = TUTORIAL_PLAYER_IDS.indexOf(user_object._id) != -1 || user_object.profile.user_type == "admin";
-
-        var state;
-        if (tutorial_or_admin) {
-            state = TUTORIAL_STATES.length - 1;
-            callback = function(){};
-        }
-        else callback = function() {
-            state = 0;
-            var player_interface = new PlayerIF(user_object);
-            player_interface.beginTutorials();
-        }
-
-        Meteor.users.update(user_object._id, {$set: {'profile.tutorial_data': {'state': state, 'step': 0}}, $unset: {'profile.settigns': "", 'profile.tutorials': "", 'profile.gallery_tickets': "", 'profile.gallery_value': "", 'profile.gallery_score': ""}}, callback);
-    })
     //temp code
-
-    var tutorial_interface = new PlayerIF(TUTORIAL_PLAYER_IDS[0]);
-    var attribute_list = ["Benefactor", "Art Donor", "Art Enthusiast", "Auctioneer", "Forger"];
-    updateBot(tutorial_interface, attribute_list);
 
     //makeBots(10);
 
