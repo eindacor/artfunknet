@@ -372,7 +372,8 @@ drawLottery = function(force_draw) {
             'artwork_interface': artwork_interface,
             'lottery': lottery_level,
             'original': false,
-            'status': "won"
+            'status': "won", 
+            'tutorial': false
         };
 
         ITEM_GENERATOR.generateSingle(item_generator, new PlayerIF(winning_id), function() {

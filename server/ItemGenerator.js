@@ -379,7 +379,12 @@ ItemGenerator = function() {
 	    var attribute_map = item_generator_object.attribute_map === undefined ? DEFAULT_ATTRIBUTE_MAP : item_generator_object.attribute_map;
 	    var condition_min = item_generator_object.condition_min === undefined ? 0 : item_generator_object.condition_min;
 	    var min_roll_boost = item_generator_object.min_roll_boost === undefined ? 0 : item_generator_object.min_roll_boost;
-	    var tutorial =  player_interface !== undefined && player_interface.tutorialMode();
+
+	    var tutorial;
+	    if (item_generator_object.tutorial === undefined) {
+	    	tutorial =  player_interface !== undefined && player_interface.tutorialMode();
+	    }
+	    else tutorial = item_generator_object.tutorial;
 
 	    var new_item_object = {
 	        'artwork_id' : item_generator_object.artwork_interface.getId(),
