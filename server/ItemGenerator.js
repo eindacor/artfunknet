@@ -463,7 +463,8 @@ ItemGenerator = function() {
 	        },
 	        'tags': [],
 	        'artwork_data': forged_item_object.artwork_data,
-	        'permanent': false
+	        'permanent': false,
+	        'tutorial': forged_item_object.tutorial === undefined ? false : forged_item_object.tutorial
 	    };
 
 	    new_item_object.values = getItemObjectValues(new_item_object);
