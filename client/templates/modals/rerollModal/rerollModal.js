@@ -9,6 +9,10 @@ var upgrade_cost_tracker = new Tracker.Dependency;
 var upgrade_cost;
 
 updateInterfaces = function(item_object) {
+	if (item_object == undefined) {
+		return;
+	}
+	
 	item_interface = new ItemIF(item_object);
 	player_interface = new PlayerIF(Meteor.user());
 	player_item_interface = new PlayerItemIF(player_interface, item_interface);
@@ -213,6 +217,10 @@ Template.rerollModal.helpers({
 
 	'min_roll': function(type) {
 		interface_tracker.depend();
-		return Math.floor(player_item_interface.getRerollMin(type) * 100);
+		if (player_item_interface) {
+			return Math.floor(player_item_interface.getRerollMin(type) * 100);
+		}
+
+		else return 0;
 	}
 })

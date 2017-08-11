@@ -1,0 +1,16 @@
+<template name="gameHub">
+	<div class="template-gameHub">
+		<div class="row">
+			<h1 class="af-color">Seasonal Artworks</h1>
+			{{#each seasonal_item_object}}
+				{{> itemStubView item_data=this}}
+			{{/each}}
+		</div>
+		<div class="row">
+			<h1 class="af-color">Lottery Reward</h1>
+			{{#each lottery_item_object}}
+				{{> itemInfo item_data=this}}
+			{{/each}}
+		</div>
+	</div>
+</template>

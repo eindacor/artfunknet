@@ -128,7 +128,6 @@ Template.itemInfo.helpers({
 
 Template.itemInfo.events({
 	'click .card-container' : function(element) {
-		console.log("clicked");
 		var target = $(element.target);
 		var item_id = target.closest('.card-container').data('item_id');
 		//target.closest('.card-container').hasClass('selected') ? target.closest('.card-container').removeClass('selected') : target.closest('.card-container').addClass('selected');

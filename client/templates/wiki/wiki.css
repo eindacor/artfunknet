@@ -15,9 +15,9 @@
 }
 
 .template-wiki td {
-	width: 200px;
+	width: 160px;
 	border: 1px solid black;
-	min-width: 200px;
+	min-width: 160px;
 	padding: 4px 10px;
 }
 
@@ -32,7 +32,7 @@
 
 .template-wiki table {
 	border: 1px solid black;
-	font-size: 1.2rem;
+	font-size: 1.1rem;
 }
 
 .template-wiki tr:nth-child(even) {

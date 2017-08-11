@@ -498,3 +498,149 @@ testMap = function(loot_map) {
 getRandomArtworkIFFromRarity = function(rarity) {
     return new ArtworkIF(artworks.findOne({'rarity': rarity, 'active': true}, {skip: Math.floor(Math.random() * artworks.find({'rarity': rarity}).count())}));
 }
+
+drawLottery = function(force_draw) {
+    var lottery_draw_time = force_draw ? getNowISOString() : getOneFromCollection("interval_methods.js", metadata, {'lottery_draw': {$ne: null}}).lottery_draw;
+   
+    if (getNowISOString() < lottery_draw_time)
+        return;
+
+    var lottery_level = getOneFromCollection("interval_methods.js", metadata, {'lottery_draw': {$ne: null}}).lottery_level;
+
+    var reward_item_ids = metadata.findOne({'lottery_draw': {$ne: null}}).rewards;
+       
+    if (Math.random() < .2 || lottery_level == 10) {
+        var user_map = {};
+        var tickets_average = 0;
+        var player_count = 0;
+        var user_query_object = {
+            'profile.user_type': {$nin: ["admin", "bot"]}, 
+            'profile.lottery_tickets': {$gt: 0},
+            'profile.settings.lottery_eligible': true,
+            'profile.active': true
+        }
+        
+        getFromCollection("interval_methods.js", Meteor.users, user_query_object).forEach(function(user_object) {
+            var player_interface = new PlayerIF(user_object);
+            if (!player_interface.isRecentlyActive()) {
+                return;
+            }
+
+            user_map[user_object._id] = user_object.profile.lottery_tickets;
+            tickets_average = ((tickets_average * player_count) + user_object.profile.lottery_tickets) / (player_count + 1);
+            player_count++;
+        });
+       
+        var min_players_required = getOneFromCollection("interval_methods.js", metadata, {'lottery_draw': {$ne: null}}).lottery_draw.min_players_required;
+        if (player_count < min_players_required) {
+            for (var i=0; i<(min_players_required - player_count); i++) {
+                var bot_string = new Meteor.Collection.ObjectID()._str;
+                user_map[bot_string] = (tickets_average < 2 ? 1 : Math.floor(tickets_average / 2));
+            }
+        }
+
+        var winner_names = [];
+        for (var i=0; i<reward_item_ids.length; i++) {
+            var winning_id = JepLoot.catRoll(user_map);
+            delete user_map[winning_id];
+       
+            var bot_won = getOneFromCollection("interval_methods.js", Meteor.users, winning_id) == undefined;
+           
+            if (bot_won) {
+                return;
+            }
+
+            winner_names.push(new PlayerIF(winning_id).getUserObject().profile.screen_name);
+            metadata.update({'lottery_draw': {$ne: null}}, {
+                $push: {
+                    'previous_winners': {
+                        'user_id': winning_id, 
+                        'time': getNowISOString(), 
+                        'item_id': reward_item_ids[i]
+                    }
+                }
+            });
+
+            var winning_item_interface = new ItemIF(reward_item_ids[i]);
+            winning_item_interface.updateItem({$set: {'owner': winning_id, 'status': "claimed", 'date_received': getNowISOString()}}, true);
+        }
+
+        var message = winner_names.length > 1 ? "This week's lottery winners are: " : "This week's lottery winner is: ";
+        for (var i=0; i<winner_names.length; i++) {
+            if (i==0) {
+                message += winner_names[i];
+            }
+            else {
+                message += (", " + winner_names[i]);
+            }
+        }
+
+        alertPlayers({}, message, 'fa-exclamation', 'good');
+        getFromCollection("interval_methods.js", Meteor.users, user_query_object).forEach(function(user_object) {
+            var player_interface = new PlayerIF(user_object);
+            if (!player_interface.isRecentlyActive()) {
+                return;
+            }
+            
+            var vintage_level = user_object.profile.vintage_count;
+            var default_lottery_tickets = 1 + vintage_level;
+            Meteor.users.update(user_object._id, {$set: {'profile.lottery_tickets': default_lottery_tickets}});
+        });
+
+
+        generateNewLotteryItems();
+        //transfer lottery item
+
+        metadata.update({'lottery_draw': {$ne: null}}, {$set: {'lottery_level': 1}});      
+    }
+
+    else {
+        if (lottery_level < 10) {
+            metadata.update({'lottery_draw': {$ne: null}}, {$inc: {'lottery_level': 1}}, function(error) {
+                if (error)
+                    console.log(error.message)
+
+                else {
+                    var message = "This week there's no lottery winner. New Lottery Level: " + getOneFromCollection("interval_methods.js", metadata, {'lottery_draw': {$ne: null}}).lottery_level;
+                    alertPlayers({}, message, 'fa-exclamation', 'bad');
+                }
+            });
+
+            getFromCollection("interval_methods.js", items, {'_id': {$in: reward_item_ids}}).forEach(function(item_object) {
+                var reward_item_interface = new ItemIF(item_object);
+                reward_item_interface.updateItem({$inc: {'lottery': 1}}, true);
+            })
+        }
+
+        else {
+            var message = "This week there's no lottery winner. The Lottery Level remains at 10!";
+            alertPlayers({}, message, 'fa-exclamation', 'bad');
+        }
+    }
+   
+    var next_draw = moment(lottery_draw_time).add(1, "weeks")._d.toISOString();
+    metadata.update({'lottery_draw': {$ne: null}}, {$set: {'lottery_draw': next_draw}});
+}
+
+generateNewLotteryItems = function() {
+    var lottery_item_count = 1;
+    metadata.update({'lottery_draw': {$ne: null}}, {$set: {'rewards': []}});
+
+    for (var i=0; i<lottery_item_count; i++) {
+        var artwork_interface = Math.random() < .0001 ? getRandomArtworkIFFromRarity("masterpiece") : getRandomArtworkIFFromRarity("legendary");
+
+        var item_generator = {
+            'source': "lottery",
+            'user_id': BOT_USER_NAME,
+            'artwork_interface': artwork_interface,
+            'lottery': 1,
+            'original': false,
+            'status': "claimed", 
+            'tutorial': false,
+        };
+
+        ITEM_GENERATOR.generateSingle(item_generator, undefined, function(item_object) {
+            metadata.update({'lottery_draw': {$ne: null}}, {$push: {'rewards': item_object._id}});
+        });
+    }
+}

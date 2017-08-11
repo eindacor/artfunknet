@@ -144,8 +144,17 @@ var updateContent = function() {
     npcs.insert(benefactor_tutorial_npc);
     npcs.insert(enthusiast_tutorial_npc);
     npcs.insert(donor_tutorial_npc);
+    updateBot(new PlayerIF(Meteor.users.findOne({'_id': {$in: TUTORIAL_PLAYER_IDS}})), ["Benefactor", "Art Enthusiast", "Art Donor", "Preservationist", "Forger"]);
 
     //temp code
+    if (metadata.findOne({'lottery_draw': {$ne: null}}).rewards == undefined) {
+        generateNewLotteryItems();
+    }
+
+    Meteor.users.update({'profile.tutorial_data': null}, {$set: {'profile.tutorial_data': {
+        'state': TUTORIAL_STATES.length - 1,
+        'step': 0
+    }}}, {multi: true});
     //temp code
 
     //makeBots(10);

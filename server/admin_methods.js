@@ -520,6 +520,12 @@ Meteor.methods({
 
             console.log ("forgery not detected");
         }
+    },
+
+    'drawLottery': function() {
+        if (adminValidated()) {
+            drawLottery(true);
+        }
     }
 })
 
