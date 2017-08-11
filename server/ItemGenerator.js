@@ -306,6 +306,7 @@ ItemGenerator = function() {
 			seasonal_amplifier
 			attribute_map
 			level
+			tutorial
 
 			condition
 				or
