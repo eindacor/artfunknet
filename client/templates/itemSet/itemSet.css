@@ -91,9 +91,10 @@
 .template-itemSet .flag-value {
 	cursor: pointer;
 	opacity: .7;
-	font-size: 1.2rem;
+	font-size: 1.3rem;
 	font-weight: bold;
-	margin-bottom: 12px;
+	color: white;
+	padding: 4px;
 }
 
 .template-itemSet .flag-value:hover {
@@ -101,13 +102,17 @@
 }
 
 .template-itemSet .flag-value.any {
-	color: #c6bd00;
+	background-color: #c6bd00;
 }
 
 .template-itemSet .flag-value.none {
-	color: red;
+	background-color: red;
 }
 
 .template-itemSet .flag-value.only {
-	color: green;
+	background-color: green;
+}
+
+.template-itemSet .flag-value-container {
+	margin-bottom: 18px;
 }

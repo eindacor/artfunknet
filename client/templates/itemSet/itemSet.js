@@ -602,8 +602,10 @@ Template.itemSet.events({
 
 	'click #save-filter': function(element) {
 		console.log(match_query);
-	},
+	}
+})
 
+Template.flagTemplate.events({
 	'click .flag-value': function(element) {
 		var name = $(element.target).data().flag_name;
 		var value = $(element.target).attr('data-flag_value');

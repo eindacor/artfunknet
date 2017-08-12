@@ -26,18 +26,16 @@
 					<div class="row">				
 						<div class="col-xs-2">
 							{{#each flag_left}}
-							<div class="flag-container">
-								<p class="flag-name">{{this}}</p>
-								<p class="flag-value {{flag_value this}}" data-flag_name="{{this}}" data-flag_value="{{flag_value this}}">{{flag_value this}}</p>
-							</div>
+								{{#with flag_value this}}
+									{{> flagTemplate flag_name=.. flag_value=this}}
+								{{/with}}
 							{{/each}}
 						</div>
 						<div class="col-xs-2">
 							{{#each flag_right}}
-							<div class="flag-container">
-								<p class="flag-name">{{this}}</p>
-								<p class="flag-value {{flag_value this}}" data-flag_name="{{this}}" data-flag_value="{{flag_value this}}">{{flag_value this}}</p>
-							</div>
+								{{#with flag_value this}}
+									{{> flagTemplate flag_name=.. flag_value=this}}
+								{{/with}}
 							{{/each}}
 						</div>
 						<div class="col-xs-2">
@@ -115,5 +113,12 @@
 
 		<div class="row item-array-area">
 		</div>
+	</div>
+</template>
+
+<template name="flagTemplate">
+	<div class="flag-container">
+		<p class="flag-name">{{flag_name}}</p>
+		<p class="flag-value-container"><span class="flag-value {{flag_value}}" data-flag_name="{{flag_name}}" data-flag_value="{{flag_value}}">{{flag_value}}</span></p>
 	</div>
 </template>

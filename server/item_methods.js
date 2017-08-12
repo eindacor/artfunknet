@@ -293,9 +293,6 @@ var getItemArray = function(match_query, forgery_filter_value, sorter_object, pa
         match_query[identified_string] = true;
     }
 
-    console.log(match_query);
-    console.log(forgery_filter_value);
-
     var item_array = items.find(match_query, {sort: sorter_object}).fetch();
 
     var current_page;
