@@ -56,10 +56,6 @@ var setPadding = function() {
 	}
 }
 
-var interactWithNPC = function() {
-
-}
-
 Template.userGallery.helpers({
 	'rgbString' : function(color) {
 		return getRGBString(color);

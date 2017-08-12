@@ -606,10 +606,17 @@ Template.itemSet.events({
 })
 
 Template.flagTemplate.events({
-	'click .flag-value': function(element) {
+	'mousedown .flag-value': function(element) {
 		var name = $(element.target).data().flag_name;
 		var value = $(element.target).attr('data-flag_value');
-		var new_value_index = flag_values.indexOf(value) == flag_values.length - 1 ? 0 : flag_values.indexOf(value) + 1;
+		var new_value_index;
+		if (element.which == 1) {
+			new_value_index = flag_values.indexOf(value) == flag_values.length - 1 ? 0 : flag_values.indexOf(value) + 1;
+		}
+		else if (element.which == 3) {
+			new_value_index = flag_values.indexOf(value) == 0 ? flag_values.length - 1 : flag_values.indexOf(value) - 1;
+		}
+		
 		var new_value = flag_values[new_value_index];
 		flag_map[name] = new_value;
 		updateFlagFilter();
@@ -634,4 +641,8 @@ Template.itemSet.rendered = function() {
 	items_per_page = 10;
 	updateItemArray();
 	initializeFlagMap();
+
+	$('.flag-container').contextmenu(function() {
+		return false;
+	});
 }
