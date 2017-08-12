@@ -123,7 +123,7 @@ Template.playerInfo.helpers({
 	},
 
 	'repairing_count': function() {
-		return items.find({'owner' : current_user_id, 'status' : 'repairing'}).count();
+		return items.find({'owner' : current_user_id, 'repairing' : true}).count();
 	},
 
 	'inventory_count': function() {

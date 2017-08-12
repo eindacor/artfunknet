@@ -55,30 +55,29 @@ getStatusMaskHTML = function(player_item_interface) {
 			var time_since_displayed = player_item_interface.getItemIF().getItemObject().time_displayed;
 			$status_mask.append($('<i class="text-shadow fa fa-gavel"></i>'));
 			break;
-		case "repairing":
-			$status_mask = $("<div class='status-mask'></div>");
-			var time_since_displayed = player_item_interface.getItemIF().getItemObject().time_displayed;
-			var $mask_info_container = $("<div class='mask-info-container'></div>");
-			if (item_object.condition < 1) {
-				$mask_info_container.append($('<p><i class="text-shadow fa fa-wrench"></i></p>'));
-				$mask_info_container.append($('<p class="display-details text-shadow">' + Math.floor(item_object.condition * 100) + '%</p>'));
-			}
-
-			else {
-				$mask_info_container.append($('<p><i class="text-shadow fa fa-wrench green-text"></i></p>'));
-				$mask_info_container.append($('<p class="display-details text-shadow green-text">' + Math.floor(item_object.condition * 100) + '%</p>'));
-			}
-
-			$status_mask.append($mask_info_container);
-			break;
 		default: 
-			if (player_item_interface.getItemIF().getItemObject().permanent) {
+			if (item_object.repairing) {
+				$status_mask = $("<div class='status-mask'></div>");
+				var time_since_displayed = player_item_interface.getItemIF().getItemObject().time_displayed;
+				var $mask_info_container = $("<div class='mask-info-container'></div>");
+				if (item_object.condition < 1) {
+					$mask_info_container.append($('<p><i class="text-shadow fa fa-wrench"></i></p>'));
+					$mask_info_container.append($('<p class="display-details text-shadow">' + Math.floor(item_object.condition * 100) + '%</p>'));
+				}
+
+				else {
+					$mask_info_container.append($('<p><i class="text-shadow fa fa-wrench green-text"></i></p>'));
+					$mask_info_container.append($('<p class="display-details text-shadow green-text">' + Math.floor(item_object.condition * 100) + '%</p>'));
+				}
+
+				$status_mask.append($mask_info_container);
+			}
+			else if (item_object.permanent) {
 				$status_mask = $("<div class='status-mask'></div>");
 				var $mask_info_container = $("<div class='mask-info-container'></div>");
 				$mask_info_container.append($('<p><i class="text-shadow af-color fa fa-heart"></i></p>'));
 				$status_mask.append($mask_info_container);
 			}
-
 			break;
 	}
 

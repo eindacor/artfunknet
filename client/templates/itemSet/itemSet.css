@@ -83,3 +83,30 @@
 .template-itemSet .itemSet-management {
 	margin-top: 24px;
 }
+
+.template-itemSet p.flag-name {
+	margin-bottom: 0px;
+}
+
+.template-itemSet .flag-value {
+	cursor: pointer;
+	opacity: .7;
+	font-size: 1.2rem;
+	font-weight: bold;
+}
+
+.template-itemSet .flag-value:hover {
+	opacity: 1;
+}
+
+.template-itemSet .flag-value.any {
+	color: #c6bd00;
+}
+
+.template-itemSet .flag-value.none {
+	color: red;
+}
+
+.template-itemSet .flag-value.only {
+	color: green;
+}

@@ -156,7 +156,7 @@ Meteor.methods({
 
     'getCollectionValue' : function(user_id) {
         var collection_total = 0;
-        items.find({'owner' : Meteor.userId(), 'status' : {$in: ["claimed", "displayed", "repairing"]}}).forEach(function(item_object) {
+        items.find({'owner' : Meteor.userId(), 'status' : {$in: ["claimed", "displayed"]}}).forEach(function(item_object) {
             collection_total += getItemObjectValueByType(item_object, 'actual', Meteor.userId());
         });
 

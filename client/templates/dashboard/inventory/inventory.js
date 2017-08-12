@@ -1,6 +1,6 @@
 Template.inventory.helpers({
 	'item_set_statuses': function() {
-		return ['claimed', 'displayed', 'auctioned', 'repairing'];
+		return ['claimed', 'displayed', 'auctioned'];
 	},
 
 	'tag': function() {

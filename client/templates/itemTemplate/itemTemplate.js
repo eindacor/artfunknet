@@ -75,7 +75,7 @@ Template.itemInfo.helpers({
 
 	'repairingStatus': function(item_object) {
 		if (item_object)
-			return item_object.status == "repairing";
+			return item_object.repairing;
 	},
 
 	'isOwner' : function(owner_id) {

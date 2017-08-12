@@ -1,6 +1,7 @@
 var display_tracker = new Tracker.Dependency;
 page_tracker = new Tracker.Dependency;
 item_array_tracker = new Tracker.Dependency;
+var flag_tracker = new Tracker.Dependency;
 
 var status_filter;
 var item_array = [];
@@ -12,23 +13,28 @@ var standard_attributes = [];
 var sorter = "values.actual";
 var ascending = -1;
 var rarity_filter = {'artwork_data.rarity': {'$in': ['common', 'uncommon', 'rare', 'legendary', 'masterpiece']}};
-var lottery_filter = {'lottery': {'$ne': null}};
-var foil_filter = {'foil': {'$ne': null}};
-var seasonal_filter = {'seasonal': {'$ne': null}};
-var original_filter = {'original': {'$ne': null}};
-var unlocked_filter = {'unlocked': {'$ne': null}};
-var vintage_filter = {'vintage': {'$ne': null}};
-var standard_filter = {};
-var permanent_filter = {'permanent': {'$ne': null}};
+var flag_filter = {};
 var current_page = 1;
 var total_pages;
 var items_per_page = 10;
+var match_query;
+var flag_values = ["any", "only", "none"];
+var flags = ["permanent", "repairing", "for sale", "foil", "unlocked", "seasonal", "lottery", "original", "vintage"];
+var flag_map;
 
 var set_statuses;
 
 var getter_query;
 
 var item_getter;
+
+var initializeFlagMap = function() {
+	flag_map = {};
+	for (var i=0; i<flags.length; i++) {
+		flag_map[flags[i]] = flag_values[0];
+	}
+	flag_tracker.changed();
+}
 
 var generateQueryFromSearchTerms = function() {
 	if (search_terms.length == 0)
@@ -170,6 +176,51 @@ refreshItemSet = function() {
 	updateItemArray();
 }
 
+updateFlagFilter = function() {
+	for (var i=0; i<flags.length; i++) {
+		var name = flags[i];
+		var value = flag_map[name];
+		switch(name) {
+			case 'for sale': 
+				if (value == "any") {
+					flag_filter.tags = {'$ne': null};
+				}
+				else if (value == "only") {
+					flag_filter.tags = {'$in': ["for sale"]};
+				}
+				else if (value == "none") {
+					flag_filter.tags = {'$nin': ["for sale"]};
+				};
+				break;
+			case 'lottery': 
+				if (value == "any") {
+					flag_filter.lottery = {'$ne': null};
+				}
+				else if (value == "only") {
+					flag_filter.lottery = {'$gt': 0};
+				}
+				else if (value == "none") {
+					flag_filter.lottery = 0;
+				};
+				break;
+			default: 
+				if (value == "any") {
+					flag_filter[name] = {'$ne': null};
+				}
+				else if (value == "only") {
+					flag_filter[name] = true;
+				}
+				else if (value == "none") {
+					flag_filter[name] = false;
+				};
+				break;
+		}
+	}
+
+	console.log(flag_filter);
+	updateItemArray();
+}
+
 updateItemArray = function() {
 	if (status_filter === undefined) {
 		console.log("statuses undefined");
@@ -189,16 +240,9 @@ updateItemArray = function() {
 	else tutorial_filter = {'tutorial': {$ne: true}};
 
 	var filter_array = [
-		lottery_filter, 
-		foil_filter, 
-		unlocked_filter,
-		seasonal_filter, 
-		original_filter,
-		vintage_filter,
-		standard_filter,
 		status_filter,
 		rarity_filter,
-		permanent_filter,
+		flag_filter,
 		tutorial_filter
 	];
 
@@ -336,7 +380,7 @@ updateItemArray = function() {
 
 	filter_array.push(base_filter);
 
-	var match_query = {$and: filter_array};
+	match_query = {$and: filter_array};
 
 	Meteor.call('getItemArray', match_query, sorter_object, current_page, items_per_page, function(error, result) {
 		if (error) {
@@ -398,22 +442,6 @@ Template.itemSet.helpers({
 		return statuses.indexOf("for_sale") == -1 && statuses.indexOf("won") == -1;
 	},
 
-	// 'item_array': function(statuses) {
-	// 	item_array_tracker.depend();
-
-	// 	if (status_filter === undefined) {
-	// 		status_filter = {'status': {$in: statuses}};
-	// 		updateItemArray();
-	// 		return [];
-	// 	}
-
-	// 	if (item_array == undefined) {
-	// 		updateItemArray();
-	// 	}
-
-	// 	return item_array;
-	// }
-
 	'setStatuses': function(statuses) {
 		if (set_statuses === undefined) {
 			set_statuses = statuses;
@@ -439,6 +467,18 @@ Template.itemSet.helpers({
 				}
 			}
 		}
+	},
+
+	'flag': function() {
+		return flags;
+	},
+
+	'flag_value': function(flag_name) {
+		flag_tracker.depend();
+		if (flag_map == undefined) {
+			initializeFlagMap();
+		}
+		else return flag_map[flag_name];
 	}
 })
 
@@ -473,18 +513,6 @@ Template.itemSet.events({
 		updateItemArray();
 	},
 
-	'change #permanent-selector': function() {
-		var selected = $('input[name=permanent-selector]:checked').val();
-		switch(selected) {
-			case "both": permanent_filter = {'permanent': {$ne: null}}; break;
-			case "permanent": permanent_filter = {'permanent': true}; break;
-			case "unpermanent": permanent_filter = {'permanent': false}; break;
-			default: break;
-		}
-
-		updateItemArray();
-	},
-
 	'change #sort-selector': function(event) {
 		sorter = $(event.target).val();
 		updateItemArray();
@@ -494,75 +522,6 @@ Template.itemSet.events({
 		ascending = Number($(event.target).val());
 		updateItemArray();
 	}, 
-
-	'change #card-type-checkbox': function() {
-		 for (var i=0; i<$('input[type=checkbox].type-select').length; i++) {
-		 	var checked = $('input[type=checkbox].type-select:eq(' + i + ')')[0].checked
-		 	switch($('input[type=checkbox].type-select:eq(' + i + ')').val()) {
-		 		case "standard": 		
-		 			if (checked)
-		 				standard_filter = {};
-
-		 			else {
-		 				standard_filter = {'$or': [{'foil': {$ne: false}}, {'seasonal': {'$ne': false}}, {'original': {'$ne': false}}, {'vintage': {'$ne': false}}, {'lottery': {'$nin': [0, null, false]}}]};
-		 			}
-
-		 			break;
-
-		 		case "foil":
-		 			if (checked)
-		 				foil_filter = {'foil': {'$ne': null}};
-
-		 			else foil_filter = {'foil': false};
-
-		 			break;
-
-		 		case "unlocked":
-		 			if (checked)
-		 				unlocked_filter = {'unlocked': {'$ne': null}};
-
-		 			else unlocked_filter = {'unlocked': false};
-
-		 			break;
-
-		 		case "seasonal":
-		 			if (checked)
-		 				seasonal_filter = {'seasonal': {'$ne': null}};
-
-		 			else seasonal_filter = {'seasonal': false};
-
-		 			break;
-
-		 		case "original":
-		 			if (checked)
-		 				original_filter = {'original': {'$ne': null}};
-
-		 			else original_filter = {'original': false};
-
-		 			break;
-
-		 		case "lottery":
-		 			if (checked)
-		 				lottery_filter = {'lottery': {'$ne': null}};
-
-		 			else lottery_filter = {'lottery': {'$in': [0, null, false]}};
-
-		 			break;
-
-		 		case "vintage": 
-		 			if (checked)
-		 				vintage_filter = {'vintage': {'$ne': null}};
-
-		 			else vintage_filter = {'vintage': false};
-
-		 			break;
-
-		 		default: break;
-		 	}
-		 }
-
-		updateItemArray();
-	},
 
 	'change #card-status-checkbox': function() {
 		var valid_statuses = [];
@@ -633,6 +592,20 @@ Template.itemSet.events({
 		}
 
 		updateItemArray();
+	},
+
+	'click #save-filter': function(element) {
+		console.log(match_query);
+	},
+
+	'click .flag-value': function(element) {
+		var name = $(element.target).data().flag_name;
+		var value = $(element.target).attr('data-flag_value');
+		var new_value_index = flag_values.indexOf(value) == flag_values.length - 1 ? 0 : flag_values.indexOf(value) + 1;
+		var new_value = flag_values[new_value_index];
+		flag_map[name] = new_value;
+		updateFlagFilter();
+		flag_tracker.changed();
 	}
 })
 
@@ -646,17 +619,11 @@ Template.itemSet.rendered = function() {
 	ascending = -1;
 	rarity_filter =  {'artwork_data.rarity': {'$in': ['common', 'uncommon', 'rare', 'legendary', 'masterpiece']}};
 
-	lottery_filter = {'lottery': {'$ne': null}};
-	foil_filter = {'foil': {'$ne': null}};
-	seasonal_filter = {'seasonal': {'$ne': null}};
-	original_filter = {'original': {'$ne': null}};
-	unlocked_filter = {'unlocked': {'$ne': null}};
-	vintage_filter = {'vintage': {'$ne': null}};
-	permanent_filter = {'permanent': {$ne: null}};
-	standard_filter = {};
+	flag_filter = {};
 
 	current_page = 1;
 	total_pages = 1;
 	items_per_page = 10;
 	updateItemArray();
+	initializeFlagMap();
 }

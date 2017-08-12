@@ -19,34 +19,19 @@
 						<option value="-1">descending</option>
 						<option value="1">ascending</option>
 					</select>
+					<button id="save-filter" type="button" class="btn btn-default">save filter</button>
 				</div>
 
 				<div class="filter-area col-xs-12 col-md-10">
-					<div class="row">
-						{{#if permanent_sort statuses}}
-						<div class="col-xs-2">
-							<p class="filter-title">show items:</p>
-							<div class="filter-checkboxes">
-								<label><input class="type-select" type="radio" name="permanent-selector" id="permanent-selector" value="both" checked>all items</label><br>
-								<label><input class="type-select" type="radio" name="permanent-selector" id="permanent-selector" value="permanent">PC only</label><br>
-								<label><input class="type-select" type="radio" name="permanent-selector" id="permanent-selector" value="unpermanent">no PC</label><br>
+					<div class="row">				
+						<div class="col-xs-4">
+							{{#each flag}}
+							<div class="flag-container">
+								<p class="flag-name">{{this}}</p>
+								<p class="flag-value {{flag_value this}}" data-flag_name="{{this}}" data-flag_value="{{flag_value this}}">{{flag_value this}}</p>
 							</div>
+							{{/each}}
 						</div>
-						{{/if}}
-
-						<div class="col-xs-2">
-							<p class="filter-title">card type:</p>
-							<div class="filter-checkboxes">
-								<label><input class="type-select" type="checkbox" id="card-type-checkbox" value="standard" checked>standard</label><br>
-								<label><input class="type-select" type="checkbox" id="card-type-checkbox" value="foil" checked>foil</label><br>
-								<label><input class="type-select" type="checkbox" id="card-type-checkbox" value="unlocked" checked>unlocked</label><br>
-								<label><input class="type-select" type="checkbox" id="card-type-checkbox" value="seasonal" checked>seasonal</label><br>
-								<label><input class="type-select" type="checkbox" id="card-type-checkbox" value="lottery" checked>lottery</label><br>
-								<label><input class="type-select" type="checkbox" id="card-type-checkbox" value="original" checked>original</label><br>
-								<label><input class="type-select" type="checkbox" id="card-type-checkbox" value="vintage" checked>vintage</label>
-							</div>
-						</div>
-
 						<div class="col-xs-2">
 							<p class="filter-title">status:</p>
 							<div class="filter-checkboxes">
@@ -74,7 +59,6 @@
 		            			<option value="contains two">has at least two</option>
 		            			<option value="contains three">has at least three</option>
 		            			<option value="contains four">has at least four</option>
-		            			<!--option value="contains five">has five</option-->
 		            		</select>
 							<div class="filter-checkboxes">
 								{{#each attribute}}
@@ -95,8 +79,7 @@
 								<label><input class="special-attribute-select" type="checkbox" id="special-attribute-checkbox" value="{{_id}}">{{npc_name}}</label><br>
 								{{/each}}
 							</div>
-						</div>
-						
+						</div>	
 					</div>
 				</div>
 			</div>

@@ -46,43 +46,6 @@ ItemGenerator = function() {
 		return new ArtworkIF(artworks.findOne(query_object, {skip: random_index}));
 	}
 
-	// var getItemAttributes = function(artwork_object, item_is_unlocked, attribute_map) {
-	// 	var attribute_map_copy = JSON.parse(JSON.stringify(attribute_map));
-	//     var attributes_object = {
-	//         'locked': [],
-	//         'unlocked': [],
-	//         'special': []
-	//     }
-
-	//     for (var i=0; artwork_object.special_attributes && i<artwork_object.special_attributes.length; i++) {
-	//         var attribute_object = attributes.findOne(artwork_object.special_attributes[i]);
-	//         attribute_object.value = getAttributeValue(0, .8);
-	//         attributes_object.special.push(attribute_object);
-	//         delete attribute_map_copy[attribute_object._id];
-	//     }
-
-	//     var locked_count = artwork_object.rarity == "common" || item_is_unlocked ? 0 : 1;
-	//     var unlocked_count = artwork_object.rarity == "common" || !item_is_unlocked ? 1 : 2;
-
-	//     for (var i=0; i<locked_count; i++) {
-	//     	var attribute_id = JepLoot.catRoll(attribute_map_copy);
-	//         var attribute_object = attributes.findOne(attribute_id);
-	//         attribute_object.value = getAttributeValue(0, .5);
-	//         attributes_object.locked.push(attribute_object);
-	//         delete attribute_map_copy[attribute_id];
-	//     }
-
-	//     for (var i=0; i<unlocked_count; i++) {
-	//         var attribute_id = JepLoot.catRoll(attribute_map_copy);
-	//         var attribute_object = attributes.findOne(attribute_id);
-	//         attribute_object.value = getAttributeValue(0, 0);
-	//         attributes_object.unlocked.push(attribute_object);
-	//         delete attribute_map_copy[attribute_id];
-	//     }
-
-	//     return attributes_object;
-	// }
-
 	var hasMandatoryFields = function(object, mandatory_fields) {
 		var keys = Object.keys(object);
 		for (var i=0; i<mandatory_fields.length; i++) {
@@ -416,7 +379,8 @@ ItemGenerator = function() {
 	        'tags': [],
 	        'artwork_data': artwork_data,
 	        'permanent': false,
-	        'tutorial': tutorial
+	        'tutorial': tutorial,
+	        'repairing': false
 	    };
 
 	    new_item_object.values = getItemObjectValues(new_item_object);
@@ -464,7 +428,8 @@ ItemGenerator = function() {
 	        'tags': [],
 	        'artwork_data': forged_item_object.artwork_data,
 	        'permanent': false,
-	        'tutorial': forged_item_object.tutorial === undefined ? false : forged_item_object.tutorial
+	        'tutorial': forged_item_object.tutorial === undefined ? false : forged_item_object.tutorial,
+	        'repairing': false
 	    };
 
 	    new_item_object.values = getItemObjectValues(new_item_object);

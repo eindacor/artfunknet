@@ -278,7 +278,7 @@ Meteor.setInterval((function() {
                 var player_interface = new PlayerIF(user_object);
                 var repair_value_boost = player_interface.procUniqueAttribute("ITEM_LEVEL_REPAIR_BOOST", undefined) ? true : false;       
 
-                getFromCollection("interval_methods.js", items, {'status': "repairing", 'owner': user_object._id}).forEach(function(item_object) {
+                getFromCollection("interval_methods.js", items, {'repairing': true, 'status': {$in: ["claimed", "displayed"]}, 'owner': user_object._id}).forEach(function(item_object) {
                     var repair_value = REPAIRING_IMPROVEMENT_VALUE;
                     if (repair_value_boost) {
                         repair_value += (item_object.level * .01);
