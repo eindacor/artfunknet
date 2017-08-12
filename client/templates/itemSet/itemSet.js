@@ -19,7 +19,7 @@ var total_pages;
 var items_per_page = 10;
 var match_query;
 var flag_values = ["any", "only", "none"];
-var flags = ["permanent", "repairing", "for sale", "foil", "unlocked", "seasonal", "lottery", "original", "vintage"];
+var flags = ["permanent", "repairing", "for sale", "foil", "unlocked", "seasonal", "lottery", "original", "vintage", "forgery"];
 var flag_map;
 
 var set_statuses;
@@ -183,7 +183,7 @@ updateFlagFilter = function() {
 		switch(name) {
 			case 'for sale': 
 				if (value == "any") {
-					flag_filter.tags = {'$ne': null};
+					delete flag_filter[name];
 				}
 				else if (value == "only") {
 					flag_filter.tags = {'$in': ["for sale"]};
@@ -194,7 +194,7 @@ updateFlagFilter = function() {
 				break;
 			case 'lottery': 
 				if (value == "any") {
-					flag_filter.lottery = {'$ne': null};
+					delete flag_filter[name];
 				}
 				else if (value == "only") {
 					flag_filter.lottery = {'$gt': 0};
@@ -203,9 +203,10 @@ updateFlagFilter = function() {
 					flag_filter.lottery = 0;
 				};
 				break;
+			case 'forgery': break;
 			default: 
 				if (value == "any") {
-					flag_filter[name] = {'$ne': null};
+					delete flag_filter[name];
 				}
 				else if (value == "only") {
 					flag_filter[name] = true;
@@ -217,7 +218,6 @@ updateFlagFilter = function() {
 		}
 	}
 
-	console.log(flag_filter);
 	updateItemArray();
 }
 
@@ -382,7 +382,9 @@ updateItemArray = function() {
 
 	match_query = {$and: filter_array};
 
-	Meteor.call('getItemArray', match_query, sorter_object, current_page, items_per_page, function(error, result) {
+	var forgery_filter_value = flag_map.forgery === undefined ? "any" : flag_map.forgery;
+
+	Meteor.call('getItemArray', match_query, forgery_filter_value, sorter_object, current_page, items_per_page, function(error, result) {
 		if (error) {
 			console.log(error);
 		}
@@ -469,8 +471,12 @@ Template.itemSet.helpers({
 		}
 	},
 
-	'flag': function() {
-		return flags;
+	'flag_left': function() {
+		return flags.slice(0, Math.ceil(flags.length /2));
+	},
+
+	'flag_right': function() {
+		return flags.slice(Math.ceil(flags.length /2));
 	},
 
 	'flag_value': function(flag_name) {

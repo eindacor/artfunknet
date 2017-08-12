@@ -280,7 +280,22 @@ removeItem = function(item_id, source, callback) {
     })
 }
 
-var getItemArray = function(match_query, sorter_object, page, items_per_page) {
+var getItemArray = function(match_query, forgery_filter_value, sorter_object, page, items_per_page) {
+    delete match_query["authenticity"];
+    var forgery_string = "authenticity.forgery";
+    var identified_string = "authenticity.identified";
+    if (forgery_filter_value == "only") {
+        match_query[forgery_string] = true;
+        match_query[identified_string] = true;
+    }
+    else if (forgery_filter_value == "none") {
+        match_query[forgery_string] = false;
+        match_query[identified_string] = true;
+    }
+
+    console.log(match_query);
+    console.log(forgery_filter_value);
+
     var item_array = items.find(match_query, {sort: sorter_object}).fetch();
 
     var current_page;
@@ -429,9 +444,9 @@ Meteor.methods({
         }  
     },
 
-    'getItemArray': function(filter_array, sorter_object, page, items_per_page) {
+    'getItemArray': function(filter_array, forgery_filter_value, sorter_object, page, items_per_page) {
         //TODO verify user is only searching items they have access to
-        return getItemArray(filter_array, sorter_object, page, items_per_page);
+        return getItemArray(filter_array, forgery_filter_value, sorter_object, page, items_per_page);
     },
 
     'getDisplayDetailsFromInterface': function(user_object, item_object) {
