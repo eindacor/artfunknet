@@ -147,7 +147,6 @@ var updateContent = function() {
     updateBot(new PlayerIF(Meteor.users.findOne({'_id': {$in: TUTORIAL_PLAYER_IDS}})), ["Benefactor", "Art Enthusiast", "Art Donor", "Preservationist", "Forger"]);
 
     //temp code
-    items.update({'tutorial': null}, {$set: {'tutorial': false}}, {multi: true});
     //temp code
 
     //makeBots(10);
