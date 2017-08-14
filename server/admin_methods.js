@@ -374,15 +374,13 @@ Meteor.methods({
                 var targets = quest_object.target;
                 for (var i=0; i<targets.length; i++) {
                     var artwork_id = targets[i];
-                    if (getOneFromCollection("admin_methods.js", items, {'owner': Meteor.userId(), 'artwork_id': artwork_id}) == undefined) {
-                        var item_generator = {
-                            'source': "test",
-                            'artwork_interface': new ArtworkIF(artwork_id),
-                            'status': "unclaimed"
-                        }
-
-                        ITEM_GENERATOR.generateSingle(item_generator, new PlayerIF(Meteor.user()));
+                    var item_generator = {
+                        'source': "admin quest",
+                        'artwork_interface': new ArtworkIF(artwork_id),
+                        'status': "unclaimed"
                     }
+
+                    ITEM_GENERATOR.generateSingle(item_generator, new PlayerIF(Meteor.user()));
                 }
                 
             })

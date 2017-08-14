@@ -82,6 +82,9 @@
 						{{#if isSought item_data.artwork_id}}
 							<i class="blue-text fa fa-bullhorn text-shadow"></i>
 						{{/if}}
+						{{#if item_data.authenticity.forgery}}
+							<i class="red-text fa fa-user-secret text-shadow"></i>
+						{{/if}}
 					</div>			
 				</div>
 

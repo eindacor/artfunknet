@@ -10,7 +10,7 @@ Template.quests.helpers({
 	}
 })
 
-Template.questTemplate.rendered = function() {
+Template.quests.rendered = function() {
 	quest_targets_owned = undefined;
 }
 
