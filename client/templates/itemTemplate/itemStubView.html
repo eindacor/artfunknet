@@ -1,5 +1,5 @@
 <template name="itemStubView">
-	<div class="template-itemInfo">
+	<div class="template-itemInfo template-itemStubView">
 		<div class="card-container {{item_data.artwork_data.rarity}}-item" style="background: url('{{getCardImageURL item_data.artwork_data.filename item_data.artwork_data.file_extension}}') center; background-size: {{#if isEqual item_data.artwork_data.file_extension 'gif'}}700px{{else}}280px{{/if}} 390px">
 			<div class="row no-margin card-info">
 				<div class="card-header col-xs-12 {{card_types item_data}}">

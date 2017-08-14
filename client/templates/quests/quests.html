@@ -11,18 +11,11 @@
 	<div class="template-questTemplate">
 		<div class="quest-container row">
 			<div class="row">
-				<p class="quest-title {{rarity}}">{{rarity}} quest</p>
-				<div class="col-xs-12 col-md-8">
+				<div class="col-xs-8">
+					<p class="quest-title {{rarity}}">{{rarity}} quest</p>
 					<p class="details">find {{min_requirement}} of the following:</p>
-					{{#each quest_target this}}
-						{{#if acquired _id}}
-							<p class="target-text highlight"><i class="fa fa-check-square-o green-text"></i> <span class="work-title">{{title}}</span> by {{artist}}</p>
-						{{else}}
-							<p class="target-text"><i class="fa fa-square-o"></i> <span class="work-title">{{title}}</span> by {{artist}} (<span class="{{artwork_rarity _id}}">{{artwork_rarity _id}}</span>)</p>
-						{{/if}}
-					{{/each}}
 				</div>
-				<div class="col-xs-12 col-md-4">
+				<div class="col-xs-4">
 					<div class="reward-info">
 						<p class="details">reward:</p>
 						<p class="af-color">{{commaSeparatedValue reward.xp}}xp</p>
@@ -33,8 +26,21 @@
 					</div>
 				</div>
 			</div>
-			{{#if _id}}
 			<div class="row">
+				<div class="col-xs-12">			
+					{{#each quest_target this}}
+						{{#if owned_item}}
+							{{> itemInfo item_data=owned_item}}
+						{{else}}
+							{{#with quest_stub artwork_object}}
+								{{> itemStubView item_data=this}}
+							{{/with}}
+						{{/if}}
+					{{/each}}
+				</div>
+			</div>
+			{{#if _id}}
+			<div class="row quest-buttons">
 				<button data-quest_id="{{_id}}" class="quest-button turn-in-button {{#if hasCompleted _id}}enabled{{else}}disabled{{/if}}">claim reward</button>
 				<button data-quest_id="{{_id}}" class="quest-button turn-in-and-sell {{#if hasCompleted _id}}enabled{{else}}disabled{{/if}}">claim & sell</button>
 				<button data-quest_id="{{_id}}" class="quest-button turn-in-and-donate {{#if hasCompleted _id}}enabled{{else}}disabled{{/if}}">claim & donate</button>

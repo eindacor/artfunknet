@@ -1021,5 +1021,10 @@ Meteor.methods({
      'finishTutorials': function() {
         var player_interface = new PlayerIF(Meteor.user());
         player_interface.finishTutorials();
+     },
+
+     'getQuestTargetsOwned': function() {
+        var player_interface = new PlayerIF(Meteor.user());
+        return player_interface.getQuestTargetsOwned();
      }
 })

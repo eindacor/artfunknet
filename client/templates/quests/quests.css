@@ -35,3 +35,15 @@
 	color: black;
 	text-decoration: underline;
 }
+
+.template-questTemplate .template-itemStubView {
+	opacity: .3;
+}
+
+.template-questTemplate .template-itemStubView:hover {
+	opacity: .7;
+}
+
+.template-questTemplate .quest-buttons {
+	margin-top: 36px;
+}
