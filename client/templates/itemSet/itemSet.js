@@ -223,7 +223,6 @@ updateFlagFilter = function() {
 
 updateItemArray = function() {
 	if (status_filter === undefined) {
-		console.log("statuses undefined");
 		return;
 	}
 

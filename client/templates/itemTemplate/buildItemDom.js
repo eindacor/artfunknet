@@ -335,7 +335,7 @@ var getPermanentFunction = function(player_item_interface, desired_status) {
 				console.log(error.message)
 
 			else {
-				updateItemArray();
+				//updateItemArray();
 			}
 		})
 	}

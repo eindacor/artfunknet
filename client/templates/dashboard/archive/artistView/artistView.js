@@ -308,6 +308,11 @@ Template.artistView.events({
 		expanded_data_tracker.changed();
 	},
 
+	'click .button-row': function(event) {
+		console.log("clicked");
+		event.stopPropagation();
+	},
+
 	//artwork_and_category
 
 	'click .category-info': function(event) {
