@@ -82,24 +82,6 @@ Template.itemInfo.helpers({
 		return Meteor.userId() == owner_id;
 	},
 
-	'already_owns': function(item_object) {
-		// returns true if the viewer owns a claimed copy of this item, and the item itself is not owned or claimed by the viewer
-		// if (item_object == undefined)
-		// 	return false;
-
-		// var item_belongs_to_other = item_object.owner != Meteor.userId();
-		// var item_is_unclaimed = ['unclaimed', 'for_sale', 'won'].indexOf(item_object.status) != -1
-		// var show_already_owns = item_belongs_to_other || item_is_unclaimed;
-
-		// if (show_already_owns) {
-		// 	var artwork_id = item_object.artwork_id;
-		// 	var valid_statuses = ['claimed', 'displayed', 'auctioned'];
-		// 	return items.findOne({'owner': Meteor.userId(), 'status': {$in: valid_statuses}, 'artwork_id': artwork_id});
-		// }
-
-		// else return false;
-	},
-
 	'showDetails': function(item_object) {
 		return item_object.level != undefined;
 	},
@@ -130,7 +112,6 @@ Template.itemInfo.events({
 	'click .card-container' : function(element) {
 		var target = $(element.target);
 		var item_id = target.closest('.card-container').data('item_id');
-		//target.closest('.card-container').hasClass('selected') ? target.closest('.card-container').removeClass('selected') : target.closest('.card-container').addClass('selected');
 		if ($('.template-modalTemplate').length == 0) {
 			Blaze.renderWithData(Template.modalTemplate, {
 				'modal_name': "fullViewModal", 
@@ -157,30 +138,3 @@ Template.itemInfo.events({
 	}
 
 })
-
-$(document).ready(function() {
-	$('.card-container').click(function() {
-		console.log("clicked");
-		// var target = $(element.target);
-		// var item_id = target.closest('.card-container').data('item_id');
-		// //target.closest('.card-container').hasClass('selected') ? target.closest('.card-container').removeClass('selected') : target.closest('.card-container').addClass('selected');
-		// if ($('.template-modalTemplate').length == 0) {
-		// 	Blaze.renderWithData(Template.modalTemplate, {
-		// 		'modal_name': "fullViewModal", 
-		// 		'modal_data': {
-		// 			'item_object': items.findOne(item_id)
-		// 		}
-		// 	}, $('body')[0]);
-		// }
-	})
-})
-
-
-
-// Template.itemThumbnail.events({
-// 	'click .image-thumb' : function(element) {
-// 		var item_id = $(element.target).data('item_id');
-// 		Session.set('selectedItem', item_id);
-// 		Modal.show('fullViewModal');
-// 	},
-// })
