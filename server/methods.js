@@ -7,7 +7,7 @@ var min_matte_width_cm = 0;
 var max_matte_width_cm = 20;
 var texture_size_cm = 300;
 
-var getMVPData = function(archive_status) {
+var getMVPData = function(archive_status, rarity) {
     var admin_ids = ['Artfunkel, Inc.'];
     var botter_ids = ["A5W6WmH9ZvPRBQ6ZR", "ktByWpesBidgHoqum"];
     Meteor.users.find({$or: [{'profile.user_type': "admin"}, {'_id': {$in: TUTORIAL_PLAYER_IDS}}]}).forEach(function(user_object) {
@@ -16,12 +16,15 @@ var getMVPData = function(archive_status) {
 
     var query_object;
 
+    var rarity_filter = rarity === undefined ? {'$ne': null} : rarity;
+
     if (archive_status) {
         query_object = {
             'owner': {$nin: admin_ids}, 
             'displaced': false,
             'status': "archived",
-            'authenticity.forgery': false
+            'authenticity.forgery': false,
+            'artwork_data.rarity': rarity_filter
         };
     }
 
@@ -29,7 +32,8 @@ var getMVPData = function(archive_status) {
         query_object = {
             'owner': {$nin: admin_ids}, 
             'authenticity.forgery': false,
-            $or: [{'status': "displayed"}, {'permanent': true}]
+            $or: [{'status': "displayed"}, {'permanent': true}],
+            'artwork_data.rarity': rarity_filter
         };
     }
 
@@ -59,7 +63,17 @@ Meteor.methods({
 
         return {
             'mvp_data': getMVPData(false),
+            'mvp_data_common': getMVPData(false, "common"),
+            'mvp_data_uncommon': getMVPData(false, "uncommon"),
+            'mvp_data_rare': getMVPData(false, "rare"),
+            'mvp_data_legendary': getMVPData(false, "legendary"),
+            'mvp_data_masterpiece': getMVPData(false, "masterpiece"),
             'archived_mvp_data': getMVPData(true),
+            'archived_mvp_data_common': getMVPData(true, "common"),
+            'archived_mvp_data_uncommon': getMVPData(true, "uncommon"),
+            'archived_mvp_data_rare': getMVPData(true, "rare"),
+            'archived_mvp_data_legendary': getMVPData(true, "legendary"),
+            'archived_mvp_data_masterpiece': getMVPData(true, "masterpiece"),
             'gallery_score_data': galleries.find({'tutorial': {$ne: true}, 'owner_id': {$nin: bot_ids}}, {limit: 20, sort: {'score': -1}}).fetch(),
             'gallery_value_data': galleries.find({'tutorial': {$ne: true}, 'owner_id': {$nin: bot_ids}}, {limit: 20, sort: {'value': -1}}).fetch(),
             'gallery_earnings_data': galleries.find({'tutorial': {$ne: true}, 'owner_id': {$nin: bot_ids}}, {limit: 20, sort: {'earnings_per_hour': -1}}).fetch(),

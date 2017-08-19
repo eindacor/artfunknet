@@ -4,7 +4,17 @@
 			<h1 class="af-color">Leaderboards</h1>
 			{{#with leaderboard_data}}
 				{{> mvp item_array=mvp_data board_title="most valuable items"}}
+				{{> mvp item_array=mvp_data_masterpiece board_title="most valuable masterpiece items"}}
+				{{> mvp item_array=mvp_data_legendary board_title="most valuable legendary items"}}
+				{{> mvp item_array=mvp_data_rare board_title="most valuable rare items"}}
+				{{> mvp item_array=mvp_data_uncommon board_title="most valuable uncommon items"}}
+				{{> mvp item_array=mvp_data_common board_title="most valuable common items"}}
 				{{> mvp item_array=archived_mvp_data board_title="most valuable archived items"}}
+				{{> mvp item_array=archived_mvp_data_masterpiece board_title="most valuable masterpiece archived items"}}
+				{{> mvp item_array=archived_mvp_data_legendary board_title="most valuable legendary archived items"}}
+				{{> mvp item_array=archived_mvp_data_rare board_title="most valuable rare archived items"}}
+				{{> mvp item_array=archived_mvp_data_uncommon board_title="most valuable uncommon archived items"}}
+				{{> mvp item_array=archived_mvp_data_common board_title="most valuable common archived items"}}
 				{{> galleryScore gallery_score_data}}
 				{{> galleryValue gallery_value_data}}
 				{{> archiveValue archive_data.value_data}}

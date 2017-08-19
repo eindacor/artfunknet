@@ -105,33 +105,38 @@ Template.registerHelper('inventoryIsFull', function() {
 //item template helpers
 
 Template.registerHelper('card_types', function(item_object) {
-	var types = "";
+	try {
+		var types = "";
 
-	if (item_object.foil) {
-		types += "foil ";
+		if (item_object.foil) {
+			types += "foil ";
+		}
+
+		if (item_object.unlocked) {
+			types += "unlocked ";
+		}
+
+		if (item_object.seasonal) {
+			types += "seasonal ";
+		}
+
+		if (item_object.vintage) {
+			types += "vintage ";
+		}
+
+		if (item_object.lottery) {
+			types += "lottery ";
+		}
+
+		if (item_object.original) {
+			types += "original ";
+		}
+
+		return types;
 	}
-
-	if (item_object.unlocked) {
-		types += "unlocked ";
+	catch (error) {
+		console.log(error.message);
 	}
-
-	if (item_object.seasonal) {
-		types += "seasonal ";
-	}
-
-	if (item_object.vintage) {
-		types += "vintage ";
-	}
-
-	if (item_object.lottery) {
-		types += "lottery ";
-	}
-
-	if (item_object.original) {
-		types += "original ";
-	}
-
-	return types;
 })
 
 Template.registerHelper('unique_attribute_data', function(unique_attribute_id) {

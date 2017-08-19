@@ -91,20 +91,25 @@ Template.itemInfo.helpers({
 	},
 
 	'display_details': function(item_object) {
-		display_details_tracker.depend();
-		if (display_details_map[item_object._id] == undefined) {
-			Meteor.call('getDisplayDetails', item_object, function(error, result) {
-				if (error)
-					console.log(error)
+		try {
+			display_details_tracker.depend();
+			if (display_details_map[item_object._id] == undefined) {
+				Meteor.call('getDisplayDetails', item_object, function(error, result) {
+					if (error)
+						console.log(error)
 
-				else {
-					display_details_map[item_object._id] = result;
-					display_details_tracker.changed();
-				}
-			})
+					else {
+						display_details_map[item_object._id] = result;
+						display_details_tracker.changed();
+					}
+				})
+			}
+			
+			return display_details_map[item_object._id];
 		}
-		
-		return display_details_map[item_object._id];
+		catch (error) {
+			console.log(error.message);
+		}
 	}
 })
 

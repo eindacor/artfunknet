@@ -93,22 +93,7 @@ Template.leaderboard.rendered = function() {
 Template.leaderboard.events({
 	'click .mvp-row': function(event) {
 		var item_id = $(event.target).closest('.mvp-row').data().item_id;
-		var item_object = undefined;
-		for (var i=0; i<leaderboard_data.mvp_data.length; i++) {
-			var leaderboard_item = leaderboard_data.mvp_data[i];
-			if (leaderboard_item._id == item_id) {
-				item_object = leaderboard_item;
-				break;
-			}
-		}
-
-		for (var i=0; i<leaderboard_data.archived_mvp_data.length; i++) {
-			var leaderboard_item = leaderboard_data.archived_mvp_data[i];
-			if (leaderboard_item._id == item_id) {
-				item_object = leaderboard_item;
-				break;
-			}
-		}
+		var item_object = items.findOne(item_id);
 
 		Blaze.renderWithData(Template.modalTemplate, {
 			'modal_name': "fullViewModal", 
