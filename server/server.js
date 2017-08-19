@@ -147,10 +147,6 @@ var updateContent = function() {
     updateBot(new PlayerIF(Meteor.users.findOne({'_id': {$in: TUTORIAL_PLAYER_IDS}})), ["Benefactor", "Art Enthusiast", "Art Donor", "Preservationist", "Forger"]);
 
     //temp code
-    items.find({'status': "displayed", 'repairing': true}).forEach(function(item_object) {
-        var item_interface = new ItemIF(item_object);
-        item_interface.updateItem({$set: {'repairing': false}}, false, undefined);
-    })
     //temp code
 
     //makeBots(10);
