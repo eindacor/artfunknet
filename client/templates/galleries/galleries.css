@@ -203,3 +203,74 @@
 .template-galleries .action-icon:hover {
 	opacity: 1;
 }
+
+.template-galleries .page-buttons {
+	height: 50px;
+	text-align: center;
+	min-height: 4em;
+	display: flex;
+	align-items:center;
+}
+.template-galleries .page-button {
+	font-size: 3rem;
+	margin: 20px 80px 20px 80px;
+	vertical-align: middle;
+}
+
+.template-galleries .page-button.disabled {
+	opacity: 0;
+}
+
+.template-galleries .page-button.enabled:hover {
+	color: black;
+	cursor: pointer;
+}
+
+.template-galleries .page-indicators {
+	font-weight: bold;
+	color: black;
+	vertical-align: middle;
+	font-size: 2rem;
+}
+
+.template-galleries .button-wrapper {
+	flex: auto;
+	align-items:center;
+}
+
+.template-galleries .favorite-container {
+	margin-top: 18px;
+}
+
+.template-galleries p.favorite-name {
+	margin-bottom: 0px;
+}
+
+.template-galleries .favorite-value {
+	cursor: pointer;
+	opacity: .7;
+	font-size: 1.3rem;
+	font-weight: bold;
+	color: white;
+	padding: 4px;
+}
+
+.template-galleries .favorite-value:hover {
+	opacity: 1;
+}
+
+.template-galleries .favorite-value.any {
+	background-color: #c6bd00;
+}
+
+.template-galleries .favorite-value.none {
+	background-color: red;
+}
+
+.template-galleries .favorite-value.only {
+	background-color: green;
+}
+
+.template-galleries .favorite-value-container {
+	margin-bottom: 18px;
+}

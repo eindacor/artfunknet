@@ -855,6 +855,13 @@ Meteor.methods({
 
     'getPlayerLevels': function(owner_id) {
         var user_object = Meteor.users.findOne(owner_id);
+        if (user_object == undefined) {
+            return {
+                'level': 0,
+                'vintage_level': 0
+            }
+        }
+        
         return {
             'level': user_object.profile.level,
             'vintage_level': user_object.profile.vintage_count

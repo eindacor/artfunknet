@@ -11,10 +11,18 @@ var player_levels = {};
 var attribute_sort_array = [];
 var sort_object = {'sort': ["score", "desc"]};
 var gallery_query = {};
+var current_page = 1;
+var total_pages = 1;
+var galleries_per_page = 10;
+var gallery_array = [];
+var favorite_values = ["any", "only", "none"];
+var favorite_value = "any";
 
 var getPlayerLevels = function(owner_id) {
 	Meteor.call('getPlayerLevels', owner_id, function(error, result) {
-		if (error) {}
+		if (error) {
+			console.log(error);
+		}
 		else {
 			player_levels[owner_id] = result;
 			player_levels_tracker.changed();
@@ -24,7 +32,9 @@ var getPlayerLevels = function(owner_id) {
 
 var getGalleryAvatar = function(owner_id) {
 	Meteor.call('getGalleryAvatar', owner_id, function(error, result) {
-		if (error) {}
+		if (error) {
+			console.log(error.message);
+		}
 		else {
 			gallery_avatars[owner_id] = result;
 			gallery_avatars_tracker.changed();
@@ -68,8 +78,6 @@ var generateSearchTermArray = function(search_terms) {
 }
 
 var updateGalleryQuery = function() {
-	//var attribute_list
-	//attribute_sort_array = [];
 	var sort_array = [];
 
 	for (var i=0; i<attribute_sort_array.length; i++) {
@@ -91,30 +99,46 @@ var updateGalleryQuery = function() {
 		gallery_query['$or'] = search_term_array;
 	}
 
+	if (favorite_value == "only") {
+		gallery_query._id = {'$in': Meteor.user().profile.favorite_galleries};
+	}
+	else if (favorite_value == "none") {
+		gallery_query._id = {'$nin': Meteor.user().profile.favorite_galleries};
+	}
+
+	var all_gallery_array;
+	var player_interface = new PlayerIF(Meteor.user());
+	if (player_interface.tutorialMode()) {
+		all_gallery_array = galleries.find({'tutorial': true, 'score': {$gt: 0}}, {sort: {'score': -1}}).fetch();
+	}
+	else all_gallery_array = galleries.find(gallery_query, sort_object).fetch();
+
+	var total_returned = all_gallery_array.length;
+
+	if (total_returned <= galleries_per_page) {
+        current_page = 1;
+        total_pages = 1;
+    }
+
+    else {
+        total_pages = Math.floor(total_returned / galleries_per_page) + 1;
+
+        if (total_returned < ((current_page - 1) * galleries_per_page) + 1) {
+            current_page = total_pages;
+        }
+    }
+
+    var skip = (current_page - 1) * galleries_per_page;
+
+    gallery_array = all_gallery_array.slice(skip, skip + galleries_per_page)
+
 	attribute_sort_tracker.changed();
 }
 
 Template.galleries.helpers({
-	'favorite_gallery': function() {
-		attribute_sort_tracker.depend();
-		var favorite_query = JSON.parse(JSON.stringify(gallery_query));
-		favorite_query['_id'] = {'$in': Meteor.user().profile.favorite_galleries};
-		var player_interface = new PlayerIF(Meteor.user());
-		if (player_interface.tutorialMode()) {
-			return [];
-		}
-		else return galleries.find(favorite_query, sort_object);
-	},
-
 	'gallery': function() {
 		attribute_sort_tracker.depend();
-		var standard_query = JSON.parse(JSON.stringify(gallery_query));
-		standard_query['_id'] = {'$nin': Meteor.user().profile.favorite_galleries};
-		var player_interface = new PlayerIF(Meteor.user());
-		if (player_interface.tutorialMode()) {
-			return galleries.find({'tutorial': true, 'score': {$gt: 0}}, {sort: {'score': -1}});
-		}
-		else return galleries.find(standard_query, sort_object);
+		return gallery_array;
 	},
 
 	'canBuyAllFavorites': function() {
@@ -149,6 +173,21 @@ Template.galleries.helpers({
 	'show_unsorted': function() {
 		attribute_sort_tracker.depend();
 		return true;
+	},
+
+	'current_page': function() {
+		attribute_sort_tracker.depend();
+		return current_page;
+	},
+
+	'total_pages': function() {
+		attribute_sort_tracker.depend();
+		return total_pages;
+	},
+
+	'favorite_value': function() {
+		attribute_sort_tracker.depend();
+		return favorite_value;
 	}
 })
 
@@ -161,6 +200,7 @@ Template.galleries.events({
 			else {
 				can_buy_all_favorites = undefined;
 				can_buy_all_favorites_tracker.changed();
+				updateGalleryQuery();
 			}
 		})
 	},
@@ -192,6 +232,35 @@ Template.galleries.events({
 			event.preventDefault();
 		}
 	},
+
+	'click #galleries-page-right': function() {
+		var prior_current = current_page;
+		current_page = Math.min(current_page + 1, total_pages);
+		if (prior_current != current_page)
+			updateGalleryQuery();
+	},
+
+	'click #galleries-page-left': function() {
+		var prior_current = current_page;
+		current_page = Math.max(current_page - 1, 1);
+		if (prior_current != current_page)
+			updateGalleryQuery();
+	},
+
+	'mousedown .favorite-value': function(element) {
+		var value = $(element.target).attr('data-favorite_value');
+		var new_value_index;
+		if (element.which == 1) {
+			new_value_index = favorite_values.indexOf(value) == favorite_values.length - 1 ? 0 : favorite_values.indexOf(value) + 1;
+		}
+		else if (element.which == 3) {
+			new_value_index = favorite_values.indexOf(value) == 0 ? favorite_values.length - 1 : favorite_values.indexOf(value) - 1;
+		}
+		
+		var new_value = favorite_values[new_value_index];
+		favorite_value = new_value;
+		updateGalleryQuery();
+	}
 })
 
 Template.galleryCard.helpers({
@@ -322,6 +391,12 @@ Template.galleries.rendered = function() {
 	can_buy_all_favorites = undefined;
 	sort_object = {'sort': ["score", "desc"]};
 	gallery_query = {};
+
+	current_page = 1;
+	total_pages = 1;
+	galleries_per_page = 10;
+	gallery_array = [];
+	favorite_value = "any"
 
 	refreshTutorial("galleries");
 

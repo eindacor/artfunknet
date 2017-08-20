@@ -192,6 +192,8 @@ var updateContent = function() {
     updateBot(new PlayerIF(Meteor.users.findOne({'_id': {$in: TUTORIAL_PLAYER_IDS}})), ["Benefactor", "Art Enthusiast", "Art Donor", "Preservationist", "Forger"]);
 
     //temp code
+    //reset until a system is in place to detect galleries that no longer exist
+    Meteor.users.update({}, {$set: {'profile.favorite_galleries': []}}, {multi: true});
     //temp code
 
     makeBots(50);
@@ -204,7 +206,7 @@ var updateContent = function() {
             player_interface.refresh();
             player_interface.updateGalleryDetails();    
         });
-    }, 3000);
+    }, 2000);
 
     var current_dynamic_crate_count = crates.find().count();
     for (var i=0; i<DYNAMIC_CRATE_COUNT - current_dynamic_crate_count; i++) {
@@ -255,22 +257,28 @@ function waitForUserAdded(userId, attempts){
         attempts = 1;
     }
 
-    if (Meteor.users.findOne(userId) && Meteor.users.findOne(userId).emails[0] && !Meteor.users.findOne(userId).emails[0].verified){
+    var user_object = Meteor.users.findOne(userId);
+
+    if (user_object.profile.user_type == "bot") {
+        return;
+    }
+
+    if (user_object && user_object.emails[0] && !user_object.emails[0].verified){
         Accounts.sendVerificationEmail(userId);
     }
 
-    else if (Meteor.users.findOne(userId) && !Meteor.users.findOne(userId).emails[0]) {
+    else if (user_object && !user_object.emails[0]) {
         console.log("No email for user " + userId);
     }
 
-    else if (!Meteor.users.findOne(userId) && (attempts > 0)){
+    else if (!user_object && (attempts > 0)){
         Meteor.setTimeout(function() {
             console.log(attempts + " more attempts to find user " + userId + " after insert...");
             waitForUserAdded(userId, attempts - 1);
         }, 2000);
     }
 
-    else if (!Meteor.users.findOne(userId)){
+    else if (!user_object){
         console.log("Could not find user " + userId);
     }
 }

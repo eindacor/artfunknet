@@ -19,12 +19,20 @@
 					</div>
 					<div class="row filter-area">
 						<div class="col-xs-2">
-							<p>order by:</p>
-							<select id="order-selector">
-								<option value="score">score</option>
-								<option value="entry_fee">entry fee</option>
-								<option value="value">value</option>
-							</select>
+							<div class="row">
+								<p>order by:</p>
+								<select id="order-selector">
+									<option value="score">score</option>
+									<option value="entry_fee">entry fee</option>
+									<option value="value">value</option>
+								</select>
+							</div>
+							<div class="row">
+								<div class="favorite-container">
+									<p class="favorite-name">favorites</p>
+									<p class="favorite-value-container"><span class="favorite-value {{favorite_value}}" data-favorite_value="{{favorite_value}}">{{favorite_value}}</span></p>
+								</div>
+							</div>
 						</div>
 						<div class="col-xs-10">
 							{{#if show_sorted}}
@@ -47,11 +55,25 @@
 					</div>
 				</div>
 			</div>
+			<div class="row">
+				<div class="col-xs-9 page-buttons">
+					<div class="row button-wrapper">
+						<i id="galleries-page-left" class="page-button fa fa-caret-left {{#if isEqual current_page '1'}}disabled{{else}}enabled{{/if}}"></i>	
+						<span class="page-indicators">page {{current_page}}/{{total_pages}}</span>
+						<i id="galleries-page-right" class="page-button fa fa-caret-right {{#if isEqual current_page total_pages}}disabled{{else}}enabled{{/if}}"></i>	
+					</div>
+				</div>
+				<div class="col-xs-3 page-buttons items_per_page">
+					<span class="filter-title">items per page: </span>
+					<select id="page-count-select">
+	        			<option value="10">10</option>
+	        			<option value="20">20</option>
+	        			<option value="50">50</option>
+	        		</select>
+				</div>
+			</div>
 			<div class="row gallery-list">
 				<div class="col-xs-12">
-					{{#each favorite_gallery}}
-						{{> galleryCard this}}
-					{{/each}}
 					{{#each gallery}}
 						{{> galleryCard this}}
 					{{/each}}
