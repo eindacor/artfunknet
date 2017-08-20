@@ -180,7 +180,7 @@ var makeBots = function(quantity) {
 var updateContent = function() {
     console.log("UPDATING CONTENT");
 
-    //removeBots();
+    removeBots();
 
     npcs.remove({'tutorial': true});
     var npc_name = "Benefactor";
@@ -225,8 +225,6 @@ var updateContent = function() {
     updateBot(new PlayerIF(Meteor.users.findOne({'_id': {$in: TUTORIAL_PLAYER_IDS}})), ["Benefactor", "Art Enthusiast", "Art Donor", "Preservationist", "Forger"]);
 
     //temp code
-    //reset until a system is in place to detect galleries that no longer exist
-    Meteor.users.update({}, {$set: {'profile.favorite_galleries': []}}, {multi: true});
     //temp code
 
     if (Meteor.users.findOne({'profile.user_type': "bot"}) == undefined) {
@@ -234,7 +232,22 @@ var updateContent = function() {
     }
 
     Meteor.setTimeout(function() {
-         Meteor.users.find().forEach(function(user_object) {
+         Meteor.users.find({'profile.user_type': {$ne: "bot"}}).forEach(function(user_object) {
+            //remove null favorites
+            for (var i=0; i<user_object.profile.favorite_galleries.length; i++) {
+                var gallery_id = user_object.profile.favorite_galleries[i];
+                if (galleries.findOne(gallery_id) == undefined) {
+                    Meteor.users.update({}, {$pull: {'profile.favorite_galleries': gallery_id}}, {multi: true});
+                }
+            }
+
+            //remove null tickets
+            gallery_tickets.find({'ticketholder': user_object._id}).forEach(function(ticket_object) {
+                if (galleries.findOne({'owner_id': ticket_object.gallery_owner}) == undefined) {
+                    gallery_tickets.remove({'gallery_owner': ticket_object.gallery_owner});
+                }
+            })
+
             var player_interface = new PlayerIF(user_object);
             player_interface.refresh();
             player_interface.updateCaps();
