@@ -148,8 +148,10 @@ createPlayer = function(user_object, callback){
     }
 
     var admin_interface = new PlayerIF(Meteor.users.findOne({'profile.screen_name': "admin"}));
-    var message = "New account created -> " + user_object.profile.screen_name + ", " + user_object.username;
-    admin_interface.alert(message, 'fa-user-circle', 'good');
+    if (!is_bot) {
+        var message = "New account created -> " + user_object.profile.screen_name + ", " + user_object.username;
+        admin_interface.alert(message, 'fa-user-circle', 'good');
+    }
 
     return Accounts.createUser(user_object, callback);
 }
