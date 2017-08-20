@@ -848,6 +848,10 @@ Meteor.methods({
 
      'getGalleryAvatar': function(owner_id) {
         var best_item = items.findOne({'owner': owner_id, 'status': "displayed"}, {$sort: {'values.actual': 1}});
+        if (best_item == undefined) {
+            return undefined;
+        }
+        
         var filename = best_item.artwork_data.filename;
     
         return "https://s3.amazonaws.com/com.artfunkel.artwork/avatars/" + filename + "_avatar." + best_item.artwork_data.file_extension;
@@ -861,7 +865,7 @@ Meteor.methods({
                 'vintage_level': 0
             }
         }
-        
+
         return {
             'level': user_object.profile.level,
             'vintage_level': user_object.profile.vintage_count
