@@ -524,6 +524,18 @@ Meteor.methods({
         if (adminValidated()) {
             drawLottery(true);
         }
+    },
+
+    'makeBots': function(quantity) {
+        if (adminValidated()) {
+            makeBots(quantity);
+        }
+    },
+
+    'removeBots': function() {
+        if (adminValidated()) {
+            removeBots();
+        }
     }
 })
 

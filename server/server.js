@@ -1,4 +1,4 @@
-var updateBot = function(player_interface, attribute_list) {
+updateBot = function(player_interface, attribute_list) {
     items.remove({'owner': player_interface.getId()}, function() {     
         Meteor.users.update(player_interface.getId(), {$set: {
             'profile.level': 50, 
@@ -76,13 +76,13 @@ var updateBot = function(player_interface, attribute_list) {
     }); 
 }
 
-var getReverse = function(str) {
+getReverse = function(str) {
     var split_str = str.split("");
     var reverse_array = split_str.reverse();
     return reverse_array.join("");
 }
 
-var addFlair = function(gamertag) {
+addFlair = function(gamertag) {
     var prefix_size = Math.floor(Math.random() * 2) + 1;
     var prefix = "";
     while (prefix.length < prefix_size) {
@@ -105,21 +105,21 @@ var addFlair = function(gamertag) {
     return prefix + gamertag + getReverse(prefix);
 }
 
-var capitalizeFirst = function(word) {
+capitalizeFirst = function(word) {
     return word.charAt(0).toUpperCase() + word.slice(1);
 }
 
-var capitalizeAll = function(word) {
+capitalizeAll = function(word) {
     return word.toUpperCase();
 }
 
-var getRandomWord = function() {
+getRandomWord = function() {
     var word_count = nouns.length;
     var random_index = Math.floor(Math.random() * word_count);
     return nouns[random_index];
 }
 
-var generateName = function() {
+generateName = function() {
     var word_array = [];
 
     while ((word_array.length == 0 || Math.random() < .5) && word_array.length < 3) {
@@ -158,7 +158,7 @@ var generateName = function() {
     return username;
 }
 
-var removeBots = function() {
+removeBots = function() {
     Meteor.users.find({'profile.user_type': "bot"}).forEach(function(user_object) {
         galleries.remove({'owner_id': user_object._id});
         npcs.remove({'owner_id': user_object._id});
@@ -167,7 +167,7 @@ var removeBots = function() {
     })
 }
 
-var makeBots = function(quantity) {
+makeBots = function(quantity) {
     for (var i=0; i<quantity; i++) {
         var username = generateName();
         var email = username + "@artfunkelbots.com";
