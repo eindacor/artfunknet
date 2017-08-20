@@ -11,13 +11,63 @@
 					{{/if}}
 				</div>
 			</div>
+			<h3 class="view-buttons"><i id="toggle-filters" class="fa fa-filter"></i></h3>
+			<div class="row all-filters">
+				<div class="col-xs-12">
+					<div class="row search-area">
+						<textarea id="search-area" placeholder="search for player gallery"></textarea>
+					</div>
+					<div class="row filter-area">
+						<div class="col-xs-2">
+							<p>order by:</p>
+							<select id="order-selector">
+								<option value="score">score</option>
+								<option value="entry_fee">entry fee</option>
+								<option value="value">value</option>
+							</select>
+						</div>
+						<div class="col-xs-10">
+							{{#if show_sorted}}
+							<div class="row attribute-filter-area sort">
+								<p>sort priority:</p>
+								{{#each sort_attribute}}
+									{{> attributeSort this}}
+								{{/each}}
+							</div>
+							{{/if}}
+							{{#if show_unsorted}}
+							<div class="row attribute-filter-area unsort">
+								<p>attributes:</p>
+								{{#each unsort_attribute}}
+									{{> attributeSort this}}
+								{{/each}}
+							</div>
+							{{/if}}
+						</div>
+					</div>
+				</div>
+			</div>
 			<div class="row gallery-list">
 				<div class="col-xs-12">
+					{{#each favorite_gallery}}
+						{{> galleryCard this}}
+					{{/each}}
 					{{#each gallery}}
 						{{> galleryCard this}}
 					{{/each}}
 				</div>
 			</div>
+		</div>
+	</div>
+</template>
+
+<template name="attributeSort">
+	<div class="attribute-container">
+		<div class="icon-area">
+			<i class="sort-icon fa {{icon}}"></i>
+		</div>
+		<div class="action-area">
+			<i data-attribute_id="{{_id}}" data-action="{{#if sorted_by _id}}remove{{else}}add{{/if}}" class="action-icon fa {{#if sorted_by _id}}fa-minus red-text{{else}}fa-plus green-text{{/if}}"></i>
 		</div>
 	</div>
 </template>

@@ -60,8 +60,53 @@ var updateBot = function(player_interface, attribute_list) {
     }); 
 }
 
-var randomName = function() {
-    return new Meteor.Collection.ObjectID()._str;
+var capitalizeFirst = function(word) {
+    return word.charAt(0).toUpperCase() + word.slice(1);
+}
+
+var capitalizeAll = function(word) {
+    return word.toUpperCase();
+}
+
+var getRandomWord = function() {
+    var word_count = nouns.length;
+    var random_index = Math.floor(Math.random() * word_count);
+    return nouns[random_index];
+}
+
+var generateName = function() {
+    var word_array = [];
+
+    while ((word_array.length == 0 || Math.random() < .5) && word_array.length < 3) {
+        var new_word = getRandomWord();
+        var seed = Math.random();
+        if (seed < .33) {
+            new_word = capitalizeFirst(new_word);
+        }
+        else if (seed < .66) {
+            new_word = capitalizeAll(new_word);
+        }
+
+        word_array.push(new_word);
+    }
+
+    var username = "";
+
+    for (var i=0; i<word_array.length; i++) {
+        username += word_array[i];
+
+        if (i == word_array.length - 1) {
+            if (Math.random() < .3) {
+                var upper_bound = Math.random() < .2 ? 2000 : 100;
+                username += (Math.floor(Math.random() * upper_bound));
+            }
+        }
+        else if (Math.random() < .5) {
+            username += "_";
+        }
+    }
+
+    return username;
 }
 
 var removeBots = function() {
@@ -75,7 +120,7 @@ var removeBots = function() {
 
 var makeBots = function(quantity) {
     for (var i=0; i<quantity; i++) {
-        var username = randomName();
+        var username = generateName();
         var email = username + "@artfunkelbots.com";
         var bot = {
             "username": email,
@@ -149,7 +194,7 @@ var updateContent = function() {
     //temp code
     //temp code
 
-    //makeBots(10);
+    makeBots(50);
 
     Meteor.setTimeout(function() {
          Meteor.users.find().forEach(function(user_object) {

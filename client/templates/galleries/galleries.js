@@ -3,16 +3,18 @@ var entry_fee_tracker = new Tracker.Dependency;
 var gallery_avatars_tracker = new Tracker.Dependency;
 var player_levels_tracker = new Tracker.Dependency;
 var can_buy_all_favorites_tracker = new Tracker.Dependency;
+var attribute_sort_tracker = new Tracker.Dependency;
 var entry_fees = {};
 var gallery_avatars = {};
 var can_buy_all_favorites = undefined;
 var player_levels = {};
+var attribute_sort_array = [];
+var sort_object = {'sort': ["score", "desc"]};
+var gallery_query = {};
 
 var getPlayerLevels = function(owner_id) {
 	Meteor.call('getPlayerLevels', owner_id, function(error, result) {
-		if (error)
-			console.log(error)
-
+		if (error) {}
 		else {
 			player_levels[owner_id] = result;
 			player_levels_tracker.changed();
@@ -22,9 +24,7 @@ var getPlayerLevels = function(owner_id) {
 
 var getGalleryAvatar = function(owner_id) {
 	Meteor.call('getGalleryAvatar', owner_id, function(error, result) {
-		if (error)
-			console.log(error)
-
+		if (error) {}
 		else {
 			gallery_avatars[owner_id] = result;
 			gallery_avatars_tracker.changed();
@@ -56,13 +56,65 @@ var getCanBuyAllFavorites = function() {
 	})
 }
 
+var generateSearchTermArray = function(search_terms) {
+	var or_array = [];
+
+	for (var i=0; i<search_terms.length; i++) {
+		var term = search_terms[i];
+		or_array.push({'owner': {'$regex': term, '$options': 'i'}});
+	}
+
+	return or_array;
+}
+
+var updateGalleryQuery = function() {
+	//var attribute_list
+	//attribute_sort_array = [];
+	var sort_array = [];
+
+	for (var i=0; i<attribute_sort_array.length; i++) {
+		var key_string = "published_procs." + attribute_sort_array[i];
+		sort_array.push([key_string, "desc"]);
+	}
+
+	var default_order = $('#order-selector').val();
+
+	sort_array.push([default_order, "desc"]);
+
+	sort_object = {'sort': sort_array};
+
+	var terms_entered = commaSeparatedValuesToArray($('#search-area').val());
+	var search_term_array = generateSearchTermArray(terms_entered);
+
+	gallery_query = {'tutorial': {$ne: true}, 'visible': true, 'score': {$gt: 0}};
+	if (search_term_array.length > 0) {
+		gallery_query['$or'] = search_term_array;
+	}
+
+	attribute_sort_tracker.changed();
+}
+
 Template.galleries.helpers({
+	'favorite_gallery': function() {
+		attribute_sort_tracker.depend();
+		var favorite_query = JSON.parse(JSON.stringify(gallery_query));
+		favorite_query['_id'] = {'$in': Meteor.user().profile.favorite_galleries};
+		var player_interface = new PlayerIF(Meteor.user());
+		if (player_interface.tutorialMode()) {
+			return [];
+		}
+		else return galleries.find(favorite_query, sort_object);
+	},
+
 	'gallery': function() {
+		attribute_sort_tracker.depend();
+		var standard_query = JSON.parse(JSON.stringify(gallery_query));
+		standard_query['_id'] = {'$nin': Meteor.user().profile.favorite_galleries};
 		var player_interface = new PlayerIF(Meteor.user());
 		if (player_interface.tutorialMode()) {
 			return galleries.find({'tutorial': true, 'score': {$gt: 0}}, {sort: {'score': -1}});
 		}
-		else return galleries.find({'tutorial': {$ne: true}, 'visible': true, 'score': {$gt: 0}}, {sort: {'score': -1}});
+		else return galleries.find(standard_query, sort_object);
 	},
 
 	'canBuyAllFavorites': function() {
@@ -72,6 +124,31 @@ Template.galleries.helpers({
 		}
 
 		return can_buy_all_favorites;
+	},
+
+	'sort_attribute': function() {
+		attribute_sort_tracker.depend();
+		var sort_attributes = [];
+		for (var i=0; i<attribute_sort_array.length; i++) {
+			sort_attributes.push(attributes.findOne(attribute_sort_array[i]));
+		}
+
+		return sort_attributes;
+	},
+
+	'unsort_attribute': function() {
+		attribute_sort_tracker.depend();
+		return attributes.find({'_id': {$nin: attribute_sort_array}, 'active': true});
+	},
+
+	'show_sorted': function() {
+		attribute_sort_tracker.depend();
+		return attribute_sort_array.length > 0;
+	},
+
+	'show_unsorted': function() {
+		attribute_sort_tracker.depend();
+		return true;
 	}
 })
 
@@ -86,7 +163,35 @@ Template.galleries.events({
 				can_buy_all_favorites_tracker.changed();
 			}
 		})
-	}
+	},
+
+	'click #toggle-filters': function(element) {
+		var target = $('#toggle-filters');
+		if (target.hasClass('af-color')) {
+			target.removeClass('af-color');
+			$('.all-filters').css('display', 'none');
+		}
+
+		else {
+			target.addClass('af-color');
+			$('.all-filters').css('display', 'block');
+		}
+	},
+
+	'change #order-selector': function(element) {
+		updateGalleryQuery();
+	},
+
+	'keyup #search-area': function(event) {
+		updateGalleryQuery();
+	}, 
+
+	'keydown #search-area': function(event) {
+		if (event.keyCode == 13) {
+			$('#search-area').blur();
+			event.preventDefault();
+		}
+	},
 })
 
 Template.galleryCard.helpers({
@@ -214,7 +319,32 @@ Template.galleryCard.events({
 Template.galleries.rendered = function() {
 	entry_fees = {};
 	gallery_avatars = {};
-	can_buy_all_favorites = undefined
+	can_buy_all_favorites = undefined;
+	sort_object = {'sort': ["score", "desc"]};
+	gallery_query = {};
 
 	refreshTutorial("galleries");
+
+	attribute_sort_array = [];
+	updateGalleryQuery();
 }
+
+Template.attributeSort.helpers({
+	'sorted_by': function(attribute_id) {
+		attribute_sort_tracker.depend();
+		return attribute_sort_array.indexOf(attribute_id) != -1;
+	}
+})
+
+Template.attributeSort.events({
+	'click .action-icon': function(event) {
+		if ($(event.target).data().action == "add") {
+			attribute_sort_array.push($(event.target).data().attribute_id);
+		}
+		else {
+			attribute_sort_array.splice(attribute_sort_array.indexOf($(event.target).data().attribute_id), 1);
+		}
+
+		updateGalleryQuery();
+	}
+})

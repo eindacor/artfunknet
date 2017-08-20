@@ -155,3 +155,51 @@
 .template-galleries #buy-all-favorites-button:hover {
 	opacity: 1;
 }
+
+.template-galleries #search-area {
+	resize: none;
+	width: 100%;
+	height: 4rem;
+	font-size: 2rem;
+	margin-bottom: 12px;
+	padding: .4rem 2rem;
+}
+
+.template-galleries #toggle-filters {
+	cursor: pointer;
+	opacity: .5;
+}
+
+.template-galleries #toggle-filters:hover {
+	opacity: 1;
+}
+
+.template-galleries .attribute-container {
+	display: inline-block;
+	text-align: center;
+	margin: 10px 20px;
+}
+
+.template-galleries .sort-icon {
+	color: black;
+	font-size: 3rem;
+	text-align: center;
+	margin: auto;
+}
+
+.template-galleries .all-filters {
+	border-top: 1px solid #DDD;
+	border-bottom: 1px solid #DDD;
+	padding: 12px 0px;
+	display: none;
+}
+
+.template-galleries .action-icon {
+	font-size: 2rem;
+	cursor: pointer;
+	opacity: .6;
+}
+
+.template-galleries .action-icon:hover {
+	opacity: 1;
+}
