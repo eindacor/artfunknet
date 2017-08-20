@@ -60,6 +60,35 @@ var updateBot = function(player_interface, attribute_list) {
     }); 
 }
 
+var getReverse = function(str) {
+    var split_str = str.split("");
+    var reverse_array = split_str.reverse();
+    return reverse_array.join("");
+}
+
+var addFlair = function(gamertag) {
+    var prefix_size = Math.floor(Math.random() * 2) + 1;
+    var prefix = "";
+    while (prefix.length < prefix_size) {
+        if (Math.random() < .5) {
+            prefix += "|";
+        }
+        else {
+            var x_to_add = "x";
+            if (Math.random() < .5) {
+                x_to_add = x_to_add.toUpperCase();
+            }
+            prefix += x_to_add;
+        }
+    }
+
+    if (Math.random() < .5) {
+        prefix += " ";
+    }
+
+    return prefix + gamertag + getReverse(prefix);
+}
+
 var capitalizeFirst = function(word) {
     return word.charAt(0).toUpperCase() + word.slice(1);
 }
@@ -106,6 +135,10 @@ var generateName = function() {
         }
     }
 
+    if (Math.random() < .2) {
+        username = addFlair(username);
+    }
+
     return username;
 }
 
@@ -147,7 +180,7 @@ var makeBots = function(quantity) {
 var updateContent = function() {
     console.log("UPDATING CONTENT");
 
-    removeBots();
+    //removeBots();
 
     npcs.remove({'tutorial': true});
     var npc_name = "Benefactor";
@@ -196,7 +229,9 @@ var updateContent = function() {
     Meteor.users.update({}, {$set: {'profile.favorite_galleries': []}}, {multi: true});
     //temp code
 
-    makeBots(50);
+    if (Meteor.users.findOne({'profile.user_type': "bot"}) == undefined) {
+        makeBots(50);
+    }
 
     Meteor.setTimeout(function() {
          Meteor.users.find().forEach(function(user_object) {
