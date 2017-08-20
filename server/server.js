@@ -6,9 +6,17 @@ var updateBot = function(player_interface, attribute_list) {
             'profile.tutorial_data.state': TUTORIAL_STATES.length - 1, 
             'profile.tutorial_data.step': 0}
         }, function() {
+            var attribute_count_map = {
+                '5': 1, 
+                '6': 1, 
+                '7': 1
+            }
+
+            var attribute_count = Number(JepLoot.catRoll(attribute_count_map));
+
             if (attribute_list == undefined) {
                 attribute_list = [];
-                for (var i=0; i<5; i++) {
+                for (var i=0; i<attribute_count; i++) {
                     var query = {'npc_name': {$nin: attribute_list}, 'active': true};
                     var count = attributes.find(query).count();
                     var random_index = Math.floor(Math.random() * count);
@@ -36,6 +44,14 @@ var updateBot = function(player_interface, attribute_list) {
                         artwork_id_list.push(artwork_object._id);
                     }
                 }
+            }
+
+            var artwork_count = 10;
+
+            while (artwork_id_list.length > artwork_count) {
+                var random_index = Math.floor(Math.random() * artwork_id_list.length);
+                artwork_id_list.splice(random_index, 1);
+
             }
 
             var source = "bot generated";
@@ -228,7 +244,7 @@ var updateContent = function() {
     //temp code
 
     if (Meteor.users.findOne({'profile.user_type': "bot"}) == undefined) {
-        makeBots(50);
+        makeBots(100);
     }
 
     Meteor.setTimeout(function() {
