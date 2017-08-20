@@ -196,7 +196,7 @@ var makeBots = function(quantity) {
 var updateContent = function() {
     console.log("UPDATING CONTENT");
 
-    removeBots();
+    //removeBots();
 
     npcs.remove({'tutorial': true});
     var npc_name = "Benefactor";
