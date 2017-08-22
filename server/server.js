@@ -196,7 +196,7 @@ makeBots = function(quantity) {
 var updateContent = function() {
     console.log("UPDATING CONTENT");
 
-    removeBots();
+    //removeBots();
 
     npcs.remove({'tutorial': true});
     var npc_name = "Benefactor";
@@ -244,7 +244,7 @@ var updateContent = function() {
     //temp code
 
     if (Meteor.users.findOne({'profile.user_type': "bot"}) == undefined) {
-        makeBots(20);
+        makeBots(40);
     }
 
     Meteor.setTimeout(function() {
