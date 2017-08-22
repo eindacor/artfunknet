@@ -46,7 +46,7 @@ Template.rerollModal.events ({
 
 	'click i.setting-false': function(event) {
 		var unique_attribute_id = $(event.target).data().unique_attribute_id;
-		Meteor.call('setActiveUniqueAttribute', item_data._id, unique_attribute_id, function(error) {
+		Meteor.call('setActiveUniqueAttribute', item_data._id, unique_attribute_id, function(error, result) {
 			if (error)
 				console.log(error.message)
 
@@ -57,7 +57,7 @@ Template.rerollModal.events ({
 	},
 
 	'click .upgrade-button.af-color': function() {
-		Meteor.call('upgradeItem', item_data._id, function(error) {
+		Meteor.call('upgradeItem', item_data._id, function(error, result) {
 			if(error)
 				console.log(error);
 

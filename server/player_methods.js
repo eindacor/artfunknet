@@ -557,6 +557,11 @@ Meteor.methods({
             }
         ).fetch();
 
+        for (var i=0; i<auction_array.length; i++) {
+            auction_array[i].is_unclaimed = items.findOne({'owner': Meteor.userId(), 'artwork_id': auction_array[i].item_data.artwork_id, 'status': {$in: ['unclaimed', 'won']}}) != undefined;
+            auction_array[i].owned = items.findOne({'owner': Meteor.userId(), 'artwork_id': auction_array[i].item_data.artwork_id, 'status': {$nin: ['unclaimed', 'for_sale', 'won', 'archived']}}) != undefined;
+        }
+
         return auction_array;
     },
 

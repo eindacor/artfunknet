@@ -177,7 +177,6 @@ Template.auctionTable.helpers({
 				'reason': reason
 			};
 
-			list_object.owned = items.findOne({'owner': Meteor.userId(), 'artwork_id': auction_object.item_data.artwork_id, 'status': {$nin: ['unclaimed', 'for_sale', 'won', 'archived']}}) != undefined;
 			list_object.attributes = auction_object.item_data.attributes;
 			list_object.artwork_id = auction_object.item_data.artwork_id;
 			list_object.artwork_data = auction_object.item_data.artwork_data;
@@ -207,10 +206,6 @@ Template.auctionTable.helpers({
 		}
 
 		else return sought_items[artwork_id];
-	},
-
-	'isUnclaimed': function(artwork_id) {
-		return items.findOne({'owner': Meteor.userId(), 'artwork_id': artwork_id, 'status': {$in: ['unclaimed', 'won']}}) != undefined;
 	},
 
 	'isAlreadyWinning': function(auction_id) {

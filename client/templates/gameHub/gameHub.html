@@ -8,8 +8,12 @@
 		</div>
 		<div class="row">
 			<h1 class="af-color">Lottery Reward</h1>
-			{{#each lottery_item_object}}
-				{{> itemInfo item_data=this}}
+			{{#each lottery_item_id}}
+				{{#with getItemData this}}
+					{{#if this}}
+						{{> itemInfo item_data=this}}
+					{{/if}}
+				{{/with}}
 			{{/each}}
 		</div>
 	</div>

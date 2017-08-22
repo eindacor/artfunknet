@@ -17,8 +17,7 @@ Template.gameHub.helpers({
 		return seasonal_item_objects;
 	},
 
-	'lottery_item_object': function() {
-		var lottery_rewards = metadata.findOne({'lottery_draw': {$ne: null}}).rewards;
-		return items.find({'_id': {$in: lottery_rewards}});
+	'lottery_item_id': function() {
+		return metadata.findOne({'lottery_draw': {$ne: null}}).rewards;
 	}
 })

@@ -88,21 +88,6 @@ Template.userGallery.helpers({
 		return gallery_data;
 	},
 
-	'time_remaining': function(item_id) {
-		var item_object = items.findOne(item_id);
-
-		if (item_object && item_object.status == 'displayed') {
-			var expiration = moment(item_object.display_details.end);
-			var now = moment(Session.get('now'));
-			var remaining = expiration - now;
-
-			var remaining_text = remaining > 0 ? getCountdownString(remaining) : "expired";
-			return remaining_text;
-		}
-
-		else return "";
-	},
-
 	'entryInfo' : function(screen_name) {
 		var gallery_object = galleries.findOne({'owner': screen_name});
 
