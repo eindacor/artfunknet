@@ -167,7 +167,7 @@ Template.registerHelper('recommended_archive', function(item_object) {
 })
 
 Template.registerHelper('sortedAttributes', function(attributes) {
-	if (attributes.length == undefined)
+	if (attributes == undefined || attributes.length == undefined)
 		return [];
 	
 	attributes.sort(function(first, second) {
@@ -211,4 +211,69 @@ Template.registerHelper('archive_indicator', function(item_object) {
 	}
 
 	return archive_indicators;
+})
+
+item_data_tracker = new Tracker.Dependency;
+
+item_data_map = {};
+item_data_tracker_map = {};
+
+itemDataDepend = function(item_id) {
+	if (item_data_tracker_map[item_id] == undefined) {
+		item_data_tracker_map[item_id] = new Tracker.Dependency;
+	}
+
+	item_data_tracker_map[item_id].depend();
+}
+
+updateItemData = function(item_object) {
+	if (item_object) {
+		item_data_map[item_object._id] = item_object;
+
+		if (item_data_tracker_map[item_object._id] == undefined) {
+			item_data_tracker_map[item_object._id] = new Tracker.Dependency;
+		}
+
+		item_data_tracker_map[item_object._id].changed();
+	}	
+}
+
+removeItemData = function(item_id) {
+	if (item_data_map[item_id] != undefined) {
+		delete item_data_map[item_id];
+		delete item_data_tracker_map[item_id];
+	}
+}
+
+getItemData = function(item_id) {
+	if (item_data_map[item_id] == undefined) {
+		Meteor.call('getItemData', item_id, function(error, result) {
+			if (error) {
+				console.log(error.message);
+			}
+			else {
+				updateItemData(result);		
+			}
+		})
+	}
+	else return item_data_map[item_id];
+}
+
+clearItemData = function() {
+	item_data_map = {};
+	item_data_tracker_map = {};
+}
+
+item_data_force_update_tracker = new Tracker.Dependency;
+
+Template.registerHelper('getItemData', function(item_id) {
+	item_data_force_update_tracker.depend();
+	itemDataDepend(item_id);
+	var item_data = getItemData(item_id);
+
+	if (item_data != undefined) {
+		removeItemData(item_data._id);	
+	}
+
+	return item_data;
 })

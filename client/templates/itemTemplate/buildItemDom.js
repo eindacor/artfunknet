@@ -266,7 +266,7 @@ getHTMLFromItem = function(player_item_interface) {
 			Blaze.renderWithData(Template.modalTemplate, {
 				'modal_name': "fullViewModal", 
 				'modal_data': {
-					'item_object': item_object
+					'item_id': player_item_interface.getItemIF().getId()
 				}
 			}, $('body')[0]);
 		}
@@ -335,7 +335,7 @@ var getPermanentFunction = function(player_item_interface, desired_status) {
 				console.log(error.message)
 
 			else {
-				//updateItemArray();
+				updateItemArray();
 			}
 		})
 	}
@@ -437,7 +437,9 @@ var getRerollFunction = function(player_item_interface) {
 	return function() {
 		Blaze.renderWithData(Template.modalTemplate, {
 			'modal_name': "rerollModal", 
-			'modal_data': player_item_interface.getItemIF().getItemObject()
+			'modal_data': {
+				'item_id': player_item_interface.getItemIF().getId()
+			}
 		}, $('body')[0]);
 	}
 }
@@ -596,7 +598,7 @@ getItemActionsHTML = function(player_item_interface) {
 				$button_row.append($permanent_button);
 			}
 
-			else if (player_item_interface.getPlayerItemPermissions().canUnsetPermanent()) {
+			if (player_item_interface.getPlayerItemPermissions().canUnsetPermanent()) {
 				var $permanent_button = $('<span class="perm-collection active af-color"><i class="fa fa-heart"></i></span>');
 				$permanent_button.on('click', getActionFunction("unpermanent", player_item_interface));
 				$button_row.append($permanent_button);

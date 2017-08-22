@@ -373,7 +373,7 @@ Meteor.methods({
 
     'upgradeItem': function(item_id) {
         var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
-        player_item_interface.upgrade();
+        return player_item_interface.upgrade();
     },
 
     'auctionArtwork' : function(item_id, starting, buy_now, duration) {
@@ -399,12 +399,12 @@ Meteor.methods({
     'rerollAttributeValue' : function(item_id, attribute_id) {
         var now = moment();
         var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
-        player_item_interface.rerollAttributeValue(attribute_id);
+        return player_item_interface.rerollAttributeValue(attribute_id);
     },
 
     'rerollAttribute' : function(item_id, attribute_id) {
     	var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
-        player_item_interface.rerollAttribute(attribute_id);
+        return player_item_interface.rerollAttribute(attribute_id);
     },
 
     'archiveItem': function(item_id) {
@@ -495,5 +495,33 @@ Meteor.methods({
     'getUpgradeCost': function(item_id) {
         var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
         return player_item_interface.getUpgradeCost();
+    },
+
+    'getItemData': function(item_id) {
+        var item_object = getOneFromCollection("item_methods.js:getItemData", items, item_id);
+
+        if (item_object == undefined) {
+            return;
+        }
+
+        if (Meteor.userId() == item_object.owner) {
+            if (!item_object.authenticity.identified) {
+                delete item_object["authenticity.forgery"];
+            }
+        }
+
+        else {
+            delete item_object["authenticity"];
+            if (Meteor.user().profile.market_expert.expiration < getNowISOString() && item_object.status != "displayed") {
+                delete item_object["condition"];
+                delete item_object["level"];
+                delete item_object["values"];
+                delete item_object["attributes"];
+            }
+        }
+
+        return item_object;
+        //TODO determine if player can see item details based on auctioneer buff
+        
     }
 })

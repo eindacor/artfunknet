@@ -93,12 +93,11 @@ Template.leaderboard.rendered = function() {
 Template.leaderboard.events({
 	'click .mvp-row': function(event) {
 		var item_id = $(event.target).closest('.mvp-row').data().item_id;
-		var item_object = items.findOne(item_id);
 
 		Blaze.renderWithData(Template.modalTemplate, {
 			'modal_name': "fullViewModal", 
 			'modal_data': {
-				'item_object': item_object
+				'item_id': item_id
 			}
 		}, $('body')[0]);
 	}

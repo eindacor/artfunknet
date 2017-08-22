@@ -813,7 +813,7 @@ Meteor.methods({
 
     'setActiveUniqueAttribute': function(item_id, unique_attribute_id) {
         var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
-        player_item_interface.changeActiveUniqueAttribute(unique_attribute_id);
+        return player_item_interface.changeActiveUniqueAttribute(unique_attribute_id);
      },
 
      'getDisplayValues': function() {

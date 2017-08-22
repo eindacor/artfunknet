@@ -32,8 +32,8 @@ Template.createAuctionModal.events ({
 })
 
 Template.createAuctionModal.helpers({
-	'itemData' : function() {
-		return items.findOne(Session.get('selectedItem'));
+	'item_id' : function() {
+		return Session.get('selectedItem');
 	},
 
 	'error' : function() {

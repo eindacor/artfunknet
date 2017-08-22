@@ -1,58 +1,13 @@
-var player_item_interface;
-var player_interface;
-var item_interface;
-var player_item_permissions;
-var interface_tracker = new Tracker.Dependency;
-var reroll_cost_tracker = new Tracker.Dependency;
-var reroll_cost;
-var upgrade_cost_tracker = new Tracker.Dependency;
-var upgrade_cost;
+var reroll_ui_tracker = new Tracker.Dependency;
 
-updateInterfaces = function(item_object) {
-	if (item_object == undefined) {
-		return;
-	}
-	
-	item_interface = new ItemIF(item_object);
-	player_interface = new PlayerIF(Meteor.user());
-	player_item_interface = new PlayerItemIF(player_interface, item_interface);
-	player_item_permissions = new PlayerItemPermissions(player_interface, item_interface); 
-	reroll_cost = undefined;
-	upgrade_cost = undefined;
-	reroll_cost_tracker.changed();
-	upgrade_cost_tracker.changed();
-	interface_tracker.changed();
+var item_data = undefined;
+
+var updateItemAttributeData = function(item_object) {
+	item_data_force_update_tracker.changed();
+	var container_id = "#item_" + item_object._id;
+	fillItemContainer($(container_id), new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_object)));
 }
 
-var updateRerollCost = function() {
-	if (item_interface) {
-		Meteor.call('getRerollCost', item_interface.getId(), function(error, result) {
-			if (error) {
-				console.log(error)
-			}
-
-			else {
-				reroll_cost = result;
-				reroll_cost_tracker.changed();
-			}
-		})
-	}
-}
-
-var updateUpgradeCost = function() {
-	if (item_interface) {
-		Meteor.call('getUpgradeCost', item_interface.getId(), function(error, result) {
-			if (error) {
-				console.log(error)
-			}
-
-			else {
-				upgrade_cost = result;
-				upgrade_cost_tracker.changed();
-			}
-		})
-	}
-}
 
 Template.rerollModal.events ({
 	'click #cancel-modal' : function(event, template) {
@@ -64,16 +19,12 @@ Template.rerollModal.events ({
 
     	var player_interface = new PlayerIF(Meteor.user());
 
-		Meteor.call('rerollAttributeValue', item_interface.getId(), attribute_id, function(error, result) {
+		Meteor.call('rerollAttributeValue', item_data._id, attribute_id, function(error, result) {
 			if (error)
 				console.log(error.message);
 
 			else {
-				var item_object = items.findOne(item_interface.getId());
-				updateInterfaces(item_object);
-				var container_id = "#item_" + item_object._id;
-				fillItemContainer($(container_id), new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_object)));
-				buildTutorialContents();
+				updateItemAttributeData(result);
 			}
 		});
     },
@@ -83,144 +34,115 @@ Template.rerollModal.events ({
 
     	var player_interface = new PlayerIF(Meteor.user());
 
-		Meteor.call('rerollAttribute', item_interface.getId(), attribute_id, function(error, result) {
+		Meteor.call('rerollAttribute', item_data._id, attribute_id, function(error, result) {
 			if (error)
 				console.log(error.message);
 
 			else {
-				var item_object = items.findOne(item_interface.getId());
-				updateInterfaces(item_object);
-				var container_id = "#item_" + item_object._id;
-				fillItemContainer($(container_id), new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_object)));
-				buildTutorialContents();
+				updateItemAttributeData(result);
 			}
 		});
     },
 
 	'click i.setting-false': function(event) {
 		var unique_attribute_id = $(event.target).data().unique_attribute_id;
-		Meteor.call('setActiveUniqueAttribute', item_interface.getId(), unique_attribute_id, function(error) {
+		Meteor.call('setActiveUniqueAttribute', item_data._id, unique_attribute_id, function(error) {
 			if (error)
 				console.log(error.message)
 
 			else {
-				var item_object = items.findOne(item_interface.getId());
-				updateInterfaces(item_object);
-				var container_id = "#item_" + item_object._id;
-				fillItemContainer($(container_id), new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_object)));
+				updateItemAttributeData(result);
 			}
 		})
 	},
 
 	'click .upgrade-button.af-color': function() {
-		Meteor.call('upgradeItem', item_interface.getId(), function(error) {
+		Meteor.call('upgradeItem', item_data._id, function(error) {
 			if(error)
 				console.log(error);
 
 			else {
-				var item_object = items.findOne(item_interface.getId());
-				updateInterfaces(item_object);
-				var container_id = "#item_" + item_object._id;
-				fillItemContainer($(container_id), new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_object)));
+				updateItemAttributeData(result);
 			}
 		})
 	}
 })
 
 Template.rerollModal.rendered = function() {
-	updateInterfaces(this.data);
 	refreshTutorial("mod_attribute");
 }
 
 Template.rerollModal.helpers({
-	'itemData' : function() {
-		interface_tracker.depend();
-		if (item_interface)
-			return item_interface.getItemObject();
-
-		else updateInterfaces();
-	},
-
 	'error' : function() {
 		return Session.get('createAuctionErrors');
 	},
 
-	'rerollCost' : function() {
-		reroll_cost_tracker.depend();
-		if (reroll_cost == undefined) {
-			updateRerollCost();
-		}
-
-		else return reroll_cost;
+	'rerollCost' : function(item_object) {
+		reroll_ui_tracker.depend();
+		var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_object));
+		return player_item_interface.getRerollCost();
 	},
 
 	'bankBalance' : function() {
-		interface_tracker.depend();
-		if (player_item_interface)
-			return getCommaSeparatedValue(player_interface.getBankBalance());
+		return Meteor.user().profile.bank_balance;
 	},
 
-	'canReroll' : function() {
-		interface_tracker.depend();
-		if (player_item_permissions) {
-			return player_item_permissions.canReroll();
-		}
+	'canReroll' : function(item_object) {
+		reroll_ui_tracker.depend();
+		var player_item_permissions = new PlayerItemPermissions(new PlayerIF(Meteor.user()), new ItemIF(item_object));
+		return player_item_permissions.canReroll();
 	},
 
-	'canChangeActiveUniqueAttribute' : function() {
-		interface_tracker.depend();
-		if (player_item_permissions)
-			return player_item_permissions.canChangeActiveUniqueAttribute();
+	'canChangeActiveUniqueAttribute' : function(item_object) {
+		reroll_ui_tracker.depend();
+		var player_item_permissions = new PlayerItemPermissions(new PlayerIF(Meteor.user()), new ItemIF(item_object));
+		return player_item_permissions.canChangeActiveUniqueAttribute();
 	},
 
 	'attributeValueText' : function(value) {
 		return Math.floor(value * 100);
 	},
 
-	'unique_attribute_data': function(unique_id) {
+	'unique_attribute_data': function(unique_id, active_unique_attribute) {
 		var unique_object = unique_attributes.findOne(unique_id);
-		unique_object.current_selected = items.findOne(item_interface.getId()).active_unique_attribute == unique_id;
+		unique_object.current_selected = active_unique_attribute == unique_id;
 		return unique_object;
 	},
 
-	'upgradeCost': function() {
-		interface_tracker.depend();
+	'upgradeCost': function(item_object) {
+		reroll_ui_tracker.depend();
+		var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_object));
+		var upgrade_cost = player_item_interface.getUpgradeCost();
+		
+		var cost_array = [];
 
-		upgrade_cost_tracker.depend();
-		if (upgrade_cost == undefined) {
-			updateUpgradeCost();
-		}
-
-		else {
-			var cost_array = [];
-
-			for (var i=0; i<knowledge_types.length; i++) {
-				var type = knowledge_types[i];
-				if (upgrade_cost[type] != undefined) {
-					var amount_available = Meteor.user().profile.knowledge[type]
-					var amount = upgrade_cost[type];
-					cost_array.push({
-						'color': artwork_rarities[i],
-						'amount': amount,
-						'name': type.replace("_", " "),
-						'available': amount_available,
-						'can_afford': amount_available >= amount,
-						'type': type
-					})
-				}
-				
+		for (var i=0; i<knowledge_types.length; i++) {
+			var type = knowledge_types[i];
+			if (upgrade_cost[type] != undefined) {
+				var amount_available = Meteor.user().profile.knowledge[type]
+				var amount = upgrade_cost[type];
+				cost_array.push({
+					'color': artwork_rarities[i],
+					'amount': amount,
+					'name': type.replace("_", " "),
+					'available': amount_available,
+					'can_afford': amount_available >= amount,
+					'type': type
+				})
 			}
-
-			return cost_array;
+			
 		}
+
+		return cost_array;
 	},
 
-	'min_roll': function(type) {
-		interface_tracker.depend();
-		if (player_item_interface) {
-			return Math.floor(player_item_interface.getRerollMin(type) * 100);
-		}
+	'min_roll': function(item_object, type) {
+		reroll_ui_tracker.depend();
+		var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_object));
+		return Math.floor(player_item_interface.getRerollMin(type) * 100);
+	},
 
-		else return 0;
+	'setItemData': function(item_object) {
+		item_data = item_object;
 	}
 })

@@ -3,47 +3,49 @@
 	    <div style="z-index:9999999999999999;" class="modal fade">
 	        <div class="modal-dialog">
 	            <div class="modal-content container">
-	            	{{#with itemData}}
-	                <h4>Create an auction for <span class="highlight af-color work-title">{{artwork_data.title}}</span> by <span class="highlight af-color">{{artwork_data.artist}}</span></h4>
-	                <div class="auction-parameters">
-		                <div class="row starting-info">
-		                	<div class="col-xs-12 parameter">
-		                		<textarea id="starting-amount" placeholder="starting price - ${{getItemObjectValue this 'auction_min'}} min."></textarea>
-		                	</div>
-				        </div>
+	            	{{#with getItemData item_id}}
+		            	{{#if this}}
+			                <h4>Create an auction for <span class="highlight af-color work-title">{{artwork_data.title}}</span> by <span class="highlight af-color">{{artwork_data.artist}}</span></h4>
+			                <div class="auction-parameters">
+				                <div class="row starting-info">
+				                	<div class="col-xs-12 parameter">
+				                		<textarea id="starting-amount" placeholder="starting price - ${{getItemObjectValue this 'auction_min'}} min."></textarea>
+				                	</div>
+						        </div>
 
-				        <div class="row buy-now-info">
-		                	<div class="col-xs-12 parameter">
-		                		<textarea id="buy-now-amount" placeholder="buy now price (optional)"></textarea>
-		                	</div>
-				        </div>
+						        <div class="row buy-now-info">
+				                	<div class="col-xs-12 parameter">
+				                		<textarea id="buy-now-amount" placeholder="buy now price (optional)"></textarea>
+				                	</div>
+						        </div>
 
-				        <div class="row duration-info">
-		                	<div class="col-xs-12 parameter">
-		                		<select id="duration">
-		                			<option value="default">duration</option>
-		                			<!-- <option value="1">1 minute</option> -->
-		                			<option value="60">1 hour</option>
-		                			<option value="360">6 hours</option>
-		                			<option value="720">12 hours</option>
-		                			<option value="1440">1 day</option>
-		                		</select>
-		                	</div>
-				        </div>
-				    </div>
-                	
-		            <div class="row modal-buttons">
-			            <button id="ok-modal" type="button" class="btn btn-default">ok</button>
-			            <button id="cancel-modal" type="button" class="btn btn-default">cancel</button>
-			        </div>
+						        <div class="row duration-info">
+				                	<div class="col-xs-12 parameter">
+				                		<select id="duration">
+				                			<option value="default">duration</option>
+				                			<!-- <option value="1">1 minute</option> -->
+				                			<option value="60">1 hour</option>
+				                			<option value="360">6 hours</option>
+				                			<option value="720">12 hours</option>
+				                			<option value="1440">1 day</option>
+				                		</select>
+				                	</div>
+						        </div>
+						    </div>
+		                	
+				            <div class="row modal-buttons">
+					            <button id="ok-modal" type="button" class="btn btn-default">ok</button>
+					            <button id="cancel-modal" type="button" class="btn btn-default">cancel</button>
+					        </div>
 
-			        {{#if error}}
-			        <div class="errors">
-		            	{{#each error}}
-		            	<p class="error-text">{{this}}</p>
-		            	{{/each}}
-	            	</div>
-	            	{{/if}}
+					        {{#if error}}
+					        <div class="errors">
+				            	{{#each error}}
+				            	<p class="error-text">{{this}}</p>
+				            	{{/each}}
+			            	</div>
+			            	{{/if}}
+			            {{/if}}
 			        {{/with}}
 	            </div>
 	        </div>

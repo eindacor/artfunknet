@@ -2,137 +2,140 @@
 	<div class="template-rerollModal col-xs-8">
         <div class="message-container">
             <div class="modal-message-area">
-            	{{#with itemData}}
-                <h4>Mod <span class="highlight af-color work-title">{{artwork_data.title}}</span> by <span class="highlight af-color">{{artwork_data.artist}}</span></h4>
-                <div class="reroll-info">
-	                <div class="row">
-	                	<h4>bank balance: <span class="af-color">${{bankBalance}}</span></h4>
-	                	<h4>reroll cost: <span class="af-color">{{displayAsMoneyValue rerollCost}}</span></h4>
-	                	<h4>reroll count: <span class="af-color">{{roll_count}}</span></h4>
-			        </div>
-			    </div>
+            	{{#with getItemData item_id}}
+            		{{#if this}}
+            			{{setItemData this}}
+		                <h4>Mod <span class="highlight af-color work-title">{{artwork_data.title}}</span> by <span class="highlight af-color">{{artwork_data.artist}}</span></h4>
+		                <div class="reroll-info">
+			                <div class="row">
+			                	<h4>bank balance: <span class="af-color">{{displayAsMoneyValue bankBalance}}</span></h4>
+			                	<h4>reroll cost: <span class="af-color">{{#with rerollCost this}}{{displayAsMoneyValue this}}{{/with}}</span></h4>
+			                	<h4>reroll count: <span class="af-color">{{roll_count}}</span></h4>
+					        </div>
+					    </div>
 
-			    <div class="reroll-options">
-			        {{#each attributes.special}}
-			        <div data-attribute_id="{{this._id}}" class="row attribute-row no-padding no-margin">
-	                	{{> attributeTemplate attribute_data=this special=true}}
-	                	<div class="col-xs-3">
-							<p><span class="af-color highlight value-text">{{attributeValueText this.value}}</span> ({{min_roll "special"}} min)</p>
-						</div>
-						<div class="col-xs-2">
-							<button data-attribute_id="{{this._id}}" class="reroll-value-button {{#if canReroll}}enabled{{else}}disabled{{/if}}">value</button>
-						</div>
-						<div class="col-xs-2"></div>
-			        </div>
-			        {{/each}}
-			        {{#each attributes.locked}}
-			        <div data-attribute_id="{{this._id}}" class="row attribute-row no-padding no-margin">
-	                	{{> attributeTemplate attribute_data=this}}
-	                	<div class="col-xs-3">
-							<p><span class="af-color highlight value-text">{{attributeValueText this.value}}</span> ({{min_roll "locked"}} min)</p>
-						</div>
-						<div class="col-xs-2">
-							<button data-attribute_id="{{this._id}}" class="reroll-value-button {{#if canReroll}}enabled{{else}}disabled{{/if}}">value</button>
-						</div>
-						<div class="col-xs-2"></div>
-			        </div>
-			        {{/each}}
+					    <div class="reroll-options">
+					        {{#each attributes.special}}
+					        <div data-attribute_id="{{this._id}}" class="row attribute-row no-padding no-margin">
+			                	{{> attributeTemplate attribute_data=this special=true}}
+			                	<div class="col-xs-3">
+									<p><span class="af-color highlight value-text">{{attributeValueText this.value}}</span> ({{min_roll .. "special"}} min)</p>
+								</div>
+								<div class="col-xs-2">
+									<button data-attribute_id="{{this._id}}" class="reroll-value-button {{#if canReroll ..}}enabled{{else}}disabled{{/if}}">value</button>
+								</div>
+								<div class="col-xs-2"></div>
+					        </div>
+					        {{/each}}
+					        {{#each attributes.locked}}
+					        <div data-attribute_id="{{this._id}}" class="row attribute-row no-padding no-margin">
+			                	{{> attributeTemplate attribute_data=this}}
+			                	<div class="col-xs-3">
+									<p><span class="af-color highlight value-text">{{attributeValueText this.value}}</span> ({{min_roll .. "locked"}} min)</p>
+								</div>
+								<div class="col-xs-2">
+									<button data-attribute_id="{{this._id}}" class="reroll-value-button {{#if canReroll ..}}enabled{{else}}disabled{{/if}}">value</button>
+								</div>
+								<div class="col-xs-2"></div>
+					        </div>
+					        {{/each}}
 
-			        {{#each attributes.unlocked}}
-			        <div data-attribute_id="{{this._id}}" class="row attribute-row no-padding no-margin">
-	                	{{> attributeTemplate attribute_data=this}}
-	                	<div class="col-xs-3">
-							<p><span class="af-color highlight value-text">{{attributeValueText this.value}}</span> ({{min_roll "unlocked"}} min)</p>
+					        {{#each attributes.unlocked}}
+					        <div data-attribute_id="{{this._id}}" class="row attribute-row no-padding no-margin">
+			                	{{> attributeTemplate attribute_data=this}}
+			                	<div class="col-xs-3">
+									<p><span class="af-color highlight value-text">{{attributeValueText this.value}}</span> ({{min_roll .. "unlocked"}} min)</p>
+								</div>
+								<div class="col-xs-2">
+									<button data-attribute_id="{{this._id}}" class="reroll-value-button {{#if canReroll ..}}enabled{{else}}disabled{{/if}}">value</button>
+								</div>
+			                	<div class="col-xs-2">
+			                		<button data-attribute_id="{{this._id}}" class="reroll-attribute-button {{#if canReroll ..}}enabled{{else}}disabled{{/if}}">attribute</button>
+			                	</div>
+					        </div>
+					        {{/each}}
+					    </div>
+
+					    <div class="row reroll-options no-padding no-margin">
+					    	<div class="col-xs-6 col-xs-offset-1">
+					    		<div class="row">
+					    			<table class="const-info">
+					    				<tr>
+					    					<td><h5 class="highlight">Upgrade Cost</h5></td>
+					    				</tr>
+					    			{{#each upgradeCost this}}
+										<tr>
+											<td><span style="color:{{getKnowledgeColorString type}}">{{name}}</span>:</td>
+											<td class="{{#if can_afford}}highlight{{/if}}"><span style="color:{{getKnowledgeColorString type}}">{{commaSeparatedValue amount}}</span> (<span style="color:{{getKnowledgeColorString type}}">{{commaSeparatedValue available}}</span>)</td>
+										</tr>
+									{{/each}}
+									</table>
+					    		</div>
+					    	</div>
+					    	<div class="col-xs-3">
+					    		<h4 class="af-color highlight">Level {{level}}</h4>
+					    		<p><i class="fa fa-arrow-circle-o-up upgrade-button {{#if canUpgrade this}}af-color{{/if}}"></i></p>
+					    	</div>
+					    </div>
+
+					    {{#if isEqual artwork_data.rarity "masterpiece"}}
+					    <div class="row reroll-options no-padding no-margin">
+					    	{{#each artwork_data.unique_attributes}}
+					    		<div class="row unique-section {{#if canChangeActiveUniqueAttribute ..}}{{else}}disabled{{/if}}">
+						    		{{#with unique_attribute_data this ../active_unique_attribute}}
+						    		<div class="col-xs-1">
+						    			{{#if current_selected}}
+						    				<i class="fa fa-check-square-o green-text setting-true" data-unique_attribute_id="{{_id}}"></i>
+										{{else}}
+											<i class="fa fa-square-o setting-false" data-unique_attribute_id="{{_id}}"></i>
+						    			{{/if}}
+						    		</div>
+						    		<div class="col-xs-10">
+						    			<div class="row flavor-text af-color">
+						    				"{{flavor_text}}"
+						    			</div>
+						    			<div class="row description black-text">
+						    				{{description}}
+						    			</div>
+						    		</div>
+						    		{{/with}}
+						    	</div>
+					    	{{/each}}
+					    </div>
+					    {{/if}}
+
+					    {{#if isEqual artwork_data.rarity "legendary"}}
+					    <div class="row reroll-options no-padding no-margin">
+					    	{{#each artwork_data.unique_attributes}}
+					    		<div class="row unique-section {{#if canChangeActiveUniqueAttribute ..}}{{else}}disabled{{/if}}">
+						    		{{#with unique_attribute_data this ../active_unique_attribute}}
+						    		<div class="col-xs-1"></div>
+						    		<div class="col-xs-10">
+						    			<div class="row flavor-text af-color">
+						    				"{{flavor_text}}"
+						    			</div>
+						    			<div class="row description black-text">
+						    				{{description}}
+						    			</div>
+						    		</div>
+						    		{{/with}}
+						    	</div>
+					    	{{/each}}
+					    </div>
+					    {{/if}}
+		            	
+			            <div class="modal-button-area">
+							<button class="modal-button close-button">close</button>
 						</div>
-						<div class="col-xs-2">
-							<button data-attribute_id="{{this._id}}" class="reroll-value-button {{#if canReroll}}enabled{{else}}disabled{{/if}}">value</button>
-						</div>
-	                	<div class="col-xs-2">
-	                		<button data-attribute_id="{{this._id}}" class="reroll-attribute-button {{#if canReroll}}enabled{{else}}disabled{{/if}}">attribute</button>
-	                	</div>
-			        </div>
-			        {{/each}}
-			    </div>
 
-			    <div class="row reroll-options no-padding no-margin">
-			    	<div class="col-xs-6 col-xs-offset-1">
-			    		<div class="row">
-			    			<table class="const-info">
-			    				<tr>
-			    					<td><h5 class="highlight">Upgrade Cost</h5></td>
-			    				</tr>
-			    			{{#each upgradeCost}}
-								<tr>
-									<td><span style="color:{{getKnowledgeColorString type}}">{{name}}</span>:</td>
-									<td class="{{#if can_afford}}highlight{{/if}}"><span style="color:{{getKnowledgeColorString type}}">{{commaSeparatedValue amount}}</span> (<span style="color:{{getKnowledgeColorString type}}">{{commaSeparatedValue available}}</span>)</td>
-								</tr>
-							{{/each}}
-							</table>
-			    		</div>
-			    	</div>
-			    	<div class="col-xs-3">
-			    		<h4 class="af-color highlight">Level {{level}}</h4>
-			    		<p><i class="fa fa-arrow-circle-o-up upgrade-button {{#if canUpgrade this}}af-color{{/if}}"></i></p>
-			    	</div>
-			    </div>
-
-			    {{#if isEqual artwork_data.rarity "masterpiece"}}
-			    <div class="row reroll-options no-padding no-margin">
-			    	{{#each artwork_data.unique_attributes}}
-			    		<div class="row unique-section {{#if canChangeActiveUniqueAttribute}}{{else}}disabled{{/if}}">
-				    		{{#with unique_attribute_data this}}
-				    		<div class="col-xs-1">
-				    			{{#if current_selected}}
-				    				<i class="fa fa-check-square-o green-text setting-true" data-unique_attribute_id="{{_id}}"></i>
-								{{else}}
-									<i class="fa fa-square-o setting-false" data-unique_attribute_id="{{_id}}"></i>
-				    			{{/if}}
-				    		</div>
-				    		<div class="col-xs-10">
-				    			<div class="row flavor-text af-color">
-				    				"{{flavor_text}}"
-				    			</div>
-				    			<div class="row description black-text">
-				    				{{description}}
-				    			</div>
-				    		</div>
-				    		{{/with}}
-				    	</div>
-			    	{{/each}}
-			    </div>
-			    {{/if}}
-
-			    {{#if isEqual artwork_data.rarity "legendary"}}
-			    <div class="row reroll-options no-padding no-margin">
-			    	{{#each artwork_data.unique_attributes}}
-			    		<div class="row unique-section {{#if canChangeActiveUniqueAttribute}}{{else}}disabled{{/if}}">
-				    		{{#with unique_attribute_data this}}
-				    		<div class="col-xs-1"></div>
-				    		<div class="col-xs-10">
-				    			<div class="row flavor-text af-color">
-				    				"{{flavor_text}}"
-				    			</div>
-				    			<div class="row description black-text">
-				    				{{description}}
-				    			</div>
-				    		</div>
-				    		{{/with}}
-				    	</div>
-			    	{{/each}}
-			    </div>
-			    {{/if}}
-            	
-	            <div class="modal-button-area">
-					<button class="modal-button close-button">close</button>
-				</div>
-
-		        {{#if error}}
-		        <div class="errors">
-	            	{{#each error}}
-	            	<p class="error-text">{{this}}</p>
-	            	{{/each}}
-            	</div>
-            	{{/if}}
+				        {{#if error}}
+				        <div class="errors">
+			            	{{#each error}}
+			            	<p class="error-text">{{this}}</p>
+			            	{{/each}}
+		            	</div>
+		            	{{/if}}
+		            {{/if}}
 		        {{/with}}
             </div>
         </div>
