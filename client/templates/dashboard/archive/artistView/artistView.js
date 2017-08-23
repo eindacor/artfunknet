@@ -98,45 +98,6 @@ var refreshArtistArray = function() {
 	rarity_selection_tracker.changed();
 }
 
-var getArtworkCollectionData = function(player_interface, artwork_interface) {
-	var available_categories = artwork_interface.getPotentialArchiveCategories();
-
-	var player_has = 0;
-
-	for (var i=0; i<available_categories.length; i++) {
-		var category = available_categories[i];
-		if (player_interface.hasArchivedArtworkOfCategory(artwork_interface, category)) {
-			player_has++;
-		}
-	}
-
-	return {
-		'available': available_categories.length,
-		'has': player_has
-	};
-}
-
-var getArtistCollectionData = function(player_interface, artist_interface) {
-	var artwork_objects = getFromCollection("artistView.js:getArtistCollectionData", artworks, {'artist_id': artist_interface.getId(), 'rarity': {$in: rarities_selected}}).fetch();
-
-	var total_items_available = 0;
-	var player_has = 0;
-
-	for (var i=0; i<artwork_objects.length; i++) {
-		var artwork_interface = new ArtworkIF(artwork_objects[i]);
-
-		var artwork_collection_data = getArtworkCollectionData(player_interface, artwork_interface);
-
-		total_items_available += artwork_collection_data.available;
-		player_has += artwork_collection_data.has;
-	}
-
-	return {
-		'available': total_items_available,
-		'has': player_has
-	};
-}
-
 Template.artistView.rendered = function() {
 	artist_array = undefined;
 	current_page = 1;
@@ -182,19 +143,6 @@ Template.artistView.helpers({
 		return expanded_categories.indexOf(artwork_object._id + "_" + category) != -1;
 	},
 
-	// 'item_collected': function(artwork_object, category) {
-	// 	var unique_id = "item_collected" + artwork_object._id + category;
-	// 	var fetcher = getFetcher(unique_id);
-	// 	fetcher.getTracker().depend();
-	// 	if (fetcher.getData() == undefined) {
-	// 		Meteor.call('getArtworkArchivedStatus', artwork_object, category, fetcher.getCallback());
-	// 	}
-	// 	else {
-	// 		deleteFetcher(unique_id);
-	// 		return fetcher.getData();
-	// 	}
-	// },
-
 	'archive_category': function(artwork_object) {
 		var artwork_interface = new ArtworkIF(artwork_object);
 		return artwork_interface.getPotentialArchiveCategories();
@@ -219,25 +167,6 @@ Template.artistView.helpers({
 		return total_pages;
 	},
 
-	'artwork_collection_data': function(artist_object)  {
-		rarity_selection_tracker.depend();
-		var artwork_collection_data = getArtistCollectionData(new PlayerIF(Meteor.user()), new ArtistIF(artist_object));
-
-		return {
-			'total_items_available': artwork_collection_data.available,
-			'total_items_archived': artwork_collection_data.has
-		}
-	},
-
-	'item_collection_data': function(artwork_object) {
-		var item_collection_data = getArtworkCollectionData(new PlayerIF(Meteor.user()), new ArtworkIF(artwork_object));
-
-		return {
-			'total_items_available': item_collection_data.available,
-			'total_items_archived': item_collection_data.has
-		}
-	},
-
 	'enforce_terms': function() {
 		enforce_terms_tracker.depend();
 		return enforce_terms;
@@ -250,6 +179,10 @@ Template.artistView.helpers({
 	'rarity_selected': function(rarity) {
 		rarity_selection_tracker.depend();
 		return rarities_selected.indexOf(rarity) != -1;
+	},
+
+	'rarities_selected': function() {
+		return rarities_selected;
 	}
 })
 

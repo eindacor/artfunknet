@@ -286,7 +286,6 @@ Template.registerHelper('fetchServerData', function() {
 			meteor_args.push(arguments[i]);
 		}
 
-		console.log(meteor_args);
 		var unique_id = "";
 
 		for (var i=0; i<meteor_args.length; i++) {

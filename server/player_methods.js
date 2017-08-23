@@ -1087,4 +1087,61 @@ Meteor.methods({
 
         return targets_found >= quest_object.min_requirement;
     },
+
+    'getArtworkArchiveData': function(artist_object, rarities_selected)  {
+        var artwork_collection_data = getArtistCollectionData(new PlayerIF(Meteor.user()), new ArtistIF(artist_object), rarities_selected);
+
+        return {
+            'total_items_available': artwork_collection_data.available,
+            'total_items_archived': artwork_collection_data.has
+        }
+    },
+
+    'getItemArchiveData': function(artwork_object) {
+        var item_collection_data = getArtworkCollectionData(new PlayerIF(Meteor.user()), new ArtworkIF(artwork_object));
+
+        return {
+            'total_items_available': item_collection_data.available,
+            'total_items_archived': item_collection_data.has
+        }
+    },
 })
+
+var getArtworkCollectionData = function(player_interface, artwork_interface) {
+    var available_categories = artwork_interface.getPotentialArchiveCategories();
+
+    var player_has = 0;
+
+    for (var i=0; i<available_categories.length; i++) {
+        var category = available_categories[i];
+        if (player_interface.hasArchivedArtworkOfCategory(artwork_interface, category)) {
+            player_has++;
+        }
+    }
+
+    return {
+        'available': available_categories.length,
+        'has': player_has
+    };
+}
+
+var getArtistCollectionData = function(player_interface, artist_interface, rarities_selected) {
+    var artwork_objects = getFromCollection("artistView.js:getArtistCollectionData", artworks, {'artist_id': artist_interface.getId(), 'rarity': {$in: rarities_selected}}).fetch();
+
+    var total_items_available = 0;
+    var player_has = 0;
+
+    for (var i=0; i<artwork_objects.length; i++) {
+        var artwork_interface = new ArtworkIF(artwork_objects[i]);
+
+        var artwork_collection_data = getArtworkCollectionData(player_interface, artwork_interface);
+
+        total_items_available += artwork_collection_data.available;
+        player_has += artwork_collection_data.has;
+    }
+
+    return {
+        'available': total_items_available,
+        'has': player_has
+    };
+}

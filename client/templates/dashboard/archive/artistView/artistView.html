@@ -43,7 +43,7 @@
 						<div class="artist-name-container">
 							{{artist_name}}
 						</div>
-						{{#with artwork_collection_data this}}
+						{{#with fetchServerData "getArtworkArchiveData" this rarities_selected}}
 						<div class="artist-collection-data-container {{#if isEqual total_items_archived total_items_available}}af-color highlight{{/if}}">
 							{{total_items_archived}}/{{total_items_available}}
 						</div>
@@ -62,7 +62,7 @@
 										<div class="artwork-title-container {{rarity}}">
 											{{title}}
 										</div>
-										{{#with item_collection_data this}}
+										{{#with fetchServerData "getItemArchiveData" this}}
 										<div class="item-collection-data-container {{#if isEqual total_items_archived total_items_available}}af-color highlight{{/if}}">
 											{{total_items_archived}}/{{total_items_available}}
 										</div>
