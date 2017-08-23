@@ -278,9 +278,15 @@ Template.registerHelper('getItemData', function(item_id) {
 	return item_data;
 })
 
-Template.registerHelper('fetchServerData', function(...args) {
+Template.registerHelper('fetchServerData', function() {
 	try {
-		var meteor_args = args;
+		var meteor_args = [];
+
+		for (var i=0; i<arguments.length; i++) {
+			meteor_args.push(arguments[i]);
+		}
+
+		console.log(meteor_args);
 		var unique_id = "";
 
 		for (var i=0; i<meteor_args.length; i++) {
