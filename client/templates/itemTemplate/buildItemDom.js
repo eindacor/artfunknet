@@ -156,7 +156,8 @@ var getIndicatorsHTML = function(player_item_interface) {
 	}
 
 	else {
-		$container.append($('<i class="green-text fa fa-archive text-shadow"></i>'));
+		//TODO fix this!
+		//$container.append($('<i class="green-text fa fa-archive text-shadow"></i>'));
 	}
 
 	if (player_item_interface.isQuestTarget()) {

@@ -1104,7 +1104,7 @@ Meteor.methods({
             'total_items_available': item_collection_data.available,
             'total_items_archived': item_collection_data.has
         }
-    },
+    }
 })
 
 var getArtworkCollectionData = function(player_interface, artwork_interface) {
