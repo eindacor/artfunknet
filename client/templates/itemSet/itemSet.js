@@ -153,6 +153,7 @@ var addQueriesFromKeywords = function(base_filter) {
 		base_filter.date_received = {'$gt': moment().add(-1, 'hours')._d.toISOString()};
 	}
 
+	//TODO currently not working for archive item set
 	if (keywords.indexOf("dupes") != -1) {
 		var dupe_list = [];
 		var valid_statuses = status_filter.status["$in"];

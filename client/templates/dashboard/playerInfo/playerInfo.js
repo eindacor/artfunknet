@@ -118,42 +118,6 @@ Template.playerInfo.helpers({
 		return Meteor.user()
 	},
 
-	'display_count': function() {
-		return items.find({'owner' : current_user_id, 'status' : 'displayed'}).count();
-	},
-
-	'repairing_count': function() {
-		return items.find({'owner' : current_user_id, 'repairing' : true}).count();
-	},
-
-	'inventory_count': function() {
-		return items.find({'owner' : current_user_id, 'status' : {$nin : ['unclaimed', 'for_sale', 'won', 'archived']}}).count();
-	},
-
-	'slots_available': function() {
-		return Meteor.user().profile.inventory_cap + (Meteor.user().profile.vintage_count * 2) + Meteor.user().profile.expansion_slots - items.find({'owner' : Meteor.userId(), 'status' : {$nin : ['unclaimed', 'for_sale', 'won', 'archived']}, 'original': {$ne: true}, 'vintage': {$ne: true}}).count();
-	},
-
-	'original_count': function() {
-		return items.find({'owner' : current_user_id, 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}, 'original': true}).count();
-	},
-
-	'vintage_count': function() {
-		return items.find({'owner' : current_user_id, 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}, 'vintage': true}).count();
-	},
-
-	'permanent_count': function() {
-		return items.find({'owner' : current_user_id, 'permanent' : true}).count();
-	},
-
-	'max_total': function() {
-		return Meteor.user().profile.inventory_cap + Meteor.user().profile.expansion_slots;
-	},
-
-	'auctioned_items': function() {
-		auctions.find({'seller': Meteor.user().profile.screen_name}).count();
-	},
-
 	'auction_cap': function() {
 		var has_auctioneer = Meteor.user().profile.market_expert.expiration > moment()._d.toISOString();
 		Math.floor(Meteor.user().profile.auction_cap * (has_auctioneer ? 1.5 : 1))

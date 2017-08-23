@@ -103,35 +103,37 @@
 						<td class="highlight af-color">{{commaSeparatedValue xp_per_hour}}</td>
 					</tr>	
 					{{/with}}
-					<tr></tr>	
-					<tr>
-						<td class="player-data">perm. collection:</td>
-						<td><span class="highlight af-color">{{permanent_count}}</span> ({{profile.pc_cap}} max)</td>			
-					</tr>
-					<tr>
-						<td class="player-data">items exhibited:</td>
-						<td><span class="highlight af-color">{{display_count}}</span> ({{profile.display_cap}} max)</td>	
-					</tr>	
-					<tr>
-						<td class="player-data">items being repaired:</td>
-						<td><span class="highlight af-color">{{repairing_count}}</span> ({{profile.repairing_cap}} max)</td>	
-					</tr>				
-					<tr>
-						<td class="player-data">paintings owned:</td>
-						<td class="highlight af-color">{{inventory_count}}</td>
-					</tr>
-					<tr>
-						<td class="player-data">inventory space available:</td>
-						<td class="highlight af-color">{{slots_available}}</td>
-					</tr>	
-					<tr>
-						<td class="player-data">originals owned:</td>
-						<td class="highlight purple-text">{{original_count}}</td>
-					</tr>	
-					<tr>
-						<td class="player-data">vintage items owned:</td>
-						<td class="highlight vintage-text">{{vintage_count}}</td>
-					</tr>	
+					<tr></tr>
+					{{#with fetchServerData "getPlayerInfoData"}}	
+						<tr>
+							<td class="player-data">perm. collection:</td>
+							<td><span class="highlight af-color">{{permanent_count}}</span> ({{../profile.pc_cap}} max)</td>			
+						</tr>
+						<tr>
+							<td class="player-data">items exhibited:</td>
+							<td><span class="highlight af-color">{{display_count}}</span> ({{../profile.display_cap}} max)</td>	
+						</tr>	
+						<tr>
+							<td class="player-data">items being repaired:</td>
+							<td><span class="highlight af-color">{{repairing_count}}</span> ({{../profile.repairing_cap}} max)</td>	
+						</tr>				
+						<tr>
+							<td class="player-data">paintings owned:</td>
+							<td class="highlight af-color">{{inventory_count}}</td>
+						</tr>
+						<tr>
+							<td class="player-data">inventory space available:</td>
+							<td class="highlight af-color">{{slots_available}}</td>
+						</tr>	
+						<tr>
+							<td class="player-data">originals owned:</td>
+							<td class="highlight purple-text">{{original_count}}</td>
+						</tr>	
+						<tr>
+							<td class="player-data">vintage items owned:</td>
+							<td class="highlight vintage-text">{{vintage_count}}</td>
+						</tr>	
+					{{/with}}
 					<tr></tr>								
 					<tr>
 						<td class="player-data">completed quests:</td>

@@ -403,8 +403,10 @@ var getPurchaseFunction = function(player_item_interface) {
 
 	else {
 		return function() {
-			Session.set('selectedItem', player_item_interface.getItemIF().getId());
-			Modal.show('purchaseModal');
+			Blaze.renderWithData(Template.modalTemplate, {
+				'modal_name': "purchaseModal", 
+				'modal_data': player_item_interface.getItemIF().getItemObject()
+			}, $('body')[0]);
 		}
 	}
 }

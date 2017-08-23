@@ -1056,5 +1056,35 @@ Meteor.methods({
         })
 
         return claimed_tags;
-     }
+    },
+
+    'getPlayerInfoData': function() {
+        var user_object = Meteor.user();
+        var current_user_id = user_object._id
+        var info_object = {
+            'display_count': items.find({'owner' : current_user_id, 'status' : 'displayed'}).count(),
+            'repairing_count': items.find({'owner' : current_user_id, 'repairing' : true}).count(),
+            'inventory_count': items.find({'owner' : current_user_id, 'status' : {$nin : ['unclaimed', 'for_sale', 'won', 'archived']}}).count(),
+            'slots_available': user_object.profile.inventory_cap + (user_object.profile.vintage_count * 2) + user_object.profile.expansion_slots - items.find({'owner' : current_user_id, 'status' : {$nin : ['unclaimed', 'for_sale', 'won', 'archived']}, 'original': {$ne: true}, 'vintage': {$ne: true}}).count(),
+            'original_count': items.find({'owner' : current_user_id, 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}, 'original': true}).count(),
+            'vintage_count': items.find({'owner' : current_user_id, 'status' : {$nin : ['unclaimed', 'for_sale', 'won']}, 'vintage': true}).count(),
+            'permanent_count': items.find({'owner' : current_user_id, 'permanent' : true}).count(),
+            'max_total': user_object.profile.inventory_cap + user_object.profile.expansion_slots,
+            'auctioned_items': auctions.find({'seller': user_object.profile.screen_name}).count()
+        }
+
+        return info_object;
+    },
+
+    'questIsCompleted' : function(quest_id) {
+        var quest_object = quests.findOne(quest_id)
+
+        var targets_found = 0;
+        for (var i=0; i < quest_object.target.length; i++) {
+            if (items.findOne({'artwork_id': quest_object.target[i], 'owner': Meteor.userId(), 'status': {$nin: ['unclaimed', 'for_sale', 'won', 'archived']}}) != undefined)
+                targets_found++;
+        }
+
+        return targets_found >= quest_object.min_requirement;
+    },
 })

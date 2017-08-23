@@ -1,20 +1,14 @@
 <template name="purchaseModal">
-	<div class="template-purchaseModal">
-	    <div style="z-index:9999999999999999;" class="modal fade">
-	        <div class="modal-dialog">
-	            <div class="modal-content container">
-	            	{{#with item_data}}
-	                <h4>Purchase <span class="highlight af-color work-title">{{artwork_data.title}}</span> by <span class="highlight af-color">{{artwork_data.artist}}</span> for <span class="highlight">${{getItemObjectValue this "dealer"}}?</span></h4>
-			        {{/with}}
-	            	{{#with imageInfo _id}}
-					<img class="image-thumb" src="{{getThumbImageURL artwork_data.filename}}"/>
-					<div class="row">
-				        <button id="purchase-artwork" type="button" class="btn btn-default">purchase</button>
-				        <button id="close-button" type="button" class="btn btn-default">close</button>
-				    </div>
-			        {{/with}}
-	            </div>
-	        </div>
-	    </div>
+	<div class="template-purchaseModal col-xs-12">
+		<div class="message-container">
+			<div class="modal-message-area">
+				{{>itemInfo item_data=this}}
+				<p class="modal-message">Purchase <span class="af-color work-title">{{this.artwork_data.title}}</span> by <span class="af-color">{{this.artwork_data.artist}}</span> for ${{getItemObjectValue this "dealer"}}?</p>
+			</div>
+			<div class="modal-button-area">
+				<button class="modal-button" id="purchase-artwork" data-item_id="{{this._id}}">ok</button>
+				<button class="modal-button close-button">close</button>
+			</div>
+		</div>
 	</div>
 </template>

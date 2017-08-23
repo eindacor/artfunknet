@@ -62,6 +62,10 @@
 					{{> donateModal modal_data}}
 				{{/if}}
 
+				{{#if isEqual modal_name "purchaseModal"}}
+					{{> purchaseModal modal_data}}
+				{{/if}}
+
 				{{#if isEqual modal_name "archiveModal"}}
 					{{> archiveModal modal_data}}
 				{{/if}}
