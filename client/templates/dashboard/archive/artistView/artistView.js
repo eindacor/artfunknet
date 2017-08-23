@@ -14,6 +14,9 @@ var rarities_selected = artwork_rarities.slice();
 var artists_per_page = 10;
 var enforce_terms = false;
 
+var collected_tracker = new Tracker.Dependency;
+var collected = undefined;
+
 var generateQueryFromSearchTerms = function(search_terms) {
 	if (search_terms.length == 0)
 		return undefined;
@@ -179,23 +182,18 @@ Template.artistView.helpers({
 		return expanded_categories.indexOf(artwork_object._id + "_" + category) != -1;
 	},
 
-	'item_collected': function(artwork_object, category) {
-		var signature_query;
-		switch(category) {
-			case "standard": signature_query = {'archive_signature': "standard"}; break;
-			case "foil": signature_query = {'archive_signature': {'$regex': "f", '$options': 'i'}}; break;
-			case "unlocked": signature_query = {'archive_signature': {'$regex': "u", '$options': 'i'}}; break;
-			case "seasonal": signature_query = {'$and': [{'archive_signature': {'$ne': "standard"}}, {'archive_signature': {'$regex': "s", '$options': 'i'}}]}; break;
-			case "lottery": signature_query = {'archive_signature': {'$regex': "l", '$options': 'i'}}; break;
-			case "vintage": signature_query = {'archive_signature': {'$regex': "v", '$options': 'i'}}; break;
-		}
-
-		signature_query.owner = Meteor.userId();
-		signature_query.status = "archived";
-		signature_query.displaced = false;
-		signature_query.artwork_id = artwork_object._id;
-		return items.findOne(signature_query) != undefined;
-	},
+	// 'item_collected': function(artwork_object, category) {
+	// 	var unique_id = "item_collected" + artwork_object._id + category;
+	// 	var fetcher = getFetcher(unique_id);
+	// 	fetcher.getTracker().depend();
+	// 	if (fetcher.getData() == undefined) {
+	// 		Meteor.call('getArtworkArchivedStatus', artwork_object, category, fetcher.getCallback());
+	// 	}
+	// 	else {
+	// 		deleteFetcher(unique_id);
+	// 		return fetcher.getData();
+	// 	}
+	// },
 
 	'archive_category': function(artwork_object) {
 		var artwork_interface = new ArtworkIF(artwork_object);

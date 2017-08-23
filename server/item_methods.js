@@ -523,5 +523,23 @@ Meteor.methods({
         return item_object;
         //TODO determine if player can see item details based on auctioneer buff
         
+    },
+
+    'getArtworkArchivedStatus': function(artwork_object, category) {
+        var signature_query;
+        switch(category) {
+            case "standard": signature_query = {'archive_signature': "standard"}; break;
+            case "foil": signature_query = {'archive_signature': {'$regex': "f", '$options': 'i'}}; break;
+            case "unlocked": signature_query = {'archive_signature': {'$regex': "u", '$options': 'i'}}; break;
+            case "seasonal": signature_query = {'$and': [{'archive_signature': {'$ne': "standard"}}, {'archive_signature': {'$regex': "s", '$options': 'i'}}]}; break;
+            case "lottery": signature_query = {'archive_signature': {'$regex': "l", '$options': 'i'}}; break;
+            case "vintage": signature_query = {'archive_signature': {'$regex': "v", '$options': 'i'}}; break;
+        }
+
+        signature_query.owner = Meteor.userId();
+        signature_query.status = "archived";
+        signature_query.displaced = false;
+        signature_query.artwork_id = artwork_object._id;
+        return items.findOne(signature_query) != undefined;
     }
 })

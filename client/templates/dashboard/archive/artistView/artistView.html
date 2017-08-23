@@ -79,7 +79,7 @@
 														<i class="expand-collapse fa {{#if category_selected .. this}}fa-caret-down{{else}}fa-caret-right{{/if}}"></i>
 													</div>
 													<div class="category-title-container {{this}}-text">
-														{{this}} {{#if item_collected .. this}}<i class="collected-check green-text fa fa-check"></i>{{/if}}
+														{{this}} {{#if fetchServerData "getArtworkArchivedStatus" .. this}}<i class="collected-check green-text fa fa-check"></i>{{/if}}
 													</div>
 													{{#if category_selected .. this}}
 													<div class="row archive-item-container">

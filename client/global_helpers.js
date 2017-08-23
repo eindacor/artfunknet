@@ -277,3 +277,30 @@ Template.registerHelper('getItemData', function(item_id) {
 
 	return item_data;
 })
+
+Template.registerHelper('fetchServerData', function(...args) {
+	try {
+		var meteor_args = args;
+		var unique_id = "";
+
+		for (var i=0; i<meteor_args.length; i++) {
+			unique_id += JSON.stringify(meteor_args[i]);
+		}
+
+		var fetcher = getFetcher(unique_id);
+
+		meteor_args.push(fetcher.getCallback());
+
+		fetcher.getTracker().depend();
+		if (fetcher.getData() == undefined) {
+			Meteor.call.apply(null, meteor_args);
+		}
+		else {
+			deleteFetcher(unique_id);
+			return fetcher.getData();
+		}
+	}
+	catch (error) {
+		console.log(error.message);
+	}
+})

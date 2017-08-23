@@ -4,7 +4,7 @@
 			<p class="filter-title">display by tag:</p>
     		<select id="selected-tag">
     			<option value="">-- select tag --</option>
-    			{{#each tag}}
+    			{{#each fetchServerData "getClaimedTags"}}
     				<option value="{{this}}">{{this}}</option>
     			{{/each}}
     		</select>

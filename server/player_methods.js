@@ -1044,5 +1044,17 @@ Meteor.methods({
      'getQuestTargetsOwned': function() {
         var player_interface = new PlayerIF(Meteor.user());
         return player_interface.getQuestTargetsOwned();
+     },
+
+     'getClaimedTags': function() {
+        var claimed_tags = [];
+        items.find({'owner': Meteor.userId(), 'status': "claimed"}).forEach(function(item_object) {
+            for (var i=0; i<item_object.tags.length; i++) {
+                if (claimed_tags.indexOf(item_object.tags[i]) == -1)
+                    claimed_tags.push(item_object.tags[i])
+            }
+        })
+
+        return claimed_tags;
      }
 })
