@@ -280,6 +280,143 @@ removeItem = function(item_id, source, callback) {
     })
 }
 
+var setItemActions = function(item_object, player_item_permissions) {
+    var action_array = [];
+
+    if (player_item_permissions.canClaim()) {
+        action_array.push("claimItem");
+    }  
+
+    if (player_item_permissions.canPurchase()) {
+        action_array.push("purchaseItem");
+    }
+
+    if (player_item_permissions.canSell()) {
+        action_array.push("sellItem");
+    }
+
+    if (player_item_permissions.canAuction()) {
+        action_array.push("auctionItem");
+    }
+
+    if (player_item_permissions.canDonate()) {
+        action_array.push("donateItem");
+    }
+  
+    action_array.push("modItem");
+
+    if (player_item_permissions.canArchive()) {
+        action_array.push("archiveItem");
+    }
+
+    if (player_item_permissions.canRedeemForgery()) {
+        action_array.push("redeemItem");
+    }
+
+    if (player_item_permissions.canIdentify()) {
+        action_array.push("identifyItem");
+    }
+
+    if (player_item_permissions.canDelete()) {
+        action_array.push("deleteItem");
+    }
+
+    if (player_item_permissions.canDecline()) {
+        action_array.push("declineItem");
+    }
+
+    item_object.item_actions = action_array;
+
+    var modifier_array = [];
+    if (player_item_permissions.canDisplay()) {
+        modifier_array.push("displayItem");
+    }
+
+    if (player_item_permissions.canUndisplay()) {
+        modifier_array.push("undisplayItem");
+    }
+    
+    if (player_item_permissions.canSetPermanent()) {
+        modifier_array.push("setPermanent");
+    }
+
+    if (player_item_permissions.canUnsetPermanent()) {
+        modifier_array.push("unsetPermanent");
+    }
+
+    if (player_item_permissions.canTagForSale()) {
+        modifier_array.push("setForSale");
+    }
+
+    if (player_item_permissions.canUntagForSale()) {
+        modifier_array.push("unsetForSale");
+    }
+
+    if (player_item_permissions.canSetRepairing()) {
+        modifier_array.push("setRepairing");
+    }
+
+    if (player_item_permissions.canUnsetRepairing()) {
+        modifier_array.push("unsetRepairing");
+    }
+
+    if (player_item_permissions.canTag()) {
+        modifier_array.push("tagItem");
+    }
+
+    item_object.item_modifiers = modifier_array;
+}
+
+prepareItemForClient = function(item_object, viewer_interface) {
+    var item_interface = new ItemIF(item_object);
+    var player_item_interface = new PlayerItemIF(viewer_interface, item_interface);
+    var artwork_interface = new ArtworkIF(item_object.artwork_id);
+    var user_object = viewer_interface.getUserObject();
+
+    if (viewer_interface.getId() == item_object.owner || (item_object.owner == BOT_USER_NAME && item_object.lottery > 0)) {
+        if (!item_object.authenticity.identified) {
+            delete item_object["authenticity.forgery"];
+        }
+    }
+
+    else {
+        delete item_object["authenticity"];
+        if (user_object.profile.market_expert.expiration < getNowISOString() && item_object.status != "displayed") {
+            delete item_object["condition"];
+            delete item_object["level"];
+            delete item_object["values"];
+            delete item_object["attributes"];
+        }
+    }
+
+    item_object.recommended_status = player_item_interface.getRecommendedStatus();
+
+    if (item_object.recommended_status.upgrade && item_object.recommended_status.displaced_item != undefined) {
+        prepareItemForClient(item_object.recommended_status.displaced_item, viewer_interface);
+    }
+
+    item_object.quest_target = player_item_interface.isQuestTarget();
+    item_object.reroll_cost = player_item_interface.getRerollCost();
+
+    item_object.archive_indicators = [];
+    for (var i=0; i<ARCHIVE_CATEGORIES.length; i++) {
+        if (viewer_interface.hasArchivedArtworkOfCategory(artwork_interface, ARCHIVE_CATEGORIES[i])) {
+            item_object.archive_indicators.push(ARCHIVE_CATEGORIES[i]);
+        }
+    }
+
+    if (item_object._id != undefined && item_object.owner == viewer_interface.getId()) {
+        var player_item_permissions = new PlayerItemPermissions(viewer_interface, item_interface);
+        item_object.can_quick_discard = player_item_permissions.canQuickDiscard();
+
+        setItemActions(item_object, player_item_permissions);
+    }
+
+    //TODO determine if player can see item details based on auctioneer buff 
+    //TODO add archive indicators
+    //TODO adjust values per unique attribute procs
+}
+
 var getItemArray = function(match_query, forgery_filter_value, sorter_object, page, items_per_page) {
     delete match_query["authenticity"];
     var forgery_string = "authenticity.forgery";
@@ -318,15 +455,21 @@ var getItemArray = function(match_query, forgery_filter_value, sorter_object, pa
     var skip = (current_page - 1) * items_per_page;
     var count = items_per_page;
 
+    var array_chunk = item_array.slice(skip, skip + count);
+    var player_interface = new PlayerIF(Meteor.user());
+    for (var i=0; i<array_chunk.length; i++) {
+        prepareItemForClient(array_chunk[i], player_interface);
+    }
+
     return {
-        'item_array': item_array.slice(skip, skip + count),
+        'item_array': array_chunk,
         'current_page': current_page,
         'total_pages': total_pages
     }
 }
 
 Meteor.methods({
-	'claimArtwork' : function(item_id) {
+	'claimItem' : function(item_id) {
         var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
         player_item_interface.claim();
     },
@@ -341,29 +484,49 @@ Meteor.methods({
         player_item_interface.delete();
     },
 
-    'purchaseItemFromDealer' : function(item_id) {
+    'purchaseItem' : function(item_id) {
         var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
         player_item_interface.purchase();
     },
 
-    'setItemDisplayStatus' : function(item_id, new_status) {
+    'displayItem': function(item_id) {
         var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
-        return player_item_interface.setDisplayStatus(new_status);
+        return player_item_interface.setDisplayStatus(true);
     },
 
-    'setItemPermanentCollectionStatus' : function(item_id, new_status) {
+    'undisplayItem': function(item_id) {
         var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
-        player_item_interface.setPermanentStatus(new_status);
+        return player_item_interface.setDisplayStatus(false);
     },
 
-    'setForSaleTag': function(item_id, new_status) {
+    'setPermanent': function(item_id) {
         var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
-        player_item_interface.setForSaleTag(new_status);
+        player_item_interface.setPermanentStatus(true);
     },
 
-    'setItemRepairingStatus' : function(item_id, new_status) {
+    'unsetPermanent': function(item_id) {
         var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
-        player_item_interface.setRepairingStatus(new_status);
+        player_item_interface.setPermanentStatus(false);
+    },
+
+    'setForSale': function(item_id) {
+        var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
+        player_item_interface.setForSaleTag(true);
+    },
+
+    'unsetForSale': function(item_id) {
+        var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
+        player_item_interface.setForSaleTag(false);
+    },
+
+    'setRepairing' : function(item_id) {
+        var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
+        player_item_interface.setRepairingStatus(true);
+    },
+
+    'unsetRepairing' : function(item_id) {
+        var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
+        player_item_interface.setRepairingStatus(false);
     },
 
     'sellItem' : function(item_id) {
@@ -408,8 +571,13 @@ Meteor.methods({
     },
 
     'archiveItem': function(item_id) {
-        var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
-        player_item_interface.archive();
+        try {
+            var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
+            player_item_interface.archive();
+        }
+        catch (error) {
+            console.log(error.message);
+        }
     },
 
     'identifyItem': function(item_id) {
@@ -497,32 +665,27 @@ Meteor.methods({
         return player_item_interface.getUpgradeCost();
     },
 
-    'getItemData': function(item_id) {
-        var item_object = getOneFromCollection("item_methods.js:getItemData", items, item_id);
+    'getItemData': function(item) {
+        var item_id;
+        var item_object;
+        var made_from_object = (typeof item !== "string");
 
-        if (item_object == undefined) {
-            return;
+        try {
+            item_object = made_from_object ? item : getOneFromCollection("PlayerIF.js:ItemIF - " + item, items, {'_id': item});
+            item_id = item_object._id;
+        }
+        catch(error) {
+            throw "invalid item: " + item;
         }
 
-        if (Meteor.userId() == item_object.owner) {
-            if (!item_object.authenticity.identified) {
-                delete item_object["authenticity.forgery"];
-            }
-        }
+        prepareItemForClient(item_object, new PlayerIF(Meteor.user()));
+        return item_object; 
+    },
 
-        else {
-            delete item_object["authenticity"];
-            if (Meteor.user().profile.market_expert.expiration < getNowISOString() && item_object.status != "displayed") {
-                delete item_object["condition"];
-                delete item_object["level"];
-                delete item_object["values"];
-                delete item_object["attributes"];
-            }
-        }
-
-        return item_object;
-        //TODO determine if player can see item details based on auctioneer buff
-        
+    'getItemPermissions': function(item_id) {
+        var item_interface = new ItemIF(item_id);
+        var player_interface = new PlayerIF(Meteor.user());
+        var player_item_permissions = new PlayerItemPermissions(player_interface, item_interface);
     },
 
     'getArtworkArchivedStatus': function(artwork_object, category) {
@@ -541,5 +704,10 @@ Meteor.methods({
         signature_query.displaced = false;
         signature_query.artwork_id = artwork_object._id;
         return items.findOne(signature_query) != undefined;
+    },
+
+    'getRecommendedStatus': function(item_object) {
+        var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_object));
+        return player_item_interface.getRecommendedStatus();
     }
 })

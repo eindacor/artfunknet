@@ -67,19 +67,17 @@
 					</div>
 					
 					<div class="row no-margin indicator-area">
-						{{#with recommended_archive item_data}}
-							{{#if displaced_item}}
-								{{#if upgrade}}
-									<i class="green-text fa fa-level-up text-shadow"></i>
-								{{/if}}
-							{{else}}
-							<i class="green-text fa fa-archive text-shadow"></i>
+						{{#if item_data.recommended_status.displaced_item}}
+							{{#if item_data.recommended_status.upgrade}}
+								<i class="green-text fa fa-level-up text-shadow"></i>
 							{{/if}}
-						{{/with}}
-						{{#if isQuestItem item_data.artwork_id}}
+						{{else}}
+						<i class="green-text fa fa-archive text-shadow"></i>
+						{{/if}}
+						{{#if item_data.quest_target}}
 							<i class="green-text fa fa-flag-checkered text-shadow"></i>
 						{{/if}}
-						{{#if isSought item_data.artwork_id}}
+						{{#if item_data.sought}}
 							<i class="blue-text fa fa-bullhorn text-shadow"></i>
 						{{/if}}
 						{{#if item_data.authenticity.forgery}}
@@ -90,9 +88,9 @@
 
 				<div class="card-footer col-xs-12 {{card_types item_data}}">
 					<div class="row no-margin">
-						{{#if archive_indicator item_data}}
+						{{#if item_data.archive_indicators}}
 							<div class="archive-indicators">
-							{{#each archive_indicator item_data}}
+							{{#each item_data.archive_indicators}}
 								<i class="check {{this}}-text fa fa-archive"></i>
 							{{/each}}
 							</div>
@@ -114,7 +112,7 @@
 							<div class="col-xs-4 no-padding">
 								{{#if showDetails item_data}}
 								<div class="level-area">
-									<p>lvl {{item_data.level}} {{#if isEqual item_data.status "archived"}}{{else}}{{#if canAffordUpgrade item_data}}<span class="level-indicator af-color"><i class="fa fa-arrow-circle-o-up"></i></span>{{/if}}{{/if}}</p>
+									<p>lvl {{item_data.level}} {{#if isEqual item_data.status "archived"}}{{else}}{{#if canAffordUpgrade item_data}}<span class="af-color"><i data-item_id="{{item_data._id}}" class="level-indicator fa fa-arrow-circle-o-up"></i></span>{{/if}}{{/if}}</p>
 								</div>
 								{{else}}
 									<p>?</p>
@@ -124,6 +122,18 @@
 					</div>
 				</div>
 			</div>
+		</div>
+		<div class="button-area">
+			<p class="button-row {{#if isEqual item_data.status 'archived'}}{{else}}unarchived{{/if}}">
+			{{#each item_data.item_actions}}
+				<i class="action-icon fa {{action_icon this}}" data-action_name="{{this}}" data-item_id="{{../item_data._id}}" data-can_quick_discard="{{../item_data.can_quick_discard}}"></i>
+			{{/each}}
+			</p>
+			<p class="button-row">
+			{{#each item_data.item_modifiers}}
+				<i class="action-icon fa {{action_icon this}}" data-action_name="{{this}}" data-item_id="{{../item_data._id}}" data-can_quick_discard="{{../item_data.can_quick_discard}}"></i>
+			{{/each}}
+			</p>
 		</div>
 	</div>
 </template>

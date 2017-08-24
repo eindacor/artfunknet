@@ -9,7 +9,7 @@
 		<div class="row">
 			<h1 class="af-color">Lottery Reward</h1>
 			{{#each lottery_item_id}}
-				{{#with getItemData this}}
+				{{#with fetchServerData "getItemData" this}}
 					{{#if this}}
 						{{> itemInfo item_data=this}}
 					{{/if}}

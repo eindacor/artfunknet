@@ -112,6 +112,9 @@
 		{{setStatuses statuses}}
 
 		<div class="row item-array-area">
+			{{#each item_array_element}}
+				{{> itemInfo item_data=this}}
+			{{/each}}
 		</div>
 	</div>
 </template>

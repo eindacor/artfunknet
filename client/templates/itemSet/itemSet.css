@@ -67,10 +67,6 @@
 	display: inline-block;
 }
 
-.template-itemSet .item-container:hover > .template-itemActions .button-area {
-	opacity: 1;
-}
-
 .template-itemSet #toggle-filters {
 	cursor: pointer;
 	opacity: .5;

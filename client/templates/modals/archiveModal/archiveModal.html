@@ -1,43 +1,43 @@
 <template name="archiveModal">
 	<div class="template-archiveModal col-xs-12">
 		<div class="message-container">
+			{{#with fetchServerData "getItemData" item_id}}
 			<div class="modal-message-area">
-				<div class="row archive-modal-section">
-					<div class="col-xs-12 displace-row">
-						<div class="row">
-							{{#if displaced_item this}}
-								<div class="col-xs-4 no-margin no-padding left">
-									{{>itemInfo item_data=this}}
-								</div>
-								{{#with displaced_item this}}
-									<div class="col-xs-4 no-margin no-padding displace-area">
-										<i class="fa fa-arrows-h"></i>
-									</div>
-									<div class="col-xs-4 no-margin no-padding right">
+					<div class="row archive-modal-section">
+						<div class="col-xs-12 displace-row">
+							<div class="row">
+								{{#if recommended_status.upgrade}}
+									<div class="col-xs-4 no-margin no-padding left">
 										{{>itemInfo item_data=this}}
 									</div>
-								{{/with}}
-							{{else}}
-								<div class="col-xs-12">
-									{{>itemInfo item_data=this}}
-								</div>
-							{{/if}}
+										<div class="col-xs-4 no-margin no-padding displace-area">
+											<i class="fa fa-arrows-h"></i>
+										</div>
+										<div class="col-xs-4 no-margin no-padding right">
+											{{>itemInfo item_data=recommended_status.displaced_item}}
+										</div>
+								{{else}}
+									<div class="col-xs-12">
+										{{>itemInfo item_data=this}}
+									</div>
+								{{/if}}
+							</div>
 						</div>
 					</div>
-				</div>
-				<div class="archive-modal-section">
-					{{#if isEqual this.status "archived"}}
-						<p class="modal-message">Move <span class="af-color work-title highlight">{{this.artwork_data.title}}</span> by <span class="af-color highlight">{{this.artwork_data.artist}}</span>?</p>
-					{{else}}
-						<p class="modal-message">Archive <span class="af-color work-title highlight">{{this.artwork_data.title}}</span> by <span class="af-color highlight">{{this.artwork_data.artist}}</span>?</p>
-						<p class="modal-message"><span class="archive-warning">WARNING: This action is permanent!!! Once archived, you will no longer be able to modify, sell, donate, display, or auction this item! You will only be able to modify its tags or remove it from the game entirely.</span></p>
-					{{/if}}
-				</div>
+					<div class="archive-modal-section">
+						{{#if isEqual this.status "archived"}}
+							<p class="modal-message">Move <span class="af-color work-title highlight">{{this.artwork_data.title}}</span> by <span class="af-color highlight">{{this.artwork_data.artist}}</span>?</p>
+						{{else}}
+							<p class="modal-message">Archive <span class="af-color work-title highlight">{{this.artwork_data.title}}</span> by <span class="af-color highlight">{{this.artwork_data.artist}}</span>?</p>
+							<p class="modal-message"><span class="archive-warning">WARNING: This action is permanent!!! Once archived, you will no longer be able to modify, sell, donate, display, or auction this item! You will only be able to modify its tags or remove it from the game entirely.</span></p>
+						{{/if}}
+					</div>
 			</div>
 			<div class="modal-button-area">
 				<button class="modal-button" id="archive-item" data-item_id="{{this._id}}">ok</button>
 				<button class="modal-button close-button">close</button>
 			</div>
+			{{/with}}
 		</div>
 	</div>
 </template>

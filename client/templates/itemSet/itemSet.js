@@ -393,39 +393,12 @@ updateItemArray = function() {
 			item_array = result.item_array;
 			current_page = result.current_page;
 			total_pages = result.total_pages;
-
-			$('.item-array-area').empty();
-
-			var player_interface = new PlayerIF(Meteor.user());
-
-			for (var i=0; i<result.item_array.length; i++) {
-				var player_item_interface = new PlayerItemIF(player_interface, new ItemIF(result.item_array[i]));
-				var $item_container = $('<div class="item-container" id="item_' + result.item_array[i]._id + '">');
-				fillItemContainer($item_container, player_item_interface);
-				$('.item-array-area').append($item_container);
-			}
-
 			item_array_tracker.changed();
 		}
 	})
 }
 
 Template.itemSet.helpers({
-	'addToDom': function(item_object) {
-		var $item_container = $('<div data-item_id="' + item_object._id + '" class="item-container">');
-		var $item = $('<div class="template-itemInfo"></div>');
-		var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_object));
-
-		$item.append(getHTMLFromItem(player_item_interface));
-		$item_container.append($item);
-
-		var $item_actions = $('<div class="template-itemActions"></div>');
-		$item_actions.append(getItemActionsHTML(player_item_interface));
-		$item_container.append($item_actions);
-
-		$('.item-array-area').append($item_container);
-	},
-
 	'attribute': function() {
 		return attributes.find({'active': true});
 	},
@@ -485,6 +458,11 @@ Template.itemSet.helpers({
 			initializeFlagMap();
 		}
 		else return flag_map[flag_name];
+	},
+
+	'item_array_element': function() {
+		item_array_tracker.depend();
+		return item_array;
 	}
 })
 

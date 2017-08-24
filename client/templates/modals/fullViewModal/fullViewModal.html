@@ -1,6 +1,6 @@
 <template name="fullViewModal">
 	<div class="template-fullViewModal col-xs-12">
-		{{#with getItemData item_id}}
+		{{#with fetchServerData "getItemData" item_id}}
 			{{#if this}}
 				<div class="left-panel col-xs-9">
 					<div class="img-container">

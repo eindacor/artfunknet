@@ -95,7 +95,11 @@
 	animation: card_effect 10s ease infinite;
 }
 
-.template-itemInfo .card-container:hover {
+.template-itemInfo .card-container:hover + .button-area{
+	opacity: 1;
+}
+
+.template-itemInfo .card-container:hover{
 	opacity: 1;
 	cursor: pointer;
 }
@@ -412,4 +416,37 @@
 	margin-bottom: 4px;
 	font-size: 2rem;
 	margin-right: 24px;
+}
+
+/* ITEM ACTIONS CSS */
+
+.template-itemInfo .button-area {
+	display: block;
+	background-color: none;
+	opacity: 0;
+	font-size: 2rem;
+	text-align: center;
+	vertical-align: middle;
+	margin: auto;
+	margin-bottom: 30px;
+	width: 250px;
+}
+
+.template-itemInfo .button-area i {
+	margin: 0px 4px;
+	text-align: left;
+	cursor: pointer;
+}
+
+.template-itemInfo .button-area .enabled:hover, .template-itemInfo .button-area .inactive:hover {
+	opacity: 1;
+	color: black;
+}
+
+.template-itemInfo .button-area:hover {
+	opacity: 1;
+}
+
+.template-itemInfo .button-row.unarchived:first-child {
+	border-bottom: 1px solid rgba(0,0,0,.3);
 }

@@ -3,7 +3,7 @@
 	    <div style="z-index:9999999999999999;" class="modal fade">
 	        <div class="modal-dialog">
 	            <div class="modal-content container">
-	            	{{#with getItemData item_id}}
+	            	{{#with fetchServerData "getItemData" item_id}}
 		            	{{#if this}}
 			                <h4>Create an auction for <span class="highlight af-color work-title">{{artwork_data.title}}</span> by <span class="highlight af-color">{{artwork_data.artist}}</span></h4>
 			                <div class="auction-parameters">

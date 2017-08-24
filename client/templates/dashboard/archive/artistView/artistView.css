@@ -2,10 +2,6 @@
 	display: inline-block;
 }
 
-.template-artistView .item-container:hover > .template-itemActions .button-area {
-	opacity: 1;
-}
-
 .template-itemStub .card-container {
 	display: inline-block;
 	width: 280px;

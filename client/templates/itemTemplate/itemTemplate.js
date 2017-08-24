@@ -1,24 +1,98 @@
 var div_size_tracker = new Tracker.Dependency;
-var sought_tracker = new Tracker.Dependency;
 var display_details_tracker = new Tracker.Dependency;
 var card_container_width;
 var card_container_height;
-var sought_status = {};
-var global_perm = false;
 var display_details_map = {};
-var permanent_details_map = {};
 var item_interface = undefined;
 
-var updateSoughtStatus = function(artwork_id) {
-	Meteor.call('getSoughtStatus', artwork_id, true, function(error, result) {
-		if (error)
-			console.log(error.message)
+var action_icons = {
+	'tagItem': "fa-tags",
+	'archiveItem': "fa-archive",
+	'setPermanent': "fa-heart",
+	'unsetPermanent': "fa-heart af-color",
+	'deleteItem': "fa-times",
+	'claimItem': "fa-plus",
+	'declineItem': "fa-times",
+	'purchaseItem': "fa-shopping-cart",
+	'displayItem': "fa-picture-o",
+	'undisplayItem': "fa-picture-o af-color",
+	'setForSale': "fa-binoculars",
+	'unsetForSale': "fa-binoculars af-color",
+	'setRepairing': "fa-wrench",
+	'unsetRepairing': "fa-wrench af-color",
+	'sellItem': "fa-usd",
+	'auctionItem': "fa-gavel",
+	'donateItem': "fa-share-square",
+	'modItem': "fa-magic"
+}
 
-		else if (result !== undefined) {
-			sought_status[artwork_id] = result;
-			sought_tracker.changed();
+var action_modals = {
+	'tagItem': "tagItemModal",
+	'archiveItem': "archiveModal",
+	'deleteItem': "deleteModal",
+	'purchaseItem': "purchaseModal",
+	'sellItem': "quickSellModal",
+	'donateItem': "donateModal",
+	'modItem': "rerollModal",
+	'auctionItem': "auctionModal"
+}
+
+var act = function(action_name, item_id, can_quick_discard) {
+	var defaultAction = function() {
+		Meteor.call(action_name, item_id, function(error, result) {
+			if (error) {
+				console.log(error);
+			}
+			else {
+				updateItemArray();
+			}
+		})
+	}
+
+	var defaultModal = function() {
+		Blaze.renderWithData(Template.modalTemplate, {
+			'modal_name': action_modals[action_name], 
+			'modal_data': {
+				'item_id': item_id
+			}
+		}, $('body')[0]);
+	}
+
+	if (action_modals[action_name] == undefined) {
+		return defaultAction();
+	}
+	else {
+		switch (action_name) {
+			case "purchaseItem": 
+				if (Meteor.user().profile.settings.quick_purchase) {
+					defaultAction();
+				}
+				else {
+					defaultModal();
+				}
+			case "sellItem": 
+				if (can_quick_discard) {
+					defaultAction();
+				}
+				else {
+					defaultModal();
+				}
+				return;
+			case "auctionItem": 
+				Session.set('selectedItem', item_id);
+				Modal.show('createAuctionModal');
+				return;
+			case "donateItem":
+				if (can_quick_discard) {
+					defaultAction();
+				}
+				else {
+					defaultModal();
+				}
+				return;
+			default: return defaultModal();
 		}
-	});
+	}
 }
 
 Template.itemInfo.rendered = function() {
@@ -28,8 +102,6 @@ Template.itemInfo.rendered = function() {
 		card_container_width = $('.card-container').css('width').replace("px", ""); 
 		div_size_tracker.changed();
 	}
-
-	sought_status = {};
 }
 
 Template.itemInfo.helpers({
@@ -110,6 +182,10 @@ Template.itemInfo.helpers({
 		catch (error) {
 			console.log(error.message);
 		}
+	},
+
+	'action_icon': function(action_name) {
+		return action_icons[action_name];
 	}
 })
 
@@ -137,9 +213,19 @@ Template.itemInfo.events({
 
 	'click .level-indicator': function(element) {
 		element.stopPropagation();
-		var item_id = $(element.target).closest('.item-container').data('item_id');
-		Session.set('selectedItem', item_id);
-		Modal.show('rerollModal');
-	}
+		var item_id = $(element.target).data().item_id;
+		Blaze.renderWithData(Template.modalTemplate, {
+			'modal_name': "rerollModal", 
+			'modal_data': {
+				'item_id': item_id
+			}
+		}, $('body')[0]);
+	},
 
+	'click .action-icon': function(event) {
+		var item_id = $(event.target).data().item_id;
+		var action_name = $(event.target).data().action_name;
+		var can_quick_discard = $(event.target).data().can_quick_discard;
+		act(action_name, item_id, can_quick_discard);
+	}
 })

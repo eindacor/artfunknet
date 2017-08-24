@@ -1,11 +1,10 @@
-var reroll_ui_tracker = new Tracker.Dependency;
+reroll_ui_tracker = new Tracker.Dependency;
+var item_object;
 
-var item_data = undefined;
-
-var updateItemAttributeData = function(item_object) {
-	item_data_force_update_tracker.changed();
-	var container_id = "#item_" + item_object._id;
-	fillItemContainer($(container_id), new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_object)));
+var updateItemAttributeData = function(revised_object) {
+	item_object = revised_object;
+	reroll_ui_tracker.changed();
+	updateItemArray();
 }
 
 
@@ -16,10 +15,11 @@ Template.rerollModal.events ({
 
    'click .reroll-value-button.enabled' : function(element) {
     	var attribute_id = $(element.target).data('attribute_id');
+    	var item_id = $(element.target).data('item_id');
 
     	var player_interface = new PlayerIF(Meteor.user());
 
-		Meteor.call('rerollAttributeValue', item_data._id, attribute_id, function(error, result) {
+		Meteor.call('rerollAttributeValue', item_id, attribute_id, function(error, result) {
 			if (error)
 				console.log(error.message);
 
@@ -31,10 +31,11 @@ Template.rerollModal.events ({
 
     'click .reroll-attribute-button.enabled' : function(element) {
     	var attribute_id = $(element.target).data('attribute_id');
+    	var item_id = $(element.target).data('item_id');
 
     	var player_interface = new PlayerIF(Meteor.user());
 
-		Meteor.call('rerollAttribute', item_data._id, attribute_id, function(error, result) {
+		Meteor.call('rerollAttribute', item_id, attribute_id, function(error, result) {
 			if (error)
 				console.log(error.message);
 
@@ -44,9 +45,10 @@ Template.rerollModal.events ({
 		});
     },
 
-	'click i.setting-false': function(event) {
-		var unique_attribute_id = $(event.target).data().unique_attribute_id;
-		Meteor.call('setActiveUniqueAttribute', item_data._id, unique_attribute_id, function(error, result) {
+	'click i.setting-false': function(element) {
+		var unique_attribute_id = $(element.target).data().unique_attribute_id;
+		var item_id = $(element.target).data('item_id');
+		Meteor.call('setActiveUniqueAttribute', item_id, unique_attribute_id, function(error, result) {
 			if (error)
 				console.log(error.message)
 
@@ -56,8 +58,9 @@ Template.rerollModal.events ({
 		})
 	},
 
-	'click .upgrade-button.af-color': function() {
-		Meteor.call('upgradeItem', item_data._id, function(error, result) {
+	'click .upgrade-button.af-color': function(element) {
+		var item_id = $(element.target).data('item_id');
+		Meteor.call('upgradeItem', item_id, function(error, result) {
 			if(error)
 				console.log(error);
 
@@ -70,6 +73,7 @@ Template.rerollModal.events ({
 
 Template.rerollModal.rendered = function() {
 	refreshTutorial("mod_attribute");
+	item_object = undefined;
 }
 
 Template.rerollModal.helpers({
@@ -77,13 +81,8 @@ Template.rerollModal.helpers({
 		return Session.get('createAuctionErrors');
 	},
 
-	'rerollCost' : function(item_object) {
-		reroll_ui_tracker.depend();
-		var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_object));
-		return player_item_interface.getRerollCost();
-	},
-
 	'bankBalance' : function() {
+		reroll_ui_tracker.depend();
 		return Meteor.user().profile.bank_balance;
 	},
 
@@ -100,10 +99,12 @@ Template.rerollModal.helpers({
 	},
 
 	'attributeValueText' : function(value) {
+		reroll_ui_tracker.depend();
 		return Math.floor(value * 100);
 	},
 
 	'unique_attribute_data': function(unique_id, active_unique_attribute) {
+		reroll_ui_tracker.depend();
 		var unique_object = unique_attributes.findOne(unique_id);
 		unique_object.current_selected = active_unique_attribute == unique_id;
 		return unique_object;
@@ -142,7 +143,12 @@ Template.rerollModal.helpers({
 		return Math.floor(player_item_interface.getRerollMin(type) * 100);
 	},
 
-	'setItemData': function(item_object) {
-		item_data = item_object;
+	'setItemData': function(original_item_object) {
+		reroll_ui_tracker.depend();
+		if (item_object == undefined) {
+			return original_item_object;
+		}
+
+		else return item_object;
 	}
 })

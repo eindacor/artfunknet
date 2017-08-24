@@ -42,32 +42,26 @@
 					</div>
 					
 					<div class="row no-margin indicator-area">
-						{{#if isForgery item_data}}
-						<i class="red-text fa fa-paint-brush text-shadow"></i>
-						{{/if}}
-						{{#with recommended_archive item_data}}
-							{{#if displaced_item}}
-								{{#if upgrade}}
+						{{#with fetchServerData "getItemData" item_data}}
+							{{#if recommended_status.displaced_item}}
+								{{#if recommended_status.upgrade}}
 									<i class="green-text fa fa-level-up text-shadow"></i>
 								{{/if}}
 							{{else}}
 							<i class="green-text fa fa-archive text-shadow"></i>
 							{{/if}}
+							{{#if quest_target}}
+								<i class="green-text fa fa-flag-checkered text-shadow"></i>
+							{{/if}}
 						{{/with}}
-						{{#if isQuestItem item_data.artwork_id}}
-							<i class="green-text fa fa-flag-checkered text-shadow"></i>
-						{{/if}}
-						{{#if isSought item_data.artwork_id}}
-							<i class="blue-text fa fa-bullhorn text-shadow"></i>
-						{{/if}}
 					</div>			
 				</div>
 
 				<div class="card-footer col-xs-12 {{card_types item_data}}">
 					<div class="row no-margin">
-						{{#if archive_indicator item_data}}
+						{{#if item_data.archive_indicators}}
 							<div class="archive-indicators">
-							{{#each archive_indicator item_data}}
+							{{#each item_data.archive_indicators}}
 								<i class="check {{this}}-text fa fa-archive"></i>
 							{{/each}}
 							</div>
@@ -89,9 +83,13 @@
 								{{/if}}
 							</div>
 							<div class="col-xs-4 no-padding">
+								{{#if item_data.level}}
 								<div class="level-area">
-									<p>lvl {{item_data.level}}</p>
+									<p>lvl {{item_data.level}} {{#if isEqual item_data.status "archived"}}{{else}}{{#if canAffordUpgrade item_data}}<span class="af-color"><i data-item_id="{{item_data._id}}" class="level-indicator fa fa-arrow-circle-o-up"></i></span>{{/if}}{{/if}}</p>
 								</div>
+								{{else}}
+									<p>?</p>
+								{{/if}}
 							</div>
 						</div>
 					</div>

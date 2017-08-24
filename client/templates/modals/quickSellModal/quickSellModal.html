@@ -1,14 +1,16 @@
 <template name="quickSellModal">
 	<div class="template-quickSellModal col-xs-12">
 		<div class="message-container">
+			{{#with fetchServerData "getItemData" item_id}}
 			<div class="modal-message-area">
 				{{>itemInfo item_data=this}}
-				<p class="modal-message">Sell <span class="af-color work-title">{{this.artwork_data.title}}</span> by <span class="af-color">{{this.artwork_data.artist}}</span> for <span class="highlight">${{getItemObjectValue this "sell"}}</span>?</p>
+				<p class="modal-message">Sell <span class="af-color work-title">{{artwork_data.title}}</span> by <span class="af-color">{{artwork_data.artist}}</span> for <span class="highlight">${{getItemObjectValue this "sell"}}</span>?</p>
 			</div>
 			<div class="modal-button-area">
-				<button class="modal-button" id="sell-artwork" data-item_id="{{this._id}}">ok</button>
+				<button class="modal-button" id="sell-artwork" data-item_id="{{_id}}">ok</button>
 				<button class="modal-button close-button">close</button>
 			</div>
+			{{/with}}
 		</div>
 	</div>
 </template>

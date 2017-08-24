@@ -5,11 +5,7 @@ Template.archive.helpers({
 	'item_set_statuses': function() {
 		return ['archived'];
 	},
-
-	'has_displaced': function() {
-		return new PlayerIF(Meteor.user()).hasDisplacedItems();
-	},
-
+	
 	'artist_view': function() {
 		archive_mode_tracker.depend();
 		return artist_view;

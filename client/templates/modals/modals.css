@@ -71,3 +71,7 @@
 .template-modalTemplate .modal-button:hover {
 	background-color: #FF33CC;
 }
+
+.template-modalTemplate .modal-message-area > .template-itemInfo > .button-area {
+	display: none;
+}

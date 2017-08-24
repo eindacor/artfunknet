@@ -148,15 +148,19 @@ var successfulAuction = function(auction_object, winning_user) {
             removeAuction(auction_object._id);
         }
     }
-    
+
+    transferAuctionItem(item_interface, new_status, winning_user._id, auction_object.current_bid, updateCallback);
+}
+
+transferAuctionItem = function(item_interface, new_status, winning_user_id, winning_bid, updateCallback) {
     item_interface.updateItem({
         $set: {
             'status' : new_status, 
-            'owner': winning_user._id, 
+            'owner': winning_user_id, 
             'tags': [], 
             'date_received': moment()._d.toISOString(),
-            'authenticity.identified': winning_user._id == item_interface.getItemObject().authenticity.original_owner,
-            'authenticity.fee': auction_object.current_bid,
+            'authenticity.identified': false,
+            'authenticity.fee': winning_bid,
             'authenticity.liability_pending': true
         }
     }, true, updateCallback);
