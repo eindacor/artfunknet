@@ -23,7 +23,9 @@ var action_icons = {
 	'sellItem': "fa-usd",
 	'auctionItem': "fa-gavel",
 	'donateItem': "fa-share-square",
-	'modItem': "fa-magic"
+	'modItem': "fa-magic",
+	'identifyItem': "fa-search",
+	'redeemItem': "fa-shield"
 }
 
 var action_modals = {
@@ -34,7 +36,8 @@ var action_modals = {
 	'sellItem': "quickSellModal",
 	'donateItem': "donateModal",
 	'modItem': "rerollModal",
-	'auctionItem': "auctionModal"
+	'auctionItem': "auctionModal",
+	'identifyItem': "identifyForgeryModal"
 }
 
 var act = function(action_name, item_id, can_quick_discard) {

@@ -309,12 +309,12 @@ var setItemActions = function(item_object, player_item_permissions) {
         action_array.push("archiveItem");
     }
 
-    if (player_item_permissions.canRedeemForgery()) {
-        action_array.push("redeemItem");
-    }
-
     if (player_item_permissions.canIdentify()) {
         action_array.push("identifyItem");
+    }
+
+    if (player_item_permissions.canRedeemForgery()) {
+        action_array.push("redeemItem");
     }
 
     if (player_item_permissions.canDelete()) {
@@ -375,7 +375,7 @@ prepareItemForClient = function(item_object, viewer_interface) {
 
     if (viewer_interface.getId() == item_object.owner || (item_object.owner == BOT_USER_NAME && item_object.lottery > 0)) {
         if (!item_object.authenticity.identified) {
-            delete item_object["authenticity.forgery"];
+            delete item_object.authenticity.forgery;
         }
     }
 

@@ -52,6 +52,15 @@
 								<p>condition: <span style="color: {{getHTMLColorFromValue item_data.condition}}">%{{floatToPercentage item_data.condition}}</span></p>
 								<p id="dynamic-value-stat">estimated value: {{displayAsMoneyValue item_data.values.actual}}</p>
 								<p id="dynamic-roll-count-stat">roll count: {{item_data.roll_count}}</p>
+								{{#if item_data.authenticity.identified}}
+									{{#if item_data.authenticity.forgery}}
+										<p id="verified-text" class="red-text"><i class="fa fa-ban"></i> forgery</p>
+									{{else}}
+										<p id="verified-text" class="green-text"><i class="fa fa-check"></i> verified</p>
+									{{/if}}
+								{{else}}
+									<p id="verified-text"><i class="fa fa-question-circle-o"></i> unverified</p>
+								{{/if}}
 							</div>
 							{{else}}
 								<p>condition: ?</p>
