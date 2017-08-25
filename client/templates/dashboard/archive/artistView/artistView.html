@@ -83,18 +83,19 @@
 													</div>
 													{{#if category_selected .. this}}
 													<div class="row archive-item-container">
-														{{#if item_object .. this}}		
-															{{#each item_object .. this}}
-																<div data-item_id="{{_id}}" class="item-container">
-																	{{>itemInfo item_data=this}}
+														{{#with fetchServerData "getArchiveItems" ../_id this}}
+															{{#if this.artwork_data}}	
+																<div class="item-container">
+																	{{>itemStubView item_data=this}}
 																</div>	
-															{{/each}}
-														{{else}}
-															<div class="item-container">
-																{{>itemStub artwork_data=.. archive_category=this}}
-																<div class="action-stub"></div>
-															</div>
-														{{/if}}
+															{{else}}
+																{{#each this}}
+																	<div data-item_id="{{_id}}" class="item-container">
+																		{{>itemInfo item_data=this}}
+																	</div>	
+																{{/each}}
+															{{/if}}
+														{{/with}}
 													</div>
 													{{/if}}
 												</div>

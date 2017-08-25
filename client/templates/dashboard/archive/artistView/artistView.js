@@ -148,15 +148,6 @@ Template.artistView.helpers({
 		return artwork_interface.getPotentialArchiveCategories();
 	},
 
-	'item_object': function(artwork_object, archive_category) {
-		var query_object = CATEGORY_QUERIES[archive_category];
-		query_object.owner = Meteor.userId();
-		query_object.artwork_id = artwork_object._id;
-		query_object.status = "archived";
-		query_object.displaced = false;
-		return getFromCollection("artistView.js:item_object", items, query_object).fetch();
-	},
-
 	'current_page': function() {
 		artist_data_tracker.depend();
 		return current_page;

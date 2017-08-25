@@ -709,5 +709,57 @@ Meteor.methods({
     'getRecommendedStatus': function(item_object) {
         var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_object));
         return player_item_interface.getRecommendedStatus();
+    },
+
+    'getArchiveItems': function(artwork_id, archive_category) {
+        var query_object = CATEGORY_QUERIES[archive_category];
+        query_object.owner = Meteor.userId();
+        query_object.artwork_id = artwork_id;
+        query_object.status = "archived";
+        query_object.displaced = false;
+        var item_array = getFromCollection("item_methods.js:getArchiveItems", items, query_object).fetch();
+
+        if (item_array.length == 0) {
+            var item_object = {
+                'level': 1
+            };
+
+            switch (archive_category) {
+                case 'foil': item_object.foil = true; break;
+                case 'unlocked': item_object.unlocked = true; break;
+                case 'seasonal': item_object.seasonal = true; break;
+                case 'vintage': item_object.vintage = true; break;
+                case 'lottery': item_object.lottery = 1; break;
+                case 'original': item_object.original = true; break;
+                default: break;
+            }
+
+            return getItemStubFromArtwork(artwork_id, item_object);
+        }
+
+        var player_interface = new PlayerIF(Meteor.user());
+        for (var i=0; i<item_array.length; i++) {
+            prepareItemForClient(item_array[i], player_interface);
+        }
+
+        return item_array;
     }
 })
+
+getItemStubFromArtwork = function(artwork_id, item_data) {
+    var artwork_interface = new ArtworkIF(artwork_id);
+    var artwork_object = artwork_interface.getArtworkObject();
+
+    var item_object = {
+        'artwork_id': artwork_object._id,
+        'artwork_data': artwork_object,
+        'foil': item_data.foil,
+        'unlocked': item_data.foil,
+        'seasonal': item_data.seasonal,
+        'vintage': item_data.vintage,
+        'lottery': item_data.lottery,
+        'level': item_data.level
+    }
+
+    return item_object;
+}
