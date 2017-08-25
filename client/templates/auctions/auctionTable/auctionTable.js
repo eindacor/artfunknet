@@ -85,19 +85,6 @@ Template.auctionTable.helpers({
 	}
 	*/
 
-	'archive_indicator': function(auction_object) {
-		var indicators = [];
-		var artwork_interface = new ArtworkIF(auction_object.item_data.artwork_data);
-		var player_interface = new PlayerIF(Meteor.user());
-		for (var i=0; i<ARCHIVE_CATEGORIES.length; i++) {
-			if (player_interface.hasArchivedArtworkOfCategory(artwork_interface, ARCHIVE_CATEGORIES[i])) {
-				indicators.push(ARCHIVE_CATEGORIES[i]);
-			}
-		}
-
-		return indicators;
-	},
-
 	'auction_info' : function(auction_object) {
 		Session.get('refresh_auctions');
 		try {

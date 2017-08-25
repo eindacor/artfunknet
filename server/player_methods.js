@@ -1108,7 +1108,20 @@ Meteor.methods({
 
     'hasDisplacedItems': function() {
         return new PlayerIF(Meteor.user()).hasDisplacedItems();
-    }
+    },
+
+    'getAuctionArchiveIndicators': function(auction_object) {
+        var indicators = [];
+        var artwork_interface = new ArtworkIF(auction_object.item_data.artwork_data);
+        var player_interface = new PlayerIF(Meteor.user());
+        for (var i=0; i<ARCHIVE_CATEGORIES.length; i++) {
+            if (player_interface.hasArchivedArtworkOfCategory(artwork_interface, ARCHIVE_CATEGORIES[i])) {
+                indicators.push(ARCHIVE_CATEGORIES[i]);
+            }
+        }
+
+        return indicators;
+    },
 })
 
 var getArtworkCollectionData = function(player_interface, artwork_interface) {
