@@ -6,19 +6,19 @@
 					<div class="row archive-modal-section">
 						<div class="col-xs-12 displace-row">
 							<div class="row">
-								{{#if recommended_status.upgrade}}
+								{{#if recommended_status.displaced_item}}
 									<div class="col-xs-4 no-margin no-padding left">
-										{{>itemInfo item_data=this}}
+										{{>itemInfo item_data=this hide_actions=true}}
 									</div>
 										<div class="col-xs-4 no-margin no-padding displace-area">
 											<i class="fa fa-arrows-h"></i>
 										</div>
 										<div class="col-xs-4 no-margin no-padding right">
-											{{>itemInfo item_data=recommended_status.displaced_item}}
+											{{>itemInfo item_data=recommended_status.displaced_item hide_actions=true}}
 										</div>
 								{{else}}
 									<div class="col-xs-12">
-										{{>itemInfo item_data=this}}
+										{{>itemInfo item_data=this hide_actions=true}}
 									</div>
 								{{/if}}
 							</div>

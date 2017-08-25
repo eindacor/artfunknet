@@ -132,6 +132,8 @@
 				</div>
 			</div>
 		</div>
+		{{#if hide_actions}}
+		{{else}}
 		<div class="button-area">
 			<p class="button-row {{#if isEqual item_data.status 'archived'}}{{else}}unarchived{{/if}}">
 			{{#each item_data.item_actions}}
@@ -144,5 +146,6 @@
 			{{/each}}
 			</p>
 		</div>
+		{{/if}}
 	</div>
 </template>

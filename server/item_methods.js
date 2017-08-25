@@ -368,48 +368,53 @@ var setItemActions = function(item_object, player_item_permissions) {
 }
 
 prepareItemForClient = function(item_object, viewer_interface) {
-    var item_interface = new ItemIF(item_object);
-    var player_item_interface = new PlayerItemIF(viewer_interface, item_interface);
-    var artwork_interface = new ArtworkIF(item_object.artwork_id);
-    var user_object = viewer_interface.getUserObject();
+    try {
+        var item_interface = new ItemIF(item_object);
+        var player_item_interface = new PlayerItemIF(viewer_interface, item_interface);
+        var artwork_interface = new ArtworkIF(item_object.artwork_id);
+        var user_object = viewer_interface.getUserObject();
 
-    if (viewer_interface.getId() == item_object.owner || (item_object.owner == BOT_USER_NAME && item_object.lottery > 0)) {
-        if (!item_object.authenticity.identified) {
-            delete item_object.authenticity.forgery;
+        if (viewer_interface.getId() == item_object.owner || (item_object.owner == BOT_USER_NAME && item_object.lottery > 0)) {
+            if (!item_object.authenticity.identified) {
+                delete item_object.authenticity.forgery;
+            }
+        }
+
+        else {
+            delete item_object["authenticity"];
+            if (user_object.profile.market_expert.expiration < getNowISOString() && item_object.status != "displayed") {
+                delete item_object["condition"];
+                delete item_object["level"];
+                delete item_object["values"];
+                delete item_object["attributes"];
+            }
+        }
+
+        item_object.recommended_status = player_item_interface.getRecommendedStatus();
+
+        if (item_object.recommended_status.displaced_item && item_object.recommended_status.displaced_item._id != undefined) {
+            prepareItemForClient(item_object.recommended_status.displaced_item, viewer_interface);
+        }
+
+        item_object.quest_target = player_item_interface.isQuestTarget();
+        item_object.reroll_cost = player_item_interface.getRerollCost();
+
+        item_object.archive_indicators = [];
+        for (var i=0; i<ARCHIVE_CATEGORIES.length; i++) {
+            if (viewer_interface.hasArchivedArtworkOfCategory(artwork_interface, ARCHIVE_CATEGORIES[i])) {
+                item_object.archive_indicators.push(ARCHIVE_CATEGORIES[i]);
+            }
+        }
+
+        if (item_object._id != undefined && item_object.owner == viewer_interface.getId()) {
+            var player_item_permissions = new PlayerItemPermissions(viewer_interface, item_interface);
+            item_object.can_quick_discard = player_item_permissions.canQuickDiscard();
+
+            setItemActions(item_object, player_item_permissions);
         }
     }
-
-    else {
-        delete item_object["authenticity"];
-        if (user_object.profile.market_expert.expiration < getNowISOString() && item_object.status != "displayed") {
-            delete item_object["condition"];
-            delete item_object["level"];
-            delete item_object["values"];
-            delete item_object["attributes"];
-        }
-    }
-
-    item_object.recommended_status = player_item_interface.getRecommendedStatus();
-
-    if (item_object.recommended_status.upgrade && item_object.recommended_status.displaced_item != undefined) {
-        prepareItemForClient(item_object.recommended_status.displaced_item, viewer_interface);
-    }
-
-    item_object.quest_target = player_item_interface.isQuestTarget();
-    item_object.reroll_cost = player_item_interface.getRerollCost();
-
-    item_object.archive_indicators = [];
-    for (var i=0; i<ARCHIVE_CATEGORIES.length; i++) {
-        if (viewer_interface.hasArchivedArtworkOfCategory(artwork_interface, ARCHIVE_CATEGORIES[i])) {
-            item_object.archive_indicators.push(ARCHIVE_CATEGORIES[i]);
-        }
-    }
-
-    if (item_object._id != undefined && item_object.owner == viewer_interface.getId()) {
-        var player_item_permissions = new PlayerItemPermissions(viewer_interface, item_interface);
-        item_object.can_quick_discard = player_item_permissions.canQuickDiscard();
-
-        setItemActions(item_object, player_item_permissions);
+    catch (error) {
+        console.log(error);
     }
 
     //TODO determine if player can see item details based on auctioneer buff 
