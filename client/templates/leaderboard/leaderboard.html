@@ -2,26 +2,73 @@
 	<div class="template-leaderboard">
 		<div class="container">
 			<h1 class="af-color">Leaderboards</h1>
+			<div class="row">
+			{{#each leaderboard}}
+				<div class="col-xs-3 leaderboard-title">
+					<span class="{{#with selected_leaderboard}}{{#if isEqual key ../key}}af-color selected{{/if}}{{/with}}" data-leaderboard_key="{{key}}" data-leaderboard_name>{{name}}</span>
+				</div>
+			{{/each}}
+			</div>
 			{{#with leaderboard_data}}
-				{{> mvp item_array=mvp_data board_title="most valuable items"}}
-				{{> mvp item_array=mvp_data_masterpiece board_title="most valuable masterpiece items"}}
-				{{> mvp item_array=mvp_data_legendary board_title="most valuable legendary items"}}
-				{{> mvp item_array=mvp_data_rare board_title="most valuable rare items"}}
-				{{> mvp item_array=mvp_data_uncommon board_title="most valuable uncommon items"}}
-				{{> mvp item_array=mvp_data_common board_title="most valuable common items"}}
-				{{> mvp item_array=archived_mvp_data board_title="most valuable archived items"}}
-				{{> mvp item_array=archived_mvp_data_masterpiece board_title="most valuable masterpiece archived items"}}
-				{{> mvp item_array=archived_mvp_data_legendary board_title="most valuable legendary archived items"}}
-				{{> mvp item_array=archived_mvp_data_rare board_title="most valuable rare archived items"}}
-				{{> mvp item_array=archived_mvp_data_uncommon board_title="most valuable uncommon archived items"}}
-				{{> mvp item_array=archived_mvp_data_common board_title="most valuable common archived items"}}
-				{{> galleryScore gallery_score_data}}
-				{{> galleryValue gallery_value_data}}
-				{{> archiveValue archive_data.value_data}}
-				{{> archiveCount archive_data.count_data}}
-				{{> earningsPerHour gallery_earnings_data}}
-				{{> questsCompleted quests_completed_data}}
-				{{> moneySpentOnCrates money_spent_crates_data}}
+				{{#with selected_leaderboard}}
+					{{#if isEqual key "mvp_data"}}
+						{{> mvp item_array=data board_title=title}}
+					{{/if}}
+					{{#if isEqual key "mvp_data_masterpiece"}}
+						{{> mvp item_array=data board_title=title}}
+					{{/if}}
+					{{#if isEqual key "mvp_data_legendary"}}
+						{{> mvp item_array=data board_title=title}}
+					{{/if}}
+					{{#if isEqual key "mvp_data_rare"}}
+						{{> mvp item_array=data board_title=title}}
+					{{/if}}
+					{{#if isEqual key "mvp_data_uncommon"}}
+						{{> mvp item_array=data board_title=title}}
+					{{/if}}
+					{{#if isEqual key "mvp_data_common"}}
+						{{> mvp item_array=data board_title=title}}
+					{{/if}}
+					{{#if isEqual key "archived_mvp_data"}}
+						{{> mvp item_array=data board_title=title}}
+					{{/if}}
+					{{#if isEqual key "archived_mvp_data_masterpiece"}}
+						{{> mvp item_array=data board_title=title}}
+					{{/if}}
+					{{#if isEqual key "archived_mvp_data_legendary"}}
+						{{> mvp item_array=data board_title=title}}
+					{{/if}}
+					{{#if isEqual key "archived_mvp_data_rare"}}
+						{{> mvp item_array=data board_title=title}}
+					{{/if}}
+					{{#if isEqual key "archived_mvp_data_uncommon"}}
+						{{> mvp item_array=data board_title=title}}
+					{{/if}}
+					{{#if isEqual key "archived_mvp_data_common"}}
+						{{> mvp item_array=data board_title=title}}
+					{{/if}}
+					{{#if isEqual key "gallery_score_data"}}
+						{{> galleryScore data}}
+					{{/if}}
+					{{#if isEqual key "gallery_value_data"}}
+						{{> galleryValue data}}
+					{{/if}}
+					{{#if isEqual key "archive_value_data"}}
+						{{> archiveValue data}}
+					{{/if}}
+					{{#if isEqual key "archive_count_data"}}
+						{{> archiveCount data}}
+					{{/if}}
+					{{#if isEqual key "gallery_earnings_data"}}
+						{{> earningsPerHour data}}
+					{{/if}}
+					{{#if isEqual key "quests_completed_data"}}
+						{{> questsCompleted data}}
+					{{/if}}
+					{{#if isEqual key "money_spent_crates_data"}}
+						{{> moneySpentOnCrates data}}
+					{{/if}}
+				{{/with}}
 			{{/with}}
 		</div>
 	</div>

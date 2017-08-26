@@ -23,7 +23,7 @@ ItemGenerator = function() {
 	var selectArtwork = function(rarity, attribute_array, seasonal_amplifier) {
 	    if (rarity == "legendary" || rarity == "masterpiece") {
 	        if (Math.random() < (calcSeasonalChance(rarity) * seasonal_amplifier)) {
-	            return artworks.findOne({'_id': {$in: getLootData().seasonal_items}, 'active': true, 'rarity': rarity})._id;
+	            return new ArtworkIF(artworks.findOne({'_id': {$in: getLootData().seasonal_items}, 'active': true, 'rarity': rarity}));
 	        }
 	    }
 
@@ -33,12 +33,12 @@ ItemGenerator = function() {
 
 		if (special_attribute_count > 0) {
 			var special_attributes = attribute_array.slice(0, special_attribute_count);
-			query_object = {'rarity': rarity, 'active': true, 'special_attributes': {$in: special_attributes}};
+			query_object = {'_id': {$nin: getLootData().seasonal_items}, 'rarity': rarity, 'active': true, 'special_attributes': {$in: special_attributes}};
 			count = artworks.find(query_object).count();
 		}
 
 		if (count == 0) {
-			query_object = {'rarity': rarity, 'active': true};
+			query_object = {'_id': {$nin: getLootData().seasonal_items}, 'rarity': rarity, 'active': true};
 			count = artworks.find(query_object).count();
 		}
 
@@ -363,7 +363,7 @@ ItemGenerator = function() {
 	        'roll_count' : 0,
 	        'foil': foil,
 	        'unlocked': unlocked,
-	        'seasonal': item_generator_object.seasonal === undefined ? getLootData().seasonal_items.indexOf(item_generator_object.artwork_id) != -1 : item_generator_object.seasonal,
+	        'seasonal': item_generator_object.seasonal === undefined ? getLootData().seasonal_items.indexOf(item_generator_object.artwork_interface.getId()) != -1 : item_generator_object.seasonal,
 	        'lottery': item_generator_object.lottery === undefined ? 0 : item_generator_object.lottery,
 	        'original': item_generator_object.original === undefined ? false : item_generator_object.original,
 	        'vintage': item_generator_object.vintage === undefined ? false : item_generator_object.vintage,

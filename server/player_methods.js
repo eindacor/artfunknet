@@ -1,5 +1,3 @@
-var starting_balance = 100000;
-
 createUser = function(user_object, callback) {
     user_object.profile.user_type = "player";
     createPlayer(user_object, callback);
@@ -181,7 +179,7 @@ getCapSetterObject = function(player_level) {
         'display_cap': {'start': 5, 'end': 10},
         'auction_cap': {'start': 8, 'end': 16},
         'ticket_cap': {'start': 3, 'end': 10},
-        'pc_cap': {'start': 5, 'end': 12},
+        'pc_cap': {'start': 12, 'end': 12},
         'visitor_cap': {'start': 20, 'end': 200},
         'repairing_cap': {'start': 4, 'end': 12},
         'forgery_contract_cap': {'start': 8, 'end': 16}
@@ -615,119 +613,14 @@ Meteor.methods({
         return player_interface.purchaseExpansionSlot();
     },
 
+    'canVintage': function() {
+        var player_interface = new PlayerIF(Meteor.user());
+        return player_interface.canVintage();
+    },
+
     'vintageMode': function() {
-        try {
-            if (auctions.findOne({'seller': Meteor.user().profile.screen_name}) != undefined || 
-                Meteor.user().profile.auction_data.winning.length > 0 ||
-                Meteor.user().profile.level < PLAYER_LEVEL_MAX) {
-                return false;
-            }
-
-            var crate_object = getCrateData("large");
-            if (crate_object == undefined)
-                return false;
-
-            // var crate_cost = crate_object.cost;
-            // var new_bank_balance = starting_balance + Math.floor(crate_cost * (Meteor.user().profile.vintage_count + 1));
-            var new_bank_balance = starting_balance + Math.floor(4000000 * (Meteor.user().profile.vintage_count + 1));
-            items.find({'owner': Meteor.userId(), 'status': {$in: ['for_sale', 'unclaimed', 'won']}}).forEach(function(item_object) {
-                removeItem(item_object._id, "vintage clear unclaimed", undefined);
-            });
-
-            while (items.findOne({'owner': Meteor.userId(), 'status': {$in: ['for_sale', 'unclaimed', 'won']}}) != undefined) {
-                setTimeout("", 1000);
-            }
-
-            var has_items_to_claim = items.findOne({'owner': Meteor.userId(), 'vintage': {$ne: true}, 'original': {$ne: true}, 'authenticity.forgery': false}) != undefined;
-
-            // reset gallery finishes
-            var default_wall = gallery_finishes.findOne({'filename': "plaster.jpg"});   
-            var wall_finish_object = {
-                'filename': default_wall.filename,
-                'saturation': 1,
-                'xp_rating': .1
-            };
-
-            var wall_setter_object = {};
-            wall_setter_object[default_wall._id] = wall_finish_object;
-
-            var default_floor = gallery_finishes.findOne({'filename': "carpet_gray.jpg"});
-            var floor_finish_object = {
-                'filename': default_floor.filename,
-                'saturation': 1,
-                'xp_rating': .1
-            };
-
-            var floor_setter_object = {};
-            floor_setter_object[default_floor._id] = floor_finish_object;
-
-            Meteor.users.update(
-                Meteor.userId(),                //selector
-                {                               //modifier
-                    $inc: {'profile.vintage_count': 1, 'profile.lottery_tickets': 1}, 
-                    $set: {
-                        'profile.vintage_select': has_items_to_claim, 
-                        'profile.level': 0, 
-                        'profile.bank_balance': new_bank_balance,
-                        'profile.xp': 0,
-                        'profile.last_drop': moment().add(-1, 'days')._d.toISOString()
-                    }
-                }
-            );
-
-            items.find({'owner': Meteor.userId(), $or: [{$and: [{'vintage': true}, {'authenticity.forgery': false}]}, {'original': true}], 'status': {$ne: "archived"}}).forEach(function(item_object) {
-                var item_interface = new ItemIF(item_object);
-                item_interface.updateItem({$set: {'status': "claimed"}});
-            });
-
-            items.find({'owner': Meteor.userId(), $or: [{'vintage': {$ne: true}}, {'authenticity.forgery': true}], 'original': {$ne: true}, 'status': {$ne: "archived"}}).forEach(function(item_object) {
-                var item_interface = new ItemIF(item_object);
-                if (itemIsMisprinted(item_object)) {
-                    return;
-                }
-
-                if (item_interface.isForgery()) {
-                    //TODO make this behavior apparent to player
-                    items.remove(item_interface.getId());
-                }
-
-                else {
-                    item_interface.updateItem({                              
-                        $set: {
-                            'status': 'won',
-                            'vintage': true,
-                            'date_received': getNowISOString(),
-                            'display_details': {
-                                'money' : 0,
-                                'xp' : 0,
-                                'xp_chunk_percentage': 0,
-                                'end' : ""
-                            }
-                        }
-                    }, true);  
-                }       
-            });
-
-            quests.remove({'owner_id': Meteor.userId()});
-
-            // reset profile limits
-            var cap_object = getCapSetterObject(0);
-            var setter = {};
-            var cap_keys = Object.keys(cap_object);
-            for (var i=0; i < cap_keys.length; i++) {
-                var key = cap_keys[i];
-                var value = cap_object[key];
-
-                var setter_key = "profile." + key;
-                setter[setter_key] = value;
-            }
-
-            Meteor.users.update(Meteor.userId(), {$set : setter});
-        }
-
-        catch (error) {
-            console.log(error.message);
-        }
+        var player_interface = new PlayerIF(Meteor.user());
+        return player_interface.vintageMode();
     },
 
     'getAuctionPreviewItemObject': function(auction_id) {
@@ -1048,7 +941,7 @@ Meteor.methods({
 
      'getClaimedTags': function() {
         var claimed_tags = [];
-        items.find({'owner': Meteor.userId(), 'status': "claimed"}).forEach(function(item_object) {
+        items.find({'owner': Meteor.userId(), 'status': {$in: ["claimed", "displayed", "auctioned"]}}).forEach(function(item_object) {
             for (var i=0; i<item_object.tags.length; i++) {
                 if (claimed_tags.indexOf(item_object.tags[i]) == -1)
                     claimed_tags.push(item_object.tags[i])

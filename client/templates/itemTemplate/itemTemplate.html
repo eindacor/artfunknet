@@ -1,6 +1,6 @@
 <template name="itemInfo">
 	<div class="template-itemInfo">
-		{{#if show_price}}
+		{{#if isEqual item_data.status "for_sale"}}
 		<div class="item-price green-text text-shadow">
 			{{displayAsMoneyValue item_data.values.dealer}}
 		</div>
@@ -36,7 +36,7 @@
 				<div class="card-header col-xs-12 {{card_types item_data}}">
 					<div class="row no-margin">
 						<div class="header-basic-info">
-							<p class="item-title work-title">{{item_data.artwork_data.title}}</p>
+							<p class="item-title work-title">{{item_data.artwork_data.title}}{{#if item_data.already_owned}} <span class="green-text">*</span>{{/if}}</p>
 							<p>{{item_data.artwork_data.artist}}</p>
 						</div>
 					</div>
@@ -132,6 +132,8 @@
 				</div>
 			</div>
 		</div>
+		{{#if hide_actions}}
+		{{else}}
 		<div class="button-area">
 			<p class="button-row {{#if isEqual item_data.status 'archived'}}{{else}}unarchived{{/if}}">
 			{{#each item_data.item_actions}}
@@ -144,5 +146,6 @@
 			{{/each}}
 			</p>
 		</div>
+		{{/if}}
 	</div>
 </template>

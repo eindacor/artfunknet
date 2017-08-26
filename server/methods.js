@@ -79,7 +79,8 @@ Meteor.methods({
             'gallery_earnings_data': galleries.find({'tutorial': {$ne: true}, 'owner_id': {$nin: bot_ids}}, {limit: 20, sort: {'earnings_per_hour': -1}}).fetch(),
             'quests_completed_data': Meteor.users.find({'profile.user_type': {$nin:["admin", "bot"]}}, {limit: 20, sort: {'profile.completed_quests': -1}, fields: {'profile.completed_quests': 1, 'profile.screen_name': 1}}).fetch(),
             'money_spent_crates_data': Meteor.users.find({'profile.user_type': {$nin: ["admin", "bot"]}}, {limit: 20, sort: {'profile.money_spent_on_crates': -1}}).fetch(),
-            'archive_data': metadata.findOne({'archive_data': {$ne: null}}).archive_data
+            'archive_value_data': metadata.findOne({'archive_data': {$ne: null}}).archive_data.value_data,
+            'archive_count_data': metadata.findOne({'archive_data': {$ne: null}}).archive_data.count_data
         }
     },
 

@@ -29,3 +29,18 @@
 .template-leaderboard .list-section:first-child {
 	margin-top: 0px;
 }
+
+.template-leaderboard .leaderboard-title {
+	font-size: 2rem;
+	opacity: .6;
+	cursor: pointer;
+	color: black;
+}
+
+.template-leaderboard .leaderboard-title:hover {
+	opacity: 1;
+}
+
+.template-leaderboard .selected {
+	font-weight: bold;
+}
