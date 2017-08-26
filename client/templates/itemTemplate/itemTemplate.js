@@ -89,6 +89,7 @@ var act = function(action_name, item_id, can_quick_discard) {
 				else {
 					defaultModal();
 				}
+				return;
 			case "sellItem": 
 				if (can_quick_discard) {
 					defaultAction();
