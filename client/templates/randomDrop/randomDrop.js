@@ -97,19 +97,6 @@ Template.randomDrop.rendered = function() {
 	this.handle = Meteor.setInterval((function() {
 		Session.set('now', moment().toISOString());
 	}), 1000);
-
-	var player_interface = new PlayerIF(Meteor.user());
-	if (player_interface.readyForTutorial("loot") && items.findOne({'owner': player_interface.getId(), 'status': "unclaimed", 'tutorial': true}) != undefined) {
-		Meteor.call('changeTutorialStep', true, function(error) {
-			if (error) {
-				console.log(error)
-			}
-
-			else {
-				buildTutorialContents();
-			}
-		})
-	}
 };
 
 Template.randomDrop.destroyed = function() {

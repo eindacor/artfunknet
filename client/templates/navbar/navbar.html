@@ -3,59 +3,63 @@
 		<div class="container no-padding no-margin">
 			<div class="col-sm-5 col-xs-12 no-padding navbar-section">
 				<dev class="row icon-row">
-					<dev class="col-xs-1 icon-section">
+					<dev class="icon-section">
 						<a href="/"><i data-title="Home" class="{{#if hasAlerts}}blue-text{{/if}} nav-icon fa fa-home"></i></a>
 					</dev>
-						{{#if currentUser}}
-							<dev class="col-xs-1  icon-section">
-								<a href="/auctions"><i data-title="Auction House" class="nav-icon fa fa-gavel {{#if hasPrivateAuctions}}cyan-text{{/if}}"></i></a>
-							</dev>
-							<dev class="col-xs-1  icon-section">
-								<a href="/store"><i data-title="Store" class="{{#if hasForSale}}green-text{{/if}} nav-icon fa fa-shopping-cart"></i></a>
-								<div class="notification-area store">
-									{{#with notifications "store"}}{{/with}}
-								</div>
-							</dev>
-							<dev class="col-xs-1  icon-section">
-								<a href="/galleries"><i data-title="Player Galleries" class="nav-icon fa fa-globe"></i></a>
-							</dev>
-							<dev class="col-xs-1  icon-section">
-								<a href="/leaderboard"><i data-title="Leaderboard" class="nav-icon fa fa-trophy"></i></a>
-							</dev>
-					   	{{/if}} 
-					    <dev class="col-xs-1  icon-section">
-					    	<a href="/wiki"><i data-title="Legendary Attributes" class="nav-icon fa fa-star"></i></a>
-					    </dev>
-						{{#if currentUser}}
-							{{#if hasCompletedQuest}}
-							<dev class="col-xs-1  icon-section">					
-								<a href="/dashboard/quests"><i data-title="Quests" class="{{#if hasFullyCompletedQuest}}orange-text{{else}}{{#if hasCompletedQuest}}bright-orange-text{{/if}}{{/if}} nav-icon fa fa-flag-checkered"></i></a>
-							</dev>
-							{{/if}}
-							{{#if hasLoot}}
-							<dev class="col-xs-1  icon-section">
-								<a href="/dashboard/loot"><i data-title="Loot Section" class="yellow-text nav-icon fa fa-gift"></i></a>
-								<div class="notification-area loot">
-									{{#with notifications "loot"}}{{/with}}
-								</div>
-							</dev>
-							{{/if}}
-							{{#if hasForgeryContracts}}
-								<dev class="col-xs-1  icon-section">
-									<a href="/dashboard/forge"><i data-title="Forge" class="red-text nav-icon fa fa-user-secret"></i></a>
-								</dev>
-							{{/if}}
-						<dev class="col-xs-1  icon-section">
-					    	<a href="/logout"><i data-title="Log Out" class="logout-button nav-icon fa fa-sign-out light-gray"></i></a>
-					    </dev>
-					   {{/if}}
-					   {{#if userIsAdmin}}
-					    <dev class="col-xs-1  icon-section">
-							<a href="/admin"><i data-title="Admin Tools" class="nav-icon fa fa-cog light-gray"></i></a>
+					{{#if currentUser}}
+					<dev class="icon-section">
+						<a href="/auctions"><i data-title="Auction House" class="nav-icon fa fa-gavel {{#if hasPrivateAuctions}}cyan-text{{/if}}"></i></a>
+					</dev>
+					<dev class="icon-section">
+						<a href="/store"><i data-title="Store" class="{{#if hasForSale}}green-text{{/if}} nav-icon fa fa-shopping-cart"></i></a>
+						<div class="notification-area store">
+							{{#with notifications "store"}}{{/with}}
+						</div>
+					</dev>
+					<dev class="icon-section">
+						<a href="/galleries"><i data-title="Player Galleries" class="nav-icon fa fa-globe"></i></a>
+					</dev>
+					<dev class="icon-section">
+						<a href="/leaderboard"><i data-title="Leaderboard" class="nav-icon fa fa-trophy"></i></a>
+					</dev>
+				   	{{/if}} 
+				    <dev class="icon-section">
+				    	<a href="/wiki"><i data-title="Legendary Attributes" class="nav-icon fa fa-star"></i></a>
+				    </dev>
+					{{#if currentUser}}
+						{{#if hasCompletedQuest}}
+						<dev class="icon-section">					
+							<a href="/dashboard/quests"><i data-title="Quests" class="{{#if hasFullyCompletedQuest}}orange-text{{else}}{{#if hasCompletedQuest}}bright-orange-text{{/if}}{{/if}} nav-icon fa fa-flag-checkered"></i></a>
 						</dev>
 						{{/if}}
-						
-
+						{{#if hasLoot}}
+						<dev class="icon-section">
+							<a href="/dashboard/loot"><i data-title="Loot Section" class="yellow-text nav-icon fa fa-gift"></i></a>
+							<div class="notification-area loot">
+								{{#with notifications "loot"}}{{/with}}
+							</div>
+						</dev>
+						{{/if}}
+						{{#if hasForgeryContracts}}
+							<dev class="icon-section">
+								<a href="/dashboard/forge"><i data-title="Forge" class="red-text nav-icon fa fa-user-secret"></i></a>
+							</dev>
+						{{/if}}
+						{{#if tutorial_mode}}
+						{{else}}
+						<dev class="icon-section">
+					    	<i id="tutorial-button" data-title="Tutorials" class="nav-icon fa fa-question"></i>
+					    </dev>
+					    {{/if}}
+					<dev class="icon-section">
+				    	<a href="/logout"><i data-title="Log Out" class="logout-button nav-icon fa fa-sign-out light-gray"></i></a>
+				    </dev>
+				   {{/if}}
+				   {{#if userIsAdmin}}
+				    <dev class="icon-section">
+						<a href="/admin"><i data-title="Admin Tools" class="nav-icon fa fa-cog light-gray"></i></a>
+					</dev>
+					{{/if}}
 				</dev>
 			</div>
 

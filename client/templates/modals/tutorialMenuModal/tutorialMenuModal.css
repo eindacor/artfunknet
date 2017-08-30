@@ -1,0 +1,26 @@
+.template-tutorialMenuModal .message-container {
+	background-color: white;
+	margin-right: 30%;
+	margin-left: 30%;
+	padding: 20px 40px;
+}
+
+.template-tutorialMenuModal .tutorial-item {
+	font-size: 2rem;
+	cursor: pointer;
+	opacity: .8;
+}
+
+.template-tutorialMenuModal .tutorial-item:hover {
+	opacity: 1;
+	font-weight: bold;
+	color: #FF33CC;
+}
+
+.template-tutorialMenuModal h4 {
+	margin-bottom: 20px;
+}
+
+.template-tutorialMenuModal .tutorial-section {
+	padding: 20px;
+}

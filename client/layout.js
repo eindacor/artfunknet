@@ -22,10 +22,9 @@ Template.meteorValue.helpers({
 
 Template.layout.helpers({
 	'tutorial': function() {
-		if (Meteor.user() && TUTORIAL_STATES.indexOf("finished") != Meteor.user().profile.tutorial_data.state) {
+		if (Meteor.user() && Meteor.user().profile.tutorial_data.current_tutorial) {
 			return {
-				'state_name': TUTORIAL_STATES[Meteor.user().profile.tutorial_data.state],
-				'state': Meteor.user().profile.tutorial_data.state,
+				'name': Meteor.user().profile.tutorial_data.current_tutorial,
 				'step': Meteor.user().profile.tutorial_data.step
 			}
 		}

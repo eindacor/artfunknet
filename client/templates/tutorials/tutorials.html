@@ -16,21 +16,19 @@
 
 <template name="tutorialPageButtons">
 	<div class="row">
-		<div class="col-xs-6">
-		{{#if skip_button}}
-			<button class="page-button skip-button">skip tutorial</button>
-		{{/if}}
-		{{#if back_button}}
-			<button class="page-button back-button">back</button>
-		{{/if}}
-		</div>
-		<div class="col-xs-6">
-		{{#if next_button}}
-			<button class="page-button next-button">next</button>
-		{{/if}}
-		{{#if finish_button}}
-			<button class="page-button finish-button">finish</button>
-		{{/if}}
-		</div>
+		{{#with button_statuses}}
+			<div class="col-xs-6">	
+			{{#if previous}}
+				<button class="page-button back-button">back</button>
+			{{/if}}
+			</div>
+			<div class="col-xs-6">
+			{{#if next}}
+				<button class="page-button next-button">next</button>
+			{{else}}
+				<button class="page-button finish-button">finish</button>
+			{{/if}}
+			</div>
+		{{/with}}
 	</div>
 </template>

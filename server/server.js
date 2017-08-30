@@ -3,7 +3,7 @@ updateBot = function(player_interface, attribute_list) {
         Meteor.users.update(player_interface.getId(), {$set: {
             'profile.level': 50, 
             'profile.last_npc_met': moment()._d.toISOString(), 
-            'profile.tutorial_data.state': TUTORIAL_STATES.length - 1, 
+            'profile.tutorial_data.current_tutorial': undefined, 
             'profile.tutorial_data.step': 0}
         }, function() {
             var attribute_count_map = {
@@ -241,10 +241,15 @@ var updateContent = function() {
     updateBot(new PlayerIF(Meteor.users.findOne({'_id': {$in: TUTORIAL_PLAYER_IDS}})), ["Benefactor", "Art Enthusiast", "Art Donor", "Preservationist", "Forger"]);
 
     //temp code
+    Meteor.users.update({'profile.tutorial_data.state': 12}, {$set: {'profile.tutorial_data.current_tutorial': undefined, 'profile.tutorial_data.step': 0, 'completed': ["artfunkel basics"]}, $unset: {'profile.tutorial_data.state': ""}}, {multi: true});
+    Meteor.users.update({'profile.tutorial_data.state': {$lt: 12}}, {$set: {'profile.tutorial_data.current_tutorial': "artfunkel basics", 'profile.tutorial_data.step': 0, 'completed': []}, $unset: {'profile.tutorial_data.state': ""}}, {multi: true});
+    Meteor.users.update({'profile.tutorial_data.completed': null}, {$set: {'profile.tutorial_data.completed': []}}, {multi: true});
     //temp code
 
-    if (Meteor.users.findOne({'profile.user_type': "bot"}) == undefined) {
-        makeBots(40);
+    var desired_bot_count = 80;
+    var current_bot_count = Meteor.users.find({'profile.user_type': "bot"}).count();
+    if (current_bot_count < desired_bot_count) {
+        makeBots(desired_bot_count - current_bot_count);
     }
 
     Meteor.setTimeout(function() {

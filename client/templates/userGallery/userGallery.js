@@ -347,29 +347,6 @@ Template.userGallery.rendered = function() {
 	$('.template-userGallery').contextmenu(function() {
 		return false;
 	});
-
-	var own_gallery = Meteor.user() && this.data.screen_name == Meteor.user().profile.screen_name;
-	var player_interface = new PlayerIF(Meteor.user());
-	if ((player_interface.readyForTutorial("player_gallery") && !own_gallery) || (player_interface.readyForTutorial("my_gallery") && own_gallery && items.find({'owner': player_interface.getId(), 'status': "displayed", 'tutorial': true}).count() == 2)) {
-
-		if (player_interface.readyForTutorial("my_gallery") && own_gallery) {
-			Meteor.call('createTutorialNpcs', function(error) {
-				if (error) {
-					console.log(error);
-				}
-			})
-		}
-
-		Meteor.call('changeTutorialStep', true, function(error) {
-			if (error) {
-				console.log(error)
-			}
-
-			else {
-				buildTutorialContents();
-			}
-		})
-	}
 }
 
 Template.galleryItem.helpers({

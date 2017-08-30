@@ -1,6 +1,6 @@
 .template-navbar .nav-icon {
 	font-size: 2.5rem;
-	margin-right: 10px;
+	margin-right: 8px;
 	color: white;
 	opacity: .75;
 }
@@ -9,6 +9,17 @@
 	padding: 8px;
 	margin: 0px;
 	display: block;
+}
+
+.template-navbar .icon-section {
+	float: left;
+	position: relative;
+	min-height: 1px;
+	margin-right: 12px;
+}
+
+.template-navbar #tutorial-button {
+	cursor: pointer;
 }
 
 .template-navbar .icon-section a{

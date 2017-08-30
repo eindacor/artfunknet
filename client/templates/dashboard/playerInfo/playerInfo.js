@@ -77,11 +77,10 @@ Template.playerInfo.events({
 	},
 
 	'click #tutorial-mode': function() {
-		Meteor.call('beginTutorials', function(error) {
-			if (error) {
-				console.log(error);
-			}
-		});
+		Blaze.renderWithData(Template.modalTemplate, {
+			'modal_name': "tutorialMenuModal", 
+			'modal_data': {}
+		}, $('body')[0]);
 	}
 });
 
@@ -165,8 +164,7 @@ Template.playerInfo.helpers({
 	},
 
 	'tutorial_mode': function() {
-		var player_interface = new PlayerIF(Meteor.user());
-		return player_interface.tutorialMode();
+		return Meteor.user().profile.tutorial_data.current_tutorial != undefined;
 	},
 
 	'unselected': function(current_tier) {

@@ -72,7 +72,6 @@ Template.rerollModal.events ({
 })
 
 Template.rerollModal.rendered = function() {
-	refreshTutorial("mod_attribute");
 	item_object = undefined;
 }
 

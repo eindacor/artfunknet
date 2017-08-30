@@ -398,8 +398,6 @@ Template.galleries.rendered = function() {
 	gallery_array = [];
 	favorite_value = "any"
 
-	refreshTutorial("galleries");
-
 	attribute_sort_array = [];
 	updateGalleryQuery();
 }

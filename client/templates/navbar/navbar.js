@@ -1,4 +1,5 @@
 var quest_tracker = new Tracker.Dependency;
+tutorial_status_tracker = new Tracker.Dependency;
 var quest_statuses = {};
 var notifications = {
 	'loot': [],
@@ -200,6 +201,10 @@ Template.navbar.helpers({
 
 	'current_xp': function() {
 		return getCommaSeparatedValue(Meteor.user().profile.xp);
+	},
+
+	'tutorial_mode': function() {
+		return Meteor.user().profile.tutorial_data.current_tutorial != undefined;
 	}
 })
 
@@ -215,6 +220,13 @@ Template.navbar.events({
 		var expiration_string = element.target.dataset.expiration_string;
 		setFootnote("Visit gallery of " + owner_name + ". Expires " + expiration_string + ".", Math.floor(Math.random() * 100000));
 	},
+
+	'click #tutorial-button': function() {
+		Blaze.renderWithData(Template.modalTemplate, {
+			'modal_name': "tutorialMenuModal", 
+			'modal_data': {}
+		}, $('body')[0]);
+	}
 })
 
 Template.navbar.rendered = function() {

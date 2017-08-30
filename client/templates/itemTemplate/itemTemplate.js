@@ -41,22 +41,6 @@ var action_modals = {
 }
 
 var act = function(action_name, item_id, can_quick_discard) {
-	if (action_name == "displayItem") {
-		var player_interface = new PlayerIF(Meteor.user());
-		var all_tutorial_items_displayed = items.find({'owner': player_interface.getId(), 'status': "displayed", 'tutorial_item': true}).count() == items.find({'owner': player_interface.getId(), 'tutorial_item': true}).count();
-		if (player_interface.readyForTutorial("outro") && all_tutorial_items_displayed) {
-			Meteor.call('changeTutorialStep', true, function(error) {
-				if (error) {
-					console.log(error)
-				}
-
-				else {
-					buildTutorialContents();
-				}
-			})
-		}
-	}
-
 	var defaultAction = function() {
 		Meteor.call(action_name, item_id, function(error, result) {
 			if (error) {

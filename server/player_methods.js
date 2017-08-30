@@ -38,7 +38,7 @@ createPlayer = function(user_object, callback){
     }
 
     user_object.profile.active = true;
-    user_object.profile.bank_balance = starting_balance;
+    user_object.profile.bank_balance = STARTING_BALANCE;
     user_object.profile.last_drop = moment().add(-1, 'days')._d.toISOString();
     user_object.profile.level = is_bot ? PLAYER_LEVEL_MAX : 0;
     user_object.profile.xp = 0;
@@ -95,8 +95,9 @@ createPlayer = function(user_object, callback){
 
     user_object.profile.last_name_change = getNowISOString();
     user_object.profile.tutorial_data = {
-        'state': is_bot ? TUTORIAL_STATES.length - 1 : 0,
-        'step': 0
+        'current_tutorial': "artfunkel basics",
+        'step': 0,
+        'completed': []
     }
 
     user_object.profile.crate_purchases = {};
@@ -208,9 +209,9 @@ playerRatio = function(player_object) {
 }
 
 Meteor.methods({
-    'beginTutorials': function() {
+    'beginTutorial': function(tutorial_name) {
         var player_interface = new PlayerIF(Meteor.user());
-        player_interface.beginTutorials();
+        player_interface.beginTutorial(tutorial_name);
     },
 
     'registerUser': function(user) {

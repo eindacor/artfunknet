@@ -1,0 +1,115 @@
+TutorialHandler = function() {
+	var tutorials = [];
+
+	this.add = function(name, html_string_array) {
+		tutorials[name] = html_string_array;
+	}
+
+	this.getNext = function(current_tutorial, current_step) {
+		if (current_tutorial == undefined) {
+			return undefined;
+		}
+
+		var current_tutorial_array = tutorials[current_tutorial];
+		return current_tutorial_array && current_step >= current_tutorial_array.length - 1 ? undefined : current_step + 1;
+	}
+
+	this.getText = function(current_tutorial, current_step) {
+		if (current_tutorial && tutorials[current_tutorial] && tutorials[current_tutorial].length > current_step) {
+			return tutorials[current_tutorial][current_step];
+		}
+	}
+
+	this.getNames = function() {
+		return Object.keys(tutorials);
+	}
+}
+
+TUTORIAL_HANDLER = new TutorialHandler();
+
+Meteor.methods({
+	'nextTutorialStep': function() {
+		var player_interface = new PlayerIF(Meteor.user());
+		return player_interface.nextTutorialStep();
+	},
+
+	'previousTutorialStep': function() {
+		var player_interface = new PlayerIF(Meteor.user());
+		return player_interface.previousTutorialStep();
+	},
+
+	'getTutorialText': function() {
+		var player_interface = new PlayerIF(Meteor.user());
+		return player_interface.getTutorialText();
+	},
+
+	'getTutorialStepPermissions': function() {
+		var player_interface = new PlayerIF(Meteor.user());
+		return {
+			'previous': player_interface.getUserObject().profile.tutorial_data.step > 0,
+			'next': player_interface.hasNextTutorialStep()
+		}
+	},
+
+	'getTutorialNames': function() {
+		return TUTORIAL_HANDLER.getNames();
+	}
+})
+
+
+TUTORIAL_HANDLER.add("artfunkel basics", [
+	'<p>Welcome to Artfunkel, a game about collecting rare and valuable artwork!!!</p>',
+	'<p>Works can be purchased from art dealers, given to you by donors, or found in crates you purchase.</p>',
+	'<p>The best way to make money and get new art is to meet visitors in other galleries, click the <i class="af-color fa fa-globe"></i> button in the navigation bar to check them out.</p>',
+	'<p>In the gallery menu, each card shows lots of information about that players’ gallery, but the part we’re interested in is the visitor breakdown (the row of icons).</p>',
+	'<p>When you hover your mouse over a gallery card, you’ll notice values pop up next to each icon. These icons represent visitor types, and the value shows the likelihood of that visitor type being in that gallery.</p>',
+	'<p>Click on the <i class="af-color fa fa-sign-in"></i> button of the gallery card to pay the entry fee and enter to meet some visitors.</p>',
+	'<p>In the player gallery area, you can view other players\' displayed items. The icons at the top represent visitors you can meet, who give you various bonuses.</p>',
+	'<p>The sample gallery has a benefactor (<i class="af-color fa fa-money"></i>) who gives you money, an enthusiast (<i class="af-color fa fa-smile-o"></i>) who gives you XP, and a donor (<i class="af-color fa fa-share-square fa-flip-horizontal"></i>) who gives you new artworks!</p>',
+	'<p>Meet each visitor by clicking them, then click the <i class="af-color fa fa-gift"></i> button in the navigation bar to check out your new loot!</p>',
+	'<p>In the loot section of your player dashboard, you’ll find all the items that have been donated to you, as well as items found in crates you purchase.</p>',
+	'<p>Hovering over an artwork shows you the available actions for that item, most of which are disabled for this tutorial.</p>',
+	'<p>Add these items to your inventory by hovering over them and clicking the <i class="af-color fa fa-plus"></i> button, then click on the inventory tab on your dashboard to view them.</p>',
+	'<p>You’ve seen how visitors can give you bonuses and items, now it’s time to attract some visitors to your own gallery. To do that, you need to display some of your items.</p>',
+	'<p>The icons at the bottom of each card indicate what visitors that item will attract to your gallery. Hover over the items and click the <i class="af-color fa fa-picture-o"></i> button to put them in your gallery, then click the gallery tab on your dashboard.</p>',
+	'<p>Once you have put items up for display, your gallery will be capable of attracting its own visitors. Visitors in your own gallery give you better bonuses than those in other galleries.</p>',
+	'<p>Next, click the <i class="af-color fa fa-shopping-cart"></i> button in the navigation bar to check out the store.</p>',
+	'<p>From the store you can find purchasable crates of items as well as offers you receive from art dealers.</p>',
+	'<p>Purchase one of the crates available, claim your new items from the loot page, then head back to your inventory.</p>',
+	'<p>You’ll want to make sure your gallery is optimized to attract the visitors you want most, which means all of your display items should have similar attributes.</p>',
+	'<p>You can change certain attributes by hovering over an item and clicking the <i class="af-color fa fa-magic"></i> button. Do this to one of your items (that isn\'t currently on display).</p>',
+	'<p>From the mod menu, you can spend money to modify attributes and their values to make an item a better fit for your gallery.</p>',
+	'<p>To change an attribute, and therefore changing the type of visitors it attracts, click the “attribute” button. Note: this also randomizes the attribute value.</p>',
+	'<p>The higher the attribute value, the more likely those visitors will show up in your gallery. Click the “value” button to change the value of that particular attribute to a new random value.</p>',
+	'<p>You might notice the more you "reroll" an item, the more it costs to modify. To reduce the "roll count" of an item, you\'ll have to meet Art Experts in galleries.</p>',
+	'<p>You’ve now learned the basic mechanics of Artfunkel. Meet visitors, get new items, modify them as you wish, and curate your own gallery. But there’s an awful lot more to the game, including an auction house, artwork forging, quests, your personal archive, and a weekly lottery to name a few.</p>',
+	'<p>To learn more about the game, please visit the <a target="_blank" href="http://artfunkel.wikia.com/wiki/Artfunkel_Wiki">wiki</a> and join the <a target="_blank" href="https://discord.gg/A9baZCh">discord channel</a>, where you can ask for help or tips from the developer and/or seasoned Artfunkel veterans.</p>',
+	'<p>Thanks for playing, and good luck!</p>'
+])
+
+TUTORIAL_HANDLER.add("forging", [
+	'<p>Players have the ability to forge artworks. Forgeries have special characteristcs and behaviors which are outlined in detail <a target="_blank" href="http://artfunkel.wikia.com/wiki/Forgeries">here</a>.</p>',
+	'<p>To create a forgery, you have to meet a Forger in a player gallery. Unlike other visitors, Forgers don\'t look like their associated attribute icon (<i class="af-color fa fa-user-secret"></i>).</p>',
+	'<p>Instead, they appear disguised as one of the other visitor types. To find forgers, you\'ll have to visit the galleries with the highest Forger appearance rate and meet everyone you can.</p>',
+	'<p>Once you meet a Forger, they will offer you a forgery contract, and a forger icon will appear in your nav bar (<i class="red-text fa fa-user-secret"></i>).</p>',
+	'<p>To use the contract, select it in the forge menu, search and select a work of art, customize it as you wish, and click the "forge item" button. Note: you are only allowed to forge items that have been added to your archive.</p>',
+	'<p>Once created, the forged item is placed in your loot area for you to claim. Be sure to check out the <a target="_blank" href="http://artfunkel.wikia.com/wiki/Forgeries">artfunkel wiki</a> to better understand how Forgeries work in the game.</p>'
+])
+
+TUTORIAL_HANDLER.add("vintage mode", [
+	'<p>Once you hit the maximum level (' + PLAYER_LEVEL_MAX + '), you are given the option to enter "vintage mode."</p>',
+	'<p>When vintage mode is activated, you lose all of your money, and you are allowed to keep 1 of your items (archived items also remain). All of your other items will be removed from the game.</p>',
+	'<p>The item you keep becomes a special "vintage" item, which doubles its value and increases the amount of money it earns while on display.</p>',
+	'<p>In addition, vintage items do not count against your inventory space, and if you hit level ' + PLAYER_LEVEL_MAX + ' and want to "vintage" again, the vintage items you already have will remain in your inventory!</p>'
+])
+
+TUTORIAL_HANDLER.add("archiving", [
+	'<p>Archiving is a way for you to keep record of the items you\'ve collected without them taking up space in your inventory.<p>',
+	'<p>Once an item is archived, it can be viewed from the "archive" tab in your dashboard. These items cannot be modified or offloaded in any way, aside from tagging or deleting.</p>',
+	'<p>To archive an item you own (that isn\'t on display or auctioned), hover over the item and select the (<i class="af-color fa fa-archive"></i>) button.</p>',
+	'<p>The archive has some restrictions. You can only have one of each item type for a particular artwork. For instance, you cannot have multiple <span class="af-color">foil</span> versions of the same painting. You would need to pick the one you wanted to keep most.</p>',
+	'<p>However, if you had a <span class="af-color">foil</span> version, and a <span class="af-color">foil</span> <span class="unlocked-text">unlocked</span> version, you can archive them both, as they are technically different types.</p>',
+	'<p>Items that have the archive icon (<i class="green-text fa fa-archive"></i>) in the upper-left corner indicate that that particular item type is not yet in your archive.</p>',
+	'<p>The upgrade icon (<i class="green-text fa fa-level-up"></i>) indicates that you already have an archived version of that type, but this one is more valuable.</p>',
+	'<p>Those are the archiving basics. More information is available on the <a target="_blank" href="http://artfunkel.wikia.com/wiki/Archive">artfunkel wiki</a>. Also check out the archive-specific leaderboards to see what other players have stashed away. Happy archiving!</p>'
+])

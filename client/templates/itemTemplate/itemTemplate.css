@@ -441,6 +441,11 @@
 	margin: 0px 4px;
 	text-align: left;
 	cursor: pointer;
+	opacity: .8;
+}
+
+.template-itemInfo .button-area i:hover {
+	opacity: 1;
 }
 
 .template-itemInfo .button-area .enabled:hover, .template-itemInfo .button-area .inactive:hover {
