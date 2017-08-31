@@ -84,13 +84,34 @@ TUTORIAL_HANDLER.add("artfunkel basics", [
 	'<p>You might notice the more you "reroll" an item, the more it costs to modify. To reduce the "roll count" of an item, you\'ll have to meet Art Experts in galleries.</p>',
 	'<p>You’ve now learned the basic mechanics of Artfunkel. Meet visitors, get new items, modify them as you wish, and curate your own gallery. But there’s an awful lot more to the game, including an auction house, artwork forging, quests, your personal archive, and a weekly lottery to name a few.</p>',
 	'<p>To learn more about the game, please visit the <a target="_blank" href="http://artfunkel.wikia.com/wiki/Artfunkel_Wiki">wiki</a> and join the <a target="_blank" href="https://discord.gg/A9baZCh">discord channel</a>, where you can ask for help or tips from the developer and/or seasoned Artfunkel veterans.</p>',
+	'<p>You can also replay this tutorial or try others by clicking the <i class="fa fa-question af-color"></i> button in your navigation bar.</p>',
 	'<p>Thanks for playing, and good luck!</p>'
 ])
 
+TUTORIAL_HANDLER.add("item actions", [
+	'<p>There are lots of actions available for the items in your inventory...</p>',
+	'<p><i class="af-color fa fa-usd"></i> - SELL<p>Removes the item from your inventory, giving you money proportionate to its value.</p></p>',
+	'<p><i class="af-color fa fa-gavel"></i> - AUCTION<p>Put the item up for auction to be purchased by other players.</p></p>',
+	'<p><i class="af-color fa fa-share-square"></i> - DONATE<p>Removes the item from your inventory in exchange for knowledge, a currency that allows you to improve your items.</p></p>',
+	'<p><i class="af-color fa fa-magic"></i> - MOD<p>Modify the attributes of your items and level them up, increasing their worth.</p></p>',
+	'<p><i class="af-color fa fa-archive"></i> - ARCHIVE<p>Remove the item from your inventory and place it in your archive, where it can no longer be modified in any way.</p></p>',
+	'<p><i class="af-color fa fa-shopping-cart"></i> - PURCHASE (store only)<p>Pay the listed fee to add the item to your inventory.</p></p>',
+	'<p><i class="af-color fa fa-times"></i> - DECLINE/DELETE<p>Removes the item from the game entirely.</p></p>',
+	'<p><i class="af-color fa fa-picture-o"></i> - DISPLAY<p>Add the item to your gallery, earning bonuses and attracting visitors.</p></p>',
+	'<p><i class="af-color fa fa-heart"></i> - FAVORITE<p>Marks your favorite items, which displays them in your gallery without earning any bonuses or attracting visitors.</p></p>',
+	'<p><i class="af-color fa fa-binoculars"></i> - MARK FOR SALE<p>Marks the item "for sale". When you meet Collectors in galleries, they will give you large sums of money for the items you are selling.</p></p>',
+	'<p><i class="af-color fa fa-wrench"></i> - REPAIR<p>Repairing items will have their condition increased every hour.</p></p>',
+	'<p><i class="af-color fa fa-tags"></i> - TAG<p>Add special tags to your items, making them easy to find in your inventory. If you tag multiple items "primary", you can enter "#primary" in the inventory search to see only items you\'ve tagged.</p></p>',
+	'<p><i class="af-color fa fa-search"></i> - IDENTIFY<p>Lets you pay a fee to find out if an item you\'ve purchased in the auction house is a forgery or not.</p></p>',
+	'<p><i class="af-color fa fa-shield"></i> - REDEEM<p>If you find out you purchased a forgery, you may redeem that item within a certain timeframe, getting your money back and earning bonuses based on the item.</p></p>',
+	'<p>Now you know what stuff does, go do some stuff!</p>'
+
+])
+
 TUTORIAL_HANDLER.add("forging", [
-	'<p>Players have the ability to forge artworks. Forgeries have special characteristcs and behaviors which are outlined in detail <a target="_blank" href="http://artfunkel.wikia.com/wiki/Forgeries">here</a>.</p>',
+	'<p>Players have the ability to forge artworks!</p>',
 	'<p>To create a forgery, you have to meet a Forger in a player gallery. Unlike other visitors, Forgers don\'t look like their associated attribute icon (<i class="af-color fa fa-user-secret"></i>).</p>',
-	'<p>Instead, they appear disguised as one of the other visitor types. To find forgers, you\'ll have to visit the galleries with the highest Forger appearance rate and meet everyone you can.</p>',
+	'<p>Instead, they appear disguised as one of the other visitor types. To find forgers, you\'ll have to visit galleries and meet everyone you can.</p>',
 	'<p>Once you meet a Forger, they will offer you a forgery contract, and a forger icon will appear in your nav bar (<i class="red-text fa fa-user-secret"></i>).</p>',
 	'<p>To use the contract, select it in the forge menu, search and select a work of art, customize it as you wish, and click the "forge item" button. Note: you are only allowed to forge items that have been added to your archive.</p>',
 	'<p>Once created, the forged item is placed in your loot area for you to claim. Be sure to check out the <a target="_blank" href="http://artfunkel.wikia.com/wiki/Forgeries">artfunkel wiki</a> to better understand how Forgeries work in the game.</p>'
