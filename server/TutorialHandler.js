@@ -89,7 +89,7 @@ TUTORIAL_HANDLER.add("artfunkel basics", [
 ])
 
 TUTORIAL_HANDLER.add("item actions", [
-	'<p>There are lots of actions available for the items in your inventory...</p>',
+	'<p>Hovering over an item shows all of the possible actions you can take for that particular item.</p>',
 	'<p><i class="af-color fa fa-usd"></i> - SELL<p>Removes the item from your inventory, giving you money proportionate to its value.</p></p>',
 	'<p><i class="af-color fa fa-gavel"></i> - AUCTION<p>Put the item up for auction to be purchased by other players.</p></p>',
 	'<p><i class="af-color fa fa-share-square"></i> - DONATE<p>Removes the item from your inventory in exchange for knowledge, a currency that allows you to improve your items.</p></p>',

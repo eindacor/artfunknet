@@ -196,7 +196,7 @@ makeBots = function(quantity) {
 var updateContent = function() {
     console.log("UPDATING CONTENT");
 
-    removeBots();
+    //removeBots();
 
     npcs.remove({'tutorial': true});
     var npc_name = "Benefactor";
@@ -243,11 +243,11 @@ var updateContent = function() {
     //temp code
     //temp code
 
-    var desired_bot_count = 100;
-    var current_bot_count = Meteor.users.find({'profile.user_type': "bot"}).count();
-    if (current_bot_count < desired_bot_count) {
-        makeBots(desired_bot_count - current_bot_count);
-    }
+    // var desired_bot_count = 100;
+    // var current_bot_count = Meteor.users.find({'profile.user_type': "bot"}).count();
+    // if (current_bot_count < desired_bot_count) {
+    //     makeBots(desired_bot_count - current_bot_count);
+    // }
 
     Meteor.setTimeout(function() {
          Meteor.users.find({'profile.user_type': {$ne: "bot"}}).forEach(function(user_object) {
