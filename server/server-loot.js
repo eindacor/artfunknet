@@ -623,10 +623,9 @@ drawLottery = function(force_draw) {
 }
 
 generateNewLotteryItems = function() {
-    var lottery_item_count = 1;
     metadata.update({'lottery_draw': {$ne: null}}, {$set: {'rewards': []}});
 
-    for (var i=0; i<lottery_item_count; i++) {
+    for (var i=0; i<LOTTERY_ITEM_COUNT; i++) {
         var artwork_interface = Math.random() < .0001 ? getRandomArtworkIFFromRarity("masterpiece") : getRandomArtworkIFFromRarity("legendary");
 
         var item_generator = {

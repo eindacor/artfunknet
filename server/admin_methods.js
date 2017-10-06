@@ -418,6 +418,12 @@ Meteor.methods({
         }
     },
 
+    'newLotteryItems': function() {
+        if (adminValidated()) {
+            generateNewLotteryItems();
+        }
+    },
+
     'refreshDynamicCrates': function() {
         if (adminValidated()) {
             refreshCrates();
@@ -517,12 +523,6 @@ Meteor.methods({
             }
 
             console.log ("forgery not detected");
-        }
-    },
-
-    'drawLottery': function() {
-        if (adminValidated()) {
-            drawLottery(true);
         }
     },
 

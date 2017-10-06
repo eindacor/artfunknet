@@ -265,26 +265,19 @@ Template.galleries.events({
 
 Template.galleryCard.helpers({
 	'galleryInfo' : function(gallery_object) {
-		try {
-			var attribute_array = [];
-			var attribute_ids = Object.keys(gallery_object.published_procs);
+		var attribute_array = [];
+		var attribute_ids = Object.keys(gallery_object.published_procs);
 
-			for (var i=0; i < attribute_ids.length; i++) {
-				var attribute_object = attributes.findOne(attribute_ids[i]);
-				attribute_object.proc = gallery_object.published_procs[attribute_ids[i]];
-				attribute_array.push(attribute_object);
-			}
-
-			gallery_object.attribute = attribute_array;
-			gallery_object.price_tier = gallery_object.entry_fee;
-			gallery_object.paid = Meteor.userId() == gallery_object.owner_id || gallery_tickets.findOne({'ticketholder': Meteor.userId(), 'gallery_owner': gallery_object.owner_id}) != undefined;
-			return gallery_object;
+		for (var i=0; i < attribute_ids.length; i++) {
+			var attribute_object = attributes.findOne(attribute_ids[i]);
+			attribute_object.proc = gallery_object.published_procs[attribute_ids[i]];
+			attribute_array.push(attribute_object);
 		}
 
-		catch(error) {
-			console.log(error);
-			return {};
-		}
+		gallery_object.attribute = attribute_array;
+		gallery_object.price_tier = gallery_object.entry_fee;
+		gallery_object.paid = Meteor.userId() == gallery_object.owner_id || gallery_tickets.findOne({'ticketholder': Meteor.userId(), 'gallery_owner': gallery_object.owner_id}) != undefined;
+		return gallery_object;
 	},
 
 	'canEnter': function(gallery_object) {

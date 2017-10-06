@@ -750,6 +750,7 @@ Meteor.methods({
      'getGalleryAvatar': function(owner_id) {
         var best_item = items.findOne({'owner': owner_id, 'status': "displayed"}, {$sort: {'values.actual': 1}});
         if (best_item == undefined) {
+            console.log(owner_id);
             return undefined;
         }
         
