@@ -232,7 +232,7 @@ Meteor.setInterval((function() {
 
                     var display_level = player_item_interface.getDisplayLevel(display_earning_time);
         
-                    if (!player_interface.isRecentlyActive()) {
+                    if (!player_interface.isRecentlyActive() && player_interface.getUserObject().profile.user_type != "bot") {
                         player_item_interface.setDisplayStatus(false);
                     }
 
