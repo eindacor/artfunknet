@@ -190,7 +190,38 @@ Template.itemInfo.helpers({
 
 	'action_icon': function(action_name) {
 		return action_icons[action_name];
-	}
+	},
+
+	'forgery_heat': function(item_data) {
+		var player_interface = new PlayerIF(Meteor.user());
+		return player_interface.getForgeryHeat(item_data);
+	},
+
+	'forgery_heat_color': function(forgery_heat) {
+		var blue_value = Math.floor((1 - forgery_heat) * 255);
+		var red_value = Math.floor(forgery_heat * 255);
+		return "rgb(" + red_value + ", 0, " + blue_value + ")";
+	},
+
+	'heat_label': function(forgery_heat) {
+		if (forgery_heat < .2) {
+			return "very low";
+		}
+
+		else if (forgery_heat < .4) {
+			return "low";
+		}
+
+		else if (forgery_heat < .6) {
+			return "medium";
+		}
+
+		else if (forgery_heat < .8) {
+			return "high";
+		}
+
+		else return "very high";
+	},
 })
 
 Template.itemInfo.events({
