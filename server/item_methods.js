@@ -678,20 +678,15 @@ Meteor.methods({
     },
 
     'getItemData': function(item) {
-        var item_id;
-        var item_object;
-        var made_from_object = (typeof item !== "string");
-
         try {
-            item_object = made_from_object ? item : getOneFromCollection("PlayerIF.js:ItemIF - " + item, items, {'_id': item});
-            item_id = item_object._id;
+            var item_object = new ItemIF(item).getItemObject();
+            prepareItemForClient(item_object, new PlayerIF(Meteor.user()));
+            return item_object; 
         }
-        catch(error) {
-            throw "invalid item: " + item;
+        catch (error) {
+            console.log(error);
+            console.log(error.stack);
         }
-
-        prepareItemForClient(item_object, new PlayerIF(Meteor.user()));
-        return item_object; 
     },
 
     'getItemPermissions': function(item_id) {

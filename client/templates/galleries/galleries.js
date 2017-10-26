@@ -311,7 +311,6 @@ Template.galleryCard.helpers({
 
 	'avatar_image': function(owner_id) {
 		gallery_avatars_tracker.depend();
-		console.log("avatar_image");
 		if (gallery_avatars[owner_id] == undefined) {
 			getGalleryAvatar(owner_id);
 		}

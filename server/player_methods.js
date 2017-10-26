@@ -1017,6 +1017,20 @@ Meteor.methods({
 
         return indicators;
     },
+
+    'getQuestTargetInfo': function(quest_object) {
+        var target_info = [];
+        var player_interface = new PlayerIF(Meteor.user());
+        for (var i=0; i<quest_object.target.length; i++) {
+            var artwork_id = quest_object.target[i];
+            target_info.push({
+                'artwork_object': artworks.findOne(artwork_id),
+                'owned_item': player_interface.getQuestTarget(artwork_id)
+            });
+        }
+
+        return target_info;
+    }
 })
 
 var getArtworkCollectionData = function(player_interface, artwork_interface) {

@@ -101,6 +101,7 @@ var act = function(action_name, item_id, can_quick_discard) {
 
 Template.itemInfo.rendered = function() {
 	display_details_map = {};
+	item_interface = undefined;
 	if ($('.card-container').length != 0) {
 		card_container_height = $('.card-container').css('height').replace("px", "");
 		card_container_width = $('.card-container').css('width').replace("px", ""); 

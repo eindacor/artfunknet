@@ -27,16 +27,18 @@
 				</div>
 			</div>
 			<div class="row">
-				<div class="col-xs-12">			
-					{{#each quest_target this}}
-						{{#if owned_item}}
-							{{> itemInfo item_data=owned_item}}
-						{{else}}
-							{{#with quest_stub artwork_object}}
-								{{> itemStubView item_data=this}}
-							{{/with}}
-						{{/if}}
-					{{/each}}
+				<div class="col-xs-12">		
+					{{#with fetchServerData "getQuestTargetInfo" this}}	
+						{{#each this}}
+							{{#if owned_item}}
+								{{> itemInfo item_data=owned_item}}
+							{{else}}
+								{{#with quest_stub artwork_object}}
+									{{> itemStubView item_data=this}}
+								{{/with}}
+							{{/if}}
+						{{/each}}
+					{{/with}}
 				</div>
 			</div>
 			{{#if _id}}
