@@ -826,29 +826,10 @@ Meteor.methods({
      'getForgeableArtistsFromQuery': function(and_query_array, page, items_per_page) {
         var valid_statuses;
         var player_interface = new PlayerIF(Meteor.user());
-        if (player_interface.procUniqueAttribute("FORGE_FROM_INVENTORY", undefined)) {
-            valid_statuses = ["archived", "claimed", "reparing", "displayed"];
-        }
 
-        else valid_statuses = ["archived"];
+        var forgeable_artwork_ids = player_interface.getForgeableArtworkIds();
 
-        if (player_interface.procUniqueAttribute("DEALER_ITEM_FORGERY_DISCOUNT", undefined)) {
-            valid_statuses.push("for_sale");
-        }
-
-        var aggregate_items = items.aggregate([
-            {$match: {'owner': Meteor.userId(), 'status': {$in: valid_statuses}}}, 
-            {$project: { _id: 0, artist: "$artwork_data.artist", artist_id: "$artwork_data.artist_id"} },
-            {$sort: {artist : 1} }
-        ]);
-
-        var forgeable_artists = _.uniq(aggregate_items, false, function(agg_object) {return agg_object.artist_id});
-        var forgeable_artist_id_array = [];
-        for (var i=0; i<forgeable_artists.length; i++) {
-            forgeable_artist_id_array.push(forgeable_artists[i].artist_id);
-        }
-
-        and_query_array.push({'artist_id': {'$in': forgeable_artist_id_array}});
+        and_query_array.push({'_id': {'$in': forgeable_artwork_ids}});
         var match_query = {'$and': and_query_array};
 
         var aggregate_artworks = artworks.aggregate([
@@ -856,6 +837,29 @@ Meteor.methods({
             {$project: { _id: 0, artist: "$artist", artist_id: "$artist_id"} },
             {$sort: {artist : 1} }
         ]);
+
+        //
+
+        // var aggregate_items = items.aggregate([
+        //     {$match: {'owner': Meteor.userId(), 'status': {$in: valid_statuses}}}, 
+        //     {$project: { _id: 0, artist: "$artwork_data.artist", artist_id: "$artwork_data.artist_id"} },
+        //     {$sort: {artist : 1} }
+        // ]);
+
+        // var forgeable_artists = _.uniq(aggregate_items, false, function(agg_object) {return agg_object.artist_id});
+        // var forgeable_artist_id_array = [];
+        // for (var i=0; i<forgeable_artists.length; i++) {
+        //     forgeable_artist_id_array.push(forgeable_artists[i].artist_id);
+        // }
+
+        // and_query_array.push({'artist_id': {'$in': forgeable_artist_id_array}});
+        // var match_query = {'$and': and_query_array};
+
+        // var aggregate_artworks = artworks.aggregate([
+        //     {$match: match_query}, 
+        //     {$project: { _id: 0, artist: "$artist", artist_id: "$artist_id"} },
+        //     {$sort: {artist : 1} }
+        // ]);
 
         var unique_artist_array = _.uniq(aggregate_artworks, false, function(agg_object) {return agg_object.artist});
 
@@ -1030,6 +1034,12 @@ Meteor.methods({
         }
 
         return target_info;
+    },
+
+    'getForgeableArtworksFromArtist': function(artist_object) {
+        var player_interface = new PlayerIF(Meteor.user());
+        var forgeable_artwork_ids = player_interface.getForgeableArtworkIds();
+        return artworks.find({'artist_id': artist_object._id, '_id': {$in: forgeable_artwork_ids}}).fetch();
     }
 })
 

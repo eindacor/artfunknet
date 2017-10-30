@@ -150,7 +150,7 @@
 								{{#if artist_selected this}}
 								<div class="row artwork-list no-margin no-padding">
 									<div class="col-xs-12 no-margin no-padding">
-										{{#each artwork this}}
+										{{#each fetchServerData "getForgeableArtworksFromArtist" this}}
 										<div class="row artwork-container no-margin">
 											<div class="col-xs-12 no-margin">
 												<div class="row artwork-info no-margin {{#if isEqual artwork_id_selected _id}}selected{{else}}unselected{{/if}}" data-artwork_id="{{_id}}">

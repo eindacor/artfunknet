@@ -168,17 +168,17 @@ Template.forge.helpers({
 		return expanded_artist_ids.indexOf(artist_object._id) != -1;
 	},
 
-	'artwork': function(artist_object) {
-		var and_query_array = [{'artist_id': artist_object._id, 'active': true, 'rarity': {$in: rarities_selected}}]
-		var search_terms = commaSeparatedValuesToArray($('#search-area').val());
+	// 'artwork': function(artist_object) {
+	// 	var and_query_array = [{'artist_id': artist_object._id, 'active': true, 'rarity': {$in: rarities_selected}}]
+	// 	var search_terms = commaSeparatedValuesToArray($('#search-area').val());
 
-		var search_term_query = generateQueryFromSearchTerms(search_terms);
-		if (search_term_query != undefined) {
-			and_query_array.push(search_term_query);
-		}
+	// 	var search_term_query = generateQueryFromSearchTerms(search_terms);
+	// 	if (search_term_query != undefined) {
+	// 		and_query_array.push(search_term_query);
+	// 	}
 
-		return artworks.find({$and: and_query_array});
-	},
+	// 	return artworks.find({$and: and_query_array});
+	// },
 
 	'isAdmin': function() {
 		return false;
