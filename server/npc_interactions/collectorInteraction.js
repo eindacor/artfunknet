@@ -13,10 +13,10 @@ collectorInteraction = function(npc_object, player_interface) {
 	var offer_multiplier;
 
 	switch(npc_object.quality) {
-		case 'bronze': offer_multiplier = 2; break;
-		case 'silver': offer_multiplier = 2.2; break;
-		case 'gold': offer_multiplier = 2.4; break;
-		case 'platinum': offer_multiplier = 2.6; break;
+		case 'bronze': offer_multiplier = 1.7; break;
+		case 'silver': offer_multiplier = 1.78; break;
+		case 'gold': offer_multiplier = 1.86; break;
+		case 'platinum': offer_multiplier = 1.94; break;
 		default: offer_multiplier = 0; break;
 	}
 
@@ -44,18 +44,21 @@ collectorInteraction = function(npc_object, player_interface) {
         }
 
 		var base_value = Math.floor(getItemObjectValueByType(collector_target, 'actual', Meteor.userId()));
-		var base_chunk = .1 + (.2 * collector_target.level);
+		var base_chunk = .1 + (.02 * collector_target.level);
 		var offer_bonus = 0;
-		var standard_legendary_increment = .8;
+		var offer_chunk_bonus = 0;
+		var standard_legendary_increment = .2;
 
 		if (isOwnGallery(npc_object)) {
 			offer_multiplier *= OWN_GALLERY_NPC_AMPLIFIER;
 
-			if (collector_target.condition > .8 && player_interface.procUniqueAttribute("GOOD_CONDITION_COLLECTOR_BONUS", undefined))
+			if (collector_target.condition > .8 && player_interface.procUniqueAttribute("GOOD_CONDITION_COLLECTOR_BONUS", undefined)) {
 				offer_multiplier += standard_legendary_increment;
+			}
 
-			if (collector_target.roll_count <= 0 && player_interface.procUniqueAttribute("ART_COLLECTOR_ROLL_COUNT_BONUS", undefined))
+			if (collector_target.roll_count <= 0 && player_interface.procUniqueAttribute("ART_COLLECTOR_ROLL_COUNT_BONUS", undefined)) {
 				offer_multiplier += standard_legendary_increment;
+			}
 
 			if (player_interface.procUniqueAttribute("ART_COLLECTOR_AUCTION_BONUS", undefined)) {
 				var highest_value = 0;
@@ -76,7 +79,8 @@ collectorInteraction = function(npc_object, player_interface) {
 					highest_level = Math.max(item_object.level, highest_level);
 				});
 
-				offer_bonus += Math.floor(highest_value * .5);
+				offer_bonus += Math.floor(highest_value * .25);
+				offer_chunk_bonus += (highest_level * .05);
 			}
 
 			if (Math.random() < .25 && player_interface.procUniqueAttribute("COLLECTOR_QUEST_ITEM", undefined)) {
@@ -103,10 +107,19 @@ collectorInteraction = function(npc_object, player_interface) {
             };
 		}
 
-		var offer_amount = Math.floor((base_value * offer_multiplier) + offer_bonus);
-		player_interface.addFunds("collector", offer_amount);
+		var reward;
+		xp_offer = isOwnGallery(npc_object) && player_interface.procUniqueAttribute("ART_COLLECTOR_XP_REWARD", "Art Enthusiast");
+		if (xp_offer) {
+			var xp_chunk_amount = (base_chunk * offer_multiplier) + offer_chunk_bonus;
+			reward = Math.floor(getXPChunk(player_interface.getPlayerLevel()) * xp_chunk_amount);
+			player_interface.addXPChunkPercentage("ART_COLLECTOR_XP_REWARD", xp_chunk_amount, false)
+		} 
+		else {
+			reward = Math.floor((base_value * offer_multiplier) + offer_bonus);
+			player_interface.addFunds("collector", reward);
+		}
 
-		var does_not_collect = isOwnGallery(npc_object) && Math.random() < .4 && player_interface.procUniqueAttribute("COLLECTOR_DOES_NOT_COLLECT", undefined);
+		var does_not_collect = isOwnGallery(npc_object) && Math.random() < .15 && player_interface.procUniqueAttribute("COLLECTOR_DOES_NOT_COLLECT", undefined);
 
 		if (!does_not_collect) {
 			removeItem(collector_target._id, "collector", undefined)
@@ -117,7 +130,7 @@ collectorInteraction = function(npc_object, player_interface) {
         	'item': collector_target, 
         	'message': message,
         	'does_not_collect': does_not_collect,
-        	'offer_amount': offer_amount,
+        	'offer_amount': reward,
         	'xp_offer': xp_offer,
         };       
 

@@ -133,8 +133,9 @@ Meteor.setInterval((function() {
     getFromCollection("interval_methods.js", galleries, {'tutorial': {$ne: true}}).forEach(function(gallery_object) {
         npcs.remove({'owner_id': gallery_object.owner_id});
 
-        if (gallery_object.gallery_rarity_npc_coefficient <= 0)
+        if (gallery_object.gallery_rarity_npc_coefficient <= 0) {
             return;
+        }
 
         var attribute_ids = Object.keys(gallery_object.procs);
         var rarity_npc_coefficient = gallery_object.gallery_rarity_npc_coefficient;
@@ -146,31 +147,36 @@ Meteor.setInterval((function() {
 
             if (Math.random() < proc_chance) {
                 var attribute_object = getOneFromCollection("interval_methods.js", attributes, attribute_ids[i]);
-                var npc_quality;
+                var npc_quality = undefined;
 
-                if (attribute_object.npc_name == "Art Collector" && owner_interface.procUniqueAttribute("COLLECTOR_MAX_QUALITY"), undefined) {
-                    if (owner_object.profile.npcs_met.platinum < npc_max_map.platinum)
+                if (attribute_object.npc_name == "Art Collector" && owner_interface.procUniqueAttribute("COLLECTOR_MAX_QUALITY", undefined)) {
+                    if (owner_object.profile.npcs_met.platinum < npc_max_map.platinum) {
                         npc_quality = "platinum";
-
-                    else if (owner_object.profile.npcs_met.gold < npc_max_map.gold) 
+                    }
+                    else if (owner_object.profile.npcs_met.gold < npc_max_map.gold) { 
                         npc_quality = "gold";
-
-                    else if (owner_object.profile.npcs_met.siler < npc_max_map.silver) 
+                    }
+                    else if (owner_object.profile.npcs_met.silver < npc_max_map.silver) {
                         npc_quality = "silver";
-
-                    else if (owner_object.profile.npcs_met.bronze < npc_max_map.bronze) 
+                    }
+                    else if (owner_object.profile.npcs_met.bronze < npc_max_map.bronze) {
                         npc_quality = "bronze";
+                    }
+                }
+                
+                if (npc_quality == undefined) {
+                    npc_quality = getNPCQuality(owner_interface.getPlayerLevel());
                 }
 
-                var npc_quality = getNPCQuality(getOneFromCollection("interval_methods.js", Meteor.users, gallery_object.owner_id).profile.level);
                 createNPC(gallery_object, attribute_ids[i], NPC_SPAWN_FREQUENCY, npc_quality);
 
                 if ((npc_quality == "platinum") && owner_interface.procUniqueAttribute("COLLECTOR_DONOR_PAIR", undefined)) {
-                    if (attribute_object.npc_name == "Art Collector")
+                    if (attribute_object.npc_name == "Art Collector") {
                         createNPC(gallery_object, getOneFromCollection("interval_methods.js", attributes, {'npc_name': "Art Donor"})._id, NPC_SPAWN_FREQUENCY, "bronze")
-                        
-                    else if (attribute_object.npc_name == "Art Donor")
+                    }
+                    else if (attribute_object.npc_name == "Art Donor") {
                         createNPC(gallery_object, getOneFromCollection("interval_methods.js", attributes, {'npc_name': "Art Collector"})._id, NPC_SPAWN_FREQUENCY, "bronze")
+                    }
                 }
             }
         }

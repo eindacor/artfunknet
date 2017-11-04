@@ -838,29 +838,6 @@ Meteor.methods({
             {$sort: {artist : 1} }
         ]);
 
-        //
-
-        // var aggregate_items = items.aggregate([
-        //     {$match: {'owner': Meteor.userId(), 'status': {$in: valid_statuses}}}, 
-        //     {$project: { _id: 0, artist: "$artwork_data.artist", artist_id: "$artwork_data.artist_id"} },
-        //     {$sort: {artist : 1} }
-        // ]);
-
-        // var forgeable_artists = _.uniq(aggregate_items, false, function(agg_object) {return agg_object.artist_id});
-        // var forgeable_artist_id_array = [];
-        // for (var i=0; i<forgeable_artists.length; i++) {
-        //     forgeable_artist_id_array.push(forgeable_artists[i].artist_id);
-        // }
-
-        // and_query_array.push({'artist_id': {'$in': forgeable_artist_id_array}});
-        // var match_query = {'$and': and_query_array};
-
-        // var aggregate_artworks = artworks.aggregate([
-        //     {$match: match_query}, 
-        //     {$project: { _id: 0, artist: "$artist", artist_id: "$artist_id"} },
-        //     {$sort: {artist : 1} }
-        // ]);
-
         var unique_artist_array = _.uniq(aggregate_artworks, false, function(agg_object) {return agg_object.artist});
 
         var current_page;
