@@ -13,6 +13,9 @@ var special_attribute_unique_attribute_tracker = new Tracker.Dependency;
 var special_attribute_unique_attributes = [];
 var generate_artwork_errors = [];
 var generate_artwork_error_tracker = new Tracker.Dependency;
+var beta_request_tracker = new Tracker.Dependency;
+
+var beta_requests = undefined;
 
 var selected_artwork = undefined;
 
@@ -829,6 +832,32 @@ Template.adminTools.events({
 			if (error)
 				console.log(error);
 		})
+	},
+
+	'click #approve-beta': function(element) {
+		var key_id = $(element.target).closest('.request-text').data().key_id;
+		Meteor.call('approveBetaKey', key_id, function(error, result) {
+			if (error) {
+				console.log(error.message)
+			}
+			else {
+				beta_requests = undefined;
+				beta_request_tracker.changed();
+			}
+		})
+	},
+
+	'click #deny-beta': function(element) {
+		var key_id = $(element.target).closest('.request-text').data().key_id;
+		Meteor.call('denyBetaKey', key_id, function(error, result) {
+			if (error) {
+				console.log(error.message)
+			}
+			else {
+				beta_requests = undefined;
+				beta_request_tracker.changed();
+			}
+		})
 	}
 });
 
@@ -1205,6 +1234,25 @@ Template.adminTools.helpers({
 			return artworks.find({'unique_attributes': {$in : [unique_attribute_object._id]}});
 
 		else return [];
+	},
+
+	'request': function() {
+		beta_request_tracker.depend();
+
+		if (beta_requests == undefined) {
+			Meteor.call('getBetaRequests', function(error, result) {
+				if (error) {
+					console.log(error.message);
+				}
+				else {
+					console.log(result);
+					beta_requests = result;
+					beta_request_tracker.changed();
+				}
+			})
+		}
+
+		return beta_requests;
 	}
 })
 
@@ -1216,4 +1264,5 @@ Template.adminTools.rendered = function() {
 	selected_artwork_special_attributes_selected = [];
 	generate_artwork_errors = [];
 	updateAdminData();
+	beta_requests = undefined;
 }

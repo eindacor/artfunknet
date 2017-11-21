@@ -95,3 +95,12 @@
 	margin: 4px 8px;
 	width: 150px;
 }
+
+.template-adminTools .request-text {
+	color: black;
+	font-size: 2rem;
+}
+
+.template-adminTools .request-text i {
+	cursor: pointer;
+}

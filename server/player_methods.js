@@ -240,7 +240,7 @@ Meteor.methods({
         }
     },
 
-    'validateCreateLogin' : function(user_object, confirmed_password) {
+    'validateCreateLogin' : function(user_object, beta_key, confirmed_password) {
         try {
             var errors = [];
 
@@ -272,6 +272,12 @@ Meteor.methods({
             if (Meteor.users.find({'emails.0.address': user_object.email}).count() > 0)
                 errors.push("A user with that email address already exists");
 
+            var beta_key_object = beta_keys.findOne({'approved': true, 'email_address': user_object.email, 'key': beta_key});
+
+            if (beta_key_object == undefined) {
+                errors.push("Invalid beta key");
+            }
+
             if (errors.length == 0) {
                 createUser(user_object);
             }
@@ -280,7 +286,9 @@ Meteor.methods({
         }
 
         catch(error) {
-            return [error.message];
+            var errors = [];
+            errors.push(error.message);
+            return errors;
         }
     },
 
@@ -1017,6 +1025,49 @@ Meteor.methods({
         var player_interface = new PlayerIF(Meteor.user());
         var forgeable_artwork_ids = player_interface.getForgeableArtworkIds();
         return artworks.find({'artist_id': artist_object._id, '_id': {$in: forgeable_artwork_ids}}).fetch();
+    },
+
+    'requestBetaKey': function(user_email) {
+        var regex = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+        if (!regex.test(user_email)) {
+            return {
+                'error_message': "Invalid email address"
+            }
+        }
+
+        var existing_key = beta_keys.findOne({'email_address': user_email});
+
+        if (existing_key) {
+            if (existing_key.approved) {
+                return {
+                    'message': "Your beta key is " + existing_key.key
+                }
+            }
+            else {
+                return {
+                    'message': "A beta key has already been assigned to this email address and is awaiting approval."
+                }
+            }
+        }
+
+        else {
+            var unique_key = new Meteor.Collection.ObjectID()._str;
+            var beta_key_object = {
+                'approved': false,
+                'email_address': user_email,
+                'created': getNowISOString(),
+                'key': unique_key
+            }
+
+            beta_keys.insert(beta_key_object);
+
+            var admin_interface = new PlayerIF(Meteor.users.findOne({'profile.screen_name': "admin"}));
+            admin_interface.alert("Beta key requested -> " + user_email, 'fa-key', 'good');
+
+            return {
+                'message': "Your beta key request has been recorded. You will be notified when it is approved."
+            }
+        }
     }
 })
 
@@ -1057,4 +1108,13 @@ var getArtistCollectionData = function(player_interface, artist_interface, rarit
         'available': total_items_available,
         'has': player_has
     };
+}
+
+emailUser = function(user_email, subject, message) {
+    Email.send({
+        'to': user_email, 
+        'from': "artfunkelgame@gmail.com", 
+        'subject': subject, 
+        'text': message
+    });
 }

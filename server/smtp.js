@@ -1,6 +1,6 @@
 setupMail = function() {
     Accounts.emailTemplates.from = 'Artfunkel <artfunkelgame@gmail.com>';
-    Accounts.emailTemplates.siteName = 'http://www.artfunkelgame.com';
+    Accounts.emailTemplates.siteName = 'http://artfunkelgame.com';
    
     Accounts.emailTemplates.verifyEmail.subject = function(user) {
         return 'Artfunkel: Please Confirm Your Email Address';

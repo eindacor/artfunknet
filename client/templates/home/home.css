@@ -145,6 +145,12 @@
 	color: red;
 }
 
+.template-home #messages {
+	margin-top: 2rem;
+	color: green;
+	font-weight: bold;
+}
+
 .template-home .error {
 	font-size: 1.4rem;
 	color: black;

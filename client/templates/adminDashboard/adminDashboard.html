@@ -32,6 +32,13 @@
 				</div>
 
 				<div class="row tools-section">
+					<h4 class="af-color">Beta Key Requests</h4>
+					{{#each request}}
+						{{> betaRequest key_object=this}}
+					{{/each}}
+				</div>
+
+				<div class="row tools-section">
 					<h4 class="af-color">Profile Modifier</h4>
 					<div class="col-xs-12">
 						{{> settable_field set_id="set_level" current=player_level button_id="level-set" label="player level"}}
@@ -486,5 +493,11 @@
 <template name="adminButton">
 	<div class="row">
 		<button id="{{button_id}}" class="set-button">{{button_label}}</button>
+	</div>
+</template>
+
+<template name="betaRequest">
+	<div class="row">
+		<p data-key_id="{{key_object._id}}" class="request-text"><i class="green-text fa fa-check" id="approve-beta"></i> <i class="red-text fa fa-times" id="deny-beta"></i> {{key_object.email_address}} - {{key_object.created}}</p>
 	</div>
 </template>

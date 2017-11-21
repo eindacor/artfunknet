@@ -58,22 +58,25 @@ var loginNewUser = function(user_object) {
     });
 }
 
-var validateCreateLogin = function(user_object, confirmed_password) {
+var validateCreateLogin = function(user_object, beta_key, confirmed_password) {
     //this method returns an array of errors encountered
-    Meteor.call('validateCreateLogin', user_object, confirmed_password, function(error, returned_errors) {
+    Meteor.call('validateCreateLogin', user_object, beta_key, confirmed_password, function(error, returned_errors) {
         if (error) {
             console.log(error.message);
         }
 
         else if (returned_errors.length) {
-            console.log('errors: ' + returned_errors)
             Session.set('registrationErrors', returned_errors);
             $('#errors').show();
+            Session.set('registrationMessages', []);
+            $('#messages').hide();
         }
 
         else {
             Session.set('registrationErrors', []);
             $('#errors').hide();  
+            Session.set('registrationMessages', []);
+            $('#messages').hide();
             loginNewUser(user_object); 
         }
     });
@@ -110,6 +113,10 @@ Template.home.helpers({
 	'error' : function() {
         var errors = Session.get('registrationErrors');
         return errors;
+    },
+
+    'message': function() {
+    	return Session.get('registrationMessages');
     }
 })
 
@@ -141,7 +148,7 @@ Template.home.events({
             }
         };
 
-        validateCreateLogin(user_object, template.find('#rtpassword').value);
+        validateCreateLogin(user_object, template.find('#beta-key').value, template.find('#rtpassword').value);
     },
 
     'click #register-link': function() {
@@ -152,6 +159,33 @@ Template.home.events({
     'click #login-link': function() {
     	$('#register-area').hide();
     	$('#login-area').show();
+    },
+
+    'click #beta-request': function(event, template) {
+    	event.preventDefault();
+    	var email_address = template.find('#email').value.toLowerCase();
+    	Meteor.call('requestBetaKey', email_address, function(error, response) {
+	        if (error) {
+	            console.log(error.message);
+	        }
+
+	        var messages = [];
+	        
+	        if (response.error_message != undefined) {	
+	        	messages.push(response.error_message);
+	            Session.set('registrationMessages', []);
+	            Session.set('registrationErrors', messages);
+	            $('#errors').show();
+	            $('#messages').hide();
+	        }
+	        else {
+	        	messages.push(response.message);
+	            Session.set('registrationMessages', messages);
+	            Session.set('registrationErrors', []);
+	            $('#errors').hide();   
+	            $('#messages').show();  	
+	        }   
+    	});
     }
 });
 

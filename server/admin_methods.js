@@ -536,6 +536,29 @@ Meteor.methods({
         if (adminValidated()) {
             removeBots();
         }
+    },
+
+    'approveBetaKey': function(key_id) {
+        if (adminValidated()) {
+            var beta_key_object = beta_keys.findOne(key_id);
+            beta_keys.update({'_id': beta_key_object._id}, {$set: {'approved': true}});
+            emailUser(beta_key_object.email_address, "Your Artfunkel beta key", "Your Artfunkel beta key is " + beta_key_object.key);
+        }
+    },
+
+    'denyBetaKey': function(key_id) {
+        if (adminValidated()) {
+            var beta_key_object = beta_keys.findOne(key_id);
+            beta_keys.remove({'_id': beta_key_object._id});
+        }
+    },
+
+    'getBetaRequests': function() {
+        if (adminValidated()) {
+            return beta_keys.find({'approved': false}, {sort: {'created': 1}}).fetch();
+        }
+
+        else return [];
     }
 })
 

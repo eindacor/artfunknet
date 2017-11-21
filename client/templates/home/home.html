@@ -13,7 +13,7 @@
 						<div id="login-area">
 							<input type="email" class="form-control input-lg" id="login-email" placeholder="email address"/>
 		                    <input type="password" class="form-control input-lg" id="login-password" placeholder="password"/>
-		                    <button id="login" class="home-button" type="submit">login</button>
+		                    <button id="login" type="submit">login</button>
 							<p id="register">Don't have an account? Click <a href="#" id="register-link">here</a> to register</p>
 							<p id="forgot">Forget your password? Click <a href="/reset">here</a> to reset.</p>			
 						</div>
@@ -29,6 +29,11 @@
 			                            <p class="error">{{this}}</p>
 			                            {{/each}}
 			                        </div>
+			                        <div class="col-xs-12 no-padding" id="messages">
+			                        	{{#each message}}
+			                            <p class="message">{{this}}</p>
+			                            {{/each}}
+			                        </div>
 			                    </div>
 
 			                    <div class="row no-padding">
@@ -40,6 +45,11 @@
 			                    </div>
 
 			                    <div class="row no-padding">
+			                    	<input type="text" class="form-control input-lg" id="beta-key" placeholder="beta key">
+			                    	<button id="beta-request">request key</button>
+			                    </div>
+
+			                    <div class="row no-padding">
 		                            <p class="password-instructions">(passwords must contain an uppercase letter, lowercase letter, and a number)</p>
 		                            <input type="password" class="form-control input-lg" id="password" placeholder="password">
 		                            <input type="password" class="form-control input-lg" id="rtpassword" placeholder="re-enter password">
@@ -48,7 +58,7 @@
 			                    <!-- need a date selector for birthday -->
 
 			                    <div class="row no-padding">
-									<button class="home-button" id="register-button">register</button> 
+									<button id="register-button">register</button> 
 			                    </div>  
 			                </form>
 						</div>

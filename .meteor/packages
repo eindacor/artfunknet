@@ -30,3 +30,4 @@ mrt:jquery-ui
 chart:chart
 percolate:synced-cron
 meteorhacks:aggregate
+email
