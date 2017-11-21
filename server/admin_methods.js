@@ -542,7 +542,8 @@ Meteor.methods({
         if (adminValidated()) {
             var beta_key_object = beta_keys.findOne(key_id);
             beta_keys.update({'_id': beta_key_object._id}, {$set: {'approved': true}});
-            emailUser(beta_key_object.email_address, "Your Artfunkel beta key", "Your Artfunkel beta key is " + beta_key_object.key);
+            var message = '<h2>Your Artfunkel beta key is <span style="color:#FF33CC">' + beta_key_object.key + '</span></h2> <p>Visit <a href="http://artfunkelgame.com">artfunkelgame.com</a> and follow the registration link to create your account!</p>';
+            emailUser(beta_key_object.email_address, "Your Artfunkel beta key", message);
         }
     },
 

@@ -1110,11 +1110,11 @@ var getArtistCollectionData = function(player_interface, artist_interface, rarit
     };
 }
 
-emailUser = function(user_email, subject, message) {
+emailUser = function(user_email, subject, html) {
     Email.send({
         'to': user_email, 
         'from': "artfunkelgame@gmail.com", 
         'subject': subject, 
-        'text': message
+        'html': html
     });
 }
