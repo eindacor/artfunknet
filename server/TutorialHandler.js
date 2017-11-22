@@ -25,6 +25,14 @@ TutorialHandler = function() {
 	}
 }
 
+var getTutorialImageString = function(image_name) {
+	return "https://s3.amazonaws.com/com.artfunkel.tutorial-images/" + image_name;
+}
+
+var getTutorialImageHtml = function(image_name) {
+	return '<img class="tutorial-image" src="' + getTutorialImageString(image_name) + '" width=100%"/>';
+}
+
 TUTORIAL_HANDLER = new TutorialHandler();
 
 Meteor.methods({
@@ -62,25 +70,23 @@ TUTORIAL_HANDLER.add("artfunkel basics", [
 	'<p>Works can be purchased from art dealers, given to you by donors, or found in crates you purchase.</p>',
 	'<p>The best way to make money and get new art is to meet visitors in other galleries, click the <i class="af-color fa fa-globe"></i> button in the navigation bar to check them out.</p>',
 	'<p>In the gallery menu, each card shows lots of information about that players’ gallery, but the part we’re interested in is the visitor breakdown (the row of icons).</p>',
-	'<p>When you hover your mouse over a gallery card, you’ll notice values pop up next to each icon. These icons represent visitor types, and the value shows the likelihood of that visitor type being in that gallery.</p>',
+	'<p>When you hover your mouse over a gallery card, you’ll notice values pop up next to each icon. These icons represent visitor types, and the value shows the likelihood of that visitor type being in that gallery.</p>' + getTutorialImageHtml("gallery_stats.jpg"),
 	'<p>Click on the <i class="af-color fa fa-sign-in"></i> button of the gallery card to pay the entry fee and enter to meet some visitors.</p>',
-	'<p>In the player gallery area, you can view other players\' displayed items. The icons at the top represent visitors you can meet, who give you various bonuses.</p>',
-	'<p>For example has a benefactor (<i class="af-color fa fa-money"></i>) gives you money, an enthusiast (<i class="af-color fa fa-smile-o"></i>) gives you XP, and a donor (<i class="af-color fa fa-share-square fa-flip-horizontal"></i>) gives you new artworks!</p>',
-	'<p>Meet each visitor by left-clicking on their icon. You can also right-click to dismiss them instead.</p>',
-	'<p>When you have new loot available to you, the <i class="af-color fa fa-gift"></i> icon will appear in the nav bar. Items in this section are automatically removed if they are not claimed before a certain amount of time.</p>',
-	'<p>Hovering over an artwork shows you the available actions for that item (be sure to check the "item actions" tutorial to learn more about each).</p>',
+	'<p>In the player gallery area, you can view other players\' displayed items. If there are any visitors in the gallery, they will appear as icons at the top.</p>' + getTutorialImageHtml("visitors.jpg"),
+	'<p>Meet each visitor by left-clicking on their icon. When you meet visitors they give you rewards depending on their type. You can also right-click to dismiss them instead.</p>',
+	'<p>When you have new loot available to you, the <i class="af-color fa fa-gift"></i> icon will appear in the nav bar, which takes you to the loot section. Items in this section are automatically removed if they are not claimed before a certain amount of time.</p>' + getTutorialImageHtml("loot_section.jpg"),
+	'<p>Hovering over an artwork shows you the available actions for that item (be sure to check the "item actions" tutorial to learn more about each).</p>' + getTutorialImageHtml("hover_item.jpg"),
 	'<p>To attract visitors to your own gallery, you need to display some of your items. Visit galleries, purchase crates, or collect your "daily drop" from the loot area to start your collection. Once you\'ve added a few artworks to your collection, go to your inventory and click "next".</p>',
 	'<p>The icons at the bottom of each card are called "attributes". They indicate what visitors that item will attract to your gallery. Hover over the items and click the <i class="af-color fa fa-picture-o"></i> button to put them in your gallery, then click the gallery tab on your dashboard.</p>',
 	'<p>Once you have put items up for display, your gallery will be capable of attracting its own visitors. Visitors in your own gallery give you better bonuses than those in other galleries.</p>',
 	'<p>Next, click the <i class="af-color fa fa-shopping-cart"></i> button in the navigation bar to check out the store.</p>',
 	'<p>From the store you can find purchasable crates of items as well as offers you receive from art dealers.</p>',
-	'<p>Purchase one of the crates available, claim your new items from the loot page, then head back to your inventory.</p>',
-	'<p>You’ll want to make sure your gallery is optimized to attract the visitors you want most, which means all of your display items should have similar attributes.</p>',
+	'<p>While curating your gallery, you’ll want to make sure your it is optimized to attract the visitors you want most, which means all of your display items should have similar attributes.</p>',
 	'<p>You can change certain attributes by hovering over an item and clicking the <i class="af-color fa fa-magic"></i> button. Do this to one of your items (that isn\'t currently on display).</p>',
-	'<p>From the mod menu, you can spend money to modify attributes and their values to make an item a better fit for your gallery.</p>',
-	'<p>To change an attribute, and therefore changing the type of visitors it attracts, click the “attribute” button. Note: this also randomizes the attribute value.</p>',
-	'<p>The higher the attribute value, the more likely those visitors will show up in your gallery. Click the “value” button to change the value of that particular attribute to a new random value.</p>',
-	'<p>You might notice the more you "reroll" an item, the more it costs to modify. To reduce the "roll count" of an item, you\'ll have to meet Art Experts in galleries.</p>',
+	'<p>From the mod menu, you can spend money to modify attributes and their values to make an item a better fit for your gallery.</p>' + getTutorialImageHtml("mod_menu.jpg"),
+	'<p>To change an attribute, and therefore changing the type of visitors it attracts, click the “attribute” button. Note: this also randomizes the attribute value.</p>' + getTutorialImageHtml("mod_attribute.jpg"),
+	'<p>The higher the attribute value, the more likely those visitors will show up in your gallery. Click the “value” button to change the value of that particular attribute to a new random value.</p>' + getTutorialImageHtml("mod_value.jpg"),
+	'<p>You might notice the more you "reroll" an item, the more it costs to modify. To reduce the "roll count" of an item, you\'ll have to meet Art Experts in galleries.</p>' + getTutorialImageHtml("mod_cost.jpg"),
 	'<p>You’ve now learned the basic mechanics of Artfunkel. Meet visitors, get new items, modify them as you wish, and curate your own gallery. But there’s an awful lot more to the game, including an auction house, artwork forging, quests, your personal archive, and a weekly lottery to name a few.</p>',
 	'<p>To learn more about the game, please visit the <a target="_blank" href="http://artfunkel.wikia.com/wiki/Artfunkel_Wiki">wiki</a> and join the <a target="_blank" href="https://discord.gg/A9baZCh">discord channel</a>, where you can ask for help or tips from the developer and/or seasoned Artfunkel veterans.</p>',
 	'<p>You can also replay this tutorial or try others by clicking the <i class="fa fa-question af-color"></i> button in your navigation bar.</p>',

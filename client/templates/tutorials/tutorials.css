@@ -33,3 +33,10 @@
 .template-tutorials #exit-tutorial:hover {
 	opacity: 1;
 }
+
+.template-tutorials .tutorial-image {
+	border-radius: 10px;
+	border: 1px solid #888888;
+	margin-top: 6px;
+	margin-bottom: 6px;
+}
