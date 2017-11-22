@@ -33,9 +33,7 @@
 			{{/if}}
 		</div>
 
-		{{#if inventoryIsFull}}
-		<p>Note: your inventory is currently full. You will be unable to add new artwork to your inventory</p>
-		{{/if}}
+		{{> unclaimedWarning}}
 
 		{{> itemSet statuses=item_set_statuses show_price=true}}
 
@@ -62,6 +60,17 @@
 				</p>
 				{{/with}}	
 			</div>		
+		</div>
+	</div>
+</template>
+
+<template name="unclaimedWarning">
+	<div class="template-unclaimedWarning">
+		<div class="row warning-area">
+			<p>Warning: Unclaimed items will eventually disappear unless claimed/purchased.</p>
+			{{#if inventoryIsFull}}
+			<p>Your inventory is currently full. You will be unable to add new artwork to your inventory</p>
+			{{/if}}
 		</div>
 	</div>
 </template>
