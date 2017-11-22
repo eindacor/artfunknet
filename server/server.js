@@ -198,49 +198,8 @@ var updateContent = function() {
 
     //removeBots();
 
-    npcs.remove({'tutorial': true});
-    var npc_name = "Benefactor";
-    var benefactor_tutorial_npc = {
-        "quality" : "bronze",
-        "attribute_id" : attributes.findOne({'npc_name': npc_name})._id,  
-        "owner_id" : TUTORIAL_PLAYER_IDS[0],
-        "expiration" : null,
-        "players_met" : [ ],
-        "icon" : attributes.findOne({'npc_name': npc_name}).icon,
-        "npc_name" : npc_name,
-        'tutorial': true
-    }
-
-    npc_name = "Art Enthusiast";
-    var enthusiast_tutorial_npc = {
-        "quality" : "gold",
-        "attribute_id" : attributes.findOne({'npc_name': npc_name})._id,  
-        "owner_id" : TUTORIAL_PLAYER_IDS[0],
-        "expiration" : null,
-        "players_met" : [ ],
-        "icon" : attributes.findOne({'npc_name': npc_name}).icon,
-        "npc_name" : npc_name,
-        'tutorial': true
-    }
-
-    npc_name = "Art Donor";
-    var donor_tutorial_npc = {
-        "quality" : "silver",
-        "attribute_id" : attributes.findOne({'npc_name': npc_name})._id,   
-        "owner_id" : TUTORIAL_PLAYER_IDS[0],
-        "expiration" : null,
-        "players_met" : [ ],
-        "icon" : attributes.findOne({'npc_name': npc_name}).icon,
-        "npc_name" : npc_name,
-        'tutorial': true
-    }
-
-    npcs.insert(benefactor_tutorial_npc);
-    npcs.insert(enthusiast_tutorial_npc);
-    npcs.insert(donor_tutorial_npc);
-    updateBot(new PlayerIF(Meteor.users.findOne({'_id': {$in: TUTORIAL_PLAYER_IDS}})), ["Benefactor", "Art Enthusiast", "Art Donor", "Preservationist", "Forger"]);
-
     //temp code
+    npcs.remove({'tutorial': true});
     //temp code
 
     // var desired_bot_count = 100;
@@ -271,6 +230,10 @@ var updateContent = function() {
             player_interface.updateCaps();
             player_interface.refresh();
             player_interface.updateGalleryDetails();    
+
+            if (user_object.profile.tutorial_data.current_tutorial == "artfunkel basics") {
+                player_interface.beginTutorial();
+            }
         });
     }, 2000);
 

@@ -2,9 +2,7 @@
 	<div class="template-randomDrop">
 		<div class="row no-padding">
 			<div class="crate-buttons">
-				{{#if show_daily_drop}}
-					<button class="{{#if dailyDropEnabled}}enabled{{else}}disabled{{/if}}" id="drop-button">{{dailyDropText dailyDropEnabled}}</button>
-				{{/if}}
+				<button class="{{#if dailyDropEnabled}}enabled{{else}}disabled{{/if}}" id="drop-button">{{dailyDropText dailyDropEnabled}}</button>
 				{{#if has_unclaimed}}
 				<button id="sell-all">sell all</button>
 				<button id="donate-all">donate all</button>

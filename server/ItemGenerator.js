@@ -175,29 +175,7 @@ ItemGenerator = function() {
  		var forgery_chance = multi_item_generator_object.forgery_chance === undefined ? 0 : multi_item_generator_object.forgery_chance;
 
 	    for (var i=0; i < parseInt(multi_item_generator_object.count); i++) {
-	    	var rarity_roll;
-	    	if (player_interface != undefined && player_interface.tutorialMode()) {
-		    	rarity_roll = i % 2 == 0 ? "uncommon" : "common";
-		    	attribute_map = {};
-			    if (player_interface != undefined && player_interface.tutorialMode()) {
-			    	if (multi_item_generator_object.status == "unclaimed") {
-			    		var first_id = attributes.findOne({'npc_name': "Art Dealer"})._id;
-			    		var second_id = attributes.findOne({'npc_name': "Preservationist"})._id;
-			    		attribute_map[first_id] = 1;
-			    		attribute_map[second_id] = 1;
-			    	}
-
-			    	else if (multi_item_generator_object.status == "for_sale") {
-			    		var first_id = attributes.findOne({'npc_name': "Art Dealer"})._id;
-			    		var second_id = attributes.findOne({'npc_name': "Art Historian"})._id;
-			    		attribute_map[first_id] = 1;
-			    		attribute_map[second_id] = 1;
-			    	}
-			    }
-		    }
-
-	        else rarity_roll = JepLoot.catRoll(rarity_map);
-
+	    	var rarity_roll = JepLoot.catRoll(rarity_map);
 	        var attribute_array = getAttributeArray(rarity_roll, attribute_map);
 	        var artwork_interface = selectArtwork(rarity_roll, attribute_array, seasonal_amplifier);
 	        var forgery = multi_item_generator_object.forgery === undefined ? Math.random() < forgery_chance : multi_item_generator_object.forgery;
@@ -220,10 +198,6 @@ ItemGenerator = function() {
 	            'forgery': forgery,
 	            'forgery_quality': multi_item_generator_object.forgery_quality,
 	            'min_roll_boost': min_roll_boost
-	        }
-
-	        if (player_interface != undefined && player_interface.tutorialMode() && multi_item_generator_object.status == "for_sale") {
-	        	item_generator.unlocked = true;
 	        }
 
 	        item_ids.push(this.generateSingle(item_generator, player_interface, callback));
@@ -269,7 +243,6 @@ ItemGenerator = function() {
 			seasonal_amplifier
 			attribute_map
 			level
-			tutorial
 
 			condition
 				or
@@ -344,12 +317,6 @@ ItemGenerator = function() {
 	    var condition_min = item_generator_object.condition_min === undefined ? 0 : item_generator_object.condition_min;
 	    var min_roll_boost = item_generator_object.min_roll_boost === undefined ? 0 : item_generator_object.min_roll_boost;
 
-	    var tutorial;
-	    if (item_generator_object.tutorial === undefined) {
-	    	tutorial =  player_interface !== undefined && player_interface.tutorialMode();
-	    }
-	    else tutorial = item_generator_object.tutorial;
-
 	    var new_item_object = {
 	        'artwork_id' : item_generator_object.artwork_interface.getId(),
 	        'condition' : item_generator_object.condition === undefined ? getCondition(condition_min) : item_generator_object.condition,
@@ -379,7 +346,6 @@ ItemGenerator = function() {
 	        'tags': [],
 	        'artwork_data': artwork_data,
 	        'permanent': false,
-	        'tutorial': tutorial,
 	        'repairing': false
 	    };
 
@@ -428,7 +394,6 @@ ItemGenerator = function() {
 	        'tags': [],
 	        'artwork_data': forged_item_object.artwork_data,
 	        'permanent': false,
-	        'tutorial': forged_item_object.tutorial === undefined ? false : forged_item_object.tutorial,
 	        'repairing': false
 	    };
 

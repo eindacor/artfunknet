@@ -634,8 +634,7 @@ generateNewLotteryItems = function() {
             'artwork_interface': artwork_interface,
             'lottery': 1,
             'original': false,
-            'status': "claimed", 
-            'tutorial': false,
+            'status': "claimed"
         };
 
         ITEM_GENERATOR.generateSingle(item_generator, undefined, function(item_object) {

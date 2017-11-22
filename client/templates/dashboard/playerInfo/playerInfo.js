@@ -74,13 +74,6 @@ Template.playerInfo.events({
 			if (error)
 				console.log(error.message);
 		})
-	},
-
-	'click #tutorial-mode': function() {
-		Blaze.renderWithData(Template.modalTemplate, {
-			'modal_name': "tutorialMenuModal", 
-			'modal_data': {}
-		}, $('body')[0]);
 	}
 });
 
@@ -161,10 +154,6 @@ Template.playerInfo.helpers({
 
 	'max_level': function() {
 		return Meteor.user().profile.level >= 50;
-	},
-
-	'tutorial_mode': function() {
-		return Meteor.user().profile.tutorial_data.current_tutorial != undefined;
 	},
 
 	'unselected': function(current_tier) {

@@ -905,21 +905,6 @@ Meteor.methods({
         player_interface.changeTutorialStep(forward);
      },
 
-     'createTutorialNpcs': function() {
-        var npc_name = "Art Dealer";
-        var dealer_npc = {
-            "quality" : "bronze",
-            "attribute_id" : attributes.findOne({'npc_name': npc_name})._id,  
-            "owner_id" : Meteor.userId(),
-            "expiration" : null,
-            "players_met" : [ ],
-            "icon" : attributes.findOne({'npc_name': npc_name}).icon,
-            "npc_name" : npc_name,
-            'tutorial': true
-        }
-        npcs.insert(dealer_npc);
-     },
-
      'finishTutorials': function() {
         var player_interface = new PlayerIF(Meteor.user());
         player_interface.finishTutorials();

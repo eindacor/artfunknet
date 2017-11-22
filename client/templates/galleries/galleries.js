@@ -94,7 +94,7 @@ var updateGalleryQuery = function() {
 	var terms_entered = commaSeparatedValuesToArray($('#search-area').val());
 	var search_term_array = generateSearchTermArray(terms_entered);
 
-	gallery_query = {'tutorial': {$ne: true}, 'visible': true, 'score': {$gt: 0}};
+	gallery_query = {'score': {$gt: 0}};
 	if (search_term_array.length > 0) {
 		gallery_query['$or'] = search_term_array;
 	}
@@ -106,12 +106,7 @@ var updateGalleryQuery = function() {
 		gallery_query._id = {'$nin': Meteor.user().profile.favorite_galleries};
 	}
 
-	var all_gallery_array;
-	var player_interface = new PlayerIF(Meteor.user());
-	if (player_interface.tutorialMode()) {
-		all_gallery_array = galleries.find({'tutorial': true, 'score': {$gt: 0}}, {sort: {'score': -1}}).fetch();
-	}
-	else all_gallery_array = galleries.find(gallery_query, sort_object).fetch();
+	var all_gallery_array = galleries.find(gallery_query, sort_object).fetch();
 
 	var total_returned = all_gallery_array.length;
 

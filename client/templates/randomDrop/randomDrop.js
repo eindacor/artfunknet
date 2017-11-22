@@ -36,11 +36,6 @@ Template.randomDrop.helpers({
 			'owner': Meteor.userId(),
             'status': {$in: ["unclaimed", "won"]}
 		}) != undefined;
-	},
-
-	'show_daily_drop': function() {
-		var player_interface = new PlayerIF(Meteor.user());
-		return !player_interface.tutorialMode();
 	}
 })
 

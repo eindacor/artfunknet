@@ -231,13 +231,7 @@ updateItemArray = function() {
 	sorter_object[sorter] = ascending;
 
 	var player_interface = new PlayerIF(Meteor.user());
-	var tutorial_filter;
-
-	if (player_interface.tutorialMode()) {
-		tutorial_filter = {'tutorial': true};
-	}
-
-	else tutorial_filter = {'tutorial': {$ne: true}};
+	var tutorial_filter = {'tutorial': {$ne: true}};
 
 	var filter_array = [
 		status_filter,
