@@ -1,0 +1,55 @@
+<template name="forgeModal">
+	<div class="template-forgeModal col-xs-8">
+		<div class="message-container">
+			{{#with fetchServerData "getItemData" item_id}}
+			<div class="modal-message-area">
+				{{>itemInfo item_data=this}}
+				{{#if selected_forgery_contract_id}}
+					{{#with fetchServerData "getForgeryCost" _id selected_forgery_contract_id}}
+						{{#if canAfford this}}
+							<h4>Forge <span class="af-color work-title">{{../artwork_data.title}}</span> by <span class="af-color">{{../artwork_data.artist}}</span> for <span class="red-text">{{displayAsMoneyValue this}}</span>?</h4>
+							{{#with fetchServerData "getExpectedForgeryHeat" ../_id selected_forgery_contract_id}}
+								<p class="heat-text">heat level: <span style="color: {{forgery_heat_color this}}">{{heat_label this}}</span></p>
+							{{/with}}
+						{{else}}
+							<h4>Insufficient funds (<span class="red-text">{{displayAsMoneyValue this}}</span> required).</h4>
+						{{/if}}
+					{{/with}}
+				{{else}}
+					{{#if contract_count}}
+						<h4>Select a forgery contract from below.</h4>
+					{{else}}
+						<h4>You don't have any forgery contracts available. Meet forgers in player galleries to earn forgery contracts.</h4>
+					{{/if}}
+				{{/if}}
+			</div>
+			{{#if contract_count}}
+			<div class="forgery-contract-area">
+				{{#each forgery_contract}}
+					<div class="forgery-contract-container {{#if isEqual selected_forgery_contract_id _id}}selected af-color{{else}}unselected{{/if}}" data-forgery_contract_id="{{_id}}">
+						<i class="fa fa-user-secret contract-icon"></i>
+						<p class="forgery-quality-text">{{floatToPercentage quality}}</p>
+					</div>
+				{{/each}}
+				{{#if selected_forgery_contract_id}}
+					<div id="discard-forgery">
+						<i class="fa fa-trash"></i>
+						<p class="forgery-quality-text">discard</p>
+					</div>
+				{{/if}}
+			</div>
+			{{/if}}
+			<div class="modal-button-area">
+				{{#if selected_forgery_contract_id}}
+					{{#with fetchServerData "getForgeryCost" _id selected_forgery_contract_id}}
+						{{#if canAfford this}}
+							<button class="modal-button" id="forge-item" data-item_id="{{../_id}}">ok</button>
+						{{/if}}
+					{{/with}}
+				{{/if}}
+				<button class="modal-button close-button">close</button>
+			</div>
+			{{/with}}
+		</div>
+	</div>
+</template>

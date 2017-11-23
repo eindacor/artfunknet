@@ -117,8 +117,8 @@ TUTORIAL_HANDLER.add("forging", [
 	'<p>Players have the ability to forge artworks!</p>',
 	'<p>To create a forgery, you have to meet a Forger in a player gallery. Unlike other visitors, Forgers don\'t look like their associated attribute icon (<i class="af-color fa fa-user-secret"></i>).</p>',
 	'<p>Instead, they appear disguised as one of the other visitor types. To find forgers, you\'ll have to visit galleries and meet everyone you can.</p>',
-	'<p>Once you meet a Forger, they will offer you a forgery contract, and a forger icon will appear in your nav bar (<i class="red-text fa fa-user-secret"></i>).</p>',
-	'<p>To use the contract, select it in the forge menu, search and select a work of art, customize it as you wish, and click the "forge item" button. Note: you are only allowed to forge items that have been added to your archive.</p>',
+	'<p>Once you meet a Forger, they will offer you a forgery contract. To use the contract, find an item you wish to forge from your archive, and click the forge button (<i class="af-color fa fa-user-secret"></i>) from the actions section.</p>' + getTutorialImageHtml("forge_action.jpg"),
+	'<p>From the forging menu, select a forgery contract from the list, and create your new item.</p>' + getTutorialImageHtml("forge_menu.jpg"),
 	'<p>Once created, the forged item is placed in your loot area for you to claim. Be sure to check out the <a target="_blank" href="http://artfunkel.wikia.com/wiki/Forgeries">artfunkel wiki</a> to better understand how Forgeries work in the game.</p>'
 ])
 

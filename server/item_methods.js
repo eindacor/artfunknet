@@ -317,6 +317,10 @@ var setItemActions = function(item_object, player_item_permissions) {
         action_array.push("redeemItem");
     }
 
+    if (player_item_permissions.canForge()) {
+        action_array.push("forgeItem");
+    }
+
     if (player_item_permissions.canDelete()) {
         action_array.push("deleteItem");
     }
@@ -602,6 +606,11 @@ Meteor.methods({
         player_item_interface.redeem();
     },
 
+    'forgeItem': function(item_id, forgery_contract_id) {
+        var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
+        player_item_interface.forge(forgery_contract_id);
+    },
+
     'lookupOwner': function(item_id) {
         var item_object = items.findOne(item_id);
         if (item_object)
@@ -750,6 +759,16 @@ Meteor.methods({
         }
 
         return item_array;
+    },
+
+    'getExpectedForgeryHeat': function(item_id, forgery_contract_id) {
+        var player_interface = new PlayerIF(Meteor.user());
+        return player_interface.getExpectedForgeryHeat(new ItemIF(item_id), undefined, forgery_contract_id);
+    },
+
+    'getForgeryHeat': function(item_id) {
+        var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
+        return player_item_interface.getForgeryHeat(undefined);
     }
 })
 
@@ -769,4 +788,96 @@ getItemStubFromArtwork = function(artwork_id, item_data) {
     }
 
     return item_object;
+}
+
+getForgeryHeatFromQuality = function(item_interface, heat_category, forgery_quality, plausible_deniability) {
+    if (item_interface.isSeasonal() || item_interface.isLottery()) {
+        if (["legendary", "masterpiece"].indexOf(item_interface.getRarity()) == -1) {
+            return .99;
+        }
+    }
+
+    if (item_interface.isUnlocked() && item_interface.getRarity() == "uncommon") {
+        return .99;
+    }
+
+    var heat_min;
+    var heat_max;
+
+    switch(heat_category) {
+        case FORGERY_HEAT_CATEGORY.QUEST:
+            heat_min = .3;
+            heat_max = .95;
+            break;
+        case FORGERY_HEAT_CATEGORY.SELL:
+            heat_min = 0;
+            heat_max = .98;
+            break;
+        case FORGERY_HEAT_CATEGORY.DONATE:
+            heat_min = .1;
+            heat_max = .95;
+            break;
+        case FORGERY_HEAT_CATEGORY.COLLECTOR:
+            heat_min = .3;
+            heat_max = .99;
+            break;
+        case FORGERY_HEAT_CATEGORY.DISPLAY:
+            heat_min = .02;
+            heat_max = .08;
+            // heat_min = .02;
+            // heat_max = .08;
+            break;
+        default: 
+            heat_min = 0;
+            heat_max = 1;
+            break;
+    }
+
+    var heat_type_coefficient = 0;
+
+    var rarity_index = artwork_rarities.indexOf(item_interface.getItemObject().artwork_data.rarity);
+    var rarity_heat_coefficient = ((rarity_index + 1) / artwork_rarities.length) * FORGERY_TYPE_HEAT_COEFFICIENTS.RARITY;
+    heat_type_coefficient += rarity_heat_coefficient;
+
+    if (item_interface.isFoil()) {
+        heat_type_coefficient += FORGERY_TYPE_HEAT_COEFFICIENTS.FOIL;
+    }
+
+    if (item_interface.isUnlocked()) {
+        heat_type_coefficient += FORGERY_TYPE_HEAT_COEFFICIENTS.UNLOCKED;
+    }
+
+    if (item_interface.isSeasonal()) {
+        heat_type_coefficient += FORGERY_TYPE_HEAT_COEFFICIENTS.SEASONAL;
+    }
+
+    if (item_interface.isVintage()) {
+        heat_type_coefficient += FORGERY_TYPE_HEAT_COEFFICIENTS.VINTAGE;
+    }
+
+    if (item_interface.isLottery()) {
+        var lottery_heat_base_coefficient = .75;
+        var lottery_heat_coefficient = (1 - lottery_heat_base_coefficient) * (item_interface.getItemObject().lottery / 10);
+        heat_type_coefficient += (FORGERY_TYPE_HEAT_COEFFICIENTS.LOTTERY * (lottery_heat_base_coefficient + lottery_heat_coefficient));
+    }
+
+    if (item_interface.getLevel() > 1) {
+        heat_type_coefficient += (FORGERY_TYPE_HEAT_COEFFICIENTS.LEVEL * (item_interface.getLevel() / 10));
+    }
+
+    var quality_adjustment_coefficient = 1 - (.4 * forgery_quality);
+    heat_type_coefficient *= quality_adjustment_coefficient;
+
+    var heat_coefficient = heat_min + ((heat_max - heat_min) * Math.min(heat_type_coefficient, 1));
+
+    // reduce heat if not owner is unaware
+    if (plausible_deniability) {
+        heat_coefficient *= .3;
+    }
+
+    if (heat_category == FORGERY_HEAT_CATEGORY.COLLECTOR && player_interface.procUniqueAttribute("COLLECTOR_FORGERY_HEAT_REDUCTION", undefined)) {
+        heat_coefficient *= .8;
+    }
+
+    return Number(heat_coefficient.toFixed(3));
 }

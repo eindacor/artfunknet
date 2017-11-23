@@ -10,18 +10,10 @@ Meteor.setInterval((function() {
         removeItem(item_object._id, "failed to claim (" + item_object.status + ")", undefined);
     })
 
-    var auction_win_cutoff = moment().add(-1 * 12 * ONE_HOUR, 'milliseconds')._d.toISOString();
-    getFromCollection("interval_methods.js remove unclaimed won", items, {'status': 'won', 'date_received' : {$lt : auction_win_cutoff}, 'lottery': 0}).forEach(function(item_object) {
+    var auction_win_cutoff = moment().add(-1 * 24 * ONE_HOUR, 'milliseconds')._d.toISOString();
+    getFromCollection("interval_methods.js remove unclaimed won", items, {'status': 'won', 'date_received' : {$lt : auction_win_cutoff}}).forEach(function(item_object) {
         removeItem(item_object._id, "failed to claim (won)", undefined);
     })
-
-    // create auction for lottery items won instead of removing
-    getFromCollection("interval_methods.js reclaim lottery items", items, {'status': 'won', 'date_received' : {$lt : auction_win_cutoff}, 'lottery': {$ne: 0}}).forEach(function(item_object) {
-        var item_interface = new ItemIF(item_object);
-        item_interface.updateItem({$set: {'owner': BOT_USER_NAME, 'status': "auctioned", 'tags': []}}, true, function() {
-            createAuction(item_object._id, getItemObjectValueByType(getOneFromCollection("interval_methods.js", items, item_object._id), "actual", BOT_USER_NAME), -1, 1440, "public");
-        });
-    });
     
     alerts.remove({'time': {$lt: moment().add(-48, "hours")._d.toISOString()}});
 

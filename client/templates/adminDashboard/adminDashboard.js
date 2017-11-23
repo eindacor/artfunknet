@@ -1245,7 +1245,6 @@ Template.adminTools.helpers({
 					console.log(error.message);
 				}
 				else {
-					console.log(result);
 					beta_requests = result;
 					beta_request_tracker.changed();
 				}

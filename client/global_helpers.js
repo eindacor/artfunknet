@@ -191,3 +191,33 @@ Template.registerHelper('fetchServerData', function() {
 		console.log(error.message);
 	}
 })
+
+Template.registerHelper('forgery_heat_color', function(forgery_heat) {
+	var blue_value = Math.floor((1 - forgery_heat) * 255);
+	var red_value = Math.floor(forgery_heat * 255);
+	return "rgb(" + red_value + ", 0, " + blue_value + ")";
+})
+
+Template.registerHelper('heat_label', function(forgery_heat) {
+	if (forgery_heat < .2) {
+		return "very low";
+	}
+
+	else if (forgery_heat < .4) {
+		return "low";
+	}
+
+	else if (forgery_heat < .6) {
+		return "medium";
+	}
+
+	else if (forgery_heat < .8) {
+		return "high";
+	}
+
+	else return "very high";
+})
+
+Template.registerHelper('canAfford', function(amount) {
+	return Meteor.user().profile.bank_balance >= amount;
+})

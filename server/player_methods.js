@@ -885,14 +885,14 @@ Meteor.methods({
         return player_interface.getId() == item_interface.getItemObject().owner && item_interface.isIdentifiedForgery();
      },
 
-     'forgeItem': function(forged_item_object, forgery_contract_id) {
-        var player_interface = new PlayerIF(Meteor.user());
-        return player_interface.forgeItem(forged_item_object, forgery_contract_id);
-     },
+     // 'forgeItem': function(forged_item_object, forgery_contract_id) {
+     //    var player_interface = new PlayerIF(Meteor.user());
+     //    return player_interface.forgeItem(forged_item_object, forgery_contract_id);
+     // },
 
-     'getForgeryCost': function(forged_item_object, forgery_quality) {
+     'getForgeryCost': function(item_id, forgery_contract_id) {
         var player_interface = new PlayerIF(Meteor.user());
-        return player_interface.getForgeryCost(forged_item_object, forgery_quality);
+        return player_interface.getForgeryCost(new ItemIF(item_id), forgery_contract_id);
      },
 
      'discardForgeryContract': function(forgery_contract_id) {
@@ -1020,17 +1020,20 @@ Meteor.methods({
             }
         }
 
-        var existing_key = beta_keys.findOne({'email_address': user_email});
+        var beta_key_object = beta_keys.findOne({'email_address': user_email});
 
-        if (existing_key) {
-            if (existing_key.approved) {
+        if (beta_key_object) {
+            if (beta_key_object.approved) {
+                var message = '<h2>Your Artfunkel beta key is <span style="color:#FF33CC">' + beta_key_object.key + '</span></h2> <p>Visit <a href="http://artfunkelgame.com">artfunkelgame.com</a> and follow the registration link to create your account!</p>';
+                emailUser(beta_key_object.email_address, "Your Artfunkel beta key", message);
+
                 return {
-                    'message': "Your beta key is " + existing_key.key
+                    'message': "Your beta key has already been approved, and has been resent to the provided email address." 
                 }
             }
             else {
                 return {
-                    'message': "A beta key has already been assigned to this email address and is awaiting approval."
+                    'message': "Your beta key request is currently awaiting approval."
                 }
             }
         }

@@ -55,7 +55,7 @@
 	margin-top: 12px;
 }
 
-.template-modalTemplate .modal-message-area, .template-modalTemplate .modal-button-area {
+.template-modalTemplate .modal-message-area, .template-modalTemplate .modal-button-area, .template-forgeModal .forgery-contract-area {
 	display: block;
 	clear: both;
 	position: relative;

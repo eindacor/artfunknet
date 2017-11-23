@@ -14,7 +14,6 @@
 					{{> dashboardTab current_section=current_section section_title="archive" icon="archive"}}
 					{{> dashboardTab current_section=current_section section_title="quests" icon="flag-checkered"}}
 					{{> dashboardTab current_section=current_section section_title="my auctions" icon="bullhorn"}}
-					{{> dashboardTab current_section=current_section section_title="forge" icon="paint-brush"}}
 					{{> dashboardTab current_section=current_section section_title="settings" icon="wrench"}}
 				</div>
 				<div class="row no-padding no-margin dash-templates">
@@ -38,9 +37,6 @@
 					{{/if}}
 					{{#if isEqual current_section "my auctions"}}
 						{{> myAuctions}}
-					{{/if}}
-					{{#if isEqual current_section "forge"}}
-						{{> forge}}
 					{{/if}}
 					{{#if isEqual current_section "settings"}}
 						{{> settings}}

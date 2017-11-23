@@ -364,44 +364,72 @@ ItemGenerator = function() {
 	    return new_item_id;
 	}
 
-	this.createForgedItem = function(forged_item_object, forger_contract_object, callback) {
-		var new_item_object = {
-	        'artwork_id' : forged_item_object.artwork_id,
-	        'condition' : forged_item_object.condition === undefined ? getCondition(0) : forged_item_object.condition,
-	        'attributes' : getItemAttributes(forged_item_object.artwork_data, forged_item_object.unlocked, DEFAULT_ATTRIBUTE_MAP),
-	        'active_unique_attribute': forged_item_object.artwork_data.unique_attributes ? forged_item_object.artwork_data.unique_attributes[0] : undefined,
-	        'owner' : forged_item_object.owner,
-	        'status' : "won",
-	        'date_created' : moment()._d.toISOString(),
-	        'date_received': moment()._d.toISOString(),
-	        'level' : forged_item_object.level,
-	        'roll_count' : forged_item_object.roll_count === undefined ? 0 : forged_item_object.roll_count,
-	        'foil': forged_item_object.foil,
-	        'unlocked': forged_item_object.unlocked,
-	        'seasonal': forged_item_object.seasonal,
-	        'lottery': forged_item_object.lottery,
-	        'original': false,
-	        'vintage': forged_item_object.vintage,
-	        'authenticity': {
-	        	'forgery': true,
-	        	'forgery_quality': forger_contract_object.quality,
-	        	'liable': forged_item_object.owner,
-	        	'liability_pending': false,
-	        	'identified': true,
-	        	'fee': 0,
-	        	'original_owner': forged_item_object.owner
-	        },
-	        'tags': [],
-	        'artwork_data': forged_item_object.artwork_data,
-	        'permanent': false,
-	        'repairing': false
-	    };
+	this.forgeItem = function(item_id, forgery_contract_id, callback) {
+		var forgery_contract_object = forgery_contracts.findOne(forgery_contract_id);
+		var item_object = items.findOne(item_id);
+		var item_object_copy = JSON.parse(JSON.stringify(item_object));
+		delete item_object_copy._id;
+		if (item_object_copy._id != undefined) {
+			console.log("id not removed");
+			return;
+		}
 
-	    new_item_object.values = getItemObjectValues(new_item_object);
-	    new_item_object.reroll_cost = getItemObjectRollCost(new_item_object);
+		item_object_copy.status = "won";
+		item_object_copy.date_created = getNowISOString();
+		item_object_copy.date_received = getNowISOString();
 
-	    var new_item_id = insertItem(new_item_object, "forge", callback);
+		item_object_copy.authenticity = {
+			'forgery': true,
+        	'forgery_quality': forgery_contract_object.quality,
+        	'liable': item_object.owner,
+        	'liability_pending': false,
+        	'identified': true,
+        	'fee': 0,
+        	'original_owner': item_object.owner
+		}
+
+		var new_item_id = insertItem(item_object_copy, "forge", callback);
 	}
+
+	// this.createForgedItem = function(forged_item_object, forger_contract_object, callback) {
+	// 	var new_item_object = {
+	//         'artwork_id' : forged_item_object.artwork_id,
+	//         'condition' : forged_item_object.condition === undefined ? getCondition(0) : forged_item_object.condition,
+	//         'attributes' : getItemAttributes(forged_item_object.artwork_data, forged_item_object.unlocked, DEFAULT_ATTRIBUTE_MAP),
+	//         'active_unique_attribute': forged_item_object.artwork_data.unique_attributes ? forged_item_object.artwork_data.unique_attributes[0] : undefined,
+	//         'owner' : forged_item_object.owner,
+	//         'status' : "won",
+	//         'date_created' : moment()._d.toISOString(),
+	//         'date_received': moment()._d.toISOString(),
+	//         'level' : forged_item_object.level,
+	//         'roll_count' : forged_item_object.roll_count === undefined ? 0 : forged_item_object.roll_count,
+	//         'foil': forged_item_object.foil,
+	//         'unlocked': forged_item_object.unlocked,
+	//         'seasonal': forged_item_object.seasonal,
+	//         'lottery': forged_item_object.lottery,
+	//         'original': false,
+	//         'vintage': forged_item_object.vintage,
+	//         'authenticity': {
+	//         	'forgery': true,
+	//         	'forgery_quality': forger_contract_object.quality,
+	//         	'liable': forged_item_object.owner,
+	//         	'liability_pending': false,
+	//         	'identified': true,
+	//         	'fee': 0,
+	//         	'original_owner': forged_item_object.owner
+	//         },
+	//         'tags': [],
+	//         'artwork_data': forged_item_object.artwork_data,
+	//         'permanent': false,
+	//         'tutorial': forged_item_object.tutorial === undefined ? false : forged_item_object.tutorial,
+	//         'repairing': false
+	//     };
+
+	//     new_item_object.values = getItemObjectValues(new_item_object);
+	//     new_item_object.reroll_cost = getItemObjectRollCost(new_item_object);
+
+	//     var new_item_id = insertItem(new_item_object, "forge", callback);
+	// }
 }
 
 ITEM_GENERATOR = new ItemGenerator();
