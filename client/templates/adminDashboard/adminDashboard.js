@@ -918,13 +918,22 @@ var generateArtworkObject = function() {
 
 	var special_attributes_expected;
 
+	if (selected_artwork_special_attributes_selected.length == 0) {
+		switch(specified_rarity) {
+            case "masterpiece": selected_artwork_special_attributes_selected = comboWithLowestCount(getMasterpieceSpecialAttributeBreakdown()); break;
+            case "legendary": selected_artwork_special_attributes_selected = comboWithLowestCount(getLegendarySpecialAttributeBreakdown()); break;
+            case "rare": selected_artwork_special_attributes_selected = comboWithLowestCount(getRareSpecialAttributeBreakdown()); break;
+            default: break;
+        }
+	}
+
 	switch(specified_rarity) {
 		case "rare": special_attributes_expected = 1; break;
 		case "legendary": special_attributes_expected = 2; break;
 		case "masterpiece": special_attributes_expected = 3; break;
 		default: special_attributes_expected = 0;
 	}
-
+	
 	if (selected_artwork_special_attributes_selected.length != special_attributes_expected) {
 		generate_artwork_errors.push(specified_rarity + " artworks require " + special_attributes_expected + " special attributes");
 	}
@@ -1264,4 +1273,113 @@ Template.adminTools.rendered = function() {
 	generate_artwork_errors = [];
 	updateAdminData();
 	beta_requests = undefined;
+}
+
+
+//special attribute helper code
+var comboMatchesString = function(str, combo_array) {
+    for (var i=0; i<combo_array.length; i++) {
+        if (str.indexOf(combo_array[i]) == -1) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+var artworksWithCombo = function(combo_array, rarity) {
+    var attribute_id_combo = [];
+    for (var i=0; i<combo_array.length; i++) {
+        attribute_id_combo.push(attributes.findOne({'_id': combo_array[i]})._id);
+    }
+
+    return artworks.find({'special_attributes': {$all: attribute_id_combo}}).count();
+}
+
+var findLowestComboCount = function(combo_map) {
+    var lowest_count = 99999999999;
+    var key_array = Object.keys(combo_map);
+    for (var i=0; i<key_array.length; i++) {
+        if (combo_map[key_array[i]] < lowest_count) {
+            lowest_count = combo_map[key_array[i]];
+        }
+    }
+
+    return lowest_count;
+}
+
+var comboStringToArray = function(combo_string) {
+    return combo_string.split(",");
+}
+
+var comboWithLowestCount = function(combo_map) {
+    var lowest_count = findLowestComboCount(combo_map);
+
+    var key_array = Object.keys(combo_map);
+    for (var i=0; i<key_array.length; i++) {
+        if (combo_map[key_array[i]] == lowest_count) {
+            return comboStringToArray(key_array[i]);
+        }
+    }
+
+    return lowest_map;
+}
+
+var getRareSpecialAttributeBreakdown = function() {
+    var active_attributes = attributes.find({'active': true}).fetch();
+    var rare_attribute_map = {};
+
+    for (var i=0; i<active_attributes.length; i++) {
+        if (rare_attribute_map[active_attributes[i]._id] === undefined) {
+            rare_attribute_map[active_attributes[i]._id] = artworksWithCombo([active_attributes[i]._id], "rare");
+        }
+    }
+
+    return rare_attribute_map;
+}
+
+var getLegendarySpecialAttributeBreakdown = function() {
+    var active_attributes = attributes.find({'active': true}).fetch();
+    var legendary_combo_map = {};
+
+    for (var i=0; i<active_attributes.length; i++) {
+        for (var n=0; n<active_attributes.length; n++) {
+            if (i==n) {
+                continue;
+            }
+
+            var attribute_combo = [active_attributes[i]._id, active_attributes[n]._id].sort();
+            var combo_string = attribute_combo.toString();
+
+            if (legendary_combo_map[combo_string] === undefined) {
+                legendary_combo_map[combo_string] = artworksWithCombo(attribute_combo, "legendary");
+            }
+        }
+    }
+
+    return legendary_combo_map;
+}
+
+var getMasterpieceSpecialAttributeBreakdown = function() {
+    var active_attributes = attributes.find({'active': true}).fetch();
+    var masterpiece_combo_map = {};
+
+    for (var i=0; i<active_attributes.length; i++) {
+        for (var n=0; n<active_attributes.length; n++) {
+            for (var c=0; c<active_attributes.length; c++) {
+                if (i==c || i==n || c==n) {
+                    continue;
+                }
+
+                var attribute_combo = [active_attributes[i]._id, active_attributes[c]._id, active_attributes[n]._id].sort();
+                var combo_string = attribute_combo.toString();
+
+                if (masterpiece_combo_map[combo_string] === undefined) {
+                    masterpiece_combo_map[combo_string] = artworksWithCombo(attribute_combo, "masterpiece");
+                }
+            }
+        }
+    }
+
+    return masterpiece_combo_map;
 }

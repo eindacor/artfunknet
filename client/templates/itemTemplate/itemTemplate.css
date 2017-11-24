@@ -330,7 +330,7 @@
 	color: blue;
 }
 
-.template-itemInfo .special-attribute {
+.template-itemInfo .special.item-attribute {
 	text-shadow: 0.1em 0.1em 0.1em RGBA(255, 51, 204, .8);
 }
 
