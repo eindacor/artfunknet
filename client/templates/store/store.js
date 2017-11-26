@@ -85,10 +85,6 @@ Template.store.helpers({
 		else return crate_objects;
 	},
 
-	'canPurchase' : function(item_id) {
-		return true;
-	},
-
 	'has_for_sale': function() {
 		return items.findOne({
             'owner': Meteor.userId(),
