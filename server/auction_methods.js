@@ -129,10 +129,6 @@ var successfulAuction = function(auction_object, winning_user) {
                 nested_item_interface.updateItem({$set: {'condition': .9}}, false);
             }
 
-            if (Math.random() < IDENTIFY_FORGED_AUCTIONS_PROC && winner_interface.procUniqueAttribute("IDENTIFY_FORGED_AUCTIONS", undefined)) {
-                nested_item_interface.updateItem({$set: {'authenticity.identified': true}})
-            }
-
             if (winner_interface.procUniqueAttribute("KNOWLEDGE_FOR_AUCTION_WINS", undefined)) {
                 var unit_reward = nested_item_interface.getUnitValue() * 6;
                 var knowledge_reward = convertUnitValueToKnowledge(unit_reward);

@@ -15,6 +15,11 @@ donorInteraction = function(npc_object, player_interface) {
 			drop_count -= 1;
 		}
 
+		if (player_interface.procUniqueAttribute("DONOR_BAD_REPUTATION_BONUS", undefined)) {
+			var inverse_current_reputation = 1 - player_interface.getReputation();
+			drop_count += Math.floor((inverse_current_reputation / .15));
+		}
+
 		if (player_interface.procUniqueAttribute("DONOR_CONDITION_MIN", undefined)) {
 			condition_min = .8;
 		}

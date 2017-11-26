@@ -25,6 +25,8 @@ auctioneerInteraction = function(npc_object, player_interface) {
         default: break;
 	}
 
+	var auction_price_adjustment = 4;
+
 	if (isOwnGallery(npc_object)) {
 		market_expert_duration = Math.floor(market_expert_duration * 2.5);
 		market_expert_duration_extension = Math.floor(market_expert_duration_extension * 2.5);
@@ -32,6 +34,18 @@ auctioneerInteraction = function(npc_object, player_interface) {
 
 		if (player_interface.procUniqueAttribute("DONOR_AUCTIONEER_TRADE", "Art Donor")) {
 			auction_count += 4;
+		}
+
+		if (player_interface.procUniqueAttribute("AUCTIONEER_REPUTATION_INCREASE", undefined)) {
+			var current_reputation = player_interface.getReputation();
+			if (current_reputation < .8) {
+				var new_reputation = Math.min(current_reputation + .05, .8);
+			    Meteor.users.update(player_interface.getId(), {$set: {'profile.visitor_ignore_coefficient': 1 - new_reputation}});
+			}
+		}
+
+		if (player_interface.procUniqueAttribute("PRIVATE_AUCTION_PRICE_REDUCTION", undefined)) {
+			auction_price_adjustment = 2.5;
 		}
 	}
 
@@ -53,11 +67,6 @@ auctioneerInteraction = function(npc_object, player_interface) {
 		}});
 
 		message = "You have met another auctioneer. Your access to market analysis has been extended by " + market_expert_duration_extension + " minutes (expires " + getTimeString(new_expiration) + ").";
-	}
-
-	var auction_price_adjustment = 4;
-	if (isOwnGallery(npc_object) && player_interface.procUniqueAttribute("PRIVATE_AUCTION_PRICE_REDUCTION", undefined)) {
-		auction_price_adjustment = 2.5;
 	}
 
 	var multi_item_generator = {
