@@ -1,16 +1,17 @@
 <template name="archive">
+	{{> forgeryContracts}}
 	<div class="template-archive">
-			{{#if artist_view}}
-			<i class="af-color archive-mode-button fa fa-book"></i>
-				{{> artistView}}
-			{{else}}
-			<i class="af-color archive-mode-button fa fa-address-book"></i>
-				{{#if fetchServerData "hasDisplacedItems"}}
-					<div class="row"><button class="displaced-button" id="show-displaced">show displaced</button><button class="displaced-button" id="delete-all-displaced"><span class="highlight">delete</span> displaced</button></div>	
-				{{/if}}
-				<div class="row">
-				{{> itemSet statuses=item_set_statuses}}
-				</div>
+		{{#if artist_view}}
+		<i class="af-color archive-mode-button fa fa-book"></i>
+			{{> artistView}}
+		{{else}}
+		<i class="af-color archive-mode-button fa fa-address-book"></i>
+			{{#if fetchServerData "hasDisplacedItems"}}
+				<div class="row"><button class="displaced-button" id="show-displaced">show displaced</button><button class="displaced-button" id="delete-all-displaced"><span class="highlight">delete</span> displaced</button></div>	
 			{{/if}}
+			<div class="row">
+			{{> itemSet statuses=item_set_statuses}}
+			</div>
+		{{/if}}
 	</div>
 </template>

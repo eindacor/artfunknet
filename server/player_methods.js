@@ -890,9 +890,12 @@ Meteor.methods({
      //    return player_interface.forgeItem(forged_item_object, forgery_contract_id);
      // },
 
-     'getForgeryCost': function(item_id, forgery_contract_id) {
+     'getForgeData': function(item_id, forgery_contract_id) {
         var player_interface = new PlayerIF(Meteor.user());
-        return player_interface.getForgeryCost(new ItemIF(item_id), forgery_contract_id);
+        return {
+            'forgery_cost': player_interface.getForgeryCost(new ItemIF(item_id), forgery_contract_id),
+            'expected_forgery_heat': player_interface.getExpectedForgeryHeat(new ItemIF(item_id), undefined, forgery_contract_id)
+        }
      },
 
      'discardForgeryContract': function(forgery_contract_id) {

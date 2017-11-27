@@ -1,63 +1,77 @@
-var selected_forgery_contract_tracker = new Tracker.Dependency;
-var selected_forgery_contract_id;
+var forge_data_tracker = new Tracker.Dependency;
+var forge_data = undefined;
 
 Template.forgeModal.helpers({
 	'contract_count': function() {
 		return forgery_contracts.find({'owner_id': Meteor.userId()}).count();
 	},
 
-	'forgery_contract': function() {
-		return forgery_contracts.find({'owner_id': Meteor.userId()});
-	},
-
 	'selected_forgery_contract_id': function() {
-		selected_forgery_contract_tracker.depend();
-		return selected_forgery_contract_id;
-	}
-})
-
-Template.forgeModal.events({
-	'click .forgery-contract-container.unselected': function(event) {
-		var forgery_contract_id = $(event.target).closest('.forgery-contract-container.unselected').data().forgery_contract_id;
-		selected_forgery_contract_id = forgery_contract_id;
-		selected_forgery_contract_tracker.changed();
+		getSelectedForgeryContractIdTracker().depend();
+		return getSelectedForgeryContractId();
 	},
 
-	'click .forgery-contract-container.selected': function(event) {
-		selected_forgery_contract_id = undefined;
-		selected_forgery_contract_tracker.changed();
+	'forgery_cost': function() {
+		forge_data_tracker.depend();
+		if (forge_data != undefined) {
+			return forge_data.forgery_cost;
+		}
 	},
 
-	'click #discard-forgery': function() {
-		if (selected_forgery_contract_id != undefined) {
-			Meteor.call('discardForgeryContract', selected_forgery_contract_id, function(error) {
+	'expected_forgery_heat': function() {
+		forge_data_tracker.depend();
+		if (forge_data != undefined) {
+			return forge_data.expected_forgery_heat;
+		}
+	},
+
+	'forge_data': function(item_id) {
+		getSelectedForgeryContractIdTracker().depend();
+		if (getSelectedForgeryContractId() != undefined) {
+			Meteor.call('getForgeData', item_id, getSelectedForgeryContractId(), function(error, result) {
 				if (error) {
-					console.log(error);
+					console.log(error)
 				}
-
 				else {
-					selected_forgery_contract_id = undefined;
-					selected_forgery_contract_tracker.changed();
+					forge_data = result;
+					forge_data_tracker.changed();
 				}
 			})
 		}
 	},
 
-	'click #forge-item': function(event) {
-		var item_id = $(event.target).data().item_id;
-		if (selected_forgery_contract_id != undefined) {
-			Meteor.call('forgeItem', item_id, selected_forgery_contract_id, function(error) {
-				if (error) {
-					console.log(error);
-				}
+	'getExpectedForgeryHeat': function(item_id) {
+		forgery_cost_tracker.depend();
+		getSelectedForgeryContractIdTracker().depend();
+		Meteor.call('getExpectedForgeryHeat', item_id, getSelectedForgeryContractId(), function(error, result) {
+			if (error) {
+				console.log(error)
+			}
+			else {
+				forgery_heat = result;
+			}
+		})
 
-				selected_forgery_contract_id = undefined;
-				selected_forgery_contract_tracker.changed();
-			})
-		}
+		return forgery_heat;
 	}
 })
 
 Template.forgeModal.rendered = function() {
-	selected_forgery_contract_id = undefined;
+	forge_data = undefined;
 }
+
+Template.forgeModal.events({
+	'click #forge-item': function(event) {
+		var item_id = $(event.target).data().item_id;
+		if (getSelectedForgeryContractId() != undefined) {
+			Meteor.call('forgeItem', item_id, getSelectedForgeryContractId(), function(error) {
+				if (error) {
+					console.log(error);
+				}
+
+				setSelectedForgeryContractId(undefined);
+				getSelectedForgeryContractIdTracker().changed();
+			})
+		}
+	}
+})

@@ -19,43 +19,7 @@
 	margin-bottom: 24px;
 }
 
-.template-forgeModal .forgery-contract-container, .template-forgeModal #discard-forgery {
-	font-size: 3.5rem;
-	cursor: pointer;
-	opacity: .6;
-	display: inline-block;
+.template-forgeModal .forgery-contract-area {
 	text-align: center;
 	margin: 0px 12px;
-}
-
-.template-forgeModal #discard-forgery {
-	margin-left: 24px;
-}
-
-.template-forgeModal #discard-forgery:hover {
-	opacity: 1;
-}
-
-.template-forgeModal .forgery-contract-container:hover, .template-forgeModal .forgery-contract-container.selected {
-	opacity: 1;
-}
-
-.template-forgeModal .forgery-quality-text {
-	font-size: 1.5rem;
-}
-
-.template-forgeModal .contract-icon {
-	margin-bottom: -10px;
-}
-
-.template-forgeModal .fa-check {
-	margin-left: 24px;
-}
-
-.template-forgeModal .forgery-contract-area {
-	margin-bottom: 20px;
-}
-
-.template-forgeModal .forgery-contract-area {
-	margin: auto;
 }

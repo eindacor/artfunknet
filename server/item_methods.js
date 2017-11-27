@@ -761,11 +761,6 @@ Meteor.methods({
         return item_array;
     },
 
-    'getExpectedForgeryHeat': function(item_id, forgery_contract_id) {
-        var player_interface = new PlayerIF(Meteor.user());
-        return player_interface.getExpectedForgeryHeat(new ItemIF(item_id), undefined, forgery_contract_id);
-    },
-
     'getForgeryHeat': function(item_id) {
         var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
         return player_item_interface.getForgeryHeat(undefined);

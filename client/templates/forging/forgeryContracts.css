@@ -1,0 +1,40 @@
+.template-forgeryContracts #discard-forgery {
+	margin-left: 24px;
+}
+
+.template-forgeryContracts #discard-forgery:hover {
+	opacity: 1;
+}
+
+.template-forgeryContracts .forgery-contract-container:hover, .template-forgeryContracts .forgery-contract-container.selected {
+	opacity: 1;
+}
+
+.template-forgeryContracts .forgery-quality-text {
+	font-size: 1.5rem;
+}
+
+.template-forgeryContracts .contract-icon {
+	margin-bottom: -10px;
+}
+
+.template-forgeryContracts .fa-check {
+	margin-left: 24px;
+}
+
+.template-forgeryContracts .forgery-contract-area {
+	margin-bottom: 20px;
+}
+
+.template-forgeryContracts .forgery-contract-area {
+	margin: auto;
+	margin-bottom: 18px;
+}
+
+.template-forgeryContracts .forgery-contract-container, .template-forgeryContracts #discard-forgery {
+	font-size: 3.5rem;
+	cursor: pointer;
+	opacity: .6;
+	display: inline-block;
+	margin-right: 12px;
+}

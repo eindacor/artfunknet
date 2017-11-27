@@ -1,0 +1,18 @@
+<template name="forgeryContracts">
+	<div class="template-forgeryContracts">
+		<div class="forgery-contract-area row">
+			{{#each forgery_contract}}
+				<div class="forgery-contract-container {{#if isEqual selected_forgery_contract_id _id}}selected af-color{{else}}unselected{{/if}}" data-forgery_contract_id="{{_id}}">
+					<i class="fa fa-user-secret contract-icon"></i>
+					<p class="forgery-quality-text">{{floatToPercentage quality}}</p>
+				</div>
+			{{/each}}
+			{{#if selected_forgery_contract_id}}
+				<div id="discard-forgery">
+					<i class="fa fa-trash"></i>
+					<p class="forgery-quality-text">discard</p>
+				</div>
+			{{/if}}
+		</div>
+	</div>
+</template>
