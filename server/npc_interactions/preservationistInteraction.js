@@ -48,11 +48,18 @@ preservationistInteraction = function(npc_object, player_interface) {
 		return {'message' : message};
 	}
 
-	var new_condition = Math.min(repair_amount + target_item.condition, 1)
+	var old_condition = target_item.condition;
+	var new_condition = Number(Math.min(repair_amount + old_condition, 1).toFixed(2));
+
+	var actual_repaired_amount = Math.floor((new_condition - old_condition) * 100);
 
 	var target_item_interface = new ItemIF(target_item);
-	target_item_interface.updateItem({$set: {'condition' : Number(new_condition.toFixed(2))}}, false);
+	target_item_interface.updateItem({$set: {'condition' : new_condition}}, false);
 
-	message = "You have met a preservationist who has offered to refurbish one of your pieces. " + target_item.artwork_data.title + " by " + target_item.artwork_data.artist + " has increased in value.";
-	return {'message': message}
+	message = "You have met a preservationist who has offered to refurbish one of your pieces. " + target_item.artwork_data.title + " by " + target_item.artwork_data.artist + " now has a condition of " + Math.floor(new_condition * 100) + "% (+" + Math.floor(repair_amount * 100) + "%).";
+	var html = 'You have met a preservationist who has offered to refurbish one of your pieces. <span class="af-color">' + target_item.artwork_data.title + '</span> by <span class="af-color">' + target_item.artwork_data.artist + '</span> now has a condition of ' + Math.floor(new_condition * 100) + '% (<span class="green-text">+' + actual_repaired_amount + '%</span>).';
+	return {
+		'message': message,
+		'html': html
+	}
 }

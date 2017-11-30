@@ -2,7 +2,11 @@
 	<div class="template-standardNPCMessageModal col-xs-12">
 		<div class="message-container">
 			<div class="modal-message-area">
-				<p class="modal-message">{{interaction_object.message}}</p>
+				{{#if interaction_object.html}}	
+					<p class="modal-message">{{setMessage interaction_object.html}}</p>
+				{{else}}
+					<p class="modal-message">{{interaction_object.message}}</p>
+				{{/if}}
 			</div>
 			<div class="modal-button-area">
 				<button class="modal-button close-button">close</button>
