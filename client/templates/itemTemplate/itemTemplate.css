@@ -460,3 +460,42 @@
 .template-itemInfo .button-row.unarchived:first-child {
 	border-bottom: 1px solid rgba(0,0,0,.3);
 }
+
+.tooltip-container {
+	position: relative;
+	display: inline-block;
+}
+
+.tooltip-container .tooltip-contents {
+    visibility: hidden;
+    width: 120px;
+    background-color: white;
+    border: 1px solid black;
+    color: black;
+    text-align: center;
+    padding: 8px 8px 0px 8px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -60px;
+    opacity: 0;
+    transition: opacity 1s;
+    font-size: 1.2rem;
+}
+
+.tooltip-container .tooltip-contents::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: black transparent transparent transparent;
+}
+
+.tooltip-container:hover .tooltip-contents {
+    visibility: visible;
+    opacity: 1;
+}

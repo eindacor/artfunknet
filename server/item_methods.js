@@ -284,88 +284,151 @@ var setItemActions = function(item_object, player_item_permissions) {
     var action_array = [];
 
     if (player_item_permissions.canClaim()) {
-        action_array.push("claimItem");
+        action_array.push({
+            'action_name': "claimItem",
+            'tooltip': "claim"
+        });
     }  
 
     if (player_item_permissions.canPurchase()) {
-        action_array.push("purchaseItem");
+        action_array.push({
+            'action_name': "purchaseItem",
+            'tooltip': "purchase"
+        });
     }
 
     if (player_item_permissions.canSell()) {
-        action_array.push("sellItem");
+        action_array.push({
+            'action_name': "sellItem",
+            'tooltip': "sell"
+        });
     }
 
     if (player_item_permissions.canAuction()) {
-        action_array.push("auctionItem");
+        action_array.push({
+            'action_name': "auctionItem",
+            'tooltip': "auction item"
+        });
     }
 
     if (player_item_permissions.canDonate()) {
-        action_array.push("donateItem");
+        action_array.push({
+            'action_name': "donateItem",
+            'tooltip': "donate"
+        });
     }
   
-    action_array.push("modItem");
+    action_array.push({
+        'action_name': "modItem",
+        'tooltip': "modify item"
+    });
 
     if (player_item_permissions.canArchive()) {
-        action_array.push("archiveItem");
+        action_array.push({
+            'action_name': "archiveItem",
+            'tooltip': "add to archive"
+        });
     }
 
     if (player_item_permissions.canIdentify()) {
-        action_array.push("identifyItem");
+        action_array.push({
+            'action_name': "identifyItem",
+            'tooltip': "verify authenticity"
+        });
     }
 
     if (player_item_permissions.canRedeemForgery()) {
-        action_array.push("redeemItem");
+        action_array.push({
+            'action_name': "redeemItem",
+            'tooltip': "report forgery"
+        });
     }
 
     if (player_item_permissions.canForge()) {
-        action_array.push("forgeItem");
+        action_array.push({
+            'action_name': "forgeItem",
+            'tooltip': "forge"
+        });
     }
 
     if (player_item_permissions.canDelete()) {
-        action_array.push("deleteItem");
+        action_array.push({
+            'action_name': "deleteItem",
+            'tooltip': "delete"
+        });
     }
 
     if (player_item_permissions.canDecline()) {
-        action_array.push("declineItem");
+        action_array.push({
+            'action_name': "declineItem",
+            'tooltip': "decline"
+        });
     }
 
     item_object.item_actions = action_array;
 
     var modifier_array = [];
     if (player_item_permissions.canDisplay()) {
-        modifier_array.push("displayItem");
+        modifier_array.push({
+            'action_name': "displayItem",
+            'tooltip': "add to gallery"
+        });
     }
 
     if (player_item_permissions.canUndisplay()) {
-        modifier_array.push("undisplayItem");
+        modifier_array.push({
+            'action_name': "undisplayItem",
+            'tooltip': "remove from gallery"
+        });
     }
     
     if (player_item_permissions.canSetPermanent()) {
-        modifier_array.push("setPermanent");
+        modifier_array.push({
+            'action_name': "setPermanent",
+            'tooltip': "add to favorites"
+        });
     }
 
     if (player_item_permissions.canUnsetPermanent()) {
-        modifier_array.push("unsetPermanent");
+        modifier_array.push({
+            'action_name': "unsetPermanent",
+            'tooltip': "remove from favorites"
+        });
     }
 
     if (player_item_permissions.canTagForSale()) {
-        modifier_array.push("setForSale");
+        modifier_array.push({
+            'action_name': "setForSale",
+            'tooltip': "set for sale"
+        });
     }
 
     if (player_item_permissions.canUntagForSale()) {
-        modifier_array.push("unsetForSale");
+        modifier_array.push({
+            'action_name': "unsetForSale",
+            'tooltip': "unset for sale"
+        });
     }
 
     if (player_item_permissions.canSetRepairing()) {
-        modifier_array.push("setRepairing");
+        modifier_array.push({
+            'action_name': "setRepairing",
+            'tooltip': "set to repair"
+        });
     }
 
     if (player_item_permissions.canUnsetRepairing()) {
-        modifier_array.push("unsetRepairing");
+        modifier_array.push({
+            'action_name': "unsetRepairing",
+            'tooltip': "unset to repair"
+        });
     }
 
     if (player_item_permissions.canTag()) {
-        modifier_array.push("tagItem");
+        modifier_array.push({
+            'action_name': "tagItem",
+            'tooltip': "modify tags"
+        });
     }
 
     item_object.item_modifiers = modifier_array;

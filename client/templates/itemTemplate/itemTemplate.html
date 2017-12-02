@@ -108,15 +108,33 @@
 						<div class="footer-basic-info">
 							<div class="col-xs-8 no-padding attribute-area">
 								{{#each sortedAttributes item_data.attributes.unlocked}}
-									<i data-attribute_description="{{description}}" data-attribute_value="{{value}}" style="color: {{getHTMLColorFromValue value}}" class="{{#if ../item_data.permanent}}permanent{{/if}} item-attribute fa {{icon}}"></i>
+									<div class="tooltip-container">
+										<div class="tooltip-contents">
+											<p>attracts {{npc_name}}s</p>
+											<p>level {{floatToPercentage value}}</p>
+										</div>
+										<i data-attribute_description="{{description}}" data-attribute_value="{{value}}" style="color: {{getHTMLColorFromValue value}}" class="{{#if ../item_data.permanent}}permanent{{/if}} item-attribute fa {{icon}}"></i>
+									</div>
 								{{/each}}
 								{{#if item_data.attributes.locked}}<span class="separator">|</span>{{/if}}
 								{{#each sortedAttributes item_data.attributes.locked}}
-									<i data-attribute_description="{{description}}" data-attribute_value="{{value}}" style="color: {{getHTMLColorFromValue value}}" class="{{#if ../item_data.permanent}}permanent{{/if}} locked item-attribute fa {{icon}}"></i>
+									<div class="tooltip-container">
+										<div class="tooltip-contents">
+											<p>attracts {{npc_name}}s</p>
+											<p>level {{floatToPercentage value}}</p>
+										</div>
+										<i data-attribute_description="{{description}}" data-attribute_value="{{value}}" style="color: {{getHTMLColorFromValue value}}" class="{{#if ../item_data.permanent}}permanent{{/if}} locked item-attribute fa {{icon}}"></i>
+									</div>
 								{{/each}}
 								{{#if item_data.attributes.special}}<span class="separator">|</span>{{/if}}
 								{{#each sortedAttributes item_data.attributes.special}}
-									<i data-attribute_description="{{description}}" data-attribute_value="{{value}}" style="color: {{getHTMLColorFromValue value}}" class="{{#if ../item_data.permanent}}permanent{{/if}} special item-attribute fa {{icon}}"></i>
+									<div class="tooltip-container">
+										<div class="tooltip-contents">
+											<p>attracts {{npc_name}}s</p>
+											<p>level {{floatToPercentage value}}</p>
+										</div>
+										<i data-attribute_description="{{description}}" data-attribute_value="{{value}}" style="color: {{getHTMLColorFromValue value}}" class="{{#if ../item_data.permanent}}permanent{{/if}} special item-attribute fa {{icon}}"></i>
+									</div>
 								{{/each}}
 							</div>
 							<div class="col-xs-4 no-padding">
@@ -138,12 +156,22 @@
 		<div class="button-area">
 			<p class="button-row {{#if isEqual item_data.status 'archived'}}{{else}}unarchived{{/if}}">
 			{{#each item_data.item_actions}}
-				<i class="action-icon fa {{action_icon this}}" data-action_name="{{this}}" data-item_id="{{../item_data._id}}" data-can_quick_discard="{{../item_data.can_quick_discard}}"></i>
+				<div class="tooltip-container">
+					<div class="tooltip-contents">
+						<p>{{tooltip}}</p>
+					</div>
+					<i class="action-icon fa {{action_icon action_name}}" data-action_name="{{action_name}}" data-item_id="{{../item_data._id}}" data-can_quick_discard="{{../item_data.can_quick_discard}}"></i>
+				</div>
 			{{/each}}
 			</p>
 			<p class="button-row">
 			{{#each item_data.item_modifiers}}
-				<i class="action-icon fa {{action_icon this}}" data-action_name="{{this}}" data-item_id="{{../item_data._id}}" data-can_quick_discard="{{../item_data.can_quick_discard}}"></i>
+				<div class="tooltip-container">
+					<div class="tooltip-contents">
+						<p>{{tooltip}}</p>
+					</div>
+					<i class="action-icon fa {{action_icon action_name}}" data-action_name="{{action_name}}" data-item_id="{{../item_data._id}}" data-can_quick_discard="{{../item_data.can_quick_discard}}"></i>
+				</div>
 			{{/each}}
 			</p>
 		</div>
