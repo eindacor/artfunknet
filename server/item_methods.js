@@ -761,8 +761,8 @@ Meteor.methods({
         return item_array;
     },
 
-    'getForgeryHeat': function(item_id) {
-        var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
+    'getForgeryHeat': function(item) {
+        var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item));
         return player_item_interface.getForgeryHeat(undefined);
     }
 })
@@ -785,7 +785,7 @@ getItemStubFromArtwork = function(artwork_id, item_data) {
     return item_object;
 }
 
-getForgeryHeatFromQuality = function(item_interface, heat_category, forgery_quality, plausible_deniability) {
+getForgeryHeatFromQuality = function(item_interface, player_interface, heat_category, forgery_quality, plausible_deniability) {
     if (item_interface.isSeasonal() || item_interface.isLottery()) {
         if (["legendary", "masterpiece"].indexOf(item_interface.getRarity()) == -1) {
             return .99;

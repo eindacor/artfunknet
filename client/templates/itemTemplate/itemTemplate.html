@@ -55,7 +55,7 @@
 								{{#if item_data.authenticity.identified}}
 									{{#if item_data.authenticity.forgery}}
 										<p id="verified-text" class="red-text"><i class="fa fa-ban"></i> forgery</p>
-										<p>heat level: {{#with fetchServerData "getForgeryHeat" item_data._id}}<span style="color: {{forgery_heat_color this}}">{{heat_label this}}</span>{{/with}}</p>
+										<p>heat level: {{#with fetchServerData "getForgeryHeat" item_data}}<span style="color: {{forgery_heat_color this}}">{{heat_label this}}</span>{{/with}}</p>
 									{{else}}
 										<p id="verified-text" class="green-text"><i class="fa fa-check"></i> verified</p>
 									{{/if}}
