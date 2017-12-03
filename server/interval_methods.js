@@ -5,8 +5,13 @@ Meteor.setInterval((function() {
         concludeAuction(db_object._id);
     });
 
-    var creation_cutoff = moment().add(-1 * ONE_HOUR, 'milliseconds')._d.toISOString();
-    getFromCollection("interval_methods.js remove unclaimed", items, {'status' : {$in: ['unclaimed', 'for_sale']}, 'date_received' : {$lt : creation_cutoff}}).forEach(function(item_object) {
+    var unclaimed_creation_cutoff = moment().add(-1 * ONE_HOUR, 'milliseconds')._d.toISOString();
+    getFromCollection("interval_methods.js remove unclaimed", items, {'status' : 'unclaimed', 'date_received' : {$lt : unclaimed_creation_cutoff}}).forEach(function(item_object) {
+        removeItem(item_object._id, "failed to claim (" + item_object.status + ")", undefined);
+    })
+
+    var store_creation_cutoff = moment().add(-1 * 20 * ONE_MINUE, 'milliseconds')._d.toISOString();
+    getFromCollection("interval_methods.js remove unpurchased", items, {'status' : 'for_sale', 'date_received' : {$lt : store_creation_cutoff}}).forEach(function(item_object) {
         removeItem(item_object._id, "failed to claim (" + item_object.status + ")", undefined);
     })
     
