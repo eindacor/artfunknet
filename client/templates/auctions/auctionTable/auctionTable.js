@@ -160,6 +160,13 @@ Template.auctionTable.helpers({
 				reason = "bidding starts at " + time_string;
 			}
 
+			else if (items.find({'owner': Meteor.userId(), 'status': "won"}).count() >= 16) {
+				//TECH DEBT: get rid of client-side bidding permissions
+				//TODO: use auction cap for actual limit of items won or current bids
+				biddable = false;
+				reason = "too many unclaimed items";
+			}
+
 			list_object.bid_status = {
 				'biddable': biddable,
 				'reason': reason

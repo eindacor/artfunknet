@@ -9,11 +9,6 @@ Meteor.setInterval((function() {
     getFromCollection("interval_methods.js remove unclaimed", items, {'status' : {$in: ['unclaimed', 'for_sale']}, 'date_received' : {$lt : creation_cutoff}}).forEach(function(item_object) {
         removeItem(item_object._id, "failed to claim (" + item_object.status + ")", undefined);
     })
-
-    var auction_win_cutoff = moment().add(-1 * 24 * ONE_HOUR, 'milliseconds')._d.toISOString();
-    getFromCollection("interval_methods.js remove unclaimed won", items, {'status': 'won', 'date_received' : {$lt : auction_win_cutoff}}).forEach(function(item_object) {
-        removeItem(item_object._id, "failed to claim (won)", undefined);
-    })
     
     alerts.remove({'time': {$lt: moment().add(-48, "hours")._d.toISOString()}});
 
