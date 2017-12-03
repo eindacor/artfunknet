@@ -51,6 +51,9 @@
 							<div class="dynamic-stats">
 								<p>condition: <span style="color: {{getHTMLColorFromValue item_data.condition}}">%{{floatToPercentage item_data.condition}}</span></p>
 								<p id="dynamic-value-stat">estimated value: {{displayAsMoneyValue item_data.values.actual}}</p>
+								{{#if item_data.market_value}}
+									<p id="dynamic-value-stat">market value: {{displayAsMoneyValue item_data.market_value}}</p>
+								{{/if}}
 								<p id="dynamic-roll-count-stat">roll count: {{item_data.roll_count}}</p>
 								{{#if item_data.authenticity.identified}}
 									{{#if item_data.authenticity.forgery}}

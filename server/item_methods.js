@@ -286,7 +286,7 @@ var setItemActions = function(item_object, player_item_permissions) {
     if (player_item_permissions.canClaim()) {
         action_array.push({
             'action_name': "claimItem",
-            'tooltip': "claim"
+            'tooltip': "add to inventory"
         });
     }  
 
@@ -441,20 +441,30 @@ prepareItemForClient = function(item_object, viewer_interface) {
         var artwork_interface = new ArtworkIF(item_object.artwork_id);
         var user_object = viewer_interface.getUserObject();
 
+        var market_expert_active = user_object.profile.market_expert.expiration > getNowISOString();
+
+        if (market_expert_active) {
+            var item_signature = item_interface.getArchiveSignature();
+            var market_data = artworks.findOne({'_id': item_interface.getArtworkId()}).market_data[item_signature];
+            if (market_data) {
+                item_object.market_value = market_data.average;
+            }
+        }
+
         if (viewer_interface.getId() == item_object.owner || (item_object.owner == BOT_USER_NAME && item_object.lottery > 0)) {
             if (!item_object.authenticity.identified) {
                 delete item_object.authenticity.forgery;
             }
         }
-
         else {
             delete item_object["authenticity"];
-            if (user_object.profile.market_expert.expiration < getNowISOString() && item_object.status != "displayed") {
+            if (market_expert_active && item_object.status != "displayed") {
                 delete item_object["condition"];
                 delete item_object["level"];
                 delete item_object["values"];
                 delete item_object["attributes"];
             }
+
         }
 
         item_object.recommended_status = player_item_interface.getRecommendedStatus();

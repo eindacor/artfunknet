@@ -22,6 +22,7 @@ createAuction = function(item_id, starting, buy_now, duration, viewer) {
                 'date_posted': post_date._d.toISOString(),
                 'expiration': expiration._d.toISOString(),
                 'seller': user_object ? user_object.profile.screen_name : BOT_USER_NAME,
+                'seller_id': user_object ? user_object._id : undefined,
                 'viewer': viewer == undefined ? "public" : viewer,
                 'item_data': {
                     'title': item_object.artwork_data.title,
@@ -82,84 +83,87 @@ var failedAuction = function(auction_object) {
 
 var successfulAuction = function(auction_object, winning_user) {
     var winning_bid = auction_object.current_bid;
+    var winning_player_interface = new PlayerIF(winning_user);
+    finalizeAuctionWin(winning_player_interface, auction_object, winning_bid);
+}
 
+finalizeAuctionWin = function(winning_player_interface, auction_object, winning_bid_amount) { 
     var item_interface = new ItemIF(auction_object.item_id);
-    var seller = item_interface.getItemObject().owner;
 
-    var winning_user_interface;
-    var send_item_to_inventory = true;
-    var new_status = "claimed";
+    var seller = getOneFromCollection("auction_methods.js:finalizeAuctionWin()", Meteor.users, auction_object.seller_id);
 
-    try {
-        winning_user_interface = new PlayerIF(winning_user);
-        send_item_to_inventory = winning_user.profile.settings.auction_items_to_inventory && !winning_user_interface.inventoryIsFull();
-        new_status = send_item_to_inventory ? 'claimed' : 'won';
-    }
-
-    catch (error) {
-        console.log(error);
+    //TECH DEBT: below is a catch for auctions made before change
+    if (seller == undefined) {
+        seller = getOneFromCollection("PlayerItemIF.js:PlayerItemIF.placeBid()", Meteor.users, {'profile.screen_name': auction_object.seller});
     }
 
     var updateCallback = function(error) {
-        if (error)
-            console.log(error.message);
+        refundWinner(auction_object, winning_player_interface.getId(), auction_object.current_bid, true);
+        winning_player_interface.chargeAccount(winning_bid_amount);
 
-        else {
-            var previous_owner = Meteor.users.findOne({'profile.screen_name': auction_object.seller});
-            var nested_item_interface = new ItemIF(auction_object.item_id);
-            var item_object = nested_item_interface.getItemObject();
-            var new_winner_id = item_object.owner;
-            var winner_interface = new PlayerIF(new_winner_id);
-
-            if (item_object.status == "claimed") {
-                var player_item_interface = new PlayerItemIF(winner_interface, nested_item_interface);
-            }
-
-            if (previous_owner) {
-                var previous_owner_interface = new PlayerIF(previous_owner);
-                var sale_message = "You have successfully auctioned " + auction_object.item_data.title + " by " + auction_object.item_data.artist + " for $" + getCommaSeparatedValue(auction_object.current_bid)
-                previous_owner_interface.alert(sale_message, 'fa-gavel', 'good');
-                previous_owner_interface.addFunds("auction", auction_object.current_bid);
-            }
-
-            var message = "You have won " + auction_object.item_data.title + " by " + auction_object.item_data.artist + " in the auction house for $" + getCommaSeparatedValue(auction_object.current_bid);
-            winner_interface.alert(message, 'fa-gavel', 'good');
-            
-            if (item_object.condition < .5 && winner_interface.procUniqueAttribute("AUCTION_WIN_CONDITION_INCREASE", undefined)) {
-                nested_item_interface.updateItem({$set: {'condition': .9}}, false);
-            }
-
-            if (winner_interface.procUniqueAttribute("KNOWLEDGE_FOR_AUCTION_WINS", undefined)) {
-                var unit_reward = nested_item_interface.getUnitValue() * 6;
-                var knowledge_reward = convertUnitValueToKnowledge(unit_reward);
-                winner_interface.giveKnowledge(knowledge_reward);
-            }
-
-            if (winning_user.profile.settings.animations_enabled) {
-                Meteor.users.update(winning_user._id, {$push: {'profile.notifications.loot': {'id': new Meteor.Collection.ObjectID()._str, 'expiration': moment().add(5, "seconds")._d.toISOString(), 'amount': 1}}});
-            }
-
-            var seller_item_interface = new PlayerItemIF(new PlayerIF(seller), item_interface);
-            seller_item_interface.makeLiable();
-            removeAuction(auction_object._id);
+        var message = "You have won " + auction_object.item_data.title + " by " + auction_object.item_data.artist + " in the auction house for $" + getCommaSeparatedValue(winning_bid_amount);
+        winning_player_interface.alert(message, 'fa-gavel', 'good');
+                        
+        var nested_item_interface = new ItemIF(auction_object.item_id);
+        if (auction_object.item_data.condition < .5 && winning_player_interface.procUniqueAttribute("AUCTION_WIN_CONDITION_INCREASE", undefined)) {
+            nested_item_interface.updateItem({$set: {'condition': .9}}, true);
         }
+
+        if (winning_player_interface.procUniqueAttribute("KNOWLEDGE_FOR_AUCTION_WINS", undefined)) {
+            var unit_reward = nested_item_interface.getUnitValue() * 6;
+            var knowledge_reward = convertUnitValueToKnowledge(unit_reward);
+            winning_player_interface.giveKnowledge(knowledge_reward);
+        }
+    
+        if (seller != undefined) {
+            var seller_interface = new PlayerIF(seller);
+            var message = "You have successfully auctioned " + auction_object.item_data.title + " by " + auction_object.item_data.artist + " for $" + getCommaSeparatedValue(winning_bid_amount)
+            seller_interface.alert(message, 'fa-gavel', 'good');
+            removeAuction(auction_object._id);
+            seller_interface.addFunds("auction", winning_bid_amount);
+            var seller_item_interface = new PlayerItemIF(seller_interface, item_interface);
+            seller_item_interface.makeLiable();
+        }   
     }
 
-    transferAuctionItem(item_interface, new_status, winning_user._id, auction_object.current_bid, updateCallback);
+
+    transferAuctionItem(item_interface, winning_player_interface, seller, winning_bid_amount, updateCallback);  
+    updateArtworkMarketValue(item_interface, winning_bid_amount);      
 }
 
-transferAuctionItem = function(item_interface, new_status, winning_user_id, winning_bid, updateCallback) {
+transferAuctionItem = function(item_interface, winning_player_interface, seller, winning_bid_amount, updateCallback) {
+    var send_item_to_inventory = winning_player_interface.getUserObject().profile.settings.auction_items_to_inventory && !winning_player_interface.inventoryIsFull();
+
     item_interface.updateItem({
         $set: {
-            'status' : new_status, 
+            'status' : send_item_to_inventory ? 'claimed' : 'won', 
             'owner': winning_user_id, 
             'tags': [], 
             'date_received': moment()._d.toISOString(),
-            'authenticity.identified': false,
-            'authenticity.fee': winning_bid,
-            'authenticity.liability_pending': true
+            'authenticity.identified': seller == undefined,
+            'authenticity.fee': winning_bid_amount,
+            'authenticity.liability_pending': seller != undefined
         }
     }, true, updateCallback);
+}
+
+updateArtworkMarketValue = function(item_interface, winning_bid_amount) {
+    var item_signature = item_interface.getArchiveSignature();
+    var setter_string = "market_data." + item_signature;
+    var setter_object = {};
+    var market_info = artworks.findOne(item_interface.getArtworkId()).market_data[item_signature];
+    if (market_info  == undefined) {
+        setter_object[setter_string] = {'count': 1, 'average': winning_bid_amount};
+    }
+    else {
+        var previous_count = market_info.count;
+        var previous_average = market_info.average;
+        var new_count = previous_count + 1;
+        var new_average = ((previous_count * previous_average) + winning_bid_amount) / new_count;
+        setter_object[setter_string] = {'count': new_count, 'average': Math.floor(new_average)};
+    }
+
+    artworks.update({'_id': item_interface.getArtworkId()}, {$set: setter_object});
 }
 
 concludeAuction = function(auction_id) {

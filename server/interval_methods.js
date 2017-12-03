@@ -108,8 +108,7 @@ Meteor.setInterval((function() {
     var multi_item_generator = {
         'source': "generated auction",
         'count': 20,
-        'status': "auctioned",
-        'forgery_chance': GENERATED_AUCTION_FORGERY_CHANCE
+        'status': "auctioned"
     }
 
     var duration = DEBUG ? ONE_MINUTE / 60000 : ONE_HOUR / 60000;
