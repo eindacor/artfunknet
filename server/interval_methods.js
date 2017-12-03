@@ -108,8 +108,7 @@ Meteor.setInterval((function() {
     var multi_item_generator = {
         'source': "generated auction",
         'count': 20,
-        'status': "auctioned",
-        'forgery_chance': GENERATED_AUCTION_FORGERY_CHANCE
+        'status': "auctioned"
     }
 
     var duration = DEBUG ? ONE_MINUTE / 60000 : ONE_HOUR / 60000;
@@ -350,6 +349,12 @@ Meteor.setInterval((function() {
 
 Meteor.setInterval((function() {
     getFromCollection("interval_methods.js", crates, {$or: [{'expiration': {$lt: getNowISOString()}}, {'expiration': null}]}).forEach(function(crate_object) {
+        var query = {};
+        var query_string = "profile.crate_purchases." + crate_object._id;
+        query[query_string] = {'$ne': null};
+        var unsetter = {};
+        unsetter[query_string] = "";
+        Meteor.users.update(query, {$unset: unsetter}, {multi: true});
         crates.remove({'_id': crate_object._id});
         createCrate();
     })
