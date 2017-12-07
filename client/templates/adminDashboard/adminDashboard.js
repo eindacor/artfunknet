@@ -878,6 +878,32 @@ var generateRarityMap = function() {
 	return rarity_map;
 }
 
+var getUniqueAttributes = function(special_attributes) {
+    if (special_attributes.length < 2) {
+        return [];
+    }
+
+    var unique_attribute_array = [];
+
+    for (var i=0; i<special_attributes.length; i++) {
+        for (var c=0; c<special_attributes.length; c++) {
+            if (i == c) {
+                continue;
+            }
+            else {
+                var first = special_attributes[i];
+                var second = special_attributes[c];
+                var unique_found = unique_attributes.findOne({'linked_attributes': {$all: [first, second]}})._id;
+                if (unique_attribute_array.indexOf(unique_found) == -1) {
+                    unique_attribute_array.push(unique_found);
+                }
+            }
+        }
+    }
+
+    return unique_attribute_array;
+}
+
 var generateArtworkObject = function() {
 	var artist_object = artists.findOne($('#artwork-mod-container').find('.artwork-mod-artist-selector').val());
 
@@ -958,7 +984,7 @@ var generateArtworkObject = function() {
 		'rarity_value': rarityValueFromString($('#artwork-mod-container').find('.rarity-selector').val()),
 		'active': $('#artwork-mod-container').find('.active-selector').val() == "true" ? true : false,
 		'special_attributes': selected_artwork_special_attributes_selected,
-		'unique_attributes': special_attribute_unique_attributes
+		'unique_attributes': getUniqueAttributes(selected_artwork_special_attributes_selected)
 	}
 
 	if ($('#artwork-mod-id').text().length > 0) {

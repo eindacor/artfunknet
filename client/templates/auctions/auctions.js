@@ -2,8 +2,6 @@ var auction_house_tracker = new Tracker.Dependency;
 var page_tracker = new Tracker.Dependency;
 var item_count_tracker = new Tracker.Dependency;
 var search_terms = [];
-var locked_attributes = [];
-var standard_attributes = [];
 var sorter = "expiration";
 var ascending = 1;
 var rarity_filter =  {'item_data.rarity': {$in: ['common', 'uncommon', 'rare', 'legendary', 'masterpiece']}};
@@ -253,31 +251,6 @@ Template.auctions.events({
 		item_count_tracker.changed();
 	},
 
-
-	'change #locked-attribute-checkbox': function() {
-		locked_attributes = [];
-		for (var i=0; i<$('input[type=checkbox].locked-attribute-select').length; i++) {
-		 	var checked = $('input[type=checkbox].locked-attribute-select:eq(' + i + ')')[0].checked;
-		 	if (checked)
-		 		locked_attributes.push($('input[type=checkbox].locked-attribute-select:eq(' + i + ')').val())
-		}
-
-		auction_data = undefined;
-		item_count_tracker.changed();
-	},
-
-	'change #attribute-checkbox': function() {
-		standard_attributes = [];
-		for (var i=0; i<$('input[type=checkbox].attribute-select').length; i++) {
-		 	var checked = $('input[type=checkbox].attribute-select:eq(' + i + ')')[0].checked;
-		 	if (checked)
-		 		standard_attributes.push($('input[type=checkbox].attribute-select:eq(' + i + ')').val())
-		}
-
-		auction_data = undefined;
-		item_count_tracker.changed();
-	},
-
 	'change #card-rarity-checkbox': function() {
 		var valid_rarities = [];
 		for (var i=0; i<$('input[type=checkbox].rarity-select').length; i++) {
@@ -304,16 +277,6 @@ Template.auctions.events({
 
 		exclusivity_filter = {'viewer': {$in: valid_exclusivity}};
 
-		auction_data = undefined;
-		item_count_tracker.changed();
-	},
-
-	'change #locked-filter': function() {
-		auction_data = undefined;
-		item_count_tracker.changed();
-	},
-
-	'change #attribute-filter': function() {
 		auction_data = undefined;
 		item_count_tracker.changed();
 	},

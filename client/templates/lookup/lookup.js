@@ -8,12 +8,12 @@ var updateLegendaryLookup = function(first, second) {
 		legendaries_found = artworks.find({'rarity': {$in: ["masterpiece", "legendary"]}}).fetch();
 
 	else if (first == "any")
-		legendaries_found = artworks.find({'locked_attributes': {$in: [second]}}).fetch();
+		legendaries_found = artworks.find({'special_attributes': {$in: [second]}}).fetch();
 
 	else if (second == "any")
-		legendaries_found = artworks.find({'locked_attributes': {$in: [first]}}).fetch();
+		legendaries_found = artworks.find({'special_attributes': {$in: [first]}}).fetch();
 
-	else legendaries_found = artworks.find({$and: [{'locked_attributes': {$in: [first]}}, {'locked_attributes': {$in: [second]}}]}).fetch();
+	else legendaries_found = artworks.find({$and: [{'special_attributes': {$in: [first]}}, {'special_attributes': {$in: [second]}}]}).fetch();
 
 	legendaryLookupTracker.changed();
 }

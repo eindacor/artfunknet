@@ -243,11 +243,6 @@ Meteor.methods({
 
     'addNewArtwork': function(artwork_object) {
     	if (adminValidated()) {
-    		var legendary_attributes = getLegendaryAttributes(artwork_object.rarity);
-
-    		if (legendary_attributes)
-    			artwork_object.locked_attributes = legendary_attributes;
-
     		return artworks.insert(artwork_object);
     	}
 
@@ -576,51 +571,4 @@ var linkedAttributesValid = function(unique_attribute_id, attribute_array) {
 	}
 
 	return true;
-}
-
-getLegendaryAttributes = function(rarity) {
-	if (rarity == "legendary" || rarity == "masterpiece") {
-        var random_attributes = [];
-        var attribute_count = rarity == "legendary" ? 2 : 3;
-
-        while (random_attributes.length < attribute_count) {
-            var selector = {'_id': {$nin: random_attributes}, 'active': true};
-            var count = attributes.find(selector).count();
-            if (count == 0)
-                break;
-            
-            random_attributes.push(attributes.findOne(selector, {skip: Math.floor(Math.random() * count)})._id);
-        }
-
-        return random_attributes;
-    }
-
-    else return undefined;
-}
-
-getRandomSpecialAttributes = function(rarity) {
-    if (["rare", "legendary", "masterpiece"].indexOf(rarity) != -1) {
-        var random_attributes = [];
-        var attribute_count = undefined;
-
-        switch(rarity) {
-            case "rare": attribute_count = 1; break;
-            case "legendary": attribute_count = 2; break;
-            case "masterpiece": attribute_count = 3; break;
-            default: attribute_count = 0; break;
-        }
-
-        while (random_attributes.length < attribute_count) {
-            var selector = {'_id': {$nin: random_attributes}, 'active': true};
-            var count = attributes.find(selector).count();
-            if (count == 0)
-                break;
-            
-            random_attributes.push(attributes.findOne(selector, {skip: Math.floor(Math.random() * count)})._id);
-        }
-
-        return random_attributes;
-    }
-
-    else return [];
 }
