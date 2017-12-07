@@ -200,39 +200,6 @@ var updateContent = function() {
 
     //temp code
     npcs.remove({'tutorial': true});
-
-    var getUniqueAttributes = function(special_attributes) {
-        if (special_attributes.length < 2) {
-            return [];
-        }
-
-        var unique_attribute_array = [];
-
-        for (var i=0; i<special_attributes.length; i++) {
-            for (var c=0; c<special_attributes.length; c++) {
-                if (i == c) {
-                    continue;
-                }
-                else {
-                    var first = special_attributes[i];
-                    var second = special_attributes[c];
-                    var unique_found = unique_attributes.findOne({'linked_attributes': {$all: [first, second]}})._id;
-                    if (unique_attribute_array.indexOf(unique_found) == -1) {
-                        unique_attribute_array.push(unique_found);
-                    }
-                }
-            }
-        }
-
-        return unique_attribute_array;
-    }
-
-    artworks.find({'rarity': {$in: ["legendary", "masterpiece"]}}).forEach(function(artwork_object) {
-        var unique_attribute_array = getUniqueAttributes(artwork_object.special_attributes);
-        updateArtwork(artwork_object._id, {$set: {'unique_attributes': unique_attribute_array}});
-    })
-
-    artworks.update({'locked_attributes': {$ne: null}}, {$unset: {'locked_attributes': ""}}, {multi: true});
     //temp code
 
     // var desired_bot_count = 100;
