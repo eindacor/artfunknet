@@ -60,7 +60,8 @@ var searchArrayForSpecialAttributes = function(special_ids, item_object, new_att
 
 updateItemAttributesWithNewArtworkData = function(item_interface) {
     var item_object = item_interface.getItemObject();
-    var artwork_object = artworks.findOne(item_object.artwork_id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0}});
+    var artwork_object = artworks.findOne(item_object.artwork_id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0, 'market_data': 0}});
+    console.log(artwork_object);
 
     if (item_object && artwork_object) {
         var all_new_attributes = [];
@@ -152,7 +153,13 @@ updateItemAttributesWithNewArtworkData = function(item_interface) {
             all_new_attributes.push(attribute_object._id);
         }
 
-        item_interface.updateItem({$set: {'artwork_data': artwork_object, 'attributes': new_attribute_object, 'active_unique_attribute': artwork_object.unique_attributes && artwork_object.unique_attributes.length > 0 ? artwork_object.unique_attributes[0] : undefined}}, false);
+        item_interface.updateItem({
+            $set: {
+                'artwork_data': artwork_object, 
+                'attributes': new_attribute_object, 
+                'active_unique_attribute': artwork_object.unique_attributes && artwork_object.unique_attributes.length > 0 ? artwork_object.unique_attributes[0] : undefined
+            }
+        }, false);
     }
 }
 

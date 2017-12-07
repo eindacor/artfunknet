@@ -227,8 +227,7 @@ var updateContent = function() {
         return unique_attribute_array;
     }
 
-    var cutoff_date = moment().add(-10, 'days')._d.toISOString();
-    artworks.find({'rarity': {$in: ["legendary", "masterpiece"]}, 'date_created': {$gt: cutoff_date}}).forEach(function(artwork_object) {
+    artworks.find({'rarity': {$in: ["legendary", "masterpiece"]}}).forEach(function(artwork_object) {
         var unique_attribute_array = getUniqueAttributes(artwork_object.special_attributes);
         updateArtwork(artwork_object._id, {$set: {'unique_attributes': unique_attribute_array}});
     })
