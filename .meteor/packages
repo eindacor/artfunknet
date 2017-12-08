@@ -31,3 +31,5 @@ chart:chart
 percolate:synced-cron
 meteorhacks:aggregate
 email
+jparker:crypto-md5
+jparker:crypto-hmac
