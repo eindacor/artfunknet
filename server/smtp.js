@@ -1,6 +1,6 @@
 setupMail = function() {
     Accounts.emailTemplates.from = 'Artfunkel <artfunkelgame@gmail.com>';
-    Accounts.emailTemplates.siteName = 'http://artfunkelgame.com';
+    Accounts.emailTemplates.siteName = 'https://artfunkelgame.com';
    
     Accounts.emailTemplates.verifyEmail.subject = function(user) {
         return 'Artfunkel: Please Confirm Your Email Address';
@@ -15,7 +15,7 @@ setupMail = function() {
     }
 
     Accounts.emailTemplates.resetPassword.html = function(user, url) {
-        return '<h2>Hello ' + user.profile.screen_name + ',</h2> <p>Here is a link to reset your password for artfunkel.meteor.com:</p> <a href="' + url + '">Click here to reset your password</a> <p>If you did not request your password to be reset, you may safely ignore this email.</p>';
+        return '<h2>Hello ' + user.profile.screen_name + ',</h2> <p>You recently requested password recovery</p> <a href="' + url + '">Click here to reset your password</a> <p>If you did not request your password to be reset, you may safely ignore this email.</p>';
     }
 
     var smtp = {
