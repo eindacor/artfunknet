@@ -555,6 +555,18 @@ Meteor.methods({
         }
 
         else return [];
+    },
+
+    'getPatreonTest': function() {
+        if (adminValidated()) {
+            return getPatreonTest();
+        }
+    },
+
+    'clearPatreonTest': function() {
+        if (adminValidated()) {
+            clearPatreonTest();
+        }
     }
 })
 

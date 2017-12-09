@@ -17,6 +17,14 @@ Template.dashboard.helpers({
 
 	'setSection': function(section_name) {
 		current_section = section_name;
+	},
+
+	'patreon_tier': function() {
+		if (Meteor.user().profile.patreon_data) {
+			var tier = Meteor.user().profile.patreon_data.reward_data.tier
+			return tier ? tier : "af-color";
+		}
+		else return "af-color";
 	}
 })
 
