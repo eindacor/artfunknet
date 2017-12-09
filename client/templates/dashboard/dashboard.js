@@ -20,7 +20,7 @@ Template.dashboard.helpers({
 	},
 
 	'patreon_tier': function() {
-		if (Meteor.user().profile.patreon_data) {
+		if (Meteor.user().profile.patreon_data && Meteor.user().profile.patreon_data.reward_data) {
 			var tier = Meteor.user().profile.patreon_data.reward_data.tier
 			return tier ? tier : "af-color";
 		}
