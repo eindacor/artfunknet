@@ -611,12 +611,6 @@ Meteor.methods({
     'htmlAlert': function(username, html, icon, sentiment) {
         if (adminValidated()) {
             var player_interface = new PlayerIF(Meteor.users.findOne({'profile.screen_name': username}));
-            //player_interface.htmlAlert(html, icon, sentiment);
-
-            var icon = 'fa-thumbs-up';
-            var sentiment = "good";
-            var html = '<p>You have won <span class="af-color" style="font-style:italic">' + 'something' + '</span> by <span class="af-color">' + 'someone' + '</span> in the auction house for <span class="green-text">$' + '12,000' + '</span></p>';
-
             player_interface.htmlAlert(html, icon, sentiment);
         }
     }

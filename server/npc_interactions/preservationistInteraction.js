@@ -57,7 +57,7 @@ preservationistInteraction = function(npc_object, player_interface) {
 	target_item_interface.updateItem({$set: {'condition' : new_condition}}, false);
 
 	message = "You have met a preservationist who has offered to refurbish one of your pieces. " + target_item.artwork_data.title + " by " + target_item.artwork_data.artist + " now has a condition of " + Math.floor(new_condition * 100) + "% (+" + Math.floor(repair_amount * 100) + "%).";
-	var html = 'You have met a preservationist who has offered to refurbish one of your pieces. <span class="af-color">' + target_item.artwork_data.title + '</span> by <span class="af-color">' + target_item.artwork_data.artist + '</span> now has a condition of ' + Math.floor(new_condition * 100) + '% (<span class="green-text">+' + actual_repaired_amount + '%</span>).';
+	var html = 'You have met a preservationist who has offered to refurbish one of your pieces. <span class="' + target_item.artwork_data.rarity + '">' + target_item.artwork_data.title + '</span> by <span class="af-color">' + target_item.artwork_data.artist + '</span> now has a condition of ' + Math.floor(new_condition * 100) + '% (<span class="green-text">+' + actual_repaired_amount + '%</span>).';
 	return {
 		'message': message,
 		'html': html
