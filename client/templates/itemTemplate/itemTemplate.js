@@ -223,8 +223,8 @@ Template.itemInfo.events({
 
 	'click .action-icon': function(event) {
 		var item_id = $(event.target).data().item_id;
-		var action_name = $(event.target).data().action_name;
-		var can_quick_discard = $(event.target).data().can_quick_discard;
-		act(action_name, item_id, can_quick_discard);
+		var selected_action_name = $(event.target).attr('data-action_name');
+		var can_quick_discard = $(event.target).attr('data-can_quick_discard');
+		act(selected_action_name, item_id, can_quick_discard);
 	}
 })
