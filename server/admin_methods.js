@@ -76,8 +76,9 @@ Meteor.methods({
 		if (adminValidated()) {
 			gallery_object = getOneFromCollection("admin_methods.js", galleries, {'owner_id': Meteor.userId()});
 
-			if (gallery_object)
+			if (gallery_object) {
 				createNPC(gallery_object, attribute_id, 0, getNPCQuality(Meteor.user().profile.level));
+            }
 		}
 	},
 
@@ -87,8 +88,42 @@ Meteor.methods({
 		}
 	},
 
+    'setFoilChance': function(value) {
+        if (adminValidated()) {
+            metadata.update({'loot_data': {$ne: null}}, {$set: {'loot_data.global_foil_chance': value}}, function() {
+                LOOT_DATA = metadata.findOne({'loot_data': {$ne: null}}).loot_data;
+            });
+        }
+    },
+
+     'setUnlockedChance': function(value) {
+        if (adminValidated()) {
+            metadata.update({'loot_data': {$ne: null}}, {$set: {'loot_data.global_unlocked_chance': value}}, function() {
+                LOOT_DATA = metadata.findOne({'loot_data': {$ne: null}}).loot_data;
+            });
+        }
+    },
+
+     'setMisprintChance': function(value) {
+        if (adminValidated()) {
+            metadata.update({'loot_data': {$ne: null}}, {$set: {'loot_data.global_misprint_chance': value}}, function() {
+                LOOT_DATA = metadata.findOne({'loot_data': {$ne: null}}).loot_data;
+            });
+        }
+    },
+
+     'setPatreonChance': function(value) {
+        if (adminValidated()) {
+            metadata.update({'loot_data': {$ne: null}}, {$set: {'loot_data.global_patreon_chance': value}}, function() {
+                LOOT_DATA = metadata.findOne({'loot_data': {$ne: null}}).loot_data;
+            });
+        }
+    },
+
 	'getAdminData': function() {
 		var user_object = Meteor.user();
+
+        var loot_data = getLootData();
 
 		if (user_object) {
 			return {
@@ -97,7 +132,11 @@ Meteor.methods({
 				'daily_drop_count': admin_settings.daily_drop_count,
 				'crate_drop_count': admin_settings.crate_drop_count,
 				'bank_balance': user_object.profile.bank_balance,
-				'seasonal_ids': getLootData().seasonal_items
+				'seasonal_ids': loot_data.seasonal_items,
+                'foil_chance': loot_data.global_foil_chance,
+                'patreon_chance': loot_data.global_patreon_chance,
+                'unlocked_chance': loot_data.global_unlocked_chance,
+                'misprint_chance': loot_data.global_misprint_chance
 			}
 		}
 	},
@@ -180,7 +219,7 @@ Meteor.methods({
 
 	'alertAllUsers' : function(message) {
         if (adminValidated()) {
-            alertPlayers({}, message, 'fa-exclamation', 'neutral');
+            alertPlayers({}, '<p>' + message + '</p>', 'fa-exclamation', 'neutral');
 	    }
     },
 
@@ -566,6 +605,19 @@ Meteor.methods({
     'clearPatreonTest': function() {
         if (adminValidated()) {
             clearPatreonTest();
+        }
+    },
+
+    'htmlAlert': function(username, html, icon, sentiment) {
+        if (adminValidated()) {
+            var player_interface = new PlayerIF(Meteor.users.findOne({'profile.screen_name': username}));
+            //player_interface.htmlAlert(html, icon, sentiment);
+
+            var icon = 'fa-thumbs-up';
+            var sentiment = "good";
+            var html = '<p>You have won <span class="af-color" style="font-style:italic">' + 'something' + '</span> by <span class="af-color">' + 'someone' + '</span> in the auction house for <span class="green-text">$' + '12,000' + '</span></p>';
+
+            player_interface.htmlAlert(html, icon, sentiment);
         }
     }
 })

@@ -95,6 +95,15 @@
 	animation: card_effect 10s ease infinite;
 }
 
+.template-itemInfo .patreon {
+	background: linear-gradient(60deg, white, #fededa, #fededa, white, #fededa, #fededa, white);
+	background-size: 300% 300%;
+	-webkit-animation: card_effect 10s ease infinite;
+	-moz-animation: card_effect 10s ease infinite;
+	-o-animation: card_effect 10s ease infinite;
+	animation: card_effect 10s ease infinite;
+}
+
 .template-itemInfo .card-container:hover + .button-area{
 	opacity: 1;
 }
@@ -468,31 +477,46 @@
 
 .tooltip-container .tooltip-contents {
     visibility: hidden;
-    width: 120px;
+    width: 160px;
     background-color: white;
     border: 1px solid black;
     color: black;
     text-align: center;
-    padding: 6px 4px 6px 4px;
+    padding: 6px 4px 4px 4px;
     position: absolute;
     z-index: 1;
-    bottom: 125%;
     left: 50%;
-    margin-left: -60px;
+    margin-left: -80px;
     opacity: 0;
     transition: opacity 1s;
     font-size: 1.2rem;
 }
 
+.tooltip-container .tooltip-contents.below {
+	top: 125%;
+}
+
+.tooltip-container .tooltip-contents.above {
+	bottom: 125%;
+}
+
 .tooltip-container .tooltip-contents::after {
     content: "";
     position: absolute;
-    top: 100%;
     left: 50%;
     margin-left: -5px;
     border-width: 5px;
     border-style: solid;
-    border-color: black transparent transparent transparent;
+}
+
+.tooltip-container .tooltip-contents.above::after {
+	border-color: #666 transparent transparent transparent;
+    top: 100%;
+}
+
+.tooltip-container .tooltip-contents.below::after {
+	border-color:  transparent transparent  #666 transparent;
+    bottom: 100%;
 }
 
 .tooltip-container:hover .tooltip-contents {

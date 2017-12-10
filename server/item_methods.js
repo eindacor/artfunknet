@@ -61,7 +61,6 @@ var searchArrayForSpecialAttributes = function(special_ids, item_object, new_att
 updateItemAttributesWithNewArtworkData = function(item_interface) {
     var item_object = item_interface.getItemObject();
     var artwork_object = artworks.findOne(item_object.artwork_id, {fields: {'_id': 0, 'active': 0, 'value_scale': 0, 'market_data': 0}});
-    console.log(artwork_object);
 
     if (item_object && artwork_object) {
         var all_new_attributes = [];
@@ -290,35 +289,35 @@ removeItem = function(item_id, source, callback) {
 var setItemActions = function(item_object, player_item_permissions) {
     var action_array = [];
 
-    if (player_item_permissions.canClaim()) {
+    if (player_item_permissions.canClaim().result) {
         action_array.push({
             'action_name': "claimItem",
             'tooltip': "add to inventory"
         });
     }  
 
-    if (player_item_permissions.canPurchase()) {
+    if (player_item_permissions.canPurchase().result) {
         action_array.push({
             'action_name': "purchaseItem",
             'tooltip': "purchase"
         });
     }
 
-    if (player_item_permissions.canSell()) {
+    if (player_item_permissions.canSell().result) {
         action_array.push({
             'action_name': "sellItem",
             'tooltip': "sell"
         });
     }
 
-    if (player_item_permissions.canAuction()) {
+    if (player_item_permissions.canAuction().result) {
         action_array.push({
             'action_name': "auctionItem",
-            'tooltip': "auction item"
+            'tooltip': "auction"
         });
     }
 
-    if (player_item_permissions.canDonate()) {
+    if (player_item_permissions.canDonate().result) {
         action_array.push({
             'action_name': "donateItem",
             'tooltip': "donate"
@@ -327,45 +326,45 @@ var setItemActions = function(item_object, player_item_permissions) {
   
     action_array.push({
         'action_name': "modItem",
-        'tooltip': "modify item"
+        'tooltip': "modify"
     });
 
-    if (player_item_permissions.canArchive()) {
+    if (player_item_permissions.canArchive().result) {
         action_array.push({
             'action_name': "archiveItem",
             'tooltip': "add to archive"
         });
     }
 
-    if (player_item_permissions.canIdentify()) {
+    if (player_item_permissions.canIdentify().result) {
         action_array.push({
             'action_name': "identifyItem",
             'tooltip': "verify authenticity"
         });
     }
 
-    if (player_item_permissions.canRedeemForgery()) {
+    if (player_item_permissions.canRedeemForgery().result) {
         action_array.push({
             'action_name': "redeemItem",
             'tooltip': "report forgery"
         });
     }
 
-    if (player_item_permissions.canForge()) {
+    if (player_item_permissions.canForge().result) {
         action_array.push({
             'action_name': "forgeItem",
             'tooltip': "forge"
         });
     }
 
-    if (player_item_permissions.canDelete()) {
+    if (player_item_permissions.canDelete().result) {
         action_array.push({
             'action_name': "deleteItem",
             'tooltip': "delete"
         });
     }
 
-    if (player_item_permissions.canDecline()) {
+    if (player_item_permissions.canDecline().result) {
         action_array.push({
             'action_name': "declineItem",
             'tooltip': "decline"
@@ -375,63 +374,64 @@ var setItemActions = function(item_object, player_item_permissions) {
     item_object.item_actions = action_array;
 
     var modifier_array = [];
-    if (player_item_permissions.canDisplay()) {
+
+    if (player_item_permissions.canDisplay().result) {
         modifier_array.push({
             'action_name': "displayItem",
             'tooltip': "add to gallery"
         });
     }
 
-    if (player_item_permissions.canUndisplay()) {
+    if (player_item_permissions.canUndisplay().result) {
         modifier_array.push({
             'action_name': "undisplayItem",
             'tooltip': "remove from gallery"
         });
     }
     
-    if (player_item_permissions.canSetPermanent()) {
+    if (player_item_permissions.canSetPermanent().result) {
         modifier_array.push({
             'action_name': "setPermanent",
             'tooltip': "add to favorites"
         });
     }
 
-    if (player_item_permissions.canUnsetPermanent()) {
+    if (player_item_permissions.canUnsetPermanent().result) {
         modifier_array.push({
             'action_name': "unsetPermanent",
             'tooltip': "remove from favorites"
         });
     }
 
-    if (player_item_permissions.canTagForSale()) {
+    if (player_item_permissions.canTagForSale().result) {
         modifier_array.push({
             'action_name': "setForSale",
             'tooltip': "set for sale"
         });
     }
 
-    if (player_item_permissions.canUntagForSale()) {
+    if (player_item_permissions.canUntagForSale().result) {
         modifier_array.push({
             'action_name': "unsetForSale",
             'tooltip': "unset for sale"
         });
     }
 
-    if (player_item_permissions.canSetRepairing()) {
+    if (player_item_permissions.canSetRepairing().result) {
         modifier_array.push({
             'action_name': "setRepairing",
             'tooltip': "set to repair"
         });
     }
 
-    if (player_item_permissions.canUnsetRepairing()) {
+    if (player_item_permissions.canUnsetRepairing().result) {
         modifier_array.push({
             'action_name': "unsetRepairing",
             'tooltip': "unset to repair"
         });
     }
 
-    if (player_item_permissions.canTag()) {
+    if (player_item_permissions.canTag().result) {
         modifier_array.push({
             'action_name': "tagItem",
             'tooltip': "modify tags"
@@ -442,70 +442,61 @@ var setItemActions = function(item_object, player_item_permissions) {
 }
 
 prepareItemForClient = function(item_object, viewer_interface) {
-    try {
-        var item_interface = new ItemIF(item_object);
-        var player_item_interface = new PlayerItemIF(viewer_interface, item_interface);
-        var artwork_interface = new ArtworkIF(item_object.artwork_id);
-        var user_object = viewer_interface.getUserObject();
+    var item_interface = new ItemIF(item_object);
+    var player_item_interface = new PlayerItemIF(viewer_interface, item_interface);
+    var artwork_interface = new ArtworkIF(item_object.artwork_id);
+    var user_object = viewer_interface.getUserObject();
 
-        var market_expert_active = user_object.profile.market_expert.expiration > getNowISOString();
+    var market_expert_active = user_object.profile.market_expert.expiration > getNowISOString();
 
-        if (market_expert_active) {
-            var item_signature = item_interface.getArchiveSignature();
-            var market_data = artworks.findOne({'_id': item_interface.getArtworkId()}).market_data[item_signature];
-            if (market_data) {
-                item_object.market_value = market_data.average;
-            }
-        }
-
-        if (viewer_interface.getId() == item_object.owner || (item_object.owner == BOT_USER_NAME && item_object.lottery > 0)) {
-            if (!item_object.authenticity.identified) {
-                delete item_object.authenticity.forgery;
-            }
-        }
-        else {
-            delete item_object["authenticity"];
-            if (market_expert_active && item_object.status != "displayed") {
-                delete item_object["condition"];
-                delete item_object["level"];
-                delete item_object["values"];
-                delete item_object["attributes"];
-            }
-
-        }
-
-        item_object.recommended_status = player_item_interface.getRecommendedStatus();
-
-        if (item_object.recommended_status.displaced_item && item_object.recommended_status.displaced_item._id != undefined) {
-            prepareItemForClient(item_object.recommended_status.displaced_item, viewer_interface);
-        }
-
-        item_object.quest_target = player_item_interface.isQuestTarget();
-        item_object.reroll_cost = player_item_interface.getRerollCost();
-        var unclaimed_or_not_owner = ["for_sale", "unclaimed", "won"].indexOf(item_object.status) != -1 || item_object.owner != viewer_interface.getId();
-        item_object.already_owned = unclaimed_or_not_owner && items.findOne({
-            '_id': {$ne: item_object._id}, 
-            'artwork_id': item_object.artwork_id, 
-            'owner': viewer_interface.getId(),
-            'status': {$in: ["claimed", "displayed", "auctioned"]}
-        }) != undefined;
-
-        item_object.archive_indicators = [];
-        for (var i=0; i<ARCHIVE_CATEGORIES.length; i++) {
-            if (viewer_interface.hasArchivedArtworkOfCategory(artwork_interface, ARCHIVE_CATEGORIES[i])) {
-                item_object.archive_indicators.push(ARCHIVE_CATEGORIES[i]);
-            }
-        }
-
-        if (item_object._id != undefined && item_object.owner == viewer_interface.getId()) {
-            var player_item_permissions = new PlayerItemPermissions(viewer_interface, item_interface);
-            item_object.can_quick_discard = player_item_permissions.canQuickDiscard();
-
-            setItemActions(item_object, player_item_permissions);
+    if (market_expert_active) {
+        var item_signature = item_interface.getArchiveSignature();
+        var market_data = artworks.findOne({'_id': item_interface.getArtworkId()}).market_data[item_signature];
+        if (market_data) {
+            item_object.market_value = market_data.average;
         }
     }
-    catch (error) {
-        console.log(error);
+
+    if (viewer_interface.getId() == item_object.owner || (item_object.owner == BOT_USER_NAME && item_object.lottery > 0)) {
+        if (!item_object.authenticity.identified) {
+            delete item_object.authenticity.forgery;
+        }
+    }
+    else {
+        delete item_object["authenticity"];
+        if (market_expert_active && item_object.status != "displayed") {
+            delete item_object["condition"];
+            delete item_object["level"];
+            delete item_object["values"];
+            delete item_object["attributes"];
+        }
+
+    }
+
+    item_object.recommended_status = player_item_interface.getRecommendedStatus();
+
+    item_object.quest_target = player_item_interface.isQuestTarget();
+    item_object.reroll_cost = player_item_interface.getRerollCost();
+    var unclaimed_or_not_owner = ["for_sale", "unclaimed", "won"].indexOf(item_object.status) != -1 || item_object.owner != viewer_interface.getId();
+    item_object.already_owned = unclaimed_or_not_owner && items.findOne({
+        '_id': {$ne: item_object._id}, 
+        'artwork_id': item_object.artwork_id, 
+        'owner': viewer_interface.getId(),
+        'status': {$in: ["claimed", "displayed", "auctioned"]}
+    }) != undefined;
+
+    item_object.archive_indicators = [];
+    for (var i=0; i<ARCHIVE_CATEGORIES.length; i++) {
+        if (viewer_interface.hasArchivedArtworkOfCategory(artwork_interface, ARCHIVE_CATEGORIES[i])) {
+            item_object.archive_indicators.push(ARCHIVE_CATEGORIES[i]);
+        }
+    }
+
+    if (item_object._id != undefined && item_object.owner == viewer_interface.getId()) {
+        var player_item_permissions = new PlayerItemPermissions(viewer_interface, item_interface);
+        item_object.can_quick_discard = player_item_permissions.canQuickDiscard().result;
+
+        setItemActions(item_object, player_item_permissions);
     }
 
     //TODO determine if player can see item details based on auctioneer buff 
@@ -800,11 +791,6 @@ Meteor.methods({
         signature_query.displaced = false;
         signature_query.artwork_id = artwork_object._id;
         return items.findOne(signature_query) != undefined;
-    },
-
-    'getRecommendedStatus': function(item_object) {
-        var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_object));
-        return player_item_interface.getRecommendedStatus();
     },
 
     'getArchiveItems': function(artwork_id, archive_category) {

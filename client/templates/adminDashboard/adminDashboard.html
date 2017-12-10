@@ -39,14 +39,17 @@
 				</div>
 
 				<div class="row tools-section">
-					<h4 class="af-color">Profile Modifier</h4>
 					<div class="col-xs-12">
-						{{> settable_field set_id="set_level" current=player_level button_id="level-set" label="player level"}}
-						{{> settable_field set_id="set_xp" current=player_xp id="xp-set" label="xp"}}
+						{{> settable_field set_id="set_level" current=player_level button_id="level-set" label="admin level"}}
+						{{> settable_field set_id="set_xp" current=player_xp id="xp-set" label="admin xp"}}
 						{{> settable_field set_id="set_daily_drop" current=daily_drop_count button_id="update-daily-drop-count" label="daily drop count"}}
 						{{> settable_field set_id="set_crate_drop" current=crate_drop_count button_id="update-crate-drop-count" label="crate count"}}
 						{{> settable_field set_id="set_bank_balance" current=bank_balance button_id="set-bank-balance" label="bank balance"}}
 						{{> settable_field set_id="set_seasonal" current=seasonal_ids button_id="set-seasonal" label="seasonal items"}}
+						{{> settable_field set_id="set_foil_chance" current=foil_chance button_id="set-foil" label="foil chance"}}
+						{{> settable_field set_id="set_misprint_chance" current=misprint_chance button_id="set-misprint" label="misprint chance"}}
+						{{> settable_field set_id="set_unlocked_chance" current=unlocked_chance button_id="set-unlocked" label="unlocked chance"}}
+						{{> settable_field set_id="set_patreon_chance" current=patreon_chance button_id="set-patreon" label="patreon chance"}}
 						{{> adminButton button_id="new-seasonals" button_label="new seasonals"}}
 						{{> adminButton button_id="reset-daily" button_label="reset daily drop"}}
 						{{> adminButton button_id="reset-resources" button_label="reset resources"}}

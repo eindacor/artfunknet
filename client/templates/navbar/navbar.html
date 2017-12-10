@@ -4,37 +4,81 @@
 			<div class="col-sm-5 col-xs-12 no-padding navbar-section">
 				<dev class="row icon-row">
 					<dev class="icon-section">
-						<a href="/"><i data-title="Home" class="{{#if hasAlerts}}blue-text{{/if}} nav-icon fa fa-home"></i></a>
+						<div class="tooltip-container">
+							<div class="tooltip-contents below">
+								<p>dashboard</p>
+							</div>
+							<a href="/"><i data-title="Home" class="{{#if hasAlerts}}blue-text{{/if}} nav-icon fa fa-home"></i></a>
+						</div>
+						
 					</dev>
 					{{#if currentUser}}
 					<dev class="icon-section">
-						<a href="/auctions"><i data-title="Auction House" class="nav-icon fa fa-gavel {{#if hasPrivateAuctions}}cyan-text{{/if}}"></i></a>
+						<div class="tooltip-container">
+							<div class="tooltip-contents below">
+								<p>auction house</p>
+							</div>
+							<a href="/auctions"><i data-title="Auction House" class="nav-icon fa fa-gavel {{#if hasPrivateAuctions}}cyan-text{{/if}}"></i></a>
+						</div>
 					</dev>
 					<dev class="icon-section">
-						<a href="/store"><i data-title="Store" class="{{#if hasForSale}}green-text{{/if}} nav-icon fa fa-shopping-cart"></i></a>
+						<div class="tooltip-container">
+							<div class="tooltip-contents below">
+								<p>store</p>
+							</div>
+							<a href="/store"><i data-title="Store" class="{{#if hasForSale}}green-text{{/if}} nav-icon fa fa-shopping-cart"></i></a>
+						</div>
 						<div class="notification-area store">
 							{{#with notifications "store"}}{{/with}}
 						</div>
 					</dev>
 					<dev class="icon-section">
-						<a href="/galleries"><i data-title="Player Galleries" class="nav-icon fa fa-globe"></i></a>
+						<div class="tooltip-container">
+							<div class="tooltip-contents below">
+								<p>browse galleries</p>
+							</div>
+							<a href="/galleries"><i data-title="Player Galleries" class="nav-icon fa fa-globe"></i></a>
+						</div>
 					</dev>
 					<dev class="icon-section">
-						<a href="/leaderboard"><i data-title="Leaderboard" class="nav-icon fa fa-trophy"></i></a>
+						<div class="tooltip-container">
+							<div class="tooltip-contents below">
+								<p>leaderboards</p>
+							</div>
+							<a href="/leaderboard"><i data-title="Leaderboard" class="nav-icon fa fa-trophy"></i></a>
+						</div>
+						
 					</dev>
 				   	{{/if}} 
 				    <dev class="icon-section">
-				    	<a href="/wiki"><i data-title="Legendary Attributes" class="nav-icon fa fa-star"></i></a>
+				    	<div class="tooltip-container">
+							<div class="tooltip-contents below">
+								<p>legendary info</p>
+							</div>
+							<a href="/wiki"><i data-title="Legendary Attributes" class="nav-icon fa fa-star"></i></a>
+						</div>
 				    </dev>
 					{{#if currentUser}}
 						{{#if hasCompletedQuest}}
-						<dev class="icon-section">					
-							<a href="/dashboard/quests"><i data-title="Quests" class="{{#if hasFullyCompletedQuest}}orange-text{{else}}{{#if hasCompletedQuest}}bright-orange-text{{/if}}{{/if}} nav-icon fa fa-flag-checkered"></i></a>
+						<dev class="icon-section">	
+							<div class="tooltip-container">
+								<div class="tooltip-contents below">
+									<p>quests</p>
+								</div>
+								<a href="/dashboard/quests"><i data-title="Quests" class="{{#if hasFullyCompletedQuest}}orange-text{{else}}{{#if hasCompletedQuest}}bright-orange-text{{/if}}{{/if}} nav-icon fa fa-flag-checkered"></i></a>
+							</div>				
+							
 						</dev>
 						{{/if}}
 						{{#if hasLoot}}
 						<dev class="icon-section">
-							<a href="/dashboard/loot"><i data-title="Loot Section" class="yellow-text nav-icon fa fa-gift"></i></a>
+							<div class="tooltip-container">
+								<div class="tooltip-contents below">
+									<p>loot</p>
+								</div>
+								<a href="/dashboard/loot"><i data-title="Loot Section" class="yellow-text nav-icon fa fa-gift"></i></a>
+							</div>
+							
 							<div class="notification-area loot">
 								{{#with notifications "loot"}}{{/with}}
 							</div>
@@ -43,11 +87,21 @@
 						{{#if tutorial_mode}}
 						{{else}}
 						<dev class="icon-section">
-					    	<i id="tutorial-button" data-title="Tutorials" class="nav-icon fa fa-question"></i>
+							<div class="tooltip-container">
+								<div class="tooltip-contents below">
+									<p>tutorials</p>
+								</div>
+								<i id="tutorial-button" data-title="Tutorials" class="nav-icon fa fa-question"></i>
+							</div>
 					    </dev>
 					    {{/if}}
 					<dev class="icon-section">
-				    	<a href="/logout"><i data-title="Log Out" class="logout-button nav-icon fa fa-sign-out light-gray"></i></a>
+						<div class="tooltip-container">
+							<div class="tooltip-contents below">
+								<p>log out</p>
+							</div>
+							<a href="/logout"><i data-title="Log Out" class="logout-button nav-icon fa fa-sign-out light-gray"></i></a>
+						</div>
 				    </dev>
 				   {{/if}}
 				   {{#if userIsAdmin}}
@@ -60,7 +114,13 @@
 
 		    {{#if currentUser}}
 	    	<div class="col-sm-3 col-xs-12 no-padding navbar-section ticket-area">
-				<a href="/user/{{screen_name}}"><i class="{{#if hasVisitors}}af-color{{/if}} nav-icon fa fa-picture-o"></i></a>
+	    		<div class="tooltip-container">
+					<div class="tooltip-contents below">
+						<p>my gallery</p>
+					</div>
+					<a href="/user/{{screen_name}}"><i class="{{#if hasVisitors}}af-color{{/if}} nav-icon fa fa-picture-o"></i></a>
+				</div>
+				
 				{{#each ticket}}
 					{{#with ticketData this}}
 					<a href="/user/{{owner_name}}" class="ticket-button {{#if unmet_npcs}}af-color{{else}}npcs-met{{/if}}"><i data-expiration_string="{{expiration_string}}" data-owner_name="{{owner_name}}" class="fa fa-ticket"></i></a>

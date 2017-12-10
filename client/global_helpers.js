@@ -88,12 +88,12 @@ Template.registerHelper('floatToPercentage', function(value) {
 //TODO collaps helpers into single object
 Template.registerHelper('canUpgrade', function(item_data) {
 	var permissions = new PlayerItemPermissions(new PlayerIF(Meteor.user()), new ItemIF(item_data));
-	return permissions.canUpgrade();
+	return permissions.canUpgrade().result;
 })
 
 Template.registerHelper('canAffordUpgrade', function(item_data) {
 	var permissions = new PlayerItemPermissions(new PlayerIF(Meteor.user()), new ItemIF(item_data));
-	return permissions.canAffordUpgrade();
+	return permissions.canAffordUpgrade().result;
 })
 
 Template.registerHelper('inventoryIsFull', function() {
@@ -130,6 +130,10 @@ Template.registerHelper('card_types', function(item_object) {
 
 		if (item_object.original) {
 			types += "original ";
+		}
+
+		if (item_object.patreon) {
+			types += "patreon ";
 		}
 
 		return types;

@@ -145,6 +145,7 @@ ItemGenerator = function() {
 			misprint_chance
 			forgery_chance
 			min_roll_boost
+			patreon_chance
 	*/
 
 	this.generateMultiple = function(multi_item_generator_object, player_interface, callback) {
@@ -191,6 +192,7 @@ ItemGenerator = function() {
 	            'seasonal': undefined,
 	            'lottery': 0,
 	            'original': false,
+	            'patreon': multi_item_generator_object.patreon_chance,
 	            'vintage': false,
 	            'misprint_chance': multi_item_generator_object.misprint_chance,
 	            'status': multi_item_generator_object.status,
@@ -256,6 +258,10 @@ ItemGenerator = function() {
 				or
 			unlocked_chance
 
+			patreon
+				or
+			patreon_chance
+
 			misprint
 				or
 			misprint_chance
@@ -282,7 +288,6 @@ ItemGenerator = function() {
 			var foil_chance = item_generator_object.foil_chance === undefined ? getLootData().global_foil_chance : item_generator_object.foil_chance;
 			foil = Math.random() < foil_chance;
 		}
-
 		else {
 			foil = item_generator_object.foil;
 		}
@@ -291,12 +296,10 @@ ItemGenerator = function() {
 		if (item_generator_object.artwork_interface.getRarity() == "common") {
 			unlocked = false;
 		}
-
 		else if (item_generator_object.unlocked === undefined) {
 			var unlocked_chance = item_generator_object.unlocked_chance === undefined ? getLootData().global_unlocked_chance : item_generator_object.unlocked_chance;
 			unlocked = Math.random() < unlocked_chance;
 		}
-
 		else {
 			unlocked = item_generator_object.unlocked;
 		}
@@ -317,6 +320,24 @@ ItemGenerator = function() {
 	    var condition_min = item_generator_object.condition_min === undefined ? 0 : item_generator_object.condition_min;
 	    var min_roll_boost = item_generator_object.min_roll_boost === undefined ? 0 : item_generator_object.min_roll_boost;
 
+	    // patreon items are only possible when the rarity is lower or equal to the player's tier
+	    var patreon;
+		if (item_generator_object.patreon === undefined) {
+			if (player_interface == undefined || !player_interface.isPatron()) {
+				patreon = false;
+			}
+			else if (artwork_rarities.indexOf(player_interface.getPatreonTier()) < artwork_rarities.indexOf(artwork_data.rarity)) {
+				patreon = false;
+			}
+			else {
+				var patreon_chance = item_generator_object.patreon_chance === undefined ? getLootData().global_patreon_chance : item_generator_object.patreon_chance;
+				patreon = Math.random() < patreon_chance;
+			}
+		}
+		else {
+			patreon = item_generator_object.patreon;
+		}
+
 	    var new_item_object = {
 	        'artwork_id' : item_generator_object.artwork_interface.getId(),
 	        'condition' : item_generator_object.condition === undefined ? getCondition(condition_min) : item_generator_object.condition,
@@ -333,6 +354,7 @@ ItemGenerator = function() {
 	        'seasonal': item_generator_object.seasonal === undefined ? getLootData().seasonal_items.indexOf(item_generator_object.artwork_interface.getId()) != -1 : item_generator_object.seasonal,
 	        'lottery': item_generator_object.lottery === undefined ? 0 : item_generator_object.lottery,
 	        'original': item_generator_object.original === undefined ? false : item_generator_object.original,
+	        'patreon': patreon,
 	        'vintage': item_generator_object.vintage === undefined ? false : item_generator_object.vintage,
 	        'authenticity': {
 	        	'forgery':  item_generator_object.forgery === undefined ? false : item_generator_object.forgery,

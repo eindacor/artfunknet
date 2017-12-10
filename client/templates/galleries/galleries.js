@@ -324,6 +324,10 @@ Template.galleryCard.helpers({
 		}
 
 		return player_levels[owner_id];
+	},
+
+	'show_patreon': function(tier, show) {
+		return tier && show;
 	}
 })
 

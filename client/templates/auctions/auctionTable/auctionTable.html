@@ -51,6 +51,9 @@
 										{{#if item_data.unlocked}}
 											<span class="silver-text"> unlocked</span>
 										{{/if}}
+										{{#if item_data.patreon}}
+											<span class="patreon-text"> patreon</span>
+										{{/if}}
 									</div>
 									<div class="col-xs-2">bid min: <span class="default-text {{#if has_bid}}highlight{{/if}}">${{minBid _id}}</span></div>
 									<div class="col-xs-2">buy now: <span class="default-text">{{buy_now_text}}</span></div>
@@ -59,15 +62,30 @@
 									<div class="col-xs-11 col-xs-offset-2">
 										<p> 
 										{{#each sortedAttributes attributes.unlocked}}
-											<i data-attribute_title="{{description}}" data-attribute_value="{{value}}" style="color: {{getHTMLColorFromValue value}}" class="item-attribute fa {{icon}}"></i>
+											<div class="tooltip-container">
+												<div class="tooltip-contents above">
+													<p><span class="af-color">{{npc_name}}</span> attraction rating: {{#if value}}<span style="color: {{getHTMLColorFromValue value}}">{{floatToPercentage value}}</span>{{else}}?{{/if}}</p>
+												</div>
+												<i data-attribute_title="{{description}}" data-attribute_value="{{value}}" style="color: {{getHTMLColorFromValue value}}" class="item-attribute fa {{icon}}"></i>
+											</div>	
 										{{/each}}
 										{{#if attributes.locked}}|{{/if}}
 										{{#each sortedAttributes attributes.locked}}
-											<i data-attribute_title="{{description}}" data-attribute_value="{{value}}" style="color: {{getHTMLColorFromValue value}}" class="locked item-attribute fa {{icon}}"></i>
+											<div class="tooltip-container">
+												<div class="tooltip-contents above">
+													<p><span class="af-color">{{npc_name}}</span> attraction rating: {{#if value}}<span style="color: {{getHTMLColorFromValue value}}">{{floatToPercentage value}}</span>{{else}}?{{/if}}</p>
+												</div>
+												<i data-attribute_title="{{description}}" data-attribute_value="{{value}}" style="color: {{getHTMLColorFromValue value}}" class="locked item-attribute fa {{icon}}"></i>
+											</div>
 										{{/each}}
 										{{#if attributes.special}}|{{/if}}
 										{{#each sortedAttributes attributes.special}}
-											<i data-attribute_title="{{description}}" data-attribute_value="{{value}}" style="color: {{getHTMLColorFromValue value}}" class="special item-attribute fa {{icon}}"></i>
+											<div class="tooltip-container">
+												<div class="tooltip-contents above">
+													<p><span class="af-color">{{npc_name}}</span> attraction rating: {{#if value}}<span style="color: {{getHTMLColorFromValue value}}">{{floatToPercentage value}}</span>{{else}}?{{/if}}</p>
+												</div>
+												<i data-attribute_title="{{description}}" data-attribute_value="{{value}}" style="color: {{getHTMLColorFromValue value}}" class="special item-attribute fa {{icon}}"></i>
+											</div>
 										{{/each}}
 										</p>
 									</div>

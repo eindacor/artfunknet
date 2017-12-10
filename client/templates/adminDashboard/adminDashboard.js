@@ -107,62 +107,33 @@ var updateUsers = function() {
 }
 
 var setAdminData = function(set_id, value) {
+	var method_name;
+	var arg = Number(value);
+
 	switch(set_id) {
-		case 'set_level': 
-			Meteor.call('setPlayerLevel', Number(value), function(error) {
-				if (error)
-					console.log(error.message);
-
-				else updateAdminData();
-			});
-			break;
-
-		case 'set_xp':
-			Meteor.call('setXP', Number(value), function(error) {
-				if (error)
-					console.log(error.message);
-
-				else updateAdminData();
-			})
-			break;
-
-		case 'set_daily_drop': 
-			Meteor.call('updateDailyDropCount', Number(value), function(error) {
-				if (error)
-					console.log(error.message);
-
-				else updateAdminData();
-			});
-			break;
-
-		case 'set_crate_drop': 
-			Meteor.call('updateCrateDropCount', Number(value), function(error) {
-				if (error)
-					console.log(error.message);
-
-				else updateAdminData();
-			})
-			break;
-
-		case 'set_bank_balance':
-			Meteor.call('setBankBalance', Number(value), function(error) {
-				if (error)
-					console.log(error.message);
-
-				else updateAdminData();
-			})
-			break;
-
-		case 'set_seasonal':
+		case 'set_seasonal': 
+			method_name = 'setSeasonal';
 			var ids_string = value;
-			var id_array = ids_string.replace(/ /g , "").split(",");
-			Meteor.call('setSeasonal', id_array, function(error) {
-				if (error)
-					console.log(error.message);
-			});    		
-
+			arg = ids_string.replace(/ /g , "").split(",");
+			break;
+		case 'set_level': method_name = 'setPlayerLevel'; break;
+		case 'set_xp': method_name = 'setXP'; break;
+		case 'set_daily_drop':  method_name = 'updateDailyDropCount'; break;
+		case 'set_crate_drop': method_name = 'updateCrateDropCount'; break;
+		case 'set_bank_balance': method_name = 'setBankBalance'; break;
+		case 'set_foil_chance': method_name = 'setFoilChance'; break;
+		case 'set_misprint_chance': method_name = 'setMisprintChance'; break;
+		case 'set_unlocked_chance': method_name = 'setUnlockedChance'; break;
+		case 'set_patreon_chance': method_name = 'setPatreonChance'; break;
 		default: return;
 	}
+
+	Meteor.call(method_name, arg, function(error) {
+		if (error)
+			console.log(error.message);
+
+		else updateAdminData();
+	});
 
 	adminDataTracker.changed();
 }

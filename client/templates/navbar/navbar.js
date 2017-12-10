@@ -205,18 +205,6 @@ Template.navbar.helpers({
 })
 
 Template.navbar.events({
-	'mouseover .nav-icon' : function(element) {
-		var button_title = element.target.dataset.title;
-
-		setFootnote(button_title, Math.floor(Math.random() * 1000));
-	},
-
-	'mouseover .ticket-button i' : function(element) {
-		var owner_name = element.target.dataset.owner_name;
-		var expiration_string = element.target.dataset.expiration_string;
-		setFootnote("Visit gallery of " + owner_name + ". Expires " + expiration_string + ".", Math.floor(Math.random() * 100000));
-	},
-
 	'click #tutorial-button': function() {
 		Blaze.renderWithData(Template.modalTemplate, {
 			'modal_name': "tutorialMenuModal", 

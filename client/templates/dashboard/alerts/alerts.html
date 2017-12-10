@@ -6,7 +6,12 @@
 				{{#each alert}}
 				<tr data-alert_id="{{_id}}">
 					<td>{{timestamp this}}</td>
-					<td class="{{sentiment}}">{{message}}</td>
+					{{#if html}}
+						{{setHTML html _id}}
+						<td id="{{_id}}"></td>
+					{{else}}
+						<td class="{{sentiment}}">{{message}}</td>
+					{{/if}}
 					<td><a href="{{link}}"><i class="fa {{icon}}"></i></a></td>
 					<td class="dismiss-alert"><i class="fa fa-times"></i></td>
 				</tr>

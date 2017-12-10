@@ -104,7 +104,16 @@
 				</div>
 				<div class="col-xs-8 gallery-data">
 					<div class="row profile-data">
-						<p class="owner-name">{{owner}}</p>
+						{{#if show_patreon patreon_tier show_patreon_status}}
+							<div class="tooltip-container">
+								<div class="tooltip-contents above">
+									<p>verified patreon supporter!</p>
+								</div>
+								<a href="https://www.patreon.com/artfunkel" target="blank" class="owner-name"><span class="{{patreon_tier}}">{{owner}}</span></a>
+							</div>					
+						{{else}}
+							<p class="owner-name">{{owner}}</p>
+						{{/if}}
 						{{#with player_levels owner_id}}
 							<div class="level-text">{{level}}</div>
 							{{#if vintage_level}}
@@ -116,12 +125,17 @@
 						<table>
 							<tr>
 								{{#each attribute}}
-								<td>
-									<i data-attribute_description="{{description}}" data-attribute_id="{{_id}}" style="color: {{getHTMLColorFromValue proc}}" class="gallery-attribute fa {{icon}}"></i>
-								</td>
-								<td>
-									<span class="procs">{{floatToPercentage proc}}%</span>
-								</td>
+									<td>
+										<div class="tooltip-container">
+											<div class="tooltip-contents above">
+												<p><span class="af-color">{{npc_name}}</span> spawn chance: <span style="color: {{getHTMLColorFromValue proc}}">{{floatToPercentage proc}}%</span></p>
+											</div>
+											<i data-attribute_description="{{description}}" data-attribute_id="{{_id}}" style="color: {{getHTMLColorFromValue proc}}" class="gallery-attribute fa {{icon}}"></i>
+										</div>
+									</td>
+									<td>
+										<span class="procs">{{floatToPercentage proc}}%</span>
+									</td>
 								{{/each}}
 							</tr>
 						</table>

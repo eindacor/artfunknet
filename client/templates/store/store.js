@@ -85,10 +85,6 @@ Template.store.helpers({
 		else return crate_objects;
 	},
 
-	'canPurchase' : function(item_id) {
-		return true;
-	},
-
 	'has_for_sale': function() {
 		return items.findOne({
             'owner': Meteor.userId(),
@@ -253,16 +249,6 @@ Template.forSaleInfo.helpers({
 				'level' : "",
 			}
 		}
-	}
-})
-
-Template.forSaleInfo.events({
-	'mouseover .item-attribute' : function(element) {
-		var attribute_id = element.target.dataset.attribute_id;
-		var value = Math.floor(Number(element.target.dataset.attribute_value) * 100);
-		var description = element.target.dataset.attribute_description;
-		var hover_string = "level " + value + " " + description;
-		setFootnote(hover_string, Math.floor(Math.random() * 1000));
 	}
 })
 

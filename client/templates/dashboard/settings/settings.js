@@ -32,6 +32,10 @@ Template.settings.helpers({
 	'name_error': function() {
 		name_error_tracker.depend();
 		return name_error;
+	},
+
+	'is_patron': function() {
+		return Meteor.user().profile.patreon_data && Meteor.user().profile.patreon_data.reward_data && Meteor.user().profile.patreon_data.reward_data.tier;
 	}
 })
 

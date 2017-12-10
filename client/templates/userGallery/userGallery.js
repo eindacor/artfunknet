@@ -250,20 +250,6 @@ Template.userGallery.events ({
 		}
 	},
 
-	'mouseover .npc' : function(element) {
-		var npc_id = element.target.dataset.npc_id;
-
-		var npc_object = npcs.findOne(npc_id);
-		var attribute_object = attributes.findOne(npc_object.attribute_id);
-		var quality_string = npc_object.quality[0].toUpperCase() + npc_object.quality.substr(1);
-		var hover_string = quality_string + " " + attribute_object.npc_name;
-
-		if (npc_object.players_met.indexOf(Meteor.userId()) != -1)
-			hover_string += " (already met)";
-
-		setFootnote(hover_string, Math.floor(Math.random() * 1000));
-	},
-
 	'mousedown .window-crop' : function(element) {
 		click_location = Number(element.screenX);
 		original_offset = Number($('.rendered-scene').css('margin-left').replace("px", ""));
