@@ -200,6 +200,8 @@ var updateContent = function() {
 
     //temp code
     npcs.remove({'tutorial': true});
+    Meteor.users.update({'profile.settings.show_patreon_status': null}, {$set: {'profile.settings.show_patreon_status': true}}, {multi: true});
+    metadata.update({'loot_data': {$ne: null}, 'loot_data.global_patreon_chance': null}, {$set: {'loot_data.global_patreon_chance': .01}});
     //temp code
 
     // var desired_bot_count = 100;

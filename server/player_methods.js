@@ -77,6 +77,7 @@ createPlayer = function(user_object, callback){
         'show_npc_modals': true,
         'ignore_archive_recommendations': false,
         'auto_archive_upgrades': false,
+        'show_patreon_status': true,
         'quick_sell_options': {
             'foil': false,
             'legendary': false,
@@ -155,15 +156,16 @@ createPlayer = function(user_object, callback){
     return Accounts.createUser(user_object, callback);
 }
 
-alertPlayers = function(query, message, icon, sentiment) {
+alertPlayers = function(query, html, icon, sentiment) {
     Meteor.users.find(query).forEach(function(user_object) {
         var alert_object = {
             'user_id' : user_object._id,
-            'message' : message,
+            'html' : html,
             'link' : '/',
             'icon' : icon,
             'sentiment' : sentiment,
-            'time' : getNowISOString()
+            'time' : getNowISOString(),
+            'message': undefined
         };
 
         alerts.insert(alert_object);
@@ -688,7 +690,12 @@ Meteor.methods({
 
         var setter_object = {};
         setter_object[setter_string] = status;
-        Meteor.users.update(Meteor.userId(), {$set: setter_object});
+        Meteor.users.update(Meteor.userId(), {$set: setter_object}, function() {
+            if (setting_name == "show_patreon_status") {
+                var player_interface = new PlayerIF(Meteor.user());
+                player_interface.updateGalleryDetails();
+            }
+        });
     },
 
     'changeScreenName': function(desired_name) {
@@ -1059,6 +1066,30 @@ Meteor.methods({
                 'message': "Your beta key request has been recorded. You will be notified when it is approved."
             }
         }
+    },
+
+    'registerPatreon': function(patreon_code, patreon_state) {
+        var auth_result = HTTP.post("http://www.patreon.com/api/oauth2/token?code=" + patreon_code + "&grant_type=authorization_code&client_id=576fb002884019e06ddfa01037c8458feeb8158a8ad4bcd320937b26e46e24d5&client_secret=4226b5427f5565f08f211ca1692e6a95a5eb5f289097fc9860bc509a77b0a3fd&redirect_uri=http://artfunkelgame.com");
+
+        var access_token = auth_result.data.access_token;
+
+        var profile_info_result = HTTP.get("https://www.patreon.com/api/oauth2/api/current_user", {
+            'headers': {
+                "authorization": "Bearer " + access_token
+            }
+        });
+
+        var parsed_json = JSON.parse(profile_info_result.content);
+
+        metadata.insert(parsed_json);
+
+        var email_from_patreon = parsed_json.data.attributes.email;
+
+        if (Meteor.user().username == email_from_patreon) {
+            console.log("patreon linked");
+        }
+
+        // localhost:3000/?code=DjpxuuxUvrdIcezAeGvfrOQ4b1ko1Q&state=None
     }
 })
 

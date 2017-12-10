@@ -575,7 +575,7 @@ drawLottery = function(force_draw) {
             }
         }
 
-        alertPlayers({}, message, 'fa-exclamation', 'good');
+        alertPlayers({}, '<p>' + message + '</p>', 'fa-exclamation', 'good');
         getFromCollection("interval_methods.js", Meteor.users, user_query_object).forEach(function(user_object) {
             var player_interface = new PlayerIF(user_object);
             if (!player_interface.isRecentlyActive()) {
@@ -601,8 +601,8 @@ drawLottery = function(force_draw) {
                     console.log(error.message)
 
                 else {
-                    var message = "This week there's no lottery winner. New Lottery Level: " + getOneFromCollection("interval_methods.js", metadata, {'lottery_draw': {$ne: null}}).lottery_level;
-                    alertPlayers({}, message, 'fa-exclamation', 'bad');
+                    var html = '<p>This week there\'s no lottery winner. New Lottery Level: <span class="lottery-text">' + getOneFromCollection("interval_methods.js", metadata, {'lottery_draw': {$ne: null}}).lottery_level + '</span></p>';
+                    alertPlayers({}, html, 'fa-exclamation', 'bad');
                 }
             });
 
@@ -613,8 +613,8 @@ drawLottery = function(force_draw) {
         }
 
         else {
-            var message = "This week there's no lottery winner. The Lottery Level remains at 10!";
-            alertPlayers({}, message, 'fa-exclamation', 'bad');
+            var html = '<p>This week there\'s no lottery winner. The Lottery Level remains at <span class="lottery-text">10</span>!</p>';
+            alertPlayers({}, html, 'fa-exclamation', 'bad');
         }
     }
    

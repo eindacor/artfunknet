@@ -132,6 +132,10 @@ Template.registerHelper('card_types', function(item_object) {
 			types += "original ";
 		}
 
+		if (item_object.patreon) {
+			types += "patreon ";
+		}
+
 		return types;
 	}
 	catch (error) {

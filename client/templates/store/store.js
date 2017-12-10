@@ -252,16 +252,6 @@ Template.forSaleInfo.helpers({
 	}
 })
 
-Template.forSaleInfo.events({
-	'mouseover .item-attribute' : function(element) {
-		var attribute_id = element.target.dataset.attribute_id;
-		var value = Math.floor(Number(element.target.dataset.attribute_value) * 100);
-		var description = element.target.dataset.attribute_description;
-		var hover_string = "level " + value + " " + description;
-		setFootnote(hover_string, Math.floor(Math.random() * 1000));
-	}
-})
-
 Template.store.rendered = function() {
 	crate_objects = undefined;
 	expansion_cost = undefined;

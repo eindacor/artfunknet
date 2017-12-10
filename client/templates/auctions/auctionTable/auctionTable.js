@@ -291,12 +291,6 @@ Template.auctionTable.events({
 		var attribute_id = element.target.dataset.attribute_title;
 	},
 
-	'mouseover .item-attribute' : function(element) {
-		var value = Math.floor(Number(element.target.dataset.attribute_value) * 100);
-		var description = element.target.dataset.attribute_title;
-		setFootnote("level " + (isNaN(value) ? '?' : value) + " " + description, Math.floor(Math.random() * 100000));
-	},
-
 	'click #toggle-details' : function() {
 		Session.set('toggle_auction_details', true);
 	},

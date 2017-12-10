@@ -13,14 +13,19 @@ createNPC = function(gallery_object, attribute_id, duration, npc_quality) {
 	var attribute_object = getOneFromCollection("createNPC()", attributes, attribute_id);
 
 	var icon;
+	var npc_name;
 
 	if (attribute_object.npc_name == "Forger") {
 		var attribute_query = {'active': true, 'npc_name': {$ne: "Forger"}};
 		var active_attribute_count = getFromCollection("createNPC()", attributes, attribute_query).count();
-		icon = attributes.findOne(attribute_query, {skip: Math.floor(Math.random() * active_attribute_count)}).icon;
+		var disguise = attributes.findOne(attribute_query, {skip: Math.floor(Math.random() * active_attribute_count)});
+		icon = disguise.icon;
+		npc_name = disguise.npc_name;
 	}
-
-	else icon = attribute_object.icon;
+	else {
+		icon = attribute_object.icon;
+		npc_name = attribute_object.npc_name;
+	}
 
     var npc_object = {
         'quality' : npc_quality,
@@ -29,7 +34,7 @@ createNPC = function(gallery_object, attribute_id, duration, npc_quality) {
         'expiration' : moment().add(duration, 'milliseconds')._d.toISOString(),
         'players_met' : [],
         'icon' : icon,
-        'npc_name': attribute_object.npc_name
+        'npc_name': npc_name
     }
 
     npcs.insert(npc_object, function(error, inserted_id) {
@@ -100,8 +105,13 @@ var interactWithNPC = function(npc_id) {
 	}
 		
 	var npc_interaction = {};
+	var associated_attribute = attributes.findOne(npc_object.attribute_id);
 
-	switch(npc_object.npc_name) {
+	if (associated_attribute == undefined) {
+		return {'message': "unkown npc type"};
+	}
+
+	switch(associated_attribute.npc_name) {
 		case "Benefactor": 
 			npc_interaction = benefactorInteraction(npc_object, player_interface);
 			break;

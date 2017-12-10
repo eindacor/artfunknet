@@ -12,6 +12,7 @@ createAuction = function(item_id, starting, buy_now, duration, viewer) {
             var increment = Math.floor(.02 * getItemObjectValueByType(item_object, 'actual', user_object == undefined ? undefined : user_object._id));
 
             //TODO let the item's artwork data replace separate artwork info fields
+            //TODO instead of setting each item data field, modify the fields of the item_object returned and give that as the item data
             var auction_object = {
                 'item_id': item_id,
                 'bid_history': [],
@@ -36,6 +37,7 @@ createAuction = function(item_id, starting, buy_now, duration, viewer) {
                     'rarity_value' : item_object.artwork_data.rarity_value,
                     'roll_count' : item_object.roll_count,
                     'foil' : item_object.foil,
+                    'patreon' : item_object.patreon,
                     'unlocked': item_object.unlocked,
                     'vintage': item_object.vintage,
                     'lottery' : item_object.lottery,
@@ -71,9 +73,9 @@ var failedAuction = function(auction_object) {
                 console.log(error.message);
 
             else {
-                var message = "Your auction has ended for " + auction_object.item_data.title + " by " + auction_object.item_data.artist + " without a sale";
+                var html = '<p>Your auction has ended for <span class="af-color" style="font-style:italic">' + auction_object.item_data.title + '</span> by <span class="af-color">' + auction_object.item_data.artist + '</span> without a sale</span></p>';
                 var player_interface = new PlayerIF(items.findOne(auction_object.item_id).owner);
-                player_interface.alert(message, 'fa-gavel', 'neutral');
+                player_interface.htmlAlert(html, 'fa-gavel', 'neutral');
 
                 removeAuction(auction_object._id);
             }
@@ -95,8 +97,8 @@ successfulAuction = function(winning_player_interface, auction_object, winning_b
         refundWinner(auction_object, winning_player_interface.getId(), auction_object.current_bid, true);
         winning_player_interface.chargeAccount(winning_bid_amount);
 
-        var message = "You have won " + auction_object.item_data.title + " by " + auction_object.item_data.artist + " in the auction house for $" + getCommaSeparatedValue(winning_bid_amount);
-        winning_player_interface.alert(message, 'fa-gavel', 'good');
+        var html = '<p>You have won <span class="af-color" style="font-style:italic">' + auction_object.item_data.title + '</span> by <span class="af-color">' + auction_object.item_data.artist + '</span> in the auction house for <span class="green-text">$' + getCommaSeparatedValue(winning_bid_amount) + '</span></p>';
+        winning_player_interface.htmlAlert(html, 'fa-gavel', 'good');
                         
         var nested_item_interface = new ItemIF(auction_object.item_id);
         if (auction_object.item_data.condition < .5 && winning_player_interface.procUniqueAttribute("AUCTION_WIN_CONDITION_INCREASE", undefined)) {
@@ -111,8 +113,8 @@ successfulAuction = function(winning_player_interface, auction_object, winning_b
     
         if (seller != undefined) {
             var seller_interface = new PlayerIF(seller);
-            var message = "You have successfully auctioned " + auction_object.item_data.title + " by " + auction_object.item_data.artist + " for $" + getCommaSeparatedValue(winning_bid_amount)
-            seller_interface.alert(message, 'fa-gavel', 'good');
+            var html = '<p>You have successfully auctioned <span class="af-color" style="font-style:italic">' + auction_object.item_data.title + '</span> by <span class="af-color">' + auction_object.item_data.artist + '</span> for <span class="green-text">$' + getCommaSeparatedValue(winning_bid_amount) + '</span></p>';
+            seller_interface.htmlAlert(html, 'fa-gavel', 'good');
             removeAuction(auction_object._id);
             seller_interface.addFunds("auction", winning_bid_amount);
             var seller_item_interface = new PlayerItemIF(seller_interface, item_interface);
@@ -204,13 +206,13 @@ notifyFormerWinner = function(auction_object, new_winner_id, bought) {
 
     if (new_winner_id != former_winner_interface.getId()) {
         if (bought) {
-            var message = "Someone has purchased one of your watched items: " + auction_object.item_data.title + " by " + auction_object.item_data.artist;
-            former_winner_interface.alert(message, 'fa-gavel', 'bad');
+            var html = '<p class="red-text">Someone has purchased one of your watched items:  <span class="af-color" style="font-style:italic">' + auction_object.item_data.title + '</span> by <span class="af-color">' + auction_object.item_data.artist + '</span></p>';
+            former_winner_interface.htmlAlert(html, 'fa-gavel', 'bad');
         }
 
         else {
-            var message = "Someone has outbid you on one of your watched items: " + auction_object.item_data.title + " by " + auction_object.item_data.artist;
-            former_winner_interface.alert(message, 'fa-gavel', 'bad');
+            var html = '<p class="red-text">Someone has outbid you on one of your watched items:  <span class="af-color" style="font-style:italic">' + auction_object.item_data.title + '</span> by <span class="af-color">' + auction_object.item_data.artist + '</span></p>';
+            former_winner_interface.htmlAlert(html, 'fa-gavel', 'bad');
         }
     }
 
