@@ -199,9 +199,6 @@ var updateContent = function() {
     //removeBots();
 
     //temp code
-    npcs.remove({'tutorial': true});
-    Meteor.users.update({'profile.settings.show_patreon_status': null}, {$set: {'profile.settings.show_patreon_status': true}}, {multi: true});
-    metadata.update({'loot_data': {$ne: null}, 'loot_data.global_patreon_chance': null}, {$set: {'loot_data.global_patreon_chance': .01}});
     //temp code
 
     // var desired_bot_count = 100;
@@ -246,25 +243,30 @@ var updateContent = function() {
 }
 
 Meteor.startup(function() {
-    LOOT_DATA = metadata.findOne({'loot_data': {$ne: null}}).loot_data;
-    setupMail();
-    fs = Npm.require('fs');
+    try {
+        LOOT_DATA = metadata.findOne({'loot_data': {$ne: null}}).loot_data;
+        setupMail();
+        fs = Npm.require('fs');
 
-    if (attributes.find().count() == 0) {
-        for (var i=0; i < attribute_data.length; i++) {
-            attributes.insert(attribute_data[i]);
+        if (attributes.find().count() == 0) {
+            for (var i=0; i < attribute_data.length; i++) {
+                attributes.insert(attribute_data[i]);
+            }
         }
-    }
 
-    if (gallery_finishes.find().count() == 0) {
+        if (gallery_finishes.find().count() == 0) {
+            for (var i=0; i < gallery_finish_data.length; i++) {
+                gallery_finishes.insert(gallery_finish_data[i]);
+            }
+        }
+
         for (var i=0; i < gallery_finish_data.length; i++) {
-            gallery_finishes.insert(gallery_finish_data[i]);
+            if (gallery_finishes.findOne({'filename': gallery_finish_data[i].filename}) == undefined)
+                gallery_finishes.insert(gallery_finish_data[i]);
         }
     }
-
-    for (var i=0; i < gallery_finish_data.length; i++) {
-        if (gallery_finishes.findOne({'filename': gallery_finish_data[i].filename}) == undefined)
-            gallery_finishes.insert(gallery_finish_data[i]);
+    catch(error) {
+        console.log(error.message)
     }
 
     if (Meteor.users.find().count() == 0) {
