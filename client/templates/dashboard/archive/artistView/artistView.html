@@ -6,34 +6,6 @@
 		{{else}}
 			<button class="enforce-terms">OR</button>
 		{{/if}}
-		{{#with archive_metadata}}
-		<table class="rarity-table">
-			<tr>
-				<td></td>
-				<td class="toggle">show</td>
-				<td class="standard-text">standard</td>
-				<td class="unlocked-text">unlocked</td>
-				<td class="foil-text">foil</td>
-				<td class="seasonal-text">seasonal</td>
-				<td class="lottery-text">lottery</td>
-				<td class="vintage-text">vintage</td>
-			</tr>
-			{{#each artwork_rarity}}
-				{{#with rarity_metadata this ..}}
-					<tr>
-						<td class="{{..}}">{{..}}</td>
-						<td class="toggle"><i data-rarity="{{..}}" class="rarity-toggle fa {{#if rarity_selected ..}}fa-check-square-o green-text{{else}}fa-square-o{{/if}}"></i></td>
-						<td class="standard-text">{{standard}}/{{count}}</td>
-						<td class="unlocked-text">{{#if unlocked}}{{unlocked}}/{{count}}{{else}}-{{/if}}</td>
-						<td class="foil-text">{{foil}}/{{count}}</td>
-						<td class="seasonal-text">{{#if seasonal}}{{seasonal}}/{{count}}{{else}}-{{/if}}</td>
-						<td class="lottery-text">{{#if lottery}}{{lottery}}/{{count}}{{else}}-{{/if}}</td>
-						<td class="vintage-text">{{vintage}}/{{count}}</td>
-					</tr>
-				{{/with}}
-			{{/each}}
-		</table>
-		{{/with}}
 		<div class="row settings-area">
 			<div class="col-xs-9 page-buttons">
 				<div class="row button-wrapper">
@@ -51,7 +23,7 @@
         		</select>
 			</div>
 		</div>
-		<div class="col-xs-12 no-margin no-padding">
+		<div class="col-xs-6">
 			{{#each artist}}
 			<div class="row artist-container no-margin no-padding">
 				<div class="col-xs-12 no-margin no-padding">
@@ -133,6 +105,36 @@
 				</div>
 			</div>
 			{{/each}}
+		</div>
+		<div class="col-xs-6">
+			{{#with archive_metadata}}
+			<table class="rarity-table">
+				<tr>
+					<td></td>
+					<td class="toggle">show</td>
+					<td class="standard-text">standard</td>
+					<td class="unlocked-text">unlocked</td>
+					<td class="foil-text">foil</td>
+					<td class="seasonal-text">seasonal</td>
+					<td class="lottery-text">lottery</td>
+					<td class="vintage-text">vintage</td>
+				</tr>
+				{{#each artwork_rarity}}
+					{{#with rarity_metadata this ..}}
+						<tr>
+							<td class="{{..}}">{{..}}</td>
+							<td class="toggle"><i data-rarity="{{..}}" class="rarity-toggle fa {{#if rarity_selected ..}}fa-check-square-o green-text{{else}}fa-square-o{{/if}}"></i></td>
+							<td class="standard-text">{{standard}}/{{count}}</td>
+							<td class="unlocked-text">{{#if unlocked}}{{unlocked}}/{{count}}{{else}}-{{/if}}</td>
+							<td class="foil-text">{{foil}}/{{count}}</td>
+							<td class="seasonal-text">{{#if seasonal}}{{seasonal}}/{{count}}{{else}}-{{/if}}</td>
+							<td class="lottery-text">{{#if lottery}}{{lottery}}/{{count}}{{else}}-{{/if}}</td>
+							<td class="vintage-text">{{vintage}}/{{count}}</td>
+						</tr>
+					{{/with}}
+				{{/each}}
+			</table>
+			{{/with}}
 		</div>
 	</div>
 </template>

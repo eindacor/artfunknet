@@ -234,9 +234,8 @@
 
 .template-artistView .rarity-table td {
 	border-left: 1px solid #ddd;
-	padding: 6px 4px;
+	padding: 8px 8px;
 	text-align: center;
-	width: 100px;
 }
 
 .template-artistView .rarity-table td:first-child {
@@ -261,5 +260,5 @@
 }
 
 .template-artistView .rarity-table {
-	margin: 16px 0px;
+	margin-left: 12px;
 }
