@@ -14,8 +14,8 @@ var rarities_selected = artwork_rarities.slice();
 var artists_per_page = 10;
 var enforce_terms = false;
 
-var collected_tracker = new Tracker.Dependency;
-var collected = undefined;
+var archive_metadata_tracker = new Tracker.Dependency;
+var archive_metadata = undefined;
 
 var generateQueryFromSearchTerms = function(search_terms) {
 	if (search_terms.length == 0)
@@ -104,6 +104,7 @@ Template.artistView.rendered = function() {
 	total_pages = 1;
 	artists_per_page = 10;
 	refreshArtistArray();
+	archive_metadata = undefined;
 }
 
 Template.artistView.helpers({
@@ -174,6 +175,26 @@ Template.artistView.helpers({
 
 	'rarities_selected': function() {
 		return rarities_selected;
+	},
+
+	'archive_metadata': function() {
+		archive_metadata_tracker.depend();
+		if (archive_metadata == undefined) {
+			Meteor.call('getArchiveMetadata', function(error, result) {
+				if (error) {
+					console.log(error.message);
+				}
+				else {
+					archive_metadata = result;
+					archive_metadata_tracker.changed();
+				}
+			})
+		}
+		return archive_metadata;
+	},
+
+	'rarity_metadata': function(rarity, metadata) {
+		return metadata[rarity];
 	}
 })
 
@@ -251,7 +272,7 @@ Template.artistView.events({
 		refreshArtistArray();
 	},
 
-	'click .rarity-button': function(event) {
+	'click .rarity-toggle': function(event) {
 		var rarity = $(event.target).data().rarity;
 		if (rarities_selected.indexOf(rarity) == -1) {
 			rarities_selected.push(rarity);

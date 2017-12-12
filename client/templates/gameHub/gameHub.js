@@ -1,10 +1,11 @@
 Template.gameHub.helpers({
 	'seasonal_item_object': function() {
-		var seasonal_items = metadata.findOne({'loot_data': {$ne: null}}).loot_data.seasonal_items;
+		var loot_data = metadata.findOne({'loot_data': {$ne: null}}).loot_data;
+		var seasonal_ids = loot_data.seasonal_items.legendary.concat(loot_data.seasonal_items.masterpiece);
 
 		var seasonal_item_objects = [];
-		for (var i=0; i<seasonal_items.length; i++) {
-			var artwork_id = seasonal_items[i];
+		for (var i=0; i<seasonal_ids.length; i++) {
+			var artwork_id = seasonal_ids[i];
 			var item_data = {
 				'artwork_id': artwork_id,
 				'artwork_data': artworks.findOne(artwork_id),

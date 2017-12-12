@@ -5,6 +5,10 @@ getLootData = function() {
     return loot_data_copy;
 }
 
+setLootData = function() {
+    LOOT_DATA = metadata.findOne({'loot_data': {$ne: null}}).loot_data;
+}
+
 logLegendary = function(source, item_object) {
     if (item_object && source && source != "test") {
         var rarity = item_object.artwork_data.rarity;
@@ -176,8 +180,14 @@ getRolledCrateQuality = function() {
 }
 
 calcSeasonalChance = function(rarity) {
-    var item_count = artworks.find({'rarity': rarity, 'active': true}).count();
-    return 1 / item_count;
+    try {
+        var item_count = getArtworkCache()[rarity].length;
+        return getLootData().seasonal_items[rarity].length / item_count;
+    }
+    catch (error) {
+        console.log(error.message);
+        return 0;
+    }
 }
 
 getAverageDropValueFromMap = function(rarity_map, foil_chance, unlocked_chance, seasonal_amplifier) {
@@ -352,10 +362,10 @@ Meteor.methods({
         
         if (revised_smart_map) {
             metadata.update({'loot_data': {$ne: null}}, {$set: {'loot_data.smart_map': revised_smart_map}}, function() {
-                getLootData() = metadata.findOne({'loot_data': {$ne: null}}).loot_data;
+                setLootData();
             });
 
-            setTimeout('', 2000);
+            setTimeout(function() {}, 2000);
         }
 
         return {

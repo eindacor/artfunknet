@@ -173,8 +173,10 @@ updateArtwork = function(artwork_id, modifier) {
                 return false;
 
             items.find({'artwork_id': artwork_object._id}).forEach(function(item_object) {
-                updateItemAttributesWithNewArtworkData(new ItemIF(item_object));;
-            });
+                updateItemAttributesWithNewArtworkData(new ItemIF(item_object));
+            })
+
+            setArtworkCache();
         }
     })
 }

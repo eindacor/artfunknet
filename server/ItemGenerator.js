@@ -1,3 +1,56 @@
+ACTIVE_COMMON_ARTWORK_IDS = [];
+ACTIVE_UNCOMMON_ARTWORK_IDS = [];
+ACTIVE_RARE_ARTWORK_IDS = [];
+ACTIVE_LEGENDARY_ARTWORK_IDS = [];
+ACTIVE_MASTERPIECE_ARTWORK_IDS = [];
+
+ACTIVE_ARTWORK_CACHE = {
+	'common': [],
+	'uncommon': [],
+	'rare': [],
+	'legendary': [],
+	'masterpiece': [],
+	'special_attribute_map': {}
+}
+
+serializeSpecialCombination = function(attribute_array) {
+	attribute_array.sort();
+	return attribute_array.toString();
+}
+
+setArtworkCache = function() {
+	var local_cache = {
+		'common': [],
+		'uncommon': [],
+		'rare': [],
+		'legendary': [],
+		'masterpiece': [],
+		'special_attribute_map': {}
+	}
+
+	var all_artworks = artworks.find({'active': true}).fetch();
+	for (var i=0; i<all_artworks.length; i++) {
+		var artwork_object = all_artworks[i];
+		local_cache[artwork_object.rarity].push(artwork_object._id);
+
+		if (["rare", "legendary", "masterpiece"].indexOf(artwork_object.rarity) != -1) {
+			var serialized_specials = serializeSpecialCombination(artwork_object.special_attributes);
+			if (local_cache.special_attribute_map[serialized_specials] == undefined) {
+				local_cache.special_attribute_map[serialized_specials] = [artwork_object._id];
+			}
+			else {
+				local_cache.special_attribute_map[serialized_specials].push(artwork_object._id);
+			}
+		}
+	}
+
+	ACTIVE_ARTWORK_CACHE = local_cache;
+}
+
+getArtworkCache = function() {
+	return ACTIVE_ARTWORK_CACHE;
+}
+
 ItemGenerator = function() {
 	var lowest_possible_value_coefficient = .4;
 	var condition_coefficient_max = .4;
@@ -23,27 +76,31 @@ ItemGenerator = function() {
 	var selectArtwork = function(rarity, attribute_array, seasonal_amplifier) {
 	    if (rarity == "legendary" || rarity == "masterpiece") {
 	        if (Math.random() < (calcSeasonalChance(rarity) * seasonal_amplifier)) {
-	            return new ArtworkIF(artworks.findOne({'_id': {$in: getLootData().seasonal_items}, 'active': true, 'rarity': rarity}));
+	            return new ArtworkIF(artworks.findOne({'_id': {$in: getLootData().seasonal_items[rarity] }, 'active': true, 'rarity': rarity}));
 	        }
 	    }
 
 		var special_attribute_count = artwork_rarities.indexOf(rarity) - 1;
 		var query_object;
-		var count = 0;
+		var matching_artworks;
 
 		if (special_attribute_count > 0) {
 			var special_attributes = attribute_array.slice(0, special_attribute_count);
-			query_object = {'_id': {$nin: getLootData().seasonal_items}, 'rarity': rarity, 'active': true, 'special_attributes': {$in: special_attributes}};
-			count = artworks.find(query_object).count();
+			var serialized_specials = serializeSpecialCombination(special_attributes);
+			matching_artworks = getArtworkCache().special_attribute_map[serialized_specials];
+			//not seasonal, rarity, special attributes
+			// query_object = {'_id': {$nin: getLootData().seasonal_items}, 'rarity': rarity, 'active': true, 'special_attributes': {$in: special_attributes}};
+			// count = artworks.find(query_object).count();
 		}
 
-		if (count == 0) {
-			query_object = {'_id': {$nin: getLootData().seasonal_items}, 'rarity': rarity, 'active': true};
-			count = artworks.find(query_object).count();
+		if (matching_artworks == undefined) {
+			matching_artworks = getArtworkCache()[rarity];
+			// query_object = {'_id': {$nin: getLootData().seasonal_items}, 'rarity': rarity, 'active': true};
+			// count = artworks.find(query_object).count();
 		}
 
-		var random_index = Math.floor(Math.random() * count);
-		return new ArtworkIF(artworks.findOne(query_object, {skip: random_index}));
+		var random_index = Math.floor(Math.random() * matching_artworks.length);
+		return new ArtworkIF(artworks.findOne({'_id': {$in: matching_artworks}}, {skip: random_index}));
 	}
 
 	var hasMandatoryFields = function(object, mandatory_fields) {
@@ -338,6 +395,8 @@ ItemGenerator = function() {
 			patreon = item_generator_object.patreon;
 		}
 
+		var is_seasonal_id = getLootData().seasonal_items.legendary.indexOf(item_generator_object.artwork_interface.getId()) != -1 || getLootData().seasonal_items.masterpiece.indexOf(item_generator_object.artwork_interface.getId()) != -1;
+
 	    var new_item_object = {
 	        'artwork_id' : item_generator_object.artwork_interface.getId(),
 	        'condition' : item_generator_object.condition === undefined ? getCondition(condition_min) : item_generator_object.condition,
@@ -351,7 +410,7 @@ ItemGenerator = function() {
 	        'roll_count' : 0,
 	        'foil': foil,
 	        'unlocked': unlocked,
-	        'seasonal': item_generator_object.seasonal === undefined ? getLootData().seasonal_items.indexOf(item_generator_object.artwork_interface.getId()) != -1 : item_generator_object.seasonal,
+	        'seasonal': item_generator_object.seasonal === undefined ? is_seasonal_id : item_generator_object.seasonal,
 	        'lottery': item_generator_object.lottery === undefined ? 0 : item_generator_object.lottery,
 	        'original': item_generator_object.original === undefined ? false : item_generator_object.original,
 	        'patreon': patreon,

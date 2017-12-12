@@ -1090,6 +1090,10 @@ Meteor.methods({
         }
 
         // localhost:3000/?code=DjpxuuxUvrdIcezAeGvfrOQ4b1ko1Q&state=None
+    },
+
+    'getArchiveMetadata': function() {
+        return getArchiveMetadata(new PlayerIF(Meteor.user()));
     }
 })
 
@@ -1139,4 +1143,48 @@ emailUser = function(user_email, subject, html) {
         'subject': subject, 
         'html': html
     });
+}
+
+var getUniqueArchivedArtworkCountFromQuery = function(query) {
+    query.status = "archived";
+    var archived_items = items.find(query).fetch();
+    var unique_artwork_array = _.uniq(archived_items, false, function(item_object) {return item_object.artwork_id});
+    return unique_artwork_array.length + "";
+}
+
+getArchiveMetadata = function(player_interface) {
+    var archive_metadata = {};
+
+    for (var i=0; i<artwork_rarities.length; i++) {
+        var rarity = artwork_rarities[i];
+        var active_count = getArtworkCache()[rarity].length;
+
+        var unlocked_possible = rarity != "common";
+        var seasonal_possible = getLootData().seasonal_items[rarity] != undefined;
+        var lottery_possible = ["legendary", "masterpiece"].indexOf(rarity) != -1;
+
+        archive_metadata[rarity] = {
+            'count': active_count,
+            'standard': getUniqueArchivedArtworkCountFromQuery({'owner': player_interface.getId(), 'archive_signature': "standard", 'artwork_data.rarity': rarity}),
+            'unlocked': unlocked_possible? getUniqueArchivedArtworkCountFromQuery({'owner': player_interface.getId(), 'archive_signature': {'$regex': "u", '$options': 'i'}, 'artwork_data.rarity': rarity}) : undefined,
+            'seasonal': seasonal_possible ? getUniqueArchivedArtworkCountFromQuery({'owner': player_interface.getId(), '$and': [
+                {'archive_signature': {'$regex': "s", '$options': 'i'}},
+                {'archive_signature': {'$ne': "standard"}}
+            ], 'artwork_data.rarity': rarity}) : undefined,
+            'foil': getUniqueArchivedArtworkCountFromQuery({'owner': player_interface.getId(), 'archive_signature': {'$regex': "f", '$options': 'i'}, 'artwork_data.rarity': rarity}),
+            'lottery': lottery_possible ? getUniqueArchivedArtworkCountFromQuery({'owner': player_interface.getId(), 'archive_signature': {'$regex': "l", '$options': 'i'}, 'artwork_data.rarity': rarity}) : undefined,
+            'vintage': getUniqueArchivedArtworkCountFromQuery({'owner': player_interface.getId(), 'archive_signature': {'$regex': "v", '$options': 'i'}, 'artwork_data.rarity': rarity})
+        }
+    }
+
+    return archive_metadata;
+
+    /*
+                        standard        unlocked        foil        seasonal        lottery         vintage
+        common          170/255         x               50/255      x               x               0/255
+        uncommon        105/220         50/220          10/220      x               x               0/220
+        rare            52/104          12/104          3/104       x               x               0/104
+        legendary       3/45            0/45            0/45        0/45            0/45            0/45
+        masterpiece     0/19            0/19            0/19        0/19            0/19            0/19
+    */
 }

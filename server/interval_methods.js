@@ -300,17 +300,20 @@ Meteor.setInterval((function() {
 
 var seasonal_rotation_check = 60000;
 Meteor.setInterval((function() {
-    var next_rotation = getOneFromCollection("interval_methods.js", metadata, {'loot_data': {$ne: null}}).loot_data.seasonal_rotation;
+    var next_rotation = getLootData().seasonal_rotation;
     if (next_rotation < getNowISOString()) {
         var random_legendary = getRandomArtworkIFFromRarity("legendary");
         var random_masterpiece = getRandomArtworkIFFromRarity("masterpiece");
 
         metadata.update({'loot_data': {$ne: null}}, {$set: {
-            'loot_data.seasonal_items': [random_legendary.getId(), random_masterpiece.getId()], 
+            'loot_data.seasonal_items': {
+                'legendary': [random_legendary],
+                'masterpiece': [random_masterpiece]
+            }, 
             'loot_data.seasonal_rotation': moment(next_rotation).add(1, 'months')._d.toISOString() 
         }}, function() {
             //TODO add alert for new seasonal items
-            LOOT_DATA = metadata.findOne({'loot_data': {$ne: null}}).loot_data;
+            setLootData();
         });
     }
     
