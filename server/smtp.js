@@ -21,7 +21,7 @@ setupMail = function() {
     var smtp = {
         username: 'artfunkelgame@gmail.com', 
         password:  '4rtfunk3lPW',   
-        server:   'smtps.gmail.com',
+        server:   'smtp.gmail.com',
         port: 465
     }
     process.env.MAIL_URL = 'smtps://' + encodeURIComponent(smtp.username) + ':' + encodeURIComponent(smtp.password) + '@' + encodeURIComponent(smtp.server) + ':' + smtp.port;
