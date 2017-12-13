@@ -21,10 +21,10 @@ setupMail = function() {
     var smtp = {
         username: 'artfunkelgame@gmail.com', 
         password:  '4rtfunk3lPW',   
-        server:   'smtp.gmail.com',
+        server:   'smtps.gmail.com',
         port: 465
     }
-    process.env.MAIL_URL = 'smtp://' + encodeURIComponent(smtp.username) + ':' + encodeURIComponent(smtp.password) + '@' + encodeURIComponent(smtp.server) + ':' + smtp.port;
+    process.env.MAIL_URL = 'smtps://' + encodeURIComponent(smtp.username) + ':' + encodeURIComponent(smtp.password) + '@' + encodeURIComponent(smtp.server) + ':' + smtp.port;
 };
 
 Meteor.methods({

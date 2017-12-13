@@ -80,9 +80,7 @@ auctioneerInteraction = function(npc_object, player_interface) {
 		// private_auction_duration is instantiated in auction_methods.js
 		createAuction(item_object._id, Math.floor(getItemObjectValueByType(item_object, 'actual', player_interface.getId()) * auction_price_adjustment), -1, private_auction_duration / 60000, player_interface.getId());
 	});
-
-	setTimeout("", 2000);
-
+	
 	message += " They have also given you exclusive access to some items available in a private auction. Visit the auction house to make a bid.";
 
 	return {'message': message};

@@ -585,10 +585,34 @@ Meteor.methods({
 
     'approveBetaKey': function(key_id) {
         if (adminValidated()) {
-            var beta_key_object = beta_keys.findOne(key_id);
-            beta_keys.update({'_id': beta_key_object._id}, {$set: {'approved': true}});
-            var message = '<h2>Your Artfunkel beta key is <span style="color:#FF33CC">' + beta_key_object.key + '</span></h2> <p>Visit <a href="https://artfunkelgame.com">artfunkelgame.com</a> and follow the registration link to create your account!</p>';
-            emailUser(beta_key_object.email_address, "Your Artfunkel beta key", message);
+            try {
+                var beta_key_object = beta_keys.findOne(key_id); 
+                var html = '<h2>Your Artfunkel beta key is <span style="color:#FF33CC">' + beta_key_object.key + '</span></h2> <p>Visit <a href="https://artfunkelgame.com">artfunkelgame.com</a> and follow the registration link to create your account!</p>';
+                emailUser(beta_key_object.email_address, "Your Artfunkel beta key", html);
+                beta_keys.update({'_id': beta_key_object._id}, {$set: {'approved': true}});
+            }
+            catch (error) {
+                return {
+                    'error': error.message
+                }
+            }
+        }
+    },
+
+    'getIdleBetaKeys': function() {
+        if (adminValidated()) {
+            return getIdleBetaKeys();
+        }
+    },
+
+    'reapproveIdleBetaKeys': function() {
+        if (adminValidated()) {
+           var idle_keys = getIdleBetaKeys();
+            for (var i=0; i<idle_keys.length; i++) {
+                var beta_key_object = idle_keys[i];
+                var html = '<h2>Your Artfunkel beta key is <span style="color:#FF33CC">' + beta_key_object.key + '</span></h2> <p>Visit <a href="https://artfunkelgame.com">artfunkelgame.com</a> and follow the registration link to create your account!</p>';
+                emailUser(beta_key_object.email_address, "Your Artfunkel beta key", html);
+            } 
         }
     },
 
@@ -661,4 +685,15 @@ var linkedAttributesValid = function(unique_attribute_id, attribute_array) {
 	}
 
 	return true;
+}
+
+var getIdleBetaKeys = function() {
+    var idle_keys = [];
+    beta_keys.find({'approved': true}).forEach(function(key_object) {
+        if (Meteor.users.findOne({'username': key_object.email_address}) == undefined) {
+            idle_keys.push(key_object);
+        }
+    })
+
+    return idle_keys;
 }

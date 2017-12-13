@@ -36,6 +36,9 @@
 					{{#each request}}
 						{{> betaRequest key_object=this}}
 					{{/each}}
+					{{#each idle}}
+						{{> betaRequest key_object=this}}
+					{{/each}}
 				</div>
 
 				<div class="row tools-section">
@@ -502,6 +505,10 @@
 
 <template name="betaRequest">
 	<div class="row">
-		<p data-key_id="{{key_object._id}}" class="request-text"><i class="green-text fa fa-check" id="approve-beta"></i> <i class="red-text fa fa-times" id="deny-beta"></i> {{key_object.email_address}} - {{key_object.created}}</p>
+		{{#if key_object.approved}}
+			<p data-key_id="{{key_object._id}}" class="request-text"><i class="purple-text fa fa-clock-o"></i> <i class="green-text fa fa-check" id="approve-beta"></i> <i class="red-text fa fa-times" id="deny-beta"></i> {{key_object.email_address}} - {{key_object.created}}</p>
+		{{else}}
+			<p data-key_id="{{key_object._id}}" class="request-text"><i class="green-text fa fa-check" id="approve-beta"></i> <i class="red-text fa fa-times" id="deny-beta"></i> {{key_object.email_address}} - {{key_object.created}}</p>
+		{{/if}}
 	</div>
 </template>

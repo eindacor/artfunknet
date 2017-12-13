@@ -13,9 +13,11 @@ var special_attribute_unique_attribute_tracker = new Tracker.Dependency;
 var special_attribute_unique_attributes = [];
 var generate_artwork_errors = [];
 var generate_artwork_error_tracker = new Tracker.Dependency;
-var beta_request_tracker = new Tracker.Dependency;
 
-var beta_requests = undefined;
+var beta_request_tracker = new Tracker.Dependency;
+var idle_request_tracker = new Tracker.Dependency;
+var beta_requests;
+var idle_requests;
 
 var selected_artwork = undefined;
 
@@ -820,8 +822,14 @@ Template.adminTools.events({
 				console.log(error.message)
 			}
 			else {
+				if (result && result.error) {
+					console.log(result.error);
+				}
+				
 				beta_requests = undefined;
+				idle_requests = undefined;
 				beta_request_tracker.changed();
+				idle_request_tracker.changed();
 			}
 		})
 	},
@@ -834,7 +842,9 @@ Template.adminTools.events({
 			}
 			else {
 				beta_requests = undefined;
+				idle_requests = undefined;
 				beta_request_tracker.changed();
+				idle_request_tracker.changed();
 			}
 		})
 	}
@@ -1266,6 +1276,23 @@ Template.adminTools.helpers({
 		}
 
 		return beta_requests;
+	},
+
+	'idle': function() {
+		idle_request_tracker.depend();
+		if (idle_requests == undefined) {
+			Meteor.call('getIdleBetaKeys', function(error, result) {
+				if (error) {
+					console.log(error.message);
+				}
+				else {
+					idle_requests = result;
+					idle_request_tracker.changed();
+				}
+			})
+		}
+
+		return idle_requests;
 	}
 })
 
@@ -1278,6 +1305,9 @@ Template.adminTools.rendered = function() {
 	generate_artwork_errors = [];
 	updateAdminData();
 	beta_requests = undefined;
+	idle_requests = undefined;
+	beta_request_tracker.changed();
+	idle_request_tracker.changed();
 }
 
 
