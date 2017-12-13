@@ -77,7 +77,7 @@ Meteor.methods({
             'gallery_score_data': galleries.find({'tutorial': {$ne: true}, 'owner_id': {$nin: bot_ids}}, {limit: 20, sort: {'score': -1}}).fetch(),
             'gallery_value_data': galleries.find({'tutorial': {$ne: true}, 'owner_id': {$nin: bot_ids}}, {limit: 20, sort: {'value': -1}}).fetch(),
             'gallery_earnings_data': galleries.find({'tutorial': {$ne: true}, 'owner_id': {$nin: bot_ids}}, {limit: 20, sort: {'earnings_per_hour': -1}}).fetch(),
-            'quests_completed_data': Meteor.users.find({'profile.user_type': {$nin:["admin", "bot"]}}, {limit: 20, sort: {'profile.completed_quests': -1}, fields: {'profile.completed_quests': 1, 'profile.screen_name': 1}}).fetch(),
+            'jobs_completed_data': Meteor.users.find({'profile.user_type': {$nin:["admin", "bot"]}}, {limit: 20, sort: {'profile.completed_quests': -1}, fields: {'profile.completed_quests': 1, 'profile.screen_name': 1}}).fetch(),
             'money_spent_crates_data': Meteor.users.find({'profile.user_type': {$nin: ["admin", "bot"]}}, {limit: 20, sort: {'profile.money_spent_on_crates': -1}}).fetch(),
             'archive_value_data': metadata.findOne({'archive_data': {$ne: null}}).archive_data.value_data,
             'archive_count_data': metadata.findOne({'archive_data': {$ne: null}}).archive_data.count_data
@@ -199,16 +199,16 @@ Meteor.methods({
         return player_interface.getEntryFee();
     },
 
-    'canTurnInQuest': function(quest_id) {
+    'canCompleteJob': function(quest_id) {
         var player_interface = new PlayerIF(Meteor.user());
-        return player_interface.canTurnInQuest(quest_id);
+        return player_interface.canCompleteJob(quest_id);
     },
 
     'hasCompletedQuest': function() {
         var all_quests = quests.find({'owner_id': Meteor.userId()}).fetch();
         var player_interface = new PlayerIF(Meteor.user());
         for (var i=0; i<all_quests.length; i++) {
-            if (player_interface.canTurnInQuest(all_quests[i]._id))
+            if (player_interface.canCompleteJob(all_quests[i]._id))
                 return true;
         }
 

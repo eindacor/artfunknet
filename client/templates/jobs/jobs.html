@@ -1,0 +1,117 @@
+<template name="jobs">
+	<div class="template-jobs">
+		{{#if active_jobs}}
+			<div class="col-xs-5">
+				<p class="job-count"><span class="af-color highlight">{{active_jobs}}</span> active jobs ({{max_jobs}} max.)</p>
+				<div class="row headers">
+					<div class="col-xs-2 no-margin no-padding">
+						<p class="job-title">rarity</p>
+					</div>
+					<div class="col-xs-2 no-margin no-padding">
+						<p class="details"><span>owned</span></p>
+					</div>
+					<div class="col-xs-4 no-margin no-padding">
+						<p class="details">rewards</p>
+					</div>
+					<div class="col-xs-3 no-margin no-padding details">
+						<p class="details">actions</p>
+					</div>
+				</div>
+				{{#each job}}
+					{{> jobListItem this}}
+				{{/each}}
+			</div>
+			<div class="col-xs-7">
+			{{#with selected_job}}
+				{{#if this}}
+					{{> jobTargets job_object=this}}
+				{{/if}}
+			{{/with}}
+			</div>
+		{{else}}
+			<p class="job-count">You currently have no active jobs.</p>
+		{{/if}}
+	</div>
+</template>
+
+<!-- return {
+			'owned': targets_owned,
+			'min_requirement': job_object.min_requirement,
+			'target_count': job_object.target.length,
+			'can_complete': targets_owned >= job_object.min_requirement,
+			'fully_complete': targets_owned >= job_object.target.length
+		} -->
+
+<template name="jobListItem">
+	<div class="template-jobListItem">
+		<div class="job-container row {{#if isEqual _id selected_job._id}}selected{{/if}}" data-job_id="{{_id}}">
+			{{#with job_progress _id}}
+				<div class="col-xs-2 no-margin no-padding">
+					<p class="job-title {{../rarity}}">{{../rarity}}</p>
+				</div>
+				<div class="col-xs-2 details no-margin no-padding">
+					<div class="tooltip-container no-margin no-padding">
+						<div class="tooltip-contents above">
+							<p class="tooltip-text">{{min_requirement}} required</p>
+						</div>
+						<p class="details {{#if can_complete}}{{#if fully_complete}}fully {{/if}}complete{{/if}}"><span>{{owned}}/{{target_count}}</span></p>
+					</div>		
+				</div>
+				<div class="col-xs-2 no-margin no-padding">
+					<p class="details af-color">{{commaSeparatedValue ../reward.xp}}xp</p>
+				</div>
+				<div class="col-xs-2 no-margin no-padding">
+					<p class="details green-text">{{displayAsMoneyValue ../reward.xp}}</p>
+				</div>
+				<div class="col-xs-3 no-margin no-padding details">
+					{{#if can_complete}}
+						<div class="tooltip-container">
+							<div class="tooltip-contents above">
+								<p>complete job</p>
+							</div>
+							<i data-job_id="{{../_id}}" data-action_name="completeJob" class="fa fa-flag-checkered job-button"></i>
+						</div>
+						<div class="tooltip-container">
+							<div class="tooltip-contents above">
+								<p>complete and sell targets</p>
+							</div>
+							<i data-job_id="{{../_id}}" data-action_name="completeJobAndSell" class="fa fa-usd job-button"></i>
+						</div>
+						<div class="tooltip-container">
+							<div class="tooltip-contents above">
+								<p>complete and donate targets</p>
+							</div>
+							<i data-job_id="{{../_id}}" data-action_name="completeJobAndDonate" class="fa fa-share-square job-button"></i>
+						</div>	
+					{{/if}}	
+					<div class="tooltip-container">
+						<div class="tooltip-contents above">
+							<p>cancel job</p>
+						</div>
+						<i data-job_id="{{../_id}}" data-action_name="cancelJob" class="fa fa-times job-button"></i>
+					</div>
+				</div>
+			{{/with}}
+		</div>
+	</div>
+</template>
+
+<template name="jobTargets">
+	<div class="template-jobTargets">
+		<div class="row">
+			<div class="col-xs-12">		
+				{{#with getJobTargetInfo job_object}}	
+					{{#each this}}
+						{{#if owned_item}}
+							{{> itemInfo item_data=owned_item}}
+						{{else}}
+							{{#with job_stub artwork_object}}
+								{{> itemStubView item_data=this}}
+							{{/with}}
+						{{/if}}
+					{{/each}}
+				{{/with}}
+			</div>
+		</div>
+	</div>
+</template>

@@ -62,8 +62,8 @@
 					{{#if isEqual key "gallery_earnings_data"}}
 						{{> earningsPerHour data}}
 					{{/if}}
-					{{#if isEqual key "quests_completed_data"}}
-						{{> questsCompleted data}}
+					{{#if isEqual key "jobs_completed_data"}}
+						{{> jobsCompleted data}}
 					{{/if}}
 					{{#if isEqual key "money_spent_crates_data"}}
 						{{> moneySpentOnCrates data}}
@@ -216,10 +216,10 @@
 	</div>
 </template>
 
-<template name="questsCompleted">
+<template name="jobsCompleted">
 	<div class="row list-section">
-		<div class="template-questsCompleted col-xs-12 col-md-6">
-			<h3 class="af-color">quests completed</h3>
+		<div class="template-jobsCompleted col-xs-12 col-md-6">
+			<h3 class="af-color">jobs completed</h3>
 			{{#each this}}
 				{{#if this.profile.completed_quests}}
 				<div class="row list-row">

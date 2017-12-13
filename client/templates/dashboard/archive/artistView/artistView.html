@@ -7,14 +7,14 @@
 			<button class="enforce-terms">OR</button>
 		{{/if}}
 		<div class="row settings-area">
-			<div class="col-xs-9 page-buttons">
+			<div class="col-xs-4 page-buttons">
 				<div class="row button-wrapper">
 					<i id="inventory-page-left" class="page-button fa fa-caret-left {{#if isEqual current_page '1'}}disabled{{else}}enabled{{/if}}"></i>	
 					<span class="page-indicators">page {{current_page}}/{{total_pages}}</span>
 					<i id="inventory-page-right" class="page-button fa fa-caret-right {{#if isEqual current_page total_pages}}disabled{{else}}enabled{{/if}}"></i>	
 				</div>
 			</div>
-			<div class="col-xs-3 page-buttons items_per_page">
+			<div class="col-xs-2 page-buttons items_per_page">
 				<span class="filter-title">items per page: </span>
 				<select id="page-count-select">
         			<option value="10">10</option>
@@ -111,7 +111,7 @@
 			<table class="rarity-table">
 				<tr>
 					<td></td>
-					<td class="toggle">show</td>
+					<td class="toggle"></td>
 					<td class="standard-text">standard</td>
 					<td class="unlocked-text">unlocked</td>
 					<td class="foil-text">foil</td>
@@ -122,8 +122,8 @@
 				{{#each artwork_rarity}}
 					{{#with rarity_metadata this ..}}
 						<tr>
-							<td class="{{..}}">{{..}}</td>
 							<td class="toggle"><i data-rarity="{{..}}" class="rarity-toggle fa {{#if rarity_selected ..}}fa-check-square-o green-text{{else}}fa-square-o{{/if}}"></i></td>
+							<td class="{{..}}">{{..}}</td>
 							<td class="standard-text">{{standard}}/{{count}}</td>
 							<td class="unlocked-text">{{#if unlocked}}{{unlocked}}/{{count}}{{else}}-{{/if}}</td>
 							<td class="foil-text">{{foil}}/{{count}}</td>
@@ -133,6 +133,18 @@
 						</tr>
 					{{/with}}
 				{{/each}}
+				{{#with metadata_totals this}}
+				<tr>
+					<td></td>
+					<td>all</td>
+					<td class="standard-text">{{standard.archived}}/{{standard.total}}</td>
+					<td class="unlocked-text">{{unlocked.archived}}/{{unlocked.total}}</td>
+					<td class="foil-text">{{foil.archived}}/{{foil.total}}</td>
+					<td class="seasonal-text">{{seasonal.archived}}/{{seasonal.total}}</td>
+					<td class="lottery-text">{{lottery.archived}}/{{lottery.total}}</td>
+					<td class="vintage-text">{{vintage.archived}}/{{vintage.total}}</td>
+				</tr>
+				{{/with}}
 			</table>
 			{{/with}}
 		</div>

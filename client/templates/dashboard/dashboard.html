@@ -12,7 +12,7 @@
 					{{> dashboardTab current_section=current_section section_title="loot" icon="gift"}}
 					{{> dashboardTab current_section=current_section section_title="gallery" icon="picture-o"}}
 					{{> dashboardTab current_section=current_section section_title="archive" icon="archive"}}
-					{{> dashboardTab current_section=current_section section_title="quests" icon="flag-checkered"}}
+					{{> dashboardTab current_section=current_section section_title="jobs" icon="flag-checkered"}}
 					{{> dashboardTab current_section=current_section section_title="my auctions" icon="bullhorn"}}
 					{{> dashboardTab current_section=current_section section_title="settings" icon="wrench"}}
 				</div>
@@ -29,8 +29,8 @@
 					{{#if isEqual current_section "archive"}}
 						{{> archive}}
 					{{/if}}
-					{{#if isEqual current_section "quests"}}
-						{{> quests}}
+					{{#if isEqual current_section "jobs"}}
+						{{> jobs}}
 					{{/if}}
 					{{#if isEqual current_section "gallery"}}
 						{{> userGallery screen_name=screen_name from_dashboard=true}}

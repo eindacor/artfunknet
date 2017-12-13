@@ -1,0 +1,57 @@
+.template-jobListItem .job-container {
+	display: block;
+	border-top: 1px solid rgba(0,0,0,.6);
+	padding: 6px 0px;
+	cursor: pointer;
+}
+
+.template-jobListItem .job-container:hover, .template-jobListItem .selected {
+	background-color: #ffe6f9;
+}
+
+.template-jobListItem .job-button {
+	font-size: 2rem;
+	margin-right: 4px;
+	opacity: .6;
+}
+
+.template-jobListItem .job-button:hover {
+	opacity: 1;
+}
+
+.template-jobTargets .template-itemStubView {
+	opacity: .3;
+}
+
+.template-jobTargets .template-itemStubView:hover {
+	opacity: .7;
+}
+
+.template-jobs .job-title {
+	margin-left: 8px;
+	font-size: 1.6rem;
+}
+
+.template-jobs .details {
+	font-size: 1.6rem;
+	margin-bottom: 0px;
+	text-align: center;
+}
+
+.template-jobListItem .complete {
+	font-weight: bold;
+	color: #ffc77e;
+}
+
+.template-jobListItem .fully {
+	color: orange;
+}
+
+.template-jobs .job-count {
+	font-size: 2rem;
+	color: black;
+}
+
+.template-jobs .headers {
+	margin-top: 24px;
+}

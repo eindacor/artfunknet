@@ -636,6 +636,15 @@ Meteor.methods({
         if (adminValidated()) {
             return setArtworkCache();
         }
+    },
+
+    'clearReputation': function() {
+        if (adminValidated()) {
+            Meteor.users.update({'_id': Meteor.userId()}, {$set: {
+                'profile.visitor_ignore_coefficient': 0,
+                'profile.visitor_ignore_proc_count': 0
+            }})
+        }
     }
 })
 

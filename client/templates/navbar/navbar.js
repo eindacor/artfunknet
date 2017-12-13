@@ -72,7 +72,7 @@ var addNotifications = function(type) {
 }
 
 var updateQuestStatus = function(quest_id) {
-	Meteor.call('canTurnInQuest', quest_id, function(error, result) {
+	Meteor.call('canCompleteJob', quest_id, function(error, result) {
 		if (error)
 			console.log(error.message)
 

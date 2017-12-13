@@ -24,7 +24,7 @@ var getLeaderboardName = function(key) {
         case 'gallery_score_data': return "gallery score";
         case 'gallery_value_data': return "gallery value";
         case 'gallery_earnings_data': return "gallery earnings";
-        case 'quests_completed_data': return "quests completed";
+        case 'jobs_completed_data': return "quests completed";
         case 'money_spent_crates_data': return "money spent on crates";
         case 'archive_value_data': return "archive value";
         case 'archive_count_data': return "archived items";

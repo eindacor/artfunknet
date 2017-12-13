@@ -506,7 +506,13 @@ testMap = function(loot_map) {
 }
 
 getRandomArtworkIFFromRarity = function(rarity) {
-    return new ArtworkIF(artworks.findOne({'rarity': rarity, 'active': true}, {skip: Math.floor(Math.random() * artworks.find({'rarity': rarity}).count())}));
+    try {
+        var random_index = Math.floor(Math.random() * getArtworkCache()[rarity].length);
+        return new ArtworkIF(getArtworkCache()[rarity][random_index]);
+    }
+    catch (error) {
+        console.log(error);
+    }
 }
 
 drawLottery = function(force_draw) {

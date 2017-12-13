@@ -195,6 +195,52 @@ Template.artistView.helpers({
 
 	'rarity_metadata': function(rarity, metadata) {
 		return metadata[rarity];
+	},
+
+	'metadata_totals': function(metadata) {
+		var totals_object = {
+			'standard': {
+				'archived': 0,
+				'total': 0
+			},
+			'unlocked': {
+				'archived': 0,
+				'total': 0
+			},
+			'foil': {
+				'archived': 0,
+				'total': 0
+			},
+			'seasonal': {
+				'archived': 0,
+				'total': 0
+			},
+			'lottery': {
+				'archived': 0,
+				'total': 0
+			},
+			'vintage': {
+				'archived': 0,
+				'total': 0
+			}
+		}
+
+		var types = ["standard", "unlocked", "foil", "seasonal", "vintage", "lottery"];
+
+		for (var i=0; i<artwork_rarities.length; i++) {
+			var rarity = artwork_rarities[i];
+			var rarity_metadata = metadata[rarity];
+
+			for (var n=0; n<types.length; n++) {
+				var type = types[n];
+				totals_object[type].total += Number(rarity_metadata.count);
+				if (rarity_metadata[type]) {
+					totals_object[type].archived += Number(rarity_metadata[type]);
+				}
+			}
+		}
+
+		return totals_object;
 	}
 })
 

@@ -7,7 +7,7 @@
 	width: 280px;
 	height: 390px;
 	margin: 6px 20px;
-	border: 1px solid #555555;
+	border: 1px solid #555;
 	padding: 0px;
 	opacity: .95;
 }
@@ -196,10 +196,11 @@
 	min-height: 4em;
 	display: flex;
 	align-items:center;
+	margin-top: 40px;
 }
 .template-artistView .page-button {
 	font-size: 3rem;
-	margin: 20px 80px 20px 80px;
+	margin: 20px 40px;
 	vertical-align: middle;
 }
 
@@ -238,20 +239,16 @@
 	text-align: center;
 }
 
-.template-artistView .rarity-table td:first-child {
+.template-artistView .rarity-table td:first-child, .template-artistView .rarity-table td:nth-child(2) {
 	border-left: none;
 }
 
 .template-artistView .rarity-table tr {
-	border-top: 1px solid black;
+	border-top: 1px solid rgba(0,0,0,.6);
 }
 
 .template-artistView .rarity-table tr:first-child {
 	border-top: none;
-}
-
-.template-artistView td.toggle {
-	width: 40px;
 }
 
 .template-artistView .rarity-toggle {

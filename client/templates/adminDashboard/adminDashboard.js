@@ -784,6 +784,14 @@ Template.adminTools.events({
 		})
 	},
 
+	'click #clear-reputation': function() {
+		Meteor.call('clearReputation', function(error) {
+			if (error) {
+				console.log(error.message);
+			}
+		})
+	},
+
 	'change .special-attribute-select': function(event) {
 		var checked = $(event.target)[0].checked;
 		var attribute_id = $(event.target).val();

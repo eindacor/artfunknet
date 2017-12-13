@@ -357,14 +357,24 @@ Meteor.methods({
         Meteor.users.update(Meteor.userId(), {$set: {'profile.gallery_finishes.frame_color': value}});
     },
 
-    'turnInQuest' : function(quest_id, sell, donate) {
+    'completeJob' : function(quest_id) {
         var player_interface = new PlayerIF(Meteor.user());
-        player_interface.turnInQuest(quest_id, sell, donate);
+        player_interface.completeJob(quest_id, false, false);
     },
 
-    'cancelQuest' : function(quest_id) {
+    'completeJobAndSell': function(quest_id) {
         var player_interface = new PlayerIF(Meteor.user());
-        player_interface.cancelQuest(quest_id);
+        player_interface.completeJob(quest_id, true, false);
+    },
+
+    'completeJobAndDonate': function(quest_id) {
+        var player_interface = new PlayerIF(Meteor.user());
+        player_interface.completeJob(quest_id, false, true);
+    },
+
+    'cancelJob' : function(quest_id) {
+        var player_interface = new PlayerIF(Meteor.user());
+        player_interface.cancelJob(quest_id);
     },
 
     'getMaxQuests' : function(npc_object) {
@@ -920,9 +930,9 @@ Meteor.methods({
         player_interface.finishTutorials();
      },
 
-     'getQuestTargetsOwned': function() {
+     'getJobTargetsOwned': function(job_id) {
         var player_interface = new PlayerIF(Meteor.user());
-        return player_interface.getQuestTargetsOwned();
+        return player_interface.getJobTargetsOwned(job_id);
      },
 
      'getClaimedTags': function() {
@@ -955,16 +965,9 @@ Meteor.methods({
         return info_object;
     },
 
-    'questIsCompleted' : function(quest_id) {
-        var quest_object = quests.findOne(quest_id)
-
-        var targets_found = 0;
-        for (var i=0; i < quest_object.target.length; i++) {
-            if (items.findOne({'artwork_id': quest_object.target[i], 'owner': Meteor.userId(), 'status': {$nin: ['unclaimed', 'for_sale', 'won', 'archived']}}) != undefined)
-                targets_found++;
-        }
-
-        return targets_found >= quest_object.min_requirement;
+    'getJobProgress': function(job_id) {
+        var player_interface = new PlayerIF(Meteor.user());
+        return player_interface.getJobProgress(job_id);
     },
 
     'getArtworkArchiveData': function(artist_object, rarities_selected)  {
@@ -1002,14 +1005,14 @@ Meteor.methods({
         return indicators;
     },
 
-    'getQuestTargetInfo': function(quest_object) {
+    'getJobTargetInfo': function(quest_object) {
         var target_info = [];
         var player_interface = new PlayerIF(Meteor.user());
         for (var i=0; i<quest_object.target.length; i++) {
             var artwork_id = quest_object.target[i];
             target_info.push({
                 'artwork_object': artworks.findOne(artwork_id),
-                'owned_item': player_interface.getQuestTarget(artwork_id)
+                'owned_item': player_interface.getJobTarget(artwork_id)
             });
         }
 

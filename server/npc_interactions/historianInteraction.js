@@ -124,7 +124,7 @@ historianInteraction = function(npc_object, player_interface) {
 	    var quest_object = generateQuest(rarity_roll, isOwnGallery(npc_object), player_interface);
 	    quests.insert(quest_object);
 	
-	    var message = "You have met an art historian who is looking for a few specific items and would like your help. Visit the quests area to see what they need and acquire the artwork listed to claim your reward.";
+	    var message = "You have met an art historian who is looking for a few specific items and would like your help. Visit the jobs area to see what they need and acquire the artwork listed to claim your reward.";
 	
 	    return {'type': "historian_bonus", 'quest': quest_object};
 	}
