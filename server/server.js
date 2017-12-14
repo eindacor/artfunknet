@@ -201,30 +201,7 @@ var updateContent = function() {
 
     //temp code
     npcs.remove({'tutorial': true});
-    metadata.find({'loot_data': {$ne: null}}).forEach(function(loot_data_object) {
-        var loot_data = loot_data_object.loot_data;
-        if (loot_data.seasonal_items.legendary == undefined) {
-            var seasonal_array = loot_data.seasonal_items;
-            var legendary_array = [];
-            var masterpiece_array = [];
-            for (var i=0; i<seasonal_array.length; i++) {
-                var artwork_object = artworks.findOne(seasonal_array[i]);
-                if (artwork_object.rarity == "legendary") {
-                    legendary_array.push(artwork_object._id);
-                }
-                else {
-                    masterpiece_array.push(artwork_object._id);
-                }
-            }
-
-            metadata.update({'loot_data': {$ne: null}}, {$set: {'loot_data.seasonal_items': {
-                'legendary': legendary_array,
-                'masterpiece': masterpiece_array
-            }}}, function() {
-                setLootData();
-            })
-        }
-    })
+    Meteor.users.update({}, {$set: {'profile.settings.show_visitor_tooltips': true}}, {multi: true});
     //temp code
 
     // var desired_bot_count = 100;

@@ -153,6 +153,10 @@ Template.userGallery.helpers({
 		else {
 			return gallery_data.finish_data.floor_filename;
 		}
+	},
+
+	'show_tooltips': function() {
+		return Meteor.user().profile.settings.show_visitor_tooltips;
 	}
 })
 

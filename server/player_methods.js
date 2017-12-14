@@ -78,6 +78,7 @@ createPlayer = function(user_object, callback){
         'ignore_archive_recommendations': false,
         'auto_archive_upgrades': false,
         'show_patreon_status': true,
+        'show_visitor_tooltips': true,
         'quick_sell_options': {
             'foil': false,
             'legendary': false,

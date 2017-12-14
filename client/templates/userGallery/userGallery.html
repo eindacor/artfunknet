@@ -10,13 +10,16 @@
 				<div class="row no-padding no-margin">
 					<div class="npc-area">
 						{{#each npc owner_id}}
+							{{#if show_tooltips}}
 							<div class="tooltip-container">
 								<div class="tooltip-contents above">
 									<p>{{npc_name}}</p>
 								</div>
 								<i data-npc_id="{{_id}}" class="npc {{quality}} fa {{icon}} {{#if already_met this}}disabled{{else}}enabled text-shadow{{/if}}"></i>
 							</div>
-							
+							{{else}}
+								<i data-npc_id="{{_id}}" class="npc {{quality}} fa {{icon}} {{#if already_met this}}disabled{{else}}enabled text-shadow{{/if}}"></i>
+							{{/if}}
 						{{/each}}
 					</div>
 				</div>
