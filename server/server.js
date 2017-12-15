@@ -201,7 +201,6 @@ var updateContent = function() {
 
     //temp code
     npcs.remove({'tutorial': true});
-    Meteor.users.update({}, {$set: {'profile.settings.show_visitor_tooltips': true}}, {multi: true});
     //temp code
 
     // var desired_bot_count = 100;
