@@ -452,10 +452,13 @@ prepareItemForClient = function(item_object, viewer_interface) {
     var market_expert_active = user_object.profile.market_expert.expiration > getNowISOString();
 
     if (market_expert_active) {
-        var item_signature = item_interface.getArchiveSignature();
-        var market_data = artworks.findOne({'_id': item_interface.getArtworkId()}).market_data[item_signature];
+        var market_data = artworks.findOne({'_id': item_interface.getArtworkId()}).market_data;
         if (market_data) {
-            item_object.market_value = market_data.average;
+            var item_signature = item_interface.getArchiveSignature();
+            var signature_market_data = market_data[item_signature];
+            if (signature_market_data) {
+                item_object.market_value = market_data.average;
+            }
         }
     }
 

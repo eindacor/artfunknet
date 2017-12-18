@@ -291,6 +291,7 @@ Meteor.methods({
 
     'addNewArtwork': function(artwork_object) {
     	if (adminValidated()) {
+            artwork_object.market_data = {};
     		return artworks.insert(artwork_object, function() {
                 setArtworkCache();
             });
