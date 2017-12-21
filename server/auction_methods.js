@@ -2,7 +2,7 @@ createAuction = function(item_id, starting, buy_now, duration, viewer) {
     try {
         if (auctions.find({'item_id': item_id}).count() == 0) {
             var post_date = moment();
-            var expiration = moment(post_date).add(duration, 'minutes');
+            var expiration = moment(post_date).add(duration, 'milliseconds');
             var item_object = items.findOne(item_id);
             if (item_object == undefined)
                 return false;
@@ -262,7 +262,6 @@ var botBid = function(auction_object, bid_increase_coefficient) {
 }
 
 var auction_bot_frequency = 10000;
-private_auction_duration = 300000;
 var procs_per_minute = 60000 / auction_bot_frequency;
 var max_bids_per_minute = 2;
 var proc_chance = max_bids_per_minute / procs_per_minute;

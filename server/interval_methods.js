@@ -105,17 +105,7 @@ Meteor.setInterval((function() {
 }), DEBUG ? ONE_SECOND * 10 : ONE_MINUTE)
 
 Meteor.setInterval((function() {
-    var multi_item_generator = {
-        'source': "generated auction",
-        'count': 20,
-        'status': "auctioned"
-    }
-
-    var duration = DEBUG ? ONE_MINUTE / 60000 : ONE_HOUR / 60000;
-
-    var item_ids = ITEM_GENERATOR.generateMultiple(multi_item_generator, undefined, function(item_object) {
-        createAuction(item_object._id, item_object.values.auction_min, -1, duration, "public");
-    });
+    generateArtfunkelAuctions(20, DEBUG ? ONE_MINUTE : ONE_HOUR);
 }), GENERATED_AUCTION_FREQUENCY);
 
 var marketing_boost = .15;

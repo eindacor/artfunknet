@@ -658,3 +658,15 @@ generateNewLotteryItems = function() {
         });
     }
 }
+
+generateArtfunkelAuctions = function(item_count, duration) {
+    var multi_item_generator = {
+        'source': "generated auction",
+        'count': item_count,
+        'status': "auctioned"
+    }
+
+    var item_ids = ITEM_GENERATOR.generateMultiple(multi_item_generator, undefined, function(item_object) {
+        createAuction(item_object._id, item_object.values.auction_min, -1, duration, "public");
+    });
+}

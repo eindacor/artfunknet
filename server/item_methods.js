@@ -453,11 +453,11 @@ prepareItemForClient = function(item_object, viewer_interface) {
 
     if (market_expert_active) {
         var market_data = artworks.findOne({'_id': item_interface.getArtworkId()}).market_data;
-        if (market_data) {
+        if (market_data != undefined) {
             var item_signature = item_interface.getArchiveSignature();
             var signature_market_data = market_data[item_signature];
-            if (signature_market_data) {
-                item_object.market_value = market_data.average;
+            if (signature_market_data != undefined) {
+                item_object.market_value = signature_market_data.average;
             }
         }
     }
@@ -632,6 +632,12 @@ Meteor.methods({
     },
 
     'auctionArtwork' : function(item_id, starting, buy_now, duration) {
+        var approved_auction_durations = [ONE_HOUR, ONE_HOUR * 6, ONE_HOUR * 12, ONE_HOUR * 24];
+        if (approved_auction_durations.indexOf(Number(duration)) == -1) {
+            throw {
+                'message': "invalid duration"
+            }
+        }
     	var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item_id));
         return player_item_interface.auction(starting, buy_now, duration);
     },

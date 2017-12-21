@@ -670,6 +670,12 @@ Meteor.methods({
                 'profile.visitor_ignore_proc_count': 0
             }})
         }
+    },
+
+    'generateAuctions': function(count, duration) {
+        if (adminValidated()) {
+            generateArtfunkelAuctions(count, duration);
+        }
     }
 })
 

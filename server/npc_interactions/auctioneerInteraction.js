@@ -77,8 +77,7 @@ auctioneerInteraction = function(npc_object, player_interface) {
     }
 
 	var item_ids = ITEM_GENERATOR.generateMultiple(multi_item_generator, undefined, function(item_object) {
-		// private_auction_duration is instantiated in auction_methods.js
-		createAuction(item_object._id, Math.floor(getItemObjectValueByType(item_object, 'actual', player_interface.getId()) * auction_price_adjustment), -1, private_auction_duration / 60000, player_interface.getId());
+		createAuction(item_object._id, Math.floor(getItemObjectValueByType(item_object, 'actual', player_interface.getId()) * auction_price_adjustment), -1, PRIVATE_AUCTION_DURATION, player_interface.getId());
 	});
 	
 	message += " They have also given you exclusive access to some items available in a private auction. Visit the auction house to make a bid.";
