@@ -226,6 +226,12 @@ Meteor.methods({
         }
 	},
 
+    'rotateSeasonalItems': function() {
+        if (adminValidated()) {
+            rotateSeasonalItems();
+        }
+    },
+
 	'alertAllUsers' : function(message) {
         if (adminValidated()) {
             alertPlayers({}, '<p>' + message + '</p>', 'fa-exclamation', 'neutral');
@@ -293,7 +299,7 @@ Meteor.methods({
     	if (adminValidated()) {
             artwork_object.market_data = {};
     		return artworks.insert(artwork_object, function() {
-                setArtworkCache();
+                updateActiveArtworkCache();
             });
     	}
 
@@ -302,7 +308,10 @@ Meteor.methods({
 
     'removeArtwork': function(artwork_id) {
     	if (adminValidated()) {
-    		artworks.remove(artwork_id);
+    		artworks.remove(artwork_id, function() {
+                updateActiveArtworkCache();
+            });
+            
     		var all_items = items.find({'artwork_id': artwork_id}).fetch();
 
     		for (var i=0; i<all_items.length; i++) {
@@ -651,15 +660,15 @@ Meteor.methods({
         }
     },
 
-    'getArtworkCache': function() {
+    'getActiveArtworkCache': function() {
         if (adminValidated()) {
-            return getArtworkCache();
+            return getActiveArtworkCache();
         }
     },
 
-    'setArtworkCache': function() {
+    'updateActiveArtworkCache': function() {
         if (adminValidated()) {
-            return setArtworkCache();
+            return updateActiveArtworkCache();
         }
     },
 

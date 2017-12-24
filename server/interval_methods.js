@@ -290,23 +290,9 @@ Meteor.setInterval((function() {
 
 var seasonal_rotation_check = 60000;
 Meteor.setInterval((function() {
-    var next_rotation = getLootData().seasonal_rotation;
-    if (next_rotation < getNowISOString()) {
-        var random_legendary = getRandomArtworkIFFromRarity("legendary");
-        var random_masterpiece = getRandomArtworkIFFromRarity("masterpiece");
-
-        metadata.update({'loot_data': {$ne: null}}, {$set: {
-            'loot_data.seasonal_items': {
-                'legendary': [random_legendary],
-                'masterpiece': [random_masterpiece]
-            }, 
-            'loot_data.seasonal_rotation': moment(next_rotation).add(1, 'months')._d.toISOString() 
-        }}, function() {
-            //TODO add alert for new seasonal items
-            setLootData();
-        });
+    if (getLootData().seasonal_rotation < getNowISOString()) {
+        rotateSeasonalItems();
     }
-    
 }), seasonal_rotation_check);
 
 var clear_npcs_met_check = 60000;

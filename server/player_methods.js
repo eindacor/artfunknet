@@ -1161,7 +1161,7 @@ getArchiveMetadata = function(player_interface) {
 
     for (var i=0; i<artwork_rarities.length; i++) {
         var rarity = artwork_rarities[i];
-        var active_count = getArtworkCache()[rarity].length;
+        var active_count = getActiveArtworkCache()[rarity].length;
 
         var unlocked_possible = rarity != "common";
         var seasonal_possible = getLootData().seasonal_items[rarity] != undefined;

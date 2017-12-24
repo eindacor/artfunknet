@@ -195,13 +195,15 @@ makeBots = function(quantity) {
 
 var updateContent = function() {
     console.log("UPDATING CONTENT");
-    setArtworkCache();
+    updateActiveArtworkCache();
 
     //removeBots();
 
     //temp code
     npcs.remove({'tutorial': true});
-    artworks.update({'market_data': null}, {$set: {'market_data': {}}}, {multi: true});
+    items.find().forEach(function(item_object) {
+        items.update(item_object._id, {$set: {'odds': getItemOddsString(item_object)}});
+    })
     //temp code
 
     // var desired_bot_count = 100;

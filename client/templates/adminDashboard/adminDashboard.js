@@ -285,23 +285,7 @@ Template.adminTools.events({
 	},
 
 	'click #new-seasonals' : function(element) {
-		var seasonal_count = 1;
-		var id_array = [];
-		for (var i=0; i < seasonal_count; i++) {
-			var selector = {
-				'._id': {$nin: id_array}, 
-				'rarity': {
-					$in: ["legendary", "masterpiece"]
-				}
-			};
-
-			var artwork_object = artworks.findOne(selector, {skip: Math.floor(Math.random() * artworks.find(selector).count())});
-
-			if (artwork_object)
-				id_array.push(artwork_object._id);
-		}
-
-		Meteor.call('setSeasonal', id_array, function(error) {
+		Meteor.call('rotateSeasonalItems', function(error) {
 			if (error)
 				console.log(error.message);
 

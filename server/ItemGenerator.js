@@ -1,56 +1,3 @@
-ACTIVE_COMMON_ARTWORK_IDS = [];
-ACTIVE_UNCOMMON_ARTWORK_IDS = [];
-ACTIVE_RARE_ARTWORK_IDS = [];
-ACTIVE_LEGENDARY_ARTWORK_IDS = [];
-ACTIVE_MASTERPIECE_ARTWORK_IDS = [];
-
-ACTIVE_ARTWORK_CACHE = {
-	'common': [],
-	'uncommon': [],
-	'rare': [],
-	'legendary': [],
-	'masterpiece': [],
-	'special_attribute_map': {}
-}
-
-serializeSpecialCombination = function(attribute_array) {
-	attribute_array.sort();
-	return attribute_array.toString();
-}
-
-setArtworkCache = function() {
-	var local_cache = {
-		'common': [],
-		'uncommon': [],
-		'rare': [],
-		'legendary': [],
-		'masterpiece': [],
-		'special_attribute_map': {}
-	}
-
-	var all_artworks = artworks.find({'active': true}).fetch();
-	for (var i=0; i<all_artworks.length; i++) {
-		var artwork_object = all_artworks[i];
-		local_cache[artwork_object.rarity].push(artwork_object._id);
-
-		if (["rare", "legendary", "masterpiece"].indexOf(artwork_object.rarity) != -1) {
-			var serialized_specials = serializeSpecialCombination(artwork_object.special_attributes);
-			if (local_cache.special_attribute_map[serialized_specials] == undefined) {
-				local_cache.special_attribute_map[serialized_specials] = [artwork_object._id];
-			}
-			else {
-				local_cache.special_attribute_map[serialized_specials].push(artwork_object._id);
-			}
-		}
-	}
-
-	ACTIVE_ARTWORK_CACHE = local_cache;
-}
-
-getArtworkCache = function() {
-	return ACTIVE_ARTWORK_CACHE;
-}
-
 ItemGenerator = function() {
 	var lowest_possible_value_coefficient = .4;
 	var condition_coefficient_max = .4;
@@ -71,12 +18,14 @@ ItemGenerator = function() {
 	}
 
 	var selectArtwork = function(rarity, attribute_map, seasonal_amplifier) {
+		// run seasonal proc, select seasonal if successful
 	    if (rarity == "legendary" || rarity == "masterpiece") {
 	        if (Math.random() < (calcSeasonalChance(rarity) * seasonal_amplifier)) {
 	            return new ArtworkIF(artworks.findOne({'_id': {$in: getLootData().seasonal_items[rarity] }, 'active': true, 'rarity': rarity}));
 	        }
 	    }
 
+	    // if no attribute map is specified, drop should be purely based on value scale
 	    if (attribute_map == undefined) {
 	    	return new ArtworkIF(artworks.findOne(getRandomNonSeasonalIdFromRarity(rarity)));
 	    }
@@ -86,11 +35,11 @@ ItemGenerator = function() {
 		var matching_artworks;
 		if (special_attributes.length > 0) {
 			var serialized_specials = serializeSpecialCombination(special_attributes);
-			matching_artworks = getArtworkCache().special_attribute_map[serialized_specials];
+			matching_artworks = getActiveArtworkCache().special_attribute_map[serialized_specials];
 		}
 
 		if (matching_artworks == undefined) {
-			matching_artworks = getArtworkCache()[rarity];
+			matching_artworks = getActiveArtworkCache()[rarity];
 		}
 
 		var random_index = Math.floor(Math.random() * matching_artworks.length);
@@ -422,6 +371,8 @@ ItemGenerator = function() {
 	        'permanent': false,
 	        'repairing': false
 	    };
+
+	    new_item_object.odds = getItemOddsString(new_item_object);
 
 	    new_item_object.values = getItemObjectValues(new_item_object);
 	    new_item_object.reroll_cost = getItemObjectRollCost(new_item_object);
