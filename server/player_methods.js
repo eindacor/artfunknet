@@ -91,7 +91,8 @@ createPlayer = function(user_object, callback){
             'unfound': false,
             'unlocked': false,
             'vintage': false,
-            'lottery': false
+            'lottery': false,
+            'patreon': false
         }
     };
 

@@ -222,6 +222,7 @@ Meteor.methods({
 
             metadata.update({'loot_data': {$ne: null}}, {$set: {'loot_data.seasonal_items': seasonal_item_object}}, function() {
                 setLootData();
+                updateActiveArtworkCache();
             });
         }
 	},

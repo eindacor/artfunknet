@@ -204,6 +204,7 @@ var updateContent = function() {
     items.find().forEach(function(item_object) {
         items.update(item_object._id, {$set: {'odds': getItemOddsString(item_object)}});
     })
+    Meteor.users.update({'profile.settings.quick_sell_options.patreon': null}, {$set: {'profile.settings.quick_sell_options.patreon': false}}, {multi: true});
     //temp code
 
     // var desired_bot_count = 100;
