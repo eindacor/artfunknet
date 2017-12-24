@@ -48,6 +48,9 @@
 							<p>{{item_data.artwork_data.medium}}</p>
 							<p>{{item_data.artwork_data.height}} x {{item_data.artwork_data.width}}</p>
 							{{#if showDetails item_data}}
+							{{#if item_data.odds}}
+							<p>drop chance: {{item_data.odds}}</p>
+							{{/if}}
 							<div class="dynamic-stats">
 								<p>condition: <span style="color: {{getHTMLColorFromValue item_data.condition}}">%{{floatToPercentage item_data.condition}}</span></p>
 								<p id="dynamic-value-stat">estimated value: {{displayAsMoneyValue item_data.values.actual}}</p>

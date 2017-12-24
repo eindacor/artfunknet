@@ -676,6 +676,43 @@ Meteor.methods({
         if (adminValidated()) {
             generateArtfunkelAuctions(count, duration);
         }
+    },
+
+    'runDropTest': function(rarity) {
+        if (adminValidated()) {
+            var roll_count = 100000;
+            var drop_map = {};
+            for (var i=0; i<roll_count; i++) {
+                var rolled_id = getRandomNonSeasonalIdFromRarity(rarity);
+                if (drop_map[rolled_id] == undefined) {
+                    drop_map[rolled_id] = 1;
+                }
+                else {
+                    drop_map[rolled_id] += 1;
+                }
+            }
+
+            var lowest, highest;
+            var keys = Object.keys(drop_map);
+            for (var i=0; i<keys.length; i++) {
+                var key = keys[i];
+                if (lowest == undefined || drop_map[key] < drop_map[lowest]) {
+                    lowest = key;
+                }
+
+                if (highest == undefined || drop_map[key] > drop_map[highest]) {
+                    highest = key;
+                }
+            }
+
+            return {
+                'drop_map': drop_map,
+                'lowest': artworks.findOne(lowest),
+                'low_count': drop_map[lowest],
+                'highest': artworks.findOne(highest),
+                'high_count': drop_map[highest]
+            }
+        }
     }
 })
 

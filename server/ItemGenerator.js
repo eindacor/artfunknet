@@ -56,47 +56,41 @@ ItemGenerator = function() {
 	var condition_coefficient_max = .4;
 	var attribute_coefficient_max = .2;
 
-	var getAttributeArray = function(rarity, attribute_map) {
+	var getSpecialAttributes = function(rarity, attribute_map) {
 		var attribute_map_copy = JSON.parse(JSON.stringify(attribute_map));
-		var attribute_count = artwork_rarities.indexOf(rarity) + 1;
+		var special_attribute_count = artwork_rarities.indexOf(rarity) - 1;
 
-		if (attribute_count == 0)
-			throw "invalid item rarity: " + rarity;
-
-		var rolled_attributes = [];
-		for (var i=0; i<attribute_count; i++) {
+		var rolled_special_attributes = [];
+		for (var i=0; i<special_attribute_count; i++) {
 			var selected_attribute = JepLoot.catRoll(attribute_map_copy);
-			rolled_attributes.push(selected_attribute);
+			rolled_special_attributes.push(selected_attribute);
 			delete attribute_map_copy[selected_attribute];
 		}
 
-		return rolled_attributes;
+		return rolled_special_attributes;
 	}
 
-	var selectArtwork = function(rarity, attribute_array, seasonal_amplifier) {
+	var selectArtwork = function(rarity, attribute_map, seasonal_amplifier) {
 	    if (rarity == "legendary" || rarity == "masterpiece") {
 	        if (Math.random() < (calcSeasonalChance(rarity) * seasonal_amplifier)) {
 	            return new ArtworkIF(artworks.findOne({'_id': {$in: getLootData().seasonal_items[rarity] }, 'active': true, 'rarity': rarity}));
 	        }
 	    }
 
-		var special_attribute_count = artwork_rarities.indexOf(rarity) - 1;
-		var query_object;
-		var matching_artworks;
+	    if (attribute_map == undefined) {
+	    	return new ArtworkIF(artworks.findOne(getRandomNonSeasonalIdFromRarity(rarity)));
+	    }
 
-		if (special_attribute_count > 0) {
-			var special_attributes = attribute_array.slice(0, special_attribute_count);
+		var special_attributes = getSpecialAttributes(rarity, attribute_map);
+
+		var matching_artworks;
+		if (special_attributes.length > 0) {
 			var serialized_specials = serializeSpecialCombination(special_attributes);
 			matching_artworks = getArtworkCache().special_attribute_map[serialized_specials];
-			//not seasonal, rarity, special attributes
-			// query_object = {'_id': {$nin: getLootData().seasonal_items}, 'rarity': rarity, 'active': true, 'special_attributes': {$in: special_attributes}};
-			// count = artworks.find(query_object).count();
 		}
 
 		if (matching_artworks == undefined) {
 			matching_artworks = getArtworkCache()[rarity];
-			// query_object = {'_id': {$nin: getLootData().seasonal_items}, 'rarity': rarity, 'active': true};
-			// count = artworks.find(query_object).count();
 		}
 
 		var random_index = Math.floor(Math.random() * matching_artworks.length);
@@ -229,13 +223,12 @@ ItemGenerator = function() {
 
  		var seasonal_amplifier = multi_item_generator_object.seasonal_amplifier === undefined ? 1 : multi_item_generator_object.seasonal_amplifier;
 
- 		var attribute_map = multi_item_generator_object.attribute_map === undefined ? DEFAULT_ATTRIBUTE_MAP : multi_item_generator_object.attribute_map;
+ 		var attribute_map = multi_item_generator_object.attribute_map === undefined ? undefined : multi_item_generator_object.attribute_map;
  		var forgery_chance = multi_item_generator_object.forgery_chance === undefined ? 0 : multi_item_generator_object.forgery_chance;
 
 	    for (var i=0; i < parseInt(multi_item_generator_object.count); i++) {
 	    	var rarity_roll = JepLoot.catRoll(rarity_map);
-	        var attribute_array = getAttributeArray(rarity_roll, attribute_map);
-	        var artwork_interface = selectArtwork(rarity_roll, attribute_array, seasonal_amplifier);
+	        var artwork_interface = selectArtwork(rarity_roll, attribute_map, seasonal_amplifier);
 	        var forgery = multi_item_generator_object.forgery === undefined ? Math.random() < forgery_chance : multi_item_generator_object.forgery;
 	        var min_roll_boost = multi_item_generator_object.min_roll_boost === undefined ? 0 : multi_item_generator_object.min_roll_boost;
 
@@ -471,46 +464,6 @@ ItemGenerator = function() {
 
 		var new_item_id = insertItem(item_object_copy, "forge", callback);
 	}
-
-	// this.createForgedItem = function(forged_item_object, forger_contract_object, callback) {
-	// 	var new_item_object = {
-	//         'artwork_id' : forged_item_object.artwork_id,
-	//         'condition' : forged_item_object.condition === undefined ? getCondition(0) : forged_item_object.condition,
-	//         'attributes' : getItemAttributes(forged_item_object.artwork_data, forged_item_object.unlocked, DEFAULT_ATTRIBUTE_MAP),
-	//         'active_unique_attribute': forged_item_object.artwork_data.unique_attributes ? forged_item_object.artwork_data.unique_attributes[0] : undefined,
-	//         'owner' : forged_item_object.owner,
-	//         'status' : "won",
-	//         'date_created' : moment()._d.toISOString(),
-	//         'date_received': moment()._d.toISOString(),
-	//         'level' : forged_item_object.level,
-	//         'roll_count' : forged_item_object.roll_count === undefined ? 0 : forged_item_object.roll_count,
-	//         'foil': forged_item_object.foil,
-	//         'unlocked': forged_item_object.unlocked,
-	//         'seasonal': forged_item_object.seasonal,
-	//         'lottery': forged_item_object.lottery,
-	//         'original': false,
-	//         'vintage': forged_item_object.vintage,
-	//         'authenticity': {
-	//         	'forgery': true,
-	//         	'forgery_quality': forger_contract_object.quality,
-	//         	'liable': forged_item_object.owner,
-	//         	'liability_pending': false,
-	//         	'identified': true,
-	//         	'fee': 0,
-	//         	'original_owner': forged_item_object.owner
-	//         },
-	//         'tags': [],
-	//         'artwork_data': forged_item_object.artwork_data,
-	//         'permanent': false,
-	//         'tutorial': forged_item_object.tutorial === undefined ? false : forged_item_object.tutorial,
-	//         'repairing': false
-	//     };
-
-	//     new_item_object.values = getItemObjectValues(new_item_object);
-	//     new_item_object.reroll_cost = getItemObjectRollCost(new_item_object);
-
-	//     var new_item_id = insertItem(new_item_object, "forge", callback);
-	// }
 }
 
 ITEM_GENERATOR = new ItemGenerator();

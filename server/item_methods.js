@@ -443,6 +443,62 @@ var setItemActions = function(item_object, player_item_permissions) {
     item_object.item_modifiers = modifier_array;
 }
 
+var default_rarity_map = undefined;
+
+setDefaultRarityMap = function() {
+    default_rarity_map = getSmartRarityMap(50, 0);
+}
+
+getDefaultRarityMap = function() {
+    if (default_rarity_map == undefined) {
+        setDefaultRarityMap();
+    }
+
+    return default_rarity_map;
+}
+
+var getItemOddsString = function(item_interface) {
+    if (item_interface.isOriginal() || item_interface.isLottery()) {
+        return "0";
+    }
+
+    var standard_map = getDefaultRarityMap();
+    var loot_data = getLootData();
+
+    var keys = Object.keys(standard_map);
+    var sumtotal = 0;
+    for (var i=0; i<keys.length; i++) {
+        sumtotal += standard_map[keys[i]];
+    }
+
+    var odds = standard_map[item_interface.getRarity()] / sumtotal;
+
+    var drop_index_shares = getDropIndexShares(item_interface.getArtworkObject().value_scale);
+    var drop_index_sumtotal = getDropIndexSumtotal(item_interface.getRarity());
+    odds *= drop_index_shares/drop_index_sumtotal;
+
+    if (item_interface.isFoil()) {
+        odds *= loot_data.global_foil_chance;
+    }
+
+    if (item_interface.isUnlocked()) {
+        odds *= loot_data.global_unlocked_chance;
+    }
+
+    if (item_interface.isPatreon()) {
+        odds *= loot_data.global_patreon_chance;
+    }
+
+    if (item_interface.isSeasonal()) {
+        var seasonal_count = loot_data.seasonal_items[item_interface.getRarity()].length;
+        var seasonal_chance = seasonal_count / getArtworkCache()[item_interface.getRarity()].length;
+        odds *= seasonal_chance;
+    }
+
+    var drop_count = getCommaSeparatedValue(Math.floor(1/odds));
+    return "1 in " + drop_count;
+}
+
 prepareItemForClient = function(item_object, viewer_interface) {
     var item_interface = new ItemIF(item_object);
     var player_item_interface = new PlayerItemIF(viewer_interface, item_interface);
@@ -476,6 +532,10 @@ prepareItemForClient = function(item_object, viewer_interface) {
             delete item_object["attributes"];
         }
 
+    }
+
+    if (artwork_rarities.indexOf(item_interface.getRarity()) >= artwork_rarities.indexOf("legendary")) {
+        item_object.odds = getItemOddsString(item_interface);
     }
 
     item_object.recommended_status = player_item_interface.getRecommendedStatus();

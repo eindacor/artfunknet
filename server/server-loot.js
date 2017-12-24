@@ -1,4 +1,65 @@
 LOOT_DATA = undefined;
+DROP_ID_INDICES = undefined;
+DROP_INDEX_SUMTOTALS = undefined;
+
+VALUE_SCALE_WEIGHT = 1;
+DROP_INDEX_BASE_SHARES = 100;
+
+getDropIndexSumtotal = function(rarity) {
+    if (DROP_INDEX_SUMTOTALS == undefined) {
+        updateDropIndices();
+    }
+    
+    return DROP_INDEX_SUMTOTALS[rarity];
+}
+
+getDropIndexShares = function(value_scale) {
+    return DROP_INDEX_BASE_SHARES + Math.floor(DROP_INDEX_BASE_SHARES * VALUE_SCALE_WEIGHT * (1 - value_scale));
+}
+
+updateDropIndices = function() {
+    DROP_ID_INDICES = {
+        'common': [],
+        'uncommon': [],
+        'rare': [],
+        'legendary': [],
+        'masterpiece': []
+    };
+
+    DROP_INDEX_SUMTOTALS = {
+        'common': 0,
+        'uncommon': 0,
+        'rare': 0,
+        'legendary': 0,
+        'masterpiece': 0
+    };
+
+    var seasonal_ids = getLootData().seasonal_items.legendary.concat(getLootData().seasonal_items.masterpiece);
+
+    var all_artworks = artworks.find({'_id': {$nin: seasonal_ids}, 'active': true}).fetch();
+
+    for (var i=0; i<all_artworks.length; i++) {
+        var artwork_object = all_artworks[i];
+        var rarity = artwork_object.rarity;
+        var value_scale = artwork_object.value_scale;
+        var actual_shares = getDropIndexShares(artwork_object.value_scale);
+        DROP_INDEX_SUMTOTALS[rarity] += actual_shares;
+
+        for (var n=0; n<actual_shares; n++) {
+            DROP_ID_INDICES[rarity].push(artwork_object._id);
+        }
+    }
+}
+
+getRandomNonSeasonalIdFromRarity = function(rarity) {
+    if (DROP_ID_INDICES == undefined) {
+        updateDropIndices();
+    }
+
+    var sumtotal = DROP_INDEX_SUMTOTALS[rarity];
+    var random_index = Math.floor(Math.random() * sumtotal);
+    return DROP_ID_INDICES[rarity][random_index];
+    }
 
 getLootData = function() {
     var loot_data_copy = JSON.parse(JSON.stringify(LOOT_DATA));
@@ -363,6 +424,7 @@ Meteor.methods({
         if (revised_smart_map) {
             metadata.update({'loot_data': {$ne: null}}, {$set: {'loot_data.smart_map': revised_smart_map}}, function() {
                 setLootData();
+                setDefaultRarityMap();
             });
 
             setTimeout(function() {}, 2000);
