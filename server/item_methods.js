@@ -457,14 +457,18 @@ prepareItemForClient = function(item_object, viewer_interface) {
         }
     }
 
-    if (viewer_interface.getId() == item_object.owner || (item_object.owner == BOT_USER_NAME && item_object.lottery > 0)) {
+    var viewer_is_owner = viewer_interface.getId() == item_object.owner;
+    var item_is_lottery_reward = item_object.owner == BOT_USER_NAME && item_object.lottery > 0;
+    if (viewer_is_owner || item_is_lottery_reward) {
         if (!item_object.authenticity.identified) {
             delete item_object.authenticity.forgery;
         }
     }
     else {
         delete item_object["authenticity"];
-        if (market_expert_active && item_object.status != "displayed") {
+        var market_expert_bypass = market_expert_active && item_interface.getStatus() == "auctioned";
+        var show_details = item_interface.isPermanent() || item_interface.getStatus() == "displayed" || market_expert_bypass;
+        if (!show_details) {
             delete item_object["condition"];
             delete item_object["level"];
             delete item_object["values"];
