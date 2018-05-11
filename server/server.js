@@ -246,7 +246,101 @@ var updateContent = function() {
 
 Meteor.startup(function() {
     try {
-        LOOT_DATA = metadata.findOne({'loot_data': {$ne: null}}).loot_data;
+        if (metadata.findOne({'loot_data': {$ne: null}}) == undefined) {
+
+            var first_of_next_month = moment().startOf('month').add(1, 'month');
+
+            var loot_data_seed = {
+                'rarity_values': {
+                    'common': {
+                        'min': 5000,
+                        'max': 25000
+                    },
+                    'uncommon': {
+                        'min': 25000,
+                        'max': 65000
+                    },
+                    'rare': {
+                        'min': 65000,
+                        'max': 225000
+                    },
+                    'legendary': {
+                        'min': 225000,
+                        'max': 1505000
+                    },
+                    'masterpiece': {
+                        'min': 1505000,
+                        'max': 21985000
+                    }
+                },
+                'seasonal_items': {
+                    'common': [],
+                    'uncommon': [], 
+                    'rare': [],
+                    'legendary': [],
+                    'masterpiece': []
+                },
+                'seasonal_rotation': first_of_next_month._d.toISOString(),
+                'smart_map': {
+                    0: {
+                        'common': 60000,
+                        'uncommon': 6000,
+                        'rare': 0,
+                        'legendary': 0,
+                        'masterpiece': 0
+                    },
+                    10: {
+                        'common': 60000,
+                        'uncommon': 7000,
+                        'rare': 0,
+                        'legendary': 0,
+                        'masterpiece': 0
+                    },
+                    20: {
+                        'common': 60000,
+                        'uncommon': 9000,
+                        'rare': 400,
+                        'legendary': 0,
+                        'masterpiece': 0
+                    },
+                    30: {
+                        'common': 60000,
+                        'uncommon': 12000,
+                        'rare': 1600,
+                        'legendary': 0,
+                        'masterpiece': 0
+                    },
+                    40: {
+                        'common': 60000,
+                        'uncommon': 18000,
+                        'rare': 5000,
+                        'legendary': 60,
+                        'masterpiece': 0
+                    },
+                    50: {
+                        'common': 60000,
+                        'uncommon': 6000,
+                        'rare': 12000,
+                        'legendary': 300,
+                        'masterpiece': 6
+                    }
+                },
+                'global_foil_chance': .005,
+                'global_patreon_chance': .05,
+                'global_unlocked_chance': .05,
+                'global_misprint_chance': .0001
+            }
+
+            metadata.insert({'loot_data': loot_data_seed}, function() {
+                setLootData();
+                updateActiveArtworkCache();
+            });
+        }
+        else {
+            setLootData();
+            updateActiveArtworkCache();
+        }
+
         setupMail();
         fs = Npm.require('fs');
 
