@@ -19,13 +19,6 @@ Template.playerInfo.events({
 		});
 	},
 
-	'click #vintage-mode': function() {
-		Blaze.renderWithData(Template.modalTemplate, {
-			'modal_name': "vintageModal", 
-			'modal_data': undefined
-		}, $('body')[0]);
-	},
-
 	'click .craft-up': function(event) {
 		craft_type = $(event.target).data().knowledge_type;
 		craft_target++;

@@ -242,7 +242,7 @@ Template.auctionTable.helpers({
 	},
 
 	'refresh_auction_details': function() {
-		if (Session.get('toggle_auction_details', true)) {
+		if (Session.get('toggle_auction_details')) {
 			hide_details = !hide_details;
 			details_tracker.changed();
 			Session.set('toggle_auction_details', undefined);

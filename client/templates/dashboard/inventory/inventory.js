@@ -42,7 +42,3 @@ Template.inventory.events({
 		})
 	}
 })
-
-Template.inventory.destroyed = function() {
-	Session.set('inventory_page', undefined);
-}

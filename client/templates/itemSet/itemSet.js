@@ -4,6 +4,7 @@ item_array_tracker = new Tracker.Dependency;
 var flag_tracker = new Tracker.Dependency;
 
 var status_filter;
+var blacklist_filter;
 var item_array = [];
 var tags = [];
 var search_terms = [];
@@ -23,6 +24,8 @@ var flags = ["permanent", "repairing", "for sale", "foil", "unlocked", "seasonal
 var flag_map;
 
 var set_statuses;
+
+var set_blacklist;
 
 var getter_query;
 
@@ -223,7 +226,7 @@ updateFlagFilter = function() {
 }
 
 updateItemArray = function() {
-	if (status_filter === undefined) {
+	if (status_filter === undefined ) {
 		return;
 	}
 
@@ -239,6 +242,10 @@ updateItemArray = function() {
 		flag_filter,
 		tutorial_filter
 	];
+
+	if (blacklist_filter) {
+		filter_array.push(blacklist_filter);
+	}
 
 	tags = [];
 	search_terms = [];
@@ -411,30 +418,53 @@ Template.itemSet.helpers({
 		return statuses.indexOf("for_sale") == -1 && statuses.indexOf("won") == -1;
 	},
 
-	'setStatuses': function(statuses) {
-		if (set_statuses === undefined) {
-			set_statuses = statuses;
-			status_filter = {'status': {$in: statuses}};
-			updateItemArray();
-			return;
-		}
-
-		else if (statuses.length != set_statuses.length) {
-			set_statuses = statuses;
-			status_filter = {'status': {$in: statuses}};
-			updateItemArray();
-			return;
-		}
-
-		else {
-			for (var i=0; i<set_statuses.length; i++) {
-				if (set_statuses[i] != statuses[i]) {
-					set_statuses = statuses;
-					status_filter = {'status': {$in: statuses}};
-					updateItemArray();
-					return;
+	'setParams': function(statuses, blacklist) {
+		var update_array = false;
+		if (blacklist) {
+			if (set_blacklist === undefined || blacklist.length != set_blacklist.length) {
+				set_blacklist = blacklist;
+				blacklist_filter = {'_id': {$nin: blacklist}};
+				update_array = true;
+			}
+			else if (set_blacklist !== undefined) {
+				for (var i=0; i<blacklist.length; i++) {
+					if (set_blacklist.indexOf(blacklist[i]) == -1) {
+						set_blacklist = blacklist;
+						blacklist_filter = {'_id': {$nin: blacklist}};
+						update_array = true;
+						break;
+					}
 				}
 			}
+		}
+		else {
+			// filter was previously set
+			if (blacklist_filter != undefined) {
+				update_array = true;
+			}
+
+			blacklist_filter = undefined;
+			set_blacklist = undefined;
+		}
+		
+		if (set_statuses === undefined || statuses.length != set_statuses.length) {
+			set_statuses = statuses;
+			status_filter = {'status': {$in: statuses}};
+			update_array = true;
+		}
+		else if (set_statuses !== undefined && statuses !== undefined) {
+			for (var i=0; i<statuses.length; i++) {
+				if (set_statuses.indexOf(statuses[i]) == -1) {
+					set_statuses = statuses;
+					status_filter = {'status': {$in: statuses}};
+					update_array = true;
+					break;
+				}
+			}
+		}
+
+		if (update_array) {
+			updateItemArray();
 		}
 	},
 

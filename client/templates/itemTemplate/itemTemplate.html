@@ -156,7 +156,7 @@
 		</div>
 		{{#if hide_actions}}
 		{{else}}
-		<div class="button-area">
+		<div class="button-area below-item">
 			<p class="button-row {{#if isEqual item_data.status 'archived'}}{{else}}unarchived{{/if}}">
 			{{#each item_data.item_actions}}
 				<div class="tooltip-container">
@@ -178,6 +178,15 @@
 			{{/each}}
 			</p>
 		</div>
+		{{/if}}
+		{{#if item_select}}
+			<div class="select-area below-item">
+				{{#if item_is_selected item_data._id}}
+					<i class="fa fa-check-square-o green-text select-box" data-item_id="{{item_data._id}}"></i>
+				{{else}}
+					<i class="fa fa-square-o select-box {{#if can_select}}{{else}}unavailable{{/if}}" data-item_id="{{item_data._id}}"></i>
+				{{/if}}
+			</div>
 		{{/if}}
 	</div>
 </template>

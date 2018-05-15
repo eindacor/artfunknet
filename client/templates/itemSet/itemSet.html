@@ -109,11 +109,11 @@
 			</div>
 		</div>
 
-		{{setStatuses statuses}}
+		{{setParams statuses blacklist}}
 
 		<div class="row item-array-area">
 			{{#each item_array_element}}
-				{{> itemInfo item_data=this}}
+				{{> itemInfo item_data=this hide_actions=../hide_actions item_select=../item_select}}
 			{{/each}}
 		</div>
 	</div>

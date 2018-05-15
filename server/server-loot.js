@@ -279,26 +279,31 @@ getAttributeValue = function(multiplier, min_value) {
 
 Meteor.methods({
     'giveDailyDrop' : function() {
-        if (Meteor.user() && dailyDropIsEnabled()) {
-            var foil_chance = getLootData().global_foil_chance;
+        try {
+            if (Meteor.user() && dailyDropIsEnabled()) {
+                var foil_chance = getLootData().global_foil_chance;
 
-            var multi_item_generator = {
-                'source': "daily drop",
-                'count': admin_settings.daily_drop_count,
-                'status': "unclaimed"
+                var multi_item_generator = {
+                    'source': "daily drop",
+                    'count': admin_settings.daily_drop_count,
+                    'status': "unclaimed"
+                }
+
+                var player_interface = new PlayerIF(Meteor.user());
+
+                ITEM_GENERATOR.generateMultiple(multi_item_generator, player_interface);
+       
+                var now = getNowISOString();
+                Meteor.users.update(player_interface.getId(), {$set: {'profile.last_drop' : now}});
+
+                return true;    
             }
 
-            var player_interface = new PlayerIF(Meteor.user());
-
-            ITEM_GENERATOR.generateMultiple(multi_item_generator, player_interface);
-   
-            var now = getNowISOString();
-            Meteor.users.update(player_interface.getId(), {$set: {'profile.last_drop' : now}});
-
-            return true;    
+            else return false;
         }
-
-        else return false;
+        catch(error) {
+            console.log(error)
+        }
     },
 
     'openCrate' : function(size) {

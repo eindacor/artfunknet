@@ -1,0 +1,73 @@
+.template-vintageSelect .artwork {
+	margin: 20px;
+	border-top: 1px solid gray;
+}
+
+.template-vintageSelect .permanent-text-list {
+	font-size: 1em;
+}
+
+.template-vintageSelect .permanent-text > span {
+	font-size: .5em;
+	vertical-align: middle;
+}
+
+.template-vintageSelect .permanent-text {
+	line-height: .75;
+	vertical-align: middle;
+	margin-top: -6px;
+}
+
+.template-vintageSelect .action-buttons {
+	color: black;
+	opacity: .5;
+	font-size: 1.2em;
+}
+
+.template-vintageSelect .enabled i, .template-vintageSelect .view-buttons i {
+	opacity: 1;
+	cursor: pointer;
+}
+
+.template-vintageSelect .view-buttons i {
+	margin-right: 24px;
+}
+
+.template-vintageSelect h3.view-buttons {
+	margin-top: 0px;
+}
+
+.template-vintageSelect .disabled {
+	opacity: .2;
+	cursor: default;
+}
+
+.template-vintageSelect .highlight {
+	font-weight: bold;
+}
+
+.template-vintageSelect {
+	margin-bottom: 100px;
+}
+
+.template-vintageSelect .inventory-table {
+	margin-top: 24px;
+}
+
+.template-vintageSelect .remaining-text {
+	font-size: .6em;
+}
+
+.template-vintageSelect #display-by-tags, .template-vintageSelect #clear-display {
+	background-color: black;
+	color: white;
+	border-radius: 0;
+	border: none; 
+	font-size: 1.5rem;
+}
+
+.template-vintageSelect #vintage-mode {
+	font-size: 1.5rem;
+	background-color: #dbbca4;
+	margin-top: 40px;
+}

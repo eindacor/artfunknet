@@ -1,0 +1,10 @@
+<template name="vintageSelect">
+	<div class="template-vintageSelect">
+		<div class="row">
+			{{#if fetchServerData "canVintage"}}
+			<button id="vintage-mode" class="vintage-button">vintage <i class="fa fa-angle-double-up"></i></button>	
+			{{/if}}
+		</div>
+		{{> itemSet statuses=item_set_statuses blacklist=blacklist hide_actions=true item_select=true}}
+	</div>
+</template>

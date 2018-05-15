@@ -644,9 +644,9 @@ Meteor.methods({
         return player_interface.canVintage();
     },
 
-    'vintageMode': function() {
+    'vintageMode': function(item_ids) {
         var player_interface = new PlayerIF(Meteor.user());
-        return player_interface.vintageMode();
+        return player_interface.vintageMode(item_ids);
     },
 
     'getAuctionPreviewItemObject': function(auction_id) {
@@ -1102,6 +1102,22 @@ Meteor.methods({
 
     'getArchiveMetadata': function() {
         return getArchiveMetadata(new PlayerIF(Meteor.user()));
+    },
+
+    'getVintageItemIds': function() {
+        var vintage_ids = [];
+        items.find({'owner': Meteor.userId(), 'status': {$nin: ['unclaimed', 'for_sale', 'won', 'archived']}, 'vintage': true}).forEach(function(item_object) {
+            vintage_ids.push(item_object._id);
+        })
+        return vintage_ids;
+    },
+
+    'getVintageBlacklist': function() {
+        var blacklist_ids = [];
+        items.find({'owner': Meteor.userId(), 'original': true}).forEach(function(item_object) {
+            blacklist_ids.push(item_object._id);
+        })
+        return blacklist_ids;
     }
 })
 

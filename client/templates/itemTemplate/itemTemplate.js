@@ -193,6 +193,23 @@ Template.itemInfo.helpers({
 
 	'action_icon': function(action_name) {
 		return action_icons[action_name];
+	},
+
+	'item_is_selected': function(item_id) {
+		var selected_items = Session.get('selected_items');
+		if (selected_items) {
+			return selected_items.indexOf(item_id) != -1;
+		}
+		else return false;
+	},
+
+	'can_select': function() {
+		var selected_items = Session.get('selected_items');
+		var selection_limit = Session.get('selection_limit');
+		if (selected_items && selection_limit !== undefined) {
+			return selected_items.length < selection_limit;
+		}
+		else return false;
 	}
 })
 
@@ -226,5 +243,31 @@ Template.itemInfo.events({
 		var selected_action_name = $(event.target).attr('data-action_name');
 		var can_quick_discard = $(event.target).attr('data-can_quick_discard');
 		act(selected_action_name, item_id, can_quick_discard);
+	},
+
+	'click .select-box': function(event) {
+		var item_id = $(event.target).data().item_id;
+		var selected_items = Session.get('selected_items');
+		var selection_limit = Session.get('selection_limit');
+
+		if (selected_items == undefined) {
+			selected_items = [];
+		}
+
+		if (selection_limit == undefined) {
+			selection_limit = 0;
+		}
+
+		var index = selected_items.indexOf(item_id);
+		if (index == -1) {
+			if (selected_items.length < selection_limit) {
+				selected_items.push(item_id);
+			}
+		}	
+		else {
+			selected_items.splice(index, 1);
+		}
+
+		Session.set('selected_items', selected_items);
 	}
 })

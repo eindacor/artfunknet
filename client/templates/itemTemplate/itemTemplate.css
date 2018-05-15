@@ -432,12 +432,9 @@
 	margin-top: 4px;
 }
 
-/* ITEM ACTIONS CSS */
-
-.template-itemInfo .button-area {
+.template-itemInfo .below-item {
 	display: block;
 	background-color: none;
-	opacity: 0;
 	font-size: 2rem;
 	text-align: center;
 	vertical-align: middle;
@@ -446,15 +443,30 @@
 	width: 250px;
 }
 
-.template-itemInfo .button-area i {
+.template-itemInfo .below-item i {
 	margin: 0px 3px;
 	text-align: left;
 	cursor: pointer;
 	opacity: .8;
 }
 
-.template-itemInfo .button-area i:hover {
+.template-itemInfo .below-item i:hover {
 	opacity: 1;
+}
+
+.template-itemInfo .below-item i.unavailable {
+	opacity: .2;
+	cursor: default;
+}
+
+.template-itemInfo .below-item i.select-box {
+	font-size: 3rem;
+}
+
+/* ITEM ACTIONS CSS */
+
+.template-itemInfo .button-area {
+	opacity: 0;
 }
 
 .template-itemInfo .button-area .enabled:hover, .template-itemInfo .button-area .inactive:hover {
