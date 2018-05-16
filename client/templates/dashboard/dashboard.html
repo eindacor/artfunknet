@@ -15,7 +15,9 @@
 					{{> dashboardTab current_section=current_section section_title="jobs" icon="flag-checkered"}}
 					{{> dashboardTab current_section=current_section section_title="my auctions" icon="bullhorn"}}
 					{{> dashboardTab current_section=current_section section_title="settings" icon="wrench"}}
-					{{> dashboardTab current_section=current_section section_title="vintage" icon="angle-double-up"}}
+					{{#if can_vintage}}
+						{{> dashboardTab current_section=current_section section_title="vintage" icon="angle-double-up"}}
+					{{/if}}
 				</div>
 				<div class="row no-padding no-margin dash-templates">
 					{{#if isEqual current_section "profile"}}

@@ -25,6 +25,10 @@ Template.dashboard.helpers({
 			return tier ? tier : "af-color";
 		}
 		else return "af-color";
+	},
+
+	'can_vintage': function() {
+		return new PlayerIF(Meteor.user()).canVintage();
 	}
 })
 
