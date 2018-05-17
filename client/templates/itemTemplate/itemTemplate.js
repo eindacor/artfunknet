@@ -1,9 +1,62 @@
 var div_size_tracker = new Tracker.Dependency;
 var display_details_tracker = new Tracker.Dependency;
+
+selection_trackers = {};
+
 var card_container_width;
 var card_container_height;
 var display_details_map = {};
 var item_interface = undefined;
+
+getSelectionTracker = function(category) {
+	if (selection_trackers[category] == undefined) {
+		selection_trackers[category] = new Tracker.Dependency;
+	}
+
+	return selection_trackers[category];
+}
+
+getSelectedIds = function(category) {
+	getSelectionTracker(category).depend();
+	var selected = Session.get('selected_ids');
+	if (selected) {
+		var selected_ids = selected[category];
+		return selected_ids ? selected_ids : [];
+	}
+	else return [];
+}
+
+setSelectedIds = function(category, ids) {
+	var selected = Session.get('selected_ids');
+	if (selected == undefined) {
+		selected = {};
+	}
+		
+	selected[category] = ids;
+	Session.set('selected_ids', selected);
+	getSelectionTracker(category).changed();
+}
+
+addSelectedId = function(category, id) {
+	var selected = Session.get('selected_ids');
+	if (selected) {
+		if (selected[category]) {
+			if (selected[category].indexOf(id) == -1) {
+				selected[category].push(id);
+			}
+		}
+		else {
+			selected[category] = [id];
+		}
+	}
+	else {
+		selected = {};
+		selected[category] = ids;
+	}
+
+	Session.set('selected_ids', selected)
+	getSelectionTracker(category).changed();
+}
 
 var action_icons = {
 	'tagItem': "fa-tags",
@@ -195,16 +248,13 @@ Template.itemInfo.helpers({
 		return action_icons[action_name];
 	},
 
-	'item_is_selected': function(item_id) {
-		var selected_items = Session.get('selected_items');
-		if (selected_items) {
-			return selected_items.indexOf(item_id) != -1;
-		}
-		else return false;
+	'item_is_selected': function(category, item_id) {
+		var selected_items = getSelectedIds(category);
+		return selected_items.indexOf(item_id) != -1;
 	},
 
-	'can_select': function() {
-		var selected_items = Session.get('selected_items');
+	'can_select': function(category) {
+		var selected_items = getSelectedIds(category);
 		var selection_limit = Session.get('selection_limit');
 		if (selected_items && selection_limit !== undefined) {
 			return selected_items.length < selection_limit;
@@ -247,7 +297,8 @@ Template.itemInfo.events({
 
 	'click .select-box': function(event) {
 		var item_id = $(event.target).data().item_id;
-		var selected_items = Session.get('selected_items');
+		var category = $(event.target).data().selection_category;
+		var selected_items = getSelectedIds(category);
 		var selection_limit = Session.get('selection_limit');
 
 		if (selected_items == undefined) {
@@ -268,6 +319,6 @@ Template.itemInfo.events({
 			selected_items.splice(index, 1);
 		}
 
-		Session.set('selected_items', selected_items);
+		setSelectedIds(category, selected_items);
 	}
 })

@@ -201,6 +201,7 @@ var updateContent = function() {
 
     //temp code
     npcs.remove({'tutorial': true});
+    galleries.update({'visible': {$ne: null}}, {$unset: {'visible': ""}}, {multi: true});
     //temp code
 
     // var desired_bot_count = 100;

@@ -8,7 +8,7 @@ Template.vintageSelect.rendered = function() {
 			console.log(error);
 		}
 		else {
-			Session.set('selected_items', result);
+			setSelectedIds("vintage", result);
 		}
 	})
 }
@@ -33,6 +33,23 @@ Template.vintageSelect.helpers({
 		}
 		
 		return blacklist;		
+	},
+
+	'selection_data': function() {
+		getSelectionTracker("vintage").depend();
+		var selected_items = getSelectedIds("vintage");
+
+		if (selected_items) {
+			var selections_remaining = (Meteor.user().profile.vintage_count + 1) - selected_items.length;
+			return {
+				'none_remaining': selections_remaining <= 0,
+				'selections_remaining': selections_remaining
+			}
+		}
+		else return {
+			'none_remaining': false,
+			'selections_remaining': 0
+		}
 	}
 });
 
@@ -46,7 +63,7 @@ Template.vintageSelect.events({
 		updateItemArray();
 	},
 
-	'click #vintage-mode': function() {
+	'click #vintage-mode.enabled': function() {
 		Blaze.renderWithData(Template.modalTemplate, {
 			'modal_name': "vintageModal", 
 			'modal_data': undefined

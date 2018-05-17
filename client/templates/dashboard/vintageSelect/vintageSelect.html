@@ -1,8 +1,13 @@
 <template name="vintageSelect">
 	<div class="template-vintageSelect">
+		{{#with selection_data}}
 		<div class="row">
-			<button id="vintage-mode" class="vintage-button">vintage <i class="fa fa-angle-double-up"></i></button>	
+			<p class="remaining-text {{#if none_remaining}}green-text{{/if}}">selections remaining: <span class="highlight">{{selections_remaining}}</span></p>
 		</div>
-		{{> itemSet statuses=item_set_statuses blacklist=blacklist hide_actions=true item_select=true}}
+		<div class="row">
+			<button id="vintage-mode" class="vintage-button {{#if none_remaining}}enabled{{else}}disabled{{/if}}">vintage <i class="fa fa-angle-double-up"></i></button>
+		</div>	
+		{{/with}}
+		{{> itemSet statuses=item_set_statuses blacklist=blacklist hide_actions=true item_select=true selection_category="vintage"}}
 	</div>
 </template>

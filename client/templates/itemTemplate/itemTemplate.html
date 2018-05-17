@@ -181,10 +181,10 @@
 		{{/if}}
 		{{#if item_select}}
 			<div class="select-area below-item">
-				{{#if item_is_selected item_data._id}}
-					<i class="fa fa-check-square-o green-text select-box" data-item_id="{{item_data._id}}"></i>
+				{{#if item_is_selected selection_category item_data._id}}
+					<i class="fa fa-check-square-o green-text select-box" data-item_id="{{item_data._id}}" data-selection_category="{{selection_category}}"></i>
 				{{else}}
-					<i class="fa fa-square-o select-box {{#if can_select}}{{else}}unavailable{{/if}}" data-item_id="{{item_data._id}}"></i>
+					<i class="fa fa-square-o select-box {{#if can_select}}{{else}}unavailable{{/if}}" data-item_id="{{item_data._id}}" data-selection_category="{{selection_category}}"></i>
 				{{/if}}
 			</div>
 		{{/if}}

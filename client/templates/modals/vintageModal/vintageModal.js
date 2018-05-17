@@ -1,8 +1,8 @@
 Template.vintageModal.events({
 	'click #vintage-confirm': function() {
-		var selected_ids = Session.get('selected_items');
+		var selected_ids = getSelectedIds("vintage");
 
-		Meteor.call('vintageMode', selected_ids, function(error){
+		Meteor.call('vintageMode', getSelectedIds("vintage"), function(error){
 			if (error) {
 				console.log(error.message);
 			}
