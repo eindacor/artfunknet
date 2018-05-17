@@ -124,9 +124,9 @@ TUTORIAL_HANDLER.add("forging", [
 
 TUTORIAL_HANDLER.add("vintage mode", [
 	'<p>Once you hit the maximum level (' + PLAYER_LEVEL_MAX + '), you are given the option to enter "vintage mode."</p>',
-	'<p>When vintage mode is activated, you lose all of your money, and you are allowed to keep 1 of your items (archived items also remain). All of your other items will be removed from the game.</p>',
-	'<p>The item you keep becomes a special "vintage" item, which doubles its value and increases the amount of money it earns while on display.</p>',
-	'<p>In addition, vintage items do not count against your inventory space, and if you hit level ' + PLAYER_LEVEL_MAX + ' and want to "vintage" again, the vintage items you already have will remain in your inventory!</p>'
+	'<p>When this option is available to you, a new "vintage" section will appear on your dashboard. From this area you may select items from your inventory that you would like to carry over into your next playthrough of the game.</p>',
+	'<p>Once you have made your selection, you may hit the "vintage" button which will <br>(1) reset your account -- not including lottery tickets, <br>(2) turn the items you selected into special "vintage" items, doubling their value, and <br>(3) delete all unselected items from the game -- not including any "original" items you have.</p>',
+	'<p>Note: Vintage items do not count against your inventory space, and you may "vintage" your profile as many times as you\'d like!</p>'
 ])
 
 TUTORIAL_HANDLER.add("archiving", [
