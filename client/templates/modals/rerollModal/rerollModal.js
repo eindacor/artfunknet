@@ -122,7 +122,7 @@ Template.rerollModal.helpers({
 				var amount_available = Meteor.user().profile.knowledge[type]
 				var amount = upgrade_cost[type];
 				cost_array.push({
-					'color': artwork_rarities[i],
+					'color': ARTWORK_RARITIES[i],
 					'amount': amount,
 					'name': type.replace("_", " "),
 					'available': amount_available,

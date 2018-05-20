@@ -132,7 +132,7 @@ Meteor.methods({
 				'daily_drop_count': admin_settings.daily_drop_count,
 				'crate_drop_count': admin_settings.crate_drop_count,
 				'bank_balance': user_object.profile.bank_balance,
-				'seasonal_ids': loot_data.seasonal_items.legendary.concat(loot_data.seasonal_items.masterpiece),
+				'seasonal_ids': getAllSeasonalIds(),
                 'foil_chance': loot_data.global_foil_chance,
                 'patreon_chance': loot_data.global_patreon_chance,
                 'unlocked_chance': loot_data.global_unlocked_chance,
@@ -206,16 +206,16 @@ Meteor.methods({
 
 	'setSeasonal' : function(id_array) {
         if (adminValidated()) {
-            var seasonal_item_object = {
-                'legendary': [],
-                'masterpiece': []
-            }
+            var seasonal_item_object = {}
     		for (var i=0; i < id_array.length; i++) {
                 var artwork_object = artworks.findOne(id_array[i]);
     			if (artwork_object == undefined) {
     				return;
                 }
                 else {
+                    if (seasonal_item_object[artwork_object.rarity] == undefined) {
+                        seasonal_item_object[artwork_object.rarity] = [];
+                    }
                     seasonal_item_object[artwork_object.rarity].push(artwork_object._id);
                 }
     		}

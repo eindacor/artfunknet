@@ -185,14 +185,14 @@ getAverageDropValueFromMap = function(rarity_map, foil_chance, unlocked_chance, 
     unlocked_chance = Math.min(unlocked_chance, 1);
 
     var total_proportions = 0;
-    for (var i=0; i < artwork_rarities.length; i++) {
-        var rarity = artwork_rarities[i];
+    for (var i=0; i < ARTWORK_RARITIES.length; i++) {
+        var rarity = ARTWORK_RARITIES[i];
         total_proportions += rarity_map[rarity];
     }
 
     var total_average = 0;
-    for (var i=0; i < artwork_rarities.length; i++) {
-        var rarity = artwork_rarities[i];
+    for (var i=0; i < ARTWORK_RARITIES.length; i++) {
+        var rarity = ARTWORK_RARITIES[i];
         var average_rarity_value = (rarity_values[rarity].min + rarity_values[rarity].max) / 2
 
         if (rarity == "legendary" || rarity == "masterpiece") {
@@ -414,7 +414,7 @@ var getGraphData = function() {
     for (var i=0; i < 51; i+=10) {
         var percentage_map = calcPercentageMap(i);
 
-        artwork_rarities.forEach(function(rarity) {
+        ARTWORK_RARITIES.forEach(function(rarity) {
             graph_data[rarity].push(percentage_map[rarity]);
         });
     }
@@ -664,4 +664,19 @@ generateArtfunkelAuctions = function(item_count, duration) {
     var item_ids = ITEM_GENERATOR.generateMultiple(multi_item_generator, undefined, function(item_object) {
         createAuction(item_object._id, item_object.values.auction_min, -1, duration, "public");
     });
+}
+
+getAllSeasonalIds = function() {
+    var seasonal_ids = [];
+    var loot_data = getLootData();
+
+    for (var i=0; i<SEASONAL_RARITIES.length; i++) {
+        var rarity = SEASONAL_RARITIES[i];
+        var rarity_ids = loot_data.seasonal_items[rarity];
+        if (rarity_ids != undefined && rarity_ids.length > 0) {
+            seasonal_ids = seasonal_ids.concat(rarity_ids);
+        }
+    }
+
+    return seasonal_ids;
 }

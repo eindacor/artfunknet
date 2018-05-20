@@ -114,7 +114,7 @@ Template.auctionTable.helpers({
 
 			else if (auction_object.viewer == "public" && biddable_rarities.indexOf(auction_object.item_data.rarity) == -1) {
 				biddable = false;
-				var min_level_required = (artwork_rarities.indexOf(auction_object.item_data.rarity) + 1) * 10;
+				var min_level_required = (ARTWORK_RARITIES.indexOf(auction_object.item_data.rarity) + 1) * 10;
 				reason = "level " + min_level_required + " required";
 			}
 

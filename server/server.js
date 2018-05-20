@@ -333,6 +333,7 @@ Meteor.startup(function() {
             }
 
             metadata.insert({'loot_data': loot_data_seed}, function() {
+                rotateSeasonalItems();
                 setLootData();
                 updateActiveArtworkCache();
             });

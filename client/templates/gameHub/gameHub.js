@@ -1,7 +1,6 @@
 Template.gameHub.helpers({
-	'seasonal_item_object': function() {
+	'seasonal_item_object': function(seasonal_ids) {
 		var loot_data = metadata.findOne({'loot_data': {$ne: null}}).loot_data;
-		var seasonal_ids = loot_data.seasonal_items.legendary.concat(loot_data.seasonal_items.masterpiece);
 
 		var seasonal_item_objects = [];
 		for (var i=0; i<seasonal_ids.length; i++) {

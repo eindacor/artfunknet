@@ -1118,6 +1118,10 @@ Meteor.methods({
             blacklist_ids.push(item_object._id);
         })
         return blacklist_ids;
+    },
+
+    'getAllSeasonalIds': function() {
+        return getAllSeasonalIds();
     }
 })
 
@@ -1179,12 +1183,13 @@ var getUniqueArchivedArtworkCountFromQuery = function(query) {
 getArchiveMetadata = function(player_interface) {
     var archive_metadata = {};
 
-    for (var i=0; i<artwork_rarities.length; i++) {
-        var rarity = artwork_rarities[i];
+    for (var i=0; i<ARTWORK_RARITIES.length; i++) {
+        var rarity = ARTWORK_RARITIES[i];
         var active_count = getActiveArtworkCache()[rarity].length;
+        var loot_data = getLootData();
 
         var unlocked_possible = rarity != "common";
-        var seasonal_possible = getLootData().seasonal_items[rarity] != undefined;
+        var seasonal_possible = loot_data.seasonal_items[rarity] != undefined && loot_data.seasonal_items[rarity].length > 0;
         var lottery_possible = ["legendary", "masterpiece"].indexOf(rarity) != -1;
 
         archive_metadata[rarity] = {
@@ -1202,13 +1207,4 @@ getArchiveMetadata = function(player_interface) {
     }
 
     return archive_metadata;
-
-    /*
-                        standard        unlocked        foil        seasonal        lottery         vintage
-        common          170/255         x               50/255      x               x               0/255
-        uncommon        105/220         50/220          10/220      x               x               0/220
-        rare            52/104          12/104          3/104       x               x               0/104
-        legendary       3/45            0/45            0/45        0/45            0/45            0/45
-        masterpiece     0/19            0/19            0/19        0/19            0/19            0/19
-    */
 }

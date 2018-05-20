@@ -176,7 +176,7 @@ Template.playerInfo.helpers({
 			var knowledge_type = knowledge_types[i];
 			var this_type_is_crafting_target = crafting_enabled && knowledge_type == craft_type;
 			knowledge_array.push({
-				'color': artwork_rarities[i],
+				'color': ARTWORK_RARITIES[i],
 				'amount': user_object.profile.knowledge[knowledge_types[i]],
 				'name': knowledge_type.replace("_", " "),
 				'type': knowledge_type,

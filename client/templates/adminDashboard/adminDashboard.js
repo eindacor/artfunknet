@@ -1034,8 +1034,8 @@ Template.adminTools.helpers({
 		}, 3000);		
 	},
 
-	'artwork_rarities': function() {
-		return artwork_rarities;
+	'ARTWORK_RARITIES': function() {
+		return ARTWORK_RARITIES;
 	},
 
 	'current_map': function() {

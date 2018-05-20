@@ -10,7 +10,7 @@ var match_query;
 var expanded_artist_ids = [];
 var expanded_artwork_ids = [];
 var expanded_categories = [];
-var rarities_selected = artwork_rarities.slice();
+var rarities_selected = ARTWORK_RARITIES.slice();
 var artists_per_page = 10;
 var enforce_terms = false;
 
@@ -165,7 +165,7 @@ Template.artistView.helpers({
 	},
 
 	'artwork_rarity': function() {
-		return artwork_rarities;
+		return ARTWORK_RARITIES;
 	},
 
 	'rarity_selected': function(rarity) {
@@ -227,16 +227,25 @@ Template.artistView.helpers({
 
 		var types = ["standard", "unlocked", "foil", "seasonal", "vintage", "lottery"];
 
-		for (var i=0; i<artwork_rarities.length; i++) {
-			var rarity = artwork_rarities[i];
+		for (var i=0; i<ARTWORK_RARITIES.length; i++) {
+			var rarity = ARTWORK_RARITIES[i];
 			var rarity_metadata = metadata[rarity];
 
 			for (var n=0; n<types.length; n++) {
 				var type = types[n];
-				totals_object[type].total += Number(rarity_metadata.count);
-				if (rarity_metadata[type]) {
-					totals_object[type].archived += Number(rarity_metadata[type]);
-				}
+
+				var skip_totals = (
+					rarity == "common" && type == "unlocked" ||
+					type == "seasonal" && SEASONAL_RARITIES.indexOf(rarity) == -1 ||
+					type == "lottery" && LOTTERY_RARITIES.indexOf(rarity) == -1
+				);
+
+				if (!skip_totals) {
+					totals_object[type].total += Number(rarity_metadata.count);
+					if (rarity_metadata[type]) {
+						totals_object[type].archived += Number(rarity_metadata[type]);
+					}
+				}			
 			}
 		}
 

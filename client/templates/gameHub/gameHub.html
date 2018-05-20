@@ -2,9 +2,11 @@
 	<div class="template-gameHub">
 		<div class="row">
 			<h1 class="af-color">Seasonal Artworks</h1>
-			{{#each seasonal_item_object}}
-				{{> itemStubView item_data=this}}
-			{{/each}}
+			{{#with fetchServerData "getAllSeasonalIds"}}
+				{{#each seasonal_item_object this}}
+					{{> itemStubView item_data=this}}
+				{{/each}}
+			{{/with}}
 		</div>
 		<div class="row">
 			<h1 class="af-color">Lottery Reward</h1>

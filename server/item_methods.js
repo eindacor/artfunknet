@@ -906,8 +906,8 @@ getForgeryHeatFromQuality = function(item_interface, player_interface, heat_cate
 
     var heat_type_coefficient = 0;
 
-    var rarity_index = artwork_rarities.indexOf(item_interface.getItemObject().artwork_data.rarity);
-    var rarity_heat_coefficient = ((rarity_index + 1) / artwork_rarities.length) * FORGERY_TYPE_HEAT_COEFFICIENTS.RARITY;
+    var rarity_index = ARTWORK_RARITIES.indexOf(item_interface.getItemObject().artwork_data.rarity);
+    var rarity_heat_coefficient = ((rarity_index + 1) / ARTWORK_RARITIES.length) * FORGERY_TYPE_HEAT_COEFFICIENTS.RARITY;
     heat_type_coefficient += rarity_heat_coefficient;
 
     if (item_interface.isFoil()) {

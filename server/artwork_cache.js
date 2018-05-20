@@ -72,25 +72,24 @@ updateDropIndices = function() {
 }
 
 rotateSeasonalItems = function() {
-    var previous_legendary_seasonals = getLootData().seasonal_items.legendary;
-    var previous_masterpiece_seasonals = getLootData().seasonal_items.masterpiece;
+    var setter = {};
 
-    var random_legendary;
-    var random_masterpiece;
+    for (var i=0; i<SEASONAL_RARITIES.length; i++) {
+        var rarity = SEASONAL_RARITIES[i]
+        var previous_seasonals = getLootData().seasonal_items[rarity];
 
-    do {
-        random_legendary = getRandomArtworkIFFromRarity("legendary").getId();
-    } while (previous_legendary_seasonals.indexOf(random_legendary) != -1)
+        var random_artwork_id;
 
-    do {
-        random_masterpiece = getRandomArtworkIFFromRarity("masterpiece").getId();
-    } while (previous_masterpiece_seasonals.indexOf(random_masterpiece) != -1)
+        do {
+            random_artwork_id = getRandomArtworkIFFromRarity(rarity).getId();
+        } while (previous_seasonals != undefined && previous_seasonals.indexOf(random_artwork_id) != -1)
+
+        var random_arwork_ids = [random_artwork_id];
+        setter[rarity] = random_arwork_ids;
+    }
 
     metadata.update({'loot_data': {$ne: null}}, {$set: {
-        'loot_data.seasonal_items': {
-            'legendary': [random_legendary],
-            'masterpiece': [random_masterpiece]
-        }, 
+        'loot_data.seasonal_items': setter, 
         'loot_data.seasonal_rotation': moment(getLootData().seasonal_rotation).add(1, 'months')._d.toISOString() 
     }}, function() {
         //TODO add alert for new seasonal items

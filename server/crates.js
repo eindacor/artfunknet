@@ -296,9 +296,9 @@ var getCrateSeeds = function(crate_quality) {
 						break;
 				}
 
-				for (var i=2; i<artwork_rarities.length; i++) {
-					if (rarities_added.indexOf(artwork_rarities[i]) != -1) {
-						delete rarity_selection_map[artwork_rarities[i]];
+				for (var i=2; i<ARTWORK_RARITIES.length; i++) {
+					if (rarities_added.indexOf(ARTWORK_RARITIES[i]) != -1) {
+						delete rarity_selection_map[ARTWORK_RARITIES[i]];
 					}
 				}
 
