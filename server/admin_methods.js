@@ -213,10 +213,10 @@ Meteor.methods({
     				return;
                 }
                 else {
-                    if (seasonal_item_object[artwork_object.rarity] == undefined) {
+                    if (seasonal_item_object[artwork_object.rarity] === undefined) {
                         seasonal_item_object[artwork_object.rarity] = [];
                     }
-                    seasonal_item_object[artwork_object.rarity].push(artwork_object._id);
+                    seasonal_item_object[artwork_object.rarity].push(id_array[i]);
                 }
     		}
 
