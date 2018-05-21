@@ -13,7 +13,12 @@ ACTIVE_ARTWORK_CACHE = {
 ARTWORK_DROP_ODDS = undefined;
 
 LOOT_DATA = undefined;
+
+// DROP_ID_INDICES is a static array of artwork id's. When an item is generated, it randomly selects an index of the array to identify the artwork.
+// Items with a higher value scale have fewer "shares" in the static array, meaning they will appear less frequently
 DROP_ID_INDICES = undefined;
+
+// DROP_INDEX_SUMTOTALS is a static counter that tracks the number of total "shares" in the DROP_ID_INDICES array to quickly identify drop probabilities.
 DROP_INDEX_SUMTOTALS = undefined;
 
 getLootData = function() {
@@ -54,7 +59,7 @@ updateDropIndices = function() {
         'masterpiece': 0
     };
 
-    var seasonal_ids = getLootData().seasonal_items.legendary.concat(getLootData().seasonal_items.masterpiece);
+    var seasonal_ids = getAllSeasonalIds();
 
     var all_artworks = artworks.find({'_id': {$nin: seasonal_ids}, 'active': true}).fetch();
 
@@ -71,31 +76,58 @@ updateDropIndices = function() {
     }
 }
 
-rotateSeasonalItems = function() {
+rotateSeasonalItems = function(rarities, increment_next_rotation) {
     var setter = {};
+    var id_setter = {};
+    var rotation_setter = {};
 
-    for (var i=0; i<SEASONAL_RARITIES.length; i++) {
-        var rarity = SEASONAL_RARITIES[i]
-        var previous_seasonals = getLootData().seasonal_items[rarity];
+    for (var i=0; i<SEASONAL_RARITIES.length; i++) { 
+        var rarity = SEASONAL_RARITIES[i];
+        id_setter[rarity] = getNewSeasonalIds(rarity);
 
-        var random_artwork_id;
-
-        do {
-            random_artwork_id = getRandomArtworkIFFromRarity(rarity).getId();
-        } while (previous_seasonals != undefined && previous_seasonals.indexOf(random_artwork_id) != -1)
-
-        var random_arwork_ids = [random_artwork_id];
-        setter[rarity] = random_arwork_ids;
+        if (increment_next_rotation) {
+            var rotation_frequency = SEASONAL_ITEM_ROTATION_FREQUENCIES[rarity];
+            var last_rotation = moment(getLootData().seasonal_rotation[rarity]);
+            rotation_setter[rarity] = last_rotation.add(1, rotation_frequency)._d.toISOString();
+        }    
     }
 
-    metadata.update({'loot_data': {$ne: null}}, {$set: {
-        'loot_data.seasonal_items': setter, 
-        'loot_data.seasonal_rotation': moment(getLootData().seasonal_rotation).add(1, 'months')._d.toISOString() 
-    }}, function() {
+    var id_setter_key = 'loot_data.seasonal_items';
+    setter[id_setter_key] = id_setter;
+
+    if (increment_next_rotation) {
+        var rotation_setter_key = 'loot_data.seasonal_rotation';
+        setter[rotation_setter_key] = rotation_setter;
+    }
+
+    metadata.update({'loot_data': {$ne: null}}, {$set: setter}, function() {
         //TODO add alert for new seasonal items
         setLootData();
         updateActiveArtworkCache();
     });
+}
+
+getNewSeasonalIds = function(rarity) {
+    var previous_seasonals = getLootData().seasonal_items[rarity];
+
+    if (previous_seasonals == undefined) {
+        previous_seasonals = [];
+    }
+
+    var id_count = SEASONAL_ITEM_COUNTS[rarity];
+
+    var random_artwork_ids = [];
+
+    for (var i=0; i<id_count; i++) {
+        var random_artwork_id;
+        do {
+            random_artwork_id = getRandomArtworkIFFromRarity(rarity).getId();
+        } while (previous_seasonals.indexOf(random_artwork_id) != -1 && random_artwork_ids.indexOf(random_artwork_id) != -1)
+
+        random_artwork_ids.push(random_artwork_id);
+    }
+
+    return random_artwork_ids;
 }
 
 getRandomNonSeasonalIdFromRarity = function(rarity) {

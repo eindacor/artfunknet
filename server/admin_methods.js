@@ -229,7 +229,7 @@ Meteor.methods({
 
     'rotateSeasonalItems': function() {
         if (adminValidated()) {
-            rotateSeasonalItems();
+            rotateSeasonalItems(SEASONAL_RARITIES, false);
         }
     },
 

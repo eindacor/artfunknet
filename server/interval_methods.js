@@ -282,16 +282,26 @@ Meteor.setInterval((function() {
 
 }), LIABILITY_CHECK_FREQUENCY)
 
-var lottery_check_frequency = 60000; //once per minute
+var lottery_check_frequency = ONE_MINUTE; //once per minute
 Meteor.setInterval((function() {
     var force_draw = false;
     drawLottery(force_draw);
 }), lottery_check_frequency);
 
-var seasonal_rotation_check = 60000;
+var seasonal_rotation_check = ONE_MINUTE;
 Meteor.setInterval((function() {
-    if (getLootData().seasonal_rotation < getNowISOString()) {
-        rotateSeasonalItems();
+    var rarities_to_rotate = [];
+    var loot_data = getLootData();
+    for (var i=0; i<SEASONAL_RARITIES.length; i++) {
+        var rarity = SEASONAL_RARITIES[i];
+        var seasonal_rotation = loot_data.seasonal_rotation[rarity];
+        if (seasonal_rotation < getNowISOString()) {
+            rarities_to_rotate.push(rarity);
+        }
+    }   
+
+    if (rarities_to_rotate.length > 0) {
+        rotateSeasonalItems(rarities_to_rotate, true);
     }
 }), seasonal_rotation_check);
 

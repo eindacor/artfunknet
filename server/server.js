@@ -201,7 +201,10 @@ var updateContent = function() {
 
     //temp code
     npcs.remove({'tutorial': true});
-    galleries.update({'visible': {$ne: null}}, {$unset: {'visible': ""}}, {multi: true});
+
+    if (metadata.findOne({'loot_data': {$ne: null}}).loot_data.seasonal_rotation.legendary == null) {
+        metadata.update({'loot_data': {$ne: null}}, {$set: {'loot_data.seasonal_rotation': getSeasonalRotationObject()}});
+    }
     //temp code
 
     // var desired_bot_count = 100;
@@ -245,12 +248,24 @@ var updateContent = function() {
     }
 }
 
+getSeasonalRotationObject = function() {
+    var seasonal_rotation_object = {};
+    for (var i=0; i<SEASONAL_RARITIES.length; i++) {
+        var rarity = SEASONAL_RARITIES[i];
+        var rotation_frequency = SEASONAL_ITEM_ROTATION_FREQUENCIES[rarity];
+        var next_rotation = moment().startOf(rotation_frequency).add(1, rotation_frequency)._d.toISOString();
+        seasonal_rotation_object[rarity] = next_rotation;
+    }
+
+    return seasonal_rotation_object;
+}
+
 Meteor.startup(function() {
     try {
         if (metadata.findOne({'loot_data': {$ne: null}}) == undefined) {
 
-            var first_of_next_month = moment().startOf('month').add(1, 'month');
-
+            var now = moment()._d.toISOString();
+            
             var loot_data_seed = {
                 'rarity_values': {
                     'common': {
@@ -281,7 +296,13 @@ Meteor.startup(function() {
                     'legendary': [],
                     'masterpiece': []
                 },
-                'seasonal_rotation': first_of_next_month._d.toISOString(),
+                'seasonal_rotation': {
+                    'common': now,
+                    'uncommon': now,
+                    'rare': now,
+                    'legendary': now,
+                    'masterpiece': now
+                },
                 'smart_map': {
                     0: {
                         'common': 60000,
@@ -333,7 +354,7 @@ Meteor.startup(function() {
             }
 
             metadata.insert({'loot_data': loot_data_seed}, function() {
-                rotateSeasonalItems();
+                rotateSeasonalItems(ARTWORK_RARITIES, true);
                 setLootData();
                 updateActiveArtworkCache();
             });
