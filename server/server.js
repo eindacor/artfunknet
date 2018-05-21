@@ -201,10 +201,6 @@ var updateContent = function() {
 
     //temp code
     npcs.remove({'tutorial': true});
-
-    if (metadata.findOne({'loot_data': {$ne: null}}).loot_data.seasonal_rotation.legendary == null) {
-        metadata.update({'loot_data': {$ne: null}}, {$set: {'loot_data.seasonal_rotation': getSeasonalRotationObject()}});
-    }
     //temp code
 
     // var desired_bot_count = 100;
