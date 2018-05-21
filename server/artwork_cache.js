@@ -101,7 +101,7 @@ rotateSeasonalItems = function(rarities, increment_next_rotation) {
     }
 
     metadata.update({'loot_data': {$ne: null}}, {$set: setter}, function() {
-        //TODO add alert for new seasonal items
+        alertPlayers({}, '<p>The seasonal artworks have been updated. Click <a href="/wiki">here</a> to view!</p>', 'fa-exclamation', 'neutral');
         setLootData();
         updateActiveArtworkCache();
     });
