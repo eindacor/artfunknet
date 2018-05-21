@@ -211,7 +211,10 @@ updateArtworkDropOdds = function() {
     }
 
     items.find().forEach(function(item_object) {
-        items.update(item_object._id, {$set: {'odds': getItemOddsString(item_object)}});
+        var item_odds = getItemOddsString(item_object);
+        if (item_odds != item_object.odds) {
+            items.update(item_object._id, {$set: {'odds': item_odds}});
+        }
     })
 }
 

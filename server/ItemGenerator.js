@@ -373,13 +373,11 @@ ItemGenerator = function() {
 	        'tags': [],
 	        'artwork_data': artwork_data,
 	        'permanent': false,
-	        'repairing': false
+	        'repairing': false,
+	        'odds': getItemOddsString(new_item_object),
+	        'values': getItemObjectValues(new_item_object),
+	        'reroll_cost': getItemObjectRollCost(new_item_object)
 	    };
-
-	    new_item_object.odds = getItemOddsString(new_item_object);
-
-	    new_item_object.values = getItemObjectValues(new_item_object);
-	    new_item_object.reroll_cost = getItemObjectRollCost(new_item_object);
 
 	    var new_item_id = insertItem(new_item_object, item_generator_object.source, callback);
 	    
