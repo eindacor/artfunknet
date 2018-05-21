@@ -21,3 +21,10 @@ Template.gameHub.helpers({
 		return metadata.findOne({'lottery_draw': {$ne: null}}).rewards;
 	}
 })
+
+Template.seasonalRefresh.helpers({
+	'next_rotation': function(rarity) {
+		var next_rotation = metadata.findOne({'loot_data': {$ne: null}}).loot_data.seasonal_rotation[rarity];
+		return moment(next_rotation).format('MM-DD-YYYY');
+	}
+})
