@@ -3,10 +3,17 @@ var current_section = "profile";
 
 Template.dashboard.helpers({
 	'screen_name': function() {
+		if (Meteor.user() == undefined) {
+			return;
+		}
+
 		return Meteor.user().profile.screen_name;
 	},
 
 	'vintage_level': function() {
+		if (Meteor.user() == undefined) {
+			return;
+		}
 		return Meteor.user().profile.vintage_count
 	},
 
@@ -20,6 +27,9 @@ Template.dashboard.helpers({
 	},
 
 	'patreon_tier': function() {
+		if (Meteor.user() == undefined) {
+			return;
+		}
 		if (Meteor.user().profile.patreon_data && Meteor.user().profile.patreon_data.reward_data) {
 			var tier = Meteor.user().profile.patreon_data.reward_data.tier
 			return tier ? tier : "af-color";
@@ -28,12 +38,18 @@ Template.dashboard.helpers({
 	},
 
 	'can_vintage': function() {
+		if (Meteor.user() == undefined) {
+			return;
+		}
 		return new PlayerIF(Meteor.user()).canVintage();
 	}
 })
 
 Template.dashboardTab.helpers({
 	'has_displaced': function(section_name) {
+		if (Meteor.user() == undefined) {
+			return;
+		}
 		return section_name == "archive" && new PlayerIF(Meteor.user()).hasDisplacedItems();
 	}
 })

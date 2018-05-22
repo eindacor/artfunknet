@@ -535,3 +535,9 @@
     visibility: visible;
     opacity: 1;
 }
+
+.template-itemInfo .link-area {
+	overflow: hidden;
+	resize: none;
+	overflow-wrap: normal;
+}

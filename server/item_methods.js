@@ -840,6 +840,17 @@ Meteor.methods({
     'getForgeryHeat': function(item) {
         var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item));
         return player_item_interface.getForgeryHeat(undefined);
+    },
+
+    'getItemData': function(item_id) {
+        if (Meteor.user() == undefined) {
+            return;
+        }
+
+        var player_interface = new PlayerIF(Meteor.user());
+        var item_object = items.findOne(item_id);
+        prepareItemForClient(item_object, player_interface);
+        return item_object;
     }
 })
 

@@ -176,6 +176,13 @@
 					<i class="action-icon fa {{action_icon action_name}}" data-action_name="{{action_name}}" data-item_id="{{../item_data._id}}" data-can_quick_discard="{{../item_data.can_quick_discard}}"></i>
 				</div>
 			{{/each}}
+			<div class="tooltip-container">
+					<div class="tooltip-contents above">
+						<p>click to copy:</p>
+						<textarea class="link-area" id="link_{{item_data._id}}">https://artfunkelgame.com/item/{{item_data._id}}</textarea>
+					</div>
+					<i class="share-button fa fa-share-alt" data-item_id="{{item_data._id}}"></i>
+				</div>
 			</p>
 		</div>
 		{{/if}}

@@ -96,6 +96,12 @@ var action_modals = {
 }
 
 var act = function(action_name, item_id, can_quick_discard) {
+	if (action_name == "getLink") {
+		console.log("test");
+		$(document).getElementById();
+		return;
+	}
+
 	var defaultAction = function() {
 		Meteor.call(action_name, item_id, function(error, result) {
 			if (error) {
@@ -293,6 +299,14 @@ Template.itemInfo.events({
 		var selected_action_name = $(event.target).attr('data-action_name');
 		var can_quick_discard = $(event.target).attr('data-can_quick_discard');
 		act(selected_action_name, item_id, can_quick_discard);
+	},
+
+	'click .share-button': function(event) {
+		var item_id = $(event.target).data().item_id;
+		var text_area_id = "link_" + item_id;
+		var text_to_copy = document.getElementById(text_area_id);
+		text_to_copy.select();
+		document.execCommand("copy");
 	},
 
 	'click .select-box': function(event) {

@@ -1,0 +1,7 @@
+<template name="itemView">
+	<div class="template-itemView">
+		{{#with item_data item_id}}
+			{{> itemInfo item_data=this hide_actions="true"}}
+		{{/with}}
+	</div>
+</template>
