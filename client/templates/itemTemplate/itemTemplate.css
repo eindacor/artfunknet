@@ -540,4 +540,6 @@
 	overflow: hidden;
 	resize: none;
 	overflow-wrap: normal;
+	width: 100%;
+	word-wrap: break-word;
 }

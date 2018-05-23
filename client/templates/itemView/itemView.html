@@ -1,7 +1,14 @@
 <template name="itemView">
 	<div class="template-itemView">
-		{{#with item_data item_id}}
-			{{> itemInfo item_data=this hide_actions="true"}}
-		{{/with}}
+		<div class="row">
+			<div class="col-xs-3">
+				<div class="item-area">
+					{{#with item_data item_id}}
+						{{> itemInfo item_data=this hide_actions="true"}}
+					{{/with}}
+				</div>
+			</div>
+			<div class="col-xs-9"></div>
+		</div>
 	</div>
 </template>
