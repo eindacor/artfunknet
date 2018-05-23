@@ -514,7 +514,6 @@ Meteor.methods({
     //TODO put logic into standalone method used by getAuctions, getPlayerAuctions, and getWatchedAndWinningAuctions
     'getAuctions': function(sort_object, filter_array, skip_amount, items_per_page, quest_status) {
         var has_auctioneer = Meteor.user().profile.market_expert.expiration > getNowISOString();
-        var fields_object = undefined;
         var target_array = [];
 
         if (quest_status == "quest") {
@@ -526,48 +525,17 @@ Meteor.methods({
             filter_array.push({'item_data.artwork_id': {'$in': target_array}});
         }
 
-        if (has_auctioneer) {
-            fields_object = {
-                'item_id': 0,
-                'increment': 0,
-            }
+        if (quest_status == "sought") {
+            quests.find({'owner_id': {'$ne': Meteor.userId()}}).forEach(function(quest_object) {
+                for (var i=0; i<quest_object.target.length; i++) {
+                    if (getSoughtStatus(Meteor.userId(), quest_object.target[i], false) && target_array.indexOf(quest_object.target[i]) == -1)
+                        target_array.push(quest_object.target[i]);
+                }
+            });
 
-            if (quest_status == "sought") {
-                quests.find({'owner_id': {'$ne': Meteor.userId()}}).forEach(function(quest_object) {
-                    for (var i=0; i<quest_object.target.length; i++) {
-                        if (getSoughtStatus(Meteor.userId(), quest_object.target[i], false) && target_array.indexOf(quest_object.target[i]) == -1)
-                            target_array.push(quest_object.target[i]);
-                    }
-                });
-
-                filter_array.push({'item_data.artwork_id': {'$in': target_array}});
-            }
+            filter_array.push({'item_data.artwork_id': {'$in': target_array}});
         }
-
-        else {
-            fields_object = {
-                'item_id': 0,
-                'increment': 0,
-                'item_data.condition': 0,
-                'item_data.level': 0,
-                'item_data.feature_count': 0,
-                'item_data.roll_count': 0,
-                'item_data.attributes.locked.value': 0,
-                'item_data.attributes.unlocked.value': 0,
-                'item_data.attributes.special.value': 0
-            }
-
-            if (sort_object.item_data != undefined && (
-                sort_object.item_data.level != undefined ||
-                sort_object.item_data.roll_count != undefined ||
-                sort_object.item_data.condition != undefined)) {
-                return {
-                    'auction_data': [],
-                    'items_found': 0
-                };
-            }
-        }
-
+        
         var now = getNowISOString();
         filter_array.push({'expiration': {$gt : now}});
 
@@ -576,8 +544,7 @@ Meteor.methods({
             {
                 sort: sort_object,
                 skip: skip_amount, 
-                limit: items_per_page,
-                fields: fields_object
+                limit: items_per_page
             }
         ).fetch();
 
@@ -654,35 +621,7 @@ Meteor.methods({
         if (auction_object == undefined)
             return {};
 
-        var has_auctioneer = Meteor.user().profile.market_expert.expiration > getNowISOString();
-
-        var fields_object = {
-            'artwork_data': 1,
-            'lottery': 1,
-            'seasonal': 1,
-            'foil': 1,
-            'original': 1,
-            'vintage': 1,
-            'unlocked': 1,
-            'attributes.locked.icon': 1,
-            'attributes.locked.description': 1,
-            'attributes.unlocked.icon': 1,
-            'attributes.unlocked.description': 1,
-            'attributes.special.icon': 1,
-            'attributes.special.description': 1
-        };
-
-        if (has_auctioneer || auction_object.seller == Meteor.user().profile.screen_name) {
-            fields_object.condition = 1;
-            fields_object.values = 1;
-            fields_object.level = 1;
-            fields_object.roll_count = 1;
-            fields_object["attributes.locked.value"] = 1;
-            fields_object["attributes.unlocked.value"] = 1;
-            fields_object["attributes.special.value"] = 1;
-        }
-
-        var item_object = items.findOne(auction_object.item_id, {fields: fields_object});
+        var item_object = items.findOne(auction_object.item_id);
         return item_object;
     },
 

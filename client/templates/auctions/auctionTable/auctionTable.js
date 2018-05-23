@@ -70,21 +70,6 @@ Template.auctionTable.helpers({
 		else return "";
 	},
 
-	/*
-	var indicator_count = 0;
-	var artwork_interface = new ArtworkIF(getOneFromCollection("ItemTemplate.js:archive_indicator", artworks, {'_id': player_item_interface.getItemIF().getItemObject().artwork_id}));
-	for (var i=0; i<ARCHIVE_CATEGORIES.length; i++) {
-		if (player_item_interface.getPlayerIF().hasArchivedArtworkOfCategory(artwork_interface, ARCHIVE_CATEGORIES[i])) {
-			$archive_indicators.append($('<i class="check ' + ARCHIVE_CATEGORIES[i] + '-text fa fa-archive"></i>'));
-			indicator_count++;
-		}
-	}
-
-	if (indicator_count > 0) {
-		$container.append($archive_indicators);
-	}
-	*/
-
 	'auction_info' : function(auction_object) {
 		Session.get('refresh_auctions');
 		try {
@@ -117,27 +102,22 @@ Template.auctionTable.helpers({
 				var min_level_required = (ARTWORK_RARITIES.indexOf(auction_object.item_data.rarity) + 1) * 10;
 				reason = "level " + min_level_required + " required";
 			}
-
 			else if (auction_object.seller == Meteor.user().profile.screen_name) {
 				biddable = false;
 				reason = "you are the seller";
 			}
-
 			else if (!funds_available && !currently_winning) {
 				biddable = false;
 				reason = "insufficient funds";
 			}
-
 			else if (auctions_maxed && !currently_winning) {
 				biddable = false;
 				reason = "auction limit met";
 			}
-
 			else if (inventory_full && !item_is_original) {
 				biddable = false;
 				reason = "inventory full";
 			}
-
 			else if (auction_object.buy_now != -1 && bidding_start > now) {
 				biddable = false;
 				var hours = bidding_start._d.getHours();
@@ -159,7 +139,6 @@ Template.auctionTable.helpers({
 				var time_string = hours_string + ":" + minutes_string + pm_string;
 				reason = "bidding starts at " + time_string;
 			}
-
 			else if (items.find({'owner': Meteor.userId(), 'status': "won"}).count() >= 16) {
 				//TECH DEBT: get rid of client-side bidding permissions
 				//TODO: use auction cap for actual limit of items won or current bids

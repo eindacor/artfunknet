@@ -444,9 +444,7 @@ prepareItemForClient = function(item_object, viewer_interface) {
     var artwork_interface = new ArtworkIF(item_object.artwork_id);
     var user_object = viewer_interface.getUserObject();
 
-    var market_expert_active = user_object.profile.market_expert.expiration > getNowISOString();
-
-    if (market_expert_active) {
+    if (user_object.profile.market_expert.expiration > getNowISOString()) {
         var market_data = artworks.findOne({'_id': item_interface.getArtworkId()}).market_data;
         if (market_data != undefined) {
             var item_signature = item_interface.getArchiveSignature();
@@ -466,15 +464,6 @@ prepareItemForClient = function(item_object, viewer_interface) {
     }
     else {
         delete item_object["authenticity"];
-        var market_expert_bypass = market_expert_active && item_interface.getStatus() == "auctioned";
-        var show_details = item_interface.isPermanent() || item_interface.getStatus() == "displayed" || market_expert_bypass;
-        if (!show_details) {
-            delete item_object["condition"];
-            delete item_object["level"];
-            delete item_object["values"];
-            delete item_object["attributes"];
-        }
-
     }
 
     item_object.recommended_status = player_item_interface.getRecommendedStatus();
@@ -502,10 +491,6 @@ prepareItemForClient = function(item_object, viewer_interface) {
 
         setItemActions(item_object, player_item_permissions);
     }
-
-    //TODO determine if player can see item details based on auctioneer buff 
-    //TODO add archive indicators
-    //TODO adjust values per unique attribute procs
 }
 
 var getItemArray = function(match_query, forgery_filter_value, sorter_object, page, items_per_page) {
