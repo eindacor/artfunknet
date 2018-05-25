@@ -164,9 +164,9 @@ updateItemAttributesWithNewArtworkData = function(item_interface) {
 
 updateItem = function(query, modifier, callback) {
     items.update(query, modifier, function(error) {
-        if (error)
+        if (error) {
             console.log("updateItem: " + error.message);
-
+        }
         else {
             var item_object = items.findOne(query);
             if (item_object == undefined)
@@ -442,7 +442,7 @@ prepareItemForClient = function(item_object, viewer_interface) {
     if (item_object == undefined) {
         return;
     }
-    
+
     var item_interface = new ItemIF(item_object);
     var player_item_interface = new PlayerItemIF(viewer_interface, item_interface);
     var artwork_interface = new ArtworkIF(item_object.artwork_id);
@@ -862,16 +862,6 @@ getItemStubFromArtwork = function(artwork_id, item_data) {
 }
 
 getForgeryHeatFromQuality = function(item_interface, player_interface, heat_category, forgery_quality, plausible_deniability) {
-    if (item_interface.isSeasonal() || item_interface.isLottery()) {
-        if (["legendary", "masterpiece"].indexOf(item_interface.getRarity()) == -1) {
-            return .99;
-        }
-    }
-
-    if (item_interface.isUnlocked() && item_interface.getRarity() == "uncommon") {
-        return .99;
-    }
-
     var heat_min;
     var heat_max;
 
