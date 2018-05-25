@@ -98,7 +98,7 @@ getItemObjectValues = function(item_object) {
     }
 
     if (item_object.seasonal) {
-        actual_value *= SEASONAL_VALUE_BUFF;
+        actual_value *= SEASONAL_VALUE_BUFFS[item_object.artwork_data.rarity];
     }
 
     if (item_object.lottery && item_object.lottery != 0) {
@@ -195,9 +195,9 @@ getAverageDropValueFromMap = function(rarity_map, foil_chance, unlocked_chance, 
         var rarity = ARTWORK_RARITIES[i];
         var average_rarity_value = (rarity_values[rarity].min + rarity_values[rarity].max) / 2
 
-        if (rarity == "legendary" || rarity == "masterpiece") {
+        if (SEASONAL_RARITIES.indexOf(rarity) != -1) {
             var seasonal_chance = Math.min(calcSeasonalChance(rarity) * seasonal_amplifier, 1);
-            average_rarity_value = (average_rarity_value * (1 - seasonal_chance)) + (average_rarity_value * seasonal_chance * SEASONAL_VALUE_BUFF);
+            average_rarity_value = (average_rarity_value * (1 - seasonal_chance)) + (average_rarity_value * seasonal_chance * SEASONAL_VALUE_BUFFS[rarity]);
         }
 
         total_average += (average_rarity_value * (rarity_map[rarity] / total_proportions));

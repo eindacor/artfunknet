@@ -439,6 +439,10 @@ getDefaultRarityMap = function() {
 }
 
 prepareItemForClient = function(item_object, viewer_interface) {
+    if (item_object == undefined) {
+        return;
+    }
+    
     var item_interface = new ItemIF(item_object);
     var player_item_interface = new PlayerItemIF(viewer_interface, item_interface);
     var artwork_interface = new ArtworkIF(item_object.artwork_id);
