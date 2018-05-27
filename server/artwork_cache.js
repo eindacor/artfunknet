@@ -81,8 +81,8 @@ rotateSeasonalItems = function(rarities, increment_next_rotation) {
     var id_setter = {};
     var rotation_setter = {};
 
-    for (var i=0; i<SEASONAL_RARITIES.length; i++) { 
-        var rarity = SEASONAL_RARITIES[i];
+    for (var i=0; i<rarities.length; i++) { 
+        var rarity = rarities[i];
         id_setter[rarity] = getNewSeasonalIds(rarity);
 
         if (increment_next_rotation) {

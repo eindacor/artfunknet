@@ -885,8 +885,6 @@ getForgeryHeatFromQuality = function(item_interface, player_interface, heat_cate
         case FORGERY_HEAT_CATEGORY.DISPLAY:
             heat_min = .02;
             heat_max = .08;
-            // heat_min = .02;
-            // heat_max = .08;
             break;
         default: 
             heat_min = 0;
