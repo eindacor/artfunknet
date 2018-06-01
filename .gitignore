@@ -1,5 +1,7 @@
 *.sublime-project
 *.sublime-workspace
-.deploy/*
-dump/*
+.deploy/**
+dump/**
 settings.json
+node_modules/**
+.meteor/**
