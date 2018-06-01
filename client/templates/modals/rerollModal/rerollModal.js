@@ -21,7 +21,7 @@ Template.rerollModal.events ({
 
 		Meteor.call('rerollAttributeValue', item_id, attribute_id, function(error, result) {
 			if (error)
-				console.log(error.message);
+				console.log(error);
 
 			else {
 				updateItemAttributeData(result);
@@ -37,7 +37,7 @@ Template.rerollModal.events ({
 
 		Meteor.call('rerollAttribute', item_id, attribute_id, function(error, result) {
 			if (error)
-				console.log(error.message);
+				console.log(error);
 
 			else {
 				updateItemAttributeData(result);
@@ -50,7 +50,7 @@ Template.rerollModal.events ({
 		var item_id = $(element.target).data('item_id');
 		Meteor.call('setActiveUniqueAttribute', item_id, unique_attribute_id, function(error, result) {
 			if (error)
-				console.log(error.message)
+				console.log(error)
 
 			else {
 				updateItemAttributeData(result);

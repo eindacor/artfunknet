@@ -11,7 +11,7 @@ Template.tagItemModal.events({
 
 		Meteor.call('tagItem', item_id, tag_array, function(error) {
 			if (error)
-				console.log(error.message);
+				console.log(error);
 
 			else {
 				updateItemArray();
@@ -30,7 +30,7 @@ Template.tagItemModal.events({
 
 			Meteor.call('tagItem', item_id, tag_array, function(error) {
 				if (error)
-					console.log(error.message);
+					console.log(error);
 
 				else {
 					updateItemArray();

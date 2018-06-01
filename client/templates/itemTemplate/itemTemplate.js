@@ -246,7 +246,7 @@ Template.itemInfo.helpers({
 			return display_details_map[item_object._id];
 		}
 		catch (error) {
-			console.log(error.message);
+			console.log(error);
 		}
 	},
 

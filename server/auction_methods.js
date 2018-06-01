@@ -54,7 +54,7 @@ createAuction = function(item_id, starting, buy_now, duration, viewer) {
     }
 
     catch(error) {
-        console.log("createAuction: " + error.message);
+        console.log("createAuction: " + error);
     }
 }
 
@@ -70,7 +70,7 @@ var failedAuction = function(auction_object) {
         var item_interface = new ItemIF(auction_object.item_id);
         item_interface.updateItem({$set: {'status' : 'claimed'}}, false, function(error) {
             if (error)
-                console.log(error.message);
+                console.log(error);
 
             else {
                 var html = '<p>Your auction has ended for <span class="' + auction_object.item_data.artwork_data.rarity + '" style="font-style:italic">' + auction_object.item_data.title + '</span> by <span class="af-color">' + auction_object.item_data.artist + '</span> without a sale</span></p>';
@@ -179,7 +179,7 @@ concludeAuction = function(auction_id) {
 	catch(error) {
 		console.log("in concludeAuction (" + auction_id + ")");
 		console.log(auctions.findOne(auction_id));
-		console.log(error.message);
+		console.log(error);
 	}
 }
 
@@ -223,7 +223,7 @@ removeAuction = function(auction_id, callback) {
     var auction_object = auctions.findOne(auction_id);
     auctions.remove(auction_id, function(error) {
         if (error) {
-            console.log("removeAuction: " + error.message)
+            console.log("removeAuction: " + error)
         }
 
         else {

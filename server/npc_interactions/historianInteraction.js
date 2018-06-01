@@ -130,7 +130,7 @@ historianInteraction = function(npc_object, player_interface) {
 	}
 	
 	catch(error) {
-		var message = "error: " + error.message;
+		var message = "error: " + error;
 		return {'message': message};
 	}
 }

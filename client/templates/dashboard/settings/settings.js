@@ -4,7 +4,7 @@ var name_error_tracker = new Tracker.Dependency;
 var changeScreenName = function(desired_name) {
 	Meteor.call('changeScreenName', desired_name, function(error, result) {
 		if(error)
-			console.log(error.message)
+			console.log(error)
 
 		else {
 			name_error = result;
@@ -16,7 +16,7 @@ var changeScreenName = function(desired_name) {
 var updateSetting = function(setting_name, status) {
 	Meteor.call('setPlayerSetting', setting_name, status, function(error) {
 		if (error)
-			console.log(error.message);
+			console.log(error);
 	})
 }
 

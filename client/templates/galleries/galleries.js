@@ -33,7 +33,7 @@ var getPlayerLevels = function(owner_id) {
 var getGalleryAvatar = function(owner_id) {
 	Meteor.call('getGalleryAvatar', owner_id, function(error, result) {
 		if (error) {
-			console.log(error.message);
+			console.log(error);
 		}
 		else {
 			gallery_avatars[owner_id] = result;
@@ -45,7 +45,7 @@ var getGalleryAvatar = function(owner_id) {
 var getEntryFee = function(owner_id) {
 	Meteor.call('getEntryFee', owner_id, function(error, result) {
 		if (error)
-			console.log(error.message)
+			console.log(error)
 
 		else {
 			entry_fees[owner_id] = result;
@@ -342,7 +342,7 @@ Template.galleryCard.events({
 		var owner_screen_name = $(element.target).data().owner_screen_name;
 		Meteor.call('purchaseTicket', gallery_id, function(result, error) {
 			if (error)
-				console.log(error.message);
+				console.log(error);
 
 			else {
 				Router.go('/user/' + owner_screen_name);
@@ -354,7 +354,7 @@ Template.galleryCard.events({
 		var gallery_id = $(element.target).data().gallery_id;
 		Meteor.call('purchaseTicket', gallery_id, function(result, error) {
 			if (error)
-				console.log(error.message);
+				console.log(error);
 
 			else {
 				can_buy_all_favorites = undefined;
@@ -367,7 +367,7 @@ Template.galleryCard.events({
 		var gallery_id = $(element.target).data().gallery_id;
 		Meteor.call('toggleFavoriteGallery', gallery_id, function(result, error) {
 			if (error)
-				console.log(error.message);
+				console.log(error);
 
 			else {
 				can_buy_all_favorites = undefined;

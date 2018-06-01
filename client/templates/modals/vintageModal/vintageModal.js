@@ -4,7 +4,7 @@ Template.vintageModal.events({
 
 		Meteor.call('vintageMode', getSelectedIds("vintage"), function(error){
 			if (error) {
-				console.log(error.message);
+				console.log(error);
 			}
 
 			Router.go("/dashboard/profile");

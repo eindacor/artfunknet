@@ -20,7 +20,7 @@ var getExpansionSlotCost = function() {
 var getCrates = function() {
 	Meteor.call('getCrates', function(error, result) {
 		if (error)
-			console.log(error.message);
+			console.log(error);
 
 		else {
 			crate_objects = result;
@@ -155,7 +155,7 @@ Template.store.events ({
 			var crate_size = ($(element.target).data().crate_size);
 			Meteor.call('openCrate', crate_size, function(error, result) {
 				if (error)
-					console.log(error.message);
+					console.log(error);
 			})
 		}
 	},
@@ -163,7 +163,7 @@ Template.store.events ({
 	'click #decline-all' : function() {
 		Meteor.call('declineAllForSale', function(error) {
 			if (error)
-				console.log(error.message);
+				console.log(error);
 
 			else {
 				updateItemArray();

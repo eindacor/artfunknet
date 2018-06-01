@@ -3,7 +3,7 @@ Template.donateAllModal.events({
 		if (this.purchase) {
 			Meteor.call('purchaseAndDonateAllForSale', function(error){
 				if (error)
-					console.log(error.message);
+					console.log(error);
 
 				else {
 					$('.template-modalTemplate').remove();
@@ -15,7 +15,7 @@ Template.donateAllModal.events({
 		else {
 			Meteor.call('donateAllUnclaimed', function(error){
 				if (error)
-					console.log(error.message);
+					console.log(error);
 
 				else {
 					$('.template-modalTemplate').remove();

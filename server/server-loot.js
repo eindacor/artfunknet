@@ -174,7 +174,7 @@ calcSeasonalChance = function(rarity) {
         return getLootData().seasonal_items[rarity].length / item_count;
     }
     catch (error) {
-        console.log(error.message);
+        console.log(error);
         return 0;
     }
 }
@@ -609,7 +609,7 @@ drawLottery = function(force_draw) {
         if (lottery_level < 10) {
             metadata.update({'lottery_draw': {$ne: null}}, {$inc: {'lottery_level': 1}}, function(error) {
                 if (error)
-                    console.log(error.message)
+                    console.log(error)
 
                 else {
                     var html = '<p>This week there\'s no lottery winner. New Lottery Level: <span class="lottery-text">' + getOneFromCollection("interval_methods.js", metadata, {'lottery_draw': {$ne: null}}).lottery_level + '</span></p>';

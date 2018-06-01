@@ -39,7 +39,7 @@ createNPC = function(gallery_object, attribute_id, duration, npc_quality) {
 
     npcs.insert(npc_object, function(error, inserted_id) {
         if (error)
-            console.log(error.message)
+            console.log(error)
     })
 }
 

@@ -40,7 +40,7 @@ var addNotifications = function(type) {
 
 			Meteor.call('removeNotifications', type, function(error) {
 				if (error)
-					console.log(error.message);
+					console.log(error);
 			})
 		}
 
@@ -57,7 +57,7 @@ var addNotifications = function(type) {
 
 			Meteor.call('removeNotifications', type, function(error) {
 				if (error)
-					console.log(error.message);
+					console.log(error);
 			})
 			
 			setTimeout(function() {
@@ -67,14 +67,14 @@ var addNotifications = function(type) {
 	}
 
 	catch (error) {
-		console.log(error.message);
+		console.log(error);
 	}
 }
 
 var updateQuestStatus = function(quest_id) {
 	Meteor.call('canCompleteJob', quest_id, function(error, result) {
 		if (error)
-			console.log(error.message)
+			console.log(error)
 
 		else {
 			quest_statuses[quest_id] = result;

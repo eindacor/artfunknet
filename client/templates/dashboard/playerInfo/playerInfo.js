@@ -15,7 +15,7 @@ Template.playerInfo.events({
 		var entry_fee = $('.price-selector').val();
 		Meteor.call('updateEntryFee', entry_fee, function(error) {
 			if (error)
-				console.log(error.message);
+				console.log(error);
 		});
 	},
 
@@ -58,14 +58,14 @@ Template.playerInfo.events({
 	'click i.lottery-eligible-true': function(event) {
 		Meteor.call('setPlayerSetting', "lottery_eligible", false, function(error) {
 			if (error)
-				console.log(error.message);
+				console.log(error);
 		})
 	},
 
 	'click i.lottery-eligible-false': function(event) {
 		Meteor.call('setPlayerSetting', "lottery_eligible", true, function(error) {
 			if (error)
-				console.log(error.message);
+				console.log(error);
 		})
 	}
 });
@@ -74,7 +74,7 @@ Template.playerInfo.helpers({
 	'xpData' : function() {
 		Meteor.call('getXPData', Meteor.user().profile.level, function(error, result) {
 			if (error)
-				console.log(error.message);
+				console.log(error);
 
 			else {
 				var xp_data = result;
@@ -111,7 +111,7 @@ Template.playerInfo.helpers({
 	'collection_value' : function() {
 		Meteor.call('getCollectionValue', Meteor.userId(), function(error, result) {
 			if (error)
-				console.log(error.message);
+				console.log(error);
 
 			else Session.set('collection_value', result);
 		});
@@ -220,7 +220,7 @@ Template.playerInfo.rendered = function() {
 		'change': function(event, ui) {
 			Meteor.call('updateEntryFee', ui.value - (ui.value % 1000), function(error) {
 				if (error)
-					console.log(error.message)
+					console.log(error)
 			});
 		}
 	});

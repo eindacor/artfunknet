@@ -10,7 +10,7 @@ Template.placeBidModal.rendered = function() {
 
     Meteor.call('getAuctionInfo', this.data.auction_id, function(error, result) {
         if (error)
-            console.log(error.message)
+            console.log(error)
 
         else {
             auction_object = result;
@@ -71,7 +71,7 @@ var placeBid = function(template) {
         if (auction_errors.length == 0) {
             Meteor.call('placeBid', auction_object.item_id, bid_amount, function(error) {
                 if (error) 
-                    console.log(error.message);
+                    console.log(error);
 
                 else {
                     Session.set("refreshAuctions", true);
@@ -107,7 +107,7 @@ Template.placeBidModal.events({
             if (auction_errors.length == 0) {
                 Meteor.call('placeBid', auction_object.item_id, auction_object.min_bid, function(error) {
                     if (error)
-                        console.log(error.message);
+                        console.log(error);
 
                     else {
                         Session.set("refresh_auctions", true);
@@ -133,7 +133,7 @@ Template.placeBidModal.events({
             if (auction_errors.length == 0) {
                 Meteor.call('placeBid', auction_object.item_id, auction_object.buy_now, function(error) {
                     if (error)
-                        console.log(error.message);
+                        console.log(error);
 
                     else {
                         Session.set("refreshAuctions", true);

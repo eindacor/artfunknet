@@ -3,7 +3,7 @@ Template.identifyForgeryModal.events({
 		var item_id = $(element.target).data().item_id;
 		Meteor.call('identifyItem', item_id, function(error) {
 			if (error)
-				console.log(error.message);
+				console.log(error);
 
 			else {
 				$('.template-modalTemplate').remove();

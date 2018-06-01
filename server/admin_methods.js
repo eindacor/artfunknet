@@ -604,7 +604,7 @@ Meteor.methods({
             }
             catch (error) {
                 return {
-                    'error': error.message
+                    'error': error
                 }
             }
         }

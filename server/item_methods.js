@@ -165,7 +165,7 @@ updateItemAttributesWithNewArtworkData = function(item_interface) {
 updateItem = function(query, modifier, callback) {
     items.update(query, modifier, function(error) {
         if (error) {
-            console.log("updateItem: " + error.message);
+            console.log("updateItem: " + error);
         }
         else {
             var item_object = items.findOne(query);
@@ -205,7 +205,7 @@ updateItem = function(query, modifier, callback) {
 updateItemsBySelector = function(selector, modifier, callback) {
     items.update(selector, modifier, {multi: true}, function(error) {
         if (error)
-            console.log("updateItemsBySelector: " + error.message)
+            console.log("updateItemsBySelector: " + error)
 
         else {
             var player_list = [];
@@ -252,7 +252,7 @@ removeItem = function(item_id, source, callback) {
 
     items.remove(item_id, function(error) {
         if (error)
-            console.log("removeItem: " + error.message)
+            console.log("removeItem: " + error)
 
         else {
             // removed_items.insert(
@@ -662,7 +662,7 @@ Meteor.methods({
             player_item_interface.archive();
         }
         catch (error) {
-            console.log(error.message);
+            console.log(error);
         }
     },
 

@@ -3,7 +3,7 @@ Template.archiveAllModal.events({
 		if (this.purchase) {
 			Meteor.call('purchaseAndArchiveAllForSale', function(error){
 				if (error)
-					console.log(error.message);
+					console.log(error);
 
 				else {
 					$('.template-modalTemplate').remove();
@@ -15,7 +15,7 @@ Template.archiveAllModal.events({
 		else {
 			Meteor.call('archiveAllUnclaimed', function(error){
 				if (error)
-					console.log(error.message);
+					console.log(error);
 
 				else {
 					$('.template-modalTemplate').remove();

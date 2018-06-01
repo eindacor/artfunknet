@@ -6,7 +6,7 @@ Template.archiveModal.events({
 		var item_id = $(element.target).data().item_id;
 		Meteor.call('archiveItem', item_id, category, function(error) {
 			if (error)
-				console.log(error.message);
+				console.log(error);
 
 			else {
 				$('.template-modalTemplate').remove();

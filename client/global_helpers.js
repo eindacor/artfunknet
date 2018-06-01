@@ -139,7 +139,7 @@ Template.registerHelper('card_types', function(item_object) {
 		return types;
 	}
 	catch (error) {
-		console.log(error.message);
+		console.log(error);
 	}
 })
 
@@ -192,7 +192,7 @@ Template.registerHelper('fetchServerData', function() {
 		}
 	}
 	catch (error) {
-		console.log(error.message);
+		console.log(error);
 	}
 })
 

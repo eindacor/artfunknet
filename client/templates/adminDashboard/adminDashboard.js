@@ -42,7 +42,7 @@ var updateSelectedSpecialAttributeDOM = function() {
 			}
 		})
 	} catch(error) {
-		console.log(error.message);
+		console.log(error);
 	}
 }
 
@@ -64,7 +64,7 @@ var updateSelectedArtistDOM = function() {
 			})
 		}
 	} catch(error) {
-		console.log(error.message);
+		console.log(error);
 	}
 }
 
@@ -87,7 +87,7 @@ var updateUniqueAttributesFromSpecialAttributeSelected = function() {
 var updateAdminData = function() {
 	Meteor.call('getAdminData', function(error, result) {
 		if (error)
-			console.log(error.message);
+			console.log(error);
 
 		else {
 			admin_data = result
@@ -99,7 +99,7 @@ var updateAdminData = function() {
 var updateUsers = function() {
 	Meteor.call('getUsers', function(error, result) {
 		if (error)
-			console.log(error.message);
+			console.log(error);
 
 		else {
 			all_users = result;
@@ -132,7 +132,7 @@ var setAdminData = function(set_id, value) {
 
 	Meteor.call(method_name, arg, function(error) {
 		if (error)
-			console.log(error.message);
+			console.log(error);
 
 		else updateAdminData();
 	});
@@ -257,7 +257,7 @@ var drawRarityGraph = function() {
 		}
 
 		catch(error) {
-			console.log(error.message);
+			console.log(error);
 		}
 	}
 }
@@ -266,7 +266,7 @@ Template.adminTools.events({
 	'click #reset-daily' : function(element) {
 		Meteor.call('resetDailyDrop', function(error) {
 			if (error)
-				console.log(error.message);
+				console.log(error);
 		})
 	},
 
@@ -287,7 +287,7 @@ Template.adminTools.events({
 	'click #new-seasonals' : function(element) {
 		Meteor.call('rotateSeasonalItems', function(error) {
 			if (error)
-				console.log(error.message);
+				console.log(error);
 
 			else updateAdminData();
 		});
@@ -296,14 +296,14 @@ Template.adminTools.events({
 	'click #generate-for-sale' : function(element) {
 		Meteor.call('generateForSale', function(error) {
 			if (error)
-				console.log(error.message);
+				console.log(error);
 		})
 	},
 
 	'click #level-up' : function(element) {
 		Meteor.call('levelUp', function(error) {
 			if (error)
-				console.log(error.message);
+				console.log(error);
 		})
 	},
 
@@ -311,7 +311,7 @@ Template.adminTools.events({
 		var attribute_id = $('.npc-selector').val();
 		Meteor.call('generateNPC', attribute_id, function(error) {
 			if (error)
-				console.log(error.message);
+				console.log(error);
 		})
 	},
 
@@ -405,7 +405,7 @@ Template.adminTools.events({
 
     	Meteor.call('generateItemFromArtworkID', item_generator, artwork_id, user_id, function(error, result) {
     		if (error)
-    			console.log(error.message);
+    			console.log(error);
 
     		if (result === undefined)
     			console.log("an error has occurred");
@@ -418,7 +418,7 @@ Template.adminTools.events({
 
     	Meteor.call('generateRandomItemFromArtworkID', Meteor.userId(), selected_artwork._id, function(error, result) {
     		if (error)
-    			console.log(error.message);
+    			console.log(error);
 
     		if (result === undefined)
     			console.log("an error has occurred");
@@ -430,7 +430,7 @@ Template.adminTools.events({
 
     	Meteor.call('generateRandomItemFromArtworkID', Meteor.userId(), artwork_id, function(error, result) {
     		if (error)
-    			console.log(error.message);
+    			console.log(error);
 
     		if (result === undefined)
     			console.log("an error has occurred");
@@ -465,7 +465,7 @@ Template.adminTools.events({
     	
     	Meteor.call('updateProfiles', field_name, value, function(error) {
     		if (error)
-    			console.log(error.message);
+    			console.log(error);
     	})
     },
 
@@ -473,7 +473,7 @@ Template.adminTools.events({
     	var message = $('#alert-users-text')[0].value;
     	Meteor.call('alertAllUsers', message, function(error) {
     		if (error)
-    			console.log(error.message);
+    			console.log(error);
     	})
     },
 
@@ -488,7 +488,7 @@ Template.adminTools.events({
     'click #print-misprints' : function() {
     	Meteor.call('getMisprints', function(error, result) {
     		if (error)
-    			console.log(error.message);
+    			console.log(error);
 
     		else {
     			console.log(result);
@@ -554,7 +554,7 @@ Template.adminTools.events({
 
 			Meteor.call('addNewArtwork', artwork_object, function(error, result) {
 				if (error)
-					console.log(error.message);
+					console.log(error);
 
 				else {
 					$('.artwork-selector').append('<option value="' + result + '">' + artwork_object.artist + ' - ' + artwork_object.title + '</option>');
@@ -576,7 +576,7 @@ Template.adminTools.events({
 
 			Meteor.call('updateArtworkData', artwork_id, artwork_object, function(error, result) {
 				if (error)
-					console.log(error.message);
+					console.log(error);
 
 				else {
 					selected_artwork = artwork_object;
@@ -606,7 +606,7 @@ Template.adminTools.events({
 
 			Meteor.call('addNewArtist', artist_object, function(error, result) {
 				if (error)
-					console.log(error.message);
+					console.log(error);
 
 				else {
 					$('.artist-mod-selector').append('<option value="' + result + '">' + artist_object.artist_name + '</option>');
@@ -627,7 +627,7 @@ Template.adminTools.events({
 
 			Meteor.call('updateArtistData', artist_id, artist_object, function(error, result) {
 				if (error)
-					console.log(error.message);
+					console.log(error);
 
 				else artist_mod_tracker.changed();
 			});
@@ -654,7 +654,7 @@ Template.adminTools.events({
 
 			Meteor.call('addNewAttribute', attribute_object, function(error, result) {
 				if (error)
-					console.log(error.message);
+					console.log(error);
 
 				else {
 					$('.attribute-mod-selector').append('<option value="' + result + '">' + attribute_object.description + '</option>');
@@ -675,7 +675,7 @@ Template.adminTools.events({
 
 			Meteor.call('updateAttributeData', attribute_id, attribute_object, function(error, result) {
 				if (error)
-					console.log(error.message);
+					console.log(error);
 
 				else attribute_mod_tracker.changed();
 			});
@@ -702,7 +702,7 @@ Template.adminTools.events({
 
 			Meteor.call('addNewUniqueAttribute', unique_attribute_object, function(error, result) {
 				if (error)
-					console.log(error.message);
+					console.log(error);
 
 				else if (result) {
 					// $('.unique-attribute-mod-selector').append('<option value="' + result + '">' + unique_attribute_object.title + '</option>');
@@ -724,7 +724,7 @@ Template.adminTools.events({
 
 			Meteor.call('updateUniqueAttributeData', unique_attribute_id, unique_attribute_object, function(error, result) {
 				if (error)
-					console.log(error.message);
+					console.log(error);
 
 				else unique_attribute_mod_tracker.changed();
 			});
@@ -735,7 +735,7 @@ Template.adminTools.events({
 		var rarity_map = generateRarityMap();
 		Meteor.call('updateSmartMap', rarity_map, function(error, result) {
 			if (error)
-				console.log(error.message);
+				console.log(error);
 
 			else {
 				graph_data = result.graph_data;
@@ -754,7 +754,7 @@ Template.adminTools.events({
 
 		Meteor.call('getTestResults', Number(player_level), function(error, result) {
 			if (error) 
-				console.log(error.message)
+				console.log(error)
 
 			else {
 				test_results = result;
@@ -766,14 +766,14 @@ Template.adminTools.events({
 	'click #give-quest-items': function() {
 		Meteor.call('giveQuestItems', function(error) {
 			if (error)
-				console.log(error.message)
+				console.log(error)
 		})
 	},
 
 	'click #clear-reputation': function() {
 		Meteor.call('clearReputation', function(error) {
 			if (error) {
-				console.log(error.message);
+				console.log(error);
 			}
 		})
 	},
@@ -803,7 +803,7 @@ Template.adminTools.events({
 		var key_id = $(element.target).closest('.request-text').data().key_id;
 		Meteor.call('approveBetaKey', key_id, function(error, result) {
 			if (error) {
-				console.log(error.message)
+				console.log(error)
 			}
 			else {
 				if (result && result.error) {
@@ -822,7 +822,7 @@ Template.adminTools.events({
 		var key_id = $(element.target).closest('.request-text').data().key_id;
 		Meteor.call('denyBetaKey', key_id, function(error, result) {
 			if (error) {
-				console.log(error.message)
+				console.log(error)
 			}
 			else {
 				beta_requests = undefined;
@@ -1022,7 +1022,7 @@ Template.adminTools.helpers({
 		setTimeout(function() {
 			Meteor.call('updateSmartMap', undefined, function(error, result) {
 				if (error)
-					console.log(error.message);
+					console.log(error);
 
 				else {
 					graph_data = result.graph_data;
@@ -1074,7 +1074,7 @@ Template.adminTools.helpers({
 		else {
 			Meteor.call('getTestResults', 50, function(error, result) {
 				if (error) 
-					console.log(error.message)
+					console.log(error)
 
 				else {
 					test_results = result;
@@ -1250,7 +1250,7 @@ Template.adminTools.helpers({
 		if (beta_requests == undefined) {
 			Meteor.call('getBetaRequests', function(error, result) {
 				if (error) {
-					console.log(error.message);
+					console.log(error);
 				}
 				else {
 					beta_requests = result;
@@ -1267,7 +1267,7 @@ Template.adminTools.helpers({
 		if (idle_requests == undefined) {
 			Meteor.call('getIdleBetaKeys', function(error, result) {
 				if (error) {
-					console.log(error.message);
+					console.log(error);
 				}
 				else {
 					idle_requests = result;

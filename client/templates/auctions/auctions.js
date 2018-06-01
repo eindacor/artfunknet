@@ -79,7 +79,7 @@ var getAuctions = function() {
 
 	Meteor.call('getAuctions', sorter_object, filter_array, current_page * items_per_page, items_per_page, quest_status, function(error, result) {
 		if (error)
-			console.log(error.message);
+			console.log(error);
 
 		else {
 			if (auction_data == result)
@@ -109,7 +109,7 @@ Template.auctions.helpers({
 
 		Meteor.call('getAuctionCount', filter_array, quest_status, function(error, result) {
 			if (error)
-				console.log(error.message);
+				console.log(error);
 
 			else {
 				items_found = result;
@@ -365,7 +365,7 @@ var my_auctions_tracker = new Tracker.Dependency;
 var getWatchingAndWinningAuctions = function(user_id) {
 	Meteor.call('getWatchedAndWinningAuctions', function(error, result) {
 		if (error)
-			console.log(error.message);
+			console.log(error);
 
 		else {
 			watched_auctions = result;
@@ -377,7 +377,7 @@ var getWatchingAndWinningAuctions = function(user_id) {
 var getPlayerAuctions = function(user_id) {
 	Meteor.call('getPlayerAuctions', function(error, result) {
 		if (error)
-			console.log(error.message);
+			console.log(error);
 
 		else {
 			player_auctions = result;

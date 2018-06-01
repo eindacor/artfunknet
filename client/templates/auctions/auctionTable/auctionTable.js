@@ -10,7 +10,7 @@ var biddable_rarities = ["common"];
 var getAuctionPreviewItemObject = function(auction_id) {
 	Meteor.call('getAuctionPreviewItemObject', auction_id, function(error, result) {
 		if (error)
-			console.log(error.message);
+			console.log(error);
 
 		else {
 			Blaze.renderWithData(Template.modalTemplate, {
@@ -26,7 +26,7 @@ var getAuctionPreviewItemObject = function(auction_id) {
 var getSoughtStatus = function(artwork_id) {
 	Meteor.call('getSoughtStatus', artwork_id, false, function(error, result) {
 		if (error)
-			console.log(error.message)
+			console.log(error)
 
 		else {
 			sought_items[artwork_id] = result;
@@ -38,7 +38,7 @@ var getSoughtStatus = function(artwork_id) {
 var getAlreadyWinning = function(auction_id) {
 	Meteor.call('getAlreadyWinningElsewhere', auction_id, function(error, result) {
 		if (error)
-			console.log(error.message)
+			console.log(error)
 
 		else {
 			already_winning[auction_id] = result;
@@ -160,7 +160,7 @@ Template.auctionTable.helpers({
 		}
 
 		catch(error) {
-			console.log(error.message);
+			console.log(error);
 			return {};
 		}
 	},

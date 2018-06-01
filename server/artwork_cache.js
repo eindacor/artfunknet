@@ -148,7 +148,7 @@ serializeSpecialCombination = function(attribute_array) {
 updateArtwork = function(artwork_id, modifier) {
     artworks.update(artwork_id, modifier, function(error) {
         if (error)
-            console.log("updateArtwork: " + error.message)
+            console.log("updateArtwork: " + error)
 
         else {
             var artwork_object = artworks.findOne(artwork_id);

@@ -32,7 +32,7 @@ Template.jobs.helpers({
 		if (active_jobs == undefined) {
 			Meteor.call('getActiveQuests', function(error, result) {
 				if (error) {
-					console.log(error.message);
+					console.log(error);
 				}
 				else {
 					active_jobs = result;
@@ -57,7 +57,7 @@ Template.jobTargets.helpers({
 		if (job_target_info == undefined) {
 			Meteor.call('getJobTargetInfo', job_object, function(error, result) {
 				if (error) {
-					console.log(error.message);
+					console.log(error);
 				}
 				else {
 					job_target_info = result;
@@ -103,7 +103,7 @@ Template.jobListItem.events({
 		var action_name = $(event.target).closest('.job-button').attr('data-action_name');
 		Meteor.call(action_name, job_id, function(error) {
 			if (error) {
-				console.log(error.message);
+				console.log(error);
 			}
 			else {
 				job_target_info = undefined;
@@ -129,7 +129,7 @@ Template.jobListItem.helpers({
 		if (job_progress_map[job_id] == undefined) {
 			Meteor.call('getJobProgress', job_id, function(error, result) {
 				if (error) {
-					console.log(error.message);
+					console.log(error);
 				}
 				else {
 					job_progress_map[job_id] = result;

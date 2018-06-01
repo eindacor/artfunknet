@@ -294,7 +294,7 @@ Meteor.methods({
 
         catch(error) {
             var errors = [];
-            errors.push(error.message);
+            errors.push(error);
             return errors;
         }
     },

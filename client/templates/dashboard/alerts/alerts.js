@@ -35,14 +35,14 @@ Template.alerts.events({
 		var alert_id = $(element.target).closest('tr').data('alert_id');
 		Meteor.call('removeAlert', alert_id, function(error) {
 			if (error)
-				console.log(error.message);
+				console.log(error);
 		})
 	},
 
 	'click #clear-all' : function () {
 		Meteor.call('clearAlerts', function(error, result) {
 			if (error)
-				console.log(error.message);
+				console.log(error);
 		});
 	}
 })

@@ -8,7 +8,7 @@ var timer;
 var getEntryFee = function(owner_id) {
 	Meteor.call('getEntryFee', owner_id, function(error, result) {
 		if (error)
-			console.log(error.message)
+			console.log(error)
 
 		else {
 			entry_fees[owner_id] = result;
@@ -37,7 +37,7 @@ var getRGBString = function(color) {
 var setGallery = function(screen_name, template_data) {
 	Meteor.call('getUserGallery', screen_name, function(error, result) {
 		if (error)
-			console.log(error.message);
+			console.log(error);
 
 		else {
 			gallery_data = result;
@@ -169,7 +169,7 @@ Template.userGallery.events ({
 		$('.wall-wash').css('background-color', color_string);
 		Meteor.call('updateWallBase', $(element.target)[0].value, function(error) {
 			if (error)
-				console.log(error.message)
+				console.log(error)
 		});
 	},
 
@@ -177,7 +177,7 @@ Template.userGallery.events ({
 		$('.item').css('border-color', $(element.target)[0].value);
 		Meteor.call('updateFrameColor', $(element.target)[0].value, function(error) {
 			if (error)
-				console.log(error.message)
+				console.log(error)
 		});
 	},
 
@@ -185,7 +185,7 @@ Template.userGallery.events ({
 		var owner_id = element.target.dataset.owner_id;
 		Meteor.call('purchaseTicket', owner_id, function(error) {
 			if (error)
-				console.log(error.message);
+				console.log(error);
 		})
 	},
 
@@ -195,7 +195,7 @@ Template.userGallery.events ({
 			timer = moment();
 			Meteor.call('interactWithNPC', npc_id, function(error, interaction_object) {
 				if (error)
-					console.log(error.message);
+					console.log(error);
 
 				else {
 					try {
@@ -240,7 +240,7 @@ Template.userGallery.events ({
 					}
 
 					catch(error) {
-						console.log(error.message);
+						console.log(error);
 					}
 				}
 			})
@@ -297,7 +297,7 @@ Template.userGallery.events ({
 
 		Meteor.call('setActiveFinish', finish_id, "wall", function(error) {
 			if (error)
-				console.log(error.message)
+				console.log(error)
 
 			else galleryContentTracker.changed();
 		})
@@ -313,7 +313,7 @@ Template.userGallery.events ({
 
 		Meteor.call('setActiveFinish', finish_id, "floor", function(error) {
 			if (error)
-				console.log(error.message)
+				console.log(error)
 
 			else galleryContentTracker.changed();
 		})
@@ -401,7 +401,7 @@ Template.galleryEdit.rendered = function() {
 			$('.wall-wash').css('background-color', color_string);
 			Meteor.call('updateWallOpacity', (ui.value / 100), function(error) {
 				if (error)
-					console.log(error.message)
+					console.log(error)
 			});
 		}
 	});
@@ -415,7 +415,7 @@ Template.galleryEdit.rendered = function() {
 			$('.item').css('border', new_frame_width + "px solid " + "black"); //replace "black" with active color
 			Meteor.call('updateFrameWidth', (ui.value / 100), function(error) {
 				if (error)
-					console.log(error.message)
+					console.log(error)
 			});
 		}
 	});
@@ -429,7 +429,7 @@ Template.galleryEdit.rendered = function() {
 			$('.item').css('padding', new_matte_width + "px")
 			Meteor.call('updateMatteWidth', (ui.value / 100), function(error) {
 				if (error)
-					console.log(error.message)
+					console.log(error)
 			});
 		}
 	});

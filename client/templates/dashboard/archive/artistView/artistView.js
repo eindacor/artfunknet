@@ -182,7 +182,7 @@ Template.artistView.helpers({
 		if (archive_metadata == undefined) {
 			Meteor.call('getArchiveMetadata', function(error, result) {
 				if (error) {
-					console.log(error.message);
+					console.log(error);
 				}
 				else {
 					archive_metadata = result;

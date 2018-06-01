@@ -43,7 +43,7 @@ Template.randomDrop.events ({
 	'click #drop-button.enabled' :function() {
 		Meteor.call('giveDailyDrop', function(error, returned_rarity) {
 			if (error)
-				console.log(error.message);
+				console.log(error);
 
 			else {
 				updateItemArray();
@@ -54,7 +54,7 @@ Template.randomDrop.events ({
 	'click #sell-all' : function() {
 		Meteor.call('getSellAllAmount', function(error, result) {
 			if (error)
-				console.log(error.message);
+				console.log(error);
 
 			else {
 				Blaze.renderWithData(Template.modalTemplate, {

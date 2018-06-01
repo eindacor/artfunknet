@@ -10,7 +10,7 @@ Template.createAuctionModal.events ({
 		
     	Meteor.call('auctionArtwork', item_id, Number(starting), Number(buy_now), duration, function(error, error_list) {
 			if (error)
-				console.log(error.message);
+				console.log(error);
 
 			else if (error_list.length > 0) {
 				Session.set('createAuctionErrors', error_list);

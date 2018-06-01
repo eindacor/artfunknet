@@ -211,7 +211,7 @@ ItemGenerator = function() {
 	var insertItem = function(item_object, source, callback) {
 		var new_item_id = items.insert(item_object, function(error, result) {
 	        if (error)
-	            console.log(error.message)
+	            console.log(error)
 
 	        else {
 	        	item_object._id = result;

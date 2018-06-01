@@ -59,7 +59,7 @@ var lookupUser = function(user_id) {
 var setLeaderboardData = function() {
 	Meteor.call('getLeaderboardData', function(error, result) {
 		if (error)
-			console.log(error.message);
+			console.log(error);
 
 		else {
 			leaderboard_data = result;

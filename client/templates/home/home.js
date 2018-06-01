@@ -54,7 +54,7 @@ var loginNewUser = function(user_object) {
         if (!login_error)
             Router.go('/');
 
-        else console.log("error logging in newly created user: " + login_error.message);
+        else console.log("error logging in newly created user: " + login_error);
     });
 }
 
@@ -62,7 +62,7 @@ var validateCreateLogin = function(user_object, beta_key, confirmed_password) {
     //this method returns an array of errors encountered
     Meteor.call('validateCreateLogin', user_object, beta_key, confirmed_password, function(error, returned_errors) {
         if (error) {
-            console.log(error.message);
+            console.log(error);
         }
 
         else if (returned_errors.length) {
@@ -166,7 +166,7 @@ Template.home.events({
     	var email_address = template.find('#email').value.toLowerCase();
     	Meteor.call('requestBetaKey', email_address, function(error, response) {
 	        if (error) {
-	            console.log(error.message);
+	            console.log(error);
 	        }
 
 	        var messages = [];

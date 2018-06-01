@@ -3,7 +3,7 @@ Template.entryFeeModal.events({
 		var fee_selected = $('#entry-fee').val();
 		Meteor.call('updateEntryFee', fee_selected, function(error) {
 			if (error)
-				console.log(error.message)
+				console.log(error)
 
 			Modal.hide("entryFeeModal");
 		});

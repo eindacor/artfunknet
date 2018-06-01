@@ -381,7 +381,7 @@ Meteor.startup(function() {
         }
     }
     catch(error) {
-        console.log(error.message)
+        console.log(error)
     }
 
     if (Meteor.users.find().count() == 0) {
