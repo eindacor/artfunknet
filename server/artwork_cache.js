@@ -78,8 +78,8 @@ updateDropIndices = function() {
 
 rotateSeasonalItems = function(rarities, increment_next_rotation) {
     var setter = {};
-    var id_setter = {};
-    var rotation_setter = {};
+    var id_setter = getLootData().seasonal_items;
+    var rotation_setter = getLootData().seasonal_rotation;
 
     for (var i=0; i<rarities.length; i++) { 
         var rarity = rarities[i];
@@ -87,7 +87,7 @@ rotateSeasonalItems = function(rarities, increment_next_rotation) {
 
         if (increment_next_rotation) {
             var rotation_frequency = SEASONAL_ITEM_ROTATION_FREQUENCIES[rarity];
-            var last_rotation = moment(getLootData().seasonal_rotation[rarity]);
+            var last_rotation = moment(rotation_setter[rarity]);
             rotation_setter[rarity] = last_rotation.add(1, rotation_frequency)._d.toISOString();
         }    
     }
