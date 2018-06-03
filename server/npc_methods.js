@@ -1,12 +1,18 @@
+NPC_QUALITY_MAP_CACHE = undefined;
+
 getNPCQuality = function(player_level) {
-	var npc_quality_map = {
-		'bronze' : 12,
-		'silver' : 10,
-		'gold' : 8,
-		'platinum' : 6
+	if (NPC_QUALITY_MAP_CACHE == undefined) {
+		var npc_quality_map = {
+			'bronze' : 12,
+			'silver' : 10,
+			'gold' : 8,
+			'platinum' : 6
+		}
+
+		NPC_QUALITY_MAP_CACHE = new MapCacheIF(npc_quality_map);
 	}
 
-	return JepLoot.catRoll(npc_quality_map);
+	return NPC_QUALITY_MAP_CACHE.getRandom();
 }
 
 createNPC = function(gallery_object, attribute_id, duration, npc_quality) {
@@ -51,7 +57,8 @@ var ignoreNPC = function(npc_id) {
 		return {'message': npc_validation_response.error};
 	}
 
-	Meteor.users.update(Meteor.userId(), {$set: {'profile.last_npc_met': moment()._d.toISOString()}});
+	var player_interface = new PlayerIF(Meteor.user());
+	player_interface.registerActivity();
 	npcs.update(npc_id, {$push: {'players_met' : Meteor.userId()}});
 	return true;
 }
@@ -85,8 +92,8 @@ var interactWithNPC = function(npc_id) {
 	inc_object[npcs_met_string] = 1;
 	
 	var setter_object = {};
-	var last_met_string = 'profile.last_npc_met';
-	setter_object[last_met_string] = moment()._d.toISOString();
+	var last_activity_key = 'profile.last_activity';
+	setter_object[last_activity_key] = moment()._d.toISOString();
 
     if (current_visitor_ignore_proc_count > 0) {
     	var ignore_string = 'profile.visitor_ignore_proc_count';

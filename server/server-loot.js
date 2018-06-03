@@ -1,3 +1,6 @@
+CONDITION_CACHE_MAP = undefined;
+CRATE_QUALITY_MAP_CACHE = undefined;
+
 logLegendary = function(source, item_object) {
     if (item_object && source && source != "test") {
         var rarity = item_object.artwork_data.rarity;
@@ -32,15 +35,19 @@ logLegendary = function(source, item_object) {
 }
 
 getCondition = function(min_value) {
-    var tier_map = {
-        0 : 2,
-        1 : 3,
-        2 : 3,
-        3 : 2,
-        4 : 1
-    };
+    if (CONDITION_CACHE_MAP == undefined) {
+        var tier_map = {
+            0 : 2,
+            1 : 3,
+            2 : 3,
+            3 : 2,
+            4 : 1
+        };
 
-    var random_tier = Number(JepLoot.catRoll(tier_map));
+        CONDITION_CACHE_MAP = new MapCacheIF(tier_map);
+    }
+
+    var random_tier = Number(CONDITION_CACHE_MAP.getRandom());
     var condition = (random_tier * 20) + (Math.random() * 20);
     var condition_float = Number((condition / 100).toFixed(2));
     condition_float = Number((min_value + (condition_float * (1 - min_value))).toFixed(2));
@@ -71,27 +78,29 @@ var lowest_possible_value_coefficient = .4;
 var condition_coefficient_max = .4;
 var attribute_coefficient_max = .2;
 
-getItemObjectValues = function(item_object) {
-    var values_object = {};
-
+getMintValueFromArtworkObject = function(artwork_object) {
     var rarity_values = getLootData().rarity_values;
 
-    var min = rarity_values[item_object.artwork_data.rarity].min;
-    var max = rarity_values[item_object.artwork_data.rarity].max;
+    var min = rarity_values[artwork_object.rarity].min;
+    var max = rarity_values[artwork_object.rarity].max;
 
     var range = max - min;
 
-    if (item_object.artwork_data.value_scale == undefined) {
-        item_object.artwork_data.value_scale = artworks.findOne({'_id': item_object.artwork_id}).value_scale;
-    }
+    return Math.floor(min + (artwork_object.value_scale * range));
+}
 
-    var mint_value = Math.floor(min + (item_object.artwork_data.value_scale * range));
-
+getActualValueFromMintValue = function(mint_value, condition, attributes) {
     var base_value = mint_value * lowest_possible_value_coefficient;
-    var condition_value = item_object.condition === undefined ? mint_value * condition_coefficient_max * .5 : mint_value * condition_coefficient_max * item_object.condition;
-    var attribute_value = item_object.attributes === undefined ? mint_value * attribute_coefficient_max * .5 : mint_value * getAttributeValueCoefficient(item_object);
+    var condition_value = condition === undefined ? mint_value * condition_coefficient_max * .5 : mint_value * condition_coefficient_max * condition;
+    var attribute_value = attributes === undefined ? mint_value * attribute_coefficient_max * .5 : mint_value * getAttributeValueCoefficient(attributes);
+    return Math.floor(base_value + condition_value + attribute_value);
+}
 
-    var actual_value = Math.floor(base_value + condition_value + attribute_value);
+getItemObjectValues = function(item_object) {
+    var values_object = {};
+
+    var mint_value = getMintValueFromArtworkObject(artworks.findOne({'_id': item_object.artwork_id}));
+    var actual_value = getActualValueFromMintValue(mint_value, item_object.condition, item_object.attributes);
 
     if (item_object.foil) {
         actual_value *= FOIL_VALUE_BUFF;
@@ -131,7 +140,7 @@ getItemObjectValues = function(item_object) {
     for (var i=0; i<all_keys.length; i++) {
         var key = all_keys[i];
         if (isNaN(values_object[key])) {
-            console.log("invalid value.... " + key + ": " + values_object[key])
+            console.log("invalid value.... " + key + ": " + values_object[key]);
             values_object[key] = 0;
         }
     }
@@ -139,39 +148,51 @@ getItemObjectValues = function(item_object) {
     return values_object;
 }
 
-var getAttributeValueCoefficient = function(item_object) {
-    var attribute_array = getAllItemObjectAttributes(item_object);
-
+var getAttributeValueCoefficient = function(attributes) {
     var total_rating = 0;
-    var rating_count = 0;
 
-    for (var i=0; i<attribute_array.length; i++) {
-        rating_count++;
-        total_rating += attribute_array[i].value;
+    for (var i=0; i<attributes.length; i++) {
+        total_rating += attributes[i].value;
     }
 
-    if (rating_count)
-        return (total_rating / rating_count) * attribute_coefficient_max;
-
-    else return 0;
+    if (attributes.length > 0) {
+        return (total_rating / attributes.length) * attribute_coefficient_max;
+    }
+    else {
+        return 0;
+    }
 }
 
 getRolledCrateQuality = function() {
-    var roll_quality_map = {
-        'bronze' : 10000,
-        'silver' : 4000,
-        'gold' : 1500,
-        'platinum' : 100,
-        'diamond' : 0
-    }
+    if (CRATE_QUALITY_MAP_CACHE == undefined) {
+        var roll_quality_map = {
+            'bronze' : 10000,
+            'silver' : 4000,
+            'gold' : 1500,
+            'platinum' : 100,
+            'diamond' : 0
+        }
 
-    return JepLoot.catRoll(roll_quality_map);
+        CRATE_QUALITY_MAP_CACHE = new MapCacheIF(roll_quality_map);
+    }
+    
+    return CRATE_QUALITY_MAP_CACHE.getRandom();
 }
 
 calcSeasonalChance = function(rarity) {
     try {
-        var item_count = getActiveArtworkCache()[rarity].length;
-        return getLootData().seasonal_items[rarity].length / item_count;
+        var seasonal_ids = getLootData().seasonal_items[rarity];
+
+        if(seasonal_ids == undefined) {
+            return 0;
+        }
+
+        var probability = 0;
+        for (var i=0; i<seasonal_ids.length; i++) {
+            probability += ARTWORK_DROP_MAP_CACHE[rarity].getProbability(seasonal_ids[i]);
+        }
+
+        return probability;
     }
     catch (error) {
         console.log(error);
@@ -179,7 +200,7 @@ calcSeasonalChance = function(rarity) {
     }
 }
 
-getAverageDropValueFromMap = function(rarity_map, foil_chance, unlocked_chance, seasonal_amplifier) {
+getAverageDropValueFromMap = function(rarity_map, foil_chance, unlocked_chance) {
     var rarity_values = getLootData().rarity_values;
     foil_chance = Math.min(foil_chance, 1);
     unlocked_chance = Math.min(unlocked_chance, 1);
@@ -193,10 +214,10 @@ getAverageDropValueFromMap = function(rarity_map, foil_chance, unlocked_chance, 
     var total_average = 0;
     for (var i=0; i < ARTWORK_RARITIES.length; i++) {
         var rarity = ARTWORK_RARITIES[i];
-        var average_rarity_value = (rarity_values[rarity].min + rarity_values[rarity].max) / 2
+        var average_rarity_value = AVERAGE_ITEM_VALUE_BY_RARITY_CACHE[rarity];
 
         if (SEASONAL_RARITIES.indexOf(rarity) != -1) {
-            var seasonal_chance = Math.min(calcSeasonalChance(rarity) * seasonal_amplifier, 1);
+            var seasonal_chance = calcSeasonalChance(rarity);
             average_rarity_value = (average_rarity_value * (1 - seasonal_chance)) + (average_rarity_value * seasonal_chance * SEASONAL_VALUE_BUFFS[rarity]);
         }
 
@@ -212,15 +233,9 @@ getAverageDropValueFromMap = function(rarity_map, foil_chance, unlocked_chance, 
 }
 
 getAverageDropValue = function(player_level, amplifier) {
-    var smart_loot_map = getSmartRarityMap(player_level, amplifier);
-    return getAverageDropValueFromMap(smart_loot_map, getLootData().global_foil_chance, getLootData().global_unlocked_chance, 1);
-}
-
-//calculates crate costs based on rarity maps and qulity maps
-lookupCrateCost = function(count) {
-    var average_drop_value = getAverageDropValue(Meteor.user().profile.level, 1);
-
-    return Math.floor(average_drop_value * count * CRATE_UPCHARGE_COEFFICIENT);
+    // TODO amplifier
+    var loot_map = getRarityMap(player_level);
+    return getAverageDropValueFromMap(loot_map, getLootData().global_foil_chance, getLootData().global_unlocked_chance);
 }
 
 getAttributes = function(artwork_object, item_is_unlocked) {
@@ -281,8 +296,6 @@ Meteor.methods({
     'giveDailyDrop' : function() {
         try {
             if (Meteor.user() && dailyDropIsEnabled()) {
-                var foil_chance = getLootData().global_foil_chance;
-
                 var multi_item_generator = {
                     'source': "daily drop",
                     'count': admin_settings.daily_drop_count,
@@ -306,29 +319,23 @@ Meteor.methods({
         }
     },
 
-    'openCrate' : function(size) {
+    'openCrate' : function() {
         try {
             var player_interface = new PlayerIF(Meteor.user());
-            var approved_sizes = ['small', 'medium', 'large'];
-            if (approved_sizes.indexOf(size) == -1)
-                return false;
+            var loot_data = getLootData();
 
-            var quality = 'platinum'; 
-            var crate_object = getCrateData(size);
+            var crate_cost = getBasicCrateCost(player_interface.getPlayerLevel());
 
-            if (crate_object == undefined)
-                return false;
-
-            if (player_interface.getId() && crate_object.cost < player_interface.getBankBalance()) {
+            if (player_interface.getId() && crate_cost < player_interface.getBankBalance()) {
                 var multi_item_generator = {
-                    'source': crate_object.size + " crate",
-                    'count': crate_object.count,
+                    'source': "standard crate",
+                    'count': getLootData().items_per_basic_crate,
                     'status': "unclaimed"
                 }
 
                 ITEM_GENERATOR.generateMultiple(multi_item_generator, player_interface);
-                player_interface.chargeAccount(crate_object.cost);
-                Meteor.users.update(player_interface.getId(), {$inc: {'profile.money_spent_on_crates': crate_object.cost}});
+                player_interface.chargeAccount(crate_cost);
+                Meteor.users.update(player_interface.getId(), {$inc: {'profile.money_spent_on_crates': crate_cost}});
             }
         }
 
@@ -337,167 +344,21 @@ Meteor.methods({
         }
     },
 
-    'getCrates' : function() {
-        var sizes = ['small', 'medium', 'large'];
-        var crate_objects = [];
-        for (var i=0; i<sizes.length; i++) {
-            crate_objects.push(getCrateData(sizes[i]));
-        }
-        return crate_objects;
-    },
-
-    'getGraphData': function() {
-        return getGraphData();
-    },
-
-    'updateSmartMap': function(revised_smart_map) {
-        if (!adminValidated())
-            return false;
-        
-        if (revised_smart_map) {
-            metadata.update({'loot_data': {$ne: null}}, {$set: {'loot_data.smart_map': revised_smart_map}}, function() {
-                setLootData();
-                setDefaultRarityMap();
-            });
-
-            setTimeout(function() {}, 2000);
-        }
-
+    'getCrate' : function() {
         return {
-            'graph_data': getGraphData(),
-            'map_data': getLootData().smart_map
+            'cost': getBasicCrateCost(Meteor.user().profile.level),
+            'count': getLootData().items_per_basic_crate    
         }
-    },
-
-    'getTestResults': function(level) {
-        return testMap(getSmartRarityMap(level, 1));
     }
 })
 
 getCrateData = function(size) {
-    var output_count;
-
-    switch(size) {
-        case "small": output_count = 6; break;
-        case "medium": output_count = 18; break;
-        case "large": output_count = 54; break;
-        default: break;
-    }
-
-    var cost = lookupCrateCost(output_count);
-
-    switch(size) {
-        case "small": cost *= 1.4; break;
-        case "medium": cost *= 1.2; break;
-        case "large": break;
-        default: break;
-    }
-
     var crate_object = {
-        'cost': Math.floor(cost),
-        'count': output_count,
-        'size': size
+        'cost': 30000000,
+        'count': 12    
     }
 
     return crate_object;
-}
-
-var getGraphData = function() {
-    var graph_data = {
-        'common': [],
-        'uncommon': [],
-        'rare': [],
-        'legendary': [],
-        'masterpiece': []
-    };
-
-    for (var i=0; i < 51; i+=10) {
-        var percentage_map = calcPercentageMap(i);
-
-        ARTWORK_RARITIES.forEach(function(rarity) {
-            graph_data[rarity].push(percentage_map[rarity]);
-        });
-    }
-
-    return graph_data;
-}
-
-var rarities = ['common', 'uncommon', 'rare', 'legendary', 'masterpiece'];
-
-getSmartRarityMap = function(level, amplifier) {
-    var smart_map = getLootData().smart_map;
-
-    if (level >= 50)
-        return smart_map[50];
-
-    else {
-        var first_index = Math.floor(level / 10) * 10;
-        var second_index = Math.ceil(level / 10) * 10;
-        var map_one = smart_map[first_index];
-        var map_two = smart_map[second_index];
-
-        var level_ratio = (level % 10) / 10;
-
-        var generated_map = {};
-
-        rarities.forEach(function(rarity) {
-            var difference = map_two[rarity] - map_one[rarity];
-            var value = map_one[rarity] + (level_ratio * difference);
-
-            var max_reduction_coefficient;
-
-            switch(rarity) {
-                case "common": max_reduction_coefficient = .4; break;
-                case "uncommon": max_reduction_coefficient = .3; break;
-                case "rare": max_reduction_coefficient = .2; break;
-                case "legendary": max_reduction_coefficient = .1; break;
-                case "masterpiece": max_reduction_coefficient = 0; break;
-                default: max_reduction_coefficient = 1; break;
-            }
-            
-            weighted_value = value * (1 - (max_reduction_coefficient * amplifier));
-
-            generated_map[rarity] = Math.ceil(weighted_value);
-        });
-
-        return generated_map;
-    }
-}
-
-var calcPercentageMap = function(level) {
-    var generated_map = getSmartRarityMap(level, 0);
-
-    var value_total = 0;
-
-    var percentage_map = {};
-
-    rarities.forEach(function(rarity) {
-        value_total += generated_map[rarity];
-    });
-
-    rarities.forEach(function(rarity) {
-        var percent_chance = generated_map[rarity] / value_total;
-        percentage_map[rarity] = percent_chance;
-    });
-
-    return percentage_map;
-};
-
-testMap = function(loot_map) {
-    var roll_counts = {
-        'common': 0,
-        'uncommon': 0,
-        'rare': 0,
-        'legendary': 0,
-        'masterpiece': 0
-    };
-
-    for (var i=0; i < 10000; i++) {
-        var rarity_rolled = JepLoot.catRoll(loot_map);
-        roll_counts[rarity_rolled] += 1;
-    }
-
-    return roll_counts;
 }
 
 getRandomArtworkIFFromRarity = function(rarity) {

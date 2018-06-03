@@ -1,5 +1,5 @@
 benefactorInteraction = function(npc_object, player_interface) {
-	var max_donation = getAverageDropValue(Meteor.user().profile.level, 0) * 6;
+	var max_donation = getAverageDropValue(Meteor.user().profile.level, 0) * 4;
 	
 	var donation_amount;
 

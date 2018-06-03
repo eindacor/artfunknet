@@ -2,9 +2,9 @@
 	<div class="template-store container">
 		<h1 class="af-color">Store</h1>
 		<div class="crate-buttons row">
-			{{#each crate_button}}
-			<button data-crate_size="{{size}}" class="crate-button {{#if can_afford cost}}enabled{{else}}disabled{{/if}}">{{size}} crate ({{count}} items)<p>{{displayAsMoneyValue cost}}</p></button>
-			{{/each}}
+			{{#with crate_button}}
+			<button class="crate-button {{#if can_afford cost}}enabled{{else}}disabled{{/if}}">standard crate ({{count}} items)<p>{{displayAsMoneyValue cost}}</p></button>
+			{{/with}}
 			<button class="inventory-expansion-button {{#if can_afford expansion_cost}}enabled{{else}}disabled{{/if}}">inventory expansion (#{{expansion_number}})<p>{{displayAsMoneyValue expansion_cost}}</p></button>
 		</div>
 		<div class="row dynamic-crate-area">
@@ -19,8 +19,13 @@
 				{{/if}}
 				{{/each}}
 				<p class="{{quality}} highlight">limited {{quality}} crate</p>
-				<p class="crate-cost-section">{{displayAsMoneyValue cost}} ({{dynamic_remaining _id}} remaining)</p>
-				<p class="crate-cost-section">required level: {{level_requirement}}</p>
+				{{#if level_requirement_met}}
+				<p class="crate-cost-section"><span class=" {{#if this.can_afford}}{{else}}highlight red-text{{/if}}">{{displayAsMoneyValue cost}}</span> <span class="{{#if limit_not_reached}}{{else}}highlight red-text{{/if}}">({{dynamic_remaining _id}} remaining)</span></p>
+				{{else}}
+				{{/if}}
+				{{#if level_requirement}}
+				<p class="crate-cost-section {{#if level_requirement_met}}{{else}}highlight red-text{{/if}}">required level: {{level_requirement}}</p>
+				{{/if}}
 				<p class="highlight">{{crate_time_left expiration}}</p>
 			</div>
 			{{/each}}

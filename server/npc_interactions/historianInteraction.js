@@ -2,7 +2,7 @@ var generateTarget = function(default_target_count) {
 	var target = [];
 
 	for (var i=0; i<default_target_count; i++) {
-		var rarity_rolled = JepLoot.catRoll(getSmartRarityMap(Meteor.user().profile.level, 0));
+		var rarity_rolled = getRarityDropMapCache()[Meteor.user().profile.level].getRandom()
 
 		if (rarity_rolled == "legendary" || rarity_rolled == "masterpiece")
 			rarity_rolled = "rare";
@@ -112,15 +112,17 @@ historianInteraction = function(npc_object, player_interface) {
 	
 		var map_amplifier;
 	
-		switch(npc_object.quality) {
-	        case 'bronze': map_amplifier = 0; break;
-	        case 'silver': map_amplifier = .2; break;
-	        case 'gold': map_amplifier = .4; break;
-	        case 'platinum': map_amplifier = .8; break;
-	        default: map_amplifier = 0; break;
-		}
+		// TODO do something with npc quality
+		// switch(npc_object.quality) {
+	 //        case 'bronze': map_amplifier = 0; break;
+	 //        case 'silver': map_amplifier = .2; break;
+	 //        case 'gold': map_amplifier = .4; break;
+	 //        case 'platinum': map_amplifier = .8; break;
+	 //        default: map_amplifier = 0; break;
+		// }
+
+		var rarity_roll = getRarityDropMapCache()[Meteor.user().profile.level].getRandom();
 	
-	    var rarity_roll = JepLoot.catRoll(getSmartRarityMap(Meteor.user().profile.level, map_amplifier));
 	    var quest_object = generateQuest(rarity_roll, isOwnGallery(npc_object), player_interface);
 	    quests.insert(quest_object);
 	

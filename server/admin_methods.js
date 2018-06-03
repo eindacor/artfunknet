@@ -46,12 +46,6 @@ Meteor.methods({
 		}
 	},
 
-	'updateCrateDropCount': function(value) {
-		if (adminValidated()) {
-			admin_settings.crate_drop_count = value;
-		}
-	},
-
 	'generateForSale': function() {
 		if (adminValidated()) {
             var multi_item_generator = {
@@ -120,6 +114,24 @@ Meteor.methods({
         }
     },
 
+    'setCostPerMasterpiece': function(value) {
+        if (adminValidated()) {
+            setCostPerMasterpiece(value);
+        }
+    },
+
+    'setCrateCost': function(value) {
+        if (adminValidated()) {
+            setCrateCost(value);
+        }
+    },
+
+    'updateCrateDropCount': function(value) {
+        if (adminValidated()) {
+            updateCrateDropCount(value);
+        }
+    },
+
 	'getAdminData': function() {
 		var user_object = Meteor.user();
 
@@ -130,13 +142,15 @@ Meteor.methods({
 				'player_level': user_object.profile.level,
 				'player_xp': user_object.profile.xp,
 				'daily_drop_count': admin_settings.daily_drop_count,
-				'crate_drop_count': admin_settings.crate_drop_count,
+				'crate_drop_count': loot_data.items_per_basic_crate,
 				'bank_balance': user_object.profile.bank_balance,
 				'seasonal_ids': getAllSeasonalIds(),
                 'foil_chance': loot_data.global_foil_chance,
                 'patreon_chance': loot_data.global_patreon_chance,
                 'unlocked_chance': loot_data.global_unlocked_chance,
-                'misprint_chance': loot_data.global_misprint_chance
+                'misprint_chance': loot_data.global_misprint_chance,
+                'money_spent_per_masterpiece_drop': loot_data.crate_expense_per_masterpiece,
+                'crate_cost': loot_data.basic_crate_cost
 			}
 		}
 	},
@@ -227,9 +241,9 @@ Meteor.methods({
         }
 	},
 
-    'rotateSeasonalItems': function() {
+    'rotateSeasonalItems': function(rarities, increment_next_rotation) {
         if (adminValidated()) {
-            rotateSeasonalItems(SEASONAL_RARITIES, false);
+            rotateSeasonalItems(rarities, increment_next_rotation);
         }
     },
 
@@ -693,7 +707,7 @@ Meteor.methods({
             var roll_count = 100000;
             var drop_map = {};
             for (var i=0; i<roll_count; i++) {
-                var rolled_id = getRandomNonSeasonalIdFromRarity(rarity);
+                var rolled_id = getRandomIdFromRarity(rarity);
                 if (drop_map[rolled_id] == undefined) {
                     drop_map[rolled_id] = 1;
                 }
@@ -723,6 +737,17 @@ Meteor.methods({
                 'high_count': drop_map[highest]
             }
         }
+    },
+
+    'getRarityGraphData': function() {
+        if (adminValidated()) {
+            setLootData();
+            return getGraphData();
+        }
+    },
+
+    'getTestResults': function(level) {
+        return testMap(getRarityMap(level));
     }
 })
 
@@ -750,4 +775,62 @@ var getIdleBetaKeys = function() {
     })
 
     return idle_keys;
+}
+
+var getGraphData = function() {
+    var graph_data = {
+        'common': [],
+        'uncommon': [],
+        'rare': [],
+        'legendary': [],
+        'masterpiece': []
+    };
+
+    for (var i=0; i <= PLAYER_LEVEL_MAX; i++) {
+        var percentage_map = calcPercentageMap(i);
+
+        ARTWORK_RARITIES.forEach(function(rarity) {
+            graph_data[rarity].push(percentage_map[rarity]);
+        });
+    }
+
+    return graph_data;
+}
+
+var calcPercentageMap = function(level) {
+    var generated_map = getRarityMap(level);
+
+    var value_total = 0;
+
+    var percentage_map = {};
+
+    ARTWORK_RARITIES.forEach(function(rarity) {
+        value_total += generated_map[rarity];
+    });
+
+    ARTWORK_RARITIES.forEach(function(rarity) {
+        var percent_chance = 100 * (generated_map[rarity] / value_total);
+        percentage_map[rarity] = percent_chance;
+    });
+
+    return percentage_map;
+};
+
+testMap = function(loot_map) {
+    var roll_counts = {
+        'common': 0,
+        'uncommon': 0,
+        'rare': 0,
+        'legendary': 0,
+        'masterpiece': 0
+    };
+
+    var loot_map_cache = new MapCacheIF(loot_map);
+
+    for (var i=0; i < 10000; i++) {
+        var rarity_rolled = loot_map_cache.getRandom();
+        roll_counts[rarity_rolled] += 1;
+    }
+
+    return roll_counts;
 }

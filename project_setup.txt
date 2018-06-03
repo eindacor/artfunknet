@@ -1,0 +1,35 @@
+artfunkel local setup instructions
+
+clone artfunknet repository
+
+install following npm packages:
+	npm install --save babel-runtime
+	npm install --save bcrypt@2.0.1
+
+from the directory CONTAINING the repo directory run:
+	meteor create artfunknet --release 1.6.0.1
+
+let meteor create project. unstage any changes made to .gitignore within the repository
+
+within the artfunknet/.meteor directory, open the packages file in an editor. here you can add or remove packages to run as part of the meteor application.
+make the following edits:
+
+	remove or comment the "insecure" package
+
+	add the following packages to the list:
+		accounts-ui
+		accounts-password
+		iron:router
+		momentjs:moment
+		eindacords:jeplootjs
+		chart:chart
+		meteorhacks:aggregate
+		email
+		session
+		jquery
+		mrt:bootstrap-3
+		mrt:jquery-ui
+		peppelg:bootstrap-3-modal
+		
+from the repo directory, run:
+	meteor --settings settings.json

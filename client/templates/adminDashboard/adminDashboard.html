@@ -6,19 +6,7 @@
 				<h1 class="af-color">Admin Tools</h1>
 				<div class="row tools-section">
 					<h4 class="af-color">Drop Data</h4>
-					<canvas id="drop-chart" width="1000px" height="600px">{{updateChart}}</canvas>
-					<table id="rarity-map-table">
-					{{#each ARTWORK_RARITIES}}
-						<tr class="rarity-row {{this}}" data-rarity="{{this}}">
-							{{#each increment this}}
-							<td>
-								<input class="rarity-map-value-input" data-level="{{level}}" value="{{value}}">
-							</td>
-							{{/each}}
-						</tr>
-					{{/each}}
-					</table>
-					<p><button id="save-rarity-map">update</button></p>
+					<canvas id="drop-chart" width="1500px" height="600px">{{updateChart}}</canvas>
 					{{#with test_results}}
 					<p><span class="common">common</span>: {{common}} ({{calcPercentage common}})</p>
 					<p><span class="uncommon">uncommon</span>: {{uncommon}} ({{calcPercentage uncommon}})</p>
@@ -28,7 +16,6 @@
 					{{/with}}
 					<p><input class="test-map-level" value="50"></p>
 					<p><button id="test-rarity-map">test</button></p>
-					<p>{{current_map}}</p>
 				</div>
 
 				<div class="row tools-section">
@@ -43,10 +30,12 @@
 
 				<div class="row tools-section">
 					<div class="col-xs-12">
+						{{> settable_field set_id="set_crate_drop" current=crate_drop_count button_id="update-crate-drop-count" label="crate count"}}
+						{{> settable_field set_id="set_cost_per_mp" current=money_spent_per_masterpiece_drop button_id="set-cost-per-mp" label="cost per mp"}}
+						{{> settable_field set_id="set_crate_cost" current=crate_cost button_id="set-crate-cost" label="crate cost"}}
 						{{> settable_field set_id="set_level" current=player_level button_id="level-set" label="admin level"}}
 						{{> settable_field set_id="set_xp" current=player_xp id="xp-set" label="admin xp"}}
 						{{> settable_field set_id="set_daily_drop" current=daily_drop_count button_id="update-daily-drop-count" label="daily drop count"}}
-						{{> settable_field set_id="set_crate_drop" current=crate_drop_count button_id="update-crate-drop-count" label="crate count"}}
 						{{> settable_field set_id="set_bank_balance" current=bank_balance button_id="set-bank-balance" label="bank balance"}}
 						{{> settable_field set_id="set_seasonal" current=seasonal_ids button_id="set-seasonal" label="seasonal items"}}
 						{{> settable_field set_id="set_foil_chance" current=foil_chance button_id="set-foil" label="foil chance"}}

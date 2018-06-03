@@ -14,12 +14,39 @@ ARTWORK_DROP_ODDS = undefined;
 
 LOOT_DATA = undefined;
 
-// DROP_ID_INDICES is a static array of artwork id's. When an item is generated, it randomly selects an index of the array to identify the artwork.
-// Items with a higher value scale have fewer "shares" in the static array, meaning they will appear less frequently
-DROP_ID_INDICES = undefined;
+ARTWORK_DROP_MAP_CACHE = undefined;
 
-// DROP_INDEX_SUMTOTALS is a static counter that tracks the number of total "shares" in the DROP_ID_INDICES array to quickly identify drop probabilities.
-DROP_INDEX_SUMTOTALS = undefined;
+AVERAGE_ITEM_VALUE_BY_RARITY_CACHE = undefined;
+
+BASIC_CRATE_UPCOST_FROM_AVG_VALUE = undefined;
+
+getBasicCrateUpcostFromAverageValue = function() {
+    if (BASIC_CRATE_UPCOST_FROM_AVG_VALUE == undefined) {
+        updateBasicCrateUpcostFromAverageValue();
+    }
+
+    return BASIC_CRATE_UPCOST_FROM_AVG_VALUE;
+}
+
+updateBasicCrateUpcostFromAverageValue = function() {
+    var crate_expense_per_masterpiece = getLootData().crate_expense_per_masterpiece;
+    var basic_crate_cost = getLootData().basic_crate_cost;
+    var items_per_basic_crate = getLootData().items_per_basic_crate;
+
+    var max_level_rarity_map = getRarityMap(PLAYER_LEVEL_MAX);
+
+    var average_drop_value = 0;
+
+    for (var i=0; i<ARTWORK_RARITIES.length; i++) {
+        var rarity = ARTWORK_RARITIES[i];
+        average_drop_value += (getAverateItemValueByRarityCache()[rarity] * max_level_rarity_map[rarity]);
+    }
+
+    // TODO seasonal/foil/unlocked
+
+    var total_value = average_drop_value * items_per_basic_crate;
+    BASIC_CRATE_UPCOST_FROM_AVG_VALUE = basic_crate_cost / total_value;
+}
 
 getLootData = function() {
     var loot_data_copy = JSON.parse(JSON.stringify(LOOT_DATA));
@@ -28,14 +55,7 @@ getLootData = function() {
 
 setLootData = function() {
     LOOT_DATA = metadata.findOne({'loot_data': {$ne: null}}).loot_data;
-}
-
-getDropIndexSumtotal = function(rarity) {
-    if (DROP_INDEX_SUMTOTALS == undefined) {
-        updateDropIndices();
-    }
-    
-    return DROP_INDEX_SUMTOTALS[rarity];
+    updateBasicCrateUpcostFromAverageValue();
 }
 
 getDropIndexShares = function(value_scale) {
@@ -43,36 +63,18 @@ getDropIndexShares = function(value_scale) {
 }
 
 updateDropIndices = function() {
-    DROP_ID_INDICES = {
-        'common': [],
-        'uncommon': [],
-        'rare': [],
-        'legendary': [],
-        'masterpiece': []
-    };
+    ARTWORK_DROP_MAP_CACHE = {};
 
-    DROP_INDEX_SUMTOTALS = {
-        'common': 0,
-        'uncommon': 0,
-        'rare': 0,
-        'legendary': 0,
-        'masterpiece': 0
-    };
-
-    var seasonal_ids = getAllSeasonalIds();
-
-    var all_artworks = artworks.find({'_id': {$nin: seasonal_ids}, 'active': true}).fetch();
-
-    for (var i=0; i<all_artworks.length; i++) {
-        var artwork_object = all_artworks[i];
-        var rarity = artwork_object.rarity;
-        var value_scale = artwork_object.value_scale;
-        var actual_shares = getDropIndexShares(artwork_object.value_scale);
-        DROP_INDEX_SUMTOTALS[rarity] += actual_shares;
-
-        for (var n=0; n<actual_shares; n++) {
-            DROP_ID_INDICES[rarity].push(artwork_object._id);
+    for (var i=0; i<ARTWORK_RARITIES.length; i++) {
+        var rarity = ARTWORK_RARITIES[i];
+        var artwork_rarity_map = {};
+        var all_artworks_of_rarity = artworks.find({'active': true, 'rarity': rarity}).fetch();
+        for (var c=0; c<all_artworks_of_rarity.length; c++) {
+            var artwork_object_of_rarity = all_artworks_of_rarity[c];
+            artwork_rarity_map[artwork_object_of_rarity._id] = Math.floor(artwork_object_of_rarity.value_scale * 100);
         }
+
+        ARTWORK_DROP_MAP_CACHE[rarity] = new MapCacheIF(artwork_rarity_map);
     }
 }
 
@@ -87,8 +89,11 @@ rotateSeasonalItems = function(rarities, increment_next_rotation) {
 
         if (increment_next_rotation) {
             var rotation_frequency = SEASONAL_ITEM_ROTATION_FREQUENCIES[rarity];
-            var last_rotation = moment(rotation_setter[rarity]);
-            rotation_setter[rarity] = last_rotation.add(1, rotation_frequency)._d.toISOString();
+            var last_rotation = getLootData().seasonal_rotation[rarity];
+            if (last_rotation == undefined) {
+                last_rotation = getNowISOString();
+            }
+            rotation_setter[rarity] = moment(last_rotation).add(1, rotation_frequency)._d.toISOString();
         }    
     }
 
@@ -130,14 +135,12 @@ getNewSeasonalIds = function(rarity) {
     return random_artwork_ids;
 }
 
-getRandomNonSeasonalIdFromRarity = function(rarity) {
-    if (DROP_ID_INDICES == undefined) {
+getRandomIdFromRarity = function(rarity) {
+    if (ARTWORK_DROP_MAP_CACHE == undefined) {
         updateDropIndices();
     }
 
-    var sumtotal = DROP_INDEX_SUMTOTALS[rarity];
-    var random_index = Math.floor(Math.random() * sumtotal);
-    return DROP_ID_INDICES[rarity][random_index];
+    return ARTWORK_DROP_MAP_CACHE[rarity].getRandom();
 }
 
 serializeSpecialCombination = function(attribute_array) {
@@ -159,6 +162,7 @@ updateArtwork = function(artwork_id, modifier) {
                 updateItemAttributesWithNewArtworkData(new ItemIF(item_object));
             })
 
+            updateAverageItemValueByRarityCache();
             updateActiveArtworkCache();
         }
     })
@@ -179,7 +183,7 @@ updateActiveArtworkCache = function() {
         var artwork_object = all_artworks[i];
         local_cache[artwork_object.rarity].push(artwork_object._id);
 
-        if (["rare", "legendary", "masterpiece"].indexOf(artwork_object.rarity) != -1) {
+        if ([RARE, LEGENDARY, MASTERPIECE].indexOf(artwork_object.rarity) != -1) {
             var serialized_specials = serializeSpecialCombination(artwork_object.special_attributes);
             if (local_cache.special_attribute_map[serialized_specials] == undefined) {
                 local_cache.special_attribute_map[serialized_specials] = [artwork_object._id];
@@ -192,8 +196,51 @@ updateActiveArtworkCache = function() {
 
     ACTIVE_ARTWORK_CACHE = local_cache;
 
+    updateAverageItemValueByRarityCache();
     updateDropIndices();
     updateArtworkDropOdds();
+}
+
+getAverateItemValueByRarityCache = function() {
+    if (AVERAGE_ITEM_VALUE_BY_RARITY_CACHE == undefined) {
+        updateAverageItemValueByRarityCache();
+    }
+
+    return AVERAGE_ITEM_VALUE_BY_RARITY_CACHE;
+}
+
+updateAverageItemValueByRarityCache = function() {
+    AVERAGE_ITEM_VALUE_BY_RARITY_CACHE = {};
+
+    var rarity_base_value_totals = {
+        'common': 0,
+        'uncommon': 0,
+        'rare': 0,
+        'legendary': 0,
+        'masterpiece': 0,
+    }
+
+    var artwork_rarity_counts = {
+        'common': 0,
+        'uncommon': 0,
+        'rare': 0,
+        'legendary': 0,
+        'masterpiece': 0,
+    }
+
+    var all_artworks = artworks.find({'active': true}).fetch();
+    for (var i=0; i<all_artworks.length; i++) {
+        var artwork_object = all_artworks[i];
+        var mint_value = getMintValueFromArtworkObject(artwork_object);
+        var actual_value = getActualValueFromMintValue(mint_value, .5);
+        rarity_base_value_totals[artwork_object.rarity] += actual_value;
+        artwork_rarity_counts[artwork_object.rarity] += 1;
+    }
+
+    for (var i=0; i<ARTWORK_RARITIES.length; i++) {
+        var rarity = ARTWORK_RARITIES[i];
+        AVERAGE_ITEM_VALUE_BY_RARITY_CACHE[rarity] = rarity_base_value_totals[rarity] / artwork_rarity_counts[rarity];
+    }
 }
 
 getActiveArtworkCache = function() {
@@ -203,11 +250,13 @@ getActiveArtworkCache = function() {
 updateArtworkDropOdds = function() {
     var all_artworks = artworks.find({'active': true}).fetch();
     ARTWORK_DROP_ODDS = {};
-    for (var i=0; i<all_artworks.length; i++) {
-        var artwork_object = all_artworks[i];
-        var drop_index_shares = getDropIndexShares(artwork_object.value_scale);
-        var drop_index_sumtotal = getDropIndexSumtotal(artwork_object.rarity);
-        ARTWORK_DROP_ODDS[artwork_object._id] = drop_index_shares/drop_index_sumtotal;
+    for (var i=0; i<ARTWORK_RARITIES.length; i++) {
+        var rarity = ARTWORK_RARITIES[i];
+        var all_artworks = artworks.find({'rarity': rarity}).fetch();
+        for (var c=0; c<all_artworks.length; c++) {
+            var artwork_id = all_artworks[c]._id;
+            ARTWORK_DROP_ODDS[artwork_id] = all_artworks[c].active ? ARTWORK_DROP_MAP_CACHE[rarity].getProbability(artwork_id) : 0;
+        }
     }
 
     items.find().forEach(function(item_object) {
@@ -227,16 +276,22 @@ getArtworkDropOdds = function(artwork_id) {
 }
 
 getItemOddsString = function(item_object) {
-       var loot_data = getLootData();
+    var loot_data = getLootData();
+
+    if (item_object.seasonal) {
+        var seasonal_ids = loot_data.seasonal_items[item_object.artwork_data.rarity];
+        if (seasonal_ids == undefined || seasonal_ids.indexOf(item_object.artwork_id) == -1) {
+            return "0";
+        }
+    }
 
     if (item_object.original || 
         item_object.lottery || 
-        artworks.findOne({'_id': item_object.artwork_id, 'active': false}) != undefined ||
-        (item_object.seasonal && loot_data.seasonal_items[item_object.artwork_data.rarity].indexOf(item_object.artwork_id) == -1)) {
+        artworks.findOne({'_id': item_object.artwork_id, 'active': false}) != undefined) {
         return "0";
     }
 
-    var standard_map = getDefaultRarityMap();
+    var standard_map = getRarityMap(50);
     var keys = Object.keys(standard_map);
     var sumtotal = 0;
     for (var i=0; i<keys.length; i++) {

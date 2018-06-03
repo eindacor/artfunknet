@@ -64,6 +64,7 @@ createPlayer = function(user_object, callback){
     user_object.profile.visitor_ignore_coefficient = 0;
     user_object.profile.visitor_ignore_proc_count = 0;
     user_object.profile.favorite_galleries = [];
+    user_object.profile.last_activity = getNowISOString();
     user_object.profile.notifications = {
         'procs': [],
         'money': [],

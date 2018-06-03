@@ -121,7 +121,7 @@ Template.navbar.helpers({
 
 	'hasLoot' : function() {
 		var last_drop = Meteor.user().profile.last_drop;
-		if ((moment(Session.get('now')) - moment(last_drop) > 10800000))
+		if ((moment(Session.get('now')) - moment(last_drop) > ONE_DAY))
 			return true;
 
 		return items.findOne({'owner': Meteor.userId(), 'status': {$in: ["unclaimed", "won"]}}) !== undefined;
