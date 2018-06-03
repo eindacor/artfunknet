@@ -3,7 +3,7 @@ auctioneerInteraction = function(npc_object, player_interface) {
 
 	var market_expert_duration = 10; //minutes
 	var market_expert_duration_extension = 5; // minutes
-	var auction_count = 6;
+	var auction_count = 5;
 
 	switch(npc_object.quality) {
 		case 'bronze': 
@@ -30,10 +30,10 @@ auctioneerInteraction = function(npc_object, player_interface) {
 	if (isOwnGallery(npc_object)) {
 		market_expert_duration = Math.floor(market_expert_duration * 2.5);
 		market_expert_duration_extension = Math.floor(market_expert_duration_extension * 2.5);
-		auction_count += 3;
+		auction_count += 1;
 
 		if (player_interface.procUniqueAttribute("DONOR_AUCTIONEER_TRADE", "Art Donor")) {
-			auction_count += 4;
+			auction_count += 1;
 		}
 
 		if (player_interface.procUniqueAttribute("AUCTIONEER_REPUTATION_INCREASE", undefined)) {

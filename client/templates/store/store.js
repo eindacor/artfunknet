@@ -1,6 +1,6 @@
 var crate_tracker = new Tracker.Dependency;
 var expansion_tracker = new Tracker.Dependency;
-var crate_objects = undefined;
+var crate_object = undefined;
 var expansion_cost = undefined;
 var dynamic_crates = undefined;
 var dynamic_crate_tracker = new Tracker.Dependency;
@@ -17,13 +17,13 @@ var getExpansionSlotCost = function() {
 	});
 }
 
-var getCrates = function() {
-	Meteor.call('getCrates', function(error, result) {
+var getCrate = function() {
+	Meteor.call('getCrate', function(error, result) {
 		if (error)
 			console.log(error);
 
 		else {
-			crate_objects = result;
+			crate_object = result;
 			crate_tracker.changed();
 		}
 	})
@@ -47,8 +47,9 @@ Template.store.helpers({
 	},
 
 	'can_afford': function(cost) {
-		if (cost)
+		if (cost) {
 			return Meteor.user().profile.bank_balance >= cost;
+		}
 
 		else return false;
 	},
@@ -78,11 +79,11 @@ Template.store.helpers({
 
 	'crate_button' : function() {
 		crate_tracker.depend();
-		if (crate_objects == undefined) {
-			getCrates();
+		if (crate_object == undefined) {
+			getCrate();
 		}
 
-		else return crate_objects;
+		else return crate_object;
 	},
 
 	'has_for_sale': function() {
@@ -152,8 +153,7 @@ Template.store.events ({
 		}
 
 		else {
-			var crate_size = ($(element.target).data().crate_size);
-			Meteor.call('openCrate', crate_size, function(error, result) {
+			Meteor.call('openCrate', function(error, result) {
 				if (error)
 					console.log(error);
 			})
@@ -253,11 +253,11 @@ Template.forSaleInfo.helpers({
 })
 
 Template.store.rendered = function() {
-	crate_objects = undefined;
+	crate_object = undefined;
 	expansion_cost = undefined;
 	dynamic_crates = undefined;
 	getDynamicCrates();
-	getCrates();
+	getCrate();
 	getExpansionSlotCost();
 
 	this.handle = Meteor.setInterval((function() {

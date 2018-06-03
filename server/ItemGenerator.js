@@ -1,8 +1,4 @@
 ItemGenerator = function() {
-	var lowest_possible_value_coefficient = .4;
-	var condition_coefficient_max = .4;
-	var attribute_coefficient_max = .2;
-
 	var getSpecialAttributes = function(rarity, attribute_map) {
 		var attribute_map_copy = JSON.parse(JSON.stringify(attribute_map));
 		var special_attribute_count = ARTWORK_RARITIES.indexOf(rarity) - 1;
@@ -17,17 +13,10 @@ ItemGenerator = function() {
 		return rolled_special_attributes;
 	}
 
-	var selectArtwork = function(rarity, attribute_map, seasonal_amplifier) {
-		// run seasonal proc, select seasonal if successful
-	    if (SEASONAL_RARITIES.indexOf(rarity) != -1) {
-	        if (Math.random() < (calcSeasonalChance(rarity) * seasonal_amplifier)) {
-	            return new ArtworkIF(artworks.findOne({'_id': {$in: getLootData().seasonal_items[rarity] }, 'active': true, 'rarity': rarity}));
-	        }
-	    }
-
+	var selectArtwork = function(rarity, attribute_map) {
 	    // if no attribute map is specified, drop should be purely based on value scale
 	    if (attribute_map == undefined) {
-	    	return new ArtworkIF(artworks.findOne(getRandomNonSeasonalIdFromRarity(rarity)));
+	    	return new ArtworkIF(artworks.findOne(getRandomIdFromRarity(rarity)));
 	    }
 
 		var special_attributes = getSpecialAttributes(rarity, attribute_map);
@@ -123,6 +112,10 @@ ItemGenerator = function() {
 	    return artwork_data;
 	}
 
+	var getItemRarity = function(multi_item_generator_object, player_level) {
+    	return multi_item_generator_object.rarity_map === undefined ? getRarityDropMapCache()[player_level].getRandom() : JepLoot.catRoll(multi_item_generator_object.rarity_map);
+	}
+
 	/*
 		multi_item_generator fields:
 			---REQUIRED---
@@ -131,12 +124,8 @@ ItemGenerator = function() {
 			status
 
 			---OPTIONAL---
-			rarity_map_level
-				or
 			rarity_map
-		
 			map_amplifier
-			seasonal_amplifier
 			attribute_map
 			condition_min
 			level
@@ -156,28 +145,14 @@ ItemGenerator = function() {
 
  		var item_ids = [];
 
- 		var rarity_map;
-
- 		if (multi_item_generator_object.rarity_map === undefined) {
- 			var player_level = player_interface === undefined ? PLAYER_LEVEL_MAX : player_interface.getPlayerLevel();
-	 		var rarity_map_level = multi_item_generator_object.rarity_map_level === undefined ? player_level : multi_item_generator_object.rarity_map_level;
-	 		var map_amplifier = multi_item_generator_object.map_amplifier === undefined ? .8 : multi_item_generator_object.map_amplifier;
-
-	 		rarity_map = getSmartRarityMap(rarity_map_level, map_amplifier)
- 		}
-
- 		else {
- 			rarity_map = multi_item_generator_object.rarity_map;
- 		}
-
- 		var seasonal_amplifier = multi_item_generator_object.seasonal_amplifier === undefined ? 1 : multi_item_generator_object.seasonal_amplifier;
-
  		var attribute_map = multi_item_generator_object.attribute_map === undefined ? undefined : multi_item_generator_object.attribute_map;
  		var forgery_chance = multi_item_generator_object.forgery_chance === undefined ? 0 : multi_item_generator_object.forgery_chance;
+ 		var rarity_map_cache = multi_item_generator_object.rarity_map === undefined ? getRarityDropMapCache()[player_interface === undefined ? PLAYER_LEVEL_MAX : player_interface.getPlayerLevel()] : new MapCacheIF(multi_item_generator_object.rarity_map);
 
 	    for (var i=0; i < parseInt(multi_item_generator_object.count); i++) {
-	    	var rarity_roll = JepLoot.catRoll(rarity_map);
-	        var artwork_interface = selectArtwork(rarity_roll, attribute_map, seasonal_amplifier);
+	    	var rarity_roll = rarity_map_cache.getRandom();
+
+	        var artwork_interface = selectArtwork(rarity_roll, attribute_map);
 	        var forgery = multi_item_generator_object.forgery === undefined ? Math.random() < forgery_chance : multi_item_generator_object.forgery;
 	        var min_roll_boost = multi_item_generator_object.min_roll_boost === undefined ? 0 : multi_item_generator_object.min_roll_boost;
 
@@ -236,12 +211,9 @@ ItemGenerator = function() {
 			artwork_interface
 
 			---OPTIONAL---
-			rarity_map_level
-				or
 			rarity_map
 		
 			map_amplifier
-			seasonal_amplifier
 			attribute_map
 			level
 

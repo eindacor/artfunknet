@@ -1,0 +1,17 @@
+log into EC2:
+	ssh -i <PEM KEY PATH> ubuntu@ec2-52-70-131-122.compute-1.amazonaws.com
+
+access DB:
+	docker exec -it mongodb mongo artfunkel
+	
+run DB backup:
+	docker exec -t mongodb mongodump --out=dump
+	
+copy dump from docker to EC2:
+	docker cp mongodb:dump/artfunkel <PATH ON EC2>
+	
+copy dump from EC2 to local machine:
+	scp -i <PEM KEY PATH> ubuntu@ec2-52-70-131-122.compute-1.amazonaws.com:<PATH ON EC2> <BACKUP DUMP PATH ON LOCAL>
+	
+setup local DB from dump:
+	mongorestore -d meteor --host 127.0.0.1 --port 3001 --drop <PATH TO BACKUP DUMPS>

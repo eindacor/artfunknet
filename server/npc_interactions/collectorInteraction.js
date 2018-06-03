@@ -13,10 +13,10 @@ collectorInteraction = function(npc_object, player_interface) {
 	var offer_multiplier;
 
 	switch(npc_object.quality) {
-		case 'bronze': offer_multiplier = 1.7; break;
-		case 'silver': offer_multiplier = 1.78; break;
-		case 'gold': offer_multiplier = 1.86; break;
-		case 'platinum': offer_multiplier = 1.94; break;
+		case 'bronze': offer_multiplier = 1.4; break;
+		case 'silver': offer_multiplier = 1.48; break;
+		case 'gold': offer_multiplier = 1.56; break;
+		case 'platinum': offer_multiplier = 1.64; break;
 		default: offer_multiplier = 0; break;
 	}
 

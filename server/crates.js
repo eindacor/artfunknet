@@ -32,10 +32,6 @@ PlayerCrateIF = function(player_interface, crate_id) {
 		return Math.min(chance, 1);
 	}
 
-	this.getSeasonalAmplifier = function() {
-		return crateContainsTypeBuff("seasonal") ? global_type_buff : 1;
-	}
-
 	this.getUnlockedChance = function() {
 		var chance = getLootData().global_unlocked_chance;
 		if (crateContainsTypeBuff("unlocked")) {
@@ -64,7 +60,6 @@ PlayerCrateIF = function(player_interface, crate_id) {
 	this.printCrate = function() {
 		console.log("-------");
 		console.log("foil chance: " + this.getFoilChance());
-		console.log("seasonal amplifier: " + this.getSeasonalAmplifier());
 		console.log("unlocked chance: " + this.getUnlockedChance());
 
 		var crate_seeds = crate_object.seeds;
@@ -83,8 +78,8 @@ PlayerCrateIF = function(player_interface, crate_id) {
 	this.getCost = function() {
 		var crate_seeds = crate_object.seeds;
 		
-		var rarity_map = this.getRarityMap(user_id, crate_id);
-		var average_drop_value = getAverageDropValueFromMap(rarity_map, this.getFoilChance(), this.getUnlockedChance(), this.getSeasonalAmplifier());
+		var rarity_map = this.getRarityMap();
+		var average_drop_value = getAverageDropValueFromMap(rarity_map, this.getFoilChance(), this.getUnlockedChance());
 
 		for (var i=0; i<crate_seeds.length; i++) {
 			var seed_object = crate_seeds[i];
@@ -95,15 +90,17 @@ PlayerCrateIF = function(player_interface, crate_id) {
 			}
 		}
 
-		return Math.floor(average_drop_value * crate_object.item_count * CRATE_UPCHARGE_COEFFICIENT);
+		var upcharge = Math.max(getCrateUpchargeCoefficient(player_interface.getPlayerLevel()) * .5, 1);
+
+		return Math.floor(average_drop_value * crate_object.item_count * upcharge);
 	}
 
 	this.getRarityMap = function() {
 		var crate_seeds = crate_object.seeds;
-		var loot_map = getSmartRarityMap(player_interface.getPlayerLevel(), .8);
+		var loot_map = getRarityMap(player_interface.getPlayerLevel());
 		for (var i=0; i<crate_seeds.length; i++) {
 			if (crate_seeds[i].type == "rarity") {
-				var rarity_boost_rate;
+				var rarity_boost_rate = 2;
 				var boost_rate_multiplier;
 
 				switch (crate_object.quality) {
@@ -114,15 +111,8 @@ PlayerCrateIF = function(player_interface, crate_id) {
 					default: boost_rate_multiplier = 1; break;
 				}
 
-				switch(crate_seeds[i].value) {
-					case "rare": rarity_boost_rate = 2; break;
-					case "legendary": rarity_boost_rate = 1.4; break
-					case "masterpiece": rarity_boost_rate = 1.4; break;
-					default: rarity_boost_rate = 1; break;
-				}
-
 				var base_rarity_map_value = loot_map[crate_seeds[i].value];
-				var boosted_rarity_map_value = Math.floor(base_rarity_map_value * rarity_boost_rate * boost_rate_multiplier);
+				var boosted_rarity_map_value = base_rarity_map_value * rarity_boost_rate * boost_rate_multiplier;
 				var map_delta = boosted_rarity_map_value - base_rarity_map_value;
 				// remove delta from common drop chance to ensure higher-tier drop rates stay the same
 				loot_map.common -= map_delta;
@@ -165,21 +155,18 @@ PlayerCrateIF = function(player_interface, crate_id) {
 	}
 
 	this.canOpen = function() {
-		if (!this.canAfford())
-			return false;
+		return this.canAfford() && this.limitNotReached() && this.levelRequirementMet();
+	}
 
-		var user_object = player_interface.getUserObject();
+	this.limitNotReached = function() {
+		var crate_purchases = player_interface.getUserObject().profile.crate_purchases;
+		return crate_purchases == undefined || 
+			crate_purchases[crate_id] == undefined || 
+			crate_purchases[crate_id] < DYNAMIC_CRATE_PURCHASE_LIMIT;
+	}
 
-		if (user_object.profile.level < crate_object.level_requirement)
-			return false;
-
-		if (user_object.profile.crate_purchases == undefined)
-			return true;
-
-		if (user_object.profile.crate_purchases[crate_id] == undefined)
-			return true;
-
-		return user_object.profile.crate_purchases[crate_id] < DYNAMIC_CRATE_PURCHASE_LIMIT;
+	this.levelRequirementMet = function() {
+		return player_interface.getPlayerLevel() >= crate_object.level_requirement;
 	}
 
 	this.open = function() {
@@ -195,7 +182,6 @@ PlayerCrateIF = function(player_interface, crate_id) {
 	            'foil_chance': this.getFoilChance(),
 	            'unlocked_chance': this.getUnlockedChance(),
 	            'misprint_chance': this.getMisprintChance(),
-	            'seasonal_amplifier': this.getSeasonalAmplifier(),
 	            'condition_min': this.getConditionMinimum(),
 	            'level': this.getItemLevel()
 	        }
@@ -218,9 +204,41 @@ PlayerCrateIF = function(player_interface, crate_id) {
 		        Meteor.users.update(user_id, {$inc: inc_object});
 		    }
 	    }
+	}
+}
 
-	    if (DEBUG)
-	    	this.printCrate();
+var getRaritySelectionMap = function(crate_quality) {
+	switch(crate_quality) {
+		case "bronze": 
+			return {
+				'rare': 25,
+				'legendary': 5,
+				'masterpiece': 1
+			};
+		case "silver": 
+			return {
+				'rare': 16,
+				'legendary': 4,
+				'masterpiece': 1
+			};
+		case "gold": 
+			return {
+				'rare': 9,
+				'legendary': 3,
+				'masterpiece': 1
+			};
+		case "platinum": 
+			return {
+				'rare': 4,
+				'legendary': 2,
+				'masterpiece': 1
+			};
+		default: 
+			return {
+				'rare': 25,
+				'legendary': 5,
+				'masterpiece': 1
+			};
 	}
 }
 
@@ -256,45 +274,7 @@ var getCrateSeeds = function(crate_quality) {
 
 		switch(seed_type_roll) {
 			case "rarity": 
-				var rarity_selection_map;
-
-				switch(crate_quality) {
-					case "bronze": 
-						rarity_selection_map = {
-							'rare': 25,
-							'legendary': 5,
-							'masterpiece': 1
-						};
-						break;
-					case "silver": 
-						rarity_selection_map = {
-							'rare': 16,
-							'legendary': 4,
-							'masterpiece': 1
-						};
-						break;
-					case "gold": 
-						rarity_selection_map = {
-							'rare': 9,
-							'legendary': 3,
-							'masterpiece': 1
-						};
-						break;
-					case "platinum": 
-						rarity_selection_map = {
-							'rare': 4,
-							'legendary': 2,
-							'masterpiece': 1
-						};
-						break;
-					default: 
-						rarity_selection_map = {
-							'rare': 25,
-							'legendary': 5,
-							'masterpiece': 1
-						};
-						break;
-				}
+				var rarity_selection_map = getRaritySelectionMap(crate_quality);
 
 				for (var i=2; i<ARTWORK_RARITIES.length; i++) {
 					if (rarities_added.indexOf(ARTWORK_RARITIES[i]) != -1) {
@@ -323,6 +303,10 @@ var getCrateSeeds = function(crate_quality) {
 			case "item_type": 
 				var elligible_types = [];
 				for (var i=0; i<CARD_TYPES.length; i++) {
+					if (CARD_TYPES[i] == "seasonal") {
+						continue;
+					}
+
 					if (types_added.indexOf(CARD_TYPES[i]) == -1) {
 						elligible_types.push(CARD_TYPES[i]);
 					}
@@ -347,7 +331,7 @@ var getCrateSeeds = function(crate_quality) {
 
 refreshCrates = function() {
 	crates.remove({});
-    for (var i=0; i<DYNAMIC_CRATE_COUNT; i++) {
+    for (var i=0; i<DYNAMIC_ITEMS_PER_CRATE; i++) {
         createCrate();
     }
     Meteor.users.update({}, {$set: {'profile.crate_purchases': {}}}, {multi: true});
@@ -366,9 +350,7 @@ createCrate = function() {
 
 	var crate_seeds = getCrateSeeds(crate_quality_roll);
 
-	var base_crate_duration = ONE_HOUR * 6;
-	if (DEBUG)
-		base_crate_duration = ONE_MINUTE;
+	var base_crate_duration = DEV_MODE ? ONE_MINUTE: ONE_HOUR * 6;
 	
 	var crate_duration;
 
@@ -383,21 +365,45 @@ createCrate = function() {
 	for (var i=0; i<crate_seeds.length; i++) {
 		var seed_object = crate_seeds[i];
 
-		if (seed_object.type == "rarity") {
-			switch(seed_object.value) {
-				case "rare": level_requirement = Math.max(level_requirement, 20); break;
-				case "legendary": level_requirement = Math.max(level_requirement, 30); break;
-				case "masterpiece": level_requirement = Math.max(level_requirement, 40); break;
-				default: level_requirement = 0; break;
-			}
-		}
 
-		if (seed_object.type == "item_type" && seed_object.value == "seasonal") {
-			level_requirement = Math.max(level_requirement, 30);
+		if (seed_object.type == "rarity") {
+			level_requirement = getRarityLevelRestrictions()[seed_object.value];
 		}
 	}
 
-	crates.insert({'owner_id': undefined, 'type': "public", 'quality': crate_quality_roll, 'seeds': crate_seeds, 'item_count': 6, 'level_requirement': level_requirement, 'expiration': moment().add(crate_duration, 'milliseconds')._d.toISOString()});
+	crates.insert({
+		'owner_id': undefined, 
+		'type': "public", 
+		'quality': crate_quality_roll, 
+		'seeds': crate_seeds, 
+		'item_count': 6, 
+		'level_requirement': level_requirement, 
+		'expiration': moment().add(crate_duration, 'milliseconds')._d.toISOString()});
+}
+
+getBasicCrateCost = function(player_level) {
+	if (player_level == PLAYER_LEVEL_MAX) {
+		return getLootData().basic_crate_cost;
+	}
+	var loot_data = getLootData();
+	var rarity_map = getRarityMap(player_level);
+	var average_drop_value = getAverageDropValueFromMap(rarity_map, loot_data.global_foil_chance, loot_data.global_unlocked_chance);
+
+	var item_count = loot_data.items_per_basic_crate;
+	
+	var upcharge = getCrateUpchargeCoefficient(player_level);
+
+	return Math.floor(item_count * average_drop_value * upcharge);
+}
+
+getCrateUpchargeCoefficient = function(player_level) {
+	var max_upcharge = getBasicCrateUpcostFromAverageValue();
+
+	var min_upcharge = Math.max(max_upcharge / 10, 2);
+
+	var upcharge_range = max_upcharge - min_upcharge;
+
+	return min_upcharge + ((player_level / PLAYER_LEVEL_MAX) * upcharge_range);
 }
 
 
@@ -419,6 +425,9 @@ Meteor.methods({
 			var player_crate_interface = new PlayerCrateIF(new PlayerIF(Meteor.user()), crate_objects[i]._id);
     		crate_objects[i].cost = player_crate_interface.getCost();
     		crate_objects[i].can_open = player_crate_interface.canOpen();
+    		crate_objects[i].can_afford = player_crate_interface.canAfford();
+    		crate_objects[i].limit_not_reached = player_crate_interface.limitNotReached();
+    		crate_objects[i].level_requirement_met = player_crate_interface.levelRequirementMet();
 		}
 
 		return crate_objects;

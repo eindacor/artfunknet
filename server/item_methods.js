@@ -424,20 +424,6 @@ var setItemActions = function(item_object, player_item_permissions) {
     item_object.item_modifiers = modifier_array;
 }
 
-var default_rarity_map = undefined;
-
-setDefaultRarityMap = function() {
-    default_rarity_map = getSmartRarityMap(50, 0);
-}
-
-getDefaultRarityMap = function() {
-    if (default_rarity_map == undefined) {
-        setDefaultRarityMap();
-    }
-
-    return default_rarity_map;
-}
-
 prepareItemForClient = function(item_object, viewer_interface) {
     if (item_object == undefined) {
         return;

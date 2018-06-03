@@ -4,7 +4,7 @@ artDealerInteraction = function(npc_object, player_interface) {
 	var level = 1;
 
 	if (isOwnGallery(npc_object)) {
-		drop_count += 2;
+		drop_count += 1;
 
 		if (player_interface.procUniqueAttribute("BONUS_DEALER_DONOR", undefined)) {
 			drop_count += 1;
@@ -12,7 +12,7 @@ artDealerInteraction = function(npc_object, player_interface) {
 
 		if (player_interface.getUserObject().profile.auction_data.winning.length > 0 && player_interface.procUniqueAttribute("AUCTION_COUNT_DEALER_BONUS", "Auctioneer")) {
 			var auction_count = player_interface.getUserObject().profile.auction_data.winning.length;
-			drop_count += Math.min(Math.ceil(auction_count / 4), 3);
+			drop_count += Math.min(Math.ceil(auction_count / 4), 2);
 		}
 
 		if ((items.findOne({'owner': player_interface.getId(), 'status': "displayed", 'condition': {$lt: .7}}) == undefined) && player_interface.procUniqueAttribute("DISPLAY_CONDITION_DEALER_BOOST", undefined)) {

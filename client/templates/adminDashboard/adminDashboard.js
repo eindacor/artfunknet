@@ -127,6 +127,8 @@ var setAdminData = function(set_id, value) {
 		case 'set_misprint_chance': method_name = 'setMisprintChance'; break;
 		case 'set_unlocked_chance': method_name = 'setUnlockedChance'; break;
 		case 'set_patreon_chance': method_name = 'setPatreonChance'; break;
+		case 'set_cost_per_mp': method_name = 'setCostPerMasterpiece'; break;
+		case 'set_crate_cost': method_name = 'setCrateCost'; break;
 		default: return;
 	}
 
@@ -145,6 +147,19 @@ var drawRarityGraph = function() {
 	if (graph_data) {
 		try {
 			var options = {
+				scales: {
+					yAxes: [{
+						ticks: {
+							callback: function(value, index, values) {
+								return value + '%';
+							}
+						},
+						type: '% chance of drop'
+					}],
+					xAxes: [{
+						type: 'player level'
+					}]
+				},
 
 			    ///Boolean - Whether grid lines are shown across the chart
 			    scaleShowGridLines : true,
@@ -187,16 +202,16 @@ var drawRarityGraph = function() {
 
 			    //Boolean - Whether to fill the dataset with a colour
 			    datasetFill : true,
-
-			    //String - A legend template
-			    legendTemplate : "<ul class=\"<%=name.toLowerCase()%>-legend\"><% for (var i=0; i<datasets.length; i++){%><li><span style=\"background-color:<%=datasets[i].strokeColor%>\"></span><%if(datasets[i].label){%><%=datasets[i].label%><%}%></li><%}%></ul>"
-
 			};
 
+			var labels = [];
+			for (var i=0; i<=PLAYER_LEVEL_MAX; i++) {
+				labels.push(i + "");
+			}
 
 			var data = {
-			    labels: ["0", "10", "20", "30", "40", "50"],
-			    datasets: [
+			    'labels': labels,
+			    'datasets': [
 			        {
 			            label: "common drops",
 			            fillColor: "rgba(0,255,0,0)",
@@ -285,7 +300,7 @@ Template.adminTools.events({
 	},
 
 	'click #new-seasonals' : function(element) {
-		Meteor.call('rotateSeasonalItems', function(error) {
+		Meteor.call('rotateSeasonalItems', SEASONAL_RARITIES, false, function(error) {
 			if (error)
 				console.log(error);
 
@@ -732,14 +747,12 @@ Template.adminTools.events({
 	},
 
 	'click #save-rarity-map': function() {
-		var rarity_map = generateRarityMap();
-		Meteor.call('updateSmartMap', rarity_map, function(error, result) {
+		Meteor.call('getRarityGraphData', function(error, result) {
 			if (error)
 				console.log(error);
 
 			else {
-				graph_data = result.graph_data;
-				map_data = result.map_data;
+				graph_data = result;
 				drawRarityGraph();
 				graph_data_tracker.changed();
 			}
@@ -833,23 +846,6 @@ Template.adminTools.events({
 		})
 	}
 });
-
-var generateRarityMap = function() {
-	var rarity_map = {};
-	
-	for (var i=0; i<$('.rarity-map-value-input').length; i++) {
-		var current_cell = $('.rarity-map-value-input:eq(' + i + ')');
-		var level = Number(current_cell.data().level);
-		var rarity = current_cell.closest('.rarity-row').data().rarity;
-		
-		if (rarity_map[level] == undefined)
-			rarity_map[level] = {};
-
-		rarity_map[level][rarity] = Number(current_cell.val());
-	}
-	
-	return rarity_map;
-}
 
 var getUniqueAttributes = function(special_attributes) {
     if (special_attributes.length < 2) {
@@ -1020,13 +1016,12 @@ Template.adminTools.helpers({
 
 	'updateChart': function() {
 		setTimeout(function() {
-			Meteor.call('updateSmartMap', undefined, function(error, result) {
+			Meteor.call('getRarityGraphData', function(error, result) {
 				if (error)
 					console.log(error);
 
 				else {
-					graph_data = result.graph_data;
-					map_data = result.map_data;
+					graph_data = result;
 					drawRarityGraph();
 					graph_data_tracker.changed();
 				}
@@ -1034,36 +1029,8 @@ Template.adminTools.helpers({
 		}, 3000);		
 	},
 
-	'ARTWORK_RARITIES': function() {
-		return ARTWORK_RARITIES;
-	},
-
-	'current_map': function() {
-		graph_data_tracker.depend();
-		if (map_data)
-			return JSON.stringify(map_data);
-
-		else return undefined;
-	},
-
 	'calcPercentage': function(drops) {
 		return "%" + ((drops / 10000) * 100).toFixed(2);
-	},
-
-	'increment': function(rarity) {
-		graph_data_tracker.depend();
-		if (map_data) {
-			var increment_array = [];
-			for (var i=0; i<51; i += 10) {
-				increment_array.push({
-					'level': i,
-					'value': map_data[i][rarity]
-				})
-			}
-			return increment_array;
-		}
-		
-		else return undefined;
 	},
 
 	'test_results': function() {

@@ -2,7 +2,7 @@ updateBot = function(player_interface, attribute_list) {
     items.remove({'owner': player_interface.getId()}, function() {     
         Meteor.users.update(player_interface.getId(), {$set: {
             'profile.level': 50, 
-            'profile.last_npc_met': moment()._d.toISOString(), 
+            'profile.last_activity': moment()._d.toISOString(), 
             'profile.tutorial_data.current_tutorial': undefined, 
             'profile.tutorial_data.step': 0}
         }, function() {
@@ -194,13 +194,29 @@ makeBots = function(quantity) {
 }
 
 var updateContent = function() {
-    console.log("UPDATING CONTENT");
-    updateActiveArtworkCache();
+    console.log("UPDATING CONTENT");    
 
     //removeBots();
 
     //temp code
     npcs.remove({'tutorial': true});
+    var legacy_users = Meteor.users.find({'profile.last_activity': null}).fetch();
+
+    var setter_string = 'profile.last_activity';
+    var unsetter_string = 'profile.last_npc_met';
+
+    for (var i=0; i<legacy_users.length; i++) {
+        var user_object = legacy_users[i];
+        var previous_activity = user_object.profile.last_npc_met;
+        var setter = {};
+        var unsetter = {};
+
+        setter[setter_string] = previous_activity;
+        unsetter[unsetter_string] = "";
+
+        Meteor.users.update({'_id': user_object._id}, {$set: setter, $unset: unsetter}); 
+    }
+    metadata.update({'loot_data': {$ne: null}}, {$unset: {'loot_data.smart_map': ""}});
     //temp code
 
     // var desired_bot_count = 100;
@@ -238,8 +254,10 @@ var updateContent = function() {
         });
     }, 2000);
 
+    updateActiveArtworkCache();
+
     var current_dynamic_crate_count = crates.find().count();
-    for (var i=0; i<DYNAMIC_CRATE_COUNT - current_dynamic_crate_count; i++) {
+    for (var i=0; i<DYNAMIC_ITEMS_PER_CRATE - current_dynamic_crate_count; i++) {
         createCrate();
     }
 }
@@ -285,6 +303,9 @@ Meteor.startup(function() {
                         'max': 21985000
                     }
                 },
+                'basic_crate_cost': 30000000,
+                'items_per_basic_crate': 12,
+                'crate_expense_per_masterpiece': 3600000000,
                 'seasonal_items': {
                     'common': [],
                     'uncommon': [], 
@@ -299,50 +320,6 @@ Meteor.startup(function() {
                     'legendary': now,
                     'masterpiece': now
                 },
-                'smart_map': {
-                    0: {
-                        'common': 60000,
-                        'uncommon': 6000,
-                        'rare': 0,
-                        'legendary': 0,
-                        'masterpiece': 0
-                    },
-                    10: {
-                        'common': 60000,
-                        'uncommon': 7000,
-                        'rare': 0,
-                        'legendary': 0,
-                        'masterpiece': 0
-                    },
-                    20: {
-                        'common': 60000,
-                        'uncommon': 9000,
-                        'rare': 400,
-                        'legendary': 0,
-                        'masterpiece': 0
-                    },
-                    30: {
-                        'common': 60000,
-                        'uncommon': 12000,
-                        'rare': 1600,
-                        'legendary': 0,
-                        'masterpiece': 0
-                    },
-                    40: {
-                        'common': 60000,
-                        'uncommon': 18000,
-                        'rare': 5000,
-                        'legendary': 60,
-                        'masterpiece': 0
-                    },
-                    50: {
-                        'common': 60000,
-                        'uncommon': 6000,
-                        'rare': 12000,
-                        'legendary': 300,
-                        'masterpiece': 6
-                    }
-                },
                 'global_foil_chance': .005,
                 'global_patreon_chance': .05,
                 'global_unlocked_chance': .05,
@@ -356,8 +333,13 @@ Meteor.startup(function() {
             });
         }
         else {
-            setLootData();
-            updateActiveArtworkCache();
+            try {
+                setLootData();
+                updateActiveArtworkCache();
+            }
+            catch (error) {
+                console.log(error);
+            }
         }
 
         setupMail();
