@@ -71,7 +71,7 @@ updateDropIndices = function() {
         var all_artworks_of_rarity = artworks.find({'active': true, 'rarity': rarity}).fetch();
         for (var c=0; c<all_artworks_of_rarity.length; c++) {
             var artwork_object_of_rarity = all_artworks_of_rarity[c];
-            artwork_rarity_map[artwork_object_of_rarity._id] = Math.floor(artwork_object_of_rarity.value_scale * 100);
+            artwork_rarity_map[artwork_object_of_rarity._id] = Math.floor((1 - artwork_object_of_rarity.value_scale) * 100);
         }
 
         ARTWORK_DROP_MAP_CACHE[rarity] = new MapCacheIF(artwork_rarity_map);
