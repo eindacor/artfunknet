@@ -99,6 +99,24 @@ getRarityMap = function(player_level) {
     return JSON.parse(JSON.stringify(getRarityDropMapCache()[player_level].getBaseMap()));
 }
 
+var rarity_amplifier_increment = 1 / (ARTWORK_RARITIES.length - 1);
+
+getRarityMapWithAmplifier = function(player_level, amplifier) {
+    var base_map = getRarityMap(player_level);
+    var common_amplifier = 1;
+    var masterpiece_amplifier = amplifier;
+    var amplifier_delta = masterpiece_amplifier - common_amplifier;
+
+    for (var i=0; i<ARTWORK_RARITIES.length; i++) {
+        var rarity = ARTWORK_RARITIES[i];
+        var rarity_amplifier = 1 + (amplifier_delta * i * rarity_amplifier_increment);
+        base_map[rarity] *= rarity_amplifier;
+    }
+
+    return base_map;
+
+}
+
 setCostPerMasterpiece = function(value) {
     metadata.update({'loot_data': {$ne: null}}, {$set: {'loot_data.crate_expense_per_masterpiece': value}}, function() {
         setLootData();

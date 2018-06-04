@@ -199,24 +199,6 @@ var updateContent = function() {
     //removeBots();
 
     //temp code
-    npcs.remove({'tutorial': true});
-    var legacy_users = Meteor.users.find({'profile.last_activity': null}).fetch();
-
-    var setter_string = 'profile.last_activity';
-    var unsetter_string = 'profile.last_npc_met';
-
-    for (var i=0; i<legacy_users.length; i++) {
-        var user_object = legacy_users[i];
-        var previous_activity = user_object.profile.last_npc_met;
-        var setter = {};
-        var unsetter = {};
-
-        setter[setter_string] = previous_activity;
-        unsetter[unsetter_string] = "";
-
-        Meteor.users.update({'_id': user_object._id}, {$set: setter, $unset: unsetter}); 
-    }
-    metadata.update({'loot_data': {$ne: null}}, {$unset: {'loot_data.smart_map': ""}});
     //temp code
 
     // var desired_bot_count = 100;

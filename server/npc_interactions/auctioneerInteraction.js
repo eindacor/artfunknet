@@ -3,7 +3,7 @@ auctioneerInteraction = function(npc_object, player_interface) {
 
 	var market_expert_duration = 10; //minutes
 	var market_expert_duration_extension = 5; // minutes
-	var auction_count = 5;
+	var auction_count = 4;
 
 	switch(npc_object.quality) {
 		case 'bronze': 
@@ -71,9 +71,9 @@ auctioneerInteraction = function(npc_object, player_interface) {
 
 	var multi_item_generator = {
         'source': "private auction",
-        'map_amplifier': getMapAmplifierFromNPC(npc_object),
         'count': auction_count,
-        'status': "auctioned"
+        'status': "auctioned",
+        'rarity_map': getRarityMapWithAmplifier(player_interface.getPlayerLevel(), getMapAmplifierFromNPC(npc_object))
     }
 
 	var item_ids = ITEM_GENERATOR.generateMultiple(multi_item_generator, undefined, function(item_object) {

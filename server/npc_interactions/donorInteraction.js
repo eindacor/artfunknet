@@ -1,5 +1,5 @@
 donorInteraction = function(npc_object, player_interface) {
-	var drop_count = 2;
+	var drop_count = 1;
 	var foil_chance = getLootData().global_foil_chance;
 	var condition_min = 0;
 	var level = 1;	
@@ -60,15 +60,11 @@ donorInteraction = function(npc_object, player_interface) {
         'source': "dealer",
         'count': drop_count,
         'status': "unclaimed",
-        'map_amplifier': getMapAmplifierFromNPC(npc_object),    
         'foil_chance': foil_chance,
         'level': level,
-        'condition_min': condition_min
+        'condition_min': condition_min,
+        'rarity_map': getRarityMapWithAmplifier(player_interface.getPlayerLevel(), getMapAmplifierFromNPC(npc_object))
     }
 
 	ITEM_GENERATOR.generateMultiple(multi_item_generator, player_interface);
-
-	var message = "You have met a donor who would like to contribute to your collection. You may claim your gift in the loot area.";
-
-	// return {'message': message}
 }

@@ -1,5 +1,5 @@
 artDealerInteraction = function(npc_object, player_interface) {
-	var drop_count = 4;
+	var drop_count = 2;
 	var foil_chance = getLootData().global_foil_chance;
 	var level = 1;
 
@@ -54,13 +54,10 @@ artDealerInteraction = function(npc_object, player_interface) {
         'source': "dealer",
         'count': drop_count,
         'status': "for_sale",
-        'map_amplifier': getMapAmplifierFromNPC(npc_object), 
         'foil_chance': foil_chance,
-        'level': level
+        'level': level,
+        'rarity_map': getRarityMapWithAmplifier(player_interface.getPlayerLevel(), getMapAmplifierFromNPC(npc_object))
     }
 
 	ITEM_GENERATOR.generateMultiple(multi_item_generator, player_interface);
-
-	var message = "You have met an Art Dealer who would like you to consider a few offers. Go to the store to view their inventory.";
-	// return {'message': message}
 }

@@ -125,7 +125,6 @@ ItemGenerator = function() {
 
 			---OPTIONAL---
 			rarity_map
-			map_amplifier
 			attribute_map
 			condition_min
 			level

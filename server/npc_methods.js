@@ -176,12 +176,12 @@ getMapAmplifierFromNPC = function(npc_object) {
 	var map_amplifier;
 
 	switch(npc_object.quality) {
-        case 'bronze': map_amplifier = 0; break;
-        case 'silver': map_amplifier = .2; break;
-        case 'gold': map_amplifier = .4; break;
-        case 'platinum': map_amplifier = .8; break;
-        default: map_amplifier = 0; break;
-    }
+		case "bronze": map_amplifier = .5; break;
+		case "silver": map_amplifier = .6; break;
+		case "gold": map_amplifier = .7; break;
+		case "platinum": map_amplifier = .8; break;
+		default: map_amplifier = .5;
+	}
 
     return map_amplifier;
 }
