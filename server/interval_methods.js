@@ -1,3 +1,6 @@
+var setIntervalWhenCachesAreSet
+
+
 Meteor.setInterval((function() {
     try {
         var now = getNowISOString();

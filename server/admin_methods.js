@@ -85,7 +85,7 @@ Meteor.methods({
     'setFoilChance': function(value) {
         if (adminValidated()) {
             metadata.update({'loot_data': {$ne: null}}, {$set: {'loot_data.global_foil_chance': value}}, function() {
-                setLootData();
+                updateLootData();
             });
         }
     },
@@ -93,7 +93,7 @@ Meteor.methods({
      'setUnlockedChance': function(value) {
         if (adminValidated()) {
             metadata.update({'loot_data': {$ne: null}}, {$set: {'loot_data.global_unlocked_chance': value}}, function() {
-                setLootData();
+                updateLootData();
             });
         }
     },
@@ -101,7 +101,7 @@ Meteor.methods({
      'setMisprintChance': function(value) {
         if (adminValidated()) {
             metadata.update({'loot_data': {$ne: null}}, {$set: {'loot_data.global_misprint_chance': value}}, function() {
-                setLootData();
+                updateLootData();
             });
         }
     },
@@ -109,7 +109,7 @@ Meteor.methods({
      'setPatreonChance': function(value) {
         if (adminValidated()) {
             metadata.update({'loot_data': {$ne: null}}, {$set: {'loot_data.global_patreon_chance': value}}, function() {
-                setLootData();
+                updateLootData();
             });
         }
     },
@@ -235,7 +235,7 @@ Meteor.methods({
     		}
 
             metadata.update({'loot_data': {$ne: null}}, {$set: {'loot_data.seasonal_items': seasonal_item_object}}, function() {
-                setLootData();
+                updateLootData();
                 updateActiveArtworkCache();
             });
         }
@@ -741,7 +741,7 @@ Meteor.methods({
 
     'getRarityGraphData': function() {
         if (adminValidated()) {
-            setLootData();
+            updateLootData();
             return getGraphData();
         }
     },

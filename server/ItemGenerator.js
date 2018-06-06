@@ -24,7 +24,7 @@ ItemGenerator = function() {
 		var matching_artworks;
 		if (special_attributes.length > 0) {
 			var serialized_specials = serializeSpecialCombination(special_attributes);
-			matching_artworks = getActiveArtworkCache().special_attribute_map[serialized_specials];
+			matching_artworks = getSerializedSpecialAttributeCombinationCache()[serialized_specials];
 		}
 
 		if (matching_artworks == undefined) {

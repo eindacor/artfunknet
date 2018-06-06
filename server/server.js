@@ -199,6 +199,35 @@ var updateContent = function() {
     //removeBots();
 
     //temp code
+    try {
+        var all_items = items.find().fetch();
+        for (var i=0; i<all_items.length; i++) {
+            var item_object = all_items[i];
+
+            var current_actual = item_object.values.actual;
+            var new_values = getItemObjectValues(item_object);
+            var setter = {};
+            var update_item = false;
+            if (current_actual != new_values.actual) {
+                setter.values = new_values;
+                update_item = true;
+            }
+
+            var current_odds = item_object.odds;
+            if (current_odds != item_object.odds) {
+                setter.odds = getItemOddsString(item_object)
+                update_item = true;
+            }
+
+            if (update_item) {
+                var item_interface = new ItemIF(item_object);
+                item_interface.updateItem({$set: setter}, item_object.status != "displayed")
+            }
+        }
+    }
+    catch (error) {
+        throw error;
+    }
     //temp code
 
     // var desired_bot_count = 100;
@@ -236,8 +265,6 @@ var updateContent = function() {
         });
     }, 2000);
 
-    updateActiveArtworkCache();
-
     var current_dynamic_crate_count = crates.find().count();
     for (var i=0; i<DYNAMIC_ITEMS_PER_CRATE - current_dynamic_crate_count; i++) {
         createCrate();
@@ -256,93 +283,71 @@ getSeasonalRotationObject = function() {
     return seasonal_rotation_object;
 }
 
+var seedLootMetadata = function() {
+    var now = moment()._d.toISOString();
+            
+    var loot_data_seed = {
+        'rarity_values': {
+            'common': {
+                'min': 5000,
+                'max': 25000
+            },
+            'uncommon': {
+                'min': 25000,
+                'max': 65000
+            },
+            'rare': {
+                'min': 65000,
+                'max': 225000
+            },
+            'legendary': {
+                'min': 225000,
+                'max': 1505000
+            },
+            'masterpiece': {
+                'min': 1505000,
+                'max': 21985000
+            }
+        },
+        'basic_crate_cost': 30000000,
+        'items_per_basic_crate': 12,
+        'crate_expense_per_masterpiece': 3600000000,
+        'seasonal_items': {
+            'common': [],
+            'uncommon': [], 
+            'rare': [],
+            'legendary': [],
+            'masterpiece': []
+        },
+        'seasonal_rotation': {
+            'common': now,
+            'uncommon': now,
+            'rare': now,
+            'legendary': now,
+            'masterpiece': now
+        },
+        'global_foil_chance': .005,
+        'global_patreon_chance': .05,
+        'global_unlocked_chance': .05,
+        'global_misprint_chance': .0001
+    }
+
+    metadata.insert({'loot_data': loot_data_seed}, function() {
+        rotateSeasonalItems(ARTWORK_RARITIES, true);
+        updateCaches(updateContent);
+    });
+}
+
 Meteor.startup(function() {
     try {
         if (metadata.findOne({'loot_data': {$ne: null}}) == undefined) {
-
-            var now = moment()._d.toISOString();
-            
-            var loot_data_seed = {
-                'rarity_values': {
-                    'common': {
-                        'min': 5000,
-                        'max': 25000
-                    },
-                    'uncommon': {
-                        'min': 25000,
-                        'max': 65000
-                    },
-                    'rare': {
-                        'min': 65000,
-                        'max': 225000
-                    },
-                    'legendary': {
-                        'min': 225000,
-                        'max': 1505000
-                    },
-                    'masterpiece': {
-                        'min': 1505000,
-                        'max': 21985000
-                    }
-                },
-                'basic_crate_cost': 30000000,
-                'items_per_basic_crate': 12,
-                'crate_expense_per_masterpiece': 3600000000,
-                'seasonal_items': {
-                    'common': [],
-                    'uncommon': [], 
-                    'rare': [],
-                    'legendary': [],
-                    'masterpiece': []
-                },
-                'seasonal_rotation': {
-                    'common': now,
-                    'uncommon': now,
-                    'rare': now,
-                    'legendary': now,
-                    'masterpiece': now
-                },
-                'global_foil_chance': .005,
-                'global_patreon_chance': .05,
-                'global_unlocked_chance': .05,
-                'global_misprint_chance': .0001
-            }
-
-            metadata.insert({'loot_data': loot_data_seed}, function() {
-                rotateSeasonalItems(ARTWORK_RARITIES, true);
-                setLootData();
-                updateActiveArtworkCache();
-            });
+            seedLootMetadata();
         }
         else {
-            try {
-                setLootData();
-                updateActiveArtworkCache();
-            }
-            catch (error) {
-                console.log(error);
-            }
+            updateCaches(updateContent);
         }
 
         setupMail();
-        fs = Npm.require('fs');
-
-        if (attributes.find().count() == 0) {
-            for (var i=0; i < attribute_data.length; i++) {
-                attributes.insert(attribute_data[i]);
-            }
-        }
-
-        if (gallery_finishes.find().count() == 0) {
-            for (var i=0; i < gallery_finish_data.length; i++) {
-                gallery_finishes.insert(gallery_finish_data[i]);
-            }
-        }
-
-        for (var i=0; i < gallery_finish_data.length; i++) {
-            if (gallery_finishes.findOne({'filename': gallery_finish_data[i].filename}) == undefined)
-                gallery_finishes.insert(gallery_finish_data[i]);
-        }
     }
     catch(error) {
         console.log(error)
@@ -360,8 +365,6 @@ Meteor.startup(function() {
 
         createAdmin(admin);
     }
-
-    updateContent();
 })
 
 function waitForUserAdded(userId, attempts){

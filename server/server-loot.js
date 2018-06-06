@@ -92,7 +92,7 @@ getMintValueFromArtworkObject = function(artwork_object) {
 getActualValueFromMintValue = function(mint_value, condition, attributes) {
     var base_value = mint_value * lowest_possible_value_coefficient;
     var condition_value = condition === undefined ? mint_value * condition_coefficient_max * .5 : mint_value * condition_coefficient_max * condition;
-    var attribute_value = attributes === undefined ? mint_value * attribute_coefficient_max * .5 : mint_value * getAttributeValueCoefficient(attributes);
+    var attribute_value = attributes === undefined ? mint_value * attribute_coefficient_max * .5 : mint_value * attribute_coefficient_max * getAttributeValueCoefficient(attributes);
     return Math.floor(base_value + condition_value + attribute_value);
 }
 
@@ -149,14 +149,15 @@ getItemObjectValues = function(item_object) {
 }
 
 var getAttributeValueCoefficient = function(attributes) {
+    var attribute_array = attributes.locked.concat(attributes.unlocked.concat(attributes.special));
     var total_rating = 0;
 
-    for (var i=0; i<attributes.length; i++) {
-        total_rating += attributes[i].value;
+    for (var i=0; i<attribute_array.length; i++) {
+        total_rating += attribute_array[i].value;
     }
 
-    if (attributes.length > 0) {
-        return (total_rating / attributes.length) * attribute_coefficient_max;
+    if (attribute_array.length > 0) {
+        return (total_rating / attribute_array.length) * attribute_coefficient_max;
     }
     else {
         return 0;
@@ -189,7 +190,7 @@ calcSeasonalChance = function(rarity) {
 
         var probability = 0;
         for (var i=0; i<seasonal_ids.length; i++) {
-            probability += ARTWORK_DROP_MAP_CACHE[rarity].getProbability(seasonal_ids[i]);
+            probability += getArtworkDropMapCache()[rarity].getProbability(seasonal_ids[i]);
         }
 
         return probability;
@@ -214,7 +215,7 @@ getAverageDropValueFromMap = function(rarity_map, foil_chance, unlocked_chance) 
     var total_average = 0;
     for (var i=0; i < ARTWORK_RARITIES.length; i++) {
         var rarity = ARTWORK_RARITIES[i];
-        var average_rarity_value = AVERAGE_ITEM_VALUE_BY_RARITY_CACHE[rarity];
+        var average_rarity_value = getAverateItemValueByRarityCache()[rarity];
 
         if (SEASONAL_RARITIES.indexOf(rarity) != -1) {
             var seasonal_chance = calcSeasonalChance(rarity);

@@ -119,21 +119,21 @@ getRarityMapWithAmplifier = function(player_level, amplifier) {
 
 setCostPerMasterpiece = function(value) {
     metadata.update({'loot_data': {$ne: null}}, {$set: {'loot_data.crate_expense_per_masterpiece': value}}, function() {
-        setLootData();
+        updateLootData();
         updateRarityDropMapCache();
     })
 }
 
 setCrateCost = function(value) {
     metadata.update({'loot_data': {$ne: null}}, {$set: {'loot_data.basic_crate_cost': value}}, function() {
-        setLootData();
+        updateLootData();
         updateRarityDropMapCache();
     })
 }
 
 updateCrateDropCount = function(value) {
     metadata.update({'loot_data': {$ne: null}}, {$set: {'loot_data.items_per_basic_crate': value}}, function() {
-        setLootData();
+        updateLootData();
         updateRarityDropMapCache();
     })
 }
