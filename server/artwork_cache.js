@@ -74,7 +74,7 @@ updateArtworkDropMapCache = function() {
             artwork_rarity_map[artwork_object_of_rarity._id] = 50 + Math.floor((1 - artwork_object_of_rarity.value_scale) * 50);
         }
 
-        ARTWORK_DROP_MAP_CACHE[rarity] = new MapCacheIF(artwork_rarity_map);
+        ARTWORK_DROP_MAP_CACHE[rarity] = getMapCacheFromValueMap(artwork_rarity_map);
     }
 
     devLog("ARTWORK_DROP_MAP_CACHE updated");

@@ -199,35 +199,6 @@ var updateContent = function() {
     //removeBots();
 
     //temp code
-    try {
-        var all_items = items.find().fetch();
-        for (var i=0; i<all_items.length; i++) {
-            var item_object = all_items[i];
-
-            var current_actual = item_object.values.actual;
-            var new_values = getItemObjectValues(item_object);
-            var setter = {};
-            var update_item = false;
-            if (current_actual != new_values.actual) {
-                setter.values = new_values;
-                update_item = true;
-            }
-
-            var current_odds = item_object.odds;
-            if (current_odds != item_object.odds) {
-                setter.odds = getItemOddsString(item_object)
-                update_item = true;
-            }
-
-            if (update_item) {
-                var item_interface = new ItemIF(item_object);
-                item_interface.updateItem({$set: setter}, item_object.status != "displayed")
-            }
-        }
-    }
-    catch (error) {
-        throw error;
-    }
     //temp code
 
     // var desired_bot_count = 100;
