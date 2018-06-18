@@ -146,7 +146,7 @@ ItemGenerator = function() {
 
  		var attribute_map = multi_item_generator_object.attribute_map === undefined ? undefined : multi_item_generator_object.attribute_map;
  		var forgery_chance = multi_item_generator_object.forgery_chance === undefined ? 0 : multi_item_generator_object.forgery_chance;
- 		var rarity_map_cache = multi_item_generator_object.rarity_map === undefined ? getRarityDropMapCache()[player_interface === undefined ? PLAYER_LEVEL_MAX : player_interface.getPlayerLevel()] : new MapCacheIF(multi_item_generator_object.rarity_map);
+ 		var rarity_map_cache = multi_item_generator_object.rarity_map === undefined ? getRarityDropMapCache()[player_interface === undefined ? PLAYER_LEVEL_MAX : player_interface.getPlayerLevel()] : getMapCacheFromValueMap(multi_item_generator_object.rarity_map);
 
 	    for (var i=0; i < parseInt(multi_item_generator_object.count); i++) {
 	    	var rarity_roll = rarity_map_cache.getRandom();

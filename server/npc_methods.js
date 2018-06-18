@@ -9,7 +9,7 @@ getNPCQuality = function(player_level) {
 			'platinum' : 6
 		}
 
-		NPC_QUALITY_MAP_CACHE = new MapCacheIF(npc_quality_map);
+		NPC_QUALITY_MAP_CACHE = getMapCacheFromValueMap(npc_quality_map);
 	}
 
 	return NPC_QUALITY_MAP_CACHE.getRandom();

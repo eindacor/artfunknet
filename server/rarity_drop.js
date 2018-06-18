@@ -79,7 +79,7 @@ var generateDropMap = function(player_level) {
 updateRarityDropMapCache = function() {
 	RARITY_DROP_MAP_CACHE = {};
 	for (var i=0; i<=PLAYER_LEVEL_MAX; i++) {
-		RARITY_DROP_MAP_CACHE[i] = new MapCacheIF(generateDropMap(i));
+		RARITY_DROP_MAP_CACHE[i] = getMapCacheFromValueMap(generateDropMap(i));
 	}
 }
 

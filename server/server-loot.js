@@ -44,7 +44,7 @@ getCondition = function(min_value) {
             4 : 1
         };
 
-        CONDITION_CACHE_MAP = new MapCacheIF(tier_map);
+        CONDITION_CACHE_MAP = getMapCacheFromValueMap(tier_map);
     }
 
     var random_tier = Number(CONDITION_CACHE_MAP.getRandom());
@@ -174,7 +174,7 @@ getRolledCrateQuality = function() {
             'diamond' : 0
         }
 
-        CRATE_QUALITY_MAP_CACHE = new MapCacheIF(roll_quality_map);
+        CRATE_QUALITY_MAP_CACHE = getMapCacheFromValueMap(roll_quality_map);
     }
     
     return CRATE_QUALITY_MAP_CACHE.getRandom();

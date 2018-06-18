@@ -825,7 +825,7 @@ testMap = function(loot_map) {
         'masterpiece': 0
     };
 
-    var loot_map_cache = new MapCacheIF(loot_map);
+    var loot_map_cache = getMapCacheFromValueMap(loot_map);
 
     for (var i=0; i < 10000; i++) {
         var rarity_rolled = loot_map_cache.getRandom();
