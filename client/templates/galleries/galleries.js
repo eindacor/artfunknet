@@ -77,6 +77,20 @@ var generateSearchTermArray = function(search_terms) {
 	return or_array;
 }
 
+var generateAttributeQueryArray = function(attribute_id_array) {
+	var and_array = [];
+
+	for (var i=0; i<attribute_id_array.length; i++) {
+		var term = attribute_id_array[i];
+		query_object = {}
+		query_string = "published_procs." + attribute_id_array[i] 
+		query_object[query_string] = {'$ne': undefined}
+		and_array.push(query_object);
+	}
+
+	return and_array;
+}
+
 var updateGalleryQuery = function() {
 	var sort_array = [];
 
@@ -97,6 +111,10 @@ var updateGalleryQuery = function() {
 	gallery_query = {'score': {$gt: 0}};
 	if (search_term_array.length > 0) {
 		gallery_query['$or'] = search_term_array;
+	}
+
+	if (attribute_sort_array.length > 0) {
+		gallery_query['$and'] = generateAttributeQueryArray(attribute_sort_array)
 	}
 
 	if (favorite_value == "only") {

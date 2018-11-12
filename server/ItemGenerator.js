@@ -377,6 +377,7 @@ ItemGenerator = function() {
 		item_object_copy.status = "won";
 		item_object_copy.date_created = getNowISOString();
 		item_object_copy.date_received = getNowISOString();
+		item_object_copy.permanent = false
 
 		item_object_copy.authenticity = {
 			'forgery': true,

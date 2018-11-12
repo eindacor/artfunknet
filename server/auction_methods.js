@@ -60,9 +60,31 @@ createAuction = function(item_id, starting, buy_now, duration, viewer) {
 
 var failedAuction = function(auction_object) {
     if (auction_object.seller == BOT_USER_NAME) {
-        removeAuction(auction_object._id, function() {
-            removeItem(auction_object.item_id, "failedAuction", undefined);
-        });
+        item_object = items.findOne(auction_object.item_id)
+        if (itemIsMisprinted(item_object)) {
+            removeAuction(auction_object._id, function() {
+                admin_interface = new PlayerIF(Meteor.users.findOne({'profile.screen_name': "admin"}));
+
+                var item_interface = new ItemIF(auction_object.item_id);
+                item_interface.updateItem({$set: {
+                    'status': "won",
+                    'owner': admin_interface.getId(),
+                    'date_received': moment()._d.toISOString(),
+                    'authenticity.identified': true,
+                    'authenticity.fee': 0,
+                    'authenticity.liability_pending': false,
+                    'authenticity.liable' : admin_interface.getId()
+                }}, function(error) {
+                    if (error)
+                        console.log(error)
+                })
+            })
+        }
+        else {
+            removeAuction(auction_object._id, function() {
+                removeItem(auction_object.item_id, "failedAuction", undefined);
+            });
+        }
         return;
     }
 

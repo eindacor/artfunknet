@@ -523,6 +523,10 @@ generateArtfunkelAuctions = function(item_count, duration) {
         'status': "auctioned"
     }
 
+    if (DEV_MODE) {
+        multi_item_generator.misprint_chance = .5
+    }
+
     var item_ids = ITEM_GENERATOR.generateMultiple(multi_item_generator, undefined, function(item_object) {
         createAuction(item_object._id, item_object.values.auction_min, -1, duration, "public");
     });
