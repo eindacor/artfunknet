@@ -549,9 +549,14 @@ Meteor.methods({
             }
         ).fetch();
 
+        var player_interface = new PlayerIF(Meteor.userId());
+
         for (var i=0; i<auction_array.length; i++) {
-            auction_array[i].is_unclaimed = items.findOne({'owner': Meteor.userId(), 'artwork_id': auction_array[i].item_data.artwork_id, 'status': {$in: ['unclaimed', 'won']}}) != undefined;
-            auction_array[i].owned = items.findOne({'owner': Meteor.userId(), 'artwork_id': auction_array[i].item_data.artwork_id, 'status': {$nin: ['unclaimed', 'for_sale', 'won', 'archived']}}) != undefined;
+            var auction_id = auction_array[i]._id;
+            var player_auction_interface = new PlayerAuctionIF(player_interface, new AuctionIF(auction_id));
+            auction_array[i].is_unclaimed = player_auction_interface.getIsUnclaimed();
+            auction_array[i].owned = player_auction_interface.getIsOwned();
+            auction_array[i].recommended_status = player_auction_interface.getRecommendedStatus();
         }
 
         return auction_array;
@@ -563,6 +568,13 @@ Meteor.methods({
         var auction_array = auctions.find(
             {'expiration': {$gt : now}, 'seller': Meteor.user().profile.screen_name}, {sort: {'expiration': 1}}
         ).fetch();
+
+        var player_interface = new PlayerIF(Meteor.userId());
+
+        for (var i=0; i<auction_array.length; i++) {
+            var player_auction_interface = new PlayerAuctionIF(player_interface, new AuctionIF(auction_array[i]._id));
+            auction_array[i].recommended_status = player_auction_interface.getRecommendedStatus();
+        }
 
         return auction_array;
     },
@@ -584,6 +596,13 @@ Meteor.methods({
                 sort: {'expiration': 1}
             }
         ).fetch();
+
+        var player_interface = new PlayerIF(Meteor.userId());
+
+        for (var i=0; i<auction_array.length; i++) {
+            var player_auction_interface = new PlayerAuctionIF(player_interface, new AuctionIF(auction_array[i]._id));
+            auction_array[i].recommended_status = player_auction_interface.getRecommendedStatus();
+        }
 
         return auction_array;
     },
@@ -937,19 +956,6 @@ Meteor.methods({
 
     'hasDisplacedItems': function() {
         return new PlayerIF(Meteor.user()).hasDisplacedItems();
-    },
-
-    'getAuctionArchiveIndicators': function(auction_object) {
-        var indicators = [];
-        var artwork_interface = new ArtworkIF(auction_object.item_data.artwork_data);
-        var player_interface = new PlayerIF(Meteor.user());
-        for (var i=0; i<ARCHIVE_CATEGORIES.length; i++) {
-            if (player_interface.hasArchivedArtworkOfCategory(artwork_interface, ARCHIVE_CATEGORIES[i])) {
-                indicators.push(ARCHIVE_CATEGORIES[i]);
-            }
-        }
-
-        return indicators;
     },
 
     'getJobTargetInfo': function(quest_object) {

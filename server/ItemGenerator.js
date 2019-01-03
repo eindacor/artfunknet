@@ -102,8 +102,7 @@ ItemGenerator = function() {
 	        var random_index = Math.random() * artist_name.length;
 	        artwork_data.artist = artist_name.slice(0, random_index) + artist_name.slice(random_index + 1);
 	    }
-
-	    else {
+		else {
 	        var title = artwork_data.title;
 	        var random_index = Math.random() * title.length;
 	        artwork_data.title = title.slice(0, random_index) + title.slice(random_index + 1);
