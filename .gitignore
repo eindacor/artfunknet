@@ -7,3 +7,5 @@ node_modules/**
 .meteor/**
 package-lock.json
 package.json
+*.idea/**
+*.vs/**

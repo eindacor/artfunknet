@@ -812,6 +812,23 @@ Meteor.methods({
         return item_array;
     },
 
+    'getSeasonalStubs': function() {
+        var seasonal_ids = getAllSeasonalIds();
+
+        var item_stubs = [];
+
+        for (var i=0; i<seasonal_ids.length; i++) {
+            var artwork_id = seasonal_ids[i];
+            var item_data = {
+                'artwork_id': artwork_id,
+                'seasonal': true            
+            }
+            item_stubs.push(getItemStubFromArtwork(artwork_id, item_data));
+        }
+
+       return item_stubs;
+    },
+
     'getForgeryHeat': function(item) {
         var player_item_interface = new PlayerItemIF(new PlayerIF(Meteor.user()), new ItemIF(item));
         return player_item_interface.getForgeryHeat(undefined);
@@ -832,7 +849,9 @@ Meteor.methods({
 getItemStubFromArtwork = function(artwork_id, item_data) {
     var artwork_interface = new ArtworkIF(artwork_id);
     var artwork_object = artwork_interface.getArtworkObject();
+    var player_artwork_interface = new PlayerArtworkIF(new PlayerIF(Meteor.user()), artwork_interface);
 
+    // TODO make stub creator
     var item_object = {
         'artwork_id': artwork_object._id,
         'artwork_data': artwork_object,
@@ -841,7 +860,17 @@ getItemStubFromArtwork = function(artwork_id, item_data) {
         'seasonal': item_data.seasonal,
         'vintage': item_data.vintage,
         'lottery': item_data.lottery,
-        'level': item_data.level
+        'level': item_data.level,
+        'recommended_status': player_artwork_interface.getRecommendedStatus(item_data)
+    }
+
+    if (artwork_interface.getRarity() !== COMMON && artwork_interface.getRarity() !== UNCOMMON) {
+        var special_attribute_ids = artwork_interface.getArtworkObject().special_attributes;
+        if (special_attribute_ids !== undefined && special_attribute_ids.length > 0) {
+            item_object.attributes = {
+                'special': attributes.find({'_id': {$in: special_attribute_ids}}).fetch()
+            }
+        }
     }
 
     return item_object;

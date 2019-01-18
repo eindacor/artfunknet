@@ -1,24 +1,28 @@
+var seasonal_stub_tracker = new Tracker.Dependency;
+
+var seasonal_stubs = undefined;
+
 Template.gameHub.helpers({
-	'seasonal_item_object': function(seasonal_ids) {
-		var loot_data = metadata.findOne({'loot_data': {$ne: null}}).loot_data;
-
-		var seasonal_item_objects = [];
-		for (var i=0; i<seasonal_ids.length; i++) {
-			var artwork_id = seasonal_ids[i];
-			var item_data = {
-				'artwork_id': artwork_id,
-				'artwork_data': artworks.findOne(artwork_id),
-				'seasonal': true, 
-				'level': 1
-			}
-			seasonal_item_objects.push(item_data);
-		}
-
-		return seasonal_item_objects;
-	},
-
 	'lottery_item_id': function() {
 		return metadata.findOne({'lottery_draw': {$ne: null}}).rewards;
+	},
+
+	'seasonal_stub': function() {
+		seasonal_stub_tracker.depend();
+
+		if (seasonal_stubs === undefined) {
+			Meteor.call('getSeasonalStubs', function(error, result) {
+				if (error) {
+					console.log(error);
+				}
+				else {
+					seasonal_stubs = result;
+					seasonal_stub_tracker.changed();
+				}
+			})
+		}
+
+		return seasonal_stubs;
 	}
 })
 

@@ -2,18 +2,16 @@
 	<div class="template-gameHub">
 		<div class="row">
 			<h1 class="af-color">Seasonal Artworks</h1>
-			{{#with fetchServerData "getAllSeasonalIds"}}
-				{{#each seasonal_item_object this}}
-					<div class="col-xs-3 no-padding no-margin reward-item-container">
-						<div class="row">
-						{{> itemStubView item_data=this}}
-						</div>
-						<div class="row">
-						{{> seasonalRefresh rarity=this.artwork_data.rarity}}
-						</div>
+			{{#each seasonal_stub}}
+				<div class="col-xs-3 no-padding no-margin reward-item-container">
+					<div class="row">
+					{{> itemStubView item_data=this}}
 					</div>
-				{{/each}}
-			{{/with}}
+					<div class="row">
+					{{> seasonalRefresh rarity=this.artwork_data.rarity}}
+					</div>
+				</div>
+			{{/each}}
 		</div>
 		<div class="row">
 			<h1 class="af-color">Lottery Rewards</h1>
