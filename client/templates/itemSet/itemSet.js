@@ -11,7 +11,7 @@ var search_terms = [];
 var keywords = [];
 var special_attributes = [];
 var standard_attributes = [];
-var sorter = "values.actual";
+var sorter = "values.theoretical";
 var ascending = -1;
 var rarity_filter = {'artwork_data.rarity': {'$in': ['common', 'uncommon', 'rare', 'legendary', 'masterpiece']}};
 var flag_filter = {};
@@ -632,7 +632,7 @@ Template.itemSet.rendered = function() {
 	keywords = [];
 	special_attributes = [];
 	standard_attributes = [];
-	sorter = "values.actual";
+	sorter = "values.theoretical";
 	ascending = -1;
 	rarity_filter =  {'artwork_data.rarity': {'$in': ['common', 'uncommon', 'rare', 'legendary', 'masterpiece']}};
 

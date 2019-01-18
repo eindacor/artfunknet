@@ -57,6 +57,8 @@
 								{{#if item_data.market_value}}
 									<p id="dynamic-value-stat">market value: {{displayAsMoneyValue item_data.market_value}}</p>
 								{{/if}}
+								<p id="dynamic-value-stat">theoretical value: {{displayAsMoneyValue item_data.values.theoretical}}</p>
+								<p id="dynamic-value-stat">conditional value: {{displayAsMoneyValue item_data.values.conditional}}</p>
 								<p id="dynamic-roll-count-stat">roll count: {{item_data.roll_count}}</p>
 								{{#if item_data.authenticity.identified}}
 									{{#if item_data.authenticity.forgery}}

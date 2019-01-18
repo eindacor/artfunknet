@@ -136,6 +136,11 @@ getItemObjectValues = function(item_object) {
     values_object.collector = Math.floor(actual_value * 1.2);
     values_object.dealer = Math.floor(actual_value * .9);
 
+    var signature_drop_chance = getSignatureDropChance(item_object);
+    var value_scale = artworks.findOne({'_id': item_object.artwork_id}).value_scale;
+    values_object.theoretical = getValueFromDropChance(signature_drop_chance, value_scale);
+    values_object.conditional = getConditionValue(values_object.theoretical, item_object.condition);
+
     var all_keys = Object.keys(values_object);
     for (var i=0; i<all_keys.length; i++) {
         var key = all_keys[i];

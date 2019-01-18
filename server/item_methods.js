@@ -1,5 +1,5 @@
 itemIsMisprinted = function(item_object) {
-    return artworks.findOne({"artist": item_object.artwork_data.artist, "title": item_object.artwork_data.title}) == undefined;
+    return artworks.findOne({"artist": item_object.artwork_data.artist, "title": item_object.artwork_data.title}) === undefined;
 }
 
 getSoughtStatus = function(user_id, artwork_id, only_sought_if_not_in_auction_house) {

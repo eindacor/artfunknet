@@ -295,12 +295,18 @@ updateArtworkDropOdds = function() {
 
     devLog("ARTWORK_DROP_ODDS updated");
 
+    updateItemOddsAndValues();
+}
+
+updateItemOddsAndValues = function() {
     items.find().forEach(function(item_object) {
         var item_odds = getItemOddsString(item_object);
-        if (item_odds != item_object.odds) {
-            items.update(item_object._id, {$set: {'odds': item_odds}});
-        }
-    })
+        var signature_drop_chance = getSignatureDropChance(item_object);
+        var value_scale = artworks.findOne({'_id': item_object.artwork_id}).value_scale;
+        var theoretical_value = getValueFromDropChance(signature_drop_chance, value_scale);
+        var conditional_value = getConditionValue(theoretical_value, item_object.condition);
+        items.update(item_object._id, {$set: {'odds': item_odds, 'values.theoretical': theoretical_value, 'values.conditional': conditional_value}});
+    });
 }
 
 getArtworkDropOdds = function(artwork_id) {
@@ -309,6 +315,37 @@ getArtworkDropOdds = function(artwork_id) {
     }
 
     return ARTWORK_DROP_ODDS[artwork_id];
+}
+
+getSignatureDropChance = function(item_object) {
+    var loot_data = getLootData();
+
+    var standard_map = getRarityMap(50);
+    var keys = Object.keys(standard_map);
+    var sumtotal = 0;
+    for (var i=0; i<keys.length; i++) {
+        sumtotal += standard_map[keys[i]];
+    }
+
+    var odds = standard_map[item_object.artwork_data.rarity] / sumtotal;
+
+    if (item_object.foil) {
+        odds *= loot_data.global_foil_chance;
+    }
+
+    if (item_object.unlocked) {
+        odds *= loot_data.global_unlocked_chance;
+    }
+
+    if (item_object.patreon) {
+        odds *= loot_data.global_patreon_chance;
+    }
+
+    if (itemIsMisprinted(item_object)) {
+        odds *= loot_data.global_misprint_chance;
+    }
+
+    return odds;
 }
 
 getItemOddsString = function(item_object) {
@@ -327,29 +364,31 @@ getItemOddsString = function(item_object) {
         return "0";
     }
 
-    var standard_map = getRarityMap(50);
-    var keys = Object.keys(standard_map);
-    var sumtotal = 0;
-    for (var i=0; i<keys.length; i++) {
-        sumtotal += standard_map[keys[i]];
-    }
-
-    var odds = standard_map[item_object.artwork_data.rarity] / sumtotal;
+    var odds = getSignatureDropChance(item_object);
 
     odds *= getArtworkDropOdds(item_object.artwork_id);
 
-    if (item_object.foil) {
-        odds *= loot_data.global_foil_chance;
-    }
-
-    if (item_object.unlocked) {
-        odds *= loot_data.global_unlocked_chance;
-    }
-
-    if (item_object.patreon) {
-        odds *= loot_data.global_patreon_chance;
-    }
-
     var drop_count = getCommaSeparatedValue(Math.floor(1/odds));
     return "1 in " + drop_count;
+}
+
+getValueFromDropChance = function(drop_chance, value_scale) {
+    var loot_data = getLootData();
+
+    var cost_per_crate_item = loot_data.basic_crate_cost / loot_data.items_per_basic_crate;
+    var drops_required = Math.floor(1/drop_chance);
+
+    var base_value = cost_per_crate_item * drops_required;
+
+    return Math.floor(getReducedValue(base_value, .25, value_scale));
+}
+
+getConditionValue = function(value, condition) {
+    return Math.floor(getReducedValue(value, .25, condition));
+}
+
+getReducedValue = function(base, reduction_coefficient, scale) {
+    var min = base * (1 - reduction_coefficient);
+    var adjustment = reduction_coefficient * base * scale;
+    return Math.floor(min + adjustment);
 }

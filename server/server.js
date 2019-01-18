@@ -199,13 +199,10 @@ var updateContent = function() {
     //removeBots();
 
     //temp code
+    updateItemOddsAndValues();
     //temp code
 
-    // var desired_bot_count = 100;
-    // var current_bot_count = Meteor.users.find({'profile.user_type': "bot"}).count();
-    // if (current_bot_count < desired_bot_count) {
-    //     makeBots(desired_bot_count - current_bot_count);
-    // }
+
 
     Meteor.setTimeout(function() {
          Meteor.users.find({'profile.user_type': {$ne: "bot"}}).forEach(function(user_object) {

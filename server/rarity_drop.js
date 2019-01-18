@@ -81,6 +81,10 @@ updateRarityDropMapCache = function() {
 	for (var i=0; i<=PLAYER_LEVEL_MAX; i++) {
 		RARITY_DROP_MAP_CACHE[i] = getMapCacheFromValueMap(generateDropMap(i));
 	}
+
+    updateItemOddsAndValues();
+
+    console.log("RARITY_DROP_MAP_CACHE updated")
 }
 
 getRarityDropMapCache = function() {
