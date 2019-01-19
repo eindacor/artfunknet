@@ -259,9 +259,8 @@ updateAverageItemValueByRarityCache = function() {
     var all_artworks = artworks.find({'active': true}).fetch();
     for (var i=0; i<all_artworks.length; i++) {
         var artwork_object = all_artworks[i];
-        var mint_value = getMintValueFromArtworkObject(artwork_object);
-        var actual_value = getActualValueFromMintValue(mint_value, .5);
-        rarity_base_value_totals[artwork_object.rarity] += actual_value;
+        var artwork_value = getArtworkValue(artwork_object);
+        rarity_base_value_totals[artwork_object.rarity] += artwork_value;
         artwork_rarity_counts[artwork_object.rarity] += 1;
     }
 
@@ -279,6 +278,51 @@ getActiveArtworkCache = function() {
     }
 
     return ACTIVE_ARTWORK_CACHE;
+}
+
+getRarityDropChance = function(rarity) {
+    var loot_data = getLootData();
+
+    var standard_map = getRarityMap(50);
+    var keys = Object.keys(standard_map);
+    var sumtotal = 0;
+    for (var i=0; i<keys.length; i++) {
+        sumtotal += standard_map[keys[i]];
+    }
+
+    var odds = standard_map[rarity] / sumtotal;
+    return odds;
+}
+
+getRarityMaxValue = function(rarity) {
+    var loot_data = getLootData();
+   
+    var cost_per_mp = loot_data.crate_expense_per_masterpiece;
+    var cost_per_crate = loot_data.basic_crate_cost;
+    var items_per_basic_crate = loot_data.items_per_basic_crate;
+    var value_per_rarity_tier = cost_per_mp / ARTWORK_RARITIES.length;
+   
+    var items_rolled_for_one_mp = cost_per_mp / cost_per_crate * items_per_basic_crate;
+   
+    var rarity_drop_chance = getRarityDropChance(rarity);
+    var items_rolled_for_one_mp_of_rarity = items_rolled_for_one_mp * rarity_drop_chance;
+    return value_per_rarity_tier / items_rolled_for_one_mp_of_rarity;
+}
+
+getArtworkValue = function(artwork_object) {
+    var rarity = artwork_object.rarity;
+    var rarity_max_value = getRarityMaxValue(artwork_object.rarity);
+   
+    var rarity_min_value = undefined;
+    if (rarity === "common") {
+        rarity_min_value = rarity_max_value * .5;
+    }
+    else {
+        var rarity_index = ARTWORK_RARITIES.indexOf(rarity);
+        rarity_min_value = getRarityMaxValue(ARTWORK_RARITIES[rarity_index - 1]);
+    }
+       
+    return Math.floor(rarity_min_value + ((rarity_max_value - rarity_min_value) * artwork_object.value_scale));
 }
 
 updateArtworkDropOdds = function() {
@@ -301,12 +345,10 @@ updateArtworkDropOdds = function() {
 updateItemOddsAndValues = function() {
     items.find().forEach(function(item_object) {
         var item_odds = getItemOddsString(item_object);
-        var signature_drop_chance = getSignatureDropChance(item_object);
-        var value_scale = artworks.findOne({'_id': item_object.artwork_id}).value_scale;
-        var theoretical_value = getValueFromDropChance(signature_drop_chance, value_scale);
-        var conditional_value = getConditionValue(theoretical_value, item_object.condition);
-        items.update(item_object._id, {$set: {'odds': item_odds, 'values.theoretical': theoretical_value, 'values.conditional': conditional_value}});
+        items.update(item_object._id, {$set: {'odds': item_odds, 'values': getItemObjectValues(item_object)}});
     });
+
+    devLog("item odds and values updated");
 }
 
 getArtworkDropOdds = function(artwork_id) {
@@ -320,14 +362,7 @@ getArtworkDropOdds = function(artwork_id) {
 getSignatureDropChance = function(item_object) {
     var loot_data = getLootData();
 
-    var standard_map = getRarityMap(50);
-    var keys = Object.keys(standard_map);
-    var sumtotal = 0;
-    for (var i=0; i<keys.length; i++) {
-        sumtotal += standard_map[keys[i]];
-    }
-
-    var odds = standard_map[item_object.artwork_data.rarity] / sumtotal;
+    var odds = 1;
 
     if (item_object.foil) {
         odds *= loot_data.global_foil_chance;
@@ -374,6 +409,12 @@ getItemOddsString = function(item_object) {
 
 getValueFromDropChance = function(drop_chance, value_scale) {
     var loot_data = getLootData();
+
+    var cost_per_mp = loot_data.crate_expense_per_masterpiece;
+
+    var cost_per_tier = cost_per_mp / ARTWORK_RARITIES.length;
+
+    var items_rolled = cost_per_mp / loot_data.basic_crate_cost * loot_data.items_per_basic_crate;
 
     var cost_per_crate_item = loot_data.basic_crate_cost / loot_data.items_per_basic_crate;
     var drops_required = Math.floor(1/drop_chance);

@@ -73,73 +73,46 @@ getItemObjectRollCost = function(item_object) {
     return reroll_cost;
 }
 
-// sumtotal of these values must equal 1
-var lowest_possible_value_coefficient = .4;
-var condition_coefficient_max = .4;
-var attribute_coefficient_max = .2;
-
-getMintValueFromArtworkObject = function(artwork_object) {
-    var rarity_values = getLootData().rarity_values;
-
-    var min = rarity_values[artwork_object.rarity].min;
-    var max = rarity_values[artwork_object.rarity].max;
-
-    var range = max - min;
-
-    return Math.floor(min + (artwork_object.value_scale * range));
-}
-
-getActualValueFromMintValue = function(mint_value, condition, attributes) {
-    var base_value = mint_value * lowest_possible_value_coefficient;
-    var condition_value = condition === undefined ? mint_value * condition_coefficient_max * .5 : mint_value * condition_coefficient_max * condition;
-    var attribute_value = attributes === undefined ? mint_value * attribute_coefficient_max * .5 : mint_value * attribute_coefficient_max * getAttributeValueCoefficient(attributes);
-    return Math.floor(base_value + condition_value + attribute_value);
-}
-
 getItemObjectValues = function(item_object) {
     var values_object = {};
 
-    var mint_value = getMintValueFromArtworkObject(artworks.findOne({'_id': item_object.artwork_id}));
-    var actual_value = getActualValueFromMintValue(mint_value, item_object.condition, item_object.attributes);
+    var artwork_object = artworks.findOne({'_id': item_object.artwork_id});
 
-    if (item_object.foil) {
-        actual_value *= FOIL_VALUE_BUFF;
-    }
+    //TODO move getArtworkValue to ArtworkIF
+    values_object.theoretical = Math.floor(getArtworkValue(artwork_object) / getSignatureDropChance(item_object));
+
+    var attribute_coefficient = getAttributeValueCoefficient(item_object.attributes);
+    values_object.theoretical = interpolateValues(values_object.theoretical * .8, values_object.theoretical, attribute_coefficient);
 
     if (item_object.seasonal) {
-        actual_value *= SEASONAL_VALUE_BUFFS[item_object.artwork_data.rarity];
+        values_object.theoretical *= SEASONAL_VALUE_BUFFS[item_object.artwork_data.rarity];
     }
 
     if (item_object.lottery && item_object.lottery != 0) {
-        actual_value *= (BASE_LOTTERY_VALUE_BUFF + (item_object.lottery * LOTTERY_LEVEL_VALUE_BUFF));
+        values_object.theoretical *= (BASE_LOTTERY_VALUE_BUFF + (item_object.lottery * LOTTERY_LEVEL_VALUE_BUFF));
     }
 
     if (item_object.original) {
-        actual_value *= ORIGINAL_VALUE_BUFF;
+        values_object.theoretical *= ORIGINAL_VALUE_BUFF;
     }
 
     if (item_object.vintage){
-        actual_value *= VINTAGE_VALUE_BUFF;
-    }
-
-    if (item_object.unlocked) {
-        actual_value *= UNLOCKED_VALUE_BUFF;
+        values_object.theoretical *= VINTAGE_VALUE_BUFF;
     }
 
     var item_level_amplifier = 1 + (item_object.level * ITEM_LEVEL_VALUE_BUFF);
-    actual_value *= item_level_amplifier;
+    values_object.theoretical *= item_level_amplifier;
 
-    values_object.sell = Math.floor(actual_value * .8);
-    values_object.purchase = Math.floor(actual_value * 1.5);
-    values_object.actual = Math.floor(actual_value);
-    values_object.auction_min = Math.floor(values_object.sell * .8);
-    values_object.collector = Math.floor(actual_value * 1.2);
-    values_object.dealer = Math.floor(actual_value * .9);
+    values_object.theoretical = Math.floor(values_object.theoretical);
 
-    var signature_drop_chance = getSignatureDropChance(item_object);
-    var value_scale = artworks.findOne({'_id': item_object.artwork_id}).value_scale;
-    values_object.theoretical = getValueFromDropChance(signature_drop_chance, value_scale);
     values_object.conditional = getConditionValue(values_object.theoretical, item_object.condition);
+    values_object.sell = Math.floor(values_object.conditional * .8);
+    values_object.dealer = Math.floor(values_object.conditional * .9);
+
+    values_object.purchase = Math.floor(values_object.conditional * 1.5);
+    values_object.actual = Math.floor(values_object.conditional);
+    values_object.auction_min = Math.floor(values_object.sell * .8);
+    values_object.collector = Math.floor(values_object.conditional * 1.2);
 
     var all_keys = Object.keys(values_object);
     for (var i=0; i<all_keys.length; i++) {
@@ -153,6 +126,7 @@ getItemObjectValues = function(item_object) {
     return values_object;
 }
 
+// Returns a value representing attribute totals vs. potential max
 var getAttributeValueCoefficient = function(attributes) {
     var attribute_array = attributes.locked.concat(attributes.unlocked.concat(attributes.special));
     var total_rating = 0;
@@ -162,7 +136,7 @@ var getAttributeValueCoefficient = function(attributes) {
     }
 
     if (attribute_array.length > 0) {
-        return (total_rating / attribute_array.length) * attribute_coefficient_max;
+        return total_rating / attribute_array.length;
     }
     else {
         return 0;
@@ -526,10 +500,6 @@ generateArtfunkelAuctions = function(item_count, duration) {
         'source': "generated auction",
         'count': item_count,
         'status': "auctioned"
-    }
-
-    if (DEV_MODE) {
-        multi_item_generator.misprint_chance = .5
     }
 
     var item_ids = ITEM_GENERATOR.generateMultiple(multi_item_generator, undefined, function(item_object) {
