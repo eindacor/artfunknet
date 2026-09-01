@@ -1,22 +1,49 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function PlayerHeader({
   screenName,
   bankBalance,
+  impersonating,
   xp,
 }: {
   screenName: string;
   bankBalance: number;
+  impersonating: boolean;
   xp: number;
 }) {
   const router = useRouter();
+  const [error, setError] = useState("");
 
   async function logout() {
-    await fetch("/api/auth/player/logout", { method: "POST" });
-    router.push("/play/login");
-    router.refresh();
+    setError("");
+    try {
+      const response = await fetch(
+        impersonating
+          ? "/api/admin/test-accounts/exit"
+          : "/api/auth/player/logout",
+        {
+          method: "POST",
+        },
+      );
+      if (!response.ok) {
+        throw new Error(
+          impersonating
+            ? "The administrator session is no longer available."
+            : "The player session could not be closed.",
+        );
+      }
+      router.push(impersonating ? "/admin" : "/play/login");
+      router.refresh();
+    } catch (logoutError) {
+      setError(
+        logoutError instanceof Error
+          ? logoutError.message
+          : "Could not sign out.",
+      );
+    }
   }
 
   return (
@@ -36,12 +63,19 @@ export default function PlayerHeader({
         </strong>
         <strong className="af-color">{xp.toLocaleString()}xp</strong>
       </div>
+      {error ? (
+        <span className="header-error" role="alert">
+          {error}
+        </span>
+      ) : null}
       <button
-        className="legacy-signout"
+        aria-label={impersonating ? "Return to admin" : "Sign out"}
+        className="item-action-button player-signout"
+        data-tooltip={impersonating ? "Return to admin" : "Sign out"}
         onClick={logout}
         type="button"
       >
-        sign out
+        <i aria-hidden="true" className="fa fa-sign-out" />
       </button>
     </header>
   );

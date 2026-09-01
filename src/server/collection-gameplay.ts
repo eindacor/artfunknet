@@ -6,9 +6,13 @@ import {
   type ArtworkRarity,
   type GameItem,
 } from "./gameplay.ts";
+import type { GameplayConfig } from "./game-settings.ts";
+import {
+  hydrateGameItems,
+  type HydratedGameItem,
+} from "./item-artwork.ts";
 
 const HOUR_MS = 60 * 60 * 1000;
-const DISPLAY_LEVEL_CAP = 20;
 const MAX_PLAYER_LEVEL = 50;
 
 type PlayerProfile = {
@@ -119,8 +123,9 @@ export function getCapsForLevel(level: number) {
 export async function calculateGalleryRates(
   database: Db,
   playerLevel: number,
-  items: GameItem[],
+  items: HydratedGameItem[],
   at: Date,
+  config: GameplayConfig,
 ): Promise<GalleryRates> {
   const metadata = await database
     .collection<{ _id: string; loot_data: LootData }>("metadata")
@@ -141,8 +146,18 @@ export async function calculateGalleryRates(
   return items.reduce<GalleryRates>(
     (totals, item) => {
       totals.value += item.values.actual;
-      totals.moneyPerHour += getDisplayMoneyPerHour(item, averageDrop, at);
-      totals.xpPerHour += getDisplayXpPerHour(item, playerLevel, at);
+      totals.moneyPerHour += getDisplayMoneyPerHour(
+        item,
+        averageDrop,
+        at,
+        config,
+      );
+      totals.xpPerHour += getDisplayXpPerHour(
+        item,
+        playerLevel,
+        at,
+        config,
+      );
       return totals;
     },
     { value: 0, moneyPerHour: 0, xpPerHour: 0 },
@@ -152,8 +167,8 @@ export async function calculateGalleryRates(
 export async function settleGalleryEarnings(
   database: Db,
   playerId: string,
+  config: GameplayConfig,
   now = new Date(),
-  payoutIntervalMinutes = 60,
 ): Promise<{ money: number; xp: number; intervals: number }> {
   const players = database.collection<PlayerRecord>("players");
   const player = await players.findOne({ _id: playerId, active: true });
@@ -162,16 +177,17 @@ export async function settleGalleryEarnings(
   const previousPayout =
     player.profile.last_gallery_payout ?? player.profile.last_activity;
   const previousTime = new Date(previousPayout).getTime();
-  const intervalMs = payoutIntervalMinutes * 60 * 1000;
+  const intervalMs = config.galleryPayoutIntervalMinutes * 60 * 1000;
   const elapsedIntervals = Math.floor(
     (now.getTime() - previousTime) / intervalMs,
   );
   if (elapsedIntervals <= 0) return { money: 0, xp: 0, intervals: 0 };
 
-  const displayed = await database
+  const displayedItems = await database
     .collection<GameItem>("items")
     .find({ owner: playerId, status: "displayed" })
     .toArray();
+  const displayed = await hydrateGameItems(database, displayedItems);
   let level = player.profile.level;
   let xp = player.profile.xp;
   let lotteryTickets = 0;
@@ -182,7 +198,13 @@ export async function settleGalleryEarnings(
   const intervalHourRatio = intervalMs / HOUR_MS;
   for (let interval = 1; interval <= elapsedIntervals; interval += 1) {
     const tick = new Date(previousTime + interval * intervalMs);
-    const rates = await calculateGalleryRates(database, level, displayed, tick);
+    const rates = await calculateGalleryRates(
+      database,
+      level,
+      displayed,
+      tick,
+      config,
+    );
     moneyAccrued += rates.moneyPerHour * intervalHourRatio;
     xpAccrued += rates.xpPerHour * intervalHourRatio;
     const awardedXp = Math.floor(xpAccrued);
@@ -234,7 +256,12 @@ export async function settleGalleryEarnings(
   }
 
   const conditionDecayChance =
-    1 - Math.pow(0.8, payoutIntervalMinutes / 60);
+    1 -
+    Math.pow(
+      0.8,
+      config.galleryPayoutIntervalMinutes /
+        config.conditionDecayIntervalMinutes,
+    );
   for (const item of displayed) {
     let condition = item.condition;
     for (let interval = 0; interval < elapsedIntervals; interval += 1) {
@@ -285,22 +312,28 @@ function getAverageDropValue(
   return Math.floor(average);
 }
 
-function getDisplayLevel(item: GameItem, at: Date): number {
+function getDisplayLevel(
+  item: GameItem,
+  at: Date,
+  config: GameplayConfig,
+): number {
   if (!item.time_displayed) return 0;
-  const hours = Math.floor(
-    (at.getTime() - new Date(item.time_displayed).getTime()) / HOUR_MS,
+  const levels = Math.floor(
+    (at.getTime() - new Date(item.time_displayed).getTime()) /
+      (config.displayLevelIntervalMinutes * 60 * 1000),
   );
-  return Math.min(Math.max(hours, 0), DISPLAY_LEVEL_CAP);
+  return Math.min(Math.max(levels, 0), config.displayLevelCap);
 }
 
 function getDisplayMoneyPerHour(
-  item: GameItem,
+  item: HydratedGameItem,
   averageDrop: number,
   at: Date,
+  config: GameplayConfig,
 ): number {
   let value = averageDrop;
   value *= { common: 1, uncommon: 2, rare: 4, legendary: 7, masterpiece: 11 }[
-    item.artwork_data.rarity
+    item.artwork.rarity
   ];
   if (item.foil) value *= 1.2;
   if (item.seasonal) value *= 1.5;
@@ -308,21 +341,24 @@ function getDisplayMoneyPerHour(
   if (item.original) value *= 2;
   if (item.vintage) value *= 1.5;
   value = Math.floor(
-    value + value * item.condition * item.artwork_data.value_scale,
+    value + value * item.condition * item.artwork.value_scale,
   );
   const base = Math.floor(value * 0.015);
-  return Math.floor(base * Math.pow(1.07, getDisplayLevel(item, at)));
+  return Math.floor(
+    base * Math.pow(1.07, getDisplayLevel(item, at, config)),
+  );
 }
 
 function getDisplayXpPerHour(
   item: GameItem,
   playerLevel: number,
   at: Date,
+  config: GameplayConfig,
 ): number {
   const percentage = 0.02 + (item.level / 10) * 0.1;
   return Math.floor(
     percentage *
-      Math.pow(1.05, getDisplayLevel(item, at)) *
+      Math.pow(1.05, getDisplayLevel(item, at, config)) *
       getXpChunk(playerLevel),
   );
 }

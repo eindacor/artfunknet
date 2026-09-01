@@ -1,0 +1,177 @@
+"use client";
+
+import { useState } from "react";
+
+import type { PlayerNotification } from "@/server/player-notifications";
+
+export default function NotificationCenter({
+  notifications,
+  onChange,
+}: {
+  notifications: PlayerNotification[];
+  onChange: (notifications: PlayerNotification[]) => void;
+}) {
+  const [error, setError] = useState("");
+  const unreadCount = notifications.filter(
+    (notification) => !notification.read,
+  ).length;
+
+  async function request(
+    url: string,
+    options: RequestInit,
+    failureMessage: string,
+  ): Promise<boolean> {
+    try {
+      const response = await fetch(url, options);
+      if (!response.ok) {
+        setError(failureMessage);
+        return false;
+      }
+      setError("");
+      return true;
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error ? requestError.message : failureMessage,
+      );
+      return false;
+    }
+  }
+
+  async function updateRead(notification: PlayerNotification) {
+    const succeeded = await request(
+      `/api/play/notifications/${notification._id}`,
+      {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ read: !notification.read }),
+      },
+      "The notification read state could not be updated.",
+    );
+    if (!succeeded) return;
+    onChange(
+      notifications.map((candidate) =>
+        candidate._id === notification._id
+          ? { ...candidate, read: !candidate.read }
+          : candidate,
+      ),
+    );
+  }
+
+  async function deleteNotification(id: string) {
+    const succeeded = await request(
+      `/api/play/notifications/${id}`,
+      { method: "DELETE" },
+      "The notification could not be deleted.",
+    );
+    if (!succeeded) return;
+    onChange(notifications.filter((notification) => notification._id !== id));
+  }
+
+  async function markAllRead() {
+    const succeeded = await request(
+      "/api/play/notifications",
+      { method: "PATCH" },
+      "Notifications could not be marked as read.",
+    );
+    if (!succeeded) return;
+    onChange(
+      notifications.map((notification) => ({ ...notification, read: true })),
+    );
+  }
+
+  async function clearAll() {
+    const succeeded = await request(
+      "/api/play/notifications",
+      { method: "DELETE" },
+      "Notifications could not be cleared.",
+    );
+    if (!succeeded) return;
+    onChange([]);
+  }
+
+  return (
+    <details className="notification-center">
+      <summary
+        aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ""}`}
+      >
+        <i aria-hidden="true" className="fa fa-bell" />
+        {unreadCount > 0 ? (
+          <span className="notification-count">{unreadCount}</span>
+        ) : null}
+      </summary>
+      <section
+        aria-label="Player notifications"
+        className="notification-panel"
+      >
+        <header>
+          <strong>notifications</strong>
+          <div>
+            <button
+              disabled={unreadCount === 0}
+              onClick={markAllRead}
+              type="button"
+            >
+              mark all read
+            </button>
+            <button
+              disabled={notifications.length === 0}
+              onClick={clearAll}
+              type="button"
+            >
+              clear all
+            </button>
+          </div>
+        </header>
+        {notifications.length === 0 ? (
+          <p className="notification-empty">No notifications.</p>
+        ) : (
+          <ol className="notification-list">
+            {notifications.map((notification) => (
+              <li
+                className={`${notification.kind} ${
+                  notification.read ? "read" : "unread"
+                }`}
+                key={notification._id}
+              >
+                <div>
+                  <p>{notification.message}</p>
+                  <time dateTime={notification.created_at}>
+                    {new Date(notification.created_at).toLocaleString()}
+                  </time>
+                </div>
+                <div className="notification-actions">
+                  <button
+                    aria-label={`Mark notification as ${
+                      notification.read ? "unread" : "read"
+                    }`}
+                    onClick={() => updateRead(notification)}
+                    title={`mark as ${notification.read ? "unread" : "read"}`}
+                    type="button"
+                  >
+                    <i
+                      aria-hidden="true"
+                      className={`fa ${
+                        notification.read ? "fa-envelope" : "fa-check"
+                      }`}
+                    />
+                  </button>
+                  <button
+                    aria-label="Delete notification"
+                    onClick={() => deleteNotification(notification._id)}
+                    title="delete"
+                    type="button"
+                  >
+                    <i aria-hidden="true" className="fa fa-trash" />
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
+        <p aria-live="polite" className="notification-panel-error">
+          {error}
+        </p>
+      </section>
+    </details>
+  );
+}

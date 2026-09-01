@@ -117,8 +117,9 @@ loot sections and their legacy visual treatment.
 
 The basic gameplay loop is active:
 
-- Daily drop cooldown, item count, and gallery payout frequency are persisted in
-  MongoDB and editable at <http://localhost:3000/admin>.
+- Daily drop cooldown, item count, foil and unlocked probabilities, and gallery
+  payout frequency are persisted in MongoDB and editable for both Actual and
+  Debug profiles at <http://localhost:3000/admin>.
 - Each drop creates six `unclaimed` items using the original level-gated rarity,
   artwork weighting, condition, attribute, foil, unlocked, misprint, and value
   calculations.
@@ -131,7 +132,27 @@ The basic gameplay loop is active:
 - Claimed items can be sold for their generated sell value or placed in the
   player's capacity-limited gallery. Only one copy of an artwork can be
   displayed at a time.
+- Claimed items can be modified through an accessible reroll dialog. Attraction
+  values can be rerolled, unlocked attributes can be replaced, and each roll
+  charges the original rarity-scaled cost before recalculating item value.
+  Items retain their cumulative reroll spending even if a future NPC reward
+  reduces their roll count.
 - Displayed artwork generates the original hourly money and XP rewards. Rewards
   settle automatically when the player returns, without requiring a local
   background worker.
+- Gameplay alerts and gallery settlements are retained in persistent player
+  notifications. The notification bell shows unread counts and supports
+  individual read/unread changes, deletion, mark-all-read, and clear-all.
+- Database seeding creates five persistent test players. Administrators can
+  open these accounts from the admin panel, exercise normal player gameplay,
+  spawn bronze through platinum NPCs from the test gallery, and return to the
+  still-authenticated admin session from the player header.
 - Artwork images continue to resolve through the mock-S3/S3 storage abstraction.
+
+## Modernization conventions
+
+When porting or updating a legacy dialog, preserve its game logic first and its
+visual identity second, but implement the interaction with modern web dialog
+patterns. New dialogs must use accessible focus management, keyboard handling,
+semantic labeling, and non-blocking React-compatible infrastructure rather than
+reproducing the original Meteor or Blaze modal implementation.

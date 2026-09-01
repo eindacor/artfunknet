@@ -7,8 +7,18 @@ import {
 } from "@/server/collection-gameplay";
 import { getGameplaySettings } from "@/server/game-settings";
 import { getDatabase } from "@/server/mongodb";
-import type { GameItem } from "@/server/gameplay";
-import { requirePlayer } from "@/server/session";
+import type { GameItem, ItemAttribute } from "@/server/gameplay";
+import { hydrateGameItems } from "@/server/item-artwork";
+import {
+  getGalleryNpcs,
+  refreshNpcSpawns,
+  type NpcQuality,
+} from "@/server/npc-gameplay";
+import {
+  createPlayerNotification,
+  getPlayerNotifications,
+} from "@/server/player-notifications";
+import { getAdminSession, requirePlayer } from "@/server/session";
 
 import GameDashboard from "./game-dashboard";
 import PlayerHeader from "./player-header";
@@ -17,6 +27,7 @@ type Player = {
   _id: string;
   email: string;
   screen_name: string;
+  test_account?: boolean;
   profile: {
     bank_balance: number;
     level: number;
@@ -32,6 +43,7 @@ type Player = {
       current_tutorial?: string;
       step: number;
     };
+    npcs_met?: Partial<Record<NpcQuality, number>>;
   };
 };
 
@@ -41,12 +53,20 @@ export default async function PlayerPage() {
   const session = await requirePlayer();
   const database = await getDatabase();
   const settings = await getGameplaySettings(database);
+  const config = settings.active;
   const payout = await settleGalleryEarnings(
     database,
     session.playerId,
+    config,
     new Date(),
-    settings.galleryPayoutIntervalMinutes,
   );
+  if (payout.intervals > 0 && (payout.money > 0 || payout.xp > 0)) {
+    await createPlayerNotification(database, session.playerId, {
+      kind: "success",
+      message: `Gallery earnings: +$${payout.money.toLocaleString()} and +${payout.xp.toLocaleString()}xp.`,
+      dedupeUnread: false,
+    });
+  }
   const player = await database
     .collection<Player>("players")
     .findOne({ _id: session.playerId });
@@ -54,8 +74,10 @@ export default async function PlayerPage() {
   if (!player) {
     notFound();
   }
+  const adminSession = player.test_account ? await getAdminSession() : null;
+  const impersonating = Boolean(adminSession && player.test_account);
 
-  const items = await database
+  const rawItems = await database
     .collection<GameItem>("items")
     .find({
       owner: player._id,
@@ -63,26 +85,52 @@ export default async function PlayerPage() {
     })
     .sort({ date_created: -1 })
     .toArray();
+  const items = await hydrateGameItems(database, rawItems);
   const displayedItems = items.filter((item) => item.status === "displayed");
   const galleryRates = await calculateGalleryRates(
     database,
     player.profile.level,
     displayedItems,
     new Date(),
+    config,
   );
+  await refreshNpcSpawns(database, new Date(), config.npcSpawnIntervalMinutes);
+  const [npcs, notifications, npcSpawnAttributes] = await Promise.all([
+    getGalleryNpcs(database, player._id),
+    getPlayerNotifications(database, player._id),
+    impersonating
+      ? database
+          .collection<ItemAttribute>("attributes")
+          .find({ active: true })
+          .sort({ npc_name: 1 })
+          .toArray()
+      : Promise.resolve([]),
+  ]);
 
   return (
     <div className="game-shell">
       <PlayerHeader
         bankBalance={player.profile.bank_balance}
+        impersonating={impersonating}
         screenName={player.screen_name}
         xp={player.profile.xp}
       />
       <GameDashboard
-        dailyDropCooldownMinutes={settings.dailyDropCooldownMinutes}
-        items={items.map((item) => JSON.parse(JSON.stringify(item)) as GameItem)}
+        dailyDropCooldownMinutes={config.dailyDropCooldownMinutes}
+        debugEnabled={settings.debugEnabled}
+        items={items.map((item) => JSON.parse(JSON.stringify(item)))}
         galleryRates={galleryRates}
-        payout={payout}
+        initialNotifications={notifications}
+        impersonating={impersonating}
+        npcSpawnOptions={npcSpawnAttributes.map((attribute) => ({
+          id: attribute._id,
+          icon: attribute.icon,
+          name: attribute.npc_name,
+        }))}
+        npcs={npcs.map((npc) => ({
+          ...JSON.parse(JSON.stringify(npc)),
+          alreadyMet: npc.players_met.includes(player._id),
+        }))}
         player={{
           screenName: player.screen_name,
           bankBalance: player.profile.bank_balance,
@@ -93,6 +141,7 @@ export default async function PlayerPage() {
           lastDrop: player.profile.last_drop,
           displayCap: player.profile.display_cap,
           xpGoal: getXpGoal(player.profile.level),
+          npcsMet: player.profile.npcs_met ?? {},
         }}
       />
     </div>

@@ -20,8 +20,9 @@ export async function POST() {
 
   const database = await getDatabase();
   const settings = await getGameplaySettings(database);
+  const config = settings.active;
   const now = new Date();
-  const cooldownMs = settings.dailyDropCooldownMinutes * 60 * 1000;
+  const cooldownMs = config.dailyDropCooldownMinutes * 60 * 1000;
   const cutoff = new Date(now.getTime() - cooldownMs).toISOString();
   const player = await database.collection<Player>("players").findOneAndUpdate(
     {
@@ -45,8 +46,14 @@ export async function POST() {
       database,
       player._id,
       player.profile.level,
-      now,
-      settings.dailyDropCount,
+      {
+        now,
+        itemCount: config.dailyDropCount,
+        rarityWeights: config.rarityWeights,
+        foilProbability: config.foilProbability,
+        unlockedProbability: config.unlockedProbability,
+        debug: settings.debugEnabled,
+      },
     );
     return NextResponse.json({ status: "ok", item_ids: items.map((item) => item._id) });
   } catch (error) {

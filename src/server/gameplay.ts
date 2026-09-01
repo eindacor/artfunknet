@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 
 import type { Db } from "mongodb";
 
+import { getRerollCost } from "./item-reroll.ts";
+
 export const ARTWORK_RARITIES = [
   "common",
   "uncommon",
@@ -29,7 +31,7 @@ const MAX_DROP_PORTION_COEFFICIENTS: Partial<
   legendary: 0.01,
 };
 
-type LootData = {
+export type LootData = {
   rarity_values: Record<ArtworkRarity, { min: number; max: number }>;
   basic_crate_cost: number;
   items_per_basic_crate: number;
@@ -41,7 +43,7 @@ type LootData = {
   global_misprint_chance: number;
 };
 
-type Artwork = {
+export type Artwork = {
   _id: string;
   artist_id: string;
   artist: string;
@@ -56,6 +58,17 @@ type Artwork = {
   active: boolean;
   special_attributes?: string[];
   unique_attributes?: string[];
+};
+
+export type ArtworkOverrides = Partial<Pick<Artwork, "artist" | "title">>;
+
+export type ItemTransaction = {
+  type: "generation" | "transfer";
+  from_owner: string | null;
+  to_owner: string;
+  occurred_at: string;
+  source: string;
+  amount?: number;
 };
 
 export type ItemAttribute = {
@@ -80,12 +93,15 @@ export type GameItem = {
   };
   active_unique_attribute?: string;
   owner: string;
+  // TODO AI: Auction and trade owner changes must append a transfer entry atomically with the owner update.
+  transaction_history: ItemTransaction[];
   status: "unclaimed" | "claimed" | "displayed";
   source: string;
   date_created: string;
   date_received: string;
   level: number;
   roll_count: number;
+  reroll_spent: number;
   foil: boolean;
   unlocked: boolean;
   seasonal: boolean;
@@ -103,9 +119,11 @@ export type GameItem = {
     original_owner: string;
   };
   tags: string[];
-  artwork_data: Artwork;
+  artwork_overrides?: ArtworkOverrides;
+  misprint: boolean;
   permanent: boolean;
   repairing: boolean;
+  debug: boolean;
   time_displayed?: string;
   odds: string;
   values: {
@@ -125,7 +143,30 @@ export function getRarityMap(
     LootData,
     "basic_crate_cost" | "crate_expense_per_masterpiece" | "items_per_basic_crate"
   >,
+  baseWeights?: Record<ArtworkRarity, number>,
 ): Record<ArtworkRarity, number> {
+  if (baseWeights) {
+    const baseMap = normalizeRarityMap(baseWeights);
+    const map = {} as Record<ArtworkRarity, number>;
+    let nonCommonTotal = 0;
+    for (const rarity of ARTWORK_RARITIES) {
+      if (rarity === "common") continue;
+      const restriction = RARITY_LEVEL_RESTRICTIONS[rarity];
+      const scale =
+        playerLevel < restriction
+          ? 0
+          : Math.pow(
+              (playerLevel - restriction + 1) /
+                (PLAYER_LEVEL_MAX - restriction + 1),
+              2,
+            );
+      map[rarity] = baseMap[rarity] * scale;
+      nonCommonTotal += map[rarity];
+    }
+    map.common = Math.max(0, 1 - nonCommonTotal);
+    return map;
+  }
+
   const map = {} as Record<ArtworkRarity, number>;
   let remaining = 1;
 
@@ -160,6 +201,36 @@ export function getRarityMap(
   return map;
 }
 
+export function normalizeRarityMap(
+  weights: Record<ArtworkRarity, number>,
+): Record<ArtworkRarity, number> {
+  const total = ARTWORK_RARITIES.reduce(
+    (sum, rarity) => sum + weights[rarity],
+    0,
+  );
+  if (total <= 0) {
+    throw new Error("At least one rarity weight must be greater than zero.");
+  }
+
+  return Object.fromEntries(
+    ARTWORK_RARITIES.map((rarity) => [rarity, weights[rarity] / total]),
+  ) as Record<ArtworkRarity, number>;
+}
+
+export function getConfiguredRarityMap(
+  playerLevel: number,
+  lootData: Pick<
+    LootData,
+    "basic_crate_cost" | "crate_expense_per_masterpiece" | "items_per_basic_crate"
+  >,
+  weights: Record<ArtworkRarity, number>,
+  useRawWeights = false,
+): Record<ArtworkRarity, number> {
+  return useRawWeights
+    ? normalizeRarityMap(weights)
+    : getRarityMap(playerLevel, lootData, weights);
+}
+
 export function rollWeighted<T>(
   entries: Array<{ value: T; weight: number }>,
   random = Math.random,
@@ -180,13 +251,46 @@ export function rollWeighted<T>(
   return entries[entries.length - 1].value;
 }
 
+export function rollProbability(
+  probability: number,
+  random = Math.random,
+): boolean {
+  return random() < probability;
+}
+
+export function rollUnlocked(
+  rarity: ArtworkRarity,
+  probability: number,
+  random = Math.random,
+): boolean {
+  return rarity !== "common" && rollProbability(probability, random);
+}
+
+type DailyDropOptions = {
+  now?: Date;
+  itemCount?: number;
+  rarityWeights?: Record<ArtworkRarity, number>;
+  foilProbability?: number;
+  unlockedProbability?: number;
+  debug?: boolean;
+  useRawRarityMap?: boolean;
+};
+
 export async function generateDailyDrop(
   database: Db,
   playerId: string,
   playerLevel: number,
-  now = new Date(),
-  itemCount = 6,
+  options: DailyDropOptions = {},
 ): Promise<GameItem[]> {
+  const {
+    now = new Date(),
+    itemCount = 6,
+    rarityWeights,
+    foilProbability = 0.005,
+    unlockedProbability = 0.05,
+    debug = false,
+    useRawRarityMap = false,
+  } = options;
   const metadata = await database
     .collection<{ _id: string; loot_data: LootData }>("metadata")
     .findOne({ _id: "loot-data" });
@@ -202,7 +306,14 @@ export async function generateDailyDrop(
     throw new Error("Artwork attributes have not been seeded.");
   }
 
-  const rarityMap = getRarityMap(playerLevel, metadata.loot_data);
+  const rarityMap = rarityWeights
+    ? getConfiguredRarityMap(
+        playerLevel,
+        metadata.loot_data,
+        rarityWeights,
+        useRawRarityMap,
+      )
+    : getRarityMap(playerLevel, metadata.loot_data);
   const artworks = await database
     .collection<Artwork>("artworks")
     .find({ active: true })
@@ -238,6 +349,9 @@ export async function generateDailyDrop(
           0,
         ),
         now,
+        foilProbability,
+        unlockedProbability,
+        debug,
       }),
     );
   }
@@ -271,6 +385,9 @@ function createItem({
   rarityMap,
   artworkWeightTotal,
   now,
+  foilProbability,
+  unlockedProbability,
+  debug,
 }: {
   artwork: Artwork;
   attributes: ItemAttribute[];
@@ -279,15 +396,17 @@ function createItem({
   rarityMap: Record<ArtworkRarity, number>;
   artworkWeightTotal: number;
   now: Date;
+  foilProbability: number;
+  unlockedProbability: number;
+  debug: boolean;
 }): GameItem {
-  const foil = Math.random() < lootData.global_foil_chance;
-  const unlocked =
-    artwork.rarity !== "common" &&
-    Math.random() < lootData.global_unlocked_chance;
+  const foil = rollProbability(foilProbability);
+  const unlocked = rollUnlocked(artwork.rarity, unlockedProbability);
   const misprint = Math.random() < lootData.global_misprint_chance;
-  const artworkData = misprintArtwork({ ...artwork }, misprint);
+  const artworkOverrides = getMisprintOverrides(artwork, misprint);
+  const itemArtwork = { ...artwork, ...artworkOverrides };
   const itemAttributes = getItemAttributes(
-    artworkData,
+    itemArtwork,
     unlocked,
     attributes,
   );
@@ -303,12 +422,23 @@ function createItem({
     attributes: itemAttributes,
     active_unique_attribute: artwork.unique_attributes?.[0],
     owner,
+    // TODO AI: Auction and trade transfers should append to this history instead of replacing it.
+    transaction_history: [
+      {
+        type: "generation" as const,
+        from_owner: null,
+        to_owner: owner,
+        occurred_at: timestamp,
+        source: "daily drop",
+      },
+    ],
     status: "unclaimed" as const,
     source: "daily drop",
     date_created: timestamp,
     date_received: timestamp,
     level: 1,
     roll_count: 0,
+    reroll_spent: 0,
     foil,
     unlocked,
     seasonal,
@@ -326,24 +456,26 @@ function createItem({
       original_owner: owner,
     },
     tags: [],
-    artwork_data: artworkData,
+    ...(Object.keys(artworkOverrides).length > 0
+      ? { artwork_overrides: artworkOverrides }
+      : {}),
+    misprint,
     permanent: false,
     repairing: false,
+    debug,
   };
-  const values = getItemValues(base, lootData);
+  const values = calculateItemValues(base, itemArtwork, lootData);
   const rarityOdds = rarityMap[artwork.rarity];
   const rarityArtworksWeight = 50 + Math.floor((1 - artwork.value_scale) * 50);
   let odds = rarityOdds * (rarityArtworksWeight / artworkWeightTotal);
-  if (foil) odds *= lootData.global_foil_chance;
-  if (unlocked) odds *= lootData.global_unlocked_chance;
+  if (foil) odds *= foilProbability;
+  if (unlocked) odds *= unlockedProbability;
 
   return {
     ...base,
     odds: odds > 0 ? `1 in ${Math.floor(1 / odds).toLocaleString("en-US")}` : "0",
     values,
-    reroll_cost: Math.floor(
-      lootData.rarity_values[artwork.rarity].min * 0.1,
-    ),
+    reroll_cost: getRerollCost(base, artwork.rarity, lootData),
   };
 }
 
@@ -368,7 +500,7 @@ function getItemAttributes(
     if (index >= 0) {
       result.special.push({
         ...remaining.splice(index, 1)[0],
-        value: getAttributeValue(0.8),
+        value: rollAttributeValue(0.8),
       });
     }
   }
@@ -378,13 +510,13 @@ function getItemAttributes(
   for (let index = 0; index < lockedCount; index += 1) {
     result.locked.push({
       ...takeRandom(remaining),
-      value: getAttributeValue(0.5),
+      value: rollAttributeValue(0.5),
     });
   }
   for (let index = 0; index < unlockedCount; index += 1) {
     result.unlocked.push({
       ...takeRandom(remaining),
-      value: getAttributeValue(0),
+      value: rollAttributeValue(0),
     });
   }
 
@@ -409,7 +541,7 @@ function getCondition(minimum: number): number {
   return Number((minimum + raw * (1 - minimum)).toFixed(2));
 }
 
-function getAttributeValue(minimum: number): number {
+export function rollAttributeValue(minimum: number): number {
   const tier = rollWeighted(
     [0, 1, 2, 3, 4].map((value, index) => ({
       value,
@@ -420,21 +552,23 @@ function getAttributeValue(minimum: number): number {
   return Number((minimum + raw * (1 - minimum)).toFixed(2));
 }
 
-function misprintArtwork(artwork: Artwork, misprint: boolean): Artwork {
-  if (!misprint) return artwork;
+function getMisprintOverrides(
+  artwork: Artwork,
+  misprint: boolean,
+): ArtworkOverrides {
+  if (!misprint) return {};
   const field = Math.random() < 0.5 ? "artist" : "title";
   const text = artwork[field];
   if (text.length > 0) {
     const index = Math.floor(Math.random() * text.length);
-    artwork[field] = text.slice(0, index) + text.slice(index + 1);
+    return { [field]: text.slice(0, index) + text.slice(index + 1) };
   }
-  return artwork;
+  return {};
 }
 
-function getItemValues(
+export function calculateItemValues(
   item: Pick<
     GameItem,
-    | "artwork_data"
     | "condition"
     | "attributes"
     | "foil"
@@ -445,11 +579,12 @@ function getItemValues(
     | "unlocked"
     | "level"
   >,
+  artwork: Artwork,
   lootData: LootData,
 ): GameItem["values"] {
-  const range = lootData.rarity_values[item.artwork_data.rarity];
+  const range = lootData.rarity_values[artwork.rarity];
   const mint = Math.floor(
-    range.min + item.artwork_data.value_scale * (range.max - range.min),
+    range.min + artwork.value_scale * (range.max - range.min),
   );
   const ratings = [
     ...item.attributes.locked,
@@ -468,7 +603,7 @@ function getItemValues(
   if (item.foil) actual *= 5;
   if (item.seasonal) {
     actual *= { common: 2, uncommon: 2, rare: 4, legendary: 10, masterpiece: 10 }[
-      item.artwork_data.rarity
+      artwork.rarity
     ];
   }
   if (item.lottery) actual *= 10 + item.lottery;

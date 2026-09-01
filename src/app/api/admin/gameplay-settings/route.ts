@@ -1,21 +1,27 @@
 import { NextResponse } from "next/server";
 
 import { requireAdminApi } from "@/server/admin-api";
-import { getGameplaySettings } from "@/server/game-settings";
+import {
+  getGameplaySettings,
+  toStoredGameplayConfig,
+  validateGameplayConfig,
+} from "@/server/game-settings";
 import { getDatabase } from "@/server/mongodb";
 
 type SettingsInput = {
-  dailyDropCooldownMinutes?: unknown;
-  dailyDropCount?: unknown;
-  galleryPayoutIntervalMinutes?: unknown;
+  debugEnabled?: unknown;
+  actual?: unknown;
+  debug?: unknown;
 };
 
 type SettingsDocument = {
   _id: string;
   gameplay?: {
-    daily_drop_cooldown_minutes?: number;
-    daily_drop_count?: number;
-    gallery_payout_interval_minutes?: number;
+    debug_enabled?: boolean;
+    configs?: {
+      actual?: ReturnType<typeof toStoredGameplayConfig>;
+      debug?: ReturnType<typeof toStoredGameplayConfig>;
+    };
   };
   created_at?: Date;
   updated_at?: Date;
@@ -34,9 +40,19 @@ export async function PATCH(request: Request) {
   if (!auth.ok) return auth.response;
 
   const body = (await request.json()) as SettingsInput;
-  const validation = validateSettings(body);
-  if (!validation.ok) {
-    return NextResponse.json({ error: validation.error }, { status: 400 });
+  const actual = validateGameplayConfig(body.actual);
+  if (!actual.ok) {
+    return NextResponse.json(
+      { error: `Actual configuration: ${actual.error}` },
+      { status: 400 },
+    );
+  }
+  const debug = validateGameplayConfig(body.debug);
+  if (!debug.ok) {
+    return NextResponse.json(
+      { error: `Debug configuration: ${debug.error}` },
+      { status: 400 },
+    );
   }
 
   const database = await getDatabase();
@@ -45,11 +61,9 @@ export async function PATCH(request: Request) {
     { _id: "gameplay-settings" },
     {
       $set: {
-        "gameplay.daily_drop_cooldown_minutes":
-          validation.value.dailyDropCooldownMinutes,
-        "gameplay.daily_drop_count": validation.value.dailyDropCount,
-        "gameplay.gallery_payout_interval_minutes":
-          validation.value.galleryPayoutIntervalMinutes,
+        "gameplay.debug_enabled": body.debugEnabled === true,
+        "gameplay.configs.actual": toStoredGameplayConfig(actual.value),
+        "gameplay.configs.debug": toStoredGameplayConfig(debug.value),
         updated_at: now,
         updated_by: auth.session.email,
       },
@@ -60,65 +74,6 @@ export async function PATCH(request: Request) {
 
   return NextResponse.json({
     status: "ok",
-    settings: validation.value,
+    settings: await getGameplaySettings(database),
   });
-}
-
-function validateSettings(
-  input: SettingsInput,
-):
-  | {
-      ok: true;
-      value: {
-        dailyDropCooldownMinutes: number;
-        dailyDropCount: number;
-        galleryPayoutIntervalMinutes: number;
-      };
-    }
-  | { ok: false; error: string } {
-  const dailyDropCooldownMinutes = Number(input.dailyDropCooldownMinutes);
-  const dailyDropCount = Number(input.dailyDropCount);
-  const galleryPayoutIntervalMinutes = Number(
-    input.galleryPayoutIntervalMinutes,
-  );
-
-  if (
-    !Number.isInteger(dailyDropCooldownMinutes) ||
-    dailyDropCooldownMinutes < 1 ||
-    dailyDropCooldownMinutes > 10_080
-  ) {
-    return {
-      ok: false,
-      error: "Daily drop cooldown must be an integer from 1 to 10,080 minutes.",
-    };
-  }
-  if (
-    !Number.isInteger(dailyDropCount) ||
-    dailyDropCount < 1 ||
-    dailyDropCount > 100
-  ) {
-    return {
-      ok: false,
-      error: "Daily drop count must be an integer from 1 to 100.",
-    };
-  }
-  if (
-    !Number.isInteger(galleryPayoutIntervalMinutes) ||
-    galleryPayoutIntervalMinutes < 1 ||
-    galleryPayoutIntervalMinutes > 1_440
-  ) {
-    return {
-      ok: false,
-      error: "Gallery payout interval must be an integer from 1 to 1,440 minutes.",
-    };
-  }
-
-  return {
-    ok: true,
-    value: {
-      dailyDropCooldownMinutes,
-      dailyDropCount,
-      galleryPayoutIntervalMinutes,
-    },
-  };
 }

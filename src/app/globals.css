@@ -5,6 +5,31 @@
   --foreground: #f5f3f7;
   --muted: #aaa4af;
   --accent: #ff33cc;
+  --game-button-background: #000;
+  --game-button-text: #fff;
+  --game-button-border: #000;
+  --game-button-hover-background: var(--accent);
+  --game-button-hover-text: #000;
+  --game-button-hover-border: var(--accent);
+  --game-button-shadow: #777;
+  --game-button-shine: rgb(255 255 255 / 16%);
+  --game-button-radius: 3px;
+  --game-button-debug-background: #e6e6e6;
+  --game-button-debug-text: #b80091;
+  --game-button-debug-border: var(--accent);
+  --game-action-background: #000;
+  --game-action-text: #fff;
+  --game-action-border: #000;
+  --game-action-hover-background: var(--accent);
+  --game-action-hover-text: #000;
+  --game-action-shine: rgb(255 255 255 / 18%);
+  --game-action-disabled-background: #aaa;
+  --game-action-disabled-text: #eee;
+  --game-action-disabled-border: #777;
+  --game-action-disabled-shadow: #bbb;
+  --game-action-tooltip-background: #fff;
+  --game-action-tooltip-text: #000;
+  --game-action-tooltip-border: #000;
 }
 
 @theme inline {
@@ -69,10 +94,27 @@ body {
   font-weight: bold;
 }
 
-.legacy-signout {
+.player-signout {
   margin-left: 24px;
-  padding: 8px 12px;
-  opacity: 0.75;
+}
+
+.item-action-button.player-signout::after {
+  top: calc(100% + 9px);
+  right: 0;
+  bottom: auto;
+  left: auto;
+  transform: translateY(-3px);
+}
+
+.item-action-button.player-signout:hover::after,
+.item-action-button.player-signout:focus-visible::after {
+  transform: translateY(0);
+}
+
+.header-error {
+  margin-left: 12px;
+  color: #ff6b6b;
+  font-size: 0.72rem;
 }
 
 .legacy-game {
@@ -90,6 +132,213 @@ body {
   color: #777;
   font-size: 3rem;
   font-weight: bold;
+}
+
+.game-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.notification-center {
+  position: relative;
+  color: #000;
+}
+
+.notification-center > summary {
+  position: relative;
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid var(--game-action-border);
+  border-radius: 50%;
+  background-color: var(--game-action-background);
+  background-image: linear-gradient(
+    135deg,
+    transparent 0 40%,
+    var(--game-action-shine) 40% 50%,
+    transparent 50% 100%
+  );
+  color: var(--game-action-text);
+  cursor: pointer;
+  list-style: none;
+}
+
+.notification-center > summary::-webkit-details-marker {
+  display: none;
+}
+
+.notification-center > summary:hover,
+.notification-center > summary:focus-visible,
+.notification-center[open] > summary {
+  border-color: var(--accent);
+  background-color: var(--accent);
+  color: #000;
+}
+
+.notification-count {
+  position: absolute;
+  top: -7px;
+  right: -8px;
+  min-width: 20px;
+  height: 20px;
+  border: 2px solid #fff;
+  border-radius: 10px;
+  background: #e00000;
+  color: #fff;
+  padding: 0 4px;
+  font-size: 0.68rem;
+  font-weight: bold;
+  line-height: 16px;
+  text-align: center;
+}
+
+.notification-panel {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 10px);
+  left: 0;
+  width: min(430px, calc(90vw - 20px));
+  max-height: min(560px, 70vh);
+  overflow-y: auto;
+  border: 1px solid #000;
+  background: #fff;
+  box-shadow: 7px 7px 0 rgb(0 0 0 / 20%);
+  font-size: 0.82rem;
+}
+
+.notification-panel > header {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid #000;
+  background: #fff;
+  padding: 12px;
+}
+
+.notification-panel > header > strong {
+  color: var(--accent);
+  text-transform: lowercase;
+}
+
+.notification-panel > header > div {
+  display: flex;
+  gap: 6px;
+}
+
+.notification-panel > header button {
+  border: 0;
+  background: transparent;
+  color: #555;
+  padding: 2px;
+  font: inherit;
+  font-size: 0.7rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.notification-panel > header button:disabled {
+  color: #aaa;
+  cursor: default;
+}
+
+.notification-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.notification-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid #ddd;
+  border-left: 4px solid #777;
+  padding: 12px;
+}
+
+.notification-list li.success {
+  border-left-color: #00aa2b;
+}
+
+.notification-list li.warning {
+  border-left-color: #d8a500;
+}
+
+.notification-list li.error {
+  border-left-color: #d00000;
+}
+
+.notification-list li.unread {
+  background: #fff8fd;
+}
+
+.notification-list li.read {
+  color: #777;
+}
+
+.notification-list p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.notification-list time {
+  display: block;
+  margin-top: 5px;
+  color: #888;
+  font-size: 0.68rem;
+}
+
+.notification-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.notification-actions button {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #777;
+  border-radius: var(--game-button-radius);
+  background: #eee;
+  color: #000;
+  padding: 0;
+  cursor: pointer;
+}
+
+.notification-actions button:hover,
+.notification-actions button:focus-visible {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.notification-empty {
+  margin: 0;
+  padding: 28px 12px;
+  color: #777;
+  text-align: center;
+}
+
+.notification-panel-error {
+  min-height: 1em;
+  margin: 0;
+  color: #d00000;
+  padding: 0 12px 8px;
+}
+
+.dashboard-live-region {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .dashboard-tabs {
@@ -191,7 +440,54 @@ body {
 }
 
 .random-drop > button {
+  --button-background: var(--game-button-background);
+  --button-text: var(--game-button-text);
+  --button-border: var(--game-button-border);
+  --button-hover-background: var(--game-button-hover-background);
+  --button-hover-text: var(--game-button-hover-text);
+  --button-hover-border: var(--game-button-hover-border);
+
+  border: 1px solid var(--button-border);
+  border-radius: var(--game-button-radius);
+  background-color: var(--button-background);
+  background-image: linear-gradient(
+    135deg,
+    transparent 0 40%,
+    var(--game-button-shine) 40% 50%,
+    transparent 50% 100%
+  );
+  color: var(--button-text);
+  font-family: inherit;
+  font-weight: bold;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease,
+    opacity 120ms ease,
+    transform 120ms ease;
+}
+
+.random-drop > button {
   min-width: 220px;
+  margin: 0 10px 12px 0;
+  padding: 12px 18px;
+  box-shadow: 0 2px 0 var(--game-button-shadow);
+}
+
+.random-drop > button.enabled:hover,
+.random-drop > button.debug-raw-drop:hover {
+  border-color: var(--button-hover-border);
+  background-color: var(--button-hover-background);
+  color: var(--button-hover-text);
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.random-drop > button.debug-raw-drop {
+  --button-background: var(--game-button-debug-background);
+  --button-text: var(--game-button-debug-text);
+  --button-border: var(--game-button-debug-border);
 }
 
 .random-drop > button.disabled {
@@ -344,14 +640,14 @@ body {
   display: block;
 }
 
-.foil,
-.unlocked,
-.seasonal {
+.card-effect-foil,
+.card-effect-unlocked,
+.card-effect-seasonal {
   background-size: 300% 300%;
   animation: legacy-card-effect 10s ease infinite;
 }
 
-.foil {
+.card-effect-foil {
   background-image: linear-gradient(
     60deg,
     white,
@@ -364,7 +660,7 @@ body {
   );
 }
 
-.unlocked {
+.card-effect-unlocked {
   background-image: linear-gradient(
     60deg,
     white,
@@ -375,7 +671,7 @@ body {
   );
 }
 
-.seasonal {
+.card-effect-seasonal {
   background-image: linear-gradient(
     60deg,
     white,
@@ -385,23 +681,381 @@ body {
   );
 }
 
+.card-signature {
+  font-size: 0.8rem;
+}
+
+.signature-common,
+.signature-seasonal {
+  color: green;
+}
+
+.signature-uncommon {
+  color: blue;
+}
+
+.signature-rare {
+  color: #cccc00;
+}
+
+.signature-legendary {
+  color: orange;
+}
+
+.signature-masterpiece {
+  color: #44dddd;
+}
+
+.signature-foil {
+  color: var(--accent);
+}
+
+.signature-lottery {
+  color: #e8bf6c;
+}
+
+.signature-original {
+  color: purple;
+}
+
+.signature-vintage {
+  color: #dbbca4;
+}
+
+.signature-unlocked {
+  color: #aaa;
+}
+
+.signature-patreon {
+  color: #f96854;
+}
+
 .card-actions {
   display: flex;
   justify-content: center;
-  gap: 8px;
+  gap: 4px;
   width: 280px;
   margin: 8px auto 0;
 }
 
-.card-actions button {
-  padding: 6px 10px;
-  font-size: 0.9rem;
-  opacity: 0.65;
+.item-action-button {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--game-action-border);
+  border-radius: var(--game-button-radius);
+  background-color: var(--game-action-background);
+  background-image: linear-gradient(
+    135deg,
+    transparent 0 40%,
+    var(--game-action-shine) 40% 50%,
+    transparent 50% 100%
+  );
+  color: var(--game-action-text);
+  padding: 0;
+  font-family: inherit;
+  font-size: 1.1rem;
+  box-shadow: 0 2px 0 var(--game-button-shadow);
+  opacity: 0.9;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease,
+    opacity 120ms ease,
+    transform 120ms ease;
 }
 
-.card-actions button:hover,
-.card-actions button:focus-visible {
+.item-action-button i {
+  color: inherit;
+}
+
+.item-action-button::after {
+  content: attr(data-tooltip);
+  visibility: hidden;
+  position: absolute;
+  z-index: 10;
+  bottom: calc(100% + 9px);
+  left: 50%;
+  width: max-content;
+  max-width: 190px;
+  border: 1px solid var(--game-action-tooltip-border);
+  background: var(--game-action-tooltip-background);
+  color: var(--game-action-tooltip-text);
+  padding: 6px 8px;
+  font-size: 0.75rem;
+  font-weight: normal;
+  line-height: 1.25;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(3px);
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease,
+    visibility 120ms ease;
+}
+
+.item-action-button:hover,
+.item-action-button:focus-visible {
+  border-color: var(--game-action-hover-background);
+  background-color: var(--game-action-hover-background);
+  color: var(--game-action-hover-text);
   opacity: 1;
+  transform: translateY(-1px);
+}
+
+.item-action-button:hover::after,
+.item-action-button:focus-visible::after {
+  visibility: visible;
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.item-action-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.random-drop > button:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+.item-action-button[aria-disabled="true"] {
+  border-color: var(--game-action-disabled-border);
+  background-color: var(--game-action-disabled-background);
+  color: var(--game-action-disabled-text);
+  box-shadow: 0 2px 0 var(--game-action-disabled-shadow);
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.item-action-button[aria-disabled="true"]:hover,
+.item-action-button[aria-disabled="true"]:focus-visible {
+  border-color: var(--game-action-disabled-border);
+  background-color: var(--game-action-disabled-background);
+  color: var(--game-action-disabled-text);
+  opacity: 1;
+  transform: none;
+}
+
+.reroll-dialog {
+  width: min(860px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  margin: auto;
+  border: 1px solid #000;
+  background: #fff;
+  color: #777;
+  padding: 0;
+  font-family: Courier, monospace;
+  box-shadow: 10px 10px 0 rgb(0 0 0 / 24%);
+}
+
+.reroll-dialog::backdrop {
+  background: rgb(0 0 0 / 65%);
+  backdrop-filter: blur(2px);
+}
+
+.reroll-dialog-content {
+  padding: 24px;
+}
+
+.reroll-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.reroll-artwork-summary {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.artwork-thumbnail {
+  position: relative;
+  display: inline-block;
+  flex: 0 0 auto;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: #eee;
+}
+
+.artwork-thumbnail img {
+  object-fit: cover;
+}
+
+.reroll-artwork-thumbnail {
+  border: 1px solid #000;
+  box-shadow: 3px 3px 0 rgb(0 0 0 / 18%);
+}
+
+.reroll-dialog-kicker {
+  margin: 0 0 4px;
+  color: #777;
+  font-size: 0.75rem;
+  font-weight: bold;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.reroll-dialog h2 {
+  margin: 0;
+  color: #000;
+  font-size: 1.2rem;
+  font-weight: normal;
+}
+
+.reroll-dialog h2 span {
+  color: var(--accent);
+  font-weight: bold;
+}
+
+.reroll-dialog-close {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border: 1px solid #000;
+  border-radius: var(--game-button-radius);
+  background: #000;
+  color: #fff;
+  cursor: pointer;
+}
+
+.reroll-dialog-close:hover,
+.reroll-dialog-close:focus-visible {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #000;
+}
+
+.reroll-dialog-description {
+  margin: 18px 0;
+  color: #555;
+  line-height: 1.45;
+}
+
+.reroll-summary {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  margin: 0;
+  border-top: 1px solid #000;
+  border-bottom: 1px solid #000;
+}
+
+.reroll-summary div {
+  padding: 14px 16px;
+  text-align: center;
+}
+
+.reroll-summary div + div {
+  border-left: 1px solid #bbb;
+}
+
+.reroll-summary dt {
+  color: #555;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.reroll-summary dd {
+  margin: 4px 0 0;
+  color: var(--accent);
+  font-size: 1.05rem;
+  font-weight: bold;
+}
+
+.reroll-attributes {
+  margin-top: 22px;
+  border-bottom: 1px solid #bbb;
+}
+
+.reroll-attribute-row {
+  /* TODO AI: Revisit this layout. The dialog still has horizontal overflow and excessive
+     space between the NPC name and value; identify the actual overflowing element before
+     adjusting these columns again, including action tooltips and dialog intrinsic sizing. */
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) max-content 74px;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0;
+}
+
+.reroll-attribute-row + .reroll-attribute-row {
+  border-top: 1px solid #bbb;
+}
+
+.reroll-attribute-icons {
+  display: grid;
+  grid-template-columns: 24px 16px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.reroll-attribute-icon {
+  font-size: 1.35rem;
+  text-align: center;
+}
+
+.reroll-attribute-icon.special {
+  text-shadow: 0.1em 0.1em 0.1em rgb(255 51 204 / 80%);
+}
+
+.reroll-attribute-type {
+  color: #777;
+  font-size: 0.8rem;
+}
+
+.reroll-attribute-type.special {
+  color: var(--accent);
+}
+
+.reroll-attribute-info,
+.reroll-attribute-rating {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.reroll-attribute-info strong {
+  color: #000;
+  overflow-wrap: anywhere;
+}
+
+.reroll-attribute-rating span {
+  margin-top: 3px;
+  color: #777;
+  font-size: 0.72rem;
+}
+
+.reroll-attribute-rating strong {
+  color: var(--accent);
+}
+
+.reroll-attribute-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 34px);
+  align-items: center;
+  justify-content: end;
+  gap: 6px;
+}
+
+.reroll-dialog-error,
+.reroll-dialog-notice {
+  min-height: 1.2em;
+  margin: 16px 0 0;
+}
+
+.reroll-dialog-error {
+  color: red;
+}
+
+.reroll-dialog-notice {
+  color: #00aa2b;
 }
 
 .inventory-section + .inventory-section {
@@ -428,6 +1082,145 @@ body {
 
 .gallery-window {
   overflow-x: auto;
+}
+
+.admin-gallery-controls {
+  margin-bottom: 18px;
+  border: 1px dashed #777;
+  background: #f5f5f5;
+  padding: 12px;
+  font-size: 0.75rem;
+}
+
+.admin-gallery-controls > strong {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+
+.admin-gallery-controls fieldset {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.admin-gallery-controls legend,
+.admin-npc-spawn-options > span {
+  color: #777;
+}
+
+.admin-gallery-controls legend {
+  float: left;
+  margin-right: 4px;
+}
+
+.admin-gallery-controls label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #333;
+  cursor: pointer;
+}
+
+.admin-gallery-controls input {
+  accent-color: var(--accent);
+}
+
+.admin-npc-spawn-options {
+  margin-top: 12px;
+}
+
+.admin-npc-spawn-options > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.admin-npc-spawn-options button {
+  border: 1px solid #777;
+  border-radius: var(--game-button-radius);
+  background: #fff;
+  color: #333;
+  padding: 5px 8px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.admin-npc-spawn-options button i {
+  margin-right: 5px;
+}
+
+.admin-npc-spawn-options button:hover,
+.admin-npc-spawn-options button:focus-visible {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #000;
+}
+
+.admin-npc-spawn-options button:disabled {
+  cursor: wait;
+  opacity: 0.4;
+}
+
+.npc-area {
+  min-height: 72px;
+  padding: 16px 0;
+  text-align: center;
+}
+
+.gallery-npc {
+  margin: 0 12px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+}
+
+.gallery-npc i {
+  display: block;
+  font-size: 3em;
+  text-shadow: 1px 1px 2px black;
+}
+
+.gallery-npc span {
+  display: block;
+  margin-top: 5px;
+  color: #777;
+  font-size: 0.75rem;
+}
+
+.gallery-npc.enabled {
+  opacity: 0.8;
+  cursor: pointer;
+}
+
+.gallery-npc.enabled:hover {
+  opacity: 1;
+}
+
+.gallery-npc.disabled {
+  opacity: 0.2;
+}
+
+.gallery-npc.bronze {
+  color: #e8a48d;
+}
+
+.gallery-npc.silver {
+  color: #aaa;
+}
+
+.gallery-npc.gold {
+  color: #e8bf6c;
+}
+
+.gallery-npc.platinum {
+  color: #dfdfdf;
 }
 
 .gallery-wall {
@@ -521,6 +1314,20 @@ body {
     grid-template-columns: 1fr auto;
   }
 
+  .reroll-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .reroll-summary div + div {
+    border-top: 1px solid #bbb;
+    border-left: 0;
+  }
+
+  .reroll-attribute-row {
+    grid-template-columns: 48px minmax(0, 1fr) max-content 74px;
+    gap: 6px;
+  }
+
   .legacy-nav-stats {
     display: none;
   }
@@ -562,8 +1369,148 @@ body {
   color: #aaa4af;
 }
 
+.test-account-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 14px;
+  margin-top: 22px;
+}
+
+.test-account-card {
+  border: 1px solid #555;
+  background: #171717;
+  color: #aaa;
+  padding: 16px;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease,
+    transform 120ms ease;
+}
+
+.test-account-card:hover,
+.test-account-card:focus-visible {
+  border-color: var(--accent);
+  background: #222;
+  transform: translateY(-2px);
+}
+
+.test-account-card:disabled {
+  cursor: wait;
+  opacity: 0.55;
+  transform: none;
+}
+
+.test-account-card > strong,
+.test-account-card > span,
+.test-account-card > small {
+  display: block;
+}
+
+.test-account-card > strong {
+  color: var(--accent);
+  font-size: 1rem;
+}
+
+.test-account-card > span {
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+  font-size: 0.76rem;
+}
+
+.test-account-card dl {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.test-account-card dl div {
+  border-left: 1px solid #555;
+  padding-left: 8px;
+}
+
+.test-account-card dt {
+  color: #777;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+}
+
+.test-account-card dd {
+  margin: 4px 0 0;
+  color: #fff;
+}
+
+.test-account-card small {
+  color: #777;
+  font-size: 0.67rem;
+}
+
+.test-account-card .test-account-open {
+  margin-top: 15px;
+  color: #fff;
+  font-weight: bold;
+  text-align: right;
+}
+
 .admin-settings-form {
   margin-top: 24px;
+}
+
+.admin-config-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 18px;
+  border-bottom: 1px solid rgb(255 255 255 / 12%);
+  padding-bottom: 18px;
+}
+
+.admin-config-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.admin-config-tabs button {
+  border: 1px solid #777;
+  background: #222;
+  color: #aaa;
+  padding: 9px 20px;
+  text-transform: lowercase;
+}
+
+.admin-config-tabs button.current {
+  border-color: #ff33cc;
+  background: #ff33cc;
+  color: black;
+}
+
+.admin-debug-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.admin-debug-toggle input {
+  margin-top: 3px;
+}
+
+.admin-debug-toggle small {
+  display: block;
+  margin-top: 4px;
+  color: #aaa4af;
+}
+
+.admin-config-status {
+  margin: 18px 0 0;
+  color: #aaa4af;
+}
+
+.admin-config-status strong {
+  color: white;
 }
 
 .admin-setting {
@@ -593,6 +1540,51 @@ body {
   background: white;
   color: black;
   padding: 8px;
+}
+
+.admin-rarity-settings {
+  border-top: 1px solid rgb(255 255 255 / 12%);
+  padding: 18px 0 24px;
+}
+
+.admin-rarity-editor small {
+  display: block;
+  margin-top: 4px;
+  color: #aaa4af;
+}
+
+.admin-rarity-editor {
+  display: block;
+  margin-top: 18px;
+}
+
+.admin-rarity-editor textarea {
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 10px;
+  border: 1px solid #777;
+  background: #111;
+  color: white;
+  padding: 12px;
+  font-family: Consolas, "Courier New", monospace;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.admin-rarity-editor textarea[aria-invalid="true"] {
+  border-color: red;
+}
+
+.admin-rarity-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-top: 12px;
+  color: #aaa4af;
+}
+
+.admin-rarity-preview strong {
+  color: white;
 }
 
 .admin-success {
