@@ -10,6 +10,10 @@ import { getDatabase } from "@/server/mongodb";
 import type { GameItem, ItemAttribute } from "@/server/gameplay";
 import { hydrateGameItems } from "@/server/item-artwork";
 import {
+  getLegendaryAttributes,
+  MARKETING_MANAGER_ATTRIBUTE_ID,
+} from "@/server/legendary-attributes";
+import {
   getGalleryNpcs,
   refreshNpcSpawns,
   type NpcQuality,
@@ -81,7 +85,7 @@ export default async function PlayerPage() {
     .collection<GameItem>("items")
     .find({
       owner: player._id,
-      status: { $in: ["unclaimed", "claimed", "displayed"] },
+      status: { $in: ["unclaimed", "for_sale", "claimed", "displayed"] },
     })
     .sort({ date_created: -1 })
     .toArray();
@@ -95,7 +99,13 @@ export default async function PlayerPage() {
     config,
   );
   await refreshNpcSpawns(database, new Date(), config.npcSpawnIntervalMinutes);
-  const [npcs, notifications, npcSpawnAttributes] = await Promise.all([
+  const legendaryAttributeIds = [
+    ...new Set(
+      items.flatMap((item) => item.artwork.unique_attributes ?? []),
+    ),
+  ];
+  const [npcs, notifications, npcSpawnAttributes, legendaryAttributes] =
+    await Promise.all([
     getGalleryNpcs(database, player._id),
     getPlayerNotifications(database, player._id),
     impersonating
@@ -105,7 +115,46 @@ export default async function PlayerPage() {
           .sort({ npc_name: 1 })
           .toArray()
       : Promise.resolve([]),
+    getLegendaryAttributes(database, legendaryAttributeIds),
   ]);
+  const displayedLegendaryIds = new Set(
+    displayedItems
+      .map((item) => item.active_unique_attribute)
+      .filter((id): id is string => Boolean(id)),
+  );
+  const displayedLegendaryCodes = new Set(
+    legendaryAttributes
+      .filter(
+        (attribute) =>
+          attribute.active && displayedLegendaryIds.has(attribute._id),
+      )
+      .map((attribute) => attribute.code),
+  );
+  const rerollDiscount = legendaryAttributes.find(
+    (attribute) =>
+      displayedLegendaryIds.has(attribute._id) &&
+      attribute.active &&
+      attribute.code === "REROLL_DISCOUNT",
+  );
+  const rerollCostMultiplier =
+    typeof rerollDiscount?.parameters.cost_multiplier === "number"
+      ? rerollDiscount.parameters.cost_multiplier
+      : 1;
+  const dealerDiscount = legendaryAttributes.find(
+    (attribute) =>
+      displayedLegendaryIds.has(attribute._id) &&
+      attribute.active &&
+      attribute.code === "DEALER_DISCOUNT",
+  );
+  const dealerPriceMultiplier =
+    typeof dealerDiscount?.parameters.cost_multiplier === "number"
+      ? dealerDiscount.parameters.cost_multiplier
+      : 1;
+  const canRerollDisplayed =
+    displayedLegendaryCodes.has("REROLL_DISPLAY_ENABLE") &&
+    npcs.some(
+      (npc) => npc.attribute_id === MARKETING_MANAGER_ATTRIBUTE_ID,
+    );
 
   return (
     <div className="game-shell">
@@ -118,10 +167,26 @@ export default async function PlayerPage() {
       <GameDashboard
         dailyDropCooldownMinutes={config.dailyDropCooldownMinutes}
         debugEnabled={settings.debugEnabled}
-        items={items.map((item) => JSON.parse(JSON.stringify(item)))}
+        dealerPriceMultiplier={dealerPriceMultiplier}
+        items={items.map((item) => ({
+          ...JSON.parse(JSON.stringify(item)),
+          reroll_cost: Math.max(
+            0,
+            Math.floor(item.reroll_cost * rerollCostMultiplier),
+          ),
+        }))}
         galleryRates={galleryRates}
         initialNotifications={notifications}
         impersonating={impersonating}
+        canRerollDisplayed={canRerollDisplayed}
+        legendaryAttributes={legendaryAttributes.map((attribute) => ({
+          id: attribute._id,
+          title: attribute.title,
+          description: attribute.description,
+          flavorText: attribute.flavor_text,
+          code: attribute.code,
+          active: attribute.active,
+        }))}
         npcSpawnOptions={npcSpawnAttributes.map((attribute) => ({
           id: attribute._id,
           icon: attribute.icon,

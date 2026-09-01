@@ -129,6 +129,12 @@ The basic gameplay loop is active:
 - Generated items carry the original unlocked and locked NPC-attraction
   attributes. Rare, legendary, and masterpiece artwork also requires one, two,
   or three permanent special attributes during admin approval.
+- The complete 55-pair Legendary Attribute catalog is seeded with its original
+  record IDs and flavor text. Legendary artwork receives one pair-derived
+  effect, masterpieces receive three eligible effects, and the active effect
+  can be selected in the reroll dialog. Active flavor text appears on item
+  cards, while behavior text, codes, parameters, and availability are editable
+  at <http://localhost:3000/admin/legendary-attributes>.
 - Claimed items can be sold for their generated sell value or placed in the
   player's capacity-limited gallery. Only one copy of an artwork can be
   displayed at a time.
@@ -137,6 +143,12 @@ The basic gameplay loop is active:
   charges the original rarity-scaled cost before recalculating item value.
   Items retain their cumulative reroll spending even if a future NPC reward
   reduces their roll count.
+- Legendary effects currently modify supported gameplay paths for gallery
+  XP-to-money conversion, unclaimed-item sale bonuses, reroll discounts,
+  Marketing Manager-gated rerolls of displayed items, and supported Donor,
+  Dealer, and Collector interactions. Effects involving auctions, quests,
+  repairs, or other unported rewards remain stored and configurable until
+  those systems are migrated.
 - Displayed artwork generates the original hourly money and XP rewards. Rewards
   settle automatically when the player returns, without requiring a local
   background worker.
@@ -147,6 +159,34 @@ The basic gameplay loop is active:
   open these accounts from the admin panel, exercise normal player gameplay,
   spawn bronze through platinum NPCs from the test gallery, and return to the
   still-authenticated admin session from the player header.
+- Meeting an Art Donor now generates the original quality-weighted, persistent
+  unclaimed artwork offers and opens an accessible dialog with claim, sell, and
+  decline actions for each item. Donor offer count, minimum condition, and
+  starting level honor the applicable active Legendary Attributes. Offered
+  artwork and other unclaimed drops are labeled as new or already owned.
+- Meeting an Art Dealer generates persistent `for_sale` offers in the same
+  dialog, with purchase prices plus purchase and decline actions. Purchases
+  atomically charge the player before moving the item into inventory, and
+  dealer offer count, pricing, starting level, and displayed-condition bonuses
+  honor the currently applicable Legendary Attributes. Unresolved offers
+  remain available in the Loot tab.
+- Claimed inventory artwork can be tagged for Art Collectors independently
+  from Dealer `for_sale` offers. Meeting a Collector immediately selects one
+  tagged work, applies the original quality and own-gallery payout formula,
+  awards money or XP, and normally removes the item before showing an
+  informational result dialog. Collector Legendary effects support
+  condition/roll-count bonuses, keep-item rewards, XP-to-money interaction,
+  additional sale offers, forgery detection reduction, cap-stepped maximum
+  quality, and platinum Collector/Donor companion spawns. Auction, quest, and
+  temporary reputation consequences remain deferred with explicit TODOs.
+- Benefactors grant the original quality-scaled, randomized cash donations,
+  while Art Enthusiasts grant the original quality-scaled XP chunks. Both
+  preserve own-gallery amplification, visitor-count effects, Benefactor
+  displayed-condition bonuses, level progression, lottery rewards, and
+  `MONEY_FOR_XP`. Their immediate rewards use lightweight green dollar and
+  pink heart pop-out animations; the shared reward response includes an
+  explicit presentation mode so future Legendary behavior can branch to a
+  dialog without changing the reward transaction.
 - Artwork images continue to resolve through the mock-S3/S3 storage abstraction.
 
 ## Modernization conventions

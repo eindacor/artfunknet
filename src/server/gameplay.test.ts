@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  amplifyRarityMap,
   getRarityMap,
   getConfiguredRarityMap,
   getSpecialAttributeCount,
@@ -33,6 +34,20 @@ test("masterpiece odds preserve the legacy one-in-1440 maximum-level rate", () =
   assert.ok(map.legendary > 0);
   assert.ok(map.rare > map.legendary);
   assert.ok(map.common > map.uncommon);
+});
+
+test("NPC rarity amplification preserves common odds and scales higher rarities", () => {
+  const base = {
+    common: 0.8,
+    uncommon: 0.15,
+    rare: 0.04,
+    legendary: 0.009,
+    masterpiece: 0.001,
+  };
+  const amplified = amplifyRarityMap(base, 0.5);
+  assert.equal(amplified.common, base.common);
+  assert.equal(amplified.masterpiece, base.masterpiece * 0.5);
+  assert.equal(amplified.rare, base.rare * 0.75);
 });
 
 test("weighted rolls honor deterministic boundary values", () => {

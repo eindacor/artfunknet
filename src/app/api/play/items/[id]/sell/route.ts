@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 
 import type { GameItem } from "@/server/gameplay";
+import {
+  getDisplayedLegendaryEffect,
+  getLegendaryNumberParameter,
+} from "@/server/legendary-attributes";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
 
@@ -35,11 +39,23 @@ export async function POST(
       { status: 409 },
     );
   }
+  const saleBonus =
+    item.status === "unclaimed"
+      ? await getDisplayedLegendaryEffect(
+          database,
+          auth.session.playerId,
+          "UNCLAIMED_ITEM_SELL_BONUS",
+        )
+      : null;
+  const amount = Math.floor(
+    item.values.sell *
+      getLegendaryNumberParameter(saleBonus, "sell_multiplier", 1),
+  );
 
   const result = await database.collection<Player>("players").updateOne(
     { _id: auth.session.playerId, active: true },
     {
-      $inc: { "profile.bank_balance": item.values.sell },
+      $inc: { "profile.bank_balance": amount },
       $set: { "profile.last_activity": new Date().toISOString() },
     },
   );
@@ -51,5 +67,5 @@ export async function POST(
     );
   }
 
-  return NextResponse.json({ status: "ok", amount: item.values.sell });
+  return NextResponse.json({ status: "ok", amount });
 }

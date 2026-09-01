@@ -8,6 +8,11 @@ import {
   createArtworkSubmission,
   discoverArtworkFiles,
 } from "./artwork-import.mjs";
+import {
+  LEGENDARY_ATTRIBUTE_IDS,
+  LEGENDARY_ATTRIBUTE_PAIRS,
+  LEGENDARY_ATTRIBUTE_RECORD_IDS,
+} from "./legendary-attribute-data.mjs";
 
 const projectRoot = process.cwd();
 const artworkImportDirectory = path.resolve(
@@ -39,6 +44,7 @@ try {
   await seedGameMetadata(database);
   await seedGameplaySettings(database);
   await seedAttributes(database);
+  await seedLegendaryAttributes(database);
   await seedArtworkSpecialAttributes(database);
   const adminSeeded = await seedAdmin(database);
   const playerSeeded = await seedPlayer(database);
@@ -83,6 +89,24 @@ async function createIndexes(database) {
   await database
     .collection("items")
     .createIndex({ owner: 1, status: 1, date_created: -1 });
+  await database
+    .collection("unique_attributes")
+    .createIndex(
+      { linked_pair: 1 },
+      {
+        unique: true,
+        partialFilterExpression: { linked_pair: { $type: "string" } },
+      },
+    );
+  await database
+    .collection("unique_attributes")
+    .createIndex(
+      { code: 1 },
+      {
+        unique: true,
+        partialFilterExpression: { code: { $type: "string" } },
+      },
+    );
   await database
     .collection("player_notifications")
     .createIndex({ user_id: 1, created_at: -1 });
@@ -543,14 +567,7 @@ async function seedGameplaySettings(database) {
 }
 
 async function migrateItems(database) {
-  const items = await database.collection("items").find({
-    $or: [
-      { artwork_data: { $exists: true } },
-      { misprint: { $exists: false } },
-      { transaction_history: { $exists: false } },
-      { reroll_spent: { $exists: false } },
-    ],
-  }).toArray();
+  const items = await database.collection("items").find({}).toArray();
   if (items.length === 0) return;
 
   const artworkIds = [...new Set(items.map((item) => item.artwork_id))];
@@ -599,6 +616,15 @@ async function migrateItems(database) {
     }
     if (item.reroll_spent === undefined) {
       setter.reroll_spent = 0;
+    }
+    const eligibleUniqueAttributes =
+      artworkById.get(item.artwork_id)?.unique_attributes ?? [];
+    if (eligibleUniqueAttributes.includes(item.active_unique_attribute)) {
+      setter.active_unique_attribute = item.active_unique_attribute;
+    } else if (eligibleUniqueAttributes.length > 0) {
+      setter.active_unique_attribute = eligibleUniqueAttributes[0];
+    } else {
+      unsetter.active_unique_attribute = "";
     }
 
     const update = { $set: setter };
@@ -649,6 +675,103 @@ async function seedAttributes(database) {
   }
 }
 
+function normalizeLegendaryPair(attributeIds) {
+  return [...attributeIds].sort().join(":");
+}
+
+async function seedLegendaryAttributes(database) {
+  const now = new Date().toISOString();
+  const desiredRecords = LEGENDARY_ATTRIBUTE_PAIRS.map(
+    ([left, right, code, description, flavorText, parameters]) => {
+      const linkedAttributes = [
+        LEGENDARY_ATTRIBUTE_IDS[left],
+        LEGENDARY_ATTRIBUTE_IDS[right],
+      ].sort();
+      const linkedPair = normalizeLegendaryPair(linkedAttributes);
+      const id = LEGENDARY_ATTRIBUTE_RECORD_IDS[linkedPair];
+      if (!id) {
+        throw new Error(`Missing original Legendary Attribute ID for ${linkedPair}.`);
+      }
+      return {
+        id,
+        linkedAttributes,
+        linkedPair,
+        code,
+        description,
+        flavorText,
+        parameters,
+      };
+    },
+  );
+  await database.collection("unique_attributes").deleteMany({
+    $or: desiredRecords.map((record) => ({
+      linked_pair: record.linkedPair,
+      _id: { $ne: record.id },
+    })),
+  });
+  await database.collection("unique_attributes").bulkWrite(
+    desiredRecords.map((record) => ({
+      updateOne: {
+        filter: { _id: record.id, catalog_version: { $ne: 4 } },
+        update: {
+          $set: {
+            title: record.code
+              .toLowerCase()
+              .split("_")
+              .map((part) => part[0].toUpperCase() + part.slice(1))
+              .join(" "),
+            description: record.description,
+            flavor_text: record.flavorText,
+            code: record.code,
+            active: true,
+            parameters: record.parameters,
+            catalog_version: 4,
+            updated_at: now,
+          },
+        },
+      },
+    })),
+    { ordered: false },
+  );
+  const operations = LEGENDARY_ATTRIBUTE_PAIRS.map(
+    ([, , code, description, flavorText, parameters], index) => {
+      const { id, linkedAttributes, linkedPair } = desiredRecords[index];
+      return {
+        updateOne: {
+          filter: { _id: id },
+          update: {
+            $set: {
+              linked_attributes: linkedAttributes,
+              linked_pair: linkedPair,
+            },
+            $setOnInsert: {
+              _id: id,
+              title: code
+                .toLowerCase()
+                .split("_")
+                .map((part) => part[0].toUpperCase() + part.slice(1))
+                .join(" "),
+              description,
+              flavor_text: flavorText,
+              code,
+              active: true,
+              parameters,
+              catalog_version: 4,
+              created_at: now,
+              updated_at: now,
+            },
+          },
+          upsert: true,
+        },
+      };
+    },
+  );
+
+  await database
+    .collection("unique_attributes")
+    .bulkWrite(operations, { ordered: false });
+}
+
 async function seedArtworkSpecialAttributes(database) {
   const activeAttributes = await database
     .collection("attributes")
@@ -660,6 +783,16 @@ async function seedArtworkSpecialAttributes(database) {
     .find({})
     .sort({ rarity: 1, _id: 1 })
     .toArray();
+  const legendaryAttributes = await database
+    .collection("unique_attributes")
+    .find({ active: true })
+    .toArray();
+  const uniqueIdByPair = new Map(
+    legendaryAttributes.map((attribute) => [
+      attribute.linked_pair,
+      attribute._id,
+    ]),
+  );
   const requiredCounts = {
     common: 0,
     uncommon: 0,
@@ -678,24 +811,36 @@ async function seedArtworkSpecialAttributes(database) {
     const existing = Array.isArray(artwork.special_attributes)
       ? artwork.special_attributes
       : [];
-    if (existing.length === required) {
-      continue;
+    let specialAttributes = existing;
+    if (existing.length !== required) {
+      specialAttributes = [];
+      for (let index = 0; index < required; index += 1) {
+        specialAttributes.push(
+          activeAttributes[(offset + index) % activeAttributes.length]._id,
+        );
+      }
+      offset += Math.max(required, 1);
     }
 
-    const specialAttributes = [];
-    for (let index = 0; index < required; index += 1) {
-      specialAttributes.push(
-        activeAttributes[(offset + index) % activeAttributes.length]._id,
-      );
+    const uniqueAttributes = [];
+    for (let left = 0; left < specialAttributes.length; left += 1) {
+      for (let right = left + 1; right < specialAttributes.length; right += 1) {
+        const uniqueId = uniqueIdByPair.get(
+          normalizeLegendaryPair([
+            specialAttributes[left],
+            specialAttributes[right],
+          ]),
+        );
+        if (uniqueId) uniqueAttributes.push(uniqueId);
+      }
     }
-    offset += Math.max(required, 1);
 
     await database.collection("artworks").updateOne(
       { _id: artwork._id },
       {
         $set: {
           special_attributes: specialAttributes,
-          unique_attributes: [],
+          unique_attributes: uniqueAttributes,
         },
       },
     );

@@ -564,15 +564,67 @@ body {
   align-items: flex-end;
 }
 
+.legendary-flavor-text {
+  margin-top: 0.45rem !important;
+  color: #8a5b00;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.72rem;
+  font-style: italic;
+  line-height: 1.25;
+}
+
 .card-header p,
 .card-footer p {
   margin: 0;
 }
 
 .item-title {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
   font-size: 1rem;
   font-style: italic;
   font-weight: 600;
+}
+
+.artwork-ownership-indicator {
+  display: inline-flex;
+  align-items: center;
+  width: max-content;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 0.08rem 0.38rem;
+  font-family: Courier, monospace;
+  font-size: 0.58rem;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.artwork-ownership-indicator.owned {
+  color: #008a24;
+}
+
+.artwork-ownership-indicator.new {
+  color: #006fc9;
+}
+
+.collector-sale-indicator {
+  display: inline-flex;
+  align-items: center;
+  width: max-content;
+  border: 1px solid #805400;
+  border-radius: 999px;
+  padding: 0.08rem 0.35rem;
+  color: #805400;
+  font-size: 0.55rem;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  text-transform: uppercase;
 }
 
 .header-details {
@@ -857,6 +909,196 @@ body {
   backdrop-filter: blur(2px);
 }
 
+.donor-offer-dialog {
+  width: min(760px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  margin: auto;
+  border: 1px solid #000;
+  padding: 0;
+  overflow: auto;
+  background: #f4f4f4;
+  color: #111;
+  font-family: Courier, monospace;
+  box-shadow: 10px 10px 0 rgb(0 0 0 / 24%);
+}
+
+.donor-offer-dialog::backdrop {
+  background: rgb(0 0 0 / 65%);
+  backdrop-filter: blur(2px);
+}
+
+.collector-result-dialog {
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  margin: auto;
+  border: 1px solid #000;
+  padding: 0;
+  overflow: auto;
+  background: #f4f4f4;
+  color: #111;
+  font-family: Courier, monospace;
+  box-shadow: 10px 10px 0 rgb(0 0 0 / 24%);
+}
+
+.collector-result-dialog::backdrop {
+  background: rgb(0 0 0 / 65%);
+  backdrop-filter: blur(2px);
+}
+
+.collector-result-content {
+  display: grid;
+  gap: 1rem;
+  padding: 24px;
+}
+
+.collector-result-content > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.collector-result-content h2 {
+  margin: 0;
+  color: var(--accent);
+  font-size: 1.25rem;
+}
+
+.collector-result-content > p {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.collector-result-artwork {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  align-items: center;
+  gap: 1rem;
+  border: 1px solid #bbb;
+  padding: 0.75rem;
+  background: #fff;
+}
+
+.collector-result-thumbnail {
+  width: 104px;
+}
+
+.collector-result-artwork > div {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.collector-result-artwork span {
+  color: #555;
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+
+.collector-forgery-result {
+  color: #a40000;
+  font-weight: 700;
+}
+
+.collector-result-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.donor-offer-content {
+  padding: 24px;
+}
+
+.donor-offer-content > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.donor-offer-content h2 {
+  margin: 0;
+  color: var(--accent);
+  font-size: 1.25rem;
+}
+
+.donor-offer-content > p {
+  line-height: 1.45;
+}
+
+.donor-offer-list {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.donor-offer-item {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  border: 1px solid #bbb;
+  padding: 0.75rem;
+  background: #fff;
+}
+
+.donor-offer-thumbnail {
+  width: 92px;
+}
+
+.donor-offer-details {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.donor-offer-details > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.donor-offer-details > strong,
+.donor-offer-details > span {
+  overflow-wrap: anywhere;
+}
+
+.dealer-offer-price {
+  color: #008a24;
+  font-size: 0.85rem;
+}
+
+.donor-offer-details > span {
+  color: #555;
+  font-size: 0.78rem;
+}
+
+.donor-offer-rarity {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.donor-offer-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+@media (max-width: 620px) {
+  .donor-offer-item {
+    grid-template-columns: 72px minmax(0, 1fr);
+  }
+
+  .donor-offer-thumbnail {
+    width: 72px;
+  }
+
+  .donor-offer-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+}
+
 .reroll-dialog-content {
   padding: 24px;
 }
@@ -971,6 +1213,44 @@ body {
 .reroll-attributes {
   margin-top: 22px;
   border-bottom: 1px solid #bbb;
+}
+
+.legendary-selector {
+  display: grid;
+  gap: 0.65rem;
+  margin: 1.25rem 0 0;
+  border: 1px solid #bbb;
+  padding: 0.85rem;
+}
+
+.legendary-selector legend {
+  padding: 0 0.35rem;
+  color: #333;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.legendary-selector label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 0.7rem;
+  cursor: pointer;
+}
+
+.legendary-selector label > span {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.legendary-selector label span span {
+  color: #555;
+  line-height: 1.35;
+}
+
+.legendary-selector em {
+  color: #8a5b00;
+  font-family: Georgia, "Times New Roman", serif;
 }
 
 .reroll-attribute-row {
@@ -1174,20 +1454,26 @@ body {
   text-align: center;
 }
 
-.gallery-npc {
+.gallery-npc-slot {
+  position: relative;
+  display: inline-block;
   margin: 0 12px;
+}
+
+.gallery-npc {
   border: 0;
   background: transparent;
   font: inherit;
+  overflow: visible;
 }
 
-.gallery-npc i {
+.gallery-npc > i {
   display: block;
   font-size: 3em;
   text-shadow: 1px 1px 2px black;
 }
 
-.gallery-npc span {
+.gallery-npc > span:not(.npc-reward-popout) {
   display: block;
   margin-top: 5px;
   color: #777;
@@ -1205,6 +1491,51 @@ body {
 
 .gallery-npc.disabled {
   opacity: 0.2;
+}
+
+.gallery-npc.rewarding {
+  opacity: 0.2;
+}
+
+.npc-reward-popout {
+  position: absolute;
+  z-index: 2;
+  top: 8px;
+  left: 50%;
+  margin: 0;
+  pointer-events: none;
+  animation: npc-reward-popout 1s ease-out forwards;
+}
+
+.npc-reward-popout i {
+  display: block;
+  font-size: 1.6rem;
+  filter: drop-shadow(1px 1px 1px rgb(0 0 0 / 60%));
+}
+
+.npc-reward-popout.money {
+  color: #12a33a;
+}
+
+.npc-reward-popout.xp {
+  color: #ff33aa;
+}
+
+@keyframes npc-reward-popout {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 8px) scale(0.4);
+  }
+
+  25% {
+    opacity: 1;
+    transform: translate(-50%, -8px) scale(1.15);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -46px) scale(0.85);
+  }
 }
 
 .gallery-npc.bronze {
@@ -1457,6 +1788,87 @@ body {
 
 .admin-settings-form {
   margin-top: 24px;
+}
+
+.legendary-admin-list {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.legendary-admin-card {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem 1rem;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 0.65rem;
+  padding: 1rem;
+  background: rgb(0 0 0 / 18%);
+}
+
+.legendary-admin-card > label {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.legendary-admin-card input:not([type="checkbox"]),
+.legendary-admin-card textarea {
+  width: 100%;
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-radius: 0.4rem;
+  padding: 0.55rem 0.65rem;
+  background: rgb(0 0 0 / 28%);
+  color: var(--foreground);
+  font: inherit;
+  font-weight: 400;
+}
+
+.legendary-admin-card textarea {
+  resize: vertical;
+}
+
+.legendary-admin-heading,
+.legendary-admin-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.legendary-admin-heading div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.legendary-admin-heading span,
+.legendary-admin-actions span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.legendary-admin-heading label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.legendary-admin-actions button {
+  border: 1px solid var(--accent);
+  border-radius: 0.4rem;
+  padding: 0.5rem 0.85rem;
+  background: transparent;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+@media (max-width: 720px) {
+  .legendary-admin-card {
+    grid-template-columns: 1fr;
+  }
 }
 
 .admin-config-header {

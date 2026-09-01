@@ -13,6 +13,11 @@ import {
   getRerollCost,
   getRerollMinimum,
 } from "@/server/item-reroll";
+import {
+  getDisplayedLegendaryEffect,
+  getLegendaryNumberParameter,
+  MARKETING_MANAGER_ATTRIBUTE_ID,
+} from "@/server/legendary-attributes";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
 
@@ -51,11 +56,11 @@ export async function POST(
 
   const { id } = await params;
   const database = await getDatabase();
-  const [item, player, metadata] = await Promise.all([
+  const [item, player, metadata, rerollDiscount] = await Promise.all([
     database.collection<GameItem>("items").findOne({
       _id: id,
       owner: auth.session.playerId,
-      status: "claimed",
+      status: { $in: ["claimed", "displayed"] },
     }),
     database.collection<Player>("players").findOne({
       _id: auth.session.playerId,
@@ -64,6 +69,11 @@ export async function POST(
     database
       .collection<{ _id: string; loot_data: LootData }>("metadata")
       .findOne({ _id: "loot-data" }),
+    getDisplayedLegendaryEffect(
+      database,
+      auth.session.playerId,
+      "REROLL_DISCOUNT",
+    ),
   ]);
 
   if (!item || !player) {
@@ -78,7 +88,29 @@ export async function POST(
       { status: 500 },
     );
   }
-
+  if (item.status === "displayed") {
+    const [displayPermission, marketingManager] = await Promise.all([
+      getDisplayedLegendaryEffect(
+        database,
+        player._id,
+        "REROLL_DISPLAY_ENABLE",
+      ),
+      database.collection("npcs").findOne({
+        owner_id: player._id,
+        attribute_id: MARKETING_MANAGER_ATTRIBUTE_ID,
+        expiration: { $gt: new Date() },
+      }),
+    ]);
+    if (!displayPermission || !marketingManager) {
+      return NextResponse.json(
+        {
+          error:
+            "Displayed items require the matching Legendary Attribute and a Marketing Manager visitor before they can be rerolled.",
+        },
+        { status: 409 },
+      );
+    }
+  }
   const attributeType = findAttributeType(item, body.attributeId);
   if (!attributeType) {
     return NextResponse.json(
@@ -104,7 +136,17 @@ export async function POST(
     );
   }
 
-  const cost = getRerollCost(item, artwork.rarity, metadata.loot_data);
+  const costMultiplier = getLegendaryNumberParameter(
+    rerollDiscount,
+    "cost_multiplier",
+    1,
+  );
+  const cost = Math.max(
+    0,
+    Math.floor(
+      getRerollCost(item, artwork.rarity, metadata.loot_data) * costMultiplier,
+    ),
+  );
   const now = new Date().toISOString();
   const chargedPlayer = await database.collection<Player>("players").findOneAndUpdate(
     {
@@ -152,9 +194,7 @@ export async function POST(
       }
       attributes.unlocked[targetIndex] = {
         ...replacement,
-        value: rollAttributeValue(
-          getRerollMinimum(item, "unlocked"),
-        ),
+        value: rollAttributeValue(getRerollMinimum(item, "unlocked")),
       };
     }
 
@@ -170,10 +210,14 @@ export async function POST(
       itemArtwork,
       metadata.loot_data,
     );
-    const rerollCost = getRerollCost(
+    const baseRerollCost = getRerollCost(
       nextItem,
       artwork.rarity,
       metadata.loot_data,
+    );
+    const rerollCost = Math.max(
+      0,
+      Math.floor(baseRerollCost * costMultiplier),
     );
     responseItem = {
       ...nextItem,
@@ -184,7 +228,7 @@ export async function POST(
       {
         _id: item._id,
         owner: player._id,
-        status: "claimed",
+        status: item.status,
         roll_count: item.roll_count,
         [`attributes.${attributeType}._id`]: body.attributeId,
       },
@@ -192,7 +236,7 @@ export async function POST(
         $set: {
           attributes,
           values,
-          reroll_cost: rerollCost,
+          reroll_cost: baseRerollCost,
         },
         $inc: { roll_count: 1, reroll_spent: cost },
       },

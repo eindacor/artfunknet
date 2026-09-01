@@ -15,6 +15,7 @@ import {
   getSpecialAttributeCount,
   type ArtworkRarity,
 } from "@/server/gameplay";
+import { deriveArtworkLegendaryAttributeIds } from "@/server/legendary-attributes";
 import { getDatabase } from "@/server/mongodb";
 
 const RARITIES = [
@@ -117,6 +118,10 @@ export async function POST(
       { status: 400 },
     );
   }
+  const uniqueAttributeIds = await deriveArtworkLegendaryAttributeIds(
+    database,
+    validation.value.special_attribute_ids,
+  );
 
   const localSources = submission.image.sources.filter(
     (source): source is { source_path: string } =>
@@ -177,7 +182,7 @@ export async function POST(
     nsfw: validation.value.nsfw,
     active: true,
     special_attributes: validation.value.special_attribute_ids,
-    unique_attributes: [],
+    unique_attributes: uniqueAttributeIds,
     image: {
       content_type: submission.image.mime_type,
       storage: publishedImage.storage,

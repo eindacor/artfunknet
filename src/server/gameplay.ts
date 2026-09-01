@@ -95,7 +95,12 @@ export type GameItem = {
   owner: string;
   // TODO AI: Auction and trade owner changes must append a transfer entry atomically with the owner update.
   transaction_history: ItemTransaction[];
-  status: "unclaimed" | "claimed" | "displayed";
+  status:
+    | "unclaimed"
+    | "for_sale"
+    | "claimed"
+    | "displayed"
+    | "collector_pending";
   source: string;
   date_created: string;
   date_received: string;
@@ -274,7 +279,25 @@ type DailyDropOptions = {
   unlockedProbability?: number;
   debug?: boolean;
   useRawRarityMap?: boolean;
+  source?: string;
+  itemLevel?: number;
+  conditionMinimum?: number;
+  status?: "unclaimed" | "for_sale";
 };
+
+export function amplifyRarityMap(
+  rarityMap: Record<ArtworkRarity, number>,
+  masterpieceAmplifier: number,
+): Record<ArtworkRarity, number> {
+  const delta = masterpieceAmplifier - 1;
+  return Object.fromEntries(
+    ARTWORK_RARITIES.map((rarity, index) => [
+      rarity,
+      rarityMap[rarity] *
+        (1 + delta * (index / (ARTWORK_RARITIES.length - 1))),
+    ]),
+  ) as Record<ArtworkRarity, number>;
+}
 
 export async function generateDailyDrop(
   database: Db,
@@ -290,6 +313,10 @@ export async function generateDailyDrop(
     unlockedProbability = 0.05,
     debug = false,
     useRawRarityMap = false,
+    source = "daily drop",
+    itemLevel = 1,
+    conditionMinimum = 0,
+    status = "unclaimed",
   } = options;
   const metadata = await database
     .collection<{ _id: string; loot_data: LootData }>("metadata")
@@ -352,6 +379,10 @@ export async function generateDailyDrop(
         foilProbability,
         unlockedProbability,
         debug,
+        source,
+        itemLevel,
+        conditionMinimum,
+        status,
       }),
     );
   }
@@ -388,6 +419,10 @@ function createItem({
   foilProbability,
   unlockedProbability,
   debug,
+  source,
+  itemLevel,
+  conditionMinimum,
+  status,
 }: {
   artwork: Artwork;
   attributes: ItemAttribute[];
@@ -399,6 +434,10 @@ function createItem({
   foilProbability: number;
   unlockedProbability: number;
   debug: boolean;
+  source: string;
+  itemLevel: number;
+  conditionMinimum: number;
+  status: "unclaimed" | "for_sale";
 }): GameItem {
   const foil = rollProbability(foilProbability);
   const unlocked = rollUnlocked(artwork.rarity, unlockedProbability);
@@ -410,7 +449,7 @@ function createItem({
     unlocked,
     attributes,
   );
-  const condition = getCondition(0);
+  const condition = getCondition(conditionMinimum);
   const seasonal =
     lootData.seasonal_items[artwork.rarity]?.includes(artwork._id) ?? false;
   const timestamp = now.toISOString();
@@ -429,14 +468,14 @@ function createItem({
         from_owner: null,
         to_owner: owner,
         occurred_at: timestamp,
-        source: "daily drop",
+        source,
       },
     ],
-    status: "unclaimed" as const,
-    source: "daily drop",
+    status,
+    source,
     date_created: timestamp,
     date_received: timestamp,
-    level: 1,
+    level: itemLevel,
     roll_count: 0,
     reroll_spent: 0,
     foil,

@@ -8,6 +8,10 @@ import {
 } from "./gameplay.ts";
 import type { GameplayConfig } from "./game-settings.ts";
 import {
+  getDisplayedLegendaryEffect,
+  getLegendaryNumberParameter,
+} from "./legendary-attributes.ts";
+import {
   hydrateGameItems,
   type HydratedGameItem,
 } from "./item-artwork.ts";
@@ -127,20 +131,9 @@ export async function calculateGalleryRates(
   at: Date,
   config: GameplayConfig,
 ): Promise<GalleryRates> {
-  const metadata = await database
-    .collection<{ _id: string; loot_data: LootData }>("metadata")
-    .findOne({ _id: "loot-data" });
-  if (!metadata) throw new Error("Loot metadata has not been seeded.");
-
-  const artworks = await database
-    .collection<ArtworkValue>("artworks")
-    .find({ active: true })
-    .project<ArtworkValue>({ rarity: 1, value_scale: 1 })
-    .toArray();
-  const averageDrop = getAverageDropValue(
+  const averageDrop = await getAverageDropValueForLevel(
+    database,
     playerLevel,
-    metadata.loot_data,
-    artworks,
   );
 
   return items.reduce<GalleryRates>(
@@ -162,6 +155,28 @@ export async function calculateGalleryRates(
     },
     { value: 0, moneyPerHour: 0, xpPerHour: 0 },
   );
+}
+
+export async function getAverageDropValueForLevel(
+  database: Db,
+  playerLevel: number,
+): Promise<number> {
+  const metadata = await database
+    .collection<{ _id: string; loot_data: LootData }>("metadata")
+    .findOne({ _id: "loot-data" });
+  if (!metadata) throw new Error("Loot metadata has not been seeded.");
+
+  const artworks = await database
+    .collection<ArtworkValue>("artworks")
+    .find({ active: true })
+    .project<ArtworkValue>({ rarity: 1, value_scale: 1 })
+    .toArray();
+  const averageDrop = getAverageDropValue(
+    playerLevel,
+    metadata.loot_data,
+    artworks,
+  );
+  return averageDrop;
 }
 
 export async function settleGalleryEarnings(
@@ -188,6 +203,11 @@ export async function settleGalleryEarnings(
     .find({ owner: playerId, status: "displayed" })
     .toArray();
   const displayed = await hydrateGameItems(database, displayedItems);
+  const moneyForXp = await getDisplayedLegendaryEffect(
+    database,
+    playerId,
+    "MONEY_FOR_XP",
+  );
   let level = player.profile.level;
   let xp = player.profile.xp;
   let lotteryTickets = 0;
@@ -219,6 +239,9 @@ export async function settleGalleryEarnings(
   const payoutTime = new Date(
     previousTime + elapsedIntervals * intervalMs,
   ).toISOString();
+  moneyAccrued +=
+    xpEarned *
+    getLegendaryNumberParameter(moneyForXp, "money_per_xp", 0);
   const money = Math.floor(moneyAccrued);
   moneyAccrued -= money;
   const caps = getCapsForLevel(level);

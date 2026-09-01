@@ -3,6 +3,12 @@ import { createHash } from "node:crypto";
 import type { Db } from "mongodb";
 
 import type { ArtworkRarity, GameItem, ItemAttribute } from "./gameplay.ts";
+import { getHighestAvailableCollectorQuality } from "./collector-gameplay.ts";
+import {
+  ART_COLLECTOR_ATTRIBUTE_ID,
+  ART_DONOR_ATTRIBUTE_ID,
+  type LegendaryAttribute,
+} from "./legendary-attributes.ts";
 import {
   hydrateGameItems,
   type HydratedGameItem,
@@ -43,6 +49,7 @@ type PlayerRecord = {
   profile: {
     level: number;
     display_cap: number;
+    npcs_met?: Partial<Record<NpcQuality, number>>;
   };
 };
 
@@ -141,7 +148,7 @@ export async function refreshNpcSpawns(
     Math.floor(now.getTime() / spawnIntervalMs) * spawnIntervalMs;
   const spawnedAt = new Date(cycleStartMs);
   const expiration = new Date(cycleStartMs + spawnIntervalMs);
-  const [players, rawDisplayedItems] = await Promise.all([
+  const [players, rawDisplayedItems, pairedAttributes] = await Promise.all([
     database
       .collection<PlayerRecord>("players")
       .find({ active: true })
@@ -151,14 +158,78 @@ export async function refreshNpcSpawns(
         active: 1,
         "profile.level": 1,
         "profile.display_cap": 1,
+        "profile.npcs_met": 1,
       })
       .toArray(),
     database
       .collection<GameItem>("items")
       .find({ status: "displayed" })
       .toArray(),
+    database
+      .collection<ItemAttribute>("attributes")
+      .find({
+        _id: {
+          $in: [ART_COLLECTOR_ATTRIBUTE_ID, ART_DONOR_ATTRIBUTE_ID],
+        },
+      })
+      .toArray(),
   ]);
   const displayedItems = await hydrateGameItems(database, rawDisplayedItems);
+  const activeLegendaryIds = [
+    ...new Set(
+      displayedItems
+        .map((item) => item.active_unique_attribute)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const collectorEffects =
+    activeLegendaryIds.length === 0
+      ? []
+      : await database
+          .collection<LegendaryAttribute>("unique_attributes")
+          .find({
+            _id: { $in: activeLegendaryIds },
+            code: {
+              $in: ["COLLECTOR_MAX_QUALITY", "COLLECTOR_DONOR_PAIR"],
+            },
+            active: true,
+          })
+          .project<Pick<LegendaryAttribute, "_id" | "code">>({
+            _id: 1,
+            code: 1,
+          })
+          .toArray();
+  const collectorQualityEffectIds = new Set(
+    collectorEffects
+      .filter((attribute) => attribute.code === "COLLECTOR_MAX_QUALITY")
+      .map((attribute) => attribute._id),
+  );
+  const collectorDonorPairEffectIds = new Set(
+    collectorEffects
+      .filter((attribute) => attribute.code === "COLLECTOR_DONOR_PAIR")
+      .map((attribute) => attribute._id),
+  );
+  const ownersWithMaximumCollectorQuality = new Set(
+    displayedItems
+      .filter(
+        (item) =>
+          item.active_unique_attribute &&
+          collectorQualityEffectIds.has(item.active_unique_attribute),
+      )
+      .map((item) => item.owner),
+  );
+  const ownersWithCollectorDonorPair = new Set(
+    displayedItems
+      .filter(
+        (item) =>
+          item.active_unique_attribute &&
+          collectorDonorPairEffectIds.has(item.active_unique_attribute),
+      )
+      .map((item) => item.owner),
+  );
+  const pairedAttributeMap = new Map(
+    pairedAttributes.map((attribute) => [attribute._id, attribute]),
+  );
   const itemsByOwner = new Map<string, HydratedGameItem[]>();
   for (const item of displayedItems) {
     const ownerItems = itemsByOwner.get(item.owner) ?? [];
@@ -176,9 +247,18 @@ export async function refreshNpcSpawns(
       const spawnKey = `${player._id}:${cycleStartMs}:${attributeId}`;
       if (seededRoll(`${spawnKey}:spawn`) >= chance) return [];
 
+      const maximumCollectorQuality =
+        attributeId === ART_COLLECTOR_ATTRIBUTE_ID &&
+        ownersWithMaximumCollectorQuality.has(player._id)
+          ? getHighestAvailableCollectorQuality(
+              player.profile.npcs_met ?? {},
+            )
+          : null;
       const npc: GalleryNpc = {
         _id: createHash("sha256").update(spawnKey).digest("hex").slice(0, 32),
-        quality: getNpcQuality(seededRoll(`${spawnKey}:quality`)),
+        quality:
+          maximumCollectorQuality ??
+          getNpcQuality(seededRoll(`${spawnKey}:quality`)),
         attribute_id: attributeId,
         owner_id: player._id,
         owner_name: player.screen_name,
@@ -189,7 +269,7 @@ export async function refreshNpcSpawns(
         npc_name: attribute.npc_name,
         proc_chance: chance,
       };
-      return [
+      const npcOperations = [
         {
           updateOne: {
             filter: { spawn_key: spawnKey },
@@ -198,6 +278,50 @@ export async function refreshNpcSpawns(
           },
         },
       ];
+      const companionAttributeId =
+        npc.quality === "platinum" &&
+        ownersWithCollectorDonorPair.has(player._id)
+          ? attributeId === ART_COLLECTOR_ATTRIBUTE_ID
+            ? ART_DONOR_ATTRIBUTE_ID
+            : attributeId === ART_DONOR_ATTRIBUTE_ID
+              ? ART_COLLECTOR_ATTRIBUTE_ID
+              : null
+          : null;
+      const companionAttribute = companionAttributeId
+        ? pairedAttributeMap.get(companionAttributeId)
+        : null;
+      if (companionAttribute) {
+        const companionSpawnKey = `${spawnKey}:paired:${companionAttributeId}`;
+        const companion: GalleryNpc = {
+          _id: createHash("sha256")
+            .update(companionSpawnKey)
+            .digest("hex")
+            .slice(0, 32),
+          quality: "bronze",
+          attribute_id: companionAttribute._id,
+          owner_id: player._id,
+          owner_name: player.screen_name,
+          spawned_at: spawnedAt,
+          expiration,
+          players_met: [],
+          icon: companionAttribute.icon,
+          npc_name: companionAttribute.npc_name,
+          proc_chance: chance,
+        };
+        npcOperations.push({
+          updateOne: {
+            filter: { spawn_key: companionSpawnKey },
+            update: {
+              $setOnInsert: {
+                ...companion,
+                spawn_key: companionSpawnKey,
+              },
+            },
+            upsert: true,
+          },
+        });
+      }
+      return npcOperations;
     });
   });
 

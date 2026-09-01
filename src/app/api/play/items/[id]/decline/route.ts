@@ -15,7 +15,7 @@ export async function POST(
   const result = await database.collection<{ _id: string; owner: string; status: string }>("items").deleteOne({
     _id: id,
     owner: auth.session.playerId,
-    status: { $in: ["unclaimed", "won"] },
+    status: { $in: ["unclaimed", "for_sale", "won"] },
   });
   if (result.deletedCount !== 1) {
     return NextResponse.json(
