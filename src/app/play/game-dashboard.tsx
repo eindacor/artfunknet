@@ -4,6 +4,9 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
+import ItemCard from "@/components/item-cards/item-card";
+import { ratingColor } from "@/components/item-cards/shared";
+import type { CardLegendaryAttribute } from "@/components/item-cards/types";
 import type { GalleryRates } from "@/server/collection-gameplay";
 import type { GameItem } from "@/server/gameplay";
 import type { HydratedGameItem } from "@/server/item-artwork";
@@ -33,6 +36,8 @@ type PlayerView = {
   lastDrop: string;
   xpGoal: number;
   npcsMet: Partial<Record<NpcQuality, number>>;
+  cardRenderer?: string;
+  ownedCardRenderers: string[];
 };
 
 type NpcView = Omit<GalleryNpc, "spawned_at" | "expiration"> & {
@@ -47,14 +52,7 @@ type NpcSpawnOption = {
   name: string;
 };
 
-type LegendaryAttributeView = {
-  id: string;
-  title: string;
-  description: string;
-  flavorText: string;
-  code: string;
-  active: boolean;
-};
+type LegendaryAttributeView = CardLegendaryAttribute;
 
 type ArtworkOfferItem = HydratedGameItem & {
   alreadyOwned: boolean;
@@ -80,6 +78,7 @@ const ATTRIBUTE_TYPE_ICONS = {
 } as const;
 
 export default function GameDashboard({
+  activeRendererIds,
   player,
   items,
   galleryRates,
@@ -93,6 +92,7 @@ export default function GameDashboard({
   debugEnabled,
   npcs,
 }: {
+  activeRendererIds: string[];
   player: PlayerView;
   items: HydratedGameItem[];
   galleryRates: GalleryRates;
@@ -468,9 +468,12 @@ export default function GameDashboard({
             ) : (
               <div className="item-grid">
                 {unclaimed.map((item) => (
-                  <ArtworkCard
+                  <ItemCard
+                    activeRendererIds={activeRendererIds}
                     alreadyOwned={ownedArtworkIds.has(item.artwork_id)}
                     legendaryAttributes={legendaryAttributes}
+                    ownedRendererIds={player.ownedCardRenderers}
+                    rendererId={player.cardRenderer}
                     actions={
                       item.status === "for_sale" ? (
                         <>
@@ -534,9 +537,13 @@ export default function GameDashboard({
         {section === "inventory" ? (
           <section className="inventory">
             <InventorySection
+              activeRendererIds={activeRendererIds}
               emptyText="No works are currently on display."
               items={displayed}
               legendaryAttributes={legendaryAttributes}
+              canCustomize
+              ownedRendererIds={player.ownedCardRenderers}
+              rendererId={player.cardRenderer}
               title={`on display (${displayed.length}/${player.displayCap})`}
               actions={(item) => (
                 <>
@@ -565,9 +572,13 @@ export default function GameDashboard({
               )}
             />
             <InventorySection
+              activeRendererIds={activeRendererIds}
               emptyText="Your inventory is empty."
               items={inventory}
               legendaryAttributes={legendaryAttributes}
+              canCustomize
+              ownedRendererIds={player.ownedCardRenderers}
+              rendererId={player.cardRenderer}
               title="inventory"
               actions={(item) => {
                 const displayPermission = getDisplayPermission(
@@ -1512,16 +1523,24 @@ function ItemActionButton({
 }
 
 function InventorySection({
+  activeRendererIds,
   title,
   emptyText,
   items,
   legendaryAttributes,
+  canCustomize,
+  ownedRendererIds,
+  rendererId,
   actions,
 }: {
+  activeRendererIds: string[];
   title: string;
   emptyText: string;
   items: HydratedGameItem[];
   legendaryAttributes: LegendaryAttributeView[];
+  canCustomize?: boolean;
+  ownedRendererIds?: string[];
+  rendererId?: string;
   actions: (item: HydratedGameItem) => React.ReactNode;
 }) {
   return (
@@ -1532,11 +1551,15 @@ function InventorySection({
       ) : (
         <div className="item-grid">
           {items.map((item) => (
-            <ArtworkCard
+            <ItemCard
+              activeRendererIds={activeRendererIds}
               actions={actions(item)}
+              canCustomize={canCustomize}
               item={item}
               legendaryAttributes={legendaryAttributes}
               key={item._id}
+              ownedRendererIds={ownedRendererIds}
+              rendererId={rendererId}
             />
           ))}
         </div>
@@ -1560,170 +1583,10 @@ function ProfileRow({
   );
 }
 
-function ArtworkCard({
-  item,
-  actions,
-  legendaryAttributes,
-  alreadyOwned = false,
-}: {
-  item: HydratedGameItem;
-  actions?: React.ReactNode;
-  legendaryAttributes: LegendaryAttributeView[];
-  alreadyOwned?: boolean;
-}) {
-  const activeLegendaryAttribute = legendaryAttributes.find(
-    (attribute) =>
-      attribute.active && attribute.id === item.active_unique_attribute,
-  );
-  const cardTypes = [
-    item.unlocked ? "card-effect-unlocked" : "",
-    item.foil ? "card-effect-foil" : "",
-    item.seasonal ? "card-effect-seasonal" : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
-  return (
-    <article className="item-info">
-      <div
-        className={`card-container ${item.artwork.rarity}-item`}
-        style={{
-          backgroundImage: `url("/api/artwork/${item.artwork_id}/image")`,
-        }}
-      >
-        <div className={`card-header ${cardTypes}`}>
-          <p className="item-title">
-            {item.artwork.title}
-            {item.status === "claimed" && item.tags.includes("for sale") ? (
-              <span
-                className="collector-sale-indicator"
-                title="Offered to Art Collectors"
-              >
-                for collectors
-              </span>
-            ) : null}
-            {item.status === "unclaimed" ? (
-              <span
-                className={`artwork-ownership-indicator ${
-                  alreadyOwned ? "owned" : "new"
-                }`}
-                title={
-                  alreadyOwned
-                    ? "You already own this artwork"
-                    : "This artwork is new to your collection"
-                }
-              >
-                {alreadyOwned ? "owned" : "new"}
-              </span>
-            ) : null}
-          </p>
-          <p>{item.artwork.artist}</p>
-          <div className="header-details">
-            <p>{item.artwork.date}</p>
-            <CardSignature item={item} />
-            <p>{item.artwork.medium}</p>
-            <p>
-              {item.artwork.height} × {item.artwork.width} cm
-            </p>
-            <p>drop chance: {item.odds}</p>
-            <p>
-              condition:{" "}
-              <span style={{ color: ratingColor(item.condition) }}>
-                {Math.round(item.condition * 100)}%
-              </span>
-            </p>
-            <p>estimated value: ${item.values.actual.toLocaleString()}</p>
-            {activeLegendaryAttribute ? (
-              <p className="legendary-flavor-text">
-                &ldquo;{activeLegendaryAttribute.flavorText}&rdquo;
-              </p>
-            ) : null}
-            <p className="verified-text">✓ verified</p>
-          </div>
-        </div>
-        <div className={`card-footer ${cardTypes}`}>
-          <div className="attribute-area">
-            <AttributeGroup attributes={item.attributes.unlocked} type="unlocked" />
-            <AttributeGroup attributes={item.attributes.locked} type="locked" />
-            <AttributeGroup attributes={item.attributes.special} type="special" />
-          </div>
-          <strong>lvl {item.level}</strong>
-        </div>
-      </div>
-      {actions ? <div className="card-actions">{actions}</div> : null}
-    </article>
-  );
-}
-
-function CardSignature({ item }: { item: HydratedGameItem }) {
-  return (
-    <p className="card-signature" aria-label="Card signature">
-      <strong className={`signature-${item.artwork.rarity}`}>
-        {item.artwork.rarity}
-      </strong>
-      {item.foil ? <span className="signature-foil"> foil</span> : null}
-      {item.seasonal ? (
-        <span className="signature-seasonal"> seasonal</span>
-      ) : null}
-      {item.lottery ? (
-        <span className="signature-lottery"> lottery {item.lottery}</span>
-      ) : null}
-      {item.original ? (
-        <span className="signature-original"> original</span>
-      ) : null}
-      {item.vintage ? (
-        <span className="signature-vintage"> vintage</span>
-      ) : null}
-      {item.unlocked ? (
-        <span className="signature-unlocked"> unlocked</span>
-      ) : null}
-      {item.patreon ? (
-        <span className="signature-patreon"> patreon</span>
-      ) : null}
-    </p>
-  );
-}
-
-function AttributeGroup({
-  attributes,
-  type,
-}: {
-  attributes: GameItem["attributes"]["unlocked"];
-  type: "unlocked" | "locked" | "special";
-}) {
-  if (attributes.length === 0) return null;
-
-  return (
-    <span className="attribute-group">
-      {attributes.map((attribute) => {
-        const rating = Math.round((attribute.value ?? 0) * 100);
-        return (
-          <span className="attribute-tooltip" key={attribute._id}>
-            <i
-              aria-label={`${attribute.npc_name}, ${rating}% attraction, ${type}`}
-              className={`fa ${attribute.icon} attribute ${type}`}
-              style={{ color: ratingColor(attribute.value ?? 0) }}
-            />
-            <span className="attribute-tooltip-text">
-              <strong>{attribute.npc_name}</strong>
-              <span>{rating}% attraction</span>
-              <span>{type}</span>
-            </span>
-          </span>
-        );
-      })}
-    </span>
-  );
-}
-
 function countdown(milliseconds: number): string {
   const totalSeconds = Math.max(0, Math.ceil(milliseconds / 1000));
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
   return `${hours}h ${minutes}m ${seconds}s`;
-}
-
-function ratingColor(value: number): string {
-  const red = Math.round(255 * (1 - value));
-  return `rgb(${red}, 0, 0)`;
 }

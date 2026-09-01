@@ -56,6 +56,14 @@ export default function PlayerHeader({
         <span className="loot-icon" title="loot">
           ◆
         </span>
+        <a
+          aria-label="Card cosmetic store"
+          className="cosmetic-store-link"
+          href="/play/cosmetics"
+          title="card cosmetic store"
+        >
+          <i aria-hidden="true" className="fa fa-shopping-bag" />
+        </a>
       </div>
       <div className="legacy-nav-stats">
         <strong className="green-text">

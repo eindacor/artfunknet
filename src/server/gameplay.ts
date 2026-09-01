@@ -92,6 +92,7 @@ export type GameItem = {
     special: ItemAttribute[];
   };
   active_unique_attribute?: string;
+  card_renderer?: string;
   owner: string;
   // TODO AI: Auction and trade owner changes must append a transfer entry atomically with the owner update.
   transaction_history: ItemTransaction[];

@@ -129,6 +129,26 @@ The basic gameplay loop is active:
 - Generated items carry the original unlocked and locked NPC-attraction
   attributes. Rare, legendary, and masterpiece artwork also requires one, two,
   or three permanent special attributes during admin approval.
+- Item cards use a renderer registry with the legacy card as a safe fallback.
+  A forced renderer is used for previews, an item-level `card_renderer`
+  cosmetic overrides the player-level `profile.card_renderer` preference, and
+  unknown renderer IDs fall back to `legacy`. Ten additional self-contained
+  renderers—Museum Label, Neon Inventory, Artist Postcard, Gilded Salon,
+  Archive Terminal, Prismatic Showcase, Curator Blueprint, Downtown Zine,
+  Celestial Orbit, and Boss Reliquary—are available at
+  <http://localhost:3000/admin/card-designs>. Each design exposes the complete
+  artwork, artist, value, condition, property, attribute, and Legendary effect
+  record. Every renderer visibly encodes artwork rarity, while more elaborate
+  designs use rarity-specific animated borders, glows, and embellishments.
+- Every card renderer opens the same accessible item-detail dialog when
+  clicked or keyboard-activated. Players can purchase the numbered renderer
+  cosmetics at <http://localhost:3000/play/cosmetics> using their bank
+  balance. Purchases are permanent and reusable; claimed and displayed items
+  can independently select any owned style from the standard dialog. Cosmetic
+  purchases and per-item assignments are ownership-checked server-side.
+  Administrators can activate or deactivate each renderer from the card-design
+  gallery. Inactive styles disappear from the store but remain selectable by
+  players who purchased them previously.
 - The complete 55-pair Legendary Attribute catalog is seeded with its original
   record IDs and flavor text. Legendary artwork receives one pair-derived
   effect, masterpieces receive three eligible effects, and the active effect

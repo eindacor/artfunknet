@@ -10,6 +10,7 @@ export default function AdminHeader({ email }: { email: string }) {
     { href: "/admin", label: "Gameplay" },
     { href: "/admin/artwork", label: "Artwork intake" },
     { href: "/admin/legendary-attributes", label: "Legendary attributes" },
+    { href: "/admin/card-designs", label: "Card designs" },
     { href: "/admin/test-players", label: "Test players" },
   ];
 
@@ -25,7 +26,7 @@ export default function AdminHeader({ email }: { email: string }) {
         <p className="font-bold text-[var(--accent)]">Artfunkel admin</p>
         <p className="text-sm text-[var(--muted)]">{email}</p>
       </div>
-      <nav className="flex gap-4 text-sm">
+      <nav className="flex flex-wrap justify-center gap-4 text-sm">
         {links.map((link) => {
           const current = pathname === link.href;
           return (

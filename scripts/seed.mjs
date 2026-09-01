@@ -197,6 +197,8 @@ async function seedPlayer(database) {
           screen_name: screenName,
           active: true,
           bank_balance: 100_000,
+          card_renderer: "legacy",
+          owned_card_renderers: ["legacy"],
           last_drop: yesterdayIso,
           level: 0,
           xp: 0,
