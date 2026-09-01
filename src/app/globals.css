@@ -1,0 +1,606 @@
+@import "tailwindcss";
+
+:root {
+  --background: #111014;
+  --foreground: #f5f3f7;
+  --muted: #aaa4af;
+  --accent: #ff33cc;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.game-shell {
+  min-height: 100vh;
+  background: white;
+  color: #777;
+  font-family: Courier, monospace;
+}
+
+.legacy-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  min-height: 58px;
+  padding: 8px 5%;
+  border-bottom: 2px solid white;
+  background: black;
+  color: white;
+}
+
+.legacy-nav-icons,
+.legacy-nav-stats {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.legacy-nav-icons a,
+.loot-icon {
+  color: white;
+  font-size: 1.5rem;
+  opacity: 0.75;
+}
+
+.loot-icon {
+  color: #fffb33;
+}
+
+.nav-player {
+  color: #ff33cc;
+  font-weight: bold;
+}
+
+.legacy-signout {
+  margin-left: 24px;
+  padding: 8px 12px;
+  opacity: 0.75;
+}
+
+.legacy-game {
+  padding: 44px 0 100px;
+}
+
+.legacy-container {
+  width: 90%;
+  max-width: 1280px;
+  margin: auto;
+}
+
+.gamertag {
+  margin: 0;
+  color: #777;
+  font-size: 3rem;
+  font-weight: bold;
+}
+
+.dashboard-tabs {
+  display: flex;
+  justify-content: center;
+  margin: 15px 0 55px;
+  border: 1px solid black;
+  padding: 15px 10px;
+}
+
+.dashboard-tabs button {
+  width: 140px;
+  padding: 0;
+  background: transparent;
+  color: black;
+  font-size: 1rem;
+  opacity: 0.5;
+}
+
+.dashboard-tabs button.current {
+  color: #ff33cc;
+  font-weight: bold;
+  opacity: 1;
+}
+
+.af-color {
+  color: #ff33cc !important;
+}
+
+.green-text {
+  color: #00cc33 !important;
+}
+
+.highlight {
+  font-weight: bold;
+}
+
+.game-error {
+  margin: 20px 0;
+  border: 1px solid red;
+  padding: 12px;
+  color: red;
+}
+
+.game-payout {
+  margin: 20px 0;
+  border-bottom: 1px solid #00cc33;
+  padding: 8px 0;
+  color: #00cc33;
+  font-weight: bold;
+}
+
+.player-profile {
+  max-width: 700px;
+}
+
+.xp-bar {
+  position: relative;
+  height: 24px;
+  margin-bottom: 40px;
+  background: #777;
+  color: white;
+}
+
+.xp-level {
+  position: absolute;
+  height: 24px;
+  background: #ff33cc;
+}
+
+.xp-bar span,
+.xp-bar strong {
+  position: absolute;
+  top: 3px;
+  z-index: 1;
+}
+
+.xp-bar span {
+  left: 12px;
+}
+
+.xp-bar strong {
+  right: 12px;
+}
+
+.player-profile table {
+  width: 100%;
+  font-size: 1.1rem;
+}
+
+.player-profile td {
+  width: 50%;
+  padding: 3px 10px;
+}
+
+.player-profile td:first-child {
+  color: black;
+  text-align: right;
+}
+
+.random-drop > button {
+  min-width: 220px;
+}
+
+.random-drop > button.disabled {
+  cursor: default;
+  opacity: 0.25;
+}
+
+.empty-state {
+  margin: 40px 20px;
+}
+
+.item-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 30px 14px;
+  margin-top: 30px;
+}
+
+.item-info {
+  display: inline-block;
+  text-align: center;
+}
+
+.card-container {
+  position: relative;
+  display: inline-block;
+  width: 280px;
+  height: 390px;
+  border: 1px solid #555;
+  background-position: center;
+  background-size: cover;
+  opacity: 0.95;
+}
+
+.common-item {
+  box-shadow: 0 0 6px 2px green;
+}
+
+.uncommon-item {
+  box-shadow: 0 0 6px 2px blue;
+}
+
+.rare-item {
+  box-shadow: 0 0 6px 2px #cccc00;
+}
+
+.legendary-item {
+  box-shadow: 0 0 6px 2px orange;
+}
+
+.masterpiece-item {
+  animation: legacy-border-animation 2s ease infinite;
+}
+
+.card-header,
+.card-footer {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  background: rgb(255 255 255 / 92%);
+  color: black;
+  padding: 8px 12px 4px;
+  text-align: left;
+}
+
+.card-header {
+  top: 0;
+}
+
+.card-footer {
+  bottom: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.card-header p,
+.card-footer p {
+  margin: 0;
+}
+
+.item-title {
+  font-size: 1rem;
+  font-style: italic;
+  font-weight: 600;
+}
+
+.header-details {
+  display: none;
+  margin-top: 12px;
+  border-top: 1px solid black;
+  padding-top: 4px;
+}
+
+.card-header:hover .header-details {
+  display: block;
+}
+
+.verified-text {
+  margin-top: 4px !important;
+  color: #00cc33;
+  font-weight: bold;
+}
+
+.attribute {
+  margin-right: 5px;
+  font-size: 1.25rem;
+}
+
+.attribute-group + .attribute-group::before {
+  margin-right: 6px;
+  color: black;
+  content: "|";
+}
+
+.attribute.locked {
+  opacity: 0.55;
+}
+
+.attribute.special {
+  text-shadow: 0.1em 0.1em 0.1em rgb(255 51 204 / 80%);
+}
+
+.attribute-tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+.attribute-tooltip-text {
+  position: absolute;
+  bottom: 140%;
+  left: 50%;
+  z-index: 20;
+  display: none;
+  width: 180px;
+  margin-left: -90px;
+  border: 1px solid black;
+  background: white;
+  color: black;
+  padding: 6px;
+  text-align: center;
+  font-size: 0.75rem;
+}
+
+.attribute-tooltip-text span {
+  display: block;
+}
+
+.attribute-tooltip:hover .attribute-tooltip-text {
+  display: block;
+}
+
+.foil,
+.unlocked,
+.seasonal {
+  background-size: 300% 300%;
+  animation: legacy-card-effect 10s ease infinite;
+}
+
+.foil {
+  background-image: linear-gradient(
+    60deg,
+    white,
+    #ffe2c3,
+    #fdf,
+    white,
+    #fdf,
+    #ffe2c3,
+    white
+  );
+}
+
+.unlocked {
+  background-image: linear-gradient(
+    60deg,
+    white,
+    #dbdbdb,
+    white,
+    #dbdbdb,
+    white
+  );
+}
+
+.seasonal {
+  background-image: linear-gradient(
+    60deg,
+    white,
+    rgb(220 255 220),
+    rgb(220 220 255),
+    white
+  );
+}
+
+.card-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  width: 280px;
+  margin: 8px auto 0;
+}
+
+.card-actions button {
+  padding: 6px 10px;
+  font-size: 0.9rem;
+  opacity: 0.65;
+}
+
+.card-actions button:hover,
+.card-actions button:focus-visible {
+  opacity: 1;
+}
+
+.inventory-section + .inventory-section {
+  margin-top: 70px;
+  border-top: 1px solid #aaa;
+  padding-top: 28px;
+}
+
+.inventory-section h2 {
+  margin: 0;
+  color: black;
+  font-size: 1.35rem;
+  font-weight: normal;
+}
+
+.gallery-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-bottom: 16px;
+  color: #ff33cc;
+  font-weight: bold;
+}
+
+.gallery-window {
+  overflow-x: auto;
+}
+
+.gallery-wall {
+  display: flex;
+  align-items: center;
+  min-width: 100%;
+  min-height: 470px;
+  gap: 70px;
+  padding: 70px 64px;
+  border-bottom: 1px solid black;
+  background-color: #ddd;
+  background-image:
+    linear-gradient(90deg, rgb(255 255 255 / 22%) 1px, transparent 1px),
+    linear-gradient(rgb(255 255 255 / 22%) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.painting-container {
+  flex: 0 0 auto;
+  text-align: left;
+}
+
+.framed-painting {
+  display: block;
+  width: auto;
+  height: 260px;
+  min-width: 120px;
+  border: 8px solid black;
+  padding: 0;
+  background-position: center;
+  background-size: 100% 100%;
+  box-shadow:
+    6px 6px 0 rgb(0 0 0 / 21%),
+    inset 2px 2px 0 rgb(0 0 0 / 21%);
+}
+
+.placard {
+  display: inline-block;
+  margin: 14px 0 0 12px;
+  padding: 5px 8px;
+  background: white;
+  color: black;
+  box-shadow: 2px 2px 0 rgb(0 0 0 / 21%);
+  font-size: 0.75rem;
+}
+
+.placard p {
+  margin: 0;
+}
+
+.gallery-floor {
+  height: 64px;
+  margin-bottom: 64px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      #777 0,
+      #777 40px,
+      #6c6c6c 40px,
+      #6c6c6c 80px
+    );
+}
+
+.empty-gallery {
+  color: #777;
+  font-size: 1rem;
+}
+
+@keyframes legacy-card-effect {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes legacy-border-animation {
+  0%,
+  100% {
+    box-shadow: 0 0 10px 2px #44dddd;
+  }
+  50% {
+    box-shadow: 0 0 20px 2px #44dddd;
+  }
+}
+
+@media (max-width: 700px) {
+  .legacy-navbar {
+    grid-template-columns: 1fr auto;
+  }
+
+  .legacy-nav-stats {
+    display: none;
+  }
+
+  .dashboard-tabs {
+    justify-content: flex-start;
+    overflow-x: auto;
+  }
+
+  .dashboard-tabs button {
+    min-width: 110px;
+  }
+}
+
+.admin-tools {
+  width: min(900px, 90%);
+  margin: 40px auto 100px;
+}
+
+.admin-tools h1 {
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+.admin-tools section {
+  margin-top: 32px;
+  border-top: 1px solid rgb(255 255 255 / 25%);
+  padding-top: 24px;
+}
+
+.admin-tools h2 {
+  color: #ff33cc;
+  font-size: 1.25rem;
+  font-weight: bold;
+}
+
+.admin-tools section > p {
+  margin-top: 8px;
+  color: #aaa4af;
+}
+
+.admin-settings-form {
+  margin-top: 24px;
+}
+
+.admin-setting {
+  display: flex;
+  justify-content: space-between;
+  gap: 30px;
+  border-top: 1px solid rgb(255 255 255 / 12%);
+  padding: 18px 0;
+}
+
+.admin-setting small {
+  display: block;
+  margin-top: 4px;
+  color: #aaa4af;
+}
+
+.admin-setting-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.admin-setting input {
+  width: 110px;
+  border: 1px solid #777;
+  background: white;
+  color: black;
+  padding: 8px;
+}
+
+.admin-success {
+  margin-top: 14px;
+  color: #00cc33;
+}
+
+.admin-error {
+  margin-top: 14px;
+  color: red;
+}

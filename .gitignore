@@ -2,10 +2,35 @@
 *.sublime-workspace
 .deploy/**
 dump/**
-settings.json
 node_modules/**
 .meteor/**
-package-lock.json
-package.json
 *.idea/**
 *.vs/**
+
+# Next.js
+.next/
+out/
+build/
+next-env.d.ts
+
+# Local environment and logs
+.env
+.env.local
+.env.*.local
+!.env.example
+*.log
+
+# Generated TypeScript state
+*.tsbuildinfo
+
+# Legacy local npm artifact
+server/package-lock.json
+
+# Local artwork intake
+image_source/
+
+# Mock S3 object storage
+storage/mock-s3/
+
+# Legacy approved images awaiting S3 publication
+public/artwork/
