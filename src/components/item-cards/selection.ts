@@ -23,5 +23,5 @@ export function resolveCardRendererId({
   if (isCardRendererId(forcedRendererId)) return forcedRendererId;
   if (isCardRendererId(itemRendererId)) return itemRendererId;
   if (isCardRendererId(preferredRendererId)) return preferredRendererId;
-  return "legacy";
+  return "museum";
 }

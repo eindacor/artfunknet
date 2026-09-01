@@ -49,6 +49,7 @@ try {
   const adminSeeded = await seedAdmin(database);
   const playerSeeded = await seedPlayer(database);
   const testPlayersSeeded = await seedTestPlayers(database);
+  await migrateCardRenderers(database);
   const artworkResult = await seedArtworkSubmissions(database);
   await migrateItems(database);
 
@@ -197,8 +198,8 @@ async function seedPlayer(database) {
           screen_name: screenName,
           active: true,
           bank_balance: 100_000,
-          card_renderer: "legacy",
-          owned_card_renderers: ["legacy"],
+          card_renderer: "museum",
+          owned_card_renderers: ["museum"],
           last_drop: yesterdayIso,
           level: 0,
           xp: 0,
@@ -377,6 +378,42 @@ async function seedTestPlayers(database) {
   }
 
   return testAccountCount;
+}
+
+async function migrateCardRenderers(database) {
+  const migration = await database
+    .collection("metadata")
+    .findOne({ _id: "card-renderer-migrations" });
+  if ((migration?.version ?? 0) >= 1) return;
+
+  await database.collection("players").updateMany(
+    { "profile.card_renderer": "legacy" },
+    { $set: { "profile.card_renderer": "museum" } },
+  );
+  await database.collection("items").updateMany(
+    { card_renderer: "legacy" },
+    { $set: { card_renderer: "museum" } },
+  );
+  await database.collection("players").updateMany(
+    { "profile.owned_card_renderers": "legacy" },
+    { $pull: { "profile.owned_card_renderers": "legacy" } },
+  );
+  await database.collection("players").updateMany(
+    { role: "player" },
+    { $addToSet: { "profile.owned_card_renderers": "museum" } },
+  );
+  const now = new Date();
+  await database.collection("metadata").updateOne(
+    { _id: "card-renderer-migrations" },
+    {
+      $set: {
+        version: 1,
+        updated_at: now,
+      },
+      $setOnInsert: { created_at: now },
+    },
+    { upsert: true },
+  );
 }
 
 async function seedDefaultGalleryFinishes(database) {
@@ -714,7 +751,7 @@ async function seedLegendaryAttributes(database) {
   await database.collection("unique_attributes").bulkWrite(
     desiredRecords.map((record) => ({
       updateOne: {
-        filter: { _id: record.id, catalog_version: { $ne: 4 } },
+        filter: { _id: record.id, catalog_version: { $ne: 5 } },
         update: {
           $set: {
             title: record.code
@@ -727,7 +764,7 @@ async function seedLegendaryAttributes(database) {
             code: record.code,
             active: true,
             parameters: record.parameters,
-            catalog_version: 4,
+            catalog_version: 5,
             updated_at: now,
           },
         },
@@ -758,7 +795,7 @@ async function seedLegendaryAttributes(database) {
               code,
               active: true,
               parameters,
-              catalog_version: 4,
+              catalog_version: 5,
               created_at: now,
               updated_at: now,
             },

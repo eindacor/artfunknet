@@ -7,6 +7,11 @@ import {
   getCollectorForgeryHeat,
 } from "@/server/collector-gameplay";
 import {
+  calculateArtExpertKnowledge,
+  calculateArtExpertRollReduction,
+  KNOWLEDGE_TYPES,
+} from "@/server/art-expert-gameplay";
+import {
   applyXp,
   getCapsForLevel,
   getXpChunk,
@@ -23,10 +28,12 @@ import {
   ART_COLLECTOR_ATTRIBUTE_ID,
   ART_DEALER_ATTRIBUTE_ID,
   ART_DONOR_ATTRIBUTE_ID,
+  ART_EXPERT_ATTRIBUTE_ID,
   getDisplayedLegendaryEffect,
   getLegendaryNumberParameter,
   MARKET_EXPERT_ATTRIBUTE_ID,
 } from "@/server/legendary-attributes";
+import { getRerollCost } from "@/server/item-reroll";
 import {
   NPC_QUALITIES,
   type GalleryNpc,
@@ -48,6 +55,7 @@ type Player = {
     lottery_tickets: number;
     npcs_met?: Partial<Record<NpcQuality, number>>;
     level: number;
+    knowledge: Record<string, number>;
   };
 };
 
@@ -149,6 +157,257 @@ export async function POST(
             error instanceof Error
               ? error.message
               : "The visitor reward could not be applied.",
+        },
+        { status: 500 },
+      );
+    }
+  }
+
+  if (npc.attribute_id === ART_EXPERT_ATTRIBUTE_ID) {
+    try {
+      const ownGallery = npc.owner_id === player._id;
+      const [donorBonusEffect, zeroCountEffect, moneyForXpEffect, donorPresent] =
+        ownGallery
+          ? await Promise.all([
+              getDisplayedLegendaryEffect(
+                database,
+                player._id,
+                "DONOR_EXPERT_BONUS",
+              ),
+              getDisplayedLegendaryEffect(
+                database,
+                player._id,
+                "XP_FOR_ZERO_COUNTS",
+              ),
+              getDisplayedLegendaryEffect(
+                database,
+                player._id,
+                "MONEY_FOR_XP",
+              ),
+              database.collection<GalleryNpc>("npcs").findOne({
+                owner_id: player._id,
+                attribute_id: ART_DONOR_ATTRIBUTE_ID,
+                expiration: { $gt: now },
+              }),
+            ])
+          : [null, null, null, null];
+      const donorBonusMultiplier =
+        donorBonusEffect && donorPresent
+          ? getLegendaryNumberParameter(
+              donorBonusEffect,
+              "reward_multiplier",
+              2,
+            )
+          : 1;
+      const zeroCountItems = zeroCountEffect
+        ? await database.collection<GameItem>("items").countDocuments({
+            owner: player._id,
+            status: "displayed",
+            roll_count: { $lt: 1 },
+          })
+        : 0;
+      const xpBonus =
+        zeroCountItems *
+        Math.floor(
+          getXpChunk(player.profile.level) *
+            getLegendaryNumberParameter(
+              zeroCountEffect,
+              "xp_chunk_percentage",
+              0.1,
+            ),
+        );
+      const progress = applyXp(
+        player.profile.level,
+        player.profile.xp,
+        xpBonus,
+      );
+      const bonusMoney = Math.floor(
+        xpBonus *
+          getLegendaryNumberParameter(
+            moneyForXpEffect,
+            "money_per_xp",
+            moneyForXpEffect ? 2 : 0,
+          ),
+      );
+      const highestItem = await database
+        .collection<GameItem>("items")
+        .find({
+          owner: player._id,
+          status: { $in: ["claimed", "displayed"] },
+          roll_count: { $gt: 0 },
+        })
+        .sort({ roll_count: -1 })
+        .limit(1)
+        .next();
+
+      if (highestItem) {
+        const metadata = await database
+          .collection<{ _id: string; loot_data: LootData }>("metadata")
+          .findOne({ _id: "loot-data" });
+        if (!metadata) throw new Error("Loot metadata is not configured.");
+        const [hydratedItem] = await hydrateGameItems(database, [highestItem]);
+        if (!hydratedItem) throw new Error("The selected artwork is unavailable.");
+        const reduction = calculateArtExpertRollReduction({
+          quality: npc.quality,
+          ownGallery,
+          donorBonusMultiplier,
+        });
+        const newRollCount = Math.max(0, highestItem.roll_count - reduction);
+        const rerollCost = getRerollCost(
+          { roll_count: newRollCount },
+          hydratedItem.artwork.rarity,
+          metadata.loot_data,
+        );
+        const update = await database.collection<GameItem>("items").updateOne(
+          {
+            _id: highestItem._id,
+            owner: player._id,
+            status: { $in: ["claimed", "displayed"] },
+            roll_count: highestItem.roll_count,
+          },
+          { $set: { roll_count: newRollCount, reroll_cost: rerollCost } },
+        );
+        if (update.modifiedCount !== 1) {
+          throw new Error("The artwork changed before the Expert could advise you.");
+        }
+        if (xpBonus > 0) {
+          const xpUpdate = await database
+            .collection<Player>("players")
+            .updateOne(
+              {
+                _id: player._id,
+                active: true,
+                "profile.level": player.profile.level,
+                "profile.xp": player.profile.xp,
+              },
+              {
+                $set: {
+                  "profile.level": progress.level,
+                  "profile.xp": progress.xp,
+                  ...Object.fromEntries(
+                    Object.entries(getCapsForLevel(progress.level)).map(
+                      ([key, value]) => [`profile.${key}`, value],
+                    ),
+                  ),
+                },
+                $inc: {
+                  "profile.lottery_tickets": progress.lotteryTickets,
+                  "profile.bank_balance": bonusMoney,
+                },
+              },
+            );
+          if (xpUpdate.modifiedCount !== 1) {
+            await database.collection<GameItem>("items").updateOne(
+              {
+                _id: highestItem._id,
+                owner: player._id,
+                roll_count: newRollCount,
+              },
+              {
+                $set: {
+                  roll_count: highestItem.roll_count,
+                  reroll_cost: highestItem.reroll_cost,
+                },
+              },
+            );
+            throw new Error("The Art Expert XP bonus could not be applied.");
+          }
+        }
+        return NextResponse.json({
+          status: "ok",
+          message:
+            `An Art Expert was impressed by your collection and spread the word about your gallery. ` +
+            `${hydratedItem.artwork.title} by ${hydratedItem.artwork.artist} had its roll count reduced to ${newRollCount}.`,
+        });
+      }
+
+      const displayedItems = await database
+        .collection<GameItem>("items")
+        .aggregate<GameItem>([
+          { $match: { owner: player._id, status: "displayed" } },
+          { $sample: { size: 1 } },
+        ])
+        .toArray();
+      const target = displayedItems[0];
+      if (!target) {
+        return NextResponse.json({
+          status: "ok",
+          message:
+            "You met an Art Expert, but you have no items on display for them to discuss.",
+        });
+      }
+
+      const [hydratedTarget] = await hydrateGameItems(database, [target]);
+      if (!hydratedTarget) throw new Error("The selected artwork is unavailable.");
+      const knowledge = calculateArtExpertKnowledge({
+        rarity: hydratedTarget.artwork.rarity,
+        level: target.level,
+        donorBonusMultiplier,
+        randomRoll: Math.random(),
+      });
+      const knowledgeIncrements = Object.fromEntries(
+        KNOWLEDGE_TYPES.map((type) => [
+          `profile.knowledge.${type}`,
+          knowledge[type],
+        ]),
+      );
+      const playerUpdate = await database.collection<Player>("players").updateOne(
+        {
+          _id: player._id,
+          active: true,
+          "profile.level": player.profile.level,
+          "profile.xp": player.profile.xp,
+        },
+        {
+          $set: {
+            "profile.level": progress.level,
+            "profile.xp": progress.xp,
+            ...Object.fromEntries(
+              Object.entries(getCapsForLevel(progress.level)).map(
+                ([key, value]) => [`profile.${key}`, value],
+              ),
+            ),
+          },
+          $inc: {
+            ...knowledgeIncrements,
+            "profile.lottery_tickets": progress.lotteryTickets,
+            "profile.bank_balance": bonusMoney,
+          },
+        },
+      );
+      if (playerUpdate.modifiedCount !== 1) {
+        throw new Error("The Art Expert reward could not be applied.");
+      }
+
+      return NextResponse.json({
+        status: "ok",
+        interaction: {
+          type: "art-expert-knowledge",
+          npcName: npc.npc_name,
+          quality: npc.quality,
+          item: hydratedTarget,
+          knowledge,
+          xpBonus,
+          bonusMoney,
+        },
+      });
+    } catch (error) {
+      await Promise.all([
+        database
+          .collection<GalleryNpc>("npcs")
+          .updateOne({ _id: npc._id }, { $pull: { players_met: player._id } }),
+        database.collection<Player>("players").updateOne(
+          { _id: player._id },
+          { $inc: { [`profile.npcs_met.${npc.quality}`]: -1 } },
+        ),
+      ]);
+      console.error("Unable to complete Art Expert interaction", error);
+      return NextResponse.json(
+        {
+          error:
+            error instanceof Error
+              ? error.message
+              : "The Art Expert interaction failed.",
         },
         { status: 500 },
       );
@@ -798,8 +1057,6 @@ export async function POST(
     }
   }
 
-  // TODO AI: When the Art Expert roll-count reduction interaction is ported,
-  // its legendary bonus should also reroll one random attribute for free.
   return NextResponse.json({
     status: "ok",
     message: `You met ${npc.npc_name}. Their full interaction will be added as NPC rewards are ported.`,

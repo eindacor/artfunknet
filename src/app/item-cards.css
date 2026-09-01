@@ -1,35 +1,39 @@
-.rendered-item-card {
-  --card-width: 280px;
+.rendered-item-card,
+.standard-item-dialog {
   --rarity-color: #39b54a;
   --rarity-light: #a6efae;
   --rarity-dark: #123c19;
   --rarity-glow: rgb(57 181 74 / 42%);
+}
+
+.rendered-item-card {
+  --card-width: 280px;
   width: max-content;
   max-width: 100%;
 }
 
-.rendered-item-card[data-rarity="uncommon"] {
+:is(.rendered-item-card, .standard-item-dialog)[data-rarity="uncommon"] {
   --rarity-color: #3e7bff;
   --rarity-light: #abc4ff;
   --rarity-dark: #10285f;
   --rarity-glow: rgb(62 123 255 / 48%);
 }
 
-.rendered-item-card[data-rarity="rare"] {
+:is(.rendered-item-card, .standard-item-dialog)[data-rarity="rare"] {
   --rarity-color: #e1c429;
   --rarity-light: #fff2a1;
   --rarity-dark: #554600;
   --rarity-glow: rgb(225 196 41 / 50%);
 }
 
-.rendered-item-card[data-rarity="legendary"] {
+:is(.rendered-item-card, .standard-item-dialog)[data-rarity="legendary"] {
   --rarity-color: #ff8a1f;
   --rarity-light: #ffd09c;
   --rarity-dark: #652900;
   --rarity-glow: rgb(255 138 31 / 55%);
 }
 
-.rendered-item-card[data-rarity="masterpiece"] {
+:is(.rendered-item-card, .standard-item-dialog)[data-rarity="masterpiece"] {
   --rarity-color: #42e8f5;
   --rarity-light: #e3feff;
   --rarity-dark: #093e5a;
@@ -82,6 +86,43 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.35rem;
+}
+
+.render-card .attribute,
+.render-card .rating-value {
+  color: var(--rating-color-light);
+}
+
+:is(
+    .arcade-card,
+    .blueprint-card,
+    .gilded-card,
+    .terminal-card,
+    .prismatic-card,
+    .celestial-card,
+    .reliquary-card
+  )
+  :is(.attribute, .rating-value) {
+  color: var(--rating-color-dark);
+}
+
+:is(
+    .arcade-card,
+    .blueprint-card,
+    .gilded-card,
+    .terminal-card,
+    .prismatic-card,
+    .celestial-card,
+    .reliquary-card
+  )
+  .attribute-group
+  + .attribute-group::before {
+  color: var(--rarity-light);
+}
+
+:is(.arcade-card, .terminal-card, .prismatic-card, .celestial-card)
+  .attribute {
+  filter: drop-shadow(0 0 4px currentColor);
 }
 
 .render-card-compact-stats {
@@ -1376,7 +1417,7 @@
 }
 
 .standard-item-dialog {
-  width: min(820px, calc(100vw - 32px));
+  width: min(1080px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
   margin: auto;
   border: 1px solid #000;
@@ -1426,24 +1467,42 @@
 
 .standard-item-dialog-layout {
   display: grid;
-  grid-template-columns: 230px minmax(0, 1fr);
+  grid-template-columns: 260px minmax(0, 1fr);
   align-items: start;
   gap: 1.25rem;
 }
 
+.standard-item-dialog-sidebar {
+  display: grid;
+  gap: 0.85rem;
+}
+
 .standard-item-dialog-artwork {
-  width: 230px;
+  width: 260px;
   border: 1px solid #000;
   box-shadow: 5px 5px 0 rgb(0 0 0 / 18%);
 }
 
+.standard-item-dialog-actions.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  width: 260px;
+  margin: 0;
+  border-top: 1px solid #bbb;
+  padding-top: 0.8rem;
+}
+
 .standard-item-dialog .complete-item-record {
-  max-height: 360px;
-  overflow-y: auto;
   border: 1px solid #bbb;
   padding: 0.85rem;
   background: #fff;
   font-size: 0.72rem;
+}
+
+.standard-item-dialog .complete-item-record dl {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 1rem;
 }
 
 .standard-item-dialog .complete-item-record dl > div {
@@ -1452,6 +1511,10 @@
 
 .standard-item-dialog .complete-item-record dt {
   color: #666;
+}
+
+.standard-item-dialog .render-card-attribute-details {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .item-style-selector {
@@ -1467,9 +1530,29 @@
 
 .item-style-options {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.5rem;
   margin-top: 0.8rem;
+}
+
+.item-style-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-top: 1px solid #bbb;
+  padding-top: 0.8rem;
+  font-size: 0.72rem;
+}
+
+.item-style-summary span {
+  color: #777;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.item-style-summary strong {
+  text-align: right;
 }
 
 .item-style-options label {
@@ -1504,7 +1587,6 @@
   line-height: 1.3;
 }
 
-.item-style-apply,
 .cosmetic-store-product footer button {
   border: 1px solid #000;
   border-radius: var(--game-button-radius);
@@ -1515,24 +1597,16 @@
   cursor: pointer;
 }
 
-.item-style-apply {
-  margin-top: 0.8rem;
-}
-
-.item-style-apply i,
 .cosmetic-store-product footer button i {
   margin-right: 0.4rem;
 }
 
-.item-style-apply:hover,
-.item-style-apply:focus-visible,
 .cosmetic-store-product footer button:hover,
 .cosmetic-store-product footer button:focus-visible {
   background: var(--accent);
   color: #000;
 }
 
-.item-style-apply:disabled,
 .cosmetic-store-product footer button:disabled {
   cursor: not-allowed;
   opacity: 0.4;
@@ -1790,10 +1864,18 @@
     }
 
     .standard-item-dialog-artwork {
-      width: min(230px, 100%);
+      width: min(260px, 100%);
       margin: 0 auto;
     }
 
+    .standard-item-dialog-actions.card-actions {
+      justify-content: center;
+      width: min(260px, 100%);
+      margin: 0 auto;
+    }
+
+    .standard-item-dialog .complete-item-record dl,
+    .standard-item-dialog .render-card-attribute-details,
     .item-style-options,
     .cosmetic-store-grid {
       grid-template-columns: 1fr;

@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
 
 import {
+  getCardCosmetic,
   getOwnedCardRendererIds,
   getSelectableCardCosmetics,
 } from "./catalog";
@@ -12,6 +13,7 @@ import { CompleteItemRecord } from "./shared";
 import type {
   CardLegendaryAttribute,
   CardRendererId,
+  ItemDialogPermissions,
 } from "./types";
 import type { HydratedGameItem } from "@/server/item-artwork";
 
@@ -20,8 +22,9 @@ export default function StandardItemDialog({
   legendaryAttributes,
   currentRendererId,
   activeRendererIds,
+  actions,
   ownedRendererIds,
-  canCustomize,
+  permissions,
   onClose,
   onRendererSelected,
 }: {
@@ -29,8 +32,9 @@ export default function StandardItemDialog({
   legendaryAttributes: CardLegendaryAttribute[];
   currentRendererId: CardRendererId;
   activeRendererIds?: string[];
+  actions?: React.ReactNode;
   ownedRendererIds?: string[];
-  canCustomize: boolean;
+  permissions: ItemDialogPermissions;
   onClose: () => void;
   onRendererSelected: (rendererId: CardRendererId) => void;
 }) {
@@ -41,6 +45,7 @@ export default function StandardItemDialog({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const owned = new Set(getOwnedCardRendererIds(ownedRendererIds));
+  const appliedCosmetic = getCardCosmetic(currentRendererId);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -60,7 +65,8 @@ export default function StandardItemDialog({
     onClose();
   }
 
-  async function applyRenderer() {
+  async function applyRenderer(rendererId: CardRendererId) {
+    setSelectedRendererId(rendererId);
     setSaving(true);
     setError("");
     try {
@@ -69,15 +75,16 @@ export default function StandardItemDialog({
         {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ rendererId: selectedRendererId }),
+          body: JSON.stringify({ rendererId }),
         },
       );
       const body = (await response.json()) as { error?: string };
       if (!response.ok) {
         throw new Error(body.error ?? "The card style could not be applied.");
       }
-      onRendererSelected(selectedRendererId);
+      onRendererSelected(rendererId);
     } catch (saveError) {
+      setSelectedRendererId(currentRendererId);
       setError(
         saveError instanceof Error
           ? saveError.message
@@ -92,6 +99,7 @@ export default function StandardItemDialog({
     <dialog
       aria-labelledby={`standard-item-title-${item._id}`}
       className="standard-item-dialog"
+      data-rarity={item.artwork.rarity}
       onCancel={(event) => {
         event.preventDefault();
         closeDialog();
@@ -102,7 +110,10 @@ export default function StandardItemDialog({
         <header>
           <div>
             <p className="standard-item-dialog-kicker">
-              {item.artwork.rarity} artwork · level {item.level}
+              <span className="card-rarity-label">
+                {item.artwork.rarity}
+              </span>{" "}
+              artwork · level {item.level}
             </p>
             <h2 id={`standard-item-title-${item._id}`}>
               {item.artwork.title}
@@ -119,17 +130,39 @@ export default function StandardItemDialog({
           </button>
         </header>
         <div className="standard-item-dialog-layout">
-          <ArtworkThumbnail
-            alt={`${item.artwork.title} by ${item.artwork.artist}`}
-            artworkId={item.artwork_id}
-            className="standard-item-dialog-artwork"
-          />
+          <div className="standard-item-dialog-sidebar">
+            <ArtworkThumbnail
+              alt={`${item.artwork.title} by ${item.artwork.artist}`}
+              artworkId={item.artwork_id}
+              className="standard-item-dialog-artwork"
+            />
+            {permissions.canManageItem && actions ? (
+              <div
+                className="standard-item-dialog-actions card-actions"
+                onClick={(event) => {
+                  const target =
+                    event.target instanceof Element
+                      ? event.target.closest("button")
+                      : null;
+                  if (
+                    target instanceof HTMLButtonElement &&
+                    !target.disabled &&
+                    target.getAttribute("aria-disabled") !== "true"
+                  ) {
+                    closeDialog();
+                  }
+                }}
+              >
+                {actions}
+              </div>
+            ) : null}
+          </div>
           <CompleteItemRecord
             item={item}
             legendaryAttributes={legendaryAttributes}
           />
         </div>
-        {canCustomize ? (
+        {permissions.canCustomizeCosmetic ? (
           <section className="item-style-selector">
             <header>
               <div>
@@ -153,7 +186,7 @@ export default function StandardItemDialog({
                       checked={selectedRendererId === cosmetic.id}
                       disabled={!unlocked || saving}
                       name={`card-renderer-${item._id}`}
-                      onChange={() => setSelectedRendererId(cosmetic.id)}
+                      onChange={() => void applyRenderer(cosmetic.id)}
                       type="radio"
                     />
                     <span>
@@ -162,7 +195,9 @@ export default function StandardItemDialog({
                         {cosmetic.name}
                       </strong>
                       <small>
-                        {unlocked
+                        {saving && selectedRendererId === cosmetic.id
+                          ? "Applying..."
+                          : unlocked
                           ? cosmetic.description
                           : `$${cosmetic.price.toLocaleString()} · locked`}
                       </small>
@@ -171,24 +206,22 @@ export default function StandardItemDialog({
                 );
               })}
             </div>
-            <button
-              className="item-style-apply"
-              disabled={
-                saving || selectedRendererId === currentRendererId
-              }
-              onClick={applyRenderer}
-              type="button"
-            >
-              <i aria-hidden="true" className="fa fa-check" />
-              {saving ? "Applying..." : "Apply style"}
-            </button>
             {error ? (
               <p className="reroll-dialog-error" role="alert">
                 {error}
               </p>
             ) : null}
           </section>
-        ) : null}
+        ) : (
+          <section className="item-style-summary">
+            <span>Card cosmetic</span>
+            <strong>
+              {appliedCosmetic
+                ? `#${appliedCosmetic.number.toString().padStart(2, "0")} ${appliedCosmetic.name}`
+                : currentRendererId}
+            </strong>
+          </section>
+        )}
       </div>
     </dialog>
   );

@@ -23,6 +23,7 @@ export const ART_ENTHUSIAST_ATTRIBUTE_ID = "T8v35e75v4Hh2JpxQ";
 export const ART_COLLECTOR_ATTRIBUTE_ID = "dTSjqBx45mRTvFJeh";
 export const ART_DONOR_ATTRIBUTE_ID = "Yk2kk2mZtHetvbrY5";
 export const ART_DEALER_ATTRIBUTE_ID = "mZH58WpgbKP9o9WZR";
+export const ART_EXPERT_ATTRIBUTE_ID = "nwMiN3DFBgsKBNSar";
 export const MARKET_EXPERT_ATTRIBUTE_ID = "t2fCtFr2GGGhAzDmT";
 
 export async function getLegendaryAttributes(

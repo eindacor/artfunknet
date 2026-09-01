@@ -547,7 +547,10 @@ export default function ArtworkReviewPortal({
               </legend>
               {requiredSpecialAttributes === 0 ? (
                 <p className="text-sm text-[var(--muted)]">
-                  {form.rarity} artworks do not have special attributes.
+                  <span className={`rarity-text ${form.rarity}`}>
+                    {form.rarity}
+                  </span>{" "}
+                  artworks do not have special attributes.
                 </p>
               ) : (
                 <>

@@ -54,7 +54,8 @@ export default async function CardDesignsAdminPage() {
         <p>
           Each design is a separate renderer registered by ID. An item-level
           renderer overrides a player&apos;s preferred cosmetic renderer, while
-          unrecognized or missing IDs fall back to the legacy card.
+          unrecognized or missing IDs fall back to Museum Label. OG retains
+          the original card design under its stable internal ID.
         </p>
         {items.length === 0 ? (
           <p>No game items are available for the design preview.</p>

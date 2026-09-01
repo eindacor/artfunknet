@@ -790,6 +790,27 @@ body {
   margin: 8px auto 0;
 }
 
+.rarity-text.common {
+  color: #39b54a;
+}
+
+.rarity-text.uncommon {
+  color: #3e7bff;
+}
+
+.rarity-text.rare {
+  color: #b29a00;
+}
+
+.rarity-text.legendary {
+  color: #d76a00;
+}
+
+.rarity-text.masterpiece {
+  color: #00a8b5;
+  text-shadow: 0 0 5px rgb(66 232 245 / 45%);
+}
+
 .item-action-button {
   position: relative;
   width: 34px;
@@ -938,6 +959,88 @@ body {
   color: #111;
   font-family: Courier, monospace;
   box-shadow: 10px 10px 0 rgb(0 0 0 / 24%);
+}
+
+.art-expert-result-dialog {
+  width: min(650px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  margin: auto;
+  border: 1px solid #000;
+  padding: 0;
+  overflow: auto;
+  background: #f4f4f4;
+  color: #111;
+  font-family: Courier, "Courier New", monospace;
+  box-shadow: 10px 10px 0 rgb(0 0 0 / 24%);
+}
+
+.art-expert-result-dialog::backdrop {
+  background: rgb(0 0 0 / 68%);
+}
+
+.art-expert-result-content {
+  display: grid;
+  gap: 1rem;
+  padding: 24px;
+}
+
+.art-expert-result-content > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.art-expert-result-content h2,
+.art-expert-result-content h3,
+.art-expert-result-content p {
+  margin: 0;
+}
+
+.art-expert-result-artwork {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  align-items: center;
+  gap: 1rem;
+}
+
+.art-expert-result-thumbnail {
+  width: 150px;
+  border: 1px solid #000;
+  box-shadow: 4px 4px 0 rgb(0 0 0 / 20%);
+}
+
+.art-expert-knowledge {
+  display: grid;
+  gap: 0.45rem;
+  border: 1px solid #bbb;
+  padding: 0.85rem;
+  background: #111;
+}
+
+.art-expert-knowledge h3 {
+  color: #fff;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.art-expert-knowledge p {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+@media (max-width: 520px) {
+  .art-expert-result-artwork {
+    grid-template-columns: 1fr;
+  }
+
+  .art-expert-result-thumbnail {
+    width: min(220px, 100%);
+    margin: 0 auto;
+  }
 }
 
 .collector-result-dialog::backdrop {

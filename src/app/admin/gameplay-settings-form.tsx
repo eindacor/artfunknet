@@ -302,7 +302,9 @@ export default function GameplaySettingsForm({
           <div className="admin-rarity-preview">
             {RARITIES.map((rarity) => (
               <span key={rarity}>
-                <strong>{rarity}</strong>{" "}
+                <strong className={`rarity-text ${rarity}`}>
+                  {rarity}
+                </strong>{" "}
                 {formatPercentage(
                   rarityResult.weights[rarity] / rarityResult.total,
                 )}

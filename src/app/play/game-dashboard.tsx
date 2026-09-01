@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
 import ItemCard from "@/components/item-cards/item-card";
+import { resolveCardRendererId } from "@/components/item-cards/selection";
 import { ratingColor } from "@/components/item-cards/shared";
+import StandardItemDialog from "@/components/item-cards/standard-item-dialog";
 import type { CardLegendaryAttribute } from "@/components/item-cards/types";
 import type { GalleryRates } from "@/server/collection-gameplay";
 import type { GameItem } from "@/server/gameplay";
@@ -71,6 +73,22 @@ type CollectorResult = {
   bonusOffers: number;
 };
 
+type ArtExpertResult = {
+  type: "art-expert-knowledge";
+  npcName: string;
+  quality: NpcQuality;
+  item: HydratedGameItem;
+  knowledge: Record<
+    | "historical_data"
+    | "contextual_understanding"
+    | "technical_comprehension"
+    | "artistic_vision",
+    number
+  >;
+  xpBonus: number;
+  bonusMoney: number;
+};
+
 const ATTRIBUTE_TYPE_ICONS = {
   special: { icon: "fa-star", label: "Special attribute" },
   locked: { icon: "fa-lock", label: "Locked attribute" },
@@ -128,6 +146,8 @@ export default function GameDashboard({
   } | null>(null);
   const [collectorResult, setCollectorResult] =
     useState<CollectorResult | null>(null);
+  const [artExpertResult, setArtExpertResult] =
+    useState<ArtExpertResult | null>(null);
   const [npcRewardEffects, setNpcRewardEffects] = useState<
     Record<string, NpcRewardInteraction & { animationId: number }>
   >({});
@@ -135,6 +155,8 @@ export default function GameDashboard({
     item: HydratedGameItem;
     bankBalance: number;
   } | null>(null);
+  const [galleryItemDetails, setGalleryItemDetails] =
+    useState<HydratedGameItem | null>(null);
   const [pending, startTransition] = useTransition();
   const unclaimed = useMemo(
     () =>
@@ -287,7 +309,7 @@ export default function GameDashboard({
           npcName: string;
           quality: NpcQuality;
           items: ArtworkOfferItem[];
-        } | CollectorResult | NpcRewardInteraction;
+        } | CollectorResult | ArtExpertResult | NpcRewardInteraction;
       };
       if (!response.ok) {
         throw new Error(body.error ?? "The visitor interaction failed.");
@@ -304,6 +326,8 @@ export default function GameDashboard({
         });
       } else if (body.interaction?.type === "art-collector-result") {
         setCollectorResult(body.interaction);
+      } else if (body.interaction?.type === "art-expert-knowledge") {
+        setArtExpertResult(body.interaction);
       } else if (
         body.interaction?.type === "npc-reward" &&
         body.interaction.presentation === "popout"
@@ -343,6 +367,32 @@ export default function GameDashboard({
     } finally {
       setMeetingNpc(null);
     }
+  }
+
+  function displayedItemActions(item: HydratedGameItem) {
+    return (
+      <>
+        <ItemActionButton
+          icon="fa-arrow-down"
+          label="Take down from gallery"
+          disabled={pending}
+          onClick={() => act(`/api/play/items/${item._id}/undisplay`)}
+        />
+        {canRerollDisplayed ? (
+          <ItemActionButton
+            icon="fa-magic"
+            label="Modify displayed artwork"
+            disabled={pending}
+            onClick={() =>
+              setRerollSession({
+                item,
+                bankBalance: player.bankBalance,
+              })
+            }
+          />
+        ) : null}
+      </>
+    );
   }
 
   return (
@@ -473,6 +523,10 @@ export default function GameDashboard({
                     alreadyOwned={ownedArtworkIds.has(item.artwork_id)}
                     legendaryAttributes={legendaryAttributes}
                     ownedRendererIds={player.ownedCardRenderers}
+                    permissions={{
+                      canManageItem: true,
+                      canCustomizeCosmetic: false,
+                    }}
                     rendererId={player.cardRenderer}
                     actions={
                       item.status === "for_sale" ? (
@@ -545,31 +599,7 @@ export default function GameDashboard({
               ownedRendererIds={player.ownedCardRenderers}
               rendererId={player.cardRenderer}
               title={`on display (${displayed.length}/${player.displayCap})`}
-              actions={(item) => (
-                <>
-                  <ItemActionButton
-                    icon="fa-arrow-down"
-                    label="Take down from gallery"
-                    disabled={pending}
-                    onClick={() =>
-                      act(`/api/play/items/${item._id}/undisplay`)
-                    }
-                  />
-                  {canRerollDisplayed ? (
-                    <ItemActionButton
-                      icon="fa-magic"
-                      label="Modify displayed artwork"
-                      disabled={pending}
-                      onClick={() =>
-                        setRerollSession({
-                          item,
-                          bankBalance: player.bankBalance,
-                        })
-                      }
-                    />
-                  ) : null}
-                </>
-              )}
+              actions={displayedItemActions}
             />
             <InventorySection
               activeRendererIds={activeRendererIds}
@@ -767,14 +797,12 @@ export default function GameDashboard({
                       <button
                         className="framed-painting"
                         disabled={pending}
-                        onClick={() =>
-                          act(`/api/play/items/${item._id}/undisplay`)
-                        }
+                        onClick={() => setGalleryItemDetails(item)}
                         style={{
                           aspectRatio: `${item.artwork.width} / ${item.artwork.height}`,
                           backgroundImage: `url("/api/artwork/${item.artwork_id}/image")`,
                         }}
-                        title="remove from gallery"
+                        title={`View details for ${item.artwork.title}`}
                         type="button"
                       />
                       <div className="placard">
@@ -782,7 +810,9 @@ export default function GameDashboard({
                         <p>
                           {item.artwork.artist}, {item.artwork.date}
                         </p>
-                        <p className={item.artwork.rarity}>
+                        <p
+                          className={`rarity-text ${item.artwork.rarity}`}
+                        >
                           {item.artwork.rarity}
                         </p>
                       </div>
@@ -817,6 +847,32 @@ export default function GameDashboard({
             }}
           />
         ) : null}
+        {galleryItemDetails ? (
+          <StandardItemDialog
+            actions={displayedItemActions(galleryItemDetails)}
+            activeRendererIds={activeRendererIds}
+            currentRendererId={resolveCardRendererId({
+              itemRendererId: galleryItemDetails.card_renderer,
+              preferredRendererId: player.cardRenderer,
+            })}
+            item={galleryItemDetails}
+            legendaryAttributes={legendaryAttributes}
+            onClose={() => setGalleryItemDetails(null)}
+            onRendererSelected={(rendererId) => {
+              setGalleryItemDetails((current) =>
+                current
+                  ? { ...current, card_renderer: rendererId }
+                  : current,
+              );
+              router.refresh();
+            }}
+            ownedRendererIds={player.ownedCardRenderers}
+            permissions={{
+              canManageItem: true,
+              canCustomizeCosmetic: true,
+            }}
+          />
+        ) : null}
         {artworkOfferSession ? (
           <ArtworkOfferDialog
             interactionType={artworkOfferSession.type}
@@ -838,8 +894,123 @@ export default function GameDashboard({
             onClose={() => setCollectorResult(null)}
           />
         ) : null}
+        {artExpertResult ? (
+          <ArtExpertResultDialog
+            result={artExpertResult}
+            onClose={() => setArtExpertResult(null)}
+          />
+        ) : null}
       </div>
     </main>
+  );
+}
+
+const KNOWLEDGE_LABELS = {
+  historical_data: "historical data",
+  contextual_understanding: "contextual understanding",
+  technical_comprehension: "technical comprehension",
+  artistic_vision: "artistic vision",
+} as const;
+
+function ArtExpertResultDialog({
+  result,
+  onClose,
+}: {
+  result: ArtExpertResult;
+  onClose: () => void;
+}) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (dialog && !dialog.open) dialog.showModal();
+    return () => {
+      if (dialog?.open) dialog.close();
+    };
+  }, []);
+
+  function closeDialog() {
+    if (dialogRef.current?.open) dialogRef.current.close();
+    onClose();
+  }
+
+  return (
+    <dialog
+      aria-labelledby="art-expert-result-title"
+      className="art-expert-result-dialog"
+      onCancel={(event) => {
+        event.preventDefault();
+        closeDialog();
+      }}
+      ref={dialogRef}
+    >
+      <div className="art-expert-result-content">
+        <header>
+          <div>
+            <p className="reroll-dialog-kicker">{result.quality} visitor</p>
+            <h2 id="art-expert-result-title">{result.npcName}</h2>
+          </div>
+          <button
+            aria-label="Close Art Expert result"
+            className="reroll-dialog-close"
+            onClick={closeDialog}
+            type="button"
+          >
+            <i aria-hidden="true" className="fa fa-times" />
+          </button>
+        </header>
+        <div className="art-expert-result-artwork">
+          <ArtworkThumbnail
+            alt={`${result.item.artwork.title} by ${result.item.artwork.artist}`}
+            artworkId={result.item.artwork_id}
+            className="art-expert-result-thumbnail"
+          />
+          <p>
+            The Art Expert shares their wisdom about{" "}
+            <strong>{result.item.artwork.title}</strong> by{" "}
+            <strong>{result.item.artwork.artist}</strong>.
+          </p>
+        </div>
+        <section className="art-expert-knowledge">
+          <h3>Knowledge gained</h3>
+          {Object.entries(KNOWLEDGE_LABELS).map(
+            ([type, label], index) => {
+              const amount =
+                result.knowledge[type as keyof ArtExpertResult["knowledge"]];
+              return amount > 0 ? (
+                <p
+                  key={type}
+                  style={{
+                    color: `rgb(${Math.floor(150 * Math.pow(0.8, 3 - index))}, ${Math.floor(230 * Math.pow(0.8, 3 - index))}, 0)`,
+                  }}
+                >
+                  <span>{label}</span>
+                  <strong>+{amount.toLocaleString()}</strong>
+                </p>
+              ) : null;
+            },
+          )}
+        </section>
+        {result.xpBonus > 0 ? (
+          <p>
+            Your zero-count collection also earned{" "}
+            <strong>{result.xpBonus.toLocaleString()} XP</strong>
+            {result.bonusMoney > 0
+              ? ` and $${result.bonusMoney.toLocaleString()}`
+              : ""}
+            .
+          </p>
+        ) : null}
+        <div className="collector-result-actions">
+          <ItemActionButton
+            disabled={false}
+            icon="fa-thumbs-up"
+            label="Acknowledge Art Expert result"
+            onClick={closeDialog}
+          />
+        </div>
+      </div>
+    </dialog>
   );
 }
 
@@ -1090,7 +1261,9 @@ function ArtworkOfferDialog({
                     >
                       {item.alreadyOwned ? "owned" : "new artwork"}
                     </span>
-                    <span className={`donor-offer-rarity ${item.artwork.rarity}`}>
+                    <span
+                      className={`donor-offer-rarity rarity-text ${item.artwork.rarity}`}
+                    >
                       {item.artwork.rarity}
                     </span>
                   </div>
@@ -1554,11 +1727,14 @@ function InventorySection({
             <ItemCard
               activeRendererIds={activeRendererIds}
               actions={actions(item)}
-              canCustomize={canCustomize}
               item={item}
               legendaryAttributes={legendaryAttributes}
               key={item._id}
               ownedRendererIds={ownedRendererIds}
+              permissions={{
+                canManageItem: true,
+                canCustomizeCosmetic: Boolean(canCustomize),
+              }}
               rendererId={rendererId}
             />
           ))}

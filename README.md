@@ -129,11 +129,14 @@ The basic gameplay loop is active:
 - Generated items carry the original unlocked and locked NPC-attraction
   attributes. Rare, legendary, and masterpiece artwork also requires one, two,
   or three permanent special attributes during admin approval.
-- Item cards use a renderer registry with the legacy card as a safe fallback.
+- Item cards use a renderer registry with Museum Label as the included default
+  and safe fallback.
   A forced renderer is used for previews, an item-level `card_renderer`
   cosmetic overrides the player-level `profile.card_renderer` preference, and
-  unknown renderer IDs fall back to `legacy`. Ten additional self-contained
-  renderers—Museum Label, Neon Inventory, Artist Postcard, Gilded Salon,
+  unknown renderer IDs fall back to `museum`. The premium OG renderer retains
+  the stable internal `legacy` ID for saved data and must match the original
+  Meteor card whenever it is updated. Nine other self-contained
+  renderers—Neon Inventory, Artist Postcard, Gilded Salon,
   Archive Terminal, Prismatic Showcase, Curator Blueprint, Downtown Zine,
   Celestial Orbit, and Boss Reliquary—are available at
   <http://localhost:3000/admin/card-designs>. Each design exposes the complete
@@ -148,7 +151,13 @@ The basic gameplay loop is active:
   purchases and per-item assignments are ownership-checked server-side.
   Administrators can activate or deactivate each renderer from the card-design
   gallery. Inactive styles disappear from the store but remain selectable by
-  players who purchased them previously.
+  players who purchased them previously. Item permissions determine whether
+  the dialog shows management actions and the cosmetic selector; read-only
+  viewers see only the applied cosmetic. Item actions appear below the artwork
+  thumbnail, and the complete item and artist record has no nested scroll area.
+  Attribute and condition ratings expose separate light-card and dark-card
+  palettes, allowing dark renderers to use a visible red-to-white scale instead
+  of the OG design&apos;s original red-to-black scale.
 - The complete 55-pair Legendary Attribute catalog is seeded with its original
   record IDs and flavor text. Legendary artwork receives one pair-derived
   effect, masterpieces receive three eligible effects, and the active effect
@@ -171,7 +180,10 @@ The basic gameplay loop is active:
   those systems are migrated.
 - Displayed artwork generates the original hourly money and XP rewards. Rewards
   settle automatically when the player returns, without requiring a local
-  background worker.
+  background worker. Clicking artwork on the gallery wall opens the shared
+  item dialog; taking it down remains a separate owner-only Inventory action.
+  The dialog carries an explicit viewer-versus-other-player ownership context
+  for future multiplayer galleries.
 - Gameplay alerts and gallery settlements are retained in persistent player
   notifications. The notification bell shows unread counts and supports
   individual read/unread changes, deletion, mark-all-read, and clear-all.
@@ -199,6 +211,12 @@ The basic gameplay loop is active:
   additional sale offers, forgery detection reduction, cap-stepped maximum
   quality, and platinum Collector/Donor companion spawns. Auction, quest, and
   temporary reputation consequences remain deferred with explicit TODOs.
+- Art Experts preserve the original two-stage interaction. They first reduce
+  the highest positive reroll count on a claimed or displayed item according
+  to visitor quality and own-gallery bonuses. Once no positive counts remain,
+  they study a random displayed work and grant its rarity- and level-scaled
+  knowledge tiers. Active Donor and zero-count Legendary effects retain their
+  original multiplier and XP behavior.
 - Benefactors grant the original quality-scaled, randomized cash donations,
   while Art Enthusiasts grant the original quality-scaled XP chunks. Both
   preserve own-gallery amplification, visitor-count effects, Benefactor

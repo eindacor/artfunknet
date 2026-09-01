@@ -31,7 +31,7 @@ test("card renderer selection preserves cosmetic precedence", () => {
   );
   assert.equal(
     resolveCardRendererId({ preferredRendererId: "not-a-renderer" }),
-    "legacy",
+    "museum",
   );
 });
 
@@ -49,14 +49,14 @@ test("inactive cosmetics remain selectable only for existing owners", () => {
   );
 });
 
-test("card cosmetics have stable unique numbers and legacy ownership", () => {
+test("card cosmetics have stable unique numbers and Museum ownership", () => {
   assert.equal(
     new Set(CARD_COSMETICS.map((cosmetic) => cosmetic.number)).size,
     CARD_COSMETICS.length,
   );
-  assert.deepEqual(getOwnedCardRendererIds(undefined), ["legacy"]);
+  assert.deepEqual(getOwnedCardRendererIds(undefined), ["museum"]);
   assert.deepEqual(
     getOwnedCardRendererIds(["arcade", "unknown", "arcade"]),
-    ["legacy", "arcade"],
+    ["museum", "arcade"],
   );
 });

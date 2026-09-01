@@ -1,4 +1,5 @@
 import type { GameItem } from "@/server/gameplay";
+import type { CSSProperties } from "react";
 
 import type {
   CardLegendaryAttribute,
@@ -8,6 +9,18 @@ import type {
 export function ratingColor(value: number): string {
   const red = Math.round(255 * (1 - value));
   return `rgb(${red}, 0, 0)`;
+}
+
+export function ratingColorOnDark(value: number): string {
+  const light = Math.round(255 * value);
+  return `rgb(255, ${light}, ${light})`;
+}
+
+function ratingStyle(value: number): CSSProperties {
+  return {
+    "--rating-color-light": ratingColor(value),
+    "--rating-color-dark": ratingColorOnDark(value),
+  } as CSSProperties;
 }
 
 export function getActiveLegendaryAttribute(
@@ -118,7 +131,14 @@ export function CompleteItemRecord({
             label="Dimensions"
             value={`${item.artwork.height} × ${item.artwork.width} cm`}
           />
-          <Fact label="Rarity" value={item.artwork.rarity} />
+          <Fact
+            label="Rarity"
+            value={
+              <span className="card-rarity-label">
+                {item.artwork.rarity}
+              </span>
+            }
+          />
           <Fact label="Level" value={item.level} />
           <Fact
             label="Condition"
@@ -189,7 +209,7 @@ export function CompactStats({
   return (
     <span className="render-card-compact-stats">
       <span>LVL {item.level}</span>
-      <span style={{ color: ratingColor(item.condition) }}>
+      <span className="rating-value" style={ratingStyle(item.condition)}>
         {Math.round(item.condition * 100)}%
       </span>
       <span>${item.values.actual.toLocaleString()}</span>
@@ -202,7 +222,7 @@ function Fact({
   value,
 }: {
   label: string;
-  value: string | number;
+  value: React.ReactNode;
 }) {
   return (
     <div>
@@ -257,7 +277,7 @@ function AttributeGroup({
             <i
               aria-label={`${attribute.npc_name}, ${rating}% attraction, ${type}`}
               className={`fa ${attribute.icon} attribute ${type}`}
-              style={{ color: ratingColor(attribute.value ?? 0) }}
+              style={ratingStyle(attribute.value ?? 0)}
             />
             <span className="attribute-tooltip-text">
               <strong>{attribute.npc_name}</strong>

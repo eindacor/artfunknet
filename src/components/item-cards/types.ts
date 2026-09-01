@@ -37,8 +37,13 @@ export type ItemCardProps = Omit<ItemCardRendererProps, "alreadyOwned"> & {
   actions?: React.ReactNode;
   alreadyOwned?: boolean;
   activeRendererIds?: string[];
-  canCustomize?: boolean;
   forceRendererId?: string;
   ownedRendererIds?: string[];
+  permissions?: ItemDialogPermissions;
   rendererId?: string;
+};
+
+export type ItemDialogPermissions = {
+  canManageItem: boolean;
+  canCustomizeCosmetic: boolean;
 };

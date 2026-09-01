@@ -12,16 +12,16 @@ export const CARD_COSMETICS: CardCosmetic[] = [
   {
     number: 1,
     id: "legacy",
-    name: "Legacy",
-    description: "The original modernized Artfunkel card.",
-    price: 0,
+    name: "OG",
+    description: "The original. The best one.",
+    price: 10_000_000_000,
   },
   {
     number: 2,
     id: "museum",
     name: "Museum Label",
     description: "Quiet, borderless editorial presentation.",
-    price: 25_000,
+    price: 0,
   },
   {
     number: 3,
@@ -97,7 +97,7 @@ export function getOwnedCardRendererIds(
 ): CardRendererId[] {
   return [
     ...new Set([
-      "legacy" as CardRendererId,
+      "museum" as CardRendererId,
       ...(rendererIds ?? [])
         .map((id) => getCardCosmetic(id)?.id)
         .filter((id): id is CardRendererId => Boolean(id)),

@@ -6,7 +6,7 @@ import {
 } from "./shared";
 import type { ItemCardRendererProps } from "./types";
 
-export default function LegacyCard({
+export default function OgCard({
   item,
   legendaryAttributes,
   alreadyOwned,

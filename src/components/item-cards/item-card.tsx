@@ -14,8 +14,11 @@ export default function ItemCard({
   forceRendererId,
   legendaryAttributes,
   alreadyOwned = false,
-  canCustomize = false,
   ownedRendererIds,
+  permissions = {
+    canManageItem: false,
+    canCustomizeCosmetic: false,
+  },
   rendererId,
 }: ItemCardProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -52,13 +55,12 @@ export default function ItemCard({
           legendaryAttributes={legendaryAttributes}
         />
       </div>
-      {actions ? <div className="card-actions">{actions}</div> : null}
+      {permissions.canManageItem && actions ? (
+        <div className="card-actions">{actions}</div>
+      ) : null}
       {dialogOpen ? (
         <StandardItemDialog
-          canCustomize={
-            canCustomize &&
-            (item.status === "claimed" || item.status === "displayed")
-          }
+          actions={actions}
           activeRendererIds={activeRendererIds}
           currentRendererId={resolvedRendererId}
           item={{ ...item, card_renderer: itemRendererId }}
@@ -66,6 +68,12 @@ export default function ItemCard({
           onClose={() => setDialogOpen(false)}
           onRendererSelected={setItemRendererId}
           ownedRendererIds={ownedRendererIds}
+          permissions={{
+            canManageItem: permissions.canManageItem,
+            canCustomizeCosmetic:
+              permissions.canCustomizeCosmetic &&
+              (item.status === "claimed" || item.status === "displayed"),
+          }}
         />
       ) : null}
     </article>

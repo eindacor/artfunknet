@@ -3,8 +3,8 @@ import BlueprintCard from "./blueprint-card";
 import { CARD_COSMETICS } from "./catalog";
 import CelestialCard from "./celestial-card";
 import GildedCard from "./gilded-card";
-import LegacyCard from "./legacy-card";
 import MuseumCard from "./museum-card";
+import OgCard from "./og-card";
 import PostcardCard from "./postcard-card";
 import PrismaticCard from "./prismatic-card";
 import ReliquaryCard from "./reliquary-card";
@@ -19,7 +19,7 @@ export const CARD_RENDERERS: Record<
   CardRendererId,
   React.ComponentType<ItemCardRendererProps>
 > = {
-  legacy: LegacyCard,
+  legacy: OgCard,
   museum: MuseumCard,
   arcade: ArcadeCard,
   postcard: PostcardCard,
