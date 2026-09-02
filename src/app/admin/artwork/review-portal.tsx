@@ -24,6 +24,18 @@ export type SubmissionView = {
   draft: Record<string, unknown>;
 };
 
+const ARTWORK_RARITIES = [
+  "common",
+  "uncommon",
+  "rare",
+  "legendary",
+  "masterpiece",
+] as const;
+
+type ArtworkRarity = (typeof ARTWORK_RARITIES)[number];
+
+export type ArtworkRarityCounts = Record<ArtworkRarity, number>;
+
 type ArtworkForm = {
   artist_id: string;
   title: string;
@@ -53,16 +65,19 @@ const EMPTY_FORM: ArtworkForm = {
 export default function ArtworkReviewPortal({
   initialArtists,
   initialAttributes,
+  initialRarityCounts,
   initialSubmissions,
 }: {
   initialArtists: ArtistOption[];
   initialAttributes: AttributeOption[];
+  initialRarityCounts: ArtworkRarityCounts;
   initialSubmissions: SubmissionView[];
 }) {
   const firstActiveSubmission = initialSubmissions.find(
     (submission) => submission.status !== "rejected",
   );
   const [artists, setArtists] = useState(initialArtists);
+  const [rarityCounts, setRarityCounts] = useState(initialRarityCounts);
   const [submissions, setSubmissions] = useState(initialSubmissions);
   const [showRejected, setShowRejected] = useState(false);
   const [selectedId, setSelectedId] = useState(
@@ -192,6 +207,13 @@ export default function ArtworkReviewPortal({
       setSubmissions(remaining);
       setSelectedId(remaining[0]?.id ?? "");
       setForm(toArtworkForm(remaining[0]?.draft));
+      if (isArtworkRarity(form.rarity)) {
+        const approvedRarity = form.rarity;
+        setRarityCounts((current) => ({
+          ...current,
+          [approvedRarity]: current[approvedRarity] + 1,
+        }));
+      }
       setMessage("Artwork approved and added to the game catalog.");
     });
   }
@@ -518,6 +540,21 @@ export default function ArtworkReviewPortal({
             />
             <label className="grid gap-2">
               <span className="font-semibold">Rarity</span>
+              <span className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                {ARTWORK_RARITIES.map((rarity) => (
+                  <span
+                    className="rounded border border-white/10 bg-white/5 px-2 py-1 text-center text-xs"
+                    key={rarity}
+                  >
+                    <strong className={`rarity-text ${rarity}`}>
+                      {rarity}
+                    </strong>{" "}
+                    <span className="text-[var(--muted)]">
+                      {rarityCounts[rarity].toLocaleString()}
+                    </span>
+                  </span>
+                ))}
+              </span>
               <select
                 className="rounded-md border border-white/20 bg-[#19171d] px-3 py-2"
                 onChange={(event) =>
@@ -533,11 +570,11 @@ export default function ArtworkReviewPortal({
                 }
                 value={form.rarity}
               >
-                <option value="common">Common</option>
-                <option value="uncommon">Uncommon</option>
-                <option value="rare">Rare</option>
-                <option value="legendary">Legendary</option>
-                <option value="masterpiece">Masterpiece</option>
+                {ARTWORK_RARITIES.map((rarity) => (
+                  <option key={rarity} value={rarity}>
+                    {capitalize(rarity)} ({rarityCounts[rarity].toLocaleString()})
+                  </option>
+                ))}
               </select>
             </label>
             <fieldset className="grid gap-2 rounded-md border border-white/10 p-3">
@@ -705,6 +742,14 @@ function getRequiredSpecialAttributeCount(rarity: string): number {
       masterpiece: 3,
     }[rarity] ?? 0
   );
+}
+
+function isArtworkRarity(rarity: string): rarity is ArtworkRarity {
+  return ARTWORK_RARITIES.some((candidate) => candidate === rarity);
+}
+
+function capitalize(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 async function requireSuccessfulResponse(response: Response) {

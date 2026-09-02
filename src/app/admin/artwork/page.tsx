@@ -2,6 +2,7 @@ import { getDatabase } from "@/server/mongodb";
 
 import ArtworkReviewPortal, {
   type ArtistOption,
+  type ArtworkRarityCounts,
   type SubmissionView,
 } from "./review-portal";
 
@@ -29,11 +30,21 @@ type AttributeDocument = {
   active: boolean;
 };
 
+type ArtworkRarityCountDocument = {
+  _id: keyof ArtworkRarityCounts;
+  count: number;
+};
+
 export const dynamic = "force-dynamic";
 
 export default async function ArtworkAdminPage() {
   const database = await getDatabase();
-  const [submissionDocuments, artistDocuments, attributeDocuments] =
+  const [
+    submissionDocuments,
+    artistDocuments,
+    attributeDocuments,
+    artworkRarityCountDocuments,
+  ] =
     await Promise.all([
     database
       .collection<SubmissionDocument>("artwork_submissions")
@@ -49,6 +60,13 @@ export default async function ArtworkAdminPage() {
       .collection<AttributeDocument>("attributes")
       .find({ active: true })
       .sort({ npc_name: 1 })
+      .toArray(),
+    database
+      .collection("artworks")
+      .aggregate<ArtworkRarityCountDocument>([
+        { $match: { active: true } },
+        { $group: { _id: "$rarity", count: { $sum: 1 } } },
+      ])
       .toArray(),
   ]);
 
@@ -70,6 +88,18 @@ export default async function ArtworkAdminPage() {
     id: artist._id.toString(),
     name: String(artist.artist_name),
   }));
+  const artworkRarityCounts: ArtworkRarityCounts = {
+    common: 0,
+    uncommon: 0,
+    rare: 0,
+    legendary: 0,
+    masterpiece: 0,
+  };
+  for (const rarityCount of artworkRarityCountDocuments) {
+    if (rarityCount._id in artworkRarityCounts) {
+      artworkRarityCounts[rarityCount._id] = rarityCount.count;
+    }
+  }
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-8">
@@ -86,6 +116,7 @@ export default async function ArtworkAdminPage() {
           name: attribute.npc_name,
         }))}
         initialArtists={artists}
+        initialRarityCounts={artworkRarityCounts}
         initialSubmissions={submissions}
       />
     </main>
