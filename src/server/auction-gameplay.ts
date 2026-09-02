@@ -583,12 +583,13 @@ export async function validateBidder(
   if (auction.viewer !== "public" && auction.viewer !== player._id) {
     return "This is a private auction.";
   }
-  if (
-    auction.viewer === "public" &&
-    player.profile.level < RARITY_LEVELS[auction.item_snapshot.rarity]
-  ) {
-    return `Level ${RARITY_LEVELS[auction.item_snapshot.rarity]} is required.`;
-  }
+  // TODO JEP temporarily disable
+  // if (
+  //   auction.viewer === "public" &&
+  //   player.profile.level < RARITY_LEVELS[auction.item_snapshot.rarity]
+  // ) {
+  //   return `Level ${RARITY_LEVELS[auction.item_snapshot.rarity]} is required.`;
+  // }
   const marketExpert =
     new Date(player.profile.market_expert?.expiration ?? 0).getTime() >
     Date.now();

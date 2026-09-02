@@ -97,10 +97,11 @@ Template.auctionTable.helpers({
 			if (Meteor.userId() == undefined) {
 				biddable = false;
 			}
-			else if (auction_object.viewer == "public" &&  min_level_required > bidder_interface.getPlayerLevel()) {
-				biddable = false;
-				reason = "level " + min_level_required + " required";
-			}
+			// TODO JEP re-enabled after debugging
+			// else if (auction_object.viewer == "public" &&  min_level_required > bidder_interface.getPlayerLevel()) {
+			// 	biddable = false;
+			// 	reason = "level " + min_level_required + " required";
+			// }
 			else if (auction_object.seller == Meteor.user().profile.screen_name) {
 				biddable = false;
 				reason = "you are the seller";
