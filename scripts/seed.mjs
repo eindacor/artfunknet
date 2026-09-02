@@ -198,8 +198,7 @@ async function seedPlayer(database) {
           screen_name: screenName,
           active: true,
           bank_balance: 100_000,
-          card_renderer: "museum",
-          owned_card_renderers: ["museum"],
+          card_style_consumables: {},
           last_drop: yesterdayIso,
           level: 0,
           xp: 0,
@@ -384,30 +383,59 @@ async function migrateCardRenderers(database) {
   const migration = await database
     .collection("metadata")
     .findOne({ _id: "card-renderer-migrations" });
-  if ((migration?.version ?? 0) >= 1) return;
+  const currentVersion = migration?.version ?? 0;
 
-  await database.collection("players").updateMany(
-    { "profile.card_renderer": "legacy" },
-    { $set: { "profile.card_renderer": "museum" } },
-  );
-  await database.collection("items").updateMany(
-    { card_renderer: "legacy" },
-    { $set: { card_renderer: "museum" } },
-  );
-  await database.collection("players").updateMany(
-    { "profile.owned_card_renderers": "legacy" },
-    { $pull: { "profile.owned_card_renderers": "legacy" } },
-  );
-  await database.collection("players").updateMany(
-    { role: "player" },
-    { $addToSet: { "profile.owned_card_renderers": "museum" } },
-  );
+  if (currentVersion < 1) {
+    await database.collection("players").updateMany(
+      { "profile.card_renderer": "legacy" },
+      { $set: { "profile.card_renderer": "museum" } },
+    );
+    await database.collection("items").updateMany(
+      { card_renderer: "legacy" },
+      { $set: { card_renderer: "museum" } },
+    );
+    await database.collection("players").updateMany(
+      { "profile.owned_card_renderers": "legacy" },
+      { $pull: { "profile.owned_card_renderers": "legacy" } },
+    );
+    await database.collection("players").updateMany(
+      { role: "player" },
+      { $addToSet: { "profile.owned_card_renderers": "museum" } },
+    );
+  }
+
+  if (currentVersion < 2) {
+    await database.collection("players").updateMany(
+      { role: "player" },
+      {
+        $set: {
+          "profile.card_renderer": "museum",
+          "profile.card_style_consumables": {},
+        },
+        $unset: { "profile.owned_card_renderers": "" },
+      },
+    );
+  }
+
+  if (currentVersion < 3) {
+    await database.collection("players").updateMany(
+      { role: "player" },
+      { $unset: { "profile.card_renderer": "" } },
+    );
+    await database.collection("items").updateMany(
+      { card_renderer: "museum" },
+      { $unset: { card_renderer: "" } },
+    );
+  }
+
+  if (currentVersion >= 3) return;
+
   const now = new Date();
   await database.collection("metadata").updateOne(
     { _id: "card-renderer-migrations" },
     {
       $set: {
-        version: 1,
+        version: 3,
         updated_at: now,
       },
       $setOnInsert: { created_at: now },

@@ -81,7 +81,7 @@ test("generated card styles roll only from active renderers", () => {
     "zine",
   );
   assert.equal(
-    rollGeneratedCardRenderer(["museum"], 0.25, () => 0.25),
+    rollGeneratedCardRenderer(["museum"], 1, () => 0),
     undefined,
   );
   assert.equal(

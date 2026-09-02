@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import type { CSSProperties } from "react";
+import { useRouter } from "next/navigation";
 
+import ArtStyleDialog from "./art-style-dialog";
+import ArtStyleActionButton from "./art-style-action-button";
 import { CARD_RENDERERS } from "./registry";
 import { resolveCardRendererId } from "./selection";
 import StandardItemDialog from "./standard-item-dialog";
@@ -11,19 +14,20 @@ import type { ItemCardProps } from "./types";
 export default function ItemCard({
   item,
   actions,
-  activeRendererIds,
   forceRendererId,
   legendaryAttributes,
   alreadyOwned = false,
-  ownedRendererIds,
+  interactive = true,
   permissions = {
     canManageItem: false,
     canCustomizeCosmetic: false,
   },
-  rendererPrices,
   rendererId,
+  styleInventory,
 }: ItemCardProps) {
+  const router = useRouter();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [artStyleDialogOpen, setArtStyleDialogOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState(item);
   const [itemRendererId, setItemRendererId] = useState(
     currentItem.card_renderer,
@@ -55,17 +59,31 @@ export default function ItemCard({
       }
     >
       <div
-        aria-label={`Open details for ${item.artwork.title} by ${item.artwork.artist}`}
+        aria-label={
+          interactive
+            ? `Open details for ${item.artwork.title} by ${item.artwork.artist}`
+            : undefined
+        }
         className="rendered-item-card-trigger"
-        onClick={() => setDialogOpen(true)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            setDialogOpen(true);
-          }
-        }}
-        role="button"
-        tabIndex={0}
+        onClick={
+          interactive
+            ? () => {
+                setDialogOpen(true);
+              }
+            : undefined
+        }
+        onKeyDown={
+          interactive
+            ? (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  setDialogOpen(true);
+                }
+              }
+            : undefined
+        }
+        role={interactive ? "button" : undefined}
+        tabIndex={interactive ? 0 : undefined}
       >
         <Renderer
           alreadyOwned={alreadyOwned}
@@ -73,26 +91,27 @@ export default function ItemCard({
           legendaryAttributes={legendaryAttributes}
         />
       </div>
-      {permissions.canManageItem && actions ? (
-        <div className="card-actions">{actions}</div>
+      {permissions.canManageItem &&
+      (actions || permissions.canCustomizeCosmetic) ? (
+        <div className="card-actions">
+          {actions}
+          {permissions.canCustomizeCosmetic ? (
+            <ArtStyleActionButton
+              onClick={() => {
+                setArtStyleDialogOpen(true);
+              }}
+            />
+          ) : null}
+        </div>
       ) : null}
-      {dialogOpen ? (
+      {interactive && dialogOpen ? (
         <StandardItemDialog
           actions={actions}
-          activeRendererIds={activeRendererIds}
           currentRendererId={resolvedRendererId}
           item={{ ...currentItem, card_renderer: itemRendererId }}
           legendaryAttributes={legendaryAttributes}
           onClose={() => setDialogOpen(false)}
-          onRendererSelected={(nextRendererId, nextItem) => {
-            setItemRendererId(nextRendererId);
-            setCurrentItem((current) => ({
-              ...current,
-              ...nextItem,
-              artwork: current.artwork,
-            }));
-          }}
-          ownedRendererIds={ownedRendererIds}
+          onOpenArtStyle={() => setArtStyleDialogOpen(true)}
           permissions={{
             canManageItem: permissions.canManageItem,
             canCustomizeCosmetic:
@@ -100,7 +119,24 @@ export default function ItemCard({
               (currentItem.status === "claimed" ||
                 currentItem.status === "displayed"),
           }}
-          rendererPrices={rendererPrices}
+        />
+      ) : null}
+      {interactive && artStyleDialogOpen ? (
+        <ArtStyleDialog
+          currentRendererId={resolvedRendererId}
+          item={{ ...currentItem, card_renderer: itemRendererId }}
+          legendaryAttributes={legendaryAttributes}
+          onApplied={(nextRendererId, nextItem) => {
+            setItemRendererId(nextRendererId);
+            setCurrentItem((current) => ({
+              ...current,
+              ...nextItem,
+              artwork: current.artwork,
+            }));
+            router.refresh();
+          }}
+          onClose={() => setArtStyleDialogOpen(false)}
+          styleInventory={styleInventory}
         />
       ) : null}
     </article>

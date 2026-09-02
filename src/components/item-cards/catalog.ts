@@ -12,6 +12,8 @@ export type CardRendererPriceMap = Partial<
   Record<CardRendererId, number>
 >;
 
+export type CardStyleInventory = Partial<Record<CardRendererId, number>>;
+
 export const CARD_COSMETICS: CardCosmetic[] = [
   {
     number: 1,
@@ -96,17 +98,24 @@ export function getCardCosmetic(id: string): CardCosmetic | undefined {
   return CARD_COSMETICS.find((cosmetic) => cosmetic.id === id);
 }
 
-export function getOwnedCardRendererIds(
-  rendererIds: readonly string[] | undefined,
-): CardRendererId[] {
-  return [
-    ...new Set([
-      "museum" as CardRendererId,
-      ...(rendererIds ?? [])
-        .map((id) => getCardCosmetic(id)?.id)
-        .filter((id): id is CardRendererId => Boolean(id)),
-    ]),
-  ];
+export function getCardStyleInventory(
+  inventory: Readonly<Record<string, unknown>> | undefined,
+): CardStyleInventory {
+  return Object.fromEntries(
+    Object.entries(inventory ?? {}).flatMap(([id, quantity]) => {
+      const cosmetic = getCardCosmetic(id);
+      if (
+        !cosmetic ||
+        cosmetic.id === "museum" ||
+        typeof quantity !== "number" ||
+        !Number.isFinite(quantity) ||
+        quantity <= 0
+      ) {
+        return [];
+      }
+      return [[cosmetic.id, Math.floor(quantity)]];
+    }),
+  );
 }
 
 export function getActiveCardCosmetics(
@@ -114,25 +123,21 @@ export function getActiveCardCosmetics(
   rendererPrices: CardRendererPriceMap = {},
 ): CardCosmetic[] {
   const active = new Set(activeRendererIds);
-  return CARD_COSMETICS.filter((cosmetic) => active.has(cosmetic.id)).map(
-    (cosmetic) => ({
-      ...cosmetic,
-      price: rendererPrices[cosmetic.id] ?? cosmetic.price,
-    }),
-  );
-}
-
-export function getSelectableCardCosmetics(
-  activeRendererIds: readonly string[],
-  ownedRendererIds: readonly string[] | undefined,
-  rendererPrices: CardRendererPriceMap = {},
-): CardCosmetic[] {
-  const active = new Set(activeRendererIds);
-  const owned = new Set(getOwnedCardRendererIds(ownedRendererIds));
   return CARD_COSMETICS.filter(
-    (cosmetic) => active.has(cosmetic.id) || owned.has(cosmetic.id),
+    (cosmetic) =>
+      cosmetic.id !== "museum" && active.has(cosmetic.id),
   ).map((cosmetic) => ({
     ...cosmetic,
     price: rendererPrices[cosmetic.id] ?? cosmetic.price,
   }));
+}
+
+export function getAvailableCardStyleConsumables(
+  inventory: Readonly<Record<string, unknown>> | undefined,
+): Array<CardCosmetic & { quantity: number }> {
+  const available = getCardStyleInventory(inventory);
+  return CARD_COSMETICS.flatMap((cosmetic) => {
+    const quantity = available[cosmetic.id] ?? 0;
+    return quantity > 0 ? [{ ...cosmetic, quantity }] : [];
+  });
 }

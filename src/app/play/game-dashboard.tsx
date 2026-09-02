@@ -4,15 +4,14 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
+import ArtStyleDialog from "@/components/item-cards/art-style-dialog";
+import type { CardStyleInventory } from "@/components/item-cards/catalog";
 import ItemCard from "@/components/item-cards/item-card";
 import MintLossConfirmationDialog from "@/components/item-cards/mint-loss-confirmation-dialog";
 import { resolveCardRendererId } from "@/components/item-cards/selection";
 import { ratingColor } from "@/components/item-cards/shared";
 import StandardItemDialog from "@/components/item-cards/standard-item-dialog";
-import type {
-  CardLegendaryAttribute,
-  ItemCardProps,
-} from "@/components/item-cards/types";
+import type { CardLegendaryAttribute } from "@/components/item-cards/types";
 import type { GalleryRates } from "@/server/collection-gameplay";
 import type { GameItem } from "@/server/gameplay";
 import type { HydratedGameItem } from "@/server/item-artwork";
@@ -42,8 +41,7 @@ type PlayerView = {
   lastDrop: string;
   xpGoal: number;
   npcsMet: Partial<Record<NpcQuality, number>>;
-  cardRenderer?: string;
-  ownedCardRenderers: string[];
+  cardStyleInventory: CardStyleInventory;
 };
 
 type NpcView = Omit<GalleryNpc, "spawned_at" | "expiration"> & {
@@ -100,8 +98,6 @@ const ATTRIBUTE_TYPE_ICONS = {
 } as const;
 
 export default function GameDashboard({
-  activeRendererIds,
-  rendererPrices,
   player,
   items,
   galleryRates,
@@ -115,8 +111,6 @@ export default function GameDashboard({
   debugEnabled,
   npcs,
 }: {
-  activeRendererIds: string[];
-  rendererPrices: ItemCardProps["rendererPrices"];
   player: PlayerView;
   items: HydratedGameItem[];
   galleryRates: GalleryRates;
@@ -163,11 +157,14 @@ export default function GameDashboard({
   } | null>(null);
   const [galleryItemDetails, setGalleryItemDetails] =
     useState<HydratedGameItem | null>(null);
+  const [galleryArtStyleItem, setGalleryArtStyleItem] =
+    useState<HydratedGameItem | null>(null);
   const [mintConfirmation, setMintConfirmation] = useState<{
     actionLabel: string;
     onConfirm: () => void;
   } | null>(null);
   const [pending, startTransition] = useTransition();
+
   const unclaimed = useMemo(
     () =>
       items.filter(
@@ -542,16 +539,13 @@ export default function GameDashboard({
               <div className="item-grid">
                 {unclaimed.map((item) => (
                   <ItemCard
-                    activeRendererIds={activeRendererIds}
                     alreadyOwned={ownedArtworkIds.has(item.artwork_id)}
                     legendaryAttributes={legendaryAttributes}
-                    ownedRendererIds={player.ownedCardRenderers}
-                    rendererPrices={rendererPrices}
                     permissions={{
                       canManageItem: true,
                       canCustomizeCosmetic: false,
                     }}
-                    rendererId={player.cardRenderer}
+                    styleInventory={player.cardStyleInventory}
                     actions={
                       item.status === "for_sale" ? (
                         <>
@@ -615,26 +609,20 @@ export default function GameDashboard({
         {section === "inventory" ? (
           <section className="inventory">
             <InventorySection
-              activeRendererIds={activeRendererIds}
               emptyText="No works are currently on display."
               items={displayed}
               legendaryAttributes={legendaryAttributes}
               canCustomize
-              ownedRendererIds={player.ownedCardRenderers}
-              rendererPrices={rendererPrices}
-              rendererId={player.cardRenderer}
+              styleInventory={player.cardStyleInventory}
               title={`on display (${displayed.length}/${player.displayCap})`}
               actions={displayedItemActions}
             />
             <InventorySection
-              activeRendererIds={activeRendererIds}
               emptyText="Your inventory is empty."
               items={inventory}
               legendaryAttributes={legendaryAttributes}
               canCustomize
-              ownedRendererIds={player.ownedCardRenderers}
-              rendererPrices={rendererPrices}
-              rendererId={player.cardRenderer}
+              styleInventory={player.cardStyleInventory}
               title="inventory"
               actions={(item) => {
                 const displayPermission = getDisplayPermission(
@@ -890,16 +878,30 @@ export default function GameDashboard({
         {galleryItemDetails ? (
           <StandardItemDialog
             actions={displayedItemActions(galleryItemDetails)}
-            activeRendererIds={activeRendererIds}
             currentRendererId={resolveCardRendererId({
               itemRendererId: galleryItemDetails.card_renderer,
-              preferredRendererId: player.cardRenderer,
             })}
             item={galleryItemDetails}
             legendaryAttributes={legendaryAttributes}
             onClose={() => setGalleryItemDetails(null)}
-            onRendererSelected={(rendererId, nextItem) => {
-              setGalleryItemDetails((current) =>
+            onOpenArtStyle={() =>
+              setGalleryArtStyleItem(galleryItemDetails)
+            }
+            permissions={{
+              canManageItem: true,
+              canCustomizeCosmetic: true,
+            }}
+          />
+        ) : null}
+        {galleryArtStyleItem ? (
+          <ArtStyleDialog
+            currentRendererId={resolveCardRendererId({
+              itemRendererId: galleryArtStyleItem.card_renderer,
+            })}
+            item={galleryArtStyleItem}
+            legendaryAttributes={legendaryAttributes}
+            onApplied={(rendererId, nextItem) => {
+              setGalleryArtStyleItem((current) =>
                 current
                   ? {
                       ...current,
@@ -911,12 +913,8 @@ export default function GameDashboard({
               );
               router.refresh();
             }}
-            ownedRendererIds={player.ownedCardRenderers}
-            rendererPrices={rendererPrices}
-            permissions={{
-              canManageItem: true,
-              canCustomizeCosmetic: true,
-            }}
+            onClose={() => setGalleryArtStyleItem(null)}
+            styleInventory={player.cardStyleInventory}
           />
         ) : null}
         {artworkOfferSession ? (
@@ -1823,26 +1821,20 @@ function ItemActionButton({
 }
 
 function InventorySection({
-  activeRendererIds,
-  rendererPrices,
   title,
   emptyText,
   items,
   legendaryAttributes,
   canCustomize,
-  ownedRendererIds,
-  rendererId,
+  styleInventory,
   actions,
 }: {
-  activeRendererIds: string[];
-  rendererPrices: ItemCardProps["rendererPrices"];
   title: string;
   emptyText: string;
   items: HydratedGameItem[];
   legendaryAttributes: LegendaryAttributeView[];
   canCustomize?: boolean;
-  ownedRendererIds?: string[];
-  rendererId?: string;
+  styleInventory: CardStyleInventory;
   actions: (item: HydratedGameItem) => React.ReactNode;
 }) {
   return (
@@ -1854,18 +1846,15 @@ function InventorySection({
         <div className="item-grid">
           {items.map((item) => (
             <ItemCard
-              activeRendererIds={activeRendererIds}
               actions={actions(item)}
               item={item}
               legendaryAttributes={legendaryAttributes}
               key={getItemCardKey(item)}
-              ownedRendererIds={ownedRendererIds}
-              rendererPrices={rendererPrices}
               permissions={{
                 canManageItem: true,
                 canCustomizeCosmetic: Boolean(canCustomize),
               }}
-              rendererId={rendererId}
+              styleInventory={styleInventory}
             />
           ))}
         </div>

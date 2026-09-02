@@ -302,15 +302,18 @@ export function rollGeneratedCardRenderer(
   probability: number,
   random: () => number = Math.random,
 ): string | undefined {
+  const applicableRendererIds = activeRendererIds.filter(
+    (rendererId) => rendererId !== "museum",
+  );
   if (
-    activeRendererIds.length === 0 ||
+    applicableRendererIds.length === 0 ||
     !rollProbability(probability, random)
   ) {
     return undefined;
   }
 
-  return activeRendererIds[
-    Math.floor(random() * activeRendererIds.length)
+  return applicableRendererIds[
+    Math.floor(random() * applicableRendererIds.length)
   ];
 }
 

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import { getCardStyleInventory } from "@/components/item-cards/catalog";
 import {
   calculateGalleryRates,
   getXpGoal,
@@ -23,7 +24,6 @@ import {
   getPlayerNotifications,
 } from "@/server/player-notifications";
 import { getAdminSession, requirePlayer } from "@/server/session";
-import { getCardRendererSettings } from "@/server/card-renderer-settings";
 
 import GameDashboard from "./game-dashboard";
 import PlayerHeader from "./player-header";
@@ -48,8 +48,7 @@ type Player = {
       current_tutorial?: string;
       step: number;
     };
-    card_renderer?: string;
-    owned_card_renderers?: string[];
+    card_style_consumables?: Record<string, number>;
     npcs_met?: Partial<Record<NpcQuality, number>>;
   };
 };
@@ -112,7 +111,6 @@ export default async function PlayerPage() {
     notifications,
     npcSpawnAttributes,
     legendaryAttributes,
-    rendererSettings,
   ] =
     await Promise.all([
     getGalleryNpcs(database, player._id),
@@ -125,7 +123,6 @@ export default async function PlayerPage() {
           .toArray()
       : Promise.resolve([]),
     getLegendaryAttributes(database, legendaryAttributeIds),
-    getCardRendererSettings(database),
   ]);
   const displayedLegendaryIds = new Set(
     displayedItems
@@ -175,8 +172,6 @@ export default async function PlayerPage() {
         xp={player.profile.xp}
       />
       <GameDashboard
-        activeRendererIds={rendererSettings.activeRendererIds}
-        rendererPrices={rendererSettings.rendererPrices}
         dailyDropCooldownMinutes={config.dailyDropCooldownMinutes}
         debugEnabled={settings.debugEnabled}
         dealerPriceMultiplier={dealerPriceMultiplier}
@@ -219,9 +214,9 @@ export default async function PlayerPage() {
           displayCap: player.profile.display_cap,
           xpGoal: getXpGoal(player.profile.level),
           npcsMet: player.profile.npcs_met ?? {},
-          cardRenderer: player.profile.card_renderer,
-          ownedCardRenderers:
-            player.profile.owned_card_renderers ?? [],
+          cardStyleInventory: getCardStyleInventory(
+            player.profile.card_style_consumables,
+          ),
         }}
       />
     </div>

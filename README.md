@@ -128,23 +128,23 @@ The basic gameplay loop is active:
   and removed from the game.
 - Mint items are generated at perfect condition with the configured value
   multiplier captured on the item. Displaying or directly modifying a Mint
-  item, including cosmetic changes, rerolls, Collector-offer tags, or
-  Legendary Attribute selection, permanently consumes Mint, leaves the item at
-  100% condition, and recalculates its value without the Mint premium. These
-  actions require confirmation through the shared Museum-style Mint warning.
+  item, including art-style changes, rerolls, or Legendary Attribute
+  selection, permanently consumes Mint, leaves the item at 100% condition, and
+  recalculates its value without the Mint premium. Collector-offer tags
+  preserve Mint. Mint-breaking actions require confirmation through the shared
+  Museum-style warning.
 - Unclaimed items can also be sold directly from the loot screen.
 - Generated items carry the original unlocked and locked NPC-attraction
   attributes. Rare, legendary, and masterpiece artwork also requires one, two,
   or three permanent special attributes during admin approval.
 - Item cards use a renderer registry with Museum Label as the included default
-  and safe fallback.
-  A forced renderer is used for previews, an item-level `card_renderer`
-  cosmetic overrides the player-level `profile.card_renderer` preference, and
-  unknown renderer IDs fall back to `museum`. The premium OG renderer retains
-  the stable internal `legacy` ID for saved data and must match the original
-  Meteor card whenever it is updated. Newly generated items can independently
-  roll an item-level renderer using the active gameplay profile; successful
-  rolls select uniformly from renderers currently marked Active. Nine other self-contained
+  and safe fallback. A forced renderer is used for previews, an item-level
+  `card_renderer` selects the applied style, and unknown renderer IDs fall back
+  to `museum`. The premium OG renderer retains the stable internal `legacy` ID
+  for saved data and must match the original Meteor card whenever it is
+  updated. Newly generated items can independently roll an item-level renderer
+  using the active gameplay profile; successful rolls select uniformly from
+  renderers currently marked Active. Nine other self-contained
   renderers—Neon Inventory, Artist Postcard, Gilded Salon,
   Archive Terminal, Prismatic Showcase, Curator Blueprint, Downtown Zine,
   Celestial Orbit, and Boss Reliquary—are available at
@@ -159,15 +159,20 @@ The basic gameplay loop is active:
   automatic artwork selection for every style.
 - Every card renderer opens the same accessible item-detail dialog when
   clicked or keyboard-activated. Players can purchase the numbered renderer
-  cosmetics at <http://localhost:3000/play/cosmetics> using their bank
-  balance. Purchases are permanent and reusable; claimed and displayed items
-  can independently select any owned style from the standard dialog. Cosmetic
-  purchases and per-item assignments are ownership-checked server-side.
+  styles at <http://localhost:3000/play/cosmetics> using their bank balance.
+  Each purchase adds one consumable. Applying a style to a claimed or displayed
+  item consumes one copy, does not refund the previously applied style, and is
+  inventory-checked server-side. Museum Label is the fallback presentation
+  when an item has no applied style and is not sold or listed as a consumable.
+  The paint-brush action on inventory cards and item details opens a separate
+  Museum-style dialog with an available-style radio list, live preview, and
+  explicit Apply Style action. Removing an applied style does not return it to
+  inventory and requires confirmation.
   Administrators can activate or deactivate each renderer from the card-design
-  gallery. Inactive styles disappear from the store but remain selectable by
-  players who purchased them previously. Item permissions determine whether
-  the dialog shows management actions and the cosmetic selector; read-only
-  viewers see only the applied cosmetic. The standard item dialog uses the
+  gallery. Inactive styles disappear from the store, but consumables purchased
+  previously remain usable. Item permissions determine whether the paint-brush
+  action is available; read-only viewers see only the applied style. The
+  standard item dialog uses the
   Museum Label editorial format, with artwork identity in the header and
   attributes, properties, and actions in a dedicated management column. New
   gameplay dialogs should follow this Museum-style visual language. The

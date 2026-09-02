@@ -1,4 +1,5 @@
 import type { GameItem } from "@/server/gameplay";
+import { getCardStyleInventory } from "@/components/item-cards/catalog";
 import { hydrateGameItems } from "@/server/item-artwork";
 import { getLegendaryAttributes } from "@/server/legendary-attributes";
 import { getDatabase } from "@/server/mongodb";
@@ -15,7 +16,7 @@ type Player = {
   profile: {
     bank_balance: number;
     xp: number;
-    owned_card_renderers?: string[];
+    card_style_consumables?: Record<string, number>;
   };
 };
 
@@ -63,9 +64,9 @@ export default async function CardCosmeticStorePage() {
       <CosmeticStore
         activeRendererIds={rendererSettings.activeRendererIds}
         initialBankBalance={player.profile.bank_balance}
-        initialOwnedRendererIds={
-          player.profile.owned_card_renderers ?? []
-        }
+        initialStyleInventory={getCardStyleInventory(
+          player.profile.card_style_consumables,
+        )}
         legendaryAttributes={legendaryAttributes.map((attribute) => ({
           id: attribute._id,
           title: attribute.title,

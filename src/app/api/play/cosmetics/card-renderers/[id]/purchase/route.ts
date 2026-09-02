@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import {
   getCardCosmetic,
-  getOwnedCardRendererIds,
+  getCardStyleInventory,
 } from "@/components/item-cards/catalog";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
@@ -16,7 +16,7 @@ type Player = {
   active: boolean;
   profile: {
     bank_balance: number;
-    owned_card_renderers?: string[];
+    card_style_consumables?: Record<string, number>;
   };
 };
 
@@ -33,6 +33,12 @@ export async function POST(
     return NextResponse.json(
       { error: "This card cosmetic cannot be purchased." },
       { status: 404 },
+    );
+  }
+  if (cosmetic.id === "museum") {
+    return NextResponse.json(
+      { error: "Museum Label is already available without a consumable." },
+      { status: 409 },
     );
   }
 
@@ -55,38 +61,28 @@ export async function POST(
       { status: 404 },
     );
   }
-  if (
-    getOwnedCardRendererIds(player.profile.owned_card_renderers).includes(
-      cosmetic.id,
-    )
-  ) {
-    return NextResponse.json(
-      { error: "You already own this card cosmetic." },
-      { status: 409 },
-    );
-  }
-
   const now = new Date().toISOString();
-  const updatedPlayer = await database.collection<Player>("players").findOneAndUpdate(
-    {
-      _id: player._id,
-      active: true,
-      "profile.bank_balance": { $gte: price },
-      "profile.owned_card_renderers": { $ne: cosmetic.id },
-    },
-    {
-      $inc: { "profile.bank_balance": -price },
-      $addToSet: { "profile.owned_card_renderers": cosmetic.id },
-      $set: { "profile.last_activity": now },
-    },
-    { returnDocument: "after" },
-  );
+  const quantityPath = `profile.card_style_consumables.${cosmetic.id}`;
+  const updatedPlayer = await database
+    .collection<Player>("players")
+    .findOneAndUpdate(
+      {
+        _id: player._id,
+        active: true,
+        "profile.bank_balance": { $gte: price },
+      },
+      {
+        $inc: {
+          "profile.bank_balance": -price,
+          [quantityPath]: 1,
+        },
+        $set: { "profile.last_activity": now },
+      },
+      { returnDocument: "after" },
+    );
   if (!updatedPlayer) {
     return NextResponse.json(
-      {
-        error:
-          "You do not have enough money, or this cosmetic was already purchased.",
-      },
+      { error: "You do not have enough money for this art style." },
       { status: 409 },
     );
   }
@@ -95,8 +91,8 @@ export async function POST(
     status: "ok",
     cosmeticId: cosmetic.id,
     bankBalance: updatedPlayer.profile.bank_balance,
-    ownedRendererIds: getOwnedCardRendererIds(
-      updatedPlayer.profile.owned_card_renderers,
+    styleInventory: getCardStyleInventory(
+      updatedPlayer.profile.card_style_consumables,
     ),
   });
 }

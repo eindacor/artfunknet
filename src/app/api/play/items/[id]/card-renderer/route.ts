@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
+import type { UpdateFilter } from "mongodb";
 
 import {
   getCardCosmetic,
-  getOwnedCardRendererIds,
+  getCardStyleInventory,
 } from "@/components/item-cards/catalog";
 import type { GameItem } from "@/server/gameplay";
 import { getDemintUpdate } from "@/server/item-mint";
@@ -13,7 +14,7 @@ type Player = {
   _id: string;
   active: boolean;
   profile: {
-    owned_card_renderers?: string[];
+    card_style_consumables?: Record<string, number>;
   };
 };
 
@@ -24,13 +25,17 @@ export async function POST(
   const auth = await requirePlayerApi();
   if (!auth.ok) return auth.response;
 
-  const body = (await request.json()) as { rendererId?: string };
-  const cosmetic = body.rendererId
+  const body = (await request.json()) as {
+    removeStyle?: boolean;
+    rendererId?: string;
+  };
+  const removingStyle = body.removeStyle === true;
+  const cosmetic = !removingStyle && body.rendererId
     ? getCardCosmetic(body.rendererId)
     : undefined;
-  if (!cosmetic) {
+  if (!removingStyle && (!cosmetic || cosmetic.id === "museum")) {
     return NextResponse.json(
-      { error: "Select a recognized card cosmetic." },
+      { error: "Select a recognized art style." },
       { status: 400 },
     );
   }
@@ -47,17 +52,6 @@ export async function POST(
       { status: 404 },
     );
   }
-  if (
-    !getOwnedCardRendererIds(
-      player.profile.owned_card_renderers,
-    ).includes(cosmetic.id)
-  ) {
-    return NextResponse.json(
-      { error: "Purchase this card cosmetic before applying it." },
-      { status: 403 },
-    );
-  }
-
   const item = await database.collection<GameItem>("items").findOne(
     {
       _id: id,
@@ -68,6 +62,21 @@ export async function POST(
   if (!item) {
     return NextResponse.json(
       { error: "Only artwork you own can be customized." },
+      { status: 409 },
+    );
+  }
+  const currentCosmetic = getCardCosmetic(item.card_renderer ?? "");
+  const currentRendererId =
+    currentCosmetic?.id === "museum" ? undefined : currentCosmetic?.id;
+  if (removingStyle && !currentRendererId) {
+    return NextResponse.json(
+      { error: "This item does not have an applied art style." },
+      { status: 409 },
+    );
+  }
+  if (!removingStyle && currentRendererId === cosmetic?.id) {
+    return NextResponse.json(
+      { error: "This art style is already applied." },
       { status: 409 },
     );
   }
@@ -82,26 +91,83 @@ export async function POST(
       { status: 500 },
     );
   }
+  const quantityPath = cosmetic
+    ? `profile.card_style_consumables.${cosmetic.id}`
+    : undefined;
+  let updatedPlayer = player;
+  if (cosmetic && quantityPath) {
+    const consumedPlayer = await database
+      .collection<Player>("players")
+      .findOneAndUpdate(
+        {
+          _id: player._id,
+          active: true,
+          [quantityPath]: { $gte: 1 },
+        },
+        { $inc: { [quantityPath]: -1 } },
+        { returnDocument: "after" },
+      );
+    if (!consumedPlayer) {
+      return NextResponse.json(
+        { error: "You do not have this art style consumable available." },
+        { status: 409 },
+      );
+    }
+    updatedPlayer = consumedPlayer;
+  }
+
+  const rendererFilter =
+    item.card_renderer === undefined
+      ? { card_renderer: { $exists: false } }
+      : { card_renderer: item.card_renderer };
+  const itemUpdate: UpdateFilter<GameItem> = removingStyle
+    ? {
+        $set: mintUpdate,
+        $unset: { card_renderer: "" as const },
+      }
+    : { $set: { ...mintUpdate, card_renderer: cosmetic!.id } };
   const result = await database.collection<GameItem>("items").findOneAndUpdate(
     {
       _id: item._id,
       owner: player._id,
       status: item.status,
       mint: item.mint,
+      ...rendererFilter,
     },
-    { $set: { ...mintUpdate, card_renderer: cosmetic.id } },
+    itemUpdate,
     { returnDocument: "after" },
   );
   if (!result) {
+    if (cosmetic && quantityPath) {
+      const rollback = await database.collection<Player>("players").updateOne(
+        { _id: player._id, active: true },
+        { $inc: { [quantityPath]: 1 } },
+      );
+      if (rollback.modifiedCount !== 1) {
+        console.error(
+          `Unable to restore consumed ${cosmetic.id} art style for player ${player._id}`,
+        );
+        return NextResponse.json(
+          {
+            error:
+              "The item changed and the consumed art style could not be restored.",
+          },
+          { status: 500 },
+        );
+      }
+    }
     return NextResponse.json(
-      { error: "This item changed before its cosmetic could be applied." },
+      { error: "This item changed before its art style could be applied." },
       { status: 409 },
     );
   }
 
   return NextResponse.json({
     status: "ok",
-    rendererId: cosmetic.id,
+    ...(cosmetic ? { rendererId: cosmetic.id } : {}),
     item: result,
+    styleInventory: getCardStyleInventory(
+      updatedPlayer.profile.card_style_consumables,
+    ),
   });
 }

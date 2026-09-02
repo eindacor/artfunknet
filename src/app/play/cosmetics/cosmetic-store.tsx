@@ -7,8 +7,9 @@ import ItemCard from "@/components/item-cards/item-card";
 import {
   type CardCosmetic,
   type CardRendererPriceMap,
+  type CardStyleInventory,
   getActiveCardCosmetics,
-  getOwnedCardRendererIds,
+  getCardStyleInventory,
 } from "@/components/item-cards/catalog";
 import type { CardLegendaryAttribute } from "@/components/item-cards/types";
 import type { HydratedGameItem } from "@/server/item-artwork";
@@ -16,22 +17,22 @@ import type { HydratedGameItem } from "@/server/item-artwork";
 export default function CosmeticStore({
   activeRendererIds,
   initialBankBalance,
-  initialOwnedRendererIds,
+  initialStyleInventory,
   sampleItem,
   legendaryAttributes,
   rendererPrices,
 }: {
   activeRendererIds: string[];
   initialBankBalance: number;
-  initialOwnedRendererIds: string[];
+  initialStyleInventory: CardStyleInventory;
   sampleItem: HydratedGameItem | null;
   legendaryAttributes: CardLegendaryAttribute[];
   rendererPrices: CardRendererPriceMap;
 }) {
   const router = useRouter();
   const [bankBalance, setBankBalance] = useState(initialBankBalance);
-  const [ownedRendererIds, setOwnedRendererIds] = useState(
-    getOwnedCardRendererIds(initialOwnedRendererIds),
+  const [styleInventory, setStyleInventory] = useState(
+    getCardStyleInventory(initialStyleInventory),
   );
   const [purchasingId, setPurchasingId] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -47,14 +48,14 @@ export default function CosmeticStore({
       const body = (await response.json()) as {
         error?: string;
         bankBalance?: number;
-        ownedRendererIds?: string[];
+        styleInventory?: CardStyleInventory;
       };
       if (!response.ok) {
         throw new Error(body.error ?? "The cosmetic could not be purchased.");
       }
       setBankBalance(body.bankBalance ?? bankBalance - cosmetic.price);
-      setOwnedRendererIds(
-        getOwnedCardRendererIds(body.ownedRendererIds),
+      setStyleInventory(
+        getCardStyleInventory(body.styleInventory),
       );
       router.refresh();
     } catch (purchaseError) {
@@ -68,8 +69,6 @@ export default function CosmeticStore({
     }
   }
 
-  const owned = new Set(ownedRendererIds);
-
   return (
     <main className="cosmetic-store">
       <header className="cosmetic-store-heading">
@@ -77,8 +76,8 @@ export default function CosmeticStore({
           <p>Artfunkel cosmetics</p>
           <h1>Card style store</h1>
           <span>
-            Purchase a renderer once, then apply it independently to any
-            artwork you own from that item&apos;s detail dialog.
+            Purchase art style consumables, then apply them to individual
+            artwork with its paint-brush action.
           </span>
         </div>
         <strong>${bankBalance.toLocaleString()}</strong>
@@ -89,10 +88,12 @@ export default function CosmeticStore({
         </p>
       ) : null}
       <div className="cosmetic-store-grid">
-        {getActiveCardCosmetics(activeRendererIds, rendererPrices).map((cosmetic) => {
-          const isOwned = owned.has(cosmetic.id);
-          return (
-            <article className="cosmetic-store-product" key={cosmetic.id}>
+        {getActiveCardCosmetics(activeRendererIds, rendererPrices).map(
+          (cosmetic) => {
+            const quantity = styleInventory[cosmetic.id] ?? 0;
+            const included = cosmetic.id === "museum";
+            return (
+              <article className="cosmetic-store-product" key={cosmetic.id}>
               <header>
                 <span>
                   STYLE #{cosmetic.number.toString().padStart(2, "0")}
@@ -112,16 +113,19 @@ export default function CosmeticStore({
                 )}
               </div>
               <footer>
-                <strong>
-                  {cosmetic.price === 0
-                    ? isOwned
+                <div className="cosmetic-store-stock">
+                  <strong>
+                    {included
                       ? "Included"
-                      : "Free"
-                    : `$${cosmetic.price.toLocaleString()}`}
-                </strong>
-                {isOwned ? (
+                      : cosmetic.price === 0
+                        ? "Free"
+                        : `$${cosmetic.price.toLocaleString()}`}
+                  </strong>
+                  {!included ? <span>Available: {quantity}</span> : null}
+                </div>
+                {included ? (
                   <span className="cosmetic-owned">
-                    <i aria-hidden="true" className="fa fa-check" /> owned
+                    <i aria-hidden="true" className="fa fa-check" /> unlimited
                   </span>
                 ) : (
                   <button
@@ -136,16 +140,17 @@ export default function CosmeticStore({
                     {purchasingId === cosmetic.id
                       ? "Purchasing..."
                       : cosmetic.price === 0
-                        ? "Add"
+                        ? "Add one"
                       : bankBalance < cosmetic.price
                         ? "Insufficient funds"
-                        : "Purchase"}
+                        : "Purchase one"}
                   </button>
                 )}
               </footer>
-            </article>
-          );
-        })}
+              </article>
+            );
+          },
+        )}
       </div>
     </main>
   );
