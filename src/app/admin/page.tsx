@@ -1,12 +1,16 @@
 import GameplaySettingsForm from "./gameplay-settings-form";
+import RaffleRewardForm from "./raffle-reward-form";
 import SeasonalArtworkForm from "./seasonal-artwork-form";
 
 import { getGameplaySettings } from "@/server/game-settings";
 import {
   type Artwork,
+  type GameItem,
   type LootData,
 } from "@/server/gameplay";
 import { getDatabase } from "@/server/mongodb";
+import { hydrateGameItems } from "@/server/item-artwork";
+import { ensureRaffleState } from "@/server/raffle-gameplay";
 import { getSeasonalArtworkSelections } from "@/server/seasonal-artwork";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +31,36 @@ export default async function AdminPage() {
       .findOne({ _id: "loot-data" }),
   ]);
   if (!lootMetadata) throw new Error("Loot metadata is unavailable.");
+  const raffleState = await ensureRaffleState(
+    database,
+    settings.active,
+  );
+  const raffleRewardDocuments = await database
+    .collection<GameItem>("items")
+    .find({
+      _id: { $in: raffleState.prizes.map((prize) => prize.item_id) },
+    })
+    .toArray();
+  if (raffleRewardDocuments.length !== raffleState.prizes.length) {
+    throw new Error("Raffle prizes are unavailable.");
+  }
+  const raffleRewardItems = await hydrateGameItems(
+    database,
+    raffleRewardDocuments,
+  );
+  const raffleRewardById = new Map(
+    raffleRewardItems.map((item) => [item._id, item]),
+  );
+  const rafflePrizes = raffleState.prizes.map((prize) => {
+    const item = raffleRewardById.get(prize.item_id);
+    if (!item) {
+      throw new Error(`Raffle prize ${prize.item_id} is unavailable.`);
+    }
+    return {
+      item: JSON.parse(JSON.stringify(item)),
+      potency: prize.potency,
+    };
+  });
 
   return (
     <main className="admin-tools">
@@ -59,11 +93,26 @@ export default async function AdminPage() {
         />
       </section>
       <section>
+        <h2>Raffle prizes</h2>
+        <p>
+          The raffle keeps three prizes active. Winning prizes are replaced
+          automatically; each current prize can also be adjusted here.
+        </p>
+        <RaffleRewardForm
+          artworks={artworks.map((artwork) => ({
+            id: artwork._id,
+            artist: artwork.artist,
+            title: artwork.title,
+            rarity: artwork.rarity,
+          }))}
+          prizes={rafflePrizes}
+        />
+      </section>
+      <section>
         <h2>Legacy controls queued for migration</h2>
         <p>
-          Crate economics, player overrides, NPC interactions, and operational
-          reset tools remain disabled until their corresponding gameplay
-          systems are ported.
+          Remaining NPC interactions and operational reset tools stay disabled
+          until their corresponding gameplay systems are ported.
         </p>
       </section>
     </main>

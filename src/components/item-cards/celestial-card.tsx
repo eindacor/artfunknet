@@ -29,7 +29,7 @@ export default function CelestialCard({
         <span className="card-rarity-label">{item.artwork.rarity}</span>
         {item.lottery > 0 ? (
           <span
-            aria-label={`Lottery level ${item.lottery}`}
+            aria-label={`Raffle potency tier ${item.lottery}`}
             className="celestial-card-lottery"
           >
             <i aria-hidden="true" className="fa fa-star" />

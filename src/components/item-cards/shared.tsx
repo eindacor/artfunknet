@@ -131,7 +131,7 @@ export function ItemPropertyBadges({
     item.original ? { key: "original", label: "original" } : null,
     item.patreon ? { key: "patreon", label: "patreon" } : null,
     item.lottery
-      ? { key: "lottery", label: `lottery ${item.lottery}` }
+      ? { key: "lottery", label: `raffle ${item.lottery}` }
       : null,
     item.misprint ? { key: "misprint", label: "misprint" } : null,
   ].filter(
@@ -171,7 +171,7 @@ export function ArchivedCategoryBadges({
           className={`item-property-badge property-${category}`}
           key={category}
         >
-          {category}
+          {category === "lottery" ? "raffle" : category}
         </span>
       ))}
     </span>
@@ -271,7 +271,7 @@ export function CompleteItemRecord({
     item.vintage ? "vintage" : null,
     item.original ? "original" : null,
     item.patreon ? "patreon" : null,
-    item.lottery ? `lottery ${item.lottery}` : null,
+    item.lottery ? `raffle ${item.lottery}` : null,
     item.misprint ? "misprint" : null,
   ].filter((property): property is string => Boolean(property));
 
@@ -384,7 +384,7 @@ export function CompactStats({
       <span>LVL {item.level}</span>
       {showLotteryLevel && item.lottery > 0 ? (
         <span
-          aria-label={`Lottery level ${item.lottery}`}
+          aria-label={`Raffle potency tier ${item.lottery}`}
           className="lottery-level"
         >
           L{item.lottery}

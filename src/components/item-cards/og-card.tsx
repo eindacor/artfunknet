@@ -118,7 +118,7 @@ function CardSignature({ item }: Pick<ItemCardRendererProps, "item">) {
         <span className="signature-seasonal"> seasonal</span>
       ) : null}
       {item.lottery ? (
-        <span className="signature-lottery"> lottery {item.lottery}</span>
+        <span className="signature-lottery"> raffle {item.lottery}</span>
       ) : null}
       {item.original ? (
         <span className="signature-original"> original</span>

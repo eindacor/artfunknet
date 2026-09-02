@@ -335,7 +335,7 @@ export function rollGeneratedCardRenderer(
   );
 }
 
-type DailyDropOptions = {
+export type DailyDropOptions = {
   now?: Date;
   itemCount?: number;
   rarityWeights?: Record<ArtworkRarity, number>;
@@ -350,7 +350,7 @@ type DailyDropOptions = {
   source?: string;
   itemLevel?: number;
   conditionMinimum?: number;
-  status?: "unclaimed" | "for_sale" | "auctioned";
+  status?: "unclaimed" | "for_sale" | "claimed" | "auctioned";
 };
 
 export function amplifyRarityMap(
@@ -525,7 +525,7 @@ function createItem({
   source: string;
   itemLevel: number;
   conditionMinimum: number;
-  status: "unclaimed" | "for_sale" | "auctioned";
+  status: "unclaimed" | "for_sale" | "claimed" | "auctioned";
 }): GameItem {
   const { foil, mint, unlocked } = rollGeneratedItemProperties(
     artwork.rarity,
@@ -625,7 +625,7 @@ export function getSpecialAttributeCount(rarity: ArtworkRarity): number {
   return Math.max(ARTWORK_RARITIES.indexOf(rarity) - 1, 0);
 }
 
-function getItemAttributes(
+export function getItemAttributes(
   artwork: Artwork,
   itemIsUnlocked: boolean,
   allAttributes: ItemAttribute[],

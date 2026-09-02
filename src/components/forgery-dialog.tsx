@@ -171,7 +171,9 @@ export default function ForgeryDialog({
                       type="checkbox"
                     />
                     <span>
-                      <strong>{modifier}</strong>
+                      <strong>
+                        {modifier === "lottery" ? "raffle" : modifier}
+                      </strong>
                       <small>Raises heat</small>
                     </span>
                   </label>

@@ -74,7 +74,7 @@ export default function CircleCard({
         ) : null}
         {item.lottery ? (
           <span
-            aria-label={`Lottery level ${item.lottery}`}
+            aria-label={`Raffle potency tier ${item.lottery}`}
             className="circle-card-lottery"
           >
             L{item.lottery}

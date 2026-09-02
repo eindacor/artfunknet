@@ -31,6 +31,12 @@ import { getPlayerFacingArchivePermission } from "@/server/item-permissions";
 import { PRESERVATIONIST_ATTRIBUTE_ID } from "@/server/item-leveling";
 import { getLegendaryAttributes } from "@/server/legendary-attributes";
 import {
+  ensureRaffleState,
+  settleRaffleIfDue,
+  type RaffleEntry,
+  type RaffleState,
+} from "@/server/raffle-gameplay";
+import {
   getGalleryNpcs,
   refreshNpcSpawns,
   type NpcQuality,
@@ -71,6 +77,7 @@ type Player = {
     };
     card_style_consumables?: Record<string, number>;
     npcs_met?: Partial<Record<NpcQuality, number>>;
+    market_expert?: { expiration?: string };
   };
 };
 
@@ -83,6 +90,13 @@ export default async function PlayerPage() {
   await settlePendingForgeryLiability(database, session.playerId);
   const settings = await getGameplaySettings(database);
   const config = settings.active;
+  let raffleState: RaffleState;
+  try {
+    raffleState = await settleRaffleIfDue(database, config);
+  } catch (error) {
+    console.error("Unable to settle scheduled raffle drawing", error);
+    raffleState = await ensureRaffleState(database, config);
+  }
   try {
     const repairSettlement = await settlePlayerItemRepairs(
       database,
@@ -132,6 +146,58 @@ export default async function PlayerPage() {
   }
   const adminSession = player.test_account ? await getAdminSession() : null;
   const impersonating = Boolean(adminSession && player.test_account);
+  const [raffleRewardDocuments, raffleEntries] = await Promise.all([
+    database
+      .collection<GameItem>("items")
+      .find({
+        _id: { $in: raffleState.prizes.map((prize) => prize.item_id) },
+      })
+      .toArray(),
+    database
+      .collection<RaffleEntry>("raffle_entries")
+      .find({ player_id: player._id })
+      .toArray(),
+  ]);
+  const raffleRewards = await hydrateGameItems(
+    database,
+    raffleRewardDocuments.map((item) =>
+      sanitizePlayerFacingAuthenticity(item),
+    ),
+  );
+  const raffleRewardById = new Map(
+    raffleRewards.map((item) => [item._id, item]),
+  );
+  const raffleTotals = await database
+    .collection<RaffleEntry>("raffle_entries")
+    .aggregate<{ _id: string; total: number }>([
+      {
+        $match: {
+          item_id: {
+            $in: raffleState.prizes.map((prize) => prize.item_id),
+          },
+        },
+      },
+      { $group: { _id: "$item_id", total: { $sum: "$tickets" } } },
+    ])
+    .toArray();
+  const raffleTotalByItem = new Map(
+    raffleTotals.map((total) => [total._id, total.total]),
+  );
+  const raffleEntryByItem = new Map(
+    raffleEntries.map((entry) => [entry.item_id, entry.tickets]),
+  );
+  const rafflePrizes = raffleState.prizes.map((prize) => {
+    const item = raffleRewardById.get(prize.item_id);
+    if (!item) {
+      throw new Error(`Raffle prize ${prize.item_id} is unavailable.`);
+    }
+    return {
+      item: JSON.parse(JSON.stringify(item)),
+      potency: prize.potency,
+      allocatedTickets: raffleEntryByItem.get(prize.item_id) ?? 0,
+      totalTickets: raffleTotalByItem.get(prize.item_id) ?? 0,
+    };
+  });
   const crateOffers = (
     await getPurchasableCrateOffers(database, player.profile.level, config)
   ).map((offer) => ({
@@ -295,6 +361,12 @@ export default async function PlayerPage() {
       <GameDashboard
         archives={JSON.parse(JSON.stringify(archives))}
         crateOffers={crateOffers}
+        raffle={{
+          availableTickets: player.profile.lottery_tickets,
+          nextDrawAt: raffleState.next_draw_at,
+          previousWinners: raffleState.previous_winners,
+          prizes: rafflePrizes,
+        }}
         dailyDropCooldownMinutes={config.dailyDropCooldownMinutes}
         dailyDropCount={config.dailyDropCount}
         debugEnabled={settings.debugEnabled}
@@ -330,12 +402,16 @@ export default async function PlayerPage() {
           alreadyMet: npc.players_met.includes(player._id),
         }))}
         quests={quests}
+        playerId={player._id}
+        marketExpertExpiration={
+          player.profile.market_expert?.expiration ?? null
+        }
         player={{
           screenName: player.screen_name,
           bankBalance: player.profile.bank_balance,
           level: player.profile.level,
           xp: player.profile.xp,
-          lotteryTickets: player.profile.lottery_tickets,
+          raffleTickets: player.profile.lottery_tickets,
           inventoryCap:
             player.profile.inventory_cap +
             (player.profile.expansion_slots ?? 0),

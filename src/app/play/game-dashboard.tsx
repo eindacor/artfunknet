@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import ArchiveEntryDialog from "@/components/archive-entry-dialog";
 import ForgeryDialog from "@/components/forgery-dialog";
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
+import RafflePanel, {
+  type RafflePrizeView,
+} from "@/components/raffle-panel";
 import VintagePlaythroughDialog from "@/components/vintage-playthrough-dialog";
 import {
   getGalleryPaintingDimension,
@@ -54,13 +57,14 @@ import type {
 import type { NpcRewardInteraction } from "@/server/standard-npc-rewards";
 
 import NotificationCenter from "./notification-center";
+import AuctionHouse from "./auctions/auction-house";
 
 type PlayerView = {
   screenName: string;
   bankBalance: number;
   level: number;
   xp: number;
-  lotteryTickets: number;
+  raffleTickets: number;
   inventoryCap: number;
   inventorySlotsUsed: number;
   displayCap: number;
@@ -165,12 +169,15 @@ export default function GameDashboard({
   legendaryAttributes,
   npcSpawnOptions,
   crateOffers,
+  raffle,
   dailyDropCooldownMinutes,
   dailyDropCount,
   dealerPriceMultiplier,
   debugEnabled,
   npcs,
   quests,
+  playerId,
+  marketExpertExpiration,
 }: {
   player: PlayerView;
   items: HydratedGameItem[];
@@ -184,16 +191,31 @@ export default function GameDashboard({
   legendaryAttributes: LegendaryAttributeView[];
   npcSpawnOptions: NpcSpawnOption[];
   crateOffers: CrateOfferView[];
+  raffle: {
+    availableTickets: number;
+    nextDrawAt: string;
+    prizes: RafflePrizeView[];
+    previousWinners: import("@/server/raffle-gameplay").RaffleWinner[];
+  };
   dailyDropCooldownMinutes: number;
   dailyDropCount: number;
   dealerPriceMultiplier: number;
   debugEnabled: boolean;
   npcs: NpcView[];
   quests: ArtHistorianQuestView[];
+  playerId: string;
+  marketExpertExpiration: string | null;
 }) {
   const router = useRouter();
   const [section, setSection] = useState<
-    "profile" | "inventory" | "loot" | "gallery" | "archive" | "quests"
+    | "profile"
+    | "inventory"
+    | "loot"
+    | "gallery"
+    | "archive"
+    | "quests"
+    | "auctions"
+    | "raffle"
   >(
     items.some((item) => item.status === "unclaimed") ? "loot" : "profile",
   );
@@ -701,26 +723,31 @@ export default function GameDashboard({
         <nav className="dashboard-tabs" aria-label="Player dashboard">
           {(
             [
-              "profile",
-              "inventory",
-              "loot",
-              "gallery",
-              "archive",
-              "quests",
+              { id: "profile", label: "Profile", icon: "fa-user" },
+              { id: "inventory", label: "Inventory", icon: "fa-th" },
+              { id: "loot", label: "Loot", icon: "fa-gift" },
+              { id: "gallery", label: "Gallery", icon: "fa-picture-o" },
+              { id: "archive", label: "Archive", icon: "fa-archive" },
+              { id: "quests", label: "Quests", icon: "fa-map-signs" },
+              { id: "auctions", label: "Auction House", icon: "fa-gavel" },
+              { id: "raffle", label: "Raffle", icon: "fa-ticket" },
             ] as const
           ).map((tab) => (
             <button
-              className={section === tab ? "current" : ""}
-              key={tab}
-              onClick={() => setSection(tab)}
+              className={section === tab.id ? "current" : ""}
+              key={tab.id}
+              onClick={() => setSection(tab.id)}
               type="button"
             >
-              {tab}
-              {tab === "loot" && unclaimed.length > 0 ? ` (${unclaimed.length})` : ""}
-              {tab === "archive" && archives.length > 0
+              <i aria-hidden="true" className={`fa ${tab.icon}`} />
+              <span>{tab.label}</span>
+              {tab.id === "loot" && unclaimed.length > 0
+                ? ` (${unclaimed.length})`
+                : ""}
+              {tab.id === "archive" && archives.length > 0
                 ? ` (${archives.length})`
                 : ""}
-              {tab === "quests" && quests.length > 0
+              {tab.id === "quests" && quests.length > 0
                 ? ` (${quests.length})`
                 : ""}
             </button>
@@ -777,8 +804,8 @@ export default function GameDashboard({
                   value={`$${player.bankBalance.toLocaleString()}`}
                   />
                   <ProfileFact
-                    label="Lottery tickets"
-                  value={player.lotteryTickets.toLocaleString()}
+                    label="Raffle tickets"
+                  value={player.raffleTickets.toLocaleString()}
                   />
                   <ProfileFact
                     label="Paintings owned"
@@ -1533,6 +1560,24 @@ export default function GameDashboard({
             onAction={act}
             pending={pending}
             quests={quests}
+          />
+        ) : null}
+
+        {section === "auctions" ? (
+          <AuctionHouse
+            initialBankBalance={player.bankBalance}
+            legendaryAttributes={legendaryAttributes}
+            marketExpertExpiration={marketExpertExpiration}
+            playerId={playerId}
+          />
+        ) : null}
+
+        {section === "raffle" ? (
+          <RafflePanel
+            availableTickets={raffle.availableTickets}
+            nextDrawAt={raffle.nextDrawAt}
+            previousWinners={raffle.previousWinners}
+            prizes={raffle.prizes}
           />
         ) : null}
 
