@@ -52,12 +52,18 @@ export function ArtworkImage({
 export function ItemStatusBadges({
   item,
   alreadyOwned,
+  collectorSaleLabel = "for collectors",
   showFoil = false,
   showMintIcon = true,
+  showMint = true,
+  showOwned = true,
   showUnlocked = false,
 }: Pick<ItemCardRendererProps, "item" | "alreadyOwned"> & {
+  collectorSaleLabel?: string;
   showFoil?: boolean;
   showMintIcon?: boolean;
+  showMint?: boolean;
+  showOwned?: boolean;
   showUnlocked?: boolean;
 }) {
   return (
@@ -70,7 +76,7 @@ export function ItemStatusBadges({
           unlocked
         </span>
       ) : null}
-      {item.mint ? (
+      {item.mint && showMint ? (
         <span className="mint-indicator">
           {showMintIcon ? (
             <i aria-hidden="true" className="fa fa-leaf" />
@@ -79,9 +85,9 @@ export function ItemStatusBadges({
         </span>
       ) : null}
       {item.status === "claimed" && item.tags.includes("for sale") ? (
-        <span className="collector-sale-indicator">for collectors</span>
+        <span className="collector-sale-indicator">{collectorSaleLabel}</span>
       ) : null}
-      {item.status === "unclaimed" ? (
+      {item.status === "unclaimed" && (showOwned || !alreadyOwned) ? (
         <span
           className={`artwork-ownership-indicator ${
             alreadyOwned ? "owned" : "new"
@@ -383,7 +389,7 @@ function AttributeGroup({
   if (attributes.length === 0) return null;
 
   return (
-    <span className="attribute-group">
+    <span className={`attribute-group attribute-group-${type}`}>
       {attributes.map((attribute) => {
         const rating = Math.round((attribute.value ?? 0) * 100);
         return (

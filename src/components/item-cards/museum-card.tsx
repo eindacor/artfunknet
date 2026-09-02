@@ -32,10 +32,10 @@ export default function MuseumCard(props: ItemCardRendererProps) {
         </div>
         <ItemStatusBadges
           alreadyOwned={alreadyOwned}
+          collectorSaleLabel="for sale"
           item={item}
-          showFoil
-          showMintIcon={false}
-          showUnlocked
+          showMint={false}
+          showOwned={false}
         />
         <CompactStats
           item={item}

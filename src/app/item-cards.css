@@ -1213,6 +1213,62 @@
   transform: rotate(-3deg);
 }
 
+.rendered-item-card[data-seasonal="true"] .zine-card-value {
+  background: repeating-linear-gradient(
+    90deg,
+    var(--rarity-color) 0 9px,
+    color-mix(in srgb, var(--rarity-color) 82%, #555) 9px 18px
+  );
+}
+
+.rendered-item-card[data-lottery] .zine-card {
+  box-shadow:
+    8px 8px 0 #e8bf6c,
+    11px 11px 0 #111;
+}
+
+.zine-card-state-stickers {
+  position: absolute;
+  z-index: 8;
+  top: 38px;
+  right: 5px;
+  display: grid;
+  justify-items: end;
+  gap: 0.3rem;
+}
+
+.zine-state-sticker {
+  display: grid;
+  place-items: center;
+  min-width: 1.6rem;
+  min-height: 1.6rem;
+  border: 2px solid currentColor;
+  padding: 0.2rem;
+  background: #f9f3df;
+  box-shadow: 2px 2px 0 #111;
+  font-size: 0.65rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.zine-state-mint {
+  color: var(--mint-dark);
+  transform: rotate(8deg);
+}
+
+.zine-state-unlocked {
+  color: #8b8f95;
+  transform: rotate(-6deg);
+}
+
+.zine-state-lottery {
+  border-color: #9b6b0f;
+  background: #fff3bd;
+  color: #9b6b0f;
+  font-family: Courier, "Courier New", monospace;
+  transform: rotate(5deg);
+}
+
 .zine-card > header {
   display: flex;
   justify-content: space-between;
@@ -1257,7 +1313,41 @@
 
 .zine-card > section {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.28rem;
+  column-gap: 0.55rem;
+}
+
+.zine-card .render-card-badges {
+  grid-row: 1 / span 3;
+  grid-column: 2;
+  display: grid;
+  align-content: start;
+  justify-items: end;
+  gap: 0.2rem;
+  padding-top: 0.1rem;
+}
+
+.zine-card .render-card-badges > span {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: #111;
+  box-shadow: none;
+  font: 900 0.52rem/1.15 Arial, sans-serif;
+  letter-spacing: 0.04em;
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.zine-card .render-card-badges > span::before {
+  content: "• ";
+  color: var(--rarity-color);
+}
+
+.zine-card h3,
+.zine-card section > p {
+  grid-column: 1;
 }
 
 .zine-card h3 {
@@ -1273,6 +1363,71 @@
 .zine-card section > p {
   font-size: 0.57rem;
   font-weight: 700;
+}
+
+.zine-card .render-card-attribute-icons {
+  position: absolute;
+  z-index: 7;
+  inset: 0;
+  display: block;
+  pointer-events: none;
+}
+
+.zine-card .attribute-group {
+  display: contents;
+}
+
+.zine-card .attribute-tooltip {
+  position: absolute;
+  display: grid;
+  width: 1.9rem;
+  height: 1.7rem;
+  place-items: center;
+  border: 2px solid #111;
+  background: #fffdf2;
+  box-shadow: 2px 2px 0 var(--rarity-color);
+  pointer-events: auto;
+}
+
+.zine-card .attribute {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.zine-card .attribute-group-unlocked .attribute-tooltip:nth-child(1) {
+  top: 70px;
+  left: 5px;
+  transform: rotate(-8deg);
+}
+
+.zine-card .attribute-group-unlocked .attribute-tooltip:nth-child(2) {
+  top: 250px;
+  right: 44px;
+  transform: rotate(7deg);
+}
+
+.zine-card .attribute-group-locked .attribute-tooltip:nth-child(1) {
+  top: 220px;
+  right: 5px;
+  transform: rotate(-5deg);
+}
+
+.zine-card .attribute-group-special .attribute-tooltip:nth-child(1) {
+  top: 125px;
+  left: 5px;
+  transform: rotate(6deg);
+}
+
+.zine-card .attribute-group-special .attribute-tooltip:nth-child(2) {
+  top: 175px;
+  right: 5px;
+  transform: rotate(-9deg);
+}
+
+.zine-card .attribute-group-special .attribute-tooltip:nth-child(3) {
+  top: 200px;
+  left: 5px;
+  transform: rotate(4deg);
 }
 
 /* Celestial: rarity-colored orbit lines and constellation light. */
