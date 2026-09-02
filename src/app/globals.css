@@ -1526,6 +1526,20 @@ body {
   margin: 8px auto 0;
 }
 
+.inventory .rendered-item-card > .card-actions button:disabled,
+.inventory
+  .rendered-item-card
+  > .card-actions
+  button[aria-disabled="true"] {
+  display: none;
+}
+
+.inventory
+  .rendered-item-card
+  > .card-actions:not(:has(button:not(:disabled):not([aria-disabled="true"]))) {
+  display: none;
+}
+
 @media (hover: hover) and (pointer: fine) {
   .inventory .rendered-item-card > .card-actions {
     visibility: hidden;

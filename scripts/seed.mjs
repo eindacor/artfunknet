@@ -95,6 +95,15 @@ async function createIndexes(database) {
     .collection("player_artwork_archives")
     .createIndex({ owner: 1, artwork_id: 1 }, { unique: true });
   await database
+    .collection("forgery_contracts")
+    .drop()
+    .catch((error) => {
+      if (error?.codeName !== "NamespaceNotFound") throw error;
+    });
+  await database
+    .collection("players")
+    .updateMany({}, { $unset: { "profile.forgery_contract_cap": "" } });
+  await database
     .collection("items")
     .dropIndex("owner_1_archive_slot_key_1")
     .catch((error) => {
@@ -339,7 +348,6 @@ async function seedPlayer(database) {
           pc_cap: 12,
           visitor_cap: 20,
           repairing_cap: 4,
-          forgery_contract_cap: 8,
           npcs_met: {
             bronze: 0,
             silver: 0,
@@ -921,6 +929,7 @@ async function seedAttributes(database) {
     "yTNQsF9KuRqSX5Wwq",
     "9aC5ZcgsepsRjuihA",
     "t2fCtFr2GGGhAzDmT",
+    "d4gvgMcZSbGs44ynr",
   ];
   const attributeData = [
     ["KsQiutk7Qm4DFWLST", "set_xp_visitors", "set xp bonus to visitors", "fa-arrow-circle-up", "Set Bonus", false],
@@ -930,7 +939,6 @@ async function seedAttributes(database) {
     ["Yk2kk2mZtHetvbrY5", "donor_bonus", "donor bonus", "fa-share-square fa-flip-horizontal", "Art Donor", true],
     ["Lacw8fkPYvSQrmpQN", "benefactor_bonus", "benefactor bonus", "fa-money", "Benefactor", true],
     ["T8v35e75v4Hh2JpxQ", "enthusiast_bonus", "enthusiast bonus", "fa-smile-o", "Art Enthusiast", true],
-    ["d4gvgMcZSbGs44ynr", "forger_bonus", "forger bonus", "fa-user-secret", "Art Forger", false],
     ["nwMiN3DFBgsKBNSar", "art_expert_bonus", "art expert bonus", "fa-info", "Art Expert", true],
     ["Z7wY5jXkDeckwfFLs", "historian_bonus", "historian bonus", "fa-university", "Art Historian", true],
     ["zR2KgxYe4LQZKBAiE", "preservationist_bonus", "preservationist bonus", "fa-wrench", "Preservationist", true],

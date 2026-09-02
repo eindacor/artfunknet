@@ -15,6 +15,12 @@ import {
   hydrateGameItems,
   type HydratedGameItem,
 } from "./item-artwork.ts";
+import {
+  awardForgeryXpAmount,
+  getForgedDisplayRewardMultiplier,
+  punishForgeryQuality,
+  rollForgeryDetected,
+} from "./forgery-gameplay.ts";
 
 const HOUR_MS = 60 * 60 * 1000;
 const MAX_PLAYER_LEVEL = 50;
@@ -32,7 +38,6 @@ type PlayerProfile = {
   pc_cap: number;
   visitor_cap: number;
   repairing_cap: number;
-  forgery_contract_cap: number;
   last_activity: string;
   last_gallery_payout?: string;
   gallery_money_remainder?: number;
@@ -120,7 +125,6 @@ export function getCapsForLevel(level: number) {
     pc_cap: 12,
     visitor_cap: cap(20, 200),
     repairing_cap: cap(4, 12),
-    forgery_contract_cap: cap(8, 16),
   };
 }
 
@@ -136,6 +140,13 @@ export async function calculateGalleryRates(
     playerLevel,
   );
 
+  const forgeryMoneyBonus = items[0]
+    ? await getDisplayedLegendaryEffect(
+        database,
+        items[0].owner,
+        "DISPLAY_FORGERY_MONEY_BONUS",
+      )
+    : null;
   return items.reduce<GalleryRates>(
     (totals, item) => {
       totals.value += item.values.actual;
@@ -144,6 +155,7 @@ export async function calculateGalleryRates(
         averageDrop,
         at,
         config,
+        Boolean(forgeryMoneyBonus),
       );
       totals.xpPerHour += getDisplayXpPerHour(
         item,
@@ -214,6 +226,10 @@ export async function settleGalleryEarnings(
   let moneyAccrued = player.profile.gallery_money_remainder ?? 0;
   let xpAccrued = player.profile.gallery_xp_remainder ?? 0;
   let xpEarned = 0;
+  const originalForgerXp = new Map<string, number>();
+  const activeIntervalsByItem = new Map<string, number>();
+  const caughtForgeryIds = new Set<string>();
+  let activeDisplayed = [...displayed];
 
   const intervalHourRatio = intervalMs / HOUR_MS;
   for (let interval = 1; interval <= elapsedIntervals; interval += 1) {
@@ -221,10 +237,37 @@ export async function settleGalleryEarnings(
     const rates = await calculateGalleryRates(
       database,
       level,
-      displayed,
+      activeDisplayed,
       tick,
       config,
     );
+    for (const item of activeDisplayed) {
+      activeIntervalsByItem.set(
+        item._id,
+        (activeIntervalsByItem.get(item._id) ?? 0) + 1,
+      );
+      if (
+        item.authenticity.forgery &&
+        item.authenticity.original_owner &&
+        item.authenticity.original_owner !== playerId
+      ) {
+        const amount =
+          getDisplayXpPerHour(item, level, tick, config) * intervalHourRatio;
+        originalForgerXp.set(
+          item.authenticity.original_owner,
+          (originalForgerXp.get(item.authenticity.original_owner) ?? 0) +
+            amount,
+        );
+      }
+      if (rollForgeryDetected(item, "display")) {
+        caughtForgeryIds.add(item._id);
+      }
+    }
+    if (caughtForgeryIds.size > 0) {
+      activeDisplayed = activeDisplayed.filter(
+        (item) => !caughtForgeryIds.has(item._id),
+      );
+    }
     moneyAccrued += rates.moneyPerHour * intervalHourRatio;
     xpAccrued += rates.xpPerHour * intervalHourRatio;
     const awardedXp = Math.floor(xpAccrued);
@@ -277,6 +320,9 @@ export async function settleGalleryEarnings(
   if (result.modifiedCount !== 1) {
     return { money: 0, xp: 0, intervals: 0 };
   }
+  for (const [forgerId, amount] of originalForgerXp) {
+    await awardForgeryXpAmount(database, forgerId, amount);
+  }
 
   const conditionDecayChance =
     1 -
@@ -287,12 +333,29 @@ export async function settleGalleryEarnings(
     );
   for (const item of displayed) {
     let condition = item.condition;
-    for (let interval = 0; interval < elapsedIntervals; interval += 1) {
+    const activeIntervals = activeIntervalsByItem.get(item._id) ?? 0;
+    for (let interval = 0; interval < activeIntervals; interval += 1) {
       if (condition >= 0.5 && Math.random() < conditionDecayChance) {
         condition = Number((condition - 0.01).toFixed(2));
       }
     }
-    if (condition !== item.condition) {
+    if (caughtForgeryIds.has(item._id)) {
+      await database.collection<GameItem>("items").updateOne(
+        { _id: item._id, owner: playerId, status: "displayed" },
+        {
+          $set: {
+            status: "claimed",
+            condition,
+            "authenticity.liable": playerId,
+            "authenticity.liability_pending": false,
+            "authenticity.identified": true,
+            "authenticity.forgery_quality": punishForgeryQuality(
+              item.authenticity.forgery_quality,
+            ),
+          },
+        },
+      );
+    } else if (condition !== item.condition) {
       await database
         .collection<GameItem>("items")
         .updateOne({ _id: item._id, status: "displayed" }, { $set: { condition } });
@@ -353,6 +416,7 @@ function getDisplayMoneyPerHour(
   averageDrop: number,
   at: Date,
   config: GameplayConfig,
+  skipForgeryPenalty = false,
 ): number {
   let value = averageDrop;
   value *= { common: 1, uncommon: 2, rare: 4, legendary: 7, masterpiece: 11 }[
@@ -367,9 +431,15 @@ function getDisplayMoneyPerHour(
     value + value * item.condition * item.artwork.value_scale,
   );
   const base = Math.floor(value * 0.015);
-  return Math.floor(
+  let reward = Math.floor(
     base * Math.pow(1.07, getDisplayLevel(item, at, config)),
   );
+  if (item.authenticity.forgery && !skipForgeryPenalty) {
+    reward *= getForgedDisplayRewardMultiplier(
+      item.authenticity.forgery_quality,
+    );
+  }
+  return Math.floor(reward);
 }
 
 function getDisplayXpPerHour(
@@ -379,9 +449,14 @@ function getDisplayXpPerHour(
   config: GameplayConfig,
 ): number {
   const percentage = 0.02 + (item.level / 10) * 0.1;
-  return Math.floor(
+  let reward =
     percentage *
       Math.pow(1.05, getDisplayLevel(item, at, config)) *
-      getXpChunk(playerLevel),
-  );
+      getXpChunk(playerLevel);
+  if (item.authenticity.forgery) {
+    reward *= getForgedDisplayRewardMultiplier(
+      item.authenticity.forgery_quality,
+    );
+  }
+  return Math.floor(reward);
 }

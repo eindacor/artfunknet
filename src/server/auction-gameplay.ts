@@ -16,6 +16,7 @@ import {
   getLegendaryNumberParameter,
 } from "./legendary-attributes";
 import { createPlayerNotification } from "./player-notifications";
+import { sanitizePlayerFacingAuthenticity } from "./forgery-gameplay";
 
 export const PUBLIC_AUCTION_DURATIONS = [60, 360, 720, 1440] as const;
 export const PRIVATE_AUCTION_DURATION_MINUTES = 5;
@@ -670,13 +671,7 @@ export async function getAuctionViews(
       const item = itemById.get(auction.item_id);
       return item ? [{
         ...auction,
-        item: {
-          ...item,
-          authenticity: {
-            ...item.authenticity,
-            forgery: false,
-          },
-        },
+        item: sanitizePlayerFacingAuthenticity(item, true),
         owned: ownedArtworkIds.has(item.artwork_id),
         questTarget: questTargets.has(item.artwork_id),
         currentlyWinning: auction.current_winner_id === playerId,

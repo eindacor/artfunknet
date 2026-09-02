@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import ArchiveEntryDialog from "@/components/archive-entry-dialog";
+import ForgeryDialog from "@/components/forgery-dialog";
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
 import {
   getGalleryPaintingDimension,
@@ -220,6 +221,8 @@ export default function GameDashboard({
     useState<HydratedGameItem | null>(null);
   const [archiveEntryDetails, setArchiveEntryDetails] =
     useState<HydratedPlayerArtworkArchive | null>(null);
+  const [forgeryArchive, setForgeryArchive] =
+    useState<HydratedPlayerArtworkArchive | null>(null);
   const [pending, startTransition] = useTransition();
 
   const unclaimed = useMemo(
@@ -324,6 +327,7 @@ export default function GameDashboard({
       const body = (await response.json()) as {
         error?: string;
         message?: string;
+        notificationKind?: PlayerNotificationKind;
       };
       if (!response.ok) {
         const message = body.error ?? "The action could not be completed.";
@@ -334,7 +338,10 @@ export default function GameDashboard({
 
       if (body.message) {
         setNotice(body.message);
-        await addNotification(body.message, "success");
+        await addNotification(
+          body.message,
+          body.notificationKind ?? "success",
+        );
       }
       router.refresh();
     });
@@ -982,6 +989,11 @@ export default function GameDashboard({
                         act(`/api/play/items/${item._id}/donate`)
                       }
                     />
+                    <AuthenticityActions
+                      act={act}
+                      item={item}
+                      pending={pending}
+                    />
                     {archiveAction(item)}
                   </>
                 );
@@ -1316,7 +1328,30 @@ export default function GameDashboard({
         {archiveEntryDetails ? (
           <ArchiveEntryDialog
             archive={archiveEntryDetails}
+            forgeDisabledReason={
+              inventoryFull &&
+              !archiveEntryDetails.modifiers.includes("vintage")
+                ? "Your inventory is currently full."
+                : undefined
+            }
             onClose={() => setArchiveEntryDetails(null)}
+            onForge={() => {
+              setForgeryArchive(archiveEntryDetails);
+              setArchiveEntryDetails(null);
+            }}
+          />
+        ) : null}
+        {forgeryArchive ? (
+          <ForgeryDialog
+            archive={forgeryArchive}
+            legendaryAttributes={legendaryAttributes}
+            onClose={() => setForgeryArchive(null)}
+            onForged={(message) => {
+              setForgeryArchive(null);
+              setNotice(message);
+              void addNotification(message, "success");
+              router.refresh();
+            }}
           />
         ) : null}
         {artworkOfferSession ? (
@@ -2552,6 +2587,40 @@ function RerollDialog({
           onConfirm={pendingMintMutation.onConfirm}
         />
       ) : null}
+    </>
+  );
+}
+
+function AuthenticityActions({
+  item,
+  pending,
+  act,
+}: {
+  item: HydratedGameItem;
+  pending: boolean;
+  act: (url: string) => void;
+}) {
+  const authenticate = item.authenticationPermission;
+  const report = item.redemptionPermission;
+  return (
+    <>
+      {authenticate?.allowed ? (
+        <ItemActionButton
+          disabled={pending}
+          icon="fa-search"
+          label={`Authenticate for $${authenticate.cost.toLocaleString()}`}
+          onClick={() => act(`/api/play/items/${item._id}/authenticate`)}
+        />
+      ) : null}
+      <ItemActionButton
+        disabled={pending || !report?.allowed}
+        disabledReason={
+          report && !report.allowed ? report.reason : undefined
+        }
+        icon="fa-flag"
+        label="Report suspicious artwork"
+        onClick={() => act(`/api/play/items/${item._id}/report`)}
+      />
     </>
   );
 }

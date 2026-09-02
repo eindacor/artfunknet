@@ -62,6 +62,7 @@ test("collector XP rewards use the legacy level-based chunk percentage", () => {
 
 test("collector forgery heat preserves the legendary reduction", () => {
   const forgedItem = {
+    mint: false,
     foil: false,
     unlocked: false,
     seasonal: false,

@@ -8,6 +8,7 @@ import {
 import type { GameItem } from "@/server/gameplay";
 import { getDemintUpdate } from "@/server/item-mint";
 import { getDatabase } from "@/server/mongodb";
+import { sanitizePlayerFacingAuthenticity } from "@/server/forgery-gameplay";
 import { requirePlayerApi } from "@/server/player-api";
 
 type Player = {
@@ -165,7 +166,7 @@ export async function POST(
   return NextResponse.json({
     status: "ok",
     ...(cosmetic ? { rendererId: cosmetic.id } : {}),
-    item: result,
+    item: sanitizePlayerFacingAuthenticity(result),
     styleInventory: getCardStyleInventory(
       updatedPlayer.profile.card_style_consumables,
     ),

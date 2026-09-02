@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 
 import type { GameItem } from "@/server/gameplay";
 import {
+  punishForgeryQuality,
+  rollForgeryDetected,
+  transferForgeryLiability,
+} from "@/server/forgery-gameplay";
+import { hydrateGameItems } from "@/server/item-artwork";
+import {
   getDisplayedLegendaryEffect,
   getLegendaryNumberParameter,
 } from "@/server/legendary-attributes";
@@ -26,7 +32,7 @@ export async function POST(
 
   const { id } = await params;
   const database = await getDatabase();
-  const item = await database.collection<GameItem>("items").findOneAndDelete({
+  const item = await database.collection<GameItem>("items").findOne({
     _id: id,
     owner: auth.session.playerId,
     status: { $in: ["claimed", "unclaimed"] },
@@ -38,6 +44,41 @@ export async function POST(
       { error: "This item cannot currently be sold." },
       { status: 409 },
     );
+  }
+  if (item.authenticity.forgery) {
+    await transferForgeryLiability(
+      database,
+      item,
+      auth.session.playerId,
+    );
+    const [hydrated] = await hydrateGameItems(database, [item]);
+    if (rollForgeryDetected(hydrated, "sell")) {
+      await database.collection<GameItem>("items").updateOne(
+        { _id: item._id, owner: auth.session.playerId },
+        {
+          $set: {
+            status: "claimed",
+            "authenticity.liable": auth.session.playerId,
+            "authenticity.liability_pending": false,
+            "authenticity.identified": true,
+            "authenticity.forgery_quality": punishForgeryQuality(item.authenticity.forgery_quality),
+          },
+        },
+      );
+      return NextResponse.json({
+        status: "ok",
+        amount: 0,
+        message: "The buyer detected the forgery. It was identified and returned to your inventory.",
+      });
+    }
+  }
+  const removed = await database.collection<GameItem>("items").findOneAndDelete({
+    _id: item._id,
+    owner: auth.session.playerId,
+    status: item.status,
+  });
+  if (!removed) {
+    return NextResponse.json({ error: "This item changed before it could be sold." }, { status: 409 });
   }
   const saleBonus =
     item.status === "unclaimed"
@@ -60,7 +101,7 @@ export async function POST(
     },
   );
   if (result.modifiedCount !== 1) {
-    await database.collection<GameItem>("items").insertOne(item);
+    await database.collection<GameItem>("items").insertOne(removed);
     return NextResponse.json(
       { error: "The sale could not be applied to your account." },
       { status: 500 },

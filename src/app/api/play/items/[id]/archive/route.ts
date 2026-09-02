@@ -23,6 +23,7 @@ import {
 } from "@/server/legendary-attributes";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
+import { transferForgeryLiability } from "@/server/forgery-gameplay";
 
 type ArchivePlayer = {
   _id: string;
@@ -115,9 +116,10 @@ export async function POST(
       );
     }
     if (item.authenticity.forgery) {
-      const identifiedForgery = await database
+      await transferForgeryLiability(database, item, lockedPlayer._id);
+      const destroyedForgery = await database
         .collection<GameItem>("items")
-        .updateOne(
+        .deleteOne(
           {
             _id: item._id,
             owner: lockedPlayer._id,
@@ -125,20 +127,8 @@ export async function POST(
             "authenticity.forgery": true,
             "authenticity.identified": { $ne: true },
           },
-          {
-            $set: {
-              status: "claimed",
-              "authenticity.liability_pending": false,
-              "authenticity.liable": lockedPlayer._id,
-              "authenticity.identified": true,
-              "authenticity.forgery_quality": Math.max(
-                0.1,
-                item.authenticity.forgery_quality - 0.1,
-              ),
-            },
-          },
         );
-      if (identifiedForgery.modifiedCount !== 1) {
+      if (destroyedForgery.deletedCount !== 1) {
         return NextResponse.json(
           {
             error:
@@ -147,13 +137,14 @@ export async function POST(
           { status: 409 },
         );
       }
-      return NextResponse.json(
-        {
-          error:
-            "The archive inspection identified this item as a forgery. It was returned to your inventory.",
-        },
-        { status: 409 },
-      );
+      archiveCompleted = true;
+      return NextResponse.json({
+        status: "ok",
+        forgeryDestroyed: true,
+        notificationKind: "warning",
+        message:
+          "The artwork you tried to archive was a forgery. Archive inspection destroyed it without adding anything to your archive.",
+      });
     }
 
     const discountEffect =

@@ -107,6 +107,23 @@
   cursor: pointer;
 }
 
+.known-forgery-watermark {
+  position: absolute;
+  z-index: 40;
+  inset: 12%;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  color: #7e123f;
+  opacity: 0.6;
+  transform: rotate(-18deg);
+  filter: drop-shadow(0 1px 0 rgb(255 255 255 / 45%));
+}
+
+.known-forgery-watermark .fa {
+  font-size: clamp(5rem, calc(var(--card-width, 300px) * 0.38), 9rem);
+}
+
 .rendered-item-card-trigger,
 .rendered-item-card-trigger::before,
 .rendered-item-card-trigger::after,
@@ -3577,6 +3594,7 @@
   .archive-entry-dialog section {
     grid-column: auto;
   }
+
 }
 
 .mint-loss-dialog-content {
@@ -4003,6 +4021,126 @@
   grid-template-columns: minmax(220px, 0.7fr) minmax(330px, 1.3fr);
   align-items: stretch;
   gap: 1rem;
+}
+
+.forgery-dialog-picker {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.72fr) minmax(360px, 1.28fr);
+  align-items: start;
+  gap: 1rem;
+}
+
+.forgery-dialog-controls {
+  display: grid;
+  gap: 1rem;
+}
+
+.forgery-modifier-options strong {
+  text-transform: capitalize;
+}
+
+.forgery-style-select {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.forgery-style-select > span {
+  color: #777168;
+  font: 700 0.62rem Courier, "Courier New", monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.forgery-style-select select {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #d0cabe;
+  border-radius: var(--game-button-radius);
+  padding: 0.6rem 0.75rem;
+  background: #fffdf7;
+  color: #25231f;
+}
+
+.forgery-dialog-preview {
+  gap: 1rem;
+}
+
+.forgery-watermark-note {
+  margin: 0;
+  border-left: 3px solid #ad3f70;
+  padding: 0.65rem 0.75rem;
+  background: #f8e6ee;
+  color: #5f2941;
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.forgery-heat-panel {
+  display: grid;
+  gap: 0.55rem;
+  border-top: 1px solid #d0cabe;
+  padding-top: 0.8rem;
+}
+
+.forgery-heat-panel > header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.forgery-heat-panel > header span {
+  color: #25231f;
+  font: 700 0.72rem Courier, "Courier New", monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.forgery-heat-panel > header small {
+  color: #777168;
+  font-size: 0.7rem;
+}
+
+.forgery-heat-panel dl {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin: 0;
+  border: 1px solid #d0cabe;
+}
+
+.forgery-heat-panel dl > div {
+  display: grid;
+  gap: 0.25rem;
+  border-right: 1px solid #d0cabe;
+  padding: 0.6rem;
+  text-align: center;
+}
+
+.forgery-heat-panel dl > div:last-child {
+  border-right: 0;
+}
+
+.forgery-heat-panel dt {
+  color: #676158;
+  font: 700 0.58rem Courier, "Courier New", monospace;
+  text-transform: uppercase;
+}
+
+.forgery-heat-panel dd {
+  margin: 0;
+  font: 700 1rem Georgia, serif;
+}
+
+.forgery-heat-panel [data-heat="low"] dd {
+  color: #2e6550;
+}
+
+.forgery-heat-panel [data-heat="medium"] dd {
+  color: #9a5b00;
+}
+
+.forgery-heat-panel [data-heat="high"] dd {
+  color: #9c273c;
 }
 
 .art-style-dialog-options {
@@ -4548,6 +4686,18 @@
 
     .art-style-dialog-picker {
       grid-template-columns: minmax(0, 1fr);
+    }
+
+    .forgery-dialog-picker {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .forgery-heat-panel dl {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .forgery-heat-panel dl > div {
+      border-bottom: 1px solid #d0cabe;
     }
 
     .art-style-dialog-summary {

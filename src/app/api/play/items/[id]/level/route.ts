@@ -26,6 +26,7 @@ import {
 } from "@/server/legendary-attributes";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
+import { sanitizePlayerFacingAuthenticity } from "@/server/forgery-gameplay";
 
 type Player = {
   _id: string;
@@ -271,7 +272,7 @@ export async function POST(
     status: "ok",
     cost,
     discounted,
-    item: updatedItem,
+    item: sanitizePlayerFacingAuthenticity(updatedItem),
     knowledge: normalizeKnowledge(chargedPlayer.profile.knowledge),
     recoveredStyle: recoveredStyle?.id,
     message: `${artwork.title} reached level ${updatedItem.level}${

@@ -340,14 +340,14 @@ export function CompleteItemRecord({
             value={
               item.authenticity.identified
                 ? item.authenticity.forgery
-                  ? "identified forgery"
+                  ? "known forgery"
                   : (
                       <i
-                        aria-label="Verified"
+                        aria-label="Authenticated"
                         className="fa fa-check item-verified"
                       />
                     )
-                : "unidentified"
+                : "unauthenticated"
             }
           />
           {showProperties ? (

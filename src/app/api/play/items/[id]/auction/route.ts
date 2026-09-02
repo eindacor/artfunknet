@@ -5,6 +5,7 @@ import {
   PUBLIC_AUCTION_DURATIONS,
   settleExpiredAuctions,
 } from "@/server/auction-gameplay";
+import { transferForgeryLiability } from "@/server/forgery-gameplay";
 import type { GameItem } from "@/server/gameplay";
 import { hydrateGameItems } from "@/server/item-artwork";
 import { getDatabase } from "@/server/mongodb";
@@ -108,6 +109,7 @@ export async function POST(
     );
   }
 
+  await transferForgeryLiability(database, item, player._id);
   const reserved = await database.collection<GameItem>("items").updateOne(
     {
       _id: item._id,

@@ -47,6 +47,10 @@ import {
 } from "@/server/legendary-attributes";
 import { getRerollCost } from "@/server/item-reroll";
 import {
+  punishForgeryQuality,
+  sanitizePlayerFacingAuthenticity,
+} from "@/server/forgery-gameplay";
+import {
   NPC_QUALITIES,
   type GalleryNpc,
   type NpcQuality,
@@ -499,7 +503,7 @@ export async function POST(
           type: "art-expert-knowledge",
           npcName: npc.npc_name,
           quality: npc.quality,
-          item: hydratedTarget,
+          item: sanitizePlayerFacingAuthenticity(hydratedTarget),
           knowledge,
           xpBonus,
           bonusMoney,
@@ -650,7 +654,7 @@ export async function POST(
           npcName: npc.npc_name,
           quality: npc.quality,
           items: offers.map((item) => ({
-            ...item,
+            ...sanitizePlayerFacingAuthenticity(item),
             alreadyOwned: ownedArtworkIds.has(item.artwork_id),
           })),
         },
@@ -960,7 +964,7 @@ export async function POST(
             npcName: npc.npc_name,
             quality: npc.quality,
             items: offers.map((item) => ({
-              ...item,
+              ...sanitizePlayerFacingAuthenticity(item),
               alreadyOwned: ownedArtworkIds.has(item.artwork_id),
               price: Math.floor(item.values.dealer * priceMultiplier),
             })),
@@ -1114,7 +1118,13 @@ export async function POST(
           status: "claimed",
           tags: "for sale",
         },
-        { $set: { status: "collector_pending" } },
+        {
+          $set: {
+            status: "collector_pending",
+            "authenticity.liable": player._id,
+            "authenticity.liability_pending": false,
+          },
+        },
       );
       if (reservation.modifiedCount !== 1) {
         throw new Error("That artwork is no longer available to the Collector.");
@@ -1140,9 +1150,8 @@ export async function POST(
               "authenticity.liability_pending": false,
               "authenticity.liable": player._id,
               "authenticity.identified": true,
-              "authenticity.forgery_quality": Math.max(
-                0.1,
-                target.authenticity.forgery_quality - 0.1,
+              "authenticity.forgery_quality": punishForgeryQuality(
+                target.authenticity.forgery_quality,
               ),
             },
           },
@@ -1161,7 +1170,7 @@ export async function POST(
             type: "art-collector-result",
             npcName: npc.npc_name,
             quality: npc.quality,
-            item: hydratedTarget,
+            item: sanitizePlayerFacingAuthenticity(hydratedTarget),
             forgeryCaught: true,
             keptItem: true,
             rewardType: null,
@@ -1287,7 +1296,7 @@ export async function POST(
           type: "art-collector-result",
           npcName: npc.npc_name,
           quality: npc.quality,
-          item: hydratedTarget,
+          item: sanitizePlayerFacingAuthenticity(hydratedTarget),
           forgeryCaught: false,
           keptItem,
           rewardType: reward.type,

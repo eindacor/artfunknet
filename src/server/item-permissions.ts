@@ -92,7 +92,7 @@ export function getArchivePermission(
   if (item.authenticity.forgery && item.authenticity.identified) {
     return {
       allowed: false,
-      reason: "An identified forgery cannot be archived.",
+      reason: "A known forgery cannot be archived.",
     };
   }
   if (item.authenticity.forgery) {
@@ -112,4 +112,25 @@ export function getArchivePermission(
     };
   }
   return { allowed: true };
+}
+
+export function getPlayerFacingArchivePermission(
+  item: Parameters<typeof getArchivePermission>[0],
+  archivedModifiers: readonly ArchiveCategory[],
+  archivedArtStyles: readonly string[],
+): ItemPermission {
+  if (!item.authenticity.identified) {
+    return getArchivePermission(
+      {
+        ...item,
+        authenticity: {
+          ...item.authenticity,
+          forgery: true,
+        },
+      },
+      archivedModifiers,
+      archivedArtStyles,
+    );
+  }
+  return getArchivePermission(item, archivedModifiers, archivedArtStyles);
 }

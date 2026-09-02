@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   getArchivePermission,
   getDisplayPermission,
+  getPlayerFacingArchivePermission,
 } from "./item-permissions.ts";
 
 const item = {
@@ -106,4 +107,74 @@ test("archive permission requires a new modifier or art style", () => {
   assert.deepEqual(getArchivePermission(archiveItem, ["mint"], []), {
     allowed: true,
   });
+});
+
+test("known forgeries cannot be archived but unidentified ones can be inspected", () => {
+  assert.deepEqual(
+    getArchivePermission(
+      {
+        ...archiveItem,
+        authenticity: {
+          ...archiveItem.authenticity,
+          forgery: true,
+          identified: true,
+        },
+      },
+      [],
+      [],
+    ),
+    {
+      allowed: false,
+      reason: "A known forgery cannot be archived.",
+    },
+  );
+  assert.deepEqual(
+    getArchivePermission(
+      {
+        ...archiveItem,
+        authenticity: {
+          ...archiveItem.authenticity,
+          forgery: true,
+          identified: false,
+        },
+      },
+      [],
+      [],
+    ),
+    { allowed: true },
+  );
+});
+
+test("unauthenticated archive permission does not reveal hidden forgery status", () => {
+  const legitimate = {
+    ...archiveItem,
+    authenticity: {
+      ...archiveItem.authenticity,
+      forgery: false,
+      identified: false,
+    },
+  };
+  const forgery = {
+    ...legitimate,
+    authenticity: {
+      ...legitimate.authenticity,
+      forgery: true,
+    },
+  };
+  assert.deepEqual(
+    getPlayerFacingArchivePermission(
+      legitimate,
+      ["mint"],
+      ["abstract"],
+    ),
+    { allowed: true },
+  );
+  assert.deepEqual(
+    getPlayerFacingArchivePermission(
+      forgery,
+      ["mint"],
+      ["abstract"],
+    ),
+    { allowed: true },
+  );
 });

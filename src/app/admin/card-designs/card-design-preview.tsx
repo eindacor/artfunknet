@@ -25,6 +25,7 @@ const PREVIEW_STATES = [
   ["seasonal", "Seasonal"],
   ["original", "Original"],
   ["vintage", "Vintage"],
+  ["knownForgery", "Known forgery"],
 ] as const;
 
 type PreviewState = (typeof PREVIEW_STATES)[number][0];
@@ -57,6 +58,7 @@ export default function CardDesignPreview({
     seasonal: false,
     original: false,
     vintage: false,
+    knownForgery: false,
   });
   const [rarity, setRarity] = useState<ArtworkRarity>(item.artwork.rarity);
   const [lotteryLevel, setLotteryLevel] = useState(0);
@@ -84,6 +86,11 @@ export default function CardDesignPreview({
           : selectedItem.attributes,
       condition: states.mint ? 1 : selectedItem.condition,
       mint_value_multiplier: states.mint ? 2 : 1,
+      authenticity: {
+        ...selectedItem.authenticity,
+        forgery: states.knownForgery,
+        identified: true,
+      },
     };
 
     return {

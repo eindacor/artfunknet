@@ -14,6 +14,7 @@ import {
   getCardStyleInventory,
 } from "./catalog";
 import ArtStyleRemovalDialog from "./art-style-removal-dialog";
+import KnownForgeryWatermark from "./known-forgery-watermark";
 import MintLossConfirmationDialog from "./mint-loss-confirmation-dialog";
 import { CARD_RENDERERS } from "./registry";
 import type { CardLegendaryAttribute, CardRendererId } from "./types";
@@ -277,6 +278,12 @@ export default function ArtStyleDialog({
                   className={`rendered-item-card rendered-item-card-${previewCosmetic.id}`}
                   data-card-renderer={previewCosmetic.id}
                   data-foil={dialogItem.foil ? "true" : undefined}
+                  data-known-forgery={
+                    dialogItem.authenticity.identified &&
+                    dialogItem.authenticity.forgery
+                      ? "true"
+                      : undefined
+                  }
                   data-lottery={dialogItem.lottery || undefined}
                   data-original={dialogItem.original ? "true" : undefined}
                   data-rarity={dialogItem.artwork.rarity}
@@ -284,6 +291,9 @@ export default function ArtStyleDialog({
                   data-vintage={dialogItem.vintage ? "true" : undefined}
                 >
                   <span className="rendered-item-card-trigger">
+                    <KnownForgeryWatermark
+                      authenticity={dialogItem.authenticity}
+                    />
                     <PreviewRenderer
                       alreadyOwned={false}
                       item={{

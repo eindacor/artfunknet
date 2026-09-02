@@ -19,6 +19,7 @@ import {
 } from "@/server/legendary-attributes";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
+import { sanitizePlayerFacingAuthenticity } from "@/server/forgery-gameplay";
 
 type Player = {
   _id: string;
@@ -258,6 +259,6 @@ export async function POST(
     status: "ok",
     cost,
     bankBalance: chargedPlayer.profile.bank_balance,
-    item: responseItem,
+    item: sanitizePlayerFacingAuthenticity(responseItem),
   });
 }

@@ -18,6 +18,11 @@ import {
   type GameItem,
   type LootData,
 } from "@/server/gameplay";
+import {
+  punishForgeryQuality,
+  rollForgeryDetected,
+  sanitizePlayerFacingAuthenticity,
+} from "@/server/forgery-gameplay";
 import { hydrateGameItems } from "@/server/item-artwork";
 import {
   getDisplayedLegendaryEffect,
@@ -81,15 +86,45 @@ export async function POST(
     );
   }
 
+  const creditedItemIds = questView.targets.flatMap((target) =>
+    target.owned && target.itemId ? [target.itemId] : [],
+  );
+  const creditedItems = await database.collection<GameItem>("items").find({
+    _id: { $in: creditedItemIds },
+    owner: player._id,
+    status: { $in: ["claimed", "displayed"] },
+    "authenticity.forgery": true,
+  }).toArray();
+  const hydratedCreditedItems = await hydrateGameItems(database, creditedItems);
+  const caughtForgeries = hydratedCreditedItems.filter((item) =>
+    rollForgeryDetected(item, "quest"),
+  );
+  for (const item of caughtForgeries) {
+    await database.collection<GameItem>("items").updateOne(
+      { _id: item._id, owner: player._id },
+      {
+        $set: {
+          status: "claimed",
+          "authenticity.liable": player._id,
+          "authenticity.liability_pending": false,
+          "authenticity.identified": true,
+          "authenticity.forgery_quality": punishForgeryQuality(item.authenticity.forgery_quality),
+        },
+      },
+    );
+  }
+
   const specialTargetCount = questView.targets.filter(
     (target) => target.owned && target.special,
   ).length;
-  const xpReward = calculateHistorianClaimXp(
+  const rewardMultiplier = caughtForgeries.length > 0 ? 0.75 : 1;
+  const xpReward = Math.floor(calculateHistorianClaimXp(
     claimedQuest.reward.xp,
     questView.progress.owned,
     claimedQuest.min_requirement,
     specialTargetCount,
-  );
+  ) * rewardMultiplier);
+  const moneyReward = Math.floor(claimedQuest.reward.money * rewardMultiplier);
   const progress = applyXp(
     player.profile.level,
     player.profile.xp,
@@ -221,7 +256,7 @@ export async function POST(
       },
       {
         $inc: {
-          "profile.bank_balance": claimedQuest.reward.money,
+          "profile.bank_balance": moneyReward,
           "profile.completed_quests": 1,
           "profile.lottery_tickets": progress.lotteryTickets,
         },
@@ -291,15 +326,17 @@ export async function POST(
       : [];
   return NextResponse.json({
     status: "ok",
-    message: `Quest complete: $${claimedQuest.reward.money.toLocaleString()} and ${xpReward.toLocaleString()} XP awarded${
+    message: `Quest complete: $${moneyReward.toLocaleString()} and ${xpReward.toLocaleString()} XP awarded${
       conditionRollbacks.length > 0
         ? `; ${conditionRollbacks.length} target ${conditionRollbacks.length === 1 ? "item was" : "items were"} restored to ${Math.floor((restoredConditionTarget ?? 0.9) * 100)}% condition`
         : ""
-    }.`,
+    }${caughtForgeries.length > 0 ? `; ${caughtForgeries.length} forgery ${caughtForgeries.length === 1 ? "was" : "were"} detected, reducing rewards to 75%` : ""}.`,
     reward: {
-      money: claimedQuest.reward.money,
+      money: moneyReward,
       xp: xpReward,
-      items: rewardItems,
+      items: rewardItems.map((item) =>
+        sanitizePlayerFacingAuthenticity(item),
+      ),
     },
   });
 }

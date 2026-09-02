@@ -5,6 +5,7 @@ import { getDemintUpdate } from "@/server/item-mint";
 import type { LegendaryAttribute } from "@/server/legendary-attributes";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
+import { sanitizePlayerFacingAuthenticity } from "@/server/forgery-gameplay";
 
 type SelectionRequest = {
   attributeId?: unknown;
@@ -92,5 +93,8 @@ export async function PATCH(
     );
   }
 
-  return NextResponse.json({ status: "ok", item: result });
+  return NextResponse.json({
+    status: "ok",
+    item: sanitizePlayerFacingAuthenticity(result),
+  });
 }

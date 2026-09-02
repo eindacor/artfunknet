@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import ArtStyleDialog from "./art-style-dialog";
 import ArtStyleActionButton from "./art-style-action-button";
+import KnownForgeryWatermark from "./known-forgery-watermark";
 import { CARD_RENDERERS } from "./registry";
 import { resolveCardRendererId } from "./selection";
 import StandardItemDialog from "./standard-item-dialog";
@@ -48,6 +49,12 @@ export default function ItemCard({
       className={`item-info rendered-item-card rendered-item-card-${resolvedRendererId}`}
       data-card-renderer={resolvedRendererId}
       data-foil={currentItem.foil ? "true" : undefined}
+      data-known-forgery={
+        currentItem.authenticity.identified &&
+        currentItem.authenticity.forgery
+          ? "true"
+          : undefined
+      }
       data-mint={currentItem.mint ? "true" : undefined}
       data-lottery={currentItem.lottery || undefined}
       data-original={currentItem.original ? "true" : undefined}
@@ -87,6 +94,9 @@ export default function ItemCard({
         role={interactive ? "button" : undefined}
         tabIndex={interactive ? 0 : undefined}
       >
+        <KnownForgeryWatermark
+          authenticity={currentItem.authenticity}
+        />
         <Renderer
           alreadyOwned={alreadyOwned}
           consigned={consigned}

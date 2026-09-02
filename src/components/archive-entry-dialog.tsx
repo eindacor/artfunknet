@@ -12,9 +12,13 @@ import type { HydratedPlayerArtworkArchive } from "@/server/item-artwork";
 export default function ArchiveEntryDialog({
   archive,
   onClose,
+  onForge,
+  forgeDisabledReason,
 }: {
   archive: HydratedPlayerArtworkArchive;
   onClose: () => void;
+  onForge: () => void;
+  forgeDisabledReason?: string;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
@@ -78,6 +82,17 @@ export default function ArchiveEntryDialog({
             <ArchivedArtStyleBadges styles={archive.artStyles} />
           </section>
         ) : null}
+        <button
+          aria-label="Create a forgery"
+          className="item-action-button item-action-style"
+          data-tooltip="Create a forgery"
+          disabled={Boolean(forgeDisabledReason)}
+          onClick={onForge}
+          title={forgeDisabledReason}
+          type="button"
+        >
+          <i aria-hidden="true" className="fa fa-user-secret" />
+        </button>
       </div>
     </dialog>
   );

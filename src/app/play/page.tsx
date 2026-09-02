@@ -14,13 +14,19 @@ import {
   settleGalleryEarnings,
 } from "@/server/collection-gameplay";
 import { getGameplaySettings } from "@/server/game-settings";
+import {
+  getAuthenticationPermission,
+  getPlayerFacingRedemptionPermission,
+  sanitizePlayerFacingAuthenticity,
+  settlePendingForgeryLiability,
+} from "@/server/forgery-gameplay";
 import { getDatabase } from "@/server/mongodb";
 import type { GameItem, ItemAttribute } from "@/server/gameplay";
 import {
   hydrateGameItems,
   hydratePlayerArtworkArchives,
 } from "@/server/item-artwork";
-import { getArchivePermission } from "@/server/item-permissions";
+import { getPlayerFacingArchivePermission } from "@/server/item-permissions";
 import { PRESERVATIONIST_ATTRIBUTE_ID } from "@/server/item-leveling";
 import { getLegendaryAttributes } from "@/server/legendary-attributes";
 import {
@@ -74,6 +80,7 @@ export default async function PlayerPage() {
   const session = await requirePlayer();
   const database = await getDatabase();
   await ensureArchiveStorage(database);
+  await settlePendingForgeryLiability(database, session.playerId);
   const settings = await getGameplaySettings(database);
   const config = settings.active;
   try {
@@ -170,7 +177,7 @@ export default async function PlayerPage() {
     const archivedArtStyles = archive
       ? getArchiveRecordArtStyles(archive)
       : [];
-    const archivePermission = getArchivePermission(
+    const archivePermission = getPlayerFacingArchivePermission(
       item,
       archivedCategories,
       archivedArtStyles,
@@ -178,6 +185,11 @@ export default async function PlayerPage() {
     return {
       ...item,
       archivePermission,
+      authenticationPermission: getAuthenticationPermission(item, player._id),
+      redemptionPermission: getPlayerFacingRedemptionPermission(
+        item,
+        player._id,
+      ),
       archivedArtStyles,
       archivedCategories,
     };
@@ -274,7 +286,7 @@ export default async function PlayerPage() {
         debugEnabled={settings.debugEnabled}
         dealerPriceMultiplier={dealerPriceMultiplier}
         items={items.map((item) => ({
-          ...JSON.parse(JSON.stringify(item)),
+          ...JSON.parse(JSON.stringify(sanitizePlayerFacingAuthenticity(item))),
           reroll_cost: Math.max(
             0,
             Math.floor(item.reroll_cost * rerollCostMultiplier),

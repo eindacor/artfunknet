@@ -32,7 +32,6 @@ test("level caps use the original linear scaling", () => {
     pc_cap: 12,
     visitor_cap: 20,
     repairing_cap: 4,
-    forgery_contract_cap: 8,
   });
   assert.equal(getCapsForLevel(50).inventory_cap, 64);
   assert.equal(getCapsForLevel(50).display_cap, 10);

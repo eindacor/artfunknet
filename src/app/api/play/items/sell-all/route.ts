@@ -9,6 +9,12 @@ import {
 } from "@/server/legendary-attributes";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
+import { hydrateGameItems } from "@/server/item-artwork";
+import {
+  punishForgeryQuality,
+  rollForgeryDetected,
+  transferForgeryLiability,
+} from "@/server/forgery-gameplay";
 
 export async function POST() {
   const auth = await requirePlayerApi();
@@ -27,6 +33,39 @@ export async function POST() {
       { status: 409 },
     );
   }
+  await Promise.all(
+    items.map((item) =>
+      transferForgeryLiability(database, item, auth.session.playerId),
+    ),
+  );
+  const hydrated = await hydrateGameItems(database, items);
+  const caughtIds = new Set(
+    hydrated
+      .filter((item) => rollForgeryDetected(item, "sell"))
+      .map((item) => item._id),
+  );
+  for (const item of items.filter((candidate) => caughtIds.has(candidate._id))) {
+    await database.collection<GameItem>("items").updateOne(
+      { _id: item._id, owner: auth.session.playerId, status: "unclaimed" },
+      {
+        $set: {
+          status: "claimed",
+          "authenticity.liable": auth.session.playerId,
+          "authenticity.liability_pending": false,
+          "authenticity.identified": true,
+          "authenticity.forgery_quality": punishForgeryQuality(item.authenticity.forgery_quality),
+        },
+      },
+    );
+  }
+  const sellableItems = items.filter((item) => !caughtIds.has(item._id));
+  if (sellableItems.length === 0) {
+    return NextResponse.json({
+      status: "ok",
+      amount: 0,
+      message: `All ${caughtIds.size} forged ${caughtIds.size === 1 ? "artwork was" : "artworks were"} detected and returned to your inventory.`,
+    });
+  }
   const saleBonus = await getDisplayedLegendaryEffect(
     database,
     auth.session.playerId,
@@ -37,11 +76,11 @@ export async function POST() {
     "sell_multiplier",
     1,
   );
-  const amount = items.reduce(
+  const amount = sellableItems.reduce(
     (sum, item) => sum + Math.floor(item.values.sell * multiplier),
     0,
   );
-  const ids = items.map((item) => item._id);
+  const ids = sellableItems.map((item) => item._id);
   const operationId = randomUUID();
   let credited = false;
   const reserved = await database.collection<GameItem>("items").updateMany(
@@ -57,7 +96,7 @@ export async function POST() {
       },
     },
   );
-  if (reserved.modifiedCount !== items.length) {
+  if (reserved.modifiedCount !== sellableItems.length) {
     await database.collection<GameItem>("items").updateMany(
       {
         _id: { $in: ids },
@@ -105,7 +144,7 @@ export async function POST() {
       status: "bulk_sale_pending",
       bulk_sale_operation: operationId,
     });
-    if (removed.deletedCount !== items.length) {
+    if (removed.deletedCount !== sellableItems.length) {
       throw new Error("The bulk sale cleanup was incomplete.");
     }
   } catch (error) {
@@ -149,7 +188,7 @@ export async function POST() {
   return NextResponse.json({
     status: "ok",
     amount,
-    message: `Sold ${items.length} unclaimed ${items.length === 1 ? "artwork" : "artworks"} for $${amount.toLocaleString()}.`,
+    message: `Sold ${sellableItems.length} unclaimed ${sellableItems.length === 1 ? "artwork" : "artworks"} for $${amount.toLocaleString()}${caughtIds.size > 0 ? `; ${caughtIds.size} ${caughtIds.size === 1 ? "forgery was" : "forgeries were"} detected and returned to inventory` : ""}.`,
   });
 }
 

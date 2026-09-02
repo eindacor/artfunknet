@@ -12,6 +12,10 @@ import type { ItemPermission } from "./item-permissions.ts";
 export type HydratedGameItem = GameItem & {
   artwork: Artwork;
   archivePermission?: ItemPermission;
+  authenticationPermission?:
+    | { allowed: true; cost: number }
+    | { allowed: false; reason: string };
+  redemptionPermission?: ItemPermission;
   archivedArtStyles?: string[];
   archivedCategories?: ArchiveCategory[];
 };

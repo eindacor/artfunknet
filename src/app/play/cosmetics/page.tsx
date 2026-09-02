@@ -5,6 +5,7 @@ import { getLegendaryAttributes } from "@/server/legendary-attributes";
 import { getDatabase } from "@/server/mongodb";
 import { getAdminSession, requirePlayer } from "@/server/session";
 import { getCardRendererSettings } from "@/server/card-renderer-settings";
+import { sanitizePlayerFacingAuthenticity } from "@/server/forgery-gameplay";
 
 import PlayerHeader from "../player-header";
 import CosmeticStore from "./cosmetic-store";
@@ -76,7 +77,14 @@ export default async function CardCosmeticStorePage() {
         }))}
         sampleItem={
           sampleItem
-            ? JSON.parse(JSON.stringify(sampleItem))
+            ? JSON.parse(
+                JSON.stringify(
+                  sanitizePlayerFacingAuthenticity(
+                    sampleItem,
+                    rawSampleItem?.owner !== player._id,
+                  ),
+                ),
+              )
             : null
         }
       />

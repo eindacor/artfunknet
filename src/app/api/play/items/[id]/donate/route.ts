@@ -13,6 +13,12 @@ import type { GameItem } from "@/server/gameplay";
 import { hydrateGameItems } from "@/server/item-artwork";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
+import {
+  punishForgeryQuality,
+  rollForgeryDetected,
+  transferForgeryLiability,
+} from "@/server/forgery-gameplay";
+import { getDisplayedLegendaryEffect } from "@/server/legendary-attributes";
 
 type Player = {
   _id: string;
@@ -54,6 +60,30 @@ export async function POST(
       { status: 500 },
     );
   }
+  await transferForgeryLiability(
+    database,
+    item,
+    auth.session.playerId,
+  );
+  if (item.authenticity.forgery && rollForgeryDetected(hydratedItem, "donate")) {
+    await database.collection<GameItem>("items").updateOne(
+      { _id: item._id, owner: auth.session.playerId, status: item.status },
+      {
+        $set: {
+          status: "claimed",
+          "authenticity.liable": auth.session.playerId,
+          "authenticity.liability_pending": false,
+          "authenticity.identified": true,
+          "authenticity.forgery_quality": punishForgeryQuality(item.authenticity.forgery_quality),
+        },
+      },
+    );
+    return NextResponse.json({
+      status: "ok",
+      knowledge: {},
+      message: "The museum detected the forgery. It was returned to your inventory and yielded no knowledge.",
+    });
+  }
 
   const rendererFilter =
     item.card_renderer === undefined
@@ -94,6 +124,17 @@ export async function POST(
     hasArtStyle: Boolean(recoveredStyle),
     randomRoll: Math.random(),
   });
+  if (donatedItem.authenticity.forgery) {
+    const bonus = await getDisplayedLegendaryEffect(
+      database,
+      auth.session.playerId,
+      "DONATE_FORGERY_BONUS",
+    );
+    const multiplier = bonus
+      ? donatedItem.authenticity.identified ? 2 : 4
+      : 1;
+    for (const type of KNOWLEDGE_TYPES) knowledge[type] *= multiplier;
+  }
   const increments: Record<string, number> = Object.fromEntries([
     ...KNOWLEDGE_TYPES.map((type) => [
       `profile.knowledge.${type}`,
