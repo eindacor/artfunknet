@@ -15,11 +15,7 @@ import {
   type GameItem,
   type LootData,
 } from "./gameplay.ts";
-import {
-  getDisplayedLegendaryEffect,
-  getLegendaryNumberParameter,
-  MARKETING_MANAGER_ATTRIBUTE_ID,
-} from "./legendary-attributes.ts";
+import { getDisplayedLegendaryEffect } from "./legendary-attributes.ts";
 import type { GalleryNpc } from "./npc-gameplay.ts";
 
 export const ART_HISTORIAN_ATTRIBUTE_ID = "Z7wY5jXkDeckwfFLs";
@@ -154,21 +150,10 @@ export async function createArtHistorianQuest(
   now: Date,
 ): Promise<ArtHistorianQuest> {
   const ownGallery = npc.owner_id === player._id;
-  const [questCount, capBypassEffect] = await Promise.all([
-    database
-      .collection<ArtHistorianQuest>("quests")
-      .countDocuments({ owner_id: player._id }),
-    ownGallery
-      ? getDisplayedLegendaryEffect(
-          database,
-          player._id,
-          "QUEST_CAP_BYPASS",
-        )
-      : null,
-  ]);
-  const questLimit =
-    DEFAULT_HISTORIAN_QUEST_LIMIT * (capBypassEffect ? 2 : 1);
-  if (questCount >= questLimit) {
+  const questCount = await database
+    .collection<ArtHistorianQuest>("quests")
+    .countDocuments({ owner_id: player._id });
+  if (questCount >= DEFAULT_HISTORIAN_QUEST_LIMIT) {
     throw new Error(
       "The Art Historian has a new objective, but your quest list is full.",
     );
@@ -199,14 +184,8 @@ export async function createArtHistorianQuest(
   let xpMultiplier = 1;
   let moneyMultiplier = 1;
   if (ownGallery) {
-    const [targetReductionEffect, xpBonusEffect, marketBonusEffect] =
-      await Promise.all([
-        getDisplayedLegendaryEffect(
-          database,
-          player._id,
-          "QUEST_TARGET_REDUCTION",
-        ),
-        getDisplayedLegendaryEffect(
+    const [xpBonusEffect, marketBonusEffect] = await Promise.all([
+      getDisplayedLegendaryEffect(
           database,
           player._id,
           "QUEST_XP_BONUS",
@@ -216,27 +195,7 @@ export async function createArtHistorianQuest(
           player._id,
           "MARKET_EXPERT_QUEST_BONUS",
         ),
-      ]);
-    const marketingManagerPresent =
-      targetReductionEffect &&
-      (await database.collection<GalleryNpc>("npcs").findOne({
-        owner_id: player._id,
-        attribute_id: MARKETING_MANAGER_ATTRIBUTE_ID,
-        expiration: { $gt: now },
-      }));
-    if (marketingManagerPresent) {
-      minimum = Math.max(
-        1,
-        minimum -
-          Math.floor(
-            getLegendaryNumberParameter(
-              targetReductionEffect,
-              "target_reduction",
-              1,
-            ),
-          ),
-      );
-    }
+    ]);
     if (xpBonusEffect) xpMultiplier = 1.5;
     if (marketBonusEffect) {
       moneyMultiplier =

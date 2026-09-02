@@ -11,10 +11,7 @@ import { getGameplaySettings } from "@/server/game-settings";
 import { getDatabase } from "@/server/mongodb";
 import type { GameItem, ItemAttribute } from "@/server/gameplay";
 import { hydrateGameItems } from "@/server/item-artwork";
-import {
-  getLegendaryAttributes,
-  MARKETING_MANAGER_ATTRIBUTE_ID,
-} from "@/server/legendary-attributes";
+import { getLegendaryAttributes } from "@/server/legendary-attributes";
 import {
   getGalleryNpcs,
   refreshNpcSpawns,
@@ -155,14 +152,6 @@ export default async function PlayerPage() {
       .map((item) => item.active_unique_attribute)
       .filter((id): id is string => Boolean(id)),
   );
-  const displayedLegendaryCodes = new Set(
-    legendaryAttributes
-      .filter(
-        (attribute) =>
-          attribute.active && displayedLegendaryIds.has(attribute._id),
-      )
-      .map((attribute) => attribute.code),
-  );
   const rerollDiscount = legendaryAttributes.find(
     (attribute) =>
       displayedLegendaryIds.has(attribute._id) &&
@@ -183,11 +172,7 @@ export default async function PlayerPage() {
     typeof dealerDiscount?.parameters.cost_multiplier === "number"
       ? dealerDiscount.parameters.cost_multiplier
       : 1;
-  const canRerollDisplayed =
-    displayedLegendaryCodes.has("REROLL_DISPLAY_ENABLE") &&
-    npcs.some(
-      (npc) => npc.attribute_id === MARKETING_MANAGER_ATTRIBUTE_ID,
-    );
+  const canRerollDisplayed = false;
 
   return (
     <div className="game-shell">

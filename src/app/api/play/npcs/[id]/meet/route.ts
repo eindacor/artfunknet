@@ -44,7 +44,6 @@ import {
   AUCTIONEER_ATTRIBUTE_ID,
   getDisplayedLegendaryEffect,
   getLegendaryNumberParameter,
-  MARKET_EXPERT_ATTRIBUTE_ID,
 } from "@/server/legendary-attributes";
 import { getRerollCost } from "@/server/item-reroll";
 import {
@@ -518,11 +517,11 @@ export async function POST(
               ),
             ])
           : [null, null, null, null];
-      const marketExpertPresent =
+      const auctioneerPresent =
         tradeEffect &&
         (await database.collection("npcs").findOne({
           owner_id: player._id,
-          attribute_id: MARKET_EXPERT_ATTRIBUTE_ID,
+          attribute_id: AUCTIONEER_ATTRIBUTE_ID,
           expiration: { $gt: now },
         }));
       const offerCount = Math.max(
@@ -536,7 +535,7 @@ export async function POST(
               additionalOfferEffect ? 1 : 0,
             ),
           ) +
-          (marketExpertPresent
+          (auctioneerPresent
             ? Math.floor(
                 getLegendaryNumberParameter(
                   tradeEffect,
@@ -573,7 +572,7 @@ export async function POST(
       );
       const generated = await generateDailyDrop(
         database,
-        AUCTION_HOUSE_OWNER_ID,
+        player._id,
         player.profile.level,
         {
           now,
@@ -708,7 +707,7 @@ export async function POST(
       );
       const generated = await generateDailyDrop(
         database,
-        player._id,
+        AUCTION_HOUSE_OWNER_ID,
         player.profile.level,
         {
           now,

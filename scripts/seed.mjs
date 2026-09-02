@@ -765,8 +765,12 @@ async function migrateItems(database) {
 }
 
 async function seedAttributes(database) {
+  const removedAttributeIds = [
+    "yTNQsF9KuRqSX5Wwq",
+    "9aC5ZcgsepsRjuihA",
+    "t2fCtFr2GGGhAzDmT",
+  ];
   const attributeData = [
-    ["yTNQsF9KuRqSX5Wwq", "gallery_manager", "gallery manager bonus", "fa-ticket", "Gallery Manager", true],
     ["KsQiutk7Qm4DFWLST", "set_xp_visitors", "set xp bonus to visitors", "fa-arrow-circle-up", "Set Bonus", false],
     ["FgRMQA6s24wmTRyrx", "auctioneer_bonus", "auctioneer bonus", "fa-bullhorn", "Auctioneer", true],
     ["mZH58WpgbKP9o9WZR", "dealer_bonus", "dealer bonus", "fa-shopping-cart", "Art Dealer", true],
@@ -774,13 +778,30 @@ async function seedAttributes(database) {
     ["Yk2kk2mZtHetvbrY5", "donor_bonus", "donor bonus", "fa-share-square fa-flip-horizontal", "Art Donor", true],
     ["Lacw8fkPYvSQrmpQN", "benefactor_bonus", "benefactor bonus", "fa-money", "Benefactor", true],
     ["T8v35e75v4Hh2JpxQ", "enthusiast_bonus", "enthusiast bonus", "fa-smile-o", "Art Enthusiast", true],
-    ["9aC5ZcgsepsRjuihA", "designer_bonus", "designer bonus", "fa-cube", "Designer", true],
     ["d4gvgMcZSbGs44ynr", "forger_bonus", "forger bonus", "fa-user-secret", "Art Forger", false],
     ["nwMiN3DFBgsKBNSar", "art_expert_bonus", "art expert bonus", "fa-info", "Art Expert", true],
     ["Z7wY5jXkDeckwfFLs", "historian_bonus", "historian bonus", "fa-university", "Art Historian", true],
     ["zR2KgxYe4LQZKBAiE", "preservationist_bonus", "preservationist bonus", "fa-wrench", "Preservationist", true],
-    ["t2fCtFr2GGGhAzDmT", "market_expert_bonus", "market expert bonus", "fa-area-chart", "Market Expert", true],
   ];
+
+  await Promise.all([
+    database.collection("attributes").deleteMany({
+      _id: { $in: removedAttributeIds },
+    }),
+    database.collection("npcs").deleteMany({
+      attribute_id: { $in: removedAttributeIds },
+    }),
+    database.collection("items").updateMany(
+      {},
+      {
+        $pull: {
+          "attributes.locked": { _id: { $in: removedAttributeIds } },
+          "attributes.unlocked": { _id: { $in: removedAttributeIds } },
+          "attributes.special": { _id: { $in: removedAttributeIds } },
+        },
+      },
+    ),
+  ]);
 
   for (const [id, title, description, icon, npcName, active] of attributeData) {
     await database.collection("attributes").updateOne(
@@ -807,6 +828,11 @@ function normalizeLegendaryPair(attributeIds) {
 }
 
 async function seedLegendaryAttributes(database) {
+  const removedAttributeIds = [
+    "yTNQsF9KuRqSX5Wwq",
+    "9aC5ZcgsepsRjuihA",
+    "t2fCtFr2GGGhAzDmT",
+  ];
   const now = new Date().toISOString();
   const desiredRecords = LEGENDARY_ATTRIBUTE_PAIRS.map(
     ([left, right, code, description, flavorText, parameters]) => {
@@ -830,6 +856,9 @@ async function seedLegendaryAttributes(database) {
       };
     },
   );
+  await database.collection("unique_attributes").deleteMany({
+    linked_attributes: { $in: removedAttributeIds },
+  });
   await database.collection("unique_attributes").deleteMany({
     $or: desiredRecords.map((record) => ({
       linked_pair: record.linkedPair,
@@ -927,6 +956,9 @@ async function seedArtworkSpecialAttributes(database) {
     legendary: 2,
     masterpiece: 3,
   };
+  const activeAttributeIds = new Set(
+    activeAttributes.map((attribute) => attribute._id),
+  );
 
   if (activeAttributes.length === 0) {
     throw new Error("Active attributes must be seeded before artwork.");
@@ -939,7 +971,10 @@ async function seedArtworkSpecialAttributes(database) {
       ? artwork.special_attributes
       : [];
     let specialAttributes = existing;
-    if (existing.length !== required) {
+    if (
+      existing.length !== required ||
+      existing.some((attributeId) => !activeAttributeIds.has(attributeId))
+    ) {
       specialAttributes = [];
       for (let index = 0; index < required; index += 1) {
         specialAttributes.push(

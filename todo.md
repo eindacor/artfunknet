@@ -30,9 +30,6 @@ TODO list:
 	Forger
 	XP bonus
 	Set bonus
-	Market Expert
-		shows what paintings you have access to are in demand from player quests
-    displays the last price paid on the auction house for your items
 - [x] Disallow spaces and special characters from usernames
 - [x] Modify gallery scrolling so wall and floor patterns are part of the container that moves, instead of offsetting the background colors
 - [x] Foil paintings are set lower than non-foils - make foil element get same height/weight as image in the html, then set class’ position to absolute

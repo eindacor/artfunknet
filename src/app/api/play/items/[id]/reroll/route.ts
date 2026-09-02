@@ -16,7 +16,6 @@ import {
 import {
   getDisplayedLegendaryEffect,
   getLegendaryNumberParameter,
-  MARKETING_MANAGER_ATTRIBUTE_ID,
 } from "@/server/legendary-attributes";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
@@ -60,7 +59,7 @@ export async function POST(
     database.collection<GameItem>("items").findOne({
       _id: id,
       owner: auth.session.playerId,
-      status: { $in: ["claimed", "displayed"] },
+      status: "claimed",
     }),
     database.collection<Player>("players").findOne({
       _id: auth.session.playerId,
@@ -87,29 +86,6 @@ export async function POST(
       { error: "Loot metadata is not configured." },
       { status: 500 },
     );
-  }
-  if (item.status === "displayed") {
-    const [displayPermission, marketingManager] = await Promise.all([
-      getDisplayedLegendaryEffect(
-        database,
-        player._id,
-        "REROLL_DISPLAY_ENABLE",
-      ),
-      database.collection("npcs").findOne({
-        owner_id: player._id,
-        attribute_id: MARKETING_MANAGER_ATTRIBUTE_ID,
-        expiration: { $gt: new Date() },
-      }),
-    ]);
-    if (!displayPermission || !marketingManager) {
-      return NextResponse.json(
-        {
-          error:
-            "Displayed items require the matching Legendary Attribute and a Marketing Manager visitor before they can be rerolled.",
-        },
-        { status: 409 },
-      );
-    }
   }
   const attributeType = findAttributeType(item, body.attributeId);
   if (!attributeType) {
