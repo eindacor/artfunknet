@@ -126,6 +126,15 @@ async function createIndexes(database) {
   await database
     .collection("quests")
     .createIndex({ owner_id: 1, created_at: -1 });
+  await database
+    .collection("auctions")
+    .createIndex({ viewer: 1, expiration: 1 });
+  await database
+    .collection("auctions")
+    .createIndex({ seller_id: 1, expiration: 1 });
+  await database
+    .collection("auctions")
+    .createIndex({ item_id: 1 }, { unique: true });
 }
 
 async function seedAdmin(database) {
@@ -759,7 +768,7 @@ async function seedAttributes(database) {
   const attributeData = [
     ["yTNQsF9KuRqSX5Wwq", "gallery_manager", "gallery manager bonus", "fa-ticket", "Gallery Manager", true],
     ["KsQiutk7Qm4DFWLST", "set_xp_visitors", "set xp bonus to visitors", "fa-arrow-circle-up", "Set Bonus", false],
-    ["FgRMQA6s24wmTRyrx", "auctioneer_bonus", "auctioneer bonus", "fa-bullhorn", "Auctioneer", false],
+    ["FgRMQA6s24wmTRyrx", "auctioneer_bonus", "auctioneer bonus", "fa-bullhorn", "Auctioneer", true],
     ["mZH58WpgbKP9o9WZR", "dealer_bonus", "dealer bonus", "fa-shopping-cart", "Art Dealer", true],
     ["dTSjqBx45mRTvFJeh", "collector_bonus", "collector bonus", "fa-binoculars", "Art Collector", true],
     ["Yk2kk2mZtHetvbrY5", "donor_bonus", "donor bonus", "fa-share-square fa-flip-horizontal", "Art Donor", true],
@@ -777,6 +786,7 @@ async function seedAttributes(database) {
     await database.collection("attributes").updateOne(
       { _id: id },
       {
+        $set: { active },
         $setOnInsert: {
           _id: id,
           title,
@@ -785,7 +795,6 @@ async function seedAttributes(database) {
           value: 0,
           icon,
           npc_name: npcName,
-          active,
         },
       },
       { upsert: true },

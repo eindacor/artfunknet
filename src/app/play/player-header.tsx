@@ -57,6 +57,14 @@ export default function PlayerHeader({
           ◆
         </span>
         <a
+          aria-label="Auction house"
+          className="auction-house-link"
+          href="/play/auctions"
+          title="auction house"
+        >
+          <i aria-hidden="true" className="fa fa-gavel" />
+        </a>
+        <a
           aria-label="Card cosmetic store"
           className="cosmetic-store-link"
           href="/play/cosmetics"

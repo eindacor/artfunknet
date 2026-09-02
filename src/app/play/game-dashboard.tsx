@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
+import AuctionListingDialog from "@/components/item-cards/auction-listing-dialog";
 import ArtStyleDialog from "@/components/item-cards/art-style-dialog";
 import type { CardStyleInventory } from "@/components/item-cards/catalog";
 import ItemCard from "@/components/item-cards/item-card";
@@ -176,6 +177,8 @@ export default function GameDashboard({
     actionLabel: string;
     onConfirm: () => void;
   } | null>(null);
+  const [auctionListingItem, setAuctionListingItem] =
+    useState<HydratedGameItem | null>(null);
   const [pending, startTransition] = useTransition();
 
   const unclaimed = useMemo(
@@ -539,28 +542,41 @@ export default function GameDashboard({
 
         {section === "loot" ? (
           <section className="random-drop">
-            <button
-              className={dropReady ? "enabled" : "disabled"}
-              disabled={!dropReady || pending}
-              onClick={() => act("/api/play/drop")}
-              type="button"
-            >
-              {now === 0
-                ? "checking daily drop..."
-                : dropReady
-                  ? "get daily drop!"
-                  : countdown(nextDrop - now)}
-            </button>
-            {debugEnabled ? (
+            <div className="loot-page-actions">
               <button
-                className="debug-raw-drop"
-                disabled={pending}
-                onClick={() => act("/api/play/drop/debug-raw")}
+                className={dropReady ? "enabled" : "disabled"}
+                disabled={!dropReady || pending}
+                onClick={() => act("/api/play/drop")}
                 type="button"
               >
-                generate raw-map debug drop
+                {now === 0
+                  ? "checking daily drop..."
+                  : dropReady
+                    ? "get daily drop!"
+                    : countdown(nextDrop - now)}
               </button>
-            ) : null}
+              <button
+                className="sell-all-loot"
+                disabled={
+                  pending ||
+                  !unclaimed.some((item) => item.status === "unclaimed")
+                }
+                onClick={() => act("/api/play/items/sell-all")}
+                type="button"
+              >
+                <i aria-hidden="true" className="fa fa-usd" /> Sell all
+              </button>
+              {debugEnabled ? (
+                <button
+                  className="debug-raw-drop"
+                  disabled={pending}
+                  onClick={() => act("/api/play/drop/debug-raw")}
+                  type="button"
+                >
+                  generate raw-map debug drop
+                </button>
+              ) : null}
+            </div>
             {unclaimed.length === 0 ? (
               <p className="empty-state">You have no unclaimed artwork.</p>
             ) : (
@@ -716,6 +732,12 @@ export default function GameDashboard({
                       }
                     />
                     <ItemActionButton
+                      icon="fa-gavel"
+                      label="Put up for auction"
+                      disabled={pending || item.permanent || item.repairing}
+                      onClick={() => setAuctionListingItem(item)}
+                    />
+                    <ItemActionButton
                       icon="fa-usd"
                       label={`Sell for $${item.values.sell.toLocaleString()}`}
                       disabled={pending}
@@ -726,6 +748,17 @@ export default function GameDashboard({
               }}
             />
           </section>
+        ) : null}
+        {auctionListingItem ? (
+          <AuctionListingDialog
+            item={auctionListingItem}
+            onClose={() => setAuctionListingItem(null)}
+            onListed={(message) => {
+              setNotice(message);
+              void addNotification(message, "success");
+              router.refresh();
+            }}
+          />
         ) : null}
 
         {section === "gallery" ? (

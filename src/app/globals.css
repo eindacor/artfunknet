@@ -50,6 +50,10 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+.auction-house-link {
+  color: #e4b85b !important;
+}
+
 .game-shell {
   min-height: 100vh;
   background: white;
@@ -466,6 +470,422 @@ body {
     color 120ms ease,
     opacity 120ms ease,
     transform 120ms ease;
+}
+
+.loot-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  align-items: center;
+}
+
+.random-drop .loot-page-actions > button {
+  min-height: 42px;
+  border: 1px solid #000;
+  border-radius: var(--game-button-radius);
+  padding: 0.65rem 1rem;
+  background: #000;
+  color: #fff;
+  font: inherit;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.random-drop .loot-page-actions > button:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #000;
+}
+
+.random-drop .loot-page-actions > button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.random-drop .loot-page-actions .sell-all-loot {
+  border-color: #237a3b;
+  background: #237a3b;
+}
+
+.auction-house {
+  width: min(1440px, 92%);
+  margin: 0 auto;
+  padding: 42px 0 90px;
+  color: #58525d;
+  font-family: Courier, monospace;
+}
+
+.auction-house-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 2rem;
+  align-items: end;
+  padding: 1.4rem;
+  border: 1px solid #d8ced8;
+  background:
+    linear-gradient(135deg, rgb(255 51 204 / 8%), transparent 45%),
+    #fff;
+  box-shadow: 7px 7px 0 #eee7ee;
+}
+
+.auction-house-heading p,
+.auction-dialog header p {
+  margin: 0 0 0.35rem;
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: bold;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.auction-house-heading h1 {
+  margin: 0;
+  color: #222;
+  font: 800 clamp(2.2rem, 5vw, 4.5rem)/0.95 Georgia, serif;
+}
+
+.auction-house-heading span {
+  display: block;
+  max-width: 700px;
+  margin-top: 0.8rem;
+}
+
+.auction-house-balance {
+  min-width: 220px;
+  padding: 1rem;
+  border-left: 4px solid var(--accent);
+  background: #111;
+  color: #fff;
+}
+
+.auction-house-balance span {
+  margin: 0;
+  color: #bbb;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+
+.auction-house-balance strong {
+  display: block;
+  margin-top: 0.25rem;
+  color: #68dc86;
+  font-size: 1.6rem;
+}
+
+.auctioneer-access {
+  margin: 1.4rem 0 0;
+  border: 1px solid #cfa84e;
+  padding: 0.8rem 1rem;
+  background: #fff8df;
+  color: #5b4618;
+}
+
+.auction-filters {
+  display: grid;
+  grid-template-columns: minmax(240px, 2fr) repeat(4, minmax(130px, 1fr));
+  gap: 0.9rem;
+  margin: 1.5rem 0;
+  border: 1px solid #ddd;
+  padding: 1rem;
+  background: #f7f5f7;
+}
+
+.auction-filters > label,
+.auction-dialog-content > label {
+  display: grid;
+  gap: 0.35rem;
+  color: #333;
+  font-size: 0.72rem;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.auction-filters input,
+.auction-filters select,
+.auction-dialog input,
+.auction-dialog select {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid #aaa;
+  border-radius: 0;
+  padding: 0.45rem 0.55rem;
+  background: #fff;
+  color: #222;
+  font: inherit;
+}
+
+.auction-filters fieldset {
+  display: flex;
+  grid-column: span 2;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  border: 0;
+  margin: 0;
+  padding: 0.4rem 0 0;
+}
+
+.auction-filters legend {
+  margin-bottom: 0.35rem;
+  color: #333;
+  font-size: 0.72rem;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.auction-filters fieldset label {
+  display: flex;
+  gap: 0.3rem;
+  align-items: center;
+  font-size: 0.72rem;
+  text-transform: capitalize;
+}
+
+.auction-filters fieldset input {
+  width: auto;
+  min-height: auto;
+}
+
+.auction-results-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 1.4rem 0 0.8rem;
+}
+
+.auction-results-heading button,
+.auction-pagination button,
+.auction-lot-details > button,
+.auction-dialog footer button {
+  border: 1px solid #000;
+  padding: 0.55rem 0.8rem;
+  background: #000;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.auction-results-heading button:hover,
+.auction-pagination button:hover:not(:disabled),
+.auction-lot-details > button:hover,
+.auction-dialog footer button:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #000;
+}
+
+.auction-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.2rem;
+}
+
+.auction-lot {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 170px;
+  min-height: 310px;
+  overflow: hidden;
+  border: 1px solid #ccc;
+  background: #fff;
+  box-shadow: 5px 5px 0 #eee;
+}
+
+.auction-lot-card {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  overflow: hidden;
+  background: #19171b;
+}
+
+.auction-lot-card .rendered-item-card {
+  transform: scale(0.68);
+  transform-origin: center;
+}
+
+.auction-lot-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 0.9rem;
+}
+
+.auction-lot-details > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.auction-lot-details > div span,
+.auction-lot-details > div strong {
+  padding: 0.22rem 0.35rem;
+  background: #ded9de;
+  color: #333;
+  font-size: 0.58rem;
+}
+
+.auction-lot-details > div .private {
+  background: #ffe292;
+  color: #503a00;
+}
+
+.auction-lot-details > div strong {
+  background: #c8f5d3;
+  color: #145b25;
+}
+
+.auction-lot-details p {
+  margin: 0;
+  font-size: 0.7rem;
+}
+
+.auction-lot-details dl {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.auction-lot-details dl div {
+  border-bottom: 1px dotted #bbb;
+  padding-bottom: 0.3rem;
+}
+
+.auction-lot-details dt {
+  color: #888;
+  font-size: 0.58rem;
+  text-transform: uppercase;
+}
+
+.auction-lot-details dd {
+  margin: 0.1rem 0 0;
+  color: #222;
+  font-weight: bold;
+}
+
+.auction-lot-details > button {
+  margin-top: auto;
+}
+
+.auction-pagination {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  align-items: center;
+  margin-top: 1.5rem;
+}
+
+.auction-pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.auction-house-error,
+.auction-dialog-error {
+  border-left: 4px solid #ba1a1a;
+  padding: 0.7rem;
+  background: #ffe5e5;
+  color: #8b0000;
+}
+
+.auction-dialog {
+  width: min(520px, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  border: 0;
+  padding: 0;
+  color: #4e4850;
+  font-family: Courier, monospace;
+  box-shadow: 0 24px 70px rgb(0 0 0 / 45%);
+}
+
+.auction-dialog::backdrop {
+  background: rgb(12 8 14 / 72%);
+  backdrop-filter: blur(3px);
+}
+
+.auction-dialog-content {
+  display: grid;
+  gap: 1rem;
+  padding: 1.4rem;
+  background: #fff;
+}
+
+.auction-dialog header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 1rem;
+}
+
+.auction-dialog header h2 {
+  margin: 0;
+  color: #222;
+  font: 800 1.7rem Georgia, serif;
+}
+
+.auction-dialog header > i {
+  color: #c49a35;
+  font-size: 2.2rem;
+}
+
+.auction-dialog-content > p {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.auction-dialog label > span {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  align-items: center;
+}
+
+.auction-dialog label > span i {
+  display: grid;
+  height: 38px;
+  place-items: center;
+  background: #222;
+  color: #fff;
+}
+
+.auction-dialog label small {
+  color: #888;
+  font-weight: normal;
+  text-transform: none;
+}
+
+.auction-dialog footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  border-top: 1px solid #ddd;
+  padding-top: 1rem;
+}
+
+@media (max-width: 900px) {
+  .auction-house-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .auction-filters {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .auction-search,
+  .auction-filters fieldset {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 560px) {
+  .auction-filters,
+  .auction-lot {
+    grid-template-columns: 1fr;
+  }
+
+  .auction-lot-card {
+    min-height: 310px;
+  }
 }
 
 .random-drop > button {
@@ -1914,7 +2334,7 @@ body {
   font-weight: bold;
 }
 
-.admin-tools section {
+.admin-tools > section {
   margin-top: 32px;
   border-top: 1px solid rgb(255 255 255 / 25%);
   padding-top: 24px;
@@ -1926,7 +2346,7 @@ body {
   font-weight: bold;
 }
 
-.admin-tools section > p {
+.admin-tools > section > p {
   margin-top: 8px;
   color: #aaa4af;
 }

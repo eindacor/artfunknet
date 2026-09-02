@@ -66,7 +66,7 @@ export type Artwork = {
 export type ArtworkOverrides = Partial<Pick<Artwork, "artist" | "title">>;
 
 export type ItemTransaction = {
-  type: "generation" | "transfer";
+  type: "generation" | "transfer" | "auction";
   from_owner: string | null;
   to_owner: string;
   occurred_at: string;
@@ -106,7 +106,9 @@ export type GameItem = {
     | "for_sale"
     | "claimed"
     | "displayed"
-    | "collector_pending";
+    | "collector_pending"
+    | "auctioned"
+    | "bulk_sale_pending";
   source: string;
   date_created: string;
   date_received: string;
@@ -135,6 +137,7 @@ export type GameItem = {
   permanent: boolean;
   repairing: boolean;
   debug: boolean;
+  bulk_sale_operation?: string;
   time_displayed?: string;
   odds: string;
   values: {
@@ -331,7 +334,7 @@ type DailyDropOptions = {
   source?: string;
   itemLevel?: number;
   conditionMinimum?: number;
-  status?: "unclaimed" | "for_sale";
+  status?: "unclaimed" | "for_sale" | "auctioned";
 };
 
 export function amplifyRarityMap(
@@ -502,7 +505,7 @@ function createItem({
   source: string;
   itemLevel: number;
   conditionMinimum: number;
-  status: "unclaimed" | "for_sale";
+  status: "unclaimed" | "for_sale" | "auctioned";
 }): GameItem {
   const { foil, mint, unlocked } = rollGeneratedItemProperties(
     artwork.rarity,

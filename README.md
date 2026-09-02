@@ -133,7 +133,8 @@ The basic gameplay loop is active:
   recalculates its value without the Mint premium. Collector-offer tags
   preserve Mint. Mint-breaking actions require confirmation through the shared
   Museum-style warning.
-- Unclaimed items can also be sold directly from the loot screen.
+- Unclaimed items can be sold individually or through the Loot tab's Sell All
+  action, which excludes unresolved Art Dealer offers.
 - Generated items carry the original unlocked and locked NPC-attraction
   attributes. Rare, legendary, and masterpiece artwork also requires one, two,
   or three permanent special attributes during admin approval.
@@ -189,6 +190,15 @@ The basic gameplay loop is active:
 - Claimed items can be sold for their generated sell value or placed in the
   player's capacity-limited gallery. Only one copy of an artwork can be
   displayed at a time.
+- Claimed, non-permanent artwork can be consigned from its card action without
+  losing Mint. The price dialog supports the original minimum starting price,
+  optional buy-now price, and one-hour, six-hour, twelve-hour, or one-day
+  durations. The Auction House at <http://localhost:3000/play/auctions>
+  provides title/artist/seller search, rarity and card-type filters, public or
+  private access filters, research filters, pagination, and the original
+  price, artwork, and market-analysis sort choices. Bids escrow funds, refund
+  outbid players, settle lazily without a background worker, transfer sold
+  items, and return unsold consignments.
 - Claimed items can be modified through an accessible reroll dialog. Attraction
   values can be rerolled, unlocked attributes can be replaced, and each roll
   charges the original rarity-scaled cost before recalculating item value.
@@ -196,10 +206,10 @@ The basic gameplay loop is active:
   reduces their roll count.
 - Legendary effects currently modify supported gameplay paths for gallery
   XP-to-money conversion, unclaimed-item sale bonuses, reroll discounts,
-  Marketing Manager-gated rerolls of displayed items, and supported Donor,
-  Dealer, and Collector interactions. Effects involving auctions, quests,
-  repairs, or other unported rewards remain stored and configurable until
-  those systems are migrated.
+  Marketing Manager-gated rerolls of displayed items, supported Donor,
+  Dealer, Collector, Auctioneer, auction, and quest interactions. Effects
+  involving repairs or other unported rewards remain stored and configurable
+  until those systems are migrated.
 - Displayed artwork generates the original hourly money and XP rewards. Rewards
   settle automatically when the player returns, without requiring a local
   background worker. Clicking artwork on the gallery wall opens the shared
@@ -249,6 +259,12 @@ The basic gameplay loop is active:
   and Legendary or foil-Legendary item rewards for the highest quest tiers.
   Supported displayed Legendary effects retain quest-cap bypass, Marketing
   Manager target reduction, XP amplification, and auction-count money bonuses.
+- Auctioneers activate time-limited market analysis, increasing active auction
+  capacity and revealing condition, roll-count, level, and sought-item tools.
+  Each encounter also creates short invitation-only auctions visible only to
+  that player. Private lots retain the original rarity amplification, quality
+  duration bonuses, competitive bot bidding, own-gallery extensions, and
+  supported Legendary count and starting-price adjustments.
 - Benefactors grant the original quality-scaled, randomized cash donations,
   while Art Enthusiasts grant the original quality-scaled XP chunks. Both
   preserve own-gallery amplification, visitor-count effects, Benefactor

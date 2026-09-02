@@ -29,12 +29,18 @@ import {
   type GameItem,
   type LootData,
 } from "@/server/gameplay";
+import {
+  AUCTIONEER_BASE_PRIVATE_LOTS,
+  createAuction,
+  PRIVATE_AUCTION_DURATION_MINUTES,
+} from "@/server/auction-gameplay";
 import { hydrateGameItems } from "@/server/item-artwork";
 import {
   ART_COLLECTOR_ATTRIBUTE_ID,
   ART_DEALER_ATTRIBUTE_ID,
   ART_DONOR_ATTRIBUTE_ID,
   ART_EXPERT_ATTRIBUTE_ID,
+  AUCTIONEER_ATTRIBUTE_ID,
   getDisplayedLegendaryEffect,
   getLegendaryNumberParameter,
   MARKET_EXPERT_ATTRIBUTE_ID,
@@ -63,6 +69,7 @@ type Player = {
     level: number;
     knowledge: Record<string, number>;
     auction_data?: { winning?: string[] };
+    market_expert?: { expiration?: string };
   };
 };
 
@@ -620,6 +627,167 @@ export async function POST(
               ? error.message
               : "The Art Donor interaction failed.",
         },
+        { status: 500 },
+      );
+    }
+  }
+
+  if (npc.attribute_id === AUCTIONEER_ATTRIBUTE_ID) {
+    const generatedItemIds: string[] = [];
+    const generatedAuctionIds: string[] = [];
+    try {
+      const ownGallery = npc.owner_id === player._id;
+      const qualityBonus: Record<NpcQuality, number> = {
+        bronze: 2,
+        silver: 3,
+        gold: 4,
+        platinum: 5,
+      };
+      const currentExpiration = new Date(
+        (
+          await database.collection<Player>("players").findOne(
+            { _id: player._id },
+            { projection: { "profile.market_expert.expiration": 1 } },
+          )
+        )?.profile.market_expert?.expiration ?? 0,
+      );
+      const baseMinutes = 10 + qualityBonus[npc.quality];
+      const extensionMinutes = 5 + qualityBonus[npc.quality];
+      const durationMinutes = ownGallery
+        ? Math.floor(baseMinutes * 2.5)
+        : baseMinutes;
+      const extension = ownGallery
+        ? Math.floor(extensionMinutes * 2.5)
+        : extensionMinutes;
+      const marketExpertExpiration =
+        currentExpiration.getTime() > now.getTime()
+          ? new Date(currentExpiration.getTime() + extension * 60_000)
+          : new Date(now.getTime() + durationMinutes * 60_000);
+
+      const [settings, metadata, donorPair, privatePriceReduction] =
+        await Promise.all([
+          getGameplaySettings(database),
+          database
+            .collection<{ _id: string; loot_data: LootData }>("metadata")
+            .findOne({ _id: "loot-data" }),
+          ownGallery
+            ? getDisplayedLegendaryEffect(
+                database,
+                player._id,
+                "DONOR_AUCTIONEER_TRADE",
+              )
+            : Promise.resolve(null),
+          ownGallery
+            ? getDisplayedLegendaryEffect(
+                database,
+                player._id,
+                "PRIVATE_AUCTION_PRICE_REDUCTION",
+              )
+            : Promise.resolve(null),
+        ]);
+      if (!metadata) throw new Error("Loot metadata is not configured.");
+
+      const auctionCount =
+        AUCTIONEER_BASE_PRIVATE_LOTS +
+        (ownGallery ? 1 : 0) +
+        Math.max(
+          0,
+          Math.floor(
+            getLegendaryNumberParameter(
+              donorPair,
+              "auctioneer_item_delta",
+              donorPair ? 1 : 0,
+            ),
+          ),
+        );
+      const priceMultiplier = getLegendaryNumberParameter(
+        privatePriceReduction,
+        "price_multiplier",
+        privatePriceReduction ? 2.5 : 4,
+      );
+      const generated = await generateDailyDrop(
+        database,
+        player._id,
+        player.profile.level,
+        {
+          now,
+          itemCount: auctionCount,
+          rarityWeights: amplifyRarityMap(
+            getRarityMap(player.profile.level, metadata.loot_data),
+            NPC_RARITY_AMPLIFIERS[npc.quality],
+          ),
+          cardRendererProbability:
+            settings.active.cardRendererProbability,
+          foilProbability: settings.active.foilProbability,
+          mintProbability: settings.active.mintProbability,
+          mintValueMultiplier: settings.active.mintValueMultiplier,
+          unlockedProbability: settings.active.unlockedProbability,
+          debug: settings.debugEnabled,
+          useRawRarityMap: true,
+          source: "private auction",
+          status: "auctioned",
+        },
+      );
+      generatedItemIds.push(...generated.map((item) => item._id));
+      const hydrated = await hydrateGameItems(database, generated);
+      for (const item of hydrated) {
+        const auction = await createAuction(database, item, {
+          sellerId: null,
+          sellerName: "Auction House",
+          viewer: player._id,
+          startingBid: Math.floor(item.values.actual * priceMultiplier),
+          buyNow: null,
+          durationMinutes: PRIVATE_AUCTION_DURATION_MINUTES,
+          now,
+        });
+        generatedAuctionIds.push(auction._id);
+      }
+      await database.collection<Player>("players").updateOne(
+        { _id: player._id },
+        {
+          $set: {
+            "profile.market_expert.expiration":
+              marketExpertExpiration.toISOString(),
+          },
+        },
+      );
+      const message =
+        `The Auctioneer activated market analysis until ${marketExpertExpiration.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} ` +
+        `and opened ${auctionCount} private ${auctionCount === 1 ? "lot" : "lots"} for you.`;
+      return NextResponse.json({
+        status: "ok",
+        message,
+        interaction: {
+          type: "auctioneer-access",
+          npcName: npc.npc_name,
+          quality: npc.quality,
+          auctionCount,
+          expiration: marketExpertExpiration.toISOString(),
+        },
+      });
+    } catch (error) {
+      await Promise.all([
+        generatedAuctionIds.length
+          ? database.collection<{ _id: string }>("auctions").deleteMany({
+              _id: { $in: generatedAuctionIds },
+            })
+          : Promise.resolve(),
+        generatedItemIds.length
+          ? database.collection<{ _id: string }>("items").deleteMany({
+              _id: { $in: generatedItemIds },
+            })
+          : Promise.resolve(),
+        database
+          .collection<GalleryNpc>("npcs")
+          .updateOne({ _id: npc._id }, { $pull: { players_met: player._id } }),
+        database.collection<Player>("players").updateOne(
+          { _id: player._id },
+          { $inc: { [`profile.npcs_met.${npc.quality}`]: -1 } },
+        ),
+      ]);
+      console.error("Unable to create Auctioneer private auctions", error);
+      return NextResponse.json(
+        { error: "The Auctioneer interaction could not be completed." },
         { status: 500 },
       );
     }

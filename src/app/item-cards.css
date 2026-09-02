@@ -99,6 +99,25 @@
   animation: shared-foil-shimmer 6.5s ease-in-out infinite;
 }
 
+.rendered-item-card-reliquary[data-foil="true"]
+  .rendered-item-card-trigger::after {
+  clip-path: polygon(
+    12% 0,
+    88% 0,
+    100% 9%,
+    100% 91%,
+    88% 100%,
+    12% 100%,
+    0 91%,
+    0 9%
+  );
+}
+
+.rendered-item-card-celestial[data-foil="true"]
+  .rendered-item-card-trigger::after {
+  border-radius: 140px 140px 18px 18px;
+}
+
 .rendered-item-card-trigger:focus-visible {
   outline: 3px solid var(--accent);
   outline-offset: 5px;
@@ -977,6 +996,7 @@
   display: flex;
   justify-content: space-between;
   margin: 0.35rem 0;
+  padding-inline: 0.45rem;
   font-size: 0.55rem;
   font-family: "Courier New", Courier, monospace;
 }
@@ -1302,7 +1322,7 @@
 /* Blueprint: measured drafting sheet with a rarity inspection stripe. */
 .blueprint-card {
   display: grid;
-  grid-template-rows: auto 210px 1fr;
+  grid-template-rows: auto 198px 1fr;
   border: 1px solid var(--rarity-light);
   padding: 0.7rem;
   background:
@@ -1372,7 +1392,7 @@
 .blueprint-card > section {
   display: grid;
   align-content: start;
-  gap: 0.25rem;
+  gap: 0.18rem;
   padding: 0.65rem 0.35rem 0;
 }
 
@@ -1756,6 +1776,10 @@
   justify-content: center;
 }
 
+.celestial-card .render-card-compact-stats {
+  padding-inline: 0.5rem;
+}
+
 .rendered-item-card[data-rarity="legendary"] .celestial-card,
 .rendered-item-card[data-rarity="masterpiece"] .celestial-card {
   animation: rarity-power-pulse 1.7s ease-in-out infinite alternate;
@@ -1767,11 +1791,12 @@
 }
 
 .reliquary-card {
+  --reliquary-stripe-color: var(--rarity-glow);
   height: 420px;
   overflow: visible;
   border: 7px double var(--rarity-color);
   clip-path: polygon(12% 0, 88% 0, 100% 9%, 100% 91%, 88% 100%, 12% 100%, 0 91%, 0 9%);
-  padding: 0.8rem;
+  padding: 0.8rem 1.05rem 1.15rem;
   background:
     linear-gradient(135deg, transparent 42%, var(--rarity-glow) 50%, transparent 58%)
       0 0 / 34px 34px,
@@ -1782,6 +1807,29 @@
     inset 0 0 30px var(--rarity-glow),
     0 0 25px var(--rarity-glow);
   font-family: "Courier New", Courier, monospace;
+}
+
+.rendered-item-card[data-seasonal="true"] .reliquary-card {
+  background:
+    repeating-linear-gradient(
+      45deg,
+      transparent 0 12px,
+      color-mix(in srgb, var(--reliquary-stripe-color) 34%, transparent)
+        12px 15px,
+      transparent 15px 27px
+    ),
+    linear-gradient(
+        135deg,
+        transparent 42%,
+        var(--rarity-glow) 50%,
+        transparent 58%
+      )
+      0 0 / 34px 34px,
+    #100d16;
+}
+
+.rendered-item-card[data-lottery] .reliquary-card {
+  --reliquary-stripe-color: #ffd75a;
 }
 
 .reliquary-card::before,
@@ -1827,6 +1875,21 @@
   transform: rotate(45deg);
 }
 
+.reliquary-card-leaf {
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--rarity-light);
+  font-size: 1.15rem;
+  filter: drop-shadow(0 0 6px var(--rarity-color));
+  transform: none;
+}
+
+.reliquary-card-leaf.gem-right {
+  transform: scaleX(-1);
+}
+
 .reliquary-card-gem.gem-left {
   left: -7px;
 }
@@ -1850,8 +1913,13 @@
   letter-spacing: 0.14em;
 }
 
+.reliquary-card-unsealed {
+  color: var(--rarity-light);
+  text-shadow: 0 0 7px var(--rarity-color);
+}
+
 .reliquary-card-frame {
-  height: 220px;
+  height: 205px;
   margin: 0.55rem 0;
   border: 5px ridge var(--rarity-color);
   padding: 4px;
@@ -1868,7 +1936,7 @@
 
 .reliquary-card > section {
   display: grid;
-  gap: 0.28rem;
+  gap: 0.22rem;
   text-align: center;
 }
 
@@ -1892,13 +1960,14 @@
   display: flex;
   justify-content: space-between;
   border-block: 1px solid var(--rarity-color);
-  padding: 0.3rem 0;
+  padding: 0.3rem 0.45rem;
   color: var(--rarity-light);
   font-size: 0.52rem;
 }
 
 .reliquary-card .render-card-attribute-icons {
   justify-content: center;
+  margin-bottom: 0.2rem;
 }
 
 .rendered-item-card[data-rarity="legendary"] .reliquary-card,
@@ -2494,11 +2563,14 @@
 }
 
 .art-style-consumable-preview > .rendered-item-card {
+  display: block;
   max-width: none;
   transform: scale(0.72);
 }
 
 .art-style-consumable-preview .rendered-item-card-trigger {
+  display: block;
+  width: var(--card-width);
   cursor: default;
 }
 

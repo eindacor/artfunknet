@@ -17,10 +17,35 @@ export default function ReliquaryCard({
   return (
     <div className="render-card reliquary-card">
       <div className="reliquary-card-energy" />
-      <span className="reliquary-card-gem gem-left" />
-      <span className="reliquary-card-gem gem-right" />
-      <header>
-        <span>COLLECTION RELIC</span>
+    {item.mint ? (
+      <>
+        <i
+          aria-label="Mint"
+          className="fa fa-leaf reliquary-card-gem reliquary-card-leaf gem-left"
+          role="img"
+        />
+        <i
+          aria-label="Mint"
+          className="fa fa-leaf reliquary-card-gem reliquary-card-leaf gem-right"
+          role="img"
+        />
+      </>
+    ) : (
+      <>
+        <span className="reliquary-card-gem gem-left" />
+        <span className="reliquary-card-gem gem-right" />
+      </>
+    )}
+    <header>
+      <span className={item.unlocked ? "reliquary-card-unsealed" : ""}>
+        {item.unlocked ? (
+          <>
+            UNSEALED RELIC
+          </>
+        ) : (
+          "RELIC"
+        )}
+      </span>
         <strong className="card-rarity-label">
           {item.artwork.rarity}
         </strong>
@@ -33,6 +58,7 @@ export default function ReliquaryCard({
           item={item}
           alreadyOwned={alreadyOwned}
           researchTarget={researchTarget}
+          showMint={false}
         />
         <h3>{item.artwork.title}</h3>
         <p className="render-card-artist">{item.artwork.artist}</p>
