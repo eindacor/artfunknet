@@ -2215,11 +2215,16 @@ function RerollDialog({
               <button
                 className="item-level-up-button"
                 disabled={busy || !canAffordLevelUp}
-                onClick={() => void levelUp()}
+                onClick={() =>
+                  requestMintMutation(
+                    "Leveling up this item",
+                    () => void levelUp(),
+                  )
+                }
                 type="button"
               >
                 <i aria-hidden="true" className="fa fa-level-up" />
-                {busy ? "Applying level..." : `Level up to ${item.level + 1}`}
+                {busy ? "Applying level..." : `Promote to level ${item.level + 1}`}
               </button>
               {!canAffordLevelUp ? (
                 <p className="item-level-up-unavailable">

@@ -2115,6 +2115,7 @@ body {
 .item-level-up-description,
 .item-level-up-discount,
 .item-level-up-style,
+.item-level-up-mint-warning,
 .item-level-up-unavailable,
 .item-level-up-maximum {
   margin: 0;
@@ -2151,7 +2152,8 @@ body {
 }
 
 .item-level-up-discount,
-.item-level-up-style {
+.item-level-up-style,
+.item-level-up-mint-warning {
   display: flex;
   align-items: flex-start;
   gap: 0.5rem;
@@ -2169,7 +2171,19 @@ body {
   color: #45484e;
 }
 
-.item-level-up :is(.item-level-up-discount, .item-level-up-style) i {
+.item-level-up-mint-warning {
+  border-left-color: #b3261e;
+  background: #fff1ef;
+  color: #8b1d17;
+}
+
+.item-level-up
+  :is(
+    .item-level-up-discount,
+    .item-level-up-style,
+    .item-level-up-mint-warning
+  )
+  i {
   margin-top: 0.1rem;
 }
 

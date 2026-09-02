@@ -204,6 +204,9 @@ export async function POST(
     const nextItem = {
       ...item,
       level: item.level + 1,
+      condition: item.mint ? 1 : item.condition,
+      mint: false,
+      mint_value_multiplier: 1,
     };
     delete nextItem.card_renderer;
     const itemArtwork = { ...artwork, ...item.artwork_overrides };
@@ -224,6 +227,9 @@ export async function POST(
     const itemUpdate: UpdateFilter<GameItem> = {
       $set: {
         level: nextItem.level,
+        condition: nextItem.condition,
+        mint: false,
+        mint_value_multiplier: 1,
         values,
         reroll_cost: rerollCost,
       },
@@ -236,6 +242,8 @@ export async function POST(
         status: "claimed",
         level: item.level,
         condition: item.condition,
+        mint: item.mint,
+        mint_value_multiplier: item.mint_value_multiplier,
         ...rendererFilter,
       },
       itemUpdate,
@@ -270,6 +278,6 @@ export async function POST(
       recoveredStyle
         ? `, and its ${recoveredStyle.name} style was recovered`
         : ""
-    }.`,
+    }${item.mint ? ", and its Mint status was removed" : ""}.`,
   });
 }
