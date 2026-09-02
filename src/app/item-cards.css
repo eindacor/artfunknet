@@ -3,6 +3,9 @@
   --mint-color: #55d6a5;
   --mint-dark: #145c45;
   --mint-glow: rgb(85 214 165 / 62%);
+  --unlocked-color: #c7cbd1;
+  --unlocked-dark: #6f747b;
+  --unlocked-glow: rgb(199 203 209 / 62%);
   --rarity-color: #39b54a;
   --rarity-light: #a6efae;
   --rarity-dark: #123c19;
@@ -504,12 +507,12 @@
   display: inline-flex;
   align-items: center;
   margin-left: 0.35rem;
-  color: #8b8f95;
+  color: var(--unlocked-dark);
   text-shadow: 0 1px 0 #fff;
 }
 
 .museum-card-unlocked .fa {
-  color: #aeb4bb;
+  color: var(--unlocked-color);
 }
 
 .museum-card .render-card-compact-stats {
@@ -851,9 +854,9 @@
   width: 1.15rem;
   height: 1.15rem;
   place-items: center;
-  border: 1px solid #8b8f95;
+  border: 1px solid var(--unlocked-dark);
   border-radius: 50%;
-  color: #8b8f95;
+  color: var(--unlocked-dark);
   font-size: 0.65rem;
   transform: rotate(8deg);
 }
@@ -950,6 +953,11 @@
   color: var(--gilded-outer-light);
   font-size: 0.68rem;
   filter: drop-shadow(0 0 3px rgb(0 0 0 / 45%));
+}
+
+.gilded-card-state-corner {
+  color: var(--unlocked-color);
+  filter: drop-shadow(0 0 4px var(--unlocked-glow));
 }
 
 .gilded-card-mint-corner.top-left {
@@ -1098,12 +1106,12 @@
 }
 
 .terminal-card-state-unlocked {
-  border-color: #ff4545;
-  background: rgb(31 2 5 / 94%);
-  color: #ff4545;
+  border-color: var(--unlocked-color);
+  background: rgb(24 27 31 / 94%);
+  color: var(--unlocked-color);
   box-shadow:
-    0 0 8px rgb(255 69 69 / 68%),
-    inset 0 0 12px rgb(255 69 69 / 12%);
+    0 0 8px var(--unlocked-glow),
+    inset 0 0 12px rgb(199 203 209 / 12%);
   animation: terminal-access-pulse 1.4s steps(2) infinite;
 }
 
@@ -1114,7 +1122,7 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgb(255 69 69 / 38%),
+    rgb(199 203 209 / 38%),
     transparent
   );
   transform: translateX(-110%);
@@ -1123,8 +1131,8 @@
 
 .terminal-card-unlocked {
   box-shadow:
-    0 0 12px var(--rarity-glow),
-    inset 0 0 18px color-mix(in srgb, var(--rarity-color) 12%, transparent);
+    0 0 12px var(--unlocked-glow),
+    inset 0 0 18px color-mix(in srgb, var(--unlocked-color) 12%, transparent);
 }
 
 .terminal-card > header {
@@ -1483,7 +1491,7 @@
 }
 
 .zine-state-unlocked {
-  color: #8b8f95;
+  color: var(--unlocked-dark);
   transform: rotate(-6deg);
 }
 
@@ -1879,6 +1887,11 @@
   filter: drop-shadow(0 0 5px var(--rarity-color));
 }
 
+.celestial-card-state-icons .fa-unlock-alt {
+  color: var(--unlocked-color);
+  filter: drop-shadow(0 0 5px var(--unlocked-glow));
+}
+
 .celestial-card-state-icons .fa-leaf {
   color: var(--mint-color);
   filter: drop-shadow(0 0 5px var(--mint-glow));
@@ -1887,6 +1900,1037 @@
 .rendered-item-card[data-rarity="legendary"] .celestial-card,
 .rendered-item-card[data-rarity="masterpiece"] .celestial-card {
   animation: rarity-power-pulse 1.7s ease-in-out infinite alternate;
+}
+
+/* Baseball: a graded slab from the imaginary Artletics league. */
+.baseball-card {
+  padding: 8px;
+  background: rgb(225 235 239 / 72%);
+  color: #172027;
+  font-family: Arial, Helvetica, sans-serif;
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 85%),
+    inset 0 0 12px rgb(75 102 116 / 24%),
+    0 8px 22px rgb(13 26 34 / 28%);
+}
+
+.baseball-card::before,
+.baseball-card::after {
+  position: absolute;
+  z-index: 6;
+  top: 3px;
+  width: 28px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgb(133 155 166 / 55%);
+  content: "";
+}
+
+.baseball-card::before {
+  left: 18px;
+}
+
+.baseball-card::after {
+  right: 18px;
+}
+
+.baseball-card-slab {
+  display: grid;
+  grid-template-rows: 50px 1fr 31px;
+  height: 100%;
+  border: 1px solid rgb(79 103 115 / 65%);
+  padding: 5px;
+  background: rgb(247 250 251 / 86%);
+  box-shadow: inset 0 0 0 3px rgb(205 219 225 / 68%);
+}
+
+.baseball-card-grade {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 55px;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid #aab8bf;
+  padding: 4px;
+  background: #eef3f5;
+  text-transform: uppercase;
+}
+
+.baseball-card-grader {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 2px solid #c52331;
+  border-radius: 50%;
+  color: #152e57;
+  font-size: 0.67rem;
+  font-weight: 900;
+}
+
+.baseball-card-grade > span:nth-child(2) {
+  min-width: 0;
+}
+
+.baseball-card-grade strong,
+.baseball-card-grade small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.baseball-card-grade > span:nth-child(2) strong {
+  font-size: 0.54rem;
+}
+
+.baseball-card-grade > span:nth-child(2) small {
+  margin-top: 2px;
+  color: #65737a;
+  font-size: 0.43rem;
+}
+
+.baseball-card-grade-score {
+  border-left: 1px solid #b8c4ca;
+  text-align: center;
+}
+
+.baseball-card-grade-score strong {
+  color: #ba1527;
+  font-size: 0.82rem;
+}
+
+.baseball-card-grade-score small {
+  font-size: 0.35rem;
+  letter-spacing: 0.06em;
+}
+
+.baseball-card-face {
+  position: relative;
+  overflow: hidden;
+  margin: 5px 3px 3px;
+  border: 4px solid #182632;
+  background: #182632;
+}
+
+.baseball-card-image {
+  height: 100%;
+  background-position: center;
+  background-size: cover;
+}
+
+.baseball-card-image::after {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, transparent 48%, rgb(7 16 24 / 84%) 100%),
+    linear-gradient(135deg, transparent 62%, var(--rarity-glow));
+  content: "";
+}
+
+.baseball-card-sport-icon {
+  position: absolute;
+  z-index: 3;
+  top: 9px;
+  right: 9px;
+  width: 25px;
+  height: 25px;
+}
+
+.baseball-card-sport-icon.baseball {
+  border: 2px solid #f4f1e8;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center, #fff 0 58%, transparent 60%),
+    #fff;
+  box-shadow: 0 2px 5px rgb(0 0 0 / 45%);
+}
+
+.baseball-card-sport-icon.baseball::before,
+.baseball-card-sport-icon.baseball::after {
+  position: absolute;
+  top: 3px;
+  width: 7px;
+  height: 15px;
+  border: 1px dashed #c3313d;
+  border-block: 0;
+  border-radius: 50%;
+  content: "";
+}
+
+.baseball-card-sport-icon.baseball::before {
+  left: 3px;
+}
+
+.baseball-card-sport-icon.baseball::after {
+  right: 3px;
+}
+
+.baseball-card-sport-icon.hockey::before {
+  position: absolute;
+  top: 1px;
+  left: 11px;
+  width: 5px;
+  height: 23px;
+  border-radius: 3px 3px 1px 1px;
+  background: #f6f0dc;
+  box-shadow: 0 2px 5px rgb(0 0 0 / 45%);
+  content: "";
+  transform: rotate(34deg);
+}
+
+.baseball-card-sport-icon.hockey::after {
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  width: 14px;
+  height: 5px;
+  border-radius: 1px 4px 4px 1px;
+  background: #f6f0dc;
+  content: "";
+  transform: rotate(-14deg);
+}
+
+.baseball-card-player-number {
+  position: absolute;
+  z-index: 3;
+  top: 10px;
+  left: 9px;
+  display: grid;
+  place-items: center;
+  min-width: 31px;
+  height: 31px;
+  border: 2px solid white;
+  border-radius: 50%;
+  padding: 0 4px;
+  background: #162632;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 900;
+  box-shadow: 0 2px 5px rgb(0 0 0 / 45%);
+}
+
+.baseball-card-player-number.lottery {
+  border-color: #fff0a8;
+  background: linear-gradient(145deg, #6f4800, #e4b83d, #805300);
+  color: #fff6c8;
+  box-shadow: 0 0 10px #ffd65b;
+}
+
+.baseball-card-watch {
+  position: absolute;
+  z-index: 3;
+  right: 8px;
+  bottom: 56px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border: 1px solid #ffe59a;
+  border-radius: 999px;
+  padding: 3px 6px;
+  background: #203f35;
+  color: #f8e49e;
+  font-size: 0.43rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.baseball-card-nameplate {
+  position: absolute;
+  z-index: 2;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 5px;
+  padding: 22px 8px 7px;
+  color: #fff;
+}
+
+.baseball-card-nameplate strong,
+.baseball-card-nameplate small {
+  display: block;
+}
+
+.baseball-card-nameplate > span:first-child {
+  min-width: 0;
+}
+
+.baseball-card-nameplate > span:first-child strong {
+  overflow: hidden;
+  font-size: 0.77rem;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.baseball-card-nameplate > span:first-child small {
+  color: #d7e0e4;
+  font-size: 0.5rem;
+}
+
+.baseball-card-team {
+  color: #b9c5ca;
+  font-size: 0.36rem;
+  text-align: right;
+}
+
+.baseball-card-team strong {
+  color: var(--rarity-light);
+  font-size: 0.48rem;
+}
+
+.baseball-card footer {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  overflow: hidden;
+  padding: 4px 5px 0;
+  color: #40515a;
+  font-size: 0.47rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.baseball-card footer > span:first-child {
+  color: var(--rarity-color);
+}
+
+.baseball-card footer .render-card-attribute-icons {
+  margin-left: auto;
+  flex-wrap: nowrap;
+  gap: 3px;
+}
+
+.baseball-card footer .attribute {
+  font-size: 0.65rem;
+}
+
+.baseball-card > .render-card-badges {
+  position: absolute;
+  z-index: 8;
+  right: 14px;
+  bottom: 13px;
+}
+
+/* Minimalist: full bleed art with a typographic whisper and state hashes. */
+.minimalist-card {
+  background: #111;
+  color: #fff;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.minimalist-card-image,
+.minimalist-card-shade {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+}
+
+.minimalist-card-image {
+  background-position: center;
+  background-size: cover;
+}
+
+.minimalist-card-shade {
+  background:
+    linear-gradient(180deg, rgb(0 0 0 / 48%), transparent 22%),
+    linear-gradient(0deg, rgb(0 0 0 / 78%), transparent 42%);
+}
+
+.minimalist-card > header {
+  position: absolute;
+  z-index: 2;
+  top: 15px;
+  right: 15px;
+  left: 15px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.48rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.minimalist-card > section {
+  position: absolute;
+  z-index: 2;
+  right: 15px;
+  bottom: 48px;
+  left: 15px;
+}
+
+.minimalist-card h3 {
+  max-width: 92%;
+  font-size: 1.12rem;
+  font-weight: 600;
+  line-height: 1.02;
+}
+
+.minimalist-card section p {
+  margin-top: 5px;
+  color: rgb(255 255 255 / 72%);
+  font-size: 0.52rem;
+}
+
+.minimalist-card > footer {
+  position: absolute;
+  z-index: 3;
+  right: 15px;
+  bottom: 14px;
+  left: 15px;
+  display: flex;
+  align-items: center;
+  min-height: 18px;
+  gap: 10px;
+}
+
+.minimalist-card-marks {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.minimalist-mark {
+  display: block;
+  width: 3px;
+  height: 14px;
+  background: white;
+  transform: skewX(-18deg);
+}
+
+.minimalist-mark-mint {
+  background: var(--mint-color);
+}
+
+.minimalist-mark-lottery {
+  background: #f4c84a;
+}
+
+.minimalist-mark-unlocked {
+  background: var(--unlocked-color);
+}
+
+.minimalist-mark-seasonal {
+  background: #fa7bac;
+}
+
+.minimalist-mark-foil {
+  background: linear-gradient(#ff70dc, #70edff);
+}
+
+.minimalist-mark-original {
+  background: #bb79ff;
+}
+
+.minimalist-mark-vintage {
+  background: #c99b62;
+}
+
+.minimalist-card-level {
+  font-size: 0.48rem;
+  letter-spacing: 0.08em;
+}
+
+.minimalist-card .render-card-attribute-icons {
+  margin-left: auto;
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+
+.minimalist-card .attribute {
+  color: white;
+  font-size: 0.7rem;
+  filter: drop-shadow(0 1px 3px #000);
+}
+
+.minimalist-card > .render-card-badges {
+  position: absolute;
+  z-index: 5;
+  right: 14px;
+  top: 36px;
+  justify-content: flex-end;
+}
+
+/* Bauhaus: primary forms, asymmetric grid, and type as architecture. */
+.bauhaus-card {
+  border: 7px solid #171713;
+  padding: 13px;
+  background: #e9e3d1;
+  color: #171713;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.bauhaus-shape {
+  position: absolute;
+  pointer-events: none;
+}
+
+.bauhaus-circle {
+  top: -24px;
+  right: -28px;
+  width: 106px;
+  height: 106px;
+  border-radius: 50%;
+  background: #e02d26;
+}
+
+.bauhaus-square {
+  right: 12px;
+  bottom: 20px;
+  width: 66px;
+  height: 66px;
+  background: #1452a4;
+}
+
+.bauhaus-line {
+  bottom: 0;
+  left: 34px;
+  width: 12px;
+  height: 95px;
+  background: #e9b72d;
+}
+
+.bauhaus-card > header {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 42px 1fr auto;
+  align-items: center;
+  min-height: 42px;
+  text-transform: uppercase;
+}
+
+.bauhaus-card > header strong {
+  font-size: 1.5rem;
+  letter-spacing: -0.12em;
+}
+
+.bauhaus-card > header span {
+  font-size: 0.52rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+.bauhaus-card > header span:last-child {
+  padding-right: 3px;
+  color: white;
+  font-size: 0.75rem;
+}
+
+.bauhaus-card-image-frame {
+  position: relative;
+  z-index: 2;
+  height: 194px;
+  margin-top: 8px;
+  overflow: hidden;
+  border-radius: 98px 0 0;
+  background: #171713;
+}
+
+.bauhaus-card-image {
+  height: 100%;
+  background-position: center;
+  background-size: cover;
+  filter: saturate(0.98) contrast(1.02);
+}
+
+.bauhaus-card-image-frame::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgb(224 45 38 / 4%), transparent 42%);
+  content: "";
+}
+
+.bauhaus-card > section {
+  position: relative;
+  z-index: 2;
+  width: 77%;
+  padding: 13px 0 0 12px;
+}
+
+.bauhaus-card section p,
+.bauhaus-card section span {
+  font-size: 0.48rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.bauhaus-card h3 {
+  margin-block: 4px !important;
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 0.9;
+  text-transform: lowercase;
+}
+
+.bauhaus-card-states {
+  position: absolute;
+  z-index: 3;
+  right: 20px;
+  bottom: 36px;
+  display: grid;
+  grid-template-columns: repeat(2, 18px);
+  place-items: center;
+  gap: 3px;
+  color: white;
+}
+
+.bauhaus-card-states .fa-circle {
+  color: var(--mint-color);
+}
+
+.bauhaus-card-states .fa-square {
+  color: var(--unlocked-color);
+  filter: drop-shadow(0 0 4px var(--unlocked-glow));
+}
+
+.bauhaus-card-states strong {
+  color: #ffe279;
+  font-size: 0.55rem;
+}
+
+.bauhaus-card > .render-card-attribute-icons {
+  position: absolute;
+  z-index: 4;
+  bottom: 12px;
+  left: 60px;
+  max-width: 130px;
+}
+
+.bauhaus-card .attribute {
+  font-size: 0.72rem;
+}
+
+.bauhaus-card > .render-card-badges {
+  position: absolute;
+  z-index: 5;
+  top: 68px;
+  left: 20px;
+}
+
+.rendered-item-card[data-seasonal="true"] .bauhaus-circle {
+  border-radius: 0;
+  transform: rotate(45deg);
+}
+
+.rendered-item-card[data-seasonal="true"] .bauhaus-card-image-frame {
+  border-radius: 0 98px 0 0;
+}
+
+/* Abstract: intentionally fragmented geometry and almost-right symbols. */
+.abstract-card {
+  overflow: hidden;
+  border: 5px solid #191623;
+  background: #f2d7c7;
+  color: #191623;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.abstract-shape {
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.abstract-shape-one {
+  top: -40px;
+  left: -30px;
+  width: 150px;
+  height: 125px;
+  background: #ff574d;
+  clip-path: polygon(0 0, 100% 18%, 72% 100%, 8% 76%);
+}
+
+.abstract-shape-two {
+  right: -35px;
+  bottom: 48px;
+  width: 145px;
+  height: 148px;
+  border-radius: 50%;
+  background: #395bd7;
+}
+
+.abstract-shape-three {
+  bottom: -22px;
+  left: 22px;
+  width: 128px;
+  height: 96px;
+  background: #f7cd4d;
+  clip-path: polygon(10% 0, 100% 30%, 71% 100%, 0 74%);
+}
+
+.abstract-card-image-slice {
+  position: absolute;
+  z-index: 2;
+  top: 54px;
+  right: 20px;
+  left: 35px;
+  height: 218px;
+  overflow: hidden;
+  clip-path: polygon(7% 0, 100% 12%, 88% 100%, 0 82%);
+  transform: rotate(-3deg);
+}
+
+.abstract-card-image {
+  height: 100%;
+  background-position: center;
+  background-size: cover;
+  transform: rotate(3deg) scale(1.08);
+}
+
+.abstract-card > header {
+  position: absolute;
+  z-index: 4;
+  top: 15px;
+  right: 13px;
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  font-size: 0.52rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  transform: rotate(7deg);
+}
+
+.abstract-card > header strong {
+  font-size: 1.25rem;
+}
+
+.abstract-card > section {
+  position: absolute;
+  z-index: 4;
+  right: 18px;
+  bottom: 20px;
+  left: 28px;
+  transform: rotate(-4deg);
+}
+
+.abstract-card h3 {
+  max-width: 190px;
+  font-size: 1.1rem;
+  font-weight: 900;
+  line-height: 0.88;
+  text-transform: uppercase;
+}
+
+.abstract-card section p {
+  margin-top: 5px;
+  font-size: 0.58rem;
+  font-weight: 800;
+}
+
+.abstract-card section small {
+  font-size: 0.47rem;
+}
+
+.abstract-card-symbols {
+  position: absolute;
+  z-index: 5;
+  top: 274px;
+  left: 14px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.9rem;
+  transform: rotate(8deg);
+}
+
+.abstract-card-symbols > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: #8b6500;
+  font-size: 0.62rem;
+  font-weight: 900;
+}
+
+.abstract-card-symbols .fa-compass {
+  color: var(--mint-dark);
+}
+
+.abstract-card-symbols .fa-key {
+  color: var(--unlocked-color);
+  filter: drop-shadow(0 0 4px var(--unlocked-glow));
+}
+
+.abstract-card > .render-card-attribute-icons {
+  position: absolute;
+  z-index: 5;
+  top: 306px;
+  left: 17px;
+  max-width: 90px;
+  transform: rotate(5deg);
+}
+
+.abstract-card .attribute {
+  font-size: 0.72rem;
+}
+
+.abstract-card > .render-card-badges {
+  position: absolute;
+  z-index: 6;
+  top: 13px;
+  left: 12px;
+  max-width: 150px;
+}
+
+.rendered-item-card[data-seasonal="true"] .abstract-shape-one {
+  top: 240px;
+  left: -35px;
+  transform: rotate(22deg);
+}
+
+.rendered-item-card[data-seasonal="true"] .abstract-shape-two {
+  top: -42px;
+  right: -18px;
+  bottom: auto;
+  border-radius: 0;
+  transform: rotate(35deg);
+}
+
+.rendered-item-card[data-seasonal="true"] .abstract-shape-three {
+  right: -20px;
+  bottom: -10px;
+  left: auto;
+}
+
+.rendered-item-card[data-seasonal="true"] .abstract-card-image-slice {
+  clip-path: polygon(0 13%, 88% 0, 100% 84%, 12% 100%);
+  transform: rotate(3deg);
+}
+
+/* Circle: the complete card treated as a concentric information system. */
+.circle-card {
+  display: grid;
+  grid-template-rows: 292px 1fr;
+  justify-items: center;
+  padding: 10px 8px;
+  background:
+    radial-gradient(circle at 50% 36%, var(--rarity-glow), transparent 42%),
+    #11151a;
+  color: #f4f2e9;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.circle-card-system {
+  position: relative;
+  width: 272px;
+  height: 272px;
+}
+
+.circle-card-ring {
+  position: absolute;
+  border: 1px solid rgb(255 255 255 / 24%);
+  border-radius: 50%;
+}
+
+.circle-card-ring::before,
+.circle-card-ring::after {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--rarity-color);
+  content: "";
+}
+
+.circle-card-ring::before {
+  top: 50%;
+  left: -3px;
+  width: 6px;
+  height: 6px;
+}
+
+.circle-card-ring::after {
+  top: -2px;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+}
+
+.circle-card-ring.ring-outer {
+  inset: 0;
+  border-color: var(--rarity-color);
+}
+
+.circle-card-ring.ring-middle {
+  inset: 24px;
+  border-style: dashed;
+}
+
+.circle-card-ring.ring-inner {
+  inset: 48px;
+}
+
+.circle-card-image-frame {
+  position: absolute;
+  z-index: 2;
+  inset: 62px;
+  overflow: hidden;
+  border: 3px solid var(--rarity-light);
+  border-radius: 50%;
+  box-shadow: 0 0 22px var(--rarity-glow);
+}
+
+.circle-card-image {
+  height: 100%;
+  background-position: center;
+  background-size: cover;
+}
+
+.circle-card-rarity,
+.circle-card-level,
+.circle-card-lottery {
+  position: absolute;
+  z-index: 4;
+  font-size: 0.47rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.circle-card-rarity {
+  top: 16px;
+  left: 50%;
+  color: var(--rarity-light);
+  transform: translateX(-50%);
+}
+
+.circle-card-level {
+  bottom: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.circle-card-lottery {
+  top: 50%;
+  right: 20px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid #ffe279;
+  border-radius: 50%;
+  background: #745512;
+  color: #fff1a6;
+  box-shadow: 0 0 10px rgb(255 214 91 / 55%);
+  transform: translateY(-50%);
+}
+
+.circle-card-orbiter {
+  position: absolute;
+  z-index: 5;
+  inset: 15px;
+  border-radius: 50%;
+  animation: circle-card-orbit 120s linear infinite;
+}
+
+.circle-card-orbiter .fa {
+  position: absolute;
+  top: -7px;
+  left: calc(50% - 7px);
+  display: grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: #11151a;
+  font-size: 0.7rem;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.circle-card-orbiter.orbiter-mint {
+  color: var(--mint-color);
+}
+
+.circle-card-orbiter.orbiter-unlocked {
+  inset: 36px;
+  color: var(--unlocked-color);
+  animation-direction: reverse;
+  animation-duration: 90s;
+}
+
+.circle-card-attribute-ring {
+  position: absolute;
+  z-index: 3;
+  inset: var(--circle-attribute-inset);
+  border: 1px solid rgb(255 255 255 / 19%);
+  border-radius: 50%;
+  animation: circle-card-orbit var(--circle-attribute-duration) linear infinite;
+  pointer-events: none;
+}
+
+.circle-card-attribute-ring.orbit-counterclockwise {
+  animation-direction: reverse;
+}
+
+.circle-card-attribute-ring .attribute {
+  position: absolute;
+  top: -8px;
+  left: calc(50% - 8px);
+  display: grid;
+  width: 17px;
+  height: 17px;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  background: #11151a;
+  font-size: 0.62rem;
+  box-shadow: 0 0 7px currentColor;
+}
+
+.circle-card-attribute-ring .attribute.unlocked {
+  color: var(--unlocked-color);
+}
+
+.circle-card-attribute-ring .attribute.locked {
+  color: #ef6572;
+}
+
+.circle-card-attribute-ring .attribute.special {
+  color: #e7c764;
+}
+
+.circle-card > section {
+  align-self: center;
+  max-width: 240px;
+  text-align: center;
+}
+
+.circle-card h3 {
+  overflow: hidden;
+  color: var(--rarity-light);
+  font-size: 0.78rem;
+  line-height: 1;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.circle-card section p {
+  margin-top: 3px;
+  font-size: 0.52rem;
+}
+
+.circle-card section small {
+  color: rgb(255 255 255 / 62%);
+  font-size: 0.45rem;
+}
+
+.circle-card > .render-card-badges {
+  position: absolute;
+  z-index: 6;
+  right: 8px;
+  bottom: 8px;
+  left: 8px;
+  justify-content: center;
+}
+
+@keyframes circle-card-orbit {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Reliquary: high-detail game loot frame with rarity-powered gems. */
@@ -2018,8 +3062,8 @@
 }
 
 .reliquary-card-unsealed {
-  color: var(--rarity-light);
-  text-shadow: 0 0 7px var(--rarity-color);
+  color: var(--unlocked-color);
+  text-shadow: 0 0 7px var(--unlocked-glow);
 }
 
 .reliquary-card-frame {
@@ -2590,7 +3634,7 @@
 }
 
 .property-unlocked {
-  color: #777;
+  color: var(--unlocked-dark);
 }
 
 .property-seasonal {
@@ -3322,6 +4366,8 @@
   .celestial-card,
   .celestial-card-stars,
   .celestial-card-orbit,
+  .circle-card-orbiter,
+  .circle-card-attribute-ring,
   .reliquary-card,
   .reliquary-card-energy,
   .gilded-card {

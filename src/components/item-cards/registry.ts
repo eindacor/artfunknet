@@ -1,8 +1,13 @@
 import ArcadeCard from "./arcade-card";
+import AbstractCard from "./abstract-card";
+import BaseballCard from "./baseball-card";
+import BauhausCard from "./bauhaus-card";
 import BlueprintCard from "./blueprint-card";
 import { CARD_COSMETICS } from "./catalog";
 import CelestialCard from "./celestial-card";
+import CircleCard from "./circle-card";
 import GildedCard from "./gilded-card";
+import MinimalistCard from "./minimalist-card";
 import MuseumCard from "./museum-card";
 import OgCard from "./og-card";
 import PostcardCard from "./postcard-card";
@@ -30,6 +35,11 @@ export const CARD_RENDERERS: Record<
   zine: ZineCard,
   celestial: CelestialCard,
   reliquary: ReliquaryCard,
+  baseball: BaseballCard,
+  minimalist: MinimalistCard,
+  bauhaus: BauhausCard,
+  abstract: AbstractCard,
+  circle: CircleCard,
 };
 
 export const CARD_RENDERER_OPTIONS = CARD_COSMETICS;

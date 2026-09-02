@@ -1249,7 +1249,7 @@ body {
 }
 
 .signature-unlocked {
-  color: #aaa;
+  color: var(--unlocked-color);
 }
 
 .signature-patreon {

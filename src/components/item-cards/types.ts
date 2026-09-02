@@ -13,6 +13,11 @@ export const CARD_RENDERER_IDS = [
   "zine",
   "celestial",
   "reliquary",
+  "baseball",
+  "minimalist",
+  "bauhaus",
+  "abstract",
+  "circle",
 ] as const;
 
 export const SHOWCASE_CARD_RENDERER_IDS = CARD_RENDERER_IDS;

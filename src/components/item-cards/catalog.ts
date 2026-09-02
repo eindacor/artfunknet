@@ -92,6 +92,41 @@ export const CARD_COSMETICS: CardCosmetic[] = [
     description: "An elaborate game-reward frame that escalates with rarity.",
     price: 400_000,
   },
+  {
+    number: 12,
+    id: "baseball",
+    name: "Gallery All-Star",
+    description: "A graded sports card slab for museum-league standouts.",
+    price: 180_000,
+  },
+  {
+    number: 13,
+    id: "minimalist",
+    name: "Full Bleed",
+    description: "A nearly borderless artwork view with restrained state marks.",
+    price: 90_000,
+  },
+  {
+    number: 14,
+    id: "bauhaus",
+    name: "Bauhaus",
+    description: "Primary geometry, disciplined type, and asymmetric structure.",
+    price: 140_000,
+  },
+  {
+    number: 15,
+    id: "abstract",
+    name: "Near Meaning",
+    description: "Broken shapes, angled type, and deliberately approximate symbols.",
+    price: 165_000,
+  },
+  {
+    number: 16,
+    id: "circle",
+    name: "Concentric",
+    description: "Artwork and information arranged as a system of orbiting circles.",
+    price: 210_000,
+  },
 ];
 
 export function getCardCosmetic(id: string): CardCosmetic | undefined {
