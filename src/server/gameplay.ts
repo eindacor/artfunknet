@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import type { Db } from "mongodb";
 
+import { getCardRendererSettings } from "./card-renderer-settings.ts";
 import { getRerollCost } from "./item-reroll.ts";
 
 export const ARTWORK_RARITIES = [
@@ -296,10 +297,28 @@ export function rollGeneratedItemProperties(
   };
 }
 
+export function rollGeneratedCardRenderer(
+  activeRendererIds: readonly string[],
+  probability: number,
+  random: () => number = Math.random,
+): string | undefined {
+  if (
+    activeRendererIds.length === 0 ||
+    !rollProbability(probability, random)
+  ) {
+    return undefined;
+  }
+
+  return activeRendererIds[
+    Math.floor(random() * activeRendererIds.length)
+  ];
+}
+
 type DailyDropOptions = {
   now?: Date;
   itemCount?: number;
   rarityWeights?: Record<ArtworkRarity, number>;
+  cardRendererProbability?: number;
   foilProbability?: number;
   mintProbability?: number;
   mintValueMultiplier?: number;
@@ -336,6 +355,7 @@ export async function generateDailyDrop(
     now = new Date(),
     itemCount = 6,
     rarityWeights,
+    cardRendererProbability = 0,
     foilProbability = 0.005,
     mintProbability = 0,
     mintValueMultiplier = 1,
@@ -361,6 +381,7 @@ export async function generateDailyDrop(
   if (attributes.length === 0) {
     throw new Error("Artwork attributes have not been seeded.");
   }
+  const rendererSettings = await getCardRendererSettings(database);
 
   const rarityMap = rarityWeights
     ? getConfiguredRarityMap(
@@ -405,6 +426,8 @@ export async function generateDailyDrop(
           0,
         ),
         now,
+        activeRendererIds: rendererSettings.activeRendererIds,
+        cardRendererProbability,
         foilProbability,
         mintProbability,
         mintValueMultiplier,
@@ -447,6 +470,8 @@ function createItem({
   rarityMap,
   artworkWeightTotal,
   now,
+  activeRendererIds,
+  cardRendererProbability,
   foilProbability,
   mintProbability,
   mintValueMultiplier,
@@ -464,6 +489,8 @@ function createItem({
   rarityMap: Record<ArtworkRarity, number>;
   artworkWeightTotal: number;
   now: Date;
+  activeRendererIds: readonly string[];
+  cardRendererProbability: number;
   foilProbability: number;
   mintProbability: number;
   mintValueMultiplier: number;
@@ -494,6 +521,10 @@ function createItem({
   const seasonal =
     lootData.seasonal_items[artwork.rarity]?.includes(artwork._id) ?? false;
   const timestamp = now.toISOString();
+  const cardRenderer = rollGeneratedCardRenderer(
+    activeRendererIds,
+    cardRendererProbability,
+  );
 
   const base = {
     _id: randomUUID(),
@@ -503,6 +534,7 @@ function createItem({
     mint_value_multiplier: mint ? mintValueMultiplier : 1,
     attributes: itemAttributes,
     active_unique_attribute: artwork.unique_attributes?.[0],
+    ...(cardRenderer ? { card_renderer: cardRenderer } : {}),
     owner,
     // TODO AI: Auction and trade transfers should append to this history instead of replacing it.
     transaction_history: [

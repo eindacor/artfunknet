@@ -71,7 +71,7 @@ export default function CardRendererActivation({
           onChange={(event) => void update(event.target.checked)}
           type="checkbox"
         />
-        Active in store
+        Active
       </label>
       <div className="card-renderer-price">
         <label>

@@ -843,6 +843,16 @@ body {
   color: inherit;
 }
 
+.item-action-button.item-action-collector,
+.item-action-button.item-action-gallery {
+  --game-action-border: #c62f72;
+  --game-action-background: #f48ab9;
+  --game-action-shine: rgb(255 255 255 / 32%);
+  --game-action-text: #4c0828;
+  --game-action-hover-background: #db4f8e;
+  --game-action-hover-text: #fff;
+}
+
 .item-action-button::after {
   content: attr(data-tooltip);
   visibility: hidden;

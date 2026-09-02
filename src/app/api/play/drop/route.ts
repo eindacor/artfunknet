@@ -50,6 +50,7 @@ export async function POST() {
         now,
         itemCount: config.dailyDropCount,
         rarityWeights: config.rarityWeights,
+        cardRendererProbability: config.cardRendererProbability,
         foilProbability: config.foilProbability,
         mintProbability: config.mintProbability,
         mintValueMultiplier: config.mintValueMultiplier,

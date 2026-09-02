@@ -49,12 +49,21 @@ test("rarity weights reject invalid and all-zero maps", () => {
 });
 
 test("actual and debug gameplay configurations validate independently", () => {
+  assert.equal(DEFAULT_ACTUAL_GAMEPLAY_CONFIG.cardRendererProbability, 0.01);
   assert.equal(DEFAULT_ACTUAL_GAMEPLAY_CONFIG.mintProbability, 0.0005);
   assert.equal(DEFAULT_ACTUAL_GAMEPLAY_CONFIG.mintValueMultiplier, 2);
+  assert.equal(DEFAULT_DEBUG_GAMEPLAY_CONFIG.cardRendererProbability, 0.25);
   assert.equal(DEFAULT_DEBUG_GAMEPLAY_CONFIG.mintProbability, 0.25);
   assert.equal(DEFAULT_DEBUG_GAMEPLAY_CONFIG.mintValueMultiplier, 2);
   assert.equal(validateGameplayConfig(DEFAULT_ACTUAL_GAMEPLAY_CONFIG).ok, true);
   assert.equal(validateGameplayConfig(DEFAULT_DEBUG_GAMEPLAY_CONFIG).ok, true);
+  assert.equal(
+    validateGameplayConfig({
+      ...DEFAULT_DEBUG_GAMEPLAY_CONFIG,
+      cardRendererProbability: 1.001,
+    }).ok,
+    false,
+  );
   assert.equal(
     validateGameplayConfig({
       ...DEFAULT_DEBUG_GAMEPLAY_CONFIG,

@@ -10,6 +10,7 @@ import {
   getSpecialAttributeCount,
   normalizeRarityMap,
   rollProbability,
+  rollGeneratedCardRenderer,
   rollGeneratedItemProperties,
   rollUnlocked,
   rollWeighted,
@@ -67,6 +68,26 @@ test("foil probability uses the configured roll boundary", () => {
   assert.equal(rollProbability(0.005, () => 0.005), false);
   assert.equal(rollProbability(0, () => 0), false);
   assert.equal(rollProbability(1, () => 0.9999), true);
+});
+
+test("generated card styles roll only from active renderers", () => {
+  const rolls = [0.2, 0.8];
+  assert.equal(
+    rollGeneratedCardRenderer(
+      ["museum", "zine"],
+      0.25,
+      () => rolls.shift() ?? 0,
+    ),
+    "zine",
+  );
+  assert.equal(
+    rollGeneratedCardRenderer(["museum"], 0.25, () => 0.25),
+    undefined,
+  );
+  assert.equal(
+    rollGeneratedCardRenderer([], 1, () => 0),
+    undefined,
+  );
 });
 
 test("mint value multiplier applies only while the item is mint", () => {

@@ -45,6 +45,7 @@ export async function POST() {
       {
         itemCount: settings.active.dailyDropCount,
         rarityWeights: settings.active.rarityWeights,
+        cardRendererProbability: settings.active.cardRendererProbability,
         foilProbability: settings.active.foilProbability,
         mintProbability: settings.active.mintProbability,
         mintValueMultiplier: settings.active.mintValueMultiplier,

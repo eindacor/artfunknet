@@ -1961,12 +1961,7 @@
   place-items: center;
   overflow: auto;
   padding: 2.5rem 1.25rem;
-  background:
-    linear-gradient(45deg, #17161a 25%, transparent 25%) 0 0 / 20px 20px,
-    linear-gradient(-45deg, #17161a 25%, transparent 25%) 0 10px / 20px 20px,
-    linear-gradient(45deg, transparent 75%, #17161a 75%) 10px -10px / 20px 20px,
-    linear-gradient(-45deg, transparent 75%, #17161a 75%) -10px 0 / 20px 20px,
-    #111014;
+  background: #fff;
 }
 
 .standard-item-dialog {

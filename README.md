@@ -117,9 +117,9 @@ loot sections and their legacy visual treatment.
 
 The basic gameplay loop is active:
 
-- Daily drop cooldown, item count, foil, unlocked, and Mint probabilities,
-  Mint value multiplier, and gallery payout frequency are persisted in MongoDB
-  and editable for both Actual and Debug profiles at
+- Daily drop cooldown, item count, foil, unlocked, Mint, and random card-style
+  probabilities, Mint value multiplier, and gallery payout frequency are
+  persisted in MongoDB and editable for both Actual and Debug profiles at
   <http://localhost:3000/admin>.
 - Each drop creates six `unclaimed` items using the original level-gated rarity,
   artwork weighting, condition, attribute, foil, unlocked, misprint, and value
@@ -142,7 +142,9 @@ The basic gameplay loop is active:
   cosmetic overrides the player-level `profile.card_renderer` preference, and
   unknown renderer IDs fall back to `museum`. The premium OG renderer retains
   the stable internal `legacy` ID for saved data and must match the original
-  Meteor card whenever it is updated. Nine other self-contained
+  Meteor card whenever it is updated. Newly generated items can independently
+  roll an item-level renderer using the active gameplay profile; successful
+  rolls select uniformly from renderers currently marked Active. Nine other self-contained
   renderers—Neon Inventory, Artist Postcard, Gilded Salon,
   Archive Terminal, Prismatic Showcase, Curator Blueprint, Downtown Zine,
   Celestial Orbit, and Boss Reliquary—are available at

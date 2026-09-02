@@ -21,6 +21,7 @@ const DEBUG_RARITY_WEIGHTS: Record<ArtworkRarity, number> = {
 export type GameplayConfig = {
   dailyDropCooldownMinutes: number;
   dailyDropCount: number;
+  cardRendererProbability: number;
   foilProbability: number;
   mintProbability: number;
   mintValueMultiplier: number;
@@ -46,6 +47,7 @@ export type GameplaySettings = {
 export const DEFAULT_ACTUAL_GAMEPLAY_CONFIG: GameplayConfig = {
   dailyDropCooldownMinutes: 5,
   dailyDropCount: 6,
+  cardRendererProbability: 0.01,
   foilProbability: 0.005,
   mintProbability: 0.0005,
   mintValueMultiplier: 2,
@@ -61,6 +63,7 @@ export const DEFAULT_ACTUAL_GAMEPLAY_CONFIG: GameplayConfig = {
 export const DEFAULT_DEBUG_GAMEPLAY_CONFIG: GameplayConfig = {
   dailyDropCooldownMinutes: 1,
   dailyDropCount: 20,
+  cardRendererProbability: 0.25,
   foilProbability: 0.5,
   mintProbability: 0.25,
   mintValueMultiplier: 2,
@@ -76,6 +79,7 @@ export const DEFAULT_DEBUG_GAMEPLAY_CONFIG: GameplayConfig = {
 type StoredGameplayConfig = {
   daily_drop_cooldown_minutes?: number;
   daily_drop_count?: number;
+  card_renderer_probability?: number;
   foil_probability?: number;
   mint_probability?: number;
   mint_value_multiplier?: number;
@@ -131,6 +135,7 @@ export function toStoredGameplayConfig(
   return {
     daily_drop_cooldown_minutes: config.dailyDropCooldownMinutes,
     daily_drop_count: config.dailyDropCount,
+    card_renderer_probability: config.cardRendererProbability,
     foil_probability: config.foilProbability,
     mint_probability: config.mintProbability,
     mint_value_multiplier: config.mintValueMultiplier,
@@ -175,6 +180,7 @@ export function validateGameplayConfig(
   }
 
   const probabilityFields = [
+    ["cardRendererProbability", "Card renderer probability"],
     ["foilProbability", "Foil probability"],
     ["mintProbability", "Mint probability"],
     ["unlockedProbability", "Unlocked probability"],
@@ -210,6 +216,7 @@ export function validateGameplayConfig(
     value: {
       dailyDropCooldownMinutes: values.dailyDropCooldownMinutes,
       dailyDropCount: values.dailyDropCount,
+      cardRendererProbability: probabilities.cardRendererProbability,
       foilProbability: probabilities.foilProbability,
       mintProbability: probabilities.mintProbability,
       mintValueMultiplier,
@@ -282,6 +289,8 @@ function readConfig(
       stored?.daily_drop_cooldown_minutes ??
       defaults.dailyDropCooldownMinutes,
     dailyDropCount: stored?.daily_drop_count ?? defaults.dailyDropCount,
+    cardRendererProbability:
+      stored?.card_renderer_probability ?? defaults.cardRendererProbability,
     foilProbability:
       stored?.foil_probability ?? defaults.foilProbability,
     mintProbability:

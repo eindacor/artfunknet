@@ -1,13 +1,11 @@
 import {
   ArtworkImage,
   AttributeIcons,
-  ItemStatusBadges,
 } from "./shared";
 import type { ItemCardRendererProps } from "./types";
 
 export default function ZineCard({
   item,
-  alreadyOwned,
 }: ItemCardRendererProps) {
   return (
     <div className="render-card zine-card">
@@ -47,13 +45,6 @@ export default function ZineCard({
         </span>
       </div>
       <section>
-        <ItemStatusBadges
-          alreadyOwned={alreadyOwned}
-          collectorSaleLabel="for sale"
-          item={item}
-          showMint={false}
-          showOwned={false}
-        />
         <h3>{item.artwork.title}</h3>
         <p className="render-card-artist">ART BY {item.artwork.artist}</p>
         <p>

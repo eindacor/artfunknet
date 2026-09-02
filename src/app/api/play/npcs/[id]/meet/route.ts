@@ -512,6 +512,8 @@ export async function POST(
             getRarityMap(player.profile.level, metadata.loot_data),
             NPC_RARITY_AMPLIFIERS[npc.quality],
           ),
+          cardRendererProbability:
+            settings.active.cardRendererProbability,
           foilProbability: settings.active.foilProbability,
           mintProbability: settings.active.mintProbability,
           mintValueMultiplier: settings.active.mintValueMultiplier,
@@ -657,6 +659,8 @@ export async function POST(
               getRarityMap(player.profile.level, metadata.loot_data),
               NPC_RARITY_AMPLIFIERS[npc.quality],
             ),
+            cardRendererProbability:
+              settings.active.cardRendererProbability,
             foilProbability: settings.active.foilProbability,
             mintProbability: settings.active.mintProbability,
             mintValueMultiplier: settings.active.mintValueMultiplier,
@@ -785,6 +789,8 @@ export async function POST(
               getRarityMap(player.profile.level, metadata.loot_data),
               NPC_RARITY_AMPLIFIERS[npc.quality],
             ),
+            cardRendererProbability:
+              settings.active.cardRendererProbability,
             foilProbability: settings.active.foilProbability,
             mintProbability: settings.active.mintProbability,
             mintValueMultiplier: settings.active.mintValueMultiplier,

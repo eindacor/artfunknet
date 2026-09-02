@@ -61,11 +61,16 @@ export default function StandardItemDialog({
 
   useEffect(() => {
     const dialog = dialogRef.current;
+    const scrollPosition = { x: window.scrollX, y: window.scrollY };
     returnFocusRef.current =
       document.activeElement instanceof HTMLElement
         ? document.activeElement
         : null;
-    if (dialog && !dialog.open) dialog.showModal();
+    if (dialog && !dialog.open) {
+      dialog.showModal();
+      dialog.focus({ preventScroll: true });
+      window.scrollTo(scrollPosition.x, scrollPosition.y);
+    }
     return () => {
       if (dialog?.open) dialog.close();
     };
@@ -127,6 +132,7 @@ export default function StandardItemDialog({
         closeDialog();
       }}
       ref={dialogRef}
+      tabIndex={-1}
     >
       <div className="standard-item-dialog-content">
         <header className="standard-item-dialog-header">

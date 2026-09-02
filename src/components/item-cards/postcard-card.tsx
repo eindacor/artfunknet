@@ -2,12 +2,11 @@ import {
   ArtworkImage,
   AttributeIcons,
   ItemPropertyBadges,
-  ItemStatusBadges,
 } from "./shared";
 import type { ItemCardRendererProps } from "./types";
 
 export default function PostcardCard(props: ItemCardRendererProps) {
-  const { item, alreadyOwned } = props;
+  const { item } = props;
   return (
     <div className="render-card postcard-card">
       <div className="postcard-card-front">
@@ -20,13 +19,6 @@ export default function PostcardCard(props: ItemCardRendererProps) {
         <div className="postcard-card-stamps">
           <AttributeIcons item={item} />
         </div>
-        <ItemStatusBadges
-          alreadyOwned={alreadyOwned}
-          collectorSaleLabel="for sale"
-          item={item}
-          showMint={false}
-          showOwned={false}
-        />
         <p className="postcard-card-script">Wish you were here.</p>
         <h3>{item.artwork.title}</h3>
         <p>

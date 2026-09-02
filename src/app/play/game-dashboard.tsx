@@ -395,10 +395,11 @@ export default function GameDashboard({
     return (
       <>
         <ItemActionButton
-          icon="fa-arrow-down"
-          label="Take down from gallery"
+          icon="fa-picture-o"
+          label="Remove from gallery"
           disabled={pending}
           onClick={() => act(`/api/play/items/${item._id}/undisplay`)}
+          variant="gallery"
         />
         {canRerollDisplayed ? (
           <ItemActionButton
@@ -689,16 +690,10 @@ export default function GameDashboard({
                       }
                       disabled={pending}
                       onClick={() =>
-                        requestMintMutation(
-                          item,
-                          item.tags.includes("for sale")
-                            ? "Removing this Collector offer"
-                            : "Offering this artwork to Collectors",
-                          () =>
-                            act(
-                              `/api/play/items/${item._id}/collector-sale`,
-                            ),
-                        )
+                        act(`/api/play/items/${item._id}/collector-sale`)
+                      }
+                      variant={
+                        item.tags.includes("for sale") ? "collector" : "default"
                       }
                     />
                     <ItemActionButton
@@ -1754,6 +1749,7 @@ function ItemActionButton({
   disabledReason,
   onDisabledClick,
   onClick,
+  variant = "default",
 }: {
   icon: string;
   label: string;
@@ -1761,6 +1757,7 @@ function ItemActionButton({
   disabledReason?: string;
   onDisabledClick?: () => void | Promise<void>;
   onClick: () => void;
+  variant?: "default" | "collector" | "gallery";
 }) {
   const reason =
     disabledReason ?? (disabled ? "Another action is being processed." : "");
@@ -1770,7 +1767,7 @@ function ItemActionButton({
     <button
       aria-disabled={disabled}
       aria-label={accessibleLabel}
-      className="item-action-button"
+      className={`item-action-button item-action-${variant}`}
       data-tooltip={reason || label}
       onClick={() => {
         if (disabled) {

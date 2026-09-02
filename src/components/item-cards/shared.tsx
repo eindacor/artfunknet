@@ -52,16 +52,14 @@ export function ArtworkImage({
 export function ItemStatusBadges({
   item,
   alreadyOwned,
-  collectorSaleLabel = "for collectors",
+  collectorSaleLabel = "for sale",
   showFoil = false,
-  showMintIcon = true,
   showMint = true,
   showOwned = true,
   showUnlocked = false,
 }: Pick<ItemCardRendererProps, "item" | "alreadyOwned"> & {
   collectorSaleLabel?: string;
   showFoil?: boolean;
-  showMintIcon?: boolean;
   showMint?: boolean;
   showOwned?: boolean;
   showUnlocked?: boolean;
@@ -77,12 +75,7 @@ export function ItemStatusBadges({
         </span>
       ) : null}
       {item.mint && showMint ? (
-        <span className="mint-indicator">
-          {showMintIcon ? (
-            <i aria-hidden="true" className="fa fa-leaf" />
-          ) : null}
-          mint
-        </span>
+        <span className="mint-indicator">mint</span>
       ) : null}
       {item.status === "claimed" && item.tags.includes("for sale") ? (
         <span className="collector-sale-indicator">{collectorSaleLabel}</span>

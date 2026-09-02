@@ -511,6 +511,7 @@ async function seedGameplaySettings(database) {
     daily_drop_cooldown_minutes:
       legacy.daily_drop_cooldown_minutes ?? 5,
     daily_drop_count: legacy.daily_drop_count ?? 6,
+    card_renderer_probability: 0.01,
     foil_probability: legacyFoilProbability,
     mint_probability: 0.0005,
     mint_value_multiplier: 2,
@@ -532,6 +533,7 @@ async function seedGameplaySettings(database) {
   const debug = {
     daily_drop_cooldown_minutes: 1,
     daily_drop_count: 20,
+    card_renderer_probability: 0.25,
     foil_probability: 0.5,
     mint_probability: 0.25,
     mint_value_multiplier: 2,
@@ -550,7 +552,7 @@ async function seedGameplaySettings(database) {
     },
   };
   const setter = {
-    schema_version: 5,
+    schema_version: 6,
     updated_at: now,
   };
   if (legacy.debug_enabled === undefined) {
@@ -587,6 +589,18 @@ async function seedGameplaySettings(database) {
     legacy.configs.debug.unlocked_probability === undefined
   ) {
     setter["gameplay.configs.debug.unlocked_probability"] = 0.5;
+  }
+  if (
+    legacy.configs?.actual &&
+    legacy.configs.actual.card_renderer_probability === undefined
+  ) {
+    setter["gameplay.configs.actual.card_renderer_probability"] = 0.01;
+  }
+  if (
+    legacy.configs?.debug &&
+    legacy.configs.debug.card_renderer_probability === undefined
+  ) {
+    setter["gameplay.configs.debug.card_renderer_probability"] = 0.25;
   }
   if (
     legacy.configs?.actual &&

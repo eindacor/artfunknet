@@ -182,6 +182,21 @@ export default function GameplaySettingsForm({
         value={activeEditor.dailyDropCount}
       />
       <SettingField
+        description="Chance that a generated item starts with a randomly selected active card style."
+        label="Card style probability"
+        max={100}
+        min={0}
+        onChange={(value) =>
+          updateConfig(selectedConfig, (config) => ({
+            ...config,
+            cardRendererProbability: value / 100,
+          }))
+        }
+        step={0.01}
+        suffix="%"
+        value={activeEditor.cardRendererProbability * 100}
+      />
+      <SettingField
         description="Chance that each generated item is foil. The original game used 0.5%."
         label="Foil probability"
         max={100}

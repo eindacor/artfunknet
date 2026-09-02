@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
 import type { GameItem } from "@/server/gameplay";
-import { getDemintUpdate } from "@/server/item-mint";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
 
@@ -27,16 +26,6 @@ export async function POST(
   }
 
   const offered = item.tags.includes("for sale");
-  let mintUpdate = {};
-  try {
-    mintUpdate = (await getDemintUpdate(database, item)) ?? {};
-  } catch (error) {
-    console.error("Unable to remove Mint before changing Collector offer", error);
-    return NextResponse.json(
-      { error: "This item's value data is unavailable." },
-      { status: 500 },
-    );
-  }
   const result = await database.collection<GameItem>("items").updateOne(
     {
       _id: item._id,
@@ -46,8 +35,8 @@ export async function POST(
       tags: offered ? "for sale" : { $ne: "for sale" },
     },
     offered
-      ? { $set: mintUpdate, $pull: { tags: "for sale" } }
-      : { $set: mintUpdate, $addToSet: { tags: "for sale" } },
+      ? { $pull: { tags: "for sale" } }
+      : { $addToSet: { tags: "for sale" } },
   );
   if (result.modifiedCount !== 1) {
     return NextResponse.json(
