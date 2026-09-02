@@ -56,7 +56,20 @@ export default function OgCard({
               &ldquo;{activeLegendaryAttribute.flavorText}&rdquo;
             </p>
           ) : null}
-          <p className="verified-text">✓ verified</p>
+          {item.authenticity.identified ? (
+            item.authenticity.forgery ? (
+              <p className="verified-text og-card-forgery-text">
+                <i aria-hidden="true" className="fa fa-ban" /> forgery
+              </p>
+            ) : (
+              <p className="verified-text">✓ verified</p>
+            )
+          ) : (
+            <p className="verified-text">
+              <i aria-hidden="true" className="fa fa-question-circle-o" />{" "}
+              unverified
+            </p>
+          )}
         </div>
       </div>
       <div className={`card-footer ${cardTypes}`}>
@@ -79,6 +92,13 @@ export default function OgCard({
         <div className="og-card-footer-basic">
           <div className="attribute-area">
             <AttributeIcons item={item} />
+            {item.authenticity.identified && item.authenticity.forgery ? (
+              <i
+                aria-label="Known forgery"
+                className="og-card-forgery-indicator fa fa-user-secret"
+                title="Known forgery"
+              />
+            ) : null}
           </div>
           <strong>lvl {item.level}</strong>
         </div>

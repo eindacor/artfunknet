@@ -215,6 +215,7 @@ export default function ForgeryDialog({
                 <span className="rendered-item-card-trigger">
                   <KnownForgeryWatermark
                     authenticity={previewItem.authenticity}
+                    rendererId={previewCosmetic.id}
                   />
                   <PreviewRenderer
                     alreadyOwned={false}

@@ -1,11 +1,20 @@
 import type { GameItem } from "@/server/gameplay";
+import type { CardRendererId } from "./types";
 
 export default function KnownForgeryWatermark({
   authenticity,
+  rendererId,
 }: {
   authenticity: GameItem["authenticity"];
+  rendererId: CardRendererId;
 }) {
-  if (!authenticity.identified || !authenticity.forgery) return null;
+  if (
+    rendererId === "legacy" ||
+    !authenticity.identified ||
+    !authenticity.forgery
+  ) {
+    return null;
+  }
 
   return (
     <span aria-label="Known forgery" className="known-forgery-watermark">

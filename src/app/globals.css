@@ -3009,6 +3009,44 @@ body {
   margin-top: 24px;
 }
 
+.seasonal-artwork-form {
+  margin-top: 24px;
+}
+
+.seasonal-artwork-grid {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.seasonal-artwork-grid label {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+}
+
+.seasonal-artwork-grid label > span {
+  color: var(--accent);
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.seasonal-artwork-grid select {
+  width: 100%;
+  border: 1px solid #777;
+  background: #111;
+  color: white;
+  padding: 9px;
+}
+
+@media (max-width: 620px) {
+  .seasonal-artwork-grid label {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}
+
 .legendary-admin-list {
   display: grid;
   gap: 1rem;

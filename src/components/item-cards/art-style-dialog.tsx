@@ -293,6 +293,7 @@ export default function ArtStyleDialog({
                   <span className="rendered-item-card-trigger">
                     <KnownForgeryWatermark
                       authenticity={dialogItem.authenticity}
+                      rendererId={previewCosmetic.id}
                     />
                     <PreviewRenderer
                       alreadyOwned={false}

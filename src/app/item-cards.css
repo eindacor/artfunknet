@@ -124,6 +124,15 @@
   font-size: clamp(5rem, calc(var(--card-width, 300px) * 0.38), 9rem);
 }
 
+.og-card-forgery-indicator {
+  color: #d60000;
+  text-shadow: 1px 1px 1px #000;
+}
+
+.og-card-forgery-text {
+  color: #d60000;
+}
+
 .rendered-item-card-trigger,
 .rendered-item-card-trigger::before,
 .rendered-item-card-trigger::after,

@@ -63,6 +63,13 @@ export type Artwork = {
   unique_attributes?: string[];
 };
 
+export function isSeasonalArtwork(
+  lootData: Pick<LootData, "seasonal_items">,
+  artwork: Pick<Artwork, "_id" | "rarity">,
+): boolean {
+  return lootData.seasonal_items[artwork.rarity]?.includes(artwork._id) ?? false;
+}
+
 export type ArtworkOverrides = Partial<Pick<Artwork, "artist" | "title">>;
 
 export type ItemTransaction = {
@@ -537,8 +544,7 @@ function createItem({
     attributes,
   );
   const condition = getGeneratedItemCondition(mint, conditionMinimum);
-  const seasonal =
-    lootData.seasonal_items[artwork.rarity]?.includes(artwork._id) ?? false;
+  const seasonal = isSeasonalArtwork(lootData, artwork);
   const timestamp = now.toISOString();
   const cardRenderer = rollGeneratedCardRenderer(
     activeRendererIds,

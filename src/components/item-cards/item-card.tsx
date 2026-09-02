@@ -96,6 +96,7 @@ export default function ItemCard({
       >
         <KnownForgeryWatermark
           authenticity={currentItem.authenticity}
+          rendererId={resolvedRendererId}
         />
         <Renderer
           alreadyOwned={alreadyOwned}

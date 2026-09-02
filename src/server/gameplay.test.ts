@@ -8,6 +8,7 @@ import {
   getRarityMap,
   getConfiguredRarityMap,
   getSpecialAttributeCount,
+  isSeasonalArtwork,
   normalizeRarityMap,
   rollProbability,
   rollGeneratedCardRenderer,
@@ -194,6 +195,30 @@ test("lottery levels preserve the original value multiplier", () => {
 test("mint generation forces perfect condition", () => {
   assert.equal(getGeneratedItemCondition(true, 0), 1);
   assert.equal(getGeneratedItemCondition(true, 0.75), 1);
+});
+
+test("seasonal artwork is determined by its configured rarity slot", () => {
+  const seasonalItems = {
+    common: ["common-art"],
+    uncommon: [],
+    rare: ["rare-art"],
+    legendary: [],
+    masterpiece: [],
+  };
+  assert.equal(
+    isSeasonalArtwork(
+      { seasonal_items: seasonalItems },
+      { _id: "rare-art", rarity: "rare" },
+    ),
+    true,
+  );
+  assert.equal(
+    isSeasonalArtwork(
+      { seasonal_items: seasonalItems },
+      { _id: "rare-art", rarity: "common" },
+    ),
+    false,
+  );
 });
 
 test("unlocked probability applies only to non-common artwork", () => {

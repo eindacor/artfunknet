@@ -9,6 +9,7 @@ import {
 } from "@/server/forgery-gameplay";
 import {
   calculateItemValues,
+  isSeasonalArtwork,
   rollAttributeValue,
   type Artwork,
   type GameItem,
@@ -118,7 +119,8 @@ export async function POST(
     reroll_spent: 0,
     foil: selected.has("foil"),
     unlocked,
-    seasonal: selected.has("seasonal"),
+    seasonal:
+      selected.has("seasonal") || isSeasonalArtwork(metadata.loot_data, artwork),
     lottery: selected.has("lottery") ? 1 : 0,
     original: false,
     patreon: false,
