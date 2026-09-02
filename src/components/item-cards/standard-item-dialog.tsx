@@ -177,7 +177,7 @@ export default function StandardItemDialog({
             </section>
             <section className="standard-item-dialog-properties">
               <span>Properties</span>
-              <ItemPropertyBadges item={dialogItem} />
+              <ItemPropertyBadges item={dialogItem} showLifecycle />
             </section>
             {permissions.canManageItem && actions ? (
               <div

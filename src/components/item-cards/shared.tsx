@@ -95,8 +95,14 @@ export function ItemStatusBadges({
 
 export function ItemPropertyBadges({
   item,
-}: Pick<ItemCardRendererProps, "item">) {
+  showLifecycle = false,
+}: Pick<ItemCardRendererProps, "item"> & {
+  showLifecycle?: boolean;
+}) {
   const properties = [
+    showLifecycle && item.tags.includes("for sale")
+      ? { key: "for-sale", label: "for sale" }
+      : null,
     item.mint ? { key: "mint", label: "mint" } : null,
     item.foil ? { key: "foil", label: "foil" } : null,
     item.unlocked ? { key: "unlocked", label: "unlocked" } : null,

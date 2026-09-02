@@ -2042,8 +2042,11 @@
 }
 
 .standard-item-dialog {
-  position: relative;
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
   width: min(1080px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
   max-height: calc(100vh - 32px);
   margin: auto;
   border: 0;
@@ -2394,6 +2397,10 @@
 
 .property-misprint {
   color: #b52d3c;
+}
+
+.property-for-sale {
+  color: #805400;
 }
 
 .standard-item-dialog-actions.card-actions {

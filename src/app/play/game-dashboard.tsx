@@ -1819,7 +1819,7 @@ function InventorySection({
               actions={actions(item)}
               item={item}
               legendaryAttributes={legendaryAttributes}
-              key={item._id}
+              key={`${item._id}:${item.status}:${item.tags.join(",")}`}
               ownedRendererIds={ownedRendererIds}
               rendererPrices={rendererPrices}
               permissions={{
