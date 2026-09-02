@@ -78,6 +78,7 @@ export async function POST(
         status: "displayed",
         time_displayed: now,
       },
+      $pull: { tags: "for sale" },
     },
   );
   if (result.modifiedCount !== 1) {

@@ -95,8 +95,8 @@ type ArtExpertResult = {
 
 const ATTRIBUTE_TYPE_ICONS = {
   special: { icon: "fa-star", label: "Special attribute" },
-  locked: { icon: "fa-lock", label: "Locked attribute" },
-  unlocked: null,
+  locked: null,
+  unlocked: { icon: "fa-unlock-alt", label: "Unlocked attribute" },
 } as const;
 
 export default function GameDashboard({
@@ -604,7 +604,7 @@ export default function GameDashboard({
                       )
                     }
                     item={item}
-                    key={item._id}
+                    key={getItemCardKey(item)}
                   />
                 ))}
               </div>
@@ -1400,6 +1400,10 @@ function RerollDialog({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [recentSpend, setRecentSpend] = useState<{
+    amount: number;
+    animation: number;
+  } | null>(null);
   const [pendingMintMutation, setPendingMintMutation] = useState<{
     actionLabel: string;
     onConfirm: () => void;
@@ -1482,9 +1486,16 @@ function RerollDialog({
         ...body.item,
         artwork: item.artwork,
       };
+      const cost = body.cost;
       onRerolled(nextItem, body.bankBalance);
-      const message = `${mode === "value" ? "Value rerolled" : "Attribute replaced"} for $${body.cost.toLocaleString()}.`;
-      setNotice(message);
+      setRecentSpend((current) => ({
+        amount: cost,
+        animation: (current?.animation ?? 0) + 1,
+      }));
+      const message =
+        mode === "value"
+          ? "Attraction value updated."
+          : "Unlocked attribute replaced.";
       await onNotify(message, "success");
     } catch (rerollError) {
       const message =
@@ -1558,6 +1569,7 @@ function RerollDialog({
       aria-describedby="reroll-description"
       aria-labelledby="reroll-title"
       className="reroll-dialog"
+      data-rarity={item.artwork.rarity}
       onCancel={(event) => {
         event.preventDefault();
         closeDialog();
@@ -1583,11 +1595,11 @@ function RerollDialog({
               className="reroll-artwork-thumbnail"
             />
             <div>
-              <p className="reroll-dialog-kicker">modify artwork</p>
-              <h2 id="reroll-title">
-                <span>{item.artwork.title}</span> by{" "}
-                <span>{item.artwork.artist}</span>
-              </h2>
+              <p className="reroll-dialog-kicker">
+                modify artwork · level {item.level}
+              </p>
+              <h2 id="reroll-title">{item.artwork.title}</h2>
+              <p className="reroll-artwork-artist">{item.artwork.artist}</p>
             </div>
           </div>
           <button
@@ -1608,7 +1620,18 @@ function RerollDialog({
         <dl className="reroll-summary">
           <div>
             <dt>bank balance</dt>
-            <dd>${bankBalance.toLocaleString()}</dd>
+            <dd className="reroll-bank-balance">
+              ${bankBalance.toLocaleString()}
+              {recentSpend ? (
+                <span
+                  aria-label={`${recentSpend.amount.toLocaleString()} spent`}
+                  className="reroll-spend-indicator"
+                  key={recentSpend.animation}
+                >
+                  -${recentSpend.amount.toLocaleString()}
+                </span>
+              ) : null}
+            </dd>
           </div>
           <div>
             <dt>reroll cost</dt>
@@ -1631,30 +1654,44 @@ function RerollDialog({
         {eligibleLegendaryAttributes.length > 0 ? (
           <fieldset className="legendary-selector">
             <legend>Legendary Attribute</legend>
-            {eligibleLegendaryAttributes.map((attribute) => (
-              <label key={attribute.id}>
-                <input
-                  checked={item.active_unique_attribute === attribute.id}
-                  disabled={busy}
-                  name="active-legendary-attribute"
-                  onChange={() => selectLegendaryAttribute(attribute.id)}
-                  type="radio"
-                  value={attribute.id}
-                />
+            {eligibleLegendaryAttributes.length === 1 ? (
+              <div className="legendary-selector-single">
                 <span>
-                  <strong>{attribute.title}</strong>
-                  <span>{attribute.description}</span>
-                  <em>&ldquo;{attribute.flavorText}&rdquo;</em>
+                  <strong>{eligibleLegendaryAttributes[0].title}</strong>
+                  <span>{eligibleLegendaryAttributes[0].description}</span>
+                  <em>
+                    &ldquo;{eligibleLegendaryAttributes[0].flavorText}&rdquo;
+                  </em>
                 </span>
-              </label>
-            ))}
+              </div>
+            ) : (
+              eligibleLegendaryAttributes.map((attribute) => (
+                <label key={attribute.id}>
+                  <input
+                    checked={item.active_unique_attribute === attribute.id}
+                    disabled={busy}
+                    name="active-legendary-attribute"
+                    onChange={() => selectLegendaryAttribute(attribute.id)}
+                    type="radio"
+                    value={attribute.id}
+                  />
+                  <span>
+                    <strong>{attribute.title}</strong>
+                    <span>{attribute.description}</span>
+                    <em>&ldquo;{attribute.flavorText}&rdquo;</em>
+                  </span>
+                </label>
+              ))
+            )}
           </fieldset>
         ) : null}
 
         <div className="reroll-attributes">
+          <h3>Attraction attributes</h3>
           {attributeGroups.map(([type, attributes]) =>
             attributes.map((attribute) => {
               const typeIcon = ATTRIBUTE_TYPE_ICONS[type];
+              const rerollMinimum = getRerollMinimum(item, type);
               const disabledReason = busy
                 ? "A reroll is already in progress."
                 : !canAfford
@@ -1688,9 +1725,11 @@ function RerollDialog({
                   </div>
                   <div className="reroll-attribute-rating">
                     <strong>{Math.floor((attribute.value ?? 0) * 100)}%</strong>
-                    <span>
-                      {Math.floor(getRerollMinimum(item, type) * 100)}% minimum
-                    </span>
+                    {type === "special" || rerollMinimum > 0 ? (
+                      <span>
+                        (&gt;{Math.floor(rerollMinimum * 100)}%)
+                      </span>
+                    ) : null}
                   </div>
                   <div className="reroll-attribute-actions">
                     <ItemActionButton
@@ -1819,7 +1858,7 @@ function InventorySection({
               actions={actions(item)}
               item={item}
               legendaryAttributes={legendaryAttributes}
-              key={`${item._id}:${item.status}:${item.tags.join(",")}`}
+              key={getItemCardKey(item)}
               ownedRendererIds={ownedRendererIds}
               rendererPrices={rendererPrices}
               permissions={{
@@ -1848,6 +1887,10 @@ function ProfileRow({
       <td className="af-color highlight">{value}</td>
     </tr>
   );
+}
+
+function getItemCardKey(item: HydratedGameItem): string {
+  return `${item._id}:${JSON.stringify(item)}`;
 }
 
 function countdown(milliseconds: number): string {

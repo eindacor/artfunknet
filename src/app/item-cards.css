@@ -15,28 +15,28 @@
   max-width: 100%;
 }
 
-:is(.rendered-item-card, .standard-item-dialog)[data-rarity="uncommon"] {
+:is(.rendered-item-card, .standard-item-dialog, .reroll-dialog)[data-rarity="uncommon"] {
   --rarity-color: #3e7bff;
   --rarity-light: #abc4ff;
   --rarity-dark: #10285f;
   --rarity-glow: rgb(62 123 255 / 48%);
 }
 
-:is(.rendered-item-card, .standard-item-dialog)[data-rarity="rare"] {
+:is(.rendered-item-card, .standard-item-dialog, .reroll-dialog)[data-rarity="rare"] {
   --rarity-color: #e1c429;
   --rarity-light: #fff2a1;
   --rarity-dark: #554600;
   --rarity-glow: rgb(225 196 41 / 50%);
 }
 
-:is(.rendered-item-card, .standard-item-dialog)[data-rarity="legendary"] {
+:is(.rendered-item-card, .standard-item-dialog, .reroll-dialog)[data-rarity="legendary"] {
   --rarity-color: #ff8a1f;
   --rarity-light: #ffd09c;
   --rarity-dark: #652900;
   --rarity-glow: rgb(255 138 31 / 55%);
 }
 
-:is(.rendered-item-card, .standard-item-dialog)[data-rarity="masterpiece"] {
+:is(.rendered-item-card, .standard-item-dialog, .reroll-dialog)[data-rarity="masterpiece"] {
   --rarity-color: #42e8f5;
   --rarity-light: #e3feff;
   --rarity-dark: #093e5a;

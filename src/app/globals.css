@@ -924,19 +924,37 @@ body {
 }
 
 .reroll-dialog {
-  width: min(860px, calc(100vw - 32px));
+  --rarity-color: #39b54a;
+  --rarity-light: #a6efae;
+  --rarity-dark: #124d1b;
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  width: min(920px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
   max-height: calc(100vh - 32px);
   margin: auto;
-  border: 1px solid #000;
-  background: #fff;
-  color: #777;
+  border: 0;
+  background: #f4f1e9;
+  color: #171717;
   padding: 0;
-  font-family: Courier, monospace;
-  box-shadow: 10px 10px 0 rgb(0 0 0 / 24%);
+  overflow: auto;
+  font-family: Georgia, "Times New Roman", serif;
+  box-shadow: 0 24px 70px rgb(0 0 0 / 42%);
+}
+
+.reroll-dialog::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 7px;
+  background: var(--rarity-color);
+  content: "";
 }
 
 .reroll-dialog::backdrop {
-  background: rgb(0 0 0 / 65%);
+  background: rgb(0 0 0 / 68%);
   backdrop-filter: blur(2px);
 }
 
@@ -1213,20 +1231,24 @@ body {
 }
 
 .reroll-dialog-content {
-  padding: 24px;
+  display: grid;
+  gap: 1.1rem;
+  padding: 26px 28px 30px;
 }
 
 .reroll-dialog-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 20px;
+  gap: 1rem;
+  border-bottom: 1px solid #bcb7aa;
+  padding-bottom: 1rem;
 }
 
 .reroll-artwork-summary {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 1rem;
   min-width: 0;
 }
 
@@ -1244,29 +1266,33 @@ body {
 }
 
 .reroll-artwork-thumbnail {
-  border: 1px solid #000;
-  box-shadow: 3px 3px 0 rgb(0 0 0 / 18%);
+  width: 118px;
+  border: 8px solid #fff;
+  box-shadow: 0 10px 24px rgb(0 0 0 / 18%);
 }
 
 .reroll-dialog-kicker {
-  margin: 0 0 4px;
+  margin: 0 0 0.35rem;
   color: #777;
-  font-size: 0.75rem;
+  font: 700 0.68rem Courier, "Courier New", monospace;
   font-weight: bold;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .reroll-dialog h2 {
   margin: 0;
-  color: #000;
-  font-size: 1.2rem;
-  font-weight: normal;
+  color: #171717;
+  font-size: clamp(1.55rem, 3vw, 2.35rem);
+  font-weight: 500;
+  line-height: 1;
 }
 
-.reroll-dialog h2 span {
-  color: var(--accent);
-  font-weight: bold;
+.reroll-artwork-artist {
+  margin: 0.3rem 0 0;
+  color: #676158;
+  font-size: 0.9rem;
+  font-style: italic;
 }
 
 .reroll-dialog-close {
@@ -1288,8 +1314,10 @@ body {
 }
 
 .reroll-dialog-description {
-  margin: 18px 0;
-  color: #555;
+  margin: 0;
+  color: #676158;
+  font-size: 0.86rem;
+  font-style: italic;
   line-height: 1.45;
 }
 
@@ -1297,49 +1325,78 @@ body {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   margin: 0;
-  border-top: 1px solid #000;
-  border-bottom: 1px solid #000;
+  border: 1px solid #d0cabe;
+  background: #fffdf7;
+  box-shadow: 0 6px 18px rgb(45 38 27 / 8%);
 }
 
 .reroll-summary div {
-  padding: 14px 16px;
-  text-align: center;
+  padding: 0.85rem 0.75rem;
 }
 
 .reroll-summary div + div {
-  border-left: 1px solid #bbb;
+  border-left: 1px solid #ddd7ca;
 }
 
 .reroll-summary dt {
-  color: #555;
-  font-size: 0.72rem;
+  color: #676158;
+  font: 700 0.62rem Courier, "Courier New", monospace;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 .reroll-summary dd {
   margin: 4px 0 0;
-  color: var(--accent);
-  font-size: 1.05rem;
+  color: #171717;
+  font-size: 1rem;
   font-weight: bold;
 }
 
+.reroll-bank-balance {
+  position: relative;
+  width: fit-content;
+}
+
+.reroll-spend-indicator {
+  position: absolute;
+  top: calc(100% + 0.15rem);
+  left: 50%;
+  width: max-content;
+  color: #c52323;
+  font: 700 0.82rem Courier, "Courier New", monospace;
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation: reroll-spend-pop 1.4s ease-out forwards;
+}
+
 .reroll-attributes {
-  margin-top: 22px;
-  border-bottom: 1px solid #bbb;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.reroll-attributes > h3 {
+  margin: 0;
+  color: #676158;
+  font: 700 0.68rem Courier, "Courier New", monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .legendary-selector {
   display: grid;
   gap: 0.65rem;
-  margin: 1.25rem 0 0;
-  border: 1px solid #bbb;
-  padding: 0.85rem;
+  margin: 0;
+  border: 1px solid #d0cabe;
+  padding: 1rem;
+  background: #fffdf7;
+  box-shadow: 0 6px 18px rgb(45 38 27 / 8%);
 }
 
 .legendary-selector legend {
   padding: 0 0.35rem;
-  color: #333;
-  font-weight: 700;
+  color: #676158;
+  font: 700 0.68rem Courier, "Courier New", monospace;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
@@ -1356,8 +1413,13 @@ body {
   gap: 0.2rem;
 }
 
-.legendary-selector label span span {
-  color: #555;
+.legendary-selector-single > span {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.legendary-selector :is(label, .legendary-selector-single) span span {
+  color: #676158;
   line-height: 1.35;
 }
 
@@ -1367,18 +1429,14 @@ body {
 }
 
 .reroll-attribute-row {
-  /* TODO AI: Revisit this layout. The dialog still has horizontal overflow and excessive
-     space between the NPC name and value; identify the actual overflowing element before
-     adjusting these columns again, including action tooltips and dialog intrinsic sizing. */
   display: grid;
-  grid-template-columns: 56px minmax(0, 1fr) max-content 74px;
+  grid-template-columns: 52px minmax(0, 1fr) 92px 74px;
   align-items: center;
   gap: 8px;
-  padding: 12px 0;
-}
-
-.reroll-attribute-row + .reroll-attribute-row {
-  border-top: 1px solid #bbb;
+  border: 1px solid #d0cabe;
+  padding: 0.7rem;
+  background: #fffdf7;
+  box-shadow: 0 4px 12px rgb(45 38 27 / 6%);
 }
 
 .reroll-attribute-icons {
@@ -1407,6 +1465,10 @@ body {
   color: var(--accent);
 }
 
+.reroll-attribute-type.unlocked {
+  color: #277a4d;
+}
+
 .reroll-attribute-info,
 .reroll-attribute-rating {
   display: flex;
@@ -1415,7 +1477,7 @@ body {
 }
 
 .reroll-attribute-info strong {
-  color: #000;
+  color: #171717;
   overflow-wrap: anywhere;
 }
 
@@ -1426,7 +1488,7 @@ body {
 }
 
 .reroll-attribute-rating strong {
-  color: var(--accent);
+  color: var(--rarity-dark);
 }
 
 .reroll-attribute-actions {
@@ -1440,7 +1502,8 @@ body {
 .reroll-dialog-error,
 .reroll-dialog-notice {
   min-height: 1.2em;
-  margin: 16px 0 0;
+  margin: 0;
+  font: 700 0.72rem Courier, "Courier New", monospace;
 }
 
 .reroll-dialog-error {
@@ -1449,6 +1512,35 @@ body {
 
 .reroll-dialog-notice {
   color: #00aa2b;
+}
+
+@keyframes reroll-spend-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 20%);
+  }
+
+  18% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1.08);
+  }
+
+  70% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -125%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reroll-spend-indicator {
+    opacity: 1;
+    transform: translate(-50%, 0);
+    animation: none;
+  }
 }
 
 .inventory-section + .inventory-section {
@@ -1763,13 +1855,22 @@ body {
   }
 
   .reroll-summary div + div {
-    border-top: 1px solid #bbb;
+    border-top: 1px solid #ddd7ca;
     border-left: 0;
   }
 
   .reroll-attribute-row {
-    grid-template-columns: 48px minmax(0, 1fr) max-content 74px;
+    grid-template-columns: 44px minmax(0, 1fr) 74px;
     gap: 6px;
+  }
+
+  .reroll-attribute-rating {
+    grid-column: 2;
+  }
+
+  .reroll-attribute-actions {
+    grid-column: 3;
+    grid-row: 1 / span 2;
   }
 
   .legacy-nav-stats {
