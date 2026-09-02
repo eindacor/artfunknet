@@ -13,6 +13,7 @@ import { hydrateGameItems } from "@/server/item-artwork";
 import {
   punishForgeryQuality,
   rollForgeryDetected,
+  shouldDestroyDetectedForgery,
   transferForgeryLiability,
 } from "@/server/forgery-gameplay";
 
@@ -39,12 +40,36 @@ export async function POST() {
     ),
   );
   const hydrated = await hydrateGameItems(database, items);
-  const caughtIds = new Set(
-    hydrated
-      .filter((item) => rollForgeryDetected(item, "sell"))
+  const caughtItems = hydrated.filter((item) =>
+    rollForgeryDetected(item, "sell"),
+  );
+  const caughtIds = new Set(caughtItems.map((item) => item._id));
+  const destroyedIds = caughtItems
+    .filter(shouldDestroyDetectedForgery)
+    .map((item) => item._id);
+  if (destroyedIds.length > 0) {
+    const destroyed = await database.collection<GameItem>("items").deleteMany({
+      _id: { $in: destroyedIds },
+      owner: auth.session.playerId,
+      status: "unclaimed",
+      "authenticity.forgery": true,
+      "authenticity.identified": true,
+    });
+    if (destroyed.deletedCount !== destroyedIds.length) {
+      return NextResponse.json(
+        { error: "Some detected known forgeries could not be destroyed." },
+        { status: 409 },
+      );
+    }
+  }
+  const identifiedIds = new Set(
+    caughtItems
+      .filter((item) => !shouldDestroyDetectedForgery(item))
       .map((item) => item._id),
   );
-  for (const item of items.filter((candidate) => caughtIds.has(candidate._id))) {
+  for (const item of items.filter((candidate) =>
+    identifiedIds.has(candidate._id),
+  )) {
     await database.collection<GameItem>("items").updateOne(
       { _id: item._id, owner: auth.session.playerId, status: "unclaimed" },
       {
@@ -63,7 +88,11 @@ export async function POST() {
     return NextResponse.json({
       status: "ok",
       amount: 0,
-      message: `All ${caughtIds.size} forged ${caughtIds.size === 1 ? "artwork was" : "artworks were"} detected and returned to your inventory.`,
+      message: getBulkForgeryMessage(
+        destroyedIds.length,
+        identifiedIds.size,
+        true,
+      ),
     });
   }
   const saleBonus = await getDisplayedLegendaryEffect(
@@ -188,8 +217,25 @@ export async function POST() {
   return NextResponse.json({
     status: "ok",
     amount,
-    message: `Sold ${sellableItems.length} unclaimed ${sellableItems.length === 1 ? "artwork" : "artworks"} for $${amount.toLocaleString()}${caughtIds.size > 0 ? `; ${caughtIds.size} ${caughtIds.size === 1 ? "forgery was" : "forgeries were"} detected and returned to inventory` : ""}.`,
+    message: `Sold ${sellableItems.length} unclaimed ${sellableItems.length === 1 ? "artwork" : "artworks"} for $${amount.toLocaleString()}${caughtIds.size > 0 ? `; ${getBulkForgeryMessage(destroyedIds.length, identifiedIds.size, false)}` : ""}.`,
   });
+}
+
+function getBulkForgeryMessage(
+  destroyedCount: number,
+  identifiedCount: number,
+  allDetected: boolean,
+): string {
+  const outcomes = [
+    destroyedCount > 0
+      ? `${destroyedCount} known ${destroyedCount === 1 ? "forgery was" : "forgeries were"} detected and destroyed`
+      : null,
+    identifiedCount > 0
+      ? `${identifiedCount} previously unknown ${identifiedCount === 1 ? "forgery was" : "forgeries were"} detected and returned to inventory`
+      : null,
+  ].filter((outcome): outcome is string => Boolean(outcome));
+  const message = outcomes.join("; ");
+  return allDetected ? `The sale failed. ${message}.` : message;
 }
 
 async function recoverPendingSales(

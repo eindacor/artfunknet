@@ -49,6 +49,7 @@ import { getRerollCost } from "@/server/item-reroll";
 import {
   punishForgeryQuality,
   sanitizePlayerFacingAuthenticity,
+  shouldDestroyDetectedForgery,
 } from "@/server/forgery-gameplay";
 import {
   NPC_QUALITIES,
@@ -1142,6 +1143,37 @@ export async function POST(
             Boolean(forgeryReductionEffect),
           );
       if (forgeryCaught) {
+        if (shouldDestroyDetectedForgery(target)) {
+          const destroyed = await database.collection<GameItem>("items").deleteOne({
+            _id: target._id,
+            owner: player._id,
+            status: "collector_pending",
+            "authenticity.forgery": true,
+            "authenticity.identified": true,
+          });
+          if (destroyed.deletedCount !== 1) {
+            throw new Error(
+              "The detected known forgery could not be destroyed.",
+            );
+          }
+          reservedTarget = null;
+          return NextResponse.json({
+            status: "ok",
+            message: `${npc.npc_name} detected the known forgery. The sale failed and the artwork was destroyed.`,
+            interaction: {
+              type: "art-collector-result",
+              npcName: npc.npc_name,
+              quality: npc.quality,
+              item: sanitizePlayerFacingAuthenticity(hydratedTarget),
+              forgeryCaught: true,
+              itemDestroyed: true,
+              keptItem: false,
+              rewardType: null,
+              rewardAmount: 0,
+              bonusOffers: generatedOfferIds.length,
+            },
+          });
+        }
         const identified = await database.collection<GameItem>("items").updateOne(
           { _id: target._id, owner: player._id, status: "collector_pending" },
           {
@@ -1172,6 +1204,7 @@ export async function POST(
             quality: npc.quality,
             item: sanitizePlayerFacingAuthenticity(hydratedTarget),
             forgeryCaught: true,
+            itemDestroyed: false,
             keptItem: true,
             rewardType: null,
             rewardAmount: 0,
@@ -1298,6 +1331,7 @@ export async function POST(
           quality: npc.quality,
           item: sanitizePlayerFacingAuthenticity(hydratedTarget),
           forgeryCaught: false,
+          itemDestroyed: false,
           keptItem,
           rewardType: reward.type,
           rewardAmount: reward.amount,

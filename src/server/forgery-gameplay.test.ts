@@ -12,6 +12,7 @@ import {
   getRedemptionPermission,
   punishForgeryQuality,
   sanitizePlayerFacingAuthenticity,
+  shouldDestroyDetectedForgery,
   validateForgerySelection,
 } from "./forgery-gameplay.ts";
 import type { GameItem } from "./gameplay.ts";
@@ -26,6 +27,31 @@ const authenticity = {
   fee: 100,
   original_owner: "forger",
 };
+
+test("only previously known detected forgeries are destroyed", () => {
+  assert.equal(
+    shouldDestroyDetectedForgery({
+      authenticity: { ...authenticity, identified: true },
+    }),
+    true,
+  );
+  assert.equal(
+    shouldDestroyDetectedForgery({
+      authenticity: { ...authenticity, identified: false },
+    }),
+    false,
+  );
+  assert.equal(
+    shouldDestroyDetectedForgery({
+      authenticity: {
+        ...authenticity,
+        forgery: false,
+        identified: true,
+      },
+    }),
+    false,
+  );
+});
 
 test("forgery formulas use quality, context ranges, and rounding", () => {
   const item = {

@@ -103,6 +103,7 @@ type CollectorResult = {
   quality: NpcQuality;
   item: HydratedGameItem;
   forgeryCaught: boolean;
+  itemDestroyed: boolean;
   keptItem: boolean;
   rewardType: "money" | "xp" | null;
   rewardAmount: number;
@@ -1752,7 +1753,9 @@ function CollectorResultDialog({
   }
 
   const outcome = result.forgeryCaught
-    ? `${result.npcName} identified this artwork as a forgery. You received no reward and kept the identified item.`
+    ? result.itemDestroyed
+      ? `${result.npcName} detected the known forgery. You received no reward and the artwork was destroyed.`
+      : `${result.npcName} identified this artwork as a forgery. You received no reward and kept the identified item.`
     : result.keptItem
       ? `${result.npcName} offered ${
           result.rewardType === "xp"
@@ -2612,7 +2615,7 @@ function AuthenticityActions({
           onClick={() => act(`/api/play/items/${item._id}/authenticate`)}
         />
       ) : null}
-      <ItemActionButton
+      {/*<ItemActionButton
         disabled={pending || !report?.allowed}
         disabledReason={
           report && !report.allowed ? report.reason : undefined
@@ -2620,7 +2623,7 @@ function AuthenticityActions({
         icon="fa-flag"
         label="Report suspicious artwork"
         onClick={() => act(`/api/play/items/${item._id}/report`)}
-      />
+      />*/}
     </>
   );
 }

@@ -94,6 +94,12 @@ export function punishForgeryQuality(quality: number): number {
   return Number(Math.max(quality - 0.1, 0.1).toFixed(2));
 }
 
+export function shouldDestroyDetectedForgery(
+  item: Pick<GameItem, "authenticity">,
+): boolean {
+  return item.authenticity.forgery && item.authenticity.identified;
+}
+
 export function getAuthenticationPermission(
   item: Pick<GameItem, "owner" | "status" | "authenticity">,
   playerId: string,

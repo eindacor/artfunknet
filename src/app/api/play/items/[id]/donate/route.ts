@@ -16,6 +16,7 @@ import { requirePlayerApi } from "@/server/player-api";
 import {
   punishForgeryQuality,
   rollForgeryDetected,
+  shouldDestroyDetectedForgery,
   transferForgeryLiability,
 } from "@/server/forgery-gameplay";
 import { getDisplayedLegendaryEffect } from "@/server/legendary-attributes";
@@ -66,6 +67,30 @@ export async function POST(
     auth.session.playerId,
   );
   if (item.authenticity.forgery && rollForgeryDetected(hydratedItem, "donate")) {
+    if (shouldDestroyDetectedForgery(item)) {
+      const destroyed = await database.collection<GameItem>("items").deleteOne({
+        _id: item._id,
+        owner: auth.session.playerId,
+        status: item.status,
+        "authenticity.forgery": true,
+        "authenticity.identified": true,
+      });
+      if (destroyed.deletedCount !== 1) {
+        return NextResponse.json(
+          {
+            error:
+              "The detected forgery changed before it could be destroyed.",
+          },
+          { status: 409 },
+        );
+      }
+      return NextResponse.json({
+        status: "ok",
+        knowledge: {},
+        message:
+          "The museum detected the known forgery. The donation failed and the artwork was destroyed.",
+      });
+    }
     await database.collection<GameItem>("items").updateOne(
       { _id: item._id, owner: auth.session.playerId, status: item.status },
       {

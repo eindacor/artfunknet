@@ -4,6 +4,7 @@ import type { GameItem } from "@/server/gameplay";
 import {
   punishForgeryQuality,
   rollForgeryDetected,
+  shouldDestroyDetectedForgery,
   transferForgeryLiability,
 } from "@/server/forgery-gameplay";
 import { hydrateGameItems } from "@/server/item-artwork";
@@ -53,6 +54,30 @@ export async function POST(
     );
     const [hydrated] = await hydrateGameItems(database, [item]);
     if (rollForgeryDetected(hydrated, "sell")) {
+      if (shouldDestroyDetectedForgery(item)) {
+        const destroyed = await database.collection<GameItem>("items").deleteOne({
+          _id: item._id,
+          owner: auth.session.playerId,
+          status: item.status,
+          "authenticity.forgery": true,
+          "authenticity.identified": true,
+        });
+        if (destroyed.deletedCount !== 1) {
+          return NextResponse.json(
+            {
+              error:
+                "The detected forgery changed before it could be destroyed.",
+            },
+            { status: 409 },
+          );
+        }
+        return NextResponse.json({
+          status: "ok",
+          amount: 0,
+          message:
+            "The buyer detected the known forgery. The sale failed and the artwork was destroyed.",
+        });
+      }
       await database.collection<GameItem>("items").updateOne(
         { _id: item._id, owner: auth.session.playerId },
         {
