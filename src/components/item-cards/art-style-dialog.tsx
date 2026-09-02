@@ -278,7 +278,6 @@ export default function ArtStyleDialog({
                   data-card-renderer={previewCosmetic.id}
                   data-foil={dialogItem.foil ? "true" : undefined}
                   data-lottery={dialogItem.lottery || undefined}
-                  data-mint={dialogItem.mint ? "true" : undefined}
                   data-original={dialogItem.original ? "true" : undefined}
                   data-rarity={dialogItem.artwork.rarity}
                   data-seasonal={dialogItem.seasonal ? "true" : undefined}
@@ -290,6 +289,8 @@ export default function ArtStyleDialog({
                       item={{
                         ...dialogItem,
                         card_renderer: previewCosmetic.id,
+                        mint: false,
+                        mint_value_multiplier: 1,
                       }}
                       legendaryAttributes={legendaryAttributes}
                       researchTarget={researchTarget}

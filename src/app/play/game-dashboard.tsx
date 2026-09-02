@@ -4,6 +4,10 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
+import {
+  getGalleryPaintingDimension,
+  getGalleryPixelsPerCentimeter,
+} from "@/components/gallery-layout";
 import AuctionListingDialog from "@/components/item-cards/auction-listing-dialog";
 import ArtStyleDialog from "@/components/item-cards/art-style-dialog";
 import {
@@ -243,6 +247,16 @@ export default function GameDashboard({
   );
   const ownedCount = inventory.length + displayed.length;
   const repairingCount = items.filter((item) => item.repairing).length;
+  const galleryPixelsPerCentimeter =
+    getGalleryPixelsPerCentimeter(
+      displayed.map((item) => item.artwork.height),
+    );
+  const galleryPaintingMargin = Math.floor(
+    80 * galleryPixelsPerCentimeter,
+  );
+  const galleryWallOffset = Math.floor(
+    120 * galleryPixelsPerCentimeter,
+  );
   const inventoryFull = player.inventorySlotsUsed >= player.inventoryCap;
   const nextDrop =
     new Date(player.lastDrop).getTime() +
@@ -1033,39 +1047,63 @@ export default function GameDashboard({
               )}
             </div>
             <div className="gallery-window">
-              <div className="gallery-wall">
-                {displayed.length === 0 ? (
-                  <p className="empty-gallery">Your gallery walls are empty.</p>
-                ) : (
-                  displayed.map((item) => (
-                    <div className="painting-container" key={item._id}>
-                      <button
-                        className="framed-painting"
-                        disabled={pending}
-                        onClick={() => setGalleryItemDetails(item)}
+              <div className="gallery-scene">
+                <div
+                  className="gallery-wall"
+                  style={{
+                    paddingBottom: galleryWallOffset,
+                    paddingTop: galleryWallOffset,
+                  }}
+                >
+                  {displayed.length === 0 ? (
+                    <p className="empty-gallery">
+                      Your gallery walls are empty.
+                    </p>
+                  ) : (
+                    displayed.map((item) => (
+                      <div
+                        className="painting-container"
+                        key={item._id}
                         style={{
-                          aspectRatio: `${item.artwork.width} / ${item.artwork.height}`,
-                          backgroundImage: `url("/api/artwork/${item.artwork_id}/image")`,
+                          marginLeft: galleryPaintingMargin,
+                          marginRight: galleryPaintingMargin,
                         }}
-                        title={`View details for ${item.artwork.title}`}
-                        type="button"
-                      />
-                      <div className="placard">
-                        <p>{item.artwork.title}</p>
-                        <p>
-                          {item.artwork.artist}, {item.artwork.date}
-                        </p>
-                        <p
-                          className={`rarity-text ${item.artwork.rarity}`}
-                        >
-                          {item.artwork.rarity}
-                        </p>
+                      >
+                        <button
+                          className="framed-painting"
+                          disabled={pending}
+                          onClick={() => setGalleryItemDetails(item)}
+                          style={{
+                            backgroundImage: `url("/api/artwork/${item.artwork_id}/image")`,
+                            height: getGalleryPaintingDimension(
+                              item.artwork.height,
+                              galleryPixelsPerCentimeter,
+                            ),
+                            width: getGalleryPaintingDimension(
+                              item.artwork.width,
+                              galleryPixelsPerCentimeter,
+                            ),
+                          }}
+                          title={`View details for ${item.artwork.title}`}
+                          type="button"
+                        />
+                        <div className="placard">
+                          <p>{item.artwork.title}</p>
+                          <p>
+                            {item.artwork.artist}, {item.artwork.date}
+                          </p>
+                          <p
+                            className={`rarity-text ${item.artwork.rarity}`}
+                          >
+                            {item.artwork.rarity}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ))
-                )}
+                    ))
+                  )}
+                </div>
+                <div className="gallery-floor" />
               </div>
-              <div className="gallery-floor" />
             </div>
           </section>
         ) : null}

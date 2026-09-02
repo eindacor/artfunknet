@@ -2505,6 +2505,11 @@ body {
   overflow-x: auto;
 }
 
+.gallery-scene {
+  width: max-content;
+  min-width: 100%;
+}
+
 .admin-gallery-controls {
   margin-bottom: 18px;
   border: 1px dashed #777;
@@ -2698,10 +2703,11 @@ body {
 .gallery-wall {
   display: flex;
   align-items: center;
+  width: 100%;
   min-width: 100%;
   min-height: 470px;
-  gap: 70px;
-  padding: 70px 64px;
+  padding-right: 64px;
+  padding-left: 64px;
   border-bottom: 1px solid black;
   background-color: #ddd;
   background-image:
@@ -2717,9 +2723,7 @@ body {
 
 .framed-painting {
   display: block;
-  width: auto;
-  height: 260px;
-  min-width: 120px;
+  box-sizing: content-box;
   border: 8px solid black;
   padding: 0;
   background-position: center;
@@ -2731,12 +2735,12 @@ body {
 
 .placard {
   display: inline-block;
-  margin: 14px 0 0 12px;
-  padding: 5px 8px;
+  margin: 10px 0 0 -20px;
+  padding: 2px 8px;
   background: white;
   color: black;
   box-shadow: 2px 2px 0 rgb(0 0 0 / 21%);
-  font-size: 0.75rem;
+  font-size: 0.2rem;
 }
 
 .placard p {
@@ -2744,6 +2748,7 @@ body {
 }
 
 .gallery-floor {
+  width: 100%;
   height: 64px;
   margin-bottom: 64px;
   background:
