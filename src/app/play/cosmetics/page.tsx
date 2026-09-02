@@ -74,6 +74,7 @@ export default async function CardCosmeticStorePage() {
           code: attribute.code,
           active: attribute.active,
         }))}
+        rendererPrices={rendererSettings.rendererPrices}
         sampleItem={
           sampleItem
             ? JSON.parse(JSON.stringify(sampleItem))

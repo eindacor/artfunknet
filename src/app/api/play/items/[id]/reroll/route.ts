@@ -203,6 +203,9 @@ export async function POST(
       attributes,
       roll_count: item.roll_count + 1,
       reroll_spent: (item.reroll_spent ?? 0) + cost,
+      condition: item.mint ? 1 : item.condition,
+      mint: false,
+      mint_value_multiplier: 1,
     };
     const itemArtwork = { ...artwork, ...item.artwork_overrides };
     const values = calculateItemValues(
@@ -229,12 +232,16 @@ export async function POST(
         _id: item._id,
         owner: player._id,
         status: item.status,
+        mint: item.mint,
         roll_count: item.roll_count,
         [`attributes.${attributeType}._id`]: body.attributeId,
       },
       {
         $set: {
           attributes,
+          condition: nextItem.condition,
+          mint: false,
+          mint_value_multiplier: 1,
           values,
           reroll_cost: baseRerollCost,
         },

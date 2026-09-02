@@ -22,6 +22,8 @@ export type GameplayConfig = {
   dailyDropCooldownMinutes: number;
   dailyDropCount: number;
   foilProbability: number;
+  mintProbability: number;
+  mintValueMultiplier: number;
   unlockedProbability: number;
   galleryPayoutIntervalMinutes: number;
   displayLevelIntervalMinutes: number;
@@ -45,6 +47,8 @@ export const DEFAULT_ACTUAL_GAMEPLAY_CONFIG: GameplayConfig = {
   dailyDropCooldownMinutes: 5,
   dailyDropCount: 6,
   foilProbability: 0.005,
+  mintProbability: 0.0005,
+  mintValueMultiplier: 2,
   unlockedProbability: 0.05,
   galleryPayoutIntervalMinutes: 60,
   displayLevelIntervalMinutes: 60,
@@ -58,6 +62,8 @@ export const DEFAULT_DEBUG_GAMEPLAY_CONFIG: GameplayConfig = {
   dailyDropCooldownMinutes: 1,
   dailyDropCount: 20,
   foilProbability: 0.5,
+  mintProbability: 0.25,
+  mintValueMultiplier: 2,
   unlockedProbability: 0.5,
   galleryPayoutIntervalMinutes: 1,
   displayLevelIntervalMinutes: 1,
@@ -71,6 +77,8 @@ type StoredGameplayConfig = {
   daily_drop_cooldown_minutes?: number;
   daily_drop_count?: number;
   foil_probability?: number;
+  mint_probability?: number;
+  mint_value_multiplier?: number;
   unlocked_probability?: number;
   gallery_payout_interval_minutes?: number;
   display_level_interval_minutes?: number;
@@ -124,6 +132,8 @@ export function toStoredGameplayConfig(
     daily_drop_cooldown_minutes: config.dailyDropCooldownMinutes,
     daily_drop_count: config.dailyDropCount,
     foil_probability: config.foilProbability,
+    mint_probability: config.mintProbability,
+    mint_value_multiplier: config.mintValueMultiplier,
     unlocked_probability: config.unlockedProbability,
     gallery_payout_interval_minutes: config.galleryPayoutIntervalMinutes,
     display_level_interval_minutes: config.displayLevelIntervalMinutes,
@@ -166,6 +176,7 @@ export function validateGameplayConfig(
 
   const probabilityFields = [
     ["foilProbability", "Foil probability"],
+    ["mintProbability", "Mint probability"],
     ["unlockedProbability", "Unlocked probability"],
   ] as const;
   const probabilities: Record<string, number> = {};
@@ -179,6 +190,17 @@ export function validateGameplayConfig(
     }
     probabilities[key] = value;
   }
+  const mintValueMultiplier = Number(config.mintValueMultiplier);
+  if (
+    !Number.isFinite(mintValueMultiplier) ||
+    mintValueMultiplier < 1 ||
+    mintValueMultiplier > 1_000
+  ) {
+    return {
+      ok: false,
+      error: "Mint value multiplier must be a number from 1 to 1,000.",
+    };
+  }
 
   const rarityWeights = validateRarityWeights(config.rarityWeights);
   if (!rarityWeights.ok) return rarityWeights;
@@ -189,6 +211,8 @@ export function validateGameplayConfig(
       dailyDropCooldownMinutes: values.dailyDropCooldownMinutes,
       dailyDropCount: values.dailyDropCount,
       foilProbability: probabilities.foilProbability,
+      mintProbability: probabilities.mintProbability,
+      mintValueMultiplier,
       unlockedProbability: probabilities.unlockedProbability,
       galleryPayoutIntervalMinutes: values.galleryPayoutIntervalMinutes,
       displayLevelIntervalMinutes: values.displayLevelIntervalMinutes,
@@ -260,6 +284,10 @@ function readConfig(
     dailyDropCount: stored?.daily_drop_count ?? defaults.dailyDropCount,
     foilProbability:
       stored?.foil_probability ?? defaults.foilProbability,
+    mintProbability:
+      stored?.mint_probability ?? defaults.mintProbability,
+    mintValueMultiplier:
+      stored?.mint_value_multiplier ?? defaults.mintValueMultiplier,
     unlockedProbability:
       stored?.unlocked_probability ?? defaults.unlockedProbability,
     galleryPayoutIntervalMinutes:

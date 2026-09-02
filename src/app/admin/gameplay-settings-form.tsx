@@ -212,6 +212,36 @@ export default function GameplaySettingsForm({
         value={activeEditor.unlockedProbability * 100}
       />
       <SettingField
+        description="Chance that a generated item starts Mint at perfect condition. Mint is permanently consumed the first time the item is displayed."
+        label="Mint probability"
+        max={100}
+        min={0}
+        onChange={(value) =>
+          updateConfig(selectedConfig, (config) => ({
+            ...config,
+            mintProbability: value / 100,
+          }))
+        }
+        step={0.01}
+        suffix="%"
+        value={activeEditor.mintProbability * 100}
+      />
+      <SettingField
+        description="Value multiplier captured by newly generated Mint items until they are first displayed."
+        label="Mint value multiplier"
+        max={1000}
+        min={1}
+        onChange={(value) =>
+          updateConfig(selectedConfig, (config) => ({
+            ...config,
+            mintValueMultiplier: value,
+          }))
+        }
+        step={0.1}
+        suffix="×"
+        value={activeEditor.mintValueMultiplier}
+      />
+      <SettingField
         description="How often displayed artwork settles prorated money and XP."
         label="Gallery money/XP payout interval"
         max={1440}

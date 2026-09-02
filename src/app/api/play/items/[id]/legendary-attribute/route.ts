@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import type { Artwork, GameItem } from "@/server/gameplay";
+import { getDemintUpdate } from "@/server/item-mint";
 import type { LegendaryAttribute } from "@/server/legendary-attributes";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
@@ -55,14 +56,33 @@ export async function PATCH(
     );
   }
 
+  let mintUpdate = {};
+  try {
+    mintUpdate = (await getDemintUpdate(database, item)) ?? {};
+  } catch (error) {
+    console.error(
+      "Unable to remove Mint before changing Legendary Attribute",
+      error,
+    );
+    return NextResponse.json(
+      { error: "This item's value data is unavailable." },
+      { status: 500 },
+    );
+  }
   const result = await database.collection<GameItem>("items").findOneAndUpdate(
     {
       _id: item._id,
       owner: auth.session.playerId,
       status: "claimed",
+      mint: item.mint,
       active_unique_attribute: item.active_unique_attribute,
     },
-    { $set: { active_unique_attribute: body.attributeId } },
+    {
+      $set: {
+        ...mintUpdate,
+        active_unique_attribute: body.attributeId,
+      },
+    },
     { returnDocument: "after" },
   );
   if (!result) {

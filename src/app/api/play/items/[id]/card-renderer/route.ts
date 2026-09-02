@@ -5,6 +5,7 @@ import {
   getOwnedCardRendererIds,
 } from "@/components/item-cards/catalog";
 import type { GameItem } from "@/server/gameplay";
+import { getDemintUpdate } from "@/server/item-mint";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
 
@@ -57,17 +58,43 @@ export async function POST(
     );
   }
 
-  const result = await database.collection<GameItem>("items").updateOne(
+  const item = await database.collection<GameItem>("items").findOne(
     {
       _id: id,
       owner: player._id,
       status: { $in: ["claimed", "displayed"] },
     },
-    { $set: { card_renderer: cosmetic.id } },
   );
-  if (result.matchedCount !== 1) {
+  if (!item) {
     return NextResponse.json(
       { error: "Only artwork you own can be customized." },
+      { status: 409 },
+    );
+  }
+
+  let mintUpdate = {};
+  try {
+    mintUpdate = (await getDemintUpdate(database, item)) ?? {};
+  } catch (error) {
+    console.error("Unable to remove Mint before applying cosmetic", error);
+    return NextResponse.json(
+      { error: "This item's value data is unavailable." },
+      { status: 500 },
+    );
+  }
+  const result = await database.collection<GameItem>("items").findOneAndUpdate(
+    {
+      _id: item._id,
+      owner: player._id,
+      status: item.status,
+      mint: item.mint,
+    },
+    { $set: { ...mintUpdate, card_renderer: cosmetic.id } },
+    { returnDocument: "after" },
+  );
+  if (!result) {
+    return NextResponse.json(
+      { error: "This item changed before its cosmetic could be applied." },
       { status: 409 },
     );
   }
@@ -75,5 +102,6 @@ export async function POST(
   return NextResponse.json({
     status: "ok",
     rendererId: cosmetic.id,
+    item: result,
   });
 }

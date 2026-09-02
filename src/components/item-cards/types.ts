@@ -1,4 +1,5 @@
 import type { HydratedGameItem } from "@/server/item-artwork";
+import type { CardRendererPriceMap } from "./catalog";
 
 export const CARD_RENDERER_IDS = [
   "legacy",
@@ -40,6 +41,7 @@ export type ItemCardProps = Omit<ItemCardRendererProps, "alreadyOwned"> & {
   forceRendererId?: string;
   ownedRendererIds?: string[];
   permissions?: ItemDialogPermissions;
+  rendererPrices?: CardRendererPriceMap;
   rendererId?: string;
 };
 

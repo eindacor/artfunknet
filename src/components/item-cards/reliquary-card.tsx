@@ -30,7 +30,7 @@ export default function ReliquaryCard({
       <section>
         <ItemStatusBadges item={item} alreadyOwned={alreadyOwned} />
         <h3>{item.artwork.title}</h3>
-        <p>{item.artwork.artist}</p>
+        <p className="render-card-artist">{item.artwork.artist}</p>
         <div className="reliquary-card-stats">
           <span>LV {item.level}</span>
           <span>{Math.round(item.condition * 100)}%</span>

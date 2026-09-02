@@ -12,6 +12,8 @@ export const ARTWORK_RARITIES = [
   "masterpiece",
 ] as const;
 
+export const LOTTERY_LEVEL_MAX = 10;
+
 export type ArtworkRarity = (typeof ARTWORK_RARITIES)[number];
 
 
@@ -86,6 +88,8 @@ export type GameItem = {
   _id: string;
   artwork_id: string;
   condition: number;
+  mint: boolean;
+  mint_value_multiplier: number;
   attributes: {
     locked: ItemAttribute[];
     unlocked: ItemAttribute[];
@@ -272,11 +276,33 @@ export function rollUnlocked(
   return rarity !== "common" && rollProbability(probability, random);
 }
 
+export function rollGeneratedItemProperties(
+  rarity: ArtworkRarity,
+  {
+    foilProbability,
+    mintProbability,
+    unlockedProbability,
+  }: {
+    foilProbability: number;
+    mintProbability: number;
+    unlockedProbability: number;
+  },
+  random: () => number = Math.random,
+) {
+  return {
+    foil: rollProbability(foilProbability, random),
+    mint: rollProbability(mintProbability, random),
+    unlocked: rollUnlocked(rarity, unlockedProbability, random),
+  };
+}
+
 type DailyDropOptions = {
   now?: Date;
   itemCount?: number;
   rarityWeights?: Record<ArtworkRarity, number>;
   foilProbability?: number;
+  mintProbability?: number;
+  mintValueMultiplier?: number;
   unlockedProbability?: number;
   debug?: boolean;
   useRawRarityMap?: boolean;
@@ -311,6 +337,8 @@ export async function generateDailyDrop(
     itemCount = 6,
     rarityWeights,
     foilProbability = 0.005,
+    mintProbability = 0,
+    mintValueMultiplier = 1,
     unlockedProbability = 0.05,
     debug = false,
     useRawRarityMap = false,
@@ -378,6 +406,8 @@ export async function generateDailyDrop(
         ),
         now,
         foilProbability,
+        mintProbability,
+        mintValueMultiplier,
         unlockedProbability,
         debug,
         source,
@@ -418,6 +448,8 @@ function createItem({
   artworkWeightTotal,
   now,
   foilProbability,
+  mintProbability,
+  mintValueMultiplier,
   unlockedProbability,
   debug,
   source,
@@ -433,6 +465,8 @@ function createItem({
   artworkWeightTotal: number;
   now: Date;
   foilProbability: number;
+  mintProbability: number;
+  mintValueMultiplier: number;
   unlockedProbability: number;
   debug: boolean;
   source: string;
@@ -440,8 +474,14 @@ function createItem({
   conditionMinimum: number;
   status: "unclaimed" | "for_sale";
 }): GameItem {
-  const foil = rollProbability(foilProbability);
-  const unlocked = rollUnlocked(artwork.rarity, unlockedProbability);
+  const { foil, mint, unlocked } = rollGeneratedItemProperties(
+    artwork.rarity,
+    {
+      foilProbability,
+      mintProbability,
+      unlockedProbability,
+    },
+  );
   const misprint = Math.random() < lootData.global_misprint_chance;
   const artworkOverrides = getMisprintOverrides(artwork, misprint);
   const itemArtwork = { ...artwork, ...artworkOverrides };
@@ -450,7 +490,7 @@ function createItem({
     unlocked,
     attributes,
   );
-  const condition = getCondition(conditionMinimum);
+  const condition = getGeneratedItemCondition(mint, conditionMinimum);
   const seasonal =
     lootData.seasonal_items[artwork.rarity]?.includes(artwork._id) ?? false;
   const timestamp = now.toISOString();
@@ -459,6 +499,8 @@ function createItem({
     _id: randomUUID(),
     artwork_id: artwork._id,
     condition,
+    mint,
+    mint_value_multiplier: mint ? mintValueMultiplier : 1,
     attributes: itemAttributes,
     active_unique_attribute: artwork.unique_attributes?.[0],
     owner,
@@ -509,6 +551,7 @@ function createItem({
   const rarityArtworksWeight = 50 + Math.floor((1 - artwork.value_scale) * 50);
   let odds = rarityOdds * (rarityArtworksWeight / artworkWeightTotal);
   if (foil) odds *= foilProbability;
+  if (mint) odds *= mintProbability;
   if (unlocked) odds *= unlockedProbability;
 
   return {
@@ -581,6 +624,13 @@ function getCondition(minimum: number): number {
   return Number((minimum + raw * (1 - minimum)).toFixed(2));
 }
 
+export function getGeneratedItemCondition(
+  mint: boolean,
+  minimum: number,
+): number {
+  return mint ? 1 : getCondition(minimum);
+}
+
 export function rollAttributeValue(minimum: number): number {
   const tier = rollWeighted(
     [0, 1, 2, 3, 4].map((value, index) => ({
@@ -610,6 +660,8 @@ export function calculateItemValues(
   item: Pick<
     GameItem,
     | "condition"
+    | "mint"
+    | "mint_value_multiplier"
     | "attributes"
     | "foil"
     | "seasonal"
@@ -650,6 +702,7 @@ export function calculateItemValues(
   if (item.original) actual *= 7;
   if (item.vintage) actual *= 2;
   if (item.unlocked) actual *= 1.5;
+  if (item.mint) actual *= item.mint_value_multiplier;
   actual *= 1 + item.level * 0.01;
   actual = Math.floor(actual);
 

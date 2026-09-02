@@ -8,6 +8,10 @@ export type CardCosmetic = {
   price: number;
 };
 
+export type CardRendererPriceMap = Partial<
+  Record<CardRendererId, number>
+>;
+
 export const CARD_COSMETICS: CardCosmetic[] = [
   {
     number: 1,
@@ -107,18 +111,28 @@ export function getOwnedCardRendererIds(
 
 export function getActiveCardCosmetics(
   activeRendererIds: readonly string[],
+  rendererPrices: CardRendererPriceMap = {},
 ): CardCosmetic[] {
   const active = new Set(activeRendererIds);
-  return CARD_COSMETICS.filter((cosmetic) => active.has(cosmetic.id));
+  return CARD_COSMETICS.filter((cosmetic) => active.has(cosmetic.id)).map(
+    (cosmetic) => ({
+      ...cosmetic,
+      price: rendererPrices[cosmetic.id] ?? cosmetic.price,
+    }),
+  );
 }
 
 export function getSelectableCardCosmetics(
   activeRendererIds: readonly string[],
   ownedRendererIds: readonly string[] | undefined,
+  rendererPrices: CardRendererPriceMap = {},
 ): CardCosmetic[] {
   const active = new Set(activeRendererIds);
   const owned = new Set(getOwnedCardRendererIds(ownedRendererIds));
   return CARD_COSMETICS.filter(
     (cosmetic) => active.has(cosmetic.id) || owned.has(cosmetic.id),
-  );
+  ).map((cosmetic) => ({
+    ...cosmetic,
+    price: rendererPrices[cosmetic.id] ?? cosmetic.price,
+  }));
 }

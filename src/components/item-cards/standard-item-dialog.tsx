@@ -5,17 +5,24 @@ import { useEffect, useRef, useState } from "react";
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
 
 import {
+  type CardRendererPriceMap,
   getCardCosmetic,
   getOwnedCardRendererIds,
   getSelectableCardCosmetics,
 } from "./catalog";
-import { CompleteItemRecord } from "./shared";
+import MintLossConfirmationDialog from "./mint-loss-confirmation-dialog";
+import {
+  AttributeIcons,
+  CompleteItemRecord,
+  ItemPropertyBadges,
+} from "./shared";
 import type {
   CardLegendaryAttribute,
   CardRendererId,
   ItemDialogPermissions,
 } from "./types";
 import type { HydratedGameItem } from "@/server/item-artwork";
+import type { GameItem } from "@/server/gameplay";
 
 export default function StandardItemDialog({
   item,
@@ -25,6 +32,7 @@ export default function StandardItemDialog({
   actions,
   ownedRendererIds,
   permissions,
+  rendererPrices,
   onClose,
   onRendererSelected,
 }: {
@@ -35,8 +43,9 @@ export default function StandardItemDialog({
   actions?: React.ReactNode;
   ownedRendererIds?: string[];
   permissions: ItemDialogPermissions;
+  rendererPrices?: CardRendererPriceMap;
   onClose: () => void;
-  onRendererSelected: (rendererId: CardRendererId) => void;
+  onRendererSelected: (rendererId: CardRendererId, item: GameItem) => void;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
@@ -44,6 +53,9 @@ export default function StandardItemDialog({
     useState<CardRendererId>(currentRendererId);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [dialogItem, setDialogItem] = useState(item);
+  const [pendingRendererId, setPendingRendererId] =
+    useState<CardRendererId | null>(null);
   const owned = new Set(getOwnedCardRendererIds(ownedRendererIds));
   const appliedCosmetic = getCardCosmetic(currentRendererId);
 
@@ -71,18 +83,26 @@ export default function StandardItemDialog({
     setError("");
     try {
       const response = await fetch(
-        `/api/play/items/${item._id}/card-renderer`,
+        `/api/play/items/${dialogItem._id}/card-renderer`,
         {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ rendererId }),
         },
       );
-      const body = (await response.json()) as { error?: string };
-      if (!response.ok) {
+      const body = (await response.json()) as {
+        error?: string;
+        item?: GameItem;
+      };
+      if (!response.ok || !body.item) {
         throw new Error(body.error ?? "The card style could not be applied.");
       }
-      onRendererSelected(rendererId);
+      setDialogItem({
+        ...dialogItem,
+        ...body.item,
+        artwork: dialogItem.artwork,
+      });
+      onRendererSelected(rendererId, body.item);
     } catch (saveError) {
       setSelectedRendererId(currentRendererId);
       setError(
@@ -97,9 +117,11 @@ export default function StandardItemDialog({
 
   return (
     <dialog
-      aria-labelledby={`standard-item-title-${item._id}`}
+      aria-labelledby={`standard-item-title-${dialogItem._id}`}
       className="standard-item-dialog"
-      data-rarity={item.artwork.rarity}
+      data-mint={dialogItem.mint ? "true" : undefined}
+      data-rarity={dialogItem.artwork.rarity}
+      data-seasonal={dialogItem.seasonal ? "true" : undefined}
       onCancel={(event) => {
         event.preventDefault();
         closeDialog();
@@ -107,18 +129,30 @@ export default function StandardItemDialog({
       ref={dialogRef}
     >
       <div className="standard-item-dialog-content">
-        <header>
-          <div>
+        <header className="standard-item-dialog-header">
+          <div className="standard-item-dialog-feature">
             <p className="standard-item-dialog-kicker">
               <span className="card-rarity-label">
-                {item.artwork.rarity}
+                {dialogItem.artwork.rarity}
               </span>{" "}
-              artwork · level {item.level}
+              artwork · level {dialogItem.level}
             </p>
-            <h2 id={`standard-item-title-${item._id}`}>
-              {item.artwork.title}
-            </h2>
-            <p>{item.artwork.artist}</p>
+            <div className="standard-item-dialog-identity">
+              <ArtworkThumbnail
+                alt={`${dialogItem.artwork.title} by ${dialogItem.artwork.artist}`}
+                artworkId={dialogItem.artwork_id}
+                className="standard-item-dialog-artwork"
+              />
+              <div className="standard-item-dialog-heading">
+                <h2 id={`standard-item-title-${dialogItem._id}`}>
+                  {dialogItem.artwork.title}
+                </h2>
+                <p>{dialogItem.artwork.artist}</p>
+                <p className="standard-item-dialog-workline">
+                  {dialogItem.artwork.date} · {dialogItem.artwork.medium}
+                </p>
+              </div>
+            </div>
           </div>
           <button
             aria-label="Close item details"
@@ -131,11 +165,14 @@ export default function StandardItemDialog({
         </header>
         <div className="standard-item-dialog-layout">
           <div className="standard-item-dialog-sidebar">
-            <ArtworkThumbnail
-              alt={`${item.artwork.title} by ${item.artwork.artist}`}
-              artworkId={item.artwork_id}
-              className="standard-item-dialog-artwork"
-            />
+            <section className="standard-item-dialog-attributes">
+              <span>Attributes</span>
+              <AttributeIcons item={dialogItem} />
+            </section>
+            <section className="standard-item-dialog-properties">
+              <span>Properties</span>
+              <ItemPropertyBadges item={dialogItem} />
+            </section>
             {permissions.canManageItem && actions ? (
               <div
                 className="standard-item-dialog-actions card-actions"
@@ -158,8 +195,10 @@ export default function StandardItemDialog({
             ) : null}
           </div>
           <CompleteItemRecord
-            item={item}
+            item={dialogItem}
             legendaryAttributes={legendaryAttributes}
+            showAttributeDetails={false}
+            showProperties={false}
           />
         </div>
         {permissions.canCustomizeCosmetic ? (
@@ -175,6 +214,7 @@ export default function StandardItemDialog({
               {getSelectableCardCosmetics(
                 activeRendererIds ?? [],
                 ownedRendererIds,
+                rendererPrices,
               ).map((cosmetic) => {
                 const unlocked = owned.has(cosmetic.id);
                 return (
@@ -185,8 +225,14 @@ export default function StandardItemDialog({
                     <input
                       checked={selectedRendererId === cosmetic.id}
                       disabled={!unlocked || saving}
-                      name={`card-renderer-${item._id}`}
-                      onChange={() => void applyRenderer(cosmetic.id)}
+                      name={`card-renderer-${dialogItem._id}`}
+                      onChange={() => {
+                        if (dialogItem.mint) {
+                          setPendingRendererId(cosmetic.id);
+                        } else {
+                          void applyRenderer(cosmetic.id);
+                        }
+                      }}
                       type="radio"
                     />
                     <span>
@@ -223,6 +269,13 @@ export default function StandardItemDialog({
           </section>
         )}
       </div>
+      {pendingRendererId ? (
+        <MintLossConfirmationDialog
+          actionLabel="Changing this card cosmetic"
+          onCancel={() => setPendingRendererId(null)}
+          onConfirm={() => void applyRenderer(pendingRendererId)}
+        />
+      ) : null}
     </dialog>
   );
 }

@@ -17,7 +17,9 @@ export default function TerminalCard(props: ItemCardRendererProps) {
       <div className="terminal-card-copy">
         <ItemStatusBadges item={item} alreadyOwned={alreadyOwned} />
         <p>&gt; TITLE: {item.artwork.title}</p>
-        <p>&gt; ARTIST: {item.artwork.artist}</p>
+        <p className="render-card-artist">
+          &gt; ARTIST: {item.artwork.artist}
+        </p>
         <p>&gt; MEDIUM: {item.artwork.medium}</p>
         <p>&gt; DATE: {item.artwork.date}</p>
         <p className="card-rarity-label">

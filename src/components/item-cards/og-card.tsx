@@ -1,7 +1,6 @@
 import {
   AttributeIcons,
   getActiveLegendaryAttribute,
-  ItemStatusBadges,
   ratingColor,
 } from "./shared";
 import type { ItemCardRendererProps } from "./types";
@@ -9,7 +8,6 @@ import type { ItemCardRendererProps } from "./types";
 export default function OgCard({
   item,
   legendaryAttributes,
-  alreadyOwned,
 }: ItemCardRendererProps) {
   const activeLegendaryAttribute = getActiveLegendaryAttribute(
     item,
@@ -33,9 +31,8 @@ export default function OgCard({
       <div className={`card-header ${cardTypes}`}>
         <p className="item-title">
           {item.artwork.title}
-          <ItemStatusBadges item={item} alreadyOwned={alreadyOwned} />
         </p>
-        <p>{item.artwork.artist}</p>
+        <p className="render-card-artist">{item.artwork.artist}</p>
         <div className="header-details">
           <p>{item.artwork.date}</p>
           <CardSignature item={item} />
@@ -47,7 +44,9 @@ export default function OgCard({
           <p>drop chance: {item.odds}</p>
           <p>
             condition:{" "}
-            <span style={{ color: ratingColor(item.condition) }}>
+            <span
+              style={{ color: ratingColor(item.condition) }}
+            >
               {Math.round(item.condition * 100)}%
             </span>
           </p>

@@ -27,7 +27,7 @@ export default function ZineCard({
       <section>
         <ItemStatusBadges item={item} alreadyOwned={alreadyOwned} />
         <h3>{item.artwork.title}</h3>
-        <p>ART BY {item.artwork.artist}</p>
+        <p className="render-card-artist">ART BY {item.artwork.artist}</p>
         <p>
           {item.artwork.genre} / {Math.round(item.condition * 100)}% COND.
         </p>

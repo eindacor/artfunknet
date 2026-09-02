@@ -29,7 +29,7 @@ export async function POST(
 
   const { id } = await params;
   const cosmetic = getCardCosmetic(id);
-  if (!cosmetic || cosmetic.price <= 0) {
+  if (!cosmetic) {
     return NextResponse.json(
       { error: "This card cosmetic cannot be purchased." },
       { status: 404 },
@@ -38,6 +38,7 @@ export async function POST(
 
   const database = await getDatabase();
   const rendererSettings = await getCardRendererSettings(database);
+  const price = rendererSettings.rendererPrices[cosmetic.id];
   if (!isCardRendererActive(cosmetic.id, rendererSettings.activeRendererIds)) {
     return NextResponse.json(
       { error: "This card cosmetic is not currently available." },
@@ -70,11 +71,11 @@ export async function POST(
     {
       _id: player._id,
       active: true,
-      "profile.bank_balance": { $gte: cosmetic.price },
+      "profile.bank_balance": { $gte: price },
       "profile.owned_card_renderers": { $ne: cosmetic.id },
     },
     {
-      $inc: { "profile.bank_balance": -cosmetic.price },
+      $inc: { "profile.bank_balance": -price },
       $addToSet: { "profile.owned_card_renderers": cosmetic.id },
       $set: { "profile.last_activity": now },
     },

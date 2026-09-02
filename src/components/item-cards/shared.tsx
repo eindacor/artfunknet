@@ -40,7 +40,7 @@ export function ArtworkImage({
   return (
     <div
       aria-label={`${item.artwork.title} by ${item.artwork.artist}`}
-      className={className}
+      className={`${className} render-card-artwork-image`}
       role="img"
       style={{
         backgroundImage: `url("/api/artwork/${item.artwork_id}/image")`,
@@ -52,9 +52,32 @@ export function ArtworkImage({
 export function ItemStatusBadges({
   item,
   alreadyOwned,
-}: Pick<ItemCardRendererProps, "item" | "alreadyOwned">) {
+  showFoil = false,
+  showMintIcon = true,
+  showUnlocked = false,
+}: Pick<ItemCardRendererProps, "item" | "alreadyOwned"> & {
+  showFoil?: boolean;
+  showMintIcon?: boolean;
+  showUnlocked?: boolean;
+}) {
   return (
     <span className="render-card-badges">
+      {item.foil && showFoil ? (
+        <span className="foil-indicator">foil</span>
+      ) : null}
+      {item.unlocked && showUnlocked ? (
+        <span className="item-property-badge property-unlocked">
+          unlocked
+        </span>
+      ) : null}
+      {item.mint ? (
+        <span className="mint-indicator">
+          {showMintIcon ? (
+            <i aria-hidden="true" className="fa fa-leaf" />
+          ) : null}
+          mint
+        </span>
+      ) : null}
       {item.status === "claimed" && item.tags.includes("for sale") ? (
         <span className="collector-sale-indicator">for collectors</span>
       ) : null}
@@ -71,11 +94,61 @@ export function ItemStatusBadges({
   );
 }
 
+export function ItemPropertyBadges({
+  item,
+}: Pick<ItemCardRendererProps, "item">) {
+  const properties = [
+    item.mint ? { key: "mint", label: "mint" } : null,
+    item.foil ? { key: "foil", label: "foil" } : null,
+    item.unlocked ? { key: "unlocked", label: "unlocked" } : null,
+    item.seasonal ? { key: "seasonal", label: "seasonal" } : null,
+    item.vintage ? { key: "vintage", label: "vintage" } : null,
+    item.original ? { key: "original", label: "original" } : null,
+    item.patreon ? { key: "patreon", label: "patreon" } : null,
+    item.lottery
+      ? { key: "lottery", label: `lottery ${item.lottery}` }
+      : null,
+    item.misprint ? { key: "misprint", label: "misprint" } : null,
+  ].filter(
+    (property): property is { key: string; label: string } =>
+      property !== null,
+  );
+
+  return (
+    <span className="item-property-badges">
+      {properties.length > 0 ? (
+        properties.map((property) => (
+          <span
+            className={`item-property-badge property-${property.key}`}
+            key={property.key}
+          >
+            {property.label}
+          </span>
+        ))
+      ) : (
+        <span aria-label="No properties" className="item-properties-empty">
+          <i aria-hidden="true" className="fa fa-times" />
+        </span>
+      )}
+    </span>
+  );
+}
+
 export function AttributeIcons({
   item,
 }: Pick<ItemCardRendererProps, "item">) {
+  const attributeCount =
+    item.attributes.unlocked.length +
+    item.attributes.locked.length +
+    item.attributes.special.length;
+
   return (
-    <span className="render-card-attribute-icons">
+    <span
+      className={`render-card-attribute-icons ${
+        attributeCount > 3 ? "attribute-layout-many" : ""
+      }`}
+      data-attribute-count={attributeCount}
+    >
       <AttributeGroup attributes={item.attributes.unlocked} type="unlocked" />
       <AttributeGroup attributes={item.attributes.locked} type="locked" />
       <AttributeGroup attributes={item.attributes.special} type="special" />
@@ -106,9 +179,15 @@ export function ItemDetails({
 export function CompleteItemRecord({
   item,
   legendaryAttributes,
-}: Pick<ItemCardRendererProps, "item" | "legendaryAttributes">) {
+  showAttributeDetails = true,
+  showProperties = true,
+}: Pick<ItemCardRendererProps, "item" | "legendaryAttributes"> & {
+  showAttributeDetails?: boolean;
+  showProperties?: boolean;
+}) {
   const legendary = getActiveLegendaryAttribute(item, legendaryAttributes);
   const properties = [
+    item.mint ? "mint" : null,
     item.foil ? "foil" : null,
     item.unlocked ? "unlocked" : null,
     item.seasonal ? "seasonal" : null,
@@ -142,23 +221,26 @@ export function CompleteItemRecord({
           <Fact label="Level" value={item.level} />
           <Fact
             label="Condition"
-            value={`${Math.round(item.condition * 100)}%`}
+            value={
+              <span
+                aria-label={item.mint ? "Mint condition" : undefined}
+                className={item.mint ? "mint-condition" : undefined}
+              >
+                {item.mint ? (
+                  <i aria-hidden="true" className="fa fa-leaf" />
+                ) : (
+                  `${Math.round(item.condition * 100)}%`
+                )}
+              </span>
+            }
           />
           <Fact
             label="Estimated value"
-            value={`$${item.values.actual.toLocaleString()}`}
-          />
-          <Fact
-            label="Sell value"
-            value={`$${item.values.sell.toLocaleString()}`}
-          />
-          <Fact
-            label="Dealer value"
-            value={`$${item.values.dealer.toLocaleString()}`}
-          />
-          <Fact
-            label="Collector value"
-            value={`$${item.values.collector.toLocaleString()}`}
+            value={
+              <strong className="estimated-value">
+                ${item.values.actual.toLocaleString()}
+              </strong>
+            }
           />
           <Fact
             label="Auction minimum"
@@ -182,16 +264,25 @@ export function CompleteItemRecord({
               item.authenticity.identified
                 ? item.authenticity.forgery
                   ? "identified forgery"
-                  : "verified"
+                  : (
+                      <i
+                        aria-label="Verified"
+                        className="fa fa-check item-verified"
+                      />
+                    )
                 : "unidentified"
             }
           />
-          <Fact
-            label="Properties"
-            value={properties.length > 0 ? properties.join(", ") : "standard"}
-          />
+          {showProperties ? (
+            <Fact
+              label="Properties"
+              value={
+                properties.length > 0 ? properties.join(", ") : "standard"
+              }
+            />
+          ) : null}
       </dl>
-      <AttributeDetails item={item} />
+      {showAttributeDetails ? <AttributeDetails item={item} /> : null}
       {legendary ? (
         <div className="render-card-legendary">
           <strong>{legendary.title}</strong>
@@ -205,12 +296,35 @@ export function CompleteItemRecord({
 
 export function CompactStats({
   item,
-}: Pick<ItemCardRendererProps, "item">) {
+  mintDisplay = "text",
+  showLotteryLevel = false,
+}: Pick<ItemCardRendererProps, "item"> & {
+  mintDisplay?: "text" | "leaf";
+  showLotteryLevel?: boolean;
+}) {
   return (
     <span className="render-card-compact-stats">
       <span>LVL {item.level}</span>
-      <span className="rating-value" style={ratingStyle(item.condition)}>
-        {Math.round(item.condition * 100)}%
+      {showLotteryLevel && item.lottery > 0 ? (
+        <span
+          aria-label={`Lottery level ${item.lottery}`}
+          className="lottery-level"
+        >
+          L{item.lottery}
+        </span>
+      ) : null}
+      <span
+        aria-label={item.mint && mintDisplay === "leaf" ? "Mint condition" : undefined}
+        className="rating-value"
+        style={ratingStyle(item.condition)}
+      >
+        {item.mint && mintDisplay === "leaf" ? (
+          <i aria-hidden="true" className="fa fa-leaf" />
+        ) : item.mint ? (
+          "MINT"
+        ) : (
+          `${Math.round(item.condition * 100)}%`
+        )}
       </span>
       <span>${item.values.actual.toLocaleString()}</span>
     </span>
@@ -273,16 +387,19 @@ function AttributeGroup({
       {attributes.map((attribute) => {
         const rating = Math.round((attribute.value ?? 0) * 100);
         return (
-          <span className="attribute-tooltip" key={attribute._id}>
+          <span
+            className="attribute-tooltip"
+            key={attribute._id}
+            style={ratingStyle(attribute.value ?? 0)}
+          >
             <i
-              aria-label={`${attribute.npc_name}, ${rating}% attraction, ${type}`}
+              aria-label={`${attribute.npc_name}, ${rating}%, ${type}`}
               className={`fa ${attribute.icon} attribute ${type}`}
-              style={ratingStyle(attribute.value ?? 0)}
             />
             <span className="attribute-tooltip-text">
               <strong>{attribute.npc_name}</strong>
-              <span>{rating}% attraction</span>
-              <span>{type}</span>
+              <span className="attribute-rating">{rating}%</span>
+              <span className={`attribute-type ${type}`}>{type}</span>
             </span>
           </span>
         );

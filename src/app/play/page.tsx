@@ -176,6 +176,7 @@ export default async function PlayerPage() {
       />
       <GameDashboard
         activeRendererIds={rendererSettings.activeRendererIds}
+        rendererPrices={rendererSettings.rendererPrices}
         dailyDropCooldownMinutes={config.dailyDropCooldownMinutes}
         debugEnabled={settings.debugEnabled}
         dealerPriceMultiplier={dealerPriceMultiplier}

@@ -5,10 +5,14 @@ import { useRouter } from "next/navigation";
 
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
 import ItemCard from "@/components/item-cards/item-card";
+import MintLossConfirmationDialog from "@/components/item-cards/mint-loss-confirmation-dialog";
 import { resolveCardRendererId } from "@/components/item-cards/selection";
 import { ratingColor } from "@/components/item-cards/shared";
 import StandardItemDialog from "@/components/item-cards/standard-item-dialog";
-import type { CardLegendaryAttribute } from "@/components/item-cards/types";
+import type {
+  CardLegendaryAttribute,
+  ItemCardProps,
+} from "@/components/item-cards/types";
 import type { GalleryRates } from "@/server/collection-gameplay";
 import type { GameItem } from "@/server/gameplay";
 import type { HydratedGameItem } from "@/server/item-artwork";
@@ -97,6 +101,7 @@ const ATTRIBUTE_TYPE_ICONS = {
 
 export default function GameDashboard({
   activeRendererIds,
+  rendererPrices,
   player,
   items,
   galleryRates,
@@ -111,6 +116,7 @@ export default function GameDashboard({
   npcs,
 }: {
   activeRendererIds: string[];
+  rendererPrices: ItemCardProps["rendererPrices"];
   player: PlayerView;
   items: HydratedGameItem[];
   galleryRates: GalleryRates;
@@ -157,6 +163,10 @@ export default function GameDashboard({
   } | null>(null);
   const [galleryItemDetails, setGalleryItemDetails] =
     useState<HydratedGameItem | null>(null);
+  const [mintConfirmation, setMintConfirmation] = useState<{
+    actionLabel: string;
+    onConfirm: () => void;
+  } | null>(null);
   const [pending, startTransition] = useTransition();
   const unclaimed = useMemo(
     () =>
@@ -253,6 +263,18 @@ export default function GameDashboard({
       }
       router.refresh();
     });
+  }
+
+  function requestMintMutation(
+    item: HydratedGameItem,
+    actionLabel: string,
+    onConfirm: () => void,
+  ) {
+    if (!item.mint) {
+      onConfirm();
+      return;
+    }
+    setMintConfirmation({ actionLabel, onConfirm });
   }
 
   async function spawnTestNpc(option: NpcSpawnOption) {
@@ -523,6 +545,7 @@ export default function GameDashboard({
                     alreadyOwned={ownedArtworkIds.has(item.artwork_id)}
                     legendaryAttributes={legendaryAttributes}
                     ownedRendererIds={player.ownedCardRenderers}
+                    rendererPrices={rendererPrices}
                     permissions={{
                       canManageItem: true,
                       canCustomizeCosmetic: false,
@@ -597,6 +620,7 @@ export default function GameDashboard({
               legendaryAttributes={legendaryAttributes}
               canCustomize
               ownedRendererIds={player.ownedCardRenderers}
+              rendererPrices={rendererPrices}
               rendererId={player.cardRenderer}
               title={`on display (${displayed.length}/${player.displayCap})`}
               actions={displayedItemActions}
@@ -608,6 +632,7 @@ export default function GameDashboard({
               legendaryAttributes={legendaryAttributes}
               canCustomize
               ownedRendererIds={player.ownedCardRenderers}
+              rendererPrices={rendererPrices}
               rendererId={player.cardRenderer}
               title="inventory"
               actions={(item) => {
@@ -637,7 +662,11 @@ export default function GameDashboard({
                               )
                       }
                       onClick={() =>
-                        act(`/api/play/items/${item._id}/display`)
+                        requestMintMutation(
+                          item,
+                          "Displaying this artwork",
+                          () => act(`/api/play/items/${item._id}/display`),
+                        )
                       }
                     />
                     <ItemActionButton
@@ -660,7 +689,16 @@ export default function GameDashboard({
                       }
                       disabled={pending}
                       onClick={() =>
-                        act(`/api/play/items/${item._id}/collector-sale`)
+                        requestMintMutation(
+                          item,
+                          item.tags.includes("for sale")
+                            ? "Removing this Collector offer"
+                            : "Offering this artwork to Collectors",
+                          () =>
+                            act(
+                              `/api/play/items/${item._id}/collector-sale`,
+                            ),
+                        )
                       }
                     />
                     <ItemActionButton
@@ -847,6 +885,13 @@ export default function GameDashboard({
             }}
           />
         ) : null}
+        {mintConfirmation ? (
+          <MintLossConfirmationDialog
+            actionLabel={mintConfirmation.actionLabel}
+            onCancel={() => setMintConfirmation(null)}
+            onConfirm={mintConfirmation.onConfirm}
+          />
+        ) : null}
         {galleryItemDetails ? (
           <StandardItemDialog
             actions={displayedItemActions(galleryItemDetails)}
@@ -858,15 +903,21 @@ export default function GameDashboard({
             item={galleryItemDetails}
             legendaryAttributes={legendaryAttributes}
             onClose={() => setGalleryItemDetails(null)}
-            onRendererSelected={(rendererId) => {
+            onRendererSelected={(rendererId, nextItem) => {
               setGalleryItemDetails((current) =>
                 current
-                  ? { ...current, card_renderer: rendererId }
+                  ? {
+                      ...current,
+                      ...nextItem,
+                      artwork: current.artwork,
+                      card_renderer: rendererId,
+                    }
                   : current,
               );
               router.refresh();
             }}
             ownedRendererIds={player.ownedCardRenderers}
+            rendererPrices={rendererPrices}
             permissions={{
               canManageItem: true,
               canCustomizeCosmetic: true,
@@ -1354,6 +1405,10 @@ function RerollDialog({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [pendingMintMutation, setPendingMintMutation] = useState<{
+    actionLabel: string;
+    onConfirm: () => void;
+  } | null>(null);
   const canAfford = bankBalance >= item.reroll_cost;
   const eligibleLegendaryAttributes = legendaryAttributes.filter(
     (attribute) =>
@@ -1379,7 +1434,27 @@ function RerollDialog({
     onClose();
   }
 
-  async function reroll(
+  function requestMintMutation(
+    actionLabel: string,
+    onConfirm: () => void,
+  ) {
+    if (!item.mint) {
+      onConfirm();
+      return;
+    }
+    setPendingMintMutation({ actionLabel, onConfirm });
+  }
+
+  function reroll(mode: "value" | "attribute", attributeId: string) {
+    requestMintMutation(
+      mode === "value"
+        ? "Rerolling this attribute value"
+        : "Replacing this attribute",
+      () => void performReroll(mode, attributeId),
+    );
+  }
+
+  async function performReroll(
     mode: "value" | "attribute",
     attributeId: string,
   ) {
@@ -1428,8 +1503,15 @@ function RerollDialog({
     }
   }
 
-  async function selectLegendaryAttribute(attributeId: string) {
+  function selectLegendaryAttribute(attributeId: string) {
     if (attributeId === item.active_unique_attribute) return;
+    requestMintMutation(
+      "Changing this Legendary Attribute",
+      () => void performLegendarySelection(attributeId),
+    );
+  }
+
+  async function performLegendarySelection(attributeId: string) {
     setBusy(true);
     setError("");
     setNotice("");
@@ -1476,7 +1558,8 @@ function RerollDialog({
   ] as const;
 
   return (
-    <dialog
+    <>
+      <dialog
       aria-describedby="reroll-description"
       aria-labelledby="reroll-title"
       className="reroll-dialog"
@@ -1652,7 +1735,15 @@ function RerollDialog({
           {notice}
         </p>
       </div>
-    </dialog>
+      </dialog>
+      {pendingMintMutation ? (
+        <MintLossConfirmationDialog
+          actionLabel={pendingMintMutation.actionLabel}
+          onCancel={() => setPendingMintMutation(null)}
+          onConfirm={pendingMintMutation.onConfirm}
+        />
+      ) : null}
+    </>
   );
 }
 
@@ -1697,6 +1788,7 @@ function ItemActionButton({
 
 function InventorySection({
   activeRendererIds,
+  rendererPrices,
   title,
   emptyText,
   items,
@@ -1707,6 +1799,7 @@ function InventorySection({
   actions,
 }: {
   activeRendererIds: string[];
+  rendererPrices: ItemCardProps["rendererPrices"];
   title: string;
   emptyText: string;
   items: HydratedGameItem[];
@@ -1731,6 +1824,7 @@ function InventorySection({
               legendaryAttributes={legendaryAttributes}
               key={item._id}
               ownedRendererIds={ownedRendererIds}
+              rendererPrices={rendererPrices}
               permissions={{
                 canManageItem: true,
                 canCustomizeCosmetic: Boolean(canCustomize),

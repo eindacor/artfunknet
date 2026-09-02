@@ -3,11 +3,14 @@ import test from "node:test";
 
 import {
   amplifyRarityMap,
+  calculateItemValues,
+  getGeneratedItemCondition,
   getRarityMap,
   getConfiguredRarityMap,
   getSpecialAttributeCount,
   normalizeRarityMap,
   rollProbability,
+  rollGeneratedItemProperties,
   rollUnlocked,
   rollWeighted,
 } from "./gameplay.ts";
@@ -66,10 +69,152 @@ test("foil probability uses the configured roll boundary", () => {
   assert.equal(rollProbability(1, () => 0.9999), true);
 });
 
+test("mint value multiplier applies only while the item is mint", () => {
+  const item = {
+    condition: 1,
+    mint: true,
+    mint_value_multiplier: 2,
+    attributes: { locked: [], unlocked: [], special: [] },
+    foil: false,
+    seasonal: false,
+    lottery: 0,
+    original: false,
+    vintage: false,
+    unlocked: false,
+    level: 1,
+  };
+  const artwork = {
+    rarity: "common" as const,
+    value_scale: 1,
+  };
+  const lootData = {
+    rarity_values: {
+      common: { min: 100, max: 100 },
+    },
+  };
+
+  const mintValues = calculateItemValues(
+    item,
+    artwork as Parameters<typeof calculateItemValues>[1],
+    lootData as Parameters<typeof calculateItemValues>[2],
+  );
+  const displayedValues = calculateItemValues(
+    { ...item, mint: false, mint_value_multiplier: 1 },
+    artwork as Parameters<typeof calculateItemValues>[1],
+    lootData as Parameters<typeof calculateItemValues>[2],
+  );
+
+  assert.equal(displayedValues.actual, 80);
+  assert.equal(mintValues.actual, 161);
+  assert.equal(mintValues.sell, Math.floor(mintValues.actual * 0.8));
+  assert.equal(mintValues.purchase, Math.floor(mintValues.actual * 1.5));
+  assert.equal(mintValues.auction_min, Math.floor(mintValues.actual * 0.8 * 0.8));
+  assert.equal(mintValues.collector, Math.floor(mintValues.actual * 1.2));
+  assert.equal(mintValues.dealer, Math.floor(mintValues.actual * 0.9));
+});
+
+test("lottery levels preserve the original value multiplier", () => {
+  const item = {
+    condition: 1,
+    mint: false,
+    mint_value_multiplier: 1,
+    attributes: { locked: [], unlocked: [], special: [] },
+    foil: false,
+    seasonal: false,
+    lottery: 6,
+    original: false,
+    vintage: false,
+    unlocked: false,
+    level: 0,
+  };
+  const artwork = {
+    rarity: "common" as const,
+    value_scale: 1,
+  };
+  const lootData = {
+    rarity_values: {
+      common: { min: 100, max: 100 },
+    },
+  };
+
+  const standard = calculateItemValues(
+    { ...item, lottery: 0 },
+    artwork as Parameters<typeof calculateItemValues>[1],
+    lootData as Parameters<typeof calculateItemValues>[2],
+  );
+  const lottery = calculateItemValues(
+    item,
+    artwork as Parameters<typeof calculateItemValues>[1],
+    lootData as Parameters<typeof calculateItemValues>[2],
+  );
+
+  assert.equal(lottery.actual, standard.actual * 16);
+});
+
+test("mint generation forces perfect condition", () => {
+  assert.equal(getGeneratedItemCondition(true, 0), 1);
+  assert.equal(getGeneratedItemCondition(true, 0.75), 1);
+});
+
 test("unlocked probability applies only to non-common artwork", () => {
   assert.equal(rollUnlocked("common", 1, () => 0), false);
   assert.equal(rollUnlocked("rare", 0.05, () => 0.049), true);
   assert.equal(rollUnlocked("rare", 0.05, () => 0.05), false);
+});
+
+test("generated properties roll independently and can coexist", () => {
+  const rolls = [0.004, 0.0004, 0.049];
+  const combined = rollGeneratedItemProperties(
+    "rare",
+    {
+      foilProbability: 0.005,
+      mintProbability: 0.0005,
+      unlockedProbability: 0.05,
+    },
+    () => rolls.shift() ?? 1,
+  );
+  assert.deepEqual(combined, {
+    foil: true,
+    mint: true,
+    unlocked: true,
+  });
+
+  const independentRolls = [0.9, 0.0004, 0.9];
+  assert.deepEqual(
+    rollGeneratedItemProperties(
+      "rare",
+      {
+        foilProbability: 0.005,
+        mintProbability: 0.0005,
+        unlockedProbability: 0.05,
+      },
+      () => independentRolls.shift() ?? 1,
+    ),
+    {
+      foil: false,
+      mint: true,
+      unlocked: false,
+    },
+  );
+});
+
+test("common items can combine foil and Mint but not unlocked", () => {
+  assert.deepEqual(
+    rollGeneratedItemProperties(
+      "common",
+      {
+        foilProbability: 1,
+        mintProbability: 1,
+        unlockedProbability: 1,
+      },
+      () => 0,
+    ),
+    {
+      foil: true,
+      mint: true,
+      unlocked: false,
+    },
+  );
 });
 
 test("artwork rarity preserves legacy special attribute counts", () => {

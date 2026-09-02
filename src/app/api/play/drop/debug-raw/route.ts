@@ -46,6 +46,8 @@ export async function POST() {
         itemCount: settings.active.dailyDropCount,
         rarityWeights: settings.active.rarityWeights,
         foilProbability: settings.active.foilProbability,
+        mintProbability: settings.active.mintProbability,
+        mintValueMultiplier: settings.active.mintValueMultiplier,
         unlockedProbability: settings.active.unlockedProbability,
         debug: true,
         useRawRarityMap: true,

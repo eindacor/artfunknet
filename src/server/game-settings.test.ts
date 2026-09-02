@@ -49,6 +49,10 @@ test("rarity weights reject invalid and all-zero maps", () => {
 });
 
 test("actual and debug gameplay configurations validate independently", () => {
+  assert.equal(DEFAULT_ACTUAL_GAMEPLAY_CONFIG.mintProbability, 0.0005);
+  assert.equal(DEFAULT_ACTUAL_GAMEPLAY_CONFIG.mintValueMultiplier, 2);
+  assert.equal(DEFAULT_DEBUG_GAMEPLAY_CONFIG.mintProbability, 0.25);
+  assert.equal(DEFAULT_DEBUG_GAMEPLAY_CONFIG.mintValueMultiplier, 2);
   assert.equal(validateGameplayConfig(DEFAULT_ACTUAL_GAMEPLAY_CONFIG).ok, true);
   assert.equal(validateGameplayConfig(DEFAULT_DEBUG_GAMEPLAY_CONFIG).ok, true);
   assert.equal(
@@ -69,6 +73,34 @@ test("actual and debug gameplay configurations validate independently", () => {
     validateGameplayConfig({
       ...DEFAULT_DEBUG_GAMEPLAY_CONFIG,
       foilProbability: 1.001,
+    }).ok,
+    false,
+  );
+  assert.equal(
+    validateGameplayConfig({
+      ...DEFAULT_DEBUG_GAMEPLAY_CONFIG,
+      mintProbability: -0.001,
+    }).ok,
+    false,
+  );
+  assert.equal(
+    validateGameplayConfig({
+      ...DEFAULT_DEBUG_GAMEPLAY_CONFIG,
+      mintProbability: 1.001,
+    }).ok,
+    false,
+  );
+  assert.equal(
+    validateGameplayConfig({
+      ...DEFAULT_DEBUG_GAMEPLAY_CONFIG,
+      mintValueMultiplier: 0.999,
+    }).ok,
+    false,
+  );
+  assert.equal(
+    validateGameplayConfig({
+      ...DEFAULT_DEBUG_GAMEPLAY_CONFIG,
+      mintValueMultiplier: 1_001,
     }).ok,
     false,
   );

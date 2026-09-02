@@ -18,7 +18,7 @@ export default function GildedCard(props: ItemCardRendererProps) {
       <header>
         <span className="card-rarity-label">{item.artwork.rarity}</span>
         <h3>{item.artwork.title}</h3>
-        <p>{item.artwork.artist}</p>
+        <p className="render-card-artist">{item.artwork.artist}</p>
       </header>
       <div className="gilded-card-frame">
         <ArtworkImage className="gilded-card-image" item={item} />

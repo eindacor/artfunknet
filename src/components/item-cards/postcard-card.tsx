@@ -11,7 +11,7 @@ export default function PostcardCard(props: ItemCardRendererProps) {
     <div className="render-card postcard-card">
       <div className="postcard-card-front">
         <ArtworkImage className="postcard-card-image" item={item} />
-        <span className="postcard-card-caption">
+        <span className="postcard-card-caption render-card-artist">
           Greetings from {item.artwork.artist}
         </span>
       </div>

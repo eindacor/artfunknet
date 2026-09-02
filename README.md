@@ -117,14 +117,21 @@ loot sections and their legacy visual treatment.
 
 The basic gameplay loop is active:
 
-- Daily drop cooldown, item count, foil and unlocked probabilities, and gallery
-  payout frequency are persisted in MongoDB and editable for both Actual and
-  Debug profiles at <http://localhost:3000/admin>.
+- Daily drop cooldown, item count, foil, unlocked, and Mint probabilities,
+  Mint value multiplier, and gallery payout frequency are persisted in MongoDB
+  and editable for both Actual and Debug profiles at
+  <http://localhost:3000/admin>.
 - Each drop creates six `unclaimed` items using the original level-gated rarity,
   artwork weighting, condition, attribute, foil, unlocked, misprint, and value
   calculations.
 - Items can be claimed into the player's capacity-limited inventory or declined
   and removed from the game.
+- Mint items are generated at perfect condition with the configured value
+  multiplier captured on the item. Displaying or directly modifying a Mint
+  item, including cosmetic changes, rerolls, Collector-offer tags, or
+  Legendary Attribute selection, permanently consumes Mint, leaves the item at
+  100% condition, and recalculates its value without the Mint premium. These
+  actions require confirmation through the shared Museum-style Mint warning.
 - Unclaimed items can also be sold directly from the loot screen.
 - Generated items carry the original unlocked and locked NPC-attraction
   attributes. Rare, legendary, and masterpiece artwork also requires one, two,
@@ -143,6 +150,11 @@ The basic gameplay loop is active:
   artwork, artist, value, condition, property, attribute, and Legendary effect
   record. Every renderer visibly encodes artwork rarity, while more elaborate
   designs use rarity-specific animated borders, glows, and embellishments.
+  Foil items receive a slow, recurring spectrum shimmer over the artwork in
+  every renderer, while Museum Label also shows a foil badge and a silver
+  Unlocked marker. The admin renderer gallery provides combinable Mint, foil,
+  unlocked, seasonal, original, and vintage preview controls, plus rarity and
+  automatic artwork selection for every style.
 - Every card renderer opens the same accessible item-detail dialog when
   clicked or keyboard-activated. Players can purchase the numbered renderer
   cosmetics at <http://localhost:3000/play/cosmetics> using their bank
@@ -153,8 +165,11 @@ The basic gameplay loop is active:
   gallery. Inactive styles disappear from the store but remain selectable by
   players who purchased them previously. Item permissions determine whether
   the dialog shows management actions and the cosmetic selector; read-only
-  viewers see only the applied cosmetic. Item actions appear below the artwork
-  thumbnail, and the complete item and artist record has no nested scroll area.
+  viewers see only the applied cosmetic. The standard item dialog uses the
+  Museum Label editorial format, with artwork identity in the header and
+  attributes, properties, and actions in a dedicated management column. New
+  gameplay dialogs should follow this Museum-style visual language. The
+  complete item and artist record has no nested scroll area.
   Attribute and condition ratings expose separate light-card and dark-card
   palettes, allowing dark renderers to use a visible red-to-white scale instead
   of the OG design&apos;s original red-to-black scale.

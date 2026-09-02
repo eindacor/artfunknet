@@ -23,7 +23,7 @@ export default function PrismaticCard(props: ItemCardRendererProps) {
       <section>
         <ItemStatusBadges item={item} alreadyOwned={alreadyOwned} />
         <h3>{item.artwork.title}</h3>
-        <p>{item.artwork.artist}</p>
+        <p className="render-card-artist">{item.artwork.artist}</p>
         <CompactStats item={item} />
         <AttributeIcons item={item} />
       </section>

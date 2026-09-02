@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import ItemCard from "@/components/item-cards/item-card";
 import {
   type CardCosmetic,
+  type CardRendererPriceMap,
   getActiveCardCosmetics,
   getOwnedCardRendererIds,
 } from "@/components/item-cards/catalog";
@@ -18,12 +19,14 @@ export default function CosmeticStore({
   initialOwnedRendererIds,
   sampleItem,
   legendaryAttributes,
+  rendererPrices,
 }: {
   activeRendererIds: string[];
   initialBankBalance: number;
   initialOwnedRendererIds: string[];
   sampleItem: HydratedGameItem | null;
   legendaryAttributes: CardLegendaryAttribute[];
+  rendererPrices: CardRendererPriceMap;
 }) {
   const router = useRouter();
   const [bankBalance, setBankBalance] = useState(initialBankBalance);
@@ -86,7 +89,7 @@ export default function CosmeticStore({
         </p>
       ) : null}
       <div className="cosmetic-store-grid">
-        {getActiveCardCosmetics(activeRendererIds).map((cosmetic) => {
+        {getActiveCardCosmetics(activeRendererIds, rendererPrices).map((cosmetic) => {
           const isOwned = owned.has(cosmetic.id);
           return (
             <article className="cosmetic-store-product" key={cosmetic.id}>
@@ -111,7 +114,9 @@ export default function CosmeticStore({
               <footer>
                 <strong>
                   {cosmetic.price === 0
-                    ? "Included"
+                    ? isOwned
+                      ? "Included"
+                      : "Free"
                     : `$${cosmetic.price.toLocaleString()}`}
                 </strong>
                 {isOwned ? (
@@ -130,6 +135,8 @@ export default function CosmeticStore({
                     <i aria-hidden="true" className="fa fa-shopping-cart" />
                     {purchasingId === cosmetic.id
                       ? "Purchasing..."
+                      : cosmetic.price === 0
+                        ? "Add"
                       : bankBalance < cosmetic.price
                         ? "Insufficient funds"
                         : "Purchase"}
