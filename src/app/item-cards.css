@@ -981,9 +981,15 @@
   font-family: "Courier New", Courier, monospace;
 }
 
+.terminal-card > * {
+  position: relative;
+  z-index: 1;
+}
+
 .terminal-card::after {
   content: "";
   position: absolute;
+  z-index: 2;
   inset: 0;
   pointer-events: none;
   background: repeating-linear-gradient(
@@ -992,6 +998,65 @@
     rgb(51 255 122 / 4%) 3px,
     rgb(51 255 122 / 4%) 4px
   );
+}
+
+.terminal-card-state-readout {
+  position: absolute;
+  z-index: 3;
+  top: 2.15rem;
+  right: 0.55rem;
+  left: 0.55rem;
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  pointer-events: none;
+}
+
+.terminal-card-state {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid currentColor;
+  padding: 0.24rem 0.35rem;
+  font-size: 0.48rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-shadow: 0 0 6px currentColor;
+}
+
+.terminal-card-state i {
+  width: 1rem;
+  margin-right: 0.2rem;
+  text-align: center;
+}
+
+.terminal-card-state-unlocked {
+  border-color: #ff4545;
+  background: rgb(31 2 5 / 94%);
+  color: #ff4545;
+  box-shadow:
+    0 0 8px rgb(255 69 69 / 68%),
+    inset 0 0 12px rgb(255 69 69 / 12%);
+  animation: terminal-access-pulse 1.4s steps(2) infinite;
+}
+
+.terminal-card-state-unlocked::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 69 69 / 38%),
+    transparent
+  );
+  transform: translateX(-110%);
+  animation: terminal-access-scan 2.4s linear infinite;
+}
+
+.terminal-card-unlocked {
+  box-shadow:
+    0 0 12px var(--rarity-glow),
+    inset 0 0 18px color-mix(in srgb, var(--rarity-color) 12%, transparent);
 }
 
 .terminal-card > header {
@@ -1033,6 +1098,18 @@
   border: 1px dashed var(--rarity-color);
   padding: 0.28rem;
   color: var(--rarity-color);
+}
+
+@keyframes terminal-access-pulse {
+  50% {
+    color: #ff9a9a;
+  }
+}
+
+@keyframes terminal-access-scan {
+  to {
+    transform: translateX(110%);
+  }
 }
 
 /* Prismatic: animated foil, aura, sparkle layers. */
@@ -2793,6 +2870,8 @@
   .arcade-card-grid,
   .arcade-card-scanline,
   .terminal-card-cursor,
+  .terminal-card-state-unlocked,
+  .terminal-card-state-unlocked::after,
   .prismatic-card,
   .prismatic-card-aura,
   .prismatic-card-sparkles,
