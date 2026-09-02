@@ -2,6 +2,11 @@
 
 import { FormEvent, useState } from "react";
 
+import {
+  CARD_COSMETICS,
+  DROPPABLE_CARD_RENDERER_IDS,
+  type DroppableCardRendererId,
+} from "@/components/item-cards/catalog";
 import type {
   GameplayConfig,
   GameplayConfigName,
@@ -15,6 +20,9 @@ const RARITIES = [
   "legendary",
   "masterpiece",
 ] as const;
+const CARD_STYLE_NAMES = new Map(
+  CARD_COSMETICS.map((cosmetic) => [cosmetic.id, cosmetic.name]),
+);
 
 export default function GameplaySettingsForm({
   initialSettings,
@@ -31,11 +39,18 @@ export default function GameplaySettingsForm({
     actual: JSON.stringify(initialSettings.actual.rarityWeights, null, 2),
     debug: JSON.stringify(initialSettings.debug.rarityWeights, null, 2),
   });
+  const [cardStyleJson, setCardStyleJson] = useState({
+    actual: JSON.stringify(initialSettings.actual.cardStyleWeights, null, 2),
+    debug: JSON.stringify(initialSettings.debug.cardStyleWeights, null, 2),
+  });
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const activeEditor = settings[selectedConfig];
   const rarityResult = parseRarityWeights(rarityJson[selectedConfig]);
+  const cardStyleResult = parseCardStyleWeights(
+    cardStyleJson[selectedConfig],
+  );
 
   function updateConfig(
     name: GameplayConfigName,
@@ -51,6 +66,8 @@ export default function GameplaySettingsForm({
 
     const actualRarity = parseRarityWeights(rarityJson.actual);
     const debugRarity = parseRarityWeights(rarityJson.debug);
+    const actualCardStyles = parseCardStyleWeights(cardStyleJson.actual);
+    const debugCardStyles = parseCardStyleWeights(cardStyleJson.debug);
     if (!actualRarity.ok) {
       setSelectedConfig("actual");
       setError(`Actual configuration: ${actualRarity.error}`);
@@ -61,10 +78,26 @@ export default function GameplaySettingsForm({
       setError(`Debug configuration: ${debugRarity.error}`);
       return;
     }
+    if (!actualCardStyles.ok) {
+      setSelectedConfig("actual");
+      setError(`Actual configuration: ${actualCardStyles.error}`);
+      return;
+    }
+    if (!debugCardStyles.ok) {
+      setSelectedConfig("debug");
+      setError(`Debug configuration: ${debugCardStyles.error}`);
+      return;
+    }
 
     const nextActual = {
       ...settings.actual,
       rarityWeights: actualRarity.weights,
+      cardStyleWeights: actualCardStyles.weights,
+    };
+    const nextDebug = {
+      ...settings.debug,
+      rarityWeights: debugRarity.weights,
+      cardStyleWeights: debugCardStyles.weights,
     };
     if (
       JSON.stringify(nextActual) !== savedActual &&
@@ -83,7 +116,7 @@ export default function GameplaySettingsForm({
         body: JSON.stringify({
           debugEnabled: settings.debugEnabled,
           actual: nextActual,
-          debug: { ...settings.debug, rarityWeights: debugRarity.weights },
+          debug: nextDebug,
         }),
       });
       const body = (await response.json()) as {
@@ -98,6 +131,18 @@ export default function GameplaySettingsForm({
       setRarityJson({
         actual: JSON.stringify(body.settings.actual.rarityWeights, null, 2),
         debug: JSON.stringify(body.settings.debug.rarityWeights, null, 2),
+      });
+      setCardStyleJson({
+        actual: JSON.stringify(
+          body.settings.actual.cardStyleWeights,
+          null,
+          2,
+        ),
+        debug: JSON.stringify(
+          body.settings.debug.cardStyleWeights,
+          null,
+          2,
+        ),
       });
       setMessage(
         `Gameplay settings saved. ${body.settings.activeConfigName} configuration is active.`,
@@ -361,6 +406,44 @@ export default function GameplaySettingsForm({
         )}
       </section>
 
+      <section className="admin-rarity-settings">
+        <label className="admin-rarity-editor">
+          <strong>Art style weights (JSON)</strong>
+          <small>
+            When the card style probability succeeds, these weights choose the
+            style found on the item. Inactive styles are ignored. Weights do
+            not need to total 100.
+          </small>
+          <textarea
+            aria-invalid={!cardStyleResult.ok}
+            onChange={(event) =>
+              setCardStyleJson((current) => ({
+                ...current,
+                [selectedConfig]: event.target.value,
+              }))
+            }
+            rows={20}
+            spellCheck={false}
+            value={cardStyleJson[selectedConfig]}
+          />
+        </label>
+        {cardStyleResult.ok ? (
+          <div className="admin-rarity-preview">
+            {DROPPABLE_CARD_RENDERER_IDS.map((rendererId) => (
+              <span key={rendererId}>
+                <strong>{CARD_STYLE_NAMES.get(rendererId) ?? rendererId}</strong>{" "}
+                {formatPercentage(
+                  cardStyleResult.weights[rendererId] /
+                    cardStyleResult.total,
+                )}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="admin-error">{cardStyleResult.error}</p>
+        )}
+      </section>
+
       <button disabled={busy} type="submit">
         {busy ? "saving..." : "save both configurations"}
       </button>
@@ -422,6 +505,69 @@ function parseRarityWeights(
     return {
       ok: false,
       error: "At least one rarity weight must be greater than zero.",
+    };
+  }
+
+  return { ok: true, weights, total };
+}
+
+function parseCardStyleWeights(
+  json: string,
+):
+  | {
+      ok: true;
+      weights: GameplayConfig["cardStyleWeights"];
+      total: number;
+    }
+  | { ok: false; error: string } {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(json);
+  } catch {
+    return { ok: false, error: "Art style weights must be valid JSON." };
+  }
+
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return { ok: false, error: "Art style weights must be a JSON object." };
+  }
+
+  const record = parsed as Record<string, unknown>;
+  const unknownKeys = Object.keys(record).filter(
+    (key) =>
+      !DROPPABLE_CARD_RENDERER_IDS.includes(
+        key as DroppableCardRendererId,
+      ),
+  );
+  if (unknownKeys.length > 0) {
+    return {
+      ok: false,
+      error: `Unknown art style keys: ${unknownKeys.join(", ")}.`,
+    };
+  }
+
+  const weights = {} as GameplayConfig["cardStyleWeights"];
+  let total = 0;
+  for (const rendererId of DROPPABLE_CARD_RENDERER_IDS) {
+    const weight = record[rendererId];
+    if (
+      typeof weight !== "number" ||
+      !Number.isFinite(weight) ||
+      weight < 0 ||
+      weight > 1_000_000_000
+    ) {
+      return {
+        ok: false,
+        error: `The ${rendererId} weight must be from 0 to 1,000,000,000.`,
+      };
+    }
+    weights[rendererId] = weight;
+    total += weight;
+  }
+
+  if (total <= 0) {
+    return {
+      ok: false,
+      error: "At least one art style weight must be greater than zero.",
     };
   }
 

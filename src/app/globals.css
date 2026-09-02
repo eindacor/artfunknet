@@ -396,51 +396,298 @@ body {
 }
 
 .player-profile {
-  max-width: 700px;
+  width: min(980px, 100%);
+  margin: 0 auto;
+  border: 1px solid #c9c3b6;
+  padding: clamp(22px, 4vw, 48px);
+  background:
+    linear-gradient(rgb(255 255 255 / 72%), rgb(255 255 255 / 72%)),
+    #f3f0e7;
+  color: #282722;
+  box-shadow: 0 12px 35px rgb(45 39 29 / 10%);
+  font-family: Arial, Helvetica, sans-serif;
 }
 
-.xp-bar {
+.museum-profile-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom: 1px solid #aaa397;
+  padding-bottom: 22px;
+}
+
+.museum-profile-heading p,
+.museum-profile-heading h2,
+.museum-profile-heading span {
+  margin: 0;
+}
+
+.museum-profile-heading p {
+  color: #777167;
+  font: 700 0.58rem/1.2 "Courier New", Courier, monospace;
+  letter-spacing: 0.17em;
+  text-transform: uppercase;
+}
+
+.museum-profile-heading h2 {
+  margin-top: 8px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  font-weight: 400;
+  line-height: 0.95;
+}
+
+.museum-profile-heading span {
+  display: block;
+  margin-top: 10px;
+  color: #6d685f;
+  font-size: 0.72rem;
+}
+
+.museum-profile-heading > strong {
+  flex: 0 0 auto;
+  color: #6f695f;
+  font: 700 0.68rem/1 "Courier New", Courier, monospace;
+  letter-spacing: 0.12em;
+}
+
+.museum-profile-progress {
+  margin: 26px 0 32px;
+}
+
+.museum-profile-progress > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 7px;
+  font: 700 0.58rem/1.2 "Courier New", Courier, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.museum-profile-progress > div span {
+  color: #6f695f;
+}
+
+.museum-profile-progress-track {
+  display: block;
+  height: 3px;
+  background: #d4cfc4;
+}
+
+.museum-profile-progress-track i {
+  display: block;
+  height: 100%;
+  background: #33312d;
+  transition: width 300ms ease;
+}
+
+.museum-profile-ledger {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid #d2cdc2;
+  border-bottom: 1px solid #d2cdc2;
+}
+
+.museum-profile-ledger > section {
+  min-width: 0;
+  padding: 24px;
+  border-right: 1px solid #d2cdc2;
+}
+
+.museum-profile-ledger > section:first-child {
+  padding-left: 0;
+}
+
+.museum-profile-ledger > section:last-child {
+  border-right: 0;
+  padding-right: 0;
+}
+
+.museum-profile-ledger section > header {
+  min-height: 42px;
+  margin-bottom: 16px;
+}
+
+.museum-profile-ledger section > header span,
+.museum-profile-knowledge > header span {
+  display: block;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1rem;
+}
+
+.museum-profile-ledger section > header small,
+.museum-profile-knowledge > header small {
+  display: block;
+  margin-top: 4px;
+  color: #817a70;
+  font-size: 0.56rem;
+  line-height: 1.3;
+}
+
+.museum-profile-ledger dl {
+  display: grid;
+  gap: 13px;
+  margin: 0;
+}
+
+.museum-profile-ledger dl > div {
+  display: grid;
+  gap: 3px;
+}
+
+.museum-profile-ledger dt {
+  color: #777167;
+  font-size: 0.56rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.museum-profile-ledger dd {
+  margin: 0;
+  color: #282722;
+  font: 700 0.82rem/1.2 "Courier New", Courier, monospace;
+}
+
+.museum-profile-knowledge {
+  margin-top: 31px;
+}
+
+.museum-profile-knowledge > header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 15px;
+}
+
+.museum-profile-knowledge > header strong {
+  color: #777167;
+  font: 700 0.54rem/1 "Courier New", Courier, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.museum-profile-knowledge > div {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid #aaa397;
+}
+
+.knowledge-classification {
+  --knowledge-color: #789744;
+
   position: relative;
-  height: 24px;
-  margin-bottom: 40px;
-  background: #777;
-  color: white;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: end;
+  gap: 10px;
+  min-width: 0;
+  border-right: 1px solid #d2cdc2;
+  padding: 15px 14px 2px;
 }
 
-.xp-level {
+.knowledge-classification:first-child {
+  padding-left: 0;
+}
+
+.knowledge-classification:last-child {
+  border-right: 0;
+  padding-right: 0;
+}
+
+.knowledge-classification::before {
   position: absolute;
-  height: 24px;
-  background: #ff33cc;
+  top: -2px;
+  right: 14px;
+  left: 14px;
+  height: 3px;
+  background: var(--knowledge-color);
+  content: "";
 }
 
-.xp-bar span,
-.xp-bar strong {
-  position: absolute;
-  top: 3px;
-  z-index: 1;
+.knowledge-classification:first-child::before {
+  left: 0;
 }
 
-.xp-bar span {
-  left: 12px;
+.knowledge-classification:last-child::before {
+  right: 0;
 }
 
-.xp-bar strong {
-  right: 12px;
+.knowledge-classification > span {
+  color: var(--knowledge-color);
+  font: 700 0.52rem/1 "Courier New", Courier, monospace;
 }
 
-.player-profile table {
-  width: 100%;
-  font-size: 1.1rem;
+.knowledge-classification small,
+.knowledge-classification strong {
+  display: block;
 }
 
-.player-profile td {
-  width: 50%;
-  padding: 3px 10px;
+.knowledge-classification small {
+  overflow: hidden;
+  color: #777167;
+  font-size: 0.52rem;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
-.player-profile td:first-child {
-  color: black;
-  text-align: right;
+.knowledge-classification strong {
+  margin-top: 5px;
+  color: #282722;
+  font: 700 1.05rem/1 "Courier New", Courier, monospace;
+}
+
+.knowledge-tier-0 {
+  --knowledge-color: #4d7727;
+}
+
+.knowledge-tier-1 {
+  --knowledge-color: #6e9630;
+}
+
+.knowledge-tier-2 {
+  --knowledge-color: #91af39;
+}
+
+.knowledge-tier-3 {
+  --knowledge-color: #abc84a;
+}
+
+@media (max-width: 760px) {
+  .museum-profile-ledger {
+    grid-template-columns: 1fr;
+  }
+
+  .museum-profile-ledger > section,
+  .museum-profile-ledger > section:first-child,
+  .museum-profile-ledger > section:last-child {
+    border-right: 0;
+    border-bottom: 1px solid #d2cdc2;
+    padding: 20px 0;
+  }
+
+  .museum-profile-ledger > section:last-child {
+    border-bottom: 0;
+  }
+
+  .museum-profile-ledger section > header {
+    min-height: 0;
+  }
+
+  .museum-profile-knowledge > div {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .knowledge-classification:nth-child(2) {
+    border-right: 0;
+  }
+
+  .knowledge-classification:nth-child(n + 3) {
+    margin-top: 14px;
+  }
 }
 
 .random-drop > button {

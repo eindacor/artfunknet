@@ -114,6 +114,7 @@ export async function POST(
           ),
           cardRendererProbability:
             settings.active.cardRendererProbability,
+          cardStyleWeights: settings.active.cardStyleWeights,
           foilProbability: claimedQuest.reward.item.foil ? 1 : 0,
           mintProbability: settings.active.mintProbability,
           mintValueMultiplier: settings.active.mintValueMultiplier,

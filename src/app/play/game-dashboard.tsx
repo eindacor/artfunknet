@@ -44,6 +44,13 @@ type PlayerView = {
   lastDrop: string;
   xpGoal: number;
   npcsMet: Partial<Record<NpcQuality, number>>;
+  knowledge: Record<
+    | "historical_data"
+    | "contextual_understanding"
+    | "technical_comprehension"
+    | "artistic_vision",
+    number
+  >;
   cardStyleInventory: CardStyleInventory;
   completedQuests: number;
 };
@@ -482,71 +489,141 @@ export default function GameDashboard({
 
         {section === "profile" ? (
           <section className="player-profile">
-            <div className="xp-bar">
-              <div
-                className="xp-level"
-                style={{
-                  width: `${Math.min(
-                    (player.xp / Math.max(player.xpGoal, 1)) * 100,
-                    100,
-                  )}%`,
-                }}
-              />
-              <span>level {player.level}</span>
-              <strong>
-                {player.xp.toLocaleString()} / {player.xpGoal.toLocaleString()}
-              </strong>
+            <header className="museum-profile-heading">
+              <div>
+                <p>Artfunkel collection registry</p>
+                <h2>{player.screenName}</h2>
+                <span>Private collection and activity record</span>
+              </div>
+              <strong>AF · {player.level.toString().padStart(2, "0")}</strong>
+            </header>
+
+            <div className="museum-profile-progress">
+              <div>
+                <span>Collection experience</span>
+                <strong>
+                  {player.xp.toLocaleString()} /{" "}
+                  {player.xpGoal.toLocaleString()}
+                </strong>
+              </div>
+              <span className="museum-profile-progress-track">
+                <i
+                  style={{
+                    width: `${Math.min(
+                      (player.xp / Math.max(player.xpGoal, 1)) * 100,
+                      100,
+                    )}%`,
+                  }}
+                />
+              </span>
             </div>
-            <table>
-              <tbody>
-                <ProfileRow
-                  label="bank balance:"
+
+            <div className="museum-profile-ledger">
+              <section>
+                <header>
+                  <span>Account</span>
+                  <small>Financial and collection holdings</small>
+                </header>
+                <dl>
+                  <ProfileFact
+                    label="Bank balance"
                   value={`$${player.bankBalance.toLocaleString()}`}
-                />
-                <ProfileRow
-                  label="lottery tickets:"
+                  />
+                  <ProfileFact
+                    label="Lottery tickets"
                   value={player.lotteryTickets.toLocaleString()}
-                />
-                <ProfileRow
-                  label="paintings owned:"
+                  />
+                  <ProfileFact
+                    label="Paintings owned"
                   value={ownedCount.toLocaleString()}
-                />
-                <ProfileRow
-                  label="inventory space available:"
+                  />
+                  <ProfileFact
+                    label="Inventory space available"
                   value={Math.max(
                     player.inventoryCap - player.inventorySlotsUsed,
                     0,
                   )}
-                />
-                <ProfileRow
-                  label="items exhibited:"
+                  />
+                </dl>
+              </section>
+
+              <section>
+                <header>
+                  <span>Current exhibition</span>
+                  <small>Live gallery performance</small>
+                </header>
+                <dl>
+                  <ProfileFact
+                    label="Items exhibited"
                   value={`${displayed.length} (${player.displayCap} max)`}
-                />
-                <ProfileRow
-                  label="current exhibition value:"
+                  />
+                  <ProfileFact
+                    label="Exhibition value"
                   value={`$${galleryRates.value.toLocaleString()}`}
-                />
-                <ProfileRow
-                  label="display earnings per hour:"
+                  />
+                  <ProfileFact
+                    label="Earnings per hour"
                   value={`$${galleryRates.moneyPerHour.toLocaleString()}`}
-                />
-                <ProfileRow
-                  label="xp per hour:"
+                  />
+                  <ProfileFact
+                    label="Experience per hour"
                   value={galleryRates.xpPerHour.toLocaleString()}
-                />
-                <ProfileRow
-                  label="visitors met:"
+                  />
+                </dl>
+              </section>
+
+              <section>
+                <header>
+                  <span>Institutional record</span>
+                  <small>Lifetime participation</small>
+                </header>
+                <dl>
+                  <ProfileFact
+                    label="Visitors met"
                   value={Object.values(player.npcsMet).reduce(
                     (sum, count) => sum + (count ?? 0),
                     0,
                   )}
-                />
-                <ProfileRow
-                  label="quests completed:"
+                  />
+                  <ProfileFact
+                    label="Quests completed"
                   value={player.completedQuests.toLocaleString()}
-                />
-              </tbody>
-            </table>
+                  />
+                </dl>
+              </section>
+            </div>
+
+            <section className="museum-profile-knowledge">
+              <header>
+                <div>
+                  <span>Knowledge collection</span>
+                  <small>
+                    Research currency recovered from donated artwork
+                  </small>
+                </div>
+                <strong>4 classifications</strong>
+              </header>
+              <div>
+                {Object.entries(KNOWLEDGE_LABELS).map(
+                  ([type, label], index) => (
+                    <article
+                      className={`knowledge-classification knowledge-tier-${index}`}
+                      key={type}
+                    >
+                      <span>{String(index + 1).padStart(2, "0")}</span>
+                      <div>
+                        <small>{label}</small>
+                        <strong>
+                          {player.knowledge[
+                            type as keyof typeof player.knowledge
+                          ].toLocaleString()}
+                        </strong>
+                      </div>
+                    </article>
+                  ),
+                )}
+              </div>
+            </section>
           </section>
         ) : null}
 
@@ -647,6 +724,14 @@ export default function GameDashboard({
                             disabled={pending}
                             onClick={() =>
                               act(`/api/play/items/${item._id}/sell`)
+                            }
+                          />
+                          <ItemActionButton
+                            icon="fa-share-square"
+                            label="Donate for knowledge"
+                            disabled={pending || item.permanent || item.original}
+                            onClick={() =>
+                              act(`/api/play/items/${item._id}/donate`)
                             }
                           />
                           <ItemActionButton
@@ -762,6 +847,14 @@ export default function GameDashboard({
                       label={`Sell for $${item.values.sell.toLocaleString()}`}
                       disabled={pending}
                       onClick={() => act(`/api/play/items/${item._id}/sell`)}
+                    />
+                    <ItemActionButton
+                      icon="fa-share-square"
+                      label="Donate for knowledge"
+                      disabled={pending || item.permanent || item.original}
+                      onClick={() =>
+                        act(`/api/play/items/${item._id}/donate`)
+                      }
                     />
                   </>
                 );
@@ -2192,7 +2285,7 @@ function InventorySection({
   );
 }
 
-function ProfileRow({
+function ProfileFact({
   label,
   value,
 }: {
@@ -2200,10 +2293,10 @@ function ProfileRow({
   value: string | number;
 }) {
   return (
-    <tr>
-      <td>{label}</td>
-      <td className="af-color highlight">{value}</td>
-    </tr>
+    <div>
+      <dt>{label}</dt>
+      <dd>{value}</dd>
+    </div>
   );
 }
 

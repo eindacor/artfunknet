@@ -20,7 +20,10 @@ export default function AbstractCard({
         <ArtworkImage className="abstract-card-image" item={item} />
       </div>
       <header>
-        <span>{item.artwork.rarity}</span>
+        <span
+          aria-label={`${item.artwork.rarity} rarity`}
+          className="abstract-rarity-shape"
+        />
         <strong>{item.level}</strong>
       </header>
       <section>

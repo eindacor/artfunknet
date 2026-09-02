@@ -2253,6 +2253,21 @@
   text-transform: uppercase;
 }
 
+.minimalist-card-artist {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.minimalist-card-rarity-mark {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  background: var(--rarity-color);
+  box-shadow: 0 0 5px var(--rarity-glow);
+}
+
 .minimalist-card > section {
   position: absolute;
   z-index: 2;
@@ -2597,6 +2612,15 @@
 
 .abstract-card > header strong {
   font-size: 1.25rem;
+}
+
+.abstract-rarity-shape {
+  display: block;
+  width: 25px;
+  height: 21px;
+  background: var(--rarity-color);
+  clip-path: polygon(50% 0, 100% 38%, 74% 100%, 11% 82%, 0 24%);
+  box-shadow: 2px 3px 0 rgb(25 22 35 / 28%);
 }
 
 .abstract-card > section {

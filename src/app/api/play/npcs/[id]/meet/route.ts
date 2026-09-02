@@ -583,6 +583,7 @@ export async function POST(
           ),
           cardRendererProbability:
             settings.active.cardRendererProbability,
+          cardStyleWeights: settings.active.cardStyleWeights,
           foilProbability: settings.active.foilProbability,
           mintProbability: settings.active.mintProbability,
           mintValueMultiplier: settings.active.mintValueMultiplier,
@@ -718,6 +719,7 @@ export async function POST(
           ),
           cardRendererProbability:
             settings.active.cardRendererProbability,
+          cardStyleWeights: settings.active.cardStyleWeights,
           foilProbability: settings.active.foilProbability,
           mintProbability: settings.active.mintProbability,
           mintValueMultiplier: settings.active.mintValueMultiplier,
@@ -891,6 +893,7 @@ export async function POST(
             ),
             cardRendererProbability:
               settings.active.cardRendererProbability,
+            cardStyleWeights: settings.active.cardStyleWeights,
             foilProbability: settings.active.foilProbability,
             mintProbability: settings.active.mintProbability,
             mintValueMultiplier: settings.active.mintValueMultiplier,
@@ -1021,6 +1024,7 @@ export async function POST(
             ),
             cardRendererProbability:
               settings.active.cardRendererProbability,
+            cardStyleWeights: settings.active.cardStyleWeights,
             foilProbability: settings.active.foilProbability,
             mintProbability: settings.active.mintProbability,
             mintValueMultiplier: settings.active.mintValueMultiplier,

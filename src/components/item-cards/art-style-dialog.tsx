@@ -226,7 +226,7 @@ export default function ArtStyleDialog({
 
           <div className="art-style-dialog-heading">
             <h3>Available art styles</h3>
-            <a href="/play/cosmetics">Cosmetic store</a>
+            <a href="/play/cosmetics">Art style collection</a>
           </div>
           <div className="art-style-dialog-picker">
             <fieldset className="art-style-dialog-options">

@@ -51,6 +51,7 @@ export async function POST() {
         itemCount: config.dailyDropCount,
         rarityWeights: config.rarityWeights,
         cardRendererProbability: config.cardRendererProbability,
+        cardStyleWeights: config.cardStyleWeights,
         foilProbability: config.foilProbability,
         mintProbability: config.mintProbability,
         mintValueMultiplier: config.mintValueMultiplier,

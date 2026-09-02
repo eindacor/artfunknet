@@ -1,5 +1,9 @@
 import type { Db } from "mongodb";
 
+import {
+  DROPPABLE_CARD_RENDERER_IDS,
+  type DroppableCardRendererId,
+} from "../components/item-cards/catalog.ts";
 import { ARTWORK_RARITIES, type ArtworkRarity } from "./gameplay.ts";
 
 export const DEFAULT_RARITY_WEIGHTS: Record<ArtworkRarity, number> = {
@@ -18,6 +22,31 @@ const DEBUG_RARITY_WEIGHTS: Record<ArtworkRarity, number> = {
   masterpiece: 1,
 };
 
+export const DEFAULT_CARD_STYLE_WEIGHTS: Record<
+  DroppableCardRendererId,
+  number
+> = {
+  legacy: 1,
+  terminal: 200,
+  postcard: 160,
+  gilded: 80,
+  arcade: 60,
+  prismatic: 25,
+  blueprint: 140,
+  zine: 100,
+  celestial: 35,
+  reliquary: 15,
+  baseball: 70,
+  minimalist: 180,
+  bauhaus: 90,
+  abstract: 75,
+  circle: 45,
+};
+
+const DEBUG_CARD_STYLE_WEIGHTS = Object.fromEntries(
+  DROPPABLE_CARD_RENDERER_IDS.map((id) => [id, 1]),
+) as Record<DroppableCardRendererId, number>;
+
 export type GameplayConfig = {
   dailyDropCooldownMinutes: number;
   dailyDropCount: number;
@@ -32,6 +61,7 @@ export type GameplayConfig = {
   conditionDecayIntervalMinutes: number;
   npcSpawnIntervalMinutes: number;
   rarityWeights: Record<ArtworkRarity, number>;
+  cardStyleWeights: Record<DroppableCardRendererId, number>;
 };
 
 export type GameplayConfigName = "actual" | "debug";
@@ -58,6 +88,7 @@ export const DEFAULT_ACTUAL_GAMEPLAY_CONFIG: GameplayConfig = {
   conditionDecayIntervalMinutes: 60,
   npcSpawnIntervalMinutes: 10,
   rarityWeights: DEFAULT_RARITY_WEIGHTS,
+  cardStyleWeights: DEFAULT_CARD_STYLE_WEIGHTS,
 };
 
 export const DEFAULT_DEBUG_GAMEPLAY_CONFIG: GameplayConfig = {
@@ -74,6 +105,7 @@ export const DEFAULT_DEBUG_GAMEPLAY_CONFIG: GameplayConfig = {
   conditionDecayIntervalMinutes: 1,
   npcSpawnIntervalMinutes: 1,
   rarityWeights: DEBUG_RARITY_WEIGHTS,
+  cardStyleWeights: DEBUG_CARD_STYLE_WEIGHTS,
 };
 
 type StoredGameplayConfig = {
@@ -90,6 +122,7 @@ type StoredGameplayConfig = {
   condition_decay_interval_minutes?: number;
   npc_spawn_interval_minutes?: number;
   rarity_weights?: Partial<Record<ArtworkRarity, number>>;
+  card_style_weights?: Partial<Record<DroppableCardRendererId, number>>;
 };
 
 type GameplaySettingsDocument = {
@@ -146,6 +179,7 @@ export function toStoredGameplayConfig(
     condition_decay_interval_minutes: config.conditionDecayIntervalMinutes,
     npc_spawn_interval_minutes: config.npcSpawnIntervalMinutes,
     rarity_weights: config.rarityWeights,
+    card_style_weights: config.cardStyleWeights,
   };
 }
 
@@ -210,6 +244,8 @@ export function validateGameplayConfig(
 
   const rarityWeights = validateRarityWeights(config.rarityWeights);
   if (!rarityWeights.ok) return rarityWeights;
+  const cardStyleWeights = validateCardStyleWeights(config.cardStyleWeights);
+  if (!cardStyleWeights.ok) return cardStyleWeights;
 
   return {
     ok: true,
@@ -227,6 +263,7 @@ export function validateGameplayConfig(
       conditionDecayIntervalMinutes: values.conditionDecayIntervalMinutes,
       npcSpawnIntervalMinutes: values.npcSpawnIntervalMinutes,
       rarityWeights: rarityWeights.value,
+      cardStyleWeights: cardStyleWeights.value,
     },
   };
 }
@@ -280,6 +317,58 @@ export function validateRarityWeights(
   return { ok: true, value: weights };
 }
 
+export function validateCardStyleWeights(
+  input: unknown,
+):
+  | { ok: true; value: Record<DroppableCardRendererId, number> }
+  | { ok: false; error: string } {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    return { ok: false, error: "Card style weights must be a JSON object." };
+  }
+
+  const record = input as Record<string, unknown>;
+  const unknownKeys = Object.keys(record).filter(
+    (key) =>
+      !DROPPABLE_CARD_RENDERER_IDS.includes(
+        key as DroppableCardRendererId,
+      ),
+  );
+  if (unknownKeys.length > 0) {
+    return {
+      ok: false,
+      error: `Unknown card style keys: ${unknownKeys.join(", ")}.`,
+    };
+  }
+
+  const weights = {} as Record<DroppableCardRendererId, number>;
+  let total = 0;
+  for (const rendererId of DROPPABLE_CARD_RENDERER_IDS) {
+    const weight = record[rendererId];
+    if (
+      typeof weight !== "number" ||
+      !Number.isFinite(weight) ||
+      weight < 0 ||
+      weight > 1_000_000_000
+    ) {
+      return {
+        ok: false,
+        error: `The ${rendererId} card style weight must be a number from 0 to 1,000,000,000.`,
+      };
+    }
+    weights[rendererId] = weight;
+    total += weight;
+  }
+
+  if (total <= 0) {
+    return {
+      ok: false,
+      error: "At least one card style weight must be greater than zero.",
+    };
+  }
+
+  return { ok: true, value: weights };
+}
+
 function readConfig(
   stored: StoredGameplayConfig | undefined,
   defaults: GameplayConfig,
@@ -316,6 +405,10 @@ function readConfig(
     rarityWeights: {
       ...defaults.rarityWeights,
       ...stored?.rarity_weights,
+    },
+    cardStyleWeights: {
+      ...defaults.cardStyleWeights,
+      ...stored?.card_style_weights,
     },
   };
 }

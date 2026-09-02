@@ -63,7 +63,6 @@ export default async function CardCosmeticStorePage() {
       />
       <CosmeticStore
         activeRendererIds={rendererSettings.activeRendererIds}
-        initialBankBalance={player.profile.bank_balance}
         initialStyleInventory={getCardStyleInventory(
           player.profile.card_style_consumables,
         )}
@@ -75,7 +74,6 @@ export default async function CardCosmeticStorePage() {
           code: attribute.code,
           active: attribute.active,
         }))}
-        rendererPrices={rendererSettings.rendererPrices}
         sampleItem={
           sampleItem
             ? JSON.parse(JSON.stringify(sampleItem))

@@ -65,10 +65,10 @@ export default function PlayerHeader({
           <i aria-hidden="true" className="fa fa-gavel" />
         </a>
         <a
-          aria-label="Card cosmetic store"
+          aria-label="Art style collection"
           className="cosmetic-store-link"
           href="/play/cosmetics"
-          title="card cosmetic store"
+          title="art style collection"
         >
           <i aria-hidden="true" className="fa fa-shopping-bag" />
         </a>

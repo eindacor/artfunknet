@@ -45,12 +45,6 @@ export default function BaseballCard({
           >
             #{playerNumber}
           </span>
-          {item.mint ? (
-            <span className="baseball-card-watch">
-              <i aria-hidden="true" className="fa fa-star" />
-              ONE TO WATCH
-            </span>
-          ) : null}
           <div className="baseball-card-nameplate">
             <span>
               <strong>{item.artwork.title}</strong>

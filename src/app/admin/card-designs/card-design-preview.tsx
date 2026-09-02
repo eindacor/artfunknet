@@ -32,7 +32,6 @@ type PreviewState = (typeof PREVIEW_STATES)[number][0];
 export default function CardDesignPreview({
   description,
   initialActive,
-  initialPrice,
   item,
   items,
   legendaryAttributes,
@@ -43,7 +42,6 @@ export default function CardDesignPreview({
 }: {
   description?: string;
   initialActive: boolean;
-  initialPrice: number;
   item: HydratedGameItem;
   items: HydratedGameItem[];
   legendaryAttributes: CardLegendaryAttribute[];
@@ -119,7 +117,6 @@ export default function CardDesignPreview({
         <p>{description}</p>
         <CardRendererActivation
           initialActive={initialActive}
-          initialPrice={initialPrice}
           rendererId={rendererId}
         />
         <div className="card-design-artwork-controls">

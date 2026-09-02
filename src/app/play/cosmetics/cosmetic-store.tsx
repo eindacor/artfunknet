@@ -1,12 +1,5 @@
-"use client";
-
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-
 import ItemCard from "@/components/item-cards/item-card";
 import {
-  type CardCosmetic,
-  type CardRendererPriceMap,
   type CardStyleInventory,
   getActiveCardCosmetics,
   getCardStyleInventory,
@@ -16,82 +9,33 @@ import type { HydratedGameItem } from "@/server/item-artwork";
 
 export default function CosmeticStore({
   activeRendererIds,
-  initialBankBalance,
   initialStyleInventory,
   sampleItem,
   legendaryAttributes,
-  rendererPrices,
 }: {
   activeRendererIds: string[];
-  initialBankBalance: number;
   initialStyleInventory: CardStyleInventory;
   sampleItem: HydratedGameItem | null;
   legendaryAttributes: CardLegendaryAttribute[];
-  rendererPrices: CardRendererPriceMap;
 }) {
-  const router = useRouter();
-  const [bankBalance, setBankBalance] = useState(initialBankBalance);
-  const [styleInventory, setStyleInventory] = useState(
-    getCardStyleInventory(initialStyleInventory),
-  );
-  const [purchasingId, setPurchasingId] = useState<string | null>(null);
-  const [error, setError] = useState("");
-
-  async function purchase(cosmetic: CardCosmetic) {
-    setPurchasingId(cosmetic.id);
-    setError("");
-    try {
-      const response = await fetch(
-        `/api/play/cosmetics/card-renderers/${cosmetic.id}/purchase`,
-        { method: "POST" },
-      );
-      const body = (await response.json()) as {
-        error?: string;
-        bankBalance?: number;
-        styleInventory?: CardStyleInventory;
-      };
-      if (!response.ok) {
-        throw new Error(body.error ?? "The cosmetic could not be purchased.");
-      }
-      setBankBalance(body.bankBalance ?? bankBalance - cosmetic.price);
-      setStyleInventory(
-        getCardStyleInventory(body.styleInventory),
-      );
-      router.refresh();
-    } catch (purchaseError) {
-      setError(
-        purchaseError instanceof Error
-          ? purchaseError.message
-          : "The cosmetic could not be purchased.",
-      );
-    } finally {
-      setPurchasingId(null);
-    }
-  }
+  const styleInventory = getCardStyleInventory(initialStyleInventory);
 
   return (
     <main className="cosmetic-store">
       <header className="cosmetic-store-heading">
         <div>
           <p>Artfunkel cosmetics</p>
-          <h1>Card style store</h1>
+          <h1>Art style collection</h1>
           <span>
-            Purchase art style consumables, then apply them to individual
-            artwork with its paint-brush action.
+            Find styles on generated artwork. Donating that artwork recovers
+            its style as a reusable consumable.
           </span>
         </div>
-        <strong>${bankBalance.toLocaleString()}</strong>
       </header>
-      {error ? (
-        <p className="cosmetic-store-error" role="alert">
-          {error}
-        </p>
-      ) : null}
       <div className="cosmetic-store-grid">
-        {getActiveCardCosmetics(activeRendererIds, rendererPrices).map(
+        {getActiveCardCosmetics(activeRendererIds).map(
           (cosmetic) => {
             const quantity = styleInventory[cosmetic.id] ?? 0;
-            const included = cosmetic.id === "museum";
             return (
               <article className="cosmetic-store-product" key={cosmetic.id}>
               <header>
@@ -115,37 +59,21 @@ export default function CosmeticStore({
               <footer>
                 <div className="cosmetic-store-stock">
                   <strong>
-                    {included
-                      ? "Included"
-                      : cosmetic.price === 0
-                        ? "Free"
-                        : `$${cosmetic.price.toLocaleString()}`}
+                    {quantity > 0 ? `${quantity} reusable` : "Not recovered"}
                   </strong>
-                  {!included ? <span>Available: {quantity}</span> : null}
-                </div>
-                {included ? (
-                  <span className="cosmetic-owned">
-                    <i aria-hidden="true" className="fa fa-check" /> unlimited
+                  <span>
+                    {quantity > 0
+                      ? "Available in your style inventory"
+                      : "Find this style on generated artwork"}
                   </span>
-                ) : (
-                  <button
-                    disabled={
-                      purchasingId !== null ||
-                      bankBalance < cosmetic.price
-                    }
-                    onClick={() => purchase(cosmetic)}
-                    type="button"
-                  >
-                    <i aria-hidden="true" className="fa fa-shopping-cart" />
-                    {purchasingId === cosmetic.id
-                      ? "Purchasing..."
-                      : cosmetic.price === 0
-                        ? "Add one"
-                      : bankBalance < cosmetic.price
-                        ? "Insufficient funds"
-                        : "Purchase one"}
-                  </button>
-                )}
+                </div>
+                <span className="cosmetic-owned">
+                  <i
+                    aria-hidden="true"
+                    className={`fa ${quantity > 0 ? "fa-check" : "fa-search"}`}
+                  />{" "}
+                  {quantity > 0 ? "discovered" : "undiscovered"}
+                </span>
               </footer>
               </article>
             );

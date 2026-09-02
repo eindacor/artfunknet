@@ -304,9 +304,12 @@ export function rollGeneratedCardRenderer(
   activeRendererIds: readonly string[],
   probability: number,
   random: () => number = Math.random,
+  rendererWeights?: Readonly<Record<string, number>>,
 ): string | undefined {
   const applicableRendererIds = activeRendererIds.filter(
-    (rendererId) => rendererId !== "museum",
+    (rendererId) =>
+      rendererId !== "museum" &&
+      (rendererWeights?.[rendererId] ?? 1) > 0,
   );
   if (
     applicableRendererIds.length === 0 ||
@@ -315,9 +318,13 @@ export function rollGeneratedCardRenderer(
     return undefined;
   }
 
-  return applicableRendererIds[
-    Math.floor(random() * applicableRendererIds.length)
-  ];
+  return rollWeighted(
+    applicableRendererIds.map((rendererId) => ({
+      value: rendererId,
+      weight: rendererWeights?.[rendererId] ?? 1,
+    })),
+    random,
+  );
 }
 
 type DailyDropOptions = {
@@ -325,6 +332,7 @@ type DailyDropOptions = {
   itemCount?: number;
   rarityWeights?: Record<ArtworkRarity, number>;
   cardRendererProbability?: number;
+  cardStyleWeights?: Readonly<Record<string, number>>;
   foilProbability?: number;
   mintProbability?: number;
   mintValueMultiplier?: number;
@@ -362,6 +370,7 @@ export async function generateDailyDrop(
     itemCount = 6,
     rarityWeights,
     cardRendererProbability = 0,
+    cardStyleWeights,
     foilProbability = 0.005,
     mintProbability = 0,
     mintValueMultiplier = 1,
@@ -434,6 +443,7 @@ export async function generateDailyDrop(
         now,
         activeRendererIds: rendererSettings.activeRendererIds,
         cardRendererProbability,
+        cardStyleWeights,
         foilProbability,
         mintProbability,
         mintValueMultiplier,
@@ -478,6 +488,7 @@ function createItem({
   now,
   activeRendererIds,
   cardRendererProbability,
+  cardStyleWeights,
   foilProbability,
   mintProbability,
   mintValueMultiplier,
@@ -497,6 +508,7 @@ function createItem({
   now: Date;
   activeRendererIds: readonly string[];
   cardRendererProbability: number;
+  cardStyleWeights?: Readonly<Record<string, number>>;
   foilProbability: number;
   mintProbability: number;
   mintValueMultiplier: number;
@@ -530,6 +542,8 @@ function createItem({
   const cardRenderer = rollGeneratedCardRenderer(
     activeRendererIds,
     cardRendererProbability,
+    Math.random,
+    cardStyleWeights,
   );
 
   const base = {

@@ -87,3 +87,19 @@ export function calculateArtExpertKnowledge({
     Math.max(Math.floor(unitValue * modifier), 2),
   );
 }
+
+export function calculateDonationKnowledge({
+  rarity,
+  level,
+  randomRoll,
+}: {
+  rarity: ArtworkRarity;
+  level: number;
+  randomRoll: number;
+}): KnowledgeReward {
+  const modifier =
+    1 + (0.5 - Math.min(Math.max(randomRoll, 0), 0.999999999999)) * 0.2;
+  return convertUnitValueToKnowledge(
+    Math.floor(getItemKnowledgeUnitValue(rarity, level) * modifier),
+  );
+}

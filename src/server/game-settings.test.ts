@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   DEFAULT_ACTUAL_GAMEPLAY_CONFIG,
   DEFAULT_DEBUG_GAMEPLAY_CONFIG,
+  validateCardStyleWeights,
   validateGameplayConfig,
   validateRarityWeights,
 } from "./game-settings.ts";
@@ -44,6 +45,28 @@ test("rarity weights reject invalid and all-zero maps", () => {
       legendary: 0,
       masterpiece: 0,
     }).ok,
+    false,
+  );
+});
+
+test("card style weights require every known non-default style", () => {
+  const weights = DEFAULT_ACTUAL_GAMEPLAY_CONFIG.cardStyleWeights;
+  assert.deepEqual(validateCardStyleWeights(weights), {
+    ok: true,
+    value: weights,
+  });
+  assert.equal(
+    validateCardStyleWeights({ ...weights, museum: 1 }).ok,
+    false,
+  );
+  assert.equal(
+    validateCardStyleWeights({ ...weights, baseball: undefined }).ok,
+    false,
+  );
+  assert.equal(
+    validateCardStyleWeights(
+      Object.fromEntries(Object.keys(weights).map((key) => [key, 0])),
+    ).ok,
     false,
   );
 });

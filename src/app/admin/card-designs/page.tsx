@@ -109,7 +109,6 @@ export default async function CardDesignsAdminPage() {
                 <CardDesignPreview
                   description={option?.description}
                   initialActive={activeRendererIds.has(rendererId)}
-                  initialPrice={rendererSettings.rendererPrices[rendererId]}
                   item={item}
                   items={previewItems}
                   key={rendererId}

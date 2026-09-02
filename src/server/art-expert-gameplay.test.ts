@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   calculateArtExpertKnowledge,
+  calculateDonationKnowledge,
   calculateArtExpertRollReduction,
   convertUnitValueToKnowledge,
   getItemKnowledgeUnitValue,
@@ -35,6 +36,7 @@ test("Art Expert knowledge preserves legacy item unit values and base-15 tiers",
     technical_comprehension: 0,
     artistic_vision: 1,
   });
+
   assert.deepEqual(
     calculateArtExpertKnowledge({
       rarity: "common",
@@ -48,5 +50,28 @@ test("Art Expert knowledge preserves legacy item unit values and base-15 tiers",
       technical_comprehension: 0,
       artistic_vision: 0,
     },
+  );
+});
+
+test("donation knowledge preserves the original 90% to 110% item value roll", () => {
+  assert.deepEqual(
+    calculateDonationKnowledge({
+      rarity: "rare",
+      level: 2,
+      randomRoll: 0,
+    }),
+    convertUnitValueToKnowledge(
+      Math.floor(getItemKnowledgeUnitValue("rare", 2) * 1.1),
+    ),
+  );
+  assert.deepEqual(
+    calculateDonationKnowledge({
+      rarity: "rare",
+      level: 2,
+      randomRoll: 0.999999,
+    }),
+    convertUnitValueToKnowledge(
+      Math.floor(getItemKnowledgeUnitValue("rare", 2) * 0.9000002),
+    ),
   );
 });

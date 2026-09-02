@@ -230,6 +230,16 @@ export default async function PlayerPage() {
           displayCap: player.profile.display_cap,
           xpGoal: getXpGoal(player.profile.level),
           npcsMet: player.profile.npcs_met ?? {},
+          knowledge: {
+            historical_data:
+              player.profile.knowledge.historical_data ?? 0,
+            contextual_understanding:
+              player.profile.knowledge.contextual_understanding ?? 0,
+            technical_comprehension:
+              player.profile.knowledge.technical_comprehension ?? 0,
+            artistic_vision:
+              player.profile.knowledge.artistic_vision ?? 0,
+          },
           cardStyleInventory: getCardStyleInventory(
             player.profile.card_style_consumables,
           ),

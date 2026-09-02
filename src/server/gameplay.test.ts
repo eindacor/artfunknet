@@ -88,6 +88,25 @@ test("generated card styles roll only from active renderers", () => {
     rollGeneratedCardRenderer([], 1, () => 0),
     undefined,
   );
+  const weightedRolls = [0, 0.8];
+  assert.equal(
+    rollGeneratedCardRenderer(
+      ["museum", "terminal", "zine"],
+      1,
+      () => weightedRolls.shift() ?? 0,
+      { terminal: 3, zine: 1 },
+    ),
+    "zine",
+  );
+  assert.equal(
+    rollGeneratedCardRenderer(
+      ["museum", "terminal", "zine"],
+      1,
+      () => 0,
+      { terminal: 0, zine: 1 },
+    ),
+    "zine",
+  );
 });
 
 test("mint value multiplier applies only while the item is mint", () => {

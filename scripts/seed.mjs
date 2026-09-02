@@ -547,6 +547,26 @@ async function seedGameplaySettings(database) {
     lootMetadata?.loot_data?.global_foil_chance ?? 0.005;
   const legacyUnlockedProbability =
     lootMetadata?.loot_data?.global_unlocked_chance ?? 0.05;
+  const actualCardStyleWeights = {
+    legacy: 1,
+    terminal: 200,
+    postcard: 160,
+    gilded: 80,
+    arcade: 60,
+    prismatic: 25,
+    blueprint: 140,
+    zine: 100,
+    celestial: 35,
+    reliquary: 15,
+    baseball: 70,
+    minimalist: 180,
+    bauhaus: 90,
+    abstract: 75,
+    circle: 45,
+  };
+  const debugCardStyleWeights = Object.fromEntries(
+    Object.keys(actualCardStyleWeights).map((id) => [id, 1]),
+  );
   const actual = {
     daily_drop_cooldown_minutes:
       legacy.daily_drop_cooldown_minutes ?? 5,
@@ -569,6 +589,7 @@ async function seedGameplaySettings(database) {
       legendary: 0.009993056,
       masterpiece: 0.000694444,
     },
+    card_style_weights: actualCardStyleWeights,
   };
   const debug = {
     daily_drop_cooldown_minutes: 1,
@@ -590,9 +611,10 @@ async function seedGameplaySettings(database) {
       legendary: 1,
       masterpiece: 1,
     },
+    card_style_weights: debugCardStyleWeights,
   };
   const setter = {
-    schema_version: 6,
+    schema_version: 7,
     updated_at: now,
   };
   if (legacy.debug_enabled === undefined) {
@@ -641,6 +663,20 @@ async function seedGameplaySettings(database) {
     legacy.configs.debug.card_renderer_probability === undefined
   ) {
     setter["gameplay.configs.debug.card_renderer_probability"] = 0.25;
+  }
+  if (
+    legacy.configs?.actual &&
+    legacy.configs.actual.card_style_weights === undefined
+  ) {
+    setter["gameplay.configs.actual.card_style_weights"] =
+      actualCardStyleWeights;
+  }
+  if (
+    legacy.configs?.debug &&
+    legacy.configs.debug.card_style_weights === undefined
+  ) {
+    setter["gameplay.configs.debug.card_style_weights"] =
+      debugCardStyleWeights;
   }
   if (
     legacy.configs?.actual &&

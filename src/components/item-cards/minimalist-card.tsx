@@ -26,7 +26,10 @@ export default function MinimalistCard({
       <ArtworkImage className="minimalist-card-image" item={item} />
       <div className="minimalist-card-shade" />
       <header>
-        <span>{item.artwork.artist}</span>
+        <span className="minimalist-card-artist">
+          <i aria-hidden="true" className="minimalist-card-rarity-mark" />
+          {item.artwork.artist}
+        </span>
         <span>{item.artwork.date}</span>
       </header>
       <section>
