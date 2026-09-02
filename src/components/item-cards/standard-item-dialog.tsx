@@ -7,6 +7,8 @@ import ArtworkThumbnail from "@/components/artwork-thumbnail";
 import ArtStyleActionButton from "./art-style-action-button";
 import { getCardCosmetic } from "./catalog";
 import {
+  ArchivedArtStyleBadges,
+  ArchivedCategoryBadges,
   AttributeIcons,
   CompleteItemRecord,
   ItemPropertyBadges,
@@ -121,6 +123,22 @@ export default function StandardItemDialog({
               <span>Properties</span>
               <ItemPropertyBadges item={item} showLifecycle />
             </section>
+            {item.archivedCategories &&
+            item.archivedCategories.length > 0 ? (
+              <section className="standard-item-dialog-properties">
+                <span>Archived modifiers</span>
+                <ArchivedCategoryBadges
+                  categories={item.archivedCategories}
+                />
+              </section>
+            ) : null}
+            {item.archivedArtStyles &&
+            item.archivedArtStyles.length > 0 ? (
+              <section className="standard-item-dialog-properties">
+                <span>Archived art styles</span>
+                <ArchivedArtStyleBadges styles={item.archivedArtStyles} />
+              </section>
+            ) : null}
             {permissions.canManageItem &&
             (actions || permissions.canCustomizeCosmetic) ? (
               <div

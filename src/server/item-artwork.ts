@@ -1,9 +1,12 @@
 import type { Db } from "mongodb";
 
+import type { ArchiveCategory } from "./archive-gameplay.ts";
 import type { Artwork, GameItem } from "./gameplay.ts";
 
 export type HydratedGameItem = GameItem & {
   artwork: Artwork;
+  archivedArtStyles?: string[];
+  archivedCategories?: ArchiveCategory[];
 };
 
 export async function hydrateGameItems(

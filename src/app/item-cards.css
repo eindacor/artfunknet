@@ -57,6 +57,45 @@
   font-family: Courier, "Courier New", monospace;
 }
 
+.og-card-archive-indicators {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.35rem;
+  border-bottom: 1px solid #111;
+  padding-bottom: 0.3rem;
+  color: #111;
+}
+
+.rendered-item-card-legacy .card-footer {
+  display: block;
+}
+
+.og-card-footer-basic {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.og-card-archive-indicators .archive-foil {
+  color: #c6199f;
+}
+
+.og-card-archive-indicators .archive-unlocked {
+  color: var(--unlocked-dark);
+}
+
+.og-card-archive-indicators .archive-seasonal {
+  color: #25833b;
+}
+
+.og-card-archive-indicators .archive-vintage {
+  color: #9d6b49;
+}
+
+.og-card-archive-indicators .archive-lottery {
+  color: #9b6b0f;
+}
+
 .rendered-item-card-trigger {
   position: relative;
   isolation: isolate;
@@ -3403,6 +3442,19 @@
   backdrop-filter: blur(3px);
 }
 
+.archive-confirmation-dialog::after {
+  background: #405f50;
+}
+
+.archive-confirmation-mark {
+  color: #405f50;
+  font-size: 2.4rem;
+}
+
+.archive-confirmation-dialog .archived-category-badges {
+  justify-content: center;
+}
+
 .mint-loss-dialog-content {
   display: grid;
   justify-items: center;
@@ -3693,6 +3745,14 @@
 
 .property-lottery {
   color: #9b6b0f;
+}
+
+.property-archived {
+  color: #2e6550;
+}
+
+.property-displaced {
+  color: #875117;
 }
 
 .property-misprint {

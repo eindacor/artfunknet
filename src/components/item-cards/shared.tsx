@@ -1,6 +1,8 @@
 import type { GameItem } from "@/server/gameplay";
 import type { CSSProperties } from "react";
 
+import type { ArchiveCategory } from "@/server/archive-gameplay";
+import { CARD_COSMETICS, getCardCosmetic } from "./catalog";
 import type {
   CardLegendaryAttribute,
   ItemCardRendererProps,
@@ -115,6 +117,12 @@ export function ItemPropertyBadges({
   showLifecycle?: boolean;
 }) {
   const properties = [
+    showLifecycle && item.status === "archived"
+      ? {
+          key: item.displaced ? "displaced" : "archived",
+          label: item.displaced ? "displaced archive copy" : "archived",
+        }
+      : null,
     showLifecycle && item.tags.includes("for sale")
       ? { key: "for-sale", label: "for sale" }
       : null,
@@ -150,6 +158,58 @@ export function ItemPropertyBadges({
           <i aria-hidden="true" className="fa fa-times" />
         </span>
       )}
+    </span>
+  );
+}
+
+export function ArchivedCategoryBadges({
+  categories,
+}: {
+  categories: ArchiveCategory[];
+}) {
+  return (
+    <span className="item-property-badges archived-category-badges">
+      {categories.map((category) => (
+        <span
+          className={`item-property-badge property-${category}`}
+          key={category}
+        >
+          {category}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+export function ArchivedArtStyleBadges({
+  styles,
+}: {
+  styles: string[];
+}) {
+  const orderedStyles = [
+    ...CARD_COSMETICS.flatMap((cosmetic) =>
+      styles.includes(cosmetic.id) ? [cosmetic.id] : [],
+    ),
+    ...styles.filter((style) => !getCardCosmetic(style)),
+  ];
+
+  return (
+    <span className="item-property-badges archived-art-style-badges">
+      {orderedStyles.map((style) => {
+        const cosmetic = getCardCosmetic(style);
+        return (
+          <span
+            className="item-property-badge property-art-style"
+            key={style}
+          >
+            {cosmetic
+              ? cosmetic.id === "museum"
+                ? `${cosmetic.name} (default)`
+                : `#${cosmetic.number.toString().padStart(2, "0")} ${cosmetic.name}`
+              : style}
+          </span>
+        );
+      })}
     </span>
   );
 }

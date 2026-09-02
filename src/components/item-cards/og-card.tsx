@@ -60,10 +60,28 @@ export default function OgCard({
         </div>
       </div>
       <div className={`card-footer ${cardTypes}`}>
-        <div className="attribute-area">
-          <AttributeIcons item={item} />
+        {item.archivedCategories &&
+        item.archivedCategories.length > 0 ? (
+          <div
+            aria-label={`Archived variants: ${item.archivedCategories.join(", ")}`}
+            className="og-card-archive-indicators"
+          >
+            {item.archivedCategories.map((category) => (
+              <i
+                aria-hidden="true"
+                className={`fa fa-archive archive-${category}`}
+                key={category}
+                title={`${category} archived`}
+              />
+            ))}
+          </div>
+        ) : null}
+        <div className="og-card-footer-basic">
+          <div className="attribute-area">
+            <AttributeIcons item={item} />
+          </div>
+          <strong>lvl {item.level}</strong>
         </div>
-        <strong>lvl {item.level}</strong>
       </div>
     </div>
   );

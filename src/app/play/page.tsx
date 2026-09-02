@@ -1,6 +1,10 @@
 import { notFound } from "next/navigation";
 
 import { getCardStyleInventory } from "@/components/item-cards/catalog";
+import {
+  getArchivedArtStylesByArtwork,
+  getArchivedCategoriesByArtwork,
+} from "@/server/archive-gameplay";
 import { getArtHistorianQuestViews } from "@/server/art-historian-gameplay";
 import {
   calculateGalleryRates,
@@ -44,6 +48,7 @@ type Player = {
     expansion_slots?: number;
     vintage_count?: number;
     display_cap: number;
+    pc_cap?: number;
     repairing_cap?: number;
     auction_cap: number;
     completed_quests?: number;
@@ -126,6 +131,7 @@ export default async function PlayerPage() {
       owner: player._id,
       $or: [
         { status: { $in: ["unclaimed", "for_sale", "claimed", "displayed"] } },
+        { status: "archived" },
         { _id: { $in: consignedItemIds }, status: "auctioned" },
       ],
     })
@@ -142,7 +148,17 @@ export default async function PlayerPage() {
       original: { $ne: true },
       vintage: { $ne: true },
     });
-  const items = await hydrateGameItems(database, rawItems);
+  const archivedCategoriesByArtwork =
+    getArchivedCategoriesByArtwork(rawItems);
+  const archivedArtStylesByArtwork =
+    getArchivedArtStylesByArtwork(rawItems);
+  const items = (await hydrateGameItems(database, rawItems)).map((item) => ({
+    ...item,
+    archivedArtStyles:
+      archivedArtStylesByArtwork.get(item.artwork_id) ?? [],
+    archivedCategories:
+      archivedCategoriesByArtwork.get(item.artwork_id) ?? [],
+  }));
   const displayedItems = items.filter((item) => item.status === "displayed");
   const galleryRates = await calculateGalleryRates(
     database,

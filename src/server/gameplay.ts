@@ -106,6 +106,7 @@ export type GameItem = {
     | "for_sale"
     | "claimed"
     | "displayed"
+    | "archived"
     | "collector_pending"
     | "auctioned"
     | "bulk_sale_pending";
@@ -135,6 +136,10 @@ export type GameItem = {
   artwork_overrides?: ArtworkOverrides;
   misprint: boolean;
   permanent: boolean;
+  displaced?: boolean;
+  archive_signature?: string;
+  archive_slot_key?: string;
+  time_archived?: string;
   repairing: boolean;
   repair_tick_at?: string;
   debug: boolean;
