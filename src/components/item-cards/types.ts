@@ -32,6 +32,7 @@ export type ItemCardRendererProps = {
   item: HydratedGameItem;
   legendaryAttributes: CardLegendaryAttribute[];
   alreadyOwned: boolean;
+  researchTarget?: boolean;
 };
 
 export type ItemCardProps = Omit<ItemCardRendererProps, "alreadyOwned"> & {

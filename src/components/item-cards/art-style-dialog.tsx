@@ -24,6 +24,7 @@ export default function ArtStyleDialog({
   legendaryAttributes,
   onApplied,
   onClose,
+  researchTarget = false,
   styleInventory,
 }: {
   currentRendererId: CardRendererId;
@@ -35,6 +36,7 @@ export default function ArtStyleDialog({
     styleInventory: CardStyleInventory,
   ) => void;
   onClose: () => void;
+  researchTarget?: boolean;
   styleInventory?: CardStyleInventory;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -290,6 +292,7 @@ export default function ArtStyleDialog({
                         card_renderer: previewCosmetic.id,
                       }}
                       legendaryAttributes={legendaryAttributes}
+                      researchTarget={researchTarget}
                     />
                   </span>
                 </span>

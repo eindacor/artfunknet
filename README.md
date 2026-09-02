@@ -232,13 +232,23 @@ The basic gameplay loop is active:
   condition/roll-count bonuses, keep-item rewards, XP-to-money interaction,
   additional sale offers, forgery detection reduction, cap-stepped maximum
   quality, and platinum Collector/Donor companion spawns. Auction, quest, and
-  temporary reputation consequences remain deferred with explicit TODOs.
+  temporary reputation side rewards specific to Collectors remain deferred
+  with explicit TODOs.
 - Art Experts preserve the original two-stage interaction. They first reduce
   the highest positive reroll count on a claimed or displayed item according
   to visitor quality and own-gallery bonuses. Once no positive counts remain,
   they study a random displayed work and grant its rarity- and level-scaled
   knowledge tiers. Active Donor and zero-count Legendary effects retain their
   original multiplier and XP behavior.
+- Art Historians create the original collection objectives: four distinct
+  level-appropriate artworks with three normally required and up to eight
+  active objectives. The Quests tab tracks each requested work against claimed
+  and displayed inventory, supports cancellation, and enables reward claims
+  without consuming collected items. Claims preserve rarity-scaled money and
+  XP, bonus XP for extra and special-property targets, completed-quest totals,
+  and Legendary or foil-Legendary item rewards for the highest quest tiers.
+  Supported displayed Legendary effects retain quest-cap bypass, Marketing
+  Manager target reduction, XP amplification, and auction-count money bonuses.
 - Benefactors grant the original quality-scaled, randomized cash donations,
   while Art Enthusiasts grant the original quality-scaled XP chunks. Both
   preserve own-gallery amplification, visitor-count effects, Benefactor

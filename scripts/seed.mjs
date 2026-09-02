@@ -123,6 +123,9 @@ async function createIndexes(database) {
   await database
     .collection("npcs")
     .createIndex({ expiration: 1 }, { expireAfterSeconds: 0 });
+  await database
+    .collection("quests")
+    .createIndex({ owner_id: 1, created_at: -1 });
 }
 
 async function seedAdmin(database) {

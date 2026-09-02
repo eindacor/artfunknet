@@ -52,16 +52,18 @@ export function ArtworkImage({
 export function ItemStatusBadges({
   item,
   alreadyOwned,
+  researchTarget = false,
   collectorSaleLabel = "for sale",
   showFoil = false,
   showMint = true,
-  showOwned = true,
   showUnlocked = false,
-}: Pick<ItemCardRendererProps, "item" | "alreadyOwned"> & {
+}: Pick<
+  ItemCardRendererProps,
+  "item" | "alreadyOwned" | "researchTarget"
+> & {
   collectorSaleLabel?: string;
   showFoil?: boolean;
   showMint?: boolean;
-  showOwned?: boolean;
   showUnlocked?: boolean;
 }) {
   return (
@@ -80,14 +82,11 @@ export function ItemStatusBadges({
       {item.status === "claimed" && item.tags.includes("for sale") ? (
         <span className="collector-sale-indicator">{collectorSaleLabel}</span>
       ) : null}
-      {item.status === "unclaimed" && (showOwned || !alreadyOwned) ? (
-        <span
-          className={`artwork-ownership-indicator ${
-            alreadyOwned ? "owned" : "new"
-          }`}
-        >
-          {alreadyOwned ? "owned" : "new"}
-        </span>
+      {researchTarget ? (
+        <span className="research-sought-indicator">sought</span>
+      ) : null}
+      {item.status === "unclaimed" && alreadyOwned ? (
+        <span className="artwork-ownership-indicator owned">owned</span>
       ) : null}
     </span>
   );

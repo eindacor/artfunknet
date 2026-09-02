@@ -6,7 +6,7 @@ import {
 import type { ItemCardRendererProps } from "./types";
 
 export default function TerminalCard(props: ItemCardRendererProps) {
-  const { item, alreadyOwned } = props;
+  const { item, alreadyOwned, researchTarget } = props;
   return (
     <div
       className={`render-card terminal-card ${
@@ -31,7 +31,11 @@ export default function TerminalCard(props: ItemCardRendererProps) {
       ) : null}
       <ArtworkImage className="terminal-card-image" item={item} />
       <div className="terminal-card-copy">
-        <ItemStatusBadges item={item} alreadyOwned={alreadyOwned} />
+        <ItemStatusBadges
+          item={item}
+          alreadyOwned={alreadyOwned}
+          researchTarget={researchTarget}
+        />
         <p>&gt; TITLE: {item.artwork.title}</p>
         <p className="render-card-artist">
           &gt; ARTIST: {item.artwork.artist}

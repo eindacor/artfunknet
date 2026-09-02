@@ -13,6 +13,7 @@ import { ratingColor } from "@/components/item-cards/shared";
 import StandardItemDialog from "@/components/item-cards/standard-item-dialog";
 import type { CardLegendaryAttribute } from "@/components/item-cards/types";
 import type { GalleryRates } from "@/server/collection-gameplay";
+import type { ArtHistorianQuestView } from "@/server/art-historian-gameplay";
 import type { GameItem } from "@/server/gameplay";
 import type { HydratedGameItem } from "@/server/item-artwork";
 import { getDisplayPermission } from "@/server/item-permissions";
@@ -42,6 +43,7 @@ type PlayerView = {
   xpGoal: number;
   npcsMet: Partial<Record<NpcQuality, number>>;
   cardStyleInventory: CardStyleInventory;
+  completedQuests: number;
 };
 
 type NpcView = Omit<GalleryNpc, "spawned_at" | "expiration"> & {
@@ -91,6 +93,13 @@ type ArtExpertResult = {
   bonusMoney: number;
 };
 
+type ArtHistorianResult = {
+  type: "art-historian-quest";
+  npcName: string;
+  quality: NpcQuality;
+  quest: ArtHistorianQuestView;
+};
+
 const ATTRIBUTE_TYPE_ICONS = {
   special: { icon: "fa-star", label: "Special attribute" },
   locked: null,
@@ -110,6 +119,7 @@ export default function GameDashboard({
   dealerPriceMultiplier,
   debugEnabled,
   npcs,
+  quests,
 }: {
   player: PlayerView;
   items: HydratedGameItem[];
@@ -123,10 +133,11 @@ export default function GameDashboard({
   dealerPriceMultiplier: number;
   debugEnabled: boolean;
   npcs: NpcView[];
+  quests: ArtHistorianQuestView[];
 }) {
   const router = useRouter();
   const [section, setSection] = useState<
-    "profile" | "inventory" | "loot" | "gallery"
+    "profile" | "inventory" | "loot" | "gallery" | "quests"
   >(
     items.some((item) => item.status === "unclaimed") ? "loot" : "profile",
   );
@@ -148,6 +159,8 @@ export default function GameDashboard({
     useState<CollectorResult | null>(null);
   const [artExpertResult, setArtExpertResult] =
     useState<ArtExpertResult | null>(null);
+  const [artHistorianResult, setArtHistorianResult] =
+    useState<ArtHistorianResult | null>(null);
   const [npcRewardEffects, setNpcRewardEffects] = useState<
     Record<string, NpcRewardInteraction & { animationId: number }>
   >({});
@@ -192,6 +205,10 @@ export default function GameDashboard({
           .map((item) => item.artwork_id),
       ),
     [items],
+  );
+  const researchArtworkIds = useMemo(
+    () => new Set(quests.flatMap((quest) => quest.target)),
+    [quests],
   );
   const ownedCount = inventory.length + displayed.length;
   const nextDrop =
@@ -328,7 +345,7 @@ export default function GameDashboard({
           npcName: string;
           quality: NpcQuality;
           items: ArtworkOfferItem[];
-        } | CollectorResult | ArtExpertResult | NpcRewardInteraction;
+        } | CollectorResult | ArtExpertResult | ArtHistorianResult | NpcRewardInteraction;
       };
       if (!response.ok) {
         throw new Error(body.error ?? "The visitor interaction failed.");
@@ -347,6 +364,8 @@ export default function GameDashboard({
         setCollectorResult(body.interaction);
       } else if (body.interaction?.type === "art-expert-knowledge") {
         setArtExpertResult(body.interaction);
+      } else if (body.interaction?.type === "art-historian-quest") {
+        setArtHistorianResult(body.interaction);
       } else if (
         body.interaction?.type === "npc-reward" &&
         body.interaction.presentation === "popout"
@@ -426,7 +445,9 @@ export default function GameDashboard({
           />
         </div>
         <nav className="dashboard-tabs" aria-label="Player dashboard">
-          {(["profile", "inventory", "loot", "gallery"] as const).map((tab) => (
+          {(
+            ["profile", "inventory", "loot", "gallery", "quests"] as const
+          ).map((tab) => (
             <button
               className={section === tab ? "current" : ""}
               key={tab}
@@ -435,6 +456,9 @@ export default function GameDashboard({
             >
               {tab}
               {tab === "loot" && unclaimed.length > 0 ? ` (${unclaimed.length})` : ""}
+              {tab === "quests" && quests.length > 0
+                ? ` (${quests.length})`
+                : ""}
             </button>
           ))}
         </nav>
@@ -504,6 +528,10 @@ export default function GameDashboard({
                     0,
                   )}
                 />
+                <ProfileRow
+                  label="quests completed:"
+                  value={player.completedQuests.toLocaleString()}
+                />
               </tbody>
             </table>
           </section>
@@ -545,6 +573,7 @@ export default function GameDashboard({
                       canManageItem: true,
                       canCustomizeCosmetic: false,
                     }}
+                    researchTarget={researchArtworkIds.has(item.artwork_id)}
                     styleInventory={player.cardStyleInventory}
                     actions={
                       item.status === "for_sale" ? (
@@ -612,6 +641,7 @@ export default function GameDashboard({
               emptyText="No works are currently on display."
               items={displayed}
               legendaryAttributes={legendaryAttributes}
+              researchArtworkIds={researchArtworkIds}
               canCustomize
               styleInventory={player.cardStyleInventory}
               title={`on display (${displayed.length}/${player.displayCap})`}
@@ -621,6 +651,7 @@ export default function GameDashboard({
               emptyText="Your inventory is empty."
               items={inventory}
               legendaryAttributes={legendaryAttributes}
+              researchArtworkIds={researchArtworkIds}
               canCustomize
               styleInventory={player.cardStyleInventory}
               title="inventory"
@@ -745,6 +776,7 @@ export default function GameDashboard({
                 </div>
               </div>
             ) : null}
+
             <div className="gallery-summary">
               <span>exhibition value: ${galleryRates.value.toLocaleString()}</span>
               <span>
@@ -846,6 +878,14 @@ export default function GameDashboard({
           </section>
         ) : null}
 
+        {section === "quests" ? (
+          <QuestSection
+            onAction={act}
+            pending={pending}
+            quests={quests}
+          />
+        ) : null}
+
         {rerollSession ? (
           <RerollDialog
             bankBalance={rerollSession.bankBalance}
@@ -914,6 +954,9 @@ export default function GameDashboard({
               router.refresh();
             }}
             onClose={() => setGalleryArtStyleItem(null)}
+            researchTarget={researchArtworkIds.has(
+              galleryArtStyleItem.artwork_id,
+            )}
             styleInventory={player.cardStyleInventory}
           />
         ) : null}
@@ -944,8 +987,236 @@ export default function GameDashboard({
             onClose={() => setArtExpertResult(null)}
           />
         ) : null}
+        {artHistorianResult ? (
+          <ArtHistorianDialog
+            result={artHistorianResult}
+            onClose={() => setArtHistorianResult(null)}
+            onViewQuests={() => {
+              setArtHistorianResult(null);
+              setSection("quests");
+            }}
+          />
+        ) : null}
       </div>
     </main>
+  );
+}
+
+function QuestSection({
+  onAction,
+  pending,
+  quests,
+}: {
+  onAction: (url: string) => void;
+  pending: boolean;
+  quests: ArtHistorianQuestView[];
+}) {
+  return (
+    <section className="historian-quests">
+      <header className="historian-quests-heading">
+        <div>
+          <p>Art Historian objectives</p>
+          <h2>Research requests</h2>
+        </div>
+        <span>{quests.length} / 8 active</span>
+      </header>
+      {quests.length === 0 ? (
+        <p className="empty-state">
+          You have no active Art Historian objectives.
+        </p>
+      ) : (
+        <div className="historian-quest-list">
+          {quests.map((quest) => (
+            <article
+              className="historian-quest"
+              data-rarity={quest.rarity}
+              key={quest._id}
+            >
+              <header>
+                <div>
+                  <span>{quest.rarity} objective</span>
+                  <h3>
+                    Collect {quest.min_requirement} of {quest.target.length}{" "}
+                    requested works
+                  </h3>
+                </div>
+                <strong
+                  className={
+                    quest.progress.canClaim ? "complete" : undefined
+                  }
+                >
+                  {quest.progress.owned}/{quest.progress.targetCount}
+                </strong>
+              </header>
+              <QuestTargetGrid targets={quest.targets} />
+              <footer>
+                <div className="historian-quest-rewards">
+                  <span>
+                    <i aria-hidden="true" className="fa fa-usd" />{" "}
+                    {quest.reward.money.toLocaleString()}
+                  </span>
+                  <span>
+                    <i aria-hidden="true" className="fa fa-star" />{" "}
+                    {quest.reward.xp.toLocaleString()} base XP
+                  </span>
+                  {quest.reward.item ? (
+                    <span>
+                      <i aria-hidden="true" className="fa fa-gift" />{" "}
+                      {quest.reward.item.foil ? "Foil " : ""}
+                      {quest.reward.item.rarity} artwork
+                    </span>
+                  ) : null}
+                </div>
+                <div className="historian-quest-actions">
+                  <button
+                    className="cancel"
+                    disabled={pending}
+                    onClick={() =>
+                      onAction(`/api/play/quests/${quest._id}/cancel`)
+                    }
+                    type="button"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="claim"
+                    disabled={pending || !quest.progress.canClaim}
+                    onClick={() =>
+                      onAction(`/api/play/quests/${quest._id}/claim`)
+                    }
+                    type="button"
+                  >
+                    <i aria-hidden="true" className="fa fa-flag-checkered" />{" "}
+                    Claim reward
+                  </button>
+                </div>
+              </footer>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function QuestTargetGrid({
+  targets,
+}: {
+  targets: ArtHistorianQuestView["targets"];
+}) {
+  return (
+    <div className="historian-target-grid">
+      {targets.map((target) => (
+        <div
+          className={`historian-target ${target.owned ? "owned" : "missing"}`}
+          key={target.artwork._id}
+        >
+          <ArtworkThumbnail
+            alt={`${target.artwork.title} by ${target.artwork.artist}`}
+            artworkId={target.artwork._id}
+            className="historian-target-image"
+          />
+          <div>
+            <strong>{target.artwork.title}</strong>
+            <span>{target.artwork.artist}</span>
+            <small>{target.artwork.rarity}</small>
+          </div>
+          <i
+            aria-label={target.owned ? "Collected" : "Not collected"}
+            className={`fa ${
+              target.owned ? "fa-check-circle" : "fa-circle-o"
+            }`}
+            role="img"
+          />
+          {target.special ? (
+            <i
+              aria-label="Special target bonus"
+              className="fa fa-star historian-target-special"
+              role="img"
+            />
+          ) : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ArtHistorianDialog({
+  onClose,
+  onViewQuests,
+  result,
+}: {
+  onClose: () => void;
+  onViewQuests: () => void;
+  result: ArtHistorianResult;
+}) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (dialog && !dialog.open) dialog.showModal();
+    return () => {
+      if (dialog?.open) dialog.close();
+    };
+  }, []);
+
+  function closeDialog() {
+    if (dialogRef.current?.open) dialogRef.current.close();
+    onClose();
+  }
+
+  return (
+    <dialog
+      aria-labelledby="historian-dialog-title"
+      className="reroll-dialog historian-dialog"
+      data-rarity={result.quest.rarity}
+      onCancel={(event) => {
+        event.preventDefault();
+        closeDialog();
+      }}
+      ref={dialogRef}
+    >
+      <div className="reroll-dialog-content">
+        <header className="reroll-dialog-header">
+          <div>
+            <p className="reroll-dialog-kicker">
+              {result.quality} Art Historian
+            </p>
+            <h2 id="historian-dialog-title">A research request</h2>
+            <p className="reroll-artwork-artist">{result.npcName}</p>
+          </div>
+          <button
+            aria-label="Close Art Historian dialog"
+            className="reroll-dialog-close"
+            onClick={closeDialog}
+            type="button"
+          >
+            <i aria-hidden="true" className="fa fa-times" />
+          </button>
+        </header>
+        <p className="reroll-dialog-description">
+          Acquire at least {result.quest.min_requirement} of these requested
+          works, then report your findings to claim the reward.
+        </p>
+        <QuestTargetGrid targets={result.quest.targets} />
+        <div className="historian-dialog-reward">
+          <span>Research grant</span>
+          <strong>
+            ${result.quest.reward.money.toLocaleString()} +{" "}
+            {result.quest.reward.xp.toLocaleString()} base XP
+          </strong>
+        </div>
+        <div className="historian-dialog-actions">
+          <button onClick={closeDialog} type="button">
+            Close
+          </button>
+          <button className="primary" onClick={onViewQuests} type="button">
+            <i aria-hidden="true" className="fa fa-flag-checkered" /> View
+            quests
+          </button>
+        </div>
+      </div>
+    </dialog>
   );
 }
 
@@ -1825,6 +2096,7 @@ function InventorySection({
   emptyText,
   items,
   legendaryAttributes,
+  researchArtworkIds,
   canCustomize,
   styleInventory,
   actions,
@@ -1833,6 +2105,7 @@ function InventorySection({
   emptyText: string;
   items: HydratedGameItem[];
   legendaryAttributes: LegendaryAttributeView[];
+  researchArtworkIds: ReadonlySet<string>;
   canCustomize?: boolean;
   styleInventory: CardStyleInventory;
   actions: (item: HydratedGameItem) => React.ReactNode;
@@ -1854,6 +2127,7 @@ function InventorySection({
                 canManageItem: true,
                 canCustomizeCosmetic: Boolean(canCustomize),
               }}
+              researchTarget={researchArtworkIds.has(item.artwork_id)}
               styleInventory={styleInventory}
             />
           ))}

@@ -7,7 +7,7 @@ import {
 import type { ItemCardRendererProps } from "./types";
 
 export default function MuseumCard(props: ItemCardRendererProps) {
-  const { item, alreadyOwned } = props;
+  const { item, alreadyOwned, researchTarget } = props;
   return (
     <div className="render-card museum-card">
       <ArtworkImage className="museum-card-image" item={item} />
@@ -34,8 +34,8 @@ export default function MuseumCard(props: ItemCardRendererProps) {
           alreadyOwned={alreadyOwned}
           collectorSaleLabel="for sale"
           item={item}
+          researchTarget={researchTarget}
           showMint={false}
-          showOwned={false}
         />
         <CompactStats
           item={item}

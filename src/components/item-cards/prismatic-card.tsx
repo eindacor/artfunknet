@@ -7,7 +7,7 @@ import {
 import type { ItemCardRendererProps } from "./types";
 
 export default function PrismaticCard(props: ItemCardRendererProps) {
-  const { item, alreadyOwned } = props;
+  const { item, alreadyOwned, researchTarget } = props;
   return (
     <div className="render-card prismatic-card">
       <div className="prismatic-card-aura" />
@@ -21,7 +21,11 @@ export default function PrismaticCard(props: ItemCardRendererProps) {
         <div className="prismatic-card-shine" />
       </div>
       <section>
-        <ItemStatusBadges item={item} alreadyOwned={alreadyOwned} />
+        <ItemStatusBadges
+          item={item}
+          alreadyOwned={alreadyOwned}
+          researchTarget={researchTarget}
+        />
         <h3>{item.artwork.title}</h3>
         <p className="render-card-artist">{item.artwork.artist}</p>
         <CompactStats item={item} />

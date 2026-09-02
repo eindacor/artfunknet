@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { getCardStyleInventory } from "@/components/item-cards/catalog";
+import { getArtHistorianQuestViews } from "@/server/art-historian-gameplay";
 import {
   calculateGalleryRates,
   getXpGoal,
@@ -43,6 +44,7 @@ type Player = {
     inventory_cap: number;
     display_cap: number;
     auction_cap: number;
+    completed_quests?: number;
     knowledge: Record<string, number>;
     tutorial_data: {
       current_tutorial?: string;
@@ -111,6 +113,7 @@ export default async function PlayerPage() {
     notifications,
     npcSpawnAttributes,
     legendaryAttributes,
+    quests,
   ] =
     await Promise.all([
     getGalleryNpcs(database, player._id),
@@ -123,6 +126,7 @@ export default async function PlayerPage() {
           .toArray()
       : Promise.resolve([]),
     getLegendaryAttributes(database, legendaryAttributeIds),
+    getArtHistorianQuestViews(database, player._id),
   ]);
   const displayedLegendaryIds = new Set(
     displayedItems
@@ -203,6 +207,7 @@ export default async function PlayerPage() {
           ...JSON.parse(JSON.stringify(npc)),
           alreadyMet: npc.players_met.includes(player._id),
         }))}
+        quests={quests}
         player={{
           screenName: player.screen_name,
           bankBalance: player.profile.bank_balance,
@@ -217,6 +222,7 @@ export default async function PlayerPage() {
           cardStyleInventory: getCardStyleInventory(
             player.profile.card_style_consumables,
           ),
+          completedQuests: player.profile.completed_quests ?? 0,
         }}
       />
     </div>

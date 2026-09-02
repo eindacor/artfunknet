@@ -10,6 +10,7 @@ export default function ReliquaryCard({
   item,
   alreadyOwned,
   legendaryAttributes,
+  researchTarget,
 }: ItemCardRendererProps) {
   const legendary = getActiveLegendaryAttribute(item, legendaryAttributes);
 
@@ -28,7 +29,11 @@ export default function ReliquaryCard({
         <ArtworkImage className="reliquary-card-image" item={item} />
       </div>
       <section>
-        <ItemStatusBadges item={item} alreadyOwned={alreadyOwned} />
+        <ItemStatusBadges
+          item={item}
+          alreadyOwned={alreadyOwned}
+          researchTarget={researchTarget}
+        />
         <h3>{item.artwork.title}</h3>
         <p className="render-card-artist">{item.artwork.artist}</p>
         <div className="reliquary-card-stats">

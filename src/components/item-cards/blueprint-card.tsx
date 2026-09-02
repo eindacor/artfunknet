@@ -9,6 +9,7 @@ import type { ItemCardRendererProps } from "./types";
 export default function BlueprintCard({
   item,
   alreadyOwned,
+  researchTarget,
 }: ItemCardRendererProps) {
   return (
     <div className="render-card blueprint-card">
@@ -29,7 +30,11 @@ export default function BlueprintCard({
         </span>
       </div>
       <section>
-        <ItemStatusBadges item={item} alreadyOwned={alreadyOwned} />
+        <ItemStatusBadges
+          item={item}
+          alreadyOwned={alreadyOwned}
+          researchTarget={researchTarget}
+        />
         <h3>{item.artwork.title}</h3>
         <p className="render-card-artist">{item.artwork.artist}</p>
         <p className="blueprint-card-spec">

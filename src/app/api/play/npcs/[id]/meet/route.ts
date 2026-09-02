@@ -12,6 +12,12 @@ import {
   KNOWLEDGE_TYPES,
 } from "@/server/art-expert-gameplay";
 import {
+  ART_HISTORIAN_ATTRIBUTE_ID,
+  createArtHistorianQuest,
+  getArtHistorianQuestViews,
+  type ArtHistorianQuest,
+} from "@/server/art-historian-gameplay";
+import {
   applyXp,
   getCapsForLevel,
   getXpChunk,
@@ -56,6 +62,7 @@ type Player = {
     npcs_met?: Partial<Record<NpcQuality, number>>;
     level: number;
     knowledge: Record<string, number>;
+    auction_data?: { winning?: string[] };
   };
 };
 
@@ -159,6 +166,61 @@ export async function POST(
               : "The visitor reward could not be applied.",
         },
         { status: 500 },
+      );
+    }
+  }
+
+  if (npc.attribute_id === ART_HISTORIAN_ATTRIBUTE_ID) {
+    let questId: string | undefined;
+    try {
+      const quest = await createArtHistorianQuest(
+        database,
+        player,
+        npc,
+        now,
+      );
+      questId = quest._id;
+      const questView = (
+        await getArtHistorianQuestViews(database, player._id)
+      ).find((candidate) => candidate._id === quest._id);
+      if (!questView) {
+        throw new Error("The Art Historian objective is unavailable.");
+      }
+      return NextResponse.json({
+        status: "ok",
+        message:
+          "The Art Historian gave you a new collection objective.",
+        interaction: {
+          type: "art-historian-quest",
+          npcName: npc.npc_name,
+          quality: npc.quality,
+          quest: questView,
+        },
+      });
+    } catch (error) {
+      await Promise.all([
+        questId
+          ? database
+              .collection<ArtHistorianQuest>("quests")
+              .deleteOne({ _id: questId, owner_id: player._id })
+          : Promise.resolve(),
+        database
+          .collection<GalleryNpc>("npcs")
+          .updateOne({ _id: npc._id }, { $pull: { players_met: player._id } }),
+        database.collection<Player>("players").updateOne(
+          { _id: player._id },
+          { $inc: { [`profile.npcs_met.${npc.quality}`]: -1 } },
+        ),
+      ]);
+      console.error("Unable to create Art Historian quest", error);
+      return NextResponse.json(
+        {
+          error:
+            error instanceof Error
+              ? error.message
+              : "The Art Historian interaction failed.",
+        },
+        { status: 409 },
       );
     }
   }

@@ -23,6 +23,7 @@ export default function ItemCard({
     canCustomizeCosmetic: false,
   },
   rendererId,
+  researchTarget = false,
   styleInventory,
 }: ItemCardProps) {
   const router = useRouter();
@@ -89,6 +90,7 @@ export default function ItemCard({
           alreadyOwned={alreadyOwned}
           item={{ ...currentItem, card_renderer: itemRendererId }}
           legendaryAttributes={legendaryAttributes}
+          researchTarget={researchTarget}
         />
       </div>
       {permissions.canManageItem &&
@@ -136,6 +138,7 @@ export default function ItemCard({
             router.refresh();
           }}
           onClose={() => setArtStyleDialogOpen(false)}
+          researchTarget={researchTarget}
           styleInventory={styleInventory}
         />
       ) : null}

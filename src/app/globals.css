@@ -627,6 +627,23 @@ body {
   text-transform: uppercase;
 }
 
+.research-sought-indicator {
+  display: inline-flex;
+  align-items: center;
+  width: max-content;
+  border: 1px solid #65408f;
+  border-radius: 999px;
+  padding: 0.08rem 0.35rem;
+  color: #65408f;
+  font-family: Courier, monospace;
+  font-size: 0.55rem;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
 .header-details {
   display: none;
   margin-top: 12px;
@@ -2221,4 +2238,211 @@ body {
 .admin-error {
   margin-top: 14px;
   color: red;
+}
+
+.historian-quests {
+  display: grid;
+  gap: 1rem;
+}
+
+.historian-quests-heading,
+.historian-quest > header,
+.historian-quest > footer,
+.historian-dialog-reward {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.historian-quests-heading {
+  align-items: end;
+  border-bottom: 1px solid #aaa;
+  padding-bottom: 0.75rem;
+}
+
+.historian-quests-heading p,
+.historian-quests-heading h2 {
+  margin: 0;
+}
+
+.historian-quests-heading p,
+.historian-quests-heading > span,
+.historian-quest > header span,
+.historian-dialog-reward span {
+  color: #777;
+  font: 700 0.64rem Courier, "Courier New", monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.historian-quests-heading h2 {
+  font: 500 1.8rem Georgia, "Times New Roman", serif;
+}
+
+.historian-quest-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.historian-quest {
+  display: grid;
+  gap: 0.9rem;
+  border: 1px solid #cfc8ba;
+  border-left: 6px solid var(--accent);
+  padding: 1rem;
+  background: #f4f1e9;
+  color: #171717;
+  box-shadow: 0 8px 22px rgb(0 0 0 / 10%);
+}
+
+.historian-quest > header h3 {
+  margin: 0.2rem 0 0;
+  font: 500 1.1rem Georgia, "Times New Roman", serif;
+}
+
+.historian-quest > header > strong {
+  color: #777;
+  font: 700 1.2rem Courier, "Courier New", monospace;
+}
+
+.historian-quest > header > strong.complete,
+.historian-target > .fa-check-circle {
+  color: #147044;
+}
+
+.historian-target-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.historian-target {
+  position: relative;
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  border: 1px solid #d3ccbf;
+  padding: 0.5rem;
+  background: #fffdf7;
+}
+
+.historian-target.missing {
+  opacity: 0.58;
+}
+
+.historian-target.owned {
+  border-color: #55a77d;
+  box-shadow: inset 0 0 0 1px #b7e4ce;
+}
+
+.historian-target-image {
+  width: 58px;
+  border: 4px solid #fff;
+  box-shadow: 0 4px 10px rgb(0 0 0 / 18%);
+}
+
+.historian-target > div {
+  display: grid;
+  min-width: 0;
+}
+
+.historian-target strong,
+.historian-target span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.historian-target span {
+  color: #676158;
+  font-size: 0.72rem;
+  font-style: italic;
+}
+
+.historian-target small {
+  color: #777;
+  font: 700 0.56rem Courier, "Courier New", monospace;
+  text-transform: uppercase;
+}
+
+.historian-target-special {
+  position: absolute;
+  top: 0.25rem;
+  left: 0.25rem;
+  color: #c89310;
+  filter: drop-shadow(0 1px #fff);
+}
+
+.historian-quest-rewards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  font: 700 0.68rem Courier, "Courier New", monospace;
+}
+
+.historian-quest-actions,
+.historian-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.55rem;
+}
+
+.historian-quest-actions button,
+.historian-dialog-actions button {
+  border: 1px solid #777168;
+  border-radius: var(--game-button-radius);
+  padding: 0.55rem 0.8rem;
+  background: #fffdf7;
+  color: #292621;
+  font: 700 0.68rem Courier, "Courier New", monospace;
+  cursor: pointer;
+}
+
+.historian-quest-actions button.claim,
+.historian-dialog-actions button.primary {
+  border-color: #171717;
+  background: #171717;
+  color: #fff;
+}
+
+.historian-quest-actions button:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.historian-dialog {
+  width: min(980px, calc(100vw - 32px));
+}
+
+.historian-dialog-reward {
+  border: 1px solid #d0cabe;
+  padding: 0.8rem 0.9rem;
+  background: #fffdf7;
+}
+
+@media (max-width: 850px) {
+  .historian-target-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .historian-quest > footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 540px) {
+  .historian-target-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .historian-quest > header,
+  .historian-quests-heading,
+  .historian-dialog-reward {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
