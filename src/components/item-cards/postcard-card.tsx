@@ -1,6 +1,7 @@
 import {
   ArtworkImage,
   AttributeIcons,
+  ItemPropertyBadges,
   ItemStatusBadges,
 } from "./shared";
 import type { ItemCardRendererProps } from "./types";
@@ -16,11 +17,16 @@ export default function PostcardCard(props: ItemCardRendererProps) {
         </span>
       </div>
       <div className="postcard-card-message">
-        <span className="postcard-card-stamp card-rarity-label">
-          <i className="fa fa-picture-o" />
-          {item.artwork.rarity}
-        </span>
-        <ItemStatusBadges item={item} alreadyOwned={alreadyOwned} />
+        <div className="postcard-card-stamps">
+          <AttributeIcons item={item} />
+        </div>
+        <ItemStatusBadges
+          alreadyOwned={alreadyOwned}
+          collectorSaleLabel="for sale"
+          item={item}
+          showMint={false}
+          showOwned={false}
+        />
         <p className="postcard-card-script">Wish you were here.</p>
         <h3>{item.artwork.title}</h3>
         <p>
@@ -32,7 +38,15 @@ export default function PostcardCard(props: ItemCardRendererProps) {
           Condition {Math.round(item.condition * 100)}%
           <br />${item.values.actual.toLocaleString()}
         </p>
-        <AttributeIcons item={item} />
+        <div className="postcard-card-properties">
+          <ItemPropertyBadges item={item} />
+        </div>
+        {item.unlocked ? (
+          <i
+            aria-label="Unlocked"
+            className="fa fa-unlock-alt postcard-card-unlocked"
+          />
+        ) : null}
       </div>
     </div>
   );

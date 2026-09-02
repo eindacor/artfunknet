@@ -677,11 +677,9 @@
       transparent 1px,
       transparent 5px
     ),
-    #eee4cf;
+    color-mix(in srgb, #eee4cf 90%, var(--rarity-color));
   color: #30271e;
-  box-shadow:
-    inset 0 -7px 0 var(--rarity-color),
-    4px 7px 18px rgb(0 0 0 / 30%);
+  box-shadow: 4px 7px 18px rgb(0 0 0 / 30%);
   font-family: Georgia, "Times New Roman", serif;
   transform: rotate(-0.5deg);
 }
@@ -716,27 +714,74 @@
   padding: 0.3rem 0.2rem 0.2rem 0.75rem;
 }
 
-.postcard-card-stamp {
-  justify-self: end;
-  width: 58px;
-  border: 3px double var(--rarity-color);
-  padding: 0.25rem;
-  color: var(--rarity-color);
-  font-family: "Courier New", Courier, monospace;
-  font-size: 0.48rem;
-  text-align: center;
-  text-transform: uppercase;
+.rendered-item-card[data-seasonal="true"] .postcard-card {
+  background:
+    radial-gradient(
+        ellipse at 50% 24%,
+        color-mix(in srgb, var(--rarity-light) 70%, transparent) 0 3px,
+        transparent 3.5px
+      )
+      0 0 / 28px 28px,
+    radial-gradient(
+        ellipse at 24% 50%,
+        color-mix(in srgb, var(--rarity-light) 70%, transparent) 0 3px,
+        transparent 3.5px
+      )
+      0 0 / 28px 28px,
+    radial-gradient(
+        circle at 50% 50%,
+        color-mix(in srgb, var(--rarity-color) 68%, #fff) 0 2px,
+        transparent 2.5px
+      )
+      0 0 / 28px 28px,
+    color-mix(in srgb, #eee4cf 86%, var(--rarity-color));
+}
+
+.postcard-card-stamps {
+  min-height: 3.65rem;
+}
+
+.postcard-card-stamps .render-card-attribute-icons {
+  display: grid;
+  grid-template-columns: repeat(3, 1.65rem);
+  justify-content: end;
+  gap: 0.25rem;
+}
+
+.postcard-card-stamps .attribute-group {
+  display: contents;
+}
+
+.postcard-card-stamps .attribute-group + .attribute-group::before {
+  display: none;
+}
+
+.postcard-card-stamps .attribute-tooltip {
+  display: grid;
+  width: 1.65rem;
+  height: 1.65rem;
+  place-items: center;
+  border: 3px dotted currentColor;
+  padding: 0.1rem;
+  background: #f8f0dd;
+  box-shadow: inset 0 0 0 1px rgb(48 39 30 / 38%);
+}
+
+.postcard-card-stamps .attribute-tooltip:nth-child(2n) {
   transform: rotate(4deg);
 }
 
-.postcard-card-stamp i {
-  display: block;
-  margin-bottom: 0.15rem;
-  font-size: 1.2rem;
+.postcard-card-stamps .attribute-tooltip:nth-child(2n + 1) {
+  transform: rotate(-3deg);
+}
+
+.postcard-card-stamps .attribute {
+  margin: 0;
+  font-size: 0.8rem;
 }
 
 .postcard-card-script {
-  color: #315a82;
+  color: var(--rarity-color);
   font-family: "Segoe Print", "Bradley Hand", cursive;
   font-size: 0.78rem;
   transform: rotate(-2deg);
@@ -756,6 +801,42 @@
   border-bottom: 1px solid #8f7d64;
   line-height: 1.6;
   font-family: "Courier New", Courier, monospace;
+}
+
+.postcard-card-properties {
+  padding-right: 1.4rem;
+}
+
+.postcard-card-properties .item-property-badges {
+  gap: 0.15rem 0.4rem;
+}
+
+.postcard-card-properties .item-property-badge {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  font: 700 0.57rem/1.15 "Segoe Print", "Bradley Hand", cursive;
+  text-transform: lowercase;
+  transform: rotate(-2deg);
+}
+
+.postcard-card-properties .item-property-badge:nth-child(2n) {
+  transform: rotate(2deg);
+}
+
+.postcard-card-unlocked {
+  position: absolute;
+  right: 0.15rem;
+  bottom: 0.2rem;
+  display: grid;
+  width: 1.15rem;
+  height: 1.15rem;
+  place-items: center;
+  border: 1px solid #8b8f95;
+  border-radius: 50%;
+  color: #8b8f95;
+  font-size: 0.65rem;
+  transform: rotate(8deg);
 }
 
 /* Gilded salon: ornate frame and classical symmetry. */
