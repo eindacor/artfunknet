@@ -294,36 +294,6 @@ export default function ArtStyleDialog({
                   </span>
                 </span>
               </div>
-              <div className="art-style-dialog-actions">
-                {selectedRendererId !== "museum" ? (
-                  <button
-                    className="art-style-dialog-remove"
-                    disabled={saving}
-                    onClick={() => setRemovalPending(true)}
-                    type="button"
-                  >
-                    Remove style
-                  </button>
-                ) : null}
-                <button
-                  className="art-style-dialog-apply"
-                  disabled={
-                    saving ||
-                    previewRendererId === "museum" ||
-                    previewRendererId === selectedRendererId
-                  }
-                  onClick={() => {
-                    if (dialogItem.mint) {
-                      setPendingRendererId(previewRendererId);
-                    } else {
-                      void applyRenderer(previewRendererId);
-                    }
-                  }}
-                  type="button"
-                >
-                  {saving ? "Applying style..." : "Apply style"}
-                </button>
-              </div>
             </section>
           </div>
           {error ? (
@@ -331,6 +301,36 @@ export default function ArtStyleDialog({
               {error}
             </p>
           ) : null}
+          <footer className="art-style-dialog-actions">
+            {selectedRendererId !== "museum" ? (
+              <button
+                className="art-style-dialog-remove"
+                disabled={saving}
+                onClick={() => setRemovalPending(true)}
+                type="button"
+              >
+                Remove style
+              </button>
+            ) : null}
+            <button
+              className="art-style-dialog-apply"
+              disabled={
+                saving ||
+                previewRendererId === "museum" ||
+                previewRendererId === selectedRendererId
+              }
+              onClick={() => {
+                if (dialogItem.mint) {
+                  setPendingRendererId(previewRendererId);
+                } else {
+                  void applyRenderer(previewRendererId);
+                }
+              }}
+              type="button"
+            >
+              {saving ? "Applying style..." : "Apply style"}
+            </button>
+          </footer>
         </div>
       </dialog>
       {pendingRendererId ? (

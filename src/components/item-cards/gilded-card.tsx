@@ -71,7 +71,11 @@ export default function GildedCard(props: ItemCardRendererProps) {
       />
       <div className="gilded-card-stats">
         <span>Level {item.level}</span>
-        <span>{Math.round(item.condition * 100)}% condition</span>
+        <span>
+          {item.mint
+            ? "Mint condition"
+            : `${Math.round(item.condition * 100)}% condition`}
+        </span>
         <span>${item.values.actual.toLocaleString()}</span>
       </div>
       <AttributeIcons item={item} />

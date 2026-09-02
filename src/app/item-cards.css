@@ -2629,7 +2629,7 @@
 
 .art-style-dialog-preview {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 0.7rem;
   min-width: 0;
   border: 1px solid #d0cabe;
@@ -2653,7 +2653,6 @@
 }
 
 .art-style-dialog-apply {
-  justify-self: end;
   min-width: 160px;
   border: 1px solid #171717;
   border-radius: var(--game-button-radius);
@@ -2681,6 +2680,8 @@
   display: flex;
   justify-content: flex-end;
   gap: 0.65rem;
+  border-top: 1px solid #bcb7aa;
+  padding-top: 1rem;
 }
 
 .art-style-dialog-remove {
