@@ -593,12 +593,12 @@ export default function GameDashboard({
                 <h2>{player.screenName}</h2>
                 <span>Private collection and activity record</span>
               </div>
-              <strong>AF · {player.level.toString().padStart(2, "0")}</strong>
+              <strong>Level {player.level.toString()}</strong>
             </header>
 
             <div className="museum-profile-progress">
               <div>
-                <span>Collection experience</span>
+                <span>Experience</span>
                 <strong>
                   {player.xp.toLocaleString()} /{" "}
                   {player.xpGoal.toLocaleString()}

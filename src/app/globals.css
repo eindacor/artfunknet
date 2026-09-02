@@ -479,7 +479,7 @@ body {
 .museum-profile-progress-track i {
   display: block;
   height: 100%;
-  background: #33312d;
+  background: #FF33CC;
   transition: width 300ms ease;
 }
 
