@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import ArchiveEntryDialog from "@/components/archive-entry-dialog";
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
 import {
   getGalleryPaintingDimension,
@@ -23,15 +24,20 @@ import StandardItemDialog from "@/components/item-cards/standard-item-dialog";
 import type { CardLegendaryAttribute } from "@/components/item-cards/types";
 import type { GalleryRates } from "@/server/collection-gameplay";
 import type { ArtHistorianQuestView } from "@/server/art-historian-gameplay";
-import { getArchiveSignature } from "@/server/archive-gameplay";
 import type { GameItem } from "@/server/gameplay";
-import type { HydratedGameItem } from "@/server/item-artwork";
+import type {
+  HydratedGameItem,
+  HydratedPlayerArtworkArchive,
+} from "@/server/item-artwork";
 import {
   canAffordItemLevelUp,
   getItemLevelUpCost,
   ITEM_LEVEL_MAX,
 } from "@/server/item-leveling";
-import { getDisplayPermission } from "@/server/item-permissions";
+import {
+  getArchivePermission,
+  getDisplayPermission,
+} from "@/server/item-permissions";
 import { getRerollMinimum } from "@/server/item-reroll";
 import {
   NPC_QUALITIES,
@@ -134,6 +140,7 @@ const ATTRIBUTE_TYPE_ICONS = {
 export default function GameDashboard({
   player,
   items,
+  archives,
   galleryRates,
   initialNotifications,
   impersonating,
@@ -150,6 +157,7 @@ export default function GameDashboard({
 }: {
   player: PlayerView;
   items: HydratedGameItem[];
+  archives: HydratedPlayerArtworkArchive[];
   galleryRates: GalleryRates;
   initialNotifications: PlayerNotification[];
   impersonating: boolean;
@@ -210,6 +218,8 @@ export default function GameDashboard({
     useState<HydratedGameItem | null>(null);
   const [archiveConfirmationItem, setArchiveConfirmationItem] =
     useState<HydratedGameItem | null>(null);
+  const [archiveEntryDetails, setArchiveEntryDetails] =
+    useState<HydratedPlayerArtworkArchive | null>(null);
   const [pending, startTransition] = useTransition();
 
   const unclaimed = useMemo(
@@ -231,20 +241,6 @@ export default function GameDashboard({
     () => items.filter((item) => item.status === "displayed"),
     [items],
   );
-  const archived = useMemo(
-    () =>
-      items.filter(
-        (item) => item.status === "archived" && item.displaced !== true,
-      ),
-    [items],
-  );
-  const displacedArchive = useMemo(
-    () =>
-      items.filter(
-        (item) => item.status === "archived" && item.displaced === true,
-      ),
-    [items],
-  );
   const ownedArtworkIds = useMemo(
     () =>
       new Set(
@@ -263,11 +259,7 @@ export default function GameDashboard({
     () => new Set(quests.flatMap((quest) => quest.target)),
     [quests],
   );
-  const ownedCount =
-    inventory.length +
-    displayed.length +
-    archived.length +
-    displacedArchive.length;
+  const ownedCount = inventory.length + displayed.length;
   const repairingCount = items.filter((item) => item.repairing).length;
   const galleryPixelsPerCentimeter =
     getGalleryPixelsPerCentimeter(
@@ -361,26 +353,23 @@ export default function GameDashboard({
   }
 
   function archiveAction(item: HydratedGameItem) {
-    if (
-      item.original ||
-      !["claimed", "unclaimed", "for_sale", "archived"].includes(
-        item.status,
-      ) ||
-      (item.status === "archived" && item.displaced !== true)
-    ) {
+    if (!["claimed", "unclaimed", "for_sale"].includes(item.status)) {
       return null;
     }
     const purchaseAmount =
       item.status === "for_sale"
         ? Math.floor(item.values.dealer * dealerPriceMultiplier)
         : 0;
-    const identifiedForgery =
-      item.authenticity.forgery && item.authenticity.identified;
-    const disabledReason = item.repairing
-      ? "Stop repairing this item before archiving it."
-      : identifiedForgery
-        ? "An identified forgery cannot be archived."
-        : purchaseAmount > player.bankBalance
+    const permission =
+      item.archivePermission ??
+      getArchivePermission(
+        item,
+        item.archivedCategories ?? [],
+        item.archivedArtStyles ?? [],
+      );
+    const disabledReason = !permission.allowed
+      ? permission.reason
+      : purchaseAmount > player.bankBalance
           ? "You do not have enough money to archive this dealer offer."
           : undefined;
 
@@ -388,11 +377,9 @@ export default function GameDashboard({
       <ItemActionButton
         icon="fa-archive"
         label={
-          item.status === "archived"
-            ? "Restore as active archive copy"
-            : purchaseAmount > 0
-              ? `Purchase and archive for $${purchaseAmount.toLocaleString()}`
-              : "Archive permanently"
+          purchaseAmount > 0
+            ? `Purchase and archive for $${purchaseAmount.toLocaleString()}`
+            : "Archive permanently"
         }
         disabled={pending || Boolean(disabledReason)}
         disabledReason={disabledReason}
@@ -574,8 +561,8 @@ export default function GameDashboard({
             >
               {tab}
               {tab === "loot" && unclaimed.length > 0 ? ` (${unclaimed.length})` : ""}
-              {tab === "archive" && archived.length > 0
-                ? ` (${archived.length})`
+              {tab === "archive" && archives.length > 0
+                ? ` (${archives.length})`
                 : ""}
               {tab === "quests" && quests.length > 0
                 ? ` (${quests.length})`
@@ -642,8 +629,8 @@ export default function GameDashboard({
                     value={ownedCount.toLocaleString()}
                   />
                   <ProfileFact
-                    label="Active archive records"
-                    value={archived.length.toLocaleString()}
+                    label="Archived artworks"
+                    value={archives.length.toLocaleString()}
                   />
                   <ProfileFact
                     label="Inventory space available"
@@ -1016,26 +1003,28 @@ export default function GameDashboard({
 
         {section === "archive" ? (
           <section className="archive">
-            <InventorySection
-              emptyText="Your archive is empty."
-              items={archived}
-              legendaryAttributes={legendaryAttributes}
-              researchArtworkIds={researchArtworkIds}
-              styleInventory={player.cardStyleInventory}
-              title="active archive"
-              actions={() => null}
-            />
-            {displacedArchive.length > 0 ? (
-              <InventorySection
-                emptyText=""
-                items={displacedArchive}
-                legendaryAttributes={legendaryAttributes}
-                researchArtworkIds={researchArtworkIds}
-                styleInventory={player.cardStyleInventory}
-                title="displaced copies"
-                actions={archiveAction}
-              />
-            ) : null}
+            <h2>artwork archive</h2>
+            {archives.length === 0 ? (
+              <p className="empty-state">Your archive is empty.</p>
+            ) : (
+              <div className="archive-artwork-grid">
+                {archives.map((archive) => (
+                  <button
+                    aria-label={`Open archive entry for ${archive.artwork.title} by ${archive.artwork.artist}`}
+                    className="archive-artwork-thumbnail"
+                    key={archive._id}
+                    onClick={() => setArchiveEntryDetails(archive)}
+                    type="button"
+                  >
+                    <ArtworkThumbnail
+                      alt=""
+                      artworkId={archive.artwork_id}
+                      size={180}
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </section>
         ) : null}
 
@@ -1322,13 +1311,12 @@ export default function GameDashboard({
                   )
                 : 0
             }
-            replacement={archived.find(
-              (item) =>
-                item._id !== archiveConfirmationItem._id &&
-                item.artwork_id === archiveConfirmationItem.artwork_id &&
-                item.archive_signature ===
-                  getArchiveSignature(archiveConfirmationItem),
-            )}
+          />
+        ) : null}
+        {archiveEntryDetails ? (
+          <ArchiveEntryDialog
+            archive={archiveEntryDetails}
+            onClose={() => setArchiveEntryDetails(null)}
           />
         ) : null}
         {artworkOfferSession ? (

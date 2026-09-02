@@ -117,14 +117,11 @@ export function ItemPropertyBadges({
   showLifecycle?: boolean;
 }) {
   const properties = [
-    showLifecycle && item.status === "archived"
-      ? {
-          key: item.displaced ? "displaced" : "archived",
-          label: item.displaced ? "displaced archive copy" : "archived",
-        }
-      : null,
     showLifecycle && item.tags.includes("for sale")
       ? { key: "for-sale", label: "for sale" }
+      : null,
+    item.archivePermission?.allowed
+      ? { key: "archivable", label: "archivable" }
       : null,
     item.mint ? { key: "mint", label: "mint" } : null,
     item.foil ? { key: "foil", label: "foil" } : null,

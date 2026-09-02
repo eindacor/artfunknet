@@ -2,26 +2,33 @@
 
 import { useEffect, useRef } from "react";
 
-import { getArchiveCategories } from "@/server/archive-gameplay";
+import {
+  getUnarchivedArchiveData,
+} from "@/server/archive-gameplay";
 import type { HydratedGameItem } from "@/server/item-artwork";
 
-import { ArchivedCategoryBadges } from "./shared";
+import {
+  ArchivedArtStyleBadges,
+  ArchivedCategoryBadges,
+} from "./shared";
 
 export default function ArchiveConfirmationDialog({
   item,
   purchaseAmount = 0,
-  replacement,
   onCancel,
   onConfirm,
 }: {
   item: HydratedGameItem;
   purchaseAmount?: number;
-  replacement?: HydratedGameItem;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const restoring = item.status === "archived" && item.displaced === true;
+  const additions = getUnarchivedArchiveData(
+    item,
+    item.archivedCategories,
+    item.archivedArtStyles,
+  );
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -48,19 +55,19 @@ export default function ArchiveConfirmationDialog({
           aria-hidden="true"
           className="fa fa-archive archive-confirmation-mark"
         />
-        <h2 id="archive-confirmation-title">
-          {restoring ? "Restore this archive copy?" : "Archive this item?"}
-        </h2>
-        <ArchivedCategoryBadges categories={getArchiveCategories(item)} />
+        <h2 id="archive-confirmation-title">Archive this item?</h2>
+        {additions.modifiers.length > 0 ? (
+          <ArchivedCategoryBadges categories={additions.modifiers} />
+        ) : null}
+        {additions.artStyles.length > 0 ? (
+          <ArchivedArtStyleBadges styles={additions.artStyles} />
+        ) : null}
         <p id="archive-confirmation-description">
-          {restoring
-            ? "This copy will become the active archived variant."
-            : "Archiving is permanent. This item can no longer be modified, sold, donated, displayed, repaired, or auctioned."}
-          {replacement
-            ? ` The current ${getArchiveCategories(replacement).join(" + ")} archive copy will be displaced.`
-            : ""}
+          Archiving is permanent. The item will be deleted, while the
+          new labels shown above and its current value are added to this
+          artwork&apos;s archive record.
           {purchaseAmount > 0
-            ? ` This dealer offer will be purchased for $${purchaseAmount.toLocaleString()} and moved directly into the archive.`
+            ? ` This dealer offer will first be purchased for $${purchaseAmount.toLocaleString()}.`
             : ""}
         </p>
         <div className="mint-loss-dialog-actions">
@@ -75,7 +82,7 @@ export default function ArchiveConfirmationDialog({
             }}
             type="button"
           >
-            {restoring ? "Restore copy" : "Archive permanently"}
+            Archive permanently
           </button>
         </div>
       </div>

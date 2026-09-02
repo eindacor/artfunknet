@@ -1,4 +1,8 @@
 import type { GameItem } from "./gameplay.ts";
+import {
+  getUnarchivedArchiveData,
+  type ArchiveCategory,
+} from "./archive-gameplay.ts";
 
 export type ItemPermission =
   | { allowed: true; reason?: never }
@@ -46,5 +50,66 @@ export function getDisplayPermission(
     };
   }
 
+  return { allowed: true };
+}
+
+export function getArchivePermission(
+  item: Pick<
+    GameItem,
+    | "card_renderer"
+    | "foil"
+    | "lottery"
+    | "mint"
+    | "original"
+    | "repairing"
+    | "seasonal"
+    | "status"
+    | "unlocked"
+    | "vintage"
+    | "authenticity"
+  >,
+  archivedModifiers: readonly ArchiveCategory[],
+  archivedArtStyles: readonly string[],
+): ItemPermission {
+  if (!["claimed", "unclaimed", "for_sale"].includes(item.status)) {
+    return {
+      allowed: false,
+      reason: "This item is not eligible for the archive.",
+    };
+  }
+  if (item.original) {
+    return {
+      allowed: false,
+      reason: "Original artwork cannot be archived.",
+    };
+  }
+  if (item.repairing) {
+    return {
+      allowed: false,
+      reason: "Stop repairing this item before archiving it.",
+    };
+  }
+  if (item.authenticity.forgery && item.authenticity.identified) {
+    return {
+      allowed: false,
+      reason: "An identified forgery cannot be archived.",
+    };
+  }
+  if (item.authenticity.forgery) {
+    return { allowed: true };
+  }
+
+  const additions = getUnarchivedArchiveData(
+    item,
+    archivedModifiers,
+    archivedArtStyles,
+  );
+  if (additions.modifiers.length === 0 && additions.artStyles.length === 0) {
+    return {
+      allowed: false,
+      reason:
+        "This item's modifiers and art style are already represented in the archive.",
+    };
+  }
   return { allowed: true };
 }

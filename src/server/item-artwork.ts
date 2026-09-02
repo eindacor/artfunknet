@@ -1,12 +1,25 @@
 import type { Db } from "mongodb";
 
-import type { ArchiveCategory } from "./archive-gameplay.ts";
+import {
+  getArchiveRecordArtStyles,
+  getArchiveRecordModifiers,
+  type ArchiveCategory,
+  type PlayerArtworkArchive,
+} from "./archive-gameplay.ts";
 import type { Artwork, GameItem } from "./gameplay.ts";
+import type { ItemPermission } from "./item-permissions.ts";
 
 export type HydratedGameItem = GameItem & {
   artwork: Artwork;
+  archivePermission?: ItemPermission;
   archivedArtStyles?: string[];
   archivedCategories?: ArchiveCategory[];
+};
+
+export type HydratedPlayerArtworkArchive = PlayerArtworkArchive & {
+  artwork: Artwork;
+  modifiers: ArchiveCategory[];
+  artStyles: string[];
 };
 
 export async function hydrateGameItems(
@@ -32,9 +45,43 @@ export async function hydrateGameItems(
         `Item ${item._id} references missing artwork ${item.artwork_id}.`,
       );
     }
+
     return {
       ...item,
       artwork: { ...artwork, ...item.artwork_overrides },
     };
+  });
+}
+
+export async function hydratePlayerArtworkArchives(
+  database: Db,
+  archives: PlayerArtworkArchive[],
+): Promise<HydratedPlayerArtworkArchive[]> {
+  if (archives.length === 0) return [];
+
+  const artworkIds = [
+    ...new Set(archives.map((archive) => archive.artwork_id)),
+  ];
+  const artworks = await database
+    .collection<Artwork>("artworks")
+    .find({ _id: { $in: artworkIds } })
+    .project<Artwork>({ market_data: 0 })
+    .toArray();
+  const artworkById = new Map(
+    artworks.map((artwork) => [artwork._id, artwork]),
+  );
+
+  return archives.flatMap((archive) => {
+    const artwork = artworkById.get(archive.artwork_id);
+    return artwork
+      ? [
+          {
+            ...archive,
+            artwork,
+            modifiers: getArchiveRecordModifiers(archive),
+            artStyles: getArchiveRecordArtStyles(archive),
+          },
+        ]
+      : [];
   });
 }

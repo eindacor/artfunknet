@@ -40,7 +40,7 @@ try {
   await client.connect();
   const database = client.db(databaseName);
 
-  await migrateArchiveSlots(database);
+  await migrateArtworkArchives(database);
   await createIndexes(database);
   await seedGameMetadata(database);
   await seedGameplaySettings(database);
@@ -91,15 +91,15 @@ async function createIndexes(database) {
   await database
     .collection("items")
     .createIndex({ owner: 1, status: 1, date_created: -1 });
-  await database.collection("items").createIndex(
-    { owner: 1, archive_slot_key: 1 },
-    {
-      unique: true,
-      partialFilterExpression: {
-        archive_slot_key: { $type: "string" },
-      },
-    },
-  );
+  await database
+    .collection("player_artwork_archives")
+    .createIndex({ owner: 1, artwork_id: 1 }, { unique: true });
+  await database
+    .collection("items")
+    .dropIndex("owner_1_archive_slot_key_1")
+    .catch((error) => {
+      if (error?.codeName !== "IndexNotFound") throw error;
+    });
   await database
     .collection("unique_attributes")
     .createIndex(
@@ -147,79 +147,110 @@ async function createIndexes(database) {
     .createIndex({ item_id: 1 }, { unique: true });
 }
 
-async function migrateArchiveSlots(database) {
+async function migrateArtworkArchives(database) {
   const archivedItems = await database
     .collection("items")
     .find({ status: "archived" })
     .toArray();
-  if (archivedItems.length > 0) {
-    await database.collection("items").updateMany(
-      { _id: { $in: archivedItems.map((item) => item._id) } },
-      { $unset: { archive_slot_key: "" } },
-    );
-  }
-
-  const groups = new Map();
+  archivedItems.sort(
+    (left, right) =>
+      getLegacyArchiveTime(left).localeCompare(getLegacyArchiveTime(right)) ||
+      String(left._id).localeCompare(String(right._id)),
+  );
   for (const item of archivedItems) {
-    const signature = getArchiveSignature(item);
-    await database.collection("items").updateOne(
-      { _id: item._id, status: "archived" },
-      { $set: { archive_signature: signature } },
-    );
-    if (item.displaced === true) {
-      continue;
+    const archivedAt = getLegacyArchiveTime(item);
+    const entry = {
+      source_item_id: item._id,
+      modifiers: getArchiveCategories(item),
+      art_style: item.card_renderer ?? "museum",
+      value: item.values?.actual ?? 0,
+      archived_at: archivedAt,
+    };
+    const collection = database.collection("player_artwork_archives");
+    const filter = {
+      _id: `${item.owner}:${item.artwork_id}`,
+      "entries.source_item_id": { $ne: item._id },
+    };
+    const update = {
+      $setOnInsert: {
+        owner: item.owner,
+        artwork_id: item.artwork_id,
+        created_at: archivedAt,
+      },
+      $set: { updated_at: archivedAt },
+      $push: { entries: entry },
+      $inc: {
+        archived_count: 1,
+        combined_value: entry.value,
+      },
+    };
+    try {
+      await collection.updateOne(filter, update, { upsert: true });
+    } catch (error) {
+      if (error?.code !== 11000) throw error;
+      const retry = await collection.updateOne(filter, update);
+      if (retry.modifiedCount !== 1) {
+        const existing = await collection.findOne({
+          _id: `${item.owner}:${item.artwork_id}`,
+          "entries.source_item_id": item._id,
+        });
+        if (!existing) throw error;
+      }
     }
-    const slotKey = `${item.artwork_id}:${signature}`;
-    const key = `${item.owner}:${slotKey}`;
-    groups.set(key, [...(groups.get(key) ?? []), item]);
-  }
-
-  for (const items of groups.values()) {
-    items.sort(
-      (left, right) =>
-        new Date(right.time_archived ?? right.date_created).getTime() -
-          new Date(left.time_archived ?? left.date_created).getTime() ||
-        String(right._id).localeCompare(String(left._id)),
-    );
-    const [activeItem, ...duplicates] = items;
-    const signature = getArchiveSignature(activeItem);
-    const slotKey = `${activeItem.artwork_id}:${signature}`;
-    if (duplicates.length > 0) {
-      await database.collection("items").updateMany(
-        {
-          _id: { $in: duplicates.map((item) => item._id) },
-          status: "archived",
-        },
-        {
-          $set: { displaced: true },
-          $unset: { archive_slot_key: "" },
-          $addToSet: { tags: "displaced" },
-        },
+    const removed = await database.collection("items").deleteOne({
+      _id: item._id,
+      status: "archived",
+    });
+    if (removed.deletedCount !== 1) {
+      throw new Error(
+        `Unable to remove migrated archive item ${item._id}.`,
       );
     }
-    await database.collection("items").updateOne(
-      { _id: activeItem._id, status: "archived" },
+  }
+  await normalizeArchiveRecords(database);
+}
+
+async function normalizeArchiveRecords(database) {
+  const collection = database.collection("player_artwork_archives");
+  const archives = await collection.find({}).toArray();
+  for (const archive of archives) {
+    if (archive.entries.length === 0) {
+      await collection.deleteOne({ _id: archive._id });
+      continue;
+    }
+    const timestamps = archive.entries
+      .map((entry) => entry.archived_at)
+      .sort();
+    await collection.updateOne(
+      { _id: archive._id },
       {
         $set: {
-          displaced: false,
-          archive_signature: signature,
-          archive_slot_key: slotKey,
+          archived_count: archive.entries.length,
+          combined_value: archive.entries.reduce(
+            (total, entry) => total + entry.value,
+            0,
+          ),
+          created_at: timestamps[0],
+          updated_at: timestamps[timestamps.length - 1],
         },
-        $pull: { tags: "displaced" },
       },
     );
   }
 }
 
-function getArchiveSignature(item) {
-  const signature = [
-    item.foil ? "f" : "",
-    item.unlocked ? "u" : "",
-    item.seasonal ? "s" : "",
-    item.lottery > 0 ? "l" : "",
-    item.vintage ? "v" : "",
-  ].join("");
-  return signature || "standard";
+function getLegacyArchiveTime(item) {
+  return item.time_archived ?? item.date_received ?? item.date_created;
+}
+
+function getArchiveCategories(item) {
+  const categories = [];
+  if (item.mint) categories.push("mint");
+  if (item.foil) categories.push("foil");
+  if (item.unlocked) categories.push("unlocked");
+  if (item.seasonal) categories.push("seasonal");
+  if (item.vintage) categories.push("vintage");
+  if (item.lottery > 0) categories.push("lottery");
+  return categories.length > 0 ? categories : ["standard"];
 }
 
 async function seedAdmin(database) {

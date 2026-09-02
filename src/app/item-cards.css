@@ -80,6 +80,10 @@
   color: #c6199f;
 }
 
+.og-card-archive-indicators .archive-mint {
+  color: #df4f9f;
+}
+
 .og-card-archive-indicators .archive-unlocked {
   color: var(--unlocked-dark);
 }
@@ -3455,6 +3459,126 @@
   justify-content: center;
 }
 
+.archive-confirmation-dialog .archived-art-style-badges {
+  justify-content: center;
+}
+
+.archive-entry-dialog {
+  width: min(680px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  margin: auto;
+  padding: 0;
+  border: 1px solid #8d877d;
+  background: #f6f2e9;
+  color: #25231f;
+  box-shadow: 0 28px 80px rgb(23 20 16 / 42%);
+}
+
+.archive-entry-dialog::backdrop {
+  background: rgb(19 17 14 / 68%);
+  backdrop-filter: blur(3px);
+}
+
+.archive-entry-dialog-content {
+  position: relative;
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 24px;
+  padding: 34px;
+}
+
+.archive-entry-dialog-content > .reroll-dialog-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 1;
+}
+
+.archive-entry-dialog-artwork {
+  grid-row: span 2;
+  background: #ded8cd;
+}
+
+.archive-entry-dialog-artwork img {
+  object-fit: contain;
+}
+
+.archive-entry-dialog-heading {
+  align-self: end;
+}
+
+.archive-entry-dialog-heading p,
+.archive-entry-dialog-heading h2,
+.archive-entry-dialog-heading span {
+  margin: 0;
+}
+
+.archive-entry-dialog-heading p,
+.archive-entry-dialog-facts dt,
+.archive-entry-dialog section h3 {
+  color: #676158;
+  font: 700 0.68rem Courier, "Courier New", monospace;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.archive-entry-dialog-heading h2 {
+  margin-top: 0.35rem;
+  font: 500 2rem Georgia, serif;
+}
+
+.archive-entry-dialog-heading span {
+  display: block;
+  margin-top: 0.35rem;
+  color: #555048;
+}
+
+.archive-entry-dialog-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.archive-entry-dialog-facts div {
+  padding: 12px;
+  border-top: 1px solid #aaa398;
+}
+
+.archive-entry-dialog-facts dd {
+  margin: 0.35rem 0 0;
+  font: 600 1.05rem Georgia, serif;
+}
+
+.archive-entry-dialog section {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 0.55rem;
+}
+
+.archive-entry-dialog section h3 {
+  margin: 0;
+}
+
+.property-archivable {
+  color: #2e6550;
+}
+
+@media (max-width: 620px) {
+  .archive-entry-dialog-content {
+    grid-template-columns: 1fr;
+  }
+
+  .archive-entry-dialog-artwork {
+    grid-row: auto;
+    justify-self: center;
+  }
+
+  .archive-entry-dialog section {
+    grid-column: auto;
+  }
+}
+
 .mint-loss-dialog-content {
   display: grid;
   justify-items: center;
@@ -3716,7 +3840,7 @@
 }
 
 .property-mint {
-  color: var(--mint-dark);
+  color: var(--mint-dark, #145c45);
 }
 
 .property-foil {

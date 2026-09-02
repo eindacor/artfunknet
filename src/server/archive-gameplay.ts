@@ -2,6 +2,7 @@ import type { GameItem } from "./gameplay.ts";
 
 export const ARCHIVE_CATEGORIES = [
   "standard",
+  "mint",
   "foil",
   "unlocked",
   "seasonal",
@@ -13,24 +14,33 @@ export type ArchiveCategory = (typeof ARCHIVE_CATEGORIES)[number];
 
 type ArchiveProperties = Pick<
   GameItem,
-  "foil" | "unlocked" | "seasonal" | "lottery" | "vintage"
+  "mint" | "foil" | "unlocked" | "seasonal" | "lottery" | "vintage"
 >;
 
-export function getArchiveSignature(item: ArchiveProperties): string {
-  const signature = [
-    item.foil ? "f" : "",
-    item.unlocked ? "u" : "",
-    item.seasonal ? "s" : "",
-    item.lottery > 0 ? "l" : "",
-    item.vintage ? "v" : "",
-  ].join("");
-  return signature || "standard";
-}
+export type ArchiveEntry = {
+  source_item_id: string;
+  modifiers: ArchiveCategory[];
+  art_style: string;
+  value: number;
+  archived_at: string;
+};
+
+export type PlayerArtworkArchive = {
+  _id: string;
+  owner: string;
+  artwork_id: string;
+  entries: ArchiveEntry[];
+  combined_value: number;
+  archived_count: number;
+  created_at: string;
+  updated_at: string;
+};
 
 export function getArchiveCategories(
   item: ArchiveProperties,
 ): ArchiveCategory[] {
   const categories: ArchiveCategory[] = [];
+  if (item.mint) categories.push("mint");
   if (item.foil) categories.push("foil");
   if (item.unlocked) categories.push("unlocked");
   if (item.seasonal) categories.push("seasonal");
@@ -39,49 +49,74 @@ export function getArchiveCategories(
   return categories.length > 0 ? categories : ["standard"];
 }
 
-export function getArchivedCategoriesByArtwork(
-  items: Array<
-    ArchiveProperties &
-      Pick<GameItem, "artwork_id" | "status"> & { displaced?: boolean }
-  >,
-): Map<string, ArchiveCategory[]> {
-  const categoriesByArtwork = new Map<string, Set<ArchiveCategory>>();
-  for (const item of items) {
-    if (item.status !== "archived" || item.displaced === true) continue;
-    const categories =
-      categoriesByArtwork.get(item.artwork_id) ??
-      new Set<ArchiveCategory>();
-    for (const category of getArchiveCategories(item)) {
-      categories.add(category);
-    }
-    categoriesByArtwork.set(item.artwork_id, categories);
-  }
-  return new Map(
-    [...categoriesByArtwork].map(([artworkId, categories]) => [
-      artworkId,
-      ARCHIVE_CATEGORIES.filter((category) => categories.has(category)),
-    ]),
-  );
+export function getArchiveArtStyle(
+  item: Pick<GameItem, "card_renderer">,
+): string {
+  return item.card_renderer ?? "museum";
 }
 
-export function getArchivedArtStylesByArtwork(
-  items: Array<
-    Pick<GameItem, "artwork_id" | "card_renderer" | "status"> & {
-      displaced?: boolean;
-    }
-  >,
-): Map<string, string[]> {
-  const stylesByArtwork = new Map<string, Set<string>>();
-  for (const item of items) {
-    if (item.status !== "archived" || item.displaced === true) continue;
-    const styles = stylesByArtwork.get(item.artwork_id) ?? new Set<string>();
-    styles.add(item.card_renderer ?? "museum");
-    stylesByArtwork.set(item.artwork_id, styles);
-  }
-  return new Map(
-    [...stylesByArtwork].map(([artworkId, styles]) => [
-      artworkId,
-      [...styles],
-    ]),
+export function createArchiveEntry(
+  item: Pick<
+    GameItem,
+    | "_id"
+    | "card_renderer"
+    | "foil"
+    | "lottery"
+    | "mint"
+    | "seasonal"
+    | "unlocked"
+    | "vintage"
+  > & { values: Pick<GameItem["values"], "actual"> },
+  archivedAt: string,
+): ArchiveEntry {
+  return {
+    source_item_id: item._id,
+    modifiers: getArchiveCategories(item),
+    art_style: getArchiveArtStyle(item),
+    value: item.values.actual,
+    archived_at: archivedAt,
+  };
+}
+
+export function getArchiveRecordModifiers(
+  archive: Pick<PlayerArtworkArchive, "entries">,
+): ArchiveCategory[] {
+  const modifiers = new Set(
+    archive.entries.flatMap((entry) => entry.modifiers),
   );
+  return ARCHIVE_CATEGORIES.filter((category) => modifiers.has(category));
+}
+
+export function getArchiveRecordArtStyles(
+  archive: Pick<PlayerArtworkArchive, "entries">,
+): string[] {
+  return [
+    ...new Set(
+      archive.entries
+        .map((entry) => entry.art_style)
+        .filter((style) => style !== "museum"),
+    ),
+  ];
+}
+
+export function getUnarchivedArchiveData(
+  item: ArchiveProperties & Pick<GameItem, "card_renderer">,
+  archivedModifiers: readonly ArchiveCategory[] = [],
+  archivedArtStyles: readonly string[] = [],
+): {
+  modifiers: ArchiveCategory[];
+  artStyles: string[];
+} {
+  const modifierSet = new Set(archivedModifiers);
+  const artStyleSet = new Set(archivedArtStyles);
+  const artStyle = getArchiveArtStyle(item);
+  return {
+    modifiers: getArchiveCategories(item).filter(
+      (category) => !modifierSet.has(category),
+    ),
+    artStyles:
+      artStyle !== "museum" && !artStyleSet.has(artStyle)
+        ? [artStyle]
+        : [],
+  };
 }

@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { getDisplayPermission } from "./item-permissions.ts";
+import {
+  getArchivePermission,
+  getDisplayPermission,
+} from "./item-permissions.ts";
 
 const item = {
   _id: "inventory-copy",
@@ -67,4 +70,40 @@ test("display permission preserves repairing and permanent-copy restrictions", (
     "An item of this artwork is already on display.",
   );
   assert.deepEqual(getDisplayPermission(item, [item], 5), { allowed: true });
+});
+
+const archiveItem = {
+  status: "claimed" as const,
+  repairing: false,
+  original: false,
+  mint: true,
+  foil: false,
+  unlocked: false,
+  seasonal: false,
+  lottery: 0,
+  vintage: false,
+  card_renderer: "abstract",
+  authenticity: {
+    forgery: false,
+    identified: false,
+    forgery_quality: 1,
+    liable: "",
+    liability_pending: false,
+    fee: 0,
+    original_owner: "",
+  },
+};
+
+test("archive permission requires a new modifier or art style", () => {
+  assert.deepEqual(getArchivePermission(archiveItem, ["mint"], ["abstract"]), {
+    allowed: false,
+    reason:
+      "This item's modifiers and art style are already represented in the archive.",
+  });
+  assert.deepEqual(getArchivePermission(archiveItem, [], ["abstract"]), {
+    allowed: true,
+  });
+  assert.deepEqual(getArchivePermission(archiveItem, ["mint"], []), {
+    allowed: true,
+  });
 });

@@ -2492,6 +2492,52 @@ body {
   font-weight: normal;
 }
 
+.archive > h2 {
+  margin: 0;
+  color: #111;
+  font-size: 1.35rem;
+  font-weight: normal;
+}
+
+.archive-artwork-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 18px;
+  margin-top: 30px;
+}
+
+.archive-artwork-thumbnail {
+  display: grid;
+  place-items: center;
+  min-height: 210px;
+  padding: 14px;
+  border: 1px solid #b8b1a5;
+  background: #f5f1e8;
+  box-shadow: 0 8px 22px rgb(41 35 28 / 10%);
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.archive-artwork-thumbnail:hover,
+.archive-artwork-thumbnail:focus-visible {
+  border-color: #405f50;
+  box-shadow: 0 12px 28px rgb(41 35 28 / 18%);
+  transform: translateY(-2px);
+}
+
+.archive-artwork-thumbnail .artwork-thumbnail {
+  width: min(100%, 180px) !important;
+  height: 180px !important;
+  background: #ddd7cc;
+}
+
+.archive-artwork-thumbnail .artwork-thumbnail img {
+  object-fit: contain;
+}
+
 .gallery-summary {
   display: flex;
   flex-wrap: wrap;

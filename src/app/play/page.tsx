@@ -2,9 +2,11 @@ import { notFound } from "next/navigation";
 
 import { getCardStyleInventory } from "@/components/item-cards/catalog";
 import {
-  getArchivedArtStylesByArtwork,
-  getArchivedCategoriesByArtwork,
+  getArchiveRecordArtStyles,
+  getArchiveRecordModifiers,
+  type PlayerArtworkArchive,
 } from "@/server/archive-gameplay";
+import { ensureArchiveStorage } from "@/server/archive-storage";
 import { getArtHistorianQuestViews } from "@/server/art-historian-gameplay";
 import {
   calculateGalleryRates,
@@ -14,7 +16,11 @@ import {
 import { getGameplaySettings } from "@/server/game-settings";
 import { getDatabase } from "@/server/mongodb";
 import type { GameItem, ItemAttribute } from "@/server/gameplay";
-import { hydrateGameItems } from "@/server/item-artwork";
+import {
+  hydrateGameItems,
+  hydratePlayerArtworkArchives,
+} from "@/server/item-artwork";
+import { getArchivePermission } from "@/server/item-permissions";
 import { PRESERVATIONIST_ATTRIBUTE_ID } from "@/server/item-leveling";
 import { getLegendaryAttributes } from "@/server/legendary-attributes";
 import {
@@ -67,6 +73,7 @@ export const dynamic = "force-dynamic";
 export default async function PlayerPage() {
   const session = await requirePlayer();
   const database = await getDatabase();
+  await ensureArchiveStorage(database);
   const settings = await getGameplaySettings(database);
   const config = settings.active;
   try {
@@ -131,7 +138,6 @@ export default async function PlayerPage() {
       owner: player._id,
       $or: [
         { status: { $in: ["unclaimed", "for_sale", "claimed", "displayed"] } },
-        { status: "archived" },
         { _id: { $in: consignedItemIds }, status: "auctioned" },
       ],
     })
@@ -148,17 +154,35 @@ export default async function PlayerPage() {
       original: { $ne: true },
       vintage: { $ne: true },
     });
-  const archivedCategoriesByArtwork =
-    getArchivedCategoriesByArtwork(rawItems);
-  const archivedArtStylesByArtwork =
-    getArchivedArtStylesByArtwork(rawItems);
-  const items = (await hydrateGameItems(database, rawItems)).map((item) => ({
-    ...item,
-    archivedArtStyles:
-      archivedArtStylesByArtwork.get(item.artwork_id) ?? [],
-    archivedCategories:
-      archivedCategoriesByArtwork.get(item.artwork_id) ?? [],
-  }));
+  const rawArchives = await database
+    .collection<PlayerArtworkArchive>("player_artwork_archives")
+    .find({ owner: player._id })
+    .sort({ updated_at: -1 })
+    .toArray();
+  const archiveByArtwork = new Map(
+    rawArchives.map((archive) => [archive.artwork_id, archive]),
+  );
+  const items = (await hydrateGameItems(database, rawItems)).map((item) => {
+    const archive = archiveByArtwork.get(item.artwork_id);
+    const archivedCategories = archive
+      ? getArchiveRecordModifiers(archive)
+      : [];
+    const archivedArtStyles = archive
+      ? getArchiveRecordArtStyles(archive)
+      : [];
+    const archivePermission = getArchivePermission(
+      item,
+      archivedCategories,
+      archivedArtStyles,
+    );
+    return {
+      ...item,
+      archivePermission,
+      archivedArtStyles,
+      archivedCategories,
+    };
+  });
+  const archives = await hydratePlayerArtworkArchives(database, rawArchives);
   const displayedItems = items.filter((item) => item.status === "displayed");
   const galleryRates = await calculateGalleryRates(
     database,
@@ -245,6 +269,7 @@ export default async function PlayerPage() {
         xp={player.profile.xp}
       />
       <GameDashboard
+        archives={JSON.parse(JSON.stringify(archives))}
         dailyDropCooldownMinutes={config.dailyDropCooldownMinutes}
         debugEnabled={settings.debugEnabled}
         dealerPriceMultiplier={dealerPriceMultiplier}

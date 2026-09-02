@@ -2,13 +2,15 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  createArchiveEntry,
   getArchiveCategories,
-  getArchivedArtStylesByArtwork,
-  getArchivedCategoriesByArtwork,
-  getArchiveSignature,
+  getArchiveRecordArtStyles,
+  getArchiveRecordModifiers,
+  getUnarchivedArchiveData,
 } from "./archive-gameplay.ts";
 
 const standard = {
+  mint: false,
   foil: false,
   unlocked: false,
   seasonal: false,
@@ -16,19 +18,7 @@ const standard = {
   vintage: false,
 };
 
-test("archive signatures preserve the original modifier order", () => {
-  assert.equal(getArchiveSignature(standard), "standard");
-  assert.equal(
-    getArchiveSignature({
-      ...standard,
-      foil: true,
-      unlocked: true,
-      seasonal: true,
-      lottery: 4,
-      vintage: true,
-    }),
-    "fuslv",
-  );
+test("archive categories preserve the original modifier order", () => {
   assert.deepEqual(
     getArchiveCategories({
       ...standard,
@@ -37,64 +27,70 @@ test("archive signatures preserve the original modifier order", () => {
     }),
     ["foil", "seasonal"],
   );
+  assert.deepEqual(
+    getArchiveCategories({ ...standard, mint: true }),
+    ["mint"],
+  );
 });
 
-test("archive indicators include only active non-displaced copies", () => {
-  const categories = getArchivedCategoriesByArtwork([
+test("archive records aggregate modifiers, styles, and values", () => {
+  const first = createArchiveEntry(
     {
+      _id: "first",
       ...standard,
-      artwork_id: "artwork",
-      status: "archived",
-      displaced: false,
+      card_renderer: "legacy",
+      values: { actual: 120 },
     },
+    "2026-09-02T00:00:00.000Z",
+  );
+  const second = createArchiveEntry(
     {
+      _id: "second",
       ...standard,
-      artwork_id: "artwork",
-      status: "archived",
-      displaced: true,
       foil: true,
+      seasonal: true,
+      card_renderer: "abstract",
+      values: { actual: 240 },
     },
-    {
-      ...standard,
-      artwork_id: "artwork",
-      status: "archived",
-      unlocked: true,
-    },
-  ]);
+    "2026-09-02T01:00:00.000Z",
+  );
+  const archive = { entries: [first, second] };
 
-  assert.deepEqual(categories.get("artwork"), ["standard", "unlocked"]);
+  assert.deepEqual(getArchiveRecordModifiers(archive), [
+    "standard",
+    "foil",
+    "seasonal",
+  ]);
+  assert.deepEqual(getArchiveRecordArtStyles(archive), [
+    "legacy",
+    "abstract",
+  ]);
+  assert.equal(first.value + second.value, 360);
 });
 
-test("archive art styles include each active archived style", () => {
-  const styles = getArchivedArtStylesByArtwork([
-    {
-      artwork_id: "artwork",
-      card_renderer: "legacy",
-      status: "archived",
-      displaced: false,
-    },
-    {
-      artwork_id: "artwork",
-      card_renderer: "abstract",
-      status: "archived",
-    },
-    {
-      artwork_id: "artwork",
-      card_renderer: "legacy",
-      status: "archived",
-    },
-    {
-      artwork_id: "artwork",
-      card_renderer: "circle",
-      status: "archived",
-      displaced: true,
-    },
-    {
-      artwork_id: "default-style",
-      status: "archived",
-    },
-  ]);
-
-  assert.deepEqual(styles.get("artwork"), ["legacy", "abstract"]);
-  assert.deepEqual(styles.get("default-style"), ["museum"]);
+test("unarchived data detects new modifiers and art styles independently", () => {
+  assert.deepEqual(
+    getUnarchivedArchiveData(
+      { ...standard, foil: true, card_renderer: "legacy" },
+      ["foil"],
+      ["legacy"],
+    ),
+    { modifiers: [], artStyles: [] },
+  );
+  assert.deepEqual(
+    getUnarchivedArchiveData(
+      { ...standard, foil: true, seasonal: true, card_renderer: "abstract" },
+      ["foil"],
+      ["legacy"],
+    ),
+    { modifiers: ["seasonal"], artStyles: ["abstract"] },
+  );
+  assert.deepEqual(
+    getUnarchivedArchiveData(
+      { ...standard, card_renderer: undefined },
+      ["foil"],
+      ["legacy"],
+    ),
+    { modifiers: ["standard"], artStyles: [] },
+  );
 });
