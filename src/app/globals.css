@@ -1314,6 +1314,21 @@ body {
   text-transform: uppercase;
 }
 
+.repairing-indicator {
+  display: inline-flex;
+  align-items: center;
+  width: max-content;
+  gap: 0.25rem;
+  border: 1px solid #356b75;
+  border-radius: 999px;
+  padding: 0.12rem 0.38rem;
+  background: #e4f5f8;
+  color: #20525c;
+  font: 700 0.56rem/1.2 Courier, "Courier New", monospace;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .research-sought-indicator {
   display: inline-flex;
   align-items: center;
@@ -1511,6 +1526,34 @@ body {
   margin: 8px auto 0;
 }
 
+@media (hover: hover) and (pointer: fine) {
+  .inventory .rendered-item-card > .card-actions {
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-4px);
+    transition:
+      opacity 180ms ease,
+      transform 180ms ease,
+      visibility 0s linear 180ms;
+  }
+
+  .inventory .rendered-item-card:hover > .card-actions,
+  .inventory .rendered-item-card:focus-within > .card-actions {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+    transition-delay: 0s;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inventory .rendered-item-card > .card-actions {
+    transition: none;
+  }
+}
+
 .rarity-text.common {
   color: #39b54a;
 }
@@ -1565,6 +1608,7 @@ body {
 }
 
 .item-action-button.item-action-collector,
+.item-action-button.item-action-enabled,
 .item-action-button.item-action-gallery {
   --game-action-border: #c62f72;
   --game-action-background: #f48ab9;

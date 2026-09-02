@@ -136,6 +136,7 @@ export type GameItem = {
   misprint: boolean;
   permanent: boolean;
   repairing: boolean;
+  repair_tick_at?: string;
   debug: boolean;
   bulk_sale_operation?: string;
   time_displayed?: string;

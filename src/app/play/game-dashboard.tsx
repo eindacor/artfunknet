@@ -49,6 +49,7 @@ type PlayerView = {
   inventoryCap: number;
   inventorySlotsUsed: number;
   displayCap: number;
+  repairingCap: number;
   lastDrop: string;
   xpGoal: number;
   npcsMet: Partial<Record<NpcQuality, number>>;
@@ -241,6 +242,7 @@ export default function GameDashboard({
     [quests],
   );
   const ownedCount = inventory.length + displayed.length;
+  const repairingCount = items.filter((item) => item.repairing).length;
   const inventoryFull = player.inventorySlotsUsed >= player.inventoryCap;
   const nextDrop =
     new Date(player.lastDrop).getTime() +
@@ -559,6 +561,10 @@ export default function GameDashboard({
                     0,
                   )}
                   />
+                  <ProfileFact
+                    label="Items being repaired"
+                    value={`${repairingCount} (${player.repairingCap} max)`}
+                  />
                 </dl>
               </section>
 
@@ -797,6 +803,16 @@ export default function GameDashboard({
                   items,
                   player.displayCap,
                 );
+                const repairLimitReached =
+                  !item.repairing &&
+                  repairingCount >= player.repairingCap;
+                const repairDisabledReason = item.repairing
+                  ? undefined
+                  : item.condition >= 1
+                    ? "This item is already at 100% condition."
+                    : repairLimitReached
+                      ? `Your ${player.repairingCap}-item repair limit has been reached.`
+                      : undefined;
                 return (
                   <>
                     <ItemActionButton
@@ -824,6 +840,20 @@ export default function GameDashboard({
                           () => act(`/api/play/items/${item._id}/display`),
                         )
                       }
+                    />
+                    <ItemActionButton
+                      icon="fa-wrench"
+                      label={
+                        item.repairing
+                          ? `Stop repairing at ${Math.floor(item.condition * 100)}% condition`
+                          : "Repair item"
+                      }
+                      disabled={pending || Boolean(repairDisabledReason)}
+                      disabledReason={repairDisabledReason}
+                      onClick={() =>
+                        act(`/api/play/items/${item._id}/repair`)
+                      }
+                      variant={item.repairing ? "enabled" : "default"}
                     />
                     <ItemActionButton
                       icon="fa-magic"
@@ -2384,7 +2414,7 @@ function ItemActionButton({
   disabledReason?: string;
   onDisabledClick?: () => void | Promise<void>;
   onClick: () => void;
-  variant?: "default" | "collector" | "gallery";
+  variant?: "default" | "collector" | "enabled" | "gallery";
 }) {
   const reason =
     disabledReason ?? (disabled ? "Another action is being processed." : "");

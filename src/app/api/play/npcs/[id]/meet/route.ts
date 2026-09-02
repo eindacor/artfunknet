@@ -54,6 +54,10 @@ import {
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
 import {
+  grantPreservationistRepair,
+} from "@/server/preservationist-gameplay";
+import { PRESERVATIONIST_ATTRIBUTE_ID } from "@/server/item-leveling";
+import {
   grantStandardNpcReward,
   isStandardRewardNpc,
 } from "@/server/standard-npc-reward-service";
@@ -171,6 +175,47 @@ export async function POST(
             error instanceof Error
               ? error.message
               : "The visitor reward could not be applied.",
+        },
+        { status: 500 },
+      );
+    }
+  }
+
+  if (npc.attribute_id === PRESERVATIONIST_ATTRIBUTE_ID) {
+    try {
+      const interaction = await grantPreservationistRepair(
+        database,
+        player._id,
+        npc,
+      );
+      if (!interaction) {
+        return NextResponse.json({
+          status: "ok",
+          message:
+            "You met a Preservationist, but none of your inventory or displayed artwork currently needs refurbishment.",
+        });
+      }
+      return NextResponse.json({
+        status: "ok",
+        message: `${interaction.npcName} refurbished ${interaction.itemTitle} from ${Math.floor(interaction.previousCondition * 100)}% to ${Math.floor(interaction.condition * 100)}% condition (+${Math.floor(interaction.repairedAmount * 100)}%).`,
+      });
+    } catch (error) {
+      await Promise.all([
+        database
+          .collection<GalleryNpc>("npcs")
+          .updateOne({ _id: npc._id }, { $pull: { players_met: player._id } }),
+        database.collection<Player>("players").updateOne(
+          { _id: player._id },
+          { $inc: { [`profile.npcs_met.${npc.quality}`]: -1 } },
+        ),
+      ]);
+      console.error("Unable to complete Preservationist interaction", error);
+      return NextResponse.json(
+        {
+          error:
+            error instanceof Error
+              ? error.message
+              : "The Preservationist interaction failed.",
         },
         { status: 500 },
       );

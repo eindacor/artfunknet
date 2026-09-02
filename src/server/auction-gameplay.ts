@@ -3,8 +3,18 @@ import { randomUUID } from "node:crypto";
 import type { Db, Filter, Sort } from "mongodb";
 
 import type { ArtHistorianQuest } from "./art-historian-gameplay";
-import type { ArtworkRarity, GameItem } from "./gameplay";
+import {
+  calculateItemValues,
+  type Artwork,
+  type ArtworkRarity,
+  type GameItem,
+  type LootData,
+} from "./gameplay";
 import { hydrateGameItems, type HydratedGameItem } from "./item-artwork";
+import {
+  getDisplayedLegendaryEffect,
+  getLegendaryNumberParameter,
+} from "./legendary-attributes";
 import { createPlayerNotification } from "./player-notifications";
 
 export const PUBLIC_AUCTION_DURATIONS = [60, 360, 720, 1440] as const;
@@ -216,6 +226,79 @@ export async function settleAuction(
     }
 
     const now = new Date().toISOString();
+    const auctionItem = await items.findOne({
+      _id: auction.item_id,
+      status: "auctioned",
+    });
+    if (!auctionItem) {
+      await resetSettlement(database, auction._id);
+      return false;
+    }
+    let conditionRestored = false;
+    let conditionUpdate: Partial<Pick<GameItem, "condition" | "values">> = {};
+    try {
+      const conditionEffect =
+        auctionItem.condition < 1
+          ? await getDisplayedLegendaryEffect(
+              database,
+              auction.current_winner_id,
+              "AUCTION_WIN_CONDITION_INCREASE",
+            )
+          : null;
+      const conditionThreshold = Math.min(
+        Math.max(
+          getLegendaryNumberParameter(
+            conditionEffect,
+            "condition_threshold",
+            0.5,
+          ),
+          0,
+        ),
+        1,
+      );
+      if (conditionEffect && auctionItem.condition < conditionThreshold) {
+        const conditionTarget = Math.min(
+          Math.max(
+            getLegendaryNumberParameter(
+              conditionEffect,
+              "condition_target",
+              0.9,
+            ),
+            0,
+          ),
+          1,
+        );
+        const [artwork, metadata] = await Promise.all([
+          database.collection<Artwork>("artworks").findOne({
+            _id: auctionItem.artwork_id,
+          }),
+          database
+            .collection<{ _id: string; loot_data: LootData }>("metadata")
+            .findOne({ _id: "loot-data" }),
+        ]);
+        if (!artwork || !metadata) {
+          throw new Error(
+            "Auction condition restoration data is unavailable.",
+          );
+        }
+        conditionUpdate = {
+          condition: conditionTarget,
+          values: calculateItemValues(
+            { ...auctionItem, condition: conditionTarget },
+            { ...artwork, ...auctionItem.artwork_overrides },
+            metadata.loot_data,
+          ),
+        };
+        conditionRestored = true;
+      }
+    } catch (error) {
+      console.error(
+        `Unable to apply auction condition restoration for auction ${auction._id}`,
+        error,
+      );
+      conditionUpdate = {};
+      conditionRestored = false;
+    }
     if (auction.seller_id) {
       const paid = await database.collection<AuctionPlayer>("players").updateOne(
         { _id: auction.seller_id },
@@ -265,6 +348,31 @@ export async function settleAuction(
       return false;
     }
     itemTransferred = true;
+    if (conditionRestored) {
+      try {
+        const restoration = await items.updateOne(
+          {
+            _id: auction.item_id,
+            owner: auction.current_winner_id,
+            status: "claimed",
+            condition: auctionItem.condition,
+          },
+          { $set: conditionUpdate },
+        );
+        conditionRestored = restoration.modifiedCount === 1;
+        if (!conditionRestored) {
+          console.error(
+            `Auction condition restoration was skipped after transfer for auction ${auction._id}.`,
+          );
+        }
+      } catch (error) {
+        conditionRestored = false;
+        console.error(
+          `Unable to persist auction condition restoration for auction ${auction._id}`,
+          error,
+        );
+      }
+    }
 
     await database.collection<Auction>("auctions").deleteOne({
       _id: auction._id,
@@ -278,7 +386,11 @@ export async function settleAuction(
     }
     await safelyNotify(database, auction.current_winner_id, {
       kind: "success",
-      message: `You won ${auction.item_snapshot.title} for $${auction.current_bid.toLocaleString()}.`,
+      message: `You won ${auction.item_snapshot.title} for $${auction.current_bid.toLocaleString()}${
+        conditionRestored
+          ? `, and its condition was restored to ${Math.floor((conditionUpdate.condition ?? auctionItem.condition) * 100)}%`
+          : ""
+      }.`,
     });
     return true;
   } catch (error) {

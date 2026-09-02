@@ -92,6 +92,9 @@ export function ItemStatusBadges({
       {item.status === "claimed" && item.tags.includes("for sale") ? (
         <span className="collector-sale-indicator">{collectorSaleLabel}</span>
       ) : null}
+      {item.repairing ? (
+        <span className="repairing-indicator">repairing</span>
+      ) : null}
       {researchTarget ? (
         <span className="research-sought-indicator">sought</span>
       ) : null}

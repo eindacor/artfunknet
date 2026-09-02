@@ -11,12 +11,18 @@ import {
 } from "@/server/collection-gameplay";
 import { getGameplaySettings } from "@/server/game-settings";
 import {
+  calculateItemValues,
   generateDailyDrop,
+  type Artwork,
   type ArtworkRarity,
   type GameItem,
   type LootData,
 } from "@/server/gameplay";
 import { hydrateGameItems } from "@/server/item-artwork";
+import {
+  getDisplayedLegendaryEffect,
+  getLegendaryNumberParameter,
+} from "@/server/legendary-attributes";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
 
@@ -92,8 +98,88 @@ export async function POST(
   const caps = getCapsForLevel(progress.level);
   const now = new Date();
   let generatedRewardItems: GameItem[] = [];
+  let restoredConditionTarget: number | null = null;
+  const conditionRollbacks: Array<{
+    itemId: string;
+    previousCondition: number;
+    previousValues: GameItem["values"];
+    updatedCondition: number;
+    updatedValues: GameItem["values"];
+  }> = [];
 
   try {
+    const conditionEffect = await getDisplayedLegendaryEffect(
+      database,
+      player._id,
+      "QUEST_TARGET_CONDITION_INCREASE",
+    );
+    if (conditionEffect) {
+      const conditionTarget = Math.min(
+        Math.max(
+          getLegendaryNumberParameter(
+            conditionEffect,
+            "condition_target",
+            0.9,
+          ),
+          0,
+        ),
+        1,
+      );
+      restoredConditionTarget = conditionTarget;
+      const creditedItemIds = questView.targets.flatMap((target) =>
+        target.owned && target.itemId ? [target.itemId] : [],
+      );
+      const targetItems = await database.collection<GameItem>("items").find({
+        owner: player._id,
+        status: { $in: ["claimed", "displayed"] },
+        _id: { $in: creditedItemIds },
+        condition: { $lt: conditionTarget },
+      }).toArray();
+      if (targetItems.length > 0) {
+        const [metadata, artworks] = await Promise.all([
+          database
+            .collection<{ _id: string; loot_data: LootData }>("metadata")
+            .findOne({ _id: "loot-data" }),
+          database.collection<Artwork>("artworks").find({
+            _id: {
+              $in: [...new Set(targetItems.map((item) => item.artwork_id))],
+            },
+          }).toArray(),
+        ]);
+        if (!metadata) throw new Error("Loot metadata is not configured.");
+        const artworkMap = new Map(
+          artworks.map((artwork) => [artwork._id, artwork]),
+        );
+        for (const item of targetItems) {
+          const artwork = artworkMap.get(item.artwork_id);
+          if (!artwork) continue;
+          const values = calculateItemValues(
+            { ...item, condition: conditionTarget },
+            { ...artwork, ...item.artwork_overrides },
+            metadata.loot_data,
+          );
+          const updated = await database.collection<GameItem>("items").updateOne(
+            {
+              _id: item._id,
+              owner: player._id,
+              status: { $in: ["claimed", "displayed"] },
+              condition: item.condition,
+            },
+            { $set: { condition: conditionTarget, values } },
+          );
+          if (updated.modifiedCount === 1) {
+            conditionRollbacks.push({
+              itemId: item._id,
+              previousCondition: item.condition,
+              previousValues: item.values,
+              updatedCondition: conditionTarget,
+              updatedValues: values,
+            });
+          }
+        }
+      }
+    }
+
     if (claimedQuest.reward.item) {
       const [settings, metadata] = await Promise.all([
         getGameplaySettings(database),
@@ -169,6 +255,23 @@ export async function POST(
       database
         .collection<ArtHistorianQuest>("quests")
         .insertOne(claimedQuest),
+      ...conditionRollbacks.map((rollback) =>
+        database.collection<GameItem>("items").updateOne(
+          {
+            _id: rollback.itemId,
+            owner: player._id,
+            status: { $in: ["claimed", "displayed"] },
+            condition: rollback.updatedCondition,
+            values: rollback.updatedValues,
+          },
+          {
+            $set: {
+              condition: rollback.previousCondition,
+              values: rollback.previousValues,
+            },
+          },
+        ),
+      ),
     ]);
     console.error("Unable to claim Art Historian quest", error);
     return NextResponse.json(
@@ -188,7 +291,11 @@ export async function POST(
       : [];
   return NextResponse.json({
     status: "ok",
-    message: `Quest complete: $${claimedQuest.reward.money.toLocaleString()} and ${xpReward.toLocaleString()} XP awarded.`,
+    message: `Quest complete: $${claimedQuest.reward.money.toLocaleString()} and ${xpReward.toLocaleString()} XP awarded${
+      conditionRollbacks.length > 0
+        ? `; ${conditionRollbacks.length} target ${conditionRollbacks.length === 1 ? "item was" : "items were"} restored to ${Math.floor((restoredConditionTarget ?? 0.9) * 100)}% condition`
+        : ""
+    }.`,
     reward: {
       money: claimedQuest.reward.money,
       xp: xpReward,

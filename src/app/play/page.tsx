@@ -22,6 +22,7 @@ import {
   createPlayerNotification,
   getPlayerNotifications,
 } from "@/server/player-notifications";
+import { settlePlayerItemRepairs } from "@/server/preservationist-gameplay";
 import { getAdminSession, requirePlayer } from "@/server/session";
 
 import GameDashboard from "./game-dashboard";
@@ -43,6 +44,7 @@ type Player = {
     expansion_slots?: number;
     vintage_count?: number;
     display_cap: number;
+    repairing_cap?: number;
     auction_cap: number;
     completed_quests?: number;
     knowledge: Record<string, number>;
@@ -62,6 +64,33 @@ export default async function PlayerPage() {
   const database = await getDatabase();
   const settings = await getGameplaySettings(database);
   const config = settings.active;
+  try {
+    const repairSettlement = await settlePlayerItemRepairs(
+      database,
+      session.playerId,
+      new Date(),
+    );
+    if (repairSettlement.completedItems > 0) {
+      const knowledgeSummary = Object.entries(
+        repairSettlement.knowledge,
+      ).flatMap(([type, amount]) =>
+        amount > 0
+          ? [`${amount} ${type.replaceAll("_", " ")}`]
+          : [],
+      ).join(", ");
+      await createPlayerNotification(database, session.playerId, {
+        kind: "success",
+        message: `${repairSettlement.completedItems} ${
+          repairSettlement.completedItems === 1 ? "repair" : "repairs"
+        } completed${
+          knowledgeSummary ? ` and generated ${knowledgeSummary}` : ""
+        }.`,
+        dedupeUnread: false,
+      });
+    }
+  } catch (error) {
+    console.error("Unable to settle player item repairs", error);
+  }
   const payout = await settleGalleryEarnings(
     database,
     session.playerId,
@@ -247,6 +276,7 @@ export default async function PlayerPage() {
           inventorySlotsUsed,
           lastDrop: player.profile.last_drop,
           displayCap: player.profile.display_cap,
+          repairingCap: player.profile.repairing_cap ?? 4,
           xpGoal: getXpGoal(player.profile.level),
           npcsMet: player.profile.npcs_met ?? {},
           knowledge: {
