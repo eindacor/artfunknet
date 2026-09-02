@@ -77,9 +77,52 @@ export function rollForgeryDetected(
 }
 
 export function calculateForgeCost(actualValue: number): number {
-  return Math.floor(
-    actualValue * (0.54 + 0.36 * BASE_FORGERY_QUALITY),
+  const estimatedQuickSaleValue = Math.floor(actualValue * 0.8);
+  return Math.max(
+    0,
+    Math.min(
+      Math.floor(
+        actualValue * (0.54 + 0.36 * BASE_FORGERY_QUALITY),
+      ),
+      estimatedQuickSaleValue - 1,
+    ),
   );
+}
+
+export function getForgeryValueEstimate(
+  item: Pick<
+    GameItem,
+    | "condition"
+    | "mint"
+    | "mint_value_multiplier"
+    | "attributes"
+    | "foil"
+    | "seasonal"
+    | "lottery"
+    | "original"
+    | "vintage"
+    | "unlocked"
+    | "level"
+  >,
+): typeof item {
+  return {
+    ...item,
+    condition: 0.5,
+    attributes: {
+      locked: item.attributes.locked.map((attribute) => ({
+        ...attribute,
+        value: 0.5,
+      })),
+      unlocked: item.attributes.unlocked.map((attribute) => ({
+        ...attribute,
+        value: 0.5,
+      })),
+      special: item.attributes.special.map((attribute) => ({
+        ...attribute,
+        value: 0.5,
+      })),
+    },
+  };
 }
 
 export function calculateAuthenticationCost(fee: number): number {

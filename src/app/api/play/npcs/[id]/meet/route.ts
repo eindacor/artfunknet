@@ -1153,13 +1153,13 @@ export async function POST(
           });
           if (destroyed.deletedCount !== 1) {
             throw new Error(
-              "The detected known forgery could not be destroyed.",
+              "The detected forgery could not be destroyed.",
             );
           }
           reservedTarget = null;
           return NextResponse.json({
             status: "ok",
-            message: `${npc.npc_name} detected the known forgery. The sale failed and the artwork was destroyed.`,
+            message: `${npc.npc_name} detected the forgery. The sale failed and the artwork was destroyed.`,
             interaction: {
               type: "art-collector-result",
               npcName: npc.npc_name,

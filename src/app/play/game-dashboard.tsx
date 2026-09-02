@@ -97,6 +97,12 @@ type ArtworkOfferItem = HydratedGameItem & {
   price?: number;
 };
 
+type ActionDialogResult = {
+  variant: "destroyed" | "returned" | "mixed";
+  title: string;
+  message: string;
+};
+
 type CollectorResult = {
   type: "art-collector-result";
   npcName: string;
@@ -183,6 +189,8 @@ export default function GameDashboard({
   const [now, setNow] = useState(0);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [actionDialog, setActionDialog] =
+    useState<ActionDialogResult | null>(null);
   const [notifications, setNotifications] = useState(initialNotifications);
   const [npcSpawnQuality, setNpcSpawnQuality] =
     useState<NpcQuality>("bronze");
@@ -326,6 +334,7 @@ export default function GameDashboard({
     startTransition(async () => {
       const response = await fetch(url, { method: "POST" });
       const body = (await response.json()) as {
+        actionDialog?: ActionDialogResult;
         error?: string;
         message?: string;
         notificationKind?: PlayerNotificationKind;
@@ -343,6 +352,9 @@ export default function GameDashboard({
           body.message,
           body.notificationKind ?? "success",
         );
+      }
+      if (body.actionDialog) {
+        setActionDialog(body.actionDialog);
       }
       router.refresh();
     });
@@ -1262,6 +1274,12 @@ export default function GameDashboard({
             onConfirm={mintConfirmation.onConfirm}
           />
         ) : null}
+        {actionDialog ? (
+          <ActionResultDialog
+            result={actionDialog}
+            onClose={() => setActionDialog(null)}
+          />
+        ) : null}
         {galleryItemDetails ? (
           <StandardItemDialog
             actions={displayedItemActions(galleryItemDetails)}
@@ -1621,6 +1639,76 @@ const KNOWLEDGE_LABELS = {
   technical_comprehension: "technical comprehension",
   artistic_vision: "artistic vision",
 } as const;
+
+function ActionResultDialog({
+  result,
+  onClose,
+}: {
+  result: ActionDialogResult;
+  onClose: () => void;
+}) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (dialog && !dialog.open) dialog.showModal();
+    return () => {
+      if (dialog?.open) dialog.close();
+    };
+  }, []);
+
+  function closeDialog() {
+    if (dialogRef.current?.open) dialogRef.current.close();
+    onClose();
+  }
+
+  return (
+    <dialog
+      aria-describedby="action-result-description"
+      aria-labelledby="action-result-title"
+      className="forgery-result-dialog"
+      data-outcome={result.variant}
+      onCancel={(event) => {
+        event.preventDefault();
+        closeDialog();
+      }}
+      ref={dialogRef}
+    >
+      <div className="forgery-result-content">
+        <header>
+          <div>
+            <p className="reroll-dialog-kicker">Authenticity alert</p>
+            <h2 id="action-result-title">{result.title}</h2>
+          </div>
+          <button
+            aria-label="Close action result"
+            className="reroll-dialog-close"
+            onClick={closeDialog}
+            type="button"
+          >
+            <i aria-hidden="true" className="fa fa-times" />
+          </button>
+        </header>
+        <div className="forgery-result-emblem" aria-hidden="true">
+          <i
+            className={`fa ${
+              result.variant === "returned" ? "fa-search" : "fa-ban"
+            }`}
+          />
+          <i className="fa fa-user-secret" />
+        </div>
+        <p className="forgery-result-message" id="action-result-description">
+          {result.message}
+        </p>
+        <div className="forgery-result-actions">
+          <button onClick={closeDialog} type="button">
+            Acknowledge
+          </button>
+        </div>
+      </div>
+    </dialog>
+  );
+}
 
 function ArtExpertResultDialog({
   result,

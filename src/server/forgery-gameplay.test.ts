@@ -8,6 +8,7 @@ import {
   calculateForgeryHeat,
   getAuthenticationPermission,
   getForgedDisplayRewardMultiplier,
+  getForgeryValueEstimate,
   getPlayerFacingRedemptionPermission,
   getRedemptionPermission,
   punishForgeryQuality,
@@ -76,6 +77,7 @@ test("forgery formulas use quality, context ranges, and rounding", () => {
   );
   assert.equal(BASE_FORGERY_QUALITY, 0.5);
   assert.equal(calculateForgeCost(1_000), 720);
+  assert.ok(calculateForgeCost(1_000) < Math.floor(1_000 * 0.8));
   assert.equal(calculateAuthenticationCost(99), 19);
   assert.ok(
     calculateAuthenticationCost(10_000) >
@@ -83,6 +85,37 @@ test("forgery formulas use quality, context ranges, and rounding", () => {
   );
   assert.equal(getForgedDisplayRewardMultiplier(0.5), 0.7);
   assert.equal(punishForgeryQuality(0.15), 0.1);
+});
+
+test("forgery value estimates use neutral condition and attribute values", () => {
+  const attributes = {
+    locked: [{ _id: "locked", value: 0.1 }],
+    unlocked: [{ _id: "unlocked", value: 0.9 }],
+    special: [{ _id: "special", value: 1 }],
+  } as GameItem["attributes"];
+  const estimate = getForgeryValueEstimate({
+    condition: 0.93,
+    mint: false,
+    mint_value_multiplier: 1,
+    attributes,
+    foil: false,
+    seasonal: false,
+    lottery: 0,
+    original: false,
+    vintage: false,
+    unlocked: true,
+    level: 1,
+  });
+
+  assert.equal(estimate.condition, 0.5);
+  assert.deepEqual(
+    [
+      ...estimate.attributes.locked,
+      ...estimate.attributes.unlocked,
+      ...estimate.attributes.special,
+    ].map((attribute) => attribute.value),
+    [0.5, 0.5, 0.5],
+  );
 });
 
 test("every forgeable modifier increases forgery heat", () => {

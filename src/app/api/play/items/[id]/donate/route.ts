@@ -84,11 +84,18 @@ export async function POST(
           { status: 409 },
         );
       }
+      const message =
+        "The museum detected the known forgery. The donation failed and the artwork was destroyed.";
       return NextResponse.json({
         status: "ok",
         knowledge: {},
-        message:
-          "The museum detected the known forgery. The donation failed and the artwork was destroyed.",
+        message,
+        notificationKind: "error",
+        actionDialog: {
+          variant: "destroyed",
+          title: "Forgery detected",
+          message,
+        },
       });
     }
     await database.collection<GameItem>("items").updateOne(
@@ -103,10 +110,18 @@ export async function POST(
         },
       },
     );
+    const message =
+      "The museum detected the forgery. It was identified, returned to your inventory, and yielded no knowledge.";
     return NextResponse.json({
       status: "ok",
       knowledge: {},
-      message: "The museum detected the forgery. It was returned to your inventory and yielded no knowledge.",
+      message,
+      notificationKind: "error",
+      actionDialog: {
+        variant: "returned",
+        title: "Forgery identified",
+        message,
+      },
     });
   }
 

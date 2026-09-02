@@ -227,8 +227,9 @@ export default function ForgeryDialog({
               </span>
             </div>
             <p className="forgery-watermark-note">
-              The forgery&apos;s attributes and condition are generated at
-              random and may differ from this preview.{" "}
+              The forgery&apos;s attributes and non-Mint condition are
+              generated at random and may differ from this preview. Its price
+              is estimated using 0.5 for every attribute and 50% condition.{" "}
               The known-forgery watermark is private and will only be visible
               to you. Other players will not see it unless they authenticate
               the artwork or detect the forgery.

@@ -5,10 +5,12 @@ import type { PlayerArtworkArchive } from "@/server/archive-gameplay";
 import {
   BASE_FORGERY_QUALITY,
   calculateForgeCost,
+  getForgeryValueEstimate,
   validateForgerySelection,
 } from "@/server/forgery-gameplay";
 import {
   calculateItemValues,
+  getGeneratedItemCondition,
   isSeasonalArtwork,
   rollAttributeValue,
   type Artwork,
@@ -92,13 +94,14 @@ export async function POST(
 
   const unlocked = selected.has("unlocked");
   const itemAttributes = createForgeryAttributes(artwork, unlocked, attributes);
+  const mint = selected.has("mint");
   const timestamp = new Date().toISOString();
   const base = {
     _id: randomUUID(),
     artwork_id: artwork._id,
-    condition: 1,
-    mint: selected.has("mint"),
-    mint_value_multiplier: selected.has("mint") ? settings.active.mintValueMultiplier : 1,
+    condition: getGeneratedItemCondition(mint, 0),
+    mint,
+    mint_value_multiplier: mint ? settings.active.mintValueMultiplier : 1,
     attributes: itemAttributes,
     active_unique_attribute: artwork.unique_attributes?.[0],
     ...(selection.artStyle === "museum" ? {} : { card_renderer: selection.artStyle }),
@@ -141,7 +144,12 @@ export async function POST(
     debug: settings.debugEnabled,
   };
   const values = calculateItemValues(base, artwork, metadata.loot_data);
-  const cost = calculateForgeCost(values.actual);
+  const estimatedValues = calculateItemValues(
+    getForgeryValueEstimate(base),
+    artwork,
+    metadata.loot_data,
+  );
+  const cost = calculateForgeCost(estimatedValues.actual);
   const item: GameItem = {
     ...base,
     odds: "forged",

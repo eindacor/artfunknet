@@ -85,14 +85,25 @@ export async function POST() {
   }
   const sellableItems = items.filter((item) => !caughtIds.has(item._id));
   if (sellableItems.length === 0) {
+    const message = getBulkForgeryMessage(
+      destroyedIds.length,
+      identifiedIds.size,
+      true,
+    );
     return NextResponse.json({
       status: "ok",
       amount: 0,
-      message: getBulkForgeryMessage(
-        destroyedIds.length,
-        identifiedIds.size,
-        true,
-      ),
+      message,
+      notificationKind: "error",
+      ...(caughtIds.size > 0
+        ? {
+            actionDialog: getBulkForgeryDialog(
+              destroyedIds.length,
+              identifiedIds.size,
+              message,
+            ),
+          }
+        : {}),
     });
   }
   const saleBonus = await getDisplayedLegendaryEffect(
@@ -214,10 +225,21 @@ export async function POST() {
       { status: 500 },
     );
   }
+  const message = `Sold ${sellableItems.length} unclaimed ${sellableItems.length === 1 ? "artwork" : "artworks"} for $${amount.toLocaleString()}${caughtIds.size > 0 ? `; ${getBulkForgeryMessage(destroyedIds.length, identifiedIds.size, false)}` : ""}.`;
   return NextResponse.json({
     status: "ok",
     amount,
-    message: `Sold ${sellableItems.length} unclaimed ${sellableItems.length === 1 ? "artwork" : "artworks"} for $${amount.toLocaleString()}${caughtIds.size > 0 ? `; ${getBulkForgeryMessage(destroyedIds.length, identifiedIds.size, false)}` : ""}.`,
+    message,
+    ...(caughtIds.size > 0 ? { notificationKind: "error" } : {}),
+    ...(caughtIds.size > 0
+      ? {
+          actionDialog: getBulkForgeryDialog(
+            destroyedIds.length,
+            identifiedIds.size,
+            message,
+          ),
+        }
+      : {}),
   });
 }
 
@@ -236,6 +258,28 @@ function getBulkForgeryMessage(
   ].filter((outcome): outcome is string => Boolean(outcome));
   const message = outcomes.join("; ");
   return allDetected ? `The sale failed. ${message}.` : message;
+}
+
+function getBulkForgeryDialog(
+  destroyedCount: number,
+  identifiedCount: number,
+  message: string,
+) {
+  return {
+    variant:
+      destroyedCount > 0 && identifiedCount > 0
+        ? "mixed"
+        : destroyedCount > 0
+          ? "destroyed"
+          : "returned",
+    title:
+      destroyedCount > 0 && identifiedCount > 0
+        ? "Forgeries detected"
+        : destroyedCount > 0
+          ? "Forgery detected"
+          : "Forgery identified",
+    message,
+  };
 }
 
 async function recoverPendingSales(
