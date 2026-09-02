@@ -30,7 +30,6 @@ type Player = {
     bank_balance: number;
     inventory_cap: number;
     expansion_slots?: number;
-    vintage_count?: number;
   };
 };
 
@@ -87,7 +86,8 @@ export async function POST(
     }),
   ]);
   if (!artwork) return NextResponse.json({ error: "The archived artwork is unavailable." }, { status: 404 });
-  const capacity = player.profile.inventory_cap + (player.profile.expansion_slots ?? 0) + (player.profile.vintage_count ?? 0) * 2;
+  const capacity =
+    player.profile.inventory_cap + (player.profile.expansion_slots ?? 0);
   if (inventoryCount >= capacity && !selected.has("vintage")) {
     return NextResponse.json({ error: "Your inventory is currently full." }, { status: 409 });
   }

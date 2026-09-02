@@ -23,7 +23,7 @@ import {
 } from "./forgery-gameplay.ts";
 
 const HOUR_MS = 60 * 60 * 1000;
-const MAX_PLAYER_LEVEL = 50;
+export const MAX_PLAYER_LEVEL = 50;
 
 type PlayerProfile = {
   active: boolean;

@@ -8,7 +8,6 @@ type Player = {
   profile: {
     inventory_cap: number;
     expansion_slots: number;
-    vintage_count: number;
   };
 };
 
@@ -67,9 +66,7 @@ export async function POST(
       vintage: { $ne: true },
     });
   const capacity =
-    player.profile.inventory_cap +
-    (player.profile.expansion_slots ?? 0) +
-    (player.profile.vintage_count ?? 0) * 2;
+    player.profile.inventory_cap + (player.profile.expansion_slots ?? 0);
   if (inventoryCount >= capacity && !item.original && !item.vintage) {
     return NextResponse.json(
       { error: "Your inventory is currently full." },

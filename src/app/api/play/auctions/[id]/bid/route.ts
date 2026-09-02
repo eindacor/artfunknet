@@ -20,7 +20,6 @@ type Player = {
     auction_cap: number;
     inventory_cap: number;
     expansion_slots?: number;
-    vintage_count?: number;
     market_expert?: { expiration?: string };
   };
 };

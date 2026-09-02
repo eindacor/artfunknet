@@ -554,6 +554,197 @@ body {
   margin-top: 31px;
 }
 
+.vintage-playthrough-panel {
+  display: grid;
+  gap: 14px;
+  margin-top: 24px;
+  border: 1px solid rgb(172 122 74 / 55%);
+  padding: 20px;
+  background:
+    linear-gradient(135deg, rgb(172 122 74 / 12%), transparent 55%),
+    rgb(0 0 0 / 18%);
+}
+
+.vintage-playthrough-panel > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.vintage-playthrough-panel header span,
+.vintage-playthrough-panel header small {
+  display: block;
+}
+
+.vintage-playthrough-panel header span {
+  color: #d6a56e;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.vintage-playthrough-panel header small,
+.vintage-playthrough-panel > p {
+  color: var(--muted);
+}
+
+.vintage-playthrough-panel > button {
+  justify-self: start;
+  border: 1px solid #d6a56e;
+  padding: 9px 14px;
+  background: #d6a56e;
+  color: #1b1008;
+  font-weight: 700;
+}
+
+.vintage-playthrough-panel > button:disabled {
+  border-color: #666;
+  background: transparent;
+  color: #777;
+}
+
+.vintage-playthrough-dialog {
+  width: min(720px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  margin: auto;
+  border: 1px solid #d6a56e;
+  padding: 0;
+  overflow: auto;
+  background: #17110c;
+  color: #f7eee5;
+  box-shadow: 12px 12px 0 rgb(0 0 0 / 35%);
+}
+
+.vintage-playthrough-dialog::backdrop {
+  background: rgb(0 0 0 / 76%);
+  backdrop-filter: blur(4px);
+}
+
+.vintage-playthrough-content {
+  display: grid;
+  gap: 18px;
+  padding: 26px;
+}
+
+.vintage-playthrough-content > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  border-bottom: 1px solid rgb(214 165 110 / 30%);
+  padding-bottom: 14px;
+}
+
+.vintage-playthrough-content header p {
+  margin: 0;
+  color: #d6a56e;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.vintage-playthrough-content h2 {
+  margin: 4px 0 0;
+  color: #f0c999;
+  font-size: 1.5rem;
+}
+
+.vintage-playthrough-content > p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.vintage-playthrough-warning {
+  border-left: 3px solid #d9534f;
+  padding: 12px 14px;
+  background: rgb(217 83 79 / 10%);
+  color: #ffb9b6;
+}
+
+.vintage-item-options {
+  display: grid;
+  gap: 10px;
+  border: 0;
+  padding: 0;
+}
+
+.vintage-item-options legend {
+  margin-bottom: 10px;
+  color: #d6a56e;
+  font-weight: 700;
+}
+
+.vintage-item-options label {
+  display: grid;
+  grid-template-columns: auto 64px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  border: 1px solid rgb(255 255 255 / 15%);
+  padding: 10px;
+  background: rgb(255 255 255 / 3%);
+}
+
+.vintage-item-options label.selected {
+  border-color: #d6a56e;
+  background: rgb(214 165 110 / 10%);
+}
+
+.vintage-item-thumbnail {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+}
+
+.vintage-item-options label span,
+.vintage-item-options label small {
+  display: block;
+}
+
+.vintage-item-options label small {
+  margin-top: 3px;
+  color: #b8a99a;
+}
+
+.vintage-item-options .vintage-known-forgery {
+  width: fit-content;
+  border: 1px solid #e06262;
+  border-radius: 999px;
+  padding: 2px 7px;
+  color: #ff9696;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.vintage-known-forgery i {
+  margin-right: 5px;
+}
+
+.vintage-playthrough-content > footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.vintage-playthrough-content > footer button {
+  border: 1px solid #8d7763;
+  padding: 9px 14px;
+  background: transparent;
+  color: #f7eee5;
+  font: inherit;
+}
+
+.vintage-playthrough-content > footer button.confirm {
+  border-color: #d6a56e;
+  background: #d6a56e;
+  color: #1b1008;
+  font-weight: 700;
+}
+
+.vintage-playthrough-content > footer button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 .museum-profile-knowledge > header {
   display: flex;
   align-items: start;
@@ -724,6 +915,222 @@ body {
   flex-wrap: wrap;
   gap: 0.7rem;
   align-items: center;
+  margin-top: 24px;
+  border-top: 1px solid rgb(216 169 101 / 42%);
+  padding-top: 18px;
+}
+
+.loot-store-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-bottom: 18px;
+  border-bottom: 1px solid rgb(255 255 255 / 12%);
+  padding-bottom: 14px;
+}
+
+.loot-store-heading p,
+.loot-store-heading h2 {
+  margin: 0;
+}
+
+.loot-store-heading p {
+  color: #d8a965;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.loot-store-heading h2 {
+  margin-top: 3px;
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+}
+
+.loot-store-heading > span {
+  max-width: 440px;
+  color: var(--muted);
+  line-height: 1.45;
+  text-align: right;
+}
+
+.crate-store-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.crate-store-card {
+  --crate-color: #a96d3a;
+  --crate-bright: #dfaa72;
+  position: relative;
+  display: grid;
+  grid-template-rows: 118px 1fr auto;
+  gap: 12px;
+  overflow: hidden;
+  min-width: 0;
+  min-height: 286px;
+  border: 1px solid color-mix(in srgb, var(--crate-color) 65%, #222);
+  border-radius: 4px;
+  padding: 14px;
+  background:
+    linear-gradient(145deg, rgb(255 255 255 / 5%), transparent 45%),
+    #15120f;
+  color: #f4ede4;
+  text-align: left;
+  box-shadow: 0 12px 28px rgb(0 0 0 / 22%);
+  cursor: pointer;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.crate-store-card[data-quality="daily"] {
+  --crate-color: #3ba9b7;
+  --crate-bright: #8ce5ef;
+}
+
+.crate-store-card[data-quality="silver"] {
+  --crate-color: #8593a0;
+  --crate-bright: #d5e0e8;
+}
+
+.crate-store-card[data-quality="gold"] {
+  --crate-color: #b58a1e;
+  --crate-bright: #ffe181;
+}
+
+.crate-store-card[data-quality="platinum"] {
+  --crate-color: #7559b9;
+  --crate-bright: #d4c1ff;
+}
+
+.crate-store-card:hover:not(:disabled),
+.crate-store-card:focus-visible:not(:disabled) {
+  z-index: 1;
+  border-color: var(--crate-bright);
+  box-shadow:
+    0 18px 36px rgb(0 0 0 / 34%),
+    0 0 24px color-mix(in srgb, var(--crate-color) 35%, transparent);
+  transform: translateY(-5px);
+}
+
+.crate-store-card:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.65);
+  opacity: 0.48;
+}
+
+.crate-card-artwork {
+  position: relative;
+  display: block;
+  width: 112px;
+  height: 102px;
+  margin: 3px auto 0;
+  perspective: 400px;
+}
+
+.crate-card-glow {
+  position: absolute;
+  inset: 18px 8px 0;
+  border-radius: 50%;
+  background: var(--crate-color);
+  filter: blur(24px);
+  opacity: 0.42;
+  transition: opacity 180ms ease;
+}
+
+.crate-store-card:hover:not(:disabled) .crate-card-glow {
+  opacity: 0.8;
+}
+
+.crate-card-box,
+.crate-card-lid {
+  position: absolute;
+  left: 10px;
+  width: 92px;
+  border: 2px solid var(--crate-bright);
+  background:
+    linear-gradient(135deg, rgb(255 255 255 / 18%), transparent 40%),
+    var(--crate-color);
+  box-shadow: inset 0 0 0 5px rgb(0 0 0 / 15%);
+}
+
+.crate-card-box {
+  bottom: 3px;
+  display: grid;
+  place-items: center;
+  height: 66px;
+}
+
+.crate-card-box i {
+  color: rgb(20 15 10 / 64%);
+  font-size: 1.8rem;
+}
+
+.crate-card-lid {
+  top: 13px;
+  left: 5px;
+  width: 102px;
+  height: 24px;
+  transform-origin: left bottom;
+  transition: transform 220ms ease;
+}
+
+.crate-store-card:hover:not(:disabled) .crate-card-lid {
+  transform: rotate(-7deg) translateY(-5px);
+}
+
+.crate-card-copy,
+.crate-card-copy > span,
+.crate-card-copy > strong,
+.crate-card-copy > small {
+  display: block;
+}
+
+.crate-card-copy > small {
+  color: var(--crate-bright);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.crate-card-copy > strong {
+  margin: 4px 0 8px;
+  font-size: 0.9rem;
+}
+
+.crate-card-copy > span {
+  color: #baaea2;
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.crate-card-copy .crate-card-highlights {
+  margin-top: 9px;
+  color: var(--crate-bright);
+  font-size: 0.72rem;
+}
+
+.crate-card-price {
+  justify-self: start;
+  border: 1px solid var(--crate-color);
+  padding: 6px 9px;
+  background: color-mix(in srgb, var(--crate-color) 14%, transparent);
+  color: var(--crate-bright);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.loot-item-reveal {
+  opacity: 0;
+  animation: loot-item-fade-in 380ms ease-out forwards;
 }
 
 .random-drop .loot-page-actions > button {
@@ -738,6 +1145,131 @@ body {
   cursor: pointer;
 }
 
+.crate-store-card[data-phase] {
+  filter: none;
+  opacity: 1;
+}
+
+.crate-store-card[data-phase="opening"] {
+  border-color: var(--crate-bright);
+  box-shadow:
+    0 18px 36px rgb(0 0 0 / 34%),
+    0 0 30px color-mix(in srgb, var(--crate-color) 55%, transparent);
+}
+
+.crate-store-card[data-phase="opening"] .crate-card-artwork {
+  animation: crate-rattle 420ms ease-in-out infinite;
+}
+
+.crate-store-card[data-phase="opening"] .crate-card-glow {
+  animation: inline-crate-pulse 600ms ease-in-out infinite alternate;
+}
+
+.crate-store-card[data-phase="opened"] .crate-card-lid {
+  animation: inline-crate-lid-open 700ms cubic-bezier(0.2, 0.8, 0.2, 1)
+    forwards;
+}
+
+.crate-store-card[data-phase="opened"] .crate-card-glow {
+  opacity: 1;
+  transform: scale(1.65);
+}
+
+.crate-store-card[data-phase="opened"] {
+  border-color: var(--crate-bright);
+  box-shadow: 0 0 34px color-mix(in srgb, var(--crate-color) 65%, transparent);
+}
+
+.crate-store-card[data-phase="error"] {
+  border-color: #d04f4f;
+  animation: inline-crate-error 260ms ease-in-out 2;
+}
+
+@keyframes crate-rattle {
+  0%,
+  100% {
+    transform: rotate(0deg) translateX(0);
+  }
+  25% {
+    transform: rotate(-2deg) translateX(-4px);
+  }
+  75% {
+    transform: rotate(2deg) translateX(4px);
+  }
+}
+
+@keyframes inline-crate-lid-open {
+  0% {
+    transform: rotate(0deg) translateY(0);
+  }
+  65%,
+  100% {
+    transform: rotate(-24deg) translate(-8px, -18px);
+  }
+}
+
+@keyframes inline-crate-pulse {
+  from {
+    opacity: 0.45;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.35);
+  }
+}
+
+@keyframes inline-crate-error {
+  from,
+  to {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(5px);
+  }
+}
+
+@keyframes loot-item-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crate-store-card[data-phase="opening"] .crate-card-artwork,
+  .crate-store-card[data-phase="opening"] .crate-card-glow,
+  .crate-store-card[data-phase="opened"] .crate-card-lid,
+  .crate-store-card[data-phase="error"] {
+    animation: none;
+  }
+
+  .loot-item-reveal {
+    opacity: 1;
+    animation: none;
+  }
+
+  .sell-all-earnings {
+    opacity: 1;
+    animation: none;
+    transform: translate(-50%, -120%);
+  }
+}
+
+@media (max-width: 1050px) {
+  .crate-store-grid {
+    overflow-x: auto;
+    grid-template-columns: repeat(6, minmax(170px, 1fr));
+    padding-bottom: 8px;
+  }
+}
+
 .random-drop .loot-page-actions > button:hover:not(:disabled) {
   border-color: var(--accent);
   background: var(--accent);
@@ -750,8 +1282,42 @@ body {
 }
 
 .random-drop .loot-page-actions .sell-all-loot {
+  position: relative;
+  overflow: visible;
   border-color: #237a3b;
   background: #237a3b;
+}
+
+.sell-all-earnings {
+  position: absolute;
+  z-index: 5;
+  top: 50%;
+  left: 50%;
+  width: max-content;
+  color: #5cff82;
+  font-size: 1.05rem;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  pointer-events: none;
+  text-shadow:
+    0 2px 2px #071c0c,
+    0 0 10px rgb(92 255 130 / 65%);
+  animation: sell-all-earnings-popout 1s ease-out forwards;
+}
+
+@keyframes sell-all-earnings-popout {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -20%) scale(0.55);
+  }
+  18% {
+    opacity: 1;
+    transform: translate(-50%, -75%) scale(1.12);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -190%) scale(1);
+  }
 }
 
 .auction-house {
@@ -3047,26 +3613,17 @@ body {
   background: #171717;
   color: #aaa;
   padding: 16px;
-  font: inherit;
   text-align: left;
-  cursor: pointer;
   transition:
     border-color 120ms ease,
     background-color 120ms ease,
     transform 120ms ease;
 }
 
-.test-account-card:hover,
-.test-account-card:focus-visible {
+.test-account-card:hover {
   border-color: var(--accent);
   background: #222;
   transform: translateY(-2px);
-}
-
-.test-account-card:disabled {
-  cursor: wait;
-  opacity: 0.55;
-  transform: none;
 }
 
 .test-account-card > strong,
@@ -3115,10 +3672,59 @@ body {
 }
 
 .test-account-card .test-account-open {
+  display: block;
+  width: 100%;
   margin-top: 15px;
+  border: 0;
+  background: transparent;
   color: #fff;
+  font: inherit;
   font-weight: bold;
   text-align: right;
+}
+
+.test-account-level-control,
+.test-account-balance-control {
+  display: grid;
+  grid-template-columns: 1fr minmax(70px, 120px) auto;
+  align-items: center;
+  gap: 8px;
+  margin-top: 15px;
+  border-top: 1px solid #444;
+  padding-top: 12px;
+}
+
+.test-account-level-control label,
+.test-account-balance-control label {
+  color: #aaa;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.test-account-level-control input,
+.test-account-balance-control input {
+  width: 100%;
+  border: 1px solid #666;
+  background: #0d0d0d;
+  color: white;
+  padding: 6px;
+}
+
+.test-account-level-control button,
+.test-account-balance-control button {
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  padding: 6px 10px;
+  font-weight: 700;
+}
+
+.test-account-level-control button:disabled,
+.test-account-balance-control button:disabled,
+.test-account-open:disabled {
+  cursor: wait;
+  opacity: 0.5;
 }
 
 .admin-settings-form {

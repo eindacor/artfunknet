@@ -56,6 +56,7 @@ export type Auction = {
     seasonal: boolean;
     lottery: number;
     original: boolean;
+    vintage?: boolean;
   };
 };
 
@@ -77,7 +78,6 @@ type AuctionPlayer = {
     auction_cap: number;
     inventory_cap: number;
     expansion_slots?: number;
-    vintage_count?: number;
     market_expert?: { expiration?: string };
     last_activity?: string;
   };
@@ -153,6 +153,7 @@ export async function createAuction(
       seasonal: item.seasonal,
       lottery: item.lottery,
       original: item.original,
+      vintage: item.vintage,
     },
   };
   await database.collection<Auction>("auctions").insertOne(auction);
@@ -721,16 +722,16 @@ export async function validateBidder(
       current_winner_id: player._id,
       expiration: { $gt: new Date().toISOString() },
       "item_snapshot.original": false,
+      "item_snapshot.vintage": { $ne: true },
       settlement_status: { $ne: "settling" },
     });
   const capacity =
-    player.profile.inventory_cap +
-    (player.profile.expansion_slots ?? 0) +
-    (player.profile.vintage_count ?? 0) * 2;
+    player.profile.inventory_cap + (player.profile.expansion_slots ?? 0);
   if (
     inventoryCount + reservedInventory >= capacity &&
     auction.current_winner_id !== player._id &&
-    !auction.item_snapshot.original
+    !auction.item_snapshot.original &&
+    !auction.item_snapshot.vintage
   ) {
     return "Your inventory is currently full.";
   }

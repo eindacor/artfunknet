@@ -59,7 +59,12 @@ export async function POST() {
         debug: settings.debugEnabled,
       },
     );
-    return NextResponse.json({ status: "ok", item_ids: items.map((item) => item._id) });
+    return NextResponse.json({
+      status: "ok",
+      item_ids: items.map((item) => item._id),
+      itemCount: items.length,
+      message: `Daily crate opened. ${items.length} artworks were added to your loot.`,
+    });
   } catch (error) {
     await database.collection<Player>("players").updateOne(
       { _id: player._id, "profile.last_drop": now.toISOString() },

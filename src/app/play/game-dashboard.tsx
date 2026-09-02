@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import ArchiveEntryDialog from "@/components/archive-entry-dialog";
 import ForgeryDialog from "@/components/forgery-dialog";
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
+import VintagePlaythroughDialog from "@/components/vintage-playthrough-dialog";
 import {
   getGalleryPaintingDimension,
   getGalleryPixelsPerCentimeter,
@@ -24,6 +25,7 @@ import { ratingColor } from "@/components/item-cards/shared";
 import StandardItemDialog from "@/components/item-cards/standard-item-dialog";
 import type { CardLegendaryAttribute } from "@/components/item-cards/types";
 import type { GalleryRates } from "@/server/collection-gameplay";
+import type { CrateOfferView } from "@/server/crate-gameplay";
 import type { ArtHistorianQuestView } from "@/server/art-historian-gameplay";
 import type { GameItem } from "@/server/gameplay";
 import type {
@@ -87,6 +89,11 @@ type NpcSpawnOption = {
   id: string;
   icon: string;
   name: string;
+};
+
+type LootCrateOffer = Omit<CrateOfferView, "id" | "quality"> & {
+  id: string;
+  quality: CrateOfferView["quality"] | "daily";
 };
 
 type LegendaryAttributeView = CardLegendaryAttribute;
@@ -157,7 +164,9 @@ export default function GameDashboard({
   levelUpConditionMinimum,
   legendaryAttributes,
   npcSpawnOptions,
+  crateOffers,
   dailyDropCooldownMinutes,
+  dailyDropCount,
   dealerPriceMultiplier,
   debugEnabled,
   npcs,
@@ -174,7 +183,9 @@ export default function GameDashboard({
   levelUpConditionMinimum: number;
   legendaryAttributes: LegendaryAttributeView[];
   npcSpawnOptions: NpcSpawnOption[];
+  crateOffers: CrateOfferView[];
   dailyDropCooldownMinutes: number;
+  dailyDropCount: number;
   dealerPriceMultiplier: number;
   debugEnabled: boolean;
   npcs: NpcView[];
@@ -191,6 +202,15 @@ export default function GameDashboard({
   const [notice, setNotice] = useState("");
   const [actionDialog, setActionDialog] =
     useState<ActionDialogResult | null>(null);
+  const [crateOpening, setCrateOpening] = useState<{
+    crateId: string;
+    phase: "opening" | "opened" | "error";
+  } | null>(null);
+  const [revealedLootIds, setRevealedLootIds] = useState<string[]>([]);
+  const [sellAllEarnings, setSellAllEarnings] = useState<{
+    amount: number;
+    animationId: number;
+  } | null>(null);
   const [notifications, setNotifications] = useState(initialNotifications);
   const [npcSpawnQuality, setNpcSpawnQuality] =
     useState<NpcQuality>("bronze");
@@ -232,6 +252,7 @@ export default function GameDashboard({
     useState<HydratedPlayerArtworkArchive | null>(null);
   const [forgeryArchive, setForgeryArchive] =
     useState<HydratedPlayerArtworkArchive | null>(null);
+  const [vintageDialogOpen, setVintageDialogOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const unclaimed = useMemo(
@@ -251,6 +272,17 @@ export default function GameDashboard({
   );
   const displayed = useMemo(
     () => items.filter((item) => item.status === "displayed"),
+    [items],
+  );
+  const vintageCandidates = useMemo(
+    () =>
+      items.filter(
+        (item) =>
+          item.status === "claimed" &&
+          !item.vintage &&
+          !item.original &&
+          !item.repairing,
+      ),
     [items],
   );
   const ownedArtworkIds = useMemo(
@@ -358,6 +390,110 @@ export default function GameDashboard({
       }
       router.refresh();
     });
+  }
+
+  function sellAllLoot() {
+    setError("");
+    setNotice("");
+    startTransition(async () => {
+      const response = await fetch("/api/play/items/sell-all", {
+        method: "POST",
+      });
+      const body = (await response.json()) as {
+        actionDialog?: ActionDialogResult;
+        amount?: number;
+        error?: string;
+        message?: string;
+        notificationKind?: PlayerNotificationKind;
+      };
+      if (!response.ok || body.amount === undefined) {
+        const message = body.error ?? "The loot could not be sold.";
+        setError(message);
+        await addNotification(message, "error");
+        return;
+      }
+
+      if (body.amount > 0) {
+        const animationId = Date.now();
+        setSellAllEarnings({ amount: body.amount, animationId });
+        window.setTimeout(
+          () =>
+            setSellAllEarnings((current) =>
+              current?.animationId === animationId ? null : current,
+            ),
+          1100,
+        );
+      }
+      if (body.message) {
+        setNotice(body.message);
+        await addNotification(
+          body.message,
+          body.notificationKind ?? "success",
+        );
+      }
+      if (body.actionDialog) {
+        setActionDialog(body.actionDialog);
+      }
+      router.refresh();
+    });
+  }
+
+  async function openCrate(crate: LootCrateOffer, endpoint: string) {
+    setError("");
+    setNotice("");
+    setRevealedLootIds([]);
+    setCrateOpening({ crateId: crate.id, phase: "opening" });
+    const animationStarted = Date.now();
+    try {
+      const response = await fetch(endpoint, { method: "POST" });
+      const body = (await response.json()) as {
+        error?: string;
+        itemCount?: number;
+        item_ids?: string[];
+        message?: string;
+      };
+      const remainingAnimation = Math.max(
+        0,
+        1500 - (Date.now() - animationStarted),
+      );
+      if (remainingAnimation > 0) {
+        await new Promise((resolve) =>
+          window.setTimeout(resolve, remainingAnimation),
+        );
+      }
+      if (!response.ok || body.itemCount === undefined) {
+        throw new Error(body.error ?? "The crate could not be opened.");
+      }
+      const message =
+        body.message ?? `${body.itemCount} artworks were added to your loot.`;
+      setCrateOpening({ crateId: crate.id, phase: "opened" });
+      setNotice(message);
+      setRevealedLootIds(body.item_ids ?? []);
+      await addNotification(message, "success");
+      router.refresh();
+      window.setTimeout(
+        () =>
+          setCrateOpening((current) =>
+            current?.crateId === crate.id ? null : current,
+          ),
+        900,
+      );
+    } catch (crateError) {
+      const message =
+        crateError instanceof Error
+          ? crateError.message
+          : "The crate could not be opened.";
+      setCrateOpening({ crateId: crate.id, phase: "error" });
+      setError(message);
+      await addNotification(message, "error");
+      window.setTimeout(
+        () =>
+          setCrateOpening((current) =>
+            current?.crateId === crate.id ? null : current,
+          ),
+        900,
+      );
+    }
   }
 
   function requestMintMutation(
@@ -712,6 +848,34 @@ export default function GameDashboard({
               </section>
             </div>
 
+            <section className="vintage-playthrough-panel">
+              <header>
+                <div>
+                  <span>Vintage collection</span>
+                  <small>Begin again with a lasting collection</small>
+                </div>
+              </header>
+              <p>
+                At level 50, choose one inventory item to make vintage and
+                carry it into a new playthrough. Existing vintage items are
+                retained; every other item is removed.
+              </p>
+              <button
+                disabled={
+                  player.level < 50 ||
+                  vintageCandidates.length === 0
+                }
+                onClick={() => setVintageDialogOpen(true)}
+                type="button"
+              >
+                {player.level < 50
+                  ? "Reach level 50"
+                  : vintageCandidates.length === 0
+                    ? "No eligible inventory items"
+                    : "Choose vintage item"}
+              </button>
+            </section>
+
             <section className="museum-profile-knowledge">
               <header>
                 <div>
@@ -748,29 +912,145 @@ export default function GameDashboard({
 
         {section === "loot" ? (
           <section className="random-drop">
-            <div className="loot-page-actions">
+            <header className="loot-store-heading">
+              <div>
+                <p>Acquisitions</p>
+                <h2>Crates</h2>
+              </div>
+            </header>
+            <div className="crate-store-grid">
               <button
-                className={dropReady ? "enabled" : "disabled"}
-                disabled={!dropReady || pending}
-                onClick={() => act("/api/play/drop")}
+                className="crate-store-card daily"
+                data-phase={
+                  crateOpening?.crateId === "daily"
+                    ? crateOpening.phase
+                    : undefined
+                }
+                data-quality="daily"
+                disabled={!dropReady || pending || crateOpening !== null}
+                onClick={() =>
+                  void openCrate(
+                    {
+                      id: "daily",
+                      name: "Daily crate",
+                      quality: "daily",
+                      description:
+                        "A complimentary collection assembled once per cooldown.",
+                      highlights: [
+                        `${dailyDropCount} artworks`,
+                        "Free",
+                        "Refreshes automatically",
+                      ],
+                      itemCount: dailyDropCount,
+                      cost: 0,
+                      levelRequirement: 0,
+                    },
+                    "/api/play/drop",
+                  )
+                }
                 type="button"
               >
-                {now === 0
-                  ? "checking daily drop..."
-                  : dropReady
-                    ? "get daily drop!"
-                    : countdown(nextDrop - now)}
+                <CrateCardArtwork quality="daily" />
+                <span className="crate-card-copy">
+                  <small>Complimentary</small>
+                  <strong>Daily crate</strong>
+                  <span>
+                    {now === 0
+                      ? "Checking availability..."
+                      : dropReady
+                        ? `${dailyDropCount} artworks ready`
+                        : `Ready in ${countdown(nextDrop - now)}`}
+                  </span>
+                </span>
+                <span className="crate-card-price">
+                  {crateOpening?.crateId === "daily"
+                    ? crateOpening.phase === "opening"
+                      ? "Opening..."
+                      : crateOpening.phase === "opened"
+                        ? "Opened!"
+                        : "Failed"
+                    : dropReady
+                      ? "Open free"
+                      : "Sealed"}
+                </span>
               </button>
+              {crateOffers.map((crate) => {
+                const levelLocked = player.level < crate.levelRequirement;
+                const cannotAfford = player.bankBalance < crate.cost;
+                return (
+                  <button
+                    className="crate-store-card"
+                    data-phase={
+                      crateOpening?.crateId === crate.id
+                        ? crateOpening.phase
+                        : undefined
+                    }
+                    data-quality={crate.quality}
+                    disabled={
+                      pending ||
+                      crateOpening !== null ||
+                      levelLocked ||
+                      cannotAfford
+                    }
+                    key={crate.id}
+                    onClick={() =>
+                      void openCrate(
+                        crate,
+                        `/api/play/crates/${crate.id}`,
+                      )
+                    }
+                    title={
+                      levelLocked
+                        ? `Requires level ${crate.levelRequirement}`
+                        : cannotAfford
+                          ? "Not enough money"
+                          : `Open ${crate.name}`
+                    }
+                    type="button"
+                  >
+                    <CrateCardArtwork quality={crate.quality} />
+                    <span className="crate-card-copy">
+                      <small>{crate.quality}</small>
+                      <strong>{crate.name}</strong>
+                      <span>{crate.description}</span>
+                      <span className="crate-card-highlights">
+                        {crate.highlights.join(" · ")}
+                      </span>
+                    </span>
+                    <span className="crate-card-price">
+                      {crateOpening?.crateId === crate.id
+                        ? crateOpening.phase === "opening"
+                          ? "Opening..."
+                          : crateOpening.phase === "opened"
+                            ? "Opened!"
+                            : "Failed"
+                        : levelLocked
+                          ? `Level ${crate.levelRequirement}`
+                          : `$${crate.cost.toLocaleString()}`}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="loot-page-actions">
               <button
                 className="sell-all-loot"
                 disabled={
                   pending ||
                   !unclaimed.some((item) => item.status === "unclaimed")
                 }
-                onClick={() => act("/api/play/items/sell-all")}
+                onClick={sellAllLoot}
                 type="button"
               >
                 <i aria-hidden="true" className="fa fa-usd" /> Sell all
+                {sellAllEarnings ? (
+                  <span
+                    className="sell-all-earnings"
+                    key={sellAllEarnings.animationId}
+                  >
+                    +${sellAllEarnings.amount.toLocaleString()}
+                  </span>
+                ) : null}
               </button>
               {debugEnabled ? (
                 <button
@@ -787,89 +1067,110 @@ export default function GameDashboard({
               <p className="empty-state">You have no unclaimed artwork.</p>
             ) : (
               <div className="item-grid">
-                {unclaimed.map((item) => (
-                  <ItemCard
-                    alreadyOwned={ownedArtworkIds.has(item.artwork_id)}
-                    legendaryAttributes={legendaryAttributes}
-                    permissions={{
-                      canManageItem: true,
-                      canCustomizeCosmetic: false,
-                    }}
-                    researchTarget={researchArtworkIds.has(item.artwork_id)}
-                    styleInventory={player.cardStyleInventory}
-                    actions={
-                      item.status === "for_sale" ? (
-                        <>
-                          <ItemActionButton
-                            icon="fa-shopping-cart"
-                            label={`Purchase for $${Math.floor(
-                              item.values.dealer * dealerPriceMultiplier,
-                            ).toLocaleString()}`}
-                            disabled={pending}
-                            onClick={() =>
-                              act(`/api/play/items/${item._id}/purchase`)
-                            }
-                          />
-                          <ItemActionButton
-                            icon="fa-times"
-                            label="Decline dealer offer"
-                            disabled={pending}
-                            onClick={() =>
-                              act(`/api/play/items/${item._id}/decline`)
-                            }
-                          />
-                          {archiveAction(item)}
-                        </>
-                      ) : (
-                        <>
-                          <ItemActionButton
-                            icon="fa-plus"
-                            label="Add to inventory"
-                            disabled={
-                              pending ||
-                              (inventoryFull && !item.original && !item.vintage)
-                            }
-                            disabledReason={
-                              inventoryFull && !item.original && !item.vintage
-                                ? "Your inventory is currently full."
-                                : undefined
-                            }
-                            onClick={() =>
-                              act(`/api/play/items/${item._id}/claim`)
-                            }
-                          />
-                          <ItemActionButton
-                            icon="fa-usd"
-                            label={`Sell immediately for $${item.values.sell.toLocaleString()}`}
-                            disabled={pending}
-                            onClick={() =>
-                              act(`/api/play/items/${item._id}/sell`)
-                            }
-                          />
-                          <ItemActionButton
-                            icon="fa-share-square"
-                            label="Donate for knowledge"
-                            disabled={pending || item.permanent || item.original}
-                            onClick={() =>
-                              act(`/api/play/items/${item._id}/donate`)
-                            }
-                          />
-                          <ItemActionButton
-                            icon="fa-times"
-                            label="Decline and remove from game"
-                            disabled={pending}
-                            onClick={() =>
-                              act(`/api/play/items/${item._id}/decline`)
-                            }
-                          />
-                          {archiveAction(item)}
-                        </>
-                      )
-                    }
-                    item={item}
-                    key={getItemCardKey(item)}
-                  />
-                ))}
+                {unclaimed.map((item) => {
+                  const revealIndex = revealedLootIds.indexOf(item._id);
+                  return (
+                    <div
+                      className={
+                        revealIndex >= 0 ? "loot-item-reveal" : undefined
+                      }
+                      key={item._id}
+                      style={
+                        revealIndex >= 0
+                          ? { animationDelay: `${revealIndex * 110}ms` }
+                          : undefined
+                      }
+                    >
+                      <ItemCard
+                        alreadyOwned={ownedArtworkIds.has(item.artwork_id)}
+                        legendaryAttributes={legendaryAttributes}
+                        permissions={{
+                          canManageItem: true,
+                          canCustomizeCosmetic: false,
+                        }}
+                        researchTarget={researchArtworkIds.has(item.artwork_id)}
+                        styleInventory={player.cardStyleInventory}
+                        actions={
+                          item.status === "for_sale" ? (
+                            <>
+                              <ItemActionButton
+                                icon="fa-shopping-cart"
+                                label={`Purchase for $${Math.floor(
+                                  item.values.dealer * dealerPriceMultiplier,
+                                ).toLocaleString()}`}
+                                disabled={pending}
+                                onClick={() =>
+                                  act(`/api/play/items/${item._id}/purchase`)
+                                }
+                              />
+                              <ItemActionButton
+                                icon="fa-times"
+                                label="Decline dealer offer"
+                                disabled={pending}
+                                onClick={() =>
+                                  act(`/api/play/items/${item._id}/decline`)
+                                }
+                              />
+                              {archiveAction(item)}
+                            </>
+                          ) : (
+                            <>
+                              <ItemActionButton
+                                icon="fa-plus"
+                                label="Add to inventory"
+                                disabled={
+                                  pending ||
+                                  (inventoryFull &&
+                                    !item.original &&
+                                    !item.vintage)
+                                }
+                                disabledReason={
+                                  inventoryFull &&
+                                  !item.original &&
+                                  !item.vintage
+                                    ? "Your inventory is currently full."
+                                    : undefined
+                                }
+                                onClick={() =>
+                                  act(`/api/play/items/${item._id}/claim`)
+                                }
+                              />
+                              <ItemActionButton
+                                icon="fa-usd"
+                                label={`Sell immediately for $${item.values.sell.toLocaleString()}`}
+                                disabled={pending}
+                                onClick={() =>
+                                  act(`/api/play/items/${item._id}/sell`)
+                                }
+                              />
+                              <ItemActionButton
+                                icon="fa-share-square"
+                                label="Donate for knowledge"
+                                disabled={
+                                  pending || item.permanent || item.original
+                                }
+                                onClick={() =>
+                                  act(`/api/play/items/${item._id}/donate`)
+                                }
+                              />
+                              <ItemActionButton
+                                icon="fa-times"
+                                label="Decline and remove from game"
+                                disabled={pending}
+                                onClick={() =>
+                                  act(`/api/play/items/${item._id}/decline`)
+                                }
+                              />
+                              {archiveAction(item)}
+                            </>
+                          )
+                        }
+                        item={item}
+                        key={getItemCardKey(item)}
+                      />
+                    </div>
+                  );
+                })}
               </div>
             )}
           </section>
@@ -1278,6 +1579,18 @@ export default function GameDashboard({
           <ActionResultDialog
             result={actionDialog}
             onClose={() => setActionDialog(null)}
+          />
+        ) : null}
+        {vintageDialogOpen ? (
+          <VintagePlaythroughDialog
+            items={vintageCandidates}
+            onClose={() => setVintageDialogOpen(false)}
+            onComplete={(message) => {
+              setVintageDialogOpen(false);
+              setNotice(message);
+              void addNotification(message, "success");
+              router.refresh();
+            }}
           />
         ) : null}
         {galleryItemDetails ? (
@@ -2822,6 +3135,22 @@ function ProfileFact({
 
 function getItemCardKey(item: HydratedGameItem): string {
   return `${item._id}:${JSON.stringify(item)}`;
+}
+
+function CrateCardArtwork({
+  quality,
+}: {
+  quality: LootCrateOffer["quality"];
+}) {
+  return (
+    <span aria-hidden="true" className="crate-card-artwork">
+      <span className="crate-card-glow" />
+      <span className="crate-card-lid" />
+      <span className="crate-card-box">
+        <i className={quality === "daily" ? "fa fa-gift" : "fa fa-cube"} />
+      </span>
+    </span>
+  );
 }
 
 function countdown(milliseconds: number): string {

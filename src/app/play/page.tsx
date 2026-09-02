@@ -13,6 +13,7 @@ import {
   getXpGoal,
   settleGalleryEarnings,
 } from "@/server/collection-gameplay";
+import { getPurchasableCrateOffers } from "@/server/crate-gameplay";
 import { getGameplaySettings } from "@/server/game-settings";
 import {
   getAuthenticationPermission,
@@ -58,7 +59,6 @@ type Player = {
     last_drop: string;
     inventory_cap: number;
     expansion_slots?: number;
-    vintage_count?: number;
     display_cap: number;
     pc_cap?: number;
     repairing_cap?: number;
@@ -132,6 +132,18 @@ export default async function PlayerPage() {
   }
   const adminSession = player.test_account ? await getAdminSession() : null;
   const impersonating = Boolean(adminSession && player.test_account);
+  const crateOffers = (
+    await getPurchasableCrateOffers(database, player.profile.level, config)
+  ).map((offer) => ({
+    id: offer.id,
+    name: offer.name,
+    quality: offer.quality,
+    description: offer.description,
+    highlights: offer.highlights,
+    itemCount: offer.itemCount,
+    cost: offer.cost,
+    levelRequirement: offer.levelRequirement,
+  }));
 
   const consignedAuctions = await database
     .collection<{ item_id: string }>("auctions")
@@ -282,7 +294,9 @@ export default async function PlayerPage() {
       />
       <GameDashboard
         archives={JSON.parse(JSON.stringify(archives))}
+        crateOffers={crateOffers}
         dailyDropCooldownMinutes={config.dailyDropCooldownMinutes}
+        dailyDropCount={config.dailyDropCount}
         debugEnabled={settings.debugEnabled}
         dealerPriceMultiplier={dealerPriceMultiplier}
         items={items.map((item) => ({
@@ -324,8 +338,7 @@ export default async function PlayerPage() {
           lotteryTickets: player.profile.lottery_tickets,
           inventoryCap:
             player.profile.inventory_cap +
-            (player.profile.expansion_slots ?? 0) +
-            (player.profile.vintage_count ?? 0) * 2,
+            (player.profile.expansion_slots ?? 0),
           inventorySlotsUsed,
           lastDrop: player.profile.last_drop,
           displayCap: player.profile.display_cap,
