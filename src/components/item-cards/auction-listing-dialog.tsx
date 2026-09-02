@@ -84,7 +84,14 @@ export default function AuctionListingDialog({
             </h2>
             <span>{item.artwork.artist}</span>
           </div>
-          <i aria-hidden="true" className="fa fa-gavel" />
+          <button
+            aria-label="Close auction consignment dialog"
+            className="reroll-dialog-close"
+            onClick={onClose}
+            type="button"
+          >
+            <i aria-hidden="true" className="fa fa-times" />
+          </button>
         </header>
         <p>
           Set a starting price and optional buy-now price. Auctioning does not
@@ -134,7 +141,6 @@ export default function AuctionListingDialog({
         </label>
         {error ? <p className="auction-dialog-error">{error}</p> : null}
         <footer>
-          <button onClick={onClose} type="button">Cancel</button>
           <button disabled={submitting} type="submit">
             <i aria-hidden="true" className="fa fa-gavel" />{" "}
             {submitting ? "Listing..." : "Start auction"}

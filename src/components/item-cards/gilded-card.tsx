@@ -9,7 +9,13 @@ import {
 import type { ItemCardRendererProps } from "./types";
 
 export default function GildedCard(props: ItemCardRendererProps) {
-  const { item, alreadyOwned, legendaryAttributes, researchTarget } = props;
+  const {
+    item,
+    alreadyOwned,
+    consigned,
+    legendaryAttributes,
+    researchTarget,
+  } = props;
   const legendary = getActiveLegendaryAttribute(item, legendaryAttributes);
   return (
     <div
@@ -68,6 +74,7 @@ export default function GildedCard(props: ItemCardRendererProps) {
         item={item}
         researchTarget={researchTarget}
         alreadyOwned={alreadyOwned}
+        consigned={consigned}
         showMint={false}
       />
       <div className="gilded-card-stats">

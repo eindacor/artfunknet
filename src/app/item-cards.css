@@ -1667,7 +1667,7 @@
   box-shadow:
     inset 0 0 24px var(--rarity-glow),
     0 0 22px var(--rarity-glow);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-orbitron), var(--font-geist-mono), monospace;
 }
 
 .celestial-card-stars {
@@ -1684,6 +1684,59 @@
     109px 97px;
   opacity: 0.55;
   animation: celestial-twinkle 2.3s ease-in-out infinite alternate;
+}
+
+.celestial-card-seasonal {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.celestial-card-seasonal .fa-rocket {
+  position: absolute;
+  top: 118px;
+  right: 8px;
+  color: var(--rarity-light);
+  font-size: 0.9rem;
+  filter: drop-shadow(0 0 5px var(--rarity-color));
+  transform: rotate(-42deg);
+}
+
+.celestial-card-seasonal .asteroid {
+  position: absolute;
+  border: 1px solid var(--rarity-light);
+  border-radius: 45% 55% 48% 52%;
+  background:
+    radial-gradient(circle at 35% 35%, #77809b 0 18%, transparent 20%),
+    #353b52;
+  box-shadow: 0 0 7px var(--rarity-glow);
+}
+
+.celestial-card-seasonal .asteroid-one {
+  top: 82px;
+  left: 13px;
+  width: 13px;
+  height: 11px;
+  transform: rotate(24deg);
+}
+
+.celestial-card-seasonal .asteroid-two {
+  right: 17px;
+  bottom: 92px;
+  width: 10px;
+  height: 9px;
+  transform: rotate(-18deg);
+}
+
+.celestial-card-seasonal .asteroid-three {
+  bottom: 48px;
+  left: 9px;
+  width: 8px;
+  height: 7px;
+  transform: rotate(38deg);
 }
 
 .celestial-card-orbit {
@@ -1729,8 +1782,35 @@
   display: flex;
   justify-content: space-between;
   padding: 0.75rem 1.2rem 0.45rem;
-  font: 0.52rem "Courier New", Courier, monospace;
+  font-size: 0.52rem;
+  font-weight: 700;
   letter-spacing: 0.12em;
+}
+
+.celestial-card-lottery {
+  position: absolute;
+  top: 0.55rem;
+  left: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  border: 1px solid #f2ce64;
+  border-radius: 999px;
+  padding: 0.18rem 0.42rem;
+  background: rgb(4 6 22 / 88%);
+  color: #ffe88a;
+  box-shadow:
+    0 0 0 1px rgb(242 206 100 / 24%),
+    0 0 9px rgb(242 206 100 / 48%);
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  transform: translateX(-50%);
+}
+
+.celestial-card-lottery .fa {
+  color: #f2ce64;
+  font-size: 0.42rem;
 }
 
 .celestial-card-image-frame {
@@ -1758,18 +1838,21 @@
   z-index: 4;
   display: grid;
   gap: 0.28rem;
-  padding: 0.65rem 0.9rem;
+  padding: 0.65rem 0.9rem 1.6rem;
   text-align: center;
 }
 
 .celestial-card h3 {
   color: var(--rarity-light);
-  font-size: 0.95rem;
-  line-height: 1;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+  text-transform: uppercase;
 }
 
 .celestial-card section > p {
-  font-size: 0.62rem;
+  font-size: 0.56rem;
+  letter-spacing: 0.04em;
 }
 
 .celestial-card .render-card-attribute-icons {
@@ -1778,6 +1861,27 @@
 
 .celestial-card .render-card-compact-stats {
   padding-inline: 0.5rem;
+}
+
+.celestial-card-state-icons {
+  position: absolute;
+  z-index: 6;
+  right: 0.9rem;
+  bottom: 0.5rem;
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+  color: var(--rarity-light);
+  font-size: 0.75rem;
+}
+
+.celestial-card-state-icons .fa {
+  filter: drop-shadow(0 0 5px var(--rarity-color));
+}
+
+.celestial-card-state-icons .fa-leaf {
+  color: var(--mint-color);
+  filter: drop-shadow(0 0 5px var(--mint-glow));
 }
 
 .rendered-item-card[data-rarity="legendary"] .celestial-card,

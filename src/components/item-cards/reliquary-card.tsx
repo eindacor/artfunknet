@@ -9,6 +9,7 @@ import type { ItemCardRendererProps } from "./types";
 export default function ReliquaryCard({
   item,
   alreadyOwned,
+  consigned,
   legendaryAttributes,
   researchTarget,
 }: ItemCardRendererProps) {
@@ -57,6 +58,7 @@ export default function ReliquaryCard({
         <ItemStatusBadges
           item={item}
           alreadyOwned={alreadyOwned}
+          consigned={consigned}
           researchTarget={researchTarget}
           showMint={false}
         />

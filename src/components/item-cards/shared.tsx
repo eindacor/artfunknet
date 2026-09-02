@@ -52,6 +52,7 @@ export function ArtworkImage({
 export function ItemStatusBadges({
   item,
   alreadyOwned,
+  consigned = false,
   researchTarget = false,
   collectorSaleLabel = "for sale",
   showFoil = false,
@@ -59,7 +60,7 @@ export function ItemStatusBadges({
   showUnlocked = false,
 }: Pick<
   ItemCardRendererProps,
-  "item" | "alreadyOwned" | "researchTarget"
+  "item" | "alreadyOwned" | "consigned" | "researchTarget"
 > & {
   collectorSaleLabel?: string;
   showFoil?: boolean;
@@ -84,6 +85,9 @@ export function ItemStatusBadges({
       ) : null}
       {researchTarget ? (
         <span className="research-sought-indicator">sought</span>
+      ) : null}
+      {consigned ? (
+        <span className="auction-consigned-indicator">consigned</span>
       ) : null}
       {item.status === "unclaimed" && alreadyOwned ? (
         <span className="artwork-ownership-indicator owned">owned</span>

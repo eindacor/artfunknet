@@ -675,14 +675,13 @@ body {
 
 .auction-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr));
   gap: 1.2rem;
 }
 
 .auction-lot {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 170px;
-  min-height: 310px;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   border: 1px solid #ccc;
   background: #fff;
@@ -692,13 +691,24 @@ body {
 .auction-lot-card {
   display: grid;
   place-items: center;
+  height: 430px;
   min-width: 0;
+  padding: 1.25rem;
   overflow: hidden;
   background: #19171b;
 }
 
 .auction-lot-card .rendered-item-card {
-  transform: scale(0.68);
+  max-width: 100%;
+}
+
+.auction-lot-card
+  :is(
+    .rendered-item-card-postcard,
+    .rendered-item-card-gilded,
+    .rendered-item-card-reliquary
+  ) {
+  transform: scale(0.9);
   transform-origin: center;
 }
 
@@ -740,6 +750,7 @@ body {
 
 .auction-lot-details dl {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.45rem;
   margin: 0;
 }
@@ -787,12 +798,19 @@ body {
 }
 
 .auction-dialog {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
   width: min(520px, calc(100vw - 2rem));
+  max-width: calc(100vw - 2rem);
   max-height: calc(100vh - 2rem);
-  border: 0;
+  margin: auto;
+  overflow: auto;
+  border: 1px solid #bcb7aa;
   padding: 0;
+  background: #f4f1e9;
   color: #4e4850;
-  font-family: Courier, monospace;
+  font-family: Georgia, "Times New Roman", serif;
   box-shadow: 0 24px 70px rgb(0 0 0 / 45%);
 }
 
@@ -805,7 +823,9 @@ body {
   display: grid;
   gap: 1rem;
   padding: 1.4rem;
-  background: #fff;
+  background:
+    linear-gradient(135deg, rgb(255 51 204 / 5%), transparent 42%),
+    #f4f1e9;
 }
 
 .auction-dialog header {
@@ -884,7 +904,7 @@ body {
   }
 
   .auction-lot-card {
-    min-height: 310px;
+    padding: 1rem 0.5rem;
   }
 }
 
@@ -1055,6 +1075,23 @@ body {
   border-radius: 999px;
   padding: 0.08rem 0.35rem;
   color: #65408f;
+  font-family: Courier, monospace;
+  font-size: 0.55rem;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.auction-consigned-indicator {
+  display: inline-flex;
+  align-items: center;
+  width: max-content;
+  border: 1px solid #8a5a18;
+  border-radius: 999px;
+  padding: 0.08rem 0.35rem;
+  color: #8a5a18;
   font-family: Courier, monospace;
   font-size: 0.55rem;
   font-style: normal;

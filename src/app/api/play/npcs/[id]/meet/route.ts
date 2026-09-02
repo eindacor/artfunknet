@@ -31,6 +31,7 @@ import {
 } from "@/server/gameplay";
 import {
   AUCTIONEER_BASE_PRIVATE_LOTS,
+  AUCTION_HOUSE_OWNER_ID,
   createAuction,
   PRIVATE_AUCTION_DURATION_MINUTES,
 } from "@/server/auction-gameplay";
@@ -572,7 +573,7 @@ export async function POST(
       );
       const generated = await generateDailyDrop(
         database,
-        player._id,
+        AUCTION_HOUSE_OWNER_ID,
         player.profile.level,
         {
           now,

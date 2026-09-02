@@ -42,6 +42,8 @@ type Player = {
     entry_fee: string;
     last_drop: string;
     inventory_cap: number;
+    expansion_slots?: number;
+    vintage_count?: number;
     display_cap: number;
     auction_cap: number;
     completed_quests?: number;
@@ -85,14 +87,34 @@ export default async function PlayerPage() {
   const adminSession = player.test_account ? await getAdminSession() : null;
   const impersonating = Boolean(adminSession && player.test_account);
 
+  const consignedAuctions = await database
+    .collection<{ item_id: string }>("auctions")
+    .find({ seller_id: player._id })
+    .project<{ item_id: string }>({ item_id: 1 })
+    .toArray();
+  const consignedItemIds = consignedAuctions.map((auction) => auction.item_id);
   const rawItems = await database
     .collection<GameItem>("items")
     .find({
       owner: player._id,
-      status: { $in: ["unclaimed", "for_sale", "claimed", "displayed"] },
+      $or: [
+        { status: { $in: ["unclaimed", "for_sale", "claimed", "displayed"] } },
+        { _id: { $in: consignedItemIds }, status: "auctioned" },
+      ],
     })
     .sort({ date_created: -1 })
     .toArray();
+  const inventorySlotsUsed = await database
+    .collection<GameItem>("items")
+    .countDocuments({
+      owner: player._id,
+      $or: [
+        { status: { $in: ["claimed", "displayed"] } },
+        { _id: { $in: consignedItemIds }, status: "auctioned" },
+      ],
+      original: { $ne: true },
+      vintage: { $ne: true },
+    });
   const items = await hydrateGameItems(database, rawItems);
   const displayedItems = items.filter((item) => item.status === "displayed");
   const galleryRates = await calculateGalleryRates(
@@ -214,7 +236,11 @@ export default async function PlayerPage() {
           level: player.profile.level,
           xp: player.profile.xp,
           lotteryTickets: player.profile.lottery_tickets,
-          inventoryCap: player.profile.inventory_cap,
+          inventoryCap:
+            player.profile.inventory_cap +
+            (player.profile.expansion_slots ?? 0) +
+            (player.profile.vintage_count ?? 0) * 2,
+          inventorySlotsUsed,
           lastDrop: player.profile.last_drop,
           displayCap: player.profile.display_cap,
           xpGoal: getXpGoal(player.profile.level),

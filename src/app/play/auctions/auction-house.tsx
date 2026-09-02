@@ -273,6 +273,7 @@ export default function AuctionHouse({
               <div className="auction-lot-card">
                 <ItemCard
                   alreadyOwned={auction.owned}
+                  consigned={auction.seller_id === playerId}
                   interactive
                   item={auction.item}
                   legendaryAttributes={legendaryAttributes}
@@ -432,7 +433,14 @@ function BidDialog({
             <h2>{auction.item.artwork.title}</h2>
             <span>{auction.item.artwork.artist}</span>
           </div>
-          <i aria-hidden="true" className="fa fa-gavel" />
+          <button
+            aria-label="Close bidding dialog"
+            className="reroll-dialog-close"
+            onClick={onClose}
+            type="button"
+          >
+            <i aria-hidden="true" className="fa fa-times" />
+          </button>
         </header>
         <p>
           Available funds: <strong>${available.toLocaleString()}</strong>
@@ -457,7 +465,6 @@ function BidDialog({
         </label>
         {error ? <p className="auction-dialog-error">{error}</p> : null}
         <footer>
-          <button onClick={onClose} type="button">Cancel</button>
           {auction.buy_now !== null ? (
             <button
               disabled={submitting || available < auction.buy_now}

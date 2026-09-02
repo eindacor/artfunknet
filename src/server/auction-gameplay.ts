@@ -10,6 +10,7 @@ import { createPlayerNotification } from "./player-notifications";
 export const PUBLIC_AUCTION_DURATIONS = [60, 360, 720, 1440] as const;
 export const PRIVATE_AUCTION_DURATION_MINUTES = 5;
 export const AUCTIONEER_BASE_PRIVATE_LOTS = 4;
+export const AUCTION_HOUSE_OWNER_ID = "system:auction-house";
 
 export type Auction = {
   _id: string;

@@ -17,6 +17,7 @@ export default function ItemCard({
   forceRendererId,
   legendaryAttributes,
   alreadyOwned = false,
+  consigned = false,
   interactive = true,
   permissions = {
     canManageItem: false,
@@ -88,6 +89,7 @@ export default function ItemCard({
       >
         <Renderer
           alreadyOwned={alreadyOwned}
+          consigned={consigned}
           item={{ ...currentItem, card_renderer: itemRendererId }}
           legendaryAttributes={legendaryAttributes}
           researchTarget={researchTarget}

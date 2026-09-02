@@ -32,6 +32,7 @@ export type ItemCardRendererProps = {
   item: HydratedGameItem;
   legendaryAttributes: CardLegendaryAttribute[];
   alreadyOwned: boolean;
+  consigned?: boolean;
   researchTarget?: boolean;
 };
 

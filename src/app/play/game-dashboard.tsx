@@ -39,6 +39,7 @@ type PlayerView = {
   xp: number;
   lotteryTickets: number;
   inventoryCap: number;
+  inventorySlotsUsed: number;
   displayCap: number;
   lastDrop: string;
   xpGoal: number;
@@ -190,7 +191,10 @@ export default function GameDashboard({
     [items],
   );
   const inventory = useMemo(
-    () => items.filter((item) => item.status === "claimed"),
+    () =>
+      items.filter(
+        (item) => item.status === "claimed" || item.status === "auctioned",
+      ),
     [items],
   );
   const displayed = useMemo(
@@ -203,7 +207,9 @@ export default function GameDashboard({
         items
           .filter(
             (item) =>
-              item.status === "claimed" || item.status === "displayed",
+              item.status === "claimed" ||
+              item.status === "displayed" ||
+              item.status === "auctioned",
           )
           .map((item) => item.artwork_id),
       ),
@@ -214,6 +220,7 @@ export default function GameDashboard({
     [quests],
   );
   const ownedCount = inventory.length + displayed.length;
+  const inventoryFull = player.inventorySlotsUsed >= player.inventoryCap;
   const nextDrop =
     new Date(player.lastDrop).getTime() +
     dailyDropCooldownMinutes * 60 * 1000;
@@ -506,7 +513,10 @@ export default function GameDashboard({
                 />
                 <ProfileRow
                   label="inventory space available:"
-                  value={Math.max(player.inventoryCap - ownedCount, 0)}
+                  value={Math.max(
+                    player.inventoryCap - player.inventorySlotsUsed,
+                    0,
+                  )}
                 />
                 <ProfileRow
                   label="items exhibited:"
@@ -618,7 +628,15 @@ export default function GameDashboard({
                           <ItemActionButton
                             icon="fa-plus"
                             label="Add to inventory"
-                            disabled={pending}
+                            disabled={
+                              pending ||
+                              (inventoryFull && !item.original && !item.vintage)
+                            }
+                            disabledReason={
+                              inventoryFull && !item.original && !item.vintage
+                                ? "Your inventory is currently full."
+                                : undefined
+                            }
                             onClick={() =>
                               act(`/api/play/items/${item._id}/claim`)
                             }
@@ -672,6 +690,8 @@ export default function GameDashboard({
               styleInventory={player.cardStyleInventory}
               title="inventory"
               actions={(item) => {
+                if (item.status === "auctioned") return null;
+
                 const displayPermission = getDisplayPermission(
                   item,
                   items,
@@ -2153,12 +2173,14 @@ function InventorySection({
           {items.map((item) => (
             <ItemCard
               actions={actions(item)}
+              consigned={item.status === "auctioned"}
               item={item}
               legendaryAttributes={legendaryAttributes}
               key={getItemCardKey(item)}
               permissions={{
                 canManageItem: true,
-                canCustomizeCosmetic: Boolean(canCustomize),
+                canCustomizeCosmetic:
+                  Boolean(canCustomize) && item.status !== "auctioned",
               }}
               researchTarget={researchArtworkIds.has(item.artwork_id)}
               styleInventory={styleInventory}

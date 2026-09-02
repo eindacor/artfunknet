@@ -9,6 +9,7 @@ import type { ItemCardRendererProps } from "./types";
 export default function BlueprintCard({
   item,
   alreadyOwned,
+  consigned,
   researchTarget,
 }: ItemCardRendererProps) {
   return (
@@ -33,6 +34,7 @@ export default function BlueprintCard({
         <ItemStatusBadges
           item={item}
           alreadyOwned={alreadyOwned}
+          consigned={consigned}
           researchTarget={researchTarget}
         />
         <h3>{item.artwork.title}</h3>

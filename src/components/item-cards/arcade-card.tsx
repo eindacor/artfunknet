@@ -6,7 +6,7 @@ import {
 import type { ItemCardRendererProps } from "./types";
 
 export default function ArcadeCard(props: ItemCardRendererProps) {
-  const { item, alreadyOwned, researchTarget } = props;
+  const { item, alreadyOwned, consigned, researchTarget } = props;
   return (
     <div className={`render-card arcade-card arcade-${item.artwork.rarity}`}>
       <div className="arcade-card-grid" />
@@ -22,6 +22,7 @@ export default function ArcadeCard(props: ItemCardRendererProps) {
         <ItemStatusBadges
           item={item}
           alreadyOwned={alreadyOwned}
+          consigned={consigned}
           researchTarget={researchTarget}
         />
         <h3>{item.artwork.title}</h3>
