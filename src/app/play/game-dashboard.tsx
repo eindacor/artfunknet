@@ -6,7 +6,10 @@ import { useRouter } from "next/navigation";
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
 import AuctionListingDialog from "@/components/item-cards/auction-listing-dialog";
 import ArtStyleDialog from "@/components/item-cards/art-style-dialog";
-import type { CardStyleInventory } from "@/components/item-cards/catalog";
+import {
+  getCardCosmetic,
+  type CardStyleInventory,
+} from "@/components/item-cards/catalog";
 import ItemCard from "@/components/item-cards/item-card";
 import MintLossConfirmationDialog from "@/components/item-cards/mint-loss-confirmation-dialog";
 import { resolveCardRendererId } from "@/components/item-cards/selection";
@@ -17,6 +20,11 @@ import type { GalleryRates } from "@/server/collection-gameplay";
 import type { ArtHistorianQuestView } from "@/server/art-historian-gameplay";
 import type { GameItem } from "@/server/gameplay";
 import type { HydratedGameItem } from "@/server/item-artwork";
+import {
+  canAffordItemLevelUp,
+  getItemLevelUpCost,
+  ITEM_LEVEL_MAX,
+} from "@/server/item-leveling";
 import { getDisplayPermission } from "@/server/item-permissions";
 import { getRerollMinimum } from "@/server/item-reroll";
 import {
@@ -68,6 +76,7 @@ type NpcSpawnOption = {
 };
 
 type LegendaryAttributeView = CardLegendaryAttribute;
+type KnowledgeBalance = PlayerView["knowledge"];
 
 type ArtworkOfferItem = HydratedGameItem & {
   alreadyOwned: boolean;
@@ -122,6 +131,8 @@ export default function GameDashboard({
   initialNotifications,
   impersonating,
   canRerollDisplayed,
+  levelUpDiscountAvailable,
+  levelUpConditionMinimum,
   legendaryAttributes,
   npcSpawnOptions,
   dailyDropCooldownMinutes,
@@ -136,6 +147,8 @@ export default function GameDashboard({
   initialNotifications: PlayerNotification[];
   impersonating: boolean;
   canRerollDisplayed: boolean;
+  levelUpDiscountAvailable: boolean;
+  levelUpConditionMinimum: number;
   legendaryAttributes: LegendaryAttributeView[];
   npcSpawnOptions: NpcSpawnOption[];
   dailyDropCooldownMinutes: number;
@@ -176,6 +189,7 @@ export default function GameDashboard({
   const [rerollSession, setRerollSession] = useState<{
     item: HydratedGameItem;
     bankBalance: number;
+    knowledge: KnowledgeBalance;
   } | null>(null);
   const [galleryItemDetails, setGalleryItemDetails] =
     useState<HydratedGameItem | null>(null);
@@ -443,6 +457,7 @@ export default function GameDashboard({
               setRerollSession({
                 item,
                 bankBalance: player.bankBalance,
+                knowledge: player.knowledge,
               })
             }
           />
@@ -818,6 +833,7 @@ export default function GameDashboard({
                         setRerollSession({
                           item,
                           bankBalance: player.bankBalance,
+                          knowledge: player.knowledge,
                         })
                       }
                     />
@@ -1036,6 +1052,9 @@ export default function GameDashboard({
           <RerollDialog
             bankBalance={rerollSession.bankBalance}
             item={rerollSession.item}
+            knowledge={rerollSession.knowledge}
+            levelUpDiscountAvailable={levelUpDiscountAvailable}
+            levelUpConditionMinimum={levelUpConditionMinimum}
             legendaryAttributes={legendaryAttributes}
             onClose={() => setRerollSession(null)}
             onNotify={addNotification}
@@ -1043,7 +1062,14 @@ export default function GameDashboard({
               setRerollSession({
                 item,
                 bankBalance: nextBankBalance,
+                knowledge: rerollSession.knowledge,
               });
+              router.refresh();
+            }}
+            onLeveled={(item, knowledge) => {
+              setRerollSession((current) =>
+                current ? { ...current, item, knowledge } : current,
+              );
               router.refresh();
             }}
             onSelected={(item) => {
@@ -1793,16 +1819,24 @@ function ArtworkOfferDialog({
 function RerollDialog({
   item,
   bankBalance,
+  knowledge,
+  levelUpDiscountAvailable,
+  levelUpConditionMinimum,
   legendaryAttributes,
   onClose,
+  onLeveled,
   onNotify,
   onRerolled,
   onSelected,
 }: {
   item: HydratedGameItem;
   bankBalance: number;
+  knowledge: KnowledgeBalance;
+  levelUpDiscountAvailable: boolean;
+  levelUpConditionMinimum: number;
   legendaryAttributes: LegendaryAttributeView[];
   onClose: () => void;
+  onLeveled: (item: HydratedGameItem, knowledge: KnowledgeBalance) => void;
   onNotify: (
     message: string,
     kind: PlayerNotificationKind,
@@ -1824,6 +1858,18 @@ function RerollDialog({
     onConfirm: () => void;
   } | null>(null);
   const canAfford = bankBalance >= item.reroll_cost;
+  const levelUpDiscounted =
+    levelUpDiscountAvailable && item.condition > levelUpConditionMinimum;
+  const levelUpCost = getItemLevelUpCost(
+    item.artwork.rarity,
+    item.level,
+    levelUpDiscounted,
+  );
+  const canAffordLevelUp = canAffordItemLevelUp(knowledge, levelUpCost);
+  const atMaximumLevel = item.level >= ITEM_LEVEL_MAX;
+  const appliedStyle = getCardCosmetic(item.card_renderer ?? "");
+  const recoverableStyle =
+    appliedStyle?.id === "museum" ? undefined : appliedStyle;
   const eligibleLegendaryAttributes = legendaryAttributes.filter(
     (attribute) =>
       attribute.active &&
@@ -1917,6 +1963,47 @@ function RerollDialog({
         rerollError instanceof Error
           ? rerollError.message
           : "The reroll could not be completed.";
+      setError(message);
+      await onNotify(message, "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function levelUp() {
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const response = await fetch(`/api/play/items/${item._id}/level`, {
+        method: "POST",
+      });
+      const body = (await response.json()) as {
+        error?: string;
+        item?: GameItem;
+        knowledge?: KnowledgeBalance;
+        message?: string;
+      };
+      if (!response.ok || !body.item || !body.knowledge) {
+        throw new Error(body.error ?? "The level up could not be completed.");
+      }
+
+      const nextItem: HydratedGameItem = {
+        ...item,
+        ...body.item,
+        artwork: item.artwork,
+      };
+      onLeveled(nextItem, body.knowledge);
+      const message =
+        body.message ??
+        `${item.artwork.title} reached level ${nextItem.level}.`;
+      setNotice(message);
+      await onNotify(message, "success");
+    } catch (levelError) {
+      const message =
+        levelError instanceof Error
+          ? levelError.message
+          : "The level up could not be completed.";
       setError(message);
       await onNotify(message, "error");
     } finally {
@@ -2065,6 +2152,87 @@ function RerollDialog({
             <dd>${(item.reroll_spent ?? 0).toLocaleString()}</dd>
           </div>
         </dl>
+
+        <section className="item-level-up">
+          <header>
+            <div>
+              <p>Collection development</p>
+              <h3>
+                Level {item.level} <span>/ {ITEM_LEVEL_MAX}</span>
+              </h3>
+            </div>
+            {!atMaximumLevel ? (
+              <strong>Next: level {item.level + 1}</strong>
+            ) : (
+              <strong>Maximum level</strong>
+            )}
+          </header>
+          <p className="item-level-up-description">
+            Spend Knowledge to increase this item&apos;s value and improve the
+            minimum attraction values available on future rerolls.
+          </p>
+          {!atMaximumLevel ? (
+            <>
+              {levelUpDiscounted ? (
+                <p className="item-level-up-discount">
+                  <i aria-hidden="true" className="fa fa-wrench" />
+                  Preservationist benefit: Knowledge cost reduced by 20%.
+                </p>
+              ) : null}
+              <div className="item-level-up-costs">
+                {Object.entries(KNOWLEDGE_LABELS).map(
+                  ([type, label], index) => {
+                    const knowledgeType = type as keyof KnowledgeBalance;
+                    const required = levelUpCost[knowledgeType];
+                    const available = knowledge[knowledgeType];
+                    const sufficient = available >= required;
+                    return (
+                      <div
+                        className={sufficient ? "" : "insufficient"}
+                        key={type}
+                      >
+                        <span className={`knowledge-tier-${index}`}>
+                          {label}
+                        </span>
+                        <strong>
+                          {required.toLocaleString()} /{" "}
+                          {available.toLocaleString()}
+                        </strong>
+                        <small>required / available</small>
+                      </div>
+                    );
+                  },
+                )}
+              </div>
+              {recoverableStyle ? (
+                <p className="item-level-up-style">
+                  <i aria-hidden="true" className="fa fa-clone" />
+                  The {recoverableStyle.name} style will be recovered as a
+                  reusable consumable, and this item will return to Museum
+                  Label.
+                </p>
+              ) : null}
+              <button
+                className="item-level-up-button"
+                disabled={busy || !canAffordLevelUp}
+                onClick={() => void levelUp()}
+                type="button"
+              >
+                <i aria-hidden="true" className="fa fa-level-up" />
+                {busy ? "Applying level..." : `Level up to ${item.level + 1}`}
+              </button>
+              {!canAffordLevelUp ? (
+                <p className="item-level-up-unavailable">
+                  You need more Knowledge in every required classification.
+                </p>
+              ) : null}
+            </>
+          ) : (
+            <p className="item-level-up-maximum">
+              This artwork has reached the maximum development level.
+            </p>
+          )}
+        </section>
 
         {eligibleLegendaryAttributes.length > 0 ? (
           <fieldset className="legendary-selector">

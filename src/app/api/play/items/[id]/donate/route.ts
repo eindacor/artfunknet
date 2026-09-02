@@ -66,6 +66,13 @@ export async function POST(
       owner: auth.session.playerId,
       status: item.status,
       level: item.level,
+      foil: item.foil,
+      unlocked: item.unlocked,
+      mint: item.mint,
+      mint_value_multiplier: item.mint_value_multiplier,
+      seasonal: item.seasonal,
+      lottery: item.lottery,
+      vintage: item.vintage,
       permanent: { $ne: true },
       original: { $ne: true },
       ...rendererFilter,
@@ -77,14 +84,16 @@ export async function POST(
     );
   }
 
-  const knowledge = calculateDonationKnowledge({
-    rarity: hydratedItem.artwork.rarity,
-    level: item.level,
-    randomRoll: Math.random(),
-  });
-  const style = getCardCosmetic(item.card_renderer ?? "");
+  const style = getCardCosmetic(donatedItem.card_renderer ?? "");
   const recoveredStyle =
     style && style.id !== "museum" ? style : undefined;
+  const knowledge = calculateDonationKnowledge({
+    rarity: hydratedItem.artwork.rarity,
+    level: donatedItem.level,
+    valueProperties: donatedItem,
+    hasArtStyle: Boolean(recoveredStyle),
+    randomRoll: Math.random(),
+  });
   const increments: Record<string, number> = Object.fromEntries([
     ...KNOWLEDGE_TYPES.map((type) => [
       `profile.knowledge.${type}`,

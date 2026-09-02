@@ -744,17 +744,7 @@ export function calculateItemValues(
     mint * 0.4 +
     mint * 0.4 * item.condition +
     mint * 0.2 * (averageRating * 0.2);
-  if (item.foil) actual *= 5;
-  if (item.seasonal) {
-    actual *= { common: 2, uncommon: 2, rare: 4, legendary: 10, masterpiece: 10 }[
-      artwork.rarity
-    ];
-  }
-  if (item.lottery) actual *= 10 + item.lottery;
-  if (item.original) actual *= 7;
-  if (item.vintage) actual *= 2;
-  if (item.unlocked) actual *= 1.5;
-  if (item.mint) actual *= item.mint_value_multiplier;
+  actual *= getItemValuePropertyMultiplier(item, artwork.rarity);
   actual *= 1 + item.level * 0.01;
   actual = Math.floor(actual);
 
@@ -766,4 +756,39 @@ export function calculateItemValues(
     collector: Math.floor(actual * 1.2),
     dealer: Math.floor(actual * 0.9),
   };
+}
+
+type ItemValueProperties = Pick<
+  GameItem,
+  | "foil"
+  | "seasonal"
+  | "lottery"
+  | "original"
+  | "vintage"
+  | "unlocked"
+  | "mint"
+  | "mint_value_multiplier"
+>;
+
+const SEASONAL_VALUE_MULTIPLIERS: Record<ArtworkRarity, number> = {
+  common: 2,
+  uncommon: 2,
+  rare: 4,
+  legendary: 10,
+  masterpiece: 10,
+};
+
+export function getItemValuePropertyMultiplier(
+  item: ItemValueProperties,
+  rarity: ArtworkRarity,
+): number {
+  let multiplier = 1;
+  if (item.foil) multiplier *= 5;
+  if (item.seasonal) multiplier *= SEASONAL_VALUE_MULTIPLIERS[rarity];
+  if (item.lottery) multiplier *= 10 + item.lottery;
+  if (item.original) multiplier *= 7;
+  if (item.vintage) multiplier *= 2;
+  if (item.unlocked) multiplier *= 1.5;
+  if (item.mint) multiplier *= item.mint_value_multiplier;
+  return multiplier;
 }

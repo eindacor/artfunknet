@@ -11,6 +11,7 @@ import { getGameplaySettings } from "@/server/game-settings";
 import { getDatabase } from "@/server/mongodb";
 import type { GameItem, ItemAttribute } from "@/server/gameplay";
 import { hydrateGameItems } from "@/server/item-artwork";
+import { PRESERVATIONIST_ATTRIBUTE_ID } from "@/server/item-leveling";
 import { getLegendaryAttributes } from "@/server/legendary-attributes";
 import {
   getGalleryNpcs,
@@ -162,6 +163,22 @@ export default async function PlayerPage() {
     typeof rerollDiscount?.parameters.cost_multiplier === "number"
       ? rerollDiscount.parameters.cost_multiplier
       : 1;
+  const levelUpDiscount = legendaryAttributes.find(
+    (attribute) =>
+      displayedLegendaryIds.has(attribute._id) &&
+      attribute.active &&
+      attribute.code === "LEVEL_UP_COST_REDUCTION",
+  );
+  const levelUpDiscountAvailable = Boolean(
+    levelUpDiscount &&
+      npcs.some(
+        (npc) => npc.attribute_id === PRESERVATIONIST_ATTRIBUTE_ID,
+      ),
+  );
+  const levelUpConditionMinimum =
+    typeof levelUpDiscount?.parameters.condition_minimum === "number"
+      ? levelUpDiscount.parameters.condition_minimum
+      : 0.8;
   const dealerDiscount = legendaryAttributes.find(
     (attribute) =>
       displayedLegendaryIds.has(attribute._id) &&
@@ -197,6 +214,8 @@ export default async function PlayerPage() {
         initialNotifications={notifications}
         impersonating={impersonating}
         canRerollDisplayed={canRerollDisplayed}
+        levelUpDiscountAvailable={levelUpDiscountAvailable}
+        levelUpConditionMinimum={levelUpConditionMinimum}
         legendaryAttributes={legendaryAttributes.map((attribute) => ({
           id: attribute._id,
           title: attribute.title,

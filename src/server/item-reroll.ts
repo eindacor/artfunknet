@@ -3,10 +3,10 @@ import type {
   GameItem,
   LootData,
 } from "./gameplay.ts";
+import { ITEM_LEVEL_MAX } from "./item-level-constants.ts";
 
 export type RerollAttributeType = "unlocked" | "locked" | "special";
 
-const MAX_ITEM_LEVEL = 10;
 const REROLL_COEFFICIENTS: Record<ArtworkRarity, number> = {
   common: 1.1,
   uncommon: 1.11,
@@ -44,8 +44,8 @@ export function getRerollMinimum(
 
   const remaining = 1 - minimum;
   const levelScale =
-    (Math.min(Math.max(item.level, 1), MAX_ITEM_LEVEL) - 1) /
-    (MAX_ITEM_LEVEL - 1);
+    (Math.min(Math.max(item.level, 1), ITEM_LEVEL_MAX) - 1) /
+    (ITEM_LEVEL_MAX - 1);
   return minimum + remaining * levelScale * 0.5;
 }
 

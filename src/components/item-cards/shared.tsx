@@ -16,10 +16,19 @@ export function ratingColorOnDark(value: number): string {
   return `rgb(255, ${light}, ${light})`;
 }
 
+function ratingColorOnDarkGreen(value: number): string {
+  const clampedValue = Math.min(Math.max(value, 0), 1);
+  const red = Math.round(255 - 87 * clampedValue);
+  const green = Math.round(159 + 88 * clampedValue);
+  const blue = Math.round(90 + 134 * clampedValue);
+  return `rgb(${red}, ${green}, ${blue})`;
+}
+
 function ratingStyle(value: number): CSSProperties {
   return {
     "--rating-color-light": ratingColor(value),
     "--rating-color-dark": ratingColorOnDark(value),
+    "--rating-color-abstract": ratingColorOnDarkGreen(value),
   } as CSSProperties;
 }
 

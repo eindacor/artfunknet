@@ -2090,6 +2090,163 @@ body {
   animation: reroll-spend-pop 1.4s ease-out forwards;
 }
 
+.item-level-up {
+  display: grid;
+  gap: 0.8rem;
+  border: 1px solid #b9ab8e;
+  padding: 1rem;
+  background:
+    linear-gradient(135deg, rgb(217 192 129 / 16%), transparent 42%),
+    #fffdf7;
+  box-shadow: 0 6px 18px rgb(45 38 27 / 8%);
+}
+
+.item-level-up header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid #ded5c2;
+  padding-bottom: 0.75rem;
+}
+
+.item-level-up header p,
+.item-level-up header h3,
+.item-level-up-description,
+.item-level-up-discount,
+.item-level-up-style,
+.item-level-up-unavailable,
+.item-level-up-maximum {
+  margin: 0;
+}
+
+.item-level-up header p {
+  color: #676158;
+  font: 700 0.62rem Courier, "Courier New", monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.item-level-up header h3 {
+  margin-top: 0.15rem;
+  color: #171717;
+  font: 700 1.35rem Georgia, "Times New Roman", serif;
+}
+
+.item-level-up header h3 span {
+  color: #857e71;
+  font-size: 0.8em;
+}
+
+.item-level-up header > strong {
+  color: var(--rarity-dark);
+  font: 700 0.72rem Courier, "Courier New", monospace;
+  text-transform: uppercase;
+}
+
+.item-level-up-description {
+  color: #514d46;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.item-level-up-discount,
+.item-level-up-style {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  border-left: 3px solid #b68b27;
+  padding: 0.6rem 0.7rem;
+  background: #f8f0d9;
+  color: #5d491b;
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+.item-level-up-style {
+  border-left-color: #a4a7ad;
+  background: #f0f1f3;
+  color: #45484e;
+}
+
+.item-level-up :is(.item-level-up-discount, .item-level-up-style) i {
+  margin-top: 0.1rem;
+}
+
+.item-level-up-costs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.item-level-up-costs > div {
+  display: grid;
+  gap: 0.15rem;
+  border: 1px solid #d5cebf;
+  padding: 0.65rem;
+  background: #fff;
+}
+
+.item-level-up-costs > div.insufficient {
+  border-color: #c52323;
+  background: #fff4f3;
+}
+
+.item-level-up-costs span,
+.item-level-up-costs small {
+  color: #676158;
+  font: 700 0.58rem Courier, "Courier New", monospace;
+  text-transform: uppercase;
+}
+
+.item-level-up-costs strong {
+  color: #171717;
+  font-size: 0.88rem;
+}
+
+.item-level-up-costs .insufficient strong {
+  color: #c52323;
+}
+
+.item-level-up-button {
+  justify-self: start;
+  border: 1px solid #8b6716;
+  padding: 0.65rem 0.85rem;
+  background: #c99a2e;
+  color: #17120a;
+  font: 700 0.72rem Courier, "Courier New", monospace;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.item-level-up-button i {
+  margin-right: 0.45rem;
+}
+
+.item-level-up-button:hover:not(:disabled),
+.item-level-up-button:focus-visible:not(:disabled) {
+  background: #e1b44c;
+}
+
+.item-level-up-button:disabled {
+  border-color: #aaa49a;
+  background: #d4d0c8;
+  color: #706d67;
+  cursor: not-allowed;
+}
+
+.item-level-up-unavailable {
+  color: #c52323;
+  font: 700 0.68rem Courier, "Courier New", monospace;
+}
+
+.item-level-up-maximum {
+  color: #6b5a31;
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+}
+
 .reroll-attributes {
   display: grid;
   gap: 0.55rem;
@@ -2578,6 +2735,10 @@ body {
   .reroll-summary div + div {
     border-top: 1px solid #ddd7ca;
     border-left: 0;
+  }
+
+  .item-level-up-costs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .reroll-attribute-row {

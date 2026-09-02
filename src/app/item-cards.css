@@ -204,6 +204,7 @@
     .terminal-card,
     .prismatic-card,
     .celestial-card,
+    .abstract-card,
     .reliquary-card
   )
   .rating-value {
@@ -229,6 +230,7 @@
     .terminal-card,
     .prismatic-card,
     .celestial-card,
+    .abstract-card,
     .reliquary-card
   )
   :is(.attribute, .rating-value) {
@@ -242,6 +244,7 @@
     .terminal-card,
     .prismatic-card,
     .celestial-card,
+    .abstract-card,
     .reliquary-card
   )
   .attribute-group
@@ -249,7 +252,13 @@
   color: var(--rarity-light);
 }
 
-:is(.arcade-card, .terminal-card, .prismatic-card, .celestial-card)
+:is(
+    .arcade-card,
+    .terminal-card,
+    .prismatic-card,
+    .celestial-card,
+    .abstract-card
+  )
   .attribute {
   filter: drop-shadow(0 0 4px currentColor);
 }
@@ -956,8 +965,8 @@
 }
 
 .gilded-card-state-corner {
-  color: var(--unlocked-color);
-  filter: drop-shadow(0 0 4px var(--unlocked-glow));
+  color: var(---gilded-outer-light);
+  filter: drop-shadow(0 0 3px rgb(0 0 0 / 45%));
 }
 
 .gilded-card-mint-corner.top-left {
@@ -2539,8 +2548,8 @@
 .abstract-card {
   overflow: hidden;
   border: 5px solid #191623;
-  background: #f2d7c7;
-  color: #191623;
+  background: #125423;
+  color: #e4edd8;
   font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -2555,7 +2564,7 @@
   left: -30px;
   width: 150px;
   height: 125px;
-  background: #ff574d;
+  background: #b484d9;
   clip-path: polygon(0 0, 100% 18%, 72% 100%, 8% 76%);
 }
 
@@ -2565,7 +2574,7 @@
   width: 145px;
   height: 148px;
   border-radius: 50%;
-  background: #395bd7;
+  background: #a3231f;
 }
 
 .abstract-shape-three {
@@ -2573,7 +2582,7 @@
   left: 22px;
   width: 128px;
   height: 96px;
-  background: #f7cd4d;
+  background: #86c496;
   clip-path: polygon(10% 0, 100% 30%, 71% 100%, 0 74%);
 }
 
@@ -2653,7 +2662,7 @@
 .abstract-card-symbols {
   position: absolute;
   z-index: 5;
-  top: 274px;
+  top: 138px;
   left: 14px;
   display: flex;
   align-items: center;
@@ -2683,14 +2692,19 @@
 .abstract-card > .render-card-attribute-icons {
   position: absolute;
   z-index: 5;
-  top: 306px;
+  top: 250px;
   left: 17px;
   max-width: 90px;
   transform: rotate(5deg);
 }
 
 .abstract-card .attribute {
+  color: var(--rating-color-abstract);
   font-size: 0.72rem;
+}
+
+.abstract-card .rating-value {
+  color: var(--rating-color-abstract);
 }
 
 .abstract-card > .render-card-badges {

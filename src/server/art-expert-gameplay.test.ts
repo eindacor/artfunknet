@@ -6,8 +6,10 @@ import {
   calculateDonationKnowledge,
   calculateArtExpertRollReduction,
   convertUnitValueToKnowledge,
+  DONATION_ART_STYLE_MULTIPLIER,
   getItemKnowledgeUnitValue,
 } from "./art-expert-gameplay.ts";
+import { getItemValuePropertyMultiplier } from "./gameplay.ts";
 
 test("Art Expert roll reduction preserves quality and own-gallery bonuses", () => {
   assert.equal(
@@ -72,6 +74,64 @@ test("donation knowledge preserves the original 90% to 110% item value roll", ()
     }),
     convertUnitValueToKnowledge(
       Math.floor(getItemKnowledgeUnitValue("rare", 2) * 0.9000002),
+    ),
+  );
+});
+
+test("donation knowledge scales with collectible value properties", () => {
+  const neutralProperties = {
+    foil: false,
+    seasonal: false,
+    lottery: 0,
+    original: false,
+    vintage: false,
+    unlocked: false,
+    mint: false,
+    mint_value_multiplier: 1,
+  };
+  const featuredProperties = {
+    ...neutralProperties,
+    foil: true,
+    unlocked: true,
+    mint: true,
+    mint_value_multiplier: 2,
+  };
+  assert.equal(
+    getItemValuePropertyMultiplier(featuredProperties, "common"),
+    15,
+  );
+  assert.deepEqual(
+    calculateDonationKnowledge({
+      rarity: "common",
+      level: 1,
+      valueProperties: featuredProperties,
+      hasArtStyle: true,
+      randomRoll: 0.5,
+    }),
+    convertUnitValueToKnowledge(
+      60 * DONATION_ART_STYLE_MULTIPLIER,
+    ),
+  );
+
+  const otherValueProperties = {
+    ...neutralProperties,
+    seasonal: true,
+    lottery: 3,
+    vintage: true,
+  };
+  assert.equal(
+    getItemValuePropertyMultiplier(otherValueProperties, "rare"),
+    104,
+  );
+  assert.deepEqual(
+    calculateDonationKnowledge({
+      rarity: "rare",
+      level: 1,
+      valueProperties: otherValueProperties,
+      randomRoll: 0.5,
+    }),
+    convertUnitValueToKnowledge(
+      getItemKnowledgeUnitValue("rare", 1) * 104,
     ),
   );
 });

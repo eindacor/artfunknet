@@ -1,6 +1,8 @@
 import {
   ARTWORK_RARITIES,
   type ArtworkRarity,
+  type GameItem,
+  getItemValuePropertyMultiplier,
 } from "./gameplay.ts";
 import type { NpcQuality } from "./npc-gameplay.ts";
 
@@ -16,6 +18,7 @@ export type KnowledgeReward = Record<KnowledgeType, number>;
 
 const KNOWLEDGE_BASE = 15;
 const KNOWLEDGE_UNIT = 4;
+export const DONATION_ART_STYLE_MULTIPLIER = 1.5;
 
 const QUALITY_ROLL_REDUCTIONS: Record<NpcQuality, number> = {
   bronze: 1,
@@ -91,15 +94,40 @@ export function calculateArtExpertKnowledge({
 export function calculateDonationKnowledge({
   rarity,
   level,
+  valueProperties,
+  hasArtStyle = false,
   randomRoll,
 }: {
   rarity: ArtworkRarity;
   level: number;
+  valueProperties?: Pick<
+    GameItem,
+    | "foil"
+    | "seasonal"
+    | "lottery"
+    | "original"
+    | "vintage"
+    | "unlocked"
+    | "mint"
+    | "mint_value_multiplier"
+  >;
+  hasArtStyle?: boolean;
   randomRoll: number;
 }): KnowledgeReward {
   const modifier =
     1 + (0.5 - Math.min(Math.max(randomRoll, 0), 0.999999999999)) * 0.2;
+  const propertyMultiplier = valueProperties
+    ? getItemValuePropertyMultiplier(valueProperties, rarity)
+    : 1;
+  const artStyleMultiplier = hasArtStyle
+    ? DONATION_ART_STYLE_MULTIPLIER
+    : 1;
   return convertUnitValueToKnowledge(
-    Math.floor(getItemKnowledgeUnitValue(rarity, level) * modifier),
+    Math.floor(
+      getItemKnowledgeUnitValue(rarity, level) *
+        propertyMultiplier *
+        artStyleMultiplier *
+        modifier,
+    ),
   );
 }
