@@ -56,6 +56,10 @@ type Player = {
   email: string;
   screen_name: string;
   test_account?: boolean;
+  patreon?: {
+    is_supporter?: boolean;
+    tier_name?: string | null;
+  };
   profile: {
     bank_balance: number;
     level: number;
@@ -357,6 +361,8 @@ export default async function PlayerPage() {
         impersonating={impersonating}
         screenName={player.screen_name}
         xp={player.profile.xp}
+        patreonSupporter={player.patreon?.is_supporter === true}
+        patreonTier={player.patreon?.tier_name}
       />
       <GameDashboard
         archives={JSON.parse(JSON.stringify(archives))}

@@ -84,6 +84,12 @@ async function createIndexes(database) {
     .createIndex({ email: 1 }, { unique: true });
   await database
     .collection("players")
+    .createIndex({ google_sub: 1 }, { unique: true, sparse: true });
+  await database
+    .collection("players")
+    .createIndex({ "patreon.patreon_id": 1 }, { unique: true, sparse: true });
+  await database
+    .collection("players")
     .createIndex({ screen_name: 1 }, { unique: true });
   await database
     .collection("players")

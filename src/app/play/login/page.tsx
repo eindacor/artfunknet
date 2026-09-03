@@ -17,7 +17,7 @@ export default async function PlayerLoginPage() {
         </p>
         <h1 className="mt-3 text-4xl font-bold">Player sign in</h1>
         <p className="mt-3 text-[var(--muted)]">
-          Sign in with the development player created by the database seed.
+          Sign in with the development player or create an account with Google.
         </p>
       </div>
       <PlayerLoginForm />

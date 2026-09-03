@@ -64,6 +64,15 @@ export default function PlayerLoginForm() {
       >
         {submitting ? "Signing in..." : "Enter gallery"}
       </button>
+      <div className="relative py-1 text-center text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
+        <span className="bg-[#19171d] px-3">or</span>
+      </div>
+      <a
+        className="rounded-md border border-white/20 px-4 py-2 text-center font-semibold hover:border-[var(--accent)]"
+        href="/api/auth/player/google"
+      >
+        Continue with Google
+      </a>
     </form>
   );
 }

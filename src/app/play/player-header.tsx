@@ -8,11 +8,15 @@ export default function PlayerHeader({
   bankBalance,
   impersonating,
   xp,
+  patreonTier,
+  patreonSupporter = false,
 }: {
   screenName: string;
   bankBalance: number;
   impersonating: boolean;
   xp: number;
+  patreonTier?: string | null;
+  patreonSupporter?: boolean;
 }) {
   const router = useRouter();
   const [error, setError] = useState("");
@@ -63,6 +67,17 @@ export default function PlayerHeader({
         </strong>
         <strong className="af-color">{xp.toLocaleString()}xp</strong>
       </div>
+      <a
+        className="item-action-button"
+        href="/api/auth/player/patreon"
+        title={
+          patreonSupporter
+            ? `Patreon supporter${patreonTier ? `: ${patreonTier}` : ""}`
+            : "Link Patreon account"
+        }
+      >
+        {patreonSupporter ? "P" : "+"}
+      </a>
       {error ? (
         <span className="header-error" role="alert">
           {error}
