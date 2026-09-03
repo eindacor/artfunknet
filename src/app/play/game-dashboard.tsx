@@ -831,30 +831,30 @@ export default function GameDashboard({
                 <p>Artfunkel collection registry</p>
                 <h2>
                   {player.screenName}
-                  <span
-                    className="vintage-runback-button-wrap"
-                    title={
-                      player.level < 50 || vintageCandidates.length === 0
-                        ? "No eligible items to restart with"
-                        : "Run it back"
-                    }
-                  >
-                    <button
-                      aria-label={
-                        player.level < 50 || vintageCandidates.length === 0
+                  {player.level >= 50 ? (
+                    <span
+                      className="vintage-runback-button-wrap"
+                      title={
+                        vintageCandidates.length === 0
                           ? "No eligible items to restart with"
                           : "Run it back"
                       }
-                      className="vintage-runback-button"
-                      disabled={
-                        player.level < 50 || vintageCandidates.length === 0
-                      }
-                      onClick={() => setVintageDialogOpen(true)}
-                      type="button"
                     >
-                      <i aria-hidden="true" className="fa fa-rotate-left" />
-                    </button>
-                  </span>
+                      <button
+                        aria-label={
+                          vintageCandidates.length === 0
+                            ? "No eligible items to restart with"
+                            : "Run it back"
+                        }
+                        className="vintage-runback-button"
+                        disabled={vintageCandidates.length === 0}
+                        onClick={() => setVintageDialogOpen(true)}
+                        type="button"
+                      >
+                        <i aria-hidden="true" className="fa fa-rotate-left" />
+                      </button>
+                    </span>
+                  ) : null}
                 </h2>
                 <span>Private collection and activity record</span>
               </div>
