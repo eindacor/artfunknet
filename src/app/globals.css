@@ -2141,7 +2141,8 @@ body {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .inventory .rendered-item-card > .card-actions {
+  .inventory .rendered-item-card > .card-actions,
+  .random-drop .rendered-item-card > .card-actions {
     visibility: hidden;
     opacity: 0;
     pointer-events: none;
@@ -2153,7 +2154,9 @@ body {
   }
 
   .inventory .rendered-item-card:hover > .card-actions,
-  .inventory .rendered-item-card:focus-within > .card-actions {
+  .inventory .rendered-item-card:focus-within > .card-actions,
+  .random-drop .rendered-item-card:hover > .card-actions,
+  .random-drop .rendered-item-card:focus-within > .card-actions {
     visibility: visible;
     opacity: 1;
     pointer-events: auto;
@@ -2163,7 +2166,8 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .inventory .rendered-item-card > .card-actions {
+  .inventory .rendered-item-card > .card-actions,
+  .random-drop .rendered-item-card > .card-actions {
     transition: none;
   }
 }
