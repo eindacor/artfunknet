@@ -88,11 +88,6 @@ export default function StandardItemDialog({
               artwork · level {item.level}
             </p>
             <div className="standard-item-dialog-identity">
-              <ArtworkThumbnail
-                alt={`${item.artwork.title} by ${item.artwork.artist}`}
-                artworkId={item.artwork_id}
-                className="standard-item-dialog-artwork"
-              />
               <div className="standard-item-dialog-heading">
                 <h2 id={`standard-item-title-${item._id}`}>
                   {item.artwork.title}
@@ -104,6 +99,12 @@ export default function StandardItemDialog({
               </div>
             </div>
           </div>
+          <ArtworkThumbnail
+            alt={`${item.artwork.title} by ${item.artwork.artist}`}
+            artworkId={item.artwork_id}
+            className="standard-item-dialog-artwork"
+            size={520}
+          />
           <button
             aria-label="Close item details"
             className="reroll-dialog-close"
@@ -177,16 +178,16 @@ export default function StandardItemDialog({
             showProperties={false}
           />
         </div>
-        <section className="item-style-summary">
-          <span>Art style</span>
-          <strong>
-            {appliedCosmetic
-              ? appliedCosmetic.id === "museum"
-                ? "Museum Label (default)"
-                : `#${appliedCosmetic.number.toString().padStart(2, "0")} ${appliedCosmetic.name}`
-              : currentRendererId}
-          </strong>
-        </section>
+        {currentRendererId !== "museum" ? (
+          <section className="item-style-summary">
+            <span>Art style</span>
+            <strong>
+              {appliedCosmetic
+                ? `#${appliedCosmetic.number.toString().padStart(2, "0")} ${appliedCosmetic.name}`
+                : currentRendererId}
+            </strong>
+          </section>
+        ) : null}
       </div>
     </dialog>
   );

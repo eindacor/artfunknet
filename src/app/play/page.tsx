@@ -416,6 +416,7 @@ export default async function PlayerPage() {
           screenName: player.screen_name,
           bankBalance: player.profile.bank_balance,
           level: player.profile.level,
+          isMaxLevel: player.profile.level >= 50,
           xp: player.profile.xp,
           raffleTickets: player.profile.lottery_tickets,
           inventoryCap:

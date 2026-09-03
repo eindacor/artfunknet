@@ -63,6 +63,7 @@ type PlayerView = {
   screenName: string;
   bankBalance: number;
   level: number;
+  isMaxLevel: boolean;
   xp: number;
   raffleTickets: number;
   inventoryCap: number;
@@ -828,24 +829,51 @@ export default function GameDashboard({
             <header className="museum-profile-heading">
               <div>
                 <p>Artfunkel collection registry</p>
-                <h2>{player.screenName}</h2>
+                <h2>
+                  {player.screenName}
+                  <span
+                    className="vintage-runback-button-wrap"
+                    title={
+                      player.level < 50 || vintageCandidates.length === 0
+                        ? "No eligible items to restart with"
+                        : "Run it back"
+                    }
+                  >
+                    <button
+                      aria-label={
+                        player.level < 50 || vintageCandidates.length === 0
+                          ? "No eligible items to restart with"
+                          : "Run it back"
+                      }
+                      className="vintage-runback-button"
+                      disabled={
+                        player.level < 50 || vintageCandidates.length === 0
+                      }
+                      onClick={() => setVintageDialogOpen(true)}
+                      type="button"
+                    >
+                      <i aria-hidden="true" className="fa fa-rotate-left" />
+                    </button>
+                  </span>
+                </h2>
                 <span>Private collection and activity record</span>
               </div>
               <strong>Level {player.level.toString()}</strong>
             </header>
 
-            <div className="museum-profile-progress">
+            <div
+              className={`museum-profile-progress${player.isMaxLevel ? " max-level" : ""}`}
+            >
               <div>
                 <span>Experience</span>
                 <strong>
-                  {player.xp.toLocaleString()} /{" "}
-                  {player.xpGoal.toLocaleString()}
+                  {player.isMaxLevel ? "" : `${player.xp.toLocaleString()} / ${player.xpGoal.toLocaleString()}`}
                 </strong>
               </div>
               <span className="museum-profile-progress-track">
                 <i
                   style={{
-                    width: `${Math.min(
+                    width: `${player.isMaxLevel ? 100 : Math.min(
                       (player.xp / Math.max(player.xpGoal, 1)) * 100,
                       100,
                     )}%`,
@@ -936,34 +964,6 @@ export default function GameDashboard({
                 </dl>
               </section>
             </div>
-
-            <section className="vintage-playthrough-panel">
-              <header>
-                <div>
-                  <span>Vintage collection</span>
-                  <small>Begin again with a lasting collection</small>
-                </div>
-              </header>
-              <p>
-                At level 50, choose one inventory item to make vintage and
-                carry it into a new playthrough. Existing vintage items are
-                retained; every other item is removed.
-              </p>
-              <button
-                disabled={
-                  player.level < 50 ||
-                  vintageCandidates.length === 0
-                }
-                onClick={() => setVintageDialogOpen(true)}
-                type="button"
-              >
-                {player.level < 50
-                  ? "Reach level 50"
-                  : vintageCandidates.length === 0
-                    ? "No eligible inventory items"
-                    : "Choose vintage item"}
-              </button>
-            </section>
 
             <section className="museum-profile-knowledge">
               <header>

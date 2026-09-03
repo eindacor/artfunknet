@@ -3701,7 +3701,7 @@
 .standard-item-dialog-header {
   position: relative;
   display: grid !important;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(320px, 1.2fr) auto;
   align-items: start !important;
   gap: 1rem;
   border-bottom: 1px solid #bcb7aa;
@@ -3715,7 +3715,7 @@
 }
 
 .standard-item-dialog-header > .reroll-dialog-close {
-  grid-column: 2;
+  grid-column: 3;
   grid-row: 1;
 }
 
@@ -3785,11 +3785,16 @@
 }
 
 .standard-item-dialog-artwork {
-  width: 190px;
-  max-height: 170px;
-  object-fit: cover;
+  width: 100% !important;
+  height: 300px !important;
+  max-height: 300px;
   border: 8px solid #fff;
+  background: #fff;
   box-shadow: 0 10px 24px rgb(0 0 0 / 18%);
+}
+
+.standard-item-dialog-artwork img {
+  object-fit: contain;
 }
 
 .attribute-tooltip-text .attribute-rating {
@@ -4672,6 +4677,7 @@
 
   @media (max-width: 700px) {
     .standard-item-dialog-header {
+      grid-template-columns: 1fr;
       justify-items: start;
       padding-top: 1rem;
       text-align: left;
@@ -4693,8 +4699,10 @@
     }
 
     .standard-item-dialog-artwork {
-      width: min(220px, 100%);
-      max-height: 180px;
+      grid-column: 1;
+      width: min(100%, 520px) !important;
+      height: 220px !important;
+      max-height: 220px;
       margin: 0;
     }
 
