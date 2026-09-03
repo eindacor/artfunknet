@@ -114,6 +114,30 @@ export const CARD_COSMETICS: CardCosmetic[] = [
     name: "Concentric",
     description: "Artwork and information arranged as a system of orbiting circles.",
   },
+  {
+    number: 17,
+    id: "tarot",
+    name: "Arcana",
+    description: "An ornate tarot-inspired card with celestial patterns and star states.",
+  },
+  {
+    number: 18,
+    id: "collectible",
+    name: "Collector Series",
+    description: "A dramatic original trading-card presentation with layered foil details.",
+  },
+  {
+    number: 19,
+    id: "skateboard",
+    name: "Deck Art",
+    description: "A skateboard deck underside with wheels, trucks, and seasonal wear.",
+  },
+  {
+    number: 20,
+    id: "album",
+    name: "Needle Drop",
+    description: "A record sleeve with a half-extracted vinyl and rarity-coded label art.",
+  },
 ];
 
 export function getCardCosmetic(id: string): CardCosmetic | undefined {

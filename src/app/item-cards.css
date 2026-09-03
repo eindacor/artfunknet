@@ -191,9 +191,30 @@
   border-radius: 140px 140px 18px 18px;
 }
 
+.rendered-item-card-skateboard[data-foil="true"]
+  .rendered-item-card-trigger::after {
+  display: none;
+}
+
+.rendered-item-card-album[data-foil="true"]
+  .rendered-item-card-trigger::after {
+  display: none;
+}
+
 .rendered-item-card-trigger:focus-visible {
   outline: 3px solid var(--accent);
   outline-offset: 5px;
+}
+
+.tarot-card .render-card-attribute-icons .attribute-tooltip > i {
+  display: none;
+}
+
+.tarot-card .render-card-attribute-icons .attribute-tooltip::before {
+  color: #f7d77e;
+  content: "★";
+  font-size: 0.9rem;
+  text-shadow: 0 0 5px rgb(247 215 126 / 80%);
 }
 
 .render-card {
@@ -1738,7 +1759,7 @@
 .zine-card .attribute-group-locked .attribute-tooltip:nth-child(1) {
   top: 220px;
   right: 5px;
-  transform: rotate(-5deg);
+  transform: rotate(5deg);
 }
 
 .zine-card .attribute-group-special .attribute-tooltip:nth-child(1) {
@@ -4778,5 +4799,1079 @@
   .reliquary-card-energy,
   .gilded-card {
     animation: none;
+  }
+}
+
+/* Tarot: a compact arcana frame with an oval portrait and star states. */
+.tarot-card {
+  border: 6px double var(--rarity-color);
+  border-radius: 20px;
+  padding: 0.8rem 0.7rem 0.65rem;
+  background:
+    linear-gradient(145deg, rgb(255 255 255 / 8%), transparent 35%),
+    #21142e;
+  color: #f8e9bb;
+  font-family: Georgia, "Times New Roman", serif;
+  box-shadow: inset 0 0 0 2px #7e5c2e, 0 0 18px var(--rarity-glow);
+}
+
+.tarot-card::before,
+.tarot-card::after {
+  position: absolute;
+  z-index: 1;
+  inset: 0.35rem;
+  border: 1px solid rgb(255 222 141 / 68%);
+  border-radius: 13px;
+  content: "";
+  pointer-events: none;
+}
+
+.tarot-card::after {
+  inset: 0.55rem;
+  border-color: rgb(255 255 255 / 24%);
+}
+
+.tarot-card-pattern {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  opacity: 0.3;
+  background:
+    repeating-radial-gradient(circle at 50% 15%, transparent 0 11px, #b78a47 12px 13px),
+    repeating-linear-gradient(45deg, transparent 0 8px, rgb(183 138 71 / 35%) 9px 10px);
+  pointer-events: none;
+}
+
+.tarot-card > header,
+.tarot-card > section,
+.tarot-card-art-frame,
+.tarot-card-state-icons {
+  position: relative;
+  z-index: 2;
+}
+
+.tarot-card > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  border-bottom: 1px solid rgb(255 222 141 / 60%);
+  padding-bottom: 0.35rem;
+  font-size: 0.57rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.tarot-card-arcana {
+  color: #dfc282;
+}
+
+.tarot-card-art-frame {
+  width: 190px;
+  height: 190px;
+  margin: 0.75rem auto 0.55rem;
+  overflow: hidden;
+  border: 5px solid #c89b4b;
+  border-radius: 50%;
+  background: #09050d;
+  box-shadow: 0 0 0 2px #5b3a1b, 0 0 14px var(--rarity-glow);
+}
+
+.tarot-card-image {
+  width: 100%;
+  height: 100%;
+  background-position: center;
+  background-size: cover;
+  filter: saturate(0.9) contrast(1.1);
+}
+
+.tarot-card-art-oval {
+  position: absolute;
+  inset: 0.45rem;
+  border: 1px solid rgb(255 226 157 / 86%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.tarot-card > section {
+  display: grid;
+  gap: 0.24rem;
+  text-align: center;
+}
+
+.tarot-card h3 {
+  overflow: hidden;
+  color: #fff2c9;
+  font-size: 0.91rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tarot-card .render-card-artist {
+  color: #d8b873;
+  font-size: 0.58rem;
+}
+
+.tarot-card-meta {
+  color: #eadab3;
+  font-size: 0.52rem;
+  text-transform: uppercase;
+}
+
+.tarot-card .render-card-attribute-icons {
+  justify-content: center;
+  gap: 0.28rem;
+  margin-top: 0.15rem;
+}
+
+.tarot-card .attribute {
+  color: var(--rarity-light);
+  font-size: 0;
+  filter: drop-shadow(0 0 3px var(--rarity-color));
+}
+
+.tarot-card .attribute::before {
+  content: "★";
+  font-size: 0.78rem;
+}
+
+.tarot-card-state-icons {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+  color: var(--rarity-light);
+  font-size: 1rem;
+  line-height: 1;
+  text-shadow: 0 0 8px var(--rarity-color);
+}
+
+.tarot-card-state-icons span + span {
+  color: var(--unlocked-color);
+}
+
+.tarot-card-corner {
+  position: absolute;
+  z-index: 3;
+  color: #dfb85c;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.tarot-card-corner-top {
+  top: 0.4rem;
+  left: 0.55rem;
+}
+
+.tarot-card-corner-bottom {
+  right: 0.55rem;
+  bottom: 0.4rem;
+  transform: rotate(180deg);
+}
+
+.tarot-card > .render-card-badges {
+  position: absolute;
+  z-index: 4;
+  right: 0.65rem;
+  bottom: 0.55rem;
+  transform: translateY(100%);
+}
+
+/* Collectible: an original layered trading-card silhouette with a foil window. */
+.collectible-card {
+  border: 4px solid #171b2f;
+  border-radius: 14px;
+  padding: 0.55rem;
+  background:
+    linear-gradient(135deg, rgb(255 255 255 / 18%), transparent 25%),
+    linear-gradient(155deg, #2c3d66, #101426 58%, #0a0b13);
+  color: #f4f4f7;
+  font-family: Arial, Helvetica, sans-serif;
+  box-shadow: 0 8px 18px rgb(0 0 0 / 40%), inset 0 0 0 2px var(--rarity-color);
+}
+
+.collectible-card::before {
+  position: absolute;
+  z-index: 0;
+  inset: 0.35rem;
+  border: 1px solid rgb(255 255 255 / 36%);
+  border-radius: 9px;
+  content: "";
+  pointer-events: none;
+}
+
+.collectible-card-sparkles {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  opacity: 0.5;
+  background:
+    radial-gradient(circle at 12% 22%, #fff 0 1px, transparent 2px),
+    radial-gradient(circle at 88% 31%, #fff 0 1px, transparent 2px),
+    radial-gradient(circle at 78% 84%, #fff 0 1px, transparent 2px);
+}
+
+.collectible-card > header,
+.collectible-card-title-row,
+.collectible-card-art-frame,
+.collectible-card > section,
+.collectible-card > footer {
+  position: relative;
+  z-index: 1;
+}
+
+.collectible-card > header {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.1rem 0.2rem 0.4rem;
+  color: #bdc8ed;
+  font-size: 0.52rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.collectible-card-level {
+  color: var(--rarity-light);
+}
+
+.collectible-card-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.4rem;
+  min-height: 1.5rem;
+  border: 2px solid #0c1020;
+  padding: 0.22rem 0.35rem;
+  background: linear-gradient(90deg, #d6ddf3, #596a9c);
+  color: #11182b;
+}
+
+.collectible-card h3 {
+  overflow: hidden;
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collectible-card-title-row .card-rarity-label {
+  flex: 0 0 auto;
+  font-size: 0.56rem !important;
+}
+
+.collectible-card-art-frame {
+  height: 205px;
+  margin: 0.45rem 0;
+  overflow: hidden;
+  border: 3px solid #aab8df;
+  background: #080a12;
+  box-shadow: 0 0 0 2px #0c1020;
+}
+
+.collectible-card-image {
+  width: 100%;
+  height: 100%;
+  background-position: center;
+  background-size: cover;
+}
+
+.collectible-card-holo {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background: linear-gradient(115deg, transparent 25%, rgb(255 255 255 / 50%) 50%, transparent 75%);
+  background-size: 220% 100%;
+  pointer-events: none;
+}
+
+.rendered-item-card[data-foil="true"] .collectible-card-holo {
+  opacity: 0.55;
+  animation: shared-foil-shimmer 5.5s ease-in-out infinite;
+}
+
+.collectible-card > section {
+  display: grid;
+  gap: 0.3rem;
+  border-top: 2px solid #aab8df;
+  padding: 0.45rem 0.25rem 0.35rem;
+}
+
+.collectible-card .render-card-artist {
+  overflow: hidden;
+  color: #cad4f5;
+  font-size: 0.51rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collectible-card .render-card-compact-stats {
+  color: #e2e7ff;
+  font-size: 0.57rem;
+}
+
+.collectible-card .render-card-attribute-icons {
+  gap: 0.3rem;
+}
+
+.collectible-card .attribute {
+  color: var(--rarity-light);
+  filter: drop-shadow(0 0 3px var(--rarity-color));
+}
+
+.collectible-card > footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.3rem;
+  min-height: 1.25rem;
+  border-top: 1px solid rgb(255 255 255 / 22%);
+  padding: 0.3rem 0.2rem 0;
+  color: #9eabd0;
+  font-size: 0.48rem;
+  text-transform: uppercase;
+}
+attri
+.collectible-card > footer .render-card-badges {
+  justify-content: flex-end;
+}
+
+/* Skateboard: the rendered object is the angled underside of the deck itself. */
+.skateboard-card {
+  display: grid;
+  place-items: center;
+  overflow: visible;
+  background: transparent;
+  color: #fff;
+  font-family: "Courier New", Courier, monospace;
+}
+
+.skateboard-card-deck {
+  /* Skateboard and truck geometry: adjust these values to reshape the hardware. */
+  --deck-width: 100px;
+  --deck-height: 356px;
+  --truck-width: 104px;
+  --truck-hanger-height: 9px;
+  --truck-baseplate-width: 30px;
+  --truck-baseplate-height: 13px;
+  --truck-offset: 68px;
+  --wheel-width: 18px;
+  --wheel-height: 28px;
+  --wheel-axis-offset: 0px;
+  --wheel-outset: 0px;
+  position: relative;
+  width: var(--deck-width);
+  height: var(--deck-height);
+  border: 1px solid rgb(20 17 18 / 55%);
+  border-radius: calc(var(--deck-width) / 2);
+  overflow: visible;
+  background: #292426;
+  box-shadow:
+    7px 10px 16px rgb(0 0 0 / 28%),
+    inset 0 0 0 2px rgb(255 255 255 / 12%);
+  transform: rotate(5deg);
+}
+
+.rendered-item-card-skateboard[data-foil="true"]
+  .skateboard-card-deck::after {
+  position: absolute;
+  z-index: 3;
+  inset: 1px;
+  border-radius: calc((var(--deck-width) - 2px) / 2);
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    rgb(255 75 205 / 12%) 18%,
+    rgb(90 225 255 / 38%) 42%,
+    rgb(255 238 90 / 34%) 58%,
+    rgb(139 92 246 / 22%) 76%,
+    transparent 100%
+  );
+  background-position: 100% 0;
+  background-size: 360% 100%;
+  content: "";
+  animation: shared-foil-shimmer 6.5s ease-in-out infinite;
+}
+
+.skateboard-card-image {
+  position: absolute;
+  z-index: 1;
+  inset: 2px;
+  border-radius: calc((var(--deck-width) - 4px) / 2);
+  background-position: center;
+  background-size: cover;
+  filter: contrast(1.08) saturate(1.12);
+}
+
+.skateboard-card-grip {
+  position: absolute;
+  z-index: 2;
+  inset: 2px;
+  border-radius: calc((var(--deck-width) - 4px) / 2);
+  opacity: 0.18;
+  background:
+    linear-gradient(rgb(12 10 11 / 15%), rgb(12 10 11 / 15%)),
+    repeating-linear-gradient(
+      18deg,
+      transparent 0 5px,
+      rgb(255 255 255 / 24%) 6px,
+      transparent 7px 12px
+    );
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+.skateboard-card-truck {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  display: block;
+  width: var(--truck-width);
+  height: 22px;
+  transform: translateX(-50%);
+}
+
+.skateboard-card-truck-hanger {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  left: 50%;
+  width: calc(var(--truck-width) - var(--wheel-width));
+  height: var(--truck-hanger-height);
+  border: 1px solid #555;
+  border-radius: calc(var(--truck-hanger-height) / 2);
+  background: linear-gradient(#d7d9da, #85898c);
+  box-shadow: 0 2px 3px rgb(0 0 0 / 38%);
+  transform: translateX(-50%);
+}
+
+.skateboard-card-truck-baseplate {
+  position: absolute;
+  z-index: 1;
+  top: 5px;
+  left: 50%;
+  width: var(--truck-baseplate-width);
+  height: var(--truck-baseplate-height);
+  border: 1px solid #555;
+  border-radius: 3px 3px 6px 6px;
+  background: linear-gradient(#bfc2c4, #74787b);
+  transform: translateX(-50%);
+}
+
+.skateboard-card-truck-kingpin {
+  position: absolute;
+  z-index: 3;
+  top: 2px;
+  left: 50%;
+  width: 5px;
+  height: 12px;
+  border-radius: 3px;
+  background: #4f5254;
+  box-shadow: inset 0 1px 0 #e2e3e4;
+  transform: translateX(-50%);
+}
+
+.skateboard-card-truck-front {
+  top: var(--truck-offset);
+}
+
+.skateboard-card-truck-back {
+  bottom: var(--truck-offset);
+  transform: translateX(-50%) rotate(180deg);
+}
+
+.skateboard-card-wheel {
+  position: absolute;
+  z-index: 4;
+  top: calc(
+    (var(--truck-hanger-height) - var(--wheel-height)) / 2 +
+      var(--wheel-axis-offset)
+  );
+  width: var(--wheel-width);
+  height: var(--wheel-height);
+  border: 1px solid var(--rarity-dark);
+  border-radius: 2px;
+  background: var(--rarity-color);
+  box-shadow:
+    inset 0 0 0 1px var(--rarity-light),
+    0 2px 4px rgb(0 0 0 / 45%);
+}
+
+.skateboard-card-wheel.wheel-left {
+  left: calc(0px - var(--wheel-outset));
+}
+
+.skateboard-card-wheel.wheel-right {
+  right: calc(0px - var(--wheel-outset));
+}
+
+.skateboard-card-truck.lottery .skateboard-card-truck-hanger,
+.skateboard-card-truck.lottery .skateboard-card-truck-baseplate {
+  border-color: #835d12;
+  background: linear-gradient(#ffe48b, #b47a14);
+  box-shadow: 0 0 9px rgb(255 211 75 / 72%);
+}
+
+.skateboard-card-truck.lottery .skateboard-card-truck-kingpin {
+  background: #895a09;
+}
+
+.skateboard-card-scuffs {
+  position: absolute;
+  z-index: 4;
+  inset: 4px;
+  border-radius: calc((var(--deck-width) - 8px) / 2);
+  opacity: 0.68;
+  background:
+    repeating-linear-gradient(
+      164deg,
+      transparent 0 19px,
+      rgb(255 255 255 / 72%) 20px 21px,
+      transparent 22px 38px
+    ),
+    repeating-linear-gradient(
+      8deg,
+      transparent 0 31px,
+      rgb(30 25 23 / 65%) 32px 33px,
+      transparent 34px 61px
+    );
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.skateboard-card-label {
+  position: absolute;
+  z-index: 6;
+  top: 104px;
+  bottom: 104px;
+  left: 13px;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  text-align: left;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.skateboard-card h3 {
+  max-height: 142px;
+  overflow: hidden;
+  color: #fff;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-shadow: 0 1px 4px #000;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.skateboard-card .render-card-artist {
+  max-height: 132px;
+  overflow: hidden;
+  color: #eee7dd;
+  font-size: 0.5rem;
+  line-height: 1;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 4px #000;
+  white-space: nowrap;
+}
+
+.skateboard-card-stickers {
+  position: absolute;
+  z-index: 8;
+  inset: 0;
+  pointer-events: none;
+}
+
+.skateboard-card .render-card-attribute-icons {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.skateboard-card .attribute-group {
+  display: contents;
+}
+
+.skateboard-card .attribute-group + .attribute-group::before {
+  display: none;
+  content: none;
+}
+
+.skateboard-card .attribute-tooltip {
+  position: absolute;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 2px solid #f4eadb;
+  border-radius: 50% 44% 48% 42%;
+  background: #f2df92;
+  box-shadow:
+    1px 2px 0 rgb(23 19 20 / 70%),
+    inset 0 0 0 1px rgb(255 255 255 / 38%);
+  pointer-events: auto;
+  transform: rotate(-8deg);
+}
+
+.skateboard-card .attribute-group-unlocked .attribute-tooltip {
+  background: #84cec5;
+}
+
+.skateboard-card .attribute-group-locked .attribute-tooltip {
+  background: #f2df92;
+}
+
+.skateboard-card .attribute-group-special .attribute-tooltip {
+  background: #e89ab8;
+}
+
+.skateboard-card .attribute-group-unlocked .attribute-tooltip:nth-child(1) {
+  top: 112px;
+  right: 12px;
+  transform: rotate(-11deg);
+}
+
+.skateboard-card .attribute-group-unlocked .attribute-tooltip:nth-child(2) {
+  right: 17px;
+  bottom: 118px;
+  transform: rotate(8deg);
+}
+
+.skateboard-card .attribute-group-locked .attribute-tooltip:nth-child(1) {
+  top: 158px;
+  right: 8px;
+  transform: rotate(7deg);
+}
+
+.skateboard-card .attribute-group-locked .attribute-tooltip:nth-child(2) {
+  bottom: 92px;
+  left: 40px;
+  transform: rotate(-6deg);
+}
+
+.skateboard-card .attribute-group-special .attribute-tooltip:nth-child(1) {
+  top: 204px;
+  right: 15px;
+  transform: rotate(-9deg);
+}
+
+.skateboard-card .attribute-group-special .attribute-tooltip:nth-child(2) {
+  top: 133px;
+  left: 41px;
+  transform: rotate(10deg);
+}
+
+.skateboard-card .attribute-group-special .attribute-tooltip:nth-child(3) {
+  right: 35px;
+  bottom: 33px;
+  transform: rotate(-5deg);
+}
+
+.skateboard-card .attribute {
+  color: #2c2525;
+  font-size: 0.72rem;
+}
+
+.skateboard-card-unlocked {
+  position: absolute;
+  z-index: 8;
+  top: 94px;
+  right: 9px;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 2px solid #f4eadb;
+  border-radius: 4px 8px 5px 7px;
+  background: #f7dd67;
+  color: #281d12;
+  box-shadow: 2px 3px 0 rgb(23 19 20 / 70%);
+  font-size: 0.78rem;
+  transform: rotate(9deg);
+}
+
+.skateboard-card-mint {
+  position: absolute;
+  z-index: 8;
+  top: 140px;
+  left: 32px;
+  display: grid;
+  width: 25px;
+  height: 25px;
+  place-items: center;
+  border: 2px solid #f4eadb;
+  background: #8fd2a5;
+  color: #174a2a;
+  box-shadow: 2px 3px 0 rgb(23 19 20 / 70%);
+  font-size: 0.72rem;
+  transform: rotate(45deg);
+}
+
+.skateboard-card-mint i {
+  transform: rotate(-45deg);
+}
+
+.skateboard-card-deck > .render-card-badges {
+  position: absolute;
+  z-index: 9;
+  top: 94px;
+  left: 35px;
+  max-width: 70px;
+}
+
+/* Album: the square sleeve and half-extracted record are the complete item. */
+.album-card {
+  display: grid;
+  place-items: center;
+  overflow: visible;
+  background: transparent;
+  color: #f8f2e8;
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.album-card-object {
+  position: relative;
+  width: 310px;
+  height: 215px;
+}
+
+.album-card-sleeve {
+  position: relative;
+  z-index: 2;
+  width: 205px;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 5px solid #e8e0d2;
+  background: #0d0b10;
+  box-shadow: 5px 7px 13px rgb(0 0 0 / 42%);
+}
+
+.album-card-image {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  background-position: center;
+  background-size: cover;
+  filter: saturate(1.08) contrast(1.05);
+}
+
+.album-card-sleeve-print {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  border: 1px solid rgb(255 255 255 / 48%);
+  background: linear-gradient(
+    135deg,
+    rgb(255 255 255 / 18%),
+    transparent 42%
+  );
+  pointer-events: none;
+}
+
+.album-card-cover-copy {
+  position: absolute;
+  z-index: 5;
+  right: 14px;
+  bottom: 14px;
+  left: 14px;
+  color: #fff;
+}
+
+.album-card h3 {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 1rem;
+  line-height: 1;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.album-card .render-card-artist {
+  margin-top: 0.3rem;
+  color: #eee7df;
+  font-size: 0.58rem;
+  font-weight: 700;
+}
+
+.album-card-record {
+  position: absolute;
+  z-index: 1;
+  top: 12px;
+  left: 130px;
+  width: 180px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    repeating-radial-gradient(circle, #29262d 0 1px, #111015 2px 4px),
+    #151319;
+  box-shadow: 2px 4px 10px rgb(0 0 0 / 68%);
+  transform: rotate(-8deg);
+}
+
+.rendered-item-card-album[data-seasonal="true"] .album-card-sleeve {
+  background: var(--rarity-color);
+}
+
+.rendered-item-card-album[data-seasonal="true"] .album-card-image {
+  display: none;
+}
+
+.rendered-item-card-album[data-seasonal="true"] .album-card-sleeve-print {
+  background:
+    linear-gradient(
+      153deg,
+      transparent 0 56%,
+      rgb(211 74 44 / 88%) 56.5% 69%,
+      transparent 69.5%
+    ),
+    linear-gradient(
+      18deg,
+      transparent 0 64%,
+      rgb(232 183 64 / 84%) 64.5% 75%,
+      transparent 75.5%
+    ),
+    radial-gradient(
+      circle at 18% 21%,
+      rgb(237 218 174 / 92%) 0 12%,
+      transparent 12.5%
+    ),
+    linear-gradient(rgb(20 19 17 / 18%), rgb(20 19 17 / 48%));
+}
+
+.rendered-item-card-album[data-seasonal="true"] .album-card-cover-copy {
+  right: 8px;
+  bottom: 18px;
+  left: 26px;
+  border-left: 6px solid #e8b740;
+  padding: 0.35rem 0.45rem;
+  background: rgb(21 20 18 / 82%);
+  font-family: Arial, Helvetica, sans-serif;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+  transform: rotate(-2deg);
+}
+
+.rendered-item-card-album[data-seasonal="true"] .album-card-cover-copy h3 {
+  font-size: 1.08rem;
+  font-weight: 900;
+}
+
+.rendered-item-card-album[data-seasonal="true"]
+  .album-card-cover-copy
+  .render-card-artist {
+  color: #e8b740;
+  letter-spacing: 0.12em;
+}
+
+.rendered-item-card-album[data-seasonal="true"] .album-card-record {
+  background-image:
+    repeating-radial-gradient(
+      circle,
+      transparent 0 2px,
+      rgb(0 0 0 / 30%) 3px 4px
+    ),
+    var(--album-art);
+  background-position: center;
+  background-size: auto, cover;
+}
+
+.album-card-record::before {
+  position: absolute;
+  inset: 33%;
+  border: 2px solid rgb(255 255 255 / 38%);
+  border-radius: 50%;
+  background: #ded7c7;
+  box-shadow: inset 0 0 0 3px rgb(0 0 0 / 12%);
+  content: "";
+}
+
+.album-card-record::after {
+  position: absolute;
+  z-index: 3;
+  inset: 49%;
+  border-radius: 50%;
+  background: #111;
+  content: "";
+}
+
+.album-card-record-scratches {
+  position: absolute;
+  z-index: 2;
+  inset: 7%;
+  border-radius: 50%;
+  opacity: calc(var(--vinyl-wear) * 0.45);
+  background:
+    linear-gradient(
+      72deg,
+      transparent 0 28%,
+      rgb(255 255 255 / 55%) 28.45% 28.6%,
+      transparent 28.75% 100%
+    ),
+    linear-gradient(
+      118deg,
+      transparent 0 54%,
+      rgb(255 255 255 / 46%) 54.45% 54.6%,
+      transparent 54.75% 100%
+    ),
+    repeating-radial-gradient(
+      circle at 48% 52%,
+      transparent 0 11px,
+      rgb(255 255 255 / 22%) 11.5px 12px,
+      transparent 13px 23px
+    );
+  mix-blend-mode: screen;
+  -webkit-mask: radial-gradient(circle, transparent 0 35%, #000 36%);
+  mask: radial-gradient(circle, transparent 0 35%, #000 36%);
+  pointer-events: none;
+}
+
+.album-card-record-foil {
+  display: none;
+}
+
+.rendered-item-card-album[data-foil="true"] .album-card-record-foil {
+  position: absolute;
+  z-index: 2;
+  inset: 1px;
+  display: block;
+  border-radius: 50%;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    rgb(255 75 205 / 14%) 18%,
+    rgb(90 225 255 / 38%) 42%,
+    rgb(255 238 90 / 34%) 58%,
+    rgb(139 92 246 / 22%) 76%,
+    transparent 100%
+  );
+  background-position: 100% 0;
+  background-size: 360% 100%;
+  -webkit-mask: radial-gradient(circle, transparent 0 35%, #000 36%);
+  mask: radial-gradient(circle, transparent 0 35%, #000 36%);
+  animation: shared-foil-shimmer 6.5s ease-in-out infinite;
+}
+
+.album-card-record-label {
+  position: absolute;
+  z-index: 4;
+  inset: 34%;
+  display: grid;
+  place-items: center;
+  transform: rotate(8deg);
+}
+
+.album-card-record-label .render-card-attribute-icons {
+  justify-content: center;
+  gap: 1px;
+  max-width: 52px;
+}
+
+.album-card-record-label .attribute-group {
+  display: contents;
+}
+
+.album-card-record-label .attribute-group + .attribute-group::before {
+  display: none;
+  content: none;
+}
+
+.album-card-record-label .attribute {
+  margin: 0;
+  color: #312a2c;
+  font-size: 0.36rem;
+  filter: none;
+  text-shadow: none;
+}
+
+.album-card-price-tag,
+.album-card-new-sticker {
+  position: absolute;
+  z-index: 6;
+  font-family: "Courier New", Courier, monospace;
+  font-weight: 900;
+}
+
+.album-card-price-tag {
+  top: 12px;
+  right: 10px;
+  border: 1px solid #b9aa8f;
+  padding: 0.28rem 0.38rem;
+  background: #f4ead7;
+  color: #241f1b;
+  font-size: 0.55rem;
+  transform: rotate(4deg);
+}
+
+.album-card-new-sticker {
+  top: 14px;
+  left: 12px;
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #e63c38;
+  color: #fff;
+  font-size: 0.55rem;
+  transform: rotate(-10deg);
+}
+
+.album-card-unlocked,
+.album-card-lottery {
+  position: absolute;
+  z-index: 6;
+  display: grid;
+  place-items: center;
+}
+
+.album-card-unlocked {
+  top: 58px;
+  left: 10px;
+  width: 28px;
+  height: 28px;
+  border: 2px solid #f1d68b;
+  border-radius: 45% 55% 45% 55%;
+  background: #342318;
+  color: #f1d68b;
+  font-size: 0.82rem;
+  transform: rotate(-14deg);
+}
+
+.album-card-lottery {
+  top: 58px;
+  right: 10px;
+  border: 1px solid #f1d68b;
+  padding: 0.22rem 0.3rem;
+  background: #b57b20;
+  color: #fff0ad;
+  font: 800 0.5rem "Courier New", Courier, monospace;
+  transform: rotate(5deg);
+}
+
+.album-card-sleeve > .render-card-badges {
+  position: absolute;
+  z-index: 6;
+  top: 94px;
+  left: 10px;
+  max-width: 95px;
+}
+
+@media (max-width: 540px) {
+  .rendered-item-card-tarot,
+  .rendered-item-card-collectible,
+  .rendered-item-card-skateboard,
+  .rendered-item-card-album {
+    --card-width: min(280px, calc(100vw - 48px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .collectible-card-holo,
+  .album-card-record-foil {
+    animation: none !important;
   }
 }

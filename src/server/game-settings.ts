@@ -41,6 +41,10 @@ export const DEFAULT_CARD_STYLE_WEIGHTS: Record<
   bauhaus: 90,
   abstract: 75,
   circle: 45,
+  tarot: 55,
+  collectible: 65,
+  skateboard: 50,
+  album: 50,
 };
 
 const DEBUG_CARD_STYLE_WEIGHTS = Object.fromEntries(

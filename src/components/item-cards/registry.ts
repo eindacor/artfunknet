@@ -14,6 +14,10 @@ import PostcardCard from "./postcard-card";
 import PrismaticCard from "./prismatic-card";
 import ReliquaryCard from "./reliquary-card";
 import TerminalCard from "./terminal-card";
+import TarotCard from "./tarot-card";
+import CollectibleCard from "./collectible-card";
+import SkateboardCard from "./skateboard-card";
+import AlbumCard from "./album-card";
 import ZineCard from "./zine-card";
 import {
   type CardRendererId,
@@ -40,6 +44,10 @@ export const CARD_RENDERERS: Record<
   bauhaus: BauhausCard,
   abstract: AbstractCard,
   circle: CircleCard,
+  tarot: TarotCard,
+  collectible: CollectibleCard,
+  skateboard: SkateboardCard,
+  album: AlbumCard,
 };
 
 export const CARD_RENDERER_OPTIONS = CARD_COSMETICS;
