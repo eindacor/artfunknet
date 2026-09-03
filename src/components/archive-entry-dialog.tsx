@@ -53,7 +53,7 @@ export default function ArchiveEntryDialog({
           alt={`${archive.artwork.title} by ${archive.artwork.artist}`}
           artworkId={archive.artwork_id}
           className="archive-entry-dialog-artwork"
-          size={220}
+          size={480}
         />
         <div className="archive-entry-dialog-heading">
           <p>Artwork archive</p>

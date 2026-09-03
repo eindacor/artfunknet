@@ -3528,7 +3528,7 @@
 }
 
 .archive-entry-dialog {
-  width: min(680px, calc(100vw - 32px));
+  width: min(920px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
   margin: auto;
   padding: 0;
@@ -3546,7 +3546,7 @@
 .archive-entry-dialog-content {
   position: relative;
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: minmax(360px, 480px) 1fr;
   gap: 24px;
   padding: 34px;
 }
@@ -3559,7 +3559,9 @@
 }
 
 .archive-entry-dialog-artwork {
-  grid-row: span 2;
+  grid-row: span 3;
+  width: 100% !important;
+  height: 380px !important;
   background: #ded8cd;
 }
 
@@ -3636,6 +3638,8 @@
   .archive-entry-dialog-artwork {
     grid-row: auto;
     justify-self: center;
+    width: min(100%, 480px) !important;
+    height: min(70vw, 380px) !important;
   }
 
   .archive-entry-dialog section {
