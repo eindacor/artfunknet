@@ -22,6 +22,61 @@ type EditableArtwork = Artwork & {
   updated_by?: string;
 };
 
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const auth = await requireAdminApi();
+  if (!auth.ok) return auth.response;
+  const { id } = await params;
+  const database = await getDatabase();
+  const artwork = await database
+    .collection<EditableArtwork>("artworks")
+    .findOne({ _id: id });
+  if (!artwork) {
+    return NextResponse.json({ error: "Artwork not found." }, { status: 404 });
+  }
+  const [itemCount, archiveCount] = await Promise.all([
+    database.collection("items").countDocuments({ artwork_id: id }),
+    database.collection("player_artwork_archives").countDocuments({
+      artwork_id: id,
+    }),
+  ]);
+  if (itemCount > 0 || archiveCount > 0) {
+    const references = [
+      itemCount > 0 ? `${itemCount} game item${itemCount === 1 ? "" : "s"}` : "",
+      archiveCount > 0
+        ? `${archiveCount} archive record${archiveCount === 1 ? "" : "s"}`
+        : "",
+    ]
+      .filter(Boolean)
+      .join(" and ");
+    return NextResponse.json(
+      {
+        error: `Cannot delete ${artwork.title} while it is referenced by ${references}. Deactivate it instead.`,
+      },
+      { status: 409 },
+    );
+  }
+  const deleted = await database.collection<EditableArtwork>("artworks").deleteOne({
+    _id: id,
+  });
+  if (deleted.deletedCount !== 1) {
+    return NextResponse.json(
+      { error: "The artwork changed before it could be deleted." },
+      { status: 409 },
+    );
+  }
+  console.info("Deleted artwork catalog record", {
+    artworkId: id,
+    title: artwork.title,
+    deletedBy: auth.session.email,
+  });
+  return NextResponse.json({
+    message: `Deleted artwork ${artwork.title}.`,
+  });
+}
+
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },

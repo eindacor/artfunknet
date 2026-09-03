@@ -13,6 +13,49 @@ type Artist = {
   updated_by?: string;
 };
 
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const auth = await requireAdminApi();
+  if (!auth.ok) return auth.response;
+  const { id } = await params;
+  const database = await getDatabase();
+  const artist = await database.collection<Artist>("artists").findOne({ _id: id });
+  if (!artist) {
+    return NextResponse.json({ error: "Artist not found." }, { status: 404 });
+  }
+  const artworkCount = await database
+    .collection("artworks")
+    .countDocuments({ artist_id: id });
+  if (artworkCount > 0) {
+    return NextResponse.json(
+      {
+        error: `Cannot delete ${artist.artist_name} while ${artworkCount} artwork record${artworkCount === 1 ? " is" : "s are"} linked to the artist.`,
+      },
+      { status: 409 },
+    );
+  }
+  const deleted = await database.collection<Artist>("artists").deleteOne({
+    _id: id,
+    artist_name: artist.artist_name,
+  });
+  if (deleted.deletedCount !== 1) {
+    return NextResponse.json(
+      { error: "The artist changed before it could be deleted." },
+      { status: 409 },
+    );
+  }
+  console.info("Deleted artist catalog record", {
+    artistId: id,
+    artistName: artist.artist_name,
+    deletedBy: auth.session.email,
+  });
+  return NextResponse.json({
+    message: `Deleted artist ${artist.artist_name}.`,
+  });
+}
+
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },

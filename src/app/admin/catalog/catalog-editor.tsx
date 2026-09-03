@@ -41,6 +41,8 @@ export type ArtworkCatalogEntry = {
   active: boolean;
   nsfw?: boolean;
   special_attributes?: string[];
+  image?: { storage?: unknown };
+  hasImage?: boolean;
 };
 
 type AttributeOption = { id: string; name: string };
@@ -57,6 +59,9 @@ export default function CatalogEditor({
   const [artists, setArtists] = useState(initialArtists);
   const [artworks, setArtworks] = useState(initialArtworks);
   const [mode, setMode] = useState<"artworks" | "artists">("artworks");
+  const [artworkFilter, setArtworkFilter] = useState<"all" | "missing">(
+    "all",
+  );
   const [query, setQuery] = useState("");
   const [selectedArtworkId, setSelectedArtworkId] = useState(
     initialArtworks[0]?._id ?? "",
@@ -72,14 +77,19 @@ export default function CatalogEditor({
 
   const filteredArtworks = useMemo(() => {
     const search = query.trim().toLowerCase();
-    return search
-      ? artworks.filter((artwork) =>
-          `${artwork.title} ${artwork.artist} ${artwork.rarity}`
-            .toLowerCase()
-            .includes(search),
-        )
-      : artworks;
-  }, [artworks, query]);
+    return artworks.filter((artwork) => {
+      const matchesFilter =
+        artworkFilter === "all" ||
+        artwork.hasImage === false ||
+        !artwork.image?.storage;
+      const matchesSearch =
+        !search ||
+        `${artwork.title} ${artwork.artist} ${artwork.rarity}`
+          .toLowerCase()
+          .includes(search);
+      return matchesFilter && matchesSearch;
+    });
+  }, [artworkFilter, artworks, query]);
   const filteredArtists = useMemo(() => {
     const search = query.trim().toLowerCase();
     return search
@@ -126,7 +136,12 @@ export default function CatalogEditor({
       setArtworks((current) =>
         current
           .map((artwork) =>
-            artwork._id === result.artwork._id ? result.artwork : artwork,
+            artwork._id === result.artwork._id
+              ? {
+                  ...result.artwork,
+                  hasImage: Boolean(result.artwork.image?.storage),
+                }
+              : artwork,
           )
           .sort(compareArtworks),
       );
@@ -188,6 +203,58 @@ export default function CatalogEditor({
     });
   }
 
+  async function deleteArtwork() {
+    if (!artworkForm) return;
+    if (
+      !window.confirm(
+        `Delete "${artworkForm.title}" by ${artworkForm.artist}? This cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+    const deletedId = artworkForm._id;
+    await save(async () => {
+      const response = await fetch(`/api/admin/artworks/${deletedId}`, {
+        method: "DELETE",
+      });
+      const result = await readResponse<{ message: string }>(response);
+      const remaining = artworks
+        .filter((artwork) => artwork._id !== deletedId)
+        .sort(compareArtworks);
+      setArtworks(remaining);
+      const next = remaining[0] ?? null;
+      setSelectedArtworkId(next?._id ?? "");
+      setArtworkForm(next);
+      setMessage(result.message);
+    });
+  }
+
+  async function deleteArtist() {
+    if (!artistForm) return;
+    if (
+      !window.confirm(
+        `Delete artist "${artistForm.name}"? This cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+    const deletedId = artistForm.id;
+    await save(async () => {
+      const response = await fetch(`/api/admin/artists/${deletedId}`, {
+        method: "DELETE",
+      });
+      const result = await readResponse<{ message: string }>(response);
+      const remaining = artists
+        .filter((artist) => artist.id !== deletedId)
+        .sort((left, right) => left.name.localeCompare(right.name));
+      setArtists(remaining);
+      const next = remaining[0] ?? null;
+      setSelectedArtistId(next?.id ?? "");
+      setArtistForm(next);
+      setMessage(result.message);
+    });
+  }
+
   async function save(action: () => Promise<void>) {
     setPending(true);
     clearStatus();
@@ -201,14 +268,33 @@ export default function CatalogEditor({
   }
 
   const entries = mode === "artworks" ? filteredArtworks : filteredArtists;
+  const rarityCounts = RARITIES.map((rarity) => ({
+    rarity,
+    count: artworks.filter((artwork) => artwork.rarity === rarity).length,
+  }));
 
   return (
     <section className="grid gap-5">
+      <div className="rounded-lg border border-white/10 bg-white/5 p-4">
+        <h2 className="font-semibold">Artwork breakdown</h2>
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-5">
+          {rarityCounts.map(({ rarity, count }) => (
+            <div
+              className="rounded-md border border-white/10 bg-black/10 px-3 py-2"
+              key={rarity}
+            >
+              <p className={`rarity-text ${rarity}`}>{capitalize(rarity)}</p>
+              <p className="mt-1 text-2xl font-bold">{count}</p>
+            </div>
+          ))}
+        </div>
+      </div>
       <div className="flex flex-wrap gap-2">
         <button
           className={mode === "artworks" ? activeTabClass : tabClass}
           onClick={() => {
             setMode("artworks");
+            setArtworkFilter("all");
             setQuery("");
           }}
           type="button"
@@ -216,9 +302,29 @@ export default function CatalogEditor({
           Artworks ({artworks.length})
         </button>
         <button
+          className={
+            mode === "artworks" && artworkFilter === "missing"
+              ? activeTabClass
+              : tabClass
+          }
+          onClick={() => {
+            setMode("artworks");
+            setArtworkFilter("missing");
+            setQuery("");
+          }}
+          type="button"
+        >
+          Missing images (
+          {artworks.filter(
+            (artwork) => artwork.hasImage === false || !artwork.image?.storage,
+          ).length}
+          )
+        </button>
+        <button
           className={mode === "artists" ? activeTabClass : tabClass}
           onClick={() => {
             setMode("artists");
+            setArtworkFilter("all");
             setQuery("");
           }}
           type="button"
@@ -283,6 +389,20 @@ export default function CatalogEditor({
               artwork={artworkForm}
               attributes={attributes}
               onChange={setArtworkForm}
+              onUploaded={(updated) => {
+                const artworkWithImage = { ...updated, hasImage: true };
+                setArtworkForm(artworkWithImage);
+                setArtworks((current) =>
+                  current.map((artwork) =>
+                    artwork._id === updated._id
+                      ? { ...artwork, ...artworkWithImage }
+                      : artwork,
+                  ),
+                );
+                setMessage(`Updated the image for ${artworkWithImage.title}.`);
+              }}
+              onUploadError={(uploadError) => setError(uploadError)}
+              onDelete={deleteArtwork}
               onSubmit={saveArtwork}
               pending={pending}
             />
@@ -292,6 +412,7 @@ export default function CatalogEditor({
               artist={artistForm}
               onChange={setArtistForm}
               onSubmit={saveArtist}
+              onDelete={deleteArtist}
               pending={pending}
             />
           ) : null}
@@ -308,6 +429,9 @@ function ArtworkForm({
   artists,
   attributes,
   onChange,
+  onUploaded,
+  onUploadError,
+  onDelete,
   onSubmit,
   pending,
 }: {
@@ -315,10 +439,15 @@ function ArtworkForm({
   artists: ArtistCatalogEntry[];
   attributes: AttributeOption[];
   onChange: (artwork: ArtworkCatalogEntry) => void;
+  onUploaded: (artwork: ArtworkCatalogEntry) => void;
+  onUploadError: (message: string) => void;
+  onDelete: () => void;
   onSubmit: (event: FormEvent) => void;
   pending: boolean;
 }) {
   const requiredAttributes = getRequiredAttributeCount(artwork.rarity);
+  const [uploading, setUploading] = useState(false);
+  const [imageVersion, setImageVersion] = useState(0);
   function set<Key extends keyof ArtworkCatalogEntry>(
     key: Key,
     value: ArtworkCatalogEntry[Key],
@@ -332,10 +461,47 @@ function ArtworkForm({
           alt={`${artwork.title} by ${artwork.artist}`}
           className="h-auto w-full rounded-md border border-white/10 object-contain"
           height={220}
-          src={`/api/artwork/${artwork._id}/image`}
+          src={`/api/artwork/${artwork._id}/image?v=${imageVersion}`}
           unoptimized
           width={180}
         />
+        <label className="mt-3 grid gap-2 text-sm">
+          <span className="font-semibold">Replace image</span>
+          <input
+            accept="image/bmp,image/gif,image/jpeg,image/png,image/tiff,image/webp"
+            className={inputClass}
+            disabled={uploading}
+            onChange={async (event) => {
+              const file = event.target.files?.[0];
+              if (!file) return;
+              setUploading(true);
+              try {
+                const body = new FormData();
+                body.set("image", file);
+                const response = await fetch(
+                  `/api/admin/artworks/${artwork._id}/image`,
+                  { method: "POST", body },
+                );
+                const result = await readResponse<{
+                  artwork: ArtworkCatalogEntry;
+                }>(response);
+                onUploaded(result.artwork);
+                setImageVersion((version) => version + 1);
+              } catch (caught) {
+                onUploadError(
+                  caught instanceof Error ? caught.message : "Image upload failed.",
+                );
+              } finally {
+                setUploading(false);
+                event.target.value = "";
+              }
+            }}
+            type="file"
+          />
+          {uploading ? (
+            <span className="text-[var(--muted)]">Uploading...</span>
+          ) : null}
+        </label>
         <div>
           <h2 className="text-2xl font-bold">{artwork.title}</h2>
           <p className="text-[var(--muted)]">{artwork._id}</p>
@@ -485,6 +651,14 @@ function ArtworkForm({
       >
         {pending ? "Saving..." : "Save artwork"}
       </button>
+      <button
+        className="justify-self-start rounded-md border border-red-400/60 px-4 py-2 font-bold text-red-300 disabled:opacity-50"
+        disabled={pending}
+        onClick={onDelete}
+        type="button"
+      >
+        Delete artwork
+      </button>
     </form>
   );
 }
@@ -493,11 +667,13 @@ function ArtistForm({
   artist,
   onChange,
   onSubmit,
+  onDelete,
   pending,
 }: {
   artist: ArtistCatalogEntry;
   onChange: (artist: ArtistCatalogEntry) => void;
   onSubmit: (event: FormEvent) => void;
+  onDelete: () => void;
   pending: boolean;
 }) {
   return (
@@ -532,6 +708,14 @@ function ArtistForm({
         type="submit"
       >
         {pending ? "Saving..." : "Save artist"}
+      </button>
+      <button
+        className="justify-self-start rounded-md border border-red-400/60 px-4 py-2 font-bold text-red-300 disabled:opacity-50"
+        disabled={pending}
+        onClick={onDelete}
+        type="button"
+      >
+        Delete artist
       </button>
     </form>
   );

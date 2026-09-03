@@ -9,11 +9,30 @@ import { getDatabase } from "@/server/mongodb";
 type Artwork = {
   _id: string;
   active: boolean;
-  image: {
+  image?: {
     content_type: string;
     storage: ArtworkStorageReference;
   };
 };
+
+async function readFallbackArtwork(database: Awaited<ReturnType<typeof getDatabase>>) {
+  const fallback = await database
+    .collection<Artwork>("artworks")
+    .findOne({
+      title: "Mona Lisa",
+      artist: "Leonardo da Vinci",
+      active: true,
+    });
+
+  if (!fallback?.image?.storage) {
+    throw new Error("The Mona Lisa fallback image is unavailable.");
+  }
+
+  return {
+    bytes: await readArtworkObject(fallback.image.storage),
+    contentType: fallback.image.content_type,
+  };
+}
 
 export async function GET(
   _request: Request,
@@ -25,19 +44,17 @@ export async function GET(
     .collection<Artwork>("artworks")
     .findOne({ _id: id, active: true });
 
-  if (!artwork?.image?.storage) {
-    return NextResponse.json(
-      { error: "Artwork image was not found." },
-      { status: 404 },
-    );
-  }
-
   try {
-    const image = await readArtworkObject(artwork.image.storage);
+    const image = artwork?.image?.storage
+      ? {
+          bytes: await readArtworkObject(artwork.image.storage),
+          contentType: artwork.image.content_type,
+        }
+      : await readFallbackArtwork(database);
 
-    return new NextResponse(new Uint8Array(image), {
+    return new NextResponse(new Uint8Array(image.bytes), {
       headers: {
-        "content-type": artwork.image.content_type,
+        "content-type": image.contentType,
         "cache-control": "public, max-age=3600",
       },
     });

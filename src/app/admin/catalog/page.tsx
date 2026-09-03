@@ -41,6 +41,7 @@ export default async function CatalogPage() {
               active: 1,
               nsfw: 1,
               special_attributes: 1,
+              image: 1,
             },
           },
         )
@@ -81,7 +82,14 @@ export default async function CatalogPage() {
       </div>
       <CatalogEditor
         initialArtists={artists}
-        initialArtworks={JSON.parse(JSON.stringify(artworkDocuments))}
+        initialArtworks={JSON.parse(
+          JSON.stringify(
+            artworkDocuments.map((artwork) => ({
+              ...artwork,
+              hasImage: Boolean(artwork.image?.storage),
+            })),
+          ),
+        )}
         attributes={attributeDocuments.map((attribute) => ({
           id: attribute._id,
           name: attribute.npc_name,
