@@ -209,6 +209,7 @@ export async function POST(
 
   return NextResponse.json({
     status: "ok",
+    donated: true,
     knowledge,
     recoveredStyle: recoveredStyle?.id,
     styleInventory: getCardStyleInventory(

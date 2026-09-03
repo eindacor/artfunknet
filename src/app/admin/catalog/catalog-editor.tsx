@@ -1,0 +1,605 @@
+"use client";
+
+import Image from "next/image";
+import { FormEvent, useMemo, useState } from "react";
+
+type ArtworkRarity =
+  | "common"
+  | "uncommon"
+  | "rare"
+  | "legendary"
+  | "masterpiece";
+
+const RARITIES: ArtworkRarity[] = [
+  "common",
+  "uncommon",
+  "rare",
+  "legendary",
+  "masterpiece",
+];
+
+export type ArtistCatalogEntry = {
+  id: string;
+  name: string;
+  dateOfBirth: string;
+  dateOfDeath: string;
+  artworkCount: number;
+};
+
+export type ArtworkCatalogEntry = {
+  _id: string;
+  artist_id: string;
+  artist: string;
+  title: string;
+  date: number;
+  genre: string;
+  medium: string;
+  rarity: ArtworkRarity;
+  value_scale: number;
+  height: number;
+  width: number;
+  active: boolean;
+  nsfw?: boolean;
+  special_attributes?: string[];
+};
+
+type AttributeOption = { id: string; name: string };
+
+export default function CatalogEditor({
+  initialArtists,
+  initialArtworks,
+  attributes,
+}: {
+  initialArtists: ArtistCatalogEntry[];
+  initialArtworks: ArtworkCatalogEntry[];
+  attributes: AttributeOption[];
+}) {
+  const [artists, setArtists] = useState(initialArtists);
+  const [artworks, setArtworks] = useState(initialArtworks);
+  const [mode, setMode] = useState<"artworks" | "artists">("artworks");
+  const [query, setQuery] = useState("");
+  const [selectedArtworkId, setSelectedArtworkId] = useState(
+    initialArtworks[0]?._id ?? "",
+  );
+  const [selectedArtistId, setSelectedArtistId] = useState(
+    initialArtists[0]?.id ?? "",
+  );
+  const [artworkForm, setArtworkForm] = useState(initialArtworks[0] ?? null);
+  const [artistForm, setArtistForm] = useState(initialArtists[0] ?? null);
+  const [pending, setPending] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  const filteredArtworks = useMemo(() => {
+    const search = query.trim().toLowerCase();
+    return search
+      ? artworks.filter((artwork) =>
+          `${artwork.title} ${artwork.artist} ${artwork.rarity}`
+            .toLowerCase()
+            .includes(search),
+        )
+      : artworks;
+  }, [artworks, query]);
+  const filteredArtists = useMemo(() => {
+    const search = query.trim().toLowerCase();
+    return search
+      ? artists.filter((artist) => artist.name.toLowerCase().includes(search))
+      : artists;
+  }, [artists, query]);
+
+  function selectArtwork(artwork: ArtworkCatalogEntry) {
+    setSelectedArtworkId(artwork._id);
+    setArtworkForm({ ...artwork });
+    clearStatus();
+  }
+
+  function selectArtist(artist: ArtistCatalogEntry) {
+    setSelectedArtistId(artist.id);
+    setArtistForm({ ...artist });
+    clearStatus();
+  }
+
+  function clearStatus() {
+    setMessage("");
+    setError("");
+  }
+
+  async function saveArtwork(event: FormEvent) {
+    event.preventDefault();
+    if (!artworkForm) return;
+    const previousArtistId = artworks.find(
+      (artwork) => artwork._id === artworkForm._id,
+    )?.artist_id;
+    await save(async () => {
+      const response = await fetch(
+        `/api/admin/artworks/${artworkForm._id}`,
+        {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(artworkForm),
+        },
+      );
+      const result = await readResponse<{
+        artwork: ArtworkCatalogEntry;
+        message: string;
+      }>(response);
+      setArtworks((current) =>
+        current
+          .map((artwork) =>
+            artwork._id === result.artwork._id ? result.artwork : artwork,
+          )
+          .sort(compareArtworks),
+      );
+      setArtworkForm(result.artwork);
+      if (
+        previousArtistId &&
+        previousArtistId !== result.artwork.artist_id
+      ) {
+        setArtists((current) =>
+          current.map((artist) =>
+            artist.id === previousArtistId
+              ? {
+                  ...artist,
+                  artworkCount: Math.max(0, artist.artworkCount - 1),
+                }
+              : artist.id === result.artwork.artist_id
+                ? { ...artist, artworkCount: artist.artworkCount + 1 }
+                : artist,
+          ),
+        );
+      }
+      setMessage(result.message);
+    });
+  }
+
+  async function saveArtist(event: FormEvent) {
+    event.preventDefault();
+    if (!artistForm) return;
+    await save(async () => {
+      const response = await fetch(`/api/admin/artists/${artistForm.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          artist_name: artistForm.name,
+          date_of_birth: artistForm.dateOfBirth,
+          date_of_death: artistForm.dateOfDeath,
+        }),
+      });
+      const result = await readResponse<{
+        artist: ArtistCatalogEntry;
+        message: string;
+      }>(response);
+      setArtists((current) =>
+        current
+          .map((artist) =>
+            artist.id === result.artist.id ? result.artist : artist,
+          )
+          .sort((left, right) => left.name.localeCompare(right.name)),
+      );
+      setArtworks((current) =>
+        current.map((artwork) =>
+          artwork.artist_id === result.artist.id
+            ? { ...artwork, artist: result.artist.name }
+            : artwork,
+        ),
+      );
+      setArtistForm(result.artist);
+      setMessage(result.message);
+    });
+  }
+
+  async function save(action: () => Promise<void>) {
+    setPending(true);
+    clearStatus();
+    try {
+      await action();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Update failed.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  const entries = mode === "artworks" ? filteredArtworks : filteredArtists;
+
+  return (
+    <section className="grid gap-5">
+      <div className="flex flex-wrap gap-2">
+        <button
+          className={mode === "artworks" ? activeTabClass : tabClass}
+          onClick={() => {
+            setMode("artworks");
+            setQuery("");
+          }}
+          type="button"
+        >
+          Artworks ({artworks.length})
+        </button>
+        <button
+          className={mode === "artists" ? activeTabClass : tabClass}
+          onClick={() => {
+            setMode("artists");
+            setQuery("");
+          }}
+          type="button"
+        >
+          Artists ({artists.length})
+        </button>
+      </div>
+      <label className="grid gap-2">
+        <span className="font-semibold">Search {mode}</span>
+        <input
+          className={inputClass}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder={
+            mode === "artworks"
+              ? "Title, artist, or rarity"
+              : "Artist name"
+          }
+          value={query}
+        />
+      </label>
+      <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
+        <aside className="max-h-[70vh] space-y-2 overflow-y-auto pr-2">
+          <p className="text-sm text-[var(--muted)]">
+            {entries.length} matching entries
+          </p>
+          {mode === "artworks"
+            ? filteredArtworks.map((artwork) => (
+                <button
+                  className={entryClass(
+                    artwork._id === selectedArtworkId,
+                  )}
+                  key={artwork._id}
+                  onClick={() => selectArtwork(artwork)}
+                  type="button"
+                >
+                  <strong>{artwork.title}</strong>
+                  <span>{artwork.artist}</span>
+                  <small className={`rarity-text ${artwork.rarity}`}>
+                    {artwork.rarity} · {artwork.active ? "active" : "inactive"}
+                  </small>
+                </button>
+              ))
+            : filteredArtists.map((artist) => (
+                <button
+                  className={entryClass(artist.id === selectedArtistId)}
+                  key={artist.id}
+                  onClick={() => selectArtist(artist)}
+                  type="button"
+                >
+                  <strong>{artist.name}</strong>
+                  <span>
+                    {artist.artworkCount} artwork
+                    {artist.artworkCount === 1 ? "" : "s"}
+                  </span>
+                </button>
+              ))}
+        </aside>
+        <div className="rounded-lg border border-white/10 bg-white/5 p-5">
+          {mode === "artworks" && artworkForm ? (
+            <ArtworkForm
+              artists={artists}
+              artwork={artworkForm}
+              attributes={attributes}
+              onChange={setArtworkForm}
+              onSubmit={saveArtwork}
+              pending={pending}
+            />
+          ) : null}
+          {mode === "artists" && artistForm ? (
+            <ArtistForm
+              artist={artistForm}
+              onChange={setArtistForm}
+              onSubmit={saveArtist}
+              pending={pending}
+            />
+          ) : null}
+          {message ? <p className="mt-4 text-green-400">{message}</p> : null}
+          {error ? <p className="mt-4 text-red-400">{error}</p> : null}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ArtworkForm({
+  artwork,
+  artists,
+  attributes,
+  onChange,
+  onSubmit,
+  pending,
+}: {
+  artwork: ArtworkCatalogEntry;
+  artists: ArtistCatalogEntry[];
+  attributes: AttributeOption[];
+  onChange: (artwork: ArtworkCatalogEntry) => void;
+  onSubmit: (event: FormEvent) => void;
+  pending: boolean;
+}) {
+  const requiredAttributes = getRequiredAttributeCount(artwork.rarity);
+  function set<Key extends keyof ArtworkCatalogEntry>(
+    key: Key,
+    value: ArtworkCatalogEntry[Key],
+  ) {
+    onChange({ ...artwork, [key]: value });
+  }
+  return (
+    <form className="grid gap-5" onSubmit={onSubmit}>
+      <div className="grid gap-5 md:grid-cols-[180px_1fr]">
+        <Image
+          alt={`${artwork.title} by ${artwork.artist}`}
+          className="h-auto w-full rounded-md border border-white/10 object-contain"
+          height={220}
+          src={`/api/artwork/${artwork._id}/image`}
+          unoptimized
+          width={180}
+        />
+        <div>
+          <h2 className="text-2xl font-bold">{artwork.title}</h2>
+          <p className="text-[var(--muted)]">{artwork._id}</p>
+          <label className="mt-4 flex items-center gap-2">
+            <input
+              checked={artwork.active}
+              onChange={(event) => set("active", event.target.checked)}
+              type="checkbox"
+            />
+            Active in game
+          </label>
+          <label className="mt-2 flex items-center gap-2">
+            <input
+              checked={artwork.nsfw === true}
+              onChange={(event) => set("nsfw", event.target.checked)}
+              type="checkbox"
+            />
+            NSFW
+          </label>
+        </div>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <EditorField
+          label="Title"
+          onChange={(value) => set("title", value)}
+          value={artwork.title}
+        />
+        <label className="grid gap-2">
+          <span className="font-semibold">Artist</span>
+          <select
+            className={inputClass}
+            onChange={(event) => set("artist_id", event.target.value)}
+            value={artwork.artist_id}
+          >
+            {artists.map((artist) => (
+              <option key={artist.id} value={artist.id}>
+                {artist.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <EditorField
+          label="Date"
+          onChange={(value) => set("date", Number(value))}
+          type="number"
+          value={String(artwork.date)}
+        />
+        <EditorField
+          label="Genre or style"
+          onChange={(value) => set("genre", value)}
+          value={artwork.genre}
+        />
+        <EditorField
+          label="Medium"
+          onChange={(value) => set("medium", value)}
+          value={artwork.medium}
+        />
+        <label className="grid gap-2">
+          <span className="font-semibold">Rarity</span>
+          <select
+            className={inputClass}
+            onChange={(event) => {
+              const rarity = event.target.value as ArtworkRarity;
+              onChange({
+                ...artwork,
+                rarity,
+                special_attributes: (artwork.special_attributes ?? []).slice(
+                  0,
+                  getRequiredAttributeCount(rarity),
+                ),
+              });
+            }}
+            value={artwork.rarity}
+          >
+            {RARITIES.map((rarity) => (
+              <option key={rarity} value={rarity}>
+                {capitalize(rarity)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <EditorField
+          label="Value scale (0-1)"
+          onChange={(value) => set("value_scale", Number(value))}
+          step="0.001"
+          type="number"
+          value={String(artwork.value_scale)}
+        />
+        <EditorField
+          label="Height (cm)"
+          onChange={(value) => set("height", Number(value))}
+          step="0.01"
+          type="number"
+          value={String(artwork.height)}
+        />
+      </div>
+      <fieldset className="grid gap-2 rounded-md border border-white/10 p-3">
+        <legend className="px-1 font-semibold">
+          Special attributes ({artwork.special_attributes?.length ?? 0}/
+          {requiredAttributes})
+        </legend>
+        {requiredAttributes === 0 ? (
+          <p className="text-sm text-[var(--muted)]">
+            This rarity has no special attributes.
+          </p>
+        ) : (
+          <div className="grid gap-2 sm:grid-cols-2">
+            {attributes.map((attribute) => {
+              const selected = artwork.special_attributes?.includes(
+                attribute.id,
+              );
+              return (
+                <label className="flex items-center gap-2" key={attribute.id}>
+                  <input
+                    checked={selected}
+                    disabled={
+                      !selected &&
+                      (artwork.special_attributes?.length ?? 0) >=
+                        requiredAttributes
+                    }
+                    onChange={() =>
+                      set(
+                        "special_attributes",
+                        selected
+                          ? artwork.special_attributes?.filter(
+                              (id) => id !== attribute.id,
+                            )
+                          : [
+                              ...(artwork.special_attributes ?? []),
+                              attribute.id,
+                            ],
+                      )
+                    }
+                    type="checkbox"
+                  />
+                  {attribute.name}
+                </label>
+              );
+            })}
+          </div>
+        )}
+      </fieldset>
+      <button
+        className="justify-self-start rounded-md bg-[var(--accent)] px-4 py-2 font-bold text-black disabled:opacity-50"
+        disabled={pending}
+        type="submit"
+      >
+        {pending ? "Saving..." : "Save artwork"}
+      </button>
+    </form>
+  );
+}
+
+function ArtistForm({
+  artist,
+  onChange,
+  onSubmit,
+  pending,
+}: {
+  artist: ArtistCatalogEntry;
+  onChange: (artist: ArtistCatalogEntry) => void;
+  onSubmit: (event: FormEvent) => void;
+  pending: boolean;
+}) {
+  return (
+    <form className="grid gap-4" onSubmit={onSubmit}>
+      <div>
+        <h2 className="text-2xl font-bold">{artist.name}</h2>
+        <p className="text-[var(--muted)]">
+          {artist.artworkCount} linked artwork
+          {artist.artworkCount === 1 ? "" : "s"} · {artist.id}
+        </p>
+      </div>
+      <EditorField
+        label="Artist name"
+        onChange={(name) => onChange({ ...artist, name })}
+        value={artist.name}
+      />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <EditorField
+          label="Date of birth"
+          onChange={(dateOfBirth) => onChange({ ...artist, dateOfBirth })}
+          value={artist.dateOfBirth}
+        />
+        <EditorField
+          label="Date of death"
+          onChange={(dateOfDeath) => onChange({ ...artist, dateOfDeath })}
+          value={artist.dateOfDeath}
+        />
+      </div>
+      <button
+        className="justify-self-start rounded-md bg-[var(--accent)] px-4 py-2 font-bold text-black disabled:opacity-50"
+        disabled={pending}
+        type="submit"
+      >
+        {pending ? "Saving..." : "Save artist"}
+      </button>
+    </form>
+  );
+}
+
+function EditorField({
+  label,
+  onChange,
+  step,
+  type = "text",
+  value,
+}: {
+  label: string;
+  onChange: (value: string) => void;
+  step?: string;
+  type?: string;
+  value: string;
+}) {
+  return (
+    <label className="grid gap-2">
+      <span className="font-semibold">{label}</span>
+      <input
+        className={inputClass}
+        onChange={(event) => onChange(event.target.value)}
+        step={step}
+        type={type}
+        value={value}
+      />
+    </label>
+  );
+}
+
+function getRequiredAttributeCount(rarity: ArtworkRarity): number {
+  return { common: 0, uncommon: 0, rare: 1, legendary: 2, masterpiece: 3 }[
+    rarity
+  ];
+}
+
+function compareArtworks(
+  left: ArtworkCatalogEntry,
+  right: ArtworkCatalogEntry,
+) {
+  return (
+    left.artist.localeCompare(right.artist) ||
+    left.title.localeCompare(right.title)
+  );
+}
+
+function capitalize(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function entryClass(current: boolean) {
+  return `grid w-full gap-1 rounded-md border p-3 text-left ${
+    current
+      ? "border-[var(--accent)] bg-white/10"
+      : "border-white/10 bg-white/5"
+  }`;
+}
+
+async function readResponse<T>(response: Response): Promise<T> {
+  const body = (await response.json()) as T & { error?: string };
+  if (!response.ok) throw new Error(body.error ?? "Update failed.");
+  return body;
+}
+
+const inputClass =
+  "rounded-md border border-white/20 bg-[#19171d] px-3 py-2";
+const tabClass = "rounded-md border border-white/20 px-4 py-2 font-semibold";
+const activeTabClass =
+  "rounded-md border border-[var(--accent)] bg-[var(--accent)] px-4 py-2 font-semibold text-black";

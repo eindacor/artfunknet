@@ -3460,6 +3460,73 @@ body {
   }
 }
 
+.donation-reward-effect {
+  position: absolute;
+  z-index: 12;
+  top: 36%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.donation-reward-effect .fa {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-size: 2.3rem;
+  opacity: 0;
+  filter: drop-shadow(0 3px 2px rgb(0 0 0 / 65%));
+  animation: donation-reward-fly 1s cubic-bezier(0.18, 0.75, 0.3, 1) forwards;
+}
+
+.donation-reward-effect .knowledge {
+  color: #ffe45c;
+  text-shadow: 0 0 18px rgb(255 228 92 / 85%);
+  --donation-drift: -28px;
+}
+
+.donation-reward-effect .art-style {
+  color: #ff59cf;
+  text-shadow: 0 0 18px rgb(255 89 207 / 78%);
+  animation-delay: 110ms;
+  --donation-drift: 28px;
+}
+
+@keyframes donation-reward-fly {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 10px) scale(0.35) rotate(-12deg);
+  }
+
+  22% {
+    opacity: 1;
+    transform: translate(
+        calc(-50% + var(--donation-drift) * 0.2),
+        -8px
+      )
+      scale(1.15) rotate(5deg);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--donation-drift)), -150px)
+      scale(0.85) rotate(18deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .donation-reward-effect .fa {
+    opacity: 1;
+    animation: none;
+    transform: translate(-50%, -48px);
+  }
+
+  .donation-reward-effect .art-style {
+    transform: translate(calc(-50% + 34px), -48px);
+  }
+}
+
 .gallery-npc.bronze {
   color: #e8a48d;
 }

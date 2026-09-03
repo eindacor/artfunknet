@@ -233,6 +233,9 @@ export default function GameDashboard({
     amount: number;
     animationId: number;
   } | null>(null);
+  const [donationEffects, setDonationEffects] = useState<
+    Record<string, { animationId: number; recoveredStyle: boolean }>
+  >({});
   const [notifications, setNotifications] = useState(initialNotifications);
   const [npcSpawnQuality, setNpcSpawnQuality] =
     useState<NpcQuality>("bronze");
@@ -455,6 +458,65 @@ export default function GameDashboard({
       }
       if (body.actionDialog) {
         setActionDialog(body.actionDialog);
+      }
+      router.refresh();
+    });
+  }
+
+  function donateItem(item: HydratedGameItem) {
+    setError("");
+    setNotice("");
+    startTransition(async () => {
+      const response = await fetch(`/api/play/items/${item._id}/donate`, {
+        method: "POST",
+      });
+      const body = (await response.json()) as {
+        actionDialog?: ActionDialogResult;
+        donated?: boolean;
+        error?: string;
+        message?: string;
+        notificationKind?: PlayerNotificationKind;
+        recoveredStyle?: string;
+      };
+      if (!response.ok) {
+        const message = body.error ?? "The donation could not be completed.";
+        setError(message);
+        await addNotification(message, "error");
+        return;
+      }
+
+      if (body.donated) {
+        const animationId = Date.now();
+        setDonationEffects((current) => ({
+          ...current,
+          [item._id]: {
+            animationId,
+            recoveredStyle: Boolean(body.recoveredStyle),
+          },
+        }));
+        window.setTimeout(() => {
+          setDonationEffects((current) => {
+            if (current[item._id]?.animationId !== animationId) {
+              return current;
+            }
+            const next = { ...current };
+            delete next[item._id];
+            return next;
+          });
+        }, 1050);
+      }
+      if (body.message) {
+        setNotice(body.message);
+        await addNotification(
+          body.message,
+          body.notificationKind ?? "success",
+        );
+      }
+      if (body.actionDialog) {
+        setActionDialog(body.actionDialog);
+      }
+      if (body.donated) {
+        await new Promise((resolve) => window.setTimeout(resolve, 900));
       }
       router.refresh();
     });
@@ -1111,6 +1173,13 @@ export default function GameDashboard({
                       <ItemCard
                         alreadyOwned={ownedArtworkIds.has(item.artwork_id)}
                         legendaryAttributes={legendaryAttributes}
+                        overlay={
+                          donationEffects[item._id] ? (
+                            <DonationRewardEffect
+                              effect={donationEffects[item._id]}
+                            />
+                          ) : null
+                        }
                         permissions={{
                           canManageItem: true,
                           canCustomizeCosmetic: false,
@@ -1177,7 +1246,7 @@ export default function GameDashboard({
                                   pending || item.permanent || item.original
                                 }
                                 onClick={() =>
-                                  act(`/api/play/items/${item._id}/donate`)
+                                  donateItem(item)
                                 }
                               />
                               <ItemActionButton
@@ -1222,6 +1291,7 @@ export default function GameDashboard({
               researchArtworkIds={researchArtworkIds}
               canCustomize
               styleInventory={player.cardStyleInventory}
+              donationEffects={donationEffects}
               title="inventory"
               actions={(item) => {
                 if (item.status === "auctioned") return null;
@@ -1327,7 +1397,7 @@ export default function GameDashboard({
                       label="Donate for knowledge"
                       disabled={pending || item.permanent || item.original}
                       onClick={() =>
-                        act(`/api/play/items/${item._id}/donate`)
+                        donateItem(item)
                       }
                     />
                     <AuthenticityActions
@@ -3123,6 +3193,7 @@ function InventorySection({
   researchArtworkIds,
   canCustomize,
   styleInventory,
+  donationEffects,
   actions,
 }: {
   title: string;
@@ -3132,6 +3203,10 @@ function InventorySection({
   researchArtworkIds: ReadonlySet<string>;
   canCustomize?: boolean;
   styleInventory: CardStyleInventory;
+  donationEffects?: Record<
+    string,
+    { animationId: number; recoveredStyle: boolean }
+  >;
   actions: (item: HydratedGameItem) => React.ReactNode;
 }) {
   return (
@@ -3148,6 +3223,11 @@ function InventorySection({
               item={item}
               legendaryAttributes={legendaryAttributes}
               key={getItemCardKey(item)}
+              overlay={
+                donationEffects?.[item._id] ? (
+                  <DonationRewardEffect effect={donationEffects[item._id]} />
+                ) : null
+              }
               permissions={{
                 canManageItem: true,
                 canCustomizeCosmetic:
@@ -3160,6 +3240,30 @@ function InventorySection({
         </div>
       )}
     </section>
+  );
+}
+
+function DonationRewardEffect({
+  effect,
+}: {
+  effect: { animationId: number; recoveredStyle: boolean };
+}) {
+  return (
+    <span
+      aria-label={
+        effect.recoveredStyle
+          ? "Knowledge and an art style recovered"
+          : "Knowledge gained"
+      }
+      className="donation-reward-effect"
+      key={effect.animationId}
+      role="status"
+    >
+      <i aria-hidden="true" className="fa fa-lightbulb-o knowledge" />
+      {effect.recoveredStyle ? (
+        <i aria-hidden="true" className="fa fa-paint-brush art-style" />
+      ) : null}
+    </span>
   );
 }
 

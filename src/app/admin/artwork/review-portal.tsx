@@ -62,6 +62,43 @@ const EMPTY_FORM: ArtworkForm = {
   nsfw: false,
 };
 
+const RANDOM_TITLE_ADJECTIVES = [
+  "Amber",
+  "Distant",
+  "Electric",
+  "Hidden",
+  "Quiet",
+  "Radiant",
+  "Velvet",
+  "Wild",
+];
+const RANDOM_TITLE_SUBJECTS = [
+  "Archive",
+  "Bloom",
+  "Dream",
+  "Garden",
+  "Horizon",
+  "Memory",
+  "Signal",
+  "Voyage",
+];
+const RANDOM_GENRES = [
+  "Abstract",
+  "Expressionism",
+  "Landscape",
+  "Portraiture",
+  "Still life",
+  "Surrealism",
+];
+const RANDOM_MEDIA = [
+  "Acrylic on canvas",
+  "Charcoal on paper",
+  "Ink and watercolor",
+  "Mixed media",
+  "Oil on canvas",
+  "Tempera on panel",
+];
+
 export default function ArtworkReviewPortal({
   initialArtists,
   initialAttributes,
@@ -95,7 +132,12 @@ export default function ArtworkReviewPortal({
     [showRejected, submissions],
   );
   const [form, setForm] = useState<ArtworkForm>(
-    toArtworkForm(firstActiveSubmission?.draft),
+    toArtworkForm(
+      firstActiveSubmission?.draft,
+      firstActiveSubmission?.id,
+      initialArtists,
+      initialAttributes,
+    ),
   );
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -112,7 +154,9 @@ export default function ArtworkReviewPortal({
 
   function selectSubmission(submission: SubmissionView) {
     setSelectedId(submission.id);
-    setForm(toArtworkForm(submission.draft));
+    setForm(
+      toArtworkForm(submission.draft, submission.id, artists, initialAttributes),
+    );
     setImageAspectRatio(undefined);
     setMessage("");
     setError("");
@@ -179,7 +223,14 @@ export default function ArtworkReviewPortal({
           submission.status !== "rejected",
       );
       setSelectedId(nextSubmission?.id ?? "");
-      setForm(toArtworkForm(nextSubmission?.draft));
+      setForm(
+        toArtworkForm(
+          nextSubmission?.draft,
+          nextSubmission?.id,
+          artists,
+          initialAttributes,
+        ),
+      );
       setImageAspectRatio(undefined);
       setMessage("Submission rejected. It remains available for later review.");
     });
@@ -206,7 +257,14 @@ export default function ArtworkReviewPortal({
       );
       setSubmissions(remaining);
       setSelectedId(remaining[0]?.id ?? "");
-      setForm(toArtworkForm(remaining[0]?.draft));
+      setForm(
+        toArtworkForm(
+          remaining[0]?.draft,
+          remaining[0]?.id,
+          artists,
+          initialAttributes,
+        ),
+      );
       if (isArtworkRarity(form.rarity)) {
         const approvedRarity = form.rarity;
         setRarityCounts((current) => ({
@@ -289,7 +347,14 @@ export default function ArtworkReviewPortal({
         return [submission, ...withoutUploaded];
       });
       setSelectedId(submission.id);
-      setForm(toArtworkForm(submission.draft));
+      setForm(
+        toArtworkForm(
+          submission.draft,
+          submission.id,
+          artists,
+          initialAttributes,
+        ),
+      );
       setImageAspectRatio(undefined);
       element.reset();
       setMessage(
@@ -316,7 +381,14 @@ export default function ArtworkReviewPortal({
         (submission) => submission.status !== "rejected",
       );
       setSelectedId(firstActive?.id ?? "");
-      setForm(toArtworkForm(firstActive?.draft));
+      setForm(
+        toArtworkForm(
+          firstActive?.draft,
+          firstActive?.id,
+          artists,
+          initialAttributes,
+        ),
+      );
       setImageAspectRatio(undefined);
     }
   }
@@ -711,25 +783,96 @@ function TextField({
 
 function toArtworkForm(
   draft: Record<string, unknown> | undefined,
+  submissionId: string | undefined,
+  artists: ArtistOption[],
+  attributes: AttributeOption[],
 ): ArtworkForm {
-  if (!draft) {
+  if (!submissionId) {
     return EMPTY_FORM;
   }
 
+  const random = createSeededRandom(submissionId);
+  const anonymousArtist = artists.find(
+    (artist) => artist.name.trim().toLowerCase() === "anonymous",
+  );
+  const randomRarity =
+    ARTWORK_RARITIES[Math.floor(random() * ARTWORK_RARITIES.length)];
+  const savedRarity = getDraftValue(draft, "rarity");
+  const rarity =
+    savedRarity && isArtworkRarity(savedRarity)
+      ? savedRarity
+      : randomRarity;
+  const requiredAttributeCount = getRequiredSpecialAttributeCount(rarity);
+  const activeAttributeIds = new Set(
+    attributes.map((attribute) => attribute.id),
+  );
+  const draftAttributeIds = Array.isArray(draft?.special_attribute_ids)
+    ? draft.special_attribute_ids
+        .map(String)
+        .filter((attributeId) => activeAttributeIds.has(attributeId))
+    : [];
+  const randomAttributeIds = [...attributes]
+    .sort(() => random() - 0.5)
+    .map((attribute) => attribute.id);
+  const specialAttributeIds = [
+    ...new Set([...draftAttributeIds, ...randomAttributeIds]),
+  ].slice(0, requiredAttributeCount);
+
   return {
-    artist_id: String(draft.artist_id ?? ""),
-    title: String(draft.title ?? ""),
-    date: String(draft.date ?? ""),
-    genre: String(draft.genre ?? ""),
-    medium: String(draft.medium ?? ""),
-    rarity: String(draft.rarity ?? "common"),
-    value_scale: String(draft.value_scale ?? ""),
-    height: String(draft.height ?? ""),
-    special_attribute_ids: Array.isArray(draft.special_attribute_ids)
-      ? draft.special_attribute_ids.map(String)
-      : [],
-    nsfw: draft.nsfw === true,
+    artist_id:
+      getDraftValue(draft, "artist_id") ?? anonymousArtist?.id ?? "",
+    title:
+      getDraftValue(draft, "title") ??
+        `${pickRandom(RANDOM_TITLE_ADJECTIVES, random)} ${pickRandom(
+          RANDOM_TITLE_SUBJECTS,
+          random,
+        )}`,
+    date:
+      getDraftValue(draft, "date") ??
+      String(Math.floor(1450 + random() * (2026 - 1450))),
+    genre:
+      getDraftValue(draft, "genre") ?? pickRandom(RANDOM_GENRES, random),
+    medium:
+      getDraftValue(draft, "medium") ?? pickRandom(RANDOM_MEDIA, random),
+    rarity,
+    value_scale:
+      getDraftValue(draft, "value_scale") ??
+      (0.2 + random() * 0.8).toFixed(3),
+    height:
+      getDraftValue(draft, "height") ??
+      String(Math.floor(30 + random() * 271)),
+    special_attribute_ids: specialAttributeIds,
+    nsfw: draft?.nsfw === true,
   };
+}
+
+function getDraftValue(
+  draft: Record<string, unknown> | undefined,
+  key: string,
+): string | undefined {
+  const value = draft?.[key];
+  if (value === undefined || value === null) return undefined;
+  const text = String(value).trim();
+  return text.length > 0 ? text : undefined;
+}
+
+function createSeededRandom(seed: string): () => number {
+  let state = 2166136261;
+  for (const character of seed) {
+    state ^= character.charCodeAt(0);
+    state = Math.imul(state, 16777619);
+  }
+  return () => {
+    state += 0x6d2b79f5;
+    let value = state;
+    value = Math.imul(value ^ (value >>> 15), value | 1);
+    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function pickRandom<T>(values: readonly T[], random: () => number): T {
+  return values[Math.floor(random() * values.length)];
 }
 
 function getRequiredSpecialAttributeCount(rarity: string): number {

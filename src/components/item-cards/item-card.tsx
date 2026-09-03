@@ -20,6 +20,7 @@ export default function ItemCard({
   alreadyOwned = false,
   consigned = false,
   interactive = true,
+  overlay,
   permissions = {
     canManageItem: false,
     canCustomizeCosmetic: false,
@@ -106,6 +107,7 @@ export default function ItemCard({
           researchTarget={researchTarget}
         />
       </div>
+      {overlay}
       {permissions.canManageItem &&
       (actions || permissions.canCustomizeCosmetic) ? (
         <div className="card-actions">
