@@ -1,0 +1,63 @@
+import { NextResponse } from "next/server";
+
+import { requireAdminApi } from "@/server/admin-api";
+import { getDatabase } from "@/server/mongodb";
+
+type LotteryTicketRequest = {
+  tickets?: unknown;
+};
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const auth = await requireAdminApi();
+  if (!auth.ok) return auth.response;
+
+  const body = (await request.json()) as LotteryTicketRequest;
+  if (
+    typeof body.tickets !== "number" ||
+    !Number.isSafeInteger(body.tickets) ||
+    body.tickets < 0
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Test player lottery tickets must be a nonnegative whole number.",
+      },
+      { status: 400 },
+    );
+  }
+
+  const { id } = await params;
+  const now = new Date();
+  const result = await (await getDatabase())
+    .collection<{ _id: string }>("players")
+    .updateOne(
+      {
+        _id: id,
+        active: true,
+        test_account: true,
+      },
+      {
+        $set: {
+          "profile.lottery_tickets": body.tickets,
+          "profile.last_activity": now.toISOString(),
+          updated_at: now,
+          updated_by: auth.session.email,
+        },
+      },
+    );
+  if (result.matchedCount !== 1) {
+    return NextResponse.json(
+      { error: "The active test player could not be found." },
+      { status: 404 },
+    );
+  }
+
+  return NextResponse.json({
+    status: "ok",
+    lotteryTickets: body.tickets,
+    message: `Test player lottery tickets set to ${body.tickets}.`,
+  });
+}

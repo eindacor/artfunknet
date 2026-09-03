@@ -13,7 +13,7 @@ export default function MinimalistCard({
 }: ItemCardRendererProps) {
   const marks = [
     item.mint ? ["mint", "Mint"] : null,
-    item.lottery ? ["lottery", `Raffle potency tier ${item.lottery}`] : null,
+    item.lottery ? ["lottery", `Lottery level ${item.lottery}`] : null,
     item.unlocked ? ["unlocked", "Unlocked"] : null,
     item.seasonal ? ["seasonal", "Seasonal"] : null,
     item.foil ? ["foil", "Foil"] : null,

@@ -9,7 +9,10 @@ import {
   applyXp,
   getCapsForLevel,
 } from "@/server/collection-gameplay";
-import { getGameplaySettings } from "@/server/game-settings";
+import {
+  getGameplayGenerationMap,
+  getGameplaySettings,
+} from "@/server/game-settings";
 import {
   calculateItemValues,
   generateDailyDrop,
@@ -230,16 +233,12 @@ export async function POST(
         {
           now,
           itemCount: 1,
-          rarityWeights: singleRarityMap(
-            claimedQuest.reward.item.rarity,
-          ),
-          cardRendererProbability:
-            settings.active.cardRendererProbability,
-          cardStyleWeights: settings.active.cardStyleWeights,
-          foilProbability: claimedQuest.reward.item.foil ? 1 : 0,
-          mintProbability: settings.active.mintProbability,
+          generationMap: {
+            ...getGameplayGenerationMap(settings.active),
+            rarity: singleRarityMap(claimedQuest.reward.item.rarity),
+            foil: claimedQuest.reward.item.foil ? 1 : 0,
+          },
           mintValueMultiplier: settings.active.mintValueMultiplier,
-          unlockedProbability: settings.active.unlockedProbability,
           debug: settings.debugEnabled,
           useRawRarityMap: true,
           source: "quest",

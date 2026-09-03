@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { getCardCosmetic } from "@/components/item-cards/catalog";
 import { requireAdminApi } from "@/server/admin-api";
 import { getGameplaySettings } from "@/server/game-settings";
 import {
@@ -31,12 +32,17 @@ type RaffleRewardRequest = {
   mint?: unknown;
   seasonal?: unknown;
   unlocked?: unknown;
+  cardRenderer?: unknown;
 };
 
 export async function PATCH(request: Request) {
   const auth = await requireAdminApi();
   if (!auth.ok) return auth.response;
   const body = (await request.json()) as RaffleRewardRequest;
+  const cardRenderer =
+    typeof body.cardRenderer === "string"
+      ? getCardCosmetic(body.cardRenderer)
+      : undefined;
   if (
     typeof body.itemId !== "string" ||
     typeof body.artworkId !== "string" ||
@@ -54,10 +60,12 @@ export async function PATCH(request: Request) {
     typeof body.foil !== "boolean" ||
     typeof body.unlocked !== "boolean" ||
     typeof body.mint !== "boolean" ||
-    typeof body.seasonal !== "boolean"
+    typeof body.seasonal !== "boolean" ||
+    !cardRenderer ||
+    cardRenderer.id === "museum"
   ) {
     return NextResponse.json(
-      { error: "Provide valid raffle prize properties." },
+      { error: "Provide valid lottery item properties." },
       { status: 400 },
     );
   }
@@ -72,7 +80,7 @@ export async function PATCH(request: Request) {
       new Date(state.draw_lock.expires_at).getTime() > Date.now())
   ) {
     return NextResponse.json(
-      { error: "That raffle prize is unavailable during the drawing." },
+      { error: "That lottery item is unavailable during the drawing." },
       { status: 409 },
     );
   }
@@ -95,7 +103,7 @@ export async function PATCH(request: Request) {
   ]);
   if (!item || !artwork || !metadata || attributes.length === 0) {
     return NextResponse.json(
-      { error: "Raffle prize data is unavailable." },
+      { error: "Lottery item data is unavailable." },
       { status: 404 },
     );
   }
@@ -123,6 +131,7 @@ export async function PATCH(request: Request) {
       item.artwork_id === artwork._id ? item.artwork_overrides : undefined,
     misprint: item.artwork_id === artwork._id ? item.misprint : false,
   };
+  nextItem.card_renderer = cardRenderer.id;
   nextItem.values = calculateItemValues(
     nextItem,
     { ...artwork, ...nextItem.artwork_overrides },
@@ -140,7 +149,7 @@ export async function PATCH(request: Request) {
   );
   if (updated.matchedCount !== 1) {
     return NextResponse.json(
-      { error: "The raffle prize changed before it could be updated." },
+      { error: "The lottery item changed before it could be updated." },
       { status: 409 },
     );
   }
@@ -164,14 +173,32 @@ export async function PATCH(request: Request) {
     },
   );
   if (stateUpdated.matchedCount !== 1) {
+    const rolledBack = await database.collection<GameItem>("items").replaceOne(
+      { _id: nextItem._id, owner: RAFFLE_OWNER_ID },
+      item,
+    );
+    if (rolledBack.matchedCount !== 1) {
+      return NextResponse.json(
+        {
+          error:
+            "The lottery drawing started during the update and the item could not be restored.",
+        },
+        { status: 500 },
+      );
+    }
     return NextResponse.json(
-      { error: "The raffle drawing started before the update completed." },
+      { error: "The lottery drawing started before the update completed." },
       { status: 409 },
     );
   }
   return NextResponse.json({
     status: "ok",
-    message: "Raffle prize properties updated.",
+    message: "Lottery item properties updated.",
+    item: {
+      ...nextItem,
+      artwork: { ...artwork, ...nextItem.artwork_overrides },
+    },
+    potency,
   });
 }
 
@@ -181,7 +208,7 @@ export async function POST(request: Request) {
   const body = (await request.json()) as { itemId?: unknown };
   if (typeof body.itemId !== "string") {
     return NextResponse.json(
-      { error: "Choose a raffle prize to replace." },
+      { error: "Choose a lottery item to replace." },
       { status: 400 },
     );
   }
@@ -189,9 +216,13 @@ export async function POST(request: Request) {
   const database = await getDatabase();
   const settings = await getGameplaySettings(database);
   const state = await ensureRaffleState(database, settings.active);
-  if (!state.prizes.some((prize) => prize.item_id === body.itemId)) {
+  if (
+    !state.prizes.some((prize) => prize.item_id === body.itemId) ||
+    (state.draw_lock &&
+      new Date(state.draw_lock.expires_at).getTime() > Date.now())
+  ) {
     return NextResponse.json(
-      { error: "That raffle prize is no longer available." },
+      { error: "That lottery item is unavailable during the drawing." },
       { status: 409 },
     );
   }
@@ -202,7 +233,11 @@ export async function POST(request: Request) {
       : prize,
   );
   const replaced = await database.collection<RaffleState>("metadata").updateOne(
-    { _id: RAFFLE_STATE_ID, prizes: state.prizes },
+    {
+      _id: RAFFLE_STATE_ID,
+      prizes: state.prizes,
+      draw_lock: { $exists: false },
+    },
     {
       $set: {
         prizes,
@@ -214,7 +249,7 @@ export async function POST(request: Request) {
   if (replaced.modifiedCount !== 1) {
     await database.collection<GameItem>("items").deleteOne({ _id: reward._id });
     return NextResponse.json(
-      { error: "The raffle prize changed before it could be regenerated." },
+      { error: "The lottery item changed before it could be regenerated." },
       { status: 409 },
     );
   }
@@ -227,6 +262,6 @@ export async function POST(request: Request) {
   ]);
   return NextResponse.json({
     status: "ok",
-    message: "A new raffle prize was generated.",
+    message: "A new lottery item was generated.",
   });
 }

@@ -4,15 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import ItemCard from "@/components/item-cards/item-card";
-import type { ArtworkRarity } from "@/server/gameplay";
+import { CARD_COSMETICS } from "@/components/item-cards/catalog";
+import type { Artwork } from "@/server/gameplay";
 import type { HydratedGameItem } from "@/server/item-artwork";
 
-type ArtworkOption = {
-  id: string;
-  artist: string;
-  title: string;
-  rarity: ArtworkRarity;
-};
+type ArtworkOption = Artwork;
 
 export default function RaffleRewardForm({
   artworks,
@@ -21,27 +17,63 @@ export default function RaffleRewardForm({
   artworks: ArtworkOption[];
   prizes: Array<{ item: HydratedGameItem; potency: number }>;
 }) {
+  const router = useRouter();
+  const [drawing, setDrawing] = useState(false);
+  const [drawError, setDrawError] = useState("");
+
+  async function drawLottery() {
+    setDrawing(true);
+    setDrawError("");
+    try {
+      const response = await fetch("/api/admin/lottery/draw", {
+        method: "POST",
+      });
+      const body = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        throw new Error(body.error ?? "The lottery could not be drawn.");
+      }
+      setDrawing(false);
+      router.refresh();
+    } catch (error) {
+      setDrawError(
+        error instanceof Error ? error.message : "The lottery could not be drawn.",
+      );
+      setDrawing(false);
+    }
+  }
+
   return (
-    <div className="admin-raffle-grid">
-      {prizes.map((prize) => (
-        <PrizeEditor
-          artworks={artworks}
-          key={prize.item._id}
-          prize={prize}
-        />
-      ))}
+    <div>
+      <div className="admin-raffle-draw">
+        <button disabled={drawing} onClick={drawLottery} type="button">
+          {drawing ? "Drawing..." : "Draw lottery"}
+        </button>
+        {drawError ? <p className="admin-error">{drawError}</p> : null}
+      </div>
+      <div className="admin-raffle-grid">
+        {prizes.map((prize, index) => (
+          <PrizeEditor
+            artworks={artworks}
+            index={index}
+            key={`${prize.item._id}:${prize.potency}:${JSON.stringify(prize.item)}`}
+            prize={prize}
+          />
+        ))}
+      </div>
     </div>
   );
 }
 
 function PrizeEditor({
   artworks,
+  index,
   prize,
 }: {
   artworks: ArtworkOption[];
+  index: number;
   prize: { item: HydratedGameItem; potency: number };
 }) {
-  const router = useRouter();
+  const [item, setItem] = useState(prize.item);
   const [artworkId, setArtworkId] = useState(prize.item.artwork_id);
   const [condition, setCondition] = useState(
     Math.round(prize.item.condition * 100),
@@ -52,48 +84,47 @@ function PrizeEditor({
   const [unlocked, setUnlocked] = useState(prize.item.unlocked);
   const [mint, setMint] = useState(prize.item.mint);
   const [seasonal, setSeasonal] = useState(prize.item.seasonal);
+  const [cardRenderer, setCardRenderer] = useState(
+    prize.item.card_renderer ?? "legacy",
+  );
   const [pending, setPending] = useState(false);
-  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  async function submit(method: "PATCH" | "POST") {
+  async function saveAndRefreshPreview() {
     setPending(true);
-    setMessage("");
     setError("");
     try {
-      const response = await fetch("/api/admin/raffle", {
-        method,
+      const response = await fetch("/api/admin/lottery", {
+        method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(
-          method === "POST"
-            ? { itemId: prize.item._id }
-            : {
-                itemId: prize.item._id,
-                artworkId,
-                condition: condition / 100,
-                itemLevel,
-                potency,
-                foil,
-                unlocked,
-                mint,
-                seasonal,
-              },
-        ),
+        body: JSON.stringify({
+          itemId: prize.item._id,
+          artworkId,
+          condition: mint ? 1 : condition / 100,
+          itemLevel,
+          potency,
+          foil,
+          unlocked,
+          mint,
+          seasonal,
+          cardRenderer,
+        }),
       });
       const body = (await response.json()) as {
         error?: string;
-        message?: string;
+        item?: HydratedGameItem;
       };
-      if (!response.ok) {
-        throw new Error(body.error ?? "The raffle prize could not be updated.");
+      if (!response.ok || !body.item) {
+        throw new Error(
+          body.error ?? "The lottery item could not be updated.",
+        );
       }
-      setMessage(body.message ?? "Raffle prize updated.");
-      router.refresh();
-    } catch (submitError) {
+      setItem(body.item);
+    } catch (saveError) {
       setError(
-        submitError instanceof Error
-          ? submitError.message
-          : "The raffle prize could not be updated.",
+        saveError instanceof Error
+          ? saveError.message
+          : "The lottery item could not be updated.",
       );
     } finally {
       setPending(false);
@@ -102,18 +133,8 @@ function PrizeEditor({
 
   return (
     <article className="admin-raffle-editor">
-      <div className="admin-raffle-preview">
-        <ItemCard
-          interactive={false}
-          item={prize.item}
-          legendaryAttributes={[]}
-          permissions={{
-            canManageItem: false,
-            canCustomizeCosmetic: false,
-          }}
-        />
-      </div>
       <div className="admin-raffle-fields">
+        <h3>Prize {index + 1} properties</h3>
         <label>
           Artwork
           <select
@@ -122,8 +143,24 @@ function PrizeEditor({
             value={artworkId}
           >
             {artworks.map((artwork) => (
-              <option key={artwork.id} value={artwork.id}>
+              <option key={artwork._id} value={artwork._id}>
                 {artwork.rarity} · {artwork.title} — {artwork.artist}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Art style
+          <select
+            disabled={pending}
+            onChange={(event) => setCardRenderer(event.target.value)}
+            value={cardRenderer}
+          >
+            {CARD_COSMETICS.filter(
+              (cosmetic) => cosmetic.id !== "museum",
+            ).map((cosmetic) => (
+              <option key={cosmetic.id} value={cosmetic.id}>
+                {cosmetic.name}
               </option>
             ))}
           </select>
@@ -152,7 +189,7 @@ function PrizeEditor({
             />
           </label>
           <label>
-            Potency tier
+            Lottery level
             <input
               disabled={pending}
               max={10}
@@ -179,16 +216,26 @@ function PrizeEditor({
             set={setSeasonal}
           />
         </div>
-        <div className="admin-raffle-actions">
-          <button disabled={pending} onClick={() => submit("PATCH")} type="button">
-            Save prize
-          </button>
-          <button disabled={pending} onClick={() => submit("POST")} type="button">
-            Generate replacement
-          </button>
-        </div>
-        {message ? <p className="admin-success">{message}</p> : null}
+        <button
+          disabled={pending}
+          onClick={saveAndRefreshPreview}
+          type="button"
+        >
+          {pending ? "Saving..." : "Save and refresh preview"}
+        </button>
         {error ? <p className="admin-error">{error}</p> : null}
+      </div>
+      <div className="admin-raffle-preview">
+        <h3>Prize {index + 1} preview</h3>
+        <ItemCard
+          item={item}
+          key={JSON.stringify(item)}
+          legendaryAttributes={[]}
+          permissions={{
+            canManageItem: false,
+            canCustomizeCosmetic: false,
+          }}
+        />
       </div>
     </article>
   );

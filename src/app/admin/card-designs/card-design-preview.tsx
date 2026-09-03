@@ -153,7 +153,7 @@ export default function CardDesignPreview({
             </select>
           </label>
           <label>
-            Raffle potency tier
+            Lottery level
             <select
               onChange={(event) => setLotteryLevel(Number(event.target.value))}
               value={lotteryLevel}

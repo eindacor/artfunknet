@@ -280,6 +280,58 @@ export function rollProbability(
   return random() < probability;
 }
 
+export type ItemGenerationMap = {
+  rarity: Record<ArtworkRarity, number>;
+  foil: number;
+  mint: number;
+  unlocked: number;
+  misprint: number;
+  cardStyle: number;
+  cardStyles: Readonly<Record<string, number>>;
+};
+
+export type ItemGenerationProbabilityMultipliers = Partial<
+  Record<"foil" | "mint" | "unlocked" | "misprint" | "cardStyle", number>
+>;
+
+export function normalizeProbability(
+  probability: number,
+): number {
+  return Math.min(Math.max(probability, 0), 1);
+}
+
+export function applyItemGenerationProbabilityMultipliers<
+  T extends Partial<
+    Pick<
+      ItemGenerationMap,
+      "foil" | "mint" | "unlocked" | "misprint" | "cardStyle"
+    >
+  >,
+>(
+  generationMap: T,
+  multipliers: ItemGenerationProbabilityMultipliers,
+): T {
+  const result = { ...generationMap };
+  for (const property of [
+    "foil",
+    "mint",
+    "unlocked",
+    "misprint",
+    "cardStyle",
+  ] as const) {
+    const multiplier = multipliers[property];
+    const probability = generationMap[property];
+    if (multiplier === undefined || probability === undefined) continue;
+    if (!Number.isFinite(multiplier) || multiplier < 0) {
+      throw new Error(`${property} probability multiplier must be non-negative.`);
+    }
+    result[property] = normalizeProbability(
+      probability * multiplier,
+    );
+  }
+  return result;
+}
+
 export function rollUnlocked(
   rarity: ArtworkRarity,
   probability: number,
@@ -291,20 +343,20 @@ export function rollUnlocked(
 export function rollGeneratedItemProperties(
   rarity: ArtworkRarity,
   {
-    foilProbability,
-    mintProbability,
-    unlockedProbability,
+    foil,
+    mint,
+    unlocked,
   }: {
-    foilProbability: number;
-    mintProbability: number;
-    unlockedProbability: number;
+    foil: number;
+    mint: number;
+    unlocked: number;
   },
   random: () => number = Math.random,
 ) {
   return {
-    foil: rollProbability(foilProbability, random),
-    mint: rollProbability(mintProbability, random),
-    unlocked: rollUnlocked(rarity, unlockedProbability, random),
+    foil: rollProbability(foil, random),
+    mint: rollProbability(mint, random),
+    unlocked: rollUnlocked(rarity, unlocked, random),
   };
 }
 
@@ -338,13 +390,8 @@ export function rollGeneratedCardRenderer(
 export type DailyDropOptions = {
   now?: Date;
   itemCount?: number;
-  rarityWeights?: Record<ArtworkRarity, number>;
-  cardRendererProbability?: number;
-  cardStyleWeights?: Readonly<Record<string, number>>;
-  foilProbability?: number;
-  mintProbability?: number;
+  generationMap?: Partial<ItemGenerationMap>;
   mintValueMultiplier?: number;
-  unlockedProbability?: number;
   debug?: boolean;
   useRawRarityMap?: boolean;
   source?: string;
@@ -376,13 +423,8 @@ export async function generateDailyDrop(
   const {
     now = new Date(),
     itemCount = 6,
-    rarityWeights,
-    cardRendererProbability = 0,
-    cardStyleWeights,
-    foilProbability = 0.005,
-    mintProbability = 0,
+    generationMap = {},
     mintValueMultiplier = 1,
-    unlockedProbability = 0.05,
     debug = false,
     useRawRarityMap = false,
     source = "daily drop",
@@ -406,14 +448,25 @@ export async function generateDailyDrop(
   }
   const rendererSettings = await getCardRendererSettings(database);
 
-  const rarityMap = rarityWeights
+  const rarityMap = generationMap.rarity
     ? getConfiguredRarityMap(
         playerLevel,
         metadata.loot_data,
-        rarityWeights,
+        generationMap.rarity,
         useRawRarityMap,
       )
     : getRarityMap(playerLevel, metadata.loot_data);
+  const foilProbability = normalizeProbability(generationMap.foil ?? 0.005);
+  const mintProbability = normalizeProbability(generationMap.mint ?? 0);
+  const unlockedProbability = normalizeProbability(
+    generationMap.unlocked ?? 0.05,
+  );
+  const misprintProbability = normalizeProbability(
+    generationMap.misprint ?? metadata.loot_data.global_misprint_chance,
+  );
+  const cardStyleProbability = normalizeProbability(
+    generationMap.cardStyle ?? 0,
+  );
   const artworks = await database
     .collection<Artwork>("artworks")
     .find({ active: true })
@@ -450,12 +503,13 @@ export async function generateDailyDrop(
         ),
         now,
         activeRendererIds: rendererSettings.activeRendererIds,
-        cardRendererProbability,
-        cardStyleWeights,
+        cardStyleProbability,
+        cardStyleWeights: generationMap.cardStyles,
         foilProbability,
         mintProbability,
         mintValueMultiplier,
         unlockedProbability,
+        misprintProbability,
         debug,
         source,
         itemLevel,
@@ -495,12 +549,13 @@ function createItem({
   artworkWeightTotal,
   now,
   activeRendererIds,
-  cardRendererProbability,
+  cardStyleProbability,
   cardStyleWeights,
   foilProbability,
   mintProbability,
   mintValueMultiplier,
   unlockedProbability,
+  misprintProbability,
   debug,
   source,
   itemLevel,
@@ -515,12 +570,13 @@ function createItem({
   artworkWeightTotal: number;
   now: Date;
   activeRendererIds: readonly string[];
-  cardRendererProbability: number;
+  cardStyleProbability: number;
   cardStyleWeights?: Readonly<Record<string, number>>;
   foilProbability: number;
   mintProbability: number;
   mintValueMultiplier: number;
   unlockedProbability: number;
+  misprintProbability: number;
   debug: boolean;
   source: string;
   itemLevel: number;
@@ -530,12 +586,12 @@ function createItem({
   const { foil, mint, unlocked } = rollGeneratedItemProperties(
     artwork.rarity,
     {
-      foilProbability,
-      mintProbability,
-      unlockedProbability,
+      foil: foilProbability,
+      mint: mintProbability,
+      unlocked: unlockedProbability,
     },
   );
-  const misprint = Math.random() < lootData.global_misprint_chance;
+  const misprint = rollProbability(misprintProbability);
   const artworkOverrides = getMisprintOverrides(artwork, misprint);
   const itemArtwork = { ...artwork, ...artworkOverrides };
   const itemAttributes = getItemAttributes(
@@ -548,7 +604,7 @@ function createItem({
   const timestamp = now.toISOString();
   const cardRenderer = rollGeneratedCardRenderer(
     activeRendererIds,
-    cardRendererProbability,
+    cardStyleProbability,
     Math.random,
     cardStyleWeights,
   );

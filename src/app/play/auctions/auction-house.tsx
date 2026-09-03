@@ -249,7 +249,7 @@ export default function AuctionHouse({
                 onChange={() => toggleType(type)}
                 type="checkbox"
               />
-              {type === "lottery" ? "raffle" : type}
+              {type}
             </label>
           ))}
         </fieldset>

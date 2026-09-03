@@ -7,7 +7,10 @@ import {
   getCratePermission,
   getPurchasableCrateOffers,
 } from "@/server/crate-gameplay";
-import { getGameplaySettings } from "@/server/game-settings";
+import {
+  getGameplayGenerationMap,
+  getGameplaySettings,
+} from "@/server/game-settings";
 import { generateDailyDrop, type GameItem } from "@/server/gameplay";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
@@ -66,25 +69,27 @@ export async function POST(
     return NextResponse.json({ error: permission.reason }, { status: 409 });
   }
 
-  const charged = await database.collection<Player>("players").updateOne(
-    {
-      _id: player._id,
-      active: true,
-      "profile.level": player.profile.level,
-      "profile.bank_balance": { $gte: offer.cost },
-    },
-    {
-      $inc: {
-        "profile.bank_balance": -offer.cost,
-        "profile.money_spent_on_crates": offer.cost,
+  if (offer.cost > 0) {
+    const charged = await database.collection<Player>("players").updateOne(
+      {
+        _id: player._id,
+        active: true,
+        "profile.level": player.profile.level,
+        "profile.bank_balance": { $gte: offer.cost },
       },
-    },
-  );
-  if (charged.modifiedCount !== 1) {
-    return NextResponse.json(
-      { error: "Your balance changed before the crate could be opened." },
-      { status: 409 },
+      {
+        $inc: {
+          "profile.bank_balance": -offer.cost,
+          "profile.money_spent_on_crates": offer.cost,
+        },
+      },
     );
+    if (charged.modifiedCount !== 1) {
+      return NextResponse.json(
+        { error: "Your balance changed before the crate could be opened." },
+        { status: 409 },
+      );
+    }
   }
 
   const generationSource = `crate:${offer.id}:${randomUUID()}`;
@@ -95,14 +100,12 @@ export async function POST(
       player.profile.level,
       {
         itemCount: offer.itemCount,
-        rarityWeights: offer.rarityWeights,
-        useRawRarityMap: Boolean(offer.rarityWeights),
-        cardRendererProbability: settings.active.cardRendererProbability,
-        cardStyleWeights: settings.active.cardStyleWeights,
-        foilProbability: offer.foilProbability,
-        mintProbability: settings.active.mintProbability,
+        generationMap: {
+          ...getGameplayGenerationMap(settings.active),
+          ...offer.generationMap,
+        },
+        useRawRarityMap: Boolean(offer.generationMap.rarity),
         mintValueMultiplier: settings.active.mintValueMultiplier,
-        unlockedProbability: offer.unlockedProbability,
         debug: settings.debugEnabled,
         source: generationSource,
       },
@@ -131,25 +134,27 @@ export async function POST(
     } catch (cleanupError) {
       console.error("Unable to clean up failed crate items", cleanupError);
     }
-    try {
-      await database.collection<Player>("players").updateOne(
-        { _id: player._id, active: true },
-        {
-          $inc: {
-            "profile.bank_balance": offer.cost,
-            "profile.money_spent_on_crates": -offer.cost,
+    if (offer.cost > 0) {
+      try {
+        await database.collection<Player>("players").updateOne(
+          { _id: player._id, active: true },
+          {
+            $inc: {
+              "profile.bank_balance": offer.cost,
+              "profile.money_spent_on_crates": -offer.cost,
+            },
           },
-        },
-      );
-    } catch (refundError) {
-      console.error("Unable to refund failed crate purchase", refundError);
-      return NextResponse.json(
-        {
-          error:
-            "The crate could not be opened and the purchase could not be automatically refunded.",
-        },
-        { status: 500 },
-      );
+        );
+      } catch (refundError) {
+        console.error("Unable to refund failed crate purchase", refundError);
+        return NextResponse.json(
+          {
+            error:
+              "The crate could not be opened and the purchase could not be automatically refunded.",
+          },
+          { status: 500 },
+        );
+      }
     }
     console.error("Unable to open purchased crate", error);
     return NextResponse.json(

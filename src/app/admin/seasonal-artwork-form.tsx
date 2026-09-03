@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { useState } from "react";
 
 import type {
   SeasonalArtworkSelections,
@@ -30,19 +30,25 @@ export default function SeasonalArtworkForm({
 }) {
   const [selections, setSelections] = useState(initialSelections);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function updateSelection(
+    rarity: (typeof RARITIES)[number],
+    artworkId: string | null,
+  ) {
+    const previousSelections = selections;
+    const nextSelections = {
+      ...selections,
+      [rarity]: artworkId,
+    };
+    setSelections(nextSelections);
     setBusy(true);
-    setMessage("");
     setError("");
     try {
       const response = await fetch("/api/admin/seasonal-artwork", {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ selections }),
+        body: JSON.stringify({ selections: nextSelections }),
       });
       const body = (await response.json()) as {
         error?: string;
@@ -52,8 +58,8 @@ export default function SeasonalArtworkForm({
         throw new Error(body.error ?? "Seasonal artwork could not be saved.");
       }
       setSelections(body.selections);
-      setMessage("Seasonal artwork settings saved.");
     } catch (saveError) {
+      setSelections(previousSelections);
       setError(
         saveError instanceof Error
           ? saveError.message
@@ -65,7 +71,7 @@ export default function SeasonalArtworkForm({
   }
 
   return (
-    <form className="seasonal-artwork-form" onSubmit={submit}>
+    <div className="seasonal-artwork-form">
       <div className="seasonal-artwork-grid">
         {RARITIES.map((rarity) => (
           <label key={rarity}>
@@ -73,10 +79,7 @@ export default function SeasonalArtworkForm({
             <select
               disabled={busy}
               onChange={(event) =>
-                setSelections((current) => ({
-                  ...current,
-                  [rarity]: event.target.value || null,
-                }))
+                void updateSelection(rarity, event.target.value || null)
               }
               value={selections[rarity] ?? ""}
             >
@@ -92,11 +95,7 @@ export default function SeasonalArtworkForm({
           </label>
         ))}
       </div>
-      <button disabled={busy} type="submit">
-        {busy ? "saving..." : "save seasonal artwork"}
-      </button>
-      {message ? <p className="admin-success">{message}</p> : null}
       {error ? <p className="admin-error">{error}</p> : null}
-    </form>
+    </div>
   );
 }

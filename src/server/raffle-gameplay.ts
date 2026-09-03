@@ -9,13 +9,17 @@ import {
   type GameItem,
   type LootData,
 } from "./gameplay.ts";
-import type { GameplayConfig } from "./game-settings.ts";
+import {
+  getGameplayGenerationMap,
+  type GameplayConfig,
+} from "./game-settings.ts";
 
 export const RAFFLE_OWNER_ID = "raffle-house";
 export const RAFFLE_STATE_ID = "raffle-state";
 export const RAFFLE_MAX_POTENCY = 10;
 export const RAFFLE_PRIZE_COUNT = 3;
-export const RAFFLE_DRAW_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
+export const RAFFLE_DRAW_INTERVAL_MS = 24 * 60 * 60 * 1000;
+export const LOTTERY_HIT_PROBABILITY = 0.2;
 
 export type RafflePrize = {
   item_id: string;
@@ -76,7 +80,21 @@ export async function ensureRaffleState(
   let state = await database
     .collection<RaffleState>("metadata")
     .findOne({ _id: RAFFLE_STATE_ID });
-  if (!state) throw new Error("Raffle state could not be initialized.");
+  if (!state) throw new Error("Lottery state could not be initialized.");
+  const latestNextDrawAt = new Date(
+    now.getTime() + RAFFLE_DRAW_INTERVAL_MS,
+  ).toISOString();
+  if (state.next_draw_at > latestNextDrawAt) {
+    state =
+      (await database.collection<RaffleState>("metadata").findOneAndUpdate(
+        {
+          _id: RAFFLE_STATE_ID,
+          next_draw_at: state.next_draw_at,
+        },
+        { $set: { next_draw_at: latestNextDrawAt } },
+        { returnDocument: "after" },
+      )) ?? state;
+  }
 
   const validPrizes: RafflePrize[] = [];
   for (const prize of state.prizes) {
@@ -85,6 +103,12 @@ export async function ensureRaffleState(
       owner: RAFFLE_OWNER_ID,
     });
     if (item) {
+      if (!item.card_renderer) {
+        await database.collection<GameItem>("items").updateOne(
+          { _id: item._id, owner: RAFFLE_OWNER_ID },
+          { $set: { card_renderer: "legacy" } },
+        );
+      }
       validPrizes.push({
         item_id: item._id,
         potency: Math.max(1, item.lottery || prize.potency),
@@ -129,15 +153,25 @@ export async function settleRaffleIfDue(
   config: GameplayConfig,
   now = new Date(),
   random = Math.random,
+  options: {
+    forceDraw?: boolean;
+  } = {},
 ): Promise<RaffleState> {
   let state = await ensureRaffleState(database, config, now);
-  if (new Date(state.next_draw_at).getTime() > now.getTime()) return state;
+  if (
+    !options.forceDraw &&
+    new Date(state.next_draw_at).getTime() > now.getTime()
+  ) {
+    return state;
+  }
 
   const token = randomUUID();
   const locked = await database.collection<RaffleState>("metadata").findOneAndUpdate(
     {
       _id: RAFFLE_STATE_ID,
-      next_draw_at: { $lte: now.toISOString() },
+      ...(options.forceDraw
+        ? {}
+        : { next_draw_at: { $lte: now.toISOString() } }),
       $or: [
         { draw_lock: { $exists: false } },
         { "draw_lock.expires_at": { $lte: now.toISOString() } },
@@ -153,7 +187,12 @@ export async function settleRaffleIfDue(
     },
     { returnDocument: "after" },
   );
-  if (!locked) return state;
+  if (!locked) {
+    if (options.forceDraw) {
+      throw new Error("Another lottery drawing is already in progress.");
+    }
+    return state;
+  }
   state = locked;
 
   const originalPrizes = await database
@@ -165,9 +204,11 @@ export async function settleRaffleIfDue(
       { _id: RAFFLE_STATE_ID, "draw_lock.token": token },
       { $unset: { draw_lock: "" } },
     );
-    throw new Error("One or more raffle prizes disappeared before settlement.");
+    throw new Error("One or more lottery items disappeared before settlement.");
   }
   const replacementItemIds: string[] = [];
+  const expiredPrizeItemIds: string[] = [];
+  const completedPrizeItemIds: string[] = [];
 
   try {
     const nextPrizes: RafflePrize[] = [];
@@ -177,12 +218,37 @@ export async function settleRaffleIfDue(
         .collection<RaffleEntry>("raffle_entries")
         .find({ item_id: prize.item_id, tickets: { $gt: 0 } })
         .toArray();
-      const winnerEntry =
-        entries.length > 0 &&
-        (random() < 0.2 || prize.potency >= RAFFLE_MAX_POTENCY)
-          ? selectWeightedRaffleEntry(entries, random)
-          : null;
-      if (!winnerEntry) {
+      const players = await database
+        .collection<RafflePlayer>("players")
+        .find({
+          _id: { $in: entries.map((entry) => entry.player_id) },
+          active: true,
+        })
+        .toArray();
+      const playerById = new Map(
+        players.map((player) => [player._id, player]),
+      );
+      const eligibleEntries = entries.filter((entry) =>
+        playerById.has(entry.player_id),
+      );
+      const outcome = getLotteryPrizeDrawOutcome(
+        eligibleEntries.reduce(
+          (total, entry) => total + entry.tickets,
+          0,
+        ),
+        prize.potency,
+        eligibleEntries.length > 0 &&
+          random() < LOTTERY_HIT_PROBABILITY,
+      );
+      if (outcome === "replace") {
+        const nextReward = await generateRafflePrize(database, config, now);
+        replacementItemIds.push(nextReward._id);
+        expiredPrizeItemIds.push(prize.item_id);
+        completedPrizeItemIds.push(prize.item_id);
+        nextPrizes.push({ item_id: nextReward._id, potency: 1 });
+        continue;
+      }
+      if (outcome === "rollover") {
         const potency = Math.min(
           prize.potency + 1,
           RAFFLE_MAX_POTENCY,
@@ -191,14 +257,13 @@ export async function settleRaffleIfDue(
         nextPrizes.push({ item_id: prize.item_id, potency });
         continue;
       }
-
-      const player = await database.collection<RafflePlayer>("players").findOne({
-        _id: winnerEntry.player_id,
-        active: true,
-      });
+      const winnerEntry = selectWeightedRaffleEntry(
+        eligibleEntries,
+        random,
+      );
+      const player = playerById.get(winnerEntry.player_id);
       if (!player) {
-        nextPrizes.push(prize);
-        continue;
+        throw new Error("The selected lottery winner is unavailable.");
       }
       const nextReward = await generateRafflePrize(database, config, now);
       replacementItemIds.push(nextReward._id);
@@ -218,14 +283,15 @@ export async function settleRaffleIfDue(
               from_owner: RAFFLE_OWNER_ID,
               to_owner: player._id,
               occurred_at: now.toISOString(),
-              source: "weekly raffle",
+              source: "daily lottery",
             },
           },
         },
       );
       if (transferred.modifiedCount !== 1) {
-        throw new Error("Raffle prize could not be transferred.");
+        throw new Error("Lottery item could not be transferred.");
       }
+      completedPrizeItemIds.push(prize.item_id);
       nextPrizes.push({ item_id: nextReward._id, potency: 1 });
       winners.push({
         player_id: player._id,
@@ -235,9 +301,11 @@ export async function settleRaffleIfDue(
       });
     }
 
-    const nextDraw = new Date(
-      new Date(state.next_draw_at).getTime() + RAFFLE_DRAW_INTERVAL_MS,
-    );
+    const nextDraw = options.forceDraw
+      ? new Date(now.getTime() + RAFFLE_DRAW_INTERVAL_MS)
+      : new Date(
+          new Date(state.next_draw_at).getTime() + RAFFLE_DRAW_INTERVAL_MS,
+        );
     while (nextDraw.getTime() <= now.getTime()) {
       nextDraw.setTime(nextDraw.getTime() + RAFFLE_DRAW_INTERVAL_MS);
     }
@@ -262,7 +330,7 @@ export async function settleRaffleIfDue(
       },
     );
     if (advanced.modifiedCount !== 1) {
-      throw new Error("Raffle state changed during drawing settlement.");
+      throw new Error("Lottery state changed during drawing settlement.");
     }
   } catch (error) {
     let compensationFailed = false;
@@ -299,7 +367,7 @@ export async function settleRaffleIfDue(
     }
     if (compensationFailed) {
       throw new Error(
-        "Raffle settlement failed and could not be fully rolled back.",
+        "Lottery settlement failed and could not be fully rolled back.",
         { cause: error },
       );
     }
@@ -307,11 +375,24 @@ export async function settleRaffleIfDue(
   }
 
   try {
-    await database.collection<RaffleEntry>("raffle_entries").deleteMany({
-      item_id: { $in: state.prizes.map((prize) => prize.item_id) },
-    });
+    await Promise.all([
+      completedPrizeItemIds.length > 0
+        ? database.collection<RaffleEntry>("raffle_entries").deleteMany({
+            item_id: { $in: completedPrizeItemIds },
+          })
+        : Promise.resolve(),
+      expiredPrizeItemIds.length > 0
+        ? database.collection<GameItem>("items").deleteMany({
+            _id: { $in: expiredPrizeItemIds },
+            owner: RAFFLE_OWNER_ID,
+          })
+        : Promise.resolve(),
+    ]);
   } catch (error) {
-    console.error("Raffle settled, but old ticket entries were not removed.", error);
+    console.error(
+      "Lottery settled, but expired items or old ticket entries were not removed.",
+      error,
+    );
   }
 
   return (
@@ -319,6 +400,30 @@ export async function settleRaffleIfDue(
       .collection<RaffleState>("metadata")
       .findOne({ _id: RAFFLE_STATE_ID })) ?? state
   );
+}
+
+export async function drawRaffleNow(
+  database: Db,
+  config: GameplayConfig,
+  now = new Date(),
+  random = Math.random,
+): Promise<RaffleState> {
+  return settleRaffleIfDue(database, config, now, random, {
+    forceDraw: true,
+  });
+}
+
+export type LotteryPrizeDrawOutcome = "award" | "rollover" | "replace";
+
+export function getLotteryPrizeDrawOutcome(
+  ticketCount: number,
+  potency: number,
+  hit: boolean,
+): LotteryPrizeDrawOutcome {
+  if (ticketCount <= 0) {
+    return potency >= RAFFLE_MAX_POTENCY ? "replace" : "rollover";
+  }
+  return hit || potency >= RAFFLE_MAX_POTENCY ? "award" : "rollover";
 }
 
 export function selectWeightedRaffleEntry<T extends Pick<RaffleEntry, "tickets">>(
@@ -342,28 +447,33 @@ export async function generateRafflePrize(
   const [reward] = await generateDailyDrop(database, RAFFLE_OWNER_ID, 50, {
     now,
     itemCount: 1,
-    rarityWeights: {
-      common: 0,
-      uncommon: 0,
-      rare: 0,
-      legendary: 9_999,
-      masterpiece: 1,
+    generationMap: {
+      ...getGameplayGenerationMap(config),
+      cardStyle: 1,
+      rarity: {
+        common: 0,
+        uncommon: 0,
+        rare: 0,
+        legendary: 9_999,
+        masterpiece: 1,
+      },
     },
     useRawRarityMap: true,
-    cardRendererProbability: config.cardRendererProbability,
-    cardStyleWeights: config.cardStyleWeights,
-    foilProbability: config.foilProbability,
-    mintProbability: config.mintProbability,
     mintValueMultiplier: config.mintValueMultiplier,
-    unlockedProbability: config.unlockedProbability,
-    source: "raffle",
+    source: "lottery",
     status: "claimed",
   });
+  if (!reward.card_renderer) {
+    await database.collection<GameItem>("items").updateOne(
+      { _id: reward._id, owner: RAFFLE_OWNER_ID },
+      { $set: { card_renderer: "legacy" } },
+    );
+  }
   await setRafflePrizePotency(database, reward._id, 1);
   const updated = await database
     .collection<GameItem>("items")
     .findOne({ _id: reward._id });
-  if (!updated) throw new Error("Generated raffle prize was not found.");
+  if (!updated) throw new Error("Generated lottery item was not found.");
   return updated;
 }
 
@@ -381,11 +491,11 @@ export async function setRafflePrizePotency(
       .collection<{ _id: string; loot_data: LootData }>("metadata")
       .findOne({ _id: "loot-data" }),
   ]);
-  if (!item || !metadata) throw new Error("Raffle prize data is unavailable.");
+  if (!item || !metadata) throw new Error("Lottery item data is unavailable.");
   const artwork = await database
     .collection<Artwork>("artworks")
     .findOne({ _id: item.artwork_id });
-  if (!artwork) throw new Error("Raffle prize artwork is unavailable.");
+  if (!artwork) throw new Error("Lottery item artwork is unavailable.");
   const nextItem = { ...item, lottery: potency };
   const updated = await database.collection<GameItem>("items").updateOne(
     { _id: item._id, owner: RAFFLE_OWNER_ID },
@@ -397,6 +507,6 @@ export async function setRafflePrizePotency(
     },
   );
   if (updated.matchedCount !== 1) {
-    throw new Error("Raffle prize potency could not be updated.");
+    throw new Error("Lottery item level could not be updated.");
   }
 }

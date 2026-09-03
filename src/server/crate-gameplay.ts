@@ -5,9 +5,10 @@ import {
   MAX_PLAYER_LEVEL,
 } from "./collection-gameplay.ts";
 import {
+  applyItemGenerationProbabilityMultipliers,
   amplifyRarityMap,
   getRarityMap,
-  type ArtworkRarity,
+  type ItemGenerationMap,
   type LootData,
 } from "./gameplay.ts";
 import type { GameplayConfig } from "./game-settings.ts";
@@ -17,7 +18,13 @@ export type CrateQuality =
   | "bronze"
   | "silver"
   | "gold"
-  | "platinum";
+  | "platinum"
+  | "debug-mint"
+  | "debug-foil"
+  | "debug-unlocked"
+  | "debug-card-style"
+  | "debug-legendary"
+  | "debug-masterpiece";
 
 export type CrateOfferView = {
   id: CrateQuality;
@@ -31,9 +38,7 @@ export type CrateOfferView = {
 };
 
 export type CrateOffer = CrateOfferView & {
-  rarityWeights?: Record<ArtworkRarity, number>;
-  foilProbability: number;
-  unlockedProbability: number;
+  generationMap: Partial<ItemGenerationMap>;
 };
 
 const FEATURED_CRATES = [
@@ -110,8 +115,7 @@ export async function getPurchasableCrateOffers(
     itemCount,
     cost: basicCost,
     levelRequirement: 0,
-    foilProbability: config.foilProbability,
-    unlockedProbability: config.unlockedProbability,
+    generationMap: {},
   };
 
   const baseRarityMap = getRarityMap(playerLevel, metadata.loot_data);
@@ -133,25 +137,119 @@ export async function getPurchasableCrateOffers(
         ),
       ),
       levelRequirement: crate.levelRequirement,
-      rarityWeights: amplifyRarityMap(
-        baseRarityMap,
-        crate.rarityAmplifier,
-      ),
-      foilProbability: Math.min(
-        1,
-        config.foilProbability *
-          (crate.id === "silver" || crate.id === "platinum"
-            ? crate.featureMultiplier
-            : 1),
-      ),
-      unlockedProbability: Math.min(
-        1,
-        config.unlockedProbability *
-          (crate.id === "gold" || crate.id === "platinum"
-            ? crate.featureMultiplier
-            : 1),
-      ),
+      generationMap: {
+        rarity: amplifyRarityMap(
+          baseRarityMap,
+          crate.rarityAmplifier,
+        ),
+        ...applyItemGenerationProbabilityMultipliers(
+          {
+            foil: config.foilProbability,
+            unlocked: config.unlockedProbability,
+          },
+          {
+            foil:
+              crate.id === "silver" || crate.id === "platinum"
+                ? crate.featureMultiplier
+                : 1,
+            unlocked:
+              crate.id === "gold" || crate.id === "platinum"
+                ? crate.featureMultiplier
+                : 1,
+          },
+        ),
+      },
     })),
+    ...createDebugCrates(),
+  ];
+}
+
+export function createDebugCrates(): CrateOffer[] {
+  const itemCount = 10;
+  const common = {
+    description: "Free debug crate for exercising one generation probability.",
+    itemCount,
+    cost: 0,
+    levelRequirement: 0,
+  };
+
+  return [
+    {
+      ...common,
+      id: "debug-mint",
+      name: "DEBUG: 50% mint crate",
+      quality: "debug-mint",
+      highlights: [`${itemCount} artworks`, "50% mint chance"],
+      generationMap: { mint: 0.5 },
+    },
+    {
+      ...common,
+      id: "debug-foil",
+      name: "DEBUG: 50% foil crate",
+      quality: "debug-foil",
+      highlights: [`${itemCount} artworks`, "50% foil chance"],
+      generationMap: { foil: 0.5 },
+    },
+    {
+      ...common,
+      id: "debug-unlocked",
+      name: "DEBUG: 50% unlocked crate",
+      quality: "debug-unlocked",
+      highlights: [
+        `${itemCount} uncommon artworks`,
+        "50% unlocked chance",
+      ],
+      generationMap: {
+        unlocked: 0.5,
+        rarity: {
+          common: 0,
+          uncommon: 1,
+          rare: 0,
+          legendary: 0,
+          masterpiece: 0,
+        },
+      },
+    },
+    {
+      ...common,
+      id: "debug-card-style",
+      name: "DEBUG: 50% art style crate",
+      quality: "debug-card-style",
+      highlights: [`${itemCount} artworks`, "50% art style chance"],
+      generationMap: { cardStyle: 0.5 },
+    },
+    {
+      ...common,
+      id: "debug-legendary",
+      name: "DEBUG: Legendary-only crate",
+      quality: "debug-legendary",
+      highlights: [`${itemCount} artworks`, "Legendary artwork only"],
+      generationMap: {
+        rarity: {
+          common: 0,
+          uncommon: 0,
+          rare: 0,
+          legendary: 1,
+          masterpiece: 0,
+        },
+      },
+    },
+    {
+      ...common,
+      id: "debug-masterpiece",
+      name: "DEBUG: Masterpiece-only crate",
+      quality: "debug-masterpiece",
+      highlights: [`${itemCount} artworks`, "Masterpiece artwork only"],
+      generationMap: {
+        rarity: {
+          common: 0,
+          uncommon: 0,
+          rare: 0,
+          legendary: 0,
+          masterpiece: 1,
+        },
+      },
+    },
   ];
 }
 

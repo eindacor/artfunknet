@@ -4,7 +4,11 @@ import {
   DROPPABLE_CARD_RENDERER_IDS,
   type DroppableCardRendererId,
 } from "../components/item-cards/catalog.ts";
-import { ARTWORK_RARITIES, type ArtworkRarity } from "./gameplay.ts";
+import {
+  ARTWORK_RARITIES,
+  type ArtworkRarity,
+  type ItemGenerationMap,
+} from "./gameplay.ts";
 
 export const DEFAULT_RARITY_WEIGHTS: Record<ArtworkRarity, number> = {
   common: 0.623266875,
@@ -111,6 +115,22 @@ export const DEFAULT_DEBUG_GAMEPLAY_CONFIG: GameplayConfig = {
   rarityWeights: DEBUG_RARITY_WEIGHTS,
   cardStyleWeights: DEBUG_CARD_STYLE_WEIGHTS,
 };
+
+export function getGameplayGenerationMap(
+  config: GameplayConfig,
+): Pick<
+  ItemGenerationMap,
+  "rarity" | "foil" | "mint" | "unlocked" | "cardStyle" | "cardStyles"
+> {
+  return {
+    rarity: config.rarityWeights,
+    foil: config.foilProbability,
+    mint: config.mintProbability,
+    unlocked: config.unlockedProbability,
+    cardStyle: config.cardRendererProbability,
+    cardStyles: config.cardStyleWeights,
+  };
+}
 
 type StoredGameplayConfig = {
   daily_drop_cooldown_minutes?: number;

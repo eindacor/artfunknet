@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { getGameplaySettings } from "@/server/game-settings";
+import {
+  getGameplayGenerationMap,
+  getGameplaySettings,
+} from "@/server/game-settings";
 import { generateDailyDrop } from "@/server/gameplay";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
@@ -44,13 +47,8 @@ export async function POST() {
       player.profile.level,
       {
         itemCount: settings.active.dailyDropCount,
-        rarityWeights: settings.active.rarityWeights,
-        cardRendererProbability: settings.active.cardRendererProbability,
-        cardStyleWeights: settings.active.cardStyleWeights,
-        foilProbability: settings.active.foilProbability,
-        mintProbability: settings.active.mintProbability,
+        generationMap: getGameplayGenerationMap(settings.active),
         mintValueMultiplier: settings.active.mintValueMultiplier,
-        unlockedProbability: settings.active.unlockedProbability,
         debug: true,
         useRawRarityMap: true,
       },

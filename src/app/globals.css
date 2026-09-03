@@ -1118,6 +1118,12 @@ body {
   --crate-bright: #d4c1ff;
 }
 
+.crate-store-card[data-quality^="debug-"] {
+  --crate-color: #b42a74;
+  --crate-bright: #ff9ed2;
+  border-style: dashed;
+}
+
 .crate-store-card:hover:not(:disabled),
 .crate-store-card:focus-visible:not(:disabled) {
   z-index: 1;
@@ -3865,7 +3871,8 @@ body {
 }
 
 .test-account-level-control,
-.test-account-balance-control {
+.test-account-balance-control,
+.test-account-ticket-control {
   display: grid;
   grid-template-columns: 1fr minmax(70px, 120px) auto;
   align-items: center;
@@ -3876,7 +3883,8 @@ body {
 }
 
 .test-account-level-control label,
-.test-account-balance-control label {
+.test-account-balance-control label,
+.test-account-ticket-control label {
   color: #aaa;
   font-size: 0.72rem;
   font-weight: 700;
@@ -3884,7 +3892,8 @@ body {
 }
 
 .test-account-level-control input,
-.test-account-balance-control input {
+.test-account-balance-control input,
+.test-account-ticket-control input {
   width: 100%;
   border: 1px solid #666;
   background: #0d0d0d;
@@ -3893,7 +3902,8 @@ body {
 }
 
 .test-account-level-control button,
-.test-account-balance-control button {
+.test-account-balance-control button,
+.test-account-ticket-control button {
   border: 1px solid var(--accent);
   background: transparent;
   color: var(--accent);
@@ -3903,6 +3913,7 @@ body {
 
 .test-account-level-control button:disabled,
 .test-account-balance-control button:disabled,
+.test-account-ticket-control button:disabled,
 .test-account-open:disabled {
   cursor: wait;
   opacity: 0.5;
@@ -4052,6 +4063,31 @@ body {
   font-weight: 900;
 }
 
+.raffle-prize-entry .lottery-ticket-action {
+  display: inline-grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  justify-self: end;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #ffe58a, #c89318);
+  color: #2a1a00;
+  box-shadow: 0 0 16px rgb(213 168 47 / 28%);
+  cursor: pointer;
+}
+
+.raffle-prize-entry .lottery-ticket-action:hover:not(:disabled),
+.raffle-prize-entry .lottery-ticket-action:focus-visible:not(:disabled) {
+  border-color: #fff1ae;
+  box-shadow: 0 0 22px rgb(255 218 104 / 52%);
+}
+
+.raffle-prize-entry .lottery-ticket-action:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.65);
+  opacity: 0.45;
+}
+
 .raffle-rules {
   border-left: 3px solid #dcb34a;
   padding-left: 16px;
@@ -4066,6 +4102,29 @@ body {
   gap: 32px;
 }
 
+.admin-raffle-draw {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 20px 0 28px;
+}
+
+.admin-raffle-draw button,
+.admin-raffle-fields > button {
+  border: 1px solid var(--accent);
+  padding: 9px 13px;
+  background: var(--accent);
+  color: #111;
+  font: inherit;
+  font-weight: 800;
+}
+
+.admin-raffle-draw button:disabled,
+.admin-raffle-fields > button:disabled {
+  cursor: wait;
+  opacity: 0.45;
+}
+
 .admin-raffle-editor {
   display: grid;
   grid-template-columns: minmax(240px, 360px) minmax(0, 1fr);
@@ -4076,6 +4135,10 @@ body {
 
 .admin-raffle-preview {
   min-width: 0;
+}
+
+.admin-raffle-editor h3 {
+  margin: 0 0 12px;
 }
 
 .admin-raffle-fields {
@@ -4126,31 +4189,6 @@ body {
 
 .admin-raffle-flags input {
   width: auto;
-}
-
-.admin-raffle-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.admin-raffle-actions button {
-  border: 1px solid var(--accent);
-  padding: 9px 13px;
-  background: transparent;
-  color: var(--accent);
-  font: inherit;
-  font-weight: 800;
-}
-
-.admin-raffle-actions button:first-child {
-  background: var(--accent);
-  color: #111;
-}
-
-.admin-raffle-actions button:disabled {
-  cursor: wait;
-  opacity: 0.45;
 }
 
 @media (max-width: 760px) {

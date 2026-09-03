@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { getGameplaySettings } from "@/server/game-settings";
+import {
+  getGameplayGenerationMap,
+  getGameplaySettings,
+} from "@/server/game-settings";
 import { generateDailyDrop } from "@/server/gameplay";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
@@ -49,13 +52,8 @@ export async function POST() {
       {
         now,
         itemCount: config.dailyDropCount,
-        rarityWeights: config.rarityWeights,
-        cardRendererProbability: config.cardRendererProbability,
-        cardStyleWeights: config.cardStyleWeights,
-        foilProbability: config.foilProbability,
-        mintProbability: config.mintProbability,
+        generationMap: getGameplayGenerationMap(config),
         mintValueMultiplier: config.mintValueMultiplier,
-        unlockedProbability: config.unlockedProbability,
         debug: settings.debugEnabled,
       },
     );

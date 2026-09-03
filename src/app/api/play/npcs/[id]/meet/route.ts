@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { getGameplaySettings } from "@/server/game-settings";
+import {
+  getGameplayGenerationMap,
+  getGameplaySettings,
+} from "@/server/game-settings";
 import {
   calculateCollectorReward,
   COLLECTOR_MEETING_LIMITS,
@@ -627,17 +630,14 @@ export async function POST(
         {
           now,
           itemCount: offerCount,
-          rarityWeights: amplifyRarityMap(
-            getRarityMap(player.profile.level, metadata.loot_data),
-            NPC_RARITY_AMPLIFIERS[npc.quality],
-          ),
-          cardRendererProbability:
-            settings.active.cardRendererProbability,
-          cardStyleWeights: settings.active.cardStyleWeights,
-          foilProbability: settings.active.foilProbability,
-          mintProbability: settings.active.mintProbability,
+          generationMap: {
+            ...getGameplayGenerationMap(settings.active),
+            rarity: amplifyRarityMap(
+              getRarityMap(player.profile.level, metadata.loot_data),
+              NPC_RARITY_AMPLIFIERS[npc.quality],
+            ),
+          },
           mintValueMultiplier: settings.active.mintValueMultiplier,
-          unlockedProbability: settings.active.unlockedProbability,
           debug: settings.debugEnabled,
           useRawRarityMap: true,
           source: "art donor",
@@ -763,17 +763,14 @@ export async function POST(
         {
           now,
           itemCount: auctionCount,
-          rarityWeights: amplifyRarityMap(
-            getRarityMap(player.profile.level, metadata.loot_data),
-            NPC_RARITY_AMPLIFIERS[npc.quality],
-          ),
-          cardRendererProbability:
-            settings.active.cardRendererProbability,
-          cardStyleWeights: settings.active.cardStyleWeights,
-          foilProbability: settings.active.foilProbability,
-          mintProbability: settings.active.mintProbability,
+          generationMap: {
+            ...getGameplayGenerationMap(settings.active),
+            rarity: amplifyRarityMap(
+              getRarityMap(player.profile.level, metadata.loot_data),
+              NPC_RARITY_AMPLIFIERS[npc.quality],
+            ),
+          },
           mintValueMultiplier: settings.active.mintValueMultiplier,
-          unlockedProbability: settings.active.unlockedProbability,
           debug: settings.debugEnabled,
           useRawRarityMap: true,
           source: "private auction",
@@ -937,17 +934,14 @@ export async function POST(
           {
             now,
             itemCount: offerCount,
-            rarityWeights: amplifyRarityMap(
-              getRarityMap(player.profile.level, metadata.loot_data),
-              NPC_RARITY_AMPLIFIERS[npc.quality],
-            ),
-            cardRendererProbability:
-              settings.active.cardRendererProbability,
-            cardStyleWeights: settings.active.cardStyleWeights,
-            foilProbability: settings.active.foilProbability,
-            mintProbability: settings.active.mintProbability,
+            generationMap: {
+              ...getGameplayGenerationMap(settings.active),
+              rarity: amplifyRarityMap(
+                getRarityMap(player.profile.level, metadata.loot_data),
+                NPC_RARITY_AMPLIFIERS[npc.quality],
+              ),
+            },
             mintValueMultiplier: settings.active.mintValueMultiplier,
-            unlockedProbability: settings.active.unlockedProbability,
             debug: settings.debugEnabled,
             useRawRarityMap: true,
             source: "art dealer",
@@ -1068,17 +1062,14 @@ export async function POST(
                 ),
               ),
             ),
-            rarityWeights: amplifyRarityMap(
-              getRarityMap(player.profile.level, metadata.loot_data),
-              NPC_RARITY_AMPLIFIERS[npc.quality],
-            ),
-            cardRendererProbability:
-              settings.active.cardRendererProbability,
-            cardStyleWeights: settings.active.cardStyleWeights,
-            foilProbability: settings.active.foilProbability,
-            mintProbability: settings.active.mintProbability,
+            generationMap: {
+              ...getGameplayGenerationMap(settings.active),
+              rarity: amplifyRarityMap(
+                getRarityMap(player.profile.level, metadata.loot_data),
+                NPC_RARITY_AMPLIFIERS[npc.quality],
+              ),
+            },
             mintValueMultiplier: settings.active.mintValueMultiplier,
-            unlockedProbability: settings.active.unlockedProbability,
             debug: settings.debugEnabled,
             useRawRarityMap: true,
             source: "art collector",

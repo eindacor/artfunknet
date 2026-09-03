@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { getCrateOffer, getCratePermission } from "./crate-gameplay.ts";
+import {
+  createDebugCrates,
+  getCrateOffer,
+  getCratePermission,
+} from "./crate-gameplay.ts";
 
 const offer = {
   id: "gold" as const,
@@ -26,8 +30,10 @@ test("crate offers are selected only by known ids", () => {
       [
         {
           ...offer,
-          foilProbability: 0,
-          unlockedProbability: 0,
+          generationMap: {
+            foil: 0,
+            unlocked: 0,
+          },
         },
       ],
       "gold",
@@ -35,4 +41,66 @@ test("crate offers are selected only by known ids", () => {
     "gold",
   );
   assert.equal(getCrateOffer([], "unknown"), null);
+});
+
+test("debug crates isolate their 50 percent generation probabilities", () => {
+  const crates = createDebugCrates();
+
+  assert.equal(crates.length, 6);
+  assert.deepEqual(
+    Object.fromEntries(
+      crates
+        .filter(
+          (crate) =>
+            crate.id !== "debug-unlocked" &&
+            !crate.generationMap.rarity,
+        )
+        .map((crate) => [crate.id, crate.generationMap]),
+    ),
+    {
+      "debug-mint": { mint: 0.5 },
+      "debug-foil": { foil: 0.5 },
+      "debug-card-style": { cardStyle: 0.5 },
+    },
+  );
+  assert.ok(crates.every((crate) => crate.cost === 0));
+  assert.ok(crates.every((crate) => crate.levelRequirement === 0));
+});
+
+test("debug rarity crates select only their named rarity", () => {
+  const crates = createDebugCrates();
+
+  assert.deepEqual(
+    getCrateOffer(crates, "debug-unlocked")?.generationMap,
+    {
+      unlocked: 0.5,
+      rarity: {
+        common: 0,
+        uncommon: 1,
+        rare: 0,
+        legendary: 0,
+        masterpiece: 0,
+      },
+    },
+  );
+  assert.deepEqual(
+    getCrateOffer(crates, "debug-legendary")?.generationMap.rarity,
+    {
+      common: 0,
+      uncommon: 0,
+      rare: 0,
+      legendary: 1,
+      masterpiece: 0,
+    },
+  );
+  assert.deepEqual(
+    getCrateOffer(crates, "debug-masterpiece")?.generationMap.rarity,
+    {
+      common: 0,
+      uncommon: 0,
+      rare: 0,
+      legendary: 0,
+      masterpiece: 1,
+    },
+  );
 });

@@ -66,7 +66,7 @@ export default function AlbumCard({
           ) : null}
           {item.lottery ? (
             <span
-              aria-label={`Raffle potency tier ${item.lottery}`}
+              aria-label={`Lottery level ${item.lottery}`}
               className="album-card-lottery"
             >
               L{item.lottery}

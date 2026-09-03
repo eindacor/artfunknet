@@ -39,7 +39,7 @@ export default function AbstractCard({
           <i aria-label="Unlocked" className="fa fa-key" />
         ) : null}
         {item.lottery ? (
-          <span aria-label={`Raffle potency tier ${item.lottery}`}>
+          <span aria-label={`Lottery level ${item.lottery}`}>
             <i aria-hidden="true" className="fa fa-trophy" />
             {item.lottery}
           </span>

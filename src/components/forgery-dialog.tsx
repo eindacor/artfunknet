@@ -172,7 +172,7 @@ export default function ForgeryDialog({
                     />
                     <span>
                       <strong>
-                        {modifier === "lottery" ? "raffle" : modifier}
+                        {modifier}
                       </strong>
                       <small>Raises heat</small>
                     </span>

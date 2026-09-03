@@ -37,7 +37,7 @@ export default function BauhausCard({
           <i aria-label="Unlocked" className="fa fa-square" />
         ) : null}
         {item.lottery ? (
-          <strong aria-label={`Raffle potency tier ${item.lottery}`}>
+          <strong aria-label={`Lottery level ${item.lottery}`}>
             L{item.lottery}
           </strong>
         ) : null}

@@ -9,6 +9,7 @@ export type TestAccountView = {
   email: string;
   level: number;
   bankBalance: number;
+  lotteryTickets: number;
   itemCount: number;
   lastActivity: string;
 };
@@ -27,6 +28,11 @@ export default function TestAccountList({
   const [balanceInputs, setBalanceInputs] = useState(
     Object.fromEntries(
       accounts.map((account) => [account.id, account.bankBalance]),
+    ),
+  );
+  const [ticketInputs, setTicketInputs] = useState(
+    Object.fromEntries(
+      accounts.map((account) => [account.id, account.lotteryTickets]),
     ),
   );
   const [message, setMessage] = useState("");
@@ -129,6 +135,7 @@ export default function TestAccountList({
           body.error ?? "The test player balance could not be set.",
         );
       }
+
       const bankBalance = body.bankBalance;
       setCurrentAccounts((current) =>
         current.map((candidate) =>
@@ -145,6 +152,52 @@ export default function TestAccountList({
         balanceError instanceof Error
           ? balanceError.message
           : "The test player balance could not be set.",
+      );
+    } finally {
+      setPendingId("");
+    }
+  }
+
+  async function setLotteryTickets(account: TestAccountView) {
+    const tickets = ticketInputs[account.id];
+    setPendingId(account.id);
+    setMessage("");
+    setError("");
+    try {
+      const response = await fetch(
+        `/api/admin/test-accounts/${account.id}/lottery-tickets`,
+        {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ tickets }),
+        },
+      );
+      const body = (await response.json()) as {
+        error?: string;
+        lotteryTickets?: number;
+        message?: string;
+      };
+      if (!response.ok || body.lotteryTickets === undefined) {
+        throw new Error(
+          body.error ?? "The test player's lottery tickets could not be set.",
+        );
+      }
+      const lotteryTickets = body.lotteryTickets;
+      setCurrentAccounts((current) =>
+        current.map((candidate) =>
+          candidate.id === account.id
+            ? { ...candidate, lotteryTickets }
+            : candidate,
+        ),
+      );
+      setMessage(
+        body.message ?? `Lottery tickets set to ${lotteryTickets}.`,
+      );
+    } catch (ticketError) {
+      setError(
+        ticketError instanceof Error
+          ? ticketError.message
+          : "The test player's lottery tickets could not be set.",
       );
     } finally {
       setPendingId("");
@@ -179,6 +232,10 @@ export default function TestAccountList({
               <div>
                 <dt>items</dt>
                 <dd>{account.itemCount}</dd>
+              </div>
+              <div>
+                <dt>lottery tickets</dt>
+                <dd>{account.lotteryTickets.toLocaleString()}</dd>
               </div>
             </dl>
             <small>
@@ -227,6 +284,32 @@ export default function TestAccountList({
               <button
                 disabled={pendingId.length > 0}
                 onClick={() => setBalance(account)}
+                type="button"
+              >
+                Set
+              </button>
+            </div>
+            <div className="test-account-ticket-control">
+              <label htmlFor={`test-tickets-${account.id}`}>
+                Set lottery tickets
+              </label>
+              <input
+                disabled={pendingId.length > 0}
+                id={`test-tickets-${account.id}`}
+                min={0}
+                onChange={(event) =>
+                  setTicketInputs((current) => ({
+                    ...current,
+                    [account.id]: Number(event.target.value),
+                  }))
+                }
+                step={1}
+                type="number"
+                value={ticketInputs[account.id]}
+              />
+              <button
+                disabled={pendingId.length > 0}
+                onClick={() => setLotteryTickets(account)}
                 type="button"
               >
                 Set

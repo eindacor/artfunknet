@@ -793,7 +793,7 @@ export default function GameDashboard({
               { id: "archive", label: "Archive", icon: "fa-archive" },
               { id: "quests", label: "Quests", icon: "fa-map-signs" },
               { id: "auctions", label: "Auction House", icon: "fa-gavel" },
-              { id: "raffle", label: "Raffle", icon: "fa-ticket" },
+              { id: "raffle", label: "Lottery", icon: "fa-ticket" },
             ] as const
           ).map((tab) => (
             <button
@@ -894,7 +894,7 @@ export default function GameDashboard({
                   value={`$${player.bankBalance.toLocaleString()}`}
                   />
                   <ProfileFact
-                    label="Raffle tickets"
+                    label="Lottery tickets"
                   value={player.raffleTickets.toLocaleString()}
                   />
                   <ProfileFact

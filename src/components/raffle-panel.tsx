@@ -28,25 +28,17 @@ export default function RafflePanel({
     initialAvailableTickets,
   );
   const [prizes, setPrizes] = useState(initialPrizes);
-  const [inputs, setInputs] = useState(
-    Object.fromEntries(
-      initialPrizes.map((prize) => [
-        prize.item._id,
-        prize.allocatedTickets,
-      ]),
-    ),
-  );
   const [pendingItemId, setPendingItemId] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
   async function allocate(prize: RafflePrizeView) {
-    const tickets = inputs[prize.item._id] ?? 0;
+    const tickets = prize.allocatedTickets + 1;
     setPendingItemId(prize.item._id);
     setMessage("");
     setError("");
     try {
-      const response = await fetch("/api/play/raffle/entries", {
+      const response = await fetch("/api/play/lottery/entries", {
         method: "PATCH",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ itemId: prize.item._id, tickets }),
@@ -64,7 +56,7 @@ export default function RafflePanel({
         body.allocatedTickets === undefined ||
         body.availableTickets === undefined
       ) {
-        throw new Error(body.error ?? "The raffle entry could not be saved.");
+        throw new Error(body.error ?? "The lottery entry could not be saved.");
       }
       const difference = body.allocatedTickets - prize.allocatedTickets;
       setAvailableTickets(body.availableTickets);
@@ -82,12 +74,12 @@ export default function RafflePanel({
             : candidate,
         ),
       );
-      setMessage(body.message ?? "Raffle allocation saved.");
+      setMessage(body.message ?? "Lottery allocation saved.");
     } catch (allocationError) {
       setError(
         allocationError instanceof Error
           ? allocationError.message
-          : "The raffle entry could not be saved.",
+          : "The lottery entry could not be saved.",
       );
     } finally {
       setPendingItemId("");
@@ -98,8 +90,8 @@ export default function RafflePanel({
     <section className="raffle-panel">
       <header className="raffle-heading">
         <div>
-          <p>Weekly collection drawing</p>
-          <h2>Raffle</h2>
+          <p>Daily collection drawing</p>
+          <h2>Lottery</h2>
         </div>
         <dl>
           <div>
@@ -113,9 +105,8 @@ export default function RafflePanel({
         </dl>
       </header>
       <p className="raffle-introduction">
-        Allocate tickets only to the prizes you want. Allocated tickets are
-        committed to that prize until the drawing, but you may change or remove
-        an allocation beforehand.
+        Spend tickets only on the items you want. Each press commits one ticket
+        to that item until the next daily drawing.
       </p>
       <div className="raffle-prize-grid">
         {prizes.map((prize) => {
@@ -126,10 +117,9 @@ export default function RafflePanel({
           return (
             <article className="raffle-prize" key={prize.item._id}>
               <span className="raffle-potency">
-                Potency tier {prize.potency}/10
+                Lottery level {prize.potency}/10
               </span>
               <ItemCard
-                interactive={false}
                 item={prize.item}
                 legendaryAttributes={[]}
                 permissions={{
@@ -148,30 +138,17 @@ export default function RafflePanel({
                     current entries
                   </span>
                 </div>
-                <label>
-                  Tickets
-                  <input
-                    disabled={pendingItemId.length > 0}
-                    max={availableTickets + prize.allocatedTickets}
-                    min={0}
-                    onChange={(event) =>
-                      setInputs((current) => ({
-                        ...current,
-                        [prize.item._id]: Number(event.target.value),
-                      }))
-                    }
-                    type="number"
-                    value={inputs[prize.item._id] ?? 0}
-                  />
-                </label>
                 <button
-                  disabled={pendingItemId.length > 0}
+                  aria-label="Spend lottery ticket"
+                  className="lottery-ticket-action"
+                  disabled={
+                    pendingItemId.length > 0 || availableTickets <= 0
+                  }
                   onClick={() => allocate(prize)}
+                  title="Spend lottery ticket"
                   type="button"
                 >
-                  {pendingItemId === prize.item._id
-                    ? "Saving..."
-                    : "Set allocation"}
+                  <i aria-hidden="true" className="fa fa-ticket" />
                 </button>
               </div>
             </article>
@@ -180,9 +157,10 @@ export default function RafflePanel({
       </div>
       <div className="raffle-rules">
         <p>
-          Each prize has a 20% chance to draw a winner every week and is
-          guaranteed to draw at potency tier 10. A rollover increases that
-          prize&apos;s potency and value.
+          Each item with tickets has a 20% chance to draw a weighted winner
+          each day and is guaranteed to hit at lottery level 10. A miss
+          increases its lottery level and value. An unticketed level-10 item
+          expires and is replaced.
         </p>
         {previousWinners.length > 0 ? (
           <p>

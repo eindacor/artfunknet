@@ -31,7 +31,7 @@ export async function PATCH(request: Request) {
     body.tickets < 0
   ) {
     return NextResponse.json(
-      { error: "Choose a nonnegative whole number of raffle tickets." },
+      { error: "Choose a nonnegative whole number of lottery tickets." },
       { status: 400 },
     );
   }
@@ -44,13 +44,13 @@ export async function PATCH(request: Request) {
     new Date(state.draw_lock.expires_at).getTime() > Date.now()
   ) {
     return NextResponse.json(
-      { error: "The raffle drawing is in progress. Try again shortly." },
+      { error: "The lottery drawing is in progress. Try again shortly." },
       { status: 409 },
     );
   }
   if (!state.prizes.some((prize) => prize.item_id === body.itemId)) {
     return NextResponse.json(
-      { error: "That raffle prize is no longer available." },
+      { error: "That lottery item is no longer available." },
       { status: 409 },
     );
   }
@@ -73,7 +73,7 @@ export async function PATCH(request: Request) {
     );
     if (charged.modifiedCount !== 1) {
       return NextResponse.json(
-        { error: "You do not have enough raffle tickets." },
+        { error: "You do not have enough lottery tickets." },
         { status: 409 },
       );
     }
@@ -89,7 +89,7 @@ export async function PATCH(request: Request) {
             tickets: previousTickets,
           })
         : await database.collection<RaffleEntry>("raffle_entries").updateOne(
-            { _id: entryId, ...(entry ? { tickets: previousTickets } : {}) },
+            { _id: entryId, tickets: previousTickets },
             {
               $set: {
                 player_id: auth.session.playerId,
@@ -107,11 +107,11 @@ export async function PATCH(request: Request) {
         { $inc: { "profile.lottery_tickets": difference } },
       );
       if (refunded.modifiedCount !== 1) {
-        throw new Error("Raffle allocation failed and its ticket refund failed.");
+        throw new Error("Lottery allocation failed and its ticket refund failed.");
       }
     }
     return NextResponse.json(
-      { error: "The raffle allocation could not be saved." },
+      { error: "The lottery allocation could not be saved." },
       { status: 409 },
     );
   }
@@ -127,7 +127,7 @@ export async function PATCH(request: Request) {
       );
     }
     return NextResponse.json(
-      { error: "Your raffle allocation changed before it could be saved." },
+      { error: "Your lottery allocation changed before it could be saved." },
       { status: 409 },
     );
   }
@@ -153,11 +153,11 @@ export async function PATCH(request: Request) {
         );
       if (restored.matchedCount !== 1 && restored.upsertedCount !== 1) {
         throw new Error(
-          "Raffle ticket refund and allocation restoration both failed.",
+          "Lottery ticket refund and allocation restoration both failed.",
         );
       }
       return NextResponse.json(
-        { error: "The raffle tickets could not be returned." },
+        { error: "The lottery tickets could not be returned." },
         { status: 500 },
       );
     }
@@ -174,7 +174,7 @@ export async function PATCH(request: Request) {
     availableTickets: player?.profile.lottery_tickets ?? 0,
     message:
       body.tickets > 0
-        ? `${body.tickets} raffle ${body.tickets === 1 ? "ticket" : "tickets"} allocated.`
-        : "Raffle allocation removed and tickets returned.",
+        ? `${body.tickets} lottery ${body.tickets === 1 ? "ticket" : "tickets"} allocated.`
+        : "Lottery allocation removed and tickets returned.",
   });
 }

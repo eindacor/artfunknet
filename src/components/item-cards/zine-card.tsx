@@ -25,7 +25,7 @@ export default function ZineCard({
         ) : null}
         {item.lottery > 0 ? (
           <span
-            aria-label={`Raffle potency tier ${item.lottery}`}
+            aria-label={`Lottery level ${item.lottery}`}
             className="zine-state-sticker zine-state-lottery"
           >
             L{item.lottery}

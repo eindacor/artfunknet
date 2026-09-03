@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  applyItemGenerationProbabilityMultipliers,
   amplifyRarityMap,
   calculateItemValues,
   getGeneratedItemCondition,
@@ -227,14 +228,34 @@ test("unlocked probability applies only to non-common artwork", () => {
   assert.equal(rollUnlocked("rare", 0.05, () => 0.05), false);
 });
 
+test("generation probability multipliers boost and clamp configured odds", () => {
+  assert.deepEqual(
+    applyItemGenerationProbabilityMultipliers(
+      {
+        foil: 0.4,
+        mint: 0.01,
+        unlocked: 0.2,
+        cardStyle: 0.1,
+      },
+      { foil: 2, mint: 3, unlocked: 0.5, cardStyle: 20 },
+    ),
+    {
+      foil: 0.8,
+      mint: 0.03,
+      unlocked: 0.1,
+      cardStyle: 1,
+    },
+  );
+});
+
 test("generated properties roll independently and can coexist", () => {
   const rolls = [0.004, 0.0004, 0.049];
   const combined = rollGeneratedItemProperties(
     "rare",
     {
-      foilProbability: 0.005,
-      mintProbability: 0.0005,
-      unlockedProbability: 0.05,
+      foil: 0.005,
+      mint: 0.0005,
+      unlocked: 0.05,
     },
     () => rolls.shift() ?? 1,
   );
@@ -249,9 +270,9 @@ test("generated properties roll independently and can coexist", () => {
     rollGeneratedItemProperties(
       "rare",
       {
-        foilProbability: 0.005,
-        mintProbability: 0.0005,
-        unlockedProbability: 0.05,
+        foil: 0.005,
+        mint: 0.0005,
+        unlocked: 0.05,
       },
       () => independentRolls.shift() ?? 1,
     ),
@@ -268,9 +289,9 @@ test("common items can combine foil and Mint but not unlocked", () => {
     rollGeneratedItemProperties(
       "common",
       {
-        foilProbability: 1,
-        mintProbability: 1,
-        unlockedProbability: 1,
+        foil: 1,
+        mint: 1,
+        unlocked: 1,
       },
       () => 0,
     ),

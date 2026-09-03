@@ -98,7 +98,7 @@ export default async function PlayerPage() {
   try {
     raffleState = await settleRaffleIfDue(database, config);
   } catch (error) {
-    console.error("Unable to settle scheduled raffle drawing", error);
+    console.error("Unable to settle scheduled lottery drawing", error);
     raffleState = await ensureRaffleState(database, config);
   }
   try {
@@ -193,7 +193,7 @@ export default async function PlayerPage() {
   const rafflePrizes = raffleState.prizes.map((prize) => {
     const item = raffleRewardById.get(prize.item_id);
     if (!item) {
-      throw new Error(`Raffle prize ${prize.item_id} is unavailable.`);
+      throw new Error(`Lottery item ${prize.item_id} is unavailable.`);
     }
     return {
       item: JSON.parse(JSON.stringify(item)),
