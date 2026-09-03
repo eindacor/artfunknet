@@ -541,39 +541,54 @@
 
 .museum-card-label {
   display: grid;
-  align-content: start;
-  gap: 0.35rem;
-  padding: 0.85rem 1rem;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  align-content: stretch;
+  gap: 0.22rem;
+  padding: 0.55rem 0.85rem 0.7rem;
 }
 
-.museum-card-main {
+.museum-card-middle {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: start;
   gap: 0.45rem;
+  min-height: 0;
 }
 
 .museum-card-info {
   display: grid;
-  align-content: start;
+  align-content: center;
   min-width: 0;
-  gap: 0.28rem;
+  gap: 0.15rem;
 }
 
 .museum-card-number {
   font: 0.55rem "Courier New", Courier, monospace;
   letter-spacing: 0.14em;
+  line-height: 0.95;
   text-transform: uppercase;
 }
 
 .museum-card h3 {
+  display: flex;
+  align-items: flex-end;
+  height: 2.35rem;
+  overflow: hidden;
   font-size: 1.05rem;
   font-weight: 500;
-  line-height: 1.05;
+  line-height: 1.12;
+}
+
+.museum-card h3 span {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .museum-card-info > p {
   font-size: 0.72rem;
+  line-height: 1.05;
 }
 
 .museum-card .museum-card-workline {
@@ -595,6 +610,7 @@
 }
 
 .museum-card .render-card-compact-stats {
+  grid-row: 4;
   margin-top: auto;
   border-top: 1px solid #bcb7aa;
   padding-top: 0.35rem;
