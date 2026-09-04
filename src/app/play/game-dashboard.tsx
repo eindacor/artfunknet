@@ -23,7 +23,10 @@ import MintLossConfirmationDialog from "@/components/item-cards/mint-loss-confir
 import { resolveCardRendererId } from "@/components/item-cards/selection";
 import { ratingColor } from "@/components/item-cards/shared";
 import StandardItemDialog from "@/components/item-cards/standard-item-dialog";
-import type { CardLegendaryAttribute } from "@/components/item-cards/types";
+import type {
+  CardLegendaryAttribute,
+  ItemDisplayOwner,
+} from "@/components/item-cards/types";
 import type { GalleryRates } from "@/server/collection-gameplay";
 import type { CrateOfferView } from "@/server/crate-gameplay";
 import type { ArtHistorianQuestView } from "@/server/art-historian-gameplay";
@@ -94,6 +97,11 @@ type LootCrateOffer = Omit<CrateOfferView, "id" | "quality"> & {
 
 type LegendaryAttributeView = CardLegendaryAttribute;
 
+type LinkedItemView = {
+  item: HydratedGameItem;
+  displayOwner: ItemDisplayOwner | null;
+};
+
 type ArtworkOfferItem = HydratedGameItem & {
   alreadyOwned: boolean;
   price?: number;
@@ -163,6 +171,7 @@ export default function GameDashboard({
   quests,
   playerId,
   marketExpertExpiration,
+  linkedItem,
 }: {
   player: PlayerView;
   items: HydratedGameItem[];
@@ -190,6 +199,7 @@ export default function GameDashboard({
   quests: ArtHistorianQuestView[];
   playerId: string;
   marketExpertExpiration: string | null;
+  linkedItem: LinkedItemView | null;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -255,6 +265,8 @@ export default function GameDashboard({
   } | null>(null);
   const [galleryItemDetails, setGalleryItemDetails] =
     useState<HydratedGameItem | null>(null);
+  const [linkedItemDetails, setLinkedItemDetails] =
+    useState<LinkedItemView | null>(linkedItem);
   const [galleryArtStyleItem, setGalleryArtStyleItem] =
     useState<HydratedGameItem | null>(null);
   const [mintConfirmation, setMintConfirmation] = useState<{
@@ -1722,6 +1734,30 @@ export default function GameDashboard({
             permissions={{
               canManageItem: true,
               canCustomizeCosmetic: true,
+            }}
+            viewerId={playerId}
+          />
+        ) : null}
+        {linkedItemDetails ? (
+          <StandardItemDialog
+            currentRendererId={resolveCardRendererId({
+              itemRendererId: linkedItemDetails.item.card_renderer,
+            })}
+            displayOwner={linkedItemDetails.displayOwner ?? undefined}
+            item={linkedItemDetails.item}
+            legendaryAttributes={legendaryAttributes}
+            onClose={() => {
+              setLinkedItemDetails(null);
+              const params = new URLSearchParams(searchParams.toString());
+              params.delete("item");
+              router.replace(
+                params.size > 0 ? `/play?${params.toString()}` : "/play",
+                { scroll: false },
+              );
+            }}
+            permissions={{
+              canManageItem: false,
+              canCustomizeCosmetic: false,
             }}
             viewerId={playerId}
           />

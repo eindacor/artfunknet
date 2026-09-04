@@ -64,8 +64,6 @@ export default async function CardCosmeticStorePage() {
         auctionEscrow={auctionEscrow}
         bankBalance={player.profile.bank_balance}
         impersonating={Boolean(adminSession && player.test_account)}
-        screenName={player.screen_name}
-        xp={player.profile.xp}
       />
       <CosmeticStore
         activeRendererIds={rendererSettings.activeRendererIds}

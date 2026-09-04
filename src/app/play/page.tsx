@@ -48,6 +48,7 @@ import {
   getPlayerNotifications,
 } from "@/server/player-notifications";
 import { getPlayerAuctionEscrow } from "@/server/auction-gameplay";
+import { getPublicItemView } from "@/server/public-showcase";
 import { settlePlayerItemRepairs } from "@/server/preservationist-gameplay";
 import { getAdminSession, requirePlayer } from "@/server/session";
 
@@ -90,8 +91,17 @@ type Player = {
 
 export const dynamic = "force-dynamic";
 
-export default async function PlayerPage() {
-  const session = await requirePlayer();
+export default async function PlayerPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ item?: string | string[] }>;
+}) {
+  const [session, query] = await Promise.all([
+    requirePlayer(),
+    searchParams,
+  ]);
+  const linkedItemId =
+    typeof query.item === "string" ? query.item.trim() : "";
   const database = await getDatabase();
   await ensurePlayerKarma(database, session.playerId);
   await ensureArchiveStorage(database);
@@ -141,6 +151,9 @@ export default async function PlayerPage() {
   if (!player) {
     notFound();
   }
+  const linkedItem = linkedItemId
+    ? await getPublicItemView(database, linkedItemId, player._id)
+    : null;
   const adminSession = player.test_account ? await getAdminSession() : null;
   const impersonating = Boolean(adminSession && player.test_account);
   const [raffleRewardDocuments, raffleEntries] = await Promise.all([
@@ -281,7 +294,10 @@ export default async function PlayerPage() {
   await refreshNpcSpawns(database, new Date(), config.npcSpawnIntervalMinutes);
   const legendaryAttributeIds = [
     ...new Set(
-      items.flatMap((item) => item.artwork.unique_attributes ?? []),
+      [
+        ...items.flatMap((item) => item.artwork.unique_attributes ?? []),
+        ...(linkedItem?.item.artwork.unique_attributes ?? []),
+      ],
     ),
   ];
   const [
@@ -355,10 +371,6 @@ export default async function PlayerPage() {
         auctionEscrow={auctionEscrow}
         bankBalance={player.profile.bank_balance}
         impersonating={impersonating}
-        screenName={player.screen_name}
-        xp={player.profile.xp}
-        patreonSupporter={player.patreon?.is_supporter === true}
-        patreonTier={player.patreon?.tier_name}
       />
       <GameDashboard
         archives={JSON.parse(JSON.stringify(archives))}
@@ -407,6 +419,11 @@ export default async function PlayerPage() {
         playerId={player._id}
         marketExpertExpiration={
           player.profile.market_expert?.expiration ?? null
+        }
+        linkedItem={
+          linkedItem
+            ? JSON.parse(JSON.stringify(linkedItem))
+            : null
         }
         player={{
           screenName: player.screen_name,

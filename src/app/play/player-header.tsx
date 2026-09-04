@@ -1,23 +1,36 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function PlayerHeader({
-  auctionEscrow,
-  bankBalance,
-  impersonating,
-}: {
-  screenName: string;
-  auctionEscrow: number;
-  bankBalance: number;
-  impersonating: boolean;
-  xp: number;
-  patreonTier?: string | null;
-  patreonSupporter?: boolean;
-}) {
+type PlayerHeaderProps =
+  | { anonymous: true }
+  | {
+      anonymous?: false;
+      auctionEscrow: number;
+      bankBalance: number;
+      impersonating: boolean;
+    };
+
+export default function PlayerHeader(props: PlayerHeaderProps) {
   const router = useRouter();
   const [error, setError] = useState("");
+
+  if (props.anonymous) {
+    return (
+      <header className="legacy-navbar null-player-navbar">
+        <Link className="nav-title" href="/">
+          artfunkel
+        </Link>
+        <Link className="player-signup" href="/play/login">
+          Sign up
+        </Link>
+      </header>
+    );
+  }
+
+  const { auctionEscrow, bankBalance, impersonating } = props;
 
   async function logout() {
     setError("");
