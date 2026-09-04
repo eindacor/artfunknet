@@ -147,10 +147,25 @@ body {
 }
 
 .player-signout {
+  margin-left: 0;
+}
+
+.player-account-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin-left: 24px;
 }
 
-.item-action-button.player-signout::after {
+.player-account-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.item-action-button.player-signout::after,
+.item-action-button.player-account-link::after {
   top: calc(100% + 9px);
   right: 0;
   bottom: auto;
@@ -159,7 +174,9 @@ body {
 }
 
 .item-action-button.player-signout:hover::after,
-.item-action-button.player-signout:focus-visible::after {
+.item-action-button.player-signout:focus-visible::after,
+.item-action-button.player-account-link:hover::after,
+.item-action-button.player-account-link:focus-visible::after {
   transform: translateY(0);
 }
 

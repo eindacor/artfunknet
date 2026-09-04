@@ -14,6 +14,7 @@ export default function AdminHeader({ email }: { email: string }) {
     { href: "/admin/legendary-attributes", label: "Legendary attributes" },
     { href: "/admin/card-designs", label: "Card designs" },
     { href: "/admin/test-players", label: "Test players" },
+    { href: "/admin/player-accounts", label: "Player accounts" },
     { href: "/admin/database", label: "Database" },
   ];
 

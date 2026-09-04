@@ -17,8 +17,8 @@ export default async function PlayerLoginPage() {
         </p>
         <h1 className="mt-3 text-4xl font-bold">Player sign in</h1>
         <p className="mt-3 text-[var(--muted)]">
-          Sign in with an existing account or create a player through a
-          supported identity provider.
+          Sign in with an existing account, create one with email and
+          password, or use a supported identity provider.
         </p>
       </div>
       <PlayerLoginForm

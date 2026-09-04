@@ -19,6 +19,14 @@ application on AWS. It uses:
 The application process uploads artwork to S3. Browsers do not upload directly
 to S3, so the S3 bucket does not require browser CORS rules.
 
+The application does not send transactional email. Password recovery is
+handled manually at /admin/player-accounts, where an authenticated
+administrator can find a player by exact email address and assign a temporary
+password. No SES account, SMTP server, sending domain, or email DNS records are
+required for this deployment. Give temporary passwords to players only through
+a trusted private channel and instruct them to replace the password from
+/play/account after signing in.
+
 
 1. RECOMMENDED SIZE AND OPERATING SYSTEM
 ========================================

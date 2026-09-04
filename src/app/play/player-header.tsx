@@ -84,15 +84,27 @@ export default function PlayerHeader(props: PlayerHeaderProps) {
           </span>
         ) : null}
       </div>
-      <button
-        aria-label={impersonating ? "Return to admin" : "Sign out"}
-        className="item-action-button player-signout"
-        data-tooltip={impersonating ? "Return to admin" : "Sign out"}
-        onClick={logout}
-        type="button"
-      >
-        <i aria-hidden="true" className="fa fa-sign-out" />
-      </button>
+      <div className="player-account-actions">
+        {!impersonating ? (
+          <Link
+            aria-label="Account settings"
+            className="item-action-button player-account-link"
+            data-tooltip="Account settings"
+            href="/play/account"
+          >
+            <i aria-hidden="true" className="fa fa-user-cog" />
+          </Link>
+        ) : null}
+        <button
+          aria-label={impersonating ? "Return to admin" : "Sign out"}
+          className="item-action-button player-signout"
+          data-tooltip={impersonating ? "Return to admin" : "Sign out"}
+          onClick={logout}
+          type="button"
+        >
+          <i aria-hidden="true" className="fa fa-sign-out" />
+        </button>
+      </div>
     </header>
   );
 }

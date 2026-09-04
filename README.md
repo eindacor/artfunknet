@@ -160,6 +160,18 @@ Sign in at <http://localhost:3000/play/login>. The protected player dashboard
 at <http://localhost:3000/play> preserves the original profile, inventory, and
 loot sections and their legacy visual treatment.
 
+Players can also create an account directly from the sign-in page using an
+email address, a public player name, and a password of at least 12 characters.
+Passwords are stored as per-account salted scrypt hashes and never as plaintext.
+Signed-in players can change their public name or password from
+<http://localhost:3000/play/account>.
+
+Automated password-reset email is not configured. An administrator can recover
+a locked account from <http://localhost:3000/admin/player-accounts> by looking
+up its exact email address and assigning a temporary password. Deliver that
+password through a trusted private channel and have the player replace it after
+signing in.
+
 The basic gameplay loop is active:
 
 - Daily drop cooldown, item count, foil, unlocked, Mint, and random card-style

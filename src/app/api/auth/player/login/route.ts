@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getDatabase } from "@/server/mongodb";
+import { normalizePlayerEmail } from "@/server/player-account";
 import { verifyPassword } from "@/server/password";
 import {
   PLAYER_SESSION_COOKIE,
@@ -20,15 +21,26 @@ type Player = {
   };
 };
 
+const DUMMY_PASSWORD_SALT = "invalid-player-credentials";
+const DUMMY_PASSWORD_HASH = "0".repeat(128);
+
 export async function POST(request: Request) {
-  const body = (await request.json()) as {
-    email?: string;
-    password?: string;
-  };
-  const email = body.email?.trim().toLowerCase();
+  let body: { email?: unknown; password?: unknown };
+  try {
+    body = (await request.json()) as {
+      email?: unknown;
+      password?: unknown;
+    };
+  } catch {
+    return NextResponse.json(
+      { error: "The sign-in request is invalid." },
+      { status: 400 },
+    );
+  }
+  const email = normalizePlayerEmail(body.email);
   const password = body.password;
 
-  if (!email || !password) {
+  if (!email || typeof password !== "string" || !password) {
     return NextResponse.json(
       { error: "Email and password are required." },
       { status: 400 },
@@ -39,13 +51,15 @@ export async function POST(request: Request) {
   const player = await database
     .collection<Player>("players")
     .findOne({ email });
-  const valid =
-    player?.active === true &&
-    (await verifyPassword(
-      password,
-      player.password_salt,
-      player.password_hash,
-    ));
+  const hasPassword = Boolean(
+    player?.password_salt && player.password_hash,
+  );
+  const passwordMatches = await verifyPassword(
+    password,
+    hasPassword ? player!.password_salt : DUMMY_PASSWORD_SALT,
+    hasPassword ? player!.password_hash : DUMMY_PASSWORD_HASH,
+  );
+  const valid = player?.active === true && hasPassword && passwordMatches;
 
   if (!valid) {
     return NextResponse.json(
