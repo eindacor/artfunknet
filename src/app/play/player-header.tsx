@@ -20,9 +20,7 @@ export default function PlayerHeader(props: PlayerHeaderProps) {
   if (props.anonymous) {
     return (
       <header className="legacy-navbar null-player-navbar">
-        <Link className="nav-title" href="/">
-          artfunkel
-        </Link>
+        <HeaderCommunity />
         <Link className="player-signup" href="/play/login">
           Sign up
         </Link>
@@ -63,7 +61,7 @@ export default function PlayerHeader(props: PlayerHeaderProps) {
 
   return (
     <header className="legacy-navbar">
-      <span className="nav-title">artfunkel</span>
+      <HeaderCommunity />
       <div className="player-bank-indicator">
         <span aria-label={`Available bank balance $${bankBalance.toLocaleString()}`}>
           ${bankBalance.toLocaleString()}
@@ -106,5 +104,44 @@ export default function PlayerHeader(props: PlayerHeaderProps) {
         </button>
       </div>
     </header>
+  );
+}
+
+function HeaderCommunity() {
+  return (
+    <div className="header-community">
+      <Link className="nav-title" href="/">
+        artfunkel
+      </Link>
+      <nav aria-label="Artfunkel community" className="community-links">
+        <a
+          aria-label="Join the Artfunkel Discord server"
+          href="https://discord.gg/3dQdyhXVb"
+          rel="noreferrer"
+          target="_blank"
+          title="Discord"
+        >
+          <i aria-hidden="true" className="fa-brands fa-discord" />
+        </a>
+        <a
+          aria-label="Visit the Artfunkel subreddit"
+          href="https://www.reddit.com/r/artfunkel/"
+          rel="noreferrer"
+          target="_blank"
+          title="Reddit"
+        >
+          <i aria-hidden="true" className="fa-brands fa-reddit" />
+        </a>
+        <a
+          aria-label="Support Artfunkel on Patreon"
+          href="https://www.patreon.com/c/artfunkel"
+          rel="noreferrer"
+          target="_blank"
+          title="Patreon"
+        >
+          <i aria-hidden="true" className="fa-brands fa-patreon" />
+        </a>
+      </nav>
+    </div>
   );
 }

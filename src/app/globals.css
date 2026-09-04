@@ -146,6 +146,41 @@ body {
   font-size: 2rem;
 }
 
+.header-community,
+.community-links {
+  display: flex;
+  align-items: center;
+}
+
+.header-community {
+  min-width: 0;
+  gap: 18px;
+}
+
+.header-community .nav-title {
+  text-decoration: none;
+}
+
+.community-links {
+  gap: 12px;
+}
+
+.community-links a {
+  color: #777;
+  font-size: 1.2rem;
+  line-height: 1;
+  text-decoration: none;
+  transition:
+    color 120ms ease,
+    transform 120ms ease;
+}
+
+.community-links a:hover,
+.community-links a:focus-visible {
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+
 .player-signout {
   margin-left: 0;
 }
