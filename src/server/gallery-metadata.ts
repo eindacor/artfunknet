@@ -20,11 +20,13 @@ type GalleryPlayer = {
 export type GalleryMetadata = {
   _id: string;
   schema_version: 3;
+  active: boolean;
   owner_id: string;
   owner: string;
   value: number;
   score: number;
   display_count: number;
+  display_capacity: number;
   attributes: GalleryAttributeAggregate[];
   display_rarities: ArtworkRarity[];
   active_unique_attributes: string[];
@@ -55,7 +57,10 @@ export async function refreshGalleryMetadata(
   if (!player) {
     await database
       .collection<GalleryMetadata>("galleries")
-      .deleteMany({ owner_id: playerId });
+      .updateMany(
+        { owner_id: playerId },
+        { $set: { active: false, updated_at: now.toISOString() } },
+      );
     return null;
   }
 
@@ -80,6 +85,7 @@ export async function refreshGalleryMetadata(
   );
   const metadata: Omit<GalleryMetadata, "_id"> = {
     schema_version: 3,
+    active: true,
     owner_id: playerId,
     owner: player.screen_name,
     ...buildGalleryMetadataSnapshot(
@@ -96,7 +102,7 @@ export async function refreshGalleryMetadata(
     { projection: { _id: 1 } },
   );
   if (existing) {
-    await galleries.replaceOne({ _id: existing._id }, metadata);
+    await galleries.updateOne({ _id: existing._id }, { $set: metadata });
     return { ...record, _id: existing._id };
   }
 
@@ -128,9 +134,10 @@ export async function ensureGalleryMetadata(
       .map((gallery) => gallery.owner_id),
   );
   const activePlayerIds = players.map((player) => player._id);
-  await database.collection<GalleryMetadata>("galleries").deleteMany({
-    owner_id: { $nin: activePlayerIds },
-  });
+  await database.collection<GalleryMetadata>("galleries").updateMany(
+    { owner_id: { $nin: activePlayerIds } },
+    { $set: { active: false } },
+  );
   for (const player of players) {
     if (!currentOwnerIds.has(player._id)) {
       await refreshGalleryMetadata(database, player._id);
@@ -149,7 +156,8 @@ export async function refreshAllGalleryMetadata(
   for (const player of players) {
     await refreshGalleryMetadata(database, player._id);
   }
-  await database.collection<GalleryMetadata>("galleries").deleteMany({
-    owner_id: { $nin: players.map((player) => player._id) },
-  });
+  await database.collection<GalleryMetadata>("galleries").updateMany(
+    { owner_id: { $nin: players.map((player) => player._id) } },
+    { $set: { active: false } },
+  );
 }

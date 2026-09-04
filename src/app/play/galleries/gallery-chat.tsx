@@ -3,7 +3,13 @@
 import { FormEvent, KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
+import {
+  COMMUNITY_EMOTE_DETAILS,
+  CommunityReactionPicker,
+  CommunityEmoteSymbol,
+} from "@/components/community-emotes";
 import type { GalleryChatMessageView } from "@/server/gallery-chat";
+import { ARTFUNKEL_SYSTEM_AUTHOR_ID } from "@/server/gallery-chat-core";
 import type { GalleryChatToken } from "@/server/gallery-chat-core";
 
 export default function GalleryChat({
@@ -67,6 +73,27 @@ export default function GalleryChat({
     const list = messageListRef.current;
     if (list) list.scrollTop = list.scrollHeight;
   }, [messages]);
+
+  useEffect(() => {
+    if (!global) return;
+    function receiveSharedItem(event: Event) {
+      const message = (event as CustomEvent<GalleryChatMessageView>).detail;
+      setMessages((current) =>
+        current.some((candidate) => candidate.id === message.id)
+          ? current
+          : [...current, message].slice(-50),
+      );
+    }
+    window.addEventListener(
+      "artfunkel:global-chat-message",
+      receiveSharedItem,
+    );
+    return () =>
+      window.removeEventListener(
+        "artfunkel:global-chat-message",
+        receiveSharedItem,
+      );
+  }, [global]);
 
   async function send(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -155,42 +182,80 @@ export default function GalleryChat({
             No messages yet. Start the conversation.
           </li>
         ) : (
-          messages.map((message) => (
-            <li
-              className={message.authorId === viewerId ? "own" : undefined}
-              key={message.id}
-            >
-              <header>
-                <a href={`/gallery/${encodeURIComponent(message.authorId)}`}>
-                  @{message.authorName}
-                </a>
-                <time dateTime={message.createdAt}>
-                  {new Date(message.createdAt).toLocaleString()}
-                </time>
-                <button
-                  aria-label={
-                    message.reportedByViewer
-                      ? "Message reported"
-                      : `Report message from ${message.authorName}`
-                  }
-                  disabled={message.reportedByViewer}
-                  onClick={() => void report(message.id)}
-                  title={message.reportedByViewer ? "Reported" : "Report"}
-                  type="button"
+          messages.map((message) => {
+            const isGalleryOwner =
+              !global && message.authorId === galleryOwnerId;
+            return (
+              <li
+                className={[
+                  message.authorId === viewerId ? "own" : "",
+                  isGalleryOwner ? "gallery-owner" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                key={message.id}
+              >
+                {message.authorId === ARTFUNKEL_SYSTEM_AUTHOR_ID ? (
+                  <strong className="gallery-chat-author gallery-chat-system-author">
+                    @{message.authorName}
+                  </strong>
+                ) : (
+                  <a
+                    className={`gallery-chat-author${isGalleryOwner ? " gallery-chat-owner" : ""}`}
+                    href={`/gallery/${encodeURIComponent(message.authorId)}`}
+                    title={isGalleryOwner ? "Gallery owner" : undefined}
+                  >
+                    @{message.authorName}
+                  </a>
+                )}
+                <time
+                  dateTime={message.createdAt}
+                  title={new Date(message.createdAt).toLocaleString()}
                 >
-                  <i aria-hidden="true" className="fa fa-flag" />
-                </button>
-              </header>
-              <p>
-                {message.tokens.map((token, index) => (
-                  <ChatToken
-                    key={`${message.id}-${index}`}
-                    token={token}
+                  {new Date(message.createdAt).toLocaleTimeString(undefined, {
+                    hour: "numeric",
+                    minute: "2-digit",
+                  })}
+                </time>
+                <span className="gallery-chat-message">
+                  {message.tokens.map((token, index) => (
+                    <ChatToken key={`${message.id}-${index}`} token={token} />
+                  ))}
+                  <CommunityReactionPicker
+                    className="gallery-chat-reactions"
+                    onChange={(reactions) =>
+                      setMessages((current) =>
+                        current.map((candidate) =>
+                          candidate.id === message.id
+                            ? { ...candidate, reactions }
+                            : candidate,
+                        ),
+                      )
+                    }
+                    reactions={message.reactions}
+                    targetId={message.id}
+                    targetType="message"
                   />
-                ))}
-              </p>
-            </li>
-          ))
+                </span>
+                {message.authorId !== viewerId &&
+                message.authorId !== ARTFUNKEL_SYSTEM_AUTHOR_ID ? (
+                  <button
+                    aria-label={
+                      message.reportedByViewer
+                        ? "Message reported"
+                        : `Report message from ${message.authorName}`
+                    }
+                    disabled={message.reportedByViewer}
+                    onClick={() => void report(message.id)}
+                    title={message.reportedByViewer ? "Reported" : "Report"}
+                    type="button"
+                  >
+                    <i aria-hidden="true" className="fa fa-flag" />
+                  </button>
+                ) : null}
+              </li>
+            );
+          })
         )}
       </ol>
       <form className="gallery-chat-composer" onSubmit={send}>
@@ -221,6 +286,17 @@ export default function GalleryChat({
 }
 
 function ChatToken({ token }: { token: GalleryChatToken }) {
+  if (token.kind === "emote") {
+    return (
+      <span
+        aria-label={COMMUNITY_EMOTE_DETAILS[token.emote].label}
+        className="gallery-chat-inline-emote"
+        title={token.text}
+      >
+        <CommunityEmoteSymbol emote={token.emote} />
+      </span>
+    );
+  }
   if (token.kind === "player") {
     return (
       <a

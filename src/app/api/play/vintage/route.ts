@@ -7,6 +7,7 @@ import {
   getCapsForLevel,
   MAX_PLAYER_LEVEL,
 } from "@/server/collection-gameplay";
+import { deleteCommunityReactions } from "@/server/community-reaction-cleanup";
 import {
   calculateItemValues,
   type Artwork,
@@ -306,6 +307,11 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
+  await deleteCommunityReactions(
+    database,
+    "item",
+    removedItems.map((item) => item._id),
+  );
   await refreshGalleryMetadata(database, player._id);
 
   return NextResponse.json({

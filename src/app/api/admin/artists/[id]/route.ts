@@ -2,6 +2,7 @@ import { MongoServerError } from "mongodb";
 import { NextResponse } from "next/server";
 
 import { requireAdminApi } from "@/server/admin-api";
+import { deleteCommunityReactions } from "@/server/community-reaction-cleanup";
 import { getDatabase } from "@/server/mongodb";
 
 type Artist = {
@@ -46,6 +47,7 @@ export async function DELETE(
       { status: 409 },
     );
   }
+  await deleteCommunityReactions(database, "artist", [id]);
   console.info("Deleted artist catalog record", {
     artistId: id,
     artistName: artist.artist_name,

@@ -5,6 +5,7 @@ import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 
 import { getDatabase } from "@/server/mongodb";
+import { normalizeScreenName } from "@/server/player-account";
 import {
   PLAYER_SESSION_COOKIE,
   createPlayerSessionToken,
@@ -231,8 +232,9 @@ function safeScreenName(
   const candidate = (name || email?.split("@")[0] || `${fallback} Player`)
     .replace(/[^\p{L}\p{N} _-]/gu, "")
     .trim()
+    .replace(/\s+/g, "-")
     .slice(0, 24);
-  return candidate || `${fallback} Player`;
+  return normalizeScreenName(candidate) ?? `${fallback}-Player`;
 }
 
 function capitalize(value: string): string {

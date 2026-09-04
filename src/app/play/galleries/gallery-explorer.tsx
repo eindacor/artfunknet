@@ -4,12 +4,16 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
+import { CommunityReactionPicker } from "@/components/community-emotes";
 import { ratingColor } from "@/components/item-cards/shared";
 import PublicGallery from "@/components/public-gallery";
 import type { CardLegendaryAttribute } from "@/components/item-cards/types";
 import type {
   GalleryAttributeAggregate,
 } from "@/server/gallery-metadata-core";
+import {
+  type CommunityReactionSummary,
+} from "@/server/community-reactions-core";
 import type { ArtworkRarity } from "@/server/gameplay";
 import type { HydratedGameItem } from "@/server/item-artwork";
 import type { GalleryNpc } from "@/server/npc-gameplay";
@@ -31,6 +35,7 @@ type GalleryRecord = {
   featured_item_id: string | null;
   featured_artwork_id: string | null;
   featured_value: number;
+  reactions: CommunityReactionSummary;
   updated_at: string;
 };
 
@@ -152,6 +157,23 @@ export default function GalleryExplorer({
       `/play?gallery=${encodeURIComponent(gallery.owner_id)}`,
       { scroll: false },
     );
+  }
+
+  function updateGalleryReactions(
+    ownerId: string,
+    reactions: CommunityReactionSummary,
+  ) {
+    setData((current) => ({
+      ...current,
+      galleries: current.galleries.map((gallery) =>
+        gallery.owner_id === ownerId
+          ? {
+              ...gallery,
+              reactions,
+            }
+          : gallery,
+      ),
+    }));
   }
 
   if (selectedGalleryId) {
@@ -281,6 +303,15 @@ export default function GalleryExplorer({
                   <GalleryRaritySummary
                     rarities={gallery.display_rarities ?? []}
                   />
+                  <CommunityReactionPicker
+                    className="gallery-emote-reactions"
+                    onChange={(reactions) =>
+                      updateGalleryReactions(gallery.owner_id, reactions)
+                    }
+                    reactions={gallery.reactions}
+                    targetId={gallery.owner_id}
+                    targetType="gallery"
+                  />
                 </div>
                 <span aria-hidden="true" className="gallery-visit-arrow">
                   <i className="fa fa-chevron-right" />
@@ -347,6 +378,15 @@ export default function GalleryExplorer({
                   />
                   <GalleryRaritySummary
                     rarities={gallery.display_rarities ?? []}
+                  />
+                  <CommunityReactionPicker
+                    className="gallery-emote-reactions"
+                    onChange={(reactions) =>
+                      updateGalleryReactions(gallery.owner_id, reactions)
+                    }
+                    reactions={gallery.reactions}
+                    targetId={gallery.owner_id}
+                    targetType="gallery"
                   />
                 </div>
               </div>
@@ -472,6 +512,27 @@ function VisitedGallery({
           {(gallery.metadata?.display_count ?? gallery.items.length).toLocaleString()}{" "}
           works on display
         </span>
+        {gallery.metadata ? (
+          <CommunityReactionPicker
+            className="gallery-emote-reactions"
+            onChange={(reactions) =>
+              setGallery((current) =>
+                current?.metadata
+                  ? {
+                      ...current,
+                      metadata: {
+                        ...current.metadata,
+                        reactions,
+                      },
+                    }
+                  : current,
+              )
+            }
+            reactions={gallery.metadata.reactions}
+            targetId={ownerId}
+            targetType="gallery"
+          />
+        ) : null}
       </div>
       <div className="npc-area">
         {gallery.npcs.length === 0 ? (

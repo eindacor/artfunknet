@@ -16,6 +16,7 @@ import {
   removeItemFromArchiveRecord,
 } from "@/server/archive-storage";
 import type { GameItem } from "@/server/gameplay";
+import { deleteCommunityReactions } from "@/server/community-reaction-cleanup";
 import { getArchivePermission } from "@/server/item-permissions";
 import {
   getDisplayedLegendaryEffect,
@@ -137,6 +138,7 @@ export async function POST(
           { status: 409 },
         );
       }
+      await deleteCommunityReactions(database, "item", [item._id]);
       archiveCompleted = true;
       return NextResponse.json({
         status: "ok",
@@ -239,6 +241,7 @@ export async function POST(
     }
 
     archiveCompleted = true;
+    await deleteCommunityReactions(database, "item", [item._id]);
     const archiveLabel = getArchiveCategories(item).join(" + ");
     const artStyle = getArchiveArtStyle(item);
     return NextResponse.json({

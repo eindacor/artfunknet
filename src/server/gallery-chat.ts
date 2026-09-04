@@ -6,6 +6,7 @@ import type { Db } from "mongodb";
 
 import type { GameItem } from "./gameplay";
 import {
+  ARTFUNKEL_SYSTEM_AUTHOR_ID,
   findItemReferences,
   getGalleryChatExpiration,
   getGalleryChatReportUpdate,
@@ -14,6 +15,11 @@ import {
   type GalleryChatToken,
 } from "./gallery-chat-core";
 import { hydrateGameItems } from "./item-artwork";
+import {
+  getCommunityReactionSummaries,
+  preserveCommunityReactions,
+} from "./community-reactions";
+import type { CommunityReactionSummary } from "./community-reactions-core";
 
 export const GALLERY_CHAT_MAX_LENGTH = 500;
 export const GLOBAL_CHAT_ROOM_ID = "global";
@@ -40,6 +46,7 @@ export type GalleryChatDocument = {
   hidden: boolean;
   moderated_at?: Date;
   moderated_by?: string;
+  system_event_key?: string;
 };
 
 export type GalleryChatMessageView = {
@@ -49,6 +56,7 @@ export type GalleryChatMessageView = {
   authorName: string;
   content: string;
   createdAt: string;
+  reactions: CommunityReactionSummary;
   reportedByViewer: boolean;
   tokens: GalleryChatToken[];
 };
@@ -80,6 +88,10 @@ export function ensureGalleryChatIndexes(database: Db): Promise<void> {
     database
       .collection("gallery_chat_messages")
       .createIndex({ reported: 1, created_at: -1 }),
+    database.collection("gallery_chat_messages").createIndex(
+      { system_event_key: 1 },
+      { unique: true, sparse: true },
+    ),
   ]).then(() => undefined);
   return chatIndexPromise;
 }
@@ -173,6 +185,57 @@ export async function createGalleryChatMessage(
   return (await hydrateChatMessages(database, [document], author._id))[0];
 }
 
+export async function createGlobalSystemChatMessage(
+  database: Db,
+  {
+    content,
+    eventKey,
+    now = new Date(),
+  }: {
+    content: string;
+    eventKey?: string;
+    now?: Date;
+  },
+): Promise<void> {
+  await ensureGalleryChatIndexes(database);
+  const normalizedContent = content.trim();
+  if (
+    normalizedContent.length === 0 ||
+    normalizedContent.length > GALLERY_CHAT_MAX_LENGTH
+  ) {
+    throw new Error(
+      `Chat messages must contain 1-${GALLERY_CHAT_MAX_LENGTH} characters.`,
+    );
+  }
+  const document: GalleryChatDocument = {
+    _id: randomUUID(),
+    gallery_owner_id: GLOBAL_CHAT_ROOM_ID,
+    gallery_owner_name: "Global chat",
+    author_id: ARTFUNKEL_SYSTEM_AUTHOR_ID,
+    author_name: "Artfunkel",
+    content: normalizedContent,
+    created_at: now,
+    expires_at: getGalleryChatExpiration(now),
+    reported: false,
+    reporter_ids: [],
+    hidden: false,
+    ...(eventKey ? { system_event_key: eventKey } : {}),
+  };
+  if (eventKey) {
+    await database
+      .collection<GalleryChatDocument>("gallery_chat_messages")
+      .updateOne(
+        { system_event_key: eventKey },
+        { $setOnInsert: document },
+        { upsert: true },
+      );
+    return;
+  }
+  await database
+    .collection<GalleryChatDocument>("gallery_chat_messages")
+    .insertOne(document);
+}
+
 export async function reportGalleryChatMessage(
   database: Db,
   messageId: string,
@@ -190,6 +253,9 @@ export async function reportGalleryChatMessage(
       },
       getGalleryChatReportUpdate(reporterId, new Date()),
     );
+  if (result.matchedCount === 1) {
+    await preserveCommunityReactions(database, "message", messageId);
+  }
   return result.matchedCount === 1;
 }
 
@@ -243,6 +309,12 @@ async function hydrateChatMessages(
       : [];
   const items = await hydrateGameItems(database, rawItems);
   const itemById = new Map(items.map((item) => [item._id, item]));
+  const reactions = await getCommunityReactionSummaries(
+    database,
+    "message",
+    messages.map((message) => message._id),
+    viewerId,
+  );
 
   return messages.map((message) => ({
     id: message._id,
@@ -251,6 +323,7 @@ async function hydrateChatMessages(
     authorName: message.author_name,
     content: message.content,
     createdAt: message.created_at.toISOString(),
+    reactions: reactions.get(message._id)!,
     reportedByViewer: message.reporter_ids.includes(viewerId),
     tokens: tokenizeChatContent(
       message.content,

@@ -4,6 +4,7 @@ import { MongoServerError, type Db, type Filter, type Sort } from "mongodb";
 
 import type { ArtHistorianQuest } from "./art-historian-gameplay";
 import { getAuctionSettlementDisposition } from "./auction-settlement";
+import { deleteCommunityReactions } from "./community-reaction-cleanup.ts";
 import {
   getPublicAuctionReplenishmentCount,
   PUBLIC_AUCTION_DURATION_MINUTES,
@@ -411,7 +412,13 @@ export async function settleAuction(
           return false;
         }
       } else {
-        await items.deleteOne({ _id: auction.item_id, status: "auctioned" });
+        const removedItem = await items.deleteOne({
+          _id: auction.item_id,
+          status: "auctioned",
+        });
+        if (removedItem.deletedCount === 1) {
+          await deleteCommunityReactions(database, "item", [auction.item_id]);
+        }
       }
       await database.collection<Auction>("auctions").deleteOne({
         _id: auction._id,

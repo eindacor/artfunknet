@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import type { Db } from "mongodb";
 
+import { deleteCommunityReactions } from "./community-reaction-cleanup.ts";
 import {
   calculateItemValues,
   generateDailyDrop,
@@ -14,8 +15,9 @@ import {
   type GameplayConfig,
 } from "./game-settings.ts";
 import { createPlayerNotification } from "./player-notifications.ts";
+import { RAFFLE_OWNER_ID } from "./raffle-core.ts";
 
-export const RAFFLE_OWNER_ID = "raffle-house";
+export { RAFFLE_OWNER_ID } from "./raffle-core.ts";
 export const RAFFLE_STATE_ID = "raffle-state";
 export const RAFFLE_MAX_POTENCY = 10;
 export const RAFFLE_PRIZE_COUNT = 3;
@@ -221,6 +223,7 @@ export async function settleRaffleIfDue(
     ).map((artwork) => [artwork._id, artwork]),
   );
   const winnerNotifications: { playerId: string; title: string }[] = [];
+  const announcements: { content: string; eventKey: string }[] = [];
 
   try {
     const nextPrizes: RafflePrize[] = [];
@@ -267,6 +270,10 @@ export async function settleRaffleIfDue(
         );
         await setRafflePrizePotency(database, prize.item_id, potency);
         nextPrizes.push({ item_id: prize.item_id, potency });
+        announcements.push({
+          content: `Daily lottery rollover: /items/${prize.item_id} is now at potency ${potency}.`,
+          eventKey: `lottery:${state.next_draw_at}:${prize.item_id}:rollover`,
+        });
         continue;
       }
       const winnerEntry = selectWeightedRaffleEntry(
@@ -318,6 +325,10 @@ export async function settleRaffleIfDue(
             originalPrizes.find((item) => item._id === prize.item_id)
               ?.artwork_id ?? "",
           )?.title ?? "an artwork",
+      });
+      announcements.push({
+        content: `Daily lottery: @${player.screen_name} won /items/${prize.item_id}!`,
+        eventKey: `lottery:${state.next_draw_at}:${prize.item_id}:winner`,
       });
     }
 
@@ -408,6 +419,7 @@ export async function settleRaffleIfDue(
           })
         : Promise.resolve(),
     ]);
+    await deleteCommunityReactions(database, "item", expiredPrizeItemIds);
   } catch (error) {
     console.error(
       "Lottery settled, but expired items or old ticket entries were not removed.",
@@ -427,6 +439,22 @@ export async function settleRaffleIfDue(
   for (const result of notificationResults) {
     if (result.status === "rejected") {
       console.error("Unable to create lottery winner notification", result.reason);
+    }
+  }
+  if (announcements.length > 0) {
+    const { createGlobalSystemChatMessage } = await import("./gallery-chat.ts");
+    const announcementResults = await Promise.allSettled(
+      announcements.map((announcement) =>
+        createGlobalSystemChatMessage(database, {
+          ...announcement,
+          now,
+        }),
+      ),
+    );
+    for (const result of announcementResults) {
+      if (result.status === "rejected") {
+        console.error("Unable to create lottery announcement", result.reason);
+      }
     }
   }
 

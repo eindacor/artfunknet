@@ -8,6 +8,7 @@ import {
   calculateDonationKarma,
 } from "@/server/art-expert-gameplay";
 import type { GameItem } from "@/server/gameplay";
+import { deleteCommunityReactions } from "@/server/community-reaction-cleanup";
 import { hydrateGameItems } from "@/server/item-artwork";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
@@ -84,6 +85,7 @@ export async function POST(
           { status: 409 },
         );
       }
+      await deleteCommunityReactions(database, "item", [item._id]);
       const message =
         "The recipient detected the forgery. The donation failed and the artwork was destroyed.";
       return NextResponse.json({
@@ -197,6 +199,7 @@ export async function POST(
       { status: 500 },
     );
   }
+  await deleteCommunityReactions(database, "item", [item._id]);
 
   return NextResponse.json({
     status: "ok",

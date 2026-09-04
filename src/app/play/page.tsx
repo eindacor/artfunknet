@@ -42,7 +42,7 @@ import {
   refreshNpcSpawns,
   type NpcQuality,
 } from "@/server/npc-gameplay";
-import { ensurePlayerKarma } from "@/server/karma";
+import { ensurePlayerKarma, normalizeKarmaBalance } from "@/server/karma";
 import {
   createPlayerNotification,
   getPlayerNotifications,
@@ -468,7 +468,7 @@ export default async function PlayerPage({
           repairingCap: player.profile.repairing_cap ?? 4,
           xpGoal: getXpGoal(player.profile.level),
           npcsMet: player.profile.npcs_met ?? {},
-          karma: Math.max(0, Math.floor(player.profile.karma ?? 0)),
+          karma: normalizeKarmaBalance(player.profile.karma),
           cardStyleInventory: getCardStyleInventory(
             player.profile.card_style_consumables,
           ),

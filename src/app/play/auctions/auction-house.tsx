@@ -488,6 +488,7 @@ function AuctionItemCard({
         canCustomizeCosmetic: false,
       }}
       researchTarget={auction.questTarget}
+      viewerId={playerId}
     />
   );
 }

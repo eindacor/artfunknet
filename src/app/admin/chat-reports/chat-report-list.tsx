@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 
 import type { GalleryChatReportView } from "@/server/gallery-chat";
 
@@ -12,6 +12,25 @@ export default function ChatReportList({
   const [currentReports, setCurrentReports] = useState(reports);
   const [pendingId, setPendingId] = useState("");
   const [error, setError] = useState("");
+  const [announcement, setAnnouncement] = useState("");
+  const [announcementStatus, setAnnouncementStatus] = useState("");
+
+  async function postAnnouncement(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setAnnouncementStatus("Posting...");
+    const response = await fetch("/api/admin/chat-reports", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ content: announcement }),
+    });
+    const body = (await response.json()) as { error?: string };
+    if (response.ok) {
+      setAnnouncement("");
+      setAnnouncementStatus("Posted to global chat as @Artfunkel.");
+    } else {
+      setAnnouncementStatus(body.error ?? "The announcement could not be posted.");
+    }
+  }
 
   async function setVisibility(report: GalleryChatReportView, hidden: boolean) {
     setPendingId(report.id);
@@ -40,6 +59,23 @@ export default function ChatReportList({
 
   return (
     <>
+      <form className="admin-chat-announcement" onSubmit={postAnnouncement}>
+        <label>
+          <span>Post as @Artfunkel</span>
+          <textarea
+            maxLength={500}
+            onChange={(event) => setAnnouncement(event.target.value)}
+            placeholder="Write a global announcement..."
+            required
+            rows={3}
+            value={announcement}
+          />
+        </label>
+        <button disabled={!announcement.trim()} type="submit">
+          Post announcement
+        </button>
+        {announcementStatus ? <small>{announcementStatus}</small> : null}
+      </form>
       <div className="admin-chat-report-list">
         {currentReports.map((report) => (
           <article

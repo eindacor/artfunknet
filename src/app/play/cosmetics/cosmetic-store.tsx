@@ -12,11 +12,13 @@ export default function CosmeticStore({
   initialStyleInventory,
   sampleItem,
   legendaryAttributes,
+  viewerId,
 }: {
   activeRendererIds: string[];
   initialStyleInventory: CardStyleInventory;
   sampleItem: HydratedGameItem | null;
   legendaryAttributes: CardLegendaryAttribute[];
+  viewerId: string;
 }) {
   const styleInventory = getCardStyleInventory(initialStyleInventory);
 
@@ -51,6 +53,7 @@ export default function CosmeticStore({
                     forceRendererId={cosmetic.id}
                     item={sampleItem}
                     legendaryAttributes={legendaryAttributes}
+                    viewerId={viewerId}
                   />
                 ) : (
                   <p>No artwork is available for this preview.</p>

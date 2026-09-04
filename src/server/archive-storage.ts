@@ -2,6 +2,7 @@ import "server-only";
 
 import type { Db } from "mongodb";
 
+import { deleteCommunityReactions } from "./community-reaction-cleanup.ts";
 import {
   createArchiveEntry,
   type ArchiveEntry,
@@ -153,6 +154,7 @@ async function migrateAndIndexArchive(database: Db): Promise<void> {
     if (removed.deletedCount !== 1) {
       throw new Error(`Unable to remove migrated archive item ${item._id}.`);
     }
+    await deleteCommunityReactions(database, "item", [item._id]);
   }
 
   await normalizeArchiveRecords(database);

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { deleteCommunityReactions } from "@/server/community-reaction-cleanup";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
 
@@ -23,6 +24,7 @@ export async function POST(
       { status: 409 },
     );
   }
+  await deleteCommunityReactions(database, "item", [id]);
 
   return NextResponse.json({ status: "ok" });
 }

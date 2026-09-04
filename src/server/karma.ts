@@ -11,6 +11,10 @@ type LegacyKnowledge = Partial<
   Record<keyof typeof LEGACY_KARMA_WEIGHTS, number>
 >;
 
+export function normalizeKarmaBalance(value: number | undefined): number {
+  return Number.isFinite(value) ? Math.floor(value ?? 0) : 0;
+}
+
 export function convertLegacyKnowledgeToKarma(
   knowledge: LegacyKnowledge | undefined,
 ): number {
@@ -53,7 +57,7 @@ export async function ensurePlayerKarma(
   }
 
   if (Number.isFinite(player.profile?.karma)) {
-    const karma = Math.max(0, Math.floor(player.profile?.karma ?? 0));
+    const karma = normalizeKarmaBalance(player.profile?.karma);
     if (player.profile?.knowledge) {
       await players.updateOne(
         { _id: playerId },
@@ -72,7 +76,7 @@ export async function ensurePlayerKarma(
     },
     { returnDocument: "after" },
   );
-  if (migrated) return Math.max(0, Math.floor(migrated.profile?.karma ?? 0));
+  if (migrated) return normalizeKarmaBalance(migrated.profile?.karma);
 
   const current = await players.findOne(
     { _id: playerId },
@@ -82,5 +86,5 @@ export async function ensurePlayerKarma(
   if (!Number.isFinite(currentKarma)) {
     throw new Error("The player's Karma balance could not be initialized.");
   }
-  return Math.max(0, Math.floor(currentKarma ?? 0));
+  return normalizeKarmaBalance(currentKarma);
 }

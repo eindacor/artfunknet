@@ -182,6 +182,11 @@ Reporting a message preserves it from automatic deletion so administrators can
 review and hide or restore it at
 <http://localhost:3000/admin/chat-reports>.
 
+Signed-in item profiles include a **Share** action beside **Copy link** that
+posts the item directly to global chat. Chat messages support heart, fire,
+applause, and wow emotes; MongoDB stores both the reacting player IDs and the
+corresponding count for each emote.
+
 Chat expiration uses a MongoDB TTL index on
 `gallery_chat_messages.expires_at`; no separate cleanup worker or scheduled
 task is required in production. MongoDB's TTL monitor runs asynchronously, so

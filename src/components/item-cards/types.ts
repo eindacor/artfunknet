@@ -54,6 +54,7 @@ export type ItemCardProps = Omit<ItemCardRendererProps, "alreadyOwned"> & {
   permissions?: ItemDialogPermissions;
   rendererId?: string;
   styleInventory?: CardStyleInventory;
+  viewerId?: string | null;
 };
 
 export type ItemDialogPermissions = {

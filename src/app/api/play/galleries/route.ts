@@ -5,6 +5,7 @@ import {
   refreshAllGalleryMetadata,
   type GalleryMetadata,
 } from "@/server/gallery-metadata";
+import { getCommunityReactionSummaries } from "@/server/community-reactions";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
 
@@ -33,6 +34,7 @@ export async function GET(request: Request) {
   }
 
   const filter = {
+    active: true,
     owner_id: { $ne: auth.session.playerId },
     display_count: { $gt: 0 },
     ...(search
@@ -49,9 +51,18 @@ export async function GET(request: Request) {
       .toArray(),
     galleries.countDocuments(filter),
   ]);
+  const reactions = await getCommunityReactionSummaries(
+    database,
+    "gallery",
+    records.map((record) => record.owner_id),
+    auth.session.playerId,
+  );
 
   return NextResponse.json({
-    galleries: records,
+    galleries: records.map((record) => ({
+      ...record,
+      reactions: reactions.get(record.owner_id),
+    })),
     total,
     page,
     pageSize,

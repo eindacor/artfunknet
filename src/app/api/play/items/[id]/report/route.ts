@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { AUCTION_HOUSE_OWNER_ID } from "@/server/auction-gameplay";
+import { deleteCommunityReactions } from "@/server/community-reaction-cleanup";
 import {
   awardForgeryXpChunk,
   getRedemptionPermission,
@@ -69,6 +70,7 @@ export async function POST(
     if (liableIsSystem) {
       const removed = await database.collection<GameItem>("items").deleteOne({ _id: item._id, status: "collector_pending" });
       if (removed.deletedCount !== 1) throw new Error("The system forgery could not be removed.");
+      await deleteCommunityReactions(database, "item", [item._id]);
     } else {
       const charged = await database.collection<Player>("players").updateOne(
         { _id: liable, active: true },

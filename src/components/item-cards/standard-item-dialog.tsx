@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
+import { CommunityReactionLoader } from "@/components/community-emotes";
 
 import ArtStyleActionButton from "./art-style-action-button";
 import { getCardCosmetic } from "./catalog";
@@ -20,7 +21,9 @@ import type {
   ItemDisplayOwner,
   ItemDialogPermissions,
 } from "./types";
+import type { GalleryChatMessageView } from "@/server/gallery-chat";
 import type { HydratedGameItem } from "@/server/item-artwork";
+import { RAFFLE_OWNER_ID } from "@/server/raffle-core";
 
 export default function StandardItemDialog({
   item,
@@ -121,7 +124,11 @@ export function StandardItemDetails({
 }) {
   const appliedCosmetic = getCardCosmetic(currentRendererId);
   const displayedStatus =
-    item.status === "displayed" && displayOwner ? (
+    item.status === "claimed" && item.owner === RAFFLE_OWNER_ID ? (
+      <span>
+        unclaimed · <Link href="/play?section=raffle">View lottery</Link>
+      </span>
+    ) : item.status === "displayed" && displayOwner ? (
       <span>
         On display in{" "}
         <Link href={`/gallery/${encodeURIComponent(displayOwner.playerId)}`}>
@@ -170,6 +177,7 @@ export function StandardItemDetails({
           />
           <div className="standard-item-dialog-header-actions">
             <ItemLinkButton itemId={item._id} />
+            {viewerId ? <ItemCommunityShareButton itemId={item._id} /> : null}
             {onClose ? (
               <button
                 aria-label="Close item details"
@@ -182,6 +190,24 @@ export function StandardItemDetails({
             ) : null}
           </div>
         </header>
+        {viewerId ? (
+          <div className="standard-item-community-reactions">
+            <span>
+              <small>Artwork</small>
+              <CommunityReactionLoader
+                targetId={item._id}
+                targetType="item"
+              />
+            </span>
+            <span>
+              <small>Artist</small>
+              <CommunityReactionLoader
+                targetId={item.artwork.artist_id}
+                targetType="artist"
+              />
+            </span>
+          </div>
+        ) : null}
         <div className="standard-item-dialog-layout">
           <div className="standard-item-dialog-sidebar">
             <section className="standard-item-dialog-attributes">
@@ -314,6 +340,73 @@ function ItemLinkButton({ itemId }: { itemId: string }) {
           : status === "error"
             ? "Copy failed"
             : "Link"}
+      </span>
+    </button>
+  );
+}
+
+function ItemCommunityShareButton({ itemId }: { itemId: string }) {
+  const [status, setStatus] = useState<"idle" | "sharing" | "shared" | "error">(
+    "idle",
+  );
+
+  async function shareItem() {
+    setStatus("sharing");
+    try {
+      const response = await fetch("/api/play/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          content: `/items/${encodeURIComponent(itemId)}`,
+        }),
+      });
+      const body = (await response.json()) as {
+        error?: string;
+        message?: GalleryChatMessageView;
+      };
+      if (!response.ok || !body.message) {
+        throw new Error(body.error ?? "The item could not be shared.");
+      }
+      window.dispatchEvent(
+        new CustomEvent<GalleryChatMessageView>(
+          "artfunkel:global-chat-message",
+          { detail: body.message },
+        ),
+      );
+      setStatus("shared");
+      window.setTimeout(() => setStatus("idle"), 1800);
+    } catch {
+      setStatus("error");
+    }
+  }
+
+  return (
+    <button
+      aria-label="Share with the community"
+      className="standard-item-link-button"
+      disabled={status === "sharing"}
+      onClick={() => void shareItem()}
+      title={
+        status === "shared"
+          ? "Shared with the community"
+          : status === "error"
+            ? "Unable to share item"
+            : "Share with the community"
+      }
+      type="button"
+    >
+      <i
+        aria-hidden="true"
+        className={`fa ${status === "shared" ? "fa-check" : "fa-share-square"}`}
+      />
+      <span>
+        {status === "sharing"
+          ? "Sharing"
+          : status === "shared"
+            ? "Shared"
+            : status === "error"
+              ? "Share failed"
+              : "Share"}
       </span>
     </button>
   );

@@ -25,6 +25,7 @@ import {
   getCapsForLevel,
   getXpChunk,
 } from "@/server/collection-gameplay";
+import { deleteCommunityReactions } from "@/server/community-reaction-cleanup";
 import {
   amplifyRarityMap,
   generateDailyDrop,
@@ -1142,6 +1143,7 @@ export async function POST(
               "The detected forgery could not be destroyed.",
             );
           }
+          await deleteCommunityReactions(database, "item", [target._id]);
           reservedTarget = null;
           return NextResponse.json({
             status: "ok",
@@ -1304,6 +1306,9 @@ export async function POST(
       }
       if (rewardResult.modifiedCount !== 1) {
         throw new Error("The Collector reward could not be applied.");
+      }
+      if (!keptItem) {
+        await deleteCommunityReactions(database, "item", [target._id]);
       }
 
       return NextResponse.json({

@@ -29,6 +29,7 @@ export default function ItemCard({
   rendererId,
   researchTarget = false,
   styleInventory,
+  viewerId,
 }: ItemCardProps) {
   const router = useRouter();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -139,6 +140,7 @@ export default function ItemCard({
               (currentItem.status === "claimed" ||
                 currentItem.status === "displayed"),
           }}
+          viewerId={viewerId}
         />
       ) : null}
       {interactive && artStyleDialogOpen ? (

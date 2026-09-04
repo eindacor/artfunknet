@@ -6,6 +6,7 @@ import {
   getGalleryChatExpiration,
   getGalleryChatReportUpdate,
   getVisibleGalleryChatFilter,
+  isGalleryChatEmote,
   tokenizeChatContent,
   type GalleryChatItemReference,
 } from "./gallery-chat-core.ts";
@@ -33,6 +34,13 @@ test("chat expiration is seven days after creation", () => {
     getGalleryChatExpiration(createdAt).toISOString(),
     "2026-04-08T12:30:00.000Z",
   );
+});
+
+test("chat emotes use the supported fixed vocabulary", () => {
+  assert.equal(isGalleryChatEmote("heart"), true);
+  assert.equal(isGalleryChatEmote("wow"), true);
+  assert.equal(isGalleryChatEmote("custom"), false);
+  assert.equal(isGalleryChatEmote(1), false);
 });
 
 test("visible chat excludes hidden and expired unreported messages", () => {

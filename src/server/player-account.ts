@@ -2,6 +2,8 @@ import { randomBytes } from "node:crypto";
 
 import type { Db } from "mongodb";
 
+export const RESERVED_PLAYER_NAMES = ["artfunkel"] as const;
+
 export type PlayerAccountRecord = {
   [key: string]: unknown;
   _id: string;
@@ -36,10 +38,14 @@ export function normalizePlayerEmail(value: unknown): string | null {
 export function normalizeScreenName(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const screenName = value.normalize("NFKC").trim().replace(/\s+/g, " ");
+  // TODO: let players use spaces when @ linking helps the user pick the right person
   if (
     screenName.length < 3 ||
     screenName.length > 24 ||
-    !/^[\p{L}\p{N} _-]+$/u.test(screenName)
+    !/^[\p{L}\p{N}_-]+$/u.test(screenName) ||
+    RESERVED_PLAYER_NAMES.some(
+      (reserved) => reserved === screenName.toLocaleLowerCase(),
+    )
   ) {
     return null;
   }

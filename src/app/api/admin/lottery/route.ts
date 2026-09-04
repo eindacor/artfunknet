@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getCardCosmetic } from "@/components/item-cards/catalog";
 import { requireAdminApi } from "@/server/admin-api";
+import { deleteCommunityReactions } from "@/server/community-reaction-cleanup";
 import { getGameplaySettings } from "@/server/game-settings";
 import {
   calculateItemValues,
@@ -260,6 +261,7 @@ export async function POST(request: Request) {
     }),
     database.collection("raffle_entries").deleteMany({ item_id: body.itemId }),
   ]);
+  await deleteCommunityReactions(database, "item", [body.itemId]);
   return NextResponse.json({
     status: "ok",
     message: "A new lottery item was generated.",

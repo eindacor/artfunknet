@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 
 import type { GameItem } from "@/server/gameplay";
+import { deleteCommunityReactions } from "@/server/community-reaction-cleanup";
 import {
   getDisplayedLegendaryEffect,
   getLegendaryNumberParameter,
@@ -61,6 +62,7 @@ export async function POST() {
         { status: 409 },
       );
     }
+    await deleteCommunityReactions(database, "item", destroyedIds);
   }
   const identifiedIds = new Set(
     caughtItems
@@ -187,6 +189,7 @@ export async function POST() {
     if (removed.deletedCount !== sellableItems.length) {
       throw new Error("The bulk sale cleanup was incomplete.");
     }
+    await deleteCommunityReactions(database, "item", ids);
   } catch (error) {
     if (!credited) {
       const player = await database.collection<{
@@ -202,6 +205,7 @@ export async function POST() {
         status: "bulk_sale_pending",
         bulk_sale_operation: operationId,
       });
+      await deleteCommunityReactions(database, "item", ids);
     } else {
       await database.collection<GameItem>("items").updateMany(
         {
@@ -303,11 +307,15 @@ async function recoverPendingSales(
       .filter((id): id is string => Boolean(id)),
   )) {
     if (credited.has(operationId)) {
+      const operationItemIds = pending
+        .filter((item) => item.bulk_sale_operation === operationId)
+        .map((item) => item._id);
       await database.collection<GameItem>("items").deleteMany({
         owner: playerId,
         status: "bulk_sale_pending",
         bulk_sale_operation: operationId,
       });
+      await deleteCommunityReactions(database, "item", operationItemIds);
     } else {
       await database.collection<GameItem>("items").updateMany(
         {

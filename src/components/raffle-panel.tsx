@@ -18,11 +18,13 @@ export default function RafflePanel({
   nextDrawAt,
   prizes: initialPrizes,
   previousWinners,
+  viewerId,
 }: {
   availableTickets: number;
   nextDrawAt: string;
   prizes: RafflePrizeView[];
   previousWinners: RaffleWinner[];
+  viewerId: string;
 }) {
   const [availableTickets, setAvailableTickets] = useState(
     initialAvailableTickets,
@@ -126,6 +128,7 @@ export default function RafflePanel({
                   canManageItem: false,
                   canCustomizeCosmetic: false,
                 }}
+                viewerId={viewerId}
               />
               <div className="raffle-prize-entry">
                 <div>

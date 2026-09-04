@@ -1,4 +1,14 @@
+import type { ArtworkRarity } from "./gameplay";
+import {
+  COMMUNITY_EMOTES,
+  isCommunityEmote,
+  type CommunityEmote,
+} from "./community-reactions-core.ts";
+
 export const GALLERY_CHAT_RETENTION_DAYS = 7;
+export const GALLERY_CHAT_EMOTES = COMMUNITY_EMOTES;
+export const ARTFUNKEL_SYSTEM_AUTHOR_ID = "system:artfunkel";
+export type GalleryChatEmote = CommunityEmote;
 
 export type GalleryChatPlayerReference = {
   _id: string;
@@ -37,12 +47,21 @@ export type GalleryChatToken =
         rarity: ArtworkRarity;
         value: number;
       };
+    }
+  | {
+      kind: "emote";
+      text: string;
+      emote: GalleryChatEmote;
     };
 
 export function getGalleryChatExpiration(now: Date): Date {
   return new Date(
     now.getTime() + GALLERY_CHAT_RETENTION_DAYS * 24 * 60 * 60 * 1000,
   );
+}
+
+export function isGalleryChatEmote(value: unknown): value is GalleryChatEmote {
+  return isCommunityEmote(value);
 }
 
 export function getVisibleGalleryChatFilter(
@@ -97,6 +116,28 @@ export function tokenizeChatContent(
         },
       },
     });
+  }
+
+  const emotePattern =
+    /:(heart|fire|laugh|clap|wow|angry|artfunkel):/gi;
+  for (const match of content.matchAll(emotePattern)) {
+    if (match.index === undefined || !isGalleryChatEmote(match[1])) continue;
+    const start = match.index;
+    const end = start + match[0].length;
+    const overlaps = matches.some(
+      (candidate) => start < candidate.end && end > candidate.start,
+    );
+    if (!overlaps) {
+      matches.push({
+        start,
+        end,
+        token: {
+          kind: "emote",
+          text: match[0],
+          emote: match[1],
+        },
+      });
+    }
   }
 
   const playersByLongestName = [...players].sort(
@@ -166,4 +207,3 @@ export function findItemReferences(content: string): Array<{
   }
   return matches;
 }
-import type { ArtworkRarity } from "./gameplay";

@@ -210,6 +210,7 @@ export default function GameDashboard({
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialGalleryId = searchParams.get("gallery");
+  const initialSection = searchParams.get("section");
   const [section, setSection] = useState<
     | "profile"
     | "inventory"
@@ -223,6 +224,8 @@ export default function GameDashboard({
   >(
     initialGalleryId
       ? "explore"
+      : initialSection === "raffle"
+        ? "raffle"
       : items.some((item) => item.status === "unclaimed")
         ? "loot"
         : "profile",
@@ -245,6 +248,7 @@ export default function GameDashboard({
     Record<string, { animationId: number; recoveredStyle: boolean }>
   >({});
   const [notifications, setNotifications] = useState(initialNotifications);
+  const [karmaBalance, setKarmaBalance] = useState(player.karma);
   const [npcSpawnQuality, setNpcSpawnQuality] =
     useState<NpcQuality>("bronze");
   const [spawningNpc, setSpawningNpc] = useState<string | null>(null);
@@ -289,6 +293,16 @@ export default function GameDashboard({
     useState<HydratedPlayerArtworkArchive | null>(null);
   const [vintageDialogOpen, setVintageDialogOpen] = useState(false);
   const [pending, startTransition] = useTransition();
+
+  useEffect(() => {
+    function updateKarma(event: Event) {
+      const karma = (event as CustomEvent<number>).detail;
+      if (Number.isFinite(karma)) setKarmaBalance(karma);
+    }
+    window.addEventListener("artfunkel:karma-change", updateKarma);
+    return () =>
+      window.removeEventListener("artfunkel:karma-change", updateKarma);
+  }, []);
 
   const unclaimed = useMemo(
     () =>
@@ -719,7 +733,7 @@ export default function GameDashboard({
               setRerollSession({
                 item,
                 bankBalance: player.bankBalance,
-                karma: player.karma,
+                karma: karmaBalance,
               })
             }
           />
@@ -781,6 +795,7 @@ export default function GameDashboard({
                 onChange={setNotifications}
               />
               <GalleryChat global viewerId={playerId} />
+              <GalleryChat galleryOwnerId={playerId} viewerId={playerId} />
             </div>
             <section className="player-profile">
               <header className="museum-profile-heading">
@@ -878,31 +893,6 @@ export default function GameDashboard({
 
               <section>
                 <header>
-                  <span>Current exhibition</span>
-                  <small>Live gallery performance</small>
-                </header>
-                <dl>
-                  <ProfileFact
-                    label="Items exhibited"
-                  value={`${displayed.length} (${player.displayCap} max)`}
-                  />
-                  <ProfileFact
-                    label="Exhibition value"
-                  value={`$${galleryRates.value.toLocaleString()}`}
-                  />
-                  <ProfileFact
-                    label="Earnings per hour"
-                  value={`$${galleryRates.moneyPerHour.toLocaleString()}`}
-                  />
-                  <ProfileFact
-                    label="Experience per hour"
-                  value={galleryRates.xpPerHour.toLocaleString()}
-                  />
-                </dl>
-              </section>
-
-              <section>
-                <header>
                   <span>Institutional record</span>
                   <small>Lifetime participation</small>
                 </header>
@@ -925,12 +915,12 @@ export default function GameDashboard({
               <section className="museum-profile-karma">
                 <header>
                   <span>Good Karma</span>
-                  <small>Earned by donating works of art</small>
+                  <small>Donations and community reactions</small>
                 </header>
                 <div className="karma-balance">
                   <i aria-hidden="true" className="fa fa-heart" />
                   <div>
-                    <strong>{player.karma.toLocaleString()}</strong>
+                    <strong>{karmaBalance.toLocaleString()}</strong>
                   </div>
                 </div>
               </section>
@@ -988,6 +978,16 @@ export default function GameDashboard({
                           <dd>
                             ${galleryMetadata.featured_value.toLocaleString()}
                           </dd>
+                        </div>
+                        <div>
+                          <dt>Earnings per hour</dt>
+                          <dd>
+                            ${galleryRates.moneyPerHour.toLocaleString()}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt>Experience per hour</dt>
+                          <dd>{galleryRates.xpPerHour.toLocaleString()}</dd>
                         </div>
                         <div className="profile-gallery-icon-row">
                           <dt className="sr-only">Attributes</dt>
@@ -1244,6 +1244,7 @@ export default function GameDashboard({
                         }}
                         researchTarget={researchArtworkIds.has(item.artwork_id)}
                         styleInventory={player.cardStyleInventory}
+                        viewerId={playerId}
                         actions={
                           item.status === "for_sale" ? (
                             <>
@@ -1340,6 +1341,7 @@ export default function GameDashboard({
               canCustomize
               styleInventory={player.cardStyleInventory}
               title={`on display (${displayed.length}/${player.displayCap})`}
+              viewerId={playerId}
               actions={displayedItemActions}
             />
             <InventorySection
@@ -1351,6 +1353,7 @@ export default function GameDashboard({
               styleInventory={player.cardStyleInventory}
               donationEffects={donationEffects}
               title="inventory"
+              viewerId={playerId}
               actions={(item) => {
                 if (item.status === "auctioned") return null;
 
@@ -1415,7 +1418,7 @@ export default function GameDashboard({
                         setRerollSession({
                           item,
                           bankBalance: player.bankBalance,
-                          karma: player.karma,
+                          karma: karmaBalance,
                         })
                       }
                     />
@@ -1675,6 +1678,7 @@ export default function GameDashboard({
                 <div className="gallery-floor" />
               </div>
             </div>
+            <GalleryChat galleryOwnerId={playerId} viewerId={playerId} />
           </section>
         ) : null}
 
@@ -1711,6 +1715,7 @@ export default function GameDashboard({
             nextDrawAt={raffle.nextDrawAt}
             previousWinners={raffle.previousWinners}
             prizes={raffle.prizes}
+            viewerId={playerId}
           />
         ) : null}
 
@@ -3213,6 +3218,7 @@ function InventorySection({
   canCustomize,
   styleInventory,
   donationEffects,
+  viewerId,
   actions,
 }: {
   title: string;
@@ -3226,6 +3232,7 @@ function InventorySection({
     string,
     { animationId: number; recoveredStyle: boolean }
   >;
+  viewerId: string;
   actions: (item: HydratedGameItem) => React.ReactNode;
 }) {
   return (
@@ -3254,6 +3261,7 @@ function InventorySection({
               }}
               researchTarget={researchArtworkIds.has(item.artwork_id)}
               styleInventory={styleInventory}
+              viewerId={viewerId}
             />
           ))}
         </div>

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { requireAdminApi } from "@/server/admin-api";
 import {
+  createGlobalSystemChatMessage,
   ensureGalleryChatIndexes,
   getGalleryChatReports,
   type GalleryChatDocument,
@@ -15,6 +16,43 @@ export async function GET() {
   return NextResponse.json({
     reports: await getGalleryChatReports(await getDatabase()),
   });
+}
+
+export async function POST(request: Request) {
+  const auth = await requireAdminApi();
+  if (!auth.ok) return auth.response;
+
+  let body: { content?: unknown };
+  try {
+    body = (await request.json()) as { content?: unknown };
+  } catch {
+    return NextResponse.json(
+      { error: "The announcement is invalid." },
+      { status: 400 },
+    );
+  }
+  if (typeof body.content !== "string") {
+    return NextResponse.json(
+      { error: "Announcement text is required." },
+      { status: 400 },
+    );
+  }
+  try {
+    await createGlobalSystemChatMessage(await getDatabase(), {
+      content: body.content,
+    });
+    return NextResponse.json({ status: "ok" }, { status: 201 });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "The announcement could not be posted.",
+      },
+      { status: 400 },
+    );
+  }
 }
 
 export async function PATCH(request: Request) {

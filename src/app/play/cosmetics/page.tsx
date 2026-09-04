@@ -90,6 +90,7 @@ export default async function CardCosmeticStorePage() {
               )
             : null
         }
+        viewerId={player._id}
       />
     </div>
   );

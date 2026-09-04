@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { refreshGalleryMetadata } from "@/server/gallery-metadata";
+import {
+  refreshGalleryMetadata,
+} from "@/server/gallery-metadata";
+import { getCommunityReactionSummary } from "@/server/community-reactions";
 import { getLegendaryAttributes } from "@/server/legendary-attributes";
 import { getDatabase } from "@/server/mongodb";
 import { getGalleryNpcs } from "@/server/npc-gameplay";
@@ -36,15 +39,21 @@ export async function GET(
         .filter((id): id is string => Boolean(id)),
     ),
   ];
-  const [npcs, legendaryAttributes] = await Promise.all([
+  const [npcs, legendaryAttributes, reactions] = await Promise.all([
     getGalleryNpcs(database, playerId),
     getLegendaryAttributes(database, legendaryIds),
+    getCommunityReactionSummary(
+      database,
+      "gallery",
+      playerId,
+      auth.session.playerId,
+    ),
   ]);
 
   return NextResponse.json({
     owner: gallery.owner,
     items: gallery.items,
-    metadata,
+    metadata: metadata ? { ...metadata, reactions } : null,
     npcs: npcs.map((npc) => ({
       ...npc,
       alreadyMet: npc.players_met.includes(auth.session.playerId),

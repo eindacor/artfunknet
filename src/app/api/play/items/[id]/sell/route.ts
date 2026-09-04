@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import type { GameItem } from "@/server/gameplay";
+import { deleteCommunityReactions } from "@/server/community-reaction-cleanup";
 import {
   punishForgeryQuality,
   rollForgeryDetected,
@@ -71,6 +72,7 @@ export async function POST(
             { status: 409 },
           );
         }
+        await deleteCommunityReactions(database, "item", [item._id]);
         const message =
           "The buyer detected the forgery. The sale failed and the artwork was destroyed.";
         return NextResponse.json({
@@ -147,6 +149,7 @@ export async function POST(
       { status: 500 },
     );
   }
+  await deleteCommunityReactions(database, "item", [item._id]);
 
   return NextResponse.json({ status: "ok", amount });
 }
