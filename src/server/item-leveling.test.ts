@@ -5,7 +5,9 @@ import {
   canAffordItemLevelUp,
   getItemLevelUpCost,
   ITEM_LEVEL_MAX,
+  prepareItemForLevelUp,
 } from "./item-leveling.ts";
+import type { GameItem } from "./gameplay.ts";
 
 test("item leveling preserves the original Knowledge cost and level cap", () => {
   assert.equal(ITEM_LEVEL_MAX, 10);
@@ -45,4 +47,19 @@ test("item leveling requires every Knowledge tier in the cost", () => {
     ),
     false,
   );
+});
+
+test("item leveling preserves the applied card style", () => {
+  const item = {
+    level: 3,
+    condition: 0.74,
+    mint: false,
+    mint_value_multiplier: 1,
+    card_renderer: "zine",
+  } as GameItem;
+
+  const leveled = prepareItemForLevelUp(item);
+
+  assert.equal(leveled.level, 4);
+  assert.equal(leveled.card_renderer, "zine");
 });

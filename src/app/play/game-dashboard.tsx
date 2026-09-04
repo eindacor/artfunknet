@@ -17,10 +17,7 @@ import {
 import ArchiveConfirmationDialog from "@/components/item-cards/archive-confirmation-dialog";
 import AuctionListingDialog from "@/components/item-cards/auction-listing-dialog";
 import ArtStyleDialog from "@/components/item-cards/art-style-dialog";
-import {
-  getCardCosmetic,
-  type CardStyleInventory,
-} from "@/components/item-cards/catalog";
+import type { CardStyleInventory } from "@/components/item-cards/catalog";
 import ItemCard from "@/components/item-cards/item-card";
 import MintLossConfirmationDialog from "@/components/item-cards/mint-loss-confirmation-dialog";
 import { resolveCardRendererId } from "@/components/item-cards/selection";
@@ -776,13 +773,13 @@ export default function GameDashboard({
   return (
     <main className="legacy-game">
       <div className="legacy-container">
-        <div className="game-heading">
+        {/*<div className="game-heading">
           <h1 className="gamertag">{player.screenName}</h1>
           <NotificationCenter
             notifications={notifications}
             onChange={setNotifications}
           />
-        </div>
+        </div>*/}
         <nav className="dashboard-tabs" aria-label="Player dashboard">
           {(
             [
@@ -2608,9 +2605,6 @@ function RerollDialog({
   );
   const canAffordLevelUp = canAffordItemLevelUp(knowledge, levelUpCost);
   const atMaximumLevel = item.level >= ITEM_LEVEL_MAX;
-  const appliedStyle = getCardCosmetic(item.card_renderer ?? "");
-  const recoverableStyle =
-    appliedStyle?.id === "museum" ? undefined : appliedStyle;
   const eligibleLegendaryAttributes = legendaryAttributes.filter(
     (attribute) =>
       attribute.active &&
@@ -2902,15 +2896,11 @@ function RerollDialog({
                 Level {item.level} <span>/ {ITEM_LEVEL_MAX}</span>
               </h3>
             </div>
-            {!atMaximumLevel ? (
-              <strong>Next: level {item.level + 1}</strong>
-            ) : (
-              <strong>Maximum level</strong>
-            )}
           </header>
           <p className="item-level-up-description">
             Spend Knowledge to increase this item&apos;s value and improve the
-            minimum attraction values available on future rerolls.
+            minimum attraction values available on future rerolls. Knowledge can
+            be gained by donating artwork.
           </p>
           {!atMaximumLevel ? (
             <>
@@ -2945,14 +2935,6 @@ function RerollDialog({
                   },
                 )}
               </div>
-              {recoverableStyle ? (
-                <p className="item-level-up-style">
-                  <i aria-hidden="true" className="fa fa-clone" />
-                  The {recoverableStyle.name} style will be recovered as a
-                  reusable consumable, and this item will return to Museum
-                  Label.
-                </p>
-              ) : null}
               <button
                 className="item-level-up-button"
                 disabled={busy || !canAffordLevelUp}
@@ -3016,7 +2998,10 @@ function RerollDialog({
         ) : null}
 
         <div className="reroll-attributes">
-          <h3>Attraction attributes</h3>
+          <h3>Attributes</h3>
+          <p id="reroll-description" className="reroll-dialog-description">
+            These determine which type of visitor the work is most likely to attract.
+          </p>
           {attributeGroups.map(([type, attributes]) =>
             attributes.map((attribute) => {
               const typeIcon = ATTRIBUTE_TYPE_ICONS[type];

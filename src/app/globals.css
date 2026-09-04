@@ -71,7 +71,7 @@ body {
   min-height: 58px;
   padding: 8px 5%;
   border-bottom: 2px solid white;
-  background: black;
+  background: white;
   color: white;
 }
 
@@ -93,9 +93,10 @@ body {
   color: #fffb33;
 }
 
-.nav-player {
+.nav-title {
   color: #ff33cc;
   font-weight: bold;
+  font-size: 2rem;
 }
 
 .player-signout {
@@ -122,7 +123,7 @@ body {
 }
 
 .legacy-game {
-  padding: 44px 0 100px;
+  padding: 4px 0 100px;
 }
 
 .legacy-container {
@@ -350,10 +351,9 @@ body {
   gap: 6px;
   margin: 18px 0 42px;
   border: 1px solid #343434;
-  border-radius: 12px;
   padding: 7px;
   overflow-x: auto;
-  background: #151515;
+  background: #343434;
   box-shadow: 0 12px 32px rgb(0 0 0 / 16%);
   scrollbar-width: thin;
 }
@@ -367,10 +367,9 @@ body {
   gap: 8px;
   min-width: 112px;
   border: 0;
-  border-radius: 8px;
   padding: 11px 14px;
   background: transparent;
-  color: #aaa;
+  color: #fff;
   font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.025em;
@@ -388,7 +387,7 @@ body {
 }
 
 .dashboard-tabs button .fa {
-  color: #777;
+  color: #999;
   font-size: 1rem;
 }
 
@@ -2974,7 +2973,6 @@ body {
 .item-level-up header h3,
 .item-level-up-description,
 .item-level-up-discount,
-.item-level-up-style,
 .item-level-up-mint-warning,
 .item-level-up-unavailable,
 .item-level-up-maximum {
@@ -3012,7 +3010,6 @@ body {
 }
 
 .item-level-up-discount,
-.item-level-up-style,
 .item-level-up-mint-warning {
   display: flex;
   align-items: flex-start;
@@ -3025,12 +3022,6 @@ body {
   line-height: 1.4;
 }
 
-.item-level-up-style {
-  border-left-color: #a4a7ad;
-  background: #f0f1f3;
-  color: #45484e;
-}
-
 .item-level-up-mint-warning {
   border-left-color: #b3261e;
   background: #fff1ef;
@@ -3040,7 +3031,6 @@ body {
 .item-level-up
   :is(
     .item-level-up-discount,
-    .item-level-up-style,
     .item-level-up-mint-warning
   )
   i {

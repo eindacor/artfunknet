@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import type { UpdateFilter } from "mongodb";
 
-import { getCardCosmetic } from "@/components/item-cards/catalog";
 import {
   KNOWLEDGE_TYPES,
   type KnowledgeReward,
@@ -17,6 +16,7 @@ import {
   canAffordItemLevelUp,
   getItemLevelUpCost,
   ITEM_LEVEL_MAX,
+  prepareItemForLevelUp,
   PRESERVATIONIST_ATTRIBUTE_ID,
 } from "@/server/item-leveling";
 import { getRerollCost } from "@/server/item-reroll";
@@ -33,7 +33,6 @@ type Player = {
   active: boolean;
   profile: {
     knowledge: Partial<Record<KnowledgeType, number>>;
-    card_style_consumables?: Record<string, number>;
     last_activity: string;
   };
 };
@@ -134,20 +133,12 @@ export async function POST(
     );
   }
 
-  const currentCosmetic = getCardCosmetic(item.card_renderer ?? "");
-  const recoveredStyle =
-    currentCosmetic && currentCosmetic.id !== "museum"
-      ? currentCosmetic
-      : undefined;
-  const playerIncrements: Record<string, number> = Object.fromEntries([
-    ...KNOWLEDGE_TYPES.map((type) => [
+  const playerIncrements: Record<string, number> = Object.fromEntries(
+    KNOWLEDGE_TYPES.map((type) => [
       `profile.knowledge.${type}`,
       -cost[type],
     ]),
-    ...(recoveredStyle
-      ? [[`profile.card_style_consumables.${recoveredStyle.id}`, 1]]
-      : []),
-  ]);
+  );
   const chargedPlayer = await database.collection<Player>("players").findOneAndUpdate(
     {
       _id: playerId,
@@ -173,15 +164,12 @@ export async function POST(
   }
 
   async function refundPlayer() {
-    const refundIncrements: Record<string, number> = Object.fromEntries([
-      ...KNOWLEDGE_TYPES.map((type) => [
+    const refundIncrements: Record<string, number> = Object.fromEntries(
+      KNOWLEDGE_TYPES.map((type) => [
         `profile.knowledge.${type}`,
         cost[type],
       ]),
-      ...(recoveredStyle
-        ? [[`profile.card_style_consumables.${recoveredStyle.id}`, -1]]
-        : []),
-    ]);
+    );
     try {
       const refund = await database.collection<Player>("players").updateOne(
         { _id: playerId },
@@ -202,14 +190,7 @@ export async function POST(
 
   let updatedItem: GameItem;
   try {
-    const nextItem = {
-      ...item,
-      level: item.level + 1,
-      condition: item.mint ? 1 : item.condition,
-      mint: false,
-      mint_value_multiplier: 1,
-    };
-    delete nextItem.card_renderer;
+    const nextItem = prepareItemForLevelUp(item);
     const itemArtwork = { ...artwork, ...item.artwork_overrides };
     const values = calculateItemValues(
       nextItem,
@@ -234,7 +215,6 @@ export async function POST(
         values,
         reroll_cost: rerollCost,
       },
-      $unset: { card_renderer: "" as const },
     };
     const result = await database.collection<GameItem>("items").findOneAndUpdate(
       {
@@ -274,11 +254,8 @@ export async function POST(
     discounted,
     item: sanitizePlayerFacingAuthenticity(updatedItem),
     knowledge: normalizeKnowledge(chargedPlayer.profile.knowledge),
-    recoveredStyle: recoveredStyle?.id,
     message: `${artwork.title} reached level ${updatedItem.level}${
-      recoveredStyle
-        ? `, and its ${recoveredStyle.name} style was recovered`
-        : ""
-    }${item.mint ? ", and its Mint status was removed" : ""}.`,
+      item.mint ? ", and its Mint status was removed" : ""
+    }.`,
   });
 }

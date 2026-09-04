@@ -21,6 +21,8 @@ export type PlayerNotification = {
   created_at: string;
 };
 
+export const PLAYER_NOTIFICATION_EMISSION_ENABLED = false;
+
 export async function createPlayerNotification(
   database: Db,
   userId: string,
@@ -33,7 +35,11 @@ export async function createPlayerNotification(
     message: string;
     dedupeUnread?: boolean;
   },
-): Promise<PlayerNotification> {
+): Promise<PlayerNotification | null> {
+  if (!PLAYER_NOTIFICATION_EMISSION_ENABLED) {
+    return null;
+  }
+
   const notifications =
     database.collection<PlayerNotification>("player_notifications");
 

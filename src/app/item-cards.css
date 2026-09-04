@@ -278,7 +278,7 @@
 }
 
 .rendered-item-card[data-vintage="true"] .rendered-item-card-trigger {
-  filter: sepia(0.86) saturate(0.68) contrast(0.96) brightness(0.98);
+  filter: sepia(0.6) saturate(0.68) contrast(0.96) brightness(0.98);
 }
 
 .standard-item-dialog .mint-condition .fa-leaf {

@@ -83,16 +83,16 @@ access through a NAT gateway or suitable VPC endpoints.
 
 DNS and TLS:
 
-  1. Create a Route 53 public hosted zone for artfunkel.art. If the domain was
+  1. Create a Route 53 public hosted zone for funkel.art. If the domain was
      purchased through another registrar, replace its authoritative
      nameservers with the four Route 53 nameservers shown by the hosted zone.
-  2. Request an ACM certificate for artfunkel.art and optionally
-     www.artfunkel.art in the same AWS region as the ALB.
+  2. Request an ACM certificate for funkel.art and optionally
+     www.funkel.art in the same AWS region as the ALB.
   3. Add the ACM DNS-validation records to the Route 53 hosted zone.
-  4. In Route 53, create A and AAAA alias records from artfunkel.art to the
+  4. In Route 53, create A and AAAA alias records from funkel.art to the
      ALB. Alias records work for the root domain where a normal CNAME cannot.
-  5. Use only https://artfunkel.art for logins and OAuth callback URLs.
-  6. If www.artfunkel.art is enabled, redirect it to the canonical root domain
+  5. Use only https://funkel.art for logins and OAuth callback URLs.
+  6. If www.funkel.art is enabled, redirect it to the canonical root domain
      instead of serving the application from both hostnames.
 
 For stability, put the EC2 instance in an Auto Scaling Group with desired,
@@ -198,7 +198,7 @@ Example production configuration:
 
   MONGODB_URI=mongodb+srv://APPLICATION_USER:LONG_PASSWORD@CLUSTER/artfunkel
   MONGODB_DB=artfunkel
-  APP_BASE_URL=https://artfunkel.art
+  APP_BASE_URL=https://funkel.art
 
   MAX_ARTWORK_UPLOAD_BYTES=26214400
   USE_MOCK_S3=false
@@ -240,11 +240,11 @@ Do not copy development values, local passwords, or .env.local to production.
 APP_BASE_URL is the canonical public application origin. When the individual
 redirect variables are blank, the application derives these values:
 
-  https://artfunkel.art/api/auth/player/google/callback
-  https://artfunkel.art/api/auth/player/discord/callback
-  https://artfunkel.art/api/auth/player/microsoft/callback
-  https://artfunkel.art/api/auth/player/steam/callback
-  https://artfunkel.art/api/auth/player/patreon/callback
+  https://funkel.art/api/auth/player/google/callback
+  https://funkel.art/api/auth/player/discord/callback
+  https://funkel.art/api/auth/player/microsoft/callback
+  https://funkel.art/api/auth/player/steam/callback
+  https://funkel.art/api/auth/player/patreon/callback
 
 Register the applicable exact callback URL in each provider's developer
 console. Scheme, hostname, path, and port must match. Provider-specific
@@ -362,9 +362,9 @@ It excludes player accounts and generated/live game state.
 
 On the AWS application:
 
-  1. Open https://artfunkel.art/login.
+  1. Open https://funkel.art/login.
   2. Sign in with ADMIN_EMAIL and the bootstrapped administrator password.
-  3. Open https://artfunkel.art/admin/database.
+  3. Open https://funkel.art/admin/database.
   4. In "Artwork storage", click "Test artwork storage".
   5. Confirm that the provider is s3, the expected bucket and region are
      displayed, and the connection is Available. Fix IAM, bucket, or region

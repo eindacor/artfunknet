@@ -51,6 +51,12 @@ export async function POST(request: Request) {
     auth.session.playerId,
     { kind: kind as PlayerNotificationKind, message },
   );
+  if (!notification) {
+    return NextResponse.json(
+      { error: "Notifications are currently disabled." },
+      { status: 503 },
+    );
+  }
   return NextResponse.json({ notification });
 }
 

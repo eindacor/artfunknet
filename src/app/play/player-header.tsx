@@ -52,37 +52,7 @@ export default function PlayerHeader({
 
   return (
     <header className="legacy-navbar">
-      <div className="legacy-nav-icons">
-        <a aria-label="Dashboard" href="/play" title="dashboard">
-          ■
-        </a>
-        <span className="nav-player">{screenName}</span>
-        <span className="loot-icon" title="loot">
-          ◆
-        </span>
-      </div>
-      <div className="legacy-nav-stats">
-        <strong className="green-text">
-          ${bankBalance.toLocaleString()}
-        </strong>
-        <strong className="af-color">{xp.toLocaleString()}xp</strong>
-      </div>
-      <a
-        className="item-action-button"
-        href="/api/auth/player/patreon"
-        title={
-          patreonSupporter
-            ? `Patreon supporter${patreonTier ? `: ${patreonTier}` : ""}`
-            : "Link Patreon account"
-        }
-      >
-        {patreonSupporter ? "P" : "+"}
-      </a>
-      {error ? (
-        <span className="header-error" role="alert">
-          {error}
-        </span>
-      ) : null}
+      <span className="nav-title">artfunkel</span>
       <button
         aria-label={impersonating ? "Return to admin" : "Sign out"}
         className="item-action-button player-signout"

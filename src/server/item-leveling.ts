@@ -3,7 +3,7 @@ import {
   getItemKnowledgeUnitValue,
   type KnowledgeReward,
 } from "./art-expert-gameplay.ts";
-import type { ArtworkRarity } from "./gameplay.ts";
+import type { ArtworkRarity, GameItem } from "./gameplay.ts";
 export { ITEM_LEVEL_MAX } from "./item-level-constants.ts";
 
 export const PRESERVATIONIST_ATTRIBUTE_ID = "zR2KgxYe4LQZKBAiE";
@@ -30,4 +30,14 @@ export function canAffordItemLevelUp(
     ([type, amount]) =>
       (available[type as keyof KnowledgeReward] ?? 0) >= amount,
   );
+}
+
+export function prepareItemForLevelUp(item: GameItem): GameItem {
+  return {
+    ...item,
+    level: item.level + 1,
+    condition: item.mint ? 1 : item.condition,
+    mint: false,
+    mint_value_multiplier: 1,
+  };
 }
