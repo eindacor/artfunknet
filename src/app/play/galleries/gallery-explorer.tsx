@@ -15,6 +15,8 @@ import type { HydratedGameItem } from "@/server/item-artwork";
 import type { GalleryNpc } from "@/server/npc-gameplay";
 import type { NpcRewardInteraction } from "@/server/standard-npc-rewards";
 
+import GalleryChat from "./gallery-chat";
+
 type GalleryRecord = {
   _id: string;
   schema_version: 3;
@@ -547,6 +549,7 @@ function VisitedGallery({
         owner={gallery.owner}
         viewerId={viewerId}
       />
+      <GalleryChat galleryOwnerId={ownerId} viewerId={viewerId} />
     </section>
   );
 }

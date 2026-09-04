@@ -60,6 +60,7 @@ import GalleryExplorer, {
   GalleryRaritySummary,
   type GalleryNpcView,
 } from "./galleries/gallery-explorer";
+import GalleryChat from "./galleries/gallery-chat";
 import type { GalleryMetadataSnapshot } from "@/server/gallery-metadata-core";
 
 type PlayerView = {
@@ -774,10 +775,13 @@ export default function GameDashboard({
 
         {section === "profile" ? (
           <section className="player-profile-layout">
-            <NotificationCenter
-              notifications={notifications}
-              onChange={setNotifications}
-            />
+            <div className="profile-sidebar">
+              <NotificationCenter
+                notifications={notifications}
+                onChange={setNotifications}
+              />
+              <GalleryChat global viewerId={playerId} />
+            </div>
             <section className="player-profile">
               <header className="museum-profile-heading">
               <div>

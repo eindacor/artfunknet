@@ -172,6 +172,27 @@ up its exact email address and assigning a temporary password. Deliver that
 password through a trusted private channel and have the player replace it after
 signing in.
 
+The main player profile has a lightweight global chat beneath notifications.
+Opening another player's gallery replaces that context with the gallery's own
+chat; the global feed is not shown while visiting a gallery. Messages support
+`@Player Name` links and `/items/<itemId>` links, which render as
+rarity-colored painting icons with item previews. Ordinary messages expire
+after seven days, and open chats check for new messages every five seconds.
+Reporting a message preserves it from automatic deletion so administrators can
+review and hide or restore it at
+<http://localhost:3000/admin/chat-reports>.
+
+Chat expiration uses a MongoDB TTL index on
+`gallery_chat_messages.expires_at`; no separate cleanup worker or scheduled
+task is required in production. MongoDB's TTL monitor runs asynchronously, so
+expired documents may remain stored briefly after seven days, but the
+application excludes them immediately. Reported messages have `expires_at`
+removed and remain available for moderation and audit.
+
+Deactivated players cannot use gameplay APIs or render the player interface.
+Their galleries are removed from Explore metadata and direct gallery links
+return unavailable.
+
 The basic gameplay loop is active:
 
 - Daily drop cooldown, item count, foil, unlocked, Mint, and random card-style

@@ -127,6 +127,10 @@ export async function ensureGalleryMetadata(
       .filter((gallery) => gallery.schema_version === 3)
       .map((gallery) => gallery.owner_id),
   );
+  const activePlayerIds = players.map((player) => player._id);
+  await database.collection<GalleryMetadata>("galleries").deleteMany({
+    owner_id: { $nin: activePlayerIds },
+  });
   for (const player of players) {
     if (!currentOwnerIds.has(player._id)) {
       await refreshGalleryMetadata(database, player._id);

@@ -57,6 +57,7 @@ import PlayerHeader from "./player-header";
 
 type Player = {
   _id: string;
+  active: boolean;
   email: string;
   screen_name: string;
   test_account?: boolean;
@@ -103,6 +104,19 @@ export default async function PlayerPage({
   const linkedItemId =
     typeof query.item === "string" ? query.item.trim() : "";
   const database = await getDatabase();
+  const playerStatus = await database
+    .collection<Pick<Player, "_id" | "active">>("players")
+    .findOne({ _id: session.playerId });
+  if (!playerStatus) {
+    notFound();
+  }
+  if (playerStatus.active !== true) {
+    return (
+      <main className="deactivated-account-message">
+        this account has been de-activated
+      </main>
+    );
+  }
   await ensurePlayerKarma(database, session.playerId);
   await ensureArchiveStorage(database);
   await settlePendingForgeryLiability(database, session.playerId);
@@ -149,7 +163,7 @@ export default async function PlayerPage({
   );
   const player = await database
     .collection<Player>("players")
-    .findOne({ _id: session.playerId });
+    .findOne({ _id: session.playerId, active: true });
 
   if (!player) {
     notFound();
