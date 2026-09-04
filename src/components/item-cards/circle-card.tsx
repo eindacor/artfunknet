@@ -58,7 +58,7 @@ export default function CircleCard({
           </span>
         ))}
         <span className="circle-card-rarity">{item.artwork.rarity}</span>
-        <span className="circle-card-level">LEVEL {item.level}</span>
+        <span className="circle-card-level">PROMOTION {item.level}</span>
         <div className="circle-card-image-frame">
           <ArtworkImage className="circle-card-image" item={item} />
         </div>

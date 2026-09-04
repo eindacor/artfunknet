@@ -25,7 +25,7 @@ export default function PostcardCard(props: ItemCardRendererProps) {
           {item.artwork.date} · {item.artwork.medium}
         </p>
         <p className="postcard-card-address">
-          Level {item.level}
+          Promotion Level {item.level}
           <br />
           Condition {Math.round(item.condition * 100)}%
           <br />${item.values.actual.toLocaleString()}

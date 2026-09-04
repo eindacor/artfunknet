@@ -46,7 +46,7 @@ export default function MinimalistCard({
             />
           ))}
         </span>
-        <span className="minimalist-card-level">L{item.level}</span>
+        <span className="minimalist-card-level">P{item.level}</span>
         <AttributeIcons item={item} />
       </footer>
       <ItemStatusBadges

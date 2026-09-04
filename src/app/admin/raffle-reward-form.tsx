@@ -178,7 +178,7 @@ function PrizeEditor({
             />
           </label>
           <label>
-            Item level
+            Promotion level
             <input
               disabled={pending}
               max={100}

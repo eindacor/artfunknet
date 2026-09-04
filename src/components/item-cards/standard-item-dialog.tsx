@@ -85,7 +85,7 @@ export default function StandardItemDialog({
               <span className="card-rarity-label">
                 {item.artwork.rarity}
               </span>{" "}
-              artwork · level {item.level}
+              artwork · promotion level {item.level}
             </p>
             <div className="standard-item-dialog-identity">
               <div className="standard-item-dialog-heading">

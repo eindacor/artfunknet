@@ -620,14 +620,14 @@ body {
 }
 
 .museum-profile-ledger section > header span,
-.museum-profile-knowledge > header span {
+.museum-profile-karma > header span {
   display: block;
   font-family: Georgia, "Times New Roman", serif;
   font-size: 1rem;
 }
 
 .museum-profile-ledger section > header small,
-.museum-profile-knowledge > header small {
+.museum-profile-karma > header small {
   display: block;
   margin-top: 4px;
   color: #817a70;
@@ -659,7 +659,7 @@ body {
   font: 700 0.82rem/1.2 "Courier New", Courier, monospace;
 }
 
-.museum-profile-knowledge {
+.museum-profile-karma {
   margin-top: 31px;
 }
 
@@ -854,7 +854,7 @@ body {
   opacity: 0.45;
 }
 
-.museum-profile-knowledge > header {
+.museum-profile-karma > header {
   display: flex;
   align-items: start;
   justify-content: space-between;
@@ -862,98 +862,41 @@ body {
   margin-bottom: 15px;
 }
 
-.museum-profile-knowledge > header strong {
+.museum-profile-karma > header strong {
   color: #777167;
   font: 700 0.54rem/1 "Courier New", Courier, monospace;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-.museum-profile-knowledge > div {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+.karma-balance {
+  display: flex;
+  align-items: center;
+  gap: 14px;
   border-top: 1px solid #aaa397;
+  padding-top: 15px;
 }
 
-.knowledge-classification {
-  --knowledge-color: #789744;
-
-  position: relative;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: end;
-  gap: 10px;
-  min-width: 0;
-  border-right: 1px solid #d2cdc2;
-  padding: 15px 14px 2px;
-}
-
-.knowledge-classification:first-child {
-  padding-left: 0;
-}
-
-.knowledge-classification:last-child {
-  border-right: 0;
-  padding-right: 0;
-}
-
-.knowledge-classification::before {
-  position: absolute;
-  top: -2px;
-  right: 14px;
-  left: 14px;
-  height: 3px;
-  background: var(--knowledge-color);
-  content: "";
-}
-
-.knowledge-classification:first-child::before {
-  left: 0;
-}
-
-.knowledge-classification:last-child::before {
-  right: 0;
-}
-
-.knowledge-classification > span {
-  color: var(--knowledge-color);
-  font: 700 0.52rem/1 "Courier New", Courier, monospace;
-}
-
-.knowledge-classification small,
-.knowledge-classification strong {
+.karma-balance small,
+.karma-balance strong {
   display: block;
 }
 
-.knowledge-classification small {
-  overflow: hidden;
+.karma-balance small {
   color: #777167;
   font-size: 0.52rem;
-  text-overflow: ellipsis;
   text-transform: uppercase;
-  white-space: nowrap;
 }
 
-.knowledge-classification strong {
+.karma-balance strong {
   margin-top: 5px;
   color: #282722;
-  font: 700 1.05rem/1 "Courier New", Courier, monospace;
+  font: 700 1.35rem/1 "Courier New", Courier, monospace;
 }
 
-.knowledge-tier-0 {
-  --knowledge-color: #4d7727;
-}
-
-.knowledge-tier-1 {
-  --knowledge-color: #6e9630;
-}
-
-.knowledge-tier-2 {
-  --knowledge-color: #91af39;
-}
-
-.knowledge-tier-3 {
-  --knowledge-color: #abc84a;
+.karma-balance > i {
+  color: #9a7b18;
+  font-size: 1.45rem;
 }
 
 @media (max-width: 760px) {
@@ -977,17 +920,6 @@ body {
     min-height: 0;
   }
 
-  .museum-profile-knowledge > div {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .knowledge-classification:nth-child(2) {
-    border-right: 0;
-  }
-
-  .knowledge-classification:nth-child(n + 3) {
-    margin-top: 14px;
-  }
 }
 
 .random-drop > button {
@@ -2501,7 +2433,7 @@ body {
   box-shadow: 4px 4px 0 rgb(0 0 0 / 20%);
 }
 
-.art-expert-knowledge {
+.art-expert-karma {
   display: grid;
   gap: 0.45rem;
   border: 1px solid #bbb;
@@ -2509,13 +2441,13 @@ body {
   background: #111;
 }
 
-.art-expert-knowledge h3 {
+.art-expert-karma h3 {
   color: #fff;
   font-size: 0.78rem;
   text-transform: uppercase;
 }
 
-.art-expert-knowledge p {
+.art-expert-karma p {
   display: flex;
   justify-content: space-between;
   gap: 1rem;
@@ -3556,7 +3488,7 @@ body {
   animation: donation-reward-fly 1s cubic-bezier(0.18, 0.75, 0.3, 1) forwards;
 }
 
-.donation-reward-effect .knowledge {
+.donation-reward-effect .karma {
   color: #ffe45c;
   text-shadow: 0 0 18px rgb(255 228 92 / 85%);
   --donation-drift: -28px;

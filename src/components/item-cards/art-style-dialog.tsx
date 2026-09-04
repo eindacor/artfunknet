@@ -176,7 +176,7 @@ export default function ArtStyleDialog({
               />
               <div>
                 <p className="reroll-dialog-kicker">
-                  apply art style · level {dialogItem.level}
+                  apply art style · promotion level {dialogItem.level}
                 </p>
                 <h2 id={`art-style-title-${dialogItem._id}`}>
                   {dialogItem.artwork.title}

@@ -134,6 +134,7 @@ export async function completeOAuthPlayerSignIn({
       last_login: now.toISOString(),
       level: 0,
       xp: 0,
+      karma: 0,
       lottery_tickets: 1,
       entry_fee: "medium",
       inventory_cap: 15,

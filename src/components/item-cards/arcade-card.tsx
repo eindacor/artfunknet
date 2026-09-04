@@ -14,7 +14,7 @@ export default function ArcadeCard(props: ItemCardRendererProps) {
         <span className="card-rarity-label">
           ITEM_{item.artwork.rarity.toUpperCase()}
         </span>
-        <strong>LV.{item.level.toString().padStart(2, "0")}</strong>
+        <strong>PR.{item.level.toString().padStart(2, "0")}</strong>
       </header>
       <ArtworkImage className="arcade-card-image" item={item} />
       <div className="arcade-card-scanline" />

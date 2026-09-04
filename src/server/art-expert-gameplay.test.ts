@@ -2,14 +2,17 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  calculateArtExpertKnowledge,
-  calculateDonationKnowledge,
+  calculateArtExpertKarma,
+  calculateDonationKarma,
   calculateArtExpertRollReduction,
-  convertUnitValueToKnowledge,
   DONATION_ART_STYLE_MULTIPLIER,
-  getItemKnowledgeUnitValue,
+  getItemKarmaValue,
+  RARITY_BASE_KARMA,
 } from "./art-expert-gameplay.ts";
-import { getItemValuePropertyMultiplier } from "./gameplay.ts";
+import {
+  ARTWORK_RARITIES,
+  getItemValuePropertyMultiplier,
+} from "./gameplay.ts";
 
 test("Art Expert roll reduction preserves quality and own-gallery bonuses", () => {
   assert.equal(
@@ -30,55 +33,57 @@ test("Art Expert roll reduction preserves quality and own-gallery bonuses", () =
   );
 });
 
-test("Art Expert knowledge preserves legacy item unit values and base-15 tiers", () => {
-  assert.equal(getItemKnowledgeUnitValue("common", 1), 4);
-  assert.deepEqual(convertUnitValueToKnowledge(3377), {
-    historical_data: 2,
-    contextual_understanding: 0,
-    technical_comprehension: 0,
-    artistic_vision: 1,
-  });
-
-  assert.deepEqual(
-    calculateArtExpertKnowledge({
+test("Art Expert Karma preserves legacy item unit values", () => {
+  assert.equal(getItemKarmaValue("common", 1), 4);
+  assert.equal(
+    calculateArtExpertKarma({
       rarity: "common",
       level: 1,
       donorBonusMultiplier: 1,
       randomRoll: 0,
     }),
-    {
-      historical_data: 2,
-      contextual_understanding: 0,
-      technical_comprehension: 0,
-      artistic_vision: 0,
-    },
+    2,
   );
 });
 
-test("donation knowledge preserves the original 90% to 110% item value roll", () => {
-  assert.deepEqual(
-    calculateDonationKnowledge({
+test("donation Karma preserves the original 90% to 110% item value roll", () => {
+  assert.equal(
+    calculateDonationKarma({
       rarity: "rare",
       level: 2,
       randomRoll: 0,
     }),
-    convertUnitValueToKnowledge(
-      Math.floor(getItemKnowledgeUnitValue("rare", 2) * 1.1),
-    ),
+    Math.floor(getItemKarmaValue("rare", 2) * 1.1),
   );
-  assert.deepEqual(
-    calculateDonationKnowledge({
+  assert.equal(
+    calculateDonationKarma({
       rarity: "rare",
       level: 2,
       randomRoll: 0.999999,
     }),
-    convertUnitValueToKnowledge(
-      Math.floor(getItemKnowledgeUnitValue("rare", 2) * 0.9000002),
-    ),
+    Math.floor(getItemKarmaValue("rare", 2) * 0.9000002),
   );
 });
 
-test("donation knowledge scales with collectible value properties", () => {
+test("donation Karma increases with every artwork rarity tier", () => {
+  const rewards = ARTWORK_RARITIES.map((rarity) =>
+    calculateDonationKarma({
+      rarity,
+      level: 1,
+      randomRoll: 0.5,
+    }),
+  );
+
+  assert.deepEqual(
+    rewards,
+    ARTWORK_RARITIES.map((rarity) => RARITY_BASE_KARMA[rarity]),
+  );
+  for (let index = 1; index < rewards.length; index += 1) {
+    assert.ok(rewards[index] > rewards[index - 1]);
+  }
+});
+
+test("donation Karma scales with collectible value properties", () => {
   const neutralProperties = {
     foil: false,
     seasonal: false,
@@ -100,17 +105,15 @@ test("donation knowledge scales with collectible value properties", () => {
     getItemValuePropertyMultiplier(featuredProperties, "common"),
     15,
   );
-  assert.deepEqual(
-    calculateDonationKnowledge({
+  assert.equal(
+    calculateDonationKarma({
       rarity: "common",
       level: 1,
       valueProperties: featuredProperties,
       hasArtStyle: true,
       randomRoll: 0.5,
     }),
-    convertUnitValueToKnowledge(
-      60 * DONATION_ART_STYLE_MULTIPLIER,
-    ),
+    60 * DONATION_ART_STYLE_MULTIPLIER,
   );
 
   const otherValueProperties = {
@@ -123,15 +126,13 @@ test("donation knowledge scales with collectible value properties", () => {
     getItemValuePropertyMultiplier(otherValueProperties, "rare"),
     104,
   );
-  assert.deepEqual(
-    calculateDonationKnowledge({
+  assert.equal(
+    calculateDonationKarma({
       rarity: "rare",
       level: 1,
       valueProperties: otherValueProperties,
       randomRoll: 0.5,
     }),
-    convertUnitValueToKnowledge(
-      getItemKnowledgeUnitValue("rare", 1) * 104,
-    ),
+    getItemKarmaValue("rare", 1) * 104,
   );
 });

@@ -41,6 +41,7 @@ import {
   refreshNpcSpawns,
   type NpcQuality,
 } from "@/server/npc-gameplay";
+import { ensurePlayerKarma } from "@/server/karma";
 import {
   createPlayerNotification,
   getPlayerNotifications,
@@ -74,7 +75,7 @@ type Player = {
     repairing_cap?: number;
     auction_cap: number;
     completed_quests?: number;
-    knowledge: Record<string, number>;
+    karma?: number;
     tutorial_data: {
       current_tutorial?: string;
       step: number;
@@ -90,6 +91,7 @@ export const dynamic = "force-dynamic";
 export default async function PlayerPage() {
   const session = await requirePlayer();
   const database = await getDatabase();
+  await ensurePlayerKarma(database, session.playerId);
   await ensureArchiveStorage(database);
   await settlePendingForgeryLiability(database, session.playerId);
   const settings = await getGameplaySettings(database);
@@ -108,19 +110,14 @@ export default async function PlayerPage() {
       new Date(),
     );
     if (repairSettlement.completedItems > 0) {
-      const knowledgeSummary = Object.entries(
-        repairSettlement.knowledge,
-      ).flatMap(([type, amount]) =>
-        amount > 0
-          ? [`${amount} ${type.replaceAll("_", " ")}`]
-          : [],
-      ).join(", ");
       await createPlayerNotification(database, session.playerId, {
         kind: "success",
         message: `${repairSettlement.completedItems} ${
           repairSettlement.completedItems === 1 ? "repair" : "repairs"
         } completed${
-          knowledgeSummary ? ` and generated ${knowledgeSummary}` : ""
+          repairSettlement.karma > 0
+            ? ` and generated ${repairSettlement.karma.toLocaleString()} Karma`
+            : ""
         }.`,
         dedupeUnread: false,
       });
@@ -428,16 +425,7 @@ export default async function PlayerPage() {
           repairingCap: player.profile.repairing_cap ?? 4,
           xpGoal: getXpGoal(player.profile.level),
           npcsMet: player.profile.npcs_met ?? {},
-          knowledge: {
-            historical_data:
-              player.profile.knowledge.historical_data ?? 0,
-            contextual_understanding:
-              player.profile.knowledge.contextual_understanding ?? 0,
-            technical_comprehension:
-              player.profile.knowledge.technical_comprehension ?? 0,
-            artistic_vision:
-              player.profile.knowledge.artistic_vision ?? 0,
-          },
+          karma: Math.max(0, Math.floor(player.profile.karma ?? 0)),
           cardStyleInventory: getCardStyleInventory(
             player.profile.card_style_consumables,
           ),

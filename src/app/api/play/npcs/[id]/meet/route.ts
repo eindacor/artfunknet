@@ -10,10 +10,10 @@ import {
   getCollectorForgeryHeat,
 } from "@/server/collector-gameplay";
 import {
-  calculateArtExpertKnowledge,
+  calculateArtExpertKarma,
   calculateArtExpertRollReduction,
-  KNOWLEDGE_TYPES,
 } from "@/server/art-expert-gameplay";
+import { ensurePlayerKarma } from "@/server/karma";
 import {
   ART_HISTORIAN_ATTRIBUTE_ID,
   createArtHistorianQuest,
@@ -79,7 +79,7 @@ type Player = {
     lottery_tickets: number;
     npcs_met?: Partial<Record<NpcQuality, number>>;
     level: number;
-    knowledge: Record<string, number>;
+    karma?: number;
     auction_data?: { winning?: string[] };
     market_expert?: { expiration?: string };
   };
@@ -101,6 +101,7 @@ export async function POST(
 
   const { id } = await params;
   const database = await getDatabase();
+  await ensurePlayerKarma(database, auth.session.playerId);
   const now = new Date();
   const [player, npc] = await Promise.all([
     database
@@ -461,18 +462,12 @@ export async function POST(
 
       const [hydratedTarget] = await hydrateGameItems(database, [target]);
       if (!hydratedTarget) throw new Error("The selected artwork is unavailable.");
-      const knowledge = calculateArtExpertKnowledge({
+      const karma = calculateArtExpertKarma({
         rarity: hydratedTarget.artwork.rarity,
         level: target.level,
         donorBonusMultiplier,
         randomRoll: Math.random(),
       });
-      const knowledgeIncrements = Object.fromEntries(
-        KNOWLEDGE_TYPES.map((type) => [
-          `profile.knowledge.${type}`,
-          knowledge[type],
-        ]),
-      );
       const playerUpdate = await database.collection<Player>("players").updateOne(
         {
           _id: player._id,
@@ -491,7 +486,7 @@ export async function POST(
             ),
           },
           $inc: {
-            ...knowledgeIncrements,
+            "profile.karma": karma,
             "profile.lottery_tickets": progress.lotteryTickets,
             "profile.bank_balance": bonusMoney,
           },
@@ -504,11 +499,11 @@ export async function POST(
       return NextResponse.json({
         status: "ok",
         interaction: {
-          type: "art-expert-knowledge",
+          type: "art-expert-karma",
           npcName: npc.npc_name,
           quality: npc.quality,
           item: sanitizePlayerFacingAuthenticity(hydratedTarget),
-          knowledge,
+          karma,
           xpBonus,
           bonusMoney,
         },

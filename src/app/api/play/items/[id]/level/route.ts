@@ -2,11 +2,6 @@ import { NextResponse } from "next/server";
 import type { UpdateFilter } from "mongodb";
 
 import {
-  KNOWLEDGE_TYPES,
-  type KnowledgeReward,
-  type KnowledgeType,
-} from "@/server/art-expert-gameplay";
-import {
   calculateItemValues,
   type Artwork,
   type GameItem,
@@ -20,6 +15,7 @@ import {
   PRESERVATIONIST_ATTRIBUTE_ID,
 } from "@/server/item-leveling";
 import { getRerollCost } from "@/server/item-reroll";
+import { ensurePlayerKarma } from "@/server/karma";
 import {
   getDisplayedLegendaryEffect,
   getLegendaryNumberParameter,
@@ -32,21 +28,10 @@ type Player = {
   _id: string;
   active: boolean;
   profile: {
-    knowledge: Partial<Record<KnowledgeType, number>>;
+    karma?: number;
     last_activity: string;
   };
 };
-
-function normalizeKnowledge(
-  knowledge: Partial<Record<KnowledgeType, number>>,
-): KnowledgeReward {
-  return Object.fromEntries(
-    KNOWLEDGE_TYPES.map((type) => [
-      type,
-      Math.max(0, Math.floor(knowledge[type] ?? 0)),
-    ]),
-  ) as KnowledgeReward;
-}
 
 export async function POST(
   _request: Request,
@@ -57,6 +42,7 @@ export async function POST(
 
   const { id } = await params;
   const database = await getDatabase();
+  await ensurePlayerKarma(database, auth.session.playerId);
   const now = new Date();
   const nowIso = now.toISOString();
   const [item, player, metadata, levelUpDiscount, preservationist] =
@@ -87,7 +73,7 @@ export async function POST(
 
   if (!item || !player) {
     return NextResponse.json(
-      { error: "This item cannot currently be leveled up." },
+      { error: "This item cannot currently be promoted." },
       { status: 409 },
     );
   }
@@ -124,65 +110,48 @@ export async function POST(
   const discounted =
     Boolean(levelUpDiscount && preservationist) &&
     item.condition > conditionMinimum;
-  const cost = getItemLevelUpCost(artwork.rarity, item.level, discounted);
-  const availableKnowledge = normalizeKnowledge(player.profile.knowledge);
-  if (!canAffordItemLevelUp(availableKnowledge, cost)) {
+  const cost = getItemLevelUpCost(item.level, discounted);
+  const availableKarma = Math.max(0, Math.floor(player.profile.karma ?? 0));
+  if (!canAffordItemLevelUp(availableKarma, cost)) {
     return NextResponse.json(
-      { error: "You do not have enough Knowledge for this level up." },
+      { error: "You do not have enough Karma for this promotion." },
       { status: 409 },
     );
   }
 
-  const playerIncrements: Record<string, number> = Object.fromEntries(
-    KNOWLEDGE_TYPES.map((type) => [
-      `profile.knowledge.${type}`,
-      -cost[type],
-    ]),
-  );
   const chargedPlayer = await database.collection<Player>("players").findOneAndUpdate(
     {
       _id: playerId,
       active: true,
-      ...Object.fromEntries(
-        KNOWLEDGE_TYPES.map((type) => [
-          `profile.knowledge.${type}`,
-          { $gte: cost[type] },
-        ]),
-      ),
+      "profile.karma": { $gte: cost },
     },
     {
-      $inc: playerIncrements,
+      $inc: { "profile.karma": -cost },
       $set: { "profile.last_activity": nowIso },
     },
     { returnDocument: "after" },
   );
   if (!chargedPlayer) {
     return NextResponse.json(
-      { error: "Your Knowledge balance changed before the level up." },
+      { error: "Your Karma balance changed before the promotion." },
       { status: 409 },
     );
   }
 
   async function refundPlayer() {
-    const refundIncrements: Record<string, number> = Object.fromEntries(
-      KNOWLEDGE_TYPES.map((type) => [
-        `profile.knowledge.${type}`,
-        cost[type],
-      ]),
-    );
     try {
       const refund = await database.collection<Player>("players").updateOne(
         { _id: playerId },
-        { $inc: refundIncrements },
+        { $inc: { "profile.karma": cost } },
       );
       if (refund.modifiedCount !== 1) {
         console.error(
-          `Level-up refund could not find player ${playerId}; manual reconciliation is required.`,
+          `Promotion refund could not find player ${playerId}; manual reconciliation is required.`,
         );
       }
     } catch (refundError) {
       console.error(
-        `Level-up refund failed for player ${playerId}; manual reconciliation is required.`,
+        `Promotion refund failed for player ${playerId}; manual reconciliation is required.`,
         refundError,
       );
     }
@@ -231,18 +200,18 @@ export async function POST(
       { returnDocument: "after" },
     );
     if (!result) {
-      throw new Error("This item changed before the level up could be applied.");
+      throw new Error("This item changed before the promotion could be applied.");
     }
     updatedItem = result;
   } catch (error) {
     await refundPlayer();
-    console.error("Unable to level up item", error);
+    console.error("Unable to promote item", error);
     return NextResponse.json(
       {
         error:
           error instanceof Error
             ? error.message
-            : "The level up could not be applied.",
+            : "The promotion could not be applied.",
       },
       { status: 409 },
     );
@@ -253,8 +222,8 @@ export async function POST(
     cost,
     discounted,
     item: sanitizePlayerFacingAuthenticity(updatedItem),
-    knowledge: normalizeKnowledge(chargedPlayer.profile.knowledge),
-    message: `${artwork.title} reached level ${updatedItem.level}${
+    karma: Math.max(0, Math.floor(chargedPlayer.profile.karma ?? 0)),
+    message: `${artwork.title} reached Promotion Level ${updatedItem.level}${
       item.mint ? ", and its Mint status was removed" : ""
     }.`,
   });

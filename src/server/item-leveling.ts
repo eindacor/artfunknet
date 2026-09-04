@@ -1,35 +1,26 @@
-import {
-  convertUnitValueToKnowledge,
-  getItemKnowledgeUnitValue,
-  type KnowledgeReward,
-} from "./art-expert-gameplay.ts";
-import type { ArtworkRarity, GameItem } from "./gameplay.ts";
+import type { GameItem } from "./gameplay.ts";
 export { ITEM_LEVEL_MAX } from "./item-level-constants.ts";
 
 export const PRESERVATIONIST_ATTRIBUTE_ID = "zR2KgxYe4LQZKBAiE";
 export const LEVEL_UP_DISCOUNT_MULTIPLIER = 0.8;
+export const PROMOTION_BASE_KARMA_COST = 50;
 
 export function getItemLevelUpCost(
-  rarity: ArtworkRarity,
   level: number,
   discounted: boolean,
-): KnowledgeReward {
-  const unitCost = getItemKnowledgeUnitValue(rarity, level) * 3;
-  return convertUnitValueToKnowledge(
-    Math.floor(
-      unitCost * (discounted ? LEVEL_UP_DISCOUNT_MULTIPLIER : 1),
-    ),
+): number {
+  const unitCost =
+    PROMOTION_BASE_KARMA_COST * Math.pow(2, Math.max(0, level - 1));
+  return Math.floor(
+    unitCost * (discounted ? LEVEL_UP_DISCOUNT_MULTIPLIER : 1),
   );
 }
 
 export function canAffordItemLevelUp(
-  available: Readonly<Record<keyof KnowledgeReward, number>>,
-  cost: KnowledgeReward,
+  available: number,
+  cost: number,
 ): boolean {
-  return Object.entries(cost).every(
-    ([type, amount]) =>
-      (available[type as keyof KnowledgeReward] ?? 0) >= amount,
-  );
+  return available >= cost;
 }
 
 export function prepareItemForLevelUp(item: GameItem): GameItem {

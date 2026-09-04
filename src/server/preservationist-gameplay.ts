@@ -1,10 +1,7 @@
 import type { Db } from "mongodb";
 
 import {
-  convertUnitValueToKnowledge,
-  getItemKnowledgeUnitValue,
-  KNOWLEDGE_TYPES,
-  type KnowledgeReward,
+  getItemKarmaValue,
 } from "./art-expert-gameplay.ts";
 import {
   calculateItemValues,
@@ -13,6 +10,7 @@ import {
   type LootData,
 } from "./gameplay.ts";
 import { getDisplayedLegendaryEffect } from "./legendary-attributes.ts";
+import { ensurePlayerKarma } from "./karma.ts";
 import type { GalleryNpc, NpcQuality } from "./npc-gameplay.ts";
 
 export const PRESERVATIONIST_REPAIR_INTERVAL_MINUTES = 60;
@@ -43,7 +41,7 @@ export type PreservationistInteraction = {
 };
 
 export type RepairSettlementResult = {
-  knowledge: KnowledgeReward;
+  karma: number;
   completedItems: number;
 };
 
@@ -51,7 +49,7 @@ type RepairPlayer = {
   _id: string;
   active: boolean;
   profile: {
-    knowledge: Partial<Record<keyof KnowledgeReward, number>>;
+    karma?: number;
   };
 };
 
@@ -170,9 +168,8 @@ export async function settlePlayerItemRepairs(
   playerId: string,
   now = new Date(),
 ): Promise<RepairSettlementResult> {
-  const reward = Object.fromEntries(
-    KNOWLEDGE_TYPES.map((type) => [type, 0]),
-  ) as KnowledgeReward;
+  await ensurePlayerKarma(database, playerId);
+  let karma = 0;
   let completedItems = 0;
   const repairingItems = await database.collection<GameItem>("items").find({
     owner: playerId,
@@ -181,7 +178,7 @@ export async function settlePlayerItemRepairs(
     condition: { $lt: 1 },
   }).toArray();
   if (repairingItems.length === 0) {
-    return { knowledge: reward, completedItems };
+    return { karma, completedItems };
   }
 
   const missingTickIds = repairingItems
@@ -205,10 +202,10 @@ export async function settlePlayerItemRepairs(
     return intervals > 0 ? [{ item, intervals }] : [];
   });
   if (dueItems.length === 0) {
-    return { knowledge: reward, completedItems };
+    return { karma, completedItems };
   }
 
-  const [metadata, knowledgeEffect, artworks] = await Promise.all([
+  const [metadata, karmaEffect, artworks] = await Promise.all([
     database
       .collection<{ _id: string; loot_data: LootData }>("metadata")
       .findOne({ _id: "loot-data" }),
@@ -267,19 +264,11 @@ export async function settlePlayerItemRepairs(
       if (updated.modifiedCount !== 1) continue;
       if (nextCondition === 1) completedItems += 1;
 
-      if (nextCondition === 1 && knowledgeEffect) {
-        const itemReward = convertUnitValueToKnowledge(
-          getItemKnowledgeUnitValue(artwork.rarity, item.level),
-        );
-        const increments = Object.fromEntries(
-          KNOWLEDGE_TYPES.map((type) => [
-            `profile.knowledge.${type}`,
-            itemReward[type],
-          ]),
-        );
+      if (nextCondition === 1 && karmaEffect) {
+        const itemKarma = getItemKarmaValue(artwork.rarity, item.level);
         const playerUpdate = await database.collection<RepairPlayer>("players").updateOne(
           { _id: playerId, active: true },
-          { $inc: increments },
+          { $inc: { "profile.karma": itemKarma } },
         );
         if (playerUpdate.modifiedCount !== 1) {
           const rollback = await database.collection<GameItem>("items").updateOne(
@@ -305,18 +294,16 @@ export async function settlePlayerItemRepairs(
             completedItems -= 1;
           }
           console.error(
-            `Repair Knowledge could not be added for player ${playerId}, item ${item._id}.`,
+            `Repair Karma could not be added for player ${playerId}, item ${item._id}.`,
           );
           continue;
         }
-        for (const type of KNOWLEDGE_TYPES) {
-          reward[type] += itemReward[type];
-        }
+        karma += itemKarma;
       }
     } catch (error) {
       console.error(`Unable to settle repair for item ${item._id}`, error);
     }
   }
 
-  return { knowledge: reward, completedItems };
+  return { karma, completedItems };
 }

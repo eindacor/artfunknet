@@ -65,7 +65,7 @@ export default function ReliquaryCard({
         <h3>{item.artwork.title}</h3>
         <p className="render-card-artist">{item.artwork.artist}</p>
         <div className="reliquary-card-stats">
-          <span>LV {item.level}</span>
+          <span>PR {item.level}</span>
           <span>{Math.round(item.condition * 100)}%</span>
           <span>${item.values.actual.toLocaleString()}</span>
         </div>

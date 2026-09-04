@@ -117,7 +117,7 @@ export default function VintagePlaythroughDialog({
                 <strong>{item.artwork.title}</strong>
                 <small>{item.artwork.artist}</small>
                 <small>
-                  {item.artwork.rarity} · level {item.level} · $
+                  {item.artwork.rarity} · promotion level {item.level} · $
                   {item.values.actual.toLocaleString()}
                 </small>
                 {item.authenticity.identified &&

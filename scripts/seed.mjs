@@ -442,12 +442,7 @@ async function seedPlayer(database) {
             completed: [],
           },
           crate_purchases: {},
-          knowledge: {
-            historical_data: 0,
-            contextual_understanding: 0,
-            technical_comprehension: 0,
-            artistic_vision: 0,
-          },
+          karma: 0,
           gallery_finishes: {
             active: {
               floor_finish: "carpet-gray",

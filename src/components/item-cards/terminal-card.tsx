@@ -46,7 +46,7 @@ export default function TerminalCard(props: ItemCardRendererProps) {
         <p className="card-rarity-label">
           &gt; CLASS: {item.artwork.rarity.toUpperCase()}
         </p>
-        <p>&gt; LVL: {item.level}</p>
+        <p>&gt; PROMOTION: {item.level}</p>
         <p>&gt; CONDITION: {Math.round(item.condition * 100)}%</p>
         <p>&gt; VALUE: ${item.values.actual.toLocaleString()}</p>
         <AttributeIcons item={item} />

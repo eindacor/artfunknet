@@ -70,13 +70,7 @@ type PlayerView = {
   lastDrop: string;
   xpGoal: number;
   npcsMet: Partial<Record<NpcQuality, number>>;
-  knowledge: Record<
-    | "historical_data"
-    | "contextual_understanding"
-    | "technical_comprehension"
-    | "artistic_vision",
-    number
-  >;
+  karma: number;
   cardStyleInventory: CardStyleInventory;
   completedQuests: number;
 };
@@ -99,7 +93,6 @@ type LootCrateOffer = Omit<CrateOfferView, "id" | "quality"> & {
 };
 
 type LegendaryAttributeView = CardLegendaryAttribute;
-type KnowledgeBalance = PlayerView["knowledge"];
 
 type ArtworkOfferItem = HydratedGameItem & {
   alreadyOwned: boolean;
@@ -126,17 +119,11 @@ type CollectorResult = {
 };
 
 type ArtExpertResult = {
-  type: "art-expert-knowledge";
+  type: "art-expert-karma";
   npcName: string;
   quality: NpcQuality;
   item: HydratedGameItem;
-  knowledge: Record<
-    | "historical_data"
-    | "contextual_understanding"
-    | "technical_comprehension"
-    | "artistic_vision",
-    number
-  >;
+  karma: number;
   xpBonus: number;
   bonusMoney: number;
 };
@@ -257,7 +244,7 @@ export default function GameDashboard({
   const [rerollSession, setRerollSession] = useState<{
     item: HydratedGameItem;
     bankBalance: number;
-    knowledge: KnowledgeBalance;
+    karma: number;
   } | null>(null);
   const [galleryItemDetails, setGalleryItemDetails] =
     useState<HydratedGameItem | null>(null);
@@ -697,7 +684,7 @@ export default function GameDashboard({
         });
       } else if (body.interaction?.type === "art-collector-result") {
         setCollectorResult(body.interaction);
-      } else if (body.interaction?.type === "art-expert-knowledge") {
+      } else if (body.interaction?.type === "art-expert-karma") {
         setArtExpertResult(body.interaction);
       } else if (body.interaction?.type === "art-historian-quest") {
         setArtHistorianResult(body.interaction);
@@ -761,7 +748,7 @@ export default function GameDashboard({
               setRerollSession({
                 item,
                 bankBalance: player.bankBalance,
-                knowledge: player.knowledge,
+                karma: player.karma,
               })
             }
           />
@@ -962,35 +949,20 @@ export default function GameDashboard({
               </section>
             </div>
 
-            <section className="museum-profile-knowledge">
+            <section className="museum-profile-karma">
               <header>
                 <div>
-                  <span>Knowledge collection</span>
-                  <small>
-                    Research currency recovered from donated artwork
-                  </small>
+                  <span>Good Karma</span>
+                  <small>Earned by giving artwork back to the community</small>
                 </div>
-                <strong>4 classifications</strong>
+                <strong>Promotion currency</strong>
               </header>
-              <div>
-                {Object.entries(KNOWLEDGE_LABELS).map(
-                  ([type, label], index) => (
-                    <article
-                      className={`knowledge-classification knowledge-tier-${index}`}
-                      key={type}
-                    >
-                      <span>{String(index + 1).padStart(2, "0")}</span>
-                      <div>
-                        <small>{label}</small>
-                        <strong>
-                          {player.knowledge[
-                            type as keyof typeof player.knowledge
-                          ].toLocaleString()}
-                        </strong>
-                      </div>
-                    </article>
-                  ),
-                )}
+              <div className="karma-balance">
+                <i aria-hidden="true" className="fa fa-heart" />
+                <div>
+                  <small>Available Karma</small>
+                  <strong>{player.karma.toLocaleString()}</strong>
+                </div>
               </div>
             </section>
           </section>
@@ -1238,7 +1210,7 @@ export default function GameDashboard({
                               />
                               <ItemActionButton
                                 icon="fa-share-square"
-                                label="Donate for knowledge"
+                                label="Donate for Karma"
                                 disabled={
                                   pending || item.permanent || item.original
                                 }
@@ -1358,7 +1330,7 @@ export default function GameDashboard({
                         setRerollSession({
                           item,
                           bankBalance: player.bankBalance,
-                          knowledge: player.knowledge,
+                          karma: player.karma,
                         })
                       }
                     />
@@ -1391,7 +1363,7 @@ export default function GameDashboard({
                     />
                     <ItemActionButton
                       icon="fa-share-square"
-                      label="Donate for knowledge"
+                      label="Donate for Karma"
                       disabled={pending || item.permanent || item.original}
                       onClick={() =>
                         donateItem(item)
@@ -1652,7 +1624,7 @@ export default function GameDashboard({
           <RerollDialog
             bankBalance={rerollSession.bankBalance}
             item={rerollSession.item}
-            knowledge={rerollSession.knowledge}
+            karma={rerollSession.karma}
             levelUpDiscountAvailable={levelUpDiscountAvailable}
             levelUpConditionMinimum={levelUpConditionMinimum}
             legendaryAttributes={legendaryAttributes}
@@ -1662,13 +1634,13 @@ export default function GameDashboard({
               setRerollSession({
                 item,
                 bankBalance: nextBankBalance,
-                knowledge: rerollSession.knowledge,
+                karma: rerollSession.karma,
               });
               router.refresh();
             }}
-            onLeveled={(item, knowledge) => {
+            onLeveled={(item, karma) => {
               setRerollSession((current) =>
-                current ? { ...current, item, knowledge } : current,
+                current ? { ...current, item, karma } : current,
               );
               router.refresh();
             }}
@@ -2058,13 +2030,6 @@ function ArtHistorianDialog({
   );
 }
 
-const KNOWLEDGE_LABELS = {
-  historical_data: "historical data",
-  contextual_understanding: "contextual understanding",
-  technical_comprehension: "technical comprehension",
-  artistic_vision: "artistic vision",
-} as const;
-
 function ActionResultDialog({
   result,
   onClose,
@@ -2194,25 +2159,12 @@ function ArtExpertResultDialog({
             <strong>{result.item.artwork.artist}</strong>.
           </p>
         </div>
-        <section className="art-expert-knowledge">
-          <h3>Knowledge gained</h3>
-          {Object.entries(KNOWLEDGE_LABELS).map(
-            ([type, label], index) => {
-              const amount =
-                result.knowledge[type as keyof ArtExpertResult["knowledge"]];
-              return amount > 0 ? (
-                <p
-                  key={type}
-                  style={{
-                    color: `rgb(${Math.floor(150 * Math.pow(0.8, 3 - index))}, ${Math.floor(230 * Math.pow(0.8, 3 - index))}, 0)`,
-                  }}
-                >
-                  <span>{label}</span>
-                  <strong>+{amount.toLocaleString()}</strong>
-                </p>
-              ) : null;
-            },
-          )}
+        <section className="art-expert-karma">
+          <h3>Karma gained</h3>
+          <p>
+            <span>Good Karma</span>
+            <strong>+{result.karma.toLocaleString()}</strong>
+          </p>
         </section>
         {result.xpBonus > 0 ? (
           <p>
@@ -2495,7 +2447,7 @@ function ArtworkOfferDialog({
                   <strong>{item.artwork.title}</strong>
                   <span>{item.artwork.artist}</span>
                   <span>
-                    level {item.level} · condition{" "}
+                    promotion level {item.level} · condition{" "}
                     {Math.round(item.condition * 100)}%
                   </span>
                   <span>
@@ -2557,7 +2509,7 @@ function ArtworkOfferDialog({
 function RerollDialog({
   item,
   bankBalance,
-  knowledge,
+  karma,
   levelUpDiscountAvailable,
   levelUpConditionMinimum,
   legendaryAttributes,
@@ -2569,12 +2521,12 @@ function RerollDialog({
 }: {
   item: HydratedGameItem;
   bankBalance: number;
-  knowledge: KnowledgeBalance;
+  karma: number;
   levelUpDiscountAvailable: boolean;
   levelUpConditionMinimum: number;
   legendaryAttributes: LegendaryAttributeView[];
   onClose: () => void;
-  onLeveled: (item: HydratedGameItem, knowledge: KnowledgeBalance) => void;
+  onLeveled: (item: HydratedGameItem, karma: number) => void;
   onNotify: (
     message: string,
     kind: PlayerNotificationKind,
@@ -2598,12 +2550,8 @@ function RerollDialog({
   const canAfford = bankBalance >= item.reroll_cost;
   const levelUpDiscounted =
     levelUpDiscountAvailable && item.condition > levelUpConditionMinimum;
-  const levelUpCost = getItemLevelUpCost(
-    item.artwork.rarity,
-    item.level,
-    levelUpDiscounted,
-  );
-  const canAffordLevelUp = canAffordItemLevelUp(knowledge, levelUpCost);
+  const levelUpCost = getItemLevelUpCost(item.level, levelUpDiscounted);
+  const canAffordLevelUp = canAffordItemLevelUp(karma, levelUpCost);
   const atMaximumLevel = item.level >= ITEM_LEVEL_MAX;
   const eligibleLegendaryAttributes = legendaryAttributes.filter(
     (attribute) =>
@@ -2716,11 +2664,11 @@ function RerollDialog({
       const body = (await response.json()) as {
         error?: string;
         item?: GameItem;
-        knowledge?: KnowledgeBalance;
+        karma?: number;
         message?: string;
       };
-      if (!response.ok || !body.item || !body.knowledge) {
-        throw new Error(body.error ?? "The level up could not be completed.");
+      if (!response.ok || !body.item || body.karma === undefined) {
+        throw new Error(body.error ?? "The promotion could not be completed.");
       }
 
       const nextItem: HydratedGameItem = {
@@ -2728,7 +2676,7 @@ function RerollDialog({
         ...body.item,
         artwork: item.artwork,
       };
-      onLeveled(nextItem, body.knowledge);
+      onLeveled(nextItem, body.karma);
       const message =
         body.message ??
         `${item.artwork.title} reached level ${nextItem.level}.`;
@@ -2738,7 +2686,7 @@ function RerollDialog({
       const message =
         levelError instanceof Error
           ? levelError.message
-          : "The level up could not be completed.";
+          : "The promotion could not be completed.";
       setError(message);
       await onNotify(message, "error");
     } finally {
@@ -2833,7 +2781,7 @@ function RerollDialog({
             />
             <div>
               <p className="reroll-dialog-kicker">
-                modify artwork · level {item.level}
+                modify artwork · promotion level {item.level}
               </p>
               <h2 id="reroll-title">{item.artwork.title}</h2>
               <p className="reroll-artwork-artist">{item.artwork.artist}</p>
@@ -2893,47 +2841,31 @@ function RerollDialog({
             <div>
               <p>Collection development</p>
               <h3>
-                Level {item.level} <span>/ {ITEM_LEVEL_MAX}</span>
+                Promotion Level {item.level} <span>/ {ITEM_LEVEL_MAX}</span>
               </h3>
             </div>
           </header>
           <p className="item-level-up-description">
-            Spend Knowledge to increase this item&apos;s value and improve the
-            minimum attraction values available on future rerolls. Knowledge can
-            be gained by donating artwork.
+            Spend Karma earned through donations to promote this item,
+            increasing its value and improving the minimum attraction values
+            available on future rerolls.
           </p>
           {!atMaximumLevel ? (
             <>
               {levelUpDiscounted ? (
                 <p className="item-level-up-discount">
                   <i aria-hidden="true" className="fa fa-wrench" />
-                  Preservationist benefit: Knowledge cost reduced by 20%.
+                  Preservationist benefit: Karma cost reduced by 20%.
                 </p>
               ) : null}
               <div className="item-level-up-costs">
-                {Object.entries(KNOWLEDGE_LABELS).map(
-                  ([type, label], index) => {
-                    const knowledgeType = type as keyof KnowledgeBalance;
-                    const required = levelUpCost[knowledgeType];
-                    const available = knowledge[knowledgeType];
-                    const sufficient = available >= required;
-                    return (
-                      <div
-                        className={sufficient ? "" : "insufficient"}
-                        key={type}
-                      >
-                        <span className={`knowledge-tier-${index}`}>
-                          {label}
-                        </span>
-                        <strong>
-                          {required.toLocaleString()} /{" "}
-                          {available.toLocaleString()}
-                        </strong>
-                        <small>required / available</small>
-                      </div>
-                    );
-                  },
-                )}
+                <div className={canAffordLevelUp ? "" : "insufficient"}>
+                  <span>Karma</span>
+                  <strong>
+                    {levelUpCost.toLocaleString()} / {karma.toLocaleString()}
+                  </strong>
+                  <small>(required / available)</small>
+                </div>
               </div>
               <button
                 className="item-level-up-button"
@@ -2947,11 +2879,11 @@ function RerollDialog({
                 type="button"
               >
                 <i aria-hidden="true" className="fa fa-level-up" />
-                {busy ? "Applying level..." : `Promote to level ${item.level + 1}`}
+                {busy ? "Applying level..." : `Increase promotion level`}
               </button>
               {!canAffordLevelUp ? (
                 <p className="item-level-up-unavailable">
-                  You need more Knowledge in every required classification.
+                  You need more Karma to promote this artwork.
                 </p>
               ) : null}
             </>
@@ -3237,14 +3169,14 @@ function DonationRewardEffect({
     <span
       aria-label={
         effect.recoveredStyle
-          ? "Knowledge and an art style recovered"
-          : "Knowledge gained"
+          ? "Karma and an art style recovered"
+          : "Karma gained"
       }
       className="donation-reward-effect"
       key={effect.animationId}
       role="status"
     >
-      <i aria-hidden="true" className="fa fa-lightbulb-o knowledge" />
+      <i aria-hidden="true" className="fa fa-heart karma" />
       {effect.recoveredStyle ? (
         <i aria-hidden="true" className="fa fa-paint-brush art-style" />
       ) : null}

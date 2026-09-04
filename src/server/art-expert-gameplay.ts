@@ -1,24 +1,18 @@
 import {
-  ARTWORK_RARITIES,
   type ArtworkRarity,
   type GameItem,
   getItemValuePropertyMultiplier,
 } from "./gameplay.ts";
 import type { NpcQuality } from "./npc-gameplay.ts";
 
-export const KNOWLEDGE_TYPES = [
-  "historical_data",
-  "contextual_understanding",
-  "technical_comprehension",
-  "artistic_vision",
-] as const;
-
-export type KnowledgeType = (typeof KNOWLEDGE_TYPES)[number];
-export type KnowledgeReward = Record<KnowledgeType, number>;
-
-const KNOWLEDGE_BASE = 15;
-const KNOWLEDGE_UNIT = 4;
 export const DONATION_ART_STYLE_MULTIPLIER = 1.5;
+export const RARITY_BASE_KARMA: Record<ArtworkRarity, number> = {
+  common: 4,
+  uncommon: 17,
+  rare: 77,
+  legendary: 340,
+  masterpiece: 1499,
+};
 
 const QUALITY_ROLL_REDUCTIONS: Record<NpcQuality, number> = {
   bronze: 1,
@@ -44,34 +38,15 @@ export function calculateArtExpertRollReduction({
   return Math.max(0, Math.floor(reduction));
 }
 
-export function getItemKnowledgeUnitValue(
+export function getItemKarmaValue(
   rarity: ArtworkRarity,
   level: number,
 ): number {
-  const rarityIndex = ARTWORK_RARITIES.indexOf(rarity);
-  const rarityMultiplier = Math.pow(1.1, rarityIndex);
   const levelMultiplier = Math.pow(1.4, level - 1);
-  return Math.floor(
-    Math.pow(KNOWLEDGE_UNIT, rarityIndex + 1) *
-      rarityMultiplier *
-      levelMultiplier,
-  );
+  return Math.floor(RARITY_BASE_KARMA[rarity] * levelMultiplier);
 }
 
-export function convertUnitValueToKnowledge(
-  unitValue: number,
-): KnowledgeReward {
-  let remaining = Math.max(0, Math.floor(unitValue));
-  const reward = {} as KnowledgeReward;
-  for (let index = KNOWLEDGE_TYPES.length - 1; index >= 0; index -= 1) {
-    const tierCost = Math.floor(remaining / Math.pow(KNOWLEDGE_BASE, index));
-    remaining -= Math.pow(KNOWLEDGE_BASE, index) * tierCost;
-    reward[KNOWLEDGE_TYPES[index]] = tierCost;
-  }
-  return reward;
-}
-
-export function calculateArtExpertKnowledge({
+export function calculateArtExpertKarma({
   rarity,
   level,
   donorBonusMultiplier,
@@ -81,17 +56,15 @@ export function calculateArtExpertKnowledge({
   level: number;
   donorBonusMultiplier: number;
   randomRoll: number;
-}): KnowledgeReward {
+}): number {
   const unitValue =
-    getItemKnowledgeUnitValue(rarity, level) * donorBonusMultiplier;
+    getItemKarmaValue(rarity, level) * donorBonusMultiplier;
   const modifier =
     0.2 + 0.2 * Math.min(Math.max(randomRoll, 0), 0.999999999999);
-  return convertUnitValueToKnowledge(
-    Math.max(Math.floor(unitValue * modifier), 2),
-  );
+  return Math.max(Math.floor(unitValue * modifier), 2);
 }
 
-export function calculateDonationKnowledge({
+export function calculateDonationKarma({
   rarity,
   level,
   valueProperties,
@@ -113,7 +86,7 @@ export function calculateDonationKnowledge({
   >;
   hasArtStyle?: boolean;
   randomRoll: number;
-}): KnowledgeReward {
+}): number {
   const modifier =
     1 + (0.5 - Math.min(Math.max(randomRoll, 0), 0.999999999999)) * 0.2;
   const propertyMultiplier = valueProperties
@@ -122,12 +95,10 @@ export function calculateDonationKnowledge({
   const artStyleMultiplier = hasArtStyle
     ? DONATION_ART_STYLE_MULTIPLIER
     : 1;
-  return convertUnitValueToKnowledge(
-    Math.floor(
-      getItemKnowledgeUnitValue(rarity, level) *
-        propertyMultiplier *
-        artStyleMultiplier *
-        modifier,
-    ),
+  return Math.floor(
+    getItemKarmaValue(rarity, level) *
+      propertyMultiplier *
+      artStyleMultiplier *
+      modifier,
   );
 }

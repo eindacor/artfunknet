@@ -4,7 +4,6 @@ import type { GameItem } from "@/server/gameplay";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
 import { settlePlayerItemRepairs } from "@/server/preservationist-gameplay";
-import type { KnowledgeReward } from "@/server/art-expert-gameplay";
 
 type Player = {
   _id: string;
@@ -25,7 +24,7 @@ export async function POST(
   const database = await getDatabase();
   const now = new Date();
   let completedRepairs = 0;
-  let repairKnowledge: KnowledgeReward | null = null;
+  let repairKarma = 0;
   try {
     const settlement = await settlePlayerItemRepairs(
       database,
@@ -33,15 +32,15 @@ export async function POST(
       now,
     );
     completedRepairs = settlement.completedItems;
-    repairKnowledge = settlement.knowledge;
+    repairKarma = settlement.karma;
   } catch (error) {
     console.error("Unable to settle item repairs before repair action", error);
   }
   const completionSuffix =
     completedRepairs > 0
       ? ` ${completedRepairs} existing ${completedRepairs === 1 ? "repair also completed" : "repairs also completed"}${
-          repairKnowledge
-            ? formatKnowledgeReward(repairKnowledge)
+          repairKarma > 0
+            ? ` and generated ${repairKarma.toLocaleString()} Karma`
             : ""
         }.`
       : "";
@@ -87,13 +86,6 @@ export async function POST(
       status: "ok",
       message: `Repair stopped for this item at ${Math.floor(item.condition * 100)}% condition.${completionSuffix}`,
     });
-  }
-
-  function formatKnowledgeReward(reward: KnowledgeReward): string {
-    const summary = Object.entries(reward).flatMap(([type, amount]) =>
-      amount > 0 ? [`${amount} ${type.replaceAll("_", " ")}`] : [],
-    );
-    return summary.length > 0 ? ` and generated ${summary.join(", ")}` : "";
   }
 
   if (item.condition >= 1) {

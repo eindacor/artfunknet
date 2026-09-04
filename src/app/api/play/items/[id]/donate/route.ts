@@ -5,9 +5,7 @@ import {
   getCardStyleInventory,
 } from "@/components/item-cards/catalog";
 import {
-  calculateDonationKnowledge,
-  KNOWLEDGE_TYPES,
-  type KnowledgeType,
+  calculateDonationKarma,
 } from "@/server/art-expert-gameplay";
 import type { GameItem } from "@/server/gameplay";
 import { hydrateGameItems } from "@/server/item-artwork";
@@ -20,12 +18,13 @@ import {
   transferForgeryLiability,
 } from "@/server/forgery-gameplay";
 import { getDisplayedLegendaryEffect } from "@/server/legendary-attributes";
+import { ensurePlayerKarma } from "@/server/karma";
 
 type Player = {
   _id: string;
   active: boolean;
   profile: {
-    knowledge: Partial<Record<KnowledgeType, number>>;
+    karma?: number;
     card_style_consumables?: Record<string, number>;
     last_activity: string;
   };
@@ -40,6 +39,7 @@ export async function POST(
 
   const { id } = await params;
   const database = await getDatabase();
+  await ensurePlayerKarma(database, auth.session.playerId);
   const item = await database.collection<GameItem>("items").findOne({
     _id: id,
     owner: auth.session.playerId,
@@ -88,7 +88,7 @@ export async function POST(
         "The museum detected the known forgery. The donation failed and the artwork was destroyed.";
       return NextResponse.json({
         status: "ok",
-        knowledge: {},
+        karma: 0,
         message,
         notificationKind: "error",
         actionDialog: {
@@ -111,10 +111,10 @@ export async function POST(
       },
     );
     const message =
-      "The museum detected the forgery. It was identified, returned to your inventory, and yielded no knowledge.";
+      "The museum detected the forgery. It was identified, returned to your inventory, and yielded no Karma.";
     return NextResponse.json({
       status: "ok",
-      knowledge: {},
+      karma: 0,
       message,
       notificationKind: "error",
       actionDialog: {
@@ -157,7 +157,7 @@ export async function POST(
   const style = getCardCosmetic(donatedItem.card_renderer ?? "");
   const recoveredStyle =
     style && style.id !== "museum" ? style : undefined;
-  const knowledge = calculateDonationKnowledge({
+  let karma = calculateDonationKarma({
     rarity: hydratedItem.artwork.rarity,
     level: donatedItem.level,
     valueProperties: donatedItem,
@@ -173,13 +173,10 @@ export async function POST(
     const multiplier = bonus
       ? donatedItem.authenticity.identified ? 2 : 4
       : 1;
-    for (const type of KNOWLEDGE_TYPES) knowledge[type] *= multiplier;
+    karma = Math.floor(karma * multiplier);
   }
   const increments: Record<string, number> = Object.fromEntries([
-    ...KNOWLEDGE_TYPES.map((type) => [
-      `profile.knowledge.${type}`,
-      knowledge[type],
-    ]),
+    ["profile.karma", karma],
     ...(recoveredStyle
       ? [[`profile.card_style_consumables.${recoveredStyle.id}`, 1]]
       : []),
@@ -201,22 +198,16 @@ export async function POST(
     );
   }
 
-  const knowledgeSummary = KNOWLEDGE_TYPES.flatMap((type) =>
-    knowledge[type] > 0
-      ? [`${knowledge[type]} ${type.replaceAll("_", " ")}`]
-      : [],
-  ).join(", ");
-
   return NextResponse.json({
     status: "ok",
     donated: true,
-    knowledge,
+    karma,
     recoveredStyle: recoveredStyle?.id,
     styleInventory: getCardStyleInventory(
       player.profile.card_style_consumables,
     ),
-    message: `${hydratedItem.artwork.title} was donated for ${
-      knowledgeSummary || "no knowledge"
-    }${recoveredStyle ? `, and its ${recoveredStyle.name} style was recovered` : ""}.`,
+    message: `${hydratedItem.artwork.title} was donated for ${karma.toLocaleString()} Karma${
+      recoveredStyle ? `, and its ${recoveredStyle.name} style was recovered` : ""
+    }.`,
   });
 }

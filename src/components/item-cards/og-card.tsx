@@ -100,7 +100,7 @@ export default function OgCard({
               />
             ) : null}
           </div>
-          <strong>lvl {item.level}</strong>
+          <strong>promo {item.level}</strong>
         </div>
       </div>
     </div>

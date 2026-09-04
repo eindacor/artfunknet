@@ -78,7 +78,7 @@ export default function GildedCard(props: ItemCardRendererProps) {
         showMint={false}
       />
       <div className="gilded-card-stats">
-        <span>Level {item.level}</span>
+        <span>Promotion {item.level}</span>
         <span>
           {item.mint
             ? "Mint condition"

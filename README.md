@@ -248,8 +248,12 @@ The basic gameplay loop is active:
   the highest positive reroll count on a claimed or displayed item according
   to visitor quality and own-gallery bonuses. Once no positive counts remain,
   they study a random displayed work and grant its rarity- and level-scaled
-  knowledge tiers. Active Donor and zero-count Legendary effects retain their
+  Karma rewards. Active Donor and zero-count Legendary effects retain their
   original multiplier and XP behavior.
+- Artwork promotion costs are identical across rarities and double at each
+  level, requiring 25,550 total Karma to advance an item from Promotion Level
+  1 to Promotion Level 10. Donation Karma uses ascending rarity values, so
+  rarer donated works earn substantially more than common works.
 - Art Historians create the original collection objectives: four distinct
   level-appropriate artworks with three normally required and up to eight
   active objectives. The Quests tab tracks each requested work against claimed
