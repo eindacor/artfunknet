@@ -18,6 +18,7 @@ import { requirePlayerApi } from "@/server/player-api";
 type Player = {
   _id: string;
   active: boolean;
+  test_account?: boolean;
   profile: {
     bank_balance: number;
     level: number;
@@ -52,6 +53,7 @@ export async function POST(
     database,
     player.profile.level,
     settings.active,
+    player.test_account === true,
   );
   const offer = getCrateOffer(offers, id);
   if (!offer) {

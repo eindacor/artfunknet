@@ -209,7 +209,12 @@ export default async function PlayerPage({
     };
   });
   const crateOffers = (
-    await getPurchasableCrateOffers(database, player.profile.level, config)
+    await getPurchasableCrateOffers(
+      database,
+      player.profile.level,
+      config,
+      player.test_account === true,
+    )
   ).map((offer) => ({
     id: offer.id,
     name: offer.name,

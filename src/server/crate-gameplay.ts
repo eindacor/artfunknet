@@ -92,6 +92,7 @@ export async function getPurchasableCrateOffers(
   database: Db,
   playerLevel: number,
   config: GameplayConfig,
+  includeDebugCrates = false,
 ): Promise<CrateOffer[]> {
   const metadata = await database
     .collection<{ _id: string; loot_data: LootData }>("metadata")
@@ -160,8 +161,14 @@ export async function getPurchasableCrateOffers(
         ),
       },
     })),
-    ...createDebugCrates(),
+    ...getEligibleDebugCrates(includeDebugCrates),
   ];
+}
+
+export function getEligibleDebugCrates(
+  isTestAccount: boolean,
+): CrateOffer[] {
+  return isTestAccount ? createDebugCrates() : [];
 }
 
 export function createDebugCrates(): CrateOffer[] {

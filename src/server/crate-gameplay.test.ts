@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   createDebugCrates,
+  getEligibleDebugCrates,
   getCrateOffer,
   getCratePermission,
 } from "./crate-gameplay.ts";
@@ -65,6 +66,11 @@ test("debug crates isolate their 50 percent generation probabilities", () => {
   );
   assert.ok(crates.every((crate) => crate.cost === 0));
   assert.ok(crates.every((crate) => crate.levelRequirement === 0));
+});
+
+test("debug crates are available only to test accounts", () => {
+  assert.deepEqual(getEligibleDebugCrates(false), []);
+  assert.equal(getEligibleDebugCrates(true).length, 6);
 });
 
 test("debug rarity crates select only their named rarity", () => {
