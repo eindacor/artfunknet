@@ -56,8 +56,11 @@ import type { NpcRewardInteraction } from "@/server/standard-npc-rewards";
 import NotificationCenter from "./notification-center";
 import AuctionHouse from "./auctions/auction-house";
 import GalleryExplorer, {
+  GalleryAttributeSummary,
+  GalleryRaritySummary,
   type GalleryNpcView,
 } from "./galleries/gallery-explorer";
+import type { GalleryMetadataSnapshot } from "@/server/gallery-metadata-core";
 
 type PlayerView = {
   screenName: string;
@@ -154,6 +157,7 @@ export default function GameDashboard({
   items,
   archives,
   galleryRates,
+  galleryMetadata,
   initialNotifications,
   impersonating,
   canRerollDisplayed,
@@ -177,6 +181,7 @@ export default function GameDashboard({
   items: HydratedGameItem[];
   archives: HydratedPlayerArtworkArchive[];
   galleryRates: GalleryRates;
+  galleryMetadata: GalleryMetadataSnapshot | null;
   initialNotifications: PlayerNotification[];
   impersonating: boolean;
   canRerollDisplayed: boolean;
@@ -957,6 +962,48 @@ export default function GameDashboard({
                       </button>
                     ))}
                   </div>
+                  {galleryMetadata ? (
+                    <div className="profile-gallery-metadata">
+                      <dl className="profile-gallery-stats">
+                        <div>
+                          <dt>Gallery value</dt>
+                          <dd>
+                            ${galleryMetadata.value.toLocaleString()}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt>Works displayed</dt>
+                          <dd>{galleryMetadata.display_count}</dd>
+                        </div>
+                        <div>
+                          <dt>Attribute score</dt>
+                          <dd>{galleryMetadata.score.toLocaleString()}</dd>
+                        </div>
+                        <div>
+                          <dt>Featured value</dt>
+                          <dd>
+                            ${galleryMetadata.featured_value.toLocaleString()}
+                          </dd>
+                        </div>
+                        <div className="profile-gallery-icon-row">
+                          <dt className="sr-only">Attributes</dt>
+                          <dd>
+                            <GalleryAttributeSummary
+                              attributes={galleryMetadata.attributes}
+                            />
+                          </dd>
+                        </div>
+                        <div className="profile-gallery-icon-row">
+                          <dt className="sr-only">Rarities</dt>
+                          <dd>
+                            <GalleryRaritySummary
+                              rarities={galleryMetadata.display_rarities}
+                            />
+                          </dd>
+                        </div>
+                      </dl>
+                    </div>
+                  ) : null}
                   {displayed.length > 8 ? (
                     <p>+{displayed.length - 8} additional works on display</p>
                   ) : null}

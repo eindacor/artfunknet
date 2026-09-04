@@ -143,7 +143,10 @@ export default async function PlayerPage({
     config,
     new Date(),
   );
-  await refreshGalleryMetadata(database, session.playerId);
+  const galleryMetadata = await refreshGalleryMetadata(
+    database,
+    session.playerId,
+  );
   const player = await database
     .collection<Player>("players")
     .findOne({ _id: session.playerId });
@@ -398,6 +401,11 @@ export default async function PlayerPage({
           ),
         }))}
         galleryRates={galleryRates}
+        galleryMetadata={
+          galleryMetadata
+            ? JSON.parse(JSON.stringify(galleryMetadata))
+            : null
+        }
         initialNotifications={notifications}
         impersonating={impersonating}
         canRerollDisplayed={canRerollDisplayed}

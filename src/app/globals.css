@@ -593,6 +593,58 @@ body {
   object-fit: cover;
 }
 
+.profile-gallery-metadata {
+  margin: 0 12px 12px;
+  border-top: 1px solid #d2cdc2;
+  padding-top: 12px;
+}
+
+.profile-gallery-stats {
+  display: grid;
+  grid-template-columns: 1fr;
+  margin: 0;
+}
+
+.profile-gallery-stats > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  border-bottom: 1px solid #d8d2c7;
+  padding: 8px 2px;
+}
+
+.profile-gallery-stats > div:last-child {
+  border-bottom: 0;
+}
+
+.profile-gallery-stats dt {
+  color: #817a70;
+  font-size: 0.56rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.profile-gallery-stats dd {
+  min-width: 0;
+  margin: 0;
+  color: #282722;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-align: right;
+}
+
+.profile-gallery-stats > .profile-gallery-icon-row {
+  justify-content: flex-end;
+}
+
+.profile-gallery-stats .gallery-attribute-summary,
+.profile-gallery-stats .gallery-rarity-summary {
+  justify-content: flex-end;
+}
+
 .profile-gallery-panel > p {
   margin: 0 12px 10px;
   color: #817a70;

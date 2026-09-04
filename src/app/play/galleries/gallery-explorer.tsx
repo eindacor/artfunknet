@@ -569,7 +569,7 @@ function VisitedGalleryHeader({
   );
 }
 
-function GalleryAttributeSummary({
+export function GalleryAttributeSummary({
   attributes,
 }: {
   attributes: GalleryAttributeAggregate[];
@@ -612,7 +612,7 @@ function GalleryAttributeSummary({
   );
 }
 
-function GalleryRaritySummary({
+export function GalleryRaritySummary({
   rarities,
 }: {
   rarities: ArtworkRarity[];
