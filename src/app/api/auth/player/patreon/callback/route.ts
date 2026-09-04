@@ -3,7 +3,11 @@ import { NextResponse } from "next/server";
 import { getDatabase } from "@/server/mongodb";
 import { getPlayerSession } from "@/server/session";
 
-import { cookieOptions, PATREON_STATE_COOKIE } from "../route";
+import {
+  cookieOptions,
+  getPatreonRedirectUri,
+  PATREON_STATE_COOKIE,
+} from "../route";
 
 type PatreonIncluded = {
   id: string;
@@ -57,9 +61,7 @@ export async function GET(request: Request) {
     return errorResponse("Patreon linking could not be verified.");
   }
 
-  const redirectUri =
-    process.env.PATREON_REDIRECT_URI?.trim() ||
-    `${url.origin}/api/auth/player/patreon/callback`;
+  const redirectUri = getPatreonRedirectUri(request);
   const tokenResponse = await fetch("https://www.patreon.com/api/oauth2/token", {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },

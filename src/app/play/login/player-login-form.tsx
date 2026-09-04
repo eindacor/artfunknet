@@ -3,7 +3,23 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function PlayerLoginForm() {
+type LoginProvider = "discord" | "google" | "microsoft" | "steam";
+
+const PROVIDERS: {
+  id: LoginProvider;
+  label: string;
+}[] = [
+  { id: "google", label: "Continue with Google" },
+  { id: "discord", label: "Continue with Discord" },
+  { id: "microsoft", label: "Continue with Microsoft" },
+  { id: "steam", label: "Sign in through Steam" },
+];
+
+export default function PlayerLoginForm({
+  providers,
+}: {
+  providers: Record<LoginProvider, boolean>;
+}) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -67,12 +83,17 @@ export default function PlayerLoginForm() {
       <div className="relative py-1 text-center text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
         <span className="bg-[#19171d] px-3">or</span>
       </div>
-      <a
-        className="rounded-md border border-white/20 px-4 py-2 text-center font-semibold hover:border-[var(--accent)]"
-        href="/api/auth/player/google"
-      >
-        Continue with Google
-      </a>
+      {PROVIDERS.filter((provider) => providers[provider.id]).map(
+        (provider) => (
+          <a
+            className="rounded-md border border-white/20 px-4 py-2 text-center font-semibold hover:border-[var(--accent)]"
+            href={`/api/auth/player/${provider.id}`}
+            key={provider.id}
+          >
+            {provider.label}
+          </a>
+        ),
+      )}
     </form>
   );
 }

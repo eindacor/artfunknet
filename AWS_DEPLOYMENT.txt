@@ -83,12 +83,17 @@ access through a NAT gateway or suitable VPC endpoints.
 
 DNS and TLS:
 
-  1. Request an ACM certificate for the application hostname, such as
-     game.example.com, in the same AWS region as the ALB.
-  2. Validate the certificate through DNS.
-  3. In Route 53, create an A/AAAA alias record from game.example.com to the
-     ALB.
-  4. Use only the HTTPS hostname for logins and OAuth callback URLs.
+  1. Create a Route 53 public hosted zone for artfunkel.art. If the domain was
+     purchased through another registrar, replace its authoritative
+     nameservers with the four Route 53 nameservers shown by the hosted zone.
+  2. Request an ACM certificate for artfunkel.art and optionally
+     www.artfunkel.art in the same AWS region as the ALB.
+  3. Add the ACM DNS-validation records to the Route 53 hosted zone.
+  4. In Route 53, create A and AAAA alias records from artfunkel.art to the
+     ALB. Alias records work for the root domain where a normal CNAME cannot.
+  5. Use only https://artfunkel.art for logins and OAuth callback URLs.
+  6. If www.artfunkel.art is enabled, redirect it to the canonical root domain
+     instead of serving the application from both hostnames.
 
 For stability, put the EC2 instance in an Auto Scaling Group with desired,
 minimum, and maximum capacity initially set to 1. Configure EC2 status-check
@@ -193,6 +198,7 @@ Example production configuration:
 
   MONGODB_URI=mongodb+srv://APPLICATION_USER:LONG_PASSWORD@CLUSTER/artfunkel
   MONGODB_DB=artfunkel
+  APP_BASE_URL=https://artfunkel.art
 
   MAX_ARTWORK_UPLOAD_BYTES=26214400
   USE_MOCK_S3=false
@@ -207,11 +213,22 @@ Example production configuration:
 
   GOOGLE_OAUTH_CLIENT_ID=
   GOOGLE_OAUTH_CLIENT_SECRET=
-  GOOGLE_OAUTH_REDIRECT_URI=https://game.example.com/api/auth/player/google/callback
+  GOOGLE_OAUTH_REDIRECT_URI=
+
+  DISCORD_OAUTH_CLIENT_ID=
+  DISCORD_OAUTH_CLIENT_SECRET=
+  DISCORD_OAUTH_REDIRECT_URI=
+
+  MICROSOFT_OAUTH_CLIENT_ID=
+  MICROSOFT_OAUTH_CLIENT_SECRET=
+  MICROSOFT_OAUTH_REDIRECT_URI=
+
+  STEAM_OPENID_REALM=
+  STEAM_OPENID_RETURN_URL=
 
   PATREON_CLIENT_ID=
   PATREON_CLIENT_SECRET=
-  PATREON_REDIRECT_URI=https://game.example.com/api/auth/player/patreon/callback
+  PATREON_REDIRECT_URI=
   PATREON_CAMPAIGN_ID=
 
 Generate SESSION_SECRET with a cryptographically secure tool, for example:
@@ -219,8 +236,34 @@ Generate SESSION_SECRET with a cryptographically secure tool, for example:
   openssl rand -hex 32
 
 Do not copy development values, local passwords, or .env.local to production.
-If Google or Patreon login is enabled, register the exact HTTPS callback URLs
-with those providers. Callback host, scheme, path, and port must match.
+
+APP_BASE_URL is the canonical public application origin. When the individual
+redirect variables are blank, the application derives these values:
+
+  https://artfunkel.art/api/auth/player/google/callback
+  https://artfunkel.art/api/auth/player/discord/callback
+  https://artfunkel.art/api/auth/player/microsoft/callback
+  https://artfunkel.art/api/auth/player/steam/callback
+  https://artfunkel.art/api/auth/player/patreon/callback
+
+Register the applicable exact callback URL in each provider's developer
+console. Scheme, hostname, path, and port must match. Provider-specific
+redirect variables remain available as overrides for unusual deployments, but
+normally should remain blank so APP_BASE_URL is the single source of truth.
+Restart the Next.js service after changing any environment value.
+
+Discord requires a normal application created in the Discord Developer Portal
+with its callback URI registered. Microsoft requires an Entra application
+registration that permits personal Microsoft accounts. Steam OpenID login does
+not require a client ID or secret; its realm and return URL must use the exact
+public HTTPS hostname. When the Steam overrides are blank, APP_BASE_URL is used
+as the realm and to construct the return URL.
+
+Microsoft login verifies a Microsoft consumer account only. It does not verify
+an Xbox profile, gamertag, entitlement, or XUID. Official Xbox web identity
+requires Xbox partner/title configuration. PlayStation login is not included
+because Sony does not provide an ordinary public self-service PSN OAuth
+integration; it requires PlayStation Partners access.
 
 Build the production application:
 
@@ -319,9 +362,9 @@ It excludes player accounts and generated/live game state.
 
 On the AWS application:
 
-  1. Open https://game.example.com/login.
+  1. Open https://artfunkel.art/login.
   2. Sign in with ADMIN_EMAIL and the bootstrapped administrator password.
-  3. Open https://game.example.com/admin/database.
+  3. Open https://artfunkel.art/admin/database.
   4. In "Artwork storage", click "Test artwork storage".
   5. Confirm that the provider is s3, the expected bucket and region are
      displayed, and the connection is Available. Fix IAM, bucket, or region

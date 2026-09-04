@@ -2,9 +2,18 @@ import { randomBytes } from "node:crypto";
 
 import { NextResponse } from "next/server";
 
+import { getPublicCallbackUrl } from "@/server/public-url";
 import { getPlayerSession } from "@/server/session";
 
 export const PATREON_STATE_COOKIE = "artfunkel_patreon_oauth_state";
+
+export function getPatreonRedirectUri(request: Request): string {
+  return getPublicCallbackUrl(
+    request,
+    "/api/auth/player/patreon/callback",
+    process.env.PATREON_REDIRECT_URI,
+  );
+}
 
 function cookieOptions() {
   return {
@@ -25,9 +34,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Patreon linking is not configured." }, { status: 503 });
   }
   const state = randomBytes(32).toString("base64url");
-  const redirectUri =
-    process.env.PATREON_REDIRECT_URI?.trim() ||
-    `${new URL(request.url).origin}/api/auth/player/patreon/callback`;
+  const redirectUri = getPatreonRedirectUri(request);
   const authorization = new URL("https://www.patreon.com/oauth2/authorize");
   authorization.searchParams.set("response_type", "code");
   authorization.searchParams.set("client_id", clientId);

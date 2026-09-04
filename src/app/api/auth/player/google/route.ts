@@ -2,6 +2,8 @@ import { createHash, randomBytes } from "node:crypto";
 
 import { NextResponse } from "next/server";
 
+import { getPublicCallbackUrl } from "@/server/public-url";
+
 const STATE_COOKIE = "artfunkel_google_oauth_state";
 const VERIFIER_COOKIE = "artfunkel_google_oauth_verifier";
 
@@ -16,9 +18,10 @@ function oauthCookieOptions() {
 }
 
 function getRedirectUri(request: Request): string {
-  return (
-    process.env.GOOGLE_OAUTH_REDIRECT_URI?.trim() ||
-    `${new URL(request.url).origin}/api/auth/player/google/callback`
+  return getPublicCallbackUrl(
+    request,
+    "/api/auth/player/google/callback",
+    process.env.GOOGLE_OAUTH_REDIRECT_URI,
   );
 }
 

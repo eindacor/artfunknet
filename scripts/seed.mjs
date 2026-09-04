@@ -87,6 +87,24 @@ async function createIndexes(database) {
     .createIndex({ google_sub: 1 }, { unique: true, sparse: true });
   await database
     .collection("players")
+    .createIndex(
+      { "oauth_accounts.discord.id": 1 },
+      { unique: true, sparse: true },
+    );
+  await database
+    .collection("players")
+    .createIndex(
+      { "oauth_accounts.microsoft.id": 1 },
+      { unique: true, sparse: true },
+    );
+  await database
+    .collection("players")
+    .createIndex(
+      { "oauth_accounts.steam.id": 1 },
+      { unique: true, sparse: true },
+    );
+  await database
+    .collection("players")
     .createIndex({ "patreon.patreon_id": 1 }, { unique: true, sparse: true });
   await database
     .collection("players")
@@ -148,6 +166,9 @@ async function createIndexes(database) {
   await database
     .collection("npcs")
     .createIndex({ expiration: 1 }, { expireAfterSeconds: 0 });
+  await database
+    .collection("oauth_nonces")
+    .createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 });
   await database
     .collection("quests")
     .createIndex({ owner_id: 1, created_at: -1 });
