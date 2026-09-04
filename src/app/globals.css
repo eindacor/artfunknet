@@ -75,6 +75,26 @@ body {
   color: white;
 }
 
+.player-bank-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #222;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.player-auction-escrow {
+  color: #8a651e;
+}
+
+.player-header-error {
+  color: #b00020;
+  font-size: 0.7rem;
+}
+
 .legacy-nav-icons,
 .legacy-nav-stats {
   display: flex;
@@ -1477,44 +1497,9 @@ body {
 .auction-house {
   width: min(1440px, 92%);
   margin: 0 auto;
-  padding: 42px 0 90px;
+  padding: 0px 0 90px;
   color: #58525d;
   font-family: Courier, monospace;
-}
-
-.auction-house-heading {
-  display: flex;
-  justify-content: space-between;
-  gap: 2rem;
-  align-items: end;
-  padding: 1.4rem;
-  border: 1px solid #d8ced8;
-  background:
-    linear-gradient(135deg, rgb(255 51 204 / 8%), transparent 45%),
-    #fff;
-  box-shadow: 7px 7px 0 #eee7ee;
-}
-
-.auction-house-heading p,
-.auction-dialog header p {
-  margin: 0 0 0.35rem;
-  color: var(--accent);
-  font-size: 0.72rem;
-  font-weight: bold;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
-.auction-house-heading h1 {
-  margin: 0;
-  color: #222;
-  font: 800 clamp(2.2rem, 5vw, 4.5rem)/0.95 Georgia, serif;
-}
-
-.auction-house-heading span {
-  display: block;
-  max-width: 700px;
-  margin-top: 0.8rem;
 }
 
 .auction-house-balance {

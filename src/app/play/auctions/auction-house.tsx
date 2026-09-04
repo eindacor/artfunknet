@@ -139,21 +139,6 @@ export default function AuctionHouse({
 
   return (
     <main className="auction-house">
-      <header className="auction-house-heading">
-        <div>
-          <p>Public and invitation-only sales</p>
-          <h1>Auction House</h1>
-          <span>
-            Bid against collectors, track private Auctioneer lots, and consign
-            works from your inventory.
-          </span>
-        </div>
-        <div className="auction-house-balance">
-          <span>available balance</span>
-          <strong>${bankBalance.toLocaleString()}</strong>
-        </div>
-      </header>
-
       {marketExpert ? (
         <p className="auctioneer-access">
           <i aria-hidden="true" className="fa fa-area-chart" /> Auctioneer

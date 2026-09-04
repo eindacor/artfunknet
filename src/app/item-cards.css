@@ -225,7 +225,8 @@
   cursor: pointer;
 }
 
-.known-forgery-watermark {
+.known-forgery-watermark,
+.auction-watermark {
   position: absolute;
   z-index: 40;
   inset: 12%;
@@ -238,8 +239,25 @@
   filter: drop-shadow(0 1px 0 rgb(255 255 255 / 45%));
 }
 
-.known-forgery-watermark .fa {
+.known-forgery-watermark .fa,
+.auction-watermark .fa {
   font-size: clamp(5rem, calc(var(--card-width, 300px) * 0.38), 9rem);
+}
+
+.auction-watermark {
+  color: #8a651e;
+  opacity: 0.55;
+  transform: rotate(18deg);
+}
+
+.rendered-item-card-trigger:has(.known-forgery-watermark) .auction-watermark {
+  inset: 52% 7% 7% 52%;
+}
+
+.rendered-item-card-trigger:has(.known-forgery-watermark)
+  .auction-watermark
+  .fa {
+  font-size: clamp(2.8rem, calc(var(--card-width, 300px) * 0.22), 5rem);
 }
 
 .og-card-forgery-indicator {

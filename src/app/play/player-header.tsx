@@ -4,14 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function PlayerHeader({
-  screenName,
+  auctionEscrow,
   bankBalance,
   impersonating,
-  xp,
-  patreonTier,
-  patreonSupporter = false,
 }: {
   screenName: string;
+  auctionEscrow: number;
   bankBalance: number;
   impersonating: boolean;
   xp: number;
@@ -53,6 +51,26 @@ export default function PlayerHeader({
   return (
     <header className="legacy-navbar">
       <span className="nav-title">artfunkel</span>
+      <div className="player-bank-indicator">
+        <span aria-label={`Available bank balance $${bankBalance.toLocaleString()}`}>
+          ${bankBalance.toLocaleString()}
+        </span>
+        {auctionEscrow > 0 ? (
+          <span
+            aria-label={`$${auctionEscrow.toLocaleString()} held in auction escrow`}
+            className="player-auction-escrow"
+            title="Active auction bids held in escrow"
+          >
+            (<i aria-hidden="true" className="fa fa-gavel" /> $
+            {auctionEscrow.toLocaleString()})
+          </span>
+        ) : null}
+        {error ? (
+          <span className="player-header-error" role="alert">
+            {error}
+          </span>
+        ) : null}
+      </div>
       <button
         aria-label={impersonating ? "Return to admin" : "Sign out"}
         className="item-action-button player-signout"

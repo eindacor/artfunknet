@@ -101,6 +101,28 @@ type AuctionHouseState = {
   last_replenished?: string;
 };
 
+export async function getPlayerAuctionEscrow(
+  database: Db,
+  playerId: string,
+  now = new Date(),
+): Promise<number> {
+  const [result] = await database
+    .collection<Auction>("auctions")
+    .aggregate<{ _id: null; total: number }>([
+      {
+        $match: {
+          current_winner_id: playerId,
+          expiration: { $gt: now.toISOString() },
+          settlement_status: { $ne: "settling" },
+        },
+      },
+      { $group: { _id: null, total: { $sum: "$current_bid" } } },
+    ])
+    .toArray();
+
+  return result?.total ?? 0;
+}
+
 export async function createAuction(
   database: Db,
   item: HydratedGameItem,

@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 
+import AuctionWatermark from "./auction-watermark";
 import ArtStyleDialog from "./art-style-dialog";
 import ArtStyleActionButton from "./art-style-action-button";
 import KnownForgeryWatermark from "./known-forgery-watermark";
@@ -60,6 +61,7 @@ export default function ItemCard({
       data-lottery={currentItem.lottery || undefined}
       data-original={currentItem.original ? "true" : undefined}
       data-rarity={currentItem.artwork.rarity}
+      data-auctioned={currentItem.status === "auctioned" ? "true" : undefined}
       data-seasonal={currentItem.seasonal ? "true" : undefined}
       data-vintage={currentItem.vintage ? "true" : undefined}
       style={
@@ -95,6 +97,7 @@ export default function ItemCard({
         role={interactive ? "button" : undefined}
         tabIndex={interactive ? 0 : undefined}
       >
+        <AuctionWatermark status={currentItem.status} />
         <KnownForgeryWatermark
           authenticity={currentItem.authenticity}
           rendererId={resolvedRendererId}

@@ -6,6 +6,7 @@ import { getDatabase } from "@/server/mongodb";
 import { getAdminSession, requirePlayer } from "@/server/session";
 import { getCardRendererSettings } from "@/server/card-renderer-settings";
 import { sanitizePlayerFacingAuthenticity } from "@/server/forgery-gameplay";
+import { getPlayerAuctionEscrow } from "@/server/auction-gameplay";
 
 import PlayerHeader from "../player-header";
 import CosmeticStore from "./cosmetic-store";
@@ -32,7 +33,10 @@ export default async function CardCosmeticStorePage() {
   });
   if (!player) return null;
 
-  const adminSession = player.test_account ? await getAdminSession() : null;
+  const [adminSession, auctionEscrow] = await Promise.all([
+    player.test_account ? getAdminSession() : Promise.resolve(null),
+    getPlayerAuctionEscrow(database, player._id),
+  ]);
   const rawSampleItem =
     (await database.collection<GameItem>("items").findOne({
       owner: player._id,
@@ -57,6 +61,7 @@ export default async function CardCosmeticStorePage() {
   return (
     <div className="game-shell">
       <PlayerHeader
+        auctionEscrow={auctionEscrow}
         bankBalance={player.profile.bank_balance}
         impersonating={Boolean(adminSession && player.test_account)}
         screenName={player.screen_name}

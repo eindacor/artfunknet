@@ -47,6 +47,7 @@ import {
   createPlayerNotification,
   getPlayerNotifications,
 } from "@/server/player-notifications";
+import { getPlayerAuctionEscrow } from "@/server/auction-gameplay";
 import { settlePlayerItemRepairs } from "@/server/preservationist-gameplay";
 import { getAdminSession, requirePlayer } from "@/server/session";
 
@@ -289,6 +290,7 @@ export default async function PlayerPage() {
     npcSpawnAttributes,
     legendaryAttributes,
     quests,
+    auctionEscrow,
   ] =
     await Promise.all([
     getGalleryNpcs(database, player._id),
@@ -302,6 +304,7 @@ export default async function PlayerPage() {
       : Promise.resolve([]),
     getLegendaryAttributes(database, legendaryAttributeIds),
     getArtHistorianQuestViews(database, player._id),
+    getPlayerAuctionEscrow(database, player._id),
   ]);
   const displayedLegendaryIds = new Set(
     displayedItems
@@ -349,6 +352,7 @@ export default async function PlayerPage() {
   return (
     <div className="game-shell">
       <PlayerHeader
+        auctionEscrow={auctionEscrow}
         bankBalance={player.profile.bank_balance}
         impersonating={impersonating}
         screenName={player.screen_name}
