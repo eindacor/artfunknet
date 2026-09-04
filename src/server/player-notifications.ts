@@ -21,7 +21,7 @@ export type PlayerNotification = {
   created_at: string;
 };
 
-export const PLAYER_NOTIFICATION_EMISSION_ENABLED = false;
+export const PLAYER_NOTIFICATION_EMISSION_ENABLED = true;
 
 export async function createPlayerNotification(
   database: Db,

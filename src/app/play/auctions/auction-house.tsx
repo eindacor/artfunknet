@@ -13,6 +13,8 @@ type AuctionResponse = {
   total: number;
 };
 
+type AuctionViewMode = "expanded" | "list";
+
 const CARD_TYPES = ["standard", "foil", "seasonal", "lottery", "original"];
 
 export default function AuctionHouse({
@@ -46,7 +48,8 @@ export default function AuctionHouse({
   const [error, setError] = useState("");
   const [selected, setSelected] = useState<AuctionView | null>(null);
   const [marketExpert, setMarketExpert] = useState(false);
-  const pageSize = 12;
+  const [viewMode, setViewMode] = useState<AuctionViewMode>("expanded");
+  const pageSize = viewMode === "expanded" ? 20 : 30;
 
   const query = useMemo(() => {
     const params = new URLSearchParams({
@@ -61,7 +64,17 @@ export default function AuctionHouse({
     rarities.forEach((rarity) => params.append("rarity", rarity));
     types.forEach((type) => params.append("type", type));
     return params.toString();
-  }, [exclusivity, order, page, quest, rarities, search, sort, types]);
+  }, [
+    exclusivity,
+    order,
+    page,
+    pageSize,
+    quest,
+    rarities,
+    search,
+    sort,
+    types,
+  ]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -258,30 +271,113 @@ export default function AuctionHouse({
       {error ? <p className="auction-house-error">{error}</p> : null}
       <div className="auction-results-heading">
         <strong>{data.total.toLocaleString()} available auctions</strong>
-        <button onClick={() => void load()} type="button">
-          <i aria-hidden="true" className="fa fa-refresh" /> Refresh
-        </button>
+        <div className="auction-results-actions">
+          <div aria-label="Auction view" className="auction-view-toggle">
+            <button
+              aria-pressed={viewMode === "expanded"}
+              onClick={() => {
+                setPage(1);
+                setViewMode("expanded");
+              }}
+              type="button"
+            >
+              <i aria-hidden="true" className="fa fa-th" />
+            </button>
+            <button
+              aria-pressed={viewMode === "list"}
+              onClick={() => {
+                setPage(1);
+                setViewMode("list");
+              }}
+              type="button"
+            >
+              <i aria-hidden="true" className="fa fa-list" />
+            </button>
+          </div>
+          <button onClick={() => void load()} type="button">
+            <i aria-hidden="true" className="fa fa-refresh" />
+          </button>
+        </div>
       </div>
       {loading ? (
         <p className="empty-state">Reviewing the auction ledger...</p>
       ) : data.auctions.length === 0 ? (
         <p className="empty-state">No auctions match these filters.</p>
+      ) : viewMode === "list" ? (
+        <div className="auction-list-scroll">
+          <div className="auction-list" role="table">
+            <div className="auction-list-header" role="row">
+              <span role="columnheader">Artwork</span>
+              <span role="columnheader">Details</span>
+              <span role="columnheader">Seller</span>
+              <span role="columnheader">Current</span>
+              <span role="columnheader">Next bid</span>
+              <span role="columnheader">Buy now</span>
+              <span role="columnheader">Remaining</span>
+              <span aria-hidden="true" />
+            </div>
+            {data.auctions.map((auction) => (
+              <article className="auction-list-row" key={auction._id} role="row">
+                <div className="auction-list-artwork" role="cell">
+                  <div className="auction-list-card">
+                    <AuctionItemCard
+                      auction={auction}
+                      legendaryAttributes={legendaryAttributes}
+                      playerId={playerId}
+                    />
+                  </div>
+                  <div>
+                    <strong>{auction.item.artwork.title}</strong>
+                    <span>{auction.item.artwork.artist}</span>
+                  </div>
+                </div>
+                <div className="auction-list-details" role="cell">
+                  <strong className={auction.item.artwork.rarity}>
+                    {auction.item.artwork.rarity}
+                  </strong>
+                  <span>{getCardType(auction)}</span>
+                  <span>
+                    Promotion {auction.item.level} ·{" "}
+                    {Math.floor(auction.item.condition * 100)}%
+                  </span>
+                </div>
+                <div className="auction-list-seller" role="cell">
+                  <strong>{auction.seller_name}</strong>
+                  <span>
+                    {auction.privateAuction ? "Private lot" : "Public lot"}
+                  </span>
+                  {auction.currentlyWinning ? <em>Winning</em> : null}
+                </div>
+                <strong role="cell">
+                  ${auction.current_bid.toLocaleString()}
+                </strong>
+                <strong role="cell">
+                  ${auction.minimum_bid.toLocaleString()}
+                </strong>
+                <span role="cell">
+                  {auction.buy_now === null
+                    ? "—"
+                    : `$${auction.buy_now.toLocaleString()}`}
+                </span>
+                <strong role="cell">{formatRemaining(auction.expiration)}</strong>
+                <AuctionBidButton
+                  auction={auction}
+                  onSelect={setSelected}
+                  playerId={playerId}
+                />
+              </article>
+            ))}
+          </div>
+        </div>
       ) : (
         <div className="auction-grid">
           {data.auctions.map((auction) => (
             <article className="auction-lot" key={auction._id}>
               <div className="auction-lot-card">
-                <ItemCard
-                  alreadyOwned={auction.owned}
-                  consigned={auction.seller_id === playerId}
-                  interactive
-                  item={auction.item}
+                <AuctionItemCard
+                  auction={auction}
                   legendaryAttributes={legendaryAttributes}
-                  permissions={{
-                    canManageItem: false,
-                    canCustomizeCosmetic: false,
-                  }}
-                  researchTarget={auction.questTarget}
+                  playerId={playerId}
                 />
               </div>
               <div className="auction-lot-details">
@@ -291,7 +387,9 @@ export default function AuctionHouse({
                   </span>
                   {auction.currentlyWinning ? <strong>WINNING</strong> : null}
                 </div>
-                <p>
+                <h2>{auction.item.artwork.title}</h2>
+                <p>{auction.item.artwork.artist}</p>
+                <p className="auction-lot-seller">
                   Seller <strong>{auction.seller_name}</strong>
                 </p>
                 <dl>
@@ -316,14 +414,11 @@ export default function AuctionHouse({
                     <dd>{formatRemaining(auction.expiration)}</dd>
                   </div>
                 </dl>
-                <button
-                  disabled={auction.seller_id === playerId}
-                  onClick={() => setSelected(auction)}
-                  type="button"
-                >
-                  <i aria-hidden="true" className="fa fa-gavel" />{" "}
-                  {auction.seller_id === playerId ? "Your listing" : "Bid"}
-                </button>
+                <AuctionBidButton
+                  auction={auction}
+                  onSelect={setSelected}
+                  playerId={playerId}
+                />
               </div>
             </article>
           ))}
@@ -361,6 +456,65 @@ export default function AuctionHouse({
       ) : null}
     </main>
   );
+}
+
+function AuctionItemCard({
+  auction,
+  legendaryAttributes,
+  playerId,
+}: {
+  auction: AuctionView;
+  legendaryAttributes: CardLegendaryAttribute[];
+  playerId: string;
+}) {
+  return (
+    <ItemCard
+      alreadyOwned={auction.owned}
+      consigned={auction.seller_id === playerId}
+      interactive
+      item={auction.item}
+      legendaryAttributes={legendaryAttributes}
+      permissions={{
+        canManageItem: false,
+        canCustomizeCosmetic: false,
+      }}
+      researchTarget={auction.questTarget}
+    />
+  );
+}
+
+function AuctionBidButton({
+  auction,
+  onSelect,
+  playerId,
+}: {
+  auction: AuctionView;
+  onSelect: (auction: AuctionView) => void;
+  playerId: string;
+}) {
+  return (
+    <div className="auction-bid-action" role="cell">
+      <button
+        disabled={auction.seller_id === playerId}
+        onClick={() => onSelect(auction)}
+        type="button"
+      >
+        <i aria-hidden="true" className="fa fa-gavel" />{" "}
+        {auction.seller_id === playerId ? "Your listing" : "Bid"}
+      </button>
+    </div>
+  );
+}
+
+function getCardType(auction: AuctionView): string {
+  const types = [
+    auction.item.foil ? "Foil" : "",
+    auction.item.seasonal ? "Seasonal" : "",
+    auction.item.lottery > 0 ? `Lottery ${auction.item.lottery}` : "",
+    auction.item.original ? "Original" : "",
+    auction.item.vintage ? "Vintage" : "",
+  ].filter(Boolean);
+  return types.length > 0 ? types.join(" · ") : "Standard";
 }
 
 function BidDialog({

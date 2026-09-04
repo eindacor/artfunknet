@@ -85,7 +85,7 @@ export async function POST(
         );
       }
       const message =
-        "The museum detected the known forgery. The donation failed and the artwork was destroyed.";
+        "The recipient detected the forgery. The donation failed and the artwork was destroyed.";
       return NextResponse.json({
         status: "ok",
         karma: 0,

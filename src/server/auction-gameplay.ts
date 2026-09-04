@@ -1,10 +1,19 @@
 import { randomUUID } from "node:crypto";
 
-import type { Db, Filter, Sort } from "mongodb";
+import { MongoServerError, type Db, type Filter, type Sort } from "mongodb";
 
 import type { ArtHistorianQuest } from "./art-historian-gameplay";
 import {
+  getPublicAuctionReplenishmentCount,
+  PUBLIC_AUCTION_DURATION_MINUTES,
+} from "./auction-population";
+import {
+  getGameplayGenerationMap,
+  getGameplaySettings,
+} from "./game-settings";
+import {
   calculateItemValues,
+  generateDailyDrop,
   type Artwork,
   type ArtworkRarity,
   type GameItem,
@@ -22,6 +31,8 @@ export const PUBLIC_AUCTION_DURATIONS = [60, 360, 720, 1440] as const;
 export const PRIVATE_AUCTION_DURATION_MINUTES = 5;
 export const AUCTIONEER_BASE_PRIVATE_LOTS = 4;
 export const AUCTION_HOUSE_OWNER_ID = "system:auction-house";
+const AUCTION_REPLENISHMENT_LEASE_MS = 2 * 60 * 1000;
+const AUCTION_HOUSE_STATE_ID = "auction-house-state";
 
 export type Auction = {
   _id: string;
@@ -83,12 +94,10 @@ type AuctionPlayer = {
   };
 };
 
-const RARITY_LEVELS: Record<ArtworkRarity, number> = {
-  common: 0,
-  uncommon: 5,
-  rare: 15,
-  legendary: 30,
-  masterpiece: 50,
+type AuctionHouseState = {
+  _id: typeof AUCTION_HOUSE_STATE_ID;
+  replenishment_lock_until?: string;
+  last_replenished?: string;
 };
 
 export async function createAuction(
@@ -175,6 +184,140 @@ export async function settleExpiredAuctions(
   for (const auction of expired) {
     await settleAuction(database, auction);
   }
+}
+
+export async function maintainPublicAuctions(
+  database: Db,
+  now = new Date(),
+): Promise<number> {
+  await settleExpiredAuctions(database, now);
+  const nowIso = now.toISOString();
+  const activeAuctionCount = await database
+    .collection<Auction>("auctions")
+    .countDocuments({
+      seller_id: null,
+      viewer: "public",
+      expiration: { $gt: nowIso },
+      settlement_status: { $ne: "settling" },
+    });
+  const replenishCount = getPublicAuctionReplenishmentCount(activeAuctionCount);
+  if (replenishCount === 0) return 0;
+
+  const lockUntil = new Date(
+    now.getTime() + AUCTION_REPLENISHMENT_LEASE_MS,
+  ).toISOString();
+  if (!(await acquireAuctionReplenishmentLease(database, nowIso, lockUntil))) {
+    return 0;
+  }
+
+  const generatedItemIds: string[] = [];
+  const generatedAuctionIds: string[] = [];
+  try {
+    const settings = await getGameplaySettings(database);
+    const generated = await generateDailyDrop(
+      database,
+      AUCTION_HOUSE_OWNER_ID,
+      50,
+      {
+        now,
+        itemCount: replenishCount,
+        generationMap: {
+          ...getGameplayGenerationMap(settings.active),
+          ...(settings.debugEnabled ? { misprint: 0.5 } : {}),
+        },
+        mintValueMultiplier: settings.active.mintValueMultiplier,
+        debug: settings.debugEnabled,
+        useRawRarityMap: true,
+        source: "generated auction",
+        status: "auctioned",
+      },
+    );
+    generatedItemIds.push(...generated.map((item) => item._id));
+    const hydrated = await hydrateGameItems(database, generated);
+    for (const item of hydrated) {
+      const auction = await createAuction(database, item, {
+        sellerId: null,
+        sellerName: "Auction House",
+        startingBid: item.values.auction_min,
+        buyNow: null,
+        durationMinutes: PUBLIC_AUCTION_DURATION_MINUTES,
+        now,
+      });
+      generatedAuctionIds.push(auction._id);
+    }
+    await database.collection<AuctionHouseState>("metadata").updateOne(
+      {
+        _id: AUCTION_HOUSE_STATE_ID,
+        replenishment_lock_until: lockUntil,
+      },
+      {
+        $set: { last_replenished: nowIso },
+        $unset: { replenishment_lock_until: "" },
+      },
+    );
+    return generatedAuctionIds.length;
+  } catch (error) {
+    await Promise.all([
+      generatedAuctionIds.length
+        ? database.collection<Auction>("auctions").deleteMany({
+            _id: { $in: generatedAuctionIds },
+          })
+        : Promise.resolve(),
+      generatedItemIds.length
+        ? database.collection<GameItem>("items").deleteMany({
+            _id: { $in: generatedItemIds },
+            owner: AUCTION_HOUSE_OWNER_ID,
+            status: "auctioned",
+          })
+        : Promise.resolve(),
+    ]);
+    await releaseAuctionReplenishmentLease(database, lockUntil);
+    throw error;
+  }
+}
+
+async function acquireAuctionReplenishmentLease(
+  database: Db,
+  nowIso: string,
+  lockUntil: string,
+): Promise<boolean> {
+  const states = database.collection<AuctionHouseState>("metadata");
+  const existing = await states.findOneAndUpdate(
+    {
+      _id: AUCTION_HOUSE_STATE_ID,
+      $or: [
+        { replenishment_lock_until: { $exists: false } },
+        { replenishment_lock_until: { $lte: nowIso } },
+      ],
+    },
+    { $set: { replenishment_lock_until: lockUntil } },
+    { returnDocument: "after" },
+  );
+  if (existing) return true;
+
+  try {
+    await states.insertOne({
+      _id: AUCTION_HOUSE_STATE_ID,
+      replenishment_lock_until: lockUntil,
+    });
+    return true;
+  } catch (error) {
+    if (error instanceof MongoServerError && error.code === 11000) return false;
+    throw error;
+  }
+}
+
+async function releaseAuctionReplenishmentLease(
+  database: Db,
+  lockUntil: string,
+): Promise<void> {
+  await database.collection<AuctionHouseState>("metadata").updateOne(
+    {
+      _id: AUCTION_HOUSE_STATE_ID,
+      replenishment_lock_until: lockUntil,
+    },
+    { $unset: { replenishment_lock_until: "" } },
+  );
 }
 
 export async function settleAuction(
@@ -380,12 +523,6 @@ export async function settleAuction(
       _id: auction._id,
       settlement_status: "settling",
     });
-    if (auction.seller_id) {
-      await safelyNotify(database, auction.seller_id, {
-        kind: "success",
-        message: `${auction.item_snapshot.title} sold for $${auction.current_bid.toLocaleString()}.`,
-      });
-    }
     await safelyNotify(database, auction.current_winner_id, {
       kind: "success",
       message: `You won ${auction.item_snapshot.title} for $${auction.current_bid.toLocaleString()}${
@@ -547,7 +684,11 @@ export async function getAuctionViews(
     pageSize?: number;
   } = {},
 ): Promise<{ auctions: AuctionView[]; total: number }> {
-  await settleExpiredAuctions(database);
+  try {
+    await maintainPublicAuctions(database);
+  } catch (error) {
+    console.error("Unable to replenish public auctions", error);
+  }
   await runPrivateAuctionBots(database, playerId);
 
   const filter: Filter<Auction> = {
@@ -672,7 +813,10 @@ export async function getAuctionViews(
       const item = itemById.get(auction.item_id);
       return item ? [{
         ...auction,
-        item: sanitizePlayerFacingAuthenticity(item, true),
+        item: sanitizePlayerFacingAuthenticity(
+          item,
+          auction.seller_id !== playerId,
+        ),
         owned: ownedArtworkIds.has(item.artwork_id),
         questTarget: questTargets.has(item.artwork_id),
         currentlyWinning: auction.current_winner_id === playerId,
@@ -691,13 +835,6 @@ export async function validateBidder(
   if (auction.viewer !== "public" && auction.viewer !== player._id) {
     return "This is a private auction.";
   }
-  // TODO JEP temporarily disable
-  // if (
-  //   auction.viewer === "public" &&
-  //   player.profile.level < RARITY_LEVELS[auction.item_snapshot.rarity]
-  // ) {
-  //   return `Level ${RARITY_LEVELS[auction.item_snapshot.rarity]} is required.`;
-  // }
   const marketExpert =
     new Date(player.profile.market_expert?.expiration ?? 0).getTime() >
     Date.now();

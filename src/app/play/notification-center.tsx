@@ -90,40 +90,48 @@ export default function NotificationCenter({
   }
 
   return (
-    <details className="notification-center">
-      <summary
-        aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ""}`}
-      >
-        <i aria-hidden="true" className="fa fa-bell" />
+    <aside
+      aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ""}`}
+      className="profile-notification-panel"
+    >
+      <header>
+        <div>
+          <span>
+            <i aria-hidden="true" className="fa fa-bell" />
+            Notifications
+          </span>
+          <small>
+            {unreadCount > 0
+              ? `${unreadCount} unread`
+              : "Important activity"}
+          </small>
+        </div>
         {unreadCount > 0 ? (
-          <span className="notification-count">{unreadCount}</span>
+          <strong className="notification-count">{unreadCount}</strong>
         ) : null}
-      </summary>
-      <section
-        aria-label="Player notifications"
-        className="notification-panel"
-      >
-        <header>
-          <strong>notifications</strong>
-          <div>
-            <button
-              disabled={unreadCount === 0}
-              onClick={markAllRead}
-              type="button"
-            >
-              mark all read
-            </button>
-            <button
-              disabled={notifications.length === 0}
-              onClick={clearAll}
-              type="button"
-            >
-              clear all
-            </button>
-          </div>
-        </header>
+      </header>
+      <div className="notification-panel">
+        <div className="notification-panel-tools">
+          <button
+            disabled={unreadCount === 0}
+            onClick={markAllRead}
+            type="button"
+          >
+            mark all read
+          </button>
+          <button
+            disabled={notifications.length === 0}
+            onClick={clearAll}
+            type="button"
+          >
+            clear all
+          </button>
+        </div>
         {notifications.length === 0 ? (
-          <p className="notification-empty">No notifications.</p>
+          <div className="notification-empty">
+            <i aria-hidden="true" className="fa fa-check-circle" />
+            <p>Nothing needs your attention.</p>
+          </div>
         ) : (
           <ol className="notification-list">
             {notifications.map((notification) => (
@@ -171,7 +179,7 @@ export default function NotificationCenter({
         <p aria-live="polite" className="notification-panel-error">
           {error}
         </p>
-      </section>
-    </details>
+      </div>
+    </aside>
   );
 }

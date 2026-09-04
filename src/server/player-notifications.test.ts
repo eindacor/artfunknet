@@ -8,19 +8,27 @@ import {
   PLAYER_NOTIFICATION_EMISSION_ENABLED,
 } from "./player-notifications.ts";
 
-test("notification emission is disabled without touching MongoDB", async () => {
-  assert.equal(PLAYER_NOTIFICATION_EMISSION_ENABLED, false);
-
+test("notification emission stores important player events", async () => {
+  assert.equal(PLAYER_NOTIFICATION_EMISSION_ENABLED, true);
+  const inserted: unknown[] = [];
   const database = {
     collection() {
-      throw new Error("Notification storage should not be accessed.");
+      return {
+        findOne: async () => null,
+        insertOne: async (notification: unknown) => {
+          inserted.push(notification);
+          return { acknowledged: true };
+        },
+      };
     },
   } as unknown as Db;
 
   const notification = await createPlayerNotification(database, "player-1", {
     kind: "success",
-    message: "This should not be stored.",
+    message: "You won an auction.",
   });
 
-  assert.equal(notification, null);
+  assert.equal(notification?.user_id, "player-1");
+  assert.equal(notification?.message, "You won an auction.");
+  assert.equal(inserted.length, 1);
 });

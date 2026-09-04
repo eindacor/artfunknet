@@ -13,6 +13,7 @@ import {
   getGameplayGenerationMap,
   type GameplayConfig,
 } from "./game-settings.ts";
+import { createPlayerNotification } from "./player-notifications.ts";
 
 export const RAFFLE_OWNER_ID = "raffle-house";
 export const RAFFLE_STATE_ID = "raffle-state";
@@ -209,6 +210,17 @@ export async function settleRaffleIfDue(
   const replacementItemIds: string[] = [];
   const expiredPrizeItemIds: string[] = [];
   const completedPrizeItemIds: string[] = [];
+  const artworkById = new Map(
+    (
+      await database
+        .collection<Artwork>("artworks")
+        .find({
+          _id: { $in: originalPrizes.map((item) => item.artwork_id) },
+        })
+        .toArray()
+    ).map((artwork) => [artwork._id, artwork]),
+  );
+  const winnerNotifications: { playerId: string; title: string }[] = [];
 
   try {
     const nextPrizes: RafflePrize[] = [];
@@ -298,6 +310,14 @@ export async function settleRaffleIfDue(
         screen_name: player.screen_name,
         item_id: prize.item_id,
         won_at: now.toISOString(),
+      });
+      winnerNotifications.push({
+        playerId: player._id,
+        title:
+          artworkById.get(
+            originalPrizes.find((item) => item._id === prize.item_id)
+              ?.artwork_id ?? "",
+          )?.title ?? "an artwork",
       });
     }
 
@@ -393,6 +413,21 @@ export async function settleRaffleIfDue(
       "Lottery settled, but expired items or old ticket entries were not removed.",
       error,
     );
+  }
+
+  const notificationResults = await Promise.allSettled(
+    winnerNotifications.map(({ playerId, title }) =>
+      createPlayerNotification(database, playerId, {
+        kind: "success",
+        message: `You won ${title} in the daily lottery.`,
+        dedupeUnread: false,
+      }),
+    ),
+  );
+  for (const result of notificationResults) {
+    if (result.status === "rejected") {
+      console.error("Unable to create lottery winner notification", result.reason);
+    }
   }
 
   return (

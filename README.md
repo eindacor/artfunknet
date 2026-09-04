@@ -216,9 +216,12 @@ The basic gameplay loop is active:
   item dialog; taking it down remains a separate owner-only Inventory action.
   The dialog carries an explicit viewer-versus-other-player ownership context
   for future multiplayer galleries.
-- Gameplay alerts and gallery settlements are retained in persistent player
-  notifications. The notification bell shows unread counts and supports
-  individual read/unread changes, deletion, mark-all-read, and clear-all.
+- Important asynchronous events are retained in persistent player
+  notifications, including lottery wins, auction wins and returns, outbid
+  notices, completed repairs, and forgery liabilities. Routine actions and
+  item sales do not create notifications. The profile notification panel
+  supports individual read/unread changes, deletion, mark-all-read, and
+  clear-all.
 - Database seeding creates five persistent test players. Administrators can
   open these accounts from the admin panel, exercise normal player gameplay,
   spawn bronze through platinum NPCs from the test gallery, and return to the
@@ -254,6 +257,10 @@ The basic gameplay loop is active:
   level, requiring 25,550 total Karma to advance an item from Promotion Level
   1 to Promotion Level 10. Donation Karma uses ascending rarity values, so
   rarer donated works earn substantially more than common works.
+- The public Auction House automatically maintains 20 system-generated lots.
+  Expired auctions settle before missing slots are replenished with new
+  one-hour listings, preserving the original recurring auction supply without
+  creating overlapping batches.
 - Art Historians create the original collection objectives: four distinct
   level-appropriate artworks with three normally required and up to eight
   active objectives. The Quests tab tracks each requested work against claimed

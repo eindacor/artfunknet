@@ -174,6 +174,17 @@ test("authentication, reporting, and sanitization preserve privacy", () => {
   const item = {
     owner: "claimant",
     status: "claimed",
+    source: "forgery",
+    odds: "forged",
+    transaction_history: [
+      {
+        type: "generation",
+        from_owner: null,
+        to_owner: "claimant",
+        occurred_at: "2026-09-04T12:00:00.000Z",
+        source: "forgery",
+      },
+    ],
     authenticity,
   } as GameItem;
   assert.deepEqual(getAuthenticationPermission(item, "claimant"), {
@@ -183,15 +194,51 @@ test("authentication, reporting, and sanitization preserve privacy", () => {
   assert.deepEqual(getRedemptionPermission(item, "claimant"), { allowed: true });
   const sanitized = sanitizePlayerFacingAuthenticity(item);
   assert.deepEqual(sanitized.authenticity, { identified: false });
+  assert.equal(sanitized.source, "unknown");
+  assert.equal(sanitized.odds, "unknown");
+  assert.equal(sanitized.transaction_history[0].source, "unknown");
   assert.deepEqual(
     getPlayerFacingRedemptionPermission(item, "claimant"),
     { allowed: true },
   );
-  assert.deepEqual(
-    sanitizePlayerFacingAuthenticity({
-      ...item,
-      authenticity: { ...authenticity, identified: true },
-    }).authenticity,
-    { identified: true, forgery: true },
+  const identified = sanitizePlayerFacingAuthenticity({
+    ...item,
+    authenticity: { ...authenticity, identified: true },
+  });
+  assert.deepEqual(identified.authenticity, {
+    identified: true,
+    forgery: true,
+  });
+  assert.equal(identified.source, "forgery");
+  assert.equal(identified.odds, "forged");
+  assert.equal(identified.transaction_history[0].source, "forgery");
+});
+
+test("forced masking hides provenance even for authenticated items", () => {
+  const sanitized = sanitizePlayerFacingAuthenticity(
+    {
+      source: "generated auction",
+      odds: "1 in 200",
+      transaction_history: [
+        {
+          type: "generation",
+          from_owner: null,
+          to_owner: "system:auction-house",
+          occurred_at: "2026-09-04T12:00:00.000Z",
+          source: "generated auction",
+        },
+      ],
+      authenticity: {
+        ...authenticity,
+        forgery: false,
+        identified: true,
+      },
+    } as GameItem,
+    true,
   );
+
+  assert.deepEqual(sanitized.authenticity, { identified: false });
+  assert.equal(sanitized.source, "unknown");
+  assert.equal(sanitized.odds, "1 in 200");
+  assert.equal(sanitized.transaction_history[0].source, "unknown");
 });

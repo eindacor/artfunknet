@@ -234,10 +234,23 @@ export function sanitizePlayerFacingAuthenticity<T extends GameItem>(
   item: T,
   maskAll = false,
 ): T {
+  const identified = !maskAll && item.authenticity.identified;
   return {
     ...item,
+    ...(!identified
+      ? {
+          source: "unknown",
+          odds: item.odds === "forged" ? "unknown" : item.odds,
+          transaction_history: (item.transaction_history ?? []).map(
+            (transaction) => ({
+              ...transaction,
+              source: "unknown",
+            }),
+          ),
+        }
+      : {}),
     authenticity: (
-      !maskAll && item.authenticity.identified
+      identified
         ? {
             identified: true,
             forgery: item.authenticity.forgery,

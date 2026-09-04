@@ -125,19 +125,12 @@ export default async function PlayerPage() {
   } catch (error) {
     console.error("Unable to settle player item repairs", error);
   }
-  const payout = await settleGalleryEarnings(
+  await settleGalleryEarnings(
     database,
     session.playerId,
     config,
     new Date(),
   );
-  if (payout.intervals > 0 && (payout.money > 0 || payout.xp > 0)) {
-    await createPlayerNotification(database, session.playerId, {
-      kind: "success",
-      message: `Gallery earnings: +$${payout.money.toLocaleString()} and +${payout.xp.toLocaleString()}xp.`,
-      dedupeUnread: false,
-    });
-  }
   const player = await database
     .collection<Player>("players")
     .findOne({ _id: session.playerId });
@@ -162,7 +155,7 @@ export default async function PlayerPage() {
   const raffleRewards = await hydrateGameItems(
     database,
     raffleRewardDocuments.map((item) =>
-      sanitizePlayerFacingAuthenticity(item),
+      sanitizePlayerFacingAuthenticity(item, true),
     ),
   );
   const raffleRewardById = new Map(

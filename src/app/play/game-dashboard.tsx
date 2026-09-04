@@ -47,10 +47,7 @@ import {
   type GalleryNpc,
   type NpcQuality,
 } from "@/server/npc-gameplay";
-import type {
-  PlayerNotification,
-  PlayerNotificationKind,
-} from "@/server/player-notifications";
+import type { PlayerNotification } from "@/server/player-notifications";
 import type { NpcRewardInteraction } from "@/server/standard-npc-rewards";
 
 import NotificationCenter from "./notification-center";
@@ -336,40 +333,6 @@ export default function GameDashboard({
     return () => window.clearInterval(timer);
   }, []);
 
-  async function addNotification(
-    message: string,
-    kind: PlayerNotificationKind,
-  ) {
-    try {
-      const response = await fetch("/api/play/notifications", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ message, kind }),
-      });
-      const body = (await response.json()) as {
-        error?: string;
-        notification?: PlayerNotification;
-      };
-      if (!response.ok || !body.notification) {
-        setError(body.error ?? "The notification could not be saved.");
-        return;
-      }
-      const savedNotification = body.notification;
-      setNotifications((current) => [
-        savedNotification,
-        ...current.filter(
-          (notification) => notification._id !== savedNotification._id,
-        ),
-      ]);
-    } catch (notificationError) {
-      setError(
-        notificationError instanceof Error
-          ? notificationError.message
-          : "The notification could not be saved.",
-      );
-    }
-  }
-
   function act(url: string) {
     setError("");
     setNotice("");
@@ -379,21 +342,15 @@ export default function GameDashboard({
         actionDialog?: ActionDialogResult;
         error?: string;
         message?: string;
-        notificationKind?: PlayerNotificationKind;
       };
       if (!response.ok) {
         const message = body.error ?? "The action could not be completed.";
         setError(message);
-        await addNotification(message, "error");
         return;
       }
 
       if (body.message) {
         setNotice(body.message);
-        await addNotification(
-          body.message,
-          body.notificationKind ?? "success",
-        );
       }
       if (body.actionDialog) {
         setActionDialog(body.actionDialog);
@@ -414,12 +371,10 @@ export default function GameDashboard({
         amount?: number;
         error?: string;
         message?: string;
-        notificationKind?: PlayerNotificationKind;
       };
       if (!response.ok || body.amount === undefined) {
         const message = body.error ?? "The loot could not be sold.";
         setError(message);
-        await addNotification(message, "error");
         return;
       }
 
@@ -436,10 +391,6 @@ export default function GameDashboard({
       }
       if (body.message) {
         setNotice(body.message);
-        await addNotification(
-          body.message,
-          body.notificationKind ?? "success",
-        );
       }
       if (body.actionDialog) {
         setActionDialog(body.actionDialog);
@@ -460,13 +411,11 @@ export default function GameDashboard({
         donated?: boolean;
         error?: string;
         message?: string;
-        notificationKind?: PlayerNotificationKind;
         recoveredStyle?: string;
       };
       if (!response.ok) {
         const message = body.error ?? "The donation could not be completed.";
         setError(message);
-        await addNotification(message, "error");
         return;
       }
 
@@ -492,10 +441,6 @@ export default function GameDashboard({
       }
       if (body.message) {
         setNotice(body.message);
-        await addNotification(
-          body.message,
-          body.notificationKind ?? "success",
-        );
       }
       if (body.actionDialog) {
         setActionDialog(body.actionDialog);
@@ -538,7 +483,6 @@ export default function GameDashboard({
       setCrateOpening({ crateId: crate.id, phase: "opened" });
       setNotice(message);
       setRevealedLootIds(body.item_ids ?? []);
-      await addNotification(message, "success");
       router.refresh();
       window.setTimeout(
         () =>
@@ -554,7 +498,6 @@ export default function GameDashboard({
           : "The crate could not be opened.";
       setCrateOpening({ crateId: crate.id, phase: "error" });
       setError(message);
-      await addNotification(message, "error");
       window.setTimeout(
         () =>
           setCrateOpening((current) =>
@@ -638,14 +581,14 @@ export default function GameDashboard({
       const message =
         body.message ??
         `Spawned a ${npcSpawnQuality} ${option.name} visitor.`;
-      await addNotification(message, "success");
+      setNotice(message);
       router.refresh();
     } catch (spawnError) {
       const message =
         spawnError instanceof Error
           ? spawnError.message
           : "The NPC could not be spawned.";
-      await addNotification(message, "error");
+      setError(message);
     } finally {
       setSpawningNpc(null);
     }
@@ -696,7 +639,6 @@ export default function GameDashboard({
       }
       if (body.message) {
         setNotice(body.message);
-        await addNotification(body.message, "success");
       }
 
       function showNpcRewardEffect(interaction: NpcRewardInteraction) {
@@ -723,7 +665,6 @@ export default function GameDashboard({
           ? meetError.message
           : "The visitor interaction failed.";
       setError(message);
-      await addNotification(message, "error");
     } finally {
       setMeetingNpc(null);
     }
@@ -760,13 +701,6 @@ export default function GameDashboard({
   return (
     <main className="legacy-game">
       <div className="legacy-container">
-        {/*<div className="game-heading">
-          <h1 className="gamertag">{player.screenName}</h1>
-          <NotificationCenter
-            notifications={notifications}
-            onChange={setNotifications}
-          />
-        </div>*/}
         <nav className="dashboard-tabs" aria-label="Player dashboard">
           {(
             [
@@ -809,8 +743,13 @@ export default function GameDashboard({
         </p>
 
         {section === "profile" ? (
-          <section className="player-profile">
-            <header className="museum-profile-heading">
+          <section className="player-profile-layout">
+            <NotificationCenter
+              notifications={notifications}
+              onChange={setNotifications}
+            />
+            <section className="player-profile">
+              <header className="museum-profile-heading">
               <div>
                 <p>Artfunkel collection registry</p>
                 <h2>
@@ -949,22 +888,93 @@ export default function GameDashboard({
               </section>
             </div>
 
-            <section className="museum-profile-karma">
+              <section className="museum-profile-karma">
+                <header>
+                  <span>Good Karma</span>
+                  <small>Earned by donating works of art</small>
+                </header>
+                <div className="karma-balance">
+                  <i aria-hidden="true" className="fa fa-heart" />
+                  <div>
+                    <strong>{player.karma.toLocaleString()}</strong>
+                  </div>
+                </div>
+              </section>
+            </section>
+            <aside className="profile-gallery-panel">
               <header>
                 <div>
-                  <span>Good Karma</span>
-                  <small>Earned by giving artwork back to the community</small>
+                  <span>On display</span>
+                  <small>
+                    {displayed.length} / {player.displayCap} works
+                  </small>
                 </div>
-                <strong>Promotion currency</strong>
+                <i aria-hidden="true" className="fa fa-picture-o" />
               </header>
-              <div className="karma-balance">
-                <i aria-hidden="true" className="fa fa-heart" />
-                <div>
-                  <small>Available Karma</small>
-                  <strong>{player.karma.toLocaleString()}</strong>
+              {displayed.length > 0 ? (
+                <>
+                  <div className="profile-gallery-thumbnails">
+                    {displayed.slice(0, 8).map((item) => (
+                      <button
+                        aria-label={`View ${item.artwork.title} by ${item.artwork.artist}`}
+                        key={item._id}
+                        onClick={() => {
+                          setGalleryItemDetails(item);
+                          setSection("gallery");
+                        }}
+                        title={`${item.artwork.title} by ${item.artwork.artist}`}
+                        type="button"
+                      >
+                        <ArtworkThumbnail
+                          alt=""
+                          artworkId={item.artwork_id}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                  {displayed.length > 8 ? (
+                    <p>+{displayed.length - 8} additional works on display</p>
+                  ) : null}
+                  <button
+                    className="profile-gallery-action"
+                    onClick={() => setSection("inventory")}
+                    type="button"
+                  >
+                    Manage gallery
+                  </button>
+                </>
+              ) : inventory.some((item) => item.status === "claimed") ? (
+                <div className="profile-gallery-empty">
+                  <i aria-hidden="true" className="fa fa-picture-o" />
+                  <p>
+                    Your walls are waiting. Put some of your collected works on
+                    display.
+                  </p>
+                  <button
+                    className="profile-gallery-action"
+                    onClick={() => setSection("inventory")}
+                    type="button"
+                  >
+                    Manage gallery
+                  </button>
                 </div>
-              </div>
-            </section>
+              ) : (
+                <div className="profile-gallery-empty">
+                  <i aria-hidden="true" className="fa fa-gift" />
+                  <p>
+                    Start collecting artwork before curating your first
+                    exhibition.
+                  </p>
+                  <button
+                    className="profile-gallery-action"
+                    onClick={() => setSection("loot")}
+                    type="button"
+                  >
+                    Visit loot
+                  </button>
+                </div>
+              )}
+            </aside>
           </section>
         ) : null}
 
@@ -1294,11 +1304,7 @@ export default function GameDashboard({
                       onDisabledClick={
                         displayPermission.allowed
                           ? undefined
-                          : () =>
-                              addNotification(
-                                displayPermission.reason,
-                                "warning",
-                              )
+                          : () => setError(displayPermission.reason)
                       }
                       onClick={() =>
                         requestMintMutation(
@@ -1387,7 +1393,6 @@ export default function GameDashboard({
             onClose={() => setAuctionListingItem(null)}
             onListed={(message) => {
               setNotice(message);
-              void addNotification(message, "success");
               router.refresh();
             }}
           />
@@ -1629,7 +1634,6 @@ export default function GameDashboard({
             levelUpConditionMinimum={levelUpConditionMinimum}
             legendaryAttributes={legendaryAttributes}
             onClose={() => setRerollSession(null)}
-            onNotify={addNotification}
             onRerolled={(item, nextBankBalance) => {
               setRerollSession({
                 item,
@@ -1672,7 +1676,6 @@ export default function GameDashboard({
             onComplete={(message) => {
               setVintageDialogOpen(false);
               setNotice(message);
-              void addNotification(message, "success");
               router.refresh();
             }}
           />
@@ -1765,7 +1768,6 @@ export default function GameDashboard({
             onForged={(message) => {
               setForgeryArchive(null);
               setNotice(message);
-              void addNotification(message, "success");
               router.refresh();
             }}
           />
@@ -1781,7 +1783,6 @@ export default function GameDashboard({
                 current ? { ...current, items } : current,
               )
             }
-            onNotify={addNotification}
             quality={artworkOfferSession.quality}
           />
         ) : null}
@@ -2219,7 +2220,7 @@ function CollectorResultDialog({
 
   const outcome = result.forgeryCaught
     ? result.itemDestroyed
-      ? `${result.npcName} detected the known forgery. You received no reward and the artwork was destroyed.`
+      ? `${result.npcName} detected the forgery. You received no reward and the artwork was destroyed.`
       : `${result.npcName} identified this artwork as a forgery. You received no reward and kept the identified item.`
     : result.keptItem
       ? `${result.npcName} offered ${
@@ -2305,7 +2306,6 @@ function ArtworkOfferDialog({
   items,
   onClose,
   onItemsChange,
-  onNotify,
 }: {
   interactionType: "art-donor-offer" | "art-dealer-offer";
   npcName: string;
@@ -2313,10 +2313,6 @@ function ArtworkOfferDialog({
   items: ArtworkOfferItem[];
   onClose: () => void;
   onItemsChange: (items: ArtworkOfferItem[]) => void;
-  onNotify: (
-    message: string,
-    kind: PlayerNotificationKind,
-  ) => Promise<void>;
 }) {
   const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -2360,14 +2356,6 @@ function ArtworkOfferDialog({
       if (!response.ok) {
         throw new Error(body.error ?? "The artwork action failed.");
       }
-      const message =
-        action === "claim"
-          ? `${item.artwork.title} was added to your inventory.`
-          : action === "purchase"
-            ? `${item.artwork.title} was purchased for $${(body.amount ?? item.price ?? item.values.dealer).toLocaleString()}.`
-          : action === "sell"
-            ? `${item.artwork.title} was sold for $${(body.amount ?? item.values.sell).toLocaleString()}.`
-            : `${item.artwork.title} was declined.`;
       const remainingItems = items
         .filter((offer) => offer._id !== item._id)
         .map((offer) =>
@@ -2377,7 +2365,6 @@ function ArtworkOfferDialog({
             : offer,
         );
       onItemsChange(remainingItems);
-      await onNotify(message, "success");
       router.refresh();
       if (remainingItems.length === 0) closeDialog();
     } catch (offerError) {
@@ -2386,7 +2373,6 @@ function ArtworkOfferDialog({
           ? offerError.message
           : "The artwork action failed.";
       setError(message);
-      await onNotify(message, "error");
     } finally {
       setBusyItemId(null);
     }
@@ -2515,7 +2501,6 @@ function RerollDialog({
   legendaryAttributes,
   onClose,
   onLeveled,
-  onNotify,
   onRerolled,
   onSelected,
 }: {
@@ -2527,10 +2512,6 @@ function RerollDialog({
   legendaryAttributes: LegendaryAttributeView[];
   onClose: () => void;
   onLeveled: (item: HydratedGameItem, karma: number) => void;
-  onNotify: (
-    message: string,
-    kind: PlayerNotificationKind,
-  ) => Promise<void>;
   onRerolled: (item: HydratedGameItem, bankBalance: number) => void;
   onSelected: (item: HydratedGameItem) => void;
 }) {
@@ -2640,14 +2621,13 @@ function RerollDialog({
         mode === "value"
           ? "Attraction value updated."
           : "Unlocked attribute replaced.";
-      await onNotify(message, "success");
+      setNotice(message);
     } catch (rerollError) {
       const message =
         rerollError instanceof Error
           ? rerollError.message
           : "The reroll could not be completed.";
       setError(message);
-      await onNotify(message, "error");
     } finally {
       setBusy(false);
     }
@@ -2681,14 +2661,12 @@ function RerollDialog({
         body.message ??
         `${item.artwork.title} reached level ${nextItem.level}.`;
       setNotice(message);
-      await onNotify(message, "success");
     } catch (levelError) {
       const message =
         levelError instanceof Error
           ? levelError.message
           : "The promotion could not be completed.";
       setError(message);
-      await onNotify(message, "error");
     } finally {
       setBusy(false);
     }
