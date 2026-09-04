@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import PublicGallery from "@/components/public-gallery";
 import { getLegendaryAttributes } from "@/server/legendary-attributes";
@@ -17,10 +17,13 @@ export default async function PublicGalleryPage({
     getPlayerSession(),
     getDatabase(),
   ]);
+  if (session) {
+    redirect(`/play?gallery=${encodeURIComponent(playerId)}`);
+  }
   const gallery = await getPublicGalleryView(
     database,
     playerId,
-    session?.playerId ?? null,
+    null,
   );
   if (!gallery) notFound();
 
@@ -44,9 +47,9 @@ export default async function PublicGalleryPage({
         </Link>
         <Link
           className="public-showcase-nav-link"
-          href={session ? "/play" : "/play/login"}
+          href="/play/login"
         >
-          {session ? "Dashboard" : "Sign in"}
+          Sign in
         </Link>
       </header>
       <section className="public-gallery-intro">
@@ -68,7 +71,7 @@ export default async function PublicGalleryPage({
           active: attribute.active,
         }))}
         owner={gallery.owner}
-        viewerId={session?.playerId ?? null}
+        viewerId={null}
       />
     </main>
   );

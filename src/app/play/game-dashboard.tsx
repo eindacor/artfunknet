@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import ArchiveEntryDialog from "@/components/archive-entry-dialog";
 import ForgeryDialog from "@/components/forgery-dialog";
@@ -52,6 +52,9 @@ import type { NpcRewardInteraction } from "@/server/standard-npc-rewards";
 
 import NotificationCenter from "./notification-center";
 import AuctionHouse from "./auctions/auction-house";
+import GalleryExplorer, {
+  type GalleryNpcView,
+} from "./galleries/gallery-explorer";
 
 type PlayerView = {
   screenName: string;
@@ -189,17 +192,24 @@ export default function GameDashboard({
   marketExpertExpiration: string | null;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialGalleryId = searchParams.get("gallery");
   const [section, setSection] = useState<
     | "profile"
     | "inventory"
     | "loot"
     | "gallery"
+    | "explore"
     | "archive"
     | "quests"
     | "auctions"
     | "raffle"
   >(
-    items.some((item) => item.status === "unclaimed") ? "loot" : "profile",
+    initialGalleryId
+      ? "explore"
+      : items.some((item) => item.status === "unclaimed")
+        ? "loot"
+        : "profile",
   );
   const [now, setNow] = useState(0);
   const [error, setError] = useState("");
@@ -594,7 +604,7 @@ export default function GameDashboard({
     }
   }
 
-  async function meetNpc(npc: NpcView) {
+  async function meetNpc(npc: NpcView | GalleryNpcView): Promise<boolean> {
     setMeetingNpc(npc._id);
     setError("");
     setNotice("");
@@ -659,12 +669,14 @@ export default function GameDashboard({
         }, 1_000);
       }
       router.refresh();
+      return true;
     } catch (meetError) {
       const message =
         meetError instanceof Error
           ? meetError.message
           : "The visitor interaction failed.";
       setError(message);
+      return false;
     } finally {
       setMeetingNpc(null);
     }
@@ -708,6 +720,7 @@ export default function GameDashboard({
               { id: "inventory", label: "Inventory", icon: "fa-th" },
               { id: "loot", label: "Loot", icon: "fa-gift" },
               { id: "gallery", label: "Gallery", icon: "fa-picture-o" },
+              { id: "explore", label: "Explore", icon: "fa-binoculars" },
               { id: "archive", label: "Archive", icon: "fa-archive" },
               { id: "quests", label: "Quests", icon: "fa-map-signs" },
               { id: "auctions", label: "Auction House", icon: "fa-gavel" },
@@ -1604,6 +1617,16 @@ export default function GameDashboard({
             onAction={act}
             pending={pending}
             quests={quests}
+          />
+        ) : null}
+
+        {section === "explore" ? (
+          <GalleryExplorer
+            initialGalleryId={initialGalleryId}
+            meetingNpc={meetingNpc}
+            npcRewardEffects={npcRewardEffects}
+            onMeetNpc={meetNpc}
+            viewerId={playerId}
           />
         ) : null}
 

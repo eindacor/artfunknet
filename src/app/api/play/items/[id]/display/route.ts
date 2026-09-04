@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import type { GameItem } from "@/server/gameplay";
+import { refreshGalleryMetadata } from "@/server/gallery-metadata";
 import { getDemintUpdate } from "@/server/item-mint";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
@@ -102,6 +103,7 @@ export async function POST(
     },
     { $set: { "profile.last_gallery_payout": now } },
   );
+  await refreshGalleryMetadata(database, player._id);
 
   return NextResponse.json({ status: "ok" });
 }

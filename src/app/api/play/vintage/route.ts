@@ -13,6 +13,7 @@ import {
   type GameItem,
   type LootData,
 } from "@/server/gameplay";
+import { refreshGalleryMetadata } from "@/server/gallery-metadata";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
 import {
@@ -305,6 +306,7 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
+  await refreshGalleryMetadata(database, player._id);
 
   return NextResponse.json({
     status: "ok",

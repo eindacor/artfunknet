@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import type { GameItem } from "@/server/gameplay";
+import { refreshGalleryMetadata } from "@/server/gallery-metadata";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
 
@@ -37,6 +38,7 @@ export async function POST(
     { _id: auth.session.playerId },
     { $set: { "profile.last_activity": new Date().toISOString() } },
   );
+  await refreshGalleryMetadata(database, auth.session.playerId);
 
   return NextResponse.json({ status: "ok" });
 }

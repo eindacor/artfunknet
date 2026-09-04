@@ -15,6 +15,7 @@ import {
 } from "@/server/collection-gameplay";
 import { getPurchasableCrateOffers } from "@/server/crate-gameplay";
 import { getGameplaySettings } from "@/server/game-settings";
+import { refreshGalleryMetadata } from "@/server/gallery-metadata";
 import {
   getAuthenticationPermission,
   getPlayerFacingRedemptionPermission,
@@ -131,6 +132,7 @@ export default async function PlayerPage() {
     config,
     new Date(),
   );
+  await refreshGalleryMetadata(database, session.playerId);
   const player = await database
     .collection<Player>("players")
     .findOne({ _id: session.playerId });
