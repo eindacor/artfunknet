@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import ArtworkThumbnail from "@/components/artwork-thumbnail";
 import ItemCard from "@/components/item-cards/item-card";
 import type { AuctionView } from "@/server/auction-gameplay";
 import { ARTWORK_RARITIES, type ArtworkRarity } from "@/server/gameplay";
@@ -310,6 +311,7 @@ export default function AuctionHouse({
               <span role="columnheader">Artwork</span>
               <span role="columnheader">Details</span>
               <span role="columnheader">Seller</span>
+              <span role="columnheader">Estimated value</span>
               <span role="columnheader">Current</span>
               <span role="columnheader">Next bid</span>
               <span role="columnheader">Buy now</span>
@@ -317,13 +319,26 @@ export default function AuctionHouse({
               <span aria-hidden="true" />
             </div>
             {data.auctions.map((auction) => (
-              <article className="auction-list-row" key={auction._id} role="row">
+              <article
+                aria-label={`Open auction for ${auction.item.artwork.title} by ${auction.item.artwork.artist}`}
+                className="auction-list-row"
+                data-rarity={auction.item.artwork.rarity}
+                key={auction._id}
+                onClick={() => setSelected(auction)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    setSelected(auction);
+                  }
+                }}
+                role="row"
+                tabIndex={0}
+              >
                 <div className="auction-list-artwork" role="cell">
                   <div className="auction-list-card">
-                    <AuctionItemCard
-                      auction={auction}
-                      legendaryAttributes={legendaryAttributes}
-                      playerId={playerId}
+                    <ArtworkThumbnail
+                      alt=""
+                      artworkId={auction.item.artwork_id}
                     />
                   </div>
                   <div>
@@ -332,7 +347,9 @@ export default function AuctionHouse({
                   </div>
                 </div>
                 <div className="auction-list-details" role="cell">
-                  <strong className={auction.item.artwork.rarity}>
+                  <strong
+                    className={`rarity-text ${auction.item.artwork.rarity}`}
+                  >
                     {auction.item.artwork.rarity}
                   </strong>
                   <span>{getCardType(auction)}</span>
@@ -348,6 +365,9 @@ export default function AuctionHouse({
                   </span>
                   {auction.currentlyWinning ? <em>Winning</em> : null}
                 </div>
+                <strong role="cell">
+                  ${auction.item.values.actual.toLocaleString()}
+                </strong>
                 <strong role="cell">
                   ${auction.current_bid.toLocaleString()}
                 </strong>
@@ -445,6 +465,7 @@ export default function AuctionHouse({
         <BidDialog
           auction={selected}
           bankBalance={bankBalance}
+          legendaryAttributes={legendaryAttributes}
           onClose={() => setSelected(null)}
           onSuccess={(nextBalance) => {
             setBankBalance(nextBalance);
@@ -452,6 +473,7 @@ export default function AuctionHouse({
             void load();
             router.refresh();
           }}
+          playerId={playerId}
         />
       ) : null}
     </main>
@@ -460,10 +482,12 @@ export default function AuctionHouse({
 
 function AuctionItemCard({
   auction,
+  interactive = true,
   legendaryAttributes,
   playerId,
 }: {
   auction: AuctionView;
+  interactive?: boolean;
   legendaryAttributes: CardLegendaryAttribute[];
   playerId: string;
 }) {
@@ -471,7 +495,7 @@ function AuctionItemCard({
     <ItemCard
       alreadyOwned={auction.owned}
       consigned={auction.seller_id === playerId}
-      interactive
+      interactive={interactive}
       item={auction.item}
       legendaryAttributes={legendaryAttributes}
       permissions={{
@@ -520,13 +544,17 @@ function getCardType(auction: AuctionView): string {
 function BidDialog({
   auction,
   bankBalance,
+  legendaryAttributes,
   onClose,
   onSuccess,
+  playerId,
 }: {
   auction: AuctionView;
   bankBalance: number;
+  legendaryAttributes: CardLegendaryAttribute[];
   onClose: () => void;
   onSuccess: (bankBalance: number) => void;
+  playerId: string;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [amount, setAmount] = useState(auction.minimum_bid.toString());
@@ -586,6 +614,12 @@ function BidDialog({
             <p>{auction.privateAuction ? "Private auction" : "Auction house"}</p>
             <h2>{auction.item.artwork.title}</h2>
             <span>{auction.item.artwork.artist}</span>
+            {auction.currentlyWinning ? (
+              <strong className="auction-dialog-winning">
+                <i aria-hidden="true" className="fa fa-trophy" /> You are
+                winning
+              </strong>
+            ) : null}
           </div>
           <button
             aria-label="Close bidding dialog"
@@ -596,42 +630,95 @@ function BidDialog({
             <i aria-hidden="true" className="fa fa-times" />
           </button>
         </header>
-        <p>
-          Available funds: <strong>${available.toLocaleString()}</strong>
-          {auction.currentlyWinning
-            ? " including your current escrowed bid"
-            : ""}
-        </p>
-        <label>
-          Bid amount
-          <span>
-            <i aria-hidden="true" className="fa fa-usd" />
-            <input
-              min={auction.minimum_bid}
-              onChange={(event) => setAmount(event.target.value)}
-              required
-              step="1"
-              type="number"
-              value={amount}
+        <div className="auction-dialog-body">
+          <div className="auction-dialog-card">
+            <AuctionItemCard
+              auction={auction}
+              interactive={false}
+              legendaryAttributes={legendaryAttributes}
+              playerId={playerId}
             />
-          </span>
-          <small>Minimum ${auction.minimum_bid.toLocaleString()}</small>
-        </label>
-        {error ? <p className="auction-dialog-error">{error}</p> : null}
-        <footer>
-          {auction.buy_now !== null ? (
-            <button
-              disabled={submitting || available < auction.buy_now}
-              onClick={() => void submit(true)}
-              type="button"
-            >
-              Buy now · ${auction.buy_now.toLocaleString()}
-            </button>
-          ) : null}
-          <button disabled={submitting} type="submit">
-            Place bid
-          </button>
-        </footer>
+          </div>
+          <div className="auction-dialog-bidding">
+            <dl className="auction-dialog-facts">
+              <div>
+                <dt>Seller</dt>
+                <dd>{auction.seller_name}</dd>
+              </div>
+              <div>
+                <dt>Access</dt>
+                <dd>{auction.privateAuction ? "Private" : "Public"}</dd>
+              </div>
+              <div>
+                <dt>Estimated value</dt>
+                <dd>${auction.item.values.actual.toLocaleString()}</dd>
+              </div>
+              <div>
+                <dt>{auction.has_bid ? "Current bid" : "Starting bid"}</dt>
+                <dd>${auction.current_bid.toLocaleString()}</dd>
+              </div>
+              <div>
+                <dt>Next bid</dt>
+                <dd>${auction.minimum_bid.toLocaleString()}</dd>
+              </div>
+              <div>
+                <dt>Buy now</dt>
+                <dd>
+                  {auction.buy_now === null
+                    ? "Not offered"
+                    : `$${auction.buy_now.toLocaleString()}`}
+                </dd>
+              </div>
+              <div>
+                <dt>Remaining</dt>
+                <dd>{formatRemaining(auction.expiration)}</dd>
+              </div>
+            </dl>
+            <p>
+              Available funds: <strong>${available.toLocaleString()}</strong>
+              {auction.currentlyWinning
+                ? " including your current escrowed bid"
+                : ""}
+            </p>
+            <label>
+              Bid amount
+              <span>
+                <i aria-hidden="true" className="fa fa-usd" />
+                <input
+                  min={auction.minimum_bid}
+                  onChange={(event) => setAmount(event.target.value)}
+                  required
+                  step="1"
+                  type="number"
+                  value={amount}
+                />
+              </span>
+              <small>Minimum ${auction.minimum_bid.toLocaleString()}</small>
+            </label>
+            {error ? <p className="auction-dialog-error">{error}</p> : null}
+            <footer>
+              {auction.buy_now !== null ? (
+                <button
+                  disabled={submitting || available < auction.buy_now}
+                  onClick={() => void submit(true)}
+                  type="button"
+                >
+                  Buy now · ${auction.buy_now.toLocaleString()}
+                </button>
+              ) : null}
+              <button
+                disabled={
+                  submitting ||
+                  auction.seller_id === playerId ||
+                  available < Number(amount)
+                }
+                type="submit"
+              >
+                {auction.seller_id === playerId ? "Your listing" : "Place bid"}
+              </button>
+            </footer>
+          </div>
+        </div>
       </form>
     </dialog>
   );
