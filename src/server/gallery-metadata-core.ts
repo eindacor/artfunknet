@@ -12,12 +12,14 @@ export type GalleryAttributeAggregate = {
   type: string;
   count: number;
   totalRating: number;
+  effectiveRating: number;
 };
 
 export type GalleryMetadataSnapshot = {
   value: number;
   score: number;
   display_count: number;
+  display_capacity: number;
   attributes: GalleryAttributeAggregate[];
   display_rarities: ArtworkRarity[];
   active_unique_attributes: string[];
@@ -28,9 +30,13 @@ export type GalleryMetadataSnapshot = {
 
 export function buildGalleryMetadataSnapshot(
   items: readonly GameItem[],
+  displayCapacity: number,
   rarityByArtworkId: ReadonlyMap<string, ArtworkRarity> = new Map(),
 ): GalleryMetadataSnapshot {
-  const attributeMap = new Map<string, GalleryAttributeAggregate>();
+  const attributeMap = new Map<
+    string,
+    Omit<GalleryAttributeAggregate, "effectiveRating">
+  >();
   const activeUniqueAttributes = new Set<string>();
   let value = 0;
   let ratingTotal = 0;
@@ -76,6 +82,12 @@ export function buildGalleryMetadataSnapshot(
     .map((attribute) => ({
       ...attribute,
       totalRating: Number(attribute.totalRating.toFixed(3)),
+      effectiveRating: Number(
+        getEffectiveGalleryAttributeRating(
+          attribute.totalRating,
+          displayCapacity,
+        ).toFixed(3),
+      ),
     }))
     .sort(
       (left, right) =>
@@ -97,6 +109,7 @@ export function buildGalleryMetadataSnapshot(
     value,
     score: Math.floor(Number(ratingTotal.toFixed(6)) * 100),
     display_count: items.length,
+    display_capacity: Math.max(0, Math.floor(displayCapacity)),
     attributes,
     display_rarities: displayRarities,
     active_unique_attributes: [...activeUniqueAttributes],
@@ -104,6 +117,20 @@ export function buildGalleryMetadataSnapshot(
     featured_artwork_id: featuredItem?.artwork_id ?? null,
     featured_value: featuredItem?.values.actual ?? 0,
   };
+}
+
+export function getEffectiveGalleryAttributeRating(
+  totalRating: number,
+  displayCapacity: number,
+): number {
+  if (
+    !Number.isFinite(totalRating) ||
+    !Number.isFinite(displayCapacity) ||
+    displayCapacity <= 0
+  ) {
+    return 0;
+  }
+  return Math.min(1, Math.max(0, totalRating / displayCapacity));
 }
 
 function getItemAttributes(item: GameItem): ItemAttribute[] {

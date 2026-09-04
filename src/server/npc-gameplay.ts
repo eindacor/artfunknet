@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import type { Db } from "mongodb";
 
 import type { ArtworkRarity, GameItem, ItemAttribute } from "./gameplay.ts";
+import { getEffectiveGalleryAttributeRating } from "./gallery-metadata-core.ts";
 import { getHighestAvailableCollectorQuality } from "./collector-gameplay.ts";
 import {
   ART_COLLECTOR_ATTRIBUTE_ID,
@@ -113,7 +114,10 @@ export function getNpcProcMap(
   return new Map(
     [...aggregateGalleryAttributes(items)].map(
       ([attributeId, { attribute, total }]) => {
-        const attributeRating = total / displayCap;
+        const attributeRating = getEffectiveGalleryAttributeRating(
+          total,
+          displayCap,
+        );
         const baseProc =
           attributeRating * rarityCoefficient * levelCoefficient;
         const chance = Number(

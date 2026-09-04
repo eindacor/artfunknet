@@ -12,11 +12,14 @@ type GalleryPlayer = {
   _id: string;
   active: boolean;
   screen_name: string;
+  profile: {
+    display_cap: number;
+  };
 };
 
 export type GalleryMetadata = {
   _id: string;
-  schema_version: 2;
+  schema_version: 3;
   owner_id: string;
   owner: string;
   value: number;
@@ -40,7 +43,14 @@ export async function refreshGalleryMetadata(
     .collection<GalleryPlayer>("players")
     .findOne(
       { _id: playerId, active: true },
-      { projection: { _id: 1, active: 1, screen_name: 1 } },
+      {
+        projection: {
+          _id: 1,
+          active: 1,
+          screen_name: 1,
+          "profile.display_cap": 1,
+        },
+      },
     );
   if (!player) {
     await database
@@ -69,10 +79,14 @@ export async function refreshGalleryMetadata(
     artworks.map((artwork) => [artwork._id, artwork.rarity]),
   );
   const metadata: Omit<GalleryMetadata, "_id"> = {
-    schema_version: 2,
+    schema_version: 3,
     owner_id: playerId,
     owner: player.screen_name,
-    ...buildGalleryMetadataSnapshot(items, rarityByArtworkId),
+    ...buildGalleryMetadataSnapshot(
+      items,
+      player.profile.display_cap,
+      rarityByArtworkId,
+    ),
     updated_at: now.toISOString(),
   };
   const record: GalleryMetadata = { _id: playerId, ...metadata };
@@ -110,7 +124,7 @@ export async function ensureGalleryMetadata(
   ]);
   const currentOwnerIds = new Set(
     galleries
-      .filter((gallery) => gallery.schema_version === 2)
+      .filter((gallery) => gallery.schema_version === 3)
       .map((gallery) => gallery.owner_id),
   );
   for (const player of players) {

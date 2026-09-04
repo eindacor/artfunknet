@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import type { GameItem, ItemAttribute } from "./gameplay.ts";
-import { buildGalleryMetadataSnapshot } from "./gallery-metadata-core.ts";
+import {
+  buildGalleryMetadataSnapshot,
+  getEffectiveGalleryAttributeRating,
+} from "./gallery-metadata-core.ts";
 
 function attribute(
   id: string,
@@ -87,6 +90,7 @@ test("gallery metadata aggregates values, attributes, and featured artwork", () 
       ]),
       item("item-2", "art-2", 350, [attribute("a", "Curious", 0.8)]),
     ],
+    10,
     new Map([
       ["art-1", "common"],
       ["art-2", "legendary"],
@@ -108,6 +112,7 @@ test("gallery metadata aggregates values, attributes, and featured artwork", () 
       type: "unlocked",
       count: 2,
       totalRating: 1.2,
+      effectiveRating: 0.12,
     },
     {
       id: "b",
@@ -116,6 +121,20 @@ test("gallery metadata aggregates values, attributes, and featured artwork", () 
       type: "unlocked",
       count: 1,
       totalRating: 0.7,
+      effectiveRating: 0.07,
     },
   ]);
+  assert.equal(snapshot.display_capacity, 10);
+});
+
+test("effective attraction uses the full gallery display capacity", () => {
+  assert.ok(
+    Math.abs(getEffectiveGalleryAttributeRating(0.85, 5) - 0.17) <
+      Number.EPSILON,
+  );
+  assert.ok(
+    Math.abs(getEffectiveGalleryAttributeRating(0.99, 10) - 0.099) <
+      Number.EPSILON,
+  );
+  assert.equal(getEffectiveGalleryAttributeRating(4.5, 5), 0.9);
 });

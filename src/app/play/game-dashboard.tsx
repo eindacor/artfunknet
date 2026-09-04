@@ -990,6 +990,9 @@ export default function GameDashboard({
                           <dd>
                             <GalleryAttributeSummary
                               attributes={galleryMetadata.attributes}
+                              displayCapacity={
+                                galleryMetadata.display_capacity
+                              }
                             />
                           </dd>
                         </div>

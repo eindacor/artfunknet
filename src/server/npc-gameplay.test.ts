@@ -39,6 +39,11 @@ test("NPC proc map preserves the legacy rarity, level, and squared scaling", () 
   assert.equal(procs.get("collector")?.chance, 0.58);
 });
 
+test("NPC attraction is divided by total display capacity", () => {
+  const procs = getNpcProcMap([item("masterpiece")], 10, 50);
+  assert.equal(procs.get("collector")?.chance, 0.01);
+});
+
 test("NPC quality rolls preserve the legacy weighted quality map", () => {
   assert.equal(getNpcQuality(0), "bronze");
   assert.equal(getNpcQuality(12 / 36), "silver");

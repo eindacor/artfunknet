@@ -17,12 +17,13 @@ import type { NpcRewardInteraction } from "@/server/standard-npc-rewards";
 
 type GalleryRecord = {
   _id: string;
-  schema_version: 2;
+  schema_version: 3;
   owner_id: string;
   owner: string;
   value: number;
   score: number;
   display_count: number;
+  display_capacity: number;
   attributes: GalleryAttributeAggregate[];
   display_rarities: ArtworkRarity[];
   featured_item_id: string | null;
@@ -271,7 +272,10 @@ export default function GalleryExplorer({
                 </strong>
                 <span role="cell">{gallery.display_count}</span>
                 <div className="gallery-explorer-signature">
-                  <GalleryAttributeSummary attributes={gallery.attributes} />
+                  <GalleryAttributeSummary
+                    attributes={gallery.attributes}
+                    displayCapacity={gallery.display_capacity}
+                  />
                   <GalleryRaritySummary
                     rarities={gallery.display_rarities ?? []}
                   />
@@ -335,7 +339,10 @@ export default function GalleryExplorer({
                   </div>
                 </dl>
                 <div className="gallery-explorer-signature">
-                  <GalleryAttributeSummary attributes={gallery.attributes} />
+                  <GalleryAttributeSummary
+                    attributes={gallery.attributes}
+                    displayCapacity={gallery.display_capacity}
+                  />
                   <GalleryRaritySummary
                     rarities={gallery.display_rarities ?? []}
                   />
@@ -571,8 +578,10 @@ function VisitedGalleryHeader({
 
 export function GalleryAttributeSummary({
   attributes,
+  displayCapacity,
 }: {
   attributes: GalleryAttributeAggregate[];
+  displayCapacity: number;
 }) {
   return (
     <div
@@ -582,20 +591,22 @@ export function GalleryAttributeSummary({
     >
       {attributes.length > 0 ? (
         attributes.map((attribute) => {
-          const averageRating = Math.min(
+          const effectiveRating = Math.min(
             1,
-            Math.max(0, attribute.totalRating / attribute.count),
+            Math.max(0, attribute.effectiveRating),
           );
           const label = `${attribute.title}: ${attribute.count} ${
             attribute.count === 1 ? "work" : "works"
-          }, ${Math.round(averageRating * 100)} average rating`;
+          }, ${Math.round(effectiveRating * 100)}% effective attraction (${
+            Math.round(attribute.totalRating * 100)
+          } total ÷ ${displayCapacity} display slots)`;
           return (
             <i
               aria-label={label}
               className={`fa ${attribute.icon || "fa-tag"}`}
               key={attribute.id}
               role="img"
-              style={{ color: ratingColor(averageRating) }}
+              style={{ color: ratingColor(effectiveRating) }}
               title={label}
             />
           );
