@@ -60,7 +60,7 @@ export default function BaseballCard({
         </div>
         <footer>
           <span>{item.artwork.rarity}</span>
-          <span>PROMO {item.level}</span>
+          <span>P{item.level}</span>
           <span>{Math.round(item.condition * 100)}%</span>
           <AttributeIcons item={item} />
         </footer>

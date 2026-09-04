@@ -17,7 +17,7 @@ export default function CollectibleCard({
       <div className="collectible-card-sparkles" aria-hidden="true" />
       <header>
         <span className="collectible-card-series">ARTIFACT SERIES</span>
-        <span className="collectible-card-level">PROMO {item.level}</span>
+        <span className="collectible-card-level">L{item.level}</span>
       </header>
       <div className="collectible-card-title-row">
         <h3>{item.artwork.title}</h3>

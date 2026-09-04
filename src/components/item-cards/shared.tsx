@@ -386,7 +386,7 @@ export function CompactStats({
 }) {
   return (
     <span className="render-card-compact-stats">
-      <span>PROMO {item.level}</span>
+      <span>P{item.level}</span>
       {showLotteryLevel && item.lottery > 0 ? (
         <span
           aria-label={`Lottery level ${item.lottery}`}
