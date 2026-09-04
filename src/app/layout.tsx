@@ -21,7 +21,7 @@ const orbitron = Orbitron({
 });
 
 export const metadata: Metadata = {
-  title: "Artfunkel",
+  title: "artfunkel",
   description: "An art collecting game",
 };
 

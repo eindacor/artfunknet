@@ -212,7 +212,7 @@ export async function createGlobalSystemChatMessage(
     gallery_owner_id: GLOBAL_CHAT_ROOM_ID,
     gallery_owner_name: "Global chat",
     author_id: ARTFUNKEL_SYSTEM_AUTHOR_ID,
-    author_name: "Artfunkel",
+    author_name: "artfunkel",
     content: normalizedContent,
     created_at: now,
     expires_at: getGalleryChatExpiration(now),

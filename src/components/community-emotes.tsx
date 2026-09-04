@@ -20,7 +20,7 @@ export const COMMUNITY_EMOTE_DETAILS: Record<
   clap: { symbol: "👏", label: "Clap" },
   wow: { symbol: "🤯", label: "Wow" },
   angry: { symbol: "😠", label: "Angry" },
-  artfunkel: { symbol: "a", label: "Artfunkel" },
+  artfunkel: { symbol: "a", label: "artfunkel" },
 };
 
 export function CommunityEmoteSymbol({

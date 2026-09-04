@@ -19,7 +19,7 @@ test("rejects invalid player email addresses and names", () => {
   assert.equal(normalizeScreenName("ab"), null);
   assert.equal(normalizeScreenName("Gallery Owner"), null);
   assert.equal(normalizeScreenName("<script>"), null);
-  assert.equal(normalizeScreenName("Artfunkel"), null);
+  assert.equal(normalizeScreenName("artfunkel"), null);
   assert.equal(normalizeScreenName("ARTFUNKEL"), null);
 });
 
