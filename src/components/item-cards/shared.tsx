@@ -258,9 +258,11 @@ export function CompleteItemRecord({
   legendaryAttributes,
   showAttributeDetails = true,
   showProperties = true,
+  statusValue,
 }: Pick<ItemCardRendererProps, "item" | "legendaryAttributes"> & {
   showAttributeDetails?: boolean;
   showProperties?: boolean;
+  statusValue?: React.ReactNode;
 }) {
   const legendary = getActiveLegendaryAttribute(item, legendaryAttributes);
   const properties = [
@@ -329,7 +331,10 @@ export function CompleteItemRecord({
             label="Reroll spending"
             value={`$${item.reroll_spent.toLocaleString()}`}
           />
-          <Fact label="Status" value={item.status.replaceAll("_", " ")} />
+          <Fact
+            label="Status"
+            value={statusValue ?? item.status.replaceAll("_", " ")}
+          />
           <Fact label="Source" value={item.source} />
           <Fact
             label="Tags"

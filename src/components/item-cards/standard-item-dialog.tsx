@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
 
@@ -16,6 +17,7 @@ import {
 import type {
   CardLegendaryAttribute,
   CardRendererId,
+  ItemDisplayOwner,
   ItemDialogPermissions,
 } from "./types";
 import type { HydratedGameItem } from "@/server/item-artwork";
@@ -28,6 +30,8 @@ export default function StandardItemDialog({
   permissions,
   onClose,
   onOpenArtStyle,
+  displayOwner,
+  viewerId,
 }: {
   item: HydratedGameItem;
   legendaryAttributes: CardLegendaryAttribute[];
@@ -36,10 +40,11 @@ export default function StandardItemDialog({
   permissions: ItemDialogPermissions;
   onClose: () => void;
   onOpenArtStyle?: () => void;
+  displayOwner?: ItemDisplayOwner;
+  viewerId?: string | null;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
-  const appliedCosmetic = getCardCosmetic(currentRendererId);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -78,8 +83,65 @@ export default function StandardItemDialog({
       ref={dialogRef}
       tabIndex={-1}
     >
-      <div className="standard-item-dialog-content">
-        <header className="standard-item-dialog-header">
+      <StandardItemDetails
+        actions={actions}
+        currentRendererId={currentRendererId}
+        displayOwner={displayOwner}
+        item={item}
+        legendaryAttributes={legendaryAttributes}
+        onClose={closeDialog}
+        onOpenArtStyle={onOpenArtStyle}
+        permissions={permissions}
+        viewerId={viewerId}
+      />
+    </dialog>
+  );
+}
+
+export function StandardItemDetails({
+  item,
+  legendaryAttributes,
+  currentRendererId,
+  actions,
+  permissions,
+  onClose,
+  onOpenArtStyle,
+  displayOwner,
+  viewerId,
+}: {
+  item: HydratedGameItem;
+  legendaryAttributes: CardLegendaryAttribute[];
+  currentRendererId: CardRendererId;
+  actions?: React.ReactNode;
+  permissions: ItemDialogPermissions;
+  onClose?: () => void;
+  onOpenArtStyle?: () => void;
+  displayOwner?: ItemDisplayOwner;
+  viewerId?: string | null;
+}) {
+  const appliedCosmetic = getCardCosmetic(currentRendererId);
+  const displayedStatus =
+    item.status === "displayed" && displayOwner ? (
+      <span>
+        On display in{" "}
+        <Link href={`/gallery/${encodeURIComponent(displayOwner.playerId)}`}>
+          @{displayOwner.screenName}&apos;s gallery
+        </Link>
+      </span>
+    ) : undefined;
+
+  return (
+    <div
+      className="standard-item-dialog-content"
+      data-viewer={
+        viewerId === null
+          ? "anonymous"
+          : viewerId === item.owner
+            ? "owner"
+            : "visitor"
+      }
+    >
+      <header className="standard-item-dialog-header">
           <div className="standard-item-dialog-feature">
             <p className="standard-item-dialog-kicker">
               <span className="card-rarity-label">
@@ -105,14 +167,19 @@ export default function StandardItemDialog({
             className="standard-item-dialog-artwork"
             size={520}
           />
-          <button
-            aria-label="Close item details"
-            className="reroll-dialog-close"
-            onClick={closeDialog}
-            type="button"
-          >
-            <i aria-hidden="true" className="fa fa-times" />
-          </button>
+          <div className="standard-item-dialog-header-actions">
+            <ItemLinkButton itemId={item._id} />
+            {onClose ? (
+              <button
+                aria-label="Close item details"
+                className="reroll-dialog-close"
+                onClick={onClose}
+                type="button"
+              >
+                <i aria-hidden="true" className="fa fa-times" />
+              </button>
+            ) : null}
+          </div>
         </header>
         <div className="standard-item-dialog-layout">
           <div className="standard-item-dialog-sidebar">
@@ -155,7 +222,7 @@ export default function StandardItemDialog({
                     target.getAttribute("aria-disabled") !== "true" &&
                     target.dataset.dialogPersistent !== "true"
                   ) {
-                    closeDialog();
+                    onClose?.();
                   }
                 }}
               >
@@ -164,7 +231,7 @@ export default function StandardItemDialog({
                   <ArtStyleActionButton
                     onClick={() => {
                       onOpenArtStyle?.();
-                      closeDialog();
+                      onClose?.();
                     }}
                   />
                 ) : null}
@@ -176,6 +243,7 @@ export default function StandardItemDialog({
             legendaryAttributes={legendaryAttributes}
             showAttributeDetails={false}
             showProperties={false}
+            statusValue={displayedStatus}
           />
         </div>
         {currentRendererId !== "museum" ? (
@@ -188,7 +256,64 @@ export default function StandardItemDialog({
             </strong>
           </section>
         ) : null}
-      </div>
-    </dialog>
+    </div>
+  );
+}
+
+function ItemLinkButton({ itemId }: { itemId: string }) {
+  const [status, setStatus] = useState<"idle" | "copied" | "error">("idle");
+
+  async function copyLink() {
+    try {
+      const itemUrl = new URL(
+        `/items/${encodeURIComponent(itemId)}`,
+        window.location.origin,
+      ).toString();
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(itemUrl);
+      } else {
+        const input = document.createElement("textarea");
+        input.value = itemUrl;
+        input.style.position = "fixed";
+        input.style.opacity = "0";
+        document.body.append(input);
+        input.select();
+        const copied = document.execCommand("copy");
+        input.remove();
+        if (!copied) throw new Error("Clipboard copy was rejected.");
+      }
+      setStatus("copied");
+      window.setTimeout(() => setStatus("idle"), 1800);
+    } catch {
+      setStatus("error");
+    }
+  }
+
+  return (
+    <button
+      aria-label="Copy item link"
+      className="standard-item-link-button"
+      onClick={() => void copyLink()}
+      title={
+        status === "copied"
+          ? "Link copied"
+          : status === "error"
+            ? "Unable to copy link"
+            : "Copy item link"
+      }
+      type="button"
+    >
+      <i
+        aria-hidden="true"
+        className={`fa ${status === "copied" ? "fa-check" : "fa-link"}`}
+      />
+      <span>
+        {status === "copied"
+          ? "Copied"
+          : status === "error"
+            ? "Copy failed"
+            : "Link"}
+      </span>
+    </button>
   );
 }

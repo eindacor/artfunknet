@@ -12,6 +12,123 @@
   --rarity-glow: rgb(57 181 74 / 42%);
 }
 
+.standard-item-dialog-header-actions {
+  display: flex;
+  grid-column: 3;
+  grid-row: 1;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.standard-item-link-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid #8e887d;
+  border-radius: 999px;
+  padding: 0.42rem 0.7rem;
+  background: #fffdf7;
+  color: #292622;
+  cursor: pointer;
+  font: 700 0.65rem Courier, "Courier New", monospace;
+  text-transform: uppercase;
+}
+
+.standard-item-link-button:hover {
+  border-color: var(--rarity-color);
+  color: var(--rarity-dark);
+}
+
+.public-showcase-page {
+  min-height: 100vh;
+  padding: 0 24px 48px;
+  background:
+    radial-gradient(circle at top, rgb(255 255 255 / 7%), transparent 45%),
+    #121212;
+}
+
+.public-showcase-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: min(1280px, 100%);
+  margin: 0 auto;
+  padding: 18px 0;
+}
+
+.public-showcase-header .nav-title {
+  color: #fff;
+  text-decoration: none;
+}
+
+.public-showcase-nav-link {
+  border: 1px solid rgb(255 255 255 / 28%);
+  border-radius: 999px;
+  padding: 0.48rem 0.85rem;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.public-showcase-nav-link:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.public-item-record.standard-item-dialog {
+  position: relative;
+  inset: auto;
+  width: min(1080px, 100%);
+  max-width: 1080px;
+  max-height: none;
+  margin: 24px auto 0;
+  overflow: hidden;
+}
+
+.public-gallery-intro {
+  width: min(1280px, 100%);
+  margin: 24px auto 20px;
+  color: #fff;
+}
+
+.public-gallery-intro > p {
+  margin: 0;
+  color: var(--accent);
+  font: 700 0.72rem Courier, "Courier New", monospace;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.public-gallery-intro h1 {
+  margin: 0.2rem 0;
+  font: 700 clamp(2rem, 6vw, 4.5rem) var(--font-orbitron), sans-serif;
+}
+
+.public-gallery-intro > span {
+  color: rgb(255 255 255 / 66%);
+}
+
+.public-gallery-window {
+  width: min(1280px, 100%);
+  margin: 0 auto;
+  border: 1px solid rgb(255 255 255 / 18%);
+  box-shadow: 0 24px 70px rgb(0 0 0 / 35%);
+}
+
+.public-gallery-window .gallery-floor {
+  margin-bottom: 0;
+}
+
+.public-gallery-window .framed-painting {
+  cursor: pointer;
+}
+
+.standard-item-dialog .complete-item-record a {
+  color: #185b9d;
+  font-weight: 700;
+}
+
 .rendered-item-card {
   --card-width: 280px;
   position: relative;
@@ -4706,6 +4823,19 @@
       justify-items: start;
       padding-top: 1rem;
       text-align: left;
+    }
+
+    .standard-item-dialog-header-actions {
+      position: static;
+      grid-column: 1;
+      grid-row: auto;
+      justify-self: stretch;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    .standard-item-dialog-header-actions .reroll-dialog-close {
+      position: static;
     }
 
     .standard-item-dialog-identity {

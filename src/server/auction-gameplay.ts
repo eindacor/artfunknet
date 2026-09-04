@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { MongoServerError, type Db, type Filter, type Sort } from "mongodb";
 
 import type { ArtHistorianQuest } from "./art-historian-gameplay";
+import { getAuctionSettlementDisposition } from "./auction-settlement";
 import {
   getPublicAuctionReplenishmentCount,
   PUBLIC_AUCTION_DURATION_MINUTES,
@@ -330,6 +331,8 @@ export async function settleAuction(
       expiration: auction.expiration,
       current_bid: auction.current_bid,
       current_winner_id: auction.current_winner_id,
+      current_winner_name: auction.current_winner_name,
+      has_bid: auction.has_bid,
       settlement_status: { $ne: "settling" },
     },
     { $set: { settlement_status: "settling" } },
@@ -340,6 +343,37 @@ export async function settleAuction(
   let sellerPaid = false;
   let itemTransferred = false;
   try {
+    if (
+      getAuctionSettlementDisposition({
+        currentWinnerId: auction.current_winner_id,
+        currentWinnerName: auction.current_winner_name,
+        currentBid: auction.current_bid,
+        hasBid: auction.has_bid,
+        startingBid: auction.starting_bid,
+      }) === "unresolved-bid" &&
+      auction.seller_id
+    ) {
+      const recoveredWinner = await recoverAuctionWinner(database, auction);
+      if (!recoveredWinner) {
+        console.error(
+          `Auction ${auction._id} has a recorded bid but no recoverable winner; refusing to return the item as unsold.`,
+        );
+        await resetSettlement(database, auction._id);
+        return false;
+      }
+      auction.current_winner_id = recoveredWinner._id;
+      auction.current_winner_name = recoveredWinner.screen_name;
+      await database.collection<Auction>("auctions").updateOne(
+        { _id: auction._id, settlement_status: "settling" },
+        {
+          $set: {
+            current_winner_id: recoveredWinner._id,
+            current_winner_name: recoveredWinner.screen_name,
+          },
+        },
+      );
+    }
+
     if (!auction.current_winner_id) {
       if (auction.seller_id) {
         const returned = await items.updateOne(
@@ -361,7 +395,7 @@ export async function settleAuction(
         _id: auction._id,
         settlement_status: "settling",
       });
-      if (auction.seller_id) {
+      if (auction.seller_id && !auction.has_bid) {
         await safelyNotify(database, auction.seller_id, {
           kind: "info",
           message: `${auction.item_snapshot.title} returned from auction without a sale.`,
@@ -565,6 +599,33 @@ export async function settleAuction(
     }
     return false;
   }
+}
+
+async function recoverAuctionWinner(
+  database: Db,
+  auction: Auction,
+): Promise<Pick<AuctionPlayer, "_id" | "screen_name"> | null> {
+  if (!auction.seller_id) return null;
+  const sellerId = auction.seller_id;
+  const players = database.collection<AuctionPlayer>("players");
+  if (auction.current_winner_name) {
+    const namedWinner = await players.findOne(
+      {
+        _id: { $ne: sellerId },
+        screen_name: auction.current_winner_name,
+      },
+      { projection: { _id: 1, screen_name: 1 } },
+    );
+    if (namedWinner) return namedWinner;
+  }
+
+  return players.findOne(
+    {
+      _id: { $ne: sellerId },
+      "profile.auction_data.winning": auction._id,
+    } as Filter<AuctionPlayer>,
+    { projection: { _id: 1, screen_name: 1 } },
+  );
 }
 
 async function resetSettlement(database: Db, auctionId: string) {

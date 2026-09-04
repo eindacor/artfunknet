@@ -60,3 +60,8 @@ export type ItemDialogPermissions = {
   canManageItem: boolean;
   canCustomizeCosmetic: boolean;
 };
+
+export type ItemDisplayOwner = {
+  playerId: string;
+  screenName: string;
+};

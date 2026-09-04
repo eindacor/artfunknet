@@ -1686,6 +1686,10 @@ export default function GameDashboard({
             currentRendererId={resolveCardRendererId({
               itemRendererId: galleryItemDetails.card_renderer,
             })}
+            displayOwner={{
+              playerId,
+              screenName: player.screenName,
+            }}
             item={galleryItemDetails}
             legendaryAttributes={legendaryAttributes}
             onClose={() => setGalleryItemDetails(null)}
@@ -1696,6 +1700,7 @@ export default function GameDashboard({
               canManageItem: true,
               canCustomizeCosmetic: true,
             }}
+            viewerId={playerId}
           />
         ) : null}
         {galleryArtStyleItem ? (

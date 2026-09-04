@@ -103,7 +103,7 @@ export default function NotificationCenter({
           <small>
             {unreadCount > 0
               ? `${unreadCount} unread`
-              : "Important activity"}
+              : ""}
           </small>
         </div>
         {unreadCount > 0 ? (
@@ -129,8 +129,7 @@ export default function NotificationCenter({
         </div>
         {notifications.length === 0 ? (
           <div className="notification-empty">
-            <i aria-hidden="true" className="fa fa-check-circle" />
-            <p>Nothing needs your attention.</p>
+            <i aria-hidden="true" className="fa fa-bell" />
           </div>
         ) : (
           <ol className="notification-list">
