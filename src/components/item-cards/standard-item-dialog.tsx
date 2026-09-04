@@ -193,14 +193,21 @@ export function StandardItemDetails({
         {viewerId ? (
           <div className="standard-item-community-reactions">
             <span>
-              <small>Artwork</small>
+              <small>item</small>
               <CommunityReactionLoader
                 targetId={item._id}
                 targetType="item"
               />
             </span>
             <span>
-              <small>Artist</small>
+              <small>artwork</small>
+              <CommunityReactionLoader
+                targetId={item.artwork_id}
+                targetType="artwork"
+              />
+            </span>
+            <span>
+              <small>artist</small>
               <CommunityReactionLoader
                 targetId={item.artwork.artist_id}
                 targetType="artist"

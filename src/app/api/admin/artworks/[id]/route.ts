@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { requireAdminApi } from "@/server/admin-api";
+import { deleteCommunityReactions } from "@/server/community-reaction-cleanup";
 import {
   ARTWORK_RARITIES,
   calculateItemValues,
@@ -67,6 +68,7 @@ export async function DELETE(
       { status: 409 },
     );
   }
+  await deleteCommunityReactions(database, "artwork", [id]);
   console.info("Deleted artwork catalog record", {
     artworkId: id,
     title: artwork.title,

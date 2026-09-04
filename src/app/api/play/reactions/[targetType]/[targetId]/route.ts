@@ -152,8 +152,9 @@ async function getTargetAccess(
   if (targetType === "item") {
     return (await getPublicItemView(database, targetId, viewerId)) ? {} : null;
   }
-  const artist = await database
-    .collection<{ _id: string }>("artists")
+  const collectionName = targetType === "artwork" ? "artworks" : "artists";
+  const record = await database
+    .collection<{ _id: string }>(collectionName)
     .findOne({ _id: targetId }, { projection: { _id: 1 } });
-  return artist ? {} : null;
+  return record ? {} : null;
 }

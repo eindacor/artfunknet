@@ -12,6 +12,7 @@ export const COMMUNITY_REACTION_TARGETS = [
   "message",
   "gallery",
   "item",
+  "artwork",
   "artist",
 ] as const;
 

@@ -175,7 +175,7 @@ signing in.
 The main player profile has a lightweight global chat beneath notifications.
 Opening another player's gallery replaces that context with the gallery's own
 chat; the global feed is not shown while visiting a gallery. Messages support
-`@Player Name` links and `/items/<itemId>` links, which render as
+`@PlayerName` links and `/items/<itemId>` links, which render as
 rarity-colored painting icons with item previews. Ordinary messages expire
 after seven days, and open chats check for new messages every five seconds.
 Reporting a message preserves it from automatic deletion so administrators can
@@ -183,9 +183,12 @@ review and hide or restore it at
 <http://localhost:3000/admin/chat-reports>.
 
 Signed-in item profiles include a **Share** action beside **Copy link** that
-posts the item directly to global chat. Chat messages support heart, fire,
-applause, and wow emotes; MongoDB stores both the reacting player IDs and the
-corresponding count for each emote.
+posts the item directly to global chat. The `community_reactions` collection
+stores heart, fire, laugh, clap, wow, angry, and Artfunkel reactions for chat
+messages, galleries, individual items, artwork records, and artists. Item
+profiles expose separate reaction controls for **This item**, **This artwork**,
+and **Artist**. Heart and angry reactions adjust the reacting player's Karma.
+Reaction rows are removed when their target records are permanently deleted.
 
 Chat expiration uses a MongoDB TTL index on
 `gallery_chat_messages.expires_at`; no separate cleanup worker or scheduled
