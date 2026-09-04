@@ -1590,7 +1590,7 @@ export default function GameDashboard({
                           disabled={pending}
                           onClick={() => setGalleryItemDetails(item)}
                           style={{
-                            backgroundImage: `url("/api/artwork/${item.artwork_id}/image")`,
+                            backgroundImage: `url("/api/artwork/${item.artwork_id}/image?variant=full")`,
                             height: getGalleryPaintingDimension(
                               item.artwork.height,
                               galleryPixelsPerCentimeter,

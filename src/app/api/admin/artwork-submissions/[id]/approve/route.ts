@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server";
 
 import { requireAdminApi } from "@/server/admin-api";
-import {
-  getArtworkBufferDimensions,
-  getArtworkPixelDimensions,
-} from "@/server/artwork-files";
+import { readArtworkSource } from "@/server/artwork-files";
+import { processArtworkImage } from "@/server/artwork-image-processing";
 import {
   ArtworkStorageConfigurationError,
-  publishArtwork,
+  deleteArtworkImageRecord,
+  publishArtworkVariants,
   readArtworkObject,
   type ArtworkStorageReference,
 } from "@/server/artwork-storage";
@@ -127,90 +126,127 @@ export async function POST(
     (source): source is { source_path: string } =>
       typeof source.source_path === "string",
   );
-  let pixelDimensions: { width: number; height: number };
+  let sourceImage: Buffer;
   try {
-    pixelDimensions = submission.image.storage
-      ? await getArtworkBufferDimensions(
-          await readArtworkObject(submission.image.storage),
-        )
-      : await getArtworkPixelDimensions(localSources);
+    sourceImage = submission.image.storage
+      ? await readArtworkObject(submission.image.storage)
+      : await readArtworkSource(localSources);
   } catch (error) {
-    console.error("Unable to read artwork dimensions", error);
+    console.error("Unable to read artwork source", error);
     return NextResponse.json(
-      { error: "The source image dimensions could not be determined." },
+      { error: "The source image could not be read." },
       { status: 422 },
     );
   }
 
-  const calculatedWidth = Number(
-    (
-      validation.value.height *
-      (pixelDimensions.width / pixelDimensions.height)
-    ).toFixed(2),
-  );
   const artworkId = submission._id.slice(0, 24);
-  let publishedImage: Awaited<ReturnType<typeof publishArtwork>>;
+  let processedImage: Awaited<ReturnType<typeof processArtworkImage>>;
   try {
-    publishedImage = await publishArtwork({
+    processedImage = await processArtworkImage({
       artworkId,
-      contentType: submission.image.mime_type,
-      intakeStorage: submission.image.storage,
-      localSources,
+      extension: submission.image.extension,
+      source: sourceImage,
     });
   } catch (error) {
+    console.error("Unable to process artwork image", error);
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "The artwork image could not be processed.",
+      },
+      { status: 422 },
+    );
+  }
+
+  let publishedImage:
+    | Awaited<ReturnType<typeof publishArtworkVariants>>
+    | undefined;
+  let artworkCreated = false;
+  try {
+    publishedImage = await publishArtworkVariants({
+      artworkId,
+      variants: processedImage.variants,
+    });
+    const pixelDimensions = processedImage.variants.full;
+    const calculatedWidth = Number(
+      (
+        validation.value.height *
+        (pixelDimensions.width / pixelDimensions.height)
+      ).toFixed(2),
+    );
+    const now = new Date();
+    const artwork = {
+      _id: artworkId,
+      artist_id: artist._id,
+      artist: artist.artist_name,
+      title: validation.value.title,
+      date: validation.value.date,
+      genre: validation.value.genre,
+      medium: validation.value.medium,
+      rarity: validation.value.rarity,
+      value_scale: validation.value.value_scale,
+      height: validation.value.height,
+      width: calculatedWidth,
+      image_width: pixelDimensions.width,
+      image_height: pixelDimensions.height,
+      nsfw: validation.value.nsfw,
+      active: true,
+      special_attributes: validation.value.special_attribute_ids,
+      unique_attributes: uniqueAttributeIds,
+      image: publishedImage,
+      market_data: {},
+      created_at: now,
+      created_from_submission: submission._id,
+    };
+
+    const artworkUpdate = await database
+      .collection<typeof artwork>("artworks")
+      .updateOne({ _id: artworkId }, { $setOnInsert: artwork }, { upsert: true });
+    artworkCreated = artworkUpdate.upsertedCount === 1;
+    const submissionUpdate = await database
+      .collection<Submission>("artwork_submissions")
+      .updateOne(
+        { _id: submission._id, status: { $ne: "approved" } },
+        {
+          $set: {
+            status: "approved",
+            draft: validation.value,
+            "review.updated_at": now,
+            "review.updated_by": auth.session.email,
+            "review.approved_at": now,
+            "review.approved_by": auth.session.email,
+            "review.artwork_id": artworkId,
+          },
+        },
+      );
+    if (submissionUpdate.modifiedCount !== 1) {
+      throw new Error("The artwork submission approval could not be committed.");
+    }
+  } catch (error) {
+    if (artworkCreated) {
+      await database
+        .collection<{ _id: string; created_from_submission: string }>(
+          "artworks",
+        )
+        .deleteOne({ _id: artworkId, created_from_submission: submission._id })
+        .catch((cleanupError) => {
+          console.error("Unable to roll back approved artwork", cleanupError);
+        });
+    }
+    if (publishedImage) {
+      await deleteArtworkImageRecord(publishedImage).catch((cleanupError) => {
+        console.error("Unable to roll back published artwork variants", cleanupError);
+      });
+    }
     if (error instanceof ArtworkStorageConfigurationError) {
       return NextResponse.json({ error: error.message }, { status: 503 });
     }
-
     throw error;
+  } finally {
+    await processedImage.cleanup();
   }
-  const now = new Date();
-  const artwork = {
-    _id: artworkId,
-    artist_id: artist._id,
-    artist: artist.artist_name,
-    title: validation.value.title,
-    date: validation.value.date,
-    genre: validation.value.genre,
-    medium: validation.value.medium,
-    rarity: validation.value.rarity,
-    value_scale: validation.value.value_scale,
-    height: validation.value.height,
-    width: calculatedWidth,
-    image_width: pixelDimensions.width,
-    image_height: pixelDimensions.height,
-    nsfw: validation.value.nsfw,
-    active: true,
-    special_attributes: validation.value.special_attribute_ids,
-    unique_attributes: uniqueAttributeIds,
-    image: {
-      content_type: submission.image.mime_type,
-      storage: publishedImage.storage,
-    },
-    market_data: {},
-    created_at: now,
-    created_from_submission: submission._id,
-  };
-
-  await database
-    .collection<typeof artwork>("artworks")
-    .updateOne({ _id: artworkId }, { $setOnInsert: artwork }, { upsert: true });
-  await database
-    .collection<Submission>("artwork_submissions")
-    .updateOne(
-      { _id: submission._id, status: { $ne: "approved" } },
-      {
-        $set: {
-          status: "approved",
-          draft: validation.value,
-          "review.updated_at": now,
-          "review.updated_by": auth.session.email,
-          "review.approved_at": now,
-          "review.approved_by": auth.session.email,
-          "review.artwork_id": artworkId,
-        },
-      },
-    );
 
   return NextResponse.json({ status: "ok", artwork_id: artworkId });
 }

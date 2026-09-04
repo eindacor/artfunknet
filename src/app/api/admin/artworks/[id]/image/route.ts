@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 
 import { requireAdminApi } from "@/server/admin-api";
+import { processArtworkImage } from "@/server/artwork-image-processing";
 import {
-  uploadArtworkIntake,
-  publishArtwork,
+  publishArtworkVariants,
+  readArtworkUpload,
   verifyArtworkStorageConnection,
 } from "@/server/artwork-storage";
-import { getArtworkBufferDimensions } from "@/server/artwork-files";
 import { getDatabase } from "@/server/mongodb";
 
 type ArtworkDocument = {
@@ -39,30 +39,36 @@ export async function POST(
 
   try {
     await verifyArtworkStorageConnection();
-    const upload = await uploadArtworkIntake(file);
-    const dimensions = await getArtworkBufferDimensions(
-      Buffer.from(await file.arrayBuffer()),
-    );
-    const published = await publishArtwork({
+    const upload = await readArtworkUpload(file);
+    const processed = await processArtworkImage({
       artworkId: id,
-      contentType: upload.mimeType,
-      intakeStorage: upload.storage,
-      localSources: [],
+      extension: upload.extension,
+      source: upload.bytes,
     });
-    const updated = {
-      ...artwork,
-      image: {
-        content_type: upload.mimeType,
-        storage: published.storage,
-      },
-      image_width: dimensions.width,
-      image_height: dimensions.height,
-      updated_at: new Date(),
-      updated_by: auth.session.email,
-    };
-    await database
-      .collection<ArtworkDocument>("artworks")
-      .replaceOne({ _id: id }, updated);
+    let updated: ArtworkDocument;
+    try {
+      const published = await publishArtworkVariants({
+        artworkId: id,
+        variants: processed.variants,
+      });
+      const full = processed.variants.full;
+      updated = {
+        ...artwork,
+        image: published,
+        image_width: full.width,
+        image_height: full.height,
+        updated_at: new Date(),
+        updated_by: auth.session.email,
+      };
+      const result = await database
+        .collection<ArtworkDocument>("artworks")
+        .replaceOne({ _id: id }, updated);
+      if (result.modifiedCount !== 1) {
+        throw new Error("The artwork image metadata could not be updated.");
+      }
+    } finally {
+      await processed.cleanup();
+    }
 
     return NextResponse.json({
       artwork: {

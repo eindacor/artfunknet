@@ -44,17 +44,52 @@ The seed command also creates or updates the local administrator configured by
 <http://localhost:3000/admin/artwork>.
 
 The artwork intake portal supports image review, draft metadata, rejection,
-approval, and inline artist creation. Approval requires an existing artist
-and promotes the reviewed image from the S3 intake prefix to its permanent
-artwork-ID key before creating an active entry in the `artworks` collection.
-Reviewers enter only the physical height; physical width is calculated from
-the source image aspect ratio.
+approval, and inline artist creation. Approval requires an existing artist.
+The uploaded source is processed with Pillow into full, card, and thumbnail
+variants before the active `artworks` record is created. Reviewers enter only
+the physical height; physical width is calculated from the processed full
+image aspect ratio.
 
 Images can be uploaded directly from the administrator's computer. Uploaded
 filenames are retained only for review; S3 keys are
-`artwork-intake/<checksum>` before approval and `artworks/<artworkId>` after
-approval. MongoDB stores review state, metadata, `artist_id`, checksums, and
-the S3 reference. No uploaded images are committed to Git.
+`artwork-intake/<checksum>` before approval and:
+
+```text
+artworks/full/<artworkId>_full.<extension>
+artworks/card/<artworkId>_card.<extension>
+artworks/thumb/<artworkId>_thumb.<extension>
+```
+
+MongoDB stores the dimensions, byte size, checksum, content type, and storage
+reference for each variant. Temporary processor input and output files are
+deleted after the upload attempt. No uploaded images are committed to Git.
+
+Install the local image processor in a virtual environment:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements-artwork.txt
+```
+
+Set `ARTWORK_PYTHON_BINARY=.venv\Scripts\python.exe` in `.env.local`.
+`ARTWORK_CARD_MAX_PIXELS` and `ARTWORK_THUMB_MAX_PIXELS` default to 900 and
+240 respectively.
+
+To test Pillow without changing S3 or MongoDB:
+
+```powershell
+New-Item -ItemType Directory -Force storage\image-test | Out-Null
+.\.venv\Scripts\python.exe scripts\process-artwork-image.py `
+  --input "storage\mock-s3\artworks\<existing-artwork-id>" `
+  --output-dir "storage\image-test" `
+  --artwork-id "local-test" `
+  --extension "jpg"
+```
+
+Use the real source extension from `artwork-image-manifest.txt`. Confirm that
+`local-test_full`, `local-test_card`, and `local-test_thumb` exist and that
+the card and thumbnail have maximum dimensions of 900 and 240 pixels. Delete
+`storage\image-test` afterward.
 
 Configure `AWS_REGION`, `ARTWORK_S3_BUCKET`, and `ARTWORK_CDN_BASE_URL` in
 `.env.local`. AWS credentials are loaded through the standard AWS SDK
@@ -67,8 +102,21 @@ USE_MOCK_S3=true
 ```
 
 The mock uses the same object keys as S3 and stores files under the ignored
-`storage/mock-s3` directory. Approved artwork is fetched by ID from
-`/api/artwork/<artworkId>/image`.
+`storage/mock-s3` directory. Approve a test submission or replace an image in
+the catalog editor, then confirm that files appear under
+`storage/mock-s3/artworks/full`, `card`, and `thumb`. Artwork is fetched by ID
+from `/api/artwork/<artworkId>/image?variant=full|card|thumb`; older
+single-image records fall back automatically.
+
+Generate a tab-separated manifest for offline image processing with:
+
+```powershell
+npm.cmd run artwork:manifest
+```
+
+The generated `artwork-image-manifest.txt` maps every current artwork ID to
+its canonical source object and the expected `<artworkId>_full`,
+`<artworkId>_card`, and `<artworkId>_thumb` output filenames.
 
 On AWS, switch it off:
 
@@ -76,8 +124,8 @@ On AWS, switch it off:
 USE_MOCK_S3=false
 ```
 
-Uploads will then use the configured private S3 bucket, and artwork URLs are
-generated as `<ARTWORK_CDN_BASE_URL>/artworks/<artworkId>`.
+Uploads will then use the configured private S3 bucket and the same
+full/card/thumb object-key layout.
 
 The private versioned bucket and CloudFront distribution can be created with
 the CloudFormation template in `infra/artwork-storage.yaml`:
@@ -88,17 +136,14 @@ aws cloudformation describe-stacks --stack-name artfunkel-artwork --query "Stack
 ```
 
 Set the output values in `.env.local`, restart Next.js, and browser uploads
-will become available. Publish artwork approved before S3 was configured with:
+will become available. Use `artwork-image-manifest.txt` and the Pillow
+processor to prepare variants for artwork that predates this pipeline.
 
-```powershell
-npm.cmd run db:publish-artwork
-```
-
-The IAM identity used by the Next.js server needs `s3:PutObject` and
-`s3:GetObject` access to the `artwork-intake/*` and `artworks/*` prefixes.
-S3 copy operations use those same permissions. On AWS, attach them to the
-application instance or task role rather than storing access keys in
-`.env.local`.
+The IAM identity used by the Next.js server needs `s3:PutObject`,
+`s3:GetObject`, and `s3:DeleteObject` access to the `artwork-intake/*` and
+`artworks/*` prefixes. Delete access is used to roll back a partial approval.
+On AWS, attach these permissions to the application instance or task role
+rather than storing access keys in `.env.local`.
 
 For disaster recovery, back up both MongoDB and the S3 bucket. S3 versioning
 protects image objects, while the MongoDB backup preserves artwork metadata

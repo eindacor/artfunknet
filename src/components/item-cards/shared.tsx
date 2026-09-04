@@ -54,7 +54,7 @@ export function ArtworkImage({
       className={`${className} render-card-artwork-image`}
       role="img"
       style={{
-        backgroundImage: `url("/api/artwork/${item.artwork_id}/image")`,
+        backgroundImage: `url("/api/artwork/${item.artwork_id}/image?variant=card")`,
       }}
     />
   );

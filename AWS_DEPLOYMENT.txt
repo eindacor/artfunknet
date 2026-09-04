@@ -137,12 +137,13 @@ in the repository or .env.production. The role needs:
 
   - s3:ListBucket on the artwork bucket. The Database page uses a bucket
     connectivity check before uploads.
-  - s3:GetObject and s3:PutObject on:
+  - s3:GetObject, s3:PutObject, and s3:DeleteObject on:
       arn:aws:s3:::BUCKET_NAME/artwork-intake/*
       arn:aws:s3:::BUCKET_NAME/artworks/*
 
-Copying an intake object to its permanent artwork key requires reading the
-source and writing the destination. The bucket itself should remain private.
+Processing an intake object requires reading the source and writing the three
+permanent variants. DeleteObject is used to roll back a partial publication
+if approval cannot be committed. The bucket itself should remain private.
 
 For server administration through Systems Manager, also attach the managed
 AmazonSSMManagedInstanceCore policy.
@@ -180,14 +181,22 @@ a substitute for production MongoDB backups.
 5. INSTALL AND BUILD THE APPLICATION
 ====================================
 
-Install Git and Node.js 22 LTS on the EC2 instance. Place the repository in a
-stable path such as /opt/artfunknet:
+Install Git, Node.js 22 LTS, Python 3, and the Python virtual-environment
+package on the EC2 instance:
+
+  sudo apt-get update
+  sudo apt-get install -y git python3 python3-venv
+
+Place the repository in a stable path such as /opt/artfunknet:
 
   sudo mkdir -p /opt/artfunknet
   sudo chown ubuntu:ubuntu /opt/artfunknet
   git clone YOUR_REPOSITORY_URL /opt/artfunknet
   cd /opt/artfunknet
   npm ci
+  python3 -m venv .venv
+  .venv/bin/python -m pip install --upgrade pip
+  .venv/bin/python -m pip install -r requirements-artwork.txt
 
 Create /opt/artfunknet/.env.production. Do not commit this file. Set its file
 permissions to owner-only:
@@ -201,6 +210,10 @@ Example production configuration:
   APP_BASE_URL=https://funkel.art
 
   MAX_ARTWORK_UPLOAD_BYTES=26214400
+  ARTWORK_PYTHON_BINARY=/opt/artfunknet/.venv/bin/python
+  ARTWORK_CARD_MAX_PIXELS=900
+  ARTWORK_THUMB_MAX_PIXELS=240
+  ARTWORK_PROCESSING_TIMEOUT_MS=120000
   USE_MOCK_S3=false
   AWS_REGION=us-east-1
   ARTWORK_S3_BUCKET=VALUE_FROM_CLOUDFORMATION
@@ -236,6 +249,21 @@ Generate SESSION_SECRET with a cryptographically secure tool, for example:
   openssl rand -hex 32
 
 Do not copy development values, local passwords, or .env.local to production.
+
+The administrator approval and catalog image-replacement routes invoke the
+Pillow processor through ARTWORK_PYTHON_BINARY. Each request writes its source
+and generated variants to a unique operating-system temporary directory,
+uploads the variants to S3, updates MongoDB, and removes the temporary
+directory. The systemd PrivateTmp setting is compatible with this workflow.
+
+Permanent image objects use:
+
+  artworks/full/<artworkId>_full.<extension>
+  artworks/card/<artworkId>_card.<extension>
+  artworks/thumb/<artworkId>_thumb.<extension>
+
+The MongoDB artwork record stores the S3 key, content type, dimensions, byte
+size, and SHA-256 checksum for each variant.
 
 APP_BASE_URL is the canonical public application origin. When the individual
 redirect variables are blank, the application derives these values:
@@ -446,6 +474,7 @@ For a simple single-instance update:
   cd /opt/artfunknet
   git pull --ff-only
   npm ci
+  .venv/bin/python -m pip install -r requirements-artwork.txt
   npm run build
   sudo systemctl restart artfunknet
   curl http://127.0.0.1:3000/api/health

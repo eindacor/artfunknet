@@ -166,6 +166,7 @@ export function StandardItemDetails({
             artworkId={item.artwork_id}
             className="standard-item-dialog-artwork"
             size={520}
+            variant="full"
           />
           <div className="standard-item-dialog-header-actions">
             <ItemLinkButton itemId={item._id} />

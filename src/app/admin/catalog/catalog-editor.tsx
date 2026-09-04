@@ -42,10 +42,20 @@ export type ArtworkCatalogEntry = {
   nsfw?: boolean;
   special_attributes?: string[];
   image?: {
+    version?: number;
     storage?: {
       provider: "mock-s3" | "s3";
       bucket?: string;
       key: string;
+    };
+    variants?: {
+      full?: {
+        storage: {
+          provider: "mock-s3" | "s3";
+          bucket?: string;
+          key: string;
+        };
+      };
     };
   };
   hasImage?: boolean;
@@ -87,7 +97,7 @@ export default function CatalogEditor({
       const matchesFilter =
         artworkFilter === "all" ||
         artwork.hasImage === false ||
-        !artwork.image?.storage;
+        !getArtworkStorage(artwork);
       const matchesSearch =
         !search ||
         `${artwork.title} ${artwork.artist} ${artwork.rarity}`
@@ -145,7 +155,7 @@ export default function CatalogEditor({
             artwork._id === result.artwork._id
               ? {
                   ...result.artwork,
-                  hasImage: Boolean(result.artwork.image?.storage),
+                  hasImage: Boolean(getArtworkStorage(result.artwork)),
                 }
               : artwork,
           )
@@ -322,7 +332,8 @@ export default function CatalogEditor({
         >
           Missing images (
           {artworks.filter(
-            (artwork) => artwork.hasImage === false || !artwork.image?.storage,
+            (artwork) =>
+              artwork.hasImage === false || !getArtworkStorage(artwork),
           ).length}
           )
         </button>
@@ -467,7 +478,7 @@ function ArtworkForm({
           alt={`${artwork.title} by ${artwork.artist}`}
           className="h-auto w-full rounded-md border border-white/10 object-contain"
           height={220}
-          src={`/api/artwork/${artwork._id}/image?v=${imageVersion}`}
+          src={`/api/artwork/${artwork._id}/image?variant=thumb&v=${imageVersion}`}
           unoptimized
           width={180}
         />
@@ -507,9 +518,9 @@ function ArtworkForm({
           {uploading ? (
             <span className="text-[var(--muted)]">Uploading...</span>
           ) : null}
-          {artwork.image?.storage ? (
+          {getArtworkStorage(artwork) ? (
             <span className="break-all text-[var(--muted)]">
-              {formatArtworkStoragePath(artwork.image.storage)}
+              {formatArtworkStoragePath(getArtworkStorage(artwork)!)}
             </span>
           ) : (
             <span className="text-[var(--muted)]">
@@ -734,6 +745,10 @@ function ArtistForm({
       </button>
     </form>
   );
+}
+
+function getArtworkStorage(artwork: ArtworkCatalogEntry) {
+  return artwork.image?.variants?.full?.storage ?? artwork.image?.storage;
 }
 
 function formatArtworkStoragePath(

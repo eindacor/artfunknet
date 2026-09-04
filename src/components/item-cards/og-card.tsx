@@ -25,7 +25,7 @@ export default function OgCard({
     <div
       className={`card-container ${item.artwork.rarity}-item`}
       style={{
-        backgroundImage: `url("/api/artwork/${item.artwork_id}/image")`,
+        backgroundImage: `url("/api/artwork/${item.artwork_id}/image?variant=card")`,
       }}
     >
       <div className={`card-header ${cardTypes}`}>

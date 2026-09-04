@@ -64,7 +64,7 @@ export default function PublicGallery({
                     className="framed-painting"
                     onClick={() => setSelectedItem(item)}
                     style={{
-                      backgroundImage: `url("/api/artwork/${item.artwork_id}/image")`,
+                      backgroundImage: `url("/api/artwork/${item.artwork_id}/image?variant=full")`,
                       height: getGalleryPaintingDimension(
                         item.artwork.height,
                         pixelsPerCentimeter,

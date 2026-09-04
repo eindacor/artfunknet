@@ -20,7 +20,7 @@ export default function AlbumCard({
           aria-label={`Vinyl record, ${Math.round(item.condition * 100)}% condition`}
           style={
             {
-              "--album-art": `url("/api/artwork/${item.artwork_id}/image")`,
+              "--album-art": `url("/api/artwork/${item.artwork_id}/image?variant=card")`,
               "--vinyl-wear": Math.max(
                 0,
                 Math.min(1, 1 - item.condition),

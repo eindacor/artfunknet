@@ -35,6 +35,7 @@ try {
     .collection("artworks")
     .find({
       created_from_submission: { $exists: true },
+      "image.version": { $ne: 2 },
       "image.storage.provider": { $ne: desiredProvider },
     })
     .toArray();

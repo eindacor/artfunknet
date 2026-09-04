@@ -86,7 +86,10 @@ export default async function CatalogPage() {
           JSON.stringify(
             artworkDocuments.map((artwork) => ({
               ...artwork,
-              hasImage: Boolean(artwork.image?.storage),
+              hasImage: Boolean(
+                artwork.image?.variants?.full?.storage ??
+                  artwork.image?.storage,
+              ),
             })),
           ),
         )}
