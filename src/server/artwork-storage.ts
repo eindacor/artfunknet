@@ -2,7 +2,6 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 import {
-  copyFile,
   mkdir,
   readFile,
   unlink,
@@ -11,7 +10,6 @@ import {
 import path from "node:path";
 
 import {
-  CopyObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
   HeadBucketCommand,
@@ -19,11 +17,14 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 
-import { readArtworkSource } from "@/server/artwork-files";
 import type {
   ArtworkImageVariantName,
   ProcessedArtworkVariant,
 } from "@/server/artwork-image-processing";
+import {
+  logOperationalError,
+  logOperationalInfo,
+} from "@/server/operational-logging";
 
 const EXTENSIONS_BY_MIME_TYPE: Record<string, string> = {
   "image/bmp": "bmp",
@@ -43,6 +44,7 @@ export type ArtworkStorageReference =
       provider: "s3";
       bucket: string;
       key: string;
+      version_id?: string;
     };
 
 export type ArtworkStorageConnectionStatus = {
@@ -64,8 +66,9 @@ export type ArtworkImageRecord = {
   variants: Record<ArtworkImageVariantName, ArtworkImageVariant>;
 };
 
-type LocalArtworkSource = {
-  source_path: string;
+export type LegacyArtworkImageRecord = {
+  content_type: string;
+  storage: ArtworkStorageReference;
 };
 
 let s3Client: S3Client | undefined;
@@ -128,7 +131,10 @@ export async function getArtworkStorageConnectionStatus({
       message: `Connected to S3 bucket ${bucket}.`,
     };
   } catch (error) {
-    console.error("Unable to connect to artwork S3 storage", error);
+    logOperationalError("artwork_storage.connection_failed", error, {
+      bucket,
+      region,
+    });
     return {
       provider: "s3",
       configured: true,
@@ -159,6 +165,20 @@ export async function uploadArtworkIntake(file: File) {
         upload.mimeType,
         upload.digest,
       );
+  const intakeStorage =
+    storage.provider === "s3"
+      ? {
+          provider: storage.provider,
+          bucket: storage.bucket,
+          key: storage.key,
+        }
+      : storage;
+  logOperationalInfo("artwork_storage.intake_uploaded", {
+    byteSize: upload.byteSize,
+    contentType: upload.mimeType,
+    key: storage.key,
+    provider: storage.provider,
+  });
 
   return {
     digest: upload.digest,
@@ -166,7 +186,7 @@ export async function uploadArtworkIntake(file: File) {
     mimeType: upload.mimeType,
     byteSize: upload.byteSize,
     originalFilename: upload.originalFilename,
-    storage,
+    storage: intakeStorage,
   };
 }
 
@@ -192,78 +212,28 @@ export async function readArtworkObject(
   }
 
   assertConfiguredBucket(storage.bucket);
-  const result = await getS3Client().send(
-    new GetObjectCommand({
-      Bucket: storage.bucket,
-      Key: storage.key,
-    }),
-  );
+  let result;
+  try {
+    result = await getS3Client().send(
+      new GetObjectCommand({
+        Bucket: storage.bucket,
+        Key: storage.key,
+        VersionId: storage.version_id,
+      }),
+    );
+  } catch (error) {
+    logOperationalError("artwork_storage.read_failed", error, {
+      bucket: storage.bucket,
+      key: storage.key,
+    });
+    throw error;
+  }
 
   if (!result.Body) {
     throw new Error("The S3 artwork object has no body.");
   }
 
   return Buffer.from(await result.Body.transformToByteArray());
-}
-
-export async function publishArtwork({
-  artworkId,
-  contentType,
-  intakeStorage,
-  localSources,
-}: {
-  artworkId: string;
-  contentType: string;
-  intakeStorage?: ArtworkStorageReference;
-  localSources: LocalArtworkSource[];
-}): Promise<{ storage: ArtworkStorageReference }> {
-  const key = `artworks/${artworkId}`;
-
-  if (isMockS3Enabled()) {
-    if (intakeStorage?.provider === "mock-s3") {
-      await copyMockObject(intakeStorage.key, key);
-    } else {
-      const bytes = intakeStorage
-        ? await readArtworkObject(intakeStorage)
-        : await readArtworkSource(localSources);
-      await putMockObject(key, bytes);
-    }
-
-    return {
-      storage: {
-        provider: "mock-s3",
-        key,
-      },
-    };
-  }
-
-  const bucket = getBucket();
-
-  if (intakeStorage?.provider === "s3") {
-    assertConfiguredBucket(intakeStorage.bucket);
-    await getS3Client().send(
-      new CopyObjectCommand({
-        Bucket: bucket,
-        Key: key,
-        CopySource: `${intakeStorage.bucket}/${intakeStorage.key}`,
-        ContentType: contentType,
-        MetadataDirective: "REPLACE",
-      }),
-    );
-  } else {
-    const bytes = intakeStorage
-      ? await readArtworkObject(intakeStorage)
-      : await readArtworkSource(localSources);
-    await putS3Object(key, bytes, contentType, artworkId);
-  }
-
-  return {
-    storage: {
-      provider: "s3",
-      bucket,
-      key,
-    },
-  };
 }
 
 export async function publishArtworkVariants({
@@ -279,7 +249,9 @@ export async function publishArtworkVariants({
   try {
     for (const name of ["full", "card", "thumb"] as const) {
       const variant = variants[name];
-      const key = `artworks/${name}/${artworkId}_${name}.${variant.extension}`;
+      const key =
+        `artworks/${name}/${artworkId}_${name}_` +
+        `${variant.checksum.slice(0, 16)}.${variant.extension}`;
       const bytes = await readFile(variant.path);
       const storage = isMockS3Enabled()
         ? await putMockObject(key, bytes)
@@ -302,6 +274,15 @@ export async function publishArtworkVariants({
           storage,
         },
       ]);
+      logOperationalInfo("artwork_storage.variant_published", {
+        artworkId,
+        byteSize: variant.byte_size,
+        height: variant.height,
+        key: storage.key,
+        provider: storage.provider,
+        variant: name,
+        width: variant.width,
+      });
     }
   } catch (error) {
     await Promise.all(
@@ -309,7 +290,11 @@ export async function publishArtworkVariants({
         deleteArtworkObject(variant.storage),
       ),
     ).catch((cleanupError) => {
-      console.error("Unable to clean up partial artwork publication", cleanupError);
+      logOperationalError(
+        "artwork_storage.partial_publication_cleanup_failed",
+        cleanupError,
+        { artworkId, publishedVariantCount: publishedEntries.length },
+      );
     });
     throw error;
   }
@@ -323,13 +308,32 @@ export async function publishArtworkVariants({
 }
 
 export async function deleteArtworkImageRecord(
-  image: ArtworkImageRecord,
+  image: ArtworkImageRecord | LegacyArtworkImageRecord,
+  retainedStorageKeys: ReadonlySet<string> = new Set(),
 ): Promise<void> {
+  if (!("variants" in image)) {
+    if (!retainedStorageKeys.has(getStorageIdentity(image.storage))) {
+      await deleteArtworkObject(image.storage);
+    }
+    return;
+  }
   await Promise.all(
-    Object.values(image.variants).map(({ storage }) =>
-      deleteArtworkObject(storage),
-    ),
+    Object.values(image.variants)
+      .map(({ storage }) => storage)
+      .filter(
+        (storage) => !retainedStorageKeys.has(getStorageIdentity(storage)),
+      )
+      .map((storage) => deleteArtworkObject(storage)),
   );
+}
+
+export function getArtworkImageStorageKeys(
+  image: ArtworkImageRecord | LegacyArtworkImageRecord,
+): Set<string> {
+  const storages = "variants" in image
+    ? Object.values(image.variants).map(({ storage }) => storage)
+    : [image.storage];
+  return new Set(storages.map(getStorageIdentity));
 }
 
 export async function deleteArtworkObject(
@@ -343,12 +347,21 @@ export async function deleteArtworkObject(
   }
 
   assertConfiguredBucket(storage.bucket);
-  await getS3Client().send(
-    new DeleteObjectCommand({
-      Bucket: storage.bucket,
-      Key: storage.key,
-    }),
-  );
+  try {
+    await getS3Client().send(
+      new DeleteObjectCommand({
+        Bucket: storage.bucket,
+        Key: storage.key,
+        VersionId: storage.version_id,
+      }),
+    );
+  } catch (error) {
+    logOperationalError("artwork_storage.delete_failed", error, {
+      bucket: storage.bucket,
+      key: storage.key,
+    });
+    throw error;
+  }
 }
 
 export function getArtworkUrl(
@@ -356,6 +369,20 @@ export function getArtworkUrl(
   variant: ArtworkImageVariantName = "full",
 ): string {
   return `/api/artwork/${encodeURIComponent(artworkId)}/image?variant=${variant}`;
+}
+
+export function getArtworkObjectPublicUrl(
+  storage: ArtworkStorageReference,
+): string | null {
+  if (storage.provider !== "s3") return null;
+  const baseUrl =
+    process.env.ARTWORK_CDN_BASE_URL?.trim().replace(/\/+$/, "") || null;
+  if (!baseUrl) return null;
+  const encodedKey = storage.key
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+  return `${baseUrl}/${encodedKey}`;
 }
 
 export class ArtworkUploadError extends Error {}
@@ -378,13 +405,6 @@ async function putMockObject(
     provider: "mock-s3",
     key,
   };
-}
-
-async function copyMockObject(sourceKey: string, destinationKey: string) {
-  const destinationPath = resolveMockKey(destinationKey);
-
-  await mkdir(path.dirname(destinationPath), { recursive: true });
-  await copyFile(resolveMockKey(sourceKey), destinationPath);
 }
 
 function resolveMockKey(key: string): string {
@@ -411,22 +431,37 @@ async function putS3Object(
 ): Promise<ArtworkStorageReference> {
   const bucket = getBucket();
 
-  await getS3Client().send(
-    new PutObjectCommand({
-      Bucket: bucket,
-      Key: key,
-      Body: bytes,
-      ContentType: contentType,
-      Metadata: {
-        checksum,
-      },
-    }),
-  );
+  let result;
+  try {
+    result = await getS3Client().send(
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: key,
+        Body: bytes,
+        ContentType: contentType,
+        CacheControl: key.startsWith("artworks/")
+          ? "public, max-age=31536000, immutable"
+          : "private, no-store",
+        Metadata: {
+          checksum,
+        },
+      }),
+    );
+  } catch (error) {
+    logOperationalError("artwork_storage.write_failed", error, {
+      bucket,
+      byteSize: bytes.byteLength,
+      contentType,
+      key,
+    });
+    throw error;
+  }
 
   return {
     provider: "s3",
     bucket,
     key,
+    ...(result.VersionId ? { version_id: result.VersionId } : {}),
   };
 }
 
@@ -456,6 +491,12 @@ function assertConfiguredBucket(bucket: string) {
       "The artwork record references an unexpected S3 bucket.",
     );
   }
+}
+
+function getStorageIdentity(storage: ArtworkStorageReference): string {
+  return storage.provider === "s3"
+    ? `s3:${storage.bucket}:${storage.key}`
+    : `mock-s3:${storage.key}`;
 }
 
 function validateUpload(file: File) {

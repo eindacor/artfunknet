@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getDatabase } from "@/server/mongodb";
+import { logOperationalError } from "@/server/operational-logging";
 import { getPlayerSession } from "@/server/session";
 
 import {
@@ -74,7 +75,11 @@ export async function GET(request: Request) {
     }),
   });
   if (!tokenResponse.ok) {
-    console.error("Patreon OAuth token exchange failed", await tokenResponse.text());
+    logOperationalError(
+      "oauth_provider.token_exchange_failed",
+      new Error(`Patreon returned HTTP ${tokenResponse.status}.`),
+      { provider: "patreon", status: tokenResponse.status },
+    );
     return errorResponse("Patreon linking could not be completed.", 502);
   }
   const token = (await tokenResponse.json()) as { access_token?: string };
@@ -88,7 +93,11 @@ export async function GET(request: Request) {
     headers: { authorization: `Bearer ${token.access_token}` },
   });
   if (!identityResponse.ok) {
-    console.error("Patreon identity request failed", await identityResponse.text());
+    logOperationalError(
+      "oauth_provider.identity_request_failed",
+      new Error(`Patreon returned HTTP ${identityResponse.status}.`),
+      { provider: "patreon", status: identityResponse.status },
+    );
     return errorResponse("Patreon membership details could not be loaded.", 502);
   }
   const identity = (await identityResponse.json()) as PatreonIdentityResponse;

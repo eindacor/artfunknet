@@ -6,6 +6,7 @@ import {
   oauthFailure,
   readRequestCookie,
 } from "@/server/oauth-player";
+import { logOperationalError } from "@/server/operational-logging";
 
 import {
   getMicrosoftRedirectUri,
@@ -69,9 +70,10 @@ export async function GET(request: Request) {
     },
   );
   if (!tokenResponse.ok) {
-    console.error(
-      "Microsoft OAuth token exchange failed",
-      await tokenResponse.text(),
+    logOperationalError(
+      "oauth_provider.token_exchange_failed",
+      new Error(`Microsoft returned HTTP ${tokenResponse.status}.`),
+      { provider: "microsoft", status: tokenResponse.status },
     );
     return oauthFailure("Microsoft sign-in could not be completed.", 502);
   }
@@ -89,7 +91,9 @@ export async function GET(request: Request) {
     });
     user = verified.payload as MicrosoftUser;
   } catch (error) {
-    console.error("Microsoft identity token verification failed", error);
+    logOperationalError("oauth_provider.identity_verification_failed", error, {
+      provider: "microsoft",
+    });
     return oauthFailure("Microsoft account details could not be verified.", 502);
   }
   if (!user.sub || user.nonce !== nonce) {

@@ -4,6 +4,7 @@ import {
   oauthFailure,
   readRequestCookie,
 } from "@/server/oauth-player";
+import { logOperationalError } from "@/server/operational-logging";
 
 import {
   DISCORD_STATE_COOKIE,
@@ -48,9 +49,10 @@ export async function GET(request: Request) {
     }),
   });
   if (!tokenResponse.ok) {
-    console.error(
-      "Discord OAuth token exchange failed",
-      await tokenResponse.text(),
+    logOperationalError(
+      "oauth_provider.token_exchange_failed",
+      new Error(`Discord returned HTTP ${tokenResponse.status}.`),
+      { provider: "discord", status: tokenResponse.status },
     );
     return oauthFailure("Discord sign-in could not be completed.", 502);
   }
@@ -63,7 +65,11 @@ export async function GET(request: Request) {
     headers: { authorization: `Bearer ${token.access_token}` },
   });
   if (!userResponse.ok) {
-    console.error("Discord user request failed", await userResponse.text());
+    logOperationalError(
+      "oauth_provider.identity_request_failed",
+      new Error(`Discord returned HTTP ${userResponse.status}.`),
+      { provider: "discord", status: userResponse.status },
+    );
     return oauthFailure("Discord account details could not be loaded.", 502);
   }
   const user = (await userResponse.json()) as DiscordUser;

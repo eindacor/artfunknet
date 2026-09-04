@@ -11,6 +11,7 @@ import {
   hasRequiredSteamSignedFields,
   isRecentSteamNonce,
 } from "@/server/steam-openid";
+import { logOperationalError } from "@/server/operational-logging";
 
 import {
   getSteamCallbackUrl,
@@ -66,7 +67,15 @@ export async function GET(request: Request) {
     !verificationResponse.ok ||
     !verificationBody.split(/\r?\n/).includes("is_valid:true")
   ) {
-    console.error("Steam OpenID verification failed", verificationBody);
+    logOperationalError(
+      "oauth_provider.identity_verification_failed",
+      new Error(
+        verificationResponse.ok
+          ? "Steam rejected the signed OpenID response."
+          : `Steam returned HTTP ${verificationResponse.status}.`,
+      ),
+      { provider: "steam", status: verificationResponse.status },
+    );
     return oauthFailure("Steam sign-in could not be completed.", 502);
   }
 

@@ -19,8 +19,10 @@ if (!password || password.length < 12) {
 
 const client = new MongoClient(uri);
 
+let connected = false;
 try {
   await client.connect();
+  connected = true;
   const now = new Date();
   const salt = randomBytes(16).toString("hex");
   const passwordHash = scryptSync(password, salt, 64).toString("hex");
@@ -46,7 +48,49 @@ try {
       { upsert: true },
     );
 
-  console.log(`Administrator ${email} is ready in ${databaseName}.`);
+  console.log(
+    JSON.stringify({
+      timestamp: new Date().toISOString(),
+      level: "info",
+      event: "admin_bootstrap.completed",
+      database: databaseName,
+    }),
+  );
+} catch (error) {
+  console.error(
+    JSON.stringify({
+      timestamp: new Date().toISOString(),
+      level: "error",
+      event: "admin_bootstrap.failed",
+      database: databaseName,
+      error: serializeError(error),
+    }),
+  );
+  process.exitCode = 1;
 } finally {
-  await client.close();
+  if (connected) {
+    await client.close().catch((error) => {
+      console.error(
+        JSON.stringify({
+          timestamp: new Date().toISOString(),
+          level: "error",
+          event: "admin_bootstrap.connection_close_failed",
+          database: databaseName,
+          error: serializeError(error),
+        }),
+      );
+      process.exitCode = 1;
+    });
+  }
+}
+
+function serializeError(error) {
+  if (!(error instanceof Error)) return { message: String(error) };
+  return {
+    name: error.name,
+    message: error.message,
+    ...(error.code !== undefined ? { code: String(error.code) } : {}),
+    ...(error.stack ? { stack: error.stack } : {}),
+    ...(error.cause ? { cause: serializeError(error.cause) } : {}),
+  };
 }

@@ -145,7 +145,8 @@ in the repository or .env.production. The role needs:
 
   - s3:ListBucket on the artwork bucket. The Database page uses a bucket
     connectivity check before uploads.
-  - s3:GetObject, s3:PutObject, and s3:DeleteObject on:
+  - s3:GetObject, s3:GetObjectVersion, s3:PutObject, s3:DeleteObject, and
+    s3:DeleteObjectVersion on:
       arn:aws:s3:::BUCKET_NAME/artwork-intake/*
       arn:aws:s3:::BUCKET_NAME/artworks/*
 
@@ -266,12 +267,16 @@ directory. The systemd PrivateTmp setting is compatible with this workflow.
 
 Permanent image objects use:
 
-  artworks/full/<artworkId>_full.<extension>
-  artworks/card/<artworkId>_card.<extension>
-  artworks/thumb/<artworkId>_thumb.<extension>
+  artworks/full/<artworkId>_full_<checksum-prefix>.<extension>
+  artworks/card/<artworkId>_card_<checksum-prefix>.<extension>
+  artworks/thumb/<artworkId>_thumb_<checksum-prefix>.<extension>
 
 The MongoDB artwork record stores the S3 key, content type, dimensions, byte
-size, and SHA-256 checksum for each variant.
+size, full SHA-256 checksum, and S3 version ID for each newly uploaded variant.
+The first 16 checksum characters are included in the object key, and permanent
+variants use a one-year immutable browser/CDN cache policy. The stable
+/api/artwork URL is not cached, so image replacement immediately redirects to
+the current checksum-versioned object.
 
 APP_BASE_URL is the canonical public application origin. When the individual
 redirect variables are blank, the application derives these values:
@@ -301,10 +306,32 @@ requires Xbox partner/title configuration. PlayStation login is not included
 because Sony does not provide an ordinary public self-service PSN OAuth
 integration; it requires PlayStation Partners access.
 
+New player creation initializes the same default profile for password and
+OAuth registrations. Player names are 3-24 Unicode letters, numbers,
+underscores, or hyphens; spaces are currently rejected and Artfunkel is
+reserved for system messages. MongoDB unique indexes enforce email, screen
+name, and provider identity uniqueness. Registration creates and validates the
+session token before inserting the player so a session-configuration failure
+does not leave a partially created account.
+
+After deployment, create one disposable account through each enabled sign-in
+method. Confirm that it reaches /play, receives the standard starting balance
+and lottery ticket, and can sign out and back in. Remove disposable accounts
+through the administrator tools after the check.
+
 Build the production application:
 
   cd /opt/artfunknet
+  npm test
   npm run build
+
+Confirm that Pillow is available through the exact configured interpreter:
+
+  /opt/artfunknet/.venv/bin/python -c \
+    "from PIL import Image; print(Image.__version__)"
+
+Do not deploy if either the test suite, production build, or Pillow import
+fails.
 
 
 6. BOOTSTRAP THE FIRST ADMINISTRATOR
@@ -324,6 +351,11 @@ password in your password manager.
 
 Do not run npm run db:seed on production unless development players, test
 players, and the full development seed behavior are intentionally desired.
+The seed command reads .env.local, not .env.production. It emits one structured
+JSON log event for the start, completion, duration, and failure of each
+migration/seed phase. A failing artwork import identifies the source file that
+could not be inspected. Preserve the complete command output when diagnosing a
+failed development seed.
 
 
 7. RUN NEXT.JS AS A SYSTEMD SERVICE
@@ -364,6 +396,18 @@ Enable and start it:
 View logs with:
 
   sudo journalctl -u artfunknet -f
+
+Operational failures are written as single-line JSON records. Search by the
+event name or by the operation reference returned in an API error:
+
+  sudo journalctl -u artfunknet -o cat | grep '"level":"error"'
+  sudo journalctl -u artfunknet -o cat | grep 'REFERENCE_FROM_THE_UI'
+
+Artwork events include the artwork/submission ID, processing stage, S3 bucket
+and object key when applicable, image dimensions and byte size, and AWS request
+metadata. Account-creation events include an operation ID, provider, player ID
+when creation reached that point, and duplicate index fields. Passwords,
+session tokens, OAuth tokens, and AWS credentials are never logged.
 
 Before adding the instance to the ALB target group, verify locally:
 
@@ -436,14 +480,33 @@ After the content package has loaded:
   3. Select "Missing images" to find artworks without an associated image.
   4. Select an artwork and choose a file under "Replace image".
   5. The catalog API checks the S3 connection before accepting the upload.
-  6. The server uploads the file through the AWS SDK and records the permanent
-     storage reference on the artwork document. The editor displays it as:
+   6. The server validates the MIME type and upload size, verifies that Pillow
+      can decode the complete source image, applies EXIF orientation, and
+      generates full, card, and thumbnail variants. Card and thumbnail images
+      preserve aspect ratio and use high-quality Lanczos resizing.
+   7. Before upload, the application verifies every generated file's byte size
+      and SHA-256 checksum against the processor output.
+   8. Variant objects use checksum-versioned keys:
 
-       s3://BUCKET_NAME/artworks/ARTWORK_ID
+        artworks/full/<artworkId>_full_<checksum-prefix>.<extension>
+        artworks/card/<artworkId>_card_<checksum-prefix>.<extension>
+        artworks/thumb/<artworkId>_thumb_<checksum-prefix>.<extension>
 
-  7. The image is delivered to players through ARTWORK_CDN_BASE_URL.
+      This prevents a replacement from serving stale CloudFront content.
+   9. MongoDB is updated only after all three variants are stored. If the
+      database update fails, the newly written variants are removed. After a
+      successful replacement, superseded variant objects are removed.
+  10. With ARTWORK_CDN_BASE_URL configured, /api/artwork/... redirects clients
+      to the private S3 content through CloudFront. Without it, the application
+      streams the S3 object as a fallback.
 
 Artworks without an associated image display the bundled seed_image.png.
+
+The artwork intake page first stores an immutable source object at
+artwork-intake/<sha256>. Approving the submission runs the same three-variant
+processing and publication pipeline described above. If approval cannot be
+committed, newly created artwork records and variant objects are rolled back;
+the intake source remains available for another approval attempt.
 
 If an imported artwork record points to local mock-S3 storage, that reference
 does not automatically copy the image bytes to AWS. Upload a replacement from
@@ -461,12 +524,17 @@ point to the production S3 bucket.
   - Use an EC2 IAM role instead of AWS access keys.
   - Keep the S3 bucket private; serve it only through CloudFront.
   - Enable S3 versioning and EBS/MongoDB backups.
+  - Keep the bucket lifecycle policy that removes noncurrent object versions
+    after 30 days and incomplete multipart uploads after 7 days.
   - Store secrets in AWS Systems Manager Parameter Store or Secrets Manager
     for a mature deployment. Restrict who can read them.
   - Enable ALB access logs, CloudTrail, CloudWatch alarms, and application log
     retention.
   - Add alarms for ALB 5xx responses, unhealthy targets, EC2 CPU/disk usage,
     and MongoDB availability.
+  - Ship the systemd journal to CloudWatch Logs and retain structured
+    application errors long enough to investigate upload and registration
+    failures.
   - Consider AWS WAF on the ALB for rate limiting and common web protections.
   - Do not expose /admin credentials or content packages publicly.
   - Rotate the administrator password and SESSION_SECRET under a controlled
@@ -483,6 +551,7 @@ For a simple single-instance update:
   git pull --ff-only
   npm ci
   .venv/bin/python -m pip install -r requirements-artwork.txt
+  npm test
   npm run build
   sudo systemctl restart artfunknet
   curl http://127.0.0.1:3000/api/health
@@ -490,3 +559,25 @@ For a simple single-instance update:
 For reduced downtime, build a new AMI or deployment artifact, replace the
 instance through an Auto Scaling Group, wait for the new target to become
 healthy, and then terminate the old instance.
+
+
+12. POST-DEPLOYMENT VERIFICATION
+================================
+
+Complete these checks before announcing the deployment:
+
+  1. Confirm /api/health reports status "ok" and the expected database.
+  2. In /admin/database, test artwork storage and confirm the expected S3
+     bucket, AWS region, and CloudFront base URL.
+  3. Upload one new artwork intake image, approve it, and inspect its full,
+     card, and thumbnail variants.
+  4. Replace one catalog artwork image and confirm the browser loads the new
+     checksum-versioned URL rather than a cached previous image.
+  5. Create a disposable password account and one account through every
+     enabled OAuth provider. Confirm the starting profile, sign-out, and
+     subsequent sign-in.
+  6. Confirm the latest MongoDB backup completed and that S3 versioning is
+     enabled on the artwork bucket.
+  7. Search the systemd journal or CloudWatch Logs for structured error events
+     from the verification window. Resolve every unexplained failure before
+     opening the deployment to players.

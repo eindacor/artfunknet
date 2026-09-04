@@ -16,6 +16,11 @@ import {
 } from "@/server/gameplay";
 import { deriveArtworkLegendaryAttributeIds } from "@/server/legendary-attributes";
 import { getDatabase } from "@/server/mongodb";
+import {
+  createOperationId,
+  logOperationalError,
+  logOperationalInfo,
+} from "@/server/operational-logging";
 
 const RARITIES = [
   "common",
@@ -72,7 +77,20 @@ export async function POST(
   }
 
   const { id } = await params;
-  const draft = (await request.json()) as ArtworkDraft;
+  const operationId = createOperationId("artwork-approval");
+  let draft: ArtworkDraft;
+  try {
+    draft = (await request.json()) as ArtworkDraft;
+  } catch (error) {
+    logOperationalError("artwork_approval.request_parse_failed", error, {
+      operationId,
+      submissionId: id,
+    });
+    return NextResponse.json(
+      { error: `The approval request is invalid. Reference: ${operationId}` },
+      { status: 400 },
+    );
+  }
   const validation = validateDraft(draft);
 
   if (!validation.ok) {
@@ -132,7 +150,11 @@ export async function POST(
       ? await readArtworkObject(submission.image.storage)
       : await readArtworkSource(localSources);
   } catch (error) {
-    console.error("Unable to read artwork source", error);
+    logOperationalError("artwork_approval.source_read_failed", error, {
+      operationId,
+      submissionId: id,
+      storageProvider: submission.image.storage?.provider ?? "local",
+    });
     return NextResponse.json(
       { error: "The source image could not be read." },
       { status: 422 },
@@ -148,7 +170,13 @@ export async function POST(
       source: sourceImage,
     });
   } catch (error) {
-    console.error("Unable to process artwork image", error);
+    logOperationalError("artwork_approval.processing_failed", error, {
+      artworkId,
+      extension: submission.image.extension,
+      operationId,
+      sourceByteSize: sourceImage.byteLength,
+      submissionId: id,
+    });
     return NextResponse.json(
       {
         error:
@@ -232,22 +260,53 @@ export async function POST(
         )
         .deleteOne({ _id: artworkId, created_from_submission: submission._id })
         .catch((cleanupError) => {
-          console.error("Unable to roll back approved artwork", cleanupError);
+          logOperationalError(
+            "artwork_approval.database_rollback_failed",
+            cleanupError,
+            { artworkId, operationId, submissionId: id },
+          );
         });
     }
     if (publishedImage) {
       await deleteArtworkImageRecord(publishedImage).catch((cleanupError) => {
-        console.error("Unable to roll back published artwork variants", cleanupError);
+        logOperationalError(
+          "artwork_approval.storage_rollback_failed",
+          cleanupError,
+          { artworkId, operationId, submissionId: id },
+        );
       });
     }
+    logOperationalError("artwork_approval.commit_failed", error, {
+      artworkCreated,
+      artworkId,
+      imagePublished: Boolean(publishedImage),
+      operationId,
+      submissionId: id,
+    });
     if (error instanceof ArtworkStorageConfigurationError) {
       return NextResponse.json({ error: error.message }, { status: 503 });
     }
-    throw error;
+    return NextResponse.json(
+      {
+        error: `The artwork could not be approved. Reference: ${operationId}`,
+      },
+      { status: 500 },
+    );
   } finally {
-    await processedImage.cleanup();
+    await processedImage.cleanup().catch((cleanupError) => {
+      logOperationalError(
+        "artwork_approval.temporary_cleanup_failed",
+        cleanupError,
+        { artworkId, operationId, submissionId: id },
+      );
+    });
   }
 
+  logOperationalInfo("artwork_approval.completed", {
+    artworkId,
+    operationId,
+    submissionId: id,
+  });
   return NextResponse.json({ status: "ok", artwork_id: artworkId });
 }
 

@@ -35,6 +35,9 @@ rarity, artist, or other game metadata is inferred from filenames; those
 fields remain in an empty `draft` object for the future admin review portal.
 Only an approved submission should eventually create records in `artists`
 and `artworks`.
+The seed command emits structured JSON events for every phase, including its
+duration and full error chain. Artwork-import failures include the source path
+that could not be inspected.
 
 ## Artwork administration
 
@@ -55,14 +58,16 @@ filenames are retained only for review; S3 keys are
 `artwork-intake/<checksum>` before approval and:
 
 ```text
-artworks/full/<artworkId>_full.<extension>
-artworks/card/<artworkId>_card.<extension>
-artworks/thumb/<artworkId>_thumb.<extension>
+artworks/full/<artworkId>_full_<checksum>.<extension>
+artworks/card/<artworkId>_card_<checksum>.<extension>
+artworks/thumb/<artworkId>_thumb_<checksum>.<extension>
 ```
 
 MongoDB stores the dimensions, byte size, checksum, content type, and storage
-reference for each variant. Temporary processor input and output files are
-deleted after the upload attempt. No uploaded images are committed to Git.
+reference for each variant. Generated files are checksum-verified before
+publication, and checksum-versioned keys prevent stale CloudFront replacements.
+Temporary processor input and output files are deleted after the upload
+attempt. No uploaded images are committed to Git.
 
 Install the local image processor in a virtual environment:
 

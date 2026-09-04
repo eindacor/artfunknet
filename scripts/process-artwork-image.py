@@ -4,11 +4,13 @@ import argparse
 import hashlib
 import json
 import os
+import warnings
 from pathlib import Path
 
 from PIL import Image, ImageOps
 
 Image.MAX_IMAGE_PIXELS = 100_000_000
+warnings.simplefilter("error", Image.DecompressionBombWarning)
 
 CONTENT_TYPES = {
     "bmp": "image/bmp",
@@ -103,9 +105,14 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
 
     with Image.open(args.input) as source:
+        source.verify()
+
+    with Image.open(args.input) as source:
         source.seek(0)
         full = ImageOps.exif_transpose(source).copy()
         full.load()
+    if full.width <= 0 or full.height <= 0:
+        raise ValueError("The source image has invalid dimensions.")
 
     variants = {}
     for name, maximum in (

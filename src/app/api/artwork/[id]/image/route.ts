@@ -2,11 +2,13 @@ import { NextResponse } from "next/server";
 
 import seedImage from "@/components/seed_image.png";
 import {
+  getArtworkObjectPublicUrl,
   readArtworkObject,
   type ArtworkImageRecord,
   type ArtworkStorageReference,
 } from "@/server/artwork-storage";
 import { getDatabase } from "@/server/mongodb";
+import { logOperationalError } from "@/server/operational-logging";
 
 type Artwork = {
   _id: string;
@@ -42,18 +44,34 @@ export async function GET(
     });
   }
 
+  const publicUrl = getArtworkObjectPublicUrl(image.storage);
+  if (publicUrl) {
+    return NextResponse.redirect(publicUrl, {
+      status: 307,
+      headers: {
+        "cache-control": "no-store",
+        "x-artwork-image-variant": image.variant,
+      },
+    });
+  }
+
   try {
     const bytes = await readArtworkObject(image.storage);
 
     return new NextResponse(new Uint8Array(bytes), {
       headers: {
         "content-type": image.contentType,
-        "cache-control": "public, max-age=86400",
+        "cache-control": "no-store",
         "x-artwork-image-variant": image.variant,
       },
     });
   } catch (error) {
-    console.error("Unable to load artwork image", error);
+    logOperationalError("artwork_image.delivery_failed", error, {
+      artworkId: id,
+      requestedVariant,
+      storageKey: image.storage.key,
+      storageProvider: image.storage.provider,
+    });
     return NextResponse.json(
       { error: "Artwork image was not found." },
       { status: 404 },

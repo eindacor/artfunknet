@@ -59,7 +59,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json(
         {
           error:
-            "Player name must be 3-24 letters, numbers, spaces, underscores, or hyphens.",
+            "Player name must be 3-24 letters, numbers, underscores, or hyphens.",
         },
         { status: 400 },
       );

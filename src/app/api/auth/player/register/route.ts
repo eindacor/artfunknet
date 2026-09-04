@@ -5,11 +5,17 @@ import { hashPassword, validatePassword } from "@/server/password";
 import {
   createPlayerAccountRecord,
   ensurePlayerAccountIndexes,
+  getDuplicateKeyFields,
   isDuplicateKeyError,
   normalizePlayerEmail,
   normalizeScreenName,
   type PlayerAccountRecord,
 } from "@/server/player-account";
+import {
+  createOperationId,
+  logOperationalError,
+  logOperationalInfo,
+} from "@/server/operational-logging";
 import {
   PLAYER_SESSION_COOKIE,
   createPlayerSessionToken,
@@ -41,7 +47,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error:
-          "Player name must be 3-24 letters, numbers, spaces, underscores, or hyphens.",
+          "Player name must be 3-24 letters, numbers, underscores, or hyphens.",
       },
       { status: 400 },
     );
@@ -50,38 +56,60 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: passwordError }, { status: 400 });
   }
 
-  const password = body.password as string;
-  const database = await getDatabase();
-  await ensurePlayerAccountIndexes(database);
-  const passwordCredentials = await hashPassword(password);
-  const player = createPlayerAccountRecord({
-    email,
-    screenName,
-    passwordSalt: passwordCredentials.salt,
-    passwordHash: passwordCredentials.hash,
-  });
-
+  const operationId = createOperationId("player-registration");
   try {
-    await database
-      .collection<PlayerAccountRecord>("players")
-      .insertOne(player);
-  } catch (error) {
-    if (!isDuplicateKeyError(error)) throw error;
-    return NextResponse.json(
-      { error: "That email or player name is already in use." },
-      { status: 409 },
-    );
-  }
-
-  const response = NextResponse.json({ status: "ok" }, { status: 201 });
-  response.cookies.set(
-    PLAYER_SESSION_COOKIE,
-    await createPlayerSessionToken({
+    const password = body.password as string;
+    const database = await getDatabase();
+    await ensurePlayerAccountIndexes(database);
+    const passwordCredentials = await hashPassword(password);
+    const player = createPlayerAccountRecord({
+      email,
+      screenName,
+      passwordSalt: passwordCredentials.salt,
+      passwordHash: passwordCredentials.hash,
+    });
+    const sessionToken = await createPlayerSessionToken({
       playerId: player._id,
       email: player.email,
       screenName: player.screen_name,
-    }),
-    playerSessionCookieOptions,
-  );
-  return response;
+    });
+    await database
+      .collection<PlayerAccountRecord>("players")
+      .insertOne(player);
+    logOperationalInfo("player_registration.created", {
+      operationId,
+      playerId: player._id,
+      screenName: player.screen_name,
+    });
+
+    const response = NextResponse.json({ status: "ok" }, { status: 201 });
+    response.cookies.set(
+      PLAYER_SESSION_COOKIE,
+      sessionToken,
+      playerSessionCookieOptions,
+    );
+    return response;
+  } catch (error) {
+    if (isDuplicateKeyError(error)) {
+      logOperationalInfo("player_registration.duplicate", {
+        duplicateFields: getDuplicateKeyFields(error).join(",") || "unknown",
+        operationId,
+        screenName,
+      });
+      return NextResponse.json(
+        { error: "That email or player name is already in use." },
+        { status: 409 },
+      );
+    }
+    logOperationalError("player_registration.failed", error, {
+      operationId,
+      screenName,
+    });
+    return NextResponse.json(
+      {
+        error: `The account could not be created. Reference: ${operationId}`,
+      },
+      { status: 500 },
+    );
+  }
 }

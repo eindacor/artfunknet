@@ -123,7 +123,12 @@ export function ensurePlayerAccountIndexes(database: Db): Promise<void> {
     database
       .collection("players")
       .createIndex({ screen_name: 1 }, { unique: true }),
-  ]).then(() => undefined);
+  ])
+    .then(() => undefined)
+    .catch((error) => {
+      playerIndexPromise = undefined;
+      throw error;
+    });
   return playerIndexPromise;
 }
 
@@ -134,4 +139,13 @@ export function isDuplicateKeyError(error: unknown): boolean {
     "code" in error &&
     error.code === 11000
   );
+}
+
+export function getDuplicateKeyFields(error: unknown): string[] {
+  if (typeof error !== "object" || error === null) return [];
+  const candidate = error as {
+    keyPattern?: Record<string, unknown>;
+    keyValue?: Record<string, unknown>;
+  };
+  return Object.keys(candidate.keyPattern ?? candidate.keyValue ?? {});
 }

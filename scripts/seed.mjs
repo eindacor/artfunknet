@@ -36,23 +36,43 @@ const client = new MongoClient(uri, {
   },
 });
 
+let connected = false;
 try {
-  await client.connect();
+  await runSeedStep("mongodb.connect", async () => {
+    await client.connect();
+    connected = true;
+  });
   const database = client.db(databaseName);
 
-  await migrateArtworkArchives(database);
-  await createIndexes(database);
-  await seedGameMetadata(database);
-  await seedGameplaySettings(database);
-  await seedAttributes(database);
-  await seedLegendaryAttributes(database);
-  await seedArtworkSpecialAttributes(database);
-  const adminSeeded = await seedAdmin(database);
-  const playerSeeded = await seedPlayer(database);
-  const testPlayersSeeded = await seedTestPlayers(database);
-  await migrateCardRenderers(database);
-  const artworkResult = await seedArtworkSubmissions(database);
-  await migrateItems(database);
+  await runSeedStep("archives.migrate", () => migrateArtworkArchives(database));
+  await runSeedStep("indexes.create", () => createIndexes(database));
+  await runSeedStep("game_metadata.seed", () => seedGameMetadata(database));
+  await runSeedStep("gameplay_settings.seed", () =>
+    seedGameplaySettings(database),
+  );
+  await runSeedStep("attributes.seed", () => seedAttributes(database));
+  await runSeedStep("legendary_attributes.seed", () =>
+    seedLegendaryAttributes(database),
+  );
+  await runSeedStep("artwork_attributes.seed", () =>
+    seedArtworkSpecialAttributes(database),
+  );
+  const adminSeeded = await runSeedStep("admin.seed", () =>
+    seedAdmin(database),
+  );
+  const playerSeeded = await runSeedStep("development_player.seed", () =>
+    seedPlayer(database),
+  );
+  const testPlayersSeeded = await runSeedStep("test_players.seed", () =>
+    seedTestPlayers(database),
+  );
+  await runSeedStep("card_renderers.migrate", () =>
+    migrateCardRenderers(database),
+  );
+  const artworkResult = await runSeedStep("artwork_submissions.seed", () =>
+    seedArtworkSubmissions(database),
+  );
+  await runSeedStep("items.migrate", () => migrateItems(database));
 
   console.log(`Seeded database: ${databaseName}`);
   console.log(`Admin account seeded: ${adminSeeded ? "yes" : "no"}`);
@@ -62,8 +82,69 @@ try {
   console.log(`Discovered images: ${artworkResult.discovered}`);
   console.log(`New unverified submissions: ${artworkResult.inserted}`);
   console.log(`Previously imported submissions: ${artworkResult.existing}`);
+} catch (error) {
+  logSeedEvent("error", "database_seed.failed", {
+    database: databaseName,
+    error: serializeSeedError(error),
+  });
+  process.exitCode = 1;
 } finally {
-  await client.close();
+  if (connected) {
+    await client.close().catch((error) => {
+      logSeedEvent("error", "mongodb.close_failed", {
+        database: databaseName,
+        error: serializeSeedError(error),
+      });
+      process.exitCode = 1;
+    });
+  }
+}
+
+async function runSeedStep(step, action) {
+  const startedAt = Date.now();
+  logSeedEvent("info", "database_seed.step_started", {
+    database: databaseName,
+    step,
+  });
+  try {
+    const result = await action();
+    logSeedEvent("info", "database_seed.step_completed", {
+      database: databaseName,
+      duration_ms: Date.now() - startedAt,
+      step,
+    });
+    return result;
+  } catch (error) {
+    logSeedEvent("error", "database_seed.step_failed", {
+      database: databaseName,
+      duration_ms: Date.now() - startedAt,
+      error: serializeSeedError(error),
+      step,
+    });
+    throw error;
+  }
+}
+
+function logSeedEvent(level, event, context) {
+  const output = JSON.stringify({
+    timestamp: new Date().toISOString(),
+    level,
+    event,
+    ...context,
+  });
+  if (level === "error") console.error(output);
+  else console.log(output);
+}
+
+function serializeSeedError(error) {
+  if (!(error instanceof Error)) return { message: String(error) };
+  return {
+    name: error.name,
+    message: error.message,
+    ...(error.code !== undefined ? { code: String(error.code) } : {}),
+    ...(error.stack ? { stack: error.stack } : {}),
+    ...(error.cause ? { cause: serializeSeedError(error.cause) } : {}),
+  };
 }
 
 async function createIndexes(database) {
@@ -85,6 +166,12 @@ async function createIndexes(database) {
   await database
     .collection("players")
     .createIndex({ google_sub: 1 }, { unique: true, sparse: true });
+  await database
+    .collection("players")
+    .createIndex(
+      { "oauth_accounts.google.id": 1 },
+      { unique: true, sparse: true },
+    );
   await database
     .collection("players")
     .createIndex(
@@ -329,6 +416,14 @@ async function seedPlayer(database) {
 
   if (!email || !password || !screenName) {
     return false;
+  }
+  if (
+    !/^[\p{L}\p{N}_-]{3,24}$/u.test(screenName.normalize("NFKC")) ||
+    screenName.normalize("NFKC").toLowerCase() === "artfunkel"
+  ) {
+    throw new Error(
+      "PLAYER_SCREEN_NAME must be 3-24 letters, numbers, underscores, or hyphens and cannot be Artfunkel.",
+    );
   }
 
   const now = new Date();
@@ -1200,11 +1295,19 @@ async function seedArtworkSubmissions(database) {
 
   for (const imagePath of imageFiles) {
     const importedAt = new Date();
-    const submission = await createArtworkSubmission(
-      imagePath,
-      projectRoot,
-      importedAt,
-    );
+    let submission;
+    try {
+      submission = await createArtworkSubmission(
+        imagePath,
+        projectRoot,
+        importedAt,
+      );
+    } catch (error) {
+      throw new Error(
+        `Unable to inspect artwork import file ${path.relative(projectRoot, imagePath)}.`,
+        { cause: error },
+      );
+    }
     const result = await collection.updateOne(
       { _id: submission._id },
       { $setOnInsert: submission },

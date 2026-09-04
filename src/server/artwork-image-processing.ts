@@ -1,7 +1,8 @@
 import "server-only";
 
 import { spawn } from "node:child_process";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -74,30 +75,46 @@ export async function processArtworkImage({
         Record<ArtworkImageVariantName, ProcessedArtworkVariant>
       >;
     };
-    const variants = Object.fromEntries(
-      ARTWORK_IMAGE_VARIANTS.map((variant) => {
-        const value = parsed.variants?.[variant];
-        const expectedFilename =
-          `${artworkId}_${variant}.${normalizedExtension}`;
-        if (
-          !value ||
-          path.basename(value.path) !== expectedFilename ||
-          value.extension !== normalizedExtension ||
-          !Number.isSafeInteger(value.width) ||
-          value.width <= 0 ||
-          !Number.isSafeInteger(value.height) ||
-          value.height <= 0 ||
-          !Number.isSafeInteger(value.byte_size) ||
-          value.byte_size <= 0 ||
-          !/^[a-f0-9]{64}$/.test(value.checksum)
-        ) {
-          throw new Error(
-            `The artwork processor returned invalid ${variant} metadata.`,
-          );
-        }
-        return [variant, value];
-      }),
-    ) as Record<ArtworkImageVariantName, ProcessedArtworkVariant>;
+    const variants = {} as Record<
+      ArtworkImageVariantName,
+      ProcessedArtworkVariant
+    >;
+    for (const variant of ARTWORK_IMAGE_VARIANTS) {
+      const value = parsed.variants?.[variant];
+      const expectedFilename =
+        `${artworkId}_${variant}.${normalizedExtension}`;
+      const resolvedPath = value ? path.resolve(value.path) : "";
+      if (
+        !value ||
+        path.dirname(resolvedPath) !== temporaryDirectory ||
+        path.basename(resolvedPath) !== expectedFilename ||
+        value.extension !== normalizedExtension ||
+        !Number.isSafeInteger(value.width) ||
+        value.width <= 0 ||
+        !Number.isSafeInteger(value.height) ||
+        value.height <= 0 ||
+        !Number.isSafeInteger(value.byte_size) ||
+        value.byte_size <= 0 ||
+        !/^[a-f0-9]{64}$/.test(value.checksum)
+      ) {
+        throw new Error(
+          `The artwork processor returned invalid ${variant} metadata.`,
+        );
+      }
+      const outputBytes = await readFile(resolvedPath);
+      const outputChecksum = createHash("sha256")
+        .update(outputBytes)
+        .digest("hex");
+      if (
+        outputBytes.byteLength !== value.byte_size ||
+        outputChecksum !== value.checksum
+      ) {
+        throw new Error(
+          `The generated ${variant} image failed its integrity check.`,
+        );
+      }
+      variants[variant] = { ...value, path: resolvedPath };
+    }
 
     return { variants, cleanup };
   } catch (error) {

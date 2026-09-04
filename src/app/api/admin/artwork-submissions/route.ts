@@ -8,6 +8,11 @@ import {
   type ArtworkStorageReference,
 } from "@/server/artwork-storage";
 import { getDatabase } from "@/server/mongodb";
+import {
+  createOperationId,
+  logOperationalError,
+  logOperationalInfo,
+} from "@/server/operational-logging";
 
 type Submission = {
   _id: string;
@@ -39,7 +44,19 @@ export async function POST(request: Request) {
     return auth.response;
   }
 
-  const formData = await request.formData();
+  const operationId = createOperationId("artwork-intake");
+  let formData: FormData;
+  try {
+    formData = await request.formData();
+  } catch (error) {
+    logOperationalError("artwork_intake.form_parse_failed", error, {
+      operationId,
+    });
+    return NextResponse.json(
+      { error: `The upload form could not be read. Reference: ${operationId}` },
+      { status: 400 },
+    );
+  }
   const file = formData.get("image");
 
   if (!(file instanceof File)) {
@@ -111,6 +128,13 @@ export async function POST(request: Request) {
     if (!stored) {
       throw new Error("The uploaded submission could not be loaded.");
     }
+    logOperationalInfo("artwork_intake.completed", {
+      byteSize: upload.byteSize,
+      contentType: upload.mimeType,
+      operationId,
+      provider: upload.storage.provider,
+      submissionId: upload.digest,
+    });
 
     return NextResponse.json(
       {
@@ -130,6 +154,11 @@ export async function POST(request: Request) {
       { status: existing ? 200 : 201 },
     );
   } catch (error) {
+    logOperationalError("artwork_intake.failed", error, {
+      byteSize: file.size,
+      contentType: file.type || "unknown",
+      operationId,
+    });
     if (error instanceof ArtworkUploadError) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
@@ -138,6 +167,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 503 });
     }
 
-    throw error;
+    return NextResponse.json(
+      {
+        error: `The artwork could not be uploaded. Reference: ${operationId}`,
+      },
+      { status: 500 },
+    );
   }
 }
