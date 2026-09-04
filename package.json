@@ -10,6 +10,7 @@
     "db:up": "docker compose --env-file .env.local up -d mongodb",
     "db:down": "docker compose --env-file .env.local down",
     "db:seed": "node --env-file=.env.local scripts/seed.mjs",
+    "db:bootstrap-admin": "node --env-file=.env.production scripts/bootstrap-admin.mjs",
     "db:publish-artwork": "node --env-file=.env.local scripts/publish-approved-artwork.mjs",
     "test": "node --test"
   },

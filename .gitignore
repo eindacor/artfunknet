@@ -32,5 +32,8 @@ image_source/
 # Mock S3 object storage
 storage/mock-s3/
 
+# Generated database snapshots
+storage/db-backups/
+
 # Legacy approved images awaiting S3 publication
 public/artwork/

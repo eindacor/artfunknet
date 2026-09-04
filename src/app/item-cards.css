@@ -5201,7 +5201,7 @@ attri
 .skateboard-card-image {
   position: absolute;
   z-index: 1;
-  inset: 2px;
+  inset: .25px;
   border-radius: calc((var(--deck-width) - 4px) / 2);
   background-position: center;
   background-size: cover;
@@ -5356,16 +5356,17 @@ attri
   text-align: left;
   writing-mode: vertical-rl;
   transform: rotate(180deg);
+  font-style: strong;
 }
 
 .skateboard-card h3 {
   max-height: 142px;
   overflow: hidden;
-  color: #fff;
+  color: #000;
   font-size: 0.78rem;
+  font-style: strong;
   letter-spacing: 0.04em;
   line-height: 1;
-  text-shadow: 0 1px 4px #000;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -5376,9 +5377,8 @@ attri
   color: #eee7dd;
   font-size: 0.5rem;
   line-height: 1;
-  text-overflow: ellipsis;
-  text-shadow: 0 1px 4px #000;
   white-space: nowrap;
+  font-style: strong;
 }
 
 .skateboard-card-stickers {

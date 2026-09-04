@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import seedImage from "@/components/seed_image.png";
 import {
   readArtworkObject,
   type ArtworkStorageReference,
@@ -15,27 +16,8 @@ type Artwork = {
   };
 };
 
-async function readFallbackArtwork(database: Awaited<ReturnType<typeof getDatabase>>) {
-  const fallback = await database
-    .collection<Artwork>("artworks")
-    .findOne({
-      title: "Mona Lisa",
-      artist: "Leonardo da Vinci",
-      active: true,
-    });
-
-  if (!fallback?.image?.storage) {
-    throw new Error("The Mona Lisa fallback image is unavailable.");
-  }
-
-  return {
-    bytes: await readArtworkObject(fallback.image.storage),
-    contentType: fallback.image.content_type,
-  };
-}
-
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
@@ -44,13 +26,20 @@ export async function GET(
     .collection<Artwork>("artworks")
     .findOne({ _id: id, active: true });
 
+  if (!artwork?.image?.storage) {
+    return NextResponse.redirect(new URL(seedImage.src, request.url), {
+      status: 307,
+      headers: {
+        "cache-control": "no-store",
+      },
+    });
+  }
+
   try {
-    const image = artwork?.image?.storage
-      ? {
-          bytes: await readArtworkObject(artwork.image.storage),
-          contentType: artwork.image.content_type,
-        }
-      : await readFallbackArtwork(database);
+    const image = {
+      bytes: await readArtworkObject(artwork.image.storage),
+      contentType: artwork.image.content_type,
+    };
 
     return new NextResponse(new Uint8Array(image.bytes), {
       headers: {

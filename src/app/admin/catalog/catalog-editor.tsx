@@ -41,7 +41,13 @@ export type ArtworkCatalogEntry = {
   active: boolean;
   nsfw?: boolean;
   special_attributes?: string[];
-  image?: { storage?: unknown };
+  image?: {
+    storage?: {
+      provider: "mock-s3" | "s3";
+      bucket?: string;
+      key: string;
+    };
+  };
   hasImage?: boolean;
 };
 
@@ -501,6 +507,15 @@ function ArtworkForm({
           {uploading ? (
             <span className="text-[var(--muted)]">Uploading...</span>
           ) : null}
+          {artwork.image?.storage ? (
+            <span className="break-all text-[var(--muted)]">
+              {formatArtworkStoragePath(artwork.image.storage)}
+            </span>
+          ) : (
+            <span className="text-[var(--muted)]">
+              No image stored; the seed image is shown.
+            </span>
+          )}
         </label>
         <div>
           <h2 className="text-2xl font-bold">{artwork.title}</h2>
@@ -719,6 +734,15 @@ function ArtistForm({
       </button>
     </form>
   );
+}
+
+function formatArtworkStoragePath(
+  storage: NonNullable<ArtworkCatalogEntry["image"]>["storage"],
+): string {
+  if (!storage) return "";
+  return storage.provider === "s3"
+    ? `s3://${storage.bucket}/${storage.key}`
+    : `storage/mock-s3/${storage.key}`;
 }
 
 function EditorField({

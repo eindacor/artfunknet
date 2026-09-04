@@ -4,6 +4,7 @@ import { requireAdminApi } from "@/server/admin-api";
 import {
   uploadArtworkIntake,
   publishArtwork,
+  verifyArtworkStorageConnection,
 } from "@/server/artwork-storage";
 import { getArtworkBufferDimensions } from "@/server/artwork-files";
 import { getDatabase } from "@/server/mongodb";
@@ -37,6 +38,7 @@ export async function POST(
   }
 
   try {
+    await verifyArtworkStorageConnection();
     const upload = await uploadArtworkIntake(file);
     const dimensions = await getArtworkBufferDimensions(
       Buffer.from(await file.arrayBuffer()),

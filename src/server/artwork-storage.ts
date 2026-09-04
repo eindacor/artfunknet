@@ -7,6 +7,7 @@ import path from "node:path";
 import {
   CopyObjectCommand,
   GetObjectCommand,
+  HeadBucketCommand,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
@@ -33,11 +34,99 @@ export type ArtworkStorageReference =
       key: string;
     };
 
+export type ArtworkStorageConnectionStatus = {
+  provider: "mock-s3" | "s3";
+  configured: boolean;
+  connected: boolean | null;
+  bucket: string | null;
+  region: string;
+  cdnBaseUrl: string | null;
+  message: string;
+};
+
 type LocalArtworkSource = {
   source_path: string;
 };
 
 let s3Client: S3Client | undefined;
+
+export async function getArtworkStorageConnectionStatus({
+  verify = false,
+}: {
+  verify?: boolean;
+} = {}): Promise<ArtworkStorageConnectionStatus> {
+  const region = process.env.AWS_REGION?.trim() || "us-east-1";
+  const cdnBaseUrl =
+    process.env.ARTWORK_CDN_BASE_URL?.trim().replace(/\/+$/, "") || null;
+
+  if (isMockS3Enabled()) {
+    return {
+      provider: "mock-s3",
+      configured: true,
+      connected: true,
+      bucket: null,
+      region,
+      cdnBaseUrl,
+      message: "Local mock-S3 artwork storage is enabled.",
+    };
+  }
+
+  const bucket = process.env.ARTWORK_S3_BUCKET?.trim() || null;
+  if (!bucket) {
+    return {
+      provider: "s3",
+      configured: false,
+      connected: false,
+      bucket: null,
+      region,
+      cdnBaseUrl,
+      message: "ARTWORK_S3_BUCKET is not configured.",
+    };
+  }
+
+  if (!verify) {
+    return {
+      provider: "s3",
+      configured: true,
+      connected: null,
+      bucket,
+      region,
+      cdnBaseUrl,
+      message: "S3 is configured but has not been tested in this view.",
+    };
+  }
+
+  try {
+    await getS3Client().send(new HeadBucketCommand({ Bucket: bucket }));
+    return {
+      provider: "s3",
+      configured: true,
+      connected: true,
+      bucket,
+      region,
+      cdnBaseUrl,
+      message: `Connected to S3 bucket ${bucket}.`,
+    };
+  } catch (error) {
+    console.error("Unable to connect to artwork S3 storage", error);
+    return {
+      provider: "s3",
+      configured: true,
+      connected: false,
+      bucket,
+      region,
+      cdnBaseUrl,
+      message: `Could not access S3 bucket ${bucket}. Check the bucket, region, credentials, and IAM permissions.`,
+    };
+  }
+}
+
+export async function verifyArtworkStorageConnection(): Promise<void> {
+  const status = await getArtworkStorageConnectionStatus({ verify: true });
+  if (!status.connected) {
+    throw new ArtworkStorageConfigurationError(status.message);
+  }
+}
 
 export async function uploadArtworkIntake(file: File) {
   validateUpload(file);

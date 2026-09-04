@@ -1,0 +1,412 @@
+ARTFUNKNET AWS DEPLOYMENT GUIDE
+===============================
+
+This guide describes a practical first production deployment of the Next.js
+application on AWS. It uses:
+
+  Route 53 DNS
+      |
+      v
+  Application Load Balancer (HTTPS with an ACM certificate)
+      |
+      v
+  EC2 instance running Next.js on private port 3000
+      |                         |
+      v                         v
+  MongoDB                 S3 private bucket
+                          served through CloudFront
+
+The application process uploads artwork to S3. Browsers do not upload directly
+to S3, so the S3 bucket does not require browser CORS rules.
+
+
+1. RECOMMENDED SIZE AND OPERATING SYSTEM
+========================================
+
+Use Ubuntu Server 24.04 LTS, x86_64, with Node.js 22 LTS.
+
+Recommended starting EC2 size:
+
+  - t3.medium (2 vCPU, 4 GB RAM) for a small production deployment.
+  - t3.small (2 vCPU, 2 GB RAM) can run the application, but production builds
+    and traffic spikes have much less headroom.
+  - t3.large (2 vCPU, 8 GB RAM) if MongoDB will run on the same instance.
+
+Use at least a 30 GB encrypted gp3 EBS volume. Enable EBS snapshot backups.
+Artwork is stored in S3, so the application volume does not need to hold the
+image library.
+
+For a more durable production setup, use MongoDB Atlas in the same AWS region
+instead of running MongoDB on the application instance. Atlas should allow
+connections only from the application's network/security group or fixed egress
+address. Do not expose MongoDB to the public internet. AWS DocumentDB is not a
+drop-in MongoDB 7 replacement and should not be selected without compatibility
+testing.
+
+If MongoDB is kept on the EC2 instance, the repository's compose.yaml runs
+MongoDB 7 with a persistent Docker volume and publishes it only on
+127.0.0.1:27018. This is suitable for an initial single-instance deployment,
+but that instance and its EBS volume become a single point of failure.
+
+
+2. AWS NETWORKING AND ROUTING
+=============================
+
+Create or use a VPC spanning at least two Availability Zones.
+
+Application Load Balancer:
+
+  1. Create an internet-facing Application Load Balancer in two public subnets.
+  2. Create an ALB security group allowing:
+       TCP 80 from 0.0.0.0/0 and ::/0
+       TCP 443 from 0.0.0.0/0 and ::/0
+  3. Create a target group using HTTP port 3000.
+  4. Set the health-check path to /api/health.
+  5. Configure the port-80 listener to redirect permanently to HTTPS 443.
+  6. Configure the port-443 listener with an ACM certificate and forward to
+     the port-3000 target group.
+  7. Register the EC2 instance with the target group.
+
+EC2 security group:
+
+  - Allow TCP 3000 only from the ALB security group.
+  - Do not allow public access to port 3000.
+  - Prefer AWS Systems Manager Session Manager instead of opening SSH.
+  - If SSH is required temporarily, restrict TCP 22 to your own IP address.
+  - Permit outbound HTTPS so the application can reach S3, MongoDB Atlas,
+    OAuth providers, package repositories, and AWS APIs.
+
+For a simple first deployment, the EC2 instance can be in a public subnet with
+no public inbound rules other than a tightly restricted temporary SSH rule.
+For stronger isolation, place it in a private subnet and provide outbound
+access through a NAT gateway or suitable VPC endpoints.
+
+DNS and TLS:
+
+  1. Request an ACM certificate for the application hostname, such as
+     game.example.com, in the same AWS region as the ALB.
+  2. Validate the certificate through DNS.
+  3. In Route 53, create an A/AAAA alias record from game.example.com to the
+     ALB.
+  4. Use only the HTTPS hostname for logins and OAuth callback URLs.
+
+For stability, put the EC2 instance in an Auto Scaling Group with desired,
+minimum, and maximum capacity initially set to 1. Configure EC2 status-check
+replacement. The application uses MongoDB locks for scheduled lottery draws,
+but files under storage/db-backups are local to one instance. A future
+multi-instance deployment should move those package files to shared storage.
+
+Consider increasing the ALB idle timeout if large content-package generation
+or loading requests approach the default timeout.
+
+
+3. CREATE ARTWORK S3 AND CLOUDFRONT RESOURCES
+=============================================
+
+The repository includes infra/artwork-storage.yaml. From a machine with the
+AWS CLI authenticated to the destination account, run:
+
+  aws cloudformation deploy \
+    --stack-name artfunkel-artwork \
+    --template-file infra/artwork-storage.yaml
+
+Then read the outputs:
+
+  aws cloudformation describe-stacks \
+    --stack-name artfunkel-artwork \
+    --query "Stacks[0].Outputs"
+
+Record:
+
+  - ArtworkBucketName as ARTWORK_S3_BUCKET
+  - ArtworkCdnBaseUrl as ARTWORK_CDN_BASE_URL
+
+The template creates:
+
+  - A private, encrypted, versioned S3 bucket.
+  - A CloudFront distribution using Origin Access Control.
+  - A bucket policy permitting CloudFront to read the private objects.
+
+Attach an IAM role to the EC2 instance. Do not place permanent AWS access keys
+in the repository or .env.production. The role needs:
+
+  - s3:ListBucket on the artwork bucket. The Database page uses a bucket
+    connectivity check before uploads.
+  - s3:GetObject and s3:PutObject on:
+      arn:aws:s3:::BUCKET_NAME/artwork-intake/*
+      arn:aws:s3:::BUCKET_NAME/artworks/*
+
+Copying an intake object to its permanent artwork key requires reading the
+source and writing the destination. The bucket itself should remain private.
+
+For server administration through Systems Manager, also attach the managed
+AmazonSSMManagedInstanceCore policy.
+
+
+4. PREPARE MONGODB
+==================
+
+Recommended: MongoDB Atlas
+--------------------------
+
+Create a MongoDB 7-compatible Atlas cluster in the same AWS region. Create a
+dedicated application database user with a long random password and read/write
+access to the artfunkel database. Restrict Atlas network access to the
+application's egress path. Save the SRV connection string for MONGODB_URI.
+
+Single-instance alternative: local Docker MongoDB
+--------------------------------------------------
+
+Install Docker Engine and the Docker Compose plugin. Set MONGO_ROOT_USERNAME
+and MONGO_ROOT_PASSWORD in .env.production, then run:
+
+  docker compose --env-file .env.production up -d mongodb
+
+Use a URI similar to:
+
+  mongodb://USERNAME:PASSWORD@127.0.0.1:27018/?authSource=admin
+
+Back up the Docker volume or MongoDB data separately. The content package in
+the Database panel intentionally excludes players, generated items, auctions,
+quests, lottery entries, notifications, and other live game state. It is not
+a substitute for production MongoDB backups.
+
+
+5. INSTALL AND BUILD THE APPLICATION
+====================================
+
+Install Git and Node.js 22 LTS on the EC2 instance. Place the repository in a
+stable path such as /opt/artfunknet:
+
+  sudo mkdir -p /opt/artfunknet
+  sudo chown ubuntu:ubuntu /opt/artfunknet
+  git clone YOUR_REPOSITORY_URL /opt/artfunknet
+  cd /opt/artfunknet
+  npm ci
+
+Create /opt/artfunknet/.env.production. Do not commit this file. Set its file
+permissions to owner-only:
+
+  chmod 600 /opt/artfunknet/.env.production
+
+Example production configuration:
+
+  MONGODB_URI=mongodb+srv://APPLICATION_USER:LONG_PASSWORD@CLUSTER/artfunkel
+  MONGODB_DB=artfunkel
+
+  MAX_ARTWORK_UPLOAD_BYTES=26214400
+  USE_MOCK_S3=false
+  AWS_REGION=us-east-1
+  ARTWORK_S3_BUCKET=VALUE_FROM_CLOUDFORMATION
+  ARTWORK_CDN_BASE_URL=VALUE_FROM_CLOUDFORMATION
+
+  ADMIN_EMAIL=your-admin@example.com
+  ADMIN_PASSWORD=USE_A_LONG_UNIQUE_BOOTSTRAP_PASSWORD
+  SESSION_SECRET=AT_LEAST_32_RANDOM_CHARACTERS
+  SESSION_COOKIE_SECURE=true
+
+  GOOGLE_OAUTH_CLIENT_ID=
+  GOOGLE_OAUTH_CLIENT_SECRET=
+  GOOGLE_OAUTH_REDIRECT_URI=https://game.example.com/api/auth/player/google/callback
+
+  PATREON_CLIENT_ID=
+  PATREON_CLIENT_SECRET=
+  PATREON_REDIRECT_URI=https://game.example.com/api/auth/player/patreon/callback
+  PATREON_CAMPAIGN_ID=
+
+Generate SESSION_SECRET with a cryptographically secure tool, for example:
+
+  openssl rand -hex 32
+
+Do not copy development values, local passwords, or .env.local to production.
+If Google or Patreon login is enabled, register the exact HTTPS callback URLs
+with those providers. Callback host, scheme, path, and port must match.
+
+Build the production application:
+
+  cd /opt/artfunknet
+  npm run build
+
+
+6. BOOTSTRAP THE FIRST ADMINISTRATOR
+====================================
+
+The Database page requires an authenticated administrator. On a blank
+production database, create only the administrator account with:
+
+  cd /opt/artfunknet
+  npm run db:bootstrap-admin
+
+This command reads .env.production and creates or updates ADMIN_EMAIL. It does
+not seed players, test accounts, generated items, or game content. After the
+administrator has been created, ADMIN_PASSWORD can be removed from
+.env.production if you do not need to rerun the bootstrap command. Keep the
+password in your password manager.
+
+Do not run npm run db:seed on production unless development players, test
+players, and the full development seed behavior are intentionally desired.
+
+
+7. RUN NEXT.JS AS A SYSTEMD SERVICE
+===================================
+
+Create /etc/systemd/system/artfunknet.service:
+
+  [Unit]
+  Description=Artfunknet Next.js application
+  After=network-online.target
+  Wants=network-online.target
+
+  [Service]
+  Type=simple
+  User=ubuntu
+  Group=ubuntu
+  WorkingDirectory=/opt/artfunknet
+  Environment=NODE_ENV=production
+  ExecStart=/usr/bin/npm start -- --hostname 0.0.0.0 --port 3000
+  Restart=always
+  RestartSec=5
+  TimeoutStopSec=30
+  NoNewPrivileges=true
+  PrivateTmp=true
+
+  [Install]
+  WantedBy=multi-user.target
+
+If Node/npm was installed somewhere other than /usr/bin, use the result of
+"which npm" in ExecStart.
+
+Enable and start it:
+
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now artfunknet
+  sudo systemctl status artfunknet
+
+View logs with:
+
+  sudo journalctl -u artfunknet -f
+
+Before adding the instance to the ALB target group, verify locally:
+
+  curl http://127.0.0.1:3000/api/health
+
+The response should report status "ok" and the expected database name.
+
+
+8. TRANSFER THE CONTENT PACKAGE THROUGH THE WEB INTERFACE
+=========================================================
+
+On the local application:
+
+  1. Sign in to the local administrator interface.
+  2. Open /admin/database.
+  3. Under "Generate content package", click "Generate content package".
+  4. Under "Available content packages", select the generated
+     .artfunk-content.json.gz file.
+  5. Click "Download selected package" and save it securely.
+
+The package contains persistent game definitions:
+
+  - Artists
+  - Artworks and their existing storage references
+  - Attributes
+  - Legendary/unique attributes
+  - Gallery finishes
+  - Selected gameplay and renderer configuration metadata
+  - Non-default indexes for those collections
+
+It excludes player accounts and generated/live game state.
+
+On the AWS application:
+
+  1. Open https://game.example.com/login.
+  2. Sign in with ADMIN_EMAIL and the bootstrapped administrator password.
+  3. Open https://game.example.com/admin/database.
+  4. In "Artwork storage", click "Test artwork storage".
+  5. Confirm that the provider is s3, the expected bucket and region are
+     displayed, and the connection is Available. Fix IAM, bucket, or region
+     settings before continuing if the test fails.
+  6. Under "Available content packages", click "Upload content package" and
+     choose the file downloaded from the local application.
+  7. Select the uploaded package.
+  8. In "Load content package", type the exact confirmation shown by the page:
+
+       LOAD CONTENT artfunkel
+
+     If MONGODB_DB has another value, use that database name instead.
+  9. Click "Load selected content".
+ 10. Confirm that the reported collection and document counts are reasonable.
+
+Loading replaces only the allowlisted content collections and selected
+metadata. It does not remove or overwrite live players or generated game
+state. When a complete content layer already exists, the server generates a
+pre-load content package first.
+
+The uploaded package is stored under storage/db-backups on that EC2 instance.
+Protect this directory and periodically remove obsolete packages. In a future
+multi-instance deployment it should be moved to shared or object storage.
+
+
+9. UPLOAD ARTWORK IMAGES
+========================
+
+After the content package has loaded:
+
+  1. Keep /admin/database open and run "Test artwork storage" again.
+  2. Open /admin/catalog.
+  3. Select "Missing images" to find artworks without an associated image.
+  4. Select an artwork and choose a file under "Replace image".
+  5. The catalog API checks the S3 connection before accepting the upload.
+  6. The server uploads the file through the AWS SDK and records the permanent
+     storage reference on the artwork document. The editor displays it as:
+
+       s3://BUCKET_NAME/artworks/ARTWORK_ID
+
+  7. The image is delivered to players through ARTWORK_CDN_BASE_URL.
+
+Artworks without an associated image display the bundled seed_image.png.
+
+If an imported artwork record points to local mock-S3 storage, that reference
+does not automatically copy the image bytes to AWS. Upload a replacement from
+the catalog, or separately migrate the source images and run the repository's
+publishing process. Once replaced through the catalog, the artwork record will
+point to the production S3 bucket.
+
+
+10. SECURITY AND OPERATIONS CHECKLIST
+=====================================
+
+  - HTTPS is mandatory; SESSION_COOKIE_SECURE must be true.
+  - Keep port 3000 private to the ALB security group.
+  - Keep MongoDB private and authenticated.
+  - Use an EC2 IAM role instead of AWS access keys.
+  - Keep the S3 bucket private; serve it only through CloudFront.
+  - Enable S3 versioning and EBS/MongoDB backups.
+  - Store secrets in AWS Systems Manager Parameter Store or Secrets Manager
+    for a mature deployment. Restrict who can read them.
+  - Enable ALB access logs, CloudTrail, CloudWatch alarms, and application log
+    retention.
+  - Add alarms for ALB 5xx responses, unhealthy targets, EC2 CPU/disk usage,
+    and MongoDB availability.
+  - Consider AWS WAF on the ALB for rate limiting and common web protections.
+  - Do not expose /admin credentials or content packages publicly.
+  - Rotate the administrator password and SESSION_SECRET under a controlled
+    maintenance plan. Rotating SESSION_SECRET signs out all active sessions.
+  - Back up the live MongoDB database separately from content packages.
+
+
+11. DEPLOYING APPLICATION UPDATES
+=================================
+
+For a simple single-instance update:
+
+  cd /opt/artfunknet
+  git pull --ff-only
+  npm ci
+  npm run build
+  sudo systemctl restart artfunknet
+  curl http://127.0.0.1:3000/api/health
+
+For reduced downtime, build a new AMI or deployment artifact, replace the
+instance through an Auto Scaling Group, wait for the new target to become
+healthy, and then terminate the old instance.
