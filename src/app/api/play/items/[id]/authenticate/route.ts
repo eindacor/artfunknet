@@ -79,5 +79,14 @@ export async function POST(
     message: item.authenticity.forgery
       ? `Authentication confirmed a forgery ($${cost.toLocaleString()} fee).`
       : `Authentication confirmed legitimate artwork ($${cost.toLocaleString()} fee).`,
+    ...(!item.authenticity.forgery
+      ? {
+          actionDialog: {
+            variant: "authenticated",
+            title: "This item was successfully authenticated!",
+            message: `The artwork is genuine. The $${cost.toLocaleString()} authentication fee was charged.`,
+          },
+        }
+      : {}),
   });
 }

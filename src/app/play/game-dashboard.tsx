@@ -111,7 +111,7 @@ type ArtworkOfferItem = HydratedGameItem & {
 };
 
 type ActionDialogResult = {
-  variant: "destroyed" | "returned" | "mixed";
+  variant: "authenticated" | "destroyed" | "returned" | "mixed";
   title: string;
   message: string;
 };
@@ -2197,10 +2197,16 @@ function ActionResultDialog({
         <div className="forgery-result-emblem" aria-hidden="true">
           <i
             className={`fa ${
-              result.variant === "returned" ? "fa-search" : "fa-ban"
+              result.variant === "authenticated"
+                ? "fa-check-circle"
+                : result.variant === "returned"
+                  ? "fa-search"
+                  : "fa-ban"
             }`}
           />
-          <i className="fa fa-user-secret" />
+          {result.variant !== "authenticated" ? (
+            <i className="fa fa-user-secret" />
+          ) : null}
         </div>
         <p className="forgery-result-message" id="action-result-description">
           {result.message}
