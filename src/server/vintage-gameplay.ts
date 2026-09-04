@@ -7,16 +7,19 @@ export type VintagePermission =
   | { allowed: true }
   | { allowed: false; reason: string };
 
-export function partitionVintageItems<T extends Pick<GameItem, "_id" | "vintage">>(
+export function partitionVintageItems<
+  T extends Pick<GameItem, "_id" | "original" | "vintage">,
+>(
   items: T[],
   selectedItemId: string,
 ) {
   return {
     keptItems: items.filter(
-      (item) => item.vintage || item._id === selectedItemId,
+      (item) => item.original || item.vintage || item._id === selectedItemId,
     ),
     removedItems: items.filter(
-      (item) => !item.vintage && item._id !== selectedItemId,
+      (item) =>
+        !item.original && !item.vintage && item._id !== selectedItemId,
     ),
   };
 }

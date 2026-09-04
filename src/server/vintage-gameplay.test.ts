@@ -62,17 +62,43 @@ test("vintage selection requires an eligible claimed non-vintage item", () => {
 
 test("every owned vintage item is retained regardless of auction status", () => {
   const items = [
-    { _id: "selected", vintage: false, status: "claimed" },
-    { _id: "auction-win", vintage: true, status: "won" },
-    { _id: "consigned", vintage: true, status: "auctioned" },
-    { _id: "ordinary", vintage: false, status: "claimed" },
+    {
+      _id: "selected",
+      original: false,
+      vintage: false,
+      status: "claimed",
+    },
+    {
+      _id: "auction-win",
+      original: false,
+      vintage: true,
+      status: "won",
+    },
+    {
+      _id: "consigned",
+      original: false,
+      vintage: true,
+      status: "auctioned",
+    },
+    {
+      _id: "original",
+      original: true,
+      vintage: false,
+      status: "displayed",
+    },
+    {
+      _id: "ordinary",
+      original: false,
+      vintage: false,
+      status: "claimed",
+    },
   ];
 
   const result = partitionVintageItems(items, "selected");
 
   assert.deepEqual(
     result.keptItems.map((candidate) => candidate._id),
-    ["selected", "auction-win", "consigned"],
+    ["selected", "auction-win", "consigned", "original"],
   );
   assert.deepEqual(
     result.removedItems.map((candidate) => candidate._id),

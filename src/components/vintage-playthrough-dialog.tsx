@@ -88,11 +88,12 @@ export default function VintagePlaythroughDialog({
         <p id="vintage-playthrough-description">
           Choose one inventory item to carry into the next playthrough. It will
           become vintage. Every item you already own that is marked vintage
-          will also be retained, including vintage artwork acquired at auction.
+          and every original item will also be retained, including artwork
+          acquired at auction.
         </p>
         <p className="vintage-playthrough-warning">
-          All non-vintage items will be permanently removed. Your level, XP,
-          bank balance, and inventory expansions will reset.
+          All other items will be permanently removed. Your level, XP, bank
+          balance, lottery tickets, and inventory expansions will reset.
         </p>
         <fieldset className="vintage-item-options">
           <legend>Item to make vintage</legend>

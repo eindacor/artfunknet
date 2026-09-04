@@ -23,6 +23,24 @@ test("XP carries through multiple level thresholds", () => {
   });
 });
 
+test("players earn a lottery ticket whenever they reach a fifth level", () => {
+  assert.deepEqual(applyXp(4, getXpGoal(4) - 1, 1), {
+    level: 5,
+    xp: 0,
+    lotteryTickets: 1,
+  });
+  assert.deepEqual(applyXp(9, getXpGoal(9) - 1, 1), {
+    level: 10,
+    xp: 0,
+    lotteryTickets: 1,
+  });
+  assert.deepEqual(applyXp(5, getXpGoal(5) - 1, 1), {
+    level: 6,
+    xp: 0,
+    lotteryTickets: 0,
+  });
+});
+
 test("level caps use the original linear scaling", () => {
   assert.deepEqual(getCapsForLevel(0), {
     inventory_cap: 15,

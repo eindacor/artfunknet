@@ -104,6 +104,9 @@ export function applyXp(
       currentXp = 0;
       if (currentLevel < MAX_PLAYER_LEVEL) {
         currentLevel += 1;
+        if (currentLevel % 5 === 0) {
+          lotteryTickets += 1;
+        }
       } else {
         lotteryTickets += 1;
       }

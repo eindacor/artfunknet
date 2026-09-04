@@ -193,15 +193,15 @@ export async function POST(request: Request) {
       }
     }
 
-    const restoredVintageItems = keptItems.filter(
+    const retainedExistingItems = keptItems.filter(
       (item) => item._id !== selectedItem._id,
     );
-    if (restoredVintageItems.length > 0) {
+    if (retainedExistingItems.length > 0) {
       const restored = await database.collection<GameItem>("items").updateMany(
         {
-          _id: { $in: restoredVintageItems.map((item) => item._id) },
+          _id: { $in: retainedExistingItems.map((item) => item._id) },
           owner: player._id,
-          vintage: true,
+          $or: [{ vintage: true }, { original: true }],
         },
         {
           $set: {
@@ -213,8 +213,10 @@ export async function POST(request: Request) {
           },
         },
       );
-      if (restored.matchedCount !== restoredVintageItems.length) {
-        throw new Error("Not every existing vintage item could be retained.");
+      if (restored.matchedCount !== retainedExistingItems.length) {
+        throw new Error(
+          "Not every existing vintage or original item could be retained.",
+        );
       }
     }
 
@@ -273,15 +275,13 @@ export async function POST(request: Request) {
           "profile.last_gallery_payout": now.toISOString(),
           "profile.gallery_money_remainder": 0,
           "profile.gallery_xp_remainder": 0,
+          "profile.lottery_tickets": 0,
           ...Object.fromEntries(
             Object.entries(caps).map(([key, value]) => [
               `profile.${key}`,
               value,
             ]),
           ),
-        },
-        $inc: {
-          "profile.lottery_tickets": 1,
         },
         $unset: {
           "profile.vintage_count": "",
@@ -310,7 +310,7 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     status: "ok",
-    message: `${artwork.title} is now vintage. Your new playthrough has begun, and only vintage items were retained.`,
+    message: `${artwork.title} is now vintage. Your new playthrough has begun, and vintage and original items were retained.`,
   });
 }
 
