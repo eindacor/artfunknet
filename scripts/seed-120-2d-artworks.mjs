@@ -162,7 +162,9 @@ const rare = [
 ];
 
 const client = new MongoClient(process.env.MONGODB_URI);
+console.log("[MONGO-CONNECT] seed-120: connecting");
 await client.connect();
+console.log("[MONGO-CONNECT] seed-120.mjs: connected");
 const database = client.db(process.env.MONGODB_DB);
 const existingSeedCount = await database
   .collection("artworks")

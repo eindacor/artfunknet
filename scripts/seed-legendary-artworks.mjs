@@ -55,7 +55,9 @@ const works = [
 ];
 
 const client = new MongoClient(process.env.MONGODB_URI);
+console.log("[MONGO-CONNECT] seed-legendary-artworks.mjs: connecting");
 await client.connect();
+console.log("[MONGO-CONNECT] seed-legendary-artworks.mjs: connected");
 const database = client.db(process.env.MONGODB_DB);
 const artists = await database
   .collection("artists")

@@ -25,7 +25,9 @@ if (!uri) {
 const client = new MongoClient(uri);
 
 try {
+  console.log("[MONGO-CONNECT] export-artwork-image-manifest.mjs: connecting");
   await client.connect();
+  console.log("[MONGO-CONNECT] export-artwork-image-manifest: connected");
   const database = client.db(databaseName);
   const artworks = await database
     .collection("artworks")

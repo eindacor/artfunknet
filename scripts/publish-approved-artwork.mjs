@@ -29,7 +29,9 @@ const mongoClient = new MongoClient(uri);
 const s3Client = useMockS3 ? undefined : new S3Client({ region });
 
 try {
+  console.log("[MONGO-CONNECT] publish-approved-artwork.mjs: connecting");
   await mongoClient.connect();
+  console.log("[MONGO-CONNECT] publish-approved-artwork.mjs: connected");
   const database = mongoClient.db(databaseName);
   const artworks = await database
     .collection("artworks")

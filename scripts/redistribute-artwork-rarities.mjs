@@ -1,7 +1,9 @@
 import { MongoClient } from "mongodb";
 
 const client = new MongoClient(process.env.MONGODB_URI);
+console.log("[MONGO-CONNECT] redistrubte-artwork-rarities.mjs: connecting");
 await client.connect();
+console.log("[MONGO-CONNECT] redistrubte-artwork-rarities.mjs: connected");
 const database = client.db(process.env.MONGODB_DB);
 const alreadyChanged = await database
   .collection("artworks")

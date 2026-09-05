@@ -21,7 +21,9 @@ const client = new MongoClient(uri);
 
 let connected = false;
 try {
+  console.log("[MONGO-CONNECT] bootstrap-admin.mjs: connecting");
   await client.connect();
+  console.log("[MONGO-CONNECT] bootstrap-admin.mjs: connected");
   connected = true;
   const now = new Date();
   const salt = randomBytes(16).toString("hex");
