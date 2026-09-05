@@ -47,7 +47,7 @@ function errorResponse(message: string, status = 400) {
 
 export async function GET(request: Request) {
   const session = await getPlayerSession();
-  if (!session) return NextResponse.redirect(new URL("/play/login", request.url));
+  if (!session) return NextResponse.redirect(new URL("/play/login", getPublicBaseUrl(request)));
   const clientId = process.env.PATREON_CLIENT_ID?.trim();
   const clientSecret = process.env.PATREON_CLIENT_SECRET?.trim();
   if (!clientId || !clientSecret) return errorResponse("Patreon linking is not configured.", 503);
@@ -133,7 +133,7 @@ export async function GET(request: Request) {
       },
     },
   );
-  const response = NextResponse.redirect(new URL("/play", request.url));
+  const response = NextResponse.redirect(new URL("/play", getPublicBaseUrl(request)));
   response.cookies.set(PATREON_STATE_COOKIE, "", { ...cookieOptions(), maxAge: 0 });
   return response;
 }

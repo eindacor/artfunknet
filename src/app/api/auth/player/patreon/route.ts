@@ -27,7 +27,7 @@ function cookieOptions() {
 
 export async function GET(request: Request) {
   if (!await getPlayerSession()) {
-    return NextResponse.redirect(new URL("/play/login", request.url));
+    return NextResponse.redirect(new URL("/play/login", getPublicBaseUrl(request)));
   }
   const clientId = process.env.PATREON_CLIENT_ID?.trim();
   if (!clientId) {

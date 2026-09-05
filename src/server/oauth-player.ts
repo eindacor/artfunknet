@@ -20,6 +20,7 @@ import {
   createPlayerSessionToken,
   playerSessionCookieOptions,
 } from "@/server/session";
+import { getPublicBaseUrl } from "@/server/public-url";
 
 export type OAuthProvider = "discord" | "google" | "microsoft" | "steam";
 
@@ -239,7 +240,9 @@ export async function completeOAuthPlayerSignIn({
       );
     }
 
-    const response = NextResponse.redirect(new URL("/play", request.url));
+    const response = NextResponse.redirect(
+      new URL("/play", getPublicBaseUrl(request)),
+    );
     response.cookies.set(
       PLAYER_SESSION_COOKIE,
       await createPlayerSessionToken({
