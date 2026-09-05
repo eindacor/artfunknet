@@ -45,7 +45,8 @@ export default function AuctionHouse({
     auctions: [],
     total: 0,
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+const [hydrated, setHydrated] = useState(false);
   const [error, setError] = useState("");
   const [selected, setSelected] = useState<AuctionView | null>(null);
   const [marketExpert, setMarketExpert] = useState(false);

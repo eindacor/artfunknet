@@ -23,7 +23,8 @@ export default function GalleryChat({
 }) {
   const [messages, setMessages] = useState<GalleryChatMessageView[]>([]);
   const [content, setContent] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+const [hydrated, setHydrated] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const messageListRef = useRef<HTMLOListElement>(null);
@@ -166,7 +167,7 @@ export default function GalleryChat({
         </div>
         <button
           aria-label={`Refresh ${global ? "global" : "gallery"} chat`}
-          disabled={loading}
+          disabled={loading === true}
           onClick={() => void loadMessages()}
           title="Refresh"
           type="button"
@@ -208,14 +209,8 @@ export default function GalleryChat({
                     @{message.authorName}
                   </a>
                 )}
-                <time
-                  dateTime={message.createdAt}
-                  title={new Date(message.createdAt).toLocaleString()}
-                >
-                  {new Date(message.createdAt).toLocaleTimeString(undefined, {
-                    hour: "numeric",
-                    minute: "2-digit",
-                  })}
+                <time dateTime={message.createdAt}>
+                  {new Date(message.createdAt).toISOString().slice(11, 16)}
                 </time>
                 <span className="gallery-chat-message">
                   {message.tokens.map((token, index) => (

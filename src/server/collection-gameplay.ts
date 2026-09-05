@@ -202,41 +202,165 @@ export async function settleGalleryEarnings(
 ): Promise<{ money: number; xp: number; intervals: number }> {
   const players = database.collection<PlayerRecord>("players");
   const player = await players.findOne({ _id: playerId, active: true });
-  if (!player) return { money: 0, xp: 0, intervals: 0 };
 
-  const previousPayout =
-    player.profile.last_gallery_payout ?? player.profile.last_activity;
-  const previousTime = new Date(previousPayout).getTime();
-  const intervalMs = config.galleryPayoutIntervalMinutes * 60 * 1000;
-  const elapsedIntervals = Math.floor(
-    (now.getTime() - previousTime) / intervalMs,
-  );
-  if (elapsedIntervals <= 0) return { money: 0, xp: 0, intervals: 0 };
+  if (!player) {
+    console.warn("[settleGalleryEarnings] Active player not found", {
+      playerId,
+    });
+    return { money: 0, xp: 0, intervals: 0 };
+  }
+
+  const rawPreviousPayout = player.profile.last_gallery_payout ?? player.profile.last_activity;
+
+  if (rawPreviousPayout == null) {
+    // Brand-new player: establish the gallery payout clock now.
+    const payoutTime = now.toISOString();
+
+    console.info(
+      "[settleGalleryEarnings] Initializing gallery payout clock for new player",
+      {
+        playerId,
+        payoutTime,
+      },
+    );
+
+    const result = await players.updateOne(
+      { _id: playerId },
+      {
+        $set: {
+          "profile.last_gallery_payout": payoutTime,
+        },
+      },
+    );
+
+    if (result.modifiedCount !== 1) {
+      console.warn(
+        "[settleGalleryEarnings] Failed to initialize gallery payout clock",
+        {
+          playerId,
+          matchedCount: result.matchedCount,
+          modifiedCount: result.modifiedCount,
+        },
+      );
+    }
+
+    return { money: 0, xp: 0, intervals: 0 };
+  }
+
+  const previousDate = new Date(rawPreviousPayout);
+  const previousTime = previousDate.getTime();
+
+  if (!Number.isFinite(previousTime)) {
+    console.error(
+      "[settleGalleryEarnings] Invalid previous payout date",
+      JSON.stringify({
+        playerId,
+        previousPayout: String(rawPreviousPayout),
+        previousPayoutType: typeof rawPreviousPayout,
+        lastGalleryPayout: String(player.profile.last_gallery_payout),
+        lastActivity: String(player.profile.last_activity),
+      }),
+    );
+
+    return { money: 0, xp: 0, intervals: 0 };
+  }
+
+  const intervalMs =
+    config.galleryPayoutIntervalMinutes * 60 * 1000;
+
+  if (!Number.isFinite(intervalMs) || intervalMs <= 0) {
+    console.error("[settleGalleryEarnings] Invalid gallery payout interval", {
+      playerId,
+      galleryPayoutIntervalMinutes:
+        config.galleryPayoutIntervalMinutes,
+      intervalMs,
+    });
+
+    return { money: 0, xp: 0, intervals: 0 };
+  }
+
+  const nowTime = now.getTime();
+
+  if (!Number.isFinite(nowTime)) {
+    console.error("[settleGalleryEarnings] Invalid current time", {
+      playerId,
+      now,
+    });
+
+    return { money: 0, xp: 0, intervals: 0 };
+  }
+
+  const elapsedMs = nowTime - previousTime;
+
+  if (elapsedMs < 0) {
+    console.warn(
+      "[settleGalleryEarnings] Previous payout time is in the future",
+      {
+        playerId,
+        rawPreviousPayout,
+        previousTime,
+        previousDate: new Date(previousTime).toISOString(),
+        now: now.toISOString(),
+        elapsedMs,
+      },
+    );
+
+    return { money: 0, xp: 0, intervals: 0 };
+  }
+
+  const elapsedIntervals = Math.floor(elapsedMs / intervalMs);
+
+  if (elapsedIntervals <= 0) {
+    return { money: 0, xp: 0, intervals: 0 };
+  }
 
   const displayedItems = await database
     .collection<GameItem>("items")
     .find({ owner: playerId, status: "displayed" })
     .toArray();
+
   const displayed = await hydrateGameItems(database, displayedItems);
+
   const moneyForXp = await getDisplayedLegendaryEffect(
     database,
     playerId,
     "MONEY_FOR_XP",
   );
+
   let level = player.profile.level;
   let xp = player.profile.xp;
   let lotteryTickets = 0;
   let moneyAccrued = player.profile.gallery_money_remainder ?? 0;
   let xpAccrued = player.profile.gallery_xp_remainder ?? 0;
   let xpEarned = 0;
+
   const originalForgerXp = new Map<string, number>();
   const activeIntervalsByItem = new Map<string, number>();
   const caughtForgeryIds = new Set<string>();
+
   let activeDisplayed = [...displayed];
 
   const intervalHourRatio = intervalMs / HOUR_MS;
+
   for (let interval = 1; interval <= elapsedIntervals; interval += 1) {
-    const tick = new Date(previousTime + interval * intervalMs);
+    const tickTime = previousTime + interval * intervalMs;
+    const tick = new Date(tickTime);
+
+    // This should be impossible after validating previousTime/intervalMs,
+    // but keep the guard here so a bad calculation cannot propagate.
+    if (!Number.isFinite(tick.getTime())) {
+      console.error("[settleGalleryEarnings] Invalid interval tick", {
+        playerId,
+        interval,
+        elapsedIntervals,
+        previousTime,
+        intervalMs,
+        tickTime,
+      });
+
+      return { money: 0, xp: 0, intervals: 0 };
+    }
+
     const rates = await calculateGalleryRates(
       database,
       level,
@@ -244,61 +368,115 @@ export async function settleGalleryEarnings(
       tick,
       config,
     );
+
     for (const item of activeDisplayed) {
       activeIntervalsByItem.set(
         item._id,
         (activeIntervalsByItem.get(item._id) ?? 0) + 1,
       );
+
       if (
         item.authenticity.forgery &&
         item.authenticity.original_owner &&
         item.authenticity.original_owner !== playerId
       ) {
         const amount =
-          getDisplayXpPerHour(item, level, tick, config) * intervalHourRatio;
+          getDisplayXpPerHour(item, level, tick, config) *
+          intervalHourRatio;
+
         originalForgerXp.set(
           item.authenticity.original_owner,
           (originalForgerXp.get(item.authenticity.original_owner) ?? 0) +
             amount,
         );
       }
+
       if (rollForgeryDetected(item, "display")) {
         caughtForgeryIds.add(item._id);
       }
     }
+
     if (caughtForgeryIds.size > 0) {
       activeDisplayed = activeDisplayed.filter(
         (item) => !caughtForgeryIds.has(item._id),
       );
     }
+
     moneyAccrued += rates.moneyPerHour * intervalHourRatio;
     xpAccrued += rates.xpPerHour * intervalHourRatio;
+
     const awardedXp = Math.floor(xpAccrued);
     xpAccrued -= awardedXp;
     xpEarned += awardedXp;
+
     const progress = applyXp(level, xp, awardedXp);
+
     level = progress.level;
     xp = progress.xp;
     lotteryTickets += progress.lotteryTickets;
   }
 
-  const payoutTime = new Date(
-    previousTime + elapsedIntervals * intervalMs,
-  ).toISOString();
+  const payoutTimeMs =
+    previousTime + elapsedIntervals * intervalMs;
+
+  // Explicitly validate the value before calling toISOString().
+  if (!Number.isFinite(payoutTimeMs)) {
+    console.error(
+      "[settleGalleryEarnings] Invalid calculated payout timestamp",
+      {
+        playerId,
+        previousPayout,
+        previousTime,
+        elapsedIntervals,
+        intervalMs,
+        payoutTimeMs,
+      },
+    );
+
+    return { money: 0, xp: 0, intervals: 0 };
+  }
+
+  const payoutDate = new Date(payoutTimeMs);
+
+  if (!Number.isFinite(payoutDate.getTime())) {
+    console.error(
+      "[settleGalleryEarnings] Calculated payout date is invalid",
+      {
+        playerId,
+        previousPayout,
+        previousTime,
+        elapsedIntervals,
+        intervalMs,
+        payoutTimeMs,
+      },
+    );
+
+    return { money: 0, xp: 0, intervals: 0 };
+  }
+
+  const payoutTime = payoutDate.toISOString();
+
   moneyAccrued +=
     xpEarned *
-    getLegendaryNumberParameter(moneyForXp, "money_per_xp", 0);
+    getLegendaryNumberParameter(
+      moneyForXp,
+      "money_per_xp",
+      0,
+    );
+
   const money = Math.floor(moneyAccrued);
   moneyAccrued -= money;
+
   const caps = getCapsForLevel(level);
+
   const result = await players.updateOne(
     {
       _id: playerId,
       $or: [
-        { "profile.last_gallery_payout": previousPayout },
+        { "profile.last_gallery_payout": rawPreviousPayout },
         {
           "profile.last_gallery_payout": { $exists: false },
-          "profile.last_activity": previousPayout,
+          "profile.last_activity": rawPreviousPayout,
         },
       ],
     },
@@ -310,7 +488,10 @@ export async function settleGalleryEarnings(
         "profile.gallery_money_remainder": moneyAccrued,
         "profile.gallery_xp_remainder": xpAccrued,
         ...Object.fromEntries(
-          Object.entries(caps).map(([key, value]) => [`profile.${key}`, value]),
+          Object.entries(caps).map(([key, value]) => [
+            `profile.${key}`,
+            value,
+          ]),
         ),
       },
       $inc: {
@@ -321,8 +502,21 @@ export async function settleGalleryEarnings(
   );
 
   if (result.modifiedCount !== 1) {
+    console.warn(
+      "[settleGalleryEarnings] Player update was not applied",
+      {
+        playerId,
+        modifiedCount: result.modifiedCount,
+        matchedCount: result.matchedCount,
+        rawPreviousPayout,
+        payoutTime,
+        elapsedIntervals,
+      },
+    );
+
     return { money: 0, xp: 0, intervals: 0 };
   }
+
   for (const [forgerId, amount] of originalForgerXp) {
     await awardForgeryXpAmount(database, forgerId, amount);
   }
@@ -334,17 +528,35 @@ export async function settleGalleryEarnings(
       config.galleryPayoutIntervalMinutes /
         config.conditionDecayIntervalMinutes,
     );
+
   for (const item of displayed) {
     let condition = item.condition;
-    const activeIntervals = activeIntervalsByItem.get(item._id) ?? 0;
-    for (let interval = 0; interval < activeIntervals; interval += 1) {
-      if (condition >= 0.5 && Math.random() < conditionDecayChance) {
-        condition = Number((condition - 0.01).toFixed(2));
+
+    const activeIntervals =
+      activeIntervalsByItem.get(item._id) ?? 0;
+
+    for (
+      let interval = 0;
+      interval < activeIntervals;
+      interval += 1
+    ) {
+      if (
+        condition >= 0.5 &&
+        Math.random() < conditionDecayChance
+      ) {
+        condition = Number(
+          (condition - 0.01).toFixed(2),
+        );
       }
     }
+
     if (caughtForgeryIds.has(item._id)) {
       await database.collection<GameItem>("items").updateOne(
-        { _id: item._id, owner: playerId, status: "displayed" },
+        {
+          _id: item._id,
+          owner: playerId,
+          status: "displayed",
+        },
         {
           $set: {
             status: "claimed",
@@ -352,20 +564,33 @@ export async function settleGalleryEarnings(
             "authenticity.liable": playerId,
             "authenticity.liability_pending": false,
             "authenticity.identified": true,
-            "authenticity.forgery_quality": punishForgeryQuality(
-              item.authenticity.forgery_quality,
-            ),
+            "authenticity.forgery_quality":
+              punishForgeryQuality(
+                item.authenticity.forgery_quality,
+              ),
           },
         },
       );
     } else if (condition !== item.condition) {
       await database
         .collection<GameItem>("items")
-        .updateOne({ _id: item._id, status: "displayed" }, { $set: { condition } });
+        .updateOne(
+          {
+            _id: item._id,
+            status: "displayed",
+          },
+          {
+            $set: { condition },
+          },
+        );
     }
   }
 
-  return { money, xp: xpEarned, intervals: elapsedIntervals };
+  return {
+    money,
+    xp: xpEarned,
+    intervals: elapsedIntervals,
+  };
 }
 
 function getAverageDropValue(
