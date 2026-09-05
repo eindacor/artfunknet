@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getDatabase } from "@/server/mongodb";
 import { logOperationalError } from "@/server/operational-logging";
 import { getPlayerSession } from "@/server/session";
+import { getPublicBaseUrl } from "@/server/public-url";
 
 import {
   cookieOptions,

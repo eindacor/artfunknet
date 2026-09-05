@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 
 import { getPublicCallbackUrl } from "@/server/public-url";
 import { getPlayerSession } from "@/server/session";
+import { getPublicBaseUrl } from "@/server/public-url";
 
 export const PATREON_STATE_COOKIE = "artfunkel_patreon_oauth_state";
 
