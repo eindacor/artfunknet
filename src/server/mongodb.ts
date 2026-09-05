@@ -26,12 +26,8 @@ function createClient(): MongoClient {
 }
 
 function getClientPromise(): Promise<MongoClient> {
-  if (process.env.NODE_ENV === "development") {
-    global.artfunkelMongoClientPromise ??= createClient().connect();
-    return global.artfunkelMongoClientPromise;
-  }
-
-  return createClient().connect();
+  global.artfunkelMongoClientPromise ??= createClient().connect();
+  return global.artfunkelMongoClientPromise;
 }
 
 export async function getDatabase(): Promise<Db> {
