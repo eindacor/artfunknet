@@ -24,7 +24,7 @@ export default function GalleryChat({
   const [messages, setMessages] = useState<GalleryChatMessageView[]>([]);
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
-const [hydrated, setHydrated] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const messageListRef = useRef<HTMLOListElement>(null);

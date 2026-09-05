@@ -425,7 +425,7 @@ export async function settleGalleryEarnings(
       "[settleGalleryEarnings] Invalid calculated payout timestamp",
       {
         playerId,
-        previousPayout,
+        rawPreviousPayout,
         previousTime,
         elapsedIntervals,
         intervalMs,
@@ -443,7 +443,7 @@ export async function settleGalleryEarnings(
       "[settleGalleryEarnings] Calculated payout date is invalid",
       {
         playerId,
-        previousPayout,
+        rawPreviousPayout,
         previousTime,
         elapsedIntervals,
         intervalMs,
@@ -500,6 +500,20 @@ export async function settleGalleryEarnings(
       },
     },
   );
+
+  if (result.matchedCount !== 1) {
+    console.warn(
+      "[settleGalleryEarnings] Settlement was already processed or player changed",
+      {
+        playerId,
+        rawPreviousPayout,
+        payoutTime,
+        elapsedIntervals,
+      },
+    );
+
+    return { money: 0, xp: 0, intervals: 0 };
+  }
 
   if (result.modifiedCount !== 1) {
     console.warn(
