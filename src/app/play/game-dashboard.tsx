@@ -915,7 +915,7 @@ export default function GameDashboard({
               <section className="museum-profile-karma">
                 <header>
                   <span>Good Karma</span>
-                  <small>Donations and community reactions</small>
+                  <small>Earned by donating artwork and being kind. Used to level up items.</small>
                 </header>
                 <div className="karma-balance">
                   <i aria-hidden="true" className="fa fa-heart" />
