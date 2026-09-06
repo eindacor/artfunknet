@@ -299,7 +299,7 @@ export function CompleteItemRecord({
                   @{owner.screenName}
                 </Link>
               ) : (
-                <strong className="item-owner-default">artfunkel</strong>
+                <strong className="item-owner-default">artfunkel inc.</strong>
               )
             }
           />
