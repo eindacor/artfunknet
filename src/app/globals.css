@@ -5489,7 +5489,7 @@ a.welcome-button {
 .gallery-npc-overlay {
   position: absolute;
   right: 0;
-  bottom: -124px;
+  bottom: 64px;
   left: 0;
   z-index: 2;
   overflow-x: auto;
