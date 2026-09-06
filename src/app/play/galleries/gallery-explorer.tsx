@@ -696,10 +696,7 @@ function VisitedGallery({
         <PublicGallery
           floorContent={
             <div className="npc-area gallery-npc-overlay">
-              {visitors.length === 0 ? (
-                <p>No visitors are currently in this gallery.</p>
-              ) : (
-                visitors.map((npc) => (
+              {visitors.map((npc) => (
                   <span className="gallery-npc-slot" key={npc._id}>
                     <button
                       className={`gallery-npc ${npc.quality} ${
@@ -753,8 +750,7 @@ function VisitedGallery({
                       </span>
                     ) : null}
                   </span>
-                ))
-              )}
+                ))}
             </div>
           }
           items={gallery.items}

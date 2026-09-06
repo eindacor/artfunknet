@@ -1697,10 +1697,7 @@ export default function GameDashboard({
                   </div>
                 </div>
                 <div className="npc-area gallery-npc-overlay">
-                  {galleryVisitors.length === 0 ? (
-                    <p>No visitors are currently in the gallery.</p>
-                  ) : (
-                    galleryVisitors.map((npc) => (
+                  {galleryVisitors.map((npc) => (
                       <span className="gallery-npc-slot" key={npc._id}>
                         <button
                           className={`gallery-npc ${npc.quality} ${
@@ -1758,8 +1755,7 @@ export default function GameDashboard({
                           </span>
                         ) : null}
                       </span>
-                    ))
-                  )}
+                    ))}
                 </div>
               </div>
             </div>
@@ -1999,12 +1995,7 @@ export default function GameDashboard({
               <span>{galleryRates.xpPerHour.toLocaleString()}xp/hr.</span>
             </div>
             <div className="npc-area">
-              {galleryVisitors.length === 0 ? (
-                <p className="empty-state">
-                  No visitors are currently in the gallery.
-                </p>
-              ) : (
-                galleryVisitors.map((npc) => (
+              {galleryVisitors.map((npc) => (
                   <span className="gallery-npc-slot" key={npc._id}>
                     <button
                       className={`gallery-npc ${npc.quality} ${
@@ -2053,8 +2044,7 @@ export default function GameDashboard({
                       </span>
                     ) : null}
                   </span>
-                ))
-              )}
+                ))}
             </div>
             <div className="gallery-window">
               <div className="gallery-scene">

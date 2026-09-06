@@ -6,6 +6,7 @@ import type { GalleryNpc } from "@/server/npc-gameplay";
 
 const MINIMUM_REFRESH_INTERVAL_MS = 1_000;
 const SPAWN_REFRESH_DELAY_MS = 1_500;
+const SCHEDULER_HEARTBEAT_MS = 30_000;
 
 export type GalleryVisitorView = Omit<
   GalleryNpc,
@@ -62,34 +63,41 @@ export function useGalleryVisitors({
 
   useEffect(() => {
     if (!enabled) return;
-    lastRefreshCycle.current = Math.floor(Date.now() / refreshIntervalMs);
 
-    let timer: number;
+    let boundaryTimer: number;
+    const refreshIfCycleAdvanced = () => {
+      if (document.visibilityState !== "visible") return;
+      const currentCycle = Math.floor(Date.now() / refreshIntervalMs);
+      if (currentCycle > lastRefreshCycle.current) {
+        void refreshVisitors();
+      }
+    };
     const scheduleNextRefresh = () => {
       const now = Date.now();
       const nextCycle =
         (Math.floor(now / refreshIntervalMs) + 1) * refreshIntervalMs;
-      timer = window.setTimeout(() => {
-        if (document.visibilityState === "visible") {
-          void refreshVisitors();
-        }
+      boundaryTimer = window.setTimeout(() => {
+        refreshIfCycleAdvanced();
         scheduleNextRefresh();
       }, nextCycle - now + SPAWN_REFRESH_DELAY_MS);
     };
-    const refreshWhenVisible = () => {
-      const currentCycle = Math.floor(Date.now() / refreshIntervalMs);
-      if (
-        document.visibilityState === "visible" &&
-        currentCycle > lastRefreshCycle.current
-      ) {
-        void refreshVisitors();
-      }
-    };
+
+    lastRefreshCycle.current = -1;
+    refreshIfCycleAdvanced();
     scheduleNextRefresh();
-    document.addEventListener("visibilitychange", refreshWhenVisible);
+    const heartbeatTimer = window.setInterval(
+      refreshIfCycleAdvanced,
+      Math.min(SCHEDULER_HEARTBEAT_MS, refreshIntervalMs),
+    );
+    document.addEventListener("visibilitychange", refreshIfCycleAdvanced);
+    window.addEventListener("focus", refreshIfCycleAdvanced);
+    window.addEventListener("pageshow", refreshIfCycleAdvanced);
     return () => {
-      window.clearTimeout(timer);
-      document.removeEventListener("visibilitychange", refreshWhenVisible);
+      window.clearTimeout(boundaryTimer);
+      window.clearInterval(heartbeatTimer);
+      document.removeEventListener("visibilitychange", refreshIfCycleAdvanced);
+      window.removeEventListener("focus", refreshIfCycleAdvanced);
+      window.removeEventListener("pageshow", refreshIfCycleAdvanced);
     };
   }, [enabled, refreshIntervalMs, refreshVisitors]);
 
