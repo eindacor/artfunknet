@@ -4517,6 +4517,10 @@
   text-transform: uppercase;
 }
 
+.art-style-dialog-applc, .red{
+  background: #C44;
+}
+
 .art-style-dialog-apply:not(:disabled):hover,
 .art-style-dialog-apply:not(:disabled):focus-visible {
   border-color: #c62f72;

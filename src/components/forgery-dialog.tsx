@@ -279,7 +279,7 @@ export default function ForgeryDialog({
             <strong>${cost.toLocaleString()}</strong>
           </div>
           <button
-            className="art-style-dialog-apply"
+            className="art-style-dialog-apply red"
             disabled={pending}
             onClick={forge}
             type="button"
