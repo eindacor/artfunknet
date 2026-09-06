@@ -2,6 +2,15 @@ import { randomUUID } from "node:crypto";
 
 import { NextResponse } from "next/server";
 
+import {
+  getArchiveRecordArtStyles,
+  getArchiveRecordModifiers,
+  type PlayerArtworkArchive,
+} from "@/server/archive-gameplay";
+import {
+  type BulkSaleProtections,
+  shouldPreserveBulkSaleItem,
+} from "@/server/bulk-sale";
 import type { GameItem } from "@/server/gameplay";
 import { deleteCommunityReactions } from "@/server/community-reaction-cleanup";
 import {
@@ -11,6 +20,7 @@ import {
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
 import { hydrateGameItems } from "@/server/item-artwork";
+import { getPlayerFacingArchivePermission } from "@/server/item-permissions";
 import {
   punishForgeryQuality,
   rollForgeryDetected,
@@ -18,20 +28,75 @@ import {
   transferForgeryLiability,
 } from "@/server/forgery-gameplay";
 
-export async function POST() {
+export async function POST(request: Request) {
   const auth = await requirePlayerApi();
   if (!auth.ok) return auth.response;
+  let body: Partial<BulkSaleProtections> = {};
+  try {
+    const rawBody = await request.text();
+    body = rawBody
+      ? (JSON.parse(rawBody) as Partial<BulkSaleProtections>)
+      : {};
+  } catch {
+    return NextResponse.json(
+      { error: "The sell-all request is invalid." },
+      { status: 400 },
+    );
+  }
+  const protections: BulkSaleProtections = {
+    keepLegendaries: body.keepLegendaries === true,
+    keepMasterpieces: body.keepMasterpieces === true,
+    keepUnarchived: body.keepUnarchived === true,
+  };
   const database = await getDatabase();
   await recoverPendingSales(database, auth.session.playerId);
-  const items = await database.collection<GameItem>("items").find({
+  const candidates = await database.collection<GameItem>("items").find({
     owner: auth.session.playerId,
     status: "unclaimed",
     permanent: { $ne: true },
     original: { $ne: true },
   }).toArray();
-  if (items.length === 0) {
+  if (candidates.length === 0) {
     return NextResponse.json(
       { error: "There is no sellable unclaimed loot." },
+      { status: 409 },
+    );
+  }
+  const hydratedCandidates = await hydrateGameItems(database, candidates);
+  const archiveRecords = protections.keepUnarchived
+    ? await database
+        .collection<PlayerArtworkArchive>("player_artwork_archives")
+        .find({
+          owner: auth.session.playerId,
+          artwork_id: {
+            $in: hydratedCandidates.map((item) => item.artwork_id),
+          },
+        })
+        .toArray()
+    : [];
+  const archiveByArtwork = new Map(
+    archiveRecords.map((archive) => [archive.artwork_id, archive]),
+  );
+  const protectedIds = new Set(
+    hydratedCandidates
+      .map((item) => {
+        const archive = archiveByArtwork.get(item.artwork_id);
+        return {
+          ...item,
+          archivePermission: getPlayerFacingArchivePermission(
+            item,
+            archive ? getArchiveRecordModifiers(archive) : [],
+            archive ? getArchiveRecordArtStyles(archive) : [],
+          ),
+        };
+      })
+      .filter((item) => shouldPreserveBulkSaleItem(item, protections))
+      .map((item) => item._id),
+  );
+  const items = candidates.filter((item) => !protectedIds.has(item._id));
+  if (items.length === 0) {
+    return NextResponse.json(
+      { error: "No unclaimed loot matches the selected sell-all options." },
       { status: 409 },
     );
   }
@@ -40,7 +105,9 @@ export async function POST() {
       transferForgeryLiability(database, item, auth.session.playerId),
     ),
   );
-  const hydrated = await hydrateGameItems(database, items);
+  const hydrated = hydratedCandidates.filter((item) =>
+    items.some((candidate) => candidate._id === item._id),
+  );
   const caughtItems = hydrated.filter((item) =>
     rollForgeryDetected(item, "sell"),
   );
