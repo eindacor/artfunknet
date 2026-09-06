@@ -3878,6 +3878,110 @@
   font-style: italic;
 }
 
+.standard-item-auction-panel {
+  display: grid;
+  width: 100%;
+  gap: 0.55rem;
+  margin-top: 0.65rem;
+  border-top: 1px solid #d2cdc2;
+  padding-top: 0.65rem;
+}
+
+.standard-item-auction-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: #676158;
+  font: 700 0.58rem Courier, "Courier New", monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.standard-item-auction-heading strong {
+  color: #9c7110;
+}
+
+.standard-item-auction-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem 0.7rem;
+  margin: 0;
+}
+
+.standard-item-auction-facts div {
+  min-width: 0;
+}
+
+.standard-item-auction-facts dt {
+  color: #817a70;
+  font: 700 0.52rem Courier, "Courier New", monospace;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.standard-item-auction-facts dd {
+  margin: 0.1rem 0 0;
+  color: #282722;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.standard-item-auction-panel > p {
+  margin: 0;
+  color: #676158;
+  font-size: 0.65rem;
+}
+
+.standard-item-auction-panel > label {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+}
+
+.standard-item-auction-panel > label > i {
+  display: grid;
+  place-items: center;
+  background: #282722;
+  color: #fff;
+}
+
+.standard-item-auction-panel input {
+  min-width: 0;
+  border: 1px solid #aaa397;
+  border-radius: 0;
+  padding: 0.45rem 0.5rem;
+  background: #fff;
+  color: #282722;
+}
+
+.standard-item-auction-panel footer {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.standard-item-auction-panel footer button {
+  min-width: 0;
+  border: 1px solid #282722;
+  padding: 0.5rem;
+  background: #282722;
+  color: #fff;
+  font: 700 0.62rem Arial, Helvetica, sans-serif;
+  cursor: pointer;
+}
+
+.standard-item-auction-panel footer button:hover:not(:disabled),
+.standard-item-auction-panel footer button:focus-visible:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #111;
+}
+
+.standard-item-auction-panel footer button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 .standard-item-dialog-kicker {
   color: #777;
   font-family: Courier, "Courier New", monospace;

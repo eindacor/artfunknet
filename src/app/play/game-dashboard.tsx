@@ -1585,10 +1585,7 @@ export default function GameDashboard({
                             : ""
                         }
                         key={item._id}
-                        onClick={() => {
-                          setSelectedCollectionItemId(item._id);
-                          setGalleryItemDetails(item);
-                        }}
+                        onClick={() => setSelectedCollectionItemId(item._id)}
                         title={`${item.artwork.title} by ${item.artwork.artist}`}
                         type="button"
                       >

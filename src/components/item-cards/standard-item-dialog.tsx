@@ -34,6 +34,7 @@ export default function StandardItemDialog({
   onClose,
   onOpenArtStyle,
   displayOwner,
+  headerDetails,
   viewerId,
 }: {
   item: HydratedGameItem;
@@ -44,6 +45,7 @@ export default function StandardItemDialog({
   onClose: () => void;
   onOpenArtStyle?: () => void;
   displayOwner?: ItemDisplayOwner;
+  headerDetails?: React.ReactNode;
   viewerId?: string | null;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -90,6 +92,7 @@ export default function StandardItemDialog({
         actions={actions}
         currentRendererId={currentRendererId}
         displayOwner={displayOwner}
+        headerDetails={headerDetails}
         item={item}
         legendaryAttributes={legendaryAttributes}
         onClose={closeDialog}
@@ -110,6 +113,7 @@ export function StandardItemDetails({
   onClose,
   onOpenArtStyle,
   displayOwner,
+  headerDetails,
   viewerId,
 }: {
   item: HydratedGameItem;
@@ -120,6 +124,7 @@ export function StandardItemDetails({
   onClose?: () => void;
   onOpenArtStyle?: () => void;
   displayOwner?: ItemDisplayOwner;
+  headerDetails?: React.ReactNode;
   viewerId?: string | null;
 }) {
   const appliedCosmetic = getCardCosmetic(currentRendererId);
@@ -165,6 +170,7 @@ export function StandardItemDetails({
                 <p className="standard-item-dialog-workline">
                   {item.artwork.date} · {item.artwork.medium}
                 </p>
+                {headerDetails}
               </div>
             </div>
           </div>
@@ -241,7 +247,8 @@ export function StandardItemDetails({
                 <ArchivedArtStyleBadges styles={item.archivedArtStyles} />
               </section>
             ) : null}
-            {permissions.canManageItem &&
+            {item.status !== "auctioned" &&
+            permissions.canManageItem &&
             (actions || permissions.canCustomizeCosmetic) ? (
               <div
                 className="standard-item-dialog-actions card-actions"

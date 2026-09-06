@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import ItemThumbnail from "@/components/item-thumbnail";
 import ItemCard from "@/components/item-cards/item-card";
+import { resolveCardRendererId } from "@/components/item-cards/selection";
+import StandardItemDialog from "@/components/item-cards/standard-item-dialog";
 import type { AuctionView } from "@/server/auction-gameplay";
 import { ARTWORK_RARITIES, type ArtworkRarity } from "@/server/gameplay";
 import type { CardLegendaryAttribute } from "@/components/item-cards/types";
@@ -539,18 +541,11 @@ export function AuctionBidDialog({
   onSuccess: (bankBalance: number) => void;
   playerId: string;
 }) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const [amount, setAmount] = useState(auction.minimum_bid.toString());
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const available =
     bankBalance + (auction.currentlyWinning ? auction.current_bid : 0);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    dialog?.showModal();
-    return () => dialog?.close();
-  }, []);
 
   async function submit(buyNow = false) {
     setSubmitting(true);
@@ -577,97 +572,59 @@ export function AuctionBidDialog({
   }
 
   return (
-    <dialog
-      className="auction-dialog"
-      onCancel={(event) => {
-        event.preventDefault();
-        onClose();
-      }}
-      ref={dialogRef}
-    >
-      <form
-        className="auction-dialog-content"
-        onSubmit={(event) => {
-          event.preventDefault();
-          void submit();
-        }}
-      >
-        <header>
-          <div>
-            <p>{auction.privateAuction ? "Private auction" : "Auction house"}</p>
-            <h2>{auction.item.artwork.title}</h2>
-            <span>{auction.item.artwork.artist}</span>
+    <StandardItemDialog
+      currentRendererId={resolveCardRendererId({
+        itemRendererId: auction.item.card_renderer,
+      })}
+      headerDetails={
+        <form
+          className="standard-item-auction-panel"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void submit();
+          }}
+        >
+          <div className="standard-item-auction-heading">
+            <span>
+              {auction.privateAuction ? "Private auction" : "Public auction"}
+            </span>
             {auction.currentlyWinning ? (
-              <strong className="auction-dialog-winning">
-                <i aria-hidden="true" className="fa fa-trophy" /> You are
-                winning
+              <strong>
+                <i aria-hidden="true" className="fa fa-trophy" /> Winning
               </strong>
             ) : null}
           </div>
-          <button
-            aria-label="Close bidding dialog"
-            className="reroll-dialog-close"
-            onClick={onClose}
-            type="button"
-          >
-            <i aria-hidden="true" className="fa fa-times" />
-          </button>
-        </header>
-        <div className="auction-dialog-body">
-          <div className="auction-dialog-card">
-            <AuctionItemCard
-              auction={auction}
-              interactive={false}
-              legendaryAttributes={legendaryAttributes}
-              playerId={playerId}
-            />
-          </div>
-          <div className="auction-dialog-bidding">
-            <dl className="auction-dialog-facts">
-              <div>
-                <dt>Seller</dt>
-                <dd>{auction.seller_name}</dd>
-              </div>
-              <div>
-                <dt>Access</dt>
-                <dd>{auction.privateAuction ? "Private" : "Public"}</dd>
-              </div>
-              <div>
-                <dt>Estimated value</dt>
-                <dd>${auction.item.values.actual.toLocaleString()}</dd>
-              </div>
-              <div>
-                <dt>{auction.has_bid ? "Current bid" : "Starting bid"}</dt>
-                <dd>${auction.current_bid.toLocaleString()}</dd>
-              </div>
-              <div>
-                <dt>Next bid</dt>
-                <dd>${auction.minimum_bid.toLocaleString()}</dd>
-              </div>
-              <div>
-                <dt>Buy now</dt>
-                <dd>
-                  {auction.buy_now === null
-                    ? "Not offered"
-                    : `$${auction.buy_now.toLocaleString()}`}
-                </dd>
-              </div>
-              <div>
-                <dt>Remaining</dt>
-                <dd>{formatRemaining(auction.expiration)}</dd>
-              </div>
-            </dl>
-            <p>
-              Available funds: <strong>${available.toLocaleString()}</strong>
-              {auction.currentlyWinning
-                ? " including your current escrowed bid"
-                : ""}
-            </p>
-            <label>
-              Bid amount
-              <span>
+          <dl className="standard-item-auction-facts">
+            <div>
+              <dt>Seller</dt>
+              <dd>{auction.seller_name}</dd>
+            </div>
+            <div>
+              <dt>{auction.has_bid ? "Current" : "Starting"}</dt>
+              <dd>${auction.current_bid.toLocaleString()}</dd>
+            </div>
+            <div>
+              <dt>Next bid</dt>
+              <dd>${auction.minimum_bid.toLocaleString()}</dd>
+            </div>
+            <div>
+              <dt>Remaining</dt>
+              <dd>{formatRemaining(auction.expiration)}</dd>
+            </div>
+          </dl>
+          {auction.seller_id === playerId ? (
+            <p>Your listing</p>
+          ) : (
+            <>
+              <p>
+                Available ${available.toLocaleString()}
+                {auction.currentlyWinning ? " including your current bid" : ""}
+              </p>
+              <label>
+                <span className="sr-only">Bid amount</span>
                 <i aria-hidden="true" className="fa fa-usd" />
                 <input
+                  aria-label="Bid amount"
                   min={auction.minimum_bid}
                   onChange={(event) => setAmount(event.target.value)}
                   required
@@ -675,35 +632,38 @@ export function AuctionBidDialog({
                   type="number"
                   value={amount}
                 />
-              </span>
-              <small>Minimum ${auction.minimum_bid.toLocaleString()}</small>
-            </label>
-            {error ? <p className="auction-dialog-error">{error}</p> : null}
-            <footer>
-              {auction.buy_now !== null ? (
+              </label>
+              {error ? <p className="auction-dialog-error">{error}</p> : null}
+              <footer>
                 <button
-                  disabled={submitting || available < auction.buy_now}
-                  onClick={() => void submit(true)}
-                  type="button"
+                  disabled={submitting || available < Number(amount)}
+                  type="submit"
                 >
-                  Buy now · ${auction.buy_now.toLocaleString()}
+                  Place bid
                 </button>
-              ) : null}
-              <button
-                disabled={
-                  submitting ||
-                  auction.seller_id === playerId ||
-                  available < Number(amount)
-                }
-                type="submit"
-              >
-                {auction.seller_id === playerId ? "Your listing" : "Place bid"}
-              </button>
-            </footer>
-          </div>
-        </div>
-      </form>
-    </dialog>
+                {auction.buy_now !== null ? (
+                  <button
+                    disabled={submitting || available < auction.buy_now}
+                    onClick={() => void submit(true)}
+                    type="button"
+                  >
+                    Buy now · ${auction.buy_now.toLocaleString()}
+                  </button>
+                ) : null}
+              </footer>
+            </>
+          )}
+        </form>
+      }
+      item={auction.item}
+      legendaryAttributes={legendaryAttributes}
+      onClose={onClose}
+      permissions={{
+        canManageItem: false,
+        canCustomizeCosmetic: false,
+      }}
+      viewerId={playerId}
+    />
   );
 }
 
