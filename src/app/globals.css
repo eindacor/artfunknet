@@ -5056,8 +5056,24 @@ a.welcome-button {
   width: 100%;
   border: 1px solid transparent;
   padding: 3px;
-  background: #e8e3d9;
+  background: rgb(57 181 74 / 58%);
   cursor: pointer;
+}
+
+.collection-thumbnail-list button[data-rarity="uncommon"] {
+  background: rgb(62 123 255 / 58%);
+}
+
+.collection-thumbnail-list button[data-rarity="rare"] {
+  background: rgb(225 196 41 / 58%);
+}
+
+.collection-thumbnail-list button[data-rarity="legendary"] {
+  background: rgb(255 138 31 / 58%);
+}
+
+.collection-thumbnail-list button[data-rarity="masterpiece"] {
+  background: rgb(66 232 245 / 58%);
 }
 
 .collection-thumbnail-list button:hover,
@@ -5209,11 +5225,11 @@ a.welcome-button {
 }
 
 .loot-thumbnail-grid button[data-rarity="legendary"] {
-  background: rgb(215 106 0 / 12%);
+  background: rgb(215 106 0 / 52%);
 }
 
 .loot-thumbnail-grid button[data-rarity="masterpiece"] {
-  background: rgb(0 168 181 / 12%);
+  background: rgb(0 168 181 / 52%);
 }
 
 .loot-preview {

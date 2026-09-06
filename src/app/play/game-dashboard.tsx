@@ -1548,6 +1548,7 @@ export default function GameDashboard({
                       <button
                         aria-label={`Preview ${item.artwork.title} by ${item.artwork.artist}`}
                         aria-pressed={selectedCollectionItem?._id === item._id}
+                        data-rarity={item.artwork.rarity}
                         className={
                           selectedCollectionItem?._id === item._id
                             ? "selected"
@@ -1587,6 +1588,7 @@ export default function GameDashboard({
                       <button
                         aria-label={`Open details for ${item.artwork.title} by ${item.artwork.artist}`}
                         aria-pressed={selectedCollectionItem?._id === item._id}
+                        data-rarity={item.artwork.rarity}
                         className={
                           selectedCollectionItem?._id === item._id
                             ? "selected"
