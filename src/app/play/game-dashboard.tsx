@@ -1322,7 +1322,9 @@ export default function GameDashboard({
                     <span className="crate-card-copy">
                       <strong>Daily crate</strong>
                     </span>
-                    <strong className="crate-card-cost">Free</strong>
+                    <strong className="crate-card-cost">
+                      {dropReady ? "Free" : countdown(nextDrop - now)}
+                    </strong>
                   </button>
                   {crateOffers.map((crate) => {
                     const levelLocked = player.level < crate.levelRequirement;
