@@ -109,6 +109,7 @@ export default function PublicGallery({
             itemRendererId: selectedItem.card_renderer,
           })}
           displayOwner={owner}
+          owner={owner}
           item={selectedItem}
           legendaryAttributes={legendaryAttributes}
           onClose={() => setSelectedItem(null)}

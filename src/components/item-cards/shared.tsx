@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { GameItem } from "@/server/gameplay";
 import { useRef, useState, type CSSProperties } from "react";
 
@@ -9,6 +10,7 @@ import { CARD_COSMETICS, getCardCosmetic } from "./catalog";
 import type {
   CardLegendaryAttribute,
   ItemCardRendererProps,
+  ItemOwner,
 } from "./types";
 
 export function ratingColor(value: number): string {
@@ -261,8 +263,10 @@ export function CompleteItemRecord({
   legendaryAttributes,
   showAttributeDetails = true,
   showProperties = true,
+  owner,
   statusValue,
 }: Pick<ItemCardRendererProps, "item" | "legendaryAttributes"> & {
+  owner?: ItemOwner;
   showAttributeDetails?: boolean;
   showProperties?: boolean;
   statusValue?: React.ReactNode;
@@ -284,6 +288,21 @@ export function CompleteItemRecord({
     <div className="complete-item-record">
       <dl>
           <Fact label="Artist" value={item.artwork.artist} />
+          <Fact
+            label="Owner"
+            value={
+              owner ? (
+                <Link
+                  className="item-owner-link"
+                  href={`/gallery/${encodeURIComponent(owner.playerId)}`}
+                >
+                  @{owner.screenName}
+                </Link>
+              ) : (
+                <strong className="item-owner-default">artfunkel</strong>
+              )
+            }
+          />
           <Fact label="Title" value={item.artwork.title} />
           <Fact label="Date" value={item.artwork.date} />
           <Fact label="Genre" value={item.artwork.genre} />

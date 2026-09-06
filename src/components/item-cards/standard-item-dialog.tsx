@@ -20,6 +20,7 @@ import type {
   CardRendererId,
   ItemDisplayOwner,
   ItemDialogPermissions,
+  ItemOwner,
 } from "./types";
 import type { GalleryChatMessageView } from "@/server/gallery-chat";
 import type { HydratedGameItem } from "@/server/item-artwork";
@@ -34,6 +35,7 @@ export default function StandardItemDialog({
   onClose,
   onOpenArtStyle,
   displayOwner,
+  owner,
   headerDetails,
   viewerId,
 }: {
@@ -45,6 +47,7 @@ export default function StandardItemDialog({
   onClose: () => void;
   onOpenArtStyle?: () => void;
   displayOwner?: ItemDisplayOwner;
+  owner?: ItemOwner;
   headerDetails?: React.ReactNode;
   viewerId?: string | null;
 }) {
@@ -92,6 +95,7 @@ export default function StandardItemDialog({
         actions={actions}
         currentRendererId={currentRendererId}
         displayOwner={displayOwner}
+        owner={owner}
         headerDetails={headerDetails}
         item={item}
         legendaryAttributes={legendaryAttributes}
@@ -113,6 +117,7 @@ export function StandardItemDetails({
   onClose,
   onOpenArtStyle,
   displayOwner,
+  owner,
   headerDetails,
   viewerId,
 }: {
@@ -124,6 +129,7 @@ export function StandardItemDetails({
   onClose?: () => void;
   onOpenArtStyle?: () => void;
   displayOwner?: ItemDisplayOwner;
+  owner?: ItemOwner;
   headerDetails?: React.ReactNode;
   viewerId?: string | null;
 }) {
@@ -282,6 +288,7 @@ export function StandardItemDetails({
           <CompleteItemRecord
             item={item}
             legendaryAttributes={legendaryAttributes}
+            owner={owner}
             showAttributeDetails={false}
             showProperties={false}
             statusValue={displayedStatus}

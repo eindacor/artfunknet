@@ -1432,6 +1432,10 @@ export default function GameDashboard({
                           selectedLootItem.artwork_id,
                         )}
                         item={selectedLootItem}
+                        owner={{
+                          playerId,
+                          screenName: player.screenName,
+                        }}
                         key={getItemCardKey(selectedLootItem)}
                         legendaryAttributes={legendaryAttributes}
                         overlay={
@@ -1623,6 +1627,10 @@ export default function GameDashboard({
                     }
                     consigned={selectedCollectionItem.status === "auctioned"}
                     item={selectedCollectionItem}
+                    owner={{
+                      playerId,
+                      screenName: player.screenName,
+                    }}
                     key={getItemCardKey(selectedCollectionItem)}
                     legendaryAttributes={legendaryAttributes}
                     permissions={{

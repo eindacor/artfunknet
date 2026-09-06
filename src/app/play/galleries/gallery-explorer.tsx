@@ -675,6 +675,7 @@ function VisitedGallery({
               item={selectedPreviewItem}
               key={`${selectedPreviewItem._id}:${selectedPreviewItem.status}`}
               legendaryAttributes={gallery.legendaryAttributes}
+              owner={gallery.owner}
               permissions={{
                 canManageItem: false,
                 canCustomizeCosmetic: false,

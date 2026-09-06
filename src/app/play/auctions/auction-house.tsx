@@ -482,6 +482,14 @@ function AuctionItemCard({
       interactive={interactive}
       item={auction.item}
       legendaryAttributes={legendaryAttributes}
+      owner={
+        auction.seller_id
+          ? {
+              playerId: auction.seller_id,
+              screenName: auction.seller_name,
+            }
+          : undefined
+      }
       permissions={{
         canManageItem: false,
         canCustomizeCosmetic: false,
@@ -576,6 +584,14 @@ export function AuctionBidDialog({
       currentRendererId={resolveCardRendererId({
         itemRendererId: auction.item.card_renderer,
       })}
+      owner={
+        auction.seller_id
+          ? {
+              playerId: auction.seller_id,
+              screenName: auction.seller_name,
+            }
+          : undefined
+      }
       headerDetails={
         <form
           className="standard-item-auction-panel"

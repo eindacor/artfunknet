@@ -23,6 +23,7 @@ export default function ItemCard({
   consigned = false,
   interactive = true,
   overlay,
+  owner,
   permissions = {
     canManageItem: false,
     canCustomizeCosmetic: false,
@@ -175,6 +176,7 @@ export default function ItemCard({
           legendaryAttributes={legendaryAttributes}
           onClose={() => setDialogOpen(false)}
           onOpenArtStyle={() => setArtStyleDialogOpen(true)}
+          owner={owner}
           permissions={{
             canManageItem: permissions.canManageItem,
             canCustomizeCosmetic:

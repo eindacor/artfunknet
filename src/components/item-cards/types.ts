@@ -52,6 +52,7 @@ export type ItemCardProps = Omit<ItemCardRendererProps, "alreadyOwned"> & {
   interactive?: boolean;
   onActivate?: () => void;
   overlay?: React.ReactNode;
+  owner?: ItemOwner;
   permissions?: ItemDialogPermissions;
   primaryAction?: React.ReactNode;
   rendererId?: string;
@@ -68,3 +69,5 @@ export type ItemDisplayOwner = {
   playerId: string;
   screenName: string;
 };
+
+export type ItemOwner = ItemDisplayOwner;

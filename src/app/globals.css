@@ -438,6 +438,19 @@ a.welcome-button {
   margin: 0;
 }
 
+.item-owner-link,
+.item-owner-default {
+  color: #ff33cc;
+  font-family: "Courier New", Courier, monospace;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.item-owner-link:hover,
+.item-owner-link:focus-visible {
+  text-decoration: underline;
+}
+
 .notification-panel-error {
   min-height: 1em;
   margin: 0;
