@@ -5712,7 +5712,9 @@ a.welcome-button {
   display: block;
   box-sizing: content-box;
   border: 8px solid black;
-  padding: 0;
+  padding: 8px;
+  background-color: white;
+  background-clip: content-box;
   background-position: center;
   background-size: 100% 100%;
   box-shadow:
