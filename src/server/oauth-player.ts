@@ -31,6 +31,7 @@ type OAuthPlayer = {
   screen_name: string;
   active: boolean;
   google_sub?: string;
+  oauth_screen_name_pending?: boolean;
   profile: Record<string, unknown>;
   oauth_accounts?: Partial<
     Record<
@@ -186,6 +187,7 @@ export async function completeOAuthPlayerSignIn({
           role: "player",
           test_account: false,
           active: true,
+          oauth_screen_name_pending: true,
           password_salt: "",
           password_hash: "",
           ...(provider === "google" ? { google_sub: accountId } : {}),
@@ -241,7 +243,12 @@ export async function completeOAuthPlayerSignIn({
     }
 
     const response = NextResponse.redirect(
-      new URL("/play", getPublicBaseUrl(request)),
+      new URL(
+        accountCreated || player.oauth_screen_name_pending
+          ? "/play/onboarding"
+          : "/play",
+        getPublicBaseUrl(request),
+      ),
     );
     response.cookies.set(
       PLAYER_SESSION_COOKIE,

@@ -146,6 +146,7 @@ export async function refreshNpcSpawns(
   database: Db,
   now = new Date(),
   spawnIntervalMinutes = 10,
+  ownerId?: string,
 ): Promise<void> {
   const spawnIntervalMs = spawnIntervalMinutes * 60 * 1000;
   const cycleStartMs =
@@ -155,7 +156,7 @@ export async function refreshNpcSpawns(
   const [players, rawDisplayedItems, pairedAttributes] = await Promise.all([
     database
       .collection<PlayerRecord>("players")
-      .find({ active: true })
+      .find(ownerId ? { _id: ownerId, active: true } : { active: true })
       .project<PlayerRecord>({
         _id: 1,
         screen_name: 1,
@@ -167,7 +168,7 @@ export async function refreshNpcSpawns(
       .toArray(),
     database
       .collection<GameItem>("items")
-      .find({ status: "displayed" })
+      .find(ownerId ? { owner: ownerId, status: "displayed" } : { status: "displayed" })
       .toArray(),
     database
       .collection<ItemAttribute>("attributes")

@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { getCardStyleInventory } from "@/components/item-cards/catalog";
 import {
@@ -61,6 +61,7 @@ type Player = {
   email: string;
   screen_name: string;
   test_account?: boolean;
+  oauth_screen_name_pending?: boolean;
   patreon?: {
     is_supporter?: boolean;
     tier_name?: string | null;
@@ -105,7 +106,9 @@ export default async function PlayerPage({
     typeof query.item === "string" ? query.item.trim() : "";
   const database = await getDatabase();
   const playerStatus = await database
-    .collection<Pick<Player, "_id" | "active">>("players")
+    .collection<
+      Pick<Player, "_id" | "active" | "oauth_screen_name_pending">
+    >("players")
     .findOne({ _id: session.playerId });
   if (!playerStatus) {
     notFound();
@@ -116,6 +119,9 @@ export default async function PlayerPage({
         this account has been de-activated
       </main>
     );
+  }
+  if (playerStatus.oauth_screen_name_pending === true) {
+    redirect("/play/onboarding");
   }
   await ensurePlayerKarma(database, session.playerId);
   await ensureArchiveStorage(database);
@@ -438,6 +444,7 @@ export default async function PlayerPage({
           icon: attribute.icon,
           name: attribute.npc_name,
         }))}
+        npcSpawnIntervalMinutes={config.npcSpawnIntervalMinutes}
         npcs={npcs.map((npc) => ({
           ...JSON.parse(JSON.stringify(npc)),
           alreadyMet: npc.players_met.includes(player._id),

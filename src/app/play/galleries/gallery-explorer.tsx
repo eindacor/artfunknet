@@ -9,6 +9,10 @@ import ItemCard from "@/components/item-cards/item-card";
 import { ratingColor } from "@/components/item-cards/shared";
 import PublicGallery from "@/components/public-gallery";
 import type { CardLegendaryAttribute } from "@/components/item-cards/types";
+import {
+  type GalleryVisitorView,
+  useGalleryVisitors,
+} from "@/components/use-gallery-visitors";
 import type {
   GalleryAttributeAggregate,
 } from "@/server/gallery-metadata-core";
@@ -17,7 +21,6 @@ import {
 } from "@/server/community-reactions-core";
 import type { ArtworkRarity } from "@/server/gameplay";
 import type { HydratedGameItem } from "@/server/item-artwork";
-import type { GalleryNpc } from "@/server/npc-gameplay";
 import type { NpcRewardInteraction } from "@/server/standard-npc-rewards";
 
 import GalleryChat from "./gallery-chat";
@@ -49,14 +52,9 @@ type GalleryResponse = {
 
 type GalleryViewMode = "expanded" | "list";
 
-export type GalleryNpcView = Omit<
-  GalleryNpc,
-  "spawned_at" | "expiration"
-> & {
-  spawned_at: string;
-  expiration: string;
-  alreadyMet: boolean;
-};
+export type GalleryNpcView = GalleryVisitorView;
+
+const EMPTY_GALLERY_VISITORS: GalleryNpcView[] = [];
 
 type GalleryDetailResponse = {
   owner: {
@@ -81,12 +79,14 @@ type GalleryDetailResponse = {
 export default function GalleryExplorer({
   initialGalleryId,
   meetingNpc,
+  npcSpawnIntervalMinutes,
   npcRewardEffects,
   onMeetNpc,
   viewerId,
 }: {
   initialGalleryId: string | null;
   meetingNpc: string | null;
+  npcSpawnIntervalMinutes: number;
   npcRewardEffects: Record<
     string,
     NpcRewardInteraction & { animationId: number }
@@ -190,6 +190,7 @@ export default function GalleryExplorer({
     return (
       <VisitedGallery
         meetingNpc={meetingNpc}
+        npcSpawnIntervalMinutes={npcSpawnIntervalMinutes}
         npcRewardEffects={npcRewardEffects}
         onBack={() => {
           setSelectedGalleryId(null);
@@ -430,6 +431,7 @@ export default function GalleryExplorer({
 
 function VisitedGallery({
   meetingNpc,
+  npcSpawnIntervalMinutes,
   npcRewardEffects,
   onBack,
   onMeetNpc,
@@ -437,6 +439,7 @@ function VisitedGallery({
   viewerId,
 }: {
   meetingNpc: string | null;
+  npcSpawnIntervalMinutes: number;
   npcRewardEffects: Record<
     string,
     NpcRewardInteraction & { animationId: number }
@@ -451,6 +454,16 @@ function VisitedGallery({
     useState<HydratedGameItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const {
+    markVisitorMet,
+    replaceVisitors,
+    visitors,
+  } = useGalleryVisitors({
+    enabled: gallery !== null,
+    initialVisitors: gallery?.npcs ?? EMPTY_GALLERY_VISITORS,
+    ownerId,
+    spawnIntervalMinutes: npcSpawnIntervalMinutes,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -472,6 +485,7 @@ function VisitedGallery({
         }
         if (!cancelled) {
           setGallery(body);
+          replaceVisitors(body.npcs);
           const mostValuableItem = body.items.reduce<HydratedGameItem | null>(
             (mostValuable, item) =>
               !mostValuable ||
@@ -501,7 +515,7 @@ function VisitedGallery({
     return () => {
       cancelled = true;
     };
-  }, [ownerId]);
+  }, [ownerId, replaceVisitors]);
 
   if (loading) {
     return (
@@ -676,10 +690,10 @@ function VisitedGallery({
         <PublicGallery
           floorContent={
             <div className="npc-area gallery-npc-overlay">
-              {gallery.npcs.length === 0 ? (
+              {visitors.length === 0 ? (
                 <p>No visitors are currently in this gallery.</p>
               ) : (
-                gallery.npcs.map((npc) => (
+                visitors.map((npc) => (
                   <span className="gallery-npc-slot" key={npc._id}>
                     <button
                       className={`gallery-npc ${npc.quality} ${
@@ -692,18 +706,7 @@ function VisitedGallery({
                       }
                       onClick={async () => {
                         if (await onMeetNpc(npc)) {
-                          setGallery((current) =>
-                            current
-                              ? {
-                                  ...current,
-                                  npcs: current.npcs.map((candidate) =>
-                                    candidate._id === npc._id
-                                      ? { ...candidate, alreadyMet: true }
-                                      : candidate,
-                                  ),
-                                }
-                              : current,
-                          );
+                          markVisitorMet(npc._id);
                         }
                       }}
                       title={

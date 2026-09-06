@@ -5022,11 +5022,18 @@ a.welcome-button {
 }
 
 .collection-thumbnail-list button:hover,
-.collection-thumbnail-list button:focus-visible,
-.collection-thumbnail-list button.selected {
+.collection-thumbnail-list button:focus-visible {
   border-color: var(--accent);
   background: #fffdf7;
   box-shadow: 0 0 0 2px rgb(255 51 204 / 12%);
+}
+
+.collection-thumbnail-list button.selected {
+  border-color: #171717;
+  background: #fff;
+  box-shadow:
+    0 0 0 3px var(--accent),
+    inset 0 0 0 2px #fff;
 }
 
 .collection-thumbnail-list .artwork-thumbnail {
@@ -5274,12 +5281,19 @@ a.welcome-button {
 .gallery-npc-overlay {
   position: absolute;
   right: 0;
-  bottom: 0;
+  bottom: -124px;
   left: 0;
   z-index: 2;
+  overflow-x: auto;
   min-height: 0;
   padding: 8px 16px;
+  pointer-events: none;
   white-space: nowrap;
+}
+
+.gallery-npc-overlay .gallery-npc-slot,
+.gallery-npc-overlay > p {
+  pointer-events: auto;
 }
 
 .gallery-npc-overlay > p {
@@ -5627,6 +5641,15 @@ a.welcome-button {
 
   .dashboard-tabs {
     justify-content: flex-start;
+    position: relative;
+    overflow-x: auto;
+  }
+
+  .gallery-window:has(> .gallery-scroll-window) {
+    overflow: hidden;
+  }
+
+  .gallery-scroll-window {
     overflow-x: auto;
   }
 

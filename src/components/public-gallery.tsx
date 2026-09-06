@@ -41,64 +41,67 @@ export default function PublicGallery({
   return (
     <>
       <div className="gallery-window public-gallery-window">
-        <div className="gallery-scene">
-          <div
-            className="gallery-wall"
-            style={{
-              paddingBottom: wallOffset,
-              paddingTop: wallOffset,
-            }}
-          >
-            {items.length === 0 ? (
-              <p className="empty-gallery">
-                @{owner.screenName} has not put any artwork on display.
-              </p>
-            ) : (
-              items.map((item) => (
-                <div
-                  className="painting-container"
-                  key={item._id}
-                  style={{
-                    marginLeft: paintingMargin,
-                    marginRight: paintingMargin,
-                  }}
-                >
-                  <button
-                    aria-label={`View ${item.artwork.title} by ${item.artwork.artist}`}
-                    className="framed-painting"
-                    onClick={() =>
-                      onSelectItem
-                        ? onSelectItem(item)
-                        : setSelectedItem(item)
-                    }
+        <div className="gallery-scroll-window">
+          <div className="gallery-scene">
+            <div
+              className="gallery-wall"
+              style={{
+                paddingBottom: wallOffset,
+                paddingTop: wallOffset,
+              }}
+            >
+              {items.length === 0 ? (
+                <p className="empty-gallery">
+                  @{owner.screenName} has not put any artwork on display.
+                </p>
+              ) : (
+                items.map((item) => (
+                  <div
+                    className="painting-container"
+                    key={item._id}
                     style={{
-                      backgroundImage: `url("/api/artwork/${item.artwork_id}/image?variant=full")`,
-                      height: getGalleryPaintingDimension(
-                        item.artwork.height,
-                        pixelsPerCentimeter,
-                      ),
-                      width: getGalleryPaintingDimension(
-                        item.artwork.width,
-                        pixelsPerCentimeter,
-                      ),
+                      marginLeft: paintingMargin,
+                      marginRight: paintingMargin,
                     }}
-                    type="button"
-                  />
-                  <div className="placard">
-                    <p>{item.artwork.title}</p>
-                    <p>
-                      {item.artwork.artist}, {item.artwork.date}
-                    </p>
-                    <p className={`rarity-text ${item.artwork.rarity}`}>
-                      {item.artwork.rarity}
-                    </p>
+                  >
+                    <button
+                      aria-label={`View ${item.artwork.title} by ${item.artwork.artist}`}
+                      className="framed-painting"
+                      onClick={() =>
+                        onSelectItem
+                          ? onSelectItem(item)
+                          : setSelectedItem(item)
+                      }
+                      style={{
+                        backgroundImage: `url("/api/artwork/${item.artwork_id}/image?variant=full")`,
+                        height: getGalleryPaintingDimension(
+                          item.artwork.height,
+                          pixelsPerCentimeter,
+                        ),
+                        width: getGalleryPaintingDimension(
+                          item.artwork.width,
+                          pixelsPerCentimeter,
+                        ),
+                      }}
+                      type="button"
+                    />
+                    <div className="placard">
+                      <p>{item.artwork.title}</p>
+                      <p>
+                        {item.artwork.artist}, {item.artwork.date}
+                      </p>
+                      <p className={`rarity-text ${item.artwork.rarity}`}>
+                        {item.artwork.rarity}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))
-            )}
+                ))
+              )}
+            </div>
+            <div className="gallery-floor" />
           </div>
-          <div className="gallery-floor">{floorContent}</div>
         </div>
+        {floorContent}
       </div>
       {!onSelectItem && selectedItem ? (
         <StandardItemDialog
