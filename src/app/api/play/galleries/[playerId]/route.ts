@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import type { Auction } from "@/server/auction-gameplay";
+import type { Auction, AuctionView } from "@/server/auction-gameplay";
 import {
   refreshGalleryMetadata,
 } from "@/server/gallery-metadata";
@@ -59,16 +59,23 @@ export async function GET(
   const auctionItemById = new Map(
     auctionItems.map((item) => [item._id, item]),
   );
-  const auctions = activeAuctions.flatMap((auction) => {
+  const auctions = activeAuctions.flatMap<AuctionView>((auction) => {
     const item = auctionItemById.get(auction.item_id);
     return item
       ? [
           {
-            id: auction._id,
-            currentBid: auction.current_bid,
-            buyNow: auction.buy_now,
-            expiration: auction.expiration,
+            ...auction,
             item,
+            owned:
+              playerId === auth.session.playerId &&
+              gallery.items.some(
+                (displayedItem) =>
+                  displayedItem.artwork_id === item.artwork_id,
+              ),
+            questTarget: false,
+            currentlyWinning:
+              auction.current_winner_id === auth.session.playerId,
+            privateAuction: false,
           },
         ]
       : [];

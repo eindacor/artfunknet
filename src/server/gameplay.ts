@@ -414,6 +414,12 @@ export function amplifyRarityMap(
   ) as Record<ArtworkRarity, number>;
 }
 
+export function filterActiveArtworks<T extends Pick<Artwork, "active">>(
+  artworks: readonly T[],
+): T[] {
+  return artworks.filter((artwork) => artwork.active === true);
+}
+
 export async function generateDailyDrop(
   database: Db,
   playerId: string,
@@ -471,11 +477,12 @@ export async function generateDailyDrop(
     .collection<Artwork>("artworks")
     .find({ active: true })
     .toArray();
+  const activeArtworks = filterActiveArtworks(artworks);
   const artworksByRarity = new Map<ArtworkRarity, Artwork[]>();
   for (const rarity of ARTWORK_RARITIES) {
     artworksByRarity.set(
       rarity,
-      artworks.filter((artwork) => artwork.rarity === rarity),
+      activeArtworks.filter((artwork) => artwork.rarity === rarity),
     );
   }
 

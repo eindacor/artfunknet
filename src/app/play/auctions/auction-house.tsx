@@ -444,7 +444,7 @@ export default function AuctionHouse({
         </button>
       </nav>
       {selected ? (
-        <BidDialog
+        <AuctionBidDialog
           auction={selected}
           bankBalance={bankBalance}
           legendaryAttributes={legendaryAttributes}
@@ -524,7 +524,7 @@ function getCardType(auction: AuctionView): string {
   return types.length > 0 ? types.join(" · ") : "Standard";
 }
 
-function BidDialog({
+export function AuctionBidDialog({
   auction,
   bankBalance,
   legendaryAttributes,

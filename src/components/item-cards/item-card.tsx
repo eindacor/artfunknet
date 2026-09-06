@@ -18,6 +18,7 @@ export default function ItemCard({
   actions,
   forceRendererId,
   legendaryAttributes,
+  onActivate,
   alreadyOwned = false,
   consigned = false,
   interactive = true,
@@ -82,7 +83,11 @@ export default function ItemCard({
         onClick={
           interactive
             ? () => {
-                setDialogOpen(true);
+                if (onActivate) {
+                  onActivate();
+                } else {
+                  setDialogOpen(true);
+                }
               }
             : undefined
         }
@@ -91,7 +96,11 @@ export default function ItemCard({
             ? (event) => {
                 if (event.key === "Enter" || event.key === " ") {
                   event.preventDefault();
-                  setDialogOpen(true);
+                  if (onActivate) {
+                    onActivate();
+                  } else {
+                    setDialogOpen(true);
+                  }
                 }
               }
             : undefined

@@ -50,6 +50,7 @@ export type ItemCardProps = Omit<ItemCardRendererProps, "alreadyOwned"> & {
   alreadyOwned?: boolean;
   forceRendererId?: string;
   interactive?: boolean;
+  onActivate?: () => void;
   overlay?: React.ReactNode;
   permissions?: ItemDialogPermissions;
   primaryAction?: React.ReactNode;

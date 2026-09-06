@@ -8,6 +8,7 @@ import {
 } from "./collection-gameplay.ts";
 import {
   ARTWORK_RARITIES,
+  filterActiveArtworks,
   getRarityMap,
   rollWeighted,
   type Artwork,
@@ -164,10 +165,12 @@ export async function createArtHistorianQuest(
     .findOne({ _id: "loot-data" });
   if (!metadata) throw new Error("Loot metadata is not configured.");
 
-  const artworks = await database
-    .collection<Artwork>("artworks")
-    .find({ active: true })
-    .toArray();
+  const artworks = filterActiveArtworks(
+    await database
+      .collection<Artwork>("artworks")
+      .find({ active: true })
+      .toArray(),
+  );
   if (artworks.length < DEFAULT_HISTORIAN_TARGET_COUNT) {
     throw new Error("There are not enough active artworks for a quest.");
   }

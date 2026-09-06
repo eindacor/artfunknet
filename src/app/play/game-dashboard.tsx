@@ -2132,6 +2132,7 @@ export default function GameDashboard({
 
         {section === "explore" ? (
           <GalleryExplorer
+            initialBankBalance={player.bankBalance}
             initialGalleryId={exploreResetKey === 0 ? initialGalleryId : null}
             key={`gallery-explorer-${exploreResetKey}`}
             meetingNpc={meetingNpc}

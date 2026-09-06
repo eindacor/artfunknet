@@ -22,8 +22,10 @@ import {
 } from "@/server/community-reactions-core";
 import type { ArtworkRarity } from "@/server/gameplay";
 import type { HydratedGameItem } from "@/server/item-artwork";
+import type { AuctionView } from "@/server/auction-gameplay";
 import type { NpcRewardInteraction } from "@/server/standard-npc-rewards";
 
+import { AuctionBidDialog } from "../auctions/auction-house";
 import GalleryChat from "./gallery-chat";
 
 type GalleryRecord = {
@@ -65,19 +67,14 @@ type GalleryDetailResponse = {
     vintageLevel: number;
   };
   items: HydratedGameItem[];
-  auctions: {
-    id: string;
-    currentBid: number;
-    buyNow: number | null;
-    expiration: string;
-    item: HydratedGameItem;
-  }[];
+  auctions: AuctionView[];
   metadata: GalleryRecord | null;
   npcs: GalleryNpcView[];
   legendaryAttributes: CardLegendaryAttribute[];
 };
 
 export default function GalleryExplorer({
+  initialBankBalance,
   initialGalleryId,
   meetingNpc,
   npcSpawnIntervalMinutes,
@@ -85,6 +82,7 @@ export default function GalleryExplorer({
   onMeetNpc,
   viewerId,
 }: {
+  initialBankBalance: number;
   initialGalleryId: string | null;
   meetingNpc: string | null;
   npcSpawnIntervalMinutes: number;
@@ -190,6 +188,7 @@ export default function GalleryExplorer({
   if (selectedGalleryId) {
     return (
       <VisitedGallery
+        initialBankBalance={initialBankBalance}
         meetingNpc={meetingNpc}
         npcSpawnIntervalMinutes={npcSpawnIntervalMinutes}
         npcRewardEffects={npcRewardEffects}
@@ -431,6 +430,7 @@ export default function GalleryExplorer({
 }
 
 function VisitedGallery({
+  initialBankBalance,
   meetingNpc,
   npcSpawnIntervalMinutes,
   npcRewardEffects,
@@ -439,6 +439,7 @@ function VisitedGallery({
   ownerId,
   viewerId,
 }: {
+  initialBankBalance: number;
   meetingNpc: string | null;
   npcSpawnIntervalMinutes: number;
   npcRewardEffects: Record<
@@ -453,6 +454,11 @@ function VisitedGallery({
   const [gallery, setGallery] = useState<GalleryDetailResponse | null>(null);
   const [selectedPreviewItem, setSelectedPreviewItem] =
     useState<HydratedGameItem | null>(null);
+  const [selectedAuction, setSelectedAuction] = useState<AuctionView | null>(
+    null,
+  );
+  const [bankBalance, setBankBalance] = useState(initialBankBalance);
+  const [refreshVersion, setRefreshVersion] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const {
@@ -516,7 +522,7 @@ function VisitedGallery({
     return () => {
       cancelled = true;
     };
-  }, [ownerId, replaceVisitors]);
+  }, [ownerId, refreshVersion, replaceVisitors]);
 
   if (loading) {
     return (
@@ -537,6 +543,10 @@ function VisitedGallery({
       </section>
     );
   }
+  const selectedPreviewAuction =
+    gallery.auctions.find(
+      (auction) => auction.item._id === selectedPreviewItem?._id,
+    ) ?? null;
 
   return (
     <section className="visited-gallery">
@@ -638,7 +648,7 @@ function VisitedGallery({
               {gallery.auctions.map((auction) => (
                 <button
                   aria-label={`Preview auction for ${auction.item.artwork.title}`}
-                  key={auction.id}
+                  key={auction._id}
                   onClick={() => setSelectedPreviewItem(auction.item)}
                   type="button"
                 >
@@ -646,11 +656,11 @@ function VisitedGallery({
                   <span className="visited-gallery-auction-copy">
                     <strong>{auction.item.artwork.title}</strong>
                     <small>
-                      ${auction.currentBid.toLocaleString()} current bid
+                      ${auction.current_bid.toLocaleString()} current bid
                     </small>
-                    {auction.buyNow !== null ? (
+                    {auction.buy_now !== null ? (
                       <small>
-                        ${auction.buyNow.toLocaleString()} buy now
+                        ${auction.buy_now.toLocaleString()} buy now
                       </small>
                     ) : null}
                   </span>
@@ -669,6 +679,11 @@ function VisitedGallery({
                 canManageItem: false,
                 canCustomizeCosmetic: false,
               }}
+              onActivate={
+                selectedPreviewAuction && ownerId !== viewerId
+                  ? () => setSelectedAuction(selectedPreviewAuction)
+                  : undefined
+              }
               viewerId={viewerId}
             />
           </section>
@@ -749,6 +764,20 @@ function VisitedGallery({
           viewerId={viewerId}
         />
       </div>
+      {selectedAuction ? (
+        <AuctionBidDialog
+          auction={selectedAuction}
+          bankBalance={bankBalance}
+          legendaryAttributes={gallery.legendaryAttributes}
+          onClose={() => setSelectedAuction(null)}
+          onSuccess={(nextBankBalance) => {
+            setBankBalance(nextBankBalance);
+            setSelectedAuction(null);
+            setRefreshVersion((current) => current + 1);
+          }}
+          playerId={viewerId}
+        />
+      ) : null}
     </section>
   );
 }

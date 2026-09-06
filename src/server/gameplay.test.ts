@@ -5,6 +5,7 @@ import {
   applyItemGenerationProbabilityMultipliers,
   amplifyRarityMap,
   calculateItemValues,
+  filterActiveArtworks,
   getGeneratedItemCondition,
   getRarityMap,
   getConfiguredRarityMap,
@@ -23,6 +24,17 @@ const lootData = {
   crate_expense_per_masterpiece: 3_600_000_000,
   items_per_basic_crate: 12,
 };
+
+test("inactive artwork is excluded from item generation pools", () => {
+  const artworks = [
+    { _id: "active", active: true },
+    { _id: "inactive", active: false },
+  ];
+
+  assert.deepEqual(filterActiveArtworks(artworks), [
+    { _id: "active", active: true },
+  ]);
+});
 
 test("level zero drops remain common-only", () => {
   assert.deepEqual(getRarityMap(0, lootData), {
