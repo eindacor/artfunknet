@@ -12,10 +12,9 @@ export default async function PlayerLoginPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-8 px-6">
       <div>
-        <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--accent)]">
-          Artfunkel
+        <p className="game-title font-semibold text-[var(--accent)]">
+          artfunkel
         </p>
-        <h1 className="mt-3 text-4xl font-bold">Player sign in</h1>
         <p className="mt-3 text-[var(--muted)]">
           Sign in with an existing account, create one with email and
           password, or use a supported identity provider.

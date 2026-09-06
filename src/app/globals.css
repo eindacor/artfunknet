@@ -61,6 +61,16 @@ body {
   font-family: Courier, monospace;
 }
 
+.game-title {
+  font-family: Courier, monospace;
+  color: #f3c;
+  font-size: 3rem;
+}
+
+a.welcome-button {
+  font-family: "Courier New", Courier, monospace;
+}
+
 .legacy-navbar {
   position: sticky;
   top: 0;
