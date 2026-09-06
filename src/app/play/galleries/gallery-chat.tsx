@@ -3,6 +3,7 @@
 import { FormEvent, KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
+import { FloatingPopover } from "@/components/floating-popover";
 import {
   COMMUNITY_EMOTE_DETAILS,
   CommunityReactionPicker,
@@ -303,32 +304,55 @@ function ChatToken({ token }: { token: GalleryChatToken }) {
     );
   }
   if (token.kind === "item") {
-    return (
-      <span className="gallery-chat-item-wrap">
-        <a
-          aria-label={`View ${token.item.title} by ${token.item.artist}`}
-          className="gallery-chat-item-link"
-          data-rarity={token.item.rarity}
-          href={`/items/${encodeURIComponent(token.item.id)}`}
-          title={`${token.item.title} by ${token.item.artist}`}
-        >
-          <i aria-hidden="true" className="fa fa-picture-o" />
-        </a>
-        <span className="gallery-chat-item-preview" role="tooltip">
-          <ArtworkThumbnail
-            alt=""
-            artworkId={token.item.artworkId}
-            size={180}
-            variant="thumb"
-          />
-          <strong>{token.item.title}</strong>
-          <span>{token.item.artist}</span>
-          <span>
-            {token.item.rarity} · ${token.item.value.toLocaleString()}
-          </span>
-        </span>
-      </span>
-    );
+    return <ChatItemToken token={token} />;
   }
   return token.text;
+}
+
+function ChatItemToken({
+  token,
+}: {
+  token: Extract<GalleryChatToken, { kind: "item" }>;
+}) {
+  const anchorRef = useRef<HTMLSpanElement>(null);
+  const [open, setOpen] = useState(false);
+
+  return (
+    <span
+      className="gallery-chat-item-wrap"
+      onBlur={() => setOpen(false)}
+      onFocus={() => setOpen(true)}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      ref={anchorRef}
+    >
+      <a
+        aria-label={`View ${token.item.title} by ${token.item.artist}`}
+        className="gallery-chat-item-link"
+        data-rarity={token.item.rarity}
+        href={`/items/${encodeURIComponent(token.item.id)}`}
+        title={`${token.item.title} by ${token.item.artist}`}
+      >
+        <i aria-hidden="true" className="fa fa-picture-o" />
+      </a>
+      <FloatingPopover
+        anchorRef={anchorRef}
+        className="gallery-chat-item-preview"
+        open={open}
+        role="tooltip"
+      >
+        <ArtworkThumbnail
+          alt=""
+          artworkId={token.item.artworkId}
+          size={180}
+          variant="thumb"
+        />
+        <strong>{token.item.title}</strong>
+        <span>{token.item.artist}</span>
+        <span>
+          {token.item.rarity} · ${token.item.value.toLocaleString()}
+        </span>
+      </FloatingPopover>
+    </span>
+  );
 }

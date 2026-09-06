@@ -1268,7 +1268,7 @@ export default function GameDashboard({
                     onClick={() => setSection("loot")}
                     type="button"
                   >
-                    Visit loot
+                    Go to crates section
                   </button>
                 </div>
               )}
@@ -1512,7 +1512,15 @@ export default function GameDashboard({
           </section>
         ) : null}
 
-        {section === "collection" ? (
+        {section === "collection" && collectionItems.length === 0 ? (
+          <section className="collection-empty-state">
+            <button onClick={() => setSection("loot")} type="button">
+              go here and come back when you collect some artwork!
+            </button>
+          </section>
+        ) : null}
+
+        {section === "collection" && collectionItems.length > 0 ? (
           <section className="collection-workspace">
             {galleryMetadata ? (
               <GalleryMetadataPanel

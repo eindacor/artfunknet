@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
+import { FloatingPopover } from "@/components/floating-popover";
 import {
   COMMUNITY_EMOTES,
   createEmptyReactionSummary,
@@ -54,6 +55,8 @@ export function CommunityReactionPicker({
 }) {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState<CommunityEmote | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const closePicker = useCallback(() => setOpen(false), []);
 
   async function toggle(emote: CommunityEmote) {
     setPending(emote);
@@ -116,33 +119,35 @@ export function CommunityReactionPicker({
           aria-label="Add an emote"
           className="community-emote-trigger"
           onClick={() => setOpen((current) => !current)}
+          ref={triggerRef}
           title="Add an emote"
           type="button"
         >
           <i aria-hidden="true" className="fa fa-smile-o" />
         </button>
-        {open ? (
-          <span
-            aria-label="Choose an emote"
-            className="community-emote-menu"
-            role="menu"
-          >
-            {COMMUNITY_EMOTES.map((emote) => (
-              <button
-                aria-checked={reactions[emote].reactedByViewer}
-                aria-label={COMMUNITY_EMOTE_DETAILS[emote].label}
-                disabled={pending === emote}
-                key={emote}
-                onClick={() => void toggle(emote)}
-                role="menuitemcheckbox"
-                title={`:${emote}:`}
-                type="button"
-              >
-                <CommunityEmoteSymbol emote={emote} />
-              </button>
-            ))}
-          </span>
-        ) : null}
+        <FloatingPopover
+          anchorRef={triggerRef}
+          ariaLabel="Choose an emote"
+          className="community-emote-menu"
+          onDismiss={closePicker}
+          open={open}
+          role="menu"
+        >
+          {COMMUNITY_EMOTES.map((emote) => (
+            <button
+              aria-checked={reactions[emote].reactedByViewer}
+              aria-label={COMMUNITY_EMOTE_DETAILS[emote].label}
+              disabled={pending === emote}
+              key={emote}
+              onClick={() => void toggle(emote)}
+              role="menuitemcheckbox"
+              title={`:${emote}:`}
+              type="button"
+            >
+              <CommunityEmoteSymbol emote={emote} />
+            </button>
+          ))}
+        </FloatingPopover>
       </span>
     </span>
   );

@@ -759,10 +759,6 @@ a.welcome-button {
 }
 
 .community-emote-menu {
-  position: absolute;
-  z-index: 50;
-  right: 0;
-  bottom: calc(100% + 5px);
   display: flex;
   gap: 3px;
   border: 1px solid #aaa397;
@@ -891,11 +887,8 @@ a.welcome-button {
 }
 
 .gallery-chat-item-preview {
-  position: absolute;
-  z-index: 30;
-  bottom: calc(100% + 7px);
-  left: 50%;
-  display: none;
+  display: grid;
+  gap: 3px;
   width: 170px;
   transform: translateX(-50%);
   border: 1px solid #282722;
@@ -903,13 +896,8 @@ a.welcome-button {
   background: #fff;
   color: #282722;
   box-shadow: 5px 5px 0 rgb(0 0 0 / 25%);
+  pointer-events: none;
   text-align: left;
-}
-
-.gallery-chat-item-wrap:hover .gallery-chat-item-preview,
-.gallery-chat-item-wrap:focus-within .gallery-chat-item-preview {
-  display: grid;
-  gap: 3px;
 }
 
 .gallery-chat-item-preview img {
@@ -3615,13 +3603,8 @@ a.welcome-button {
 }
 
 .attribute-tooltip-text {
-  position: absolute;
-  bottom: 140%;
-  left: 50%;
-  z-index: 20;
-  display: none;
+  display: block;
   width: 180px;
-  margin-left: -90px;
   border: 1px solid black;
   background: white;
   color: black;
@@ -3634,8 +3617,12 @@ a.welcome-button {
   display: block;
 }
 
-.attribute-tooltip:hover .attribute-tooltip-text {
-  display: block;
+.floating-popover {
+  position: fixed;
+  z-index: 10000;
+  right: auto;
+  bottom: auto;
+  margin: 0;
 }
 
 .card-effect-foil,
@@ -4914,6 +4901,30 @@ a.welcome-button {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
   align-items: start;
+}
+
+.collection-empty-state {
+  display: grid;
+  min-height: 480px;
+  place-items: center;
+}
+
+.collection-empty-state button {
+  border: 1px solid #282722;
+  padding: 14px 20px;
+  background: #282722;
+  color: #fff;
+  font: 700 1.5rem Courier, "Courier New", monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.collection-empty-state button:hover,
+.collection-empty-state button:focus-visible {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #211b20;
 }
 
 .collection-inventory-panel,

@@ -1,7 +1,10 @@
+"use client";
+
 import type { GameItem } from "@/server/gameplay";
-import type { CSSProperties } from "react";
+import { useRef, useState, type CSSProperties } from "react";
 
 import type { ArchiveCategory } from "@/server/archive-gameplay";
+import { FloatingPopover } from "@/components/floating-popover";
 import { CARD_COSMETICS, getCardCosmetic } from "./catalog";
 import type {
   CardLegendaryAttribute,
@@ -469,23 +472,51 @@ function AttributeGroup({
       {attributes.map((attribute) => {
         const rating = Math.round((attribute.value ?? 0) * 100);
         return (
-          <span
-            className="attribute-tooltip"
+          <AttributeTooltip
+            attribute={attribute}
             key={attribute._id}
-            style={ratingStyle(attribute.value ?? 0)}
-          >
-            <i
-              aria-label={`${attribute.npc_name}, ${rating}%, ${type}`}
-              className={`fa ${attribute.icon} attribute ${type}`}
-            />
-            <span className="attribute-tooltip-text">
-              <strong>{attribute.npc_name}</strong>
-              <span className="attribute-rating">{rating}%</span>
-              <span className={`attribute-type ${type}`}>{type}</span>
-            </span>
-          </span>
+            rating={rating}
+            type={type}
+          />
         );
       })}
+    </span>
+  );
+}
+
+function AttributeTooltip({
+  attribute,
+  rating,
+  type,
+}: {
+  attribute: GameItem["attributes"]["unlocked"][number];
+  rating: number;
+  type: "unlocked" | "locked" | "special";
+}) {
+  const anchorRef = useRef<HTMLSpanElement>(null);
+  const [open, setOpen] = useState(false);
+
+  return (
+    <span
+      className="attribute-tooltip"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      ref={anchorRef}
+      style={ratingStyle(attribute.value ?? 0)}
+    >
+      <i
+        aria-label={`${attribute.npc_name}, ${rating}%, ${type}`}
+        className={`fa ${attribute.icon} attribute ${type}`}
+      />
+      <FloatingPopover
+        anchorRef={anchorRef}
+        className="attribute-tooltip-text"
+        open={open}
+      >
+        <strong>{attribute.npc_name}</strong>
+        <span className="attribute-rating">{rating}%</span>
+        <span className={`attribute-type ${type}`}>{type}</span>
+      </FloatingPopover>
     </span>
   );
 }
