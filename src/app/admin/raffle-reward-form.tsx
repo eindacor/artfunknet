@@ -12,9 +12,11 @@ type ArtworkOption = Artwork;
 
 export default function RaffleRewardForm({
   artworks,
+  bufferPrizes,
   prizes,
 }: {
   artworks: ArtworkOption[];
+  bufferPrizes: Array<{ item: HydratedGameItem; potency: number }>;
   prizes: Array<{ item: HydratedGameItem; potency: number }>;
 }) {
   const router = useRouter();
@@ -50,8 +52,28 @@ export default function RaffleRewardForm({
         </button>
         {drawError ? <p className="admin-error">{drawError}</p> : null}
       </div>
-      <div className="admin-raffle-grid">
+      <h2>Active prizes</h2>
+      <div className="admin-raffle-live-grid">
         {prizes.map((prize, index) => (
+          <article
+            className="admin-raffle-live-prize"
+            key={`${prize.item._id}:${prize.potency}:${JSON.stringify(prize.item)}`}
+          >
+            <h3>Prize {index + 1}</h3>
+            <ItemCard
+              item={prize.item}
+              legendaryAttributes={[]}
+              permissions={{
+                canManageItem: false,
+                canCustomizeCosmetic: false,
+              }}
+            />
+          </article>
+        ))}
+      </div>
+      <h2>Replacement buffer</h2>
+      <div className="admin-raffle-grid">
+        {bufferPrizes.map((prize, index) => (
           <PrizeEditor
             artworks={artworks}
             index={index}
@@ -73,6 +95,7 @@ function PrizeEditor({
   index: number;
   prize: { item: HydratedGameItem; potency: number };
 }) {
+  const router = useRouter();
   const [item, setItem] = useState(prize.item);
   const [artworkId, setArtworkId] = useState(prize.item.artwork_id);
   const [condition, setCondition] = useState(
@@ -99,6 +122,7 @@ function PrizeEditor({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           itemId: prize.item._id,
+          pool: "buffer",
           artworkId,
           condition: mint ? 1 : condition / 100,
           itemLevel,
@@ -131,10 +155,41 @@ function PrizeEditor({
     }
   }
 
+  async function regenerate() {
+    setPending(true);
+    setError("");
+    try {
+      const response = await fetch("/api/admin/lottery", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          itemId: prize.item._id,
+          pool: "buffer",
+        }),
+      });
+      const body = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        throw new Error(
+          body.error ?? "The lottery item could not be regenerated.",
+        );
+      }
+      router.refresh();
+    } catch (regenerateError) {
+      setError(
+        regenerateError instanceof Error
+          ? regenerateError.message
+          : "The lottery item could not be regenerated.",
+      );
+      setPending(false);
+    }
+  }
+
   return (
     <article className="admin-raffle-editor">
       <div className="admin-raffle-fields">
-        <h3>Prize {index + 1} properties</h3>
+        <h3>
+          Buffer item {index + 1} properties
+        </h3>
         <label>
           Artwork
           <select
@@ -223,10 +278,15 @@ function PrizeEditor({
         >
           {pending ? "Saving..." : "Save and refresh preview"}
         </button>
+        <button disabled={pending} onClick={regenerate} type="button">
+          Generate new item
+        </button>
         {error ? <p className="admin-error">{error}</p> : null}
       </div>
       <div className="admin-raffle-preview">
-        <h3>Prize {index + 1} preview</h3>
+        <h3>
+          Buffer item {index + 1} preview
+        </h3>
         <ItemCard
           item={item}
           key={JSON.stringify(item)}

@@ -34,17 +34,32 @@ type RaffleRewardRequest = {
   seasonal?: unknown;
   unlocked?: unknown;
   cardRenderer?: unknown;
+  pool?: unknown;
 };
+
+type LotteryPool = "buffer" | "prizes";
+
+function getLotteryPool(value: unknown): LotteryPool | null {
+  return value === "buffer" || value === "prizes" ? value : null;
+}
 
 export async function PATCH(request: Request) {
   const auth = await requireAdminApi();
   if (!auth.ok) return auth.response;
   const body = (await request.json()) as RaffleRewardRequest;
+  const pool = getLotteryPool(body.pool);
+  if (pool === "prizes") {
+    return NextResponse.json(
+      { error: "Live lottery items cannot be edited." },
+      { status: 409 },
+    );
+  }
   const cardRenderer =
     typeof body.cardRenderer === "string"
       ? getCardCosmetic(body.cardRenderer)
       : undefined;
   if (
+    !pool ||
     typeof body.itemId !== "string" ||
     typeof body.artworkId !== "string" ||
     typeof body.condition !== "number" ||
@@ -75,8 +90,10 @@ export async function PATCH(request: Request) {
   const database = await getDatabase();
   const settings = await getGameplaySettings(database);
   const state = await ensureRaffleState(database, settings.active);
+  const stateField = pool === "buffer" ? "buffer_prizes" : "prizes";
+  const poolPrizes = state[stateField];
   if (
-    !state.prizes.some((prize) => prize.item_id === body.itemId) ||
+    !poolPrizes.some((prize) => prize.item_id === body.itemId) ||
     (state.draw_lock &&
       new Date(state.draw_lock.expires_at).getTime() > Date.now())
   ) {
@@ -154,7 +171,7 @@ export async function PATCH(request: Request) {
       { status: 409 },
     );
   }
-  const prizes = state.prizes.map((prize) =>
+  const prizes = poolPrizes.map((prize) =>
     prize.item_id === item._id
       ? { ...prize, potency }
       : prize,
@@ -162,12 +179,12 @@ export async function PATCH(request: Request) {
   const stateUpdated = await database.collection<RaffleState>("metadata").updateOne(
     {
       _id: RAFFLE_STATE_ID,
-      prizes: state.prizes,
+      [stateField]: poolPrizes,
       draw_lock: { $exists: false },
     },
     {
       $set: {
-        prizes,
+        [stateField]: prizes,
         updated_at: new Date().toISOString(),
         updated_by: auth.session.email,
       },
@@ -206,8 +223,18 @@ export async function PATCH(request: Request) {
 export async function POST(request: Request) {
   const auth = await requireAdminApi();
   if (!auth.ok) return auth.response;
-  const body = (await request.json()) as { itemId?: unknown };
-  if (typeof body.itemId !== "string") {
+  const body = (await request.json()) as {
+    itemId?: unknown;
+    pool?: unknown;
+  };
+  const pool = getLotteryPool(body.pool);
+  if (pool === "prizes") {
+    return NextResponse.json(
+      { error: "Live lottery items cannot be regenerated." },
+      { status: 409 },
+    );
+  }
+  if (typeof body.itemId !== "string" || !pool) {
     return NextResponse.json(
       { error: "Choose a lottery item to replace." },
       { status: 400 },
@@ -217,8 +244,10 @@ export async function POST(request: Request) {
   const database = await getDatabase();
   const settings = await getGameplaySettings(database);
   const state = await ensureRaffleState(database, settings.active);
+  const stateField = pool === "buffer" ? "buffer_prizes" : "prizes";
+  const poolPrizes = state[stateField];
   if (
-    !state.prizes.some((prize) => prize.item_id === body.itemId) ||
+    !poolPrizes.some((prize) => prize.item_id === body.itemId) ||
     (state.draw_lock &&
       new Date(state.draw_lock.expires_at).getTime() > Date.now())
   ) {
@@ -228,7 +257,7 @@ export async function POST(request: Request) {
     );
   }
   const reward = await generateRafflePrize(database, settings.active);
-  const prizes = state.prizes.map((prize) =>
+  const prizes = poolPrizes.map((prize) =>
     prize.item_id === body.itemId
       ? { item_id: reward._id, potency: 1 }
       : prize,
@@ -236,12 +265,12 @@ export async function POST(request: Request) {
   const replaced = await database.collection<RaffleState>("metadata").updateOne(
     {
       _id: RAFFLE_STATE_ID,
-      prizes: state.prizes,
+      [stateField]: poolPrizes,
       draw_lock: { $exists: false },
     },
     {
       $set: {
-        prizes,
+        [stateField]: prizes,
         updated_at: new Date().toISOString(),
         updated_by: auth.session.email,
       },

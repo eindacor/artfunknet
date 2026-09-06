@@ -1,15 +1,8 @@
-import RaffleRewardForm from "../raffle-reward-form";
 import SeasonalArtworkForm from "../seasonal-artwork-form";
 
 import { getGameplaySettings } from "@/server/game-settings";
-import {
-  type Artwork,
-  type GameItem,
-  type LootData,
-} from "@/server/gameplay";
-import { hydrateGameItems } from "@/server/item-artwork";
+import { type Artwork, type LootData } from "@/server/gameplay";
 import { getDatabase } from "@/server/mongodb";
-import { ensureRaffleState } from "@/server/raffle-gameplay";
 import { getSeasonalArtworkSelections } from "@/server/seasonal-artwork";
 
 export const dynamic = "force-dynamic";
@@ -30,34 +23,6 @@ export default async function GameStateAdminPage() {
   ]);
   if (!lootMetadata) throw new Error("Loot metadata is unavailable.");
 
-  const raffleState = await ensureRaffleState(database, settings.active);
-  const raffleRewardDocuments = await database
-    .collection<GameItem>("items")
-    .find({
-      _id: { $in: raffleState.prizes.map((prize) => prize.item_id) },
-    })
-    .toArray();
-  if (raffleRewardDocuments.length !== raffleState.prizes.length) {
-    throw new Error("Lottery items are unavailable.");
-  }
-
-  const raffleRewardItems = await hydrateGameItems(
-    database,
-    raffleRewardDocuments,
-  );
-  const raffleRewardById = new Map(
-    raffleRewardItems.map((item) => [item._id, item]),
-  );
-  const rafflePrizes = raffleState.prizes.map((prize) => {
-    const item = raffleRewardById.get(prize.item_id);
-    if (!item) {
-      throw new Error(`Lottery item ${prize.item_id} is unavailable.`);
-    }
-    return {
-      item: JSON.parse(JSON.stringify(item)),
-      potency: prize.potency,
-    };
-  });
   const artworkOptions = JSON.parse(
     JSON.stringify(artworks),
   ) as Artwork[];
@@ -82,17 +47,6 @@ export default async function GameStateAdminPage() {
           initialSelections={getSeasonalArtworkSelections(
             lootMetadata.loot_data,
           )}
-        />
-      </section>
-      <section>
-        <h2>Lottery items</h2>
-        <p>
-          The lottery keeps three items active. Winners are checked daily;
-          each current item can also be adjusted here.
-        </p>
-        <RaffleRewardForm
-          artworks={artworkOptions}
-          prizes={rafflePrizes}
         />
       </section>
     </main>

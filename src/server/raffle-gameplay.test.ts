@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  RAFFLE_BUFFER_COUNT,
   getLotteryPrizeDrawOutcome,
   RAFFLE_DRAW_INTERVAL_MS,
   selectWeightedRaffleEntry,
@@ -9,6 +10,10 @@ import {
 
 test("lottery drawings use a daily interval", () => {
   assert.equal(RAFFLE_DRAW_INTERVAL_MS, 24 * 60 * 60 * 1000);
+});
+
+test("lottery keeps three replacement items buffered", () => {
+  assert.equal(RAFFLE_BUFFER_COUNT, 3);
 });
 
 test("lottery entry selection is weighted by allocated tickets", () => {

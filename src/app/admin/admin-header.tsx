@@ -9,6 +9,7 @@ export default function AdminHeader({ email }: { email: string }) {
   const links = [
     { href: "/admin", label: "Gameplay config" },
     { href: "/admin/game-state", label: "Game state" },
+    { href: "/admin/lottery", label: "Lottery" },
     { href: "/admin/artwork", label: "Artwork intake" },
     { href: "/admin/catalog", label: "Catalog" },
     { href: "/admin/legendary-attributes", label: "Legendary attributes" },
