@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
+import ItemThumbnail from "@/components/item-thumbnail";
 import { CommunityReactionPicker } from "@/components/community-emotes";
 import ItemCard from "@/components/item-cards/item-card";
 import { ratingColor } from "@/components/item-cards/shared";
@@ -641,17 +642,7 @@ function VisitedGallery({
                   onClick={() => setSelectedPreviewItem(auction.item)}
                   type="button"
                 >
-                  <ArtworkThumbnail
-                    alt=""
-                    artworkId={auction.item.artwork_id}
-                    size={82}
-                  />
-                  <span
-                    aria-label="Up for auction"
-                    className="thumbnail-status-watermarks"
-                  >
-                    <i aria-hidden="true" className="fa fa-gavel" />
-                  </span>
+                  <ItemThumbnail alt="" item={auction.item} size={82} />
                   <span className="visited-gallery-auction-copy">
                     <strong>{auction.item.artwork.title}</strong>
                     <small>

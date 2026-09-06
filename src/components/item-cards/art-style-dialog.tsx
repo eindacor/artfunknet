@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import ArtworkThumbnail from "@/components/artwork-thumbnail";
+import ItemThumbnail from "@/components/item-thumbnail";
 import type { GameItem } from "@/server/gameplay";
 import type { HydratedGameItem } from "@/server/item-artwork";
 
@@ -169,10 +169,10 @@ export default function ArtStyleDialog({
         <div className="reroll-dialog-content">
           <header className="reroll-dialog-header">
             <div className="reroll-artwork-summary">
-              <ArtworkThumbnail
+              <ItemThumbnail
                 alt={`${dialogItem.artwork.title} by ${dialogItem.artwork.artist}`}
-                artworkId={dialogItem.artwork_id}
                 className="reroll-artwork-thumbnail"
+                item={dialogItem}
               />
               <div>
                 <p className="reroll-dialog-kicker">

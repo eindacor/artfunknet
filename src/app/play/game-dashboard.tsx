@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import ArchiveEntryDialog from "@/components/archive-entry-dialog";
 import ForgeryDialog from "@/components/forgery-dialog";
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
+import ItemThumbnail from "@/components/item-thumbnail";
 import RafflePanel, {
   type RafflePrizeView,
 } from "@/components/raffle-panel";
@@ -1225,10 +1226,7 @@ export default function GameDashboard({
                         title={`${item.artwork.title} by ${item.artwork.artist}`}
                         type="button"
                       >
-                        <ArtworkThumbnail
-                          alt=""
-                          artworkId={item.artwork_id}
-                        />
+                        <ItemThumbnail alt="" item={item} />
                       </button>
                     ))}
                   </div>
@@ -1274,6 +1272,12 @@ export default function GameDashboard({
                   </button>
                 </div>
               )}
+              {galleryMetadata ? (
+                <GalleryMetadataPanel
+                  galleryMetadata={galleryMetadata}
+                  galleryRates={galleryRates}
+                />
+              ) : null}
             </aside>
           </section>
         ) : null}
@@ -1411,19 +1415,7 @@ export default function GameDashboard({
                             title={`${item.artwork.title} by ${item.artwork.artist}`}
                             type="button"
                           >
-                            <ArtworkThumbnail
-                              alt=""
-                              artworkId={item.artwork_id}
-                              size={82}
-                            />
-                            {item.status === "for_sale" ? (
-                              <span className="loot-offer-watermark">
-                                <i
-                                  aria-hidden="true"
-                                  className="fa fa-shopping-cart"
-                                />
-                              </span>
-                            ) : null}
+                            <ItemThumbnail alt="" item={item} size={82} />
                           </button>
                         );
                       })}
@@ -1521,56 +1513,11 @@ export default function GameDashboard({
         {section === "collection" ? (
           <section className="collection-workspace">
             {galleryMetadata ? (
-              <section className="collection-gallery-metadata profile-gallery-metadata">
-                <header>
-                  <div>
-                    <h2>gallery overview</h2>
-                  </div>
-                </header>
-                <dl className="profile-gallery-stats">
-                  <div>
-                    <dt>Gallery value</dt>
-                    <dd>${galleryMetadata.value.toLocaleString()}</dd>
-                  </div>
-                  <div>
-                    <dt>Works displayed</dt>
-                    <dd>{galleryMetadata.display_count}</dd>
-                  </div>
-                  <div>
-                    <dt>Attribute score</dt>
-                    <dd>{galleryMetadata.score.toLocaleString()}</dd>
-                  </div>
-                  <div>
-                    <dt>Featured value</dt>
-                    <dd>${galleryMetadata.featured_value.toLocaleString()}</dd>
-                  </div>
-                  <div>
-                    <dt>Earnings per hour</dt>
-                    <dd>${galleryRates.moneyPerHour.toLocaleString()}</dd>
-                  </div>
-                  <div>
-                    <dt>Experience per hour</dt>
-                    <dd>{galleryRates.xpPerHour.toLocaleString()}</dd>
-                  </div>
-                  <div className="profile-gallery-icon-row">
-                    <dt className="sr-only">Attributes</dt>
-                    <dd>
-                      <GalleryAttributeSummary
-                        attributes={galleryMetadata.attributes}
-                        displayCapacity={galleryMetadata.display_capacity}
-                      />
-                    </dd>
-                  </div>
-                  <div className="profile-gallery-icon-row">
-                    <dt className="sr-only">Rarities</dt>
-                    <dd>
-                      <GalleryRaritySummary
-                        rarities={galleryMetadata.display_rarities}
-                      />
-                    </dd>
-                  </div>
-                </dl>
-              </section>
+              <GalleryMetadataPanel
+                className="collection-gallery-metadata"
+                galleryMetadata={galleryMetadata}
+                galleryRates={galleryRates}
+              />
             ) : null}
             <aside className="collection-inventory-panel">
               <section className="collection-sidebar-section">
@@ -1601,29 +1548,11 @@ export default function GameDashboard({
                         title={`${item.artwork.title} by ${item.artwork.artist}`}
                         type="button"
                       >
-                        <ArtworkThumbnail
+                        <ItemThumbnail
                           alt=""
-                          artworkId={item.artwork_id}
+                          item={item}
                           size={82}
                         />
-                        {item.repairing || item.status === "auctioned" ? (
-                          <span className="thumbnail-status-watermarks">
-                            {item.repairing ? (
-                              <i
-                                aria-label="Being repaired"
-                                className="fa fa-wrench"
-                                role="img"
-                              />
-                            ) : null}
-                            {item.status === "auctioned" ? (
-                              <i
-                                aria-label="Up for auction"
-                                className="fa fa-gavel"
-                                role="img"
-                              />
-                            ) : null}
-                          </span>
-                        ) : null}
                       </button>
                     ))}
                   </div>
@@ -1661,20 +1590,11 @@ export default function GameDashboard({
                         title={`${item.artwork.title} by ${item.artwork.artist}`}
                         type="button"
                       >
-                        <ArtworkThumbnail
+                        <ItemThumbnail
                           alt=""
-                          artworkId={item.artwork_id}
+                          item={item}
                           size={82}
                         />
-                        {item.repairing ? (
-                          <span className="thumbnail-status-watermarks">
-                            <i
-                              aria-label="Being repaired"
-                              className="fa fa-wrench"
-                              role="img"
-                            />
-                          </span>
-                        ) : null}
                       </button>
                     ))}
                   </div>
@@ -2798,10 +2718,10 @@ function ArtExpertResultDialog({
           </button>
         </header>
         <div className="art-expert-result-artwork">
-          <ArtworkThumbnail
+          <ItemThumbnail
             alt={`${result.item.artwork.title} by ${result.item.artwork.artist}`}
-            artworkId={result.item.artwork_id}
             className="art-expert-result-thumbnail"
+            item={result.item}
           />
           <p>
             The Art Expert shares their wisdom about{" "}
@@ -2909,10 +2829,10 @@ function CollectorResultDialog({
           </button>
         </header>
         <div className="collector-result-artwork">
-          <ArtworkThumbnail
+          <ItemThumbnail
             alt={`${result.item.artwork.title} by ${result.item.artwork.artist}`}
-            artworkId={result.item.artwork_id}
             className="collector-result-thumbnail"
+            item={result.item}
           />
           <div>
             <strong>{result.item.artwork.title}</strong>
@@ -3059,10 +2979,10 @@ function ArtworkOfferDialog({
           <div className="donor-offer-list">
             {items.map((item) => (
               <article className="donor-offer-item" key={item._id}>
-                <ArtworkThumbnail
+                <ItemThumbnail
                   alt={`${item.artwork.title} by ${item.artwork.artist}`}
-                  artworkId={item.artwork_id}
                   className="donor-offer-thumbnail"
+                  item={item}
                 />
                 <div className="donor-offer-details">
                   <div>
@@ -3401,10 +3321,10 @@ function RerollDialog({
       <div className="reroll-dialog-content">
         <header className="reroll-dialog-header">
           <div className="reroll-artwork-summary">
-            <ArtworkThumbnail
+            <ItemThumbnail
               alt={`${item.artwork.title} by ${item.artwork.artist}`}
-              artworkId={item.artwork_id}
               className="reroll-artwork-thumbnail"
+              item={item}
             />
             <div>
               <p className="reroll-dialog-kicker">
@@ -3811,6 +3731,69 @@ function DonationRewardEffect({
         <i aria-hidden="true" className="fa fa-paint-brush art-style" />
       ) : null}
     </span>
+  );
+}
+
+function GalleryMetadataPanel({
+  className = "",
+  galleryMetadata,
+  galleryRates,
+}: {
+  className?: string;
+  galleryMetadata: GalleryMetadataSnapshot;
+  galleryRates: GalleryRates;
+}) {
+  return (
+    <section
+      className={`profile-gallery-metadata ${className}`.trim()}
+    >
+      <header>
+        <h2>gallery overview</h2>
+      </header>
+      <dl className="profile-gallery-stats">
+        <div>
+          <dt>Gallery value</dt>
+          <dd>${galleryMetadata.value.toLocaleString()}</dd>
+        </div>
+        <div>
+          <dt>Works displayed</dt>
+          <dd>{galleryMetadata.display_count}</dd>
+        </div>
+        <div>
+          <dt>Attribute score</dt>
+          <dd>{galleryMetadata.score.toLocaleString()}</dd>
+        </div>
+        <div>
+          <dt>Featured value</dt>
+          <dd>${galleryMetadata.featured_value.toLocaleString()}</dd>
+        </div>
+        <div>
+          <dt>Earnings per hour</dt>
+          <dd>${galleryRates.moneyPerHour.toLocaleString()}</dd>
+        </div>
+        <div>
+          <dt>Experience per hour</dt>
+          <dd>{galleryRates.xpPerHour.toLocaleString()}</dd>
+        </div>
+        <div className="profile-gallery-icon-row">
+          <dt className="sr-only">Attributes</dt>
+          <dd>
+            <GalleryAttributeSummary
+              attributes={galleryMetadata.attributes}
+              displayCapacity={galleryMetadata.display_capacity}
+            />
+          </dd>
+        </div>
+        <div className="profile-gallery-icon-row">
+          <dt className="sr-only">Rarities</dt>
+          <dd>
+            <GalleryRaritySummary
+              rarities={galleryMetadata.display_rarities}
+            />
+          </dd>
+        </div>
+      </dl>
+    </section>
   );
 }
 

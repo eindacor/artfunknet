@@ -1,15 +1,18 @@
 import Image from "next/image";
+import type { ReactNode } from "react";
 
 export default function ArtworkThumbnail({
   artworkId,
   alt,
   className = "",
+  children,
   size = 72,
   variant,
 }: {
   artworkId: string;
   alt: string;
   className?: string;
+  children?: ReactNode;
   size?: number;
   variant?: "full" | "card" | "thumb";
 }) {
@@ -27,6 +30,7 @@ export default function ArtworkThumbnail({
         src={`/api/artwork/${artworkId}/image?variant=${imageVariant}`}
         unoptimized
       />
+      {children}
     </span>
   );
 }

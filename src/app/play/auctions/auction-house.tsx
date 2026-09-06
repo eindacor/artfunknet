@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import ArtworkThumbnail from "@/components/artwork-thumbnail";
+import ItemThumbnail from "@/components/item-thumbnail";
 import ItemCard from "@/components/item-cards/item-card";
 import type { AuctionView } from "@/server/auction-gameplay";
 import { ARTWORK_RARITIES, type ArtworkRarity } from "@/server/gameplay";
@@ -321,10 +321,7 @@ export default function AuctionHouse({
               >
                 <div className="auction-list-artwork" role="cell">
                   <div className="auction-list-card">
-                    <ArtworkThumbnail
-                      alt=""
-                      artworkId={auction.item.artwork_id}
-                    />
+                    <ItemThumbnail alt="" item={auction.item} />
                   </div>
                   <div>
                     <strong>{auction.item.artwork.title}</strong>

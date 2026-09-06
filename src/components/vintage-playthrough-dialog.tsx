@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import ArtworkThumbnail from "@/components/artwork-thumbnail";
+import ItemThumbnail from "@/components/item-thumbnail";
 import type { HydratedGameItem } from "@/server/item-artwork";
 
 export default function VintagePlaythroughDialog({
@@ -109,10 +109,10 @@ export default function VintagePlaythroughDialog({
                 onChange={() => setSelectedItemId(item._id)}
                 type="radio"
               />
-              <ArtworkThumbnail
+              <ItemThumbnail
                 alt=""
-                artworkId={item.artwork_id}
                 className="vintage-item-thumbnail"
+                item={item}
               />
               <span>
                 <strong>{item.artwork.title}</strong>

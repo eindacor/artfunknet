@@ -983,6 +983,16 @@ a.welcome-button {
   padding-top: 12px;
 }
 
+.profile-gallery-metadata > header {
+  padding: 0 2px 8px;
+}
+
+.profile-gallery-metadata h2 {
+  margin: 0;
+  color: #282722;
+  font: 500 0.9rem Georgia, "Times New Roman", serif;
+}
+
 .profile-gallery-stats {
   display: grid;
   grid-template-columns: 1fr;
@@ -5054,13 +5064,15 @@ a.welcome-button {
     inset 0 0 0 2px #fff;
 }
 
-.collection-thumbnail-list .artwork-thumbnail {
+.collection-thumbnail-list .artwork-thumbnail,
+.profile-gallery-thumbnails .artwork-thumbnail {
   width: 100% !important;
   height: 100% !important;
   background: #e8e3d9;
 }
 
-.collection-thumbnail-list img {
+.collection-thumbnail-list img,
+.profile-gallery-thumbnails img {
   object-fit: cover;
 }
 
@@ -5071,6 +5083,10 @@ a.welcome-button {
   display: flex;
   gap: 4px;
   pointer-events: none;
+}
+
+.thumbnail-status-watermarks .fa.thumbnail-art-style {
+  color: #ff33cc;
 }
 
 .thumbnail-status-watermarks .fa {
@@ -5093,6 +5109,10 @@ a.welcome-button {
 
 .thumbnail-status-watermarks .fa-gavel {
   color: #e8bf6c;
+}
+
+.thumbnail-status-watermarks .fa-shopping-cart {
+  color: #8ce5ef;
 }
 
 .collection-sidebar-empty {
@@ -5183,23 +5203,6 @@ a.welcome-button {
 
 .loot-thumbnail-grid button[data-rarity="masterpiece"] {
   background: rgb(0 168 181 / 12%);
-}
-
-.loot-offer-watermark {
-  position: absolute;
-  right: 6px;
-  bottom: 6px;
-  display: grid;
-  width: 24px;
-  height: 24px;
-  place-items: center;
-  border: 1px solid rgb(255 255 255 / 70%);
-  border-radius: 50%;
-  background: rgb(17 17 17 / 88%);
-  color: #8ce5ef;
-  box-shadow: 0 2px 6px rgb(0 0 0 / 35%);
-  font-size: 0.7rem;
-  pointer-events: none;
 }
 
 .loot-preview {
