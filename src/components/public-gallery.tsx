@@ -15,13 +15,17 @@ import type {
 import type { HydratedGameItem } from "@/server/item-artwork";
 
 export default function PublicGallery({
+  floorContent,
   items,
   legendaryAttributes,
+  onSelectItem,
   owner,
   viewerId,
 }: {
+  floorContent?: React.ReactNode;
   items: HydratedGameItem[];
   legendaryAttributes: CardLegendaryAttribute[];
+  onSelectItem?: (item: HydratedGameItem) => void;
   owner: ItemDisplayOwner;
   viewerId: string | null;
 }) {
@@ -62,7 +66,11 @@ export default function PublicGallery({
                   <button
                     aria-label={`View ${item.artwork.title} by ${item.artwork.artist}`}
                     className="framed-painting"
-                    onClick={() => setSelectedItem(item)}
+                    onClick={() =>
+                      onSelectItem
+                        ? onSelectItem(item)
+                        : setSelectedItem(item)
+                    }
                     style={{
                       backgroundImage: `url("/api/artwork/${item.artwork_id}/image?variant=full")`,
                       height: getGalleryPaintingDimension(
@@ -89,10 +97,10 @@ export default function PublicGallery({
               ))
             )}
           </div>
-          <div className="gallery-floor" />
+          <div className="gallery-floor">{floorContent}</div>
         </div>
       </div>
-      {selectedItem ? (
+      {!onSelectItem && selectedItem ? (
         <StandardItemDialog
           currentRendererId={resolveCardRendererId({
             itemRendererId: selectedItem.card_renderer,

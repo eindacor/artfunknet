@@ -213,6 +213,7 @@ export default function GameDashboard({
   const initialSection = searchParams.get("section");
   const [section, setSection] = useState<
     | "profile"
+    | "collection"
     | "inventory"
     | "loot"
     | "gallery"
@@ -275,6 +276,9 @@ export default function GameDashboard({
   } | null>(null);
   const [galleryItemDetails, setGalleryItemDetails] =
     useState<HydratedGameItem | null>(null);
+  const [selectedCollectionItemId, setSelectedCollectionItemId] = useState<
+    string | null
+  >(null);
   const [linkedItemDetails, setLinkedItemDetails] =
     useState<LinkedItemView | null>(linkedItem);
   const [galleryArtStyleItem, setGalleryArtStyleItem] =
@@ -323,6 +327,14 @@ export default function GameDashboard({
     () => items.filter((item) => item.status === "displayed"),
     [items],
   );
+  const collectionItems = useMemo(
+    () => [...displayed, ...inventory],
+    [displayed, inventory],
+  );
+  const selectedCollectionItem =
+    collectionItems.find((item) => item._id === selectedCollectionItemId) ??
+    collectionItems[0] ??
+    null;
   const vintageCandidates = useMemo(
     () =>
       items.filter(
@@ -742,6 +754,135 @@ export default function GameDashboard({
     );
   }
 
+  function collectionGalleryAction(item: HydratedGameItem) {
+    if (item.status === "displayed") {
+      return (
+        <button
+          className="collection-gallery-action collection-gallery-action-active"
+          disabled={pending}
+          onClick={() => act(`/api/play/items/${item._id}/undisplay`)}
+          type="button"
+        >
+          <i aria-hidden="true" className="fa fa-picture-o" />
+          Take down
+        </button>
+      );
+    }
+
+    const displayPermission = getDisplayPermission(item, items, player.displayCap);
+    return (
+      <button
+        className="collection-gallery-action"
+        disabled={pending || !displayPermission.allowed}
+        onClick={() =>
+          requestMintMutation(
+            item,
+            "Displaying this artwork",
+            () => act(`/api/play/items/${item._id}/display`),
+          )
+        }
+        title={
+          displayPermission.allowed
+            ? "Display in gallery"
+            : displayPermission.reason
+        }
+        type="button"
+      >
+        <i aria-hidden="true" className="fa fa-picture-o" />
+        Display
+      </button>
+    );
+  }
+
+  function collectionDisplayedItemActions(item: HydratedGameItem) {
+    return canRerollDisplayed ? (
+      <ItemActionButton
+        icon="fa-magic"
+        label="Modify displayed artwork"
+        disabled={pending}
+        onClick={() =>
+          setRerollSession({
+            item,
+            bankBalance: player.bankBalance,
+            karma: karmaBalance,
+          })
+        }
+      />
+    ) : null;
+  }
+
+  function collectionItemActions(item: HydratedGameItem) {
+    const repairLimitReached =
+      !item.repairing && repairingCount >= player.repairingCap;
+    const repairDisabledReason = item.repairing
+      ? undefined
+      : item.condition >= 1
+        ? "This item is already at 100% condition."
+        : repairLimitReached
+          ? `Your ${player.repairingCap}-item repair limit has been reached.`
+          : undefined;
+
+    return (
+      <>
+        <ItemActionButton
+          icon="fa-wrench"
+          label={
+            item.repairing
+              ? `Stop repairing at ${Math.floor(item.condition * 100)}% condition`
+              : "Repair item"
+          }
+          disabled={pending || Boolean(repairDisabledReason)}
+          disabledReason={repairDisabledReason}
+          onClick={() => act(`/api/play/items/${item._id}/repair`)}
+          variant={item.repairing ? "enabled" : "default"}
+        />
+        <ItemActionButton
+          icon="fa-magic"
+          label="Modify attributes"
+          disabled={pending}
+          onClick={() =>
+            setRerollSession({
+              item,
+              bankBalance: player.bankBalance,
+              karma: karmaBalance,
+            })
+          }
+        />
+        <ItemActionButton
+          icon="fa-binoculars"
+          label={
+            item.tags.includes("for sale")
+              ? "Stop offering to Art Collectors"
+              : "Offer to Art Collectors"
+          }
+          disabled={pending}
+          onClick={() => act(`/api/play/items/${item._id}/collector-sale`)}
+          variant={item.tags.includes("for sale") ? "collector" : "default"}
+        />
+        <ItemActionButton
+          icon="fa-gavel"
+          label="Put up for auction"
+          disabled={pending || item.permanent || item.repairing}
+          onClick={() => setAuctionListingItem(item)}
+        />
+        <ItemActionButton
+          icon="fa-usd"
+          label={`Sell for $${item.values.sell.toLocaleString()}`}
+          disabled={pending}
+          onClick={() => act(`/api/play/items/${item._id}/sell`)}
+        />
+        <ItemActionButton
+          icon="fa-share-square"
+          label="Donate for Karma"
+          disabled={pending || item.permanent || item.original}
+          onClick={() => donateItem(item)}
+        />
+        <AuthenticityActions act={act} item={item} pending={pending} />
+        {archiveAction(item)}
+      </>
+    );
+  }
+
   return (
     <main className="legacy-game">
       <div className="legacy-container">
@@ -749,9 +890,8 @@ export default function GameDashboard({
           {(
             [
               { id: "profile", label: "Profile", icon: "fa-user" },
-              { id: "inventory", label: "Inventory", icon: "fa-th" },
+              { id: "collection", label: "Collection", icon: "fa-picture-o" },
               { id: "loot", label: "Loot", icon: "fa-gift" },
-              { id: "gallery", label: "Gallery", icon: "fa-picture-o" },
               { id: "explore", label: "Explore", icon: "fa-binoculars" },
               { id: "archive", label: "Archive", icon: "fa-archive" },
               { id: "quests", label: "Quests", icon: "fa-map-signs" },
@@ -943,8 +1083,8 @@ export default function GameDashboard({
                         aria-label={`View ${item.artwork.title} by ${item.artwork.artist}`}
                         key={item._id}
                         onClick={() => {
-                          setGalleryItemDetails(item);
-                          setSection("gallery");
+                          setSelectedCollectionItemId(item._id);
+                          setSection("collection");
                         }}
                         title={`${item.artwork.title} by ${item.artwork.artist}`}
                         type="button"
@@ -956,67 +1096,12 @@ export default function GameDashboard({
                       </button>
                     ))}
                   </div>
-                  {galleryMetadata ? (
-                    <div className="profile-gallery-metadata">
-                      <dl className="profile-gallery-stats">
-                        <div>
-                          <dt>Gallery value</dt>
-                          <dd>
-                            ${galleryMetadata.value.toLocaleString()}
-                          </dd>
-                        </div>
-                        <div>
-                          <dt>Works displayed</dt>
-                          <dd>{galleryMetadata.display_count}</dd>
-                        </div>
-                        <div>
-                          <dt>Attribute score</dt>
-                          <dd>{galleryMetadata.score.toLocaleString()}</dd>
-                        </div>
-                        <div>
-                          <dt>Featured value</dt>
-                          <dd>
-                            ${galleryMetadata.featured_value.toLocaleString()}
-                          </dd>
-                        </div>
-                        <div>
-                          <dt>Earnings per hour</dt>
-                          <dd>
-                            ${galleryRates.moneyPerHour.toLocaleString()}
-                          </dd>
-                        </div>
-                        <div>
-                          <dt>Experience per hour</dt>
-                          <dd>{galleryRates.xpPerHour.toLocaleString()}</dd>
-                        </div>
-                        <div className="profile-gallery-icon-row">
-                          <dt className="sr-only">Attributes</dt>
-                          <dd>
-                            <GalleryAttributeSummary
-                              attributes={galleryMetadata.attributes}
-                              displayCapacity={
-                                galleryMetadata.display_capacity
-                              }
-                            />
-                          </dd>
-                        </div>
-                        <div className="profile-gallery-icon-row">
-                          <dt className="sr-only">Rarities</dt>
-                          <dd>
-                            <GalleryRaritySummary
-                              rarities={galleryMetadata.display_rarities}
-                            />
-                          </dd>
-                        </div>
-                      </dl>
-                    </div>
-                  ) : null}
                   {displayed.length > 8 ? (
                     <p>+{displayed.length - 8} additional works on display</p>
                   ) : null}
                   <button
                     className="profile-gallery-action"
-                    onClick={() => setSection("inventory")}
+                    onClick={() => setSection("collection")}
                     type="button"
                   >
                     Manage gallery
@@ -1031,7 +1116,7 @@ export default function GameDashboard({
                   </p>
                   <button
                     className="profile-gallery-action"
-                    onClick={() => setSection("inventory")}
+                    onClick={() => setSection("collection")}
                     type="button"
                   >
                     Manage gallery
@@ -1328,6 +1413,322 @@ export default function GameDashboard({
                 })}
               </div>
             )}
+          </section>
+        ) : null}
+
+        {section === "collection" ? (
+          <section className="collection-workspace">
+            {galleryMetadata ? (
+              <section className="collection-gallery-metadata profile-gallery-metadata">
+                <header>
+                  <div>
+                    <h2>gallery overview</h2>
+                  </div>
+                </header>
+                <dl className="profile-gallery-stats">
+                  <div>
+                    <dt>Gallery value</dt>
+                    <dd>${galleryMetadata.value.toLocaleString()}</dd>
+                  </div>
+                  <div>
+                    <dt>Works displayed</dt>
+                    <dd>{galleryMetadata.display_count}</dd>
+                  </div>
+                  <div>
+                    <dt>Attribute score</dt>
+                    <dd>{galleryMetadata.score.toLocaleString()}</dd>
+                  </div>
+                  <div>
+                    <dt>Featured value</dt>
+                    <dd>${galleryMetadata.featured_value.toLocaleString()}</dd>
+                  </div>
+                  <div>
+                    <dt>Earnings per hour</dt>
+                    <dd>${galleryRates.moneyPerHour.toLocaleString()}</dd>
+                  </div>
+                  <div>
+                    <dt>Experience per hour</dt>
+                    <dd>{galleryRates.xpPerHour.toLocaleString()}</dd>
+                  </div>
+                  <div className="profile-gallery-icon-row">
+                    <dt className="sr-only">Attributes</dt>
+                    <dd>
+                      <GalleryAttributeSummary
+                        attributes={galleryMetadata.attributes}
+                        displayCapacity={galleryMetadata.display_capacity}
+                      />
+                    </dd>
+                  </div>
+                  <div className="profile-gallery-icon-row">
+                    <dt className="sr-only">Rarities</dt>
+                    <dd>
+                      <GalleryRaritySummary
+                        rarities={galleryMetadata.display_rarities}
+                      />
+                    </dd>
+                  </div>
+                </dl>
+              </section>
+            ) : null}
+            <aside className="collection-inventory-panel">
+              <section className="collection-sidebar-section">
+                <header className="collection-panel-heading">
+                  <div>
+                    <span className="collection-kicker">your collection</span>
+                    <h2>inventory</h2>
+                  </div>
+                  <span className="collection-count">{inventory.length}</span>
+                </header>
+                {inventory.length === 0 ? (
+                  <p className="collection-sidebar-empty">
+                    Your inventory is empty.
+                  </p>
+                ) : (
+                  <div className="collection-thumbnail-list">
+                    {inventory.map((item) => (
+                      <button
+                        aria-label={`Preview ${item.artwork.title} by ${item.artwork.artist}`}
+                        className={
+                          selectedCollectionItem?._id === item._id
+                            ? "selected"
+                            : ""
+                        }
+                        key={item._id}
+                        onClick={() => setSelectedCollectionItemId(item._id)}
+                        title={`${item.artwork.title} by ${item.artwork.artist}`}
+                        type="button"
+                      >
+                        <ArtworkThumbnail
+                          alt=""
+                          artworkId={item.artwork_id}
+                          size={82}
+                        />
+                        {item.repairing || item.status === "auctioned" ? (
+                          <span className="thumbnail-status-watermarks">
+                            {item.repairing ? (
+                              <i
+                                aria-label="Being repaired"
+                                className="fa fa-wrench"
+                                role="img"
+                              />
+                            ) : null}
+                            {item.status === "auctioned" ? (
+                              <i
+                                aria-label="Up for auction"
+                                className="fa fa-gavel"
+                                role="img"
+                              />
+                            ) : null}
+                          </span>
+                        ) : null}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </section>
+              <section className="collection-sidebar-section on-display-panel">
+                <header className="collection-panel-heading">
+                  <div>
+                    <h2>on display</h2>
+                  </div>
+                  <span className="collection-count">
+                    {displayed.length}/{player.displayCap}
+                  </span>
+                </header>
+                {displayed.length === 0 ? (
+                  <p className="collection-sidebar-empty">
+                    No works are currently on display.
+                  </p>
+                ) : (
+                  <div className="collection-thumbnail-list">
+                    {displayed.map((item) => (
+                      <button
+                        aria-label={`Open details for ${item.artwork.title} by ${item.artwork.artist}`}
+                        key={item._id}
+                        onClick={() => setGalleryItemDetails(item)}
+                        title={`${item.artwork.title} by ${item.artwork.artist}`}
+                        type="button"
+                      >
+                        <ArtworkThumbnail
+                          alt=""
+                          artworkId={item.artwork_id}
+                          size={82}
+                        />
+                        {item.repairing ? (
+                          <span className="thumbnail-status-watermarks">
+                            <i
+                              aria-label="Being repaired"
+                              className="fa fa-wrench"
+                              role="img"
+                            />
+                          </span>
+                        ) : null}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </aside>
+            <div className="collection-main">
+              {selectedCollectionItem ? (
+                <section className="collection-preview" aria-live="polite">
+                  <ItemCard
+                    actions={
+                      selectedCollectionItem.status === "displayed"
+                        ? collectionDisplayedItemActions(selectedCollectionItem)
+                        : selectedCollectionItem.status === "auctioned"
+                          ? undefined
+                          : collectionItemActions(selectedCollectionItem)
+                    }
+                    consigned={selectedCollectionItem.status === "auctioned"}
+                    item={selectedCollectionItem}
+                    key={getItemCardKey(selectedCollectionItem)}
+                    legendaryAttributes={legendaryAttributes}
+                    permissions={{
+                      canManageItem: true,
+                      canCustomizeCosmetic:
+                        selectedCollectionItem.status !== "auctioned",
+                    }}
+                    primaryAction={
+                      selectedCollectionItem.status === "auctioned"
+                        ? undefined
+                        : collectionGalleryAction(selectedCollectionItem)
+                    }
+                    researchTarget={researchArtworkIds.has(
+                      selectedCollectionItem.artwork_id,
+                    )}
+                    styleInventory={player.cardStyleInventory}
+                    viewerId={playerId}
+                  />
+                </section>
+              ) : null}
+              <GalleryChat galleryOwnerId={playerId} viewerId={playerId} />
+              <div className="gallery-window">
+                <div className="gallery-scene">
+                  <div
+                    className="gallery-wall"
+                    style={{
+                      paddingBottom: galleryWallOffset,
+                      paddingTop: galleryWallOffset,
+                    }}
+                  >
+                    {displayed.length === 0 ? (
+                      <p className="empty-gallery">
+                        Your gallery walls are empty.
+                      </p>
+                    ) : (
+                      displayed.map((item) => (
+                        <div
+                          className="painting-container"
+                          key={item._id}
+                          style={{
+                            marginLeft: galleryPaintingMargin,
+                            marginRight: galleryPaintingMargin,
+                          }}
+                        >
+                          <button
+                            className="framed-painting"
+                            disabled={pending}
+                            onClick={() => setSelectedCollectionItemId(item._id)}
+                            style={{
+                              backgroundImage: `url("/api/artwork/${item.artwork_id}/image?variant=full")`,
+                              height: getGalleryPaintingDimension(
+                                item.artwork.height,
+                                galleryPixelsPerCentimeter,
+                              ),
+                              width: getGalleryPaintingDimension(
+                                item.artwork.width,
+                                galleryPixelsPerCentimeter,
+                              ),
+                            }}
+                            title={`View details for ${item.artwork.title}`}
+                            type="button"
+                          />
+                          <div className="placard">
+                            <p>{item.artwork.title}</p>
+                            <p>
+                              {item.artwork.artist}, {item.artwork.date}
+                            </p>
+                            <p
+                              className={`rarity-text ${item.artwork.rarity}`}
+                            >
+                              {item.artwork.rarity}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <div className="gallery-floor">
+                    <div className="npc-area gallery-npc-overlay">
+                      {npcs.length === 0 ? (
+                        <p>No visitors are currently in the gallery.</p>
+                      ) : (
+                        npcs.map((npc) => (
+                          <span className="gallery-npc-slot" key={npc._id}>
+                            <button
+                              className={`gallery-npc ${npc.quality} ${
+                                npc.alreadyMet ? "disabled" : "enabled"
+                              } ${
+                                npcRewardEffects[npc._id] ? "rewarding" : ""
+                              }`}
+                              disabled={
+                                pending ||
+                                meetingNpc !== null ||
+                                npc.alreadyMet ||
+                                Boolean(npcRewardEffects[npc._id])
+                              }
+                              onClick={() => meetNpc(npc)}
+                              title={
+                                npc.alreadyMet
+                                  ? `${npc.npc_name} already met`
+                                  : `meet ${npc.npc_name}`
+                              }
+                              type="button"
+                            >
+                              <i
+                                aria-hidden="true"
+                                className={`fa ${npc.icon}`}
+                              />
+                              <span>{npc.npc_name}</span>
+                            </button>
+                            {npcRewardEffects[npc._id] ? (
+                              <span
+                                aria-label={
+                                  npcRewardEffects[npc._id].rewardType ===
+                                  "money"
+                                    ? `Received $${npcRewardEffects[
+                                        npc._id
+                                      ].rewardAmount.toLocaleString()}`
+                                    : `Received ${npcRewardEffects[
+                                        npc._id
+                                      ].rewardAmount.toLocaleString()} experience points`
+                                }
+                                className={`npc-reward-popout ${
+                                  npcRewardEffects[npc._id].rewardType
+                                }`}
+                                key={npcRewardEffects[npc._id].animationId}
+                                role="status"
+                              >
+                                <i
+                                  aria-hidden="true"
+                                  className={`fa ${
+                                    npcRewardEffects[npc._id].rewardType ===
+                                    "money"
+                                      ? "fa-usd"
+                                      : "fa-heart"
+                                  }`}
+                                />
+                              </span>
+                            ) : null}
+                          </span>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </section>
         ) : null}
 

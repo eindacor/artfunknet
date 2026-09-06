@@ -1,14 +1,18 @@
 import { NextResponse } from "next/server";
 
+import type { Auction } from "@/server/auction-gameplay";
 import {
   refreshGalleryMetadata,
 } from "@/server/gallery-metadata";
 import { getCommunityReactionSummary } from "@/server/community-reactions";
 import { getLegendaryAttributes } from "@/server/legendary-attributes";
+import type { GameItem } from "@/server/gameplay";
+import { hydrateGameItems } from "@/server/item-artwork";
 import { getDatabase } from "@/server/mongodb";
 import { getGalleryNpcs } from "@/server/npc-gameplay";
 import { requirePlayerApi } from "@/server/player-api";
 import { getPublicGalleryView } from "@/server/public-showcase";
+import { prepareItemForPublicViewer } from "@/server/public-showcase-core";
 
 export async function GET(
   _request: Request,
@@ -32,9 +36,46 @@ export async function GET(
   }
 
   const metadata = await refreshGalleryMetadata(database, playerId);
+  const activeAuctions = await database
+    .collection<Auction>("auctions")
+    .find({
+      seller_id: playerId,
+      viewer: "public",
+      expiration: { $gt: new Date().toISOString() },
+      settlement_status: { $ne: "settling" },
+    })
+    .sort({ expiration: 1 })
+    .toArray();
+  const auctionItemDocuments = await database
+    .collection<GameItem>("items")
+    .find({ _id: { $in: activeAuctions.map((auction) => auction.item_id) } })
+    .toArray();
+  const auctionItems = await hydrateGameItems(
+    database,
+    auctionItemDocuments.map((item) =>
+      prepareItemForPublicViewer(item, auth.session.playerId),
+    ),
+  );
+  const auctionItemById = new Map(
+    auctionItems.map((item) => [item._id, item]),
+  );
+  const auctions = activeAuctions.flatMap((auction) => {
+    const item = auctionItemById.get(auction.item_id);
+    return item
+      ? [
+          {
+            id: auction._id,
+            currentBid: auction.current_bid,
+            buyNow: auction.buy_now,
+            expiration: auction.expiration,
+            item,
+          },
+        ]
+      : [];
+  });
   const legendaryIds = [
     ...new Set(
-      gallery.items
+      [...gallery.items, ...auctionItems]
         .map((item) => item.active_unique_attribute)
         .filter((id): id is string => Boolean(id)),
     ),
@@ -53,6 +94,7 @@ export async function GET(
   return NextResponse.json({
     owner: gallery.owner,
     items: gallery.items,
+    auctions,
     metadata: metadata ? { ...metadata, reactions } : null,
     npcs: npcs.map((npc) => ({
       ...npc,

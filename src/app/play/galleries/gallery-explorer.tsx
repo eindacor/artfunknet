@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
 import { CommunityReactionPicker } from "@/components/community-emotes";
+import ItemCard from "@/components/item-cards/item-card";
 import { ratingColor } from "@/components/item-cards/shared";
 import PublicGallery from "@/components/public-gallery";
 import type { CardLegendaryAttribute } from "@/components/item-cards/types";
@@ -61,8 +62,17 @@ type GalleryDetailResponse = {
   owner: {
     playerId: string;
     screenName: string;
+    level: number;
+    vintageLevel: number;
   };
   items: HydratedGameItem[];
+  auctions: {
+    id: string;
+    currentBid: number;
+    buyNow: number | null;
+    expiration: string;
+    item: HydratedGameItem;
+  }[];
   metadata: GalleryRecord | null;
   npcs: GalleryNpcView[];
   legendaryAttributes: CardLegendaryAttribute[];
@@ -256,7 +266,7 @@ export default function GalleryExplorer({
         <p className="empty-state">Reviewing the gallery registry...</p>
       ) : data.galleries.length === 0 ? (
         <p className="empty-state">
-          No other players currently have artwork on display.
+          No public galleries currently have artwork on display.
         </p>
       ) : viewMode === "list" ? (
         <div className="gallery-explorer-list-scroll">
@@ -437,6 +447,8 @@ function VisitedGallery({
   viewerId: string;
 }) {
   const [gallery, setGallery] = useState<GalleryDetailResponse | null>(null);
+  const [selectedPreviewItem, setSelectedPreviewItem] =
+    useState<HydratedGameItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -446,6 +458,7 @@ function VisitedGallery({
     async function loadGallery() {
       setLoading(true);
       setError("");
+      setSelectedPreviewItem(null);
       try {
         const response = await fetch(
           `/api/play/galleries/${encodeURIComponent(ownerId)}`,
@@ -457,7 +470,20 @@ function VisitedGallery({
         if (!response.ok) {
           throw new Error(body.error ?? "This gallery is unavailable.");
         }
-        if (!cancelled) setGallery(body);
+        if (!cancelled) {
+          setGallery(body);
+          const mostValuableItem = body.items.reduce<HydratedGameItem | null>(
+            (mostValuable, item) =>
+              !mostValuable ||
+              item.values.actual > mostValuable.values.actual
+                ? item
+                : mostValuable,
+            null,
+          );
+          setSelectedPreviewItem(
+            mostValuableItem ?? body.auctions[0]?.item ?? null,
+          );
+        }
       } catch (loadError) {
         if (!cancelled) {
           setError(
@@ -480,7 +506,7 @@ function VisitedGallery({
   if (loading) {
     return (
       <section className="visited-gallery">
-        <VisitedGalleryHeader onBack={onBack} screenName="Gallery" />
+        <VisitedGalleryBackButton onBack={onBack} />
         <p className="empty-state">Preparing the exhibition...</p>
       </section>
     );
@@ -489,7 +515,7 @@ function VisitedGallery({
   if (error || !gallery) {
     return (
       <section className="visited-gallery">
-        <VisitedGalleryHeader onBack={onBack} screenName="Gallery" />
+        <VisitedGalleryBackButton onBack={onBack} />
         <p className="auction-house-error">
           {error || "This gallery is unavailable."}
         </p>
@@ -499,144 +525,250 @@ function VisitedGallery({
 
   return (
     <section className="visited-gallery">
-      <VisitedGalleryHeader
-        onBack={onBack}
-        screenName={gallery.owner.screenName}
-      />
-      <div className="gallery-summary visited-gallery-summary">
-        <span>
-          exhibition value: $
-          {(gallery.metadata?.value ?? 0).toLocaleString()}
-        </span>
-        <span>
-          {(gallery.metadata?.display_count ?? gallery.items.length).toLocaleString()}{" "}
-          works on display
-        </span>
-        {gallery.metadata ? (
-          <CommunityReactionPicker
-            className="gallery-emote-reactions"
-            onChange={(reactions) =>
-              setGallery((current) =>
-                current?.metadata
-                  ? {
-                      ...current,
-                      metadata: {
-                        ...current.metadata,
-                        reactions,
-                      },
-                    }
-                  : current,
-              )
-            }
-            reactions={gallery.metadata.reactions}
-            targetId={ownerId}
-            targetType="gallery"
-          />
-        ) : null}
-      </div>
-      <div className="npc-area">
-        {gallery.npcs.length === 0 ? (
-          <p className="empty-state">
-            No visitors are currently in this gallery.
-          </p>
-        ) : (
-          gallery.npcs.map((npc) => (
-            <span className="gallery-npc-slot" key={npc._id}>
-              <button
-                className={`gallery-npc ${npc.quality} ${
-                  npc.alreadyMet ? "disabled" : "enabled"
-                } ${npcRewardEffects[npc._id] ? "rewarding" : ""}`}
-                disabled={
-                  meetingNpc !== null ||
-                  npc.alreadyMet ||
-                  Boolean(npcRewardEffects[npc._id])
-                }
-                onClick={async () => {
-                  if (await onMeetNpc(npc)) {
+      <div className="visited-gallery-workspace">
+        <section className="visited-gallery-player-panel">
+          <header className="visited-gallery-metadata-header">
+            <div>
+              <p>Collector exhibition</p>
+              <h1>{gallery.owner.screenName}&apos;s Gallery</h1>
+              <span>
+                Meet visitors and inspect the artwork this collector has put on
+                display.
+              </span>
+            </div>
+            <VisitedGalleryBackButton onBack={onBack} />
+          </header>
+          <dl className="visited-gallery-overview-stats">
+            <div>
+              <dt>Player level</dt>
+              <dd>{gallery.owner.level}</dd>
+            </div>
+            <div>
+              <dt>Vintage level</dt>
+              <dd>{gallery.owner.vintageLevel}</dd>
+            </div>
+            <div>
+              <dt>Works displayed</dt>
+              <dd>{gallery.items.length}</dd>
+            </div>
+            {gallery.metadata ? (
+              <>
+                <div>
+                  <dt>Gallery value</dt>
+                  <dd>${gallery.metadata.value.toLocaleString()}</dd>
+                </div>
+                <div>
+                  <dt>Attribute score</dt>
+                  <dd>{gallery.metadata.score.toLocaleString()}</dd>
+                </div>
+                <div>
+                  <dt>Featured value</dt>
+                  <dd>${gallery.metadata.featured_value.toLocaleString()}</dd>
+                </div>
+              </>
+            ) : null}
+            <div>
+              <dt>Active auctions</dt>
+              <dd>{gallery.auctions.length}</dd>
+            </div>
+          </dl>
+          {gallery.metadata ? (
+            <div className="visited-gallery-metadata-strip">
+              <div>
+                <span>Attributes</span>
+                <GalleryAttributeSummary
+                  attributes={gallery.metadata.attributes}
+                  displayCapacity={gallery.metadata.display_capacity}
+                />
+              </div>
+              <div>
+                <span>Rarities</span>
+                <GalleryRaritySummary
+                  rarities={gallery.metadata.display_rarities}
+                />
+              </div>
+              <div className="visited-gallery-reactions">
+                <span>Reactions</span>
+                <CommunityReactionPicker
+                  className="gallery-emote-reactions"
+                  onChange={(reactions) =>
                     setGallery((current) =>
-                      current
+                      current?.metadata
                         ? {
                             ...current,
-                            npcs: current.npcs.map((candidate) =>
-                              candidate._id === npc._id
-                                ? { ...candidate, alreadyMet: true }
-                                : candidate,
-                            ),
+                            metadata: {
+                              ...current.metadata,
+                              reactions,
+                            },
                           }
                         : current,
-                    );
+                    )
                   }
-                }}
-                title={
-                  npc.alreadyMet
-                    ? `${npc.npc_name} already met`
-                    : `meet ${npc.npc_name}`
-                }
-                type="button"
-              >
-                <i aria-hidden="true" className={`fa ${npc.icon}`} />
-                <span>{npc.npc_name}</span>
-              </button>
-              {npcRewardEffects[npc._id] ? (
-                <span
-                  aria-label={
-                    npcRewardEffects[npc._id].rewardType === "money"
-                      ? `Received $${npcRewardEffects[npc._id].rewardAmount.toLocaleString()}`
-                      : `Received ${npcRewardEffects[npc._id].rewardAmount.toLocaleString()} experience points`
-                  }
-                  className={`npc-reward-popout ${
-                    npcRewardEffects[npc._id].rewardType
-                  }`}
-                  key={npcRewardEffects[npc._id].animationId}
-                  role="status"
+                  reactions={gallery.metadata.reactions}
+                  targetId={ownerId}
+                  targetType="gallery"
+                />
+              </div>
+            </div>
+          ) : null}
+          <header className="visited-gallery-auction-heading">
+            <span>Items up for auction</span>
+          </header>
+          {gallery.auctions.length === 0 ? (
+            <p className="collection-sidebar-empty">
+              This player has no public auctions.
+            </p>
+          ) : (
+            <div className="visited-gallery-auctions">
+              {gallery.auctions.map((auction) => (
+                <button
+                  aria-label={`Preview auction for ${auction.item.artwork.title}`}
+                  key={auction.id}
+                  onClick={() => setSelectedPreviewItem(auction.item)}
+                  type="button"
                 >
-                  <i
-                    aria-hidden="true"
-                    className={`fa ${
-                      npcRewardEffects[npc._id].rewardType === "money"
-                        ? "fa-usd"
-                        : "fa-heart"
-                    }`}
+                  <ArtworkThumbnail
+                    alt=""
+                    artworkId={auction.item.artwork_id}
+                    size={82}
                   />
-                </span>
-              ) : null}
-            </span>
-          ))
+                  <span
+                    aria-label="Up for auction"
+                    className="thumbnail-status-watermarks"
+                  >
+                    <i aria-hidden="true" className="fa fa-gavel" />
+                  </span>
+                  <span className="visited-gallery-auction-copy">
+                    <strong>{auction.item.artwork.title}</strong>
+                    <small>
+                      ${auction.currentBid.toLocaleString()} current bid
+                    </small>
+                    {auction.buyNow !== null ? (
+                      <small>
+                        ${auction.buyNow.toLocaleString()} buy now
+                      </small>
+                    ) : null}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </section>
+        {selectedPreviewItem ? (
+          <section className="collection-preview visited-gallery-preview">
+            <ItemCard
+              item={selectedPreviewItem}
+              key={`${selectedPreviewItem._id}:${selectedPreviewItem.status}`}
+              legendaryAttributes={gallery.legendaryAttributes}
+              permissions={{
+                canManageItem: false,
+                canCustomizeCosmetic: false,
+              }}
+              viewerId={viewerId}
+            />
+          </section>
+        ) : (
+          <section className="collection-preview visited-gallery-preview">
+            <p className="empty-state">No artwork is available to preview.</p>
+          </section>
         )}
+        <GalleryChat galleryOwnerId={ownerId} viewerId={viewerId} />
+        <PublicGallery
+          floorContent={
+            <div className="npc-area gallery-npc-overlay">
+              {gallery.npcs.length === 0 ? (
+                <p>No visitors are currently in this gallery.</p>
+              ) : (
+                gallery.npcs.map((npc) => (
+                  <span className="gallery-npc-slot" key={npc._id}>
+                    <button
+                      className={`gallery-npc ${npc.quality} ${
+                        npc.alreadyMet ? "disabled" : "enabled"
+                      } ${npcRewardEffects[npc._id] ? "rewarding" : ""}`}
+                      disabled={
+                        meetingNpc !== null ||
+                        npc.alreadyMet ||
+                        Boolean(npcRewardEffects[npc._id])
+                      }
+                      onClick={async () => {
+                        if (await onMeetNpc(npc)) {
+                          setGallery((current) =>
+                            current
+                              ? {
+                                  ...current,
+                                  npcs: current.npcs.map((candidate) =>
+                                    candidate._id === npc._id
+                                      ? { ...candidate, alreadyMet: true }
+                                      : candidate,
+                                  ),
+                                }
+                              : current,
+                          );
+                        }
+                      }}
+                      title={
+                        npc.alreadyMet
+                          ? `${npc.npc_name} already met`
+                          : `meet ${npc.npc_name}`
+                      }
+                      type="button"
+                    >
+                      <i aria-hidden="true" className={`fa ${npc.icon}`} />
+                      <span>{npc.npc_name}</span>
+                    </button>
+                    {npcRewardEffects[npc._id] ? (
+                      <span
+                        aria-label={
+                          npcRewardEffects[npc._id].rewardType === "money"
+                            ? `Received $${npcRewardEffects[
+                                npc._id
+                              ].rewardAmount.toLocaleString()}`
+                            : `Received ${npcRewardEffects[
+                                npc._id
+                              ].rewardAmount.toLocaleString()} experience points`
+                        }
+                        className={`npc-reward-popout ${
+                          npcRewardEffects[npc._id].rewardType
+                        }`}
+                        key={npcRewardEffects[npc._id].animationId}
+                        role="status"
+                      >
+                        <i
+                          aria-hidden="true"
+                          className={`fa ${
+                            npcRewardEffects[npc._id].rewardType === "money"
+                              ? "fa-usd"
+                              : "fa-heart"
+                          }`}
+                        />
+                      </span>
+                    ) : null}
+                  </span>
+                ))
+              )}
+            </div>
+          }
+          items={gallery.items}
+          legendaryAttributes={gallery.legendaryAttributes}
+          onSelectItem={setSelectedPreviewItem}
+          owner={gallery.owner}
+          viewerId={viewerId}
+        />
       </div>
-      <PublicGallery
-        items={gallery.items}
-        legendaryAttributes={gallery.legendaryAttributes}
-        owner={gallery.owner}
-        viewerId={viewerId}
-      />
-      <GalleryChat galleryOwnerId={ownerId} viewerId={viewerId} />
     </section>
   );
 }
 
-function VisitedGalleryHeader({
-  onBack,
-  screenName,
-}: {
-  onBack: () => void;
-  screenName: string;
-}) {
+function VisitedGalleryBackButton({ onBack }: { onBack: () => void }) {
   return (
-    <header className="visited-gallery-header">
-      <div>
-        <p>Collector exhibition</p>
-        <h1>{screenName}&apos;s Gallery</h1>
-        <span>
-          Meet visitors and inspect the artwork this collector has put on
-          display.
-        </span>
-      </div>
-      <button onClick={onBack} type="button">
-        <i aria-hidden="true" className="fa fa-arrow-left" /> Back to public
-        galleries
-      </button>
-    </header>
+    <button
+      className="visited-gallery-back"
+      onClick={onBack}
+      type="button"
+    >
+      <i aria-hidden="true" className="fa fa-arrow-left" /> Back to public
+      galleries
+    </button>
   );
 }
 

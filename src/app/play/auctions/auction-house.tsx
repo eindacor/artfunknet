@@ -49,7 +49,7 @@ export default function AuctionHouse({
   const [error, setError] = useState("");
   const [selected, setSelected] = useState<AuctionView | null>(null);
   const [marketExpert, setMarketExpert] = useState(false);
-  const [viewMode, setViewMode] = useState<AuctionViewMode>("expanded");
+  const [viewMode, setViewMode] = useState<AuctionViewMode>("list");
   const pageSize = viewMode === "expanded" ? 20 : 30;
 
   const query = useMemo(() => {

@@ -12,12 +12,18 @@ import {
 export type PublicGalleryOwner = {
   playerId: string;
   screenName: string;
+  level: number;
+  vintageLevel: number;
 };
 
 type PublicPlayerRecord = {
   _id: string;
   active: boolean;
   screen_name: string;
+  profile: {
+    level: number;
+    vintage_count?: number;
+  };
 };
 
 export type PublicItemView = {
@@ -46,7 +52,14 @@ export async function getPublicItemView(
           .collection<PublicPlayerRecord>("players")
           .findOne(
             { _id: rawItem.owner, active: true },
-            { projection: { _id: 1, screen_name: 1 } },
+            {
+              projection: {
+                _id: 1,
+                screen_name: 1,
+                "profile.level": 1,
+                "profile.vintage_count": 1,
+              },
+            },
           )
       : null;
   const [item] = await hydrateGameItems(database, [
@@ -59,6 +72,8 @@ export async function getPublicItemView(
       ? {
           playerId: displayOwnerRecord._id,
           screenName: displayOwnerRecord.screen_name,
+          level: displayOwnerRecord.profile.level,
+          vintageLevel: displayOwnerRecord.profile.vintage_count ?? 0,
         }
       : null,
   };
@@ -73,15 +88,28 @@ export async function getPublicGalleryView(
     .collection<PublicPlayerRecord>("players")
     .findOne(
       { _id: playerId, active: true },
-      { projection: { _id: 1, screen_name: 1 } },
+      {
+        projection: {
+          _id: 1,
+          screen_name: 1,
+          "profile.level": 1,
+          "profile.vintage_count": 1,
+        },
+      },
     );
   if (!owner) return null;
 
-  const rawItems = await database
-    .collection<GameItem>("items")
-    .find(getPublicGalleryItemFilter(owner._id))
-    .sort({ time_displayed: 1, date_received: 1 })
-    .toArray();
+  const [rawItems, vintageItemCount] = await Promise.all([
+    database
+      .collection<GameItem>("items")
+      .find(getPublicGalleryItemFilter(owner._id))
+      .sort({ time_displayed: 1, date_received: 1 })
+      .toArray(),
+    database.collection<GameItem>("items").countDocuments({
+      owner: owner._id,
+      vintage: true,
+    }),
+  ]);
   const items = await hydrateGameItems(
     database,
     rawItems.map((item) => prepareItemForPublicViewer(item, viewerId)),
@@ -91,6 +119,11 @@ export async function getPublicGalleryView(
     owner: {
       playerId: owner._id,
       screenName: owner.screen_name,
+      level: owner.profile.level,
+      vintageLevel: Math.max(
+        owner.profile.vintage_count ?? 0,
+        vintageItemCount,
+      ),
     },
     items,
   };

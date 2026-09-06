@@ -26,6 +26,7 @@ export default function ItemCard({
     canManageItem: false,
     canCustomizeCosmetic: false,
   },
+  primaryAction,
   rendererId,
   researchTarget = false,
   styleInventory,
@@ -113,21 +114,52 @@ export default function ItemCard({
       </div>
       {overlay}
       {permissions.canManageItem &&
-      (actions || permissions.canCustomizeCosmetic) ? (
-        <div className="card-actions">
-          {actions}
-          {permissions.canCustomizeCosmetic ? (
-            <ArtStyleActionButton
-              onClick={() => {
-                setArtStyleDialogOpen(true);
-              }}
-            />
-          ) : null}
+      (primaryAction || actions || permissions.canCustomizeCosmetic) ? (
+        <div
+          className={`card-actions ${
+            primaryAction ? "card-actions-with-primary" : ""
+          }`}
+        >
+          {primaryAction ? (
+            <>
+              <div className="card-action-primary">{primaryAction}</div>
+              <div className="card-action-array">
+                {actions}
+                {permissions.canCustomizeCosmetic ? (
+                  <ArtStyleActionButton
+                    onClick={() => {
+                      setArtStyleDialogOpen(true);
+                    }}
+                  />
+                ) : null}
+              </div>
+            </>
+          ) : (
+            <>
+              {actions}
+              {permissions.canCustomizeCosmetic ? (
+                <ArtStyleActionButton
+                  onClick={() => {
+                    setArtStyleDialogOpen(true);
+                  }}
+                />
+              ) : null}
+            </>
+          )}
         </div>
       ) : null}
       {interactive && dialogOpen ? (
         <StandardItemDialog
-          actions={actions}
+          actions={
+            primaryAction ? (
+              <>
+                {primaryAction}
+                {actions}
+              </>
+            ) : (
+              actions
+            )
+          }
           currentRendererId={resolvedRendererId}
           item={{ ...currentItem, card_renderer: itemRendererId }}
           legendaryAttributes={legendaryAttributes}

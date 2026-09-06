@@ -35,7 +35,6 @@ export async function GET(request: Request) {
 
   const filter = {
     active: true,
-    owner_id: { $ne: auth.session.playerId },
     display_count: { $gt: 0 },
     ...(search
       ? { owner: { $regex: escapeRegex(search), $options: "i" } }
