@@ -5,10 +5,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
 import {
   BASE_FORGERY_QUALITY,
+  calculateForgeCostForSelection,
   calculateForgeryHeat,
   type ForgeryHeatContext,
 } from "@/server/forgery-gameplay";
 import type { HydratedGameItem, HydratedPlayerArtworkArchive } from "@/server/item-artwork";
+import type { LootData } from "@/server/gameplay";
 
 import { getCardCosmetic } from "./item-cards/catalog";
 import KnownForgeryWatermark from "./item-cards/known-forgery-watermark";
@@ -40,11 +42,17 @@ export default function ForgeryDialog({
   legendaryAttributes,
   onClose,
   onForged,
+  pricing,
 }: {
   archive: HydratedPlayerArtworkArchive;
   legendaryAttributes: CardLegendaryAttribute[];
   onClose: () => void;
   onForged: (message: string) => void;
+  pricing: {
+    lootData: LootData;
+    mintValueMultiplier: number;
+    seasonalArtworkIds: string[];
+  };
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [modifiers, setModifiers] = useState<string[]>([]);
@@ -67,6 +75,13 @@ export default function ForgeryDialog({
     label,
     value: calculateForgeryHeat(previewItem, context),
   }));
+  const cost = calculateForgeCostForSelection({
+    artwork: archive.artwork,
+    lootData: pricing.lootData,
+    mintValueMultiplier: pricing.mintValueMultiplier,
+    modifiers,
+    seasonal: pricing.seasonalArtworkIds.includes(archive.artwork_id),
+  });
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -259,13 +274,19 @@ export default function ForgeryDialog({
           </p>
         ) : null}
         <footer className="art-style-dialog-actions">
+          <div className="forgery-cost">
+            <span>Forge cost</span>
+            <strong>${cost.toLocaleString()}</strong>
+          </div>
           <button
             className="art-style-dialog-apply"
             disabled={pending}
             onClick={forge}
             type="button"
           >
-            {pending ? "Forging..." : "Forge artwork"}
+            {pending
+              ? "Forging..."
+              : `Forge artwork · $${cost.toLocaleString()}`}
           </button>
         </footer>
       </div>

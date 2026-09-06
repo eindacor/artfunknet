@@ -23,7 +23,7 @@ import {
   settlePendingForgeryLiability,
 } from "@/server/forgery-gameplay";
 import { getDatabase } from "@/server/mongodb";
-import type { GameItem, ItemAttribute } from "@/server/gameplay";
+import type { GameItem, ItemAttribute, LootData } from "@/server/gameplay";
 import {
   hydrateGameItems,
   hydratePlayerArtworkArchives,
@@ -31,6 +31,7 @@ import {
 import { getPlayerFacingArchivePermission } from "@/server/item-permissions";
 import { PRESERVATIONIST_ATTRIBUTE_ID } from "@/server/item-leveling";
 import { getLegendaryAttributes } from "@/server/legendary-attributes";
+import { getSeasonalArtworkSelections } from "@/server/seasonal-artwork";
 import {
   ensureRaffleState,
   settleRaffleIfDue,
@@ -128,6 +129,12 @@ export default async function PlayerPage({
   await settlePendingForgeryLiability(database, session.playerId);
   const settings = await getGameplaySettings(database);
   const config = settings.active;
+  const lootMetadata = await database
+    .collection<{ _id: string; loot_data: LootData }>("metadata")
+    .findOne({ _id: "loot-data" });
+  if (!lootMetadata) {
+    throw new Error("Loot metadata is unavailable.");
+  }
   let raffleState: RaffleState;
   try {
     raffleState = await settleRaffleIfDue(database, config);
@@ -402,6 +409,13 @@ export default async function PlayerPage({
       />
       <GameDashboard
         archives={JSON.parse(JSON.stringify(archives))}
+        forgePricing={{
+          lootData: JSON.parse(JSON.stringify(lootMetadata.loot_data)),
+          mintValueMultiplier: config.mintValueMultiplier,
+          seasonalArtworkIds: Object.values(
+            getSeasonalArtworkSelections(lootMetadata.loot_data),
+          ).filter((artworkId): artworkId is string => Boolean(artworkId)),
+        }}
         crateOffers={crateOffers}
         raffle={{
           availableTickets: player.profile.lottery_tickets,

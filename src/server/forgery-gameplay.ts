@@ -2,8 +2,12 @@ import type { Db } from "mongodb";
 
 import {
   ARTWORK_RARITIES,
+  calculateItemValues,
+  type Artwork,
   type ArtworkRarity,
   type GameItem,
+  type ItemAttribute,
+  type LootData,
 } from "./gameplay.ts";
 import { applyXp, getCapsForLevel, getXpChunk } from "./collection-gameplay.ts";
 import type { ArchiveCategory, PlayerArtworkArchive } from "./archive-gameplay.ts";
@@ -87,6 +91,56 @@ export function calculateForgeCost(actualValue: number): number {
       estimatedQuickSaleValue - 1,
     ),
   );
+}
+
+const FORGERY_ESTIMATE_ATTRIBUTE: ItemAttribute = {
+  _id: "forgery-estimate",
+  title: "forgery estimate",
+  type: "unlocked",
+  description: "forgery estimate",
+  icon: "fa-question",
+  npc_name: "Forgery estimate",
+  active: true,
+  value: 0.5,
+};
+
+export function calculateForgeCostForSelection({
+  artwork,
+  lootData,
+  mintValueMultiplier,
+  modifiers,
+  seasonal,
+}: {
+  artwork: Artwork;
+  lootData: LootData;
+  mintValueMultiplier: number;
+  modifiers: readonly string[];
+  seasonal: boolean;
+}): number {
+  const selected = new Set(modifiers);
+  const mint = selected.has("mint");
+  const estimatedValues = calculateItemValues(
+    {
+      condition: 0.5,
+      mint,
+      mint_value_multiplier: mint ? mintValueMultiplier : 1,
+      attributes: {
+        locked: [],
+        unlocked: [FORGERY_ESTIMATE_ATTRIBUTE],
+        special: [],
+      },
+      foil: selected.has("foil"),
+      seasonal: selected.has("seasonal") || seasonal,
+      lottery: selected.has("lottery") ? 1 : 0,
+      original: false,
+      vintage: selected.has("vintage"),
+      unlocked: selected.has("unlocked"),
+      level: 1,
+    },
+    artwork,
+    lootData,
+  );
+  return calculateForgeCost(estimatedValues.actual);
 }
 
 export function getForgeryValueEstimate(

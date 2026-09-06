@@ -4,8 +4,7 @@ import { NextResponse } from "next/server";
 import type { PlayerArtworkArchive } from "@/server/archive-gameplay";
 import {
   BASE_FORGERY_QUALITY,
-  calculateForgeCost,
-  getForgeryValueEstimate,
+  calculateForgeCostForSelection,
   validateForgerySelection,
 } from "@/server/forgery-gameplay";
 import {
@@ -144,12 +143,13 @@ export async function POST(
     debug: settings.debugEnabled,
   };
   const values = calculateItemValues(base, artwork, metadata.loot_data);
-  const estimatedValues = calculateItemValues(
-    getForgeryValueEstimate(base),
+  const cost = calculateForgeCostForSelection({
     artwork,
-    metadata.loot_data,
-  );
-  const cost = calculateForgeCost(estimatedValues.actual);
+    lootData: metadata.loot_data,
+    mintValueMultiplier: settings.active.mintValueMultiplier,
+    modifiers: selection.modifiers,
+    seasonal: base.seasonal,
+  });
   const item: GameItem = {
     ...base,
     odds: "forged",

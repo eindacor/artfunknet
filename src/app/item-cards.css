@@ -4317,6 +4317,27 @@
   gap: 1rem;
 }
 
+.forgery-cost {
+  display: grid;
+  gap: 0.2rem;
+  margin-right: auto;
+  border-left: 4px solid var(--rarity-color);
+  padding: 0.55rem 0.8rem;
+  background: #fffdf7;
+}
+
+.forgery-cost span {
+  color: #777168;
+  font: 700 0.6rem/1 Courier, "Courier New", monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.forgery-cost strong {
+  color: #171717;
+  font: 700 1.35rem/1 Georgia, "Times New Roman", serif;
+}
+
 .forgery-watermark-note {
   margin: 0;
   border-left: 3px solid #ad3f70;

@@ -182,6 +182,7 @@ export default function GameDashboard({
   playerId,
   marketExpertExpiration,
   linkedItem,
+  forgePricing,
 }: {
   player: PlayerView;
   items: HydratedGameItem[];
@@ -212,6 +213,11 @@ export default function GameDashboard({
   playerId: string;
   marketExpertExpiration: string | null;
   linkedItem: LinkedItemView | null;
+  forgePricing: {
+    lootData: import("@/server/gameplay").LootData;
+    mintValueMultiplier: number;
+    seasonalArtworkIds: string[];
+  };
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -2334,6 +2340,7 @@ export default function GameDashboard({
         {forgeryArchive ? (
           <ForgeryDialog
             archive={forgeryArchive}
+            pricing={forgePricing}
             legendaryAttributes={legendaryAttributes}
             onClose={() => setForgeryArchive(null)}
             onForged={(message) => {
