@@ -488,14 +488,26 @@ export default function GameDashboard({
         headers: { "content-type": "application/json" },
         body: JSON.stringify(bulkSaleProtections),
       });
-      const body = (await response.json()) as {
+      const responseText = await response.text();
+      let body: {
         actionDialog?: ActionDialogResult;
         amount?: number;
         error?: string;
         message?: string;
       };
+      try {
+        body = responseText
+          ? (JSON.parse(responseText) as typeof body)
+          : {};
+      } catch {
+        body = {};
+      }
       if (!response.ok || body.amount === undefined) {
-        const message = body.error ?? "The loot could not be sold.";
+        const message =
+          body.error ??
+          (response.status >= 500
+            ? "The bulk sale could not be completed. Please try again."
+            : "The loot could not be sold.");
         setError(message);
         return;
       }

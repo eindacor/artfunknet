@@ -7,9 +7,7 @@ import {
   getArchiveRecordModifiers,
   type PlayerArtworkArchive,
 } from "@/server/archive-gameplay";
-import {
-  type ArtHistorianQuest,
-} from "@/server/art-historian-gameplay";
+import type { ArtHistorianQuest } from "@/server/art-historian-gameplay";
 import {
   type BulkSaleProtections,
   shouldPreserveBulkSaleItem,
@@ -68,44 +66,73 @@ export async function POST(request: Request) {
     );
   }
   const hydratedCandidates = await hydrateGameItems(database, candidates);
-  const [archiveRecords, quests] = await Promise.all([
-    protections.keepUnarchived
-      ? database
-          .collection<PlayerArtworkArchive>("player_artwork_archives")
-          .find({
-            owner: auth.session.playerId,
-            artwork_id: {
-              $in: hydratedCandidates.map((item) => item.artwork_id),
-            },
-          })
-          .toArray()
-      : Promise.resolve([]),
-    protections.keepUnfoundQuestTargets
-      ? database
-          .collection<ArtHistorianQuest>("quests")
-          .find(
-            { owner_id: auth.session.playerId },
-            { projection: { target: 1 } },
-          )
-          .toArray()
-      : Promise.resolve([]),
-  ]);
+  let archiveRecords: PlayerArtworkArchive[] = [];
+  let quests: Pick<ArtHistorianQuest, "target">[] = [];
+  try {
+    [archiveRecords, quests] = await Promise.all([
+      protections.keepUnarchived
+        ? database
+            .collection<PlayerArtworkArchive>("player_artwork_archives")
+            .find({
+              owner: auth.session.playerId,
+              artwork_id: {
+                $in: hydratedCandidates.map((item) => item.artwork_id),
+              },
+            })
+            .toArray()
+        : Promise.resolve([]),
+      protections.keepUnfoundQuestTargets
+        ? database
+            .collection<ArtHistorianQuest>("quests")
+            .find({ owner_id: auth.session.playerId })
+            .project<Pick<ArtHistorianQuest, "target">>({ target: 1 })
+            .toArray()
+        : Promise.resolve([]),
+    ]);
+  } catch (error) {
+    console.error("Unable to resolve bulk sale protections", error);
+    return NextResponse.json(
+      { error: "The bulk sale protections could not be checked." },
+      { status: 500 },
+    );
+  }
   const archiveByArtwork = new Map(
     archiveRecords.map((archive) => [archive.artwork_id, archive]),
   );
-  const questTargetIds = new Set(quests.flatMap((quest) => quest.target));
-  const foundQuestTargetIds =
-    questTargetIds.size > 0
-      ? new Set(
-          await database
-            .collection<GameItem>("items")
-            .distinct("artwork_id", {
-              owner: auth.session.playerId,
-              status: { $in: ["claimed", "displayed"] },
-              artwork_id: { $in: [...questTargetIds] },
-            }),
-        )
-      : new Set<string>();
+  const questTargetIds = new Set(
+    quests.flatMap((quest) =>
+      Array.isArray(quest.target)
+        ? quest.target.filter(
+            (artworkId): artworkId is string => typeof artworkId === "string",
+          )
+        : [],
+    ),
+  );
+  let foundQuestTargetIds = new Set<string>();
+  if (questTargetIds.size > 0) {
+    try {
+      const foundTargets = await database
+        .collection<GameItem>("items")
+        .find({
+          owner: auth.session.playerId,
+          status: { $in: ["claimed", "displayed"] },
+          artwork_id: { $in: [...questTargetIds] },
+        })
+        .project<Pick<GameItem, "artwork_id">>({ artwork_id: 1 })
+        .toArray();
+      foundQuestTargetIds = new Set(
+        foundTargets
+          .map((item) => item.artwork_id)
+          .filter((artworkId): artworkId is string => typeof artworkId === "string"),
+      );
+    } catch (error) {
+      console.error("Unable to resolve found quest targets", error);
+      return NextResponse.json(
+        { error: "The quest target protection could not be checked." },
+        { status: 500 },
+      );
+    }
+  }
   const protectedIds = new Set(
     hydratedCandidates
       .map((item) => {
