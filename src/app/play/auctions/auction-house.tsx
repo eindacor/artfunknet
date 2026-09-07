@@ -335,7 +335,11 @@ export default function AuctionHouse({
               >
                 <div className="auction-list-artwork" role="cell">
                   <div className="auction-list-card">
-                    <ItemThumbnail alt="" item={auction.item} />
+                    <ItemThumbnail
+                      alt=""
+                      item={auction.item}
+                      researchTarget={auction.questTarget}
+                    />
                   </div>
                   <div>
                     <strong>{auction.item.artwork.title}</strong>

@@ -1258,7 +1258,13 @@ export default function GameDashboard({
                         title={`${item.artwork.title} by ${item.artwork.artist}`}
                         type="button"
                       >
-                        <ItemThumbnail alt="" item={item} />
+                        <ItemThumbnail
+                          alt=""
+                          item={item}
+                          researchTarget={researchArtworkIds.has(
+                            item.artwork_id,
+                          )}
+                        />
                       </button>
                     ))}
                   </div>
@@ -1449,7 +1455,14 @@ export default function GameDashboard({
                             title={`${item.artwork.title} by ${item.artwork.artist}`}
                             type="button"
                           >
-                            <ItemThumbnail alt="" item={item} size={82} />
+                            <ItemThumbnail
+                              alt=""
+                              item={item}
+                              researchTarget={researchArtworkIds.has(
+                                item.artwork_id,
+                              )}
+                              size={82}
+                            />
                           </button>
                         );
                       })}
@@ -1603,6 +1616,9 @@ export default function GameDashboard({
                         <ItemThumbnail
                           alt=""
                           item={item}
+                          researchTarget={researchArtworkIds.has(
+                            item.artwork_id,
+                          )}
                           size={82}
                         />
                       </button>
@@ -1643,6 +1659,9 @@ export default function GameDashboard({
                         <ItemThumbnail
                           alt=""
                           item={item}
+                          researchTarget={researchArtworkIds.has(
+                            item.artwork_id,
+                          )}
                           size={82}
                         />
                       </button>

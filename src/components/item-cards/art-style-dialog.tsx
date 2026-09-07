@@ -173,6 +173,7 @@ export default function ArtStyleDialog({
                 alt={`${dialogItem.artwork.title} by ${dialogItem.artwork.artist}`}
                 className="reroll-artwork-thumbnail"
                 item={dialogItem}
+                researchTarget={researchTarget}
               />
               <div>
                 <p className="reroll-dialog-kicker">

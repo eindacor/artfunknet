@@ -652,7 +652,12 @@ function VisitedGallery({
                   onClick={() => setSelectedPreviewItem(auction.item)}
                   type="button"
                 >
-                  <ItemThumbnail alt="" item={auction.item} size={82} />
+                  <ItemThumbnail
+                    alt=""
+                    item={auction.item}
+                    researchTarget={auction.questTarget}
+                    size={82}
+                  />
                   <span className="visited-gallery-auction-copy">
                     <strong>{auction.item.artwork.title}</strong>
                     <small>

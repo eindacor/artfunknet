@@ -5186,6 +5186,10 @@ a.welcome-button {
   color: #ff33cc;
 }
 
+.thumbnail-status-watermarks .fa.thumbnail-quest-target {
+  color: #9a6bd1;
+}
+
 .thumbnail-status-watermarks .fa {
   display: grid;
   width: 24px;

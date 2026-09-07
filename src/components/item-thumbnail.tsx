@@ -5,6 +5,7 @@ export default function ItemThumbnail({
   alt = "",
   className,
   item,
+  researchTarget = false,
   size = 72,
 }: {
   alt?: string;
@@ -13,6 +14,7 @@ export default function ItemThumbnail({
     HydratedGameItem,
     "artwork_id" | "card_renderer" | "foil" | "repairing" | "status" | "tags"
   >;
+  researchTarget?: boolean;
   size?: number;
 }) {
   const hasArtStyle =
@@ -33,11 +35,19 @@ export default function ItemThumbnail({
         <span aria-hidden="true" className="thumbnail-foil-shine" />
       ) : null}
       {hasArtStyle ||
+      researchTarget ||
       item.repairing ||
       isAuctioned ||
       isDealerOffer ||
       isCollectorSale ? (
         <span className="thumbnail-status-watermarks">
+          {researchTarget ? (
+            <i
+              aria-label="Quest target"
+              className="fa fa-search thumbnail-quest-target"
+              role="img"
+            />
+          ) : null}
           {hasArtStyle ? (
             <i
               aria-label="Art style applied"
