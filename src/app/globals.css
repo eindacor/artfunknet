@@ -5118,10 +5118,9 @@ a.welcome-button {
 
 .thumbnail-status-watermarks {
   position: absolute;
-  right: 6px;
+  z-index: 2;
   bottom: 6px;
   display: flex;
-  gap: 4px;
   pointer-events: none;
 }
 
@@ -5134,13 +5133,11 @@ a.welcome-button {
   width: 24px;
   height: 24px;
   place-items: center;
-  border: 1px solid rgb(255 255 255 / 70%);
   border-radius: 50%;
-  background: rgb(17 17 17 / 88%);
   color: #fff;
-  box-shadow: 0 2px 6px rgb(0 0 0 / 35%);
   font-size: 0.7rem;
   text-shadow: none;
+  filter: drop-shadow(1px 1px 1px rgb(0 0 0 / 60%));
 }
 
 .thumbnail-status-watermarks .fa-wrench {
@@ -5153,6 +5150,58 @@ a.welcome-button {
 
 .thumbnail-status-watermarks .fa-shopping-cart {
   color: #8ce5ef;
+}
+
+.thumbnail-status-watermarks .thumbnail-collector-sale {
+  color: #ff7acb;
+}
+
+.thumbnail-foil-shine {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      115deg,
+      transparent 5%,
+      rgb(255 75 205 / 12%) 25%,
+      rgb(90 225 255 / 50%) 42%,
+      rgb(255 238 90 / 42%) 55%,
+      rgb(139 92 246 / 28%) 70%,
+      transparent 92%
+    );
+  background-position: 100% 0;
+  background-size: 320% 100%;
+  mix-blend-mode: screen;
+  animation: thumbnail-foil-shimmer 5s ease-in-out infinite;
+}
+
+@keyframes thumbnail-foil-shimmer {
+  0%,
+  12% {
+    background-position: 100% 0;
+    opacity: 0;
+  }
+
+  22%,
+  72% {
+    opacity: 0.9;
+  }
+
+  88%,
+  100% {
+    background-position: 0% 0;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thumbnail-foil-shine {
+    background-position: 50% 0;
+    opacity: 0.35;
+    animation: none;
+  }
 }
 
 .collection-sidebar-empty {

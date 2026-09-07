@@ -11,7 +11,7 @@ export default function ItemThumbnail({
   className?: string;
   item: Pick<
     HydratedGameItem,
-    "artwork_id" | "card_renderer" | "repairing" | "status"
+    "artwork_id" | "card_renderer" | "foil" | "repairing" | "status" | "tags"
   >;
   size?: number;
 }) {
@@ -19,6 +19,8 @@ export default function ItemThumbnail({
     Boolean(item.card_renderer) && item.card_renderer !== "museum";
   const isAuctioned = item.status === "auctioned";
   const isDealerOffer = item.status === "for_sale";
+  const isCollectorSale =
+    item.status === "claimed" && item.tags.includes("for sale");
 
   return (
     <ArtworkThumbnail
@@ -27,7 +29,14 @@ export default function ItemThumbnail({
       className={className}
       size={size}
     >
-      {hasArtStyle || item.repairing || isAuctioned || isDealerOffer ? (
+      {item.foil ? (
+        <span aria-hidden="true" className="thumbnail-foil-shine" />
+      ) : null}
+      {hasArtStyle ||
+      item.repairing ||
+      isAuctioned ||
+      isDealerOffer ||
+      isCollectorSale ? (
         <span className="thumbnail-status-watermarks">
           {hasArtStyle ? (
             <i
@@ -54,6 +63,13 @@ export default function ItemThumbnail({
             <i
               aria-label="Dealer offer"
               className="fa fa-shopping-cart"
+              role="img"
+            />
+          ) : null}
+          {isCollectorSale ? (
+            <i
+              aria-label="For sale to collectors"
+              className="fa fa-binoculars thumbnail-collector-sale"
               role="img"
             />
           ) : null}
