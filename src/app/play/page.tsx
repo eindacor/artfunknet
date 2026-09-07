@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 
 import { getCardStyleInventory } from "@/components/item-cards/catalog";
+import { getCardRendererSettings } from "@/server/card-renderer-settings";
 import {
   getArchiveRecordArtStyles,
   getArchiveRecordModifiers,
@@ -128,6 +129,7 @@ export default async function PlayerPage({
   await ensureArchiveStorage(database);
   await settlePendingForgeryLiability(database, session.playerId);
   const settings = await getGameplaySettings(database);
+  const cardRendererSettings = await getCardRendererSettings(database);
   const config = settings.active;
   const lootMetadata = await database
     .collection<{ _id: string; loot_data: LootData }>("metadata")
@@ -409,6 +411,9 @@ export default async function PlayerPage({
         impersonating={impersonating}
       />
       <GameDashboard
+        archiveArtStyleIds={cardRendererSettings.activeRendererIds.filter(
+          (rendererId) => rendererId !== "museum",
+        )}
         archives={JSON.parse(JSON.stringify(archives))}
         forgePricing={{
           lootData: JSON.parse(JSON.stringify(lootMetadata.loot_data)),

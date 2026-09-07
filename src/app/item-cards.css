@@ -3718,6 +3718,11 @@
   margin: 0;
 }
 
+.archive-entry-dialog .archive-property-missing {
+  opacity: 0.28;
+  filter: grayscale(1);
+}
+
 .property-archivable {
   color: #2e6550;
 }

@@ -165,15 +165,22 @@ export function ItemPropertyBadges({
 }
 
 export function ArchivedCategoryBadges({
+  availableCategories,
   categories,
 }: {
-  categories: ArchiveCategory[];
+  availableCategories?: readonly ArchiveCategory[];
+  categories: readonly ArchiveCategory[];
 }) {
+  const archived = new Set(categories);
+  const displayedCategories = availableCategories ?? categories;
   return (
     <span className="item-property-badges archived-category-badges">
-      {categories.map((category) => (
+      {displayedCategories.map((category) => (
         <span
-          className={`item-property-badge property-${category}`}
+          aria-label={`${category}, ${archived.has(category) ? "archived" : "not archived"}`}
+          className={`item-property-badge property-${category}${
+            archived.has(category) ? "" : " archive-property-missing"
+          }`}
           key={category}
         >
           {category}
@@ -184,15 +191,19 @@ export function ArchivedCategoryBadges({
 }
 
 export function ArchivedArtStyleBadges({
+  availableStyles,
   styles,
 }: {
-  styles: string[];
+  availableStyles?: readonly string[];
+  styles: readonly string[];
 }) {
+  const archived = new Set(styles);
+  const displayedStyles = availableStyles ?? styles;
   const orderedStyles = [
     ...CARD_COSMETICS.flatMap((cosmetic) =>
-      styles.includes(cosmetic.id) ? [cosmetic.id] : [],
+      displayedStyles.includes(cosmetic.id) ? [cosmetic.id] : [],
     ),
-    ...styles.filter((style) => !getCardCosmetic(style)),
+    ...displayedStyles.filter((style) => !getCardCosmetic(style)),
   ];
 
   return (
@@ -201,7 +212,12 @@ export function ArchivedArtStyleBadges({
         const cosmetic = getCardCosmetic(style);
         return (
           <span
-            className="item-property-badge property-art-style"
+            aria-label={`${cosmetic?.name ?? style}, ${
+              archived.has(style) ? "archived" : "not archived"
+            }`}
+            className={`item-property-badge property-art-style${
+              archived.has(style) ? "" : " archive-property-missing"
+            }`}
             key={style}
           >
             {cosmetic

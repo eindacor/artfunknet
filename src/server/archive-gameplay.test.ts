@@ -4,6 +4,8 @@ import test from "node:test";
 import {
   createArchiveEntry,
   getArchiveCategories,
+  getArchivePropertyOptions,
+  getArchivePropertyProgress,
   getArchiveRecordArtStyles,
   getArchiveRecordModifiers,
   getUnarchivedArchiveData,
@@ -25,11 +27,11 @@ test("archive categories preserve the original modifier order", () => {
       foil: true,
       seasonal: true,
     }),
-    ["foil", "seasonal"],
+    ["standard", "foil", "seasonal"],
   );
   assert.deepEqual(
     getArchiveCategories({ ...standard, mint: true }),
-    ["mint"],
+    ["standard", "mint"],
   );
 });
 
@@ -72,7 +74,7 @@ test("unarchived data detects new modifiers and art styles independently", () =>
   assert.deepEqual(
     getUnarchivedArchiveData(
       { ...standard, foil: true, card_renderer: "legacy" },
-      ["foil"],
+      ["standard", "foil"],
       ["legacy"],
     ),
     { modifiers: [], artStyles: [] },
@@ -91,6 +93,62 @@ test("unarchived data detects new modifiers and art styles independently", () =>
       ["foil"],
       ["legacy"],
     ),
-    { modifiers: ["standard"], artStyles: [] },
+    { modifiers: [], artStyles: [] },
+  );
+});
+
+test("archive property progress includes possible and historical variants", () => {
+  assert.deepEqual(
+    getArchivePropertyProgress(
+      {
+        modifiers: ["standard", "foil"],
+        artStyles: ["legacy", "retired-style"],
+      },
+      {
+        activeArtStyles: ["museum", "legacy", "zine"],
+        seasonalEligible: false,
+      },
+    ),
+    { archived: 4, total: 9 },
+  );
+  assert.deepEqual(
+    getArchivePropertyProgress(
+      {
+        modifiers: ["standard", "seasonal"],
+        artStyles: [],
+      },
+      {
+        activeArtStyles: [],
+        seasonalEligible: false,
+      },
+    ),
+    { archived: 2, total: 7 },
+  );
+});
+
+test("archive property options expose incomplete variants", () => {
+  assert.deepEqual(
+    getArchivePropertyOptions(
+      {
+        modifiers: ["standard"],
+        artStyles: ["retired-style"],
+      },
+      {
+        activeArtStyles: ["museum", "legacy"],
+        seasonalEligible: true,
+      },
+    ),
+    {
+      modifiers: [
+        "standard",
+        "mint",
+        "foil",
+        "unlocked",
+        "seasonal",
+        "vintage",
+        "lottery",
+      ],
+      artStyles: ["legacy", "retired-style"],
+    },
   );
 });

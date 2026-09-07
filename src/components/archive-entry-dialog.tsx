@@ -7,20 +7,29 @@ import {
   ArchivedArtStyleBadges,
   ArchivedCategoryBadges,
 } from "./item-cards/shared";
+import { getArchivePropertyOptions } from "@/server/archive-gameplay";
 import type { HydratedPlayerArtworkArchive } from "@/server/item-artwork";
 
 export default function ArchiveEntryDialog({
+  activeArtStyles,
   archive,
   onClose,
   onForge,
   forgeDisabledReason,
+  seasonalEligible,
 }: {
+  activeArtStyles: string[];
   archive: HydratedPlayerArtworkArchive;
   onClose: () => void;
   onForge: () => void;
   forgeDisabledReason?: string;
+  seasonalEligible: boolean;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const possibleProperties = getArchivePropertyOptions(archive, {
+    activeArtStyles,
+    seasonalEligible,
+  });
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -73,13 +82,19 @@ export default function ArchiveEntryDialog({
           </div>
         </dl>
         <section>
-          <h3>Archived modifiers</h3>
-          <ArchivedCategoryBadges categories={archive.modifiers} />
+          <h3>Modifier variants</h3>
+          <ArchivedCategoryBadges
+            availableCategories={possibleProperties.modifiers}
+            categories={archive.modifiers}
+          />
         </section>
-        {archive.artStyles.length > 0 ? (
+        {possibleProperties.artStyles.length > 0 ? (
           <section>
-            <h3>Archived art styles</h3>
-            <ArchivedArtStyleBadges styles={archive.artStyles} />
+            <h3>Art style variants</h3>
+            <ArchivedArtStyleBadges
+              availableStyles={possibleProperties.artStyles}
+              styles={archive.artStyles}
+            />
           </section>
         ) : null}
         <button

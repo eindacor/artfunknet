@@ -34,12 +34,17 @@ import {
 } from "@/components/use-gallery-visitors";
 import type { GalleryRates } from "@/server/collection-gameplay";
 import type { CrateOfferView } from "@/server/crate-gameplay";
+import { getArchivePropertyProgress } from "@/server/archive-gameplay";
 import {
   type BulkSaleProtections,
   shouldPreserveBulkSaleItem,
 } from "@/server/bulk-sale";
 import type { ArtHistorianQuestView } from "@/server/art-historian-gameplay";
-import type { GameItem } from "@/server/gameplay";
+import {
+  ARTWORK_RARITIES,
+  type ArtworkRarity,
+  type GameItem,
+} from "@/server/gameplay";
 import type {
   HydratedGameItem,
   HydratedPlayerArtworkArchive,
@@ -158,6 +163,7 @@ const ATTRIBUTE_TYPE_ICONS = {
 export default function GameDashboard({
   player,
   items,
+  archiveArtStyleIds,
   archives,
   galleryRates,
   galleryMetadata,
@@ -183,6 +189,7 @@ export default function GameDashboard({
 }: {
   player: PlayerView;
   items: HydratedGameItem[];
+  archiveArtStyleIds: string[];
   archives: HydratedPlayerArtworkArchive[];
   galleryRates: GalleryRates;
   galleryMetadata: GalleryMetadataSnapshot | null;
@@ -292,6 +299,13 @@ export default function GameDashboard({
   const [selectedLootItemId, setSelectedLootItemId] = useState<string | null>(
     null,
   );
+  const [archiveSearch, setArchiveSearch] = useState("");
+  const [archiveRarity, setArchiveRarity] = useState<
+    ArtworkRarity | "all"
+  >("all");
+  const [archiveCompletion, setArchiveCompletion] = useState<
+    "all" | "complete" | "incomplete"
+  >("all");
   const [bulkSaleProtections, setBulkSaleProtections] =
     useState<BulkSaleProtections>({
       keepArtStyles: false,
@@ -402,6 +416,46 @@ export default function GameDashboard({
     () => [...displayed, ...inventory],
     [displayed, inventory],
   );
+  const archiveEntries = useMemo(
+    () =>
+      archives.map((archive) => {
+        const progress = getArchivePropertyProgress(archive, {
+          activeArtStyles: archiveArtStyleIds,
+          seasonalEligible: forgePricing.seasonalArtworkIds.includes(
+            archive.artwork_id,
+          ),
+        });
+        return {
+          archive,
+          progress,
+          complete: progress.archived >= progress.total,
+        };
+      }),
+    [archiveArtStyleIds, archives, forgePricing.seasonalArtworkIds],
+  );
+  const filteredArchiveEntries = useMemo(() => {
+    const search = archiveSearch.trim().toLocaleLowerCase();
+    return archiveEntries.filter(({ archive, complete }) => {
+      if (
+        search &&
+        !archive.artwork.title.toLocaleLowerCase().includes(search) &&
+        !archive.artwork.artist.toLocaleLowerCase().includes(search)
+      ) {
+        return false;
+      }
+      if (
+        archiveRarity !== "all" &&
+        archive.artwork.rarity !== archiveRarity
+      ) {
+        return false;
+      }
+      return (
+        archiveCompletion === "all" ||
+        (archiveCompletion === "complete" && complete) ||
+        (archiveCompletion === "incomplete" && !complete)
+      );
+    });
+  }, [archiveCompletion, archiveEntries, archiveRarity, archiveSearch]);
   const selectedCollectionItem =
     collectionItems.find((item) => item._id === selectedCollectionItemId) ??
     collectionItems[0] ??
@@ -1992,27 +2046,93 @@ export default function GameDashboard({
 
         {section === "archive" ? (
           <section className="archive">
-            <h2>artwork archive</h2>
             {archives.length === 0 ? (
               <p className="empty-state">Your archive is empty.</p>
             ) : (
-              <div className="archive-artwork-grid">
-                {archives.map((archive) => (
-                  <button
-                    aria-label={`Open archive entry for ${archive.artwork.title} by ${archive.artwork.artist}`}
-                    className="archive-artwork-thumbnail"
-                    key={archive._id}
-                    onClick={() => setArchiveEntryDetails(archive)}
-                    type="button"
-                  >
-                    <ArtworkThumbnail
-                      alt=""
-                      artworkId={archive.artwork_id}
-                      size={180}
+              <>
+                <div className="archive-filters">
+                  <label className="archive-search">
+                    <span>Search</span>
+                    <input
+                      onChange={(event) => setArchiveSearch(event.target.value)}
+                      placeholder="artist or artwork"
+                      type="search"
+                      value={archiveSearch}
                     />
-                  </button>
-                ))}
-              </div>
+                  </label>
+                  <label>
+                    <span>Rarity</span>
+                    <select
+                      onChange={(event) =>
+                        setArchiveRarity(
+                          event.target.value as ArtworkRarity | "all",
+                        )
+                      }
+                      value={archiveRarity}
+                    >
+                      <option value="all">all rarities</option>
+                      {ARTWORK_RARITIES.map((rarity) => (
+                        <option key={rarity} value={rarity}>
+                          {rarity}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    <span>Progress</span>
+                    <select
+                      onChange={(event) =>
+                        setArchiveCompletion(
+                          event.target.value as
+                            | "all"
+                            | "complete"
+                            | "incomplete",
+                        )
+                      }
+                      value={archiveCompletion}
+                    >
+                      <option value="all">all entries</option>
+                      <option value="incomplete">incomplete</option>
+                      <option value="complete">complete</option>
+                    </select>
+                  </label>
+                </div>
+                {filteredArchiveEntries.length === 0 ? (
+                  <p className="empty-state">No archive entries match.</p>
+                ) : (
+                  <div className="archive-artwork-grid">
+                    {filteredArchiveEntries.map(
+                      ({ archive, complete, progress }) => (
+                        <button
+                          aria-label={`Open archive entry for ${archive.artwork.title} by ${archive.artwork.artist}, ${progress.archived} of ${progress.total} properties archived`}
+                          className="archive-artwork-thumbnail"
+                          data-complete={complete ? "true" : undefined}
+                          data-rarity={archive.artwork.rarity}
+                          key={archive._id}
+                          onClick={() => setArchiveEntryDetails(archive)}
+                          title={`${archive.artwork.title} by ${archive.artwork.artist}`}
+                          type="button"
+                        >
+                          <ArtworkThumbnail
+                            alt=""
+                            artworkId={archive.artwork_id}
+                            size={82}
+                          >
+                            <span
+                              aria-label={`${progress.archived} of ${progress.total} archive properties collected`}
+                              className="archive-property-progress"
+                              role="img"
+                            >
+                              <i aria-hidden="true" className="fa fa-archive" />
+                              {progress.archived}/{progress.total}
+                            </span>
+                          </ArtworkThumbnail>
+                        </button>
+                      ),
+                    )}
+                  </div>
+                )}
+              </>
             )}
           </section>
         ) : null}
@@ -2379,6 +2499,7 @@ export default function GameDashboard({
         ) : null}
         {archiveEntryDetails ? (
           <ArchiveEntryDialog
+            activeArtStyles={archiveArtStyleIds}
             archive={archiveEntryDetails}
             forgeDisabledReason={
               inventoryFull &&
@@ -2391,6 +2512,9 @@ export default function GameDashboard({
               setForgeryArchive(archiveEntryDetails);
               setArchiveEntryDetails(null);
             }}
+            seasonalEligible={forgePricing.seasonalArtworkIds.includes(
+              archiveEntryDetails.artwork_id,
+            )}
           />
         ) : null}
         {forgeryArchive ? (

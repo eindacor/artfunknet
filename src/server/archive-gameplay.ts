@@ -36,17 +36,71 @@ export type PlayerArtworkArchive = {
   updated_at: string;
 };
 
+export function getArchivePropertyOptions(
+  archive: {
+    modifiers: readonly ArchiveCategory[];
+    artStyles: readonly string[];
+  },
+  {
+    activeArtStyles,
+    seasonalEligible,
+  }: {
+    activeArtStyles: readonly string[];
+    seasonalEligible: boolean;
+  },
+): { modifiers: ArchiveCategory[]; artStyles: string[] } {
+  const archivedModifiers = new Set(archive.modifiers);
+  return {
+    modifiers: ARCHIVE_CATEGORIES.filter(
+      (category) =>
+        category !== "seasonal" ||
+        seasonalEligible ||
+        archivedModifiers.has("seasonal"),
+    ),
+    artStyles: [
+      ...new Set([
+        ...activeArtStyles.filter((style) => style !== "museum"),
+        ...archive.artStyles.filter((style) => style !== "museum"),
+      ]),
+    ],
+  };
+}
+
+export function getArchivePropertyProgress(
+  archive: {
+    modifiers: readonly ArchiveCategory[];
+    artStyles: readonly string[];
+  },
+  options: {
+    activeArtStyles: readonly string[];
+    seasonalEligible: boolean;
+  },
+): { archived: number; total: number } {
+  const possible = getArchivePropertyOptions(archive, options);
+  const archivedModifiers = new Set(archive.modifiers);
+  const archivedArtStyles = new Set(
+    archive.artStyles.filter((style) => style !== "museum"),
+  );
+
+  return {
+    archived:
+      possible.modifiers.filter((category) => archivedModifiers.has(category))
+        .length + archivedArtStyles.size,
+    total: possible.modifiers.length + possible.artStyles.length,
+  };
+}
+
 export function getArchiveCategories(
   item: ArchiveProperties,
 ): ArchiveCategory[] {
-  const categories: ArchiveCategory[] = [];
+  const categories: ArchiveCategory[] = ["standard"];
   if (item.mint) categories.push("mint");
   if (item.foil) categories.push("foil");
   if (item.unlocked) categories.push("unlocked");
   if (item.seasonal) categories.push("seasonal");
   if (item.vintage) categories.push("vintage");
   if (item.lottery > 0) categories.push("lottery");
-  return categories.length > 0 ? categories : ["standard"];
+  return categories;
 }
 
 export function getArchiveArtStyle(
@@ -84,6 +138,7 @@ export function getArchiveRecordModifiers(
   const modifiers = new Set(
     archive.entries.flatMap((entry) => entry.modifiers),
   );
+  if (archive.entries.length > 0) modifiers.add("standard");
   return ARCHIVE_CATEGORIES.filter((category) => modifiers.has(category));
 }
 
@@ -108,6 +163,9 @@ export function getUnarchivedArchiveData(
   artStyles: string[];
 } {
   const modifierSet = new Set(archivedModifiers);
+  if (archivedModifiers.length > 0 || archivedArtStyles.length > 0) {
+    modifierSet.add("standard");
+  }
   const artStyleSet = new Set(archivedArtStyles);
   const artStyle = getArchiveArtStyle(item);
   return {
