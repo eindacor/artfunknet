@@ -137,11 +137,18 @@ export async function POST(
       { _id: auction.current_winner_id },
       { $inc: { "profile.bank_balance": auction.current_bid } },
     );
-    await createPlayerNotification(database, auction.current_winner_id, {
-      kind: "warning",
-      message: `You were outbid on ${auction.item_snapshot.title}.`,
-      dedupeUnread: false,
-    });
+    try {
+      await createPlayerNotification(database, auction.current_winner_id, {
+        kind: "warning",
+        message: `You were outbid on ${auction.item_snapshot.title}. The current bid is $${amount.toLocaleString()}.`,
+        dedupeUnread: false,
+      });
+    } catch (error) {
+      console.error(
+        `Unable to notify outbid player ${auction.current_winner_id}`,
+        error,
+      );
+    }
   }
 
   if (buyingNow) {

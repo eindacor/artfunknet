@@ -405,6 +405,7 @@ export default async function PlayerPage({
       <PlayerHeader
         auctionEscrow={auctionEscrow}
         bankBalance={player.profile.bank_balance}
+        initialNotifications={notifications}
         impersonating={impersonating}
       />
       <GameDashboard
@@ -440,7 +441,6 @@ export default async function PlayerPage({
             ? JSON.parse(JSON.stringify(galleryMetadata))
             : null
         }
-        initialNotifications={notifications}
         impersonating={impersonating}
         canRerollDisplayed={canRerollDisplayed}
         levelUpDiscountAvailable={levelUpDiscountAvailable}

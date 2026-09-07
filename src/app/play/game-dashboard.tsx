@@ -58,10 +58,8 @@ import {
   NPC_QUALITIES,
   type NpcQuality,
 } from "@/server/npc-gameplay";
-import type { PlayerNotification } from "@/server/player-notifications";
 import type { NpcRewardInteraction } from "@/server/standard-npc-rewards";
 
-import NotificationCenter from "./notification-center";
 import AuctionHouse from "./auctions/auction-house";
 import GalleryExplorer, {
   GalleryAttributeSummary,
@@ -163,7 +161,6 @@ export default function GameDashboard({
   archives,
   galleryRates,
   galleryMetadata,
-  initialNotifications,
   impersonating,
   canRerollDisplayed,
   levelUpDiscountAvailable,
@@ -189,7 +186,6 @@ export default function GameDashboard({
   archives: HydratedPlayerArtworkArchive[];
   galleryRates: GalleryRates;
   galleryMetadata: GalleryMetadataSnapshot | null;
-  initialNotifications: PlayerNotification[];
   impersonating: boolean;
   canRerollDisplayed: boolean;
   levelUpDiscountAvailable: boolean;
@@ -261,7 +257,6 @@ export default function GameDashboard({
   const [donationEffects, setDonationEffects] = useState<
     Record<string, { animationId: number; recoveredStyle: boolean }>
   >({});
-  const [notifications, setNotifications] = useState(initialNotifications);
   const [karmaBalance, setKarmaBalance] = useState(player.karma);
   const [npcSpawnQuality, setNpcSpawnQuality] =
     useState<NpcQuality>("bronze");
@@ -1073,10 +1068,6 @@ export default function GameDashboard({
         {section === "profile" ? (
           <section className="player-profile-layout">
             <div className="profile-sidebar">
-              <NotificationCenter
-                notifications={notifications}
-                onChange={setNotifications}
-              />
               <GalleryChat global viewerId={playerId} />
               <GalleryChat galleryOwnerId={playerId} viewerId={playerId} />
             </div>

@@ -88,7 +88,7 @@ a.welcome-button {
 .player-bank-indicator {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.6rem;
   color: #222;
   font-family: "Courier New", Courier, monospace;
   font-size: 0.82rem;
@@ -98,6 +98,64 @@ a.welcome-button {
 
 .player-auction-escrow {
   color: #8a651e;
+}
+
+.header-notification-button {
+  position: relative;
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #555;
+  cursor: pointer;
+}
+
+.header-notification-button:hover,
+.header-notification-button:focus-visible,
+.header-notification-button[aria-expanded="true"] {
+  background: #f4e9f1;
+  color: var(--accent);
+}
+
+.header-notification-button .notification-count {
+  position: absolute;
+  top: -2px;
+  right: -4px;
+  display: grid;
+  min-width: 16px;
+  height: 16px;
+  place-items: center;
+  border: 2px solid #fff;
+  border-radius: 10px;
+  background: #e00063;
+  color: #fff;
+  padding: 0 3px;
+  font: 700 0.55rem/1 Arial, sans-serif;
+}
+
+.header-notification-popover {
+  width: min(380px, calc(100vw - 16px));
+  max-height: min(520px, calc(100vh - 16px));
+  overflow: hidden;
+  border: 1px solid #c9c3b6;
+  background: #f8f6f0;
+  color: #282722;
+  box-shadow: 0 14px 38px rgb(45 39 29 / 22%);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.header-notification-popover > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid #d2cdc2;
+  padding: 9px 11px;
+  background: #f8f6f0;
+  font-size: 0.78rem;
 }
 
 .player-header-error {
@@ -264,7 +322,6 @@ a.welcome-button {
   gap: 14px;
 }
 
-.profile-notification-panel,
 .gallery-chat-panel,
 .profile-gallery-panel {
   align-self: start;
@@ -276,7 +333,6 @@ a.welcome-button {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-.profile-notification-panel > header,
 .gallery-chat-panel > header,
 .profile-gallery-panel > header {
   display: flex;
@@ -290,7 +346,6 @@ a.welcome-button {
     #f8f6f0;
 }
 
-.profile-notification-panel > header span,
 .gallery-chat-panel > header span,
 .profile-gallery-panel > header span {
   display: flex;
@@ -300,7 +355,6 @@ a.welcome-button {
   font-size: 1rem;
 }
 
-.profile-notification-panel > header small,
 .gallery-chat-panel > header small,
 .profile-gallery-panel > header small {
   display: block;
@@ -309,19 +363,8 @@ a.welcome-button {
   font-size: 0.58rem;
 }
 
-.profile-notification-panel > header > .notification-count {
-  display: grid;
-  min-width: 24px;
-  height: 24px;
-  place-items: center;
-  border-radius: 50%;
-  background: #e00063;
-  color: #fff;
-  font: 700 0.68rem/1 Arial, sans-serif;
-}
-
 .notification-panel {
-  max-height: 560px;
+  max-height: min(470px, calc(100vh - 72px));
   overflow-y: auto;
   font-size: 0.76rem;
 }
@@ -330,8 +373,6 @@ a.welcome-button {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  border-bottom: 1px solid #e2ddd3;
-  padding: 8px 12px;
 }
 
 .notification-panel-tools button {
@@ -570,14 +611,14 @@ a.welcome-button {
     minmax(330px, 1.25fr)
     minmax(420px, 1.45fr)
     minmax(230px, 0.8fr);
-  grid-template-areas: "notifications profile gallery";
+  grid-template-areas: "sidebar profile gallery";
   gap: 18px;
   align-items: start;
   width: 100%;
 }
 
 .profile-sidebar {
-  grid-area: notifications;
+  grid-area: sidebar;
   display: grid;
   gap: 18px;
   min-width: 0;
@@ -661,6 +702,7 @@ a.welcome-button {
   color: #b80091;
   font-weight: 700;
   text-decoration: none;
+  font-size: .8rem;
 }
 
 .gallery-chat-author:hover,
@@ -1550,7 +1592,7 @@ a.welcome-button {
     grid-template-columns: minmax(0, 1.35fr) minmax(240px, 0.65fr);
     grid-template-areas:
       "profile profile"
-      "notifications gallery";
+      "sidebar gallery";
   }
 }
 
@@ -1559,7 +1601,7 @@ a.welcome-button {
     grid-template-columns: 1fr;
     grid-template-areas:
       "profile"
-      "notifications"
+      "sidebar"
       "gallery";
   }
 

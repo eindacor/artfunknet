@@ -1,22 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+
+import type { PlayerNotification } from "@/server/player-notifications";
+
+import NotificationCenter from "./notification-center";
 
 type PlayerHeaderProps =
   | { anonymous: true }
-  | {
-      anonymous?: false;
-      auctionEscrow: number;
-      bankBalance: number;
-      impersonating: boolean;
-    };
+  | AuthenticatedPlayerHeaderProps;
+
+type AuthenticatedPlayerHeaderProps = {
+  anonymous?: false;
+  auctionEscrow: number;
+  bankBalance: number;
+  initialNotifications?: PlayerNotification[];
+  impersonating: boolean;
+};
 
 export default function PlayerHeader(props: PlayerHeaderProps) {
-  const router = useRouter();
-  const [error, setError] = useState("");
-
   if (props.anonymous) {
     return (
       <header className="legacy-navbar null-player-navbar">
@@ -28,7 +32,78 @@ export default function PlayerHeader(props: PlayerHeaderProps) {
     );
   }
 
-  const { auctionEscrow, bankBalance, impersonating } = props;
+  return <AuthenticatedPlayerHeader {...props} />;
+}
+
+function AuthenticatedPlayerHeader(props: AuthenticatedPlayerHeaderProps) {
+  const router = useRouter();
+  const [error, setError] = useState("");
+  const [accountSummary, setAccountSummary] = useState<{
+    auctionEscrow: number;
+    bankBalance: number;
+  } | null>(null);
+  const refreshInFlight = useRef(false);
+  const {
+    auctionEscrow,
+    bankBalance,
+    initialNotifications,
+    impersonating,
+  } = props;
+  const displayedAuctionEscrow =
+    accountSummary?.auctionEscrow ?? auctionEscrow;
+  const displayedBankBalance = accountSummary?.bankBalance ?? bankBalance;
+
+  const refreshAccountSummary = useCallback(async () => {
+    if (refreshInFlight.current) return;
+    refreshInFlight.current = true;
+    try {
+      const response = await fetch("/api/play/account-summary", {
+        cache: "no-store",
+      });
+      const body = (await response.json()) as {
+        auctionEscrow?: number;
+        bankBalance?: number;
+      };
+      if (
+        response.ok &&
+        typeof body.auctionEscrow === "number" &&
+        typeof body.bankBalance === "number"
+      ) {
+        setAccountSummary({
+          auctionEscrow: body.auctionEscrow,
+          bankBalance: body.bankBalance,
+        });
+      }
+    } catch (refreshError) {
+      console.error("Unable to refresh account summary", refreshError);
+    } finally {
+      refreshInFlight.current = false;
+    }
+  }, []);
+
+  useEffect(() => {
+    const initialTimer = window.setTimeout(
+      () => void refreshAccountSummary(),
+      0,
+    );
+    const timer = window.setInterval(
+      () => void refreshAccountSummary(),
+      5_000,
+    );
+    function refreshWhenActive() {
+      if (document.visibilityState === "visible") {
+        void refreshAccountSummary();
+      }
+    }
+    window.addEventListener("focus", refreshWhenActive);
+    document.addEventListener("visibilitychange", refreshWhenActive);
+    return () => {
+      window.clearTimeout(initialTimer);
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refreshWhenActive);
+      document.removeEventListener("visibilitychange", refreshWhenActive);
+    };
+  }, [refreshAccountSummary]);
 
   async function logout() {
     setError("");
@@ -63,19 +138,22 @@ export default function PlayerHeader(props: PlayerHeaderProps) {
     <header className="legacy-navbar">
       <HeaderCommunity />
       <div className="player-bank-indicator">
-        <span aria-label={`Available bank balance $${bankBalance.toLocaleString()}`}>
-          ${bankBalance.toLocaleString()}
+        <span
+          aria-label={`Available bank balance $${displayedBankBalance.toLocaleString()}`}
+        >
+          ${displayedBankBalance.toLocaleString()}
         </span>
-        {auctionEscrow > 0 ? (
+        {displayedAuctionEscrow > 0 ? (
           <span
-            aria-label={`$${auctionEscrow.toLocaleString()} held in auction escrow`}
+            aria-label={`$${displayedAuctionEscrow.toLocaleString()} held in auction escrow`}
             className="player-auction-escrow"
             title="Active auction bids held in escrow"
           >
             (<i aria-hidden="true" className="fa fa-gavel" /> $
-            {auctionEscrow.toLocaleString()})
+            {displayedAuctionEscrow.toLocaleString()})
           </span>
         ) : null}
+        <NotificationCenter initialNotifications={initialNotifications} />
         {error ? (
           <span className="player-header-error" role="alert">
             {error}

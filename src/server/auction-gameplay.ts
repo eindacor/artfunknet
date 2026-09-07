@@ -715,6 +715,7 @@ export async function runPrivateAuctionBots(
       rarityChance[auction.item_snapshot.rarity] *
       (secondsRemaining < 60 ? 2 : 1);
     const setter: Partial<Auction> = { last_bot_roll: now.toISOString() };
+    let outbidAmount: number | null = null;
     if (Math.random() < chance) {
       const botBid = Math.max(
         auction.minimum_bid,
@@ -723,6 +724,7 @@ export async function runPrivateAuctionBots(
             (1 + Math.random() * (secondsRemaining < 60 ? 0.2 : 0.1)),
         ),
       );
+      outbidAmount = botBid;
       Object.assign(setter, {
         current_bid: botBid,
         minimum_bid: botBid + auction.increment,
@@ -745,7 +747,8 @@ export async function runPrivateAuctionBots(
     if (
       updated.modifiedCount === 1 &&
       setter.current_winner_id === null &&
-      auction.current_winner_id
+      auction.current_winner_id &&
+      outbidAmount !== null
     ) {
       await database.collection<AuctionPlayer>("players").updateOne(
         { _id: auction.current_winner_id },
@@ -753,7 +756,7 @@ export async function runPrivateAuctionBots(
       );
       await safelyNotify(database, auction.current_winner_id, {
         kind: "warning",
-        message: `You were outbid on ${auction.item_snapshot.title}.`,
+        message: `You were outbid on ${auction.item_snapshot.title}. The current bid is $${outbidAmount.toLocaleString()}.`,
       });
     }
   }
