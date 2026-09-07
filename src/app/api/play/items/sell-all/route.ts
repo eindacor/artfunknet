@@ -8,6 +8,9 @@ import {
   type PlayerArtworkArchive,
 } from "@/server/archive-gameplay";
 import {
+  type ArtHistorianQuest,
+} from "@/server/art-historian-gameplay";
+import {
   type BulkSaleProtections,
   shouldPreserveBulkSaleItem,
 } from "@/server/bulk-sale";
@@ -44,8 +47,10 @@ export async function POST(request: Request) {
     );
   }
   const protections: BulkSaleProtections = {
+    keepArtStyles: body.keepArtStyles === true,
     keepLegendaries: body.keepLegendaries === true,
     keepMasterpieces: body.keepMasterpieces === true,
+    keepUnfoundQuestTargets: body.keepUnfoundQuestTargets === true,
     keepUnarchived: body.keepUnarchived === true,
   };
   const database = await getDatabase();
@@ -63,20 +68,44 @@ export async function POST(request: Request) {
     );
   }
   const hydratedCandidates = await hydrateGameItems(database, candidates);
-  const archiveRecords = protections.keepUnarchived
-    ? await database
-        .collection<PlayerArtworkArchive>("player_artwork_archives")
-        .find({
-          owner: auth.session.playerId,
-          artwork_id: {
-            $in: hydratedCandidates.map((item) => item.artwork_id),
-          },
-        })
-        .toArray()
-    : [];
+  const [archiveRecords, quests] = await Promise.all([
+    protections.keepUnarchived
+      ? database
+          .collection<PlayerArtworkArchive>("player_artwork_archives")
+          .find({
+            owner: auth.session.playerId,
+            artwork_id: {
+              $in: hydratedCandidates.map((item) => item.artwork_id),
+            },
+          })
+          .toArray()
+      : Promise.resolve([]),
+    protections.keepUnfoundQuestTargets
+      ? database
+          .collection<ArtHistorianQuest>("quests")
+          .find(
+            { owner_id: auth.session.playerId },
+            { projection: { target: 1 } },
+          )
+          .toArray()
+      : Promise.resolve([]),
+  ]);
   const archiveByArtwork = new Map(
     archiveRecords.map((archive) => [archive.artwork_id, archive]),
   );
+  const questTargetIds = new Set(quests.flatMap((quest) => quest.target));
+  const foundQuestTargetIds =
+    questTargetIds.size > 0
+      ? new Set(
+          await database
+            .collection<GameItem>("items")
+            .distinct("artwork_id", {
+              owner: auth.session.playerId,
+              status: { $in: ["claimed", "displayed"] },
+              artwork_id: { $in: [...questTargetIds] },
+            }),
+        )
+      : new Set<string>();
   const protectedIds = new Set(
     hydratedCandidates
       .map((item) => {
@@ -88,6 +117,9 @@ export async function POST(request: Request) {
             archive ? getArchiveRecordModifiers(archive) : [],
             archive ? getArchiveRecordArtStyles(archive) : [],
           ),
+          unfoundQuestTarget:
+            questTargetIds.has(item.artwork_id) &&
+            !foundQuestTargetIds.has(item.artwork_id),
         };
       })
       .filter((item) => shouldPreserveBulkSaleItem(item, protections))

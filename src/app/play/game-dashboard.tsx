@@ -292,8 +292,10 @@ export default function GameDashboard({
   );
   const [bulkSaleProtections, setBulkSaleProtections] =
     useState<BulkSaleProtections>({
+      keepArtStyles: false,
       keepLegendaries: false,
       keepMasterpieces: false,
+      keepUnfoundQuestTargets: false,
       keepUnarchived: false,
     });
   const [linkedItemDetails, setLinkedItemDetails] =
@@ -346,6 +348,17 @@ export default function GameDashboard({
     unclaimed.find((item) => item._id === selectedLootItemId) ??
     unclaimed[0] ??
     null;
+  const unfoundQuestTargetArtworkIds = useMemo(
+    () =>
+      new Set(
+        quests.flatMap((quest) =>
+          quest.targets
+            .filter((target) => !target.owned)
+            .map((target) => target.artwork._id),
+        ),
+      ),
+    [quests],
+  );
   const bulkSellableLoot = useMemo(
     () =>
       unclaimed.filter(
@@ -353,9 +366,17 @@ export default function GameDashboard({
           item.status === "unclaimed" &&
           !item.permanent &&
           !item.original &&
-          !shouldPreserveBulkSaleItem(item, bulkSaleProtections),
+          !shouldPreserveBulkSaleItem(
+            {
+              ...item,
+              unfoundQuestTarget: unfoundQuestTargetArtworkIds.has(
+                item.artwork_id,
+              ),
+            },
+            bulkSaleProtections,
+          ),
       ),
-    [bulkSaleProtections, unclaimed],
+    [bulkSaleProtections, unfoundQuestTargetArtworkIds, unclaimed],
   );
   const hasClaimableLoot = unclaimed.some(
     (item) => item.status === "unclaimed",
@@ -1460,7 +1481,7 @@ export default function GameDashboard({
                   <div className="loot-bulk-sale">
                     <div className="loot-bulk-sale-copy">
                       <span className="collection-kicker">bulk sale</span>
-                      <strong>Sell unwanted loot</strong>
+                      <strong>Sell unwanted artworks</strong>
                       <small>
                         {bulkSellableLoot.length} eligible{" "}
                         {bulkSellableLoot.length === 1 ? "item" : "items"}
@@ -1473,6 +1494,11 @@ export default function GameDashboard({
                           ["keepLegendaries", "Keep legendaries"],
                           ["keepMasterpieces", "Keep masterpieces"],
                           ["keepUnarchived", "Keep unarchived"],
+                          [
+                            "keepUnfoundQuestTargets",
+                            "Keep unfound quest targets",
+                          ],
+                          ["keepArtStyles", "Keep art styles"],
                         ] as const
                       ).map(([key, label]) => (
                         <label key={key}>
