@@ -41,6 +41,20 @@ test("players earn a lottery ticket whenever they reach a fifth level", () => {
   });
 });
 
+test("max-level XP caps award lottery tickets and reset progress", () => {
+  const goal = getXpGoal(50);
+  assert.deepEqual(applyXp(50, goal - 1, 1), {
+    level: 50,
+    xp: 0,
+    lotteryTickets: 1,
+  });
+  assert.deepEqual(applyXp(50, goal - 10, goal + 25), {
+    level: 50,
+    xp: 15,
+    lotteryTickets: 2,
+  });
+});
+
 test("level caps use the original linear scaling", () => {
   assert.deepEqual(getCapsForLevel(0), {
     inventory_cap: 15,

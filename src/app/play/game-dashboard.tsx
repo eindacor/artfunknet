@@ -361,6 +361,10 @@ export default function GameDashboard({
       ),
     [quests],
   );
+  const questTargetArtworkIds = useMemo(
+    () => new Set(quests.flatMap((quest) => quest.target)),
+    [quests],
+  );
   const bulkSellableLoot = useMemo(
     () =>
       unclaimed.filter(
@@ -1142,15 +1146,20 @@ export default function GameDashboard({
               className={`museum-profile-progress${player.isMaxLevel ? " max-level" : ""}`}
             >
               <div>
-                <span>Experience</span>
+                <span>
+                  {player.isMaxLevel
+                    ? "Next lottery ticket"
+                    : "Experience"}
+                </span>
                 <strong>
-                  {player.isMaxLevel ? "" : `${player.xp.toLocaleString()} / ${player.xpGoal.toLocaleString()}`}
+                  {player.xp.toLocaleString()} /{" "}
+                  {player.xpGoal.toLocaleString()} XP
                 </strong>
               </div>
               <span className="museum-profile-progress-track">
                 <i
                   style={{
-                    width: `${player.isMaxLevel ? 100 : Math.min(
+                    width: `${Math.min(
                       (player.xp / Math.max(player.xpGoal, 1)) * 100,
                       100,
                     )}%`,
@@ -1257,7 +1266,7 @@ export default function GameDashboard({
                         <ItemThumbnail
                           alt=""
                           item={item}
-                          researchTarget={unfoundQuestTargetArtworkIds.has(
+                          researchTarget={questTargetArtworkIds.has(
                             item.artwork_id,
                           )}
                         />
@@ -1612,7 +1621,7 @@ export default function GameDashboard({
                         <ItemThumbnail
                           alt=""
                           item={item}
-                          researchTarget={unfoundQuestTargetArtworkIds.has(
+                          researchTarget={questTargetArtworkIds.has(
                             item.artwork_id,
                           )}
                           size={82}
@@ -1655,7 +1664,7 @@ export default function GameDashboard({
                         <ItemThumbnail
                           alt=""
                           item={item}
-                          researchTarget={unfoundQuestTargetArtworkIds.has(
+                          researchTarget={questTargetArtworkIds.has(
                             item.artwork_id,
                           )}
                           size={82}

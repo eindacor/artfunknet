@@ -1292,13 +1292,15 @@ a.welcome-button {
 }
 
 .museum-profile-progress.max-level .museum-profile-progress-track {
-  background: #ff33cc;
-  box-shadow: 0 0 12px rgb(255 51 204 / 85%);
+  background: #d4cfc4;
+  box-shadow: 0 0 8px rgb(218 165 32 / 35%);
 }
 
 .museum-profile-progress.max-level .museum-profile-progress-track i {
-  width: 100% !important;
-  box-shadow: 0 0 12px rgb(255 51 204 / 85%);
+  background: #daa520;
+  box-shadow:
+    0 0 8px rgb(255 215 0 / 90%),
+    0 0 14px rgb(218 165 32 / 70%);
 }
 
 .museum-profile-ledger {
