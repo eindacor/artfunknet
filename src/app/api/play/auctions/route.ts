@@ -17,6 +17,7 @@ export async function GET(request: Request) {
     );
   const database = await getDatabase();
   const result = await getAuctionViews(database, auth.session.playerId, {
+    auctionId: params.get("auction") ?? undefined,
     search: params.get("search") ?? undefined,
     sort: params.get("sort") ?? undefined,
     order: params.get("order") === "desc" ? "desc" : "asc",

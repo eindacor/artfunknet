@@ -235,6 +235,8 @@ export default function GameDashboard({
       ? "explore"
       : initialSection === "raffle"
         ? "raffle"
+        : initialSection === "auctions"
+          ? "auctions"
       : items.some((item) => item.status === "unclaimed")
         ? "loot"
         : "profile",
@@ -2186,6 +2188,7 @@ export default function GameDashboard({
         {section === "auctions" ? (
           <AuctionHouse
             initialBankBalance={player.bankBalance}
+            initialAuctionId={searchParams.get("auction")}
             legendaryAttributes={legendaryAttributes}
             marketExpertExpiration={marketExpertExpiration}
             playerId={playerId}

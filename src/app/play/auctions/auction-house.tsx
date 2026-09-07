@@ -21,17 +21,20 @@ type AuctionViewMode = "expanded" | "list";
 const CARD_TYPES = ["standard", "foil", "seasonal", "lottery", "original"];
 
 export default function AuctionHouse({
+  initialAuctionId,
   initialBankBalance,
   legendaryAttributes,
   marketExpertExpiration,
   playerId,
 }: {
+  initialAuctionId: string | null;
   initialBankBalance: number;
   legendaryAttributes: CardLegendaryAttribute[];
   marketExpertExpiration: string | null;
   playerId: string;
 }) {
   const router = useRouter();
+  const [linkedAuctionId, setLinkedAuctionId] = useState(initialAuctionId);
   const [bankBalance, setBankBalance] = useState(initialBankBalance);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("remaining");
@@ -64,6 +67,7 @@ export default function AuctionHouse({
       page: page.toString(),
       pageSize: pageSize.toString(),
     });
+    if (linkedAuctionId) params.set("auction", linkedAuctionId);
     rarities.forEach((rarity) => params.append("rarity", rarity));
     types.forEach((type) => params.append("type", type));
     return params.toString();
@@ -77,6 +81,7 @@ export default function AuctionHouse({
     search,
     sort,
     types,
+    linkedAuctionId,
   ]);
 
   const load = useCallback(async () => {
@@ -91,6 +96,13 @@ export default function AuctionHouse({
       };
       if (!response.ok) throw new Error(body.error ?? "Auctions unavailable.");
       setData(body);
+      if (linkedAuctionId) {
+        setSelected(
+          body.auctions.find((auction) => auction._id === linkedAuctionId) ??
+            null,
+        );
+        setLinkedAuctionId(null);
+      }
     } catch (loadError) {
       setError(
         loadError instanceof Error
@@ -100,7 +112,7 @@ export default function AuctionHouse({
     } finally {
       setLoading(false);
     }
-  }, [query]);
+  }, [linkedAuctionId, query]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {

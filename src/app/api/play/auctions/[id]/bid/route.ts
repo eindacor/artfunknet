@@ -141,6 +141,10 @@ export async function POST(
       await createPlayerNotification(database, auction.current_winner_id, {
         kind: "warning",
         message: `You were outbid on ${auction.item_snapshot.title}. The current bid is $${amount.toLocaleString()}.`,
+        action: {
+          href: `/play?section=auctions&auction=${encodeURIComponent(auction._id)}`,
+          label: "View auction",
+        },
         dedupeUnread: false,
       });
     } catch (error) {

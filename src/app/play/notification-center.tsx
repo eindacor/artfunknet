@@ -213,6 +213,16 @@ export default function NotificationCenter({
                 >
                   <div>
                     <p>{notification.message}</p>
+                    {notification.action ? (
+                      <a
+                        className="notification-item-link"
+                        href={notification.action.href}
+                        onClick={() => setOpen(false)}
+                      >
+                        <i aria-hidden="true" className="fa fa-picture-o" />
+                        {notification.action.label}
+                      </a>
+                    ) : null}
                     <time dateTime={notification.created_at}>
                       {new Date(notification.created_at).toLocaleString()}
                     </time>

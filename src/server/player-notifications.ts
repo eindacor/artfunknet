@@ -17,6 +17,10 @@ export type PlayerNotification = {
   user_id: string;
   kind: PlayerNotificationKind;
   message: string;
+  action?: {
+    href: string;
+    label: string;
+  };
   read: boolean;
   created_at: string;
 };
@@ -29,10 +33,12 @@ export async function createPlayerNotification(
   {
     kind,
     message,
+    action,
     dedupeUnread = true,
   }: {
     kind: PlayerNotificationKind;
     message: string;
+    action?: PlayerNotification["action"];
     dedupeUnread?: boolean;
   },
 ): Promise<PlayerNotification | null> {
@@ -48,6 +54,7 @@ export async function createPlayerNotification(
       user_id: userId,
       kind,
       message,
+      ...(action ? { action } : {}),
       read: false,
     });
     if (existing) return existing;
@@ -58,6 +65,7 @@ export async function createPlayerNotification(
     user_id: userId,
     kind,
     message,
+    ...(action ? { action } : {}),
     read: false,
     created_at: new Date().toISOString(),
   };

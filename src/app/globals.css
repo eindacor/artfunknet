@@ -432,6 +432,22 @@ a.welcome-button {
   overflow-wrap: anywhere;
 }
 
+.notification-item-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 7px;
+  color: #b00063;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.notification-item-link:hover,
+.notification-item-link:focus-visible {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
 .notification-list time {
   display: block;
   margin-top: 5px;

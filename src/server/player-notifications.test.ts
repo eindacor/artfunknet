@@ -26,9 +26,17 @@ test("notification emission stores important player events", async () => {
   const notification = await createPlayerNotification(database, "player-1", {
     kind: "success",
     message: "You won an auction.",
+    action: {
+      href: "/play?section=auctions&auction=auction-1",
+      label: "View auction",
+    },
   });
 
   assert.equal(notification?.user_id, "player-1");
   assert.equal(notification?.message, "You won an auction.");
+  assert.deepEqual(notification?.action, {
+    href: "/play?section=auctions&auction=auction-1",
+    label: "View auction",
+  });
   assert.equal(inserted.length, 1);
 });

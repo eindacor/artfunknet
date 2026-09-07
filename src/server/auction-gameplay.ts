@@ -667,7 +667,14 @@ async function resetSettlement(database: Db, auctionId: string) {
 async function safelyNotify(
   database: Db,
   userId: string,
-  notification: { kind: "info" | "success" | "warning"; message: string },
+  notification: {
+    kind: "info" | "success" | "warning";
+    message: string;
+    action?: {
+      href: string;
+      label: string;
+    };
+  },
 ) {
   try {
     await createPlayerNotification(database, userId, {
@@ -757,6 +764,10 @@ export async function runPrivateAuctionBots(
       await safelyNotify(database, auction.current_winner_id, {
         kind: "warning",
         message: `You were outbid on ${auction.item_snapshot.title}. The current bid is $${outbidAmount.toLocaleString()}.`,
+        action: {
+          href: `/play?section=auctions&auction=${encodeURIComponent(auction._id)}`,
+          label: "View auction",
+        },
       });
     }
   }
@@ -766,6 +777,7 @@ export async function getAuctionViews(
   database: Db,
   playerId: string,
   options: {
+    auctionId?: string;
     search?: string;
     sort?: string;
     order?: "asc" | "desc";
@@ -789,6 +801,7 @@ export async function getAuctionViews(
     viewer: { $in: ["public", playerId] },
     settlement_status: { $ne: "settling" },
   };
+  if (options.auctionId) filter._id = options.auctionId;
   const player = await database.collection<AuctionPlayer>("players").findOne({
     _id: playerId,
     active: true,
