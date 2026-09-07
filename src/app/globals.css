@@ -5428,6 +5428,7 @@ a.welcome-button {
 }
 
 .gallery-window {
+  position: relative;
   overflow-x: auto;
 }
 
