@@ -427,10 +427,6 @@ export default function GameDashboard({
       ),
     [items],
   );
-  const researchArtworkIds = useMemo(
-    () => new Set(quests.flatMap((quest) => quest.target)),
-    [quests],
-  );
   const ownedCount = inventory.length + displayed.length;
   const repairingCount = items.filter((item) => item.repairing).length;
   const galleryPixelsPerCentimeter =
@@ -1261,7 +1257,7 @@ export default function GameDashboard({
                         <ItemThumbnail
                           alt=""
                           item={item}
-                          researchTarget={researchArtworkIds.has(
+                          researchTarget={unfoundQuestTargetArtworkIds.has(
                             item.artwork_id,
                           )}
                         />
@@ -1458,7 +1454,7 @@ export default function GameDashboard({
                             <ItemThumbnail
                               alt=""
                               item={item}
-                              researchTarget={researchArtworkIds.has(
+                              researchTarget={unfoundQuestTargetArtworkIds.has(
                                 item.artwork_id,
                               )}
                               size={82}
@@ -1495,7 +1491,7 @@ export default function GameDashboard({
                           canCustomizeCosmetic: false,
                         }}
                         primaryAction={lootPrimaryAction(selectedLootItem)}
-                        researchTarget={researchArtworkIds.has(
+                        researchTarget={unfoundQuestTargetArtworkIds.has(
                           selectedLootItem.artwork_id,
                         )}
                         styleInventory={player.cardStyleInventory}
@@ -1616,7 +1612,7 @@ export default function GameDashboard({
                         <ItemThumbnail
                           alt=""
                           item={item}
-                          researchTarget={researchArtworkIds.has(
+                          researchTarget={unfoundQuestTargetArtworkIds.has(
                             item.artwork_id,
                           )}
                           size={82}
@@ -1659,7 +1655,7 @@ export default function GameDashboard({
                         <ItemThumbnail
                           alt=""
                           item={item}
-                          researchTarget={researchArtworkIds.has(
+                          researchTarget={unfoundQuestTargetArtworkIds.has(
                             item.artwork_id,
                           )}
                           size={82}
@@ -1699,7 +1695,7 @@ export default function GameDashboard({
                         ? undefined
                         : collectionGalleryAction(selectedCollectionItem)
                     }
-                    researchTarget={researchArtworkIds.has(
+                    researchTarget={unfoundQuestTargetArtworkIds.has(
                       selectedCollectionItem.artwork_id,
                     )}
                     styleInventory={player.cardStyleInventory}
@@ -1842,7 +1838,7 @@ export default function GameDashboard({
               emptyText="No works are currently on display."
               items={displayed}
               legendaryAttributes={legendaryAttributes}
-              researchArtworkIds={researchArtworkIds}
+              researchArtworkIds={unfoundQuestTargetArtworkIds}
               canCustomize
               styleInventory={player.cardStyleInventory}
               title={`on display (${displayed.length}/${player.displayCap})`}
@@ -1853,7 +1849,7 @@ export default function GameDashboard({
               emptyText="Your inventory is empty."
               items={inventory}
               legendaryAttributes={legendaryAttributes}
-              researchArtworkIds={researchArtworkIds}
+              researchArtworkIds={unfoundQuestTargetArtworkIds}
               canCustomize
               styleInventory={player.cardStyleInventory}
               donationEffects={donationEffects}
@@ -2347,7 +2343,7 @@ export default function GameDashboard({
               router.refresh();
             }}
             onClose={() => setGalleryArtStyleItem(null)}
-            researchTarget={researchArtworkIds.has(
+            researchTarget={unfoundQuestTargetArtworkIds.has(
               galleryArtStyleItem.artwork_id,
             )}
             styleInventory={player.cardStyleInventory}

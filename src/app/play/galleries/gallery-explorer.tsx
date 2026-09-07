@@ -655,7 +655,7 @@ function VisitedGallery({
                   <ItemThumbnail
                     alt=""
                     item={auction.item}
-                    researchTarget={auction.questTarget}
+                    researchTarget={auction.questTarget && !auction.owned}
                     size={82}
                   />
                   <span className="visited-gallery-auction-copy">

@@ -338,7 +338,7 @@ export default function AuctionHouse({
                     <ItemThumbnail
                       alt=""
                       item={auction.item}
-                      researchTarget={auction.questTarget}
+                      researchTarget={auction.questTarget && !auction.owned}
                     />
                   </div>
                   <div>
@@ -510,7 +510,7 @@ function AuctionItemCard({
         canManageItem: false,
         canCustomizeCosmetic: false,
       }}
-      researchTarget={auction.questTarget}
+      researchTarget={auction.questTarget && !auction.owned}
       viewerId={playerId}
     />
   );
