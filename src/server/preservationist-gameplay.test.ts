@@ -31,6 +31,7 @@ test("manual repairs advance once per completed hour", () => {
     getCompletedRepairIntervals(
       started,
       new Date("2026-09-02T08:59:59.999Z"),
+      60,
     ),
     0,
   );
@@ -38,6 +39,18 @@ test("manual repairs advance once per completed hour", () => {
     getCompletedRepairIntervals(
       started,
       new Date("2026-09-02T11:15:00.000Z"),
+      60,
+    ),
+    3,
+  );
+});
+
+test("manual repair intervals use the configured duration", () => {
+  assert.equal(
+    getCompletedRepairIntervals(
+      "2026-09-02T08:00:00.000Z",
+      new Date("2026-09-02T08:15:00.000Z"),
+      5,
     ),
     3,
   );

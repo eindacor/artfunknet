@@ -3,13 +3,24 @@ import test from "node:test";
 
 import {
   RAFFLE_BUFFER_COUNT,
+  getNextRaffleDrawAt,
   getLotteryPrizeDrawOutcome,
-  RAFFLE_DRAW_INTERVAL_MS,
   selectWeightedRaffleEntry,
 } from "./raffle-gameplay.ts";
 
-test("lottery drawings use a daily interval", () => {
-  assert.equal(RAFFLE_DRAW_INTERVAL_MS, 24 * 60 * 60 * 1000);
+test("lottery drawings run at noon America/New_York each day", () => {
+  assert.equal(
+    getNextRaffleDrawAt(new Date("2026-09-07T15:30:00.000Z")).toISOString(),
+    "2026-09-07T16:00:00.000Z",
+  );
+  assert.equal(
+    getNextRaffleDrawAt(new Date("2026-09-07T18:30:00.000Z")).toISOString(),
+    "2026-09-08T16:00:00.000Z",
+  );
+  assert.equal(
+    getNextRaffleDrawAt(new Date("2026-10-31T18:30:00.000Z")).toISOString(),
+    "2026-11-01T17:00:00.000Z",
+  );
 });
 
 test("lottery keeps three replacement items buffered", () => {

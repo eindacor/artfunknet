@@ -60,6 +60,7 @@ export default async function LotteryAdminPage() {
       <RaffleRewardForm
         artworks={JSON.parse(JSON.stringify(artworks)) as Artwork[]}
         bufferPrizes={serializePrizes(state.buffer_prizes)}
+        nextDrawAt={state.next_draw_at}
         prizes={serializePrizes(state.prizes)}
       />
     </main>

@@ -13,10 +13,12 @@ type ArtworkOption = Artwork;
 export default function RaffleRewardForm({
   artworks,
   bufferPrizes,
+  nextDrawAt,
   prizes,
 }: {
   artworks: ArtworkOption[];
   bufferPrizes: Array<{ item: HydratedGameItem; potency: number }>;
+  nextDrawAt: string;
   prizes: Array<{ item: HydratedGameItem; potency: number }>;
 }) {
   const router = useRouter();
@@ -47,7 +49,12 @@ export default function RaffleRewardForm({
   return (
     <div>
       <div className="admin-raffle-draw">
-        <button disabled={drawing} onClick={drawLottery} type="button">
+        <button
+          disabled={drawing}
+          onClick={drawLottery}
+          title={`Next draw: ${new Date(nextDrawAt).toLocaleString()}`}
+          type="button"
+        >
           {drawing ? "Drawing..." : "Draw lottery"}
         </button>
         {drawError ? <p className="admin-error">{drawError}</p> : null}

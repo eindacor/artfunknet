@@ -22,7 +22,8 @@ export const RAFFLE_STATE_ID = "raffle-state";
 export const RAFFLE_MAX_POTENCY = 10;
 export const RAFFLE_PRIZE_COUNT = 3;
 export const RAFFLE_BUFFER_COUNT = 3;
-export const RAFFLE_DRAW_INTERVAL_MS = 24 * 60 * 60 * 1000;
+export const RAFFLE_DRAW_TIME_ZONE = "America/New_York";
+export const RAFFLE_DRAW_HOUR = 12;
 export const LOTTERY_HIT_PROBABILITY = 0.2;
 
 export type RafflePrize = {
@@ -75,9 +76,7 @@ export async function ensureRaffleState(
         _id: RAFFLE_STATE_ID,
         prizes: [],
         buffer_prizes: [],
-        next_draw_at: new Date(
-          now.getTime() + RAFFLE_DRAW_INTERVAL_MS,
-        ).toISOString(),
+        next_draw_at: getNextRaffleDrawAt(now).toISOString(),
         previous_winners: [],
       },
     },
@@ -87,17 +86,19 @@ export async function ensureRaffleState(
     .collection<RaffleState>("metadata")
     .findOne({ _id: RAFFLE_STATE_ID });
   if (!state) throw new Error("Lottery state could not be initialized.");
-  const latestNextDrawAt = new Date(
-    now.getTime() + RAFFLE_DRAW_INTERVAL_MS,
-  ).toISOString();
-  if (state.next_draw_at > latestNextDrawAt) {
+  const scheduledNextDrawAt = getNextRaffleDrawAt(now).toISOString();
+  if (
+    state.next_draw_at > now.toISOString() &&
+    state.next_draw_at !== scheduledNextDrawAt
+  ) {
+    const normalizedDrawAt = getRaffleDrawAtForLocalDate(now).toISOString();
     state =
       (await database.collection<RaffleState>("metadata").findOneAndUpdate(
         {
           _id: RAFFLE_STATE_ID,
           next_draw_at: state.next_draw_at,
         },
-        { $set: { next_draw_at: latestNextDrawAt } },
+        { $set: { next_draw_at: normalizedDrawAt } },
         { returnDocument: "after" },
       )) ?? state;
   }
@@ -193,15 +194,9 @@ export async function settleRaffleIfDue(
   config: GameplayConfig,
   now = new Date(),
   random = Math.random,
-  options: {
-    forceDraw?: boolean;
-  } = {},
 ): Promise<RaffleState> {
   let state = await ensureRaffleState(database, config, now);
-  if (
-    !options.forceDraw &&
-    new Date(state.next_draw_at).getTime() > now.getTime()
-  ) {
+  if (new Date(state.next_draw_at).getTime() > now.getTime()) {
     return state;
   }
 
@@ -209,9 +204,7 @@ export async function settleRaffleIfDue(
   const locked = await database.collection<RaffleState>("metadata").findOneAndUpdate(
     {
       _id: RAFFLE_STATE_ID,
-      ...(options.forceDraw
-        ? {}
-        : { next_draw_at: { $lte: now.toISOString() } }),
+      next_draw_at: { $lte: now.toISOString() },
       $or: [
         { draw_lock: { $exists: false } },
         { "draw_lock.expires_at": { $lte: now.toISOString() } },
@@ -228,9 +221,6 @@ export async function settleRaffleIfDue(
     { returnDocument: "after" },
   );
   if (!locked) {
-    if (options.forceDraw) {
-      throw new Error("Another lottery drawing is already in progress.");
-    }
     return state;
   }
   state = locked;
@@ -392,14 +382,7 @@ export async function settleRaffleIfDue(
       nextBufferPrizes.push({ item_id: reward._id, potency: 1 });
     }
 
-    const nextDraw = options.forceDraw
-      ? new Date(now.getTime() + RAFFLE_DRAW_INTERVAL_MS)
-      : new Date(
-          new Date(state.next_draw_at).getTime() + RAFFLE_DRAW_INTERVAL_MS,
-        );
-    while (nextDraw.getTime() <= now.getTime()) {
-      nextDraw.setTime(nextDraw.getTime() + RAFFLE_DRAW_INTERVAL_MS);
-    }
+    const nextDraw = getNextRaffleDrawAt(now);
     const advanced = await database.collection<RaffleState>("metadata").updateOne(
       { _id: RAFFLE_STATE_ID, "draw_lock.token": token },
       {
@@ -532,9 +515,98 @@ export async function drawRaffleNow(
   now = new Date(),
   random = Math.random,
 ): Promise<RaffleState> {
-  return settleRaffleIfDue(database, config, now, random, {
-    forceDraw: true,
-  });
+  const state = await ensureRaffleState(database, config, now);
+  if (new Date(state.next_draw_at).getTime() > now.getTime()) {
+    throw new Error(
+      `The lottery can only be drawn once per day. The next draw is scheduled for ${new Date(
+        state.next_draw_at,
+      ).toLocaleString()}.`,
+    );
+  }
+  return settleRaffleIfDue(database, config, now, random);
+}
+
+export function getNextRaffleDrawAt(now: Date): Date {
+  const localNow = getTimeZoneParts(now, RAFFLE_DRAW_TIME_ZONE);
+  const targetDate = new Date(
+    Date.UTC(localNow.year, localNow.month - 1, localNow.day),
+  );
+  if (localNow.hour >= RAFFLE_DRAW_HOUR) {
+    targetDate.setUTCDate(targetDate.getUTCDate() + 1);
+  }
+  return getRaffleDrawAtForUtcDate(targetDate);
+}
+
+function getRaffleDrawAtForLocalDate(now: Date): Date {
+  const localNow = getTimeZoneParts(now, RAFFLE_DRAW_TIME_ZONE);
+  return getRaffleDrawAtForUtcDate(
+    new Date(Date.UTC(localNow.year, localNow.month - 1, localNow.day)),
+  );
+}
+
+function getRaffleDrawAtForUtcDate(targetDate: Date): Date {
+  return getUtcDateForTimeZone(
+    {
+      year: targetDate.getUTCFullYear(),
+      month: targetDate.getUTCMonth() + 1,
+      day: targetDate.getUTCDate(),
+      hour: RAFFLE_DRAW_HOUR,
+    },
+    RAFFLE_DRAW_TIME_ZONE,
+  );
+}
+
+type TimeZoneParts = {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+};
+
+function getTimeZoneParts(date: Date, timeZone: string): TimeZoneParts {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const values = Object.fromEntries(
+    parts
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, Number(part.value)]),
+  );
+  return {
+    year: values.year,
+    month: values.month,
+    day: values.day,
+    hour: values.hour,
+  };
+}
+
+function getUtcDateForTimeZone(
+  target: TimeZoneParts,
+  timeZone: string,
+): Date {
+  const targetWallClock = Date.UTC(
+    target.year,
+    target.month - 1,
+    target.day,
+    target.hour,
+  );
+  let candidate = targetWallClock;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const actual = getTimeZoneParts(new Date(candidate), timeZone);
+    const actualWallClock = Date.UTC(
+      actual.year,
+      actual.month - 1,
+      actual.day,
+      actual.hour,
+    );
+    candidate += targetWallClock - actualWallClock;
+  }
+  return new Date(candidate);
 }
 
 export type LotteryPrizeDrawOutcome = "award" | "rollover" | "replace";

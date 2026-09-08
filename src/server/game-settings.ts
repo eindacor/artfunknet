@@ -67,6 +67,8 @@ export type GameplayConfig = {
   displayLevelIntervalMinutes: number;
   displayLevelCap: number;
   conditionDecayIntervalMinutes: number;
+  repairIntervalMinutes: number;
+  repairAmount: number;
   npcSpawnIntervalMinutes: number;
   rarityWeights: Record<ArtworkRarity, number>;
   cardStyleWeights: Record<DroppableCardRendererId, number>;
@@ -94,6 +96,8 @@ export const DEFAULT_ACTUAL_GAMEPLAY_CONFIG: GameplayConfig = {
   displayLevelIntervalMinutes: 60,
   displayLevelCap: 20,
   conditionDecayIntervalMinutes: 60,
+  repairIntervalMinutes: 60,
+  repairAmount: 0.1,
   npcSpawnIntervalMinutes: 10,
   rarityWeights: DEFAULT_RARITY_WEIGHTS,
   cardStyleWeights: DEFAULT_CARD_STYLE_WEIGHTS,
@@ -111,6 +115,8 @@ export const DEFAULT_DEBUG_GAMEPLAY_CONFIG: GameplayConfig = {
   displayLevelIntervalMinutes: 1,
   displayLevelCap: 20,
   conditionDecayIntervalMinutes: 1,
+  repairIntervalMinutes: 1,
+  repairAmount: 0.1,
   npcSpawnIntervalMinutes: 1,
   rarityWeights: DEBUG_RARITY_WEIGHTS,
   cardStyleWeights: DEBUG_CARD_STYLE_WEIGHTS,
@@ -144,6 +150,8 @@ type StoredGameplayConfig = {
   display_level_interval_minutes?: number;
   display_level_cap?: number;
   condition_decay_interval_minutes?: number;
+  repair_interval_minutes?: number;
+  repair_amount?: number;
   npc_spawn_interval_minutes?: number;
   rarity_weights?: Partial<Record<ArtworkRarity, number>>;
   card_style_weights?: Partial<Record<DroppableCardRendererId, number>>;
@@ -201,6 +209,8 @@ export function toStoredGameplayConfig(
     display_level_interval_minutes: config.displayLevelIntervalMinutes,
     display_level_cap: config.displayLevelCap,
     condition_decay_interval_minutes: config.conditionDecayIntervalMinutes,
+    repair_interval_minutes: config.repairIntervalMinutes,
+    repair_amount: config.repairAmount,
     npc_spawn_interval_minutes: config.npcSpawnIntervalMinutes,
     rarity_weights: config.rarityWeights,
     card_style_weights: config.cardStyleWeights,
@@ -223,6 +233,7 @@ export function validateGameplayConfig(
     ["displayLevelIntervalMinutes", "Display level interval", 1, 10_080],
     ["displayLevelCap", "Display level cap", 1, 1_000],
     ["conditionDecayIntervalMinutes", "Condition decay interval", 1, 10_080],
+    ["repairIntervalMinutes", "Repair interval", 1, 10_080],
     ["npcSpawnIntervalMinutes", "NPC spawn interval", 1, 10_080],
   ] as const;
   const values: Record<string, number> = {};
@@ -265,6 +276,17 @@ export function validateGameplayConfig(
       error: "Mint value multiplier must be a number from 1 to 1,000.",
     };
   }
+  const repairAmount = Number(config.repairAmount);
+  if (
+    !Number.isFinite(repairAmount) ||
+    repairAmount < 0.01 ||
+    repairAmount > 1
+  ) {
+    return {
+      ok: false,
+      error: "Repair amount must be from 0.01 to 1.",
+    };
+  }
 
   const rarityWeights = validateRarityWeights(config.rarityWeights);
   if (!rarityWeights.ok) return rarityWeights;
@@ -285,6 +307,8 @@ export function validateGameplayConfig(
       displayLevelIntervalMinutes: values.displayLevelIntervalMinutes,
       displayLevelCap: values.displayLevelCap,
       conditionDecayIntervalMinutes: values.conditionDecayIntervalMinutes,
+      repairIntervalMinutes: values.repairIntervalMinutes,
+      repairAmount,
       npcSpawnIntervalMinutes: values.npcSpawnIntervalMinutes,
       rarityWeights: rarityWeights.value,
       cardStyleWeights: cardStyleWeights.value,
@@ -423,6 +447,9 @@ function readConfig(
     conditionDecayIntervalMinutes:
       stored?.condition_decay_interval_minutes ??
       defaults.conditionDecayIntervalMinutes,
+    repairIntervalMinutes:
+      stored?.repair_interval_minutes ?? defaults.repairIntervalMinutes,
+    repairAmount: stored?.repair_amount ?? defaults.repairAmount,
     npcSpawnIntervalMinutes:
       stored?.npc_spawn_interval_minutes ??
       defaults.npcSpawnIntervalMinutes,

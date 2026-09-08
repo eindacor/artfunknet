@@ -148,6 +148,7 @@ export default async function PlayerPage({
     const repairSettlement = await settlePlayerItemRepairs(
       database,
       session.playerId,
+      config,
       new Date(),
     );
     if (repairSettlement.completedItems > 0) {

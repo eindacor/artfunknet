@@ -354,6 +354,34 @@ export default function GameplaySettingsForm({
         value={activeEditor.conditionDecayIntervalMinutes}
       />
       <SettingField
+        description="How long an item must remain in repair status before each condition increase."
+        label="Item repair interval"
+        max={10080}
+        onChange={(value) =>
+          updateConfig(selectedConfig, (config) => ({
+            ...config,
+            repairIntervalMinutes: value,
+          }))
+        }
+        suffix="minutes"
+        value={activeEditor.repairIntervalMinutes}
+      />
+      <SettingField
+        description="Condition restored after each completed repair interval."
+        label="Item repair amount"
+        max={100}
+        min={1}
+        onChange={(value) =>
+          updateConfig(selectedConfig, (config) => ({
+            ...config,
+            repairAmount: value / 100,
+          }))
+        }
+        step={0.1}
+        suffix="%"
+        value={activeEditor.repairAmount * 100}
+      />
+      <SettingField
         description="Length of each NPC generation cycle and visitor lifetime."
         label="NPC spawn interval"
         max={10080}

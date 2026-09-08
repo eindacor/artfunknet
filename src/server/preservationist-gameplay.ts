@@ -9,12 +9,10 @@ import {
   type GameItem,
   type LootData,
 } from "./gameplay.ts";
+import type { GameplayConfig } from "./game-settings.ts";
 import { getDisplayedLegendaryEffect } from "./legendary-attributes.ts";
 import { ensurePlayerKarma } from "./karma.ts";
 import type { GalleryNpc, NpcQuality } from "./npc-gameplay.ts";
-
-export const PRESERVATIONIST_REPAIR_INTERVAL_MINUTES = 60;
-export const MANUAL_REPAIR_AMOUNT = 0.1;
 
 const OWN_GALLERY_MULTIPLIER = 1.75;
 const REPAIR_AMOUNTS: Record<NpcQuality, number> = {
@@ -78,6 +76,7 @@ export function calculatePreservationistRepair({
 export function getCompletedRepairIntervals(
   repairTickAt: string,
   now: Date,
+  intervalMinutes: number,
 ): number {
   const previous = new Date(repairTickAt).getTime();
   if (!Number.isFinite(previous)) return 0;
@@ -85,7 +84,7 @@ export function getCompletedRepairIntervals(
     0,
     Math.floor(
       (now.getTime() - previous) /
-        (PRESERVATIONIST_REPAIR_INTERVAL_MINUTES * 60_000),
+        (intervalMinutes * 60_000),
     ),
   );
 }
@@ -166,6 +165,7 @@ export async function grantPreservationistRepair(
 export async function settlePlayerItemRepairs(
   database: Db,
   playerId: string,
+  config: Pick<GameplayConfig, "repairAmount" | "repairIntervalMinutes">,
   now = new Date(),
 ): Promise<RepairSettlementResult> {
   await ensurePlayerKarma(database, playerId);
@@ -198,7 +198,11 @@ export async function settlePlayerItemRepairs(
 
   const dueItems = repairingItems.flatMap((item) => {
     if (!item.repair_tick_at) return [];
-    const intervals = getCompletedRepairIntervals(item.repair_tick_at, now);
+    const intervals = getCompletedRepairIntervals(
+      item.repair_tick_at,
+      now,
+      config.repairIntervalMinutes,
+    );
     return intervals > 0 ? [{ item, intervals }] : [];
   });
   if (dueItems.length === 0) {
@@ -231,19 +235,20 @@ export async function settlePlayerItemRepairs(
         continue;
       }
       const nextCondition = Number(
-        Math.min(item.condition + intervals * MANUAL_REPAIR_AMOUNT, 1).toFixed(
+        Math.min(item.condition + intervals * config.repairAmount, 1).toFixed(
           2,
         ),
       );
       const nextTickAt = new Date(
         new Date(item.repair_tick_at!).getTime() +
-          intervals * PRESERVATIONIST_REPAIR_INTERVAL_MINUTES * 60_000,
+          intervals * config.repairIntervalMinutes * 60_000,
       ).toISOString();
       const values = calculateItemValues(
         { ...item, condition: nextCondition },
         { ...artwork, ...item.artwork_overrides },
         metadata.loot_data,
       );
+      const repairCompleted = nextCondition === 1;
       const updated = await database.collection<GameItem>("items").updateOne(
         {
           _id: item._id,
@@ -257,14 +262,16 @@ export async function settlePlayerItemRepairs(
           $set: {
             condition: nextCondition,
             values,
-            repair_tick_at: nextTickAt,
+            repairing: !repairCompleted,
+            ...(!repairCompleted ? { repair_tick_at: nextTickAt } : {}),
           },
+          ...(repairCompleted ? { $unset: { repair_tick_at: "" } } : {}),
         },
       );
       if (updated.modifiedCount !== 1) continue;
-      if (nextCondition === 1) completedItems += 1;
+      if (repairCompleted) completedItems += 1;
 
-      if (nextCondition === 1 && karmaEffect) {
+      if (repairCompleted && karmaEffect) {
         const itemKarma = getItemKarmaValue(artwork.rarity, item.level);
         const playerUpdate = await database.collection<RepairPlayer>("players").updateOne(
           { _id: playerId, active: true },
@@ -276,12 +283,14 @@ export async function settlePlayerItemRepairs(
               _id: item._id,
               owner: playerId,
               condition: nextCondition,
-              repair_tick_at: nextTickAt,
+              repairing: false,
+              repair_tick_at: { $exists: false },
             },
             {
               $set: {
                 condition: item.condition,
                 values: item.values,
+                repairing: true,
                 repair_tick_at: item.repair_tick_at,
               },
             },
