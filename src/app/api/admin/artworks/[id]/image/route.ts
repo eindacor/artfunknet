@@ -1,13 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { requireAdminApi } from "@/server/admin-api";
-import { processArtworkImage } from "@/server/artwork-image-processing";
 import {
   deleteArtworkImageRecord,
   getArtworkImageStorageKeys,
-  publishArtworkVariants,
-  readArtworkUpload,
-  verifyArtworkStorageConnection,
+  publishArtworkUpload,
   type ArtworkImageRecord,
   type LegacyArtworkImageRecord,
 } from "@/server/artwork-storage";
@@ -61,21 +58,14 @@ export async function POST(
   }
 
   try {
-    await verifyArtworkStorageConnection();
-    const upload = await readArtworkUpload(file);
-    const processed = await processArtworkImage({
-      artworkId: id,
-      extension: upload.extension,
-      source: upload.bytes,
-    });
     let updated: ArtworkDocument;
     let published: ArtworkImageRecord | undefined;
     try {
-      published = await publishArtworkVariants({
+      published = await publishArtworkUpload({
         artworkId: id,
-        variants: processed.variants,
+        file,
       });
-      const full = processed.variants.full;
+      const full = published.variants.full;
       updated = {
         ...artwork,
         image: published,
@@ -101,14 +91,6 @@ export async function POST(
         });
       }
       throw error;
-    } finally {
-      await processed.cleanup().catch((cleanupError) => {
-        logOperationalError(
-          "artwork_image.temporary_cleanup_failed",
-          cleanupError,
-          { artworkId: id, operationId },
-        );
-      });
     }
 
     if (artwork.image && published) {

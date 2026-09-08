@@ -63,6 +63,20 @@ export type ArtworkCatalogEntry = {
 
 type AttributeOption = { id: string; name: string };
 
+type NewArtwork = {
+  artist_id: string;
+  title: string;
+  date: string;
+  genre: string;
+  medium: string;
+  rarity: ArtworkRarity;
+  value_scale: string;
+  height: string;
+  active: boolean;
+  nsfw: boolean;
+  special_attributes: string[];
+};
+
 export default function CatalogEditor({
   initialArtists,
   initialArtworks,
@@ -74,7 +88,9 @@ export default function CatalogEditor({
 }) {
   const [artists, setArtists] = useState(initialArtists);
   const [artworks, setArtworks] = useState(initialArtworks);
-  const [mode, setMode] = useState<"artworks" | "artists">("artworks");
+  const [mode, setMode] = useState<"artworks" | "artists" | "new-artwork">(
+    "artworks",
+  );
   const [artworkFilter, setArtworkFilter] = useState<"all" | "missing">(
     "all",
   );
@@ -114,12 +130,14 @@ export default function CatalogEditor({
   }, [artists, query]);
 
   function selectArtwork(artwork: ArtworkCatalogEntry) {
+    setMode("artworks");
     setSelectedArtworkId(artwork._id);
     setArtworkForm({ ...artwork });
     clearStatus();
   }
 
   function selectArtist(artist: ArtistCatalogEntry) {
+    setMode("artists");
     setSelectedArtistId(artist.id);
     setArtistForm({ ...artist });
     clearStatus();
@@ -283,7 +301,12 @@ export default function CatalogEditor({
     }
   }
 
-  const entries = mode === "artworks" ? filteredArtworks : filteredArtists;
+  const entries =
+    mode === "artworks"
+      ? filteredArtworks
+      : mode === "artists"
+        ? filteredArtists
+        : [];
   const rarityCounts = RARITIES.map((rarity) => ({
     rarity,
     count: artworks.filter((artwork) => artwork.rarity === rarity).length,
@@ -306,6 +329,17 @@ export default function CatalogEditor({
         </div>
       </div>
       <div className="flex flex-wrap gap-2">
+        <button
+          className={mode === "new-artwork" ? activeTabClass : tabClass}
+          onClick={() => {
+            setMode("new-artwork");
+            setQuery("");
+            clearStatus();
+          }}
+          type="button"
+        >
+          Add artwork
+        </button>
         <button
           className={mode === "artworks" ? activeTabClass : tabClass}
           onClick={() => {
@@ -349,20 +383,56 @@ export default function CatalogEditor({
           Artists ({artists.length})
         </button>
       </div>
-      <label className="grid gap-2">
-        <span className="font-semibold">Search {mode}</span>
-        <input
-          className={inputClass}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder={
-            mode === "artworks"
-              ? "Title, artist, or rarity"
-              : "Artist name"
-          }
-          value={query}
-        />
-      </label>
-      <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
+      {mode !== "new-artwork" ? (
+        <label className="grid gap-2">
+          <span className="font-semibold">Search {mode}</span>
+          <input
+            className={inputClass}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={
+              mode === "artworks"
+                ? "Title, artist, or rarity"
+                : "Artist name"
+            }
+            value={query}
+          />
+        </label>
+      ) : null}
+      {mode === "new-artwork" ? (
+        <div className="rounded-lg border border-white/10 bg-white/5 p-5">
+          <NewArtworkForm
+            artists={artists}
+            attributes={attributes}
+            onArtistCreated={(artist) => {
+              setArtists((current) =>
+                [...current, artist].sort((left, right) =>
+                  left.name.localeCompare(right.name),
+                ),
+              );
+            }}
+            onCreated={(artwork) => {
+              const artworkWithImage = { ...artwork, hasImage: true };
+              setArtworks((current) =>
+                [...current, artworkWithImage].sort(compareArtworks),
+              );
+              setArtists((current) =>
+                current.map((artist) =>
+                  artist.id === artwork.artist_id
+                    ? { ...artist, artworkCount: artist.artworkCount + 1 }
+                    : artist,
+                ),
+              );
+              setSelectedArtworkId(artwork._id);
+              setArtworkForm(artworkWithImage);
+              setMode("artworks");
+              setMessage(`Added ${artwork.title} to the catalog.`);
+            }}
+          />
+          {message ? <p className="mt-4 text-green-400">{message}</p> : null}
+          {error ? <p className="mt-4 text-red-400">{error}</p> : null}
+        </div>
+      ) : (
+        <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
         <aside className="max-h-[70vh] space-y-2 overflow-y-auto pr-2">
           <p className="text-sm text-[var(--muted)]">
             {entries.length} matching entries
@@ -436,8 +506,337 @@ export default function CatalogEditor({
           {message ? <p className="mt-4 text-green-400">{message}</p> : null}
           {error ? <p className="mt-4 text-red-400">{error}</p> : null}
         </div>
-      </div>
+        </div>
+      )}
     </section>
+  );
+}
+
+function NewArtworkForm({
+  artists,
+  attributes,
+  onArtistCreated,
+  onCreated,
+}: {
+  artists: ArtistCatalogEntry[];
+  attributes: AttributeOption[];
+  onArtistCreated: (artist: ArtistCatalogEntry) => void;
+  onCreated: (artwork: ArtworkCatalogEntry) => void;
+}) {
+  const [artwork, setArtwork] = useState<NewArtwork>({
+    artist_id: artists[0]?.id ?? "",
+    title: "",
+    date: "",
+    genre: "",
+    medium: "",
+    rarity: "common",
+    value_scale: "",
+    height: "",
+    active: true,
+    nsfw: false,
+    special_attributes: [],
+  });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [showArtistCreator, setShowArtistCreator] = useState(false);
+  const [newArtist, setNewArtist] = useState({
+    name: "",
+    dateOfBirth: "",
+    dateOfDeath: "",
+  });
+  const requiredAttributes = getRequiredAttributeCount(artwork.rarity);
+
+  function set<Key extends keyof NewArtwork>(
+    key: Key,
+    value: NewArtwork[Key],
+  ) {
+    setArtwork((current) => ({ ...current, [key]: value }));
+  }
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      const form = event.currentTarget;
+      const file = new FormData(form).get("image");
+      if (!(file instanceof File) || file.size === 0) {
+        throw new Error("Select an image to upload.");
+      }
+
+      const body = new FormData();
+      body.set("image", file);
+      body.set(
+        "metadata",
+        JSON.stringify({
+          ...artwork,
+          date: Number(artwork.date),
+          value_scale: Number(artwork.value_scale),
+          height: Number(artwork.height),
+        }),
+      );
+      const response = await fetch("/api/admin/artworks", {
+        method: "POST",
+        body,
+      });
+      const result = await readResponse<{ artwork: ArtworkCatalogEntry }>(
+        response,
+      );
+      onCreated(result.artwork);
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Artwork creation failed.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function createArtist() {
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch("/api/admin/artists", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          artist_name: newArtist.name,
+          date_of_birth: newArtist.dateOfBirth,
+          date_of_death: newArtist.dateOfDeath,
+        }),
+      });
+      const result = await readResponse<{
+        artist: {
+          _id: string;
+          artist_name: string;
+          date_of_birth?: string;
+          date_of_death?: string;
+        };
+      }>(response);
+      const artist: ArtistCatalogEntry = {
+        id: result.artist._id,
+        name: result.artist.artist_name,
+        dateOfBirth: result.artist.date_of_birth ?? "",
+        dateOfDeath: result.artist.date_of_death ?? "",
+        artworkCount: 0,
+      };
+      onArtistCreated(artist);
+      set("artist_id", artist.id);
+      setShowArtistCreator(false);
+      setNewArtist({ name: "", dateOfBirth: "", dateOfDeath: "" });
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Artist creation failed.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form className="grid gap-5" onSubmit={submit}>
+      <div>
+        <h2 className="text-2xl font-bold">Add artwork</h2>
+        <p className="text-sm text-[var(--muted)]">
+          The upload creates full, card, and thumbnail images in artwork
+          storage.
+        </p>
+      </div>
+      <label className="grid gap-2">
+        <span className="font-semibold">Artwork image</span>
+        <input
+          accept="image/bmp,image/gif,image/jpeg,image/png,image/tiff,image/webp"
+          className={inputClass}
+          name="image"
+          required
+          type="file"
+        />
+      </label>
+      <div className="grid gap-4 md:grid-cols-2">
+        <EditorField
+          label="Title"
+          onChange={(value) => set("title", value)}
+          value={artwork.title}
+        />
+        <label className="grid gap-2">
+          <span className="font-semibold">Artist</span>
+          <select
+            className={inputClass}
+            onChange={(event) => set("artist_id", event.target.value)}
+            required
+            value={artwork.artist_id}
+          >
+            {artists.map((artist) => (
+              <option key={artist.id} value={artist.id}>
+                {artist.name}
+              </option>
+            ))}
+          </select>
+          <button
+            className="justify-self-start text-sm font-semibold text-[var(--accent)]"
+            onClick={() => setShowArtistCreator((current) => !current)}
+            type="button"
+          >
+            {showArtistCreator ? "Cancel new artist" : "Create new artist"}
+          </button>
+        </label>
+        {showArtistCreator ? (
+          <div className="grid gap-3 rounded-md border border-white/10 p-3 md:col-span-2">
+            <EditorField
+              label="New artist name"
+              onChange={(name) =>
+                setNewArtist((current) => ({ ...current, name }))
+              }
+              value={newArtist.name}
+            />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <EditorField
+                label="Date of birth"
+                onChange={(dateOfBirth) =>
+                  setNewArtist((current) => ({ ...current, dateOfBirth }))
+                }
+                value={newArtist.dateOfBirth}
+              />
+              <EditorField
+                label="Date of death"
+                onChange={(dateOfDeath) =>
+                  setNewArtist((current) => ({ ...current, dateOfDeath }))
+                }
+                value={newArtist.dateOfDeath}
+              />
+            </div>
+            <button
+              className="justify-self-start rounded-md border border-white/20 px-3 py-2 font-semibold disabled:opacity-50"
+              disabled={busy || !newArtist.name.trim()}
+              onClick={createArtist}
+              type="button"
+            >
+              Create artist
+            </button>
+          </div>
+        ) : null}
+        <EditorField
+          label="Date"
+          onChange={(value) => set("date", value)}
+          type="number"
+          value={artwork.date}
+        />
+        <EditorField
+          label="Genre or style"
+          onChange={(value) => set("genre", value)}
+          value={artwork.genre}
+        />
+        <EditorField
+          label="Medium"
+          onChange={(value) => set("medium", value)}
+          value={artwork.medium}
+        />
+        <label className="grid gap-2">
+          <span className="font-semibold">Rarity</span>
+          <select
+            className={inputClass}
+            onChange={(event) => {
+              const rarity = event.target.value as ArtworkRarity;
+              setArtwork((current) => ({
+                ...current,
+                rarity,
+                special_attributes: current.special_attributes.slice(
+                  0,
+                  getRequiredAttributeCount(rarity),
+                ),
+              }));
+            }}
+            value={artwork.rarity}
+          >
+            {RARITIES.map((rarity) => (
+              <option key={rarity} value={rarity}>
+                {capitalize(rarity)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <EditorField
+          label="Value scale (0-1)"
+          onChange={(value) => set("value_scale", value)}
+          step="0.001"
+          type="number"
+          value={artwork.value_scale}
+        />
+        <EditorField
+          label="Height (cm)"
+          onChange={(value) => set("height", value)}
+          step="0.01"
+          type="number"
+          value={artwork.height}
+        />
+      </div>
+      <div className="flex flex-wrap gap-4">
+        <label className="flex items-center gap-2">
+          <input
+            checked={artwork.active}
+            onChange={(event) => set("active", event.target.checked)}
+            type="checkbox"
+          />
+          Active in game
+        </label>
+        <label className="flex items-center gap-2">
+          <input
+            checked={artwork.nsfw}
+            onChange={(event) => set("nsfw", event.target.checked)}
+            type="checkbox"
+          />
+          NSFW
+        </label>
+      </div>
+      <fieldset className="grid gap-2 rounded-md border border-white/10 p-3">
+        <legend className="px-1 font-semibold">
+          Special attributes ({artwork.special_attributes.length}/
+          {requiredAttributes})
+        </legend>
+        {requiredAttributes === 0 ? (
+          <p className="text-sm text-[var(--muted)]">
+            This rarity has no special attributes.
+          </p>
+        ) : (
+          <div className="grid gap-2 sm:grid-cols-2">
+            {attributes.map((attribute) => {
+              const selected = artwork.special_attributes.includes(attribute.id);
+              return (
+                <label className="flex items-center gap-2" key={attribute.id}>
+                  <input
+                    checked={selected}
+                    disabled={
+                      !selected &&
+                      artwork.special_attributes.length >= requiredAttributes
+                    }
+                    onChange={() =>
+                      set(
+                        "special_attributes",
+                        selected
+                          ? artwork.special_attributes.filter(
+                              (id) => id !== attribute.id,
+                            )
+                          : [...artwork.special_attributes, attribute.id],
+                      )
+                    }
+                    type="checkbox"
+                  />
+                  {attribute.name}
+                </label>
+              );
+            })}
+          </div>
+        )}
+      </fieldset>
+      <button
+        className="justify-self-start rounded-md bg-[var(--accent)] px-4 py-2 font-bold text-black disabled:opacity-50"
+        disabled={busy}
+        type="submit"
+      >
+        {busy ? "Adding artwork..." : "Add artwork"}
+      </button>
+      {error ? <p className="text-red-400">{error}</p> : null}
+    </form>
   );
 }
 

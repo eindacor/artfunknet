@@ -76,8 +76,8 @@ export default async function CatalogPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Catalog editor</h1>
         <p className="mt-2 text-[var(--muted)]">
-          Modify approved artwork metadata and artist records. Image replacement
-          remains in the artwork intake workflow.
+          Add artwork with its full image set, or modify approved artwork and
+          artist records.
         </p>
       </div>
       <CatalogEditor

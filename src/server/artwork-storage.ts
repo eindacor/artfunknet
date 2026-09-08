@@ -21,6 +21,7 @@ import type {
   ArtworkImageVariantName,
   ProcessedArtworkVariant,
 } from "@/server/artwork-image-processing";
+import { processArtworkImage } from "@/server/artwork-image-processing";
 import {
   logOperationalError,
   logOperationalInfo,
@@ -203,6 +204,30 @@ export async function readArtworkUpload(file: File) {
     byteSize: file.size,
     originalFilename: file.name,
   };
+}
+
+export async function publishArtworkUpload({
+  artworkId,
+  file,
+}: {
+  artworkId: string;
+  file: File;
+}): Promise<ArtworkImageRecord> {
+  await verifyArtworkStorageConnection();
+  const upload = await readArtworkUpload(file);
+  const processed = await processArtworkImage({
+    artworkId,
+    extension: upload.extension,
+    source: upload.bytes,
+  });
+  try {
+    return await publishArtworkVariants({
+      artworkId,
+      variants: processed.variants,
+    });
+  } finally {
+    await processed.cleanup();
+  }
 }
 
 export async function readArtworkObject(

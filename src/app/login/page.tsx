@@ -6,7 +6,7 @@ import LoginForm from "./login-form";
 
 export default async function LoginPage() {
   if (await getAdminSession()) {
-    redirect("/admin/artwork");
+    redirect("/admin/catalog");
   }
 
   return (

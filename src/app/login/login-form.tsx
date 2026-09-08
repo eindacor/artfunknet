@@ -30,7 +30,7 @@ export default function LoginForm() {
       return;
     }
 
-    router.push("/admin/artwork");
+    router.push("/admin/catalog");
     router.refresh();
   }
 

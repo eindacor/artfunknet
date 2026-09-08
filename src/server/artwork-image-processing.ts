@@ -2,6 +2,7 @@ import "server-only";
 
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
+import { realpathSync } from "node:fs";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -79,14 +80,31 @@ export async function processArtworkImage({
       ArtworkImageVariantName,
       ProcessedArtworkVariant
     >;
+    const resolvedTemporaryDirectory = realpathSync.native(temporaryDirectory);
     for (const variant of ARTWORK_IMAGE_VARIANTS) {
       const value = parsed.variants?.[variant];
       const expectedFilename =
         `${artworkId}_${variant}.${normalizedExtension}`;
-      const resolvedPath = value ? path.resolve(value.path) : "";
+      let resolvedPath = "";
+      if (value) {
+        try {
+          resolvedPath = realpathSync.native(value.path);
+        } catch {
+          throw new Error(
+            `The artwork processor did not create the ${variant} image.`,
+          );
+        }
+      }
+      const relativePath = path.relative(
+        resolvedTemporaryDirectory,
+        resolvedPath,
+      );
       if (
         !value ||
-        path.dirname(resolvedPath) !== temporaryDirectory ||
+        !relativePath ||
+        relativePath.startsWith(`..${path.sep}`) ||
+        relativePath === ".." ||
+        path.isAbsolute(relativePath) ||
         path.basename(resolvedPath) !== expectedFilename ||
         value.extension !== normalizedExtension ||
         !Number.isSafeInteger(value.width) ||
@@ -101,7 +119,10 @@ export async function processArtworkImage({
           `The artwork processor returned invalid ${variant} metadata.`,
         );
       }
-      const outputBytes = await readFile(resolvedPath);
+      const outputBytes = await readFile(
+        /* turbopackIgnore: true */
+        resolvedPath,
+      );
       const outputChecksum = createHash("sha256")
         .update(outputBytes)
         .digest("hex");
