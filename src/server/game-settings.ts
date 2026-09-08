@@ -9,6 +9,7 @@ import {
   type ArtworkRarity,
   type ItemGenerationMap,
 } from "./gameplay.ts";
+import type { NpcQuality } from "./npc-gameplay.ts";
 
 export const DEFAULT_RARITY_WEIGHTS: Record<ArtworkRarity, number> = {
   common: 0.623266875,
@@ -70,6 +71,8 @@ export type GameplayConfig = {
   repairIntervalMinutes: number;
   repairAmount: number;
   npcSpawnIntervalMinutes: number;
+  npcMeetingResetIntervalMinutes: number;
+  npcMeetingLimits: Record<NpcQuality, number>;
   rarityWeights: Record<ArtworkRarity, number>;
   cardStyleWeights: Record<DroppableCardRendererId, number>;
 };
@@ -99,6 +102,13 @@ export const DEFAULT_ACTUAL_GAMEPLAY_CONFIG: GameplayConfig = {
   repairIntervalMinutes: 60,
   repairAmount: 0.1,
   npcSpawnIntervalMinutes: 10,
+  npcMeetingResetIntervalMinutes: 1_440,
+  npcMeetingLimits: {
+    bronze: 120,
+    silver: 100,
+    gold: 80,
+    platinum: 60,
+  },
   rarityWeights: DEFAULT_RARITY_WEIGHTS,
   cardStyleWeights: DEFAULT_CARD_STYLE_WEIGHTS,
 };
@@ -118,6 +128,13 @@ export const DEFAULT_DEBUG_GAMEPLAY_CONFIG: GameplayConfig = {
   repairIntervalMinutes: 1,
   repairAmount: 0.1,
   npcSpawnIntervalMinutes: 1,
+  npcMeetingResetIntervalMinutes: 1,
+  npcMeetingLimits: {
+    bronze: 120,
+    silver: 100,
+    gold: 80,
+    platinum: 60,
+  },
   rarityWeights: DEBUG_RARITY_WEIGHTS,
   cardStyleWeights: DEBUG_CARD_STYLE_WEIGHTS,
 };
@@ -153,6 +170,8 @@ type StoredGameplayConfig = {
   repair_interval_minutes?: number;
   repair_amount?: number;
   npc_spawn_interval_minutes?: number;
+  npc_meeting_reset_interval_minutes?: number;
+  npc_meeting_limits?: Partial<Record<NpcQuality, number>>;
   rarity_weights?: Partial<Record<ArtworkRarity, number>>;
   card_style_weights?: Partial<Record<DroppableCardRendererId, number>>;
 };
@@ -212,6 +231,8 @@ export function toStoredGameplayConfig(
     repair_interval_minutes: config.repairIntervalMinutes,
     repair_amount: config.repairAmount,
     npc_spawn_interval_minutes: config.npcSpawnIntervalMinutes,
+    npc_meeting_reset_interval_minutes: config.npcMeetingResetIntervalMinutes,
+    npc_meeting_limits: config.npcMeetingLimits,
     rarity_weights: config.rarityWeights,
     card_style_weights: config.cardStyleWeights,
   };
@@ -235,6 +256,12 @@ export function validateGameplayConfig(
     ["conditionDecayIntervalMinutes", "Condition decay interval", 1, 10_080],
     ["repairIntervalMinutes", "Repair interval", 1, 10_080],
     ["npcSpawnIntervalMinutes", "NPC spawn interval", 1, 10_080],
+    [
+      "npcMeetingResetIntervalMinutes",
+      "Visitor meeting reset interval",
+      1,
+      10_080,
+    ],
   ] as const;
   const values: Record<string, number> = {};
   for (const [key, label, min, max] of integerFields) {
@@ -292,6 +319,8 @@ export function validateGameplayConfig(
   if (!rarityWeights.ok) return rarityWeights;
   const cardStyleWeights = validateCardStyleWeights(config.cardStyleWeights);
   if (!cardStyleWeights.ok) return cardStyleWeights;
+  const npcMeetingLimits = validateNpcMeetingLimits(config.npcMeetingLimits);
+  if (!npcMeetingLimits.ok) return npcMeetingLimits;
 
   return {
     ok: true,
@@ -310,6 +339,8 @@ export function validateGameplayConfig(
       repairIntervalMinutes: values.repairIntervalMinutes,
       repairAmount,
       npcSpawnIntervalMinutes: values.npcSpawnIntervalMinutes,
+      npcMeetingResetIntervalMinutes: values.npcMeetingResetIntervalMinutes,
+      npcMeetingLimits: npcMeetingLimits.value,
       rarityWeights: rarityWeights.value,
       cardStyleWeights: cardStyleWeights.value,
     },
@@ -453,6 +484,13 @@ function readConfig(
     npcSpawnIntervalMinutes:
       stored?.npc_spawn_interval_minutes ??
       defaults.npcSpawnIntervalMinutes,
+    npcMeetingResetIntervalMinutes:
+      stored?.npc_meeting_reset_interval_minutes ??
+      defaults.npcMeetingResetIntervalMinutes,
+    npcMeetingLimits: {
+      ...defaults.npcMeetingLimits,
+      ...stored?.npc_meeting_limits,
+    },
     rarityWeights: {
       ...defaults.rarityWeights,
       ...stored?.rarity_weights,
@@ -462,4 +500,37 @@ function readConfig(
       ...stored?.card_style_weights,
     },
   };
+}
+
+function validateNpcMeetingLimits(
+  input: unknown,
+):
+  | { ok: true; value: Record<NpcQuality, number> }
+  | { ok: false; error: string } {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    return { ok: false, error: "Visitor meeting limits must be an object." };
+  }
+  const record = input as Record<string, unknown>;
+  const qualities = ["bronze", "silver", "gold", "platinum"] as const;
+  const unknownKeys = Object.keys(record).filter(
+    (key) => !qualities.includes(key as NpcQuality),
+  );
+  if (unknownKeys.length > 0) {
+    return {
+      ok: false,
+      error: `Unknown visitor quality keys: ${unknownKeys.join(", ")}.`,
+    };
+  }
+  const limits = {} as Record<NpcQuality, number>;
+  for (const quality of qualities) {
+    const value = Number(record[quality]);
+    if (!Number.isInteger(value) || value < 1 || value > 10_000) {
+      return {
+        ok: false,
+        error: `${quality} visitor limit must be an integer from 1 to 10,000.`,
+      };
+    }
+    limits[quality] = value;
+  }
+  return { ok: true, value: limits };
 }

@@ -51,6 +51,7 @@ type PlayerRecord = {
     level: number;
     display_cap: number;
     npcs_met?: Partial<Record<NpcQuality, number>>;
+    npcs_met_reset_at?: string;
   };
 };
 
@@ -147,6 +148,7 @@ export async function refreshNpcSpawns(
   now = new Date(),
   spawnIntervalMinutes = 10,
   ownerId?: string,
+  meetingLimits?: Record<NpcQuality, number>,
 ): Promise<void> {
   const spawnIntervalMs = spawnIntervalMinutes * 60 * 1000;
   const cycleStartMs =
@@ -257,6 +259,7 @@ export async function refreshNpcSpawns(
         ownersWithMaximumCollectorQuality.has(player._id)
           ? getHighestAvailableCollectorQuality(
               player.profile.npcs_met ?? {},
+              meetingLimits,
             )
           : null;
       const npc: GalleryNpc = {

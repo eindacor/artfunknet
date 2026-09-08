@@ -6,7 +6,6 @@ import {
 } from "@/server/game-settings";
 import {
   calculateCollectorReward,
-  COLLECTOR_MEETING_LIMITS,
   getCollectorForgeryHeat,
 } from "@/server/collector-gameplay";
 import {
@@ -79,6 +78,7 @@ type Player = {
     xp: number;
     lottery_tickets: number;
     npcs_met?: Partial<Record<NpcQuality, number>>;
+    npcs_met_reset_at?: string;
     level: number;
     karma?: number;
     auction_data?: { winning?: string[] };
@@ -102,6 +102,8 @@ export async function POST(
 
   const { id } = await params;
   const database = await getDatabase();
+  const settings = await getGameplaySettings(database);
+  const config = settings.active;
   await ensurePlayerKarma(database, auth.session.playerId);
   const now = new Date();
   const [player, npc] = await Promise.all([
@@ -119,8 +121,52 @@ export async function POST(
     );
   }
 
+  const resetAt = player.profile.npcs_met_reset_at
+    ? new Date(player.profile.npcs_met_reset_at)
+    : null;
+  if (!resetAt || !Number.isFinite(resetAt.getTime())) {
+    await database.collection<Player>("players").updateOne(
+      { _id: player._id, "profile.npcs_met_reset_at": { $exists: false } },
+      {
+        $set: {
+          "profile.npcs_met_reset_at": new Date(
+            now.getTime() + config.npcMeetingResetIntervalMinutes * 60_000,
+          ).toISOString(),
+        },
+      },
+    );
+  } else if (resetAt.getTime() <= now.getTime()) {
+    const resetResult = await database.collection<Player>("players").updateOne(
+      {
+        _id: player._id,
+        "profile.npcs_met_reset_at": player.profile.npcs_met_reset_at,
+      },
+      {
+        $set: {
+          "profile.npcs_met": {
+            bronze: 0,
+            silver: 0,
+            gold: 0,
+            platinum: 0,
+          },
+          "profile.npcs_met_reset_at": new Date(
+            now.getTime() + config.npcMeetingResetIntervalMinutes * 60_000,
+          ).toISOString(),
+        },
+      },
+    );
+    if (resetResult.modifiedCount === 1) {
+      player.profile.npcs_met = {
+        bronze: 0,
+        silver: 0,
+        gold: 0,
+        platinum: 0,
+      };
+    }
+  }
+
   const meetings = player.profile.npcs_met?.[npc.quality] ?? 0;
-  if (meetings >= COLLECTOR_MEETING_LIMITS[npc.quality]) {
+  if (meetings >= config.npcMeetingLimits[npc.quality]) {
     return NextResponse.json(
       { error: `${npc.quality} visitor limit reached.` },
       { status: 409 },
@@ -143,7 +189,13 @@ export async function POST(
   }
 
   const playerResult = await database.collection<Player>("players").updateOne(
-    { _id: player._id },
+    {
+      _id: player._id,
+      $or: [
+        { [`profile.npcs_met.${npc.quality}`]: { $lt: config.npcMeetingLimits[npc.quality] } },
+        { [`profile.npcs_met.${npc.quality}`]: { $exists: false } },
+      ],
+    },
     {
       $inc: { [`profile.npcs_met.${npc.quality}`]: 1 },
       $set: { "profile.last_activity": now.toISOString() },

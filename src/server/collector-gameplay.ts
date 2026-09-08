@@ -21,9 +21,10 @@ export const COLLECTOR_MEETING_LIMITS: Record<NpcQuality, number> = {
 
 export function getHighestAvailableCollectorQuality(
   meetings: Partial<Record<NpcQuality, number>>,
+  limits: Record<NpcQuality, number> = COLLECTOR_MEETING_LIMITS,
 ): NpcQuality | null {
   for (const quality of ["platinum", "gold", "silver", "bronze"] as const) {
-    if ((meetings[quality] ?? 0) < COLLECTOR_MEETING_LIMITS[quality]) {
+    if ((meetings[quality] ?? 0) < limits[quality]) {
       return quality;
     }
   }

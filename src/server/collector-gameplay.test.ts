@@ -100,3 +100,13 @@ test("maximum Collector quality steps down as meeting caps are exhausted", () =>
     null,
   );
 });
+
+test("maximum Collector quality accepts configured meeting caps", () => {
+  assert.equal(
+    getHighestAvailableCollectorQuality(
+      { platinum: 2 },
+      { bronze: 4, silver: 3, gold: 2, platinum: 2 },
+    ),
+    "gold",
+  );
+});
