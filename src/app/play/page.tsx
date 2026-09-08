@@ -14,7 +14,10 @@ import {
   getXpGoal,
   settleGalleryEarnings,
 } from "@/server/collection-gameplay";
-import { getPurchasableCrateOffers } from "@/server/crate-gameplay";
+import {
+  getPurchasableCrateOffers,
+  getVisibleCrateOffers,
+} from "@/server/crate-gameplay";
 import { getGameplaySettings } from "@/server/game-settings";
 import { refreshGalleryMetadata } from "@/server/gallery-metadata";
 import {
@@ -241,13 +244,14 @@ export default async function PlayerPage({
       totalTickets: raffleTotalByItem.get(prize.item_id) ?? 0,
     };
   });
-  const crateOffers = (
+  const crateOffers = getVisibleCrateOffers(
     await getPurchasableCrateOffers(
       database,
       player.profile.level,
       config,
       player.test_account === true,
-    )
+    ),
+    player.profile.level,
   ).map((offer) => ({
     id: offer.id,
     name: offer.name,

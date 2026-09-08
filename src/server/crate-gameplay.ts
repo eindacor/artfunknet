@@ -1,24 +1,28 @@
 import type { Db } from "mongodb";
 
 import {
-  getAverageDropValueForLevel,
-  MAX_PLAYER_LEVEL,
-} from "./collection-gameplay.ts";
-import {
   applyItemGenerationProbabilityMultipliers,
-  amplifyRarityMap,
+  ARTWORK_RARITIES,
+  calculateItemValues,
+  getConfiguredRarityMap,
   getRarityMap,
+  type Artwork,
+  type ArtworkRarity,
+  type ItemAttribute,
   type ItemGenerationMap,
   type LootData,
 } from "./gameplay.ts";
-import type { GameplayConfig } from "./game-settings.ts";
+import {
+  getGameplayGenerationMap,
+  type GameplayConfig,
+} from "./game-settings.ts";
 
 export type CrateQuality =
   | "standard"
-  | "bronze"
-  | "silver"
-  | "gold"
-  | "platinum"
+  | "foil"
+  | "unlocked"
+  | "designer"
+  | "ultimate"
   | "debug-mint"
   | "debug-foil"
   | "debug-unlocked"
@@ -41,52 +45,36 @@ export type CrateOffer = CrateOfferView & {
   generationMap: Partial<ItemGenerationMap>;
 };
 
-const FEATURED_CRATES = [
+export const DEFAULT_PURCHASABLE_CRATE_ITEM_COUNT = 6;
+
+export const FEATURED_CRATES = [
   {
-    id: "bronze",
-    name: "Bronze discovery crate",
-    description: "A compact crate for expanding a young collection.",
-    highlights: ["6 artworks", "Accessible at every level"],
+    id: "foil",
+    name: "Foil crate",
+    description: "A collection with an increased chance of foil artwork.",
     levelRequirement: 0,
-    rarityAmplifier: 1,
-    featureMultiplier: 1.6,
-    costMultiplier: 0.55,
   },
   {
-    id: "silver",
-    name: "Silver foil crate",
-    description: "Polished stock with improved rarity and foil odds.",
-    highlights: ["6 artworks", "1.8x foil chance", "Improved rarity odds"],
+    id: "unlocked",
+    name: "Unlocked crate",
+    description: "A collection with an increased chance of unlocked artwork.",
     levelRequirement: 5,
-    rarityAmplifier: 1.2,
-    featureMultiplier: 1.8,
-    costMultiplier: 0.78,
   },
   {
-    id: "gold",
-    name: "Gold unlocked crate",
-    description: "Curated works with stronger rarity and unlocked-property odds.",
-    highlights: ["6 artworks", "2x unlocked chance", "Stronger rarity odds"],
-    levelRequirement: 15,
-    rarityAmplifier: 1.5,
-    featureMultiplier: 2,
-    costMultiplier: 1.05,
+    id: "designer",
+    name: "Designer crate",
+    description: "A collection with an increased chance of alternate card styles.",
+    levelRequirement: 0,
   },
   {
-    id: "platinum",
-    name: "Platinum collector crate",
-    description: "Premium stock with the strongest modifier and rarity boosts.",
-    highlights: [
-      "6 artworks",
-      "2.2x foil and unlocked chance",
-      "Best rarity odds",
-    ],
-    levelRequirement: 30,
-    rarityAmplifier: 2,
-    featureMultiplier: 2.2,
-    costMultiplier: 1.4,
+    id: "ultimate",
+    name: "Ultimate crate",
+    description: "A collection with every featured modifier chance increased.",
+    levelRequirement: 0,
   },
 ] as const;
+
+type FeaturedCrateQuality = (typeof FEATURED_CRATES)[number]["id"];
 
 export async function getPurchasableCrateOffers(
   database: Db,
@@ -101,68 +89,153 @@ export async function getPurchasableCrateOffers(
     throw new Error("Loot metadata has not been seeded.");
   }
 
-  const basicCost = await getBasicCrateCost(
-    database,
+  const artworks = await database
+    .collection<Pick<Artwork, "_id" | "rarity">>("artworks")
+    .find({ active: true })
+    .project<Pick<Artwork, "_id" | "rarity">>({
+      _id: 1,
+      rarity: 1,
+    })
+    .toArray();
+  const itemCount = DEFAULT_PURCHASABLE_CRATE_ITEM_COUNT;
+  const baseGenerationMap = getGameplayGenerationMap(config);
+  const standardExpectedValue = estimateCrateSellValue({
+    artworks,
+    generationMap: baseGenerationMap,
+    itemCount,
+    lootData: metadata.loot_data,
+    mintValueMultiplier: config.mintValueMultiplier,
     playerLevel,
-    metadata.loot_data,
-  );
-  const itemCount = metadata.loot_data.items_per_basic_crate;
+  });
   const standard: CrateOffer = {
     id: "standard",
     name: "Standard collection crate",
     quality: "standard",
-    description: "The original full-size crate, priced for your current level.",
+    description: "A standard collection priced for your current level.",
     highlights: [`${itemCount} artworks`, "Level-adjusted rarity pool"],
     itemCount,
-    cost: basicCost,
+    cost: getConfiguredCrateCost(
+      standardExpectedValue,
+      config,
+      "standard",
+    ),
     levelRequirement: 0,
     generationMap: {},
   };
 
-  const baseRarityMap = getRarityMap(playerLevel, metadata.loot_data);
-  return [
-    standard,
-    ...FEATURED_CRATES.map<CrateOffer>((crate) => ({
+  const featured = FEATURED_CRATES.map((crate) => {
+    const generationMap = getFeaturedCrateGenerationMap(crate.id, config);
+    const expectedValue = estimateCrateSellValue({
+      artworks,
+      generationMap: {
+        ...baseGenerationMap,
+        ...generationMap,
+      },
+      itemCount: DEFAULT_PURCHASABLE_CRATE_ITEM_COUNT,
+      lootData: metadata.loot_data,
+      mintValueMultiplier: config.mintValueMultiplier,
+      playerLevel,
+    });
+    return {
       id: crate.id,
       name: crate.name,
       quality: crate.id,
       description: crate.description,
-      highlights: [...crate.highlights],
-      itemCount: 6,
-      cost: Math.max(
-        1,
-        Math.floor(
-          basicCost *
-            (6 / Math.max(1, itemCount)) *
-            crate.costMultiplier,
-        ),
-      ),
+      highlights: getFeaturedCrateHighlights(crate.id, config),
+      itemCount: DEFAULT_PURCHASABLE_CRATE_ITEM_COUNT,
+      cost: getConfiguredCrateCost(expectedValue, config, crate.id),
       levelRequirement: crate.levelRequirement,
-      generationMap: {
-        rarity: amplifyRarityMap(
-          baseRarityMap,
-          crate.rarityAmplifier,
-        ),
-        ...applyItemGenerationProbabilityMultipliers(
-          {
-            foil: config.foilProbability,
-            unlocked: config.unlockedProbability,
-          },
-          {
-            foil:
-              crate.id === "silver" || crate.id === "platinum"
-                ? crate.featureMultiplier
-                : 1,
-            unlocked:
-              crate.id === "gold" || crate.id === "platinum"
-                ? crate.featureMultiplier
-                : 1,
-          },
-        ),
-      },
-    })),
+      generationMap,
+    } satisfies CrateOffer;
+  });
+  return [
+    standard,
+    ...featured,
     ...getEligibleDebugCrates(includeDebugCrates),
   ];
+}
+
+export function getFeaturedCrateGenerationMap(
+  quality: FeaturedCrateQuality,
+  config: Pick<
+    GameplayConfig,
+    | "foilProbability"
+    | "unlockedProbability"
+    | "cardRendererProbability"
+    | "foilCrateChanceScalar"
+    | "unlockedCrateChanceScalar"
+    | "artStyleCrateChanceScalar"
+    | "ultimateArtStyleChanceScalar"
+    | "mintProbability"
+    | "ultimateFoilChanceScalar"
+    | "ultimateUnlockedChanceScalar"
+    | "ultimateMintChanceScalar"
+    | "ultimateSeasonalChanceScalar"
+  >,
+): Partial<ItemGenerationMap> {
+  if (quality === "foil") {
+    return applyItemGenerationProbabilityMultipliers(
+      { foil: config.foilProbability },
+      { foil: config.foilCrateChanceScalar },
+    );
+  }
+  if (quality === "unlocked") {
+    return applyItemGenerationProbabilityMultipliers(
+      { unlocked: config.unlockedProbability },
+      { unlocked: config.unlockedCrateChanceScalar },
+    );
+  }
+  if (quality === "designer") {
+    return applyItemGenerationProbabilityMultipliers(
+      { cardStyle: config.cardRendererProbability },
+      { cardStyle: config.artStyleCrateChanceScalar },
+    );
+  }
+  return {
+    ...applyItemGenerationProbabilityMultipliers(
+      {
+        foil: config.foilProbability,
+        unlocked: config.unlockedProbability,
+        mint: config.mintProbability,
+        cardStyle: config.cardRendererProbability,
+      },
+      {
+        foil: config.ultimateFoilChanceScalar,
+        unlocked: config.ultimateUnlockedChanceScalar,
+        mint: config.ultimateMintChanceScalar,
+        cardStyle: config.ultimateArtStyleChanceScalar,
+      },
+    ),
+    seasonal: config.ultimateSeasonalChanceScalar,
+  };
+}
+
+function getFeaturedCrateHighlights(
+  quality: FeaturedCrateQuality,
+  config: GameplayConfig,
+): string[] {
+  const highlights = [
+    `${DEFAULT_PURCHASABLE_CRATE_ITEM_COUNT} artworks`,
+  ];
+  if (quality === "foil") {
+    highlights.push(`${config.foilCrateChanceScalar}x foil chance`);
+  }
+  if (quality === "unlocked") {
+    highlights.push(`${config.unlockedCrateChanceScalar}x unlocked chance`);
+  }
+  if (quality === "designer") {
+    highlights.push(`${config.artStyleCrateChanceScalar}x art style chance`);
+  }
+  if (quality === "ultimate") {
+    highlights.push(
+      `${config.ultimateFoilChanceScalar}x foil chance`,
+      `${config.ultimateUnlockedChanceScalar}x unlocked chance`,
+      `${config.ultimateMintChanceScalar}x Mint chance`,
+      `${config.ultimateSeasonalChanceScalar}x seasonal chance`,
+      `${config.ultimateArtStyleChanceScalar}x art style chance`,
+    );
+  }
+  return highlights;
 }
 
 export function getEligibleDebugCrates(
@@ -267,6 +340,13 @@ export function getCrateOffer(
   return offers.find((offer) => offer.id === id) ?? null;
 }
 
+export function getVisibleCrateOffers<T extends CrateOfferView>(
+  offers: readonly T[],
+  playerLevel: number,
+): T[] {
+  return offers.filter((offer) => playerLevel >= offer.levelRequirement);
+}
+
 export function getCratePermission(
   offer: CrateOfferView,
   level: number,
@@ -289,30 +369,227 @@ export function getCratePermission(
   return { allowed: true };
 }
 
-async function getBasicCrateCost(
-  database: Db,
-  playerLevel: number,
-  lootData: LootData,
-): Promise<number> {
-  if (playerLevel >= MAX_PLAYER_LEVEL) {
-    return lootData.basic_crate_cost;
-  }
+export function estimateCrateSellValue({
+  artworks,
+  generationMap,
+  itemCount,
+  lootData,
+  mintValueMultiplier,
+  playerLevel,
+  useRawRarityMap = false,
+}: {
+  artworks: ReadonlyArray<Pick<Artwork, "_id" | "rarity">>;
+  generationMap: Partial<ItemGenerationMap>;
+  itemCount: number;
+  lootData: LootData;
+  mintValueMultiplier: number;
+  playerLevel: number;
+  useRawRarityMap?: boolean;
+}): number {
+  const rarityMap = generationMap.rarity
+    ? getConfiguredRarityMap(
+        playerLevel,
+        lootData,
+        generationMap.rarity,
+        useRawRarityMap,
+      )
+    : getRarityMap(playerLevel, lootData);
+  const artworkCounts = getArtworkCountsByRarity(artworks, lootData);
+  const availableWeight = ARTWORK_RARITIES.reduce(
+    (sum, rarity) =>
+      sum + (artworkCounts[rarity].total > 0 ? rarityMap[rarity] : 0),
+    0,
+  );
+  if (availableWeight <= 0) return 0;
 
-  const [averageAtLevel, averageAtMaximum] = await Promise.all([
-    getAverageDropValueForLevel(database, playerLevel),
-    getAverageDropValueForLevel(database, MAX_PLAYER_LEVEL),
-  ]);
-  const itemCount = Math.max(1, lootData.items_per_basic_crate);
-  if (averageAtLevel <= 0 || averageAtMaximum <= 0) {
-    return lootData.basic_crate_cost;
-  }
-
-  const maximumUpcharge =
-    lootData.basic_crate_cost / (averageAtMaximum * itemCount);
-  const minimumUpcharge = Math.max(maximumUpcharge / 10, 2);
-  const upcharge =
-    minimumUpcharge +
-    (playerLevel / MAX_PLAYER_LEVEL) *
-      (maximumUpcharge - minimumUpcharge);
-  return Math.max(1, Math.floor(itemCount * averageAtLevel * upcharge));
+  const foilProbability = clampProbability(generationMap.foil ?? 0.005);
+  const mintProbability = clampProbability(generationMap.mint ?? 0);
+  const unlockedProbability = clampProbability(
+    generationMap.unlocked ?? 0.05,
+  );
+  const seasonalScalar = Math.max(0, generationMap.seasonal ?? 1);
+  const averagePerItem = ARTWORK_RARITIES.reduce((total, rarity) => {
+    const counts = artworkCounts[rarity];
+    if (counts.total === 0 || rarityMap[rarity] <= 0) return total;
+    const rarityProbability = rarityMap[rarity] / availableWeight;
+    const seasonalProbability = getSeasonalProbability(
+      counts,
+      seasonalScalar,
+    );
+    const rarityUnlockedProbability =
+      rarity === "common" ? 0 : unlockedProbability;
+    const expectedSellValue = getExpectedItemSellValue({
+      foilProbability,
+      lootData,
+      mintProbability,
+      mintValueMultiplier,
+      rarity,
+      seasonalProbability,
+      unlockedProbability: rarityUnlockedProbability,
+    });
+    return total + rarityProbability * expectedSellValue;
+  }, 0);
+  return averagePerItem * Math.max(1, itemCount);
 }
+
+function getSeasonalProbability(
+  counts: { total: number; seasonal: number },
+  seasonalScalar: number,
+): number {
+  const seasonalWeight = counts.seasonal * seasonalScalar;
+  const totalWeight = seasonalWeight + counts.total - counts.seasonal;
+  return totalWeight > 0 ? seasonalWeight / totalWeight : 0;
+}
+
+export function getCrateCost(
+  expectedSellValue: number,
+  scalar: number,
+): number {
+  return Math.max(1, Math.floor(expectedSellValue * scalar));
+}
+
+export function getConfiguredCrateCost(
+  expectedSellValue: number,
+  config: Pick<
+    GameplayConfig,
+    | "crateValueScalar"
+    | "standardCrateCostScalar"
+    | "foilCrateCostScalar"
+    | "unlockedCrateCostScalar"
+    | "designerCrateCostScalar"
+    | "ultimateCrateCostScalar"
+  >,
+  quality: CrateQuality,
+): number {
+  const featureCostScalar =
+    quality === "standard"
+      ? config.standardCrateCostScalar
+      : quality === "foil"
+        ? config.foilCrateCostScalar
+        : quality === "unlocked"
+          ? config.unlockedCrateCostScalar
+          : quality === "designer"
+            ? config.designerCrateCostScalar
+            : quality === "ultimate"
+              ? config.ultimateCrateCostScalar
+              : 1;
+  return getCrateCost(
+    expectedSellValue,
+    config.crateValueScalar * featureCostScalar,
+  );
+}
+
+function getArtworkCountsByRarity(
+  artworks: ReadonlyArray<Pick<Artwork, "_id" | "rarity">>,
+  lootData: Pick<LootData, "seasonal_items">,
+): Record<ArtworkRarity, { total: number; seasonal: number }> {
+  const counts = Object.fromEntries(
+    ARTWORK_RARITIES.map((rarity) => [
+      rarity,
+      { total: 0, seasonal: 0 },
+    ]),
+  ) as Record<ArtworkRarity, { total: number; seasonal: number }>;
+  const seasonalIds = Object.fromEntries(
+    ARTWORK_RARITIES.map((rarity) => [
+      rarity,
+      new Set(lootData.seasonal_items[rarity] ?? []),
+    ]),
+  ) as Record<ArtworkRarity, Set<string>>;
+  for (const artwork of artworks) {
+    counts[artwork.rarity].total += 1;
+    if (seasonalIds[artwork.rarity].has(artwork._id)) {
+      counts[artwork.rarity].seasonal += 1;
+    }
+  }
+  return counts;
+}
+
+function getExpectedItemSellValue({
+  foilProbability,
+  lootData,
+  mintProbability,
+  mintValueMultiplier,
+  rarity,
+  seasonalProbability,
+  unlockedProbability,
+}: {
+  foilProbability: number;
+  lootData: LootData;
+  mintProbability: number;
+  mintValueMultiplier: number;
+  rarity: ArtworkRarity;
+  seasonalProbability: number;
+  unlockedProbability: number;
+}): number {
+  let expected = 0;
+  for (const foil of [false, true]) {
+    for (const mint of [false, true]) {
+      for (const seasonal of [false, true]) {
+        for (const unlocked of [false, true]) {
+          const probability =
+            getOutcomeProbability(foil, foilProbability) *
+            getOutcomeProbability(mint, mintProbability) *
+            getOutcomeProbability(seasonal, seasonalProbability) *
+            getOutcomeProbability(unlocked, unlockedProbability);
+          if (probability === 0) continue;
+          expected +=
+            probability *
+            calculateItemValues(
+              {
+                condition: mint ? 1 : 0.5,
+                mint,
+                mint_value_multiplier: mint ? mintValueMultiplier : 1,
+                attributes: {
+                  locked: [],
+                  unlocked: [ESTIMATED_ATTRIBUTE],
+                  special: [],
+                },
+                foil,
+                seasonal,
+                lottery: 0,
+                original: false,
+                vintage: false,
+                unlocked,
+                level: 1,
+              },
+              {
+                _id: "estimated",
+                artist_id: "estimated",
+                artist: "Estimated",
+                title: "Estimated",
+                date: 0,
+                genre: "Estimated",
+                medium: "Estimated",
+                rarity,
+                value_scale: 0.5,
+                height: 1,
+                width: 1,
+                active: true,
+              },
+              lootData,
+            ).sell;
+        }
+      }
+    }
+  }
+  return expected;
+}
+
+function getOutcomeProbability(outcome: boolean, probability: number): number {
+  return outcome ? probability : 1 - probability;
+}
+
+function clampProbability(value: number): number {
+  return Math.min(Math.max(value, 0), 1);
+}
+
+const ESTIMATED_ATTRIBUTE: ItemAttribute = {
+  _id: "estimated",
+  title: "Estimated",
+  type: "estimated",
+  description: "Expected-value placeholder.",
+  icon: "",
+  npc_name: "Estimated",
+  active: true,
+  value: 0.5,
+};

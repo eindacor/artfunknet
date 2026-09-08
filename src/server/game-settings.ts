@@ -12,11 +12,11 @@ import {
 import type { NpcQuality } from "./npc-gameplay.ts";
 
 export const DEFAULT_RARITY_WEIGHTS: Record<ArtworkRarity, number> = {
-  common: 0.623266875,
-  uncommon: 0.267114375,
-  rare: 0.09893125,
-  legendary: 0.009993056,
-  masterpiece: 0.000694444,
+  common: 15_000,
+  uncommon: 5_000,
+  rare: 1_000,
+  legendary: 30,
+  masterpiece: 1,
 };
 
 const DEBUG_RARITY_WEIGHTS: Record<ArtworkRarity, number> = {
@@ -32,24 +32,24 @@ export const DEFAULT_CARD_STYLE_WEIGHTS: Record<
   number
 > = {
   legacy: 1,
+  arcade: 0,
+  postcard: 250,
+  gilded: 100,
   terminal: 200,
-  postcard: 160,
-  gilded: 80,
-  arcade: 60,
-  prismatic: 25,
-  blueprint: 140,
-  zine: 100,
-  celestial: 35,
-  reliquary: 15,
-  baseball: 70,
-  minimalist: 180,
-  bauhaus: 90,
-  abstract: 75,
-  circle: 45,
-  tarot: 55,
+  prismatic: 0,
+  blueprint: 150,
+  zine: 30,
+  celestial: 250,
+  reliquary: 100,
+  baseball: 200,
+  minimalist: 30,
+  bauhaus: 20,
+  abstract: 20,
+  circle: 0,
+  tarot: 0,
   collectible: 65,
   skateboard: 50,
-  album: 50,
+  album: 15,
 };
 
 const DEBUG_CARD_STYLE_WEIGHTS = Object.fromEntries(
@@ -59,6 +59,20 @@ const DEBUG_CARD_STYLE_WEIGHTS = Object.fromEntries(
 export type GameplayConfig = {
   dailyDropCooldownMinutes: number;
   dailyDropCount: number;
+  crateValueScalar: number;
+  standardCrateCostScalar: number;
+  foilCrateCostScalar: number;
+  unlockedCrateCostScalar: number;
+  designerCrateCostScalar: number;
+  ultimateCrateCostScalar: number;
+  foilCrateChanceScalar: number;
+  unlockedCrateChanceScalar: number;
+  artStyleCrateChanceScalar: number;
+  ultimateArtStyleChanceScalar: number;
+  ultimateFoilChanceScalar: number;
+  ultimateUnlockedChanceScalar: number;
+  ultimateMintChanceScalar: number;
+  ultimateSeasonalChanceScalar: number;
   cardRendererProbability: number;
   foilProbability: number;
   mintProbability: number;
@@ -88,20 +102,34 @@ export type GameplaySettings = {
 };
 
 export const DEFAULT_ACTUAL_GAMEPLAY_CONFIG: GameplayConfig = {
-  dailyDropCooldownMinutes: 5,
-  dailyDropCount: 6,
-  cardRendererProbability: 0.01,
-  foilProbability: 0.005,
-  mintProbability: 0.0005,
+  dailyDropCooldownMinutes: 1,
+  dailyDropCount: 50,
+  crateValueScalar: 1.8,
+  standardCrateCostScalar: 1,
+  foilCrateCostScalar: 1.5,
+  unlockedCrateCostScalar: 1.2,
+  designerCrateCostScalar: 2,
+  ultimateCrateCostScalar: 3,
+  foilCrateChanceScalar: 5,
+  unlockedCrateChanceScalar: 5,
+  artStyleCrateChanceScalar: 5,
+  ultimateArtStyleChanceScalar: 3,
+  ultimateFoilChanceScalar: 5,
+  ultimateUnlockedChanceScalar: 5,
+  ultimateMintChanceScalar: 5,
+  ultimateSeasonalChanceScalar: 5,
+  cardRendererProbability: 0.05,
+  foilProbability: 0.01,
+  mintProbability: 0.005,
   mintValueMultiplier: 2,
   unlockedProbability: 0.05,
-  galleryPayoutIntervalMinutes: 60,
+  galleryPayoutIntervalMinutes: 10,
   displayLevelIntervalMinutes: 60,
   displayLevelCap: 20,
   conditionDecayIntervalMinutes: 60,
   repairIntervalMinutes: 60,
   repairAmount: 0.1,
-  npcSpawnIntervalMinutes: 10,
+  npcSpawnIntervalMinutes: 1,
   npcMeetingResetIntervalMinutes: 1_440,
   npcMeetingLimits: {
     bronze: 120,
@@ -116,6 +144,20 @@ export const DEFAULT_ACTUAL_GAMEPLAY_CONFIG: GameplayConfig = {
 export const DEFAULT_DEBUG_GAMEPLAY_CONFIG: GameplayConfig = {
   dailyDropCooldownMinutes: 1,
   dailyDropCount: 20,
+  crateValueScalar: 1,
+  standardCrateCostScalar: 1,
+  foilCrateCostScalar: 1,
+  unlockedCrateCostScalar: 1,
+  designerCrateCostScalar: 1,
+  ultimateCrateCostScalar: 1,
+  foilCrateChanceScalar: 3,
+  unlockedCrateChanceScalar: 3,
+  artStyleCrateChanceScalar: 3,
+  ultimateArtStyleChanceScalar: 3,
+  ultimateFoilChanceScalar: 3,
+  ultimateUnlockedChanceScalar: 3,
+  ultimateMintChanceScalar: 3,
+  ultimateSeasonalChanceScalar: 3,
   cardRendererProbability: 0.25,
   foilProbability: 0.5,
   mintProbability: 0.25,
@@ -158,6 +200,20 @@ export function getGameplayGenerationMap(
 type StoredGameplayConfig = {
   daily_drop_cooldown_minutes?: number;
   daily_drop_count?: number;
+  crate_value_scalar?: number;
+  standard_crate_cost_scalar?: number;
+  foil_crate_cost_scalar?: number;
+  unlocked_crate_cost_scalar?: number;
+  designer_crate_cost_scalar?: number;
+  ultimate_crate_cost_scalar?: number;
+  foil_crate_chance_scalar?: number;
+  unlocked_crate_chance_scalar?: number;
+  art_style_crate_chance_scalar?: number;
+  ultimate_art_style_chance_scalar?: number;
+  ultimate_foil_chance_scalar?: number;
+  ultimate_unlocked_chance_scalar?: number;
+  ultimate_mint_chance_scalar?: number;
+  ultimate_seasonal_chance_scalar?: number;
   card_renderer_probability?: number;
   foil_probability?: number;
   mint_probability?: number;
@@ -219,6 +275,21 @@ export function toStoredGameplayConfig(
   return {
     daily_drop_cooldown_minutes: config.dailyDropCooldownMinutes,
     daily_drop_count: config.dailyDropCount,
+    crate_value_scalar: config.crateValueScalar,
+    standard_crate_cost_scalar: config.standardCrateCostScalar,
+    foil_crate_cost_scalar: config.foilCrateCostScalar,
+    unlocked_crate_cost_scalar: config.unlockedCrateCostScalar,
+    designer_crate_cost_scalar: config.designerCrateCostScalar,
+    ultimate_crate_cost_scalar: config.ultimateCrateCostScalar,
+    foil_crate_chance_scalar: config.foilCrateChanceScalar,
+    unlocked_crate_chance_scalar: config.unlockedCrateChanceScalar,
+    art_style_crate_chance_scalar: config.artStyleCrateChanceScalar,
+    ultimate_art_style_chance_scalar:
+      config.ultimateArtStyleChanceScalar,
+    ultimate_foil_chance_scalar: config.ultimateFoilChanceScalar,
+    ultimate_unlocked_chance_scalar: config.ultimateUnlockedChanceScalar,
+    ultimate_mint_chance_scalar: config.ultimateMintChanceScalar,
+    ultimate_seasonal_chance_scalar: config.ultimateSeasonalChanceScalar,
     card_renderer_probability: config.cardRendererProbability,
     foil_probability: config.foilProbability,
     mint_probability: config.mintProbability,
@@ -303,6 +374,66 @@ export function validateGameplayConfig(
       error: "Mint value multiplier must be a number from 1 to 1,000.",
     };
   }
+  const crateValueScalar = Number(config.crateValueScalar);
+  if (
+    !Number.isFinite(crateValueScalar) ||
+    crateValueScalar < 0.01 ||
+    crateValueScalar > 10_000
+  ) {
+    return {
+      ok: false,
+      error: "Crate value scalar must be a number from 0.01 to 10,000.",
+    };
+  }
+  const crateCostScalarFields = [
+    ["standardCrateCostScalar", "Standard crate cost scalar"],
+    ["foilCrateCostScalar", "Foil crate cost scalar"],
+    ["unlockedCrateCostScalar", "Unlocked crate cost scalar"],
+    ["designerCrateCostScalar", "Designer crate cost scalar"],
+    ["ultimateCrateCostScalar", "Ultimate crate cost scalar"],
+  ] as const;
+  const crateCostScalars: Record<string, number> = {};
+  for (const [key, label] of crateCostScalarFields) {
+    const value = Number(config[key]);
+    if (!Number.isFinite(value) || value < 0.01 || value > 1_000) {
+      return {
+        ok: false,
+        error: `${label} must be a number from 0.01 to 1,000.`,
+      };
+    }
+    crateCostScalars[key] = value;
+  }
+  const crateChanceScalarFields = [
+    ["foilCrateChanceScalar", "Foil crate chance scalar"],
+    ["unlockedCrateChanceScalar", "Unlocked crate chance scalar"],
+    ["artStyleCrateChanceScalar", "Designer crate art style chance scalar"],
+    [
+      "ultimateArtStyleChanceScalar",
+      "Ultimate crate art style chance scalar",
+    ],
+    ["ultimateFoilChanceScalar", "Ultimate crate foil chance scalar"],
+    ["ultimateUnlockedChanceScalar", "Ultimate crate unlocked chance scalar"],
+    ["ultimateMintChanceScalar", "Ultimate crate Mint chance scalar"],
+    ["ultimateSeasonalChanceScalar", "Ultimate crate seasonal chance scalar"],
+  ] as const;
+  const crateChanceScalars: Record<string, number> = {};
+  for (const [key, label] of crateChanceScalarFields) {
+    const value = Number(config[key]);
+    if (!Number.isFinite(value) || value < 0 || value > 1_000) {
+      return {
+        ok: false,
+        error: `${label} must be a number from 0 to 1,000.`,
+      };
+    }
+    crateChanceScalars[key] = value;
+  }
+  if (crateChanceScalars.ultimateSeasonalChanceScalar < 0.01) {
+    return {
+      ok: false,
+      error:
+        "Ultimate crate seasonal chance scalar must be a number from 0.01 to 1,000.",
+    };
+  }
   const repairAmount = Number(config.repairAmount);
   if (
     !Number.isFinite(repairAmount) ||
@@ -327,6 +458,27 @@ export function validateGameplayConfig(
     value: {
       dailyDropCooldownMinutes: values.dailyDropCooldownMinutes,
       dailyDropCount: values.dailyDropCount,
+      crateValueScalar,
+      standardCrateCostScalar: crateCostScalars.standardCrateCostScalar,
+      foilCrateCostScalar: crateCostScalars.foilCrateCostScalar,
+      unlockedCrateCostScalar: crateCostScalars.unlockedCrateCostScalar,
+      designerCrateCostScalar: crateCostScalars.designerCrateCostScalar,
+      ultimateCrateCostScalar: crateCostScalars.ultimateCrateCostScalar,
+      foilCrateChanceScalar: crateChanceScalars.foilCrateChanceScalar,
+      unlockedCrateChanceScalar:
+        crateChanceScalars.unlockedCrateChanceScalar,
+      artStyleCrateChanceScalar:
+        crateChanceScalars.artStyleCrateChanceScalar,
+      ultimateArtStyleChanceScalar:
+        crateChanceScalars.ultimateArtStyleChanceScalar,
+      ultimateFoilChanceScalar:
+        crateChanceScalars.ultimateFoilChanceScalar,
+      ultimateUnlockedChanceScalar:
+        crateChanceScalars.ultimateUnlockedChanceScalar,
+      ultimateMintChanceScalar:
+        crateChanceScalars.ultimateMintChanceScalar,
+      ultimateSeasonalChanceScalar:
+        crateChanceScalars.ultimateSeasonalChanceScalar,
       cardRendererProbability: probabilities.cardRendererProbability,
       foilProbability: probabilities.foilProbability,
       mintProbability: probabilities.mintProbability,
@@ -457,6 +609,45 @@ function readConfig(
       stored?.daily_drop_cooldown_minutes ??
       defaults.dailyDropCooldownMinutes,
     dailyDropCount: stored?.daily_drop_count ?? defaults.dailyDropCount,
+    crateValueScalar:
+      stored?.crate_value_scalar ?? defaults.crateValueScalar,
+    standardCrateCostScalar:
+      stored?.standard_crate_cost_scalar ??
+      defaults.standardCrateCostScalar,
+    foilCrateCostScalar:
+      stored?.foil_crate_cost_scalar ?? defaults.foilCrateCostScalar,
+    unlockedCrateCostScalar:
+      stored?.unlocked_crate_cost_scalar ??
+      defaults.unlockedCrateCostScalar,
+    designerCrateCostScalar:
+      stored?.designer_crate_cost_scalar ??
+      defaults.designerCrateCostScalar,
+    ultimateCrateCostScalar:
+      stored?.ultimate_crate_cost_scalar ??
+      defaults.ultimateCrateCostScalar,
+    foilCrateChanceScalar:
+      stored?.foil_crate_chance_scalar ?? defaults.foilCrateChanceScalar,
+    unlockedCrateChanceScalar:
+      stored?.unlocked_crate_chance_scalar ??
+      defaults.unlockedCrateChanceScalar,
+    artStyleCrateChanceScalar:
+      stored?.art_style_crate_chance_scalar ??
+      defaults.artStyleCrateChanceScalar,
+    ultimateArtStyleChanceScalar:
+      stored?.ultimate_art_style_chance_scalar ??
+      defaults.ultimateArtStyleChanceScalar,
+    ultimateFoilChanceScalar:
+      stored?.ultimate_foil_chance_scalar ??
+      defaults.ultimateFoilChanceScalar,
+    ultimateUnlockedChanceScalar:
+      stored?.ultimate_unlocked_chance_scalar ??
+      defaults.ultimateUnlockedChanceScalar,
+    ultimateMintChanceScalar:
+      stored?.ultimate_mint_chance_scalar ??
+      defaults.ultimateMintChanceScalar,
+    ultimateSeasonalChanceScalar:
+      stored?.ultimate_seasonal_chance_scalar ??
+      defaults.ultimateSeasonalChanceScalar,
     cardRendererProbability:
       stored?.card_renderer_probability ?? defaults.cardRendererProbability,
     foilProbability:

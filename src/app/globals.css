@@ -1758,17 +1758,22 @@ a.welcome-button {
   --crate-bright: #8ce5ef;
 }
 
-.crate-store-card[data-quality="silver"] {
+.crate-store-card[data-quality="foil"] {
   --crate-color: #8593a0;
   --crate-bright: #d5e0e8;
 }
 
-.crate-store-card[data-quality="gold"] {
+.crate-store-card[data-quality="unlocked"] {
   --crate-color: #b58a1e;
   --crate-bright: #ffe181;
 }
 
-.crate-store-card[data-quality="platinum"] {
+.crate-store-card[data-quality="designer"] {
+  --crate-color: #397ca8;
+  --crate-bright: #93d7ff;
+}
+
+.crate-store-card[data-quality="ultimate"] {
   --crate-color: #7559b9;
   --crate-bright: #d4c1ff;
 }
@@ -6965,6 +6970,27 @@ a.welcome-button {
   color: white;
 }
 
+.admin-config-group {
+  margin-top: 20px;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 6px;
+  background: rgb(0 0 0 / 16%);
+}
+
+.admin-config-group > h2 {
+  margin: 0;
+  border-bottom: 1px solid rgb(255 255 255 / 12%);
+  padding: 12px 16px;
+  color: var(--accent);
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-config-group > div {
+  padding: 0 16px;
+}
+
 .admin-setting {
   display: flex;
   justify-content: space-between;
@@ -6973,10 +6999,28 @@ a.welcome-button {
   padding: 18px 0;
 }
 
-.admin-setting small {
-  display: block;
-  margin-top: 4px;
+.admin-config-group .admin-setting:first-child,
+.admin-config-group .admin-rarity-settings:first-child {
+  border-top: 0;
+}
+
+.admin-setting-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.admin-config-help {
+  display: inline-grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  border: 1px solid #777;
+  border-radius: 50%;
   color: #aaa4af;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: help;
 }
 
 .admin-setting-input {

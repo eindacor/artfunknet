@@ -786,57 +786,96 @@ async function seedGameplaySettings(database) {
     .collection("metadata")
     .findOne({ _id: "loot-data" });
   const legacy = existing?.gameplay ?? {};
-  const legacyFoilProbability =
-    lootMetadata?.loot_data?.global_foil_chance ?? 0.005;
   const legacyUnlockedProbability =
     lootMetadata?.loot_data?.global_unlocked_chance ?? 0.05;
   const actualCardStyleWeights = {
     legacy: 1,
+    arcade: 0,
+    postcard: 250,
+    gilded: 100,
     terminal: 200,
-    postcard: 160,
-    gilded: 80,
-    arcade: 60,
-    prismatic: 25,
-    blueprint: 140,
-    zine: 100,
-    celestial: 35,
-    reliquary: 15,
-    baseball: 70,
-    minimalist: 180,
-    bauhaus: 90,
-    abstract: 75,
-    circle: 45,
+    prismatic: 0,
+    blueprint: 150,
+    zine: 30,
+    celestial: 250,
+    reliquary: 100,
+    baseball: 200,
+    minimalist: 30,
+    bauhaus: 20,
+    abstract: 20,
+    circle: 0,
+    tarot: 0,
+    collectible: 65,
+    skateboard: 50,
+    album: 15,
   };
   const debugCardStyleWeights = Object.fromEntries(
     Object.keys(actualCardStyleWeights).map((id) => [id, 1]),
   );
   const actual = {
     daily_drop_cooldown_minutes:
-      legacy.daily_drop_cooldown_minutes ?? 5,
-    daily_drop_count: legacy.daily_drop_count ?? 6,
-    card_renderer_probability: 0.01,
-    foil_probability: legacyFoilProbability,
-    mint_probability: 0.0005,
+      legacy.daily_drop_cooldown_minutes ?? 1,
+    daily_drop_count: legacy.daily_drop_count ?? 50,
+    crate_value_scalar: 1.8,
+    standard_crate_cost_scalar: 1,
+    foil_crate_cost_scalar: 1.5,
+    unlocked_crate_cost_scalar: 1.2,
+    designer_crate_cost_scalar: 2,
+    ultimate_crate_cost_scalar: 3,
+    foil_crate_chance_scalar: 5,
+    unlocked_crate_chance_scalar: 5,
+    art_style_crate_chance_scalar: 5,
+    ultimate_art_style_chance_scalar: 3,
+    ultimate_foil_chance_scalar: 5,
+    ultimate_unlocked_chance_scalar: 5,
+    ultimate_mint_chance_scalar: 5,
+    ultimate_seasonal_chance_scalar: 5,
+    card_renderer_probability: 0.05,
+    foil_probability: 0.01,
+    mint_probability: 0.005,
     mint_value_multiplier: 2,
     unlocked_probability: legacyUnlockedProbability,
     gallery_payout_interval_minutes:
-      legacy.gallery_payout_interval_minutes ?? 60,
+      legacy.gallery_payout_interval_minutes ?? 10,
     display_level_interval_minutes: 60,
     display_level_cap: 20,
     condition_decay_interval_minutes: 60,
-    npc_spawn_interval_minutes: 10,
+    repair_interval_minutes: 60,
+    repair_amount: 0.1,
+    npc_spawn_interval_minutes: 1,
+    npc_meeting_reset_interval_minutes: 1440,
+    npc_meeting_limits: {
+      bronze: 120,
+      silver: 100,
+      gold: 80,
+      platinum: 60,
+    },
     rarity_weights: legacy.rarity_weights ?? {
-      common: 0.623266875,
-      uncommon: 0.267114375,
-      rare: 0.09893125,
-      legendary: 0.009993056,
-      masterpiece: 0.000694444,
+      common: 15000,
+      uncommon: 5000,
+      rare: 1000,
+      legendary: 30,
+      masterpiece: 1,
     },
     card_style_weights: actualCardStyleWeights,
   };
   const debug = {
     daily_drop_cooldown_minutes: 1,
     daily_drop_count: 20,
+    crate_value_scalar: 1,
+    standard_crate_cost_scalar: 1,
+    foil_crate_cost_scalar: 1,
+    unlocked_crate_cost_scalar: 1,
+    designer_crate_cost_scalar: 1,
+    ultimate_crate_cost_scalar: 1,
+    foil_crate_chance_scalar: 3,
+    unlocked_crate_chance_scalar: 3,
+    art_style_crate_chance_scalar: 3,
+    ultimate_art_style_chance_scalar: 3,
+    ultimate_foil_chance_scalar: 3,
+    ultimate_unlocked_chance_scalar: 3,
+    ultimate_mint_chance_scalar: 3,
+    ultimate_seasonal_chance_scalar: 3,
     card_renderer_probability: 0.25,
     foil_probability: 0.5,
     mint_probability: 0.25,
@@ -846,7 +885,16 @@ async function seedGameplaySettings(database) {
     display_level_interval_minutes: 1,
     display_level_cap: 20,
     condition_decay_interval_minutes: 1,
+    repair_interval_minutes: 1,
+    repair_amount: 0.1,
     npc_spawn_interval_minutes: 1,
+    npc_meeting_reset_interval_minutes: 1,
+    npc_meeting_limits: {
+      bronze: 120,
+      silver: 100,
+      gold: 80,
+      platinum: 60,
+    },
     rarity_weights: {
       common: 1,
       uncommon: 1,
@@ -873,8 +921,7 @@ async function seedGameplaySettings(database) {
     legacy.configs?.actual &&
     legacy.configs.actual.foil_probability === undefined
   ) {
-    setter["gameplay.configs.actual.foil_probability"] =
-      legacyFoilProbability;
+    setter["gameplay.configs.actual.foil_probability"] = 0.01;
   }
   if (
     legacy.configs?.debug &&
@@ -899,7 +946,7 @@ async function seedGameplaySettings(database) {
     legacy.configs?.actual &&
     legacy.configs.actual.card_renderer_probability === undefined
   ) {
-    setter["gameplay.configs.actual.card_renderer_probability"] = 0.01;
+    setter["gameplay.configs.actual.card_renderer_probability"] = 0.05;
   }
   if (
     legacy.configs?.debug &&
@@ -925,7 +972,7 @@ async function seedGameplaySettings(database) {
     legacy.configs?.actual &&
     legacy.configs.actual.mint_probability === undefined
   ) {
-    setter["gameplay.configs.actual.mint_probability"] = 0.0005;
+    setter["gameplay.configs.actual.mint_probability"] = 0.005;
   }
   if (
     legacy.configs?.debug &&

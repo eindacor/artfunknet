@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, type ReactNode, useState } from "react";
 
 import {
   CARD_COSMETICS,
@@ -200,6 +200,7 @@ export default function GameplaySettingsForm({
         <strong>{settings.debugEnabled ? "debug" : "actual"}</strong>.
       </p>
 
+      <ConfigGroup title="Daily drops">
       <SettingField
         description="Minutes between uses of the daily drop button."
         label="Daily drop cooldown"
@@ -226,6 +227,237 @@ export default function GameplaySettingsForm({
         suffix="items"
         value={activeEditor.dailyDropCount}
       />
+      </ConfigGroup>
+
+      <ConfigGroup title="Crate pricing">
+      <SettingField
+        description="Multiplies a crate's estimated total sell-all value to determine its purchase price."
+        label="Crate value scalar"
+        max={10000}
+        min={0.01}
+        onChange={(value) =>
+          updateConfig(selectedConfig, (config) => ({
+            ...config,
+            crateValueScalar: value,
+          }))
+        }
+        step={0.01}
+        suffix="×"
+        value={activeEditor.crateValueScalar}
+      />
+      </ConfigGroup>
+
+      <ConfigGroup title="Standard crate">
+      <SettingField
+        description="Additional price multiplier applied to the Standard crate after expected-value pricing."
+        label="Cost scalar"
+        max={1000}
+        min={0.01}
+        onChange={(value) =>
+          updateConfig(selectedConfig, (config) => ({
+            ...config,
+            standardCrateCostScalar: value,
+          }))
+        }
+        step={0.01}
+        suffix="×"
+        value={activeEditor.standardCrateCostScalar}
+      />
+      </ConfigGroup>
+
+      <ConfigGroup title="Foil crate">
+      <SettingField
+        description="Additional price multiplier applied to the Foil crate after expected-value pricing."
+        label="Cost scalar"
+        max={1000}
+        min={0.01}
+        onChange={(value) =>
+          updateConfig(selectedConfig, (config) => ({
+            ...config,
+            foilCrateCostScalar: value,
+          }))
+        }
+        step={0.01}
+        suffix="×"
+        value={activeEditor.foilCrateCostScalar}
+      />
+      <SettingField
+        description="Multiplies the normal foil chance for the Foil crate."
+        label="Foil chance scalar"
+        max={1000}
+        min={0}
+        onChange={(value) =>
+          updateConfig(selectedConfig, (config) => ({
+            ...config,
+            foilCrateChanceScalar: value,
+          }))
+        }
+        step={0.01}
+        suffix="×"
+        value={activeEditor.foilCrateChanceScalar}
+      />
+      </ConfigGroup>
+
+      <ConfigGroup title="Unlocked crate">
+      <SettingField
+        description="Additional price multiplier applied to the Unlocked crate after expected-value pricing."
+        label="Cost scalar"
+        max={1000}
+        min={0.01}
+        onChange={(value) =>
+          updateConfig(selectedConfig, (config) => ({
+            ...config,
+            unlockedCrateCostScalar: value,
+          }))
+        }
+        step={0.01}
+        suffix="×"
+        value={activeEditor.unlockedCrateCostScalar}
+      />
+      <SettingField
+        description="Multiplies the normal unlocked chance for the Unlocked crate."
+        label="Unlocked chance scalar"
+        max={1000}
+        min={0}
+        onChange={(value) =>
+          updateConfig(selectedConfig, (config) => ({
+            ...config,
+            unlockedCrateChanceScalar: value,
+          }))
+        }
+        step={0.01}
+        suffix="×"
+        value={activeEditor.unlockedCrateChanceScalar}
+      />
+      </ConfigGroup>
+
+      <ConfigGroup title="Designer crate">
+      <SettingField
+        description="Additional price multiplier applied to the Designer crate after expected-value pricing."
+        label="Cost scalar"
+        max={1000}
+        min={0.01}
+        onChange={(value) =>
+          updateConfig(selectedConfig, (config) => ({
+            ...config,
+            designerCrateCostScalar: value,
+          }))
+        }
+        step={0.01}
+        suffix="×"
+        value={activeEditor.designerCrateCostScalar}
+      />
+      <SettingField
+        description="Multiplies the normal alternate card style chance for the Designer crate."
+        label="Art style chance scalar"
+        max={1000}
+        min={0}
+        onChange={(value) =>
+          updateConfig(selectedConfig, (config) => ({
+            ...config,
+            artStyleCrateChanceScalar: value,
+          }))
+        }
+        step={0.01}
+        suffix="×"
+        value={activeEditor.artStyleCrateChanceScalar}
+      />
+      </ConfigGroup>
+
+      <ConfigGroup title="Ultimate crate">
+      <SettingField
+        description="Additional price multiplier applied to the Ultimate crate after expected-value pricing."
+        label="Cost scalar"
+        max={1000}
+        min={0.01}
+        onChange={(value) =>
+          updateConfig(selectedConfig, (config) => ({
+            ...config,
+            ultimateCrateCostScalar: value,
+          }))
+        }
+        step={0.01}
+        suffix="×"
+        value={activeEditor.ultimateCrateCostScalar}
+      />
+      <SettingField
+        description="Multiplies the normal foil chance for the Ultimate crate."
+        label="Foil chance scalar"
+        max={1000}
+        min={0}
+        onChange={(value) =>
+          updateConfig(selectedConfig, (config) => ({
+            ...config,
+            ultimateFoilChanceScalar: value,
+          }))
+        }
+        step={0.01}
+        suffix="×"
+        value={activeEditor.ultimateFoilChanceScalar}
+      />
+      <SettingField
+        description="Multiplies the normal unlocked chance for the Ultimate crate."
+        label="Unlocked chance scalar"
+        max={1000}
+        min={0}
+        onChange={(value) =>
+          updateConfig(selectedConfig, (config) => ({
+            ...config,
+            ultimateUnlockedChanceScalar: value,
+          }))
+        }
+        step={0.01}
+        suffix="×"
+        value={activeEditor.ultimateUnlockedChanceScalar}
+      />
+      <SettingField
+        description="Multiplies the normal Mint chance for the Ultimate crate."
+        label="Mint chance scalar"
+        max={1000}
+        min={0}
+        onChange={(value) =>
+          updateConfig(selectedConfig, (config) => ({
+            ...config,
+            ultimateMintChanceScalar: value,
+          }))
+        }
+        step={0.01}
+        suffix="×"
+        value={activeEditor.ultimateMintChanceScalar}
+      />
+      <SettingField
+        description="Weights seasonal artworks more heavily when the Ultimate crate selects artwork within a rarity."
+        label="Seasonal chance scalar"
+        max={1000}
+        min={0.01}
+        onChange={(value) =>
+          updateConfig(selectedConfig, (config) => ({
+            ...config,
+            ultimateSeasonalChanceScalar: value,
+          }))
+        }
+        step={0.01}
+        suffix="×"
+        value={activeEditor.ultimateSeasonalChanceScalar}
+      />
+      <SettingField
+        description="Multiplies the normal alternate card style chance for the Ultimate crate."
+        label="Art style chance scalar"
+        max={1000}
+        min={0}
+        onChange={(value) =>
+          updateConfig(selectedConfig, (config) => ({
+            ...config,
+            ultimateArtStyleChanceScalar: value,
+          }))
+        }
+        step={0.01}
+        suffix="×"
+        value={activeEditor.ultimateArtStyleChanceScalar}
+      />
+      </ConfigGroup>
+
+      <ConfigGroup title="Generated item properties">
       <SettingField
         description="Chance that a generated item starts with a randomly selected active card style."
         label="Card style probability"
@@ -301,6 +533,9 @@ export default function GameplaySettingsForm({
         suffix="×"
         value={activeEditor.mintValueMultiplier}
       />
+      </ConfigGroup>
+
+      <ConfigGroup title="Gallery and item condition">
       <SettingField
         description="How often displayed artwork settles prorated money and XP."
         label="Gallery money/XP payout interval"
@@ -381,6 +616,9 @@ export default function GameplaySettingsForm({
         suffix="%"
         value={activeEditor.repairAmount * 100}
       />
+      </ConfigGroup>
+
+      <ConfigGroup title="Gallery visitors">
       <SettingField
         description="Length of each NPC generation cycle and visitor lifetime."
         label="NPC spawn interval"
@@ -426,15 +664,17 @@ export default function GameplaySettingsForm({
           value={activeEditor.npcMeetingLimits[quality]}
         />
       ))}
+      </ConfigGroup>
 
+      <ConfigGroup title="Drop distributions">
       <section className="admin-rarity-settings">
-        <label className="admin-rarity-editor">
-          <strong>Rarity weights (JSON)</strong>
-          <small>
-            This is the maximum-level base map. Player-level unlocks and
-            scaling produce the final drop rates. Weights do not need to total
-            100.
-          </small>
+        <label
+          className="admin-rarity-editor"
+          title="This is the maximum-level base map. Player-level unlocks and scaling produce the final drop rates. Weights do not need to total 100."
+        >
+          <strong>
+            Rarity weights (JSON) <span className="admin-config-help">?</span>
+          </strong>
           <textarea
             aria-invalid={!rarityResult.ok}
             onChange={(event) =>
@@ -467,13 +707,14 @@ export default function GameplaySettingsForm({
       </section>
 
       <section className="admin-rarity-settings">
-        <label className="admin-rarity-editor">
-          <strong>Art style weights (JSON)</strong>
-          <small>
-            When the card style probability succeeds, these weights choose the
-            style found on the item. Inactive styles are ignored. Weights do
-            not need to total 100.
-          </small>
+        <label
+          className="admin-rarity-editor"
+          title="When the card style probability succeeds, these weights choose the style found on the item. Inactive styles are ignored. Weights do not need to total 100."
+        >
+          <strong>
+            Art style weights (JSON){" "}
+            <span className="admin-config-help">?</span>
+          </strong>
           <textarea
             aria-invalid={!cardStyleResult.ok}
             onChange={(event) =>
@@ -503,6 +744,7 @@ export default function GameplaySettingsForm({
           <p className="admin-error">{cardStyleResult.error}</p>
         )}
       </section>
+      </ConfigGroup>
 
       <button disabled={busy} type="submit">
         {busy ? "saving..." : "save both configurations"}
@@ -662,10 +904,12 @@ function SettingField({
   onChange: (value: number) => void;
 }) {
   return (
-    <label className="admin-setting">
-      <span>
+    <label className="admin-setting" title={description}>
+      <span className="admin-setting-label">
         <strong>{label}</strong>
-        <small>{description}</small>
+        <span aria-hidden="true" className="admin-config-help">
+          ?
+        </span>
       </span>
       <span className="admin-setting-input">
         <input
@@ -680,5 +924,20 @@ function SettingField({
         {suffix}
       </span>
     </label>
+  );
+}
+
+function ConfigGroup({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="admin-config-group">
+      <h2>{title}</h2>
+      <div>{children}</div>
+    </section>
   );
 }

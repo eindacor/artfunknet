@@ -6,6 +6,7 @@ import {
   amplifyRarityMap,
   calculateItemValues,
   filterActiveArtworks,
+  getArtworkGenerationWeight,
   getGeneratedItemCondition,
   getRarityMap,
   getConfiguredRarityMap,
@@ -231,6 +232,32 @@ test("seasonal artwork is determined by its configured rarity slot", () => {
       { _id: "rare-art", rarity: "common" },
     ),
     false,
+  );
+});
+
+test("seasonal generation scalar increases seasonal artwork weight", () => {
+  const seasonalItems = {
+    common: ["seasonal"],
+    uncommon: [],
+    rare: [],
+    legendary: [],
+    masterpiece: [],
+  };
+  const artwork = {
+    _id: "seasonal",
+    rarity: "common" as const,
+    value_scale: 0.5,
+  };
+
+  assert.equal(
+    getArtworkGenerationWeight(
+      artwork,
+      { seasonal_items: seasonalItems },
+      3,
+    ),
+    getArtworkGenerationWeight(artwork, {
+      seasonal_items: seasonalItems,
+    }) * 3,
   );
 });
 

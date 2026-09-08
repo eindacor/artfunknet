@@ -288,6 +288,7 @@ export type ItemGenerationMap = {
   misprint: number;
   cardStyle: number;
   cardStyles: Readonly<Record<string, number>>;
+  seasonal: number;
 };
 
 export type ItemGenerationProbabilityMultipliers = Partial<
@@ -473,6 +474,9 @@ export async function generateDailyDrop(
   const cardStyleProbability = normalizeProbability(
     generationMap.cardStyle ?? 0,
   );
+  const seasonalArtworkScalar = normalizeGenerationScalar(
+    generationMap.seasonal ?? 1,
+  );
   const artworks = await database
     .collection<Artwork>("artworks")
     .find({ active: true })
@@ -493,19 +497,34 @@ export async function generateDailyDrop(
     const artwork = rollWeighted(
       rarityArtworks.map((candidate) => ({
         value: candidate,
-        weight: 50 + Math.floor((1 - candidate.value_scale) * 50),
+        weight: getArtworkGenerationWeight(
+          candidate,
+          metadata.loot_data,
+          seasonalArtworkScalar,
+        ),
       })),
+    );
+    const artworkGenerationWeight = getArtworkGenerationWeight(
+      artwork,
+      metadata.loot_data,
+      seasonalArtworkScalar,
     );
     items.push(
       createItem({
         artwork,
+        artworkGenerationWeight,
         attributes,
         lootData: metadata.loot_data,
         owner: playerId,
         rarityMap,
         artworkWeightTotal: rarityArtworks.reduce(
           (sum, candidate) =>
-            sum + 50 + Math.floor((1 - candidate.value_scale) * 50),
+            sum +
+            getArtworkGenerationWeight(
+              candidate,
+              metadata.loot_data,
+              seasonalArtworkScalar,
+            ),
           0,
         ),
         now,
@@ -530,6 +549,27 @@ export async function generateDailyDrop(
   return items;
 }
 
+export function getArtworkGenerationWeight(
+  artwork: Pick<Artwork, "_id" | "rarity" | "value_scale">,
+  lootData: Pick<LootData, "seasonal_items">,
+  seasonalArtworkScalar = 1,
+): number {
+  const baseWeight = 50 + Math.floor((1 - artwork.value_scale) * 50);
+  return (
+    baseWeight *
+    (isSeasonalArtwork(lootData, artwork)
+      ? normalizeGenerationScalar(seasonalArtworkScalar)
+      : 1)
+  );
+}
+
+function normalizeGenerationScalar(value: number): number {
+  if (!Number.isFinite(value) || value < 0) {
+    throw new Error("Generation scalar must be a non-negative number.");
+  }
+  return value;
+}
+
 function rollAvailableRarity(
   rarityMap: Record<ArtworkRarity, number>,
   artworksByRarity: Map<ArtworkRarity, Artwork[]>,
@@ -549,6 +589,7 @@ function rollAvailableRarity(
 
 function createItem({
   artwork,
+  artworkGenerationWeight,
   attributes,
   lootData,
   owner,
@@ -570,6 +611,7 @@ function createItem({
   status,
 }: {
   artwork: Artwork;
+  artworkGenerationWeight: number;
   attributes: ItemAttribute[];
   lootData: LootData;
   owner: string;
@@ -670,8 +712,7 @@ function createItem({
   };
   const values = calculateItemValues(base, itemArtwork, lootData);
   const rarityOdds = rarityMap[artwork.rarity];
-  const rarityArtworksWeight = 50 + Math.floor((1 - artwork.value_scale) * 50);
-  let odds = rarityOdds * (rarityArtworksWeight / artworkWeightTotal);
+  let odds = rarityOdds * (artworkGenerationWeight / artworkWeightTotal);
   if (foil) odds *= foilProbability;
   if (mint) odds *= mintProbability;
   if (unlocked) odds *= unlockedProbability;
