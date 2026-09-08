@@ -334,6 +334,8 @@ export default function GameDashboard({
   const [pending, startTransition] = useTransition();
   const {
     markVisitorMet,
+    removeVisitor,
+    refreshVisitors,
     visitors: galleryVisitors,
   } = useGalleryVisitors({
     enabled: section === "collection" || section === "gallery",
@@ -852,6 +854,8 @@ export default function GameDashboard({
       router.refresh();
       return true;
     } catch (meetError) {
+      removeVisitor(npc._id);
+      void refreshVisitors();
       const message =
         meetError instanceof Error
           ? meetError.message

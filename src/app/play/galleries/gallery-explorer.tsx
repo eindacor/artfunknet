@@ -463,6 +463,8 @@ function VisitedGallery({
   const [error, setError] = useState("");
   const {
     markVisitorMet,
+    removeVisitor,
+    refreshVisitors,
     replaceVisitors,
     visitors,
   } = useGalleryVisitors({
@@ -716,6 +718,9 @@ function VisitedGallery({
                       onClick={async () => {
                         if (await onMeetNpc(npc)) {
                           markVisitorMet(npc._id);
+                        } else {
+                          removeVisitor(npc._id);
+                          void refreshVisitors();
                         }
                       }}
                       title={

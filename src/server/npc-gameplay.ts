@@ -333,6 +333,14 @@ export async function refreshNpcSpawns(
   if (operations.length > 0) {
     await database.collection("npcs").bulkWrite(operations, { ordered: false });
   }
+
+  await database.collection("npcs").deleteMany({
+    ...(ownerId ? { owner_id: ownerId } : {}),
+    $or: [
+      { expiration: { $lte: now } },
+      { expiration: { $lte: now.toISOString() } },
+    ],
+  });
 }
 
 export async function getGalleryNpcs(
@@ -342,7 +350,13 @@ export async function getGalleryNpcs(
 ): Promise<GalleryNpc[]> {
   return database
     .collection<GalleryNpc>("npcs")
-    .find({ owner_id: ownerId, expiration: { $gt: now } })
+    .find({
+      owner_id: ownerId,
+      $or: [
+        { expiration: { $gt: now } },
+        { expiration: { $gt: now.toISOString() } },
+      ],
+    })
     .sort({ quality: 1, npc_name: 1 })
     .toArray();
 }
