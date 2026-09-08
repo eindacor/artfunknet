@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server";
 
 import { requireAdminApi } from "@/server/admin-api";
+import { processArtworkImage } from "@/server/artwork-image-processing";
 import {
   ArtworkStorageConfigurationError,
   ArtworkUploadError,
+  deleteArtworkImageRecord,
+  publishArtworkVariants,
   uploadArtworkIntake,
+  verifyArtworkStorageConnection,
   type ArtworkStorageReference,
+  type ArtworkImageRecord,
 } from "@/server/artwork-storage";
 import { getDatabase } from "@/server/mongodb";
 import {
@@ -24,6 +29,7 @@ type Submission = {
     byte_size: number;
     sha256: string;
     storage?: ArtworkStorageReference;
+    variants?: ArtworkImageRecord;
     sources: Array<{
       original_filename: string;
       source_path?: string;
@@ -66,11 +72,34 @@ export async function POST(request: Request) {
     );
   }
 
+  let publishedVariants: ArtworkImageRecord | undefined;
   try {
+    await verifyArtworkStorageConnection();
     const upload = await uploadArtworkIntake(file);
     const database = await getDatabase();
     const collection =
       database.collection<Submission>("artwork_submissions");
+    const existing = await collection.findOne({ _id: upload.digest });
+    if (existing?.status === "approved") {
+      return NextResponse.json(
+        { error: "This image has already been approved." },
+        { status: 409 },
+      );
+    }
+    const processed = await processArtworkImage({
+      artworkId: upload.digest.slice(0, 24),
+      extension: upload.extension,
+      source: upload.bytes,
+    });
+    try {
+      publishedVariants = await publishArtworkVariants({
+        artworkId: upload.digest.slice(0, 24),
+        variants: processed.variants,
+      });
+    } finally {
+      await processed.cleanup();
+    }
+
     const now = new Date();
     const submission: Submission = {
       _id: upload.digest,
@@ -81,6 +110,7 @@ export async function POST(request: Request) {
         byte_size: upload.byteSize,
         sha256: upload.digest,
         storage: upload.storage,
+        variants: publishedVariants,
         sources: [
           {
             original_filename: upload.originalFilename,
@@ -96,14 +126,6 @@ export async function POST(request: Request) {
       },
     };
 
-    const existing = await collection.findOne({ _id: upload.digest });
-    if (existing?.status === "approved") {
-      return NextResponse.json(
-        { error: "This image has already been approved." },
-        { status: 409 },
-      );
-    }
-
     await collection.updateOne(
       { _id: upload.digest },
       { $setOnInsert: submission },
@@ -114,6 +136,7 @@ export async function POST(request: Request) {
       {
         $set: {
           "image.storage": upload.storage,
+          "image.variants": publishedVariants,
         },
         $addToSet: {
           "image.sources": {
@@ -154,6 +177,15 @@ export async function POST(request: Request) {
       { status: existing ? 200 : 201 },
     );
   } catch (error) {
+    if (publishedVariants) {
+      await deleteArtworkImageRecord(publishedVariants).catch((cleanupError) => {
+        logOperationalError(
+          "artwork_intake.variant_cleanup_failed",
+          cleanupError,
+          { operationId },
+        );
+      });
+    }
     logOperationalError("artwork_intake.failed", error, {
       byteSize: file.size,
       contentType: file.type || "unknown",

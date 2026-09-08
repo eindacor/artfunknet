@@ -8,6 +8,7 @@ import {
   deleteArtworkImageRecord,
   publishArtworkVariants,
   readArtworkObject,
+  type ArtworkImageRecord,
   type ArtworkStorageReference,
 } from "@/server/artwork-storage";
 import {
@@ -63,6 +64,7 @@ type Submission = {
     extension: string;
     mime_type: string;
     storage?: ArtworkStorageReference;
+    variants?: ArtworkImageRecord;
     sources: Array<{ source_path?: string }>;
   };
 };
@@ -144,60 +146,66 @@ export async function POST(
     (source): source is { source_path: string } =>
       typeof source.source_path === "string",
   );
-  let sourceImage: Buffer;
-  try {
-    sourceImage = submission.image.storage
-      ? await readArtworkObject(submission.image.storage)
-      : await readArtworkSource(localSources);
-  } catch (error) {
-    logOperationalError("artwork_approval.source_read_failed", error, {
-      operationId,
-      submissionId: id,
-      storageProvider: submission.image.storage?.provider ?? "local",
-    });
-    return NextResponse.json(
-      { error: "The source image could not be read." },
-      { status: 422 },
-    );
-  }
-
   const artworkId = submission._id.slice(0, 24);
-  let processedImage: Awaited<ReturnType<typeof processArtworkImage>>;
-  try {
-    processedImage = await processArtworkImage({
-      artworkId,
-      extension: submission.image.extension,
-      source: sourceImage,
-    });
-  } catch (error) {
-    logOperationalError("artwork_approval.processing_failed", error, {
-      artworkId,
-      extension: submission.image.extension,
-      operationId,
-      sourceByteSize: sourceImage.byteLength,
-      submissionId: id,
-    });
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "The artwork image could not be processed.",
-      },
-      { status: 422 },
-    );
-  }
-
-  let publishedImage:
-    | Awaited<ReturnType<typeof publishArtworkVariants>>
+  let processedImage:
+    | Awaited<ReturnType<typeof processArtworkImage>>
     | undefined;
+  let publishedImage: ArtworkImageRecord | undefined = submission.image.variants;
+  let publishedDuringApproval = false;
   let artworkCreated = false;
   try {
-    publishedImage = await publishArtworkVariants({
-      artworkId,
-      variants: processedImage.variants,
-    });
-    const pixelDimensions = processedImage.variants.full;
+    if (!publishedImage) {
+      let sourceImage: Buffer;
+      try {
+        sourceImage = submission.image.storage
+          ? await readArtworkObject(submission.image.storage)
+          : await readArtworkSource(localSources);
+      } catch (error) {
+        logOperationalError("artwork_approval.source_read_failed", error, {
+          operationId,
+          submissionId: id,
+          storageProvider: submission.image.storage?.provider ?? "local",
+        });
+        return NextResponse.json(
+          { error: "The source image could not be read." },
+          { status: 422 },
+        );
+      }
+
+      try {
+        processedImage = await processArtworkImage({
+          artworkId,
+          extension: submission.image.extension,
+          source: sourceImage,
+        });
+      } catch (error) {
+        logOperationalError("artwork_approval.processing_failed", error, {
+          artworkId,
+          extension: submission.image.extension,
+          operationId,
+          sourceByteSize: sourceImage.byteLength,
+          submissionId: id,
+        });
+        return NextResponse.json(
+          {
+            error:
+              error instanceof Error
+                ? error.message
+                : "The artwork image could not be processed.",
+          },
+          { status: 422 },
+        );
+      }
+      publishedImage = await publishArtworkVariants({
+        artworkId,
+        variants: processedImage.variants,
+      });
+      publishedDuringApproval = true;
+    }
+    if (!publishedImage) {
+      throw new Error("The artwork image variants are unavailable.");
+    }
+    const pixelDimensions = publishedImage.variants.full;
     const calculatedWidth = Number(
       (
         validation.value.height *
@@ -267,7 +275,7 @@ export async function POST(
           );
         });
     }
-    if (publishedImage) {
+    if (publishedImage && publishedDuringApproval) {
       await deleteArtworkImageRecord(publishedImage).catch((cleanupError) => {
         logOperationalError(
           "artwork_approval.storage_rollback_failed",
@@ -293,13 +301,15 @@ export async function POST(
       { status: 500 },
     );
   } finally {
-    await processedImage.cleanup().catch((cleanupError) => {
-      logOperationalError(
-        "artwork_approval.temporary_cleanup_failed",
-        cleanupError,
-        { artworkId, operationId, submissionId: id },
-      );
-    });
+    if (processedImage) {
+      await processedImage.cleanup().catch((cleanupError) => {
+        logOperationalError(
+          "artwork_approval.temporary_cleanup_failed",
+          cleanupError,
+          { artworkId, operationId, submissionId: id },
+        );
+      });
+    }
   }
 
   logOperationalInfo("artwork_approval.completed", {

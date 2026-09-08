@@ -181,6 +181,7 @@ export async function uploadArtworkIntake(file: File) {
   });
 
   return {
+    bytes: upload.bytes,
     digest: upload.digest,
     extension: upload.extension,
     mimeType: upload.mimeType,
