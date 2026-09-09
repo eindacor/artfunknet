@@ -13,7 +13,8 @@
     "db:bootstrap-admin": "node --env-file=.env.production scripts/bootstrap-admin.mjs",
     "db:publish-artwork": "node --env-file=.env.local scripts/publish-approved-artwork.mjs",
     "artwork:manifest": "node --env-file=.env.local scripts/export-artwork-image-manifest.mjs",
-    "test": "node --test"
+    "typecheck": "tsc --noEmit",
+    "test": "tsc --noEmit && node --test"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1123.0",
