@@ -78,6 +78,11 @@ import GalleryExplorer, {
 } from "./galleries/gallery-explorer";
 import GalleryChat from "./galleries/gallery-chat";
 import type { GalleryMetadataSnapshot } from "@/server/gallery-metadata-core";
+import InfoPanel from "@/components/info-panel/info-panel";
+import Attribute from "@/components/attribute/attribute";
+import GalleryStats from "@/components/gallery-stats/gallery-stats";
+import GalleryStat from "@/components/gallery-stat/gallery-stat";
+import DisplayedSummary from "@/components/displayed-summary/displayed-summary";
 
 type PlayerView = {
   screenName: string;
@@ -1760,11 +1765,22 @@ export default function GameDashboard({
         {section === "collection" && collectionItems.length > 0 ? (
           <section className="collection-workspace">
             {galleryMetadata ? (
-              <GalleryMetadataPanel
-                className="collection-gallery-metadata"
-                galleryMetadata={galleryMetadata}
-                galleryRates={galleryRates}
-              />
+              <InfoPanel className="col-span-full">
+                <div className="flex flex-col gap-3">
+                  <header>
+                    <h2 className="info-panel-title">gallery overview</h2>
+                  </header>
+                  <GalleryStats>
+                    <GalleryStat label="Gallery value" value={galleryMetadata.value.toLocaleString()} />
+                    <GalleryStat label="Works displayed" value={galleryMetadata.display_count} />
+                    <GalleryStat label="Attribute score" value={galleryMetadata.score.toLocaleString()} />
+                    <GalleryStat label="Featured value" value={galleryMetadata.featured_value.toLocaleString()} />
+                    <GalleryStat label="Earnings per hour" value={galleryRates.moneyPerHour.toLocaleString()} />
+                    <GalleryStat label="Experience per hour" value={galleryRates.xpPerHour.toLocaleString()} />
+                    <GalleryStat label="Attributes" value={galleryMetadata.attributes.map((attribute, i) => <Attribute key={`${attribute.id}_${i}`} attribute={attribute} displayCapacity={galleryMetadata.display_capacity} />)} />
+                  </GalleryStats>
+                </div>
+              </InfoPanel>
             ) : null}
             <aside className="collection-inventory-panel">
               <section className="collection-sidebar-section">
@@ -1834,9 +1850,11 @@ export default function GameDashboard({
                   <div>
                     <h2>on display</h2>
                   </div>
-                  <span className="collection-count">
-                    {displayed.length}/{player.displayCap}
-                  </span>
+                  <DisplayedSummary
+                    theme="museum"
+                    displayCapacity={galleryMetadata?.display_capacity ?? 0}
+                    rarities={galleryMetadata?.display_rarities ?? []}
+                  />
                 </header>
                 {displayed.length === 0 ? (
                   <p className="collection-sidebar-empty">

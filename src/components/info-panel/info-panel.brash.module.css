@@ -1,0 +1,4 @@
+.panel {
+  border-color: #ddd;
+  box-shadow: 2px 2px color-mix(in srgb,#ddd 25%, white);
+}
