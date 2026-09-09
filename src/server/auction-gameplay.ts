@@ -5,6 +5,7 @@ import { MongoServerError, type Db, type Filter, type Sort } from "mongodb";
 import type { ArtHistorianQuest } from "./art-historian-gameplay.ts";
 import { getAuctionSettlementDisposition } from "./auction-settlement.ts";
 import { deleteCommunityReactions } from "./community-reaction-cleanup.ts";
+import { recordEconomyMetricsSafely } from "./economy-metrics.ts";
 import {
   getPublicAuctionReplenishmentCount,
   PUBLIC_AUCTION_DURATION_MINUTES,
@@ -273,6 +274,20 @@ export async function grantAuctionXpReward(
   );
 
   if (result.modifiedCount !== 1) return null;
+  await recordEconomyMetricsSafely(database, [
+    {
+      amount: xpAmount / Math.max(1, getXpChunk(player.profile.level)),
+      currency: "xp",
+      direction: "earned",
+      source: "auction-xp",
+    },
+    {
+      amount: bonusMoney,
+      currency: "money",
+      direction: "earned",
+      source: "auction-xp",
+    },
+  ]);
 
   return {
     xpGranted: xpAmount,
@@ -674,6 +689,24 @@ export async function settleAuction(
       _id: auction._id,
       settlement_status: "settling",
     });
+    await recordEconomyMetricsSafely(database, [
+      ...(auction.seller_id
+        ? [
+            {
+              amount: auction.current_bid,
+              currency: "money" as const,
+              direction: "earned" as const,
+              source: "auction-sale",
+            },
+          ]
+        : []),
+      {
+        amount: auctionItem.values.actual,
+        currency: "items",
+        direction: "acquired",
+        source: "auction-win",
+      },
+    ]);
     await safelyNotify(database, auction.current_winner_id, {
       kind: "success",
       message: `You won ${auction.item_snapshot.title} for $${auction.current_bid.toLocaleString()}${
@@ -845,10 +878,18 @@ export async function runPrivateAuctionBots(
       auction.current_winner_id &&
       outbidAmount !== null
     ) {
-      await database.collection<AuctionPlayer>("players").updateOne(
+      const refunded = await database.collection<AuctionPlayer>("players").updateOne(
         { _id: auction.current_winner_id },
         { $inc: { "profile.bank_balance": auction.current_bid } },
       );
+      if (refunded.modifiedCount === 1) {
+        await recordEconomyMetricsSafely(database, {
+          amount: auction.current_bid,
+          currency: "money",
+          direction: "earned",
+          source: "auction-refund",
+        });
+      }
       await safelyNotify(database, auction.current_winner_id, {
         kind: "warning",
         message: `You were outbid on ${auction.item_snapshot.title}. The current bid is $${outbidAmount.toLocaleString()}.`,

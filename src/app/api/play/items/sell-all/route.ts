@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { NextResponse } from "next/server";
+import { recordEconomyMetricsSafely } from "@/server/economy-metrics";
 
 import {
   getArchiveRecordArtStyles,
@@ -371,6 +372,12 @@ export async function POST(request: Request) {
       removedByPlayerId: auth.session.playerId,
     });
   }
+  await recordEconomyMetricsSafely(database, {
+    amount,
+    currency: "money",
+    direction: "earned",
+    source: "bulk-item-sale",
+  });
   const message = `Sold ${sellableItems.length} unclaimed ${sellableItems.length === 1 ? "artwork" : "artworks"} for $${amount.toLocaleString()}${caughtIds.size > 0 ? `; ${getBulkForgeryMessage(destroyedIds.length, identifiedIds.size, false)}` : ""}.`;
   return NextResponse.json({
     status: "ok",

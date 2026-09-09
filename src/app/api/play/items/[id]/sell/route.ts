@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { recordEconomyMetricsSafely } from "@/server/economy-metrics";
 import type { GameItem } from "@/server/gameplay";
 import { deleteCommunityReactions } from "@/server/community-reaction-cleanup";
 import {
@@ -159,6 +160,12 @@ export async function POST(
     artworkTitle: hydratedItem.artwork.title,
     method: "sale",
     removedByPlayerId: auth.session.playerId,
+  });
+  await recordEconomyMetricsSafely(database, {
+    amount,
+    currency: "money",
+    direction: "earned",
+    source: "item-sale",
   });
 
   return NextResponse.json({ status: "ok", amount });

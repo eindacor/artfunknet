@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { recordEconomyMetricsSafely } from "@/server/economy-metrics";
 
 import {
   calculateHistorianClaimXp,
@@ -8,6 +9,7 @@ import {
 import {
   applyXp,
   getCapsForLevel,
+  getXpChunk,
 } from "@/server/collection-gameplay";
 import {
   getGameplayGenerationMap,
@@ -323,6 +325,20 @@ export async function POST(
     generatedRewardItems.length > 0
       ? await hydrateGameItems(database, generatedRewardItems)
       : [];
+  await recordEconomyMetricsSafely(database, [
+    {
+      amount: moneyReward,
+      currency: "money",
+      direction: "earned",
+      source: "quest-reward",
+    },
+    {
+      amount: xpReward / Math.max(1, getXpChunk(player.profile.level)),
+      currency: "xp",
+      direction: "earned",
+      source: "quest-reward",
+    },
+  ]);
   return NextResponse.json({
     status: "ok",
     message: `Quest complete: $${moneyReward.toLocaleString()} and ${xpReward.toLocaleString()} XP awarded${

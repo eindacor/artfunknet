@@ -1,4 +1,5 @@
 import type { Db } from "mongodb";
+import { recordEconomyMetricsSafely } from "./economy-metrics.ts";
 
 import {
   applyXp,
@@ -124,6 +125,12 @@ async function grantBenefactorReward(
   if (result.modifiedCount !== 1) {
     throw new Error("The Benefactor donation could not be applied.");
   }
+  await recordEconomyMetricsSafely(database, {
+    amount: rewardAmount,
+    currency: "money",
+    direction: "earned",
+    source: "benefactor-reward",
+  });
 
   return createRewardInteraction(npc, "money", rewardAmount, 0);
 }
@@ -204,6 +211,20 @@ async function grantEnthusiastReward(
   if (result.modifiedCount !== 1) {
     throw new Error("The Art Enthusiast XP reward could not be applied.");
   }
+  await recordEconomyMetricsSafely(database, [
+    {
+      amount: rewardAmount / Math.max(1, getXpChunk(player.profile.level)),
+      currency: "xp",
+      direction: "earned",
+      source: "enthusiast-reward",
+    },
+    {
+      amount: bonusMoney,
+      currency: "money",
+      direction: "earned",
+      source: "enthusiast-reward",
+    },
+  ]);
 
   return createRewardInteraction(npc, "xp", rewardAmount, bonusMoney);
 }

@@ -1,4 +1,5 @@
 import type { Db } from "mongodb";
+import { recordEconomyMetricsSafely } from "./economy-metrics.ts";
 
 import {
   ARTWORK_RARITIES,
@@ -333,6 +334,7 @@ export async function settleGalleryEarnings(
   let moneyAccrued = player.profile.gallery_money_remainder ?? 0;
   let xpAccrued = player.profile.gallery_xp_remainder ?? 0;
   let xpEarned = 0;
+  let xpChunksEarned = 0;
 
   const originalForgerXp = new Map<string, number>();
   const activeIntervalsByItem = new Map<string, number>();
@@ -408,6 +410,7 @@ export async function settleGalleryEarnings(
     const awardedXp = Math.floor(xpAccrued);
     xpAccrued -= awardedXp;
     xpEarned += awardedXp;
+    xpChunksEarned += awardedXp / Math.max(1, getXpChunk(level));
 
     const progress = applyXp(level, xp, awardedXp);
 
@@ -532,8 +535,27 @@ export async function settleGalleryEarnings(
   }
 
   for (const [forgerId, amount] of originalForgerXp) {
-    await awardForgeryXpAmount(database, forgerId, amount);
+    await awardForgeryXpAmount(
+      database,
+      forgerId,
+      amount,
+      "forgery-display",
+    );
   }
+  await recordEconomyMetricsSafely(database, [
+    {
+      amount: money,
+      currency: "money",
+      direction: "earned",
+      source: "gallery-payout",
+    },
+    {
+      amount: xpChunksEarned,
+      currency: "xp",
+      direction: "earned",
+      source: "gallery-payout",
+    },
+  ]);
 
   const conditionDecayChance =
     1 -

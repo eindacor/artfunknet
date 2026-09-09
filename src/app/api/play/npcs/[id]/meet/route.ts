@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { recordEconomyMetricsSafely } from "@/server/economy-metrics";
 
 import {
   getGameplayGenerationMap,
@@ -490,6 +491,21 @@ export async function POST(
             );
             throw new Error("The Art Expert XP bonus could not be applied.");
           }
+          await recordEconomyMetricsSafely(database, [
+            {
+              amount:
+                xpBonus / Math.max(1, getXpChunk(player.profile.level)),
+              currency: "xp",
+              direction: "earned",
+              source: "art-expert-xp",
+            },
+            {
+              amount: bonusMoney,
+              currency: "money",
+              direction: "earned",
+              source: "art-expert-xp-conversion",
+            },
+          ]);
         }
         return NextResponse.json({
           status: "ok",
@@ -550,6 +566,20 @@ export async function POST(
       if (playerUpdate.modifiedCount !== 1) {
         throw new Error("The Art Expert reward could not be applied.");
       }
+      await recordEconomyMetricsSafely(database, [
+        {
+          amount: xpBonus / Math.max(1, getXpChunk(player.profile.level)),
+          currency: "xp",
+          direction: "earned",
+          source: "art-expert-xp",
+        },
+        {
+          amount: bonusMoney,
+          currency: "money",
+          direction: "earned",
+          source: "art-expert-xp-conversion",
+        },
+      ]);
 
       return NextResponse.json({
         status: "ok",
@@ -1312,6 +1342,7 @@ export async function POST(
       }
 
       let rewardResult;
+      let collectorBonusMoney = 0;
       if (reward.type === "xp") {
         const xpResult = applyXp(
           currentPlayer.profile.level,
@@ -1323,7 +1354,7 @@ export async function POST(
           player._id,
           "MONEY_FOR_XP",
         );
-        const bonusMoney = Math.floor(
+        collectorBonusMoney = Math.floor(
           reward.amount *
             getLegendaryNumberParameter(
               moneyForXpEffect,
@@ -1350,7 +1381,7 @@ export async function POST(
             },
             $inc: {
               "profile.lottery_tickets": xpResult.lotteryTickets,
-              "profile.bank_balance": bonusMoney,
+              "profile.bank_balance": collectorBonusMoney,
             },
           },
         );
@@ -1363,6 +1394,29 @@ export async function POST(
       if (rewardResult.modifiedCount !== 1) {
         throw new Error("The Collector reward could not be applied.");
       }
+      await recordEconomyMetricsSafely(database, [
+        reward.type === "xp"
+          ? {
+              amount:
+                reward.amount /
+                Math.max(1, getXpChunk(currentPlayer.profile.level)),
+              currency: "xp",
+              direction: "earned",
+              source: "art-collector",
+            }
+          : {
+              amount: reward.amount,
+              currency: "money",
+              direction: "earned",
+              source: "art-collector",
+            },
+        {
+          amount: collectorBonusMoney,
+          currency: "money",
+          direction: "earned",
+          source: "art-collector-xp-conversion",
+        },
+      ]);
       if (!keptItem) {
         await deleteCommunityReactions(database, "item", [target._id]);
         await rewardUndetectedForgeryExit(database, hydratedTarget, {

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { NextResponse } from "next/server";
+import { recordEconomyMetricsSafely } from "@/server/economy-metrics";
 
 import {
   getCrateOffer,
@@ -124,6 +125,12 @@ export async function POST(
       },
       { $set: { source: `${offer.quality} crate` } },
     );
+    await recordEconomyMetricsSafely(database, {
+      amount: offer.cost,
+      currency: "money",
+      direction: "spent",
+      source: "crate-purchase",
+    });
     return NextResponse.json({
       status: "ok",
       itemCount: items.length,

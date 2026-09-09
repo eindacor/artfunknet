@@ -6297,6 +6297,29 @@ a.welcome-button {
   color: #aaa4af;
 }
 
+.admin-metrics-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-metrics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.admin-metrics-table th,
+.admin-metrics-table td {
+  border-bottom: 1px solid rgb(255 255 255 / 14%);
+  padding: 0.65rem;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.admin-metrics-table th:nth-child(-n + 3),
+.admin-metrics-table td:nth-child(-n + 3) {
+  text-align: left;
+}
+
 .admin-chat-report-list {
   display: grid;
   gap: 14px;

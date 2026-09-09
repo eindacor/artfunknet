@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { AUCTION_HOUSE_OWNER_ID } from "@/server/auction-gameplay";
 import { deleteCommunityReactions } from "@/server/community-reaction-cleanup";
+import { recordEconomyMetricsSafely } from "@/server/economy-metrics";
 import {
   awardForgeryXpChunk,
   getRedemptionPermission,
@@ -58,6 +59,7 @@ export async function POST(
   );
   if (reserved.modifiedCount !== 1) return NextResponse.json({ error: "The artwork changed before it could be reported." }, { status: 409 });
   let claimantCredited = false;
+  let liableCharged = false;
   try {
     const claimant = await database.collection<Player>("players").updateOne(
       { _id: auth.session.playerId, active: true },
@@ -65,7 +67,12 @@ export async function POST(
     );
     if (claimant.modifiedCount !== 1) throw new Error("The claimant refund failed.");
     claimantCredited = true;
-    await awardForgeryXpChunk(database, auth.session.playerId, liableIsSystem ? 2 : 1);
+    await awardForgeryXpChunk(
+      database,
+      auth.session.playerId,
+      liableIsSystem ? 2 : 1,
+      "forgery-report",
+    );
 
     if (liableIsSystem) {
       const removed = await database.collection<GameItem>("items").deleteOne({ _id: item._id, status: "collector_pending" });
@@ -76,6 +83,7 @@ export async function POST(
         { _id: liable, active: true },
         { $inc: { "profile.bank_balance": -item.authenticity.fee } },
       );
+      liableCharged = charged.modifiedCount === 1;
       const transferred = await database.collection<GameItem>("items").updateOne(
         { _id: item._id, owner: auth.session.playerId, status: "collector_pending" },
         {
@@ -123,6 +131,24 @@ export async function POST(
     console.error("Unable to redeem reported forgery", error);
     return NextResponse.json({ error: "The forgery report could not be settled." }, { status: 500 });
   }
+  await recordEconomyMetricsSafely(database, [
+    {
+      amount: refund,
+      currency: "money",
+      direction: "earned",
+      source: "forgery-report",
+    },
+    ...(liableCharged
+      ? [
+          {
+            amount: item.authenticity.fee,
+            currency: "money" as const,
+            direction: "spent" as const,
+            source: "forgery-liability",
+          },
+        ]
+      : []),
+  ]);
   return NextResponse.json({
     status: "ok",
     refund,

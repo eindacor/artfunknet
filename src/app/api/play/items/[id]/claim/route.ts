@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { recordEconomyMetricsSafely } from "@/server/economy-metrics";
 import { getDatabase } from "@/server/mongodb";
 import {
   getUnexpiredItemFilter,
@@ -23,6 +24,7 @@ type ItemRecord = {
   vintage?: boolean;
   date_received?: string;
   expires_at?: string;
+  values: { actual: number };
 };
 
 export async function POST(
@@ -104,6 +106,12 @@ export async function POST(
       { status: 409 },
     );
   }
+  await recordEconomyMetricsSafely(database, {
+    amount: item.values.actual,
+    currency: "items",
+    direction: "acquired",
+    source: "item-claim",
+  });
 
   return NextResponse.json({ status: "ok" });
 }

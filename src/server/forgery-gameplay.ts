@@ -1,4 +1,5 @@
 import type { Db } from "mongodb";
+import { recordEconomyMetricsSafely } from "./economy-metrics.ts";
 
 import {
   ARTWORK_RARITIES,
@@ -439,6 +440,7 @@ export async function rewardUndetectedForgeryExit(
     database,
     forgerId,
     multiplier,
+    "forgery-offload",
   );
   if (amount === 0) return 0;
 
@@ -466,6 +468,7 @@ export async function awardForgeryXpChunk(
   database: Db,
   playerId: string,
   multiplier = 0.8,
+  source = "forgery-reward",
 ): Promise<number> {
   const player = await database.collection<{
     _id: string;
@@ -474,13 +477,14 @@ export async function awardForgeryXpChunk(
   }>("players").findOne({ _id: playerId, active: true });
   if (!player) return 0;
   const amount = Math.floor(getXpChunk(player.profile.level) * multiplier);
-  return awardForgeryXpAmount(database, playerId, amount);
+  return awardForgeryXpAmount(database, playerId, amount, source);
 }
 
 export async function awardForgeryXpAmount(
   database: Db,
   playerId: string,
   amount: number,
+  source = "forgery-reward",
 ): Promise<number> {
   amount = Math.max(0, Math.floor(amount));
   const player = await database.collection<{
@@ -505,5 +509,12 @@ export async function awardForgeryXpAmount(
       $inc: { "profile.lottery_tickets": progress.lotteryTickets },
     },
   );
-  return updated.modifiedCount === 1 ? amount : 0;
+  if (updated.modifiedCount !== 1) return 0;
+  await recordEconomyMetricsSafely(database, {
+    amount: amount / Math.max(1, getXpChunk(player.profile.level)),
+    currency: "xp",
+    direction: "earned",
+    source,
+  });
+  return amount;
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { recordEconomyMetricsSafely } from "@/server/economy-metrics";
 import type { GameItem } from "@/server/gameplay";
 import {
   getDisplayedLegendaryEffect,
@@ -144,6 +145,20 @@ export async function POST(
       { status: 409 },
     );
   }
+  await recordEconomyMetricsSafely(database, [
+    {
+      amount,
+      currency: "money",
+      direction: "spent",
+      source: "dealer-purchase",
+    },
+    {
+      amount: item.values.actual,
+      currency: "items",
+      direction: "acquired",
+      source: "item-purchase",
+    },
+  ]);
 
   return NextResponse.json({
     status: "ok",

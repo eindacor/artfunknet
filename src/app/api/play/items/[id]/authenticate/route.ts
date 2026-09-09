@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { recordEconomyMetricsSafely } from "@/server/economy-metrics";
 
 import {
   calculateAuthenticationCost,
@@ -72,6 +73,12 @@ export async function POST(
       { status: 409 },
     );
   }
+  await recordEconomyMetricsSafely(database, {
+    amount: cost,
+    currency: "money",
+    direction: "spent",
+    source: "authentication",
+  });
   return NextResponse.json({
     status: "ok",
     cost,

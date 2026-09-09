@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
+import { recordEconomyMetricsSafely } from "@/server/economy-metrics";
 
 import type { PlayerArtworkArchive } from "@/server/archive-gameplay";
 import {
@@ -176,6 +177,12 @@ export async function POST(
     console.error("Unable to forge archived artwork", error);
     return NextResponse.json({ error: "The forgery could not be completed." }, { status: 500 });
   }
+  await recordEconomyMetricsSafely(database, {
+    amount: cost,
+    currency: "money",
+    direction: "spent",
+    source: "forge",
+  });
   return NextResponse.json({
     status: "ok",
     cost,

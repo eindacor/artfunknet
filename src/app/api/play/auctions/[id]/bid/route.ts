@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { recordEconomyMetricsSafely } from "@/server/economy-metrics";
 
 import {
   type Auction,
@@ -133,7 +134,7 @@ export async function POST(
   }
 
   if (auction.current_winner_id && !sameWinner) {
-    await database.collection<Player>("players").updateOne(
+    const refunded = await database.collection<Player>("players").updateOne(
       { _id: auction.current_winner_id },
       { $inc: { "profile.bank_balance": auction.current_bid } },
     );
@@ -153,7 +154,22 @@ export async function POST(
         error,
       );
     }
+    if (refunded.modifiedCount === 1) {
+      await recordEconomyMetricsSafely(database, {
+        amount: auction.current_bid,
+        currency: "money",
+        direction: "earned",
+        source: "auction-refund",
+      });
+    }
   }
+
+  await recordEconomyMetricsSafely(database, {
+    amount: charge,
+    currency: "money",
+    direction: "spent",
+    source: "auction-bid",
+  });
 
   if (buyingNow) {
     const settled = await settleAuction(database, {

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { NextResponse } from "next/server";
+import { recordEconomyMetricsSafely } from "@/server/economy-metrics";
 
 import {
   createArchiveEntry,
@@ -244,6 +245,22 @@ export async function POST(
 
     archiveCompleted = true;
     await deleteCommunityReactions(database, "item", [item._id]);
+    if (chargedAmount > 0) {
+      await recordEconomyMetricsSafely(database, [
+        {
+          amount: chargedAmount,
+          currency: "money",
+          direction: "spent",
+          source: "archive-purchase",
+        },
+        {
+          amount: item.values.actual,
+          currency: "items",
+          direction: "acquired",
+          source: "item-archive-purchase",
+        },
+      ]);
+    }
     const archiveLabel = getArchiveCategories(item).join(" + ");
     const artStyle = getArchiveArtStyle(item);
     return NextResponse.json({
