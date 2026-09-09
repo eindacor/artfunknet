@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import {
   createAuction,
+  grantAuctionXpReward,
   PUBLIC_AUCTION_DURATIONS,
   settleExpiredAuctions,
 } from "@/server/auction-gameplay";
@@ -16,6 +17,8 @@ type Player = {
   screen_name: string;
   active: boolean;
   profile: {
+    level: number;
+    xp: number;
     auction_cap: number;
     market_expert?: { expiration?: string };
   };
@@ -139,6 +142,7 @@ export async function POST(
       buyNow,
       durationMinutes,
     });
+    await grantAuctionXpReward(database, player, marketExpert);
     await database.collection<Player>("players").updateOne(
       { _id: player._id },
       { $set: { "profile.last_activity": new Date().toISOString() } },

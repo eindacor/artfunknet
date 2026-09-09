@@ -57,3 +57,61 @@ test("settlement never classifies recorded bids as unsold", () => {
     "unresolved-bid",
   );
 });
+
+import { grantAuctionXpReward } from "./auction-gameplay.ts";
+
+test("grantAuctionXpReward returns null when marketExpert is false", async () => {
+  const result = await grantAuctionXpReward(
+    {} as any,
+    { _id: "p1", profile: { level: 1, xp: 0 } },
+    false,
+  );
+  assert.equal(result, null);
+});
+
+test("grantAuctionXpReward awards XP when marketExpert is true and XP_FOR_AUCTIONS is displayed", async () => {
+  let updatedPlayer: any = null;
+  const mockDb: any = {
+    collection: (name: string) => {
+      if (name === "items") {
+        return {
+          find: () => ({
+            project: () => ({
+              toArray: async () => [{ active_unique_attribute: "attr-xp-auc" }],
+            }),
+          }),
+        };
+      }
+      if (name === "unique_attributes") {
+        return {
+          findOne: async (query: any) => {
+            if (query.code === "XP_FOR_AUCTIONS") {
+              return { _id: "attr-xp-auc", code: "XP_FOR_AUCTIONS", active: true, parameters: {} };
+            }
+            return null;
+          },
+        };
+      }
+      if (name === "players") {
+        return {
+          updateOne: async (query: any, update: any) => {
+            updatedPlayer = { query, update };
+            return { modifiedCount: 1 };
+          },
+        };
+      }
+      return {};
+    },
+  };
+
+  const result = await grantAuctionXpReward(
+    mockDb,
+    { _id: "p1", profile: { level: 1, xp: 0 } },
+    true,
+  );
+
+  assert.notEqual(result, null);
+  assert.equal(result?.xpGranted, 58);
+  assert.equal(result?.bonusMoneyGranted, 0);
+  assert.equal(updatedPlayer.update.$set["profile.xp"], 58);
+});
