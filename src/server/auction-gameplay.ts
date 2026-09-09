@@ -248,7 +248,7 @@ export async function grantAuctionXpReward(
       ),
   );
 
-  const result = await database.collection("players").updateOne(
+  const result = await database.collection<AuctionPlayer>("players").updateOne(
     {
       _id: player._id,
       active: true,
