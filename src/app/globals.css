@@ -2881,8 +2881,8 @@ a.welcome-button {
 .visited-gallery-workspace {
   display: grid;
   grid-template-areas:
-    "player player preview"
-    "chat gallery gallery";
+    "gallery gallery chat"
+    "player player preview";
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
   align-items: start;
@@ -3173,10 +3173,10 @@ a.welcome-button {
 
   .visited-gallery-workspace {
     grid-template-areas:
-      "player"
-      "preview"
+      "gallery"
       "chat"
-      "gallery";
+      "player"
+      "preview";
     grid-template-columns: 1fr;
   }
 
