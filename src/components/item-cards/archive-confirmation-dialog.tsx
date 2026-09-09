@@ -29,6 +29,9 @@ export default function ArchiveConfirmationDialog({
     item.archivedCategories,
     item.archivedArtStyles,
   );
+  const highRarity =
+    item.artwork.rarity === "legendary" ||
+    item.artwork.rarity === "masterpiece";
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -56,6 +59,11 @@ export default function ArchiveConfirmationDialog({
           className="fa fa-archive archive-confirmation-mark"
         />
         <h2 id="archive-confirmation-title">Archive this item?</h2>
+        {highRarity ? (
+          <p className="valuable-item-warning">
+            Are you sure? This is a {item.artwork.rarity} item.
+          </p>
+        ) : null}
         {additions.modifiers.length > 0 ? (
           <ArchivedCategoryBadges categories={additions.modifiers} />
         ) : null}

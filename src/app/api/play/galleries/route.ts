@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { Sort } from "mongodb";
 
 import {
   ensureGalleryMetadata,
@@ -8,6 +9,7 @@ import {
 import { getCommunityReactionSummaries } from "@/server/community-reactions";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
+import type { GallerySort } from "@/server/player-view-settings";
 
 const EXPANDED_PAGE_SIZE = 12;
 const LIST_PAGE_SIZE = 30;
@@ -18,6 +20,7 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const view = searchParams.get("view") === "list" ? "list" : "expanded";
+  const sort = getGallerySort(searchParams.get("sort"));
   const pageSize =
     view === "list" ? LIST_PAGE_SIZE : EXPANDED_PAGE_SIZE;
   const page = Math.max(
@@ -44,7 +47,7 @@ export async function GET(request: Request) {
   const [records, total] = await Promise.all([
     galleries
       .find(filter)
-      .sort({ value: -1, owner: 1 })
+      .sort(getGallerySortDocument(sort))
       .skip((page - 1) * pageSize)
       .limit(pageSize)
       .toArray(),
@@ -66,6 +69,27 @@ export async function GET(request: Request) {
     page,
     pageSize,
   });
+}
+
+function getGallerySort(value: string | null): GallerySort {
+  return value === "score" ||
+    value === "works" ||
+    value === "name"
+    ? value
+    : "value";
+}
+
+function getGallerySortDocument(sort: GallerySort): Sort {
+  switch (sort) {
+    case "score":
+      return { score: -1 as const, owner: 1 as const };
+    case "works":
+      return { display_count: -1 as const, owner: 1 as const };
+    case "name":
+      return { owner: 1 as const };
+    case "value":
+      return { value: -1 as const, owner: 1 as const };
+  }
 }
 
 function escapeRegex(value: string): string {

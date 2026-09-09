@@ -57,6 +57,10 @@ import { getPlayerAuctionEscrow } from "@/server/auction-gameplay";
 import { getPublicItemView } from "@/server/public-showcase";
 import { settlePlayerItemRepairs } from "@/server/preservationist-gameplay";
 import { getAdminSession, requirePlayer } from "@/server/session";
+import {
+  getPlayerViewSettings,
+  type PlayerViewSettings,
+} from "@/server/player-view-settings";
 
 import GameDashboard from "./game-dashboard";
 import PlayerHeader from "./player-header";
@@ -94,6 +98,7 @@ type Player = {
     card_style_consumables?: Record<string, number>;
     npcs_met?: Partial<Record<NpcQuality, number>>;
     market_expert?: { expiration?: string };
+    view_settings?: PlayerViewSettings;
   };
 };
 
@@ -506,6 +511,7 @@ export default async function PlayerPage({
             player.profile.card_style_consumables,
           ),
           completedQuests: player.profile.completed_quests ?? 0,
+          viewSettings: getPlayerViewSettings(player.profile.view_settings),
         }}
       />
     </div>

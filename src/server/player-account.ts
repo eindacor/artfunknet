@@ -2,6 +2,8 @@ import { randomBytes } from "node:crypto";
 
 import type { Db } from "mongodb";
 
+import { DEFAULT_PLAYER_VIEW_SETTINGS } from "./player-view-settings.ts";
+
 export const RESERVED_PLAYER_NAMES = ["artfunkel"] as const;
 
 export type PlayerAccountRecord = {
@@ -112,6 +114,12 @@ export function createDefaultPlayerProfile(
     npcs_met: { bronze: 0, silver: 0, gold: 0, platinum: 0 },
     completed_quests: 0,
     market_expert: { expiration: new Date(0).toISOString() },
+    view_settings: {
+      ...DEFAULT_PLAYER_VIEW_SETTINGS,
+      bulkSaleProtections: {
+        ...DEFAULT_PLAYER_VIEW_SETTINGS.bulkSaleProtections,
+      },
+    },
   };
 }
 

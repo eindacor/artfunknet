@@ -3,7 +3,8 @@ import type { Db, Filter } from "mongodb";
 import type { GameItem } from "./gameplay.ts";
 
 export const UNCLAIMED_ITEM_EXPIRATION_MS = 60 * 60 * 1000;
-export const DEALER_ITEM_EXPIRATION_MS = 20 * 60 * 1000;
+export const CRATE_ITEM_EXPIRATION_MS = 30 * 60 * 1000;
+export const NPC_OFFER_ITEM_EXPIRATION_MS = 10 * 60 * 1000;
 
 type ItemExpirationGlobal = typeof globalThis & {
   artfunkItemExpirationIndexes?: Promise<void>;
@@ -27,8 +28,14 @@ export function getUnclaimedItemExpiration(now: Date): string {
   return new Date(now.getTime() + UNCLAIMED_ITEM_EXPIRATION_MS).toISOString();
 }
 
-export function getDealerItemExpiration(now: Date): string {
-  return new Date(now.getTime() + DEALER_ITEM_EXPIRATION_MS).toISOString();
+export function getCrateItemExpiration(now: Date): string {
+  return new Date(now.getTime() + CRATE_ITEM_EXPIRATION_MS).toISOString();
+}
+
+export function getNpcOfferItemExpiration(now: Date): string {
+  return new Date(
+    now.getTime() + NPC_OFFER_ITEM_EXPIRATION_MS,
+  ).toISOString();
 }
 
 export function getExpiredTransientItemFilter(
@@ -48,7 +55,17 @@ export function getExpiredTransientItemFilter(
       {
         status: "unclaimed",
         expires_at: { $exists: false },
-        source: { $regex: /(?:crate|daily drop)/i },
+        source: { $regex: /crate/i },
+        date_received: {
+          $lte: new Date(
+            now.getTime() - CRATE_ITEM_EXPIRATION_MS,
+          ).toISOString(),
+        },
+      },
+      {
+        status: "unclaimed",
+        expires_at: { $exists: false },
+        source: "daily drop",
         date_received: {
           $lte: new Date(
             now.getTime() - UNCLAIMED_ITEM_EXPIRATION_MS,
@@ -61,7 +78,17 @@ export function getExpiredTransientItemFilter(
         source: "art dealer",
         date_received: {
           $lte: new Date(
-            now.getTime() - DEALER_ITEM_EXPIRATION_MS,
+            now.getTime() - NPC_OFFER_ITEM_EXPIRATION_MS,
+          ).toISOString(),
+        },
+      },
+      {
+        status: "unclaimed",
+        expires_at: { $exists: false },
+        source: "art donor",
+        date_received: {
+          $lte: new Date(
+            now.getTime() - NPC_OFFER_ITEM_EXPIRATION_MS,
           ).toISOString(),
         },
       },

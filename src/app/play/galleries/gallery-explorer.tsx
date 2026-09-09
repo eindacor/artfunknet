@@ -24,6 +24,11 @@ import type { ArtworkRarity } from "@/server/gameplay";
 import type { HydratedGameItem } from "@/server/item-artwork";
 import type { AuctionView } from "@/server/auction-gameplay";
 import type { NpcRewardInteraction } from "@/server/standard-npc-rewards";
+import type {
+  GallerySort,
+  GalleryViewMode,
+  PlayerViewSettings,
+} from "@/server/player-view-settings";
 
 import { AuctionBidDialog } from "../auctions/auction-house";
 import GalleryChat from "./gallery-chat";
@@ -53,8 +58,6 @@ type GalleryResponse = {
   pageSize: number;
 };
 
-type GalleryViewMode = "expanded" | "list";
-
 export type GalleryNpcView = GalleryVisitorView;
 
 const EMPTY_GALLERY_VISITORS: GalleryNpcView[] = [];
@@ -76,14 +79,19 @@ type GalleryDetailResponse = {
 export default function GalleryExplorer({
   initialBankBalance,
   initialGalleryId,
+  initialSort,
+  initialViewMode,
   meetingNpc,
   npcSpawnIntervalMinutes,
   npcRewardEffects,
   onMeetNpc,
+  onViewSettingsChange,
   viewerId,
 }: {
   initialBankBalance: number;
   initialGalleryId: string | null;
+  initialSort: GallerySort;
+  initialViewMode: GalleryViewMode;
   meetingNpc: string | null;
   npcSpawnIntervalMinutes: number;
   npcRewardEffects: Record<
@@ -91,13 +99,16 @@ export default function GalleryExplorer({
     NpcRewardInteraction & { animationId: number }
   >;
   onMeetNpc: (npc: GalleryNpcView) => Promise<boolean>;
+  onViewSettingsChange: (settings: Partial<PlayerViewSettings>) => void;
   viewerId: string;
 }) {
   const router = useRouter();
   const [selectedGalleryId, setSelectedGalleryId] = useState<string | null>(
     initialGalleryId,
   );
-  const [viewMode, setViewMode] = useState<GalleryViewMode>("expanded");
+  const [viewMode, setViewMode] =
+    useState<GalleryViewMode>(initialViewMode);
+  const [sort, setSort] = useState<GallerySort>(initialSort);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [data, setData] = useState<GalleryResponse>({
@@ -113,11 +124,12 @@ export default function GalleryExplorer({
   const query = useMemo(() => {
     const params = new URLSearchParams({
       view: viewMode,
+      sort,
       page: page.toString(),
     });
     if (search.trim()) params.set("search", search.trim());
     return params.toString();
-  }, [page, search, viewMode]);
+  }, [page, search, sort, viewMode]);
 
   const load = useCallback(
     async (refresh = false) => {
@@ -218,6 +230,23 @@ export default function GalleryExplorer({
             value={search}
           />
         </label>
+        <label>
+          <span>Sort galleries</span>
+          <select
+            onChange={(event) => {
+              const next = event.target.value as GallerySort;
+              setPage(1);
+              setSort(next);
+              onViewSettingsChange({ gallerySort: next });
+            }}
+            value={sort}
+          >
+            <option value="value">Gallery value</option>
+            <option value="score">Attribute score</option>
+            <option value="works">Works displayed</option>
+            <option value="name">Player name</option>
+          </select>
+        </label>
       </section>
 
       {error ? <p className="auction-house-error">{error}</p> : null}
@@ -233,6 +262,7 @@ export default function GalleryExplorer({
               onClick={() => {
                 setPage(1);
                 setViewMode("expanded");
+                onViewSettingsChange({ galleryView: "expanded" });
               }}
               type="button"
             >
@@ -243,6 +273,7 @@ export default function GalleryExplorer({
               onClick={() => {
                 setPage(1);
                 setViewMode("list");
+                onViewSettingsChange({ galleryView: "list" });
               }}
               type="button"
             >

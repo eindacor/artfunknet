@@ -21,6 +21,7 @@ import ArtStyleDialog from "@/components/item-cards/art-style-dialog";
 import type { CardStyleInventory } from "@/components/item-cards/catalog";
 import ItemCard from "@/components/item-cards/item-card";
 import MintLossConfirmationDialog from "@/components/item-cards/mint-loss-confirmation-dialog";
+import ValuableItemConfirmationDialog from "@/components/item-cards/valuable-item-confirmation-dialog";
 import { resolveCardRendererId } from "@/components/item-cards/selection";
 import { ratingColor } from "@/components/item-cards/shared";
 import StandardItemDialog from "@/components/item-cards/standard-item-dialog";
@@ -64,6 +65,10 @@ import {
   type NpcQuality,
 } from "@/server/npc-gameplay";
 import type { NpcRewardInteraction } from "@/server/standard-npc-rewards";
+import type {
+  InventorySort,
+  PlayerViewSettings,
+} from "@/server/player-view-settings";
 
 import AuctionHouse from "./auctions/auction-house";
 import GalleryExplorer, {
@@ -91,6 +96,7 @@ type PlayerView = {
   karma: number;
   cardStyleInventory: CardStyleInventory;
   completedQuests: number;
+  viewSettings: PlayerViewSettings;
 };
 
 type NpcView = GalleryVisitorView;
@@ -307,13 +313,10 @@ export default function GameDashboard({
     "all" | "complete" | "incomplete"
   >("all");
   const [bulkSaleProtections, setBulkSaleProtections] =
-    useState<BulkSaleProtections>({
-      keepArtStyles: false,
-      keepLegendaries: false,
-      keepMasterpieces: false,
-      keepUnfoundQuestTargets: false,
-      keepUnarchived: false,
-    });
+    useState<BulkSaleProtections>(player.viewSettings.bulkSaleProtections);
+  const [inventorySort, setInventorySort] = useState<InventorySort>(
+    player.viewSettings.inventorySort,
+  );
   const [linkedItemDetails, setLinkedItemDetails] =
     useState<LinkedItemView | null>(linkedItem);
   const [galleryArtStyleItem, setGalleryArtStyleItem] =
@@ -326,6 +329,10 @@ export default function GameDashboard({
     useState<HydratedGameItem | null>(null);
   const [archiveConfirmationItem, setArchiveConfirmationItem] =
     useState<HydratedGameItem | null>(null);
+  const [valuableItemConfirmation, setValuableItemConfirmation] = useState<{
+    action: "sell" | "donate";
+    item: HydratedGameItem;
+  } | null>(null);
   const [archiveEntryDetails, setArchiveEntryDetails] =
     useState<HydratedPlayerArtworkArchive | null>(null);
   const [forgeryArchive, setForgeryArchive] =
@@ -407,6 +414,10 @@ export default function GameDashboard({
         (item) => item.status === "claimed" || item.status === "auctioned",
       ),
     [items],
+  );
+  const sortedInventory = useMemo(
+    () => [...inventory].sort(getInventoryComparator(inventorySort)),
+    [inventory, inventorySort],
   );
   const displayed = useMemo(
     () => items.filter((item) => item.status === "displayed"),
@@ -535,6 +546,20 @@ export default function GameDashboard({
     });
   }
 
+  function saveViewSettings(settings: Partial<PlayerViewSettings>) {
+    void fetch("/api/play/view-settings", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(settings),
+    }).then(async (response) => {
+      if (response.ok) return;
+      const body = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
+      setError(body.error ?? "Your view settings could not be saved.");
+    });
+  }
+
   function sellAllLoot() {
     setError("");
     setNotice("");
@@ -642,6 +667,24 @@ export default function GameDashboard({
     });
   }
 
+  function requestItemRemoval(
+    item: HydratedGameItem,
+    action: "sell" | "donate",
+  ) {
+    if (
+      item.artwork.rarity === "legendary" ||
+      item.artwork.rarity === "masterpiece"
+    ) {
+      setValuableItemConfirmation({ action, item });
+      return;
+    }
+    if (action === "sell") {
+      act(`/api/play/items/${item._id}/sell`);
+    } else {
+      donateItem(item);
+    }
+  }
+
   async function openCrate(crate: LootCrateOffer, endpoint: string) {
     setError("");
     setNotice("");
@@ -711,7 +754,10 @@ export default function GameDashboard({
     setMintConfirmation({ actionLabel, onConfirm });
   }
 
-  function archiveAction(item: HydratedGameItem) {
+  function archiveAction(
+    item: HydratedGameItem,
+    gridSlot?: ActionGridSlot,
+  ) {
     if (!["claimed", "unclaimed", "for_sale"].includes(item.status)) {
       return null;
     }
@@ -742,6 +788,7 @@ export default function GameDashboard({
         }
         disabled={pending || Boolean(disabledReason)}
         disabledReason={disabledReason}
+        gridSlot={gridSlot}
         onClick={() => setArchiveConfirmationItem(item)}
       />
     );
@@ -941,20 +988,82 @@ export default function GameDashboard({
   }
 
   function collectionDisplayedItemActions(item: HydratedGameItem) {
-    return canRerollDisplayed ? (
-      <ItemActionButton
-        icon="fa-magic"
-        label="Modify displayed artwork"
-        disabled={pending}
-        onClick={() =>
-          setRerollSession({
-            item,
-            bankBalance: player.bankBalance,
-            karma: karmaBalance,
-          })
-        }
-      />
-    ) : null;
+    const inventoryOnlyReason =
+      "Take this artwork down before using this action.";
+    return (
+      <>
+        <ItemActionButton
+          disabled
+          disabledReason={inventoryOnlyReason}
+          gridSlot={1}
+          icon="fa-wrench"
+          label="Repair item"
+          onClick={() => undefined}
+        />
+        <ItemActionButton
+          disabled={pending || !canRerollDisplayed}
+          disabledReason={
+            canRerollDisplayed ? undefined : inventoryOnlyReason
+          }
+          gridSlot={2}
+          icon="fa-magic"
+          label="Modify attributes"
+          onClick={() =>
+            setRerollSession({
+              item,
+              bankBalance: player.bankBalance,
+              karma: karmaBalance,
+            })
+          }
+        />
+        <ItemActionButton
+          disabled
+          disabledReason={inventoryOnlyReason}
+          gridSlot={3}
+          icon="fa-usd"
+          label={`Sell for $${item.values.sell.toLocaleString()}`}
+          onClick={() => undefined}
+        />
+        <ItemActionButton
+          disabled
+          disabledReason={inventoryOnlyReason}
+          gridSlot={4}
+          icon="fa-binoculars"
+          label="Offer to Art Collectors"
+          onClick={() => undefined}
+        />
+        <ItemActionButton
+          disabled
+          disabledReason={inventoryOnlyReason}
+          gridSlot={5}
+          icon="fa-gavel"
+          label="Put up for auction"
+          onClick={() => undefined}
+        />
+        <ItemActionButton
+          disabled
+          disabledReason={inventoryOnlyReason}
+          gridSlot={6}
+          icon="fa-archive"
+          label="Archive permanently"
+          onClick={() => undefined}
+        />
+        <AuthenticityActions
+          act={act}
+          gridSlot={7}
+          item={item}
+          pending={pending}
+        />
+        <ItemActionButton
+          disabled
+          disabledReason={inventoryOnlyReason}
+          gridSlot={9}
+          icon="fa-share-square"
+          label="Donate for Karma"
+          onClick={() => undefined}
+        />
+      </>
+    );
   }
 
   function lootItemActions(item: HydratedGameItem) {
@@ -978,13 +1087,13 @@ export default function GameDashboard({
           icon="fa-usd"
           label={`Sell immediately for $${item.values.sell.toLocaleString()}`}
           disabled={pending}
-          onClick={() => act(`/api/play/items/${item._id}/sell`)}
+          onClick={() => requestItemRemoval(item, "sell")}
         />
         <ItemActionButton
           icon="fa-share-square"
           label="Donate for Karma"
           disabled={pending || item.permanent || item.original}
-          onClick={() => donateItem(item)}
+          onClick={() => requestItemRemoval(item, "donate")}
         />
         <ItemActionButton
           icon="fa-times"
@@ -1046,6 +1155,7 @@ export default function GameDashboard({
     return (
       <>
         <ItemActionButton
+          gridSlot={1}
           icon="fa-wrench"
           label={
             item.repairing
@@ -1058,6 +1168,7 @@ export default function GameDashboard({
           variant={item.repairing ? "enabled" : "default"}
         />
         <ItemActionButton
+          gridSlot={2}
           icon="fa-magic"
           label="Modify attributes"
           disabled={pending}
@@ -1070,6 +1181,7 @@ export default function GameDashboard({
           }
         />
         <ItemActionButton
+          gridSlot={4}
           icon="fa-binoculars"
           label={
             item.tags.includes("for sale")
@@ -1081,25 +1193,33 @@ export default function GameDashboard({
           variant={item.tags.includes("for sale") ? "collector" : "default"}
         />
         <ItemActionButton
+          gridSlot={5}
           icon="fa-gavel"
           label="Put up for auction"
           disabled={pending || item.permanent || item.repairing}
           onClick={() => setAuctionListingItem(item)}
         />
         <ItemActionButton
+          gridSlot={3}
           icon="fa-usd"
           label={`Sell for $${item.values.sell.toLocaleString()}`}
           disabled={pending}
-          onClick={() => act(`/api/play/items/${item._id}/sell`)}
+          onClick={() => requestItemRemoval(item, "sell")}
         />
+        {archiveAction(item, 6)}
         <ItemActionButton
+          gridSlot={9}
           icon="fa-share-square"
           label="Donate for Karma"
           disabled={pending || item.permanent || item.original}
-          onClick={() => donateItem(item)}
+          onClick={() => requestItemRemoval(item, "donate")}
         />
-        <AuthenticityActions act={act} item={item} pending={pending} />
-        {archiveAction(item)}
+        <AuthenticityActions
+          act={act}
+          gridSlot={7}
+          item={item}
+          pending={pending}
+        />
       </>
     );
   }
@@ -1590,12 +1710,16 @@ export default function GameDashboard({
                         <label key={key}>
                           <input
                             checked={bulkSaleProtections[key]}
-                            onChange={(event) =>
-                              setBulkSaleProtections((current) => ({
-                                ...current,
+                            onChange={(event) => {
+                              const next = {
+                                ...bulkSaleProtections,
                                 [key]: event.target.checked,
-                              }))
-                            }
+                              };
+                              setBulkSaleProtections(next);
+                              saveViewSettings({
+                                bulkSaleProtections: next,
+                              });
+                            }}
                             type="checkbox"
                           />
                           <span>{label}</span>
@@ -1651,13 +1775,33 @@ export default function GameDashboard({
                   </div>
                   <span className="collection-count">{inventory.length}</span>
                 </header>
+                <label className="collection-inventory-sort">
+                  <span>Sort inventory</span>
+                  <select
+                    onChange={(event) => {
+                      const next = event.target.value as InventorySort;
+                      setInventorySort(next);
+                      saveViewSettings({ inventorySort: next });
+                    }}
+                    value={inventorySort}
+                  >
+                    <option value="newest">Newest first</option>
+                    <option value="oldest">Oldest first</option>
+                    <option value="value-high">Value: high to low</option>
+                    <option value="value-low">Value: low to high</option>
+                    <option value="title">Title: A to Z</option>
+                    <option value="artist">Artist: A to Z</option>
+                    <option value="rarity">Rarity: highest first</option>
+                    <option value="condition">Condition: highest first</option>
+                  </select>
+                </label>
                 {inventory.length === 0 ? (
                   <p className="collection-sidebar-empty">
                     Your inventory is empty.
                   </p>
                 ) : (
                   <div className="collection-thumbnail-list">
-                    {inventory.map((item) => (
+                    {sortedInventory.map((item) => (
                       <button
                         aria-label={`Preview ${item.artwork.title} by ${item.artwork.artist}`}
                         aria-pressed={selectedCollectionItem?._id === item._id}
@@ -1910,13 +2054,35 @@ export default function GameDashboard({
             />
             <InventorySection
               emptyText="Your inventory is empty."
-              items={inventory}
+              items={sortedInventory}
               legendaryAttributes={legendaryAttributes}
               researchArtworkIds={unfoundQuestTargetArtworkIds}
               canCustomize
               styleInventory={player.cardStyleInventory}
               donationEffects={donationEffects}
               title="inventory"
+              controls={
+                <label className="inventory-sort">
+                  <span>Sort</span>
+                  <select
+                    onChange={(event) => {
+                      const next = event.target.value as InventorySort;
+                      setInventorySort(next);
+                      saveViewSettings({ inventorySort: next });
+                    }}
+                    value={inventorySort}
+                  >
+                    <option value="newest">Newest first</option>
+                    <option value="oldest">Oldest first</option>
+                    <option value="value-high">Value: high to low</option>
+                    <option value="value-low">Value: low to high</option>
+                    <option value="title">Title: A to Z</option>
+                    <option value="artist">Artist: A to Z</option>
+                    <option value="rarity">Rarity: highest first</option>
+                    <option value="condition">Condition: highest first</option>
+                  </select>
+                </label>
+              }
               viewerId={playerId}
               actions={(item) => {
                 if (item.status === "auctioned") return null;
@@ -2011,15 +2177,13 @@ export default function GameDashboard({
                       icon="fa-usd"
                       label={`Sell for $${item.values.sell.toLocaleString()}`}
                       disabled={pending}
-                      onClick={() => act(`/api/play/items/${item._id}/sell`)}
+                      onClick={() => requestItemRemoval(item, "sell")}
                     />
                     <ItemActionButton
                       icon="fa-share-square"
                       label="Donate for Karma"
                       disabled={pending || item.permanent || item.original}
-                      onClick={() =>
-                        donateItem(item)
-                      }
+                      onClick={() => requestItemRemoval(item, "donate")}
                     />
                     <AuthenticityActions
                       act={act}
@@ -2320,11 +2484,14 @@ export default function GameDashboard({
           <GalleryExplorer
             initialBankBalance={player.bankBalance}
             initialGalleryId={exploreResetKey === 0 ? initialGalleryId : null}
+            initialSort={player.viewSettings.gallerySort}
+            initialViewMode={player.viewSettings.galleryView}
             key={`gallery-explorer-${exploreResetKey}`}
             meetingNpc={meetingNpc}
             npcSpawnIntervalMinutes={npcSpawnIntervalMinutes}
             npcRewardEffects={npcRewardEffects}
             onMeetNpc={meetNpc}
+            onViewSettingsChange={saveViewSettings}
             viewerId={playerId}
           />
         ) : null}
@@ -2495,6 +2662,22 @@ export default function GameDashboard({
                   )
                 : 0
             }
+          />
+        ) : null}
+        {valuableItemConfirmation ? (
+          <ValuableItemConfirmationDialog
+            action={valuableItemConfirmation.action}
+            item={valuableItemConfirmation.item}
+            onCancel={() => setValuableItemConfirmation(null)}
+            onConfirm={() => {
+              if (valuableItemConfirmation.action === "sell") {
+                act(
+                  `/api/play/items/${valuableItemConfirmation.item._id}/sell`,
+                );
+              } else {
+                donateItem(valuableItemConfirmation.item);
+              }
+            }}
           />
         ) : null}
         {archiveEntryDetails ? (
@@ -3769,27 +3952,41 @@ function RerollDialog({
   );
 }
 
+type ActionGridSlot = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+
 function AuthenticityActions({
   item,
   pending,
   act,
+  gridSlot,
 }: {
   item: HydratedGameItem;
   pending: boolean;
   act: (url: string) => void;
+  gridSlot?: ActionGridSlot;
 }) {
   const authenticate = item.authenticationPermission;
   const report = item.redemptionPermission;
+  const allowed = authenticate?.allowed === true;
   return (
     <>
-      {authenticate?.allowed ? (
-        <ItemActionButton
-          disabled={pending}
-          icon="fa-search"
-          label={`Authenticate for $${authenticate.cost.toLocaleString()}`}
-          onClick={() => act(`/api/play/items/${item._id}/authenticate`)}
-        />
-      ) : null}
+      <ItemActionButton
+        alwaysVisible
+        disabled={pending || !allowed}
+        disabledReason={
+          !allowed
+            ? authenticate?.reason ?? "This artwork cannot be authenticated."
+            : undefined
+        }
+        gridSlot={gridSlot}
+        icon="fa-search"
+        label={
+          allowed
+            ? `Authenticate for $${authenticate.cost.toLocaleString()}`
+            : "Authenticate"
+        }
+        onClick={() => act(`/api/play/items/${item._id}/authenticate`)}
+      />
       {/*<ItemActionButton
         disabled={pending || !report?.allowed}
         disabledReason={
@@ -3808,6 +4005,8 @@ function ItemActionButton({
   label,
   disabled,
   disabledReason,
+  gridSlot,
+  alwaysVisible = false,
   onDisabledClick,
   onClick,
   variant = "default",
@@ -3816,6 +4015,8 @@ function ItemActionButton({
   label: string;
   disabled: boolean;
   disabledReason?: string;
+  gridSlot?: ActionGridSlot;
+  alwaysVisible?: boolean;
   onDisabledClick?: () => void | Promise<void>;
   onClick: () => void;
   variant?: "default" | "collector" | "enabled" | "gallery";
@@ -3828,7 +4029,9 @@ function ItemActionButton({
     <button
       aria-disabled={disabled}
       aria-label={accessibleLabel}
-      className={`item-action-button item-action-${variant}`}
+      className={`item-action-button item-action-${variant}${
+        alwaysVisible ? " item-action-always-visible" : ""
+      }${gridSlot ? ` card-action-slot-${gridSlot}` : ""}`}
       data-tooltip={reason || label}
       onClick={() => {
         if (disabled) {
@@ -3855,6 +4058,7 @@ function InventorySection({
   donationEffects,
   viewerId,
   actions,
+  controls,
 }: {
   title: string;
   emptyText: string;
@@ -3869,10 +4073,14 @@ function InventorySection({
   >;
   viewerId: string;
   actions: (item: HydratedGameItem) => React.ReactNode;
+  controls?: React.ReactNode;
 }) {
   return (
     <section className="inventory-section">
-      <h2>{title}</h2>
+      <div className="inventory-section-heading">
+        <h2>{title}</h2>
+        {controls}
+      </div>
       {items.length === 0 ? (
         <p className="empty-state">{emptyText}</p>
       ) : (
@@ -3903,6 +4111,49 @@ function InventorySection({
       )}
     </section>
   );
+}
+
+function getInventoryComparator(
+  sort: InventorySort,
+): (left: HydratedGameItem, right: HydratedGameItem) => number {
+  const byNewest = (left: HydratedGameItem, right: HydratedGameItem) =>
+    Date.parse(right.date_received) - Date.parse(left.date_received);
+  const tieBreak = (left: HydratedGameItem, right: HydratedGameItem) =>
+    byNewest(left, right) || left._id.localeCompare(right._id);
+
+  return (left, right) => {
+    let comparison = 0;
+    switch (sort) {
+      case "oldest":
+        comparison =
+          Date.parse(left.date_received) - Date.parse(right.date_received);
+        break;
+      case "value-high":
+        comparison = right.values.actual - left.values.actual;
+        break;
+      case "value-low":
+        comparison = left.values.actual - right.values.actual;
+        break;
+      case "title":
+        comparison = left.artwork.title.localeCompare(right.artwork.title);
+        break;
+      case "artist":
+        comparison = left.artwork.artist.localeCompare(right.artwork.artist);
+        break;
+      case "rarity":
+        comparison =
+          ARTWORK_RARITIES.indexOf(right.artwork.rarity) -
+          ARTWORK_RARITIES.indexOf(left.artwork.rarity);
+        break;
+      case "condition":
+        comparison = right.condition - left.condition;
+        break;
+      case "newest":
+        comparison = byNewest(left, right);
+        break;
+    }
+    return comparison || tieBreak(left, right);
+  };
 }
 
 function DonationRewardEffect({

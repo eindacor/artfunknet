@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getDatabase } from "@/server/mongodb";
+import { getPlayerViewSettings } from "@/server/player-view-settings";
 import { requirePlayer } from "@/server/session";
 
 import AccountForm from "./account-form";
@@ -13,6 +14,9 @@ type PlayerAccount = {
   active: boolean;
   password_salt?: string;
   password_hash?: string;
+  profile?: {
+    view_settings?: unknown;
+  };
 };
 
 export const dynamic = "force-dynamic";
@@ -31,11 +35,14 @@ export default async function PlayerAccountPage() {
       </Link>
       <h1 className="mt-6 text-4xl font-bold">Account</h1>
       <p className="mt-3 mb-8 text-[var(--muted)]">
-        Manage the name shown to other players and your sign-in password.
+        Manage your player profile, view preferences, and sign-in password.
       </p>
       <AccountForm
         email={player.email}
         hasPassword={Boolean(player.password_salt && player.password_hash)}
+        preferredGalleryView={
+          getPlayerViewSettings(player.profile?.view_settings).galleryView
+        }
         screenName={player.screen_name}
       />
     </main>

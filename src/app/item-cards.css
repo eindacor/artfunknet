@@ -3638,6 +3638,19 @@
   justify-content: center;
 }
 
+.mint-loss-dialog p.valuable-item-warning {
+  border: 1px solid #b54a28;
+  padding: 0.65rem;
+  background: #fff0e8;
+  color: #7b260f;
+  font-weight: 700;
+}
+
+.valuable-item-warning-mark {
+  color: #b54a28;
+  font-size: 2rem;
+}
+
 .archive-entry-dialog {
   width: min(920px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);

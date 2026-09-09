@@ -533,6 +533,18 @@ async function seedPlayer(database) {
               patreon: false,
             },
           },
+          view_settings: {
+            gallerySort: "value",
+            galleryView: "expanded",
+            inventorySort: "newest",
+            bulkSaleProtections: {
+              keepArtStyles: false,
+              keepLegendaries: false,
+              keepMasterpieces: false,
+              keepUnfoundQuestTargets: false,
+              keepUnarchived: false,
+            },
+          },
           tutorial_data: {
             current_tutorial: "artfunkel basics",
             step: 0,

@@ -16,6 +16,7 @@ export default function ItemThumbnail({
   item: Pick<
     HydratedGameItem,
     | "artwork_id"
+    | "archivePermission"
     | "card_renderer"
     | "date_received"
     | "expires_at"
@@ -33,6 +34,7 @@ export default function ItemThumbnail({
   const isDealerOffer = item.status === "for_sale";
   const isCollectorSale =
     item.status === "claimed" && item.tags.includes("for sale");
+  const isArchivable = item.archivePermission?.allowed === true;
 
   return (
     <ArtworkThumbnail
@@ -50,7 +52,8 @@ export default function ItemThumbnail({
       item.repairing ||
       isAuctioned ||
       isDealerOffer ||
-      isCollectorSale ? (
+      isCollectorSale ||
+      isArchivable ? (
         <span className="thumbnail-status-watermarks">
           {researchTarget ? (
             <i
@@ -91,6 +94,13 @@ export default function ItemThumbnail({
             <i
               aria-label="For sale to collectors"
               className="fa fa-binoculars thumbnail-collector-sale"
+              role="img"
+            />
+          ) : null}
+          {isArchivable ? (
+            <i
+              aria-label="Can be archived"
+              className="fa fa-archive thumbnail-archivable"
               role="img"
             />
           ) : null}

@@ -60,7 +60,7 @@ import {
   type NpcQuality,
 } from "@/server/npc-gameplay";
 import { getDatabase } from "@/server/mongodb";
-import { getDealerItemExpiration } from "@/server/item-expiration";
+import { getNpcOfferItemExpiration } from "@/server/item-expiration";
 import { requirePlayerApi } from "@/server/player-api";
 import {
   grantPreservationistRepair,
@@ -692,6 +692,7 @@ export async function POST(
           source: "art donor",
           itemLevel,
           conditionMinimum,
+          expiresAt: getNpcOfferItemExpiration(now),
         },
       );
       const offers = await hydrateGameItems(database, generated);
@@ -996,7 +997,7 @@ export async function POST(
             source: "art dealer",
             itemLevel,
             status: "for_sale",
-            expiresAt: getDealerItemExpiration(now),
+            expiresAt: getNpcOfferItemExpiration(now),
           },
         );
         const offers = await hydrateGameItems(database, generated);

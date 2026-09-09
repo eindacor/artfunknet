@@ -13,7 +13,7 @@ import {
 } from "@/server/game-settings";
 import { generateDailyDrop, type GameItem } from "@/server/gameplay";
 import { getDatabase } from "@/server/mongodb";
-import { getUnclaimedItemExpiration } from "@/server/item-expiration";
+import { getCrateItemExpiration } from "@/server/item-expiration";
 import { requirePlayerApi } from "@/server/player-api";
 
 type Player = {
@@ -113,7 +113,7 @@ export async function POST(
         mintValueMultiplier: settings.active.mintValueMultiplier,
         debug: settings.debugEnabled,
         source: generationSource,
-        expiresAt: getUnclaimedItemExpiration(now),
+        expiresAt: getCrateItemExpiration(now),
       },
     );
     await database.collection<GameItem>("items").updateMany(
