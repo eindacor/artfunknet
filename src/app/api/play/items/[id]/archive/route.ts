@@ -23,6 +23,7 @@ import {
   getLegendaryNumberParameter,
 } from "@/server/legendary-attributes";
 import { getDatabase } from "@/server/mongodb";
+import { removeExpiredTransientItems } from "@/server/item-expiration";
 import { requirePlayerApi } from "@/server/player-api";
 import { transferForgeryLiability } from "@/server/forgery-gameplay";
 
@@ -49,6 +50,7 @@ export async function POST(
 
   const { id } = await params;
   const database = await getDatabase();
+  await removeExpiredTransientItems(database);
   await ensureArchiveStorage(database);
   const now = new Date();
   const nowString = now.toISOString();

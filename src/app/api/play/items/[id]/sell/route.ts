@@ -14,6 +14,7 @@ import {
   getLegendaryNumberParameter,
 } from "@/server/legendary-attributes";
 import { getDatabase } from "@/server/mongodb";
+import { removeExpiredTransientItems } from "@/server/item-expiration";
 import { requirePlayerApi } from "@/server/player-api";
 
 type Player = {
@@ -34,6 +35,7 @@ export async function POST(
 
   const { id } = await params;
   const database = await getDatabase();
+  await removeExpiredTransientItems(database);
   const item = await database.collection<GameItem>("items").findOne({
     _id: id,
     owner: auth.session.playerId,
@@ -97,6 +99,7 @@ export async function POST(
             "authenticity.identified": true,
             "authenticity.forgery_quality": punishForgeryQuality(item.authenticity.forgery_quality),
           },
+          $unset: { expires_at: "" },
         },
       );
       const message =

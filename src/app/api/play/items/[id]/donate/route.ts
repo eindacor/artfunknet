@@ -11,6 +11,7 @@ import type { GameItem } from "@/server/gameplay";
 import { deleteCommunityReactions } from "@/server/community-reaction-cleanup";
 import { hydrateGameItems } from "@/server/item-artwork";
 import { getDatabase } from "@/server/mongodb";
+import { removeExpiredTransientItems } from "@/server/item-expiration";
 import { requirePlayerApi } from "@/server/player-api";
 import {
   punishForgeryQuality,
@@ -40,6 +41,7 @@ export async function POST(
 
   const { id } = await params;
   const database = await getDatabase();
+  await removeExpiredTransientItems(database);
   await ensurePlayerKarma(database, auth.session.playerId);
   const item = await database.collection<GameItem>("items").findOne({
     _id: id,
@@ -110,6 +112,7 @@ export async function POST(
           "authenticity.identified": true,
           "authenticity.forgery_quality": punishForgeryQuality(item.authenticity.forgery_quality),
         },
+        $unset: { expires_at: "" },
       },
     );
     const message =

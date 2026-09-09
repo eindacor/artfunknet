@@ -119,6 +119,7 @@ export type GameItem = {
   source: string;
   date_created: string;
   date_received: string;
+  expires_at?: string;
   level: number;
   roll_count: number;
   reroll_spent: number;
@@ -398,6 +399,7 @@ export type DailyDropOptions = {
   source?: string;
   itemLevel?: number;
   conditionMinimum?: number;
+  expiresAt?: string;
   status?: "unclaimed" | "for_sale" | "claimed" | "auctioned";
 };
 
@@ -437,6 +439,7 @@ export async function generateDailyDrop(
     source = "daily drop",
     itemLevel = 1,
     conditionMinimum = 0,
+    expiresAt,
     status = "unclaimed",
   } = options;
   const metadata = await database
@@ -540,6 +543,7 @@ export async function generateDailyDrop(
         source,
         itemLevel,
         conditionMinimum,
+        expiresAt,
         status,
       }),
     );
@@ -608,6 +612,7 @@ function createItem({
   source,
   itemLevel,
   conditionMinimum,
+  expiresAt,
   status,
 }: {
   artwork: Artwork;
@@ -630,6 +635,7 @@ function createItem({
   source: string;
   itemLevel: number;
   conditionMinimum: number;
+  expiresAt?: string;
   status: "unclaimed" | "for_sale" | "claimed" | "auctioned";
 }): GameItem {
   const { foil, mint, unlocked } = rollGeneratedItemProperties(
@@ -682,6 +688,7 @@ function createItem({
     source,
     date_created: timestamp,
     date_received: timestamp,
+    ...(expiresAt ? { expires_at: expiresAt } : {}),
     level: itemLevel,
     roll_count: 0,
     reroll_spent: 0,

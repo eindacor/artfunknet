@@ -13,6 +13,7 @@ import {
 } from "@/server/game-settings";
 import { generateDailyDrop, type GameItem } from "@/server/gameplay";
 import { getDatabase } from "@/server/mongodb";
+import { getUnclaimedItemExpiration } from "@/server/item-expiration";
 import { requirePlayerApi } from "@/server/player-api";
 
 type Player = {
@@ -95,12 +96,14 @@ export async function POST(
   }
 
   const generationSource = `crate:${offer.id}:${randomUUID()}`;
+  const now = new Date();
   try {
     const items = await generateDailyDrop(
       database,
       player._id,
       player.profile.level,
       {
+        now,
         itemCount: offer.itemCount,
         generationMap: {
           ...getGameplayGenerationMap(settings.active),
@@ -110,6 +113,7 @@ export async function POST(
         mintValueMultiplier: settings.active.mintValueMultiplier,
         debug: settings.debugEnabled,
         source: generationSource,
+        expiresAt: getUnclaimedItemExpiration(now),
       },
     );
     await database.collection<GameItem>("items").updateMany(

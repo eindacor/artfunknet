@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { getDatabase } from "@/server/mongodb";
+import {
+  getUnexpiredItemFilter,
+  removeExpiredTransientItems,
+} from "@/server/item-expiration";
 import { requirePlayerApi } from "@/server/player-api";
 
 type Player = {
@@ -18,6 +22,7 @@ type ItemRecord = {
   original?: boolean;
   vintage?: boolean;
   date_received?: string;
+  expires_at?: string;
 };
 
 export async function POST(
@@ -29,6 +34,9 @@ export async function POST(
 
   const { id } = await params;
   const database = await getDatabase();
+  const now = new Date();
+  await removeExpiredTransientItems(database, now);
+  const unexpiredFilter = getUnexpiredItemFilter(now);
   const player = await database
     .collection<Player>("players")
     .findOne({ _id: auth.session.playerId });
@@ -40,6 +48,7 @@ export async function POST(
     _id: id,
     owner: player._id,
     status: { $in: ["unclaimed", "won"] },
+    ...unexpiredFilter,
   });
   if (!item) {
     return NextResponse.json(
@@ -75,12 +84,18 @@ export async function POST(
   }
 
   const result = await database.collection<ItemRecord>("items").updateOne(
-    { _id: id, owner: player._id, status: { $in: ["unclaimed", "won"] } },
+    {
+      _id: id,
+      owner: player._id,
+      status: { $in: ["unclaimed", "won"] },
+      ...unexpiredFilter,
+    },
     {
       $set: {
         status: "claimed",
-        date_received: new Date().toISOString(),
+        date_received: now.toISOString(),
       },
+      $unset: { expires_at: "" },
     },
   );
   if (result.modifiedCount !== 1) {

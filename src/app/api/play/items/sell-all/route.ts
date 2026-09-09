@@ -19,6 +19,7 @@ import {
   getLegendaryNumberParameter,
 } from "@/server/legendary-attributes";
 import { getDatabase } from "@/server/mongodb";
+import { removeExpiredTransientItems } from "@/server/item-expiration";
 import { requirePlayerApi } from "@/server/player-api";
 import { hydrateGameItems } from "@/server/item-artwork";
 import { getPlayerFacingArchivePermission } from "@/server/item-permissions";
@@ -52,6 +53,7 @@ export async function POST(request: Request) {
     keepUnarchived: body.keepUnarchived === true,
   };
   const database = await getDatabase();
+  await removeExpiredTransientItems(database);
   await recoverPendingSales(database, auth.session.playerId);
   const candidates = await database.collection<GameItem>("items").find({
     owner: auth.session.playerId,
@@ -208,6 +210,7 @@ export async function POST(request: Request) {
           "authenticity.identified": true,
           "authenticity.forgery_quality": punishForgeryQuality(item.authenticity.forgery_quality),
         },
+        $unset: { expires_at: "" },
       },
     );
   }

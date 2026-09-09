@@ -27,6 +27,7 @@ import {
   settlePendingForgeryLiability,
 } from "@/server/forgery-gameplay";
 import { getDatabase } from "@/server/mongodb";
+import { removeExpiredTransientItems } from "@/server/item-expiration";
 import type { GameItem, ItemAttribute, LootData } from "@/server/gameplay";
 import {
   hydrateGameItems,
@@ -129,6 +130,7 @@ export default async function PlayerPage({
     redirect("/play/onboarding");
   }
   await ensurePlayerKarma(database, session.playerId);
+  await removeExpiredTransientItems(database);
   await ensureArchiveStorage(database);
   await settlePendingForgeryLiability(database, session.playerId);
   const settings = await getGameplaySettings(database);

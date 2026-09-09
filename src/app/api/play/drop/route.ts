@@ -6,6 +6,7 @@ import {
 } from "@/server/game-settings";
 import { generateDailyDrop } from "@/server/gameplay";
 import { getDatabase } from "@/server/mongodb";
+import { getUnclaimedItemExpiration } from "@/server/item-expiration";
 import { requirePlayerApi } from "@/server/player-api";
 
 type Player = {
@@ -55,6 +56,7 @@ export async function POST() {
         generationMap: getGameplayGenerationMap(config),
         mintValueMultiplier: config.mintValueMultiplier,
         debug: settings.debugEnabled,
+        expiresAt: getUnclaimedItemExpiration(now),
       },
     );
     return NextResponse.json({

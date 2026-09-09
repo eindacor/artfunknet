@@ -6,6 +6,10 @@ import {
   getLegendaryNumberParameter,
 } from "@/server/legendary-attributes";
 import { getDatabase } from "@/server/mongodb";
+import {
+  getUnexpiredItemFilter,
+  removeExpiredTransientItems,
+} from "@/server/item-expiration";
 import { requirePlayerApi } from "@/server/player-api";
 
 type Player = {
@@ -28,6 +32,9 @@ export async function POST(
 
   const { id } = await params;
   const database = await getDatabase();
+  const expirationNow = new Date();
+  await removeExpiredTransientItems(database, expirationNow);
+  const unexpiredFilter = getUnexpiredItemFilter(expirationNow);
   const [player, item, discountEffect, rollCountEffect] = await Promise.all([
     database.collection<Player>("players").findOne({
       _id: auth.session.playerId,
@@ -37,6 +44,7 @@ export async function POST(
       _id: id,
       owner: auth.session.playerId,
       status: "for_sale",
+      ...unexpiredFilter,
     }),
     getDisplayedLegendaryEffect(
       database,
@@ -115,8 +123,9 @@ export async function POST(
       _id: item._id,
       owner: player._id,
       status: "for_sale",
+      ...unexpiredFilter,
     },
-    { $set: setter },
+    { $set: setter, $unset: { expires_at: "" } },
   );
   if (result.modifiedCount !== 1) {
     const refund = await database
