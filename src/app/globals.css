@@ -5112,7 +5112,9 @@ a.welcome-button {
   padding: 14px 16px;
 }
 
-.collection-gallery-metadata h2 {
+
+.collection-gallery-metadata h2,
+.info-panel-title {
   margin: 0;
   color: #171717;
   font: 500 1.2rem Georgia, "Times New Roman", serif;
