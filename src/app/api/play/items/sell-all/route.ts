@@ -25,6 +25,7 @@ import { hydrateGameItems } from "@/server/item-artwork";
 import { getPlayerFacingArchivePermission } from "@/server/item-permissions";
 import {
   punishForgeryQuality,
+  rewardUndetectedForgeryExit,
   rollForgeryDetected,
   shouldDestroyDetectedForgery,
   transferForgeryLiability,
@@ -357,6 +358,18 @@ export async function POST(request: Request) {
       },
       { status: 500 },
     );
+  }
+  const hydratedById = new Map(
+    hydrated.map((item) => [item._id, item]),
+  );
+  for (const item of sellableItems) {
+    const hydratedItem = hydratedById.get(item._id);
+    if (!hydratedItem) continue;
+    await rewardUndetectedForgeryExit(database, hydratedItem, {
+      artworkTitle: hydratedItem.artwork.title,
+      method: "sale",
+      removedByPlayerId: auth.session.playerId,
+    });
   }
   const message = `Sold ${sellableItems.length} unclaimed ${sellableItems.length === 1 ? "artwork" : "artworks"} for $${amount.toLocaleString()}${caughtIds.size > 0 ? `; ${getBulkForgeryMessage(destroyedIds.length, identifiedIds.size, false)}` : ""}.`;
   return NextResponse.json({

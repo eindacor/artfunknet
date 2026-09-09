@@ -164,14 +164,7 @@ export default function ItemCard({
       {interactive && dialogOpen ? (
         <StandardItemDialog
           actions={
-            primaryAction ? (
-              <>
-                {primaryAction}
-                {actions}
-              </>
-            ) : (
-              actions
-            )
+            actions
           }
           currentRendererId={resolvedRendererId}
           item={{ ...currentItem, card_renderer: itemRendererId }}
@@ -186,6 +179,7 @@ export default function ItemCard({
               (currentItem.status === "claimed" ||
                 currentItem.status === "displayed"),
           }}
+          primaryAction={primaryAction}
           viewerId={viewerId}
         />
       ) : null}

@@ -15,6 +15,7 @@ import { removeExpiredTransientItems } from "@/server/item-expiration";
 import { requirePlayerApi } from "@/server/player-api";
 import {
   punishForgeryQuality,
+  rewardUndetectedForgeryExit,
   rollForgeryDetected,
   shouldDestroyDetectedForgery,
   transferForgeryLiability,
@@ -203,6 +204,11 @@ export async function POST(
     );
   }
   await deleteCommunityReactions(database, "item", [item._id]);
+  await rewardUndetectedForgeryExit(database, hydratedItem, {
+    artworkTitle: hydratedItem.artwork.title,
+    method: "donation",
+    removedByPlayerId: auth.session.playerId,
+  });
 
   return NextResponse.json({
     status: "ok",

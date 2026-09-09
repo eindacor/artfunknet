@@ -11,9 +11,11 @@ import {
 } from "./gameplay.ts";
 import { applyXp, getCapsForLevel, getXpChunk } from "./collection-gameplay.ts";
 import type { ArchiveCategory, PlayerArtworkArchive } from "./archive-gameplay.ts";
+import { createPlayerNotification } from "./player-notifications.ts";
 
 export const BASE_FORGERY_QUALITY = 0.5;
 export const FORGERY_LIABILITY_DELAY_MS = 6 * 60 * 60 * 1000;
+export const FORGERY_OFFLOAD_XP_CHUNK = 0.8;
 export const FORGERY_HEAT_RANGES = {
   quest: [0.3, 0.95],
   sell: [0, 0.98],
@@ -34,7 +36,11 @@ type HeatItem = Pick<
   | "lottery"
   | "level"
 > & {
-  authenticity: Pick<GameItem["authenticity"], "forgery_quality" | "identified"> & {
+  authenticity: Pick<
+    GameItem["authenticity"],
+    "forgery_quality" | "identified"
+  > &
+    Partial<Pick<GameItem["authenticity"], "original_owner">> & {
     forgery?: boolean;
   };
   artwork: { rarity: ArtworkRarity };
@@ -349,15 +355,6 @@ export async function settlePendingForgeryLiability(
     );
     if (result.modifiedCount !== 1) continue;
     settled += 1;
-    const formerLiable = item.authenticity.liable;
-    if (
-      formerLiable &&
-      formerLiable !== playerId &&
-      !formerLiable.startsWith("system:") &&
-      !formerLiable.startsWith("bot:")
-    ) {
-      await awardForgeryXpChunk(database, formerLiable, 0.8);
-    }
   }
   return settled;
 }
@@ -391,15 +388,78 @@ export async function transferForgeryLiability(
   );
   if (updated.modifiedCount !== 1) return false;
 
-  if (
-    formerLiable &&
-    formerLiable !== playerId &&
-    !formerLiable.startsWith("system:") &&
-    !formerLiable.startsWith("bot:")
-  ) {
-    await awardForgeryXpChunk(database, formerLiable, 0.8);
-  }
   return true;
+}
+
+export function getUndetectedForgeryExitRecipient(
+  item: {
+    authenticity: {
+      forgery?: boolean;
+      identified: boolean;
+      original_owner?: string;
+    };
+  },
+  removedByPlayerId: string,
+): string | null {
+  const forgerId = item.authenticity.original_owner;
+  if (
+    !item.authenticity.forgery ||
+    item.authenticity.identified ||
+    !forgerId ||
+    forgerId === removedByPlayerId ||
+    forgerId.startsWith("system:") ||
+    forgerId.startsWith("bot:")
+  ) {
+    return null;
+  }
+  return forgerId;
+}
+
+export async function rewardUndetectedForgeryExit(
+  database: Db,
+  item: HeatItem,
+  {
+    artworkTitle,
+    method,
+    removedByPlayerId,
+  }: {
+    artworkTitle: string;
+    method: "sale" | "donation" | "collector";
+    removedByPlayerId: string;
+  },
+): Promise<number> {
+  const forgerId = getUndetectedForgeryExitRecipient(
+    item,
+    removedByPlayerId,
+  );
+  if (!forgerId) return 0;
+
+  const multiplier = calculateForgeryOffloadXpMultiplier(item, method);
+  const amount = await awardForgeryXpChunk(
+    database,
+    forgerId,
+    multiplier,
+  );
+  if (amount === 0) return 0;
+
+  await createPlayerNotification(database, forgerId, {
+    kind: "success",
+    message: `Your forgery of ${artworkTitle} left the game undetected through a ${method}, earning you ${amount.toLocaleString()} XP.`,
+    dedupeUnread: false,
+  });
+  return amount;
+}
+
+export function calculateForgeryOffloadXpMultiplier(
+  item: HeatItem,
+  method: "sale" | "donation" | "collector",
+): number {
+  const context: ForgeryHeatContext =
+    method === "sale" ? "sell" : method === "donation" ? "donate" : "collector";
+  const heat = calculateForgeryHeat(item, context);
+  return Number(
+    (FORGERY_OFFLOAD_XP_CHUNK * (0.9 + heat * 0.2)).toFixed(3),
+  );
 }
 
 export async function awardForgeryXpChunk(

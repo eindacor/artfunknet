@@ -5,7 +5,11 @@ import { ItemExpirationTime } from "../item-expiration-display";
 import type { GameItem } from "@/server/gameplay";
 import { useRef, useState, type CSSProperties } from "react";
 
-import type { ArchiveCategory } from "@/server/archive-gameplay";
+import {
+  getArchiveArtStyle,
+  getArchiveCategories,
+  type ArchiveCategory,
+} from "@/server/archive-gameplay";
 import { FloatingPopover } from "@/components/floating-popover";
 import { CARD_COSMETICS, getCardCosmetic } from "./catalog";
 import type {
@@ -161,6 +165,52 @@ export function ItemPropertyBadges({
           <i aria-hidden="true" className="fa fa-times" />
         </span>
       )}
+    </span>
+  );
+}
+
+export function ItemVariantBadges({
+  item,
+}: Pick<ItemCardRendererProps, "item">) {
+  const archivedCategories = new Set(item.archivedCategories ?? []);
+  const archivedArtStyles = new Set(item.archivedArtStyles ?? []);
+  const currentCategories = getArchiveCategories(item);
+  const currentArtStyle = getArchiveArtStyle(item);
+  const artStyles = currentArtStyle !== "museum" ? [currentArtStyle] : [];
+
+  return (
+    <span className="item-property-badges item-variant-badges">
+      {currentCategories.map((category) => (
+        <span
+          aria-label={`${category}${archivedCategories.has(category) ? ", archived" : ""}`}
+          className={`item-property-badge property-${category}${
+            archivedCategories.has(category) ? " variant-archived" : ""
+          }`}
+          key={`category:${category}`}
+        >
+          {category === "lottery" && item.lottery > 0
+            ? `lottery ${item.lottery}`
+            : category}
+        </span>
+      ))}
+      {artStyles.map((style) => {
+        const cosmetic = getCardCosmetic(style);
+        return (
+          <span
+            aria-label={`${cosmetic?.name ?? style}${
+              archivedArtStyles.has(style) ? ", archived" : ""
+            }`}
+            className={`item-property-badge property-art-style${
+              archivedArtStyles.has(style) ? " variant-archived" : ""
+            }`}
+            key={`style:${style}`}
+          >
+            {cosmetic
+              ? `#${cosmetic.number.toString().padStart(2, "0")} ${cosmetic.name}`
+              : style}
+          </span>
+        );
+      })}
     </span>
   );
 }

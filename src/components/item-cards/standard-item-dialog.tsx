@@ -5,15 +5,16 @@ import { useEffect, useRef, useState } from "react";
 
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
 import { CommunityReactionLoader } from "@/components/community-emotes";
+import { ItemExpirationBadge } from "@/components/item-expiration-display";
 
 import ArtStyleActionButton from "./art-style-action-button";
-import { getCardCosmetic } from "./catalog";
+import AuctionWatermark from "./auction-watermark";
+import KnownForgeryWatermark from "./known-forgery-watermark";
+import { CARD_RENDERERS } from "./registry";
 import {
-  ArchivedArtStyleBadges,
-  ArchivedCategoryBadges,
   AttributeIcons,
   CompleteItemRecord,
-  ItemPropertyBadges,
+  ItemVariantBadges,
 } from "./shared";
 import type {
   CardLegendaryAttribute,
@@ -31,6 +32,7 @@ export default function StandardItemDialog({
   legendaryAttributes,
   currentRendererId,
   actions,
+  primaryAction,
   permissions,
   onClose,
   onOpenArtStyle,
@@ -43,6 +45,7 @@ export default function StandardItemDialog({
   legendaryAttributes: CardLegendaryAttribute[];
   currentRendererId: CardRendererId;
   actions?: React.ReactNode;
+  primaryAction?: React.ReactNode;
   permissions: ItemDialogPermissions;
   onClose: () => void;
   onOpenArtStyle?: () => void;
@@ -93,6 +96,7 @@ export default function StandardItemDialog({
     >
       <StandardItemDetails
         actions={actions}
+        primaryAction={primaryAction}
         currentRendererId={currentRendererId}
         displayOwner={displayOwner}
         owner={owner}
@@ -113,6 +117,7 @@ export function StandardItemDetails({
   legendaryAttributes,
   currentRendererId,
   actions,
+  primaryAction,
   permissions,
   onClose,
   onOpenArtStyle,
@@ -125,6 +130,7 @@ export function StandardItemDetails({
   legendaryAttributes: CardLegendaryAttribute[];
   currentRendererId: CardRendererId;
   actions?: React.ReactNode;
+  primaryAction?: React.ReactNode;
   permissions: ItemDialogPermissions;
   onClose?: () => void;
   onOpenArtStyle?: () => void;
@@ -133,7 +139,7 @@ export function StandardItemDetails({
   headerDetails?: React.ReactNode;
   viewerId?: string | null;
 }) {
-  const appliedCosmetic = getCardCosmetic(currentRendererId);
+  const Renderer = CARD_RENDERERS[currentRendererId];
   const displayedStatus =
     item.status === "claimed" && item.owner === RAFFLE_OWNER_ID ? (
       <span>
@@ -180,13 +186,6 @@ export function StandardItemDetails({
               </div>
             </div>
           </div>
-          <ArtworkThumbnail
-            alt={`${item.artwork.title} by ${item.artwork.artist}`}
-            artworkId={item.artwork_id}
-            className="standard-item-dialog-artwork"
-            size={520}
-            variant="full"
-          />
           <div className="standard-item-dialog-header-actions">
             <ItemLinkButton itemId={item._id} />
             {viewerId ? <ItemCommunityShareButton itemId={item._id} /> : null}
@@ -200,6 +199,50 @@ export function StandardItemDetails({
                 <i aria-hidden="true" className="fa fa-times" />
               </button>
             ) : null}
+          </div>
+          <div className="standard-item-dialog-visuals">
+            <ArtworkThumbnail
+            alt={`${item.artwork.title} by ${item.artwork.artist}`}
+            artworkId={item.artwork_id}
+            className="standard-item-dialog-artwork"
+            size={520}
+            variant="full"
+            />
+            <article
+            className={`standard-item-dialog-card rendered-item-card rendered-item-card-${currentRendererId}`}
+            data-card-renderer={currentRendererId}
+            data-foil={item.foil ? "true" : undefined}
+            data-known-forgery={
+              item.authenticity.identified && item.authenticity.forgery
+                ? "true"
+                : undefined
+            }
+            data-mint={item.mint ? "true" : undefined}
+            data-lottery={item.lottery || undefined}
+            data-original={item.original ? "true" : undefined}
+            data-rarity={item.artwork.rarity}
+            data-auctioned={
+              item.status === "auctioned" ? "true" : undefined
+            }
+            data-seasonal={item.seasonal ? "true" : undefined}
+            data-vintage={item.vintage ? "true" : undefined}
+            >
+            <div className="rendered-item-card-trigger">
+              <AuctionWatermark status={item.status} />
+              <ItemExpirationBadge item={item} />
+              <KnownForgeryWatermark
+                authenticity={item.authenticity}
+                rendererId={currentRendererId}
+              />
+              <Renderer
+                alreadyOwned={false}
+                consigned={item.status === "auctioned"}
+                item={{ ...item, card_renderer: currentRendererId }}
+                legendaryAttributes={legendaryAttributes}
+                researchTarget={false}
+              />
+            </div>
+            </article>
           </div>
         </header>
         {viewerId ? (
@@ -234,30 +277,16 @@ export function StandardItemDetails({
               <AttributeIcons item={item} />
             </section>
             <section className="standard-item-dialog-properties">
-              <span>Properties</span>
-              <ItemPropertyBadges item={item} showLifecycle />
+              <span>Variants</span>
+              <ItemVariantBadges item={item} />
             </section>
-            {item.archivedCategories &&
-            item.archivedCategories.length > 0 ? (
-              <section className="standard-item-dialog-properties">
-                <span>Archived modifiers</span>
-                <ArchivedCategoryBadges
-                  categories={item.archivedCategories}
-                />
-              </section>
-            ) : null}
-            {item.archivedArtStyles &&
-            item.archivedArtStyles.length > 0 ? (
-              <section className="standard-item-dialog-properties">
-                <span>Archived art styles</span>
-                <ArchivedArtStyleBadges styles={item.archivedArtStyles} />
-              </section>
-            ) : null}
             {item.status !== "auctioned" &&
             permissions.canManageItem &&
-            (actions || permissions.canCustomizeCosmetic) ? (
+            (primaryAction || actions || permissions.canCustomizeCosmetic) ? (
               <div
-                className="standard-item-dialog-actions card-actions"
+                className={`standard-item-dialog-actions card-actions${
+                  primaryAction ? " card-actions-with-primary" : ""
+                }`}
                 onClick={(event) => {
                   const target =
                     event.target instanceof Element
@@ -273,15 +302,34 @@ export function StandardItemDetails({
                   }
                 }}
               >
-                {actions}
-                {permissions.canCustomizeCosmetic ? (
-                  <ArtStyleActionButton
-                    onClick={() => {
-                      onOpenArtStyle?.();
-                      onClose?.();
-                    }}
-                  />
-                ) : null}
+                {primaryAction ? (
+                  <>
+                    <div className="card-action-primary">{primaryAction}</div>
+                    <div className="card-action-array">
+                      {actions}
+                      {permissions.canCustomizeCosmetic ? (
+                        <ArtStyleActionButton
+                          onClick={() => {
+                            onOpenArtStyle?.();
+                            onClose?.();
+                          }}
+                        />
+                      ) : null}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {actions}
+                    {permissions.canCustomizeCosmetic ? (
+                      <ArtStyleActionButton
+                        onClick={() => {
+                          onOpenArtStyle?.();
+                          onClose?.();
+                        }}
+                      />
+                    ) : null}
+                  </>
+                )}
               </div>
             ) : null}
           </div>
@@ -294,16 +342,6 @@ export function StandardItemDetails({
             statusValue={displayedStatus}
           />
         </div>
-        {currentRendererId !== "museum" ? (
-          <section className="item-style-summary">
-            <span>Art style</span>
-            <strong>
-              {appliedCosmetic
-                ? `#${appliedCosmetic.number.toString().padStart(2, "0")} ${appliedCosmetic.name}`
-                : currentRendererId}
-            </strong>
-          </section>
-        ) : null}
     </div>
   );
 }

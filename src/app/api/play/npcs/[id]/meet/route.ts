@@ -51,6 +51,7 @@ import {
 import { getRerollCost } from "@/server/item-reroll";
 import {
   punishForgeryQuality,
+  rewardUndetectedForgeryExit,
   sanitizePlayerFacingAuthenticity,
   shouldDestroyDetectedForgery,
 } from "@/server/forgery-gameplay";
@@ -1364,6 +1365,11 @@ export async function POST(
       }
       if (!keptItem) {
         await deleteCommunityReactions(database, "item", [target._id]);
+        await rewardUndetectedForgeryExit(database, hydratedTarget, {
+          artworkTitle: hydratedTarget.artwork.title,
+          method: "collector",
+          removedByPlayerId: player._id,
+        });
       }
 
       return NextResponse.json({

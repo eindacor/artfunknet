@@ -3855,7 +3855,7 @@
 .standard-item-dialog-header {
   position: relative;
   display: grid !important;
-  grid-template-columns: minmax(220px, 0.8fr) minmax(320px, 1.2fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: start !important;
   gap: 1rem;
   border-bottom: 1px solid #bcb7aa;
@@ -3863,14 +3863,35 @@
 }
 
 .standard-item-dialog-feature {
+  grid-column: 1;
+  grid-row: 1;
   display: grid;
   justify-items: start;
   gap: 0.35rem;
 }
 
-.standard-item-dialog-header > .reroll-dialog-close {
-  grid-column: 3;
+.standard-item-dialog-header-actions {
+  grid-column: 2;
   grid-row: 1;
+}
+
+.standard-item-dialog-header > .reroll-dialog-close {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.standard-item-dialog-visuals {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  align-items: center;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.standard-item-dialog-card {
+  justify-self: end;
 }
 
 .standard-item-dialog-feature > .standard-item-dialog-kicker {
@@ -4044,8 +4065,8 @@
 
 .standard-item-dialog-artwork {
   width: 100% !important;
-  height: 300px !important;
-  max-height: 300px;
+  height: 390px !important;
+  max-height: 390px;
   border: 8px solid #fff;
   background: #fff;
   box-shadow: 0 10px 24px rgb(0 0 0 / 18%);
@@ -4137,6 +4158,11 @@
   text-transform: uppercase;
 }
 
+.item-property-badge.variant-archived {
+  opacity: 0.38;
+  filter: grayscale(0.75);
+}
+
 .item-properties-empty {
   display: inline-grid;
   width: 1.25rem;
@@ -4201,6 +4227,21 @@
   width: 260px;
   margin: auto 0 0;
   font-family: Courier, "Courier New", monospace;
+}
+
+.standard-item-dialog-actions.card-actions-with-primary {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) 114px;
+  align-items: stretch;
+  gap: 8px;
+  width: 280px;
+  height: 114px;
+}
+
+.standard-item-dialog-actions.card-actions-with-primary
+  .card-action-array
+  > .item-action-style {
+  grid-area: 3 / 2;
 }
 
 .standard-item-dialog .complete-item-record {
@@ -5000,6 +5041,16 @@
       height: 220px !important;
       max-height: 220px;
       margin: 0;
+    }
+
+    .standard-item-dialog-visuals {
+      grid-column: 1;
+      grid-template-columns: 1fr;
+      justify-items: center;
+    }
+
+    .standard-item-dialog-card {
+      justify-self: center;
     }
 
     .standard-item-dialog-actions.card-actions {

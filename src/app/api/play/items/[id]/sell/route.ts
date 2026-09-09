@@ -4,6 +4,7 @@ import type { GameItem } from "@/server/gameplay";
 import { deleteCommunityReactions } from "@/server/community-reaction-cleanup";
 import {
   punishForgeryQuality,
+  rewardUndetectedForgeryExit,
   rollForgeryDetected,
   shouldDestroyDetectedForgery,
   transferForgeryLiability,
@@ -153,6 +154,12 @@ export async function POST(
     );
   }
   await deleteCommunityReactions(database, "item", [item._id]);
+  const [hydratedItem] = await hydrateGameItems(database, [item]);
+  await rewardUndetectedForgeryExit(database, hydratedItem, {
+    artworkTitle: hydratedItem.artwork.title,
+    method: "sale",
+    removedByPlayerId: auth.session.playerId,
+  });
 
   return NextResponse.json({ status: "ok", amount });
 }

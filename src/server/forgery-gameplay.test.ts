@@ -6,9 +6,11 @@ import {
   calculateAuthenticationCost,
   calculateForgeCost,
   calculateForgeryHeat,
+  calculateForgeryOffloadXpMultiplier,
   getAuthenticationPermission,
   getForgedDisplayRewardMultiplier,
   getForgeryValueEstimate,
+  getUndetectedForgeryExitRecipient,
   getPlayerFacingRedemptionPermission,
   getRedemptionPermission,
   punishForgeryQuality,
@@ -51,6 +53,31 @@ test("only previously known detected forgeries are destroyed", () => {
       },
     }),
     false,
+  );
+});
+
+test("only another player's undetected forgery earns an exit reward", () => {
+  assert.equal(
+    getUndetectedForgeryExitRecipient({ authenticity }, "collector"),
+    "forger",
+  );
+  assert.equal(
+    getUndetectedForgeryExitRecipient({ authenticity }, "forger"),
+    null,
+  );
+  assert.equal(
+    getUndetectedForgeryExitRecipient(
+      { authenticity: { ...authenticity, identified: true } },
+      "collector",
+    ),
+    null,
+  );
+  assert.equal(
+    getUndetectedForgeryExitRecipient(
+      { authenticity: { ...authenticity, forgery: false } },
+      "collector",
+    ),
+    null,
   );
 });
 
@@ -143,6 +170,33 @@ test("every forgeable modifier increases forgery heat", () => {
     calculateForgeryHeat({ ...base, vintage: true }, "sell") > baseline,
   );
   assert.ok(calculateForgeryHeat({ ...base, lottery: 1 }, "sell") > baseline);
+});
+
+test("forgery heat and offload XP increase with artwork rarity", () => {
+  const base = {
+    mint: false,
+    foil: false,
+    unlocked: false,
+    seasonal: false,
+    vintage: false,
+    lottery: 0,
+    level: 1,
+    authenticity,
+  };
+  const common = { ...base, artwork: { rarity: "common" as const } };
+  const masterpiece = {
+    ...base,
+    artwork: { rarity: "masterpiece" as const },
+  };
+
+  assert.ok(
+    calculateForgeryHeat(masterpiece, "sell") >
+      calculateForgeryHeat(common, "sell"),
+  );
+  assert.ok(
+    calculateForgeryOffloadXpMultiplier(masterpiece, "sale") >
+      calculateForgeryOffloadXpMultiplier(common, "sale"),
+  );
 });
 
 test("forgery selection is limited to represented archive features", () => {
