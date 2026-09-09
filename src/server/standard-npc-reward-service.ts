@@ -15,6 +15,7 @@ import {
   getLegendaryNumberParameter,
 } from "./legendary-attributes.ts";
 import type { GalleryNpc, NpcQuality } from "./npc-gameplay.ts";
+import { XpRewardService } from "./xp-reward-service.ts";
 import {
   calculateBenefactorReward,
   calculateEnthusiastReward,
@@ -160,8 +161,11 @@ async function grantEnthusiastReward(
       ? getDisplayedLegendaryEffect(database, player._id, "MONEY_FOR_XP")
       : null,
   ]);
+  const xpRewards = await XpRewardService.create(database);
   const rewardAmount = calculateEnthusiastReward({
-    xpChunk: getXpChunk(player.profile.level),
+    xpChunk:
+      getXpChunk(player.profile.level) *
+      xpRewards.getScalar("artEnthusiast"),
     quality: npc.quality,
     ownGallery,
     visitorCount,

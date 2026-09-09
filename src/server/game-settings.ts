@@ -11,6 +11,76 @@ import {
 } from "./gameplay.ts";
 import type { NpcQuality } from "./npc-gameplay.ts";
 
+export const XP_REWARD_DEFINITIONS = {
+  galleryDisplay: {
+    default: 1,
+    label: "Gallery display XP",
+    description:
+      "Scales XP earned by the owner while artwork is displayed.",
+  },
+  historianQuest: {
+    default: 1,
+    label: "Art Historian quest XP",
+    description:
+      "Scales the rarity-based XP chunk assigned when a Historian quest is created.",
+  },
+  artExpert: {
+    default: 1,
+    label: "Art Expert XP",
+    description:
+      "Scales the zero-roll artwork XP bonus from an Art Expert visit.",
+  },
+  artEnthusiast: {
+    default: 1,
+    label: "Art Enthusiast XP",
+    description:
+      "Scales quality, gallery, and visitor-adjusted Art Enthusiast XP.",
+  },
+  artCollector: {
+    default: 1,
+    label: "Art Collector XP",
+    description:
+      "Scales an Art Collector's XP offer when the Enthusiast effect applies.",
+  },
+  auctionExpert: {
+    default: 1,
+    label: "Auction expertise XP",
+    description:
+      "Scales XP awarded by the XP_FOR_AUCTIONS legendary effect.",
+  },
+  forgeryOffload: {
+    default: 0.8,
+    label: "Undetected forgery offload XP",
+    description:
+      "Base XP chunks awarded when another player removes an undetected forgery. Heat still adjusts this value.",
+  },
+  forgeryReport: {
+    default: 1,
+    label: "Forgery report XP",
+    description:
+      "Scales XP for a confirmed forgery report. System-owned liability still awards twice the configured value.",
+  },
+  forgeryDisplay: {
+    default: 1,
+    label: "Undetected forgery display XP",
+    description:
+      "Scales XP credited to the original forger while another player displays the forgery.",
+  },
+} as const;
+
+export type XpRewardKey = keyof typeof XP_REWARD_DEFINITIONS;
+export const XP_REWARD_KEYS = Object.keys(
+  XP_REWARD_DEFINITIONS,
+) as XpRewardKey[];
+export type XpRewardScalars = Record<XpRewardKey, number>;
+
+export const DEFAULT_XP_REWARD_SCALARS = Object.fromEntries(
+  XP_REWARD_KEYS.map((key) => [
+    key,
+    XP_REWARD_DEFINITIONS[key].default,
+  ]),
+) as XpRewardScalars;
+
 export const DEFAULT_RARITY_WEIGHTS: Record<ArtworkRarity, number> = {
   common: 15_000,
   uncommon: 5_000,
@@ -87,6 +157,7 @@ export type GameplayConfig = {
   npcSpawnIntervalMinutes: number;
   npcMeetingResetIntervalMinutes: number;
   npcMeetingLimits: Record<NpcQuality, number>;
+  xpRewardScalars: XpRewardScalars;
   rarityWeights: Record<ArtworkRarity, number>;
   cardStyleWeights: Record<DroppableCardRendererId, number>;
 };
@@ -137,6 +208,7 @@ export const DEFAULT_ACTUAL_GAMEPLAY_CONFIG: GameplayConfig = {
     gold: 80,
     platinum: 60,
   },
+  xpRewardScalars: DEFAULT_XP_REWARD_SCALARS,
   rarityWeights: DEFAULT_RARITY_WEIGHTS,
   cardStyleWeights: DEFAULT_CARD_STYLE_WEIGHTS,
 };
@@ -177,6 +249,7 @@ export const DEFAULT_DEBUG_GAMEPLAY_CONFIG: GameplayConfig = {
     gold: 80,
     platinum: 60,
   },
+  xpRewardScalars: DEFAULT_XP_REWARD_SCALARS,
   rarityWeights: DEBUG_RARITY_WEIGHTS,
   cardStyleWeights: DEBUG_CARD_STYLE_WEIGHTS,
 };
@@ -228,6 +301,7 @@ type StoredGameplayConfig = {
   npc_spawn_interval_minutes?: number;
   npc_meeting_reset_interval_minutes?: number;
   npc_meeting_limits?: Partial<Record<NpcQuality, number>>;
+  xp_reward_scalars?: Partial<XpRewardScalars>;
   rarity_weights?: Partial<Record<ArtworkRarity, number>>;
   card_style_weights?: Partial<Record<DroppableCardRendererId, number>>;
 };
@@ -304,6 +378,7 @@ export function toStoredGameplayConfig(
     npc_spawn_interval_minutes: config.npcSpawnIntervalMinutes,
     npc_meeting_reset_interval_minutes: config.npcMeetingResetIntervalMinutes,
     npc_meeting_limits: config.npcMeetingLimits,
+    xp_reward_scalars: config.xpRewardScalars,
     rarity_weights: config.rarityWeights,
     card_style_weights: config.cardStyleWeights,
   };
@@ -452,6 +527,8 @@ export function validateGameplayConfig(
   if (!cardStyleWeights.ok) return cardStyleWeights;
   const npcMeetingLimits = validateNpcMeetingLimits(config.npcMeetingLimits);
   if (!npcMeetingLimits.ok) return npcMeetingLimits;
+  const xpRewardScalars = validateXpRewardScalars(config.xpRewardScalars);
+  if (!xpRewardScalars.ok) return xpRewardScalars;
 
   return {
     ok: true,
@@ -493,6 +570,7 @@ export function validateGameplayConfig(
       npcSpawnIntervalMinutes: values.npcSpawnIntervalMinutes,
       npcMeetingResetIntervalMinutes: values.npcMeetingResetIntervalMinutes,
       npcMeetingLimits: npcMeetingLimits.value,
+      xpRewardScalars: xpRewardScalars.value,
       rarityWeights: rarityWeights.value,
       cardStyleWeights: cardStyleWeights.value,
     },
@@ -682,6 +760,10 @@ function readConfig(
       ...defaults.npcMeetingLimits,
       ...stored?.npc_meeting_limits,
     },
+    xpRewardScalars: {
+      ...defaults.xpRewardScalars,
+      ...stored?.xp_reward_scalars,
+    },
     rarityWeights: {
       ...defaults.rarityWeights,
       ...stored?.rarity_weights,
@@ -691,6 +773,38 @@ function readConfig(
       ...stored?.card_style_weights,
     },
   };
+}
+
+export function validateXpRewardScalars(
+  input: unknown,
+):
+  | { ok: true; value: XpRewardScalars }
+  | { ok: false; error: string } {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    return { ok: false, error: "XP reward scalars must be an object." };
+  }
+  const record = input as Record<string, unknown>;
+  const unknownKeys = Object.keys(record).filter(
+    (key) => !XP_REWARD_KEYS.includes(key as XpRewardKey),
+  );
+  if (unknownKeys.length > 0) {
+    return {
+      ok: false,
+      error: `Unknown XP reward scalar keys: ${unknownKeys.join(", ")}.`,
+    };
+  }
+  const scalars = {} as XpRewardScalars;
+  for (const key of XP_REWARD_KEYS) {
+    const value = Number(record[key]);
+    if (!Number.isFinite(value) || value < 0 || value > 100) {
+      return {
+        ok: false,
+        error: `${key} XP reward scalar must be a number from 0 to 100.`,
+      };
+    }
+    scalars[key] = value;
+  }
+  return { ok: true, value: scalars };
 }
 
 function validateNpcMeetingLimits(

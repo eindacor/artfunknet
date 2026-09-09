@@ -8,6 +8,7 @@ import {
 } from "@/server/auction-gameplay";
 import { transferForgeryLiability } from "@/server/forgery-gameplay";
 import type { GameItem } from "@/server/gameplay";
+import { getGameplaySettings } from "@/server/game-settings";
 import { hydrateGameItems } from "@/server/item-artwork";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
@@ -60,7 +61,7 @@ export async function POST(
   const { id } = await params;
   const database = await getDatabase();
   await settleExpiredAuctions(database);
-  const [player, item] = await Promise.all([
+  const [player, item, settings] = await Promise.all([
     database.collection<Player>("players").findOne({
       _id: auth.session.playerId,
       active: true,
@@ -72,6 +73,7 @@ export async function POST(
       permanent: { $ne: true },
       repairing: { $ne: true },
     }),
+    getGameplaySettings(database),
   ]);
   if (!player || !item) {
     return NextResponse.json(
@@ -142,7 +144,12 @@ export async function POST(
       buyNow,
       durationMinutes,
     });
-    await grantAuctionXpReward(database, player, marketExpert);
+    await grantAuctionXpReward(
+      database,
+      player,
+      marketExpert,
+      settings.active.xpRewardScalars.auctionExpert,
+    );
     await database.collection<Player>("players").updateOne(
       { _id: player._id },
       { $set: { "profile.last_activity": new Date().toISOString() } },

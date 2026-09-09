@@ -1,5 +1,6 @@
 import type { Db } from "mongodb";
 import { recordEconomyMetricsSafely } from "./economy-metrics.ts";
+import { getGameplaySettings, type XpRewardKey } from "./game-settings.ts";
 
 import {
   ARTWORK_RARITIES,
@@ -16,7 +17,6 @@ import { createPlayerNotification } from "./player-notifications.ts";
 
 export const BASE_FORGERY_QUALITY = 0.5;
 export const FORGERY_LIABILITY_DELAY_MS = 6 * 60 * 60 * 1000;
-export const FORGERY_OFFLOAD_XP_CHUNK = 0.8;
 export const FORGERY_HEAT_RANGES = {
   quest: [0.3, 0.95],
   sell: [0, 0.98],
@@ -441,6 +441,7 @@ export async function rewardUndetectedForgeryExit(
     forgerId,
     multiplier,
     "forgery-offload",
+    "forgeryOffload",
   );
   if (amount === 0) return 0;
 
@@ -460,7 +461,7 @@ export function calculateForgeryOffloadXpMultiplier(
     method === "sale" ? "sell" : method === "donation" ? "donate" : "collector";
   const heat = calculateForgeryHeat(item, context);
   return Number(
-    (FORGERY_OFFLOAD_XP_CHUNK * (0.9 + heat * 0.2)).toFixed(3),
+    (0.9 + heat * 0.2).toFixed(3),
   );
 }
 
@@ -469,6 +470,7 @@ export async function awardForgeryXpChunk(
   playerId: string,
   multiplier = 0.8,
   source = "forgery-reward",
+  rewardKey: XpRewardKey = "forgeryReport",
 ): Promise<number> {
   const player = await database.collection<{
     _id: string;
@@ -476,7 +478,9 @@ export async function awardForgeryXpChunk(
     profile: { level: number; xp: number; lottery_tickets: number };
   }>("players").findOne({ _id: playerId, active: true });
   if (!player) return 0;
-  const amount = Math.floor(getXpChunk(player.profile.level) * multiplier);
+  const settings = await getGameplaySettings(database);
+  const chunks = multiplier * settings.active.xpRewardScalars[rewardKey];
+  const amount = Math.floor(getXpChunk(player.profile.level) * chunks);
   return awardForgeryXpAmount(database, playerId, amount, source);
 }
 

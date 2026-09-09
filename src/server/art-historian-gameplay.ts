@@ -6,6 +6,7 @@ import {
   getAverageDropValueForLevel,
   getXpChunk,
 } from "./collection-gameplay.ts";
+import { getGameplaySettings } from "./game-settings.ts";
 import {
   ARTWORK_RARITIES,
   filterActiveArtworks,
@@ -210,6 +211,8 @@ export async function createArtHistorianQuest(
     database,
     player.profile.level,
   );
+  const settings = await getGameplaySettings(database);
+  xpMultiplier *= settings.active.xpRewardScalars.historianQuest;
   const quest: ArtHistorianQuest = {
     _id: randomUUID(),
     owner_id: player._id,

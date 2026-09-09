@@ -383,7 +383,13 @@ export async function settleGalleryEarnings(
         item.authenticity.original_owner !== playerId
       ) {
         const amount =
-          getDisplayXpPerHour(item, level, tick, config) *
+          getDisplayXpPerHour(
+            item,
+            level,
+            tick,
+            config,
+            config.xpRewardScalars.forgeryDisplay,
+          ) *
           intervalHourRatio;
 
         originalForgerXp.set(
@@ -711,12 +717,14 @@ function getDisplayXpPerHour(
   playerLevel: number,
   at: Date,
   config: GameplayConfig,
+  rewardScalar = config.xpRewardScalars.galleryDisplay,
 ): number {
   const percentage = 0.02 + (item.level / 10) * 0.1;
   let reward =
     percentage *
       Math.pow(1.05, getDisplayLevel(item, at, config)) *
-      getXpChunk(playerLevel);
+      getXpChunk(playerLevel) *
+      rewardScalar;
   if (item.authenticity.forgery) {
     reward *= getForgedDisplayRewardMultiplier(
       item.authenticity.forgery_quality,

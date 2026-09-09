@@ -4,23 +4,21 @@ import { requireAdminApi } from "@/server/admin-api";
 import {
   getGameplaySettings,
   toStoredGameplayConfig,
-  validateGameplayConfig,
+  validateXpRewardScalars,
 } from "@/server/game-settings";
 import { getDatabase } from "@/server/mongodb";
 
-type SettingsInput = {
-  debugEnabled?: unknown;
+type XpBalanceInput = {
   actual?: unknown;
   debug?: unknown;
 };
 
-type SettingsDocument = {
+type XpBalanceSettingsDocument = {
   _id: string;
   gameplay?: {
-    debug_enabled?: boolean;
     configs?: {
-      actual?: ReturnType<typeof toStoredGameplayConfig>;
-      debug?: ReturnType<typeof toStoredGameplayConfig>;
+      actual?: { xp_reward_scalars?: Record<string, number> };
+      debug?: { xp_reward_scalars?: Record<string, number> };
     };
   };
   created_at?: Date;
@@ -28,26 +26,19 @@ type SettingsDocument = {
   updated_by?: string;
 };
 
-export async function GET() {
-  const auth = await requireAdminApi();
-  if (!auth.ok) return auth.response;
-
-  return NextResponse.json(await getGameplaySettings(await getDatabase()));
-}
-
 export async function PATCH(request: Request) {
   const auth = await requireAdminApi();
   if (!auth.ok) return auth.response;
 
-  const body = (await request.json()) as SettingsInput;
-  const actual = validateGameplayConfig(body.actual);
+  const body = (await request.json()) as XpBalanceInput;
+  const actual = validateXpRewardScalars(body.actual);
   if (!actual.ok) {
     return NextResponse.json(
       { error: `Actual configuration: ${actual.error}` },
       { status: 400 },
     );
   }
-  const debug = validateGameplayConfig(body.debug);
+  const debug = validateXpRewardScalars(body.debug);
   if (!debug.ok) {
     return NextResponse.json(
       { error: `Debug configuration: ${debug.error}` },
@@ -58,18 +49,17 @@ export async function PATCH(request: Request) {
   const database = await getDatabase();
   const current = await getGameplaySettings(database);
   const now = new Date();
-  await database.collection<SettingsDocument>("metadata").updateOne(
+  await database.collection<XpBalanceSettingsDocument>("metadata").updateOne(
     { _id: "gameplay-settings" },
     {
       $set: {
-        "gameplay.debug_enabled": body.debugEnabled === true,
         "gameplay.configs.actual": toStoredGameplayConfig({
-          ...actual.value,
-          xpRewardScalars: current.actual.xpRewardScalars,
+          ...current.actual,
+          xpRewardScalars: actual.value,
         }),
         "gameplay.configs.debug": toStoredGameplayConfig({
-          ...debug.value,
-          xpRewardScalars: current.debug.xpRewardScalars,
+          ...current.debug,
+          xpRewardScalars: debug.value,
         }),
         updated_at: now,
         updated_by: auth.session.email,
@@ -78,9 +68,10 @@ export async function PATCH(request: Request) {
     },
     { upsert: true },
   );
-
+  const settings = await getGameplaySettings(database);
   return NextResponse.json({
     status: "ok",
-    settings: await getGameplaySettings(database),
+    actual: settings.actual.xpRewardScalars,
+    debug: settings.debug.xpRewardScalars,
   });
 }

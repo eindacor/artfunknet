@@ -390,10 +390,11 @@ export async function POST(
         Math.floor(
           getXpChunk(player.profile.level) *
             getLegendaryNumberParameter(
-              zeroCountEffect,
-              "xp_chunk_percentage",
-              0.1,
-            ),
+            zeroCountEffect,
+            "xp_chunk_percentage",
+            0.1,
+            ) *
+            config.xpRewardScalars.artExpert,
         );
       const progress = applyXp(
         player.profile.level,
@@ -1306,7 +1307,9 @@ export async function POST(
         goodConditionBonus: Boolean(goodConditionEffect),
         rollCountBonus: Boolean(rollCountEffect),
         xpOffer: Boolean(enthusiastPresent),
-        xpChunk: getXpChunk(currentPlayer.profile.level),
+        xpChunk:
+          getXpChunk(currentPlayer.profile.level) *
+          config.xpRewardScalars.artCollector,
       });
       const keepChance = getLegendaryNumberParameter(
         keepItemEffect,

@@ -10,6 +10,7 @@ export default function AdminHeader({ email }: { email: string }) {
     { href: "/admin", label: "Gameplay config" },
     { href: "/admin/game-state", label: "Game state" },
     { href: "/admin/metrics", label: "Metrics" },
+    { href: "/admin/xp-balance", label: "XP balance" },
     { href: "/admin/lottery", label: "Lottery" },
     { href: "/admin/catalog", label: "Catalog" },
     { href: "/admin/legendary-attributes", label: "Legendary attributes" },

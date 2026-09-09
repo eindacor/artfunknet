@@ -862,6 +862,17 @@ async function seedGameplaySettings(database) {
       gold: 80,
       platinum: 60,
     },
+    xp_reward_scalars: {
+      galleryDisplay: 1,
+      historianQuest: 1,
+      artExpert: 1,
+      artEnthusiast: 1,
+      artCollector: 1,
+      auctionExpert: 1,
+      forgeryOffload: 0.8,
+      forgeryReport: 1,
+      forgeryDisplay: 1,
+    },
     rarity_weights: legacy.rarity_weights ?? {
       common: 15000,
       uncommon: 5000,
@@ -907,6 +918,17 @@ async function seedGameplaySettings(database) {
       gold: 80,
       platinum: 60,
     },
+    xp_reward_scalars: {
+      galleryDisplay: 1,
+      historianQuest: 1,
+      artExpert: 1,
+      artEnthusiast: 1,
+      artCollector: 1,
+      auctionExpert: 1,
+      forgeryOffload: 0.8,
+      forgeryReport: 1,
+      forgeryDisplay: 1,
+    },
     rarity_weights: {
       common: 1,
       uncommon: 1,
@@ -917,7 +939,7 @@ async function seedGameplaySettings(database) {
     card_style_weights: debugCardStyleWeights,
   };
   const setter = {
-    schema_version: 7,
+    schema_version: 8,
     updated_at: now,
   };
   if (legacy.debug_enabled === undefined) {
@@ -928,6 +950,20 @@ async function seedGameplaySettings(database) {
   }
   if (!legacy.configs?.debug) {
     setter["gameplay.configs.debug"] = debug;
+  }
+  if (
+    legacy.configs?.actual &&
+    legacy.configs.actual.xp_reward_scalars === undefined
+  ) {
+    setter["gameplay.configs.actual.xp_reward_scalars"] =
+      actual.xp_reward_scalars;
+  }
+  if (
+    legacy.configs?.debug &&
+    legacy.configs.debug.xp_reward_scalars === undefined
+  ) {
+    setter["gameplay.configs.debug.xp_reward_scalars"] =
+      debug.xp_reward_scalars;
   }
   if (
     legacy.configs?.actual &&

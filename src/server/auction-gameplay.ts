@@ -209,6 +209,7 @@ export async function grantAuctionXpReward(
   database: Db,
   player: { _id: string; profile: { level: number; xp: number } },
   marketExpert: boolean,
+  rewardScalar = 1,
 ): Promise<AuctionXpRewardResult | null> {
   if (!marketExpert) return null;
 
@@ -231,7 +232,9 @@ export async function grantAuctionXpReward(
     0.5,
   );
   const xpAmount = Math.floor(
-    getXpChunk(player.profile.level) * xpChunkPercentage,
+    getXpChunk(player.profile.level) *
+      xpChunkPercentage *
+      rewardScalar,
   );
   if (xpAmount <= 0) return null;
 

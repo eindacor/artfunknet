@@ -1,0 +1,5 @@
+
+> artfunknet@0.1.0 test
+> tsc --noEmit && node --test --reporter=verbose game-settings xp-reward-service art-historian standard-npc-rewards collector-gameplay forgery-gameplay collection-gameplay auction-gameplay
+
+node: bad option: --reporter=verbose

@@ -4,9 +4,11 @@ import test from "node:test";
 import {
   DEFAULT_ACTUAL_GAMEPLAY_CONFIG,
   DEFAULT_DEBUG_GAMEPLAY_CONFIG,
+  DEFAULT_XP_REWARD_SCALARS,
   validateCardStyleWeights,
   validateGameplayConfig,
   validateRarityWeights,
+  validateXpRewardScalars,
 } from "./game-settings.ts";
 
 const validWeights = {
@@ -55,6 +57,7 @@ test("card style weights require every known non-default style", () => {
     ok: true,
     value: weights,
   });
+
   assert.equal(
     validateCardStyleWeights({ ...weights, museum: 1 }).ok,
     false,
@@ -67,6 +70,29 @@ test("card style weights require every known non-default style", () => {
     validateCardStyleWeights(
       Object.fromEntries(Object.keys(weights).map((key) => [key, 0])),
     ).ok,
+    false,
+  );
+});
+
+test("XP reward scalars preserve current reward defaults", () => {
+  assert.deepEqual(
+    DEFAULT_ACTUAL_GAMEPLAY_CONFIG.xpRewardScalars,
+    DEFAULT_XP_REWARD_SCALARS,
+  );
+  assert.equal(DEFAULT_XP_REWARD_SCALARS.forgeryOffload, 0.8);
+  assert.equal(validateXpRewardScalars(DEFAULT_XP_REWARD_SCALARS).ok, true);
+  assert.equal(
+    validateXpRewardScalars({
+      ...DEFAULT_XP_REWARD_SCALARS,
+      galleryDisplay: -0.01,
+    }).ok,
+    false,
+  );
+  assert.equal(
+    validateXpRewardScalars({
+      ...DEFAULT_XP_REWARD_SCALARS,
+      unknownReward: 1,
+    }).ok,
     false,
   );
 });
