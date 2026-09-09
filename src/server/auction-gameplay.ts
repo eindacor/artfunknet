@@ -2,17 +2,22 @@ import { randomUUID } from "node:crypto";
 
 import { MongoServerError, type Db, type Filter, type Sort } from "mongodb";
 
-import type { ArtHistorianQuest } from "./art-historian-gameplay";
-import { getAuctionSettlementDisposition } from "./auction-settlement";
+import type { ArtHistorianQuest } from "./art-historian-gameplay.ts";
+import { getAuctionSettlementDisposition } from "./auction-settlement.ts";
 import { deleteCommunityReactions } from "./community-reaction-cleanup.ts";
 import {
   getPublicAuctionReplenishmentCount,
   PUBLIC_AUCTION_DURATION_MINUTES,
-} from "./auction-population";
+} from "./auction-population.ts";
+import {
+  applyXp,
+  getCapsForLevel,
+  getXpChunk,
+} from "./collection-gameplay.ts";
 import {
   getGameplayGenerationMap,
   getGameplaySettings,
-} from "./game-settings";
+} from "./game-settings.ts";
 import {
   calculateItemValues,
   generateDailyDrop,
@@ -20,14 +25,14 @@ import {
   type ArtworkRarity,
   type GameItem,
   type LootData,
-} from "./gameplay";
-import { hydrateGameItems, type HydratedGameItem } from "./item-artwork";
+} from "./gameplay.ts";
+import { hydrateGameItems, type HydratedGameItem } from "./item-artwork.ts";
 import {
   getDisplayedLegendaryEffect,
   getLegendaryNumberParameter,
-} from "./legendary-attributes";
-import { createPlayerNotification } from "./player-notifications";
-import { sanitizePlayerFacingAuthenticity } from "./forgery-gameplay";
+} from "./legendary-attributes.ts";
+import { createPlayerNotification } from "./player-notifications.ts";
+import { sanitizePlayerFacingAuthenticity } from "./forgery-gameplay.ts";
 
 export const PUBLIC_AUCTION_DURATIONS = [60, 360, 720, 1440] as const;
 export const PRIVATE_AUCTION_DURATION_MINUTES = 5;
@@ -191,6 +196,89 @@ export async function createAuction(
   };
   await database.collection<Auction>("auctions").insertOne(auction);
   return auction;
+}
+
+export type AuctionXpRewardResult = {
+  xpGranted: number;
+  bonusMoneyGranted: number;
+  leveledUp: boolean;
+};
+
+export async function grantAuctionXpReward(
+  database: Db,
+  player: { _id: string; profile: { level: number; xp: number } },
+  marketExpert: boolean,
+): Promise<AuctionXpRewardResult | null> {
+  if (!marketExpert) return null;
+
+  const xpForAuctionsEffect = await getDisplayedLegendaryEffect(
+    database,
+    player._id,
+    "XP_FOR_AUCTIONS",
+  );
+  if (!xpForAuctionsEffect) return null;
+
+  const moneyForXpEffect = await getDisplayedLegendaryEffect(
+    database,
+    player._id,
+    "MONEY_FOR_XP",
+  );
+
+  const xpChunkPercentage = getLegendaryNumberParameter(
+    xpForAuctionsEffect,
+    "xp_chunk_percentage",
+    0.5,
+  );
+  const xpAmount = Math.floor(
+    getXpChunk(player.profile.level) * xpChunkPercentage,
+  );
+  if (xpAmount <= 0) return null;
+
+  const progress = applyXp(
+    player.profile.level,
+    player.profile.xp,
+    xpAmount,
+  );
+  const bonusMoney = Math.floor(
+    xpAmount *
+      getLegendaryNumberParameter(
+        moneyForXpEffect,
+        "money_per_xp",
+        moneyForXpEffect ? 2 : 0,
+      ),
+  );
+
+  const result = await database.collection("players").updateOne(
+    {
+      _id: player._id,
+      active: true,
+      "profile.level": player.profile.level,
+      "profile.xp": player.profile.xp,
+    },
+    {
+      $set: {
+        "profile.level": progress.level,
+        "profile.xp": progress.xp,
+        ...Object.fromEntries(
+          Object.entries(getCapsForLevel(progress.level)).map(
+            ([key, value]) => [`profile.${key}`, value],
+          ),
+        ),
+      },
+      $inc: {
+        "profile.lottery_tickets": progress.lotteryTickets,
+        "profile.bank_balance": bonusMoney,
+      },
+    },
+  );
+
+  if (result.modifiedCount !== 1) return null;
+
+  return {
+    xpGranted: xpAmount,
+    bonusMoneyGranted: bonusMoney,
+    leveledUp: progress.level > player.profile.level,
+  };
 }
 
 export async function settleExpiredAuctions(
