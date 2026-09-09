@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ItemExpirationTime } from "../item-expiration-display";
 import type { GameItem } from "@/server/gameplay";
 import { useRef, useState, type CSSProperties } from "react";
 
@@ -374,6 +375,9 @@ export function CompleteItemRecord({
             value={statusValue ?? item.status.replaceAll("_", " ")}
           />
           <Fact label="Source" value={item.source} />
+          {item.expires_at ? (
+            <Fact label="Expires" value={<ItemExpirationTime item={item} />} />
+          ) : null}
           <Fact
             label="Tags"
             value={item.tags.length > 0 ? item.tags.join(", ") : "none"}

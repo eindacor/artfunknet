@@ -5332,6 +5332,17 @@ a.welcome-button {
   animation: thumbnail-foil-shimmer 5s ease-in-out infinite;
 }
 
+.thumbnail-expiration-tint {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+  background: #d00000;
+  mix-blend-mode: multiply;
+  opacity: calc(var(--expiration-progress, 0) * 0.78);
+  transition: opacity 1s linear;
+}
+
 @keyframes thumbnail-foil-shimmer {
   0%,
   12% {

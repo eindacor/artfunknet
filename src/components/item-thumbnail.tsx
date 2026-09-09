@@ -1,4 +1,7 @@
+"use client";
+
 import ArtworkThumbnail from "./artwork-thumbnail";
+import { ItemExpirationTint } from "./item-expiration-display";
 import type { HydratedGameItem } from "@/server/item-artwork";
 
 export default function ItemThumbnail({
@@ -12,7 +15,14 @@ export default function ItemThumbnail({
   className?: string;
   item: Pick<
     HydratedGameItem,
-    "artwork_id" | "card_renderer" | "foil" | "repairing" | "status" | "tags"
+    | "artwork_id"
+    | "card_renderer"
+    | "date_received"
+    | "expires_at"
+    | "foil"
+    | "repairing"
+    | "status"
+    | "tags"
   >;
   researchTarget?: boolean;
   size?: number;
@@ -34,6 +44,7 @@ export default function ItemThumbnail({
       {item.foil ? (
         <span aria-hidden="true" className="thumbnail-foil-shine" />
       ) : null}
+      <ItemExpirationTint item={item} />
       {hasArtStyle ||
       researchTarget ||
       item.repairing ||

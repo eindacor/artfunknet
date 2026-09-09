@@ -12,6 +12,7 @@ import { CARD_RENDERERS } from "./registry";
 import { resolveCardRendererId } from "./selection";
 import StandardItemDialog from "./standard-item-dialog";
 import type { ItemCardProps } from "./types";
+import { ItemExpirationBadge } from "../item-expiration-display";
 
 export default function ItemCard({
   item,
@@ -110,6 +111,7 @@ export default function ItemCard({
         tabIndex={interactive ? 0 : undefined}
       >
         <AuctionWatermark status={currentItem.status} />
+        <ItemExpirationBadge item={currentItem} />
         <KnownForgeryWatermark
           authenticity={currentItem.authenticity}
           rendererId={resolvedRendererId}
