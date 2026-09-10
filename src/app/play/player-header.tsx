@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import type { PlayerNotification } from "@/server/player-notifications";
 
 import NotificationCenter from "./notification-center";
+import ProgressBar from "@/components/progress-bar/progress-bar";
 
 type PlayerHeaderProps =
   | { anonymous: true }
@@ -15,6 +16,10 @@ type PlayerHeaderProps =
 type AuthenticatedPlayerHeaderProps = {
   anonymous?: false;
   auctionEscrow: number;
+  xp: number;
+  xpGoal: number;
+  level: number;
+  isMaxLevel: boolean;
   bankBalance: number;
   initialNotifications?: PlayerNotification[];
   impersonating: boolean;
@@ -136,50 +141,58 @@ function AuthenticatedPlayerHeader(props: AuthenticatedPlayerHeaderProps) {
 
   return (
     <header className="legacy-navbar">
-      <HeaderCommunity />
-      <div className="player-bank-indicator">
-        <span
-          aria-label={`Available bank balance $${displayedBankBalance.toLocaleString()}`}
-        >
-          ${displayedBankBalance.toLocaleString()}
-        </span>
-        {displayedAuctionEscrow > 0 ? (
-          <span
-            aria-label={`$${displayedAuctionEscrow.toLocaleString()} held in auction escrow`}
-            className="player-auction-escrow"
-            title="Active auction bids held in escrow"
-          >
-            (<i aria-hidden="true" className="fa fa-gavel" /> $
-            {displayedAuctionEscrow.toLocaleString()})
-          </span>
-        ) : null}
-        <NotificationCenter initialNotifications={initialNotifications} />
-        {error ? (
-          <span className="player-header-error" role="alert">
-            {error}
-          </span>
-        ) : null}
-      </div>
-      <div className="player-account-actions">
-        {!impersonating ? (
-          <Link
-            aria-label="Account settings"
-            className="item-action-button player-account-link"
-            data-tooltip="Account settings"
-            href="/play/account"
-          >
-            <i aria-hidden="true" className="fa fa-user-cog" />
-          </Link>
-        ) : null}
-        <button
-          aria-label={impersonating ? "Return to admin" : "Sign out"}
-          className="item-action-button player-signout"
-          data-tooltip={impersonating ? "Return to admin" : "Sign out"}
-          onClick={logout}
-          type="button"
-        >
-          <i aria-hidden="true" className="fa fa-sign-out" />
-        </button>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <HeaderCommunity />
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1">
+            <span className="text-[#222] font-['Courier_New',Courier,monospace] text-[0.82rem] font-bold">Level {props.level}</span>
+            <div className="w-[200px]">
+              <ProgressBar value={props.xp} goal={props.xpGoal} maxed={props.isMaxLevel} />
+            </div>
+          </div>
+          <div className="player-bank-indicator">
+            <span aria-label={`Available bank balance $${displayedBankBalance.toLocaleString()}`}>
+              ${displayedBankBalance.toLocaleString()}
+            </span>
+            {displayedAuctionEscrow > 0 ? (
+              <span
+                aria-label={`$${displayedAuctionEscrow.toLocaleString()} held in auction escrow`}
+                className="player-auction-escrow"
+                title="Active auction bids held in escrow"
+              >
+                (<i aria-hidden="true" className="fa fa-gavel" /> $
+                {displayedAuctionEscrow.toLocaleString()})
+              </span>
+            ) : null}
+            <NotificationCenter initialNotifications={initialNotifications} />
+            {error ? (
+              <span className="player-header-error" role="alert">
+                {error}
+              </span>
+            ) : null}
+          </div>
+          <div className="flex gap-3">
+            {!impersonating ? (
+              <Link
+                aria-label="Account settings"
+                className="item-action-button player-account-link"
+                data-tooltip="Account settings"
+                href="/play/account"
+              >
+                <i aria-hidden="true" className="fa fa-user-cog" />
+              </Link>
+            ) : null}
+            <button
+              aria-label={impersonating ? "Return to admin" : "Sign out"}
+              className="item-action-button player-signout"
+              data-tooltip={impersonating ? "Return to admin" : "Sign out"}
+              onClick={logout}
+              type="button"
+            >
+              <i aria-hidden="true" className="fa fa-sign-out" />
+            </button>
+          </div>
+        </div>
       </div>
     </header>
   );

@@ -1,0 +1,32 @@
+.track {
+
+  --track-color: var(--accent);
+  --shadow: none;
+
+  height: 4px;
+  background: #d4cfc4;
+  box-shadow: var(--shadow);
+
+  transition:
+    background 300ms ease,
+    box-shadow 300ms ease;
+  
+  &.maxLevel {
+    --track-color: #daa520;
+    --shadow: 0 0 8px rgb(218 165 32 / 35%);
+    --track-shadow:
+      0 0 8px rgb(255 215 0 / 90%),
+      0 0 14px rgb(218 165 32 / 70%);
+  }
+
+  i {
+    display: block;
+    height: 100%;
+    /* Matches the track rather than clipping with overflow, which would cut
+       off the fill's glow at max level. */
+    border-radius: inherit;
+    background: var(--track-color);
+    transition: width 300ms ease;
+    box-shadow: var(--track-shadow, none);
+  }
+}

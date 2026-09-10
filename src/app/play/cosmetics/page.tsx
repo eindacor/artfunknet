@@ -1,4 +1,5 @@
 import type { GameItem } from "@/server/gameplay";
+import { getXpGoal } from "@/server/collection-gameplay";
 import { getCardStyleInventory } from "@/components/item-cards/catalog";
 import { hydrateGameItems } from "@/server/item-artwork";
 import { getLegendaryAttributes } from "@/server/legendary-attributes";
@@ -17,6 +18,7 @@ type Player = {
   test_account?: boolean;
   profile: {
     bank_balance: number;
+    level: number;
     xp: number;
     card_style_consumables?: Record<string, number>;
   };
@@ -64,6 +66,10 @@ export default async function CardCosmeticStorePage() {
         auctionEscrow={auctionEscrow}
         bankBalance={player.profile.bank_balance}
         impersonating={Boolean(adminSession && player.test_account)}
+        xp={player.profile.xp}
+        xpGoal={getXpGoal(player.profile.level)}
+        level={player.profile.level}
+        isMaxLevel={player.profile.level >= 50}
       />
       <CosmeticStore
         activeRendererIds={rendererSettings.activeRendererIds}
