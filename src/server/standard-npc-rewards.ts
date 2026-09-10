@@ -50,7 +50,7 @@ export function calculateBenefactorReward({
   conditionMultiplierPerItem: number;
   randomRoll: number;
 }): number {
-  const maxDonation = averageDropValue * 4;
+  const maxDonation = averageDropValue * 5;
   let donation =
     maxDonation * BENEFACTOR_QUALITY_MULTIPLIERS[quality];
   if (ownGallery) {
