@@ -14,6 +14,7 @@ import {
   calculateArtExpertRollReduction,
 } from "@/server/art-expert-gameplay";
 import { ensurePlayerKarma } from "@/server/karma";
+import { evaluateDonorQuestItemChance } from "@/server/donor-quest-item";
 import {
   ART_HISTORIAN_ATTRIBUTE_ID,
   createArtHistorianQuest,
@@ -622,34 +623,42 @@ export async function POST(
       const metadata = await database
         .collection<{ _id: string; loot_data: LootData }>("metadata")
         .findOne({ _id: "loot-data" });
-      if (!metadata) throw new Error("Loot metadata is not configured.");
-
       const ownGallery = npc.owner_id === player._id;
-      const [additionalOfferEffect, conditionEffect, levelEffect, tradeEffect] =
-        ownGallery
-          ? await Promise.all([
-              getDisplayedLegendaryEffect(
-                database,
-                player._id,
-                "BONUS_DEALER_DONOR",
-              ),
-              getDisplayedLegendaryEffect(
-                database,
-                player._id,
-                "DONOR_CONDITION_MIN",
-              ),
-              getDisplayedLegendaryEffect(
-                database,
-                player._id,
-                "DONOR_LEVEL_MIN",
-              ),
-              getDisplayedLegendaryEffect(
-                database,
-                player._id,
-                "DONOR_AUCTIONEER_TRADE",
-              ),
-            ])
-          : [null, null, null, null];
+      const [
+        additionalOfferEffect,
+        conditionEffect,
+        levelEffect,
+        tradeEffect,
+        questItemEffect,
+      ] = ownGallery
+        ? await Promise.all([
+            getDisplayedLegendaryEffect(
+              database,
+              player._id,
+              "BONUS_DEALER_DONOR",
+            ),
+            getDisplayedLegendaryEffect(
+              database,
+              player._id,
+              "DONOR_CONDITION_MIN",
+            ),
+            getDisplayedLegendaryEffect(
+              database,
+              player._id,
+              "DONOR_LEVEL_MIN",
+            ),
+            getDisplayedLegendaryEffect(
+              database,
+              player._id,
+              "DONOR_AUCTIONEER_TRADE",
+            ),
+            getDisplayedLegendaryEffect(
+              database,
+              player._id,
+              "DONOR_QUEST_ITEM_CHANCE",
+            ),
+          ])
+        : [null, null, null, null, null];
       const auctioneerPresent =
         tradeEffect &&
         (await database.collection("npcs").findOne({
@@ -657,7 +666,7 @@ export async function POST(
           attribute_id: AUCTIONEER_ATTRIBUTE_ID,
           expiration: { $gt: now },
         }));
-      const offerCount = Math.max(
+      let offerCount = Math.max(
         0,
         1 +
           (ownGallery ? 1 : 0) +
@@ -689,20 +698,43 @@ export async function POST(
           getLegendaryNumberParameter(levelEffect, "level_minimum", 1),
         ),
       );
-      // TODO AI: DONOR_QUEST_ITEM_CHANCE should replace one random offer with
-      // an active quest target once quests are ported.
-      const ownedArtworkIds = new Set(
-        (
-          await database
-            .collection<GameItem>("items")
-            .find({
-              owner: player._id,
-              status: { $in: ["claimed", "displayed"] },
-            })
-            .project<Pick<GameItem, "artwork_id">>({ artwork_id: 1 })
-            .toArray()
-        ).map((item) => item.artwork_id),
-      );
+      let questTargetItem: GameItem | null = null;
+      if (questItemEffect && offerCount > 0) {
+        const questTargetId = await evaluateDonorQuestItemChance(
+          database,
+          player._id,
+          { questItemEffect },
+        );
+        if (questTargetId) {
+          const [generatedQuestItem] = await generateDailyDrop(
+            database,
+            player._id,
+            player.profile.level,
+            {
+              now,
+              itemCount: 1,
+              generationMap: {
+                ...getGameplayGenerationMap(settings.active),
+                rarity: amplifyRarityMap(
+                  getRarityMap(player.profile.level, metadata!.loot_data),
+                  NPC_RARITY_AMPLIFIERS[npc.quality],
+                ),
+              },
+              mintValueMultiplier: settings.active.mintValueMultiplier,
+              debug: settings.debugEnabled,
+              useRawRarityMap: true,
+              source: "art donor",
+              itemLevel,
+              conditionMinimum,
+              targetArtworkId: questTargetId,
+            },
+          );
+          if (generatedQuestItem) {
+            questTargetItem = generatedQuestItem;
+            offerCount = Math.max(0, offerCount - 1);
+          }
+        }
+      }
       const generated = await generateDailyDrop(
         database,
         player._id,
@@ -713,7 +745,7 @@ export async function POST(
           generationMap: {
             ...getGameplayGenerationMap(settings.active),
             rarity: amplifyRarityMap(
-              getRarityMap(player.profile.level, metadata.loot_data),
+              getRarityMap(player.profile.level, metadata!.loot_data),
               NPC_RARITY_AMPLIFIERS[npc.quality],
             ),
           },
@@ -726,7 +758,22 @@ export async function POST(
           expiresAt: getNpcOfferItemExpiration(now),
         },
       );
-      const offers = await hydrateGameItems(database, generated);
+      const allGeneratedItems = questTargetItem
+        ? [questTargetItem, ...generated]
+        : generated;
+      const offers = await hydrateGameItems(database, allGeneratedItems);
+      const ownedArtworkIds = new Set(
+        (
+          await database
+            .collection<GameItem>("items")
+            .find({
+              owner: player._id,
+              status: { $in: ["claimed", "displayed"] },
+            })
+            .project<Pick<GameItem, "artwork_id">>({ artwork_id: 1 })
+            .toArray()
+        ).map((item) => item.artwork_id),
+      );
 
       return NextResponse.json({
         status: "ok",
