@@ -401,6 +401,7 @@ export type DailyDropOptions = {
   conditionMinimum?: number;
   expiresAt?: string;
   status?: "unclaimed" | "for_sale" | "claimed" | "auctioned";
+  targetArtworkId?: string;
 };
 
 export function amplifyRarityMap(
@@ -495,18 +496,25 @@ export async function generateDailyDrop(
 
   const items: GameItem[] = [];
   for (let index = 0; index < itemCount; index += 1) {
-    const rarity = rollAvailableRarity(rarityMap, artworksByRarity);
+    const targetArtwork = options.targetArtworkId
+      ? activeArtworks.find((candidate) => candidate._id === options.targetArtworkId)
+      : null;
+    const rarity = targetArtwork
+      ? targetArtwork.rarity
+      : rollAvailableRarity(rarityMap, artworksByRarity);
     const rarityArtworks = artworksByRarity.get(rarity) ?? [];
-    const artwork = rollWeighted(
-      rarityArtworks.map((candidate) => ({
-        value: candidate,
-        weight: getArtworkGenerationWeight(
-          candidate,
-          metadata.loot_data,
-          seasonalArtworkScalar,
-        ),
-      })),
-    );
+    const artwork =
+      targetArtwork ??
+      rollWeighted(
+        rarityArtworks.map((candidate) => ({
+          value: candidate,
+          weight: getArtworkGenerationWeight(
+            candidate,
+            metadata.loot_data,
+            seasonalArtworkScalar,
+          ),
+        })),
+      );
     const artworkGenerationWeight = getArtworkGenerationWeight(
       artwork,
       metadata.loot_data,
