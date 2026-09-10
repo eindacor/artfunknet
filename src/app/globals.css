@@ -75,9 +75,6 @@ a.welcome-button {
   position: sticky;
   top: 0;
   z-index: 100;
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  align-items: center;
   min-height: 58px;
   padding: 8px 5%;
   border-bottom: 2px solid white;
@@ -1273,34 +1270,6 @@ a.welcome-button {
 
 .museum-profile-progress > div span {
   color: #6f695f;
-}
-
-.museum-profile-progress-track {
-  display: block;
-  height: 3px;
-  background: #d4cfc4;
-  transition:
-    background 300ms ease,
-    box-shadow 300ms ease;
-}
-
-.museum-profile-progress-track i {
-  display: block;
-  height: 100%;
-  background: #FF33CC;
-  transition: width 300ms ease;
-}
-
-.museum-profile-progress.max-level .museum-profile-progress-track {
-  background: #d4cfc4;
-  box-shadow: 0 0 8px rgb(218 165 32 / 35%);
-}
-
-.museum-profile-progress.max-level .museum-profile-progress-track i {
-  background: #daa520;
-  box-shadow:
-    0 0 8px rgb(255 215 0 / 90%),
-    0 0 14px rgb(218 165 32 / 70%);
 }
 
 .museum-profile-ledger {

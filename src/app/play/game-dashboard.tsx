@@ -79,6 +79,7 @@ import GalleryExplorer, {
 import GalleryChat from "./galleries/gallery-chat";
 import type { GalleryMetadataSnapshot } from "@/server/gallery-metadata-core";
 import InfoPanel from "@/components/info-panel/info-panel";
+import ProgressBar from "@/components/progress-bar/progress-bar";
 import Attribute from "@/components/attribute/attribute";
 import GalleryStats from "@/components/gallery-stats/gallery-stats";
 import GalleryStat from "@/components/gallery-stat/gallery-stat";
@@ -1321,9 +1322,7 @@ export default function GameDashboard({
               <strong>Level {player.level.toString()}</strong>
             </header>
 
-            <div
-              className={`museum-profile-progress${player.isMaxLevel ? " max-level" : ""}`}
-            >
+            <div className="museum-profile-progress">
               <div>
                 <span>
                   {player.isMaxLevel
@@ -1335,16 +1334,7 @@ export default function GameDashboard({
                   {player.xpGoal.toLocaleString()} XP
                 </strong>
               </div>
-              <span className="museum-profile-progress-track">
-                <i
-                  style={{
-                    width: `${Math.min(
-                      (player.xp / Math.max(player.xpGoal, 1)) * 100,
-                      100,
-                    )}%`,
-                  }}
-                />
-              </span>
+              <ProgressBar value={player.xp} goal={player.xpGoal} maxed={player.isMaxLevel}  />
             </div>
 
             <div className="museum-profile-ledger">

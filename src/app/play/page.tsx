@@ -414,11 +414,18 @@ export default async function PlayerPage({
       : 1;
   const canRerollDisplayed = false;
 
+  const isMaxLevel = player.profile.level >= 50;
+  const xpGoal = getXpGoal(player.profile.level);
+
   return (
     <div className="game-shell">
       <PlayerHeader
         auctionEscrow={auctionEscrow}
         bankBalance={player.profile.bank_balance}
+        xp={player.profile.xp}
+        xpGoal={xpGoal}
+        level={player.profile.level}
+        isMaxLevel={isMaxLevel}
         initialNotifications={notifications}
         impersonating={impersonating}
       />
@@ -494,8 +501,9 @@ export default async function PlayerPage({
           screenName: player.screen_name,
           bankBalance: player.profile.bank_balance,
           level: player.profile.level,
-          isMaxLevel: player.profile.level >= 50,
           xp: player.profile.xp,
+          xpGoal,
+          isMaxLevel,
           raffleTickets: player.profile.lottery_tickets,
           inventoryCap:
             player.profile.inventory_cap +
@@ -504,7 +512,6 @@ export default async function PlayerPage({
           lastDrop: player.profile.last_drop,
           displayCap: player.profile.display_cap,
           repairingCap: player.profile.repairing_cap ?? 4,
-          xpGoal: getXpGoal(player.profile.level),
           npcsMet: player.profile.npcs_met ?? {},
           karma: normalizeKarmaBalance(player.profile.karma),
           cardStyleInventory: getCardStyleInventory(
