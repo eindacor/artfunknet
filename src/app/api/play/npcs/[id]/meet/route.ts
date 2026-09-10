@@ -14,6 +14,7 @@ import {
   calculateArtExpertRollReduction,
 } from "@/server/art-expert-gameplay";
 import { ensurePlayerKarma } from "@/server/karma";
+import { evaluateDonorQuestItemChance } from "@/server/donor-quest-item";
 import {
   ART_HISTORIAN_ATTRIBUTE_ID,
   createArtHistorianQuest,
@@ -229,9 +230,9 @@ export async function POST(
           .collection<GalleryNpc>("npcs")
           .updateOne({ _id: npc._id }, { $pull: { players_met: player._id } }),
         database.collection<Player>("players").updateOne(
-          { _id: player._id },
-          { $inc: { [`profile.npcs_met.${npc.quality}`]: -1 } },
-        ),
+            { _id: player._id },
+            { $inc: { [`profile.npcs_met.${npc.quality}`]: -1 } },
+          ),
       ]);
       console.error("Unable to grant standard NPC reward", error);
       return NextResponse.json(
@@ -270,9 +271,9 @@ export async function POST(
           .collection<GalleryNpc>("npcs")
           .updateOne({ _id: npc._id }, { $pull: { players_met: player._id } }),
         database.collection<Player>("players").updateOne(
-          { _id: player._id },
-          { $inc: { [`profile.npcs_met.${npc.quality}`]: -1 } },
-        ),
+            { _id: player._id },
+            { $inc: { [`profile.npcs_met.${npc.quality}`]: -1 } },
+          ),
       ]);
       console.error("Unable to complete Preservationist interaction", error);
       return NextResponse.json(
@@ -325,9 +326,9 @@ export async function POST(
           .collection<GalleryNpc>("npcs")
           .updateOne({ _id: npc._id }, { $pull: { players_met: player._id } }),
         database.collection<Player>("players").updateOne(
-          { _id: player._id },
-          { $inc: { [`profile.npcs_met.${npc.quality}`]: -1 } },
-        ),
+            { _id: player._id },
+            { $inc: { [`profile.npcs_met.${npc.quality}`]: -1 } },
+          ),
       ]);
       console.error("Unable to create Art Historian quest", error);
       return NextResponse.json(
@@ -347,29 +348,29 @@ export async function POST(
       const ownGallery = npc.owner_id === player._id;
       const [donorBonusEffect, zeroCountEffect, moneyForXpEffect, donorPresent] =
         ownGallery
-          ? await Promise.all([
-              getDisplayedLegendaryEffect(
-                database,
-                player._id,
-                "DONOR_EXPERT_BONUS",
-              ),
-              getDisplayedLegendaryEffect(
-                database,
-                player._id,
-                "XP_FOR_ZERO_COUNTS",
-              ),
+        ? await Promise.all([
+            getDisplayedLegendaryEffect(
+              database,
+              player._id,
+              "DONOR_EXPERT_BONUS",
+            ),
+            getDisplayedLegendaryEffect(
+              database,
+              player._id,
+              "XP_FOR_ZERO_COUNTS",
+            ),
               getDisplayedLegendaryEffect(
                 database,
                 player._id,
                 "MONEY_FOR_XP",
               ),
-              database.collection<GalleryNpc>("npcs").findOne({
-                owner_id: player._id,
-                attribute_id: ART_DONOR_ATTRIBUTE_ID,
-                expiration: { $gt: now },
-              }),
-            ])
-          : [null, null, null, null];
+            database.collection<GalleryNpc>("npcs").findOne({
+              owner_id: player._id,
+              attribute_id: ART_DONOR_ATTRIBUTE_ID,
+              expiration: { $gt: now },
+            }),
+          ])
+        : [null, null, null, null];
       const donorBonusMultiplier =
         donorBonusEffect && donorPresent
           ? getLegendaryNumberParameter(
@@ -540,29 +541,29 @@ export async function POST(
         randomRoll: Math.random(),
       });
       const playerUpdate = await database.collection<Player>("players").updateOne(
-        {
-          _id: player._id,
-          active: true,
-          "profile.level": player.profile.level,
-          "profile.xp": player.profile.xp,
-        },
-        {
-          $set: {
-            "profile.level": progress.level,
-            "profile.xp": progress.xp,
-            ...Object.fromEntries(
-              Object.entries(getCapsForLevel(progress.level)).map(
-                ([key, value]) => [`profile.${key}`, value],
+          {
+            _id: player._id,
+            active: true,
+            "profile.level": player.profile.level,
+            "profile.xp": player.profile.xp,
+          },
+          {
+            $set: {
+              "profile.level": progress.level,
+              "profile.xp": progress.xp,
+              ...Object.fromEntries(
+                Object.entries(getCapsForLevel(progress.level)).map(
+                  ([key, value]) => [`profile.${key}`, value],
+                ),
               ),
-            ),
+            },
+            $inc: {
+              "profile.karma": karma,
+              "profile.lottery_tickets": progress.lotteryTickets,
+              "profile.bank_balance": bonusMoney,
+            },
           },
-          $inc: {
-            "profile.karma": karma,
-            "profile.lottery_tickets": progress.lotteryTickets,
-            "profile.bank_balance": bonusMoney,
-          },
-        },
-      );
+        );
       if (playerUpdate.modifiedCount !== 1) {
         throw new Error("The Art Expert reward could not be applied.");
       }
@@ -599,9 +600,9 @@ export async function POST(
           .collection<GalleryNpc>("npcs")
           .updateOne({ _id: npc._id }, { $pull: { players_met: player._id } }),
         database.collection<Player>("players").updateOne(
-          { _id: player._id },
-          { $inc: { [`profile.npcs_met.${npc.quality}`]: -1 } },
-        ),
+            { _id: player._id },
+            { $inc: { [`profile.npcs_met.${npc.quality}`]: -1 } },
+          ),
       ]);
       console.error("Unable to complete Art Expert interaction", error);
       return NextResponse.json(
@@ -622,34 +623,42 @@ export async function POST(
       const metadata = await database
         .collection<{ _id: string; loot_data: LootData }>("metadata")
         .findOne({ _id: "loot-data" });
-      if (!metadata) throw new Error("Loot metadata is not configured.");
-
       const ownGallery = npc.owner_id === player._id;
-      const [additionalOfferEffect, conditionEffect, levelEffect, tradeEffect] =
-        ownGallery
-          ? await Promise.all([
-              getDisplayedLegendaryEffect(
-                database,
-                player._id,
-                "BONUS_DEALER_DONOR",
-              ),
-              getDisplayedLegendaryEffect(
-                database,
-                player._id,
-                "DONOR_CONDITION_MIN",
-              ),
-              getDisplayedLegendaryEffect(
-                database,
-                player._id,
-                "DONOR_LEVEL_MIN",
-              ),
-              getDisplayedLegendaryEffect(
-                database,
-                player._id,
-                "DONOR_AUCTIONEER_TRADE",
-              ),
-            ])
-          : [null, null, null, null];
+      const [
+        additionalOfferEffect,
+        conditionEffect,
+        levelEffect,
+        tradeEffect,
+        questItemEffect,
+      ] = ownGallery
+        ? await Promise.all([
+            getDisplayedLegendaryEffect(
+              database,
+              player._id,
+              "BONUS_DEALER_DONOR",
+            ),
+            getDisplayedLegendaryEffect(
+              database,
+              player._id,
+              "DONOR_CONDITION_MIN",
+            ),
+            getDisplayedLegendaryEffect(
+              database,
+              player._id,
+              "DONOR_LEVEL_MIN",
+            ),
+            getDisplayedLegendaryEffect(
+              database,
+              player._id,
+              "DONOR_AUCTIONEER_TRADE",
+            ),
+            getDisplayedLegendaryEffect(
+              database,
+              player._id,
+              "DONOR_QUEST_ITEM_CHANCE",
+            ),
+          ])
+        : [null, null, null, null, null];
       const auctioneerPresent =
         tradeEffect &&
         (await database.collection("npcs").findOne({
@@ -657,7 +666,7 @@ export async function POST(
           attribute_id: AUCTIONEER_ATTRIBUTE_ID,
           expiration: { $gt: now },
         }));
-      const offerCount = Math.max(
+      let offerCount = Math.max(
         0,
         1 +
           (ownGallery ? 1 : 0) +
@@ -689,20 +698,43 @@ export async function POST(
           getLegendaryNumberParameter(levelEffect, "level_minimum", 1),
         ),
       );
-      // TODO AI: DONOR_QUEST_ITEM_CHANCE should replace one random offer with
-      // an active quest target once quests are ported.
-      const ownedArtworkIds = new Set(
-        (
-          await database
-            .collection<GameItem>("items")
-            .find({
-              owner: player._id,
-              status: { $in: ["claimed", "displayed"] },
-            })
-            .project<Pick<GameItem, "artwork_id">>({ artwork_id: 1 })
-            .toArray()
-        ).map((item) => item.artwork_id),
-      );
+      let questTargetItem: GameItem | null = null;
+      if (questItemEffect && offerCount > 0) {
+        const questTargetId = await evaluateDonorQuestItemChance(
+          database,
+          player._id,
+          { questItemEffect },
+        );
+        if (questTargetId) {
+          const [generatedQuestItem] = await generateDailyDrop(
+            database,
+            player._id,
+            player.profile.level,
+            {
+              now,
+              itemCount: 1,
+              generationMap: {
+                ...getGameplayGenerationMap(settings.active),
+                rarity: amplifyRarityMap(
+                  getRarityMap(player.profile.level, metadata!.loot_data),
+                  NPC_RARITY_AMPLIFIERS[npc.quality],
+                ),
+              },
+              mintValueMultiplier: settings.active.mintValueMultiplier,
+              debug: settings.debugEnabled,
+              useRawRarityMap: true,
+              source: "art donor",
+              itemLevel,
+              conditionMinimum,
+              targetArtworkId: questTargetId,
+            },
+          );
+          if (generatedQuestItem) {
+            questTargetItem = generatedQuestItem;
+            offerCount = Math.max(0, offerCount - 1);
+          }
+        }
+      }
       const generated = await generateDailyDrop(
         database,
         player._id,
@@ -713,7 +745,7 @@ export async function POST(
           generationMap: {
             ...getGameplayGenerationMap(settings.active),
             rarity: amplifyRarityMap(
-              getRarityMap(player.profile.level, metadata.loot_data),
+              getRarityMap(player.profile.level, metadata!.loot_data),
               NPC_RARITY_AMPLIFIERS[npc.quality],
             ),
           },
@@ -726,7 +758,22 @@ export async function POST(
           expiresAt: getNpcOfferItemExpiration(now),
         },
       );
-      const offers = await hydrateGameItems(database, generated);
+      const allGeneratedItems = questTargetItem
+        ? [questTargetItem, ...generated]
+        : generated;
+      const offers = await hydrateGameItems(database, allGeneratedItems);
+      const ownedArtworkIds = new Set(
+        (
+          await database
+            .collection<GameItem>("items")
+            .find({
+              owner: player._id,
+              status: { $in: ["claimed", "displayed"] },
+            })
+            .project<Pick<GameItem, "artwork_id">>({ artwork_id: 1 })
+            .toArray()
+        ).map((item) => item.artwork_id),
+      );
 
       return NextResponse.json({
         status: "ok",
@@ -747,9 +794,9 @@ export async function POST(
           .collection<GalleryNpc>("npcs")
           .updateOne({ _id: npc._id }, { $pull: { players_met: player._id } }),
         database.collection<Player>("players").updateOne(
-          { _id: player._id },
-          { $inc: { [`profile.npcs_met.${npc.quality}`]: -1 } },
-        ),
+            { _id: player._id },
+            { $inc: { [`profile.npcs_met.${npc.quality}`]: -1 } },
+          ),
       ]);
       console.error("Unable to generate Art Donor offers", error);
       return NextResponse.json(
@@ -778,9 +825,9 @@ export async function POST(
       const currentExpiration = new Date(
         (
           await database.collection<Player>("players").findOne(
-            { _id: player._id },
-            { projection: { "profile.market_expert.expiration": 1 } },
-          )
+              { _id: player._id },
+              { projection: { "profile.market_expert.expiration": 1 } },
+            )
         )?.profile.market_expert?.expiration ?? 0,
       );
       const baseMinutes = 10 + qualityBonus[npc.quality];
@@ -911,9 +958,9 @@ export async function POST(
           .collection<GalleryNpc>("npcs")
           .updateOne({ _id: npc._id }, { $pull: { players_met: player._id } }),
         database.collection<Player>("players").updateOne(
-          { _id: player._id },
-          { $inc: { [`profile.npcs_met.${npc.quality}`]: -1 } },
-        ),
+            { _id: player._id },
+            { $inc: { [`profile.npcs_met.${npc.quality}`]: -1 } },
+          ),
       ]);
       console.error("Unable to create Auctioneer private auctions", error);
       return NextResponse.json(
@@ -924,14 +971,14 @@ export async function POST(
   }
 
   if (npc.attribute_id === ART_DEALER_ATTRIBUTE_ID) {
-      try {
-        const settings = await getGameplaySettings(database);
-        const metadata = await database
-          .collection<{ _id: string; loot_data: LootData }>("metadata")
-          .findOne({ _id: "loot-data" });
-        if (!metadata) throw new Error("Loot metadata is not configured.");
+    try {
+      const settings = await getGameplaySettings(database);
+      const metadata = await database
+        .collection<{ _id: string; loot_data: LootData }>("metadata")
+        .findOne({ _id: "loot-data" });
+      if (!metadata) throw new Error("Loot metadata is not configured.");
 
-        const ownGallery = npc.owner_id === player._id;
+      const ownGallery = npc.owner_id === player._id;
         const [
           additionalOfferEffect,
           conditionBonusEffect,
@@ -955,119 +1002,119 @@ export async function POST(
               ),
             ])
           : [null, null, null];
-        const discountEffect = await getDisplayedLegendaryEffect(
-          database,
-          player._id,
-          "DEALER_DISCOUNT",
-        );
-        const conditionMinimum = getLegendaryNumberParameter(
-          conditionBonusEffect,
-          "condition_minimum",
-          0.7,
-        );
-        const displayedBelowMinimum = conditionBonusEffect
-          ? await database.collection<GameItem>("items").countDocuments({
-              owner: player._id,
-              status: "displayed",
-              condition: { $lt: conditionMinimum },
-            })
-          : 1;
-        const offerCount =
-          2 +
-          (ownGallery ? 1 : 0) +
-          Math.floor(
-            getLegendaryNumberParameter(
-              additionalOfferEffect,
-              "additional_items",
-              additionalOfferEffect ? 1 : 0,
-            ),
-          ) +
-          (conditionBonusEffect && displayedBelowMinimum === 0 ? 1 : 0);
-        const itemLevel = Math.max(
-          1,
-          Math.floor(
-            getLegendaryNumberParameter(levelEffect, "level_minimum", 1),
+      const discountEffect = await getDisplayedLegendaryEffect(
+        database,
+        player._id,
+        "DEALER_DISCOUNT",
+      );
+      const conditionMinimum = getLegendaryNumberParameter(
+        conditionBonusEffect,
+        "condition_minimum",
+        0.7,
+      );
+      const displayedBelowMinimum = conditionBonusEffect
+        ? await database.collection<GameItem>("items").countDocuments({
+            owner: player._id,
+            status: "displayed",
+            condition: { $lt: conditionMinimum },
+          })
+        : 1;
+      const offerCount =
+        2 +
+        (ownGallery ? 1 : 0) +
+        Math.floor(
+          getLegendaryNumberParameter(
+            additionalOfferEffect,
+            "additional_items",
+            additionalOfferEffect ? 1 : 0,
           ),
-        );
-        const priceMultiplier = getLegendaryNumberParameter(
-          discountEffect,
-          "cost_multiplier",
-          1,
-        );
-        // TODO AI: AUCTION_COUNT_DEALER_BONUS and DEALER_QUEST_ITEM_CHANCE
-        // should modify this offer set after auctions and quests are ported.
-        const ownedArtworkIds = new Set(
-          (
-            await database
-              .collection<GameItem>("items")
-              .find({
-                owner: player._id,
-                status: { $in: ["claimed", "displayed"] },
-              })
-              .project<Pick<GameItem, "artwork_id">>({ artwork_id: 1 })
-              .toArray()
-          ).map((item) => item.artwork_id),
-        );
-        const generated = await generateDailyDrop(
-          database,
-          player._id,
-          player.profile.level,
-          {
-            now,
-            itemCount: offerCount,
-            generationMap: {
-              ...getGameplayGenerationMap(settings.active),
-              rarity: amplifyRarityMap(
-                getRarityMap(player.profile.level, metadata.loot_data),
-                NPC_RARITY_AMPLIFIERS[npc.quality],
-              ),
-            },
-            mintValueMultiplier: settings.active.mintValueMultiplier,
-            debug: settings.debugEnabled,
-            useRawRarityMap: true,
-            source: "art dealer",
-            itemLevel,
-            status: "for_sale",
-            expiresAt: getNpcOfferItemExpiration(now),
+        ) +
+        (conditionBonusEffect && displayedBelowMinimum === 0 ? 1 : 0);
+      const itemLevel = Math.max(
+        1,
+        Math.floor(
+          getLegendaryNumberParameter(levelEffect, "level_minimum", 1),
+        ),
+      );
+      const priceMultiplier = getLegendaryNumberParameter(
+        discountEffect,
+        "cost_multiplier",
+        1,
+      );
+      // TODO AI: AUCTION_COUNT_DEALER_BONUS and DEALER_QUEST_ITEM_CHANCE
+      // should modify this offer set after auctions and quests are ported.
+      const ownedArtworkIds = new Set(
+        (
+          await database
+            .collection<GameItem>("items")
+            .find({
+              owner: player._id,
+              status: { $in: ["claimed", "displayed"] },
+            })
+            .project<Pick<GameItem, "artwork_id">>({ artwork_id: 1 })
+            .toArray()
+        ).map((item) => item.artwork_id),
+      );
+      const generated = await generateDailyDrop(
+        database,
+        player._id,
+        player.profile.level,
+        {
+          now,
+          itemCount: offerCount,
+          generationMap: {
+            ...getGameplayGenerationMap(settings.active),
+            rarity: amplifyRarityMap(
+              getRarityMap(player.profile.level, metadata.loot_data),
+              NPC_RARITY_AMPLIFIERS[npc.quality],
+            ),
           },
-        );
-        const offers = await hydrateGameItems(database, generated);
+          mintValueMultiplier: settings.active.mintValueMultiplier,
+          debug: settings.debugEnabled,
+          useRawRarityMap: true,
+          source: "art dealer",
+          itemLevel,
+          status: "for_sale",
+          expiresAt: getNpcOfferItemExpiration(now),
+        },
+      );
+      const offers = await hydrateGameItems(database, generated);
 
-        return NextResponse.json({
-          status: "ok",
-          message: `${npc.npc_name} offered you ${offers.length} ${offers.length === 1 ? "artwork" : "artworks"} for sale.`,
-          interaction: {
-            type: "art-dealer-offer",
-            npcName: npc.npc_name,
-            quality: npc.quality,
-            items: offers.map((item) => ({
-              ...sanitizePlayerFacingAuthenticity(item),
-              alreadyOwned: ownedArtworkIds.has(item.artwork_id),
-              price: Math.floor(item.values.dealer * priceMultiplier),
-            })),
-          },
-        });
-      } catch (error) {
-        await Promise.all([
-          database
-            .collection<GalleryNpc>("npcs")
-            .updateOne({ _id: npc._id }, { $pull: { players_met: player._id } }),
+      return NextResponse.json({
+        status: "ok",
+        message: `${npc.npc_name} offered you ${offers.length} ${offers.length === 1 ? "artwork" : "artworks"} for sale.`,
+        interaction: {
+          type: "art-dealer-offer",
+          npcName: npc.npc_name,
+          quality: npc.quality,
+          items: offers.map((item) => ({
+            ...sanitizePlayerFacingAuthenticity(item),
+            alreadyOwned: ownedArtworkIds.has(item.artwork_id),
+            price: Math.floor(item.values.dealer * priceMultiplier),
+          })),
+        },
+      });
+    } catch (error) {
+      await Promise.all([
+        database
+          .collection<GalleryNpc>("npcs")
+          .updateOne({ _id: npc._id }, { $pull: { players_met: player._id } }),
           database.collection<Player>("players").updateOne(
             { _id: player._id },
             { $inc: { [`profile.npcs_met.${npc.quality}`]: -1 } },
           ),
-        ]);
-        console.error("Unable to generate Art Dealer offers", error);
-        return NextResponse.json(
-          {
-            error:
-              error instanceof Error
-                ? error.message
-                : "The Art Dealer interaction failed.",
-          },
-          { status: 500 },
-        );
-      }
+      ]);
+      console.error("Unable to generate Art Dealer offers", error);
+      return NextResponse.json(
+        {
+          error:
+            error instanceof Error
+              ? error.message
+              : "The Art Dealer interaction failed.",
+        },
+        { status: 500 },
+      );
+    }
   }
 
   if (npc.attribute_id === ART_COLLECTOR_ATTRIBUTE_ID) {
@@ -1186,20 +1233,20 @@ export async function POST(
       }
 
       const reservation = await database.collection<GameItem>("items").updateOne(
-        {
-          _id: target._id,
-          owner: player._id,
-          status: "claimed",
-          tags: "for sale",
-        },
-        {
-          $set: {
-            status: "collector_pending",
-            "authenticity.liable": player._id,
-            "authenticity.liability_pending": false,
+          {
+            _id: target._id,
+            owner: player._id,
+            status: "claimed",
+            tags: "for sale",
           },
-        },
-      );
+          {
+            $set: {
+              status: "collector_pending",
+              "authenticity.liable": player._id,
+              "authenticity.liability_pending": false,
+            },
+          },
+        );
       if (reservation.modifiedCount !== 1) {
         throw new Error("That artwork is no longer available to the Collector.");
       }
@@ -1218,12 +1265,12 @@ export async function POST(
       if (forgeryCaught) {
         if (shouldDestroyDetectedForgery(target)) {
           const destroyed = await database.collection<GameItem>("items").deleteOne({
-            _id: target._id,
-            owner: player._id,
-            status: "collector_pending",
-            "authenticity.forgery": true,
-            "authenticity.identified": true,
-          });
+              _id: target._id,
+              owner: player._id,
+              status: "collector_pending",
+              "authenticity.forgery": true,
+              "authenticity.identified": true,
+            });
           if (destroyed.deletedCount !== 1) {
             throw new Error(
               "The detected forgery could not be destroyed.",
@@ -1249,19 +1296,19 @@ export async function POST(
           });
         }
         const identified = await database.collection<GameItem>("items").updateOne(
-          { _id: target._id, owner: player._id, status: "collector_pending" },
-          {
-            $set: {
-              status: "claimed",
-              "authenticity.liability_pending": false,
-              "authenticity.liable": player._id,
-              "authenticity.identified": true,
-              "authenticity.forgery_quality": punishForgeryQuality(
-                target.authenticity.forgery_quality,
-              ),
+            { _id: target._id, owner: player._id, status: "collector_pending" },
+            {
+              $set: {
+                status: "claimed",
+                "authenticity.liability_pending": false,
+                "authenticity.liable": player._id,
+                "authenticity.identified": true,
+                "authenticity.forgery_quality": punishForgeryQuality(
+                  target.authenticity.forgery_quality,
+                ),
+              },
             },
-          },
-        );
+          );
         if (identified.modifiedCount !== 1) {
           throw new Error("The forged artwork could not be identified.");
         }
@@ -1387,9 +1434,9 @@ export async function POST(
         );
       } else {
         rewardResult = await database.collection<Player>("players").updateOne(
-          { _id: player._id, active: true },
-          { $inc: { "profile.bank_balance": reward.amount } },
-        );
+            { _id: player._id, active: true },
+            { $inc: { "profile.bank_balance": reward.amount } },
+          );
       }
       if (rewardResult.modifiedCount !== 1) {
         throw new Error("The Collector reward could not be applied.");
@@ -1450,9 +1497,9 @@ export async function POST(
           .collection<GalleryNpc>("npcs")
           .updateOne({ _id: npc._id }, { $pull: { players_met: player._id } }),
         database.collection<Player>("players").updateOne(
-          { _id: player._id },
-          { $inc: { [`profile.npcs_met.${npc.quality}`]: -1 } },
-        ),
+            { _id: player._id },
+            { $inc: { [`profile.npcs_met.${npc.quality}`]: -1 } },
+          ),
       ];
       if (generatedOfferIds.length > 0) {
         cleanup.push(
