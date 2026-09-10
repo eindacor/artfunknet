@@ -103,10 +103,10 @@ export function calculateHistorianReward({
   moneyMultiplier?: number;
 }): ArtHistorianQuestReward {
   const multipliers = REWARD_MULTIPLIERS[questRarity];
-  const xpChunkPercentage = multipliers.xp * xpMultiplier;
+  const xpChunkPercentage = multipliers.xp * xpMultiplier * .5;
   return {
     money: Math.floor(
-      averageDropValue * 10 * multipliers.money * moneyMultiplier,
+      averageDropValue * 5 * multipliers.money * moneyMultiplier,
     ),
     xp: Math.floor(getXpChunk(playerLevel) * xpChunkPercentage),
     xp_chunk_percentage: Number(xpChunkPercentage.toFixed(3)),
