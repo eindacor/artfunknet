@@ -106,7 +106,7 @@ export function calculateHistorianReward({
   const xpChunkPercentage = multipliers.xp * xpMultiplier * .5;
   return {
     money: Math.floor(
-      averageDropValue * 5 * multipliers.money * moneyMultiplier,
+      averageDropValue * 2 * multipliers.money * moneyMultiplier,
     ),
     xp: Math.floor(getXpChunk(playerLevel) * xpChunkPercentage),
     xp_chunk_percentage: Number(xpChunkPercentage.toFixed(3)),
