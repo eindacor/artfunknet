@@ -143,7 +143,7 @@ function AuthenticatedPlayerHeader(props: AuthenticatedPlayerHeaderProps) {
     <header className="legacy-navbar">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <HeaderCommunity />
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-1">
             <span className="text-[#222] font-['Courier_New',Courier,monospace] text-[0.82rem] font-bold">Level {props.level}</span>
             <div className="w-[200px]">
