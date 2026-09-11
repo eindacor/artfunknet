@@ -807,6 +807,22 @@ async function safelyNotify(
   }
 }
 
+export function calculateAntiSnipeExpiration(
+  currentExpiration: string | Date,
+  extensionMinutes: number,
+  now: Date = new Date(),
+): string {
+  const currentExpMs = new Date(currentExpiration).getTime();
+  const nowMs = now.getTime();
+  const extensionMs = Math.max(0, extensionMinutes) * 60 * 1000;
+  if (currentExpMs - nowMs < extensionMs) {
+    return new Date(nowMs + extensionMs).toISOString();
+  }
+  return typeof currentExpiration === "string"
+    ? currentExpiration
+    : currentExpiration.toISOString();
+}
+
 export async function runPrivateAuctionBots(
   database: Db,
   playerId: string,
@@ -822,6 +838,9 @@ export async function runPrivateAuctionBots(
       { last_bot_roll: { $lte: new Date(now.getTime() - 10_000).toISOString() } },
     ],
   }).toArray();
+  if (auctions.length === 0) return;
+
+  const settings = await getGameplaySettings(database);
 
   for (const auction of auctions) {
     const item = await database.collection<GameItem>("items").findOne({
@@ -853,12 +872,18 @@ export async function runPrivateAuctionBots(
         ),
       );
       outbidAmount = botBid;
+      const nextExpiration = calculateAntiSnipeExpiration(
+        auction.expiration,
+        settings.active.auctionAntiSnipeExtensionMinutes,
+        now,
+      );
       Object.assign(setter, {
         current_bid: botBid,
         minimum_bid: botBid + auction.increment,
         current_winner_id: null,
         current_winner_name: null,
         has_bid: true,
+        expiration: nextExpiration,
       });
     }
     const updated = await database.collection<Auction>("auctions").updateOne(
