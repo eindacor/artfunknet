@@ -100,6 +100,7 @@ test("actual and debug gameplay configurations validate independently", () => {
   assert.equal(DEFAULT_ACTUAL_GAMEPLAY_CONFIG.mintValueMultiplier, 2);
   assert.equal(DEFAULT_ACTUAL_GAMEPLAY_CONFIG.galleryPayoutIntervalMinutes, 10);
   assert.equal(DEFAULT_ACTUAL_GAMEPLAY_CONFIG.npcSpawnIntervalMinutes, 1);
+  assert.equal(DEFAULT_ACTUAL_GAMEPLAY_CONFIG.auctionAntiSnipeExtensionMinutes, 5);
   assert.equal(DEFAULT_ACTUAL_GAMEPLAY_CONFIG.repairIntervalMinutes, 60);
   assert.equal(DEFAULT_ACTUAL_GAMEPLAY_CONFIG.repairAmount, 0.1);
   assert.equal(
@@ -137,12 +138,20 @@ test("actual and debug gameplay configurations validate independently", () => {
   assert.equal(DEFAULT_DEBUG_GAMEPLAY_CONFIG.mintValueMultiplier, 2);
   assert.equal(DEFAULT_DEBUG_GAMEPLAY_CONFIG.repairIntervalMinutes, 1);
   assert.equal(DEFAULT_DEBUG_GAMEPLAY_CONFIG.repairAmount, 0.1);
+  assert.equal(DEFAULT_DEBUG_GAMEPLAY_CONFIG.auctionAntiSnipeExtensionMinutes, 5);
   assert.equal(
     DEFAULT_DEBUG_GAMEPLAY_CONFIG.npcMeetingResetIntervalMinutes,
     1,
   );
   assert.equal(validateGameplayConfig(DEFAULT_ACTUAL_GAMEPLAY_CONFIG).ok, true);
   assert.equal(validateGameplayConfig(DEFAULT_DEBUG_GAMEPLAY_CONFIG).ok, true);
+  assert.equal(
+    validateGameplayConfig({
+      ...DEFAULT_DEBUG_GAMEPLAY_CONFIG,
+      auctionAntiSnipeExtensionMinutes: 0,
+    }).ok,
+    false,
+  );
   assert.equal(
     validateGameplayConfig({
       ...DEFAULT_DEBUG_GAMEPLAY_CONFIG,

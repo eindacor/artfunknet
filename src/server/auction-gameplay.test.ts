@@ -58,7 +58,34 @@ test("settlement never classifies recorded bids as unsold", () => {
   );
 });
 
-import { grantAuctionXpReward } from "./auction-gameplay.ts";
+import {
+  calculateAntiSnipeExpiration,
+  grantAuctionXpReward,
+} from "./auction-gameplay.ts";
+
+test("calculateAntiSnipeExpiration extends expiration when remaining time is under configured minutes", () => {
+  const now = new Date("2026-09-10T20:00:00.000Z");
+  // Expiration 2 minutes from now, extension 5 minutes -> extends to now + 5 min (20:05:00)
+  const exp2Min = "2026-09-10T20:02:00.000Z";
+  assert.equal(
+    calculateAntiSnipeExpiration(exp2Min, 5, now),
+    "2026-09-10T20:05:00.000Z",
+  );
+
+  // Expiration 10 minutes from now, extension 5 minutes -> remains 20:10:00
+  const exp10Min = "2026-09-10T20:10:00.000Z";
+  assert.equal(
+    calculateAntiSnipeExpiration(exp10Min, 5, now),
+    "2026-09-10T20:10:00.000Z",
+  );
+
+  // Expiration 7 minutes from now, custom extension 10 minutes -> extends to now + 10 min (20:10:00)
+  const exp7Min = "2026-09-10T20:07:00.000Z";
+  assert.equal(
+    calculateAntiSnipeExpiration(exp7Min, 10, now),
+    "2026-09-10T20:10:00.000Z",
+  );
+});
 
 test("grantAuctionXpReward returns null when marketExpert is false", async () => {
   const result = await grantAuctionXpReward(

@@ -3,10 +3,12 @@ import { recordEconomyMetricsSafely } from "@/server/economy-metrics";
 
 import {
   type Auction,
+  calculateAntiSnipeExpiration,
   settleAuction,
   settleExpiredAuctions,
   validateBidder,
 } from "@/server/auction-gameplay";
+import { getGameplaySettings } from "@/server/game-settings";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
 import { createPlayerNotification } from "@/server/player-notifications";
@@ -102,7 +104,14 @@ export async function POST(
     );
   }
 
-  const nextExpiration = buyingNow ? new Date().toISOString() : auction.expiration;
+  const settings = await getGameplaySettings(database);
+  const nextExpiration = buyingNow
+    ? new Date().toISOString()
+    : calculateAntiSnipeExpiration(
+        auction.expiration,
+        settings.active.auctionAntiSnipeExtensionMinutes,
+        new Date(bidTime),
+      );
   const updated = await database.collection<Auction>("auctions").updateOne(
     {
       _id: auction._id,
