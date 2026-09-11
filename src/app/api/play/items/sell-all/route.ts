@@ -31,6 +31,7 @@ import {
   shouldDestroyDetectedForgery,
   transferForgeryLiability,
 } from "@/server/forgery-gameplay";
+import { getActiveQuestTargetIds } from "@/server/quest-item-sell";
 
 export async function POST(request: Request) {
   const auth = await requirePlayerApi();
@@ -239,20 +240,43 @@ export async function POST(request: Request) {
         : {}),
     });
   }
-  const saleBonus = await getDisplayedLegendaryEffect(
-    database,
-    auth.session.playerId,
-    "UNCLAIMED_ITEM_SELL_BONUS",
-  );
-  const multiplier = getLegendaryNumberParameter(
+  const [saleBonus, questSellBonus, activeQuestTargetIds] = await Promise.all([
+    getDisplayedLegendaryEffect(
+      database,
+      auth.session.playerId,
+      "UNCLAIMED_ITEM_SELL_BONUS",
+    ),
+    getDisplayedLegendaryEffect(
+      database,
+      auth.session.playerId,
+      "QUEST_ITEM_SELL_BONUS",
+    ),
+    questTargetIds.size > 0
+      ? Promise.resolve(questTargetIds)
+      : getActiveQuestTargetIds(database, auth.session.playerId),
+  ]);
+  const unclaimedMultiplier = getLegendaryNumberParameter(
     saleBonus,
     "sell_multiplier",
     1,
   );
-  const amount = sellableItems.reduce(
-    (sum, item) => sum + Math.floor(item.values.sell * multiplier),
-    0,
+  const questMultiplier = getLegendaryNumberParameter(
+    questSellBonus,
+    "sell_multiplier",
+    2,
   );
+  const amount = sellableItems.reduce((sum, item) => {
+    const itemQuestMultiplier =
+      questSellBonus && activeQuestTargetIds.has(item.artwork_id)
+        ? questMultiplier
+        : 1;
+    return (
+      sum +
+      Math.floor(
+        item.values.sell * unclaimedMultiplier * itemQuestMultiplier,
+      )
+    );
+  }, 0);
   const ids = sellableItems.map((item) => item._id);
   const operationId = randomUUID();
   let credited = false;
