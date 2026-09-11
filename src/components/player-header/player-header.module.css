@@ -1,0 +1,50 @@
+.title {
+  color: #ff33cc;
+  font-weight: bold;
+  font-size: 2rem;
+  text-decoration: none;
+}
+
+.links {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  a {
+    color: #777;
+    font-size: 1.2rem;
+    line-height: 1;
+    text-decoration: none;
+    transition:
+      color 120ms ease,
+      transform 120ms ease;
+  }
+
+  a:hover,
+  a:focus-visible {
+    color: var(--accent);
+    transform: translateY(-1px);
+  }
+}
+
+/**
+ * These two sit at the top of the viewport, so their tooltip drops below the
+ * control and aligns to its right edge instead of centring. .item-action-button
+ * is carried into the selector to keep the specificity that beat its own
+ * ::after rule in globals.css.
+ */
+:global(.item-action-button).accountLink::after,
+:global(.item-action-button).signOut::after {
+  top: calc(100% + 9px);
+  right: 0;
+  bottom: auto;
+  left: auto;
+  transform: translateY(-3px);
+}
+
+:global(.item-action-button).accountLink:hover::after,
+:global(.item-action-button).accountLink:focus-visible::after,
+:global(.item-action-button).signOut:hover::after,
+:global(.item-action-button).signOut:focus-visible::after {
+  transform: translateY(0);
+}
