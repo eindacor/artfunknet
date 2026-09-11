@@ -26,7 +26,6 @@ export default function CelestialCard({
         </div>
       ) : null}
       <header>
-        <span className="card-rarity-label">{item.artwork.rarity}</span>
         {item.lottery > 0 ? (
           <span
             aria-label={`Lottery level ${item.lottery}`}
@@ -65,6 +64,13 @@ export default function CelestialCard({
           ) : null}
         </div>
       ) : null}
+      <div className="celestial-card-state-icons">
+        {/* existing state icons */}
+      </div>
+
+      <span className="card-rarity-label">
+        {item.artwork.rarity}
+      </span>
     </div>
   );
 }
