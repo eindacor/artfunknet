@@ -344,7 +344,7 @@ export async function maintainPublicAuctions(
     const generated = await generateDailyDrop(
       database,
       AUCTION_HOUSE_OWNER_ID,
-      50,
+      30,
       {
         now,
         itemCount: replenishCount,
