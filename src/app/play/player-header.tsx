@@ -143,35 +143,37 @@ function AuthenticatedPlayerHeader(props: AuthenticatedPlayerHeaderProps) {
     <header className="legacy-navbar">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <HeaderCommunity />
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1">
-            <span className="text-[#222] font-['Courier_New',Courier,monospace] text-[0.82rem] font-bold">Level {props.level}</span>
-            <div className="w-[200px]">
-              <ProgressBar value={props.xp} goal={props.xpGoal} maxed={props.isMaxLevel} />
+        <div className="flex w-full min-w-0 flex-wrap items-center justify-end gap-4 sm:w-auto">
+          <div className="flex min-w-0 flex-[1_1_240px] items-center gap-4">
+            <div className="flex min-w-0 flex-1 items-center gap-1 sm:flex-initial">
+              <span className="shrink-0 text-[#222] font-['Courier_New',Courier,monospace] text-[0.82rem] font-bold">Level {props.level}</span>
+              <div className="min-w-10 flex-1 sm:w-[200px] sm:flex-none">
+                <ProgressBar value={props.xp} goal={props.xpGoal} maxed={props.isMaxLevel} />
+              </div>
+            </div>
+            <div className="player-bank-indicator shrink-0">
+              <span aria-label={`Available bank balance $${displayedBankBalance.toLocaleString()}`}>
+                ${displayedBankBalance.toLocaleString()}
+              </span>
+              {displayedAuctionEscrow > 0 ? (
+                <span
+                  aria-label={`$${displayedAuctionEscrow.toLocaleString()} held in auction escrow`}
+                  className="player-auction-escrow"
+                  title="Active auction bids held in escrow"
+                >
+                  (<i aria-hidden="true" className="fa fa-gavel" /> $
+                  {displayedAuctionEscrow.toLocaleString()})
+                </span>
+              ) : null}
+              <NotificationCenter initialNotifications={initialNotifications} />
+              {error ? (
+                <span className="player-header-error" role="alert">
+                  {error}
+                </span>
+              ) : null}
             </div>
           </div>
-          <div className="player-bank-indicator">
-            <span aria-label={`Available bank balance $${displayedBankBalance.toLocaleString()}`}>
-              ${displayedBankBalance.toLocaleString()}
-            </span>
-            {displayedAuctionEscrow > 0 ? (
-              <span
-                aria-label={`$${displayedAuctionEscrow.toLocaleString()} held in auction escrow`}
-                className="player-auction-escrow"
-                title="Active auction bids held in escrow"
-              >
-                (<i aria-hidden="true" className="fa fa-gavel" /> $
-                {displayedAuctionEscrow.toLocaleString()})
-              </span>
-            ) : null}
-            <NotificationCenter initialNotifications={initialNotifications} />
-            {error ? (
-              <span className="player-header-error" role="alert">
-                {error}
-              </span>
-            ) : null}
-          </div>
-          <div className="flex gap-3">
+          <div className="ml-auto flex gap-3">
             {!impersonating ? (
               <Link
                 aria-label="Account settings"
