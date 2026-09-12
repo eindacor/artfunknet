@@ -85,6 +85,7 @@ export type GameplayConfig = {
   repairIntervalMinutes: number;
   repairAmount: number;
   npcSpawnIntervalMinutes: number;
+  auctionAntiSnipeExtensionMinutes: number;
   npcMeetingResetIntervalMinutes: number;
   npcMeetingLimits: Record<NpcQuality, number>;
   rarityWeights: Record<ArtworkRarity, number>;
@@ -130,6 +131,7 @@ export const DEFAULT_ACTUAL_GAMEPLAY_CONFIG: GameplayConfig = {
   repairIntervalMinutes: 60,
   repairAmount: 0.1,
   npcSpawnIntervalMinutes: 1,
+  auctionAntiSnipeExtensionMinutes: 5,
   npcMeetingResetIntervalMinutes: 1_440,
   npcMeetingLimits: {
     bronze: 120,
@@ -170,6 +172,7 @@ export const DEFAULT_DEBUG_GAMEPLAY_CONFIG: GameplayConfig = {
   repairIntervalMinutes: 1,
   repairAmount: 0.1,
   npcSpawnIntervalMinutes: 1,
+  auctionAntiSnipeExtensionMinutes: 5,
   npcMeetingResetIntervalMinutes: 1,
   npcMeetingLimits: {
     bronze: 120,
@@ -226,6 +229,7 @@ type StoredGameplayConfig = {
   repair_interval_minutes?: number;
   repair_amount?: number;
   npc_spawn_interval_minutes?: number;
+  auction_anti_snipe_extension_minutes?: number;
   npc_meeting_reset_interval_minutes?: number;
   npc_meeting_limits?: Partial<Record<NpcQuality, number>>;
   rarity_weights?: Partial<Record<ArtworkRarity, number>>;
@@ -302,6 +306,8 @@ export function toStoredGameplayConfig(
     repair_interval_minutes: config.repairIntervalMinutes,
     repair_amount: config.repairAmount,
     npc_spawn_interval_minutes: config.npcSpawnIntervalMinutes,
+    auction_anti_snipe_extension_minutes:
+      config.auctionAntiSnipeExtensionMinutes,
     npc_meeting_reset_interval_minutes: config.npcMeetingResetIntervalMinutes,
     npc_meeting_limits: config.npcMeetingLimits,
     rarity_weights: config.rarityWeights,
@@ -327,6 +333,7 @@ export function validateGameplayConfig(
     ["conditionDecayIntervalMinutes", "Condition decay interval", 1, 10_080],
     ["repairIntervalMinutes", "Repair interval", 1, 10_080],
     ["npcSpawnIntervalMinutes", "NPC spawn interval", 1, 10_080],
+    ["auctionAntiSnipeExtensionMinutes", "Auction anti-snipe extension", 1, 1_440],
     [
       "npcMeetingResetIntervalMinutes",
       "Visitor meeting reset interval",
@@ -491,6 +498,7 @@ export function validateGameplayConfig(
       repairIntervalMinutes: values.repairIntervalMinutes,
       repairAmount,
       npcSpawnIntervalMinutes: values.npcSpawnIntervalMinutes,
+      auctionAntiSnipeExtensionMinutes: values.auctionAntiSnipeExtensionMinutes,
       npcMeetingResetIntervalMinutes: values.npcMeetingResetIntervalMinutes,
       npcMeetingLimits: npcMeetingLimits.value,
       rarityWeights: rarityWeights.value,
@@ -675,6 +683,9 @@ function readConfig(
     npcSpawnIntervalMinutes:
       stored?.npc_spawn_interval_minutes ??
       defaults.npcSpawnIntervalMinutes,
+    auctionAntiSnipeExtensionMinutes:
+      stored?.auction_anti_snipe_extension_minutes ??
+      defaults.auctionAntiSnipeExtensionMinutes,
     npcMeetingResetIntervalMinutes:
       stored?.npc_meeting_reset_interval_minutes ??
       defaults.npcMeetingResetIntervalMinutes,

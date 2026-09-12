@@ -1903,22 +1903,205 @@
     inset 0 0 24px var(--rarity-glow),
     0 0 22px var(--rarity-glow);
   font-family: var(--font-orbitron), var(--font-geist-mono), monospace;
+  position: relative;
+}
+
+.celestial-card > .card-rarity-label {
+  position: absolute;
+  left: 50%;
+  bottom: 0.45rem;
+  z-index: 6;
+  transform: translateX(-50%);
+  
+  color: var(--rarity-light);
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-shadow: 0 0 6px var(--rarity-color);
 }
 
 .celestial-card-stars {
   position: absolute;
   inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Farther-away stars: slow movement */
+.celestial-card-stars::before {
+  content: "";
+  position: absolute;
+  inset: -15%;
+
   background-image:
-    radial-gradient(circle, var(--rarity-light) 0 1px, transparent 2px),
-    radial-gradient(circle, #fff 0 1px, transparent 2px);
-  background-position:
-    17px 31px,
-    63px 79px;
-  background-size:
-    71px 83px,
-    109px 97px;
-  opacity: 0.55;
-  animation: celestial-twinkle 2.3s ease-in-out infinite alternate;
+    radial-gradient(circle at 3% 8%, #fff 0 0.55px, transparent 1px),
+    radial-gradient(circle at 14% 14%, #fff 0 0.7px, transparent 1px),
+    radial-gradient(circle at 23% 34%, #fff 0 0.6px, transparent 1px),
+    radial-gradient(circle at 34% 23%, #fff 0 0.7px, transparent 1px),
+    radial-gradient(circle at 44% 15%, #fff 0 0.6px, transparent 1px),
+    radial-gradient(circle at 54% 7%, #fff 0 0.7px, transparent 1px),
+    radial-gradient(circle at 64% 17%, #fff 0 0.6px, transparent 1px),
+    radial-gradient(circle at 74% 9%, #fff 0 0.7px, transparent 1px),
+    radial-gradient(circle at 84% 14%, #fff 0 0.6px, transparent 1px),
+    radial-gradient(circle at 95% 18%, #fff 0 0.7px, transparent 1px),
+
+    radial-gradient(circle at 5% 71%, #fff 0 0.6px, transparent 1px),
+    radial-gradient(circle at 17% 66%, #fff 0 0.7px, transparent 1px),
+    radial-gradient(circle at 31% 61%, #fff 0 0.6px, transparent 1px),
+    radial-gradient(circle at 43% 72%, #fff 0 0.7px, transparent 1px),
+    radial-gradient(circle at 56% 84%, #fff 0 0.6px, transparent 1px),
+    radial-gradient(circle at 68% 93%, #fff 0 0.7px, transparent 1px),
+    radial-gradient(circle at 80% 88%, #fff 0 0.6px, transparent 1px),
+    radial-gradient(circle at 92% 81%, #fff 0 0.7px, transparent 1px);
+
+  opacity: 0.7;
+
+  animation:
+    celestial-stars-a 7s ease-in-out infinite,
+    celestial-pan-a 28s linear infinite;
+}
+
+
+/* Closer stars: faster movement in another direction */
+.celestial-card-stars::after {
+  content: "";
+  position: absolute;
+  inset: -20%;
+
+  background-image:
+    radial-gradient(circle at 8% 27%, #fff 0 0.5px, transparent 1px),
+    radial-gradient(circle at 18% 52%, #fff 0 0.5px, transparent 1px),
+    radial-gradient(circle at 29% 8%, #fff 0 0.5px, transparent 1px),
+    radial-gradient(circle at 39% 47%, #fff 0 0.5px, transparent 1px),
+    radial-gradient(circle at 49% 38%, #fff 0 0.5px, transparent 1px),
+    radial-gradient(circle at 59% 29%, #fff 0 0.5px, transparent 1px),
+    radial-gradient(circle at 69% 48%, #fff 0 0.5px, transparent 1px),
+    radial-gradient(circle at 79% 31%, #fff 0 0.5px, transparent 1px),
+    radial-gradient(circle at 89% 42%, #fff 0 0.5px, transparent 1px),
+
+    radial-gradient(circle at 11% 89%, #fff 0 0.5px, transparent 1px),
+    radial-gradient(circle at 24% 82%, #fff 0 0.5px, transparent 1px),
+    radial-gradient(circle at 37% 91%, #fff 0 0.5px, transparent 1px),
+    radial-gradient(circle at 50% 57%, #fff 0 0.5px, transparent 1px),
+    radial-gradient(circle at 62% 66%, #fff 0 0.5px, transparent 1px),
+    radial-gradient(circle at 73% 76%, #fff 0 0.5px, transparent 1px),
+    radial-gradient(circle at 86% 63%, #fff 0 0.5px, transparent 1px),
+    radial-gradient(circle at 97% 69%, #fff 0 0.5px, transparent 1px);
+
+  opacity: 0.5;
+
+  animation:
+    celestial-stars-b 7s ease-in-out infinite,
+    celestial-pan-b 18s linear infinite;
+}
+
+
+/* Twinkle: the two layers are 180° out of phase */
+@keyframes celestial-stars-a {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+
+  50% {
+    opacity: 0.75;
+  }
+}
+
+@keyframes celestial-stars-b {
+  0%,
+  100% {
+    opacity: 0.75;
+  }
+
+  50% {
+    opacity: 0.4;
+  }
+}
+
+
+/* Slow diagonal movement of the distant stars */
+@keyframes celestial-pan-a {
+  from {
+    transform: translate3d(0%, 0, 0);
+  }
+  to {
+    transform: translate3d(10%, 0, 0);
+  }
+}
+
+@keyframes celestial-pan-b {
+  from {
+    transform: translate3d(-30%, 0, 0);
+  }
+  to {
+    transform: translate3d(30%, 0, 0);
+  }
+}
+
+.celestial-card-stars::before {
+  animation:
+    celestial-stars-a 7s ease-in-out infinite,
+    celestial-pan-a 10s ease-in-out infinite alternate;
+}
+
+.celestial-card-stars::after {
+  animation:
+    celestial-stars-b 7s ease-in-out infinite,
+    celestial-pan-b 10s ease-in-out infinite alternate;
+}
+
+@keyframes celestial-rocket-drift {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(-42deg);
+  }
+  50% {
+    transform: translate3d(-8px, 3px, 0) rotate(-39deg);
+  }
+}
+
+@keyframes celestial-asteroid-one {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(24deg);
+  }
+  50% {
+    transform: translate3d(5px, -3px, 0) rotate(30deg);
+  }
+}
+
+@keyframes celestial-asteroid-two {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(-18deg);
+  }
+  50% {
+    transform: translate3d(-4px, 4px, 0) rotate(-12deg);
+  }
+}
+
+@keyframes celestial-asteroid-three {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(38deg);
+  }
+  50% {
+    transform: translate3d(3px, -4px, 0) rotate(45deg);
+  }
+}
+
+.celestial-card-seasonal .fa-rocket {
+  animation: celestial-rocket-drift 10s ease-in-out infinite;
+}
+
+.celestial-card-seasonal .asteroid-one {
+  animation: celestial-asteroid-one 6s ease-in-out infinite;
+}
+
+.celestial-card-seasonal .asteroid-two {
+  animation: celestial-asteroid-two 7.5s ease-in-out infinite;
+}
+
+.celestial-card-seasonal .asteroid-three {
+  animation: celestial-asteroid-three 5.5s ease-in-out infinite;
 }
 
 .celestial-card-seasonal {
@@ -2052,7 +2235,7 @@
   position: relative;
   z-index: 3;
   width: 210px;
-  height: 190px;
+  height: 230px;
   margin: 0 auto;
   overflow: hidden;
   border: 2px solid var(--rarity-light);

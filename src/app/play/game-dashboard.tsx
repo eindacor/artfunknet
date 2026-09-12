@@ -1401,7 +1401,7 @@ export default function GameDashboard({
                   <small>Earned by donating artwork and being kind. Used to level up items.</small>
                 </header>
                 <div className="karma-balance">
-                  <i aria-hidden="true" className="fa fa-heart" />
+                  <i aria-hidden="true" className="fa fa-spa" />
                   <div>
                     <strong>{karmaBalance.toLocaleString()}</strong>
                   </div>
@@ -4180,7 +4180,7 @@ function DonationRewardEffect({
       key={effect.animationId}
       role="status"
     >
-      <i aria-hidden="true" className="fa fa-heart karma" />
+      <i aria-hidden="true" className="fa fa-spa karma" />
       {effect.recoveredStyle ? (
         <i aria-hidden="true" className="fa fa-paint-brush art-style" />
       ) : null}

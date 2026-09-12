@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
@@ -111,6 +111,8 @@ export default function GalleryExplorer({
   const [sort, setSort] = useState<GallerySort>(initialSort);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [navigatingGallery, setNavigatingGallery] = useState(false);
+  const skipNextQueryLoad = useRef<string | null>(null);
   const [data, setData] = useState<GalleryResponse>({
     galleries: [],
     total: 0,
@@ -131,6 +133,19 @@ export default function GalleryExplorer({
     return params.toString();
   }, [page, search, sort, viewMode]);
 
+  const requestGalleryPage = useCallback(async (requestQuery: string) => {
+    const response = await fetch(`/api/play/galleries?${requestQuery}`, {
+      cache: "no-store",
+    });
+    const body = (await response.json()) as GalleryResponse & {
+      error?: string;
+    };
+    if (!response.ok) {
+      throw new Error(body.error ?? "Gallery records are unavailable.");
+    }
+    return body;
+  }, []);
+
   const load = useCallback(
     async (refresh = false) => {
       if (refresh) {
@@ -140,16 +155,9 @@ export default function GalleryExplorer({
       }
       setError("");
       try {
-        const response = await fetch(
-          `/api/play/galleries?${query}${refresh ? "&refresh=true" : ""}`,
-          { cache: "no-store" },
+        const body = await requestGalleryPage(
+          `${query}${refresh ? "&refresh=true" : ""}`,
         );
-        const body = (await response.json()) as GalleryResponse & {
-          error?: string;
-        };
-        if (!response.ok) {
-          throw new Error(body.error ?? "Gallery records are unavailable.");
-        }
         setData(body);
       } catch (loadError) {
         setError(
@@ -162,22 +170,90 @@ export default function GalleryExplorer({
         setRefreshing(false);
       }
     },
-    [query],
+    [query, requestGalleryPage],
   );
 
   useEffect(() => {
+    if (skipNextQueryLoad.current === query) {
+      skipNextQueryLoad.current = null;
+      return;
+    }
     const timeout = window.setTimeout(() => void load(), 180);
     return () => window.clearTimeout(timeout);
-  }, [load]);
+  }, [load, query]);
 
   const pages = Math.max(1, Math.ceil(data.total / data.pageSize));
 
-  function visitGallery(gallery: GalleryRecord) {
-    setSelectedGalleryId(gallery.owner_id);
+  function showGallery(ownerId: string) {
+    setError("");
+    setSelectedGalleryId(ownerId);
     router.replace(
-      `/play?gallery=${encodeURIComponent(gallery.owner_id)}`,
+      `/play?gallery=${encodeURIComponent(ownerId)}`,
       { scroll: false },
     );
+  }
+
+  function visitGallery(gallery: GalleryRecord) {
+    showGallery(gallery.owner_id);
+  }
+
+  const selectedGalleryIndex = selectedGalleryId
+    ? data.galleries.findIndex(
+        (gallery) => gallery.owner_id === selectedGalleryId,
+      )
+    : -1;
+  const selectedGalleryPosition =
+    selectedGalleryIndex >= 0
+      ? (data.page - 1) * data.pageSize + selectedGalleryIndex
+      : -1;
+  const hasPreviousGallery = selectedGalleryPosition > 0;
+  const hasNextGallery =
+    selectedGalleryPosition >= 0 &&
+    selectedGalleryPosition < data.total - 1;
+
+  async function navigateGallery(direction: -1 | 1) {
+    if (selectedGalleryIndex < 0 || navigatingGallery) return;
+
+    const adjacentGallery = data.galleries[selectedGalleryIndex + direction];
+    if (adjacentGallery) {
+      showGallery(adjacentGallery.owner_id);
+      return;
+    }
+
+    const targetPage = data.page + direction;
+    if (targetPage < 1 || targetPage > pages) return;
+
+    const params = new URLSearchParams({
+      view: viewMode,
+      sort,
+      page: targetPage.toString(),
+    });
+    if (search.trim()) params.set("search", search.trim());
+    const targetQuery = params.toString();
+
+    setNavigatingGallery(true);
+    setError("");
+    try {
+      const targetData = await requestGalleryPage(targetQuery);
+      const targetGallery =
+        direction === 1
+          ? targetData.galleries[0]
+          : targetData.galleries.at(-1);
+      if (!targetGallery) return;
+
+      skipNextQueryLoad.current = targetQuery;
+      setData(targetData);
+      setPage(targetPage);
+      showGallery(targetGallery.owner_id);
+    } catch (navigationError) {
+      setError(
+        navigationError instanceof Error
+          ? navigationError.message
+          : "The next gallery could not be loaded.",
+      );
+    } finally {
+      setNavigatingGallery(false);
+    }
   }
 
   function updateGalleryReactions(
@@ -202,6 +278,7 @@ export default function GalleryExplorer({
       <VisitedGallery
         initialBankBalance={initialBankBalance}
         meetingNpc={meetingNpc}
+        navigationError={error}
         npcSpawnIntervalMinutes={npcSpawnIntervalMinutes}
         npcRewardEffects={npcRewardEffects}
         onBack={() => {
@@ -209,7 +286,14 @@ export default function GalleryExplorer({
           router.replace("/play", { scroll: false });
         }}
         onMeetNpc={onMeetNpc}
+        onNextGallery={
+          hasNextGallery ? () => navigateGallery(1) : undefined
+        }
+        onPreviousGallery={
+          hasPreviousGallery ? () => navigateGallery(-1) : undefined
+        }
         ownerId={selectedGalleryId}
+        navigationDisabled={navigatingGallery}
         viewerId={viewerId}
       />
     );
@@ -217,38 +301,6 @@ export default function GalleryExplorer({
 
   return (
     <main className="gallery-explorer">
-      <section className="gallery-explorer-filters">
-        <label className="auction-search">
-          <span>Find a player</span>
-          <input
-            onChange={(event) => {
-              setPage(1);
-              setSearch(event.target.value);
-            }}
-            placeholder="player name"
-            type="search"
-            value={search}
-          />
-        </label>
-        <label>
-          <span>Sort galleries</span>
-          <select
-            onChange={(event) => {
-              const next = event.target.value as GallerySort;
-              setPage(1);
-              setSort(next);
-              onViewSettingsChange({ gallerySort: next });
-            }}
-            value={sort}
-          >
-            <option value="value">Gallery value</option>
-            <option value="score">Attribute score</option>
-            <option value="works">Works displayed</option>
-            <option value="name">Player name</option>
-          </select>
-        </label>
-      </section>
-
       {error ? <p className="auction-house-error">{error}</p> : null}
       <div className="auction-results-heading">
         <strong>
@@ -456,6 +508,38 @@ export default function GalleryExplorer({
           Next <i aria-hidden="true" className="fa fa-caret-right" />
         </button>
       </nav>
+
+      <section className="gallery-explorer-filters">
+        <label className="auction-search">
+          <span>Find a player</span>
+          <input
+            onChange={(event) => {
+              setPage(1);
+              setSearch(event.target.value);
+            }}
+            placeholder="player name"
+            type="search"
+            value={search}
+          />
+        </label>
+        <label>
+          <span>Sort galleries</span>
+          <select
+            onChange={(event) => {
+              const next = event.target.value as GallerySort;
+              setPage(1);
+              setSort(next);
+              onViewSettingsChange({ gallerySort: next });
+            }}
+            value={sort}
+          >
+            <option value="value">Gallery value</option>
+            <option value="score">Attribute score</option>
+            <option value="works">Works displayed</option>
+            <option value="name">Player name</option>
+          </select>
+        </label>
+      </section>
     </main>
   );
 }
@@ -463,15 +547,20 @@ export default function GalleryExplorer({
 function VisitedGallery({
   initialBankBalance,
   meetingNpc,
+  navigationError,
   npcSpawnIntervalMinutes,
   npcRewardEffects,
   onBack,
   onMeetNpc,
+  onNextGallery,
+  onPreviousGallery,
   ownerId,
+  navigationDisabled,
   viewerId,
 }: {
   initialBankBalance: number;
   meetingNpc: string | null;
+  navigationError: string;
   npcSpawnIntervalMinutes: number;
   npcRewardEffects: Record<
     string,
@@ -479,7 +568,10 @@ function VisitedGallery({
   >;
   onBack: () => void;
   onMeetNpc: (npc: GalleryNpcView) => Promise<boolean>;
+  onNextGallery?: () => void;
+  onPreviousGallery?: () => void;
   ownerId: string;
+  navigationDisabled: boolean;
   viewerId: string;
 }) {
   const [gallery, setGallery] = useState<GalleryDetailResponse | null>(null);
@@ -558,7 +650,7 @@ function VisitedGallery({
   if (loading) {
     return (
       <section className="visited-gallery">
-        <VisitedGalleryBackButton onBack={onBack} />
+        <VisitedGalleryExitButton onExit={onBack} />
         <p className="empty-state">Preparing the exhibition...</p>
       </section>
     );
@@ -567,7 +659,7 @@ function VisitedGallery({
   if (error || !gallery) {
     return (
       <section className="visited-gallery">
-        <VisitedGalleryBackButton onBack={onBack} />
+        <VisitedGalleryExitButton onExit={onBack} />
         <p className="auction-house-error">
           {error || "This gallery is unavailable."}
         </p>
@@ -592,7 +684,6 @@ function VisitedGallery({
                 display.
               </span>
             </div>
-            <VisitedGalleryBackButton onBack={onBack} />
           </header>
           <dl className="visited-gallery-overview-stats">
             <div>
@@ -792,6 +883,11 @@ function VisitedGallery({
           }
           items={gallery.items}
           legendaryAttributes={gallery.legendaryAttributes}
+          navigationDisabled={navigationDisabled}
+          navigationError={navigationError}
+          onExitGallery={onBack}
+          onNextGallery={onNextGallery}
+          onPreviousGallery={onPreviousGallery}
           onSelectItem={setSelectedPreviewItem}
           owner={gallery.owner}
           viewerId={viewerId}
@@ -815,15 +911,14 @@ function VisitedGallery({
   );
 }
 
-function VisitedGalleryBackButton({ onBack }: { onBack: () => void }) {
+function VisitedGalleryExitButton({ onExit }: { onExit: () => void }) {
   return (
     <button
       className="visited-gallery-back"
-      onClick={onBack}
+      onClick={onExit}
       type="button"
     >
-      <i aria-hidden="true" className="fa fa-arrow-left" /> Back to public
-      galleries
+      <i aria-hidden="true" className="fa fa-times" /> Exit gallery
     </button>
   );
 }

@@ -535,6 +535,23 @@ export default function GameplaySettingsForm({
       />
       </ConfigGroup>
 
+      <ConfigGroup title="Auctions">
+      <SettingField
+        description="Minimum remaining auction time after a bid is placed to prevent last-minute bid sniping."
+        label="Anti-snipe extension time"
+        max={1440}
+        min={1}
+        onChange={(value) =>
+          updateConfig(selectedConfig, (config) => ({
+            ...config,
+            auctionAntiSnipeExtensionMinutes: value,
+          }))
+        }
+        suffix="minutes"
+        value={activeEditor.auctionAntiSnipeExtensionMinutes}
+      />
+      </ConfigGroup>
+
       <ConfigGroup title="Gallery and item condition">
       <SettingField
         description="How often displayed artwork settles prorated money and XP."

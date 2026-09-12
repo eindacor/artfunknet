@@ -18,6 +18,11 @@ export default function PublicGallery({
   floorContent,
   items,
   legendaryAttributes,
+  navigationDisabled = false,
+  navigationError,
+  onExitGallery,
+  onNextGallery,
+  onPreviousGallery,
   onSelectItem,
   owner,
   viewerId,
@@ -25,6 +30,11 @@ export default function PublicGallery({
   floorContent?: React.ReactNode;
   items: HydratedGameItem[];
   legendaryAttributes: CardLegendaryAttribute[];
+  navigationDisabled?: boolean;
+  navigationError?: string;
+  onExitGallery?: () => void;
+  onNextGallery?: () => void;
+  onPreviousGallery?: () => void;
   onSelectItem?: (item: HydratedGameItem) => void;
   owner: ItemDisplayOwner;
   viewerId: string | null;
@@ -101,6 +111,48 @@ export default function PublicGallery({
             <div className="gallery-floor" />
           </div>
         </div>
+        {onPreviousGallery || onNextGallery ? (
+          <>
+            <button
+              aria-label="Previous gallery"
+              className="gallery-navigation-control previous"
+              disabled={navigationDisabled || !onPreviousGallery}
+              onClick={onPreviousGallery}
+              title="Previous gallery"
+              type="button"
+            >
+              <i aria-hidden="true" className="fa fa-chevron-left" />
+            </button>
+            <button
+              aria-label="Next gallery"
+              className="gallery-navigation-control next"
+              disabled={navigationDisabled || !onNextGallery}
+              onClick={onNextGallery}
+              title="Next gallery"
+              type="button"
+            >
+              <i aria-hidden="true" className="fa fa-chevron-right" />
+            </button>
+          </>
+        ) : null}
+        {onExitGallery ? (
+          <button
+            aria-label="Exit gallery"
+            className="gallery-navigation-control exit"
+            disabled={navigationDisabled}
+            onClick={onExitGallery}
+            title="Back to public galleries"
+            type="button"
+          >
+            <i aria-hidden="true" className="fa fa-solid fa-door-open" />
+            <span>Exit gallery</span>
+          </button>
+        ) : null}
+        {navigationError ? (
+          <p className="gallery-navigation-error" role="alert">
+            {navigationError}
+          </p>
+        ) : null}
         {floorContent}
       </div>
       {!onSelectItem && selectedItem ? (

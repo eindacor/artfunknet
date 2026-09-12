@@ -5609,6 +5609,78 @@ a.welcome-button {
   overflow-x: auto;
 }
 
+.gallery-window:has(> .gallery-scroll-window) {
+  overflow: hidden;
+}
+
+.gallery-scroll-window {
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.gallery-navigation-control {
+  position: absolute;
+  z-index: 5;
+  top: clamp(14px, 4%, 36px);
+  display: grid;
+  width: 38px;
+  height: 54px;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 45%);
+  border-radius: 3px;
+  background: rgb(0 0 0 / 72%);
+  color: #fff;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 35%);
+  cursor: pointer;
+}
+
+.gallery-navigation-control.previous {
+  left: 10px;
+}
+
+.gallery-navigation-control.next {
+  right: 10px;
+}
+
+.gallery-navigation-control.exit {
+  left: 50%;
+  width: auto;
+  min-width: 120px;
+  gap: 7px;
+  padding: 0 12px;
+  transform: translateX(-50%);
+  font: 700 0.7rem/1 "Courier New", Courier, monospace;
+  text-transform: uppercase;
+}
+
+.gallery-navigation-control:hover:not(:disabled),
+.gallery-navigation-control:focus-visible:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #111;
+}
+
+.gallery-navigation-control:disabled {
+  cursor: default;
+  opacity: 0.3;
+}
+
+.gallery-navigation-error {
+  position: absolute;
+  z-index: 5;
+  top: clamp(78px, 12%, 100px);
+  left: 50%;
+  max-width: min(420px, calc(100% - 32px));
+  margin: 0;
+  border: 1px solid #b00020;
+  background: rgb(255 255 255 / 92%);
+  color: #b00020;
+  padding: 7px 10px;
+  transform: translateX(-50%);
+  font-size: 0.72rem;
+  text-align: center;
+}
+
 .gallery-scene {
   width: max-content;
   min-width: 100%;
@@ -6083,14 +6155,6 @@ a.welcome-button {
   .dashboard-tabs {
     justify-content: flex-start;
     position: relative;
-    overflow-x: auto;
-  }
-
-  .gallery-window:has(> .gallery-scroll-window) {
-    overflow: hidden;
-  }
-
-  .gallery-scroll-window {
     overflow-x: auto;
   }
 
