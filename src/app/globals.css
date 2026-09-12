@@ -73,66 +73,23 @@ a.welcome-button {
   font-family: "Courier New", Courier, monospace;
 }
 
-.legacy-navbar {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  min-height: 58px;
-  padding: 8px 5%;
-  border-bottom: 2px solid white;
-  background: white;
-  color: white;
-}
-
-.player-bank-indicator {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  color: #222;
-  font-family: "Courier New", Courier, monospace;
-  font-size: 0.82rem;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.player-auction-escrow {
-  color: #8a651e;
-}
-
-.header-notification-button {
-  position: relative;
-  display: grid;
-  width: 30px;
-  height: 30px;
-  place-items: center;
-  border: 0;
-  border-radius: 50%;
-  background: transparent;
-  color: #555;
-  cursor: pointer;
-}
-
-.header-notification-button:hover,
-.header-notification-button:focus-visible,
-.header-notification-button[aria-expanded="true"] {
-  background: #f4e9f1;
-  color: var(--accent);
-}
-
-.header-notification-button .notification-count {
-  position: absolute;
-  top: -2px;
-  right: -4px;
-  display: grid;
-  min-width: 16px;
-  height: 16px;
-  place-items: center;
-  border: 2px solid #fff;
-  border-radius: 10px;
-  background: #e00063;
+.player-signup {
+  border: 1px solid #000;
+  padding: 0.5rem 0.8rem;
+  background: #000;
   color: #fff;
-  padding: 0 3px;
-  font: 700 0.55rem/1 Arial, sans-serif;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-decoration: none;
+  text-transform: lowercase;
+}
+
+.player-signup:hover,
+.player-signup:focus-visible {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #000;
 }
 
 .header-notification-popover {
