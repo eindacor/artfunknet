@@ -1232,7 +1232,7 @@ export default function GameDashboard({
 
   return (
     <main className="legacy-game">
-      <div className="legacy-container">
+      <div>
         <nav className="dashboard-tabs" aria-label="Player dashboard">
           {(
             [
