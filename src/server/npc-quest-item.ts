@@ -7,15 +7,16 @@ import {
   type LegendaryAttribute,
 } from "./legendary-attributes.ts";
 
-export type DonorQuestItemEvaluationOptions = {
+export type NpcQuestItemEvaluationOptions = {
   questItemEffect?: LegendaryAttribute | null;
   rollOverride?: number;
 };
 
-export async function evaluateDonorQuestItemChance(
+export async function evaluateNpcQuestItemChance(
   database: Db,
   playerId: string,
-  options?: DonorQuestItemEvaluationOptions,
+  effectCode: string,
+  options?: NpcQuestItemEvaluationOptions,
 ): Promise<string | null> {
   const questItemEffect =
     options?.questItemEffect !== undefined
@@ -23,7 +24,7 @@ export async function evaluateDonorQuestItemChance(
       : await getDisplayedLegendaryEffect(
           database,
           playerId,
-          "DONOR_QUEST_ITEM_CHANCE",
+          effectCode,
         );
 
   if (!questItemEffect) return null;
@@ -51,4 +52,30 @@ export async function evaluateDonorQuestItemChance(
     Math.random() * activeQuestTargetIds.length,
   );
   return activeQuestTargetIds[selectedIndex];
+}
+
+export function evaluateDonorQuestItemChance(
+  database: Db,
+  playerId: string,
+  options?: NpcQuestItemEvaluationOptions,
+): Promise<string | null> {
+  return evaluateNpcQuestItemChance(
+    database,
+    playerId,
+    "DONOR_QUEST_ITEM_CHANCE",
+    options,
+  );
+}
+
+export function evaluateDealerQuestItemChance(
+  database: Db,
+  playerId: string,
+  options?: NpcQuestItemEvaluationOptions,
+): Promise<string | null> {
+  return evaluateNpcQuestItemChance(
+    database,
+    playerId,
+    "DEALER_QUEST_ITEM_CHANCE",
+    options,
+  );
 }

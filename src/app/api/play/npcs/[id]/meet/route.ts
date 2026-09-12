@@ -14,7 +14,10 @@ import {
   calculateArtExpertRollReduction,
 } from "@/server/art-expert-gameplay";
 import { ensurePlayerKarma } from "@/server/karma";
-import { evaluateDonorQuestItemChance } from "@/server/donor-quest-item";
+import {
+  evaluateDealerQuestItemChance,
+  evaluateDonorQuestItemChance,
+} from "@/server/npc-quest-item";
 import {
   ART_HISTORIAN_ATTRIBUTE_ID,
   createArtHistorianQuest,
@@ -983,6 +986,7 @@ export async function POST(
           additionalOfferEffect,
           conditionBonusEffect,
           levelEffect,
+          questItemEffect,
         ] = ownGallery
           ? await Promise.all([
               getDisplayedLegendaryEffect(
@@ -1000,8 +1004,13 @@ export async function POST(
                 player._id,
                 "DEALER_LEVEL_MIN",
               ),
+              getDisplayedLegendaryEffect(
+                database,
+                player._id,
+                "DEALER_QUEST_ITEM_CHANCE",
+              ),
             ])
-          : [null, null, null];
+          : [null, null, null, null];
         const discountEffect = await getDisplayedLegendaryEffect(
           database,
           player._id,
@@ -1019,7 +1028,7 @@ export async function POST(
               condition: { $lt: conditionMinimum },
             })
           : 1;
-        const offerCount =
+        let offerCount =
           2 +
           (ownGallery ? 1 : 0) +
           Math.floor(
@@ -1041,8 +1050,46 @@ export async function POST(
           "cost_multiplier",
           1,
         );
-        // TODO AI: AUCTION_COUNT_DEALER_BONUS and DEALER_QUEST_ITEM_CHANCE
-        // should modify this offer set after auctions and quests are ported.
+        // TODO AI: AUCTION_COUNT_DEALER_BONUS
+        // should modify this offer set after auctions are ported.
+        let questTargetItem: GameItem | null = null;
+        if (questItemEffect && offerCount > 0) {
+          const questTargetId = await evaluateDealerQuestItemChance(
+            database,
+            player._id,
+            { questItemEffect },
+          );
+          if (questTargetId) {
+            const [generatedQuestItem] = await generateDailyDrop(
+              database,
+              player._id,
+              player.profile.level,
+              {
+                now,
+                itemCount: 1,
+                generationMap: {
+                  ...getGameplayGenerationMap(settings.active),
+                  rarity: amplifyRarityMap(
+                    getRarityMap(player.profile.level, metadata.loot_data),
+                    NPC_RARITY_AMPLIFIERS[npc.quality],
+                  ),
+                },
+                mintValueMultiplier: settings.active.mintValueMultiplier,
+                debug: settings.debugEnabled,
+                useRawRarityMap: true,
+                source: "art dealer",
+                itemLevel,
+                status: "for_sale",
+                targetArtworkId: questTargetId,
+                expiresAt: getNpcOfferItemExpiration(now),
+              },
+            );
+            if (generatedQuestItem) {
+              questTargetItem = generatedQuestItem;
+              offerCount = Math.max(0, offerCount - 1);
+            }
+          }
+        }
         const ownedArtworkIds = new Set(
           (
             await database
@@ -1078,7 +1125,10 @@ export async function POST(
             expiresAt: getNpcOfferItemExpiration(now),
           },
         );
-        const offers = await hydrateGameItems(database, generated);
+        const allGeneratedItems = questTargetItem
+          ? [questTargetItem, ...generated]
+          : generated;
+        const offers = await hydrateGameItems(database, allGeneratedItems);
 
         return NextResponse.json({
           status: "ok",

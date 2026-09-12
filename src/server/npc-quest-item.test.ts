@@ -1,22 +1,26 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { evaluateDonorQuestItemChance } from "./donor-quest-item.ts";
+import {
+  evaluateDealerQuestItemChance,
+  evaluateDonorQuestItemChance,
+  evaluateNpcQuestItemChance,
+} from "./npc-quest-item.ts";
 import type { LegendaryAttribute } from "./legendary-attributes.ts";
 
-const createMockEffect = (chance = 0.2): LegendaryAttribute => ({
-  _id: "attr-donor-quest",
-  code: "DONOR_QUEST_ITEM_CHANCE",
-  title: "Donor Quest Item Chance",
-  description: "Art Donors have an increased chance to offer quest items.",
-  flavor_text: "Seeing it first hand is truly an overpowering experience.",
+const createMockEffect = (code: string, chance = 0.2): LegendaryAttribute => ({
+  _id: `attr-${code.toLowerCase()}`,
+  code,
+  title: `${code} Perk`,
+  description: "Increased chance to offer quest items.",
+  flavor_text: "A grand display.",
   active: true,
   parameters: { chance },
-  linked_attributes: ["Yk2kk2mZtHetvbrY5", "Z7wY5jXkDeckwfFLs"],
-  linked_pair: "Yk2kk2mZtHetvbrY5:Z7wY5jXkDeckwfFLs",
+  linked_attributes: ["attr1", "attr2"],
+  linked_pair: "",
 });
 
-test("evaluateDonorQuestItemChance returns null when effect is not active", async () => {
+test("evaluateNpcQuestItemChance returns null when effect is not active", async () => {
   const mockDb: any = {
     collection: (name: string) => {
       if (name === "items") {
@@ -36,8 +40,8 @@ test("evaluateDonorQuestItemChance returns null when effect is not active", asyn
   assert.equal(result, null);
 });
 
-test("evaluateDonorQuestItemChance returns null when roll exceeds chance", async () => {
-  const effect = createMockEffect(0.2);
+test("evaluateNpcQuestItemChance returns null when roll exceeds chance", async () => {
+  const effect = createMockEffect("DONOR_QUEST_ITEM_CHANCE", 0.2);
   const mockDb: any = {};
 
   const result = await evaluateDonorQuestItemChance(mockDb, "player-1", {
@@ -48,8 +52,8 @@ test("evaluateDonorQuestItemChance returns null when roll exceeds chance", async
   assert.equal(result, null);
 });
 
-test("evaluateDonorQuestItemChance returns null when player has no active quests", async () => {
-  const effect = createMockEffect(0.2);
+test("evaluateNpcQuestItemChance returns null when player has no active quests", async () => {
+  const effect = createMockEffect("DONOR_QUEST_ITEM_CHANCE", 0.2);
   const mockDb: any = {
     collection: (name: string) => {
       if (name === "quests") {
@@ -72,7 +76,7 @@ test("evaluateDonorQuestItemChance returns null when player has no active quests
 });
 
 test("evaluateDonorQuestItemChance returns quest target artwork ID when effect triggers", async () => {
-  const effect = createMockEffect(0.2);
+  const effect = createMockEffect("DONOR_QUEST_ITEM_CHANCE", 0.2);
   const mockDb: any = {
     collection: (name: string) => {
       if (name === "quests") {
@@ -101,4 +105,36 @@ test("evaluateDonorQuestItemChance returns quest target artwork ID when effect t
   });
 
   assert.ok(["art-target-100", "art-target-101"].includes(result!));
+});
+
+test("evaluateDealerQuestItemChance returns quest target artwork ID when effect triggers", async () => {
+  const effect = createMockEffect("DEALER_QUEST_ITEM_CHANCE", 0.2);
+  const mockDb: any = {
+    collection: (name: string) => {
+      if (name === "quests") {
+        return {
+          find: (query: any) => {
+            assert.equal(query.owner_id, "player-1");
+            return {
+              toArray: async () => [
+                {
+                  _id: "quest-2",
+                  owner_id: "player-1",
+                  target: ["art-target-200"],
+                },
+              ],
+            };
+          },
+        };
+      }
+      return {};
+    },
+  };
+
+  const result = await evaluateDealerQuestItemChance(mockDb, "player-1", {
+    questItemEffect: effect,
+    rollOverride: 0.15,
+  });
+
+  assert.equal(result, "art-target-200");
 });

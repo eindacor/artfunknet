@@ -23,21 +23,21 @@ if (!player) {
   throw new Error(`Player ${playerEmail} not found. Did you run npm run db:seed?`);
 }
 
-// 1. Ensure DONOR_QUEST_ITEM_CHANCE exists in unique_attributes collection
-const DONOR_QUEST_ITEM_CHANCE_ID = "xFYPpiXNTTiCHp26R";
+// 1. Ensure DEALER_QUEST_ITEM_CHANCE exists in unique_attributes collection
+const DEALER_QUEST_ITEM_CHANCE_ID = "C4tXdgANcahxEtScG";
 await db.collection("unique_attributes").updateOne(
-  { _id: DONOR_QUEST_ITEM_CHANCE_ID },
+  { _id: DEALER_QUEST_ITEM_CHANCE_ID },
   {
     $set: {
-      _id: DONOR_QUEST_ITEM_CHANCE_ID,
-      code: "DONOR_QUEST_ITEM_CHANCE",
-      title: "Donor Quest Item Chance",
-      description: "Art Donors have an increased chance to offer quest items.",
-      flavor_text: "Seeing it first hand is truly an overpowering experience.",
+      _id: DEALER_QUEST_ITEM_CHANCE_ID,
+      code: "DEALER_QUEST_ITEM_CHANCE",
+      title: "Dealer Quest Item Chance",
+      description: "Art Dealers have an increased chance to offer quest items.",
+      flavor_text: "Time has done little to dimish the power of this work.",
       active: true,
       parameters: { chance: 1.0 }, // Set to 1.0 for testing guarantee
-      linked_attributes: ["Yk2kk2mZtHetvbrY5", "Z7wY5jXkDeckwfFLs"],
-      linked_pair: "Yk2kk2mZtHetvbrY5:Z7wY5jXkDeckwfFLs",
+      linked_attributes: ["mZH58WpgbKP9o9WZR", "Z7wY5jXkDeckwfFLs"],
+      linked_pair: "mZH58WpgbKP9o9WZR:Z7wY5jXkDeckwfFLs",
     },
   },
   { upsert: true }
@@ -51,9 +51,9 @@ if (!legendaryArtwork) {
 
 const attributes = await db.collection("attributes").find({ active: true }).toArray();
 
-// 3. Insert or update a displayed item with DONOR_QUEST_ITEM_CHANCE active
+// 3. Insert or update a displayed item with DEALER_QUEST_ITEM_CHANCE active
 const legendaryItemBase = {
-  _id: "dev-donor-quest-item-" + Date.now(),
+  _id: "dev-dealer-quest-item-" + Date.now(),
   artwork_id: legendaryArtwork._id,
   condition: 1.0,
   mint: false,
@@ -63,7 +63,7 @@ const legendaryItemBase = {
     unlocked: [],
     special: attributes.slice(0, 2).map((a) => ({ ...a, value: 0.8 })),
   },
-  active_unique_attribute: DONOR_QUEST_ITEM_CHANCE_ID,
+  active_unique_attribute: DEALER_QUEST_ITEM_CHANCE_ID,
   tags: [],
   owner: player._id,
   transaction_history: [
@@ -72,7 +72,7 @@ const legendaryItemBase = {
       from_owner: null,
       to_owner: player._id,
       occurred_at: new Date().toISOString(),
-      source: "dev-seed-donor-quest",
+      source: "dev-seed-dealer-quest",
     },
   ],
   status: "displayed",
@@ -111,7 +111,7 @@ const targetArtwork = await db.collection("artworks").findOne({
 });
 
 // 5. Ensure an active quest exists for the player targeting targetArtwork
-const questId = "dev-quest-donor-target-" + Date.now();
+const questId = "dev-quest-dealer-target-" + Date.now();
 await db.collection("quests").insertOne({
   _id: questId,
   owner_id: player._id,
@@ -124,37 +124,37 @@ await db.collection("quests").insertOne({
   created_at: new Date().toISOString(),
 });
 
-// 6. Spawn an Art Donor NPC in the player's gallery
-const donorNpcId = "dev-donor-npc-" + Date.now();
-const ART_DONOR_ATTRIBUTE_ID = "Yk2kk2mZtHetvbrY5";
+// 6. Spawn an Art Dealer NPC in the player's gallery
+const dealerNpcId = "dev-dealer-npc-" + Date.now();
+const ART_DEALER_ATTRIBUTE_ID = "mZH58WpgbKP9o9WZR";
 await db.collection("npcs").insertOne({
-  _id: donorNpcId,
-  spawn_key: "dev:" + donorNpcId,
+  _id: dealerNpcId,
+  spawn_key: "dev:" + dealerNpcId,
   quality: "gold",
-  attribute_id: ART_DONOR_ATTRIBUTE_ID,
+  attribute_id: ART_DEALER_ATTRIBUTE_ID,
   owner_id: player._id,
   owner_name: player.screen_name ?? playerEmail,
   spawned_at: new Date(),
   expiration: new Date(Date.now() + 24 * 60 * 60 * 1000),
   players_met: [],
-  icon: "/icons/donor.png",
-  npc_name: "Art Donor (Dev Test)",
+  icon: "/icons/dealer.png",
+  npc_name: "Art Dealer (Dev Test)",
   proc_chance: 1.0,
 });
 
 console.log("=========================================================");
-console.log("DONOR_QUEST_ITEM_CHANCE Seeding Complete!");
+console.log("DEALER_QUEST_ITEM_CHANCE Seeding Complete!");
 console.log("=========================================================");
 console.log(`- Player: ${playerEmail} (${player._id})`);
 console.log(`- Seeded Displayed Legendary Item: ${legendaryItem._id}`);
-console.log(`  Perk Active: DONOR_QUEST_ITEM_CHANCE (${DONOR_QUEST_ITEM_CHANCE_ID})`);
+console.log(`  Perk Active: DEALER_QUEST_ITEM_CHANCE (${DEALER_QUEST_ITEM_CHANCE_ID})`);
 console.log(`- Active Quest Target Artwork: "${targetArtwork.title}" by ${targetArtwork.artist} (ID: ${targetArtwork._id})`);
-console.log(`- Spawned Art Donor NPC ID: ${donorNpcId}`);
+console.log(`- Spawned Art Dealer NPC ID: ${dealerNpcId}`);
 console.log("\n--- Verification Instructions ---");
 console.log(`1. Start dev server: npm run dev`);
 console.log(`2. Login as ${playerEmail} and navigate to /play`);
-console.log(`3. Meet the Art Donor NPC or send POST /api/play/npcs/${donorNpcId}/meet`);
-console.log(`4. Verify that one of the donor's offered artworks is "${targetArtwork.title}"!`);
+console.log(`3. Meet the Art Dealer NPC or send POST /api/play/npcs/${dealerNpcId}/meet`);
+console.log(`4. Verify that one of the dealer's offered artworks for sale is "${targetArtwork.title}"!`);
 console.log("=========================================================");
 
 await client.close();
