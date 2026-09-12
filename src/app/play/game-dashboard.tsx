@@ -2763,23 +2763,30 @@ export default function GameDashboard({
 }
 
 function QuestSection({
+  completed,
   onAction,
   pending,
   quests,
 }: {
+  completed: number;
   onAction: (url: string) => void;
   pending: boolean;
   quests: ArtHistorianQuestView[];
 }) {
   return (
     <section className="historian-quests">
-      <header className="historian-quests-heading">
-        <div>
-          <p>Art Historian objectives</p>
-          <h2>Research requests</h2>
+      <InfoPanel>
+        <div className="flex flex-col gap-3">
+          <header>
+            <h2 className="info-panel-title">research quests</h2>
+          </header>
+          <GalleryStats>
+            <GalleryStat label="Active" value={quests.length} />
+            <GalleryStat label="Available" value={8 - quests.length} />
+            <GalleryStat label="Completed" value={completed} />
+          </GalleryStats>
         </div>
-        <span>{quests.length} / 8 active</span>
-      </header>
+      </InfoPanel>
       {quests.length === 0 ? (
         <p className="empty-state">
           You have no active Art Historian objectives.
