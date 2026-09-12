@@ -18,6 +18,7 @@ import {
 import { getDatabase } from "@/server/mongodb";
 import { removeExpiredTransientItems } from "@/server/item-expiration";
 import { requirePlayerApi } from "@/server/player-api";
+import { evaluateQuestItemSellBonus } from "@/server/quest-item-sell";
 
 type Player = {
   _id: string;
@@ -135,9 +136,18 @@ export async function POST(
           "UNCLAIMED_ITEM_SELL_BONUS",
         )
       : null;
+  const questBonus = await evaluateQuestItemSellBonus(
+    database,
+    auth.session.playerId,
+    item.artwork_id,
+  );
+  const unclaimedMultiplier = getLegendaryNumberParameter(
+    saleBonus,
+    "sell_multiplier",
+    1,
+  );
   const amount = Math.floor(
-    item.values.sell *
-      getLegendaryNumberParameter(saleBonus, "sell_multiplier", 1),
+    item.values.sell * unclaimedMultiplier * questBonus.multiplier,
   );
 
   const result = await database.collection<Player>("players").updateOne(
