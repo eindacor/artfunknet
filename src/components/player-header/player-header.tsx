@@ -4,47 +4,7 @@ import ProgressBar from "@/components/progress-bar/progress-bar";
 import ActionButton from "../action-button/action-button";
 import IconButton from "../icon-button/icon-button";
 
-/** The community links, which both branches of the navbar show. */
-export function HeaderCommunity({ className = "" }: { className?: string }) {
-  return (
-    <div className="flex items-center min-w-0 gap-3">
-      <Link className="" href="/">
-        artfunkel
-      </Link>
-      <nav aria-label="Artfunkel community" className="flex items-center gap-1">
-        <a
-          aria-label="Join the Artfunkel Discord server"
-          href="https://discord.gg/3dQdyhXVb"
-          rel="noreferrer"
-          target="_blank"
-          title="Discord"
-        >
-          <i aria-hidden="true" className="fa-brands fa-discord" />
-        </a>
-        <a
-          aria-label="Visit the Artfunkel subreddit"
-          href="https://www.reddit.com/r/artfunkel/"
-          rel="noreferrer"
-          target="_blank"
-          title="Reddit"
-        >
-          <i aria-hidden="true" className="fa-brands fa-reddit" />
-        </a>
-        <a
-          aria-label="Support Artfunkel on Patreon"
-          href="https://www.patreon.com/c/artfunkel"
-          rel="noreferrer"
-          target="_blank"
-          title="Patreon"
-        >
-          <i aria-hidden="true" className="fa-brands fa-patreon" />
-        </a>
-      </nav>
-    </div>
-  );
-}
-
-export default function PlayerHeader({
+export default function PlayerHeaderContent({
   auctionEscrow,
   bankBalance,
   error = "",
@@ -69,7 +29,7 @@ export default function PlayerHeader({
   xpGoal: number;
 }) {
   return (
-    <div className="@container grid grid-cols-12 items-center gap-2 gap-y-4">
+    <>
       <div className="col-span-12 @2xs:col-span-4">
         <Link href="/">
           <span className="font-bold text-2xl @md:text-4xl text-[#ff33cc]">artfunkel</span>
@@ -156,6 +116,6 @@ export default function PlayerHeader({
         ) : null}
         {notifications}
       </div>
-    </div>
+    </>
   );
 }

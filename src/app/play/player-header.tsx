@@ -7,15 +7,13 @@ import { useRouter } from "next/navigation";
 import type { PlayerNotification } from "@/server/player-notifications";
 
 import NotificationCenter from "./notification-center";
-import PlayerHeaderContent, {
-  HeaderCommunity,
-} from "@/components/player-header/player-header";
+import PlayerHeaderContent from "@/components/player-header/player-header";
 
 type PlayerHeaderProps =
   | { anonymous: true }
-  | AuthenticatedPlayerHeaderProps;
+  | AuthenticatedHeaderContentProps;
 
-type AuthenticatedPlayerHeaderProps = {
+type AuthenticatedHeaderContentProps = {
   anonymous?: false;
   auctionEscrow: number;
   xp: number;
@@ -28,21 +26,31 @@ type AuthenticatedPlayerHeaderProps = {
 };
 
 export default function PlayerHeader(props: PlayerHeaderProps) {
-  if (props.anonymous) {
-    return (
-      <header className="legacy-navbar null-player-navbar">
-        <HeaderCommunity />
-        <Link className="player-signup" href="/play/login">
-          Sign up
-        </Link>
-      </header>
-    );
-  }
-
-  return <AuthenticatedPlayerHeader {...props} />;
+  return (
+    <header className="sticky top-0 z-100 py-3 px-[5%] bg-white">
+      <div className="@container grid grid-cols-12 items-center gap-2 gap-y-4">
+        {props.anonymous ? (
+          <>
+            <div className="col-span-12 @2xs:col-span-4">
+              <Link href="/">
+                <span className="font-bold text-2xl @md:text-4xl text-[#ff33cc]">artfunkel</span>
+              </Link>
+            </div>
+            <div className="col-span-6 col-end-13 order-2 flex justify-end gap-1 @2xs:gap-3">
+              <Link className="player-signup" href="/play/login">
+                Sign up
+              </Link>
+            </div>
+          </>
+        ) : (
+          <AuthenticatedHeaderContent {...props} />
+        )}
+      </div>
+    </header>
+  );
 }
 
-function AuthenticatedPlayerHeader(props: AuthenticatedPlayerHeaderProps) {
+function AuthenticatedHeaderContent(props: AuthenticatedHeaderContentProps) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [accountSummary, setAccountSummary] = useState<{
@@ -142,21 +150,19 @@ function AuthenticatedPlayerHeader(props: AuthenticatedPlayerHeaderProps) {
   }
 
   return (
-    <header className="legacy-navbar">
-      <PlayerHeaderContent
-        auctionEscrow={displayedAuctionEscrow}
-        bankBalance={displayedBankBalance}
-        error={error}
-        impersonating={impersonating}
-        isMaxLevel={props.isMaxLevel}
-        level={props.level}
-        notifications={
-          <NotificationCenter initialNotifications={initialNotifications} />
-        }
-        onSignOut={logout}
-        xp={props.xp}
-        xpGoal={props.xpGoal}
-      />
-    </header>
+    <PlayerHeaderContent
+      auctionEscrow={displayedAuctionEscrow}
+      bankBalance={displayedBankBalance}
+      error={error}
+      impersonating={impersonating}
+      isMaxLevel={props.isMaxLevel}
+      level={props.level}
+      notifications={
+        <NotificationCenter initialNotifications={initialNotifications} />
+      }
+      onSignOut={logout}
+      xp={props.xp}
+      xpGoal={props.xpGoal}
+    />
   );
 }

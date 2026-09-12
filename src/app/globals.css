@@ -157,95 +157,8 @@ a.welcome-button {
   font-size: 0.78rem;
 }
 
-.player-header-error {
-  color: #b00020;
-  font-size: 0.7rem;
-}
-
-.null-player-navbar {
-  grid-template-columns: 1fr auto;
-}
-
-.null-player-navbar .nav-title {
-  text-decoration: none;
-}
-
-.player-signup {
-  border: 1px solid #000;
-  padding: 0.5rem 0.8rem;
-  background: #000;
-  color: #fff;
-  font-family: "Courier New", Courier, monospace;
-  font-size: 0.78rem;
-  font-weight: 700;
-  text-decoration: none;
-  text-transform: lowercase;
-}
-
-.player-signup:hover,
-.player-signup:focus-visible {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: #000;
-}
-
-.legacy-nav-icons,
-.legacy-nav-stats {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-}
-
-.legacy-nav-icons a,
-.loot-icon {
-  color: white;
-  font-size: 1.5rem;
-  opacity: 0.75;
-}
-
 .loot-icon {
   color: #fffb33;
-}
-
-.nav-title {
-  color: #ff33cc;
-  font-weight: bold;
-  font-size: 2rem;
-}
-
-.header-community,
-.community-links {
-  display: flex;
-  align-items: center;
-}
-
-.header-community {
-  min-width: 0;
-  gap: 18px;
-}
-
-.header-community .nav-title {
-  text-decoration: none;
-}
-
-.community-links {
-  gap: 12px;
-}
-
-.community-links a {
-  color: #777;
-  font-size: 1.2rem;
-  line-height: 1;
-  text-decoration: none;
-  transition:
-    color 120ms ease,
-    transform 120ms ease;
-}
-
-.community-links a:hover,
-.community-links a:focus-visible {
-  color: var(--accent);
-  transform: translateY(-1px);
 }
 
 .player-signout {
@@ -6208,10 +6121,6 @@ a.welcome-button {
   .reroll-attribute-actions {
     grid-column: 3;
     grid-row: 1 / span 2;
-  }
-
-  .legacy-nav-stats {
-    display: none;
   }
 
   .dashboard-tabs {
