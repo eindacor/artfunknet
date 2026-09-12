@@ -30,7 +30,7 @@ type AuthenticatedPlayerHeaderProps = {
 export default function PlayerHeader(props: PlayerHeaderProps) {
   if (props.anonymous) {
     return (
-      <header className="legacy-navbar">
+      <header className="legacy-navbar null-player-navbar">
         <HeaderCommunity />
         <Link className="player-signup" href="/play/login">
           Sign up

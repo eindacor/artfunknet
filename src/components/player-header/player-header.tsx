@@ -72,7 +72,7 @@ export default function PlayerHeader({
     <div className="@container grid grid-cols-12 items-center gap-2 gap-y-4">
       <div className="col-span-12 @2xs:col-span-4">
         <Link href="/">
-          <span className="font-bold text-2xl @lg:text-4xl text-[#ff33cc]">artfunkel</span>
+          <span className="font-bold text-2xl @md:text-4xl text-[#ff33cc]">artfunkel</span>
         </Link>
       </div>
       <div className="col-span-6 col-end-13 order-2 flex justify-end gap-1 @2xs:gap-3">
