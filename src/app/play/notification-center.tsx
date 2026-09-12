@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { FloatingPopover } from "@/components/floating-popover";
+import IconButton from "@/components/icon-button/icon-button";
 import type { PlayerNotification } from "@/server/player-notifications";
 
 export default function NotificationCenter({
@@ -156,20 +157,15 @@ export default function NotificationCenter({
 
   return (
     <>
-      <button
+      <IconButton
         aria-expanded={open}
         aria-haspopup="dialog"
         aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ""}`}
-        className="header-notification-button"
+        badge={unreadCount > 0 ? unreadCount : null}
+        icon="fa-bell"
         onClick={() => setOpen((current) => !current)}
         ref={buttonRef}
-        type="button"
-      >
-        <i aria-hidden="true" className="fa fa-bell" />
-        {unreadCount > 0 ? (
-          <span className="notification-count">{unreadCount}</span>
-        ) : null}
-      </button>
+      />
       <FloatingPopover
         anchorRef={buttonRef}
         ariaLabel="Notifications"

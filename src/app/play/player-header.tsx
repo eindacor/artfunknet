@@ -7,13 +7,13 @@ import { useRouter } from "next/navigation";
 import type { PlayerNotification } from "@/server/player-notifications";
 
 import NotificationCenter from "./notification-center";
-import ProgressBar from "@/components/progress-bar/progress-bar";
+import PlayerHeaderContent from "@/components/player-header/player-header";
 
 type PlayerHeaderProps =
   | { anonymous: true }
-  | AuthenticatedPlayerHeaderProps;
+  | AuthenticatedHeaderContentProps;
 
-type AuthenticatedPlayerHeaderProps = {
+type AuthenticatedHeaderContentProps = {
   anonymous?: false;
   auctionEscrow: number;
   xp: number;
@@ -26,21 +26,31 @@ type AuthenticatedPlayerHeaderProps = {
 };
 
 export default function PlayerHeader(props: PlayerHeaderProps) {
-  if (props.anonymous) {
-    return (
-      <header className="legacy-navbar null-player-navbar">
-        <HeaderCommunity />
-        <Link className="player-signup" href="/play/login">
-          Sign up
-        </Link>
-      </header>
-    );
-  }
-
-  return <AuthenticatedPlayerHeader {...props} />;
+  return (
+    <header className="sticky top-0 z-100 py-3 px-[5%] bg-white">
+      <div className="@container grid grid-cols-12 items-center gap-2 gap-y-4">
+        {props.anonymous ? (
+          <>
+            <div className="col-span-12 @2xs:col-span-4">
+              <Link href="/">
+                <span className="font-bold text-2xl @md:text-4xl text-[#ff33cc]">artfunkel</span>
+              </Link>
+            </div>
+            <div className="col-span-6 col-end-13 order-2 flex justify-end gap-1 @2xs:gap-3">
+              <Link className="player-signup" href="/play/login">
+                Sign up
+              </Link>
+            </div>
+          </>
+        ) : (
+          <AuthenticatedHeaderContent {...props} />
+        )}
+      </div>
+    </header>
+  );
 }
 
-function AuthenticatedPlayerHeader(props: AuthenticatedPlayerHeaderProps) {
+function AuthenticatedHeaderContent(props: AuthenticatedHeaderContentProps) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [accountSummary, setAccountSummary] = useState<{
@@ -140,101 +150,19 @@ function AuthenticatedPlayerHeader(props: AuthenticatedPlayerHeaderProps) {
   }
 
   return (
-    <header className="legacy-navbar">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <HeaderCommunity />
-        <div className="flex w-full min-w-0 flex-wrap items-center justify-end gap-4 sm:w-auto">
-          <div className="flex min-w-0 flex-[1_1_240px] items-center gap-4">
-            <div className="flex min-w-0 flex-1 items-center gap-1 sm:flex-initial">
-              <span className="shrink-0 text-[#222] font-['Courier_New',Courier,monospace] text-[0.82rem] font-bold">Level {props.level}</span>
-              <div className="min-w-10 flex-1 sm:w-[200px] sm:flex-none">
-                <ProgressBar value={props.xp} goal={props.xpGoal} maxed={props.isMaxLevel} />
-              </div>
-            </div>
-            <div className="player-bank-indicator shrink-0">
-              <span aria-label={`Available bank balance $${displayedBankBalance.toLocaleString()}`}>
-                ${displayedBankBalance.toLocaleString()}
-              </span>
-              {displayedAuctionEscrow > 0 ? (
-                <span
-                  aria-label={`$${displayedAuctionEscrow.toLocaleString()} held in auction escrow`}
-                  className="player-auction-escrow"
-                  title="Active auction bids held in escrow"
-                >
-                  (<i aria-hidden="true" className="fa fa-gavel" /> $
-                  {displayedAuctionEscrow.toLocaleString()})
-                </span>
-              ) : null}
-              <NotificationCenter initialNotifications={initialNotifications} />
-              {error ? (
-                <span className="player-header-error" role="alert">
-                  {error}
-                </span>
-              ) : null}
-            </div>
-          </div>
-          <div className="ml-auto flex gap-3">
-            {!impersonating ? (
-              <Link
-                aria-label="Account settings"
-                className="item-action-button player-account-link"
-                data-tooltip="Account settings"
-                href="/play/account"
-              >
-                <i aria-hidden="true" className="fa fa-user-cog" />
-              </Link>
-            ) : null}
-            <button
-              aria-label={impersonating ? "Return to admin" : "Sign out"}
-              className="item-action-button player-signout"
-              data-tooltip={impersonating ? "Return to admin" : "Sign out"}
-              onClick={logout}
-              type="button"
-            >
-              <i aria-hidden="true" className="fa fa-sign-out" />
-            </button>
-          </div>
-        </div>
-      </div>
-    </header>
-  );
-}
-
-function HeaderCommunity() {
-  return (
-    <div className="header-community">
-      <Link className="nav-title" href="/">
-        artfunkel
-      </Link>
-      <nav aria-label="Artfunkel community" className="community-links">
-        <a
-          aria-label="Join the Artfunkel Discord server"
-          href="https://discord.gg/3dQdyhXVb"
-          rel="noreferrer"
-          target="_blank"
-          title="Discord"
-        >
-          <i aria-hidden="true" className="fa-brands fa-discord" />
-        </a>
-        <a
-          aria-label="Visit the Artfunkel subreddit"
-          href="https://www.reddit.com/r/artfunkel/"
-          rel="noreferrer"
-          target="_blank"
-          title="Reddit"
-        >
-          <i aria-hidden="true" className="fa-brands fa-reddit" />
-        </a>
-        <a
-          aria-label="Support Artfunkel on Patreon"
-          href="https://www.patreon.com/c/artfunkel"
-          rel="noreferrer"
-          target="_blank"
-          title="Patreon"
-        >
-          <i aria-hidden="true" className="fa-brands fa-patreon" />
-        </a>
-      </nav>
-    </div>
+    <PlayerHeaderContent
+      auctionEscrow={displayedAuctionEscrow}
+      bankBalance={displayedBankBalance}
+      error={error}
+      impersonating={impersonating}
+      isMaxLevel={props.isMaxLevel}
+      level={props.level}
+      notifications={
+        <NotificationCenter initialNotifications={initialNotifications} />
+      }
+      onSignOut={logout}
+      xp={props.xp}
+      xpGoal={props.xpGoal}
+    />
   );
 }
