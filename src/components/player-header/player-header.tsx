@@ -96,7 +96,7 @@ export default function PlayerHeaderContent({
             ${bankBalance.toLocaleString()}
           </span>
           <span className="inline-flex items-center text-sm font-bold text-[#222] font-['Courier_New',Courier,monospace]" aria-label={`Available bank balance $${bankBalance.toLocaleString()}`}>
-            <i aria-hidden="true" className="fa fa-heart text-[#9a7b18]" />{735}
+            <i aria-hidden="true" className="fa fa-spa text-[#9a7b18]" />{735}
           </span>
         </div>
       </div>
