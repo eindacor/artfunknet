@@ -2483,6 +2483,7 @@ export default function GameDashboard({
         {section === "quests" ? (
           <QuestSection
             onAction={act}
+            completed={player.completedQuests}
             pending={pending}
             quests={quests}
           />
