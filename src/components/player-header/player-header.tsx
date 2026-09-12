@@ -1,18 +1,17 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-
 import ProgressBar from "@/components/progress-bar/progress-bar";
-
-import styles from "./player-header.module.css";
+import ActionButton from "../action-button/action-button";
+import IconButton from "../icon-button/icon-button";
 
 /** The community links, which both branches of the navbar show. */
 export function HeaderCommunity({ className = "" }: { className?: string }) {
   return (
     <div className="flex items-center min-w-0 gap-3">
-      <Link className={styles.title} href="/">
+      <Link className="" href="/">
         artfunkel
       </Link>
-      <nav aria-label="Artfunkel community" className={styles.links}>
+      <nav aria-label="Artfunkel community" className="flex items-center gap-1">
         <a
           aria-label="Join the Artfunkel Discord server"
           href="https://discord.gg/3dQdyhXVb"
@@ -70,38 +69,60 @@ export default function PlayerHeader({
   xpGoal: number;
 }) {
   return (
-    /* @container, not viewport breakpoints: the header is laid out against the
-       width of its own box, so it reflows the same way inside the reference
-       page's resizable frame as it does in the app. @2xl is 42rem and @5xl is
-       64rem — the container scale, which is not the breakpoint scale. */
-    <div className="@container grid grid-cols-12 items-center gap-2">
-      <div className="col-span-4">
+    <div className="@container grid grid-cols-12 items-center gap-2 gap-y-4">
+      <div className="col-span-12 @2xs:col-span-4">
         <Link href="/">
-          <span className="font-bold text-3xl @lg:text-4xl text-[#ff33cc]">artfunkel</span>
+          <span className="font-bold text-2xl @lg:text-4xl text-[#ff33cc]">artfunkel</span>
         </Link>
       </div>
-      <div className="col-end-13 order-2 @2xl:order-3 flex justify-end gap-3">
+      <div className="col-span-6 col-end-13 order-2 flex justify-end gap-1 @2xs:gap-3">
+      <nav aria-label="Artfunkel community" className="flex items-center gap-1 @xs:gap-2">
+        <IconButton
+          aria-label="Join the Artfunkel Discord server"
+          as="a"
+          href="https://discord.gg/3dQdyhXVb"
+          icon="fa-brands fa-discord"
+          rel="noreferrer"
+          target="_blank"
+          title="Discord"
+        />
+        <IconButton
+          aria-label="Visit the Artfunkel subreddit"
+          as="a"
+          href="https://www.reddit.com/r/artfunkel/"
+          icon="fa-brands fa-reddit"
+          rel="noreferrer"
+          target="_blank"
+          title="Reddit"
+        />
+        <IconButton
+          aria-label="Support Artfunkel on Patreon"
+          as="a"
+          href="https://www.patreon.com/c/artfunkel"
+          icon="fa-brands fa-patreon"
+          rel="noreferrer"
+          target="_blank"
+          title="Patreon"
+        />
+      </nav>
         {!impersonating ? (
-          <Link
-            aria-label="Account settings"
-            className="item-action-button inline-flex items-center justify-center no-underline"
-            data-tooltip="Account settings"
+          <ActionButton
+            as={Link}
             href="/play/account"
-          >
-            <i aria-hidden="true" className="fa fa-user-cog" />
-          </Link>
+            icon="fa-user-cog"
+            label="Account settings"
+            size="xs"
+          />
         ) : null}
-        <button
-          aria-label={impersonating ? "Return to admin" : "Sign out"}
-          className={`item-action-button ${styles.signOut}`}
-          data-tooltip={impersonating ? "Return to admin" : "Sign out"}
+        <ActionButton
+          icon="fa-sign-out"
+          label={impersonating ? "Return to admin" : "Sign out"}
           onClick={onSignOut}
-          type="button"
-        >
-          <i aria-hidden="true" className="fa fa-sign-out" />
-        </button>
+          size="xs"
+          type="button"        
+        />
       </div>
-      <div className="col-span-12 order-3 @2xl:order-2 @2xl:col-span-6 @2xl:col-end-12 flex items-center gap-3">
+      <div className="col-span-12 order-3 @3xl:col-span-6 flex items-center gap-3">
         <div className="inline-flex items-center gap-1 grow">
           <span className="text-nowrap font-['Courier_New',Courier,monospace] text-sm font-bold text-[#222]">
             Level {level}
@@ -119,7 +140,7 @@ export default function PlayerHeader({
           </span>
         </div>
       </div>
-      <div className="order-last flex items-center gap-2">
+      <div className="order-last col-span-12 @3xl:col-span-6 flex items-center justify-end gap-2">
         {error ? (
           <span className="text-xs text-[#b00020]" role="alert">
             {error}

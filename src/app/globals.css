@@ -20,8 +20,10 @@
   --game-action-background: #000;
   --game-action-text: #fff;
   --game-action-border: #000;
+  --game-action-shadow: var(--game-button-shadow);
   --game-action-hover-background: var(--accent);
   --game-action-hover-text: #000;
+  --game-action-hover-border: var(--game-action-hover-background);
   --game-action-shine: rgb(255 255 255 / 18%);
   --game-action-disabled-background: #aaa;
   --game-action-disabled-text: #eee;
@@ -6185,10 +6187,6 @@ a.welcome-button {
     .profile-gallery-stats
     > .profile-gallery-icon-row {
     grid-column: span 2;
-  }
-
-  .legacy-navbar {
-    grid-template-columns: 1fr auto;
   }
 
   .reroll-summary {

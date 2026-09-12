@@ -1,0 +1,94 @@
+.button {
+  --shadow-color: var(--game-action-shadow);
+  /* Centres the glyph as a link too — an anchor has none of a button's
+     built-in content centring. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  /* The icon sets the width; aspect-ratio takes the height from it. Both guards
+     are here rather than on the parent so the control keeps its shape wherever
+     it is dropped: flex-shrink stops a crowded row squashing the width, and
+     align-self stops a stretching row overriding the height — stretch applies
+     only while the cross size is auto, which aspect-ratio needs it to be. */
+  flex-shrink: 0;
+  align-self: center;
+  aspect-ratio: 1;
+  width: fit-content;
+
+  border: 1px solid var(--game-action-border);
+  border-radius: var(--game-button-radius);
+  background-color: var(--game-action-background);
+  background-image: linear-gradient(
+    135deg,
+    transparent 0 40%,
+    var(--game-action-shine) 40% 50%,
+    transparent 50% 100%
+  );
+  color: var(--game-action-text);
+  /* padding: 0; */
+  /* font-family: inherit; */
+  /* font-size: 1.1rem; */
+  /* text-decoration: none; */
+  box-shadow: 0 2px 0 var(--shadow-color);
+  opacity: 0.9;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease,
+    opacity 120ms ease,
+    transform 120ms ease;
+}
+
+.active {
+  --game-action-border: #c62f72;
+  --game-action-background: #f48ab9;
+  --game-action-shine: rgb(255 255 255 / 32%);
+  --game-action-text: #4c0828;
+  --game-action-hover-background: #db4f8e;
+  --game-action-hover-text: #fff;
+  --shadow-color: #fbd0e3;
+}
+
+.button:hover,
+.button:focus-visible {
+  --shadow-color: #ff99e5;
+  border-color: var(--game-action-hover-background);
+  background-color: var(--game-action-hover-background);
+  color: var(--game-action-hover-text);
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+/* Higher specificity than the hover rule above, which would otherwise win.
+   Hover only — :focus-visible drops the shadow entirely. */
+.button.active:hover:not([aria-disabled="true"]) {
+  --shadow-color: #eeaac9;
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+.button[aria-disabled="true"] {
+  --shadow-color: var(--game-action-disabled-shadow);
+  border-color: var(--game-action-disabled-border);
+  background-color: var(--game-action-disabled-background);
+  color: var(--game-action-disabled-text);
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.button[aria-disabled="true"]:hover,
+.button[aria-disabled="true"]:focus-visible {
+  --shadow-color: var(--game-action-disabled-shadow);
+  border-color: var(--game-action-disabled-border);
+  background-color: var(--game-action-disabled-background);
+  color: var(--game-action-disabled-text);
+  opacity: 1;
+  transform: none;
+}
+
