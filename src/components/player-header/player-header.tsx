@@ -11,6 +11,7 @@ export default function PlayerHeaderContent({
   impersonating = false,
   isMaxLevel = false,
   level,
+  karma,
   notifications,
   onSignOut,
   xp,
@@ -18,6 +19,7 @@ export default function PlayerHeaderContent({
 }: {
   auctionEscrow: number;
   bankBalance: number;
+  karma: number;
   error?: string;
   impersonating?: boolean;
   isMaxLevel?: boolean;
@@ -96,7 +98,7 @@ export default function PlayerHeaderContent({
             ${bankBalance.toLocaleString()}
           </span>
           <span className="inline-flex items-center text-sm font-bold text-[#222] font-['Courier_New',Courier,monospace]" aria-label={`Available bank balance $${bankBalance.toLocaleString()}`}>
-            <i aria-hidden="true" className="fa fa-spa text-[#9a7b18]" />{735}
+            <i aria-hidden="true" className="fa fa-spa text-[#9a7b18]" />{karma}
           </span>
         </div>
       </div>
