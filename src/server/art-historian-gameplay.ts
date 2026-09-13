@@ -200,9 +200,14 @@ export async function createArtHistorianQuest(
       ),
     ]);
     if (xpBonusEffect) xpMultiplier = 1.5;
+
     if (marketBonusEffect) {
-      moneyMultiplier =
-        1 + (player.profile.auction_data?.winning?.length ?? 0) * 0.1;
+      const xpBonusPerWinningAuction = getLegendaryNumberParameter(
+        marketBonusEffect,
+        "multiplier_per_winning_auction",
+        0.1,
+      );
+      moneyMultiplier = 1 + (player.profile.auction_data?.winning?.length ?? 0) * xpBonusPerWinningAuction;
     }
   }
 
