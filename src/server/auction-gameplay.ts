@@ -12,6 +12,7 @@ import {
 } from "./auction-population.ts";
 import {
   applyXp,
+  calculateGalleryRates,
   getCapsForLevel,
   getXpChunk,
 } from "./collection-gameplay.ts";
@@ -207,10 +208,24 @@ export type AuctionXpRewardResult = {
 
 export async function grantAuctionXpReward(
   database: Db,
-  player: { _id: string; profile: { level: number; xp: number } },
+  player: { _id: string; profile: { level: number; xp: number; auction_cap?: number } },
   marketExpert: boolean,
+  {
+    item,
+    startingBid,
+    durationMinutes,
+    now = new Date(),
+  }: {
+    item: HydratedGameItem;
+    startingBid: number;
+    durationMinutes: number;
+    now?: Date;
+  },
 ): Promise<AuctionXpRewardResult | null> {
   if (!marketExpert) return null;
+
+  // 1. If starting bid price is above the artwork's estimated value (item.values.actual), no bonus XP
+  if (startingBid > item.values.actual) return null;
 
   const xpForAuctionsEffect = await getDisplayedLegendaryEffect(
     database,
@@ -225,14 +240,36 @@ export async function grantAuctionXpReward(
     "MONEY_FOR_XP",
   );
 
-  const xpChunkPercentage = getLegendaryNumberParameter(
+  // 2. Otherwise, bonus XP is roughly equal to 20% of gallery earnings accrued normally during the auction duration,
+  // divided by the base auction cap.
+  const settings = await getGameplaySettings(database);
+  const displayedItems = await database
+    .collection<GameItem>("items")
+    .find({ owner: player._id, status: "displayed" })
+    .toArray();
+
+  const hydratedDisplayed = await hydrateGameItems(database, displayedItems);
+  const galleryRates = await calculateGalleryRates(
+    database,
+    player.profile.level,
+    hydratedDisplayed,
+    now,
+    settings.active,
+  );
+
+  const galleryXpAccrued = galleryRates.xpPerHour * (durationMinutes / 60);
+  const baseAuctionCap = Math.max(
+    1,
+    player.profile.auction_cap ?? getCapsForLevel(player.profile.level).auction_cap,
+  );
+
+  const bonusRatio = getLegendaryNumberParameter(
     xpForAuctionsEffect,
     "xp_chunk_percentage",
-    0.5,
+    0.2,
   );
-  const xpAmount = Math.floor(
-    getXpChunk(player.profile.level) * xpChunkPercentage,
-  );
+
+  const xpAmount = Math.floor((bonusRatio * galleryXpAccrued) / baseAuctionCap);
   if (xpAmount <= 0) return null;
 
   const progress = applyXp(

@@ -142,7 +142,11 @@ export async function POST(
       buyNow,
       durationMinutes,
     });
-    await grantAuctionXpReward(database, player, marketExpert);
+    await grantAuctionXpReward(database, player, marketExpert, {
+      item: hydrated,
+      startingBid,
+      durationMinutes,
+    });
     await database.collection<Player>("players").updateOne(
       { _id: player._id },
       { $set: { "profile.last_activity": new Date().toISOString() } },
