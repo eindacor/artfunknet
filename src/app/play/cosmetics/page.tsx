@@ -19,6 +19,7 @@ type Player = {
   profile: {
     bank_balance: number;
     level: number;
+    karma?: number;
     xp: number;
     card_style_consumables?: Record<string, number>;
   };
@@ -63,6 +64,7 @@ export default async function CardCosmeticStorePage() {
   return (
     <div className="game-shell">
       <PlayerHeader
+        karma={player.profile.karma ?? 0}
         auctionEscrow={auctionEscrow}
         bankBalance={player.profile.bank_balance}
         impersonating={Boolean(adminSession && player.test_account)}
