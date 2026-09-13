@@ -16,7 +16,7 @@ import {
   type GameItem,
   type LootData,
 } from "./gameplay.ts";
-import { getDisplayedLegendaryEffect } from "./legendary-attributes.ts";
+import { getDisplayedLegendaryEffect, getLegendaryNumberParameter } from "./legendary-attributes.ts";
 import type { GalleryNpc } from "./npc-gameplay.ts";
 
 export const ART_HISTORIAN_ATTRIBUTE_ID = "Z7wY5jXkDeckwfFLs";
