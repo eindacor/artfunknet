@@ -123,7 +123,7 @@ export async function POST(
   const specialTargetCount = questView.targets.filter(
     (target) => target.owned && target.special,
   ).length;
-  const rewardMultiplier = caughtForgeries.length > 0 ? 0.5 : 1;
+  const rewardMultiplier = caughtForgeries.length > 0 ? 0.6 : 1;
   const xpReward = Math.floor(calculateHistorianClaimXp(
     claimedQuest.reward.xp,
     questView.progress.owned,
