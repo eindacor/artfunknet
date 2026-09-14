@@ -1,3 +1,5 @@
+import { promises as fs } from "node:fs";
+import path from "node:path";
 import { NextResponse } from "next/server";
 
 import seedImage from "@/components/seed_image.png";
@@ -36,12 +38,24 @@ export async function GET(
     ? resolveImageVariant(artwork.image, requestedVariant)
     : null;
   if (!image) {
-    return NextResponse.redirect(new URL(seedImage.src, request.url), {
-      status: 307,
-      headers: {
-        "cache-control": "no-store",
-      },
-    });
+    try {
+      const seedFilePath = path.join(process.cwd(), "src", "components", "seed_image.png");
+      const seedBuffer = await fs.readFile(seedFilePath);
+      return new NextResponse(seedBuffer, {
+        headers: {
+          "content-type": "image/png",
+          "cache-control": "public, max-age=3600",
+          "x-artwork-image-variant": "seed",
+        },
+      });
+    } catch {
+      return NextResponse.redirect(new URL(seedImage.src, request.url), {
+        status: 307,
+        headers: {
+          "cache-control": "no-store",
+        },
+      });
+    }
   }
 
   const publicUrl = getArtworkObjectPublicUrl(image.storage);

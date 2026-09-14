@@ -20,7 +20,10 @@ const orbitron = Orbitron({
   subsets: ["latin"],
 });
 
+const baseUrl = process.env.APP_BASE_URL || "https://funkel.art";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(baseUrl),
   title: "artfunkel",
   description: "An art collecting game",
 };
