@@ -19,9 +19,9 @@ test("Art Historian rewards preserve original rarity multipliers", () => {
     questRarity: "masterpiece",
   });
 
-  assert.equal(common.money, 5_000);
+  assert.equal(common.money, 2_000);
   assert.equal(common.xp, 60);
-  assert.equal(masterpiece.money, 9_000);
+  assert.equal(masterpiece.money, 3_600);
   assert.equal(masterpiece.xp, 100);
   assert.deepEqual(masterpiece.item, {
     rarity: "legendary",

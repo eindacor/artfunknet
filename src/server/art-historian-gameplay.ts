@@ -18,6 +18,7 @@ import {
 } from "./gameplay.ts";
 import { getDisplayedLegendaryEffect } from "./legendary-attributes.ts";
 import type { GalleryNpc } from "./npc-gameplay.ts";
+import type { Auction } from "./auction-gameplay.ts";
 
 export const ART_HISTORIAN_ATTRIBUTE_ID = "Z7wY5jXkDeckwfFLs";
 export const DEFAULT_HISTORIAN_QUEST_LIMIT = 8;
@@ -85,7 +86,6 @@ type HistorianPlayer = {
   _id: string;
   profile: {
     level: number;
-    auction_data?: { winning?: string[] };
   };
 };
 
@@ -201,8 +201,14 @@ export async function createArtHistorianQuest(
     ]);
     if (xpBonusEffect) xpMultiplier = 1.5;
     if (marketBonusEffect) {
-      moneyMultiplier =
-        1 + (player.profile.auction_data?.winning?.length ?? 0) * 0.06;
+      const activeWinningAuctions = await database
+        .collection<Auction>("auctions")
+        .countDocuments({
+          current_winner_id: player._id,
+          expiration: { $gt: now.toISOString() },
+          settlement_status: { $ne: "settling" },
+        });
+      moneyMultiplier = 1 + activeWinningAuctions * 0.06;
     }
   }
 
