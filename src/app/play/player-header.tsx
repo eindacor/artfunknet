@@ -17,6 +17,7 @@ type AuthenticatedHeaderContentProps = {
   anonymous?: false;
   auctionEscrow: number;
   xp: number;
+  karma: number;
   xpGoal: number;
   level: number;
   isMaxLevel: boolean;
@@ -153,6 +154,7 @@ function AuthenticatedHeaderContent(props: AuthenticatedHeaderContentProps) {
     <PlayerHeaderContent
       auctionEscrow={displayedAuctionEscrow}
       bankBalance={displayedBankBalance}
+      karma={props.karma}
       error={error}
       impersonating={impersonating}
       isMaxLevel={props.isMaxLevel}

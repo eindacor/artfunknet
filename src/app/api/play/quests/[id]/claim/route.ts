@@ -105,6 +105,7 @@ export async function POST(
     rollForgeryDetected(item, "quest"),
   );
   for (const item of caughtForgeries) {
+    // TODO JEP make this destroy the item and give a notification instead?
     await database.collection<GameItem>("items").updateOne(
       { _id: item._id, owner: player._id },
       {
@@ -122,7 +123,7 @@ export async function POST(
   const specialTargetCount = questView.targets.filter(
     (target) => target.owned && target.special,
   ).length;
-  const rewardMultiplier = caughtForgeries.length > 0 ? 0.75 : 1;
+  const rewardMultiplier = caughtForgeries.length > 0 ? 0.6 : 1;
   const xpReward = Math.floor(calculateHistorianClaimXp(
     claimedQuest.reward.xp,
     questView.progress.owned,
@@ -345,7 +346,7 @@ export async function POST(
       conditionRollbacks.length > 0
         ? `; ${conditionRollbacks.length} target ${conditionRollbacks.length === 1 ? "item was" : "items were"} restored to ${Math.floor((restoredConditionTarget ?? 0.9) * 100)}% condition`
         : ""
-    }${caughtForgeries.length > 0 ? `; ${caughtForgeries.length} forgery ${caughtForgeries.length === 1 ? "was" : "were"} detected, reducing rewards to 75%` : ""}.`,
+    }${caughtForgeries.length > 0 ? `; ${caughtForgeries.length} forgery ${caughtForgeries.length === 1 ? "was" : "were"} detected, reducing rewards` : ""}.`,
     reward: {
       money: moneyReward,
       xp: xpReward,

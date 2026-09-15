@@ -533,8 +533,8 @@ export default function GalleryExplorer({
             }}
             value={sort}
           >
-            <option value="value">Gallery value</option>
             <option value="score">Attribute score</option>
+            <option value="value">Gallery value</option>
             <option value="works">Works displayed</option>
             <option value="name">Player name</option>
           </select>

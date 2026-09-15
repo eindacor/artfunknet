@@ -423,6 +423,7 @@ export default async function PlayerPage({
         auctionEscrow={auctionEscrow}
         bankBalance={player.profile.bank_balance}
         xp={player.profile.xp}
+        karma={player.profile.karma ?? 0}
         xpGoal={xpGoal}
         level={player.profile.level}
         isMaxLevel={isMaxLevel}

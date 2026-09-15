@@ -823,110 +823,6 @@ export function calculateAntiSnipeExpiration(
     : currentExpiration.toISOString();
 }
 
-export async function runPrivateAuctionBots(
-  database: Db,
-  playerId: string,
-  now = new Date(),
-): Promise<void> {
-  const cutoff = new Date(now.getTime() + 10_000).toISOString();
-  const auctions = await database.collection<Auction>("auctions").find({
-    viewer: playerId,
-    expiration: { $gt: cutoff },
-    settlement_status: { $ne: "settling" },
-    $or: [
-      { last_bot_roll: { $exists: false } },
-      { last_bot_roll: { $lte: new Date(now.getTime() - 10_000).toISOString() } },
-    ],
-  }).toArray();
-  if (auctions.length === 0) return;
-
-  const settings = await getGameplaySettings(database);
-
-  for (const auction of auctions) {
-    const item = await database.collection<GameItem>("items").findOne({
-      _id: auction.item_id,
-      status: "auctioned",
-    });
-    if (!item || auction.current_bid >= item.values.actual * 3) continue;
-
-    const secondsRemaining =
-      (new Date(auction.expiration).getTime() - now.getTime()) / 1000;
-    const rarityChance: Record<ArtworkRarity, number> = {
-      common: 0.2,
-      uncommon: 0.233,
-      rare: 0.267,
-      legendary: 0.3,
-      masterpiece: 0.333,
-    };
-    const chance =
-      rarityChance[auction.item_snapshot.rarity] *
-      (secondsRemaining < 60 ? 2 : 1);
-    const setter: Partial<Auction> = { last_bot_roll: now.toISOString() };
-    let outbidAmount: number | null = null;
-    if (Math.random() < chance) {
-      const botBid = Math.max(
-        auction.minimum_bid,
-        Math.floor(
-          auction.starting_bid *
-            (1 + Math.random() * (secondsRemaining < 60 ? 0.2 : 0.1)),
-        ),
-      );
-      outbidAmount = botBid;
-      const nextExpiration = calculateAntiSnipeExpiration(
-        auction.expiration,
-        settings.active.auctionAntiSnipeExtensionMinutes,
-        now,
-      );
-      Object.assign(setter, {
-        current_bid: botBid,
-        minimum_bid: botBid + auction.increment,
-        current_winner_id: null,
-        current_winner_name: null,
-        has_bid: true,
-        expiration: nextExpiration,
-      });
-    }
-    const updated = await database.collection<Auction>("auctions").updateOne(
-      {
-        _id: auction._id,
-        current_bid: auction.current_bid,
-        minimum_bid: auction.minimum_bid,
-        current_winner_id: auction.current_winner_id,
-        expiration: auction.expiration,
-        settlement_status: { $ne: "settling" },
-      },
-      { $set: setter },
-    );
-    if (
-      updated.modifiedCount === 1 &&
-      setter.current_winner_id === null &&
-      auction.current_winner_id &&
-      outbidAmount !== null
-    ) {
-      const refunded = await database.collection<AuctionPlayer>("players").updateOne(
-        { _id: auction.current_winner_id },
-        { $inc: { "profile.bank_balance": auction.current_bid } },
-      );
-      if (refunded.modifiedCount === 1) {
-        await recordEconomyMetricsSafely(database, {
-          amount: auction.current_bid,
-          currency: "money",
-          direction: "earned",
-          source: "auction-refund",
-        });
-      }
-      await safelyNotify(database, auction.current_winner_id, {
-        kind: "warning",
-        message: `You were outbid on ${auction.item_snapshot.title}. The current bid is $${outbidAmount.toLocaleString()}.`,
-        action: {
-          href: `/play?section=auctions&auction=${encodeURIComponent(auction._id)}`,
-          label: "View auction",
-        },
-      });
-    }
-  }
-}
-
 export async function getAuctionViews(
   database: Db,
   playerId: string,
@@ -948,7 +844,6 @@ export async function getAuctionViews(
   } catch (error) {
     console.error("Unable to replenish public auctions", error);
   }
-  await runPrivateAuctionBots(database, playerId);
 
   const filter: Filter<Auction> = {
     expiration: { $gt: new Date().toISOString() },

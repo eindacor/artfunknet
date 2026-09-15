@@ -16,7 +16,7 @@ import {
   type GameItem,
   type LootData,
 } from "./gameplay.ts";
-import { getDisplayedLegendaryEffect } from "./legendary-attributes.ts";
+import { getDisplayedLegendaryEffect, getLegendaryNumberParameter } from "./legendary-attributes.ts";
 import type { GalleryNpc } from "./npc-gameplay.ts";
 import type { Auction } from "./auction-gameplay.ts";
 
@@ -200,7 +200,13 @@ export async function createArtHistorianQuest(
       ),
     ]);
     if (xpBonusEffect) xpMultiplier = 1.5;
+
     if (marketBonusEffect) {
+      const xpBonusPerWinningAuction = getLegendaryNumberParameter(
+        marketBonusEffect,
+        "multiplier_per_winning_auction",
+        0.1,
+      );
       const activeWinningAuctions = await database
         .collection<Auction>("auctions")
         .countDocuments({
@@ -208,7 +214,7 @@ export async function createArtHistorianQuest(
           expiration: { $gt: now.toISOString() },
           settlement_status: { $ne: "settling" },
         });
-      moneyMultiplier = 1 + activeWinningAuctions * 0.06;
+      moneyMultiplier = 1 + activeWinningAuctions * xpBonusPerWinningAuction;
     }
   }
 

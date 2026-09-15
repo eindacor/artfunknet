@@ -18,7 +18,7 @@ export const BASE_FORGERY_QUALITY = 0.5;
 export const FORGERY_LIABILITY_DELAY_MS = 6 * 60 * 60 * 1000;
 export const FORGERY_OFFLOAD_XP_CHUNK = 0.8;
 export const FORGERY_HEAT_RANGES = {
-  quest: [0.3, 0.95],
+  quest: [0.4, 0.95],
   sell: [0, 0.98],
   donate: [0.1, 0.95],
   collector: [0.3, 0.99],
