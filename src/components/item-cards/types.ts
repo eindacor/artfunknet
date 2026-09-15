@@ -1,6 +1,5 @@
 import type { HydratedGameItem } from "@/server/item-artwork";
 import type { CardStyleInventory } from "./catalog";
-import type { ShaderUniforms } from "./use-shader-card";
 
 export const CARD_RENDERER_IDS = [
   "legacy",
@@ -23,7 +22,6 @@ export const CARD_RENDERER_IDS = [
   "collectible",
   "skateboard",
   "album",
-  "shader",
 ] as const;
 
 export const SHOWCASE_CARD_RENDERER_IDS = CARD_RENDERER_IDS;
@@ -45,7 +43,6 @@ export type ItemCardRendererProps = {
   alreadyOwned: boolean;
   consigned?: boolean;
   researchTarget?: boolean;
-  extraUniforms?: ShaderUniforms;
 };
 
 export type ItemCardProps = Omit<ItemCardRendererProps, "alreadyOwned"> & {

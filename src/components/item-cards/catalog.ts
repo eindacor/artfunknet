@@ -138,12 +138,6 @@ export const CARD_COSMETICS: CardCosmetic[] = [
     name: "Needle Drop",
     description: "A record sleeve with a half-extracted vinyl and rarity-coded label art.",
   },
-  {
-    number: 21,
-    id: "shader",
-    name: "Shader Canvas",
-    description: "A live GLSL shader backdrop driven by item data.",
-  },
 ];
 
 export function getCardCosmetic(id: string): CardCosmetic | undefined {

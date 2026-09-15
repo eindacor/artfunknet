@@ -4,49 +4,12 @@ import {
   ItemStatusBadges,
 } from "./shared";
 import type { ItemCardRendererProps } from "./types";
-import { useShaderCard } from "./use-shader-card";
-import { rarityToVec3 } from "./shader-utils";
-import type { CSSProperties } from "react";
-import type { ShaderUniforms } from "./use-shader-card";
-
-export function ShaderBackground({
-  item,
-  shaderUrl,
-  extraUniforms,
-}: Pick<ItemCardRendererProps, "item"> & {
-  shaderUrl: string;
-  extraUniforms?: ShaderUniforms;
-}) {
-  const imageUrl = `/api/artwork/${item.artwork_id}/image?variant=card`;
-
-  const canvasRef = useShaderCard({
-    shaderUrl,
-    imageUrl,
-    itemRarity: rarityToVec3(item.artwork.rarity),
-    condition: item.condition,
-    level: item.level,
-    foil: item.foil ? 1 : 0,
-    mint: item.mint ? 1 : 0,
-    extraUniforms,
-  });
-
-  const style: CSSProperties = {
-    position: "absolute",
-    inset: 0,
-    width: "100%",
-    height: "100%",
-    display: "block",
-  };
-
-  return <canvas ref={canvasRef} style={style} aria-hidden="true" />;
-}
 
 export default function MinimalistCard({
   item,
   alreadyOwned,
   consigned,
   researchTarget,
-  extraUniforms,
 }: ItemCardRendererProps) {
   const marks = [
     item.mint ? ["mint", "Mint"] : null,
@@ -58,19 +21,9 @@ export default function MinimalistCard({
     item.vintage ? ["vintage", "Vintage"] : null,
   ].filter((mark): mark is string[] => mark !== null);
 
-  const shaderUrl = `/shaders/full_bleed_seasonal.frag`;
-
   return (
     <div className="render-card minimalist-card">
-      {item.seasonal ? (
-        <ShaderBackground
-          item={item}
-          shaderUrl={shaderUrl}
-          extraUniforms={extraUniforms}
-        />
-      ) : (
-        <ArtworkImage className="minimalist-card-image" item={item} />
-      )}
+      <ArtworkImage className="minimalist-card-image" item={item} />
       <div className="minimalist-card-shade" />
       <header>
         <span className="minimalist-card-artist">

@@ -13,7 +13,6 @@ import OgCard from "./og-card";
 import PostcardCard from "./postcard-card";
 import PrismaticCard from "./prismatic-card";
 import ReliquaryCard from "./reliquary-card";
-import ShaderCard from "./shader-card";
 import TerminalCard from "./terminal-card";
 import TarotCard from "./tarot-card";
 import CollectibleCard from "./collectible-card";
@@ -49,7 +48,6 @@ export const CARD_RENDERERS: Record<
   collectible: CollectibleCard,
   skateboard: SkateboardCard,
   album: AlbumCard,
-  shader: ShaderCard,
 };
 
 export const CARD_RENDERER_OPTIONS = CARD_COSMETICS;
