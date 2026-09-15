@@ -275,6 +275,10 @@ export default function GameDashboard({
     amount: number;
     animationId: number;
   } | null>(null);
+  const [donateAllEarnings, setDonateAllEarnings] = useState<{
+    karma: number;
+    animationId: number;
+  } | null>(null);
   const [donationEffects, setDonationEffects] = useState<
     Record<string, { animationId: number; recoveredStyle: boolean }>
   >({});
@@ -605,6 +609,60 @@ export default function GameDashboard({
         window.setTimeout(
           () =>
             setSellAllEarnings((current) =>
+              current?.animationId === animationId ? null : current,
+            ),
+          1100,
+        );
+      }
+      if (body.message) {
+        setNotice(body.message);
+      }
+      if (body.actionDialog) {
+        setActionDialog(body.actionDialog);
+      }
+      router.refresh();
+    });
+  }
+
+  function donateAllLoot() {
+    setError("");
+    setNotice("");
+    startTransition(async () => {
+      const response = await fetch("/api/play/items/donate-all", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(bulkSaleProtections),
+      });
+      const responseText = await response.text();
+      let body: {
+        actionDialog?: ActionDialogResult;
+        karma?: number;
+        error?: string;
+        message?: string;
+      };
+      try {
+        body = responseText
+          ? (JSON.parse(responseText) as typeof body)
+          : {};
+      } catch {
+        body = {};
+      }
+      if (!response.ok || body.karma === undefined) {
+        const message =
+          body.error ??
+          (response.status >= 500
+            ? "The bulk donation could not be completed. Please try again."
+            : "The loot could not be donated.");
+        setError(message);
+        return;
+      }
+
+      if (body.karma > 0) {
+        const animationId = Date.now();
+        setDonateAllEarnings({ karma: body.karma, animationId });
+        window.setTimeout(
+          () =>
+            setDonateAllEarnings((current) =>
               current?.animationId === animationId ? null : current,
             ),
           1100,
@@ -1734,6 +1792,22 @@ export default function GameDashboard({
                           key={sellAllEarnings.animationId}
                         >
                           +${sellAllEarnings.amount.toLocaleString()}
+                        </span>
+                      ) : null}
+                    </button>
+                    <button
+                      className="donate-all-loot"
+                      disabled={pending || bulkSellableLoot.length === 0}
+                      onClick={donateAllLoot}
+                      type="button"
+                    >
+                      <i aria-hidden="true" className="fa fa-share-square" /> Donate all
+                      {donateAllEarnings ? (
+                        <span
+                          className="donate-all-earnings"
+                          key={donateAllEarnings.animationId}
+                        >
+                          +{donateAllEarnings.karma.toLocaleString()} Karma
                         </span>
                       ) : null}
                     </button>
