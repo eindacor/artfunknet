@@ -1920,7 +1920,8 @@ a.welcome-button {
   background: #237a3b;
 }
 
-.sell-all-earnings {
+.sell-all-earnings,
+.donate-all-earnings {
   position: absolute;
   z-index: 5;
   top: 50%;
@@ -1935,6 +1936,13 @@ a.welcome-button {
     0 2px 2px #071c0c,
     0 0 10px rgb(92 255 130 / 65%);
   animation: sell-all-earnings-popout 1s ease-out forwards;
+}
+
+.donate-all-earnings {
+  color: #ffd766;
+  text-shadow:
+    0 2px 2px #281a03,
+    0 0 10px rgb(255 215 102 / 65%);
 }
 
 @keyframes sell-all-earnings-popout {
@@ -5386,7 +5394,7 @@ a.welcome-button {
 
 .loot-bulk-sale {
   display: grid;
-  grid-template-columns: minmax(130px, 1fr) auto auto;
+  grid-template-columns: minmax(130px, 1fr) auto auto auto;
   gap: 12px;
   align-items: center;
   padding: 12px 14px;
@@ -5457,6 +5465,11 @@ a.welcome-button {
 .random-drop .loot-bulk-sale .sell-all-loot {
   border-color: #237a3b;
   background: #237a3b;
+}
+
+.random-drop .loot-bulk-sale .donate-all-loot {
+  border-color: #6b4c9a;
+  background: #6b4c9a;
 }
 
 @media (max-width: 900px) {
