@@ -1761,11 +1761,11 @@ export default function GameDashboard({
                     <h2 className="info-panel-title">gallery overview</h2>
                   </header>
                   <GalleryStats>
-                    <GalleryStat label="Gallery value" value={galleryMetadata.value.toLocaleString()} />
+                    <GalleryStat label="Gallery value" value={"$" + galleryMetadata.value.toLocaleString()} />
                     <GalleryStat label="Works displayed" value={galleryMetadata.display_count} />
                     <GalleryStat label="Attribute score" value={galleryMetadata.score.toLocaleString()} />
-                    <GalleryStat label="Featured value" value={galleryMetadata.featured_value.toLocaleString()} />
-                    <GalleryStat label="Earnings per hour" value={galleryRates.moneyPerHour.toLocaleString()} />
+                    <GalleryStat label="Featured value" value={"$" + galleryMetadata.featured_value.toLocaleString()} />
+                    <GalleryStat label="Earnings per hour" value={"$" + galleryRates.moneyPerHour.toLocaleString()} />
                     <GalleryStat label="Experience per hour" value={galleryRates.xpPerHour.toLocaleString()} />
                     <GalleryStat label="Attributes" value={galleryMetadata.attributes.map((attribute, i) => <Attribute key={`${attribute.id}_${i}`} attribute={attribute} displayCapacity={galleryMetadata.display_capacity} />)} />
                   </GalleryStats>
