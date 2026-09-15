@@ -194,7 +194,7 @@ export async function createArtHistorianQuest(
 
   const minimum = DEFAULT_HISTORIAN_MINIMUM;
   let xpMultiplier = 1;
-  let moneyMultiplier = 1;
+  let moneyMultiplier = 1.2;
   if (ownGallery) {
     const [xpBonusEffect, marketBonusEffect] = await Promise.all([
       getDisplayedLegendaryEffect(
@@ -208,7 +208,7 @@ export async function createArtHistorianQuest(
         "MARKET_EXPERT_QUEST_BONUS",
       ),
     ]);
-    if (xpBonusEffect) xpMultiplier = 1.5;
+    if (xpBonusEffect) xpMultiplier *= 1.5;
 
     if (marketBonusEffect) {
       const multiplierPerWinningAuction = getLegendaryNumberParameter(
@@ -223,7 +223,7 @@ export async function createArtHistorianQuest(
           expiration: { $gt: now.toISOString() },
           settlement_status: { $ne: "settling" },
         });
-      moneyMultiplier = calculateMarketExpertMoneyMultiplier(
+      moneyMultiplier *= calculateMarketExpertMoneyMultiplier(
         activeWinningAuctions,
         multiplierPerWinningAuction,
       );
