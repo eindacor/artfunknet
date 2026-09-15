@@ -103,15 +103,24 @@ export function calculateHistorianReward({
   moneyMultiplier?: number;
 }): ArtHistorianQuestReward {
   const multipliers = REWARD_MULTIPLIERS[questRarity];
-  const xpChunkPercentage = multipliers.xp * xpMultiplier * .5;
+  const xpChunkPercentage = Number(
+    (multipliers.xp * xpMultiplier * 0.5).toFixed(3),
+  );
   return {
     money: Math.floor(
       averageDropValue * 2 * multipliers.money * moneyMultiplier,
     ),
     xp: Math.floor(getXpChunk(playerLevel) * xpChunkPercentage),
-    xp_chunk_percentage: Number(xpChunkPercentage.toFixed(3)),
+    xp_chunk_percentage: xpChunkPercentage,
     ...(multipliers.item ? { item: multipliers.item } : {}),
   };
+}
+
+export function calculateMarketExpertMoneyMultiplier(
+  winningAuctionCount: number,
+  xpBonusPerWinningAuction: number,
+): number {
+  return 1 + Math.max(0, winningAuctionCount) * xpBonusPerWinningAuction;
 }
 
 export function calculateHistorianClaimXp(
@@ -214,7 +223,10 @@ export async function createArtHistorianQuest(
           expiration: { $gt: now.toISOString() },
           settlement_status: { $ne: "settling" },
         });
-      moneyMultiplier = 1 + activeWinningAuctions * xpBonusPerWinningAuction;
+      moneyMultiplier = calculateMarketExpertMoneyMultiplier(
+        activeWinningAuctions,
+        xpBonusPerWinningAuction,
+      );
     }
   }
 
