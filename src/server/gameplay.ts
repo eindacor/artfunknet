@@ -115,7 +115,8 @@ export type GameItem = {
     | "displayed"
     | "collector_pending"
     | "auctioned"
-    | "bulk_sale_pending";
+    | "bulk_sale_pending"
+    | "bulk_donate_pending";
   source: string;
   date_created: string;
   date_received: string;
@@ -147,6 +148,7 @@ export type GameItem = {
   repair_tick_at?: string;
   debug: boolean;
   bulk_sale_operation?: string;
+  bulk_donation_operation?: string;
   time_displayed?: string;
   odds: string;
   values: {
