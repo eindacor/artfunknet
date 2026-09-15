@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   calculateHistorianClaimXp,
   calculateHistorianReward,
+  calculateMarketExpertMoneyMultiplier,
   isHistorianSpecialItem,
 } from "./art-historian-gameplay.ts";
 
@@ -19,14 +20,53 @@ test("Art Historian rewards preserve original rarity multipliers", () => {
     questRarity: "masterpiece",
   });
 
-  assert.equal(common.money, 5_000);
+  assert.equal(common.money, 2_000);
   assert.equal(common.xp, 60);
-  assert.equal(masterpiece.money, 9_000);
+  assert.equal(masterpiece.money, 3_600);
   assert.equal(masterpiece.xp, 100);
   assert.deepEqual(masterpiece.item, {
     rarity: "legendary",
     foil: true,
   });
+});
+
+test("calculateMarketExpertMoneyMultiplier scales with winning auction count", () => {
+  assert.equal(calculateMarketExpertMoneyMultiplier(0), 1.0);
+  assert.equal(calculateMarketExpertMoneyMultiplier(3), 1.3);
+  assert.equal(calculateMarketExpertMoneyMultiplier(5), 1.5);
+  assert.equal(calculateMarketExpertMoneyMultiplier(-2), 1.0);
+});
+
+test("calculateHistorianReward applies moneyMultiplier correctly", () => {
+  const baseReward = calculateHistorianReward({
+    averageDropValue: 1_000,
+    playerLevel: 0,
+    questRarity: "common",
+    moneyMultiplier: 1.0,
+  });
+  const boostedReward = calculateHistorianReward({
+    averageDropValue: 1_000,
+    playerLevel: 0,
+    questRarity: "common",
+    moneyMultiplier: calculateMarketExpertMoneyMultiplier(3),
+  });
+
+  assert.equal(baseReward.money, 2_000);
+  assert.equal(boostedReward.money, 2_600);
+});
+
+test("calculateHistorianReward stacks xpMultiplier and moneyMultiplier independently", () => {
+  const stackedReward = calculateHistorianReward({
+    averageDropValue: 1_000,
+    playerLevel: 0,
+    questRarity: "common",
+    xpMultiplier: 1.5,
+    moneyMultiplier: calculateMarketExpertMoneyMultiplier(3),
+  });
+
+  assert.equal(stackedReward.money, 2_600);
+  assert.equal(stackedReward.xp, 90);
+  assert.equal(stackedReward.xp_chunk_percentage, 0.9);
 });
 
 test("Art Historian claims reward extra and special targets", () => {

@@ -18,6 +18,7 @@ import {
 } from "./gameplay.ts";
 import { getDisplayedLegendaryEffect, getLegendaryNumberParameter } from "./legendary-attributes.ts";
 import type { GalleryNpc } from "./npc-gameplay.ts";
+import type { Auction } from "./auction-gameplay.ts";
 
 export const ART_HISTORIAN_ATTRIBUTE_ID = "Z7wY5jXkDeckwfFLs";
 export const DEFAULT_HISTORIAN_QUEST_LIMIT = 8;
@@ -85,7 +86,6 @@ type HistorianPlayer = {
   _id: string;
   profile: {
     level: number;
-    auction_data?: { winning?: string[] };
   };
 };
 
@@ -103,15 +103,24 @@ export function calculateHistorianReward({
   moneyMultiplier?: number;
 }): ArtHistorianQuestReward {
   const multipliers = REWARD_MULTIPLIERS[questRarity];
-  const xpChunkPercentage = multipliers.xp * xpMultiplier * .5;
+  const xpChunkPercentage = Number(
+    (multipliers.xp * xpMultiplier * 0.5).toFixed(3),
+  );
   return {
     money: Math.floor(
       averageDropValue * 2 * multipliers.money * moneyMultiplier,
     ),
     xp: Math.floor(getXpChunk(playerLevel) * xpChunkPercentage),
-    xp_chunk_percentage: Number(xpChunkPercentage.toFixed(3)),
+    xp_chunk_percentage: xpChunkPercentage,
     ...(multipliers.item ? { item: multipliers.item } : {}),
   };
+}
+
+export function calculateMarketExpertMoneyMultiplier(
+  winningAuctionCount: number,
+  multiplierPerWinningAuction = 0.1,
+): number {
+  return 1 + Math.max(0, winningAuctionCount) * multiplierPerWinningAuction;
 }
 
 export function calculateHistorianClaimXp(
@@ -202,12 +211,22 @@ export async function createArtHistorianQuest(
     if (xpBonusEffect) xpMultiplier = 1.5;
 
     if (marketBonusEffect) {
-      const xpBonusPerWinningAuction = getLegendaryNumberParameter(
+      const multiplierPerWinningAuction = getLegendaryNumberParameter(
         marketBonusEffect,
         "multiplier_per_winning_auction",
         0.1,
       );
-      moneyMultiplier = 1 + (player.profile.auction_data?.winning?.length ?? 0) * xpBonusPerWinningAuction;
+      const activeWinningAuctions = await database
+        .collection<Auction>("auctions")
+        .countDocuments({
+          current_winner_id: player._id,
+          expiration: { $gt: now.toISOString() },
+          settlement_status: { $ne: "settling" },
+        });
+      moneyMultiplier = calculateMarketExpertMoneyMultiplier(
+        activeWinningAuctions,
+        multiplierPerWinningAuction,
+      );
     }
   }
 
