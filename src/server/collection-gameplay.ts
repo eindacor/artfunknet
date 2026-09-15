@@ -322,12 +322,6 @@ export async function settleGalleryEarnings(
 
   const displayed = await hydrateGameItems(database, displayedItems);
 
-  const moneyForXp = await getDisplayedLegendaryEffect(
-    database,
-    playerId,
-    "MONEY_FOR_XP",
-  );
-
   let level = player.profile.level;
   let xp = player.profile.xp;
   let lotteryTickets = 0;
@@ -458,14 +452,6 @@ export async function settleGalleryEarnings(
   }
 
   const payoutTime = payoutDate.toISOString();
-
-  moneyAccrued +=
-    xpEarned *
-    getLegendaryNumberParameter(
-      moneyForXp,
-      "money_per_xp",
-      0,
-    );
 
   const money = Math.floor(moneyAccrued);
   moneyAccrued -= money;

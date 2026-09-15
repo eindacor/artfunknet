@@ -13,6 +13,10 @@ import {
 import { applyXp, getCapsForLevel, getXpChunk } from "./collection-gameplay.ts";
 import type { ArchiveCategory, PlayerArtworkArchive } from "./archive-gameplay.ts";
 import { createPlayerNotification } from "./player-notifications.ts";
+import {
+  getDisplayedLegendaryEffect,
+  getLegendaryNumberParameter,
+} from "./legendary-attributes.ts";
 
 export const BASE_FORGERY_QUALITY = 0.5;
 export const FORGERY_LIABILITY_DELAY_MS = 6 * 60 * 60 * 1000;
@@ -490,14 +494,25 @@ export async function awardForgeryXpAmount(
   const player = await database.collection<{
     _id: string;
     active: boolean;
-    profile: { level: number; xp: number; lottery_tickets: number };
+    profile: { level: number; xp: number; lottery_tickets: number; bank_balance?: number };
   }>("players").findOne({ _id: playerId, active: true });
   if (!player || amount === 0) return 0;
   const progress = applyXp(player.profile.level, player.profile.xp, amount);
+  const moneyForXpEffect = await getDisplayedLegendaryEffect(
+    database,
+    playerId,
+    "MONEY_FOR_XP",
+  );
+  const moneyPerXp = getLegendaryNumberParameter(
+    moneyForXpEffect,
+    "money_per_xp",
+    moneyForXpEffect ? 2 : 0,
+  );
+  const bonusMoney = Math.floor(amount * moneyPerXp);
   const updated = await database.collection<{
     _id: string;
     active: boolean;
-    profile: { level: number; xp: number; lottery_tickets: number };
+    profile: { level: number; xp: number; lottery_tickets: number; bank_balance?: number };
   }>("players").updateOne(
     { _id: playerId, active: true, "profile.level": player.profile.level, "profile.xp": player.profile.xp },
     {
@@ -506,15 +521,30 @@ export async function awardForgeryXpAmount(
         "profile.xp": progress.xp,
         ...Object.fromEntries(Object.entries(getCapsForLevel(progress.level)).map(([key, value]) => [`profile.${key}`, value])),
       },
-      $inc: { "profile.lottery_tickets": progress.lotteryTickets },
+      $inc: {
+        "profile.lottery_tickets": progress.lotteryTickets,
+        ...(bonusMoney > 0 ? { "profile.bank_balance": bonusMoney } : {}),
+      },
     },
   );
   if (updated.modifiedCount !== 1) return 0;
-  await recordEconomyMetricsSafely(database, {
-    amount: amount / Math.max(1, getXpChunk(player.profile.level)),
-    currency: "xp",
-    direction: "earned",
-    source,
-  });
+  await recordEconomyMetricsSafely(database, [
+    {
+      amount: amount / Math.max(1, getXpChunk(player.profile.level)),
+      currency: "xp",
+      direction: "earned",
+      source,
+    },
+    ...(bonusMoney > 0
+      ? [
+          {
+            amount: bonusMoney,
+            currency: "money" as const,
+            direction: "earned" as const,
+            source: `${source}-money-for-xp`,
+          },
+        ]
+      : []),
+  ]);
   return amount;
 }

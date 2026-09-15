@@ -130,7 +130,19 @@ export async function POST(
     claimedQuest.min_requirement,
     specialTargetCount,
   ) * rewardMultiplier);
-  const moneyReward = Math.floor(claimedQuest.reward.money * rewardMultiplier);
+  const moneyForXpEffect = await getDisplayedLegendaryEffect(
+    database,
+    player._id,
+    "MONEY_FOR_XP",
+  );
+  const moneyPerXp = getLegendaryNumberParameter(
+    moneyForXpEffect,
+    "money_per_xp",
+    moneyForXpEffect ? 2 : 0,
+  );
+  const moneyForXpBonus = Math.floor(xpReward * moneyPerXp);
+  const moneyReward =
+    Math.floor(claimedQuest.reward.money * rewardMultiplier) + moneyForXpBonus;
   const progress = applyXp(
     player.profile.level,
     player.profile.xp,

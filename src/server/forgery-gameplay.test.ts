@@ -296,3 +296,46 @@ test("forced masking hides provenance even for authenticated items", () => {
   assert.equal(sanitized.odds, "1 in 200");
   assert.equal(sanitized.transaction_history[0].source, "unknown");
 });
+
+test("awardForgeryXpAmount credits MONEY_FOR_XP bonus money to bank_balance when displayed", async () => {
+  const { MongoMemoryServer } = await import("mongodb-memory-server");
+  const { MongoClient } = await import("mongodb");
+  const mongoServer = await MongoMemoryServer.create();
+  const client = new MongoClient(mongoServer.getUri());
+
+  try {
+    await client.connect();
+    const db = client.db("test-forgery-xp");
+    const playerId = "player-1";
+
+    await db.collection("players").insertOne({
+      _id: playerId,
+      active: true,
+      profile: { level: 1, xp: 0, lottery_tickets: 0, bank_balance: 1000 },
+    });
+
+    await db.collection("unique_attributes").insertOne({
+      _id: "attr-money-xp",
+      code: "MONEY_FOR_XP",
+      active: true,
+      parameters: { money_per_xp: 2 },
+    });
+
+    await db.collection("items").insertOne({
+      _id: "item-1",
+      owner: playerId,
+      status: "displayed",
+      active_unique_attribute: "attr-money-xp",
+    });
+
+    const { awardForgeryXpAmount } = await import("./forgery-gameplay.ts");
+    const awarded = await awardForgeryXpAmount(db, playerId, 100, "forgery-offload");
+    assert.equal(awarded, 100);
+
+    const updatedPlayer = await db.collection("players").findOne({ _id: playerId });
+    assert.equal(updatedPlayer?.profile.bank_balance, 1200);
+  } finally {
+    await client.close();
+    await mongoServer.stop();
+  }
+});
