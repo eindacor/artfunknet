@@ -14,7 +14,8 @@
     "db:publish-artwork": "node --env-file=.env.local scripts/publish-approved-artwork.mjs",
     "artwork:manifest": "node --env-file=.env.local scripts/export-artwork-image-manifest.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "tsc --noEmit && node --test"
+    "test": "tsc --noEmit && node --test",
+    "prepare": "husky"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1123.0",
@@ -33,6 +34,7 @@
     "@types/react-dom": "^19.2.5",
     "eslint": "^9",
     "eslint-config-next": "^16.3.4",
+    "husky": "^9.1.7",
     "mongodb-memory-server": "^11.2.0",
     "tailwindcss": "^4",
     "typescript": "^5"
