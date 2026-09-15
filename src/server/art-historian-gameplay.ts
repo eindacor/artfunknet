@@ -118,9 +118,9 @@ export function calculateHistorianReward({
 
 export function calculateMarketExpertMoneyMultiplier(
   winningAuctionCount: number,
-  xpBonusPerWinningAuction: number,
+  multiplierPerWinningAuction = 0.1,
 ): number {
-  return 1 + Math.max(0, winningAuctionCount) * xpBonusPerWinningAuction;
+  return 1 + Math.max(0, winningAuctionCount) * multiplierPerWinningAuction;
 }
 
 export function calculateHistorianClaimXp(
@@ -211,7 +211,7 @@ export async function createArtHistorianQuest(
     if (xpBonusEffect) xpMultiplier = 1.5;
 
     if (marketBonusEffect) {
-      const xpBonusPerWinningAuction = getLegendaryNumberParameter(
+      const multiplierPerWinningAuction = getLegendaryNumberParameter(
         marketBonusEffect,
         "multiplier_per_winning_auction",
         0.1,
@@ -225,7 +225,7 @@ export async function createArtHistorianQuest(
         });
       moneyMultiplier = calculateMarketExpertMoneyMultiplier(
         activeWinningAuctions,
-        xpBonusPerWinningAuction,
+        multiplierPerWinningAuction,
       );
     }
   }

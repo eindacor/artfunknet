@@ -31,10 +31,10 @@ test("Art Historian rewards preserve original rarity multipliers", () => {
 });
 
 test("calculateMarketExpertMoneyMultiplier scales with winning auction count", () => {
-  assert.equal(calculateMarketExpertMoneyMultiplier(0, 0.06), 1.0);
-  assert.equal(calculateMarketExpertMoneyMultiplier(3, 0.06), 1.18);
-  assert.equal(calculateMarketExpertMoneyMultiplier(5, 0.06), 1.30);
-  assert.equal(calculateMarketExpertMoneyMultiplier(-2, 0.06), 1.0);
+  assert.equal(calculateMarketExpertMoneyMultiplier(0), 1.0);
+  assert.equal(calculateMarketExpertMoneyMultiplier(3), 1.3);
+  assert.equal(calculateMarketExpertMoneyMultiplier(5), 1.5);
+  assert.equal(calculateMarketExpertMoneyMultiplier(-2), 1.0);
 });
 
 test("calculateHistorianReward applies moneyMultiplier correctly", () => {
@@ -48,11 +48,11 @@ test("calculateHistorianReward applies moneyMultiplier correctly", () => {
     averageDropValue: 1_000,
     playerLevel: 0,
     questRarity: "common",
-    moneyMultiplier: calculateMarketExpertMoneyMultiplier(3, 0.06),
+    moneyMultiplier: calculateMarketExpertMoneyMultiplier(3),
   });
 
   assert.equal(baseReward.money, 2_000);
-  assert.equal(boostedReward.money, 2_360);
+  assert.equal(boostedReward.money, 2_600);
 });
 
 test("calculateHistorianReward stacks xpMultiplier and moneyMultiplier independently", () => {
@@ -61,10 +61,10 @@ test("calculateHistorianReward stacks xpMultiplier and moneyMultiplier independe
     playerLevel: 0,
     questRarity: "common",
     xpMultiplier: 1.5,
-    moneyMultiplier: calculateMarketExpertMoneyMultiplier(3, 0.06),
+    moneyMultiplier: calculateMarketExpertMoneyMultiplier(3),
   });
 
-  assert.equal(stackedReward.money, 2_360);
+  assert.equal(stackedReward.money, 2_600);
   assert.equal(stackedReward.xp, 90);
   assert.equal(stackedReward.xp_chunk_percentage, 0.9);
 });
