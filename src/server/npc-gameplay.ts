@@ -336,6 +336,11 @@ export async function refreshNpcSpawns(
   if (operations.length > 0) {
     await database.collection("npcs").bulkWrite(operations, { ordered: false });
   }
+
+  await database.collection("npcs").deleteMany({
+    ...(ownerId ? { owner_id: ownerId } : {}),
+    expiration: { $lte: now },
+  });
 }
 
 export async function getGalleryNpcs(
