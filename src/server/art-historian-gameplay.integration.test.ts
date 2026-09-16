@@ -96,6 +96,13 @@ async function setupTestDb(db: Db, playerId: string) {
       title: "Quest XP Bonus",
       parameters: {},
     } as unknown as LegendaryAttribute,
+    {
+      _id: "attr-money-for-xp",
+      code: "MONEY_FOR_XP",
+      active: true,
+      title: "Money For XP",
+      parameters: { money_per_xp: 2 },
+    } as unknown as LegendaryAttribute,
   ]);
 
   return { now, futureTime };
@@ -247,6 +254,42 @@ test("Integration: MARKET_EXPERT_QUEST_BONUS triggers only when legendary effect
     const quest = await createArtHistorianQuest(db, { _id: playerId, profile: { level: 1 } }, npc, now);
     // Base common quest money = 2100 with 1.0x multiplier because legendary effect is not displayed
     assert.equal(quest.reward.money, 2100);
+  } finally {
+    await client.close();
+    await mongoServer.stop();
+  }
+});
+
+// Test: MONEY_FOR_XP displayed effect detection during quest reward evaluation
+test("Integration: MONEY_FOR_XP active effect is resolved correctly for displayed legendary artwork", async () => {
+  const mongoServer = await MongoMemoryServer.create();
+  const client = new MongoClient(mongoServer.getUri());
+
+  try {
+    await client.connect();
+    const db: Db = client.db("test-4");
+    const playerId = "player-1";
+    await setupTestDb(db, playerId);
+
+    // Seed displayed item with MONEY_FOR_XP effect
+    await db.collection<GameItem>("items").insertOne({
+      _id: "item-money-xp",
+      owner: playerId,
+      artwork_id: "art-1",
+      status: "displayed",
+      active_unique_attribute: "attr-money-for-xp",
+    } as GameItem);
+
+    const { getDisplayedLegendaryEffect, getLegendaryNumberParameter } = await import("./legendary-attributes.ts");
+    const effect = await getDisplayedLegendaryEffect(db, playerId, "MONEY_FOR_XP");
+    assert.notEqual(effect, null);
+    assert.equal(effect?._id, "attr-money-for-xp");
+    const moneyPerXp = getLegendaryNumberParameter(effect, "money_per_xp", 2);
+    assert.equal(moneyPerXp, 2);
+
+    const xpReward = 100;
+    const moneyForXpBonus = Math.floor(xpReward * moneyPerXp);
+    assert.equal(moneyForXpBonus, 200);
   } finally {
     await client.close();
     await mongoServer.stop();
