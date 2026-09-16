@@ -1114,6 +1114,9 @@ export default function GameDashboard({
 
   function lootPrimaryAction(item: HydratedGameItem) {
     if (item.status === "for_sale") {
+      const purchaseAmount =
+        (item as { price?: number }).price ??
+        Math.floor(item.values.dealer * dealerPriceMultiplier);
       return (
         <button
           className="collection-gallery-action"
@@ -1122,7 +1125,7 @@ export default function GameDashboard({
           type="button"
         >
           <i aria-hidden="true" className="fa fa-shopping-cart" />
-          Purchase
+          Purchase for ${purchaseAmount.toLocaleString()}
         </button>
       );
     }
