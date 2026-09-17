@@ -12,101 +12,31 @@ import type { Artwork, GameItem, LootData } from "./gameplay.ts";
 import type { LegendaryAttribute } from "./legendary-attributes.ts";
 import type { GalleryNpc } from "./npc-gameplay.ts";
 
-type PlayerDoc = {
-  _id: string;
-  active: boolean;
-  profile: {
-    level: number;
-    bank_balance: number;
-    xp: number;
-    lottery_tickets: number;
-  };
-};
+import { setupTestDb } from "./test-utils/db-setup.ts";
 
-type MetadataDoc = {
-  _id: string;
-  loot_data: LootData;
-};
-
-async function setupTestDb(db: Db, playerId: string) {
-  const now = new Date();
-  const futureTime = new Date(now.getTime() + 60 * 60 * 1000);
-
-  // 1. Seed player
-  await db.collection<PlayerDoc>("players").insertOne({
-    _id: playerId,
+const HISTORIAN_UNIQUE_ATTRIBUTES = [
+  {
+    _id: "attr-market-expert",
+    code: "MARKET_EXPERT_QUEST_BONUS",
     active: true,
-    profile: {
-      level: 1,
-      bank_balance: 5000,
-      xp: 0,
-      lottery_tickets: 0,
-    },
-  });
-
-  // 2. Seed metadata loot data with complete fields
-  await db.collection<MetadataDoc>("metadata").insertOne({
-    _id: "loot-data",
-    loot_data: {
-      base_drop_value: 1000,
-      level_multiplier: 1,
-      basic_crate_cost: 30000000,
-      items_per_basic_crate: 12,
-      crate_expense_per_masterpiece: 3600000000,
-      global_foil_chance: 0,
-      global_unlocked_chance: 0,
-      global_patreon_chance: 0,
-      global_misprint_chance: 0,
-      rarity_values: {
-        common: { min: 1000, max: 2000 },
-        uncommon: { min: 2000, max: 4000 },
-        rare: { min: 4000, max: 8000 },
-        legendary: { min: 8000, max: 16000 },
-        masterpiece: { min: 16000, max: 32000 },
-      },
-      drop_tables: {
-        rarity_weights: {
-          1: { common: 100, uncommon: 0, rare: 0, legendary: 0, masterpiece: 0 },
-        },
-      },
-    } as unknown as LootData,
-  });
-
-  // 3. Seed active common artworks
-  await db.collection<Artwork>("artworks").insertMany([
-    { _id: "art-1", active: true, rarity: "common", value_scale: 0.5, title: "Art 1", artist: "Artist 1" } as Artwork,
-    { _id: "art-2", active: true, rarity: "common", value_scale: 0.5, title: "Art 2", artist: "Artist 2" } as Artwork,
-    { _id: "art-3", active: true, rarity: "common", value_scale: 0.5, title: "Art 3", artist: "Artist 3" } as Artwork,
-    { _id: "art-4", active: true, rarity: "common", value_scale: 0.5, title: "Art 4", artist: "Artist 4" } as Artwork,
-  ]);
-
-  // 4. Seed unique attributes with valid parameters schema
-  await db.collection<LegendaryAttribute>("unique_attributes").insertMany([
-    {
-      _id: "attr-market-expert",
-      code: "MARKET_EXPERT_QUEST_BONUS",
-      active: true,
-      title: "Market Expert Quest Bonus",
-      parameters: { multiplier_per_winning_auction: 0.1 },
-    } as unknown as LegendaryAttribute,
-    {
-      _id: "attr-xp-bonus",
-      code: "QUEST_XP_BONUS",
-      active: true,
-      title: "Quest XP Bonus",
-      parameters: {},
-    } as unknown as LegendaryAttribute,
-    {
-      _id: "attr-money-for-xp",
-      code: "MONEY_FOR_XP",
-      active: true,
-      title: "Money For XP",
-      parameters: { money_per_xp: 2 },
-    } as unknown as LegendaryAttribute,
-  ]);
-
-  return { now, futureTime };
-}
+    title: "Market Expert Quest Bonus",
+    parameters: { multiplier_per_winning_auction: 0.1 },
+  } as unknown as LegendaryAttribute,
+  {
+    _id: "attr-xp-bonus",
+    code: "QUEST_XP_BONUS",
+    active: true,
+    title: "Quest XP Bonus",
+    parameters: {},
+  } as unknown as LegendaryAttribute,
+  {
+    _id: "attr-money-for-xp",
+    code: "MONEY_FOR_XP",
+    active: true,
+    title: "Money For XP",
+    parameters: { money_per_xp: 2 },
+  } as unknown as LegendaryAttribute,
+];
 
 // Golden Path Integration Test: creates quest in own gallery with MARKET_EXPERT_QUEST_BONUS and active winning auctions
 test("Integration: Art Historian quest calculates moneyMultiplier for >0 active winning auctions", async () => {
@@ -117,7 +47,9 @@ test("Integration: Art Historian quest calculates moneyMultiplier for >0 active 
     await client.connect();
     const db: Db = client.db("test-1");
     const playerId = "player-1";
-    const { now, futureTime } = await setupTestDb(db, playerId);
+    const { now, futureTime } = await setupTestDb(db, playerId, {
+      uniqueAttributes: HISTORIAN_UNIQUE_ATTRIBUTES,
+    });
 
     await db.collection<GameItem>("items").insertOne({
       _id: "item-1",
@@ -150,7 +82,7 @@ test("Integration: Art Historian quest calculates moneyMultiplier for >0 active 
     ]);
 
     const quest = await createArtHistorianQuest(db, { _id: playerId, profile: { level: 1 } }, npc, now);
-    const expectedMoney = Math.floor(2100 * (1 + 3 * 0.1)); // 2730
+    const expectedMoney = Math.floor(2520 * (1 + 3 * 0.1)); // 3276
     assert.equal(quest.reward.money, expectedMoney);
   } finally {
     await client.close();
@@ -167,7 +99,9 @@ test("Integration: MARKET_EXPERT_QUEST_BONUS does not trigger when visiting anot
     await client.connect();
     const db: Db = client.db("test-2");
     const playerId = "player-1";
-    const { now, futureTime } = await setupTestDb(db, playerId);
+    const { now, futureTime } = await setupTestDb(db, playerId, {
+      uniqueAttributes: HISTORIAN_UNIQUE_ATTRIBUTES,
+    });
 
     await db.collection<GameItem>("items").insertOne({
       _id: "item-1",
@@ -201,8 +135,8 @@ test("Integration: MARKET_EXPERT_QUEST_BONUS does not trigger when visiting anot
     ]);
 
     const quest = await createArtHistorianQuest(db, { _id: playerId, profile: { level: 1 } }, npc, now);
-    // Base common quest money = 2100 with 1.0x multiplier because ownGallery is false
-    assert.equal(quest.reward.money, 2100);
+    // Base common quest money = 2520 with 1.0x multiplier because ownGallery is false
+    assert.equal(quest.reward.money, 2520);
   } finally {
     await client.close();
     await mongoServer.stop();
@@ -218,7 +152,9 @@ test("Integration: MARKET_EXPERT_QUEST_BONUS triggers only when legendary effect
     await client.connect();
     const db: Db = client.db("test-3");
     const playerId = "player-1";
-    const { now, futureTime } = await setupTestDb(db, playerId);
+    const { now, futureTime } = await setupTestDb(db, playerId, {
+      uniqueAttributes: HISTORIAN_UNIQUE_ATTRIBUTES,
+    });
 
     // Item is in inventory ("claimed"), NOT displayed
     await db.collection<GameItem>("items").insertOne({
@@ -252,8 +188,8 @@ test("Integration: MARKET_EXPERT_QUEST_BONUS triggers only when legendary effect
     ]);
 
     const quest = await createArtHistorianQuest(db, { _id: playerId, profile: { level: 1 } }, npc, now);
-    // Base common quest money = 2100 with 1.0x multiplier because legendary effect is not displayed
-    assert.equal(quest.reward.money, 2100);
+    // Base common quest money = 2520 with 1.0x multiplier because legendary effect is not displayed
+    assert.equal(quest.reward.money, 2520);
   } finally {
     await client.close();
     await mongoServer.stop();
@@ -269,7 +205,9 @@ test("Integration: MONEY_FOR_XP active effect is resolved correctly for displaye
     await client.connect();
     const db: Db = client.db("test-4");
     const playerId = "player-1";
-    await setupTestDb(db, playerId);
+    await setupTestDb(db, playerId, {
+      uniqueAttributes: HISTORIAN_UNIQUE_ATTRIBUTES,
+    });
 
     // Seed displayed item with MONEY_FOR_XP effect
     await db.collection<GameItem>("items").insertOne({
