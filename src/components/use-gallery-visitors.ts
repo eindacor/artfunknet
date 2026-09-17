@@ -17,6 +17,15 @@ export type GalleryVisitorView = Omit<
   spawned_at: string;
 };
 
+function filterUnexpired(list: GalleryVisitorView[]): GalleryVisitorView[] {
+  const now = Date.now();
+  return list.filter((visitor) => {
+    if (!visitor.expiration) return true;
+    const exp = new Date(visitor.expiration).getTime();
+    return Number.isNaN(exp) || exp > now;
+  });
+}
+
 export function useGalleryVisitors({
   enabled = true,
   initialVisitors,
@@ -28,7 +37,7 @@ export function useGalleryVisitors({
   ownerId: string;
   spawnIntervalMinutes: number;
 }) {
-  const [visitors, setVisitors] = useState(initialVisitors);
+  const [visitors, setVisitors] = useState(() => filterUnexpired(initialVisitors));
   const lastRefreshCycle = useRef(-1);
   const requestInProgress = useRef(false);
   const refreshIntervalMs = useMemo(
@@ -52,7 +61,7 @@ export function useGalleryVisitors({
       const body = (await response.json()) as {
         visitors?: GalleryVisitorView[];
       };
-      if (body.visitors) setVisitors(body.visitors);
+      if (body.visitors) setVisitors(filterUnexpired(body.visitors));
       lastRefreshCycle.current = Math.floor(Date.now() / refreshIntervalMs);
     } catch (error) {
       console.warn("Unable to refresh gallery visitors", error);
@@ -66,6 +75,10 @@ export function useGalleryVisitors({
 
     let boundaryTimer: number;
     const refreshIfCycleAdvanced = () => {
+      setVisitors((current) => {
+        const filtered = filterUnexpired(current);
+        return filtered.length === current.length ? current : filtered;
+      });
       if (document.visibilityState !== "visible") return;
       const currentCycle = Math.floor(Date.now() / refreshIntervalMs);
       if (currentCycle > lastRefreshCycle.current) {
@@ -111,10 +124,16 @@ export function useGalleryVisitors({
     );
   }, []);
 
+  const removeVisitor = useCallback((visitorId: string) => {
+    setVisitors((current) => current.filter((visitor) => visitor._id !== visitorId));
+  }, []);
+
   const replaceVisitors = useCallback((nextVisitors: GalleryVisitorView[]) => {
-    setVisitors(nextVisitors);
+    setVisitors(filterUnexpired(nextVisitors));
     lastRefreshCycle.current = Math.floor(Date.now() / refreshIntervalMs);
   }, [refreshIntervalMs]);
 
-  return { markVisitorMet, replaceVisitors, visitors };
+  const activeVisitors = useMemo(() => filterUnexpired(visitors), [visitors]);
+
+  return { markVisitorMet, removeVisitor, refreshVisitors, replaceVisitors, visitors: activeVisitors };
 }
