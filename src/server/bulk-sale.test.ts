@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { shouldPreserveBulkSaleItem } from "./bulk-sale.ts";
+import {
+  getBulkForgeryDialog,
+  getBulkForgeryMessage,
+  parseBulkSaleProtections,
+  shouldPreserveBulkSaleItem,
+} from "./bulk-sale.ts";
 
 const protections = {
   keepArtStyles: true,
@@ -101,4 +106,36 @@ test("bulk sale protection preserves applied art styles", () => {
     ),
     false,
   );
+});
+
+test("parseBulkSaleProtections handles valid JSON and invalid bodies safely", () => {
+  const valid = parseBulkSaleProtections(JSON.stringify({ keepLegendaries: true }));
+  assert.equal(valid.ok, true);
+  if (valid.ok) {
+    assert.equal(valid.protections.keepLegendaries, true);
+    assert.equal(valid.protections.keepMasterpieces, false);
+  }
+
+  const invalid = parseBulkSaleProtections("{invalid-json");
+  assert.equal(invalid.ok, false);
+});
+
+test("getBulkForgeryMessage formats messages for sale and donation actions", () => {
+  const saleMsg = getBulkForgeryMessage(1, 2, true, "sale");
+  assert.equal(
+    saleMsg,
+    "The sale failed. 1 known forgery was detected and destroyed; 2 previously unknown forgeries were detected and returned to inventory.",
+  );
+
+  const donationMsg = getBulkForgeryMessage(2, 0, true, "donation");
+  assert.equal(
+    donationMsg,
+    "The donation failed. 2 known forgeries were detected and destroyed.",
+  );
+});
+
+test("getBulkForgeryDialog assigns correct dialog variants", () => {
+  assert.equal(getBulkForgeryDialog(1, 1, "test").variant, "mixed");
+  assert.equal(getBulkForgeryDialog(1, 0, "test").variant, "destroyed");
+  assert.equal(getBulkForgeryDialog(0, 1, "test").variant, "returned");
 });
