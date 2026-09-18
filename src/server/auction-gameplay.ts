@@ -828,6 +828,7 @@ export async function getAuctionViews(
   playerId: string,
   options: {
     auctionId?: string;
+    auctionIds?: string[];
     search?: string;
     sort?: string;
     order?: "asc" | "desc";
@@ -851,6 +852,7 @@ export async function getAuctionViews(
     settlement_status: { $ne: "settling" },
   };
   if (options.auctionId) filter._id = options.auctionId;
+  if (options.auctionIds?.length) filter._id = { $in: options.auctionIds };
   const player = await database.collection<AuctionPlayer>("players").findOne({
     _id: playerId,
     active: true,
