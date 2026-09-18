@@ -75,7 +75,7 @@ export function getExpiredTransientItemFilter(
       {
         status: "for_sale",
         expires_at: { $exists: false },
-        source: "art dealer",
+        source: { $in: ["art dealer", "art collector"] },
         date_received: {
           $lte: new Date(
             now.getTime() - NPC_OFFER_ITEM_EXPIRATION_MS,

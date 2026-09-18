@@ -1117,6 +1117,7 @@ export async function POST(
             useRawRarityMap: true,
             source: "art collector",
             status: "for_sale",
+            expiresAt: getNpcOfferItemExpiration(now),
           },
         );
         generatedOfferIds.push(...generated.map((item) => item._id));
