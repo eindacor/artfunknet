@@ -14,8 +14,10 @@ import {
   AUCTIONEER_BASE_PRIVATE_LOTS,
   AUCTION_HOUSE_OWNER_ID,
   createAuction,
+  getAuctionViews,
   PRIVATE_AUCTION_DURATION_MINUTES,
   type Auction,
+  type AuctionView,
 } from "./auction-gameplay.ts";
 import { hydrateGameItems } from "./item-artwork.ts";
 import {
@@ -46,6 +48,7 @@ export type AuctioneerInteractionResult = {
     npcName: string;
     quality: NpcQuality;
     auctionCount: number;
+    auctions?: AuctionView[];
     expiration: string;
   };
   auctions: Auction[];
@@ -181,6 +184,15 @@ export async function processAuctioneerInteraction(
       `The Auctioneer activated market analysis until ${marketExpertExpiration.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} ` +
       `and opened ${auctionCount} private ${auctionCount === 1 ? "lot" : "lots"} for you.`;
 
+    const { auctions: privateAuctionViews } = await getAuctionViews(
+      database,
+      player._id,
+      {
+        auctionIds: generatedAuctionIds,
+        pageSize: generatedAuctionIds.length,
+      },
+    );
+
     return {
       message,
       interaction: {
@@ -188,6 +200,7 @@ export async function processAuctioneerInteraction(
         npcName: npc.npc_name,
         quality: npc.quality,
         auctionCount,
+        auctions: privateAuctionViews,
         expiration: marketExpertExpiration.toISOString(),
       },
       auctions: createdAuctions,

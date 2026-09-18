@@ -70,7 +70,8 @@ import type {
   PlayerViewSettings,
 } from "@/server/player-view-settings";
 
-import AuctionHouse from "./auctions/auction-house";
+import AuctionHouse, { AuctionBidDialog } from "./auctions/auction-house";
+import type { AuctionView } from "@/server/auction-gameplay";
 import GalleryExplorer, {
   GalleryAttributeSummary,
   GalleryRaritySummary,
@@ -292,6 +293,11 @@ export default function GameDashboard({
     npcName: string;
     quality: NpcQuality;
     items: ArtworkOfferItem[];
+  } | null>(null);
+  const [auctioneerSession, setAuctioneerSession] = useState<{
+    npcName: string;
+    quality: NpcQuality;
+    auctions: AuctionView[];
   } | null>(null);
   const [collectorResult, setCollectorResult] =
     useState<CollectorResult | null>(null);
@@ -909,12 +915,25 @@ export default function GameDashboard({
       const body = (await response.json()) as {
         error?: string;
         message?: string;
-        interaction?: {
-          type: "art-donor-offer" | "art-dealer-offer";
-          npcName: string;
-          quality: NpcQuality;
-          items: ArtworkOfferItem[];
-        } | CollectorResult | ArtExpertResult | ArtHistorianResult | NpcRewardInteraction;
+        interaction?:
+          | {
+              type: "art-donor-offer" | "art-dealer-offer";
+              npcName: string;
+              quality: NpcQuality;
+              items: ArtworkOfferItem[];
+            }
+          | {
+              type: "auctioneer-access";
+              npcName: string;
+              quality: NpcQuality;
+              auctionCount: number;
+              auctions?: AuctionView[];
+              expiration: string;
+            }
+          | CollectorResult
+          | ArtExpertResult
+          | ArtHistorianResult
+          | NpcRewardInteraction;
       };
       if (!response.ok) {
         throw new Error(body.error ?? "The visitor interaction failed.");
@@ -928,6 +947,16 @@ export default function GameDashboard({
           npcName: body.interaction.npcName,
           quality: body.interaction.quality,
           items: body.interaction.items,
+        });
+      } else if (
+        body.interaction?.type === "auctioneer-access" &&
+        body.interaction.auctions &&
+        body.interaction.auctions.length > 0
+      ) {
+        setAuctioneerSession({
+          npcName: body.interaction.npcName,
+          quality: body.interaction.quality,
+          auctions: body.interaction.auctions,
         });
       } else if (body.interaction?.type === "art-collector-result") {
         setCollectorResult(body.interaction);
@@ -2817,6 +2846,22 @@ export default function GameDashboard({
             quality={artworkOfferSession.quality}
           />
         ) : null}
+        {auctioneerSession ? (
+          <AuctioneerOfferDialog
+            auctions={auctioneerSession.auctions}
+            bankBalance={player.bankBalance}
+            legendaryAttributes={legendaryAttributes}
+            npcName={auctioneerSession.npcName}
+            onAuctionsChange={(auctions) =>
+              setAuctioneerSession((current) =>
+                current ? { ...current, auctions } : current,
+              )
+            }
+            onClose={() => setAuctioneerSession(null)}
+            playerId={playerId}
+            quality={auctioneerSession.quality}
+          />
+        ) : null}
         {collectorResult ? (
           <CollectorResultDialog
             result={collectorResult}
@@ -3533,6 +3578,186 @@ function ArtworkOfferDialog({
         ) : null}
       </div>
     </dialog>
+  );
+}
+
+function AuctioneerOfferDialog({
+  npcName,
+  quality,
+  auctions,
+  bankBalance,
+  legendaryAttributes,
+  playerId,
+  onClose,
+  onAuctionsChange,
+}: {
+  npcName: string;
+  quality: NpcQuality;
+  auctions: AuctionView[];
+  bankBalance: number;
+  legendaryAttributes: CardLegendaryAttribute[];
+  playerId: string;
+  onClose: () => void;
+  onAuctionsChange: (auctions: AuctionView[]) => void;
+}) {
+  const router = useRouter();
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+  const [selectedAuction, setSelectedAuction] = useState<AuctionView | null>(null);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    returnFocusRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    if (dialog && !dialog.open) dialog.showModal();
+    return () => {
+      if (dialog?.open) dialog.close();
+    };
+  }, []);
+
+  function closeDialog() {
+    if (dialogRef.current?.open) dialogRef.current.close();
+    returnFocusRef.current?.focus();
+    onClose();
+  }
+
+  async function refreshAuction(auctionId: string) {
+    try {
+      const response = await fetch(`/api/play/auctions?auction=${auctionId}`, {
+        cache: "no-store",
+      });
+      if (response.ok) {
+        const body = (await response.json()) as { auctions: AuctionView[] };
+        const updated = body.auctions.find((a) => a._id === auctionId);
+        if (updated) {
+          onAuctionsChange(
+            auctions.map((a) => (a._id === auctionId ? updated : a)),
+          );
+        } else {
+          onAuctionsChange(auctions.filter((a) => a._id !== auctionId));
+        }
+      }
+    } catch {
+      // Ignore
+    }
+  }
+
+  return (
+    <>
+      <dialog
+        aria-labelledby="auctioneer-offer-title"
+        className="donor-offer-dialog"
+        onCancel={(event) => {
+          event.preventDefault();
+          closeDialog();
+        }}
+        ref={dialogRef}
+      >
+        <div className="donor-offer-content">
+          <header>
+            <div>
+              <p className="reroll-dialog-kicker">{quality} visitor</p>
+              <h2 id="auctioneer-offer-title">{npcName}&apos;s private auctions</h2>
+            </div>
+            <button
+              aria-label={`Close ${npcName} private auctions`}
+              className="reroll-dialog-close"
+              onClick={closeDialog}
+              type="button"
+            >
+              <i aria-hidden="true" className="fa fa-times" />
+            </button>
+          </header>
+          <p>Closing this dialog leaves your private auctions accessible in the Auction House.</p>
+          {auctions.length === 0 ? (
+            <p className="empty-state">No active private auctions.</p>
+          ) : (
+            <div className="donor-offer-list">
+              {auctions.map((auction) => (
+                <article
+                  className="donor-offer-item donor-offer-item-clickable"
+                  key={auction._id}
+                  onClick={() => setSelectedAuction(auction)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setSelectedAuction(auction);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                >
+                  <ItemThumbnail
+                    alt={`${auction.item.artwork.title} by ${auction.item.artwork.artist}`}
+                    className="donor-offer-thumbnail"
+                    item={auction.item}
+                  />
+                  <div className="donor-offer-details">
+                    <div>
+                      <span
+                        className={`artwork-ownership-indicator ${
+                          auction.owned ? "owned" : "new"
+                        }`}
+                      >
+                        {auction.owned ? "owned" : "new artwork"}
+                      </span>
+                      <span
+                        className={`donor-offer-rarity rarity-text ${auction.item.artwork.rarity}`}
+                      >
+                        {auction.item.artwork.rarity}
+                      </span>
+                      {auction.currentlyWinning ? (
+                        <span className="auctioneer-winning-indicator">
+                          winning
+                        </span>
+                      ) : null}
+                    </div>
+                    <strong>{auction.item.artwork.title}</strong>
+                    <span>{auction.item.artwork.artist}</span>
+                    <span>
+                      promotion level {auction.item.level} · condition{" "}
+                      {Math.round(auction.item.condition * 100)}%
+                    </span>
+                    <span>
+                      estimated value ${auction.item.values.actual.toLocaleString()}
+                    </span>
+                    <strong className="dealer-offer-price">
+                      {auction.has_bid ? "current bid" : "starting bid"}{" "}
+                      ${auction.current_bid.toLocaleString()}
+                    </strong>
+                  </div>
+                  <div className="donor-offer-actions">
+                    <ItemActionButton
+                      disabled={false}
+                      icon="fa-gavel"
+                      label={`Bid on ${auction.item.artwork.title}`}
+                      onClick={() => setSelectedAuction(auction)}
+                    />
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+      </dialog>
+      {selectedAuction ? (
+        <AuctionBidDialog
+          auction={selectedAuction}
+          bankBalance={bankBalance}
+          legendaryAttributes={legendaryAttributes}
+          onClose={() => setSelectedAuction(null)}
+          onSuccess={() => {
+            const targetId = selectedAuction._id;
+            setSelectedAuction(null);
+            void refreshAuction(targetId);
+            router.refresh();
+          }}
+          playerId={playerId}
+        />
+      ) : null}
+    </>
   );
 }
 

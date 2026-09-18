@@ -42,6 +42,7 @@ import {
   AUCTIONEER_BASE_PRIVATE_LOTS,
   AUCTION_HOUSE_OWNER_ID,
   createAuction,
+  getAuctionViews,
   PRIVATE_AUCTION_DURATION_MINUTES,
 } from "@/server/auction-gameplay";
 import { hydrateGameItems } from "@/server/item-artwork";
