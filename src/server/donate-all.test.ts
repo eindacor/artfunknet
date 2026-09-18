@@ -48,6 +48,27 @@ test("donate all style recovery identifies non-museum cosmetics", () => {
   assert.equal(recoveredMuseum, undefined);
 });
 
+test("donate style recovery does not provide a style for known or unverified forgeries", () => {
+  function getRecoveredStyle(item: { card_renderer?: string; authenticity?: { forgery: boolean } }) {
+    const style = getCardCosmetic(item.card_renderer ?? "");
+    return style && style.id !== "museum" && !item.authenticity?.forgery
+      ? style
+      : undefined;
+  }
+
+  // Authentic artwork with style -> style recovered
+  const authenticItem = { card_renderer: "zine", authenticity: { forgery: false } };
+  assert.equal(getRecoveredStyle(authenticItem)?.id, "zine");
+
+  // Unverified forgery artwork with style -> no style recovered
+  const unverifiedForgery = { card_renderer: "zine", authenticity: { forgery: true } };
+  assert.equal(getRecoveredStyle(unverifiedForgery), undefined);
+
+  // Known/identified forgery artwork with style -> no style recovered
+  const knownForgery = { card_renderer: "zine", authenticity: { forgery: true, identified: true } };
+  assert.equal(getRecoveredStyle(knownForgery), undefined);
+});
+
 test("donate all forgery karma multiplier applies correctly when identified", () => {
   const baseKarma = calculateDonationKarma({
     rarity: "common",
