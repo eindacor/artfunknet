@@ -41,6 +41,7 @@ test("expiration cleanup is limited to transient item statuses", () => {
   assert.match(serialized, /"status":"for_sale"/);
   assert.match(serialized, /art donor/);
   assert.match(serialized, /art dealer/);
+  assert.match(serialized, /art collector/);
   assert.doesNotMatch(serialized, /"status":"claimed"/);
   assert.doesNotMatch(serialized, /"status":"displayed"/);
 });
