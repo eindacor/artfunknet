@@ -7204,10 +7204,14 @@ a.welcome-button {
 }
 
 .historian-quest {
+  --rarity-color: #39b54a;
+  --rarity-light: #a6efae;
+  --rarity-dark: #123c19;
+  --rarity-glow: rgb(57 181 74 / 42%);
   display: grid;
   gap: 0.9rem;
   border: 1px solid #cfc8ba;
-  border-left: 6px solid var(--accent);
+  border-left: 6px solid var(--rarity-color);
   padding: 1rem;
   background: #f4f1e9;
   color: #171717;
