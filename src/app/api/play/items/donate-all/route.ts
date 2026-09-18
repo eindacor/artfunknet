@@ -102,7 +102,10 @@ export async function POST(request: Request) {
     if (!hydratedItem) continue;
 
     const style = getCardCosmetic(item.card_renderer ?? "");
-    const recoveredStyle = style && style.id !== "museum" ? style : undefined;
+    const recoveredStyle =
+      style && style.id !== "museum" && !item.authenticity?.forgery
+        ? style
+        : undefined;
 
     let itemKarma = calculateDonationKarma({
       rarity: hydratedItem.artwork.rarity,

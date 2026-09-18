@@ -162,7 +162,9 @@ export async function POST(
 
   const style = getCardCosmetic(donatedItem.card_renderer ?? "");
   const recoveredStyle =
-    style && style.id !== "museum" ? style : undefined;
+    style && style.id !== "museum" && !donatedItem.authenticity?.forgery
+      ? style
+      : undefined;
   let karma = calculateDonationKarma({
     rarity: hydratedItem.artwork.rarity,
     level: donatedItem.level,
