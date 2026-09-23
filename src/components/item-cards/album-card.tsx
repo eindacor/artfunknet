@@ -27,6 +27,7 @@ export default function AlbumCard({
               ),
             } as CSSProperties
           }
+          data-rarity={item.artwork.rarity}
         >
           <span className="album-card-record-foil" aria-hidden="true" />
           <span className="album-card-record-scratches" aria-hidden="true" />
