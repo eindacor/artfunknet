@@ -1198,6 +1198,12 @@ export default function GameDashboard({
           disabled={pending}
           onClick={() => act(`/api/play/items/${item._id}/decline`)}
         />
+        <ItemActionButton
+          icon="fa-binoculars"
+          label="Collect and set for sale"
+          disabled={pending}
+          onClick={() => act(`/api/play/items/${item._id}/claim-and-set-for-sale`)}
+        />
         {archiveAction(item)}
       </>
     );
