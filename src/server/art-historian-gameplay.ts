@@ -193,8 +193,8 @@ export async function createArtHistorianQuest(
   );
 
   const minimum = DEFAULT_HISTORIAN_MINIMUM;
-  let xpMultiplier = 1;
-  let moneyMultiplier = 1.2;
+  let xpMultiplier = 1.5;
+  let moneyMultiplier = 2.;
   if (ownGallery) {
     const [xpBonusEffect, marketBonusEffect] = await Promise.all([
       getDisplayedLegendaryEffect(
