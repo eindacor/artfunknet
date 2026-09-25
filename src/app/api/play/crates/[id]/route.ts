@@ -7,6 +7,7 @@ import {
   getCrateOffer,
   getCratePermission,
   getPurchasableCrateOffers,
+  parseCratePurchaseCount,
 } from "@/server/crate-gameplay";
 import {
   getGameplayGenerationMap,
@@ -29,13 +30,23 @@ type Player = {
 };
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const auth = await requirePlayerApi();
   if (!auth.ok) return auth.response;
 
   const { id } = await params;
+  const body = (await request.json().catch(() => ({}))) as {
+    count?: unknown;
+  };
+  const count = parseCratePurchaseCount(body.count ?? 1);
+  if (count === null) {
+    return NextResponse.json(
+      { error: "Crate count must be a whole number from 1 to 20." },
+      { status: 400 },
+    );
+  }
   const database = await getDatabase();
   const [player, settings] = await Promise.all([
     database.collection<Player>("players").findOne({
@@ -64,8 +75,9 @@ export async function POST(
       { status: 404 },
     );
   }
+  const totalCost = offer.cost * count;
   const permission = getCratePermission(
-    offer,
+    { ...offer, cost: totalCost },
     player.profile.level,
     player.profile.bank_balance,
   );
@@ -73,19 +85,19 @@ export async function POST(
     return NextResponse.json({ error: permission.reason }, { status: 409 });
   }
 
-  if (offer.cost > 0) {
+  if (totalCost > 0) {
     const charged = await database.collection<Player>("players").updateOne(
       {
         _id: player._id,
         active: true,
         "profile.level": player.profile.level,
-        "profile.bank_balance": { $gte: offer.cost },
+        "profile.bank_balance": { $gte: totalCost },
       },
       {
         $inc: {
-          "profile.bank_balance": -offer.cost,
-          "profile.money_spent_on_crates": offer.cost,
-          "profile.playthrough_stats.money_spent": offer.cost,
+          "profile.bank_balance": -totalCost,
+          "profile.money_spent_on_crates": totalCost,
+          "profile.playthrough_stats.money_spent": totalCost,
         },
       },
     );
@@ -106,7 +118,7 @@ export async function POST(
       player.profile.level,
       {
         now,
-        itemCount: offer.itemCount,
+        itemCount: offer.itemCount * count,
         generationMap: {
           ...getGameplayGenerationMap(settings.active),
           ...offer.generationMap,
@@ -127,17 +139,22 @@ export async function POST(
       { $set: { source: `${offer.quality} crate` } },
     );
     await recordEconomyMetricsSafely(database, {
-      amount: offer.cost,
+      amount: totalCost,
       currency: "money",
       direction: "spent",
       source: "crate-purchase",
     });
+    const openedCrateLabel =
+      count === 1
+        ? offer.name
+        : `${count} ${offer.name.replace(/ crate$/i, " crates")}`;
     return NextResponse.json({
       status: "ok",
+      count,
       itemCount: items.length,
       item_ids: items.map((item) => item._id),
-      bankBalance: player.profile.bank_balance - offer.cost,
-      message: `${offer.name} opened. ${items.length} artworks were added to your loot.`,
+      bankBalance: player.profile.bank_balance - totalCost,
+      message: `${openedCrateLabel} opened. ${items.length} artworks were added to your loot.`,
     });
   } catch (error) {
     try {
@@ -148,15 +165,15 @@ export async function POST(
     } catch (cleanupError) {
       console.error("Unable to clean up failed crate items", cleanupError);
     }
-    if (offer.cost > 0) {
+    if (totalCost > 0) {
       try {
         await database.collection<Player>("players").updateOne(
           { _id: player._id, active: true },
           {
             $inc: {
-              "profile.bank_balance": offer.cost,
-              "profile.money_spent_on_crates": -offer.cost,
-              "profile.playthrough_stats.money_spent": -offer.cost,
+              "profile.bank_balance": totalCost,
+              "profile.money_spent_on_crates": -totalCost,
+              "profile.playthrough_stats.money_spent": -totalCost,
             },
           },
         );

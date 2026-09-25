@@ -329,6 +329,7 @@ export default function GameDashboard({
     crateId: string;
     phase: "opening" | "opened" | "error";
   } | null>(null);
+  const [cratePurchaseCount, setCratePurchaseCount] = useState(1);
   const [revealedLootIds, setRevealedLootIds] = useState<string[]>([]);
   const [sellAllEarnings, setSellAllEarnings] = useState<{
     amount: number;
@@ -967,14 +968,26 @@ export default function GameDashboard({
     }
   }
 
-  async function openCrate(crate: LootCrateOffer, endpoint: string) {
+  async function openCrate(
+    crate: LootCrateOffer,
+    endpoint: string,
+    count = 1,
+  ) {
     setError("");
     setNotice("");
     setRevealedLootIds([]);
     setCrateOpening({ crateId: crate.id, phase: "opening" });
     const animationStarted = Date.now();
     try {
-      const response = await fetch(endpoint, { method: "POST" });
+      const response = await fetch(endpoint, {
+        method: "POST",
+        ...(crate.quality !== "daily"
+          ? {
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ count }),
+            }
+          : {}),
+      });
       const body = (await response.json()) as {
         error?: string;
         itemCount?: number;
@@ -2039,6 +2052,24 @@ export default function GameDashboard({
           <section className="random-drop">
             <div className="loot-dashboard">
               <section className="crate-store-panel">
+                <label className="crate-purchase-count">
+                  <span>Crates to buy</span>
+                  <input
+                    disabled={pending || crateOpening !== null}
+                    max={20}
+                    min={1}
+                    onChange={(event) => {
+                      const count = event.currentTarget.valueAsNumber;
+                      setCratePurchaseCount(
+                        Number.isFinite(count)
+                          ? Math.min(20, Math.max(1, Math.floor(count)))
+                          : 1,
+                      );
+                    }}
+                    type="number"
+                    value={cratePurchaseCount}
+                  />
+                </label>
                 <div className="crate-store-grid">
                   <button
                     className="crate-store-card daily"
@@ -2081,7 +2112,8 @@ export default function GameDashboard({
                   </button>
                   {crateOffers.map((crate) => {
                     const levelLocked = player.level < crate.levelRequirement;
-                    const cannotAfford = player.bankBalance < crate.cost;
+                    const totalCost = crate.cost * cratePurchaseCount;
+                    const cannotAfford = player.bankBalance < totalCost;
                     return (
                       <button
                         className="crate-store-card"
@@ -2102,6 +2134,7 @@ export default function GameDashboard({
                           void openCrate(
                             crate,
                             `/api/play/crates/${crate.id}`,
+                            cratePurchaseCount,
                           )
                         }
                         title={
@@ -2115,10 +2148,12 @@ export default function GameDashboard({
                       >
                         <CrateCardArtwork quality={crate.quality} />
                         <span className="crate-card-copy">
-                          <strong>{crate.name}</strong>
+                          <strong>
+                            {crate.name} × {cratePurchaseCount}
+                          </strong>
                         </span>
                           <strong className="crate-card-cost">
-                            ${crate.cost.toLocaleString()}
+                            ${totalCost.toLocaleString()}
                           </strong>
                           <small>
                             {crateOpening?.crateId === crate.id
@@ -2129,7 +2164,9 @@ export default function GameDashboard({
                                   : "Failed"
                               : levelLocked
                                 ? `Level ${crate.levelRequirement}`
-                                : ""}
+                                : `${(
+                                    crate.itemCount * cratePurchaseCount
+                                  ).toLocaleString()} artworks`}
                           </small>
                       </button>
                     );

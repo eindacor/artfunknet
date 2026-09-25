@@ -46,6 +46,16 @@ export type CrateOffer = CrateOfferView & {
 };
 
 export const DEFAULT_PURCHASABLE_CRATE_ITEM_COUNT = 6;
+export const MAX_CRATE_PURCHASE_COUNT = 20;
+
+export function parseCratePurchaseCount(value: unknown): number | null {
+  return Number.isInteger(value) &&
+    typeof value === "number" &&
+    value >= 1 &&
+    value <= MAX_CRATE_PURCHASE_COUNT
+    ? value
+    : null;
+}
 
 export const FEATURED_CRATES = [
   {

@@ -13,6 +13,8 @@ import {
   getCrateOffer,
   getCratePermission,
   getVisibleCrateOffers,
+  MAX_CRATE_PURCHASE_COUNT,
+  parseCratePurchaseCount,
 } from "./crate-gameplay.ts";
 import { DEFAULT_ACTUAL_GAMEPLAY_CONFIG } from "./game-settings.ts";
 import {
@@ -36,6 +38,18 @@ const offer = {
   cost: 1_000,
   levelRequirement: 15,
 };
+
+test("crate purchase counts are limited to whole numbers from one through twenty", () => {
+  assert.equal(parseCratePurchaseCount(1), 1);
+  assert.equal(
+    parseCratePurchaseCount(MAX_CRATE_PURCHASE_COUNT),
+    MAX_CRATE_PURCHASE_COUNT,
+  );
+  assert.equal(parseCratePurchaseCount(0), null);
+  assert.equal(parseCratePurchaseCount(21), null);
+  assert.equal(parseCratePurchaseCount(1.5), null);
+  assert.equal(parseCratePurchaseCount("2"), null);
+});
 
 test("crate permissions enforce level and price", () => {
   assert.equal(getCratePermission(offer, 14, 10_000).allowed, false);

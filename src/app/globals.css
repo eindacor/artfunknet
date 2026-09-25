@@ -5632,6 +5632,29 @@ a.welcome-button {
   color: var(--accent);
 }
 
+.crate-purchase-count {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 8px 8px 0;
+  border: 1px solid #c9c3b6;
+  padding: 8px 10px;
+  background: #fffdf7;
+  color: #282722;
+  font: 700 0.7rem Courier, "Courier New", monospace;
+}
+
+.crate-purchase-count input {
+  width: 64px;
+  border: 1px solid #777168;
+  padding: 5px 7px;
+  background: #fff;
+  color: #171717;
+  font: inherit;
+  text-align: right;
+}
+
 .loot-debug-drop {
   margin: 0 8px 8px;
   border: 1px dashed #b42a74;
