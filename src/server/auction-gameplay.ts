@@ -2,7 +2,10 @@ import { randomUUID } from "node:crypto";
 
 import { MongoServerError, type Db, type Filter, type Sort } from "mongodb";
 
-import type { ArtHistorianQuest } from "./art-historian-gameplay.ts";
+import {
+  getUnfulfilledHistorianTargetIds,
+  type ArtHistorianQuest,
+} from "./art-historian-gameplay.ts";
 import { getAuctionSettlementDisposition } from "./auction-settlement.ts";
 import { deleteCommunityReactions } from "./community-reaction-cleanup.ts";
 import { recordEconomyMetricsSafely } from "./economy-metrics.ts";
@@ -980,29 +983,32 @@ export async function getAuctionViews(
     const quests = await database
       .collection<ArtHistorianQuest>("quests")
       .find({ owner_id: playerId })
-      .project<Pick<ArtHistorianQuest, "target">>({ target: 1 })
+      .project<Pick<ArtHistorianQuest, "target" | "fulfilled_targets">>({
+        target: 1,
+        fulfilled_targets: 1,
+      })
       .toArray();
     filter["item_snapshot.artwork_id"] = {
-      $in: [...new Set(quests.flatMap((quest) => quest.target))],
+      $in: [...new Set(quests.flatMap(getUnfulfilledHistorianTargetIds))],
     };
   } else if (options.quest === "sought") {
     const otherQuests = await database
       .collection<ArtHistorianQuest>("quests")
       .find({ owner_id: { $ne: playerId } })
-      .project<Pick<ArtHistorianQuest, "owner_id" | "target">>({
+      .project<
+        Pick<
+          ArtHistorianQuest,
+          "owner_id" | "target" | "fulfilled_targets"
+        >
+      >({
         owner_id: 1,
         target: 1,
+        fulfilled_targets: 1,
       })
       .toArray();
     const sought: string[] = [];
     for (const quest of otherQuests) {
-      const owned = await database.collection<GameItem>("items").find({
-        owner: quest.owner_id,
-        artwork_id: { $in: quest.target },
-        status: { $in: ["claimed", "displayed"] },
-      }).project<Pick<GameItem, "artwork_id">>({ artwork_id: 1 }).toArray();
-      const ownedIds = new Set(owned.map((item) => item.artwork_id));
-      sought.push(...quest.target.filter((target) => !ownedIds.has(target)));
+      sought.push(...getUnfulfilledHistorianTargetIds(quest));
     }
     filter["item_snapshot.artwork_id"] = { $in: [...new Set(sought)] };
   }

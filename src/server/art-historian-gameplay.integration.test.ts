@@ -6,6 +6,8 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 import {
   ART_HISTORIAN_ATTRIBUTE_ID,
   createArtHistorianQuest,
+  getArtHistorianQuestViews,
+  type ArtHistorianQuest,
 } from "./art-historian-gameplay.ts";
 import type { Auction } from "./auction-gameplay.ts";
 import type { GameItem } from "./gameplay.ts";
@@ -37,6 +39,80 @@ const HISTORIAN_UNIQUE_ATTRIBUTES = [
     parameters: { money_per_xp: 2 },
   } as unknown as LegendaryAttribute,
 ];
+
+test("Integration: Art Historian progress counts submitted targets instead of owned items", async () => {
+  const mongoServer = await MongoMemoryServer.create();
+  const client = new MongoClient(mongoServer.getUri());
+
+  try {
+    await client.connect();
+    const db: Db = client.db("historian-fulfilled-targets");
+    const playerId = "player-fulfilled";
+    await setupTestDb(db, playerId);
+    const ownedItem = {
+      _id: "owned-target",
+      owner: playerId,
+      artwork_id: "art-1",
+      status: "claimed",
+      foil: false,
+      unlocked: false,
+      seasonal: false,
+      original: false,
+      vintage: false,
+      lottery: 0,
+    } as GameItem;
+    await db.collection<GameItem>("items").insertOne(ownedItem);
+    await db.collection<ArtHistorianQuest>("quests").insertOne({
+      _id: "quest-fulfilled",
+      owner_id: playerId,
+      target: ["art-1", "art-2"],
+      fulfilled_targets: [
+        {
+          artwork_id: "art-2",
+          item_id: "submitted-target",
+          item_snapshot: {
+            ...ownedItem,
+            _id: "submitted-target",
+            artwork_id: "art-2",
+          },
+          fulfilled_at: new Date().toISOString(),
+          special: false,
+        },
+      ],
+      reward: {
+        money: 1_000,
+        xp: 100,
+        xp_chunk_percentage: 0.5,
+      },
+      rarity: "common",
+      min_requirement: 1,
+      created_at: new Date().toISOString(),
+    });
+
+    const [quest] = await getArtHistorianQuestViews(db, playerId);
+
+    assert.equal(quest.progress.fulfilled, 1);
+    assert.equal(quest.progress.canClaim, true);
+    assert.equal(quest.progress.fullyComplete, false);
+    assert.equal(
+      quest.targets.find((target) => target.artwork._id === "art-1")?.owned,
+      true,
+    );
+    assert.equal(
+      quest.targets.find((target) => target.artwork._id === "art-1")
+        ?.fulfilled,
+      false,
+    );
+    assert.equal(
+      quest.targets.find((target) => target.artwork._id === "art-2")
+        ?.fulfilled,
+      true,
+    );
+  } finally {
+    await client.close();
+    await mongoServer.stop();
+  }
+});
 
 // TODO AI: Re-enable these three payout assertions after they are updated for the
 // intentional Art Historian reward rebalance that raised the base money multiplier

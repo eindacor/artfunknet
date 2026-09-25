@@ -40,6 +40,11 @@ export async function migrateHallOfFameAndPlaythroughStorage(database) {
   await database
     .collection("playthrough_snapshots")
     .createIndex({ player_id: 1, playthrough_number: -1 });
+  await database.collection("quests").updateMany(
+    { fulfilled_targets: { $exists: false } },
+    { $set: { fulfilled_targets: [] } },
+  );
+  await database.collection("quests").createIndex({ owner_id: 1 });
 
   await database.collection("players").bulkWrite([
     {

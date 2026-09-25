@@ -49,7 +49,10 @@ test("getActiveQuestTargetIds aggregates target artwork IDs from active quests",
             return {
               project: () => ({
                 toArray: async () => [
-                  { target: ["art-1", "art-2"] },
+                  {
+                    target: ["art-1", "art-2"],
+                    fulfilled_targets: [{ artwork_id: "art-1" }],
+                  },
                   { target: ["art-2", "art-3"] },
                 ],
               }),
@@ -62,10 +65,7 @@ test("getActiveQuestTargetIds aggregates target artwork IDs from active quests",
   };
 
   const targets = await getActiveQuestTargetIds(mockDb, "player-1");
-  assert.equal(targets.size, 3);
-  assert.ok(targets.has("art-1"));
-  assert.ok(targets.has("art-2"));
-  assert.ok(targets.has("art-3"));
+  assert.deepEqual([...targets].sort(), ["art-2", "art-3"]);
 });
 
 test("evaluateQuestItemSellBonus returns 1x multiplier when QUEST_ITEM_SELL_BONUS effect is not active", async () => {

@@ -5797,7 +5797,7 @@ a.welcome-button {
 
 .collection-preview > .rendered-item-card > .card-actions-with-primary {
   display: grid;
-  grid-template-columns: minmax(120px, 1fr) 114px;
+  grid-template-columns: minmax(90px, 118px) 154px;
   gap: 8px;
   align-items: stretch;
   width: 280px;
@@ -5816,7 +5816,7 @@ a.welcome-button {
 .card-action-array {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(3, 34px);
+  grid-template-columns: repeat(4, 34px);
   grid-template-rows: repeat(3, 34px);
   grid-auto-flow: row;
   gap: 6px;
@@ -5872,6 +5872,18 @@ a.welcome-button {
 
 .card-action-array > .card-action-slot-9 {
   grid-area: 3 / 3;
+}
+
+.card-action-array > .card-action-slot-10 {
+  grid-area: 1 / 4;
+}
+
+.card-action-array > .card-action-slot-11 {
+  grid-area: 2 / 4;
+}
+
+.card-action-array > .card-action-slot-12 {
+  grid-area: 3 / 4;
 }
 
 .collection-gallery-action {
@@ -7556,8 +7568,17 @@ a.welcome-button {
 }
 
 .historian-target.owned {
+  border-color: #c89310;
+  box-shadow: inset 0 0 0 1px #ead49b;
+}
+
+.historian-target.fulfilled {
   border-color: #55a77d;
   box-shadow: inset 0 0 0 1px #b7e4ce;
+}
+
+.historian-target > .fa-arrow-circle-right {
+  color: #c89310;
 }
 
 .historian-target-image {
@@ -7637,6 +7658,45 @@ a.welcome-button {
 
 .historian-dialog {
   width: min(980px, calc(100vw - 32px));
+}
+
+.historian-submission-dialog {
+  width: min(620px, calc(100vw - 32px));
+}
+
+.historian-submission-options {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.historian-submission-options button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid #777168;
+  padding: 0.8rem;
+  background: #fffdf7;
+  color: #292621;
+  text-align: left;
+  cursor: pointer;
+}
+
+.historian-submission-options button:hover:not(:disabled),
+.historian-submission-options button:focus-visible:not(:disabled) {
+  border-color: #171717;
+  background: #f1ece0;
+}
+
+.historian-submission-options button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.historian-submission-options span {
+  color: #676158;
+  font-size: 0.7rem;
+  text-transform: capitalize;
 }
 
 .historian-dialog-reward {

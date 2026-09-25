@@ -4414,7 +4414,7 @@
 
 .standard-item-dialog-actions.card-actions-with-primary {
   display: grid;
-  grid-template-columns: minmax(120px, 1fr) 114px;
+  grid-template-columns: minmax(90px, 118px) 154px;
   align-items: stretch;
   gap: 8px;
   width: 280px;

@@ -1,6 +1,9 @@
 import type { Db } from "mongodb";
 
-import type { ArtHistorianQuest } from "./art-historian-gameplay.ts";
+import {
+  getUnfulfilledHistorianTargetIds,
+  type ArtHistorianQuest,
+} from "./art-historian-gameplay.ts";
 import {
   getDisplayedLegendaryEffect,
   getLegendaryNumberParameter,
@@ -19,17 +22,14 @@ export async function getActiveQuestTargetIds(
   const activeQuests = await database
     .collection<ArtHistorianQuest>("quests")
     .find({ owner_id: playerId })
-    .project<Pick<ArtHistorianQuest, "target">>({ target: 1 })
+    .project<Pick<ArtHistorianQuest, "target" | "fulfilled_targets">>({
+      target: 1,
+      fulfilled_targets: 1,
+    })
     .toArray();
 
   return new Set(
-    activeQuests.flatMap((quest) =>
-      Array.isArray(quest.target)
-        ? quest.target.filter(
-            (artworkId): artworkId is string => typeof artworkId === "string",
-          )
-        : [],
-    ),
+    activeQuests.flatMap(getUnfulfilledHistorianTargetIds),
   );
 }
 

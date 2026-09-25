@@ -1,6 +1,9 @@
 import type { Db } from "mongodb";
 
-import type { ArtHistorianQuest } from "./art-historian-gameplay.ts";
+import {
+  getUnfulfilledHistorianTargetIds,
+  type ArtHistorianQuest,
+} from "./art-historian-gameplay.ts";
 import {
   getDisplayedLegendaryEffect,
   getLegendaryNumberParameter,
@@ -43,7 +46,7 @@ export async function evaluateNpcQuestItemChance(
     .toArray();
 
   const activeQuestTargetIds = [
-    ...new Set(activeQuests.flatMap((quest) => quest.target ?? [])),
+    ...new Set(activeQuests.flatMap(getUnfulfilledHistorianTargetIds)),
   ];
 
   if (activeQuestTargetIds.length === 0) return null;

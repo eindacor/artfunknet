@@ -58,15 +58,25 @@ export type ArtHistorianQuest = {
   _id: string;
   owner_id: string;
   target: string[];
+  fulfilled_targets?: ArtHistorianFulfilledTarget[];
   reward: ArtHistorianQuestReward;
   rarity: ArtworkRarity;
   min_requirement: number;
   created_at: string;
 };
 
+export type ArtHistorianFulfilledTarget = {
+  artwork_id: string;
+  item_id: string;
+  item_snapshot: GameItem;
+  fulfilled_at: string;
+  special: boolean;
+};
+
 export type ArtHistorianQuestTarget = {
   artwork: Artwork;
   owned: boolean;
+  fulfilled: boolean;
   itemId?: string;
   special: boolean;
 };
@@ -74,13 +84,24 @@ export type ArtHistorianQuestTarget = {
 export type ArtHistorianQuestView = ArtHistorianQuest & {
   targets: ArtHistorianQuestTarget[];
   progress: {
-    owned: number;
+    fulfilled: number;
     targetCount: number;
     minimum: number;
     canClaim: boolean;
     fullyComplete: boolean;
   };
 };
+
+export function getUnfulfilledHistorianTargetIds(
+  quest: Pick<ArtHistorianQuest, "target" | "fulfilled_targets">,
+): string[] {
+  const fulfilledArtworkIds = new Set(
+    (quest.fulfilled_targets ?? []).map((target) => target.artwork_id),
+  );
+  return quest.target.filter(
+    (artworkId) => !fulfilledArtworkIds.has(artworkId),
+  );
+}
 
 type HistorianPlayer = {
   _id: string;
@@ -193,8 +214,8 @@ export async function createArtHistorianQuest(
   );
 
   const minimum = DEFAULT_HISTORIAN_MINIMUM;
-  let xpMultiplier = 1.5;
-  let moneyMultiplier = 2.;
+  let xpMultiplier = 2.;
+  let moneyMultiplier = 4.;
   if (ownGallery) {
     const [xpBonusEffect, marketBonusEffect] = await Promise.all([
       getDisplayedLegendaryEffect(
@@ -282,9 +303,16 @@ export async function getArtHistorianQuestViews(
   const artworkMap = new Map(artworks.map((artwork) => [artwork._id, artwork]));
 
   return quests.map((quest) => {
+    const fulfilledTargetMap = new Map(
+      (quest.fulfilled_targets ?? []).map((target) => [
+        target.artwork_id,
+        target,
+      ]),
+    );
     const targets = quest.target.flatMap((artworkId) => {
       const artwork = artworkMap.get(artworkId);
       if (!artwork) return [];
+      const fulfilledTarget = fulfilledTargetMap.get(artworkId);
       const item = selectPreferredQuestItem(
         ownedItems.filter((candidate) => candidate.artwork_id === artworkId),
       );
@@ -292,21 +320,24 @@ export async function getArtHistorianQuestViews(
         {
           artwork,
           owned: Boolean(item),
+          fulfilled: Boolean(fulfilledTarget),
           ...(item ? { itemId: item._id } : {}),
-          special: item ? isHistorianSpecialItem(item) : false,
+          special:
+            fulfilledTarget?.special ??
+            (item ? isHistorianSpecialItem(item) : false),
         },
       ];
     });
-    const owned = targets.filter((target) => target.owned).length;
+    const fulfilled = targets.filter((target) => target.fulfilled).length;
     return {
       ...quest,
       targets,
       progress: {
-        owned,
+        fulfilled,
         targetCount: quest.target.length,
         minimum: quest.min_requirement,
-        canClaim: owned >= quest.min_requirement,
-        fullyComplete: owned >= quest.target.length,
+        canClaim: fulfilled >= quest.min_requirement,
+        fullyComplete: fulfilled >= quest.target.length,
       },
     };
   });

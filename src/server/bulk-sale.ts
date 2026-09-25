@@ -5,7 +5,10 @@ import {
   getArchiveRecordModifiers,
   type PlayerArtworkArchive,
 } from "./archive-gameplay.ts";
-import type { ArtHistorianQuest } from "./art-historian-gameplay.ts";
+import {
+  getUnfulfilledHistorianTargetIds,
+  type ArtHistorianQuest,
+} from "./art-historian-gameplay.ts";
 import { deleteCommunityReactions } from "./community-reaction-cleanup.ts";
 import {
   punishForgeryQuality,
@@ -111,7 +114,10 @@ export async function getFilteredBulkLootCandidates(
       ? database
           .collection<ArtHistorianQuest>("quests")
           .find({ owner_id: playerId })
-          .project<Pick<ArtHistorianQuest, "target">>({ target: 1 })
+          .project<Pick<ArtHistorianQuest, "target" | "fulfilled_targets">>({
+            target: 1,
+            fulfilled_targets: 1,
+          })
           .toArray()
       : Promise.resolve([]),
   ]);
@@ -120,13 +126,7 @@ export async function getFilteredBulkLootCandidates(
     archiveRecords.map((archive) => [archive.artwork_id, archive]),
   );
   const questTargetIds = new Set(
-    quests.flatMap((quest) =>
-      Array.isArray(quest.target)
-        ? quest.target.filter(
-            (artworkId): artworkId is string => typeof artworkId === "string",
-          )
-        : [],
-    ),
+    quests.flatMap(getUnfulfilledHistorianTargetIds),
   );
   let foundQuestTargetIds = new Set<string>();
   if (questTargetIds.size > 0) {

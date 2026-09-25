@@ -364,6 +364,8 @@ export default function GameDashboard({
     action: "sell" | "donate";
     item: HydratedGameItem;
   } | null>(null);
+  const [historianSubmissionItem, setHistorianSubmissionItem] =
+    useState<HydratedGameItem | null>(null);
   const [archiveEntryDetails, setArchiveEntryDetails] =
     useState<HydratedPlayerArtworkArchive | null>(null);
   const [forgeryArchive, setForgeryArchive] =
@@ -409,7 +411,7 @@ export default function GameDashboard({
       new Set(
         quests.flatMap((quest) =>
           quest.targets
-            .filter((target) => !target.owned)
+            .filter((target) => !target.fulfilled)
             .map((target) => target.artwork._id),
         ),
       ),
@@ -575,6 +577,115 @@ export default function GameDashboard({
         setActionDialog(body.actionDialog);
       }
       onSuccess?.();
+      router.refresh();
+    });
+  }
+
+  function historianQuestsForItem(item: HydratedGameItem) {
+    return quests.filter((quest) =>
+      quest.targets.some(
+        (target) =>
+          target.artwork._id === item.artwork_id && !target.fulfilled,
+      ),
+    );
+  }
+
+  function historianSubmissionDisabledReason(
+    item: HydratedGameItem,
+    matchingQuestCount: number,
+  ) {
+    if (item.permanent || item.original) {
+      return "Original and permanent artwork cannot be sent to the Historian.";
+    }
+    if (item.repairing) {
+      return "Stop repairing this artwork before sending it to the Historian.";
+    }
+    if (matchingQuestCount === 0) {
+      return "This artwork is not needed by an active quest.";
+    }
+    return undefined;
+  }
+
+  function requestHistorianSubmission(item: HydratedGameItem) {
+    const matchingQuests = historianQuestsForItem(item);
+    if (historianSubmissionDisabledReason(item, matchingQuests.length)) return;
+    if (matchingQuests.length === 1) {
+      void sendItemToHistorian(item, matchingQuests[0]._id);
+      return;
+    }
+    setHistorianSubmissionItem(item);
+  }
+
+  async function sendItemToHistorian(
+    item: HydratedGameItem,
+    questId: string,
+  ) {
+    setError("");
+    setNotice("");
+    startTransition(async () => {
+      const acquisitionUrl =
+        item.status === "unclaimed"
+          ? `/api/play/items/${item._id}/claim`
+          : item.status === "for_sale"
+            ? `/api/play/items/${item._id}/purchase`
+            : null;
+      if (acquisitionUrl) {
+        const acquisitionResponse = await fetch(acquisitionUrl, {
+          method: "POST",
+        });
+        const acquisitionBody = (await acquisitionResponse.json()) as {
+          error?: string;
+        };
+        if (!acquisitionResponse.ok) {
+          setError(
+            acquisitionBody.error ??
+              "The artwork could not be added to your collection.",
+          );
+          return;
+        }
+      }
+
+      const response = await fetch(
+        `/api/play/items/${item._id}/send-to-historian`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ questId }),
+        },
+      );
+      const body = (await response.json()) as {
+        autoClaimQuestId?: string | null;
+        error?: string;
+        message?: string;
+      };
+      if (!response.ok) {
+        setError(body.error ?? "The artwork could not be sent.");
+        router.refresh();
+        return;
+      }
+
+      let message = body.message;
+      if (body.autoClaimQuestId) {
+        const claimResponse = await fetch(
+          `/api/play/quests/${body.autoClaimQuestId}/claim`,
+          { method: "POST" },
+        );
+        const claimBody = (await claimResponse.json()) as {
+          error?: string;
+          message?: string;
+        };
+        if (!claimResponse.ok) {
+          setError(
+            claimBody.error ??
+              "The final item was submitted, but the reward could not be claimed automatically.",
+          );
+          router.refresh();
+          return;
+        }
+        message = claimBody.message;
+      }
+      setHistorianSubmissionItem(null);
+      setNotice(message ?? "Artwork sent to the Art Historian.");
       router.refresh();
     });
   }
@@ -1023,6 +1134,11 @@ export default function GameDashboard({
   }
 
   function displayedItemActions(item: HydratedGameItem) {
+    const historianQuests = historianQuestsForItem(item);
+    const historianDisabledReason = historianSubmissionDisabledReason(
+      item,
+      historianQuests.length,
+    );
     return (
       <>
         <ItemActionButton
@@ -1046,6 +1162,13 @@ export default function GameDashboard({
             }
           />
         ) : null}
+        <ItemActionButton
+          icon="fa-museum"
+          label="Send to Historian"
+          disabled={pending || Boolean(historianDisabledReason)}
+          disabledReason={historianDisabledReason}
+          onClick={() => requestHistorianSubmission(item)}
+        />
       </>
     );
   }
@@ -1102,6 +1225,11 @@ export default function GameDashboard({
   function collectionDisplayedItemActions(item: HydratedGameItem) {
     const inventoryOnlyReason =
       "Take this artwork down before using this action.";
+    const historianQuests = historianQuestsForItem(item);
+    const historianDisabledReason = historianSubmissionDisabledReason(
+      item,
+      historianQuests.length,
+    );
     return (
       <>
         <ItemActionButton
@@ -1174,11 +1302,24 @@ export default function GameDashboard({
           label="Donate for Karma"
           onClick={() => undefined}
         />
+        <ItemActionButton
+          gridSlot={10}
+          icon="fa-museum"
+          label="Send to Historian"
+          disabled={pending || Boolean(historianDisabledReason)}
+          disabledReason={historianDisabledReason}
+          onClick={() => requestHistorianSubmission(item)}
+        />
       </>
     );
   }
 
   function lootItemActions(item: HydratedGameItem) {
+    const historianQuests = historianQuestsForItem(item);
+    const historianDisabledReason = historianSubmissionDisabledReason(
+      item,
+      historianQuests.length,
+    );
     if (item.status === "for_sale") {
       return (
         <>
@@ -1189,6 +1330,14 @@ export default function GameDashboard({
             onClick={() => act(`/api/play/items/${item._id}/decline`)}
           />
           {archiveAction(item)}
+          <ItemActionButton
+            gridSlot={10}
+            icon="fa-museum"
+            label="Purchase and send to Historian"
+            disabled={pending || Boolean(historianDisabledReason)}
+            disabledReason={historianDisabledReason}
+            onClick={() => requestHistorianSubmission(item)}
+          />
         </>
       );
     }
@@ -1220,6 +1369,14 @@ export default function GameDashboard({
           onClick={() => act(`/api/play/items/${item._id}/claim-and-set-for-sale`)}
         />
         {archiveAction(item)}
+        <ItemActionButton
+          gridSlot={10}
+          icon="fa-museum"
+          label="Claim and send to Historian"
+          disabled={pending || Boolean(historianDisabledReason)}
+          disabledReason={historianDisabledReason}
+          onClick={() => requestHistorianSubmission(item)}
+        />
       </>
     );
   }
@@ -1272,6 +1429,11 @@ export default function GameDashboard({
         : repairLimitReached
           ? `Your ${player.repairingCap}-item repair limit has been reached.`
           : undefined;
+    const historianQuests = historianQuestsForItem(item);
+    const historianDisabledReason = historianSubmissionDisabledReason(
+      item,
+      historianQuests.length,
+    );
 
     return (
       <>
@@ -1340,6 +1502,14 @@ export default function GameDashboard({
           gridSlot={7}
           item={item}
           pending={pending}
+        />
+        <ItemActionButton
+          gridSlot={10}
+          icon="fa-museum"
+          label="Send to Historian"
+          disabled={pending || Boolean(historianDisabledReason)}
+          disabledReason={historianDisabledReason}
+          onClick={() => requestHistorianSubmission(item)}
         />
       </>
     );
@@ -1891,15 +2061,109 @@ export default function GameDashboard({
         ) : null}
 
         {section === "collection" && collectionItems.length === 0 ? (
-          <section className="collection-empty-state">
-            <button onClick={() => setSection("loot")} type="button">
-              go here and come back when you collect some artwork!
-            </button>
-          </section>
+          <>
+            {impersonating ? (
+              <div className="admin-gallery-controls">
+                <strong>admin test controls</strong>
+                <fieldset>
+                  <legend>visitor quality</legend>
+                  {NPC_QUALITIES.map((quality) => (
+                    <label key={quality}>
+                      <input
+                        checked={npcSpawnQuality === quality}
+                        disabled={spawningNpc !== null}
+                        name="npc-quality"
+                        onChange={() => setNpcSpawnQuality(quality)}
+                        type="radio"
+                        value={quality}
+                      />
+                      <span>{quality}</span>
+                    </label>
+                  ))}
+                </fieldset>
+                <div className="admin-npc-spawn-options">
+                  <span>spawn visitor type</span>
+                  <div>
+                    {npcSpawnOptions.length === 0 ? (
+                      <span>No active NPC types are available.</span>
+                    ) : (
+                      npcSpawnOptions.map((option) => (
+                        <button
+                          disabled={spawningNpc !== null}
+                          key={option.id}
+                          onClick={() => spawnTestNpc(option)}
+                          type="button"
+                        >
+                          <i
+                            aria-hidden="true"
+                            className={`fa ${option.icon}`}
+                          />
+                          {spawningNpc === option.id
+                            ? "spawning..."
+                            : option.name}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+            <section className="collection-empty-state">
+              <button onClick={() => setSection("loot")} type="button">
+                go here and come back when you collect some artwork!
+              </button>
+            </section>
+          </>
         ) : null}
 
         {section === "collection" && collectionItems.length > 0 ? (
           <section className="collection-workspace">
+            {impersonating ? (
+              <div className="admin-gallery-controls col-span-full">
+                <strong>admin test controls</strong>
+                <fieldset>
+                  <legend>visitor quality</legend>
+                  {NPC_QUALITIES.map((quality) => (
+                    <label key={quality}>
+                      <input
+                        checked={npcSpawnQuality === quality}
+                        disabled={spawningNpc !== null}
+                        name="npc-quality"
+                        onChange={() => setNpcSpawnQuality(quality)}
+                        type="radio"
+                        value={quality}
+                      />
+                      <span>{quality}</span>
+                    </label>
+                  ))}
+                </fieldset>
+                <div className="admin-npc-spawn-options">
+                  <span>spawn visitor type</span>
+                  <div>
+                    {npcSpawnOptions.length === 0 ? (
+                      <span>No active NPC types are available.</span>
+                    ) : (
+                      npcSpawnOptions.map((option) => (
+                        <button
+                          disabled={spawningNpc !== null}
+                          key={option.id}
+                          onClick={() => spawnTestNpc(option)}
+                          type="button"
+                        >
+                          <i
+                            aria-hidden="true"
+                            className={`fa ${option.icon}`}
+                          />
+                          {spawningNpc === option.id
+                            ? "spawning..."
+                            : option.name}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : null}
             {galleryMetadata ? (
               <InfoPanel className="col-span-full">
                 <div className="flex flex-col gap-3">
@@ -2256,6 +2520,12 @@ export default function GameDashboard({
                     : repairLimitReached
                       ? `Your ${player.repairingCap}-item repair limit has been reached.`
                       : undefined;
+                const historianQuests = historianQuestsForItem(item);
+                const historianDisabledReason =
+                  historianSubmissionDisabledReason(
+                    item,
+                    historianQuests.length,
+                  );
                 return (
                   <>
                     <ItemActionButton
@@ -2345,6 +2615,13 @@ export default function GameDashboard({
                       pending={pending}
                     />
                     {archiveAction(item)}
+                    <ItemActionButton
+                      icon="fa-museum"
+                      label="Send to Historian"
+                      disabled={pending || Boolean(historianDisabledReason)}
+                      disabledReason={historianDisabledReason}
+                      onClick={() => requestHistorianSubmission(item)}
+                    />
                   </>
                 );
               }}
@@ -2922,6 +3199,17 @@ export default function GameDashboard({
             }}
           />
         ) : null}
+        {historianSubmissionItem ? (
+          <HistorianSubmissionDialog
+            item={historianSubmissionItem}
+            onClose={() => setHistorianSubmissionItem(null)}
+            onSelect={(questId) =>
+              void sendItemToHistorian(historianSubmissionItem, questId)
+            }
+            pending={pending}
+            quests={historianQuestsForItem(historianSubmissionItem)}
+          />
+        ) : null}
       </div>
     </main>
   );
@@ -2968,7 +3256,7 @@ function QuestSection({
                 <div>
                   <span>{quest.rarity} objective</span>
                   <h3>
-                    Collect {quest.min_requirement} of {quest.target.length}{" "}
+                    Submit {quest.min_requirement} of {quest.target.length}{" "}
                     requested works
                   </h3>
                 </div>
@@ -2977,7 +3265,7 @@ function QuestSection({
                     quest.progress.canClaim ? "complete" : undefined
                   }
                 >
-                  {quest.progress.owned}/{quest.progress.targetCount}
+                  {quest.progress.fulfilled}/{quest.progress.targetCount}
                 </strong>
               </header>
               <QuestTargetGrid targets={quest.targets} />
@@ -3003,9 +3291,18 @@ function QuestSection({
                   <button
                     className="cancel"
                     disabled={pending}
-                    onClick={() =>
-                      onAction(`/api/play/quests/${quest._id}/cancel`)
-                    }
+                    onClick={() => {
+                      const submitted = quest.progress.fulfilled;
+                      if (
+                        submitted > 0 &&
+                        !window.confirm(
+                          `Cancel this objective and forfeit ${submitted} submitted ${submitted === 1 ? "artwork" : "artworks"}?`,
+                        )
+                      ) {
+                        return;
+                      }
+                      onAction(`/api/play/quests/${quest._id}/cancel`);
+                    }}
                     type="button"
                   >
                     Cancel
@@ -3040,7 +3337,9 @@ function QuestTargetGrid({
     <div className="historian-target-grid">
       {targets.map((target) => (
         <div
-          className={`historian-target ${target.owned ? "owned" : "missing"}`}
+          className={`historian-target ${
+            target.fulfilled ? "fulfilled" : target.owned ? "owned" : "missing"
+          }`}
           key={target.artwork._id}
         >
           <ArtworkThumbnail
@@ -3054,9 +3353,19 @@ function QuestTargetGrid({
             <small>{target.artwork.rarity}</small>
           </div>
           <i
-            aria-label={target.owned ? "Collected" : "Not collected"}
+            aria-label={
+              target.fulfilled
+                ? "Sent to Historian"
+                : target.owned
+                  ? "Available to send"
+                  : "Not collected"
+            }
             className={`fa ${
-              target.owned ? "fa-check-circle" : "fa-circle-o"
+              target.fulfilled
+                ? "fa-check-circle"
+                : target.owned
+                  ? "fa-arrow-circle-right"
+                  : "fa-circle-o"
             }`}
             role="img"
           />
@@ -3070,6 +3379,81 @@ function QuestTargetGrid({
         </div>
       ))}
     </div>
+  );
+}
+
+function HistorianSubmissionDialog({
+  item,
+  onClose,
+  onSelect,
+  pending,
+  quests,
+}: {
+  item: HydratedGameItem;
+  onClose: () => void;
+  onSelect: (questId: string) => void;
+  pending: boolean;
+  quests: ArtHistorianQuestView[];
+}) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (dialog && !dialog.open) dialog.showModal();
+    return () => {
+      if (dialog?.open) dialog.close();
+    };
+  }, []);
+
+  return (
+    <dialog
+      aria-labelledby="historian-submission-title"
+      className="reroll-dialog historian-submission-dialog"
+      onCancel={(event) => {
+        event.preventDefault();
+        onClose();
+      }}
+      ref={dialogRef}
+    >
+      <div className="reroll-dialog-content">
+        <header className="reroll-dialog-header">
+          <div>
+            <p className="reroll-dialog-kicker">Art Historian</p>
+            <h2 id="historian-submission-title">Choose a research quest</h2>
+            <p className="reroll-artwork-artist">
+              {item.artwork.title} by {item.artwork.artist}
+            </p>
+          </div>
+          <button
+            aria-label="Close Historian submission dialog"
+            className="reroll-dialog-close"
+            onClick={onClose}
+            type="button"
+          >
+            <i aria-hidden="true" className="fa fa-times" />
+          </button>
+        </header>
+        <p className="reroll-dialog-description">
+          Sending this artwork removes it from your collection. Choose which
+          quest target it should fulfill.
+        </p>
+        <div className="historian-submission-options">
+          {quests.map((quest) => (
+            <button
+              disabled={pending}
+              key={quest._id}
+              onClick={() => onSelect(quest._id)}
+              type="button"
+            >
+              <span>{quest.rarity} objective</span>
+              <strong>
+                {quest.progress.fulfilled}/{quest.progress.targetCount} submitted
+              </strong>
+            </button>
+          ))}
+        </div>
+      </div>
+    </dialog>
   );
 }
 
@@ -3127,8 +3511,9 @@ function ArtHistorianDialog({
           </button>
         </header>
         <p className="reroll-dialog-description">
-          Acquire at least {result.quest.min_requirement} of these requested
-          works, then report your findings to claim the reward.
+          Acquire and submit at least {result.quest.min_requirement} of these
+          requested works, then claim the reward. Submitting every target
+          completes the quest automatically.
         </p>
         <QuestTargetGrid targets={result.quest.targets} />
         <div className="historian-dialog-reward">
@@ -4312,7 +4697,7 @@ function RerollDialog({
   );
 }
 
-type ActionGridSlot = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+type ActionGridSlot = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
 
 function AuthenticityActions({
   item,
