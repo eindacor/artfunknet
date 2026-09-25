@@ -7,6 +7,8 @@ import {
   getArchiveRecordModifiers,
   type PlayerArtworkArchive,
 } from "@/server/archive-gameplay";
+import { backfillExistingHallOfFameItems } from "@/server/hall-of-fame";
+import { getPlayerPlaythroughHistory } from "@/server/playthrough-snapshots";
 import { ensureArchiveStorage } from "@/server/archive-storage";
 import { getArtHistorianQuestViews } from "@/server/art-historian-gameplay";
 import {
@@ -137,6 +139,11 @@ export default async function PlayerPage({
   await ensurePlayerKarma(database, session.playerId);
   await removeExpiredTransientItems(database);
   await ensureArchiveStorage(database);
+  await backfillExistingHallOfFameItems(database);
+  const playthroughSnapshots = await getPlayerPlaythroughHistory(
+    database,
+    session.playerId,
+  );
   await settlePendingForgeryLiability(database, session.playerId);
   const settings = await getGameplaySettings(database);
   const cardRendererSettings = await getCardRendererSettings(database);
@@ -521,6 +528,8 @@ export default async function PlayerPage({
           completedQuests: player.profile.completed_quests ?? 0,
           viewSettings: getPlayerViewSettings(player.profile.view_settings),
         }}
+        playthroughSnapshots={JSON.parse(JSON.stringify(playthroughSnapshots))}
+        vintageConsiderationCount={config.vintageConsiderationCount}
       />
     </div>
   );

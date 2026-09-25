@@ -229,6 +229,23 @@ export default function GameplaySettingsForm({
       />
       </ConfigGroup>
 
+      <ConfigGroup title="Vintage & Era Submittal">
+      <SettingField
+        description="Number of eligible items a player must submit for vintage consideration when entering a new era at Level 50."
+        label="Vintage consideration count"
+        max={100}
+        min={1}
+        onChange={(value) =>
+          updateConfig(selectedConfig, (config) => ({
+            ...config,
+            vintageConsiderationCount: value,
+          }))
+        }
+        suffix="items"
+        value={activeEditor.vintageConsiderationCount}
+      />
+      </ConfigGroup>
+
       <ConfigGroup title="Crate pricing">
       <SettingField
         description="Multiplies a crate's estimated total sell-all value to determine its purchase price."

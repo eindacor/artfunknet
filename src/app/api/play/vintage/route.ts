@@ -14,17 +14,20 @@ import {
   type GameItem,
   type LootData,
 } from "@/server/gameplay";
+import { getGameplaySettings } from "@/server/game-settings";
 import { refreshGalleryMetadata } from "@/server/gallery-metadata";
+import { transferIfHallOfFameItem } from "@/server/hall-of-fame";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
+import { savePlaythroughSnapshot } from "@/server/playthrough-snapshots";
 import {
-  getVintagePlaythroughPermission,
   partitionVintageItems,
   VINTAGE_STARTING_BALANCE,
 } from "@/server/vintage-gameplay";
 
-type VintageRequest = {
-  itemId?: unknown;
+type EraRequest = {
+  itemIds?: string[];
+  itemId?: string; // Fallback for single item if sent
 };
 
 type VintagePlayer = {
@@ -33,6 +36,12 @@ type VintagePlayer = {
   profile: {
     level: number;
     lottery_tickets: number;
+    playthrough_stats?: {
+      visitors_met: number;
+      items_collected: number;
+      money_spent: number;
+      playthrough_count: number;
+    };
     vintage_operation?: {
       token: string;
       expires_at: string;
@@ -50,15 +59,13 @@ export async function POST(request: Request) {
   const auth = await requirePlayerApi();
   if (!auth.ok) return auth.response;
 
-  const body = (await request.json()) as VintageRequest;
-  if (typeof body.itemId !== "string" || body.itemId.length === 0) {
-    return NextResponse.json(
-      { error: "Choose an inventory item to make vintage." },
-      { status: 400 },
-    );
-  }
+  const body = (await request.json()) as EraRequest;
+  const submittedItemIds = body.itemIds || (body.itemId ? [body.itemId] : []);
 
   const database = await getDatabase();
+  const settings = await getGameplaySettings(database);
+  const requiredCount = settings.active.vintageConsiderationCount;
+
   const player = await database.collection<VintagePlayer>("players").findOne({
     _id: auth.session.playerId,
     active: true,
@@ -72,17 +79,71 @@ export async function POST(request: Request) {
   if (player.profile.level < MAX_PLAYER_LEVEL) {
     return NextResponse.json(
       {
-        error: `Reach level ${MAX_PLAYER_LEVEL} before beginning a new playthrough.`,
+        error: `Reach level ${MAX_PLAYER_LEVEL} before entering a new era.`,
       },
       { status: 409 },
     );
   }
+
+  const activeAuctionCount = await database
+    .collection<Auction>("auctions")
+    .countDocuments({
+      $or: [{ seller_id: player._id }, { current_winner_id: player._id }],
+    });
+
+  if (activeAuctionCount > 0) {
+    return NextResponse.json(
+      {
+        error:
+          "Resolve every auction you are selling or currently winning before entering a new era.",
+      },
+      { status: 409 },
+    );
+  }
+
+  const ownedItems = await database
+    .collection<GameItem>("items")
+    .find({ owner: player._id })
+    .toArray();
+
+  const eligibleItems = ownedItems.filter(
+    (item) =>
+      item.status === "claimed" &&
+      !item.vintage &&
+      !item.original &&
+      !item.repairing,
+  );
+
+  const targetCount = Math.min(requiredCount, eligibleItems.length);
+  if (submittedItemIds.length < targetCount) {
+    return NextResponse.json(
+      {
+        error: `Select ${targetCount} items for vintage consideration.`,
+      },
+      { status: 400 },
+    );
+  }
+
+  const candidateItems = eligibleItems.filter((item) =>
+    submittedItemIds.includes(item._id),
+  );
+  if (candidateItems.length < targetCount) {
+    return NextResponse.json(
+      { error: "Some submitted items are ineligible for vintage consideration." },
+      { status: 400 },
+    );
+  }
+
+  // Pick 1 item randomly from submitted candidates to become Vintage
+  const randomIndex = Math.floor(Math.random() * candidateItems.length);
+  const selectedItem = candidateItems[randomIndex];
 
   const now = new Date();
   const operationToken = randomUUID();
   const operationExpiration = new Date(
     now.getTime() + 5 * 60 * 1000,
   ).toISOString();
+
   const lockedPlayer = await database
     .collection<VintagePlayer>("players")
     .findOneAndUpdate(
@@ -111,67 +172,85 @@ export async function POST(request: Request) {
     );
   if (!lockedPlayer) {
     return NextResponse.json(
-      { error: "Another new-playthrough operation is already in progress." },
+      { error: "Another new-era operation is already in progress." },
       { status: 409 },
     );
   }
 
-  let ownedItems: GameItem[];
-  let selectedItem: GameItem | null;
-  let activeAuctionCount: number;
   let artwork: Artwork | null;
   let lootMetadata: { _id: string; loot_data: LootData } | null;
   let quests: VintageQuest[];
   try {
-    ownedItems = await database.collection<GameItem>("items").find({
-      owner: player._id,
-    }).toArray();
-    selectedItem =
-      ownedItems.find((item) => item._id === body.itemId) ?? null;
-    [activeAuctionCount, artwork, lootMetadata, quests] = await Promise.all([
-      database.collection<Auction>("auctions").countDocuments({
-        $or: [
-          { seller_id: player._id },
-          { current_winner_id: player._id },
-        ],
-      }),
-      selectedItem
-        ? database
-            .collection<Artwork>("artworks")
-            .findOne({ _id: selectedItem.artwork_id })
-        : null,
+    [artwork, lootMetadata, quests] = await Promise.all([
+      database
+        .collection<Artwork>("artworks")
+        .findOne({ _id: selectedItem.artwork_id }),
       database
         .collection<{ _id: string; loot_data: LootData }>("metadata")
         .findOne({ _id: "loot-data" }),
-      database.collection<VintageQuest>("quests").find({
-        owner_id: player._id,
-      }).toArray(),
+      database
+        .collection<VintageQuest>("quests")
+        .find({ owner_id: player._id })
+        .toArray(),
     ]);
   } catch (error) {
     await releaseVintageLock(database, player._id, operationToken);
-    console.error("Unable to prepare vintage playthrough", error);
+    console.error("Unable to prepare era transition", error);
     return NextResponse.json(
-      { error: "The new playthrough could not be prepared." },
+      { error: "The new era could not be prepared." },
       { status: 500 },
     );
   }
-  const permission = getVintagePlaythroughPermission({
-    level: player.profile.level,
-    activeAuctionCount,
-    selectedItem,
-  });
-  if (!permission.allowed || !selectedItem || !artwork || !lootMetadata) {
+
+  if (!artwork || !lootMetadata) {
     await releaseVintageLock(database, player._id, operationToken);
     return NextResponse.json(
-      {
-        error:
-          !permission.allowed
-            ? permission.reason
-            : "The selected artwork data is unavailable.",
-      },
+      { error: "Selected artwork metadata is unavailable." },
       { status: 409 },
     );
   }
+
+  // Hydrate gallery items for snapshot
+  const galleryItems = ownedItems.filter(
+    (item) => item.status === "displayed" || item.status === "claimed",
+  );
+  const artworkIds = Array.from(
+    new Set(galleryItems.map((item) => item.artwork_id)),
+  );
+  const artworks = await database
+    .collection<Artwork>("artworks")
+    .find({ _id: { $in: artworkIds } })
+    .toArray();
+  const artworkMap = new Map(artworks.map((a) => [a._id, a]));
+
+  const gallerySnapshot = galleryItems.map((item) => ({
+    ...item,
+    artwork_title: artworkMap.get(item.artwork_id)?.title,
+    artist_name: artworkMap.get(item.artwork_id)?.artist,
+  }));
+
+  const selectedItemSnapshot = {
+    ...selectedItem,
+    artwork_title: artwork.title,
+    artist_name: artwork.artist,
+  };
+
+  const playthroughNumber =
+    (player.profile.playthrough_stats?.playthrough_count || 0) + 1;
+
+  // Save playthrough snapshot
+  await savePlaythroughSnapshot(database, {
+    player_id: player._id,
+    playthrough_number: playthroughNumber,
+    created_at: now.toISOString(),
+    selected_vintage_item: selectedItemSnapshot,
+    gallery_snapshot: gallerySnapshot,
+    stats: {
+      visitors_met: player.profile.playthrough_stats?.visitors_met || 0,
+      items_collected: player.profile.playthrough_stats?.items_collected || 0,
+      money_spent: player.profile.playthrough_stats?.money_spent || 0,
+    },
+  });
 
   const { keptItems, removedItems } = partitionVintageItems(
     ownedItems,
@@ -184,13 +263,14 @@ export async function POST(request: Request) {
   );
 
   try {
-    if (removedItems.length > 0) {
-      const removed = await database.collection<GameItem>("items").deleteMany({
-        _id: { $in: removedItems.map((item) => item._id) },
-        owner: player._id,
-      });
-      if (removed.deletedCount !== removedItems.length) {
-        throw new Error("Not every non-vintage item could be removed.");
+    // Process items to remove: Check if in Hall of Fame before deleting!
+    for (const removedItem of removedItems) {
+      const isHoF = await transferIfHallOfFameItem(database, removedItem._id);
+      if (!isHoF) {
+        await database.collection<GameItem>("items").deleteOne({
+          _id: removedItem._id,
+          owner: player._id,
+        });
       }
     }
 
@@ -198,7 +278,7 @@ export async function POST(request: Request) {
       (item) => item._id !== selectedItem._id,
     );
     if (retainedExistingItems.length > 0) {
-      const restored = await database.collection<GameItem>("items").updateMany(
+      await database.collection<GameItem>("items").updateMany(
         {
           _id: { $in: retainedExistingItems.map((item) => item._id) },
           owner: player._id,
@@ -214,20 +294,12 @@ export async function POST(request: Request) {
           },
         },
       );
-      if (restored.matchedCount !== retainedExistingItems.length) {
-        throw new Error(
-          "Not every existing vintage or original item could be retained.",
-        );
-      }
     }
 
     const converted = await database.collection<GameItem>("items").updateOne(
       {
         _id: selectedItem._id,
         owner: player._id,
-        status: "claimed",
-        vintage: { $ne: true },
-        repairing: { $ne: true },
       },
       {
         $set: {
@@ -244,16 +316,13 @@ export async function POST(request: Request) {
       },
     );
     if (converted.modifiedCount !== 1) {
-      throw new Error("The selected item could not be made vintage.");
+      throw new Error("The selected item could not be converted to vintage.");
     }
 
     if (quests.length > 0) {
-      const removedQuests = await database
+      await database
         .collection("quests")
         .deleteMany({ owner_id: player._id });
-      if (removedQuests.deletedCount !== quests.length) {
-        throw new Error("Current quests could not be reset.");
-      }
     }
 
     const caps = getCapsForLevel(0);
@@ -277,6 +346,12 @@ export async function POST(request: Request) {
           "profile.gallery_money_remainder": 0,
           "profile.gallery_xp_remainder": 0,
           "profile.lottery_tickets": 0,
+          "profile.playthrough_stats": {
+            visitors_met: 0,
+            items_collected: 0,
+            money_spent: 0,
+            playthrough_count: playthroughNumber,
+          },
           ...Object.fromEntries(
             Object.entries(caps).map(([key, value]) => [
               `profile.${key}`,
@@ -291,22 +366,17 @@ export async function POST(request: Request) {
       },
     );
     if (reset.modifiedCount !== 1) {
-      throw new Error("The player profile could not be reset.");
+      throw new Error("The player profile could not be reset for the new era.");
     }
   } catch (error) {
-    await restoreVintageOperation(
-      database,
-      player._id,
-      operationToken,
-      ownedItems,
-      quests,
-    );
-    console.error("Unable to begin vintage playthrough", error);
+    await releaseVintageLock(database, player._id, operationToken);
+    console.error("Unable to start new era", error);
     return NextResponse.json(
-      { error: "The new playthrough could not be completed." },
+      { error: "The new era could not be started." },
       { status: 500 },
     );
   }
+
   await deleteCommunityReactions(
     database,
     "item",
@@ -316,7 +386,7 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     status: "ok",
-    message: `${artwork.title} is now vintage. Your new playthrough has begun, and vintage and original items were retained.`,
+    message: `Era #${playthroughNumber} has begun! ${artwork.title} was selected as your new Vintage artwork.`,
   });
 }
 
@@ -332,33 +402,4 @@ async function releaseVintageLock(
     },
     { $unset: { "profile.vintage_operation": "" } },
   );
-}
-
-async function restoreVintageOperation(
-  database: Awaited<ReturnType<typeof getDatabase>>,
-  playerId: string,
-  operationToken: string,
-  items: GameItem[],
-  quests: VintageQuest[],
-) {
-  try {
-    await Promise.all(
-      items.map((item) =>
-        database
-          .collection<GameItem>("items")
-          .replaceOne({ _id: item._id }, item, { upsert: true }),
-      ),
-    );
-    if (quests.length > 0) {
-      await Promise.all(
-        quests.map((quest) =>
-          database
-            .collection<VintageQuest>("quests")
-            .replaceOne({ _id: quest._id }, quest, { upsert: true }),
-        ),
-      );
-    }
-  } finally {
-    await releaseVintageLock(database, playerId, operationToken);
-  }
 }
