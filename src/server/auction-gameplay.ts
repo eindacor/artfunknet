@@ -41,6 +41,12 @@ import {
 } from "./legendary-attributes.ts";
 import { createPlayerNotification } from "./player-notifications.ts";
 import { sanitizePlayerFacingAuthenticity } from "./forgery-gameplay.ts";
+import {
+  getArchiveRecordArtStyles,
+  getArchiveRecordModifiers,
+  type PlayerArtworkArchive,
+} from "./archive-gameplay.ts";
+import { getPlayerFacingArchivePermission } from "./item-permissions.ts";
 
 export const PUBLIC_AUCTION_DURATIONS = [60, 360, 720, 1440] as const;
 export const PRIVATE_AUCTION_DURATION_MINUTES = 5;
@@ -1032,7 +1038,7 @@ export async function getAuctionViews(
   };
   const pageSize = Math.min(Math.max(options.pageSize ?? 12, 1), 48);
   const page = Math.max(options.page ?? 1, 1);
-  const [auctions, total, ownedItems, quests] = await Promise.all([
+  const [auctions, total, ownedItems, quests, archiveRecords] = await Promise.all([
     database.collection<Auction>("auctions").find(filter).sort(sort)
       .skip((page - 1) * pageSize).limit(pageSize).toArray(),
     database.collection<Auction>("auctions").countDocuments(filter),
@@ -1041,7 +1047,14 @@ export async function getAuctionViews(
       status: { $in: ["claimed", "displayed"] },
     }).project<Pick<GameItem, "artwork_id">>({ artwork_id: 1 }).toArray(),
     database.collection<ArtHistorianQuest>("quests").find({ owner_id: playerId })
-      .project<Pick<ArtHistorianQuest, "target">>({ target: 1 }).toArray(),
+      .project<Pick<ArtHistorianQuest, "target" | "fulfilled_targets">>({
+        target: 1,
+        fulfilled_targets: 1,
+      }).toArray(),
+    database
+      .collection<PlayerArtworkArchive>("player_artwork_archives")
+      .find({ owner: playerId })
+      .toArray(),
   ]);
   const rawItems = await database.collection<GameItem>("items").find({
     _id: { $in: auctions.map((auction) => auction.item_id) },
@@ -1049,23 +1062,46 @@ export async function getAuctionViews(
   const hydrated = await hydrateGameItems(database, rawItems);
   const itemById = new Map(hydrated.map((item) => [item._id, item]));
   const ownedArtworkIds = new Set(ownedItems.map((item) => item.artwork_id));
-  const questTargets = new Set(quests.flatMap((quest) => quest.target));
+  const questTargets = new Set(
+    quests.flatMap(getUnfulfilledHistorianTargetIds),
+  );
+  const archiveByArtwork = new Map(
+    archiveRecords.map((archive) => [archive.artwork_id, archive]),
+  );
 
   return {
     total,
     auctions: auctions.flatMap((auction) => {
       const item = itemById.get(auction.item_id);
-      return item ? [{
+      if (!item) return [];
+      const archive = archiveByArtwork.get(item.artwork_id);
+      const archivedCategories = archive
+        ? getArchiveRecordModifiers(archive)
+        : [];
+      const archivedArtStyles = archive
+        ? getArchiveRecordArtStyles(archive)
+        : [];
+      const visibleItem = sanitizePlayerFacingAuthenticity(
+        item,
+        auction.seller_id !== playerId,
+      );
+      return [{
         ...auction,
-        item: sanitizePlayerFacingAuthenticity(
-          item,
-          auction.seller_id !== playerId,
-        ),
+        item: {
+          ...visibleItem,
+          archivePermission: getPlayerFacingArchivePermission(
+            visibleItem,
+            archivedCategories,
+            archivedArtStyles,
+          ),
+          archivedCategories,
+          archivedArtStyles,
+        },
         owned: ownedArtworkIds.has(item.artwork_id),
         questTarget: questTargets.has(item.artwork_id),
         currentlyWinning: auction.current_winner_id === playerId,
         privateAuction: auction.viewer !== "public",
-      }] : [];
+      }];
     }),
   };
 }

@@ -5708,6 +5708,24 @@ a.welcome-button {
   box-shadow: none;
 }
 
+.winning-auction-watermark {
+  position: absolute;
+  z-index: 8;
+  top: 42%;
+  left: 50%;
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: center;
+  border: 3px solid currentcolor;
+  padding: 0.35rem 0.65rem;
+  background: rgb(255 255 255 / 88%);
+  color: #9b6900;
+  font: 900 1rem/1 Courier, "Courier New", monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transform: translate(-50%, -50%) rotate(-7deg);
+}
+
 .random-drop .loot-preview > .rendered-item-card > .card-actions {
   visibility: visible;
   opacity: 1;

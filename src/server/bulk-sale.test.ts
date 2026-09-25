@@ -4,10 +4,12 @@ import { MongoClient, type Db } from "mongodb";
 import { MongoMemoryServer } from "mongodb-memory-server";
 
 import {
+  filterBulkLootCandidates,
   getFilteredBulkLootCandidates,
   getBulkForgeryDialog,
   getBulkForgeryMessage,
   parseBulkSaleProtections,
+  isBulkLootCandidate,
   shouldPreserveBulkSaleItem,
 } from "./bulk-sale.ts";
 import type { ArtHistorianQuest } from "./art-historian-gameplay.ts";
@@ -43,6 +45,12 @@ test("bulk sale protections preserve selected rarity tiers", () => {
     ),
     true,
   );
+});
+
+test("bulk candidate eligibility preserves original and permanent items", () => {
+  assert.equal(isBulkLootCandidate({ original: false, permanent: false }), true);
+  assert.equal(isBulkLootCandidate({ original: true, permanent: false }), false);
+  assert.equal(isBulkLootCandidate({ original: false, permanent: true }), false);
 });
 
 test("bulk sale protection preserves archive-eligible variants", () => {
@@ -171,6 +179,74 @@ test("bulk sale protection ignores targets already submitted to the Historian", 
 
     assert.deepEqual([...result.questTargetIds], []);
     assert.deepEqual(result.items.map((candidate) => candidate._id), [item._id]);
+  } finally {
+    await client.close();
+    await mongoServer.stop();
+  }
+});
+
+test("bulk protections can filter auction-house-owned private auction items", async () => {
+  const mongoServer = await MongoMemoryServer.create();
+  const client = new MongoClient(mongoServer.getUri());
+
+  try {
+    await client.connect();
+    const database: Db = client.db("bulk-sale-private-auctions");
+    const playerId = "player-1";
+    await setupTestDb(database, playerId);
+    const item = {
+      _id: "private-auction-item",
+      artwork_id: "art-1",
+      owner: "system:auction-house",
+      status: "auctioned",
+      condition: 1,
+      mint: false,
+      mint_value_multiplier: 1,
+      attributes: { locked: [], unlocked: [], special: [] },
+      transaction_history: [],
+      source: "private auction",
+      date_created: new Date().toISOString(),
+      date_received: new Date().toISOString(),
+      level: 1,
+      roll_count: 0,
+      reroll_spent: 0,
+      foil: false,
+      unlocked: false,
+      seasonal: false,
+      lottery: 0,
+      original: false,
+      patreon: false,
+      vintage: false,
+      authenticity: {
+        forgery: false,
+        forgery_quality: 0,
+        liable: "",
+        liability_pending: false,
+        identified: false,
+        fee: 0,
+        original_owner: "",
+      },
+      tags: [],
+      misprint: false,
+      values: { actual: 100, sell: 100, artist: 100, collector: 100 },
+    } as GameItem;
+
+    const result = await filterBulkLootCandidates(
+      database,
+      playerId,
+      {
+        keepArtStyles: false,
+        keepLegendaries: false,
+        keepMasterpieces: false,
+        keepUnfoundQuestTargets: false,
+        keepUnarchived: false,
+      },
+      [item],
+    );
+
+    assert.deepEqual(result.items.map((candidate) => candidate._id), [
+      item._id,
+    ]);
   } finally {
     await client.close();
     await mongoServer.stop();

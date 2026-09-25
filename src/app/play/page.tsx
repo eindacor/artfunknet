@@ -55,7 +55,10 @@ import {
   createPlayerNotification,
   getPlayerNotifications,
 } from "@/server/player-notifications";
-import { getPlayerAuctionEscrow } from "@/server/auction-gameplay";
+import {
+  getAuctionViews,
+  getPlayerAuctionEscrow,
+} from "@/server/auction-gameplay";
 import { getPublicItemView } from "@/server/public-showcase";
 import { settlePlayerItemRepairs } from "@/server/preservationist-gameplay";
 import { getAdminSession, requirePlayer } from "@/server/session";
@@ -100,6 +103,7 @@ type Player = {
     card_style_consumables?: Record<string, number>;
     npcs_met?: Partial<Record<NpcQuality, number>>;
     market_expert?: { expiration?: string };
+    dismissed_private_auction_ids?: string[];
     view_settings?: PlayerViewSettings;
   };
 };
@@ -354,10 +358,27 @@ export default async function PlayerPage({
     config,
   );
   await refreshNpcSpawns(database, new Date(), config.npcSpawnIntervalMinutes);
+  const { auctions: privateAuctions } = await getAuctionViews(
+    database,
+    player._id,
+    {
+      exclusivity: "private",
+      pageSize: 48,
+    },
+  );
+  const dismissedPrivateAuctionIds = new Set(
+    player.profile.dismissed_private_auction_ids ?? [],
+  );
+  const visiblePrivateAuctions = privateAuctions.filter(
+    (auction) => !dismissedPrivateAuctionIds.has(auction._id),
+  );
   const legendaryAttributeIds = [
     ...new Set(
       [
         ...items.flatMap((item) => item.artwork.unique_attributes ?? []),
+        ...visiblePrivateAuctions.flatMap(
+          (auction) => auction.item.artwork.unique_attributes ?? [],
+        ),
         ...(linkedItem?.item.artwork.unique_attributes ?? []),
       ],
     ),
@@ -535,6 +556,7 @@ export default async function PlayerPage({
           completedQuests: player.profile.completed_quests ?? 0,
           viewSettings: getPlayerViewSettings(player.profile.view_settings),
         }}
+        privateAuctions={JSON.parse(JSON.stringify(visiblePrivateAuctions))}
         playthroughSnapshots={JSON.parse(JSON.stringify(playthroughSnapshots))}
         hallOfFameRecords={JSON.parse(JSON.stringify(hallOfFameRecords))}
         vintageConsiderationCount={config.vintageConsiderationCount}

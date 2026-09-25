@@ -368,9 +368,15 @@ export default function AuctionHouse({
                 <strong role="cell">
                   ${auction.item.values.actual.toLocaleString()}
                 </strong>
-                <strong role="cell">
-                  ${auction.current_bid.toLocaleString()}
-                </strong>
+                {auction.has_bid ? (
+                  <strong role="cell">
+                    ${auction.current_bid.toLocaleString()}
+                  </strong>
+                ) : (
+                  <span role="cell">
+                    ${auction.current_bid.toLocaleString()}
+                  </span>
+                )}
                 <strong role="cell">
                   ${auction.minimum_bid.toLocaleString()}
                 </strong>
@@ -415,7 +421,15 @@ export default function AuctionHouse({
                 <dl>
                   <div>
                     <dt>{auction.has_bid ? "Current bid" : "Starting bid"}</dt>
-                    <dd>${auction.current_bid.toLocaleString()}</dd>
+                    <dd>
+                      {auction.has_bid ? (
+                        <strong>
+                          ${auction.current_bid.toLocaleString()}
+                        </strong>
+                      ) : (
+                        `$${auction.current_bid.toLocaleString()}`
+                      )}
+                    </dd>
                   </div>
                   <div>
                     <dt>Next bid</dt>
@@ -498,6 +512,9 @@ function AuctionItemCard({
       interactive={interactive}
       item={auction.item}
       legendaryAttributes={legendaryAttributes}
+      overlay={
+        auction.currentlyWinning ? <WinningAuctionWatermark /> : undefined
+      }
       owner={
         auction.seller_id
           ? {
@@ -513,6 +530,15 @@ function AuctionItemCard({
       researchTarget={auction.questTarget && !auction.owned}
       viewerId={playerId}
     />
+  );
+}
+
+export function WinningAuctionWatermark() {
+  return (
+    <span className="winning-auction-watermark">
+      <i aria-hidden="true" className="fa fa-trophy" />
+      Winning
+    </span>
   );
 }
 

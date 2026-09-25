@@ -29,6 +29,12 @@ export type BulkSaleProtections = {
   keepUnarchived: boolean;
 };
 
+export function isBulkLootCandidate(
+  item: Pick<GameItem, "original" | "permanent">,
+): boolean {
+  return !item.original && !item.permanent;
+}
+
 export function parseBulkSaleProtections(
   rawBody: string,
 ): { ok: true; protections: BulkSaleProtections } | { ok: false } {
@@ -98,7 +104,38 @@ export async function getFilteredBulkLootCandidates(
       questTargetIds: new Set(),
     };
   }
-  const hydratedCandidates = await hydrateGameItems(database, candidates);
+  return filterBulkLootCandidates(
+    database,
+    playerId,
+    protections,
+    candidates,
+  );
+}
+
+export async function filterBulkLootCandidates(
+  database: Db,
+  playerId: string,
+  protections: BulkSaleProtections,
+  candidates: GameItem[],
+): Promise<{
+  candidates: GameItem[];
+  hydratedCandidates: HydratedGameItem[];
+  items: GameItem[];
+  questTargetIds: Set<string>;
+}> {
+  const eligibleCandidates = candidates.filter(isBulkLootCandidate);
+  if (eligibleCandidates.length === 0) {
+    return {
+      candidates: eligibleCandidates,
+      hydratedCandidates: [],
+      items: [],
+      questTargetIds: new Set(),
+    };
+  }
+  const hydratedCandidates = await hydrateGameItems(
+    database,
+    eligibleCandidates,
+  );
   const [archiveRecords, quests] = await Promise.all([
     protections.keepUnarchived
       ? database
@@ -165,8 +202,15 @@ export async function getFilteredBulkLootCandidates(
       .filter((item) => shouldPreserveBulkSaleItem(item, protections))
       .map((item) => item._id),
   );
-  const items = candidates.filter((item) => !protectedIds.has(item._id));
-  return { candidates, hydratedCandidates, items, questTargetIds };
+  const items = eligibleCandidates.filter(
+    (item) => !protectedIds.has(item._id),
+  );
+  return {
+    candidates: eligibleCandidates,
+    hydratedCandidates,
+    items,
+    questTargetIds,
+  };
 }
 
 export async function processBulkForgeries(

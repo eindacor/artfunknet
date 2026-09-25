@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  useTransition,
+} from "react";
 import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -42,6 +49,7 @@ import type { GalleryRates } from "@/server/collection-gameplay";
 import type { CrateOfferView } from "@/server/crate-gameplay";
 import { getArchivePropertyProgress } from "@/server/archive-gameplay";
 import {
+  isBulkLootCandidate,
   type BulkSaleProtections,
   shouldPreserveBulkSaleItem,
 } from "@/server/bulk-sale";
@@ -78,7 +86,10 @@ import type {
   PlayerViewSettings,
 } from "@/server/player-view-settings";
 
-import AuctionHouse, { AuctionBidDialog } from "./auctions/auction-house";
+import AuctionHouse, {
+  AuctionBidDialog,
+  WinningAuctionWatermark,
+} from "./auctions/auction-house";
 import type { AuctionView } from "@/server/auction-gameplay";
 import GalleryExplorer, {
   GalleryAttributeSummary,
@@ -250,6 +261,7 @@ export default function GameDashboard({
   linkedItem,
   forgePricing,
   activeAuctionCount = 0,
+  privateAuctions = [],
   hallOfFameRecords = [],
   playthroughSnapshots = [],
   vintageConsiderationCount = 10,
@@ -289,11 +301,17 @@ export default function GameDashboard({
     seasonalArtworkIds: string[];
   };
   activeAuctionCount?: number;
+  privateAuctions?: AuctionView[];
   hallOfFameRecords?: HallOfFameDisplayRecord[];
   playthroughSnapshots?: PlaythroughSnapshot[];
   vintageConsiderationCount?: number;
 }) {
   const router = useRouter();
+  const hydrated = useSyncExternalStore(
+    subscribeToHydration,
+    getHydratedSnapshot,
+    getServerHydratedSnapshot,
+  );
   const searchParams = useSearchParams();
   const initialGalleryId = searchParams.get("gallery");
   const initialSection = searchParams.get("section");
@@ -350,11 +368,12 @@ export default function GameDashboard({
     useState<NpcQuality>("bronze");
   const [spawningNpc, setSpawningNpc] = useState<string | null>(null);
   const [meetingNpc, setMeetingNpc] = useState<string | null>(null);
-  const [auctioneerSession, setAuctioneerSession] = useState<{
-    npcName: string;
-    quality: NpcQuality;
-    auctions: AuctionView[];
-  } | null>(null);
+  const [createdPrivateAuctions, setCreatedPrivateAuctions] =
+    useState<AuctionView[]>([]);
+  const [dismissedPrivateAuctionIds, setDismissedPrivateAuctionIds] =
+    useState<string[]>([]);
+  const [selectedPrivateAuction, setSelectedPrivateAuction] =
+    useState<AuctionView | null>(null);
   const [npcRewardEffects, setNpcRewardEffects] = useState<
     Record<string, NpcVisualEffect>
   >({});
@@ -445,10 +464,55 @@ export default function GameDashboard({
         ),
     [items],
   );
-  const selectedLootItem =
-    unclaimed.find((item) => item._id === selectedLootItemId) ??
-    unclaimed[0] ??
+  const activePrivateAuctionLoot = useMemo(
+    () => {
+      const byId = new Map(
+        [...createdPrivateAuctions, ...privateAuctions].map((auction) => [
+          auction._id,
+          auction,
+        ]),
+      );
+      return [...byId.values()].filter(
+        (auction) =>
+          !dismissedPrivateAuctionIds.includes(auction._id) &&
+          Date.parse(auction.expiration) > now,
+      );
+    },
+    [
+      createdPrivateAuctions,
+      dismissedPrivateAuctionIds,
+      now,
+      privateAuctions,
+    ],
+  );
+  const lootEntries = useMemo(
+    () =>
+      [
+        ...unclaimed.map((item) => ({
+          key: item._id,
+          item,
+          auction: null,
+        })),
+        ...activePrivateAuctionLoot.map((auction) => ({
+          key: `auction:${auction._id}`,
+          item: auction.item,
+          auction,
+        })),
+      ].sort(
+        (left, right) =>
+          right.item.values.actual - left.item.values.actual ||
+          Date.parse(right.item.date_created) -
+            Date.parse(left.item.date_created) ||
+          left.key.localeCompare(right.key),
+      ),
+    [activePrivateAuctionLoot, unclaimed],
+  );
+  const selectedLootEntry =
+    lootEntries.find((entry) => entry.key === selectedLootItemId) ??
+    lootEntries[0] ??
     null;
+  const selectedLootItem = selectedLootEntry?.item ?? null;
+  const selectedLootAuction = selectedLootEntry?.auction ?? null;
   const unfoundQuestTargetArtworkIds = useMemo(
     () =>
       new Set(
@@ -498,12 +562,33 @@ export default function GameDashboard({
       ),
     [bulkSaleProtections, unfoundQuestTargetArtworkIds, unclaimed],
   );
+  const bulkDeclinablePrivateAuctions = useMemo(
+    () =>
+      activePrivateAuctionLoot.filter(
+        (auction) =>
+          isBulkLootCandidate(auction.item) &&
+          !shouldPreserveBulkSaleItem(
+            {
+              ...auction.item,
+              unfoundQuestTarget: unfoundQuestTargetArtworkIds.has(
+                auction.item.artwork_id,
+              ),
+            },
+            bulkSaleProtections,
+          ),
+      ),
+    [
+      bulkSaleProtections,
+      activePrivateAuctionLoot,
+      unfoundQuestTargetArtworkIds,
+    ],
+  );
   const hasClaimableLoot = unclaimed.some(
     (item) => item.status === "unclaimed",
   );
   const hasPurchasableLoot = unclaimed.some(
     (item) => item.status === "for_sale",
-  );
+  ) || activePrivateAuctionLoot.length > 0;
   const inventory = useMemo(
     () =>
       items.filter(
@@ -881,14 +966,25 @@ export default function GameDashboard({
       });
       const body = (await response.json()) as {
         declined?: number;
+        declinedPrivateAuctionIds?: string[];
         error?: string;
         message?: string;
       };
       if (!response.ok || body.declined === undefined) {
-        setError(body.error ?? "The dealer offers could not be declined.");
+        setError(body.error ?? "The offers could not be declined.");
         return;
       }
-      setNotice(body.message ?? "Dealer offers declined.");
+      setNotice(body.message ?? "Offers declined.");
+      setSelectedLootItemId(null);
+      const declinedAuctionIds = new Set(
+        body.declinedPrivateAuctionIds ?? [],
+      );
+      setCreatedPrivateAuctions((current) =>
+        current.filter((auction) => !declinedAuctionIds.has(auction._id)),
+      );
+      setDismissedPrivateAuctionIds((current) => [
+        ...new Set([...current, ...declinedAuctionIds]),
+      ]);
       router.refresh();
     });
   }
@@ -1175,15 +1271,28 @@ export default function GameDashboard({
             : []),
         ]);
       } else if (
-        body.interaction?.type === "auctioneer-access" &&
-        body.interaction.auctions &&
-        body.interaction.auctions.length > 0
+        body.interaction?.type === "auctioneer-access"
       ) {
-        setAuctioneerSession({
-          npcName: body.interaction.npcName,
-          quality: body.interaction.quality,
-          auctions: body.interaction.auctions,
-        });
+        showedAnimatedResult = true;
+        const createdAuctions = body.interaction.auctions ?? [];
+        if (createdAuctions.length > 0) {
+          setCreatedPrivateAuctions((current) => {
+            const byId = new Map(
+              [...current, ...createdAuctions].map((auction) => [
+                auction._id,
+                auction,
+              ]),
+            );
+            return [...byId.values()];
+          });
+        }
+        showNpcEffect(npc._id, body.interaction.npcName, [
+          {
+            icon: "fa-gavel",
+            text: `+${body.interaction.auctionCount}`,
+            tone: "money",
+          },
+        ]);
       } else if (body.interaction?.type === "art-collector-result") {
         showedAnimatedResult = true;
         const tokens: NpcEffectToken[] = [];
@@ -1773,7 +1882,7 @@ export default function GameDashboard({
             [
               { id: "profile", label: "Profile", icon: "fa-user" },
               { id: "collection", label: "Collection", icon: "fa-picture-o" },
-              { id: "loot", label: "crates", icon: "fa-gift" },
+              { id: "loot", label: "loot", icon: "fa-gift" },
               { id: "explore", label: "Explore", icon: "fa-binoculars" },
               { id: "archive", label: "Archive", icon: "fa-archive" },
               { id: "quests", label: "Quests", icon: "fa-map-signs" },
@@ -2180,21 +2289,23 @@ export default function GameDashboard({
                 ) : null}
               </section>
               <section className="loot-items-panel">
-                {unclaimed.length > 0 && selectedLootItem ? (
+                {lootEntries.length > 0 && selectedLootItem ? (
                   <div className="loot-items-content">
                     <div className="collection-thumbnail-list loot-thumbnail-grid">
-                      {unclaimed.map((item) => {
-                        const revealIndex = revealedLootIds.indexOf(item._id);
+                      {lootEntries.map(({ auction, item, key }) => {
+                        const revealIndex = auction
+                          ? -1
+                          : revealedLootIds.indexOf(item._id);
                         return (
                           <button
                             aria-label={`Preview ${item.artwork.title} by ${item.artwork.artist}`}
-                            aria-pressed={selectedLootItem._id === item._id}
-                            className={`${selectedLootItem._id === item._id ? "selected" : ""} ${
+                            aria-pressed={selectedLootEntry?.key === key}
+                            className={`${selectedLootEntry?.key === key ? "selected" : ""} ${
                               revealIndex >= 0 ? "loot-item-reveal" : ""
                             }`.trim()}
                             data-rarity={item.artwork.rarity}
-                            key={item._id}
-                            onClick={() => setSelectedLootItemId(item._id)}
+                            key={key}
+                            onClick={() => setSelectedLootItemId(key)}
                             style={
                               revealIndex >= 0
                                 ? { animationDelay: `${revealIndex * 110}ms` }
@@ -2220,29 +2331,90 @@ export default function GameDashboard({
                       className="collection-preview loot-preview"
                     >
                       <ItemCard
-                        actions={lootItemActions(selectedLootItem)}
+                        actions={
+                          selectedLootAuction
+                            ? (
+                                <ItemActionButton
+                                  disabled={pending}
+                                  icon="fa-times"
+                                  label="Dismiss private auction"
+                                  onClick={() =>
+                                    act(
+                                      `/api/play/auctions/${selectedLootAuction._id}/dismiss`,
+                                      () => {
+                                        setDismissedPrivateAuctionIds(
+                                          (current) => [
+                                            ...new Set([
+                                              ...current,
+                                              selectedLootAuction._id,
+                                            ]),
+                                          ],
+                                        );
+                                        setSelectedLootItemId(null);
+                                      },
+                                    )
+                                  }
+                                />
+                              )
+                            : lootItemActions(selectedLootItem)
+                        }
                         alreadyOwned={ownedArtworkIds.has(
                           selectedLootItem.artwork_id,
                         )}
                         item={selectedLootItem}
-                        owner={{
-                          playerId,
-                          screenName: player.screenName,
-                        }}
-                        key={getItemCardKey(selectedLootItem)}
+                        owner={
+                          selectedLootAuction
+                            ? {
+                                playerId:
+                                  selectedLootAuction.seller_id ??
+                                  "system:auction-house",
+                                screenName: selectedLootAuction.seller_name,
+                              }
+                            : {
+                                playerId,
+                                screenName: player.screenName,
+                              }
+                        }
+                        key={
+                          selectedLootAuction
+                            ? `auction:${selectedLootAuction._id}:${getItemCardKey(selectedLootItem)}`
+                            : getItemCardKey(selectedLootItem)
+                        }
                         legendaryAttributes={legendaryAttributes}
                         overlay={
-                          donationEffects[selectedLootItem._id] ? (
-                            <DonationRewardEffect
-                              effect={donationEffects[selectedLootItem._id]}
-                            />
-                          ) : null
+                          <>
+                            {donationEffects[selectedLootItem._id] ? (
+                              <DonationRewardEffect
+                                effect={donationEffects[selectedLootItem._id]}
+                              />
+                            ) : null}
+                            {selectedLootAuction?.currentlyWinning ? (
+                              <WinningAuctionWatermark />
+                            ) : null}
+                          </>
                         }
                         permissions={{
                           canManageItem: true,
                           canCustomizeCosmetic: false,
                         }}
-                        primaryAction={lootPrimaryAction(selectedLootItem)}
+                        primaryAction={
+                          selectedLootAuction ? (
+                            <button
+                              className="collection-gallery-action"
+                              disabled={pending}
+                              onClick={() =>
+                                setSelectedPrivateAuction(selectedLootAuction)
+                              }
+                              type="button"
+                            >
+                              <i aria-hidden="true" className="fa fa-gavel" />
+                              Bid on item · $
+                              {selectedLootAuction.minimum_bid.toLocaleString()}
+                            </button>
+                          ) : (
+                            lootPrimaryAction(selectedLootItem)
+                          )
+                        }
                         researchTarget={unfoundQuestTargetArtworkIds.has(
                           selectedLootItem.artwork_id,
                         )}
@@ -2259,8 +2431,15 @@ export default function GameDashboard({
                       <strong>Clear unwanted artworks</strong>
                       <small>
                         {bulkSellableLoot.length} owned ·{" "}
-                        {bulkDeclinableLoot.length} dealer{" "}
-                        {bulkDeclinableLoot.length === 1 ? "offer" : "offers"}
+                        {(
+                          bulkDeclinableLoot.length +
+                          bulkDeclinablePrivateAuctions.length
+                        ).toLocaleString()}{" "}
+                        {bulkDeclinableLoot.length +
+                          bulkDeclinablePrivateAuctions.length ===
+                        1
+                          ? "offer"
+                          : "offers"}
                       </small>
                     </div>
                     <fieldset>
@@ -2331,7 +2510,12 @@ export default function GameDashboard({
                     {hasPurchasableLoot ? (
                       <button
                         className="decline-all-loot"
-                        disabled={pending || bulkDeclinableLoot.length === 0}
+                        disabled={
+                          pending ||
+                          bulkDeclinableLoot.length +
+                            bulkDeclinablePrivateAuctions.length ===
+                            0
+                        }
                         onClick={declineAllLoot}
                         type="button"
                       >
@@ -3385,20 +3569,17 @@ export default function GameDashboard({
             }}
           />
         ) : null}
-        {auctioneerSession ? (
-          <AuctioneerOfferDialog
-            auctions={auctioneerSession.auctions}
+        {selectedPrivateAuction ? (
+          <AuctionBidDialog
+            auction={selectedPrivateAuction}
             bankBalance={player.bankBalance}
             legendaryAttributes={legendaryAttributes}
-            npcName={auctioneerSession.npcName}
-            onAuctionsChange={(auctions) =>
-              setAuctioneerSession((current) =>
-                current ? { ...current, auctions } : current,
-              )
-            }
-            onClose={() => setAuctioneerSession(null)}
+            onClose={() => setSelectedPrivateAuction(null)}
+            onSuccess={() => {
+              setSelectedPrivateAuction(null);
+              router.refresh();
+            }}
             playerId={playerId}
-            quality={auctioneerSession.quality}
           />
         ) : null}
         {historianSubmissionItem ? (
@@ -3412,7 +3593,7 @@ export default function GameDashboard({
             quests={historianQuestsForItem(historianSubmissionItem)}
           />
         ) : null}
-        {typeof document !== "undefined"
+        {hydrated
           ? createPortal(
               <NpcEffectLayer effects={Object.values(npcRewardEffects)} />,
               document.body,
@@ -3421,6 +3602,18 @@ export default function GameDashboard({
       </div>
     </main>
   );
+}
+
+function subscribeToHydration() {
+  return () => undefined;
+}
+
+function getHydratedSnapshot() {
+  return true;
+}
+
+function getServerHydratedSnapshot() {
+  return false;
 }
 
 function NpcEffectLayer({ effects }: { effects: NpcVisualEffect[] }) {
@@ -3805,186 +3998,6 @@ function ActionResultDialog({
         </div>
       </div>
     </dialog>
-  );
-}
-
-function AuctioneerOfferDialog({
-  npcName,
-  quality,
-  auctions,
-  bankBalance,
-  legendaryAttributes,
-  playerId,
-  onClose,
-  onAuctionsChange,
-}: {
-  npcName: string;
-  quality: NpcQuality;
-  auctions: AuctionView[];
-  bankBalance: number;
-  legendaryAttributes: CardLegendaryAttribute[];
-  playerId: string;
-  onClose: () => void;
-  onAuctionsChange: (auctions: AuctionView[]) => void;
-}) {
-  const router = useRouter();
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const returnFocusRef = useRef<HTMLElement | null>(null);
-  const [selectedAuction, setSelectedAuction] = useState<AuctionView | null>(null);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    returnFocusRef.current =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
-    if (dialog && !dialog.open) dialog.showModal();
-    return () => {
-      if (dialog?.open) dialog.close();
-    };
-  }, []);
-
-  function closeDialog() {
-    if (dialogRef.current?.open) dialogRef.current.close();
-    returnFocusRef.current?.focus();
-    onClose();
-  }
-
-  async function refreshAuction(auctionId: string) {
-    try {
-      const response = await fetch(`/api/play/auctions?auction=${auctionId}`, {
-        cache: "no-store",
-      });
-      if (response.ok) {
-        const body = (await response.json()) as { auctions: AuctionView[] };
-        const updated = body.auctions.find((a) => a._id === auctionId);
-        if (updated) {
-          onAuctionsChange(
-            auctions.map((a) => (a._id === auctionId ? updated : a)),
-          );
-        } else {
-          onAuctionsChange(auctions.filter((a) => a._id !== auctionId));
-        }
-      }
-    } catch {
-      // Ignore
-    }
-  }
-
-  return (
-    <>
-      <dialog
-        aria-labelledby="auctioneer-offer-title"
-        className="donor-offer-dialog"
-        onCancel={(event) => {
-          event.preventDefault();
-          closeDialog();
-        }}
-        ref={dialogRef}
-      >
-        <div className="donor-offer-content">
-          <header>
-            <div>
-              <p className="reroll-dialog-kicker">{quality} visitor</p>
-              <h2 id="auctioneer-offer-title">{npcName}&apos;s private auctions</h2>
-            </div>
-            <button
-              aria-label={`Close ${npcName} private auctions`}
-              className="reroll-dialog-close"
-              onClick={closeDialog}
-              type="button"
-            >
-              <i aria-hidden="true" className="fa fa-times" />
-            </button>
-          </header>
-          <p>Closing this dialog leaves your private auctions accessible in the Auction House.</p>
-          {auctions.length === 0 ? (
-            <p className="empty-state">No active private auctions.</p>
-          ) : (
-            <div className="donor-offer-list">
-              {auctions.map((auction) => (
-                <article
-                  className="donor-offer-item donor-offer-item-clickable"
-                  key={auction._id}
-                  onClick={() => setSelectedAuction(auction)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      setSelectedAuction(auction);
-                    }
-                  }}
-                  role="button"
-                  tabIndex={0}
-                >
-                  <ItemThumbnail
-                    alt={`${auction.item.artwork.title} by ${auction.item.artwork.artist}`}
-                    className="donor-offer-thumbnail"
-                    item={auction.item}
-                  />
-                  <div className="donor-offer-details">
-                    <div>
-                      <span
-                        className={`artwork-ownership-indicator ${
-                          auction.owned ? "owned" : "new"
-                        }`}
-                      >
-                        {auction.owned ? "owned" : "new artwork"}
-                      </span>
-                      <span
-                        className={`donor-offer-rarity rarity-text ${auction.item.artwork.rarity}`}
-                      >
-                        {auction.item.artwork.rarity}
-                      </span>
-                      {auction.currentlyWinning ? (
-                        <span className="auctioneer-winning-indicator">
-                          winning
-                        </span>
-                      ) : null}
-                    </div>
-                    <strong>{auction.item.artwork.title}</strong>
-                    <span>{auction.item.artwork.artist}</span>
-                    <span>
-                      promotion level {auction.item.level} · condition{" "}
-                      {Math.round(auction.item.condition * 100)}%
-                    </span>
-                    <span>
-                      estimated value ${auction.item.values.actual.toLocaleString()}
-                    </span>
-                    <strong className="dealer-offer-price">
-                      {auction.has_bid ? "current bid" : "starting bid"}{" "}
-                      ${auction.current_bid.toLocaleString()}
-                    </strong>
-                  </div>
-                  <div className="donor-offer-actions">
-                    <ItemActionButton
-                      disabled={false}
-                      icon="fa-gavel"
-                      label={`Bid on ${auction.item.artwork.title}`}
-                      onClick={() => setSelectedAuction(auction)}
-                    />
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </div>
-      </dialog>
-      {selectedAuction ? (
-        <AuctionBidDialog
-          auction={selectedAuction}
-          bankBalance={bankBalance}
-          legendaryAttributes={legendaryAttributes}
-          onClose={() => setSelectedAuction(null)}
-          onSuccess={() => {
-            const targetId = selectedAuction._id;
-            setSelectedAuction(null);
-            void refreshAuction(targetId);
-            router.refresh();
-          }}
-          playerId={playerId}
-        />
-      ) : null}
-    </>
   );
 }
 

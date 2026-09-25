@@ -125,8 +125,7 @@ export default function ItemCard({
         />
       </div>
       {overlay}
-      {currentItem.status !== "auctioned" &&
-      permissions.canManageItem &&
+      {permissions.canManageItem &&
       (primaryAction || actions || permissions.canCustomizeCosmetic) ? (
         <div
           className={`card-actions ${
