@@ -11,6 +11,7 @@
     "db:down": "docker compose --env-file .env.local down",
     "db:seed": "node --env-file=.env.local scripts/seed.mjs",
     "db:bootstrap-admin": "node --env-file=.env.production scripts/bootstrap-admin.mjs",
+    "db:migrate:production": "node --env-file=.env.production scripts/migrate-production.mjs",
     "db:publish-artwork": "node --env-file=.env.local scripts/publish-approved-artwork.mjs",
     "artwork:manifest": "node --env-file=.env.local scripts/export-artwork-image-manifest.mjs",
     "typecheck": "tsc --noEmit",

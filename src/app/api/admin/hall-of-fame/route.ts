@@ -4,10 +4,12 @@ import { NextResponse } from "next/server";
 
 import type { Artwork, GameItem } from "@/server/gameplay";
 import {
+  getHallOfFameCandidateScanEnabled,
   getHallOfFameQualifier,
   getMatchingHallOfFameQualifiers,
   itemMatchesQualifierQuery,
   notifyHallOfFameInduction,
+  setHallOfFameCandidateScanEnabled,
   type HallOfFameRecord,
   type HallOfFameSubmission,
 } from "@/server/hall-of-fame";
@@ -84,7 +86,7 @@ export async function GET(request: Request) {
     });
   }
 
-  const [records, submissions] = await Promise.all([
+  const [records, submissions, scanForCandidates] = await Promise.all([
     database
       .collection<HallOfFameRecord>("hall_of_fame")
       .find()
@@ -95,9 +97,14 @@ export async function GET(request: Request) {
       .find()
       .sort({ submitted_at: 1 })
       .toArray(),
+    getHallOfFameCandidateScanEnabled(database),
   ]);
 
-  return NextResponse.json({ records, submissions });
+  return NextResponse.json({
+    records,
+    submissions,
+    scan_for_candidates: scanForCandidates,
+  });
 }
 
 export async function POST(request: Request) {
@@ -313,7 +320,20 @@ export async function PUT(request: Request) {
     recordId?: string;
     title?: string;
     description?: string;
+    scanForCandidates?: boolean;
   } | null;
+  if (typeof body?.scanForCandidates === "boolean") {
+    const database = await getDatabase();
+    await setHallOfFameCandidateScanEnabled(
+      database,
+      body.scanForCandidates,
+    );
+    return NextResponse.json({
+      status: "ok",
+      scan_for_candidates: body.scanForCandidates,
+    });
+  }
+
   const recordId =
     typeof body?.recordId === "string" ? body.recordId.trim() : "";
   const title = typeof body?.title === "string" ? body.title.trim() : "";

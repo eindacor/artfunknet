@@ -39,6 +39,18 @@ The seed command emits structured JSON events for every phase, including its
 duration and full error chain. Artwork-import failures include the source path
 that could not be inspected.
 
+Production deployments should not run the development seed. Apply idempotent
+schema and metadata updates with:
+
+```sh
+npm run db:migrate:production
+```
+
+This command reads `.env.production`, creates the Hall of Fame and playthrough
+indexes, initializes missing playthrough counters on existing players, and
+creates the Hall of Fame scan setting with automatic candidate scanning off.
+Re-running it preserves the administrator's current scan setting.
+
 ## Artwork administration
 
 The seed command also creates or updates the local administrator configured by

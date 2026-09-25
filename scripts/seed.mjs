@@ -13,6 +13,7 @@ import {
   LEGENDARY_ATTRIBUTE_PAIRS,
   LEGENDARY_ATTRIBUTE_RECORD_IDS,
 } from "./legendary-attribute-data.mjs";
+import { migrateHallOfFameAndPlaythroughStorage } from "./database-migrations.mjs";
 
 const projectRoot = process.cwd();
 const artworkImportDirectory = path.resolve(
@@ -48,6 +49,9 @@ try {
 
   await runSeedStep("archives.migrate", () => migrateArtworkArchives(database));
   await runSeedStep("indexes.create", () => createIndexes(database));
+  await runSeedStep("hall_of_fame_and_history.migrate", () =>
+    migrateHallOfFameAndPlaythroughStorage(database),
+  );
   await runSeedStep("game_metadata.seed", () => seedGameMetadata(database));
   await runSeedStep("gameplay_settings.seed", () =>
     seedGameplaySettings(database),

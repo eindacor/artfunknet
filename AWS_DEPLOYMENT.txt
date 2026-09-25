@@ -338,16 +338,21 @@ fails.
 ====================================
 
 The Database page requires an authenticated administrator. On a blank
-production database, create only the administrator account with:
+production database, run the idempotent production migrations and create only
+the administrator account with:
 
   cd /opt/artfunknet
+  npm run db:migrate:production
   npm run db:bootstrap-admin
 
-This command reads .env.production and creates or updates ADMIN_EMAIL. It does
-not seed players, test accounts, generated items, or game content. After the
-administrator has been created, ADMIN_PASSWORD can be removed from
-.env.production if you do not need to rerun the bootstrap command. Keep the
-password in your password manager.
+The migration command reads .env.production, creates required indexes,
+initializes missing player playthrough counters, and creates the Hall of Fame
+settings document with automatic candidate scanning disabled. It preserves an
+administrator's existing scan setting on later runs. The bootstrap command
+creates or updates ADMIN_EMAIL. Neither command seeds players, test accounts,
+generated items, or game content. After the administrator has been created,
+ADMIN_PASSWORD can be removed from .env.production if you do not need to rerun
+the bootstrap command. Keep the password in your password manager.
 
 Do not run npm run db:seed on production unless development players, test
 players, and the full development seed behavior are intentionally desired.
@@ -553,6 +558,7 @@ For a simple single-instance update:
   .venv/bin/python -m pip install -r requirements-artwork.txt
   npm test
   npm run build
+  npm run db:migrate:production
   sudo systemctl restart artfunknet
   curl http://127.0.0.1:3000/api/health
 

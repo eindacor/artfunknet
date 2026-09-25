@@ -65,6 +65,11 @@ export type HallOfFameQualifier = {
   query: QualifierQuery;
 };
 
+type HallOfFameSettingsDocument = {
+  _id: "hall-of-fame-settings";
+  scan_for_candidates?: boolean;
+};
+
 export const DEFAULT_HOF_QUALIFIERS: HallOfFameQualifier[] = [
   // Masterpiece Milestones
   {
@@ -225,11 +230,36 @@ export function getHallOfFameQualifier(
   return registeredQualifiers.get(qualifierId);
 }
 
+export async function getHallOfFameCandidateScanEnabled(
+  database: Db,
+): Promise<boolean> {
+  const settings = await database
+    .collection<HallOfFameSettingsDocument>("metadata")
+    .findOne({ _id: "hall-of-fame-settings" });
+  return settings?.scan_for_candidates === true;
+}
+
+export async function setHallOfFameCandidateScanEnabled(
+  database: Db,
+  enabled: boolean,
+): Promise<void> {
+  await database
+    .collection<HallOfFameSettingsDocument>("metadata")
+    .updateOne(
+      { _id: "hall-of-fame-settings" },
+      { $set: { scan_for_candidates: enabled } },
+      { upsert: true },
+    );
+}
+
 export async function checkItemForHallOfFameStatus(
   database: Db,
   item: GameItem,
   player: { _id: string; test_account?: boolean; screen_name: string },
 ): Promise<HallOfFameSubmission[]> {
+  if (!(await getHallOfFameCandidateScanEnabled(database))) {
+    return [];
+  }
   if (
     !item ||
     !["claimed", "displayed", "auctioned", "collector_pending"].includes(

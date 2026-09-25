@@ -35,6 +35,8 @@ export default function AdminHallOfFamePage() {
   );
   const [records, setRecords] = useState<HallOfFameRecord[]>([]);
   const [submissions, setSubmissions] = useState<HallOfFameSubmission[]>([]);
+  const [scanForCandidates, setScanForCandidates] = useState(false);
+  const [updatingScanSetting, setUpdatingScanSetting] = useState(false);
   const [pendingActionId, setPendingActionId] = useState<string | null>(null);
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
@@ -49,6 +51,7 @@ export default function AdminHallOfFamePage() {
       }
       setRecords(data.records || []);
       setSubmissions(data.submissions || []);
+      setScanForCandidates(data.scan_for_candidates === true);
     } catch (loadError) {
       setError(
         loadError instanceof Error
@@ -74,6 +77,7 @@ export default function AdminHallOfFamePage() {
         if (cancelled) return;
         setRecords(data.records || []);
         setSubmissions(data.submissions || []);
+        setScanForCandidates(data.scan_for_candidates === true);
       })
       .catch((loadError) => {
         if (cancelled) return;
@@ -113,6 +117,38 @@ export default function AdminHallOfFamePage() {
       setError("An unexpected error occurred during search.");
     } finally {
       setSearching(false);
+    }
+  }
+
+  async function updateScanSetting(enabled: boolean) {
+    setUpdatingScanSetting(true);
+    setError("");
+    setMessage("");
+    try {
+      const response = await fetch("/api/admin/hall-of-fame", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scanForCandidates: enabled }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setError(
+          data.error || "The Hall of Fame scan setting could not be updated.",
+        );
+        return;
+      }
+      setScanForCandidates(data.scan_for_candidates === true);
+      setMessage(
+        enabled
+          ? "Automatic Hall of Fame candidate scanning enabled."
+          : "Automatic Hall of Fame candidate scanning disabled.",
+      );
+    } catch {
+      setError(
+        "An unexpected error occurred while updating the scan setting.",
+      );
+    } finally {
+      setUpdatingScanSetting(false);
     }
   }
 
@@ -283,6 +319,27 @@ export default function AdminHallOfFamePage() {
           {message}
         </div>
       )}
+
+      <section className="rounded border border-white/10 bg-black/30 p-4">
+        <label className="flex cursor-pointer items-start gap-3">
+          <input
+            checked={scanForCandidates}
+            className="mt-1"
+            disabled={updatingScanSetting}
+            onChange={(event) => void updateScanSetting(event.target.checked)}
+            type="checkbox"
+          />
+          <span>
+            <strong className="block text-white">
+              Scan for Hall of Fame candidates
+            </strong>
+            <span className="mt-1 block text-sm text-[var(--muted)]">
+              When disabled, player item claims skip all automatic qualifier
+              checks. Admin item search and manual induction remain available.
+            </span>
+          </span>
+        </label>
+      </section>
 
       <section className="space-y-4">
         <div>

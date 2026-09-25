@@ -7,6 +7,7 @@ import {
   checkItemForHallOfFameStatus,
   getMatchingHallOfFameQualifiers,
   itemMatchesQualifierQuery,
+  setHallOfFameCandidateScanEnabled,
   transferIfHallOfFameItem,
   type HallOfFameRecord,
   type HallOfFameSubmission,
@@ -121,6 +122,7 @@ test("qualifying items become pending submissions and notify the player", async 
     } as GameItem;
     await database.collection<Artwork>("artworks").insertOne(artwork);
     await database.collection<GameItem>("items").insertOne(item);
+    await setHallOfFameCandidateScanEnabled(database, true);
 
     const submission = await checkItemForHallOfFameStatus(
       database,
@@ -196,6 +198,7 @@ test("test account claims are checked for Hall of Fame qualifiers", async () => 
       values: { actual: 1_000 },
     } as GameItem;
     await database.collection<Artwork>("artworks").insertOne(artwork);
+    await setHallOfFameCandidateScanEnabled(database, true);
 
     const submissions = await checkItemForHallOfFameStatus(
       database,
@@ -247,6 +250,7 @@ test("rechecking an item can submit qualifiers that became available later", asy
       values: { actual: 1_000 },
     } as GameItem;
     await database.collection<Artwork>("artworks").insertOne(artwork);
+    await setHallOfFameCandidateScanEnabled(database, true);
     await database
       .collection<HallOfFameSubmission>("hall_of_fame_submissions")
       .insertOne({
@@ -270,6 +274,56 @@ test("rechecking an item can submit qualifiers that became available later", asy
     assert.deepEqual(
       submissions.map((entry) => entry.qualifier_id),
       ["first-foil-masterpiece"],
+    );
+  } finally {
+    await client.close();
+    await mongoServer.stop();
+  }
+});
+
+test("automatic qualifier scanning is disabled by default", async () => {
+  const mongoServer = await MongoMemoryServer.create();
+  const client = new MongoClient(mongoServer.getUri());
+  try {
+    await client.connect();
+    const database = client.db("hall-of-fame-disabled-test");
+    const artwork = {
+      _id: "artwork-disabled",
+      title: "Disabled Scan Masterpiece",
+      artist: "Test Artist",
+      rarity: "masterpiece",
+    } as Artwork;
+    const item = {
+      _id: "item-disabled",
+      artwork_id: artwork._id,
+      owner: "player-disabled",
+      status: "claimed",
+      mint: true,
+      foil: true,
+      unlocked: true,
+      seasonal: false,
+      original: false,
+      lottery: 0,
+      values: { actual: 12_000_000 },
+    } as GameItem;
+    await database.collection<Artwork>("artworks").insertOne(artwork);
+
+    const submissions = await checkItemForHallOfFameStatus(
+      database,
+      item,
+      { _id: "player-disabled", screen_name: "Disabled Player" },
+    );
+
+    assert.deepEqual(submissions, []);
+    assert.equal(
+      await database
+        .collection("hall_of_fame_submissions")
+        .countDocuments(),
+      0,
+    );
+    assert.equal(
+      await database.collection("player_notifications").countDocuments(),
+      0,
     );
   } finally {
     await client.close();
