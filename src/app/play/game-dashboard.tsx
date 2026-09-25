@@ -428,10 +428,17 @@ export default function GameDashboard({
 
   const unclaimed = useMemo(
     () =>
-      items.filter(
-        (item) =>
-          item.status === "unclaimed" || item.status === "for_sale",
-      ),
+      items
+        .filter(
+          (item) =>
+            item.status === "unclaimed" || item.status === "for_sale",
+        )
+        .sort(
+          (left, right) =>
+            right.values.actual - left.values.actual ||
+            Date.parse(right.date_created) - Date.parse(left.date_created) ||
+            left._id.localeCompare(right._id),
+        ),
     [items],
   );
   const selectedLootItem =
