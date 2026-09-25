@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { recordEconomyMetricsSafely } from "@/server/economy-metrics";
+import { checkItemForHallOfFameStatus } from "@/server/hall-of-fame";
+import type { GameItem } from "@/server/gameplay";
 import { getDatabase } from "@/server/mongodb";
 import {
   getUnexpiredItemFilter,
@@ -112,6 +114,16 @@ export async function POST(
     direction: "acquired",
     source: "item-claim",
   });
+
+  const fullPlayer = await database
+    .collection<{ _id: string; test_account?: boolean; screen_name: string }>("players")
+    .findOne({ _id: player._id });
+  const claimedItem = await database
+    .collection<GameItem>("items")
+    .findOne({ _id: id });
+  if (fullPlayer && claimedItem) {
+    await checkItemForHallOfFameStatus(database, claimedItem, fullPlayer);
+  }
 
   return NextResponse.json({ status: "ok" });
 }
