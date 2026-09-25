@@ -41,7 +41,7 @@ test("vintage playthroughs require maximum level and no active auctions", () => 
   );
 });
 
-test("vintage selection requires an eligible claimed non-vintage item", () => {
+test("vintage selection requires an eligible collected non-vintage item", () => {
   assert.equal(
     getVintagePlaythroughPermission({
       level: 50,
@@ -49,6 +49,14 @@ test("vintage selection requires an eligible claimed non-vintage item", () => {
       selectedItem: { ...item, vintage: true },
     }).allowed,
     false,
+  );
+  assert.equal(
+    getVintagePlaythroughPermission({
+      level: 50,
+      activeAuctionCount: 0,
+      selectedItem: { ...item, status: "displayed" },
+    }).allowed,
+    true,
   );
   assert.equal(
     getVintagePlaythroughPermission({

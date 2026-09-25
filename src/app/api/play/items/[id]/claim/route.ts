@@ -87,6 +87,17 @@ export async function POST(
     );
   }
 
+  const tracked = await database.collection<Player>("players").updateOne(
+    { _id: player._id },
+    { $inc: { "profile.playthrough_stats.items_collected": 1 } },
+  );
+  if (tracked.modifiedCount !== 1) {
+    return NextResponse.json(
+      { error: "The item could not be added to your playthrough record." },
+      { status: 500 },
+    );
+  }
+
   const result = await database.collection<ItemRecord>("items").updateOne(
     {
       _id: id,
@@ -103,6 +114,10 @@ export async function POST(
     },
   );
   if (result.modifiedCount !== 1) {
+    await database.collection<Player>("players").updateOne(
+      { _id: player._id },
+      { $inc: { "profile.playthrough_stats.items_collected": -1 } },
+    );
     return NextResponse.json(
       { error: "This item can no longer be claimed." },
       { status: 409 },
@@ -122,7 +137,14 @@ export async function POST(
     .collection<GameItem>("items")
     .findOne({ _id: id });
   if (fullPlayer && claimedItem) {
-    await checkItemForHallOfFameStatus(database, claimedItem, fullPlayer);
+    await checkItemForHallOfFameStatus(database, claimedItem, fullPlayer).catch(
+      (error) => {
+        console.error(
+          `Unable to submit claimed item ${claimedItem._id} for Hall of Fame review`,
+          error,
+        );
+      },
+    );
   }
 
   return NextResponse.json({ status: "ok" });

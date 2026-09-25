@@ -1,6 +1,7 @@
 import type { Db, Filter } from "mongodb";
 
 import type { GameItem } from "./gameplay.ts";
+import { transferHallOfFameItems } from "./hall-of-fame.ts";
 
 export const UNCLAIMED_ITEM_EXPIRATION_MS = 60 * 60 * 1000;
 export const CRATE_ITEM_EXPIRATION_MS = 30 * 60 * 1000;
@@ -101,9 +102,19 @@ export async function removeExpiredTransientItems(
   now = new Date(),
 ): Promise<number> {
   await ensureItemExpirationIndexes(database);
-  const result = await database
+  const expiredItems = await database
     .collection<GameItem>("items")
-    .deleteMany(getExpiredTransientItemFilter(now));
+    .find(getExpiredTransientItemFilter(now))
+    .toArray();
+  if (expiredItems.length === 0) return 0;
+  const preservedIds = await transferHallOfFameItems(database, expiredItems);
+  const deletableIds = expiredItems
+    .map((item) => item._id)
+    .filter((itemId) => !preservedIds.has(itemId));
+  const result = await database.collection<GameItem>("items").deleteMany({
+    _id: { $in: deletableIds },
+    ...getExpiredTransientItemFilter(now),
+  });
   return result.deletedCount;
 }
 

@@ -15,6 +15,7 @@ import {
 import { deleteCommunityReactions } from "@/server/community-reaction-cleanup";
 import { rewardUndetectedForgeryExit } from "@/server/forgery-gameplay";
 import type { GameItem } from "@/server/gameplay";
+import { transferHallOfFameItems } from "@/server/hall-of-fame";
 import { removeExpiredTransientItems } from "@/server/item-expiration";
 import { ensurePlayerKarma } from "@/server/karma";
 import { getDisplayedLegendaryEffect } from "@/server/legendary-attributes";
@@ -195,16 +196,24 @@ export async function POST(request: Request) {
     }
     credited = true;
 
+    const hallOfFameIds = await transferHallOfFameItems(
+      database,
+      donatableItems.map((item) => ({
+        ...item,
+        status: "bulk_donate_pending" as const,
+      })),
+    );
+    const deletedIds = ids.filter((id) => !hallOfFameIds.has(id));
     const removed = await database.collection<GameItem>("items").deleteMany({
-      _id: { $in: ids },
+      _id: { $in: deletedIds },
       owner: auth.session.playerId,
       status: "bulk_donate_pending",
       bulk_donation_operation: operationId,
     });
-    if (removed.deletedCount !== donatableItems.length) {
+    if (removed.deletedCount !== deletedIds.length) {
       throw new Error("The bulk donation cleanup was incomplete.");
     }
-    await deleteCommunityReactions(database, "item", ids);
+    await deleteCommunityReactions(database, "item", deletedIds);
   } catch (error) {
     if (!credited) {
       const player = await database.collection<{
@@ -214,26 +223,11 @@ export async function POST(request: Request) {
       credited =
         player?.profile.bulk_donation_operations?.includes(operationId) ?? false;
     }
-    if (credited) {
-      await database.collection<GameItem>("items").deleteMany({
-        owner: auth.session.playerId,
-        status: "bulk_donate_pending",
-        bulk_donation_operation: operationId,
-      });
-      await deleteCommunityReactions(database, "item", ids);
-    } else {
-      await database.collection<GameItem>("items").updateMany(
-        {
-          owner: auth.session.playerId,
-          status: "bulk_donate_pending",
-          bulk_donation_operation: operationId,
-        },
-        {
-          $set: { status: "unclaimed" },
-          $unset: { bulk_donation_operation: "" },
-        },
-      );
-    }
+    await recoverPendingBulkOperations(database, auth.session.playerId, {
+      status: "bulk_donate_pending",
+      operationField: "bulk_donation_operation",
+      profileOperationsField: "bulk_donation_operations",
+    });
     console.error("Unable to complete bulk loot donation", error);
     return NextResponse.json(
       {

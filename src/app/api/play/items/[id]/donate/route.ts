@@ -10,6 +10,10 @@ import {
 import type { GameItem } from "@/server/gameplay";
 import { deleteCommunityReactions } from "@/server/community-reaction-cleanup";
 import { hydrateGameItems } from "@/server/item-artwork";
+import {
+  restoreTransferredHallOfFameItem,
+  transferIfHallOfFameItem,
+} from "@/server/hall-of-fame";
 import { getDatabase } from "@/server/mongodb";
 import { removeExpiredTransientItems } from "@/server/item-expiration";
 import { requirePlayerApi } from "@/server/player-api";
@@ -72,13 +76,16 @@ export async function POST(
   );
   if (item.authenticity.forgery && rollForgeryDetected(hydratedItem, "donate")) {
     if (shouldDestroyDetectedForgery(item)) {
-      const destroyed = await database.collection<GameItem>("items").deleteOne({
-        _id: item._id,
-        owner: auth.session.playerId,
-        status: item.status,
-        "authenticity.forgery": true,
-        "authenticity.identified": true,
-      });
+      const preserved = await transferIfHallOfFameItem(database, item);
+      const destroyed = preserved
+        ? { deletedCount: 1 }
+        : await database.collection<GameItem>("items").deleteOne({
+            _id: item._id,
+            owner: auth.session.playerId,
+            status: item.status,
+            "authenticity.forgery": true,
+            "authenticity.identified": true,
+          });
       if (destroyed.deletedCount !== 1) {
         return NextResponse.json(
           {
@@ -88,16 +95,19 @@ export async function POST(
           { status: 409 },
         );
       }
-      await deleteCommunityReactions(database, "item", [item._id]);
-      const message =
-        "The recipient detected the forgery. The donation failed and the artwork was destroyed.";
+      if (!preserved) {
+        await deleteCommunityReactions(database, "item", [item._id]);
+      }
+      const message = preserved
+        ? "The recipient detected the forgery. The donation failed, and the Hall of Fame preserved the artwork."
+        : "The recipient detected the forgery. The donation failed and the artwork was destroyed.";
       return NextResponse.json({
         status: "ok",
         karma: 0,
         message,
         notificationKind: "error",
         actionDialog: {
-          variant: "destroyed",
+          variant: preserved ? "returned" : "destroyed",
           title: "Forgery detected",
           message,
         },
@@ -135,24 +145,27 @@ export async function POST(
     item.card_renderer === undefined
       ? { card_renderer: { $exists: false } }
       : { card_renderer: item.card_renderer };
-  const donatedItem = await database
-    .collection<GameItem>("items")
-    .findOneAndDelete({
-      _id: item._id,
-      owner: auth.session.playerId,
-      status: item.status,
-      level: item.level,
-      foil: item.foil,
-      unlocked: item.unlocked,
-      mint: item.mint,
-      mint_value_multiplier: item.mint_value_multiplier,
-      seasonal: item.seasonal,
-      lottery: item.lottery,
-      vintage: item.vintage,
-      permanent: { $ne: true },
-      original: { $ne: true },
-      ...rendererFilter,
-    });
+  const isHoF = await transferIfHallOfFameItem(database, item);
+  const donatedItem = isHoF
+    ? item
+    : await database
+        .collection<GameItem>("items")
+        .findOneAndDelete({
+          _id: item._id,
+          owner: auth.session.playerId,
+          status: item.status,
+          level: item.level,
+          foil: item.foil,
+          unlocked: item.unlocked,
+          mint: item.mint,
+          mint_value_multiplier: item.mint_value_multiplier,
+          seasonal: item.seasonal,
+          lottery: item.lottery,
+          vintage: item.vintage,
+          permanent: { $ne: true },
+          original: { $ne: true },
+          ...rendererFilter,
+        });
   if (!donatedItem) {
     return NextResponse.json(
       { error: "This item changed before it could be donated." },
@@ -199,13 +212,19 @@ export async function POST(
     { returnDocument: "after" },
   );
   if (!player) {
-    await database.collection<GameItem>("items").insertOne(donatedItem);
+    if (isHoF) {
+      await restoreTransferredHallOfFameItem(database, item);
+    } else {
+      await database.collection<GameItem>("items").insertOne(donatedItem);
+    }
     return NextResponse.json(
       { error: "The donation could not be applied to your account." },
       { status: 500 },
     );
   }
-  await deleteCommunityReactions(database, "item", [item._id]);
+  if (!isHoF) {
+    await deleteCommunityReactions(database, "item", [item._id]);
+  }
   await rewardUndetectedForgeryExit(database, hydratedItem, {
     artworkTitle: hydratedItem.artwork.title,
     method: "donation",

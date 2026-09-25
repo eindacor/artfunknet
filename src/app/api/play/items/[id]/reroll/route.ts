@@ -133,7 +133,10 @@ export async function POST(
       "profile.bank_balance": { $gte: cost },
     },
     {
-      $inc: { "profile.bank_balance": -cost },
+      $inc: {
+        "profile.bank_balance": -cost,
+        "profile.playthrough_stats.money_spent": cost,
+      },
       $set: { "profile.last_activity": now },
     },
     { returnDocument: "after" },
@@ -233,7 +236,12 @@ export async function POST(
     try {
       const refund = await database.collection<Player>("players").updateOne(
         { _id: player._id },
-        { $inc: { "profile.bank_balance": cost } },
+        {
+          $inc: {
+            "profile.bank_balance": cost,
+            "profile.playthrough_stats.money_spent": -cost,
+          },
+        },
       );
       if (refund.matchedCount !== 1) {
         console.error(

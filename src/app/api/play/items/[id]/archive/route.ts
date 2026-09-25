@@ -20,6 +20,10 @@ import type { GameItem } from "@/server/gameplay";
 import { deleteCommunityReactions } from "@/server/community-reaction-cleanup";
 import { getArchivePermission } from "@/server/item-permissions";
 import {
+  restoreTransferredHallOfFameItem,
+  transferIfHallOfFameItem,
+} from "@/server/hall-of-fame";
+import {
   getDisplayedLegendaryEffect,
   getLegendaryNumberParameter,
 } from "@/server/legendary-attributes";
@@ -89,6 +93,7 @@ export async function POST(
   let chargedAmount = 0;
   let archiveRecordAdded = false;
   let archiveCompleted = false;
+  let hallOfFameTransferred = false;
   let item: GameItem | null = null;
   try {
     item = await database.collection<GameItem>("items").findOne({
@@ -121,17 +126,20 @@ export async function POST(
     }
     if (item.authenticity.forgery) {
       await transferForgeryLiability(database, item, lockedPlayer._id);
-      const destroyedForgery = await database
-        .collection<GameItem>("items")
-        .deleteOne(
-          {
-            _id: item._id,
-            owner: lockedPlayer._id,
-            status: item.status,
-            "authenticity.forgery": true,
-            "authenticity.identified": { $ne: true },
-          },
-        );
+      const preservedForgery = await transferIfHallOfFameItem(database, item);
+      const destroyedForgery = preservedForgery
+        ? { deletedCount: 1 }
+        : await database
+            .collection<GameItem>("items")
+            .deleteOne(
+              {
+                _id: item._id,
+                owner: lockedPlayer._id,
+                status: item.status,
+                "authenticity.forgery": true,
+                "authenticity.identified": { $ne: true },
+              },
+            );
       if (destroyedForgery.deletedCount !== 1) {
         return NextResponse.json(
           {
@@ -141,14 +149,17 @@ export async function POST(
           { status: 409 },
         );
       }
-      await deleteCommunityReactions(database, "item", [item._id]);
+      if (!preservedForgery) {
+        await deleteCommunityReactions(database, "item", [item._id]);
+      }
       archiveCompleted = true;
       return NextResponse.json({
         status: "ok",
-        forgeryDestroyed: true,
+        forgeryDestroyed: !preservedForgery,
         notificationKind: "warning",
-        message:
-          "The artwork you tried to archive was a forgery. Archive inspection destroyed it without adding anything to your archive.",
+        message: preservedForgery
+          ? "The artwork you tried to archive was a forgery. It was not archived, but the Hall of Fame preserved it."
+          : "The artwork you tried to archive was a forgery. Archive inspection destroyed it without adding anything to your archive.",
       });
     }
 
@@ -182,7 +193,11 @@ export async function POST(
             "profile.bank_balance": { $gte: purchaseAmount },
           },
           {
-            $inc: { "profile.bank_balance": -purchaseAmount },
+            $inc: {
+              "profile.bank_balance": -purchaseAmount,
+              "profile.playthrough_stats.items_collected": 1,
+              "profile.playthrough_stats.money_spent": purchaseAmount,
+            },
           },
         );
       if (charged.modifiedCount !== 1) {
@@ -203,24 +218,27 @@ export async function POST(
       item.card_renderer === undefined
         ? { card_renderer: { $exists: false } }
         : { card_renderer: item.card_renderer };
-    const removed = await database.collection<GameItem>("items").deleteOne({
-      _id: item._id,
-      owner: lockedPlayer._id,
-      status: item.status,
-      ...cardRendererFilter,
-      condition: item.condition,
-      mint: item.mint,
-      foil: item.foil,
-      unlocked: item.unlocked,
-      seasonal: item.seasonal,
-      lottery: item.lottery,
-      vintage: item.vintage,
-      repairing: item.repairing,
-      "authenticity.forgery": item.authenticity.forgery,
-      "authenticity.identified": item.authenticity.identified,
-      "values.actual": item.values.actual,
-      "values.dealer": item.values.dealer,
-    });
+    hallOfFameTransferred = await transferIfHallOfFameItem(database, item);
+    const removed = hallOfFameTransferred
+      ? { deletedCount: 1 }
+      : await database.collection<GameItem>("items").deleteOne({
+          _id: item._id,
+          owner: lockedPlayer._id,
+          status: item.status,
+          ...cardRendererFilter,
+          condition: item.condition,
+          mint: item.mint,
+          foil: item.foil,
+          unlocked: item.unlocked,
+          seasonal: item.seasonal,
+          lottery: item.lottery,
+          vintage: item.vintage,
+          repairing: item.repairing,
+          "authenticity.forgery": item.authenticity.forgery,
+          "authenticity.identified": item.authenticity.identified,
+          "values.actual": item.values.actual,
+          "values.dealer": item.values.dealer,
+        });
     if (removed.deletedCount !== 1) {
       if (archiveRecordAdded) {
         await removeItemFromArchiveRecord(
@@ -244,7 +262,9 @@ export async function POST(
     }
 
     archiveCompleted = true;
-    await deleteCommunityReactions(database, "item", [item._id]);
+    if (!hallOfFameTransferred) {
+      await deleteCommunityReactions(database, "item", [item._id]);
+    }
     if (chargedAmount > 0) {
       await recordEconomyMetricsSafely(database, [
         {
@@ -272,6 +292,13 @@ export async function POST(
       }. Its $${item.values.actual.toLocaleString()} value was added to the archive record.`,
     });
   } catch (error) {
+    if (hallOfFameTransferred && !archiveCompleted && item) {
+      await restoreTransferredHallOfFameItem(database, item).catch(
+        (restoreError) => {
+          console.error("Unable to restore Hall of Fame archive item", restoreError);
+        },
+      );
+    }
     if (archiveRecordAdded && !archiveCompleted && item) {
       await removeItemFromArchiveRecord(
         database,
@@ -320,7 +347,13 @@ async function refundArchivePurchase(
   if (amount <= 0) return;
   const refund = await database.collection<ArchivePlayer>("players").updateOne(
     { _id: playerId, active: true },
-    { $inc: { "profile.bank_balance": amount } },
+    {
+      $inc: {
+        "profile.bank_balance": amount,
+        "profile.playthrough_stats.items_collected": -1,
+        "profile.playthrough_stats.money_spent": -amount,
+      },
+    },
   );
   if (refund.modifiedCount !== 1) {
     throw new Error(

@@ -38,14 +38,11 @@ import {
   type GameItem,
   type LootData,
 } from "@/server/gameplay";
-import {
-  AUCTIONEER_BASE_PRIVATE_LOTS,
-  AUCTION_HOUSE_OWNER_ID,
-  createAuction,
-  getAuctionViews,
-  PRIVATE_AUCTION_DURATION_MINUTES,
-} from "@/server/auction-gameplay";
 import { hydrateGameItems } from "@/server/item-artwork";
+import {
+  restoreTransferredHallOfFameItem,
+  transferIfHallOfFameItem,
+} from "@/server/hall-of-fame";
 import {
   ART_COLLECTOR_ATTRIBUTE_ID,
   ART_DEALER_ATTRIBUTE_ID,
@@ -206,7 +203,10 @@ export async function POST(
       ],
     },
     {
-      $inc: { [`profile.npcs_met.${npc.quality}`]: 1 },
+      $inc: {
+        [`profile.npcs_met.${npc.quality}`]: 1,
+        "profile.playthrough_stats.visitors_met": 1,
+      },
       $set: { "profile.last_activity": now.toISOString() },
     },
   );
@@ -236,7 +236,12 @@ export async function POST(
           .updateOne({ _id: npc._id }, { $pull: { players_met: player._id } }),
         database.collection<Player>("players").updateOne(
           { _id: player._id },
-          { $inc: { [`profile.npcs_met.${npc.quality}`]: -1 } },
+          {
+            $inc: {
+              [`profile.npcs_met.${npc.quality}`]: -1,
+              "profile.playthrough_stats.visitors_met": -1,
+            },
+          },
         ),
       ]);
       console.error("Unable to grant standard NPC reward", error);
@@ -277,7 +282,12 @@ export async function POST(
           .updateOne({ _id: npc._id }, { $pull: { players_met: player._id } }),
         database.collection<Player>("players").updateOne(
           { _id: player._id },
-          { $inc: { [`profile.npcs_met.${npc.quality}`]: -1 } },
+          {
+            $inc: {
+              [`profile.npcs_met.${npc.quality}`]: -1,
+              "profile.playthrough_stats.visitors_met": -1,
+            },
+          },
         ),
       ]);
       console.error("Unable to complete Preservationist interaction", error);
@@ -332,7 +342,12 @@ export async function POST(
           .updateOne({ _id: npc._id }, { $pull: { players_met: player._id } }),
         database.collection<Player>("players").updateOne(
           { _id: player._id },
-          { $inc: { [`profile.npcs_met.${npc.quality}`]: -1 } },
+          {
+            $inc: {
+              [`profile.npcs_met.${npc.quality}`]: -1,
+              "profile.playthrough_stats.visitors_met": -1,
+            },
+          },
         ),
       ]);
       console.error("Unable to create Art Historian quest", error);
@@ -606,7 +621,12 @@ export async function POST(
           .updateOne({ _id: npc._id }, { $pull: { players_met: player._id } }),
         database.collection<Player>("players").updateOne(
           { _id: player._id },
-          { $inc: { [`profile.npcs_met.${npc.quality}`]: -1 } },
+          {
+            $inc: {
+              [`profile.npcs_met.${npc.quality}`]: -1,
+              "profile.playthrough_stats.visitors_met": -1,
+            },
+          },
         ),
       ]);
       console.error("Unable to complete Art Expert interaction", error);
@@ -800,7 +820,12 @@ export async function POST(
           .updateOne({ _id: npc._id }, { $pull: { players_met: player._id } }),
         database.collection<Player>("players").updateOne(
           { _id: player._id },
-          { $inc: { [`profile.npcs_met.${npc.quality}`]: -1 } },
+          {
+            $inc: {
+              [`profile.npcs_met.${npc.quality}`]: -1,
+              "profile.playthrough_stats.visitors_met": -1,
+            },
+          },
         ),
       ]);
       console.error("Unable to generate Art Donor offers", error);
@@ -1016,7 +1041,12 @@ export async function POST(
             .updateOne({ _id: npc._id }, { $pull: { players_met: player._id } }),
           database.collection<Player>("players").updateOne(
             { _id: player._id },
-            { $inc: { [`profile.npcs_met.${npc.quality}`]: -1 } },
+            {
+              $inc: {
+                [`profile.npcs_met.${npc.quality}`]: -1,
+                "profile.playthrough_stats.visitors_met": -1,
+              },
+            },
           ),
         ]);
         console.error("Unable to generate Art Dealer offers", error);
@@ -1034,6 +1064,7 @@ export async function POST(
 
   if (npc.attribute_id === ART_COLLECTOR_ATTRIBUTE_ID) {
     const generatedOfferIds: string[] = [];
+    let hallOfFameTransferred = false;
     let reservedTarget: GameItem | null = null;
     let removedTarget: GameItem | null = null;
 
@@ -1180,30 +1211,40 @@ export async function POST(
           );
       if (forgeryCaught) {
         if (shouldDestroyDetectedForgery(target)) {
-          const destroyed = await database.collection<GameItem>("items").deleteOne({
-            _id: target._id,
-            owner: player._id,
+          hallOfFameTransferred = await transferIfHallOfFameItem(database, {
+            ...target,
             status: "collector_pending",
-            "authenticity.forgery": true,
-            "authenticity.identified": true,
           });
+          const destroyed = hallOfFameTransferred
+            ? { deletedCount: 1 }
+            : await database.collection<GameItem>("items").deleteOne({
+                _id: target._id,
+                owner: player._id,
+                status: "collector_pending",
+                "authenticity.forgery": true,
+                "authenticity.identified": true,
+              });
           if (destroyed.deletedCount !== 1) {
             throw new Error(
               "The detected forgery could not be destroyed.",
             );
           }
-          await deleteCommunityReactions(database, "item", [target._id]);
+          if (!hallOfFameTransferred) {
+            await deleteCommunityReactions(database, "item", [target._id]);
+          }
           reservedTarget = null;
           return NextResponse.json({
             status: "ok",
-            message: `${npc.npc_name} detected the forgery. The sale failed and the artwork was destroyed.`,
+            message: hallOfFameTransferred
+              ? `${npc.npc_name} detected the forgery. The sale failed, and the Hall of Fame preserved the artwork.`
+              : `${npc.npc_name} detected the forgery. The sale failed and the artwork was destroyed.`,
             interaction: {
               type: "art-collector-result",
               npcName: npc.npc_name,
               quality: npc.quality,
               item: sanitizePlayerFacingAuthenticity(hydratedTarget),
               forgeryCaught: true,
-              itemDestroyed: true,
+              itemDestroyed: !hallOfFameTransferred,
               keptItem: false,
               rewardType: null,
               rewardAmount: 0,
@@ -1292,13 +1333,19 @@ export async function POST(
         }
         reservedTarget = null;
       } else {
-        const removed = await database.collection<GameItem>("items").deleteOne({
-          _id: target._id,
-          owner: player._id,
+        hallOfFameTransferred = await transferIfHallOfFameItem(database, {
+          ...target,
           status: "collector_pending",
         });
-        if (removed.deletedCount !== 1) {
-          throw new Error("The Collector could not collect the artwork.");
+        if (!hallOfFameTransferred) {
+          const removed = await database.collection<GameItem>("items").deleteOne({
+            _id: target._id,
+            owner: player._id,
+            status: "collector_pending",
+          });
+          if (removed.deletedCount !== 1) {
+            throw new Error("The Collector could not collect the artwork.");
+          }
         }
         removedTarget = target;
         reservedTarget = null;
@@ -1381,7 +1428,9 @@ export async function POST(
         },
       ]);
       if (!keptItem) {
-        await deleteCommunityReactions(database, "item", [target._id]);
+        if (!hallOfFameTransferred) {
+          await deleteCommunityReactions(database, "item", [target._id]);
+        }
         await rewardUndetectedForgeryExit(database, hydratedTarget, {
           artworkTitle: hydratedTarget.artwork.title,
           method: "collector",
@@ -1414,7 +1463,12 @@ export async function POST(
           .updateOne({ _id: npc._id }, { $pull: { players_met: player._id } }),
         database.collection<Player>("players").updateOne(
           { _id: player._id },
-          { $inc: { [`profile.npcs_met.${npc.quality}`]: -1 } },
+          {
+            $inc: {
+              [`profile.npcs_met.${npc.quality}`]: -1,
+              "profile.playthrough_stats.visitors_met": -1,
+            },
+          },
         ),
       ];
       if (generatedOfferIds.length > 0) {
@@ -1440,10 +1494,15 @@ export async function POST(
         );
       } else if (removedTarget) {
         cleanup.push(
-          database.collection<GameItem>("items").insertOne({
-            ...removedTarget,
-            status: "claimed",
-          }),
+          hallOfFameTransferred
+            ? restoreTransferredHallOfFameItem(database, {
+                ...removedTarget,
+                status: "claimed",
+              })
+            : database.collection<GameItem>("items").insertOne({
+                ...removedTarget,
+                status: "claimed",
+              }),
         );
       }
       await Promise.all(cleanup);

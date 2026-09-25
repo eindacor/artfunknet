@@ -59,8 +59,12 @@ export async function POST(request: Request) {
   const auth = await requirePlayerApi();
   if (!auth.ok) return auth.response;
 
-  const body = (await request.json()) as EraRequest;
-  const submittedItemIds = body.itemIds || (body.itemId ? [body.itemId] : []);
+  const body = (await request.json().catch(() => null)) as EraRequest | null;
+  const submittedItemIds = Array.isArray(body?.itemIds)
+    ? body.itemIds.filter((itemId): itemId is string => typeof itemId === "string")
+    : typeof body?.itemId === "string"
+      ? [body.itemId]
+      : [];
 
   const database = await getDatabase();
   const settings = await getGameplaySettings(database);
@@ -108,26 +112,34 @@ export async function POST(request: Request) {
 
   const eligibleItems = ownedItems.filter(
     (item) =>
-      item.status === "claimed" &&
+      (item.status === "claimed" || item.status === "displayed") &&
       !item.vintage &&
       !item.original &&
       !item.repairing,
   );
 
-  const targetCount = Math.min(requiredCount, eligibleItems.length);
-  if (submittedItemIds.length < targetCount) {
+  if (eligibleItems.length < requiredCount) {
     return NextResponse.json(
       {
-        error: `Select ${targetCount} items for vintage consideration.`,
+        error: `Collect at least ${requiredCount} eligible items before entering a new era.`,
+      },
+      { status: 409 },
+    );
+  }
+  const uniqueSubmittedItemIds = [...new Set(submittedItemIds)];
+  if (uniqueSubmittedItemIds.length !== requiredCount) {
+    return NextResponse.json(
+      {
+        error: `Select exactly ${requiredCount} different items for vintage consideration.`,
       },
       { status: 400 },
     );
   }
 
   const candidateItems = eligibleItems.filter((item) =>
-    submittedItemIds.includes(item._id),
+    uniqueSubmittedItemIds.includes(item._id),
   );
-  if (candidateItems.length < targetCount) {
+  if (candidateItems.length !== requiredCount) {
     return NextResponse.json(
       { error: "Some submitted items are ineligible for vintage consideration." },
       { status: 400 },
@@ -211,9 +223,7 @@ export async function POST(request: Request) {
   }
 
   // Hydrate gallery items for snapshot
-  const galleryItems = ownedItems.filter(
-    (item) => item.status === "displayed" || item.status === "claimed",
-  );
+  const galleryItems = ownedItems.filter((item) => item.status === "displayed");
   const artworkIds = Array.from(
     new Set(galleryItems.map((item) => item.artwork_id)),
   );
@@ -222,35 +232,26 @@ export async function POST(request: Request) {
     .find({ _id: { $in: artworkIds } })
     .toArray();
   const artworkMap = new Map(artworks.map((a) => [a._id, a]));
+  if (artworkMap.size !== artworkIds.length) {
+    await releaseVintageLock(database, player._id, operationToken);
+    return NextResponse.json(
+      { error: "Some displayed artwork metadata is unavailable." },
+      { status: 409 },
+    );
+  }
 
-  const gallerySnapshot = galleryItems.map((item) => ({
-    ...item,
-    artwork_title: artworkMap.get(item.artwork_id)?.title,
-    artist_name: artworkMap.get(item.artwork_id)?.artist,
-  }));
-
-  const selectedItemSnapshot = {
-    ...selectedItem,
-    artwork_title: artwork.title,
-    artist_name: artwork.artist,
-  };
+  const gallerySnapshot = galleryItems.map((item) => {
+    const itemArtwork = artworkMap.get(item.artwork_id)!;
+    return {
+      ...item,
+      artwork: { ...itemArtwork, ...item.artwork_overrides },
+      artwork_title: itemArtwork.title,
+      artist_name: itemArtwork.artist,
+    };
+  });
 
   const playthroughNumber =
     (player.profile.playthrough_stats?.playthrough_count || 0) + 1;
-
-  // Save playthrough snapshot
-  await savePlaythroughSnapshot(database, {
-    player_id: player._id,
-    playthrough_number: playthroughNumber,
-    created_at: now.toISOString(),
-    selected_vintage_item: selectedItemSnapshot,
-    gallery_snapshot: gallerySnapshot,
-    stats: {
-      visitors_met: player.profile.playthrough_stats?.visitors_met || 0,
-      items_collected: player.profile.playthrough_stats?.items_collected || 0,
-      money_spent: player.profile.playthrough_stats?.money_spent || 0,
-    },
-  });
 
   const { keptItems, removedItems } = partitionVintageItems(
     ownedItems,
@@ -261,16 +262,67 @@ export async function POST(request: Request) {
     { ...artwork, ...selectedItem.artwork_overrides },
     lootMetadata.loot_data,
   );
+  const selectedItemSnapshot = {
+    ...selectedItem,
+    vintage: true,
+    status: "claimed" as const,
+    values: selectedValues,
+    artwork: { ...artwork, ...selectedItem.artwork_overrides },
+    artwork_title: artwork.title,
+    artist_name: artwork.artist,
+  };
 
+  let snapshotId: string | null = null;
+  const deletedItemIds: string[] = [];
   try {
-    // Process items to remove: Check if in Hall of Fame before deleting!
+    const reserved = await database.collection<GameItem>("items").bulkWrite(
+      ownedItems.map((item) => ({
+        updateOne: {
+          filter: {
+            _id: item._id,
+            owner: item.owner,
+            status: item.status,
+            vintage_operation_token: { $exists: false },
+          },
+          update: {
+            $set: { vintage_operation_token: operationToken },
+          },
+        },
+      })),
+    );
+    if (reserved.matchedCount !== ownedItems.length) {
+      throw new Error("The player's collection changed during preparation.");
+    }
+
+    const snapshot = await savePlaythroughSnapshot(database, {
+      player_id: player._id,
+      playthrough_number: playthroughNumber,
+      created_at: now.toISOString(),
+      selected_vintage_item: selectedItemSnapshot,
+      gallery_snapshot: gallerySnapshot,
+      stats: {
+        visitors_met: player.profile.playthrough_stats?.visitors_met || 0,
+        items_collected: player.profile.playthrough_stats?.items_collected || 0,
+        money_spent: player.profile.playthrough_stats?.money_spent || 0,
+      },
+    });
+    snapshotId = snapshot._id;
+
     for (const removedItem of removedItems) {
-      const isHoF = await transferIfHallOfFameItem(database, removedItem._id);
+      const isHoF = await transferIfHallOfFameItem(database, removedItem);
       if (!isHoF) {
-        await database.collection<GameItem>("items").deleteOne({
+        const removed = await database.collection<GameItem>("items").deleteOne({
           _id: removedItem._id,
           owner: player._id,
+          status: removedItem.status,
+          vintage_operation_token: operationToken,
         });
+        if (removed.deletedCount !== 1) {
+          throw new Error(
+            `Item ${removedItem._id} changed before the era transition.`,
+          );
+        }
+        deletedItemIds.push(removedItem._id);
       }
     }
 
@@ -278,10 +330,11 @@ export async function POST(request: Request) {
       (item) => item._id !== selectedItem._id,
     );
     if (retainedExistingItems.length > 0) {
-      await database.collection<GameItem>("items").updateMany(
+      const retained = await database.collection<GameItem>("items").updateMany(
         {
           _id: { $in: retainedExistingItems.map((item) => item._id) },
           owner: player._id,
+          vintage_operation_token: operationToken,
           $or: [{ vintage: true }, { original: true }],
         },
         {
@@ -294,12 +347,21 @@ export async function POST(request: Request) {
           },
         },
       );
+      if (retained.matchedCount !== retainedExistingItems.length) {
+        throw new Error(
+          "Not every existing vintage or original item could be retained.",
+        );
+      }
     }
 
     const converted = await database.collection<GameItem>("items").updateOne(
       {
         _id: selectedItem._id,
         owner: player._id,
+        status: selectedItem.status,
+        vintage_operation_token: operationToken,
+        vintage: { $ne: true },
+        repairing: { $ne: true },
       },
       {
         $set: {
@@ -320,9 +382,23 @@ export async function POST(request: Request) {
     }
 
     if (quests.length > 0) {
-      await database
+      const removedQuests = await database
         .collection("quests")
         .deleteMany({ owner_id: player._id });
+      if (removedQuests.deletedCount !== quests.length) {
+        throw new Error("Current quests could not be reset.");
+      }
+    }
+
+    const retainedAfterTransition = await database
+      .collection<GameItem>("items")
+      .countDocuments({
+        _id: { $in: keptItems.map((item) => item._id) },
+        owner: player._id,
+        vintage_operation_token: operationToken,
+      });
+    if (retainedAfterTransition !== keptItems.length) {
+      throw new Error("The retained collection changed during the transition.");
     }
 
     const caps = getCapsForLevel(0);
@@ -369,7 +445,22 @@ export async function POST(request: Request) {
       throw new Error("The player profile could not be reset for the new era.");
     }
   } catch (error) {
-    await releaseVintageLock(database, player._id, operationToken);
+    if (snapshotId) {
+      await database
+        .collection<{ _id: string }>("playthrough_snapshots")
+        .deleteOne({ _id: snapshotId })
+        .catch((cleanupError) => {
+          console.error("Unable to remove failed playthrough snapshot", cleanupError);
+        });
+    }
+    await restoreVintageOperation(
+      database,
+      player._id,
+      operationToken,
+      ownedItems,
+      quests,
+      deletedItemIds,
+    );
     console.error("Unable to start new era", error);
     return NextResponse.json(
       { error: "The new era could not be started." },
@@ -377,10 +468,16 @@ export async function POST(request: Request) {
     );
   }
 
+  await database.collection<GameItem>("items").updateMany(
+    { vintage_operation_token: operationToken },
+    { $unset: { vintage_operation_token: "" } },
+  ).catch((cleanupError) => {
+    console.error("Unable to clear completed vintage item reservations", cleanupError);
+  });
   await deleteCommunityReactions(
     database,
     "item",
-    removedItems.map((item) => item._id),
+    deletedItemIds,
   );
   await refreshGalleryMetadata(database, player._id);
 
@@ -402,4 +499,42 @@ async function releaseVintageLock(
     },
     { $unset: { "profile.vintage_operation": "" } },
   );
+}
+
+async function restoreVintageOperation(
+  database: Awaited<ReturnType<typeof getDatabase>>,
+  playerId: string,
+  operationToken: string,
+  items: GameItem[],
+  quests: VintageQuest[],
+  deletedItemIds: string[],
+) {
+  try {
+    for (const item of items) {
+      if (deletedItemIds.includes(item._id)) {
+        await database
+          .collection<GameItem>("items")
+          .replaceOne({ _id: item._id }, item, { upsert: true });
+        continue;
+      }
+      await database.collection<GameItem>("items").replaceOne(
+        {
+          _id: item._id,
+          vintage_operation_token: operationToken,
+        },
+        item,
+      );
+    }
+    if (quests.length > 0) {
+      await Promise.all(
+        quests.map((quest) =>
+          database
+            .collection<VintageQuest>("quests")
+            .replaceOne({ _id: quest._id }, quest, { upsert: true }),
+        ),
+      );
+    }
+  } finally {
+    await releaseVintageLock(database, playerId, operationToken);
+  }
 }

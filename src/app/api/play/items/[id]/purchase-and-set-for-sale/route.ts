@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { recordEconomyMetricsSafely } from "@/server/economy-metrics";
+import { checkItemForHallOfFameStatus } from "@/server/hall-of-fame";
 import type { GameItem } from "@/server/gameplay";
 import {
   getDisplayedLegendaryEffect,
@@ -16,6 +17,8 @@ import { requirePlayerApi } from "@/server/player-api";
 type Player = {
   _id: string;
   active: boolean;
+  screen_name: string;
+  test_account?: boolean;
   profile: {
     bank_balance: number;
     inventory_cap: number;
@@ -98,7 +101,11 @@ export async function POST(
       "profile.bank_balance": { $gte: amount },
     },
     {
-      $inc: { "profile.bank_balance": -amount },
+      $inc: {
+        "profile.bank_balance": -amount,
+        "profile.playthrough_stats.items_collected": 1,
+        "profile.playthrough_stats.money_spent": amount,
+      },
       $set: { "profile.last_activity": now },
     },
     { returnDocument: "after" },
@@ -133,7 +140,13 @@ export async function POST(
       .collection<Player>("players")
       .updateOne(
         { _id: player._id },
-        { $inc: { "profile.bank_balance": amount } },
+        {
+          $inc: {
+            "profile.bank_balance": amount,
+            "profile.playthrough_stats.items_collected": -1,
+            "profile.playthrough_stats.money_spent": -amount,
+          },
+        },
       );
     if (refund.modifiedCount !== 1) {
       console.error(
@@ -159,6 +172,16 @@ export async function POST(
       source: "item-purchase",
     },
   ]);
+  await checkItemForHallOfFameStatus(
+    database,
+    { ...item, ...setter, tags: [...item.tags, "for sale"] },
+    player,
+  ).catch((error) => {
+    console.error(
+      `Unable to submit purchased item ${item._id} for Hall of Fame review`,
+      error,
+    );
+  });
 
   return NextResponse.json({
     status: "ok",

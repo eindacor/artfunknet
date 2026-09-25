@@ -49,10 +49,13 @@ export function getVintagePlaythroughPermission({
         "Resolve every auction you are selling or currently winning before beginning a new playthrough.",
     };
   }
-  if (!selectedItem || selectedItem.status !== "claimed") {
+  if (
+    !selectedItem ||
+    (selectedItem.status !== "claimed" && selectedItem.status !== "displayed")
+  ) {
     return {
       allowed: false,
-      reason: "Choose an item from your inventory to make vintage.",
+      reason: "Choose an item from your collection to make vintage.",
     };
   }
   if (selectedItem.original) {

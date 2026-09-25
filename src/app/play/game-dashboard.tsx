@@ -7,12 +7,14 @@ import ArchiveEntryDialog from "@/components/archive-entry-dialog";
 import ForgeryDialog from "@/components/forgery-dialog";
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
 import ItemThumbnail from "@/components/item-thumbnail";
+import HallOfFamePanel from "@/components/hall-of-fame-panel";
 import RafflePanel, {
   type RafflePrizeView,
 } from "@/components/raffle-panel";
 import EnterEraDialog from "@/components/enter-era-dialog";
 import PlayHistoryPanel from "@/components/play-history-panel";
 import type { PlaythroughSnapshot } from "@/server/playthrough-snapshots";
+import type { HallOfFameDisplayRecord } from "@/server/hall-of-fame";
 import {
   getGalleryPaintingDimension,
   getGalleryPixelsPerCentimeter,
@@ -201,6 +203,8 @@ export default function GameDashboard({
   marketExpertExpiration,
   linkedItem,
   forgePricing,
+  activeAuctionCount = 0,
+  hallOfFameRecords = [],
   playthroughSnapshots = [],
   vintageConsiderationCount = 10,
 }: {
@@ -238,6 +242,8 @@ export default function GameDashboard({
     mintValueMultiplier: number;
     seasonalArtworkIds: string[];
   };
+  activeAuctionCount?: number;
+  hallOfFameRecords?: HallOfFameDisplayRecord[];
   playthroughSnapshots?: PlaythroughSnapshot[];
   vintageConsiderationCount?: number;
 }) {
@@ -256,13 +262,16 @@ export default function GameDashboard({
     | "quests"
     | "auctions"
     | "raffle"
+    | "history"
   >(
     initialGalleryId
       ? "explore"
-      : initialSection === "raffle"
-        ? "raffle"
-        : initialSection === "auctions"
-          ? "auctions"
+      : initialSection === "history"
+        ? "history"
+        : initialSection === "raffle"
+          ? "raffle"
+          : initialSection === "auctions"
+            ? "auctions"
       : items.some((item) => item.status === "unclaimed")
         ? "loot"
         : "profile",
@@ -499,7 +508,7 @@ export default function GameDashboard({
     () =>
       items.filter(
         (item) =>
-          item.status === "claimed" &&
+          (item.status === "claimed" || item.status === "displayed") &&
           !item.vintage &&
           !item.original &&
           !item.repairing,
@@ -1350,6 +1359,7 @@ export default function GameDashboard({
               { id: "quests", label: "Quests", icon: "fa-map-signs" },
               { id: "auctions", label: "Auction House", icon: "fa-gavel" },
               { id: "raffle", label: "Lottery", icon: "fa-ticket" },
+              { id: "history", label: "History", icon: "fa-history" },
             ] as const
           ).map((tab) => (
             <button
@@ -1402,19 +1412,26 @@ export default function GameDashboard({
                     <span
                       className="vintage-runback-button-wrap"
                       title={
-                        vintageCandidates.length === 0
-                          ? "No eligible items to restart with"
+                        activeAuctionCount > 0
+                          ? "Resolve all active auctions before entering a new era"
+                          : vintageCandidates.length < vintageConsiderationCount
+                            ? `Collect ${vintageConsiderationCount} eligible items before entering a new era`
                           : "Enter a new era"
                       }
                     >
                       <button
                         aria-label={
-                          vintageCandidates.length === 0
-                            ? "No eligible items to restart with"
+                          activeAuctionCount > 0
+                            ? "Resolve all active auctions before entering a new era"
+                            : vintageCandidates.length < vintageConsiderationCount
+                              ? `Collect ${vintageConsiderationCount} eligible items before entering a new era`
                             : "Enter a new era"
                         }
                         className="vintage-runback-button"
-                        disabled={vintageCandidates.length === 0}
+                        disabled={
+                          activeAuctionCount > 0 ||
+                          vintageCandidates.length < vintageConsiderationCount
+                        }
                         onClick={() => setVintageDialogOpen(true)}
                         type="button"
                       >
@@ -1596,10 +1613,14 @@ export default function GameDashboard({
                   galleryRates={galleryRates}
                 />
               ) : null}
-              {playthroughSnapshots && playthroughSnapshots.length > 0 ? (
-                <PlayHistoryPanel snapshots={playthroughSnapshots} />
-              ) : null}
             </aside>
+          </section>
+        ) : null}
+
+        {section === "history" ? (
+          <section className="player-history-layout">
+            <HallOfFamePanel records={hallOfFameRecords} />
+            <PlayHistoryPanel snapshots={playthroughSnapshots} />
           </section>
         ) : null}
 
@@ -2698,6 +2719,7 @@ export default function GameDashboard({
           <EnterEraDialog
             items={vintageCandidates}
             requiredCount={vintageConsiderationCount}
+            activeAuctionCount={activeAuctionCount}
             onClose={() => setVintageDialogOpen(false)}
             onComplete={(message) => {
               setVintageDialogOpen(false);
@@ -4304,7 +4326,6 @@ function AuthenticityActions({
   gridSlot?: ActionGridSlot;
 }) {
   const authenticate = item.authenticationPermission;
-  const report = item.redemptionPermission;
   const allowed = authenticate?.allowed === true;
   return (
     <>

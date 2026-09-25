@@ -14,6 +14,7 @@ import {
   transferForgeryLiability,
 } from "./forgery-gameplay.ts";
 import type { ArtworkRarity, GameItem } from "./gameplay.ts";
+import { transferHallOfFameItems } from "./hall-of-fame.ts";
 import { hydrateGameItems, type HydratedGameItem } from "./item-artwork.ts";
 import { getPlayerFacingArchivePermission, type ItemPermission } from "./item-permissions.ts";
 
@@ -190,9 +191,17 @@ export async function processBulkForgeries(
     rollForgeryDetected(item, context),
   );
   const caughtIds = new Set(caughtItems.map((item) => item._id));
-  const destroyedIds = caughtItems
+  const destroyableItems = caughtItems
     .filter(shouldDestroyDetectedForgery)
-    .map((item) => item._id);
+    .map((item) => items.find((candidate) => candidate._id === item._id))
+    .filter((item): item is GameItem => Boolean(item));
+  const preservedIds = await transferHallOfFameItems(
+    database,
+    destroyableItems,
+  );
+  const destroyedIds = destroyableItems
+    .map((item) => item._id)
+    .filter((itemId) => !preservedIds.has(itemId));
 
   if (destroyedIds.length > 0) {
     const destroyed = await database.collection<GameItem>("items").deleteMany({
@@ -308,10 +317,18 @@ export async function recoverPendingBulkOperations(
       .filter((id): id is string => Boolean(id)),
   )) {
     if (credited.has(operationId)) {
-      const operationItemIds = pending
-        .filter((item) => item[config.operationField] === operationId)
-        .map((item) => item._id);
+      const operationItems = pending.filter(
+        (item) => item[config.operationField] === operationId,
+      );
+      const hallOfFameIds = await transferHallOfFameItems(
+        database,
+        operationItems,
+      );
+      const operationItemIds = operationItems
+        .map((item) => item._id)
+        .filter((itemId) => !hallOfFameIds.has(itemId));
       await database.collection<GameItem>("items").deleteMany({
+        _id: { $in: operationItemIds },
         owner: playerId,
         status: config.status,
         [config.operationField]: operationId,

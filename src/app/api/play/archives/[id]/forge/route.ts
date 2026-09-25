@@ -19,6 +19,7 @@ import {
   type LootData,
 } from "@/server/gameplay";
 import { getGameplaySettings } from "@/server/game-settings";
+import { checkItemForHallOfFameStatus } from "@/server/hall-of-fame";
 import { getRerollCost } from "@/server/item-reroll";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
@@ -26,6 +27,8 @@ import { requirePlayerApi } from "@/server/player-api";
 type Player = {
   _id: string;
   active: boolean;
+  screen_name: string;
+  test_account?: boolean;
   profile: {
     bank_balance: number;
     inventory_cap: number;
@@ -165,14 +168,30 @@ export async function POST(
   try {
     const charge = await database.collection<Player>("players").updateOne(
       { _id: player._id, active: true, "profile.bank_balance": { $gte: cost } },
-      { $inc: { "profile.bank_balance": -cost }, $set: { "profile.last_activity": timestamp } },
+      {
+        $inc: {
+          "profile.bank_balance": -cost,
+          "profile.playthrough_stats.items_collected": 1,
+          "profile.playthrough_stats.money_spent": cost,
+        },
+        $set: { "profile.last_activity": timestamp },
+      },
     );
     if (charge.modifiedCount !== 1) throw new Error("The forging cost could not be charged.");
     charged = true;
     await database.collection<GameItem>("items").insertOne(item);
   } catch (error) {
     if (charged) {
-      await database.collection<Player>("players").updateOne({ _id: player._id }, { $inc: { "profile.bank_balance": cost } });
+      await database.collection<Player>("players").updateOne(
+        { _id: player._id },
+        {
+          $inc: {
+            "profile.bank_balance": cost,
+            "profile.playthrough_stats.items_collected": -1,
+            "profile.playthrough_stats.money_spent": -cost,
+          },
+        },
+      );
     }
     console.error("Unable to forge archived artwork", error);
     return NextResponse.json({ error: "The forgery could not be completed." }, { status: 500 });
@@ -182,6 +201,12 @@ export async function POST(
     currency: "money",
     direction: "spent",
     source: "forge",
+  });
+  await checkItemForHallOfFameStatus(database, item, player).catch((error) => {
+    console.error(
+      `Unable to submit forged item ${item._id} for Hall of Fame review`,
+      error,
+    );
   });
   return NextResponse.json({
     status: "ok",

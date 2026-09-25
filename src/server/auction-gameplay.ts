@@ -27,6 +27,10 @@ import {
   type GameItem,
   type LootData,
 } from "./gameplay.ts";
+import {
+  checkItemForHallOfFameStatus,
+  transferIfHallOfFameItem,
+} from "./hall-of-fame.ts";
 import { hydrateGameItems, type HydratedGameItem } from "./item-artwork.ts";
 import {
   getDisplayedLegendaryEffect,
@@ -91,6 +95,7 @@ type AuctionPlayer = {
   _id: string;
   screen_name: string;
   active: boolean;
+  test_account?: boolean;
   profile: {
     bank_balance: number;
     level: number;
@@ -467,6 +472,7 @@ export async function settleAuction(
 
   const items = database.collection<GameItem>("items");
   let sellerPaid = false;
+  let winnerStatsTracked = false;
   let itemTransferred = false;
   try {
     if (
@@ -515,11 +521,18 @@ export async function settleAuction(
           return false;
         }
       } else {
-        const removedItem = await items.deleteOne({
+        const preserved = await transferIfHallOfFameItem(database, {
           _id: auction.item_id,
+          owner: AUCTION_HOUSE_OWNER_ID,
           status: "auctioned",
         });
-        if (removedItem.deletedCount === 1) {
+        const removedItem = preserved
+          ? { deletedCount: 1 }
+          : await items.deleteOne({
+              _id: auction.item_id,
+              status: "auctioned",
+            });
+        if (removedItem.deletedCount === 1 && !preserved) {
           await deleteCommunityReactions(database, "item", [auction.item_id]);
         }
       }
@@ -621,6 +634,28 @@ export async function settleAuction(
       }
       sellerPaid = true;
     }
+    const trackedWinner = await database
+      .collection<AuctionPlayer>("players")
+      .updateOne(
+        { _id: auction.current_winner_id, active: true },
+        {
+          $inc: {
+            "profile.playthrough_stats.items_collected": 1,
+            "profile.playthrough_stats.money_spent": auction.current_bid,
+          },
+        },
+      );
+    if (trackedWinner.modifiedCount !== 1) {
+      if (sellerPaid && auction.seller_id) {
+        await database.collection<AuctionPlayer>("players").updateOne(
+          { _id: auction.seller_id },
+          { $inc: { "profile.bank_balance": -auction.current_bid } },
+        );
+      }
+      await resetSettlement(database, auction._id);
+      return false;
+    }
+    winnerStatsTracked = true;
     const transfer = await items.updateOne(
       { _id: auction.item_id, status: "auctioned" },
       {
@@ -649,6 +684,16 @@ export async function settleAuction(
       },
     );
     if (transfer.modifiedCount !== 1) {
+      winnerStatsTracked = false;
+      await database.collection<AuctionPlayer>("players").updateOne(
+        { _id: auction.current_winner_id },
+        {
+          $inc: {
+            "profile.playthrough_stats.items_collected": -1,
+            "profile.playthrough_stats.money_spent": -auction.current_bid,
+          },
+        },
+      );
       if (sellerPaid && auction.seller_id) {
         await database.collection<AuctionPlayer>("players").updateOne(
           { _id: auction.seller_id },
@@ -715,10 +760,46 @@ export async function settleAuction(
           : ""
       }.`,
     });
+    const winner = await database.collection<AuctionPlayer>("players").findOne({
+      _id: auction.current_winner_id,
+    });
+    const settledItem = await items.findOne({
+      _id: auction.item_id,
+      owner: auction.current_winner_id,
+      status: "claimed",
+    });
+    if (winner && settledItem) {
+      await checkItemForHallOfFameStatus(
+        database,
+        settledItem,
+        winner,
+      ).catch((error) => {
+        console.error(
+          `Unable to submit auction item ${auction.item_id} for Hall of Fame review`,
+          error,
+        );
+      });
+    }
     return true;
   } catch (error) {
     console.error(`Unable to settle auction ${auction._id}`, error);
     if (!itemTransferred) {
+      if (winnerStatsTracked && auction.current_winner_id) {
+        await database.collection<AuctionPlayer>("players").updateOne(
+          { _id: auction.current_winner_id },
+          {
+            $inc: {
+              "profile.playthrough_stats.items_collected": -1,
+              "profile.playthrough_stats.money_spent": -auction.current_bid,
+            },
+          },
+        ).catch((rollbackError) => {
+          console.error(
+            `Unable to roll back winner playthrough stats for auction ${auction._id}`,
+            rollbackError,
+          );
+        });
+      }
       if (sellerPaid && auction.seller_id) {
         await database.collection<AuctionPlayer>("players").updateOne(
           { _id: auction.seller_id },

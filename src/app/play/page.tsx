@@ -7,7 +7,7 @@ import {
   getArchiveRecordModifiers,
   type PlayerArtworkArchive,
 } from "@/server/archive-gameplay";
-import { backfillExistingHallOfFameItems } from "@/server/hall-of-fame";
+import { getHallOfFameDisplayRecords } from "@/server/hall-of-fame";
 import { getPlayerPlaythroughHistory } from "@/server/playthrough-snapshots";
 import { ensureArchiveStorage } from "@/server/archive-storage";
 import { getArtHistorianQuestViews } from "@/server/art-historian-gameplay";
@@ -139,11 +139,17 @@ export default async function PlayerPage({
   await ensurePlayerKarma(database, session.playerId);
   await removeExpiredTransientItems(database);
   await ensureArchiveStorage(database);
-  await backfillExistingHallOfFameItems(database);
-  const playthroughSnapshots = await getPlayerPlaythroughHistory(
-    database,
-    session.playerId,
-  );
+  const [playthroughSnapshots, hallOfFameRecords, activeAuctionCount] =
+    await Promise.all([
+      getPlayerPlaythroughHistory(database, session.playerId),
+      getHallOfFameDisplayRecords(database),
+      database.collection("auctions").countDocuments({
+        $or: [
+          { seller_id: session.playerId },
+          { current_winner_id: session.playerId },
+        ],
+      }),
+    ]);
   await settlePendingForgeryLiability(database, session.playerId);
   const settings = await getGameplaySettings(database);
   const cardRendererSettings = await getCardRendererSettings(database);
@@ -441,6 +447,7 @@ export default async function PlayerPage({
         archiveArtStyleIds={cardRendererSettings.activeRendererIds.filter(
           (rendererId) => rendererId !== "museum",
         )}
+        activeAuctionCount={activeAuctionCount}
         archives={JSON.parse(JSON.stringify(archives))}
         forgePricing={{
           lootData: JSON.parse(JSON.stringify(lootMetadata.loot_data)),
@@ -529,6 +536,7 @@ export default async function PlayerPage({
           viewSettings: getPlayerViewSettings(player.profile.view_settings),
         }}
         playthroughSnapshots={JSON.parse(JSON.stringify(playthroughSnapshots))}
+        hallOfFameRecords={JSON.parse(JSON.stringify(hallOfFameRecords))}
         vintageConsiderationCount={config.vintageConsiderationCount}
       />
     </div>

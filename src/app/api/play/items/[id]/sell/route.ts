@@ -15,7 +15,10 @@ import {
   getDisplayedLegendaryEffect,
   getLegendaryNumberParameter,
 } from "@/server/legendary-attributes";
-import { transferIfHallOfFameItem } from "@/server/hall-of-fame";
+import {
+  restoreTransferredHallOfFameItem,
+  transferIfHallOfFameItem,
+} from "@/server/hall-of-fame";
 import { getDatabase } from "@/server/mongodb";
 import { removeExpiredTransientItems } from "@/server/item-expiration";
 import { requirePlayerApi } from "@/server/player-api";
@@ -62,13 +65,16 @@ export async function POST(
     const [hydrated] = await hydrateGameItems(database, [item]);
     if (rollForgeryDetected(hydrated, "sell")) {
       if (shouldDestroyDetectedForgery(item)) {
-        const destroyed = await database.collection<GameItem>("items").deleteOne({
-          _id: item._id,
-          owner: auth.session.playerId,
-          status: item.status,
-          "authenticity.forgery": true,
-          "authenticity.identified": true,
-        });
+        const preserved = await transferIfHallOfFameItem(database, item);
+        const destroyed = preserved
+          ? { deletedCount: 1 }
+          : await database.collection<GameItem>("items").deleteOne({
+              _id: item._id,
+              owner: auth.session.playerId,
+              status: item.status,
+              "authenticity.forgery": true,
+              "authenticity.identified": true,
+            });
         if (destroyed.deletedCount !== 1) {
           return NextResponse.json(
             {
@@ -78,16 +84,19 @@ export async function POST(
             { status: 409 },
           );
         }
-        await deleteCommunityReactions(database, "item", [item._id]);
-        const message =
-          "The buyer detected the forgery. The sale failed and the artwork was destroyed.";
+        if (!preserved) {
+          await deleteCommunityReactions(database, "item", [item._id]);
+        }
+        const message = preserved
+          ? "The buyer detected the forgery. The sale failed, and the Hall of Fame preserved the artwork."
+          : "The buyer detected the forgery. The sale failed and the artwork was destroyed.";
         return NextResponse.json({
           status: "ok",
           amount: 0,
           message,
           notificationKind: "error",
           actionDialog: {
-            variant: "destroyed",
+            variant: preserved ? "returned" : "destroyed",
             title: "Forgery detected",
             message,
           },
@@ -121,7 +130,7 @@ export async function POST(
       });
     }
   }
-  const isHoF = await transferIfHallOfFameItem(database, item._id);
+  const isHoF = await transferIfHallOfFameItem(database, item);
   const removed = isHoF
     ? item
     : await database.collection<GameItem>("items").findOneAndDelete({
@@ -162,13 +171,19 @@ export async function POST(
     },
   );
   if (result.modifiedCount !== 1) {
-    await database.collection<GameItem>("items").insertOne(removed);
+    if (isHoF) {
+      await restoreTransferredHallOfFameItem(database, item);
+    } else {
+      await database.collection<GameItem>("items").insertOne(removed);
+    }
     return NextResponse.json(
       { error: "The sale could not be applied to your account." },
       { status: 500 },
     );
   }
-  await deleteCommunityReactions(database, "item", [item._id]);
+  if (!isHoF) {
+    await deleteCommunityReactions(database, "item", [item._id]);
+  }
   const [hydratedItem] = await hydrateGameItems(database, [item]);
   await rewardUndetectedForgeryExit(database, hydratedItem, {
     artworkTitle: hydratedItem.artwork.title,

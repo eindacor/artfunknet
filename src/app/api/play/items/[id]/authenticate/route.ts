@@ -42,7 +42,10 @@ export async function POST(
       "profile.bank_balance": { $gte: cost },
     },
     {
-      $inc: { "profile.bank_balance": -cost },
+      $inc: {
+        "profile.bank_balance": -cost,
+        "profile.playthrough_stats.money_spent": cost,
+      },
       $set: { "profile.last_activity": new Date().toISOString() },
     },
   );
@@ -66,7 +69,12 @@ export async function POST(
   if (authenticated.modifiedCount !== 1) {
     await database.collection<Player>("players").updateOne(
       { _id: auth.session.playerId },
-      { $inc: { "profile.bank_balance": cost } },
+      {
+        $inc: {
+          "profile.bank_balance": cost,
+          "profile.playthrough_stats.money_spent": -cost,
+        },
+      },
     );
     return NextResponse.json(
       { error: "The artwork changed before it could be authenticated." },

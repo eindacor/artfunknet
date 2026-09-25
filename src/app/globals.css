@@ -1049,19 +1049,21 @@ a.welcome-button {
 .vintage-runback-button {
   position: relative;
   display: inline-grid;
-  width: 34px;
-  height: 34px;
+  min-height: 34px;
   place-items: center;
   flex: 0 0 auto;
   border: 1px solid #9c6a3f;
-  border-radius: 50%;
+  border-radius: 999px;
+  padding: 0 14px;
   overflow: hidden;
   background: linear-gradient(135deg, #f2d3a2 0%, #b87945 45%, #704328 100%);
   box-shadow:
     inset 0 1px 1px rgb(255 245 220 / 80%),
     0 3px 8px rgb(91 54 29 / 28%);
   color: #3f2515;
-  font-size: 0.8rem;
+  font: 700 0.68rem/1 "Courier New", Courier, monospace;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
   cursor: pointer;
   transition:
     box-shadow 180ms ease,
@@ -1207,6 +1209,261 @@ a.welcome-button {
 
 .museum-profile-karma {
   margin-top: 31px;
+}
+
+.profile-record-panel {
+  grid-column: 1 / -1;
+  min-width: 0;
+  border: 1px solid #c9c3b6;
+  padding: clamp(18px, 3vw, 30px);
+  background:
+    linear-gradient(rgb(255 255 255 / 72%), rgb(255 255 255 / 72%)),
+    #f3f0e7;
+  color: #282722;
+  box-shadow: 0 12px 35px rgb(45 39 29 / 10%);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.profile-record-panel > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  border-bottom: 1px solid #d2cdc2;
+  padding-bottom: 14px;
+}
+
+.profile-record-panel > header span,
+.profile-record-panel > header small {
+  display: block;
+}
+
+.profile-record-panel > header span {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.15rem;
+}
+
+.profile-record-panel > header small,
+.profile-record-empty {
+  margin-top: 4px;
+  color: #817a70;
+  font-size: 0.65rem;
+}
+
+.profile-record-panel > header strong {
+  color: #777167;
+  font: 700 0.58rem/1.2 "Courier New", Courier, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.profile-record-empty {
+  margin-bottom: 0;
+}
+
+.player-history-layout {
+  display: grid;
+  gap: 24px;
+}
+
+.hall-of-fame-list,
+.play-history-list {
+  display: grid;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.hall-of-fame-entry {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 24px;
+  align-items: center;
+  min-width: 0;
+  border: 1px solid #d2cdc2;
+  padding: 16px;
+  background: #fffdf7;
+}
+
+.hall-of-fame-card {
+  max-width: 100%;
+}
+
+.hall-of-fame-copy {
+  min-width: 0;
+}
+
+.hall-of-fame-copy .hall-of-fame-kicker {
+  margin: 0 0 5px;
+  color: #8b622d;
+  font: 700 0.56rem/1.2 "Courier New", Courier, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hall-of-fame-copy h3 {
+  margin: 0;
+  font: 400 1.25rem/1.1 Georgia, "Times New Roman", serif;
+}
+
+.hall-of-fame-copy > p:not(.hall-of-fame-kicker) {
+  margin: 9px 0 14px;
+  color: #625d55;
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.hall-of-fame-copy dl,
+.play-history-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  margin: 0;
+}
+
+.hall-of-fame-copy dt,
+.play-history-stats dt {
+  color: #817a70;
+  font-size: 0.54rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hall-of-fame-copy dd,
+.play-history-stats dd {
+  margin: 3px 0 0;
+  font: 700 0.68rem/1.2 "Courier New", Courier, monospace;
+}
+
+.play-history-entry {
+  border: 1px solid #d2cdc2;
+  padding: 16px;
+  background: #fffdf7;
+}
+
+.play-history-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.play-history-summary p {
+  margin: 3px 0 0;
+  color: #817a70;
+  font-size: 0.65rem;
+}
+
+.play-history-era {
+  color: #8b622d;
+  font: 700 0.68rem/1.2 "Courier New", Courier, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.play-history-summary > button {
+  border: 1px solid #8d7763;
+  padding: 7px 10px;
+  background: transparent;
+  color: #4a4037;
+  font: 700 0.62rem/1.2 "Courier New", Courier, monospace;
+  cursor: pointer;
+}
+
+.play-history-summary > button:hover,
+.play-history-summary > button:focus-visible {
+  border-color: #9c6a3f;
+  background: #f2d3a2;
+  color: #3f2515;
+}
+
+.play-history-vintage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 18px;
+  margin-top: 14px;
+  border-top: 1px solid #e3ded4;
+  padding-top: 14px;
+}
+
+.play-history-vintage > .rendered-item-card {
+  flex: 0 0 auto;
+}
+
+.play-history-vintage-copy small,
+.play-history-vintage-copy strong,
+.play-history-vintage-copy span {
+  display: block;
+}
+
+.play-history-vintage-copy small {
+  color: #817a70;
+  font-size: 0.56rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.play-history-vintage-copy strong {
+  margin-top: 4px;
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.play-history-vintage-copy span {
+  margin-top: 3px;
+  color: #625d55;
+  font-size: 0.68rem;
+}
+
+.play-history-gallery {
+  margin-top: 16px;
+  border-top: 1px solid #e3ded4;
+  padding-top: 14px;
+}
+
+.play-history-gallery h4,
+.play-history-gallery > p {
+  margin: 0;
+  font-size: 0.68rem;
+}
+
+.play-history-gallery > p {
+  margin-top: 10px;
+  color: #817a70;
+}
+
+.play-history-gallery-items {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 18px;
+  margin-top: 12px;
+  padding: 6px 4px 12px;
+  overflow-x: auto;
+}
+
+.play-history-gallery-items > .rendered-item-card {
+  flex: 0 0 auto;
+}
+
+.hof-rarity[data-rarity="common"] {
+  color: #39b54a;
+}
+
+.hof-rarity[data-rarity="uncommon"] {
+  color: #3e7bff;
+}
+
+.hof-rarity[data-rarity="rare"] {
+  color: #e1c429;
+}
+
+.hof-rarity[data-rarity="legendary"] {
+  color: #ff8a1f;
+}
+
+.hof-rarity[data-rarity="masterpiece"] {
+  color: #42e8f5;
 }
 
 .vintage-playthrough-panel {
@@ -1480,6 +1737,14 @@ a.welcome-button {
 
   .museum-profile-ledger section > header {
     min-height: 0;
+  }
+
+  .hall-of-fame-entry {
+    grid-template-columns: 1fr;
+  }
+
+  .hall-of-fame-card {
+    overflow-x: auto;
   }
 
 }

@@ -149,6 +149,7 @@ export type GameItem = {
   debug: boolean;
   bulk_sale_operation?: string;
   bulk_donation_operation?: string;
+  vintage_operation_token?: string;
   time_displayed?: string;
   odds: string;
   values: {

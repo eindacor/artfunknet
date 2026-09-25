@@ -23,7 +23,8 @@ export default function EnterEraDialog({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
 
-  const targetCount = Math.min(requiredCount, items.length);
+  const targetCount = requiredCount;
+  const hasEnoughItems = items.length >= targetCount;
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -50,7 +51,7 @@ export default function EnterEraDialog({
       setError("Resolve all active auctions before entering a new era.");
       return;
     }
-    if (selectedItemIds.length < targetCount) {
+    if (selectedItemIds.length !== targetCount) {
       setError(`Select exactly ${targetCount} items for vintage consideration.`);
       return;
     }
@@ -121,6 +122,11 @@ export default function EnterEraDialog({
             ⚠️ You currently have <strong>{activeAuctionCount}</strong> active auction(s) (selling or winning). You must resolve all active auctions before starting a new era.
           </div>
         )}
+        {!hasEnoughItems && (
+          <div className="rounded border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-200">
+            You need {targetCount} eligible items before entering a new era. You currently have {items.length}.
+          </div>
+        )}
 
         <div className="flex justify-between items-center text-xs bg-black/40 px-4 py-2 rounded">
           <span>Select items for vintage consideration:</span>
@@ -176,7 +182,12 @@ export default function EnterEraDialog({
           <button
             className="px-6 py-2 text-xs font-bold rounded bg-[var(--accent)] text-black hover:opacity-90 disabled:opacity-50"
             onClick={beginNewEra}
-            disabled={pending || selectedItemIds.length < targetCount || activeAuctionCount > 0}
+            disabled={
+              pending ||
+              !hasEnoughItems ||
+              selectedItemIds.length !== targetCount ||
+              activeAuctionCount > 0
+            }
             type="button"
           >
             {pending ? "Transitioning..." : "Enter New Era"}

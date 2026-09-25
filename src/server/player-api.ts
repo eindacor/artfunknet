@@ -17,10 +17,19 @@ export async function requirePlayerApi() {
   }
 
   const activePlayer = await (await getDatabase())
-    .collection<{ _id: string; active: boolean }>("players")
+    .collection<{
+      _id: string;
+      active: boolean;
+      profile?: {
+        vintage_operation?: {
+          token: string;
+          expires_at: string;
+        };
+      };
+    }>("players")
     .findOne(
       { _id: session.playerId, active: true },
-      { projection: { _id: 1 } },
+      { projection: { _id: 1, "profile.vintage_operation": 1 } },
     );
   if (!activePlayer) {
     return {
@@ -28,6 +37,19 @@ export async function requirePlayerApi() {
       response: NextResponse.json(
         { error: "This account has been de-activated." },
         { status: 403 },
+      ),
+    };
+  }
+  const vintageOperation = activePlayer.profile?.vintage_operation;
+  if (
+    vintageOperation &&
+    new Date(vintageOperation.expires_at).getTime() > Date.now()
+  ) {
+    return {
+      ok: false as const,
+      response: NextResponse.json(
+        { error: "Your new era is still being prepared." },
+        { status: 409 },
       ),
     };
   }

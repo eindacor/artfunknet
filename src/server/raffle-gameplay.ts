@@ -14,6 +14,10 @@ import {
   getGameplayGenerationMap,
   type GameplayConfig,
 } from "./game-settings.ts";
+import {
+  checkItemForHallOfFameStatus,
+  transferHallOfFameItems,
+} from "./hall-of-fame.ts";
 import { createPlayerNotification } from "./player-notifications.ts";
 import { RAFFLE_OWNER_ID } from "./raffle-core.ts";
 
@@ -59,6 +63,7 @@ type RafflePlayer = {
   _id: string;
   active: boolean;
   screen_name: string;
+  test_account?: boolean;
   profile: {
     lottery_tickets: number;
   };
@@ -253,6 +258,7 @@ export async function settleRaffleIfDue(
   const generatedBufferItemIds: string[] = [];
   const expiredPrizeItemIds: string[] = [];
   const completedPrizeItemIds: string[] = [];
+  const trackedWinnerIds: string[] = [];
   const artworkById = new Map(
     (
       await database
@@ -265,11 +271,11 @@ export async function settleRaffleIfDue(
   );
   const winnerNotifications: { playerId: string; title: string }[] = [];
   const announcements: { content: string; eventKey: string }[] = [];
+  const winners: RaffleWinner[] = [];
 
   try {
     const nextPrizes: RafflePrize[] = [];
     const nextBufferPrizes = [...state.buffer_prizes];
-    const winners: RaffleWinner[] = [];
     function takeBufferedPrize(): RafflePrize {
       const bufferedPrize = nextBufferPrizes.shift();
       if (!bufferedPrize) {
@@ -355,6 +361,16 @@ export async function settleRaffleIfDue(
       if (transferred.modifiedCount !== 1) {
         throw new Error("Lottery item could not be transferred.");
       }
+      const trackedWinner = await database
+        .collection<RafflePlayer>("players")
+        .updateOne(
+          { _id: player._id, active: true },
+          { $inc: { "profile.playthrough_stats.items_collected": 1 } },
+        );
+      if (trackedWinner.modifiedCount !== 1) {
+        throw new Error("Lottery winner playthrough stats could not be updated.");
+      }
+      trackedWinnerIds.push(player._id);
       completedPrizeItemIds.push(prize.item_id);
       nextPrizes.push(takeBufferedPrize());
       winners.push({
@@ -409,6 +425,19 @@ export async function settleRaffleIfDue(
     }
   } catch (error) {
     let compensationFailed = false;
+    for (const playerId of trackedWinnerIds) {
+      try {
+        const reverted = await database
+          .collection<RafflePlayer>("players")
+          .updateOne(
+            { _id: playerId },
+            { $inc: { "profile.playthrough_stats.items_collected": -1 } },
+          );
+        compensationFailed ||= reverted.modifiedCount !== 1;
+      } catch {
+        compensationFailed = true;
+      }
+    }
     for (const originalPrize of originalPrizes) {
       try {
         const restored = await database.collection<GameItem>("items").replaceOne(
@@ -450,25 +479,61 @@ export async function settleRaffleIfDue(
   }
 
   try {
+    const expiredItems = originalPrizes.filter((item) =>
+      expiredPrizeItemIds.includes(item._id),
+    );
+    const preservedIds = await transferHallOfFameItems(database, expiredItems);
+    const deletableExpiredIds = expiredPrizeItemIds.filter(
+      (itemId) => !preservedIds.has(itemId),
+    );
     await Promise.all([
       completedPrizeItemIds.length > 0
         ? database.collection<RaffleEntry>("raffle_entries").deleteMany({
             item_id: { $in: completedPrizeItemIds },
           })
         : Promise.resolve(),
-      expiredPrizeItemIds.length > 0
+      deletableExpiredIds.length > 0
         ? database.collection<GameItem>("items").deleteMany({
-            _id: { $in: expiredPrizeItemIds },
+            _id: { $in: deletableExpiredIds },
             owner: RAFFLE_OWNER_ID,
           })
         : Promise.resolve(),
     ]);
-    await deleteCommunityReactions(database, "item", expiredPrizeItemIds);
+    await deleteCommunityReactions(database, "item", deletableExpiredIds);
   } catch (error) {
     console.error(
       "Lottery settled, but expired items or old ticket entries were not removed.",
       error,
     );
+  }
+
+  if (winners.length > 0) {
+    const [winnerItems, winnerPlayers] = await Promise.all([
+      database
+        .collection<GameItem>("items")
+        .find({ _id: { $in: winners.map((winner) => winner.item_id) } })
+        .toArray(),
+      database
+        .collection<RafflePlayer>("players")
+        .find({ _id: { $in: winners.map((winner) => winner.player_id) } })
+        .toArray(),
+    ]);
+    const playerById = new Map(
+      winnerPlayers.map((player) => [player._id, player]),
+    );
+    for (const item of winnerItems) {
+      const winner = winners.find((entry) => entry.item_id === item._id);
+      const player = winner ? playerById.get(winner.player_id) : undefined;
+      if (!player) continue;
+      await checkItemForHallOfFameStatus(database, item, player).catch(
+        (error) => {
+          console.error(
+            `Unable to submit lottery item ${item._id} for Hall of Fame review`,
+            error,
+          );
+        },
+      );
+    }
   }
 
   const notificationResults = await Promise.allSettled(

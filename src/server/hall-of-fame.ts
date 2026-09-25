@@ -2,19 +2,49 @@ import { randomUUID } from "node:crypto";
 
 import type { Db } from "mongodb";
 
-import { ARTWORK_RARITIES, type ArtworkRarity, type GameItem } from "./gameplay.ts";
+import type {
+  Artwork,
+  ArtworkRarity,
+  GameItem,
+} from "./gameplay.ts";
+import type { HydratedGameItem } from "./item-artwork.ts";
 import { createPlayerNotification } from "./player-notifications.ts";
+
+export const HALL_OF_FAME_OWNER_ID = "artfunkel inc.";
+
+export type HallOfFameItemSnapshot = GameItem & {
+  artwork?: Artwork;
+  artwork_title?: string;
+  artist_name?: string;
+};
 
 export type HallOfFameRecord = {
   _id: string;
   item_id: string;
-  item_snapshot: GameItem & { artwork_title?: string; artist_name?: string };
+  item_snapshot: HallOfFameItemSnapshot;
   title: string;
   description: string;
   created_at: string;
   qualifier_id?: string;
   player_id?: string;
   player_screen_name?: string;
+};
+
+export type HallOfFameSubmission = {
+  _id: string;
+  item_id: string;
+  item_snapshot: HallOfFameItemSnapshot;
+  title: string;
+  description: string;
+  submitted_at: string;
+  qualifier_id: string;
+  player_id: string;
+  player_screen_name: string;
+};
+
+export type HallOfFameDisplayRecord = HallOfFameRecord & {
+  item: HydratedGameItem;
+  item_is_live: boolean;
 };
 
 export type QualifierQuery = {
@@ -180,167 +210,316 @@ export function itemMatchesQualifierQuery(
   return true;
 }
 
+export function getMatchingHallOfFameQualifiers(
+  item: GameItem,
+  artworkRarity?: ArtworkRarity,
+): HallOfFameQualifier[] {
+  return [...registeredQualifiers.values()].filter((qualifier) =>
+    itemMatchesQualifierQuery(item, artworkRarity, qualifier.query),
+  );
+}
+
+export function getHallOfFameQualifier(
+  qualifierId: string,
+): HallOfFameQualifier | undefined {
+  return registeredQualifiers.get(qualifierId);
+}
+
 export async function checkItemForHallOfFameStatus(
   database: Db,
   item: GameItem,
   player: { _id: string; test_account?: boolean; screen_name: string },
-): Promise<HallOfFameRecord | null> {
-  if (player.test_account === true) {
-    return null; // Exclude test/admin accounts
-  }
-  if (!item || item.status === "unclaimed") {
-    return null; // Only claimed items count
+): Promise<HallOfFameSubmission[]> {
+  if (
+    !item ||
+    !["claimed", "displayed", "auctioned", "collector_pending"].includes(
+      item.status,
+    )
+  ) {
+    return [];
   }
 
   const artwork = await database
-    .collection<{ _id: string; rarity: ArtworkRarity; title: string; artist: string }>("artworks")
+    .collection<Artwork>("artworks")
     .findOne({ _id: item.artwork_id });
-  const rarity = artwork?.rarity;
+  if (!artwork) return [];
 
-  const existingRecords = await database
-    .collection<HallOfFameRecord>("hall_of_fame")
-    .find()
-    .toArray();
-  const claimedQualifierIds = new Set(
-    existingRecords.map((rec) => rec.qualifier_id).filter(Boolean),
-  );
+  const [existingRecords, pendingSubmissions] = await Promise.all([
+    database
+      .collection<HallOfFameRecord>("hall_of_fame")
+      .find({
+        $or: [
+          { qualifier_id: { $exists: true } },
+          { item_id: item._id },
+        ],
+      })
+      .project<{ item_id: string; qualifier_id?: string }>({
+        item_id: 1,
+        qualifier_id: 1,
+      })
+      .toArray(),
+    database
+      .collection<HallOfFameSubmission>("hall_of_fame_submissions")
+      .find()
+      .project<{ item_id: string; qualifier_id: string }>({
+        item_id: 1,
+        qualifier_id: 1,
+      })
+      .toArray(),
+  ]);
+  const unavailableQualifierIds = new Set([
+    ...existingRecords.map((record) => record.qualifier_id).filter(Boolean),
+    ...pendingSubmissions.map((submission) => submission.qualifier_id),
+  ]);
 
-  for (const qualifier of registeredQualifiers.values()) {
-    if (claimedQualifierIds.has(qualifier.id)) continue;
+  const submissions: HallOfFameSubmission[] = [];
+  for (const qualifier of getMatchingHallOfFameQualifiers(
+    item,
+    artwork.rarity,
+  )) {
+    if (unavailableQualifierIds.has(qualifier.id)) continue;
 
-    if (itemMatchesQualifierQuery(item, rarity, qualifier.query)) {
-      const record: HallOfFameRecord = {
-        _id: randomUUID(),
-        item_id: item._id,
-        item_snapshot: {
-          ...item,
-          artwork_title: artwork?.title,
-          artist_name: artwork?.artist,
-        },
-        title: qualifier.title,
-        description: qualifier.description,
-        created_at: new Date().toISOString(),
-        qualifier_id: qualifier.id,
-        player_id: player._id,
-        player_screen_name: player.screen_name,
-      };
+    const snapshotArtwork = { ...artwork, ...item.artwork_overrides };
+    const submission: HallOfFameSubmission = {
+      _id: qualifier.id,
+      item_id: item._id,
+      item_snapshot: {
+        ...item,
+        artwork: snapshotArtwork,
+        artwork_title: snapshotArtwork.title,
+        artist_name: snapshotArtwork.artist,
+      },
+      title: qualifier.title,
+      description: qualifier.description,
+      submitted_at: new Date().toISOString(),
+      qualifier_id: qualifier.id,
+      player_id: player._id,
+      player_screen_name: player.screen_name,
+    };
 
-      await database.collection<HallOfFameRecord>("hall_of_fame").insertOne(record);
-
-      await createPlayerNotification(database, player._id, {
-        kind: "success",
-        message: `🏆 Your item '${artwork?.title || "Artwork"}' has been inducted into the Hall of Fame! Title: '${qualifier.title}'`,
-      });
-
-      return record;
+    const inserted = await database
+      .collection<HallOfFameSubmission>("hall_of_fame_submissions")
+      .updateOne(
+        { _id: submission._id },
+        { $setOnInsert: submission },
+        { upsert: true },
+      );
+    if (inserted.upsertedCount === 1) {
+      submissions.push(submission);
     }
   }
 
-  return null;
+  if (submissions.length > 0) {
+    const qualifierSummary =
+      submissions.length === 1
+        ? `"${submissions[0].title}"`
+        : `${submissions.length} Hall of Fame achievements`;
+    await createPlayerNotification(database, player._id, {
+      kind: "success",
+      message: `Your item "${artwork.title}" qualified for ${qualifierSummary} and was submitted for admin review.`,
+    });
+  }
+
+  return submissions;
 }
 
-export async function backfillExistingHallOfFameItems(database: Db): Promise<number> {
-  const existingRecords = await database
+export async function getHallOfFameDisplayRecords(
+  database: Db,
+): Promise<HallOfFameDisplayRecord[]> {
+  const records = await database
     .collection<HallOfFameRecord>("hall_of_fame")
     .find()
+    .sort({ created_at: -1 })
     .toArray();
-  const claimedQualifierIds = new Set(
-    existingRecords.map((rec) => rec.qualifier_id).filter(Boolean),
-  );
+  if (records.length === 0) return [];
 
-  const testPlayers = await database
-    .collection<{ _id: string }>("players")
-    .find({ test_account: true })
-    .toArray();
-  const testPlayerIds = new Set(testPlayers.map((p) => p._id));
-
-  const items = await database
+  const liveItems = await database
     .collection<GameItem>("items")
-    .find({
-      status: { $in: ["claimed", "displayed", "collector_pending"] },
-      owner: { $nin: Array.from(testPlayerIds) },
-    })
-    .sort({ date_created: 1 })
+    .find({ _id: { $in: records.map((record) => record.item_id) } })
     .toArray();
-
-  if (items.length === 0) return 0;
-
-  const artworkIds = Array.from(new Set(items.map((i) => i.artwork_id)));
+  const liveItemById = new Map(liveItems.map((item) => [item._id, item]));
+  const artworkIds = [
+    ...new Set(
+      records.map(
+        (record) =>
+          liveItemById.get(record.item_id)?.artwork_id ??
+          record.item_snapshot.artwork_id,
+      ),
+    ),
+  ];
   const artworks = await database
-    .collection<{ _id: string; rarity: ArtworkRarity; title: string; artist: string }>("artworks")
+    .collection<Artwork>("artworks")
     .find({ _id: { $in: artworkIds } })
     .toArray();
-  const artworkMap = new Map(artworks.map((a) => [a._id, a]));
+  const artworkById = new Map(artworks.map((artwork) => [artwork._id, artwork]));
 
-  const playerIds = Array.from(new Set(items.map((i) => i.owner)));
-  const players = await database
-    .collection<{ _id: string; screen_name: string }>("players")
-    .find({ _id: { $in: playerIds } })
-    .toArray();
-  const playerMap = new Map(players.map((p) => [p._id, p]));
-
-  let insertedCount = 0;
-
-  for (const item of items) {
-    const artwork = artworkMap.get(item.artwork_id);
-    const player = playerMap.get(item.owner);
-    if (!player) continue;
-
-    for (const qualifier of registeredQualifiers.values()) {
-      if (claimedQualifierIds.has(qualifier.id)) continue;
-
-      if (itemMatchesQualifierQuery(item, artwork?.rarity, qualifier.query)) {
-        const record: HallOfFameRecord = {
-          _id: randomUUID(),
-          item_id: item._id,
-          item_snapshot: {
-            ...item,
-            artwork_title: artwork?.title,
-            artist_name: artwork?.artist,
-          },
-          title: qualifier.title,
-          description: qualifier.description,
-          created_at: item.date_created || new Date().toISOString(),
-          qualifier_id: qualifier.id,
-          player_id: player._id,
-          player_screen_name: player.screen_name,
-        };
-
-        await database.collection<HallOfFameRecord>("hall_of_fame").insertOne(record);
-        claimedQualifierIds.add(qualifier.id);
-        insertedCount += 1;
-      }
-    }
-  }
-
-  return insertedCount;
+  return records.flatMap((record) => {
+    const liveItem = liveItemById.get(record.item_id);
+    const sourceItem = liveItem ?? record.item_snapshot;
+    const artwork =
+      (liveItem ? undefined : record.item_snapshot.artwork) ??
+      artworkById.get(sourceItem.artwork_id);
+    if (!artwork) return [];
+    return [
+      {
+        ...record,
+        item: {
+          ...sourceItem,
+          artwork: { ...artwork, ...sourceItem.artwork_overrides },
+        },
+        item_is_live: Boolean(liveItem),
+      },
+    ];
+  });
 }
 
 export async function transferIfHallOfFameItem(
   database: Db,
-  itemId: string,
+  item: Pick<GameItem, "_id" | "owner" | "status">,
 ): Promise<boolean> {
-  const hofRecord = await database
+  const transferredIds = await transferHallOfFameItems(database, [item]);
+  return transferredIds.has(item._id);
+}
+
+export async function transferHallOfFameItems(
+  database: Db,
+  items: Pick<GameItem, "_id" | "owner" | "status">[],
+): Promise<Set<string>> {
+  if (items.length === 0) return new Set();
+
+  const records = await database
     .collection<HallOfFameRecord>("hall_of_fame")
-    .findOne({ item_id: itemId });
-
-  if (!hofRecord) {
-    return false;
-  }
-
-  await database.collection<GameItem>("items").updateOne(
-    { _id: itemId },
-    {
-      $set: {
-        owner: "artfunkel inc.",
-        status: "claimed",
-        time_displayed: undefined,
-      },
-      $unset: {
-        display_slot: "",
-      },
-    },
+    .find({ item_id: { $in: items.map((item) => item._id) } })
+    .project<Pick<HallOfFameRecord, "item_id" | "item_snapshot">>({
+      item_id: 1,
+      item_snapshot: 1,
+    })
+    .toArray();
+  const hallOfFameItemIds = new Set(records.map((record) => record.item_id));
+  if (hallOfFameItemIds.size === 0) return hallOfFameItemIds;
+  const currentItems = await database
+    .collection<GameItem>("items")
+    .find({ _id: { $in: [...hallOfFameItemIds] } })
+    .toArray();
+  const currentItemById = new Map(
+    currentItems.map((currentItem) => [currentItem._id, currentItem]),
+  );
+  const artworkIds = [
+    ...new Set(currentItems.map((currentItem) => currentItem.artwork_id)),
+  ];
+  const artworks = await database
+    .collection<Artwork>("artworks")
+    .find({ _id: { $in: artworkIds } })
+    .toArray();
+  const artworkById = new Map(artworks.map((artwork) => [artwork._id, artwork]));
+  const recordByItemId = new Map(
+    records.map((record) => [record.item_id, record]),
   );
 
-  return true;
+  const transferredAt = new Date().toISOString();
+  for (const item of items) {
+    if (!hallOfFameItemIds.has(item._id)) continue;
+    const currentItem = currentItemById.get(item._id);
+    if (
+      !currentItem ||
+      currentItem.owner !== item.owner ||
+      currentItem.status !== item.status
+    ) {
+      throw new Error(
+        `Hall of Fame item ${item._id} changed before it could be preserved.`,
+      );
+    }
+    const record = recordByItemId.get(item._id);
+    const artwork =
+      artworkById.get(currentItem.artwork_id) ?? record?.item_snapshot.artwork;
+    const snapshotArtwork = artwork
+      ? { ...artwork, ...currentItem.artwork_overrides }
+      : undefined;
+    const snapshotSource = { ...currentItem };
+    delete snapshotSource.vintage_operation_token;
+    const itemSnapshot: HallOfFameItemSnapshot = {
+      ...snapshotSource,
+      ...(snapshotArtwork
+        ? {
+            artwork: snapshotArtwork,
+            artwork_title: snapshotArtwork.title,
+            artist_name: snapshotArtwork.artist,
+          }
+        : {
+            artwork_title: record?.item_snapshot.artwork_title,
+            artist_name: record?.item_snapshot.artist_name,
+          }),
+    };
+    await database
+      .collection<HallOfFameRecord>("hall_of_fame")
+      .updateMany(
+        { item_id: item._id },
+        { $set: { item_snapshot: itemSnapshot } },
+      );
+    const result = await database.collection<GameItem>("items").updateOne(
+      {
+        _id: currentItem._id,
+        owner: currentItem.owner,
+        status: currentItem.status,
+      },
+      {
+        $set: {
+          owner: HALL_OF_FAME_OWNER_ID,
+          status: "claimed",
+        },
+        $unset: {
+          display_slot: "",
+          time_displayed: "",
+          expires_at: "",
+          bulk_sale_operation: "",
+          bulk_donation_operation: "",
+        },
+        $push: {
+          transaction_history: {
+            type: "transfer",
+            from_owner: currentItem.owner,
+            to_owner: HALL_OF_FAME_OWNER_ID,
+            occurred_at: transferredAt,
+            source: "hall of fame",
+          },
+        },
+      },
+    );
+    if (result.modifiedCount !== 1) {
+      throw new Error(
+        `Hall of Fame item ${item._id} changed before it could be preserved.`,
+      );
+    }
+  }
+
+  return hallOfFameItemIds;
+}
+
+export async function restoreTransferredHallOfFameItem(
+  database: Db,
+  item: GameItem,
+): Promise<void> {
+  const restored = await database.collection<GameItem>("items").replaceOne(
+    { _id: item._id, owner: HALL_OF_FAME_OWNER_ID },
+    item,
+  );
+  if (restored.modifiedCount !== 1) {
+    throw new Error("The Hall of Fame item could not be restored.");
+  }
+}
+
+export async function notifyHallOfFameInduction(
+  database: Db,
+  record: HallOfFameRecord,
+): Promise<void> {
+  if (!record.player_id) return;
+  const artworkTitle =
+    record.item_snapshot.artwork?.title ??
+    record.item_snapshot.artwork_title ??
+    "Artwork";
+  await createPlayerNotification(database, record.player_id, {
+    kind: "success",
+    message: `Your item "${artworkTitle}" has been inducted into the Hall of Fame as "${record.title}".`,
+    action: { href: "/play?section=history#hall-of-fame", label: "View Hall of Fame" },
+  });
 }

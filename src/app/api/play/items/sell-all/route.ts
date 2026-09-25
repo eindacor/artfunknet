@@ -14,6 +14,7 @@ import { deleteCommunityReactions } from "@/server/community-reaction-cleanup";
 import { recordEconomyMetricsSafely } from "@/server/economy-metrics";
 import { rewardUndetectedForgeryExit } from "@/server/forgery-gameplay";
 import type { GameItem } from "@/server/gameplay";
+import { transferHallOfFameItems } from "@/server/hall-of-fame";
 import { removeExpiredTransientItems } from "@/server/item-expiration";
 import {
   getDisplayedLegendaryEffect,
@@ -190,16 +191,24 @@ export async function POST(request: Request) {
     }
     credited = true;
 
+    const hallOfFameIds = await transferHallOfFameItems(
+      database,
+      sellableItems.map((item) => ({
+        ...item,
+        status: "bulk_sale_pending" as const,
+      })),
+    );
+    const deletedIds = ids.filter((id) => !hallOfFameIds.has(id));
     const removed = await database.collection<GameItem>("items").deleteMany({
-      _id: { $in: ids },
+      _id: { $in: deletedIds },
       owner: auth.session.playerId,
       status: "bulk_sale_pending",
       bulk_sale_operation: operationId,
     });
-    if (removed.deletedCount !== sellableItems.length) {
+    if (removed.deletedCount !== deletedIds.length) {
       throw new Error("The bulk sale cleanup was incomplete.");
     }
-    await deleteCommunityReactions(database, "item", ids);
+    await deleteCommunityReactions(database, "item", deletedIds);
   } catch (error) {
     if (!credited) {
       const player = await database.collection<{
@@ -209,26 +218,11 @@ export async function POST(request: Request) {
       credited =
         player?.profile.bulk_sale_operations?.includes(operationId) ?? false;
     }
-    if (credited) {
-      await database.collection<GameItem>("items").deleteMany({
-        owner: auth.session.playerId,
-        status: "bulk_sale_pending",
-        bulk_sale_operation: operationId,
-      });
-      await deleteCommunityReactions(database, "item", ids);
-    } else {
-      await database.collection<GameItem>("items").updateMany(
-        {
-          owner: auth.session.playerId,
-          status: "bulk_sale_pending",
-          bulk_sale_operation: operationId,
-        },
-        {
-          $set: { status: "unclaimed" },
-          $unset: { bulk_sale_operation: "" },
-        },
-      );
-    }
+    await recoverPendingBulkOperations(database, auth.session.playerId, {
+      status: "bulk_sale_pending",
+      operationField: "bulk_sale_operation",
+      profileOperationsField: "bulk_sale_operations",
+    });
     console.error("Unable to complete bulk loot sale", error);
     return NextResponse.json(
       {

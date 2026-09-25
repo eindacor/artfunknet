@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { recordEconomyMetricsSafely } from "@/server/economy-metrics";
+import type { GameItem } from "@/server/gameplay";
+import { checkItemForHallOfFameStatus } from "@/server/hall-of-fame";
 import { getDatabase } from "@/server/mongodb";
 import {
   getUnexpiredItemFilter,
@@ -10,6 +12,8 @@ import { requirePlayerApi } from "@/server/player-api";
 
 type Player = {
   _id: string;
+  screen_name: string;
+  test_account?: boolean;
   profile: {
     inventory_cap: number;
     expansion_slots: number;
@@ -85,6 +89,17 @@ export async function POST(
     );
   }
 
+  const tracked = await database.collection<Player>("players").updateOne(
+    { _id: player._id },
+    { $inc: { "profile.playthrough_stats.items_collected": 1 } },
+  );
+  if (tracked.modifiedCount !== 1) {
+    return NextResponse.json(
+      { error: "The item could not be added to your playthrough record." },
+      { status: 500 },
+    );
+  }
+
   const result = await database.collection<ItemRecord>("items").updateOne(
     {
       _id: id,
@@ -102,6 +117,10 @@ export async function POST(
     },
   );
   if (result.modifiedCount !== 1) {
+    await database.collection<Player>("players").updateOne(
+      { _id: player._id },
+      { $inc: { "profile.playthrough_stats.items_collected": -1 } },
+    );
     return NextResponse.json(
       { error: "This item can no longer be claimed." },
       { status: 409 },
@@ -113,6 +132,19 @@ export async function POST(
     direction: "acquired",
     source: "item-claim",
   });
+  const claimedItem = await database
+    .collection<GameItem>("items")
+    .findOne({ _id: id });
+  if (claimedItem) {
+    await checkItemForHallOfFameStatus(database, claimedItem, player).catch(
+      (error) => {
+        console.error(
+          `Unable to submit claimed item ${claimedItem._id} for Hall of Fame review`,
+          error,
+        );
+      },
+    );
+  }
 
   return NextResponse.json({ status: "ok" });
 }

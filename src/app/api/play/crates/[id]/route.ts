@@ -85,6 +85,7 @@ export async function POST(
         $inc: {
           "profile.bank_balance": -offer.cost,
           "profile.money_spent_on_crates": offer.cost,
+          "profile.playthrough_stats.money_spent": offer.cost,
         },
       },
     );
@@ -155,6 +156,7 @@ export async function POST(
             $inc: {
               "profile.bank_balance": offer.cost,
               "profile.money_spent_on_crates": -offer.cost,
+              "profile.playthrough_stats.money_spent": -offer.cost,
             },
           },
         );

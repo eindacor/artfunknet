@@ -8,6 +8,7 @@ import {
   punishForgeryQuality,
 } from "@/server/forgery-gameplay";
 import type { GameItem } from "@/server/gameplay";
+import { transferIfHallOfFameItem } from "@/server/hall-of-fame";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
 import { createPlayerNotification } from "@/server/player-notifications";
@@ -75,9 +76,22 @@ export async function POST(
     );
 
     if (liableIsSystem) {
-      const removed = await database.collection<GameItem>("items").deleteOne({ _id: item._id, status: "collector_pending" });
-      if (removed.deletedCount !== 1) throw new Error("The system forgery could not be removed.");
-      await deleteCommunityReactions(database, "item", [item._id]);
+      const preserved = await transferIfHallOfFameItem(database, {
+        _id: item._id,
+        owner: auth.session.playerId,
+        status: "collector_pending",
+      });
+      if (!preserved) {
+        const removed = await database.collection<GameItem>("items").deleteOne({
+          _id: item._id,
+          owner: auth.session.playerId,
+          status: "collector_pending",
+        });
+        if (removed.deletedCount !== 1) {
+          throw new Error("The system forgery could not be removed.");
+        }
+        await deleteCommunityReactions(database, "item", [item._id]);
+      }
     } else {
       const charged = await database.collection<Player>("players").updateOne(
         { _id: liable, active: true },
