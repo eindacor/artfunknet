@@ -137,7 +137,6 @@ export async function POST(
                 owner: lockedPlayer._id,
                 status: item.status,
                 "authenticity.forgery": true,
-                "authenticity.identified": { $ne: true },
               },
             );
       if (destroyedForgery.deletedCount !== 1) {

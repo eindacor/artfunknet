@@ -109,7 +109,7 @@ test("archive permission requires a new modifier or art style", () => {
   });
 });
 
-test("known forgeries cannot be archived but unidentified ones can be inspected", () => {
+test("forgeries can be submitted for archive inspection and automatically fail", () => {
   assert.deepEqual(
     getArchivePermission(
       {
@@ -123,10 +123,7 @@ test("known forgeries cannot be archived but unidentified ones can be inspected"
       [],
       [],
     ),
-    {
-      allowed: false,
-      reason: "A known forgery cannot be archived.",
-    },
+    { allowed: true },
   );
   assert.deepEqual(
     getArchivePermission(

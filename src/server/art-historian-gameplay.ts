@@ -93,7 +93,13 @@ export type ArtHistorianQuestView = ArtHistorianQuest & {
 };
 
 export function getUnfulfilledHistorianTargetIds(
-  quest: Pick<ArtHistorianQuest, "target" | "fulfilled_targets">,
+  quest: {
+    target: readonly string[];
+    fulfilled_targets?: readonly Pick<
+      ArtHistorianFulfilledTarget,
+      "artwork_id"
+    >[];
+  },
 ): string[] {
   const fulfilledArtworkIds = new Set(
     (quest.fulfilled_targets ?? []).map((target) => target.artwork_id),

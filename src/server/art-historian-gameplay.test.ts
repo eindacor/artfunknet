@@ -5,6 +5,7 @@ import {
   calculateHistorianClaimXp,
   calculateHistorianReward,
   calculateMarketExpertMoneyMultiplier,
+  getUnfulfilledHistorianTargetIds,
   isHistorianSpecialItem,
 } from "./art-historian-gameplay.ts";
 
@@ -87,5 +88,19 @@ test("Art Historian special targets preserve original property list", () => {
   assert.equal(
     isHistorianSpecialItem({ ...baseItem, seasonal: true }),
     true,
+  );
+});
+
+test("Art Historian matching uses raw unfulfilled target ids", () => {
+  assert.deepEqual(
+    getUnfulfilledHistorianTargetIds({
+      target: ["artwork-a", "artwork-b"],
+      fulfilled_targets: [
+        {
+          artwork_id: "artwork-a",
+        },
+      ],
+    }),
+    ["artwork-b"],
   );
 });

@@ -89,12 +89,6 @@ export function getArchivePermission(
       reason: "Stop repairing this item before archiving it.",
     };
   }
-  if (item.authenticity.forgery && item.authenticity.identified) {
-    return {
-      allowed: false,
-      reason: "A known forgery cannot be archived.",
-    };
-  }
   if (item.authenticity.forgery) {
     return { allowed: true };
   }

@@ -45,7 +45,10 @@ import {
   type BulkSaleProtections,
   shouldPreserveBulkSaleItem,
 } from "@/server/bulk-sale";
-import type { ArtHistorianQuestView } from "@/server/art-historian-gameplay";
+import {
+  getUnfulfilledHistorianTargetIds,
+  type ArtHistorianQuestView,
+} from "@/server/art-historian-gameplay";
 import {
   ARTWORK_RARITIES,
   type ArtworkRarity,
@@ -457,10 +460,6 @@ export default function GameDashboard({
       ),
     [quests],
   );
-  const questTargetArtworkIds = useMemo(
-    () => new Set(quests.flatMap((quest) => quest.target)),
-    [quests],
-  );
   const bulkSellableLoot = useMemo(
     () =>
       unclaimed.filter(
@@ -645,10 +644,7 @@ export default function GameDashboard({
 
   function historianQuestsForItem(item: HydratedGameItem) {
     return quests.filter((quest) =>
-      quest.targets.some(
-        (target) =>
-          target.artwork._id === item.artwork_id && !target.fulfilled,
-      ),
+      getUnfulfilledHistorianTargetIds(quest).includes(item.artwork_id),
     );
   }
 
@@ -1982,7 +1978,7 @@ export default function GameDashboard({
                         <ItemThumbnail
                           alt=""
                           item={item}
-                          researchTarget={questTargetArtworkIds.has(
+                          researchTarget={unfoundQuestTargetArtworkIds.has(
                             item.artwork_id,
                           )}
                         />
@@ -2525,7 +2521,7 @@ export default function GameDashboard({
                         <ItemThumbnail
                           alt=""
                           item={item}
-                          researchTarget={questTargetArtworkIds.has(
+                          researchTarget={unfoundQuestTargetArtworkIds.has(
                             item.artwork_id,
                           )}
                           size={82}
@@ -2570,7 +2566,7 @@ export default function GameDashboard({
                         <ItemThumbnail
                           alt=""
                           item={item}
-                          researchTarget={questTargetArtworkIds.has(
+                          researchTarget={unfoundQuestTargetArtworkIds.has(
                             item.artwork_id,
                           )}
                           size={82}
