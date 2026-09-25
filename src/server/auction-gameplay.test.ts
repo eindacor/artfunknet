@@ -61,6 +61,7 @@ test("settlement never classifies recorded bids as unsold", () => {
 import {
   calculateAntiSnipeExpiration,
   grantAuctionXpReward,
+  removeSettledAuctionRecord,
 } from "./auction-gameplay.ts";
 
 test("calculateAntiSnipeExpiration extends expiration when remaining time is under configured minutes", () => {
@@ -85,6 +86,42 @@ test("calculateAntiSnipeExpiration extends expiration when remaining time is und
     calculateAntiSnipeExpiration(exp7Min, 10, now),
     "2026-09-10T20:10:00.000Z",
   );
+});
+
+test("removing a private auction also removes its dismissed profile reference", async () => {
+  let playerUpdate: { query: unknown; update: unknown } | null = null;
+  const database = {
+    collection(name: string) {
+      if (name === "auctions") {
+        return {
+          deleteOne: async () => ({ deletedCount: 1 }),
+        };
+      }
+      if (name === "players") {
+        return {
+          updateOne: async (query: unknown, update: unknown) => {
+            playerUpdate = { query, update };
+            return { matchedCount: 1 };
+          },
+        };
+      }
+      throw new Error(`Unexpected collection ${name}`);
+    },
+  };
+
+  await removeSettledAuctionRecord(database as never, {
+    _id: "auction-1",
+    viewer: "player-1",
+  });
+
+  assert.deepEqual(playerUpdate, {
+    query: { _id: "player-1" },
+    update: {
+      $pull: {
+        "profile.dismissed_private_auction_ids": "auction-1",
+      },
+    },
+  });
 });
 
 test("grantAuctionXpReward returns null when marketExpert is false", async () => {

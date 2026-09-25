@@ -122,6 +122,13 @@ type AuctionHouseState = {
   last_replenished?: string;
 };
 
+type AuctionDismissalPlayer = {
+  _id: string;
+  profile?: {
+    dismissed_private_auction_ids?: string[];
+  };
+};
+
 export async function getPlayerAuctionEscrow(
   database: Db,
   playerId: string,
@@ -545,10 +552,7 @@ export async function settleAuction(
           await deleteCommunityReactions(database, "item", [auction.item_id]);
         }
       }
-      await database.collection<Auction>("auctions").deleteOne({
-        _id: auction._id,
-        settlement_status: "settling",
-      });
+      await removeSettledAuctionRecord(database, auction);
       if (auction.seller_id && !auction.has_bid) {
         await safelyNotify(database, auction.seller_id, {
           kind: "info",
@@ -739,10 +743,7 @@ export async function settleAuction(
       }
     }
 
-    await database.collection<Auction>("auctions").deleteOne({
-      _id: auction._id,
-      settlement_status: "settling",
-    });
+    await removeSettledAuctionRecord(database, auction);
     await recordEconomyMetricsSafely(database, [
       ...(auction.seller_id
         ? [
@@ -827,10 +828,7 @@ export async function settleAuction(
         );
       });
     } else {
-      await database.collection<Auction>("auctions").deleteOne({
-        _id: auction._id,
-        settlement_status: "settling",
-      }).catch((cleanupError) => {
+      await removeSettledAuctionRecord(database, auction).catch((cleanupError) => {
         console.error(
           `Unable to remove completed auction ${auction._id}`,
           cleanupError,
@@ -838,6 +836,33 @@ export async function settleAuction(
       });
     }
     return false;
+  }
+}
+
+export async function removeSettledAuctionRecord(
+  database: Db,
+  auction: Pick<Auction, "_id" | "viewer">,
+): Promise<void> {
+  const removed = await database.collection<Auction>("auctions").deleteOne({
+    _id: auction._id,
+    settlement_status: "settling",
+  });
+  if (removed.deletedCount !== 1 || auction.viewer === "public") return;
+
+  const cleanup = await database
+    .collection<AuctionDismissalPlayer>("players")
+    .updateOne(
+      { _id: auction.viewer },
+      {
+        $pull: {
+          "profile.dismissed_private_auction_ids": auction._id,
+        },
+      },
+    );
+  if (cleanup.matchedCount !== 1) {
+    console.error(
+      `Unable to remove dismissed private auction ${auction._id} from player ${auction.viewer}.`,
+    );
   }
 }
 

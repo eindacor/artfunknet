@@ -46,6 +46,32 @@ export async function migrateHallOfFameAndPlaythroughStorage(database) {
   );
   await database.collection("quests").createIndex({ owner_id: 1 });
 
+  const activeAuctionIds = (
+    await database
+      .collection("auctions")
+      .find({})
+      .project({ _id: 1 })
+      .toArray()
+  ).map((auction) => auction._id);
+  await database.collection("players").updateMany(
+    { "profile.dismissed_private_auction_ids": { $exists: true } },
+    [
+      {
+        $set: {
+          "profile.dismissed_private_auction_ids": {
+            $filter: {
+              input: {
+                $ifNull: ["$profile.dismissed_private_auction_ids", []],
+              },
+              as: "auctionId",
+              cond: { $in: ["$$auctionId", activeAuctionIds] },
+            },
+          },
+        },
+      },
+    ],
+  );
+
   await database.collection("players").bulkWrite([
     {
       updateMany: {
