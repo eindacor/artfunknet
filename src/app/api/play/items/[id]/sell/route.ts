@@ -15,6 +15,7 @@ import {
   getDisplayedLegendaryEffect,
   getLegendaryNumberParameter,
 } from "@/server/legendary-attributes";
+import { transferIfHallOfFameItem } from "@/server/hall-of-fame";
 import { getDatabase } from "@/server/mongodb";
 import { removeExpiredTransientItems } from "@/server/item-expiration";
 import { requirePlayerApi } from "@/server/player-api";
@@ -120,11 +121,14 @@ export async function POST(
       });
     }
   }
-  const removed = await database.collection<GameItem>("items").findOneAndDelete({
-    _id: item._id,
-    owner: auth.session.playerId,
-    status: item.status,
-  });
+  const isHoF = await transferIfHallOfFameItem(database, item._id);
+  const removed = isHoF
+    ? item
+    : await database.collection<GameItem>("items").findOneAndDelete({
+        _id: item._id,
+        owner: auth.session.playerId,
+        status: item.status,
+      });
   if (!removed) {
     return NextResponse.json({ error: "This item changed before it could be sold." }, { status: 409 });
   }

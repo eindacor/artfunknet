@@ -10,7 +10,9 @@ import ItemThumbnail from "@/components/item-thumbnail";
 import RafflePanel, {
   type RafflePrizeView,
 } from "@/components/raffle-panel";
-import VintagePlaythroughDialog from "@/components/vintage-playthrough-dialog";
+import EnterEraDialog from "@/components/enter-era-dialog";
+import PlayHistoryPanel from "@/components/play-history-panel";
+import type { PlaythroughSnapshot } from "@/server/playthrough-snapshots";
 import {
   getGalleryPaintingDimension,
   getGalleryPixelsPerCentimeter,
@@ -199,6 +201,8 @@ export default function GameDashboard({
   marketExpertExpiration,
   linkedItem,
   forgePricing,
+  playthroughSnapshots = [],
+  vintageConsiderationCount = 10,
 }: {
   player: PlayerView;
   items: HydratedGameItem[];
@@ -234,6 +238,8 @@ export default function GameDashboard({
     mintValueMultiplier: number;
     seasonalArtworkIds: string[];
   };
+  playthroughSnapshots?: PlaythroughSnapshot[];
+  vintageConsiderationCount?: number;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -1398,21 +1404,21 @@ export default function GameDashboard({
                       title={
                         vintageCandidates.length === 0
                           ? "No eligible items to restart with"
-                          : "Run it back"
+                          : "Enter a new era"
                       }
                     >
                       <button
                         aria-label={
                           vintageCandidates.length === 0
                             ? "No eligible items to restart with"
-                            : "Run it back"
+                            : "Enter a new era"
                         }
                         className="vintage-runback-button"
                         disabled={vintageCandidates.length === 0}
                         onClick={() => setVintageDialogOpen(true)}
                         type="button"
                       >
-                        <i aria-hidden="true" className="fa fa-rotate-left" />
+                        Enter a new era
                       </button>
                     </span>
                   ) : null}
@@ -1589,6 +1595,9 @@ export default function GameDashboard({
                   galleryMetadata={galleryMetadata}
                   galleryRates={galleryRates}
                 />
+              ) : null}
+              {playthroughSnapshots && playthroughSnapshots.length > 0 ? (
+                <PlayHistoryPanel snapshots={playthroughSnapshots} />
               ) : null}
             </aside>
           </section>
@@ -2686,8 +2695,9 @@ export default function GameDashboard({
           />
         ) : null}
         {vintageDialogOpen ? (
-          <VintagePlaythroughDialog
+          <EnterEraDialog
             items={vintageCandidates}
+            requiredCount={vintageConsiderationCount}
             onClose={() => setVintageDialogOpen(false)}
             onComplete={(message) => {
               setVintageDialogOpen(false);
