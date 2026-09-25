@@ -109,7 +109,7 @@ test("archive permission requires a new modifier or art style", () => {
   });
 });
 
-test("forgeries can be submitted for archive inspection and automatically fail", () => {
+test("known forgeries cannot be archived but unknown forgeries can be inspected", () => {
   assert.deepEqual(
     getArchivePermission(
       {
@@ -123,7 +123,10 @@ test("forgeries can be submitted for archive inspection and automatically fail",
       [],
       [],
     ),
-    { allowed: true },
+    {
+      allowed: false,
+      reason: "A known forgery cannot be archived.",
+    },
   );
   assert.deepEqual(
     getArchivePermission(
@@ -164,7 +167,11 @@ test("unauthenticated archive permission does not reveal hidden forgery status",
       ["mint"],
       ["abstract"],
     ),
-    { allowed: true },
+    {
+      allowed: false,
+      reason:
+        "This item's modifiers and art style are already represented in the archive.",
+    },
   );
   assert.deepEqual(
     getPlayerFacingArchivePermission(
@@ -172,6 +179,18 @@ test("unauthenticated archive permission does not reveal hidden forgery status",
       ["mint"],
       ["abstract"],
     ),
+    {
+      allowed: false,
+      reason:
+        "This item's modifiers and art style are already represented in the archive.",
+    },
+  );
+  assert.deepEqual(
+    getPlayerFacingArchivePermission(legitimate, [], ["abstract"]),
+    { allowed: true },
+  );
+  assert.deepEqual(
+    getPlayerFacingArchivePermission(forgery, [], ["abstract"]),
     { allowed: true },
   );
 });

@@ -137,6 +137,7 @@ export async function POST(
                 owner: lockedPlayer._id,
                 status: item.status,
                 "authenticity.forgery": true,
+                "authenticity.identified": { $ne: true },
               },
             );
       if (destroyedForgery.deletedCount !== 1) {
@@ -152,13 +153,19 @@ export async function POST(
         await deleteCommunityReactions(database, "item", [item._id]);
       }
       archiveCompleted = true;
+      const message = preservedForgery
+        ? "Archive inspection detected a forgery. It was not archived, but the Hall of Fame preserved it."
+        : "Archive inspection detected a forgery. It was destroyed without adding anything to your archive.";
       return NextResponse.json({
         status: "ok",
         forgeryDestroyed: !preservedForgery,
-        notificationKind: "warning",
-        message: preservedForgery
-          ? "The artwork you tried to archive was a forgery. It was not archived, but the Hall of Fame preserved it."
-          : "The artwork you tried to archive was a forgery. Archive inspection destroyed it without adding anything to your archive.",
+        notificationKind: "error",
+        message,
+        actionDialog: {
+          variant: preservedForgery ? "returned" : "destroyed",
+          title: "Forgery detected",
+          message,
+        },
       });
     }
 

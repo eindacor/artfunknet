@@ -89,8 +89,11 @@ export function getArchivePermission(
       reason: "Stop repairing this item before archiving it.",
     };
   }
-  if (item.authenticity.forgery) {
-    return { allowed: true };
+  if (item.authenticity.forgery && item.authenticity.identified) {
+    return {
+      allowed: false,
+      reason: "A known forgery cannot be archived.",
+    };
   }
 
   const additions = getUnarchivedArchiveData(
@@ -113,18 +116,5 @@ export function getPlayerFacingArchivePermission(
   archivedModifiers: readonly ArchiveCategory[],
   archivedArtStyles: readonly string[],
 ): ItemPermission {
-  if (!item.authenticity.identified) {
-    return getArchivePermission(
-      {
-        ...item,
-        authenticity: {
-          ...item.authenticity,
-          forgery: true,
-        },
-      },
-      archivedModifiers,
-      archivedArtStyles,
-    );
-  }
   return getArchivePermission(item, archivedModifiers, archivedArtStyles);
 }
