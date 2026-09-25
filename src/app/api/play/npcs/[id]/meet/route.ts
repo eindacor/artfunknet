@@ -274,6 +274,10 @@ export async function POST(
       return NextResponse.json({
         status: "ok",
         message: `${interaction.npcName} refurbished ${interaction.itemTitle} from ${Math.floor(interaction.previousCondition * 100)}% to ${Math.floor(interaction.condition * 100)}% condition (+${Math.floor(interaction.repairedAmount * 100)}%).`,
+        interaction: {
+          ...interaction,
+          npcId: npc._id,
+        },
       });
     } catch (error) {
       await Promise.all([
@@ -325,6 +329,7 @@ export async function POST(
           "The Art Historian gave you a new collection objective.",
         interaction: {
           type: "art-historian-quest",
+          npcId: npc._id,
           npcName: npc.npc_name,
           quality: npc.quality,
           quest: questView,
@@ -533,6 +538,17 @@ export async function POST(
           message:
             `An Art Expert was impressed by your collection and spread the word about your gallery. ` +
             `${hydratedItem.artwork.title} by ${hydratedItem.artwork.artist} had its roll count reduced to ${newRollCount}.`,
+          interaction: {
+            type: "art-expert-reroll",
+            npcId: npc._id,
+            npcName: npc.npc_name,
+            quality: npc.quality,
+            itemTitle: hydratedItem.artwork.title,
+            previousRollCount: highestItem.roll_count,
+            rollCount: newRollCount,
+            xpBonus,
+            bonusMoney,
+          },
         });
       }
 
@@ -606,6 +622,7 @@ export async function POST(
         status: "ok",
         interaction: {
           type: "art-expert-karma",
+          npcId: npc._id,
           npcName: npc.npc_name,
           quality: npc.quality,
           item: sanitizePlayerFacingAuthenticity(hydratedTarget),
@@ -805,6 +822,7 @@ export async function POST(
         message: `${npc.npc_name} offered you ${offers.length} ${offers.length === 1 ? "artwork" : "artworks"}.`,
         interaction: {
           type: "art-donor-offer",
+          npcId: npc._id,
           npcName: npc.npc_name,
           quality: npc.quality,
           items: offers.map((item) => ({
@@ -1025,6 +1043,7 @@ export async function POST(
           message: `${npc.npc_name} offered you ${offers.length} ${offers.length === 1 ? "artwork" : "artworks"} for sale.`,
           interaction: {
             type: "art-dealer-offer",
+            npcId: npc._id,
             npcName: npc.npc_name,
             quality: npc.quality,
             items: offers.map((item) => ({
@@ -1240,6 +1259,7 @@ export async function POST(
               : `${npc.npc_name} detected the forgery. The sale failed and the artwork was destroyed.`,
             interaction: {
               type: "art-collector-result",
+              npcId: npc._id,
               npcName: npc.npc_name,
               quality: npc.quality,
               item: sanitizePlayerFacingAuthenticity(hydratedTarget),
@@ -1278,6 +1298,7 @@ export async function POST(
             "You have met a collector, who has identified an item you're selling to be a forgery!",
           interaction: {
             type: "art-collector-result",
+            npcId: npc._id,
             npcName: npc.npc_name,
             quality: npc.quality,
             item: sanitizePlayerFacingAuthenticity(hydratedTarget),
@@ -1445,6 +1466,7 @@ export async function POST(
           : `${npc.npc_name} collected your artwork.`,
         interaction: {
           type: "art-collector-result",
+          npcId: npc._id,
           npcName: npc.npc_name,
           quality: npc.quality,
           item: sanitizePlayerFacingAuthenticity(hydratedTarget),
@@ -1453,6 +1475,7 @@ export async function POST(
           keptItem,
           rewardType: reward.type,
           rewardAmount: reward.amount,
+          bonusMoney: collectorBonusMoney,
           bonusOffers: generatedOfferIds.length,
         },
       });

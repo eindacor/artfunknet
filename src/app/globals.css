@@ -5694,7 +5694,7 @@ a.welcome-button {
 
 .loot-bulk-sale {
   display: grid;
-  grid-template-columns: minmax(130px, 1fr) auto auto auto;
+  grid-template-columns: minmax(130px, 1fr) auto auto auto auto;
   gap: 12px;
   align-items: center;
   padding: 12px 14px;
@@ -5770,6 +5770,11 @@ a.welcome-button {
 .random-drop .loot-bulk-sale .donate-all-loot {
   border-color: #6b4c9a;
   background: #6b4c9a;
+}
+
+.random-drop .loot-bulk-sale .decline-all-loot {
+  border-color: #8f2e2e;
+  background: #8f2e2e;
 }
 
 @media (max-width: 900px) {
@@ -6129,7 +6134,7 @@ a.welcome-button {
   font-size: 2.4em;
 }
 
-.gallery-npc-overlay .gallery-npc > span:not(.npc-reward-popout) {
+.gallery-npc-overlay .gallery-npc > span {
   margin-top: 2px;
   color: #f3f3f3;
   text-shadow: 1px 1px 2px #111;
@@ -6154,7 +6159,7 @@ a.welcome-button {
   text-shadow: 1px 1px 2px black;
 }
 
-.gallery-npc > span:not(.npc-reward-popout) {
+.gallery-npc > span {
   display: block;
   margin-top: 5px;
   color: #777;
@@ -6178,31 +6183,82 @@ a.welcome-button {
   opacity: 0.2;
 }
 
-.npc-reward-popout {
-  position: absolute;
-  z-index: 2;
-  top: 8px;
-  left: 50%;
-  margin: 0;
+.npc-effect-layer {
+  position: fixed;
+  z-index: 2147483000;
+  inset: 0;
+  overflow: visible;
   pointer-events: none;
-  animation: npc-reward-popout 1s ease-out forwards;
 }
 
-.npc-reward-popout i {
-  display: block;
-  font-size: 1.6rem;
+.npc-effect-burst {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: visible;
+}
+
+.npc-effect-token {
+  position: absolute;
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  width: max-content;
+  color: #fff;
+  font: 800 0.78rem/1 Courier, "Courier New", monospace;
+  opacity: 0;
+  text-shadow:
+    -1px -1px 0 #111,
+    1px -1px 0 #111,
+    -1px 1px 0 #111,
+    1px 1px 0 #111;
+  transform: translate(-50%, 8px) scale(0.4);
+  animation: npc-effect-popout 1.35s ease-out forwards;
+}
+
+.npc-effect-token:nth-child(2) {
+  margin-left: 28px;
+}
+
+.npc-effect-token:nth-child(3) {
+  margin-left: -28px;
+}
+
+.npc-effect-token:nth-child(4) {
+  margin-left: 54px;
+}
+
+.npc-effect-token:nth-child(5) {
+  margin-left: -54px;
+}
+
+.npc-effect-token i {
+  font-size: 1.65rem;
   filter: drop-shadow(1px 1px 1px rgb(0 0 0 / 60%));
 }
 
-.npc-reward-popout.money {
-  color: #12a33a;
+.npc-effect-token.money,
+.npc-effect-token.positive {
+  color: #20b849;
 }
 
-.npc-reward-popout.xp {
+.npc-effect-token.karma {
+  color: #54d76e;
+}
+
+.npc-effect-token.xp {
   color: #ff33aa;
 }
 
-@keyframes npc-reward-popout {
+.npc-effect-token.negative {
+  color: #e33131;
+}
+
+.npc-effect-token.repair {
+  color: #55b8ff;
+}
+
+@keyframes npc-effect-popout {
   0% {
     opacity: 0;
     transform: translate(-50%, 8px) scale(0.4);
@@ -6215,7 +6271,7 @@ a.welcome-button {
 
   100% {
     opacity: 0;
-    transform: translate(-50%, -46px) scale(0.85);
+    transform: translate(-50%, -72px) scale(0.85);
   }
 }
 
@@ -7661,42 +7717,41 @@ a.welcome-button {
 }
 
 .historian-submission-dialog {
-  width: min(620px, calc(100vw - 32px));
+  width: min(980px, calc(100vw - 32px));
 }
 
 .historian-submission-options {
   display: grid;
-  gap: 0.65rem;
+  gap: 1rem;
 }
 
-.historian-submission-options button {
+.historian-submission-options .historian-submission-select {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  justify-content: center;
+  gap: 0.45rem;
   border: 1px solid #777168;
-  padding: 0.8rem;
-  background: #fffdf7;
-  color: #292621;
-  text-align: left;
+  border-radius: var(--game-button-radius);
+  padding: 0.55rem 0.8rem;
+  background: #171717;
+  color: #fff;
+  font: 700 0.68rem Courier, "Courier New", monospace;
   cursor: pointer;
 }
 
-.historian-submission-options button:hover:not(:disabled),
-.historian-submission-options button:focus-visible:not(:disabled) {
-  border-color: #171717;
-  background: #f1ece0;
+.historian-submission-options .historian-submission-select:hover:not(:disabled),
+.historian-submission-options .historian-submission-select:focus-visible:not(:disabled) {
+  border-color: var(--rarity-color);
+  background: var(--rarity-dark);
 }
 
-.historian-submission-options button:disabled {
+.historian-submission-options .historian-submission-select:disabled {
   cursor: default;
   opacity: 0.45;
 }
 
-.historian-submission-options span {
-  color: #676158;
-  font-size: 0.7rem;
-  text-transform: capitalize;
+.historian-submission-options .historian-quest > footer {
+  align-items: center;
 }
 
 .historian-dialog-reward {

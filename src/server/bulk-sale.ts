@@ -77,6 +77,7 @@ export async function getFilteredBulkLootCandidates(
   database: Db,
   playerId: string,
   protections: BulkSaleProtections,
+  statuses: readonly GameItem["status"][] = ["unclaimed"],
 ): Promise<{
   candidates: GameItem[];
   hydratedCandidates: HydratedGameItem[];
@@ -85,7 +86,7 @@ export async function getFilteredBulkLootCandidates(
 }> {
   const candidates = await database.collection<GameItem>("items").find({
     owner: playerId,
-    status: "unclaimed",
+    status: { $in: statuses },
     permanent: { $ne: true },
     original: { $ne: true },
   }).toArray();

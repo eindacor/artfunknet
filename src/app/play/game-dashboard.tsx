@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import ArchiveEntryDialog from "@/components/archive-entry-dialog";
@@ -143,6 +144,7 @@ type ActionDialogResult = {
 
 type CollectorResult = {
   type: "art-collector-result";
+  npcId: string;
   npcName: string;
   quality: NpcQuality;
   item: HydratedGameItem;
@@ -151,11 +153,13 @@ type CollectorResult = {
   keptItem: boolean;
   rewardType: "money" | "xp" | null;
   rewardAmount: number;
+  bonusMoney?: number;
   bonusOffers: number;
 };
 
 type ArtExpertResult = {
   type: "art-expert-karma";
+  npcId: string;
   npcName: string;
   quality: NpcQuality;
   item: HydratedGameItem;
@@ -166,9 +170,48 @@ type ArtExpertResult = {
 
 type ArtHistorianResult = {
   type: "art-historian-quest";
+  npcId: string;
   npcName: string;
   quality: NpcQuality;
   quest: ArtHistorianQuestView;
+};
+
+type ArtExpertRerollResult = {
+  type: "art-expert-reroll";
+  npcId: string;
+  npcName: string;
+  quality: NpcQuality;
+  itemTitle: string;
+  previousRollCount: number;
+  rollCount: number;
+  xpBonus: number;
+  bonusMoney: number;
+};
+
+type PreservationistResult = {
+  type: "preservationist-result";
+  npcId: string;
+  npcName: string;
+  quality: NpcQuality;
+  itemTitle: string;
+  condition: number;
+  previousCondition: number;
+  repairedAmount: number;
+};
+
+type NpcEffectToken = {
+  icon: string;
+  text?: string;
+  tone: "karma" | "money" | "negative" | "positive" | "repair" | "xp";
+};
+
+type NpcVisualEffect = {
+  animationId: number;
+  label: string;
+  npcId: string;
+  originX: number;
+  originY: number;
+  tokens: NpcEffectToken[];
 };
 
 const ATTRIBUTE_TYPE_ICONS = {
@@ -303,26 +346,15 @@ export default function GameDashboard({
     useState<NpcQuality>("bronze");
   const [spawningNpc, setSpawningNpc] = useState<string | null>(null);
   const [meetingNpc, setMeetingNpc] = useState<string | null>(null);
-  const [artworkOfferSession, setArtworkOfferSession] = useState<{
-    type: "art-donor-offer" | "art-dealer-offer";
-    npcName: string;
-    quality: NpcQuality;
-    items: ArtworkOfferItem[];
-  } | null>(null);
   const [auctioneerSession, setAuctioneerSession] = useState<{
     npcName: string;
     quality: NpcQuality;
     auctions: AuctionView[];
   } | null>(null);
-  const [collectorResult, setCollectorResult] =
-    useState<CollectorResult | null>(null);
-  const [artExpertResult, setArtExpertResult] =
-    useState<ArtExpertResult | null>(null);
-  const [artHistorianResult, setArtHistorianResult] =
-    useState<ArtHistorianResult | null>(null);
   const [npcRewardEffects, setNpcRewardEffects] = useState<
-    Record<string, NpcRewardInteraction & { animationId: number }>
+    Record<string, NpcVisualEffect>
   >({});
+  const npcEffectSequence = useRef(0);
   const [rerollSession, setRerollSession] = useState<{
     item: HydratedGameItem;
     bankBalance: number;
@@ -440,8 +472,30 @@ export default function GameDashboard({
       ),
     [bulkSaleProtections, unfoundQuestTargetArtworkIds, unclaimed],
   );
+  const bulkDeclinableLoot = useMemo(
+    () =>
+      unclaimed.filter(
+        (item) =>
+          item.status === "for_sale" &&
+          !item.permanent &&
+          !item.original &&
+          !shouldPreserveBulkSaleItem(
+            {
+              ...item,
+              unfoundQuestTarget: unfoundQuestTargetArtworkIds.has(
+                item.artwork_id,
+              ),
+            },
+            bulkSaleProtections,
+          ),
+      ),
+    [bulkSaleProtections, unfoundQuestTargetArtworkIds, unclaimed],
+  );
   const hasClaimableLoot = unclaimed.some(
     (item) => item.status === "unclaimed",
+  );
+  const hasPurchasableLoot = unclaimed.some(
+    (item) => item.status === "for_sale",
   );
   const inventory = useMemo(
     () =>
@@ -812,6 +866,29 @@ export default function GameDashboard({
     });
   }
 
+  function declineAllLoot() {
+    setError("");
+    setNotice("");
+    startTransition(async () => {
+      const response = await fetch("/api/play/items/decline-all", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(bulkSaleProtections),
+      });
+      const body = (await response.json()) as {
+        declined?: number;
+        error?: string;
+        message?: string;
+      };
+      if (!response.ok || body.declined === undefined) {
+        setError(body.error ?? "The dealer offers could not be declined.");
+        return;
+      }
+      setNotice(body.message ?? "Dealer offers declined.");
+      router.refresh();
+    });
+  }
+
   function donateItem(item: HydratedGameItem) {
     setError("");
     setNotice("");
@@ -1044,6 +1121,7 @@ export default function GameDashboard({
         interaction?:
           | {
               type: "art-donor-offer" | "art-dealer-offer";
+              npcId: string;
               npcName: string;
               quality: NpcQuality;
               items: ArtworkOfferItem[];
@@ -1058,22 +1136,28 @@ export default function GameDashboard({
             }
           | CollectorResult
           | ArtExpertResult
+          | ArtExpertRerollResult
           | ArtHistorianResult
+          | PreservationistResult
           | NpcRewardInteraction;
       };
       if (!response.ok) {
         throw new Error(body.error ?? "The visitor interaction failed.");
       }
+      let showedAnimatedResult = false;
       if (
         body.interaction?.type === "art-donor-offer" ||
         body.interaction?.type === "art-dealer-offer"
       ) {
-        setArtworkOfferSession({
-          type: body.interaction.type,
-          npcName: body.interaction.npcName,
-          quality: body.interaction.quality,
-          items: body.interaction.items,
-        });
+        showedAnimatedResult = true;
+        showNpcEffect(body.interaction.npcId, body.interaction.npcName, [
+          body.interaction.type === "art-donor-offer"
+            ? { icon: "fa-plus", text: `+${body.interaction.items.length}`, tone: "positive" }
+            : { icon: "fa-shopping-cart", text: `${body.interaction.items.length} offered`, tone: "money" },
+          ...(body.interaction.type === "art-donor-offer"
+            ? [{ icon: "fa-picture-o", tone: "positive" } as const]
+            : []),
+        ]);
       } else if (
         body.interaction?.type === "auctioneer-access" &&
         body.interaction.auctions &&
@@ -1085,38 +1169,141 @@ export default function GameDashboard({
           auctions: body.interaction.auctions,
         });
       } else if (body.interaction?.type === "art-collector-result") {
-        setCollectorResult(body.interaction);
+        showedAnimatedResult = true;
+        const tokens: NpcEffectToken[] = [];
+        if (body.interaction.rewardType === "money") {
+          tokens.push({
+            icon: "fa-usd",
+            text: `+$${body.interaction.rewardAmount.toLocaleString()}`,
+            tone: "money",
+          });
+        } else if (body.interaction.rewardType === "xp") {
+          tokens.push({
+            icon: "fa-heart",
+            text: `+${body.interaction.rewardAmount.toLocaleString()} XP`,
+            tone: "xp",
+          });
+        }
+        if ((body.interaction.bonusMoney ?? 0) > 0) {
+          tokens.push({
+            icon: "fa-usd",
+            text: `+$${body.interaction.bonusMoney?.toLocaleString()}`,
+            tone: "money",
+          });
+        }
+        if (!body.interaction.keptItem) {
+          tokens.push(
+            { icon: "fa-minus", tone: "negative" },
+            { icon: "fa-picture-o", tone: "negative" },
+          );
+        } else if (body.interaction.forgeryCaught) {
+          tokens.push({ icon: "fa-exclamation-triangle", tone: "negative" });
+        }
+        if (body.interaction.bonusOffers > 0) {
+          tokens.push({
+            icon: "fa-shopping-cart",
+            text: `${body.interaction.bonusOffers} offered`,
+            tone: "money",
+          });
+        }
+        showNpcEffect(
+          body.interaction.npcId,
+          body.interaction.npcName,
+          tokens,
+        );
       } else if (body.interaction?.type === "art-expert-karma") {
-        setArtExpertResult(body.interaction);
+        showedAnimatedResult = true;
+        const karma = body.interaction.karma;
+        setKarmaBalance((current) => current + karma);
+        showNpcEffect(body.interaction.npcId, body.interaction.npcName, [
+          {
+            icon: "fa-spa",
+            text: `+${body.interaction.karma.toLocaleString()} Karma`,
+            tone: "karma",
+          },
+          ...(body.interaction.xpBonus > 0
+            ? [
+                {
+                  icon: "fa-heart",
+                  text: `+${body.interaction.xpBonus.toLocaleString()} XP`,
+                  tone: "xp",
+                } as const,
+              ]
+            : []),
+          ...(body.interaction.bonusMoney > 0
+            ? [
+                {
+                  icon: "fa-usd",
+                  text: `+$${body.interaction.bonusMoney.toLocaleString()}`,
+                  tone: "money",
+                } as const,
+              ]
+            : []),
+        ]);
+      } else if (body.interaction?.type === "art-expert-reroll") {
+        showedAnimatedResult = true;
+        showNpcEffect(body.interaction.npcId, body.interaction.npcName, [
+          {
+            icon: "fa-magic",
+            text: `-${body.interaction.previousRollCount - body.interaction.rollCount} reroll`,
+            tone: "positive",
+          },
+          ...(body.interaction.xpBonus > 0
+            ? [
+                {
+                  icon: "fa-heart",
+                  text: `+${body.interaction.xpBonus.toLocaleString()} XP`,
+                  tone: "xp",
+                } as const,
+              ]
+            : []),
+          ...(body.interaction.bonusMoney > 0
+            ? [
+                {
+                  icon: "fa-usd",
+                  text: `+$${body.interaction.bonusMoney.toLocaleString()}`,
+                  tone: "money",
+                } as const,
+              ]
+            : []),
+        ]);
       } else if (body.interaction?.type === "art-historian-quest") {
-        setArtHistorianResult(body.interaction);
+        showedAnimatedResult = true;
+        showNpcEffect(body.interaction.npcId, body.interaction.npcName, [
+          { icon: "fa-check-square-o", text: "Quest added", tone: "positive" },
+        ]);
+      } else if (body.interaction?.type === "preservationist-result") {
+        showedAnimatedResult = true;
+        showNpcEffect(body.interaction.npcId, body.interaction.npcName, [
+          {
+            icon: "fa-wrench",
+            text: `+${Math.floor(body.interaction.repairedAmount * 100)}%`,
+            tone: "repair",
+          },
+        ]);
       } else if (
         body.interaction?.type === "npc-reward" &&
         body.interaction.presentation === "popout"
       ) {
-        showNpcRewardEffect(body.interaction);
+        showedAnimatedResult = true;
+        showNpcEffect(body.interaction.npcId, body.interaction.npcName, [
+          {
+            icon:
+              body.interaction.rewardType === "money"
+                ? "fa-usd"
+                : "fa-heart",
+            text:
+              body.interaction.rewardType === "money"
+                ? `+$${body.interaction.rewardAmount.toLocaleString()}`
+                : `+${body.interaction.rewardAmount.toLocaleString()} XP`,
+            tone: body.interaction.rewardType,
+          },
+        ]);
       }
-      if (body.message) {
+      if (body.message && !showedAnimatedResult) {
         setNotice(body.message);
       }
 
-      function showNpcRewardEffect(interaction: NpcRewardInteraction) {
-        const animationId = Date.now();
-        setNpcRewardEffects((current) => ({
-          ...current,
-          [interaction.npcId]: { ...interaction, animationId },
-        }));
-        window.setTimeout(() => {
-          setNpcRewardEffects((current) => {
-            if (current[interaction.npcId]?.animationId !== animationId) {
-              return current;
-            }
-            const next = { ...current };
-            delete next[interaction.npcId];
-            return next;
-          });
-        }, 1_000);
-      }
       router.refresh();
       return true;
     } catch (meetError) {
@@ -1130,6 +1317,53 @@ export default function GameDashboard({
       return false;
     } finally {
       setMeetingNpc(null);
+    }
+
+    function showNpcEffect(
+      npcId: string,
+      npcName: string,
+      tokens: NpcEffectToken[],
+    ) {
+      if (tokens.length === 0) return;
+      const npcElement = Array.from(
+        document.querySelectorAll<HTMLElement>("[data-npc-id]"),
+      ).find((element) => element.dataset.npcId === npcId);
+      const bounds = npcElement?.getBoundingClientRect();
+      npcEffectSequence.current += 1;
+      const animationId = npcEffectSequence.current;
+      const effectLabel =
+        tokens
+          .map((token) => token.text)
+          .filter((text): text is string => Boolean(text))
+          .join(", ") || `${npcName} interaction result`;
+      setNpcRewardEffects((current) => ({
+        ...current,
+        [npcId]: {
+          animationId,
+          label: effectLabel,
+          npcId,
+          originX: Math.min(
+            window.innerWidth - 90,
+            Math.max(
+              90,
+              bounds ? bounds.left + bounds.width / 2 : window.innerWidth / 2,
+            ),
+          ),
+          originY: Math.max(
+            90,
+            bounds ? bounds.top + bounds.height / 3 : window.innerHeight / 2,
+          ),
+          tokens,
+        },
+      }));
+      window.setTimeout(() => {
+        setNpcRewardEffects((current) => {
+          if (current[npcId]?.animationId !== animationId) return current;
+          const next = { ...current };
+          delete next[npcId];
+          return next;
+        });
+      }, 1_350 + Math.max(0, tokens.length - 1) * 110 + 250);
     }
   }
 
@@ -1978,14 +2212,15 @@ export default function GameDashboard({
                     </div>
                   </div>
                 ) : null}
-                {hasClaimableLoot ? (
+                {hasClaimableLoot || hasPurchasableLoot ? (
                   <div className="loot-bulk-sale">
                     <div className="loot-bulk-sale-copy">
-                      <span className="collection-kicker">bulk sale</span>
-                      <strong>Sell unwanted artworks</strong>
+                      <span className="collection-kicker">bulk actions</span>
+                      <strong>Clear unwanted artworks</strong>
                       <small>
-                        {bulkSellableLoot.length} eligible{" "}
-                        {bulkSellableLoot.length === 1 ? "item" : "items"}
+                        {bulkSellableLoot.length} owned ·{" "}
+                        {bulkDeclinableLoot.length} dealer{" "}
+                        {bulkDeclinableLoot.length === 1 ? "offer" : "offers"}
                       </small>
                     </div>
                     <fieldset>
@@ -2053,6 +2288,17 @@ export default function GameDashboard({
                         </span>
                       ) : null}
                     </button>
+                    {hasPurchasableLoot ? (
+                      <button
+                        className="decline-all-loot"
+                        disabled={pending || bulkDeclinableLoot.length === 0}
+                        onClick={declineAllLoot}
+                        type="button"
+                      >
+                        <i aria-hidden="true" className="fa fa-times" /> Decline
+                        all
+                      </button>
+                    ) : null}
                   </div>
                 ) : null}
               </section>
@@ -2400,6 +2646,7 @@ export default function GameDashboard({
                           } ${
                             npcRewardEffects[npc._id] ? "rewarding" : ""
                           }`}
+                          data-npc-id={npc._id}
                           disabled={
                             pending ||
                             meetingNpc !== null ||
@@ -2422,33 +2669,6 @@ export default function GameDashboard({
                           />
                           <span>{npc.npc_name}</span>
                         </button>
-                        {npcRewardEffects[npc._id] ? (
-                          <span
-                            aria-label={
-                              npcRewardEffects[npc._id].rewardType === "money"
-                                ? `Received $${npcRewardEffects[
-                                    npc._id
-                                  ].rewardAmount.toLocaleString()}`
-                                : `Received ${npcRewardEffects[
-                                    npc._id
-                                  ].rewardAmount.toLocaleString()} experience points`
-                            }
-                            className={`npc-reward-popout ${
-                              npcRewardEffects[npc._id].rewardType
-                            }`}
-                            key={npcRewardEffects[npc._id].animationId}
-                            role="status"
-                          >
-                            <i
-                              aria-hidden="true"
-                              className={`fa ${
-                                npcRewardEffects[npc._id].rewardType === "money"
-                                  ? "fa-usd"
-                                  : "fa-heart"
-                              }`}
-                            />
-                          </span>
-                        ) : null}
                       </span>
                     ))}
                 </div>
@@ -2795,6 +3015,7 @@ export default function GameDashboard({
                       className={`gallery-npc ${npc.quality} ${
                         npc.alreadyMet ? "disabled" : "enabled"
                       } ${npcRewardEffects[npc._id] ? "rewarding" : ""}`}
+                      data-npc-id={npc._id}
                       disabled={
                         pending ||
                         meetingNpc !== null ||
@@ -2814,29 +3035,6 @@ export default function GameDashboard({
                       <i aria-hidden="true" className={`fa ${npc.icon}`} />
                       <span>{npc.npc_name}</span>
                     </button>
-                    {npcRewardEffects[npc._id] ? (
-                      <span
-                        aria-label={
-                          npcRewardEffects[npc._id].rewardType === "money"
-                            ? `Received $${npcRewardEffects[npc._id].rewardAmount.toLocaleString()}`
-                            : `Received ${npcRewardEffects[npc._id].rewardAmount.toLocaleString()} experience points`
-                        }
-                        className={`npc-reward-popout ${
-                          npcRewardEffects[npc._id].rewardType
-                        }`}
-                        key={npcRewardEffects[npc._id].animationId}
-                        role="status"
-                      >
-                        <i
-                          aria-hidden="true"
-                          className={`fa ${
-                            npcRewardEffects[npc._id].rewardType === "money"
-                              ? "fa-usd"
-                              : "fa-heart"
-                          }`}
-                        />
-                      </span>
-                    ) : null}
                   </span>
                 ))}
             </div>
@@ -3147,20 +3345,6 @@ export default function GameDashboard({
             }}
           />
         ) : null}
-        {artworkOfferSession ? (
-          <ArtworkOfferDialog
-            interactionType={artworkOfferSession.type}
-            items={artworkOfferSession.items}
-            npcName={artworkOfferSession.npcName}
-            onClose={() => setArtworkOfferSession(null)}
-            onItemsChange={(items) =>
-              setArtworkOfferSession((current) =>
-                current ? { ...current, items } : current,
-              )
-            }
-            quality={artworkOfferSession.quality}
-          />
-        ) : null}
         {auctioneerSession ? (
           <AuctioneerOfferDialog
             auctions={auctioneerSession.auctions}
@@ -3177,28 +3361,6 @@ export default function GameDashboard({
             quality={auctioneerSession.quality}
           />
         ) : null}
-        {collectorResult ? (
-          <CollectorResultDialog
-            result={collectorResult}
-            onClose={() => setCollectorResult(null)}
-          />
-        ) : null}
-        {artExpertResult ? (
-          <ArtExpertResultDialog
-            result={artExpertResult}
-            onClose={() => setArtExpertResult(null)}
-          />
-        ) : null}
-        {artHistorianResult ? (
-          <ArtHistorianDialog
-            result={artHistorianResult}
-            onClose={() => setArtHistorianResult(null)}
-            onViewQuests={() => {
-              setArtHistorianResult(null);
-              setSection("quests");
-            }}
-          />
-        ) : null}
         {historianSubmissionItem ? (
           <HistorianSubmissionDialog
             item={historianSubmissionItem}
@@ -3210,8 +3372,41 @@ export default function GameDashboard({
             quests={historianQuestsForItem(historianSubmissionItem)}
           />
         ) : null}
+        {typeof document !== "undefined"
+          ? createPortal(
+              <NpcEffectLayer effects={Object.values(npcRewardEffects)} />,
+              document.body,
+            )
+          : null}
       </div>
     </main>
+  );
+}
+
+function NpcEffectLayer({ effects }: { effects: NpcVisualEffect[] }) {
+  return (
+    <div className="npc-effect-layer" aria-live="polite">
+      {effects.map((effect) => (
+        <div
+          aria-label={effect.label}
+          className="npc-effect-burst"
+          key={effect.animationId}
+          role="status"
+          style={{ left: effect.originX, top: effect.originY }}
+        >
+          {effect.tokens.map((token, index) => (
+            <span
+              className={`npc-effect-token ${token.tone}`}
+              key={`${effect.animationId}-${index}`}
+              style={{ animationDelay: `${index * 110}ms` }}
+            >
+              <i aria-hidden="true" className={`fa ${token.icon}`} />
+              {token.text ? <strong>{token.text}</strong> : null}
+            </span>
+          ))}
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -3439,98 +3634,58 @@ function HistorianSubmissionDialog({
         </p>
         <div className="historian-submission-options">
           {quests.map((quest) => (
-            <button
-              disabled={pending}
+            <article
+              className="historian-quest"
+              data-rarity={quest.rarity}
               key={quest._id}
-              onClick={() => onSelect(quest._id)}
-              type="button"
             >
-              <span>{quest.rarity} objective</span>
-              <strong>
-                {quest.progress.fulfilled}/{quest.progress.targetCount} submitted
-              </strong>
-            </button>
+              <header>
+                <div>
+                  <span>{quest.rarity} objective</span>
+                  <h3>
+                    Submit {quest.min_requirement} of {quest.target.length}{" "}
+                    requested works
+                  </h3>
+                </div>
+                <strong
+                  className={
+                    quest.progress.canClaim ? "complete" : undefined
+                  }
+                >
+                  {quest.progress.fulfilled}/{quest.progress.targetCount}
+                </strong>
+              </header>
+              <QuestTargetGrid targets={quest.targets} />
+              <footer>
+                <div className="historian-quest-rewards">
+                  <span>
+                    <i aria-hidden="true" className="fa fa-usd" />{" "}
+                    {quest.reward.money.toLocaleString()}
+                  </span>
+                  <span>
+                    <i aria-hidden="true" className="fa fa-star" />{" "}
+                    {quest.reward.xp.toLocaleString()} base XP
+                  </span>
+                  {quest.reward.item ? (
+                    <span>
+                      <i aria-hidden="true" className="fa fa-gift" />{" "}
+                      {quest.reward.item.foil ? "Foil " : ""}
+                      {quest.reward.item.rarity} artwork
+                    </span>
+                  ) : null}
+                </div>
+                <button
+                  className="historian-submission-select"
+                  disabled={pending}
+                  onClick={() => onSelect(quest._id)}
+                  type="button"
+                >
+                  <i aria-hidden="true" className="fa fa-graduation-cap" /> Use
+                  this quest
+                </button>
+              </footer>
+            </article>
           ))}
-        </div>
-      </div>
-    </dialog>
-  );
-}
-
-function ArtHistorianDialog({
-  onClose,
-  onViewQuests,
-  result,
-}: {
-  onClose: () => void;
-  onViewQuests: () => void;
-  result: ArtHistorianResult;
-}) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (dialog && !dialog.open) dialog.showModal();
-    return () => {
-      if (dialog?.open) dialog.close();
-    };
-  }, []);
-
-  function closeDialog() {
-    if (dialogRef.current?.open) dialogRef.current.close();
-    onClose();
-  }
-
-  return (
-    <dialog
-      aria-labelledby="historian-dialog-title"
-      className="reroll-dialog historian-dialog"
-      data-rarity={result.quest.rarity}
-      onCancel={(event) => {
-        event.preventDefault();
-        closeDialog();
-      }}
-      ref={dialogRef}
-    >
-      <div className="reroll-dialog-content">
-        <header className="reroll-dialog-header">
-          <div>
-            <p className="reroll-dialog-kicker">
-              {result.quality} Art Historian
-            </p>
-            <h2 id="historian-dialog-title">A research request</h2>
-            <p className="reroll-artwork-artist">{result.npcName}</p>
-          </div>
-          <button
-            aria-label="Close Art Historian dialog"
-            className="reroll-dialog-close"
-            onClick={closeDialog}
-            type="button"
-          >
-            <i aria-hidden="true" className="fa fa-times" />
-          </button>
-        </header>
-        <p className="reroll-dialog-description">
-          Acquire and submit at least {result.quest.min_requirement} of these
-          requested works, then claim the reward. Submitting every target
-          completes the quest automatically.
-        </p>
-        <QuestTargetGrid targets={result.quest.targets} />
-        <div className="historian-dialog-reward">
-          <span>Research grant</span>
-          <strong>
-            ${result.quest.reward.money.toLocaleString()} +{" "}
-            {result.quest.reward.xp.toLocaleString()} base XP
-          </strong>
-        </div>
-        <div className="historian-dialog-actions">
-          <button onClick={closeDialog} type="button">
-            Close
-          </button>
-          <button className="primary" onClick={onViewQuests} type="button">
-            <i aria-hidden="true" className="fa fa-flag-checkered" /> View
-            quests
-          </button>
         </div>
       </div>
     </dialog>
@@ -3608,397 +3763,6 @@ function ActionResultDialog({
             Acknowledge
           </button>
         </div>
-      </div>
-    </dialog>
-  );
-}
-
-function ArtExpertResultDialog({
-  result,
-  onClose,
-}: {
-  result: ArtExpertResult;
-  onClose: () => void;
-}) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (dialog && !dialog.open) dialog.showModal();
-    return () => {
-      if (dialog?.open) dialog.close();
-    };
-  }, []);
-
-  function closeDialog() {
-    if (dialogRef.current?.open) dialogRef.current.close();
-    onClose();
-  }
-
-  return (
-    <dialog
-      aria-labelledby="art-expert-result-title"
-      className="art-expert-result-dialog"
-      onCancel={(event) => {
-        event.preventDefault();
-        closeDialog();
-      }}
-      ref={dialogRef}
-    >
-      <div className="art-expert-result-content">
-        <header>
-          <div>
-            <p className="reroll-dialog-kicker">{result.quality} visitor</p>
-            <h2 id="art-expert-result-title">{result.npcName}</h2>
-          </div>
-          <button
-            aria-label="Close Art Expert result"
-            className="reroll-dialog-close"
-            onClick={closeDialog}
-            type="button"
-          >
-            <i aria-hidden="true" className="fa fa-times" />
-          </button>
-        </header>
-        <div className="art-expert-result-artwork">
-          <ItemThumbnail
-            alt={`${result.item.artwork.title} by ${result.item.artwork.artist}`}
-            className="art-expert-result-thumbnail"
-            item={result.item}
-          />
-          <p>
-            The Art Expert shares their wisdom about{" "}
-            <strong>{result.item.artwork.title}</strong> by{" "}
-            <strong>{result.item.artwork.artist}</strong>.
-          </p>
-        </div>
-        <section className="art-expert-karma">
-          <h3>Karma gained</h3>
-          <p>
-            <span>Good Karma</span>
-            <strong>+{result.karma.toLocaleString()}</strong>
-          </p>
-        </section>
-        {result.xpBonus > 0 ? (
-          <p>
-            Your zero-count collection also earned{" "}
-            <strong>{result.xpBonus.toLocaleString()} XP</strong>
-            {result.bonusMoney > 0
-              ? ` and $${result.bonusMoney.toLocaleString()}`
-              : ""}
-            .
-          </p>
-        ) : null}
-        <div className="collector-result-actions">
-          <ItemActionButton
-            disabled={false}
-            icon="fa-thumbs-up"
-            label="Acknowledge Art Expert result"
-            onClick={closeDialog}
-          />
-        </div>
-      </div>
-    </dialog>
-  );
-}
-
-function CollectorResultDialog({
-  result,
-  onClose,
-}: {
-  result: CollectorResult;
-  onClose: () => void;
-}) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const returnFocusRef = useRef<HTMLElement | null>(null);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    returnFocusRef.current =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
-    if (dialog && !dialog.open) dialog.showModal();
-    return () => {
-      if (dialog?.open) dialog.close();
-    };
-  }, []);
-
-  function closeDialog() {
-    if (dialogRef.current?.open) dialogRef.current.close();
-    returnFocusRef.current?.focus();
-    onClose();
-  }
-
-  const outcome = result.forgeryCaught
-    ? result.itemDestroyed
-      ? `${result.npcName} detected the forgery. You received no reward and the artwork was destroyed.`
-      : `${result.npcName} identified this artwork as a forgery. You received no reward and kept the identified item.`
-    : result.keptItem
-      ? `${result.npcName} offered ${
-          result.rewardType === "xp"
-            ? `${result.rewardAmount.toLocaleString()} XP`
-            : `$${result.rewardAmount.toLocaleString()}`
-        } and allowed you to keep the artwork.`
-      : `${result.npcName} collected this artwork for ${
-          result.rewardType === "xp"
-            ? `${result.rewardAmount.toLocaleString()} XP`
-            : `$${result.rewardAmount.toLocaleString()}`
-        }.`;
-
-  return (
-    <dialog
-      aria-labelledby="collector-result-title"
-      className="collector-result-dialog"
-      onCancel={(event) => {
-        event.preventDefault();
-        closeDialog();
-      }}
-      ref={dialogRef}
-    >
-      <div className="collector-result-content">
-        <header>
-          <div>
-            <p className="reroll-dialog-kicker">{result.quality} visitor</p>
-            <h2 id="collector-result-title">{result.npcName}</h2>
-          </div>
-          <button
-            aria-label="Close Collector result"
-            className="reroll-dialog-close"
-            onClick={closeDialog}
-            type="button"
-          >
-            <i aria-hidden="true" className="fa fa-times" />
-          </button>
-        </header>
-        <div className="collector-result-artwork">
-          <ItemThumbnail
-            alt={`${result.item.artwork.title} by ${result.item.artwork.artist}`}
-            className="collector-result-thumbnail"
-            item={result.item}
-          />
-          <div>
-            <strong>{result.item.artwork.title}</strong>
-            <span>{result.item.artwork.artist}</span>
-            <span>
-              level {result.item.level} · condition{" "}
-              {Math.round(result.item.condition * 100)}%
-            </span>
-            <span>
-              estimated value ${result.item.values.actual.toLocaleString()}
-            </span>
-          </div>
-        </div>
-        <p className={result.forgeryCaught ? "collector-forgery-result" : ""}>
-          {outcome}
-        </p>
-        {result.bonusOffers > 0 ? (
-          <p>
-            The Collector also left {result.bonusOffers} additional artwork
-            {result.bonusOffers === 1 ? "" : "s"} for sale in your loot.
-          </p>
-        ) : null}
-        <div className="collector-result-actions">
-          <ItemActionButton
-            disabled={false}
-            icon="fa-thumbs-up"
-            label="Acknowledge Collector result"
-            onClick={closeDialog}
-          />
-        </div>
-      </div>
-    </dialog>
-  );
-}
-
-function ArtworkOfferDialog({
-  interactionType,
-  npcName,
-  quality,
-  items,
-  onClose,
-  onItemsChange,
-}: {
-  interactionType: "art-donor-offer" | "art-dealer-offer";
-  npcName: string;
-  quality: NpcQuality;
-  items: ArtworkOfferItem[];
-  onClose: () => void;
-  onItemsChange: (items: ArtworkOfferItem[]) => void;
-}) {
-  const router = useRouter();
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const returnFocusRef = useRef<HTMLElement | null>(null);
-  const [busyItemId, setBusyItemId] = useState<string | null>(null);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    returnFocusRef.current =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
-    if (dialog && !dialog.open) dialog.showModal();
-    return () => {
-      if (dialog?.open) dialog.close();
-    };
-  }, []);
-
-  function closeDialog() {
-    if (dialogRef.current?.open) dialogRef.current.close();
-    returnFocusRef.current?.focus();
-    onClose();
-  }
-
-  async function actOnOffer(
-    item: ArtworkOfferItem,
-    action: "claim" | "purchase" | "sell" | "decline",
-  ) {
-    setBusyItemId(item._id);
-    setError("");
-    try {
-      const response = await fetch(
-        `/api/play/items/${item._id}/${action}`,
-        { method: "POST" },
-      );
-      const body = (await response.json()) as {
-        error?: string;
-        amount?: number;
-      };
-      if (!response.ok) {
-        throw new Error(body.error ?? "The artwork action failed.");
-      }
-      const remainingItems = items
-        .filter((offer) => offer._id !== item._id)
-        .map((offer) =>
-          (action === "claim" || action === "purchase") &&
-            offer.artwork_id === item.artwork_id
-            ? { ...offer, alreadyOwned: true }
-            : offer,
-        );
-      onItemsChange(remainingItems);
-      router.refresh();
-      if (remainingItems.length === 0) closeDialog();
-    } catch (offerError) {
-      const message =
-        offerError instanceof Error
-          ? offerError.message
-          : "The artwork action failed.";
-      setError(message);
-    } finally {
-      setBusyItemId(null);
-    }
-  }
-
-  return (
-    <dialog
-      aria-labelledby="artwork-offer-title"
-      className="donor-offer-dialog"
-      onCancel={(event) => {
-        event.preventDefault();
-        closeDialog();
-      }}
-      ref={dialogRef}
-    >
-      <div className="donor-offer-content">
-        <header>
-          <div>
-            <p className="reroll-dialog-kicker">{quality} visitor</p>
-            <h2 id="artwork-offer-title">{npcName}&apos;s offer</h2>
-          </div>
-          <button
-            aria-label={`Close ${npcName} offer`}
-            className="reroll-dialog-close"
-            onClick={closeDialog}
-            type="button"
-          >
-            <i aria-hidden="true" className="fa fa-times" />
-          </button>
-        </header>
-        <p>Closing this dialog leaves unresolved offers in your loot tab.</p>
-        {items.length === 0 ? (
-          <p className="empty-state">Every offer has been resolved.</p>
-        ) : (
-          <div className="donor-offer-list">
-            {items.map((item) => (
-              <article className="donor-offer-item" key={item._id}>
-                <ItemThumbnail
-                  alt={`${item.artwork.title} by ${item.artwork.artist}`}
-                  className="donor-offer-thumbnail"
-                  item={item}
-                />
-                <div className="donor-offer-details">
-                  <div>
-                    <span
-                      className={`artwork-ownership-indicator ${
-                        item.alreadyOwned ? "owned" : "new"
-                      }`}
-                    >
-                      {item.alreadyOwned ? "owned" : "new artwork"}
-                    </span>
-                    <span
-                      className={`donor-offer-rarity rarity-text ${item.artwork.rarity}`}
-                    >
-                      {item.artwork.rarity}
-                    </span>
-                  </div>
-                  <strong>{item.artwork.title}</strong>
-                  <span>{item.artwork.artist}</span>
-                  <span>
-                    promotion level {item.level} · condition{" "}
-                    {Math.round(item.condition * 100)}%
-                  </span>
-                  <span>
-                    estimated value ${item.values.actual.toLocaleString()}
-                  </span>
-                  {interactionType === "art-dealer-offer" ? (
-                    <strong className="dealer-offer-price">
-                      price ${(item.price ?? item.values.dealer).toLocaleString()}
-                    </strong>
-                  ) : null}
-                </div>
-                <div className="donor-offer-actions">
-                  {interactionType === "art-dealer-offer" ? (
-                    <ItemActionButton
-                      disabled={busyItemId !== null}
-                      icon="fa-shopping-cart"
-                      label={`Purchase ${item.artwork.title} for $${(
-                        item.price ?? item.values.dealer
-                      ).toLocaleString()}`}
-                      onClick={() => actOnOffer(item, "purchase")}
-                    />
-                  ) : (
-                    <>
-                      <ItemActionButton
-                        disabled={busyItemId !== null}
-                        icon="fa-plus"
-                        label={`Add ${item.artwork.title} to inventory`}
-                        onClick={() => actOnOffer(item, "claim")}
-                      />
-                      <ItemActionButton
-                        disabled={busyItemId !== null}
-                        icon="fa-usd"
-                        label={`Sell ${item.artwork.title} for $${item.values.sell.toLocaleString()}`}
-                        onClick={() => actOnOffer(item, "sell")}
-                      />
-                    </>
-                  )}
-                  <ItemActionButton
-                    disabled={busyItemId !== null}
-                    icon="fa-times"
-                    label={`Decline ${item.artwork.title}`}
-                    onClick={() => actOnOffer(item, "decline")}
-                  />
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-        {error ? (
-          <p className="reroll-dialog-error" role="alert">
-            {error}
-          </p>
-        ) : null}
       </div>
     </dialog>
   );

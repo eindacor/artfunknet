@@ -104,7 +104,7 @@ test("bulk sale protection ignores targets already submitted to the Historian", 
       _id: "duplicate-art-1",
       artwork_id: "art-1",
       owner: playerId,
-      status: "unclaimed",
+      status: "for_sale",
       condition: 1,
       mint: false,
       mint_value_multiplier: 1,
@@ -156,13 +156,18 @@ test("bulk sale protection ignores targets already submitted to the Historian", 
       created_at: new Date().toISOString(),
     });
 
-    const result = await getFilteredBulkLootCandidates(database, playerId, {
-      keepArtStyles: false,
-      keepLegendaries: false,
-      keepMasterpieces: false,
-      keepUnfoundQuestTargets: true,
-      keepUnarchived: false,
-    });
+    const result = await getFilteredBulkLootCandidates(
+      database,
+      playerId,
+      {
+        keepArtStyles: false,
+        keepLegendaries: false,
+        keepMasterpieces: false,
+        keepUnfoundQuestTargets: true,
+        keepUnarchived: false,
+      },
+      ["for_sale"],
+    );
 
     assert.deepEqual([...result.questTargetIds], []);
     assert.deepEqual(result.items.map((candidate) => candidate._id), [item._id]);

@@ -23,7 +23,6 @@ import {
 import type { ArtworkRarity } from "@/server/gameplay";
 import type { HydratedGameItem } from "@/server/item-artwork";
 import type { AuctionView } from "@/server/auction-gameplay";
-import type { NpcRewardInteraction } from "@/server/standard-npc-rewards";
 import type {
   GallerySort,
   GalleryViewMode,
@@ -96,7 +95,7 @@ export default function GalleryExplorer({
   npcSpawnIntervalMinutes: number;
   npcRewardEffects: Record<
     string,
-    NpcRewardInteraction & { animationId: number }
+    { animationId: number }
   >;
   onMeetNpc: (npc: GalleryNpcView) => Promise<boolean>;
   onViewSettingsChange: (settings: Partial<PlayerViewSettings>) => void;
@@ -564,7 +563,7 @@ function VisitedGallery({
   npcSpawnIntervalMinutes: number;
   npcRewardEffects: Record<
     string,
-    NpcRewardInteraction & { animationId: number }
+    { animationId: number }
   >;
   onBack: () => void;
   onMeetNpc: (npc: GalleryNpcView) => Promise<boolean>;
@@ -832,6 +831,7 @@ function VisitedGallery({
                       className={`gallery-npc ${npc.quality} ${
                         npc.alreadyMet ? "disabled" : "enabled"
                       } ${npcRewardEffects[npc._id] ? "rewarding" : ""}`}
+                      data-npc-id={npc._id}
                       disabled={
                         meetingNpc !== null ||
                         npc.alreadyMet ||
@@ -855,33 +855,6 @@ function VisitedGallery({
                       <i aria-hidden="true" className={`fa ${npc.icon}`} />
                       <span>{npc.npc_name}</span>
                     </button>
-                    {npcRewardEffects[npc._id] ? (
-                      <span
-                        aria-label={
-                          npcRewardEffects[npc._id].rewardType === "money"
-                            ? `Received $${npcRewardEffects[
-                                npc._id
-                              ].rewardAmount.toLocaleString()}`
-                            : `Received ${npcRewardEffects[
-                                npc._id
-                              ].rewardAmount.toLocaleString()} experience points`
-                        }
-                        className={`npc-reward-popout ${
-                          npcRewardEffects[npc._id].rewardType
-                        }`}
-                        key={npcRewardEffects[npc._id].animationId}
-                        role="status"
-                      >
-                        <i
-                          aria-hidden="true"
-                          className={`fa ${
-                            npcRewardEffects[npc._id].rewardType === "money"
-                              ? "fa-usd"
-                              : "fa-heart"
-                          }`}
-                        />
-                      </span>
-                    ) : null}
                   </span>
                 ))}
             </div>
