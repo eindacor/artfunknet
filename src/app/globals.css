@@ -6230,11 +6230,6 @@ a.welcome-button {
   color: #fff;
   font: 800 0.78rem/1 Courier, "Courier New", monospace;
   opacity: 0;
-  text-shadow:
-    -1px -1px 0 #111,
-    1px -1px 0 #111,
-    -1px 1px 0 #111,
-    1px 1px 0 #111;
   transform: translate(-50%, 8px) scale(0.4);
   animation: npc-effect-popout 1.35s ease-out forwards;
 }
@@ -6257,7 +6252,6 @@ a.welcome-button {
 
 .npc-effect-token i {
   font-size: 1.65rem;
-  filter: drop-shadow(1px 1px 1px rgb(0 0 0 / 60%));
 }
 
 .npc-effect-token.money,
@@ -6314,7 +6308,6 @@ a.welcome-button {
   left: 0;
   font-size: 2.3rem;
   opacity: 0;
-  filter: drop-shadow(0 3px 2px rgb(0 0 0 / 65%));
   animation: donation-reward-fly 1s cubic-bezier(0.18, 0.75, 0.3, 1) forwards;
 }
 
