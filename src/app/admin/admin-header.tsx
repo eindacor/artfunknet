@@ -17,6 +17,7 @@ export default function AdminHeader({ email }: { email: string }) {
     { href: "/admin/test-players", label: "Test players" },
     { href: "/admin/player-accounts", label: "Player accounts" },
     { href: "/admin/chat-reports", label: "Chat reports" },
+    { href: "/admin/hall-of-fame", label: "Hall of fame" },
     { href: "/admin/database", label: "Database" },
   ];
 

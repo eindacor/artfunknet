@@ -67,6 +67,13 @@ export default function PlayerHeaderContent({
           title="Patreon"
         />
       </nav>
+        <ActionButton
+          as={Link}
+          href="/play/hall-of-fame"
+          icon="fa-trophy"
+          label="Hall of fame"
+          size="xs"
+        />
         {!impersonating ? (
           <ActionButton
             as={Link}

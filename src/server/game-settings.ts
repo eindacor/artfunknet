@@ -89,6 +89,7 @@ export type GameplayConfig = {
   auctionAntiSnipeExtensionMinutes: number;
   npcMeetingResetIntervalMinutes: number;
   npcMeetingLimits: Record<NpcQuality, number>;
+  vintageConsiderationCount: number;
   rarityWeights: Record<ArtworkRarity, number>;
   cardStyleWeights: Record<DroppableCardRendererId, number>;
 };
@@ -140,6 +141,7 @@ export const DEFAULT_ACTUAL_GAMEPLAY_CONFIG: GameplayConfig = {
     gold: 80,
     platinum: 60,
   },
+  vintageConsiderationCount: 10,
   rarityWeights: DEFAULT_RARITY_WEIGHTS,
   cardStyleWeights: DEFAULT_CARD_STYLE_WEIGHTS,
 };
@@ -181,6 +183,7 @@ export const DEFAULT_DEBUG_GAMEPLAY_CONFIG: GameplayConfig = {
     gold: 80,
     platinum: 60,
   },
+  vintageConsiderationCount: 10,
   rarityWeights: DEBUG_RARITY_WEIGHTS,
   cardStyleWeights: DEBUG_CARD_STYLE_WEIGHTS,
 };
@@ -233,6 +236,7 @@ type StoredGameplayConfig = {
   auction_anti_snipe_extension_minutes?: number;
   npc_meeting_reset_interval_minutes?: number;
   npc_meeting_limits?: Partial<Record<NpcQuality, number>>;
+  vintage_consideration_count?: number;
   rarity_weights?: Partial<Record<ArtworkRarity, number>>;
   card_style_weights?: Partial<Record<DroppableCardRendererId, number>>;
 };
@@ -311,6 +315,7 @@ export function toStoredGameplayConfig(
       config.auctionAntiSnipeExtensionMinutes,
     npc_meeting_reset_interval_minutes: config.npcMeetingResetIntervalMinutes,
     npc_meeting_limits: config.npcMeetingLimits,
+    vintage_consideration_count: config.vintageConsiderationCount,
     rarity_weights: config.rarityWeights,
     card_style_weights: config.cardStyleWeights,
   };
@@ -341,6 +346,7 @@ export function validateGameplayConfig(
       1,
       10_080,
     ],
+    ["vintageConsiderationCount", "Vintage consideration count", 1, 100],
   ] as const;
   const values: Record<string, number> = {};
   for (const [key, label, min, max] of integerFields) {
@@ -502,6 +508,7 @@ export function validateGameplayConfig(
       auctionAntiSnipeExtensionMinutes: values.auctionAntiSnipeExtensionMinutes,
       npcMeetingResetIntervalMinutes: values.npcMeetingResetIntervalMinutes,
       npcMeetingLimits: npcMeetingLimits.value,
+      vintageConsiderationCount: values.vintageConsiderationCount,
       rarityWeights: rarityWeights.value,
       cardStyleWeights: cardStyleWeights.value,
     },
@@ -694,6 +701,9 @@ function readConfig(
       ...defaults.npcMeetingLimits,
       ...stored?.npc_meeting_limits,
     },
+    vintageConsiderationCount:
+      stored?.vintage_consideration_count ??
+      defaults.vintageConsiderationCount,
     rarityWeights: {
       ...defaults.rarityWeights,
       ...stored?.rarity_weights,
