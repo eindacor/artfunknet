@@ -77,6 +77,7 @@ export default function MinimalistCard({
           <i aria-hidden="true" className="minimalist-card-rarity-mark" />
           {item.artwork.artist}
         </span>
+        <span>${item.values.actual.toLocaleString()}</span>
         <span>{item.artwork.date}</span>
       </header>
       <section>

@@ -15,7 +15,7 @@ export default function BauhausCard({
     <div className="render-card bauhaus-card">
       <span className="bauhaus-shape bauhaus-circle" />
       <span className="bauhaus-shape bauhaus-square" />
-      <span className="bauhaus-shape bauhaus-line" />
+      <span data-rarity={item.artwork.rarity} className="bauhaus-shape bauhaus-line" />
       <header>
         <strong>AF</strong>
         <span>{item.artwork.rarity}</span>

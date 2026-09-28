@@ -987,7 +987,7 @@
 }
 
 .postcard-card-stamps {
-  min-height: 3.65rem;
+  min-height: 3.1rem;
 }
 
 .postcard-card-stamps .render-card-attribute-icons {
@@ -1046,10 +1046,18 @@
 }
 
 .postcard-card-address {
-  margin-top: 0.25rem !important;
-  border-bottom: 1px solid #8f7d64;
-  line-height: 1.6;
+  line-height: 1.1;
   font-family: "Courier New", Courier, monospace;
+}
+
+.postcard-card-address-section {
+  padding: 0px;
+  border-bottom: 1px solid #8f7d64;
+}
+
+.lottery-address {
+  color: #9b6b0f;
+  font-weight: bold;
 }
 
 .postcard-card-properties {
@@ -1086,6 +1094,26 @@
   color: var(--unlocked-dark);
   font-size: 0.65rem;
   transform: rotate(8deg);
+}
+
+.postcard-written-script {
+  font-family: "Segoe Print", "Bradley Hand", cursive;
+  font-size: 0.55rem;
+}
+
+.postcard-written-script .rarity-color{
+  color: var(--rarity-color);
+}
+
+.postcard-written-script .mint-color{
+  font-weight: bold;
+  font-size: .6rem;
+  color: var(--mint-color);
+}
+
+.postcard-written-script .value-text{
+  font-size: .7rem;
+  font-weight: bold;
 }
 
 /* Gilded salon: ornate frame and classical symmetry. */
@@ -2807,6 +2835,26 @@
   width: 66px;
   height: 66px;
   background: #1452a4;
+}
+
+.bauhaus-line[data-rarity="common"] {
+  background: rgb(21 123 21 / 90%);
+}
+
+.bauhaus-line[data-rarity="uncommon"] {
+  background: rgb(62 123 255 / 90%);
+}
+
+.bauhaus-line[data-rarity="rare"] {
+  background: rgb(225 196 41 / 90%);
+}
+
+.bauhaus-line[data-rarity="legendary"] {
+  background: rgb(255 138 31 / 90%);
+}
+
+.bauhaus-line[data-rarity="masterpiece"] {
+  background: rgb(66 232 245 / 90%);
 }
 
 .bauhaus-line {

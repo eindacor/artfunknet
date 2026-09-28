@@ -28,6 +28,7 @@ export default function BaseballCard({
           <span className="baseball-card-grade-score">
             <strong>{grade}</strong>
             <small>ART GRADE</small>
+            <small>${item.values.actual.toLocaleString()}</small>
           </span>
         </header>
         <div className="baseball-card-face">
