@@ -18,10 +18,11 @@ test("player view settings preserve valid saved choices", () => {
       inventorySort: "condition",
       bulkSaleProtections: {
         keepArtStyles: true,
+        keepRares: true,
         keepLegendaries: true,
-        keepMasterpieces: false,
+        keepMasterpieces: true,
         keepUnfoundQuestTargets: true,
-        keepUnarchived: false,
+        keepUnarchived: true,
       },
     }),
     {
@@ -30,10 +31,11 @@ test("player view settings preserve valid saved choices", () => {
       inventorySort: "condition",
       bulkSaleProtections: {
         keepArtStyles: true,
+        keepRares: true,
         keepLegendaries: true,
-        keepMasterpieces: false,
+        keepMasterpieces: true,
         keepUnfoundQuestTargets: true,
-        keepUnarchived: false,
+        keepUnarchived: true,
       },
     },
   );

@@ -542,11 +542,12 @@ async function seedPlayer(database) {
             galleryView: "expanded",
             inventorySort: "newest",
             bulkSaleProtections: {
-              keepArtStyles: false,
-              keepLegendaries: false,
-              keepMasterpieces: false,
-              keepUnfoundQuestTargets: false,
-              keepUnarchived: false,
+              keepArtStyles: true,
+              keepRares: true,
+              keepLegendaries: true,
+              keepMasterpieces: true,
+              keepUnfoundQuestTargets: true,
+              keepUnarchived: true,
             },
           },
           tutorial_data: {

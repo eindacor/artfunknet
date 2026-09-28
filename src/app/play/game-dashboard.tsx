@@ -2446,6 +2446,7 @@ export default function GameDashboard({
                       <legend className="sr-only">Items to preserve</legend>
                       {(
                         [
+                          ["keepRares", "Keep rares"],
                           ["keepLegendaries", "Keep legendaries"],
                           ["keepMasterpieces", "Keep masterpieces"],
                           ["keepUnarchived", "Keep unarchived"],

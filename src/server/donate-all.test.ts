@@ -8,6 +8,7 @@ import { getCardCosmetic } from "../components/item-cards/catalog.ts";
 test("donate all respects bulk sale protection filters", () => {
   const protections = {
     keepArtStyles: true,
+    keepRares: true,
     keepLegendaries: true,
     keepMasterpieces: true,
     keepUnfoundQuestTargets: true,

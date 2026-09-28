@@ -30,11 +30,12 @@ export const DEFAULT_PLAYER_VIEW_SETTINGS: PlayerViewSettings = {
   galleryView: "expanded",
   inventorySort: "newest",
   bulkSaleProtections: {
-    keepArtStyles: false,
-    keepLegendaries: false,
-    keepMasterpieces: false,
-    keepUnfoundQuestTargets: false,
-    keepUnarchived: false,
+    keepArtStyles: true,
+    keepRares: true,
+    keepLegendaries: true,
+    keepMasterpieces: true,
+    keepUnfoundQuestTargets: true,
+    keepUnarchived: true,
   },
 };
 
@@ -55,16 +56,12 @@ export function getPlayerViewSettings(value: unknown): PlayerViewSettings {
       ? settings.inventorySort
       : DEFAULT_PLAYER_VIEW_SETTINGS.inventorySort,
     bulkSaleProtections: {
-      keepArtStyles:
-        protections.keepArtStyles === true,
-      keepLegendaries:
-        protections.keepLegendaries === true,
-      keepMasterpieces:
-        protections.keepMasterpieces === true,
-      keepUnfoundQuestTargets:
-        protections.keepUnfoundQuestTargets === true,
-      keepUnarchived:
-        protections.keepUnarchived === true,
+      keepArtStyles: protections.keepArtStyles !== false,
+      keepRares: protections.keepRares !== false,
+      keepLegendaries: protections.keepLegendaries !== false,
+      keepMasterpieces: protections.keepMasterpieces !== false,
+      keepUnfoundQuestTargets: protections.keepUnfoundQuestTargets !== false,
+      keepUnarchived: protections.keepUnarchived !== false,
     },
   };
 }

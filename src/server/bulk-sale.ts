@@ -23,6 +23,7 @@ import { getPlayerFacingArchivePermission, type ItemPermission } from "./item-pe
 
 export type BulkSaleProtections = {
   keepArtStyles: boolean;
+  keepRares: boolean;
   keepLegendaries: boolean;
   keepMasterpieces: boolean;
   keepUnfoundQuestTargets: boolean;
@@ -50,6 +51,7 @@ export function parseBulkSaleProtections(
     ok: true,
     protections: {
       keepArtStyles: body.keepArtStyles === true,
+      keepRares: body.keepRares === true,
       keepLegendaries: body.keepLegendaries === true,
       keepMasterpieces: body.keepMasterpieces === true,
       keepUnfoundQuestTargets: body.keepUnfoundQuestTargets === true,
@@ -71,6 +73,7 @@ export function shouldPreserveBulkSaleItem(
     (protections.keepArtStyles &&
       Boolean(item.card_renderer) &&
       item.card_renderer !== "museum") ||
+    (protections.keepRares && item.artwork.rarity === "rare") ||
     (protections.keepLegendaries && item.artwork.rarity === "legendary") ||
     (protections.keepMasterpieces && item.artwork.rarity === "masterpiece") ||
     (protections.keepUnfoundQuestTargets &&

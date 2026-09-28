@@ -18,6 +18,7 @@ import { setupTestDb } from "./test-utils/db-setup.ts";
 
 const protections = {
   keepArtStyles: true,
+  keepRares: true,
   keepLegendaries: true,
   keepMasterpieces: true,
   keepUnfoundQuestTargets: true,
@@ -169,6 +170,7 @@ test("bulk sale protection ignores targets already submitted to the Historian", 
       playerId,
       {
         keepArtStyles: false,
+        keepRares: false,
         keepLegendaries: false,
         keepMasterpieces: false,
         keepUnfoundQuestTargets: true,
@@ -236,6 +238,7 @@ test("bulk protections can filter auction-house-owned private auction items", as
       playerId,
       {
         keepArtStyles: false,
+        keepRares: false,
         keepLegendaries: false,
         keepMasterpieces: false,
         keepUnfoundQuestTargets: false,
