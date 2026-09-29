@@ -3,6 +3,10 @@ import { randomBytes } from "node:crypto";
 import type { Db } from "mongodb";
 
 import { DEFAULT_PLAYER_VIEW_SETTINGS } from "./player-view-settings.ts";
+import {
+  getNextSocialBatteryResetAt,
+  SOCIAL_BATTERY_MAX,
+} from "./social-battery.ts";
 
 export const RESERVED_PLAYER_NAMES = ["artfunkel"] as const;
 
@@ -112,6 +116,8 @@ export function createDefaultPlayerProfile(
     visitor_cap: 20,
     repairing_cap: 4,
     npcs_met: { bronze: 0, silver: 0, gold: 0, platinum: 0 },
+    social_battery: SOCIAL_BATTERY_MAX,
+    social_battery_reset_at: getNextSocialBatteryResetAt(now).toISOString(),
     completed_quests: 0,
     market_expert: { expiration: new Date(0).toISOString() },
     view_settings: {

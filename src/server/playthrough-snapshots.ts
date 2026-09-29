@@ -7,6 +7,7 @@ import type { HydratedGameItem } from "./item-artwork.ts";
 
 export type PlaythroughStats = {
   visitors_met: number;
+  quests_completed: number;
   items_collected: number;
   money_spent: number;
 };

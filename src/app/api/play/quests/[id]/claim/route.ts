@@ -171,6 +171,7 @@ export async function POST(
         $inc: {
           "profile.bank_balance": moneyReward,
           "profile.completed_quests": 1,
+          "profile.playthrough_stats.quests_completed": 1,
           "profile.lottery_tickets": progress.lotteryTickets,
         },
         $set: {

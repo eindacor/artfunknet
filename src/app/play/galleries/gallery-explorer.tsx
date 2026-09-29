@@ -28,6 +28,11 @@ import type {
   GalleryViewMode,
   PlayerViewSettings,
 } from "@/server/player-view-settings";
+import { getVisitorSocialBatteryCost } from "@/server/social-battery";
+import {
+  NPC_QUALITIES,
+  type NpcQuality,
+} from "@/server/npc-gameplay";
 
 import { AuctionBidDialog } from "../auctions/auction-house";
 import GalleryChat from "./gallery-chat";
@@ -75,30 +80,44 @@ type GalleryDetailResponse = {
   legendaryAttributes: CardLegendaryAttribute[];
 };
 
+type NpcSpawnOption = {
+  id: string;
+  icon: string;
+  name: string;
+};
+
 export default function GalleryExplorer({
+  impersonating,
   initialBankBalance,
   initialGalleryId,
   initialSort,
   initialViewMode,
   meetingNpc,
   npcSpawnIntervalMinutes,
+  npcSpawnOptions,
   npcRewardEffects,
   onMeetNpc,
+  onGoHome,
   onViewSettingsChange,
+  socialBattery,
   viewerId,
 }: {
+  impersonating: boolean;
   initialBankBalance: number;
   initialGalleryId: string | null;
   initialSort: GallerySort;
   initialViewMode: GalleryViewMode;
   meetingNpc: string | null;
   npcSpawnIntervalMinutes: number;
+  npcSpawnOptions: NpcSpawnOption[];
   npcRewardEffects: Record<
     string,
     { animationId: number }
   >;
   onMeetNpc: (npc: GalleryNpcView) => Promise<boolean>;
+  onGoHome: () => void;
   onViewSettingsChange: (settings: Partial<PlayerViewSettings>) => void;
+  socialBattery: number;
   viewerId: string;
 }) {
   const router = useRouter();
@@ -275,16 +294,20 @@ export default function GalleryExplorer({
   if (selectedGalleryId) {
     return (
       <VisitedGallery
+        impersonating={impersonating}
         initialBankBalance={initialBankBalance}
+        key={selectedGalleryId}
         meetingNpc={meetingNpc}
         navigationError={error}
         npcSpawnIntervalMinutes={npcSpawnIntervalMinutes}
         npcRewardEffects={npcRewardEffects}
+        npcSpawnOptions={npcSpawnOptions}
         onBack={() => {
           setSelectedGalleryId(null);
-          router.replace("/play", { scroll: false });
+          router.replace("/play?section=explore", { scroll: false });
         }}
         onMeetNpc={onMeetNpc}
+        onGoHome={onGoHome}
         onNextGallery={
           hasNextGallery ? () => navigateGallery(1) : undefined
         }
@@ -293,6 +316,7 @@ export default function GalleryExplorer({
         }
         ownerId={selectedGalleryId}
         navigationDisabled={navigatingGallery}
+        socialBattery={socialBattery}
         viewerId={viewerId}
       />
     );
@@ -544,19 +568,24 @@ export default function GalleryExplorer({
 }
 
 function VisitedGallery({
+  impersonating,
   initialBankBalance,
   meetingNpc,
   navigationError,
   npcSpawnIntervalMinutes,
   npcRewardEffects,
+  npcSpawnOptions,
   onBack,
   onMeetNpc,
+  onGoHome,
   onNextGallery,
   onPreviousGallery,
   ownerId,
   navigationDisabled,
+  socialBattery,
   viewerId,
 }: {
+  impersonating: boolean;
   initialBankBalance: number;
   meetingNpc: string | null;
   navigationError: string;
@@ -565,12 +594,15 @@ function VisitedGallery({
     string,
     { animationId: number }
   >;
+  npcSpawnOptions: NpcSpawnOption[];
   onBack: () => void;
   onMeetNpc: (npc: GalleryNpcView) => Promise<boolean>;
+  onGoHome: () => void;
   onNextGallery?: () => void;
   onPreviousGallery?: () => void;
   ownerId: string;
   navigationDisabled: boolean;
+  socialBattery: number;
   viewerId: string;
 }) {
   const [gallery, setGallery] = useState<GalleryDetailResponse | null>(null);
@@ -580,6 +612,11 @@ function VisitedGallery({
     null,
   );
   const [bankBalance, setBankBalance] = useState(initialBankBalance);
+  const [npcSpawnQuality, setNpcSpawnQuality] =
+    useState<NpcQuality>("bronze");
+  const [spawningNpc, setSpawningNpc] = useState<string | null>(null);
+  const [spawnMessage, setSpawnMessage] = useState("");
+  const [spawnError, setSpawnError] = useState("");
   const [refreshVersion, setRefreshVersion] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -595,6 +632,46 @@ function VisitedGallery({
     ownerId,
     spawnIntervalMinutes: npcSpawnIntervalMinutes,
   });
+
+  async function spawnTestNpc(option: NpcSpawnOption) {
+    setSpawningNpc(option.id);
+    setSpawnMessage("");
+    setSpawnError("");
+    try {
+      const response = await fetch(
+        "/api/admin/test-accounts/spawn-npc",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            attributeId: option.id,
+            ownerId,
+            quality: npcSpawnQuality,
+          }),
+        },
+      );
+      const body = (await response.json()) as {
+        error?: string;
+        message?: string;
+      };
+      if (!response.ok) {
+        throw new Error(body.error ?? "The visitor could not be spawned.");
+      }
+      setSpawnMessage(
+        body.message ??
+          `Spawned a ${npcSpawnQuality} ${option.name} visitor.`,
+      );
+      await refreshVisitors();
+    } catch (spawnFailure) {
+      setSpawnError(
+        spawnFailure instanceof Error
+          ? spawnFailure.message
+          : "The visitor could not be spawned.",
+      );
+    } finally {
+      setSpawningNpc(null);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -674,6 +751,57 @@ function VisitedGallery({
 
   return (
     <section className="visited-gallery">
+      {impersonating ? (
+        <div className="admin-gallery-controls">
+          <strong>admin test controls</strong>
+          <fieldset>
+            <legend>visitor quality</legend>
+            {NPC_QUALITIES.map((quality) => (
+              <label key={quality}>
+                <input
+                  checked={npcSpawnQuality === quality}
+                  disabled={spawningNpc !== null}
+                  name="npc-quality"
+                  onChange={() => setNpcSpawnQuality(quality)}
+                  type="radio"
+                  value={quality}
+                />
+                <span>{quality}</span>
+              </label>
+            ))}
+          </fieldset>
+          <div className="admin-npc-spawn-options">
+            <span>spawn visitor in this gallery</span>
+            <div>
+              {npcSpawnOptions.length === 0 ? (
+                <span>No active NPC types are available.</span>
+              ) : (
+                npcSpawnOptions.map((option) => (
+                  <button
+                    disabled={spawningNpc !== null}
+                    key={option.id}
+                    onClick={() => void spawnTestNpc(option)}
+                    type="button"
+                  >
+                    <i aria-hidden="true" className={`fa ${option.icon}`} />
+                    {spawningNpc === option.id
+                      ? "spawning..."
+                      : option.name}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+          {spawnMessage ? (
+            <span aria-live="polite">{spawnMessage}</span>
+          ) : null}
+          {spawnError ? (
+            <span aria-live="assertive" className="admin-error">
+              {spawnError}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
       <div className="visited-gallery-workspace">
         <section className="visited-gallery-player-panel">
           <header className="visited-gallery-metadata-header">
@@ -825,16 +953,26 @@ function VisitedGallery({
         <PublicGallery
           floorContent={
             <div className="npc-area gallery-npc-overlay">
-              {visitors.map((npc) => (
+              {visitors.map((npc) => {
+                const socialBatteryCost = getVisitorSocialBatteryCost(
+                  npc.quality,
+                  ownerId === viewerId,
+                );
+                const insufficientBattery =
+                  socialBattery < socialBatteryCost;
+                return (
                   <span className="gallery-npc-slot" key={npc._id}>
                     <button
                       className={`gallery-npc ${npc.quality} ${
-                        npc.alreadyMet ? "disabled" : "enabled"
+                        npc.alreadyMet || insufficientBattery
+                          ? "disabled"
+                          : "enabled"
                       } ${npcRewardEffects[npc._id] ? "rewarding" : ""}`}
                       data-npc-id={npc._id}
                       disabled={
                         meetingNpc !== null ||
                         npc.alreadyMet ||
+                        insufficientBattery ||
                         Boolean(npcRewardEffects[npc._id])
                       }
                       onClick={async () => {
@@ -848,7 +986,9 @@ function VisitedGallery({
                       title={
                         npc.alreadyMet
                           ? `${npc.npc_name} already met`
-                          : `meet ${npc.npc_name}`
+                          : insufficientBattery
+                            ? `${socialBatteryCost} social battery required`
+                            : `meet ${npc.npc_name} (${socialBatteryCost} social battery)`
                       }
                       type="button"
                     >
@@ -856,7 +996,8 @@ function VisitedGallery({
                       <span>{npc.npc_name}</span>
                     </button>
                   </span>
-                ))}
+                );
+              })}
             </div>
           }
           items={gallery.items}
@@ -864,6 +1005,7 @@ function VisitedGallery({
           navigationDisabled={navigationDisabled}
           navigationError={navigationError}
           onExitGallery={onBack}
+          onGoHome={onGoHome}
           onNextGallery={onNextGallery}
           onPreviousGallery={onPreviousGallery}
           onSelectItem={setSelectedPreviewItem}

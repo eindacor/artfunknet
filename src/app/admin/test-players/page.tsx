@@ -12,6 +12,7 @@ type TestPlayer = {
     level: number;
     bank_balance: number;
     lottery_tickets: number;
+    social_battery?: number;
     last_activity: string;
   };
 };
@@ -33,6 +34,7 @@ export default async function TestPlayersAdminPage() {
       level: player.profile.level,
       bankBalance: player.profile.bank_balance,
       lotteryTickets: player.profile.lottery_tickets,
+      socialBattery: player.profile.social_battery ?? 6_000,
       itemCount: await database
         .collection("items")
         .countDocuments({ owner: player._id }),

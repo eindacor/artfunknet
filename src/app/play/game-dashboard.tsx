@@ -77,7 +77,6 @@ import {
 } from "@/server/item-permissions";
 import { getRerollMinimum } from "@/server/item-reroll";
 import {
-  NPC_QUALITIES,
   type NpcQuality,
 } from "@/server/npc-gameplay";
 import type { NpcRewardInteraction } from "@/server/standard-npc-rewards";
@@ -85,6 +84,10 @@ import type {
   InventorySort,
   PlayerViewSettings,
 } from "@/server/player-view-settings";
+import {
+  getVisitorSocialBatteryCost,
+  SOCIAL_BATTERY_MAX,
+} from "@/server/social-battery";
 
 import AuctionHouse, {
   AuctionBidDialog,
@@ -92,8 +95,6 @@ import AuctionHouse, {
 } from "./auctions/auction-house";
 import type { AuctionView } from "@/server/auction-gameplay";
 import GalleryExplorer, {
-  GalleryAttributeSummary,
-  GalleryRaritySummary,
   type GalleryNpcView,
 } from "./galleries/gallery-explorer";
 import GalleryChat from "./galleries/gallery-chat";
@@ -118,7 +119,8 @@ type PlayerView = {
   repairingCap: number;
   lastDrop: string;
   xpGoal: number;
-  npcsMet: Partial<Record<NpcQuality, number>>;
+  socialBattery: number;
+  socialBatteryResetAt: string;
   karma: number;
   cardStyleInventory: CardStyleInventory;
   completedQuests: number;
@@ -330,17 +332,28 @@ export default function GameDashboard({
   >(
     initialGalleryId
       ? "explore"
-      : initialSection === "history"
-        ? "history"
-        : initialSection === "raffle"
-          ? "raffle"
-          : initialSection === "auctions"
-            ? "auctions"
-      : items.some((item) => item.status === "unclaimed")
-        ? "loot"
-        : "profile",
+      : initialSection === "social" || initialSection === "profile"
+        ? "profile"
+        : initialSection === "history"
+          ? "history"
+          : initialSection === "raffle"
+            ? "raffle"
+            : initialSection === "auctions"
+              ? "auctions"
+              : initialSection === "loot"
+                ? "loot"
+                : initialSection === "explore"
+                  ? "explore"
+                  : initialSection === "archive"
+                    ? "archive"
+                    : initialSection === "quests"
+                      ? "quests"
+                      : "collection",
   );
   const [exploreResetKey, setExploreResetKey] = useState(0);
+  const [exploreGalleryId, setExploreGalleryId] = useState<string | null>(
+    initialGalleryId,
+  );
   const [now, setNow] = useState(0);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -364,9 +377,7 @@ export default function GameDashboard({
     Record<string, { animationId: number; recoveredStyle: boolean }>
   >({});
   const [karmaBalance, setKarmaBalance] = useState(player.karma);
-  const [npcSpawnQuality, setNpcSpawnQuality] =
-    useState<NpcQuality>("bronze");
-  const [spawningNpc, setSpawningNpc] = useState<string | null>(null);
+  const [socialBattery, setSocialBattery] = useState(player.socialBattery);
   const [meetingNpc, setMeetingNpc] = useState<string | null>(null);
   const [createdPrivateAuctions, setCreatedPrivateAuctions] =
     useState<AuctionView[]>([]);
@@ -398,6 +409,29 @@ export default function GameDashboard({
   const [archiveCompletion, setArchiveCompletion] = useState<
     "all" | "complete" | "incomplete"
   >("all");
+
+  useEffect(() => {
+    const timer = window.setTimeout(
+      () => setSocialBattery(player.socialBattery),
+      0,
+    );
+    return () => window.clearTimeout(timer);
+  }, [player.socialBattery]);
+
+  useEffect(() => {
+    const resetAt = new Date(player.socialBatteryResetAt).getTime();
+    if (!Number.isFinite(resetAt)) return;
+    const delay = resetAt - Date.now() + 1_000;
+    if (delay <= 0) {
+      router.refresh();
+      return;
+    }
+    const timer = window.setTimeout(
+      () => router.refresh(),
+      Math.min(delay, 2_147_483_647),
+    );
+    return () => window.clearTimeout(timer);
+  }, [player.socialBatteryResetAt, router]);
   const [bulkSaleProtections, setBulkSaleProtections] =
     useState<BulkSaleProtections>(player.viewSettings.bulkSaleProtections);
   const [inventorySort, setInventorySort] = useState<InventorySort>(
@@ -433,7 +467,7 @@ export default function GameDashboard({
     refreshVisitors,
     visitors: galleryVisitors,
   } = useGalleryVisitors({
-    enabled: section === "collection" || section === "gallery",
+    enabled: section === "gallery",
     initialVisitors: npcs,
     ownerId: playerId,
     spawnIntervalMinutes: npcSpawnIntervalMinutes,
@@ -1181,44 +1215,6 @@ export default function GameDashboard({
     );
   }
 
-  async function spawnTestNpc(option: NpcSpawnOption) {
-    setSpawningNpc(option.id);
-    try {
-      const response = await fetch(
-        "/api/admin/test-accounts/spawn-npc",
-        {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            attributeId: option.id,
-            quality: npcSpawnQuality,
-          }),
-        },
-      );
-      const body = (await response.json()) as {
-        error?: string;
-        message?: string;
-      };
-      if (!response.ok) {
-        throw new Error(body.error ?? "The NPC could not be spawned.");
-      }
-
-      const message =
-        body.message ??
-        `Spawned a ${npcSpawnQuality} ${option.name} visitor.`;
-      setNotice(message);
-      router.refresh();
-    } catch (spawnError) {
-      const message =
-        spawnError instanceof Error
-          ? spawnError.message
-          : "The NPC could not be spawned.";
-      setError(message);
-    } finally {
-      setSpawningNpc(null);
-    }
-  }
-
   async function meetNpc(npc: NpcView | GalleryNpcView): Promise<boolean> {
     setMeetingNpc(npc._id);
     setError("");
@@ -1256,6 +1252,16 @@ export default function GameDashboard({
       if (!response.ok) {
         throw new Error(body.error ?? "The visitor interaction failed.");
       }
+      setSocialBattery((current) =>
+        Math.max(
+          0,
+          current -
+            getVisitorSocialBatteryCost(
+              npc.quality,
+              npc.owner_id === playerId,
+            ),
+        ),
+      );
       let showedAnimatedResult = false;
       if (
         body.interaction?.type === "art-donor-offer" ||
@@ -1432,8 +1438,6 @@ export default function GameDashboard({
       router.refresh();
       return true;
     } catch (meetError) {
-      removeVisitor(npc._id);
-      void refreshVisitors();
       const message =
         meetError instanceof Error
           ? meetError.message
@@ -1877,18 +1881,66 @@ export default function GameDashboard({
   return (
     <main className="legacy-game">
       <div className="max-w-[1280px] m-auto">
+        <section
+          aria-label="Player progress"
+          className="dashboard-resource-bars"
+        >
+          <div className="dashboard-resource-bar">
+            <div>
+              <span>
+                Level {player.level.toLocaleString()}
+                {player.isMaxLevel ? " · Next lottery ticket" : ""}
+              </span>
+              <strong>
+                {player.xp.toLocaleString()} /{" "}
+                {player.xpGoal.toLocaleString()} XP
+              </strong>
+            </div>
+            <ProgressBar
+              value={player.xp}
+              goal={player.xpGoal}
+              maxed={player.isMaxLevel}
+            />
+          </div>
+          <div className="dashboard-resource-bar social-battery-resource">
+            <div>
+              <span>Social battery</span>
+              <strong>
+                {socialBattery.toLocaleString()} /{" "}
+                {SOCIAL_BATTERY_MAX.toLocaleString()}
+              </strong>
+            </div>
+            <div
+              aria-label={`${socialBattery.toLocaleString()} of ${SOCIAL_BATTERY_MAX.toLocaleString()} social battery remaining`}
+              aria-valuemax={SOCIAL_BATTERY_MAX}
+              aria-valuemin={0}
+              aria-valuenow={socialBattery}
+              className="social-battery-meter"
+              role="progressbar"
+            >
+              <span
+                style={{
+                  width: `${Math.max(
+                    0,
+                    Math.min(100, (socialBattery / SOCIAL_BATTERY_MAX) * 100),
+                  )}%`,
+                }}
+              />
+            </div>
+          </div>
+        </section>
         <nav className="dashboard-tabs" aria-label="Player dashboard">
           {(
             [
-              { id: "profile", label: "Profile", icon: "fa-user" },
-              { id: "collection", label: "Collection", icon: "fa-picture-o" },
-              { id: "loot", label: "loot", icon: "fa-gift" },
-              { id: "explore", label: "Explore", icon: "fa-binoculars" },
-              { id: "archive", label: "Archive", icon: "fa-archive" },
+              { id: "collection", label: "Home", icon: "fa-home" },
+              { id: "explore", label: "View Galleries", icon: "fa-picture-o" },
+              { id: "loot", label: "Offers", icon: "fa-gift" },
               { id: "quests", label: "Quests", icon: "fa-map-signs" },
               { id: "auctions", label: "Auction House", icon: "fa-gavel" },
+              { id: "archive", label: "Archive", icon: "fa-archive" },
               { id: "raffle", label: "Lottery", icon: "fa-ticket" },
-              { id: "history", label: "History", icon: "fa-history" },
+              { id: "profile", label: "Social", icon: "fa-comments" },
+              { id: "history", label: "Legacy", icon: "fa-history" },
             ] as const
           ).map((tab) => (
             <button
@@ -1896,9 +1948,18 @@ export default function GameDashboard({
               key={tab.id}
               onClick={() => {
                 if (tab.id === "explore") {
+                  setExploreGalleryId(null);
                   setExploreResetKey((current) => current + 1);
-                  router.replace("/play?section=explore", { scroll: false });
                 }
+                const sectionName =
+                  tab.id === "collection"
+                    ? "home"
+                    : tab.id === "profile"
+                      ? "social"
+                      : tab.id;
+                router.replace(`/play?section=${sectionName}`, {
+                  scroll: false,
+                });
                 setSection(tab.id);
               }}
               type="button"
@@ -1926,223 +1987,9 @@ export default function GameDashboard({
         </p>
 
         {section === "profile" ? (
-          <section className="player-profile-layout">
-            <div className="profile-sidebar">
-              <GalleryChat global viewerId={playerId} />
-              <GalleryChat galleryOwnerId={playerId} viewerId={playerId} />
-            </div>
-            <section className="player-profile">
-              <header className="museum-profile-heading">
-              <div>
-                <p>Artfunkel collection registry</p>
-                <h2>
-                  {player.screenName}
-                  {player.level >= 50 ? (
-                    <span
-                      className="vintage-runback-button-wrap"
-                      title={
-                        activeAuctionCount > 0
-                          ? "Resolve all active auctions before entering a new era"
-                          : vintageCandidates.length < vintageConsiderationCount
-                            ? `Collect ${vintageConsiderationCount} eligible items before entering a new era`
-                          : "Enter a new era"
-                      }
-                    >
-                      <button
-                        aria-label={
-                          activeAuctionCount > 0
-                            ? "Resolve all active auctions before entering a new era"
-                            : vintageCandidates.length < vintageConsiderationCount
-                              ? `Collect ${vintageConsiderationCount} eligible items before entering a new era`
-                            : "Enter a new era"
-                        }
-                        className="vintage-runback-button"
-                        disabled={
-                          activeAuctionCount > 0 ||
-                          vintageCandidates.length < vintageConsiderationCount
-                        }
-                        onClick={() => setVintageDialogOpen(true)}
-                        type="button"
-                      >
-                        Enter a new era
-                      </button>
-                    </span>
-                  ) : null}
-                </h2>
-                <span>Private collection and activity record</span>
-              </div>
-              <strong>Level {player.level.toString()}</strong>
-            </header>
-
-            <div className="museum-profile-progress">
-              <div>
-                <span>
-                  {player.isMaxLevel
-                    ? "Next lottery ticket"
-                    : "Experience"}
-                </span>
-                <strong>
-                  {player.xp.toLocaleString()} /{" "}
-                  {player.xpGoal.toLocaleString()} XP
-                </strong>
-              </div>
-              <ProgressBar value={player.xp} goal={player.xpGoal} maxed={player.isMaxLevel}  />
-            </div>
-
-            <div className="museum-profile-ledger">
-              <section>
-                <header>
-                  <span>Account</span>
-                  <small>Financial and collection holdings</small>
-                </header>
-                <dl>
-                  <ProfileFact
-                    label="Bank balance"
-                  value={`$${player.bankBalance.toLocaleString()}`}
-                  />
-                  <ProfileFact
-                    label="Lottery tickets"
-                  value={player.raffleTickets.toLocaleString()}
-                  />
-                  <ProfileFact
-                    label="Paintings owned"
-                    value={ownedCount.toLocaleString()}
-                  />
-                  <ProfileFact
-                    label="Archived artworks"
-                    value={archives.length.toLocaleString()}
-                  />
-                  <ProfileFact
-                    label="Inventory space available"
-                  value={Math.max(
-                    player.inventoryCap - player.inventorySlotsUsed,
-                    0,
-                  )}
-                  />
-                  <ProfileFact
-                    label="Items being repaired"
-                    value={`${repairingCount} (${player.repairingCap} max)`}
-                  />
-                </dl>
-              </section>
-
-              <section>
-                <header>
-                  <span>Institutional record</span>
-                  <small>Lifetime participation</small>
-                </header>
-                <dl>
-                  <ProfileFact
-                    label="Visitors met"
-                  value={Object.values(player.npcsMet).reduce(
-                    (sum, count) => sum + (count ?? 0),
-                    0,
-                  )}
-                  />
-                  <ProfileFact
-                    label="Quests completed"
-                  value={player.completedQuests.toLocaleString()}
-                  />
-                </dl>
-              </section>
-            </div>
-
-              <section className="museum-profile-karma">
-                <header>
-                  <span>Good Karma</span>
-                  <small>Earned by donating artwork and being kind. Used to level up items.</small>
-                </header>
-                <div className="karma-balance">
-                  <i aria-hidden="true" className="fa fa-spa" />
-                  <div>
-                    <strong>{karmaBalance.toLocaleString()}</strong>
-                  </div>
-                </div>
-              </section>
-            </section>
-            <aside className="profile-gallery-panel">
-              <header>
-                <div>
-                  <span>On display</span>
-                  <small>
-                    {displayed.length} / {player.displayCap} works
-                  </small>
-                </div>
-                <i aria-hidden="true" className="fa fa-picture-o" />
-              </header>
-              {displayed.length > 0 ? (
-                <>
-                  <div className="profile-gallery-thumbnails">
-                    {displayed.slice(0, 8).map((item) => (
-                      <button
-                        aria-label={`View ${item.artwork.title} by ${item.artwork.artist}`}
-                        key={item._id}
-                        onClick={() => {
-                          setSelectedCollectionItemId(item._id);
-                          setSection("collection");
-                        }}
-                        title={`${item.artwork.title} by ${item.artwork.artist}`}
-                        type="button"
-                      >
-                        <ItemThumbnail
-                          alt=""
-                          item={item}
-                          researchTarget={unfoundQuestTargetArtworkIds.has(
-                            item.artwork_id,
-                          )}
-                        />
-                      </button>
-                    ))}
-                  </div>
-                  {displayed.length > 8 ? (
-                    <p>+{displayed.length - 8} additional works on display</p>
-                  ) : null}
-                  <button
-                    className="profile-gallery-action"
-                    onClick={() => setSection("collection")}
-                    type="button"
-                  >
-                    Manage gallery
-                  </button>
-                </>
-              ) : inventory.some((item) => item.status === "claimed") ? (
-                <div className="profile-gallery-empty">
-                  <i aria-hidden="true" className="fa fa-picture-o" />
-                  <p>
-                    Your walls are waiting. Put some of your collected works on
-                    display.
-                  </p>
-                  <button
-                    className="profile-gallery-action"
-                    onClick={() => setSection("collection")}
-                    type="button"
-                  >
-                    Manage gallery
-                  </button>
-                </div>
-              ) : (
-                <div className="profile-gallery-empty">
-                  <i aria-hidden="true" className="fa fa-gift" />
-                  <p>
-                    Start collecting artwork before curating your first
-                    exhibition.
-                  </p>
-                  <button
-                    className="profile-gallery-action"
-                    onClick={() => setSection("loot")}
-                    type="button"
-                  >
-                    Go to crates section
-                  </button>
-                </div>
-              )}
-              {galleryMetadata ? (
-                <GalleryMetadataPanel
-                  galleryMetadata={galleryMetadata}
-                  galleryRates={galleryRates}
-                />
-              ) : null}
-            </aside>
+          <section className="social-page-layout">
+            <GalleryChat global viewerId={playerId} />
+            <GalleryChat galleryOwnerId={playerId} viewerId={playerId} />
           </section>
         ) : null}
 
@@ -2531,136 +2378,140 @@ export default function GameDashboard({
           </section>
         ) : null}
 
-        {section === "collection" && collectionItems.length === 0 ? (
-          <>
-            {impersonating ? (
-              <div className="admin-gallery-controls">
-                <strong>admin test controls</strong>
-                <fieldset>
-                  <legend>visitor quality</legend>
-                  {NPC_QUALITIES.map((quality) => (
-                    <label key={quality}>
-                      <input
-                        checked={npcSpawnQuality === quality}
-                        disabled={spawningNpc !== null}
-                        name="npc-quality"
-                        onChange={() => setNpcSpawnQuality(quality)}
-                        type="radio"
-                        value={quality}
-                      />
-                      <span>{quality}</span>
-                    </label>
-                  ))}
-                </fieldset>
-                <div className="admin-npc-spawn-options">
-                  <span>spawn visitor type</span>
-                  <div>
-                    {npcSpawnOptions.length === 0 ? (
-                      <span>No active NPC types are available.</span>
-                    ) : (
-                      npcSpawnOptions.map((option) => (
-                        <button
-                          disabled={spawningNpc !== null}
-                          key={option.id}
-                          onClick={() => spawnTestNpc(option)}
-                          type="button"
-                        >
-                          <i
-                            aria-hidden="true"
-                            className={`fa ${option.icon}`}
+        {section === "collection" && collectionItems.length > 0 ? (
+          <InfoPanel className="home-gallery-overview">
+            <section className="home-overview-section">
+              <header className="home-overview-section-heading">
+                <h2 className="info-panel-title">Gallery overview</h2>
+              </header>
+              <GalleryStats>
+                <GalleryStat
+                  label="Gallery value"
+                  value={`$${(galleryMetadata?.value ?? 0).toLocaleString()}`}
+                />
+                <GalleryStat
+                  label="On display"
+                  value={
+                    <DisplayedSummary
+                      displayCapacity={player.displayCap}
+                      rarities={displayed.map(
+                        (item) => item.artwork.rarity,
+                      )}
+                      theme="museum"
+                    />
+                  }
+                />
+                <GalleryStat
+                  label="Attribute score"
+                  value={(galleryMetadata?.score ?? 0).toLocaleString()}
+                />
+                <GalleryStat
+                  label="Featured value"
+                  value={`$${(
+                    galleryMetadata?.featured_value ?? 0
+                  ).toLocaleString()}`}
+                />
+                <GalleryStat
+                  label="Earnings per hour"
+                  value={`$${galleryRates.moneyPerHour.toLocaleString()}`}
+                />
+                <GalleryStat
+                  label="Experience per hour"
+                  value={galleryRates.xpPerHour.toLocaleString()}
+                />
+                <GalleryStat
+                  label="Attributes"
+                  value={
+                    galleryMetadata && galleryMetadata.attributes.length > 0
+                      ? galleryMetadata.attributes.map((attribute, i) => (
+                          <Attribute
+                            attribute={attribute}
+                            displayCapacity={galleryMetadata.display_capacity}
+                            key={`${attribute.id}_${i}`}
                           />
-                          {spawningNpc === option.id
-                            ? "spawning..."
-                            : option.name}
-                        </button>
-                      ))
-                    )}
-                  </div>
-                </div>
+                        ))
+                      : "None"
+                  }
+                />
+              </GalleryStats>
+              <div className="home-overview-actions">
+                <button
+                  className="home-gallery-button"
+                  onClick={() => {
+                    setExploreGalleryId(playerId);
+                    setExploreResetKey((current) => current + 1);
+                    setSection("explore");
+                    router.replace(
+                      `/play?section=explore&gallery=${encodeURIComponent(playerId)}`,
+                      { scroll: false },
+                    );
+                  }}
+                  type="button"
+                >
+                  Go to gallery
+                </button>
+                {player.level >= 50 ? (
+                  <span
+                    className="vintage-runback-button-wrap"
+                    title={
+                      activeAuctionCount > 0
+                        ? "Resolve all active auctions before entering a new era"
+                        : vintageCandidates.length < vintageConsiderationCount
+                          ? `Collect ${vintageConsiderationCount} eligible items before entering a new era`
+                          : "Enter a new era"
+                    }
+                  >
+                    <button
+                      aria-label={
+                        activeAuctionCount > 0
+                          ? "Resolve all active auctions before entering a new era"
+                          : vintageCandidates.length < vintageConsiderationCount
+                            ? `Collect ${vintageConsiderationCount} eligible items before entering a new era`
+                            : "Enter a new era"
+                      }
+                      className="vintage-runback-button home-new-era-button"
+                      disabled={
+                        activeAuctionCount > 0 ||
+                        vintageCandidates.length < vintageConsiderationCount
+                      }
+                      onClick={() => setVintageDialogOpen(true)}
+                      type="button"
+                    >
+                      Enter a new era
+                    </button>
+                  </span>
+                ) : null}
               </div>
-            ) : null}
-            <section className="collection-empty-state">
-              <button onClick={() => setSection("loot")} type="button">
-                go here and come back when you collect some artwork!
-              </button>
             </section>
-          </>
+          </InfoPanel>
+        ) : null}
+
+        {section === "collection" && collectionItems.length === 0 ? (
+          <section className="collection-empty-state">
+            <button onClick={() => setSection("loot")} type="button">
+              go here and come back when you collect some artwork!
+            </button>
+          </section>
         ) : null}
 
         {section === "collection" && collectionItems.length > 0 ? (
           <section className="collection-workspace">
-            {impersonating ? (
-              <div className="admin-gallery-controls col-span-full">
-                <strong>admin test controls</strong>
-                <fieldset>
-                  <legend>visitor quality</legend>
-                  {NPC_QUALITIES.map((quality) => (
-                    <label key={quality}>
-                      <input
-                        checked={npcSpawnQuality === quality}
-                        disabled={spawningNpc !== null}
-                        name="npc-quality"
-                        onChange={() => setNpcSpawnQuality(quality)}
-                        type="radio"
-                        value={quality}
-                      />
-                      <span>{quality}</span>
-                    </label>
-                  ))}
-                </fieldset>
-                <div className="admin-npc-spawn-options">
-                  <span>spawn visitor type</span>
-                  <div>
-                    {npcSpawnOptions.length === 0 ? (
-                      <span>No active NPC types are available.</span>
-                    ) : (
-                      npcSpawnOptions.map((option) => (
-                        <button
-                          disabled={spawningNpc !== null}
-                          key={option.id}
-                          onClick={() => spawnTestNpc(option)}
-                          type="button"
-                        >
-                          <i
-                            aria-hidden="true"
-                            className={`fa ${option.icon}`}
-                          />
-                          {spawningNpc === option.id
-                            ? "spawning..."
-                            : option.name}
-                        </button>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
-            ) : null}
-            {galleryMetadata ? (
-              <InfoPanel className="col-span-full">
-                <div className="flex flex-col gap-3">
-                  <header>
-                    <h2 className="info-panel-title">gallery overview</h2>
-                  </header>
-                  <GalleryStats>
-                    <GalleryStat label="Gallery value" value={"$" + galleryMetadata.value.toLocaleString()} />
-                    <GalleryStat label="Works displayed" value={galleryMetadata.display_count} />
-                    <GalleryStat label="Attribute score" value={galleryMetadata.score.toLocaleString()} />
-                    <GalleryStat label="Featured value" value={"$" + galleryMetadata.featured_value.toLocaleString()} />
-                    <GalleryStat label="Earnings per hour" value={"$" + galleryRates.moneyPerHour.toLocaleString()} />
-                    <GalleryStat label="Experience per hour" value={galleryRates.xpPerHour.toLocaleString()} />
-                    <GalleryStat label="Attributes" value={galleryMetadata.attributes.map((attribute, i) => <Attribute key={`${attribute.id}_${i}`} attribute={attribute} displayCapacity={galleryMetadata.display_capacity} />)} />
-                  </GalleryStats>
-                </div>
-              </InfoPanel>
-            ) : null}
             <aside className="collection-inventory-panel">
               <section className="collection-sidebar-section">
                 <header className="collection-panel-heading">
                   <div>
                     <span className="collection-kicker">your collection</span>
-                    <h2>inventory</h2>
+                    <h2>
+                      inventory{" "}
+                    </h2>
                   </div>
-                  <span className="collection-count">{inventory.length}</span>
+                  <span
+                    aria-label={`${ownedCount.toLocaleString()} paintings owned`}
+                    className="collection-count"
+                    title="Paintings owned"
+                  >
+                    {player.inventorySlotsUsed}/{player.inventoryCap}
+                  </span>
                 </header>
                 <label className="collection-inventory-sort">
                   <span>Sort inventory</span>
@@ -2799,105 +2650,6 @@ export default function GameDashboard({
                   />
                 </section>
               ) : null}
-              <GalleryChat galleryOwnerId={playerId} viewerId={playerId} />
-              <div className="gallery-window">
-                <div className="gallery-scroll-window">
-                  <div className="gallery-scene">
-                    <div
-                      className="gallery-wall"
-                      style={{
-                        paddingBottom: galleryWallOffset,
-                        paddingTop: galleryWallOffset,
-                      }}
-                    >
-                      {displayed.length === 0 ? (
-                        <p className="empty-gallery">
-                          Your gallery walls are empty.
-                        </p>
-                      ) : (
-                        displayed.map((item) => (
-                          <div
-                            className="painting-container"
-                            key={item._id}
-                            style={{
-                              marginLeft: galleryPaintingMargin,
-                              marginRight: galleryPaintingMargin,
-                            }}
-                          >
-                            <button
-                              className="framed-painting"
-                              disabled={pending}
-                              onClick={() =>
-                                setSelectedCollectionItemId(item._id)
-                              }
-                              style={{
-                                backgroundImage: `url("/api/artwork/${item.artwork_id}/image?variant=full")`,
-                                height: getGalleryPaintingDimension(
-                                  item.artwork.height,
-                                  galleryPixelsPerCentimeter,
-                                ),
-                                width: getGalleryPaintingDimension(
-                                  item.artwork.width,
-                                  galleryPixelsPerCentimeter,
-                                ),
-                              }}
-                              title={`View details for ${item.artwork.title}`}
-                              type="button"
-                            />
-                            <div className="placard">
-                              <p>{item.artwork.title}</p>
-                              <p>
-                                {item.artwork.artist}, {item.artwork.date}
-                              </p>
-                              <p
-                                className={`rarity-text ${item.artwork.rarity}`}
-                              >
-                                {item.artwork.rarity}
-                              </p>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                    <div className="gallery-floor" />
-                  </div>
-                </div>
-                <div className="npc-area gallery-npc-overlay">
-                  {galleryVisitors.map((npc) => (
-                      <span className="gallery-npc-slot" key={npc._id}>
-                        <button
-                          className={`gallery-npc ${npc.quality} ${
-                            npc.alreadyMet ? "disabled" : "enabled"
-                          } ${
-                            npcRewardEffects[npc._id] ? "rewarding" : ""
-                          }`}
-                          data-npc-id={npc._id}
-                          disabled={
-                            pending ||
-                            meetingNpc !== null ||
-                            npc.alreadyMet ||
-                            Boolean(npcRewardEffects[npc._id])
-                          }
-                          onClick={async () => {
-                            if (await meetNpc(npc)) markVisitorMet(npc._id);
-                          }}
-                          title={
-                            npc.alreadyMet
-                              ? `${npc.npc_name} already met`
-                              : `meet ${npc.npc_name}`
-                          }
-                          type="button"
-                        >
-                          <i
-                            aria-hidden="true"
-                            className={`fa ${npc.icon}`}
-                          />
-                          <span>{npc.npc_name}</span>
-                        </button>
-                      </span>
-                    ))}
-                </div>
-              </div>
             </div>
           </section>
         ) : null}
@@ -3179,53 +2931,6 @@ export default function GameDashboard({
 
         {section === "gallery" ? (
           <section className="player-gallery">
-            {impersonating ? (
-              <div className="admin-gallery-controls">
-                <strong>admin test controls</strong>
-                <fieldset>
-                  <legend>visitor quality</legend>
-                  {NPC_QUALITIES.map((quality) => (
-                    <label key={quality}>
-                      <input
-                        checked={npcSpawnQuality === quality}
-                        disabled={spawningNpc !== null}
-                        name="npc-quality"
-                        onChange={() => setNpcSpawnQuality(quality)}
-                        type="radio"
-                        value={quality}
-                      />
-                      <span>{quality}</span>
-                    </label>
-                  ))}
-                </fieldset>
-                <div className="admin-npc-spawn-options">
-                  <span>spawn visitor type</span>
-                  <div>
-                    {npcSpawnOptions.length === 0 ? (
-                      <span>No active NPC types are available.</span>
-                    ) : (
-                      npcSpawnOptions.map((option) => (
-                        <button
-                          disabled={spawningNpc !== null}
-                          key={option.id}
-                          onClick={() => spawnTestNpc(option)}
-                          type="button"
-                        >
-                          <i
-                            aria-hidden="true"
-                            className={`fa ${option.icon}`}
-                          />
-                          {spawningNpc === option.id
-                            ? "spawning..."
-                            : option.name}
-                        </button>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
-            ) : null}
-
             <div className="gallery-summary">
               <span>exhibition value: ${galleryRates.value.toLocaleString()}</span>
               <span>
@@ -3234,26 +2939,43 @@ export default function GameDashboard({
               <span>{galleryRates.xpPerHour.toLocaleString()}xp/hr.</span>
             </div>
             <div className="npc-area">
-              {galleryVisitors.map((npc) => (
+              {galleryVisitors.map((npc) => {
+                const socialBatteryCost = getVisitorSocialBatteryCost(
+                  npc.quality,
+                  true,
+                );
+                const insufficientBattery =
+                  socialBattery < socialBatteryCost;
+                return (
                   <span className="gallery-npc-slot" key={npc._id}>
                     <button
                       className={`gallery-npc ${npc.quality} ${
-                        npc.alreadyMet ? "disabled" : "enabled"
+                        npc.alreadyMet || insufficientBattery
+                          ? "disabled"
+                          : "enabled"
                       } ${npcRewardEffects[npc._id] ? "rewarding" : ""}`}
                       data-npc-id={npc._id}
                       disabled={
                         pending ||
                         meetingNpc !== null ||
                         npc.alreadyMet ||
+                        insufficientBattery ||
                         Boolean(npcRewardEffects[npc._id])
                       }
                       onClick={async () => {
-                        if (await meetNpc(npc)) markVisitorMet(npc._id);
+                        if (await meetNpc(npc)) {
+                          markVisitorMet(npc._id);
+                        } else {
+                          removeVisitor(npc._id);
+                          void refreshVisitors();
+                        }
                       }}
                       title={
                         npc.alreadyMet
                           ? `${npc.npc_name} already met`
-                          : `meet ${npc.npc_name}`
+                          : insufficientBattery
+                            ? `${socialBatteryCost} social battery required`
+                            : `meet ${npc.npc_name} (${socialBatteryCost} social battery)`
                       }
                       type="button"
                     >
@@ -3261,7 +2983,8 @@ export default function GameDashboard({
                       <span>{npc.npc_name}</span>
                     </button>
                   </span>
-                ))}
+                );
+              })}
             </div>
             <div className="gallery-window">
               <div className="gallery-scene">
@@ -3337,16 +3060,24 @@ export default function GameDashboard({
 
         {section === "explore" ? (
           <GalleryExplorer
+            impersonating={impersonating}
             initialBankBalance={player.bankBalance}
-            initialGalleryId={exploreResetKey === 0 ? initialGalleryId : null}
+            initialGalleryId={exploreGalleryId}
             initialSort={player.viewSettings.gallerySort}
             initialViewMode={player.viewSettings.galleryView}
             key={`gallery-explorer-${exploreResetKey}`}
             meetingNpc={meetingNpc}
+            npcSpawnOptions={npcSpawnOptions}
             npcSpawnIntervalMinutes={npcSpawnIntervalMinutes}
             npcRewardEffects={npcRewardEffects}
             onMeetNpc={meetNpc}
+            onGoHome={() => {
+              setExploreGalleryId(null);
+              setSection("collection");
+              router.replace("/play?section=home", { scroll: false });
+            }}
             onViewSettingsChange={saveViewSettings}
+            socialBattery={socialBattery}
             viewerId={playerId}
           />
         ) : null}
@@ -3671,7 +3402,7 @@ function QuestSection({
       </InfoPanel>
       {quests.length === 0 ? (
         <p className="empty-state">
-          You have no active Art Historian objectives.
+          You have no active Art Historian objectives. Go visit galleries and interact with visitors to get research quests!
         </p>
       ) : (
         <div className="historian-quest-list">
@@ -4739,84 +4470,6 @@ function DonationRewardEffect({
         <i aria-hidden="true" className="fa fa-paint-brush art-style" />
       ) : null}
     </span>
-  );
-}
-
-function GalleryMetadataPanel({
-  className = "",
-  galleryMetadata,
-  galleryRates,
-}: {
-  className?: string;
-  galleryMetadata: GalleryMetadataSnapshot;
-  galleryRates: GalleryRates;
-}) {
-  return (
-    <section
-      className={`profile-gallery-metadata ${className}`.trim()}
-    >
-      <header>
-        <h2>gallery overview</h2>
-      </header>
-      <dl className="profile-gallery-stats">
-        <div>
-          <dt>Gallery value</dt>
-          <dd>${galleryMetadata.value.toLocaleString()}</dd>
-        </div>
-        <div>
-          <dt>Works displayed</dt>
-          <dd>{galleryMetadata.display_count}</dd>
-        </div>
-        <div>
-          <dt>Attribute score</dt>
-          <dd>{galleryMetadata.score.toLocaleString()}</dd>
-        </div>
-        <div>
-          <dt>Featured value</dt>
-          <dd>${galleryMetadata.featured_value.toLocaleString()}</dd>
-        </div>
-        <div>
-          <dt>Earnings per hour</dt>
-          <dd>${galleryRates.moneyPerHour.toLocaleString()}</dd>
-        </div>
-        <div>
-          <dt>Experience per hour</dt>
-          <dd>{galleryRates.xpPerHour.toLocaleString()}</dd>
-        </div>
-        <div className="profile-gallery-icon-row">
-          <dt className="sr-only">Attributes</dt>
-          <dd>
-            <GalleryAttributeSummary
-              attributes={galleryMetadata.attributes}
-              displayCapacity={galleryMetadata.display_capacity}
-            />
-          </dd>
-        </div>
-        <div className="profile-gallery-icon-row">
-          <dt className="sr-only">Rarities</dt>
-          <dd>
-            <GalleryRaritySummary
-              rarities={galleryMetadata.display_rarities}
-            />
-          </dd>
-        </div>
-      </dl>
-    </section>
-  );
-}
-
-function ProfileFact({
-  label,
-  value,
-}: {
-  label: string;
-  value: string | number;
-}) {
-  return (
-    <div>
-      <dt>{label}</dt>
-      <dd>{value}</dd>
-    </div>
   );
 }
 

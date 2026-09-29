@@ -64,6 +64,11 @@ import {
   type GalleryNpc,
   type NpcQuality,
 } from "@/server/npc-gameplay";
+import {
+  getVisitorSocialBatteryCost,
+  refreshPlayerSocialBattery,
+  SOCIAL_BATTERY_MAX,
+} from "@/server/social-battery";
 import { getDatabase } from "@/server/mongodb";
 import { getNpcOfferItemExpiration } from "@/server/item-expiration";
 import { requirePlayerApi } from "@/server/player-api";
@@ -85,6 +90,8 @@ type Player = {
     lottery_tickets: number;
     npcs_met?: Partial<Record<NpcQuality, number>>;
     npcs_met_reset_at?: string;
+    social_battery?: number;
+    social_battery_reset_at?: string;
     level: number;
     karma?: number;
     auction_data?: { winning?: string[] };
@@ -108,8 +115,6 @@ export async function POST(
 
   const { id } = await params;
   const database = await getDatabase();
-  const settings = await getGameplaySettings(database);
-  const config = settings.active;
   await ensurePlayerKarma(database, auth.session.playerId);
   const now = new Date();
   const [player, npc] = await Promise.all([
@@ -127,57 +132,17 @@ export async function POST(
     );
   }
 
-  const resetAt = player.profile.npcs_met_reset_at
-    ? new Date(player.profile.npcs_met_reset_at)
-    : null;
-  if (!resetAt || !Number.isFinite(resetAt.getTime())) {
-    await database.collection<Player>("players").updateOne(
-      { _id: player._id, "profile.npcs_met_reset_at": { $exists: false } },
-      {
-        $set: {
-          "profile.npcs_met_reset_at": new Date(
-            now.getTime() + config.npcMeetingResetIntervalMinutes * 60_000,
-          ).toISOString(),
-        },
-      },
-    );
-  } else if (resetAt.getTime() <= now.getTime()) {
-    const resetResult = await database.collection<Player>("players").updateOne(
-      {
-        _id: player._id,
-        "profile.npcs_met_reset_at": player.profile.npcs_met_reset_at,
-      },
-      {
-        $set: {
-          "profile.npcs_met": {
-            bronze: 0,
-            silver: 0,
-            gold: 0,
-            platinum: 0,
-          },
-          "profile.npcs_met_reset_at": new Date(
-            now.getTime() + config.npcMeetingResetIntervalMinutes * 60_000,
-          ).toISOString(),
-        },
-      },
-    );
-    if (resetResult.modifiedCount === 1) {
-      player.profile.npcs_met = {
-        bronze: 0,
-        silver: 0,
-        gold: 0,
-        platinum: 0,
-      };
-    }
-  }
-
-  const meetings = player.profile.npcs_met?.[npc.quality] ?? 0;
-  if (meetings >= config.npcMeetingLimits[npc.quality]) {
-    return NextResponse.json(
-      { error: `${npc.quality} visitor limit reached.` },
-      { status: 409 },
-    );
-  }
+  const socialBattery = await refreshPlayerSocialBattery(
+    database,
+    player._id,
+    now,
+  );
+  player.profile.social_battery = socialBattery.value;
+  player.profile.social_battery_reset_at = socialBattery.resetAt;
+  const socialBatteryCost = getVisitorSocialBatteryCost(
+    npc.quality,
+    npc.owner_id === player._id,
+  );
 
   const result = await database.collection<GalleryNpc>("npcs").updateOne(
     {
@@ -197,13 +162,11 @@ export async function POST(
   const playerResult = await database.collection<Player>("players").updateOne(
     {
       _id: player._id,
-      $or: [
-        { [`profile.npcs_met.${npc.quality}`]: { $lt: config.npcMeetingLimits[npc.quality] } },
-        { [`profile.npcs_met.${npc.quality}`]: { $exists: false } },
-      ],
+      "profile.social_battery": { $gte: socialBatteryCost },
     },
     {
       $inc: {
+        "profile.social_battery": -socialBatteryCost,
         [`profile.npcs_met.${npc.quality}`]: 1,
         "profile.playthrough_stats.visitors_met": 1,
       },
@@ -215,8 +178,10 @@ export async function POST(
       .collection<GalleryNpc>("npcs")
       .updateOne({ _id: npc._id }, { $pull: { players_met: player._id } });
     return NextResponse.json(
-      { error: "The visitor interaction could not be recorded." },
-      { status: 500 },
+      {
+        error: `You need ${socialBatteryCost} social battery to interact with this ${npc.quality} visitor.`,
+      },
+      { status: 409 },
     );
   }
 
@@ -236,12 +201,7 @@ export async function POST(
           .updateOne({ _id: npc._id }, { $pull: { players_met: player._id } }),
         database.collection<Player>("players").updateOne(
           { _id: player._id },
-          {
-            $inc: {
-              [`profile.npcs_met.${npc.quality}`]: -1,
-              "profile.playthrough_stats.visitors_met": -1,
-            },
-          },
+          getNpcInteractionRollbackUpdate(npc.quality, socialBatteryCost),
         ),
       ]);
       console.error("Unable to grant standard NPC reward", error);
@@ -286,12 +246,7 @@ export async function POST(
           .updateOne({ _id: npc._id }, { $pull: { players_met: player._id } }),
         database.collection<Player>("players").updateOne(
           { _id: player._id },
-          {
-            $inc: {
-              [`profile.npcs_met.${npc.quality}`]: -1,
-              "profile.playthrough_stats.visitors_met": -1,
-            },
-          },
+          getNpcInteractionRollbackUpdate(npc.quality, socialBatteryCost),
         ),
       ]);
       console.error("Unable to complete Preservationist interaction", error);
@@ -347,12 +302,7 @@ export async function POST(
           .updateOne({ _id: npc._id }, { $pull: { players_met: player._id } }),
         database.collection<Player>("players").updateOne(
           { _id: player._id },
-          {
-            $inc: {
-              [`profile.npcs_met.${npc.quality}`]: -1,
-              "profile.playthrough_stats.visitors_met": -1,
-            },
-          },
+          getNpcInteractionRollbackUpdate(npc.quality, socialBatteryCost),
         ),
       ]);
       console.error("Unable to create Art Historian quest", error);
@@ -638,12 +588,7 @@ export async function POST(
           .updateOne({ _id: npc._id }, { $pull: { players_met: player._id } }),
         database.collection<Player>("players").updateOne(
           { _id: player._id },
-          {
-            $inc: {
-              [`profile.npcs_met.${npc.quality}`]: -1,
-              "profile.playthrough_stats.visitors_met": -1,
-            },
-          },
+          getNpcInteractionRollbackUpdate(npc.quality, socialBatteryCost),
         ),
       ]);
       console.error("Unable to complete Art Expert interaction", error);
@@ -838,12 +783,7 @@ export async function POST(
           .updateOne({ _id: npc._id }, { $pull: { players_met: player._id } }),
         database.collection<Player>("players").updateOne(
           { _id: player._id },
-          {
-            $inc: {
-              [`profile.npcs_met.${npc.quality}`]: -1,
-              "profile.playthrough_stats.visitors_met": -1,
-            },
-          },
+          getNpcInteractionRollbackUpdate(npc.quality, socialBatteryCost),
         ),
       ]);
       console.error("Unable to generate Art Donor offers", error);
@@ -1060,12 +1000,7 @@ export async function POST(
             .updateOne({ _id: npc._id }, { $pull: { players_met: player._id } }),
           database.collection<Player>("players").updateOne(
             { _id: player._id },
-            {
-              $inc: {
-                [`profile.npcs_met.${npc.quality}`]: -1,
-                "profile.playthrough_stats.visitors_met": -1,
-              },
-            },
+            getNpcInteractionRollbackUpdate(npc.quality, socialBatteryCost),
           ),
         ]);
         console.error("Unable to generate Art Dealer offers", error);
@@ -1486,12 +1421,7 @@ export async function POST(
           .updateOne({ _id: npc._id }, { $pull: { players_met: player._id } }),
         database.collection<Player>("players").updateOne(
           { _id: player._id },
-          {
-            $inc: {
-              [`profile.npcs_met.${npc.quality}`]: -1,
-              "profile.playthrough_stats.visitors_met": -1,
-            },
-          },
+          getNpcInteractionRollbackUpdate(npc.quality, socialBatteryCost),
         ),
       ];
       if (generatedOfferIds.length > 0) {
@@ -1546,4 +1476,55 @@ export async function POST(
     status: "ok",
     message: `You met ${npc.npc_name}. Their full interaction will be added as NPC rewards are ported.`,
   });
+}
+
+function getNpcInteractionRollbackUpdate(
+  quality: NpcQuality,
+  socialBatteryCost: number,
+) {
+  const meetingsPath = `profile.npcs_met.${quality}`;
+  return [
+    {
+      $set: {
+        "profile.social_battery": {
+          $min: [
+            SOCIAL_BATTERY_MAX,
+            {
+              $add: [
+                { $ifNull: ["$profile.social_battery", 0] },
+                socialBatteryCost,
+              ],
+            },
+          ],
+        },
+        [meetingsPath]: {
+          $max: [
+            0,
+            {
+              $subtract: [
+                { $ifNull: [`$${meetingsPath}`, 0] },
+                1,
+              ],
+            },
+          ],
+        },
+        "profile.playthrough_stats.visitors_met": {
+          $max: [
+            0,
+            {
+              $subtract: [
+                {
+                  $ifNull: [
+                    "$profile.playthrough_stats.visitors_met",
+                    0,
+                  ],
+                },
+                1,
+              ],
+            },
+          ],
+        },
+      },
+    },
+  ];
 }

@@ -666,38 +666,6 @@ export default function GameplaySettingsForm({
         suffix="minutes"
         value={activeEditor.npcSpawnIntervalMinutes}
       />
-      <SettingField
-        description="How long visitor meeting counts remain available before resetting."
-        label="Visitor meeting reset interval"
-        max={10080}
-        onChange={(value) =>
-          updateConfig(selectedConfig, (config) => ({
-            ...config,
-            npcMeetingResetIntervalMinutes: value,
-          }))
-        }
-        suffix="minutes"
-        value={activeEditor.npcMeetingResetIntervalMinutes}
-      />
-      {(["bronze", "silver", "gold", "platinum"] as const).map((quality) => (
-        <SettingField
-          description={`Maximum ${quality} visitors a player can meet per reset window.`}
-          key={quality}
-          label={`${quality[0].toUpperCase()}${quality.slice(1)} visitor limit`}
-          max={10000}
-          onChange={(value) =>
-            updateConfig(selectedConfig, (config) => ({
-              ...config,
-              npcMeetingLimits: {
-                ...config.npcMeetingLimits,
-                [quality]: value,
-              },
-            }))
-          }
-          suffix="meetings"
-          value={activeEditor.npcMeetingLimits[quality]}
-        />
-      ))}
       </ConfigGroup>
 
       <ConfigGroup title="Drop distributions">

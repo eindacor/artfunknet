@@ -388,16 +388,67 @@ a.welcome-button {
   white-space: nowrap;
 }
 
+.dashboard-resource-bars {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  width: 100%;
+  margin: 18px auto 8px;
+}
+
+.dashboard-resource-bar {
+  display: grid;
+  gap: 7px;
+  padding: 10px 14px;
+  background: #fff;
+}
+
+.dashboard-resource-bar > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 0.78rem;
+}
+
+.dashboard-resource-bar > div:first-child span,
+.dashboard-resource-bar > div:first-child strong {
+  color: #222;
+}
+
+.social-battery-meter {
+  height: 13px;
+  overflow: hidden;
+  border: 1px solid #095f98;
+  border-radius: 999px;
+  background: #d7efff;
+}
+
+.social-battery-meter > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #1597e5, #48b7ff);
+  transition: width 180ms ease;
+}
+
 .dashboard-tabs {
   display: flex;
   gap: 6px;
-  margin: 18px 0 42px;
+  margin: 0 0 42px;
   border: 1px solid #343434;
   padding: 7px;
   overflow-x: auto;
   background: #343434;
   box-shadow: 0 12px 32px rgb(0 0 0 / 16%);
   scrollbar-width: thin;
+}
+
+@media (max-width: 720px) {
+  .dashboard-resource-bars {
+    grid-template-columns: 1fr;
+  }
 }
 
 .dashboard-tabs button {
@@ -5294,15 +5345,89 @@ a.welcome-button {
   font-weight: bold;
 }
 
+.social-page-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+
+.home-gallery-overview {
+  display: grid;
+  margin-bottom: 18px;
+}
+
+.home-overview-section {
+  display: grid;
+  gap: 14px;
+}
+
+.home-overview-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.home-overview-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.home-gallery-button {
+  flex: 1 1 0;
+  border: 1px solid #ff33cc;
+  padding: 18px 24px;
+  background: #ff33cc;
+  color: #211b20;
+  font: 700 1.05rem Courier, "Courier New", monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.home-gallery-button:hover,
+.home-gallery-button:focus-visible {
+  border-color: #d900ad;
+  background: #d900ad;
+  color: #fff;
+}
+
+.home-overview-actions .vintage-runback-button-wrap {
+  flex: 1 1 0;
+}
+
+.home-new-era-button {
+  width: 100%;
+  min-height: 100%;
+  border-radius: 0;
+  padding: 18px 24px;
+  font-size: 1.05rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .collection-workspace {
   display: grid;
-  grid-template-areas:
-    "metadata metadata metadata"
-    "inventory inventory preview"
-    "chat gallery gallery";
+  grid-template-areas: "inventory inventory preview";
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
   align-items: start;
+}
+
+@media (max-width: 720px) {
+  .social-page-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .home-overview-section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .home-overview-actions {
+    flex-direction: column;
+  }
 }
 
 .collection-empty-state {
@@ -5442,6 +5567,11 @@ a.welcome-button {
   border: 1px solid #d2cdc2;
   color: #676158;
   font: 700 0.7rem Courier, "Courier New", monospace;
+}
+
+.collection-inventory-capacity {
+  color: #676158;
+  font: 700 0.68rem Courier, "Courier New", monospace;
 }
 
 .collection-inventory-sort {
@@ -5829,18 +5959,6 @@ a.welcome-button {
   }
 }
 
-.collection-main > .gallery-chat-panel {
-  grid-area: chat;
-  align-self: stretch;
-  width: 100%;
-  margin: 0;
-}
-
-.collection-main > .gallery-window {
-  grid-area: gallery;
-  min-width: 0;
-}
-
 .collection-preview > .rendered-item-card > .card-actions-with-primary {
   display: grid;
   grid-template-columns: minmax(90px, 118px) 154px;
@@ -6014,7 +6132,18 @@ a.welcome-button {
 }
 
 .gallery-navigation-control.exit {
-  left: 50%;
+  left: calc(50% - 64px);
+  width: auto;
+  min-width: 120px;
+  gap: 7px;
+  padding: 0 12px;
+  transform: translateX(-50%);
+  font: 700 0.7rem/1 "Courier New", Courier, monospace;
+  text-transform: uppercase;
+}
+
+.gallery-navigation-control.home {
+  left: calc(50% + 64px);
   width: auto;
   min-width: 120px;
   gap: 7px;
@@ -6505,11 +6634,8 @@ a.welcome-button {
 
   .collection-workspace {
     grid-template-areas:
-      "metadata"
       "inventory"
-      "preview"
-      "chat"
-      "gallery";
+      "preview";
     grid-template-columns: 1fr;
   }
 

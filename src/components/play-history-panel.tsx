@@ -56,6 +56,12 @@ export default function PlayHistoryPanel({
                     <dd>{snap.stats?.visitors_met?.toLocaleString() || 0}</dd>
                   </div>
                   <div>
+                    <dt>Quests completed</dt>
+                    <dd>
+                      {snap.stats?.quests_completed?.toLocaleString() || 0}
+                    </dd>
+                  </div>
+                  <div>
                     <dt>Items collected</dt>
                     <dd>{snap.stats?.items_collected?.toLocaleString() || 0}</dd>
                   </div>

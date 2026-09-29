@@ -14,6 +14,7 @@ import { getAdminSession, getPlayerSession } from "@/server/session";
 
 type SpawnNpcRequest = {
   attributeId?: unknown;
+  ownerId?: unknown;
   quality?: unknown;
 };
 
@@ -46,6 +47,8 @@ export async function POST(request: Request) {
   if (
     typeof body.attributeId !== "string" ||
     body.attributeId.length === 0 ||
+    typeof body.ownerId !== "string" ||
+    body.ownerId.length === 0 ||
     typeof body.quality !== "string" ||
     !NPC_QUALITIES.includes(body.quality as NpcQuality)
   ) {
@@ -57,21 +60,32 @@ export async function POST(request: Request) {
   const quality = body.quality as NpcQuality;
 
   const database = await getDatabase();
-  const [player, attribute, settings] = await Promise.all([
+  const [impersonatedPlayer, galleryOwner, attribute, settings] =
+    await Promise.all([
     database.collection<TestPlayer>("players").findOne({
       _id: playerSession.playerId,
       active: true,
       test_account: true,
+    }),
+    database.collection<TestPlayer>("players").findOne({
+      _id: body.ownerId,
+      active: true,
     }),
     database
       .collection<ItemAttribute>("attributes")
       .findOne({ _id: body.attributeId, active: true }),
     getGameplaySettings(database),
   ]);
-  if (!player) {
+  if (!impersonatedPlayer) {
     return NextResponse.json(
       { error: "The active player is not an available test account." },
       { status: 403 },
+    );
+  }
+  if (!galleryOwner) {
+    return NextResponse.json(
+      { error: "The selected gallery owner is no longer available." },
+      { status: 404 },
     );
   }
   if (!attribute) {
@@ -89,8 +103,8 @@ export async function POST(request: Request) {
     _id: randomUUID(),
     quality,
     attribute_id: attribute._id,
-    owner_id: player._id,
-    owner_name: player.screen_name,
+    owner_id: galleryOwner._id,
+    owner_name: galleryOwner.screen_name,
     spawned_at: now,
     expiration,
     players_met: [],
@@ -99,12 +113,12 @@ export async function POST(request: Request) {
     proc_chance: 1,
     admin_spawned: true,
     spawned_by: admin.email,
-    spawn_key: `admin:${player._id}:${randomUUID()}`,
+    spawn_key: `admin:${galleryOwner._id}:${randomUUID()}`,
   };
   await database.collection<AdminSpawnedNpc>("npcs").insertOne(npc);
 
   return NextResponse.json({
     status: "ok",
-    message: `Spawned a ${quality} ${attribute.npc_name} visitor.`,
+    message: `Spawned a ${quality} ${attribute.npc_name} visitor in ${galleryOwner.screen_name}'s gallery.`,
   });
 }

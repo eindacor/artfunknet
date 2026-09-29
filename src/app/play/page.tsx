@@ -48,7 +48,6 @@ import {
 import {
   getGalleryNpcs,
   refreshNpcSpawns,
-  type NpcQuality,
 } from "@/server/npc-gameplay";
 import { ensurePlayerKarma, normalizeKarmaBalance } from "@/server/karma";
 import {
@@ -66,6 +65,7 @@ import {
   getPlayerViewSettings,
   type PlayerViewSettings,
 } from "@/server/player-view-settings";
+import { refreshPlayerSocialBattery } from "@/server/social-battery";
 
 import GameDashboard from "./game-dashboard";
 import PlayerHeader from "./player-header";
@@ -101,7 +101,8 @@ type Player = {
       step: number;
     };
     card_style_consumables?: Record<string, number>;
-    npcs_met?: Partial<Record<NpcQuality, number>>;
+    social_battery?: number;
+    social_battery_reset_at?: string;
     market_expert?: { expiration?: string };
     dismissed_private_auction_ids?: string[];
     view_settings?: PlayerViewSettings;
@@ -211,6 +212,12 @@ export default async function PlayerPage({
   if (!player) {
     notFound();
   }
+  const socialBattery = await refreshPlayerSocialBattery(
+    database,
+    player._id,
+  );
+  player.profile.social_battery = socialBattery.value;
+  player.profile.social_battery_reset_at = socialBattery.resetAt;
   const linkedItem = linkedItemId
     ? await getPublicItemView(database, linkedItemId, player._id)
     : null;
@@ -456,11 +463,8 @@ export default async function PlayerPage({
       <PlayerHeader
         auctionEscrow={auctionEscrow}
         bankBalance={player.profile.bank_balance}
-        xp={player.profile.xp}
+        lotteryTickets={player.profile.lottery_tickets}
         karma={player.profile.karma ?? 0}
-        xpGoal={xpGoal}
-        level={player.profile.level}
-        isMaxLevel={isMaxLevel}
         initialNotifications={notifications}
         impersonating={impersonating}
       />
@@ -548,7 +552,8 @@ export default async function PlayerPage({
           lastDrop: player.profile.last_drop,
           displayCap: player.profile.display_cap,
           repairingCap: player.profile.repairing_cap ?? 4,
-          npcsMet: player.profile.npcs_met ?? {},
+          socialBattery: socialBattery.value,
+          socialBatteryResetAt: socialBattery.resetAt,
           karma: normalizeKarmaBalance(player.profile.karma),
           cardStyleInventory: getCardStyleInventory(
             player.profile.card_style_consumables,

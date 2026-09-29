@@ -4,7 +4,6 @@ import type { Db } from "mongodb";
 
 import type { ArtworkRarity, GameItem, ItemAttribute } from "./gameplay.ts";
 import { getEffectiveGalleryAttributeRating } from "./gallery-metadata-core.ts";
-import { getHighestAvailableCollectorQuality } from "./collector-gameplay.ts";
 import {
   ART_COLLECTOR_ATTRIBUTE_ID,
   ART_DONOR_ATTRIBUTE_ID,
@@ -148,7 +147,6 @@ export async function refreshNpcSpawns(
   now = new Date(),
   spawnIntervalMinutes = 10,
   ownerId?: string,
-  meetingLimits?: Record<NpcQuality, number>,
 ): Promise<void> {
   const spawnIntervalMs = spawnIntervalMinutes * 60 * 1000;
   const cycleStartMs =
@@ -165,7 +163,6 @@ export async function refreshNpcSpawns(
         active: 1,
         "profile.level": 1,
         "profile.display_cap": 1,
-        "profile.npcs_met": 1,
       })
       .toArray(),
     database
@@ -257,10 +254,7 @@ export async function refreshNpcSpawns(
       const maximumCollectorQuality =
         attributeId === ART_COLLECTOR_ATTRIBUTE_ID &&
         ownersWithMaximumCollectorQuality.has(player._id)
-          ? getHighestAvailableCollectorQuality(
-              player.profile.npcs_met ?? {},
-              meetingLimits,
-            )
+          ? "platinum"
           : null;
       const npc: GalleryNpc = {
         _id: createHash("sha256").update(spawnKey).digest("hex").slice(0, 32),

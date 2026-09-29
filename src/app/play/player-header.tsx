@@ -16,12 +16,9 @@ type PlayerHeaderProps =
 type AuthenticatedHeaderContentProps = {
   anonymous?: false;
   auctionEscrow: number;
-  xp: number;
   karma: number;
-  xpGoal: number;
-  level: number;
-  isMaxLevel: boolean;
   bankBalance: number;
+  lotteryTickets: number;
   initialNotifications?: PlayerNotification[];
   impersonating: boolean;
 };
@@ -57,6 +54,7 @@ function AuthenticatedHeaderContent(props: AuthenticatedHeaderContentProps) {
   const [accountSummary, setAccountSummary] = useState<{
     auctionEscrow: number;
     bankBalance: number;
+    lotteryTickets: number;
   } | null>(null);
   const refreshInFlight = useRef(false);
   const {
@@ -64,10 +62,13 @@ function AuthenticatedHeaderContent(props: AuthenticatedHeaderContentProps) {
     bankBalance,
     initialNotifications,
     impersonating,
+    lotteryTickets,
   } = props;
   const displayedAuctionEscrow =
     accountSummary?.auctionEscrow ?? auctionEscrow;
   const displayedBankBalance = accountSummary?.bankBalance ?? bankBalance;
+  const displayedLotteryTickets =
+    accountSummary?.lotteryTickets ?? lotteryTickets;
 
   const refreshAccountSummary = useCallback(async () => {
     if (refreshInFlight.current) return;
@@ -79,15 +80,18 @@ function AuthenticatedHeaderContent(props: AuthenticatedHeaderContentProps) {
       const body = (await response.json()) as {
         auctionEscrow?: number;
         bankBalance?: number;
+        lotteryTickets?: number;
       };
       if (
         response.ok &&
         typeof body.auctionEscrow === "number" &&
-        typeof body.bankBalance === "number"
+        typeof body.bankBalance === "number" &&
+        typeof body.lotteryTickets === "number"
       ) {
         setAccountSummary({
           auctionEscrow: body.auctionEscrow,
           bankBalance: body.bankBalance,
+          lotteryTickets: body.lotteryTickets,
         });
       }
     } catch (refreshError) {
@@ -154,17 +158,14 @@ function AuthenticatedHeaderContent(props: AuthenticatedHeaderContentProps) {
     <PlayerHeaderContent
       auctionEscrow={displayedAuctionEscrow}
       bankBalance={displayedBankBalance}
+      lotteryTickets={displayedLotteryTickets}
       karma={props.karma}
       error={error}
       impersonating={impersonating}
-      isMaxLevel={props.isMaxLevel}
-      level={props.level}
       notifications={
         <NotificationCenter initialNotifications={initialNotifications} />
       }
       onSignOut={logout}
-      xp={props.xp}
-      xpGoal={props.xpGoal}
     />
   );
 }

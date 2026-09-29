@@ -21,6 +21,7 @@ export default function PublicGallery({
   navigationDisabled = false,
   navigationError,
   onExitGallery,
+  onGoHome,
   onNextGallery,
   onPreviousGallery,
   onSelectItem,
@@ -33,6 +34,7 @@ export default function PublicGallery({
   navigationDisabled?: boolean;
   navigationError?: string;
   onExitGallery?: () => void;
+  onGoHome?: () => void;
   onNextGallery?: () => void;
   onPreviousGallery?: () => void;
   onSelectItem?: (item: HydratedGameItem) => void;
@@ -146,6 +148,19 @@ export default function PublicGallery({
           >
             <i aria-hidden="true" className="fa fa-solid fa-door-open" />
             <span>Exit gallery</span>
+          </button>
+        ) : null}
+        {onGoHome ? (
+          <button
+            aria-label="Return home"
+            className="gallery-navigation-control home"
+            disabled={navigationDisabled}
+            onClick={onGoHome}
+            title="Return home"
+            type="button"
+          >
+            <i aria-hidden="true" className="fa fa-home" />
+            <span>Home</span>
           </button>
         ) : null}
         {navigationError ? (

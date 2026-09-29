@@ -21,7 +21,6 @@ export async function GET(
     now,
     settings.active.npcSpawnIntervalMinutes,
     playerId,
-    settings.active.npcMeetingLimits,
   );
   const visitors = await getGalleryNpcs(database, playerId, now);
 

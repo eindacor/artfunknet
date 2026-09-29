@@ -9,6 +9,7 @@ type PlayerAccount = {
   active: boolean;
   profile: {
     bank_balance: number;
+    lottery_tickets: number;
   };
 };
 
@@ -20,7 +21,12 @@ export async function GET() {
   const [player, auctionEscrow] = await Promise.all([
     database.collection<PlayerAccount>("players").findOne(
       { _id: auth.session.playerId, active: true },
-      { projection: { "profile.bank_balance": 1 } },
+      {
+        projection: {
+          "profile.bank_balance": 1,
+          "profile.lottery_tickets": 1,
+        },
+      },
     ),
     getPlayerAuctionEscrow(database, auth.session.playerId),
   ]);
@@ -35,5 +41,6 @@ export async function GET() {
   return NextResponse.json({
     auctionEscrow,
     bankBalance: player.profile.bank_balance,
+    lotteryTickets: player.profile.lottery_tickets,
   });
 }

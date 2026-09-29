@@ -38,6 +38,7 @@ type VintagePlayer = {
     lottery_tickets: number;
     playthrough_stats?: {
       visitors_met: number;
+      quests_completed?: number;
       items_collected: number;
       money_spent: number;
       playthrough_count: number;
@@ -302,6 +303,8 @@ export async function POST(request: Request) {
       gallery_snapshot: gallerySnapshot,
       stats: {
         visitors_met: player.profile.playthrough_stats?.visitors_met || 0,
+        quests_completed:
+          player.profile.playthrough_stats?.quests_completed || 0,
         items_collected: player.profile.playthrough_stats?.items_collected || 0,
         money_spent: player.profile.playthrough_stats?.money_spent || 0,
       },
@@ -424,6 +427,7 @@ export async function POST(request: Request) {
           "profile.lottery_tickets": 0,
           "profile.playthrough_stats": {
             visitors_met: 0,
+            quests_completed: 0,
             items_collected: 0,
             money_spent: 0,
             playthrough_count: playthroughNumber,

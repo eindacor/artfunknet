@@ -10,6 +10,7 @@ export type TestAccountView = {
   level: number;
   bankBalance: number;
   lotteryTickets: number;
+  socialBattery: number;
   itemCount: number;
   lastActivity: string;
 };
@@ -33,6 +34,11 @@ export default function TestAccountList({
   const [ticketInputs, setTicketInputs] = useState(
     Object.fromEntries(
       accounts.map((account) => [account.id, account.lotteryTickets]),
+    ),
+  );
+  const [socialBatteryInputs, setSocialBatteryInputs] = useState(
+    Object.fromEntries(
+      accounts.map((account) => [account.id, account.socialBattery]),
     ),
   );
   const [message, setMessage] = useState("");
@@ -182,6 +188,7 @@ export default function TestAccountList({
           body.error ?? "The test player's lottery tickets could not be set.",
         );
       }
+
       const lotteryTickets = body.lotteryTickets;
       setCurrentAccounts((current) =>
         current.map((candidate) =>
@@ -198,6 +205,53 @@ export default function TestAccountList({
         ticketError instanceof Error
           ? ticketError.message
           : "The test player's lottery tickets could not be set.",
+      );
+    } finally {
+      setPendingId("");
+    }
+  }
+
+  async function setSocialBattery(account: TestAccountView) {
+    const socialBattery = socialBatteryInputs[account.id];
+    setPendingId(account.id);
+    setMessage("");
+    setError("");
+    try {
+      const response = await fetch(
+        `/api/admin/test-accounts/${account.id}/social-battery`,
+        {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ socialBattery }),
+        },
+      );
+      const body = (await response.json()) as {
+        error?: string;
+        socialBattery?: number;
+        message?: string;
+      };
+      if (!response.ok || body.socialBattery === undefined) {
+        throw new Error(
+          body.error ?? "The test player's social battery could not be set.",
+        );
+      }
+      const updatedSocialBattery = body.socialBattery;
+      setCurrentAccounts((current) =>
+        current.map((candidate) =>
+          candidate.id === account.id
+            ? { ...candidate, socialBattery: updatedSocialBattery }
+            : candidate,
+        ),
+      );
+      setMessage(
+        body.message ??
+          `Social battery set to ${updatedSocialBattery.toLocaleString()}.`,
+      );
+    } catch (socialBatteryError) {
+      setError(
+        socialBatteryError instanceof Error
+          ? socialBatteryError.message
+          : "The test player's social battery could not be set.",
       );
     } finally {
       setPendingId("");
@@ -236,6 +290,10 @@ export default function TestAccountList({
               <div>
                 <dt>lottery tickets</dt>
                 <dd>{account.lotteryTickets.toLocaleString()}</dd>
+              </div>
+              <div>
+                <dt>social battery</dt>
+                <dd>{account.socialBattery.toLocaleString()}</dd>
               </div>
             </dl>
             <small>
@@ -310,6 +368,33 @@ export default function TestAccountList({
               <button
                 disabled={pendingId.length > 0}
                 onClick={() => setLotteryTickets(account)}
+                type="button"
+              >
+                Set
+              </button>
+            </div>
+            <div className="test-account-level-control">
+              <label htmlFor={`test-social-battery-${account.id}`}>
+                Set social battery
+              </label>
+              <input
+                disabled={pendingId.length > 0}
+                id={`test-social-battery-${account.id}`}
+                max={6000}
+                min={0}
+                onChange={(event) =>
+                  setSocialBatteryInputs((current) => ({
+                    ...current,
+                    [account.id]: Number(event.target.value),
+                  }))
+                }
+                step={1}
+                type="number"
+                value={socialBatteryInputs[account.id]}
+              />
+              <button
+                disabled={pendingId.length > 0}
+                onClick={() => setSocialBattery(account)}
                 type="button"
               >
                 Set

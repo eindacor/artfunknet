@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import ProgressBar from "@/components/progress-bar/progress-bar";
 import ActionButton from "../action-button/action-button";
 import IconButton from "../icon-button/icon-button";
 
@@ -9,26 +8,20 @@ export default function PlayerHeaderContent({
   bankBalance,
   error = "",
   impersonating = false,
-  isMaxLevel = false,
-  level,
   karma,
+  lotteryTickets,
   notifications,
   onSignOut,
-  xp,
-  xpGoal,
 }: {
   auctionEscrow: number;
   bankBalance: number;
   karma: number;
+  lotteryTickets: number;
   error?: string;
   impersonating?: boolean;
-  isMaxLevel?: boolean;
-  level: number;
   /** The notification centre, passed in so this stays free of its polling. */
   notifications?: ReactNode;
   onSignOut: () => void;
-  xp: number;
-  xpGoal: number;
 }) {
   return (
     <>
@@ -37,36 +30,74 @@ export default function PlayerHeaderContent({
           <span className="font-bold text-2xl @md:text-4xl text-[#ff33cc]">artfunkel</span>
         </Link>
       </div>
-      <div className="col-span-6 col-end-13 order-2 flex justify-end gap-1 @2xs:gap-3">
-      <nav aria-label="Artfunkel community" className="flex items-center gap-1 @xs:gap-2">
-        <IconButton
-          aria-label="Join the Artfunkel Discord server"
-          as="a"
-          href="https://discord.gg/3dQdyhXVb"
-          icon="fa-brands fa-discord"
-          rel="noreferrer"
-          target="_blank"
-          title="Discord"
-        />
-        <IconButton
-          aria-label="Visit the Artfunkel subreddit"
-          as="a"
-          href="https://www.reddit.com/r/artfunkel/"
-          icon="fa-brands fa-reddit"
-          rel="noreferrer"
-          target="_blank"
-          title="Reddit"
-        />
-        <IconButton
-          aria-label="Support Artfunkel on Patreon"
-          as="a"
-          href="https://www.patreon.com/c/artfunkel"
-          icon="fa-brands fa-patreon"
-          rel="noreferrer"
-          target="_blank"
-          title="Patreon"
-        />
-      </nav>
+      <div className="col-span-8 order-2 flex flex-wrap items-center justify-end gap-1 @2xs:gap-3">
+        <div className="flex items-center gap-2">
+          <span
+            className="text-sm font-bold text-[#222] font-['Courier_New',Courier,monospace]"
+            aria-label={`Available bank balance $${bankBalance.toLocaleString()}`}
+          >
+            ${bankBalance.toLocaleString()}
+          </span>
+          <span
+            className="inline-flex items-center gap-1 text-sm font-bold text-[#222] font-['Courier_New',Courier,monospace]"
+            aria-label={`${karma.toLocaleString()} Karma`}
+            title="Earned by donating artwork and being kind. Used to level up items."
+          >
+            <i aria-hidden="true" className="fa fa-spa text-[#9a7b18]" />
+            {karma.toLocaleString()}
+          </span>
+          <span
+            aria-label={`${lotteryTickets.toLocaleString()} lottery tickets`}
+            className="inline-flex items-center gap-1 text-sm font-bold text-[#222] font-['Courier_New',Courier,monospace]"
+            title="Lottery tickets"
+          >
+            <i aria-hidden="true" className="fa fa-ticket text-[#8a651e]" />
+            {lotteryTickets.toLocaleString()}
+          </span>
+          {auctionEscrow > 0 ? (
+            <span
+              aria-label={`$${auctionEscrow.toLocaleString()} held in auction escrow`}
+              className="text-sm text-nowrap font-bold text-[#8a651e]"
+              title="Active auction bids held in escrow"
+            >
+              <i aria-hidden="true" className="fa fa-gavel" /> $
+              {auctionEscrow.toLocaleString()}
+            </span>
+          ) : null}
+          {notifications}
+        </div>
+        <nav
+          aria-label="Artfunkel community"
+          className="flex items-center gap-1 @xs:gap-2"
+        >
+          <IconButton
+            aria-label="Join the Artfunkel Discord server"
+            as="a"
+            href="https://discord.gg/3dQdyhXVb"
+            icon="fa-brands fa-discord"
+            rel="noreferrer"
+            target="_blank"
+            title="Discord"
+          />
+          <IconButton
+            aria-label="Visit the Artfunkel subreddit"
+            as="a"
+            href="https://www.reddit.com/r/artfunkel/"
+            icon="fa-brands fa-reddit"
+            rel="noreferrer"
+            target="_blank"
+            title="Reddit"
+          />
+          <IconButton
+            aria-label="Support Artfunkel on Patreon"
+            as="a"
+            href="https://www.patreon.com/c/artfunkel"
+            icon="fa-brands fa-patreon"
+            rel="noreferrer"
+            target="_blank"
+            title="Patreon"
+          />
+        </nav>
         {!impersonating ? (
           <ActionButton
             as={Link}
@@ -84,40 +115,14 @@ export default function PlayerHeaderContent({
           type="button"        
         />
       </div>
-      <div className="col-span-12 order-3 @3xl:col-span-6 flex items-center gap-3">
-        <div className="inline-flex items-center gap-1 grow">
-          <span className="text-nowrap font-['Courier_New',Courier,monospace] text-sm font-bold text-[#222]">
-            Level {level}
-          </span>
-          <div className="w-full">
-            <ProgressBar goal={xpGoal} maxed={isMaxLevel} value={xp} />
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <span className="text-sm font-bold text-[#222] font-['Courier_New',Courier,monospace]" aria-label={`Available bank balance $${bankBalance.toLocaleString()}`}>
-            ${bankBalance.toLocaleString()}
-          </span>
-          <span className="inline-flex items-center text-sm font-bold text-[#222] font-['Courier_New',Courier,monospace]" aria-label={`Available bank balance $${bankBalance.toLocaleString()}`}>
-            <i aria-hidden="true" className="fa fa-spa text-[#9a7b18]" />{karma}
-          </span>
-        </div>
-      </div>
-      <div className="order-last col-span-12 @3xl:col-span-6 flex items-center justify-end gap-2">
-        {error ? (
-          <span className="text-xs text-[#b00020]" role="alert">
-            {error}
-          </span>
-        ) : auctionEscrow > 0 ? (
-          <span
-          aria-label={`$${auctionEscrow.toLocaleString()} held in auction escrow`}
-          className="text-sm text-nowrap font-bold text-[#8a651e]"
-          title="Active auction bids held in escrow"
-          >
-          <i aria-hidden="true" className="fa fa-gavel" /> ${auctionEscrow.toLocaleString()}
+      {error ? (
+        <span
+          className="col-span-12 order-last text-right text-xs text-[#b00020]"
+          role="alert"
+        >
+          {error}
         </span>
-        ) : null}
-        {notifications}
-      </div>
+      ) : null}
     </>
   );
 }
