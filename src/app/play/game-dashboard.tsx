@@ -1936,7 +1936,7 @@ export default function GameDashboard({
           {(
             [
               { id: "collection", label: "Home", icon: "fa-home" },
-              { id: "explore", label: "View Galleries", icon: "fa-picture-o" },
+              { id: "explore", label: "Visit Galleries", icon: "fa-picture-o" },
               { id: "loot", label: "Offers", icon: "fa-gift" },
               { id: "quests", label: "Quests", icon: "fa-map-signs" },
               { id: "auctions", label: "Auction House", icon: "fa-gavel" },

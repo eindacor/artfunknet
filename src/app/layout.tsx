@@ -26,6 +26,10 @@ export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
   title: "artfunkel",
   description: "An art collecting game",
+  icons: {
+    icon: [{ url: "/favicon.ico", type: "image/x-icon" }],
+    shortcut: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
