@@ -2384,6 +2384,54 @@ export default function GameDashboard({
         {section === "collection" && collectionItems.length > 0 ? (
           <InfoPanel className="home-gallery-overview">
             <section className="home-overview-section">
+              <div className="home-overview-actions">
+                <button
+                  className="home-gallery-button"
+                  onClick={() => {
+                    setExploreGalleryId(playerId);
+                    setExploreResetKey((current) => current + 1);
+                    setSection("explore");
+                    router.replace(
+                      `/play?section=explore&gallery=${encodeURIComponent(playerId)}`,
+                      { scroll: false },
+                    );
+                  }}
+                  type="button"
+                >
+                  Go to gallery
+                </button>
+                {player.level >= 50 ? (
+                  <span
+                    className="vintage-runback-button-wrap"
+                    title={
+                      activeAuctionCount > 0
+                        ? "Resolve all active auctions before entering a new era"
+                        : vintageCandidates.length < vintageConsiderationCount
+                          ? `Collect ${vintageConsiderationCount} eligible items before entering a new era`
+                          : "Enter a new era"
+                    }
+                  >
+                    <button
+                      aria-label={
+                        activeAuctionCount > 0
+                          ? "Resolve all active auctions before entering a new era"
+                          : vintageCandidates.length < vintageConsiderationCount
+                            ? `Collect ${vintageConsiderationCount} eligible items before entering a new era`
+                            : "Enter a new era"
+                      }
+                      className="vintage-runback-button home-new-era-button"
+                      disabled={
+                        activeAuctionCount > 0 ||
+                        vintageCandidates.length < vintageConsiderationCount
+                      }
+                      onClick={() => setVintageDialogOpen(true)}
+                      type="button"
+                    >
+                      Enter a new era
+                    </button>
+                  </span>
+                ) : null}
+              </div>
               <header className="home-overview-section-heading">
                 <h2 className="info-panel-title">Gallery overview</h2>
               </header>
@@ -2472,54 +2520,6 @@ export default function GameDashboard({
                     </button>
                   ))
                 )}
-              </div>
-              <div className="home-overview-actions">
-                <button
-                  className="home-gallery-button"
-                  onClick={() => {
-                    setExploreGalleryId(playerId);
-                    setExploreResetKey((current) => current + 1);
-                    setSection("explore");
-                    router.replace(
-                      `/play?section=explore&gallery=${encodeURIComponent(playerId)}`,
-                      { scroll: false },
-                    );
-                  }}
-                  type="button"
-                >
-                  Go to gallery
-                </button>
-                {player.level >= 50 ? (
-                  <span
-                    className="vintage-runback-button-wrap"
-                    title={
-                      activeAuctionCount > 0
-                        ? "Resolve all active auctions before entering a new era"
-                        : vintageCandidates.length < vintageConsiderationCount
-                          ? `Collect ${vintageConsiderationCount} eligible items before entering a new era`
-                          : "Enter a new era"
-                    }
-                  >
-                    <button
-                      aria-label={
-                        activeAuctionCount > 0
-                          ? "Resolve all active auctions before entering a new era"
-                          : vintageCandidates.length < vintageConsiderationCount
-                            ? `Collect ${vintageConsiderationCount} eligible items before entering a new era`
-                            : "Enter a new era"
-                      }
-                      className="vintage-runback-button home-new-era-button"
-                      disabled={
-                        activeAuctionCount > 0 ||
-                        vintageCandidates.length < vintageConsiderationCount
-                      }
-                      onClick={() => setVintageDialogOpen(true)}
-                      type="button"
-                    >
-                      Enter a new era
-                    </button>
-                  </span>
-                ) : null}
               </div>
             </section>
           </InfoPanel>
