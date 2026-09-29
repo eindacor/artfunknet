@@ -1890,13 +1890,13 @@
 }
 
 .zine-card .attribute-group-unlocked .attribute-tooltip:nth-child(2) {
-  top: 250px;
+  top: 70px;
   right: 44px;
   transform: rotate(7deg);
 }
 
 .zine-card .attribute-group-locked .attribute-tooltip:nth-child(1) {
-  top: 220px;
+  top: 190px;
   right: 5px;
   transform: rotate(5deg);
 }
@@ -1908,7 +1908,7 @@
 }
 
 .zine-card .attribute-group-special .attribute-tooltip:nth-child(2) {
-  top: 175px;
+  top: 120px;
   right: 5px;
   transform: rotate(-9deg);
 }
