@@ -3259,6 +3259,11 @@ a.welcome-button {
   border-color: #a8f05a;
 }
 
+.thumbnail-status-watermarks .thumbnail-displayed {
+  color: #fff;
+  border-color: #fff;
+}
+
 .visited-gallery-auctions button:hover,
 .visited-gallery-auctions button:focus-visible {
   border-color: var(--accent);
@@ -5374,6 +5379,18 @@ a.welcome-button {
   gap: 12px;
 }
 
+.home-gallery-display-items {
+  min-height: 102px;
+  border-top: 1px solid #d2cdc2;
+  border-bottom: 1px solid #d2cdc2;
+  padding: 10px 0;
+}
+
+.home-gallery-display-items .collection-sidebar-empty {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
 .home-gallery-button {
   flex: 1 1 0;
   border: 1px solid #ff33cc;
@@ -6640,7 +6657,7 @@ a.welcome-button {
   }
 
   .collection-inventory-panel {
-    height: 420px;
+    height: 360px;
   }
 
   .collection-thumbnail-list {

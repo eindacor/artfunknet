@@ -642,6 +642,10 @@ export default function GameDashboard({
     () => [...displayed, ...inventory],
     [displayed, inventory],
   );
+  const sortedHomeInventory = useMemo(
+    () => [...collectionItems].sort(getInventoryComparator(inventorySort)),
+    [collectionItems, inventorySort],
+  );
   const archiveEntries = useMemo(
     () =>
       archives.map((archive) => {
@@ -711,7 +715,6 @@ export default function GameDashboard({
       ),
     [items],
   );
-  const ownedCount = inventory.length + displayed.length;
   const repairingCount = items.filter((item) => item.repairing).length;
   const galleryPixelsPerCentimeter =
     getGalleryPixelsPerCentimeter(
@@ -2434,6 +2437,42 @@ export default function GameDashboard({
                   }
                 />
               </GalleryStats>
+              <div
+                aria-label="Artwork on display"
+                className="home-gallery-display-items collection-thumbnail-list"
+              >
+                {displayed.length === 0 ? (
+                  <p className="collection-sidebar-empty">
+                    No works are currently on display.
+                  </p>
+                ) : (
+                  displayed.map((item) => (
+                    <button
+                      aria-label={`Open details for ${item.artwork.title} by ${item.artwork.artist}`}
+                      aria-pressed={selectedCollectionItem?._id === item._id}
+                      className={
+                        selectedCollectionItem?._id === item._id
+                          ? "selected"
+                          : ""
+                      }
+                      data-rarity={item.artwork.rarity}
+                      key={item._id}
+                      onClick={() => setSelectedCollectionItemId(item._id)}
+                      title={`${item.artwork.title} by ${item.artwork.artist}`}
+                      type="button"
+                    >
+                      <ItemThumbnail
+                        alt=""
+                        item={item}
+                        researchTarget={unfoundQuestTargetArtworkIds.has(
+                          item.artwork_id,
+                        )}
+                        size={82}
+                      />
+                    </button>
+                  ))
+                )}
+              </div>
               <div className="home-overview-actions">
                 <button
                   className="home-gallery-button"
@@ -2506,9 +2545,9 @@ export default function GameDashboard({
                     </h2>
                   </div>
                   <span
-                    aria-label={`${ownedCount.toLocaleString()} paintings owned`}
+                    aria-label={`${player.inventorySlotsUsed.toLocaleString()} of ${player.inventoryCap.toLocaleString()} inventory slots used`}
                     className="collection-count"
-                    title="Paintings owned"
+                    title="Inventory slots used"
                   >
                     {player.inventorySlotsUsed}/{player.inventoryCap}
                   </span>
@@ -2533,13 +2572,13 @@ export default function GameDashboard({
                     <option value="condition">Condition: highest first</option>
                   </select>
                 </label>
-                {inventory.length === 0 ? (
+                {collectionItems.length === 0 ? (
                   <p className="collection-sidebar-empty">
                     Your inventory is empty.
                   </p>
                 ) : (
                   <div className="collection-thumbnail-list">
-                    {sortedInventory.map((item) => (
+                    {sortedHomeInventory.map((item) => (
                       <button
                         aria-label={`Preview ${item.artwork.title} by ${item.artwork.artist}`}
                         aria-pressed={selectedCollectionItem?._id === item._id}
@@ -2560,51 +2599,7 @@ export default function GameDashboard({
                           researchTarget={unfoundQuestTargetArtworkIds.has(
                             item.artwork_id,
                           )}
-                          size={82}
-                        />
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </section>
-              <section className="collection-sidebar-section on-display-panel">
-                <header className="collection-panel-heading">
-                  <div>
-                    <h2>on display</h2>
-                  </div>
-                  <DisplayedSummary
-                    theme="museum"
-                    displayCapacity={galleryMetadata?.display_capacity ?? 0}
-                    rarities={galleryMetadata?.display_rarities ?? []}
-                  />
-                </header>
-                {displayed.length === 0 ? (
-                  <p className="collection-sidebar-empty">
-                    No works are currently on display.
-                  </p>
-                ) : (
-                  <div className="collection-thumbnail-list">
-                    {displayed.map((item) => (
-                      <button
-                        aria-label={`Open details for ${item.artwork.title} by ${item.artwork.artist}`}
-                        aria-pressed={selectedCollectionItem?._id === item._id}
-                        data-rarity={item.artwork.rarity}
-                        className={
-                          selectedCollectionItem?._id === item._id
-                            ? "selected"
-                            : ""
-                        }
-                        key={item._id}
-                        onClick={() => setSelectedCollectionItemId(item._id)}
-                        title={`${item.artwork.title} by ${item.artwork.artist}`}
-                        type="button"
-                      >
-                        <ItemThumbnail
-                          alt=""
-                          item={item}
-                          researchTarget={unfoundQuestTargetArtworkIds.has(
-                            item.artwork_id,
-                          )}
+                          showDisplayStatus
                           size={82}
                         />
                       </button>

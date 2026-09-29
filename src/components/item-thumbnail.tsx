@@ -9,6 +9,7 @@ export default function ItemThumbnail({
   className,
   item,
   researchTarget = false,
+  showDisplayStatus = false,
   size = 72,
 }: {
   alt?: string;
@@ -26,6 +27,7 @@ export default function ItemThumbnail({
     | "tags"
   >;
   researchTarget?: boolean;
+  showDisplayStatus?: boolean;
   size?: number;
 }) {
   const hasArtStyle =
@@ -35,6 +37,7 @@ export default function ItemThumbnail({
   const isCollectorSale =
     item.status === "claimed" && item.tags.includes("for sale");
   const isArchivable = item.archivePermission?.allowed === true;
+  const isDisplayed = showDisplayStatus && item.status === "displayed";
 
   return (
     <ArtworkThumbnail
@@ -53,8 +56,16 @@ export default function ItemThumbnail({
       isAuctioned ||
       isDealerOffer ||
       isCollectorSale ||
-      isArchivable ? (
+      isArchivable ||
+      isDisplayed ? (
         <span className="thumbnail-status-watermarks">
+          {isDisplayed ? (
+            <i
+              aria-label="On display"
+              className="fa fa-eye thumbnail-displayed"
+              role="img"
+            />
+          ) : null}
           {researchTarget ? (
             <i
               aria-label="Quest target"
