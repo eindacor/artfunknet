@@ -6265,6 +6265,11 @@ a.welcome-button {
   background: #237a3b;
 }
 
+.random-drop .loot-section-actions .collect-all-loot {
+  border-color: #315f8d;
+  background: #315f8d;
+}
+
 .random-drop .loot-section-actions .donate-all-loot {
   border-color: #6b4c9a;
   background: #6b4c9a;

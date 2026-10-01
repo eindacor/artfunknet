@@ -147,6 +147,7 @@ export type GameItem = {
   repairing: boolean;
   repair_tick_at?: string;
   debug: boolean;
+  bulk_claim_operation?: string;
   bulk_sale_operation?: string;
   bulk_donation_operation?: string;
   vintage_operation_token?: string;

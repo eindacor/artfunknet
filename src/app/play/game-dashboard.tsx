@@ -978,6 +978,28 @@ export default function GameDashboard({
     });
   }
 
+  function collectAllLoot() {
+    setError("");
+    setNotice("");
+    startTransition(async () => {
+      const response = await fetch("/api/play/items/claim-all", {
+        method: "POST",
+      });
+      const body = (await response.json().catch(() => ({}))) as {
+        claimed?: number;
+        error?: string;
+        message?: string;
+      };
+      if (!response.ok || body.claimed === undefined) {
+        setError(body.error ?? "The loot could not be collected.");
+        return;
+      }
+      setNotice(body.message ?? `${body.claimed} artworks collected.`);
+      setSelectedLootItemId(null);
+      router.refresh();
+    });
+  }
+
   function sellAllLoot() {
     setError("");
     setNotice("");
@@ -2350,6 +2372,28 @@ export default function GameDashboard({
                             </small>
                           </div>
                           <div className="loot-section-actions">
+                            <button
+                              className="collect-all-loot"
+                              disabled={
+                                pending ||
+                                player.inventorySlotsUsed >=
+                                  player.inventoryCap
+                              }
+                              onClick={collectAllLoot}
+                              title={
+                                player.inventorySlotsUsed >=
+                                player.inventoryCap
+                                  ? "Your inventory is full"
+                                  : undefined
+                              }
+                              type="button"
+                            >
+                              <i
+                                aria-hidden="true"
+                                className="fa fa-download"
+                              />{" "}
+                              Collect all
+                            </button>
                             <button
                               className="sell-all-loot"
                               disabled={
