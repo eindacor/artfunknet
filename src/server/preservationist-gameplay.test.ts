@@ -4,7 +4,15 @@ import test from "node:test";
 import {
   calculatePreservationistRepair,
   getCompletedRepairIntervals,
+  REPAIR_PROGRESS_STATUSES,
 } from "./preservationist-gameplay.ts";
+
+test("repair progress excludes unclaimed loot and dealer offers", () => {
+  assert.deepEqual(REPAIR_PROGRESS_STATUSES, ["claimed", "displayed"]);
+  const statuses: readonly string[] = REPAIR_PROGRESS_STATUSES;
+  assert.equal(statuses.includes("unclaimed"), false);
+  assert.equal(statuses.includes("for_sale"), false);
+});
 
 test("Preservationist repairs preserve quality and own-gallery scaling", () => {
   assert.deepEqual(

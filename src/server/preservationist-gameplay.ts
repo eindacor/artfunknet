@@ -28,6 +28,8 @@ const DISPLAY_TARGET_CHANCES: Record<NpcQuality, number> = {
   platinum: 0.35,
 };
 
+export const REPAIR_PROGRESS_STATUSES = ["claimed", "displayed"] as const;
+
 export type PreservationistInteraction = {
   type: "preservationist-result";
   npcName: string;
@@ -98,8 +100,8 @@ export async function grantPreservationistRepair(
   const targetDisplayed =
     randomRoll < DISPLAY_TARGET_CHANCES[npc.quality];
   const statuses = targetDisplayed
-    ? (["displayed", "claimed"] as const)
-    : (["claimed", "displayed"] as const);
+    ? [...REPAIR_PROGRESS_STATUSES].reverse()
+    : REPAIR_PROGRESS_STATUSES;
   let item: GameItem | null = null;
   for (const status of statuses) {
     item = await database.collection<GameItem>("items").findOne(
@@ -174,7 +176,7 @@ export async function settlePlayerItemRepairs(
   const repairingItems = await database.collection<GameItem>("items").find({
     owner: playerId,
     repairing: true,
-    status: { $in: ["claimed", "displayed"] },
+    status: { $in: REPAIR_PROGRESS_STATUSES },
     condition: { $lt: 1 },
   }).toArray();
   if (repairingItems.length === 0) {

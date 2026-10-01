@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 export default function CollectionBulkConfirmationDialog({
   actionLabel,
   confirmLabel,
+  contextLabel = "Bulk collection action",
   description,
   destructive = false,
   itemCount,
@@ -14,6 +15,7 @@ export default function CollectionBulkConfirmationDialog({
 }: {
   actionLabel: string;
   confirmLabel: string;
+  contextLabel?: string;
   description: string;
   destructive?: boolean;
   itemCount: number;
@@ -53,7 +55,7 @@ export default function CollectionBulkConfirmationDialog({
         >
           <i aria-hidden="true" className="fa fa-times" />
         </button>
-        <p className="mint-loss-dialog-kicker">Bulk collection action</p>
+        <p className="mint-loss-dialog-kicker">{contextLabel}</p>
         <i
           aria-hidden="true"
           className={`fa ${

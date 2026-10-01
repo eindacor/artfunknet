@@ -57,7 +57,7 @@ export async function POST(
     database.collection<GameItem>("items").findOne({
       _id: id,
       owner: auth.session.playerId,
-      status: "claimed",
+      status: { $in: ["claimed", "unclaimed", "for_sale"] },
     }),
   ]);
   if (!player || !item) {
@@ -72,7 +72,7 @@ export async function POST(
       {
         _id: item._id,
         owner: player._id,
-        status: "claimed",
+        status: item.status,
         repairing: true,
       },
       {
@@ -116,16 +116,21 @@ export async function POST(
     {
       _id: item._id,
       owner: player._id,
-      status: "claimed",
+      status: item.status,
       repairing: { $ne: true },
       condition: item.condition,
     },
-    {
-      $set: {
-        repairing: true,
-        repair_tick_at: now.toISOString(),
-      },
-    },
+    item.status === "claimed"
+      ? {
+          $set: {
+            repairing: true,
+            repair_tick_at: now.toISOString(),
+          },
+        }
+      : {
+          $set: { repairing: true },
+          $unset: { repair_tick_at: "" },
+        },
   );
   if (started.modifiedCount !== 1) {
     return NextResponse.json(
@@ -137,7 +142,9 @@ export async function POST(
   return NextResponse.json({
     status: "ok",
     message:
-      `Repair started. Condition will increase by ${formatRepairPercentage(config.repairAmount)} every ${formatRepairInterval(config.repairIntervalMinutes)}.${completionSuffix}`,
+      item.status === "claimed"
+        ? `Repair started. Condition will increase by ${formatRepairPercentage(config.repairAmount)} every ${formatRepairInterval(config.repairIntervalMinutes)}.${completionSuffix}`
+        : `Repair queued. It will begin after this item is collected.${completionSuffix}`,
   });
 }
 
