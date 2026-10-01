@@ -3,6 +3,8 @@ import "server-only";
 import type { Db } from "mongodb";
 
 import type { Artwork, ArtworkRarity, GameItem } from "./gameplay";
+import type { ArtworkEffect } from "./artwork-effects.ts";
+import { MASTERPIECE_EFFECT_CODES } from "./masterpiece-effects.ts";
 import {
   buildGalleryMetadataSnapshot,
   type GalleryAttributeAggregate,
@@ -74,22 +76,64 @@ export async function refreshGalleryMetadata(
       ? await database
           .collection<Artwork>("artworks")
           .find({ _id: { $in: artworkIds } })
-          .project<Pick<Artwork, "_id" | "rarity">>({
+          .project<Pick<Artwork, "_id" | "rarity" | "effect_id">>({
             _id: 1,
             rarity: 1,
+            effect_id: 1,
           })
           .toArray()
       : [];
   const rarityByArtworkId = new Map(
     artworks.map((artwork) => [artwork._id, artwork.rarity]),
   );
+  const artworkById = new Map(artworks.map((artwork) => [artwork._id, artwork]));
+  const effectIds = [
+    ...new Set(
+      artworks
+        .map((artwork) => artwork.effect_id)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const effects = effectIds.length
+    ? await database
+        .collection<ArtworkEffect>("artwork_effects")
+        .find({ _id: { $in: effectIds }, active: true })
+        .toArray()
+    : [];
+  const effectCodeById = new Map(effects.map((effect) => [effect._id, effect.code]));
+  const substitutionItem = items
+    .filter((item) => {
+      const effectId = artworkById.get(item.artwork_id)?.effect_id;
+      return (
+        effectId &&
+        effectCodeById.get(effectId) ===
+          MASTERPIECE_EFFECT_CODES.commonSubstitution
+      );
+    })
+    .sort(
+      (left, right) =>
+        left.values.actual - right.values.actual ||
+        left._id.localeCompare(right._id),
+    )[0];
+  const scoringItems = items.map((item) => {
+    const artwork = artworkById.get(item.artwork_id);
+    return {
+      ...item,
+      ...(artwork?.effect_id
+        ? { active_unique_attribute: artwork.effect_id }
+        : { active_unique_attribute: undefined }),
+      ...(substitutionItem && artwork?.rarity === "common"
+        ? { attributes: substitutionItem.attributes }
+        : {}),
+    };
+  });
   const metadata: Omit<GalleryMetadata, "_id"> = {
     schema_version: 3,
     active: true,
     owner_id: playerId,
     owner: player.screen_name,
     ...buildGalleryMetadataSnapshot(
-      items,
+      scoringItems,
       player.profile.display_cap,
       rarityByArtworkId,
     ),

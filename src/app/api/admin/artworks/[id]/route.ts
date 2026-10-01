@@ -3,16 +3,13 @@ import { NextResponse } from "next/server";
 import { requireAdminApi } from "@/server/admin-api";
 import { deleteCommunityReactions } from "@/server/community-reaction-cleanup";
 import {
-  ARTWORK_RARITIES,
   calculateItemValues,
-  getSpecialAttributeCount,
   type Artwork,
-  type ArtworkRarity,
   type GameItem,
   type LootData,
 } from "@/server/gameplay";
+import type { ArtworkEffect } from "@/server/artwork-effects-core";
 import { getRerollCost } from "@/server/item-reroll";
-import { deriveArtworkLegendaryAttributeIds } from "@/server/legendary-attributes";
 import { getDatabase } from "@/server/mongodb";
 
 type EditableArtwork = Artwork & {
@@ -93,54 +90,31 @@ export async function PATCH(
   const artistId =
     typeof body.artist_id === "string" ? body.artist_id.trim() : "";
   const date = Number(body.date);
-  const valueScale = Number(body.value_scale);
   const height = Number(body.height);
-  const rarity = body.rarity as ArtworkRarity;
-  const specialAttributes = Array.isArray(body.special_attributes)
-    ? [...new Set(body.special_attributes.filter((id): id is string => typeof id === "string"))]
-    : [];
+  let valueScale = Number(body.value_scale);
+  const effectId =
+    typeof body.effect_id === "string" && body.effect_id.trim()
+      ? body.effect_id.trim()
+      : undefined;
   if (!title || !genre || !medium || !artistId) {
     return NextResponse.json(
       { error: "Complete all required artwork fields." },
       { status: 400 },
     );
   }
-  if (
-    !Number.isFinite(date) ||
-    !Number.isFinite(valueScale) ||
-    valueScale < 0 ||
-    valueScale > 1 ||
-    !Number.isFinite(height) ||
-    height <= 0 ||
-    !ARTWORK_RARITIES.includes(rarity)
-  ) {
+  if (!Number.isFinite(date) || !Number.isFinite(height) || height <= 0) {
     return NextResponse.json(
-      { error: "Provide valid artwork dimensions, value, date, and rarity." },
-      { status: 400 },
-    );
-  }
-  const expectedAttributes = getSpecialAttributeCount(rarity);
-  if (specialAttributes.length !== expectedAttributes) {
-    return NextResponse.json(
-      {
-        error: `${rarity} artwork requires ${expectedAttributes} special attribute${expectedAttributes === 1 ? "" : "s"}.`,
-      },
+      { error: "Provide valid artwork dimensions and date." },
       { status: 400 },
     );
   }
 
   const database = await getDatabase();
-  const [existing, artist, activeAttributeCount, metadata] = await Promise.all([
+  const [existing, artist, metadata] = await Promise.all([
     database.collection<EditableArtwork>("artworks").findOne({ _id: id }),
     database
       .collection<{ _id: string; artist_name: string }>("artists")
       .findOne({ _id: artistId }),
-    database
-      .collection<{ _id: string; active: boolean }>("attributes")
-      .countDocuments({
-      _id: { $in: specialAttributes },
-      active: true,
-      }),
     database
       .collection<{ _id: string; loot_data: LootData }>("metadata")
       .findOne({ _id: "loot-data" }),
@@ -148,16 +122,57 @@ export async function PATCH(
   if (!existing) {
     return NextResponse.json({ error: "Artwork not found." }, { status: 404 });
   }
-  if (!artist || activeAttributeCount !== specialAttributes.length || !metadata) {
+  const rarityValue =
+    typeof body.rarity === "string" ? body.rarity : existing.rarity;
+  const validRarities = [
+    "common",
+    "uncommon",
+    "rare",
+    "legendary",
+    "masterpiece",
+  ] as const;
+  if (!validRarities.includes(rarityValue as (typeof validRarities)[number])) {
+    return NextResponse.json({ error: "Invalid artwork rarity." }, { status: 400 });
+  }
+  const rarity = rarityValue as Artwork["rarity"];
+  if (!Number.isFinite(valueScale)) {
+    valueScale = existing.value_scale;
+  }
+  if (!artist || !metadata) {
     return NextResponse.json(
-      { error: "The selected artist or attributes are unavailable." },
+      { error: "The selected artist is unavailable." },
       { status: 400 },
     );
   }
-  const uniqueAttributes = await deriveArtworkLegendaryAttributeIds(
-    database,
-    specialAttributes,
-  );
+  if (
+    !Number.isFinite(valueScale) ||
+    valueScale < 0 ||
+    valueScale > 1
+  ) {
+    return NextResponse.json(
+      { error: "Value scale must be a number between 0 and 1." },
+      { status: 400 },
+    );
+  }
+  const rarityChanged = rarity !== existing.rarity;
+  const valueScaleChanged = valueScale !== existing.value_scale;
+  if (rarity === "legendary" || rarity === "masterpiece") {
+    if (!effectId) {
+      return NextResponse.json(
+        { error: "Legendary and masterpiece artworks require a unique effect." },
+        { status: 400 },
+      );
+    }
+    const effect = await database
+      .collection<ArtworkEffect>("artwork_effects")
+      .findOne({ _id: effectId });
+    if (!effect || effect.effect_type !== rarity) {
+      return NextResponse.json(
+        { error: "The selected unique effect does not match the artwork rarity." },
+        { status: 400 },
+      );
+    }
+  }
   const imageRatio =
     existing.image_width && existing.image_height
       ? existing.image_width / existing.image_height
@@ -172,25 +187,50 @@ export async function PATCH(
     medium,
     rarity,
     value_scale: valueScale,
+    ...(effectId ? { effect_id: effectId } : {}),
+    ...(rarity !== "legendary" && rarity !== "masterpiece"
+      ? { effect_id: undefined }
+      : {}),
     height,
     width: Number((height * imageRatio).toFixed(2)),
     active: body.active === true,
     nsfw: body.nsfw === true,
-    special_attributes: specialAttributes,
-    unique_attributes: uniqueAttributes,
+    updated_at: new Date(),
+    updated_by: auth.session.email,
   };
-  const items = await database
-    .collection<GameItem>("items")
-    .find({ artwork_id: id })
-    .toArray();
-  const artworkUpdated = await database.collection<EditableArtwork>("artworks").replaceOne(
-    { _id: id },
-    {
-      ...updatedArtwork,
-      updated_at: new Date(),
-      updated_by: auth.session.email,
-    },
-  );
+  const items =
+    rarityChanged || valueScaleChanged
+      ? await database
+          .collection<GameItem>("items")
+          .find({ artwork_id: id })
+          .toArray()
+      : [];
+  const artworkFields = {
+    artist_id: updatedArtwork.artist_id,
+    artist: updatedArtwork.artist,
+    title: updatedArtwork.title,
+    date: updatedArtwork.date,
+    genre: updatedArtwork.genre,
+    medium: updatedArtwork.medium,
+    rarity: updatedArtwork.rarity,
+    value_scale: updatedArtwork.value_scale,
+    height: updatedArtwork.height,
+    width: updatedArtwork.width,
+    active: updatedArtwork.active,
+    nsfw: updatedArtwork.nsfw,
+    updated_at: updatedArtwork.updated_at,
+    updated_by: updatedArtwork.updated_by,
+    ...(effectId ? { effect_id: effectId } : {}),
+  };
+  const artworkUpdated = await database
+    .collection<EditableArtwork>("artworks")
+    .updateOne(
+      { _id: id },
+      {
+        $set: artworkFields,
+        ...(effectId ? {} : { $unset: { effect_id: "" } }),
+      },
+    );
   if (artworkUpdated.matchedCount !== 1) {
     return NextResponse.json(
       { error: "The artwork changed before it could be saved." },
@@ -224,7 +264,33 @@ export async function PATCH(
   } catch (error) {
     const restored = await database
       .collection<EditableArtwork>("artworks")
-      .replaceOne({ _id: id }, existing);
+      .updateOne(
+        { _id: id, updated_at: updatedArtwork.updated_at },
+        {
+          $set: {
+            artist_id: existing.artist_id,
+            artist: existing.artist,
+            title: existing.title,
+            date: existing.date,
+            genre: existing.genre,
+            medium: existing.medium,
+            rarity: existing.rarity,
+            value_scale: existing.value_scale,
+            height: existing.height,
+            width: existing.width,
+            active: existing.active,
+            nsfw: existing.nsfw ?? false,
+            ...(existing.updated_at ? { updated_at: existing.updated_at } : {}),
+            ...(existing.updated_by ? { updated_by: existing.updated_by } : {}),
+            ...(existing.effect_id ? { effect_id: existing.effect_id } : {}),
+          },
+          $unset: {
+            ...(!existing.effect_id ? { effect_id: "" } : {}),
+            ...(!existing.updated_at ? { updated_at: "" } : {}),
+            ...(!existing.updated_by ? { updated_by: "" } : {}),
+          },
+        },
+      );
     let itemsRestored = true;
     try {
       if (items.length > 0) {
@@ -262,8 +328,20 @@ export async function PATCH(
     throw error;
   }
 
+  const savedArtwork = await database
+    .collection<EditableArtwork>("artworks")
+    .findOne({ _id: id });
+  if (!savedArtwork) {
+    return NextResponse.json(
+      { error: "The updated artwork could not be reloaded." },
+      { status: 500 },
+    );
+  }
+
   return NextResponse.json({
-    artwork: updatedArtwork,
-    message: `Updated ${title} and recalculated ${items.length} item${items.length === 1 ? "" : "s"}.`,
+    artwork: savedArtwork,
+    message: items.length
+      ? `Updated ${title} and recalculated ${items.length} item${items.length === 1 ? "" : "s"}.`
+      : `Updated ${title}.`,
   });
 }

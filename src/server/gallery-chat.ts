@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 
 import type { Db } from "mongodb";
 
+import { deleteCommunityReactions } from "./community-reaction-cleanup";
 import type { GameItem } from "./gameplay";
 import {
   ARTFUNKEL_SYSTEM_AUTHOR_ID,
@@ -39,6 +40,13 @@ export type GalleryChatDocument = {
   author_name: string;
   content: string;
   created_at: Date;
+  edited_at?: Date;
+  edit_history?: Array<{
+    content: string;
+    edited_at: Date;
+  }>;
+  deleted_at?: Date;
+  deleted_by_author?: boolean;
   expires_at?: Date;
   reported: boolean;
   reporter_ids: string[];
@@ -56,6 +64,7 @@ export type GalleryChatMessageView = {
   authorName: string;
   content: string;
   createdAt: string;
+  editedAt: string | null;
   reactions: CommunityReactionSummary;
   reportedByViewer: boolean;
   tokens: GalleryChatToken[];
@@ -259,6 +268,90 @@ export async function reportGalleryChatMessage(
   return result.matchedCount === 1;
 }
 
+export async function editGalleryChatMessage(
+  database: Db,
+  messageId: string,
+  galleryOwnerId: string,
+  authorId: string,
+  content: string,
+  now = new Date(),
+): Promise<GalleryChatMessageView | null> {
+  await ensureGalleryChatIndexes(database);
+  const normalizedContent = content.trim();
+  if (
+    normalizedContent.length === 0 ||
+    normalizedContent.length > GALLERY_CHAT_MAX_LENGTH
+  ) {
+    throw new Error(
+      `Chat messages must contain 1-${GALLERY_CHAT_MAX_LENGTH} characters.`,
+    );
+  }
+  const messages =
+    database.collection<GalleryChatDocument>("gallery_chat_messages");
+  const existing = await messages.findOne({
+    _id: messageId,
+    gallery_owner_id: galleryOwnerId,
+    author_id: authorId,
+    hidden: { $ne: true },
+  });
+  if (!existing) return null;
+  const updated = await messages.findOneAndUpdate(
+    {
+      _id: messageId,
+      gallery_owner_id: galleryOwnerId,
+      author_id: authorId,
+      hidden: { $ne: true },
+      content: existing.content,
+    },
+    {
+      $set: {
+        content: normalizedContent,
+        edited_at: now,
+      },
+      $push: {
+        edit_history: {
+          content: existing.content,
+          edited_at: now,
+        },
+      },
+    },
+    { returnDocument: "after" },
+  );
+  if (!updated) return null;
+  return (await hydrateChatMessages(database, [updated], authorId))[0];
+}
+
+export async function deleteGalleryChatMessage(
+  database: Db,
+  messageId: string,
+  galleryOwnerId: string,
+  authorId: string,
+  now = new Date(),
+): Promise<boolean> {
+  await ensureGalleryChatIndexes(database);
+  const result = await database
+    .collection<GalleryChatDocument>("gallery_chat_messages")
+    .updateOne(
+      {
+        _id: messageId,
+        gallery_owner_id: galleryOwnerId,
+        author_id: authorId,
+        hidden: { $ne: true },
+      },
+      {
+        $set: {
+          hidden: true,
+          deleted_at: now,
+          deleted_by_author: true,
+        },
+      },
+    );
+  if (result.modifiedCount === 1) {
+    await deleteCommunityReactions(database, "message", [messageId]);
+  }
+  return result.modifiedCount === 1;
+}
+
 export async function getGalleryChatReports(
   database: Db,
 ): Promise<GalleryChatReportView[]> {
@@ -323,6 +416,7 @@ async function hydrateChatMessages(
     authorName: message.author_name,
     content: message.content,
     createdAt: message.created_at.toISOString(),
+    editedAt: message.edited_at?.toISOString() ?? null,
     reactions: reactions.get(message._id)!,
     reportedByViewer: message.reporter_ids.includes(viewerId),
     tokens: tokenizeChatContent(

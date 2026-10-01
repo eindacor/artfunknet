@@ -5,25 +5,46 @@ import { useRouter } from "next/navigation";
 
 import ItemCard from "@/components/item-cards/item-card";
 import { CARD_COSMETICS } from "@/components/item-cards/catalog";
-import type { Artwork } from "@/server/gameplay";
+import type { Artwork, ArtworkRarity } from "@/server/gameplay";
 import type { HydratedGameItem } from "@/server/item-artwork";
 
 type ArtworkOption = Artwork;
+type RaffleGenerationConfig = {
+  rarity_weights: Record<ArtworkRarity, number>;
+};
+
+const LOTTERY_RARITIES: ArtworkRarity[] = [
+  "common",
+  "uncommon",
+  "rare",
+  "legendary",
+  "masterpiece",
+];
 
 export default function RaffleRewardForm({
   artworks,
   bufferPrizes,
+  generationConfig,
+  minimumBufferCount,
   nextDrawAt,
   prizes,
 }: {
   artworks: ArtworkOption[];
   bufferPrizes: Array<{ item: HydratedGameItem; potency: number }>;
+  generationConfig: RaffleGenerationConfig;
+  minimumBufferCount: number;
   nextDrawAt: string;
   prizes: Array<{ item: HydratedGameItem; potency: number }>;
 }) {
   const router = useRouter();
   const [drawing, setDrawing] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [savingGeneration, setSavingGeneration] = useState(false);
+  const [rarityWeights, setRarityWeights] = useState(
+    generationConfig.rarity_weights,
+  );
   const [drawError, setDrawError] = useState("");
+  const [generationStatus, setGenerationStatus] = useState("");
 
   async function drawLottery() {
     setDrawing(true);
@@ -46,6 +67,65 @@ export default function RaffleRewardForm({
     }
   }
 
+  async function saveGenerationSettings() {
+    setSavingGeneration(true);
+    setGenerationStatus("");
+    try {
+      const response = await fetch("/api/admin/lottery", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ rarityWeights }),
+      });
+      const body = (await response.json()) as {
+        error?: string;
+        message?: string;
+      };
+      if (!response.ok) {
+        throw new Error(
+          body.error ?? "The lottery generation settings could not be saved.",
+        );
+      }
+      setGenerationStatus(body.message ?? "Lottery generation settings saved.");
+    } catch (error) {
+      setGenerationStatus(
+        error instanceof Error
+          ? error.message
+          : "The lottery generation settings could not be saved.",
+      );
+    } finally {
+      setSavingGeneration(false);
+    }
+  }
+
+  async function createLotteryItem() {
+    setCreating(true);
+    setGenerationStatus("");
+    try {
+      const response = await fetch("/api/admin/lottery", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "create" }),
+      });
+      const body = (await response.json()) as {
+        error?: string;
+        message?: string;
+      };
+      if (!response.ok) {
+        throw new Error(body.error ?? "The lottery item could not be created.");
+      }
+      setGenerationStatus(body.message ?? "Lottery item created.");
+      router.refresh();
+    } catch (error) {
+      setGenerationStatus(
+        error instanceof Error
+          ? error.message
+          : "The lottery item could not be created.",
+      );
+    } finally {
+      setCreating(false);
+    }
+  }
+
   return (
     <div>
       <div className="admin-raffle-draw">
@@ -59,6 +139,52 @@ export default function RaffleRewardForm({
         </button>
         {drawError ? <p className="admin-error">{drawError}</p> : null}
       </div>
+      <section className="admin-raffle-generation">
+        <div>
+          <h2>Random prize generation</h2>
+          <p>
+            Random lottery items use normal item generation with elevated foil,
+            unlocked, mint, and art-style chances.
+          </p>
+        </div>
+        <div className="admin-raffle-rarity-map">
+          {LOTTERY_RARITIES.map((rarity) => (
+            <label key={rarity}>
+              <span>{rarity}</span>
+              <input
+                disabled={savingGeneration || creating}
+                min={0}
+                onChange={(event) =>
+                  setRarityWeights((current) => ({
+                    ...current,
+                    [rarity]: Number(event.target.value),
+                  }))
+                }
+                step="1"
+                type="number"
+                value={rarityWeights[rarity]}
+              />
+            </label>
+          ))}
+        </div>
+        <div className="admin-raffle-generation-actions">
+          <button
+            disabled={savingGeneration || creating}
+            onClick={saveGenerationSettings}
+            type="button"
+          >
+            {savingGeneration ? "Saving..." : "Save rarity map"}
+          </button>
+          <button
+            disabled={savingGeneration || creating}
+            onClick={createLotteryItem}
+            type="button"
+          >
+            {creating ? "Creating..." : "Create lottery item"}
+          </button>
+        </div>
+        {generationStatus ? <p>{generationStatus}</p> : null}
+      </section>
       <h2>Active prizes</h2>
       <div className="admin-raffle-live-grid">
         {prizes.map((prize, index) => (
@@ -78,11 +204,12 @@ export default function RaffleRewardForm({
           </article>
         ))}
       </div>
-      <h2>Replacement buffer</h2>
+      <h2>Replacement buffer ({bufferPrizes.length})</h2>
       <div className="admin-raffle-grid">
         {bufferPrizes.map((prize, index) => (
           <PrizeEditor
             artworks={artworks}
+            canRemove={bufferPrizes.length > minimumBufferCount}
             index={index}
             key={`${prize.item._id}:${prize.potency}:${JSON.stringify(prize.item)}`}
             prize={prize}
@@ -95,10 +222,12 @@ export default function RaffleRewardForm({
 
 function PrizeEditor({
   artworks,
+  canRemove,
   index,
   prize,
 }: {
   artworks: ArtworkOption[];
+  canRemove: boolean;
   index: number;
   prize: { item: HydratedGameItem; potency: number };
 }) {
@@ -162,31 +291,31 @@ function PrizeEditor({
     }
   }
 
-  async function regenerate() {
+  async function removeFromBuffer() {
     setPending(true);
     setError("");
     try {
       const response = await fetch("/api/admin/lottery", {
-        method: "POST",
+        method: "DELETE",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           itemId: prize.item._id,
-          pool: "buffer",
         }),
       });
       const body = (await response.json()) as { error?: string };
       if (!response.ok) {
         throw new Error(
-          body.error ?? "The lottery item could not be regenerated.",
+          body.error ?? "The lottery item could not be removed.",
         );
       }
       router.refresh();
-    } catch (regenerateError) {
+    } catch (removeError) {
       setError(
-        regenerateError instanceof Error
-          ? regenerateError.message
-          : "The lottery item could not be regenerated.",
+        removeError instanceof Error
+          ? removeError.message
+          : "The lottery item could not be removed.",
       );
+    } finally {
       setPending(false);
     }
   }
@@ -285,8 +414,17 @@ function PrizeEditor({
         >
           {pending ? "Saving..." : "Save and refresh preview"}
         </button>
-        <button disabled={pending} onClick={regenerate} type="button">
-          Generate new item
+        <button
+          disabled={pending || !canRemove}
+          onClick={removeFromBuffer}
+          title={
+            canRemove
+              ? "Remove this item from the lottery buffer"
+              : "The lottery buffer must retain its minimum item count"
+          }
+          type="button"
+        >
+          Remove from buffer
         </button>
         {error ? <p className="admin-error">{error}</p> : null}
       </div>

@@ -1,5 +1,9 @@
 import type { ArtworkRarity, GameItem } from "./gameplay.ts";
 import { calculateForgeryHeat } from "./forgery-gameplay.ts";
+import {
+  getLegendaryNumberParameter,
+  type LegendaryAttribute,
+} from "./legendary-attributes.ts";
 import type { NpcQuality } from "./npc-gameplay.ts";
 
 const QUALITY_MULTIPLIERS: Record<NpcQuality, number> = {
@@ -19,6 +23,29 @@ export const COLLECTOR_MEETING_LIMITS: Record<NpcQuality, number> = {
   platinum: 60,
 };
 
+export function getCollectorAuctionCommissionCoefficient(
+  effect: LegendaryAttribute | null,
+  random: () => number = Math.random,
+): number | null {
+  if (!effect) return null;
+  const chance = Math.min(
+    Math.max(getLegendaryNumberParameter(effect, "chance", 0.2), 0),
+    1,
+  );
+  if (random() >= chance) return null;
+  return Math.min(
+    Math.max(
+      getLegendaryNumberParameter(
+        effect,
+        "commission_coefficient",
+        0.1,
+      ),
+      0,
+    ),
+    1,
+  );
+}
+
 export function getHighestAvailableCollectorQuality(
   meetings: Partial<Record<NpcQuality, number>>,
   limits: Record<NpcQuality, number> = COLLECTOR_MEETING_LIMITS,
@@ -37,6 +64,7 @@ export function calculateCollectorReward({
   ownGallery,
   goodConditionBonus,
   rollCountBonus,
+  rewardMultiplier = 1,
   xpOffer,
   xpChunk,
 }: {
@@ -45,6 +73,7 @@ export function calculateCollectorReward({
   ownGallery: boolean;
   goodConditionBonus: boolean;
   rollCountBonus: boolean;
+  rewardMultiplier?: number;
   xpOffer: boolean;
   xpChunk: number;
 }): { amount: number; type: "money" | "xp"; multiplier: number } {
@@ -56,6 +85,7 @@ export function calculateCollectorReward({
   if (rollCountBonus && item.roll_count <= 0) {
     multiplier += LEGENDARY_INCREMENT;
   }
+  multiplier *= rewardMultiplier;
 
   if (xpOffer) {
     const chunkPercentage = (0.1 + 0.02 * item.level) * multiplier;

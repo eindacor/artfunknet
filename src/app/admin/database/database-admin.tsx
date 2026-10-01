@@ -234,7 +234,7 @@ export default function DatabaseAdmin({
       <section className="database-admin-panel">
         <h2>Generate content package</h2>
         <p>
-          Exports artists, artworks, attributes, legendary attributes, gallery
+          Exports artists, artworks, attributes, unique effects, gallery
           finishes, gameplay metadata, and their non-default indexes. Player
           accounts, generated items, archives, auctions, quests, notifications,
           NPC state, and lottery state are excluded.

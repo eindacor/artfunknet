@@ -7,8 +7,9 @@ import { getEffectiveGalleryAttributeRating } from "./gallery-metadata-core.ts";
 import {
   ART_COLLECTOR_ATTRIBUTE_ID,
   ART_DONOR_ATTRIBUTE_ID,
-  type LegendaryAttribute,
 } from "./legendary-attributes.ts";
+import type { ArtworkEffect } from "./artwork-effects.ts";
+import { MASTERPIECE_EFFECT_CODES } from "./masterpiece-effects.ts";
 import {
   hydrateGameItems,
   type HydratedGameItem,
@@ -182,7 +183,7 @@ export async function refreshNpcSpawns(
   const activeLegendaryIds = [
     ...new Set(
       displayedItems
-        .map((item) => item.active_unique_attribute)
+        .map((item) => item.artwork.effect_id)
         .filter((id): id is string => Boolean(id)),
     ),
   ];
@@ -190,7 +191,7 @@ export async function refreshNpcSpawns(
     activeLegendaryIds.length === 0
       ? []
       : await database
-          .collection<LegendaryAttribute>("unique_attributes")
+          .collection<ArtworkEffect>("artwork_effects")
           .find({
             _id: { $in: activeLegendaryIds },
             code: {
@@ -198,7 +199,7 @@ export async function refreshNpcSpawns(
             },
             active: true,
           })
-          .project<Pick<LegendaryAttribute, "_id" | "code">>({
+          .project<Pick<ArtworkEffect, "_id" | "code">>({
             _id: 1,
             code: 1,
           })
@@ -217,8 +218,8 @@ export async function refreshNpcSpawns(
     displayedItems
       .filter(
         (item) =>
-          item.active_unique_attribute &&
-          collectorQualityEffectIds.has(item.active_unique_attribute),
+          item.artwork.effect_id &&
+          collectorQualityEffectIds.has(item.artwork.effect_id),
       )
       .map((item) => item.owner),
   );
@@ -226,8 +227,8 @@ export async function refreshNpcSpawns(
     displayedItems
       .filter(
         (item) =>
-          item.active_unique_attribute &&
-          collectorDonorPairEffectIds.has(item.active_unique_attribute),
+          item.artwork.effect_id &&
+          collectorDonorPairEffectIds.has(item.artwork.effect_id),
       )
       .map((item) => item.owner),
   );
@@ -240,10 +241,57 @@ export async function refreshNpcSpawns(
     ownerItems.push(item);
     itemsByOwner.set(item.owner, ownerItems);
   }
+  const masterpieceGalleryEffects =
+    activeLegendaryIds.length === 0
+      ? []
+      : await database
+          .collection<ArtworkEffect>("artwork_effects")
+          .find({
+            _id: { $in: activeLegendaryIds },
+            code: {
+              $in: [
+                MASTERPIECE_EFFECT_CODES.commonSubstitution,
+                MASTERPIECE_EFFECT_CODES.rareVisitorDouble,
+              ],
+            },
+            active: true,
+          })
+          .toArray();
+  const effectCodeById = new Map(
+    masterpieceGalleryEffects.map((effect) => [effect._id, effect.code]),
+  );
 
   const operations = players.flatMap((player) => {
+    const ownerItems = itemsByOwner.get(player._id) ?? [];
+    const substitutionItem = ownerItems
+      .filter(
+        (item) =>
+          item.artwork.effect_id &&
+          effectCodeById.get(item.artwork.effect_id) ===
+            MASTERPIECE_EFFECT_CODES.commonSubstitution,
+      )
+      .sort(
+        (left, right) =>
+          left.values.actual - right.values.actual ||
+          left._id.localeCompare(right._id),
+      )[0];
+    const hasRareDouble = ownerItems.some(
+      (item) =>
+        item.artwork.effect_id &&
+        effectCodeById.get(item.artwork.effect_id) ===
+          MASTERPIECE_EFFECT_CODES.rareVisitorDouble,
+    );
+    const scoringItems = ownerItems.flatMap((item) => {
+      const effectiveItem =
+        substitutionItem && item.artwork.rarity === "common"
+          ? { ...item, attributes: substitutionItem.attributes }
+          : item;
+      return hasRareDouble && item.artwork.rarity === "rare"
+        ? [effectiveItem, effectiveItem]
+        : [effectiveItem];
+    });
     const procMap = getNpcProcMap(
-      itemsByOwner.get(player._id) ?? [],
+      scoringItems,
       player.profile.display_cap,
       player.profile.level,
     );

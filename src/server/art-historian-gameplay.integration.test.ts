@@ -287,6 +287,10 @@ test("Integration: MONEY_FOR_XP active effect is resolved correctly for displaye
     await setupTestDb(db, playerId, {
       uniqueAttributes: HISTORIAN_UNIQUE_ATTRIBUTES,
     });
+    await db.collection("artworks").updateOne(
+      { _id: "art-1" },
+      { $set: { effect_id: "attr-money-for-xp" } },
+    );
 
     // Seed displayed item with MONEY_FOR_XP effect
     await db.collection<GameItem>("items").insertOne({

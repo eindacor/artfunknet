@@ -93,7 +93,13 @@ export async function processAuctioneerInteraction(
         ? new Date(currentExpiration.getTime() + extension * 60_000)
         : new Date(now.getTime() + durationMinutes * 60_000);
 
-    const [settings, metadata, donorPair, privatePriceReduction] =
+    const [
+      settings,
+      metadata,
+      donorPair,
+      privatePriceReduction,
+      auctionBuyNowEffect,
+    ] =
       await Promise.all([
         getGameplaySettings(database),
         database
@@ -111,6 +117,13 @@ export async function processAuctioneerInteraction(
               database,
               player._id,
               "PRIVATE_AUCTION_PRICE_REDUCTION",
+            )
+          : Promise.resolve(null),
+        ownGallery
+          ? getDisplayedLegendaryEffect(
+              database,
+              player._id,
+              "AUCTION_BUY_NOW",
             )
           : Promise.resolve(null),
       ]);
@@ -133,6 +146,11 @@ export async function processAuctioneerInteraction(
       privatePriceReduction,
       "price_multiplier",
       privatePriceReduction ? 2.5 : 4,
+    );
+    const buyNowMultiplier = getLegendaryNumberParameter(
+      auctionBuyNowEffect,
+      "buy_now_multiplier",
+      1.1,
     );
     const generated = await generateDailyDrop(
       database,
@@ -159,12 +177,16 @@ export async function processAuctioneerInteraction(
     const hydrated = await hydrateGameItems(database, generated);
     const createdAuctions: Auction[] = [];
     for (const item of hydrated) {
+      const startingBid = Math.floor(item.values.actual * priceMultiplier);
+      const buyNow = auctionBuyNowEffect
+        ? Math.max(startingBid + 1, Math.ceil(startingBid * buyNowMultiplier))
+        : null;
       const auction = await createAuction(database, item, {
         sellerId: null,
         sellerName: "Auction House",
         viewer: player._id,
-        startingBid: Math.floor(item.values.actual * priceMultiplier),
-        buyNow: null,
+        startingBid,
+        buyNow,
         durationMinutes: PRIVATE_AUCTION_DURATION_MINUTES,
         now,
       });

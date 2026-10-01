@@ -6,6 +6,8 @@ import {
   type GameItem,
   type LootData,
 } from "./gameplay.ts";
+import { getArtworkEffect } from "./artwork-effects.ts";
+import { MASTERPIECE_EFFECT_CODES } from "./masterpiece-effects.ts";
 
 export type DemintUpdate = Pick<
   GameItem,
@@ -29,6 +31,12 @@ export async function getDemintUpdate(
   ]);
   if (!artwork || !metadata) {
     throw new Error("This item's value data is unavailable.");
+  }
+  if (changes.status === "displayed") {
+    const effect = await getArtworkEffect(database, artwork);
+    if (effect?.code === MASTERPIECE_EFFECT_CODES.preservationMint) {
+      return null;
+    }
   }
 
   const demintedItem = {

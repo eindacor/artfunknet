@@ -6,6 +6,7 @@ import { deleteCommunityReactions } from "@/server/community-reaction-cleanup";
 import { getGameplaySettings } from "@/server/game-settings";
 import {
   calculateItemValues,
+  ARTWORK_RARITIES,
   getItemAttributes,
   type Artwork,
   type GameItem,
@@ -16,6 +17,8 @@ import { getRerollCost } from "@/server/item-reroll";
 import {
   ensureRaffleState,
   generateRafflePrize,
+  normalizeRaffleGenerationConfig,
+  RAFFLE_DEFAULT_BUFFER_COUNT,
   RAFFLE_MAX_POTENCY,
   RAFFLE_OWNER_ID,
   RAFFLE_STATE_ID,
@@ -144,7 +147,6 @@ export async function PATCH(request: Request) {
     attributes: regenerateAttributes
       ? getItemAttributes(artwork, body.unlocked, attributes)
       : item.attributes,
-    active_unique_attribute: artwork.unique_attributes?.[0],
     artwork_overrides:
       item.artwork_id === artwork._id ? item.artwork_overrides : undefined,
     misprint: item.artwork_id === artwork._id ? item.misprint : false,
@@ -224,9 +226,61 @@ export async function POST(request: Request) {
   const auth = await requireAdminApi();
   if (!auth.ok) return auth.response;
   const body = (await request.json()) as {
+    action?: unknown;
     itemId?: unknown;
     pool?: unknown;
   };
+  if (body.action === "create") {
+    const database = await getDatabase();
+    const settings = await getGameplaySettings(database);
+    const state = await ensureRaffleState(database, settings.active);
+    if (
+      state.draw_lock &&
+      new Date(state.draw_lock.expires_at).getTime() > Date.now()
+    ) {
+      return NextResponse.json(
+        { error: "Lottery items cannot be added during the drawing." },
+        { status: 409 },
+      );
+    }
+    const reward = await generateRafflePrize(
+      database,
+      settings.active,
+      new Date(),
+      state.generation_config,
+    );
+    const appended = await database.collection<RaffleState>("metadata").updateOne(
+      {
+        _id: RAFFLE_STATE_ID,
+        buffer_prizes: state.buffer_prizes,
+        draw_lock: { $exists: false },
+      },
+      {
+        $push: {
+          buffer_prizes: { item_id: reward._id, potency: reward.lottery },
+        },
+        $set: {
+          updated_at: new Date().toISOString(),
+          updated_by: auth.session.email,
+        },
+      },
+    );
+    if (appended.modifiedCount !== 1) {
+      await database.collection<GameItem>("items").deleteOne({
+        _id: reward._id,
+        owner: RAFFLE_OWNER_ID,
+      });
+      return NextResponse.json(
+        { error: "The lottery buffer changed before the item could be added." },
+        { status: 409 },
+      );
+    }
+    return NextResponse.json({
+      status: "ok",
+      message: "A random lottery item was added to the buffer.",
+      itemId: reward._id,
+    });
+  }
   const pool = getLotteryPool(body.pool);
   if (pool === "prizes") {
     return NextResponse.json(
@@ -234,6 +288,7 @@ export async function POST(request: Request) {
       { status: 409 },
     );
   }
+
   if (typeof body.itemId !== "string" || !pool) {
     return NextResponse.json(
       { error: "Choose a lottery item to replace." },
@@ -256,7 +311,12 @@ export async function POST(request: Request) {
       { status: 409 },
     );
   }
-  const reward = await generateRafflePrize(database, settings.active);
+  const reward = await generateRafflePrize(
+    database,
+    settings.active,
+    new Date(),
+    state.generation_config,
+  );
   const prizes = poolPrizes.map((prize) =>
     prize.item_id === body.itemId
       ? { item_id: reward._id, potency: 1 }
@@ -294,5 +354,146 @@ export async function POST(request: Request) {
   return NextResponse.json({
     status: "ok",
     message: "A new lottery item was generated.",
+  });
+}
+
+export async function PUT(request: Request) {
+  const auth = await requireAdminApi();
+  if (!auth.ok) return auth.response;
+  const body = (await request.json()) as {
+    rarityWeights?: unknown;
+  };
+  if (
+    typeof body.rarityWeights !== "object" ||
+    body.rarityWeights === null ||
+    Array.isArray(body.rarityWeights)
+  ) {
+    return NextResponse.json(
+      { error: "Provide valid lottery rarity weights." },
+      { status: 400 },
+    );
+  }
+  const rawWeights = body.rarityWeights as Record<string, unknown>;
+  if (
+    ARTWORK_RARITIES.some(
+      (rarity) =>
+        typeof rawWeights[rarity] !== "number" ||
+        !Number.isFinite(rawWeights[rarity]) ||
+        (rawWeights[rarity] as number) < 0,
+    ) ||
+    ARTWORK_RARITIES.every((rarity) => rawWeights[rarity] === 0)
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Lottery rarity weights must be non-negative with one above zero.",
+      },
+      { status: 400 },
+    );
+  }
+
+  const database = await getDatabase();
+  const settings = await getGameplaySettings(database);
+  await ensureRaffleState(database, settings.active);
+  const generationConfig = normalizeRaffleGenerationConfig({
+    rarity_weights: Object.fromEntries(
+      ARTWORK_RARITIES.map((rarity) => [
+        rarity,
+        rawWeights[rarity] as number,
+      ]),
+    ) as Record<(typeof ARTWORK_RARITIES)[number], number>,
+  });
+  const updated = await database.collection<RaffleState>("metadata").updateOne(
+    { _id: RAFFLE_STATE_ID },
+    {
+      $set: {
+        generation_config: generationConfig,
+        updated_at: new Date().toISOString(),
+        updated_by: auth.session.email,
+      },
+    },
+  );
+  if (updated.matchedCount !== 1) {
+    return NextResponse.json(
+      { error: "The lottery generation settings could not be saved." },
+      { status: 409 },
+    );
+  }
+  return NextResponse.json({
+    status: "ok",
+    message: "Lottery rarity weights saved.",
+    generationConfig,
+  });
+}
+
+export async function DELETE(request: Request) {
+  const auth = await requireAdminApi();
+  if (!auth.ok) return auth.response;
+  const body = (await request.json()) as {
+    itemId?: unknown;
+  };
+  if (typeof body.itemId !== "string") {
+    return NextResponse.json(
+      { error: "Choose a lottery buffer item to remove." },
+      { status: 400 },
+    );
+  }
+
+  const database = await getDatabase();
+  const settings = await getGameplaySettings(database);
+  const state = await ensureRaffleState(database, settings.active);
+  if (state.buffer_prizes.length <= RAFFLE_DEFAULT_BUFFER_COUNT) {
+    return NextResponse.json(
+      {
+        error: `The lottery buffer must keep at least ${RAFFLE_DEFAULT_BUFFER_COUNT} items.`,
+      },
+      { status: 409 },
+    );
+  }
+  if (
+    !state.buffer_prizes.some((prize) => prize.item_id === body.itemId) ||
+    (state.draw_lock &&
+      new Date(state.draw_lock.expires_at).getTime() > Date.now())
+  ) {
+    return NextResponse.json(
+      { error: "That lottery buffer item is unavailable during the drawing." },
+      { status: 409 },
+    );
+  }
+
+  const nextBufferPrizes = state.buffer_prizes.filter(
+    (prize) => prize.item_id !== body.itemId,
+  );
+  const removed = await database.collection<RaffleState>("metadata").updateOne(
+    {
+      _id: RAFFLE_STATE_ID,
+      buffer_prizes: state.buffer_prizes,
+      draw_lock: { $exists: false },
+    },
+    {
+      $set: {
+        buffer_prizes: nextBufferPrizes,
+        updated_at: new Date().toISOString(),
+        updated_by: auth.session.email,
+      },
+    },
+  );
+  if (removed.modifiedCount !== 1) {
+    return NextResponse.json(
+      { error: "The lottery buffer changed before the item could be removed." },
+      { status: 409 },
+    );
+  }
+  await Promise.all([
+    database.collection<GameItem>("items").deleteOne({
+      _id: body.itemId,
+      owner: RAFFLE_OWNER_ID,
+    }),
+    database.collection("raffle_entries").deleteMany({ item_id: body.itemId }),
+    deleteCommunityReactions(database, "item", [body.itemId]),
+  ]);
+  return NextResponse.json({
+    status: "ok",
+    message: "Lottery item removed from the buffer.",
   });
 }

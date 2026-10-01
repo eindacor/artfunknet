@@ -36,11 +36,11 @@ export type ArtworkCatalogEntry = {
   medium: string;
   rarity: ArtworkRarity;
   value_scale: number;
+  effect_id?: string;
   height: number;
   width: number;
   active: boolean;
   nsfw?: boolean;
-  special_attributes?: string[];
   image?: {
     version?: number;
     storage?: {
@@ -48,6 +48,7 @@ export type ArtworkCatalogEntry = {
       bucket?: string;
       key: string;
     };
+
     variants?: {
       full?: {
         storage: {
@@ -61,7 +62,19 @@ export type ArtworkCatalogEntry = {
   hasImage?: boolean;
 };
 
-type AttributeOption = { id: string; name: string };
+export type ArtworkEffectDistribution = {
+  id: string;
+  title: string;
+  effectType: "legendary" | "masterpiece";
+  artworkCount: number;
+};
+
+export type ArtworkEffectOption = {
+  id: string;
+  title: string;
+  effectType: "legendary" | "masterpiece";
+  active: boolean;
+};
 
 type NewArtwork = {
   artist_id: string;
@@ -70,24 +83,26 @@ type NewArtwork = {
   genre: string;
   medium: string;
   rarity: ArtworkRarity;
-  value_scale: string;
   height: string;
   active: boolean;
   nsfw: boolean;
-  special_attributes: string[];
 };
 
 export default function CatalogEditor({
   initialArtists,
   initialArtworks,
-  attributes,
+  effectDistribution,
+  effectOptions,
 }: {
   initialArtists: ArtistCatalogEntry[];
   initialArtworks: ArtworkCatalogEntry[];
-  attributes: AttributeOption[];
+  effectDistribution: ArtworkEffectDistribution[];
+  effectOptions: ArtworkEffectOption[];
 }) {
   const [artists, setArtists] = useState(initialArtists);
   const [artworks, setArtworks] = useState(initialArtworks);
+  const [displayedEffectDistribution, setDisplayedEffectDistribution] =
+    useState(effectDistribution);
   const [mode, setMode] = useState<"artworks" | "artists" | "new-artwork">(
     "artworks",
   );
@@ -151,35 +166,51 @@ export default function CatalogEditor({
   async function saveArtwork(event: FormEvent) {
     event.preventDefault();
     if (!artworkForm) return;
-    const previousArtistId = artworks.find(
-      (artwork) => artwork._id === artworkForm._id,
-    )?.artist_id;
+    const submittedArtwork = artworkForm;
+    const previousArtwork = artworks.find(
+      (artwork) => artwork._id === submittedArtwork._id,
+    );
+    const previousArtistId = previousArtwork?.artist_id;
     await save(async () => {
       const response = await fetch(
-        `/api/admin/artworks/${artworkForm._id}`,
+        `/api/admin/artworks/${submittedArtwork._id}`,
         {
           method: "PATCH",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify(artworkForm),
+          body: JSON.stringify(submittedArtwork),
         },
       );
       const result = await readResponse<{
         artwork: ArtworkCatalogEntry;
         message: string;
       }>(response);
+      const savedArtwork = {
+        ...result.artwork,
+        hasImage: Boolean(getArtworkStorage(result.artwork)),
+      };
       setArtworks((current) =>
         current
           .map((artwork) =>
-            artwork._id === result.artwork._id
-              ? {
-                  ...result.artwork,
-                  hasImage: Boolean(getArtworkStorage(result.artwork)),
-                }
-              : artwork,
+            artwork._id === savedArtwork._id ? savedArtwork : artwork,
           )
           .sort(compareArtworks),
       );
-      setArtworkForm(result.artwork);
+      setArtworkForm((current) =>
+        current?._id === savedArtwork._id ? savedArtwork : current,
+      );
+      if (previousArtwork?.effect_id !== savedArtwork.effect_id) {
+        setDisplayedEffectDistribution((current) =>
+          current.map((effect) => ({
+            ...effect,
+            artworkCount:
+              effect.id === previousArtwork?.effect_id
+                ? Math.max(0, effect.artworkCount - 1)
+                : effect.id === savedArtwork.effect_id
+                  ? effect.artworkCount + 1
+                  : effect.artworkCount,
+          })),
+        );
+      }
       if (
         previousArtistId &&
         previousArtistId !== result.artwork.artist_id
@@ -328,6 +359,24 @@ export default function CatalogEditor({
           ))}
         </div>
       </div>
+      <details className="rounded-lg border border-white/10 bg-white/5">
+        <summary className="cursor-pointer px-4 py-3 text-sm font-semibold">
+          Artwork effect distribution
+        </summary>
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-1 border-t border-white/10 p-2">
+          {displayedEffectDistribution.map((effect) => (
+            <span
+              className={`rarity-text ${effect.effectType} grid grid-cols-[minmax(0,1fr)_2.25rem] items-center rounded border border-white/10 bg-black/10 px-2 py-1 text-xs font-semibold`}
+              key={effect.id}
+            >
+              <span className="break-words">{effect.title}</span>
+              <span className="border-l border-white/10 pl-2 text-right text-white">
+                {effect.artworkCount}
+              </span>
+            </span>
+          ))}
+        </div>
+      </details>
       <div className="flex flex-wrap gap-2">
         <button
           className={mode === "new-artwork" ? activeTabClass : tabClass}
@@ -402,7 +451,6 @@ export default function CatalogEditor({
         <div className="rounded-lg border border-white/10 bg-white/5 p-5">
           <NewArtworkForm
             artists={artists}
-            attributes={attributes}
             onArtistCreated={(artist) => {
               setArtists((current) =>
                 [...current, artist].sort((left, right) =>
@@ -474,19 +522,26 @@ export default function CatalogEditor({
             <ArtworkForm
               artists={artists}
               artwork={artworkForm}
-              attributes={attributes}
+              effectOptions={effectOptions}
               onChange={setArtworkForm}
               onUploaded={(updated) => {
-                const artworkWithImage = { ...updated, hasImage: true };
-                setArtworkForm(artworkWithImage);
+                const imageFields = {
+                  image: updated.image,
+                  hasImage: true,
+                };
+                setArtworkForm((current) =>
+                  current?._id === updated._id
+                    ? { ...current, ...imageFields }
+                    : current,
+                );
                 setArtworks((current) =>
                   current.map((artwork) =>
                     artwork._id === updated._id
-                      ? { ...artwork, ...artworkWithImage }
+                      ? { ...artwork, ...imageFields }
                       : artwork,
                   ),
                 );
-                setMessage(`Updated the image for ${artworkWithImage.title}.`);
+                setMessage(`Updated the image for ${updated.title}.`);
               }}
               onUploadError={(uploadError) => setError(uploadError)}
               onDelete={deleteArtwork}
@@ -514,12 +569,10 @@ export default function CatalogEditor({
 
 function NewArtworkForm({
   artists,
-  attributes,
   onArtistCreated,
   onCreated,
 }: {
   artists: ArtistCatalogEntry[];
-  attributes: AttributeOption[];
   onArtistCreated: (artist: ArtistCatalogEntry) => void;
   onCreated: (artwork: ArtworkCatalogEntry) => void;
 }) {
@@ -530,11 +583,9 @@ function NewArtworkForm({
     genre: "",
     medium: "",
     rarity: "common",
-    value_scale: "",
     height: "",
     active: true,
     nsfw: false,
-    special_attributes: [],
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -544,7 +595,6 @@ function NewArtworkForm({
     dateOfBirth: "",
     dateOfDeath: "",
   });
-  const requiredAttributes = getRequiredAttributeCount(artwork.rarity);
 
   function set<Key extends keyof NewArtwork>(
     key: Key,
@@ -571,7 +621,6 @@ function NewArtworkForm({
         JSON.stringify({
           ...artwork,
           date: Number(artwork.date),
-          value_scale: Number(artwork.value_scale),
           height: Number(artwork.height),
         }),
       );
@@ -736,15 +785,7 @@ function NewArtworkForm({
           <select
             className={inputClass}
             onChange={(event) => {
-              const rarity = event.target.value as ArtworkRarity;
-              setArtwork((current) => ({
-                ...current,
-                rarity,
-                special_attributes: current.special_attributes.slice(
-                  0,
-                  getRequiredAttributeCount(rarity),
-                ),
-              }));
+              set("rarity", event.target.value as ArtworkRarity);
             }}
             value={artwork.rarity}
           >
@@ -755,13 +796,6 @@ function NewArtworkForm({
             ))}
           </select>
         </label>
-        <EditorField
-          label="Value scale (0-1)"
-          onChange={(value) => set("value_scale", value)}
-          step="0.001"
-          type="number"
-          value={artwork.value_scale}
-        />
         <EditorField
           label="Height (cm)"
           onChange={(value) => set("height", value)}
@@ -788,46 +822,6 @@ function NewArtworkForm({
           NSFW
         </label>
       </div>
-      <fieldset className="grid gap-2 rounded-md border border-white/10 p-3">
-        <legend className="px-1 font-semibold">
-          Special attributes ({artwork.special_attributes.length}/
-          {requiredAttributes})
-        </legend>
-        {requiredAttributes === 0 ? (
-          <p className="text-sm text-[var(--muted)]">
-            This rarity has no special attributes.
-          </p>
-        ) : (
-          <div className="grid gap-2 sm:grid-cols-2">
-            {attributes.map((attribute) => {
-              const selected = artwork.special_attributes.includes(attribute.id);
-              return (
-                <label className="flex items-center gap-2" key={attribute.id}>
-                  <input
-                    checked={selected}
-                    disabled={
-                      !selected &&
-                      artwork.special_attributes.length >= requiredAttributes
-                    }
-                    onChange={() =>
-                      set(
-                        "special_attributes",
-                        selected
-                          ? artwork.special_attributes.filter(
-                              (id) => id !== attribute.id,
-                            )
-                          : [...artwork.special_attributes, attribute.id],
-                      )
-                    }
-                    type="checkbox"
-                  />
-                  {attribute.name}
-                </label>
-              );
-            })}
-          </div>
-        )}
-      </fieldset>
       <button
         className="justify-self-start rounded-md bg-[var(--accent)] px-4 py-2 font-bold text-black disabled:opacity-50"
         disabled={busy}
@@ -843,7 +837,7 @@ function NewArtworkForm({
 function ArtworkForm({
   artwork,
   artists,
-  attributes,
+  effectOptions,
   onChange,
   onUploaded,
   onUploadError,
@@ -853,7 +847,7 @@ function ArtworkForm({
 }: {
   artwork: ArtworkCatalogEntry;
   artists: ArtistCatalogEntry[];
-  attributes: AttributeOption[];
+  effectOptions: ArtworkEffectOption[];
   onChange: (artwork: ArtworkCatalogEntry) => void;
   onUploaded: (artwork: ArtworkCatalogEntry) => void;
   onUploadError: (message: string) => void;
@@ -861,7 +855,6 @@ function ArtworkForm({
   onSubmit: (event: FormEvent) => void;
   pending: boolean;
 }) {
-  const requiredAttributes = getRequiredAttributeCount(artwork.rarity);
   const [uploading, setUploading] = useState(false);
   const [imageVersion, setImageVersion] = useState(0);
   function set<Key extends keyof ArtworkCatalogEntry>(
@@ -871,7 +864,8 @@ function ArtworkForm({
     onChange({ ...artwork, [key]: value });
   }
   return (
-    <form className="grid gap-5" onSubmit={onSubmit}>
+    <form onSubmit={onSubmit}>
+      <fieldset className="grid gap-5" disabled={pending}>
       <div className="grid gap-5 md:grid-cols-[180px_1fr]">
         <Image
           alt={`${artwork.title} by ${artwork.artist}`}
@@ -990,13 +984,16 @@ function ArtworkForm({
             className={inputClass}
             onChange={(event) => {
               const rarity = event.target.value as ArtworkRarity;
+              const matchingEffect = effectOptions.find(
+                (effect) => effect.effectType === rarity,
+              );
               onChange({
                 ...artwork,
                 rarity,
-                special_attributes: (artwork.special_attributes ?? []).slice(
-                  0,
-                  getRequiredAttributeCount(rarity),
-                ),
+                effect_id:
+                  rarity === "legendary" || rarity === "masterpiece"
+                    ? matchingEffect?.id
+                    : undefined,
               });
             }}
             value={artwork.rarity}
@@ -1009,12 +1006,34 @@ function ArtworkForm({
           </select>
         </label>
         <EditorField
-          label="Value scale (0-1)"
+          label="Value scale"
+          max="1"
+          min="0"
           onChange={(value) => set("value_scale", Number(value))}
-          step="0.001"
+          step="0.0001"
           type="number"
           value={String(artwork.value_scale)}
         />
+        {artwork.rarity === "legendary" ||
+        artwork.rarity === "masterpiece" ? (
+          <label className="grid gap-2">
+            <span className="font-semibold">Unique effect</span>
+            <select
+              className={inputClass}
+              onChange={(event) => set("effect_id", event.target.value)}
+              value={artwork.effect_id ?? ""}
+            >
+              {effectOptions
+                .filter((effect) => effect.effectType === artwork.rarity)
+                .map((effect) => (
+                  <option key={effect.id} value={effect.id}>
+                    {effect.title}
+                    {!effect.active ? " (inactive)" : ""}
+                  </option>
+                ))}
+            </select>
+          </label>
+        ) : null}
         <EditorField
           label="Height (cm)"
           onChange={(value) => set("height", Number(value))}
@@ -1023,67 +1042,20 @@ function ArtworkForm({
           value={String(artwork.height)}
         />
       </div>
-      <fieldset className="grid gap-2 rounded-md border border-white/10 p-3">
-        <legend className="px-1 font-semibold">
-          Special attributes ({artwork.special_attributes?.length ?? 0}/
-          {requiredAttributes})
-        </legend>
-        {requiredAttributes === 0 ? (
-          <p className="text-sm text-[var(--muted)]">
-            This rarity has no special attributes.
-          </p>
-        ) : (
-          <div className="grid gap-2 sm:grid-cols-2">
-            {attributes.map((attribute) => {
-              const selected = artwork.special_attributes?.includes(
-                attribute.id,
-              );
-              return (
-                <label className="flex items-center gap-2" key={attribute.id}>
-                  <input
-                    checked={selected}
-                    disabled={
-                      !selected &&
-                      (artwork.special_attributes?.length ?? 0) >=
-                        requiredAttributes
-                    }
-                    onChange={() =>
-                      set(
-                        "special_attributes",
-                        selected
-                          ? artwork.special_attributes?.filter(
-                              (id) => id !== attribute.id,
-                            )
-                          : [
-                              ...(artwork.special_attributes ?? []),
-                              attribute.id,
-                            ],
-                      )
-                    }
-                    type="checkbox"
-                  />
-                  {attribute.name}
-                </label>
-              );
-            })}
-          </div>
-        )}
+        <button
+          className="justify-self-start rounded-md bg-[var(--accent)] px-4 py-2 font-bold text-black disabled:opacity-50"
+          type="submit"
+        >
+          {pending ? "Saving..." : "Save artwork"}
+        </button>
+        <button
+          className="justify-self-start rounded-md border border-red-400/60 px-4 py-2 font-bold text-red-300 disabled:opacity-50"
+          onClick={onDelete}
+          type="button"
+        >
+          Delete artwork
+        </button>
       </fieldset>
-      <button
-        className="justify-self-start rounded-md bg-[var(--accent)] px-4 py-2 font-bold text-black disabled:opacity-50"
-        disabled={pending}
-        type="submit"
-      >
-        {pending ? "Saving..." : "Save artwork"}
-      </button>
-      <button
-        className="justify-self-start rounded-md border border-red-400/60 px-4 py-2 font-bold text-red-300 disabled:opacity-50"
-        disabled={pending}
-        onClick={onDelete}
-        type="button"
-      >
-        Delete artwork
-      </button>
     </form>
   );
 }
@@ -1163,12 +1135,16 @@ function EditorField({
   label,
   onChange,
   step,
+  min,
+  max,
   type = "text",
   value,
 }: {
   label: string;
   onChange: (value: string) => void;
   step?: string;
+  min?: string;
+  max?: string;
   type?: string;
   value: string;
 }) {
@@ -1178,18 +1154,14 @@ function EditorField({
       <input
         className={inputClass}
         onChange={(event) => onChange(event.target.value)}
+        max={max}
+        min={min}
         step={step}
         type={type}
         value={value}
       />
     </label>
   );
-}
-
-function getRequiredAttributeCount(rarity: ArtworkRarity): number {
-  return { common: 0, uncommon: 0, rare: 1, legendary: 2, masterpiece: 3 }[
-    rarity
-  ];
 }
 
 function compareArtworks(

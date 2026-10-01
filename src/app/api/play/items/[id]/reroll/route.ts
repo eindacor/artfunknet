@@ -21,6 +21,11 @@ import {
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
 import { sanitizePlayerFacingAuthenticity } from "@/server/forgery-gameplay";
+import {
+  MASTERPIECE_EFFECT_CODES,
+  shouldApplyPerfectFirstReroll,
+} from "@/server/masterpiece-effects";
+import { getDisplayedArtworkEffect } from "@/server/artwork-effects";
 
 type Player = {
   _id: string;
@@ -57,7 +62,7 @@ export async function POST(
 
   const { id } = await params;
   const database = await getDatabase();
-  const [item, player, metadata, rerollDiscount] = await Promise.all([
+  const [item, player, metadata, rerollDiscount, perfectReroll] = await Promise.all([
     database.collection<GameItem>("items").findOne({
       _id: id,
       owner: auth.session.playerId,
@@ -74,6 +79,11 @@ export async function POST(
       database,
       auth.session.playerId,
       "REROLL_DISCOUNT",
+    ),
+    getDisplayedArtworkEffect(
+      database,
+      auth.session.playerId,
+      MASTERPIECE_EFFECT_CODES.perfectReroll,
     ),
   ]);
 
@@ -114,12 +124,13 @@ export async function POST(
     );
   }
 
+  const perfectFirstReroll = shouldApplyPerfectFirstReroll(perfectReroll, item);
   const costMultiplier = getLegendaryNumberParameter(
     rerollDiscount,
     "cost_multiplier",
     1,
   );
-  const cost = Math.max(
+  const cost = perfectFirstReroll ? 0 : Math.max(
     0,
     Math.floor(
       getRerollCost(item, artwork.rarity, metadata.loot_data) * costMultiplier,
@@ -157,8 +168,9 @@ export async function POST(
     const minimum = getRerollMinimum(item, attributeType);
 
     if (body.mode === "value") {
-      attributes[attributeType][targetIndex].value =
-        rollAttributeValue(minimum);
+      attributes[attributeType][targetIndex].value = perfectFirstReroll
+        ? 1
+        : rollAttributeValue(minimum);
     } else {
       const excludedIds = Object.values(attributes)
         .flat()
@@ -175,7 +187,9 @@ export async function POST(
       }
       attributes.unlocked[targetIndex] = {
         ...replacement,
-        value: rollAttributeValue(getRerollMinimum(item, "unlocked")),
+        value: perfectFirstReroll
+          ? 1
+          : rollAttributeValue(getRerollMinimum(item, "unlocked")),
       };
     }
 

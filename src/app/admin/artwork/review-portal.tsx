@@ -8,11 +8,6 @@ export type ArtistOption = {
   name: string;
 };
 
-export type AttributeOption = {
-  id: string;
-  name: string;
-};
-
 export type SubmissionView = {
   id: string;
   status: string;
@@ -43,9 +38,7 @@ type ArtworkForm = {
   genre: string;
   medium: string;
   rarity: string;
-  value_scale: string;
   height: string;
-  special_attribute_ids: string[];
   nsfw: boolean;
 };
 
@@ -56,9 +49,7 @@ const EMPTY_FORM: ArtworkForm = {
   genre: "",
   medium: "",
   rarity: "common",
-  value_scale: "",
   height: "",
-  special_attribute_ids: [],
   nsfw: false,
 };
 
@@ -101,12 +92,10 @@ const RANDOM_MEDIA = [
 
 export default function ArtworkReviewPortal({
   initialArtists,
-  initialAttributes,
   initialRarityCounts,
   initialSubmissions,
 }: {
   initialArtists: ArtistOption[];
-  initialAttributes: AttributeOption[];
   initialRarityCounts: ArtworkRarityCounts;
   initialSubmissions: SubmissionView[];
 }) {
@@ -136,7 +125,6 @@ export default function ArtworkReviewPortal({
       firstActiveSubmission?.draft,
       firstActiveSubmission?.id,
       initialArtists,
-      initialAttributes,
     ),
   );
   const [message, setMessage] = useState("");
@@ -148,14 +136,11 @@ export default function ArtworkReviewPortal({
     imageAspectRatio && Number(form.height) > 0
       ? Number((Number(form.height) * imageAspectRatio).toFixed(2))
       : undefined;
-  const requiredSpecialAttributes = getRequiredSpecialAttributeCount(
-    form.rarity,
-  );
 
   function selectSubmission(submission: SubmissionView) {
     setSelectedId(submission.id);
     setForm(
-      toArtworkForm(submission.draft, submission.id, artists, initialAttributes),
+      toArtworkForm(submission.draft, submission.id, artists),
     );
     setImageAspectRatio(undefined);
     setMessage("");
@@ -228,7 +213,6 @@ export default function ArtworkReviewPortal({
           nextSubmission?.draft,
           nextSubmission?.id,
           artists,
-          initialAttributes,
         ),
       );
       setImageAspectRatio(undefined);
@@ -262,7 +246,6 @@ export default function ArtworkReviewPortal({
           remaining[0]?.draft,
           remaining[0]?.id,
           artists,
-          initialAttributes,
         ),
       );
       if (isArtworkRarity(form.rarity)) {
@@ -352,7 +335,6 @@ export default function ArtworkReviewPortal({
           submission.draft,
           submission.id,
           artists,
-          initialAttributes,
         ),
       );
       setImageAspectRatio(undefined);
@@ -386,7 +368,6 @@ export default function ArtworkReviewPortal({
           firstActive?.draft,
           firstActive?.id,
           artists,
-          initialAttributes,
         ),
       );
       setImageAspectRatio(undefined);
@@ -575,13 +556,6 @@ export default function ArtworkReviewPortal({
                 type="number"
                 value={form.date}
               />
-              <TextField
-                label="Value scale (0–1)"
-                onChange={(value) => updateField("value_scale", value)}
-                step="0.001"
-                type="number"
-                value={form.value_scale}
-              />
             </div>
             <TextField
               label="Height (cm)"
@@ -629,17 +603,7 @@ export default function ArtworkReviewPortal({
               </span>
               <select
                 className="rounded-md border border-white/20 bg-[#19171d] px-3 py-2"
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    rarity: event.target.value,
-                    special_attribute_ids:
-                      current.special_attribute_ids.slice(
-                        0,
-                        getRequiredSpecialAttributeCount(event.target.value),
-                      ),
-                  }))
-                }
+                onChange={(event) => updateField("rarity", event.target.value)}
                 value={form.rarity}
               >
                 {ARTWORK_RARITIES.map((rarity) => (
@@ -649,63 +613,6 @@ export default function ArtworkReviewPortal({
                 ))}
               </select>
             </label>
-            <fieldset className="grid gap-2 rounded-md border border-white/10 p-3">
-              <legend className="px-1 font-semibold">
-                Special attributes ({form.special_attribute_ids.length}/
-                {requiredSpecialAttributes})
-              </legend>
-              {requiredSpecialAttributes === 0 ? (
-                <p className="text-sm text-[var(--muted)]">
-                  <span className={`rarity-text ${form.rarity}`}>
-                    {form.rarity}
-                  </span>{" "}
-                  artworks do not have special attributes.
-                </p>
-              ) : (
-                <>
-                  <p className="text-sm text-[var(--muted)]">
-                    These attributes are always present when an item of this
-                    artwork is generated.
-                  </p>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {initialAttributes.map((attribute) => {
-                      const selected = form.special_attribute_ids.includes(
-                        attribute.id,
-                      );
-                      const selectionFull =
-                        form.special_attribute_ids.length >=
-                        requiredSpecialAttributes;
-                      return (
-                        <label
-                          className="flex items-center gap-2"
-                          key={attribute.id}
-                        >
-                          <input
-                            checked={selected}
-                            disabled={!selected && selectionFull}
-                            onChange={(event) =>
-                              updateField(
-                                "special_attribute_ids",
-                                event.target.checked
-                                  ? [
-                                      ...form.special_attribute_ids,
-                                      attribute.id,
-                                    ]
-                                  : form.special_attribute_ids.filter(
-                                      (id) => id !== attribute.id,
-                                    ),
-                              )
-                            }
-                            type="checkbox"
-                          />
-                          {attribute.name}
-                        </label>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-            </fieldset>
             <label className="flex items-center gap-3">
               <input
                 checked={form.nsfw}
@@ -785,7 +692,6 @@ function toArtworkForm(
   draft: Record<string, unknown> | undefined,
   submissionId: string | undefined,
   artists: ArtistOption[],
-  attributes: AttributeOption[],
 ): ArtworkForm {
   if (!submissionId) {
     return EMPTY_FORM;
@@ -802,22 +708,6 @@ function toArtworkForm(
     savedRarity && isArtworkRarity(savedRarity)
       ? savedRarity
       : randomRarity;
-  const requiredAttributeCount = getRequiredSpecialAttributeCount(rarity);
-  const activeAttributeIds = new Set(
-    attributes.map((attribute) => attribute.id),
-  );
-  const draftAttributeIds = Array.isArray(draft?.special_attribute_ids)
-    ? draft.special_attribute_ids
-        .map(String)
-        .filter((attributeId) => activeAttributeIds.has(attributeId))
-    : [];
-  const randomAttributeIds = [...attributes]
-    .sort(() => random() - 0.5)
-    .map((attribute) => attribute.id);
-  const specialAttributeIds = [
-    ...new Set([...draftAttributeIds, ...randomAttributeIds]),
-  ].slice(0, requiredAttributeCount);
-
   return {
     artist_id:
       getDraftValue(draft, "artist_id") ?? anonymousArtist?.id ?? "",
@@ -835,13 +725,9 @@ function toArtworkForm(
     medium:
       getDraftValue(draft, "medium") ?? pickRandom(RANDOM_MEDIA, random),
     rarity,
-    value_scale:
-      getDraftValue(draft, "value_scale") ??
-      (0.2 + random() * 0.8).toFixed(3),
     height:
       getDraftValue(draft, "height") ??
       String(Math.floor(30 + random() * 271)),
-    special_attribute_ids: specialAttributeIds,
     nsfw: draft?.nsfw === true,
   };
 }
@@ -873,18 +759,6 @@ function createSeededRandom(seed: string): () => number {
 
 function pickRandom<T>(values: readonly T[], random: () => number): T {
   return values[Math.floor(random() * values.length)];
-}
-
-function getRequiredSpecialAttributeCount(rarity: string): number {
-  return (
-    {
-      common: 0,
-      uncommon: 0,
-      rare: 1,
-      legendary: 2,
-      masterpiece: 3,
-    }[rarity] ?? 0
-  );
 }
 
 function isArtworkRarity(rarity: string): rarity is ArtworkRarity {

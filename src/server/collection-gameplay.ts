@@ -9,9 +9,17 @@ import {
 } from "./gameplay.ts";
 import type { GameplayConfig } from "./game-settings.ts";
 import {
+  getDisplayedArtworkEffect,
+  getDisplayedArtworkEffects,
+} from "./artwork-effects.ts";
+import {
   getDisplayedLegendaryEffect,
   getLegendaryNumberParameter,
 } from "./legendary-attributes.ts";
+import {
+  getMasterpieceGalleryXpChunks,
+  MASTERPIECE_EFFECT_CODES,
+} from "./masterpiece-effects.ts";
 import {
   hydrateGameItems,
   type HydratedGameItem,
@@ -144,14 +152,21 @@ export async function calculateGalleryRates(
     playerLevel,
   );
 
-  const forgeryMoneyBonus = items[0]
-    ? await getDisplayedLegendaryEffect(
-        database,
-        items[0].owner,
-        "DISPLAY_FORGERY_MONEY_BONUS",
-      )
-    : null;
-  return items.reduce<GalleryRates>(
+  const [forgeryMoneyBonus, uncommonXpEffect] = items[0]
+    ? await Promise.all([
+        getDisplayedLegendaryEffect(
+          database,
+          items[0].owner,
+          "DISPLAY_FORGERY_MONEY_BONUS",
+        ),
+        getDisplayedArtworkEffect(
+          database,
+          items[0].owner,
+          MASTERPIECE_EFFECT_CODES.uncommonGalleryXp,
+        ),
+      ])
+    : [null, null];
+  const rates = items.reduce<GalleryRates>(
     (totals, item) => {
       totals.value += item.values.actual;
       totals.moneyPerHour += getDisplayMoneyPerHour(
@@ -171,6 +186,13 @@ export async function calculateGalleryRates(
     },
     { value: 0, moneyPerHour: 0, xpPerHour: 0 },
   );
+  rates.xpPerHour +=
+    getXpChunk(playerLevel) *
+    getMasterpieceGalleryXpChunks(
+      uncommonXpEffect,
+      items.filter((item) => item.artwork.rarity === "uncommon").length,
+    );
+  return rates;
 }
 
 export async function getAverageDropValueForLevel(
@@ -321,6 +343,14 @@ export async function settleGalleryEarnings(
     .toArray();
 
   const displayed = await hydrateGameItems(database, displayedItems);
+  const preservationEffects = await getDisplayedArtworkEffects(
+    database,
+    playerId,
+    [MASTERPIECE_EFFECT_CODES.preservationMint],
+  );
+  const preservationEffectIds = new Set(
+    preservationEffects.map((effect) => effect._id),
+  );
 
   const moneyForXp = await getDisplayedLegendaryEffect(
     database,
@@ -571,18 +601,20 @@ export async function settleGalleryEarnings(
     const activeIntervals =
       activeIntervalsByItem.get(item._id) ?? 0;
 
-    for (
-      let interval = 0;
-      interval < activeIntervals;
-      interval += 1
-    ) {
-      if (
-        condition >= 0.5 &&
-        Math.random() < conditionDecayChance
+    if (!preservationEffectIds.has(item.artwork.effect_id ?? "")) {
+      for (
+        let interval = 0;
+        interval < activeIntervals;
+        interval += 1
       ) {
-        condition = Number(
-          (condition - 0.01).toFixed(2),
-        );
+        if (
+          condition >= 0.5 &&
+          Math.random() < conditionDecayChance
+        ) {
+          condition = Number(
+            (condition - 0.01).toFixed(2),
+          );
+        }
       }
     }
 

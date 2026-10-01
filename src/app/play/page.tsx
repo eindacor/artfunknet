@@ -37,7 +37,11 @@ import {
 } from "@/server/item-artwork";
 import { getPlayerFacingArchivePermission } from "@/server/item-permissions";
 import { PRESERVATIONIST_ATTRIBUTE_ID } from "@/server/item-leveling";
-import { getLegendaryAttributes } from "@/server/legendary-attributes";
+import {
+  getArtworkEffects,
+  getDisplayedArtworkEffect,
+} from "@/server/artwork-effects";
+import { MASTERPIECE_EFFECT_CODES } from "@/server/masterpiece-effects";
 import { getSeasonalArtworkSelections } from "@/server/seasonal-artwork";
 import {
   ensureRaffleState,
@@ -382,11 +386,18 @@ export default async function PlayerPage({
   const legendaryAttributeIds = [
     ...new Set(
       [
-        ...items.flatMap((item) => item.artwork.unique_attributes ?? []),
-        ...visiblePrivateAuctions.flatMap(
-          (auction) => auction.item.artwork.unique_attributes ?? [],
+        ...items.flatMap((item) =>
+          item.artwork.effect_id ? [item.artwork.effect_id] : [],
         ),
-        ...(linkedItem?.item.artwork.unique_attributes ?? []),
+        ...visiblePrivateAuctions.flatMap(
+          (auction) =>
+            auction.item.artwork.effect_id
+              ? [auction.item.artwork.effect_id]
+              : [],
+        ),
+        ...(linkedItem?.item.artwork.effect_id
+          ? [linkedItem.item.artwork.effect_id]
+          : []),
       ],
     ),
   ];
@@ -395,6 +406,7 @@ export default async function PlayerPage({
     notifications,
     npcSpawnAttributes,
     legendaryAttributes,
+    transferableAuctionEffect,
     quests,
     auctionEscrow,
   ] =
@@ -408,13 +420,18 @@ export default async function PlayerPage({
           .sort({ npc_name: 1 })
           .toArray()
       : Promise.resolve([]),
-    getLegendaryAttributes(database, legendaryAttributeIds),
+    getArtworkEffects(database, legendaryAttributeIds),
+    getDisplayedArtworkEffect(
+      database,
+      player._id,
+      MASTERPIECE_EFFECT_CODES.transferableAuction,
+    ),
     getArtHistorianQuestViews(database, player._id),
     getPlayerAuctionEscrow(database, player._id),
   ]);
   const displayedLegendaryIds = new Set(
     displayedItems
-      .map((item) => item.active_unique_attribute)
+      .map((item) => item.artwork.effect_id)
       .filter((id): id is string => Boolean(id)),
   );
   const rerollDiscount = legendaryAttributes.find(
@@ -506,6 +523,7 @@ export default async function PlayerPage({
             : null
         }
         impersonating={impersonating}
+        canMakePrivateAuctionsPublic={Boolean(transferableAuctionEffect)}
         canRerollDisplayed={canRerollDisplayed}
         levelUpDiscountAvailable={levelUpDiscountAvailable}
         levelUpConditionMinimum={levelUpConditionMinimum}

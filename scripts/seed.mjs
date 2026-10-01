@@ -13,7 +13,10 @@ import {
   LEGENDARY_ATTRIBUTE_PAIRS,
   LEGENDARY_ATTRIBUTE_RECORD_IDS,
 } from "./legendary-attribute-data.mjs";
-import { migrateHallOfFameAndPlaythroughStorage } from "./database-migrations.mjs";
+import {
+  migrateArtworkEffects,
+  migrateHallOfFameAndPlaythroughStorage,
+} from "./database-migrations.mjs";
 
 const projectRoot = process.cwd();
 const artworkImportDirectory = path.resolve(
@@ -62,6 +65,9 @@ try {
   );
   await runSeedStep("artwork_attributes.seed", () =>
     seedArtworkSpecialAttributes(database),
+  );
+  await runSeedStep("artwork_effects.migrate", () =>
+    migrateArtworkEffects(database),
   );
   const adminSeeded = await runSeedStep("admin.seed", () =>
     seedAdmin(database),
@@ -1170,6 +1176,17 @@ function normalizeLegendaryPair(attributeIds) {
   return [...attributeIds].sort().join(":");
 }
 
+function getLegendaryEffectTitle(code) {
+  if (code === "QUEST_COMLETION_CONDITION_BONUS") {
+    return "Quest Completion Condition Bonus";
+  }
+  return code
+    .toLowerCase()
+    .split("_")
+    .map((part) => part[0].toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 async function seedLegendaryAttributes(database) {
   const removedAttributeIds = [
     "yTNQsF9KuRqSX5Wwq",
@@ -1211,20 +1228,16 @@ async function seedLegendaryAttributes(database) {
   await database.collection("unique_attributes").bulkWrite(
     desiredRecords.map((record) => ({
       updateOne: {
-        filter: { _id: record.id, catalog_version: { $ne: 5 } },
+        filter: { _id: record.id, catalog_version: { $ne: 6 } },
         update: {
           $set: {
-            title: record.code
-              .toLowerCase()
-              .split("_")
-              .map((part) => part[0].toUpperCase() + part.slice(1))
-              .join(" "),
+            title: getLegendaryEffectTitle(record.code),
             description: record.description,
             flavor_text: record.flavorText,
             code: record.code,
             active: true,
             parameters: record.parameters,
-            catalog_version: 5,
+            catalog_version: 6,
             updated_at: now,
           },
         },
@@ -1245,17 +1258,13 @@ async function seedLegendaryAttributes(database) {
             },
             $setOnInsert: {
               _id: id,
-              title: code
-                .toLowerCase()
-                .split("_")
-                .map((part) => part[0].toUpperCase() + part.slice(1))
-                .join(" "),
+              title: getLegendaryEffectTitle(code),
               description,
               flavor_text: flavorText,
               code,
               active: true,
               parameters,
-              catalog_version: 5,
+              catalog_version: 6,
               created_at: now,
               updated_at: now,
             },

@@ -26,6 +26,9 @@ import {
 } from "@/server/forgery-gameplay";
 import { getDisplayedLegendaryEffect } from "@/server/legendary-attributes";
 import { ensurePlayerKarma } from "@/server/karma";
+import { getDisplayedArtworkEffect } from "@/server/artwork-effects";
+import { addItemToArchiveRecord } from "@/server/archive-storage";
+import { MASTERPIECE_EFFECT_CODES } from "@/server/masterpiece-effects";
 
 type Player = {
   _id: string;
@@ -224,6 +227,20 @@ export async function POST(
   }
   if (!isHoF) {
     await deleteCommunityReactions(database, "item", [item._id]);
+  }
+  const historianArchiveEffect = await getDisplayedArtworkEffect(
+    database,
+    auth.session.playerId,
+    MASTERPIECE_EFFECT_CODES.historianArchive,
+  );
+  const isQuestTarget = historianArchiveEffect
+    ? await database.collection("quests").countDocuments({
+        owner_id: auth.session.playerId,
+        target: donatedItem.artwork_id,
+      })
+    : 0;
+  if (historianArchiveEffect && isQuestTarget > 0) {
+    await addItemToArchiveRecord(database, donatedItem, new Date().toISOString());
   }
   await rewardUndetectedForgeryExit(database, hydratedItem, {
     artworkTitle: hydratedItem.artwork.title,

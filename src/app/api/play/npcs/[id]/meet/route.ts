@@ -7,6 +7,7 @@ import {
 } from "@/server/game-settings";
 import {
   calculateCollectorReward,
+  getCollectorAuctionCommissionCoefficient,
   getCollectorForgeryHeat,
 } from "@/server/collector-gameplay";
 import {
@@ -26,6 +27,11 @@ import {
 } from "@/server/art-historian-gameplay";
 import { processAuctioneerInteraction } from "@/server/auctioneer-gameplay";
 import {
+  createCollectorResaleAuction,
+  rollbackCollectorResaleAuction,
+  type Auction,
+} from "@/server/auction-gameplay";
+import {
   applyXp,
   getCapsForLevel,
   getXpChunk,
@@ -38,7 +44,10 @@ import {
   type GameItem,
   type LootData,
 } from "@/server/gameplay";
-import { hydrateGameItems } from "@/server/item-artwork";
+import {
+  hydrateGameItems,
+  type HydratedGameItem,
+} from "@/server/item-artwork";
 import {
   restoreTransferredHallOfFameItem,
   transferIfHallOfFameItem,
@@ -70,8 +79,14 @@ import {
   SOCIAL_BATTERY_MAX,
 } from "@/server/social-battery";
 import { getDatabase } from "@/server/mongodb";
+import { getDisplayedArtworkEffect } from "@/server/artwork-effects";
+import {
+  MASTERPIECE_EFFECT_CODES,
+  rollEffectChance,
+} from "@/server/masterpiece-effects";
 import { getNpcOfferItemExpiration } from "@/server/item-expiration";
 import { requirePlayerApi } from "@/server/player-api";
+import { getActiveQuestTargetIds } from "@/server/quest-item-sell";
 import {
   grantPreservationistRepair,
 } from "@/server/preservationist-gameplay";
@@ -617,6 +632,7 @@ export async function POST(
         levelEffect,
         tradeEffect,
         questItemEffect,
+        foilEffect,
       ] = ownGallery
         ? await Promise.all([
             getDisplayedLegendaryEffect(
@@ -644,8 +660,13 @@ export async function POST(
               player._id,
               "DONOR_QUEST_ITEM_CHANCE",
             ),
+            getDisplayedArtworkEffect(
+              database,
+              player._id,
+              MASTERPIECE_EFFECT_CODES.donorFoil,
+            ),
           ])
-        : [null, null, null, null, null];
+        : [null, null, null, null, null, null];
       const auctioneerPresent =
         tradeEffect &&
         (await database.collection("npcs").findOne({
@@ -714,6 +735,8 @@ export async function POST(
               itemLevel,
               conditionMinimum,
               targetArtworkId: questTargetId,
+              forceLegendaryMasterpieceFoil:
+                npc.quality === "platinum" && Boolean(foilEffect),
             },
           );
           if (generatedQuestItem) {
@@ -743,6 +766,8 @@ export async function POST(
           itemLevel,
           conditionMinimum,
           expiresAt: getNpcOfferItemExpiration(now),
+          forceLegendaryMasterpieceFoil:
+            npc.quality === "platinum" && Boolean(foilEffect),
         },
       );
       const allGeneratedItems = questTargetItem
@@ -835,6 +860,7 @@ export async function POST(
           conditionBonusEffect,
           levelEffect,
           questItemEffect,
+          unlockedEffect,
         ] = ownGallery
           ? await Promise.all([
               getDisplayedLegendaryEffect(
@@ -857,8 +883,13 @@ export async function POST(
                 player._id,
                 "DEALER_QUEST_ITEM_CHANCE",
               ),
+              getDisplayedArtworkEffect(
+                database,
+                player._id,
+                MASTERPIECE_EFFECT_CODES.dealerUnlocked,
+              ),
             ])
-          : [null, null, null, null];
+          : [null, null, null, null, null];
         const discountEffect = await getDisplayedLegendaryEffect(
           database,
           player._id,
@@ -898,8 +929,6 @@ export async function POST(
           "cost_multiplier",
           1,
         );
-        // TODO AI: AUCTION_COUNT_DEALER_BONUS
-        // should modify this offer set after auctions are ported.
         let questTargetItem: GameItem | null = null;
         if (questItemEffect && offerCount > 0) {
           const questTargetId = await evaluateDealerQuestItemChance(
@@ -929,6 +958,8 @@ export async function POST(
                 itemLevel,
                 status: "for_sale",
                 targetArtworkId: questTargetId,
+                forceLegendaryMasterpieceUnlocked:
+                  npc.quality === "platinum" && Boolean(unlockedEffect),
                 expiresAt: getNpcOfferItemExpiration(now),
               },
             );
@@ -971,6 +1002,8 @@ export async function POST(
             itemLevel,
             status: "for_sale",
             expiresAt: getNpcOfferItemExpiration(now),
+            forceLegendaryMasterpieceUnlocked:
+              npc.quality === "platinum" && Boolean(unlockedEffect),
           },
         );
         const allGeneratedItems = questTargetItem
@@ -1021,6 +1054,8 @@ export async function POST(
     let hallOfFameTransferred = false;
     let reservedTarget: GameItem | null = null;
     let removedTarget: GameItem | null = null;
+    let collectorResaleAuction: Auction | null = null;
+    let collectorResaleItem: HydratedGameItem | null = null;
 
     try {
       const ownGallery = npc.owner_id === player._id;
@@ -1031,6 +1066,9 @@ export async function POST(
         keepItemEffect,
         saleOfferEffect,
         forgeryReductionEffect,
+        collectorQuestEffect,
+        collectorAuctionEffect,
+        collectorBuyoutEffect,
       ] = ownGallery
         ? await Promise.all([
             getDisplayedLegendaryEffect(
@@ -1063,8 +1101,31 @@ export async function POST(
               player._id,
               "COLLECTOR_FORGERY_HEAT_REDUCTION",
             ),
+            getDisplayedLegendaryEffect(
+              database,
+              player._id,
+              "COLLECTOR_QUEST_ITEM",
+            ),
+            getDisplayedLegendaryEffect(
+              database,
+              player._id,
+              "ART_COLLECTOR_AUCTION",
+            ),
+            getDisplayedArtworkEffect(
+              database,
+              player._id,
+              MASTERPIECE_EFFECT_CODES.collectorBuyout,
+            ),
           ])
-        : [null, null, null, null, null, null];
+        : [null, null, null, null, null, null, null, null, null];
+      const activeQuestTargetIds = collectorQuestEffect
+        ? await getActiveQuestTargetIds(database, player._id)
+        : new Set<string>();
+      const collectorQuestRewardMultiplier = getLegendaryNumberParameter(
+        collectorQuestEffect,
+        "reward_multiplier",
+        2,
+      );
 
       if (saleOfferEffect) {
         const [settings, metadata] = await Promise.all([
@@ -1109,8 +1170,206 @@ export async function POST(
         generatedOfferIds.push(...generated.map((item) => item._id));
       }
 
-      // TODO AI: ART_COLLECTOR_AUCTION_BONUS and COLLECTOR_QUEST_ITEM should
-      // add their side rewards once auctions and quests are ported.
+      if (
+        npc.quality === "platinum" &&
+        rollEffectChance(collectorBuyoutEffect)
+      ) {
+        const buyoutCandidates = await database
+          .collection<GameItem>("items")
+          .find({
+            owner: player._id,
+            status: "claimed",
+            tags: "for sale",
+          })
+          .toArray();
+        const currentPlayer = await database
+          .collection<Player>("players")
+          .findOne({ _id: player._id, active: true });
+        if (!currentPlayer) {
+          throw new Error("The player account is unavailable.");
+        }
+        let totalReward = 0;
+        let soldCount = 0;
+        let detectedCount = 0;
+        const collectorAuctionIds: string[] = [];
+        for (const candidate of buyoutCandidates) {
+          const reserved = await database.collection<GameItem>("items").updateOne(
+            {
+              _id: candidate._id,
+              owner: player._id,
+              status: "claimed",
+              tags: "for sale",
+            },
+            {
+              $set: {
+                status: "collector_pending",
+                "authenticity.liable": player._id,
+                "authenticity.liability_pending": false,
+              },
+            },
+          );
+          if (reserved.modifiedCount !== 1) continue;
+          const [hydrated] = await hydrateGameItems(database, [candidate]);
+          if (!hydrated) {
+            await database.collection<GameItem>("items").updateOne(
+              { _id: candidate._id, status: "collector_pending" },
+              { $set: { status: "claimed" } },
+            );
+            continue;
+          }
+          const caught =
+            candidate.authenticity.forgery &&
+            Math.random() <
+              getCollectorForgeryHeat(
+                hydrated,
+                Boolean(forgeryReductionEffect),
+              );
+          if (caught) {
+            detectedCount += 1;
+            if (shouldDestroyDetectedForgery(candidate)) {
+              const preserved = await transferIfHallOfFameItem(database, {
+                ...candidate,
+                status: "collector_pending",
+              });
+              if (!preserved) {
+                await database.collection<GameItem>("items").deleteOne({
+                  _id: candidate._id,
+                  owner: player._id,
+                  status: "collector_pending",
+                });
+                await deleteCommunityReactions(database, "item", [candidate._id]);
+              }
+            } else {
+              await database.collection<GameItem>("items").updateOne(
+                {
+                  _id: candidate._id,
+                  owner: player._id,
+                  status: "collector_pending",
+                },
+                {
+                  $set: {
+                    status: "claimed",
+                    "authenticity.identified": true,
+                    "authenticity.forgery_quality": punishForgeryQuality(
+                      candidate.authenticity.forgery_quality,
+                    ),
+                  },
+                },
+              );
+            }
+            continue;
+          }
+          const reward = calculateCollectorReward({
+            item: candidate,
+            quality: npc.quality,
+            ownGallery,
+            goodConditionBonus: Boolean(goodConditionEffect),
+            rollCountBonus: Boolean(rollCountEffect),
+            rewardMultiplier: activeQuestTargetIds.has(candidate.artwork_id)
+              ? collectorQuestRewardMultiplier
+              : 1,
+            xpOffer: false,
+            xpChunk: getXpChunk(currentPlayer.profile.level),
+          });
+          const commissionCoefficient =
+            getCollectorAuctionCommissionCoefficient(collectorAuctionEffect);
+          let collectorAuction: Auction | null = null;
+          let preserved = false;
+          if (commissionCoefficient !== null) {
+            collectorAuction = await createCollectorResaleAuction(
+              database,
+              hydrated,
+              {
+                playerId: player._id,
+                collectorReward: reward.amount,
+                commissionCoefficient,
+                now,
+              },
+            );
+          } else {
+            preserved = await transferIfHallOfFameItem(database, {
+              ...candidate,
+              status: "collector_pending",
+            });
+            if (!preserved) {
+              const removed = await database.collection<GameItem>("items").deleteOne({
+                _id: candidate._id,
+                owner: player._id,
+                status: "collector_pending",
+              });
+              if (removed.deletedCount !== 1) continue;
+            }
+          }
+          const paid = await database.collection<Player>("players").updateOne(
+            { _id: player._id, active: true },
+            { $inc: { "profile.bank_balance": reward.amount } },
+          );
+          if (paid.modifiedCount !== 1) {
+            if (collectorAuction) {
+              await rollbackCollectorResaleAuction(
+                database,
+                collectorAuction,
+                hydrated,
+                player._id,
+              );
+              await database.collection<GameItem>("items").updateOne(
+                {
+                  _id: candidate._id,
+                  owner: player._id,
+                  status: "collector_pending",
+                },
+                { $set: { status: "claimed" } },
+              );
+            } else if (preserved) {
+              await restoreTransferredHallOfFameItem(database, {
+                ...candidate,
+                status: "claimed",
+              });
+            } else {
+              await database.collection<GameItem>("items").insertOne({
+                ...candidate,
+                status: "claimed",
+              });
+            }
+            throw new Error("The Collector buyout reward could not be paid.");
+          }
+          if (collectorAuction) {
+            collectorAuctionIds.push(collectorAuction._id);
+          } else if (!preserved) {
+            await deleteCommunityReactions(database, "item", [candidate._id]);
+          }
+          totalReward += reward.amount;
+          soldCount += 1;
+          if (!collectorAuction) {
+            await rewardUndetectedForgeryExit(database, hydrated, {
+              artworkTitle: hydrated.artwork.title,
+              method: "collector",
+              removedByPlayerId: player._id,
+            });
+          }
+        }
+        await recordEconomyMetricsSafely(database, {
+          amount: totalReward,
+          currency: "money",
+          direction: "earned",
+          source: "collector-masterpiece-buyout",
+        });
+        return NextResponse.json({
+          status: "ok",
+          message: `${npc.npc_name} bought ${soldCount} for-sale artwork${soldCount === 1 ? "" : "s"} for $${totalReward.toLocaleString()}${detectedCount ? ` and detected ${detectedCount} ${detectedCount === 1 ? "forgery" : "forgeries"}` : ""}.`,
+          interaction: {
+            type: "art-collector-buyout",
+            npcId: npc._id,
+            npcName: npc.npc_name,
+            quality: npc.quality,
+            soldCount,
+            detectedCount,
+            rewardAmount: totalReward,
+            auctionIds: collectorAuctionIds,
+            bonusOffers: generatedOfferIds.length,
+          },
+        });
+      }
       const candidates = await database
         .collection<GameItem>("items")
         .aggregate<GameItem>([
@@ -1265,6 +1524,9 @@ export async function POST(
         ownGallery,
         goodConditionBonus: Boolean(goodConditionEffect),
         rollCountBonus: Boolean(rollCountEffect),
+        rewardMultiplier: activeQuestTargetIds.has(target.artwork_id)
+          ? collectorQuestRewardMultiplier
+          : 1,
         xpOffer: Boolean(enthusiastPresent),
         xpChunk: getXpChunk(currentPlayer.profile.level),
       });
@@ -1274,6 +1536,9 @@ export async function POST(
         keepItemEffect ? 0.15 : 0,
       );
       const keptItem = Boolean(keepItemEffect) && Math.random() < keepChance;
+      const commissionCoefficient = keptItem
+        ? null
+        : getCollectorAuctionCommissionCoefficient(collectorAuctionEffect);
 
       if (keptItem) {
         const restored = await database.collection<GameItem>("items").updateOne(
@@ -1288,6 +1553,18 @@ export async function POST(
           throw new Error("The Collector could not release the artwork.");
         }
         reservedTarget = null;
+      } else if (commissionCoefficient !== null) {
+        collectorResaleItem = hydratedTarget;
+        collectorResaleAuction = await createCollectorResaleAuction(
+          database,
+          hydratedTarget,
+          {
+            playerId: player._id,
+            collectorReward: reward.amount,
+            commissionCoefficient,
+            now,
+          },
+        );
       } else {
         hallOfFameTransferred = await transferIfHallOfFameItem(database, {
           ...target,
@@ -1360,6 +1637,7 @@ export async function POST(
       if (rewardResult.modifiedCount !== 1) {
         throw new Error("The Collector reward could not be applied.");
       }
+      if (collectorResaleAuction) reservedTarget = null;
       await recordEconomyMetricsSafely(database, [
         reward.type === "xp"
           ? {
@@ -1383,7 +1661,7 @@ export async function POST(
           source: "art-collector-xp-conversion",
         },
       ]);
-      if (!keptItem) {
+      if (!keptItem && !collectorResaleAuction) {
         if (!hallOfFameTransferred) {
           await deleteCommunityReactions(database, "item", [target._id]);
         }
@@ -1398,6 +1676,8 @@ export async function POST(
         status: "ok",
         message: keptItem
           ? `${npc.npc_name} rewarded you and let you keep the artwork.`
+          : collectorResaleAuction
+            ? `${npc.npc_name} collected your artwork and listed it at public auction.`
           : `${npc.npc_name} collected your artwork.`,
         interaction: {
           type: "art-collector-result",
@@ -1411,10 +1691,25 @@ export async function POST(
           rewardType: reward.type,
           rewardAmount: reward.amount,
           bonusMoney: collectorBonusMoney,
+          auctionId: collectorResaleAuction?._id ?? null,
           bonusOffers: generatedOfferIds.length,
         },
       });
     } catch (error) {
+      if (collectorResaleAuction && collectorResaleItem && reservedTarget) {
+        await rollbackCollectorResaleAuction(
+          database,
+          collectorResaleAuction,
+          collectorResaleItem,
+          player._id,
+        ).catch((rollbackError) => {
+          console.error(
+            `Unable to roll back Collector resale auction ${collectorResaleAuction?._id}`,
+            rollbackError,
+          );
+        });
+        collectorResaleAuction = null;
+      }
       const cleanup: Promise<unknown>[] = [
         database
           .collection<GalleryNpc>("npcs")

@@ -6,8 +6,7 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 import {
   processAuctioneerInteraction,
 } from "./auctioneer-gameplay.ts";
-import type { Auction } from "./auction-gameplay.ts";
-import type { Artwork, GameItem, ItemAttribute, LootData } from "./gameplay.ts";
+import type { GameItem } from "./gameplay.ts";
 import type { LegendaryAttribute } from "./legendary-attributes.ts";
 import { AUCTIONEER_ATTRIBUTE_ID } from "./legendary-attributes.ts";
 import type { GalleryNpc } from "./npc-gameplay.ts";
@@ -20,6 +19,14 @@ const PRIVATE_AUCTION_UNIQUE_ATTRIBUTE: LegendaryAttribute = {
   active: true,
   title: "Private Auction Price Reduction",
   parameters: {},
+} as unknown as LegendaryAttribute;
+
+const AUCTION_BUY_NOW_ATTRIBUTE: LegendaryAttribute = {
+  _id: "attr-auction-buy-now",
+  code: "AUCTION_BUY_NOW",
+  active: true,
+  title: "Auction Buy Now",
+  parameters: { buy_now_multiplier: 1.1 },
 } as unknown as LegendaryAttribute;
 
 // Golden Path Integration Test: displayed item with PRIVATE_AUCTION_PRICE_REDUCTION reduces private auction starting prices (2.5x vs 4.0x)
@@ -214,7 +221,7 @@ test("Integration: PRIVATE_AUCTION_PRICE_REDUCTION respects custom price_multipl
     });
 
     // Update unique_attributes document with custom parameter
-    await db.collection<LegendaryAttribute>("unique_attributes").updateOne(
+    await db.collection<LegendaryAttribute>("artwork_effects").updateOne(
       { code: "PRIVATE_AUCTION_PRICE_REDUCTION" },
       { $set: { parameters: { price_multiplier: 1.8 } } },
     );
@@ -257,6 +264,117 @@ test("Integration: PRIVATE_AUCTION_PRICE_REDUCTION respects custom price_multipl
       const item = await db.collection<GameItem>("items").findOne({ _id: auction.item_id });
       assert.ok(item, "Auction item should exist in database");
       assert.equal(auction.starting_bid, Math.floor(item.values.actual * 1.8));
+    }
+  } finally {
+    await client.close();
+    await mongoServer.stop();
+  }
+});
+
+test("Integration: AUCTION_BUY_NOW adds configurable buy-now prices to own-gallery private auctions", async () => {
+  const mongoServer = await MongoMemoryServer.create();
+  const client = new MongoClient(mongoServer.getUri());
+
+  try {
+    await client.connect();
+    const db: Db = client.db("test-private-auction-buy-now");
+    const playerId = "player-1";
+    const { now, futureTime } = await setupTestDb(db, playerId, {
+      uniqueAttributes: [AUCTION_BUY_NOW_ATTRIBUTE],
+    });
+
+    await db.collection<LegendaryAttribute>("artwork_effects").updateOne(
+      { code: "AUCTION_BUY_NOW" },
+      { $set: { parameters: { buy_now_multiplier: 1.2 } } },
+    );
+    await db.collection<GameItem>("items").insertOne({
+      _id: "item-auction-buy-now",
+      owner: playerId,
+      artwork_id: "art-1",
+      status: "displayed",
+      active_unique_attribute: "attr-auction-buy-now",
+    } as GameItem);
+
+    const npc: GalleryNpc = {
+      _id: "npc-auctioneer-buy-now",
+      attribute_id: AUCTIONEER_ATTRIBUTE_ID,
+      owner_id: playerId,
+      owner_name: "Test Player",
+      npc_name: "Auctioneer",
+      quality: "platinum",
+      spawned_at: now,
+      expiration: futureTime,
+      players_met: [],
+      icon: "auctioneer-icon",
+      proc_chance: 1,
+    };
+    await db.collection<GalleryNpc>("npcs").insertOne(npc);
+
+    const result = await processAuctioneerInteraction(
+      db,
+      { _id: playerId, profile: { level: 1 } },
+      npc,
+      now,
+    );
+
+    assert.ok(result.auctions.length > 0);
+    for (const auction of result.auctions) {
+      assert.equal(
+        auction.buy_now,
+        Math.ceil(auction.starting_bid * 1.2),
+      );
+    }
+  } finally {
+    await client.close();
+    await mongoServer.stop();
+  }
+});
+
+test("Integration: AUCTION_BUY_NOW does not apply to Auctioneers in other galleries", async () => {
+  const mongoServer = await MongoMemoryServer.create();
+  const client = new MongoClient(mongoServer.getUri());
+
+  try {
+    await client.connect();
+    const db: Db = client.db("test-private-auction-buy-now-away");
+    const playerId = "player-1";
+    const { now, futureTime } = await setupTestDb(db, playerId, {
+      uniqueAttributes: [AUCTION_BUY_NOW_ATTRIBUTE],
+    });
+
+    await db.collection<GameItem>("items").insertOne({
+      _id: "item-auction-buy-now",
+      owner: playerId,
+      artwork_id: "art-1",
+      status: "displayed",
+      active_unique_attribute: "attr-auction-buy-now",
+    } as GameItem);
+
+    const npc: GalleryNpc = {
+      _id: "npc-auctioneer-buy-now-away",
+      attribute_id: AUCTIONEER_ATTRIBUTE_ID,
+      owner_id: "other-player",
+      owner_name: "Other Player",
+      npc_name: "Auctioneer",
+      quality: "platinum",
+      spawned_at: now,
+      expiration: futureTime,
+      players_met: [],
+      icon: "auctioneer-icon",
+      proc_chance: 1,
+    };
+    await db.collection<GalleryNpc>("npcs").insertOne(npc);
+
+    const result = await processAuctioneerInteraction(
+      db,
+      { _id: playerId, profile: { level: 1 } },
+      npc,
+      now,
+    );
+
+    assert.ok(result.auctions.length > 0);
+    for (const auction of result.auctions) {
+      assert.equal(auction.buy_now, null);
     }
   } finally {
     await client.close();

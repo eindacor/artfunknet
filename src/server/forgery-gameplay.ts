@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import type { Db } from "mongodb";
 import { recordEconomyMetricsSafely } from "./economy-metrics.ts";
 
@@ -13,6 +15,14 @@ import {
 import { applyXp, getCapsForLevel, getXpChunk } from "./collection-gameplay.ts";
 import type { ArchiveCategory, PlayerArtworkArchive } from "./archive-gameplay.ts";
 import { createPlayerNotification } from "./player-notifications.ts";
+import {
+  getArtworkEffectNumberParameter,
+  getDisplayedArtworkEffect,
+} from "./artwork-effects.ts";
+import {
+  MASTERPIECE_EFFECT_CODES,
+  rollEffectChance,
+} from "./masterpiece-effects.ts";
 
 export const BASE_FORGERY_QUALITY = 0.5;
 export const FORGERY_LIABILITY_DELAY_MS = 6 * 60 * 60 * 1000;
@@ -51,6 +61,7 @@ export function calculateForgeryHeat(
   item: HeatItem,
   context: ForgeryHeatContext,
   collectorLegendaryReduction = false,
+  detectionReduction = 0,
 ): number {
   let coefficient =
     0.85 *
@@ -71,6 +82,7 @@ export function calculateForgeryHeat(
   let heat = minimum + (maximum - minimum) * Math.min(coefficient, 1);
   if (!item.authenticity.identified) heat *= 0.3;
   if (context === "collector" && collectorLegendaryReduction) heat *= 0.8;
+  heat *= 1 - Math.min(1, Math.max(0, detectionReduction));
   return Number(heat.toFixed(3));
 }
 
@@ -79,11 +91,17 @@ export function rollForgeryDetected(
   context: ForgeryHeatContext,
   random = Math.random,
   collectorLegendaryReduction = false,
+  detectionReduction = 0,
 ): boolean {
   return (
     Boolean(item.authenticity.forgery) &&
     random() <
-      calculateForgeryHeat(item, context, collectorLegendaryReduction)
+      calculateForgeryHeat(
+        item,
+        context,
+        collectorLegendaryReduction,
+        detectionReduction,
+      )
   );
 }
 
@@ -418,7 +436,7 @@ export function getUndetectedForgeryExitRecipient(
 
 export async function rewardUndetectedForgeryExit(
   database: Db,
-  item: HeatItem,
+  item: HeatItem & GameItem,
   {
     artworkTitle,
     method,
@@ -434,6 +452,43 @@ export async function rewardUndetectedForgeryExit(
     removedByPlayerId,
   );
   if (!forgerId) return 0;
+
+  const returnEffect = await getDisplayedArtworkEffect(
+    database,
+    forgerId,
+    MASTERPIECE_EFFECT_CODES.forgeryReturn,
+  );
+  if (rollEffectChance(returnEffect)) {
+    const expirationMinutes = Math.max(
+      1,
+      getArtworkEffectNumberParameter(
+        returnEffect,
+        "expiration_minutes",
+        10,
+      ),
+    );
+    const returnedAt = new Date();
+    const returnedItem = {
+      ...structuredClone(item),
+      _id: randomUUID(),
+      owner: forgerId,
+      status: "unclaimed" as const,
+      source: "returned forgery",
+      date_received: returnedAt.toISOString(),
+      expires_at: new Date(
+        returnedAt.getTime() + expirationMinutes * 60_000,
+      ).toISOString(),
+      tags: [],
+      repairing: false,
+    } as GameItem & { artwork?: unknown };
+    delete returnedItem.artwork;
+    await database.collection<GameItem>("items").insertOne(returnedItem);
+    await createPlayerNotification(database, forgerId, {
+      kind: "success",
+      message: `Your undetected forgery of ${artworkTitle} resurfaced in your loot for ${expirationMinutes} minutes.`,
+      dedupeUnread: false,
+    });
+  }
 
   const multiplier = calculateForgeryOffloadXpMultiplier(item, method);
   const amount = await awardForgeryXpChunk(

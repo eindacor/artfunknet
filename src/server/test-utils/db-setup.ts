@@ -80,6 +80,13 @@ export async function setupTestDb(
     { _id: "art-4", active: true, rarity: "common", value_scale: 0.5, title: "Art 4", artist: "Artist 4" },
     { _id: "art-5", active: true, rarity: "common", value_scale: 0.5, title: "Art 5", artist: "Artist 5" },
   ];
+  if (options.uniqueAttributes?.[0] && defaultArtworks[0]) {
+    defaultArtworks[0] = {
+      ...defaultArtworks[0],
+      rarity: "legendary",
+      effect_id: options.uniqueAttributes[0]._id,
+    };
+  }
   await db.collection<any>("artworks").insertMany(defaultArtworks);
 
   // 4. Seed active item attribute
@@ -99,6 +106,14 @@ export async function setupTestDb(
   // 5. Seed unique attributes if provided
   if (options.uniqueAttributes && options.uniqueAttributes.length > 0) {
     await db.collection<any>("unique_attributes").insertMany(options.uniqueAttributes);
+    await db.collection<any>("artwork_effects").insertMany(
+      options.uniqueAttributes.map((effect) => ({
+        ...effect,
+        effect_type: "legendary",
+        linked_attributes:
+          effect.linked_attributes ?? ["attr-default", "attr-secondary"],
+      })),
+    );
   }
 
   return { now, futureTime };

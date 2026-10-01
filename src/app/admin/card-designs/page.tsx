@@ -10,7 +10,7 @@ import {
   type LootData,
 } from "@/server/gameplay";
 import { hydrateGameItems } from "@/server/item-artwork";
-import { getLegendaryAttributes } from "@/server/legendary-attributes";
+import { getArtworkEffects } from "@/server/artwork-effects";
 import { getDatabase } from "@/server/mongodb";
 import { getCardRendererSettings } from "@/server/card-renderer-settings";
 
@@ -59,7 +59,6 @@ export default async function CardDesignsAdminPage() {
             _id: `preview-${base._id}-${artwork._id}`,
             artwork_id: artwork._id,
             artwork,
-            active_unique_attribute: artwork.unique_attributes?.[0],
             attributes: getPreviewAttributes(artwork, attributes),
           };
           delete previewItem.artwork_overrides;
@@ -68,10 +67,12 @@ export default async function CardDesignsAdminPage() {
       : items;
   const legendaryAttributeIds = [
     ...new Set(
-      previewItems.flatMap((item) => item.artwork.unique_attributes ?? []),
+      previewItems.flatMap((item) =>
+        item.artwork.effect_id ? [item.artwork.effect_id] : [],
+      ),
     ),
   ];
-  const legendaryAttributes = await getLegendaryAttributes(
+  const legendaryAttributes = await getArtworkEffects(
     database,
     legendaryAttributeIds,
   );

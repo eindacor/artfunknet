@@ -1,15 +1,18 @@
 import { getDatabase } from "@/server/mongodb";
+import { getArtworkEffects } from "@/server/artwork-effects";
 
 import CatalogEditor, {
   type ArtistCatalogEntry,
   type ArtworkCatalogEntry,
+  type ArtworkEffectOption,
+  type ArtworkEffectDistribution,
 } from "./catalog-editor";
 
 export const dynamic = "force-dynamic";
 
 export default async function CatalogPage() {
   const database = await getDatabase();
-  const [artistDocuments, artworkDocuments, attributeDocuments] =
+  const [artistDocuments, effects, effectCounts, artworkDocuments] =
     await Promise.all([
       database
         .collection<{
@@ -20,6 +23,14 @@ export default async function CatalogPage() {
         }>("artists")
         .find({})
         .sort({ artist_name: 1 })
+        .toArray(),
+      getArtworkEffects(database),
+      database
+        .collection("artworks")
+        .aggregate<{ _id: string; count: number }>([
+          { $match: { effect_id: { $type: "string" } } },
+          { $group: { _id: "$effect_id", count: { $sum: 1 } } },
+        ])
         .toArray(),
       database
         .collection<ArtworkCatalogEntry>("artworks")
@@ -36,23 +47,16 @@ export default async function CatalogPage() {
               medium: 1,
               rarity: 1,
               value_scale: 1,
+              effect_id: 1,
               height: 1,
               width: 1,
               active: 1,
               nsfw: 1,
-              special_attributes: 1,
               image: 1,
             },
           },
         )
         .sort({ artist: 1, title: 1 })
-        .toArray(),
-      database
-        .collection<{ _id: string; npc_name: string; active: boolean }>(
-          "attributes",
-        )
-        .find({ active: true })
-        .sort({ npc_name: 1 })
         .toArray(),
     ]);
 
@@ -70,6 +74,23 @@ export default async function CatalogPage() {
     dateOfDeath: artist.date_of_death ?? "",
     artworkCount: artworkCounts.get(artist._id) ?? 0,
   }));
+  const effectCountById = new Map(
+    effectCounts.map((entry) => [entry._id, entry.count]),
+  );
+  const effectDistribution: ArtworkEffectDistribution[] = effects.map(
+    (effect) => ({
+      id: effect._id,
+      title: effect.title,
+      effectType: effect.effect_type,
+      artworkCount: effectCountById.get(effect._id) ?? 0,
+    }),
+  );
+  const effectOptions: ArtworkEffectOption[] = effects.map((effect) => ({
+    id: effect._id,
+    title: effect.title,
+    effectType: effect.effect_type,
+    active: effect.active,
+  }));
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-8">
@@ -81,6 +102,8 @@ export default async function CatalogPage() {
         </p>
       </div>
       <CatalogEditor
+        effectDistribution={effectDistribution}
+        effectOptions={effectOptions}
         initialArtists={artists}
         initialArtworks={JSON.parse(
           JSON.stringify(
@@ -93,10 +116,6 @@ export default async function CatalogPage() {
             })),
           ),
         )}
-        attributes={attributeDocuments.map((attribute) => ({
-          id: attribute._id,
-          name: attribute.npc_name,
-        }))}
       />
     </main>
   );

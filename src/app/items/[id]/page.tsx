@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
 import type { ArtworkImageRecord } from "@/server/artwork-storage";
-import { getLegendaryAttributes } from "@/server/legendary-attributes";
+import { getArtworkEffects } from "@/server/artwork-effects";
 import { getDatabase } from "@/server/mongodb";
 import { getPublicItemView } from "@/server/public-showcase";
 import { getPlayerSession } from "@/server/session";
@@ -98,9 +98,9 @@ export default async function PublicItemPage({
   const itemView = await getPublicItemView(database, id, null);
   if (!itemView) notFound();
 
-  const legendaryAttributes = itemView.item.active_unique_attribute
-    ? await getLegendaryAttributes(database, [
-        itemView.item.active_unique_attribute,
+  const legendaryAttributes = itemView.item.artwork.effect_id
+    ? await getArtworkEffects(database, [
+        itemView.item.artwork.effect_id,
       ])
     : [];
 

@@ -12,17 +12,25 @@ import {
   calculateItemValues,
   getGeneratedItemCondition,
   isSeasonalArtwork,
-  rollAttributeValue,
+  getItemAttributes,
   type Artwork,
   type GameItem,
   type ItemAttribute,
   type LootData,
 } from "@/server/gameplay";
+import {
+  getArtworkEffect,
+  getDisplayedArtworkEffect,
+} from "@/server/artwork-effects";
 import { getGameplaySettings } from "@/server/game-settings";
 import { checkItemForHallOfFameStatus } from "@/server/hall-of-fame";
 import { getRerollCost } from "@/server/item-reroll";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
+import {
+  MASTERPIECE_EFFECT_CODES,
+  rollEffectChance,
+} from "@/server/masterpiece-effects";
 
 type Player = {
   _id: string;
@@ -79,7 +87,7 @@ export async function POST(
   }
   const selected = new Set(selection.modifiers);
 
-  const [artwork, inventoryCount] = await Promise.all([
+  const [artwork, inventoryCount, forgeryCopyEffect] = await Promise.all([
     database.collection<Artwork>("artworks").findOne({ _id: archive.artwork_id, active: true }),
     database.collection<GameItem>("items").countDocuments({
       owner: player._id,
@@ -87,6 +95,11 @@ export async function POST(
       original: { $ne: true },
       vintage: { $ne: true },
     }),
+    getDisplayedArtworkEffect(
+      database,
+      player._id,
+      MASTERPIECE_EFFECT_CODES.forgeryCopy,
+    ),
   ]);
   if (!artwork) return NextResponse.json({ error: "The archived artwork is unavailable." }, { status: 404 });
   const capacity =
@@ -94,10 +107,20 @@ export async function POST(
   if (inventoryCount >= capacity && !selected.has("vintage")) {
     return NextResponse.json({ error: "Your inventory is currently full." }, { status: 409 });
   }
+  const copyFits =
+    selected.has("vintage") || inventoryCount + 1 < capacity;
 
   const unlocked = selected.has("unlocked");
-  const itemAttributes = createForgeryAttributes(artwork, unlocked, attributes);
-  const mint = selected.has("mint");
+  const artworkEffect = await getArtworkEffect(database, artwork);
+  const itemAttributes = getItemAttributes(
+    artwork,
+    unlocked,
+    attributes,
+    artworkEffect,
+  );
+  const mint =
+    selected.has("mint") ||
+    artworkEffect?.code === MASTERPIECE_EFFECT_CODES.preservationMint;
   const timestamp = new Date().toISOString();
   const base = {
     _id: randomUUID(),
@@ -106,7 +129,6 @@ export async function POST(
     mint,
     mint_value_multiplier: mint ? settings.active.mintValueMultiplier : 1,
     attributes: itemAttributes,
-    active_unique_attribute: artwork.unique_attributes?.[0],
     ...(selection.artStyle === "museum" ? {} : { card_renderer: selection.artStyle }),
     owner: player._id,
     transaction_history: [{
@@ -165,6 +187,7 @@ export async function POST(
   }
 
   let charged = false;
+  let forgedItems: GameItem[] = [];
   try {
     const charge = await database.collection<Player>("players").updateOne(
       { _id: player._id, active: true, "profile.bank_balance": { $gte: cost } },
@@ -179,7 +202,23 @@ export async function POST(
     );
     if (charge.modifiedCount !== 1) throw new Error("The forging cost could not be charged.");
     charged = true;
-    await database.collection<GameItem>("items").insertOne(item);
+    const itemsToInsert = [item];
+    if (copyFits && rollEffectChance(forgeryCopyEffect)) {
+      itemsToInsert.push({
+        ...structuredClone(item),
+        _id: randomUUID(),
+        date_created: new Date().toISOString(),
+        date_received: new Date().toISOString(),
+      });
+    }
+    await database.collection<GameItem>("items").insertMany(itemsToInsert);
+    forgedItems = itemsToInsert;
+    if (itemsToInsert.length > 1) {
+      await database.collection<Player>("players").updateOne(
+        { _id: player._id },
+        { $inc: { "profile.playthrough_stats.items_collected": 1 } },
+      );
+    }
   } catch (error) {
     if (charged) {
       await database.collection<Player>("players").updateOne(
@@ -202,37 +241,24 @@ export async function POST(
     direction: "spent",
     source: "forge",
   });
-  await checkItemForHallOfFameStatus(database, item, player).catch((error) => {
-    console.error(
-      `Unable to submit forged item ${item._id} for Hall of Fame review`,
-      error,
-    );
-  });
+  await Promise.all(
+    forgedItems.map((forgedItem) =>
+      checkItemForHallOfFameStatus(database, forgedItem, player).catch(
+        (error) => {
+          console.error(
+            `Unable to submit forged item ${forgedItem._id} for Hall of Fame review`,
+            error,
+          );
+        },
+      ),
+    ),
+  );
   return NextResponse.json({
     status: "ok",
     cost,
-    message: `${artwork.title} was forged for $${cost.toLocaleString()}.`,
+    message:
+      forgedItems.length > 1
+        ? `${artwork.title} was forged for $${cost.toLocaleString()}, and the effect created a second copy.`
+        : `${artwork.title} was forged for $${cost.toLocaleString()}.`,
   });
-}
-
-function createForgeryAttributes(
-  artwork: Artwork,
-  unlocked: boolean,
-  all: ItemAttribute[],
-): GameItem["attributes"] {
-  const remaining = [...all];
-  const result: GameItem["attributes"] = { locked: [], unlocked: [], special: [] };
-  for (const id of artwork.special_attributes ?? []) {
-    const index = remaining.findIndex((attribute) => attribute._id === id);
-    if (index >= 0) result.special.push({ ...remaining.splice(index, 1)[0], value: rollAttributeValue(0.8) });
-  }
-  const take = (minimum: number) => {
-    if (remaining.length === 0) throw new Error("There are not enough active attributes to forge this artwork.");
-    const [attribute] = remaining.splice(Math.floor(Math.random() * remaining.length), 1);
-    return { ...attribute, value: rollAttributeValue(minimum) };
-  };
-  if (artwork.rarity !== "common" && !unlocked) result.locked.push(take(0.5));
-  const count = artwork.rarity === "common" || !unlocked ? 1 : 2;
-  for (let index = 0; index < count; index += 1) result.unlocked.push(take(0));
-  return result;
 }

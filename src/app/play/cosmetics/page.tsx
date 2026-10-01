@@ -1,7 +1,7 @@
 import type { GameItem } from "@/server/gameplay";
 import { getCardStyleInventory } from "@/components/item-cards/catalog";
 import { hydrateGameItems } from "@/server/item-artwork";
-import { getLegendaryAttributes } from "@/server/legendary-attributes";
+import { getArtworkEffects } from "@/server/artwork-effects";
 import { getDatabase } from "@/server/mongodb";
 import { getAdminSession, requirePlayer } from "@/server/session";
 import { getCardRendererSettings } from "@/server/card-renderer-settings";
@@ -55,9 +55,9 @@ export default async function CardCosmeticStorePage() {
     getCardRendererSettings(database),
   ]);
   const legendaryAttributes = sampleItem
-    ? await getLegendaryAttributes(
+    ? await getArtworkEffects(
         database,
-        sampleItem.artwork.unique_attributes ?? [],
+        sampleItem.artwork.effect_id ? [sampleItem.artwork.effect_id] : [],
       )
     : [];
 

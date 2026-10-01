@@ -63,7 +63,8 @@ export async function POST(
   const now = new Date().toISOString();
   let mintUpdate = {};
   try {
-    mintUpdate = (await getDemintUpdate(database, item)) ?? {};
+    mintUpdate =
+      (await getDemintUpdate(database, item, { status: "displayed" })) ?? {};
   } catch (error) {
     console.error("Unable to remove Mint before displaying item", error);
     return NextResponse.json(

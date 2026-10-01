@@ -6,11 +6,14 @@ import { deleteCommunityReactions } from "./community-reaction-cleanup.ts";
 import {
   calculateItemValues,
   generateDailyDrop,
+  rollGeneratedCardRenderer,
   type Artwork,
   type GameItem,
   type LootData,
 } from "./gameplay.ts";
+import { getCardRendererSettings } from "./card-renderer-settings.ts";
 import {
+  DEFAULT_RARITY_WEIGHTS,
   getGameplayGenerationMap,
   type GameplayConfig,
 } from "./game-settings.ts";
@@ -25,10 +28,24 @@ export { RAFFLE_OWNER_ID } from "./raffle-core.ts";
 export const RAFFLE_STATE_ID = "raffle-state";
 export const RAFFLE_MAX_POTENCY = 10;
 export const RAFFLE_PRIZE_COUNT = 3;
-export const RAFFLE_BUFFER_COUNT = 3;
+export const RAFFLE_DEFAULT_BUFFER_COUNT = 3;
 export const RAFFLE_DRAW_TIME_ZONE = "America/New_York";
 export const RAFFLE_DRAW_HOUR = 12;
 export const LOTTERY_HIT_PROBABILITY = 0.2;
+export const RAFFLE_GENERATION_CHANCES = {
+  foil: 0.2,
+  mint: 0.15,
+  unlocked: 0.35,
+  cardStyle: 1,
+} as const;
+
+export type RaffleGenerationConfig = {
+  rarity_weights: Record<Artwork["rarity"], number>;
+};
+
+export const DEFAULT_RAFFLE_GENERATION_CONFIG: RaffleGenerationConfig = {
+  rarity_weights: { ...DEFAULT_RARITY_WEIGHTS },
+};
 
 export type RafflePrize = {
   item_id: string;
@@ -48,6 +65,7 @@ export type RaffleState = {
   buffer_prizes: RafflePrize[];
   next_draw_at: string;
   previous_winners: RaffleWinner[];
+  generation_config?: RaffleGenerationConfig;
   draw_lock?: { token: string; expires_at: string };
 };
 
@@ -83,6 +101,7 @@ export async function ensureRaffleState(
         buffer_prizes: [],
         next_draw_at: getNextRaffleDrawAt(now).toISOString(),
         previous_winners: [],
+        generation_config: DEFAULT_RAFFLE_GENERATION_CONFIG,
       },
     },
     { upsert: true },
@@ -91,6 +110,13 @@ export async function ensureRaffleState(
     .collection<RaffleState>("metadata")
     .findOne({ _id: RAFFLE_STATE_ID });
   if (!state) throw new Error("Lottery state could not be initialized.");
+  const generationConfig = normalizeRaffleGenerationConfig(
+    state.generation_config,
+  );
+  const targetBufferCount = Math.max(
+    RAFFLE_DEFAULT_BUFFER_COUNT,
+    state.buffer_prizes?.length ?? 0,
+  );
   const scheduledNextDrawAt = getNextRaffleDrawAt(now).toISOString();
   if (
     state.next_draw_at > now.toISOString() &&
@@ -113,7 +139,7 @@ export async function ensureRaffleState(
   const referencedItemIds = new Set<string>();
   for (const [prizes, target, limit] of [
     [state.prizes, validPrizes, RAFFLE_PRIZE_COUNT],
-    [state.buffer_prizes ?? [], validBufferPrizes, RAFFLE_BUFFER_COUNT],
+    [state.buffer_prizes ?? [], validBufferPrizes, Number.MAX_SAFE_INTEGER],
   ] as const) {
     for (const prize of prizes) {
       if (target.length >= limit || referencedItemIds.has(prize.item_id)) {
@@ -140,12 +166,22 @@ export async function ensureRaffleState(
   }
   const generated: GameItem[] = [];
   while (validPrizes.length < RAFFLE_PRIZE_COUNT) {
-    const reward = await generateRafflePrize(database, config, now);
+    const reward = await generateRafflePrize(
+      database,
+      config,
+      now,
+      generationConfig,
+    );
     generated.push(reward);
     validPrizes.push({ item_id: reward._id, potency: 1 });
   }
-  while (validBufferPrizes.length < RAFFLE_BUFFER_COUNT) {
-    const reward = await generateRafflePrize(database, config, now);
+  while (validBufferPrizes.length < targetBufferCount) {
+    const reward = await generateRafflePrize(
+      database,
+      config,
+      now,
+      generationConfig,
+    );
     generated.push(reward);
     validBufferPrizes.push({ item_id: reward._id, potency: 1 });
   }
@@ -163,7 +199,10 @@ export async function ensureRaffleState(
         prize.item_id !== currentState.buffer_prizes?.[index]?.item_id ||
         prize.potency !== currentState.buffer_prizes?.[index]?.potency,
     ) ||
-    validBufferPrizes.length !== (currentState.buffer_prizes?.length ?? 0)
+    validBufferPrizes.length !==
+      (currentState.buffer_prizes?.length ?? 0) ||
+    JSON.stringify(generationConfig) !==
+      JSON.stringify(currentState.generation_config)
   ) {
     const updated = await database.collection<RaffleState>("metadata").updateOne(
       {
@@ -177,6 +216,7 @@ export async function ensureRaffleState(
         $set: {
           prizes: validPrizes,
           buffer_prizes: validBufferPrizes,
+          generation_config: generationConfig,
         },
       },
     );
@@ -392,8 +432,13 @@ export async function settleRaffleIfDue(
         eventKey: `lottery:${state.next_draw_at}:${prize.item_id}:winner`,
       });
     }
-    while (nextBufferPrizes.length < RAFFLE_BUFFER_COUNT) {
-      const reward = await generateRafflePrize(database, config, now);
+    while (nextBufferPrizes.length < state.buffer_prizes.length) {
+      const reward = await generateRafflePrize(
+        database,
+        config,
+        now,
+        normalizeRaffleGenerationConfig(state.generation_config),
+      );
       generatedBufferItemIds.push(reward._id);
       nextBufferPrizes.push({ item_id: reward._id, potency: 1 });
     }
@@ -700,24 +745,46 @@ export function selectWeightedRaffleEntry<T extends Pick<RaffleEntry, "tickets">
   return entries[entries.length - 1];
 }
 
+export function normalizeRaffleGenerationConfig(
+  value: RaffleGenerationConfig | undefined,
+): RaffleGenerationConfig {
+  const rarityWeights = Object.fromEntries(
+    Object.entries(DEFAULT_RAFFLE_GENERATION_CONFIG.rarity_weights).map(
+      ([rarity, fallback]) => {
+        const configured = value?.rarity_weights?.[rarity as Artwork["rarity"]];
+        return [
+          rarity,
+          typeof configured === "number" &&
+          Number.isFinite(configured) &&
+          configured >= 0
+            ? configured
+            : fallback,
+        ];
+      },
+    ),
+  ) as RaffleGenerationConfig["rarity_weights"];
+  if (Object.values(rarityWeights).every((weight) => weight === 0)) {
+    return DEFAULT_RAFFLE_GENERATION_CONFIG;
+  }
+  return { rarity_weights: rarityWeights };
+}
+
 export async function generateRafflePrize(
   database: Db,
   config: GameplayConfig,
   now = new Date(),
+  generationConfig = DEFAULT_RAFFLE_GENERATION_CONFIG,
 ): Promise<GameItem> {
   const [reward] = await generateDailyDrop(database, RAFFLE_OWNER_ID, 50, {
     now,
     itemCount: 1,
     generationMap: {
       ...getGameplayGenerationMap(config),
-      cardStyle: 1,
-      rarity: {
-        common: 0,
-        uncommon: 0,
-        rare: 0,
-        legendary: 9_999,
-        masterpiece: 1,
-      },
+      cardStyle: RAFFLE_GENERATION_CHANCES.cardStyle,
+      foil: RAFFLE_GENERATION_CHANCES.foil,
+      mint: RAFFLE_GENERATION_CHANCES.mint,
+      unlocked: RAFFLE_GENERATION_CHANCES.unlocked,
+      rarity: normalizeRaffleGenerationConfig(generationConfig).rarity_weights,
     },
     useRawRarityMap: true,
     mintValueMultiplier: config.mintValueMultiplier,
@@ -725,9 +792,19 @@ export async function generateRafflePrize(
     status: "claimed",
   });
   if (!reward.card_renderer) {
+    const rendererSettings = await getCardRendererSettings(database);
+    const cardRenderer = rollGeneratedCardRenderer(
+      rendererSettings.activeRendererIds,
+      1,
+    );
+    if (!cardRenderer) {
+      throw new Error(
+        "Random lottery prizes require at least one active card style.",
+      );
+    }
     await database.collection<GameItem>("items").updateOne(
       { _id: reward._id, owner: RAFFLE_OWNER_ID },
-      { $set: { card_renderer: "legacy" } },
+      { $set: { card_renderer: cardRenderer } },
     );
   }
   await setRafflePrizePotency(database, reward._id, 1);

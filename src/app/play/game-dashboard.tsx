@@ -317,6 +317,7 @@ export default function GameDashboard({
   galleryRates,
   galleryMetadata,
   impersonating,
+  canMakePrivateAuctionsPublic,
   canRerollDisplayed,
   levelUpDiscountAvailable,
   levelUpConditionMinimum,
@@ -348,6 +349,7 @@ export default function GameDashboard({
   galleryRates: GalleryRates;
   galleryMetadata: GalleryMetadataSnapshot | null;
   impersonating: boolean;
+  canMakePrivateAuctionsPublic: boolean;
   canRerollDisplayed: boolean;
   levelUpDiscountAvailable: boolean;
   levelUpConditionMinimum: number;
@@ -455,6 +457,8 @@ export default function GameDashboard({
   const [createdPrivateAuctions, setCreatedPrivateAuctions] =
     useState<AuctionView[]>([]);
   const [dismissedPrivateAuctionIds, setDismissedPrivateAuctionIds] =
+    useState<string[]>([]);
+  const [madePublicPrivateAuctionIds, setMadePublicPrivateAuctionIds] =
     useState<string[]>([]);
   const [selectedPrivateAuction, setSelectedPrivateAuction] =
     useState<AuctionView | null>(null);
@@ -606,12 +610,14 @@ export default function GameDashboard({
       return [...byId.values()].filter(
         (auction) =>
           !dismissedPrivateAuctionIds.includes(auction._id) &&
+          !madePublicPrivateAuctionIds.includes(auction._id) &&
           Date.parse(auction.expiration) > now,
       );
     },
     [
       createdPrivateAuctions,
       dismissedPrivateAuctionIds,
+      madePublicPrivateAuctionIds,
       now,
       privateAuctions,
     ],
@@ -1934,6 +1940,84 @@ export default function GameDashboard({
     });
   }
 
+  function handlePrivateAuctionMadePublic(
+    auctionId: string,
+    message = "Private auction converted to a public auction.",
+  ) {
+    setNotice(message);
+    setSelectedLootEntryKeys([]);
+    setSelectedPrivateAuction(null);
+    setMadePublicPrivateAuctionIds((current) => [
+      ...new Set([...current, auctionId]),
+    ]);
+    setCreatedPrivateAuctions((current) =>
+      current.filter((auction) => auction._id !== auctionId),
+    );
+    router.refresh();
+  }
+
+  function makePrivateAuctionPublic(auction: AuctionView) {
+    setError("");
+    setNotice("");
+    startTransition(async () => {
+      const response = await fetch(
+        `/api/play/auctions/${auction._id}/make-public`,
+        { method: "POST" },
+      );
+      const body = (await response.json()) as {
+        error?: string;
+        madePublicAuctionId?: string;
+        message?: string;
+      };
+      if (!response.ok || !body.madePublicAuctionId) {
+        setError(body.error ?? "The private auction could not be made public.");
+        return;
+      }
+      handlePrivateAuctionMadePublic(
+        body.madePublicAuctionId,
+        body.message ?? "Private auction converted to a public auction.",
+      );
+    });
+  }
+
+  function makeAllPrivateAuctionsPublic() {
+    setError("");
+    setNotice("");
+    startTransition(async () => {
+      const response = await fetch(
+        "/api/play/auctions/make-all-public",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(bulkSaleProtections),
+        },
+      );
+      const body = (await response.json()) as {
+        error?: string;
+        madePublic?: number;
+        madePublicAuctionIds?: string[];
+        message?: string;
+      };
+      if (!response.ok || body.madePublic === undefined) {
+        setError(
+          body.error ?? "The private auctions could not be made public.",
+        );
+        return;
+      }
+      const auctionIds = body.madePublicAuctionIds ?? [];
+      setNotice(body.message ?? "Private auctions made public.");
+      setSelectedLootEntryKeys([]);
+      setMadePublicPrivateAuctionIds((current) => [
+        ...new Set([...current, ...auctionIds]),
+      ]);
+      const convertedIds = new Set(auctionIds);
+      setCreatedPrivateAuctions((current) =>
+        current.filter((auction) => !convertedIds.has(auction._id)),
+      );
+      router.refresh();
+    });
+  }
+
   function donateItem(item: HydratedGameItem) {
     setError("");
     setNotice("");
@@ -2082,7 +2166,15 @@ export default function GameDashboard({
     actionLabel: string,
     onConfirm: () => void,
   ) {
-    if (!item.mint) {
+    const preservationEffect =
+      actionLabel === "Displaying this artwork" &&
+      legendaryAttributes.some(
+        (attribute) =>
+          attribute.active &&
+          attribute.id === item.artwork.effect_id &&
+          attribute.code === "MP_PRESERVATION_MINT",
+      );
+    if (!item.mint || preservationEffect) {
       onConfirm();
       return;
     }
@@ -3269,18 +3361,37 @@ export default function GameDashboard({
                           </>
                         ) : null}
                         {activeLootCategory?.id === "private-auctions" ? (
-                          <button
-                            className="dismiss-all-loot"
-                            disabled={
-                              pending ||
-                              bulkDismissiblePrivateAuctions.length === 0
-                            }
-                            onClick={dismissAllLoot}
-                            type="button"
-                          >
-                            <i aria-hidden="true" className="fa fa-times" />{" "}
-                            Dismiss all
-                          </button>
+                          <>
+                            {canMakePrivateAuctionsPublic ? (
+                              <button
+                                className="make-all-public-loot"
+                                disabled={
+                                  pending ||
+                                  bulkDismissiblePrivateAuctions.length === 0
+                                }
+                                onClick={makeAllPrivateAuctionsPublic}
+                                type="button"
+                              >
+                                <i
+                                  aria-hidden="true"
+                                  className="fa fa-globe"
+                                />{" "}
+                                Make all public
+                              </button>
+                            ) : null}
+                            <button
+                              className="dismiss-all-loot"
+                              disabled={
+                                pending ||
+                                bulkDismissiblePrivateAuctions.length === 0
+                              }
+                              onClick={dismissAllLoot}
+                              type="button"
+                            >
+                              <i aria-hidden="true" className="fa fa-times" />{" "}
+                              Dismiss all
+                            </button>
+                          </>
                         ) : null}
                         </div>
                         <div className="loot-bulk-options">
@@ -3343,29 +3454,44 @@ export default function GameDashboard({
                         actions={
                           selectedLootAuction
                             ? (
-                                <ItemActionButton
-                                  destructive
-                                  disabled={pending}
-                                  gridSlot={3}
-                                  icon="fa-times"
-                                  label="Dismiss private auction"
-                                  onClick={() =>
-                                    act(
-                                      `/api/play/auctions/${selectedLootAuction._id}/dismiss`,
-                                      () => {
-                                        setDismissedPrivateAuctionIds(
-                                          (current) => [
-                                            ...new Set([
-                                              ...current,
-                                              selectedLootAuction._id,
-                                            ]),
-                                          ],
-                                        );
-                                        setSelectedLootEntryKeys([]);
-                                      },
-                                    )
-                                  }
-                                />
+                                <>
+                                  {canMakePrivateAuctionsPublic ? (
+                                    <ItemActionButton
+                                      disabled={pending}
+                                      gridSlot={1}
+                                      icon="fa-globe"
+                                      label="Make public"
+                                      onClick={() =>
+                                        makePrivateAuctionPublic(
+                                          selectedLootAuction,
+                                        )
+                                      }
+                                    />
+                                  ) : null}
+                                  <ItemActionButton
+                                    destructive
+                                    disabled={pending}
+                                    gridSlot={3}
+                                    icon="fa-times"
+                                    label="Dismiss private auction"
+                                    onClick={() =>
+                                      act(
+                                        `/api/play/auctions/${selectedLootAuction._id}/dismiss`,
+                                        () => {
+                                          setDismissedPrivateAuctionIds(
+                                            (current) => [
+                                              ...new Set([
+                                                ...current,
+                                                selectedLootAuction._id,
+                                              ]),
+                                            ],
+                                          );
+                                          setSelectedLootEntryKeys([]);
+                                        },
+                                      )
+                                    }
+                                  />
+                                </>
                               )
                             : lootItemActions(selectedLootItem)
                         }
@@ -4190,6 +4316,7 @@ export default function GameDashboard({
 
         {section === "auctions" ? (
           <AuctionHouse
+            canMakePrivateAuctionsPublic={canMakePrivateAuctionsPublic}
             initialBankBalance={player.bankBalance}
             initialAuctionId={searchParams.get("auction")}
             legendaryAttributes={legendaryAttributes}
@@ -4228,12 +4355,6 @@ export default function GameDashboard({
             onLeveled={(item, karma) => {
               setRerollSession((current) =>
                 current ? { ...current, item, karma } : current,
-              );
-              router.refresh();
-            }}
-            onSelected={(item) => {
-              setRerollSession((current) =>
-                current ? { ...current, item } : current,
               );
               router.refresh();
             }}
@@ -4449,8 +4570,12 @@ export default function GameDashboard({
           <AuctionBidDialog
             auction={selectedPrivateAuction}
             bankBalance={player.bankBalance}
+            canMakePublic={canMakePrivateAuctionsPublic}
             legendaryAttributes={legendaryAttributes}
             onClose={() => setSelectedPrivateAuction(null)}
+            onMadePublic={(auctionId, message) =>
+              handlePrivateAuctionMadePublic(auctionId, message)
+            }
             onSuccess={() => {
               setSelectedPrivateAuction(null);
               router.refresh();
@@ -4887,7 +5012,6 @@ function RerollDialog({
   onClose,
   onLeveled,
   onRerolled,
-  onSelected,
 }: {
   item: HydratedGameItem;
   bankBalance: number;
@@ -4898,7 +5022,6 @@ function RerollDialog({
   onClose: () => void;
   onLeveled: (item: HydratedGameItem, karma: number) => void;
   onRerolled: (item: HydratedGameItem, bankBalance: number) => void;
-  onSelected: (item: HydratedGameItem) => void;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
@@ -4922,7 +5045,7 @@ function RerollDialog({
   const eligibleLegendaryAttributes = legendaryAttributes.filter(
     (attribute) =>
       attribute.active &&
-      item.artwork.unique_attributes?.includes(attribute.id),
+      item.artwork.effect_id === attribute.id,
   );
 
   useEffect(() => {
@@ -4947,7 +5070,15 @@ function RerollDialog({
     actionLabel: string,
     onConfirm: () => void,
   ) {
-    if (!item.mint) {
+    const preservationEffect =
+      actionLabel === "Displaying this artwork" &&
+      legendaryAttributes.some(
+        (attribute) =>
+          attribute.active &&
+          attribute.id === item.artwork.effect_id &&
+          attribute.code === "MP_PRESERVATION_MINT",
+      );
+    if (!item.mint || preservationEffect) {
       onConfirm();
       return;
     }
@@ -5052,54 +5183,6 @@ function RerollDialog({
           ? levelError.message
           : "The promotion could not be completed.";
       setError(message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  function selectLegendaryAttribute(attributeId: string) {
-    if (attributeId === item.active_unique_attribute) return;
-    requestMintMutation(
-      "Changing this Legendary Attribute",
-      () => void performLegendarySelection(attributeId),
-    );
-  }
-
-  async function performLegendarySelection(attributeId: string) {
-    setBusy(true);
-    setError("");
-    setNotice("");
-    try {
-      const response = await fetch(
-        `/api/play/items/${item._id}/legendary-attribute`,
-        {
-          method: "PATCH",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ attributeId }),
-        },
-      );
-      const body = (await response.json()) as {
-        error?: string;
-        item?: GameItem;
-      };
-      if (!response.ok || !body.item) {
-        throw new Error(
-          body.error ?? "The Legendary Attribute could not be selected.",
-        );
-      }
-      const nextItem: HydratedGameItem = {
-        ...item,
-        ...body.item,
-        artwork: item.artwork,
-      };
-      onSelected(nextItem);
-      setNotice("Active Legendary Attribute changed.");
-    } catch (selectionError) {
-      setError(
-        selectionError instanceof Error
-          ? selectionError.message
-          : "The Legendary Attribute could not be selected.",
-      );
     } finally {
       setBusy(false);
     }
@@ -5257,38 +5340,18 @@ function RerollDialog({
           )}
         </section>
 
-        {eligibleLegendaryAttributes.length > 0 ? (
+        {eligibleLegendaryAttributes[0] ? (
           <fieldset className="legendary-selector">
-            <legend>Legendary Attribute</legend>
-            {eligibleLegendaryAttributes.length === 1 ? (
-              <div className="legendary-selector-single">
-                <span>
-                  <strong>{eligibleLegendaryAttributes[0].title}</strong>
-                  <span>{eligibleLegendaryAttributes[0].description}</span>
-                  <em>
-                    &ldquo;{eligibleLegendaryAttributes[0].flavorText}&rdquo;
-                  </em>
-                </span>
-              </div>
-            ) : (
-              eligibleLegendaryAttributes.map((attribute) => (
-                <label key={attribute.id}>
-                  <input
-                    checked={item.active_unique_attribute === attribute.id}
-                    disabled={busy}
-                    name="active-legendary-attribute"
-                    onChange={() => selectLegendaryAttribute(attribute.id)}
-                    type="radio"
-                    value={attribute.id}
-                  />
-                  <span>
-                    <strong>{attribute.title}</strong>
-                    <span>{attribute.description}</span>
-                    <em>&ldquo;{attribute.flavorText}&rdquo;</em>
-                  </span>
-                </label>
-              ))
-            )}
+            <legend>Artwork Effect</legend>
+            <div className="legendary-selector-single">
+              <span>
+                <strong>{eligibleLegendaryAttributes[0].title}</strong>
+                <span>{eligibleLegendaryAttributes[0].description}</span>
+                <em>
+                  &ldquo;{eligibleLegendaryAttributes[0].flavorText}&rdquo;
+                </em>
+              </span>
+            </div>
           </fieldset>
         ) : null}
 

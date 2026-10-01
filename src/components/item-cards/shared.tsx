@@ -50,7 +50,7 @@ export function getActiveLegendaryAttribute(
 ) {
   return legendaryAttributes.find(
     (attribute) =>
-      attribute.active && attribute.id === item.active_unique_attribute,
+      attribute.active && attribute.id === item.artwork.effect_id,
   );
 }
 

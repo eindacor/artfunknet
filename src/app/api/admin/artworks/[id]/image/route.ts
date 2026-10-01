@@ -66,17 +66,20 @@ export async function POST(
         file,
       });
       const full = published.variants.full;
-      updated = {
-        ...artwork,
+      const imageUpdate = {
         image: published,
         image_width: full.width,
         image_height: full.height,
         updated_at: new Date(),
         updated_by: auth.session.email,
       };
+      updated = {
+        ...artwork,
+        ...imageUpdate,
+      };
       const result = await database
         .collection<ArtworkDocument>("artworks")
-        .replaceOne({ _id: id }, updated);
+        .updateOne({ _id: id }, { $set: imageUpdate });
       if (result.modifiedCount !== 1) {
         throw new Error("The artwork image metadata could not be updated.");
       }

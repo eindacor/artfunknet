@@ -1,36 +1,57 @@
 import { NextResponse } from "next/server";
 
 import { requireAdminApi } from "@/server/admin-api";
-import {
-  recomputeLegendaryAssignments,
-  type LegendaryAttribute,
-  type LegendaryAttributeParameter,
-} from "@/server/legendary-attributes";
+import type { ArtworkEffect } from "@/server/artwork-effects";
 import { getDatabase } from "@/server/mongodb";
 
-type UpdateRequest = {
-  title?: unknown;
-  description?: unknown;
-  flavorText?: unknown;
-  code?: unknown;
-  active?: unknown;
-  parameters?: unknown;
-};
+import { validateEffectInput } from "../route";
 
-function isParameterRecord(
-  value: unknown,
-): value is Record<string, LegendaryAttributeParameter> {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    !Array.isArray(value) &&
-    Object.values(value).every(
-      (entry) =>
-        typeof entry === "boolean" ||
-        typeof entry === "number" ||
-        typeof entry === "string",
-    )
-  );
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const auth = await requireAdminApi();
+  if (!auth.ok) return auth.response;
+  const { id } = await params;
+  const database = await getDatabase();
+  const effect = await database
+    .collection<ArtworkEffect>("artwork_effects")
+    .findOne({ _id: id });
+  if (!effect) {
+    return NextResponse.json(
+      { error: "Artwork effect was not found." },
+      { status: 404 },
+    );
+  }
+  const artworkCount = await database
+    .collection<{ effect_id?: string }>("artworks")
+    .countDocuments({ effect_id: id });
+  if (artworkCount > 0) {
+    return NextResponse.json(
+      {
+        error: `Cannot delete ${effect.title} while ${artworkCount} artwork${artworkCount === 1 ? " references" : "s reference"} it.`,
+      },
+      { status: 409 },
+    );
+  }
+  const deleted = await database
+    .collection<ArtworkEffect>("artwork_effects")
+    .deleteOne({ _id: id });
+  if (deleted.deletedCount !== 1) {
+    return NextResponse.json(
+      { error: "The artwork effect changed before it could be deleted." },
+      { status: 409 },
+    );
+  }
+  console.info("Deleted artwork effect", {
+    effectId: id,
+    effectTitle: effect.title,
+    deletedBy: auth.session.email,
+  });
+  return NextResponse.json({
+    status: "ok",
+    message: `Deleted effect ${effect.title}.`,
+  });
 }
 
 export async function PATCH(
@@ -39,64 +60,72 @@ export async function PATCH(
 ) {
   const auth = await requireAdminApi();
   if (!auth.ok) return auth.response;
-
-  const body = (await request.json()) as UpdateRequest;
-  const title = typeof body.title === "string" ? body.title.trim() : "";
-  const description =
-    typeof body.description === "string" ? body.description.trim() : "";
-  const flavorText =
-    typeof body.flavorText === "string" ? body.flavorText.trim() : "";
-  const code =
-    typeof body.code === "string" ? body.code.trim().toUpperCase() : "";
-  if (
-    !title ||
-    !description ||
-    !flavorText ||
-    !/^[A-Z][A-Z0-9_]*$/.test(code) ||
-    typeof body.active !== "boolean" ||
-    !isParameterRecord(body.parameters)
-  ) {
+  let input;
+  try {
+    input = validateEffectInput(await request.json());
+  } catch (error) {
     return NextResponse.json(
-      { error: "Legendary attribute values are invalid." },
+      { error: error instanceof Error ? error.message : "Invalid effect." },
       { status: 400 },
     );
   }
-
   const { id } = await params;
   const database = await getDatabase();
-  const duplicateCode = await database
-    .collection<LegendaryAttribute>("unique_attributes")
-    .findOne({ _id: { $ne: id }, code });
-  if (duplicateCode) {
+  const [duplicate, attributeCount, existing, artworkCount] = await Promise.all([
+    database
+      .collection<ArtworkEffect>("artwork_effects")
+      .findOne({ _id: { $ne: id }, code: input.code }),
+    database.collection<{ _id: string; active: boolean }>("attributes").countDocuments({
+      _id: { $in: [...input.linkedAttributes] },
+      active: true,
+    }),
+    database.collection<ArtworkEffect>("artwork_effects").findOne({ _id: id }),
+    database.collection<{ effect_id?: string }>("artworks").countDocuments({
+      effect_id: id,
+    }),
+  ]);
+  if (duplicate) {
     return NextResponse.json(
       { error: "Behavior codes must be unique." },
       { status: 409 },
     );
   }
-
-  const result = await database
-    .collection<LegendaryAttribute>("unique_attributes")
-    .updateOne(
-      { _id: id },
-      {
-        $set: {
-          title,
-          description,
-          flavor_text: flavorText,
-          code,
-          active: body.active,
-          parameters: body.parameters,
-          updated_at: new Date().toISOString(),
-        },
-      },
-    );
-  if (result.matchedCount !== 1) {
+  if (attributeCount !== input.linkedAttributes.length) {
     return NextResponse.json(
-      { error: "Legendary attribute was not found." },
+      { error: "Select only active attributes." },
+      { status: 400 },
+    );
+  }
+  if (!existing) {
+    return NextResponse.json(
+      { error: "Artwork effect was not found." },
       { status: 404 },
     );
   }
-
-  await recomputeLegendaryAssignments(database);
+  if (artworkCount > 0 && existing.effect_type !== input.effectType) {
+    return NextResponse.json(
+      { error: "An effect referenced by artwork cannot change type." },
+      { status: 409 },
+    );
+  }
+  const result = await database.collection<ArtworkEffect>("artwork_effects").updateOne(
+    { _id: id },
+    {
+      $set: {
+        effect_type: input.effectType,
+        linked_attributes: input.linkedAttributes,
+        title: input.title,
+        description: input.description,
+        flavor_text: input.flavorText,
+        code: input.code,
+        active: input.active,
+        parameters: input.parameters,
+        updated_at: new Date().toISOString(),
+      },
+    },
+  );
+  if (result.matchedCount !== 1) {
+    return NextResponse.json({ error: "Artwork effect was not found." }, { status: 404 });
+  }
   return NextResponse.json({ status: "ok" });
 }

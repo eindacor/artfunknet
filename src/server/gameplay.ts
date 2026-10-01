@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import type { Db } from "mongodb";
 
+import type { ArtworkEffect } from "./artwork-effects-core.ts";
 import { getCardRendererSettings } from "./card-renderer-settings.ts";
 import { getRerollCost } from "./item-reroll.ts";
 
@@ -59,6 +60,8 @@ export type Artwork = {
   height: number;
   width: number;
   active: boolean;
+  effect_id?: string;
+  // Legacy-only fields retained for reading pre-migration records.
   special_attributes?: string[];
   unique_attributes?: string[];
 };
@@ -103,6 +106,7 @@ export type GameItem = {
     unlocked: ItemAttribute[];
     special: ItemAttribute[];
   };
+  /** @deprecated Effects are resolved through artwork.effect_id. */
   active_unique_attribute?: string;
   card_renderer?: string;
   owner: string;
@@ -407,6 +411,8 @@ export type DailyDropOptions = {
   expiresAt?: string;
   status?: "unclaimed" | "for_sale" | "claimed" | "auctioned";
   targetArtworkId?: string;
+  forceLegendaryMasterpieceFoil?: boolean;
+  forceLegendaryMasterpieceUnlocked?: boolean;
 };
 
 export function amplifyRarityMap(
@@ -491,6 +497,20 @@ export async function generateDailyDrop(
     .find({ active: true })
     .toArray();
   const activeArtworks = filterActiveArtworks(artworks);
+  const effectIds = [
+    ...new Set(
+      activeArtworks
+        .map((artwork) => artwork.effect_id)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const effects = effectIds.length
+    ? await database
+        .collection<ArtworkEffect>("artwork_effects")
+        .find({ _id: { $in: effectIds }, active: true })
+        .toArray()
+    : [];
+  const effectById = new Map(effects.map((effect) => [effect._id, effect]));
   const artworksByRarity = new Map<ArtworkRarity, Artwork[]>();
   for (const rarity of ARTWORK_RARITIES) {
     artworksByRarity.set(
@@ -525,9 +545,22 @@ export async function generateDailyDrop(
       metadata.loot_data,
       seasonalArtworkScalar,
     );
+    const artworkEffect = artwork.effect_id
+      ? effectById.get(artwork.effect_id) ?? null
+      : null;
+    if (
+      (artwork.rarity === "legendary" ||
+        artwork.rarity === "masterpiece") &&
+      (!artworkEffect || artworkEffect.effect_type !== artwork.rarity)
+    ) {
+      throw new Error(
+        `${artwork.rarity} artwork ${artwork._id} has no active matching effect.`,
+      );
+    }
     items.push(
       createItem({
         artwork,
+        effect: artworkEffect,
         artworkGenerationWeight,
         attributes,
         lootData: metadata.loot_data,
@@ -551,6 +584,12 @@ export async function generateDailyDrop(
         mintProbability,
         mintValueMultiplier,
         unlockedProbability,
+        forceFoil:
+          options.forceLegendaryMasterpieceFoil === true &&
+          (artwork.rarity === "legendary" || artwork.rarity === "masterpiece"),
+        forceUnlocked:
+          options.forceLegendaryMasterpieceUnlocked === true &&
+          (artwork.rarity === "legendary" || artwork.rarity === "masterpiece"),
         misprintProbability,
         debug,
         source,
@@ -606,6 +645,7 @@ function rollAvailableRarity(
 
 function createItem({
   artwork,
+  effect,
   artworkGenerationWeight,
   attributes,
   lootData,
@@ -620,6 +660,8 @@ function createItem({
   mintProbability,
   mintValueMultiplier,
   unlockedProbability,
+  forceFoil,
+  forceUnlocked,
   misprintProbability,
   debug,
   source,
@@ -629,6 +671,7 @@ function createItem({
   status,
 }: {
   artwork: Artwork;
+  effect: ArtworkEffect | null;
   artworkGenerationWeight: number;
   attributes: ItemAttribute[];
   lootData: LootData;
@@ -643,6 +686,8 @@ function createItem({
   mintProbability: number;
   mintValueMultiplier: number;
   unlockedProbability: number;
+  forceFoil: boolean;
+  forceUnlocked: boolean;
   misprintProbability: number;
   debug: boolean;
   source: string;
@@ -651,7 +696,7 @@ function createItem({
   expiresAt?: string;
   status: "unclaimed" | "for_sale" | "claimed" | "auctioned";
 }): GameItem {
-  const { foil, mint, unlocked } = rollGeneratedItemProperties(
+  const generated = rollGeneratedItemProperties(
     artwork.rarity,
     {
       foil: foilProbability,
@@ -659,6 +704,10 @@ function createItem({
       unlocked: unlockedProbability,
     },
   );
+  const foil = forceFoil || generated.foil;
+  const mint =
+    effect?.code === "MP_PRESERVATION_MINT" ? true : generated.mint;
+  const unlocked = forceUnlocked || generated.unlocked;
   const misprint = rollProbability(misprintProbability);
   const artworkOverrides = getMisprintOverrides(artwork, misprint);
   const itemArtwork = { ...artwork, ...artworkOverrides };
@@ -666,6 +715,7 @@ function createItem({
     itemArtwork,
     unlocked,
     attributes,
+    effect,
   );
   const condition = getGeneratedItemCondition(mint, conditionMinimum);
   const seasonal = isSeasonalArtwork(lootData, artwork);
@@ -684,7 +734,6 @@ function createItem({
     mint,
     mint_value_multiplier: mint ? mintValueMultiplier : 1,
     attributes: itemAttributes,
-    active_unique_attribute: artwork.unique_attributes?.[0],
     ...(cardRenderer ? { card_renderer: cardRenderer } : {}),
     owner,
     // TODO AI: Auction and trade transfers should append to this history instead of replacing it.
@@ -753,6 +802,7 @@ export function getItemAttributes(
   artwork: Artwork,
   itemIsUnlocked: boolean,
   allAttributes: ItemAttribute[],
+  effect?: Pick<ArtworkEffect, "effect_type" | "linked_attributes"> | null,
 ): GameItem["attributes"] {
   const remaining = [...allAttributes];
   const result: GameItem["attributes"] = {
@@ -761,7 +811,14 @@ export function getItemAttributes(
     special: [],
   };
 
-  for (const id of artwork.special_attributes ?? []) {
+  const specialAttributeIds =
+    effect &&
+    ((artwork.rarity === "legendary" && effect.effect_type === "legendary") ||
+      (artwork.rarity === "masterpiece" &&
+        effect.effect_type === "masterpiece"))
+      ? effect.linked_attributes
+      : artwork.special_attributes ?? [];
+  for (const id of specialAttributeIds) {
     const index = remaining.findIndex((attribute) => attribute._id === id);
     if (index >= 0) {
       result.special.push({
@@ -771,8 +828,16 @@ export function getItemAttributes(
     }
   }
 
-  const lockedCount = artwork.rarity === "common" || itemIsUnlocked ? 0 : 1;
-  const unlockedCount = artwork.rarity === "common" || !itemIsUnlocked ? 1 : 2;
+  const masterpiece = artwork.rarity === "masterpiece";
+  const lockedCount =
+    masterpiece ? 1 : artwork.rarity === "common" || itemIsUnlocked ? 0 : 1;
+  const unlockedCount = masterpiece
+    ? itemIsUnlocked
+      ? 4
+      : 3
+    : artwork.rarity === "common" || !itemIsUnlocked
+      ? 1
+      : 2;
   for (let index = 0; index < lockedCount; index += 1) {
     result.locked.push({
       ...takeRandom(remaining),

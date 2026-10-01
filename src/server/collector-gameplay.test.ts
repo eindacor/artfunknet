@@ -3,9 +3,11 @@ import test from "node:test";
 
 import {
   calculateCollectorReward,
+  getCollectorAuctionCommissionCoefficient,
   getCollectorForgeryHeat,
   getHighestAvailableCollectorQuality,
 } from "./collector-gameplay.ts";
+import type { LegendaryAttribute } from "./legendary-attributes.ts";
 
 const item = {
   condition: 0.9,
@@ -58,6 +60,42 @@ test("collector XP rewards use the legacy level-based chunk percentage", () => {
     xpChunk: 1_000,
   });
   assert.equal(reward.amount, 279);
+});
+
+test("collector quest target multipliers apply to the complete reward", () => {
+  const reward = calculateCollectorReward({
+    item,
+    quality: "bronze",
+    ownGallery: false,
+    goodConditionBonus: true,
+    rollCountBonus: true,
+    rewardMultiplier: 2,
+    xpOffer: false,
+    xpChunk: 100,
+  });
+  assert.equal(reward.amount, 36_000);
+  assert.equal(reward.type, "money");
+  assert.ok(Math.abs(reward.multiplier - 3.6) < Number.EPSILON * 4);
+});
+
+test("collector auction behavior uses configurable chance and commission", () => {
+  const effect = {
+    active: true,
+    code: "ART_COLLECTOR_AUCTION",
+    parameters: {
+      chance: 0.2,
+      commission_coefficient: 0.15,
+    },
+  } as LegendaryAttribute;
+  assert.equal(
+    getCollectorAuctionCommissionCoefficient(effect, () => 0.19),
+    0.15,
+  );
+  assert.equal(
+    getCollectorAuctionCommissionCoefficient(effect, () => 0.2),
+    null,
+  );
+  assert.equal(getCollectorAuctionCommissionCoefficient(null), null);
 });
 
 test("collector forgery heat preserves the legendary reduction", () => {

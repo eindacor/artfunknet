@@ -8,7 +8,9 @@ import {
 } from "@/server/item-artwork";
 import { getDatabase } from "@/server/mongodb";
 import {
+  DEFAULT_RAFFLE_GENERATION_CONFIG,
   ensureRaffleState,
+  RAFFLE_DEFAULT_BUFFER_COUNT,
   type RafflePrize,
 } from "@/server/raffle-gameplay";
 
@@ -60,6 +62,10 @@ export default async function LotteryAdminPage() {
       <RaffleRewardForm
         artworks={JSON.parse(JSON.stringify(artworks)) as Artwork[]}
         bufferPrizes={serializePrizes(state.buffer_prizes)}
+        generationConfig={
+          state.generation_config ?? DEFAULT_RAFFLE_GENERATION_CONFIG
+        }
+        minimumBufferCount={RAFFLE_DEFAULT_BUFFER_COUNT}
         nextDrawAt={state.next_draw_at}
         prizes={serializePrizes(state.prizes)}
       />

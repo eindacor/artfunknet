@@ -108,6 +108,24 @@ test("chat tokens preserve text, longest player names, and item previews", () =>
   ]);
 });
 
+test("missing item references become disabled item tokens", () => {
+  assert.deepEqual(
+    tokenizeChatContent(
+      "Gone: /items/deleted-item",
+      players,
+      new Map(),
+    ),
+    [
+      { kind: "text", text: "Gone: " },
+      {
+        kind: "missing-item",
+        text: "/items/deleted-item",
+        itemId: "deleted-item",
+      },
+    ],
+  );
+});
+
 test("mentions require a complete player name boundary", () => {
   const tokens = tokenizeChatContent(
     "@Artist is not a mention, but @Art is.",

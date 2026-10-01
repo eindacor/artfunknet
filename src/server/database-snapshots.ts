@@ -32,6 +32,8 @@ const CONTENT_COLLECTIONS = [
   "artworks",
   "attributes",
   "unique_attributes",
+  "artwork_effects",
+  "artwork_effect_settlements",
   "gallery_finishes",
   "metadata",
 ] as const;

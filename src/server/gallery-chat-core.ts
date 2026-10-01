@@ -49,6 +49,11 @@ export type GalleryChatToken =
       };
     }
   | {
+      kind: "missing-item";
+      text: string;
+      itemId: string;
+    }
+  | {
       kind: "emote";
       text: string;
       emote: GalleryChatEmote;
@@ -99,22 +104,27 @@ export function tokenizeChatContent(
 
   for (const reference of findItemReferences(content)) {
     const item = itemById.get(reference.itemId);
-    if (!item) continue;
     matches.push({
       start: reference.start,
       end: reference.end,
-      token: {
-        kind: "item",
-        text: content.slice(reference.start, reference.end),
-        item: {
-          id: item._id,
-          artworkId: item.artwork_id,
-          title: item.artwork.title,
-          artist: item.artwork.artist,
-          rarity: item.artwork.rarity,
-          value: item.values.actual,
-        },
-      },
+      token: item
+        ? {
+            kind: "item",
+            text: content.slice(reference.start, reference.end),
+            item: {
+              id: item._id,
+              artworkId: item.artwork_id,
+              title: item.artwork.title,
+              artist: item.artwork.artist,
+              rarity: item.artwork.rarity,
+              value: item.values.actual,
+            },
+          }
+        : {
+            kind: "missing-item",
+            text: content.slice(reference.start, reference.end),
+            itemId: reference.itemId,
+          },
     });
   }
 

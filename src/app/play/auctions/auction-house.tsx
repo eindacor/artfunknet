@@ -21,12 +21,14 @@ type AuctionViewMode = "expanded" | "list";
 const CARD_TYPES = ["standard", "foil", "seasonal", "lottery", "original"];
 
 export default function AuctionHouse({
+  canMakePrivateAuctionsPublic = false,
   initialAuctionId,
   initialBankBalance,
   legendaryAttributes,
   marketExpertExpiration,
   playerId,
 }: {
+  canMakePrivateAuctionsPublic?: boolean;
   initialAuctionId: string | null;
   initialBankBalance: number;
   legendaryAttributes: CardLegendaryAttribute[];
@@ -479,8 +481,14 @@ export default function AuctionHouse({
         <AuctionBidDialog
           auction={selected}
           bankBalance={bankBalance}
+          canMakePublic={canMakePrivateAuctionsPublic}
           legendaryAttributes={legendaryAttributes}
           onClose={() => setSelected(null)}
+          onMadePublic={() => {
+            setSelected(null);
+            void load();
+            router.refresh();
+          }}
           onSuccess={(nextBalance) => {
             setBankBalance(nextBalance);
             setSelected(null);
@@ -579,15 +587,19 @@ function getCardType(auction: AuctionView): string {
 export function AuctionBidDialog({
   auction,
   bankBalance,
+  canMakePublic = false,
   legendaryAttributes,
   onClose,
+  onMadePublic,
   onSuccess,
   playerId,
 }: {
   auction: AuctionView;
   bankBalance: number;
+  canMakePublic?: boolean;
   legendaryAttributes: CardLegendaryAttribute[];
   onClose: () => void;
+  onMadePublic?: (auctionId: string, message: string) => void;
   onSuccess: (bankBalance: number) => void;
   playerId: string;
 }) {
@@ -615,6 +627,40 @@ export function AuctionBidDialog({
     } catch (bidError) {
       setError(
         bidError instanceof Error ? bidError.message : "The bid failed.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function makePublic() {
+    setSubmitting(true);
+    setError("");
+    try {
+      const response = await fetch(
+        `/api/play/auctions/${auction._id}/make-public`,
+        { method: "POST" },
+      );
+      const body = (await response.json()) as {
+        error?: string;
+        madePublicAuctionId?: string;
+        message?: string;
+      };
+      if (!response.ok || !body.madePublicAuctionId) {
+        throw new Error(
+          body.error ?? "The private auction could not be made public.",
+        );
+      }
+      onMadePublic?.(
+        body.madePublicAuctionId,
+        body.message ?? "Private auction converted to a public auction.",
+      );
+      onClose();
+    } catch (makePublicError) {
+      setError(
+        makePublicError instanceof Error
+          ? makePublicError.message
+          : "The private auction could not be made public.",
       );
     } finally {
       setSubmitting(false);
@@ -706,6 +752,15 @@ export function AuctionBidDialog({
                     type="button"
                   >
                     Buy now · ${auction.buy_now.toLocaleString()}
+                  </button>
+                ) : null}
+                {canMakePublic && auction.privateAuction ? (
+                  <button
+                    disabled={submitting}
+                    onClick={() => void makePublic()}
+                    type="button"
+                  >
+                    <i aria-hidden="true" className="fa fa-globe" /> Make public
                   </button>
                 ) : null}
               </footer>

@@ -39,6 +39,15 @@ The seed command emits structured JSON events for every phase, including its
 duration and full error chain. Artwork-import failures include the source path
 that could not be inspected.
 
+After pulling changes that include database migrations, update an existing
+local database without reseeding it:
+
+```powershell
+npm.cmd run db:migrate:local
+```
+
+This command is idempotent and reads `.env.local`.
+
 Production deployments should not run the development seed. Apply idempotent
 schema and metadata updates with:
 
@@ -46,10 +55,11 @@ schema and metadata updates with:
 npm run db:migrate:production
 ```
 
-This command reads `.env.production`, creates the Hall of Fame and playthrough
-indexes, initializes missing playthrough counters on existing players, and
-creates the Hall of Fame scan setting with automatic candidate scanning off.
-Re-running it preserves the administrator's current scan setting.
+This command reads `.env.production`, applies the Hall of Fame/playthrough
+updates, creates the shared `artwork_effects` catalog and indexes, seeds the
+masterpiece effects, and backfills each legendary/masterpiece artwork's
+authoritative `effect_id`. The artwork-effect migration is idempotent and does
+not rewrite existing item attributes or values.
 
 ## Artwork administration
 
@@ -238,9 +248,10 @@ The basic gameplay loop is active:
   Museum-style warning.
 - Unclaimed items can be sold individually or through the Loot tab's Sell All
   action, which excludes unresolved Art Dealer offers.
-- Generated items carry the original unlocked and locked NPC-attraction
-  attributes. Rare, legendary, and masterpiece artwork also requires one, two,
-  or three permanent special attributes during admin approval.
+- Generated items carry unlocked and locked NPC-attraction attributes. Artwork
+  entry assigns a server-random value scale and server-derived attributes.
+  Legendary and masterpiece special attributes come from the artwork's
+  persistent effect record rather than admin form input.
 - Item cards use a renderer registry with Museum Label as the included default
   and safe fallback. A forced renderer is used for previews, an item-level
   `card_renderer` selects the applied style, and unknown renderer IDs fall back
@@ -284,12 +295,13 @@ The basic gameplay loop is active:
   Attribute and condition ratings expose separate light-card and dark-card
   palettes, allowing dark renderers to use a visible red-to-white scale instead
   of the OG design&apos;s original red-to-black scale.
-- The complete 55-pair Legendary Attribute catalog is seeded with its original
-  record IDs and flavor text. Legendary artwork receives one pair-derived
-  effect, masterpieces receive three eligible effects, and the active effect
-  can be selected in the reroll dialog. Active flavor text appears on item
-  cards, while behavior text, codes, parameters, and availability are editable
-  at <http://localhost:3000/admin/legendary-attributes>.
+- Legendary and masterpiece effects share the typed `artwork_effects`
+  collection. Each artwork references one effect through `effect_id`;
+  legendary effects link two distinct attributes and masterpiece effects link
+  one. Duplicate legendary pairs are allowed, new artwork receives the least
+  represented active effect with randomized tie-breaking, and effect metadata,
+  parameters, links, activity, and artwork counts are managed at
+  <http://localhost:3000/admin/legendary-attributes>.
 - Claimed items can be sold for their generated sell value or placed in the
   player's capacity-limited gallery. Only one copy of an artwork can be
   displayed at a time.

@@ -1,10 +1,12 @@
 import type { Db } from "mongodb";
 
-import type { Artwork, GameItem } from "./gameplay";
+import type { ArtworkEffect } from "./artwork-effects-core.ts";
+import {
+  getArtworkEffects,
+  getDisplayedArtworkEffect,
+} from "./artwork-effects.ts";
 import {
   deriveLegendaryAttributeIds,
-  normalizeLegendaryPair,
-  selectActiveLegendaryAttribute,
   type LegendaryAttribute,
 } from "./legendary-attributes-core.ts";
 
@@ -24,17 +26,19 @@ export const ART_DONOR_ATTRIBUTE_ID = "Yk2kk2mZtHetvbrY5";
 export const ART_DEALER_ATTRIBUTE_ID = "mZH58WpgbKP9o9WZR";
 export const ART_EXPERT_ATTRIBUTE_ID = "nwMiN3DFBgsKBNSar";
 export const AUCTIONEER_ATTRIBUTE_ID = "FgRMQA6s24wmTRyrx";
+export const ART_HISTORIAN_ATTRIBUTE_ID = "Z7wY5jXkDeckwfFLs";
+export const PRESERVATIONIST_ATTRIBUTE_ID = "zR2KgxYe4LQZKBAiE";
 
 export async function getLegendaryAttributes(
   database: Db,
   ids?: readonly string[],
 ): Promise<LegendaryAttribute[]> {
-  if (ids && ids.length === 0) return [];
-  return database
-    .collection<LegendaryAttribute>("unique_attributes")
-    .find(ids ? { _id: { $in: [...ids] } } : {})
-    .sort({ title: 1 })
-    .toArray();
+  const effects = await getArtworkEffects(database, ids);
+  return effects.filter(
+    (effect) =>
+      effect.effect_type === "legendary" &&
+      effect.linked_attributes.length === 2,
+  ) as LegendaryAttribute[];
 }
 
 export async function deriveArtworkLegendaryAttributeIds(
@@ -42,21 +46,24 @@ export async function deriveArtworkLegendaryAttributeIds(
   specialAttributeIds: readonly string[],
 ): Promise<string[]> {
   if (specialAttributeIds.length < 2) return [];
-  const linkedPairs = new Set<string>();
   const uniqueIds = [...new Set(specialAttributeIds)];
-  for (let left = 0; left < uniqueIds.length; left += 1) {
-    for (let right = left + 1; right < uniqueIds.length; right += 1) {
-      linkedPairs.add(
-        normalizeLegendaryPair([uniqueIds[left], uniqueIds[right]]),
-      );
-    }
-  }
 
   const matches = await database
-    .collection<LegendaryAttribute>("unique_attributes")
-    .find({ active: true, linked_pair: { $in: [...linkedPairs] } })
+    .collection<ArtworkEffect>("artwork_effects")
+    .find({
+      effect_type: "legendary",
+      active: true,
+      linked_attributes: { $all: uniqueIds, $size: 2 },
+    })
     .toArray();
-  return deriveLegendaryAttributeIds(specialAttributeIds, matches);
+  return deriveLegendaryAttributeIds(
+    specialAttributeIds,
+    matches.filter(
+      (effect) =>
+        effect.effect_type === "legendary" &&
+        effect.linked_attributes.length === 2,
+    ) as LegendaryAttribute[],
+  );
 }
 
 export async function getDisplayedLegendaryEffect(
@@ -64,71 +71,9 @@ export async function getDisplayedLegendaryEffect(
   playerId: string,
   code: string,
 ): Promise<LegendaryAttribute | null> {
-  const items = await database
-    .collection<GameItem>("items")
-    .find({
-      owner: playerId,
-      status: "displayed",
-      active_unique_attribute: { $type: "string" },
-    })
-    .project<Pick<GameItem, "active_unique_attribute">>({
-      active_unique_attribute: 1,
-    })
-    .toArray();
-  const activeIds = items
-    .map((item) => item.active_unique_attribute)
-    .filter((id): id is string => Boolean(id));
-  if (activeIds.length === 0) return null;
-
-  return database.collection<LegendaryAttribute>("unique_attributes").findOne({
-    _id: { $in: activeIds },
+  return (await getDisplayedArtworkEffect(
+    database,
+    playerId,
     code,
-    active: true,
-  });
-}
-
-export async function recomputeLegendaryAssignments(
-  database: Db,
-): Promise<void> {
-  const legendaryAttributes = await getLegendaryAttributes(database);
-  const artworks = await database
-    .collection<Artwork>("artworks")
-    .find({})
-    .project<Pick<Artwork, "_id" | "special_attributes">>({
-      special_attributes: 1,
-    })
-    .toArray();
-
-  for (const artwork of artworks) {
-    const uniqueAttributes = deriveLegendaryAttributeIds(
-      artwork.special_attributes ?? [],
-      legendaryAttributes,
-    );
-    await database
-      .collection<Artwork>("artworks")
-      .updateOne(
-        { _id: artwork._id },
-        { $set: { unique_attributes: uniqueAttributes } },
-      );
-
-    const items = await database
-      .collection<GameItem>("items")
-      .find({ artwork_id: artwork._id })
-      .project<Pick<GameItem, "_id" | "active_unique_attribute">>({
-        active_unique_attribute: 1,
-      })
-      .toArray();
-    for (const item of items) {
-      const activeUniqueAttribute = selectActiveLegendaryAttribute(
-        item.active_unique_attribute,
-        uniqueAttributes,
-      );
-      await database.collection<GameItem>("items").updateOne(
-        { _id: item._id },
-        activeUniqueAttribute
-          ? { $set: { active_unique_attribute: activeUniqueAttribute } }
-          : { $unset: { active_unique_attribute: "" } },
-      );
-    }
-  }
+  )) as LegendaryAttribute | null;
 }

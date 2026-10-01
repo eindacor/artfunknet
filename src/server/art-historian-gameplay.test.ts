@@ -3,11 +3,42 @@ import test from "node:test";
 
 import {
   calculateHistorianClaimXp,
+  calculateHistorianConditionSubmissionBonus,
   calculateHistorianReward,
   calculateMarketExpertMoneyMultiplier,
   getUnfulfilledHistorianTargetIds,
   isHistorianSpecialItem,
 } from "./art-historian-gameplay.ts";
+
+test("Historian condition bonus requires condition strictly above the threshold", () => {
+  assert.equal(
+    calculateHistorianConditionSubmissionBonus({
+      condition: 0.6,
+      questMoney: 1_000,
+      conditionMinimum: 0.6,
+      rewardCoefficient: 0.1,
+    }),
+    0,
+  );
+  assert.equal(
+    calculateHistorianConditionSubmissionBonus({
+      condition: 0.61,
+      questMoney: 1_000,
+      conditionMinimum: 0.6,
+      rewardCoefficient: 0.1,
+    }),
+    100,
+  );
+  assert.equal(
+    calculateHistorianConditionSubmissionBonus({
+      condition: 0.8,
+      questMoney: 1_000,
+      conditionMinimum: 0.6,
+      rewardCoefficient: 0.25,
+    }),
+    250,
+  );
+});
 
 test("Art Historian rewards preserve original rarity multipliers", () => {
   const common = calculateHistorianReward({

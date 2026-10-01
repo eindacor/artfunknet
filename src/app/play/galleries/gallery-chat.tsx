@@ -25,8 +25,12 @@ export default function GalleryChat({
   const [messages, setMessages] = useState<GalleryChatMessageView[]>([]);
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
-  const [hydrated, setHydrated] = useState(false);
   const [sending, setSending] = useState(false);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState("");
+  const [mutatingMessageId, setMutatingMessageId] = useState<string | null>(
+    null,
+  );
   const [error, setError] = useState("");
   const messageListRef = useRef<HTMLOListElement>(null);
   const endpoint = global
@@ -149,6 +153,80 @@ export default function GalleryChat({
     );
   }
 
+  async function saveEdit(
+    event: FormEvent<HTMLFormElement>,
+    messageId: string,
+  ) {
+    event.preventDefault();
+    const nextContent = editContent.trim();
+    if (!nextContent) return;
+    setMutatingMessageId(messageId);
+    setError("");
+    try {
+      const response = await fetch(
+        `${endpoint}/${encodeURIComponent(messageId)}`,
+        {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ content: nextContent }),
+        },
+      );
+      const body = (await response.json()) as {
+        error?: string;
+        message?: GalleryChatMessageView;
+      };
+      if (!response.ok || !body.message) {
+        throw new Error(body.error ?? "The message could not be edited.");
+      }
+      setMessages((current) =>
+        current.map((message) =>
+          message.id === messageId ? body.message! : message,
+        ),
+      );
+      setEditingMessageId(null);
+      setEditContent("");
+    } catch (editError) {
+      setError(
+        editError instanceof Error
+          ? editError.message
+          : "The message could not be edited.",
+      );
+    } finally {
+      setMutatingMessageId(null);
+    }
+  }
+
+  async function deleteMessage(messageId: string) {
+    if (!window.confirm("Delete this message?")) return;
+    setMutatingMessageId(messageId);
+    setError("");
+    try {
+      const response = await fetch(
+        `${endpoint}/${encodeURIComponent(messageId)}`,
+        { method: "DELETE" },
+      );
+      const body = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        throw new Error(body.error ?? "The message could not be deleted.");
+      }
+      setMessages((current) =>
+        current.filter((message) => message.id !== messageId),
+      );
+      if (editingMessageId === messageId) {
+        setEditingMessageId(null);
+        setEditContent("");
+      }
+    } catch (deleteError) {
+      setError(
+        deleteError instanceof Error
+          ? deleteError.message
+          : "The message could not be deleted.",
+      );
+    } finally {
+      setMutatingMessageId(null);
+    }
+  }
+
   function handleComposerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
@@ -210,31 +288,101 @@ export default function GalleryChat({
                     @{message.authorName}
                   </a>
                 )}
-                <time dateTime={message.createdAt}>
+                <time
+                  dateTime={message.createdAt}
+                  title={
+                    message.editedAt
+                      ? `Edited ${new Date(message.editedAt).toISOString()}`
+                      : undefined
+                  }
+                >
                   {new Date(message.createdAt).toISOString().slice(11, 16)}
+                  {message.editedAt ? "*" : ""}
                 </time>
-                <span className="gallery-chat-message">
-                  {message.tokens.map((token, index) => (
-                    <ChatToken key={`${message.id}-${index}`} token={token} />
-                  ))}
-                  <CommunityReactionPicker
-                    className="gallery-chat-reactions"
-                    onChange={(reactions) =>
-                      setMessages((current) =>
-                        current.map((candidate) =>
-                          candidate.id === message.id
-                            ? { ...candidate, reactions }
-                            : candidate,
-                        ),
-                      )
-                    }
-                    reactions={message.reactions}
-                    targetId={message.id}
-                    targetType="message"
-                  />
-                </span>
-                {message.authorId !== viewerId &&
+                {editingMessageId === message.id ? (
+                  <form
+                    className="gallery-chat-edit-form"
+                    onSubmit={(event) => void saveEdit(event, message.id)}
+                  >
+                    <textarea
+                      aria-label="Edit message"
+                      autoFocus
+                      maxLength={500}
+                      onChange={(event) => setEditContent(event.target.value)}
+                      rows={2}
+                      value={editContent}
+                    />
+                    <span>
+                      <button
+                        disabled={mutatingMessageId === message.id}
+                        type="submit"
+                      >
+                        Save
+                      </button>
+                      <button
+                        disabled={mutatingMessageId === message.id}
+                        onClick={() => {
+                          setEditingMessageId(null);
+                          setEditContent("");
+                        }}
+                        type="button"
+                      >
+                        Cancel
+                      </button>
+                    </span>
+                  </form>
+                ) : (
+                  <span className="gallery-chat-message">
+                    {message.tokens.map((token, index) => (
+                      <ChatToken key={`${message.id}-${index}`} token={token} />
+                    ))}
+                    <CommunityReactionPicker
+                      className="gallery-chat-reactions"
+                      onChange={(reactions) =>
+                        setMessages((current) =>
+                          current.map((candidate) =>
+                            candidate.id === message.id
+                              ? { ...candidate, reactions }
+                              : candidate,
+                          ),
+                        )
+                      }
+                      reactions={message.reactions}
+                      targetId={message.id}
+                      targetType="message"
+                    />
+                  </span>
+                )}
+                {message.authorId === viewerId &&
                 message.authorId !== ARTFUNKEL_SYSTEM_AUTHOR_ID ? (
+                  <span className="gallery-chat-message-actions">
+                    <button
+                      aria-label="Edit message"
+                      disabled={
+                        mutatingMessageId === message.id ||
+                        editingMessageId === message.id
+                      }
+                      onClick={() => {
+                        setEditingMessageId(message.id);
+                        setEditContent(message.content);
+                      }}
+                      title="Edit"
+                      type="button"
+                    >
+                      <i aria-hidden="true" className="fa fa-pencil" />
+                    </button>
+                    <button
+                      aria-label="Delete message"
+                      className="is-delete"
+                      disabled={mutatingMessageId === message.id}
+                      onClick={() => void deleteMessage(message.id)}
+                      title="Delete"
+                      type="button"
+                    >
+                      <i aria-hidden="true" className="fa fa-trash" />
+                    </button>
+                  </span>
+                ) : message.authorId !== ARTFUNKEL_SYSTEM_AUTHOR_ID ? (
                   <button
                     aria-label={
                       message.reportedByViewer
@@ -305,6 +453,19 @@ function ChatToken({ token }: { token: GalleryChatToken }) {
   }
   if (token.kind === "item") {
     return <ChatItemToken token={token} />;
+  }
+  if (token.kind === "missing-item") {
+    return (
+      <button
+        aria-label="Item is no longer available"
+        className="gallery-chat-item-link is-disabled"
+        disabled
+        title="Item is no longer available"
+        type="button"
+      >
+        <i aria-hidden="true" className="fa fa-picture-o" />
+      </button>
+    );
   }
   return token.text;
 }

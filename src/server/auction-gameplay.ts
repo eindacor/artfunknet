@@ -6,6 +6,7 @@ import {
   getUnfulfilledHistorianTargetIds,
   type ArtHistorianQuest,
 } from "./art-historian-gameplay.ts";
+import { getItemKarmaValue } from "./art-expert-gameplay.ts";
 import { getAuctionSettlementDisposition } from "./auction-settlement.ts";
 import { deleteCommunityReactions } from "./community-reaction-cleanup.ts";
 import { recordEconomyMetricsSafely } from "./economy-metrics.ts";
@@ -39,6 +40,11 @@ import {
   getDisplayedLegendaryEffect,
   getLegendaryNumberParameter,
 } from "./legendary-attributes.ts";
+import { getDisplayedArtworkEffect } from "./artwork-effects.ts";
+import {
+  getAuctionForgeryRefund,
+  MASTERPIECE_EFFECT_CODES,
+} from "./masterpiece-effects.ts";
 import { createPlayerNotification } from "./player-notifications.ts";
 import { sanitizePlayerFacingAuthenticity } from "./forgery-gameplay.ts";
 import {
@@ -55,6 +61,11 @@ export const AUCTION_HOUSE_OWNER_ID = "system:auction-house";
 const AUCTION_REPLENISHMENT_LEASE_MS = 2 * 60 * 1000;
 const AUCTION_HOUSE_STATE_ID = "auction-house-state";
 
+export type AuctionCommission = {
+  player_id: string;
+  coefficient: number;
+};
+
 export type Auction = {
   _id: string;
   item_id: string;
@@ -66,6 +77,7 @@ export type Auction = {
   minimum_bid: number;
   increment: number;
   buy_now: number | null;
+  commission?: AuctionCommission | null;
   current_winner_id: string | null;
   current_winner_name: string | null;
   has_bid: boolean;
@@ -160,6 +172,7 @@ export async function createAuction(
     viewer = "public",
     startingBid,
     buyNow,
+    commission = null,
     durationMinutes,
     now = new Date(),
   }: {
@@ -168,6 +181,7 @@ export async function createAuction(
     viewer?: "public" | string;
     startingBid: number;
     buyNow: number | null;
+    commission?: AuctionCommission | null;
     durationMinutes: number;
     now?: Date;
   },
@@ -184,6 +198,7 @@ export async function createAuction(
     minimum_bid: startingBid,
     increment,
     buy_now: buyNow,
+    commission,
     current_winner_id: null,
     current_winner_name: null,
     has_bid: false,
@@ -218,6 +233,192 @@ export async function createAuction(
   };
   await database.collection<Auction>("auctions").insertOne(auction);
   return auction;
+}
+
+export function getAuctionCommissionAmount(
+  auction: Pick<Auction, "commission" | "current_bid">,
+): number {
+  if (!auction.commission) return 0;
+  const coefficient = Number.isFinite(auction.commission.coefficient)
+    ? Math.min(Math.max(auction.commission.coefficient, 0), 1)
+    : 0;
+  return Math.floor(Math.max(0, auction.current_bid) * coefficient);
+}
+
+export async function createCollectorResaleAuction(
+  database: Db,
+  item: HydratedGameItem,
+  {
+    playerId,
+    collectorReward,
+    commissionCoefficient,
+    now = new Date(),
+  }: {
+    playerId: string;
+    collectorReward: number;
+    commissionCoefficient: number;
+    now?: Date;
+  },
+): Promise<Auction> {
+  const transferred = await database.collection<GameItem>("items").updateOne(
+    {
+      _id: item._id,
+      owner: playerId,
+      status: "collector_pending",
+    },
+    {
+      $set: {
+        owner: AUCTION_HOUSE_OWNER_ID,
+        status: "auctioned",
+        tags: [],
+        date_received: now.toISOString(),
+      },
+      $push: {
+        transaction_history: {
+          type: "transfer",
+          from_owner: playerId,
+          to_owner: AUCTION_HOUSE_OWNER_ID,
+          occurred_at: now.toISOString(),
+          source: "art collector auction",
+          amount: collectorReward,
+        },
+      },
+    },
+  );
+  if (transferred.modifiedCount !== 1) {
+    throw new Error("The Collector artwork could not enter public auction.");
+  }
+
+  try {
+    return await createAuction(database, item, {
+      sellerId: null,
+      sellerName: "Auction House",
+      startingBid: Math.max(1, item.values.auction_min),
+      buyNow: null,
+      commission: {
+        player_id: playerId,
+        coefficient: Math.min(Math.max(commissionCoefficient, 0), 1),
+      },
+      durationMinutes: PUBLIC_AUCTION_DURATION_MINUTES,
+      now,
+    });
+  } catch (error) {
+    await database.collection<GameItem>("items").updateOne(
+      {
+        _id: item._id,
+        owner: AUCTION_HOUSE_OWNER_ID,
+        status: "auctioned",
+      },
+      {
+        $set: {
+          owner: playerId,
+          status: "collector_pending",
+          tags: item.tags,
+          date_received: item.date_received,
+        },
+        $pop: { transaction_history: 1 },
+      },
+    );
+    throw error;
+  }
+}
+
+export async function rollbackCollectorResaleAuction(
+  database: Db,
+  auction: Pick<Auction, "_id" | "item_id">,
+  item: HydratedGameItem,
+  playerId: string,
+): Promise<void> {
+  const removed = await database.collection<Auction>("auctions").deleteOne({
+    _id: auction._id,
+    item_id: auction.item_id,
+  });
+  if (removed.deletedCount !== 1) {
+    throw new Error("The Collector resale auction could not be rolled back.");
+  }
+  const restored = await database.collection<GameItem>("items").updateOne(
+    {
+      _id: item._id,
+      owner: AUCTION_HOUSE_OWNER_ID,
+      status: "auctioned",
+    },
+    {
+      $set: {
+        owner: playerId,
+        status: "collector_pending",
+        tags: item.tags,
+        date_received: item.date_received,
+      },
+      $pop: { transaction_history: 1 },
+    },
+  );
+  if (restored.modifiedCount !== 1) {
+    throw new Error("The Collector resale item could not be rolled back.");
+  }
+}
+
+export async function makePrivateAuctionsPublic(
+  database: Db,
+  playerId: string,
+  auctionIds: readonly string[],
+  commissionCoefficient: number,
+  now = new Date(),
+): Promise<string[]> {
+  if (auctionIds.length === 0) return [];
+  const uniqueAuctionIds = [...new Set(auctionIds)];
+  const eligible = await database
+    .collection<Auction>("auctions")
+    .find({
+      _id: { $in: uniqueAuctionIds },
+      viewer: playerId,
+      expiration: { $gt: now.toISOString() },
+      settlement_status: { $ne: "settling" },
+    })
+    .project<Pick<Auction, "_id">>({ _id: 1 })
+    .toArray();
+  if (eligible.length === 0) return [];
+
+  const eligibleIds = eligible.map((auction) => auction._id);
+  await database.collection<Auction>("auctions").updateMany(
+    {
+      _id: { $in: eligibleIds },
+      viewer: playerId,
+      expiration: { $gt: now.toISOString() },
+      settlement_status: { $ne: "settling" },
+    },
+    {
+      $set: {
+        viewer: "public",
+        commission: {
+          player_id: playerId,
+          coefficient: Math.min(Math.max(commissionCoefficient, 0), 1),
+        },
+      },
+    },
+  );
+  const converted = await database
+    .collection<Auction>("auctions")
+    .find({
+      _id: { $in: eligibleIds },
+      viewer: "public",
+      "commission.player_id": playerId,
+    })
+    .project<Pick<Auction, "_id">>({ _id: 1 })
+    .toArray();
+  const convertedIds = converted.map((auction) => auction._id);
+  if (convertedIds.length > 0) {
+    await database.collection<AuctionDismissalPlayer>("players").updateOne(
+      { _id: playerId },
+      {
+        $pull: {
+          "profile.dismissed_private_auction_ids": {
+            $in: convertedIds,
+          },
+        },
+      },
+    );
+  }
+  return convertedIds;
 }
 
 export type AuctionXpRewardResult = {
@@ -488,8 +689,10 @@ export async function settleAuction(
 
   const items = database.collection<GameItem>("items");
   let sellerPaid = false;
+  let commissionPaid = 0;
   let winnerStatsTracked = false;
   let itemTransferred = false;
+  let winnerKarma = 0;
   try {
     if (
       getAuctionSettlementDisposition({
@@ -571,6 +774,24 @@ export async function settleAuction(
       await resetSettlement(database, auction._id);
       return false;
     }
+    const [authenticationEffect, auctionKarmaEffect] = await Promise.all([
+      getDisplayedArtworkEffect(
+        database,
+        auction.current_winner_id,
+        MASTERPIECE_EFFECT_CODES.auctionAuthentication,
+      ),
+      getDisplayedLegendaryEffect(
+        database,
+        auction.current_winner_id,
+        "KNOWLEDGE_FOR_AUCTION_WINS",
+      ),
+    ]);
+    winnerKarma = auctionKarmaEffect
+      ? getItemKarmaValue(
+          auction.item_snapshot.rarity,
+          auctionItem.level,
+        )
+      : 0;
     let conditionRestored = false;
     let conditionUpdate: Partial<Pick<GameItem, "condition" | "values">> = {};
     try {
@@ -647,6 +868,25 @@ export async function settleAuction(
       }
       sellerPaid = true;
     }
+    const commissionAmount = getAuctionCommissionAmount(auction);
+    if (auction.commission && commissionAmount > 0) {
+      const paid = await database.collection<AuctionPlayer>("players").updateOne(
+        { _id: auction.commission.player_id },
+        { $inc: { "profile.bank_balance": commissionAmount } },
+      );
+      if (paid.modifiedCount !== 1) {
+        if (sellerPaid && auction.seller_id) {
+          await database.collection<AuctionPlayer>("players").updateOne(
+            { _id: auction.seller_id },
+            { $inc: { "profile.bank_balance": -auction.current_bid } },
+          );
+          sellerPaid = false;
+        }
+        await resetSettlement(database, auction._id);
+        return false;
+      }
+      commissionPaid = commissionAmount;
+    }
     const trackedWinner = await database
       .collection<AuctionPlayer>("players")
       .updateOne(
@@ -655,6 +895,7 @@ export async function settleAuction(
           $inc: {
             "profile.playthrough_stats.items_collected": 1,
             "profile.playthrough_stats.money_spent": auction.current_bid,
+            "profile.karma": winnerKarma,
           },
         },
       );
@@ -664,6 +905,13 @@ export async function settleAuction(
           { _id: auction.seller_id },
           { $inc: { "profile.bank_balance": -auction.current_bid } },
         );
+      }
+      if (commissionPaid > 0 && auction.commission) {
+        await database.collection<AuctionPlayer>("players").updateOne(
+          { _id: auction.commission.player_id },
+          { $inc: { "profile.bank_balance": -commissionPaid } },
+        );
+        commissionPaid = 0;
       }
       await resetSettlement(database, auction._id);
       return false;
@@ -677,7 +925,8 @@ export async function settleAuction(
           status: "claimed",
           tags: [],
           date_received: now,
-          "authenticity.identified": auction.seller_id === null,
+          "authenticity.identified":
+            auction.seller_id === null || Boolean(authenticationEffect),
           "authenticity.fee": auction.current_bid,
           "authenticity.liability_pending": auction.seller_id !== null,
         },
@@ -704,6 +953,7 @@ export async function settleAuction(
           $inc: {
             "profile.playthrough_stats.items_collected": -1,
             "profile.playthrough_stats.money_spent": -auction.current_bid,
+            "profile.karma": -winnerKarma,
           },
         },
       );
@@ -713,10 +963,65 @@ export async function settleAuction(
           { $inc: { "profile.bank_balance": -auction.current_bid } },
         );
       }
+      if (commissionPaid > 0 && auction.commission) {
+        await database.collection<AuctionPlayer>("players").updateOne(
+          { _id: auction.commission.player_id },
+          { $inc: { "profile.bank_balance": -commissionPaid } },
+        );
+        commissionPaid = 0;
+      }
       await resetSettlement(database, auction._id);
       return false;
     }
     itemTransferred = true;
+    if (authenticationEffect && auctionItem.authenticity.forgery) {
+      const refund = getAuctionForgeryRefund(
+        authenticationEffect,
+        auction.current_bid,
+      );
+      const destroyed = await items.deleteOne({
+        _id: auction.item_id,
+        owner: auction.current_winner_id,
+        status: "claimed",
+      });
+      if (destroyed.deletedCount !== 1) {
+        throw new Error("Authenticated auction forgery could not be destroyed.");
+      }
+      itemTransferred = false;
+      if (refund > 0) {
+        await database.collection<AuctionPlayer>("players").updateOne(
+          { _id: auction.current_winner_id, active: true },
+          { $inc: { "profile.bank_balance": refund } },
+        );
+      }
+      await removeSettledAuctionRecord(database, auction);
+      await recordEconomyMetricsSafely(database, [
+        {
+          amount: refund,
+          currency: "money",
+          direction: "earned",
+          source: "auction-forgery-refund",
+        },
+        {
+          amount: auctionItem.values.actual,
+          currency: "items",
+          direction: "spent",
+          source: "auction-forgery-destroyed",
+        },
+        {
+          amount: commissionPaid,
+          currency: "money",
+          direction: "earned",
+          source: "auction-commission",
+        },
+      ]);
+      await notifyAuctionPayoutRecipients(database, auction, commissionPaid);
+      await safelyNotify(database, auction.current_winner_id, {
+        kind: "warning",
+        message: `${auction.item_snapshot.title} was authenticated for free, identified as a forgery, destroyed, and refunded $${refund.toLocaleString()}.${winnerKarma > 0 ? ` The auction win earned ${winnerKarma.toLocaleString()} Karma.` : ""}`,
+      });
+      return true;
+    }
     if (conditionRestored) {
       try {
         const restoration = await items.updateOne(
@@ -755,6 +1060,16 @@ export async function settleAuction(
             },
           ]
         : []),
+      ...(commissionPaid > 0
+        ? [
+            {
+              amount: commissionPaid,
+              currency: "money" as const,
+              direction: "earned" as const,
+              source: "auction-commission",
+            },
+          ]
+        : []),
       {
         amount: auctionItem.values.actual,
         currency: "items",
@@ -762,13 +1077,14 @@ export async function settleAuction(
         source: "auction-win",
       },
     ]);
+    await notifyAuctionPayoutRecipients(database, auction, commissionPaid);
     await safelyNotify(database, auction.current_winner_id, {
       kind: "success",
       message: `You won ${auction.item_snapshot.title} for $${auction.current_bid.toLocaleString()}${
         conditionRestored
           ? `, and its condition was restored to ${Math.floor((conditionUpdate.condition ?? auctionItem.condition) * 100)}%`
           : ""
-      }.`,
+      }${winnerKarma > 0 ? ` and earned ${winnerKarma.toLocaleString()} Karma` : ""}.`,
     });
     const winner = await database.collection<AuctionPlayer>("players").findOne({
       _id: auction.current_winner_id,
@@ -801,6 +1117,7 @@ export async function settleAuction(
             $inc: {
               "profile.playthrough_stats.items_collected": -1,
               "profile.playthrough_stats.money_spent": -auction.current_bid,
+              "profile.karma": -winnerKarma,
             },
           },
         ).catch((rollbackError) => {
@@ -817,6 +1134,17 @@ export async function settleAuction(
         ).catch((rollbackError) => {
           console.error(
             `Unable to roll back seller payout for auction ${auction._id}`,
+            rollbackError,
+          );
+        });
+      }
+      if (commissionPaid > 0 && auction.commission) {
+        await database.collection<AuctionPlayer>("players").updateOne(
+          { _id: auction.commission.player_id },
+          { $inc: { "profile.bank_balance": -commissionPaid } },
+        ).catch((rollbackError) => {
+          console.error(
+            `Unable to roll back commission payout for auction ${auction._id}`,
             rollbackError,
           );
         });
@@ -919,6 +1247,25 @@ async function safelyNotify(
     });
   } catch (error) {
     console.error(`Unable to create auction notification for ${userId}`, error);
+  }
+}
+
+async function notifyAuctionPayoutRecipients(
+  database: Db,
+  auction: Auction,
+  commissionPaid: number,
+) {
+  if (auction.seller_id) {
+    await safelyNotify(database, auction.seller_id, {
+      kind: "success",
+      message: `${auction.item_snapshot.title} sold at auction for $${auction.current_bid.toLocaleString()}. The proceeds were added to your balance.`,
+    });
+  }
+  if (commissionPaid > 0 && auction.commission) {
+    await safelyNotify(database, auction.commission.player_id, {
+      kind: "success",
+      message: `${auction.item_snapshot.title} sold at auction for $${auction.current_bid.toLocaleString()}, earning you a $${commissionPaid.toLocaleString()} commission.`,
+    });
   }
 }
 

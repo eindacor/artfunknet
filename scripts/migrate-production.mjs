@@ -1,6 +1,9 @@
 import { MongoClient, ServerApiVersion } from "mongodb";
 
-import { migrateHallOfFameAndPlaythroughStorage } from "./database-migrations.mjs";
+import {
+  migrateArtworkEffects,
+  migrateHallOfFameAndPlaythroughStorage,
+} from "./database-migrations.mjs";
 
 const uri = process.env.MONGODB_URI;
 const databaseName = process.env.MONGODB_DB ?? "artfunkel";
@@ -21,6 +24,7 @@ try {
   console.log("[MONGO-CONNECT] migrate-production.mjs: connecting");
   await client.connect();
   await migrateHallOfFameAndPlaythroughStorage(client.db(databaseName));
+  await migrateArtworkEffects(client.db(databaseName));
   console.log(
     JSON.stringify({
       timestamp: new Date().toISOString(),

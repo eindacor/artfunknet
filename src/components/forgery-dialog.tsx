@@ -311,7 +311,6 @@ function createPreviewItem(
     mint: selected.has("mint"),
     mint_value_multiplier: selected.has("mint") ? 1.5 : 1,
     attributes: { locked: [], unlocked: [], special: [] },
-    active_unique_attribute: archive.artwork.unique_attributes?.[0],
     card_renderer: artStyle,
     owner: "forgery-preview",
     transaction_history: [],

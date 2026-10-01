@@ -12,10 +12,9 @@ import {
   type ArtworkStorageReference,
 } from "@/server/artwork-storage";
 import {
-  getSpecialAttributeCount,
   type ArtworkRarity,
 } from "@/server/gameplay";
-import { deriveArtworkLegendaryAttributeIds } from "@/server/legendary-attributes";
+import { withLeastRepresentedArtworkEffect } from "@/server/artwork-effects";
 import { getDatabase } from "@/server/mongodb";
 import {
   createOperationId,
@@ -38,9 +37,7 @@ type ArtworkDraft = {
   genre?: string;
   medium?: string;
   rarity?: string;
-  value_scale?: string | number;
   height?: string | number;
-  special_attribute_ids?: unknown;
   nsfw?: boolean;
 };
 
@@ -51,9 +48,7 @@ type ValidatedArtwork = {
   genre: string;
   medium: string;
   rarity: (typeof RARITIES)[number];
-  value_scale: number;
   height: number;
-  special_attribute_ids: string[];
   nsfw: boolean;
 };
 
@@ -124,23 +119,6 @@ export async function POST(
       { status: 400 },
     );
   }
-
-  const activeAttributeCount = await database
-    .collection<{ _id: string; active: boolean }>("attributes")
-    .countDocuments({
-      _id: { $in: validation.value.special_attribute_ids },
-      active: true,
-    });
-  if (activeAttributeCount !== validation.value.special_attribute_ids.length) {
-    return NextResponse.json(
-      { error: "Select only active artwork attributes." },
-      { status: 400 },
-    );
-  }
-  const uniqueAttributeIds = await deriveArtworkLegendaryAttributeIds(
-    database,
-    validation.value.special_attribute_ids,
-  );
 
   const localSources = submission.image.sources.filter(
     (source): source is { source_path: string } =>
@@ -213,7 +191,7 @@ export async function POST(
       ).toFixed(2),
     );
     const now = new Date();
-    const artwork = {
+    const baseArtwork = {
       _id: artworkId,
       artist_id: artist._id,
       artist: artist.artist_name,
@@ -222,24 +200,57 @@ export async function POST(
       genre: validation.value.genre,
       medium: validation.value.medium,
       rarity: validation.value.rarity,
-      value_scale: validation.value.value_scale,
+      value_scale: Math.random(),
       height: validation.value.height,
       width: calculatedWidth,
       image_width: pixelDimensions.width,
       image_height: pixelDimensions.height,
       nsfw: validation.value.nsfw,
       active: true,
-      special_attributes: validation.value.special_attribute_ids,
-      unique_attributes: uniqueAttributeIds,
       image: publishedImage,
       market_data: {},
       created_at: now,
       created_from_submission: submission._id,
     };
 
-    const artworkUpdate = await database
-      .collection<typeof artwork>("artworks")
-      .updateOne({ _id: artworkId }, { $setOnInsert: artwork }, { upsert: true });
+    const insertArtwork = async (
+      effect?: { _id: string; linked_attributes: readonly string[] },
+    ) => {
+      const specialAttributes =
+        validation.value.rarity === "rare"
+          ? (
+              await database
+                .collection<{ _id: string }>("attributes")
+                .aggregate<{ _id: string }>([
+                  { $match: { active: true } },
+                  { $sample: { size: 1 } },
+                ])
+                .toArray()
+            ).map((attribute) => attribute._id)
+          : [];
+      if (validation.value.rarity === "rare" && specialAttributes.length !== 1) {
+        throw new Error("No active artwork attribute is available.");
+      }
+      const artwork = {
+        ...baseArtwork,
+        ...(effect ? { effect_id: effect._id } : {}),
+        ...(specialAttributes.length
+          ? { special_attributes: specialAttributes }
+          : {}),
+      };
+      return database
+        .collection<typeof artwork>("artworks")
+        .updateOne({ _id: artworkId }, { $setOnInsert: artwork }, { upsert: true });
+    };
+    const artworkUpdate =
+      validation.value.rarity === "legendary" ||
+      validation.value.rarity === "masterpiece"
+        ? await withLeastRepresentedArtworkEffect(
+            database,
+            validation.value.rarity,
+            insertArtwork,
+          )
+        : await insertArtwork();
     artworkCreated = artworkUpdate.upsertedCount === 1;
     const submissionUpdate = await database
       .collection<Submission>("artwork_submissions")
@@ -330,17 +341,7 @@ function validateDraft(
   const genre = draft.genre?.trim();
   const medium = draft.medium?.trim();
   const date = Number(draft.date);
-  const valueScale = Number(draft.value_scale);
   const height = Number(draft.height);
-  const specialAttributeIds = Array.isArray(draft.special_attribute_ids)
-    ? [
-        ...new Set(
-          draft.special_attribute_ids.filter(
-            (value): value is string => typeof value === "string",
-          ),
-        ),
-      ]
-    : [];
 
   if (!artistId || !title || !genre || !medium) {
     return { ok: false, error: "Complete all required text fields." };
@@ -350,20 +351,8 @@ function validateDraft(
     return { ok: false, error: "Select a valid rarity." };
   }
   const rarity = draft.rarity as ArtworkRarity;
-  const expectedSpecialAttributes = getSpecialAttributeCount(rarity);
-  if (specialAttributeIds.length !== expectedSpecialAttributes) {
-    return {
-      ok: false,
-      error: `${rarity} artwork requires ${expectedSpecialAttributes} special attribute${expectedSpecialAttributes === 1 ? "" : "s"}.`,
-    };
-  }
-
   if (!Number.isFinite(date)) {
     return { ok: false, error: "Creation date must be numeric." };
-  }
-
-  if (!Number.isFinite(valueScale) || valueScale < 0 || valueScale > 1) {
-    return { ok: false, error: "Value scale must be between 0 and 1." };
   }
 
   if (!Number.isFinite(height) || height <= 0) {
@@ -379,9 +368,7 @@ function validateDraft(
       genre,
       medium,
       rarity,
-      value_scale: valueScale,
       height,
-      special_attribute_ids: specialAttributeIds,
       nsfw: draft.nsfw === true,
     },
   };

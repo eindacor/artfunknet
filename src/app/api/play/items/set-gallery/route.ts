@@ -97,7 +97,10 @@ export async function POST(request: Request) {
     for (const itemId of plan.displayIds) {
       const item = selectedById.get(itemId);
       if (!item) continue;
-      displayUpdates.set(itemId, await getDemintUpdate(database, item));
+      displayUpdates.set(
+        itemId,
+        await getDemintUpdate(database, item, { status: "displayed" }),
+      );
     }
   } catch (error) {
     console.error("Unable to prepare Set Gallery value updates", error);

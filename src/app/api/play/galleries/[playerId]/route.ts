@@ -5,7 +5,7 @@ import {
   refreshGalleryMetadata,
 } from "@/server/gallery-metadata";
 import { getCommunityReactionSummary } from "@/server/community-reactions";
-import { getLegendaryAttributes } from "@/server/legendary-attributes";
+import { getArtworkEffects } from "@/server/artwork-effects";
 import type { GameItem } from "@/server/gameplay";
 import { hydrateGameItems } from "@/server/item-artwork";
 import { getDatabase } from "@/server/mongodb";
@@ -80,16 +80,16 @@ export async function GET(
         ]
       : [];
   });
-  const legendaryIds = [
+  const effectIds = [
     ...new Set(
       [...gallery.items, ...auctionItems]
-        .map((item) => item.active_unique_attribute)
+        .map((item) => item.artwork.effect_id)
         .filter((id): id is string => Boolean(id)),
     ),
   ];
-  const [npcs, legendaryAttributes, reactions] = await Promise.all([
+  const [npcs, artworkEffects, reactions] = await Promise.all([
     getGalleryNpcs(database, playerId),
-    getLegendaryAttributes(database, legendaryIds),
+    getArtworkEffects(database, effectIds),
     getCommunityReactionSummary(
       database,
       "gallery",
@@ -107,7 +107,7 @@ export async function GET(
       ...npc,
       alreadyMet: npc.players_met.includes(auth.session.playerId),
     })),
-    legendaryAttributes: legendaryAttributes.map((attribute) => ({
+    legendaryAttributes: artworkEffects.map((attribute) => ({
       id: attribute._id,
       title: attribute.title,
       description: attribute.description,

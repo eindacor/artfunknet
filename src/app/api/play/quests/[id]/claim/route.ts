@@ -30,6 +30,12 @@ import {
   getDisplayedLegendaryEffect,
   getLegendaryNumberParameter,
 } from "@/server/legendary-attributes";
+import {
+  getArtworkEffectNumberParameter,
+  getDisplayedArtworkEffect,
+} from "@/server/artwork-effects";
+import { addItemToArchiveRecord } from "@/server/archive-storage";
+import { MASTERPIECE_EFFECT_CODES } from "@/server/masterpiece-effects";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
 
@@ -95,9 +101,36 @@ export async function POST(
       .map((target) => target.item_snapshot)
       .filter((item) => item.authenticity.forgery),
   );
-  const caughtForgeries = hydratedCreditedItems.filter((item) =>
-    rollForgeryDetected(item, "quest"),
+  const historianArchiveEffect = await getDisplayedArtworkEffect(
+    database,
+    player._id,
+    MASTERPIECE_EFFECT_CODES.historianArchive,
   );
+  const detectionReduction = getArtworkEffectNumberParameter(
+    historianArchiveEffect,
+    "detection_reduction",
+    0.35,
+  );
+  const caughtForgeries = hydratedCreditedItems.filter((item) =>
+    rollForgeryDetected(
+      item,
+      "quest",
+      Math.random,
+      false,
+      historianArchiveEffect ? detectionReduction : 0,
+    ),
+  );
+  if (historianArchiveEffect) {
+    await Promise.all(
+      fulfilledTargets.map((target) =>
+        addItemToArchiveRecord(
+          database,
+          { ...target.item_snapshot, owner: player._id },
+          new Date().toISOString(),
+        ),
+      ),
+    );
+  }
 
   const specialTargetCount = fulfilledTargets.filter(
     (target) => target.special,

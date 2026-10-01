@@ -109,6 +109,23 @@ export function getUnfulfilledHistorianTargetIds(
   );
 }
 
+export function calculateHistorianConditionSubmissionBonus({
+  condition,
+  questMoney,
+  conditionMinimum,
+  rewardCoefficient,
+}: {
+  condition: number;
+  questMoney: number;
+  conditionMinimum: number;
+  rewardCoefficient: number;
+}): number {
+  const minimum = Math.min(Math.max(conditionMinimum, 0), 1);
+  if (condition <= minimum) return 0;
+  const coefficient = Math.min(Math.max(rewardCoefficient, 0), 1);
+  return Math.floor(Math.max(0, questMoney) * coefficient);
+}
+
 type HistorianPlayer = {
   _id: string;
   profile: {
