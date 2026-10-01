@@ -140,6 +140,12 @@ type LootCrateOffer = Omit<CrateOfferView, "id" | "quality"> & {
   quality: CrateOfferView["quality"] | "daily";
 };
 
+type LootEntry = {
+  key: string;
+  item: HydratedGameItem;
+  auction: AuctionView | null;
+};
+
 type LegendaryAttributeView = CardLegendaryAttribute;
 
 type LinkedItemView = {
@@ -519,19 +525,43 @@ export default function GameDashboard({
       privateAuctions,
     ],
   );
-  const lootEntries = useMemo(
+  const unclaimedLootEntries = useMemo<LootEntry[]>(
     () =>
-      [
-        ...unclaimed.map((item) => ({
-          key: item._id,
-          item,
-          auction: null,
-        })),
-        ...activePrivateAuctionLoot.map((auction) => ({
+      unclaimed
+        .filter((item) => item.status === "unclaimed")
+        .map((item) => ({ key: item._id, item, auction: null })),
+    [unclaimed],
+  );
+  const forSaleLootEntries = useMemo<LootEntry[]>(
+    () =>
+      unclaimed
+        .filter((item) => item.status === "for_sale")
+        .map((item) => ({ key: item._id, item, auction: null })),
+    [unclaimed],
+  );
+  const privateAuctionLootEntries = useMemo<LootEntry[]>(
+    () =>
+      activePrivateAuctionLoot
+        .map((auction) => ({
           key: `auction:${auction._id}`,
           item: auction.item,
           auction,
-        })),
+        }))
+        .sort(
+          (left, right) =>
+            right.item.values.actual - left.item.values.actual ||
+            Date.parse(right.item.date_created) -
+              Date.parse(left.item.date_created) ||
+            left.key.localeCompare(right.key),
+        ),
+    [activePrivateAuctionLoot],
+  );
+  const lootEntries = useMemo(
+    () =>
+      [
+        ...unclaimedLootEntries,
+        ...forSaleLootEntries,
+        ...privateAuctionLootEntries,
       ].sort(
         (left, right) =>
           right.item.values.actual - left.item.values.actual ||
@@ -539,7 +569,7 @@ export default function GameDashboard({
             Date.parse(left.item.date_created) ||
           left.key.localeCompare(right.key),
       ),
-    [activePrivateAuctionLoot, unclaimed],
+    [forSaleLootEntries, privateAuctionLootEntries, unclaimedLootEntries],
   );
   const selectedLootEntry =
     lootEntries.find((entry) => entry.key === selectedLootItemId) ??
@@ -596,7 +626,7 @@ export default function GameDashboard({
       ),
     [bulkSaleProtections, unfoundQuestTargetArtworkIds, unclaimed],
   );
-  const bulkDeclinablePrivateAuctions = useMemo(
+  const bulkDismissiblePrivateAuctions = useMemo(
     () =>
       activePrivateAuctionLoot.filter(
         (auction) =>
@@ -617,12 +647,6 @@ export default function GameDashboard({
       unfoundQuestTargetArtworkIds,
     ],
   );
-  const hasClaimableLoot = unclaimed.some(
-    (item) => item.status === "unclaimed",
-  );
-  const hasPurchasableLoot = unclaimed.some(
-    (item) => item.status === "for_sale",
-  ) || activePrivateAuctionLoot.length > 0;
   const inventory = useMemo(
     () =>
       items.filter(
@@ -1003,7 +1027,6 @@ export default function GameDashboard({
       });
       const body = (await response.json()) as {
         declined?: number;
-        declinedPrivateAuctionIds?: string[];
         error?: string;
         message?: string;
       };
@@ -1013,14 +1036,39 @@ export default function GameDashboard({
       }
       setNotice(body.message ?? "Offers declined.");
       setSelectedLootItemId(null);
-      const declinedAuctionIds = new Set(
-        body.declinedPrivateAuctionIds ?? [],
+      router.refresh();
+    });
+  }
+
+  function dismissAllLoot() {
+    setError("");
+    setNotice("");
+    startTransition(async () => {
+      const response = await fetch("/api/play/auctions/dismiss-all", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(bulkSaleProtections),
+      });
+      const body = (await response.json()) as {
+        dismissed?: number;
+        dismissedPrivateAuctionIds?: string[];
+        error?: string;
+        message?: string;
+      };
+      if (!response.ok || body.dismissed === undefined) {
+        setError(body.error ?? "The private auctions could not be dismissed.");
+        return;
+      }
+      setNotice(body.message ?? "Private auctions dismissed.");
+      setSelectedLootItemId(null);
+      const dismissedAuctionIds = new Set(
+        body.dismissedPrivateAuctionIds ?? [],
       );
       setCreatedPrivateAuctions((current) =>
-        current.filter((auction) => !declinedAuctionIds.has(auction._id)),
+        current.filter((auction) => !dismissedAuctionIds.has(auction._id)),
       );
       setDismissedPrivateAuctionIds((current) => [
-        ...new Set([...current, ...declinedAuctionIds]),
+        ...new Set([...current, ...dismissedAuctionIds]),
       ]);
       router.refresh();
     });
@@ -1881,9 +1929,41 @@ export default function GameDashboard({
     );
   }
 
+  function renderLootThumbnail({ auction, item, key }: LootEntry) {
+    const revealIndex = auction
+      ? -1
+      : revealedLootIds.indexOf(item._id);
+    return (
+      <button
+        aria-label={`Preview ${item.artwork.title} by ${item.artwork.artist}`}
+        aria-pressed={selectedLootEntry?.key === key}
+        className={`${selectedLootEntry?.key === key ? "selected" : ""} ${
+          revealIndex >= 0 ? "loot-item-reveal" : ""
+        }`.trim()}
+        data-rarity={item.artwork.rarity}
+        key={key}
+        onClick={() => setSelectedLootItemId(key)}
+        style={
+          revealIndex >= 0
+            ? { animationDelay: `${revealIndex * 110}ms` }
+            : undefined
+        }
+        title={`${item.artwork.title} by ${item.artwork.artist}`}
+        type="button"
+      >
+        <ItemThumbnail
+          alt=""
+          item={item}
+          researchTarget={unfoundQuestTargetArtworkIds.has(item.artwork_id)}
+          size={82}
+        />
+      </button>
+    );
+  }
+
   return (
     <main className="legacy-game">
-      <div className="max-w-[1280px] m-auto">
+      <div className="max-w-[1800px] m-auto">
         <section
           aria-label="Player progress"
           className="dashboard-resource-bars"
@@ -2138,44 +2218,152 @@ export default function GameDashboard({
                   </button>
                 ) : null}
               </section>
-              <section className="loot-items-panel">
-                {lootEntries.length > 0 && selectedLootItem ? (
-                  <div className="loot-items-content">
-                    <div className="collection-thumbnail-list loot-thumbnail-grid">
-                      {lootEntries.map(({ auction, item, key }) => {
-                        const revealIndex = auction
-                          ? -1
-                          : revealedLootIds.indexOf(item._id);
-                        return (
-                          <button
-                            aria-label={`Preview ${item.artwork.title} by ${item.artwork.artist}`}
-                            aria-pressed={selectedLootEntry?.key === key}
-                            className={`${selectedLootEntry?.key === key ? "selected" : ""} ${
-                              revealIndex >= 0 ? "loot-item-reveal" : ""
-                            }`.trim()}
-                            data-rarity={item.artwork.rarity}
-                            key={key}
-                            onClick={() => setSelectedLootItemId(key)}
-                            style={
-                              revealIndex >= 0
-                                ? { animationDelay: `${revealIndex * 110}ms` }
-                                : undefined
-                            }
-                            title={`${item.artwork.title} by ${item.artwork.artist}`}
-                            type="button"
-                          >
-                            <ItemThumbnail
-                              alt=""
-                              item={item}
-                              researchTarget={unfoundQuestTargetArtworkIds.has(
-                                item.artwork_id,
-                              )}
-                              size={82}
-                            />
-                          </button>
-                        );
-                      })}
-                    </div>
+              {lootEntries.length > 0 ? (
+                <section className="loot-items-panel">
+                <div className="loot-items-content">
+                  <div className="loot-section-list">
+                    {unclaimedLootEntries.length > 0 ? (
+                      <section
+                        aria-labelledby="unclaimed-loot-heading"
+                        className="loot-section"
+                      >
+                        <header className="loot-section-header">
+                          <div>
+                            <h2 id="unclaimed-loot-heading">Unclaimed</h2>
+                            <small>
+                              {unclaimedLootEntries.length.toLocaleString()}{" "}
+                              {unclaimedLootEntries.length === 1
+                                ? "artwork"
+                                : "artworks"}
+                            </small>
+                          </div>
+                          <div className="loot-section-actions">
+                            <button
+                              className="sell-all-loot"
+                              disabled={
+                                pending || bulkSellableLoot.length === 0
+                              }
+                              onClick={sellAllLoot}
+                              type="button"
+                            >
+                              <i aria-hidden="true" className="fa fa-usd" />{" "}
+                              Sell all
+                              {sellAllEarnings ? (
+                                <span
+                                  className="sell-all-earnings"
+                                  key={sellAllEarnings.animationId}
+                                >
+                                  +${sellAllEarnings.amount.toLocaleString()}
+                                </span>
+                              ) : null}
+                            </button>
+                            <button
+                              className="donate-all-loot"
+                              disabled={
+                                pending || bulkSellableLoot.length === 0
+                              }
+                              onClick={donateAllLoot}
+                              type="button"
+                            >
+                              <i
+                                aria-hidden="true"
+                                className="fa fa-share-square"
+                              />{" "}
+                              Donate all
+                              {donateAllEarnings ? (
+                                <span
+                                  className="donate-all-earnings"
+                                  key={donateAllEarnings.animationId}
+                                >
+                                  +{donateAllEarnings.karma.toLocaleString()}{" "}
+                                  Karma
+                                </span>
+                              ) : null}
+                            </button>
+                          </div>
+                        </header>
+                        <div className="collection-thumbnail-list loot-thumbnail-grid">
+                          {unclaimedLootEntries.map(renderLootThumbnail)}
+                        </div>
+                      </section>
+                    ) : null}
+
+                    {forSaleLootEntries.length > 0 ? (
+                      <section
+                        aria-labelledby="for-sale-loot-heading"
+                        className="loot-section"
+                      >
+                        <header className="loot-section-header">
+                          <div>
+                            <h2 id="for-sale-loot-heading">
+                              For Sale by Owner
+                            </h2>
+                            <small>
+                              {forSaleLootEntries.length.toLocaleString()}{" "}
+                              {forSaleLootEntries.length === 1
+                                ? "offer"
+                                : "offers"}
+                            </small>
+                          </div>
+                          <div className="loot-section-actions">
+                            <button
+                              className="decline-all-loot"
+                              disabled={
+                                pending || bulkDeclinableLoot.length === 0
+                              }
+                              onClick={declineAllLoot}
+                              type="button"
+                            >
+                              <i aria-hidden="true" className="fa fa-times" />{" "}
+                              Decline all
+                            </button>
+                          </div>
+                        </header>
+                        <div className="collection-thumbnail-list loot-thumbnail-grid">
+                          {forSaleLootEntries.map(renderLootThumbnail)}
+                        </div>
+                      </section>
+                    ) : null}
+
+                    {privateAuctionLootEntries.length > 0 ? (
+                      <section
+                        aria-labelledby="private-auction-loot-heading"
+                        className="loot-section"
+                      >
+                        <header className="loot-section-header">
+                          <div>
+                            <h2 id="private-auction-loot-heading">
+                              Private Auction Items
+                            </h2>
+                            <small>
+                              {privateAuctionLootEntries.length.toLocaleString()}{" "}
+                              {privateAuctionLootEntries.length === 1
+                                ? "auction"
+                                : "auctions"}
+                            </small>
+                          </div>
+                          <div className="loot-section-actions">
+                            <button
+                              className="dismiss-all-loot"
+                              disabled={
+                                pending ||
+                                bulkDismissiblePrivateAuctions.length === 0
+                              }
+                              onClick={dismissAllLoot}
+                              type="button"
+                            >
+                              <i aria-hidden="true" className="fa fa-times" />{" "}
+                              Dismiss all
+                            </button>
+                          </div>
+                        </header>
+                        <div className="collection-thumbnail-list loot-thumbnail-grid">
+                          {privateAuctionLootEntries.map(renderLootThumbnail)}
+                        </div>
+                      </section>
+                    ) : null}
+                  </div>
+                  {selectedLootItem ? (
                     <div
                       aria-live="polite"
                       className="collection-preview loot-preview"
@@ -2272,24 +2460,21 @@ export default function GameDashboard({
                         viewerId={playerId}
                       />
                     </div>
-                  </div>
-                ) : null}
-                {hasClaimableLoot || hasPurchasableLoot ? (
-                  <div className="loot-bulk-sale">
-                    <div className="loot-bulk-sale-copy">
-                      <span className="collection-kicker">bulk actions</span>
-                      <strong>Clear unwanted artworks</strong>
+                  ) : (
+                    <div className="loot-preview-empty">
+                      Select an artwork to preview it.
+                    </div>
+                  )}
+                </div>
+                  <div className="loot-bulk-options">
+                    <div className="loot-bulk-options-copy">
+                      <span className="collection-kicker">
+                        bulk keep options
+                      </span>
+                      <strong>Items to preserve</strong>
                       <small>
-                        {bulkSellableLoot.length} owned ·{" "}
-                        {(
-                          bulkDeclinableLoot.length +
-                          bulkDeclinablePrivateAuctions.length
-                        ).toLocaleString()}{" "}
-                        {bulkDeclinableLoot.length +
-                          bulkDeclinablePrivateAuctions.length ===
-                        1
-                          ? "offer"
-                          : "offers"}
+                        These selections apply to every section&apos;s bulk
+                        action.
                       </small>
                     </div>
                     <fieldset>
@@ -2326,57 +2511,9 @@ export default function GameDashboard({
                         </label>
                       ))}
                     </fieldset>
-                    <button
-                      className="sell-all-loot"
-                      disabled={pending || bulkSellableLoot.length === 0}
-                      onClick={sellAllLoot}
-                      type="button"
-                    >
-                      <i aria-hidden="true" className="fa fa-usd" /> Sell all
-                      {sellAllEarnings ? (
-                        <span
-                          className="sell-all-earnings"
-                          key={sellAllEarnings.animationId}
-                        >
-                          +${sellAllEarnings.amount.toLocaleString()}
-                        </span>
-                      ) : null}
-                    </button>
-                    <button
-                      className="donate-all-loot"
-                      disabled={pending || bulkSellableLoot.length === 0}
-                      onClick={donateAllLoot}
-                      type="button"
-                    >
-                      <i aria-hidden="true" className="fa fa-share-square" /> Donate all
-                      {donateAllEarnings ? (
-                        <span
-                          className="donate-all-earnings"
-                          key={donateAllEarnings.animationId}
-                        >
-                          +{donateAllEarnings.karma.toLocaleString()} Karma
-                        </span>
-                      ) : null}
-                    </button>
-                    {hasPurchasableLoot ? (
-                      <button
-                        className="decline-all-loot"
-                        disabled={
-                          pending ||
-                          bulkDeclinableLoot.length +
-                            bulkDeclinablePrivateAuctions.length ===
-                            0
-                        }
-                        onClick={declineAllLoot}
-                        type="button"
-                      >
-                        <i aria-hidden="true" className="fa fa-times" /> Decline
-                        all
-                      </button>
-                    ) : null}
                   </div>
-                ) : null}
-              </section>
+                </section>
+              ) : null}
             </div>
           </section>
         ) : null}

@@ -5834,9 +5834,96 @@ a.welcome-button {
   min-width: 0;
 }
 
+.loot-section-list {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  overflow-y: auto;
+  padding: 12px;
+  background: #e7e1d7;
+}
+
+.loot-section {
+  overflow: hidden;
+  border: 1px solid #c9c0b2;
+  background: #f8f5ee;
+}
+
+.loot-section-header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #d8d0c3;
+  padding: 9px 10px;
+  background: #eeeae1;
+}
+
+.loot-section-header h2 {
+  margin: 0;
+  color: #282722;
+  font: 700 0.88rem Georgia, "Times New Roman", serif;
+}
+
+.loot-section-header small {
+  color: #817a70;
+  font-size: 0.62rem;
+}
+
+.loot-section-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.random-drop .loot-section-actions > button {
+  position: relative;
+  min-height: 34px;
+  border: 1px solid #171717;
+  border-radius: var(--game-button-radius);
+  padding: 0.45rem 0.7rem;
+  background: #171717;
+  color: #fff;
+  font: 700 0.64rem Courier, "Courier New", monospace;
+  cursor: pointer;
+}
+
+.random-drop .loot-section-actions > button:hover:not(:disabled),
+.random-drop .loot-section-actions > button:focus-visible:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #171717;
+}
+
+.random-drop .loot-section-actions > button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.random-drop .loot-section-actions .sell-all-loot {
+  border-color: #237a3b;
+  background: #237a3b;
+}
+
+.random-drop .loot-section-actions .donate-all-loot {
+  border-color: #6b4c9a;
+  background: #6b4c9a;
+}
+
+.random-drop .loot-section-actions .decline-all-loot {
+  border-color: #8f2e2e;
+  background: #8f2e2e;
+}
+
+.random-drop .loot-section-actions .dismiss-all-loot {
+  border-color: #8a5325;
+  background: #8a5325;
+}
+
 .loot-thumbnail-grid {
   align-content: start;
-  overflow-y: auto;
+  padding: 10px;
 }
 
 .loot-thumbnail-grid button[data-rarity="legendary"] {
@@ -5853,6 +5940,17 @@ a.welcome-button {
   border: 0;
   background: transparent;
   box-shadow: none;
+}
+
+.loot-preview-empty {
+  display: grid;
+  min-height: 240px;
+  place-items: center;
+  padding: 20px;
+  background: #f8f5ee;
+  color: #817a70;
+  font: 0.72rem Courier, "Courier New", monospace;
+  text-align: center;
 }
 
 .winning-auction-watermark {
@@ -5880,31 +5978,31 @@ a.welcome-button {
   transform: none;
 }
 
-.loot-bulk-sale {
+.loot-bulk-options {
   display: grid;
-  grid-template-columns: minmax(130px, 1fr) auto auto auto auto;
+  grid-template-columns: minmax(180px, 0.7fr) minmax(0, 1.3fr);
   gap: 12px;
   align-items: center;
   padding: 12px 14px;
   background: #eeeae1;
 }
 
-.loot-bulk-sale-copy {
+.loot-bulk-options-copy {
   display: grid;
   gap: 2px;
 }
 
-.loot-bulk-sale-copy strong {
+.loot-bulk-options-copy strong {
   color: #282722;
   font: 700 0.85rem Georgia, "Times New Roman", serif;
 }
 
-.loot-bulk-sale-copy small {
+.loot-bulk-options-copy small {
   color: #817a70;
   font-size: 0.62rem;
 }
 
-.loot-bulk-sale fieldset {
+.loot-bulk-options fieldset {
   display: flex;
   flex-wrap: wrap;
   gap: 8px 12px;
@@ -5913,7 +6011,7 @@ a.welcome-button {
   padding: 0;
 }
 
-.loot-bulk-sale label {
+.loot-bulk-options label {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -5922,47 +6020,8 @@ a.welcome-button {
   white-space: nowrap;
 }
 
-.loot-bulk-sale input {
+.loot-bulk-options input {
   accent-color: var(--accent);
-}
-
-.random-drop .loot-bulk-sale > button {
-  position: relative;
-  min-height: 38px;
-  border: 1px solid #171717;
-  border-radius: var(--game-button-radius);
-  padding: 0.55rem 0.8rem;
-  background: #171717;
-  color: #fff;
-  font: 700 0.68rem Courier, "Courier New", monospace;
-  cursor: pointer;
-}
-
-.random-drop .loot-bulk-sale > button:hover:not(:disabled),
-.random-drop .loot-bulk-sale > button:focus-visible:not(:disabled) {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: #171717;
-}
-
-.random-drop .loot-bulk-sale > button:disabled {
-  cursor: not-allowed;
-  opacity: 0.45;
-}
-
-.random-drop .loot-bulk-sale .sell-all-loot {
-  border-color: #237a3b;
-  background: #237a3b;
-}
-
-.random-drop .loot-bulk-sale .donate-all-loot {
-  border-color: #6b4c9a;
-  background: #6b4c9a;
-}
-
-.random-drop .loot-bulk-sale .decline-all-loot {
-  border-color: #8f2e2e;
-  background: #8f2e2e;
 }
 
 @media (max-width: 900px) {
@@ -6640,13 +6699,26 @@ a.welcome-button {
     height: auto;
   }
 
-  .loot-bulk-sale {
+  .loot-bulk-options {
     grid-template-columns: 1fr;
   }
 
-  .loot-bulk-sale fieldset {
+  .loot-bulk-options fieldset {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .loot-section-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .loot-section-actions {
+    justify-content: stretch;
+  }
+
+  .random-drop .loot-section-actions > button {
+    flex: 1;
   }
 
   .collection-workspace {
