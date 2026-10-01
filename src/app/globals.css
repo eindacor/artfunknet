@@ -5829,8 +5829,10 @@ a.welcome-button {
 }
 
 .collection-thumbnail-list {
+  --collection-thumbnail-size: 82px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(76px, 82px));
+  grid-template-columns: repeat(auto-fill, var(--collection-thumbnail-size));
+  grid-auto-rows: var(--collection-thumbnail-size);
   gap: 6px;
   justify-content: start;
   max-height: 280px;
@@ -5841,9 +5843,10 @@ a.welcome-button {
 .collection-thumbnail-list button {
   position: relative;
   display: block;
-  aspect-ratio: 1;
   overflow: hidden;
   width: 100%;
+  height: 100%;
+  min-height: 0;
   border: 1px solid transparent;
   padding: 3px;
   background: rgb(57 181 74 / 58%);
@@ -7326,7 +7329,7 @@ a.welcome-button {
   }
 
   .collection-thumbnail-list {
-    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+    --collection-thumbnail-size: 72px;
   }
 
   .collection-preview {
