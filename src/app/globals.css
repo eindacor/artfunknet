@@ -5848,6 +5848,8 @@ a.welcome-button {
   padding: 3px;
   background: rgb(57 181 74 / 58%);
   cursor: pointer;
+  touch-action: pan-y;
+  user-select: none;
 }
 
 .collection-thumbnail-list button[data-rarity="uncommon"] {

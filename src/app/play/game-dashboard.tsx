@@ -2,6 +2,7 @@
 
 import {
   type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
   useEffect,
   useMemo,
   useRef,
@@ -446,6 +447,13 @@ export default function GameDashboard({
   const [selectedCollectionItemIds, setSelectedCollectionItemIds] = useState<
     string[] | null
   >(null);
+  const collectionLongPressRef = useRef<{
+    itemId: string;
+    timer: number;
+    x: number;
+    y: number;
+  } | null>(null);
+  const suppressedCollectionClickRef = useRef<string | null>(null);
   const [collectionBulkConfirmation, setCollectionBulkConfirmation] =
     useState<CollectionDestructiveBulkAction | null>(null);
   const [selectedLootItemId, setSelectedLootItemId] = useState<string | null>(
@@ -911,11 +919,10 @@ export default function GameDashboard({
     });
   }
 
-  function toggleCollectionItemSelection(
+  function updateCollectionItemSelection(
     itemId: string,
-    event: ReactMouseEvent<HTMLButtonElement>,
+    extendSelection: boolean,
   ) {
-    const extendSelection = event.ctrlKey || event.metaKey;
     setSelectedCollectionItemIds((current) => {
       const selection =
         current ?? (defaultCollectionItemId ? [defaultCollectionItemId] : []);
@@ -930,6 +937,59 @@ export default function GameDashboard({
       }
       return [...selection, itemId];
     });
+  }
+
+  function toggleCollectionItemSelection(
+    itemId: string,
+    event: ReactMouseEvent<HTMLButtonElement>,
+  ) {
+    if (suppressedCollectionClickRef.current === itemId) {
+      suppressedCollectionClickRef.current = null;
+      return;
+    }
+    updateCollectionItemSelection(itemId, event.ctrlKey || event.metaKey);
+  }
+
+  function startCollectionItemLongPress(
+    itemId: string,
+    event: ReactPointerEvent<HTMLButtonElement>,
+  ) {
+    if (!event.isPrimary || event.button !== 0) return;
+    cancelCollectionItemLongPress();
+    collectionLongPressRef.current = {
+      itemId,
+      timer: window.setTimeout(() => {
+        collectionLongPressRef.current = null;
+        suppressedCollectionClickRef.current = itemId;
+        window.setTimeout(() => {
+          if (suppressedCollectionClickRef.current === itemId) {
+            suppressedCollectionClickRef.current = null;
+          }
+        }, 1_000);
+        updateCollectionItemSelection(itemId, true);
+      }, 500),
+      x: event.clientX,
+      y: event.clientY,
+    };
+  }
+
+  function moveCollectionItemLongPress(
+    event: ReactPointerEvent<HTMLButtonElement>,
+  ) {
+    const longPress = collectionLongPressRef.current;
+    if (
+      longPress &&
+      Math.hypot(event.clientX - longPress.x, event.clientY - longPress.y) > 10
+    ) {
+      cancelCollectionItemLongPress();
+    }
+  }
+
+  function cancelCollectionItemLongPress() {
+    const longPress = collectionLongPressRef.current;
+    if (!longPress) return;
+    window.clearTimeout(longPress.timer);
+    collectionLongPressRef.current = null;
   }
 
   function requestCollectionBulkAction(action: CollectionBulkAction) {
@@ -3042,6 +3102,18 @@ export default function GameDashboard({
                       onClick={(event) =>
                         toggleCollectionItemSelection(item._id, event)
                       }
+                      onContextMenu={(event) => {
+                        if (suppressedCollectionClickRef.current === item._id) {
+                          event.preventDefault();
+                        }
+                      }}
+                      onPointerCancel={cancelCollectionItemLongPress}
+                      onPointerDown={(event) =>
+                        startCollectionItemLongPress(item._id, event)
+                      }
+                      onPointerLeave={cancelCollectionItemLongPress}
+                      onPointerMove={moveCollectionItemLongPress}
+                      onPointerUp={cancelCollectionItemLongPress}
                       title={`${item.artwork.title} by ${item.artwork.artist}`}
                       type="button"
                     >
@@ -3123,6 +3195,20 @@ export default function GameDashboard({
                         onClick={(event) =>
                           toggleCollectionItemSelection(item._id, event)
                         }
+                        onContextMenu={(event) => {
+                          if (
+                            suppressedCollectionClickRef.current === item._id
+                          ) {
+                            event.preventDefault();
+                          }
+                        }}
+                        onPointerCancel={cancelCollectionItemLongPress}
+                        onPointerDown={(event) =>
+                          startCollectionItemLongPress(item._id, event)
+                        }
+                        onPointerLeave={cancelCollectionItemLongPress}
+                        onPointerMove={moveCollectionItemLongPress}
+                        onPointerUp={cancelCollectionItemLongPress}
                         title={`${item.artwork.title} by ${item.artwork.artist}`}
                         type="button"
                       >
@@ -5050,8 +5136,8 @@ function CollectionBulkActionsPanel({
           </div>
         </dl>
         <p>
-          Click a thumbnail to make it the only selection. Ctrl-click to add
-          or remove items.
+          Click a thumbnail to make it the only selection. Ctrl-click or press
+          and hold to add or remove items.
         </p>
       </div>
       <div className="collection-bulk-actions">
