@@ -784,43 +784,9 @@ export default function GameDashboard({
       unfoundQuestTargetArtworkIds,
     ],
   );
-  const bulkArchivableLoot = useMemo(
-    () =>
-      unclaimed.filter(
-        (item) =>
-          item.status === "unclaimed" &&
-          item.archivePermission?.allowed === true &&
-          isBulkLootCandidate(item) &&
-          !shouldPreserveBulkSaleItem(
-            {
-              ...item,
-              unfoundQuestTarget: unfoundQuestTargetArtworkIds.has(
-                item.artwork_id,
-              ),
-            },
-            { ...bulkSaleProtections, keepUnarchived: false },
-          ),
-      ),
-    [bulkSaleProtections, unfoundQuestTargetArtworkIds, unclaimed],
-  );
   const availableInventorySlots = Math.max(
     0,
     player.inventoryCap - player.inventorySlotsUsed,
-  );
-  const purchaseAllSelection = useMemo(
-    () =>
-      selectBulkPurchaseItems(
-        forSaleLootEntries.map((entry) => entry.item),
-        availableInventorySlots,
-        player.bankBalance,
-        (item) => Math.floor(item.values.dealer * dealerPriceMultiplier),
-      ),
-    [
-      availableInventorySlots,
-      dealerPriceMultiplier,
-      forSaleLootEntries,
-      player.bankBalance,
-    ],
   );
   const purchaseDonateAllSelection = useMemo(
     () =>
@@ -833,39 +799,6 @@ export default function GameDashboard({
     [
       availableInventorySlots,
       bulkDeclinableLoot,
-      dealerPriceMultiplier,
-      player.bankBalance,
-    ],
-  );
-  const bulkPurchasableArchivableLoot = useMemo(
-    () =>
-      unclaimed.filter(
-        (item) =>
-          item.status === "for_sale" &&
-          item.archivePermission?.allowed === true &&
-          isBulkLootCandidate(item) &&
-          !shouldPreserveBulkSaleItem(
-            {
-              ...item,
-              unfoundQuestTarget: unfoundQuestTargetArtworkIds.has(
-                item.artwork_id,
-              ),
-            },
-            { ...bulkSaleProtections, keepUnarchived: false },
-          ),
-      ),
-    [bulkSaleProtections, unfoundQuestTargetArtworkIds, unclaimed],
-  );
-  const purchaseArchiveAllSelection = useMemo(
-    () =>
-      selectBulkPurchaseItems(
-        bulkPurchasableArchivableLoot,
-        bulkPurchasableArchivableLoot.length,
-        player.bankBalance,
-        (item) => Math.floor(item.values.dealer * dealerPriceMultiplier),
-      ),
-    [
-      bulkPurchasableArchivableLoot,
       dealerPriceMultiplier,
       player.bankBalance,
     ],
@@ -1754,52 +1687,6 @@ export default function GameDashboard({
     });
   }
 
-  function collectAllLoot() {
-    setError("");
-    setNotice("");
-    startTransition(async () => {
-      const response = await fetch("/api/play/items/claim-all", {
-        method: "POST",
-      });
-      const body = (await response.json().catch(() => ({}))) as {
-        claimed?: number;
-        error?: string;
-        message?: string;
-      };
-      if (!response.ok || body.claimed === undefined) {
-        setError(body.error ?? "The loot could not be collected.");
-        return;
-      }
-      setNotice(body.message ?? `${body.claimed} artworks collected.`);
-      setSelectedLootEntryKeys([]);
-      router.refresh();
-    });
-  }
-
-  function purchaseAllLoot() {
-    setError("");
-    setNotice("");
-    startTransition(async () => {
-      const response = await fetch("/api/play/items/acquire-many", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ mode: "all-for-sale" }),
-      });
-      const body = (await response.json().catch(() => ({}))) as {
-        acquired?: number;
-        error?: string;
-        message?: string;
-      };
-      if (!response.ok || body.acquired === undefined) {
-        setError(body.error ?? "The dealer offers could not be purchased.");
-        return;
-      }
-      setNotice(body.message ?? `${body.acquired} dealer offers purchased.`);
-      setSelectedLootEntryKeys([]);
-      router.refresh();
-    });
-  }
-
   function purchaseAndDonateAllLoot() {
     const itemsToDonate = [...purchaseDonateAllSelection.items];
     setError("");
@@ -1873,146 +1760,6 @@ export default function GameDashboard({
         setError(
           completed > 0
             ? `${completed} of ${itemsToDonate.length} offers were purchased and donated before the action stopped. ${message}`
-            : message,
-        );
-        setSelectedLootEntryKeys([]);
-        router.refresh();
-      }
-    });
-  }
-
-  function purchaseAndArchiveAllLoot() {
-    const itemsToArchive = [...purchaseArchiveAllSelection.items];
-    setError("");
-    setNotice("");
-    startTransition(async () => {
-      let completed = 0;
-      let skipped = 0;
-      const specialOutcomes: ActionDialogResult[] = [];
-      try {
-        for (const item of itemsToArchive) {
-          const response = await fetch(
-            `/api/play/items/${item._id}/archive`,
-            { method: "POST" },
-          );
-          const body = (await response.json().catch(() => ({}))) as {
-            actionDialog?: ActionDialogResult;
-            error?: string;
-          };
-          if (!response.ok) {
-            if (response.status === 409) {
-              skipped += 1;
-              continue;
-            }
-            throw new Error(
-              body.error ?? "A dealer offer could not be archived.",
-            );
-          }
-          if (body.actionDialog) specialOutcomes.push(body.actionDialog);
-          completed += 1;
-        }
-        if (specialOutcomes.length > 0) {
-          setActionDialog({
-            variant:
-              specialOutcomes.length === 1
-                ? specialOutcomes[0].variant
-                : "mixed",
-            title:
-              specialOutcomes.length === 1
-                ? specialOutcomes[0].title
-                : "Archive outcomes",
-            message: specialOutcomes.map((outcome) => outcome.message).join(" "),
-          });
-        }
-        setNotice(
-          `Purchased and archived ${completed} ${
-            completed === 1 ? "artwork" : "artworks"
-          }${
-            skipped > 0
-              ? `; skipped ${skipped} ${skipped === 1 ? "offer" : "offers"} that no longer added new archive data`
-              : ""
-          }.`,
-        );
-        setSelectedLootEntryKeys([]);
-        router.refresh();
-      } catch (archiveError) {
-        const message =
-          archiveError instanceof Error
-            ? archiveError.message
-            : "The purchase-and-archive action could not be completed.";
-        setError(
-          completed > 0
-            ? `${completed} of ${itemsToArchive.length} offers were purchased and archived before the action stopped. ${message}`
-            : message,
-        );
-        setSelectedLootEntryKeys([]);
-        router.refresh();
-      }
-    });
-  }
-
-  function archiveAllLoot() {
-    const itemsToArchive = [...bulkArchivableLoot];
-    setError("");
-    setNotice("");
-    startTransition(async () => {
-      let completed = 0;
-      let skipped = 0;
-      const specialOutcomes: ActionDialogResult[] = [];
-      try {
-        for (const item of itemsToArchive) {
-          const response = await fetch(
-            `/api/play/items/${item._id}/archive`,
-            { method: "POST" },
-          );
-          const body = (await response.json().catch(() => ({}))) as {
-            actionDialog?: ActionDialogResult;
-            error?: string;
-          };
-          if (!response.ok) {
-            if (response.status === 409) {
-              skipped += 1;
-              continue;
-            }
-            throw new Error(
-              body.error ?? "An item could not be added to the archive.",
-            );
-          }
-          if (body.actionDialog) specialOutcomes.push(body.actionDialog);
-          completed += 1;
-        }
-        if (specialOutcomes.length > 0) {
-          setActionDialog({
-            variant:
-              specialOutcomes.length === 1
-                ? specialOutcomes[0].variant
-                : "mixed",
-            title:
-              specialOutcomes.length === 1
-                ? specialOutcomes[0].title
-                : "Archive outcomes",
-            message: specialOutcomes.map((outcome) => outcome.message).join(" "),
-          });
-        }
-        setNotice(
-          `Archived ${completed} unclaimed ${
-            completed === 1 ? "artwork" : "artworks"
-          }${
-            skipped > 0
-              ? `; skipped ${skipped} ${skipped === 1 ? "item" : "items"} that no longer added new archive data`
-              : ""
-          }.`,
-        );
-        setSelectedLootEntryKeys([]);
-        router.refresh();
-      } catch (archiveError) {
-        const message =
-          archiveError instanceof Error
-            ? archiveError.message
-            : "The archive-all action could not be completed.";
-        setError(
-          completed > 0
-            ? `${completed} of ${itemsToArchive.length} artworks were archived before the action stopped. ${message}`
             : message,
         );
         setSelectedLootEntryKeys([]);
@@ -3438,31 +3185,10 @@ export default function GameDashboard({
                       <div className="collection-thumbnail-list loot-thumbnail-grid">
                         {activeLootEntries.map(renderLootThumbnail)}
                       </div>
-                      <div className="loot-section-actions">
+                      <div className="loot-section-controls">
+                        <div className="loot-section-actions">
                         {activeLootCategory?.id === "unclaimed" ? (
                           <>
-                            <button
-                              className="collect-all-loot"
-                              disabled={
-                                pending ||
-                                player.inventorySlotsUsed >=
-                                  player.inventoryCap
-                              }
-                              onClick={collectAllLoot}
-                              title={
-                                player.inventorySlotsUsed >=
-                                player.inventoryCap
-                                  ? "Your inventory is full"
-                                  : undefined
-                              }
-                              type="button"
-                            >
-                              <i
-                                aria-hidden="true"
-                                className="fa fa-download"
-                              />{" "}
-                              Collect all
-                            </button>
                             <button
                               className="donate-all-loot"
                               disabled={
@@ -3485,22 +3211,6 @@ export default function GameDashboard({
                                   Karma
                                 </span>
                               ) : null}
-                            </button>
-                            <button
-                              className="archive-all-loot"
-                              disabled={
-                                pending || bulkArchivableLoot.length === 0
-                              }
-                              onClick={archiveAllLoot}
-                              title={
-                                bulkArchivableLoot.length === 0
-                                  ? "No unclaimed items match the keep options and add new archive data"
-                                  : "Uses the bulk keep options except Keep unarchived"
-                              }
-                              type="button"
-                            >
-                              <i aria-hidden="true" className="fa fa-archive" />{" "}
-                              Archive all
                             </button>
                             <button
                               className="sell-all-loot"
@@ -3526,28 +3236,6 @@ export default function GameDashboard({
                         {activeLootCategory?.id === "for-sale" ? (
                           <>
                             <button
-                              className="purchase-all-loot"
-                              disabled={
-                                pending ||
-                                purchaseAllSelection.items.length === 0
-                              }
-                              onClick={purchaseAllLoot}
-                              title={
-                                purchaseAllSelection.items.length === 0
-                                  ? availableInventorySlots === 0
-                                    ? "Your inventory is full"
-                                    : "You cannot afford any available offers"
-                                  : undefined
-                              }
-                              type="button"
-                            >
-                              <i
-                                aria-hidden="true"
-                                className="fa fa-shopping-cart"
-                              />{" "}
-                              Purchase all
-                            </button>
-                            <button
                               className="purchase-donate-all-loot"
                               disabled={
                                 pending ||
@@ -3566,23 +3254,6 @@ export default function GameDashboard({
                                 className="fa fa-share-square"
                               />{" "}
                               Purchase and donate all
-                            </button>
-                            <button
-                              className="purchase-archive-all-loot"
-                              disabled={
-                                pending ||
-                                purchaseArchiveAllSelection.items.length === 0
-                              }
-                              onClick={purchaseAndArchiveAllLoot}
-                              title={
-                                purchaseArchiveAllSelection.items.length === 0
-                                  ? "No dealer offers can currently be purchased and archived"
-                                  : undefined
-                              }
-                              type="button"
-                            >
-                              <i aria-hidden="true" className="fa fa-archive" />{" "}
-                              Purchase and archive all
                             </button>
                             <button
                               className="decline-all-loot"
@@ -3611,44 +3282,45 @@ export default function GameDashboard({
                             Dismiss all
                           </button>
                         ) : null}
-                      </div>
-                      <div className="loot-bulk-options">
-                        <fieldset>
-                          <legend className="sr-only">
-                            Items to preserve
-                          </legend>
-                          {(
-                            [
-                              ["keepRares", "Keep rares"],
-                              ["keepLegendaries", "Keep legendaries"],
-                              ["keepMasterpieces", "Keep masterpieces"],
-                              ["keepUnarchived", "Keep unarchived"],
+                        </div>
+                        <div className="loot-bulk-options">
+                          <fieldset>
+                            <legend className="sr-only">
+                              Items to preserve
+                            </legend>
+                            {(
                               [
-                                "keepUnfoundQuestTargets",
-                                "Keep unfound quest targets",
-                              ],
-                              ["keepArtStyles", "Keep art styles"],
-                            ] as const
-                          ).map(([key, label]) => (
-                            <label key={key}>
-                              <input
-                                checked={bulkSaleProtections[key]}
-                                onChange={(event) => {
-                                  const next = {
-                                    ...bulkSaleProtections,
-                                    [key]: event.target.checked,
-                                  };
-                                  setBulkSaleProtections(next);
-                                  saveViewSettings({
-                                    bulkSaleProtections: next,
-                                  });
-                                }}
-                                type="checkbox"
-                              />
-                              <span>{label}</span>
-                            </label>
-                          ))}
-                        </fieldset>
+                                ["keepRares", "Keep rares"],
+                                ["keepLegendaries", "Keep legendaries"],
+                                ["keepMasterpieces", "Keep masterpieces"],
+                                ["keepUnarchived", "Keep unarchived"],
+                                [
+                                  "keepUnfoundQuestTargets",
+                                  "Keep unfound quest targets",
+                                ],
+                                ["keepArtStyles", "Keep art styles"],
+                              ] as const
+                            ).map(([key, label]) => (
+                              <label key={key}>
+                                <input
+                                  checked={bulkSaleProtections[key]}
+                                  onChange={(event) => {
+                                    const next = {
+                                      ...bulkSaleProtections,
+                                      [key]: event.target.checked,
+                                    };
+                                    setBulkSaleProtections(next);
+                                    saveViewSettings({
+                                      bulkSaleProtections: next,
+                                    });
+                                  }}
+                                  type="checkbox"
+                                />
+                                <span>{label}</span>
+                              </label>
+                            ))}
+                          </fieldset>
+                        </div>
                       </div>
                     </section>
                   </div>
