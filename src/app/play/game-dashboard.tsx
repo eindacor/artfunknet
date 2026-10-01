@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  type MouseEvent as ReactMouseEvent,
   useEffect,
   useMemo,
   useRef,
@@ -12,6 +13,7 @@ import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import ArchiveEntryDialog from "@/components/archive-entry-dialog";
+import CollectionBulkConfirmationDialog from "@/components/collection-bulk-confirmation-dialog";
 import ForgeryDialog from "@/components/forgery-dialog";
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
 import ItemThumbnail from "@/components/item-thumbnail";
@@ -66,6 +68,7 @@ import {
 } from "@/server/collection-inventory";
 import type { CrateOfferView } from "@/server/crate-gameplay";
 import { getArchivePropertyProgress } from "@/server/archive-gameplay";
+import { planGallerySelection } from "@/server/gallery-selection";
 import {
   isBulkLootCandidate,
   type BulkSaleProtections,
@@ -180,6 +183,26 @@ type ActionDialogResult = {
   variant: "authenticated" | "destroyed" | "returned" | "mixed";
   title: string;
   message: string;
+};
+
+type CollectionBulkAction =
+  | "display"
+  | "take-down"
+  | "set-gallery"
+  | "tag"
+  | "sell"
+  | "historian"
+  | "archive"
+  | "donate";
+
+type CollectionDestructiveBulkAction = Extract<
+  CollectionBulkAction,
+  "sell" | "historian" | "archive" | "donate"
+>;
+
+type CollectionBulkAvailability = {
+  allowed: boolean;
+  reason?: string;
 };
 
 type CollectorResult = {
@@ -420,9 +443,11 @@ export default function GameDashboard({
   } | null>(null);
   const [galleryItemDetails, setGalleryItemDetails] =
     useState<HydratedGameItem | null>(null);
-  const [selectedCollectionItemId, setSelectedCollectionItemId] = useState<
-    string | null
+  const [selectedCollectionItemIds, setSelectedCollectionItemIds] = useState<
+    string[] | null
   >(null);
+  const [collectionBulkConfirmation, setCollectionBulkConfirmation] =
+    useState<CollectionDestructiveBulkAction | null>(null);
   const [selectedLootItemId, setSelectedLootItemId] = useState<string | null>(
     null,
   );
@@ -464,8 +489,7 @@ export default function GameDashboard({
   const [collectionFilters, setCollectionFilters] = useState<CollectionFilters>(
     getDefaultCollectionFilters,
   );
-  const [tagEditorItem, setTagEditorItem] =
-    useState<HydratedGameItem | null>(null);
+  const [tagEditorItems, setTagEditorItems] = useState<HydratedGameItem[]>([]);
   const [linkedItemDetails, setLinkedItemDetails] =
     useState<LinkedItemView | null>(linkedItem);
   const [galleryArtStyleItem, setGalleryArtStyleItem] =
@@ -779,11 +803,40 @@ export default function GameDashboard({
       );
     });
   }, [archiveCompletion, archiveEntries, archiveRarity, archiveSearch]);
-  const selectedCollectionItem = selectedCollectionItemId
-    ? collectionItems.find((item) => item._id === selectedCollectionItemId) ??
-      sortedHomeInventory[0] ??
-      null
-    : sortedHomeInventory[0] ?? null;
+  const defaultCollectionItemId = sortedHomeInventory[0]?._id ?? null;
+  const effectiveSelectedCollectionItemIds =
+    selectedCollectionItemIds ??
+    (defaultCollectionItemId ? [defaultCollectionItemId] : []);
+  const selectedCollectionItems = effectiveSelectedCollectionItemIds
+    .map((itemId) =>
+      collectionItems.find((item) => item._id === itemId),
+    )
+    .filter((item): item is HydratedGameItem => Boolean(item));
+  const selectedCollectionItemIdsSet = new Set(
+    selectedCollectionItems.map((item) => item._id),
+  );
+  const selectedCollectionItem =
+    selectedCollectionItems.length === 1 ? selectedCollectionItems[0] : null;
+  const collectionBulkTotalValue = selectedCollectionItems.reduce(
+    (sum, item) => sum + item.values.actual,
+    0,
+  );
+  const collectionBulkState = useMemo(
+    () =>
+      getCollectionBulkState({
+        collectionItems,
+        displayCap: player.displayCap,
+        quests,
+        selectedItems: selectedCollectionItems,
+      }),
+    [collectionItems, player.displayCap, quests, selectedCollectionItems],
+  );
+  const collectionBulkConfirmationCopy = collectionBulkConfirmation
+    ? getCollectionBulkConfirmationCopy(
+        collectionBulkConfirmation,
+        selectedCollectionItems,
+      )
+    : null;
   const vintageCandidates = useMemo(
     () =>
       items.filter(
@@ -855,6 +908,190 @@ export default function GameDashboard({
       }
       onSuccess?.();
       router.refresh();
+    });
+  }
+
+  function toggleCollectionItemSelection(
+    itemId: string,
+    event: ReactMouseEvent<HTMLButtonElement>,
+  ) {
+    const extendSelection = event.ctrlKey || event.metaKey;
+    setSelectedCollectionItemIds((current) => {
+      const selection =
+        current ?? (defaultCollectionItemId ? [defaultCollectionItemId] : []);
+      if (!extendSelection) {
+        if (selection.length === 1 && selection[0] === itemId) {
+          return [];
+        }
+        return [itemId];
+      }
+      if (selection.includes(itemId)) {
+        return selection.filter((selectedId) => selectedId !== itemId);
+      }
+      return [...selection, itemId];
+    });
+  }
+
+  function requestCollectionBulkAction(action: CollectionBulkAction) {
+    const availability = collectionBulkState.availability[action];
+    if (!availability.allowed) {
+      setError(availability.reason ?? "The selected items do not qualify.");
+      return;
+    }
+    setError("");
+    setNotice("");
+    if (action === "tag") {
+      setTagEditorItems([...selectedCollectionItems]);
+      return;
+    }
+    if (isDestructiveCollectionBulkAction(action)) {
+      setCollectionBulkConfirmation(action);
+      return;
+    }
+    performCollectionBulkAction(action);
+  }
+
+  function performCollectionBulkAction(action: CollectionBulkAction) {
+    if (action === "tag") {
+      setTagEditorItems([...selectedCollectionItems]);
+      return;
+    }
+    const selectedItems = [...selectedCollectionItems];
+    const historianQuestByItemId = new Map(
+      collectionBulkState.historianQuestByItemId,
+    );
+    startTransition(async () => {
+      let completed = 0;
+      let totalMoney = 0;
+      let totalKarma = 0;
+      const specialOutcomes: ActionDialogResult[] = [];
+
+      async function postAction(
+        url: string,
+        body?: Record<string, unknown>,
+      ): Promise<Record<string, unknown>> {
+        const response = await fetch(url, {
+          method: "POST",
+          ...(body
+            ? {
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify(body),
+              }
+            : {}),
+        });
+        const result = (await response.json().catch(() => ({}))) as Record<
+          string,
+          unknown
+        >;
+        if (!response.ok) {
+          throw new Error(
+            typeof result.error === "string"
+              ? result.error
+              : "The bulk action could not be completed.",
+          );
+        }
+        return result;
+      }
+
+      try {
+        if (action === "set-gallery") {
+          const result = await postAction("/api/play/items/set-gallery", {
+            itemIds: selectedItems.map((item) => item._id),
+          });
+          setNotice(
+            typeof result.message === "string"
+              ? result.message
+              : "Gallery updated.",
+          );
+        } else {
+          for (const item of selectedItems) {
+            if (action === "display" && item.status === "displayed") {
+              completed += 1;
+              continue;
+            }
+
+            let result: Record<string, unknown>;
+            if (action === "take-down") {
+              result = await postAction(
+                `/api/play/items/${item._id}/undisplay`,
+              );
+            } else if (action === "historian") {
+              const questId = historianQuestByItemId.get(item._id);
+              if (!questId) {
+                throw new Error(
+                  `${item.artwork.title} no longer has an available Historian quest.`,
+                );
+              }
+              result = await postAction(
+                `/api/play/items/${item._id}/send-to-historian`,
+                { questId },
+              );
+              if (typeof result.autoClaimQuestId === "string") {
+                await postAction(
+                  `/api/play/quests/${result.autoClaimQuestId}/claim`,
+                );
+              }
+            } else {
+              result = await postAction(
+                `/api/play/items/${item._id}/${action}`,
+              );
+            }
+
+            if (typeof result.amount === "number") {
+              totalMoney += result.amount;
+            }
+            if (typeof result.karma === "number") {
+              totalKarma += result.karma;
+            }
+            if (isActionDialogResult(result.actionDialog)) {
+              specialOutcomes.push(result.actionDialog);
+            }
+            completed += 1;
+          }
+
+          if (specialOutcomes.length > 0) {
+            setActionDialog({
+              variant:
+                specialOutcomes.length === 1
+                  ? specialOutcomes[0].variant
+                  : "mixed",
+              title:
+                specialOutcomes.length === 1
+                  ? specialOutcomes[0].title
+                  : "Bulk action outcomes",
+              message: specialOutcomes
+                .map((outcome) => outcome.message)
+                .join(" "),
+            });
+            setNotice(
+              `${completed} selected ${completed === 1 ? "item was" : "items were"} processed; ${specialOutcomes.length} had special forgery outcomes.`,
+            );
+          } else {
+            setNotice(
+              getCollectionBulkSuccessMessage(
+                action,
+                selectedItems.length,
+                totalMoney,
+                totalKarma,
+              ),
+            );
+          }
+        }
+        setSelectedCollectionItemIds([]);
+        router.refresh();
+      } catch (bulkError) {
+        const message =
+          bulkError instanceof Error
+            ? bulkError.message
+            : "The bulk action could not be completed.";
+        setError(
+          completed > 0
+            ? `${completed} of ${selectedItems.length} items were processed before the action stopped. ${message}`
+            : message,
+        );
+        setSelectedCollectionItemIds([]);
+        router.refresh();
+      }
     });
   }
 
@@ -1717,7 +1954,9 @@ export default function GameDashboard({
             "Displaying this artwork",
             () =>
               act(`/api/play/items/${item._id}/display`, () =>
-                setSelectedCollectionItemId(nextInventoryItem?._id ?? null),
+                setSelectedCollectionItemIds(
+                  nextInventoryItem ? [nextInventoryItem._id] : [],
+                ),
               ),
           )
         }
@@ -1745,7 +1984,7 @@ export default function GameDashboard({
             : "Add item tags"
         }
         disabled={pending}
-        onClick={() => setTagEditorItem(item)}
+        onClick={() => setTagEditorItems([item])}
       />
     );
   }
@@ -2792,15 +3031,17 @@ export default function GameDashboard({
                   displayed.map((item) => (
                     <button
                       aria-label={`Open details for ${item.artwork.title} by ${item.artwork.artist}`}
-                      aria-pressed={selectedCollectionItem?._id === item._id}
+                      aria-pressed={selectedCollectionItemIdsSet.has(item._id)}
                       className={
-                        selectedCollectionItem?._id === item._id
+                        selectedCollectionItemIdsSet.has(item._id)
                           ? "selected"
                           : ""
                       }
                       data-rarity={item.artwork.rarity}
                       key={item._id}
-                      onClick={() => setSelectedCollectionItemId(item._id)}
+                      onClick={(event) =>
+                        toggleCollectionItemSelection(item._id, event)
+                      }
                       title={`${item.artwork.title} by ${item.artwork.artist}`}
                       type="button"
                     >
@@ -2871,15 +3112,17 @@ export default function GameDashboard({
                     {sortedHomeInventory.map((item) => (
                       <button
                         aria-label={`Preview ${item.artwork.title} by ${item.artwork.artist}`}
-                        aria-pressed={selectedCollectionItem?._id === item._id}
+                        aria-pressed={selectedCollectionItemIdsSet.has(item._id)}
                         data-rarity={item.artwork.rarity}
                         className={
-                          selectedCollectionItem?._id === item._id
+                          selectedCollectionItemIdsSet.has(item._id)
                             ? "selected"
                             : ""
                         }
                         key={item._id}
-                        onClick={() => setSelectedCollectionItemId(item._id)}
+                        onClick={(event) =>
+                          toggleCollectionItemSelection(item._id, event)
+                        }
                         title={`${item.artwork.title} by ${item.artwork.artist}`}
                         type="button"
                       >
@@ -2899,7 +3142,15 @@ export default function GameDashboard({
               </section>
             </aside>
             <div className="collection-main">
-              {selectedCollectionItem ? (
+              {selectedCollectionItems.length > 1 ? (
+                <CollectionBulkActionsPanel
+                  availability={collectionBulkState.availability}
+                  itemCount={selectedCollectionItems.length}
+                  onAction={requestCollectionBulkAction}
+                  pending={pending}
+                  totalValue={collectionBulkTotalValue}
+                />
+              ) : selectedCollectionItem ? (
                 <section className="collection-preview" aria-live="polite">
                   <ItemCard
                     actions={
@@ -2934,7 +3185,14 @@ export default function GameDashboard({
                     viewerId={playerId}
                   />
                 </section>
-              ) : null}
+              ) : (
+                <section
+                  aria-live="polite"
+                  className="collection-preview collection-selection-empty"
+                >
+                  <p>Select an artwork to preview it.</p>
+                </section>
+              )}
             </div>
           </section>
         ) : null}
@@ -3424,13 +3682,13 @@ export default function GameDashboard({
             }}
           />
         ) : null}
-        {tagEditorItem ? (
+        {tagEditorItems.length > 0 ? (
           <ItemTagsDialog
-            item={tagEditorItem}
-            onClose={() => setTagEditorItem(null)}
-            onSaved={(_tags, message) => {
+            items={tagEditorItems}
+            onClose={() => setTagEditorItems([])}
+            onSaved={(message) => {
               setNotice(message);
-              setTagEditorItem(null);
+              setTagEditorItems([]);
               router.refresh();
             }}
           />
@@ -3440,6 +3698,20 @@ export default function GameDashboard({
             actionLabel={mintConfirmation.actionLabel}
             onCancel={() => setMintConfirmation(null)}
             onConfirm={mintConfirmation.onConfirm}
+          />
+        ) : null}
+        {collectionBulkConfirmation && collectionBulkConfirmationCopy ? (
+          <CollectionBulkConfirmationDialog
+            actionLabel={collectionBulkConfirmationCopy.actionLabel}
+            confirmLabel={collectionBulkConfirmationCopy.confirmLabel}
+            description={collectionBulkConfirmationCopy.description}
+            destructive={collectionBulkConfirmationCopy.destructive}
+            itemCount={selectedCollectionItems.length}
+            onCancel={() => setCollectionBulkConfirmation(null)}
+            onConfirm={() =>
+              performCollectionBulkAction(collectionBulkConfirmation)
+            }
+            totalValue={collectionBulkTotalValue}
           />
         ) : null}
         {actionDialog ? (
@@ -4706,6 +4978,416 @@ function InventorySection({
         </div>
       )}
     </section>
+  );
+}
+
+function CollectionBulkActionsPanel({
+  availability,
+  itemCount,
+  onAction,
+  pending,
+  totalValue,
+}: {
+  availability: Record<CollectionBulkAction, CollectionBulkAvailability>;
+  itemCount: number;
+  onAction: (action: CollectionBulkAction) => void;
+  pending: boolean;
+  totalValue: number;
+}) {
+  const allSelectedItemsDisplayed = availability["take-down"].allowed;
+  const actions: Array<{
+    action: CollectionBulkAction;
+    icon: string;
+    label: string;
+    destructive?: boolean;
+  }> = [
+    allSelectedItemsDisplayed
+      ? {
+          action: "take-down",
+          icon: "fa-picture-o",
+          label: "Take down",
+        }
+      : { action: "display", icon: "fa-picture-o", label: "Display" },
+    { action: "set-gallery", icon: "fa-th", label: "Set gallery" },
+    { action: "tag", icon: "fa-tags", label: "Tag" },
+    { action: "sell", icon: "fa-usd", label: "Sell", destructive: true },
+    {
+      action: "historian",
+      icon: "fa-museum",
+      label: "Send to Historian",
+      destructive: true,
+    },
+    {
+      action: "archive",
+      icon: "fa-archive",
+      label: "Archive",
+      destructive: true,
+    },
+    {
+      action: "donate",
+      icon: "fa-share-square",
+      label: "Donate",
+      destructive: true,
+    },
+  ];
+
+  return (
+    <section
+      aria-live="polite"
+      className="collection-preview collection-bulk-panel"
+    >
+      <div className="collection-bulk-summary">
+        <span className="collection-kicker">bulk selection</span>
+        <h2>{itemCount.toLocaleString()} items selected</h2>
+        <dl>
+          <div>
+            <dt>Item count</dt>
+            <dd>{itemCount.toLocaleString()}</dd>
+          </div>
+          <div>
+            <dt>Total value</dt>
+            <dd>${totalValue.toLocaleString()}</dd>
+          </div>
+        </dl>
+        <p>
+          Click a thumbnail to make it the only selection. Ctrl-click to add
+          or remove items.
+        </p>
+      </div>
+      <div className="collection-bulk-actions">
+        {actions.map(({ action, destructive, icon, label }) => {
+          const actionAvailability = availability[action];
+          const disabled = pending || !actionAvailability.allowed;
+          const reason = pending
+            ? "Another action is being processed."
+            : actionAvailability.reason;
+          return (
+            <button
+              aria-label={reason ? `${label}. Unavailable: ${reason}` : label}
+              className={destructive ? "destructive" : undefined}
+              disabled={disabled}
+              key={action}
+              onClick={() => onAction(action)}
+              title={reason}
+              type="button"
+            >
+              <i aria-hidden="true" className={`fa ${icon}`} />
+              <span>{label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function getCollectionBulkState({
+  collectionItems,
+  displayCap,
+  quests,
+  selectedItems,
+}: {
+  collectionItems: readonly HydratedGameItem[];
+  displayCap: number;
+  quests: readonly ArtHistorianQuestView[];
+  selectedItems: readonly HydratedGameItem[];
+}): {
+  availability: Record<CollectionBulkAction, CollectionBulkAvailability>;
+  historianQuestByItemId: Map<string, string>;
+} {
+  const available = (): CollectionBulkAvailability => ({ allowed: true });
+  const unavailable = (reason: string): CollectionBulkAvailability => ({
+    allowed: false,
+    reason,
+  });
+  const selectedIds = new Set(selectedItems.map((item) => item._id));
+  const duplicateArtworkId = selectedItems.find(
+    (item, index) =>
+      selectedItems.findIndex(
+        (candidate) => candidate.artwork_id === item.artwork_id,
+      ) !== index,
+  )?.artwork_id;
+
+  let display = available();
+  const nonDisplayable = selectedItems.find(
+    (item) => item.status !== "claimed" && item.status !== "displayed",
+  );
+  if (nonDisplayable) {
+    display = unavailable("Auctioned items cannot be displayed.");
+  } else {
+    const repairing = selectedItems.find(
+      (item) => item.status === "claimed" && item.repairing,
+    );
+    if (repairing) {
+      display = unavailable(
+        `${repairing.artwork.title} is currently being repaired.`,
+      );
+    } else if (duplicateArtworkId) {
+      display = unavailable(
+        "The gallery cannot display two copies of the same artwork.",
+      );
+    } else {
+      const conflictingItem = selectedItems
+        .filter((item) => item.status === "claimed")
+        .find((item) =>
+          collectionItems.some(
+            (candidate) =>
+              !selectedIds.has(candidate._id) &&
+              candidate.artwork_id === item.artwork_id &&
+              (candidate.status === "displayed" || candidate.permanent),
+          ),
+        );
+      if (conflictingItem) {
+        display = unavailable(
+          `${conflictingItem.artwork.title} is already represented on display.`,
+        );
+      } else {
+        const displayedCount = collectionItems.filter(
+          (item) => item.status === "displayed",
+        ).length;
+        const additions = selectedItems.filter(
+          (item) => item.status === "claimed",
+        ).length;
+        if (displayedCount + additions > displayCap) {
+          display = unavailable(
+            `Displaying this selection would exceed the ${displayCap}-item gallery limit.`,
+          );
+        }
+      }
+    }
+  }
+
+  const galleryPlan = planGallerySelection(
+    selectedItems,
+    collectionItems,
+    displayCap,
+  );
+  const setGallery = galleryPlan.ok
+    ? available()
+    : unavailable(galleryPlan.reason);
+  const takeDown = selectedItems.every(
+    (item) => item.status === "displayed",
+  )
+    ? available()
+    : unavailable("Every selected item must currently be on display.");
+
+  const sellInvalid = selectedItems.find(
+    (item) =>
+      item.status !== "claimed" || item.permanent || item.original,
+  );
+  const sell = sellInvalid
+    ? unavailable(
+        sellInvalid.status !== "claimed"
+          ? `${sellInvalid.artwork.title} must be taken down or removed from auction first.`
+          : `${sellInvalid.artwork.title} cannot be sold.`,
+      )
+    : available();
+
+  const donateInvalid = selectedItems.find(
+    (item) =>
+      item.status !== "claimed" || item.permanent || item.original,
+  );
+  const donate = donateInvalid
+    ? unavailable(
+        donateInvalid.status !== "claimed"
+          ? `${donateInvalid.artwork.title} must be taken down or removed from auction first.`
+          : `${donateInvalid.artwork.title} cannot be donated.`,
+      )
+    : available();
+
+  let archive = available();
+  if (duplicateArtworkId) {
+    archive = unavailable(
+      "Bulk archive supports only one copy of each artwork.",
+    );
+  } else {
+    const archiveInvalid = selectedItems.find((item) => {
+      if (item.status !== "claimed") return true;
+      const permission =
+        item.archivePermission ??
+        getArchivePermission(
+          item,
+          item.archivedCategories ?? [],
+          item.archivedArtStyles ?? [],
+        );
+      return !permission.allowed;
+    });
+    if (archiveInvalid) {
+      const permission =
+        archiveInvalid.archivePermission ??
+        getArchivePermission(
+          archiveInvalid,
+          archiveInvalid.archivedCategories ?? [],
+          archiveInvalid.archivedArtStyles ?? [],
+        );
+      archive = unavailable(
+        archiveInvalid.status !== "claimed"
+          ? `${archiveInvalid.artwork.title} must be in inventory before archiving.`
+          : permission.allowed
+            ? `${archiveInvalid.artwork.title} cannot be archived.`
+            : permission.reason,
+      );
+    }
+  }
+
+  const historianAssignment = assignHistorianQuests(selectedItems, quests);
+
+  return {
+    availability: {
+      display,
+      "take-down": takeDown,
+      "set-gallery": setGallery,
+      tag: available(),
+      sell,
+      historian: historianAssignment.reason
+        ? unavailable(historianAssignment.reason)
+        : available(),
+      archive,
+      donate,
+    },
+    historianQuestByItemId: historianAssignment.questByItemId,
+  };
+}
+
+function assignHistorianQuests(
+  items: readonly HydratedGameItem[],
+  quests: readonly ArtHistorianQuestView[],
+): { questByItemId: Map<string, string>; reason?: string } {
+  const questByItemId = new Map<string, string>();
+  const reservedTargets = new Set<string>();
+
+  for (const item of items) {
+    if (item.status !== "claimed" && item.status !== "displayed") {
+      return {
+        questByItemId,
+        reason: `${item.artwork.title} must be in your collection before it can be sent.`,
+      };
+    }
+    if (item.permanent || item.original) {
+      return {
+        questByItemId,
+        reason: `${item.artwork.title} cannot be sent to the Historian.`,
+      };
+    }
+    if (item.repairing) {
+      return {
+        questByItemId,
+        reason: `Stop repairing ${item.artwork.title} before sending it.`,
+      };
+    }
+
+    const quest = quests.find((candidate) => {
+      const key = `${candidate._id}:${item.artwork_id}`;
+      return (
+        !reservedTargets.has(key) &&
+        getUnfulfilledHistorianTargetIds(candidate).includes(item.artwork_id)
+      );
+    });
+    if (!quest) {
+      return {
+        questByItemId,
+        reason: `${item.artwork.title} does not have an available Historian quest target.`,
+      };
+    }
+    reservedTargets.add(`${quest._id}:${item.artwork_id}`);
+    questByItemId.set(item._id, quest._id);
+  }
+
+  return { questByItemId };
+}
+
+function getCollectionBulkConfirmationCopy(
+  action: CollectionDestructiveBulkAction,
+  items: readonly HydratedGameItem[],
+): {
+  actionLabel: string;
+  confirmLabel: string;
+  description: string;
+  destructive: boolean;
+} {
+  const highRarityCount = items.filter(
+    (item) =>
+      item.artwork.rarity === "legendary" ||
+      item.artwork.rarity === "masterpiece",
+  ).length;
+  const highRarityWarning =
+    highRarityCount > 0
+      ? ` Are you sure? ${highRarityCount} selected ${highRarityCount === 1 ? "item is" : "items are"} Legendary or Masterpiece rarity.`
+      : "";
+
+  switch (action) {
+    case "sell":
+      return {
+        actionLabel: "Sell",
+        confirmLabel: "Sell selected",
+        description:
+          `Selling permanently removes every selected item from your collection in exchange for its current sell value.${highRarityWarning}`,
+        destructive: true,
+      };
+    case "historian":
+      return {
+        actionLabel: "Send",
+        confirmLabel: "Send selected",
+        description:
+          `Each selected item will permanently leave your collection and fulfill one available Art Historian quest target.${highRarityWarning}`,
+        destructive: true,
+      };
+    case "archive":
+      return {
+        actionLabel: "Archive",
+        confirmLabel: "Archive selected",
+        description:
+          `Archiving permanently removes every selected item after adding its new modifiers, art style, and value to the archive.${highRarityWarning}`,
+        destructive: true,
+      };
+    case "donate":
+      return {
+        actionLabel: "Donate",
+        confirmLabel: "Donate selected",
+        description:
+          `Donating permanently removes every selected item in exchange for Karma and any recoverable art styles.${highRarityWarning}`,
+        destructive: true,
+      };
+  }
+}
+
+function getCollectionBulkSuccessMessage(
+  action: Exclude<CollectionBulkAction, "set-gallery" | "tag">,
+  itemCount: number,
+  totalMoney: number,
+  totalKarma: number,
+): string {
+  switch (action) {
+    case "display":
+      return `Displayed ${itemCount} selected ${itemCount === 1 ? "artwork" : "artworks"}.`;
+    case "take-down":
+      return `Took down ${itemCount} selected ${itemCount === 1 ? "artwork" : "artworks"}.`;
+    case "sell":
+      return `Sold ${itemCount} selected ${itemCount === 1 ? "artwork" : "artworks"} for $${totalMoney.toLocaleString()}.`;
+    case "historian":
+      return `Sent ${itemCount} selected ${itemCount === 1 ? "artwork" : "artworks"} to the Art Historian.`;
+    case "archive":
+      return `Archived ${itemCount} selected ${itemCount === 1 ? "artwork" : "artworks"}.`;
+    case "donate":
+      return `Donated ${itemCount} selected ${itemCount === 1 ? "artwork" : "artworks"} for ${totalKarma.toLocaleString()} Karma.`;
+  }
+}
+
+function isDestructiveCollectionBulkAction(
+  action: CollectionBulkAction,
+): action is CollectionDestructiveBulkAction {
+  return ["sell", "historian", "archive", "donate"].includes(action);
+}
+
+function isActionDialogResult(value: unknown): value is ActionDialogResult {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<ActionDialogResult>;
+  return (
+    typeof candidate.title === "string" &&
+    typeof candidate.message === "string" &&
+    ["authenticated", "destroyed", "returned", "mixed"].includes(
+      candidate.variant ?? "",
+    )
   );
 }
 

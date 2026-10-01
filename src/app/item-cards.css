@@ -4016,6 +4016,71 @@
   text-align: center;
 }
 
+.collection-bulk-confirmation-dialog .mint-loss-dialog-content {
+  position: relative;
+}
+
+.collection-bulk-confirmation-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+}
+
+.collection-bulk-confirmation-mark {
+  color: #315f8d;
+  font-size: 2.4rem;
+  filter: drop-shadow(0 0 8px rgb(49 95 141 / 28%));
+}
+
+.collection-bulk-confirmation-dialog.destructive::after {
+  background: #8f4545;
+}
+
+.collection-bulk-confirmation-dialog.destructive
+  .collection-bulk-confirmation-mark {
+  color: #8f4545;
+  filter: drop-shadow(0 0 8px rgb(143 69 69 / 28%));
+}
+
+.collection-bulk-confirmation-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 100%;
+  margin: 0;
+  border: 1px solid #bcb7aa;
+  background: #fffdf7;
+}
+
+.collection-bulk-confirmation-summary > div {
+  display: grid;
+  gap: 3px;
+  padding: 9px;
+}
+
+.collection-bulk-confirmation-summary > div + div {
+  border-left: 1px solid #bcb7aa;
+}
+
+.collection-bulk-confirmation-summary dt {
+  color: #777168;
+  font: 700 0.6rem Courier, "Courier New", monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.collection-bulk-confirmation-summary dd {
+  margin: 0;
+  font: 700 0.82rem Courier, "Courier New", monospace;
+}
+
+.collection-bulk-confirmation-dialog.destructive
+  .mint-loss-dialog-actions
+  button.confirm {
+  border-color: #7f3434;
+  background: #8f4545;
+  color: #fff;
+}
+
 .mint-loss-dialog-kicker {
   width: 100%;
   margin: 0;

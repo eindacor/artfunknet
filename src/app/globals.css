@@ -5779,7 +5779,7 @@ a.welcome-button {
 
 .collection-flag-filters {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 7px;
 }
 
@@ -5973,6 +5973,108 @@ a.welcome-button {
   padding: 24px;
 }
 
+.collection-selection-empty p {
+  margin: 0;
+  color: #817a70;
+  font: 0.72rem Courier, "Courier New", monospace;
+  text-align: center;
+}
+
+.collection-bulk-panel {
+  display: grid;
+  align-content: center;
+  gap: 18px;
+}
+
+.collection-bulk-summary {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}
+
+.collection-bulk-summary h2 {
+  margin: 0;
+  color: #171717;
+  font: 500 1.4rem Georgia, "Times New Roman", serif;
+}
+
+.collection-bulk-summary dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  border: 1px solid #d2cdc2;
+  background: #fffdf7;
+}
+
+.collection-bulk-summary dl > div {
+  display: grid;
+  gap: 3px;
+  padding: 10px;
+}
+
+.collection-bulk-summary dl > div + div {
+  border-left: 1px solid #d2cdc2;
+}
+
+.collection-bulk-summary dt {
+  color: #817a70;
+  font: 700 0.58rem Courier, "Courier New", monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.collection-bulk-summary dd {
+  margin: 0;
+  color: #282722;
+  font: 700 0.85rem Courier, "Courier New", monospace;
+}
+
+.collection-bulk-summary p {
+  margin: 0;
+  color: #777168;
+  font: 0.65rem/1.4 Courier, "Courier New", monospace;
+}
+
+.collection-bulk-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+
+.collection-bulk-actions button {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  border: 1px solid #171717;
+  border-radius: var(--game-button-radius);
+  padding: 8px 10px;
+  background: #171717;
+  color: #fff;
+  font: 700 0.64rem Courier, "Courier New", monospace;
+  cursor: pointer;
+}
+
+.collection-bulk-actions button.destructive {
+  border-color: #7f3434;
+  background: #f4e7e7;
+  color: #7f3434;
+}
+
+.collection-bulk-actions button:hover:not(:disabled),
+.collection-bulk-actions button:focus-visible:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #171717;
+}
+
+.collection-bulk-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
 .loot-dashboard {
   display: grid;
   grid-template-columns: 290px minmax(0, 1fr);
@@ -6102,6 +6204,11 @@ a.welcome-button {
   color: #282722;
   font: 700 0.68rem Courier, "Courier New", monospace;
   cursor: pointer;
+}
+
+.item-tags-list > button small {
+  color: #817a70;
+  font-size: 0.58rem;
 }
 
 .item-tags-list > button:hover:not(:disabled),
