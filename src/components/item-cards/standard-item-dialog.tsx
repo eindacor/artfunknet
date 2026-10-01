@@ -8,6 +8,7 @@ import { CommunityReactionLoader } from "@/components/community-emotes";
 import { ItemExpirationBadge } from "@/components/item-expiration-display";
 
 import ArtStyleActionButton from "./art-style-action-button";
+import ItemActionLayout from "./item-action-layout";
 import AuctionWatermark from "./auction-watermark";
 import KnownForgeryWatermark from "./known-forgery-watermark";
 import { CARD_RENDERERS } from "./registry";
@@ -280,13 +281,21 @@ export function StandardItemDetails({
               <span>Variants</span>
               <ItemVariantBadges item={item} />
             </section>
-            {item.status !== "auctioned" &&
-            permissions.canManageItem &&
+            {permissions.canManageItem &&
             (primaryAction || actions || permissions.canCustomizeCosmetic) ? (
-              <div
-                className={`standard-item-dialog-actions card-actions${
-                  primaryAction ? " card-actions-with-primary" : ""
-                }`}
+              <ItemActionLayout
+                actions={actions}
+                artStyleAction={
+                  permissions.canCustomizeCosmetic ? (
+                    <ArtStyleActionButton
+                      onClick={() => {
+                        onOpenArtStyle?.();
+                        onClose?.();
+                      }}
+                    />
+                  ) : null
+                }
+                className="standard-item-dialog-actions"
                 onClick={(event) => {
                   const target =
                     event.target instanceof Element
@@ -301,36 +310,8 @@ export function StandardItemDetails({
                     onClose?.();
                   }
                 }}
-              >
-                {primaryAction ? (
-                  <>
-                    <div className="card-action-primary">{primaryAction}</div>
-                    <div className="card-action-array">
-                      {actions}
-                      {permissions.canCustomizeCosmetic ? (
-                        <ArtStyleActionButton
-                          onClick={() => {
-                            onOpenArtStyle?.();
-                            onClose?.();
-                          }}
-                        />
-                      ) : null}
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    {actions}
-                    {permissions.canCustomizeCosmetic ? (
-                      <ArtStyleActionButton
-                        onClick={() => {
-                          onOpenArtStyle?.();
-                          onClose?.();
-                        }}
-                      />
-                    ) : null}
-                  </>
-                )}
-              </div>
+                primaryAction={primaryAction}
+              />
             ) : null}
           </div>
           <CompleteItemRecord

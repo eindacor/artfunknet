@@ -5481,8 +5481,14 @@ a.welcome-button {
 
 .collection-inventory-panel {
   grid-area: inventory;
-  height: 480px;
-  overflow-y: auto;
+  min-height: 480px;
+  overflow: hidden;
+}
+
+.collection-inventory-panel > .collection-sidebar-section {
+  display: flex;
+  min-height: 480px;
+  flex-direction: column;
 }
 
 .collection-gallery-metadata.profile-gallery-metadata {
@@ -5612,11 +5618,223 @@ a.welcome-button {
   text-transform: none;
 }
 
+.collection-inventory-controls {
+  display: grid;
+  gap: 10px;
+  border-bottom: 1px solid #d2cdc2;
+  padding: 0 14px 12px;
+  color: #676158;
+  font: 700 0.6rem Courier, "Courier New", monospace;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.collection-inventory-controls label {
+  display: grid;
+  gap: 4px;
+}
+
+.collection-inventory-controls input[type="search"],
+.collection-inventory-controls select {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #b9b2a5;
+  padding: 0.45rem 0.5rem;
+  background: #fff;
+  color: #171717;
+  font: 400 0.72rem Courier, "Courier New", monospace;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.collection-search-control small {
+  color: #817a70;
+  font-size: 0.58rem;
+  font-weight: 400;
+  letter-spacing: normal;
+  line-height: 1.35;
+  text-transform: none;
+}
+
+.collection-control-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.75fr);
+  gap: 8px;
+}
+
+.collection-filter-details {
+  border: 1px solid #c9c3b6;
+  background: #fffdf7;
+}
+
+.collection-filter-details > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 9px;
+  color: #282722;
+  cursor: pointer;
+  list-style: none;
+}
+
+.collection-filter-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.collection-filter-details[open] > summary {
+  border-bottom: 1px solid #d8d0c3;
+}
+
+.collection-filter-details > summary span {
+  margin-left: auto;
+  color: #817a70;
+}
+
+.collection-filter-details > summary::after {
+  margin-left: 6px;
+  content: "+";
+}
+
+.collection-filter-details[open] > summary::after {
+  content: "-";
+}
+
+.collection-filter-content {
+  display: grid;
+  gap: 12px;
+  padding: 10px;
+}
+
+.collection-filter-pair,
+.collection-attribute-filter-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.collection-filter-content fieldset {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.collection-filter-content legend {
+  margin-bottom: 5px;
+  color: #282722;
+}
+
+.collection-art-style-filter label {
+  max-width: 260px;
+}
+
+.collection-special-attributes > legend {
+  color: #c62f72;
+  text-shadow: 0 0 5px rgb(255 51 204 / 38%);
+}
+
+.collection-filter-checks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 8px;
+}
+
+.collection-filter-checks label,
+.collection-attribute-filters label {
+  display: flex;
+  grid-template-columns: none;
+  gap: 5px;
+  align-items: center;
+  color: #5f5a52;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.collection-filter-checks input,
+.collection-attribute-filters input {
+  accent-color: var(--accent);
+}
+
+.collection-rarity-filter[data-rarity="common"] span {
+  color: #27863b;
+}
+
+.collection-rarity-filter[data-rarity="uncommon"] span {
+  color: #2d64dc;
+}
+
+.collection-rarity-filter[data-rarity="rare"] span {
+  color: #8a7200;
+}
+
+.collection-rarity-filter[data-rarity="legendary"] span {
+  color: #c85f00;
+}
+
+.collection-rarity-filter[data-rarity="masterpiece"] span {
+  color: #007d87;
+}
+
+.collection-flag-filters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.collection-flag-filters label {
+  gap: 3px;
+}
+
+.collection-flag-filters select {
+  padding: 0.3rem 0.35rem;
+  font-size: 0.65rem;
+}
+
+.collection-attribute-minimum {
+  grid-template-columns: 1fr 64px;
+  align-items: center;
+}
+
+.collection-attribute-filters {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px 8px;
+  max-height: 120px;
+  overflow-y: auto;
+  border: 1px solid #ded8cd;
+  padding: 7px;
+  background: #fff;
+}
+
+.collection-attribute-filter-row .collection-attribute-filters {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.collection-clear-filters {
+  border: 1px solid #777168;
+  border-radius: var(--game-button-radius);
+  padding: 7px 9px;
+  background: #eeeae1;
+  color: #282722;
+  font: 700 0.62rem Courier, "Courier New", monospace;
+  cursor: pointer;
+}
+
+.collection-clear-filters:hover,
+.collection-clear-filters:focus-visible {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
 .collection-thumbnail-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(76px, 82px));
   gap: 6px;
   justify-content: start;
+  max-height: 280px;
+  overflow-y: auto;
   padding: 10px;
 }
 
@@ -5818,6 +6036,147 @@ a.welcome-button {
   border-color: var(--accent);
   background: var(--accent);
   color: #171717;
+}
+
+.item-tags-dialog {
+  position: fixed;
+  inset: 0;
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  margin: auto;
+  overflow-y: auto;
+  border: 1px solid #8d8578;
+  padding: 24px;
+  background: #f8f5ee;
+  color: #282722;
+  box-shadow: 0 24px 70px rgb(0 0 0 / 42%);
+}
+
+.item-tags-dialog::backdrop {
+  background: rgb(0 0 0 / 68%);
+  backdrop-filter: blur(2px);
+}
+
+.item-tags-dialog-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+.item-tags-dialog > header {
+  padding-right: 42px;
+}
+
+.item-tags-dialog h2 {
+  margin: 3px 0;
+  font: 500 1.4rem Georgia, "Times New Roman", serif;
+}
+
+.item-tags-dialog header p,
+.item-tags-help,
+.item-tags-list > p {
+  margin: 0;
+  color: #676158;
+  font: 0.72rem Courier, "Courier New", monospace;
+}
+
+.item-tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  min-height: 48px;
+  margin: 18px 0;
+  border: 1px solid #d0cabe;
+  padding: 10px;
+  background: #fffdf7;
+}
+
+.item-tags-list > button {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  border: 1px solid #8d8578;
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: #eeeae1;
+  color: #282722;
+  font: 700 0.68rem Courier, "Courier New", monospace;
+  cursor: pointer;
+}
+
+.item-tags-list > button:hover:not(:disabled),
+.item-tags-list > button:focus-visible:not(:disabled) {
+  border-color: #8f2e2e;
+  color: #8f2e2e;
+}
+
+.item-tags-entry {
+  display: grid;
+  gap: 6px;
+  color: #676158;
+  font: 700 0.64rem Courier, "Courier New", monospace;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.item-tags-entry > span:last-child {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.item-tags-entry input {
+  min-width: 0;
+  border: 1px solid #8d8578;
+  padding: 9px 10px;
+  background: #fff;
+  color: #171717;
+  font: 0.76rem Courier, "Courier New", monospace;
+}
+
+.item-tags-entry button,
+.item-tags-dialog footer button {
+  border: 1px solid #171717;
+  border-radius: var(--game-button-radius);
+  padding: 8px 12px;
+  background: #171717;
+  color: #fff;
+  font: 700 0.68rem Courier, "Courier New", monospace;
+  cursor: pointer;
+}
+
+.item-tags-entry button:disabled,
+.item-tags-dialog footer button:disabled,
+.item-tags-list > button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.item-tags-help {
+  margin-top: 10px;
+}
+
+.item-tags-error {
+  margin: 10px 0 0;
+  color: #8f2e2e;
+  font: 700 0.72rem Courier, "Courier New", monospace;
+}
+
+.item-tags-dialog footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+.item-tags-dialog footer button:first-child {
+  border-color: #777168;
+  background: #eeeae1;
+  color: #282722;
+}
+
+.item-tags-dialog footer button:last-child {
+  border-color: #237a3b;
+  background: #237a3b;
 }
 
 .loot-items-panel {
@@ -6037,10 +6396,10 @@ a.welcome-button {
 
 .collection-preview > .rendered-item-card > .card-actions-with-primary {
   display: grid;
-  grid-template-columns: minmax(90px, 118px) 154px;
+  grid-template-columns: minmax(90px, 118px) 194px;
   gap: 8px;
   align-items: stretch;
-  width: 280px;
+  width: 320px;
   height: 114px;
 }
 
@@ -6053,77 +6412,114 @@ a.welcome-button {
   height: 100%;
 }
 
-.card-action-array {
+.card-action-groups {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(4, 34px);
-  grid-template-rows: repeat(3, 34px);
-  grid-auto-flow: row;
+  grid-template-columns: 114px 74px;
   gap: 6px;
   align-content: start;
 }
 
-.card-action-array::after {
+.card-action-groups::after {
   position: absolute;
   top: 0;
   bottom: 0;
-  left: 77px;
+  left: 117px;
   width: 1px;
   background: rgb(23 23 23 / 35%);
   content: "";
   pointer-events: none;
 }
 
-.card-action-array > .card-action-slot-1 {
+.card-action-section {
+  display: grid;
+  grid-template-rows: repeat(3, 34px);
+  gap: 6px;
+  align-content: start;
+}
+
+.card-action-nondestructive {
+  grid-template-columns: repeat(3, 34px);
+}
+
+.card-action-destructive {
+  grid-template-columns: repeat(2, 34px);
+}
+
+.card-action-destructive .item-action-button {
+  --game-action-text: #ffaaaa;
+}
+
+.loot-preview
+  > .rendered-item-card
+  > .card-actions-with-primary {
+  grid-template-columns: minmax(90px, 118px) 114px;
+  width: 240px;
+}
+
+.loot-preview .card-action-groups {
+  grid-template-columns: 34px 74px;
+}
+
+.loot-preview .card-action-groups::after {
+  left: 37px;
+}
+
+.card-action-nondestructive > .card-action-slot-1 {
   grid-area: 1 / 1;
 }
 
-.card-action-array > .card-action-slot-2 {
+.card-action-nondestructive > .card-action-slot-2 {
   grid-area: 1 / 2;
 }
 
-.card-action-array > .card-action-slot-3 {
-  grid-area: 1 / 3;
-}
-
-.card-action-array > .card-action-slot-4 {
+.card-action-nondestructive > .card-action-slot-4 {
   grid-area: 2 / 1;
 }
 
-.card-action-array > .card-action-slot-5 {
+.card-action-nondestructive > .card-action-slot-5 {
   grid-area: 2 / 2;
 }
 
-.card-action-array > .card-action-slot-6 {
-  grid-area: 2 / 3;
-}
-
-.card-action-array > .card-action-slot-7 {
+.card-action-nondestructive > .card-action-slot-7 {
   grid-area: 3 / 1;
 }
 
-.card-action-array > .card-action-slot-8,
-.collection-workspace
-  .collection-preview
-  .card-action-array
-  > .item-action-style {
+.card-action-nondestructive > .card-action-slot-8,
+.card-action-nondestructive > .item-action-style {
   grid-area: 3 / 2;
 }
 
-.card-action-array > .card-action-slot-9 {
+.card-action-nondestructive > .card-action-slot-10 {
+  grid-area: 1 / 3;
+}
+
+.card-action-nondestructive > .card-action-slot-11 {
+  grid-area: 2 / 3;
+}
+
+.card-action-nondestructive > .card-action-slot-12 {
   grid-area: 3 / 3;
 }
 
-.card-action-array > .card-action-slot-10 {
-  grid-area: 1 / 4;
+.card-action-destructive > .card-action-slot-3 {
+  grid-area: 1 / 1;
 }
 
-.card-action-array > .card-action-slot-11 {
-  grid-area: 2 / 4;
+.card-action-destructive > .card-action-slot-6 {
+  grid-area: 2 / 1;
 }
 
-.card-action-array > .card-action-slot-12 {
-  grid-area: 3 / 4;
+.card-action-destructive > .card-action-slot-9 {
+  grid-area: 3 / 1;
+}
+
+.card-action-destructive > .card-action-slot-10 {
+  grid-area: 1 / 2;
+}
+
+.card-action-destructive > .card-action-slot-12 {
+  grid-area: 2 / 2;
 }
 
 .collection-gallery-action {
@@ -6729,7 +7125,23 @@ a.welcome-button {
   }
 
   .collection-inventory-panel {
-    height: 360px;
+    min-height: 360px;
+  }
+
+  .collection-inventory-panel > .collection-sidebar-section {
+    min-height: 360px;
+  }
+
+  .collection-inventory-panel .collection-thumbnail-list {
+    max-height: 240px;
+  }
+
+  .collection-control-row,
+  .collection-filter-pair,
+  .collection-attribute-filter-row,
+  .collection-flag-filters,
+  .collection-attribute-filters {
+    grid-template-columns: 1fr;
   }
 
   .collection-thumbnail-list {

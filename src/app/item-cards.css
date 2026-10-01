@@ -4281,7 +4281,7 @@
 
 .standard-item-dialog-layout {
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
+  grid-template-columns: 320px minmax(0, 1fr);
   align-items: start;
   gap: 1.25rem;
 }
@@ -4455,24 +4455,18 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-start;
-  width: 260px;
+  width: 320px;
   margin: auto 0 0;
   font-family: Courier, "Courier New", monospace;
 }
 
 .standard-item-dialog-actions.card-actions-with-primary {
   display: grid;
-  grid-template-columns: minmax(90px, 118px) 154px;
+  grid-template-columns: minmax(90px, 118px) 194px;
   align-items: stretch;
   gap: 8px;
-  width: 280px;
+  width: 320px;
   height: 114px;
-}
-
-.standard-item-dialog-actions.card-actions-with-primary
-  .card-action-array
-  > .item-action-style {
-  grid-area: 3 / 2;
 }
 
 .standard-item-dialog .complete-item-record {
@@ -5286,7 +5280,7 @@
 
     .standard-item-dialog-actions.card-actions {
       justify-content: center;
-      width: min(260px, 100%);
+      width: min(320px, 100%);
       margin: 0 auto;
     }
 

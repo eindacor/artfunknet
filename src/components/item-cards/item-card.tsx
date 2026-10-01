@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import AuctionWatermark from "./auction-watermark";
 import ArtStyleDialog from "./art-style-dialog";
 import ArtStyleActionButton from "./art-style-action-button";
+import ItemActionLayout from "./item-action-layout";
 import KnownForgeryWatermark from "./known-forgery-watermark";
 import { CARD_RENDERERS } from "./registry";
 import { resolveCardRendererId } from "./selection";
@@ -127,38 +128,19 @@ export default function ItemCard({
       {overlay}
       {permissions.canManageItem &&
       (primaryAction || actions || permissions.canCustomizeCosmetic) ? (
-        <div
-          className={`card-actions ${
-            primaryAction ? "card-actions-with-primary" : ""
-          }`}
-        >
-          {primaryAction ? (
-            <>
-              <div className="card-action-primary">{primaryAction}</div>
-              <div className="card-action-array">
-                {actions}
-                {permissions.canCustomizeCosmetic ? (
-                  <ArtStyleActionButton
-                    onClick={() => {
-                      setArtStyleDialogOpen(true);
-                    }}
-                  />
-                ) : null}
-              </div>
-            </>
-          ) : (
-            <>
-              {actions}
-              {permissions.canCustomizeCosmetic ? (
-                <ArtStyleActionButton
-                  onClick={() => {
-                    setArtStyleDialogOpen(true);
-                  }}
-                />
-              ) : null}
-            </>
-          )}
-        </div>
+        <ItemActionLayout
+          actions={actions}
+          artStyleAction={
+            permissions.canCustomizeCosmetic ? (
+              <ArtStyleActionButton
+                onClick={() => {
+                  setArtStyleDialogOpen(true);
+                }}
+              />
+            ) : null
+          }
+          primaryAction={primaryAction}
+        />
       ) : null}
       {interactive && dialogOpen ? (
         <StandardItemDialog

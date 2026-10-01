@@ -15,6 +15,7 @@ import ArchiveEntryDialog from "@/components/archive-entry-dialog";
 import ForgeryDialog from "@/components/forgery-dialog";
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
 import ItemThumbnail from "@/components/item-thumbnail";
+import ItemTagsDialog from "@/components/item-tags-dialog";
 import HallOfFamePanel from "@/components/hall-of-fame-panel";
 import RafflePanel, {
   type RafflePrizeView,
@@ -30,7 +31,10 @@ import {
 import ArchiveConfirmationDialog from "@/components/item-cards/archive-confirmation-dialog";
 import AuctionListingDialog from "@/components/item-cards/auction-listing-dialog";
 import ArtStyleDialog from "@/components/item-cards/art-style-dialog";
-import type { CardStyleInventory } from "@/components/item-cards/catalog";
+import {
+  CARD_COSMETICS,
+  type CardStyleInventory,
+} from "@/components/item-cards/catalog";
 import ItemCard from "@/components/item-cards/item-card";
 import MintLossConfirmationDialog from "@/components/item-cards/mint-loss-confirmation-dialog";
 import ValuableItemConfirmationDialog from "@/components/item-cards/valuable-item-confirmation-dialog";
@@ -46,6 +50,20 @@ import {
   useGalleryVisitors,
 } from "@/components/use-gallery-visitors";
 import type { GalleryRates } from "@/server/collection-gameplay";
+import {
+  COLLECTION_FLAG_KEYS,
+  COLLECTION_STATUSES,
+  filterCollectionItems,
+  getCollectionAttributeOptions,
+  getCollectionTags,
+  getDefaultCollectionFilters,
+  getInventoryComparator,
+  type CollectionAttributeOption,
+  type CollectionFilters,
+  type CollectionFlagKey,
+  type CollectionFlagMode,
+  type CollectionStatus,
+} from "@/server/collection-inventory";
 import type { CrateOfferView } from "@/server/crate-gameplay";
 import { getArchivePropertyProgress } from "@/server/archive-gameplay";
 import {
@@ -443,6 +461,11 @@ export default function GameDashboard({
   const [inventorySort, setInventorySort] = useState<InventorySort>(
     player.viewSettings.inventorySort,
   );
+  const [collectionFilters, setCollectionFilters] = useState<CollectionFilters>(
+    getDefaultCollectionFilters,
+  );
+  const [tagEditorItem, setTagEditorItem] =
+    useState<HydratedGameItem | null>(null);
   const [linkedItemDetails, setLinkedItemDetails] =
     useState<LinkedItemView | null>(linkedItem);
   const [galleryArtStyleItem, setGalleryArtStyleItem] =
@@ -666,9 +689,55 @@ export default function GameDashboard({
     () => [...displayed, ...inventory],
     [displayed, inventory],
   );
+  const collectionTags = useMemo(
+    () => getCollectionTags(collectionItems),
+    [collectionItems],
+  );
+  const collectionArtStyleOptions = useMemo(() => {
+    const styleIds = new Set(
+      collectionItems.map((item) => item.card_renderer ?? "museum"),
+    );
+    return CARD_COSMETICS.filter((style) => styleIds.has(style.id)).map(
+      (style) => ({
+        id: style.id,
+        label: style.id === "museum" ? "Default" : style.name,
+      }),
+    );
+  }, [collectionItems]);
+  const collectionAttributeOptions = useMemo(
+    () => getCollectionAttributeOptions(collectionItems),
+    [collectionItems],
+  );
+  const collectionSpecialAttributeOptions = useMemo(
+    () => getCollectionAttributeOptions(collectionItems, true),
+    [collectionItems],
+  );
+  const normalizedCollectionFilters = useMemo(
+    () => ({
+      ...collectionFilters,
+      tag:
+        collectionFilters.tag && !collectionTags.includes(collectionFilters.tag)
+          ? ""
+          : collectionFilters.tag,
+      artStyle:
+        collectionFilters.artStyle &&
+        !collectionArtStyleOptions.some(
+          (style) => style.id === collectionFilters.artStyle,
+        )
+          ? ""
+          : collectionFilters.artStyle,
+    }),
+    [collectionArtStyleOptions, collectionFilters, collectionTags],
+  );
+  const filteredCollectionItems = useMemo(
+    () =>
+      filterCollectionItems(collectionItems, normalizedCollectionFilters, now),
+    [collectionItems, normalizedCollectionFilters, now],
+  );
   const sortedHomeInventory = useMemo(
-    () => [...collectionItems].sort(getInventoryComparator(inventorySort)),
-    [collectionItems, inventorySort],
+    () =>
+      [...filteredCollectionItems].sort(getInventoryComparator(inventorySort)),
+    [filteredCollectionItems, inventorySort],
   );
   const archiveEntries = useMemo(
     () =>
@@ -710,10 +779,11 @@ export default function GameDashboard({
       );
     });
   }, [archiveCompletion, archiveEntries, archiveRarity, archiveSearch]);
-  const selectedCollectionItem =
-    collectionItems.find((item) => item._id === selectedCollectionItemId) ??
-    collectionItems[0] ??
-    null;
+  const selectedCollectionItem = selectedCollectionItemId
+    ? collectionItems.find((item) => item._id === selectedCollectionItemId) ??
+      sortedHomeInventory[0] ??
+      null
+    : sortedHomeInventory[0] ?? null;
   const vintageCandidates = useMemo(
     () =>
       items.filter(
@@ -1252,6 +1322,7 @@ export default function GameDashboard({
 
     return (
       <ItemActionButton
+        destructive
         icon="fa-archive"
         label={
           purchaseAmount > 0
@@ -1556,6 +1627,7 @@ export default function GameDashboard({
     return (
       <>
         <ItemActionButton
+          gridSlot={1}
           icon="fa-picture-o"
           label="Remove from gallery"
           disabled={pending}
@@ -1564,6 +1636,7 @@ export default function GameDashboard({
         />
         {canRerollDisplayed ? (
           <ItemActionButton
+            gridSlot={2}
             icon="fa-magic"
             label="Modify displayed artwork"
             disabled={pending}
@@ -1577,12 +1650,15 @@ export default function GameDashboard({
           />
         ) : null}
         <ItemActionButton
+          destructive
+          gridSlot={10}
           icon="fa-museum"
           label="Send to Historian"
           disabled={pending || Boolean(historianDisabledReason)}
           disabledReason={historianDisabledReason}
           onClick={() => requestHistorianSubmission(item)}
         />
+        {tagItemAction(item)}
       </>
     );
   }
@@ -1636,6 +1712,22 @@ export default function GameDashboard({
     );
   }
 
+  function tagItemAction(item: HydratedGameItem) {
+    return (
+      <ItemActionButton
+        gridSlot={11}
+        icon="fa-tags"
+        label={
+          item.tags.length > 0
+            ? `Modify tags: ${item.tags.join(", ")}`
+            : "Add item tags"
+        }
+        disabled={pending}
+        onClick={() => setTagEditorItem(item)}
+      />
+    );
+  }
+
   function collectionDisplayedItemActions(item: HydratedGameItem) {
     const inventoryOnlyReason =
       "Take this artwork down before using this action.";
@@ -1673,6 +1765,7 @@ export default function GameDashboard({
         <ItemActionButton
           disabled
           disabledReason={inventoryOnlyReason}
+          destructive
           gridSlot={3}
           icon="fa-usd"
           label={`Sell for $${item.values.sell.toLocaleString()}`}
@@ -1697,6 +1790,7 @@ export default function GameDashboard({
         <ItemActionButton
           disabled
           disabledReason={inventoryOnlyReason}
+          destructive
           gridSlot={6}
           icon="fa-archive"
           label="Archive permanently"
@@ -1708,15 +1802,18 @@ export default function GameDashboard({
           item={item}
           pending={pending}
         />
+        {tagItemAction(item)}
         <ItemActionButton
           disabled
           disabledReason={inventoryOnlyReason}
+          destructive
           gridSlot={9}
           icon="fa-share-square"
           label="Donate for Karma"
           onClick={() => undefined}
         />
         <ItemActionButton
+          destructive
           gridSlot={10}
           icon="fa-museum"
           label="Send to Historian"
@@ -1738,13 +1835,16 @@ export default function GameDashboard({
       return (
         <>
           <ItemActionButton
+            destructive
+            gridSlot={3}
             icon="fa-times"
             label="Decline dealer offer"
             disabled={pending}
             onClick={() => act(`/api/play/items/${item._id}/decline`)}
           />
-          {archiveAction(item)}
+          {archiveAction(item, 6)}
           <ItemActionButton
+            destructive
             gridSlot={10}
             icon="fa-museum"
             label="Purchase and send to Historian"
@@ -1759,31 +1859,39 @@ export default function GameDashboard({
     return (
       <>
         <ItemActionButton
+          destructive
+          gridSlot={3}
           icon="fa-usd"
           label={`Sell immediately for $${item.values.sell.toLocaleString()}`}
           disabled={pending}
           onClick={() => requestItemRemoval(item, "sell")}
         />
         <ItemActionButton
+          destructive
+          gridSlot={9}
           icon="fa-share-square"
           label="Donate for Karma"
           disabled={pending || item.permanent || item.original}
           onClick={() => requestItemRemoval(item, "donate")}
         />
         <ItemActionButton
+          destructive
+          gridSlot={6}
           icon="fa-times"
           label="Decline and remove from game"
           disabled={pending}
           onClick={() => act(`/api/play/items/${item._id}/decline`)}
         />
         <ItemActionButton
+          gridSlot={4}
           icon="fa-binoculars"
           label="Collect and set for sale"
           disabled={pending}
           onClick={() => act(`/api/play/items/${item._id}/claim-and-set-for-sale`)}
         />
-        {archiveAction(item)}
+        {archiveAction(item, 12)}
         <ItemActionButton
+          destructive
           gridSlot={10}
           icon="fa-museum"
           label="Claim and send to Historian"
@@ -1897,6 +2005,7 @@ export default function GameDashboard({
           onClick={() => setAuctionListingItem(item)}
         />
         <ItemActionButton
+          destructive
           gridSlot={3}
           icon="fa-usd"
           label={`Sell for $${item.values.sell.toLocaleString()}`}
@@ -1905,6 +2014,7 @@ export default function GameDashboard({
         />
         {archiveAction(item, 6)}
         <ItemActionButton
+          destructive
           gridSlot={9}
           icon="fa-share-square"
           label="Donate for Karma"
@@ -1917,7 +2027,9 @@ export default function GameDashboard({
           item={item}
           pending={pending}
         />
+        {tagItemAction(item)}
         <ItemActionButton
+          destructive
           gridSlot={10}
           icon="fa-museum"
           label="Send to Historian"
@@ -2373,7 +2485,9 @@ export default function GameDashboard({
                           selectedLootAuction
                             ? (
                                 <ItemActionButton
+                                  destructive
                                   disabled={pending}
+                                  gridSlot={3}
                                   icon="fa-times"
                                   label="Dismiss private auction"
                                   onClick={() =>
@@ -2689,29 +2803,24 @@ export default function GameDashboard({
                     {player.inventorySlotsUsed}/{player.inventoryCap}
                   </span>
                 </header>
-                <label className="collection-inventory-sort">
-                  <span>Sort inventory</span>
-                  <select
-                    onChange={(event) => {
-                      const next = event.target.value as InventorySort;
-                      setInventorySort(next);
-                      saveViewSettings({ inventorySort: next });
-                    }}
-                    value={inventorySort}
-                  >
-                    <option value="newest">Newest first</option>
-                    <option value="oldest">Oldest first</option>
-                    <option value="value-high">Value: high to low</option>
-                    <option value="value-low">Value: low to high</option>
-                    <option value="title">Title: A to Z</option>
-                    <option value="artist">Artist: A to Z</option>
-                    <option value="rarity">Rarity: highest first</option>
-                    <option value="condition">Condition: highest first</option>
-                  </select>
-                </label>
-                {collectionItems.length === 0 ? (
+                <CollectionInventoryControls
+                  artStyleOptions={collectionArtStyleOptions}
+                  attributeOptions={collectionAttributeOptions}
+                  filters={normalizedCollectionFilters}
+                  matchCount={sortedHomeInventory.length}
+                  onFiltersChange={setCollectionFilters}
+                  onSortChange={(next) => {
+                    setInventorySort(next);
+                    saveViewSettings({ inventorySort: next });
+                  }}
+                  sort={inventorySort}
+                  specialAttributeOptions={collectionSpecialAttributeOptions}
+                  tags={collectionTags}
+                  totalCount={collectionItems.length}
+                />
+                {sortedHomeInventory.length === 0 ? (
                   <p className="collection-sidebar-empty">
-                    Your inventory is empty.
+                    No artworks match the current filters.
                   </p>
                 ) : (
                   <div className="collection-thumbnail-list">
@@ -2753,7 +2862,7 @@ export default function GameDashboard({
                       selectedCollectionItem.status === "displayed"
                         ? collectionDisplayedItemActions(selectedCollectionItem)
                         : selectedCollectionItem.status === "auctioned"
-                          ? undefined
+                          ? tagItemAction(selectedCollectionItem)
                           : collectionItemActions(selectedCollectionItem)
                     }
                     consigned={selectedCollectionItem.status === "auctioned"}
@@ -2819,14 +2928,7 @@ export default function GameDashboard({
                     }}
                     value={inventorySort}
                   >
-                    <option value="newest">Newest first</option>
-                    <option value="oldest">Oldest first</option>
-                    <option value="value-high">Value: high to low</option>
-                    <option value="value-low">Value: low to high</option>
-                    <option value="title">Title: A to Z</option>
-                    <option value="artist">Artist: A to Z</option>
-                    <option value="rarity">Rarity: highest first</option>
-                    <option value="condition">Condition: highest first</option>
+                    <InventorySortOptions />
                   </select>
                 </label>
               }
@@ -2858,6 +2960,7 @@ export default function GameDashboard({
                 return (
                   <>
                     <ItemActionButton
+                      gridSlot={1}
                       icon="fa-picture-o"
                       label="Display in gallery"
                       disabled={pending || !displayPermission.allowed}
@@ -2880,6 +2983,7 @@ export default function GameDashboard({
                       }
                     />
                     <ItemActionButton
+                      gridSlot={2}
                       icon="fa-wrench"
                       label={
                         item.repairing
@@ -2894,6 +2998,7 @@ export default function GameDashboard({
                       variant={item.repairing ? "enabled" : "default"}
                     />
                     <ItemActionButton
+                      gridSlot={4}
                       icon="fa-magic"
                       label="Modify attributes"
                       disabled={pending}
@@ -2906,6 +3011,7 @@ export default function GameDashboard({
                       }
                     />
                     <ItemActionButton
+                      gridSlot={5}
                       icon="fa-binoculars"
                       label={
                         item.tags.includes("for sale")
@@ -2921,18 +3027,23 @@ export default function GameDashboard({
                       }
                     />
                     <ItemActionButton
+                      gridSlot={7}
                       icon="fa-gavel"
                       label="Put up for auction"
                       disabled={pending || item.permanent || item.repairing}
                       onClick={() => setAuctionListingItem(item)}
                     />
                     <ItemActionButton
+                      destructive
+                      gridSlot={3}
                       icon="fa-usd"
                       label={`Sell for $${item.values.sell.toLocaleString()}`}
                       disabled={pending}
                       onClick={() => requestItemRemoval(item, "sell")}
                     />
                     <ItemActionButton
+                      destructive
+                      gridSlot={9}
                       icon="fa-share-square"
                       label="Donate for Karma"
                       disabled={pending || item.permanent || item.original}
@@ -2940,11 +3051,15 @@ export default function GameDashboard({
                     />
                     <AuthenticityActions
                       act={act}
+                      gridSlot={8}
                       item={item}
                       pending={pending}
                     />
-                    {archiveAction(item)}
+                    {tagItemAction(item)}
+                    {archiveAction(item, 6)}
                     <ItemActionButton
+                      destructive
+                      gridSlot={10}
                       icon="fa-museum"
                       label="Send to Historian"
                       disabled={pending || Boolean(historianDisabledReason)}
@@ -3261,6 +3376,17 @@ export default function GameDashboard({
               setRerollSession((current) =>
                 current ? { ...current, item } : current,
               );
+              router.refresh();
+            }}
+          />
+        ) : null}
+        {tagEditorItem ? (
+          <ItemTagsDialog
+            item={tagEditorItem}
+            onClose={() => setTagEditorItem(null)}
+            onSaved={(_tags, message) => {
+              setNotice(message);
+              setTagEditorItem(null);
               router.refresh();
             }}
           />
@@ -4440,6 +4566,7 @@ function ItemActionButton({
   label: string;
   disabled: boolean;
   disabledReason?: string;
+  destructive?: boolean;
   gridSlot?: ActionGridSlot;
   alwaysVisible?: boolean;
   onDisabledClick?: () => void | Promise<void>;
@@ -4538,47 +4665,334 @@ function InventorySection({
   );
 }
 
-function getInventoryComparator(
-  sort: InventorySort,
-): (left: HydratedGameItem, right: HydratedGameItem) => number {
-  const byNewest = (left: HydratedGameItem, right: HydratedGameItem) =>
-    Date.parse(right.date_received) - Date.parse(left.date_received);
-  const tieBreak = (left: HydratedGameItem, right: HydratedGameItem) =>
-    byNewest(left, right) || left._id.localeCompare(right._id);
+function InventorySortOptions() {
+  return (
+    <>
+      <option value="newest">Acquired: newest first</option>
+      <option value="oldest">Acquired: oldest first</option>
+      <option value="value-high">Value: high to low</option>
+      <option value="value-low">Value: low to high</option>
+      <option value="title">Title: A to Z</option>
+      <option value="title-desc">Title: Z to A</option>
+      <option value="artwork-newest">Artwork date: newest first</option>
+      <option value="artwork-oldest">Artwork date: oldest first</option>
+      <option value="artist">Artist: A to Z</option>
+      <option value="artist-desc">Artist: Z to A</option>
+      <option value="rarity">Rarity: highest first</option>
+      <option value="rarity-low">Rarity: lowest first</option>
+      <option value="condition">Condition: highest first</option>
+      <option value="condition-low">Condition: lowest first</option>
+      <option value="level-high">Promotion level: highest first</option>
+      <option value="level-low">Promotion level: lowest first</option>
+    </>
+  );
+}
 
-  return (left, right) => {
-    let comparison = 0;
-    switch (sort) {
-      case "oldest":
-        comparison =
-          Date.parse(left.date_received) - Date.parse(right.date_received);
-        break;
-      case "value-high":
-        comparison = right.values.actual - left.values.actual;
-        break;
-      case "value-low":
-        comparison = left.values.actual - right.values.actual;
-        break;
-      case "title":
-        comparison = left.artwork.title.localeCompare(right.artwork.title);
-        break;
-      case "artist":
-        comparison = left.artwork.artist.localeCompare(right.artwork.artist);
-        break;
-      case "rarity":
-        comparison =
-          ARTWORK_RARITIES.indexOf(right.artwork.rarity) -
-          ARTWORK_RARITIES.indexOf(left.artwork.rarity);
-        break;
-      case "condition":
-        comparison = right.condition - left.condition;
-        break;
-      case "newest":
-        comparison = byNewest(left, right);
-        break;
-    }
-    return comparison || tieBreak(left, right);
-  };
+const COLLECTION_FLAG_LABELS: Record<CollectionFlagKey, string> = {
+  repairing: "Repairing",
+  "for-sale": "For sale",
+  foil: "Foil",
+  unlocked: "Unlocked",
+  seasonal: "Seasonal",
+  lottery: "Lottery",
+  original: "Original",
+  vintage: "Vintage",
+  forgery: "Known forgery",
+};
+
+function CollectionInventoryControls({
+  artStyleOptions,
+  attributeOptions,
+  filters,
+  matchCount,
+  onFiltersChange,
+  onSortChange,
+  sort,
+  specialAttributeOptions,
+  tags,
+  totalCount,
+}: {
+  artStyleOptions: CollectionAttributeOption[];
+  attributeOptions: CollectionAttributeOption[];
+  filters: CollectionFilters;
+  matchCount: number;
+  onFiltersChange: (filters: CollectionFilters) => void;
+  onSortChange: (sort: InventorySort) => void;
+  sort: InventorySort;
+  specialAttributeOptions: CollectionAttributeOption[];
+  tags: string[];
+  totalCount: number;
+}) {
+  function update(patch: Partial<CollectionFilters>) {
+    onFiltersChange({ ...filters, ...patch });
+  }
+
+  function toggleStatus(status: CollectionStatus) {
+    update({
+      statuses: filters.statuses.includes(status)
+        ? filters.statuses.filter((candidate) => candidate !== status)
+        : [...filters.statuses, status],
+    });
+  }
+
+  function toggleRarity(rarity: ArtworkRarity) {
+    update({
+      rarities: filters.rarities.includes(rarity)
+        ? filters.rarities.filter((candidate) => candidate !== rarity)
+        : [...filters.rarities, rarity],
+    });
+  }
+
+  function toggleAttribute(
+    key: "attributeIds" | "specialAttributeIds",
+    minimumKey: "attributeMinimum" | "specialAttributeMinimum",
+    id: string,
+  ) {
+    const current = filters[key];
+    const next = current.includes(id)
+      ? current.filter((candidate) => candidate !== id)
+      : [...current, id];
+    update({
+      [key]: next,
+      [minimumKey]: Math.min(filters[minimumKey], Math.max(1, next.length)),
+    });
+  }
+
+  return (
+    <div className="collection-inventory-controls">
+      <label className="collection-search-control">
+        <span>Search inventory</span>
+        <input
+          onChange={(event) => update({ search: event.target.value })}
+          placeholder="Title or artist, #tag, *new, *dupes"
+          type="search"
+          value={filters.search}
+        />
+        <small>
+          Separate terms with commas. Use #tag, *new, or *dupes.
+        </small>
+      </label>
+      <div className="collection-control-row">
+        <label>
+          <span>Sort</span>
+          <select
+            onChange={(event) =>
+              onSortChange(event.target.value as InventorySort)
+            }
+            value={sort}
+          >
+            <InventorySortOptions />
+          </select>
+        </label>
+        <label>
+          <span>Tag</span>
+          <select
+            onChange={(event) => update({ tag: event.target.value })}
+            value={filters.tag}
+          >
+            <option value="">All tags</option>
+            {tags.map((tag) => (
+              <option key={tag} value={tag}>
+                {tag}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <details className="collection-filter-details">
+        <summary>
+          Filters
+          <span>
+            {matchCount}/{totalCount}
+          </span>
+        </summary>
+        <div className="collection-filter-content">
+          <div className="collection-filter-pair">
+            <fieldset>
+              <legend>Status</legend>
+              <div className="collection-filter-checks">
+                {COLLECTION_STATUSES.map((status) => (
+                  <label key={status}>
+                    <input
+                      checked={filters.statuses.includes(status)}
+                      onChange={() => toggleStatus(status)}
+                      type="checkbox"
+                    />
+                    <span>
+                      {status === "claimed"
+                        ? "Inventory"
+                        : status === "displayed"
+                          ? "On display"
+                          : "Auctioned"}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <fieldset>
+              <legend>Rarity</legend>
+              <div className="collection-filter-checks">
+                {ARTWORK_RARITIES.map((rarity) => (
+                  <label
+                    className="collection-rarity-filter"
+                    data-rarity={rarity}
+                    key={rarity}
+                  >
+                    <input
+                      checked={filters.rarities.includes(rarity)}
+                      onChange={() => toggleRarity(rarity)}
+                      type="checkbox"
+                    />
+                    <span>{rarity}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          </div>
+          <fieldset className="collection-art-style-filter">
+            <label>
+              <span>Applied style</span>
+              <select
+                onChange={(event) => update({ artStyle: event.target.value })}
+                value={filters.artStyle}
+              >
+                <option value="">All art styles</option>
+                {artStyleOptions.map((style) => (
+                  <option key={style.id} value={style.id}>
+                    {style.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </fieldset>
+          <fieldset>
+            <legend>Properties</legend>
+            <div className="collection-flag-filters">
+              {COLLECTION_FLAG_KEYS.map((key) => (
+                <label key={key}>
+                  <span>{COLLECTION_FLAG_LABELS[key]}</span>
+                  <select
+                    onChange={(event) =>
+                      update({
+                        flags: {
+                          ...filters.flags,
+                          [key]: event.target.value as CollectionFlagMode,
+                        },
+                      })
+                    }
+                    value={filters.flags[key]}
+                  >
+                    <option value="any">Any</option>
+                    <option value="only">Only</option>
+                    <option value="exclude">Exclude</option>
+                  </select>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <div className="collection-attribute-filter-row">
+            {attributeOptions.length > 0 ? (
+              <CollectionAttributeFilters
+                label="Attributes"
+                minimum={filters.attributeMinimum}
+                onMinimumChange={(attributeMinimum) =>
+                  update({ attributeMinimum })
+                }
+                onToggle={(id) =>
+                  toggleAttribute("attributeIds", "attributeMinimum", id)
+                }
+                options={attributeOptions}
+                selectedIds={filters.attributeIds}
+                thresholdLimit={4}
+              />
+            ) : null}
+            {specialAttributeOptions.length > 0 ? (
+              <CollectionAttributeFilters
+                className="collection-special-attributes"
+                label="Special attributes"
+                minimum={filters.specialAttributeMinimum}
+                onMinimumChange={(specialAttributeMinimum) =>
+                  update({ specialAttributeMinimum })
+                }
+                onToggle={(id) =>
+                  toggleAttribute(
+                    "specialAttributeIds",
+                    "specialAttributeMinimum",
+                    id,
+                  )
+                }
+                options={specialAttributeOptions}
+                selectedIds={filters.specialAttributeIds}
+                thresholdLimit={3}
+              />
+            ) : null}
+          </div>
+          <button
+            className="collection-clear-filters"
+            onClick={() => onFiltersChange(getDefaultCollectionFilters())}
+            type="button"
+          >
+            Clear filters
+          </button>
+        </div>
+      </details>
+    </div>
+  );
+}
+
+function CollectionAttributeFilters({
+  className,
+  label,
+  minimum,
+  onMinimumChange,
+  onToggle,
+  options,
+  selectedIds,
+  thresholdLimit,
+}: {
+  className?: string;
+  label: string;
+  minimum: number;
+  onMinimumChange: (minimum: number) => void;
+  onToggle: (id: string) => void;
+  options: CollectionAttributeOption[];
+  selectedIds: string[];
+  thresholdLimit: number;
+}) {
+  const maximum = Math.min(thresholdLimit, Math.max(1, selectedIds.length));
+  return (
+    <fieldset className={className}>
+      <legend>{label}</legend>
+      <label className="collection-attribute-minimum">
+        <span>Require at least</span>
+        <select
+          disabled={selectedIds.length === 0}
+          onChange={(event) => onMinimumChange(Number(event.target.value))}
+          value={Math.min(minimum, maximum)}
+        >
+          {Array.from({ length: maximum }, (_, index) => index + 1).map(
+            (value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ),
+          )}
+        </select>
+      </label>
+      <div className="collection-attribute-filters">
+        {options.map((option) => (
+          <label key={option.id}>
+            <input
+              checked={selectedIds.includes(option.id)}
+              onChange={() => onToggle(option.id)}
+              type="checkbox"
+            />
+            <span>{option.label}</span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
 }
 
 function DonationRewardEffect({

@@ -12,9 +12,17 @@ export const INVENTORY_SORTS = [
   "value-high",
   "value-low",
   "title",
+  "title-desc",
   "artist",
+  "artist-desc",
   "rarity",
+  "rarity-low",
   "condition",
+  "condition-low",
+  "level-high",
+  "level-low",
+  "artwork-newest",
+  "artwork-oldest",
 ] as const;
 export type InventorySort = (typeof INVENTORY_SORTS)[number];
 
