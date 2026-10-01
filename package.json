@@ -17,8 +17,8 @@
     "db:snapshot:production": "node --env-file=.env.production scripts/create-database-snapshot.mjs",
     "db:publish-artwork": "node --env-file=.env.local scripts/publish-approved-artwork.mjs",
     "artwork:manifest": "node --env-file=.env.local scripts/export-artwork-image-manifest.mjs",
-    "typecheck": "tsc --noEmit",
-    "test": "tsc --noEmit && node --test",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "npm run typecheck && node --test",
     "prepare": "husky"
   },
   "dependencies": {
