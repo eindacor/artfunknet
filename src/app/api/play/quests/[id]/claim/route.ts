@@ -31,10 +31,17 @@ import {
   getLegendaryNumberParameter,
 } from "@/server/legendary-attributes";
 import {
+  createArchiveEntry,
+  type ArchiveEntry,
+} from "@/server/archive-gameplay";
+import {
   getArtworkEffectNumberParameter,
   getDisplayedArtworkEffect,
 } from "@/server/artwork-effects";
-import { addItemToArchiveRecord } from "@/server/archive-storage";
+import {
+  addItemToArchiveRecord,
+  removeItemFromArchiveRecord,
+} from "@/server/archive-storage";
 import { MASTERPIECE_EFFECT_CODES } from "@/server/masterpiece-effects";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
@@ -94,77 +101,88 @@ export async function POST(
     );
   }
 
-  const fulfilledTargets = claimedQuest.fulfilled_targets ?? [];
-  const hydratedCreditedItems = await hydrateGameItems(
-    database,
-    fulfilledTargets
-      .map((target) => target.item_snapshot)
-      .filter((item) => item.authenticity.forgery),
-  );
-  const historianArchiveEffect = await getDisplayedArtworkEffect(
-    database,
-    player._id,
-    MASTERPIECE_EFFECT_CODES.historianArchive,
-  );
-  const detectionReduction = getArtworkEffectNumberParameter(
-    historianArchiveEffect,
-    "detection_reduction",
-    0.35,
-  );
-  const caughtForgeries = hydratedCreditedItems.filter((item) =>
-    rollForgeryDetected(
-      item,
-      "quest",
-      Math.random,
-      false,
-      historianArchiveEffect ? detectionReduction : 0,
-    ),
-  );
-  if (historianArchiveEffect) {
-    await Promise.all(
-      fulfilledTargets.map((target) =>
-        addItemToArchiveRecord(
-          database,
-          { ...target.item_snapshot, owner: player._id },
-          new Date().toISOString(),
-        ),
-      ),
-    );
-  }
-
-  const specialTargetCount = fulfilledTargets.filter(
-    (target) => target.special,
-  ).length;
-  const rewardMultiplier = caughtForgeries.length > 0 ? 0.6 : 1;
-  const xpReward = Math.floor(calculateHistorianClaimXp(
-    claimedQuest.reward.xp,
-    questView.progress.fulfilled,
-    claimedQuest.min_requirement,
-    specialTargetCount,
-  ) * rewardMultiplier);
-  const moneyForXpEffect = await getDisplayedLegendaryEffect(
-    database,
-    player._id,
-    "MONEY_FOR_XP",
-  );
-  const moneyPerXp = getLegendaryNumberParameter(
-    moneyForXpEffect,
-    "money_per_xp",
-    moneyForXpEffect ? 2 : 0,
-  );
-  const moneyForXpBonus = Math.floor(xpReward * moneyPerXp);
-  const moneyReward =
-    Math.floor(claimedQuest.reward.money * rewardMultiplier) + moneyForXpBonus;
-  const progress = applyXp(
-    player.profile.level,
-    player.profile.xp,
-    xpReward,
-  );
-  const caps = getCapsForLevel(progress.level);
-  const now = new Date();
   let generatedRewardItems: GameItem[] = [];
+  const archiveContributions: Array<{
+    artworkId: string;
+    entry: ArchiveEntry;
+  }> = [];
 
   try {
+    const fulfilledTargets = claimedQuest.fulfilled_targets ?? [];
+    const hydratedCreditedItems = await hydrateGameItems(
+      database,
+      fulfilledTargets
+        .map((target) => target.item_snapshot)
+        .filter((item) => item.authenticity.forgery),
+    );
+    const historianArchiveEffect = await getDisplayedArtworkEffect(
+      database,
+      player._id,
+      MASTERPIECE_EFFECT_CODES.historianArchive,
+    );
+    const detectionReduction = getArtworkEffectNumberParameter(
+      historianArchiveEffect,
+      "detection_reduction",
+      0.35,
+    );
+    const caughtForgeries = hydratedCreditedItems.filter((item) =>
+      rollForgeryDetected(
+        item,
+        "quest",
+        Math.random,
+        false,
+        historianArchiveEffect ? detectionReduction : 0,
+      ),
+    );
+    if (historianArchiveEffect) {
+      for (const target of fulfilledTargets) {
+        const archivedAt = new Date().toISOString();
+        const archivedItem = {
+          ...target.item_snapshot,
+          owner: player._id,
+        };
+        if (await addItemToArchiveRecord(database, archivedItem, archivedAt)) {
+          archiveContributions.push({
+            artworkId: archivedItem.artwork_id,
+            entry: createArchiveEntry(archivedItem, archivedAt),
+          });
+        }
+      }
+    }
+
+    const specialTargetCount = fulfilledTargets.filter(
+      (target) => target.special,
+    ).length;
+    const rewardMultiplier = caughtForgeries.length > 0 ? 0.6 : 1;
+    const xpReward = Math.floor(
+      calculateHistorianClaimXp(
+        claimedQuest.reward.xp,
+        questView.progress.fulfilled,
+        claimedQuest.min_requirement,
+        specialTargetCount,
+      ) * rewardMultiplier,
+    );
+    const moneyForXpEffect = await getDisplayedLegendaryEffect(
+      database,
+      player._id,
+      "MONEY_FOR_XP",
+    );
+    const moneyPerXp = getLegendaryNumberParameter(
+      moneyForXpEffect,
+      "money_per_xp",
+      moneyForXpEffect ? 2 : 0,
+    );
+    const moneyForXpBonus = Math.floor(xpReward * moneyPerXp);
+    const moneyReward =
+      Math.floor(claimedQuest.reward.money * rewardMultiplier) +
+      moneyForXpBonus;
+    const progress = applyXp(
+      player.profile.level,
+      player.profile.xp,
+      xpReward,
+    );
+    const caps = getCapsForLevel(progress.level);
+    const now = new Date();
     if (claimedQuest.reward.item) {
       const [settings, metadata] = await Promise.all([
         getGameplaySettings(database),
@@ -192,6 +210,10 @@ export async function POST(
         },
       );
     }
+    const rewardItems =
+      generatedRewardItems.length > 0
+        ? await hydrateGameItems(database, generatedRewardItems)
+        : [];
 
     const playerResult = await database.collection<Player>("players").updateOne(
       {
@@ -225,8 +247,50 @@ export async function POST(
         "Your player record changed before the quest reward was applied.",
       );
     }
+    await recordEconomyMetricsSafely(database, [
+      {
+        amount: moneyReward,
+        currency: "money",
+        direction: "earned",
+        source: "quest-reward",
+      },
+      {
+        amount: xpReward / Math.max(1, getXpChunk(player.profile.level)),
+        currency: "xp",
+        direction: "earned",
+        source: "quest-reward",
+      },
+    ]);
+    return NextResponse.json({
+      status: "ok",
+      message: `Quest complete: $${moneyReward.toLocaleString()} and ${xpReward.toLocaleString()} XP awarded${
+        caughtForgeries.length > 0
+          ? `; ${caughtForgeries.length} forgery ${caughtForgeries.length === 1 ? "was" : "were"} detected, reducing rewards`
+          : ""
+      }.`,
+      reward: {
+        money: moneyReward,
+        xp: xpReward,
+        items: rewardItems.map((item) =>
+          sanitizePlayerFacingAuthenticity(item),
+        ),
+      },
+    });
   } catch (error) {
-    await Promise.all([
+    const rollbackFailures: unknown[] = [];
+    for (const contribution of archiveContributions.reverse()) {
+      try {
+        await removeItemFromArchiveRecord(
+          database,
+          player._id,
+          contribution.artworkId,
+          contribution.entry,
+        );
+      } catch (rollbackError) {
+        rollbackFailures.push(rollbackError);
+      }
+    }
+    const rollbackResults = await Promise.allSettled([
       generatedRewardItems.length > 0
         ? database.collection<GameItem>("items").deleteMany({
             _id: { $in: generatedRewardItems.map((item) => item._id) },
@@ -238,51 +302,30 @@ export async function POST(
         .collection<ArtHistorianQuest>("quests")
         .insertOne(claimedQuest),
     ]);
+    rollbackFailures.push(
+      ...rollbackResults.flatMap((result) =>
+        result.status === "rejected" ? [result.reason] : [],
+      ),
+    );
     console.error("Unable to claim Art Historian quest", error);
+    if (rollbackFailures.length > 0) {
+      console.error(
+        "Unable to completely roll back Art Historian quest claim",
+        rollbackFailures,
+      );
+    }
     return NextResponse.json(
       {
         error:
-          error instanceof Error
+          rollbackFailures.length > 0
+            ? "The quest reward failed and could not be completely restored."
+            : error instanceof Error
             ? error.message
             : "The quest reward could not be claimed.",
       },
       { status: 500 },
     );
   }
-
-  const rewardItems =
-    generatedRewardItems.length > 0
-      ? await hydrateGameItems(database, generatedRewardItems)
-      : [];
-  await recordEconomyMetricsSafely(database, [
-    {
-      amount: moneyReward,
-      currency: "money",
-      direction: "earned",
-      source: "quest-reward",
-    },
-    {
-      amount: xpReward / Math.max(1, getXpChunk(player.profile.level)),
-      currency: "xp",
-      direction: "earned",
-      source: "quest-reward",
-    },
-  ]);
-  return NextResponse.json({
-    status: "ok",
-    message: `Quest complete: $${moneyReward.toLocaleString()} and ${xpReward.toLocaleString()} XP awarded${
-      caughtForgeries.length > 0
-        ? `; ${caughtForgeries.length} forgery ${caughtForgeries.length === 1 ? "was" : "were"} detected, reducing rewards`
-        : ""
-    }.`,
-    reward: {
-      money: moneyReward,
-      xp: xpReward,
-      items: rewardItems.map((item) =>
-        sanitizePlayerFacingAuthenticity(item),
-      ),
-    },
-  });
 }
 
 function singleRarityMap(

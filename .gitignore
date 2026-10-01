@@ -38,6 +38,7 @@ storage/mock-s3/
 
 # Generated database snapshots
 storage/db-backups/
+storage/db-snapshots/
 
 # Legacy approved images awaiting S3 publication
 public/artwork/

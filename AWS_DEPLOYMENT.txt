@@ -354,6 +354,17 @@ generated items, or game content. After the administrator has been created,
 ADMIN_PASSWORD can be removed from .env.production if you do not need to rerun
 the bootstrap command. Keep the password in your password manager.
 
+Install MongoDB Database Tools so mongodump is available. Before migrating an
+existing production database, create a full compressed snapshot:
+
+  npm run db:snapshot:production
+
+Snapshots are stored in storage/db-snapshots by default. Prefer setting
+DATABASE_SNAPSHOT_DIRECTORY in .env.production to an encrypted directory
+outside the application checkout. The authenticated Database admin page can
+also create and download full snapshots. These archives contain player account
+and live game data and must be handled as sensitive backups.
+
 Do not run npm run db:seed on production unless development players, test
 players, and the full development seed behavior are intentionally desired.
 The seed command reads .env.local, not .env.production. It emits one structured
@@ -558,9 +569,18 @@ For a simple single-instance update:
   .venv/bin/python -m pip install -r requirements-artwork.txt
   npm test
   npm run build
+  sudo systemctl stop artfunknet
+  npm run db:snapshot:production
   npm run db:migrate:production
-  sudo systemctl restart artfunknet
+  sudo systemctl start artfunknet
   curl http://127.0.0.1:3000/api/health
+
+Keep the service stopped from the start of the snapshot through completion of
+the migration. The effect migration removes legacy artwork fields after their
+replacement effect_id references are validated, so the previous application
+must not process gameplay requests against the partially migrated database.
+If snapshot creation fails, restart the existing service without running the
+migration and correct the backup tooling first.
 
 For reduced downtime, build a new AMI or deployment artifact, replace the
 instance through an Auto Scaling Group, wait for the new target to become

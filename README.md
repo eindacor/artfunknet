@@ -52,14 +52,25 @@ Production deployments should not run the development seed. Apply idempotent
 schema and metadata updates with:
 
 ```sh
+npm run db:snapshot:production
 npm run db:migrate:production
 ```
 
-This command reads `.env.production`, applies the Hall of Fame/playthrough
+The snapshot command requires MongoDB Database Tools and writes a compressed
+`mongodump` archive to `storage/db-snapshots` by default. Set
+`DATABASE_SNAPSHOT_DIRECTORY` to an encrypted location outside the repository
+and `MONGODUMP_PATH` if the executable is not on `PATH`. Administrators can
+also create and download the same full snapshot from the Database admin page.
+Stop application writes before taking a snapshot that will be used as the
+rollback point for a migration.
+
+The migration command reads `.env.production`, applies the Hall of Fame/playthrough
 updates, creates the shared `artwork_effects` catalog and indexes, seeds the
 masterpiece effects, and backfills each legendary/masterpiece artwork's
 authoritative `effect_id`. The artwork-effect migration is idempotent and does
-not rewrite existing item attributes or values.
+not rewrite existing item attributes or values. It repairs missing, null,
+invalid, and wrong-type artwork effect references while preserving stable
+effect IDs and existing admin-tuned behavior parameters.
 
 ## Artwork administration
 

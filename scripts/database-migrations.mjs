@@ -556,7 +556,10 @@ async function normalizeArtworkEffectParameters(database) {
     for (const [code, parameters] of canonicalDefaults) {
       const defaults = Object.fromEntries(
         Object.entries(parameters).filter(
-          ([, value]) => typeof value === "number" && Number.isFinite(value),
+          ([, value]) =>
+            typeof value === "string" ||
+            typeof value === "boolean" ||
+            (typeof value === "number" && Number.isFinite(value)),
         ),
       );
       if (Object.keys(defaults).length === 0) continue;
@@ -653,7 +656,8 @@ export async function migrateArtworkEffects(database) {
   });
   await database.collection("artworks").createIndex({ effect_id: 1 });
 
-  const effects = await database.collection("artwork_effects").find({ active: true }).toArray();
+  const effects = await database.collection("artwork_effects").find({}).toArray();
+  const effectById = new Map(effects.map((effect) => [effect._id, effect]));
   const legendaryByPair = new Map(
     effects
       .filter((effect) => effect.effect_type === "legendary")
@@ -670,14 +674,32 @@ export async function migrateArtworkEffects(database) {
   }
   const artworks = await database.collection("artworks").find({
     rarity: { $in: ["legendary", "masterpiece"] },
-    effect_id: { $exists: false },
   }).toArray();
   const operations = [];
   for (const artwork of artworks) {
+    const currentEffect =
+      typeof artwork.effect_id === "string"
+        ? effectById.get(artwork.effect_id)
+        : undefined;
+    if (currentEffect?.effect_type === artwork.rarity) {
+      if (artwork.active === true && currentEffect.active !== true) {
+        operations.push({
+          updateOne: {
+            filter: { _id: artwork._id, active: true },
+            update: { $set: { active: false } },
+          },
+        });
+      }
+      continue;
+    }
     const special = [...new Set(artwork.special_attributes ?? [])];
     let effectId;
     if (artwork.rarity === "legendary") {
-      effectId = legendaryByPair.get([...special].sort().join(":"));
+      effectId = (artwork.unique_attributes ?? []).find(
+        (candidateId) =>
+          effectById.get(candidateId)?.effect_type === "legendary",
+      );
+      effectId ??= legendaryByPair.get([...special].sort().join(":"));
     } else {
       const candidates = special.flatMap(
         (attributeId) => masterpieceByAttribute.get(attributeId) ?? [],
@@ -687,22 +709,41 @@ export async function migrateArtworkEffects(database) {
     if (!effectId) {
       throw new Error(`Unable to backfill ${artwork.rarity} artwork ${artwork._id}.`);
     }
+    const effect = effectById.get(effectId);
     operations.push({
       updateOne: {
-        filter: { _id: artwork._id, effect_id: { $exists: false } },
-        update: { $set: { effect_id: effectId } },
+        filter: { _id: artwork._id },
+        update: {
+          $set: {
+            effect_id: effectId,
+            ...(artwork.active === true && effect?.active !== true
+              ? { active: false }
+              : {}),
+          },
+        },
       },
     });
   }
   if (operations.length > 0) {
     await database.collection("artworks").bulkWrite(operations, { ordered: false });
   }
-  const missing = await database.collection("artworks").countDocuments({
+  const migratedArtworks = await database.collection("artworks").find({
     rarity: { $in: ["legendary", "masterpiece"] },
-    effect_id: { $exists: false },
+  }).project({ _id: 1, rarity: 1, effect_id: 1 }).toArray();
+  const invalid = migratedArtworks.filter((artwork) => {
+    const effect =
+      typeof artwork.effect_id === "string"
+        ? effectById.get(artwork.effect_id)
+        : undefined;
+    return (
+      effect?.effect_type !== artwork.rarity ||
+      (artwork.active === true && effect.active !== true)
+    );
   });
-  if (missing > 0) {
-    throw new Error(`${missing} legendary/masterpiece artwork records remain without effects.`);
+  if (invalid.length > 0) {
+    throw new Error(
+      `${invalid.length} legendary/masterpiece artwork records remain without matching effects: ${invalid.map((artwork) => artwork._id).join(", ")}.`,
+    );
   }
   await database.collection("artworks").updateMany(
     {

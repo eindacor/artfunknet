@@ -20,10 +20,13 @@ import {
   type IndexSpecification,
 } from "mongodb";
 
+import { migrateArtworkEffects } from "../../scripts/database-migrations.mjs";
+
 const gzipAsync = promisify(gzip);
 const gunzipAsync = promisify(gunzip);
 const SNAPSHOT_FORMAT = "artfunknet-content-snapshot";
-const SNAPSHOT_VERSION = "1";
+const SNAPSHOT_VERSION = "2";
+const LEGACY_SNAPSHOT_VERSION = "1";
 const SNAPSHOT_EXTENSION = ".artfunk-content.json.gz";
 const MAX_SNAPSHOT_BYTES = 512 * 1024 * 1024;
 
@@ -33,7 +36,15 @@ const CONTENT_COLLECTIONS = [
   "attributes",
   "unique_attributes",
   "artwork_effects",
-  "artwork_effect_settlements",
+  "gallery_finishes",
+  "metadata",
+] as const;
+
+const LEGACY_CONTENT_COLLECTIONS = [
+  "artists",
+  "artworks",
+  "attributes",
+  "unique_attributes",
   "gallery_finishes",
   "metadata",
 ] as const;
@@ -60,7 +71,7 @@ type SnapshotCollection = {
 
 type DatabaseSnapshot = {
   format: typeof SNAPSHOT_FORMAT;
-  version: typeof SNAPSHOT_VERSION;
+  version: typeof SNAPSHOT_VERSION | typeof LEGACY_SNAPSHOT_VERSION;
   database: string;
   createdAt: string;
   collections: SnapshotCollection[];
@@ -160,6 +171,14 @@ export async function restoreDatabaseSnapshot(
     if (await hasCompleteContent(database)) {
       await generateDatabaseSnapshotUnlocked(database, "pre-content-restore");
     }
+    if (snapshot.version === LEGACY_SNAPSHOT_VERSION) {
+      const hasArtworkEffects = await database
+        .listCollections({ name: "artwork_effects" }, { nameOnly: true })
+        .hasNext();
+      if (hasArtworkEffects) {
+        await database.collection("artwork_effects").drop();
+      }
+    }
 
     let documentCount = 0;
     for (const collectionSnapshot of snapshot.collections) {
@@ -202,6 +221,7 @@ export async function restoreDatabaseSnapshot(
         );
       }
     }
+    await migrateArtworkEffects(database);
 
     return {
       collectionCount: snapshot.collections.length,
@@ -309,11 +329,21 @@ function isDatabaseSnapshot(value: unknown): value is DatabaseSnapshot {
   if (!isRecord(value)) return false;
   if (
     value.format !== SNAPSHOT_FORMAT ||
-    value.version !== SNAPSHOT_VERSION ||
     typeof value.database !== "string" ||
     typeof value.createdAt !== "string" ||
-    !Array.isArray(value.collections) ||
-    value.collections.length !== CONTENT_COLLECTIONS.length
+    !Array.isArray(value.collections)
+  ) {
+    return false;
+  }
+  const requiredCollections =
+    value.version === SNAPSHOT_VERSION
+      ? CONTENT_COLLECTIONS
+      : value.version === LEGACY_SNAPSHOT_VERSION
+        ? LEGACY_CONTENT_COLLECTIONS
+        : null;
+  if (
+    !requiredCollections ||
+    value.collections.length !== requiredCollections.length
   ) {
     return false;
   }
@@ -345,7 +375,7 @@ function isDatabaseSnapshot(value: unknown): value is DatabaseSnapshot {
     }
     names.add(collection.name);
   }
-  return CONTENT_COLLECTIONS.every((name) => names.has(name));
+  return requiredCollections.every((name) => names.has(name));
 }
 
 function hasExactMetadataDocuments(documents: Document[]): boolean {

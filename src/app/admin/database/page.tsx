@@ -2,6 +2,7 @@ import DatabaseAdmin from "./database-admin";
 
 import { getArtworkStorageConnectionStatus } from "@/server/artwork-storage";
 import { listDatabaseSnapshots } from "@/server/database-snapshots";
+import { listFullDatabaseSnapshots } from "@/server/full-database-snapshots";
 import { getDatabase } from "@/server/mongodb";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,7 @@ export default async function DatabaseAdminPage() {
       </p>
       <DatabaseAdmin
         databaseName={database.databaseName}
+        initialFullSnapshots={await listFullDatabaseSnapshots()}
         initialSnapshots={await listDatabaseSnapshots()}
         initialStorageStatus={await getArtworkStorageConnectionStatus()}
       />

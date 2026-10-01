@@ -172,7 +172,16 @@ export async function PATCH(
         { status: 400 },
       );
     }
+    if (body.active === true && !effect.active) {
+      return NextResponse.json(
+        { error: "Active artwork requires an active unique effect." },
+        { status: 400 },
+      );
+    }
   }
+  const artworkEffectType =
+    rarity === "legendary" || rarity === "masterpiece" ? rarity : undefined;
+  const artworkEffectId = artworkEffectType ? effectId : undefined;
   const imageRatio =
     existing.image_width && existing.image_height
       ? existing.image_width / existing.image_height
@@ -187,10 +196,9 @@ export async function PATCH(
     medium,
     rarity,
     value_scale: valueScale,
-    ...(effectId ? { effect_id: effectId } : {}),
-    ...(rarity !== "legendary" && rarity !== "masterpiece"
-      ? { effect_id: undefined }
-      : {}),
+    ...(artworkEffectId
+      ? { effect_id: artworkEffectId }
+      : { effect_id: undefined }),
     height,
     width: Number((height * imageRatio).toFixed(2)),
     active: body.active === true,
@@ -220,20 +228,69 @@ export async function PATCH(
     nsfw: updatedArtwork.nsfw,
     updated_at: updatedArtwork.updated_at,
     updated_by: updatedArtwork.updated_by,
-    ...(effectId ? { effect_id: effectId } : {}),
+    ...(artworkEffectId ? { effect_id: artworkEffectId } : {}),
   };
+  const restoreArtwork = () =>
+    database.collection<EditableArtwork>("artworks").updateOne(
+      { _id: id, updated_at: updatedArtwork.updated_at },
+      {
+        $set: {
+          artist_id: existing.artist_id,
+          artist: existing.artist,
+          title: existing.title,
+          date: existing.date,
+          genre: existing.genre,
+          medium: existing.medium,
+          rarity: existing.rarity,
+          value_scale: existing.value_scale,
+          height: existing.height,
+          width: existing.width,
+          active: existing.active,
+          nsfw: existing.nsfw ?? false,
+          ...(existing.updated_at ? { updated_at: existing.updated_at } : {}),
+          ...(existing.updated_by ? { updated_by: existing.updated_by } : {}),
+          ...(existing.effect_id ? { effect_id: existing.effect_id } : {}),
+        },
+        $unset: {
+          ...(!existing.effect_id ? { effect_id: "" } : {}),
+          ...(!existing.updated_at ? { updated_at: "" } : {}),
+          ...(!existing.updated_by ? { updated_by: "" } : {}),
+        },
+      },
+    );
   const artworkUpdated = await database
     .collection<EditableArtwork>("artworks")
     .updateOne(
       { _id: id },
       {
         $set: artworkFields,
-        ...(effectId ? {} : { $unset: { effect_id: "" } }),
+        ...(artworkEffectId ? {} : { $unset: { effect_id: "" } }),
       },
     );
   if (artworkUpdated.matchedCount !== 1) {
     return NextResponse.json(
       { error: "The artwork changed before it could be saved." },
+      { status: 409 },
+    );
+  }
+  if (
+    updatedArtwork.active &&
+    artworkEffectId &&
+    artworkEffectType &&
+    !(await database.collection<ArtworkEffect>("artwork_effects").findOne({
+      _id: artworkEffectId,
+      effect_type: artworkEffectType,
+      active: true,
+    }))
+  ) {
+    const restored = await restoreArtwork();
+    if (restored.matchedCount !== 1) {
+      throw new Error(
+        "Artwork activation conflicted with effect deactivation and rollback failed.",
+      );
+    }
+    return NextResponse.json(
+      { error: "Active artwork requires an active unique effect." },
       { status: 409 },
     );
   }
@@ -262,35 +319,7 @@ export async function PATCH(
       );
     }
   } catch (error) {
-    const restored = await database
-      .collection<EditableArtwork>("artworks")
-      .updateOne(
-        { _id: id, updated_at: updatedArtwork.updated_at },
-        {
-          $set: {
-            artist_id: existing.artist_id,
-            artist: existing.artist,
-            title: existing.title,
-            date: existing.date,
-            genre: existing.genre,
-            medium: existing.medium,
-            rarity: existing.rarity,
-            value_scale: existing.value_scale,
-            height: existing.height,
-            width: existing.width,
-            active: existing.active,
-            nsfw: existing.nsfw ?? false,
-            ...(existing.updated_at ? { updated_at: existing.updated_at } : {}),
-            ...(existing.updated_by ? { updated_by: existing.updated_by } : {}),
-            ...(existing.effect_id ? { effect_id: existing.effect_id } : {}),
-          },
-          $unset: {
-            ...(!existing.effect_id ? { effect_id: "" } : {}),
-            ...(!existing.updated_at ? { updated_at: "" } : {}),
-            ...(!existing.updated_by ? { updated_by: "" } : {}),
-          },
-        },
-      );
+    const restored = await restoreArtwork();
     let itemsRestored = true;
     try {
       if (items.length > 0) {

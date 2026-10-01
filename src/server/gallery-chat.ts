@@ -293,6 +293,7 @@ export async function editGalleryChatMessage(
     gallery_owner_id: galleryOwnerId,
     author_id: authorId,
     hidden: { $ne: true },
+    reported: { $ne: true },
   });
   if (!existing) return null;
   const updated = await messages.findOneAndUpdate(
@@ -301,6 +302,7 @@ export async function editGalleryChatMessage(
       gallery_owner_id: galleryOwnerId,
       author_id: authorId,
       hidden: { $ne: true },
+      reported: { $ne: true },
       content: existing.content,
     },
     {

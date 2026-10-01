@@ -775,6 +775,16 @@ export async function generateRafflePrize(
   now = new Date(),
   generationConfig = DEFAULT_RAFFLE_GENERATION_CONFIG,
 ): Promise<GameItem> {
+  const rendererSettings = await getCardRendererSettings(database);
+  const fallbackCardRenderer = rollGeneratedCardRenderer(
+    rendererSettings.activeRendererIds,
+    1,
+  );
+  if (!fallbackCardRenderer) {
+    throw new Error(
+      "Random lottery prizes require at least one active card style.",
+    );
+  }
   const [reward] = await generateDailyDrop(database, RAFFLE_OWNER_ID, 50, {
     now,
     itemCount: 1,
@@ -791,28 +801,30 @@ export async function generateRafflePrize(
     source: "lottery",
     status: "claimed",
   });
-  if (!reward.card_renderer) {
-    const rendererSettings = await getCardRendererSettings(database);
-    const cardRenderer = rollGeneratedCardRenderer(
-      rendererSettings.activeRendererIds,
-      1,
-    );
-    if (!cardRenderer) {
-      throw new Error(
-        "Random lottery prizes require at least one active card style.",
-      );
+  try {
+    if (!reward.card_renderer) {
+      const cardStyleUpdated = await database
+        .collection<GameItem>("items")
+        .updateOne(
+          { _id: reward._id, owner: RAFFLE_OWNER_ID },
+          { $set: { card_renderer: fallbackCardRenderer } },
+        );
+      if (cardStyleUpdated.matchedCount !== 1) {
+        throw new Error("Generated lottery item was not found.");
+      }
     }
-    await database.collection<GameItem>("items").updateOne(
-      { _id: reward._id, owner: RAFFLE_OWNER_ID },
-      { $set: { card_renderer: cardRenderer } },
-    );
+    await setRafflePrizePotency(database, reward._id, 1);
+    const updated = await database
+      .collection<GameItem>("items")
+      .findOne({ _id: reward._id });
+    if (!updated) throw new Error("Generated lottery item was not found.");
+    return updated;
+  } catch (error) {
+    await database
+      .collection<GameItem>("items")
+      .deleteOne({ _id: reward._id, owner: RAFFLE_OWNER_ID });
+    throw error;
   }
-  await setRafflePrizePotency(database, reward._id, 1);
-  const updated = await database
-    .collection<GameItem>("items")
-    .findOne({ _id: reward._id });
-  if (!updated) throw new Error("Generated lottery item was not found.");
-  return updated;
 }
 
 export async function setRafflePrizePotency(

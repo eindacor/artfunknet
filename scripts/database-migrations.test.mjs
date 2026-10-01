@@ -18,7 +18,7 @@ test("artwork effect migration backfills artwork without mutating item attribute
       title: "Legacy",
       description: "Legacy",
       flavor_text: "Legacy",
-      active: true,
+      active: false,
       linked_attributes: ["a", "b"],
       linked_pair: "a:b",
       parameters: {},
@@ -147,7 +147,21 @@ test("artwork effect migration backfills artwork without mutating item attribute
       {
         _id: "legendary-art",
         rarity: "legendary",
+        active: true,
         special_attributes: ["b", "a"],
+        unique_attributes: ["legacy-effect"],
+      },
+      {
+        _id: "legendary-art-null-effect",
+        rarity: "legendary",
+        effect_id: null,
+        unique_attributes: ["legacy-effect"],
+      },
+      {
+        _id: "legendary-art-invalid-effect",
+        rarity: "legendary",
+        effect_id: "missing-effect",
+        special_attributes: ["a", "b"],
       },
       {
         _id: "masterpiece-art",
@@ -502,6 +516,23 @@ test("artwork effect migration backfills artwork without mutating item attribute
       .collection("artworks")
       .findOne({ _id: "masterpiece-art" });
     assert.equal(legendary.effect_id, "legacy-effect");
+    assert.equal(legendary.active, false);
+    assert.equal(
+      (
+        await database.collection("artworks").findOne({
+          _id: "legendary-art-null-effect",
+        })
+      ).effect_id,
+      "legacy-effect",
+    );
+    assert.equal(
+      (
+        await database.collection("artworks").findOne({
+          _id: "legendary-art-invalid-effect",
+        })
+      ).effect_id,
+      "legacy-effect",
+    );
     assert.equal(typeof masterpiece.effect_id, "string");
     assert.equal(legendary.special_attributes, undefined);
     assert.equal(legendary.unique_attributes, undefined);

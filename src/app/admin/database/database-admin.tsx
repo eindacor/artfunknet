@@ -5,19 +5,26 @@ import { useRouter } from "next/navigation";
 
 import type { ArtworkStorageConnectionStatus } from "@/server/artwork-storage";
 import type { DatabaseSnapshotFile } from "@/server/database-snapshots";
+import type { FullDatabaseSnapshotFile } from "@/server/full-database-snapshots";
 
 export default function DatabaseAdmin({
   databaseName,
+  initialFullSnapshots,
   initialSnapshots,
   initialStorageStatus,
 }: {
   databaseName: string;
+  initialFullSnapshots: FullDatabaseSnapshotFile[];
   initialSnapshots: DatabaseSnapshotFile[];
   initialStorageStatus: ArtworkStorageConnectionStatus;
 }) {
   const router = useRouter();
   const [snapshots, setSnapshots] = useState(initialSnapshots);
+  const [fullSnapshots, setFullSnapshots] = useState(initialFullSnapshots);
   const [selected, setSelected] = useState(initialSnapshots[0]?.name ?? "");
+  const [selectedFull, setSelectedFull] = useState(
+    initialFullSnapshots[0]?.name ?? "",
+  );
   const [confirmation, setConfirmation] = useState("");
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
@@ -56,6 +63,7 @@ export default function DatabaseAdmin({
       if (!response.ok || !body.snapshot) {
         throw new Error(body.error ?? "The snapshot could not be generated.");
       }
+
       await refreshSnapshots();
       setSelected(body.snapshot.name);
       setMessage(`Generated ${body.snapshot.name}.`);
@@ -64,6 +72,49 @@ export default function DatabaseAdmin({
         generateError instanceof Error
           ? generateError.message
           : "The snapshot could not be generated.",
+      );
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function generateFullSnapshot() {
+    setBusy("generate-full");
+    setMessage("");
+    setError("");
+    try {
+      const response = await fetch("/api/admin/database/full-snapshots", {
+        method: "POST",
+      });
+      const body = (await response.json()) as {
+        error?: string;
+        snapshot?: FullDatabaseSnapshotFile;
+      };
+      if (!response.ok || !body.snapshot) {
+        throw new Error(
+          body.error ?? "The full database snapshot could not be generated.",
+        );
+      }
+      const refreshResponse = await fetch(
+        "/api/admin/database/full-snapshots",
+      );
+      const refreshBody = (await refreshResponse.json()) as {
+        error?: string;
+        snapshots?: FullDatabaseSnapshotFile[];
+      };
+      if (!refreshResponse.ok || !refreshBody.snapshots) {
+        throw new Error(
+          refreshBody.error ?? "Database snapshots could not be refreshed.",
+        );
+      }
+      setFullSnapshots(refreshBody.snapshots);
+      setSelectedFull(body.snapshot.name);
+      setMessage(`Generated ${body.snapshot.name}.`);
+    } catch (snapshotError) {
+      setError(
+        snapshotError instanceof Error
+          ? snapshotError.message
+          : "The full database snapshot could not be generated.",
       );
     } finally {
       setBusy("");
@@ -228,6 +279,62 @@ export default function DatabaseAdmin({
           <code> USE_MOCK_S3=true</code>, copy
           <code> storage/mock-s3</code> separately. Real S3 objects remain in
           the configured bucket.
+        </p>
+      </section>
+
+      <section className="database-admin-panel">
+        <h2>Full database snapshot</h2>
+        <p>
+          Runs <code>mongodump</code> against the active database and stores a
+          compressed archive containing players and all live game state. These
+          files contain sensitive data and must be stored securely.
+        </p>
+        <p>
+          This button creates a live operational backup. For a
+          migration-grade snapshot, stop application writes first and run the
+          production snapshot command from the server.
+        </p>
+        <button
+          disabled={busy.length > 0}
+          onClick={generateFullSnapshot}
+          type="button"
+        >
+          {busy === "generate-full"
+            ? "Creating snapshot..."
+            : "Create full database snapshot"}
+        </button>
+        {fullSnapshots.length > 0 ? (
+          <>
+            <label>
+              Full snapshot
+              <select
+                disabled={busy.length > 0}
+                onChange={(event) => setSelectedFull(event.target.value)}
+                value={selectedFull}
+              >
+                {fullSnapshots.map((snapshot) => (
+                  <option key={snapshot.name} value={snapshot.name}>
+                    {snapshot.name} ({formatBytes(snapshot.size)})
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="database-admin-actions">
+              <a
+                href={`/api/admin/database/full-snapshots/${encodeURIComponent(selectedFull)}`}
+              >
+                Download selected snapshot
+              </a>
+            </div>
+          </>
+        ) : (
+          <p>No full database snapshots are stored on this server.</p>
+        )}
+        <p>
+          The default location is <code>storage/db-snapshots</code>. Set
+          <code> DATABASE_SNAPSHOT_DIRECTORY</code> to store snapshots outside
+          the repository and <code> MONGODUMP_PATH</code> when the executable
+          is not on <code>PATH</code>.
         </p>
       </section>
 

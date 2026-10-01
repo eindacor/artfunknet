@@ -71,19 +71,28 @@ export async function PATCH(
   }
   const { id } = await params;
   const database = await getDatabase();
-  const [duplicate, attributeCount, existing, artworkCount] = await Promise.all([
-    database
-      .collection<ArtworkEffect>("artwork_effects")
-      .findOne({ _id: { $ne: id }, code: input.code }),
-    database.collection<{ _id: string; active: boolean }>("attributes").countDocuments({
-      _id: { $in: [...input.linkedAttributes] },
-      active: true,
-    }),
-    database.collection<ArtworkEffect>("artwork_effects").findOne({ _id: id }),
-    database.collection<{ effect_id?: string }>("artworks").countDocuments({
-      effect_id: id,
-    }),
-  ]);
+  const [duplicate, attributeCount, existing, artworkCount, activeArtworkCount] =
+    await Promise.all([
+      database
+        .collection<ArtworkEffect>("artwork_effects")
+        .findOne({ _id: { $ne: id }, code: input.code }),
+      database
+        .collection<{ _id: string; active: boolean }>("attributes")
+        .countDocuments({
+          _id: { $in: [...input.linkedAttributes] },
+          active: true,
+        }),
+      database
+        .collection<ArtworkEffect>("artwork_effects")
+        .findOne({ _id: id }),
+      database.collection<{ effect_id?: string }>("artworks").countDocuments({
+        effect_id: id,
+      }),
+      database.collection<{ effect_id?: string }>("artworks").countDocuments({
+        effect_id: id,
+        active: true,
+      }),
+    ]);
   if (duplicate) {
     return NextResponse.json(
       { error: "Behavior codes must be unique." },
@@ -108,7 +117,18 @@ export async function PATCH(
       { status: 409 },
     );
   }
-  const result = await database.collection<ArtworkEffect>("artwork_effects").updateOne(
+  if (existing.active && !input.active && activeArtworkCount > 0) {
+    return NextResponse.json(
+      {
+        error:
+          "Deactivate or reassign active artworks before deactivating this effect.",
+      },
+      { status: 409 },
+    );
+  }
+  const updatedAt = new Date().toISOString();
+  const effects = database.collection<ArtworkEffect>("artwork_effects");
+  const result = await effects.updateOne(
     { _id: id },
     {
       $set: {
@@ -120,12 +140,37 @@ export async function PATCH(
         code: input.code,
         active: input.active,
         parameters: input.parameters,
-        updated_at: new Date().toISOString(),
+        updated_at: updatedAt,
       },
     },
   );
   if (result.matchedCount !== 1) {
     return NextResponse.json({ error: "Artwork effect was not found." }, { status: 404 });
+  }
+  if (
+    existing.active &&
+    !input.active &&
+    (await database.collection("artworks").countDocuments({
+      effect_id: id,
+      active: true,
+    })) > 0
+  ) {
+    const restored = await effects.replaceOne(
+      { _id: id, active: false, updated_at: updatedAt },
+      existing,
+    );
+    if (restored.matchedCount !== 1) {
+      throw new Error(
+        "Effect deactivation conflicted with artwork activation and rollback failed.",
+      );
+    }
+    return NextResponse.json(
+      {
+        error:
+          "Deactivate or reassign active artworks before deactivating this effect.",
+      },
+      { status: 409 },
+    );
   }
   return NextResponse.json({ status: "ok" });
 }
