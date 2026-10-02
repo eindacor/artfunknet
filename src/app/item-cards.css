@@ -1446,32 +1446,20 @@
   }
 }
 
-/* Prismatic: shader-backed showcase with an animated foil border. */
+/* Prismatic: shader-backed showcase with a static foil border. */
 .prismatic-card {
   --prismatic-card-border-width: 2px;
-  --prismatic-card-radius: 18px;
-  --prismatic-border-duration: 4s;
+  --prismatic-card-radius: 0px;
   --prismatic-seasonal-spectrum-duration: 30s;
 
-  border: var(--prismatic-card-border-width) solid transparent;
+  border: var(--prismatic-card-border-width) solid var(--rarity-color);
   border-radius: var(--prismatic-card-radius);
-  background:
-    linear-gradient(#17111e, #0d0912) padding-box,
-    conic-gradient(
-        from var(--prism-angle),
-        var(--rarity-dark),
-        var(--rarity-color),
-        var(--rarity-light),
-        var(--rarity-color),
-        var(--rarity-dark)
-      )
-      border-box;
+  background: linear-gradient(#17111e, #0d0912);
   color: #fff;
   box-shadow:
     0 0 18px var(--rarity-glow),
     0 12px 26px rgb(0 0 0 / 50%);
   font-family: var(--font-geist-sans), sans-serif;
-  animation: prismatic-border var(--prismatic-border-duration) linear infinite;
 }
 
 .prismatic-card-shader {
@@ -1512,7 +1500,6 @@
   height: 240px;
   margin: 0 0.65rem;
   overflow: hidden;
-  border-radius: 12px;
 }
 
 .prismatic-card-image {
@@ -1556,17 +1543,12 @@
   font-family: "Courier New", Courier, monospace;
 }
 
-.rendered-item-card[data-rarity="legendary"] .prismatic-card {
-  --prismatic-border-duration: 2.4s;
-}
-
 .rendered-item-card[data-seasonal="true"] .prismatic-card {
   animation:
-    prismatic-border var(--prismatic-border-duration) linear infinite,
     prismatic-seasonal-spectrum
-      var(--prismatic-seasonal-spectrum-duration)
-      linear
-      infinite;
+    var(--prismatic-seasonal-spectrum-duration)
+    linear
+    infinite;
 }
 
 /* Blueprint: measured drafting sheet with a rarity inspection stripe. */
@@ -5293,12 +5275,6 @@
 @keyframes terminal-blink {
   50% {
     opacity: 0;
-  }
-}
-
-@keyframes prismatic-border {
-  to {
-    --prism-angle: 360deg;
   }
 }
 

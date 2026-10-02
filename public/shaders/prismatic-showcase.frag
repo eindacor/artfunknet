@@ -75,6 +75,29 @@ float getRaritySeed(int itemRarityIndex) {
   return .2;
 }
 
+void getMediumAndBrightColors(vec3 colors[IMAGE_PALETTE_SIZE],
+    out vec3 colorA,
+    out vec3 colorB) {
+    float lowestMediumContrast = 2.0;
+    float lowestBrightContrast = 2.0;
+    colorA = colors[0];
+    colorB = colors[0];
+
+    for (int i = 0; i < IMAGE_PALETTE_SIZE; i++) {
+        float mediumContrast = getColorContrastRating(colors[i], vec3(.5));
+        if (mediumContrast < lowestMediumContrast) {
+            lowestMediumContrast = mediumContrast;
+            colorA = colors[i];
+        }
+
+        float brightContrast = getColorContrastRating(colors[i], vec3(1.));
+        if (brightContrast < lowestBrightContrast) {
+            lowestBrightContrast = brightContrast;
+            colorB = colors[i];
+        }
+    }
+}
+
 void main() {
     AspectRatioData aspectRatioData = getAspectRatioData(u_resolution.xy);
     vec2 uv = gl_FragCoord.xy/u_resolution;
@@ -93,19 +116,11 @@ void main() {
     vec3 imagePaletteColors[IMAGE_PALETTE_SIZE];
     getImagePalette(.5, imagePaletteColors);
 
-    vec3 firstContrast;
-    vec3 secondContrast;
-    getHighestContrastColors(imagePaletteColors, firstContrast, secondContrast);
+    vec3 mediumColor;
+    vec3 brightColor;
+    getMediumAndBrightColors(imagePaletteColors, mediumColor, brightColor);
 
-    vec3 lightColor = firstContrast;
-    vec3 darkColor = secondContrast;
-    if (getColorContrastRating(BLACK, firstContrast) > 
-        getColorContrastRating(BLACK, secondContrast)) {
-        darkColor = firstContrast;
-        lightColor = secondContrast;
-    }
-
-    vec3 colorOut = mix(firstContrast, secondContrast, perlinMix);
+    vec3 colorOut = mix(mediumColor, brightColor, perlinMix);
 
     float valueModifier = mix(.5, .7, u_condition);
 
