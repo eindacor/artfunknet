@@ -35,11 +35,13 @@ export async function createPlayerNotification(
     message,
     action,
     dedupeUnread = true,
+    notificationId,
   }: {
     kind: PlayerNotificationKind;
     message: string;
     action?: PlayerNotification["action"];
     dedupeUnread?: boolean;
+    notificationId?: string;
   },
 ): Promise<PlayerNotification | null> {
   if (!PLAYER_NOTIFICATION_EMISSION_ENABLED) {
@@ -48,6 +50,11 @@ export async function createPlayerNotification(
 
   const notifications =
     database.collection<PlayerNotification>("player_notifications");
+
+  if (notificationId) {
+    const existing = await notifications.findOne({ _id: notificationId });
+    if (existing) return existing;
+  }
 
   if (dedupeUnread) {
     const existing = await notifications.findOne({
@@ -61,7 +68,7 @@ export async function createPlayerNotification(
   }
 
   const notification: PlayerNotification = {
-    _id: randomUUID(),
+    _id: notificationId ?? randomUUID(),
     user_id: userId,
     kind,
     message,
@@ -69,7 +76,20 @@ export async function createPlayerNotification(
     read: false,
     created_at: new Date().toISOString(),
   };
-  await notifications.insertOne(notification);
+  try {
+    await notifications.insertOne(notification);
+  } catch (error) {
+    if (
+      notificationId &&
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === 11000
+    ) {
+      return notifications.findOne({ _id: notificationId });
+    }
+    throw error;
+  }
   return notification;
 }
 

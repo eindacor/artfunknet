@@ -115,10 +115,12 @@ export type GameItem = {
   status:
     | "unclaimed"
     | "for_sale"
+    | "won"
     | "claimed"
     | "displayed"
     | "collector_pending"
     | "auctioned"
+    | "event_settlement_pending"
     | "bulk_sale_pending"
     | "bulk_donate_pending";
   source: string;

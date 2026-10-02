@@ -117,11 +117,19 @@ function AuthenticatedHeaderContent(props: AuthenticatedHeaderContentProps) {
     }
     window.addEventListener("focus", refreshWhenActive);
     document.addEventListener("visibilitychange", refreshWhenActive);
+    window.addEventListener(
+      "artfunkel:account-summary-change",
+      refreshAccountSummary,
+    );
     return () => {
       window.clearTimeout(initialTimer);
       window.clearInterval(timer);
       window.removeEventListener("focus", refreshWhenActive);
       document.removeEventListener("visibilitychange", refreshWhenActive);
+      window.removeEventListener(
+        "artfunkel:account-summary-change",
+        refreshAccountSummary,
+      );
     };
   }, [refreshAccountSummary]);
 

@@ -48,9 +48,9 @@ test("bulk sale protections preserve selected rarity tiers", () => {
   );
 });
 
-test("bulk candidate eligibility preserves original and permanent items", () => {
+test("bulk candidate eligibility includes originals but preserves permanent items", () => {
   assert.equal(isBulkLootCandidate({ original: false, permanent: false }), true);
-  assert.equal(isBulkLootCandidate({ original: true, permanent: false }), false);
+  assert.equal(isBulkLootCandidate({ original: true, permanent: false }), true);
   assert.equal(isBulkLootCandidate({ original: false, permanent: true }), false);
 });
 

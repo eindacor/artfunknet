@@ -48,7 +48,6 @@ export async function POST(
     owner: auth.session.playerId,
     status: { $in: ["claimed", "unclaimed"] },
     permanent: { $ne: true },
-    original: { $ne: true },
   });
   if (!item) {
     return NextResponse.json(
@@ -88,7 +87,7 @@ export async function POST(
           await deleteCommunityReactions(database, "item", [item._id]);
         }
         const message = preserved
-          ? "The buyer detected the forgery. The sale failed, and the Hall of Fame preserved the artwork."
+          ? "The buyer detected the forgery. The sale failed, and Artfunkel Inc. preserved the artwork."
           : "The buyer detected the forgery. The sale failed and the artwork was destroyed.";
         return NextResponse.json({
           status: "ok",

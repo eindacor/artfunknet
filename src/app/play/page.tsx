@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { getCardStyleInventory } from "@/components/item-cards/catalog";
 import { getCardRendererSettings } from "@/server/card-renderer-settings";
+import { getDailyEventDayIndex } from "@/server/daily-event-time";
 import {
   getArchiveRecordArtStyles,
   getArchiveRecordModifiers,
@@ -505,6 +506,7 @@ export default async function PlayerPage({
           previousWinners: raffleState.previous_winners,
           prizes: rafflePrizes,
         }}
+        dailyEventDay={getDailyEventDayIndex()}
         dailyDropCooldownMinutes={config.dailyDropCooldownMinutes}
         dailyDropCount={config.dailyDropCount}
         debugEnabled={settings.debugEnabled}

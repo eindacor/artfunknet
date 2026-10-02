@@ -92,8 +92,7 @@ export default function RafflePanel({
     <section className="raffle-panel">
       <header className="raffle-heading">
         <div>
-          <p>Daily collection drawing</p>
-          <h2>Lottery</h2>
+          <h2>Rafflefunkel</h2>
         </div>
         <dl>
           <div>
@@ -107,8 +106,7 @@ export default function RafflePanel({
         </dl>
       </header>
       <p className="raffle-introduction">
-        Spend tickets only on the items you want. Each press commits one ticket
-        to that item until the next daily drawing.
+        Lottery items have a chance to be rewarded every monday at noon. If No winner is selected, the items become more valuable.
       </p>
       <div className="raffle-prize-grid">
         {prizes.map((prize) => {
@@ -145,7 +143,8 @@ export default function RafflePanel({
                   aria-label="Spend lottery ticket"
                   className="lottery-ticket-action"
                   disabled={
-                    pendingItemId.length > 0 || availableTickets <= 0
+                    pendingItemId.length > 0 ||
+                    availableTickets <= 0
                   }
                   onClick={() => allocate(prize)}
                   title="Spend lottery ticket"
@@ -159,12 +158,6 @@ export default function RafflePanel({
         })}
       </div>
       <div className="raffle-rules">
-        <p>
-          Each item with tickets has a 20% chance to draw a weighted winner
-          each day and is guaranteed to hit at lottery level 10. A miss
-          increases its lottery level and value. An unticketed level-10 item
-          expires and is replaced.
-        </p>
         {previousWinners.length > 0 ? (
           <p>
             Latest winner:{" "}

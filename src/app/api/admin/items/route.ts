@@ -24,6 +24,10 @@ import {
   RAFFLE_STATE_ID,
   type RaffleState,
 } from "@/server/raffle-gameplay";
+import {
+  appendLiveAuctionItem,
+  LIVE_AUCTION_OWNER_ID,
+} from "@/server/live-auction-event";
 
 type AdminPlayerSearchResult = {
   _id: string;
@@ -35,7 +39,8 @@ type AdminPlayerSearchResult = {
 
 type AdminItemDestination =
   | { type: "player"; playerId: string }
-  | { type: "lottery_buffer" };
+  | { type: "lottery_buffer" }
+  | { type: "live_auction_buffer" };
 
 type ParsedAdminItemRequest = {
   artworkId: string;
@@ -194,7 +199,7 @@ export async function POST(request: Request) {
       );
     }
     owner = player._id;
-  } else {
+  } else if (parsed.destination.type === "lottery_buffer") {
     raffleState = await ensureRaffleState(database, context.settings.active);
     if (
       (raffleState.draw_lock &&
@@ -207,6 +212,8 @@ export async function POST(request: Request) {
     }
     owner = RAFFLE_OWNER_ID;
     parsed.customization.lottery = Math.max(1, parsed.customization.lottery);
+  } else {
+    owner = LIVE_AUCTION_OWNER_ID;
   }
 
   let item: GameItem;
@@ -261,6 +268,25 @@ export async function POST(request: Request) {
       );
     }
   }
+  if (parsed.destination.type === "live_auction_buffer") {
+    try {
+      await appendLiveAuctionItem(database, item._id, auth.session.email);
+    } catch (error) {
+      await database.collection<GameItem>("items").deleteOne({
+        _id: item._id,
+        owner: LIVE_AUCTION_OWNER_ID,
+      });
+      return NextResponse.json(
+        {
+          error:
+            error instanceof Error
+              ? error.message
+              : "The live-auction buffer could not be updated.",
+        },
+        { status: 409 },
+      );
+    }
+  }
 
   return NextResponse.json({
     status: "ok",
@@ -270,7 +296,9 @@ export async function POST(request: Request) {
         ? `${context.artwork.title} was sent to ${
             player?.screen_name ?? "the player"
           }.`
-        : `${context.artwork.title} was added to the lottery buffer.`,
+        : parsed.destination.type === "lottery_buffer"
+          ? `${context.artwork.title} was added to the lottery buffer.`
+          : `${context.artwork.title} was added to the live-auction buffer.`,
   });
 }
 
@@ -373,6 +401,9 @@ function parseDestination(value: Record<string, unknown>): AdminItemDestination 
   }
   if (value.type === "lottery_buffer") {
     return { type: "lottery_buffer" };
+  }
+  if (value.type === "live_auction_buffer") {
+    return { type: "live_auction_buffer" };
   }
   return null;
 }

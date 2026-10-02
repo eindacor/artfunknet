@@ -19,6 +19,8 @@ export default function ItemCard({
   item,
   actions,
   forceRendererId,
+  hideAuctionWatermark = false,
+  hideForgeryWatermark = false,
   legendaryAttributes,
   onActivate,
   alreadyOwned = false,
@@ -111,12 +113,16 @@ export default function ItemCard({
         role={interactive ? "button" : undefined}
         tabIndex={interactive ? 0 : undefined}
       >
-        <AuctionWatermark status={currentItem.status} />
+        {hideAuctionWatermark ? null : (
+          <AuctionWatermark status={currentItem.status} />
+        )}
         <ItemExpirationBadge item={currentItem} />
-        <KnownForgeryWatermark
-          authenticity={currentItem.authenticity}
-          rendererId={resolvedRendererId}
-        />
+        {hideForgeryWatermark ? null : (
+          <KnownForgeryWatermark
+            authenticity={currentItem.authenticity}
+            rendererId={resolvedRendererId}
+          />
+        )}
         <Renderer
           alreadyOwned={alreadyOwned}
           consigned={consigned}

@@ -411,31 +411,67 @@ export async function transferIfHallOfFameItem(
   return transferredIds.has(item._id);
 }
 
+export async function transferIfPreservedItem(
+  database: Db,
+  item: Pick<GameItem, "_id" | "owner" | "status">,
+): Promise<boolean> {
+  const transferredIds = await transferPreservedItems(database, [item]);
+  return transferredIds.has(item._id);
+}
+
 export async function transferHallOfFameItems(
   database: Db,
   items: Pick<GameItem, "_id" | "owner" | "status">[],
 ): Promise<Set<string>> {
+  return transferItemsToArtfunkel(database, items, true);
+}
+
+export async function transferPreservedItems(
+  database: Db,
+  items: Pick<GameItem, "_id" | "owner" | "status">[],
+): Promise<Set<string>> {
+  return transferItemsToArtfunkel(database, items, true);
+}
+
+async function transferItemsToArtfunkel(
+  database: Db,
+  items: Pick<GameItem, "_id" | "owner" | "status">[],
+  includeOriginals: boolean,
+): Promise<Set<string>> {
   if (items.length === 0) return new Set();
 
+  const itemIds = items.map((item) => item._id);
   const records = await database
     .collection<HallOfFameRecord>("hall_of_fame")
-    .find({ item_id: { $in: items.map((item) => item._id) } })
+    .find({ item_id: { $in: itemIds } })
     .project<Pick<HallOfFameRecord, "item_id" | "item_snapshot">>({
       item_id: 1,
       item_snapshot: 1,
     })
     .toArray();
   const hallOfFameItemIds = new Set(records.map((record) => record.item_id));
-  if (hallOfFameItemIds.size === 0) return hallOfFameItemIds;
   const currentItems = await database
     .collection<GameItem>("items")
-    .find({ _id: { $in: [...hallOfFameItemIds] } })
+    .find({ _id: { $in: itemIds } })
     .toArray();
+  const preservedItemIds = new Set([
+    ...hallOfFameItemIds,
+    ...(includeOriginals
+      ? currentItems
+          .filter((currentItem) => currentItem.original)
+          .map((currentItem) => currentItem._id)
+      : []),
+  ]);
+  if (preservedItemIds.size === 0) return preservedItemIds;
   const currentItemById = new Map(
     currentItems.map((currentItem) => [currentItem._id, currentItem]),
   );
   const artworkIds = [
-    ...new Set(currentItems.map((currentItem) => currentItem.artwork_id)),
+    ...new Set(
+      currentItems
+        .filter((currentItem) => preservedItemIds.has(currentItem._id))
+        .map((currentItem) => currentItem.artwork_id),
+    ),
   ];
   const artworks = await database
     .collection<Artwork>("artworks")
@@ -448,7 +484,7 @@ export async function transferHallOfFameItems(
 
   const transferredAt = new Date().toISOString();
   for (const item of items) {
-    if (!hallOfFameItemIds.has(item._id)) continue;
+    if (!preservedItemIds.has(item._id)) continue;
     const currentItem = currentItemById.get(item._id);
     if (
       !currentItem ||
@@ -460,32 +496,34 @@ export async function transferHallOfFameItems(
       );
     }
     const record = recordByItemId.get(item._id);
-    const artwork =
-      artworkById.get(currentItem.artwork_id) ?? record?.item_snapshot.artwork;
-    const snapshotArtwork = artwork
-      ? { ...artwork, ...currentItem.artwork_overrides }
-      : undefined;
-    const snapshotSource = { ...currentItem };
-    delete snapshotSource.vintage_operation_token;
-    const itemSnapshot: HallOfFameItemSnapshot = {
-      ...snapshotSource,
-      ...(snapshotArtwork
-        ? {
-            artwork: snapshotArtwork,
-            artwork_title: snapshotArtwork.title,
-            artist_name: snapshotArtwork.artist,
-          }
-        : {
-            artwork_title: record?.item_snapshot.artwork_title,
-            artist_name: record?.item_snapshot.artist_name,
-          }),
-    };
-    await database
-      .collection<HallOfFameRecord>("hall_of_fame")
-      .updateMany(
-        { item_id: item._id },
-        { $set: { item_snapshot: itemSnapshot } },
-      );
+    if (record) {
+      const artwork =
+        artworkById.get(currentItem.artwork_id) ?? record.item_snapshot.artwork;
+      const snapshotArtwork = artwork
+        ? { ...artwork, ...currentItem.artwork_overrides }
+        : undefined;
+      const snapshotSource = { ...currentItem };
+      delete snapshotSource.vintage_operation_token;
+      const itemSnapshot: HallOfFameItemSnapshot = {
+        ...snapshotSource,
+        ...(snapshotArtwork
+          ? {
+              artwork: snapshotArtwork,
+              artwork_title: snapshotArtwork.title,
+              artist_name: snapshotArtwork.artist,
+            }
+          : {
+              artwork_title: record.item_snapshot.artwork_title,
+              artist_name: record.item_snapshot.artist_name,
+            }),
+      };
+      await database
+        .collection<HallOfFameRecord>("hall_of_fame")
+        .updateMany(
+          { item_id: item._id },
+          { $set: { item_snapshot: itemSnapshot } },
+        );
+    }
     const result = await database.collection<GameItem>("items").updateOne(
       {
         _id: currentItem._id,
@@ -510,7 +548,7 @@ export async function transferHallOfFameItems(
             from_owner: currentItem.owner,
             to_owner: HALL_OF_FAME_OWNER_ID,
             occurred_at: transferredAt,
-            source: "hall of fame",
+            source: record ? "hall of fame" : "original item preservation",
           },
         },
       },
@@ -522,10 +560,17 @@ export async function transferHallOfFameItems(
     }
   }
 
-  return hallOfFameItemIds;
+  return preservedItemIds;
 }
 
 export async function restoreTransferredHallOfFameItem(
+  database: Db,
+  item: GameItem,
+): Promise<void> {
+  return restoreTransferredPreservedItem(database, item);
+}
+
+export async function restoreTransferredPreservedItem(
   database: Db,
   item: GameItem,
 ): Promise<void> {
@@ -534,7 +579,7 @@ export async function restoreTransferredHallOfFameItem(
     item,
   );
   if (restored.modifiedCount !== 1) {
-    throw new Error("The Hall of Fame item could not be restored.");
+    throw new Error("The preserved item could not be restored.");
   }
 }
 

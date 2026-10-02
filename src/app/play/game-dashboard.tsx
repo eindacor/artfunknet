@@ -20,7 +20,8 @@ import ArtworkThumbnail from "@/components/artwork-thumbnail";
 import ItemThumbnail from "@/components/item-thumbnail";
 import ItemTagsDialog from "@/components/item-tags-dialog";
 import HallOfFamePanel from "@/components/hall-of-fame-panel";
-import RafflePanel, {
+import DailyEventsPanel from "@/components/daily-events-panel";
+import {
   type RafflePrizeView,
 } from "@/components/raffle-panel";
 import EnterEraDialog from "@/components/enter-era-dialog";
@@ -326,6 +327,7 @@ export default function GameDashboard({
   npcSpawnIntervalMinutes,
   crateOffers,
   raffle,
+  dailyEventDay,
   dailyDropCooldownMinutes,
   dailyDropCount,
   dealerPriceMultiplier,
@@ -363,6 +365,7 @@ export default function GameDashboard({
     prizes: RafflePrizeView[];
     previousWinners: import("@/server/raffle-gameplay").RaffleWinner[];
   };
+  dailyEventDay: number;
   dailyDropCooldownMinutes: number;
   dailyDropCount: number;
   dealerPriceMultiplier: number;
@@ -402,7 +405,7 @@ export default function GameDashboard({
     | "archive"
     | "quests"
     | "auctions"
-    | "raffle"
+    | "daily"
     | "history"
   >(
     initialGalleryId
@@ -411,8 +414,8 @@ export default function GameDashboard({
         ? "profile"
         : initialSection === "history"
           ? "history"
-          : initialSection === "raffle"
-            ? "raffle"
+          : initialSection === "daily" || initialSection === "raffle"
+            ? "daily"
             : initialSection === "auctions"
               ? "auctions"
               : initialSection === "loot"
@@ -737,7 +740,6 @@ export default function GameDashboard({
         (item) =>
           item.status === "unclaimed" &&
           !item.permanent &&
-          !item.original &&
           !shouldPreserveBulkSaleItem(
             {
               ...item,
@@ -756,7 +758,6 @@ export default function GameDashboard({
         (item) =>
           item.status === "for_sale" &&
           !item.permanent &&
-          !item.original &&
           !shouldPreserveBulkSaleItem(
             {
               ...item,
@@ -1583,8 +1584,8 @@ export default function GameDashboard({
     item: HydratedGameItem,
     matchingQuestCount: number,
   ) {
-    if (item.permanent || item.original) {
-      return "Original and permanent artwork cannot be sent to the Historian.";
+    if (item.permanent) {
+      return "Permanent artwork cannot be sent to the Historian.";
     }
     if (item.repairing) {
       return "Stop repairing this artwork before sending it to the Historian.";
@@ -2769,7 +2770,7 @@ export default function GameDashboard({
           gridSlot={9}
           icon="fa-share-square"
           label="Donate for Karma"
-          disabled={pending || item.permanent || item.original}
+          disabled={pending || item.permanent}
           onClick={() => requestItemRemoval(item, "donate")}
         />
         <ItemActionButton
@@ -2916,7 +2917,7 @@ export default function GameDashboard({
           gridSlot={9}
           icon="fa-share-square"
           label="Donate for Karma"
-          disabled={pending || item.permanent || item.original}
+          disabled={pending || item.permanent}
           onClick={() => requestItemRemoval(item, "donate")}
         />
         <AuthenticityActions
@@ -3041,7 +3042,7 @@ export default function GameDashboard({
               { id: "quests", label: "Quests", icon: "fa-map-signs" },
               { id: "auctions", label: "Auction House", icon: "fa-gavel" },
               { id: "archive", label: "Archive", icon: "fa-archive" },
-              { id: "raffle", label: "Lottery", icon: "fa-ticket" },
+              { id: "daily", label: "Daily Events", icon: "fa-calendar" },
               { id: "profile", label: "Social", icon: "fa-comments" },
               { id: "history", label: "Legacy", icon: "fa-history" },
             ] as const
@@ -4031,7 +4032,7 @@ export default function GameDashboard({
                       gridSlot={9}
                       icon="fa-share-square"
                       label="Donate for Karma"
-                      disabled={pending || item.permanent || item.original}
+                      disabled={pending || item.permanent}
                       onClick={() => requestItemRemoval(item, "donate")}
                     />
                     <AuthenticityActions
@@ -4325,13 +4326,13 @@ export default function GameDashboard({
           />
         ) : null}
 
-        {section === "raffle" ? (
-          <RafflePanel
-            availableTickets={raffle.availableTickets}
-            nextDrawAt={raffle.nextDrawAt}
-            previousWinners={raffle.previousWinners}
-            prizes={raffle.prizes}
-            viewerId={playerId}
+        {section === "daily" ? (
+          <DailyEventsPanel
+            currentDay={dailyEventDay}
+            impersonating={impersonating}
+            legendaryAttributes={legendaryAttributes}
+            playerId={playerId}
+            raffle={raffle}
           />
         ) : null}
 
@@ -5963,8 +5964,7 @@ function getLootBulkState({
     (entry) =>
       entry.auction ||
       entry.item.status !== "unclaimed" ||
-      entry.item.permanent ||
-      entry.item.original,
+      entry.item.permanent,
   );
   const donate = donateInvalid
     ? unavailable(
@@ -5980,8 +5980,7 @@ function getLootBulkState({
     (entry) =>
       entry.auction ||
       entry.item.status !== "for_sale" ||
-      entry.item.permanent ||
-      entry.item.original,
+      entry.item.permanent,
   );
   let purchaseDonate = purchaseDonateInvalid
     ? unavailable(
@@ -6017,7 +6016,7 @@ function getLootBulkState({
     (entry) =>
       !entry.auction &&
       entry.item.status === "unclaimed" &&
-      (entry.item.permanent || entry.item.original),
+      entry.item.permanent,
   );
   const remove = removeInvalid
     ? unavailable(`${removeInvalid.item.artwork.title} cannot be sold.`)
@@ -6167,7 +6166,7 @@ function getCollectionBulkState({
 
   const sellInvalid = selectedItems.find(
     (item) =>
-      item.status !== "claimed" || item.permanent || item.original,
+      item.status !== "claimed" || item.permanent,
   );
   const sell = sellInvalid
     ? unavailable(
@@ -6179,7 +6178,7 @@ function getCollectionBulkState({
 
   const donateInvalid = selectedItems.find(
     (item) =>
-      item.status !== "claimed" || item.permanent || item.original,
+      item.status !== "claimed" || item.permanent,
   );
   const donate = donateInvalid
     ? unavailable(
@@ -6295,7 +6294,7 @@ function assignHistorianQuests(
         reason: `${item.artwork.title} ${statusDescription}.`,
       };
     }
-    if (item.permanent || item.original) {
+    if (item.permanent) {
       return {
         questByItemId,
         reason: `${item.artwork.title} cannot be sent to the Historian.`,

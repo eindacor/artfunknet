@@ -52,6 +52,8 @@ export type ItemCardProps = Omit<ItemCardRendererProps, "alreadyOwned"> & {
   actions?: React.ReactNode;
   alreadyOwned?: boolean;
   forceRendererId?: string;
+  hideAuctionWatermark?: boolean;
+  hideForgeryWatermark?: boolean;
   interactive?: boolean;
   onActivate?: () => void;
   overlay?: React.ReactNode;

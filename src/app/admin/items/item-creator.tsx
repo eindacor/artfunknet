@@ -37,7 +37,10 @@ type PlayerResult = {
   testAccount: boolean;
 };
 
-type DestinationType = "player" | "lottery_buffer";
+type DestinationType =
+  | "player"
+  | "lottery_buffer"
+  | "live_auction_buffer";
 type AttributeGroup = keyof AttributeGroups;
 
 export default function ItemCreator({
@@ -303,7 +306,7 @@ export default function ItemCreator({
           destination:
             destinationType === "player"
               ? { type: "player", playerId: selectedPlayer?.id }
-              : { type: "lottery_buffer" },
+              : { type: destinationType },
           item: itemPayload,
         }),
       });
@@ -537,6 +540,12 @@ export default function ItemCreator({
             set={() => selectDestination("lottery_buffer")}
             type="radio"
           />
+          <Flag
+            checked={destinationType === "live_auction_buffer"}
+            label="Live auction buffer"
+            set={() => selectDestination("live_auction_buffer")}
+            type="radio"
+          />
         </div>
         {destinationType === "player" ? (
           <div className="admin-player-search">
@@ -573,10 +582,15 @@ export default function ItemCreator({
               ))}
             </div>
           </div>
-        ) : (
+        ) : destinationType === "lottery_buffer" ? (
           <p>
             The item will be appended to the expandable lottery replacement
             buffer without replacing an existing prize.
+          </p>
+        ) : (
+          <p>
+            The item will be appended to the live auction queue for an admin
+            to present during a stream.
           </p>
         )}
         <button
@@ -591,7 +605,9 @@ export default function ItemCreator({
             ? "Sending..."
             : destinationType === "player"
               ? "Send item"
-              : "Send to lottery buffer"}
+              : destinationType === "lottery_buffer"
+                ? "Send to lottery buffer"
+                : "Send to live auction buffer"}
         </button>
         {status ? <p className="admin-item-status">{status}</p> : null}
       </section>

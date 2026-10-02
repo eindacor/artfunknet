@@ -6,6 +6,7 @@ import {
 } from "@/server/bulk-sale";
 import { deleteCommunityReactions } from "@/server/community-reaction-cleanup";
 import type { GameItem } from "@/server/gameplay";
+import { transferHallOfFameItems } from "@/server/hall-of-fame";
 import { removeExpiredTransientItems } from "@/server/item-expiration";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
@@ -48,28 +49,33 @@ export async function POST(request: Request) {
   }
 
   const itemIds = dealerResult.items.map((item) => item._id);
+  const preservedIds = await transferHallOfFameItems(
+    database,
+    dealerResult.items,
+  );
+  const deletableIds = itemIds.filter((itemId) => !preservedIds.has(itemId));
   const result = await database.collection<GameItem>("items").deleteMany({
-    _id: { $in: itemIds },
+    _id: { $in: deletableIds },
     owner: auth.session.playerId,
     status: "for_sale",
   });
   const remainingIds =
-    result.deletedCount === itemIds.length
+    result.deletedCount === deletableIds.length
       ? new Set<string>()
       : new Set(
           (
             await database
               .collection<GameItem>("items")
-              .find({ _id: { $in: itemIds } })
+              .find({ _id: { $in: deletableIds } })
               .project<Pick<GameItem, "_id">>({ _id: 1 })
               .toArray()
           ).map((item) => item._id),
         );
-  const deletedIds = itemIds.filter((itemId) => !remainingIds.has(itemId));
+  const deletedIds = deletableIds.filter((itemId) => !remainingIds.has(itemId));
 
   await deleteCommunityReactions(database, "item", deletedIds);
 
-  const declined = deletedIds.length;
+  const declined = deletedIds.length + preservedIds.size;
   return NextResponse.json({
     status: "ok",
     declined,

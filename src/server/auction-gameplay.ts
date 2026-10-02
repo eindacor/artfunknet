@@ -53,6 +53,10 @@ import {
   type PlayerArtworkArchive,
 } from "./archive-gameplay.ts";
 import { getPlayerFacingArchivePermission } from "./item-permissions.ts";
+import {
+  LIVE_AUCTION_STATE_ID,
+  type LiveAuctionState,
+} from "./live-auction-event.ts";
 
 export const PUBLIC_AUCTION_DURATIONS = [60, 360, 720, 1440] as const;
 export const PRIVATE_AUCTION_DURATION_MINUTES = 5;
@@ -146,21 +150,32 @@ export async function getPlayerAuctionEscrow(
   playerId: string,
   now = new Date(),
 ): Promise<number> {
-  const [result] = await database
-    .collection<Auction>("auctions")
-    .aggregate<{ _id: null; total: number }>([
-      {
-        $match: {
-          current_winner_id: playerId,
-          expiration: { $gt: now.toISOString() },
-          settlement_status: { $ne: "settling" },
+  const [auctionResults, liveAuction] = await Promise.all([
+    database
+      .collection<Auction>("auctions")
+      .aggregate<{ _id: null; total: number }>([
+        {
+          $match: {
+            current_winner_id: playerId,
+            expiration: { $gt: now.toISOString() },
+            settlement_status: { $ne: "settling" },
+          },
         },
+        { $group: { _id: null, total: { $sum: "$current_bid" } } },
+      ])
+      .toArray(),
+    database.collection<LiveAuctionState>("metadata").findOne(
+      {
+        _id: LIVE_AUCTION_STATE_ID,
+        live: true,
+        current_item_id: { $ne: null },
+        winner_id: playerId,
       },
-      { $group: { _id: null, total: { $sum: "$current_bid" } } },
-    ])
-    .toArray();
+      { projection: { current_bid: 1 } },
+    ),
+  ]);
 
-  return result?.total ?? 0;
+  return (auctionResults[0]?.total ?? 0) + (liveAuction?.current_bid ?? 0);
 }
 
 export async function createAuction(

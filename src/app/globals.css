@@ -7343,7 +7343,748 @@ a.welcome-button {
   .loot-items-content {
     grid-template-columns: 1fr;
   }
+}
 
+.daily-events {
+  display: grid;
+  gap: 1rem;
+  width: 100%;
+  min-width: 0;
+  min-height: min(760px, calc(100vh - 230px));
+  color: #211b20;
+}
+
+.daily-events-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.daily-events-heading p,
+.daily-events-heading h2,
+.daily-event-content header p,
+.daily-event-content header h3,
+.daily-event-copy > p,
+.daily-event-copy h3 {
+  margin: 0;
+}
+
+.daily-events-heading p,
+.daily-event-content header > p,
+.daily-event-copy > p:first-child {
+  color: #676158;
+  font-family: Courier, "Courier New", monospace;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.daily-event-calendar {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.55rem;
+  width: min(100%, 900px);
+  margin: 0 auto;
+}
+
+.daily-event-calendar button {
+  aspect-ratio: 1;
+  display: grid;
+  place-content: center;
+  gap: 0.3rem;
+  width: 100%;
+  min-width: 0;
+  padding: 0.4rem;
+  overflow: hidden;
+  border: 1px solid #c9c3b6;
+  border-radius: 0;
+  background:
+    linear-gradient(145deg, rgb(255 255 255 / 75%), rgb(255 241 248 / 55%)),
+    #f8f6f0;
+  color: #211b20;
+  box-shadow: 0 4px 12px rgb(41 35 28 / 7%);
+}
+
+.daily-event-calendar button:hover:not(:disabled) {
+  border-color: #c66a9c;
+  background:
+    linear-gradient(145deg, #fffdf9, #f8e4ef),
+    #f8f6f0;
+}
+
+.daily-event-calendar button span {
+  font-size: clamp(0.9rem, 2vw, 1.35rem);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.daily-event-calendar button.today {
+  border-color: #d987b2;
+  box-shadow: inset 0 -4px 0 rgb(255 51 204 / 20%);
+}
+
+.daily-event-calendar button.selected {
+  border-color: #b94f89;
+  background:
+    linear-gradient(145deg, #fffafc, #efc9dd),
+    #f8f6f0;
+  color: #5c2042;
+  box-shadow:
+    0 0 0 1px #b94f89,
+    inset 0 0 18px rgb(255 55 158 / 8%);
+}
+
+.daily-event-stage {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 560px;
+  padding: clamp(1rem, 2.5vw, 2rem);
+  border: 1px solid #c9c3b6;
+  border-radius: 0;
+  background:
+    linear-gradient(135deg, rgb(255 255 255 / 80%), rgb(255 235 246 / 42%)),
+    #f8f6f0;
+  box-shadow: 0 8px 22px rgb(41 35 28 / 10%);
+}
+
+.daily-event-stage .raffle-panel {
+  min-height: 100%;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  color: #211b20;
+  box-shadow: none;
+}
+
+.daily-event-stage .raffle-heading {
+  border-bottom-color: #d2cdc2;
+}
+
+.daily-event-stage .raffle-heading p {
+  color: #676158;
+  font-family: Courier, "Courier New", monospace;
+}
+
+.daily-event-stage .raffle-heading h2 {
+  color: #171717;
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 500;
+}
+
+.daily-event-stage .raffle-heading dl > div {
+  border-color: #d2cdc2;
+  background:
+    linear-gradient(135deg, rgb(255 255 255 / 72%), rgb(255 235 246 / 36%)),
+    #fffdf8;
+}
+
+.daily-event-stage .raffle-heading dt,
+.daily-event-stage .raffle-introduction,
+.daily-event-stage .raffle-rules,
+.daily-event-stage .raffle-prize-entry span {
+  color: #676158;
+}
+
+.daily-event-stage .raffle-heading dd {
+  color: #8c315f;
+}
+
+.daily-event-stage .raffle-potency {
+  background: linear-gradient(135deg, #e8a8c9, #ce78a6);
+  color: #4f1836;
+}
+
+.daily-event-stage .raffle-prize-entry .lottery-ticket-action {
+  border-color: #8c315f;
+  border-radius: 0;
+  background: linear-gradient(135deg, #c24f8c, #9f2f69);
+  color: #fff;
+  box-shadow: 0 4px 10px rgb(97 28 65 / 18%);
+}
+
+.daily-event-stage
+  .raffle-prize-entry
+  .lottery-ticket-action:hover:not(:disabled),
+.daily-event-stage
+  .raffle-prize-entry
+  .lottery-ticket-action:focus-visible:not(:disabled) {
+  border-color: #5f173e;
+  background: linear-gradient(135deg, #df65a5, #b83c7b);
+  box-shadow: 0 5px 14px rgb(97 28 65 / 24%);
+}
+
+.daily-event-stage .raffle-rules {
+  border-left-color: #c24f8c;
+}
+
+.daily-event-stage button,
+.daily-event-stage input,
+.daily-event-stage select {
+  border-radius: 0;
+}
+
+.daily-event-content > header a,
+.daily-event-intermission > a,
+.live-auction-player > div > button,
+.friday-crate-event > button,
+.daily-event-debug-action > button {
+  width: max-content;
+  min-height: 40px;
+  border: 1px solid #282722;
+  border-radius: 0;
+  padding: 0.65rem 0.9rem;
+  background: #282722;
+  color: #fff;
+  font: 700 0.75rem Courier, "Courier New", monospace;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.daily-event-content > header a:hover,
+.daily-event-content > header a:focus-visible,
+.daily-event-intermission > a:hover,
+.daily-event-intermission > a:focus-visible,
+.live-auction-player > div > button:hover:not(:disabled),
+.friday-crate-event > button:hover:not(:disabled),
+.daily-event-debug-action > button:hover:not(:disabled) {
+  border-color: #c24f8c;
+  background: #c24f8c;
+  color: #211b20;
+}
+
+.daily-event-copy,
+.daily-event-intermission {
+  min-height: 500px;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 1rem;
+  max-width: 760px;
+  margin: 0 auto;
+  color: #211b20;
+  text-align: center;
+}
+
+.daily-event-copy h3,
+.daily-event-intermission h3,
+.daily-event-content h3 {
+  color: #171717;
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 500;
+  font-size: clamp(1.6rem, 4vw, 3rem);
+}
+
+.daily-event-copy-mark {
+  color: #ff4daa;
+  font-size: clamp(2.8rem, 10vw, 7rem);
+  font-weight: 950;
+  letter-spacing: -0.08em;
+  line-height: 0.9;
+  text-shadow: 0 0 24px rgb(255 55 158 / 22%);
+  text-transform: lowercase;
+}
+
+.daily-event-content {
+  display: grid;
+  gap: 1.25rem;
+  color: #211b20;
+}
+
+.daily-event-content > header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  border-bottom: 1px solid #d2cdc2;
+  padding-bottom: 1rem;
+  color: #676158;
+}
+
+.daily-event-content > header h3 {
+  flex-basis: 100%;
+}
+
+.daily-event-callout,
+.daily-event-empty,
+.daily-event-entry-details,
+.live-auction-player > div {
+  padding: 0.9rem;
+  border: 1px solid #d2cdc2;
+  border-radius: 0;
+  background:
+    linear-gradient(135deg, rgb(255 255 255 / 70%), rgb(255 235 246 / 38%)),
+    #fffdf8;
+  color: #211b20;
+}
+
+.daily-event-browser {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 420px) 42px;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+}
+
+.daily-event-browser > button {
+    width: 42px;
+    height: 42px;
+    border-radius: 0;
+}
+
+.daily-event-browser > div {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.daily-event-entry-details {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.daily-event-contest-browser {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 42px;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.daily-event-contest-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+.daily-event-contest-card {
+  min-width: 0;
+  border: 1px solid #c9c3b6;
+  background:
+    linear-gradient(145deg, rgb(255 255 255 / 78%), rgb(255 237 246 / 38%)),
+    #f8f6f0;
+  box-shadow: 0 5px 14px rgb(41 35 28 / 8%);
+}
+
+.daily-event-contest-card.selected {
+  border-color: #c24f8c;
+  box-shadow:
+    0 0 0 1px #c24f8c,
+    0 7px 18px rgb(123 47 87 / 14%);
+}
+
+.daily-event-contest-card-art {
+  display: grid;
+  width: 100%;
+  height: 306px;
+  place-items: start center;
+  overflow: hidden;
+  padding-top: 8px;
+}
+
+.daily-event-contest-card-art > .rendered-item-card {
+  scale: 0.76;
+  transform-origin: top center;
+}
+
+.daily-event-contest-card .daily-event-entry-details {
+  border-width: 1px 0 0;
+  padding: 0.75rem;
+  background: rgb(255 255 255 / 48%);
+}
+
+.daily-event-contest-card .daily-event-entry-details strong {
+  color: #171717;
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 500;
+}
+
+.daily-event-contest-card .daily-event-entry-details span {
+  color: #676158;
+  font: 700 0.68rem Courier, "Courier New", monospace;
+  text-transform: uppercase;
+}
+
+.daily-event-contest-navigation {
+  width: 42px;
+  height: 64px;
+  border: 1px solid #b9b2a5;
+  border-radius: 0;
+  background: #fffdf8;
+  color: #5c2042;
+}
+
+.daily-event-vote-button {
+  min-height: 42px;
+  border: 1px solid #8c315f;
+  border-radius: 0;
+  background: linear-gradient(135deg, #c24f8c, #9f2f69);
+  color: #fff;
+  font: 800 0.78rem Courier, "Courier New", monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  box-shadow: 0 4px 10px rgb(97 28 65 / 18%);
+}
+
+.daily-event-vote-button:hover:not(:disabled),
+.daily-event-vote-button:focus-visible:not(:disabled) {
+  border-color: #5f173e;
+  background: linear-gradient(135deg, #df65a5, #b83c7b);
+}
+
+.daily-event-vote-button.selected {
+  border-color: #6e274d;
+  background: #f2d5e4;
+  color: #6e274d;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 70%);
+}
+
+.daily-event-vote-button:disabled:not(.selected) {
+  border-color: #c9c3b6;
+  background: #e9e5dc;
+  color: #817a70;
+  box-shadow: none;
+}
+
+.daily-event-submit-button {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid #8c315f;
+  border-radius: 0;
+  background: linear-gradient(135deg, #c24f8c, #9f2f69);
+  color: #fff;
+  font-weight: 800;
+  box-shadow: 0 4px 10px rgb(97 28 65 / 18%);
+}
+
+.daily-event-submit-button:hover:not(:disabled) {
+  background: #c7217d;
+}
+
+.daily-event-submission {
+  display: grid;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid #d2cdc2;
+}
+
+.daily-event-submission h4 {
+  margin: 0;
+  color: #171717;
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 500;
+  font-size: 1.25rem;
+}
+
+.daily-event-winners {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.daily-event-winners > div,
+.daily-seasonal-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 1rem;
+}
+
+.daily-event-winners article {
+    display: grid;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: #fffdf8;
+}
+
+.live-auction-player {
+    display: grid;
+    grid-template-columns: minmax(260px, 430px) minmax(240px, 1fr);
+    gap: 1.5rem;
+    align-items: center;
+}
+
+.live-auction-stream {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid #c9c3b6;
+    background: #171217;
+    box-shadow: 0 8px 22px rgb(54 42 48 / 10%);
+}
+
+.live-auction-stream iframe {
+    display: block;
+    width: 100%;
+    min-width: 400px;
+    min-height: 300px;
+    aspect-ratio: 16 / 9;
+    border: 0;
+}
+
+.live-auction-intermission-copy {
+    display: grid;
+    place-items: center;
+    gap: 0.55rem;
+    min-height: 180px;
+    padding: 1.25rem;
+    background:
+      linear-gradient(145deg, rgb(255 255 255 / 78%), rgb(249 224 237 / 40%)),
+      #f8f6f0;
+    color: #211b20;
+    text-align: center;
+}
+
+.live-auction-intermission-copy h4,
+.live-auction-intermission-copy p {
+    margin: 0;
+}
+
+.live-auction-player > .live-auction-bid-panel {
+    display: grid;
+    gap: 1rem;
+    padding: 1rem;
+    border: 1px solid #c9c3b6;
+    background:
+      linear-gradient(145deg, rgb(255 255 255 / 78%), rgb(249 224 237 / 40%)),
+      #f8f6f0;
+    color: #211b20;
+    box-shadow: 0 8px 22px rgb(54 42 48 / 8%);
+}
+
+.live-auction-bid-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin: 0;
+}
+
+.live-auction-bid-summary > div {
+    display: grid;
+    gap: 0.25rem;
+    min-height: 76px;
+    padding: 0.75rem;
+    border: 1px solid #d2cdc2;
+    background: #fffdf8;
+}
+
+.live-auction-bid-summary dt {
+    color: #716a60;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.live-auction-bid-summary dd {
+    margin: 0;
+    color: #3f1830;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(1.15rem, 2.4vw, 1.65rem);
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.live-auction-bid-entry {
+    display: grid;
+    gap: 0.4rem;
+    color: #3e3933;
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.live-auction-bid-entry input {
+    width: 100%;
+    min-height: 48px;
+    padding: 0.65rem 0.75rem;
+    border-color: #a69d90;
+    background: #fffdf8;
+    color: #171717;
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.live-auction-player > .live-auction-bid-panel > button {
+    width: 100%;
+    min-height: 46px;
+    border-color: #8c315f;
+    background: linear-gradient(135deg, #c24f8c, #9f2f69);
+    color: #fff;
+    font-weight: 800;
+}
+
+.live-auction-player > .live-auction-bid-panel > button:hover:not(:disabled) {
+    border-color: #5f173e;
+    background: linear-gradient(135deg, #df65a5, #b83c7b);
+    color: #fff;
+}
+
+.daily-event-crate-icon {
+    display: grid;
+    place-items: center;
+    width: 130px;
+    height: 130px;
+    border: 2px solid #c24f8c;
+    border-radius: 0;
+    background: linear-gradient(145deg, #fffdf8, #f2d5e4);
+    color: #9f2f69;
+    font-size: 4rem;
+    transform: rotate(-4deg);
+}
+
+.daily-event-debug-panel,
+.daily-event-debug-action {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  padding: 0.85rem;
+  border: 1px solid #c9c3b6;
+  border-radius: 0;
+  background:
+    linear-gradient(135deg, rgb(255 255 255 / 72%), rgb(255 235 246 / 42%)),
+    #f8f6f0;
+  color: #211b20;
+}
+
+.daily-event-debug-panel > div:first-child {
+  display: grid;
+  gap: 0.15rem;
+  margin-right: auto;
+}
+
+.daily-event-debug-panel span {
+  color: #676158;
+  font-size: 0.78rem;
+}
+
+.daily-event-debug-toggle {
+  display: flex;
+  overflow: hidden;
+  border: 1px solid #b9b2a5;
+  border-radius: 0;
+}
+
+.daily-event-debug-toggle button {
+  border: 0;
+  border-radius: 0;
+  background: #fffdf8;
+  color: #211b20;
+}
+
+.daily-event-debug-toggle button.selected {
+  background: #b83c7b;
+  color: #fff;
+}
+
+.daily-event-debug-action label {
+  display: grid;
+  gap: 0.25rem;
+  color: #211b20;
+}
+
+.daily-event-debug-action select,
+.live-auction-player input {
+  min-height: 38px;
+  border: 1px solid #b9b2a5;
+  border-radius: 0;
+  background: #fff;
+  color: #171717;
+}
+
+.daily-event-admin {
+    display: grid;
+    gap: 1rem;
+}
+
+.daily-event-admin-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+}
+
+.daily-event-admin-current {
+    display: grid;
+    grid-template-columns: minmax(260px, 420px) minmax(220px, 1fr);
+    gap: 1rem;
+    align-items: center;
+}
+
+.daily-event-admin-current dl {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.4rem 1rem;
+}
+
+.daily-event-admin-current dd {
+    margin: 0;
+}
+
+.daily-event-admin-buffer {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 1rem;
+}
+
+@media (max-width: 760px) {
+  .daily-event-calendar {
+    gap: 0.3rem;
+  }
+
+  .daily-event-calendar button {
+    padding: 0.2rem;
+    border-radius: 0;
+  }
+
+  .daily-event-stage {
+    min-height: 480px;
+    padding: 0.85rem;
+  }
+
+  .live-auction-player {
+    grid-template-columns: 1fr;
+  }
+
+  .live-auction-bid-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .daily-event-admin-current {
+    grid-template-columns: 1fr;
+  }
+
+  .daily-event-browser {
+    grid-template-columns: 34px minmax(0, 1fr) 34px;
+    gap: 0.4rem;
+  }
+
+  .daily-event-browser > button {
+    width: 34px;
+    height: 34px;
+  }
+
+  .daily-event-contest-browser {
+    grid-template-columns: 34px minmax(0, 1fr) 34px;
+    gap: 0.35rem;
+  }
+
+  .daily-event-contest-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .daily-event-contest-card-art {
+    height: 255px;
+  }
+
+  .daily-event-contest-card-art > .rendered-item-card {
+    scale: 0.62;
+  }
+}
+
+@media (max-width: 700px) {
   .loot-category-tabs {
     overflow-x: auto;
   }
@@ -7911,10 +8652,13 @@ a.welcome-button {
 
 .raffle-prize {
   position: relative;
+  display: grid;
   min-width: 0;
-  border: 1px solid rgb(239 206 114 / 24%);
   padding: 26px 16px 16px;
-  background: rgb(255 255 255 / 3%);
+}
+
+.raffle-prize > .rendered-item-card {
+  justify-self: center;
 }
 
 .raffle-potency {
@@ -7941,6 +8685,7 @@ a.welcome-button {
 .raffle-prize-entry > div {
   display: grid;
   gap: 3px;
+  text-align: center;
 }
 
 .raffle-prize-entry span {
@@ -7979,7 +8724,7 @@ a.welcome-button {
   width: 42px;
   height: 42px;
   place-items: center;
-  justify-self: end;
+  justify-self: center;
   border-radius: 50%;
   background: linear-gradient(145deg, #ffe58a, #c89318);
   color: #2a1a00;
@@ -8182,6 +8927,36 @@ a.welcome-button {
 
 .admin-item-creator-page {
   width: min(1180px, 94%);
+}
+
+.admin-artfunkel-inventory-page {
+  width: min(1440px, 94%);
+}
+
+.admin-artfunkel-inventory-page > p {
+  margin-top: 8px;
+  color: #aaa4af;
+}
+
+.admin-artfunkel-inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  align-items: start;
+  gap: 24px;
+  margin-top: 28px;
+}
+
+.admin-artfunkel-inventory-grid > .rendered-item-card {
+  width: 100%;
+  max-width: 360px;
+  margin-inline: auto;
+}
+
+.admin-artfunkel-inventory-empty {
+  padding: 24px;
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 4%);
 }
 
 .admin-item-creator-page > p {

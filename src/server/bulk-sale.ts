@@ -33,7 +33,7 @@ export type BulkSaleProtections = {
 export function isBulkLootCandidate(
   item: Pick<GameItem, "original" | "permanent">,
 ): boolean {
-  return !item.original && !item.permanent;
+  return !item.permanent;
 }
 
 export function parseBulkSaleProtections(
@@ -97,7 +97,6 @@ export async function getFilteredBulkLootCandidates(
     owner: playerId,
     status: { $in: statuses },
     permanent: { $ne: true },
-    original: { $ne: true },
   }).toArray();
   if (candidates.length === 0) {
     return {

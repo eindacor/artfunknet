@@ -65,7 +65,6 @@ export async function POST(
     owner: auth.session.playerId,
     status: { $in: ["claimed", "displayed"] },
     permanent: { $ne: true },
-    original: { $ne: true },
     repairing: { $ne: true },
   });
   if (!item) {
@@ -166,7 +165,6 @@ export async function POST(
         owner: auth.session.playerId,
         status: item.status,
         permanent: { $ne: true },
-        original: { $ne: true },
         repairing: { $ne: true },
       });
       if (removal.deletedCount !== 1) {

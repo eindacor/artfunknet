@@ -369,3 +369,35 @@ test("approved Hall of Fame items are transferred instead of deleted", async () 
     await mongoServer.stop();
   }
 });
+
+test("original items are transferred to Artfunkel Inc. instead of deleted", async () => {
+  const mongoServer = await MongoMemoryServer.create();
+  const client = new MongoClient(mongoServer.getUri());
+  try {
+    await client.connect();
+    const database = client.db("original-item-transfer-test");
+    const item = {
+      _id: "original-item",
+      artwork_id: "artwork-original",
+      owner: "player-original",
+      status: "claimed",
+      original: true,
+      transaction_history: [],
+    } as GameItem;
+    await database.collection<GameItem>("items").insertOne(item);
+
+    assert.equal(await transferIfHallOfFameItem(database, item), true);
+    const preserved = await database
+      .collection<GameItem>("items")
+      .findOne({ _id: item._id });
+    assert.equal(preserved?.owner, "artfunkel inc.");
+    assert.equal(preserved?.status, "claimed");
+    assert.equal(
+      preserved?.transaction_history.at(-1)?.source,
+      "original item preservation",
+    );
+  } finally {
+    await client.close();
+    await mongoServer.stop();
+  }
+});
