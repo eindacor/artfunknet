@@ -4653,6 +4653,122 @@
   gap: 1rem;
 }
 
+.forgery-archive-search {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.forgery-archive-search > span {
+  color: #777168;
+  font: 700 0.62rem Courier, "Courier New", monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.forgery-archive-search input {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #a9a297;
+  border-radius: var(--game-button-radius);
+  padding: 0.65rem 0.8rem;
+  background: #fffdf7;
+  color: #25231f;
+  font: 0.84rem Arial, Helvetica, sans-serif;
+}
+
+.forgery-archive-search input:focus {
+  border-color: #ad3f70;
+  outline: 2px solid rgb(173 63 112 / 18%);
+}
+
+.forgery-search-results {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.5rem;
+  max-height: 250px;
+  overflow-y: auto;
+  border: 1px solid #d0cabe;
+  padding: 0.55rem;
+  background: #f4f0e7;
+}
+
+.forgery-search-results > button {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+  border: 1px solid #d0cabe;
+  padding: 0.45rem;
+  background: #fffdf7;
+  color: #25231f;
+  cursor: pointer;
+  text-align: left;
+}
+
+.forgery-search-results > button:hover,
+.forgery-search-results > button:focus-visible,
+.forgery-search-results > button.selected {
+  border-color: #ad3f70;
+  background: #f8e6ee;
+}
+
+.forgery-search-results > button > span {
+  display: grid;
+  min-width: 0;
+  gap: 0.2rem;
+}
+
+.forgery-search-results strong,
+.forgery-search-results small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.forgery-search-results small {
+  color: #777168;
+}
+
+.forgery-search-results > p {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 1rem;
+  color: #777168;
+  text-align: center;
+}
+
+.forgery-dialog-null-state {
+  display: grid;
+  min-height: 330px;
+  place-items: center;
+  align-content: center;
+  gap: 0.65rem;
+  border: 1px dashed #b8b0a4;
+  padding: 2rem;
+  background:
+    linear-gradient(145deg, rgb(255 255 255 / 78%), rgb(255 237 246 / 34%)),
+    #f8f6f0;
+  color: #676158;
+  text-align: center;
+}
+
+.forgery-dialog-null-state .fa {
+  color: #ad3f70;
+  font-size: 2.2rem;
+}
+
+.forgery-dialog-null-state strong {
+  color: #25231f;
+  font: 500 1.3rem Georgia, "Times New Roman", serif;
+}
+
+.forgery-dialog-null-state p {
+  max-width: 420px;
+  margin: 0;
+  line-height: 1.5;
+}
+
 .forgery-dialog-controls {
   display: grid;
   gap: 1rem;

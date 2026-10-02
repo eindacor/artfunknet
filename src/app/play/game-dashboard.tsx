@@ -69,7 +69,16 @@ import {
   type CollectionStatus,
 } from "@/server/collection-inventory";
 import type { CrateOfferView } from "@/server/crate-gameplay";
-import { getArchivePropertyProgress } from "@/server/archive-gameplay";
+import {
+  ARCHIVE_FILTER_CATEGORIES,
+  filterAndSortArchiveEntries,
+  getDefaultArchiveBrowseFilters,
+  getArchivePropertyProgress,
+  type ArchiveBrowseFilters,
+  type ArchiveFilterCategory,
+  type ArchiveFilterMode,
+  type ArchiveSort,
+} from "@/server/archive-gameplay";
 import { planGallerySelection } from "@/server/gallery-selection";
 import {
   isBulkLootCandidate,
@@ -502,13 +511,9 @@ export default function GameDashboard({
   const suppressedLootClickRef = useRef<string | null>(null);
   const [lootBulkConfirmation, setLootBulkConfirmation] =
     useState<LootDestructiveBulkAction | null>(null);
-  const [archiveSearch, setArchiveSearch] = useState("");
-  const [archiveRarity, setArchiveRarity] = useState<
-    ArtworkRarity | "all"
-  >("all");
-  const [archiveCompletion, setArchiveCompletion] = useState<
-    "all" | "complete" | "incomplete"
-  >("all");
+  const [archiveFilters, setArchiveFilters] = useState<ArchiveBrowseFilters>(
+    getDefaultArchiveBrowseFilters,
+  );
 
   useEffect(() => {
     const timer = window.setTimeout(
@@ -561,8 +566,8 @@ export default function GameDashboard({
     useState<HydratedGameItem | null>(null);
   const [archiveEntryDetails, setArchiveEntryDetails] =
     useState<HydratedPlayerArtworkArchive | null>(null);
-  const [forgeryArchive, setForgeryArchive] =
-    useState<HydratedPlayerArtworkArchive | null>(null);
+  const [forgeryDialogInitialArchiveId, setForgeryDialogInitialArchiveId] =
+    useState<string | null | undefined>(undefined);
   const [vintageDialogOpen, setVintageDialogOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const {
@@ -896,29 +901,39 @@ export default function GameDashboard({
       }),
     [archiveArtStyleIds, archives, forgePricing.seasonalArtworkIds],
   );
-  const filteredArchiveEntries = useMemo(() => {
-    const search = archiveSearch.trim().toLocaleLowerCase();
-    return archiveEntries.filter(({ archive, complete }) => {
-      if (
-        search &&
-        !archive.artwork.title.toLocaleLowerCase().includes(search) &&
-        !archive.artwork.artist.toLocaleLowerCase().includes(search)
-      ) {
-        return false;
-      }
-      if (
-        archiveRarity !== "all" &&
-        archive.artwork.rarity !== archiveRarity
-      ) {
-        return false;
-      }
-      return (
-        archiveCompletion === "all" ||
-        (archiveCompletion === "complete" && complete) ||
-        (archiveCompletion === "incomplete" && !complete)
-      );
-    });
-  }, [archiveCompletion, archiveEntries, archiveRarity, archiveSearch]);
+  const archiveArtStyleOptions = useMemo(() => {
+    const styleIds = new Set(archives.flatMap((archive) => archive.artStyles));
+    const knownStyles = CARD_COSMETICS.filter((style) =>
+      styleIds.has(style.id),
+    ).map((style) => ({
+      id: style.id,
+      label: `#${style.number.toString().padStart(2, "0")} ${style.name}`,
+    }));
+    const knownIds = new Set<string>(knownStyles.map((style) => style.id));
+    const historicalStyles = [...styleIds]
+      .filter((styleId) => !knownIds.has(styleId))
+      .sort((left, right) => left.localeCompare(right))
+      .map((styleId) => ({ id: styleId, label: styleId }));
+    return [...knownStyles, ...historicalStyles];
+  }, [archives]);
+  const normalizedArchiveFilters = useMemo(
+    () => ({
+      ...archiveFilters,
+      artStyle:
+        archiveFilters.artStyle &&
+        !archiveArtStyleOptions.some(
+          (style) => style.id === archiveFilters.artStyle,
+        )
+          ? ""
+          : archiveFilters.artStyle,
+    }),
+    [archiveArtStyleOptions, archiveFilters],
+  );
+  const filteredArchiveEntries = useMemo(
+    () =>
+      filterAndSortArchiveEntries(archiveEntries, normalizedArchiveFilters),
+    [archiveEntries, normalizedArchiveFilters],
+  );
   const defaultCollectionItemId = sortedHomeInventory[0]?._id ?? null;
   const effectiveSelectedCollectionItemIds =
     selectedCollectionItemIds ??
@@ -4071,29 +4086,61 @@ export default function GameDashboard({
 
         {section === "archive" ? (
           <section className="archive">
+            <header className="archive-heading">
+              <button
+                className="archive-forgery-button"
+                onClick={() => setForgeryDialogInitialArchiveId(null)}
+                type="button"
+              >
+                <i aria-hidden="true" className="fa fa-user-secret" />
+                Create a forgery
+              </button>
+            </header>
             {archives.length === 0 ? (
               <p className="empty-state">Your archive is empty.</p>
             ) : (
               <>
                 <div className="archive-filters">
                   <label className="archive-search">
-                    <span>Search</span>
+                    <span>Search archive</span>
                     <input
-                      onChange={(event) => setArchiveSearch(event.target.value)}
+                      onChange={(event) =>
+                        setArchiveFilters((current) => ({
+                          ...current,
+                          search: event.target.value,
+                        }))
+                      }
                       placeholder="artist or artwork"
                       type="search"
-                      value={archiveSearch}
+                      value={normalizedArchiveFilters.search}
                     />
+                  </label>
+                  <label>
+                    <span>Sort</span>
+                    <select
+                      onChange={(event) =>
+                        setArchiveFilters((current) => ({
+                          ...current,
+                          sort: event.target.value as ArchiveSort,
+                        }))
+                      }
+                      value={normalizedArchiveFilters.sort}
+                    >
+                      <ArchiveSortOptions />
+                    </select>
                   </label>
                   <label>
                     <span>Rarity</span>
                     <select
                       onChange={(event) =>
-                        setArchiveRarity(
-                          event.target.value as ArtworkRarity | "all",
-                        )
+                        setArchiveFilters((current) => ({
+                          ...current,
+                          rarity: event.target.value as
+                            | ArtworkRarity
+                            | "all",
+                        }))
                       }
-                      value={archiveRarity}
+                      value={normalizedArchiveFilters.rarity}
                     >
                       <option value="all">all rarities</option>
                       {ARTWORK_RARITIES.map((rarity) => (
@@ -4107,20 +4154,81 @@ export default function GameDashboard({
                     <span>Progress</span>
                     <select
                       onChange={(event) =>
-                        setArchiveCompletion(
-                          event.target.value as
-                            | "all"
-                            | "complete"
-                            | "incomplete",
-                        )
+                        setArchiveFilters((current) => ({
+                          ...current,
+                          completion: event.target.value as
+                            ArchiveBrowseFilters["completion"],
+                        }))
                       }
-                      value={archiveCompletion}
+                      value={normalizedArchiveFilters.completion}
                     >
                       <option value="all">all entries</option>
                       <option value="incomplete">incomplete</option>
                       <option value="complete">complete</option>
                     </select>
                   </label>
+                  <label>
+                    <span>Unlocked art style</span>
+                    <select
+                      onChange={(event) =>
+                        setArchiveFilters((current) => ({
+                          ...current,
+                          artStyle: event.target.value,
+                        }))
+                      }
+                      value={normalizedArchiveFilters.artStyle}
+                    >
+                      <option value="">all art styles</option>
+                      {archiveArtStyleOptions.map((style) => (
+                        <option key={style.id} value={style.id}>
+                          {style.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <details className="archive-filter-details">
+                    <summary>
+                      Variant filters
+                      <span>
+                        {filteredArchiveEntries.length}/{archiveEntries.length}
+                      </span>
+                    </summary>
+                    <div className="archive-variant-filters">
+                      {ARCHIVE_FILTER_CATEGORIES.map((category) => (
+                        <label key={category}>
+                          <span>{ARCHIVE_FILTER_LABELS[category]}</span>
+                          <select
+                            onChange={(event) =>
+                              setArchiveFilters((current) => ({
+                                ...current,
+                                variants: {
+                                  ...current.variants,
+                                  [category]: event.target
+                                    .value as ArchiveFilterMode,
+                                },
+                              }))
+                            }
+                            value={
+                              normalizedArchiveFilters.variants[category]
+                            }
+                          >
+                            <option value="any">Any</option>
+                            <option value="only">Only</option>
+                            <option value="exclude">Exclude</option>
+                          </select>
+                        </label>
+                      ))}
+                      <button
+                        className="archive-clear-filters"
+                        onClick={() =>
+                          setArchiveFilters(getDefaultArchiveBrowseFilters())
+                        }
+                        type="button"
+                      >
+                        Clear filters
+                      </button>
+                    </div>
+                  </details>
                 </div>
                 {filteredArchiveEntries.length === 0 ? (
                   <p className="empty-state">No archive entries match.</p>
@@ -4546,7 +4654,7 @@ export default function GameDashboard({
             }
             onClose={() => setArchiveEntryDetails(null)}
             onForge={() => {
-              setForgeryArchive(archiveEntryDetails);
+              setForgeryDialogInitialArchiveId(archiveEntryDetails._id);
               setArchiveEntryDetails(null);
             }}
             seasonalEligible={forgePricing.seasonalArtworkIds.includes(
@@ -4554,14 +4662,16 @@ export default function GameDashboard({
             )}
           />
         ) : null}
-        {forgeryArchive ? (
+        {forgeryDialogInitialArchiveId !== undefined ? (
           <ForgeryDialog
-            archive={forgeryArchive}
+            archives={archives}
+            initialArchiveId={forgeryDialogInitialArchiveId}
+            inventoryFull={inventoryFull}
             pricing={forgePricing}
             legendaryAttributes={legendaryAttributes}
-            onClose={() => setForgeryArchive(null)}
+            onClose={() => setForgeryDialogInitialArchiveId(undefined)}
             onForged={(message) => {
-              setForgeryArchive(null);
+              setForgeryDialogInitialArchiveId(undefined);
               setNotice(message);
               router.refresh();
             }}
@@ -6541,6 +6651,38 @@ function InventorySortOptions() {
     </>
   );
 }
+
+function ArchiveSortOptions() {
+  return (
+    <>
+      <option value="newest">Archived: newest first</option>
+      <option value="oldest">Archived: oldest first</option>
+      <option value="value-high">Archived value: high to low</option>
+      <option value="value-low">Archived value: low to high</option>
+      <option value="progress-high">Progress: highest first</option>
+      <option value="progress-low">Progress: lowest first</option>
+      <option value="count-high">Works archived: high to low</option>
+      <option value="count-low">Works archived: low to high</option>
+      <option value="title">Title: A to Z</option>
+      <option value="title-desc">Title: Z to A</option>
+      <option value="artist">Artist: A to Z</option>
+      <option value="artist-desc">Artist: Z to A</option>
+      <option value="rarity">Rarity: highest first</option>
+      <option value="rarity-low">Rarity: lowest first</option>
+      <option value="artwork-newest">Artwork date: newest first</option>
+      <option value="artwork-oldest">Artwork date: oldest first</option>
+    </>
+  );
+}
+
+const ARCHIVE_FILTER_LABELS: Record<ArchiveFilterCategory, string> = {
+  mint: "Mint",
+  foil: "Foil",
+  unlocked: "Unlocked",
+  seasonal: "Seasonal",
+  vintage: "Vintage",
+  lottery: "Lottery",
+};
 
 const COLLECTION_FLAG_LABELS: Record<CollectionFlagKey, string> = {
   repairing: "Repairing",
