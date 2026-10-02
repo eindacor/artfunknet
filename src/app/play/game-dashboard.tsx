@@ -35,10 +35,8 @@ import {
 import ArchiveConfirmationDialog from "@/components/item-cards/archive-confirmation-dialog";
 import AuctionListingDialog from "@/components/item-cards/auction-listing-dialog";
 import ArtStyleDialog from "@/components/item-cards/art-style-dialog";
-import {
-  CARD_COSMETICS,
-  type CardStyleInventory,
-} from "@/components/item-cards/catalog";
+import { useCardCosmetics } from "@/components/item-cards/card-cosmetics-provider";
+import { type CardStyleInventory } from "@/components/item-cards/catalog";
 import ItemCard from "@/components/item-cards/item-card";
 import MintLossConfirmationDialog from "@/components/item-cards/mint-loss-confirmation-dialog";
 import ValuableItemConfirmationDialog from "@/components/item-cards/valuable-item-confirmation-dialog";
@@ -395,6 +393,7 @@ export default function GameDashboard({
   playthroughSnapshots?: PlaythroughSnapshot[];
   vintageConsiderationCount?: number;
 }) {
+  const cardCosmetics = useCardCosmetics();
   const router = useRouter();
   const hydrated = useSyncExternalStore(
     subscribeToHydration,
@@ -842,13 +841,14 @@ export default function GameDashboard({
     const styleIds = new Set(
       collectionItems.map((item) => item.card_renderer ?? "museum"),
     );
-    return CARD_COSMETICS.filter((style) => styleIds.has(style.id)).map(
+    return cardCosmetics.filter((style) => styleIds.has(style.id)).map(
       (style) => ({
         id: style.id,
-        label: style.id === "museum" ? "Default" : style.name,
+        label:
+          style.id === "museum" ? `${style.name} (default)` : style.name,
       }),
     );
-  }, [collectionItems]);
+  }, [cardCosmetics, collectionItems]);
   const collectionAttributeOptions = useMemo(
     () => getCollectionAttributeOptions(collectionItems),
     [collectionItems],
@@ -903,7 +903,7 @@ export default function GameDashboard({
   );
   const archiveArtStyleOptions = useMemo(() => {
     const styleIds = new Set(archives.flatMap((archive) => archive.artStyles));
-    const knownStyles = CARD_COSMETICS.filter((style) =>
+    const knownStyles = cardCosmetics.filter((style) =>
       styleIds.has(style.id),
     ).map((style) => ({
       id: style.id,
@@ -915,7 +915,7 @@ export default function GameDashboard({
       .sort((left, right) => left.localeCompare(right))
       .map((styleId) => ({ id: styleId, label: styleId }));
     return [...knownStyles, ...historicalStyles];
-  }, [archives]);
+  }, [archives, cardCosmetics]);
   const normalizedArchiveFilters = useMemo(
     () => ({
       ...archiveFilters,

@@ -16,6 +16,7 @@ import type {
 import type { LootData } from "@/server/gameplay";
 
 import { getCardCosmetic } from "./item-cards/catalog";
+import { useCardCosmetics } from "./item-cards/card-cosmetics-provider";
 import KnownForgeryWatermark from "./item-cards/known-forgery-watermark";
 import RenderCardPreview from "./item-cards/render-card-preview";
 import { CARD_RENDERERS } from "./item-cards/registry";
@@ -234,6 +235,7 @@ function ForgeryEditor({
   onForged: (message: string) => void;
   pricing: ForgeryPricing;
 }) {
+  const cardCosmetics = useCardCosmetics();
   const [modifiers, setModifiers] = useState<string[]>([]);
   const [artStyle, setArtStyle] = useState("museum");
   const [pending, setPending] = useState(false);
@@ -242,8 +244,10 @@ function ForgeryEditor({
     () => MODIFIERS.filter((modifier) => archive.modifiers.includes(modifier)),
     [archive.modifiers],
   );
-  const previewCosmetic =
-    getCardCosmetic(artStyle) ?? getCardCosmetic("museum")!;
+  const findCosmetic = (id: string) =>
+    cardCosmetics.find((cosmetic) => cosmetic.id === id) ??
+    getCardCosmetic(id);
+  const previewCosmetic = findCosmetic(artStyle) ?? findCosmetic("museum")!;
   const PreviewRenderer = CARD_RENDERERS[previewCosmetic.id];
   const previewItem = useMemo(
     () => createPreviewItem(archive, modifiers, previewCosmetic.id),
@@ -342,10 +346,12 @@ function ForgeryEditor({
               onChange={(event) => setArtStyle(event.target.value)}
               value={artStyle}
             >
-              <option value="museum">Museum Label (default)</option>
+              <option value="museum">
+                {findCosmetic("museum")?.name ?? "Default"} (default)
+              </option>
               {archive.artStyles.map((style) => (
                 <option key={style} value={style}>
-                  {getCardCosmetic(style)?.name ?? style}
+                  {findCosmetic(style)?.name ?? style}
                 </option>
               ))}
             </select>

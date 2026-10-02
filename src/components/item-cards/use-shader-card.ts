@@ -8,6 +8,7 @@ import {
   loadImageTexture,
   QUAD_VERTEX_SHADER,
 } from "./shader-utils";
+import { loadShaderSource } from "./shader-source";
 
 /**
  * Extra uniforms you can pass through `shaderUniforms` on ShaderCard.
@@ -32,6 +33,8 @@ export type UseShaderCardOptions = {
   imageUrl: string;
   /** Rarity colour vec3 for u_itemRarity. */
   itemRarity: [number, number, number];
+  /** A value indicating which specific rarity the item is */
+  itemRarityIndex: number;
   /** Item condition [0–1] for u_condition. */
   condition: number;
   /** Promotion level for u_level. */
@@ -40,6 +43,10 @@ export type UseShaderCardOptions = {
   foil: number;
   /** 1 if mint, 0 otherwise. */
   mint: number;
+  /** 1 if seasonal, 0 otherwise. */
+  seasonal: number;
+  /** value scale of the artwork from 0-1 */
+  valueScale: number;
   /** Optional additional uniforms forwarded verbatim to the shader. */
   extraUniforms?: ShaderUniforms;
 };
@@ -55,7 +62,10 @@ export function useShaderCard(options: UseShaderCardOptions) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   // Keep a stable ref to options so the effect doesn't re-run on every render.
   const optsRef = useRef(options);
-  optsRef.current = options;
+
+  useEffect(() => {
+    optsRef.current = options;
+  }, [options]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -89,9 +99,7 @@ export function useShaderCard(options: UseShaderCardOptions) {
 
       let fragSource: string;
       try {
-        const res = await fetch(opts.shaderUrl);
-        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-        fragSource = await res.text();
+        fragSource = await loadShaderSource(opts.shaderUrl);
       } catch (err) {
         console.error("[ShaderCard] failed to load shader:", err);
         return;
@@ -167,10 +175,13 @@ export function useShaderCard(options: UseShaderCardOptions) {
           (performance.now() - startTime) / 1000,
         );
         setUniform(glCtx, program, "u_itemRarity", opts.itemRarity);
+        setIntUniform(glCtx, program, "u_itemRarityIndex", opts.itemRarityIndex);
         setUniform(glCtx, program, "u_condition", opts.condition);
         setUniform(glCtx, program, "u_level", opts.level);
         setUniform(glCtx, program, "u_foil", opts.foil);
+        setUniform(glCtx, program, "u_seasonal", opts.seasonal);
         setUniform(glCtx, program, "u_mint", opts.mint);
+        setUniform(glCtx, program, "u_valueScale", opts.valueScale);
         setUniform(glCtx, program, "u_aspectRatio", imageAspectRatio);
 
         // Image texture
@@ -230,4 +241,15 @@ function setUniform(
   } else {
     gl.uniform4fv(loc, value);
   }
+}
+
+function setIntUniform(
+  gl: WebGLRenderingContext,
+  program: WebGLProgram,
+  name: string,
+  value: number,
+) {
+  const loc = gl.getUniformLocation(program, name);
+  if (loc === null) return;
+  gl.uniform1i(loc, Math.trunc(value));
 }

@@ -3,10 +3,10 @@
 import { FormEvent, type ReactNode, useState } from "react";
 
 import {
-  CARD_COSMETICS,
   DROPPABLE_CARD_RENDERER_IDS,
   type DroppableCardRendererId,
 } from "@/components/item-cards/catalog";
+import { useCardCosmetics } from "@/components/item-cards/card-cosmetics-provider";
 import type {
   GameplayConfig,
   GameplayConfigName,
@@ -20,15 +20,15 @@ const RARITIES = [
   "legendary",
   "masterpiece",
 ] as const;
-const CARD_STYLE_NAMES = new Map(
-  CARD_COSMETICS.map((cosmetic) => [cosmetic.id, cosmetic.name]),
-);
-
 export default function GameplaySettingsForm({
   initialSettings,
 }: {
   initialSettings: GameplaySettings;
 }) {
+  const cardCosmetics = useCardCosmetics();
+  const cardStyleNames = new Map(
+    cardCosmetics.map((cosmetic) => [cosmetic.id, cosmetic.name]),
+  );
   const [settings, setSettings] = useState(initialSettings);
   const [selectedConfig, setSelectedConfig] =
     useState<GameplayConfigName>("actual");
@@ -734,7 +734,7 @@ export default function GameplaySettingsForm({
           <div className="admin-rarity-preview">
             {DROPPABLE_CARD_RENDERER_IDS.map((rendererId) => (
               <span key={rendererId}>
-                <strong>{CARD_STYLE_NAMES.get(rendererId) ?? rendererId}</strong>{" "}
+                <strong>{cardStyleNames.get(rendererId) ?? rendererId}</strong>{" "}
                 {formatPercentage(
                   cardStyleResult.weights[rendererId] /
                     cardStyleResult.total,

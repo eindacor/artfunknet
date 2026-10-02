@@ -56,7 +56,7 @@ test("least represented assignment randomizes only among tied effects", () => {
   );
 });
 
-test("masterpiece generation uses one special, three/four unlocked, and one locked", () => {
+test("masterpiece generation always produces five total attributes", () => {
   const attributes = Array.from({ length: 10 }, (_, index) => ({
     _id: `attribute-${index}`,
     title: `Attribute ${index}`,
@@ -78,8 +78,18 @@ test("masterpiece generation uses one special, three/four unlocked, and one lock
   assert.equal(normal.special.length, 1);
   assert.equal(normal.unlocked.length, 3);
   assert.equal(normal.locked.length, 1);
+  assert.equal(
+    normal.special.length + normal.unlocked.length + normal.locked.length,
+    5,
+  );
   const unlocked = getItemAttributes(artwork, true, attributes, effect);
   assert.equal(unlocked.special.length, 1);
   assert.equal(unlocked.unlocked.length, 4);
-  assert.equal(unlocked.locked.length, 1);
+  assert.equal(unlocked.locked.length, 0);
+  assert.equal(
+    unlocked.special.length +
+      unlocked.unlocked.length +
+      unlocked.locked.length,
+    5,
+  );
 });

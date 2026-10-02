@@ -306,6 +306,15 @@ The basic gameplay loop is active:
   Attribute and condition ratings expose separate light-card and dark-card
   palettes, allowing dark renderers to use a visible red-to-white scale instead
   of the OG design&apos;s original red-to-black scale.
+- WebGL card shaders use GLSL ES files under `public/shaders`. Shared functions
+  live in `public/shaders/includes` as `.glsl` files and can be inserted before
+  WebGL compilation with `{{{include_name}}}`. For example,
+  `{{{checkerboard}}}` imports
+  `public/shaders/includes/checkerboard.glsl`. Nested paths such as
+  `{{{patterns/noise}}}` are supported, nested imports are expanded
+  recursively, and each include is inserted only once. Missing files, invalid
+  names, and circular imports stop shader initialization with a descriptive
+  console error.
 - Legendary and masterpiece effects share the typed `artwork_effects`
   collection. Each artwork references one effect through `effect_id`;
   legendary effects link two distinct attributes and masterpiece effects link

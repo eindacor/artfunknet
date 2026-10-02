@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import ItemCard from "@/components/item-cards/item-card";
-import { CARD_COSMETICS } from "@/components/item-cards/catalog";
+import { useCardCosmetics } from "@/components/item-cards/card-cosmetics-provider";
 import type { Artwork, ArtworkRarity } from "@/server/gameplay";
 import type { HydratedGameItem } from "@/server/item-artwork";
 
@@ -231,6 +231,7 @@ function PrizeEditor({
   index: number;
   prize: { item: HydratedGameItem; potency: number };
 }) {
+  const cardCosmetics = useCardCosmetics();
   const router = useRouter();
   const [item, setItem] = useState(prize.item);
   const [artworkId, setArtworkId] = useState(prize.item.artwork_id);
@@ -347,7 +348,7 @@ function PrizeEditor({
             onChange={(event) => setCardRenderer(event.target.value)}
             value={cardRenderer}
           >
-            {CARD_COSMETICS.filter(
+            {cardCosmetics.filter(
               (cosmetic) => cosmetic.id !== "museum",
             ).map((cosmetic) => (
               <option key={cosmetic.id} value={cosmetic.id}>

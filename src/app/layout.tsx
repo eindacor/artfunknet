@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Orbitron } from "next/font/google";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import "@fortawesome/fontawesome-free/css/v4-shims.min.css";
+import { CardCosmeticsProvider } from "@/components/item-cards/card-cosmetics-provider";
 import "./globals.css";
 import "./item-cards.css";
 
@@ -42,7 +43,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${orbitron.variable}`}
       >
-        {children}
+        <CardCosmeticsProvider>{children}</CardCosmeticsProvider>
       </body>
     </html>
   );

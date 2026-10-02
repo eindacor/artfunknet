@@ -11,7 +11,8 @@ import {
   type ArchiveCategory,
 } from "@/server/archive-gameplay";
 import { FloatingPopover } from "@/components/floating-popover";
-import { CARD_COSMETICS, getCardCosmetic } from "./catalog";
+import { useCardCosmetics } from "./card-cosmetics-provider";
+import { getCardCosmetic } from "./catalog";
 import type {
   CardLegendaryAttribute,
   ItemCardRendererProps,
@@ -172,6 +173,7 @@ export function ItemPropertyBadges({
 export function ItemVariantBadges({
   item,
 }: Pick<ItemCardRendererProps, "item">) {
+  const cardCosmetics = useCardCosmetics();
   const archivedCategories = new Set(item.archivedCategories ?? []);
   const archivedArtStyles = new Set(item.archivedArtStyles ?? []);
   const currentCategories = getArchiveCategories(item);
@@ -194,7 +196,7 @@ export function ItemVariantBadges({
         </span>
       ))}
       {artStyles.map((style) => {
-        const cosmetic = getCardCosmetic(style);
+        const cosmetic = getCardCosmeticFrom(cardCosmetics, style);
         return (
           <span
             aria-label={`${cosmetic?.name ?? style}${
@@ -248,19 +250,22 @@ export function ArchivedArtStyleBadges({
   availableStyles?: readonly string[];
   styles: readonly string[];
 }) {
+  const cardCosmetics = useCardCosmetics();
   const archived = new Set(styles);
   const displayedStyles = availableStyles ?? styles;
   const orderedStyles = [
-    ...CARD_COSMETICS.flatMap((cosmetic) =>
+    ...cardCosmetics.flatMap((cosmetic) =>
       displayedStyles.includes(cosmetic.id) ? [cosmetic.id] : [],
     ),
-    ...displayedStyles.filter((style) => !getCardCosmetic(style)),
+    ...displayedStyles.filter(
+      (style) => !getCardCosmeticFrom(cardCosmetics, style),
+    ),
   ];
 
   return (
     <span className="item-property-badges archived-art-style-badges">
       {orderedStyles.map((style) => {
-        const cosmetic = getCardCosmetic(style);
+        const cosmetic = getCardCosmeticFrom(cardCosmetics, style);
         return (
           <span
             aria-label={`${cosmetic?.name ?? style}, ${
@@ -281,6 +286,13 @@ export function ArchivedArtStyleBadges({
       })}
     </span>
   );
+}
+
+function getCardCosmeticFrom(
+  cosmetics: ReturnType<typeof useCardCosmetics>,
+  id: string,
+) {
+  return cosmetics.find((cosmetic) => cosmetic.id === id) ?? getCardCosmetic(id);
 }
 
 export function AttributeIcons({
@@ -492,7 +504,7 @@ export function CompactStats({
         className="rating-value"
         style={ratingStyle(item.condition)}
       >
-        {item.mint && mintDisplay === "leaf" ? (
+        {item.mint ? (
           <i aria-hidden="true" className="fa fa-leaf" />
         ) : item.mint ? (
           "MINT"

@@ -1,9 +1,12 @@
+"use client";
+
 import ItemCard from "@/components/item-cards/item-card";
 import {
   type CardStyleInventory,
   getActiveCardCosmetics,
   getCardStyleInventory,
 } from "@/components/item-cards/catalog";
+import { useCardCosmetics } from "@/components/item-cards/card-cosmetics-provider";
 import type { CardLegendaryAttribute } from "@/components/item-cards/types";
 import type { HydratedGameItem } from "@/server/item-artwork";
 
@@ -20,6 +23,7 @@ export default function CosmeticStore({
   legendaryAttributes: CardLegendaryAttribute[];
   viewerId: string;
 }) {
+  const cardCosmetics = useCardCosmetics();
   const styleInventory = getCardStyleInventory(initialStyleInventory);
 
   return (
@@ -35,8 +39,13 @@ export default function CosmeticStore({
         </div>
       </header>
       <div className="cosmetic-store-grid">
-        {getActiveCardCosmetics(activeRendererIds).map(
-          (cosmetic) => {
+        {getActiveCardCosmetics(activeRendererIds)
+          .map(
+            (cosmetic) =>
+              cardCosmetics.find((candidate) => candidate.id === cosmetic.id) ??
+              cosmetic,
+          )
+          .map((cosmetic) => {
             const quantity = styleInventory[cosmetic.id] ?? 0;
             return (
               <article className="cosmetic-store-product" key={cosmetic.id}>
@@ -80,8 +89,7 @@ export default function CosmeticStore({
               </footer>
               </article>
             );
-          },
-        )}
+          })}
       </div>
     </main>
   );

@@ -40,6 +40,7 @@ export default function CardDesignPreview({
   name,
   number,
   rendererId,
+  unlockedItems,
 }: {
   description?: string;
   initialActive: boolean;
@@ -50,6 +51,7 @@ export default function CardDesignPreview({
   name: string;
   number?: number;
   rendererId: CardRendererId;
+  unlockedItems: HydratedGameItem[];
 }) {
   const [states, setStates] = useState<Record<PreviewState, boolean>>({
     mint: false,
@@ -60,6 +62,7 @@ export default function CardDesignPreview({
     vintage: false,
     knownForgery: false,
   });
+  const [displayName, setDisplayName] = useState(name);
   const [rarity, setRarity] = useState<ArtworkRarity>(item.artwork.rarity);
   const [lotteryLevel, setLotteryLevel] = useState(0);
   const [selectionIndex, setSelectionIndex] = useState(0);
@@ -68,22 +71,18 @@ export default function CardDesignPreview({
   );
   const selectedItem =
     rarityItems[selectionIndex % Math.max(rarityItems.length, 1)] ?? item;
+  const selectedUnlockedItem =
+    unlockedItems.find(
+      (candidate) => candidate.artwork_id === selectedItem.artwork_id,
+    ) ?? selectedItem;
   const previewItem = useMemo(() => {
     const nextItem = {
       ...selectedItem,
       ...states,
       lottery: lotteryLevel,
-      attributes:
-        states.unlocked && selectedItem.artwork.rarity !== "common"
-          ? {
-              locked: [],
-              unlocked: [
-                ...selectedItem.attributes.unlocked,
-                ...selectedItem.attributes.locked,
-              ],
-              special: selectedItem.attributes.special,
-            }
-          : selectedItem.attributes,
+      attributes: states.unlocked
+        ? selectedUnlockedItem.attributes
+        : selectedItem.attributes,
       condition: states.mint ? 1 : selectedItem.condition,
       mint_value_multiplier: states.mint ? 2 : 1,
       authenticity: {
@@ -97,7 +96,7 @@ export default function CardDesignPreview({
       ...nextItem,
       values: calculateItemValues(nextItem, nextItem.artwork, lootData),
     };
-  }, [lootData, lotteryLevel, selectedItem, states]);
+  }, [lootData, lotteryLevel, selectedItem, selectedUnlockedItem, states]);
 
   function toggle(state: PreviewState) {
     setStates((current) => ({ ...current, [state]: !current[state] }));
@@ -120,10 +119,12 @@ export default function CardDesignPreview({
         <span>
           Style #{(number ?? 0).toString().padStart(2, "0")} · {rendererId}
         </span>
-        <h3>{name}</h3>
+        <h3>{displayName}</h3>
         <p>{description}</p>
         <CardRendererActivation
           initialActive={initialActive}
+          initialName={name}
+          onNameUpdated={setDisplayName}
           rendererId={rendererId}
         />
         <div className="card-design-artwork-controls">

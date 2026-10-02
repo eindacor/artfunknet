@@ -12,11 +12,23 @@ export const RARITY_COLOR: Record<ArtworkRarity, [number, number, number]> = {
   masterpiece: [0., 0.9, 0.9],
 };
 
+export const RARITY_INDEX: Record<ArtworkRarity, number> = {
+  common:      0,
+  uncommon:    1,
+  rare:        2,
+  legendary:   3,
+  masterpiece: 4,
+};
+
 /**
  * Returns the vec3 colour for a rarity, falling back to common grey.
  */
 export function rarityToVec3(rarity: string): [number, number, number] {
   return RARITY_COLOR[rarity as ArtworkRarity] ?? RARITY_COLOR.common;
+}
+
+export function rarityToIndex(rarity: string): number {
+  return RARITY_INDEX[rarity as ArtworkRarity] ?? RARITY_INDEX.common;
 }
 
 /**

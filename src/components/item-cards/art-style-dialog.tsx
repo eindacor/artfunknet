@@ -13,6 +13,7 @@ import {
   getCardCosmetic,
   getCardStyleInventory,
 } from "./catalog";
+import { useCardCosmetics } from "./card-cosmetics-provider";
 import ArtStyleRemovalDialog from "./art-style-removal-dialog";
 import KnownForgeryWatermark from "./known-forgery-watermark";
 import RenderCardPreview from "./render-card-preview";
@@ -41,6 +42,7 @@ export default function ArtStyleDialog({
   researchTarget?: boolean;
   styleInventory?: CardStyleInventory;
 }) {
+  const cardCosmetics = useCardCosmetics();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const [selectedRendererId, setSelectedRendererId] =
@@ -58,12 +60,20 @@ export default function ArtStyleDialog({
   const [pendingRendererId, setPendingRendererId] =
     useState<CardRendererId | null>(null);
   const [removalPending, setRemovalPending] = useState(false);
-  const appliedCosmetic = getCardCosmetic(selectedRendererId);
-  const availableChoices = getAvailableCardStyleConsumables(availableStyles);
+  const findCosmetic = (id: string) =>
+    cardCosmetics.find((cosmetic) => cosmetic.id === id) ??
+    getCardCosmetic(id);
+  const appliedCosmetic = findCosmetic(selectedRendererId);
+  const availableChoices = getAvailableCardStyleConsumables(
+    availableStyles,
+  ).map((cosmetic) => ({
+    ...(findCosmetic(cosmetic.id) ?? cosmetic),
+    quantity: cosmetic.quantity,
+  }));
   const selectedCosmetic =
     selectedRendererId === "museum"
       ? undefined
-      : getCardCosmetic(selectedRendererId);
+      : findCosmetic(selectedRendererId);
   const choices: Array<CardCosmetic & { quantity: number }> =
     selectedCosmetic?.id !== "museum" &&
     selectedCosmetic &&
@@ -71,7 +81,7 @@ export default function ArtStyleDialog({
       ? [...availableChoices, { ...selectedCosmetic, quantity: 0 }]
       : availableChoices;
   const previewCosmetic =
-    getCardCosmetic(previewRendererId) ?? getCardCosmetic("museum")!;
+    findCosmetic(previewRendererId) ?? findCosmetic("museum")!;
   const PreviewRenderer = CARD_RENDERERS[previewCosmetic.id];
 
   useEffect(() => {
@@ -212,9 +222,9 @@ export default function ArtStyleDialog({
               <dd>
                 {appliedCosmetic
                   ? appliedCosmetic.id === "museum"
-                    ? "Museum Label (default)"
+                    ? `${appliedCosmetic.name} (default)`
                     : `#${appliedCosmetic.number.toString().padStart(2, "0")} ${appliedCosmetic.name}`
-                  : "Museum Label (default)"}
+                  : `${findCosmetic("museum")?.name ?? "Default"} (default)`}
               </dd>
             </div>
             <div>
@@ -354,7 +364,7 @@ export default function ArtStyleDialog({
       </dialog>
       {pendingRendererId ? (
         <MintLossConfirmationDialog
-          actionLabel={`Applying the ${getCardCosmetic(pendingRendererId)?.name ?? "selected"} art style`}
+          actionLabel={`Applying the ${findCosmetic(pendingRendererId)?.name ?? "selected"} art style`}
           onCancel={() => setPendingRendererId(null)}
           onConfirm={() => {
             const rendererId = pendingRendererId;

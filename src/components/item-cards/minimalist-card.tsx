@@ -5,7 +5,7 @@ import {
 } from "./shared";
 import type { ItemCardRendererProps } from "./types";
 import { useShaderCard } from "./use-shader-card";
-import { rarityToVec3 } from "./shader-utils";
+import { rarityToVec3, rarityToIndex } from "./shader-utils";
 import type { CSSProperties } from "react";
 import type { ShaderUniforms } from "./use-shader-card";
 
@@ -23,10 +23,13 @@ export function ShaderBackground({
     shaderUrl,
     imageUrl,
     itemRarity: rarityToVec3(item.artwork.rarity),
+    itemRarityIndex: rarityToIndex(item.artwork.rarity),
     condition: item.condition,
     level: item.level,
     foil: item.foil ? 1 : 0,
     mint: item.mint ? 1 : 0,
+    seasonal: item.seasonal ? 1 : 0,
+    valueScale: item.artwork.value_scale,
     extraUniforms,
   });
 

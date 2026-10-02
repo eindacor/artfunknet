@@ -4,6 +4,7 @@ import type { Db } from "mongodb";
 
 import type { ArtworkEffect } from "./artwork-effects-core.ts";
 import { getCardRendererSettings } from "./card-renderer-settings.ts";
+import { getItemAttributeCounts } from "./item-attribute-counts.ts";
 import { getRerollCost } from "./item-reroll.ts";
 
 export const ARTWORK_RARITIES = [
@@ -830,16 +831,8 @@ export function getItemAttributes(
     }
   }
 
-  const masterpiece = artwork.rarity === "masterpiece";
-  const lockedCount =
-    masterpiece ? 1 : artwork.rarity === "common" || itemIsUnlocked ? 0 : 1;
-  const unlockedCount = masterpiece
-    ? itemIsUnlocked
-      ? 4
-      : 3
-    : artwork.rarity === "common" || !itemIsUnlocked
-      ? 1
-      : 2;
+  const { locked: lockedCount, unlocked: unlockedCount } =
+    getItemAttributeCounts(artwork.rarity, itemIsUnlocked);
   for (let index = 0; index < lockedCount; index += 1) {
     result.locked.push({
       ...takeRandom(remaining),

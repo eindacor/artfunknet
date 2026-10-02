@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
 import {
-  getCardCosmetic,
   getCardStyleInventory,
 } from "@/components/item-cards/catalog";
 import {
@@ -29,6 +28,7 @@ import { ensurePlayerKarma } from "@/server/karma";
 import { getDisplayedArtworkEffect } from "@/server/artwork-effects";
 import { addItemToArchiveRecord } from "@/server/archive-storage";
 import { MASTERPIECE_EFFECT_CODES } from "@/server/masterpiece-effects";
+import { getCardRendererCatalog } from "@/server/card-renderer-settings";
 
 type Player = {
   _id: string;
@@ -174,7 +174,10 @@ export async function POST(
     );
   }
 
-  const style = getCardCosmetic(donatedItem.card_renderer ?? "");
+  const rendererCatalog = await getCardRendererCatalog(database);
+  const style = rendererCatalog.find(
+    (cosmetic) => cosmetic.id === donatedItem.card_renderer,
+  );
   const recoveredStyle =
     style && style.id !== "museum" && !donatedItem.authenticity?.forgery
       ? style

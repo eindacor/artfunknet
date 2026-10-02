@@ -3,7 +3,6 @@ import AbstractCard from "./abstract-card";
 import BaseballCard from "./baseball-card";
 import BauhausCard from "./bauhaus-card";
 import BlueprintCard from "./blueprint-card";
-import { CARD_COSMETICS } from "./catalog";
 import CelestialCard from "./celestial-card";
 import CircleCard from "./circle-card";
 import GildedCard from "./gilded-card";
@@ -51,5 +50,3 @@ export const CARD_RENDERERS: Record<
   album: AlbumCard,
   shader: ShaderCard,
 };
-
-export const CARD_RENDERER_OPTIONS = CARD_COSMETICS;

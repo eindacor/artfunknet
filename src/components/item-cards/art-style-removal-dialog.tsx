@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from "react";
 
+import { useCardCosmetics } from "./card-cosmetics-provider";
+
 export default function ArtStyleRemovalDialog({
   breaksMint,
   onCancel,
@@ -11,6 +13,10 @@ export default function ArtStyleRemovalDialog({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const cardCosmetics = useCardCosmetics();
+  const defaultStyleName =
+    cardCosmetics.find((cosmetic) => cosmetic.id === "museum")?.name ??
+    "default art style";
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -41,7 +47,8 @@ export default function ArtStyleRemovalDialog({
         <h2 id="art-style-removal-title">Remove this art style?</h2>
         <p id="art-style-removal-description">
           The applied style will be discarded and will not return to your
-          inventory. The item will use the default Museum Label presentation.
+          inventory. The item will use the default {defaultStyleName}{" "}
+          presentation.
           {breaksMint
             ? " This will also permanently remove the item's Mint status."
             : ""}

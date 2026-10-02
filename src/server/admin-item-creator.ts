@@ -8,6 +8,7 @@ import {
   type LootData,
 } from "./gameplay.ts";
 import type { ArtworkEffect } from "./artwork-effects-core.ts";
+import { getItemAttributeCounts } from "./item-attribute-counts.ts";
 import { getRerollCost } from "./item-reroll.ts";
 
 export type AdminItemAttributeInput = {
@@ -181,20 +182,10 @@ function validateDropAttributeStructure(
     );
   }
 
-  const masterpiece = artwork.rarity === "masterpiece";
-  const expectedLockedCount =
-    masterpiece
-      ? 1
-      : artwork.rarity === "common" || unlocked
-        ? 0
-        : 1;
-  const expectedUnlockedCount = masterpiece
-    ? unlocked
-      ? 4
-      : 3
-    : artwork.rarity === "common" || !unlocked
-      ? 1
-      : 2;
+  const {
+    locked: expectedLockedCount,
+    unlocked: expectedUnlockedCount,
+  } = getItemAttributeCounts(artwork.rarity, unlocked);
   if (
     attributes.locked.length !== expectedLockedCount ||
     attributes.unlocked.length !== expectedUnlockedCount

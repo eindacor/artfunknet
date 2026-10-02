@@ -6,11 +6,13 @@ import { getDatabase } from "@/server/mongodb";
 
 type UpdateRequest = {
   active?: unknown;
+  name?: unknown;
 };
 
 type CardRendererSettingsDocument = {
   _id: string;
   inactive_renderer_ids?: string[];
+  renderer_names?: Record<string, string>;
   created_at?: Date;
   updated_at?: Date;
   updated_by?: string;
@@ -26,9 +28,11 @@ export async function PATCH(
   const { id } = await params;
   const body = (await request.json()) as UpdateRequest;
   const hasActive = typeof body.active === "boolean";
+  const name = typeof body.name === "string" ? body.name.trim() : null;
   if (
     !isCardRendererId(id) ||
-    !hasActive
+    (!hasActive && name === null) ||
+    (name !== null && (name.length === 0 || name.length > 80))
   ) {
     return NextResponse.json(
       { error: "Card renderer settings are invalid." },
@@ -57,8 +61,23 @@ export async function PATCH(
       { upsert: true },
     );
   }
+  if (name !== null) {
+    await collection.updateOne(
+      { _id: "card-renderer-settings" },
+      {
+        $set: {
+          [`renderer_names.${id}`]: name,
+          updated_at: now,
+          updated_by: auth.session.email,
+        },
+        $setOnInsert: { created_at: now },
+      },
+      { upsert: true },
+    );
+  }
   return NextResponse.json({
     status: "ok",
-    active: body.active,
+    ...(hasActive ? { active: body.active } : {}),
+    ...(name !== null ? { name } : {}),
   });
 }

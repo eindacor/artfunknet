@@ -1446,10 +1446,15 @@
   }
 }
 
-/* Prismatic: animated foil, aura, sparkle layers. */
+/* Prismatic: shader-backed showcase with an animated foil border. */
 .prismatic-card {
-  border: 2px solid transparent;
-  border-radius: 18px;
+  --prismatic-card-border-width: 2px;
+  --prismatic-card-radius: 18px;
+  --prismatic-border-duration: 4s;
+  --prismatic-seasonal-spectrum-duration: 30s;
+
+  border: var(--prismatic-card-border-width) solid transparent;
+  border-radius: var(--prismatic-card-radius);
   background:
     linear-gradient(#17111e, #0d0912) padding-box,
     conic-gradient(
@@ -1466,37 +1471,26 @@
     0 0 18px var(--rarity-glow),
     0 12px 26px rgb(0 0 0 / 50%);
   font-family: var(--font-geist-sans), sans-serif;
-  animation: prismatic-border 4s linear infinite;
+  animation: prismatic-border var(--prismatic-border-duration) linear infinite;
 }
 
-.prismatic-card-aura {
-  position: absolute;
-  inset: -45%;
-  background: conic-gradient(
-    transparent,
-    var(--rarity-glow),
-    transparent,
-    var(--rarity-glow),
-    transparent
-  );
-  animation: prismatic-spin 7s linear infinite;
-}
-
-.prismatic-card-sparkles {
-  position: absolute;
-  z-index: 4;
+.prismatic-card-shader {
+  z-index: 0;
   inset: 0;
+  overflow: hidden;
+  border-radius: calc(
+    var(--prismatic-card-radius) - var(--prismatic-card-border-width)
+  );
+  clip-path: inset(
+    0 round
+      calc(var(--prismatic-card-radius) - var(--prismatic-card-border-width))
+  );
+  contain: paint;
   pointer-events: none;
-  background-image:
-    radial-gradient(circle, #fff 0 1px, transparent 2px),
-    radial-gradient(circle, #8fffff 0 1px, transparent 2px);
-  background-position:
-    14px 24px,
-    86px 62px;
-  background-size:
-    73px 89px,
-    117px 101px;
-  animation: prismatic-sparkle 1.8s ease-in-out infinite alternate;
+}
+
+.prismatic-card-shader > canvas {
+  border-radius: inherit;
 }
 
 .prismatic-card > header {
@@ -1515,7 +1509,7 @@
 .prismatic-card-image-frame {
   position: relative;
   z-index: 3;
-  height: 205px;
+  height: 240px;
   margin: 0 0.65rem;
   overflow: hidden;
   border-radius: 12px;
@@ -1526,19 +1520,6 @@
   background-position: center;
   background-size: cover;
   filter: saturate(1.25) contrast(1.08);
-}
-
-.prismatic-card-shine {
-  position: absolute;
-  inset: -60%;
-  background: linear-gradient(
-    115deg,
-    transparent 35%,
-    rgb(255 255 255 / 50%) 48%,
-    rgb(91 255 246 / 24%) 52%,
-    transparent 65%
-  );
-  animation: prismatic-shine 2.6s ease-in-out infinite;
 }
 
 .prismatic-card > section {
@@ -1576,13 +1557,16 @@
 }
 
 .rendered-item-card[data-rarity="legendary"] .prismatic-card {
-  animation-duration: 2.4s;
+  --prismatic-border-duration: 2.4s;
 }
 
-.rendered-item-card[data-rarity="masterpiece"] .prismatic-card {
+.rendered-item-card[data-seasonal="true"] .prismatic-card {
   animation:
-    prismatic-border 1.5s linear infinite,
-    masterpiece-spectrum 2.8s linear infinite;
+    prismatic-border var(--prismatic-border-duration) linear infinite,
+    prismatic-seasonal-spectrum
+      var(--prismatic-seasonal-spectrum-duration)
+      linear
+      infinite;
 }
 
 /* Blueprint: measured drafting sheet with a rarity inspection stripe. */
@@ -3684,6 +3668,46 @@
   color: #ff8585;
 }
 
+.card-renderer-activation .card-renderer-name {
+  display: grid;
+  gap: 0.2rem;
+  width: min(100%, 24rem);
+  color: var(--muted);
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.card-renderer-name span {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.card-renderer-name input {
+  min-width: 0;
+  min-height: 30px;
+  flex: 1;
+  border: 1px solid rgb(255 255 255 / 24%);
+  padding: 0.25rem 0.45rem;
+  background: #17161a;
+  color: #fff;
+  font: 700 0.72rem Courier, "Courier New", monospace;
+}
+
+.card-renderer-name button {
+  min-height: 30px;
+  border: 1px solid rgb(255 255 255 / 32%);
+  padding: 0.25rem 0.55rem;
+  background: #27242d;
+  color: #fff;
+  cursor: pointer;
+}
+
+.card-renderer-name button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
 .card-renderer-price {
   display: flex;
   flex-wrap: wrap;
@@ -5306,93 +5330,71 @@
   }
 }
 
-@keyframes prismatic-spin {
+@keyframes rarity-power-pulse {
+  from {
+    box-shadow:
+      0 0 0 3px #071018,
+      0 0 12px var(--rarity-glow);
+  }
+
   to {
-    transform: rotate(360deg);
+    box-shadow:
+      0 0 0 3px #071018,
+      0 0 32px var(--rarity-color);
   }
 }
 
-@keyframes prismatic-sparkle {
+@keyframes gilded-rarity-glow {
+  from {
+    filter: drop-shadow(0 0 2px var(--gilded-outer-color));
+  }
+
+  to {
+    filter: drop-shadow(0 0 11px var(--gilded-outer-color));
+  }
+}
+
+@keyframes celestial-twinkle {
   from {
     opacity: 0.28;
   }
 
   to {
-    opacity: 0.85;
+    opacity: 0.82;
   }
 }
 
-@keyframes prismatic-shine {
-  0%,
-  20% {
-    transform: translateX(-45%) rotate(8deg);
+@keyframes celestial-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes reliquary-energy {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes reliquary-awaken {
+  from {
+    filter: drop-shadow(0 0 3px var(--rarity-color));
   }
 
-  @keyframes rarity-power-pulse {
-    from {
-      box-shadow:
-        0 0 0 3px #071018,
-        0 0 12px var(--rarity-glow);
-    }
-
-    to {
-      box-shadow:
-        0 0 0 3px #071018,
-        0 0 32px var(--rarity-color);
-    }
+  to {
+    filter: drop-shadow(0 0 15px var(--rarity-light));
   }
+}
 
-  @keyframes gilded-rarity-glow {
-    from {
-      filter: drop-shadow(0 0 2px var(--gilded-outer-color));
-    }
-
-    to {
-      filter: drop-shadow(0 0 11px var(--gilded-outer-color));
-    }
+@keyframes masterpiece-spectrum {
+  to {
+    filter: hue-rotate(360deg);
   }
+}
 
-  @keyframes celestial-twinkle {
-    from {
-      opacity: 0.28;
-    }
-
-    to {
-      opacity: 0.82;
-    }
-  }
-
-  @keyframes celestial-orbit {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  @keyframes reliquary-energy {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  @keyframes reliquary-awaken {
-    from {
-      filter: drop-shadow(0 0 3px var(--rarity-color));
-    }
-
-    to {
-      filter: drop-shadow(0 0 15px var(--rarity-light));
-    }
-  }
-
-  @keyframes masterpiece-spectrum {
-    to {
-      filter: hue-rotate(360deg);
-    }
-  }
-
-  70%,
-  100% {
-    transform: translateX(45%) rotate(8deg);
+@keyframes prismatic-seasonal-spectrum {
+  to {
+    filter: hue-rotate(360deg);
   }
 }
 
@@ -5521,9 +5523,6 @@
   .terminal-card-state-unlocked,
   .terminal-card-state-unlocked::after,
   .prismatic-card,
-  .prismatic-card-aura,
-  .prismatic-card-sparkles,
-  .prismatic-card-shine,
   .render-card-foil-sheen,
   .celestial-card,
   .celestial-card-stars,

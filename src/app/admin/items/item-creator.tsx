@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import { CARD_COSMETICS } from "@/components/item-cards/catalog";
+import { useCardCosmetics } from "@/components/item-cards/card-cosmetics-provider";
 import ItemCard from "@/components/item-cards/item-card";
 import type { CardLegendaryAttribute } from "@/components/item-cards/types";
 import type { Artwork } from "@/server/gameplay";
+import { getItemAttributeCounts } from "@/server/item-attribute-counts";
 import type { HydratedGameItem } from "@/server/item-artwork";
 
 export type AdminArtworkOption = Artwork & {
@@ -52,6 +53,7 @@ export default function ItemCreator({
   attributes: AdminAttributeOption[];
   legendaryAttributes: CardLegendaryAttribute[];
 }) {
+  const cardCosmetics = useCardCosmetics();
   const firstArtwork = artworks[0];
   const [artworkQuery, setArtworkQuery] = useState("");
   const [artworkId, setArtworkId] = useState(firstArtwork?._id ?? "");
@@ -477,7 +479,7 @@ export default function ItemCreator({
               onChange={(event) => setCardRenderer(event.target.value)}
               value={cardRenderer}
             >
-              {CARD_COSMETICS.map((cosmetic) => (
+              {cardCosmetics.map((cosmetic) => (
                 <option key={cosmetic.id} value={cosmetic.id}>
                   {cosmetic.name}
                 </option>
@@ -780,16 +782,8 @@ function getRandomAttributeGroups(
     const index = remaining.findIndex((candidate) => candidate._id === attributeId);
     if (index >= 0) remaining.splice(index, 1);
   }
-  const masterpiece = artwork.rarity === "masterpiece";
-  const lockedCount =
-    masterpiece ? 1 : artwork.rarity === "common" || unlocked ? 0 : 1;
-  const unlockedCount = masterpiece
-    ? unlocked
-      ? 4
-      : 3
-    : artwork.rarity === "common" || !unlocked
-      ? 1
-      : 2;
+  const { locked: lockedCount, unlocked: unlockedCount } =
+    getItemAttributeCounts(artwork.rarity, unlocked);
   takeRandomAttributes(result.locked, remaining, lockedCount, 0.5, random);
   takeRandomAttributes(result.unlocked, remaining, unlockedCount, 0, random);
   return result;

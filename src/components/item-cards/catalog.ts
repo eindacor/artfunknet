@@ -12,6 +12,7 @@ export type CardCosmetic = {
 
 export type CardStyleInventory = Partial<Record<CardRendererId, number>>;
 export type DroppableCardRendererId = Exclude<CardRendererId, "museum">;
+export type CardRendererNames = Partial<Record<CardRendererId, string>>;
 
 export const DROPPABLE_CARD_RENDERER_IDS = CARD_RENDERER_IDS.filter(
   (id): id is DroppableCardRendererId => id !== "museum",
@@ -148,6 +149,15 @@ export const CARD_COSMETICS: CardCosmetic[] = [
 
 export function getCardCosmetic(id: string): CardCosmetic | undefined {
   return CARD_COSMETICS.find((cosmetic) => cosmetic.id === id);
+}
+
+export function getConfiguredCardCosmetics(
+  names: CardRendererNames = {},
+): CardCosmetic[] {
+  return CARD_COSMETICS.map((cosmetic) => ({
+    ...cosmetic,
+    name: names[cosmetic.id] ?? cosmetic.name,
+  }));
 }
 
 export function getCardStyleInventory(

@@ -5,6 +5,7 @@ import {
   CARD_COSMETICS,
   getActiveCardCosmetics,
   getAvailableCardStyleConsumables,
+  getConfiguredCardCosmetics,
   getCardStyleInventory,
 } from "./catalog.ts";
 import { resolveCardRendererId } from "./selection.ts";
@@ -68,5 +69,19 @@ test("card cosmetics have stable unique numbers", () => {
   assert.equal(
     new Set(CARD_COSMETICS.map((cosmetic) => cosmetic.number)).size,
     CARD_COSMETICS.length,
+  );
+});
+
+test("configured art style names replace catalog defaults by stable ID", () => {
+  const cosmetics = getConfiguredCardCosmetics({
+    prismatic: "Chromatic Field",
+  });
+  assert.equal(
+    cosmetics.find((cosmetic) => cosmetic.id === "prismatic")?.name,
+    "Chromatic Field",
+  );
+  assert.equal(
+    cosmetics.find((cosmetic) => cosmetic.id === "museum")?.name,
+    "Museum Label",
   );
 });
