@@ -120,9 +120,10 @@ void main() {
     vec3 brightColor;
     getMediumAndBrightColors(imagePaletteColors, mediumColor, brightColor);
 
+    perlinMix = pow(perlinMix, 1.);
     vec3 colorOut = mix(mediumColor, brightColor, perlinMix);
 
-    float valueModifier = mix(.5, .7, u_condition);
+    float valueModifier = mix(.6, .9, u_condition);
 
     gl_FragColor = vec4(valueModifier * colorOut, 1.0);
 }
