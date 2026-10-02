@@ -7772,6 +7772,10 @@ a.welcome-button {
   border-top: 1px solid #d2cdc2;
 }
 
+.daily-event-submission .daily-event-browser > div {
+  justify-items: center;
+}
+
 .daily-event-submission h4 {
   margin: 0;
   color: #171717;

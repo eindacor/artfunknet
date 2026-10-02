@@ -201,7 +201,6 @@ export default function DailyEventsPanel({
         {selectedDay === 0 ? (
           <CopyEvent
             activeToday={activeToday}
-            eyebrow="Sunday"
             title="Bonus XP"
           >
             Actions will earn bonus XP on Sundays. Details and reward values
@@ -249,7 +248,6 @@ export default function DailyEventsPanel({
         {selectedDay === 6 ? (
           <CopyEvent
             activeToday={activeToday}
-            eyebrow="Saturday"
             title="Bonus Money"
           >
             Actions will earn extra money on Saturdays. Details and reward
@@ -264,17 +262,14 @@ export default function DailyEventsPanel({
 function CopyEvent({
   activeToday,
   children,
-  eyebrow,
   title,
 }: {
   activeToday?: boolean;
   children: React.ReactNode;
-  eyebrow: string;
   title: string;
 }) {
   return (
     <section className="daily-event-copy">
-      <p>{eyebrow}</p>
       <h3>{title}</h3>
       <div className="daily-event-copy-mark">artfunkel</div>
       <p>{children}</p>
@@ -391,7 +386,6 @@ function ForgeryContestPanel({
   return (
     <section className="daily-event-content">
       <header>
-        <p>Tuesday</p>
         <h3>Forgery Contest</h3>
         <span>
           Drawing {new Date(view.nextSettlementAt).toLocaleString()}.
@@ -456,7 +450,6 @@ function ForgeryContestPanel({
                   </div>
                   <div className="daily-event-entry-details">
                     <strong>{entry.playerName}</strong>
-                    <span>{entry.votes.toLocaleString()} votes</span>
                     <button
                       aria-pressed={isCurrentVote}
                       className={`daily-event-vote-button ${
@@ -680,7 +673,6 @@ function LiveAuctionPanel({
     return (
       <CopyEvent
         activeToday={view.activeToday}
-        eyebrow="Wednesday"
         title="Live Auction Stream"
       >
         Join scheduled live auctions to bid alongside the Artfunkel community.
@@ -879,15 +871,9 @@ function SeasonalEventPanel({
   return (
     <section className="daily-event-content">
       <header>
-        <p>Thursday</p>
         <h3>Seasonals Change</h3>
-        <span>Next rotation {new Date(view.nextRotationAt).toLocaleString()}</span>
+        <span>Next seasonal rotation: {new Date(view.nextRotationAt).toLocaleString()}</span>
       </header>
-      {!view.activeToday ? (
-        <p className="daily-event-callout">
-          Seasonal artworks rotate when Thursday is active.
-        </p>
-      ) : null}
       {impersonating ? (
         <div className="daily-event-debug-action">
           <button
@@ -969,7 +955,6 @@ function FridayCratePanel({
   if (!view) return <EventLoading title="Free Ultimate Crate" error={error} />;
   return (
     <section className="daily-event-copy friday-crate-event">
-      <p>Friday</p>
       <h3>Free Ultimate Crate</h3>
       <div className="daily-event-crate-icon">
         <i aria-hidden="true" className="fa fa-cube" />
