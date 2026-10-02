@@ -567,7 +567,7 @@ function ForgeryContestPanel({
             </div>
           ) : (
             <p className="daily-event-empty">
-              You do not have an identified forgery available to submit.
+              You do not have a forgery available to submit. Forgeries can be created from the archive.
             </p>
           )}
         </div>
