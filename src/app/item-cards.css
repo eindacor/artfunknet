@@ -259,10 +259,19 @@
   overflow: hidden;
 }
 
-.rendered-item-card[data-foil="true"] .rendered-item-card-trigger::after {
+.render-card-preview {
+  position: relative;
+  width: max-content;
+  max-width: 100%;
+  margin-inline: auto;
+}
+
+.render-card-foil-sheen {
   position: absolute;
   z-index: 25;
-  inset: 0;
+  inset: 1px;
+  border-radius: 2px;
+  clip-path: inset(0 round 2px);
   pointer-events: none;
   background:
     linear-gradient(
@@ -279,12 +288,10 @@
   background-position: 100% 0;
   background-repeat: no-repeat;
   background-size: 360% 100%;
-  content: "";
   animation: shared-foil-shimmer 6.5s ease-in-out infinite;
 }
 
-.rendered-item-card-reliquary[data-foil="true"]
-  .rendered-item-card-trigger::after {
+.rendered-item-card-reliquary .render-card-foil-sheen {
   clip-path: polygon(
     12% 0,
     88% 0,
@@ -297,18 +304,15 @@
   );
 }
 
-.rendered-item-card-celestial[data-foil="true"]
-  .rendered-item-card-trigger::after {
+.rendered-item-card-celestial .render-card-foil-sheen {
   border-radius: 140px 140px 18px 18px;
 }
 
-.rendered-item-card-skateboard[data-foil="true"]
-  .rendered-item-card-trigger::after {
+.rendered-item-card-skateboard .render-card-foil-sheen {
   display: none;
 }
 
-.rendered-item-card-album[data-foil="true"]
-  .rendered-item-card-trigger::after {
+.rendered-item-card-album .render-card-foil-sheen {
   display: none;
 }
 
@@ -5405,7 +5409,7 @@
   .prismatic-card-aura,
   .prismatic-card-sparkles,
   .prismatic-card-shine,
-  .rendered-item-card[data-foil="true"] .rendered-item-card-trigger::after,
+  .render-card-foil-sheen,
   .celestial-card,
   .celestial-card-stars,
   .celestial-card-orbit,

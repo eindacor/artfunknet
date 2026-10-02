@@ -11,6 +11,7 @@ import ArtStyleActionButton from "./art-style-action-button";
 import ItemActionLayout from "./item-action-layout";
 import AuctionWatermark from "./auction-watermark";
 import KnownForgeryWatermark from "./known-forgery-watermark";
+import RenderCardPreview from "./render-card-preview";
 import { CARD_RENDERERS } from "./registry";
 import {
   AttributeIcons,
@@ -235,13 +236,15 @@ export function StandardItemDetails({
                 authenticity={item.authenticity}
                 rendererId={currentRendererId}
               />
-              <Renderer
-                alreadyOwned={false}
-                consigned={item.status === "auctioned"}
-                item={{ ...item, card_renderer: currentRendererId }}
-                legendaryAttributes={legendaryAttributes}
-                researchTarget={false}
-              />
+              <RenderCardPreview foil={item.foil}>
+                <Renderer
+                  alreadyOwned={false}
+                  consigned={item.status === "auctioned"}
+                  item={{ ...item, card_renderer: currentRendererId }}
+                  legendaryAttributes={legendaryAttributes}
+                  researchTarget={false}
+                />
+              </RenderCardPreview>
             </div>
             </article>
           </div>

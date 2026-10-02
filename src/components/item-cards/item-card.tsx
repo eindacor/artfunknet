@@ -9,6 +9,7 @@ import ArtStyleDialog from "./art-style-dialog";
 import ArtStyleActionButton from "./art-style-action-button";
 import ItemActionLayout from "./item-action-layout";
 import KnownForgeryWatermark from "./known-forgery-watermark";
+import RenderCardPreview from "./render-card-preview";
 import { CARD_RENDERERS } from "./registry";
 import { resolveCardRendererId } from "./selection";
 import StandardItemDialog from "./standard-item-dialog";
@@ -123,13 +124,15 @@ export default function ItemCard({
             rendererId={resolvedRendererId}
           />
         )}
-        <Renderer
-          alreadyOwned={alreadyOwned}
-          consigned={consigned}
-          item={{ ...currentItem, card_renderer: itemRendererId }}
-          legendaryAttributes={legendaryAttributes}
-          researchTarget={researchTarget}
-        />
+        <RenderCardPreview foil={currentItem.foil}>
+          <Renderer
+            alreadyOwned={alreadyOwned}
+            consigned={consigned}
+            item={{ ...currentItem, card_renderer: itemRendererId }}
+            legendaryAttributes={legendaryAttributes}
+            researchTarget={researchTarget}
+          />
+        </RenderCardPreview>
       </div>
       {overlay}
       {permissions.canManageItem &&

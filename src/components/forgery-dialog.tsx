@@ -14,6 +14,7 @@ import type { LootData } from "@/server/gameplay";
 
 import { getCardCosmetic } from "./item-cards/catalog";
 import KnownForgeryWatermark from "./item-cards/known-forgery-watermark";
+import RenderCardPreview from "./item-cards/render-card-preview";
 import { CARD_RENDERERS } from "./item-cards/registry";
 import type { CardLegendaryAttribute } from "./item-cards/types";
 
@@ -234,12 +235,14 @@ export default function ForgeryDialog({
                     authenticity={previewItem.authenticity}
                     rendererId={previewCosmetic.id}
                   />
-                  <PreviewRenderer
-                    alreadyOwned={false}
-                    item={previewItem}
-                    legendaryAttributes={legendaryAttributes}
-                    researchTarget={false}
-                  />
+                  <RenderCardPreview foil={previewItem.foil}>
+                    <PreviewRenderer
+                      alreadyOwned={false}
+                      item={previewItem}
+                      legendaryAttributes={legendaryAttributes}
+                      researchTarget={false}
+                    />
+                  </RenderCardPreview>
                 </span>
               </span>
             </div>

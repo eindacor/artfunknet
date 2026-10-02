@@ -15,6 +15,7 @@ import {
 } from "./catalog";
 import ArtStyleRemovalDialog from "./art-style-removal-dialog";
 import KnownForgeryWatermark from "./known-forgery-watermark";
+import RenderCardPreview from "./render-card-preview";
 import MintLossConfirmationDialog from "./mint-loss-confirmation-dialog";
 import { CARD_RENDERERS } from "./registry";
 import type { CardLegendaryAttribute, CardRendererId } from "./types";
@@ -296,17 +297,19 @@ export default function ArtStyleDialog({
                       authenticity={dialogItem.authenticity}
                       rendererId={previewCosmetic.id}
                     />
-                    <PreviewRenderer
-                      alreadyOwned={false}
-                      item={{
-                        ...dialogItem,
-                        card_renderer: previewCosmetic.id,
-                        mint: false,
-                        mint_value_multiplier: 1,
-                      }}
-                      legendaryAttributes={legendaryAttributes}
-                      researchTarget={researchTarget}
-                    />
+                    <RenderCardPreview foil={dialogItem.foil}>
+                      <PreviewRenderer
+                        alreadyOwned={false}
+                        item={{
+                          ...dialogItem,
+                          card_renderer: previewCosmetic.id,
+                          mint: false,
+                          mint_value_multiplier: 1,
+                        }}
+                        legendaryAttributes={legendaryAttributes}
+                        researchTarget={researchTarget}
+                      />
+                    </RenderCardPreview>
                   </span>
                 </span>
               </div>
