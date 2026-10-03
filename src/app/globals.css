@@ -6018,6 +6018,10 @@ a.welcome-button {
   -webkit-touch-callout: none;
 }
 
+.collection-thumbnail-list button * {
+  -webkit-touch-callout: none;
+}
+
 .collection-thumbnail-list button[data-rarity="uncommon"] {
   background: rgb(62 123 255 / 58%);
 }
@@ -6054,6 +6058,11 @@ a.welcome-button {
   width: 100% !important;
   height: 100% !important;
   background: #e8e3d9;
+}
+
+.collection-thumbnail-list .artwork-thumbnail,
+.collection-thumbnail-list .artwork-thumbnail * {
+  pointer-events: none;
 }
 
 .collection-thumbnail-list img,
