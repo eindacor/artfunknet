@@ -6005,6 +6005,7 @@ a.welcome-button {
   cursor: pointer;
   touch-action: pan-y;
   user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .collection-thumbnail-list button[data-rarity="uncommon"] {
@@ -6048,6 +6049,8 @@ a.welcome-button {
 .collection-thumbnail-list img,
 .profile-gallery-thumbnails img {
   object-fit: cover;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .thumbnail-foil-shine {

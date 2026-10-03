@@ -708,12 +708,14 @@
   height: 12px;
 }
 
-.standard-item-dialog[data-seasonal="true"]::after {
+.standard-item-dialog[data-seasonal="true"]
+  .standard-item-dialog-content::after {
   height: 8px;
 }
 
 .rendered-item-card[data-seasonal="true"] .museum-card::after,
-.standard-item-dialog[data-seasonal="true"]::after {
+.standard-item-dialog[data-seasonal="true"]
+  .standard-item-dialog-content::after {
   background: repeating-linear-gradient(
     90deg,
     var(--rarity-color) 0 8px,
@@ -4213,7 +4215,7 @@
   box-shadow: 0 24px 70px rgb(0 0 0 / 42%);
 }
 
-.standard-item-dialog::after {
+.standard-item-dialog-content::after {
   position: absolute;
   right: 0;
   bottom: 0;
@@ -4539,6 +4541,7 @@
 }
 
 .standard-item-dialog-content {
+  position: relative;
   display: grid;
   gap: 1.1rem;
   padding: 26px 28px 30px;

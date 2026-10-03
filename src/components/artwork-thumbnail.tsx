@@ -25,6 +25,7 @@ export default function ArtworkThumbnail({
     >
       <Image
         alt={alt}
+        draggable={false}
         fill
         sizes={`${size}px`}
         src={`/api/artwork/${artworkId}/image?variant=${imageVariant}`}

@@ -2969,11 +2969,7 @@ export default function GameDashboard({
         data-rarity={item.artwork.rarity}
         key={key}
         onClick={(event) => toggleLootEntrySelection(key, event)}
-        onContextMenu={(event) => {
-          if (suppressedLootClickRef.current === key) {
-            event.preventDefault();
-          }
-        }}
+        onContextMenu={(event) => event.preventDefault()}
         onPointerCancel={cancelLootEntryLongPress}
         onPointerDown={(event) => startLootEntryLongPress(key, event)}
         onPointerLeave={cancelLootEntryLongPress}
@@ -3714,11 +3710,7 @@ export default function GameDashboard({
                       onClick={(event) =>
                         toggleCollectionItemSelection(item._id, event)
                       }
-                      onContextMenu={(event) => {
-                        if (suppressedCollectionClickRef.current === item._id) {
-                          event.preventDefault();
-                        }
-                      }}
+                      onContextMenu={(event) => event.preventDefault()}
                       onPointerCancel={cancelCollectionItemLongPress}
                       onPointerDown={(event) =>
                         startCollectionItemLongPress(item._id, event)
@@ -3807,13 +3799,7 @@ export default function GameDashboard({
                         onClick={(event) =>
                           toggleCollectionItemSelection(item._id, event)
                         }
-                        onContextMenu={(event) => {
-                          if (
-                            suppressedCollectionClickRef.current === item._id
-                          ) {
-                            event.preventDefault();
-                          }
-                        }}
+                        onContextMenu={(event) => event.preventDefault()}
                         onPointerCancel={cancelCollectionItemLongPress}
                         onPointerDown={(event) =>
                           startCollectionItemLongPress(item._id, event)
