@@ -35,6 +35,10 @@ export async function getArtworkEffects(
   return effects;
 }
 
+/**
+ * Resolves effect metadata for an artwork. Gameplay activation must use the
+ * displayed-effect helpers unless the item is being transitioned to displayed.
+ */
 export async function getArtworkEffect(
   database: Db,
   artwork: Pick<Artwork, "_id" | "effect_id" | "rarity">,

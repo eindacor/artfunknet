@@ -5,6 +5,7 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 import { MongoClient } from "mongodb";
 
 import {
+  getDisplayedArtworkEffect,
   getDisplayedArtworkEffects,
   type ArtworkEffect,
 } from "./artwork-effects.ts";
@@ -73,6 +74,72 @@ test("displayed duplicate effect references do not stack and daily interest is i
         amount: 30,
       }),
       1,
+    );
+  } finally {
+    await client.close();
+    await server.stop();
+  }
+});
+
+test("effects activate only while an effect-bearing item is displayed", async () => {
+  const server = await MongoMemoryServer.create();
+  const client = new MongoClient(server.getUri());
+  try {
+    await client.connect();
+    const db = client.db("displayed-effects");
+    const effect: ArtworkEffect = {
+      _id: "display-required",
+      effect_type: "legendary",
+      title: "Display Required",
+      description: "Display Required",
+      flavor_text: "Display Required",
+      code: "DISPLAY_REQUIRED",
+      active: true,
+      linked_attributes: ["benefactor", "collector"],
+      parameters: {},
+    };
+    await db.collection<ArtworkEffect>("artwork_effects").insertOne(effect);
+    await db.collection("artworks").insertOne({
+      _id: "effect-art",
+      rarity: "legendary",
+      effect_id: effect._id,
+    });
+    await db.collection("items").insertMany([
+      {
+        _id: "claimed-effect",
+        artwork_id: "effect-art",
+        owner: "player",
+        status: "claimed",
+      },
+      {
+        _id: "auctioned-effect",
+        artwork_id: "effect-art",
+        owner: "player",
+        status: "auctioned",
+      },
+    ]);
+
+    assert.equal(
+      await getDisplayedArtworkEffect(db, "player", effect.code),
+      null,
+    );
+
+    await db.collection("items").updateOne(
+      { _id: "claimed-effect" },
+      { $set: { status: "displayed" } },
+    );
+    assert.equal(
+      (await getDisplayedArtworkEffect(db, "player", effect.code))?._id,
+      effect._id,
+    );
+
+    await db.collection("items").updateOne(
+      { _id: "claimed-effect" },
+      { $set: { status: "claimed" } },
+    );
+    assert.equal(
+      await getDisplayedArtworkEffect(db, "player", effect.code),
+      null,
     );
   } finally {
     await client.close();

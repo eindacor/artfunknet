@@ -118,9 +118,7 @@ export async function POST(
     attributes,
     artworkEffect,
   );
-  const mint =
-    selected.has("mint") ||
-    artworkEffect?.code === MASTERPIECE_EFFECT_CODES.preservationMint;
+  const mint = selected.has("mint");
   const timestamp = new Date().toISOString();
   const base = {
     _id: randomUUID(),
