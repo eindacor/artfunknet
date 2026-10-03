@@ -9,7 +9,10 @@ import {
   ART_DONOR_ATTRIBUTE_ID,
 } from "./legendary-attributes.ts";
 import type { ArtworkEffect } from "./artwork-effects.ts";
-import { MASTERPIECE_EFFECT_CODES } from "./masterpiece-effects.ts";
+import {
+  getVisitorGenerationPasses,
+  MASTERPIECE_EFFECT_CODES,
+} from "./masterpiece-effects.ts";
 import {
   hydrateGameItems,
   type HydratedGameItem,
@@ -80,12 +83,7 @@ export function aggregateGalleryAttributes(
   >();
 
   for (const item of items) {
-    const attributes = [
-      ...item.attributes.locked,
-      ...item.attributes.unlocked,
-      ...item.attributes.special,
-    ];
-    for (const attribute of attributes) {
+    for (const attribute of getGalleryItemAttributes(item)) {
       const current = totals.get(attribute._id);
       totals.set(attribute._id, {
         attribute,
@@ -95,6 +93,19 @@ export function aggregateGalleryAttributes(
   }
 
   return totals;
+}
+
+export function getRareDisplayedAttributeIds(
+  items: GalleryNpcItem[],
+): Set<string> {
+  const attributeIds = new Set<string>();
+  for (const item of items) {
+    if (item.artwork.rarity !== "rare") continue;
+    for (const attribute of getGalleryItemAttributes(item)) {
+      attributeIds.add(attribute._id);
+    }
+  }
+  return attributeIds;
 }
 
 export function getNpcProcMap(
@@ -275,103 +286,112 @@ export async function refreshNpcSpawns(
           left.values.actual - right.values.actual ||
           left._id.localeCompare(right._id),
       )[0];
-    const hasRareDouble = ownerItems.some(
+    const hasRareDoubleEffect = ownerItems.some(
       (item) =>
         item.artwork.effect_id &&
         effectCodeById.get(item.artwork.effect_id) ===
           MASTERPIECE_EFFECT_CODES.rareVisitorDouble,
     );
-    const scoringItems = ownerItems.flatMap((item) => {
-      const effectiveItem =
-        substitutionItem && item.artwork.rarity === "common"
-          ? { ...item, attributes: substitutionItem.attributes }
-          : item;
-      return hasRareDouble && item.artwork.rarity === "rare"
-        ? [effectiveItem, effectiveItem]
-        : [effectiveItem];
-    });
+    const rareDisplayedAttributeIds = hasRareDoubleEffect
+      ? getRareDisplayedAttributeIds(ownerItems)
+      : new Set<string>();
+    const scoringItems = ownerItems.map((item) =>
+      substitutionItem && item.artwork.rarity === "common"
+        ? { ...item, attributes: substitutionItem.attributes }
+        : item,
+    );
     const procMap = getNpcProcMap(
       scoringItems,
       player.profile.display_cap,
       player.profile.level,
     );
     return [...procMap].flatMap(([attributeId, { attribute, chance }]) => {
-      const spawnKey = `${player._id}:${cycleStartMs}:${attributeId}`;
-      if (seededRoll(`${spawnKey}:spawn`) >= chance) return [];
+      const baseSpawnKey = `${player._id}:${cycleStartMs}:${attributeId}`;
+      const generationPasses = getVisitorGenerationPasses(
+        hasRareDoubleEffect,
+        rareDisplayedAttributeIds.has(attributeId),
+      );
+      return Array.from({ length: generationPasses }).flatMap((_, passIndex) => {
+        const spawnKey =
+          passIndex === 0
+            ? baseSpawnKey
+            : `${baseSpawnKey}:pass:${passIndex + 1}`;
+        if (seededRoll(`${spawnKey}:spawn`) >= chance) return [];
 
-      const maximumCollectorQuality =
-        attributeId === ART_COLLECTOR_ATTRIBUTE_ID &&
-        ownersWithMaximumCollectorQuality.has(player._id)
-          ? "platinum"
-          : null;
-      const npc: GalleryNpc = {
-        _id: createHash("sha256").update(spawnKey).digest("hex").slice(0, 32),
-        quality:
-          maximumCollectorQuality ??
-          getNpcQuality(seededRoll(`${spawnKey}:quality`)),
-        attribute_id: attributeId,
-        owner_id: player._id,
-        owner_name: player.screen_name,
-        spawned_at: spawnedAt,
-        expiration,
-        players_met: [],
-        icon: attribute.icon,
-        npc_name: attribute.npc_name,
-        proc_chance: chance,
-      };
-      const npcOperations = [
-        {
-          updateOne: {
-            filter: { spawn_key: spawnKey },
-            update: { $setOnInsert: { ...npc, spawn_key: spawnKey } },
-            upsert: true,
-          },
-        },
-      ];
-      const companionAttributeId =
-        npc.quality === "platinum" &&
-        ownersWithCollectorDonorPair.has(player._id)
-          ? attributeId === ART_COLLECTOR_ATTRIBUTE_ID
-            ? ART_DONOR_ATTRIBUTE_ID
-            : attributeId === ART_DONOR_ATTRIBUTE_ID
-              ? ART_COLLECTOR_ATTRIBUTE_ID
-              : null
-          : null;
-      const companionAttribute = companionAttributeId
-        ? pairedAttributeMap.get(companionAttributeId)
-        : null;
-      if (companionAttribute) {
-        const companionSpawnKey = `${spawnKey}:paired:${companionAttributeId}`;
-        const companion: GalleryNpc = {
-          _id: createHash("sha256")
-            .update(companionSpawnKey)
-            .digest("hex")
-            .slice(0, 32),
-          quality: "bronze",
-          attribute_id: companionAttribute._id,
+        const maximumCollectorQuality =
+          attributeId === ART_COLLECTOR_ATTRIBUTE_ID &&
+          ownersWithMaximumCollectorQuality.has(player._id)
+            ? "platinum"
+            : null;
+        const npc: GalleryNpc = {
+          _id: createHash("sha256").update(spawnKey).digest("hex").slice(0, 32),
+          quality:
+            maximumCollectorQuality ??
+            getNpcQuality(seededRoll(`${spawnKey}:quality`)),
+          attribute_id: attributeId,
           owner_id: player._id,
           owner_name: player.screen_name,
           spawned_at: spawnedAt,
           expiration,
           players_met: [],
-          icon: companionAttribute.icon,
-          npc_name: companionAttribute.npc_name,
+          icon: attribute.icon,
+          npc_name: attribute.npc_name,
           proc_chance: chance,
         };
-        npcOperations.push({
-          updateOne: {
-            filter: { spawn_key: companionSpawnKey },
-            update: {
-              $setOnInsert: {
-                ...companion,
-                spawn_key: companionSpawnKey,
-              },
+        const npcOperations = [
+          {
+            updateOne: {
+              filter: { spawn_key: spawnKey },
+              update: { $setOnInsert: { ...npc, spawn_key: spawnKey } },
+              upsert: true,
             },
-            upsert: true,
           },
-        });
-      }
-      return npcOperations;
+        ];
+        const companionAttributeId =
+          npc.quality === "platinum" &&
+          ownersWithCollectorDonorPair.has(player._id)
+            ? attributeId === ART_COLLECTOR_ATTRIBUTE_ID
+              ? ART_DONOR_ATTRIBUTE_ID
+              : attributeId === ART_DONOR_ATTRIBUTE_ID
+                ? ART_COLLECTOR_ATTRIBUTE_ID
+                : null
+            : null;
+        const companionAttribute = companionAttributeId
+          ? pairedAttributeMap.get(companionAttributeId)
+          : null;
+        if (companionAttribute) {
+          const companionSpawnKey = `${spawnKey}:paired:${companionAttributeId}`;
+          const companion: GalleryNpc = {
+            _id: createHash("sha256")
+              .update(companionSpawnKey)
+              .digest("hex")
+              .slice(0, 32),
+            quality: "bronze",
+            attribute_id: companionAttribute._id,
+            owner_id: player._id,
+            owner_name: player.screen_name,
+            spawned_at: spawnedAt,
+            expiration,
+            players_met: [],
+            icon: companionAttribute.icon,
+            npc_name: companionAttribute.npc_name,
+            proc_chance: chance,
+          };
+          npcOperations.push({
+            updateOne: {
+              filter: { spawn_key: companionSpawnKey },
+              update: {
+                $setOnInsert: {
+                  ...companion,
+                  spawn_key: companionSpawnKey,
+                },
+              },
+              upsert: true,
+            },
+          });
+        }
+        return npcOperations;
+      });
     });
   });
 
@@ -400,4 +420,12 @@ export async function getGalleryNpcs(
 function seededRoll(seed: string): number {
   const bytes = createHash("sha256").update(seed).digest();
   return bytes.readUInt32BE(0) / 0x1_0000_0000;
+}
+
+function getGalleryItemAttributes(item: GalleryNpcItem): ItemAttribute[] {
+  return [
+    ...item.attributes.locked,
+    ...item.attributes.unlocked,
+    ...item.attributes.special,
+  ];
 }

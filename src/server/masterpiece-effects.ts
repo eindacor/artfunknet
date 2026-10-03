@@ -86,9 +86,9 @@ export function getMasterpieceGalleryXpChunks(
 
 export function getVisitorGenerationPasses(
   hasRareDoubleEffect: boolean,
-  rarity: string,
+  appearsOnDisplayedRare: boolean,
 ): number {
-  return hasRareDoubleEffect && rarity === "rare" ? 2 : 1;
+  return hasRareDoubleEffect && appearsOnDisplayedRare ? 2 : 1;
 }
 
 export function getAuctionForgeryRefund(

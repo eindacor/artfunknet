@@ -54,8 +54,9 @@ test("masterpiece behavior decisions use configured parameters", () => {
     ),
     1.5,
   );
-  assert.equal(getVisitorGenerationPasses(true, "rare"), 2);
-  assert.equal(getVisitorGenerationPasses(true, "common"), 1);
+  assert.equal(getVisitorGenerationPasses(true, true), 2);
+  assert.equal(getVisitorGenerationPasses(true, false), 1);
+  assert.equal(getVisitorGenerationPasses(false, true), 1);
   assert.equal(
     getAuctionForgeryRefund(
       effect(MASTERPIECE_EFFECT_CODES.auctionAuthentication, {

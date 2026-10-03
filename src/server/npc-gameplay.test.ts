@@ -7,7 +7,7 @@ import {
   getGalleryNpcs,
   getNpcProcMap,
   getNpcQuality,
-  refreshNpcSpawns,
+  getRareDisplayedAttributeIds,
   type GalleryNpcItem,
 } from "./npc-gameplay.ts";
 
@@ -22,6 +22,20 @@ const collector: ItemAttribute = {
   value: 0.8,
 };
 
+const donor: ItemAttribute = {
+  ...collector,
+  _id: "donor",
+  title: "donor_bonus",
+  npc_name: "Art Donor",
+};
+
+const curator: ItemAttribute = {
+  ...collector,
+  _id: "curator",
+  title: "curator_bonus",
+  npc_name: "Curator",
+};
+
 function item(
   rarity: GalleryNpcItem["artwork"]["rarity"],
 ): GalleryNpcItem {
@@ -34,6 +48,28 @@ function item(
 test("gallery attributes aggregate matching attributes across displayed works", () => {
   const totals = aggregateGalleryAttributes([item("common"), item("rare")]);
   assert.equal(totals.get("collector")?.total, 1.6);
+});
+
+test("rare displayed attributes are collected once by attribute ID", () => {
+  const rareAttributeIds = getRareDisplayedAttributeIds([
+    {
+      attributes: {
+        locked: [collector],
+        unlocked: [collector],
+        special: [donor],
+      },
+      artwork: { rarity: "rare" },
+    },
+    {
+      attributes: { locked: [], unlocked: [collector], special: [] },
+      artwork: { rarity: "rare" },
+    },
+    {
+      attributes: { locked: [], unlocked: [curator], special: [] },
+      artwork: { rarity: "common" },
+    },
+  ]);
+  assert.deepEqual([...rareAttributeIds], ["collector", "donor"]);
 });
 
 test("NPC proc map preserves the legacy rarity, level, and squared scaling", () => {
@@ -108,4 +144,3 @@ test("refreshNpcSpawns removes expired NPCs and getGalleryNpcs omits expired NPC
   assert.equal(activeVisitors.length, 1);
   assert.equal(activeVisitors[0]._id, "active_1");
 });
-
