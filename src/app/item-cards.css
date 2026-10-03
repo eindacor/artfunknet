@@ -257,6 +257,34 @@
 .render-card-artwork-image {
   position: relative;
   overflow: hidden;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.render-card-artwork-image-source {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-position: inherit;
+  background-repeat: inherit;
+  background-size: inherit;
+  pointer-events: none;
+  transform:
+    translate3d(
+      var(--artwork-image-translate-x, 0%),
+      var(--artwork-image-translate-y, 0%),
+      0
+    )
+    scale(var(--artwork-image-scale, 1));
+  transform-origin: center;
+}
+
+.og-card-artwork-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
 .render-card-preview {
@@ -3800,6 +3828,210 @@
   overflow: auto;
   padding: 2.5rem 1.25rem;
   background: #fff;
+}
+
+.art-style-crop-editor {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 0.8rem;
+  padding: 1rem;
+  background: rgb(0 0 0 / 18%);
+}
+
+.art-style-crop-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.75rem;
+}
+
+.art-style-crop-controls > label {
+  display: grid;
+  gap: 0.25rem;
+  min-width: min(100%, 18rem);
+  color: var(--muted);
+  font: 700 0.62rem Courier, "Courier New", monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.art-style-crop-controls input,
+.art-style-crop-controls select {
+  min-height: 34px;
+  max-width: min(100%, 34rem);
+  border: 1px solid rgb(255 255 255 / 24%);
+  padding: 0.35rem 0.5rem;
+  background: #17161a;
+  color: #fff;
+}
+
+.art-style-crop-workspace {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.art-style-crop-search-results {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.45rem;
+  max-height: 280px;
+  overflow: auto;
+  border: 1px solid rgb(255 255 255 / 14%);
+  padding: 0.45rem;
+  background: rgb(0 0 0 / 16%);
+}
+
+.art-style-crop-search-results > button {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+  border: 1px solid rgb(255 255 255 / 14%);
+  padding: 0.35rem;
+  background: #17161a;
+  color: #fff;
+  cursor: pointer;
+  text-align: left;
+}
+
+.art-style-crop-search-results > button:hover,
+.art-style-crop-search-results > button.selected {
+  border-color: var(--accent);
+  background: #2b202a;
+}
+
+.art-style-crop-search-results > button > span:last-child {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.art-style-crop-search-results strong,
+.art-style-crop-search-results small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.art-style-crop-search-results strong {
+  font-size: 0.72rem;
+}
+
+.art-style-crop-search-results small {
+  color: var(--muted);
+  font-size: 0.62rem;
+}
+
+.art-style-crop-search-results > p {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
+.art-style-crop-adjustment-controls {
+  margin-top: 0.25rem;
+}
+
+.art-style-crop-null-state {
+  display: grid;
+  min-height: 240px;
+  place-items: center;
+  border: 1px dashed rgb(255 255 255 / 20%);
+  background: rgb(0 0 0 / 12%);
+  color: var(--muted);
+  text-align: center;
+}
+
+.art-style-crop-null-state p {
+  margin: 0;
+}
+
+.art-style-crop-zoom {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.art-style-crop-zoom label {
+  color: var(--muted);
+  font: 700 0.62rem Courier, "Courier New", monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.art-style-crop-controls .art-style-crop-zoom input[type="range"] {
+  width: min(16rem, 42vw);
+  min-height: 0;
+  border: 0;
+  padding: 0;
+  accent-color: var(--accent);
+}
+
+.art-style-crop-zoom output {
+  min-width: 3.5rem;
+  color: #fff;
+  font: 700 0.72rem Courier, "Courier New", monospace;
+  text-align: center;
+}
+
+.art-style-crop-controls button {
+  min-height: 34px;
+  border: 1px solid rgb(255 255 255 / 32%);
+  padding: 0.35rem 0.65rem;
+  background: #27242d;
+  color: #fff;
+  cursor: pointer;
+}
+
+.art-style-crop-controls button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.art-style-crop-controls .art-style-crop-accept {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #160c15;
+  font-weight: 900;
+}
+
+.art-style-crop-values,
+.art-style-crop-error,
+.art-style-crop-message {
+  margin: 0;
+  font: 700 0.68rem Courier, "Courier New", monospace;
+}
+
+.art-style-crop-values {
+  color: var(--muted);
+}
+
+.art-style-crop-error {
+  color: #ff8585;
+}
+
+.art-style-crop-message {
+  color: #8ff0ad;
+}
+
+.art-style-crop-stage {
+  display: grid;
+  min-height: 470px;
+  place-items: center;
+  overflow: auto;
+  padding: 2.5rem 1.25rem;
+  background: #fff;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.art-style-crop-stage:active {
+  cursor: grabbing;
 }
 
 .standard-item-dialog {

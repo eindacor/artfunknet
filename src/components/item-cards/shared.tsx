@@ -13,6 +13,7 @@ import {
 import { FloatingPopover } from "@/components/floating-popover";
 import { useCardCosmetics } from "./card-cosmetics-provider";
 import { getCardCosmetic } from "./catalog";
+import { getArtworkImageAdjustment } from "./artwork-image-adjustments";
 import type {
   CardLegendaryAttribute,
   ItemCardRendererProps,
@@ -59,15 +60,32 @@ export function ArtworkImage({
   item,
   className,
 }: Pick<ItemCardRendererProps, "item"> & { className: string }) {
+  const adjustment = getArtworkImageAdjustment(
+    item.artwork,
+    item.card_renderer ?? "museum",
+  );
+
   return (
     <div
       aria-label={`${item.artwork.title} by ${item.artwork.artist}`}
       className={`${className} render-card-artwork-image`}
       role="img"
-      style={{
-        backgroundImage: `url("/api/artwork/${item.artwork_id}/image?variant=card")`,
-      }}
-    />
+      style={
+        {
+          "--artwork-image-translate-x": `${adjustment.x}%`,
+          "--artwork-image-translate-y": `${adjustment.y}%`,
+          "--artwork-image-scale": adjustment.scale,
+        } as CSSProperties
+      }
+    >
+      <span
+        aria-hidden="true"
+        className="render-card-artwork-image-source"
+        style={{
+          backgroundImage: `url("/api/artwork/${item.artwork_id}/image?variant=card")`,
+        }}
+      />
+    </div>
   );
 }
 

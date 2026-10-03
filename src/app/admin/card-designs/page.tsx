@@ -13,6 +13,7 @@ import type { ArtworkEffect } from "@/server/artwork-effects-core";
 import { getDatabase } from "@/server/mongodb";
 import { getCardRendererSettings } from "@/server/card-renderer-settings";
 
+import ArtStyleCropEditor from "./art-style-crop-editor";
 import CardDesignPreview from "./card-design-preview";
 export const dynamic = "force-dynamic";
 
@@ -48,13 +49,13 @@ export default async function CardDesignsAdminPage() {
     throw new Error("Loot metadata has not been seeded.");
   }
   const items = await hydrateGameItems(database, rawItems);
-  const previewArtworks = ARTWORK_RARITIES.flatMap((rarity) =>
+  const galleryArtworks = ARTWORK_RARITIES.flatMap((rarity) =>
     artworks.filter((artwork) => artwork.rarity === rarity).slice(0, 8),
   );
   const effectById = new Map(effects.map((effect) => [effect._id, effect]));
-  const previewItems =
-    items.length > 0 && previewArtworks.length > 0
-      ? previewArtworks.map((artwork, index) => {
+  const createPreviewItems = (selectedArtworks: Artwork[]) =>
+    items.length > 0 && selectedArtworks.length > 0
+      ? selectedArtworks.map((artwork, index) => {
           const base = items[index % items.length];
           const previewItem = {
             ...base,
@@ -72,6 +73,8 @@ export default async function CardDesignsAdminPage() {
           return previewItem;
         })
       : items;
+  const previewItems = createPreviewItems(galleryArtworks);
+  const cropItems = createPreviewItems(artworks);
   const unlockedPreviewItems = previewItems.map((item) => ({
     ...item,
     unlocked: true,
@@ -97,10 +100,30 @@ export default async function CardDesignsAdminPage() {
     ]),
   );
   const defaultStyleName = optionById.get("museum")?.name ?? "Museum Label";
+  const rendererOptions = SHOWCASE_CARD_RENDERER_IDS.map((id) => ({
+    id,
+    name: optionById.get(id)?.name ?? id,
+  }));
 
   return (
     <main className="admin-tools card-design-admin">
       <h1>Card designs</h1>
+      <section>
+        <h2>Artwork crop adjustments</h2>
+        <p>
+          Choose an artwork and art style, drag the image into position, adjust
+          its zoom, and accept the crop to save it on the artwork record.
+        </p>
+        {cropItems.length === 0 ? (
+          <p>No game items are available for the crop preview.</p>
+        ) : (
+          <ArtStyleCropEditor
+            items={cropItems}
+            legendaryAttributes={cardLegendaryAttributes}
+            rendererOptions={rendererOptions}
+          />
+        )}
+      </section>
       <section>
         <h2>Renderer gallery</h2>
         <p>

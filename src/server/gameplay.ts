@@ -19,6 +19,11 @@ export const LOTTERY_LEVEL_MAX = 10;
 
 export type ArtworkRarity = (typeof ARTWORK_RARITIES)[number];
 
+export type ArtworkArtStyleAdjustment = {
+  x: number;
+  y: number;
+  scale: number;
+};
 
 const PLAYER_LEVEL_MAX = 50;
 const RARITY_LEVEL_RESTRICTIONS: Record<ArtworkRarity, number> = {
@@ -62,6 +67,7 @@ export type Artwork = {
   width: number;
   active: boolean;
   effect_id?: string;
+  art_style_adjustments?: Record<string, ArtworkArtStyleAdjustment>;
   // Legacy-only fields retained for reading pre-migration records.
   special_attributes?: string[];
   unique_attributes?: string[];

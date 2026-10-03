@@ -128,7 +128,7 @@ export default function ItemCard({
           <Renderer
             alreadyOwned={alreadyOwned}
             consigned={consigned}
-            item={{ ...currentItem, card_renderer: itemRendererId }}
+            item={{ ...currentItem, card_renderer: resolvedRendererId }}
             legendaryAttributes={legendaryAttributes}
             researchTarget={researchTarget}
           />
