@@ -45,6 +45,13 @@
   box-sizing: border-box;
 }
 
+html,
+body {
+  max-width: 100%;
+  overflow-x: clip;
+  overscroll-behavior-x: none;
+}
+
 body {
   margin: 0;
   background: var(--background);
@@ -57,7 +64,10 @@ body {
 }
 
 .game-shell {
+  width: 100%;
+  min-width: 0;
   min-height: 100vh;
+  overflow-x: clip;
   background: white;
   color: #777;
   font-family: Courier, monospace;
