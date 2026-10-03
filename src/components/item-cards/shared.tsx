@@ -13,7 +13,11 @@ import {
 import { FloatingPopover } from "@/components/floating-popover";
 import { useCardCosmetics } from "./card-cosmetics-provider";
 import { getCardCosmetic } from "./catalog";
-import { getArtworkImageAdjustment } from "./artwork-image-adjustments";
+import {
+  getArtworkImageAdjustment,
+  getArtworkImageBackgroundPosition,
+  getArtworkImageZoomTranslation,
+} from "./artwork-image-adjustments";
 import type {
   CardLegendaryAttribute,
   ItemCardRendererProps,
@@ -64,6 +68,8 @@ export function ArtworkImage({
     item.artwork,
     item.card_renderer ?? "museum",
   );
+  const backgroundPosition = getArtworkImageBackgroundPosition(adjustment);
+  const zoomTranslation = getArtworkImageZoomTranslation(adjustment);
 
   return (
     <div
@@ -72,8 +78,10 @@ export function ArtworkImage({
       role="img"
       style={
         {
-          "--artwork-image-translate-x": `${adjustment.x}%`,
-          "--artwork-image-translate-y": `${adjustment.y}%`,
+          "--artwork-image-position-x": backgroundPosition.x,
+          "--artwork-image-position-y": backgroundPosition.y,
+          "--artwork-image-zoom-translate-x": zoomTranslation.x,
+          "--artwork-image-zoom-translate-y": zoomTranslation.y,
           "--artwork-image-scale": adjustment.scale,
         } as CSSProperties
       }

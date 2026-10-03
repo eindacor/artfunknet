@@ -266,14 +266,16 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background-position: inherit;
+  background-position:
+    var(--artwork-image-position-x, 50%)
+    var(--artwork-image-position-y, 50%);
   background-repeat: inherit;
   background-size: inherit;
   pointer-events: none;
   transform:
     translate3d(
-      var(--artwork-image-translate-x, 0%),
-      var(--artwork-image-translate-y, 0%),
+      var(--artwork-image-zoom-translate-x, 0%),
+      var(--artwork-image-zoom-translate-y, 0%),
       0
     )
     scale(var(--artwork-image-scale, 1));

@@ -5,7 +5,7 @@ import type {
 
 export const ARTWORK_IMAGE_TRANSLATION_MIN = -100;
 export const ARTWORK_IMAGE_TRANSLATION_MAX = 100;
-export const ARTWORK_IMAGE_SCALE_MIN = 0.5;
+export const ARTWORK_IMAGE_SCALE_MIN = 1;
 export const ARTWORK_IMAGE_SCALE_MAX = 3;
 export const ARTWORK_IMAGE_SCALE_STEP = 0.1;
 
@@ -56,6 +56,25 @@ export function roundArtworkImageAdjustment(
     x: round(adjustment.x),
     y: round(adjustment.y),
     scale: round(adjustment.scale),
+  };
+}
+
+export function getArtworkImageBackgroundPosition(
+  adjustment: ArtworkArtStyleAdjustment,
+): { x: string; y: string } {
+  return {
+    x: `${50 - adjustment.x / 2}%`,
+    y: `${50 - adjustment.y / 2}%`,
+  };
+}
+
+export function getArtworkImageZoomTranslation(
+  adjustment: ArtworkArtStyleAdjustment,
+): { x: string; y: string } {
+  const zoomOverflow = (adjustment.scale - 1) / 2;
+  return {
+    x: `${adjustment.x * zoomOverflow}%`,
+    y: `${adjustment.y * zoomOverflow}%`,
   };
 }
 

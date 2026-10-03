@@ -4,6 +4,8 @@ import test from "node:test";
 import {
   DEFAULT_ARTWORK_IMAGE_ADJUSTMENT,
   getArtworkImageAdjustment,
+  getArtworkImageBackgroundPosition,
+  getArtworkImageZoomTranslation,
   normalizeArtworkImageAdjustment,
   roundArtworkImageAdjustment,
 } from "./artwork-image-adjustments.ts";
@@ -38,6 +40,24 @@ test("artwork image adjustments normalize invalid and out-of-range values", () =
       scale: 8,
     }),
     { x: -100, y: 0, scale: 3 },
+  );
+});
+
+test("artwork image positions move the background with the drag direction", () => {
+  assert.deepEqual(
+    getArtworkImageBackgroundPosition({ x: 40, y: -20, scale: 1 }),
+    { x: "30%", y: "60%" },
+  );
+});
+
+test("artwork image zoom translation exposes overflow on both axes", () => {
+  assert.deepEqual(
+    getArtworkImageZoomTranslation({ x: 40, y: -20, scale: 1 }),
+    { x: "0%", y: "0%" },
+  );
+  assert.deepEqual(
+    getArtworkImageZoomTranslation({ x: 40, y: -20, scale: 2 }),
+    { x: "20%", y: "-10%" },
   );
 });
 
