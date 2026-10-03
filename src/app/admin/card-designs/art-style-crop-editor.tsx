@@ -81,7 +81,6 @@ export default function ArtStyleCropEditor({
         : [],
     [items, normalizedQuery],
   );
-  const visibleMatchingItems = matchingItems.slice(0, 40);
   const selectedItem = selectedArtworkId
     ? items.find((item) => item.artwork_id === selectedArtworkId)
     : undefined;
@@ -132,7 +131,7 @@ export default function ArtStyleCropEditor({
           className="art-style-crop-search-results"
           role="listbox"
         >
-          {visibleMatchingItems.map((item) => (
+          {matchingItems.map((item) => (
             <button
               aria-selected={selectedArtworkId === item.artwork_id}
               className={
@@ -155,12 +154,6 @@ export default function ArtStyleCropEditor({
               </span>
             </button>
           ))}
-          {matchingItems.length > visibleMatchingItems.length ? (
-            <p>
-              Showing the first {visibleMatchingItems.length} of{" "}
-              {matchingItems.length} matches. Refine the search to see more.
-            </p>
-          ) : null}
         </div>
       ) : null}
       {selectedItem && initialAdjustment && initialDetailAdjustments ? (
