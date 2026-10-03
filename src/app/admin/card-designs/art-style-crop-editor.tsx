@@ -3,21 +3,28 @@
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import ArtworkDetailImage from "@/components/artwork-detail-image";
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
 import {
   ARTWORK_IMAGE_SCALE_MAX,
   ARTWORK_IMAGE_SCALE_MIN,
   ARTWORK_IMAGE_TRANSLATION_MAX,
   ARTWORK_IMAGE_TRANSLATION_MIN,
+  getArtworkDetailImageAdjustments,
+  getArtworkDetailImageSlots,
   getArtworkImageAdjustment,
   roundArtworkImageAdjustment,
+  type ArtworkDetailImageSlot,
 } from "@/components/item-cards/artwork-image-adjustments";
 import ItemCard from "@/components/item-cards/item-card";
 import type {
   CardLegendaryAttribute,
   CardRendererId,
 } from "@/components/item-cards/types";
-import type { ArtworkArtStyleAdjustment } from "@/server/gameplay";
+import type {
+  ArtworkArtStyleAdjustment,
+  ArtworkDetailImageAdjustments,
+} from "@/server/gameplay";
 import type { HydratedGameItem } from "@/server/item-artwork";
 
 type RendererOption = {
@@ -32,6 +39,10 @@ type DragState = {
   startAdjustment: ArtworkArtStyleAdjustment;
   width: number;
   height: number;
+};
+
+type DetailDragState = DragState & {
+  index: number;
 };
 
 export default function ArtStyleCropEditor({
@@ -49,6 +60,9 @@ export default function ArtStyleCropEditor({
     useState<CardRendererId>("museum");
   const [acceptedAdjustments, setAcceptedAdjustments] = useState<
     Record<string, ArtworkArtStyleAdjustment>
+  >({});
+  const [acceptedDetailAdjustments, setAcceptedDetailAdjustments] = useState<
+    Record<string, ArtworkDetailImageAdjustments>
   >({});
   const normalizedQuery = searchQuery.trim().toLocaleLowerCase();
   const matchingItems = useMemo(
@@ -75,6 +89,10 @@ export default function ArtStyleCropEditor({
   const initialAdjustment = selectedItem
     ? acceptedAdjustments[adjustmentKey] ??
       getArtworkImageAdjustment(selectedItem.artwork, rendererId)
+    : null;
+  const initialDetailAdjustments = selectedItem
+    ? acceptedDetailAdjustments[selectedItem.artwork_id] ??
+      getArtworkDetailImageAdjustments(selectedItem.artwork)
     : null;
 
   return (
@@ -145,8 +163,9 @@ export default function ArtStyleCropEditor({
           ) : null}
         </div>
       ) : null}
-      {selectedItem && initialAdjustment ? (
+      {selectedItem && initialAdjustment && initialDetailAdjustments ? (
         <ArtStyleCropWorkspace
+          initialDetailAdjustments={initialDetailAdjustments}
           initialAdjustment={initialAdjustment}
           item={selectedItem}
           key={adjustmentKey}
@@ -155,6 +174,12 @@ export default function ArtStyleCropEditor({
             setAcceptedAdjustments((current) => ({
               ...current,
               [adjustmentKey]: adjustment,
+            }))
+          }
+          onDetailAdjustmentsAccepted={(adjustments) =>
+            setAcceptedDetailAdjustments((current) => ({
+              ...current,
+              [selectedItem.artwork_id]: adjustments,
             }))
           }
           rendererId={rendererId}
@@ -175,16 +200,22 @@ export default function ArtStyleCropEditor({
 }
 
 function ArtStyleCropWorkspace({
+  initialDetailAdjustments,
   initialAdjustment,
   item: selectedItem,
   legendaryAttributes,
   onAccepted,
+  onDetailAdjustmentsAccepted,
   rendererId,
 }: {
+  initialDetailAdjustments: ArtworkDetailImageAdjustments;
   initialAdjustment: ArtworkArtStyleAdjustment;
   item: HydratedGameItem;
   legendaryAttributes: CardLegendaryAttribute[];
   onAccepted: (adjustment: ArtworkArtStyleAdjustment) => void;
+  onDetailAdjustmentsAccepted: (
+    adjustments: ArtworkDetailImageAdjustments,
+  ) => void;
   rendererId: CardRendererId;
 }) {
   const router = useRouter();
@@ -351,29 +382,255 @@ function ArtStyleCropWorkspace({
       </p>
       {error ? <p className="art-style-crop-error" role="alert">{error}</p> : null}
       {message ? <p className="art-style-crop-message" role="status">{message}</p> : null}
-      <div
-        className="art-style-crop-stage"
-        onPointerCancel={endDrag}
-        onPointerDown={beginDrag}
-        onPointerMove={moveDrag}
-        onPointerUp={endDrag}
-      >
-        <ItemCard
-          alreadyOwned={false}
-          forceRendererId={rendererId}
-          interactive={false}
-          item={previewItem}
-          key={[
-            selectedItem.artwork_id,
-            rendererId,
-            adjustment.x,
-            adjustment.y,
-            adjustment.scale,
-          ].join(":")}
-          legendaryAttributes={legendaryAttributes}
+      <div className="art-style-crop-preview-layout">
+        <div
+          className="art-style-crop-stage"
+          onPointerCancel={endDrag}
+          onPointerDown={beginDrag}
+          onPointerMove={moveDrag}
+          onPointerUp={endDrag}
+        >
+          <ItemCard
+            alreadyOwned={false}
+            forceRendererId={rendererId}
+            interactive={false}
+            item={previewItem}
+            key={[
+              selectedItem.artwork_id,
+              rendererId,
+              adjustment.x,
+              adjustment.y,
+              adjustment.scale,
+            ].join(":")}
+            legendaryAttributes={legendaryAttributes}
+          />
+        </div>
+        <ArtworkDetailCropEditor
+          artworkId={selectedItem.artwork_id}
+          initialAdjustments={initialDetailAdjustments}
+          onAccepted={onDetailAdjustmentsAccepted}
+          title={selectedItem.artwork.title}
         />
       </div>
     </div>
+  );
+}
+
+function ArtworkDetailCropEditor({
+  artworkId,
+  initialAdjustments,
+  onAccepted,
+  title,
+}: {
+  artworkId: string;
+  initialAdjustments: ArtworkDetailImageAdjustments;
+  onAccepted: (adjustments: ArtworkDetailImageAdjustments) => void;
+  title: string;
+}) {
+  const router = useRouter();
+  const dragState = useRef<DetailDragState | null>(null);
+  const [savedAdjustments, setSavedAdjustments] = useState(initialAdjustments);
+  const [slots, setSlots] = useState<ArtworkDetailImageSlot[]>(() =>
+    getArtworkDetailImageSlots(initialAdjustments),
+  );
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const adjustments = slots.flatMap((slot, index) =>
+    slot.enabled
+      ? [{ slot: index, ...slot.adjustment }]
+      : [],
+  );
+  const dirty =
+    JSON.stringify(adjustments) !== JSON.stringify(savedAdjustments);
+
+  function updateAdjustment(
+    index: number,
+    update: (current: ArtworkArtStyleAdjustment) => ArtworkArtStyleAdjustment,
+  ) {
+    setMessage("");
+    setSlots((current) =>
+      current.map((slot, slotIndex) =>
+        slotIndex === index
+          ? { ...slot, adjustment: update(slot.adjustment) }
+          : slot,
+      ),
+    );
+  }
+
+  function beginDrag(
+    index: number,
+    event: React.PointerEvent<HTMLDivElement>,
+  ) {
+    if (event.button !== 0) return;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    if (bounds.width === 0 || bounds.height === 0) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dragState.current = {
+      index,
+      pointerId: event.pointerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startAdjustment: slots[index].adjustment,
+      width: bounds.width,
+      height: bounds.height,
+    };
+    setMessage("");
+  }
+
+  function moveDrag(event: React.PointerEvent<HTMLDivElement>) {
+    const drag = dragState.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    updateAdjustment(drag.index, () =>
+      roundArtworkImageAdjustment({
+        ...drag.startAdjustment,
+        x: clamp(
+          drag.startAdjustment.x +
+            ((event.clientX - drag.startClientX) / drag.width) * 100,
+          ARTWORK_IMAGE_TRANSLATION_MIN,
+          ARTWORK_IMAGE_TRANSLATION_MAX,
+        ),
+        y: clamp(
+          drag.startAdjustment.y +
+            ((event.clientY - drag.startClientY) / drag.height) * 100,
+          ARTWORK_IMAGE_TRANSLATION_MIN,
+          ARTWORK_IMAGE_TRANSLATION_MAX,
+        ),
+      }),
+    );
+  }
+
+  function endDrag(event: React.PointerEvent<HTMLDivElement>) {
+    if (dragState.current?.pointerId !== event.pointerId) return;
+    dragState.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  }
+
+  async function acceptAdjustments() {
+    if (!dirty) return;
+    setSaving(true);
+    setError("");
+    setMessage("");
+    try {
+      const response = await fetch(
+        `/api/admin/artworks/${encodeURIComponent(artworkId)}/detail-image-adjustments`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ adjustments }),
+        },
+      );
+      const body = (await response.json()) as {
+        adjustments?: ArtworkDetailImageAdjustments;
+        error?: string;
+      };
+      if (!response.ok || !body.adjustments) {
+        throw new Error(
+          body.error ?? "The artwork detail crops could not be saved.",
+        );
+      }
+      setSlots(getArtworkDetailImageSlots(body.adjustments));
+      setSavedAdjustments(body.adjustments);
+      onAccepted(body.adjustments);
+      setMessage("Detail crops accepted.");
+      router.refresh();
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "The artwork detail crops could not be saved.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section className="artwork-detail-crop-editor">
+      <header>
+        <div>
+          <h3>Full-image details</h3>
+          <p>Drag and zoom four square detail views.</p>
+        </div>
+        <button
+          disabled={saving || !dirty}
+          onClick={() => void acceptAdjustments()}
+          type="button"
+        >
+          {saving ? "Saving..." : "Accept details"}
+        </button>
+      </header>
+      <div className="artwork-detail-crop-grid">
+        {slots.map((slot, index) => (
+          <article key={index}>
+            <header>
+              <strong>Detail {index + 1}</strong>
+              <label>
+                <input
+                  checked={slot.enabled}
+                  disabled={saving}
+                  onChange={(event) =>
+                    setSlots((current) =>
+                      current.map((currentSlot, slotIndex) =>
+                        slotIndex === index
+                          ? {
+                              ...currentSlot,
+                              enabled: event.target.checked,
+                            }
+                          : currentSlot,
+                      ),
+                    )
+                  }
+                  type="checkbox"
+                />
+                Enabled
+              </label>
+            </header>
+            <div
+              className={`artwork-detail-crop-frame${
+                slot.enabled ? "" : " disabled"
+              }`}
+              onPointerCancel={endDrag}
+              onPointerDown={(event) => {
+                if (slot.enabled) beginDrag(index, event);
+              }}
+              onPointerMove={moveDrag}
+              onPointerUp={endDrag}
+            >
+              <ArtworkDetailImage
+                adjustment={slot.adjustment}
+                alt={`${title} detail ${index + 1}`}
+                artworkId={artworkId}
+              />
+            </div>
+            <label>
+              Zoom
+              <input
+                disabled={saving || !slot.enabled}
+                max={ARTWORK_IMAGE_SCALE_MAX}
+                min={ARTWORK_IMAGE_SCALE_MIN}
+                onChange={(event) =>
+                  updateAdjustment(index, (current) =>
+                    roundArtworkImageAdjustment({
+                      ...current,
+                      scale: Number(event.target.value),
+                    }),
+                  )
+                }
+                step={0.05}
+                type="range"
+                value={slot.adjustment.scale}
+              />
+              <output>{Math.round(slot.adjustment.scale * 100)}%</output>
+            </label>
+          </article>
+        ))}
+      </div>
+      {error ? <p className="art-style-crop-error" role="alert">{error}</p> : null}
+      {message ? <p className="art-style-crop-message" role="status">{message}</p> : null}
+    </section>
   );
 }
 

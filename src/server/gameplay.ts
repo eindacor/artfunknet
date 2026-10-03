@@ -25,6 +25,12 @@ export type ArtworkArtStyleAdjustment = {
   scale: number;
 };
 
+export type ArtworkDetailImageAdjustment = ArtworkArtStyleAdjustment & {
+  slot: number;
+};
+
+export type ArtworkDetailImageAdjustments = ArtworkDetailImageAdjustment[];
+
 const PLAYER_LEVEL_MAX = 50;
 const RARITY_LEVEL_RESTRICTIONS: Record<ArtworkRarity, number> = {
   common: 0,
@@ -68,6 +74,7 @@ export type Artwork = {
   active: boolean;
   effect_id?: string;
   art_style_adjustments?: Record<string, ArtworkArtStyleAdjustment>;
+  detail_image_adjustments?: ArtworkDetailImageAdjustments;
   // Legacy-only fields retained for reading pre-migration records.
   special_attributes?: string[];
   unique_attributes?: string[];

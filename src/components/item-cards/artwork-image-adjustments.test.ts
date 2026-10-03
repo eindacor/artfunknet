@@ -3,9 +3,12 @@ import test from "node:test";
 
 import {
   DEFAULT_ARTWORK_IMAGE_ADJUSTMENT,
+  getArtworkDetailImageAdjustments,
+  getArtworkDetailImageSlots,
   getArtworkImageAdjustment,
   getArtworkImageBackgroundPosition,
   getArtworkImageZoomTranslation,
+  isValidArtworkImageAdjustment,
   normalizeArtworkImageAdjustment,
   roundArtworkImageAdjustment,
 } from "./artwork-image-adjustments.ts";
@@ -32,6 +35,36 @@ test("artwork image adjustments use the selected renderer values", () => {
   );
 });
 
+test("artwork detail image adjustments return only enabled normalized crops", () => {
+  assert.deepEqual(
+    getArtworkDetailImageAdjustments({
+      detail_image_adjustments: [
+        { slot: 0, x: 10, y: 20, scale: 1.5 },
+        { slot: 2, x: -30, y: 40, scale: 2 },
+      ],
+    }),
+    [
+      { slot: 0, x: 10, y: 20, scale: 1.5 },
+      { slot: 2, x: -30, y: 40, scale: 2 },
+    ],
+  );
+  assert.deepEqual(getArtworkDetailImageAdjustments({}), []);
+});
+
+test("artwork detail slots expose four independently enabled editors", () => {
+  assert.deepEqual(
+    getArtworkDetailImageSlots([
+      { slot: 1, x: 10, y: -20, scale: 1.5 },
+    ]),
+    [
+      { enabled: false, adjustment: { x: 0, y: 0, scale: 1 } },
+      { enabled: true, adjustment: { x: 10, y: -20, scale: 1.5 } },
+      { enabled: false, adjustment: { x: 0, y: 0, scale: 1 } },
+      { enabled: false, adjustment: { x: 0, y: 0, scale: 1 } },
+    ],
+  );
+});
+
 test("artwork image adjustments normalize invalid and out-of-range values", () => {
   assert.deepEqual(
     normalizeArtworkImageAdjustment({
@@ -40,6 +73,21 @@ test("artwork image adjustments normalize invalid and out-of-range values", () =
       scale: 8,
     }),
     { x: -100, y: 0, scale: 3 },
+  );
+});
+
+test("artwork image adjustment validation requires numeric bounded values", () => {
+  assert.equal(
+    isValidArtworkImageAdjustment({ x: 0, y: 0, scale: 1.25 }),
+    true,
+  );
+  assert.equal(
+    isValidArtworkImageAdjustment({ x: "0", y: 0, scale: 1.25 }),
+    false,
+  );
+  assert.equal(
+    isValidArtworkImageAdjustment({ x: 0, y: 0, scale: 0.5 }),
+    false,
   );
 });
 

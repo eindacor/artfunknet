@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
+import ArtworkDetailImage from "@/components/artwork-detail-image";
 import { CommunityReactionLoader } from "@/components/community-emotes";
 import { ItemExpirationBadge } from "@/components/item-expiration-display";
 
@@ -13,6 +14,7 @@ import AuctionWatermark from "./auction-watermark";
 import KnownForgeryWatermark from "./known-forgery-watermark";
 import RenderCardPreview from "./render-card-preview";
 import { CARD_RENDERERS } from "./registry";
+import { getArtworkDetailImageAdjustments } from "./artwork-image-adjustments";
 import {
   AttributeIcons,
   CompleteItemRecord,
@@ -26,6 +28,7 @@ import type {
   ItemOwner,
 } from "./types";
 import type { GalleryChatMessageView } from "@/server/gallery-chat";
+import type { ArtworkDetailImageAdjustment } from "@/server/gameplay";
 import type { HydratedGameItem } from "@/server/item-artwork";
 import { RAFFLE_OWNER_ID } from "@/server/raffle-core";
 
@@ -58,6 +61,9 @@ export default function StandardItemDialog({
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
+  const [expandedArtwork, setExpandedArtwork] = useState<
+    "full" | ArtworkDetailImageAdjustment | null
+  >(null);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -83,33 +89,118 @@ export default function StandardItemDialog({
   }
 
   return (
+    <>
+      <dialog
+        aria-labelledby={`standard-item-title-${item._id}`}
+        className="standard-item-dialog"
+        data-mint={item.mint ? "true" : undefined}
+        data-rarity={item.artwork.rarity}
+        data-seasonal={item.seasonal ? "true" : undefined}
+        onCancel={(event) => {
+          event.preventDefault();
+          if (expandedArtwork) {
+            setExpandedArtwork(null);
+            return;
+          }
+          closeDialog();
+        }}
+        ref={dialogRef}
+        tabIndex={-1}
+      >
+        <StandardItemDetails
+          actions={actions}
+          primaryAction={primaryAction}
+          currentRendererId={currentRendererId}
+          displayOwner={displayOwner}
+          owner={owner}
+          headerDetails={headerDetails}
+          item={item}
+          legendaryAttributes={legendaryAttributes}
+          onClose={closeDialog}
+          onExpandArtwork={(adjustment) =>
+            setExpandedArtwork(adjustment ?? "full")
+          }
+          onOpenArtStyle={onOpenArtStyle}
+          permissions={permissions}
+          viewerId={viewerId}
+        />
+      </dialog>
+      {expandedArtwork ? (
+        <ExpandedArtworkDialog
+          adjustment={
+            expandedArtwork === "full" ? undefined : expandedArtwork
+          }
+          alt={`${item.artwork.title} by ${item.artwork.artist}${
+            expandedArtwork === "full"
+              ? ""
+              : ` detail ${expandedArtwork.slot + 1}`
+          }`}
+          artworkId={item.artwork_id}
+          onClose={() => setExpandedArtwork(null)}
+        />
+      ) : null}
+    </>
+  );
+}
+
+function ExpandedArtworkDialog({
+  adjustment,
+  alt,
+  artworkId,
+  onClose,
+}: {
+  adjustment?: ArtworkDetailImageAdjustment;
+  alt: string;
+  artworkId: string;
+  onClose: () => void;
+}) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (dialog && !dialog.open) {
+      dialog.showModal();
+    }
+    return () => {
+      if (dialog?.open) dialog.close();
+    };
+  }, []);
+
+  return (
     <dialog
-      aria-labelledby={`standard-item-title-${item._id}`}
-      className="standard-item-dialog"
-      data-mint={item.mint ? "true" : undefined}
-      data-rarity={item.artwork.rarity}
-      data-seasonal={item.seasonal ? "true" : undefined}
+      aria-label={`Expanded artwork: ${alt}`}
+      className="standard-item-dialog-artwork-viewer"
       onCancel={(event) => {
         event.preventDefault();
-        closeDialog();
+        onClose();
       }}
       ref={dialogRef}
-      tabIndex={-1}
     >
-      <StandardItemDetails
-        actions={actions}
-        primaryAction={primaryAction}
-        currentRendererId={currentRendererId}
-        displayOwner={displayOwner}
-        owner={owner}
-        headerDetails={headerDetails}
-        item={item}
-        legendaryAttributes={legendaryAttributes}
-        onClose={closeDialog}
-        onOpenArtStyle={onOpenArtStyle}
-        permissions={permissions}
-        viewerId={viewerId}
-      />
+      {adjustment ? (
+        <ArtworkDetailImage
+          adjustment={adjustment}
+          alt={alt}
+          artworkId={artworkId}
+          className="standard-item-dialog-expanded-detail"
+        />
+      ) : (
+        <ArtworkThumbnail
+          alt={alt}
+          artworkId={artworkId}
+          className="standard-item-dialog-expanded-artwork"
+          size={1600}
+          variant="full"
+        />
+      )}
+      <button
+        aria-label="Close expanded artwork"
+        autoFocus
+        className="reroll-dialog-close standard-item-dialog-artwork-viewer-close"
+        onClick={onClose}
+        type="button"
+      >
+        <i aria-hidden="true" className="fa fa-times" />
+      </button>
     </dialog>
   );
 }
@@ -122,6 +213,7 @@ export function StandardItemDetails({
   primaryAction,
   permissions,
   onClose,
+  onExpandArtwork,
   onOpenArtStyle,
   displayOwner,
   owner,
@@ -135,6 +227,7 @@ export function StandardItemDetails({
   primaryAction?: React.ReactNode;
   permissions: ItemDialogPermissions;
   onClose?: () => void;
+  onExpandArtwork?: (adjustment?: ArtworkDetailImageAdjustment) => void;
   onOpenArtStyle?: () => void;
   displayOwner?: ItemDisplayOwner;
   owner?: ItemOwner;
@@ -142,6 +235,7 @@ export function StandardItemDetails({
   viewerId?: string | null;
 }) {
   const Renderer = CARD_RENDERERS[currentRendererId];
+  const detailImageAdjustments = getArtworkDetailImageAdjustments(item.artwork);
   const displayedStatus =
     item.status === "claimed" && item.owner === RAFFLE_OWNER_ID ? (
       <span>
@@ -203,13 +297,62 @@ export function StandardItemDetails({
             ) : null}
           </div>
           <div className="standard-item-dialog-visuals">
-            <ArtworkThumbnail
-            alt={`${item.artwork.title} by ${item.artwork.artist}`}
-            artworkId={item.artwork_id}
-            className="standard-item-dialog-artwork"
-            size={520}
-            variant="full"
-            />
+            <div
+              className={`standard-item-dialog-artwork-presentation${
+                detailImageAdjustments.length > 0 ? " has-details" : ""
+              }`}
+            >
+              <div className="standard-item-dialog-artwork-panel">
+                <ArtworkThumbnail
+                  alt={`${item.artwork.title} by ${item.artwork.artist}`}
+                  artworkId={item.artwork_id}
+                  className="standard-item-dialog-artwork"
+                  size={520}
+                  variant="full"
+                />
+                {onExpandArtwork ? (
+                  <button
+                    aria-label="Expand full artwork"
+                    className="standard-item-dialog-artwork-expand"
+                    onClick={() => onExpandArtwork()}
+                    title="Expand full artwork"
+                    type="button"
+                  >
+                    <i aria-hidden="true" className="fa fa-expand" />
+                  </button>
+                ) : null}
+              </div>
+              {detailImageAdjustments.length > 0 ? (
+                <div
+                  aria-label={`${item.artwork.title} detail views`}
+                  className="standard-item-dialog-detail-grid"
+                >
+                  {detailImageAdjustments.map((adjustment) => (
+                    <div
+                      className="standard-item-dialog-detail-panel"
+                      key={adjustment.slot}
+                    >
+                      <ArtworkDetailImage
+                        adjustment={adjustment}
+                        alt={`${item.artwork.title} detail ${adjustment.slot + 1}`}
+                        artworkId={item.artwork_id}
+                      />
+                      {onExpandArtwork ? (
+                        <button
+                          aria-label={`Expand artwork detail ${adjustment.slot + 1}`}
+                          className="standard-item-dialog-detail-expand"
+                          onClick={() => onExpandArtwork(adjustment)}
+                          title={`Expand artwork detail ${adjustment.slot + 1}`}
+                          type="button"
+                        >
+                          <i aria-hidden="true" className="fa fa-expand" />
+                        </button>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
             <article
             className={`standard-item-dialog-card rendered-item-card rendered-item-card-${currentRendererId}`}
             data-card-renderer={currentRendererId}

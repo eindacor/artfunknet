@@ -282,6 +282,32 @@
   transform-origin: center;
 }
 
+.artwork-detail-image {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  background: #111;
+}
+
+.artwork-detail-image-source {
+  position: absolute;
+  inset: 0;
+  background-position:
+    var(--artwork-detail-position-x, 50%)
+    var(--artwork-detail-position-y, 50%);
+  background-repeat: no-repeat;
+  background-size: cover;
+  pointer-events: none;
+  transform:
+    translate3d(
+      var(--artwork-detail-translate-x, 0%),
+      var(--artwork-detail-translate-y, 0%),
+      0
+    )
+    scale(var(--artwork-detail-scale, 1));
+  transform-origin: center;
+}
+
 .og-card-artwork-image {
   position: absolute;
   inset: 0;
@@ -3874,6 +3900,140 @@
   gap: 0.75rem;
 }
 
+.art-style-crop-preview-layout {
+  display: grid;
+  grid-template-columns: minmax(430px, 1fr) minmax(320px, 410px);
+  align-items: start;
+  gap: 1rem;
+}
+
+.artwork-detail-crop-editor {
+  display: grid;
+  gap: 0.65rem;
+  border: 1px solid rgb(255 255 255 / 14%);
+  padding: 0.75rem;
+  background: rgb(0 0 0 / 16%);
+}
+
+.artwork-detail-crop-editor > header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.artwork-detail-crop-editor h3,
+.artwork-detail-crop-editor p {
+  margin: 0;
+}
+
+.artwork-detail-crop-editor h3 {
+  font-size: 0.82rem;
+}
+
+.artwork-detail-crop-editor header p {
+  margin-top: 0.2rem;
+  color: var(--muted);
+  font-size: 0.65rem;
+}
+
+.artwork-detail-crop-editor header button {
+  min-height: 32px;
+  border: 1px solid var(--accent);
+  padding: 0.35rem 0.55rem;
+  background: var(--accent);
+  color: #160c15;
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.artwork-detail-crop-editor header button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.artwork-detail-crop-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.artwork-detail-crop-grid article {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.artwork-detail-crop-grid article > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.artwork-detail-crop-grid article > header > strong {
+  color: var(--muted);
+  font: 700 0.6rem Courier, "Courier New", monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.artwork-detail-crop-grid article > header label {
+  display: inline-flex;
+  grid-template-columns: none;
+  gap: 0.25rem;
+  color: #fff;
+}
+
+.artwork-detail-crop-grid article > header input {
+  accent-color: var(--accent);
+}
+
+.artwork-detail-crop-frame {
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 28%);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.artwork-detail-crop-frame.disabled {
+  cursor: default;
+  filter: grayscale(1);
+  opacity: 0.28;
+}
+
+.artwork-detail-crop-frame:active {
+  cursor: grabbing;
+}
+
+.artwork-detail-crop-frame .artwork-detail-image {
+  width: 100%;
+  height: 100%;
+}
+
+.artwork-detail-crop-grid label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--muted);
+  font: 700 0.55rem Courier, "Courier New", monospace;
+  text-transform: uppercase;
+}
+
+.artwork-detail-crop-grid input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.artwork-detail-crop-grid output {
+  min-width: 2.7rem;
+  color: #fff;
+  text-align: right;
+}
+
 .art-style-crop-search-results {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -4427,6 +4587,137 @@
   align-items: center;
   gap: 1.25rem;
   min-width: 0;
+}
+
+.standard-item-dialog-artwork-presentation {
+  min-width: 0;
+}
+
+.standard-item-dialog-artwork-presentation.has-details {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+}
+
+.standard-item-dialog-artwork-panel {
+  position: relative;
+  min-width: 0;
+}
+
+.standard-item-dialog-artwork-expand {
+  position: absolute;
+  z-index: 1;
+  right: 14px;
+  bottom: 14px;
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 78%);
+  border-radius: var(--game-button-radius);
+  background: rgb(0 0 0 / 76%);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgb(0 0 0 / 30%);
+}
+
+.standard-item-dialog-artwork-expand:hover,
+.standard-item-dialog-artwork-expand:focus-visible {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #000;
+}
+
+.standard-item-dialog-detail-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+}
+
+.standard-item-dialog-detail-panel {
+  position: relative;
+  width: 112px;
+}
+
+.standard-item-dialog-detail-panel .artwork-detail-image {
+  width: 100%;
+  aspect-ratio: 1;
+  border: 4px solid #fff;
+  box-shadow: 0 5px 12px rgb(0 0 0 / 16%);
+}
+
+.standard-item-dialog-detail-expand {
+  position: absolute;
+  right: 7px;
+  bottom: 7px;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 78%);
+  border-radius: var(--game-button-radius);
+  background: rgb(0 0 0 / 76%);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 30%);
+}
+
+.standard-item-dialog-detail-expand:hover,
+.standard-item-dialog-detail-expand:focus-visible {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #000;
+}
+
+.standard-item-dialog-artwork-viewer {
+  position: fixed;
+  z-index: 1100;
+  inset: 0;
+  width: 100vw;
+  max-width: none;
+  height: 100vh;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  padding: 10px;
+  overflow: hidden;
+  background: #090909;
+}
+
+.standard-item-dialog-artwork-viewer[open] {
+  display: grid;
+  place-items: center;
+}
+
+.standard-item-dialog-artwork-viewer::backdrop {
+  background: #090909;
+}
+
+.standard-item-dialog-expanded-artwork {
+  width: 100% !important;
+  height: 100% !important;
+  aspect-ratio: auto;
+  background: transparent;
+}
+
+.standard-item-dialog-expanded-artwork img {
+  object-fit: contain;
+}
+
+.standard-item-dialog-expanded-detail {
+  width: min(calc(100vw - 20px), calc(100vh - 20px));
+  width: min(calc(100vw - 20px), calc(100dvh - 20px));
+  aspect-ratio: 1;
+}
+
+.standard-item-dialog-artwork-viewer-close {
+  position: fixed;
+  z-index: 1;
+  top: 14px;
+  right: 14px;
+  box-shadow: 0 3px 12px rgb(0 0 0 / 42%);
 }
 
 .standard-item-dialog-card {
@@ -5608,10 +5899,30 @@
   }
 }
 
+@media (max-width: 1000px) {
+  .art-style-crop-preview-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .artwork-detail-crop-editor {
+    width: min(100%, 520px);
+    justify-self: center;
+  }
+
+  .standard-item-dialog-artwork-presentation.has-details {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+  }
+}
+
 @media (max-width: 700px) {
   .standard-item-dialog-artwork {
     width: 120px;
     max-height: 125px;
+  }
+
+  .standard-item-dialog-detail-panel {
+    width: min(112px, calc(50vw - 28px));
   }
 }
 
