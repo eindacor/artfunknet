@@ -204,6 +204,32 @@ Passwords are stored as per-account salted scrypt hashes and never as plaintext.
 Signed-in players can change their public name or password from
 <http://localhost:3000/play/account>.
 
+### Native game clients
+
+Native clients authenticate with `POST /api/game/v1/auth/login`, then send the
+returned short-lived token as `Authorization: Bearer <token>`. The same
+authorization gate protects browser and native requests, so native clients can
+call the existing authoritative `/api/play/*` gameplay routes without
+reimplementing loot, visitor, auction, inventory, or claim rules.
+
+`GET /api/game/v1/bootstrap` returns the authenticated player, an available Art
+Donor visitor, and current unclaimed item pickups. During local development,
+`?ensureDemoDonor=1` creates a temporary bronze donor when none is active. That
+fallback is disabled for ordinary production accounts and remains available to
+production test accounts.
+
+`GET /api/game/v1/inventory` returns the authenticated player's claimed and
+displayed collection in a compact native-client shape. Each item includes its
+artwork dimensions plus `thumb` and `card` image paths. Those paths use the
+existing `/api/artwork/<id>/image` delivery route, which serves local storage
+or redirects to the configured S3/CloudFront object on EC2.
+
+The companion Unreal prototype is in `..\artfunkel_game\ArtfunkelGame`. It
+keeps credentials and the bearer token in memory, calls the existing visitor
+meet and item claim routes, and removes painting pickups only after the server
+confirms collection. Do not put player credentials or tokens in source or
+committed `.ini` files.
+
 Automated password-reset email is not configured. An administrator can recover
 a locked account from <http://localhost:3000/admin/player-accounts> by looking
 up its exact email address and assigning a temporary password. Deliver that

@@ -7,9 +7,8 @@ import {
 } from "@/server/player-account";
 import { authenticatePlayerPassword } from "@/server/player-password-auth";
 import {
-  PLAYER_SESSION_COOKIE,
   createPlayerSessionToken,
-  playerSessionCookieOptions,
+  PLAYER_SESSION_TTL_SECONDS,
 } from "@/server/session";
 
 export async function POST(request: Request) {
@@ -45,27 +44,38 @@ export async function POST(request: Request) {
       { status: 401 },
     );
   }
-  const { player } = authentication;
 
+  const { player } = authentication;
+  const now = new Date();
+  const accessToken = await createPlayerSessionToken({
+    playerId: player._id,
+    email: player.email,
+    screenName: player.screen_name,
+  });
   await database.collection<PlayerAccountRecord>("players").updateOne(
     { _id: player._id },
     {
       $set: {
-        "profile.last_login": new Date().toISOString(),
+        "profile.last_login": now.toISOString(),
+        updated_at: now,
       },
     },
   );
 
-  const response = NextResponse.json({ status: "ok" });
-  response.cookies.set(
-    PLAYER_SESSION_COOKIE,
-    await createPlayerSessionToken({
-      playerId: player._id,
-      email: player.email,
-      screenName: player.screen_name,
-    }),
-    playerSessionCookieOptions,
+  return NextResponse.json(
+    {
+      accessToken,
+      tokenType: "Bearer",
+      expiresIn: PLAYER_SESSION_TTL_SECONDS,
+      player: {
+        id: player._id,
+        screenName: player.screen_name,
+      },
+    },
+    {
+      headers: {
+        "Cache-Control": "private, no-store",
+      },
+    },
   );
-
-  return response;
 }

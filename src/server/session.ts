@@ -1,11 +1,14 @@
 import "server-only";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { jwtVerify, SignJWT } from "jose";
 
+import { getBearerToken } from "./authorization.ts";
+
 export const ADMIN_SESSION_COOKIE = "artfunkel_admin_session";
 export const PLAYER_SESSION_COOKIE = "artfunkel_player_session";
+export const PLAYER_SESSION_TTL_SECONDS = 60 * 60 * 8;
 
 export type AdminSession = {
   email: string;
@@ -92,7 +95,13 @@ export async function requireAdmin(): Promise<AdminSession> {
 }
 
 export async function getPlayerSession(): Promise<PlayerSession | null> {
-  const token = (await cookies()).get(PLAYER_SESSION_COOKIE)?.value;
+  const [cookieStore, requestHeaders] = await Promise.all([
+    cookies(),
+    headers(),
+  ]);
+  const token =
+    getBearerToken(requestHeaders.get("authorization")) ??
+    cookieStore.get(PLAYER_SESSION_COOKIE)?.value;
 
   if (!token) {
     return null;
@@ -138,7 +147,7 @@ export const adminSessionCookieOptions = {
   sameSite: "lax" as const,
   secure: process.env.SESSION_COOKIE_SECURE === "true",
   path: "/",
-  maxAge: 60 * 60 * 8,
+  maxAge: PLAYER_SESSION_TTL_SECONDS,
 };
 
 export const playerSessionCookieOptions = adminSessionCookieOptions;
