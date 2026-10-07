@@ -124,7 +124,7 @@ test("donation Karma scales with collectible value properties", () => {
   };
   assert.equal(
     getItemValuePropertyMultiplier(otherValueProperties, "rare"),
-    104,
+    88,
   );
   assert.equal(
     calculateDonationKarma({
@@ -133,6 +133,6 @@ test("donation Karma scales with collectible value properties", () => {
       valueProperties: otherValueProperties,
       randomRoll: 0.5,
     }),
-    getItemKarmaValue("rare", 1) * 104,
+    getItemKarmaValue("rare", 1) * 88,
   );
 });

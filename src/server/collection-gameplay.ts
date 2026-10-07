@@ -7,7 +7,10 @@ import {
   type ArtworkRarity,
   type GameItem,
 } from "./gameplay.ts";
-import type { GameplayConfig } from "./game-settings.ts";
+import {
+  getGameplaySettings,
+  type GameplayConfig,
+} from "./game-settings.ts";
 import {
   getDisplayedArtworkEffect,
   getDisplayedArtworkEffects,
@@ -199,9 +202,12 @@ export async function getAverageDropValueForLevel(
   database: Db,
   playerLevel: number,
 ): Promise<number> {
-  const metadata = await database
-    .collection<{ _id: string; loot_data: LootData }>("metadata")
-    .findOne({ _id: "loot-data" });
+  const [metadata, settings] = await Promise.all([
+    database
+      .collection<{ _id: string; loot_data: LootData }>("metadata")
+      .findOne({ _id: "loot-data" }),
+    getGameplaySettings(database),
+  ]);
   if (!metadata) throw new Error("Loot metadata has not been seeded.");
 
   const artworks = await database
@@ -213,6 +219,7 @@ export async function getAverageDropValueForLevel(
     playerLevel,
     metadata.loot_data,
     artworks,
+    settings.active.rarityWeights,
   );
   return averageDrop;
 }
@@ -665,6 +672,7 @@ function getAverageDropValue(
   playerLevel: number,
   lootData: LootData,
   artworks: ArtworkValue[],
+  rarityWeights: Record<ArtworkRarity, number>,
 ): number {
   const averages = {} as Record<ArtworkRarity, number>;
   for (const rarity of ARTWORK_RARITIES) {
@@ -680,7 +688,7 @@ function getAverageDropValue(
           }, 0) / matching.length;
   }
 
-  const rarityMap = getRarityMap(playerLevel, lootData);
+  const rarityMap = getRarityMap(playerLevel, lootData, rarityWeights);
   let average = ARTWORK_RARITIES.reduce(
     (sum, rarity) => sum + averages[rarity] * rarityMap[rarity],
     0,

@@ -1,5 +1,7 @@
 import { settleForgeryContestIfDue } from "./forgery-contest.ts";
+import { getGameplaySettings } from "./game-settings.ts";
 import { getDatabase } from "./mongodb.ts";
+import { settleRaffleIfDue } from "./raffle-gameplay.ts";
 import { settleSeasonalRotationIfDue } from "./seasonal-daily-events.ts";
 
 const DAILY_EVENT_CHECK_INTERVAL_MS = 60 * 1000;
@@ -17,8 +19,10 @@ async function checkDailyEvents(): Promise<void> {
   }
   schedulerGlobal.artfunkDailyEventCheck = (async () => {
     const database = await getDatabase();
+    const settings = await getGameplaySettings(database);
     await Promise.all([
       settleForgeryContestIfDue(database),
+      settleRaffleIfDue(database, settings.active),
       settleSeasonalRotationIfDue(database),
     ]);
   })();

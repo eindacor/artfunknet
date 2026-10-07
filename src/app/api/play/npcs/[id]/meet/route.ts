@@ -38,9 +38,8 @@ import {
 } from "@/server/collection-gameplay";
 import { deleteCommunityReactions } from "@/server/community-reaction-cleanup";
 import {
-  amplifyRarityMap,
   generateDailyDrop,
-  getRarityMap,
+  getVisitorRarityMap,
   type GameItem,
   type LootData,
 } from "@/server/gameplay";
@@ -723,8 +722,10 @@ export async function POST(
               itemCount: 1,
               generationMap: {
                 ...getGameplayGenerationMap(settings.active),
-                rarity: amplifyRarityMap(
-                  getRarityMap(player.profile.level, metadata!.loot_data),
+                rarity: getVisitorRarityMap(
+                  player.profile.level,
+                  metadata!.loot_data,
+                  settings.active.rarityWeights,
                   NPC_RARITY_AMPLIFIERS[npc.quality],
                 ),
               },
@@ -754,8 +755,10 @@ export async function POST(
           itemCount: offerCount,
           generationMap: {
             ...getGameplayGenerationMap(settings.active),
-            rarity: amplifyRarityMap(
-              getRarityMap(player.profile.level, metadata!.loot_data),
+            rarity: getVisitorRarityMap(
+              player.profile.level,
+              metadata!.loot_data,
+              settings.active.rarityWeights,
               NPC_RARITY_AMPLIFIERS[npc.quality],
             ),
           },
@@ -946,8 +949,10 @@ export async function POST(
                 itemCount: 1,
                 generationMap: {
                   ...getGameplayGenerationMap(settings.active),
-                  rarity: amplifyRarityMap(
-                    getRarityMap(player.profile.level, metadata.loot_data),
+                  rarity: getVisitorRarityMap(
+                    player.profile.level,
+                    metadata.loot_data,
+                    settings.active.rarityWeights,
                     NPC_RARITY_AMPLIFIERS[npc.quality],
                   ),
                 },
@@ -990,8 +995,10 @@ export async function POST(
             itemCount: offerCount,
             generationMap: {
               ...getGameplayGenerationMap(settings.active),
-              rarity: amplifyRarityMap(
-                getRarityMap(player.profile.level, metadata.loot_data),
+              rarity: getVisitorRarityMap(
+                player.profile.level,
+                metadata.loot_data,
+                settings.active.rarityWeights,
                 NPC_RARITY_AMPLIFIERS[npc.quality],
               ),
             },
@@ -1154,8 +1161,10 @@ export async function POST(
             ),
             generationMap: {
               ...getGameplayGenerationMap(settings.active),
-              rarity: amplifyRarityMap(
-                getRarityMap(player.profile.level, metadata.loot_data),
+              rarity: getVisitorRarityMap(
+                player.profile.level,
+                metadata.loot_data,
+                settings.active.rarityWeights,
                 NPC_RARITY_AMPLIFIERS[npc.quality],
               ),
             },

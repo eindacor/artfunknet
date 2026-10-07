@@ -12,17 +12,18 @@ import type {
   GameplayConfigName,
   GameplaySettings,
 } from "@/server/game-settings";
+import {
+  RARITY_VALUE_TIERS,
+  type RarityValueRanges,
+  validateRarityValueRanges,
+} from "@/server/rarity-values";
 
-const RARITIES = [
-  "common",
-  "uncommon",
-  "rare",
-  "legendary",
-  "masterpiece",
-] as const;
+const RARITIES = RARITY_VALUE_TIERS;
 export default function GameplaySettingsForm({
+  initialRarityValues,
   initialSettings,
 }: {
+  initialRarityValues: RarityValueRanges;
   initialSettings: GameplaySettings;
 }) {
   const cardCosmetics = useCardCosmetics();
@@ -34,6 +35,10 @@ export default function GameplaySettingsForm({
     useState<GameplayConfigName>("actual");
   const [savedActual, setSavedActual] = useState(
     JSON.stringify(initialSettings.actual),
+  );
+  const [rarityValues, setRarityValues] = useState(initialRarityValues);
+  const [savedRarityValues, setSavedRarityValues] = useState(
+    JSON.stringify(initialRarityValues),
   );
   const [rarityJson, setRarityJson] = useState({
     actual: JSON.stringify(initialSettings.actual.rarityWeights, null, 2),
@@ -51,6 +56,7 @@ export default function GameplaySettingsForm({
   const cardStyleResult = parseCardStyleWeights(
     cardStyleJson[selectedConfig],
   );
+  const rarityValueResult = validateRarityValueRanges(rarityValues);
 
   function updateConfig(
     name: GameplayConfigName,
@@ -68,6 +74,11 @@ export default function GameplaySettingsForm({
     const debugRarity = parseRarityWeights(rarityJson.debug);
     const actualCardStyles = parseCardStyleWeights(cardStyleJson.actual);
     const debugCardStyles = parseCardStyleWeights(cardStyleJson.debug);
+    const nextRarityValues = validateRarityValueRanges(rarityValues);
+    if (!nextRarityValues.ok) {
+      setError(`Artwork value ranges: ${nextRarityValues.error}`);
+      return;
+    }
     if (!actualRarity.ok) {
       setSelectedConfig("actual");
       setError(`Actual configuration: ${actualRarity.error}`);
@@ -100,9 +111,10 @@ export default function GameplaySettingsForm({
       cardStyleWeights: debugCardStyles.weights,
     };
     if (
-      JSON.stringify(nextActual) !== savedActual &&
+      (JSON.stringify(nextActual) !== savedActual ||
+        JSON.stringify(nextRarityValues.value) !== savedRarityValues) &&
       !window.confirm(
-        "Are you sure you want to change the Actual gameplay configuration? These values control normal gameplay.",
+        "Are you sure you want to change the Actual gameplay configuration or shared artwork value ranges? These values control normal gameplay.",
       )
     ) {
       return;
@@ -117,17 +129,21 @@ export default function GameplaySettingsForm({
           debugEnabled: settings.debugEnabled,
           actual: nextActual,
           debug: nextDebug,
+          rarityValues: nextRarityValues.value,
         }),
       });
       const body = (await response.json()) as {
         error?: string;
+        rarityValues?: RarityValueRanges;
         settings?: GameplaySettings;
       };
-      if (!response.ok || !body.settings) {
+      if (!response.ok || !body.settings || !body.rarityValues) {
         throw new Error(body.error ?? "Gameplay settings could not be saved.");
       }
       setSettings(body.settings);
       setSavedActual(JSON.stringify(body.settings.actual));
+      setRarityValues(body.rarityValues);
+      setSavedRarityValues(JSON.stringify(body.rarityValues));
       setRarityJson({
         actual: JSON.stringify(body.settings.actual.rarityWeights, null, 2),
         debug: JSON.stringify(body.settings.debug.rarityWeights, null, 2),
@@ -244,6 +260,35 @@ export default function GameplaySettingsForm({
         suffix="items"
         value={activeEditor.vintageConsiderationCount}
       />
+      </ConfigGroup>
+
+      <ConfigGroup title="Artwork value ranges">
+        <div className="admin-rarity-value-copy">
+          <p>
+            These shared loot metadata ranges control every rarity in both
+            Actual and Debug mode. An artwork&apos;s base value is its minimum
+            plus its Catalog <strong>Value scale</strong> multiplied by the
+            range width.
+          </p>
+          <p>
+            Standard level-0 actual value runs from 40% of base at zero
+            condition and no attribute rating to 84% at full condition and
+            perfect ratings. Sell value is 80% of actual; purchase value is
+            150%. Item properties and promotion levels apply afterward.
+          </p>
+          <p>
+            Newly generated items use saved ranges immediately. Existing
+            items keep their stored values until an item operation recalculates
+            them.
+          </p>
+        </div>
+        <RarityValueEditor
+          onChange={setRarityValues}
+          ranges={rarityValues}
+        />
+        {rarityValueResult.ok ? null : (
+          <p className="admin-error">{rarityValueResult.error}</p>
+        )}
       </ConfigGroup>
 
       <ConfigGroup title="Crate pricing">
@@ -884,6 +929,83 @@ function formatPercentage(value: number) {
     minimumFractionDigits: value > 0 && value < 0.001 ? 3 : 1,
     maximumFractionDigits: value > 0 && value < 0.001 ? 4 : 1,
   }).format(value);
+}
+
+function RarityValueEditor({
+  ranges,
+  onChange,
+}: {
+  ranges: RarityValueRanges;
+  onChange: (ranges: RarityValueRanges) => void;
+}) {
+  function updateRange(
+    rarity: (typeof RARITIES)[number],
+    field: "min" | "max",
+    value: number,
+  ) {
+    onChange({
+      ...ranges,
+      [rarity]: {
+        ...ranges[rarity],
+        [field]: value,
+      },
+    });
+  }
+
+  return (
+    <div className="admin-rarity-value-grid">
+      <div className="admin-rarity-value-row admin-rarity-value-header">
+        <strong>Rarity</strong>
+        <strong>Base minimum</strong>
+        <strong>Base maximum</strong>
+        <strong>Standard actual envelope</strong>
+      </div>
+      {RARITIES.map((rarity) => {
+        const range = ranges[rarity];
+        return (
+          <div className="admin-rarity-value-row" key={rarity}>
+            <strong className={`rarity-text ${rarity}`}>{rarity}</strong>
+            <label>
+              <span className="sr-only">{rarity} base minimum</span>
+              <input
+                max={1_000_000_000_000}
+                min={1}
+                onChange={(event) =>
+                  updateRange(rarity, "min", Number(event.target.value))
+                }
+                required
+                step={1}
+                type="number"
+                value={range.min}
+              />
+            </label>
+            <label>
+              <span className="sr-only">{rarity} base maximum</span>
+              <input
+                max={1_000_000_000_000}
+                min={1}
+                onChange={(event) =>
+                  updateRange(rarity, "max", Number(event.target.value))
+                }
+                required
+                step={1}
+                type="number"
+                value={range.max}
+              />
+            </label>
+            <span>
+              {formatMoney(Math.floor(range.min * 0.4))}–{" "}
+              {formatMoney(Math.floor(range.max * 0.84))}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function formatMoney(value: number) {
+  return `$${value.toLocaleString()}`;
 }
 
 function SettingField({

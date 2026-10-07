@@ -5,9 +5,8 @@ import {
   getGameplaySettings,
 } from "./game-settings.ts";
 import {
-  amplifyRarityMap,
   generateDailyDrop,
-  getRarityMap,
+  getVisitorRarityMap,
   type LootData,
 } from "./gameplay.ts";
 import {
@@ -161,8 +160,10 @@ export async function processAuctioneerInteraction(
         itemCount: auctionCount,
         generationMap: {
           ...getGameplayGenerationMap(settings.active),
-          rarity: amplifyRarityMap(
-            getRarityMap(player.profile.level, metadata.loot_data),
+          rarity: getVisitorRarityMap(
+            player.profile.level,
+            metadata.loot_data,
+            settings.active.rarityWeights,
             NPC_RARITY_AMPLIFIERS[npc.quality],
           ),
         },

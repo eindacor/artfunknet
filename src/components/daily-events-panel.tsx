@@ -438,7 +438,6 @@ function ForgeryContestPanel({
                   <div className="daily-event-contest-card-art">
                     <ItemCard
                       hideForgeryWatermark
-                      interactive={false}
                       item={entry.item}
                       legendaryAttributes={legendaryAttributes}
                       permissions={{

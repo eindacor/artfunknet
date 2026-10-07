@@ -7,11 +7,16 @@ import {
   validateGameplayConfig,
 } from "@/server/game-settings";
 import { getDatabase } from "@/server/mongodb";
+import {
+  type RarityValueRanges,
+  validateRarityValueRanges,
+} from "@/server/rarity-values";
 
 type SettingsInput = {
   debugEnabled?: unknown;
   actual?: unknown;
   debug?: unknown;
+  rarityValues?: unknown;
 };
 
 type SettingsDocument = {
@@ -24,6 +29,15 @@ type SettingsDocument = {
     };
   };
   created_at?: Date;
+  updated_at?: Date;
+  updated_by?: string;
+};
+
+type LootMetadataDocument = {
+  _id: string;
+  loot_data?: {
+    rarity_values?: RarityValueRanges;
+  };
   updated_at?: Date;
   updated_by?: string;
 };
@@ -54,9 +68,34 @@ export async function PATCH(request: Request) {
       { status: 400 },
     );
   }
+  const rarityValues = validateRarityValueRanges(body.rarityValues);
+  if (!rarityValues.ok) {
+    return NextResponse.json(
+      { error: `Artwork value ranges: ${rarityValues.error}` },
+      { status: 400 },
+    );
+  }
 
   const database = await getDatabase();
   const now = new Date();
+  const lootMetadataUpdated = await database
+    .collection<LootMetadataDocument>("metadata")
+    .updateOne(
+      { _id: "loot-data" },
+      {
+        $set: {
+          "loot_data.rarity_values": rarityValues.value,
+          updated_at: now,
+          updated_by: auth.session.email,
+        },
+      },
+    );
+  if (lootMetadataUpdated.matchedCount !== 1) {
+    return NextResponse.json(
+      { error: "Loot metadata is unavailable." },
+      { status: 409 },
+    );
+  }
   await database.collection<SettingsDocument>("metadata").updateOne(
     { _id: "gameplay-settings" },
     {
@@ -75,5 +114,6 @@ export async function PATCH(request: Request) {
   return NextResponse.json({
     status: "ok",
     settings: await getGameplaySettings(database),
+    rarityValues: rarityValues.value,
   });
 }

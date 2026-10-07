@@ -13,7 +13,6 @@ import {
 } from "./gameplay.ts";
 import { getCardRendererSettings } from "./card-renderer-settings.ts";
 import {
-  DEFAULT_RARITY_WEIGHTS,
   getGameplayGenerationMap,
   type GameplayConfig,
 } from "./game-settings.ts";
@@ -30,6 +29,7 @@ export const RAFFLE_MAX_POTENCY = 10;
 export const RAFFLE_PRIZE_COUNT = 3;
 export const RAFFLE_DEFAULT_BUFFER_COUNT = 3;
 export const RAFFLE_DRAW_TIME_ZONE = "America/New_York";
+export const RAFFLE_DRAW_DAY = 1;
 export const RAFFLE_DRAW_HOUR = 12;
 export const LOTTERY_HIT_PROBABILITY = 0.2;
 export const RAFFLE_GENERATION_CHANCES = {
@@ -38,14 +38,6 @@ export const RAFFLE_GENERATION_CHANCES = {
   unlocked: 0.35,
   cardStyle: 1,
 } as const;
-
-export type RaffleGenerationConfig = {
-  rarity_weights: Record<Artwork["rarity"], number>;
-};
-
-export const DEFAULT_RAFFLE_GENERATION_CONFIG: RaffleGenerationConfig = {
-  rarity_weights: { ...DEFAULT_RARITY_WEIGHTS },
-};
 
 export type RafflePrize = {
   item_id: string;
@@ -65,7 +57,6 @@ export type RaffleState = {
   buffer_prizes: RafflePrize[];
   next_draw_at: string;
   previous_winners: RaffleWinner[];
-  generation_config?: RaffleGenerationConfig;
   draw_lock?: { token: string; expires_at: string };
 };
 
@@ -101,7 +92,6 @@ export async function ensureRaffleState(
         buffer_prizes: [],
         next_draw_at: getNextRaffleDrawAt(now).toISOString(),
         previous_winners: [],
-        generation_config: DEFAULT_RAFFLE_GENERATION_CONFIG,
       },
     },
     { upsert: true },
@@ -110,9 +100,6 @@ export async function ensureRaffleState(
     .collection<RaffleState>("metadata")
     .findOne({ _id: RAFFLE_STATE_ID });
   if (!state) throw new Error("Lottery state could not be initialized.");
-  const generationConfig = normalizeRaffleGenerationConfig(
-    state.generation_config,
-  );
   const targetBufferCount = Math.max(
     RAFFLE_DEFAULT_BUFFER_COUNT,
     state.buffer_prizes?.length ?? 0,
@@ -122,14 +109,13 @@ export async function ensureRaffleState(
     state.next_draw_at > now.toISOString() &&
     state.next_draw_at !== scheduledNextDrawAt
   ) {
-    const normalizedDrawAt = getRaffleDrawAtForLocalDate(now).toISOString();
     state =
       (await database.collection<RaffleState>("metadata").findOneAndUpdate(
         {
           _id: RAFFLE_STATE_ID,
           next_draw_at: state.next_draw_at,
         },
-        { $set: { next_draw_at: normalizedDrawAt } },
+        { $set: { next_draw_at: scheduledNextDrawAt } },
         { returnDocument: "after" },
       )) ?? state;
   }
@@ -170,7 +156,6 @@ export async function ensureRaffleState(
       database,
       config,
       now,
-      generationConfig,
     );
     generated.push(reward);
     validPrizes.push({ item_id: reward._id, potency: 1 });
@@ -180,7 +165,6 @@ export async function ensureRaffleState(
       database,
       config,
       now,
-      generationConfig,
     );
     generated.push(reward);
     validBufferPrizes.push({ item_id: reward._id, potency: 1 });
@@ -200,9 +184,7 @@ export async function ensureRaffleState(
         prize.potency !== currentState.buffer_prizes?.[index]?.potency,
     ) ||
     validBufferPrizes.length !==
-      (currentState.buffer_prizes?.length ?? 0) ||
-    JSON.stringify(generationConfig) !==
-      JSON.stringify(currentState.generation_config)
+      (currentState.buffer_prizes?.length ?? 0)
   ) {
     const updated = await database.collection<RaffleState>("metadata").updateOne(
       {
@@ -216,7 +198,6 @@ export async function ensureRaffleState(
         $set: {
           prizes: validPrizes,
           buffer_prizes: validBufferPrizes,
-          generation_config: generationConfig,
         },
       },
     );
@@ -364,7 +345,7 @@ export async function settleRaffleIfDue(
         await setRafflePrizePotency(database, prize.item_id, potency);
         nextPrizes.push({ item_id: prize.item_id, potency });
         announcements.push({
-          content: `Daily lottery rollover: /items/${prize.item_id} is now at potency ${potency}.`,
+          content: `Weekly lottery rollover: /items/${prize.item_id} is now at potency ${potency}.`,
           eventKey: `lottery:${state.next_draw_at}:${prize.item_id}:rollover`,
         });
         continue;
@@ -393,7 +374,7 @@ export async function settleRaffleIfDue(
               from_owner: RAFFLE_OWNER_ID,
               to_owner: player._id,
               occurred_at: now.toISOString(),
-              source: "daily lottery",
+              source: "weekly lottery",
             },
           },
         },
@@ -428,7 +409,7 @@ export async function settleRaffleIfDue(
           )?.title ?? "an artwork",
       });
       announcements.push({
-        content: `Daily lottery: @${player.screen_name} won /items/${prize.item_id}!`,
+        content: `Weekly lottery: @${player.screen_name} won /items/${prize.item_id}!`,
         eventKey: `lottery:${state.next_draw_at}:${prize.item_id}:winner`,
       });
     }
@@ -437,7 +418,6 @@ export async function settleRaffleIfDue(
         database,
         config,
         now,
-        normalizeRaffleGenerationConfig(state.generation_config),
       );
       generatedBufferItemIds.push(reward._id);
       nextBufferPrizes.push({ item_id: reward._id, potency: 1 });
@@ -628,7 +608,7 @@ export async function drawRaffleNow(
   const state = await ensureRaffleState(database, config, now);
   if (new Date(state.next_draw_at).getTime() > now.getTime()) {
     throw new Error(
-      `The lottery can only be drawn once per day. The next draw is scheduled for ${new Date(
+      `The lottery can only be drawn once per week. The next draw is scheduled for ${new Date(
         state.next_draw_at,
       ).toLocaleString()}.`,
     );
@@ -641,17 +621,13 @@ export function getNextRaffleDrawAt(now: Date): Date {
   const targetDate = new Date(
     Date.UTC(localNow.year, localNow.month - 1, localNow.day),
   );
-  if (localNow.hour >= RAFFLE_DRAW_HOUR) {
-    targetDate.setUTCDate(targetDate.getUTCDate() + 1);
+  const localDay = targetDate.getUTCDay();
+  let daysUntilDraw = (RAFFLE_DRAW_DAY - localDay + 7) % 7;
+  if (daysUntilDraw === 0 && localNow.hour >= RAFFLE_DRAW_HOUR) {
+    daysUntilDraw = 7;
   }
+  targetDate.setUTCDate(targetDate.getUTCDate() + daysUntilDraw);
   return getRaffleDrawAtForUtcDate(targetDate);
-}
-
-function getRaffleDrawAtForLocalDate(now: Date): Date {
-  const localNow = getTimeZoneParts(now, RAFFLE_DRAW_TIME_ZONE);
-  return getRaffleDrawAtForUtcDate(
-    new Date(Date.UTC(localNow.year, localNow.month - 1, localNow.day)),
-  );
 }
 
 function getRaffleDrawAtForUtcDate(targetDate: Date): Date {
@@ -745,35 +721,10 @@ export function selectWeightedRaffleEntry<T extends Pick<RaffleEntry, "tickets">
   return entries[entries.length - 1];
 }
 
-export function normalizeRaffleGenerationConfig(
-  value: RaffleGenerationConfig | undefined,
-): RaffleGenerationConfig {
-  const rarityWeights = Object.fromEntries(
-    Object.entries(DEFAULT_RAFFLE_GENERATION_CONFIG.rarity_weights).map(
-      ([rarity, fallback]) => {
-        const configured = value?.rarity_weights?.[rarity as Artwork["rarity"]];
-        return [
-          rarity,
-          typeof configured === "number" &&
-          Number.isFinite(configured) &&
-          configured >= 0
-            ? configured
-            : fallback,
-        ];
-      },
-    ),
-  ) as RaffleGenerationConfig["rarity_weights"];
-  if (Object.values(rarityWeights).every((weight) => weight === 0)) {
-    return DEFAULT_RAFFLE_GENERATION_CONFIG;
-  }
-  return { rarity_weights: rarityWeights };
-}
-
 export async function generateRafflePrize(
   database: Db,
   config: GameplayConfig,
   now = new Date(),
-  generationConfig = DEFAULT_RAFFLE_GENERATION_CONFIG,
 ): Promise<GameItem> {
   const rendererSettings = await getCardRendererSettings(database);
   const fallbackCardRenderer = rollGeneratedCardRenderer(
@@ -794,9 +745,7 @@ export async function generateRafflePrize(
       foil: RAFFLE_GENERATION_CHANCES.foil,
       mint: RAFFLE_GENERATION_CHANCES.mint,
       unlocked: RAFFLE_GENERATION_CHANCES.unlocked,
-      rarity: normalizeRaffleGenerationConfig(generationConfig).rarity_weights,
     },
-    useRawRarityMap: true,
     mintValueMultiplier: config.mintValueMultiplier,
     source: "lottery",
     status: "claimed",

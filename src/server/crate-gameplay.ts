@@ -5,7 +5,6 @@ import {
   ARTWORK_RARITIES,
   calculateItemValues,
   getConfiguredRarityMap,
-  getRarityMap,
   type Artwork,
   type ArtworkRarity,
   type ItemAttribute,
@@ -389,21 +388,20 @@ export function estimateCrateSellValue({
   useRawRarityMap = false,
 }: {
   artworks: ReadonlyArray<Pick<Artwork, "_id" | "rarity">>;
-  generationMap: Partial<ItemGenerationMap>;
+  generationMap: Pick<ItemGenerationMap, "rarity"> &
+    Partial<ItemGenerationMap>;
   itemCount: number;
   lootData: LootData;
   mintValueMultiplier: number;
   playerLevel: number;
   useRawRarityMap?: boolean;
 }): number {
-  const rarityMap = generationMap.rarity
-    ? getConfiguredRarityMap(
-        playerLevel,
-        lootData,
-        generationMap.rarity,
-        useRawRarityMap,
-      )
-    : getRarityMap(playerLevel, lootData);
+  const rarityMap = getConfiguredRarityMap(
+    playerLevel,
+    lootData,
+    generationMap.rarity,
+    useRawRarityMap,
+  );
   const artworkCounts = getArtworkCountsByRarity(artworks, lootData);
   const availableWeight = ARTWORK_RARITIES.reduce(
     (sum, rarity) =>

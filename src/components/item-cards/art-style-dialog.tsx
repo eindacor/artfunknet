@@ -83,6 +83,7 @@ export default function ArtStyleDialog({
   const previewCosmetic =
     findCosmetic(previewRendererId) ?? findCosmetic("museum")!;
   const PreviewRenderer = CARD_RENDERERS[previewCosmetic.id];
+  const archivedStyles = new Set(dialogItem.archivedArtStyles ?? []);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -247,8 +248,12 @@ export default function ArtStyleDialog({
               {choices.length > 0 ? (
                 choices.map((cosmetic) => {
                   const applied = cosmetic.id === selectedRendererId;
+                  const archived = archivedStyles.has(cosmetic.id);
                   return (
-                    <label key={cosmetic.id}>
+                    <label
+                      data-archived={archived ? "true" : "false"}
+                      key={cosmetic.id}
+                    >
                       <input
                         checked={cosmetic.id === previewRendererId}
                         disabled={saving}
@@ -262,11 +267,29 @@ export default function ArtStyleDialog({
                           #{cosmetic.number.toString().padStart(2, "0")}{" "}
                           {cosmetic.name}
                         </strong>
-                        <small>
-                          {applied
-                            ? "Applied"
-                            : `${cosmetic.quantity} available`}
-                        </small>
+                        <span className="art-style-dialog-option-status">
+                          <i
+                            aria-label={
+                              archived
+                                ? "Archived for this artwork"
+                                : "Not archived for this artwork"
+                            }
+                            className={`fa fa-archive art-style-archive-indicator${
+                              archived ? "" : " unarchived"
+                            }`}
+                            role="img"
+                            title={
+                              archived
+                                ? "Archived for this artwork"
+                                : "Not archived for this artwork"
+                            }
+                          />
+                          <small>
+                            {applied
+                              ? "Applied"
+                              : `${cosmetic.quantity} available`}
+                          </small>
+                        </span>
                       </span>
                     </label>
                   );

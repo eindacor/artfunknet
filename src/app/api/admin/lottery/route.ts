@@ -6,7 +6,6 @@ import { deleteCommunityReactions } from "@/server/community-reaction-cleanup";
 import { getGameplaySettings } from "@/server/game-settings";
 import {
   calculateItemValues,
-  ARTWORK_RARITIES,
   getItemAttributes,
   type Artwork,
   type GameItem,
@@ -17,7 +16,6 @@ import { getRerollCost } from "@/server/item-reroll";
 import {
   ensureRaffleState,
   generateRafflePrize,
-  normalizeRaffleGenerationConfig,
   RAFFLE_DEFAULT_BUFFER_COUNT,
   RAFFLE_MAX_POTENCY,
   RAFFLE_OWNER_ID,
@@ -247,7 +245,6 @@ export async function POST(request: Request) {
       database,
       settings.active,
       new Date(),
-      state.generation_config,
     );
     const appended = await database.collection<RaffleState>("metadata").updateOne(
       {
@@ -315,7 +312,6 @@ export async function POST(request: Request) {
     database,
     settings.active,
     new Date(),
-    state.generation_config,
   );
   const prizes = poolPrizes.map((prize) =>
     prize.item_id === body.itemId
@@ -354,75 +350,6 @@ export async function POST(request: Request) {
   return NextResponse.json({
     status: "ok",
     message: "A new lottery item was generated.",
-  });
-}
-
-export async function PUT(request: Request) {
-  const auth = await requireAdminApi();
-  if (!auth.ok) return auth.response;
-  const body = (await request.json()) as {
-    rarityWeights?: unknown;
-  };
-  if (
-    typeof body.rarityWeights !== "object" ||
-    body.rarityWeights === null ||
-    Array.isArray(body.rarityWeights)
-  ) {
-    return NextResponse.json(
-      { error: "Provide valid lottery rarity weights." },
-      { status: 400 },
-    );
-  }
-  const rawWeights = body.rarityWeights as Record<string, unknown>;
-  if (
-    ARTWORK_RARITIES.some(
-      (rarity) =>
-        typeof rawWeights[rarity] !== "number" ||
-        !Number.isFinite(rawWeights[rarity]) ||
-        (rawWeights[rarity] as number) < 0,
-    ) ||
-    ARTWORK_RARITIES.every((rarity) => rawWeights[rarity] === 0)
-  ) {
-    return NextResponse.json(
-      {
-        error:
-          "Lottery rarity weights must be non-negative with one above zero.",
-      },
-      { status: 400 },
-    );
-  }
-
-  const database = await getDatabase();
-  const settings = await getGameplaySettings(database);
-  await ensureRaffleState(database, settings.active);
-  const generationConfig = normalizeRaffleGenerationConfig({
-    rarity_weights: Object.fromEntries(
-      ARTWORK_RARITIES.map((rarity) => [
-        rarity,
-        rawWeights[rarity] as number,
-      ]),
-    ) as Record<(typeof ARTWORK_RARITIES)[number], number>,
-  });
-  const updated = await database.collection<RaffleState>("metadata").updateOne(
-    { _id: RAFFLE_STATE_ID },
-    {
-      $set: {
-        generation_config: generationConfig,
-        updated_at: new Date().toISOString(),
-        updated_by: auth.session.email,
-      },
-    },
-  );
-  if (updated.matchedCount !== 1) {
-    return NextResponse.json(
-      { error: "The lottery generation settings could not be saved." },
-      { status: 409 },
-    );
-  }
-  return NextResponse.json({
-    status: "ok",
-    message: "Lottery rarity weights saved.",
-    generationConfig,
   });
 }
 

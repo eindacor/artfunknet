@@ -417,7 +417,8 @@ export function rollGeneratedCardRenderer(
 export type DailyDropOptions = {
   now?: Date;
   itemCount?: number;
-  generationMap?: Partial<ItemGenerationMap>;
+  generationMap: Pick<ItemGenerationMap, "rarity"> &
+    Partial<ItemGenerationMap>;
   mintValueMultiplier?: number;
   debug?: boolean;
   useRawRarityMap?: boolean;
@@ -445,6 +446,21 @@ export function amplifyRarityMap(
   ) as Record<ArtworkRarity, number>;
 }
 
+export function getVisitorRarityMap(
+  playerLevel: number,
+  lootData: Pick<
+    LootData,
+    "basic_crate_cost" | "crate_expense_per_masterpiece" | "items_per_basic_crate"
+  >,
+  configuredWeights: Record<ArtworkRarity, number>,
+  qualityAmplifier: number,
+): Record<ArtworkRarity, number> {
+  return amplifyRarityMap(
+    getRarityMap(playerLevel, lootData, configuredWeights),
+    qualityAmplifier,
+  );
+}
+
 export function filterActiveArtworks<T extends Pick<Artwork, "active">>(
   artworks: readonly T[],
 ): T[] {
@@ -455,12 +471,12 @@ export async function generateDailyDrop(
   database: Db,
   playerId: string,
   playerLevel: number,
-  options: DailyDropOptions = {},
+  options: DailyDropOptions,
 ): Promise<GameItem[]> {
   const {
     now = new Date(),
     itemCount = 6,
-    generationMap = {},
+    generationMap,
     mintValueMultiplier = 1,
     debug = false,
     useRawRarityMap = false,
@@ -486,14 +502,12 @@ export async function generateDailyDrop(
   }
   const rendererSettings = await getCardRendererSettings(database);
 
-  const rarityMap = generationMap.rarity
-    ? getConfiguredRarityMap(
-        playerLevel,
-        metadata.loot_data,
-        generationMap.rarity,
-        useRawRarityMap,
-      )
-    : getRarityMap(playerLevel, metadata.loot_data);
+  const rarityMap = getConfiguredRarityMap(
+    playerLevel,
+    metadata.loot_data,
+    generationMap.rarity,
+    useRawRarityMap,
+  );
   const foilProbability = normalizeProbability(generationMap.foil ?? 0.005);
   const mintProbability = normalizeProbability(generationMap.mint ?? 0);
   const unlockedProbability = normalizeProbability(
@@ -956,7 +970,7 @@ export function calculateItemValues(
     sell: Math.floor(actual * 0.8),
     purchase: Math.floor(actual * 1.5),
     actual,
-    auction_min: Math.floor(actual * 0.8 * 0.8),
+    auction_min: Math.floor(actual * 0.64),
     collector: Math.floor(actual * 1.2),
     dealer: Math.floor(actual * 0.9),
   };
@@ -976,10 +990,10 @@ type ItemValueProperties = Pick<
 
 const SEASONAL_VALUE_MULTIPLIERS: Record<ArtworkRarity, number> = {
   common: 2,
-  uncommon: 2,
+  uncommon: 3,
   rare: 4,
-  legendary: 10,
-  masterpiece: 10,
+  legendary: 5,
+  masterpiece: 6,
 };
 
 export function getItemValuePropertyMultiplier(
@@ -989,8 +1003,8 @@ export function getItemValuePropertyMultiplier(
   let multiplier = 1;
   if (item.foil) multiplier *= 5;
   if (item.seasonal) multiplier *= SEASONAL_VALUE_MULTIPLIERS[rarity];
-  if (item.lottery) multiplier *= 10 + item.lottery;
-  if (item.original) multiplier *= 7;
+  if (item.lottery) multiplier *= 8 + item.lottery;
+  if (item.original) multiplier *= 10;
   if (item.vintage) multiplier *= 2;
   if (item.unlocked) multiplier *= 1.5;
   if (item.mint) multiplier *= item.mint_value_multiplier;

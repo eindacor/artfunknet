@@ -16,6 +16,7 @@ import {
   type GameItem,
   type LootData,
 } from "./gameplay.ts";
+import { getGameplaySettings } from "./game-settings.ts";
 import { getDisplayedLegendaryEffect, getLegendaryNumberParameter } from "./legendary-attributes.ts";
 import type { GalleryNpc } from "./npc-gameplay.ts";
 import type { Auction } from "./auction-gameplay.ts";
@@ -213,9 +214,12 @@ export async function createArtHistorianQuest(
     );
   }
 
-  const metadata = await database
-    .collection<{ _id: string; loot_data: LootData }>("metadata")
-    .findOne({ _id: "loot-data" });
+  const [metadata, settings] = await Promise.all([
+    database
+      .collection<{ _id: string; loot_data: LootData }>("metadata")
+      .findOne({ _id: "loot-data" }),
+    getGameplaySettings(database),
+  ]);
   if (!metadata) throw new Error("Loot metadata is not configured.");
 
   const artworks = filterActiveArtworks(
@@ -228,7 +232,11 @@ export async function createArtHistorianQuest(
     throw new Error("There are not enough active artworks for a quest.");
   }
 
-  const rarityMap = getRarityMap(player.profile.level, metadata.loot_data);
+  const rarityMap = getRarityMap(
+    player.profile.level,
+    metadata.loot_data,
+    settings.active.rarityWeights,
+  );
   const questRarity = rollRarity(rarityMap);
   const targets = selectHistorianTargets(
     artworks,

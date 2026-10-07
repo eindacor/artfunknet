@@ -5493,6 +5493,22 @@
   text-transform: uppercase;
 }
 
+.art-style-dialog-option-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.45rem;
+}
+
+.art-style-archive-indicator {
+  color: #4e733d;
+}
+
+.art-style-archive-indicator.unarchived {
+  opacity: 0.24;
+  filter: grayscale(1);
+}
+
 .art-style-dialog-empty {
   margin: 0;
   padding: 1rem 0.75rem;

@@ -8,9 +8,11 @@ import {
   filterActiveArtworks,
   getArtworkGenerationWeight,
   getGeneratedItemCondition,
+  getItemValuePropertyMultiplier,
   getRarityMap,
   getConfiguredRarityMap,
   getSpecialAttributeCount,
+  getVisitorRarityMap,
   isSeasonalArtwork,
   normalizeRarityMap,
   rollProbability,
@@ -67,6 +69,27 @@ test("NPC rarity amplification preserves common odds and scales higher rarities"
   assert.equal(amplified.common, base.common);
   assert.equal(amplified.masterpiece, base.masterpiece * 0.5);
   assert.equal(amplified.rare, base.rare * 0.75);
+});
+
+test("visitor rarity scaling starts from admin-configured weights", () => {
+  const configuredWeights = {
+    common: 100,
+    uncommon: 20,
+    rare: 10,
+    legendary: 2,
+    masterpiece: 1,
+  };
+  const configuredBase = getRarityMap(50, lootData, configuredWeights);
+  const visitorMap = getVisitorRarityMap(
+    50,
+    lootData,
+    configuredWeights,
+    0.5,
+  );
+
+  assert.equal(visitorMap.common, configuredBase.common);
+  assert.equal(visitorMap.rare, configuredBase.rare * 0.75);
+  assert.equal(visitorMap.masterpiece, configuredBase.masterpiece * 0.5);
 });
 
 test("weighted rolls honor deterministic boundary values", () => {
@@ -203,7 +226,45 @@ test("lottery levels preserve the original value multiplier", () => {
     lootData as Parameters<typeof calculateItemValues>[2],
   );
 
-  assert.equal(lottery.actual, standard.actual * 16);
+  assert.equal(lottery.actual, standard.actual * 14);
+});
+
+test("item value property multipliers preserve configured economy values", () => {
+  const neutral = {
+    foil: false,
+    seasonal: false,
+    lottery: 0,
+    original: false,
+    vintage: false,
+    unlocked: false,
+    mint: false,
+    mint_value_multiplier: 1,
+  };
+  const seasonalMultipliers = {
+    common: 2,
+    uncommon: 3,
+    rare: 4,
+    legendary: 5,
+    masterpiece: 6,
+  } as const;
+
+  for (const [rarity, multiplier] of Object.entries(seasonalMultipliers)) {
+    assert.equal(
+      getItemValuePropertyMultiplier(
+        { ...neutral, seasonal: true },
+        rarity as keyof typeof seasonalMultipliers,
+      ),
+      multiplier,
+    );
+  }
+  assert.equal(
+    getItemValuePropertyMultiplier({ ...neutral, lottery: 6 }, "common"),
+    14,
+  );
+  assert.equal(
+    getItemValuePropertyMultiplier({ ...neutral, original: true }, "common"),
+    10,
+  );
 });
 
 test("mint generation forces perfect condition", () => {

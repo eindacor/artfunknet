@@ -5,33 +5,20 @@ import { useRouter } from "next/navigation";
 
 import ItemCard from "@/components/item-cards/item-card";
 import { useCardCosmetics } from "@/components/item-cards/card-cosmetics-provider";
-import type { Artwork, ArtworkRarity } from "@/server/gameplay";
+import type { Artwork } from "@/server/gameplay";
 import type { HydratedGameItem } from "@/server/item-artwork";
 
 type ArtworkOption = Artwork;
-type RaffleGenerationConfig = {
-  rarity_weights: Record<ArtworkRarity, number>;
-};
-
-const LOTTERY_RARITIES: ArtworkRarity[] = [
-  "common",
-  "uncommon",
-  "rare",
-  "legendary",
-  "masterpiece",
-];
 
 export default function RaffleRewardForm({
   artworks,
   bufferPrizes,
-  generationConfig,
   minimumBufferCount,
   nextDrawAt,
   prizes,
 }: {
   artworks: ArtworkOption[];
   bufferPrizes: Array<{ item: HydratedGameItem; potency: number }>;
-  generationConfig: RaffleGenerationConfig;
   minimumBufferCount: number;
   nextDrawAt: string;
   prizes: Array<{ item: HydratedGameItem; potency: number }>;
@@ -39,10 +26,6 @@ export default function RaffleRewardForm({
   const router = useRouter();
   const [drawing, setDrawing] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [savingGeneration, setSavingGeneration] = useState(false);
-  const [rarityWeights, setRarityWeights] = useState(
-    generationConfig.rarity_weights,
-  );
   const [drawError, setDrawError] = useState("");
   const [generationStatus, setGenerationStatus] = useState("");
 
@@ -64,36 +47,6 @@ export default function RaffleRewardForm({
         error instanceof Error ? error.message : "The lottery could not be drawn.",
       );
       setDrawing(false);
-    }
-  }
-
-  async function saveGenerationSettings() {
-    setSavingGeneration(true);
-    setGenerationStatus("");
-    try {
-      const response = await fetch("/api/admin/lottery", {
-        method: "PUT",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ rarityWeights }),
-      });
-      const body = (await response.json()) as {
-        error?: string;
-        message?: string;
-      };
-      if (!response.ok) {
-        throw new Error(
-          body.error ?? "The lottery generation settings could not be saved.",
-        );
-      }
-      setGenerationStatus(body.message ?? "Lottery generation settings saved.");
-    } catch (error) {
-      setGenerationStatus(
-        error instanceof Error
-          ? error.message
-          : "The lottery generation settings could not be saved.",
-      );
-    } finally {
-      setSavingGeneration(false);
     }
   }
 
@@ -143,40 +96,13 @@ export default function RaffleRewardForm({
         <div>
           <h2>Random prize generation</h2>
           <p>
-            Random lottery items use normal item generation with elevated foil,
-            unlocked, mint, and art-style chances.
+            Random lottery items use the active Gameplay configuration rarity
+            weights with elevated foil, unlocked, Mint, and art-style chances.
           </p>
-        </div>
-        <div className="admin-raffle-rarity-map">
-          {LOTTERY_RARITIES.map((rarity) => (
-            <label key={rarity}>
-              <span>{rarity}</span>
-              <input
-                disabled={savingGeneration || creating}
-                min={0}
-                onChange={(event) =>
-                  setRarityWeights((current) => ({
-                    ...current,
-                    [rarity]: Number(event.target.value),
-                  }))
-                }
-                step="1"
-                type="number"
-                value={rarityWeights[rarity]}
-              />
-            </label>
-          ))}
         </div>
         <div className="admin-raffle-generation-actions">
           <button
-            disabled={savingGeneration || creating}
-            onClick={saveGenerationSettings}
-            type="button"
-          >
-            {savingGeneration ? "Saving..." : "Save rarity map"}
-          </button>
-          <button
-            disabled={savingGeneration || creating}
+            disabled={creating}
             onClick={createLotteryItem}
             type="button"
           >

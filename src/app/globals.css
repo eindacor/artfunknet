@@ -9818,6 +9818,72 @@ a.welcome-button {
   padding: 8px;
 }
 
+.admin-rarity-value-copy {
+  padding: 18px 0 4px;
+  color: #aaa4af;
+}
+
+.admin-rarity-value-copy p {
+  margin: 0 0 10px;
+}
+
+.admin-rarity-value-copy strong {
+  color: white;
+}
+
+.admin-rarity-value-grid {
+  padding-bottom: 18px;
+}
+
+.admin-rarity-value-row {
+  display: grid;
+  grid-template-columns:
+    minmax(110px, 0.8fr)
+    minmax(140px, 1fr)
+    minmax(140px, 1fr)
+    minmax(210px, 1.4fr);
+  align-items: center;
+  gap: 14px;
+  border-top: 1px solid rgb(255 255 255 / 12%);
+  padding: 12px 0;
+}
+
+.admin-rarity-value-header {
+  border-top: 0;
+  color: #aaa4af;
+  font-size: 0.8rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.admin-rarity-value-row input {
+  box-sizing: border-box;
+  width: 100%;
+  border: 1px solid #777;
+  background: white;
+  color: black;
+  padding: 8px;
+}
+
+.admin-rarity-value-row > span:last-child {
+  color: #aaa4af;
+}
+
+@media (max-width: 760px) {
+  .admin-rarity-value-header {
+    display: none;
+  }
+
+  .admin-rarity-value-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .admin-rarity-value-row > strong:first-child,
+  .admin-rarity-value-row > span:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
 .admin-rarity-settings {
   border-top: 1px solid rgb(255 255 255 / 12%);
   padding: 18px 0 24px;
