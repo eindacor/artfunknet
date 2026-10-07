@@ -11,6 +11,9 @@ import type { ArtworkEffect } from "./artwork-effects-core.ts";
 import { getItemAttributeCounts } from "./item-attribute-counts.ts";
 import { getRerollCost } from "./item-reroll.ts";
 
+export const ADMIN_ITEM_ROLL_COUNT_MIN = -1_000_000;
+export const ADMIN_ITEM_ROLL_COUNT_MAX = 1_000_000;
+
 export type AdminItemAttributeInput = {
   attributeId: string;
   value: number;
@@ -64,6 +67,15 @@ export function buildAdminCreatedItem({
   owner: string;
   now?: Date;
 }): GameItem {
+  if (
+    !Number.isInteger(customization.rollCount) ||
+    customization.rollCount < ADMIN_ITEM_ROLL_COUNT_MIN ||
+    customization.rollCount > ADMIN_ITEM_ROLL_COUNT_MAX
+  ) {
+    throw new Error(
+      `Roll count must be a whole number from ${ADMIN_ITEM_ROLL_COUNT_MIN.toLocaleString()} to ${ADMIN_ITEM_ROLL_COUNT_MAX.toLocaleString()}.`,
+    );
+  }
   const attributeById = new Map(
     attributes.map((attribute) => [attribute._id, attribute]),
   );

@@ -5,6 +5,7 @@ import {
   acceptLiveAuctionBid,
   getLiveAuctionAdminView,
   LiveAuctionError,
+  removeLiveAuctionBufferedItem,
   setLiveAuctionIncrement,
   setLiveAuctionStreamUrl,
   setLiveAuctionVisibility,
@@ -116,6 +117,35 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+    return NextResponse.json({
+      status: "ok",
+      view: await getLiveAuctionAdminView(database),
+    });
+  } catch (error) {
+    return liveAuctionErrorResponse(error);
+  }
+}
+
+export async function DELETE(request: Request) {
+  const auth = await requireAdminApi();
+  if (!auth.ok) return auth.response;
+  const body = (await request.json().catch(() => null)) as {
+    itemId?: unknown;
+  } | null;
+  if (!body || typeof body.itemId !== "string") {
+    return NextResponse.json(
+      { error: "Choose a live-auction buffer item to remove." },
+      { status: 400 },
+    );
+  }
+
+  try {
+    const database = await getDatabase();
+    await removeLiveAuctionBufferedItem(
+      database,
+      body.itemId,
+      auth.session.email,
+    );
     return NextResponse.json({
       status: "ok",
       view: await getLiveAuctionAdminView(database),

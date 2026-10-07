@@ -4,6 +4,8 @@ import type { Db } from "mongodb";
 import { getCardCosmetic } from "@/components/item-cards/catalog";
 import { requireAdminApi } from "@/server/admin-api";
 import {
+  ADMIN_ITEM_ROLL_COUNT_MAX,
+  ADMIN_ITEM_ROLL_COUNT_MIN,
   buildAdminCreatedItem,
   type AdminItemAttributeInput,
   type AdminItemCustomization,
@@ -330,7 +332,11 @@ function parseAdminItemDraft(
       : null;
   const condition = getNumber(item.condition, 0, 1);
   const level = getInteger(item.level, 1, 100);
-  const rollCount = getInteger(item.rollCount, 0, 1_000_000);
+  const rollCount = getInteger(
+    item.rollCount,
+    ADMIN_ITEM_ROLL_COUNT_MIN,
+    ADMIN_ITEM_ROLL_COUNT_MAX,
+  );
   const rerollSpent = getInteger(item.rerollSpent, 0, 1_000_000_000);
   const lottery = getInteger(item.lottery, 0, RAFFLE_MAX_POTENCY);
   const forgeryQuality = getNumber(item.forgeryQuality, 0, 1);

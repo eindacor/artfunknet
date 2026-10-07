@@ -15,6 +15,7 @@ import {
   LiveAuctionError,
   normalizeTwitchStreamUrl,
   placeLiveAuctionBid,
+  removeLiveAuctionBufferedItem,
   stopLiveAuction,
 } from "./live-auction-event.ts";
 
@@ -164,6 +165,49 @@ test("advancing an empty buffer leaves live thank-you state", () => {
   assert.equal(advanced.current_item_id, null);
   assert.equal(advanced.current_bid, 0);
   assert.equal(advanced.minimum_bid, 0);
+});
+
+test("removing a buffered live-auction item deletes only that claimed system item", async () => {
+  const server = await MongoMemoryServer.create();
+  const client = new MongoClient(server.getUri());
+  try {
+    await client.connect();
+    const database = client.db("live-auction-buffer-removal");
+    await database.collection("items").insertMany([
+      {
+        _id: "remove-me",
+        owner: "system:live-auction",
+        status: "claimed",
+      },
+      {
+        _id: "keep-me",
+        owner: "system:live-auction",
+        status: "claimed",
+      },
+    ]);
+    await database.collection("metadata").insertOne({
+      ...createInitialLiveAuctionState(),
+      buffer_item_ids: ["remove-me", "keep-me"],
+    });
+
+    const state = await removeLiveAuctionBufferedItem(
+      database,
+      "remove-me",
+      "admin@example.com",
+    );
+
+    assert.deepEqual(state.buffer_item_ids, ["keep-me"]);
+    assert.equal(
+      await database.collection("items").findOne({ _id: "remove-me" }),
+      null,
+    );
+    assert.ok(
+      await database.collection("items").findOne({ _id: "keep-me" }),
+    );
+  } finally {
+    await client.close();
+    await server.stop();
+  }
 });
 
 test("pending live-auction refunds reconcile once", async () => {

@@ -7,6 +7,7 @@ import {
   type UpdateFilter,
 } from "mongodb";
 
+import { deleteCommunityReactions } from "./community-reaction-cleanup.ts";
 import { recordEconomyMetricsSafely } from "./economy-metrics.ts";
 import type { GameItem } from "./gameplay.ts";
 import {
@@ -315,6 +316,66 @@ export async function appendLiveAuctionItem(
       "The live-auction buffer changed before the item could be added.",
     );
   }
+  return normalizeLiveAuctionState(updated);
+}
+
+export async function removeLiveAuctionBufferedItem(
+  database: Db,
+  itemId: string,
+  updatedBy = "admin",
+): Promise<LiveAuctionState> {
+  const state = await ensureLiveAuctionState(database);
+  if (!state.buffer_item_ids.includes(itemId)) {
+    throw new LiveAuctionError(
+      "That item is not available in the live-auction buffer.",
+      409,
+    );
+  }
+  const item = await database.collection<GameItem>("items").findOne({
+    _id: itemId,
+    owner: LIVE_AUCTION_OWNER_ID,
+    status: "claimed",
+  });
+  if (!item) {
+    throw new LiveAuctionError(
+      "That live-auction buffer item is unavailable.",
+      409,
+    );
+  }
+
+  const updated = await database
+    .collection<LiveAuctionState>("metadata")
+    .findOneAndUpdate(
+      {
+        _id: LIVE_AUCTION_STATE_ID,
+        version: state.version,
+        buffer_item_ids: itemId,
+        lock: { $exists: false },
+      },
+      {
+        $pull: { buffer_item_ids: itemId },
+        $inc: { version: 1 },
+        $set: {
+          updated_at: new Date().toISOString(),
+          updated_by: updatedBy,
+        },
+      },
+      { returnDocument: "after" },
+    );
+  if (!updated) {
+    throw new LiveAuctionError(
+      "The live-auction buffer changed before the item could be removed.",
+    );
+  }
+
+  await Promise.all([
+    database.collection<GameItem>("items").deleteOne({
+      _id: itemId,
+      owner: LIVE_AUCTION_OWNER_ID,
+      status: "claimed",
+    }),
+    deleteCommunityReactions(database, "item", [itemId]),
+  ]);
   return normalizeLiveAuctionState(updated);
 }
 

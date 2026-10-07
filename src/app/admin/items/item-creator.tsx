@@ -454,7 +454,8 @@ export default function ItemCreator({
           />
           <NumberField
             label="Roll count"
-            min={0}
+            max={1_000_000}
+            min={-1_000_000}
             set={setRollCount}
             value={rollCount}
           />

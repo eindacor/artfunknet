@@ -42,7 +42,7 @@ export default function LiveAuctionAdmin({
   }, [refreshView]);
 
   async function send(
-    method: "PATCH" | "POST",
+    method: "DELETE" | "PATCH" | "POST",
     action: string,
     extra: Record<string, unknown> = {},
   ) {
@@ -229,6 +229,19 @@ export default function LiveAuctionAdmin({
                     canCustomizeCosmetic: false,
                   }}
                 />
+                <button
+                  disabled={busy}
+                  onClick={() =>
+                    send("DELETE", `remove:${item._id}`, {
+                      itemId: item._id,
+                    })
+                  }
+                  type="button"
+                >
+                  {pending === `remove:${item._id}`
+                    ? "Removing…"
+                    : "Remove from buffer"}
+                </button>
               </article>
             ))}
           </div>

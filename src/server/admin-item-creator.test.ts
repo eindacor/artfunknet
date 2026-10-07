@@ -119,6 +119,19 @@ test("admin-created items accept inactive catalog data and exact custom values",
   assert.equal(item.owner, "player");
 });
 
+test("admin-created items accept negative roll counts", () => {
+  const item = buildAdminCreatedItem({
+    artwork,
+    attributes,
+    customization: { ...customization, rollCount: -25 },
+    lootData,
+    mintValueMultiplier: 2,
+    owner: "player",
+  });
+
+  assert.equal(item.roll_count, -25);
+});
+
 test("admin-created items reject duplicate attributes", () => {
   assert.throws(
     () =>
