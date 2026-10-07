@@ -25,13 +25,6 @@ import {
 } from "./legendary-attributes.ts";
 import type { GalleryNpc, NpcQuality } from "./npc-gameplay.ts";
 
-export const NPC_RARITY_AMPLIFIERS: Record<NpcQuality, number> = {
-  bronze: 0.,
-  silver: 0.1,
-  gold: 0.2,
-  platinum: 0.3,
-};
-
 export type AuctioneerPlayer = {
   _id: string;
   profile: {
@@ -164,7 +157,7 @@ export async function processAuctioneerInteraction(
             player.profile.level,
             metadata.loot_data,
             settings.active.rarityWeights,
-            NPC_RARITY_AMPLIFIERS[npc.quality],
+            settings.active.visitorRarityAmplifiers[npc.quality],
           ),
         },
         mintValueMultiplier: settings.active.mintValueMultiplier,

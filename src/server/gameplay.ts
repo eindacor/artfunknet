@@ -556,7 +556,13 @@ export async function generateDailyDrop(
       : null;
     const rarity = targetArtwork
       ? targetArtwork.rarity
-      : rollAvailableRarity(rarityMap, artworksByRarity);
+      : rollAvailableRarity(
+          rarityMap,
+          ARTWORK_RARITIES.filter(
+            (candidate) =>
+              (artworksByRarity.get(candidate)?.length ?? 0) > 0,
+          ),
+        );
     const rarityArtworks = artworksByRarity.get(rarity) ?? [];
     const artwork =
       targetArtwork ??
@@ -656,13 +662,14 @@ function normalizeGenerationScalar(value: number): number {
   return value;
 }
 
-function rollAvailableRarity(
+export function rollAvailableRarity(
   rarityMap: Record<ArtworkRarity, number>,
-  artworksByRarity: Map<ArtworkRarity, Artwork[]>,
+  availableRarities: Iterable<ArtworkRarity>,
+  random = Math.random,
 ): ArtworkRarity {
+  const availableRaritySet = new Set(availableRarities);
   const available = ARTWORK_RARITIES.filter(
-    (rarity) =>
-      rarityMap[rarity] > 0 && (artworksByRarity.get(rarity)?.length ?? 0) > 0,
+    (rarity) => rarityMap[rarity] > 0 && availableRaritySet.has(rarity),
   );
   if (available.length === 0) {
     throw new Error("No active artwork is available for this player's level.");
@@ -670,6 +677,7 @@ function rollAvailableRarity(
 
   return rollWeighted(
     available.map((rarity) => ({ value: rarity, weight: rarityMap[rarity] })),
+    random,
   );
 }
 

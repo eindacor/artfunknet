@@ -26,8 +26,15 @@ function createClient(): MongoClient {
 }
 
 function getClientPromise(): Promise<MongoClient> {
-  global.artfunkelMongoClientPromise ??= createClient().connect();
-  return global.artfunkelMongoClientPromise;
+  const connection =
+    global.artfunkelMongoClientPromise ?? createClient().connect();
+  global.artfunkelMongoClientPromise = connection;
+  void connection.catch(() => {
+    if (global.artfunkelMongoClientPromise === connection) {
+      global.artfunkelMongoClientPromise = undefined;
+    }
+  });
+  return connection;
 }
 
 export async function getDatabase(): Promise<Db> {

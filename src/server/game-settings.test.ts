@@ -4,9 +4,12 @@ import test from "node:test";
 import {
   DEFAULT_ACTUAL_GAMEPLAY_CONFIG,
   DEFAULT_DEBUG_GAMEPLAY_CONFIG,
+  DEFAULT_VISITOR_RARITY_AMPLIFIERS,
+  toStoredGameplayConfig,
   validateCardStyleWeights,
   validateGameplayConfig,
   validateRarityWeights,
+  validateVisitorRarityAmplifiers,
 } from "./game-settings.ts";
 
 const validWeights = {
@@ -71,6 +74,37 @@ test("card style weights require every known non-default style", () => {
   );
 });
 
+test("visitor rarity amplifiers require every quality and valid scalars", () => {
+  assert.deepEqual(
+    validateVisitorRarityAmplifiers(DEFAULT_VISITOR_RARITY_AMPLIFIERS),
+    {
+      ok: true,
+      value: DEFAULT_VISITOR_RARITY_AMPLIFIERS,
+    },
+  );
+  assert.equal(
+    validateVisitorRarityAmplifiers({
+      ...DEFAULT_VISITOR_RARITY_AMPLIFIERS,
+      bronze: -0.1,
+    }).ok,
+    false,
+  );
+  assert.equal(
+    validateVisitorRarityAmplifiers({
+      ...DEFAULT_VISITOR_RARITY_AMPLIFIERS,
+      platinum: undefined,
+    }).ok,
+    false,
+  );
+  assert.equal(
+    validateVisitorRarityAmplifiers({
+      ...DEFAULT_VISITOR_RARITY_AMPLIFIERS,
+      diamond: 1,
+    }).ok,
+    false,
+  );
+});
+
 test("actual and debug gameplay configurations validate independently", () => {
   assert.equal(DEFAULT_ACTUAL_GAMEPLAY_CONFIG.dailyDropCooldownMinutes, 1);
   assert.equal(DEFAULT_ACTUAL_GAMEPLAY_CONFIG.dailyDropCount, 50);
@@ -113,6 +147,10 @@ test("actual and debug gameplay configurations validate independently", () => {
     gold: 80,
     platinum: 60,
   });
+  assert.deepEqual(
+    DEFAULT_ACTUAL_GAMEPLAY_CONFIG.visitorRarityAmplifiers,
+    DEFAULT_VISITOR_RARITY_AMPLIFIERS,
+  );
   assert.equal(DEFAULT_DEBUG_GAMEPLAY_CONFIG.cardRendererProbability, 0.25);
   assert.equal(DEFAULT_DEBUG_GAMEPLAY_CONFIG.crateValueScalar, 1);
   assert.equal(DEFAULT_DEBUG_GAMEPLAY_CONFIG.standardCrateCostScalar, 1);
@@ -145,6 +183,11 @@ test("actual and debug gameplay configurations validate independently", () => {
   );
   assert.equal(validateGameplayConfig(DEFAULT_ACTUAL_GAMEPLAY_CONFIG).ok, true);
   assert.equal(validateGameplayConfig(DEFAULT_DEBUG_GAMEPLAY_CONFIG).ok, true);
+  assert.deepEqual(
+    toStoredGameplayConfig(DEFAULT_ACTUAL_GAMEPLAY_CONFIG)
+      .visitor_rarity_amplifiers,
+    DEFAULT_VISITOR_RARITY_AMPLIFIERS,
+  );
   assert.equal(
     validateGameplayConfig({
       ...DEFAULT_DEBUG_GAMEPLAY_CONFIG,
@@ -221,6 +264,16 @@ test("actual and debug gameplay configurations validate independently", () => {
       npcMeetingLimits: {
         ...DEFAULT_DEBUG_GAMEPLAY_CONFIG.npcMeetingLimits,
         gold: 0,
+      },
+    }).ok,
+    false,
+  );
+  assert.equal(
+    validateGameplayConfig({
+      ...DEFAULT_DEBUG_GAMEPLAY_CONFIG,
+      visitorRarityAmplifiers: {
+        ...DEFAULT_DEBUG_GAMEPLAY_CONFIG.visitorRarityAmplifiers,
+        silver: -1,
       },
     }).ok,
     false,

@@ -19,6 +19,13 @@ import {
 } from "@/server/rarity-values";
 
 const RARITIES = RARITY_VALUE_TIERS;
+const VISITOR_QUALITIES = [
+  "bronze",
+  "silver",
+  "gold",
+  "platinum",
+] as const;
+
 export default function GameplaySettingsForm({
   initialRarityValues,
   initialSettings,
@@ -48,6 +55,18 @@ export default function GameplaySettingsForm({
     actual: JSON.stringify(initialSettings.actual.cardStyleWeights, null, 2),
     debug: JSON.stringify(initialSettings.debug.cardStyleWeights, null, 2),
   });
+  const [visitorAmplifierJson, setVisitorAmplifierJson] = useState({
+    actual: JSON.stringify(
+      initialSettings.actual.visitorRarityAmplifiers,
+      null,
+      2,
+    ),
+    debug: JSON.stringify(
+      initialSettings.debug.visitorRarityAmplifiers,
+      null,
+      2,
+    ),
+  });
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -55,6 +74,9 @@ export default function GameplaySettingsForm({
   const rarityResult = parseRarityWeights(rarityJson[selectedConfig]);
   const cardStyleResult = parseCardStyleWeights(
     cardStyleJson[selectedConfig],
+  );
+  const visitorAmplifierResult = parseVisitorRarityAmplifiers(
+    visitorAmplifierJson[selectedConfig],
   );
   const rarityValueResult = validateRarityValueRanges(rarityValues);
 
@@ -74,6 +96,12 @@ export default function GameplaySettingsForm({
     const debugRarity = parseRarityWeights(rarityJson.debug);
     const actualCardStyles = parseCardStyleWeights(cardStyleJson.actual);
     const debugCardStyles = parseCardStyleWeights(cardStyleJson.debug);
+    const actualVisitorAmplifiers = parseVisitorRarityAmplifiers(
+      visitorAmplifierJson.actual,
+    );
+    const debugVisitorAmplifiers = parseVisitorRarityAmplifiers(
+      visitorAmplifierJson.debug,
+    );
     const nextRarityValues = validateRarityValueRanges(rarityValues);
     if (!nextRarityValues.ok) {
       setError(`Artwork value ranges: ${nextRarityValues.error}`);
@@ -99,16 +127,28 @@ export default function GameplaySettingsForm({
       setError(`Debug configuration: ${debugCardStyles.error}`);
       return;
     }
+    if (!actualVisitorAmplifiers.ok) {
+      setSelectedConfig("actual");
+      setError(`Actual configuration: ${actualVisitorAmplifiers.error}`);
+      return;
+    }
+    if (!debugVisitorAmplifiers.ok) {
+      setSelectedConfig("debug");
+      setError(`Debug configuration: ${debugVisitorAmplifiers.error}`);
+      return;
+    }
 
     const nextActual = {
       ...settings.actual,
       rarityWeights: actualRarity.weights,
       cardStyleWeights: actualCardStyles.weights,
+      visitorRarityAmplifiers: actualVisitorAmplifiers.amplifiers,
     };
     const nextDebug = {
       ...settings.debug,
       rarityWeights: debugRarity.weights,
       cardStyleWeights: debugCardStyles.weights,
+      visitorRarityAmplifiers: debugVisitorAmplifiers.amplifiers,
     };
     if (
       (JSON.stringify(nextActual) !== savedActual ||
@@ -156,6 +196,18 @@ export default function GameplaySettingsForm({
         ),
         debug: JSON.stringify(
           body.settings.debug.cardStyleWeights,
+          null,
+          2,
+        ),
+      });
+      setVisitorAmplifierJson({
+        actual: JSON.stringify(
+          body.settings.actual.visitorRarityAmplifiers,
+          null,
+          2,
+        ),
+        debug: JSON.stringify(
+          body.settings.debug.visitorRarityAmplifiers,
           null,
           2,
         ),
@@ -756,6 +808,42 @@ export default function GameplaySettingsForm({
       <section className="admin-rarity-settings">
         <label
           className="admin-rarity-editor"
+          title="Each value is the selected visitor quality's Masterpiece multiplier. Common remains unchanged, while intermediate rarities scale progressively between Common and Masterpiece."
+        >
+          <strong>
+            Visitor rarity amplifiers (JSON){" "}
+            <span className="admin-config-help">?</span>
+          </strong>
+          <textarea
+            aria-invalid={!visitorAmplifierResult.ok}
+            onChange={(event) =>
+              setVisitorAmplifierJson((current) => ({
+                ...current,
+                [selectedConfig]: event.target.value,
+              }))
+            }
+            rows={6}
+            spellCheck={false}
+            value={visitorAmplifierJson[selectedConfig]}
+          />
+        </label>
+        {visitorAmplifierResult.ok ? (
+          <div className="admin-rarity-preview">
+            {VISITOR_QUALITIES.map((quality) => (
+              <span key={quality}>
+                <strong>{quality}</strong>{" "}
+                {visitorAmplifierResult.amplifiers[quality].toLocaleString()}×
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="admin-error">{visitorAmplifierResult.error}</p>
+        )}
+      </section>
+
+      <section className="admin-rarity-settings">
+        <label
+          className="admin-rarity-editor"
           title="When the card style probability succeeds, these weights choose the style found on the item. Inactive styles are ignored. Weights do not need to total 100."
         >
           <strong>
@@ -921,6 +1009,65 @@ function parseCardStyleWeights(
   }
 
   return { ok: true, weights, total };
+}
+
+function parseVisitorRarityAmplifiers(
+  json: string,
+):
+  | {
+      ok: true;
+      amplifiers: GameplayConfig["visitorRarityAmplifiers"];
+    }
+  | { ok: false; error: string } {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(json);
+  } catch {
+    return {
+      ok: false,
+      error: "Visitor rarity amplifiers must be valid JSON.",
+    };
+  }
+
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return {
+      ok: false,
+      error: "Visitor rarity amplifiers must be a JSON object.",
+    };
+  }
+
+  const record = parsed as Record<string, unknown>;
+  const unknownKeys = Object.keys(record).filter(
+    (key) =>
+      !VISITOR_QUALITIES.includes(
+        key as (typeof VISITOR_QUALITIES)[number],
+      ),
+  );
+  if (unknownKeys.length > 0) {
+    return {
+      ok: false,
+      error: `Unknown visitor quality keys: ${unknownKeys.join(", ")}.`,
+    };
+  }
+
+  const amplifiers = {} as GameplayConfig["visitorRarityAmplifiers"];
+  for (const quality of VISITOR_QUALITIES) {
+    const amplifier = record[quality];
+    if (
+      typeof amplifier !== "number" ||
+      !Number.isFinite(amplifier) ||
+      amplifier < 0 ||
+      amplifier > 1_000
+    ) {
+      return {
+        ok: false,
+        error: `The ${quality} visitor rarity amplifier must be from 0 to 1,000.`,
+      };
+    }
+    amplifiers[quality] = amplifier;
+  }
+
+  return { ok: true, amplifiers };
 }
 
 function formatPercentage(value: number) {

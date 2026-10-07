@@ -1,4 +1,5 @@
 import GameplaySettingsForm from "./gameplay-settings-form";
+import DropTestPanel from "./drop-test-panel";
 
 import { getGameplaySettings } from "@/server/game-settings";
 import type { LootData } from "@/server/gameplay";
@@ -19,6 +20,10 @@ export default async function AdminPage() {
   return (
     <main className="admin-tools">
       <h1>Admin tools</h1>
+      <section>
+        <h2>Drop test</h2>
+        <DropTestPanel />
+      </section>
       <section>
         <h2>Gameplay configuration</h2>
         <p>

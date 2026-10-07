@@ -113,13 +113,6 @@ type Player = {
   };
 };
 
-const NPC_RARITY_AMPLIFIERS: Record<NpcQuality, number> = {
-  bronze: 0.5,
-  silver: 0.6,
-  gold: 0.7,
-  platinum: 0.8,
-};
-
 export async function POST(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -726,7 +719,7 @@ export async function POST(
                   player.profile.level,
                   metadata!.loot_data,
                   settings.active.rarityWeights,
-                  NPC_RARITY_AMPLIFIERS[npc.quality],
+                  settings.active.visitorRarityAmplifiers[npc.quality],
                 ),
               },
               mintValueMultiplier: settings.active.mintValueMultiplier,
@@ -759,7 +752,7 @@ export async function POST(
               player.profile.level,
               metadata!.loot_data,
               settings.active.rarityWeights,
-              NPC_RARITY_AMPLIFIERS[npc.quality],
+              settings.active.visitorRarityAmplifiers[npc.quality],
             ),
           },
           mintValueMultiplier: settings.active.mintValueMultiplier,
@@ -953,7 +946,7 @@ export async function POST(
                     player.profile.level,
                     metadata.loot_data,
                     settings.active.rarityWeights,
-                    NPC_RARITY_AMPLIFIERS[npc.quality],
+                    settings.active.visitorRarityAmplifiers[npc.quality],
                   ),
                 },
                 mintValueMultiplier: settings.active.mintValueMultiplier,
@@ -999,7 +992,7 @@ export async function POST(
                 player.profile.level,
                 metadata.loot_data,
                 settings.active.rarityWeights,
-                NPC_RARITY_AMPLIFIERS[npc.quality],
+                settings.active.visitorRarityAmplifiers[npc.quality],
               ),
             },
             mintValueMultiplier: settings.active.mintValueMultiplier,
@@ -1165,7 +1158,7 @@ export async function POST(
                 player.profile.level,
                 metadata.loot_data,
                 settings.active.rarityWeights,
-                NPC_RARITY_AMPLIFIERS[npc.quality],
+                settings.active.visitorRarityAmplifiers[npc.quality],
               ),
             },
             mintValueMultiplier: settings.active.mintValueMultiplier,

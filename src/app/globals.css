@@ -9297,6 +9297,120 @@ a.welcome-button {
   margin-top: 24px;
 }
 
+.admin-drop-test {
+  margin-top: 20px;
+}
+
+.admin-drop-test > p {
+  color: #aaa4af;
+}
+
+.admin-drop-test-level {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.admin-drop-test-level input {
+  width: 90px;
+  border: 1px solid #777;
+  background: white;
+  color: black;
+  padding: 8px;
+}
+
+.admin-drop-test-sources {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.admin-drop-test-source {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px;
+  gap: 8px;
+}
+
+.admin-drop-test-source:first-child {
+  grid-template-columns: 1fr;
+}
+
+.admin-drop-test-source button,
+.admin-drop-test-source select {
+  min-height: 40px;
+  border: 1px solid #777;
+  padding: 8px 12px;
+}
+
+.admin-drop-test-source button {
+  background: #222;
+  color: white;
+}
+
+.admin-drop-test-source button:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.admin-drop-test-source button:disabled {
+  color: #777;
+}
+
+.admin-drop-test-source select {
+  width: 100%;
+  background: #111;
+  color: white;
+  text-transform: capitalize;
+}
+
+.admin-drop-test-results {
+  margin-top: 20px;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 6px;
+  padding: 16px;
+}
+
+.admin-drop-test-results h3 {
+  margin: 0 0 14px;
+  font-size: 1rem;
+}
+
+.admin-drop-test-result-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.admin-drop-test-result-grid > div {
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgb(255 255 255 / 12%);
+  padding: 12px;
+  text-align: center;
+}
+
+.admin-drop-test-result-grid strong {
+  text-transform: capitalize;
+}
+
+.admin-drop-test-result-grid span {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.admin-drop-test-result-grid small {
+  color: #aaa4af;
+}
+
+@media (max-width: 700px) {
+  .admin-drop-test-sources,
+  .admin-drop-test-result-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .seasonal-artwork-form {
   margin-top: 24px;
 }

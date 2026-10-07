@@ -9,7 +9,10 @@ import {
   type ArtworkRarity,
   type ItemGenerationMap,
 } from "./gameplay.ts";
-import type { NpcQuality } from "./npc-gameplay.ts";
+import {
+  NPC_QUALITIES,
+  type NpcQuality,
+} from "./npc-gameplay.ts";
 
 export const DEFAULT_RARITY_WEIGHTS: Record<ArtworkRarity, number> = {
   common: 15_000,
@@ -17,6 +20,13 @@ export const DEFAULT_RARITY_WEIGHTS: Record<ArtworkRarity, number> = {
   rare: 1_000,
   legendary: 30,
   masterpiece: 1,
+};
+
+export const DEFAULT_VISITOR_RARITY_AMPLIFIERS: Record<NpcQuality, number> = {
+  bronze: 0,
+  silver: 0.1,
+  gold: 0.2,
+  platinum: 0.3,
 };
 
 const DEBUG_RARITY_WEIGHTS: Record<ArtworkRarity, number> = {
@@ -89,6 +99,7 @@ export type GameplayConfig = {
   auctionAntiSnipeExtensionMinutes: number;
   npcMeetingResetIntervalMinutes: number;
   npcMeetingLimits: Record<NpcQuality, number>;
+  visitorRarityAmplifiers: Record<NpcQuality, number>;
   vintageConsiderationCount: number;
   rarityWeights: Record<ArtworkRarity, number>;
   cardStyleWeights: Record<DroppableCardRendererId, number>;
@@ -141,6 +152,7 @@ export const DEFAULT_ACTUAL_GAMEPLAY_CONFIG: GameplayConfig = {
     gold: 80,
     platinum: 60,
   },
+  visitorRarityAmplifiers: { ...DEFAULT_VISITOR_RARITY_AMPLIFIERS },
   vintageConsiderationCount: 10,
   rarityWeights: DEFAULT_RARITY_WEIGHTS,
   cardStyleWeights: DEFAULT_CARD_STYLE_WEIGHTS,
@@ -183,6 +195,7 @@ export const DEFAULT_DEBUG_GAMEPLAY_CONFIG: GameplayConfig = {
     gold: 80,
     platinum: 60,
   },
+  visitorRarityAmplifiers: { ...DEFAULT_VISITOR_RARITY_AMPLIFIERS },
   vintageConsiderationCount: 10,
   rarityWeights: DEBUG_RARITY_WEIGHTS,
   cardStyleWeights: DEBUG_CARD_STYLE_WEIGHTS,
@@ -236,6 +249,7 @@ type StoredGameplayConfig = {
   auction_anti_snipe_extension_minutes?: number;
   npc_meeting_reset_interval_minutes?: number;
   npc_meeting_limits?: Partial<Record<NpcQuality, number>>;
+  visitor_rarity_amplifiers?: Partial<Record<NpcQuality, number>>;
   vintage_consideration_count?: number;
   rarity_weights?: Partial<Record<ArtworkRarity, number>>;
   card_style_weights?: Partial<Record<DroppableCardRendererId, number>>;
@@ -315,6 +329,7 @@ export function toStoredGameplayConfig(
       config.auctionAntiSnipeExtensionMinutes,
     npc_meeting_reset_interval_minutes: config.npcMeetingResetIntervalMinutes,
     npc_meeting_limits: config.npcMeetingLimits,
+    visitor_rarity_amplifiers: config.visitorRarityAmplifiers,
     vintage_consideration_count: config.vintageConsiderationCount,
     rarity_weights: config.rarityWeights,
     card_style_weights: config.cardStyleWeights,
@@ -466,6 +481,10 @@ export function validateGameplayConfig(
   if (!cardStyleWeights.ok) return cardStyleWeights;
   const npcMeetingLimits = validateNpcMeetingLimits(config.npcMeetingLimits);
   if (!npcMeetingLimits.ok) return npcMeetingLimits;
+  const visitorRarityAmplifiers = validateVisitorRarityAmplifiers(
+    config.visitorRarityAmplifiers,
+  );
+  if (!visitorRarityAmplifiers.ok) return visitorRarityAmplifiers;
 
   return {
     ok: true,
@@ -508,6 +527,7 @@ export function validateGameplayConfig(
       auctionAntiSnipeExtensionMinutes: values.auctionAntiSnipeExtensionMinutes,
       npcMeetingResetIntervalMinutes: values.npcMeetingResetIntervalMinutes,
       npcMeetingLimits: npcMeetingLimits.value,
+      visitorRarityAmplifiers: visitorRarityAmplifiers.value,
       vintageConsiderationCount: values.vintageConsiderationCount,
       rarityWeights: rarityWeights.value,
       cardStyleWeights: cardStyleWeights.value,
@@ -701,6 +721,10 @@ function readConfig(
       ...defaults.npcMeetingLimits,
       ...stored?.npc_meeting_limits,
     },
+    visitorRarityAmplifiers: {
+      ...defaults.visitorRarityAmplifiers,
+      ...stored?.visitor_rarity_amplifiers,
+    },
     vintageConsiderationCount:
       stored?.vintage_consideration_count ??
       defaults.vintageConsiderationCount,
@@ -746,4 +770,45 @@ function validateNpcMeetingLimits(
     limits[quality] = value;
   }
   return { ok: true, value: limits };
+}
+
+export function validateVisitorRarityAmplifiers(
+  input: unknown,
+):
+  | { ok: true; value: Record<NpcQuality, number> }
+  | { ok: false; error: string } {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    return {
+      ok: false,
+      error: "Visitor rarity amplifiers must be a JSON object.",
+    };
+  }
+  const record = input as Record<string, unknown>;
+  const unknownKeys = Object.keys(record).filter(
+    (key) => !NPC_QUALITIES.includes(key as NpcQuality),
+  );
+  if (unknownKeys.length > 0) {
+    return {
+      ok: false,
+      error: `Unknown visitor quality keys: ${unknownKeys.join(", ")}.`,
+    };
+  }
+
+  const amplifiers = {} as Record<NpcQuality, number>;
+  for (const quality of NPC_QUALITIES) {
+    const value = record[quality];
+    if (
+      typeof value !== "number" ||
+      !Number.isFinite(value) ||
+      value < 0 ||
+      value > 1_000
+    ) {
+      return {
+        ok: false,
+        error: `The ${quality} visitor rarity amplifier must be a number from 0 to 1,000.`,
+      };
+    }
+    amplifiers[quality] = value;
+  }
+  return { ok: true, value: amplifiers };
 }
