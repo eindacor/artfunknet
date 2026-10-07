@@ -143,7 +143,7 @@ export default function StandardItemDialog({
   );
 }
 
-function ExpandedArtworkDialog({
+export function ExpandedArtworkDialog({
   adjustment,
   alt,
   artworkId,

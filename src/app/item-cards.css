@@ -6795,6 +6795,22 @@ attri
   max-width: 70px;
 }
 
+.live-auction-broadcast-dialog.standard-item-dialog {
+  position: relative;
+  z-index: auto;
+  inset: auto;
+  width: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  overflow: visible;
+  box-shadow: 0 12px 32px rgb(0 0 0 / 22%);
+}
+
+.live-auction-broadcast-dialog .standard-item-dialog-header-actions {
+  display: none;
+}
+
 /* Album: the square sleeve and half-extracted record are the complete item. */
 .album-card {
   display: grid;
