@@ -10,14 +10,24 @@ export default function ValuableItemConfirmationDialog({
   onCancel,
   onConfirm,
 }: {
-  action: "sell" | "donate";
+  action: "sell" | "donate" | "purchase-donate";
   item: HydratedGameItem;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const actionLabel = action === "sell" ? "Sell" : "Donate";
-  const actionVerb = action === "sell" ? "Selling" : "Donating";
+  const actionLabel =
+    action === "sell"
+      ? "Sell"
+      : action === "purchase-donate"
+        ? "Purchase and donate"
+        : "Donate";
+  const actionDescription =
+    action === "purchase-donate"
+      ? "Purchasing and donating it will immediately and permanently remove it in exchange for Karma."
+      : `${
+          action === "sell" ? "Selling" : "Donating"
+        } it will permanently remove it from your collection.`;
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -46,8 +56,10 @@ export default function ValuableItemConfirmationDialog({
         />
         <h2 id="valuable-item-confirmation-title">Are you sure?</h2>
         <p id="valuable-item-confirmation-description">
-          {item.artwork.title} is a {item.artwork.rarity} item.{" "}
-          {actionVerb} it will permanently remove it from your collection.
+          {item.artwork.title} is a{" "}
+          <span className="card-rarity-label">{item.artwork.rarity}</span>{" "}
+          item.{" "}
+          {actionDescription}
         </p>
         <div className="mint-loss-dialog-actions">
           <button onClick={onCancel} type="button">

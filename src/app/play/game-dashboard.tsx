@@ -558,7 +558,7 @@ export default function GameDashboard({
   const [archiveConfirmationItem, setArchiveConfirmationItem] =
     useState<HydratedGameItem | null>(null);
   const [valuableItemConfirmation, setValuableItemConfirmation] = useState<{
-    action: "sell" | "donate";
+    action: "sell" | "donate" | "purchase-donate";
     item: HydratedGameItem;
   } | null>(null);
   const [historianSubmissionItem, setHistorianSubmissionItem] =
@@ -2034,10 +2034,26 @@ export default function GameDashboard({
     });
   }
 
-  function donateItem(item: HydratedGameItem) {
+  function donateItem(item: HydratedGameItem, purchaseFirst = false) {
     setError("");
     setNotice("");
     startTransition(async () => {
+      if (purchaseFirst) {
+        const purchaseResponse = await fetch(
+          `/api/play/items/${item._id}/purchase`,
+          { method: "POST" },
+        );
+        const purchaseBody = (await purchaseResponse
+          .json()
+          .catch(() => ({}))) as { error?: string };
+        if (!purchaseResponse.ok) {
+          setError(
+            purchaseBody.error ?? "The artwork could not be purchased.",
+          );
+          return;
+        }
+      }
+
       const response = await fetch(`/api/play/items/${item._id}/donate`, {
         method: "POST",
       });
@@ -2049,8 +2065,13 @@ export default function GameDashboard({
         recoveredStyle?: string;
       };
       if (!response.ok) {
-        const message = body.error ?? "The donation could not be completed.";
+        const donationError =
+          body.error ?? "The donation could not be completed.";
+        const message = purchaseFirst
+          ? `The artwork was purchased, but it could not be donated. ${donationError}`
+          : donationError;
         setError(message);
+        if (purchaseFirst) router.refresh();
         return;
       }
 
@@ -2103,6 +2124,20 @@ export default function GameDashboard({
     } else {
       donateItem(item);
     }
+  }
+
+  function requestPurchaseDonation(item: HydratedGameItem) {
+    if (
+      item.artwork.rarity === "legendary" ||
+      item.artwork.rarity === "masterpiece"
+    ) {
+      setValuableItemConfirmation({
+        action: "purchase-donate",
+        item,
+      });
+      return;
+    }
+    donateItem(item, true);
   }
 
   async function openCrate(
@@ -2735,6 +2770,16 @@ export default function GameDashboard({
       historianQuests.length,
     );
     if (item.status === "for_sale") {
+      const purchaseAmount = Math.floor(
+        item.values.dealer * dealerPriceMultiplier,
+      );
+      const purchaseDonationDisabledReason = item.permanent
+        ? "Permanent artwork cannot be donated."
+        : inventoryFull && !item.original && !item.vintage
+          ? "Your inventory needs one open slot to purchase and donate this artwork."
+          : purchaseAmount > player.bankBalance
+            ? "You do not have enough money to purchase this artwork."
+            : undefined;
       return (
         <>
           <ItemActionButton
@@ -2756,6 +2801,15 @@ export default function GameDashboard({
                 `/api/play/items/${item._id}/purchase-and-set-for-sale`,
               )
             }
+          />
+          <ItemActionButton
+            destructive
+            gridSlot={9}
+            icon="fa-share-square"
+            label={`Purchase and donate for $${purchaseAmount.toLocaleString()}`}
+            disabled={pending || Boolean(purchaseDonationDisabledReason)}
+            disabledReason={purchaseDonationDisabledReason}
+            onClick={() => requestPurchaseDonation(item)}
           />
           <ItemActionButton
             destructive
@@ -4622,6 +4676,10 @@ export default function GameDashboard({
                 act(
                   `/api/play/items/${valuableItemConfirmation.item._id}/sell`,
                 );
+              } else if (
+                valuableItemConfirmation.action === "purchase-donate"
+              ) {
+                donateItem(valuableItemConfirmation.item, true);
               } else {
                 donateItem(valuableItemConfirmation.item);
               }
