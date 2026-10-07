@@ -71,7 +71,7 @@ test("NPC rarity amplification preserves common odds and scales higher rarities"
   assert.equal(amplified.rare, base.rare * 0.75);
 });
 
-test("visitor rarity scaling starts from admin-configured weights", () => {
+test("visitor rarity map uses admin-configured weights without quality amplification", () => {
   const configuredWeights = {
     common: 100,
     uncommon: 20,
@@ -87,9 +87,9 @@ test("visitor rarity scaling starts from admin-configured weights", () => {
     0.5,
   );
 
-  assert.equal(visitorMap.common, configuredBase.common);
-  assert.equal(visitorMap.rare, configuredBase.rare * 0.75);
-  assert.equal(visitorMap.masterpiece, configuredBase.masterpiece * 0.5);
+  // Visitor rarity maps now bypass masterpiece-amplifier scaling entirely,
+  // so they should match the raw configured rarity map at every rarity.
+  assert.deepEqual(visitorMap, configuredBase);
 });
 
 test("weighted rolls honor deterministic boundary values", () => {

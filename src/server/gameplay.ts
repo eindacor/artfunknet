@@ -455,11 +455,10 @@ export function getVisitorRarityMap(
   configuredWeights: Record<ArtworkRarity, number>,
   qualityAmplifier: number,
 ): Record<ArtworkRarity, number> {
-  return getRarityMap(playerLevel, lootData, configuredWeights);
-  return amplifyRarityMap(
-    getRarityMap(playerLevel, lootData, configuredWeights),
-    qualityAmplifier,
-  );
+   return amplifyRarityMap(
+     getRarityMap(playerLevel, lootData, configuredWeights),
+     qualityAmplifier
+   );
 }
 
 export function filterActiveArtworks<T extends Pick<Artwork, "active">>(
