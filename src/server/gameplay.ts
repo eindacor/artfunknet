@@ -436,12 +436,16 @@ export function amplifyRarityMap(
   rarityMap: Record<ArtworkRarity, number>,
   masterpieceAmplifier: number,
 ): Record<ArtworkRarity, number> {
-  const delta = masterpieceAmplifier - 1;
+  const delta = 1 - masterpieceAmplifier;
   return Object.fromEntries(
-    ARTWORK_RARITIES.map((rarity, index) => [
+    ARTWORK_RARITIES.map((rarity) => [
       rarity,
       rarityMap[rarity] *
-        (1 + delta * (index / (ARTWORK_RARITIES.length - 1))),
+        (rarity === "rare" ||
+        rarity === "legendary" ||
+        rarity === "masterpiece"
+          ? 1
+          : delta),
     ]),
   ) as Record<ArtworkRarity, number>;
 }

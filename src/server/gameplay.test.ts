@@ -57,7 +57,7 @@ test("masterpiece odds preserve the legacy one-in-1440 maximum-level rate", () =
   assert.ok(map.common > map.uncommon);
 });
 
-test("NPC rarity amplification preserves common odds and scales higher rarities", () => {
+test("NPC rarity amplification preserves rare-and-higher weights and scales common tiers", () => {
   const base = {
     common: 0.8,
     uncommon: 0.15,
@@ -66,9 +66,11 @@ test("NPC rarity amplification preserves common odds and scales higher rarities"
     masterpiece: 0.001,
   };
   const amplified = amplifyRarityMap(base, 0.5);
-  assert.equal(amplified.common, base.common);
-  assert.equal(amplified.masterpiece, base.masterpiece * 0.5);
-  assert.equal(amplified.rare, base.rare * 0.75);
+  assert.equal(amplified.common, base.common * 0.5);
+  assert.equal(amplified.uncommon, base.uncommon * 0.5);
+  assert.equal(amplified.rare, base.rare);
+  assert.equal(amplified.legendary, base.legendary);
+  assert.equal(amplified.masterpiece, base.masterpiece);
 });
 
 test("visitor rarity scaling starts from admin-configured weights", () => {
@@ -87,9 +89,11 @@ test("visitor rarity scaling starts from admin-configured weights", () => {
     0.5,
   );
 
-  assert.equal(visitorMap.common, configuredBase.common);
-  assert.equal(visitorMap.rare, configuredBase.rare * 0.75);
-  assert.equal(visitorMap.masterpiece, configuredBase.masterpiece * 0.5);
+  assert.equal(visitorMap.common, configuredBase.common * 0.5);
+  assert.equal(visitorMap.uncommon, configuredBase.uncommon * 0.5);
+  assert.equal(visitorMap.rare, configuredBase.rare);
+  assert.equal(visitorMap.legendary, configuredBase.legendary);
+  assert.equal(visitorMap.masterpiece, configuredBase.masterpiece);
 });
 
 test("weighted rolls honor deterministic boundary values", () => {
