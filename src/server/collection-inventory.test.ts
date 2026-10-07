@@ -22,6 +22,7 @@ function item(
     condition: 1,
     level: 0,
     repairing: false,
+    mint: false,
     foil: false,
     unlocked: false,
     seasonal: false,
@@ -138,6 +139,27 @@ test("collection filters support status, rarity, flags, and attributes", () => {
   filters.artStyle = "arcade";
   filters.flags.foil = "exclude";
   assert.deepEqual(filterCollectionItems([matching], filters), []);
+});
+
+test("collection property filters include Mint items", () => {
+  const mint = item({
+    _id: "mint",
+    artwork_id: "mint-art",
+    mint: true,
+  });
+  const standard = item({
+    _id: "standard",
+    artwork_id: "standard-art",
+  });
+  const filters = getDefaultCollectionFilters();
+
+  filters.flags.mint = "only";
+  assert.deepEqual(filterCollectionItems([mint, standard], filters), [mint]);
+
+  filters.flags.mint = "exclude";
+  assert.deepEqual(filterCollectionItems([mint, standard], filters), [
+    standard,
+  ]);
 });
 
 test("duplicate filtering respects the selected collection statuses", () => {

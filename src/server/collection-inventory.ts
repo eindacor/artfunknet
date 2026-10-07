@@ -16,6 +16,7 @@ export type CollectionStatus = (typeof COLLECTION_STATUSES)[number];
 export const COLLECTION_FLAG_KEYS = [
   "repairing",
   "for-sale",
+  "mint",
   "foil",
   "unlocked",
   "seasonal",
@@ -50,6 +51,7 @@ export type CollectionInventoryItem = Pick<
   | "level"
   | "card_renderer"
   | "repairing"
+  | "mint"
   | "foil"
   | "unlocked"
   | "seasonal"

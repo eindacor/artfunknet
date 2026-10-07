@@ -6731,6 +6731,7 @@ const ARCHIVE_FILTER_LABELS: Record<ArchiveFilterCategory, string> = {
 const COLLECTION_FLAG_LABELS: Record<CollectionFlagKey, string> = {
   repairing: "Repairing",
   "for-sale": "For sale",
+  mint: "Mint",
   foil: "Foil",
   unlocked: "Unlocked",
   seasonal: "Seasonal",
