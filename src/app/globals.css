@@ -7461,15 +7461,15 @@ a.welcome-button {
 
 .daily-events-heading p,
 .daily-events-heading h2,
-.daily-event-content header p,
-.daily-event-content header h3,
+.daily-event-content > header > p,
+.daily-event-content > header > h3,
 .daily-event-copy > p,
-.daily-event-copy h3 {
+.daily-event-copy > h3 {
   margin: 0;
 }
 
 .daily-events-heading p,
-.daily-event-content header > p,
+.daily-event-content > header > p,
 .daily-event-copy > p:first-child {
   color: #676158;
   font-family: Courier, "Courier New", monospace;
@@ -7619,12 +7619,6 @@ a.welcome-button {
   border-left-color: #c24f8c;
 }
 
-.daily-event-stage button,
-.daily-event-stage input,
-.daily-event-stage select {
-  border-radius: 0;
-}
-
 .daily-event-content > header a,
 .daily-event-intermission > a,
 .live-auction-player > div > button,
@@ -7668,9 +7662,9 @@ a.welcome-button {
   text-align: center;
 }
 
-.daily-event-copy h3,
-.daily-event-intermission h3,
-.daily-event-content h3 {
+.daily-event-copy > h3,
+.daily-event-intermission > h3,
+.daily-event-content > header > h3 {
   color: #171717;
   font-family: Georgia, "Times New Roman", serif;
   font-weight: 500;
@@ -7704,7 +7698,7 @@ a.welcome-button {
   color: #676158;
 }
 
-.daily-event-content > header h3 {
+.daily-event-content > header > h3 {
   flex-basis: 100%;
 }
 
@@ -7894,7 +7888,7 @@ a.welcome-button {
     gap: 1rem;
 }
 
-.daily-event-winners article {
+.daily-event-winners > div > article {
     display: grid;
     gap: 0.5rem;
     padding: 0.75rem;
@@ -8003,6 +7997,7 @@ a.welcome-button {
     min-height: 48px;
     padding: 0.65rem 0.75rem;
     border-color: #a69d90;
+    border-radius: 0;
     background: #fffdf8;
     color: #171717;
     font-size: 1.1rem;
@@ -8077,6 +8072,10 @@ a.welcome-button {
   color: #211b20;
 }
 
+.daily-event-debug-panel > button {
+  border-radius: 0;
+}
+
 .daily-event-debug-toggle button.selected {
   background: #b83c7b;
   color: #fff;
@@ -8089,7 +8088,7 @@ a.welcome-button {
 }
 
 .daily-event-debug-action select,
-.live-auction-player input {
+.live-auction-bid-panel input {
   min-height: 38px;
   border: 1px solid #b9b2a5;
   border-radius: 0;
