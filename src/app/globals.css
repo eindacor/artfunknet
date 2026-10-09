@@ -1653,7 +1653,7 @@ a.welcome-button {
 }
 
 .vintage-playthrough-dialog {
-  width: min(720px, calc(100vw - 32px));
+  width: min(1100px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
   margin: auto;
   border: 1px solid #d6a56e;

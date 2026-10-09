@@ -28,6 +28,7 @@ import {
 type EraRequest = {
   itemIds?: string[];
   itemId?: string; // Fallback for single item if sent
+  commemorateItemIds?: string[];
 };
 
 type VintagePlayer = {
@@ -66,10 +67,16 @@ export async function POST(request: Request) {
     : typeof body?.itemId === "string"
       ? [body.itemId]
       : [];
+  const submittedCommemorateItemIds = Array.isArray(body?.commemorateItemIds)
+    ? body.commemorateItemIds.filter(
+        (itemId): itemId is string => typeof itemId === "string",
+      )
+    : [];
 
   const database = await getDatabase();
   const settings = await getGameplaySettings(database);
   const requiredCount = settings.active.vintageConsiderationCount;
+  const maxCommemorateCount = settings.active.commemorateItemCount;
 
   const player = await database.collection<VintagePlayer>("players").findOne({
     _id: auth.session.playerId,
@@ -143,6 +150,31 @@ export async function POST(request: Request) {
   if (candidateItems.length !== requiredCount) {
     return NextResponse.json(
       { error: "Some submitted items are ineligible for vintage consideration." },
+      { status: 400 },
+    );
+  }
+
+  const uniqueCommemorateItemIds = [
+    ...new Set(submittedCommemorateItemIds),
+  ];
+  if (uniqueCommemorateItemIds.length > maxCommemorateCount) {
+    return NextResponse.json(
+      {
+        error: `Select at most ${maxCommemorateCount} items to commemorate for this era.`,
+      },
+      { status: 400 },
+    );
+  }
+  const commemorateItems = ownedItems.filter(
+    (item) =>
+      (item.status === "claimed" || item.status === "displayed") &&
+      uniqueCommemorateItemIds.includes(item._id),
+  );
+  if (commemorateItems.length !== uniqueCommemorateItemIds.length) {
+    return NextResponse.json(
+      {
+        error: "Some items chosen to commemorate this era are ineligible.",
+      },
       { status: 400 },
     );
   }
@@ -223,8 +255,8 @@ export async function POST(request: Request) {
     );
   }
 
-  // Hydrate gallery items for snapshot
-  const galleryItems = ownedItems.filter((item) => item.status === "displayed");
+  // Hydrate the player-chosen commemorative items for the legacy gallery snapshot
+  const galleryItems = commemorateItems;
   const artworkIds = Array.from(
     new Set(galleryItems.map((item) => item.artwork_id)),
   );
@@ -236,7 +268,7 @@ export async function POST(request: Request) {
   if (artworkMap.size !== artworkIds.length) {
     await releaseVintageLock(database, player._id, operationToken);
     return NextResponse.json(
-      { error: "Some displayed artwork metadata is unavailable." },
+      { error: "Some commemorated artwork metadata is unavailable." },
       { status: 409 },
     );
   }

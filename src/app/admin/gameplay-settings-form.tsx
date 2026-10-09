@@ -312,6 +312,20 @@ export default function GameplaySettingsForm({
         suffix="items"
         value={activeEditor.vintageConsiderationCount}
       />
+      <SettingField
+        description="Maximum number of claimed or on-display items a player may choose to commemorate for the legacy gallery snapshot before entering a new era."
+        label="Commemorate item count"
+        max={100}
+        min={1}
+        onChange={(value) =>
+          updateConfig(selectedConfig, (config) => ({
+            ...config,
+            commemorateItemCount: value,
+          }))
+        }
+        suffix="items"
+        value={activeEditor.commemorateItemCount}
+      />
       </ConfigGroup>
 
       <ConfigGroup title="Artwork value ranges">

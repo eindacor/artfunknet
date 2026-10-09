@@ -5,30 +5,21 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import ItemThumbnail from "@/components/item-thumbnail";
 import type { HydratedGameItem } from "@/server/item-artwork";
 
-export default function EnterEraDialog({
+export default function CommemorateEraDialog({
   items,
-  requiredCount = 10,
-  activeAuctionCount = 0,
-  commemorateItemIds,
+  maxCount = 10,
   onClose,
-  onComplete,
+  onContinue,
   onPreviewItem,
 }: {
   items: HydratedGameItem[];
-  requiredCount?: number;
-  activeAuctionCount?: number;
-  commemorateItemIds: string[];
+  maxCount?: number;
   onClose: () => void;
-  onComplete: (message: string) => void;
+  onContinue: (selectedItemIds: string[]) => void;
   onPreviewItem?: (item: HydratedGameItem) => void;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState("");
-
-  const targetCount = requiredCount;
-  const hasEnoughItems = items.length >= targetCount;
   const sortedItems = useMemo(
     () =>
       [...items].sort(
@@ -50,59 +41,17 @@ export default function EnterEraDialog({
       if (current.includes(id)) {
         return current.filter((item) => item !== id);
       }
-      if (current.length >= targetCount) {
+      if (current.length >= maxCount) {
         return current;
       }
       return [...current, id];
     });
   }
 
-  async function beginNewEra() {
-    if (activeAuctionCount > 0) {
-      setError("Resolve all active auctions before entering a new era.");
-      return;
-    }
-    if (selectedItemIds.length !== targetCount) {
-      setError(`Select exactly ${targetCount} items for vintage consideration.`);
-      return;
-    }
-
-    setPending(true);
-    setError("");
-    try {
-      const response = await fetch("/api/play/vintage", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          itemIds: selectedItemIds,
-          commemorateItemIds,
-        }),
-      });
-      const body = (await response.json()) as {
-        error?: string;
-        message?: string;
-      };
-      if (!response.ok) {
-        throw new Error(
-          body.error ?? "The new era could not be started.",
-        );
-      }
-      onComplete(body.message ?? "Your new era has begun!");
-    } catch (playthroughError) {
-      setError(
-        playthroughError instanceof Error
-          ? playthroughError.message
-          : "The new era could not be started.",
-      );
-    } finally {
-      setPending(false);
-    }
-  }
-
   return (
     <dialog
-      aria-describedby="enter-era-description"
-      aria-labelledby="enter-era-title"
+      aria-describedby="commemorate-era-description"
+      aria-labelledby="commemorate-era-title"
       className="vintage-playthrough-dialog max-w-5xl"
       onCancel={(event) => {
         event.preventDefault();
@@ -114,12 +63,11 @@ export default function EnterEraDialog({
         <header className="flex justify-between items-start border-b border-white/10 pb-3">
           <div>
             <p className="text-xs font-bold text-[var(--accent)] uppercase tracking-wider">Level 50 Prestige</p>
-            <h2 id="enter-era-title" className="text-2xl font-black">Enter a New Era</h2>
+            <h2 id="commemorate-era-title" className="text-2xl font-black">Commemorate This Era</h2>
           </div>
           <button
             aria-label="Close modal"
             className="reroll-dialog-close text-neutral-400 hover:text-white"
-            disabled={pending}
             onClick={onClose}
             type="button"
           >
@@ -127,34 +75,20 @@ export default function EnterEraDialog({
           </button>
         </header>
 
-        <p id="enter-era-description" className="text-sm text-neutral-300">
-          You are about to begin a new playthrough era! All of your items will be removed except for <strong>one</strong>, which will be randomly chosen from your <strong>{targetCount} items selected for vintage consideration</strong> below. All existing vintage items and original artworks will also be retained.
+        <p id="commemorate-era-description" className="text-sm text-neutral-300">
+          Before entering a new era, choose up to <strong>{maxCount} claimed or on-display works</strong> to commemorate.
+          These items will be preserved as this era&apos;s gallery snapshot on your legacy page.
         </p>
 
-        {activeAuctionCount > 0 && (
-          <div className="rounded border border-red-500/40 bg-red-500/10 p-3 text-xs text-red-300">
-            ⚠️ You currently have <strong>{activeAuctionCount}</strong> active auction(s) (selling or winning). You must resolve all active auctions before starting a new era.
-          </div>
-        )}
-        {!hasEnoughItems && (
-          <div className="rounded border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-200">
-            You need {targetCount} eligible items before entering a new era. You currently have {items.length}.
-          </div>
-        )}
-
         <div className="flex justify-between items-center text-xs bg-black/40 px-4 py-2 rounded">
-          <span>Select items for vintage consideration:</span>
+          <span>Select items to commemorate:</span>
           <span className="font-bold text-[var(--accent)]">
-            {selectedItemIds.length} / {targetCount} selected
+            {selectedItemIds.length} / {maxCount} selected
           </span>
         </div>
 
-        {error && (
-          <p className="text-xs font-bold text-red-400 bg-red-500/10 p-2 rounded border border-red-500/20">{error}</p>
-        )}
-
         <fieldset className="vintage-item-options max-h-[65vh] min-h-[28rem] overflow-y-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pr-2 border-0">
-          <legend className="sr-only">Items for vintage consideration</legend>
+          <legend className="sr-only">Items to commemorate for this era</legend>
           {sortedItems.map((item) => {
             const isSelected = selectedItemIds.includes(item._id);
             return (
@@ -176,12 +110,12 @@ export default function EnterEraDialog({
                 }}
               >
                 <input
-                  aria-label={`Select ${item.artwork.title} for vintage consideration`}
+                  aria-label={`Select ${item.artwork.title} to commemorate`}
                   type="checkbox"
                   checked={isSelected}
                   onChange={() => toggleItemSelection(item._id)}
                   onClick={(event) => event.stopPropagation()}
-                  disabled={pending || (!isSelected && selectedItemIds.length >= targetCount)}
+                  disabled={!isSelected && selectedItemIds.length >= maxCount}
                   className="accent-[var(--accent)] h-4 w-4"
                 />
                 <ItemThumbnail item={item} />
@@ -205,23 +139,16 @@ export default function EnterEraDialog({
           <button
             className="px-4 py-2 text-xs rounded border border-white/20 text-neutral-300 hover:bg-white/10"
             onClick={onClose}
-            disabled={pending}
             type="button"
           >
             Cancel
           </button>
           <button
             className="px-6 py-2 text-xs font-bold rounded bg-[var(--accent)] text-black hover:opacity-90 disabled:opacity-50"
-            onClick={beginNewEra}
-            disabled={
-              pending ||
-              !hasEnoughItems ||
-              selectedItemIds.length !== targetCount ||
-              activeAuctionCount > 0
-            }
+            onClick={() => onContinue(selectedItemIds)}
             type="button"
           >
-            {pending ? "Transitioning..." : "Enter New Era"}
+            Continue
           </button>
         </div>
       </div>

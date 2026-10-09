@@ -101,6 +101,7 @@ export type GameplayConfig = {
   npcMeetingLimits: Record<NpcQuality, number>;
   visitorRarityAmplifiers: Record<NpcQuality, number>;
   vintageConsiderationCount: number;
+  commemorateItemCount: number;
   rarityWeights: Record<ArtworkRarity, number>;
   cardStyleWeights: Record<DroppableCardRendererId, number>;
 };
@@ -154,6 +155,7 @@ export const DEFAULT_ACTUAL_GAMEPLAY_CONFIG: GameplayConfig = {
   },
   visitorRarityAmplifiers: { ...DEFAULT_VISITOR_RARITY_AMPLIFIERS },
   vintageConsiderationCount: 10,
+  commemorateItemCount: 10,
   rarityWeights: DEFAULT_RARITY_WEIGHTS,
   cardStyleWeights: DEFAULT_CARD_STYLE_WEIGHTS,
 };
@@ -197,6 +199,7 @@ export const DEFAULT_DEBUG_GAMEPLAY_CONFIG: GameplayConfig = {
   },
   visitorRarityAmplifiers: { ...DEFAULT_VISITOR_RARITY_AMPLIFIERS },
   vintageConsiderationCount: 10,
+  commemorateItemCount: 10,
   rarityWeights: DEBUG_RARITY_WEIGHTS,
   cardStyleWeights: DEBUG_CARD_STYLE_WEIGHTS,
 };
@@ -251,6 +254,7 @@ type StoredGameplayConfig = {
   npc_meeting_limits?: Partial<Record<NpcQuality, number>>;
   visitor_rarity_amplifiers?: Partial<Record<NpcQuality, number>>;
   vintage_consideration_count?: number;
+  commemorate_item_count?: number;
   rarity_weights?: Partial<Record<ArtworkRarity, number>>;
   card_style_weights?: Partial<Record<DroppableCardRendererId, number>>;
 };
@@ -331,6 +335,7 @@ export function toStoredGameplayConfig(
     npc_meeting_limits: config.npcMeetingLimits,
     visitor_rarity_amplifiers: config.visitorRarityAmplifiers,
     vintage_consideration_count: config.vintageConsiderationCount,
+    commemorate_item_count: config.commemorateItemCount,
     rarity_weights: config.rarityWeights,
     card_style_weights: config.cardStyleWeights,
   };
@@ -362,6 +367,7 @@ export function validateGameplayConfig(
       10_080,
     ],
     ["vintageConsiderationCount", "Vintage consideration count", 1, 100],
+    ["commemorateItemCount", "Commemorate item count", 1, 100],
   ] as const;
   const values: Record<string, number> = {};
   for (const [key, label, min, max] of integerFields) {
@@ -529,6 +535,7 @@ export function validateGameplayConfig(
       npcMeetingLimits: npcMeetingLimits.value,
       visitorRarityAmplifiers: visitorRarityAmplifiers.value,
       vintageConsiderationCount: values.vintageConsiderationCount,
+      commemorateItemCount: values.commemorateItemCount,
       rarityWeights: rarityWeights.value,
       cardStyleWeights: cardStyleWeights.value,
     },
@@ -728,6 +735,8 @@ function readConfig(
     vintageConsiderationCount:
       stored?.vintage_consideration_count ??
       defaults.vintageConsiderationCount,
+    commemorateItemCount:
+      stored?.commemorate_item_count ?? defaults.commemorateItemCount,
     rarityWeights: {
       ...defaults.rarityWeights,
       ...stored?.rarity_weights,

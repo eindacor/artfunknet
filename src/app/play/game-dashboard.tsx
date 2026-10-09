@@ -24,6 +24,7 @@ import DailyEventsPanel from "@/components/daily-events-panel";
 import {
   type RafflePrizeView,
 } from "@/components/raffle-panel";
+import CommemorateEraDialog from "@/components/commemorate-era-dialog";
 import EnterEraDialog from "@/components/enter-era-dialog";
 import PlayHistoryPanel from "@/components/play-history-panel";
 import type { PlaythroughSnapshot } from "@/server/playthrough-snapshots";
@@ -134,6 +135,7 @@ import GalleryExplorer, {
 import GalleryChat from "./galleries/gallery-chat";
 import {
   buildGalleryMetadataSnapshot,
+  type GalleryAttributeAggregate,
   type GalleryMetadataSnapshot,
 } from "@/server/gallery-metadata-core";
 import InfoPanel from "@/components/info-panel/info-panel";
@@ -350,6 +352,7 @@ export default function GameDashboard({
   hallOfFameRecords = [],
   playthroughSnapshots = [],
   vintageConsiderationCount = 10,
+  commemorateItemCount = 10,
 }: {
   player: PlayerView;
   items: HydratedGameItem[];
@@ -392,6 +395,7 @@ export default function GameDashboard({
   hallOfFameRecords?: HallOfFameDisplayRecord[];
   playthroughSnapshots?: PlaythroughSnapshot[];
   vintageConsiderationCount?: number;
+  commemorateItemCount?: number;
 }) {
   const cardCosmetics = useCardCosmetics();
   const router = useRouter();
@@ -567,7 +571,11 @@ export default function GameDashboard({
     useState<HydratedPlayerArtworkArchive | null>(null);
   const [forgeryDialogInitialArchiveId, setForgeryDialogInitialArchiveId] =
     useState<string | null | undefined>(undefined);
+  const [commemorateDialogOpen, setCommemorateDialogOpen] = useState(false);
   const [vintageDialogOpen, setVintageDialogOpen] = useState(false);
+  const [commemorateItemIds, setCommemorateItemIds] = useState<string[]>([]);
+  const [eraPreviewItem, setEraPreviewItem] =
+    useState<HydratedGameItem | null>(null);
   const [pending, startTransition] = useTransition();
   const {
     markVisitorMet,
@@ -952,10 +960,11 @@ export default function GameDashboard({
     (sum, item) => sum + item.values.actual,
     0,
   );
-  const collectionBulkAttributeScore = buildGalleryMetadataSnapshot(
+  const collectionBulkGalleryMetadata = buildGalleryMetadataSnapshot(
     selectedCollectionItems,
     player.displayCap,
-  ).score;
+  );
+  const collectionBulkAttributeScore = collectionBulkGalleryMetadata.score;
   const repairingCount = items.filter((item) => item.repairing).length;
   const collectionBulkState = useMemo(
     () =>
@@ -1017,6 +1026,13 @@ export default function GameDashboard({
           !item.vintage &&
           !item.original &&
           !item.repairing,
+      ),
+    [items],
+  );
+  const commemorateCandidates = useMemo(
+    () =>
+      items.filter(
+        (item) => item.status === "claimed" || item.status === "displayed",
       ),
     [items],
   );
@@ -3680,7 +3696,7 @@ export default function GameDashboard({
                         activeAuctionCount > 0 ||
                         vintageCandidates.length < vintageConsiderationCount
                       }
-                      onClick={() => setVintageDialogOpen(true)}
+                      onClick={() => setCommemorateDialogOpen(true)}
                       type="button"
                     >
                       Enter a new era
@@ -3883,7 +3899,9 @@ export default function GameDashboard({
               {selectedCollectionItems.length > 1 ? (
                 <CollectionBulkActionsPanel
                   attributeScore={collectionBulkAttributeScore}
+                  attributes={collectionBulkGalleryMetadata.attributes}
                   availability={collectionBulkState.availability}
+                  displayCapacity={collectionBulkGalleryMetadata.display_capacity}
                   itemCount={selectedCollectionItems.length}
                   onAction={requestCollectionBulkAction}
                   pending={pending}
@@ -4560,17 +4578,58 @@ export default function GameDashboard({
             onClose={() => setActionDialog(null)}
           />
         ) : null}
+        {commemorateDialogOpen ? (
+          <CommemorateEraDialog
+            items={commemorateCandidates}
+            maxCount={commemorateItemCount}
+            onClose={() => {
+              setCommemorateDialogOpen(false);
+              setCommemorateItemIds([]);
+            }}
+            onContinue={(selectedItemIds) => {
+              setCommemorateItemIds(selectedItemIds);
+              setCommemorateDialogOpen(false);
+              setVintageDialogOpen(true);
+            }}
+            onPreviewItem={setEraPreviewItem}
+          />
+        ) : null}
         {vintageDialogOpen ? (
           <EnterEraDialog
             items={vintageCandidates}
             requiredCount={vintageConsiderationCount}
             activeAuctionCount={activeAuctionCount}
-            onClose={() => setVintageDialogOpen(false)}
+            commemorateItemIds={commemorateItemIds}
+            onClose={() => {
+              setVintageDialogOpen(false);
+              setCommemorateItemIds([]);
+            }}
             onComplete={(message) => {
               setVintageDialogOpen(false);
+              setCommemorateItemIds([]);
               setNotice(message);
               router.refresh();
             }}
+            onPreviewItem={setEraPreviewItem}
+          />
+        ) : null}
+        {eraPreviewItem ? (
+          <StandardItemDialog
+            currentRendererId={resolveCardRendererId({
+              itemRendererId: eraPreviewItem.card_renderer,
+            })}
+            displayOwner={{
+              playerId,
+              screenName: player.screenName,
+            }}
+            item={eraPreviewItem}
+            legendaryAttributes={legendaryAttributes}
+            onClose={() => setEraPreviewItem(null)}
+            permissions={{
+              canManageItem: false,
+              canCustomizeCosmetic: false,
+            }}
+            viewerId={playerId}
           />
         ) : null}
         {galleryItemDetails ? (
@@ -5931,14 +5990,18 @@ function LootBulkActionsPanel({
 
 function CollectionBulkActionsPanel({
   attributeScore,
+  attributes,
   availability,
+  displayCapacity,
   itemCount,
   onAction,
   pending,
   totalValue,
 }: {
   attributeScore: number;
+  attributes: GalleryAttributeAggregate[];
   availability: Record<CollectionBulkAction, CollectionBulkAvailability>;
+  displayCapacity: number;
   itemCount: number;
   onAction: (action: CollectionBulkAction) => void;
   pending: boolean;
@@ -6007,6 +6070,20 @@ function CollectionBulkActionsPanel({
           <div>
             <dt>Attribute score</dt>
             <dd>{attributeScore.toLocaleString()}</dd>
+          </div>
+          <div>
+            <dt>Attributes</dt>
+            <dd>
+              {attributes.length > 0
+                ? attributes.map((attribute, i) => (
+                    <Attribute
+                      attribute={attribute}
+                      displayCapacity={displayCapacity}
+                      key={`${attribute.id}_${i}`}
+                    />
+                  ))
+                : "None"}
+            </dd>
           </div>
         </dl>
         <p>

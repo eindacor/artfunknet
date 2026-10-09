@@ -585,6 +585,7 @@ export default async function PlayerPage({
         playthroughSnapshots={JSON.parse(JSON.stringify(playthroughSnapshots))}
         hallOfFameRecords={JSON.parse(JSON.stringify(hallOfFameRecords))}
         vintageConsiderationCount={config.vintageConsiderationCount}
+        commemorateItemCount={config.commemorateItemCount}
       />
     </div>
   );
