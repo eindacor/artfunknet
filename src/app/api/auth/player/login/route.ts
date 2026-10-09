@@ -6,6 +6,7 @@ import {
   type PlayerAccountRecord,
 } from "@/server/player-account";
 import { authenticatePlayerPassword } from "@/server/player-password-auth";
+import { syncPatreonMembershipAfterSignIn } from "@/server/patreon";
 import {
   PLAYER_SESSION_COOKIE,
   createPlayerSessionToken,
@@ -55,6 +56,7 @@ export async function POST(request: Request) {
       },
     },
   );
+  await syncPatreonMembershipAfterSignIn(database, player._id);
 
   const response = NextResponse.json({ status: "ok" });
   response.cookies.set(

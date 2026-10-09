@@ -6,6 +6,7 @@ import {
   type PlayerAccountRecord,
 } from "@/server/player-account";
 import { authenticatePlayerPassword } from "@/server/player-password-auth";
+import { syncPatreonMembershipAfterSignIn } from "@/server/patreon";
 import {
   createPlayerSessionToken,
   PLAYER_SESSION_TTL_SECONDS,
@@ -61,6 +62,7 @@ export async function POST(request: Request) {
       },
     },
   );
+  await syncPatreonMembershipAfterSignIn(database, player._id);
 
   return NextResponse.json(
     {

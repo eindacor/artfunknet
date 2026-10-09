@@ -21,6 +21,7 @@ import {
   playerSessionCookieOptions,
 } from "@/server/session";
 import { getPublicBaseUrl } from "@/server/public-url";
+import { syncPatreonMembershipAfterSignIn } from "./patreon.ts";
 
 export type OAuthProvider = "discord" | "google" | "microsoft" | "steam";
 
@@ -241,6 +242,7 @@ export async function completeOAuthPlayerSignIn({
         },
       );
     }
+    await syncPatreonMembershipAfterSignIn(database, player._id);
 
     const response = NextResponse.redirect(
       new URL(

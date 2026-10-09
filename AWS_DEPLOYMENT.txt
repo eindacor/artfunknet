@@ -252,6 +252,7 @@ Example production configuration:
   PATREON_CLIENT_SECRET=
   PATREON_REDIRECT_URI=
   PATREON_CAMPAIGN_ID=
+  PATREON_TOKEN_ENCRYPTION_KEY=
 
 Generate SESSION_SECRET with a cryptographically secure tool, for example:
 
@@ -292,6 +293,16 @@ console. Scheme, hostname, path, and port must match. Provider-specific
 redirect variables remain available as overrides for unusual deployments, but
 normally should remain blank so APP_BASE_URL is the single source of truth.
 Restart the Next.js service after changing any environment value.
+
+Patreon synchronization also requires PATREON_CAMPAIGN_ID and a stable
+PATREON_TOKEN_ENCRYPTION_KEY containing at least 32 random characters. The
+encryption key protects player OAuth access and refresh tokens stored in
+MongoDB. Do not rotate it without requiring every linked player to reconnect
+Patreon. The Patreon OAuth client must allow the identity, identity[email],
+and identity.memberships scopes. Generate the encryption key with a
+cryptographically secure tool, for example:
+
+  openssl rand -hex 32
 
 Discord requires a normal application created in the Discord Developer Portal
 with its callback URI registered. Microsoft requires an Entra application

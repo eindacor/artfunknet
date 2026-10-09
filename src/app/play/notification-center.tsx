@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { FloatingPopover } from "@/components/floating-popover";
 import IconButton from "@/components/icon-button/icon-button";
@@ -11,23 +12,35 @@ export default function NotificationCenter({
 }: {
   initialNotifications?: PlayerNotification[];
 }) {
+  const router = useRouter();
   const [notifications, setNotifications] = useState(initialNotifications);
   const [error, setError] = useState("");
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const authenticationLost = useRef(false);
   const refreshInFlight = useRef(false);
   const unreadCount = notifications.filter(
     (notification) => !notification.read,
   ).length;
+  const redirectToLogin = useCallback(() => {
+    if (authenticationLost.current) return;
+    authenticationLost.current = true;
+    router.replace("/play/login");
+    router.refresh();
+  }, [router]);
 
   const refreshNotifications = useCallback(
     async (quiet = false) => {
-      if (refreshInFlight.current) return;
+      if (refreshInFlight.current || authenticationLost.current) return;
       refreshInFlight.current = true;
       try {
         const response = await fetch("/api/play/notifications", {
           cache: "no-store",
         });
+        if (response.status === 401) {
+          redirectToLogin();
+          return;
+        }
         const body = (await response.json()) as {
           error?: string;
           notifications?: PlayerNotification[];
@@ -53,7 +66,7 @@ export default function NotificationCenter({
         refreshInFlight.current = false;
       }
     },
-    [],
+    [redirectToLogin],
   );
 
   useEffect(() => {
@@ -87,6 +100,10 @@ export default function NotificationCenter({
   ): Promise<boolean> {
     try {
       const response = await fetch(url, options);
+      if (response.status === 401) {
+        redirectToLogin();
+        return false;
+      }
       if (!response.ok) {
         setError(failureMessage);
         return false;

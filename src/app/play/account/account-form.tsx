@@ -7,11 +7,24 @@ import type { GalleryViewMode } from "@/server/player-view-settings";
 export default function AccountForm({
   email,
   hasPassword,
+  patreon,
   preferredGalleryView,
   screenName,
 }: {
   email: string;
   hasPassword: boolean;
+  patreon: {
+    checkedAt: string | null;
+    configured: boolean;
+    email: string | null;
+    emailMatchesPlayer: boolean | null;
+    isSupporter: boolean;
+    linked: boolean;
+    message: string | null;
+    requiresReauthorization: boolean;
+    tierAmountCents: number | null;
+    tierName: string | null;
+  };
   preferredGalleryView: GalleryViewMode;
   screenName: string;
 }) {
@@ -132,6 +145,79 @@ export default function AccountForm({
       </section>
 
       <section className="rounded-lg border border-white/15 bg-white/5 p-6">
+        <h2 className="text-xl font-bold">Patreon</h2>
+        <p className="mt-2 text-sm text-[var(--muted)]">
+          Link Patreon to keep your supporter status and tier current.
+        </p>
+        <div className="mt-5 grid gap-2 text-sm">
+          <p>
+            <span className="font-semibold">Status:</span>{" "}
+            {patreon.isSupporter ? (
+              <>
+                Active supporter
+                {patreon.tierName ? (
+                  <>
+                    {" — "}
+                    <span className={getPatreonTierClass(patreon.tierName)}>
+                      {patreon.tierName}
+                    </span>
+                  </>
+                ) : null}
+                {patreon.tierAmountCents !== null
+                  ? ` ($${(patreon.tierAmountCents / 100).toFixed(2)})`
+                  : null}
+              </>
+            ) : patreon.linked ? (
+              "No active paid membership found"
+            ) : (
+              "Not linked"
+            )}
+          </p>
+          {patreon.email ? (
+            <p>
+              <span className="font-semibold">Patreon account:</span>{" "}
+              {patreon.email}
+              {patreon.emailMatchesPlayer === false
+                ? " (different from your player email)"
+                : null}
+            </p>
+          ) : null}
+          {patreon.checkedAt ? (
+            <p>
+              <span className="font-semibold">Last checked:</span>{" "}
+              <time dateTime={patreon.checkedAt}>
+                {formatPatreonTimestamp(patreon.checkedAt)}
+              </time>
+            </p>
+          ) : null}
+          {patreon.requiresReauthorization ? (
+            <p className="text-amber-300">
+              Patreon authorization has expired. Sync again to reconnect it.
+            </p>
+          ) : null}
+          {patreon.message ? (
+            <p aria-live="polite">{patreon.message}</p>
+          ) : null}
+        </div>
+        {patreon.configured ? (
+          <a
+            className="mt-5 block rounded-md bg-[var(--accent)] px-4 py-2 text-center font-semibold text-black"
+            href="/api/auth/player/patreon"
+          >
+            Sync with Patreon
+          </a>
+        ) : (
+          <button
+            className="mt-5 w-full rounded-md bg-[var(--accent)] px-4 py-2 font-semibold text-black opacity-60"
+            disabled
+            type="button"
+          >
+            Patreon sync unavailable
+          </button>
+        )}
+      </section>
+
+      <section className="rounded-lg border border-white/15 bg-white/5 p-6">
         <h2 className="text-xl font-bold">View preferences</h2>
         <form className="mt-5 grid gap-4" onSubmit={updatePreferences}>
           <label className="grid gap-2">
@@ -215,4 +301,19 @@ export default function AccountForm({
       </section>
     </div>
   );
+}
+
+function getPatreonTierClass(tierName: string): string | undefined {
+  const rarity = [
+    "masterpiece",
+    "legendary",
+    "uncommon",
+    "common",
+    "rare",
+  ].find((candidate) => tierName.toLowerCase().includes(candidate));
+  return rarity ? `rarity-text ${rarity}` : undefined;
+}
+
+function formatPatreonTimestamp(value: string): string {
+  return value.replace("T", " ").replace(/\.\d{3}Z$/, " UTC");
 }
