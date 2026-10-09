@@ -7,6 +7,7 @@ import styles from "./icon-button.module.css";
 type OwnProps = {
   /** Font Awesome classes, such as "fa-bell" or "fa-brands fa-discord". */
   icon: string;
+  iconClassName?: string;
   /** Drawn over the top-right corner. Nothing renders when it is null. */
   badge?: ReactNode;
   className?: string;
@@ -21,6 +22,7 @@ export default function IconButton<T extends ElementType = "button">({
   badge = null,
   className = "",
   icon,
+  iconClassName = "",
   ...rest
 }: IconButtonProps<T>) {
   const Component = (as ?? "button") as ElementType;
@@ -31,7 +33,7 @@ export default function IconButton<T extends ElementType = "button">({
       type={Component === "button" ? "button" : undefined}
       {...rest}
     >
-      <i aria-hidden="true" className={`fa ${icon}`} />
+      <i aria-hidden="true" className={`fa ${icon} ${iconClassName}`} />
       {badge === null ? null : <span className={styles.badge}>{badge}</span>}
     </Component>
   );

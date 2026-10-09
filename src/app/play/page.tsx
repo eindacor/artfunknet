@@ -485,6 +485,11 @@ export default async function PlayerPage({
         karma={player.profile.karma ?? 0}
         initialNotifications={notifications}
         impersonating={impersonating}
+        patreonTierName={
+          player.patreon?.is_supporter
+            ? player.patreon.tier_name ?? null
+            : null
+        }
       />
       <GameDashboard
         archiveArtStyleIds={cardRendererSettings.activeRendererIds.filter(

@@ -21,6 +21,7 @@ type AuthenticatedHeaderContentProps = {
   lotteryTickets: number;
   initialNotifications?: PlayerNotification[];
   impersonating: boolean;
+  patreonTierName?: string | null;
 };
 
 export default function PlayerHeader(props: PlayerHeaderProps) {
@@ -174,6 +175,7 @@ function AuthenticatedHeaderContent(props: AuthenticatedHeaderContentProps) {
         <NotificationCenter initialNotifications={initialNotifications} />
       }
       onSignOut={logout}
+      patreonTierName={props.patreonTierName}
     />
   );
 }
