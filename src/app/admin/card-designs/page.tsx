@@ -21,6 +21,9 @@ export default async function CardDesignsAdminPage() {
   const database = await getDatabase();
   const rendererSettings = await getCardRendererSettings(database);
   const activeRendererIds = new Set(rendererSettings.activeRendererIds);
+  const supporterRendererIds = new Set(
+    rendererSettings.supporterRendererIds,
+  );
   const [rawItems, artworks, attributes, effects, lootMetadata] =
     await Promise.all([
     database
@@ -143,6 +146,7 @@ export default async function CardDesignsAdminPage() {
                 <CardDesignPreview
                   description={option?.description}
                   initialActive={activeRendererIds.has(rendererId)}
+                  initialSupporter={supporterRendererIds.has(rendererId)}
                   item={item}
                   items={previewItems}
                   key={rendererId}

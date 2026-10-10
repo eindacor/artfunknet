@@ -2,16 +2,19 @@ import { NextResponse } from "next/server";
 
 import { isCardRendererId } from "@/components/item-cards/selection";
 import { requireAdminApi } from "@/server/admin-api";
+import { getCardRendererSettings } from "@/server/card-renderer-settings";
 import { getDatabase } from "@/server/mongodb";
 
 type UpdateRequest = {
   active?: unknown;
   name?: unknown;
+  supporter?: unknown;
 };
 
 type CardRendererSettingsDocument = {
   _id: string;
-  inactive_renderer_ids?: string[];
+  active_renderer_ids?: string[];
+  supporter_renderer_ids?: string[];
   renderer_names?: Record<string, string>;
   created_at?: Date;
   updated_at?: Date;
@@ -28,10 +31,11 @@ export async function PATCH(
   const { id } = await params;
   const body = (await request.json()) as UpdateRequest;
   const hasActive = typeof body.active === "boolean";
+  const hasSupporter = typeof body.supporter === "boolean";
   const name = typeof body.name === "string" ? body.name.trim() : null;
   if (
     !isCardRendererId(id) ||
-    (!hasActive && name === null) ||
+    (!hasActive && !hasSupporter && name === null) ||
     (name !== null && (name.length === 0 || name.length > 80))
   ) {
     return NextResponse.json(
@@ -41,6 +45,7 @@ export async function PATCH(
   }
 
   const database = await getDatabase();
+  await getCardRendererSettings(database);
   const now = new Date();
   const collection =
     database.collection<CardRendererSettingsDocument>("metadata");
@@ -49,12 +54,29 @@ export async function PATCH(
       { _id: "card-renderer-settings" },
       body.active
         ? {
-            $pull: { inactive_renderer_ids: id },
+            $addToSet: { active_renderer_ids: id },
             $set: { updated_at: now, updated_by: auth.session.email },
             $setOnInsert: { created_at: now },
           }
         : {
-            $addToSet: { inactive_renderer_ids: id },
+            $pull: { active_renderer_ids: id },
+            $set: { updated_at: now, updated_by: auth.session.email },
+            $setOnInsert: { created_at: now },
+          },
+      { upsert: true },
+    );
+  }
+  if (hasSupporter) {
+    await collection.updateOne(
+      { _id: "card-renderer-settings" },
+      body.supporter
+        ? {
+            $addToSet: { supporter_renderer_ids: id },
+            $set: { updated_at: now, updated_by: auth.session.email },
+            $setOnInsert: { created_at: now },
+          }
+        : {
+            $pull: { supporter_renderer_ids: id },
             $set: { updated_at: now, updated_by: auth.session.email },
             $setOnInsert: { created_at: now },
           },
@@ -78,6 +100,7 @@ export async function PATCH(
   return NextResponse.json({
     status: "ok",
     ...(hasActive ? { active: body.active } : {}),
+    ...(hasSupporter ? { supporter: body.supporter } : {}),
     ...(name !== null ? { name } : {}),
   });
 }

@@ -3,9 +3,13 @@ import { randomUUID } from "node:crypto";
 import type { Db } from "mongodb";
 
 import type { ArtworkEffect } from "./artwork-effects-core.ts";
-import { getCardRendererSettings } from "./card-renderer-settings.ts";
+import {
+  getCardRendererSettings,
+  getSupporterAdjustedCardStyleWeights,
+} from "./card-renderer-settings.ts";
 import { getItemAttributeCounts } from "./item-attribute-counts.ts";
 import { getRerollCost } from "./item-reroll.ts";
+import { getPlayerSupporterStatus } from "./supporter-status.ts";
 
 export const ARTWORK_RARITIES = [
   "common",
@@ -504,7 +508,15 @@ export async function generateDailyDrop(
   if (attributes.length === 0) {
     throw new Error("Artwork attributes have not been seeded.");
   }
-  const rendererSettings = await getCardRendererSettings(database);
+  const [rendererSettings, playerIsSupporter] = await Promise.all([
+    getCardRendererSettings(database),
+    getPlayerSupporterStatus(database, playerId),
+  ]);
+  const cardStyleWeights = getSupporterAdjustedCardStyleWeights(
+    generationMap.cardStyles,
+    rendererSettings.supporterRendererIds,
+    playerIsSupporter,
+  );
 
   const rarityMap = getConfiguredRarityMap(
     playerLevel,
@@ -619,7 +631,7 @@ export async function generateDailyDrop(
         now,
         activeRendererIds: rendererSettings.activeRendererIds,
         cardStyleProbability,
-        cardStyleWeights: generationMap.cardStyles,
+        cardStyleWeights,
         foilProbability,
         mintProbability,
         mintValueMultiplier,

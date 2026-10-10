@@ -9,15 +9,18 @@ export default function CardRendererActivation({
   rendererId,
   initialActive,
   initialName,
+  initialSupporter,
   onNameUpdated,
 }: {
   rendererId: CardRendererId;
   initialActive: boolean;
   initialName: string;
+  initialSupporter: boolean;
   onNameUpdated: (name: string) => void;
 }) {
   const updateCatalogName = useUpdateCardCosmeticName();
   const [active, setActive] = useState(initialActive);
+  const [supporter, setSupporter] = useState(initialSupporter);
   const [name, setName] = useState(initialName);
   const [savedName, setSavedName] = useState(initialName);
   const [saving, setSaving] = useState(false);
@@ -42,6 +45,33 @@ export default function CardRendererActivation({
         caught instanceof Error
           ? caught.message
           : "Activation could not be updated.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function updateSupporter(nextSupporter: boolean) {
+    setSaving(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/admin/card-renderers/${rendererId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ supporter: nextSupporter }),
+      });
+      const body = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        throw new Error(
+          body.error ?? "Supporter availability could not be updated.",
+        );
+      }
+      setSupporter(nextSupporter);
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Supporter availability could not be updated.",
       );
     } finally {
       setSaving(false);
@@ -112,6 +142,15 @@ export default function CardRendererActivation({
           type="checkbox"
         />
         Active
+      </label>
+      <label>
+        <input
+          checked={supporter}
+          disabled={saving}
+          onChange={(event) => void updateSupporter(event.target.checked)}
+          type="checkbox"
+        />
+        Supporter only
       </label>
       {error ? <small role="alert">{error}</small> : null}
     </div>

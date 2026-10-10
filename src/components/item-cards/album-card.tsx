@@ -1,17 +1,11 @@
 import {
   ArtworkImage,
   AttributeIcons,
-  ItemStatusBadges,
 } from "./shared";
 import type { CSSProperties } from "react";
 import type { ItemCardRendererProps } from "./types";
 
-export default function AlbumCard({
-  item,
-  alreadyOwned,
-  consigned,
-  researchTarget,
-}: ItemCardRendererProps) {
+export default function AlbumCard({ item }: ItemCardRendererProps) {
   return (
     <div className="render-card album-card">
       <div className="album-card-object">
@@ -48,14 +42,6 @@ export default function AlbumCard({
           {item.mint ? (
             <span className="album-card-new-sticker">NEW</span>
           ) : null}
-          <ItemStatusBadges
-            alreadyOwned={alreadyOwned}
-            consigned={consigned}
-            item={item}
-            researchTarget={researchTarget}
-            showMint={false}
-            showUnlocked={false}
-          />
           {item.unlocked ? (
             <span
               aria-label="Unlocked"

@@ -463,7 +463,7 @@
     .blueprint-card,
     .gilded-card,
     .terminal-card,
-    .prismatic-card,
+    .comic-card,
     .celestial-card,
     .abstract-card,
     .reliquary-card
@@ -489,7 +489,7 @@
     .blueprint-card,
     .gilded-card,
     .terminal-card,
-    .prismatic-card,
+    .comic-card,
     .celestial-card,
     .abstract-card,
     .reliquary-card
@@ -503,7 +503,7 @@
     .blueprint-card,
     .gilded-card,
     .terminal-card,
-    .prismatic-card,
+    .comic-card,
     .celestial-card,
     .abstract-card,
     .reliquary-card
@@ -516,7 +516,7 @@
 :is(
     .arcade-card,
     .terminal-card,
-    .prismatic-card,
+    .comic-card,
     .celestial-card,
     .abstract-card
   )
@@ -1504,109 +1504,635 @@
   }
 }
 
-/* Prismatic: shader-backed showcase with a static foil border. */
-.prismatic-card {
-  --prismatic-card-border-width: 2px;
-  --prismatic-card-radius: 0px;
-  --prismatic-seasonal-spectrum-duration: 30s;
 
-  border: var(--prismatic-card-border-width) solid var(--rarity-color);
-  border-radius: var(--prismatic-card-radius);
-  background: linear-gradient(#17111e, #0d0912);
-  color: #fff;
-  box-shadow:
-    0 0 18px var(--rarity-glow),
-    0 12px 26px rgb(0 0 0 / 50%);
-  font-family: var(--font-geist-sans), sans-serif;
-}
+/* ==========================================
+   COMIC BOOK COVER
+   ========================================== */
 
-.prismatic-card-shader {
-  z-index: 0;
-  inset: 0;
-  overflow: hidden;
-  border-radius: calc(
-    var(--prismatic-card-radius) - var(--prismatic-card-border-width)
-  );
-  clip-path: inset(
-    0 round
-      calc(var(--prismatic-card-radius) - var(--prismatic-card-border-width))
-  );
-  contain: paint;
-  pointer-events: none;
-}
-
-.prismatic-card-shader > canvas {
-  border-radius: inherit;
-}
-
-.prismatic-card > header {
+.comic-card {
   position: relative;
-  z-index: 5;
+  isolation: isolate;
+  color: #17120e;
+  container-type: inline-size;
+}
+
+.comic-card-cover {
+  --comic-ink: #17120e;
+  --comic-paper: #f5e8c8;
+  --comic-red: #d92722;
+  --comic-yellow: #ffd43b;
+  --comic-blue: #1266a8;
+
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--comic-paper);
+  border: 2px solid var(--comic-ink);
+  border-radius: 2px 5px 3px 2px;
+  box-shadow:
+    2px 2px 0 var(--comic-ink),
+    4px 4px 0 rgb(0 0 0 / 16%),
+    0 8px 18px rgb(0 0 0 / 20%);
+  transform: rotate(-0.3deg);
+  transform-origin: center;
+  font-family: Impact, Haettenschweiler,
+    "Arial Narrow Bold", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Artwork is the full-bleed printed cover illustration. */
+
+.comic-card-art {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: #d6c9aa;
+}
+
+.comic-card-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  filter: saturate(1.08) contrast(1.04);
+}
+
+.comic-card-art-tint {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      180deg,
+      rgb(13 10 8 / 10%) 0%,
+      transparent 27%,
+      transparent 53%,
+      rgb(13 10 8 / 8%) 72%,
+      rgb(13 10 8 / 45%) 100%
+    );
+  mix-blend-mode: multiply;
+}
+
+.comic-card-halftone {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.11;
+  background-image: radial-gradient(
+    circle,
+    #15100b 0.65px,
+    transparent 0.9px
+  );
+  background-size: 4px 4px;
+  mix-blend-mode: multiply;
+}
+
+/* Printed paper texture. */
+
+.comic-card-paper {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.22;
+  background:
+    repeating-linear-gradient(
+      4deg,
+      transparent 0 5px,
+      rgb(92 61 24 / 10%) 6px,
+      transparent 7px 12px
+    ),
+    radial-gradient(
+      ellipse at 8% 70%,
+      rgb(104 65 20 / 18%),
+      transparent 42%
+    );
+  mix-blend-mode: multiply;
+}
+
+/* Header: bright, oversized vintage comic lettering. */
+
+.comic-card-masthead {
+  position: absolute;
+  z-index: 4;
+  top: 3.5%;
+  left: 4%;
+  right: 4%;
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  padding: 0.55rem 0.75rem;
-  color: var(--rarity-light);
-  font-family: "Courier New", Courier, monospace;
-  font-size: 0.58rem;
+  gap: 3%;
+  transform: rotate(-1deg);
+}
+
+.comic-card-publisher {
+  display: block;
+  max-width: 76%;
+  padding: 0.025em 0.09em 0.02em;
+  color: var(--comic-yellow);
+  background: var(--comic-red);
+  border: 2px solid var(--comic-ink);
+  box-shadow: 2px 2px 0 var(--comic-ink);
+  font-size: clamp(1.25rem, 15cqw, 1.5rem);
+  font-weight: 1000;
+  font-stretch: condensed;
+  line-height: 0.95;
+  letter-spacing: -0.065em;
+  text-transform: uppercase;
+  text-shadow:
+    1px 1px 0 var(--comic-ink),
+    2px 2px 0 var(--comic-ink);
+  overflow-wrap: anywhere;
+}
+
+.comic-card-issue {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 0.35em 0.45em;
+  color: var(--comic-paper);
+  background: var(--comic-ink);
+  border: 1.5px solid var(--comic-paper);
+  outline: 1px solid var(--comic-ink);
+  font-family: Arial, sans-serif;
+  font-size: clamp(5px, 2.1cqw, 10px);
+  font-weight: 900;
+  line-height: 1.1;
+  text-align: center;
+  transform: rotate(3deg);
+}
+
+.comic-card-issue strong {
+  color: var(--comic-yellow);
+  font-size: 1.35em;
+}
+
+/* Title panel: readable without hiding too much art. */
+
+.comic-card-title-block {
+  position: absolute;
+  z-index: 4;
+  top: 12%;
+  left: 5%;
+  right: 5%;
+  max-width: 91%;
+  padding: 0.35em 0.45em 0.4em;
+  background: var(--comic-yellow);
+  border: 2px solid var(--comic-ink);
+  box-shadow: 3px 3px 0 var(--comic-ink);
+  transform: rotate(-1.5deg);
+}
+
+.comic-card-kicker {
+  margin: 0 0 0.2em;
+  font-family: Arial, sans-serif;
+  font-size: clamp(6px, 2.2cqw, 11px);
+  font-weight: 900;
   letter-spacing: 0.12em;
+  line-height: 1.1;
   text-transform: uppercase;
 }
 
-.prismatic-card-image-frame {
-  position: relative;
-  z-index: 3;
-  height: 240px;
-  margin: 0 0.65rem;
-  overflow: hidden;
+.comic-card-title {
+  margin: 0;
+  color: #fffdf0;
+  font-size: clamp(1.2rem, 11cqw, 3.3rem);
+  font-weight: 1000;
+  line-height: 0.88;
+  letter-spacing: -0.045em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+  -webkit-text-stroke: 0.7px var(--comic-ink);
+  paint-order: stroke fill;
+  text-shadow:
+    2px 2px 0 var(--comic-ink),
+    3px 3px 0 var(--comic-ink);
 }
 
-.prismatic-card-image {
-  height: 100%;
-  background-position: center;
-  background-size: cover;
-  filter: saturate(1.25) contrast(1.08);
+.comic-card-artist {
+  margin: 0.45em 0 0;
+  color: var(--comic-paper);
+  font-family: Arial, sans-serif;
+  font-size: clamp(6px, 2.5cqw, 12px);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  line-height: 1.15;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+  text-shadow:
+    1px 1px 0 var(--comic-ink),
+    -1px -1px 0 var(--comic-ink),
+    1px -1px 0 var(--comic-ink),
+    -1px 1px 0 var(--comic-ink);
 }
 
-.prismatic-card > section {
-  position: relative;
+/* Action burst. */
+
+.comic-card-burst {
+  position: absolute;
   z-index: 5;
-  display: grid;
-  gap: 0.3rem;
-  padding: 0.6rem 0.75rem;
-  text-align: center;
-}
-
-.prismatic-card h3 {
-  font-size: 0.95rem;
-  line-height: 1;
-  text-shadow: 0 0 8px var(--rarity-color);
-}
-
-.prismatic-card section > p {
-  color: #c9c5d3;
-  font-size: 0.62rem;
-}
-
-.prismatic-card .render-card-attribute-icons {
+  top: 43%;
+  right: 4%;
+  width: 29%;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
+  padding: 7%;
+  color: var(--comic-paper);
+  background: var(--comic-red);
+  border: 2px solid var(--comic-ink);
+  clip-path: polygon(
+    50% 0%, 61% 15%, 79% 5%, 81% 24%,
+    100% 28%, 87% 44%, 100% 58%, 80% 66%,
+    86% 87%, 66% 84%, 52% 100%, 40% 83%,
+    19% 94%, 21% 73%, 0% 66%, 14% 49%,
+    1% 33%, 22% 28%, 24% 8%, 41% 17%
+  );
+  filter: drop-shadow(2px 3px 0 var(--comic-ink));
+  text-align: center;
+  transform: rotate(9deg);
+  text-shadow: 1px 1px 0 var(--comic-ink);
 }
 
-.prismatic-card .render-card-details > summary {
-  color: var(--rarity-light);
-  font-family: "Courier New", Courier, monospace;
-  text-shadow: 0 0 6px var(--rarity-color);
+.comic-card-burst > strong {
+  font-size: clamp(16px, 7cqw, 32px);
+  font-weight: 1000;
+  line-height: 0.9;
 }
 
-.prismatic-card .render-card-compact-stats {
-  font-family: "Courier New", Courier, monospace;
+.comic-card-burst[data-unlocked="true"] {
+  color: var(--comic-ink);
+  background:
+    linear-gradient(
+      135deg,
+      #f5f6f7 0%,
+      var(--unlocked-color) 42%,
+      #969ba2 100%
+    );
+  border-color: var(--unlocked-dark);
+  filter:
+    drop-shadow(2px 3px 0 var(--comic-ink))
+    drop-shadow(0 0 5px var(--unlocked-glow));
+  text-shadow: 1px 1px 0 #fff;
 }
 
-.rendered-item-card[data-seasonal="true"] .prismatic-card {
-  animation:
-    prismatic-seasonal-spectrum
-    var(--prismatic-seasonal-spectrum-duration)
-    linear
-    infinite;
+.comic-card-burst-unlocked {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.08em;
+  font-size: clamp(18px, 8cqw, 36px);
+  font-weight: 900;
+  line-height: 1;
+}
+
+.comic-card-burst-unlocked > :is(i, strong) {
+  display: block;
+  font-size: 1em;
+  font-weight: 1000;
+  line-height: 1;
+}
+
+/* Value label and collector details. */
+
+.comic-card-price {
+  position: absolute;
+  z-index: 5;
+  right: 4%;
+  bottom: 13%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  min-width: 26%;
+  padding: 0.35em 0.5em;
+  color: var(--comic-ink);
+  background: var(--comic-yellow);
+  border: 2px solid var(--comic-ink);
+  box-shadow: 2px 2px 0 var(--comic-ink);
+  transform: rotate(2deg);
+}
+
+.comic-card-price span {
+  font-family: Arial, sans-serif;
+  font-size: clamp(6px, 2cqw, 10px);
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+.comic-card-price strong {
+  font-size: clamp(12px, 5cqw, 24px);
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.comic-card-bottom {
+  position: absolute;
+  z-index: 4;
+  bottom: 3.5%;
+  left: 4%;
+  right: 4%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 0.35em 0.45em;
+  color: var(--comic-paper);
+  background: var(--comic-ink);
+  font-family: Arial, sans-serif;
+  font-size: clamp(6px, 2.1cqw, 10px);
+  font-weight: 900;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.comic-card-rarity {
+  overflow-wrap: anywhere;
+}
+
+.comic-card-condition {
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.comic-card-attributes {
+  position: absolute;
+  z-index: 6;
+  bottom: 10%;
+  left: 4%;
+  /*right: 4%;*/
+  padding: 2px 4px;
+  color: var(--comic-paper);
+  background: var(--comic-ink);
+  border: 1px solid var(--comic-paper);
+  outline: 1px solid var(--comic-ink);
+}
+
+.comic-card-attributes .render-card-attribute-icons {
+  width: 100%;
+  flex-wrap: nowrap;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+.comic-card-attributes .attribute-group {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.comic-card-attributes .attribute {
+  margin-right: 1px;
+  font-size: clamp(1rem, 3.2cqw, 0.8rem);
+  filter: none;
+  text-shadow: none;
+}
+
+.comic-card .attribute-group + .attribute-group::before {
+  margin-right: 2px;
+  font-size: 0.65rem;
+}
+
+/* Collectible status stickers. */
+
+.comic-card-new {
+  position: absolute;
+  z-index: 7;
+  top: 52%;
+  left: 4%;
+  padding: 0.3em 0.5em;
+  color: #fff;
+  background: #18834a;
+  border: 2px solid var(--comic-ink);
+  box-shadow: 2px 2px 0 var(--comic-ink);
+  font-size: clamp(9px, 4cqw, 18px);
+  font-weight: 1000;
+  line-height: 1;
+  transform: rotate(-8deg);
+}
+
+.comic-card-lottery {
+  position: absolute;
+  z-index: 7;
+  top: 69%;
+  left: 5%;
+  display: grid;
+  place-items: center;
+  min-width: 11%;
+  aspect-ratio: 1;
+  padding: 0.25em;
+  color: var(--comic-paper);
+  background: var(--comic-blue);
+  border: 2px solid var(--comic-ink);
+  box-shadow: 2px 2px 0 var(--comic-ink);
+  font-size: clamp(9px, 3.5cqw, 17px);
+  font-weight: 1000;
+  transform: rotate(-6deg);
+}
+
+/* Variant layers: foil, seasonal, vintage, and wear. */
+
+.comic-card-mint,
+.comic-card-vintage,
+.comic-card-seasonal,
+.comic-card-wear {
+  position: absolute;
+  z-index: 8;
+  inset: 0;
+  pointer-events: none;
+}
+
+.comic-card-mint {
+  opacity: 0;
+  background:
+    repeating-linear-gradient(
+      115deg,
+      transparent 0 12%,
+      rgb(255 255 255 / 0%) 15%,
+      rgb(255 255 255 / 45%) 18%,
+      rgb(130 230 255 / 20%) 22%,
+      rgb(255 100 220 / 18%) 26%,
+      transparent 31% 44%
+    );
+  mix-blend-mode: screen;
+}
+
+.comic-card-cover[data-mint="true"] .comic-card-mint {
+  opacity: 0.55;
+}
+
+.comic-card-cover[data-mint="true"] {
+  box-shadow:
+    0 0 0 1px #f5d77b,
+    2px 2px 0 #72572c,
+    0 0 18px rgb(255 224 126 / 25%);
+}
+
+.comic-card-vintage {
+  opacity: 0;
+  background:
+    radial-gradient(
+      ellipse at 0% 0%,
+      rgb(105 65 23 / 38%),
+      transparent 38%
+    ),
+    radial-gradient(
+      ellipse at 100% 100%,
+      rgb(105 65 23 / 30%),
+      transparent 34%
+    ),
+    linear-gradient(
+      90deg,
+      rgb(100 68 27 / 15%),
+      transparent 9% 91%,
+      rgb(100 68 27 / 17%)
+    );
+  mix-blend-mode: multiply;
+}
+
+.comic-card-cover[data-vintage="true"] .comic-card-vintage {
+  opacity: 0.85;
+}
+
+.comic-card-cover[data-vintage="true"] .comic-card-image {
+  filter: sepia(0.24) saturate(0.82) contrast(0.96);
+}
+
+.comic-card-seasonal {
+  opacity: 0;
+  background:
+    radial-gradient(
+      circle at 85% 16%,
+      rgb(255 244 191 / 40%) 0 2px,
+      transparent 3px
+    ),
+    radial-gradient(
+      circle at 12% 28%,
+      rgb(255 244 191 / 45%) 0 1.5px,
+      transparent 2.5px
+    ),
+    linear-gradient(
+      135deg,
+      rgb(255 214 88 / 14%),
+      transparent 45%,
+      rgb(235 63 65 / 15%)
+    );
+}
+
+.comic-card-cover[data-seasonal="true"] .comic-card-seasonal {
+  opacity: 1;
+}
+
+.comic-card-cover[data-seasonal="true"] .comic-card-image {
+  filter: invert(1) saturate(1.08) contrast(1.04);
+}
+
+/* Condition affects the visible amount of print wear. */
+
+.comic-card-wear {
+  opacity: calc(var(--comic-wear, 0) * 0.6);
+  background:
+    repeating-linear-gradient(
+      165deg,
+      transparent 0 19px,
+      rgb(30 20 10 / 20%) 20px,
+      transparent 21px 34px
+    ),
+    radial-gradient(
+      ellipse at 100% 0%,
+      rgb(55 35 15 / 35%),
+      transparent 24%
+    ),
+    radial-gradient(
+      ellipse at 0% 100%,
+      rgb(55 35 15 / 30%),
+      transparent 25%
+    );
+  mix-blend-mode: multiply;
+}
+
+/* Rarity treatments. */
+
+.comic-card-cover[data-rarity="legendary"] {
+  --comic-yellow: #ffcf42;
+  border-color: #f2c65c;
+  box-shadow:
+    0 0 0 1px #9a6c24,
+    2px 2px 0 #573d19,
+    0 8px 20px rgb(230 169 43 / 24%);
+}
+
+.comic-card-cover[data-rarity="masterpiece"] {
+  --comic-yellow: #f9e5a4;
+  border-color: #e4c37b;
+  box-shadow:
+    0 0 0 1px #e4c37b,
+    0 0 0 3px #4a3020,
+    0 0 24px rgb(249 229 164 / 30%);
+}
+
+/* Owned items get a subtle printed corner stamp. */
+
+.comic-card-cover[data-owned="true"]::after {
+  content: "IN COLLECTION";
+  position: absolute;
+  z-index: 9;
+  top: 1.5%;
+  left: -13%;
+  width: 43%;
+  padding: 0.45em 0;
+  color: white;
+  background: #28734d;
+  border-block: 1px solid white;
+  outline: 1px solid #143e2a;
+  font-family: Arial, sans-serif;
+  font-size: clamp(5px, 1.7cqw, 9px);
+  font-weight: 900;
+  text-align: center;
+  transform: rotate(-42deg);
+  transform-origin: center;
+}
+
+.comic-card-cover[data-consigned="true"] {
+  outline: 2px dashed #f2cf65;
+  outline-offset: -5px;
+}
+
+.comic-card-cover[data-research-target="true"] {
+  box-shadow:
+    0 0 0 2px #56c5f2,
+    0 0 16px rgb(86 197 242 / 40%);
+}
+
+/* Interaction feedback, if cards are clickable. */
+
+.comic-card-cover {
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+@media (hover: hover) {
+  .comic-card:hover .comic-card-cover {
+    transform: translateY(-3px) rotate(0deg);
+    box-shadow:
+      3px 5px 0 var(--comic-ink),
+      0 12px 24px rgb(0 0 0 / 24%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .comic-card-cover {
+    transition: none;
+  }
 }
 
 /* Blueprint: measured drafting sheet with a rarity inspection stripe. */
@@ -5912,11 +6438,6 @@
   }
 }
 
-@keyframes prismatic-seasonal-spectrum {
-  to {
-    filter: hue-rotate(360deg);
-  }
-}
 
 @media (max-width: 1000px) {
   .art-style-crop-preview-layout {
@@ -6062,7 +6583,7 @@
   .terminal-card-cursor,
   .terminal-card-state-unlocked,
   .terminal-card-state-unlocked::after,
-  .prismatic-card,
+  .comic-card,
   .render-card-foil-sheen,
   .celestial-card,
   .celestial-card-stars,
@@ -6334,7 +6855,7 @@
 }
 
 .collectible-card-art-frame {
-  height: 205px;
+  height: 165px;
   margin: 0.45rem 0;
   overflow: hidden;
   border: 3px solid #aab8df;
@@ -6365,32 +6886,290 @@
 
 .collectible-card > section {
   display: grid;
-  gap: 0.3rem;
-  border-top: 2px solid #aab8df;
-  padding: 0.45rem 0.25rem 0.35rem;
+  gap: 0.22rem;
+  border: 1px solid #8796c0;
+  border-radius: 0.35rem;
+  padding: 0.35rem 0.4rem;
+  background: rgb(8 12 27 / 76%);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 8%),
+    0 2px 5px rgb(0 0 0 / 30%);
 }
 
 .collectible-card .render-card-artist {
   overflow: hidden;
-  color: #cad4f5;
-  font-size: 0.51rem;
+  margin: 0;
+  color: #e6ebff;
+  font-size: 0.48rem;
   font-weight: 700;
+  letter-spacing: 0.06em;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.collectible-card-rules-heading,
+.collectible-card-rules-stats {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.collectible-card-rules-heading {
+  border-bottom: 1px solid rgb(189 203 239 / 42%);
+  padding-bottom: 0.16rem;
+  color: #fff;
+  font-size: 0.56rem;
+  letter-spacing: 0.035em;
+}
+
+.collectible-card-rules-heading > span {
+  overflow: hidden;
+  color: #cbd5f5;
+  font-size: 0.44rem;
+  font-style: italic;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collectible-card-rules-copy {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  color: #edf1ff;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.48rem;
+  line-height: 1.22;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+}
+
+.collectible-card-rules-copy > strong:first-child {
+  color: #fff;
+  font-style: italic;
+}
+
+.collectible-card[data-artwork-power="true"] .collectible-card-rules-copy {
+  -webkit-line-clamp: 3;
+}
+
+.collectible-card-artwork-power {
+  -webkit-line-clamp: 3;
+}
+
+.collectible-card-rules-copy.collectible-card-artwork-power
+  > strong:first-child {
+  color: var(--rarity-light);
+  font-style: normal;
+}
+
+.collectible-card-condition {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+  color: #fff;
+  font-weight: 900;
+  text-shadow: 0 1px 2px #000;
+}
+
+.collectible-card-condition .fa-unlock-alt {
+  color: #dcecff;
+  font-size: 0.62rem;
+  filter: drop-shadow(0 0 3px rgb(198 229 255 / 78%));
+}
+
+.collectible-card-rules-stats {
+  min-width: 0;
+  border-top: 1px solid rgb(189 203 239 / 32%);
+  padding-top: 0.18rem;
+}
+
 .collectible-card .render-card-compact-stats {
-  color: #e2e7ff;
-  font-size: 0.57rem;
+  flex: 0 0 auto;
+  color: #f1f4ff;
+  font-size: 0.53rem;
+}
+
+.collectible-card .rating-value {
+  color: #fff !important;
+  font-weight: 900;
+  text-shadow: 0 1px 2px #000;
 }
 
 .collectible-card .render-card-attribute-icons {
-  gap: 0.3rem;
+  min-width: 0;
+  flex-wrap: nowrap;
+  gap: 0.2rem;
 }
 
 .collectible-card .attribute {
+  margin: 0;
   color: var(--rarity-light);
+  font-size: 0.62rem;
   filter: drop-shadow(0 0 3px var(--rarity-color));
+}
+
+.collectible-card .attribute-group {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.collectible-card .attribute-group + .attribute-group::before {
+  margin-right: 0.2rem;
+  font-size: 0.5rem;
+}
+
+.collectible-card-lottery-mark {
+  position: absolute;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.collectible-card-lottery-mark {
+  top: 12.2rem;
+  left: 0.85rem;
+  width: 2.8rem;
+  height: 2.8rem;
+  border: 2px solid #fff1a6;
+  background:
+    radial-gradient(circle, #fff7c4 0 16%, transparent 17%),
+    conic-gradient(
+      from 22.5deg,
+      #f5cc4b,
+      #fff1a6,
+      #c88d12,
+      #fff4b9,
+      #f5cc4b
+    );
+  color: #241603;
+  clip-path: polygon(
+    50% 0,
+    61% 15%,
+    78% 7%,
+    82% 25%,
+    100% 25%,
+    91% 42%,
+    100% 55%,
+    82% 61%,
+    78% 82%,
+    61% 73%,
+    50% 100%,
+    39% 73%,
+    22% 82%,
+    18% 61%,
+    0 55%,
+    9% 42%,
+    0 25%,
+    18% 25%,
+    22% 7%,
+    39% 15%
+  );
+  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 60%));
+  transform: rotate(-7deg);
+}
+
+.collectible-card-lottery-mark small {
+  font-size: 0.32rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.collectible-card-lottery-mark strong {
+  font-size: 0.74rem;
+  line-height: 0.8;
+}
+
+.collectible-card[data-lottery] .collectible-card-sparkles {
+  opacity: 0.82;
+  background:
+    radial-gradient(circle at 12% 22%, #fff8b7 0 1px, transparent 2px),
+    radial-gradient(circle at 88% 31%, #fff 0 1.5px, transparent 2.5px),
+    radial-gradient(circle at 78% 84%, #ffe36d 0 1px, transparent 2px),
+    repeating-conic-gradient(
+      from 0deg at 18% 58%,
+      rgb(255 225 91 / 16%) 0 4deg,
+      transparent 4deg 18deg
+    );
+}
+
+.collectible-card-sleeve {
+  position: absolute;
+  z-index: 30;
+  inset: 0;
+  overflow: hidden;
+  border: 2px solid rgb(235 249 255 / 62%);
+  border-top: 0;
+  border-radius: 0;
+  background:
+    linear-gradient(
+      108deg,
+      transparent 0 16%,
+      rgb(255 255 255 / 12%) 22%,
+      transparent 31% 66%,
+      rgb(196 237 255 / 15%) 74%,
+      transparent 83%
+    ),
+    linear-gradient(180deg, rgb(255 255 255 / 10%), transparent 18% 82%, rgb(205 238 255 / 12%));
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 28%),
+    inset 4px 0 7px rgb(220 247 255 / 8%),
+    inset -4px 0 7px rgb(220 247 255 / 8%),
+    0 0 8px rgb(194 234 255 / 22%);
+  pointer-events: none;
+}
+
+.collectible-card-sleeve::after {
+  position: absolute;
+  inset: -35% 58% -35% 18%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 14%),
+    transparent
+  );
+  content: "";
+  transform: rotate(16deg);
+}
+
+.collectible-card-sleeve-sticker {
+  position: absolute;
+  z-index: 1;
+  bottom: .85rem;
+  right: 0.7rem;
+  display: grid;
+  width: 1.65rem;
+  height: 1.65rem;
+  place-items: center;
+  /*border: 1px solid rgb(255 255 255 / 82%);*/
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 28%, #fff 0 5%, transparent 16%),
+    conic-gradient(
+      from 20deg,
+      #f79de7,
+      #ffe985,
+      #8df4d4,
+      #83c9ff,
+      #be9cff,
+      #f79de7
+    );
+  box-shadow:
+    0 1px 4px rgb(0 0 0 / 58%),
+    inset 0 0 0 2px rgb(255 255 255 / 34%);
+  color: #241629;
+  transform: rotate(-8deg);
+}
+
+.collectible-card-sleeve-sticker .fa-leaf {
+  color: #58d68d;
+  font-size: 0.72rem;
+  filter:
+    drop-shadow(0 1px rgb(255 255 255 / 72%))
+    drop-shadow(0 0 2px rgb(28 95 55 / 72%));
+  text-shadow: none;
 }
 
 .collectible-card > footer {
@@ -6405,9 +7184,119 @@
   font-size: 0.48rem;
   text-transform: uppercase;
 }
-attri
+
 .collectible-card > footer .render-card-badges {
   justify-content: flex-end;
+}
+
+/* Seasonal Collector Series cards use a multicolor reverse-holo body. */
+.collectible-card[data-seasonal="true"] {
+  border-color: rgb(245 247 255 / 92%);
+  background:
+    linear-gradient(135deg, rgb(255 255 255 / 34%), transparent 28%),
+    repeating-linear-gradient(
+      115deg,
+      rgb(255 89 178 / 62%) 0 12%,
+      rgb(255 220 96 / 64%) 12% 24%,
+      rgb(101 235 191 / 62%) 24% 36%,
+      rgb(88 191 255 / 64%) 36% 48%,
+      rgb(177 116 255 / 62%) 48% 60%
+    ),
+    #26345a;
+  box-shadow:
+    0 8px 18px rgb(0 0 0 / 46%),
+    inset 0 0 0 2px rgb(255 255 255 / 68%),
+    inset 0 0 20px rgb(255 255 255 / 38%);
+}
+
+.collectible-card[data-seasonal="true"]::after {
+  position: absolute;
+  z-index: 0;
+  inset: 0.35rem;
+  border-radius: 9px;
+  background:
+    radial-gradient(circle at 18% 18%, rgb(255 255 255 / 62%) 0 1px, transparent 2px),
+    radial-gradient(circle at 76% 28%, rgb(255 255 255 / 52%) 0 1px, transparent 2px),
+    radial-gradient(circle at 32% 76%, rgb(255 255 255 / 48%) 0 1px, transparent 2px),
+    repeating-radial-gradient(
+      circle at 50% 50%,
+      transparent 0 11px,
+      rgb(255 255 255 / 13%) 12px 13px,
+      transparent 14px 23px
+    );
+  content: "";
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.collectible-card[data-seasonal="true"] > header {
+  color: #fff;
+  text-shadow: 0 1px 3px #000;
+}
+
+.collectible-card[data-seasonal="true"] .collectible-card-title-row {
+  border-color: rgb(255 255 255 / 82%);
+  background:
+    linear-gradient(
+      90deg,
+      rgb(255 244 251 / 94%),
+      rgb(222 247 255 / 92%) 32%,
+      rgb(255 245 191 / 92%) 66%,
+      rgb(235 222 255 / 94%)
+    );
+  box-shadow: 0 2px 7px rgb(0 0 0 / 42%);
+}
+
+.collectible-card[data-seasonal="true"] .collectible-card-art-frame {
+  border-color: rgb(247 250 255 / 90%);
+  box-shadow:
+    0 0 0 2px rgb(21 25 42 / 82%),
+    0 0 12px rgb(255 255 255 / 48%);
+}
+
+.collectible-card[data-seasonal="true"] > section {
+  border-color: rgb(255 255 255 / 58%);
+  background: rgb(8 12 27 / 84%);
+  backdrop-filter: blur(3px);
+}
+
+.collectible-card[data-mint="true"] {
+  border: 0;
+  border-radius: 0;
+  padding: calc(0.55rem + 4px);
+  background: #020203;
+  box-shadow: 0 8px 18px rgb(0 0 0 / 52%);
+}
+
+.collectible-card[data-mint="true"]::before {
+  inset: 3px;
+  border: 4px solid #171b2f;
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, rgb(255 255 255 / 18%), transparent 25%),
+    linear-gradient(155deg, #2c3d66, #101426 58%, #0a0b13);
+  box-shadow:
+    inset 0 0 0 2px var(--rarity-color),
+    0 0 7px rgb(0 0 0 / 58%);
+}
+
+.collectible-card[data-mint="true"][data-seasonal="true"]::before {
+  border-color: rgb(245 247 255 / 92%);
+  background:
+    linear-gradient(135deg, rgb(255 255 255 / 34%), transparent 28%),
+    repeating-linear-gradient(
+      115deg,
+      rgb(255 89 178 / 62%) 0 12%,
+      rgb(255 220 96 / 64%) 12% 24%,
+      rgb(101 235 191 / 62%) 24% 36%,
+      rgb(88 191 255 / 64%) 36% 48%,
+      rgb(177 116 255 / 62%) 48% 60%
+    ),
+    #26345a;
+  box-shadow:
+    inset 0 0 0 2px rgb(255 255 255 / 68%),
+    inset 0 0 20px rgb(255 255 255 / 38%),
+    0 0 7px rgb(0 0 0 / 58%);
 }
 
 /* Skateboard: the rendered object is the angled underside of the deck itself. */

@@ -33,6 +33,7 @@ type PreviewState = (typeof PREVIEW_STATES)[number][0];
 export default function CardDesignPreview({
   description,
   initialActive,
+  initialSupporter,
   item,
   items,
   legendaryAttributes,
@@ -44,6 +45,7 @@ export default function CardDesignPreview({
 }: {
   description?: string;
   initialActive: boolean;
+  initialSupporter: boolean;
   item: HydratedGameItem;
   items: HydratedGameItem[];
   legendaryAttributes: CardLegendaryAttribute[];
@@ -124,6 +126,7 @@ export default function CardDesignPreview({
         <CardRendererActivation
           initialActive={initialActive}
           initialName={name}
+          initialSupporter={initialSupporter}
           onNameUpdated={setDisplayName}
           rendererId={rendererId}
         />
