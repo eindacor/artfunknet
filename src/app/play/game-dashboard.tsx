@@ -2234,7 +2234,6 @@ export default function GameDashboard({
     onConfirm: () => void,
   ) {
     const preservationEffect =
-      actionLabel === "Displaying this artwork" &&
       legendaryAttributes.some(
         (attribute) =>
           attribute.active &&
@@ -5285,7 +5284,6 @@ function RerollDialog({
     onConfirm: () => void,
   ) {
     const preservationEffect =
-      actionLabel === "Displaying this artwork" &&
       legendaryAttributes.some(
         (attribute) =>
           attribute.active &&

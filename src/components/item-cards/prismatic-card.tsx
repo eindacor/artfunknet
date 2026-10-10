@@ -76,7 +76,7 @@ export default function PrismaticCard({
           <h3 className="comic-card-title">
             {item.artwork.title}
           </h3>
-          <p className="comic-card-artist">
+          <p className="comic-card-artist render-card-artist">
             BY {item.artwork.artist}
           </p>
         </section>

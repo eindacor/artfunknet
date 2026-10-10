@@ -25,7 +25,11 @@ import {
   MASTERPIECE_EFFECT_CODES,
   shouldApplyPerfectFirstReroll,
 } from "@/server/masterpiece-effects";
-import { getDisplayedArtworkEffect } from "@/server/artwork-effects";
+import {
+  getArtworkEffect,
+  getDisplayedArtworkEffect,
+} from "@/server/artwork-effects";
+import { getMintStateAfterAction } from "@/server/item-mint";
 
 type Player = {
   _id: string;
@@ -123,6 +127,12 @@ export async function POST(
       { status: 409 },
     );
   }
+  const artworkEffect = await getArtworkEffect(database, artwork);
+  const mintState = getMintStateAfterAction(
+    item,
+    artworkEffect?.code,
+    "reroll",
+  );
 
   const perfectFirstReroll = shouldApplyPerfectFirstReroll(perfectReroll, item);
   const costMultiplier = getLegendaryNumberParameter(
@@ -198,9 +208,7 @@ export async function POST(
       attributes,
       roll_count: item.roll_count + 1,
       reroll_spent: (item.reroll_spent ?? 0) + cost,
-      condition: item.mint ? 1 : item.condition,
-      mint: false,
-      mint_value_multiplier: 1,
+      ...mintState,
     };
     const itemArtwork = { ...artwork, ...item.artwork_overrides };
     const values = calculateItemValues(
@@ -235,8 +243,8 @@ export async function POST(
         $set: {
           attributes,
           condition: nextItem.condition,
-          mint: false,
-          mint_value_multiplier: 1,
+          mint: nextItem.mint,
+          mint_value_multiplier: nextItem.mint_value_multiplier,
           values,
           reroll_cost: baseRerollCost,
         },

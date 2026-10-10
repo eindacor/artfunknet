@@ -23,12 +23,19 @@ export function canAffordItemLevelUp(
   return available >= cost;
 }
 
-export function prepareItemForLevelUp(item: GameItem): GameItem {
+export function prepareItemForLevelUp(
+  item: GameItem,
+  mintState?: Pick<
+    GameItem,
+    "condition" | "mint" | "mint_value_multiplier"
+  >,
+): GameItem {
   return {
     ...item,
     level: item.level + 1,
     condition: item.mint ? 1 : item.condition,
     mint: false,
     mint_value_multiplier: 1,
+    ...mintState,
   };
 }

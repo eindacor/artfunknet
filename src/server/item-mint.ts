@@ -14,6 +14,34 @@ export type DemintUpdate = Pick<
   "condition" | "mint" | "mint_value_multiplier" | "values"
 >;
 
+export type MintSensitiveAction =
+  | "art-style"
+  | "display"
+  | "level"
+  | "reroll";
+
+export type MintState = Pick<
+  GameItem,
+  "condition" | "mint" | "mint_value_multiplier"
+>;
+
+export function getMintStateAfterAction(
+  item: Pick<GameItem, "condition" | "mint" | "mint_value_multiplier">,
+  effectCode: string | undefined,
+  action: MintSensitiveAction,
+): MintState {
+  const preserveMint =
+    item.mint &&
+    effectCode === MASTERPIECE_EFFECT_CODES.preservationMint &&
+    action !== "art-style";
+
+  return {
+    condition: item.mint ? 1 : item.condition,
+    mint: preserveMint,
+    mint_value_multiplier: preserveMint ? item.mint_value_multiplier : 1,
+  };
+}
+
 export async function getDemintUpdate(
   database: Db,
   item: GameItem,
@@ -32,25 +60,22 @@ export async function getDemintUpdate(
   if (!artwork || !metadata) {
     throw new Error("This item's value data is unavailable.");
   }
-  if (changes.status === "displayed") {
-    const effect = await getArtworkEffect(database, artwork);
-    if (effect?.code === MASTERPIECE_EFFECT_CODES.preservationMint) {
-      return null;
-    }
-  }
+  const effect = await getArtworkEffect(database, artwork);
+  const mintState = getMintStateAfterAction(
+    item,
+    effect?.code,
+    changes.status === "displayed" ? "display" : "art-style",
+  );
+  if (mintState.mint) return null;
 
   const demintedItem = {
     ...item,
     ...changes,
-    condition: 1,
-    mint: false,
-    mint_value_multiplier: 1,
+    ...mintState,
   };
 
   return {
-    condition: 1,
-    mint: false,
-    mint_value_multiplier: 1,
+    ...mintState,
     values: calculateItemValues(
       demintedItem,
       { ...artwork, ...item.artwork_overrides },

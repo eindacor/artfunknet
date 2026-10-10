@@ -46,3 +46,22 @@ test("item leveling preserves the applied card style", () => {
   assert.equal(leveled.level, 4);
   assert.equal(leveled.card_renderer, "zine");
 });
+
+test("item leveling can preserve an intrinsic Mint seal", () => {
+  const item = {
+    level: 3,
+    condition: 1,
+    mint: true,
+    mint_value_multiplier: 2,
+  } as GameItem;
+
+  const leveled = prepareItemForLevelUp(item, {
+    condition: 1,
+    mint: true,
+    mint_value_multiplier: 2,
+  });
+
+  assert.equal(leveled.level, 4);
+  assert.equal(leveled.mint, true);
+  assert.equal(leveled.mint_value_multiplier, 2);
+});

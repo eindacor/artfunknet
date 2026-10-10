@@ -23,6 +23,8 @@ import {
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
 import { sanitizePlayerFacingAuthenticity } from "@/server/forgery-gameplay";
+import { getArtworkEffect } from "@/server/artwork-effects";
+import { getMintStateAfterAction } from "@/server/item-mint";
 
 type Player = {
   _id: string;
@@ -101,6 +103,12 @@ export async function POST(
       { status: 409 },
     );
   }
+  const artworkEffect = await getArtworkEffect(database, artwork);
+  const mintState = getMintStateAfterAction(
+    item,
+    artworkEffect?.code,
+    "level",
+  );
 
   const conditionMinimum = getLegendaryNumberParameter(
     levelUpDiscount,
@@ -159,7 +167,7 @@ export async function POST(
 
   let updatedItem: GameItem;
   try {
-    const nextItem = prepareItemForLevelUp(item);
+    const nextItem = prepareItemForLevelUp(item, mintState);
     const itemArtwork = { ...artwork, ...item.artwork_overrides };
     const values = calculateItemValues(
       nextItem,
@@ -179,8 +187,8 @@ export async function POST(
       $set: {
         level: nextItem.level,
         condition: nextItem.condition,
-        mint: false,
-        mint_value_multiplier: 1,
+        mint: nextItem.mint,
+        mint_value_multiplier: nextItem.mint_value_multiplier,
         values,
         reroll_cost: rerollCost,
       },
@@ -224,7 +232,7 @@ export async function POST(
     item: sanitizePlayerFacingAuthenticity(updatedItem),
     karma: Math.max(0, Math.floor(chargedPlayer.profile.karma ?? 0)),
     message: `${artwork.title} reached Promotion Level ${updatedItem.level}${
-      item.mint ? ", and its Mint status was removed" : ""
+      item.mint && !updatedItem.mint ? ", and its Mint status was removed" : ""
     }.`,
   });
 }
