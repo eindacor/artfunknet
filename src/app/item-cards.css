@@ -1700,6 +1700,9 @@
 }
 
 .comic-card-title {
+  display: -webkit-box;
+  overflow: hidden;
+  max-height: 1.76em;
   margin: 0;
   color: #fffdf0;
   font-size: clamp(1.2rem, 11cqw, 3.3rem);
@@ -1708,11 +1711,27 @@
   letter-spacing: -0.045em;
   text-transform: uppercase;
   overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   -webkit-text-stroke: 0.7px var(--comic-ink);
   paint-order: stroke fill;
   text-shadow:
     2px 2px 0 var(--comic-ink),
     3px 3px 0 var(--comic-ink);
+}
+
+.comic-card-title[data-title-size="medium"] {
+  font-size: clamp(1rem, 8.2cqw, 2.45rem);
+  letter-spacing: -0.035em;
+  line-height: 0.92;
+  max-height: 1.84em;
+}
+
+.comic-card-title[data-title-size="long"] {
+  font-size: clamp(0.78rem, 6.3cqw, 1.85rem);
+  letter-spacing: -0.02em;
+  line-height: 0.96;
+  max-height: 1.92em;
 }
 
 .comic-card-artist {

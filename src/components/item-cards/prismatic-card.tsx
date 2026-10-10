@@ -12,6 +12,10 @@ export default function PrismaticCard({
   consigned,
   researchTarget,
 }: ItemCardRendererProps) {
+  const titleLength = Array.from(item.artwork.title).length;
+  const titleSize =
+    titleLength > 42 ? "long" : titleLength > 24 ? "medium" : "short";
+
   return (
     <div className="render-card comic-card">
       <div
@@ -73,7 +77,7 @@ export default function PrismaticCard({
           <p className="comic-card-kicker">
             THE ARTWORK COLLECTION
           </p>
-          <h3 className="comic-card-title">
+          <h3 className="comic-card-title" data-title-size={titleSize}>
             {item.artwork.title}
           </h3>
           <p className="comic-card-artist render-card-artist">
