@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import GalleryChat from "@/app/play/galleries/gallery-chat";
 import ItemCard from "@/components/item-cards/item-card";
 import type { CardLegendaryAttribute } from "@/components/item-cards/types";
 import RafflePanel, {
@@ -707,6 +708,7 @@ function LiveAuctionPanel({
             permissions={{ canManageItem: false, canCustomizeCosmetic: false }}
             viewerId={playerId}
           />
+          <GalleryChat global viewerId={playerId} />
           <div className="live-auction-bid-panel">
             <dl className="live-auction-bid-summary">
               <div>
@@ -751,6 +753,9 @@ function LiveAuctionPanel({
           <h4>The next work will be revealed shortly.</h4>
         </div>
       )}
+      {view.thankYou || !itemVisible ? (
+        <GalleryChat global viewerId={playerId} />
+      ) : null}
       <ActionMessages error={error} message={message} />
     </section>
   );

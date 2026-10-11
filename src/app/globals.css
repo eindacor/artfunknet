@@ -7899,7 +7899,18 @@ a.welcome-button {
     display: grid;
     grid-template-columns: minmax(260px, 430px) minmax(240px, 1fr);
     gap: 1.5rem;
-    align-items: center;
+    align-items: start;
+}
+
+.daily-event-content > .gallery-chat-panel {
+    width: 100%;
+    margin-top: 0.5rem;
+}
+
+.live-auction-player > .gallery-chat-panel {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
 }
 
 .live-auction-stream {
@@ -7939,6 +7950,8 @@ a.welcome-button {
 
 .live-auction-player > .live-auction-bid-panel {
     display: grid;
+    grid-column: 2;
+    grid-row: 1;
     gap: 1rem;
     padding: 1rem;
     border: 1px solid #c9c3b6;
@@ -8147,6 +8160,12 @@ a.welcome-button {
 
   .live-auction-player {
     grid-template-columns: 1fr;
+  }
+
+  .live-auction-player > .gallery-chat-panel,
+  .live-auction-player > .live-auction-bid-panel {
+    grid-column: 1;
+    grid-row: auto;
   }
 
   .live-auction-bid-summary {
