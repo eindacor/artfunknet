@@ -151,6 +151,11 @@ test("actual and debug gameplay configurations validate independently", () => {
     DEFAULT_ACTUAL_GAMEPLAY_CONFIG.visitorRarityAmplifiers,
     DEFAULT_VISITOR_RARITY_AMPLIFIERS,
   );
+  assert.equal(DEFAULT_ACTUAL_GAMEPLAY_CONFIG.commemorateItemCount, 4);
+  assert.equal(
+    DEFAULT_ACTUAL_GAMEPLAY_CONFIG.commemorateRareSupporterBonusCount,
+    8,
+  );
   assert.equal(DEFAULT_DEBUG_GAMEPLAY_CONFIG.cardRendererProbability, 0.25);
   assert.equal(DEFAULT_DEBUG_GAMEPLAY_CONFIG.crateValueScalar, 1);
   assert.equal(DEFAULT_DEBUG_GAMEPLAY_CONFIG.standardCrateCostScalar, 1);
@@ -183,10 +188,22 @@ test("actual and debug gameplay configurations validate independently", () => {
   );
   assert.equal(validateGameplayConfig(DEFAULT_ACTUAL_GAMEPLAY_CONFIG).ok, true);
   assert.equal(validateGameplayConfig(DEFAULT_DEBUG_GAMEPLAY_CONFIG).ok, true);
+  assert.equal(
+    toStoredGameplayConfig(DEFAULT_ACTUAL_GAMEPLAY_CONFIG)
+      .commemorate_rare_supporter_bonus_count,
+    8,
+  );
   assert.deepEqual(
     toStoredGameplayConfig(DEFAULT_ACTUAL_GAMEPLAY_CONFIG)
       .visitor_rarity_amplifiers,
     DEFAULT_VISITOR_RARITY_AMPLIFIERS,
+  );
+  assert.equal(
+    validateGameplayConfig({
+      ...DEFAULT_DEBUG_GAMEPLAY_CONFIG,
+      commemorateRareSupporterBonusCount: -1,
+    }).ok,
+    false,
   );
   assert.equal(
     validateGameplayConfig({

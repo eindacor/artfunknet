@@ -313,8 +313,8 @@ export default function GameplaySettingsForm({
         value={activeEditor.vintageConsiderationCount}
       />
       <SettingField
-        description="Maximum number of claimed or on-display items a player may choose to commemorate for the legacy gallery snapshot before entering a new era."
-        label="Commemorate item count"
+        description="Base maximum number of claimed or on-display items any player may commemorate for the legacy gallery snapshot."
+        label="Base commemorate item count"
         max={100}
         min={1}
         onChange={(value) =>
@@ -325,6 +325,20 @@ export default function GameplaySettingsForm({
         }
         suffix="items"
         value={activeEditor.commemorateItemCount}
+      />
+      <SettingField
+        description="Additional items players with a resolved supporter level of rare or higher may commemorate."
+        label="Rare supporter commemorate bonus"
+        max={100}
+        min={0}
+        onChange={(value) =>
+          updateConfig(selectedConfig, (config) => ({
+            ...config,
+            commemorateRareSupporterBonusCount: value,
+          }))
+        }
+        suffix="items"
+        value={activeEditor.commemorateRareSupporterBonusCount}
       />
       </ConfigGroup>
 

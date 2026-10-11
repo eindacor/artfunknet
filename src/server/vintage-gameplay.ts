@@ -1,11 +1,32 @@
 import type { GameItem } from "./gameplay.ts";
 import { MAX_PLAYER_LEVEL } from "./collection-gameplay.ts";
+import {
+  isSupporterStatusAtLeast,
+  type SupporterStatus,
+} from "./supporter-status.ts";
 
 export const VINTAGE_STARTING_BALANCE = 100_000;
 
 export type VintagePermission =
   | { allowed: true }
   | { allowed: false; reason: string };
+
+export function getCommemorateItemLimit({
+  baseCount,
+  rareSupporterBonusCount,
+  supporterStatus,
+}: {
+  baseCount: number;
+  rareSupporterBonusCount: number;
+  supporterStatus: SupporterStatus | null;
+}): number {
+  return (
+    baseCount +
+    (isSupporterStatusAtLeast(supporterStatus, "rare")
+      ? rareSupporterBonusCount
+      : 0)
+  );
+}
 
 export function partitionVintageItems<
   T extends Pick<GameItem, "_id" | "original" | "vintage">,

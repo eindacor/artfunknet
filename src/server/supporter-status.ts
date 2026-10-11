@@ -88,6 +88,16 @@ export function isPlayerSupporter(player: SupporterStatusPlayer): boolean {
   return resolvePlayerSupporterStatus(player) !== null;
 }
 
+export function isSupporterStatusAtLeast(
+  status: SupporterStatus | null,
+  minimum: SupporterStatus,
+): boolean {
+  return (
+    status !== null &&
+    SUPPORTER_STATUSES.indexOf(status) >= SUPPORTER_STATUSES.indexOf(minimum)
+  );
+}
+
 export async function getPlayerSupporterStatus(
   database: Db,
   playerId: string,

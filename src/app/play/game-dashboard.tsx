@@ -352,7 +352,7 @@ export default function GameDashboard({
   hallOfFameRecords = [],
   playthroughSnapshots = [],
   vintageConsiderationCount = 10,
-  commemorateItemCount = 10,
+  commemorateItemCount = 4,
 }: {
   player: PlayerView;
   items: HydratedGameItem[];

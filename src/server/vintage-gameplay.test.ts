@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  getCommemorateItemLimit,
   getVintagePlaythroughPermission,
   partitionVintageItems,
 } from "./vintage-gameplay.ts";
@@ -13,6 +14,22 @@ const item = {
   vintage: false,
   repairing: false,
 };
+
+test("commemoration limits add the configured bonus at rare supporter status", () => {
+  const getLimit = (supporterStatus: "common" | "uncommon" | "rare" | "legendary" | "masterpiece" | null) =>
+    getCommemorateItemLimit({
+      baseCount: 4,
+      rareSupporterBonusCount: 8,
+      supporterStatus,
+    });
+
+  assert.equal(getLimit(null), 4);
+  assert.equal(getLimit("common"), 4);
+  assert.equal(getLimit("uncommon"), 4);
+  assert.equal(getLimit("rare"), 12);
+  assert.equal(getLimit("legendary"), 12);
+  assert.equal(getLimit("masterpiece"), 12);
+});
 
 test("vintage playthroughs require maximum level and no active auctions", () => {
   assert.equal(

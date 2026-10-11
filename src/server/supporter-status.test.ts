@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   getPatreonSupporterStatus,
   isPlayerSupporter,
+  isSupporterStatusAtLeast,
   normalizeSupporterStatus,
   resolvePlayerSupporterStatus,
 } from "./supporter-status.ts";
@@ -17,6 +18,13 @@ test("normalizes supporter status values", () => {
   assert.equal(normalizeSupporterStatus(" Legendary "), "legendary");
   assert.equal(normalizeSupporterStatus("ultimate"), null);
   assert.equal(normalizeSupporterStatus(null), null);
+});
+
+test("supporter-only styles require uncommon status or higher", () => {
+  assert.equal(isSupporterStatusAtLeast(null, "uncommon"), false);
+  assert.equal(isSupporterStatusAtLeast("common", "uncommon"), false);
+  assert.equal(isSupporterStatusAtLeast("uncommon", "uncommon"), true);
+  assert.equal(isSupporterStatusAtLeast("masterpiece", "uncommon"), true);
 });
 
 test("active Patreon supporters use the highest recognized tier", () => {

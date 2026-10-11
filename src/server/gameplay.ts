@@ -9,7 +9,10 @@ import {
 } from "./card-renderer-settings.ts";
 import { getItemAttributeCounts } from "./item-attribute-counts.ts";
 import { getRerollCost } from "./item-reroll.ts";
-import { getPlayerSupporterStatus } from "./supporter-status.ts";
+import {
+  getPlayerSupporterStatus,
+  isSupporterStatusAtLeast,
+} from "./supporter-status.ts";
 
 export const ARTWORK_RARITIES = [
   "common",
@@ -515,7 +518,7 @@ export async function generateDailyDrop(
   const cardStyleWeights = getSupporterAdjustedCardStyleWeights(
     generationMap.cardStyles,
     rendererSettings.supporterRendererIds,
-    playerSupporterStatus !== null,
+    isSupporterStatusAtLeast(playerSupporterStatus, "uncommon"),
   );
 
   const rarityMap = getConfiguredRarityMap(

@@ -75,6 +75,7 @@ import {
   resolvePlayerSupporterStatus,
   type SupporterStatus,
 } from "@/server/supporter-status";
+import { getCommemorateItemLimit } from "@/server/vintage-gameplay";
 
 import GameDashboard from "./game-dashboard";
 import PlayerHeader from "./player-header";
@@ -484,6 +485,12 @@ export default async function PlayerPage({
 
   const isMaxLevel = player.profile.level >= 50;
   const xpGoal = getXpGoal(player.profile.level);
+  const supporterStatus = resolvePlayerSupporterStatus(player);
+  const commemorateItemCount = getCommemorateItemLimit({
+    baseCount: config.commemorateItemCount,
+    rareSupporterBonusCount: config.commemorateRareSupporterBonusCount,
+    supporterStatus,
+  });
 
   return (
     <div className="game-shell">
@@ -494,7 +501,7 @@ export default async function PlayerPage({
         karma={player.profile.karma ?? 0}
         initialNotifications={notifications}
         impersonating={impersonating}
-        supporterStatus={resolvePlayerSupporterStatus(player)}
+        supporterStatus={supporterStatus}
       />
       <GameDashboard
         archiveArtStyleIds={cardRendererSettings.activeRendererIds.filter(
@@ -595,7 +602,7 @@ export default async function PlayerPage({
         playthroughSnapshots={JSON.parse(JSON.stringify(playthroughSnapshots))}
         hallOfFameRecords={JSON.parse(JSON.stringify(hallOfFameRecords))}
         vintageConsiderationCount={config.vintageConsiderationCount}
-        commemorateItemCount={config.commemorateItemCount}
+        commemorateItemCount={commemorateItemCount}
       />
     </div>
   );

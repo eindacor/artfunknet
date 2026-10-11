@@ -21,6 +21,11 @@ import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
 import { savePlaythroughSnapshot } from "@/server/playthrough-snapshots";
 import {
+  resolvePlayerSupporterStatus,
+  type SupporterStatusPlayer,
+} from "@/server/supporter-status";
+import {
+  getCommemorateItemLimit,
   partitionVintageItems,
   VINTAGE_STARTING_BALANCE,
 } from "@/server/vintage-gameplay";
@@ -31,9 +36,7 @@ type EraRequest = {
   commemorateItemIds?: string[];
 };
 
-type VintagePlayer = {
-  _id: string;
-  active: boolean;
+type VintagePlayer = SupporterStatusPlayer & {
   profile: {
     level: number;
     lottery_tickets: number;
@@ -76,7 +79,6 @@ export async function POST(request: Request) {
   const database = await getDatabase();
   const settings = await getGameplaySettings(database);
   const requiredCount = settings.active.vintageConsiderationCount;
-  const maxCommemorateCount = settings.active.commemorateItemCount;
 
   const player = await database.collection<VintagePlayer>("players").findOne({
     _id: auth.session.playerId,
@@ -88,6 +90,12 @@ export async function POST(request: Request) {
       { status: 404 },
     );
   }
+  const maxCommemorateCount = getCommemorateItemLimit({
+    baseCount: settings.active.commemorateItemCount,
+    rareSupporterBonusCount:
+      settings.active.commemorateRareSupporterBonusCount,
+    supporterStatus: resolvePlayerSupporterStatus(player),
+  });
   if (player.profile.level < MAX_PLAYER_LEVEL) {
     return NextResponse.json(
       {

@@ -102,6 +102,7 @@ export type GameplayConfig = {
   visitorRarityAmplifiers: Record<NpcQuality, number>;
   vintageConsiderationCount: number;
   commemorateItemCount: number;
+  commemorateRareSupporterBonusCount: number;
   rarityWeights: Record<ArtworkRarity, number>;
   cardStyleWeights: Record<DroppableCardRendererId, number>;
 };
@@ -155,7 +156,8 @@ export const DEFAULT_ACTUAL_GAMEPLAY_CONFIG: GameplayConfig = {
   },
   visitorRarityAmplifiers: { ...DEFAULT_VISITOR_RARITY_AMPLIFIERS },
   vintageConsiderationCount: 10,
-  commemorateItemCount: 10,
+  commemorateItemCount: 4,
+  commemorateRareSupporterBonusCount: 8,
   rarityWeights: DEFAULT_RARITY_WEIGHTS,
   cardStyleWeights: DEFAULT_CARD_STYLE_WEIGHTS,
 };
@@ -199,7 +201,8 @@ export const DEFAULT_DEBUG_GAMEPLAY_CONFIG: GameplayConfig = {
   },
   visitorRarityAmplifiers: { ...DEFAULT_VISITOR_RARITY_AMPLIFIERS },
   vintageConsiderationCount: 10,
-  commemorateItemCount: 10,
+  commemorateItemCount: 4,
+  commemorateRareSupporterBonusCount: 8,
   rarityWeights: DEBUG_RARITY_WEIGHTS,
   cardStyleWeights: DEBUG_CARD_STYLE_WEIGHTS,
 };
@@ -255,6 +258,7 @@ type StoredGameplayConfig = {
   visitor_rarity_amplifiers?: Partial<Record<NpcQuality, number>>;
   vintage_consideration_count?: number;
   commemorate_item_count?: number;
+  commemorate_rare_supporter_bonus_count?: number;
   rarity_weights?: Partial<Record<ArtworkRarity, number>>;
   card_style_weights?: Partial<Record<DroppableCardRendererId, number>>;
 };
@@ -336,6 +340,8 @@ export function toStoredGameplayConfig(
     visitor_rarity_amplifiers: config.visitorRarityAmplifiers,
     vintage_consideration_count: config.vintageConsiderationCount,
     commemorate_item_count: config.commemorateItemCount,
+    commemorate_rare_supporter_bonus_count:
+      config.commemorateRareSupporterBonusCount,
     rarity_weights: config.rarityWeights,
     card_style_weights: config.cardStyleWeights,
   };
@@ -368,6 +374,12 @@ export function validateGameplayConfig(
     ],
     ["vintageConsiderationCount", "Vintage consideration count", 1, 100],
     ["commemorateItemCount", "Commemorate item count", 1, 100],
+    [
+      "commemorateRareSupporterBonusCount",
+      "Rare supporter commemorate bonus",
+      0,
+      100,
+    ],
   ] as const;
   const values: Record<string, number> = {};
   for (const [key, label, min, max] of integerFields) {
@@ -536,6 +548,8 @@ export function validateGameplayConfig(
       visitorRarityAmplifiers: visitorRarityAmplifiers.value,
       vintageConsiderationCount: values.vintageConsiderationCount,
       commemorateItemCount: values.commemorateItemCount,
+      commemorateRareSupporterBonusCount:
+        values.commemorateRareSupporterBonusCount,
       rarityWeights: rarityWeights.value,
       cardStyleWeights: cardStyleWeights.value,
     },
@@ -737,6 +751,9 @@ function readConfig(
       defaults.vintageConsiderationCount,
     commemorateItemCount:
       stored?.commemorate_item_count ?? defaults.commemorateItemCount,
+    commemorateRareSupporterBonusCount:
+      stored?.commemorate_rare_supporter_bonus_count ??
+      defaults.commemorateRareSupporterBonusCount,
     rarityWeights: {
       ...defaults.rarityWeights,
       ...stored?.rarity_weights,
