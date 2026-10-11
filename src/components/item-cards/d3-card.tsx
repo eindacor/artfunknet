@@ -5,7 +5,7 @@ import {
 } from "./shared";
 import type { ItemCardRendererProps } from "./types";
 
-export default function D3Card({
+export default function DiabloDetailCard({
   item,
   consigned,
   legendaryAttributes,
@@ -53,7 +53,7 @@ export default function D3Card({
               </div>
 
               <div className="d3-item-value-label">
-                Collection value
+                Damage Per Second
               </div>
             </div>
           </div>
@@ -119,10 +119,11 @@ export default function D3Card({
 
         <div className="d3-item-footer">
           <span>
-            Value: {item.values?.actual != null
+            Estimated Value: {item.values?.actual != null
               ? item.values.actual.toLocaleString()
-              : "—"}
+              : "—"} 
           </span>
+          <span className="d3-gold-symbol">●</span>
           <span>
               {item.mint ? (
                 <i aria-label="Mint condition" className="fa fa-leaf" />
