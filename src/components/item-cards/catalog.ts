@@ -141,9 +141,9 @@ export const CARD_COSMETICS: CardCosmetic[] = [
   },
   {
     number: 21,
-    id: "shader",
-    name: "Shader Canvas",
-    description: "A live GLSL shader backdrop driven by item data.",
+    id: "d3",
+    name: "Nephalem Relic",
+    description: "A dark fantasy item tooltip with ornate rarity-driven details.",
   },
 ];
 

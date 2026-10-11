@@ -1,15 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import type { SupporterStatus } from "@/server/supporter-status";
 import ActionButton from "../action-button/action-button";
 import IconButton from "../icon-button/icon-button";
-
-const PATREON_TIER_RARITIES = new Set([
-  "common",
-  "uncommon",
-  "rare",
-  "legendary",
-  "masterpiece",
-]);
 
 export default function PlayerHeaderContent({
   auctionEscrow,
@@ -20,7 +13,7 @@ export default function PlayerHeaderContent({
   lotteryTickets,
   notifications,
   onSignOut,
-  patreonTierName,
+  supporterStatus,
 }: {
   auctionEscrow: number;
   bankBalance: number;
@@ -31,10 +24,8 @@ export default function PlayerHeaderContent({
   /** The notification centre, passed in so this stays free of its polling. */
   notifications?: ReactNode;
   onSignOut: () => void;
-  patreonTierName?: string | null;
+  supporterStatus?: SupporterStatus | null;
 }) {
-  const patreonRarity = getPatreonTierRarity(patreonTierName);
-
   return (
     <>
       <div className="col-span-12 @2xs:col-span-4">
@@ -106,7 +97,7 @@ export default function PlayerHeaderContent({
             href="https://www.patreon.com/c/artfunkel"
             icon="fa-brands fa-patreon"
             iconClassName={
-              patreonRarity ? `rarity-text ${patreonRarity}` : ""
+              supporterStatus ? `rarity-text ${supporterStatus}` : ""
             }
             rel="noreferrer"
             target="_blank"
@@ -140,10 +131,4 @@ export default function PlayerHeaderContent({
       ) : null}
     </>
   );
-}
-
-function getPatreonTierRarity(tierName?: string | null): string | null {
-  if (!tierName) return null;
-  const rarity = tierName.trim().replace(/\s+Tier$/i, "").toLowerCase();
-  return PATREON_TIER_RARITIES.has(rarity) ? rarity : null;
 }

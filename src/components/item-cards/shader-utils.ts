@@ -2,7 +2,7 @@ import type { ArtworkRarity } from "@/server/gameplay";
 
 /**
  * Maps each rarity tier to an RGB vec3 [r, g, b] (0–1 range).
- * This matches the `u_itemRarity` uniform in every shader card.
+ * This matches the `u_itemRarity` uniform in every card shader.
  */
 export const RARITY_COLOR: Record<ArtworkRarity, [number, number, number]> = {
   common:      [57.0/256, 181.0/256, 74.0/256],
@@ -84,7 +84,7 @@ export function compileShader(
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    console.error("[ShaderCard] compile error:", gl.getShaderInfoLog(shader));
+    console.error("[CardShader] compile error:", gl.getShaderInfoLog(shader));
     gl.deleteShader(shader);
     return null;
   }
@@ -105,7 +105,7 @@ export function linkProgram(
   gl.attachShader(program, frag);
   gl.linkProgram(program);
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    console.error("[ShaderCard] link error:", gl.getProgramInfoLog(program));
+    console.error("[CardShader] link error:", gl.getProgramInfoLog(program));
     gl.deleteProgram(program);
     return null;
   }

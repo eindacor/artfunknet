@@ -1,17 +1,16 @@
-import PlayerAccountRecovery from "./player-account-recovery";
+import PlayerAccountAdmin from "./player-account-admin";
 
 export default function PlayerAccountsAdminPage() {
   return (
     <main className="admin-tools">
       <h1>Player accounts</h1>
       <section>
-        <h2>Manual password recovery</h2>
+        <h2>Account metadata and overrides</h2>
         <p>
-          Find an account by its exact email address and assign a temporary
-          password. Send the password to the player through a trusted private
-          channel and ask them to replace it from their Account page.
+          Find an account by its exact email address to review its metadata,
+          manage supporter status, or assign a temporary password.
         </p>
-        <PlayerAccountRecovery />
+        <PlayerAccountAdmin />
       </section>
     </main>
   );

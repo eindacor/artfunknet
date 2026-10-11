@@ -1,5 +1,262 @@
 import { LEGENDARY_ATTRIBUTE_PAIRS } from "./legendary-attribute-data.mjs";
 
+const LEGACY_D3_RENDERER_ID = "shader";
+const D3_RENDERER_ID = "d3";
+
+export async function migrateD3CardRendererId(database) {
+  const renameIds = (ids) =>
+    Array.isArray(ids)
+      ? [
+          ...new Set(
+            ids.map((id) =>
+              id === LEGACY_D3_RENDERER_ID ? D3_RENDERER_ID : id,
+            ),
+          ),
+        ]
+      : ids;
+  const renameRecordKey = (record) => {
+    if (
+      !record ||
+      typeof record !== "object" ||
+      Array.isArray(record) ||
+      !(LEGACY_D3_RENDERER_ID in record)
+    ) {
+      return record;
+    }
+    const renamed = { ...record };
+    renamed[D3_RENDERER_ID] ??= renamed[LEGACY_D3_RENDERER_ID];
+    delete renamed[LEGACY_D3_RENDERER_ID];
+    return renamed;
+  };
+
+  await database.collection("items").updateMany(
+    { card_renderer: LEGACY_D3_RENDERER_ID },
+    { $set: { card_renderer: D3_RENDERER_ID } },
+  );
+  await database.collection("players").updateMany(
+    {
+      [`profile.card_style_consumables.${LEGACY_D3_RENDERER_ID}`]: {
+        $exists: true,
+      },
+    },
+    [
+      {
+        $set: {
+          [`profile.card_style_consumables.${D3_RENDERER_ID}`]: {
+            $add: [
+              {
+                $ifNull: [
+                  `\$profile.card_style_consumables.${D3_RENDERER_ID}`,
+                  0,
+                ],
+              },
+              {
+                $ifNull: [
+                  `\$profile.card_style_consumables.${LEGACY_D3_RENDERER_ID}`,
+                  0,
+                ],
+              },
+            ],
+          },
+        },
+      },
+      {
+        $unset: `profile.card_style_consumables.${LEGACY_D3_RENDERER_ID}`,
+      },
+    ],
+  );
+  await database.collection("artworks").updateMany(
+    {
+      [`art_style_adjustments.${LEGACY_D3_RENDERER_ID}`]: {
+        $exists: true,
+      },
+    },
+    [
+      {
+        $set: {
+          [`art_style_adjustments.${D3_RENDERER_ID}`]: {
+            $ifNull: [
+              `\$art_style_adjustments.${D3_RENDERER_ID}`,
+              `\$art_style_adjustments.${LEGACY_D3_RENDERER_ID}`,
+            ],
+          },
+        },
+      },
+      {
+        $unset: `art_style_adjustments.${LEGACY_D3_RENDERER_ID}`,
+      },
+    ],
+  );
+  await database.collection("player_artwork_archives").updateMany(
+    { "entries.art_style": LEGACY_D3_RENDERER_ID },
+    [
+      {
+        $set: {
+          entries: {
+            $map: {
+              input: "$entries",
+              as: "entry",
+              in: {
+                $mergeObjects: [
+                  "$$entry",
+                  {
+                    art_style: {
+                      $cond: [
+                        {
+                          $eq: [
+                            "$$entry.art_style",
+                            LEGACY_D3_RENDERER_ID,
+                          ],
+                        },
+                        D3_RENDERER_ID,
+                        "$$entry.art_style",
+                      ],
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+    ],
+  );
+  await database.collection("playthrough_snapshots").updateMany(
+    { "selected_vintage_item.card_renderer": LEGACY_D3_RENDERER_ID },
+    { $set: { "selected_vintage_item.card_renderer": D3_RENDERER_ID } },
+  );
+  await database.collection("playthrough_snapshots").updateMany(
+    { "gallery_snapshot.card_renderer": LEGACY_D3_RENDERER_ID },
+    [
+      {
+        $set: {
+          gallery_snapshot: {
+            $map: {
+              input: "$gallery_snapshot",
+              as: "item",
+              in: {
+                $mergeObjects: [
+                  "$$item",
+                  {
+                    card_renderer: {
+                      $cond: [
+                        {
+                          $eq: [
+                            "$$item.card_renderer",
+                            LEGACY_D3_RENDERER_ID,
+                          ],
+                        },
+                        D3_RENDERER_ID,
+                        "$$item.card_renderer",
+                      ],
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+    ],
+  );
+  const snapshotCollection = database.collection("playthrough_snapshots");
+  const snapshotsWithLegacyArtworkAdjustments = await snapshotCollection
+    .find({
+      $or: [
+        {
+          [`selected_vintage_item.artwork.art_style_adjustments.${LEGACY_D3_RENDERER_ID}`]:
+            { $exists: true },
+        },
+        {
+          [`gallery_snapshot.artwork.art_style_adjustments.${LEGACY_D3_RENDERER_ID}`]:
+            { $exists: true },
+        },
+      ],
+    })
+    .toArray();
+  for (const snapshot of snapshotsWithLegacyArtworkAdjustments) {
+    const renameSnapshotItem = (item) => {
+      const adjustments = renameRecordKey(
+        item?.artwork?.art_style_adjustments,
+      );
+      return adjustments === item?.artwork?.art_style_adjustments
+        ? item
+        : {
+            ...item,
+            artwork: {
+              ...item.artwork,
+              art_style_adjustments: adjustments,
+            },
+          };
+    };
+    await snapshotCollection.updateOne(
+      { _id: snapshot._id },
+      {
+        $set: {
+          selected_vintage_item: renameSnapshotItem(
+            snapshot.selected_vintage_item,
+          ),
+          gallery_snapshot: (snapshot.gallery_snapshot ?? []).map(
+            renameSnapshotItem,
+          ),
+        },
+      },
+    );
+  }
+
+  const metadata = database.collection("metadata");
+  const rendererSettings = await metadata.findOne({
+    _id: "card-renderer-settings",
+  });
+  if (rendererSettings) {
+    const renamedSettings = Object.fromEntries(
+      [
+        [
+          "active_renderer_ids",
+          renameIds(rendererSettings.active_renderer_ids),
+        ],
+        [
+          "inactive_renderer_ids",
+          renameIds(rendererSettings.inactive_renderer_ids),
+        ],
+        [
+          "supporter_renderer_ids",
+          renameIds(rendererSettings.supporter_renderer_ids),
+        ],
+        [
+          "renderer_names",
+          renameRecordKey(rendererSettings.renderer_names),
+        ],
+      ].filter(([, value]) => value !== undefined),
+    );
+    await metadata.updateOne(
+      { _id: rendererSettings._id },
+      { $set: renamedSettings },
+    );
+  }
+
+  const gameplaySettings = await metadata.findOne({
+    _id: "gameplay-settings",
+  });
+  if (gameplaySettings?.gameplay) {
+    const gameplay = structuredClone(gameplaySettings.gameplay);
+    gameplay.card_style_weights = renameRecordKey(
+      gameplay.card_style_weights,
+    );
+    for (const configName of ["actual", "debug"]) {
+      if (gameplay.configs?.[configName]) {
+        gameplay.configs[configName].card_style_weights = renameRecordKey(
+          gameplay.configs[configName].card_style_weights,
+        );
+      }
+    }
+    await metadata.updateOne(
+      { _id: gameplaySettings._id },
+      { $set: { gameplay } },
+    );
+  }
+}
+
 export async function migrateHallOfFameAndPlaythroughStorage(database) {
   const now = new Date();
   const socialBatteryResetAt = getNextSocialBatteryResetAt(now).toISOString();

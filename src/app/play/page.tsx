@@ -71,6 +71,10 @@ import {
   type PlayerViewSettings,
 } from "@/server/player-view-settings";
 import { refreshPlayerSocialBattery } from "@/server/social-battery";
+import {
+  resolvePlayerSupporterStatus,
+  type SupporterStatus,
+} from "@/server/supporter-status";
 
 import GameDashboard from "./game-dashboard";
 import PlayerHeader from "./player-header";
@@ -84,7 +88,12 @@ type Player = {
   oauth_screen_name_pending?: boolean;
   patreon?: {
     is_supporter?: boolean;
+    requires_reauthorization?: boolean;
     tier_name?: string | null;
+    tiers?: Array<{ title?: string | null }>;
+  };
+  supporter?: {
+    admin_override?: SupporterStatus;
   };
   profile: {
     bank_balance: number;
@@ -485,11 +494,7 @@ export default async function PlayerPage({
         karma={player.profile.karma ?? 0}
         initialNotifications={notifications}
         impersonating={impersonating}
-        patreonTierName={
-          player.patreon?.is_supporter
-            ? player.patreon.tier_name ?? null
-            : null
-        }
+        supporterStatus={resolvePlayerSupporterStatus(player)}
       />
       <GameDashboard
         archiveArtStyleIds={cardRendererSettings.activeRendererIds.filter(

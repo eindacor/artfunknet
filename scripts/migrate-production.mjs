@@ -2,6 +2,7 @@ import { MongoClient, ServerApiVersion } from "mongodb";
 
 import {
   migrateArtworkEffects,
+  migrateD3CardRendererId,
   migrateHallOfFameAndPlaythroughStorage,
 } from "./database-migrations.mjs";
 
@@ -23,6 +24,7 @@ const client = new MongoClient(uri, {
 try {
   console.log("[MONGO-CONNECT] migrate-production.mjs: connecting");
   await client.connect();
+  await migrateD3CardRendererId(client.db(databaseName));
   await migrateHallOfFameAndPlaythroughStorage(client.db(databaseName));
   await migrateArtworkEffects(client.db(databaseName));
   console.log(

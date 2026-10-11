@@ -508,14 +508,14 @@ export async function generateDailyDrop(
   if (attributes.length === 0) {
     throw new Error("Artwork attributes have not been seeded.");
   }
-  const [rendererSettings, playerIsSupporter] = await Promise.all([
+  const [rendererSettings, playerSupporterStatus] = await Promise.all([
     getCardRendererSettings(database),
     getPlayerSupporterStatus(database, playerId),
   ]);
   const cardStyleWeights = getSupporterAdjustedCardStyleWeights(
     generationMap.cardStyles,
     rendererSettings.supporterRendererIds,
-    playerIsSupporter,
+    playerSupporterStatus !== null,
   );
 
   const rarityMap = getConfiguredRarityMap(

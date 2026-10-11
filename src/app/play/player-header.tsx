@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import type { PlayerNotification } from "@/server/player-notifications";
+import type { SupporterStatus } from "@/server/supporter-status";
 
 import NotificationCenter from "./notification-center";
 import PlayerHeaderContent from "@/components/player-header/player-header";
@@ -21,7 +22,7 @@ type AuthenticatedHeaderContentProps = {
   lotteryTickets: number;
   initialNotifications?: PlayerNotification[];
   impersonating: boolean;
-  patreonTierName?: string | null;
+  supporterStatus?: SupporterStatus | null;
 };
 
 export default function PlayerHeader(props: PlayerHeaderProps) {
@@ -56,6 +57,7 @@ function AuthenticatedHeaderContent(props: AuthenticatedHeaderContentProps) {
     auctionEscrow: number;
     bankBalance: number;
     lotteryTickets: number;
+    supporterStatus: SupporterStatus | null;
   } | null>(null);
   const refreshInFlight = useRef(false);
   const {
@@ -82,6 +84,7 @@ function AuthenticatedHeaderContent(props: AuthenticatedHeaderContentProps) {
         auctionEscrow?: number;
         bankBalance?: number;
         lotteryTickets?: number;
+        supporterStatus?: SupporterStatus | null;
       };
       if (
         response.ok &&
@@ -93,6 +96,7 @@ function AuthenticatedHeaderContent(props: AuthenticatedHeaderContentProps) {
           auctionEscrow: body.auctionEscrow,
           bankBalance: body.bankBalance,
           lotteryTickets: body.lotteryTickets,
+          supporterStatus: body.supporterStatus ?? null,
         });
       }
     } catch (refreshError) {
@@ -175,7 +179,11 @@ function AuthenticatedHeaderContent(props: AuthenticatedHeaderContentProps) {
         <NotificationCenter initialNotifications={initialNotifications} />
       }
       onSignOut={logout}
-      patreonTierName={props.patreonTierName}
+      supporterStatus={
+        accountSummary
+          ? accountSummary.supporterStatus
+          : props.supporterStatus ?? null
+      }
     />
   );
 }

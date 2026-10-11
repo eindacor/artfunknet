@@ -3,10 +3,12 @@ import { NextResponse } from "next/server";
 import { getPlayerAuctionEscrow } from "@/server/auction-gameplay";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
+import {
+  resolvePlayerSupporterStatus,
+  type SupporterStatusPlayer,
+} from "@/server/supporter-status";
 
-type PlayerAccount = {
-  _id: string;
-  active: boolean;
+type PlayerAccount = SupporterStatusPlayer & {
   profile: {
     bank_balance: number;
     lottery_tickets: number;
@@ -25,6 +27,11 @@ export async function GET() {
         projection: {
           "profile.bank_balance": 1,
           "profile.lottery_tickets": 1,
+          supporter: 1,
+          "patreon.is_supporter": 1,
+          "patreon.requires_reauthorization": 1,
+          "patreon.tier_name": 1,
+          "patreon.tiers.title": 1,
         },
       },
     ),
@@ -42,5 +49,6 @@ export async function GET() {
     auctionEscrow,
     bankBalance: player.profile.bank_balance,
     lotteryTickets: player.profile.lottery_tickets,
+    supporterStatus: resolvePlayerSupporterStatus(player),
   });
 }

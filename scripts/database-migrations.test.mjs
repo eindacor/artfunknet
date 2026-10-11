@@ -4,7 +4,153 @@ import test from "node:test";
 import { MongoClient } from "mongodb";
 import { MongoMemoryServer } from "mongodb-memory-server";
 
-import { migrateArtworkEffects } from "./database-migrations.mjs";
+import {
+  migrateArtworkEffects,
+  migrateD3CardRendererId,
+} from "./database-migrations.mjs";
+
+test("D3 renderer migration renames persisted style references idempotently", async () => {
+  const server = await MongoMemoryServer.create();
+  const client = new MongoClient(server.getUri());
+  try {
+    await client.connect();
+    const database = client.db("d3-renderer-migration");
+    await database.collection("items").insertOne({
+      _id: "item",
+      card_renderer: "shader",
+    });
+    await database.collection("players").insertOne({
+      _id: "player",
+      profile: {
+        card_style_consumables: {
+          shader: 2,
+          d3: 1,
+        },
+      },
+    });
+    await database.collection("artworks").insertOne({
+      _id: "artwork",
+      art_style_adjustments: {
+        shader: { position_x: 1 },
+      },
+    });
+    await database.collection("player_artwork_archives").insertOne({
+      _id: "archive",
+      entries: [
+        { art_style: "shader" },
+        { art_style: "museum" },
+      ],
+    });
+    await database.collection("playthrough_snapshots").insertOne({
+      _id: "snapshot",
+      selected_vintage_item: {
+        card_renderer: "shader",
+        artwork: {
+          art_style_adjustments: {
+            shader: { position_x: 2 },
+          },
+        },
+      },
+      gallery_snapshot: [
+        {
+          card_renderer: "shader",
+          artwork: {
+            art_style_adjustments: {
+              shader: { position_x: 3 },
+            },
+          },
+        },
+        { card_renderer: "museum" },
+      ],
+    });
+    await database.collection("metadata").insertMany([
+      {
+        _id: "card-renderer-settings",
+        active_renderer_ids: ["museum", "shader"],
+        inactive_renderer_ids: ["shader"],
+        supporter_renderer_ids: ["shader"],
+        renderer_names: { shader: "Custom name" },
+      },
+      {
+        _id: "gameplay-settings",
+        gameplay: {
+          card_style_weights: { shader: 3 },
+          configs: {
+            actual: { card_style_weights: { shader: 4 } },
+            debug: { card_style_weights: { shader: 5 } },
+          },
+        },
+      },
+    ]);
+
+    await migrateD3CardRendererId(database);
+    await migrateD3CardRendererId(database);
+
+    const item = await database.collection("items").findOne({ _id: "item" });
+    assert.equal(item.card_renderer, "d3");
+
+    const player = await database
+      .collection("players")
+      .findOne({ _id: "player" });
+    assert.deepEqual(player.profile.card_style_consumables, { d3: 3 });
+
+    const artwork = await database
+      .collection("artworks")
+      .findOne({ _id: "artwork" });
+    assert.deepEqual(artwork.art_style_adjustments, {
+      d3: { position_x: 1 },
+    });
+
+    const archive = await database
+      .collection("player_artwork_archives")
+      .findOne({ _id: "archive" });
+    assert.deepEqual(
+      archive.entries.map((entry) => entry.art_style),
+      ["d3", "museum"],
+    );
+
+    const snapshot = await database
+      .collection("playthrough_snapshots")
+      .findOne({ _id: "snapshot" });
+    assert.equal(snapshot.selected_vintage_item.card_renderer, "d3");
+    assert.deepEqual(
+      snapshot.gallery_snapshot.map((item) => item.card_renderer),
+      ["d3", "museum"],
+    );
+    assert.deepEqual(
+      snapshot.selected_vintage_item.artwork.art_style_adjustments,
+      { d3: { position_x: 2 } },
+    );
+    assert.deepEqual(
+      snapshot.gallery_snapshot[0].artwork.art_style_adjustments,
+      { d3: { position_x: 3 } },
+    );
+
+    const rendererSettings = await database
+      .collection("metadata")
+      .findOne({ _id: "card-renderer-settings" });
+    assert.deepEqual(rendererSettings.active_renderer_ids, ["museum", "d3"]);
+    assert.deepEqual(rendererSettings.inactive_renderer_ids, ["d3"]);
+    assert.deepEqual(rendererSettings.supporter_renderer_ids, ["d3"]);
+    assert.deepEqual(rendererSettings.renderer_names, { d3: "Custom name" });
+
+    const gameplaySettings = await database
+      .collection("metadata")
+      .findOne({ _id: "gameplay-settings" });
+    assert.deepEqual(gameplaySettings.gameplay.card_style_weights, { d3: 3 });
+    assert.deepEqual(
+      gameplaySettings.gameplay.configs.actual.card_style_weights,
+      { d3: 4 },
+    );
+    assert.deepEqual(
+      gameplaySettings.gameplay.configs.debug.card_style_weights,
+      { d3: 5 },
+    );
+  } finally {
+    await client.close();
+    await server.stop();
+  }
+});
 
 test("artwork effect migration backfills artwork without mutating item attributes", async () => {
   const server = await MongoMemoryServer.create();

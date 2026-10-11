@@ -1,6 +1,6 @@
-// ─── artfunknet default shader card ────────────────────────────────────────
+// ─── artfunknet default card shader ────────────────────────────────────────
 //
-// Uniforms injected automatically by ShaderCard:
+// Uniforms injected automatically by the card shader hook:
 //
 //   uniform vec2      u_resolution;   // canvas size in pixels
 //   uniform float     u_time;         // seconds since mount
@@ -11,7 +11,7 @@
 //   uniform float     u_foil;         // 1.0 if foil, else 0.0
 //   uniform float     u_mint;         // 1.0 if mint, else 0.0
 //
-// Add any extra uniforms to the shaderUniforms prop on <ShaderCard>.
+// Add any extra uniforms through the card shader hook's extraUniforms option.
 // ────────────────────────────────────────────────────────────────────────────
 
 precision mediump float;

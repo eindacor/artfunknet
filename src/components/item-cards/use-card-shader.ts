@@ -11,7 +11,7 @@ import {
 import { loadShaderSource } from "./shader-source";
 
 /**
- * Extra uniforms you can pass through `shaderUniforms` on ShaderCard.
+ * Extra uniforms that a card shader can receive.
  * Values map to WebGL uniform setters:
  *   number  → uniform1f
  *   [number, number] → uniform2fv
@@ -26,7 +26,7 @@ export type ShaderUniformValue =
 
 export type ShaderUniforms = Record<string, ShaderUniformValue>;
 
-export type UseShaderCardOptions = {
+export type UseCardShaderOptions = {
   /** URL of the GLSL fragment shader to fetch and compile. */
   shaderUrl: string;
   /** URL of the artwork image to bind as u_image (texture unit 0). */
@@ -58,7 +58,7 @@ export type UseShaderCardOptions = {
  *
  * Returns the canvas ref to attach to your element.
  */
-export function useShaderCard(options: UseShaderCardOptions) {
+export function useCardShader(options: UseCardShaderOptions) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   // Keep a stable ref to options so the effect doesn't re-run on every render.
   const optsRef = useRef(options);
@@ -73,7 +73,7 @@ export function useShaderCard(options: UseShaderCardOptions) {
 
     const gl = canvas.getContext("webgl", { alpha: false });
     if (!gl) {
-      console.warn("[ShaderCard] WebGL not supported");
+      console.warn("[CardShader] WebGL not supported");
       return;
     }
     // Capture as a typed non-null constant so async closures don't lose narrowing.
@@ -101,7 +101,7 @@ export function useShaderCard(options: UseShaderCardOptions) {
       try {
         fragSource = await loadShaderSource(opts.shaderUrl);
       } catch (err) {
-        console.error("[ShaderCard] failed to load shader:", err);
+        console.error("[CardShader] failed to load shader:", err);
         return;
       }
 
