@@ -15,8 +15,6 @@ export default function CelestialCard({
   return (
     <div className="render-card celestial-card">
       <div className="celestial-card-stars" />
-      <div className="celestial-card-orbit orbit-one" />
-      <div className="celestial-card-orbit orbit-two" />
       {item.seasonal ? (
         <div className="celestial-card-seasonal" aria-hidden="true">
           <i className="fa fa-rocket" />
@@ -42,13 +40,6 @@ export default function CelestialCard({
         <ArtworkImage className="celestial-card-image" item={item} />
       </div>
       <section>
-        <ItemStatusBadges
-          item={item}
-          alreadyOwned={alreadyOwned}
-          consigned={consigned}
-          researchTarget={researchTarget}
-          showMint={false}
-        />
         <h3>{item.artwork.title}</h3>
         <p className="render-card-artist">{item.artwork.artist}</p>
         <CompactStats item={item} />

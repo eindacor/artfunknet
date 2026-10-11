@@ -2757,43 +2757,6 @@
   transform: rotate(38deg);
 }
 
-.celestial-card-orbit {
-  position: absolute;
-  z-index: 1;
-  top: 58px;
-  left: 50%;
-  border: 1px solid var(--rarity-color);
-  border-radius: 50%;
-  pointer-events: none;
-}
-
-.celestial-card-orbit::after {
-  content: "";
-  position: absolute;
-  top: -4px;
-  left: 50%;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--rarity-light);
-  box-shadow: 0 0 10px var(--rarity-color);
-}
-
-.celestial-card-orbit.orbit-one {
-  width: 235px;
-  height: 142px;
-  margin-left: -117px;
-  animation: celestial-orbit 7s linear infinite;
-}
-
-.celestial-card-orbit.orbit-two {
-  top: 72px;
-  width: 205px;
-  height: 116px;
-  margin-left: -102px;
-  animation: celestial-orbit 5s linear infinite reverse;
-}
-
 .celestial-card > header {
   position: relative;
   z-index: 4;
