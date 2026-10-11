@@ -5,12 +5,15 @@ import { NextResponse } from "next/server";
 import { getCardCosmetic } from "@/components/item-cards/catalog";
 import { calculateDonationKarma } from "@/server/art-expert-gameplay";
 import {
+  beginBulkOperation,
+  completeBulkOperation,
   getBulkForgeryDialog,
   getBulkForgeryMessage,
   getFilteredBulkLootCandidates,
   parseBulkSaleProtections,
   processBulkForgeries,
   recoverPendingBulkOperations,
+  wasBulkOperationCredited,
 } from "@/server/bulk-sale";
 import { deleteCommunityReactions } from "@/server/community-reaction-cleanup";
 import { rewardUndetectedForgeryExit } from "@/server/forgery-gameplay";
@@ -39,11 +42,7 @@ export async function POST(request: Request) {
   const database = await getDatabase();
   await removeExpiredTransientItems(database);
   await ensurePlayerKarma(database, auth.session.playerId);
-  await recoverPendingBulkOperations(database, auth.session.playerId, {
-    status: "bulk_donate_pending",
-    operationField: "bulk_donation_operation",
-    profileOperationsField: "bulk_donation_operations",
-  });
+  await recoverPendingBulkOperations(database, auth.session.playerId);
 
   const { candidates, hydratedCandidates, items } =
     await getFilteredBulkLootCandidates(database, auth.session.playerId, protections);
@@ -133,33 +132,50 @@ export async function POST(request: Request) {
 
   const ids = donatableItems.map((item) => item._id);
   const operationId = randomUUID();
+  const operationStartedAt = new Date();
   let credited = false;
 
-  const reserved = await database.collection<GameItem>("items").updateMany(
+  const operationStarted = await beginBulkOperation(
+    database,
+    auth.session.playerId,
     {
-      _id: { $in: ids },
-      owner: auth.session.playerId,
-      status: "unclaimed",
-    },
-    {
-      $set: {
-        status: "bulk_donate_pending",
-        bulk_donation_operation: operationId,
-      },
+      id: operationId,
+      kind: "donation",
+      started_at: operationStartedAt.toISOString(),
     },
   );
-  if (reserved.modifiedCount !== donatableItems.length) {
-    await database.collection<GameItem>("items").updateMany(
+  if (!operationStarted) {
+    return NextResponse.json(
+      { error: "Another bulk inventory operation is already in progress." },
+      { status: 409 },
+    );
+  }
+
+  let reserved;
+  try {
+    reserved = await database.collection<GameItem>("items").updateMany(
       {
         _id: { $in: ids },
         owner: auth.session.playerId,
-        status: "bulk_donate_pending",
+        status: "unclaimed",
       },
       {
-        $set: { status: "unclaimed" },
-        $unset: { bulk_donation_operation: "" },
+        $set: {
+          status: "bulk_donate_pending",
+          bulk_donation_operation: operationId,
+        },
       },
     );
+  } catch (error) {
+    await recoverPendingBulkOperations(database, auth.session.playerId, {
+      forceOperationId: operationId,
+    });
+    throw error;
+  }
+  if (reserved.modifiedCount !== donatableItems.length) {
+    await recoverPendingBulkOperations(database, auth.session.playerId, {
+      forceOperationId: operationId,
+    });
     return NextResponse.json(
       { error: "The loot changed before it could all be donated." },
       { status: 409 },
@@ -174,21 +190,26 @@ export async function POST(request: Request) {
         karma?: number;
         card_style_consumables?: Record<string, number>;
         last_activity: string;
-        bulk_donation_operations?: string[];
       };
     }>("players").updateOne(
       {
         _id: auth.session.playerId,
         active: true,
-        "profile.bulk_donation_operations": { $ne: operationId },
+        "profile.bulk_operation_receipt.id": operationId,
+        "profile.bulk_operation_receipt.kind": "donation",
+        "profile.bulk_operation_receipt.state": "reserved",
       },
       {
         $inc: {
           "profile.karma": totalKarma,
           ...styleIncrements,
         },
-        $set: { "profile.last_activity": new Date().toISOString() },
-        $addToSet: { "profile.bulk_donation_operations": operationId },
+        $set: {
+          "profile.last_activity": operationStartedAt.toISOString(),
+          "profile.bulk_operation_receipt.state": "credited",
+          "profile.bulk_operation_receipt.credited_at":
+            operationStartedAt.toISOString(),
+        },
       },
     );
     if (credit.modifiedCount !== 1) {
@@ -214,19 +235,22 @@ export async function POST(request: Request) {
       throw new Error("The bulk donation cleanup was incomplete.");
     }
     await deleteCommunityReactions(database, "item", deletedIds);
+    await completeBulkOperation(
+      database,
+      auth.session.playerId,
+      operationId,
+    );
   } catch (error) {
     if (!credited) {
-      const player = await database.collection<{
-        _id: string;
-        profile: { bulk_donation_operations?: string[] };
-      }>("players").findOne({ _id: auth.session.playerId });
-      credited =
-        player?.profile.bulk_donation_operations?.includes(operationId) ?? false;
+      credited = await wasBulkOperationCredited(
+        database,
+        auth.session.playerId,
+        operationId,
+        "donation",
+      );
     }
     await recoverPendingBulkOperations(database, auth.session.playerId, {
-      status: "bulk_donate_pending",
-      operationField: "bulk_donation_operation",
-      profileOperationsField: "bulk_donation_operations",
+      forceOperationId: operationId,
     });
     console.error("Unable to complete bulk loot donation", error);
     return NextResponse.json(

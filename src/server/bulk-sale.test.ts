@@ -8,6 +8,7 @@ import {
   getFilteredBulkLootCandidates,
   getBulkForgeryDialog,
   getBulkForgeryMessage,
+  recoverPendingBulkOperations,
   parseBulkSaleProtections,
   isBulkLootCandidate,
   shouldPreserveBulkSaleItem,
@@ -309,4 +310,91 @@ test("getBulkForgeryDialog assigns correct dialog variants", () => {
   assert.equal(getBulkForgeryDialog(1, 1, "test").variant, "mixed");
   assert.equal(getBulkForgeryDialog(1, 0, "test").variant, "destroyed");
   assert.equal(getBulkForgeryDialog(0, 1, "test").variant, "returned");
+});
+
+test("bulk operation recovery rolls back uncredited work and clears history", async () => {
+  const mongoServer = await MongoMemoryServer.create();
+  const client = new MongoClient(mongoServer.getUri());
+  try {
+    await client.connect();
+    const database = client.db("bulk-operation-rollback");
+    await database.collection("players").insertOne({
+      _id: "player-1",
+      active: true,
+      profile: {
+        bulk_operation_receipt: {
+          id: "sale-1",
+          kind: "sale",
+          state: "reserved",
+          started_at: "2000-01-01T00:00:00.000Z",
+        },
+        bulk_sale_operations: ["historical-sale"],
+        bulk_donation_operations: ["historical-donation"],
+      },
+    });
+    await database.collection("items").insertOne({
+      _id: "item-1",
+      owner: "player-1",
+      status: "bulk_sale_pending",
+      bulk_sale_operation: "sale-1",
+      original: false,
+    });
+
+    await recoverPendingBulkOperations(database, "player-1");
+
+    const [player, item] = await Promise.all([
+      database.collection("players").findOne({ _id: "player-1" }),
+      database.collection("items").findOne({ _id: "item-1" }),
+    ]);
+    assert.equal(item?.status, "unclaimed");
+    assert.equal(item?.bulk_sale_operation, undefined);
+    assert.equal(player?.profile.bulk_operation_receipt, undefined);
+    assert.equal(player?.profile.bulk_sale_operations, undefined);
+    assert.equal(player?.profile.bulk_donation_operations, undefined);
+  } finally {
+    await client.close();
+    await mongoServer.stop();
+  }
+});
+
+test("bulk operation recovery finishes credited work and removes its receipt", async () => {
+  const mongoServer = await MongoMemoryServer.create();
+  const client = new MongoClient(mongoServer.getUri());
+  try {
+    await client.connect();
+    const database = client.db("bulk-operation-completion");
+    await database.collection("players").insertOne({
+      _id: "player-1",
+      active: true,
+      profile: {
+        bulk_operation_receipt: {
+          id: "donation-1",
+          kind: "donation",
+          state: "credited",
+          started_at: "2000-01-01T00:00:00.000Z",
+          credited_at: "2000-01-01T00:00:01.000Z",
+        },
+      },
+    });
+    await database.collection("items").insertOne({
+      _id: "item-1",
+      artwork_id: "art-1",
+      owner: "player-1",
+      status: "bulk_donate_pending",
+      bulk_donation_operation: "donation-1",
+      original: false,
+    });
+
+    await recoverPendingBulkOperations(database, "player-1");
+
+    const [player, item] = await Promise.all([
+      database.collection("players").findOne({ _id: "player-1" }),
+      database.collection("items").findOne({ _id: "item-1" }),
+    ]);
+    assert.equal(item, null);
+    assert.equal(player?.profile.bulk_operation_receipt, undefined);
+  } finally {
+    await client.close();
+    await mongoServer.stop();
+  }
 });

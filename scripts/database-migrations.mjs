@@ -257,6 +257,118 @@ export async function migrateD3CardRendererId(database) {
   }
 }
 
+export async function migratePlayerOperationHistory(database) {
+  const pendingBulkItems = await database
+    .collection("items")
+    .find({
+      status: { $in: ["bulk_sale_pending", "bulk_donate_pending"] },
+    })
+    .project({
+      owner: 1,
+      status: 1,
+      bulk_sale_operation: 1,
+      bulk_donation_operation: 1,
+    })
+    .toArray();
+  const pendingSalesByPlayer = new Map();
+  const pendingDonationsByPlayer = new Map();
+  for (const item of pendingBulkItems) {
+    const target =
+      item.status === "bulk_sale_pending"
+        ? pendingSalesByPlayer
+        : pendingDonationsByPlayer;
+    const operationId =
+      item.status === "bulk_sale_pending"
+        ? item.bulk_sale_operation
+        : item.bulk_donation_operation;
+    if (typeof item.owner !== "string" || typeof operationId !== "string") {
+      continue;
+    }
+    target.set(item.owner, new Set([
+      ...(target.get(item.owner) ?? []),
+      operationId,
+    ]));
+  }
+
+  const players = database.collection("players");
+  const bulkHistoryPlayers = await players
+    .find({
+      $or: [
+        { "profile.bulk_sale_operations": { $exists: true } },
+        { "profile.bulk_donation_operations": { $exists: true } },
+      ],
+    })
+    .project({
+      "profile.bulk_sale_operations": 1,
+      "profile.bulk_donation_operations": 1,
+    })
+    .toArray();
+  for (const player of bulkHistoryPlayers) {
+    const pendingSales = pendingSalesByPlayer.get(player._id) ?? new Set();
+    const pendingDonations =
+      pendingDonationsByPlayer.get(player._id) ?? new Set();
+    const sales = (player.profile?.bulk_sale_operations ?? []).filter(
+      (operationId) => pendingSales.has(operationId),
+    );
+    const donations = (
+      player.profile?.bulk_donation_operations ?? []
+    ).filter((operationId) => pendingDonations.has(operationId));
+    const set = {};
+    const unset = {};
+    if (sales.length > 0) {
+      set["profile.bulk_sale_operations"] = sales;
+    } else {
+      unset["profile.bulk_sale_operations"] = "";
+    }
+    if (donations.length > 0) {
+      set["profile.bulk_donation_operations"] = donations;
+    } else {
+      unset["profile.bulk_donation_operations"] = "";
+    }
+    await players.updateOne(
+      { _id: player._id },
+      {
+        ...(Object.keys(set).length > 0 ? { $set: set } : {}),
+        ...(Object.keys(unset).length > 0 ? { $unset: unset } : {}),
+      },
+    );
+  }
+
+  const liveAuctionState = await database.collection("metadata").findOne({
+    _id: "live-auction-event",
+  });
+  const pendingRefundsByPlayer = new Map();
+  for (const refund of liveAuctionState?.pending_refunds ?? []) {
+    if (
+      typeof refund?.id !== "string" ||
+      typeof refund?.player_id !== "string"
+    ) {
+      continue;
+    }
+    pendingRefundsByPlayer.set(refund.player_id, new Set([
+      ...(pendingRefundsByPlayer.get(refund.player_id) ?? []),
+      refund.id,
+    ]));
+  }
+  const refundHistoryPlayers = await players
+    .find({ "profile.live_auction_refund_ids": { $exists: true } })
+    .project({ "profile.live_auction_refund_ids": 1 })
+    .toArray();
+  for (const player of refundHistoryPlayers) {
+    const pendingRefunds =
+      pendingRefundsByPlayer.get(player._id) ?? new Set();
+    const refundIds = (
+      player.profile?.live_auction_refund_ids ?? []
+    ).filter((refundId) => pendingRefunds.has(refundId));
+    await players.updateOne(
+      { _id: player._id },
+      refundIds.length > 0
+        ? { $set: { "profile.live_auction_refund_ids": refundIds } }
+        : { $unset: { "profile.live_auction_refund_ids": "" } },
+    );
+  }
+}
+
 export async function migrateHallOfFameAndPlaythroughStorage(database) {
   const now = new Date();
   const socialBatteryResetAt = getNextSocialBatteryResetAt(now).toISOString();

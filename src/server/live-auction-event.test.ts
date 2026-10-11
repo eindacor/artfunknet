@@ -210,7 +210,7 @@ test("removing a buffered live-auction item deletes only that claimed system ite
   }
 });
 
-test("pending live-auction refunds reconcile once", async () => {
+test("pending live-auction refunds use and clean transient receipts", async () => {
   const server = await MongoMemoryServer.create();
   const client = new MongoClient(server.getUri());
   try {
@@ -234,18 +234,6 @@ test("pending live-auction refunds reconcile once", async () => {
     });
 
     await getLiveAuctionAdminView(database);
-    await database.collection("metadata").updateOne(
-      { _id: LIVE_AUCTION_STATE_ID },
-      {
-        $push: {
-          pending_refunds: {
-            id: "refund-1",
-            player_id: "player-1",
-            amount: 250,
-          },
-        },
-      },
-    );
     await getLiveAuctionAdminView(database);
 
     const player = await database.collection("players").findOne({
@@ -255,7 +243,52 @@ test("pending live-auction refunds reconcile once", async () => {
       _id: LIVE_AUCTION_STATE_ID,
     });
     assert.equal(player?.profile.bank_balance, 350);
-    assert.deepEqual(player?.profile.live_auction_refund_ids, ["refund-1"]);
+    assert.equal(player?.profile.live_auction_refund_receipt, undefined);
+    assert.equal(player?.profile.live_auction_refund_ids, undefined);
+    assert.deepEqual(state?.pending_refunds, []);
+  } finally {
+    await client.close();
+    await server.stop();
+  }
+});
+
+test("an interrupted live-auction refund is not credited twice", async () => {
+  const server = await MongoMemoryServer.create();
+  const client = new MongoClient(server.getUri());
+  try {
+    await client.connect();
+    const database = client.db("live-auction-refund-interrupted");
+    await database.collection("players").insertOne({
+      _id: "player-1",
+      active: true,
+      screen_name: "Player One",
+      profile: {
+        bank_balance: 350,
+        inventory_cap: 10,
+        live_auction_refund_receipt: {
+          id: "refund-1",
+          credited_at: "2026-10-10T12:00:00.000Z",
+        },
+        playthrough_stats: {},
+      },
+    });
+    await database.collection("metadata").insertOne({
+      ...createInitialLiveAuctionState(),
+      pending_refunds: [
+        { id: "refund-1", player_id: "player-1", amount: 250 },
+      ],
+    });
+
+    await getLiveAuctionAdminView(database);
+
+    const [player, state] = await Promise.all([
+      database.collection("players").findOne({ _id: "player-1" }),
+      database.collection("metadata").findOne({
+        _id: LIVE_AUCTION_STATE_ID,
+      }),
+    ]);
+    assert.equal(player?.profile.bank_balance, 350);
+    assert.equal(player?.profile.live_auction_refund_receipt, undefined);
     assert.deepEqual(state?.pending_refunds, []);
   } finally {
     await client.close();
@@ -515,7 +548,8 @@ test("stopping a live auction durably refunds the winning bidder", async () => {
     assert.equal(state?.live, false);
     assert.deepEqual(state?.buffer_item_ids, ["item-1"]);
     assert.deepEqual(state?.pending_refunds, []);
-    assert.equal(player?.profile.live_auction_refund_ids.length, 1);
+    assert.equal(player?.profile.live_auction_refund_receipt, undefined);
+    assert.equal(player?.profile.live_auction_refund_ids, undefined);
   } finally {
     await client.close();
     await server.stop();

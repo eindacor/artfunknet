@@ -30,6 +30,18 @@ export type BulkSaleProtections = {
   keepUnarchived: boolean;
 };
 
+export type BulkOperationKind = "sale" | "donation";
+
+export type BulkOperationReceipt = {
+  id: string;
+  kind: BulkOperationKind;
+  state: "reserved" | "credited";
+  started_at: string;
+  credited_at?: string;
+};
+
+const BULK_OPERATION_RECOVERY_DELAY_MS = 2 * 60 * 1000;
+
 export function isBulkLootCandidate(
   item: Pick<GameItem, "original" | "permanent">,
 ): boolean {
@@ -336,63 +348,225 @@ export function getBulkForgeryDialog(
   };
 }
 
+export async function beginBulkOperation(
+  database: Db,
+  playerId: string,
+  receipt: Pick<BulkOperationReceipt, "id" | "kind" | "started_at">,
+): Promise<boolean> {
+  const result = await database.collection<{
+    _id: string;
+    active: boolean;
+    profile: {
+      bulk_operation_receipt?: BulkOperationReceipt;
+    };
+  }>("players").updateOne(
+    {
+      _id: playerId,
+      active: true,
+      "profile.bulk_operation_receipt": { $exists: false },
+    },
+    {
+      $set: {
+        "profile.bulk_operation_receipt": {
+          ...receipt,
+          state: "reserved",
+        },
+      },
+    },
+  );
+  return result.modifiedCount === 1;
+}
+
+export async function completeBulkOperation(
+  database: Db,
+  playerId: string,
+  operationId: string,
+): Promise<void> {
+  await database.collection<{
+    _id: string;
+    profile: { bulk_operation_receipt?: BulkOperationReceipt };
+  }>("players").updateOne(
+    {
+      _id: playerId,
+      "profile.bulk_operation_receipt.id": operationId,
+    },
+    { $unset: { "profile.bulk_operation_receipt": "" } },
+  );
+}
+
+export async function wasBulkOperationCredited(
+  database: Db,
+  playerId: string,
+  operationId: string,
+  kind: BulkOperationKind,
+): Promise<boolean> {
+  const player = await database.collection<{
+    _id: string;
+    profile: {
+      bulk_operation_receipt?: BulkOperationReceipt;
+      bulk_sale_operations?: string[];
+      bulk_donation_operations?: string[];
+    };
+  }>("players").findOne({ _id: playerId });
+  const receipt = player?.profile.bulk_operation_receipt;
+  if (
+    receipt?.id === operationId &&
+    receipt.kind === kind &&
+    receipt.state === "credited"
+  ) {
+    return true;
+  }
+  const legacyOperations =
+    kind === "sale"
+      ? player?.profile.bulk_sale_operations
+      : player?.profile.bulk_donation_operations;
+  return legacyOperations?.includes(operationId) ?? false;
+}
+
 export async function recoverPendingBulkOperations(
   database: Db,
   playerId: string,
-  config: {
-    status: "bulk_sale_pending" | "bulk_donate_pending";
-    operationField: "bulk_sale_operation" | "bulk_donation_operation";
-    profileOperationsField: "bulk_sale_operations" | "bulk_donation_operations";
-  },
-) {
+  {
+    forceOperationId,
+    now = new Date(),
+  }: {
+    forceOperationId?: string;
+    now?: Date;
+  } = {},
+): Promise<void> {
   const pending = await database.collection<GameItem>("items").find({
     owner: playerId,
-    status: config.status,
-    [config.operationField]: { $type: "string" },
+    status: { $in: ["bulk_sale_pending", "bulk_donate_pending"] },
   }).toArray();
-  if (pending.length === 0) return;
-  const player = await database.collection<{
+  const players = database.collection<{
     _id: string;
-    profile: Record<string, unknown>;
-  }>("players").findOne({ _id: playerId });
-  const rawOps = player?.profile[config.profileOperationsField];
-  const credited = new Set(Array.isArray(rawOps) ? (rawOps as string[]) : []);
+    profile: {
+      bulk_operation_receipt?: BulkOperationReceipt;
+      bulk_sale_operations?: string[];
+      bulk_donation_operations?: string[];
+    };
+  }>("players");
+  const player = await players.findOne({ _id: playerId });
+  if (!player) return;
 
-  for (const operationId of new Set(
-    pending
-      .map((item) => item[config.operationField])
-      .filter((id): id is string => Boolean(id)),
-  )) {
-    if (credited.has(operationId)) {
-      const operationItems = pending.filter(
-        (item) => item[config.operationField] === operationId,
-      );
-      const hallOfFameIds = await transferHallOfFameItems(
-        database,
-        operationItems,
-      );
-      const operationItemIds = operationItems
-        .map((item) => item._id)
-        .filter((itemId) => !hallOfFameIds.has(itemId));
-      await database.collection<GameItem>("items").deleteMany({
-        _id: { $in: operationItemIds },
-        owner: playerId,
-        status: config.status,
-        [config.operationField]: operationId,
+  const receipt = player.profile.bulk_operation_receipt;
+  const receiptStartedAt = receipt
+    ? new Date(receipt.started_at).getTime()
+    : Number.NaN;
+  const receiptRecoverable = Boolean(
+    receipt &&
+      (receipt.id === forceOperationId ||
+        !Number.isFinite(receiptStartedAt) ||
+        receiptStartedAt <=
+          now.getTime() - BULK_OPERATION_RECOVERY_DELAY_MS),
+  );
+  const legacySales = new Set(player.profile.bulk_sale_operations ?? []);
+  const legacyDonations = new Set(
+    player.profile.bulk_donation_operations ?? [],
+  );
+  const operations = new Map<
+    string,
+    {
+      field: "bulk_sale_operation" | "bulk_donation_operation";
+      items: GameItem[];
+      kind: BulkOperationKind;
+      status: "bulk_sale_pending" | "bulk_donate_pending";
+    }
+  >();
+
+  for (const item of pending) {
+    const saleOperationId = item.bulk_sale_operation;
+    const donationOperationId = item.bulk_donation_operation;
+    const operationId = saleOperationId ?? donationOperationId;
+    if (!operationId) continue;
+    const kind = saleOperationId ? "sale" : "donation";
+    const existing = operations.get(operationId);
+    if (existing) {
+      existing.items.push(item);
+    } else {
+      operations.set(operationId, {
+        field:
+          kind === "sale"
+            ? "bulk_sale_operation"
+            : "bulk_donation_operation",
+        items: [item],
+        kind,
+        status:
+          kind === "sale"
+            ? "bulk_sale_pending"
+            : "bulk_donate_pending",
       });
-      await deleteCommunityReactions(database, "item", operationItemIds);
+    }
+  }
+
+  for (const [operationId, operation] of operations) {
+    const matchesReceipt =
+      receipt?.id === operationId && receipt.kind === operation.kind;
+    if (matchesReceipt && !receiptRecoverable) continue;
+    const credited =
+      (matchesReceipt && receipt?.state === "credited") ||
+      (operation.kind === "sale"
+        ? legacySales.has(operationId)
+        : legacyDonations.has(operationId));
+
+    if (credited) {
+      await finishCreditedBulkOperation(
+        database,
+        playerId,
+        operationId,
+        operation,
+      );
     } else {
       await database.collection<GameItem>("items").updateMany(
         {
           owner: playerId,
-          status: config.status,
-          [config.operationField]: operationId,
+          status: operation.status,
+          [operation.field]: operationId,
         },
         {
           $set: { status: "unclaimed" },
-          $unset: { [config.operationField]: "" },
+          $unset: { [operation.field]: "" },
         },
       );
     }
   }
+
+  const unset: Record<string, ""> = {
+    "profile.bulk_sale_operations": "",
+    "profile.bulk_donation_operations": "",
+  };
+  if (
+    receipt &&
+    (receiptRecoverable ||
+      (receipt.state === "credited" && !operations.has(receipt.id)))
+  ) {
+    unset["profile.bulk_operation_receipt"] = "";
+  }
+  await players.updateOne({ _id: playerId }, { $unset: unset });
+}
+
+async function finishCreditedBulkOperation(
+  database: Db,
+  playerId: string,
+  operationId: string,
+  operation: {
+    field: "bulk_sale_operation" | "bulk_donation_operation";
+    items: GameItem[];
+    status: "bulk_sale_pending" | "bulk_donate_pending";
+  },
+) {
+  const hallOfFameIds = await transferHallOfFameItems(
+    database,
+    operation.items,
+  );
+  const itemIds = operation.items
+    .map((item) => item._id)
+    .filter((itemId) => !hallOfFameIds.has(itemId));
+  await database.collection<GameItem>("items").deleteMany({
+    _id: { $in: itemIds },
+    owner: playerId,
+    status: operation.status,
+    [operation.field]: operationId,
+  });
+  await deleteCommunityReactions(database, "item", itemIds);
 }

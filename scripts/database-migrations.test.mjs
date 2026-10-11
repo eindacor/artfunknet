@@ -7,7 +7,79 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 import {
   migrateArtworkEffects,
   migrateD3CardRendererId,
+  migratePlayerOperationHistory,
 } from "./database-migrations.mjs";
+
+test("player operation history migration retains only pending recovery IDs", async () => {
+  const server = await MongoMemoryServer.create();
+  const client = new MongoClient(server.getUri());
+  try {
+    await client.connect();
+    const database = client.db("player-operation-history");
+    await database.collection("players").insertMany([
+      {
+        _id: "player-1",
+        profile: {
+          bulk_sale_operations: ["old-sale", "pending-sale"],
+          bulk_donation_operations: ["old-donation"],
+          live_auction_refund_ids: ["old-refund", "pending-refund"],
+        },
+      },
+      {
+        _id: "player-2",
+        profile: {
+          bulk_sale_operations: ["old-sale-2"],
+          bulk_donation_operations: ["pending-donation"],
+          live_auction_refund_ids: ["old-refund-2"],
+        },
+      },
+    ]);
+    await database.collection("items").insertMany([
+      {
+        _id: "sale-item",
+        owner: "player-1",
+        status: "bulk_sale_pending",
+        bulk_sale_operation: "pending-sale",
+      },
+      {
+        _id: "donation-item",
+        owner: "player-2",
+        status: "bulk_donate_pending",
+        bulk_donation_operation: "pending-donation",
+      },
+    ]);
+    await database.collection("metadata").insertOne({
+      _id: "live-auction-event",
+      pending_refunds: [
+        {
+          id: "pending-refund",
+          player_id: "player-1",
+          amount: 100,
+        },
+      ],
+    });
+
+    await migratePlayerOperationHistory(database);
+
+    const [player1, player2] = await Promise.all([
+      database.collection("players").findOne({ _id: "player-1" }),
+      database.collection("players").findOne({ _id: "player-2" }),
+    ]);
+    assert.deepEqual(player1.profile.bulk_sale_operations, ["pending-sale"]);
+    assert.equal(player1.profile.bulk_donation_operations, undefined);
+    assert.deepEqual(player1.profile.live_auction_refund_ids, [
+      "pending-refund",
+    ]);
+    assert.equal(player2.profile.bulk_sale_operations, undefined);
+    assert.deepEqual(player2.profile.bulk_donation_operations, [
+      "pending-donation",
+    ]);
+    assert.equal(player2.profile.live_auction_refund_ids, undefined);
+  } finally {
+    await client.close();
+    await server.stop();
+  }
+});
 
 test("D3 renderer migration renames persisted style references idempotently", async () => {
   const server = await MongoMemoryServer.create();

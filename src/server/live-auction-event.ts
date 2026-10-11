@@ -103,6 +103,10 @@ type LiveAuctionPlayer = {
       items_collected?: number;
       money_spent?: number;
     };
+    live_auction_refund_receipt?: {
+      id: string;
+      credited_at: string;
+    };
     live_auction_refund_ids?: string[];
     live_auction_bid_operation_ids?: string[];
     live_auction_settlement_ids?: string[];
@@ -1225,29 +1229,36 @@ async function refundLiveAuctionBidCharge(
 
 async function reconcileLiveAuctionRefunds(database: Db): Promise<void> {
   const state = await ensureLiveAuctionState(database);
+  const players = database.collection<LiveAuctionPlayer>("players");
   for (const refund of state.pending_refunds ?? []) {
-    const refunded = await database
-      .collection<LiveAuctionPlayer>("players")
-      .updateOne(
+    const refunded = await players.updateOne(
         {
           _id: refund.player_id,
+          "profile.live_auction_refund_receipt": { $exists: false },
           "profile.live_auction_refund_ids": { $ne: refund.id },
         },
         {
           $inc: { "profile.bank_balance": refund.amount },
-          $addToSet: { "profile.live_auction_refund_ids": refund.id },
+          $set: {
+            "profile.live_auction_refund_receipt": {
+              id: refund.id,
+              credited_at: new Date().toISOString(),
+            },
+          },
         },
       );
-    if (refunded.matchedCount === 0) {
-      const player = await database
-        .collection<LiveAuctionPlayer>("players")
-        .findOne({ _id: refund.player_id });
+    if (refunded.modifiedCount === 0) {
+      const player = await players.findOne({ _id: refund.player_id });
       if (!player) {
         console.error(
           `Unable to reconcile live-auction refund ${refund.id}: player ${refund.player_id} is unavailable.`,
         );
         continue;
       }
+      const alreadyCredited =
+        player.profile.live_auction_refund_receipt?.id === refund.id ||
+        player.profile.live_auction_refund_ids?.includes(refund.id);
+      if (!alreadyCredited) continue;
     }
     const removed = await database
       .collection<LiveAuctionState>("metadata")
@@ -1261,6 +1272,21 @@ async function reconcileLiveAuctionRefunds(database: Db): Promise<void> {
           $inc: { version: 1 },
         },
       );
+    if (removed.modifiedCount === 1) {
+      await Promise.all([
+        players.updateOne(
+          {
+            _id: refund.player_id,
+            "profile.live_auction_refund_receipt.id": refund.id,
+          },
+          { $unset: { "profile.live_auction_refund_receipt": "" } },
+        ),
+        players.updateOne(
+          { _id: refund.player_id },
+          { $pull: { "profile.live_auction_refund_ids": refund.id } },
+        ),
+      ]);
+    }
     if (removed.modifiedCount === 1 && refunded.modifiedCount === 1) {
       await recordEconomyMetricsSafely(database, {
         amount: refund.amount,
@@ -1270,6 +1296,26 @@ async function reconcileLiveAuctionRefunds(database: Db): Promise<void> {
       });
     }
   }
+  await cleanupLiveAuctionRefundMarkers(database);
+}
+
+async function cleanupLiveAuctionRefundMarkers(database: Db): Promise<void> {
+  const state = await ensureLiveAuctionState(database);
+  const pendingIds = (state.pending_refunds ?? []).map((refund) => refund.id);
+  const players = database.collection<LiveAuctionPlayer>("players");
+  await players.updateMany(
+    {
+      "profile.live_auction_refund_receipt.id":
+        pendingIds.length > 0 ? { $nin: pendingIds } : { $exists: true },
+    },
+    { $unset: { "profile.live_auction_refund_receipt": "" } },
+  );
+  await players.updateMany(
+    pendingIds.length > 0
+      ? { "profile.live_auction_refund_ids": { $nin: pendingIds } }
+      : { "profile.live_auction_refund_ids": { $exists: true } },
+    { $unset: { "profile.live_auction_refund_ids": "" } },
+  );
 }
 
 async function reconcileInterruptedLiveAuctionAcceptance(

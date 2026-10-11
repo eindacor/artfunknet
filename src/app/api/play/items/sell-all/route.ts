@@ -3,12 +3,15 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 
 import {
+  beginBulkOperation,
+  completeBulkOperation,
   getBulkForgeryDialog,
   getBulkForgeryMessage,
   getFilteredBulkLootCandidates,
   parseBulkSaleProtections,
   processBulkForgeries,
   recoverPendingBulkOperations,
+  wasBulkOperationCredited,
 } from "@/server/bulk-sale";
 import { deleteCommunityReactions } from "@/server/community-reaction-cleanup";
 import { recordEconomyMetricsSafely } from "@/server/economy-metrics";
@@ -40,11 +43,7 @@ export async function POST(request: Request) {
 
   const database = await getDatabase();
   await removeExpiredTransientItems(database);
-  await recoverPendingBulkOperations(database, auth.session.playerId, {
-    status: "bulk_sale_pending",
-    operationField: "bulk_sale_operation",
-    profileOperationsField: "bulk_sale_operations",
-  });
+  await recoverPendingBulkOperations(database, auth.session.playerId);
 
   const { candidates, hydratedCandidates, items, questTargetIds } =
     await getFilteredBulkLootCandidates(database, auth.session.playerId, protections);
@@ -131,34 +130,51 @@ export async function POST(request: Request) {
 
   const ids = sellableItems.map((item) => item._id);
   const operationId = randomUUID();
+  const operationStartedAt = new Date();
   let credited = false;
 
-  const reserved = await database.collection<GameItem>("items").updateMany(
+  const operationStarted = await beginBulkOperation(
+    database,
+    auth.session.playerId,
     {
-      _id: { $in: ids },
-      owner: auth.session.playerId,
-      status: "unclaimed",
-    },
-    {
-      $set: {
-        status: "bulk_sale_pending",
-        bulk_sale_operation: operationId,
-      },
+      id: operationId,
+      kind: "sale",
+      started_at: operationStartedAt.toISOString(),
     },
   );
+  if (!operationStarted) {
+    return NextResponse.json(
+      { error: "Another bulk inventory operation is already in progress." },
+      { status: 409 },
+    );
+  }
 
-  if (reserved.modifiedCount !== sellableItems.length) {
-    await database.collection<GameItem>("items").updateMany(
+  let reserved;
+  try {
+    reserved = await database.collection<GameItem>("items").updateMany(
       {
         _id: { $in: ids },
         owner: auth.session.playerId,
-        status: "bulk_sale_pending",
+        status: "unclaimed",
       },
       {
-        $set: { status: "unclaimed" },
-        $unset: { bulk_sale_operation: "" },
+        $set: {
+          status: "bulk_sale_pending",
+          bulk_sale_operation: operationId,
+        },
       },
     );
+  } catch (error) {
+    await recoverPendingBulkOperations(database, auth.session.playerId, {
+      forceOperationId: operationId,
+    });
+    throw error;
+  }
+
+  if (reserved.modifiedCount !== sellableItems.length) {
+    await recoverPendingBulkOperations(database, auth.session.playerId, {
+      forceOperationId: operationId,
+    });
     return NextResponse.json(
       { error: "The loot changed before it could all be sold." },
       { status: 409 },
@@ -172,18 +188,23 @@ export async function POST(request: Request) {
       profile: {
         bank_balance: number;
         last_activity: string;
-        bulk_sale_operations?: string[];
       };
     }>("players").updateOne(
       {
         _id: auth.session.playerId,
         active: true,
-        "profile.bulk_sale_operations": { $ne: operationId },
+        "profile.bulk_operation_receipt.id": operationId,
+        "profile.bulk_operation_receipt.kind": "sale",
+        "profile.bulk_operation_receipt.state": "reserved",
       },
       {
         $inc: { "profile.bank_balance": amount },
-        $set: { "profile.last_activity": new Date().toISOString() },
-        $addToSet: { "profile.bulk_sale_operations": operationId },
+        $set: {
+          "profile.last_activity": operationStartedAt.toISOString(),
+          "profile.bulk_operation_receipt.state": "credited",
+          "profile.bulk_operation_receipt.credited_at":
+            operationStartedAt.toISOString(),
+        },
       },
     );
     if (credit.modifiedCount !== 1) {
@@ -209,19 +230,22 @@ export async function POST(request: Request) {
       throw new Error("The bulk sale cleanup was incomplete.");
     }
     await deleteCommunityReactions(database, "item", deletedIds);
+    await completeBulkOperation(
+      database,
+      auth.session.playerId,
+      operationId,
+    );
   } catch (error) {
     if (!credited) {
-      const player = await database.collection<{
-        _id: string;
-        profile: { bulk_sale_operations?: string[] };
-      }>("players").findOne({ _id: auth.session.playerId });
-      credited =
-        player?.profile.bulk_sale_operations?.includes(operationId) ?? false;
+      credited = await wasBulkOperationCredited(
+        database,
+        auth.session.playerId,
+        operationId,
+        "sale",
+      );
     }
     await recoverPendingBulkOperations(database, auth.session.playerId, {
-      status: "bulk_sale_pending",
-      operationField: "bulk_sale_operation",
-      profileOperationsField: "bulk_sale_operations",
+      forceOperationId: operationId,
     });
     console.error("Unable to complete bulk loot sale", error);
     return NextResponse.json(
