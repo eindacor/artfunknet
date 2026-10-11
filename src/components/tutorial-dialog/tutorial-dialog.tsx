@@ -204,7 +204,7 @@ function Slide({ index }: { index: number }) {
       <h2 id="tutorial-slide-title">Go forth and collect!</h2>
       <p id="tutorial-slide-description">
         This should be enough to get you started collecting, but there&apos;s a lot
-        more to <BrandName />.To see this info again, click the ? button at the top of the page. 
+        more to <BrandName />. To see this info again, click the ? button at the top of the page. 
         Feel free to explore the menus and stop by the{" "}
         <a
           href="https://discord.gg/wccww22yq"
