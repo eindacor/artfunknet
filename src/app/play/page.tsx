@@ -86,6 +86,7 @@ type Player = {
   email: string;
   screen_name: string;
   test_account?: boolean;
+  tutorial_seen?: boolean;
   oauth_screen_name_pending?: boolean;
   patreon?: {
     is_supporter?: boolean;
@@ -502,6 +503,7 @@ export default async function PlayerPage({
         initialNotifications={notifications}
         impersonating={impersonating}
         supporterStatus={supporterStatus}
+        tutorialSeen={player.tutorial_seen === true}
       />
       <GameDashboard
         archiveArtStyleIds={cardRendererSettings.activeRendererIds.filter(

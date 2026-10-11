@@ -5,6 +5,7 @@ import {
   migrateD3CardRendererId,
   migrateHallOfFameAndPlaythroughStorage,
   migratePlayerOperationHistory,
+  migratePlayerTutorialFlag,
 } from "./database-migrations.mjs";
 
 const uri = process.env.MONGODB_URI;
@@ -27,6 +28,7 @@ try {
   await client.connect();
   await migrateD3CardRendererId(client.db(databaseName));
   await migratePlayerOperationHistory(client.db(databaseName));
+  await migratePlayerTutorialFlag(client.db(databaseName));
   await migrateHallOfFameAndPlaythroughStorage(client.db(databaseName));
   await migrateArtworkEffects(client.db(databaseName));
   console.log(

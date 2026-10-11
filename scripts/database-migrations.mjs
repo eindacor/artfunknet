@@ -369,6 +369,13 @@ export async function migratePlayerOperationHistory(database) {
   }
 }
 
+export async function migratePlayerTutorialFlag(database) {
+  await database.collection("players").updateMany(
+    { tutorial_seen: { $exists: false } },
+    { $set: { tutorial_seen: false } },
+  );
+}
+
 export async function migrateHallOfFameAndPlaythroughStorage(database) {
   const now = new Date();
   const socialBatteryResetAt = getNextSocialBatteryResetAt(now).toISOString();

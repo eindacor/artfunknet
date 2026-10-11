@@ -18,6 +18,7 @@ export type PlayerAccountRecord = {
   screen_name: string;
   role: "player";
   test_account: boolean;
+  tutorial_seen: boolean;
   active: boolean;
   password_salt: string;
   password_hash: string;
@@ -80,6 +81,7 @@ export function createPlayerAccountRecord({
     screen_name: screenName,
     role: "player",
     test_account: false,
+    tutorial_seen: false,
     active: true,
     password_salt: passwordSalt,
     password_hash: passwordHash,

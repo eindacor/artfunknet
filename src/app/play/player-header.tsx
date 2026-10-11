@@ -9,6 +9,7 @@ import type { SupporterStatus } from "@/server/supporter-status";
 
 import NotificationCenter from "./notification-center";
 import PlayerHeaderContent from "@/components/player-header/player-header";
+import TutorialDialog from "@/components/tutorial-dialog/tutorial-dialog";
 
 type PlayerHeaderProps =
   | { anonymous: true }
@@ -23,6 +24,7 @@ type AuthenticatedHeaderContentProps = {
   initialNotifications?: PlayerNotification[];
   impersonating: boolean;
   supporterStatus?: SupporterStatus | null;
+  tutorialSeen?: boolean;
 };
 
 export default function PlayerHeader(props: PlayerHeaderProps) {
@@ -53,6 +55,15 @@ export default function PlayerHeader(props: PlayerHeaderProps) {
 function AuthenticatedHeaderContent(props: AuthenticatedHeaderContentProps) {
   const router = useRouter();
   const [error, setError] = useState("");
+  const [tutorialMode, setTutorialMode] = useState<"automatic" | "replay">(
+    "automatic",
+  );
+  const [tutorialOpen, setTutorialOpen] = useState(
+    props.tutorialSeen === false,
+  );
+  const [tutorialSeen, setTutorialSeen] = useState(
+    props.tutorialSeen === true,
+  );
   const [accountSummary, setAccountSummary] = useState<{
     auctionEscrow: number;
     bankBalance: number;
@@ -167,23 +178,54 @@ function AuthenticatedHeaderContent(props: AuthenticatedHeaderContentProps) {
     }
   }
 
+  async function closeTutorial() {
+    if (tutorialMode === "automatic" && !tutorialSeen) {
+      const response = await fetch("/api/play/tutorial", {
+        method: "PATCH",
+      });
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        throw new Error(
+          body?.error ?? "The tutorial completion could not be saved.",
+        );
+      }
+      setTutorialSeen(true);
+    }
+    setTutorialOpen(false);
+  }
+
   return (
-    <PlayerHeaderContent
-      auctionEscrow={displayedAuctionEscrow}
-      bankBalance={displayedBankBalance}
-      lotteryTickets={displayedLotteryTickets}
-      karma={props.karma}
-      error={error}
-      impersonating={impersonating}
-      notifications={
-        <NotificationCenter initialNotifications={initialNotifications} />
-      }
-      onSignOut={logout}
-      supporterStatus={
-        accountSummary
-          ? accountSummary.supporterStatus
-          : props.supporterStatus ?? null
-      }
-    />
+    <>
+      <PlayerHeaderContent
+        auctionEscrow={displayedAuctionEscrow}
+        bankBalance={displayedBankBalance}
+        lotteryTickets={displayedLotteryTickets}
+        karma={props.karma}
+        error={error}
+        impersonating={impersonating}
+        notifications={
+          <NotificationCenter initialNotifications={initialNotifications} />
+        }
+        onOpenTutorial={
+          props.tutorialSeen === undefined
+            ? undefined
+            : () => {
+                setTutorialMode("replay");
+                setTutorialOpen(true);
+              }
+        }
+        onSignOut={logout}
+        supporterStatus={
+          accountSummary
+            ? accountSummary.supporterStatus
+            : props.supporterStatus ?? null
+        }
+      />
+      {tutorialOpen ? (
+        <TutorialDialog onClose={closeTutorial} />
+      ) : null}
+    </>
   );
 }

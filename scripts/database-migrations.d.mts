@@ -4,3 +4,4 @@ export function migrateArtworkEffects(database: Db): Promise<void>;
 export function migrateHallOfFameAndPlaythroughStorage(
   database: Db,
 ): Promise<void>;
+export function migratePlayerTutorialFlag(database: Db): Promise<void>;

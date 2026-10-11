@@ -1,0 +1,183 @@
+.dialog {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  width: min(780px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
+  margin: auto;
+  border: 0;
+  padding: 0;
+  overflow: auto;
+  background: #f4f1e9;
+  color: #171717;
+  font-family: Georgia, "Times New Roman", serif;
+  box-shadow: 0 24px 70px rgb(0 0 0 / 42%);
+}
+
+.dialog::backdrop {
+  background: rgb(0 0 0 / 68%);
+  backdrop-filter: blur(2px);
+}
+
+.content {
+  position: relative;
+  display: grid;
+  gap: 1rem;
+  padding: 28px;
+}
+
+.close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid #000;
+  border-radius: var(--game-button-radius);
+  background: #000;
+  color: #fff;
+  cursor: pointer;
+}
+
+.close:hover,
+.close:focus-visible {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #000;
+}
+
+.close:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.kicker {
+  margin: 0;
+  padding-right: 42px;
+  color: #777;
+  font: 700 0.72rem Courier, "Courier New", monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.slide {
+  display: grid;
+  gap: 1rem;
+}
+
+.slide h2 {
+  margin: 0;
+  color: #171717;
+  font-size: clamp(1.7rem, 4vw, 2.7rem);
+  line-height: 1.05;
+}
+
+.slide p {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+.slide a {
+  color: #a60083;
+  font-weight: 700;
+}
+
+.brandName {
+  color: #f3c;
+  font-family: Courier, monospace;
+  font-weight: 700;
+}
+
+.image {
+  width: auto;
+  max-width: 100%;
+  max-height: min(48vh, 500px);
+  height: auto;
+  justify-self: center;
+  border: 1px solid #c8c1b4;
+  background: #fff;
+  object-fit: contain;
+  box-shadow: 0 8px 24px rgb(45 38 27 / 14%);
+}
+
+.examples {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.examples .image {
+  max-height: min(38vh, 360px);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  border-top: 1px solid #c8c1b4;
+  padding-top: 1rem;
+}
+
+.actions button {
+  min-width: 88px;
+  border: 1px solid #000;
+  border-radius: var(--game-button-radius);
+  padding: 0.58rem 0.9rem;
+  background: #fff;
+  color: #111;
+  font: 700 0.78rem Courier, "Courier New", monospace;
+  cursor: pointer;
+}
+
+.actions button:hover,
+.actions button:focus-visible,
+.actions .primary {
+  border-color: #000;
+  background: #000;
+  color: #fff;
+}
+
+.actions .primary:hover,
+.actions .primary:focus-visible {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #000;
+}
+
+.actions button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.error {
+  margin: 0;
+  color: #a40018;
+  font: 700 0.82rem Courier, "Courier New", monospace;
+}
+
+@media (max-width: 560px) {
+  .content {
+    padding: 22px 18px 18px;
+  }
+
+  .close {
+    top: 14px;
+    right: 14px;
+  }
+
+  .examples {
+    grid-template-columns: repeat(3, minmax(90px, 1fr));
+    overflow-x: auto;
+  }
+
+  .actions button {
+    flex: 1 1 auto;
+  }
+}

@@ -12,6 +12,7 @@ export default function PlayerHeaderContent({
   karma,
   lotteryTickets,
   notifications,
+  onOpenTutorial,
   onSignOut,
   supporterStatus,
 }: {
@@ -23,6 +24,7 @@ export default function PlayerHeaderContent({
   impersonating?: boolean;
   /** The notification centre, passed in so this stays free of its polling. */
   notifications?: ReactNode;
+  onOpenTutorial?: () => void;
   onSignOut: () => void;
   supporterStatus?: SupporterStatus | null;
 }) {
@@ -35,6 +37,14 @@ export default function PlayerHeaderContent({
       </div>
       <div className="col-span-8 order-2 flex flex-wrap items-center justify-end gap-1 @2xs:gap-3">
         <div className="flex items-center gap-2">
+          {onOpenTutorial ? (
+            <IconButton
+              aria-label="Open the Artfunkel tutorial"
+              icon="fa-question"
+              onClick={onOpenTutorial}
+              title="How to play"
+            />
+          ) : null}
           <span
             className="text-sm font-bold text-[#222] font-['Courier_New',Courier,monospace]"
             aria-label={`Available bank balance $${bankBalance.toLocaleString()}`}
