@@ -119,8 +119,8 @@ export default function DiabloDetailCard({
 
         <div className="d3-item-footer">
           <span>
-            Estimated Value: {item.values?.actual != null
-              ? item.values.actual.toLocaleString()
+            Sell Value: {item.values?.actual != null
+              ? item.values.sell.toLocaleString()
               : "—"} 
           </span>
           <span className="d3-gold-symbol">●</span>
