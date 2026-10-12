@@ -60,7 +60,7 @@ export default function DiabloDetailCard({
 
           <div className="d3-item-stat-group">
             <div className="d3-item-section-title">
-              Primary Attributes
+              Primary
             </div>
             <div className="d3-item-attributes">
               <AttributeIcons item={item} />
@@ -69,7 +69,7 @@ export default function DiabloDetailCard({
 
           <div className="d3-item-stat-group">
             <div className="d3-item-section-title">
-              Secondary Attributes
+              Secondary
             </div>
             <div className="d3-item-stat-line">
               <span className="d3-orange-diamond" />
@@ -95,7 +95,7 @@ export default function DiabloDetailCard({
 
           {legendaryEffect ? (
             <div className="d3-item-lore d3-item-effect">
-              <span className="d3-gray-diamond" />
+              <span className="d3-orange-diamond" />
               <span className="d3-legendary-text">
                 {legendaryEffect.description}
               </span>
@@ -104,7 +104,7 @@ export default function DiabloDetailCard({
 
           {item.seasonal ? (
             <div className="d3-item-lore">
-              <span className="d3-gray-diamond" />
+              <span className="d3-orange-diamond" />
               <span className="d3-legendary-text">
                 Reduce the cooldown of Fetish Army and Big Bad Voodoo by 1 second
                 each time your fetishes deal damage.
