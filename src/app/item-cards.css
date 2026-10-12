@@ -1619,7 +1619,7 @@
 .comic-card-masthead {
   position: absolute;
   z-index: 4;
-  top: 3.5%;
+  top: 2.5%;
   left: 4%;
   right: 4%;
   display: flex;
@@ -1652,7 +1652,6 @@
 .comic-card-issue {
   flex: 0 0 auto;
   display: flex;
-  flex-direction: column;
   align-items: center;
   gap: 1px;
   padding: 0.35em 0.45em;
@@ -1678,15 +1677,34 @@
 .comic-card-title-block {
   position: absolute;
   z-index: 4;
-  top: 12%;
+  top: 10%;
   left: 5%;
   right: 5%;
   max-width: 91%;
-  padding: 0.35em 0.45em 0.4em;
-  background: var(--comic-yellow);
+  padding: 0.25em 0.35em 0.3em;
   border: 2px solid var(--comic-ink);
   box-shadow: 3px 3px 0 var(--comic-ink);
   transform: rotate(-1.5deg);
+}
+
+.comic-card-title-block[data-rarity="common"] {
+  background: rgb(21 123 21 / 100%);
+}
+
+.comic-card-title-block[data-rarity="uncommon"] {
+  background: rgb(62 123 255 / 100%);
+}
+
+.comic-card-title-block[data-rarity="rare"] {
+  background: rgb(225 196 41 / 100%);
+}
+
+.comic-card-title-block[data-rarity="legendary"] {
+  background: rgb(255 138 31 / 100%);
+}
+
+.comic-card-title-block[data-rarity="masterpiece"] {
+  background: rgb(66 232 245 / 100%);
 }
 
 .comic-card-kicker {

@@ -66,14 +66,13 @@ export default function PrismaticCard({
             ART FUNKEL
           </span>
           <div className="comic-card-issue">
-            <span>{item.seasonal ? "LIMITED" : "COLLECTOR"}</span>
-            <strong>EDITION</strong>
+            <span>{item.seasonal ? "LIMITED EDITION | " : null}</span>
             <span>{item.mint ? ("NO. 001") : "NO. 657"}</span>
           </div>
         </header>
 
         {/* Main title treatment */}
-        <section className="comic-card-title-block">
+        <section data-rarity={item.artwork.rarity} className="comic-card-title-block">
           <p className="comic-card-kicker">
             THE ARTWORK COLLECTION
           </p>
