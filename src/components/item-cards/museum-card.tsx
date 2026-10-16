@@ -1,8 +1,7 @@
 import {
   ArtworkImage,
   AttributeIcons,
-  CompactStats,
-  ItemStatusBadges,
+  CompactStats
 } from "./shared";
 import type { ItemCardRendererProps } from "./types";
 
@@ -32,14 +31,6 @@ export default function MuseumCard(props: ItemCardRendererProps) {
           </div>
           <AttributeIcons item={item} />
         </div>
-        {/*<ItemStatusBadges TODO AI this is unused, remove references or logic elsewhere that might have once used this
-          alreadyOwned={alreadyOwned}
-          collectorSaleLabel="for sale"
-          consigned={consigned}
-          item={item}
-          researchTarget={researchTarget}
-          showMint={false}
-        />*/}
         {item.archivePermission?.allowed ? (
           <span className="item-property-badges museum-card-properties">
             <span className="item-property-badge property-archivable">

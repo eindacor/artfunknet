@@ -1,7 +1,6 @@
 import {
   ArtworkImage,
-  AttributeIcons,
-  ItemStatusBadges,
+  AttributeIcons
 } from "./shared";
 import type { ItemCardRendererProps } from "./types";
 
@@ -50,15 +49,6 @@ export default function MinimalistCard({
         <span className="minimalist-card-level">P{item.level}</span>
         <AttributeIcons item={item} />
       </footer>
-      <ItemStatusBadges
-        alreadyOwned={alreadyOwned}
-        consigned={consigned}
-        item={item}
-        researchTarget={researchTarget}
-        showFoil={false}
-        showMint={false}
-        showUnlocked={false}
-      />
     </div>
   );
 }

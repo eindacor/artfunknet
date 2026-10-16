@@ -1,8 +1,7 @@
 import {
   ArtworkImage,
   AttributeIcons,
-  CompactStats,
-  ItemStatusBadges,
+  CompactStats
 } from "./shared";
 import type { ItemCardRendererProps } from "./types";
 

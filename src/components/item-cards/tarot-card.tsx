@@ -1,7 +1,6 @@
 import {
   ArtworkImage,
-  AttributeIcons,
-  ItemStatusBadges,
+  AttributeIcons
 } from "./shared";
 import type { ItemCardRendererProps } from "./types";
 
@@ -29,14 +28,6 @@ export default function TarotCard({
         <span className="tarot-card-art-oval" aria-hidden="true" />
       </div>
       <section>
-        <ItemStatusBadges
-          alreadyOwned={alreadyOwned}
-          consigned={consigned}
-          item={item}
-          researchTarget={researchTarget}
-          showMint={false}
-          showUnlocked={false}
-        />
         <h3>{item.artwork.title}</h3>
         <p className="render-card-artist">{item.artwork.artist}</p>
         <span className="tarot-card-meta">

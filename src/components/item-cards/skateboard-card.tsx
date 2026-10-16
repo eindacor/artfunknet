@@ -1,7 +1,6 @@
 import {
   ArtworkImage,
-  AttributeIcons,
-  ItemStatusBadges,
+  AttributeIcons
 } from "./shared";
 import type { ItemCardRendererProps } from "./types";
 
@@ -48,14 +47,6 @@ export default function SkateboardCard({
             <i aria-hidden="true" className="fa fa-leaf" />
           </span>
         ) : null}
-        <ItemStatusBadges
-          alreadyOwned={alreadyOwned}
-          consigned={consigned}
-          item={item}
-          researchTarget={researchTarget}
-          showMint={false}
-          showUnlocked={false}
-        />
       </div>
     </div>
   );

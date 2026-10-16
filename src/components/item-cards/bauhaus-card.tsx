@@ -1,7 +1,6 @@
 import {
   ArtworkImage,
-  AttributeIcons,
-  ItemStatusBadges,
+  AttributeIcons
 } from "./shared";
 import type { ItemCardRendererProps } from "./types";
 
@@ -43,14 +42,6 @@ export default function BauhausCard({
         ) : null}
       </div>
       <AttributeIcons item={item} />
-      <ItemStatusBadges
-        alreadyOwned={alreadyOwned}
-        consigned={consigned}
-        item={item}
-        researchTarget={researchTarget}
-        showMint={false}
-        showUnlocked={false}
-      />
     </div>
   );
 }

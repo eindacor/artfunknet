@@ -3,8 +3,7 @@ import type { CSSProperties } from "react";
 import {
   ArtworkImage,
   AttributeIcons,
-  getActiveLegendaryAttribute,
-  ItemStatusBadges,
+  getActiveLegendaryAttribute
 } from "./shared";
 import type { ItemCardRendererProps } from "./types";
 
@@ -70,13 +69,6 @@ export default function GildedCard(props: ItemCardRendererProps) {
       <div className="gilded-card-frame">
         <ArtworkImage className="gilded-card-image" item={item} />
       </div>
-      <ItemStatusBadges
-        item={item}
-        researchTarget={researchTarget}
-        alreadyOwned={alreadyOwned}
-        consigned={consigned}
-        showMint={false}
-      />
       <div className="gilded-card-stats">
         <span>Promotion {item.level}</span>
         <span>

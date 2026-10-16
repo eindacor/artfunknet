@@ -1,8 +1,7 @@
 import {
   ArtworkImage,
   AttributeIcons,
-  getActiveLegendaryAttribute,
-  ItemStatusBadges,
+  getActiveLegendaryAttribute
 } from "./shared";
 import type { ItemCardRendererProps } from "./types";
 
@@ -55,13 +54,6 @@ export default function ReliquaryCard({
         <ArtworkImage className="reliquary-card-image" item={item} />
       </div>
       <section>
-        <ItemStatusBadges
-          item={item}
-          alreadyOwned={alreadyOwned}
-          consigned={consigned}
-          researchTarget={researchTarget}
-          showMint={false}
-        />
         <h3>{item.artwork.title}</h3>
         <p className="render-card-artist">{item.artwork.artist}</p>
         <div className="reliquary-card-stats">

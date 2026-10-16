@@ -1,8 +1,7 @@
 import {
   ArtworkImage,
   AttributeIcons,
-  CompactStats,
-  ItemStatusBadges,
+  CompactStats
 } from "./shared";
 import type { ItemCardRendererProps } from "./types";
 
@@ -31,12 +30,6 @@ export default function BlueprintCard({
         </span>
       </div>
       <section>
-        <ItemStatusBadges
-          item={item}
-          alreadyOwned={alreadyOwned}
-          consigned={consigned}
-          researchTarget={researchTarget}
-        />
         <h3>{item.artwork.title}</h3>
         <p className="render-card-artist">{item.artwork.artist}</p>
         <p className="blueprint-card-spec">

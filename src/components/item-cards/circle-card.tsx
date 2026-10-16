@@ -1,8 +1,7 @@
 import type { CSSProperties } from "react";
 
 import {
-  ArtworkImage,
-  ItemStatusBadges,
+  ArtworkImage
 } from "./shared";
 import type { ItemCardRendererProps } from "./types";
 
@@ -88,14 +87,6 @@ export default function CircleCard({
           {item.artwork.date} · {Math.round(item.condition * 100)}%
         </small>
       </section>
-      <ItemStatusBadges
-        alreadyOwned={alreadyOwned}
-        consigned={consigned}
-        item={item}
-        researchTarget={researchTarget}
-        showMint={false}
-        showUnlocked={false}
-      />
     </div>
   );
 }

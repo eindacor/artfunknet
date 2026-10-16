@@ -1,7 +1,6 @@
 import {
   ArtworkImage,
-  AttributeIcons,
-  ItemStatusBadges,
+  AttributeIcons
 } from "./shared";
 import type { ItemCardRendererProps } from "./types";
 
@@ -66,14 +65,6 @@ export default function BaseballCard({
           <AttributeIcons item={item} />
         </footer>
       </div>
-      <ItemStatusBadges
-        alreadyOwned={alreadyOwned}
-        consigned={consigned}
-        item={item}
-        researchTarget={researchTarget}
-        showMint={false}
-        showUnlocked={false}
-      />
     </div>
   );
 }
