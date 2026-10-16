@@ -31,13 +31,6 @@ export default function MuseumCard(props: ItemCardRendererProps) {
           </div>
           <AttributeIcons item={item} />
         </div>
-        {item.archivePermission?.allowed ? (
-          <span className="item-property-badges museum-card-properties">
-            <span className="item-property-badge property-archivable">
-              archivable
-            </span>
-          </span>
-        ) : null}
         <CompactStats
           item={item}
           mintDisplay="leaf"
