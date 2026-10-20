@@ -3,10 +3,10 @@ import type { NpcQuality } from "./npc-gameplay.ts";
 const OWN_GALLERY_MULTIPLIER = 1.75;
 
 const BENEFACTOR_QUALITY_MULTIPLIERS: Record<NpcQuality, number> = {
-  bronze: 0.4,
-  silver: 0.6,
-  gold: 0.8,
-  platinum: 1,
+  bronze: .8,
+  silver: 1.2,
+  gold: 1.6,
+  platinum: 2,
 };
 
 const ENTHUSIAST_CHUNK_PERCENTAGES: Record<NpcQuality, number> = {

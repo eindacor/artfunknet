@@ -20,7 +20,7 @@ test("Benefactor rewards preserve quality and random donation variance", () => {
       conditionMultiplierPerItem: 0.05,
       randomRoll: 0.5,
     }),
-    2_250,
+    4_250,
   );
 });
 
@@ -38,7 +38,7 @@ test("Benefactor own-gallery Legendary multipliers stack in legacy order", () =>
       conditionMultiplierPerItem: 0.05,
       randomRoll: 0,
     }),
-    12_512,
+    25_025,
   );
 });
 
