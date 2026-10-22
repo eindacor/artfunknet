@@ -37,9 +37,7 @@ export default function DiabloDetailCard({
 
             <div className="d3-item-summary">
               <div className="d3-item-type">
-                {rarity === "legendary"
-                  ? "Legendary artwork"
-                  : `${rarity} artwork`}
+                {rarity.charAt(0).toUpperCase()}{rarity.slice(1)} Artwork
               </div>
 
               <div className="d3-item-subtype">
