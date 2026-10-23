@@ -70,6 +70,16 @@ test("card cosmetics have stable unique numbers", () => {
     new Set(CARD_COSMETICS.map((cosmetic) => cosmetic.number)).size,
     CARD_COSMETICS.length,
   );
+  assert.deepEqual(
+    CARD_COSMETICS.find((cosmetic) => cosmetic.id === "commemorative"),
+    {
+      number: 22,
+      id: "commemorative",
+      name: "Sovereign Proof",
+      description:
+        "An embossed precious-metal commemorative coin with radial inscriptions.",
+    },
+  );
 });
 
 test("configured art style names replace catalog defaults by stable ID", () => {

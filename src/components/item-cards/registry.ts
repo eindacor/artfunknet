@@ -18,6 +18,7 @@ import TarotCard from "./tarot-card";
 import CollectibleCard from "./collectible-card";
 import SkateboardCard from "./skateboard-card";
 import AlbumCard from "./album-card";
+import CommemorativeCard from "./commemorative-card";
 import ZineCard from "./zine-card";
 import {
   type CardRendererId,
@@ -49,4 +50,5 @@ export const CARD_RENDERERS: Record<
   skateboard: SkateboardCard,
   album: AlbumCard,
   d3: D3Card,
+  commemorative: CommemorativeCard,
 };

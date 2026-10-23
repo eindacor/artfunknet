@@ -8467,19 +8467,530 @@
   text-align: left;
 }
 
+.rendered-item-card-commemorative {
+  --card-width: 320px;
+}
+
+.commemorative-card {
+  --coin-deep: #555b60;
+  --coin-shadow: #737a80;
+  --coin-mid: #b8bec2;
+  --coin-light: #f6f8f9;
+  --coin-ink: #454b50;
+  --coin-art-inset: 15%;
+  --coin-attribute-radius: calc(var(--card-width) * 0.33);
+  --coin-lottery-radius: calc(var(--card-width) * 0.26);
+  box-sizing: border-box;
+  width: var(--card-width);
+  height: var(--card-width);
+  overflow: visible;
+  border-radius: 50%;
+  padding: 8px;
+  background:
+    repeating-conic-gradient(
+      from 0deg,
+      var(--coin-deep) 0deg 1.25deg,
+      var(--coin-light) 1.25deg 2.25deg,
+      var(--coin-shadow) 2.25deg 3.5deg
+    );
+  color: var(--coin-ink);
+  filter: drop-shadow(0 14px 13px rgb(0 0 0 / 42%));
+  font-family: Georgia, "Times New Roman", serif;
+  isolation: isolate;
+}
+
+.commemorative-card::before {
+  position: absolute;
+  z-index: -1;
+  inset: 3px;
+  border: 2px solid var(--coin-light);
+  border-radius: 50%;
+  box-shadow:
+    inset 0 0 0 2px var(--coin-deep),
+    0 0 0 1px rgb(0 0 0 / 44%);
+  content: "";
+}
+
+.commemorative-card-face {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border: 2px solid var(--coin-deep);
+  border-radius: 50%;
+
+  background:
+    /* Very subtle engraved crosshatch */
+    repeating-linear-gradient(
+      45deg,
+      transparent 0 5px,
+      rgb(255 255 255 / 6%) 5.3px,
+      transparent 5.6px 10px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent 0 5px,
+      rgb(20 24 27 / 6%) 5.3px,
+      transparent 5.6px 10px
+    ),
+
+    /* Fine, understated radial engraving */
+    repeating-conic-gradient(
+      from 0deg,
+      rgb(255 255 255 / 20%) 0deg 0.3deg,
+      transparent 0.4deg 4deg,
+      rgb(20 24 27 / 20%) 4.1deg 4.3deg,
+      transparent 4.4deg 8deg
+    ),
+
+    /* Softly engraved outer rim */
+    radial-gradient(
+      circle at 50% 50%,
+      transparent 0 78%,
+      rgb(255 255 255 / 22%) 78.2% 78.5%,
+      transparent 78.7% 81%,
+      rgb(20 24 27 / 14%) 81.2% 81.5%,
+      transparent 81.7% 84%,
+      rgb(255 255 255 / 20%) 84.2% 84.5%,
+      transparent 84.7%
+    ),
+
+    /* Delicate inner concentric lines */
+    radial-gradient(
+      circle at 50% 50%,
+      transparent 0 58.5%,
+      rgb(255 255 255 / 28%) 58.7% 58.9%,
+      transparent 59.1% 62%,
+      rgb(20 24 27 / 13%) 62.2% 62.4%,
+      transparent 62.6% 63.5%
+    ),
+
+    /* Subtle repeating ornamental pattern */
+    repeating-conic-gradient(
+      from 9deg,
+      transparent 0deg 5deg,
+      rgb(255 255 255 / 10%) 5.1deg 5.4deg,
+      transparent 5.5deg 10deg,
+      rgb(20 24 27 / 7%) 10.1deg 10.3deg,
+      transparent 10.4deg 15deg
+    ),
+
+    /* Metallic highlight */
+    radial-gradient(
+      circle at 35% 24%,
+      rgb(255 255 255 / 65%),
+      transparent 13%
+    ),
+
+    /* Original metallic base */
+    conic-gradient(
+      from 18deg,
+      var(--coin-light),
+      var(--coin-shadow),
+      var(--coin-light),
+      var(--coin-mid),
+      var(--coin-deep),
+      var(--coin-light)
+    );
+
+  box-shadow:
+    inset 0 0 0 3px var(--coin-light),
+    inset 0 0 0 6px var(--coin-shadow),
+    inset 0 0 0 7px rgb(255 255 255 / 12%),
+    inset 0 0 17px 8px rgb(20 24 27 / 38%),
+    0 1px 3px rgb(0 0 0 / 25%);
+}
+
+.commemorative-card-guilloche {
+  position: absolute;
+  z-index: 1;
+  inset: 8.5%;
+  border-radius: 50%;
+  opacity: 0.48;
+  background:
+    repeating-conic-gradient(
+      from 0deg,
+      transparent 0deg 7deg,
+      rgb(255 255 255 / 34%) 7.4deg 8deg,
+      transparent 8.4deg 14deg
+    ),
+    repeating-radial-gradient(
+      circle,
+      transparent 0 5px,
+      rgb(53 59 63 / 16%) 5.5px 6px,
+      transparent 6.5px 11px
+    );
+  -webkit-mask: radial-gradient(
+    circle,
+    transparent 0 77%,
+    #000 78% 100%
+  );
+  mask: radial-gradient(circle, transparent 0 77%, #000 78% 100%);
+}
+
+.commemorative-card-inscription {
+  position: absolute;
+  z-index: 7;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.commemorative-card-inscription text {
+  fill: var(--coin-ink);
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 900;
+  letter-spacing: 0.13em;
+  paint-order: stroke fill;
+  stroke: rgb(255 255 255 / 44%);
+  stroke-width: 0.7px;
+  text-transform: uppercase;
+}
+
+.commemorative-card-identity {
+  font-size: 14px;
+}
+
+.commemorative-card-rarity {
+  fill: color-mix(
+    in srgb,
+    var(--rarity-color) 72%,
+    var(--coin-mid)
+  ) !important;
+  font-size: 10px;
+  filter: drop-shadow(0 0 2px var(--rarity-glow));
+  stroke: color-mix(
+    in srgb,
+    var(--rarity-dark) 72%,
+    var(--coin-light)
+  ) !important;
+}
+
+.commemorative-card-identity-artist {
+  fill: currentColor !important;
+}
+
+.commemorative-card-status,
+.commemorative-card-value {
+  font-family: Arial, Helvetica, sans-serif !important;
+  font-size: 10px;
+  letter-spacing: 0.2em !important;
+}
+
+.commemorative-card-status {
+  font-size: 7.5px;
+}
+
+.commemorative-card-value-mint-icon {
+  fill: var(--mint-dark);
+  font-family: "Font Awesome 7 Free";
+  font-weight: 900;
+  filter: drop-shadow(0 0 2px var(--mint-glow));
+}
+
+.commemorative-card-artwork-frame {
+  position: absolute;
+  z-index: 3;
+  inset: var(--coin-art-inset);
+  overflow: hidden;
+  border: 2px solid var(--coin-ink);
+  border-radius: 50%;
+  background: var(--coin-mid);
+  box-shadow:
+    inset 2px 3px 7px rgb(255 255 255 / 72%),
+    inset -4px -5px 9px rgb(25 29 32 / 52%),
+    0 0 0 2px var(--coin-light),
+    0 0 0 4px var(--coin-shadow),
+    0 5px 9px rgb(28 31 34 / 42%);
+}
+
+.commemorative-card-artwork {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-position: center;
+  background-size: cover;
+}
+
+.commemorative-card-artwork .render-card-artwork-image-source {
+  filter: grayscale(1) contrast(1.48) brightness(1.04);
+  mix-blend-mode: multiply;
+  opacity: 0.82;
+}
+
+.commemorative-card-artwork-relief {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    linear-gradient(
+      138deg,
+      rgb(255 255 255 / 72%),
+      transparent 31% 62%,
+      rgb(26 30 33 / 58%)
+    ),
+    radial-gradient(
+      circle at 48% 45%,
+      transparent 0 55%,
+      rgb(255 255 255 / 42%) 72%,
+      rgb(24 28 30 / 48%) 100%
+    );
+  box-shadow:
+    inset 4px 5px 7px rgb(255 255 255 / 54%),
+    inset -5px -6px 9px rgb(19 22 24 / 46%);
+  mix-blend-mode: hard-light;
+  pointer-events: none;
+}
+
+.commemorative-card-marks {
+  position: absolute;
+  z-index: 10;
+  inset: 0;
+  pointer-events: none;
+}
+
+.commemorative-card-state {
+  position: absolute;
+  color: var(--coin-ink);
+  font-size: 0.72rem;
+  text-shadow:
+    1px 1px 0 var(--coin-light),
+    -1px -1px 0 rgb(31 35 38 / 42%);
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 28%));
+}
+
+.commemorative-card-mint-mark {
+  color: var(--mint-dark);
+}
+
+.commemorative-card-unlocked-mark {
+  color: var(--unlocked-dark);
+  font-size: 1.2rem;
+}
+
+.commemorative-card-state.mark-northwest {
+  top: 29%;
+  left: 29%;
+  transform: rotate(-38deg);
+}
+
+.commemorative-card-state.mark-southeast {
+  right: 29%;
+  bottom: 29%;
+  transform: rotate(-38deg);
+}
+
+.commemorative-card-state.mark-west,
+.commemorative-card-state.mark-east {
+  top: 50%;
+  width: 16px;
+  text-align: center;
+}
+
+.commemorative-card-state.mark-west {
+  left: 9.5%;
+  transform: translate(-50%, -50%);
+}
+
+.commemorative-card-state.mark-east {
+  right: 9.5%;
+  transform: translate(50%, -50%);
+}
+
+.commemorative-card-attribute {
+  position: absolute;
+  z-index: 9;
+  top: 55%;
+  left: 50%;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  color: var(--coin-ink);
+  font-size: 0.94rem;
+  filter:
+    drop-shadow(1px 1px 0 var(--coin-light))
+    drop-shadow(-1px -1px 0 rgb(0 0 0 / 22%));
+  pointer-events: none;
+  transform:
+    translate(-50%, -50%)
+    rotate(var(--commemorative-attribute-angle))
+    translateY(calc(-1 * var(--coin-attribute-radius)))
+    rotate(calc(-1 * var(--commemorative-attribute-angle)))
+    rotate(var(--commemorative-attribute-rotation));
+}
+
+.commemorative-card-attribute.attribute-unlocked {
+  color: color-mix(in srgb, var(--coin-ink) 72%, var(--unlocked-dark));
+}
+
+.commemorative-card-attribute.attribute-locked {
+  opacity: 0.68;
+}
+
+.commemorative-card-attribute.attribute-special {
+  color: color-mix(in srgb, var(--coin-ink) 70%, var(--rarity-dark));
+}
+
+.commemorative-card-lottery {
+  position: absolute;
+  z-index: 10;
+  inset: 0;
+  color: var(--coin-ink);
+  pointer-events: none;
+}
+
+.commemorative-card-lottery .fa-star {
+  position: absolute;
+  top: 51%;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  color: #d7a928;
+  font-size: 0.65rem;
+  text-align: center;
+  text-shadow:
+    1px 1px 0 #fff1a3,
+    -1px -1px 0 #76500b;
+  filter: drop-shadow(0 1px 2px rgb(76 48 4 / 46%));
+  transform:
+    translate(-50%, -50%)
+    rotate(var(--commemorative-lottery-angle))
+    translateY(calc(-1 * var(--coin-lottery-radius)))
+    rotate(calc(-1 * var(--commemorative-lottery-angle)));
+}
+
+.commemorative-card-proof-shine,
+.commemorative-card-sparkles {
+  position: absolute;
+  z-index: 12;
+  inset: 0;
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.commemorative-card-proof-shine {
+  background: linear-gradient(
+    118deg,
+    transparent 18%,
+    rgb(255 255 255 / 8%) 31%,
+    rgb(255 255 255 / 82%) 43%,
+    rgb(255 255 255 / 12%) 55%,
+    transparent 69%
+  );
+  background-position: 120% 0;
+  background-size: 250% 100%;
+  mix-blend-mode: screen;
+}
+
+.commemorative-card-sparkles {
+  background:
+    radial-gradient(
+      circle at 24% 24%,
+      #fff 0 1px,
+      rgb(255 255 255 / 82%) 1.5px 2px,
+      transparent 3px
+    ),
+    radial-gradient(
+      circle at 74% 31%,
+      #fff 0 1.5px,
+      rgb(255 255 255 / 72%) 2px 2.5px,
+      transparent 3.5px
+    ),
+    radial-gradient(
+      circle at 68% 76%,
+      #fff 0 1px,
+      rgb(255 255 255 / 75%) 1.5px 2px,
+      transparent 3px
+    );
+  filter: drop-shadow(0 0 4px #fff);
+}
+
+.rendered-item-card-commemorative[data-mint="true"]
+  .commemorative-card-proof-shine {
+  opacity: 0.88;
+  animation: commemorative-proof-shine 4.8s ease-in-out infinite;
+}
+
+.rendered-item-card-commemorative[data-mint="true"]
+  .commemorative-card-sparkles {
+  opacity: 0.95;
+  animation: commemorative-sparkle 2.6s ease-in-out infinite;
+}
+
+.rendered-item-card-commemorative[data-mint="true"]
+  .commemorative-card-face {
+  box-shadow:
+    inset 0 0 0 3px #fff,
+    inset 0 0 0 7px var(--coin-shadow),
+    inset 0 0 15px 7px rgb(20 24 27 / 38%),
+    0 0 18px rgb(242 252 255 / 62%);
+}
+
+.rendered-item-card-commemorative[data-seasonal="true"]
+  .commemorative-card {
+  --coin-deep: #735016;
+  --coin-shadow: #a8751e;
+  --coin-mid: #d7ab42;
+  --coin-light: #fff1a8;
+  --coin-ink: #5d3c0b;
+}
+
+.rendered-item-card-commemorative .render-card-foil-sheen {
+  inset: 8px;
+  border-radius: 50%;
+  clip-path: circle(50%);
+  mix-blend-mode: color-dodge;
+}
+
+@keyframes commemorative-proof-shine {
+  0%,
+  28%,
+  100% {
+    background-position: 120% 0;
+  }
+
+  58% {
+    background-position: -120% 0;
+  }
+}
+
+@keyframes commemorative-sparkle {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 2px #fff);
+    transform: scale(0.98) rotate(0deg);
+  }
+
+  50% {
+    filter: drop-shadow(0 0 7px #fff);
+    transform: scale(1.01) rotate(1deg);
+  }
+}
+
 @media (max-width: 540px) {
   .rendered-item-card-tarot,
   .rendered-item-card-collectible,
   .rendered-item-card-skateboard,
   .rendered-item-card-album,
-  .rendered-item-card-d3 {
+  .rendered-item-card-d3,
+  .rendered-item-card-commemorative {
     --card-width: min(280px, calc(100vw - 48px));
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .collectible-card-holo,
-  .album-card-record-foil {
+  .album-card-record-foil,
+  .commemorative-card-proof-shine,
+  .commemorative-card-sparkles {
     animation: none !important;
   }
 }

@@ -61,6 +61,7 @@ export const DEFAULT_CARD_STYLE_WEIGHTS: Record<
   skateboard: 50,
   album: 15,
   d3: 0,
+  commemorative: 10,
 };
 
 const DEBUG_CARD_STYLE_WEIGHTS = Object.fromEntries(

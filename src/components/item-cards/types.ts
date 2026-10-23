@@ -23,6 +23,7 @@ export const CARD_RENDERER_IDS = [
   "skateboard",
   "album",
   "d3",
+  "commemorative",
 ] as const;
 
 export const SHOWCASE_CARD_RENDERER_IDS = CARD_RENDERER_IDS;

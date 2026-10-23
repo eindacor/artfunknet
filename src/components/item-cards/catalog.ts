@@ -145,6 +145,13 @@ export const CARD_COSMETICS: CardCosmetic[] = [
     name: "Nephalem Relic",
     description: "A dark fantasy item tooltip with ornate rarity-driven details.",
   },
+  {
+    number: 22,
+    id: "commemorative",
+    name: "Sovereign Proof",
+    description:
+      "An embossed precious-metal commemorative coin with radial inscriptions.",
+  },
 ];
 
 export function getCardCosmetic(id: string): CardCosmetic | undefined {
