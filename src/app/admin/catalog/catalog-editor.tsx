@@ -37,6 +37,7 @@ export type ArtworkCatalogEntry = {
   rarity: ArtworkRarity;
   value_scale: number;
   effect_id?: string;
+  special_attributes?: string[];
   height: number;
   width: number;
   active: boolean;
@@ -76,6 +77,12 @@ export type ArtworkEffectOption = {
   active: boolean;
 };
 
+export type ArtworkAttributeOption = {
+  id: string;
+  title: string;
+  active: boolean;
+};
+
 type NewArtwork = {
   artist_id: string;
   title: string;
@@ -93,11 +100,13 @@ export default function CatalogEditor({
   initialArtworks,
   effectDistribution,
   effectOptions,
+  attributeOptions,
 }: {
   initialArtists: ArtistCatalogEntry[];
   initialArtworks: ArtworkCatalogEntry[];
   effectDistribution: ArtworkEffectDistribution[];
   effectOptions: ArtworkEffectOption[];
+  attributeOptions: ArtworkAttributeOption[];
 }) {
   const [artists, setArtists] = useState(initialArtists);
   const [artworks, setArtworks] = useState(initialArtworks);
@@ -521,6 +530,7 @@ export default function CatalogEditor({
           {mode === "artworks" && artworkForm ? (
             <ArtworkForm
               artists={artists}
+              attributeOptions={attributeOptions}
               artwork={artworkForm}
               effectOptions={effectOptions}
               onChange={setArtworkForm}
@@ -837,6 +847,7 @@ function NewArtworkForm({
 function ArtworkForm({
   artwork,
   artists,
+  attributeOptions,
   effectOptions,
   onChange,
   onUploaded,
@@ -847,6 +858,7 @@ function ArtworkForm({
 }: {
   artwork: ArtworkCatalogEntry;
   artists: ArtistCatalogEntry[];
+  attributeOptions: ArtworkAttributeOption[];
   effectOptions: ArtworkEffectOption[];
   onChange: (artwork: ArtworkCatalogEntry) => void;
   onUploaded: (artwork: ArtworkCatalogEntry) => void;
@@ -994,6 +1006,8 @@ function ArtworkForm({
                   rarity === "legendary" || rarity === "masterpiece"
                     ? matchingEffect?.id
                     : undefined,
+                special_attributes:
+                  rarity === "rare" ? artwork.special_attributes : undefined,
               });
             }}
             value={artwork.rarity}
@@ -1031,6 +1045,30 @@ function ArtworkForm({
                     {!effect.active ? " (inactive)" : ""}
                   </option>
                 ))}
+            </select>
+          </label>
+        ) : null}
+        {artwork.rarity === "rare" ? (
+          <label className="grid gap-2">
+            <span className="font-semibold">Special attribute</span>
+            <select
+              className={inputClass}
+              onChange={(event) =>
+                set(
+                  "special_attributes",
+                  event.target.value ? [event.target.value] : [],
+                )
+              }
+              required
+              value={artwork.special_attributes?.[0] ?? ""}
+            >
+              <option value="">Select an attribute</option>
+              {attributeOptions.map((attribute) => (
+                <option key={attribute.id} value={attribute.id}>
+                  {attribute.title}
+                  {!attribute.active ? " (inactive)" : ""}
+                </option>
+              ))}
             </select>
           </label>
         ) : null}

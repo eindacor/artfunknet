@@ -96,6 +96,15 @@ export async function PATCH(
     typeof body.effect_id === "string" && body.effect_id.trim()
       ? body.effect_id.trim()
       : undefined;
+  const specialAttributeIds = Array.isArray(body.special_attributes)
+    ? [
+        ...new Set(
+          body.special_attributes.flatMap((value) =>
+            typeof value === "string" && value.trim() ? [value.trim()] : [],
+          ),
+        ),
+      ]
+    : [];
   if (!title || !genre || !medium || !artistId) {
     return NextResponse.json(
       { error: "Complete all required artwork fields." },
@@ -135,6 +144,12 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid artwork rarity." }, { status: 400 });
   }
   const rarity = rarityValue as Artwork["rarity"];
+  if (rarity === "rare" && specialAttributeIds.length !== 1) {
+    return NextResponse.json(
+      { error: "Rare artworks require exactly one special attribute." },
+      { status: 400 },
+    );
+  }
   if (!Number.isFinite(valueScale)) {
     valueScale = existing.value_scale;
   }
@@ -153,6 +168,25 @@ export async function PATCH(
       { error: "Value scale must be a number between 0 and 1." },
       { status: 400 },
     );
+  }
+  const rareSpecialAttributeId =
+    rarity === "rare" ? specialAttributeIds[0] : undefined;
+  if (rareSpecialAttributeId) {
+    const attribute = await database
+      .collection<{ _id: string; active: boolean }>("attributes")
+      .findOne({ _id: rareSpecialAttributeId });
+    if (!attribute) {
+      return NextResponse.json(
+        { error: "The selected rare special attribute is unavailable." },
+        { status: 400 },
+      );
+    }
+    if (body.active === true && !attribute.active) {
+      return NextResponse.json(
+        { error: "Active rare artwork requires an active special attribute." },
+        { status: 400 },
+      );
+    }
   }
   const rarityChanged = rarity !== existing.rarity;
   const valueScaleChanged = valueScale !== existing.value_scale;
@@ -199,6 +233,9 @@ export async function PATCH(
     ...(artworkEffectId
       ? { effect_id: artworkEffectId }
       : { effect_id: undefined }),
+    ...(rareSpecialAttributeId
+      ? { special_attributes: [rareSpecialAttributeId] }
+      : { special_attributes: undefined }),
     height,
     width: Number((height * imageRatio).toFixed(2)),
     active: body.active === true,
@@ -229,6 +266,15 @@ export async function PATCH(
     updated_at: updatedArtwork.updated_at,
     updated_by: updatedArtwork.updated_by,
     ...(artworkEffectId ? { effect_id: artworkEffectId } : {}),
+    ...(rareSpecialAttributeId
+      ? { special_attributes: [rareSpecialAttributeId] }
+      : {}),
+  };
+  const artworkFieldsToUnset: Partial<
+    Record<"effect_id" | "special_attributes", "">
+  > = {
+    ...(!artworkEffectId ? { effect_id: "" } : {}),
+    ...(!rareSpecialAttributeId ? { special_attributes: "" } : {}),
   };
   const restoreArtwork = () =>
     database.collection<EditableArtwork>("artworks").updateOne(
@@ -250,9 +296,13 @@ export async function PATCH(
           ...(existing.updated_at ? { updated_at: existing.updated_at } : {}),
           ...(existing.updated_by ? { updated_by: existing.updated_by } : {}),
           ...(existing.effect_id ? { effect_id: existing.effect_id } : {}),
+          ...(existing.special_attributes
+            ? { special_attributes: existing.special_attributes }
+            : {}),
         },
         $unset: {
           ...(!existing.effect_id ? { effect_id: "" } : {}),
+          ...(!existing.special_attributes ? { special_attributes: "" } : {}),
           ...(!existing.updated_at ? { updated_at: "" } : {}),
           ...(!existing.updated_by ? { updated_by: "" } : {}),
         },
@@ -264,7 +314,9 @@ export async function PATCH(
       { _id: id },
       {
         $set: artworkFields,
-        ...(artworkEffectId ? {} : { $unset: { effect_id: "" } }),
+        ...(Object.keys(artworkFieldsToUnset).length > 0
+          ? { $unset: artworkFieldsToUnset }
+          : {}),
       },
     );
   if (artworkUpdated.matchedCount !== 1) {

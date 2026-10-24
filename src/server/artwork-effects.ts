@@ -132,6 +132,36 @@ export async function withLeastRepresentedArtworkEffect<T>(
   operation: (effect: ArtworkEffect) => Promise<T>,
   random: () => number = Math.random,
 ): Promise<T> {
+  return withArtworkAssignmentLock(database, async () => {
+    const [effects, counts] = await Promise.all([
+      database
+        .collection<ArtworkEffect>("artwork_effects")
+        .find({ effect_type: effectType, active: true })
+        .toArray(),
+      database
+        .collection<Artwork>("artworks")
+        .aggregate<{ _id: string; count: number }>([
+          { $match: { rarity: effectType, effect_id: { $type: "string" } } },
+          { $group: { _id: "$effect_id", count: { $sum: 1 } } },
+        ])
+        .toArray(),
+    ]);
+    const selected = selectLeastRepresentedEffect(
+      effects,
+      new Map(counts.map((entry) => [entry._id, entry.count])),
+      random,
+    );
+    if (!selected) {
+      throw new Error(`No active ${effectType} artwork effect is configured.`);
+    }
+    return operation(selected);
+  });
+}
+
+export async function withArtworkAssignmentLock<T>(
+  database: Db,
+  operation: () => Promise<T>,
+): Promise<T> {
   const owner = randomUUID();
   const deadline = Date.now() + LOCK_MS;
   let acquired = false;
@@ -181,28 +211,7 @@ export async function withLeastRepresentedArtworkEffect<T>(
   }
 
   try {
-    const [effects, counts] = await Promise.all([
-      database
-        .collection<ArtworkEffect>("artwork_effects")
-        .find({ effect_type: effectType, active: true })
-        .toArray(),
-      database
-        .collection<Artwork>("artworks")
-        .aggregate<{ _id: string; count: number }>([
-          { $match: { rarity: effectType, effect_id: { $type: "string" } } },
-          { $group: { _id: "$effect_id", count: { $sum: 1 } } },
-        ])
-        .toArray(),
-    ]);
-    const selected = selectLeastRepresentedEffect(
-      effects,
-      new Map(counts.map((entry) => [entry._id, entry.count])),
-      random,
-    );
-    if (!selected) {
-      throw new Error(`No active ${effectType} artwork effect is configured.`);
-    }
-    return await operation(selected);
+    return await operation();
   } finally {
     await database
       .collection<{ _id: string; lock_owner?: string; lock_until?: Date }>(

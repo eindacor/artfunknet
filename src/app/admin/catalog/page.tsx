@@ -4,6 +4,7 @@ import { getArtworkEffects } from "@/server/artwork-effects";
 import CatalogEditor, {
   type ArtistCatalogEntry,
   type ArtworkCatalogEntry,
+  type ArtworkAttributeOption,
   type ArtworkEffectOption,
   type ArtworkEffectDistribution,
 } from "./catalog-editor";
@@ -12,7 +13,13 @@ export const dynamic = "force-dynamic";
 
 export default async function CatalogPage() {
   const database = await getDatabase();
-  const [artistDocuments, effects, effectCounts, artworkDocuments] =
+  const [
+    artistDocuments,
+    effects,
+    effectCounts,
+    attributeDocuments,
+    artworkDocuments,
+  ] =
     await Promise.all([
       database
         .collection<{
@@ -33,6 +40,15 @@ export default async function CatalogPage() {
         ])
         .toArray(),
       database
+        .collection<{
+          _id: string;
+          title: string;
+          active: boolean;
+        }>("attributes")
+        .find({})
+        .sort({ title: 1 })
+        .toArray(),
+      database
         .collection<ArtworkCatalogEntry>("artworks")
         .find(
           {},
@@ -48,6 +64,7 @@ export default async function CatalogPage() {
               rarity: 1,
               value_scale: 1,
               effect_id: 1,
+              special_attributes: 1,
               height: 1,
               width: 1,
               active: 1,
@@ -91,6 +108,13 @@ export default async function CatalogPage() {
     effectType: effect.effect_type,
     active: effect.active,
   }));
+  const attributeOptions: ArtworkAttributeOption[] = attributeDocuments.map(
+    (attribute) => ({
+      id: attribute._id,
+      title: attribute.title,
+      active: attribute.active,
+    }),
+  );
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-8">
@@ -102,6 +126,7 @@ export default async function CatalogPage() {
         </p>
       </div>
       <CatalogEditor
+        attributeOptions={attributeOptions}
         effectDistribution={effectDistribution}
         effectOptions={effectOptions}
         initialArtists={artists}

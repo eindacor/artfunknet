@@ -56,6 +56,32 @@ test("least represented assignment randomizes only among tied effects", () => {
   );
 });
 
+test("rare artwork generation uses its assigned special attribute", () => {
+  const attributes = Array.from({ length: 5 }, (_, index) => ({
+    _id: `attribute-${index}`,
+    title: `Attribute ${index}`,
+    type: "primary",
+    description: "",
+    icon: "",
+    npc_name: `NPC ${index}`,
+    active: true,
+  })) satisfies ItemAttribute[];
+  const result = getItemAttributes(
+    {
+      _id: "rare-artwork",
+      rarity: "rare",
+      special_attributes: ["attribute-3"],
+    } as Artwork,
+    false,
+    attributes,
+  );
+
+  assert.deepEqual(
+    result.special.map((attribute) => attribute._id),
+    ["attribute-3"],
+  );
+});
+
 test("masterpiece generation always produces five total attributes", () => {
   const attributes = Array.from({ length: 10 }, (_, index) => ({
     _id: `attribute-${index}`,

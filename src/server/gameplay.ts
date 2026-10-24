@@ -82,8 +82,9 @@ export type Artwork = {
   effect_id?: string;
   art_style_adjustments?: Record<string, ArtworkArtStyleAdjustment>;
   detail_image_adjustments?: ArtworkDetailImageAdjustments;
-  // Legacy-only fields retained for reading pre-migration records.
+  // Rare artworks use one special attribute; legendary/masterpiece use effects.
   special_attributes?: string[];
+  // Legacy-only field retained for reading pre-migration records.
   unique_attributes?: string[];
 };
 

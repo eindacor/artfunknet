@@ -19,6 +19,7 @@ import {
   logOperationalError,
   logOperationalInfo,
 } from "@/server/operational-logging";
+import { withLeastRepresentedRareSpecialAttribute } from "@/server/rare-special-attributes";
 
 type ArtworkInput = {
   artist_id?: unknown;
@@ -107,27 +108,13 @@ export async function POST(request: Request) {
     };
     const insertArtwork = async (
       effect?: { _id: string; linked_attributes: readonly string[] },
+      rareSpecialAttributeId?: string,
     ) => {
-      const specialAttributes =
-        validation.value.rarity === "rare"
-          ? (
-              await database
-                .collection<{ _id: string }>("attributes")
-                .aggregate<{ _id: string }>([
-                  { $match: { active: true } },
-                  { $sample: { size: 1 } },
-                ])
-                .toArray()
-            ).map((attribute) => attribute._id)
-          : [];
-      if (validation.value.rarity === "rare" && specialAttributes.length !== 1) {
-        throw new Error("No active artwork attribute is available.");
-      }
       const artwork = {
         ...baseArtwork,
         ...(effect ? { effect_id: effect._id } : {}),
-        ...(specialAttributes.length
-          ? { special_attributes: specialAttributes }
+        ...(rareSpecialAttributeId
+          ? { special_attributes: [rareSpecialAttributeId] }
           : {}),
       };
       await database.collection<typeof artwork>("artworks").insertOne(artwork);
@@ -141,6 +128,11 @@ export async function POST(request: Request) {
             validation.value.rarity,
             insertArtwork,
           )
+        : validation.value.rarity === "rare"
+          ? await withLeastRepresentedRareSpecialAttribute(
+              database,
+              (attribute) => insertArtwork(undefined, attribute._id),
+            )
         : await insertArtwork();
     logOperationalInfo("artwork_create.completed", {
       artworkId,
