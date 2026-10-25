@@ -8006,6 +8006,10 @@
   transform: rotate(5deg);
 }
 
+.rendered-item-card-skateboard[data-mint="true"] .skateboard-card-deck {
+  transform: none;
+}
+
 .rendered-item-card-skateboard[data-foil="true"]
   .skateboard-card-deck::after {
   position: absolute;
@@ -8156,21 +8160,106 @@
   z-index: 4;
   inset: 4px;
   border-radius: calc((var(--deck-width) - 8px) / 2);
-  opacity: 0.68;
+  opacity: 0.74;
   background:
-    repeating-linear-gradient(
-      164deg,
-      transparent 0 19px,
-      rgb(255 255 255 / 72%) 20px 21px,
-      transparent 22px 38px
-    ),
-    repeating-linear-gradient(
-      8deg,
-      transparent 0 31px,
-      rgb(30 25 23 / 65%) 32px 33px,
-      transparent 34px 61px
-    );
-  mix-blend-mode: screen;
+    linear-gradient(
+        164deg,
+        transparent 45%,
+        rgb(255 255 255 / 78%) 47% 49%,
+        transparent 51%
+      )
+      7px 22px / 58px 34px no-repeat,
+    linear-gradient(
+        12deg,
+        transparent 46%,
+        rgb(31 25 27 / 72%) 48% 50%,
+        transparent 52%
+      )
+      31px 67px / 53px 29px no-repeat,
+    linear-gradient(
+        138deg,
+        transparent 45%,
+        rgb(255 255 255 / 58%) 47% 48%,
+        transparent 50%
+      )
+      13px 116px / 76px 43px no-repeat,
+    linear-gradient(
+        29deg,
+        transparent 46%,
+        rgb(24 19 21 / 62%) 48% 51%,
+        transparent 53%
+      )
+      5px 172px / 46px 51px no-repeat,
+    linear-gradient(
+        173deg,
+        transparent 46%,
+        rgb(255 255 255 / 72%) 48% 49%,
+        transparent 51%
+      )
+      42px 208px / 49px 25px no-repeat,
+    linear-gradient(
+        61deg,
+        transparent 45%,
+        rgb(35 27 30 / 65%) 48% 50%,
+        transparent 53%
+      )
+      18px 250px / 64px 38px no-repeat,
+    linear-gradient(
+        151deg,
+        transparent 45%,
+        rgb(255 255 255 / 66%) 47% 49%,
+        transparent 51%
+      )
+      3px 295px / 71px 33px no-repeat,
+    linear-gradient(
+        76deg,
+        transparent 45%,
+        rgb(28 22 24 / 66%) 48% 50%,
+        transparent 53%
+      )
+      55px 37px / 31px 58px no-repeat,
+    linear-gradient(
+        104deg,
+        transparent 46%,
+        rgb(255 255 255 / 62%) 48% 49%,
+        transparent 51%
+      )
+      4px 142px / 42px 27px no-repeat,
+    linear-gradient(
+        187deg,
+        transparent 45%,
+        rgb(35 27 30 / 58%) 48% 50%,
+        transparent 53%
+      )
+      31px 228px / 58px 24px no-repeat,
+    linear-gradient(
+        43deg,
+        transparent 46%,
+        rgb(255 255 255 / 68%) 48% 49%,
+        transparent 51%
+      )
+      56px 307px / 31px 35px no-repeat,
+    linear-gradient(
+        123deg,
+        transparent 45%,
+        rgb(29 23 25 / 64%) 47% 50%,
+        transparent 52%
+      )
+      9px 324px / 47px 20px no-repeat,
+    radial-gradient(
+        ellipse at center,
+        rgb(238 232 221 / 70%) 0 18%,
+        rgb(31 25 27 / 52%) 23% 29%,
+        transparent 34%
+      )
+      11px 86px / 18px 11px no-repeat,
+    radial-gradient(
+        ellipse at center,
+        rgb(31 25 27 / 58%) 0 22%,
+        transparent 31%
+      )
+      67px 276px / 15px 9px no-repeat;
+  mix-blend-mode: hard-light;
   pointer-events: none;
 }
 
@@ -8179,36 +8268,58 @@
   z-index: 6;
   top: 104px;
   bottom: 104px;
-  left: 13px;
+  right: 7px;
+  left: 7px;
   display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  text-align: left;
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
-  font-style: strong;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0.25rem;
+  text-align: center;
+  font-family:
+    Impact,
+    Haettenschweiler,
+    "Arial Narrow Bold",
+    "Arial Black",
+    sans-serif;
+  font-stretch: condensed;
+  font-weight: 900;
+  text-transform: uppercase;
 }
 
 .skateboard-card h3 {
-  max-height: 142px;
+  display: -webkit-box;
   overflow: hidden;
-  color: #000;
-  font-size: 0.78rem;
-  font-style: strong;
-  letter-spacing: 0.04em;
-  line-height: 1;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  color: #f4eadb;
+  font-size: 1.42rem;
+  font-weight: 900;
+  letter-spacing: -0.075em;
+  line-height: 0.78;
+  overflow-wrap: anywhere;
+  text-shadow:
+    2px 2px 0 #151112,
+    -1px -1px 0 #151112,
+    3px 3px 0 var(--rarity-color);
+  -webkit-text-stroke: 0.5px #151112;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
 }
 
 .skateboard-card .render-card-artist {
-  max-height: 132px;
+  display: -webkit-box;
   overflow: hidden;
   color: #eee7dd;
-  font-size: 0.5rem;
-  line-height: 1;
-  white-space: nowrap;
-  font-style: strong;
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: -0.055em;
+  line-height: 0.84;
+  overflow-wrap: anywhere;
+  text-shadow:
+    1px 1px 0 #151112,
+    2px 2px 0 rgb(0 0 0 / 48%);
+  -webkit-text-stroke: 0.25px #151112;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 
 .skateboard-card-stickers {
@@ -8262,44 +8373,56 @@
 }
 
 .skateboard-card .attribute-group-unlocked .attribute-tooltip:nth-child(1) {
-  top: 112px;
-  right: 12px;
+  top: 119px;
+  right: 8px;
   transform: rotate(-11deg);
 }
 
 .skateboard-card .attribute-group-unlocked .attribute-tooltip:nth-child(2) {
-  right: 17px;
-  bottom: 118px;
+  top: 169px;
+  left: 6px;
   transform: rotate(8deg);
 }
 
+.skateboard-card .attribute-group-unlocked .attribute-tooltip:nth-child(3) {
+  top: 211px;
+  right: 7px;
+  transform: rotate(-7deg);
+}
+
+.skateboard-card .attribute-group-unlocked .attribute-tooltip:nth-child(4) {
+  top: 224px;
+  left: 34px;
+  transform: rotate(11deg);
+}
+
 .skateboard-card .attribute-group-locked .attribute-tooltip:nth-child(1) {
-  top: 158px;
-  right: 8px;
+  top: 151px;
+  right: 31px;
   transform: rotate(7deg);
 }
 
 .skateboard-card .attribute-group-locked .attribute-tooltip:nth-child(2) {
-  bottom: 92px;
-  left: 40px;
+  top: 214px;
+  left: 17px;
   transform: rotate(-6deg);
 }
 
 .skateboard-card .attribute-group-special .attribute-tooltip:nth-child(1) {
-  top: 204px;
-  right: 15px;
+  top: 130px;
+  left: 14px;
   transform: rotate(-9deg);
 }
 
 .skateboard-card .attribute-group-special .attribute-tooltip:nth-child(2) {
-  top: 133px;
-  left: 41px;
+  top: 205px;
+  left: 6px;
   transform: rotate(10deg);
 }
 
 .skateboard-card .attribute-group-special .attribute-tooltip:nth-child(3) {
-  right: 35px;
-  bottom: 33px;
+  top: 178px;
+  right: 8px;
   transform: rotate(-5deg);
 }
 
@@ -8311,8 +8434,8 @@
 .skateboard-card-unlocked {
   position: absolute;
   z-index: 8;
-  top: 94px;
-  right: 9px;
+  top: 17px;
+  left: calc(50% + 12px);
   display: grid;
   width: 28px;
   height: 28px;
@@ -8323,14 +8446,14 @@
   color: #281d12;
   box-shadow: 2px 3px 0 rgb(23 19 20 / 70%);
   font-size: 0.78rem;
-  transform: rotate(9deg);
+  transform: translateX(-50%) rotate(9deg);
 }
 
 .skateboard-card-mint {
   position: absolute;
   z-index: 8;
-  top: 140px;
-  left: 32px;
+  bottom: 17px;
+  left: calc(50% - 12px);
   display: grid;
   width: 25px;
   height: 25px;
@@ -8340,11 +8463,21 @@
   color: #174a2a;
   box-shadow: 2px 3px 0 rgb(23 19 20 / 70%);
   font-size: 0.72rem;
-  transform: rotate(45deg);
+  transform: translateX(-50%) rotate(45deg);
 }
 
 .skateboard-card-mint i {
   transform: rotate(-45deg);
+}
+
+.rendered-item-card-skateboard[data-mint="true"] .skateboard-card-scuffs,
+.rendered-item-card-skateboard[data-mint="true"] .skateboard-card-stickers,
+.rendered-item-card-skateboard[data-mint="true"] .skateboard-card-unlocked,
+.rendered-item-card-skateboard[data-mint="true"] .skateboard-card-mint,
+.rendered-item-card-skateboard[data-mint="true"]
+  .skateboard-card-deck
+  > .render-card-badges {
+  display: none;
 }
 
 .skateboard-card-deck > .render-card-badges {
