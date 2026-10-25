@@ -8593,71 +8593,17 @@
   transform: rotate(-8deg);
 }
 
-.rendered-item-card-album[data-seasonal="true"] .album-card-sleeve {
-  background: var(--rarity-color);
-}
-
-.rendered-item-card-album[data-seasonal="true"] .album-card-image {
-  display: none;
-}
-
-.rendered-item-card-album[data-seasonal="true"] .album-card-sleeve-print {
-  background:
-    linear-gradient(
-      153deg,
-      transparent 0 56%,
-      rgb(211 74 44 / 88%) 56.5% 69%,
-      transparent 69.5%
-    ),
-    linear-gradient(
-      18deg,
-      transparent 0 64%,
-      rgb(232 183 64 / 84%) 64.5% 75%,
-      transparent 75.5%
-    ),
-    radial-gradient(
-      circle at 18% 21%,
-      rgb(237 218 174 / 92%) 0 12%,
-      transparent 12.5%
-    ),
-    linear-gradient(rgb(20 19 17 / 18%), rgb(20 19 17 / 48%));
-}
-
-.rendered-item-card-album[data-seasonal="true"] .album-card-cover-copy {
-  right: 8px;
-  bottom: 18px;
-  left: 26px;
-  border-left: 6px solid #e8b740;
-  padding: 0.35rem 0.45rem;
-  background: rgb(21 20 18 / 82%);
-  font-family: Arial, Helvetica, sans-serif;
-  letter-spacing: 0.045em;
-  text-transform: uppercase;
-  transform: rotate(-2deg);
-}
-
-.rendered-item-card-album[data-seasonal="true"] .album-card-cover-copy h3 {
-  font-size: 1.08rem;
-  font-weight: 900;
-}
-
-.rendered-item-card-album[data-seasonal="true"]
-  .album-card-cover-copy
-  .render-card-artist {
-  color: #e8b740;
-  letter-spacing: 0.12em;
-}
-
 .rendered-item-card-album[data-seasonal="true"] .album-card-record {
   background-image:
     repeating-radial-gradient(
       circle,
       transparent 0 2px,
-      rgb(0 0 0 / 30%) 3px 4px
+      rgb(0 0 0 / 20%) 3px 4px
     ),
     var(--album-art);
   background-position: center;
   background-size: auto, cover;
+  filter: hue-rotate(180deg);
 }
 
 .album-card-record::before {
