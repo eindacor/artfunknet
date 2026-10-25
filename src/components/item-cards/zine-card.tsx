@@ -51,6 +51,16 @@ export default function ZineCard({
           {item.artwork.genre} / {Math.round(item.condition * 100)}% COND.
         </p>
       </section>
+      {item.seasonal ? (
+        <aside
+          aria-label="Seasonal limited-run zine"
+          className="zine-card-seasonal-flyer"
+        >
+          <span>AFTER HOURS</span>
+          <strong>SEASONAL</strong>
+          <small>ONE-NIGHT PRINT / NO REISSUES</small>
+        </aside>
+      ) : null}
       <AttributeIcons item={item} />
     </div>
   );

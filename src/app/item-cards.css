@@ -2292,14 +2292,6 @@
   transform: rotate(-3deg);
 }
 
-.rendered-item-card[data-seasonal="true"] .zine-card-value {
-  background: repeating-linear-gradient(
-    90deg,
-    var(--rarity-color) 0 9px,
-    color-mix(in srgb, var(--rarity-color) 82%, #555) 9px 18px
-  );
-}
-
 .rendered-item-card[data-lottery] .zine-card {
   box-shadow:
     8px 8px 0 #e8bf6c,
@@ -2442,6 +2434,110 @@
 .zine-card section > p {
   font-size: 0.57rem;
   font-weight: 700;
+}
+
+.zine-card-seasonal-flyer {
+  position: absolute;
+  z-index: 6;
+  right: -11px;
+  bottom: 17px;
+  display: grid;
+  width: 98px;
+  min-height: 72px;
+  align-content: center;
+  gap: 2px;
+  overflow: hidden;
+  padding: 10px 8px 7px;
+  clip-path: polygon(
+    3% 4%,
+    18% 0,
+    34% 4%,
+    51% 1%,
+    68% 5%,
+    84% 1%,
+    100% 7%,
+    96% 24%,
+    100% 43%,
+    96% 62%,
+    100% 82%,
+    91% 100%,
+    73% 96%,
+    56% 100%,
+    37% 96%,
+    18% 100%,
+    0 93%,
+    4% 74%,
+    0 54%,
+    4% 34%,
+    0 17%
+  );
+  background:
+    radial-gradient(circle at 18% 22%, rgb(17 17 17 / 28%) 0 1px, transparent 1.5px)
+      0 0 / 7px 7px,
+    linear-gradient(
+      152deg,
+      var(--rarity-light),
+      color-mix(in srgb, var(--rarity-color) 72%, #f3eee1)
+    );
+  color: #111;
+  box-shadow:
+    4px 5px 0 #111,
+    7px 8px 0 rgb(0 0 0 / 18%);
+  font-family: Arial, Helvetica, sans-serif;
+  text-align: center;
+  text-transform: uppercase;
+  transform: rotate(-6deg);
+}
+
+.zine-card-seasonal-flyer::before {
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  width: 48px;
+  height: 9px;
+  background: rgb(245 236 210 / 74%);
+  box-shadow: 0 1px 0 rgb(17 17 17 / 20%);
+  content: "";
+  transform: translateX(-50%) rotate(2deg);
+}
+
+.zine-card-seasonal-flyer::after {
+  position: absolute;
+  right: -9px;
+  bottom: -9px;
+  width: 31px;
+  height: 31px;
+  border: 3px solid #111;
+  border-radius: 50%;
+  background: repeating-conic-gradient(
+    #111 0 8deg,
+    transparent 8deg 18deg
+  );
+  content: "";
+  opacity: 0.24;
+}
+
+.zine-card-seasonal-flyer span,
+.zine-card-seasonal-flyer strong,
+.zine-card-seasonal-flyer small {
+  position: relative;
+  z-index: 1;
+}
+
+.zine-card-seasonal-flyer span {
+  font: 900 0.38rem/1 "Courier New", Courier, monospace;
+  letter-spacing: 0.12em;
+}
+
+.zine-card-seasonal-flyer strong {
+  border-block: 2px solid #111;
+  padding-block: 2px;
+  font: 1000 0.88rem/0.9 "Arial Black", Arial, sans-serif;
+  letter-spacing: -0.07em;
+}
+
+.zine-card-seasonal-flyer small {
+  font: 900 0.31rem/1.05 "Courier New", Courier, monospace;
 }
 
 .zine-card .render-card-attribute-icons {
