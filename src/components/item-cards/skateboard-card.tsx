@@ -15,9 +15,7 @@ export default function SkateboardCard({
       <div className="skateboard-card-deck">
         <ArtworkImage className="skateboard-card-image" item={item} />
         <span className="skateboard-card-grip" aria-hidden="true" />
-        {item.seasonal ? (
-          <span className="skateboard-card-scuffs" aria-label="Seasonal scuffs" />
-        ) : null}
+        <span className="skateboard-card-scuffs" aria-label="Deck scuffs" />
         <SkateboardTruck
           position="front"
           raffle={Boolean(item.lottery)}
