@@ -3982,200 +3982,855 @@
   }
 }
 
-/* Reliquary: high-detail game loot frame with rarity-powered gems. */
+/* Reliquary: angular looter-shooter boss drop with shader-powered energy. */
 .rendered-item-card-reliquary {
   --card-width: 300px;
 }
 
+@property --reliquary-beam-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
 .reliquary-card {
-  --reliquary-stripe-color: var(--rarity-glow);
+  isolation: isolate;
   height: 420px;
-  overflow: visible;
-  border: 7px double var(--rarity-color);
-  clip-path: polygon(12% 0, 88% 0, 100% 9%, 100% 91%, 88% 100%, 12% 100%, 0 91%, 0 9%);
-  padding: 0.8rem 1.05rem 1.15rem;
+  overflow: hidden;
+  clip-path: polygon(
+    7% 0,
+    93% 0,
+    100% 5%,
+    100% 95%,
+    93% 100%,
+    7% 100%,
+    0 95%,
+    0 5%
+  );
+  padding: 11px 12px 8px;
   background:
-    linear-gradient(135deg, transparent 42%, var(--rarity-glow) 50%, transparent 58%)
-      0 0 / 34px 34px,
-    #100d16;
-  color: #fff;
+    linear-gradient(135deg, var(--rarity-color), transparent 16%) top left /
+      80px 80px no-repeat,
+    linear-gradient(225deg, var(--rarity-color), transparent 16%) top right /
+      80px 80px no-repeat,
+    linear-gradient(45deg, var(--rarity-color), transparent 16%) bottom left /
+      80px 80px no-repeat,
+    linear-gradient(315deg, var(--rarity-color), transparent 16%) bottom right /
+      80px 80px no-repeat,
+    radial-gradient(circle at 50% 34%, var(--rarity-glow), transparent 42%),
+    linear-gradient(155deg, #111923 0 38%, #070b10 72%, #020305);
+  color: #f4f8fb;
   box-shadow:
-    inset 0 0 0 2px #050407,
-    inset 0 0 30px var(--rarity-glow),
-    0 0 25px var(--rarity-glow);
-  font-family: "Courier New", Courier, monospace;
-}
-
-.rendered-item-card[data-seasonal="true"] .reliquary-card {
-  background:
-    repeating-linear-gradient(
-      45deg,
-      transparent 0 12px,
-      color-mix(in srgb, var(--reliquary-stripe-color) 34%, transparent)
-        12px 15px,
-      transparent 15px 27px
-    ),
-    linear-gradient(
-        135deg,
-        transparent 42%,
-        var(--rarity-glow) 50%,
-        transparent 58%
-      )
-      0 0 / 34px 34px,
-    #100d16;
-}
-
-.rendered-item-card[data-lottery] .reliquary-card {
-  --reliquary-stripe-color: #ffd75a;
+    inset 0 0 0 2px var(--rarity-color),
+    inset 0 0 0 5px #05080c,
+    inset 0 0 38px var(--rarity-glow),
+    0 0 18px var(--rarity-glow),
+    0 16px 30px rgb(0 0 0 / 58%);
+  font-family: var(--font-geist-mono), "Arial Narrow", sans-serif;
 }
 
 .reliquary-card::before,
 .reliquary-card::after {
-  content: "";
   position: absolute;
   z-index: 2;
-  inset: 10px;
-  border: 1px solid var(--rarity-light);
-  clip-path: inherit;
+  content: "";
   pointer-events: none;
 }
 
-.reliquary-card::after {
-  inset: 15px;
-  border-style: dashed;
-  opacity: 0.45;
-}
-
-.reliquary-card-energy {
-  position: absolute;
-  inset: -25%;
-  background: conic-gradient(
-    transparent,
-    var(--rarity-glow),
-    transparent 35%,
-    var(--rarity-glow),
-    transparent 70%
+.reliquary-card::before {
+  inset: 5px;
+  border: 1px solid color-mix(in srgb, var(--rarity-light) 82%, white);
+  clip-path: polygon(
+    6% 0,
+    94% 0,
+    100% 5%,
+    100% 95%,
+    94% 100%,
+    6% 100%,
+    0 95%,
+    0 5%
   );
-  opacity: 0.45;
-  animation: reliquary-energy 8s linear infinite;
+  box-shadow:
+    inset 0 0 12px var(--rarity-glow),
+    0 0 7px var(--rarity-color);
+  opacity: 0.76;
 }
 
-.reliquary-card-gem {
+.reliquary-card::after {
+  inset: 0;
+  background:
+    linear-gradient(105deg, transparent 30%, rgb(255 255 255 / 8%), transparent 49%),
+    repeating-linear-gradient(
+      0deg,
+      rgb(255 255 255 / 0%) 0 3px,
+      rgb(255 255 255 / 2.5%) 3px 4px
+    );
+  mix-blend-mode: screen;
+  opacity: 0.58;
+}
+
+.reliquary-card-border-beam,
+.reliquary-card-frame-beam {
+  --reliquary-beam-angle: 0deg;
   position: absolute;
+  background: conic-gradient(
+    from var(--reliquary-beam-angle),
+    transparent 0deg 326deg,
+    color-mix(in srgb, var(--rarity-color) 18%, transparent) 335deg,
+    color-mix(in srgb, var(--rarity-light) 42%, transparent) 343deg,
+    color-mix(in srgb, var(--rarity-color) 18%, transparent) 351deg,
+    transparent 360deg
+  );
+  filter: drop-shadow(0 0 2px var(--rarity-glow));
+  opacity: 0;
+  pointer-events: none;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+
+.reliquary-card-border-beam {
   z-index: 6;
-  top: 48%;
-  width: 18px;
-  height: 18px;
-  border: 2px solid var(--rarity-light);
-  background: var(--rarity-color);
-  box-shadow: 0 0 15px var(--rarity-color);
-  transform: rotate(45deg);
+  inset: 3px;
+  clip-path: polygon(
+    6% 0,
+    94% 0,
+    100% 5%,
+    100% 95%,
+    94% 100%,
+    6% 100%,
+    0 95%,
+    0 5%
+  );
+  padding: 3px;
+  animation: reliquary-border-beam 7.4s linear infinite;
 }
 
-.reliquary-card-leaf {
-  display: grid;
-  place-items: center;
-  border: 0;
-  background: transparent;
-  color: var(--rarity-light);
-  font-size: 1.15rem;
-  filter: drop-shadow(0 0 6px var(--rarity-color));
-  transform: none;
+.reliquary-card-frame-beam {
+  z-index: 4;
+  inset: 0;
+  clip-path: inherit;
+  padding: 3px;
+  animation: reliquary-border-beam 6.2s linear infinite;
 }
 
-.reliquary-card-leaf.gem-right {
-  transform: scaleX(-1);
+.reliquary-card-grid {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background:
+    linear-gradient(var(--rarity-glow) 1px, transparent 1px),
+    linear-gradient(90deg, var(--rarity-glow) 1px, transparent 1px);
+  background-size: 18px 18px;
+  mask-image: linear-gradient(to bottom, transparent, #000 35%, transparent 82%);
+  opacity: 0.14;
+  pointer-events: none;
 }
 
-.reliquary-card-gem.gem-left {
-  left: -7px;
+.reliquary-card-corner {
+  position: absolute;
+  z-index: 5;
+  width: 28px;
+  height: 28px;
+  border-color: var(--rarity-light);
+  filter: drop-shadow(0 0 5px var(--rarity-color));
+  pointer-events: none;
 }
 
-.reliquary-card-gem.gem-right {
-  right: -7px;
+.reliquary-card-corner.corner-top-left {
+  top: 4px;
+  left: 4px;
+  border-top: 4px solid;
+  border-left: 4px solid;
 }
 
-.reliquary-card > header,
-.reliquary-card > section,
-.reliquary-card-frame {
+.reliquary-card-corner.corner-top-right {
+  top: 4px;
+  right: 4px;
+  border-top: 4px solid;
+  border-right: 4px solid;
+}
+
+.reliquary-card-corner.corner-bottom-left {
+  bottom: 4px;
+  left: 4px;
+  border-bottom: 4px solid;
+  border-left: 4px solid;
+}
+
+.reliquary-card-corner.corner-bottom-right {
+  right: 4px;
+  bottom: 4px;
+  border-right: 4px solid;
+  border-bottom: 4px solid;
+}
+
+.reliquary-card-header,
+.reliquary-card-frame,
+.reliquary-card-loot,
+.reliquary-card-special-text,
+.reliquary-card-footer {
   position: relative;
   z-index: 4;
 }
 
-.reliquary-card > header {
+.reliquary-card-header {
   display: grid;
-  gap: 0.15rem;
-  text-align: center;
-  font-size: 0.52rem;
-  letter-spacing: 0.14em;
+  grid-template-columns: 43px minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  min-height: 67px;
+  padding: 3px 4px 5px;
+  text-align: left;
 }
 
-.reliquary-card-unsealed {
-  color: var(--unlocked-color);
-  text-shadow: 0 0 7px var(--unlocked-glow);
+.reliquary-card-crest {
+  position: relative;
+  display: grid;
+  width: 41px;
+  height: 46px;
+  place-items: center;
+  border: 2px solid var(--rarity-light);
+  clip-path: polygon(50% 0, 92% 18%, 82% 78%, 50% 100%, 18% 78%, 8% 18%);
+  background:
+    radial-gradient(circle, var(--rarity-light), var(--rarity-color) 48%, #070b0f 52%);
+  color: #071018;
+  box-shadow:
+    inset 0 0 0 3px #080b10,
+    0 0 12px var(--rarity-color);
+  font-size: 1rem;
+}
+
+.reliquary-card-crest::before,
+.reliquary-card-crest::after {
+  position: absolute;
+  top: 50%;
+  width: 9px;
+  height: 2px;
+  background: var(--rarity-light);
+  box-shadow: 0 0 6px var(--rarity-color);
+  content: "";
+}
+
+.reliquary-card-crest::before {
+  right: 100%;
+}
+
+.reliquary-card-crest::after {
+  left: 100%;
+}
+
+.reliquary-card-heading {
+  min-width: 0;
+}
+
+.reliquary-card-kicker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+  font-size: 0.48rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.reliquary-card-kicker .card-rarity-label {
+  color: var(--rarity-light);
+  font-size: 0.58rem;
+  text-shadow: 0 0 7px var(--rarity-color);
+}
+
+.reliquary-card-kicker span {
+  color: #aab7c3;
+}
+
+.reliquary-card-heading h3 {
+  overflow: hidden;
+  margin: 0;
+  color: #fff;
+  font: 900 1.02rem/0.96 "Arial Narrow", Impact, sans-serif;
+  letter-spacing: 0.025em;
+  text-overflow: ellipsis;
+  text-shadow:
+    0 0 9px var(--rarity-color),
+    2px 2px 0 #05080b;
+  text-transform: uppercase;
+}
+
+.reliquary-card[data-title-size="medium"] .reliquary-card-heading h3 {
+  font-size: 0.86rem;
+}
+
+.reliquary-card[data-title-size="long"] .reliquary-card-heading h3 {
+  display: -webkit-box;
+  font-size: 0.72rem;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.reliquary-card-heading p {
+  overflow: hidden;
+  margin: 4px 0 0;
+  color: var(--rarity-light);
+  font-size: 0.45rem;
+  letter-spacing: 0.065em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .reliquary-card-frame {
-  height: 205px;
-  margin: 0.55rem 0;
-  border: 5px ridge var(--rarity-color);
-  padding: 4px;
-  background: #050407;
-  box-shadow: 0 0 14px var(--rarity-glow);
+  position: relative;
+  height: 187px;
+  overflow: hidden;
+  border: 2px solid var(--rarity-color);
+  clip-path: polygon(5% 0, 95% 0, 100% 8%, 100% 92%, 95% 100%, 5% 100%, 0 92%, 0 8%);
+  background: #020508;
+  box-shadow:
+    inset 0 0 0 2px #071018,
+    inset 0 0 20px #000,
+    0 0 14px var(--rarity-glow);
+}
+
+.reliquary-card:not([data-special-item="true"]) .reliquary-card-frame {
+  height: 212px;
 }
 
 .reliquary-card-image {
   height: 100%;
   background-position: center;
   background-size: cover;
-  filter: contrast(1.08) saturate(1.12);
 }
 
-.reliquary-card > section {
+.reliquary-card-image .render-card-artwork-image-source {
+  filter: contrast(1.14) saturate(1.22) brightness(0.92);
+}
+
+.reliquary-card-image-vignette {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgb(3 8 13 / 6%) 48%, rgb(1 4 8 / 80%) 100%),
+    radial-gradient(circle at 50% 47%, transparent 30%, rgb(0 0 0 / 48%) 100%),
+    linear-gradient(115deg, transparent 35%, var(--rarity-glow), transparent 62%);
+  mix-blend-mode: screen, normal, screen;
+  opacity: 0.74;
+  pointer-events: none;
+}
+
+.reliquary-card-image-mark {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  left: 50%;
   display: grid;
-  gap: 0.22rem;
+  width: 72px;
+  height: 48px;
+  place-items: center;
+  border: 1px solid var(--rarity-light);
+  clip-path: polygon(12% 0, 88% 0, 100% 22%, 100% 78%, 88% 100%, 12% 100%, 0 78%, 0 22%);
+  background: rgb(2 8 13 / 26%);
+  color: var(--rarity-light);
+  font: 900 1.45rem/1 Impact, "Arial Narrow", sans-serif;
+  letter-spacing: -0.08em;
+  box-shadow:
+    inset 0 0 0 5px rgb(2 8 13 / 42%),
+    inset 0 0 0 6px var(--rarity-color),
+    0 0 8px var(--rarity-glow);
+  opacity: 0.1;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.reliquary-card-image-mark::before,
+.reliquary-card-image-mark::after {
+  position: absolute;
+  top: 50%;
+  width: 20px;
+  height: 2px;
+  background: var(--rarity-light);
+  box-shadow: 0 0 3px var(--rarity-color);
+  content: "";
+  transform: translateY(-50%);
+}
+
+.reliquary-card-image-mark::before {
+  right: calc(100% + 5px);
+}
+
+.reliquary-card-image-mark::after {
+  left: calc(100% + 5px);
+}
+
+.reliquary-card-power {
+  position: absolute;
+  z-index: 5;
+  top: 8px;
+  left: 8px;
+  border: 1px solid var(--rarity-light);
+  clip-path: polygon(8% 0, 100% 0, 92% 100%, 0 100%);
+  padding: 4px 9px 3px;
+  background: rgb(3 8 13 / 86%);
+  color: var(--rarity-light);
+  font-size: 0.55rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  box-shadow: 0 0 8px var(--rarity-glow);
+}
+
+.reliquary-card-states {
+  position: absolute;
+  z-index: 5;
+  right: 7px;
+  bottom: 7px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.reliquary-card-states > i,
+.reliquary-card-states > span {
+  display: inline-grid;
+  min-width: 20px;
+  height: 20px;
+  place-items: center;
+  border: 1px solid var(--rarity-light);
+  clip-path: polygon(18% 0, 82% 0, 100% 18%, 100% 82%, 82% 100%, 18% 100%, 0 82%, 0 18%);
+  background: rgb(2 7 11 / 88%);
+  color: var(--rarity-light);
+  font-size: 0.54rem;
+  font-style: normal;
+  font-weight: 900;
+  box-shadow: 0 0 8px var(--rarity-glow);
+}
+
+.reliquary-card-states > span {
+  grid-auto-flow: column;
+  gap: 2px;
+  padding-inline: 4px;
+}
+
+.reliquary-card-loot {
+  margin-top: 6px;
+  border: 1px solid color-mix(in srgb, var(--rarity-color) 78%, #253341);
+  clip-path: polygon(3% 0, 97% 0, 100% 12%, 100% 88%, 97% 100%, 3% 100%, 0 88%, 0 12%);
+  background:
+    linear-gradient(90deg, var(--rarity-glow), transparent 28% 72%, var(--rarity-glow)),
+    rgb(2 8 14 / 91%);
+  box-shadow:
+    inset 0 0 18px rgb(0 0 0 / 72%),
+    0 0 7px var(--rarity-glow);
+}
+
+.reliquary-card-readout {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-bottom: 1px solid var(--rarity-color);
+  background: rgb(255 255 255 / 3%);
+}
+
+.reliquary-card-readout > span {
+  display: grid;
+  gap: 1px;
+  padding: 4px 5px 3px;
   text-align: center;
 }
 
-.reliquary-card h3 {
-  color: var(--rarity-light);
-  font: 800 0.95rem/1 Georgia, "Times New Roman", serif;
-  text-shadow: 0 0 8px var(--rarity-color);
+.reliquary-card-readout > span + span {
+  border-left: 1px solid color-mix(in srgb, var(--rarity-color) 60%, transparent);
 }
 
-.reliquary-card section > p,
-.reliquary-card section > em {
+.reliquary-card-readout small {
+  color: #8fa0ae;
+  font-size: 0.35rem;
+  letter-spacing: 0.08em;
+}
+
+.reliquary-card-readout strong {
+  color: var(--rarity-light);
   font-size: 0.56rem;
+  text-shadow: 0 0 6px var(--rarity-color);
 }
 
-.reliquary-card section > em {
+.reliquary-card-attributes {
+  display: grid;
+  align-content: center;
+  min-height: 62px;
+  padding: 3px 7px 4px;
+}
+
+.reliquary-card-attribute {
+  display: grid;
+  grid-template-columns: 12px 31px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 3px;
+  min-height: 11px;
+  color: #d8e1e8;
+  font-size: 0.43rem;
+  line-height: 1;
+}
+
+.reliquary-card-attribute i,
+.reliquary-card-attribute strong {
   color: var(--rarity-light);
-  font-family: Georgia, "Times New Roman", serif;
+  text-shadow: 0 0 5px var(--rarity-color);
 }
 
-.reliquary-card-stats {
-  display: flex;
-  justify-content: space-between;
-  border-block: 1px solid var(--rarity-color);
-  padding: 0.3rem 0.45rem;
+.reliquary-card-attribute > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reliquary-card-attribute small {
+  color: #768693;
+  font-size: 0.31rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.reliquary-card-attribute.attribute-special i,
+.reliquary-card-attribute.attribute-special strong {
+  color: #fff2a8;
+}
+
+.reliquary-card-attribute.attribute-locked {
+  opacity: 0.68;
+}
+
+.reliquary-card-special-text {
+  position: relative;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 6px;
+  overflow: hidden;
+  min-height: 25px;
+  margin: 5px 5px 2px;
+  padding: 4px 7px 3px;
+  border-top: 1px solid var(--rarity-color);
+  border-bottom: 1px solid color-mix(in srgb, var(--rarity-color) 45%, transparent);
+  color: color-mix(in srgb, var(--rarity-light) 76%, white);
+  font: 0.42rem/1.25 var(--font-geist-mono), "Courier New", monospace;
+}
+
+.reliquary-card-special-text strong {
   color: var(--rarity-light);
-  font-size: 0.52rem;
+  font-size: 0.34rem;
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 6px var(--rarity-color);
 }
 
-.reliquary-card .render-card-attribute-icons {
-  justify-content: center;
-  margin-bottom: 0.2rem;
+.reliquary-card-special-text span {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
-.rendered-item-card[data-rarity="legendary"] .reliquary-card,
-.rendered-item-card[data-rarity="masterpiece"] .reliquary-card {
-  animation: reliquary-awaken 1.3s ease-in-out infinite alternate;
+.reliquary-card-footer {
+  position: absolute;
+  right: 12px;
+  bottom: 7px;
+  left: 12px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 5px;
+  padding: 0 7px;
+  color: var(--rarity-light);
+  font-size: 0.34rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
 }
 
-.rendered-item-card[data-rarity="masterpiece"] .reliquary-card {
-  animation:
-    reliquary-awaken 0.9s ease-in-out infinite alternate,
-    masterpiece-spectrum 3s linear infinite;
+.reliquary-card-footer span:nth-child(2) {
+  overflow: hidden;
+  color: #7e8d99;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rendered-item-card[data-mint="true"] .reliquary-card-crest,
+.rendered-item-card[data-mint="true"] .reliquary-card-frame {
+  box-shadow:
+    inset 0 0 0 2px #071018,
+    inset 0 0 20px #000,
+    0 0 18px var(--rarity-light);
+}
+
+.rendered-item-card[data-foil="true"] .reliquary-card::after {
+  opacity: 0.84;
+}
+
+.rendered-item-card[data-seasonal="true"] .reliquary-card {
+  --reliquary-seasonal-accent: color-mix(
+    in srgb,
+    var(--rarity-color) 46%,
+    white
+  );
+  background:
+    linear-gradient(135deg, var(--rarity-color), transparent 16%) top left /
+      80px 80px no-repeat,
+    linear-gradient(225deg, var(--rarity-color), transparent 16%) top right /
+      80px 80px no-repeat,
+    linear-gradient(45deg, var(--rarity-color), transparent 16%) bottom left /
+      80px 80px no-repeat,
+    linear-gradient(315deg, var(--rarity-color), transparent 16%) bottom right /
+      80px 80px no-repeat,
+    radial-gradient(circle at 50% 34%, var(--rarity-glow), transparent 47%),
+    linear-gradient(
+      155deg,
+      #fff 0 28%,
+      color-mix(in srgb, var(--rarity-light) 24%, #f8fbff) 58%,
+      color-mix(in srgb, var(--rarity-color) 22%, #e5edf4) 100%
+    );
+  color: #15212a;
+  box-shadow:
+    inset 0 0 0 2px var(--rarity-color),
+    inset 0 0 0 3px var(--reliquary-seasonal-accent),
+    inset 0 0 0 6px #f7fbff,
+    inset 0 0 34px var(--rarity-glow),
+    0 0 18px var(--rarity-glow),
+    0 16px 30px rgb(0 0 0 / 34%);
+}
+
+.rendered-item-card[data-seasonal="true"] .reliquary-card::before {
+  border-color: color-mix(in srgb, var(--rarity-color) 72%, #26323b);
+}
+
+.rendered-item-card[data-seasonal="true"] .reliquary-card::after {
+  background:
+    linear-gradient(105deg, transparent 30%, rgb(255 255 255 / 48%), transparent 49%),
+    repeating-linear-gradient(
+      0deg,
+      rgb(24 34 43 / 0%) 0 3px,
+      rgb(24 34 43 / 3%) 3px 4px
+    );
+  mix-blend-mode: multiply;
+  opacity: 0.32;
+}
+
+.rendered-item-card[data-seasonal="true"] .reliquary-card-corner {
+  border-color: color-mix(in srgb, var(--rarity-color) 68%, #17222b);
+  filter: drop-shadow(0 0 3px var(--rarity-glow));
+}
+
+.rendered-item-card[data-seasonal="true"] .reliquary-card-corner::before {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-color: var(--reliquary-seasonal-accent);
+  content: "";
+  filter: drop-shadow(0 0 2px var(--rarity-glow));
+  opacity: 0.86;
+}
+
+.rendered-item-card[data-seasonal="true"] .reliquary-card-corner::after {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  background: var(--reliquary-seasonal-accent);
+  box-shadow: 0 0 4px var(--rarity-glow);
+  content: "";
+  opacity: 0.78;
+  transform: rotate(45deg);
+}
+
+.rendered-item-card[data-seasonal="true"]
+  .reliquary-card-corner.corner-top-left::before {
+  top: 5px;
+  left: 5px;
+  border-top: 2px solid;
+  border-left: 2px solid;
+}
+
+.rendered-item-card[data-seasonal="true"]
+  .reliquary-card-corner.corner-top-left::after {
+  top: 10px;
+  left: 10px;
+}
+
+.rendered-item-card[data-seasonal="true"]
+  .reliquary-card-corner.corner-top-right::before {
+  top: 5px;
+  right: 5px;
+  border-top: 2px solid;
+  border-right: 2px solid;
+}
+
+.rendered-item-card[data-seasonal="true"]
+  .reliquary-card-corner.corner-top-right::after {
+  top: 10px;
+  right: 10px;
+}
+
+.rendered-item-card[data-seasonal="true"]
+  .reliquary-card-corner.corner-bottom-left::after {
+  bottom: 10px;
+  left: 10px;
+}
+
+.rendered-item-card[data-seasonal="true"]
+  .reliquary-card-corner.corner-bottom-right::after {
+  right: 10px;
+  bottom: 10px;
+}
+
+.rendered-item-card[data-seasonal="true"] .reliquary-card-border-beam,
+.rendered-item-card[data-seasonal="true"] .reliquary-card-frame-beam {
+  background: conic-gradient(
+    from var(--reliquary-beam-angle),
+    transparent 0deg 326deg,
+    color-mix(in srgb, var(--rarity-color) 20%, transparent) 335deg,
+    color-mix(in srgb, var(--reliquary-seasonal-accent) 34%, transparent) 343deg,
+    color-mix(in srgb, var(--rarity-color) 20%, transparent) 351deg,
+    transparent 360deg
+  );
+}
+
+.rendered-item-card[data-seasonal="true"] .reliquary-card-crest {
+  background: radial-gradient(
+    circle,
+    #fff,
+    var(--rarity-light) 38%,
+    var(--rarity-color) 63%,
+    #edf3f7 68%
+  );
+  color: #13202a;
+  box-shadow:
+    inset 0 0 0 2px #f7fbff,
+    inset 0 0 0 3px var(--reliquary-seasonal-accent),
+    0 0 10px var(--rarity-glow);
+}
+
+.rendered-item-card[data-seasonal="true"] .reliquary-card-crest::before,
+.rendered-item-card[data-seasonal="true"] .reliquary-card-crest::after {
+  background: color-mix(in srgb, var(--rarity-color) 75%, #1a2730);
+}
+
+.rendered-item-card[data-seasonal="true"] .reliquary-card-heading h3 {
+  color: #101a22;
+  text-shadow:
+    0 0 8px var(--rarity-glow),
+    1px 1px 0 #fff;
+}
+
+.rendered-item-card[data-seasonal="true"] .reliquary-card-header {
+  background:
+    linear-gradient(
+        90deg,
+        transparent 0 8%,
+        var(--reliquary-seasonal-accent) 8% 25%,
+        transparent 25% 75%,
+        var(--reliquary-seasonal-accent) 75% 92%,
+        transparent 92%
+      )
+      bottom / 100% 1px no-repeat;
+}
+
+.rendered-item-card[data-seasonal="true"] .reliquary-card-kicker span {
+  color: #4e5c67;
+}
+
+.rendered-item-card[data-seasonal="true"] .reliquary-card-heading p,
+.rendered-item-card[data-seasonal="true"] .reliquary-card-kicker .card-rarity-label {
+  color: color-mix(in srgb, var(--rarity-color) 62%, #17232c);
+  text-shadow: 0 0 5px var(--rarity-glow);
+}
+
+.rendered-item-card[data-seasonal="true"] .reliquary-card-frame {
+  background: #f7fbff;
+  box-shadow:
+    inset 0 0 0 2px #f7fbff,
+    inset 0 0 0 3px var(--reliquary-seasonal-accent),
+    inset 0 0 16px var(--rarity-glow),
+    0 0 12px var(--rarity-glow);
+}
+
+.rendered-item-card[data-seasonal="true"] .reliquary-card-power,
+.rendered-item-card[data-seasonal="true"] .reliquary-card-states > i,
+.rendered-item-card[data-seasonal="true"] .reliquary-card-states > span {
+  border-color: color-mix(in srgb, var(--rarity-color) 72%, #1a2730);
+  background: rgb(250 253 255 / 90%);
+  color: color-mix(in srgb, var(--rarity-color) 66%, #17232c);
+}
+
+.rendered-item-card[data-seasonal="true"] .reliquary-card-loot {
+  background:
+    linear-gradient(
+      90deg,
+      var(--rarity-glow),
+      transparent 28% 72%,
+      var(--rarity-glow)
+    ),
+    rgb(248 252 255 / 94%);
+  box-shadow:
+    inset 0 0 0 1px
+      color-mix(in srgb, var(--reliquary-seasonal-accent) 55%, transparent),
+    inset 0 0 16px var(--rarity-glow),
+    0 0 7px var(--rarity-glow);
+}
+
+.rendered-item-card[data-seasonal="true"] .reliquary-card-readout {
+  background: color-mix(in srgb, var(--rarity-light) 12%, #fff);
+}
+
+.rendered-item-card[data-seasonal="true"] .reliquary-card-readout small,
+.rendered-item-card[data-seasonal="true"] .reliquary-card-attribute small {
+  color: #52616c;
+}
+
+.rendered-item-card[data-seasonal="true"] .reliquary-card-readout strong,
+.rendered-item-card[data-seasonal="true"] .reliquary-card-attribute i,
+.rendered-item-card[data-seasonal="true"] .reliquary-card-attribute strong,
+.rendered-item-card[data-seasonal="true"] .reliquary-card-special-text strong {
+  color: color-mix(in srgb, var(--rarity-color) 64%, #14212a);
+  text-shadow: 0 0 4px var(--rarity-glow);
+}
+
+.rendered-item-card[data-seasonal="true"] .reliquary-card-attribute,
+.rendered-item-card[data-seasonal="true"] .reliquary-card-special-text,
+.rendered-item-card[data-seasonal="true"] .reliquary-card-footer {
+  color: #1b2832;
+}
+
+.rendered-item-card[data-seasonal="true"] .reliquary-card-special-text {
+  border-top-color: var(--reliquary-seasonal-accent);
+  border-bottom-color: color-mix(
+    in srgb,
+    var(--rarity-color) 52%,
+    var(--reliquary-seasonal-accent)
+  );
+}
+
+.rendered-item-card[data-seasonal="true"] .reliquary-card-footer {
+  border-top: 1px solid
+    color-mix(in srgb, var(--reliquary-seasonal-accent) 65%, transparent);
+  padding-top: 2px;
+}
+
+.rendered-item-card[data-seasonal="true"]
+  .reliquary-card-attribute.attribute-special
+  i,
+.rendered-item-card[data-seasonal="true"]
+  .reliquary-card-attribute.attribute-special
+  strong {
+  color: #6e5200;
+}
+
+.rendered-item-card[data-seasonal="true"]
+  .reliquary-card-footer
+  span:nth-child(2) {
+  color: #52616c;
 }
 
 .card-design-admin {
@@ -6425,19 +7080,25 @@
   }
 }
 
-@keyframes reliquary-energy {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes reliquary-awaken {
-  from {
-    filter: drop-shadow(0 0 3px var(--rarity-color));
+@keyframes reliquary-border-beam {
+  0%,
+  68% {
+    --reliquary-beam-angle: 0deg;
+    opacity: 0;
   }
 
-  to {
-    filter: drop-shadow(0 0 15px var(--rarity-light));
+  73% {
+    opacity: 0.28;
+  }
+
+  94% {
+    --reliquary-beam-angle: 360deg;
+    opacity: 0.28;
+  }
+
+  100% {
+    --reliquary-beam-angle: 360deg;
+    opacity: 0;
   }
 }
 
@@ -6600,7 +7261,8 @@
   .circle-card-orbiter,
   .circle-card-attribute-ring,
   .reliquary-card,
-  .reliquary-card-energy,
+  .reliquary-card-border-beam,
+  .reliquary-card-frame-beam,
   .gilded-card {
     animation: none;
   }
