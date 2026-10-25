@@ -3027,21 +3027,21 @@
   height: 25px;
 }
 
-.baseball-card-sport-icon.baseball {
+.baseball-card-sport-icon.baseball,
+.baseball-card-sport-icon.hockey {
+  overflow: hidden;
   border: 2px solid #f4f1e8;
   border-radius: 50%;
-  background:
-    radial-gradient(circle at center, #fff 0 58%, transparent 60%),
-    #fff;
+  background: #fff;
   box-shadow: 0 2px 5px rgb(0 0 0 / 45%);
 }
 
 .baseball-card-sport-icon.baseball::before,
 .baseball-card-sport-icon.baseball::after {
   position: absolute;
-  top: 3px;
-  width: 7px;
-  height: 15px;
+  top: -3px;
+  width: 15px;
+  height: 27px;
   border: 1px dashed #c3313d;
   border-block: 0;
   border-radius: 50%;
@@ -3049,36 +3049,45 @@
 }
 
 .baseball-card-sport-icon.baseball::before {
-  left: 3px;
+  left: -9px;
 }
 
 .baseball-card-sport-icon.baseball::after {
-  right: 3px;
+  right: -9px;
 }
 
 .baseball-card-sport-icon.hockey::before {
   position: absolute;
   top: 1px;
-  left: 11px;
-  width: 5px;
-  height: 23px;
-  border-radius: 3px 3px 1px 1px;
-  background: #f6f0dc;
-  box-shadow: 0 2px 5px rgb(0 0 0 / 45%);
+  left: 10px;
+  width: 4px;
+  height: 18px;
+  border-radius: 2px 2px 1px 1px;
+  background: #18232d;
+  box-shadow: 1px 1px 1px rgb(0 0 0 / 25%);
   content: "";
-  transform: rotate(34deg);
+  transform: rotate(28deg);
+  transform-origin: 50% 100%;
 }
 
 .baseball-card-sport-icon.hockey::after {
   position: absolute;
-  right: 1px;
-  bottom: 1px;
-  width: 14px;
+  bottom: 3px;
+  left: 1px;
+  width: 12px;
   height: 5px;
-  border-radius: 1px 4px 4px 1px;
-  background: #f6f0dc;
+  border-radius: 4px 1px 2px 4px;
+  background:
+    linear-gradient(90deg, transparent 0 72%, #18232d 72%),
+    repeating-linear-gradient(
+      90deg,
+      #f9f9f5 0 2px,
+      #d7dadd 2px 3px
+    );
+  box-shadow: 0 1px 1px rgb(0 0 0 / 20%);
   content: "";
-  transform: rotate(-14deg);
+  transform: rotate(8deg);
+  transform-origin: 100% 50%;
 }
 
 .baseball-card-player-number {
