@@ -17,6 +17,19 @@ const TAROT_ATTRIBUTE_ICONS: Record<string, string> = {
   KsQiutk7Qm4DFWLST: "fa-star-and-crescent",
 };
 
+const TAROT_ATTRIBUTE_NAMES: Record<string, string> = {
+  FgRMQA6s24wmTRyrx: "Justice",
+  mZH58WpgbKP9o9WZR: "The Emperor",
+  dTSjqBx45mRTvFJeh: "The Star",
+  Yk2kk2mZtHetvbrY5: "The Magician",
+  Lacw8fkPYvSQrmpQN: "The Empress",
+  T8v35e75v4Hh2JpxQ: "The Fool",
+  nwMiN3DFBgsKBNSar: "The High Priestess",
+  Z7wY5jXkDeckwfFLs: "The Hierophant",
+  zR2KgxYe4LQZKBAiE: "Strength",
+  KsQiutk7Qm4DFWLST: "The World",
+};
+
 const ARCANA_THEMES = {
   0: { id: "arcana", label: "Astral", icon: "fa-star-and-crescent" },
   1: { id: "earth", label: "Earth", icon: "fa-mountain" },
@@ -85,7 +98,6 @@ export default function TarotCard({ item }: ItemCardRendererProps) {
           <i aria-hidden="true" className={`fa ${theme.icon}`} />
         </span>
       </header>
-
       <div className="tarot-card-stage">
         <TarotAttributeRail attributes={leftAttributes} side="left" />
         <div className="tarot-card-art-frame">
@@ -170,9 +182,12 @@ function TarotAttributeRail({
     <div className={`tarot-card-attribute-rail rail-${side}`}>
       {attributes.map(({ attribute, kind }) => {
         const rating = Math.round((attribute.value ?? 0) * 100);
+        const name =
+          TAROT_ATTRIBUTE_NAMES[attribute._id] ??
+          attribute.npc_name.replace(/^Art /, "");
         return (
           <span
-            aria-label={`${attribute.npc_name}, ${rating}%, ${kind}`}
+            aria-label={`${name}, ${rating}%, ${kind}`}
             className={`tarot-card-attribute attribute-${kind}`}
             key={`${kind}:${attribute._id}`}
             title={`${attribute.npc_name} · ${rating}% · ${kind}`}
@@ -184,7 +199,7 @@ function TarotAttributeRail({
                 "fa-star-and-crescent"
               }`}
             />
-            <small>{attribute.npc_name.replace(/^Art /, "")}</small>
+            <small>{name}</small>
             <strong>{rating}%</strong>
           </span>
         );
