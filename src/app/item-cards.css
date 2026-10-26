@@ -376,17 +376,6 @@
   outline-offset: 5px;
 }
 
-.tarot-card .render-card-attribute-icons .attribute-tooltip > i {
-  display: none;
-}
-
-.tarot-card .render-card-attribute-icons .attribute-tooltip::before {
-  color: #f7d77e;
-  content: "★";
-  font-size: 0.9rem;
-  text-shadow: 0 0 5px rgb(247 215 126 / 80%);
-}
-
 .render-card {
   position: relative;
   width: var(--card-width);
@@ -7364,79 +7353,311 @@
   }
 }
 
-/* Tarot: a compact arcana frame with an oval portrait and star states. */
+/* Arcana: an ornate tarot portal whose materials combine with item variants. */
 .tarot-card {
-  border: 6px double var(--rarity-color);
-  border-radius: 20px;
-  padding: 0.8rem 0.7rem 0.65rem;
-  background:
-    linear-gradient(145deg, rgb(255 255 255 / 8%), transparent 35%),
-    #21142e;
-  color: #f8e9bb;
+  --arcana-bg:
+    radial-gradient(circle at 50% 36%, rgb(91 48 121 / 38%), transparent 38%),
+    linear-gradient(155deg, #261633, #120a1a 56%, #07040b);
+  --arcana-metal: #c99f57;
+  --arcana-metal-dark: #61421d;
+  --arcana-light: #fff0bd;
+  --arcana-ink: #fff3d3;
+  --arcana-muted: #d7bc84;
+  --arcana-glow: rgb(213 143 255 / 42%);
+  --arcana-pattern:
+    radial-gradient(
+      circle at 50% 38%,
+      transparent 0 46px,
+      rgb(255 232 174 / 7%) 47px 48px,
+      transparent 49px 65px,
+      rgb(255 232 174 / 9%) 66px 67px,
+      transparent 68px 86px,
+      rgb(255 232 174 / 6%) 87px 88px,
+      transparent 89px
+    ),
+    repeating-radial-gradient(
+      circle at 50% 38%,
+      transparent 0 13px,
+      rgb(255 237 191 / 4%) 14px 14.5px,
+      transparent 15px 20px
+    ),
+    repeating-conic-gradient(
+      from 22.5deg at 50% 38%,
+      transparent 0 14deg,
+      rgb(224 185 107 / 14%) 15deg 16deg,
+      transparent 17deg 44deg
+    ),
+    repeating-radial-gradient(
+      circle at 50% 38%,
+      transparent 0 28px,
+      rgb(224 185 107 / 14%) 29px 30px
+    );
+  --arcana-aura:
+    radial-gradient(circle at 50% 26%, rgb(218 146 255 / 22%), transparent 38%),
+    radial-gradient(circle at 15% 82%, rgb(99 218 255 / 13%), transparent 28%),
+    radial-gradient(circle at 85% 78%, rgb(255 83 202 / 12%), transparent 25%);
+  --arcana-art-effect:
+    linear-gradient(130deg, rgb(255 244 208 / 12%), transparent 34%),
+    radial-gradient(circle at 50% 22%, transparent 0 30%, rgb(112 52 132 / 18%) 76%);
+  --arcana-art-filter: saturate(0.92) contrast(1.08);
+
+  isolation: isolate;
+  display: grid;
+  grid-template-rows: 53px minmax(0, 1fr) 24px 28px;
+  gap: 0.28rem;
+  border: 2px solid var(--arcana-metal);
+  border-radius: 13px;
+  padding: 0.65rem;
+  background: var(--arcana-bg);
+  color: var(--arcana-ink);
+  box-shadow:
+    inset 0 0 0 2px var(--arcana-metal-dark),
+    inset 0 0 0 5px rgb(255 255 255 / 8%),
+    0 0 22px var(--arcana-glow);
   font-family: Georgia, "Times New Roman", serif;
-  box-shadow: inset 0 0 0 2px #7e5c2e, 0 0 18px var(--rarity-glow);
 }
 
 .tarot-card::before,
 .tarot-card::after {
   position: absolute;
   z-index: 1;
-  inset: 0.35rem;
-  border: 1px solid rgb(255 222 141 / 68%);
-  border-radius: 13px;
   content: "";
   pointer-events: none;
 }
 
-.tarot-card::after {
-  inset: 0.55rem;
-  border-color: rgb(255 255 255 / 24%);
+.tarot-card::before {
+  inset: 0.38rem;
+  border: 1px solid color-mix(in srgb, var(--arcana-light) 82%, transparent);
+  border-radius: 9px;
+  clip-path: polygon(
+    0 12px,
+    12px 12px,
+    12px 0,
+    calc(100% - 12px) 0,
+    calc(100% - 12px) 12px,
+    100% 12px,
+    100% calc(100% - 12px),
+    calc(100% - 12px) calc(100% - 12px),
+    calc(100% - 12px) 100%,
+    12px 100%,
+    12px calc(100% - 12px),
+    0 calc(100% - 12px)
+  );
 }
 
-.tarot-card-pattern {
+.tarot-card::after {
+  inset: 0.58rem;
+  border: 1px solid color-mix(in srgb, var(--arcana-metal) 55%, transparent);
+  border-radius: 7px;
+  box-shadow: inset 0 0 13px rgb(0 0 0 / 44%);
+}
+
+.tarot-card-pattern,
+.tarot-card-aura {
   position: absolute;
   z-index: 0;
   inset: 0;
-  opacity: 0.3;
-  background:
-    repeating-radial-gradient(circle at 50% 15%, transparent 0 11px, #b78a47 12px 13px),
-    repeating-linear-gradient(45deg, transparent 0 8px, rgb(183 138 71 / 35%) 9px 10px);
   pointer-events: none;
 }
 
-.tarot-card > header,
-.tarot-card > section,
-.tarot-card-art-frame,
+.tarot-card-pattern {
+  opacity: 0.88;
+  background: var(--arcana-pattern);
+  mask-image: linear-gradient(to bottom, #000, rgb(0 0 0 / 72%));
+}
+
+.tarot-card-aura {
+  opacity: 0.86;
+  background: var(--arcana-aura);
+  mix-blend-mode: screen;
+  animation: arcana-aura-pulse 7s ease-in-out infinite alternate;
+}
+
+.tarot-card-header,
+.tarot-card-stage,
+.tarot-card-reading,
 .tarot-card-state-icons {
   position: relative;
   z-index: 2;
 }
 
-.tarot-card > header {
-  display: flex;
+.tarot-card-header {
+  display: grid;
+  grid-template-columns: 35px minmax(0, 1fr) 35px;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.4rem;
-  border-bottom: 1px solid rgb(255 222 141 / 60%);
-  padding-bottom: 0.35rem;
-  font-size: 0.57rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  gap: 0.35rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--arcana-metal) 72%, transparent);
+  padding: 0 0.1rem 0.28rem;
+  text-align: center;
+}
+
+.tarot-card-header > div {
+  min-width: 0;
 }
 
 .tarot-card-arcana {
-  color: #dfc282;
+  display: block;
+  overflow: hidden;
+  color: var(--arcana-muted);
+  font: 700 0.45rem/1.05 "Trebuchet MS", Arial, sans-serif;
+  letter-spacing: 0.16em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.tarot-card h3 {
+  overflow: hidden;
+  color: var(--arcana-ink);
+  font-size: 0.83rem;
+  line-height: 1.08;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 5px rgb(0 0 0 / 48%);
+  white-space: nowrap;
+}
+
+.tarot-card .render-card-artist {
+  overflow: hidden;
+  color: var(--arcana-muted);
+  font-size: 0.52rem;
+  font-style: italic;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tarot-card-medallion {
+  display: grid;
+  width: 31px;
+  height: 31px;
+  place-items: center;
+  border: 1px solid var(--arcana-light);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgb(255 255 255 / 19%), transparent 48%),
+    color-mix(in srgb, var(--arcana-metal-dark) 84%, #000);
+  color: var(--arcana-light);
+  box-shadow:
+    0 0 0 2px var(--arcana-metal-dark),
+    0 0 9px var(--arcana-glow);
+  font: 800 0.56rem/1 "Trebuchet MS", Arial, sans-serif;
+  letter-spacing: 0.04em;
+}
+
+.tarot-card-theme-sigil {
+  font-size: 0.82rem;
+}
+
+.tarot-card-stage {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 42px;
+  min-height: 0;
+  gap: 0.32rem;
+}
+
+.tarot-card-attribute-rail {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-evenly;
+  gap: 0.15rem;
+}
+
+.tarot-card-attribute {
+  display: grid;
+  width: 40px;
+  min-height: 48px;
+  place-items: center;
+  align-content: center;
+  gap: 0.08rem;
+  border: 1px solid color-mix(in srgb, var(--arcana-metal) 72%, transparent);
+  border-radius: 50% 50% 9px 9px / 23% 23% 9px 9px;
+  padding: 0.24rem 0.1rem;
+  background:
+    radial-gradient(circle at 50% 22%, rgb(255 255 255 / 14%), transparent 34%),
+    color-mix(in srgb, var(--arcana-metal-dark) 78%, transparent);
+  color: var(--arcana-light);
+  box-shadow:
+    inset 0 0 8px rgb(0 0 0 / 32%),
+    0 0 7px color-mix(in srgb, var(--arcana-glow) 72%, transparent);
+  line-height: 1;
+  text-align: center;
+}
+
+.tarot-card-attribute i {
+  font-size: 0.8rem;
+  filter: drop-shadow(0 0 4px var(--arcana-glow));
+}
+
+.tarot-card-attribute small {
+  display: -webkit-box;
+  max-width: 36px;
+  overflow: hidden;
+  color: var(--arcana-muted);
+  font: 700 0.36rem/1.05 "Trebuchet MS", Arial, sans-serif;
+  letter-spacing: 0.02em;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  text-transform: uppercase;
+}
+
+.tarot-card-attribute strong {
+  color: var(--arcana-ink);
+  font: 800 0.38rem/1 "Trebuchet MS", Arial, sans-serif;
+}
+
+.tarot-card-attribute.attribute-special {
+  border-color: var(--rarity-light);
+  color: var(--rarity-light);
+  box-shadow:
+    inset 0 0 8px rgb(0 0 0 / 32%),
+    0 0 10px var(--rarity-glow);
+}
+
+.tarot-card-attribute.attribute-unlocked {
+  border-color: color-mix(in srgb, var(--unlocked-color) 72%, var(--arcana-light));
+}
+
+.tarot-card-attribute.attribute-locked {
+  opacity: 0.56;
+  filter: grayscale(0.52);
 }
 
 .tarot-card-art-frame {
-  width: 190px;
-  height: 190px;
-  margin: 0.75rem auto 0.55rem;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
   overflow: hidden;
-  border: 5px solid #c89b4b;
-  border-radius: 50%;
-  background: #09050d;
-  box-shadow: 0 0 0 2px #5b3a1b, 0 0 14px var(--rarity-glow);
+  border: 3px solid var(--arcana-metal);
+  border-radius: 50% 50% 13px 13px / 17% 17% 7% 7%;
+  background: #07040b;
+  box-shadow:
+    0 0 0 1px var(--arcana-light),
+    0 0 0 4px var(--arcana-metal-dark),
+    0 0 17px var(--arcana-glow);
+}
+
+.tarot-card-art-frame::before,
+.tarot-card-art-frame::after {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  width: 32px;
+  height: 13px;
+  border: 1px solid var(--arcana-light);
+  background: var(--arcana-metal-dark);
+  content: "";
+  pointer-events: none;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.tarot-card-art-frame::before {
+  top: -8px;
+}
+
+.tarot-card-art-frame::after {
+  bottom: -8px;
 }
 
 .tarot-card-image {
@@ -7444,99 +7665,778 @@
   height: 100%;
   background-position: center;
   background-size: cover;
-  filter: saturate(0.9) contrast(1.1);
+  filter: var(--arcana-art-filter);
+  transform: scale(1.02);
 }
 
-.tarot-card-art-oval {
+.tarot-card-art-effect,
+.tarot-card-art-oval,
+.tarot-card-lottery-effects,
+.tarot-card-lottery-ring,
+.tarot-card-lottery-level {
   position: absolute;
-  inset: 0.45rem;
-  border: 1px solid rgb(255 226 157 / 86%);
-  border-radius: 50%;
   pointer-events: none;
 }
 
-.tarot-card > section {
-  display: grid;
-  gap: 0.24rem;
-  text-align: center;
+.tarot-card-art-effect {
+  z-index: 1;
+  inset: 0;
+  background: var(--arcana-art-effect);
+  mix-blend-mode: screen;
+  animation: arcana-art-shimmer 9s ease-in-out infinite;
 }
 
-.tarot-card h3 {
+.tarot-card-art-oval {
+  z-index: 2;
+  inset: 0.45rem;
+  border: 1px solid color-mix(in srgb, var(--arcana-light) 78%, transparent);
+  border-radius: 50% 50% 9px 9px / 17% 17% 6% 6%;
+  box-shadow: inset 0 0 12px rgb(0 0 0 / 30%);
+}
+
+.tarot-card-lottery-effects {
+  --arcana-lottery-color: #ffe888;
+  --arcana-lottery-glow: rgb(255 207 64 / 68%);
+  --arcana-lottery-opacity: 38%;
+  --arcana-lottery-speed: 11s;
+
+  z-index: 5;
+  inset: 0;
   overflow: hidden;
-  color: #fff2c9;
-  font-size: 0.91rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  border-radius: inherit;
 }
 
-.tarot-card .render-card-artist {
-  color: #d8b873;
-  font-size: 0.58rem;
+.tarot-card-lottery-ring {
+  border: 1px solid color-mix(
+    in srgb,
+    var(--arcana-lottery-color) var(--arcana-lottery-opacity),
+    transparent
+  );
+  border-radius: 50% 50% 10px 10px / 17% 17% 6% 6%;
+  box-shadow:
+    inset 0 0 9px var(--arcana-lottery-glow),
+    0 0 8px var(--arcana-lottery-glow);
 }
 
-.tarot-card-meta {
-  color: #eadab3;
-  font-size: 0.52rem;
+.tarot-card-lottery-ring::before,
+.tarot-card-lottery-ring::after {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--arcana-lottery-color);
+  box-shadow:
+    0 0 4px var(--arcana-lottery-color),
+    0 0 9px var(--arcana-lottery-glow);
+  content: "";
+}
+
+.tarot-card-lottery-ring::before {
+  top: 21%;
+  left: -2px;
+}
+
+.tarot-card-lottery-ring::after {
+  right: -2px;
+  bottom: 23%;
+}
+
+.tarot-card-lottery-ring.lottery-ring-outer {
+  inset: 0.22rem;
+  animation: arcana-lottery-breathe 4.8s ease-in-out infinite alternate;
+}
+
+.tarot-card-lottery-ring.lottery-ring-inner {
+  inset: 0.58rem;
+  display: none;
+  border-style: dotted;
+  opacity: 0.72;
+  animation: arcana-lottery-orbit var(--arcana-lottery-speed) linear infinite;
+}
+
+.tarot-card-lottery-level {
+  z-index: 2;
+  bottom: 0.42rem;
+  left: 50%;
+  display: grid;
+  min-width: 46px;
+  gap: 0.08rem;
+  border: 1px solid var(--arcana-lottery-color);
+  border-radius: 999px;
+  padding: 0.17rem 0.34rem 0.15rem;
+  background: rgb(11 7 19 / 83%);
+  color: var(--arcana-lottery-color);
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 12%),
+    0 0 10px var(--arcana-lottery-glow);
+  font: 900 0.5rem/1 "Trebuchet MS", Arial, sans-serif;
+  letter-spacing: 0.08em;
+  text-align: center;
+  transform: translateX(-50%);
+}
+
+.tarot-card-lottery-level > span:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.22rem;
+}
+
+.tarot-card-lottery-level > span:first-child .fa {
+  font-size: 0.32rem;
+}
+
+.tarot-card-lottery-pips {
+  display: flex;
+  justify-content: center;
+  gap: 1px;
+}
+
+.tarot-card-lottery-pips .fa {
+  font-size: 0.21rem;
+  filter: drop-shadow(0 0 2px var(--arcana-lottery-glow));
+}
+
+.tarot-card[data-lottery="2"] .tarot-card-lottery-effects,
+.tarot-card[data-lottery="3"] .tarot-card-lottery-effects {
+  --arcana-lottery-opacity: 48%;
+}
+
+.tarot-card:is(
+    [data-lottery="4"],
+    [data-lottery="5"],
+    [data-lottery="6"]
+  )
+  .tarot-card-lottery-effects {
+  --arcana-lottery-opacity: 62%;
+  --arcana-lottery-speed: 8s;
+}
+
+.tarot-card:is(
+    [data-lottery="4"],
+    [data-lottery="5"],
+    [data-lottery="6"],
+    [data-lottery="7"],
+    [data-lottery="8"],
+    [data-lottery="9"],
+    [data-lottery="10"]
+  )
+  .lottery-ring-inner {
+  display: block;
+}
+
+.tarot-card:is(
+    [data-lottery="7"],
+    [data-lottery="8"],
+    [data-lottery="9"]
+  )
+  .tarot-card-lottery-effects {
+  --arcana-lottery-opacity: 78%;
+  --arcana-lottery-speed: 5.5s;
+
+  filter: drop-shadow(0 0 6px var(--arcana-lottery-glow));
+}
+
+.tarot-card[data-lottery="10"] .tarot-card-lottery-effects {
+  --arcana-lottery-color: #fff;
+  --arcana-lottery-glow: rgb(255 70 211 / 75%);
+  --arcana-lottery-opacity: 94%;
+  --arcana-lottery-speed: 3.8s;
+
+  animation: arcana-lottery-prismatic 4s linear infinite;
+  filter: drop-shadow(0 0 8px rgb(94 218 255 / 68%));
+}
+
+.tarot-card[data-lottery="10"] .tarot-card-lottery-level {
+  background:
+    linear-gradient(90deg, rgb(255 51 204 / 24%), rgb(75 220 255 / 24%), rgb(101 235 151 / 24%)),
+    rgb(11 7 19 / 88%);
+}
+
+.tarot-card-reading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.25rem;
+  border-top: 1px solid color-mix(in srgb, var(--arcana-metal) 62%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--arcana-metal) 62%, transparent);
+  padding: 0.12rem 0.3rem;
+  color: var(--arcana-muted);
+  font: 700 0.43rem/1 "Trebuchet MS", Arial, sans-serif;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
-.tarot-card .render-card-attribute-icons {
-  justify-content: center;
-  gap: 0.28rem;
-  margin-top: 0.15rem;
+.tarot-card-reading span:last-child {
+  text-align: right;
 }
 
-.tarot-card .attribute {
+.tarot-card-reading .card-rarity-label {
   color: var(--rarity-light);
-  font-size: 0;
-  filter: drop-shadow(0 0 3px var(--rarity-color));
-}
-
-.tarot-card .attribute::before {
-  content: "★";
-  font-size: 0.78rem;
+  font-size: 0.46rem;
+  text-shadow: 0 0 6px var(--rarity-glow);
 }
 
 .tarot-card-state-icons {
   display: flex;
+  align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  margin-top: 0.35rem;
-  color: var(--rarity-light);
-  font-size: 1rem;
-  line-height: 1;
-  text-shadow: 0 0 8px var(--rarity-color);
+  gap: 0.45rem;
 }
 
-.tarot-card-state-icons span + span {
-  color: var(--unlocked-color);
+.tarot-card-state-icons:empty::before {
+  color: var(--arcana-muted);
+  content: "✦  THE WORK  ✦";
+  font-size: 0.45rem;
+  letter-spacing: 0.2em;
+}
+
+.tarot-card-state-icons span {
+  display: grid;
+  width: 21px;
+  height: 21px;
+  place-items: center;
+  border: 1px solid var(--arcana-metal);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--arcana-metal-dark) 80%, transparent);
+  color: var(--arcana-light);
+  box-shadow: 0 0 8px var(--arcana-glow);
+  font-size: 0.67rem;
 }
 
 .tarot-card-corner {
   position: absolute;
   z-index: 3;
-  color: #dfb85c;
-  font-size: 1.05rem;
-  line-height: 1;
+  width: 18px;
+  height: 18px;
+  border-color: var(--arcana-light);
+  pointer-events: none;
 }
 
-.tarot-card-corner-top {
-  top: 0.4rem;
-  left: 0.55rem;
+.tarot-card-corner::before,
+.tarot-card-corner::after {
+  position: absolute;
+  background: var(--arcana-light);
+  content: "";
+  box-shadow: 0 0 6px var(--arcana-glow);
 }
 
-.tarot-card-corner-bottom {
-  right: 0.55rem;
-  bottom: 0.4rem;
+.tarot-card-corner::before {
+  width: 12px;
+  height: 1px;
+}
+
+.tarot-card-corner::after {
+  width: 1px;
+  height: 12px;
+}
+
+.tarot-card-corner.corner-top-left {
+  top: 0.48rem;
+  left: 0.48rem;
+}
+
+.tarot-card-corner.corner-top-right {
+  top: 0.48rem;
+  right: 0.48rem;
+  transform: rotate(90deg);
+}
+
+.tarot-card-corner.corner-bottom-left {
+  bottom: 0.48rem;
+  left: 0.48rem;
+  transform: rotate(-90deg);
+}
+
+.tarot-card-corner.corner-bottom-right {
+  right: 0.48rem;
+  bottom: 0.48rem;
   transform: rotate(180deg);
 }
 
-.tarot-card > .render-card-badges {
-  position: absolute;
-  z-index: 4;
-  right: 0.65rem;
-  bottom: 0.55rem;
-  transform: translateY(100%);
+/* Unlocked: Earth. */
+.tarot-card[data-arcana-theme="earth"] {
+  --arcana-bg:
+    radial-gradient(circle at 50% 40%, rgb(203 173 116 / 22%), transparent 42%),
+    linear-gradient(150deg, #574530, #2c2118 58%, #17110c);
+  --arcana-metal: #c7a86c;
+  --arcana-metal-dark: #554021;
+  --arcana-light: #f2dfb6;
+  --arcana-ink: #fff2d6;
+  --arcana-muted: #d6bd8d;
+  --arcana-glow: rgb(209 178 113 / 35%);
+  --arcana-pattern:
+    linear-gradient(128deg, transparent 0 46%, rgb(246 222 171 / 15%) 47% 48%, transparent 49%),
+    linear-gradient(42deg, transparent 0 64%, rgb(0 0 0 / 24%) 65% 66%, transparent 67%),
+    repeating-linear-gradient(112deg, transparent 0 23px, rgb(255 255 255 / 5%) 24px 25px);
+  --arcana-aura:
+    radial-gradient(ellipse at 18% 84%, rgb(221 190 130 / 24%) 0 4%, transparent 18%),
+    radial-gradient(ellipse at 81% 75%, rgb(177 143 83 / 20%) 0 5%, transparent 20%);
+  --arcana-art-effect:
+    linear-gradient(145deg, rgb(239 213 161 / 18%), transparent 42%),
+    repeating-linear-gradient(118deg, transparent 0 26px, rgb(55 38 20 / 14%) 27px 28px);
+  --arcana-art-filter: sepia(0.16) saturate(0.82) contrast(1.08);
+}
+
+/* Foil: Fire. */
+.tarot-card[data-arcana-theme="fire"] {
+  --arcana-bg:
+    radial-gradient(ellipse at 50% 100%, #c5400f 0, transparent 54%),
+    linear-gradient(155deg, #54110a, #200704 58%, #0c0201);
+  --arcana-metal: #ff9f31;
+  --arcana-metal-dark: #6f1906;
+  --arcana-light: #fff0a8;
+  --arcana-ink: #fff4d3;
+  --arcana-muted: #ffc471;
+  --arcana-glow: rgb(255 78 22 / 58%);
+  --arcana-pattern:
+    radial-gradient(ellipse at 16% 105%, rgb(255 216 85 / 33%) 0 10%, transparent 24%),
+    radial-gradient(ellipse at 50% 108%, rgb(255 83 16 / 38%) 0 16%, transparent 36%),
+    radial-gradient(ellipse at 84% 105%, rgb(255 187 42 / 28%) 0 9%, transparent 23%),
+    repeating-conic-gradient(from 180deg at 50% 100%, transparent 0 9deg, rgb(255 132 27 / 12%) 10deg 12deg);
+  --arcana-aura:
+    radial-gradient(circle at 32% 26%, rgb(255 187 53 / 24%) 0 1%, transparent 2%),
+    radial-gradient(circle at 72% 43%, rgb(255 93 18 / 25%) 0 1.2%, transparent 2.4%),
+    radial-gradient(circle at 46% 71%, rgb(255 222 86 / 21%) 0 0.8%, transparent 2%);
+  --arcana-art-effect:
+    linear-gradient(112deg, transparent 20%, rgb(255 193 67 / 24%) 47%, transparent 65%),
+    radial-gradient(ellipse at 50% 110%, rgb(255 50 0 / 28%), transparent 62%);
+  --arcana-art-filter: saturate(1.18) contrast(1.12) brightness(1.02);
+}
+
+/* Seasonal: Winter. */
+.tarot-card[data-arcana-theme="winter"] {
+  --arcana-bg:
+    radial-gradient(circle at 50% 34%, rgb(255 255 255 / 72%), transparent 44%),
+    linear-gradient(150deg, #f8feff, #b9e8f7 57%, #6eaac9);
+  --arcana-metal: #5da7d2;
+  --arcana-metal-dark: #d8f4ff;
+  --arcana-light: #ffffff;
+  --arcana-ink: #123952;
+  --arcana-muted: #316a8b;
+  --arcana-glow: rgb(172 238 255 / 74%);
+  --arcana-pattern:
+    repeating-conic-gradient(from 0deg at 50% 40%, transparent 0 29deg, rgb(40 126 173 / 13%) 30deg 31deg),
+    repeating-radial-gradient(circle at 50% 40%, transparent 0 23px, rgb(255 255 255 / 39%) 24px 25px),
+    radial-gradient(circle at 14% 20%, #fff 0 1px, transparent 2px),
+    radial-gradient(circle at 83% 68%, #fff 0 1.5px, transparent 2.5px);
+  --arcana-aura:
+    radial-gradient(circle at 22% 30%, rgb(255 255 255 / 65%) 0 1px, transparent 2px),
+    radial-gradient(circle at 77% 21%, rgb(255 255 255 / 62%) 0 1.2px, transparent 2.2px),
+    radial-gradient(circle at 65% 80%, rgb(219 249 255 / 75%) 0 1px, transparent 2px);
+  --arcana-art-effect:
+    linear-gradient(136deg, rgb(255 255 255 / 42%), transparent 33%),
+    radial-gradient(circle at 50% 50%, transparent 42%, rgb(169 231 255 / 24%) 100%);
+  --arcana-art-filter: saturate(0.83) contrast(1.04) brightness(1.08);
+}
+
+/* Mint: Plant. */
+.tarot-card[data-arcana-theme="plant"] {
+  --arcana-bg:
+    radial-gradient(circle at 50% 40%, rgb(124 211 93 / 24%), transparent 44%),
+    linear-gradient(155deg, #174a2a, #082617 58%, #03130c);
+  --arcana-metal: #82c95f;
+  --arcana-metal-dark: #214f26;
+  --arcana-light: #e7ffc3;
+  --arcana-ink: #f0ffe4;
+  --arcana-muted: #a7dc82;
+  --arcana-glow: rgb(102 230 104 / 45%);
+  --arcana-pattern:
+    radial-gradient(ellipse at 5% 90%, transparent 0 20%, rgb(127 215 94 / 18%) 21% 22%, transparent 23%),
+    radial-gradient(ellipse at 95% 15%, transparent 0 17%, rgb(177 237 116 / 17%) 18% 19%, transparent 20%),
+    repeating-linear-gradient(62deg, transparent 0 22px, rgb(119 211 90 / 8%) 23px 24px);
+  --arcana-aura:
+    radial-gradient(ellipse at 14% 78%, rgb(171 243 115 / 26%) 0 4%, transparent 13%),
+    radial-gradient(ellipse at 86% 32%, rgb(99 208 95 / 24%) 0 5%, transparent 15%);
+  --arcana-art-effect:
+    linear-gradient(120deg, rgb(176 239 122 / 17%), transparent 40%),
+    radial-gradient(ellipse at 10% 110%, rgb(47 164 72 / 28%), transparent 62%);
+  --arcana-art-filter: saturate(1.03) contrast(1.06);
+}
+
+/* Unlocked + Foil: magma. */
+.tarot-card[data-arcana-theme="magma"] {
+  --arcana-bg:
+    radial-gradient(ellipse at 50% 88%, #9f2109 0, transparent 48%),
+    linear-gradient(150deg, #211815, #0d0908 58%, #030202);
+  --arcana-metal: #ff7b20;
+  --arcana-metal-dark: #4a2112;
+  --arcana-light: #ffd26b;
+  --arcana-ink: #fff0c8;
+  --arcana-muted: #efad62;
+  --arcana-glow: rgb(255 71 15 / 58%);
+  --arcana-pattern:
+    linear-gradient(132deg, transparent 0 44%, #ff5b16 45% 46%, #ffbd3c 47%, transparent 49%),
+    linear-gradient(38deg, transparent 0 61%, #9f2608 62% 64%, transparent 65%),
+    repeating-linear-gradient(110deg, transparent 0 28px, rgb(255 99 23 / 10%) 29px 30px);
+  --arcana-aura:
+    radial-gradient(circle at 22% 72%, #ff9d22 0 1px, transparent 2px),
+    radial-gradient(circle at 76% 34%, #ff4d0b 0 1.2px, transparent 2.4px);
+  --arcana-art-effect:
+    linear-gradient(135deg, transparent 0 48%, rgb(255 72 12 / 36%) 49% 51%, transparent 53%),
+    radial-gradient(ellipse at 50% 110%, rgb(255 116 23 / 26%), transparent 56%);
+  --arcana-art-filter: saturate(1.12) contrast(1.16);
+}
+
+/* Unlocked + Seasonal: glacier. */
+.tarot-card[data-arcana-theme="glacier"] {
+  --arcana-bg:
+    radial-gradient(circle at 52% 32%, rgb(255 255 255 / 78%), transparent 40%),
+    linear-gradient(148deg, #eaf5f5, #9fb6b5 58%, #584e43);
+  --arcana-metal: #7d999d;
+  --arcana-metal-dark: #e4f4f4;
+  --arcana-light: #ffffff;
+  --arcana-ink: #21383b;
+  --arcana-muted: #526d6f;
+  --arcana-glow: rgb(190 248 255 / 66%);
+  --arcana-pattern:
+    linear-gradient(124deg, transparent 0 46%, rgb(255 255 255 / 57%) 47% 48%, transparent 49%),
+    linear-gradient(52deg, transparent 0 66%, rgb(91 76 58 / 20%) 67% 68%, transparent 69%),
+    repeating-conic-gradient(from 15deg at 50% 42%, transparent 0 43deg, rgb(89 151 159 / 11%) 44deg 45deg);
+  --arcana-aura:
+    radial-gradient(circle at 17% 78%, rgb(255 255 255 / 68%) 0 1px, transparent 2px),
+    radial-gradient(circle at 79% 24%, rgb(214 252 255 / 70%) 0 1.2px, transparent 2.3px);
+  --arcana-art-effect:
+    linear-gradient(140deg, rgb(255 255 255 / 38%), transparent 35%),
+    linear-gradient(48deg, transparent 62%, rgb(170 226 232 / 27%) 64%, transparent 66%);
+  --arcana-art-filter: saturate(0.72) contrast(1.08) brightness(1.08);
+}
+
+/* Unlocked + Mint: forest. */
+.tarot-card[data-arcana-theme="forest"] {
+  --arcana-bg:
+    radial-gradient(circle at 50% 39%, rgb(77 157 74 / 22%), transparent 43%),
+    linear-gradient(155deg, #314125, #132616 58%, #081109);
+  --arcana-metal: #9e9b55;
+  --arcana-metal-dark: #3d3b20;
+  --arcana-light: #e2e8a8;
+  --arcana-ink: #f4f3d2;
+  --arcana-muted: #b7c486;
+  --arcana-glow: rgb(94 190 81 / 42%);
+  --arcana-pattern:
+    radial-gradient(ellipse at 6% 94%, transparent 0 22%, rgb(104 166 75 / 19%) 23% 24%, transparent 25%),
+    radial-gradient(ellipse at 96% 12%, transparent 0 18%, rgb(172 190 98 / 16%) 19% 20%, transparent 21%),
+    linear-gradient(125deg, transparent 0 48%, rgb(154 125 73 / 12%) 49% 50%, transparent 51%);
+  --arcana-aura:
+    radial-gradient(ellipse at 20% 75%, rgb(119 197 84 / 25%) 0 5%, transparent 17%),
+    radial-gradient(ellipse at 80% 31%, rgb(201 188 101 / 17%) 0 4%, transparent 14%);
+  --arcana-art-effect:
+    linear-gradient(145deg, rgb(207 194 114 / 14%), transparent 38%),
+    radial-gradient(ellipse at 50% 110%, rgb(41 118 48 / 25%), transparent 60%);
+  --arcana-art-filter: sepia(0.08) saturate(0.92) contrast(1.08);
+}
+
+/* Foil + Seasonal: mystical blue flame. */
+.tarot-card[data-arcana-theme="blue-flame"] {
+  --arcana-bg:
+    radial-gradient(ellipse at 50% 100%, #05aade 0, transparent 52%),
+    linear-gradient(155deg, #112e57, #06152f 59%, #020713);
+  --arcana-metal: #68dcff;
+  --arcana-metal-dark: #174e76;
+  --arcana-light: #f3ffff;
+  --arcana-ink: #ecfdff;
+  --arcana-muted: #9ae9ff;
+  --arcana-glow: rgb(47 205 255 / 70%);
+  --arcana-pattern:
+    radial-gradient(ellipse at 18% 108%, rgb(151 248 255 / 33%) 0 9%, transparent 25%),
+    radial-gradient(ellipse at 50% 109%, rgb(40 178 255 / 38%) 0 16%, transparent 38%),
+    radial-gradient(ellipse at 82% 105%, rgb(197 253 255 / 28%) 0 8%, transparent 24%),
+    repeating-conic-gradient(from 180deg at 50% 100%, transparent 0 11deg, rgb(77 214 255 / 12%) 12deg 14deg);
+  --arcana-aura:
+    radial-gradient(circle at 31% 29%, #bff9ff 0 1px, transparent 2px),
+    radial-gradient(circle at 74% 44%, #52d8ff 0 1.2px, transparent 2.5px);
+  --arcana-art-effect:
+    linear-gradient(116deg, transparent 24%, rgb(100 225 255 / 32%) 48%, transparent 66%),
+    radial-gradient(ellipse at 50% 112%, rgb(0 152 255 / 30%), transparent 60%);
+  --arcana-art-filter: saturate(1.03) contrast(1.1) brightness(1.05);
+}
+
+/* Foil + Mint: carnivorous fire plant. */
+.tarot-card[data-arcana-theme="fire-plant"] {
+  --arcana-bg:
+    radial-gradient(circle at 50% 67%, rgb(198 255 65 / 18%), transparent 42%),
+    linear-gradient(150deg, #5f1721, #221419 58%, #07120b);
+  --arcana-metal: #d9e653;
+  --arcana-metal-dark: #543020;
+  --arcana-light: #f4ff9d;
+  --arcana-ink: #f8ffd2;
+  --arcana-muted: #d7db73;
+  --arcana-glow: rgb(222 255 52 / 48%);
+  --arcana-pattern:
+    radial-gradient(ellipse at 7% 90%, transparent 0 19%, rgb(129 210 68 / 20%) 20% 22%, transparent 23%),
+    radial-gradient(ellipse at 95% 14%, transparent 0 17%, rgb(255 69 44 / 19%) 18% 20%, transparent 21%),
+    repeating-linear-gradient(62deg, transparent 0 23px, rgb(223 255 69 / 8%) 24px 25px);
+  --arcana-aura:
+    radial-gradient(circle at 24% 68%, #ff5e30 0 1.2px, transparent 2.4px),
+    radial-gradient(circle at 74% 35%, #d7ff4a 0 1.2px, transparent 2.4px);
+  --arcana-art-effect:
+    linear-gradient(125deg, rgb(214 255 66 / 16%), transparent 40%),
+    radial-gradient(ellipse at 50% 109%, rgb(212 27 33 / 28%), transparent 61%);
+  --arcana-art-filter: saturate(1.17) contrast(1.1);
+}
+
+/* Seasonal + Mint: evergreen. */
+.tarot-card[data-arcana-theme="evergreen"] {
+  --arcana-bg:
+    radial-gradient(circle at 50% 34%, rgb(240 255 251 / 45%), transparent 42%),
+    linear-gradient(155deg, #26735e, #0d4134 57%, #06231e);
+  --arcana-metal: #a5e0c3;
+  --arcana-metal-dark: #245c4e;
+  --arcana-light: #f7fffc;
+  --arcana-ink: #f2fff9;
+  --arcana-muted: #b8ead4;
+  --arcana-glow: rgb(145 240 210 / 52%);
+  --arcana-pattern:
+    repeating-conic-gradient(from 0deg at 50% 40%, transparent 0 43deg, rgb(215 255 245 / 13%) 44deg 45deg),
+    radial-gradient(ellipse at 10% 94%, transparent 0 20%, rgb(149 225 190 / 17%) 21% 22%, transparent 23%),
+    radial-gradient(circle at 80% 18%, #fff 0 1px, transparent 2px);
+  --arcana-aura:
+    radial-gradient(circle at 18% 29%, rgb(255 255 255 / 66%) 0 1px, transparent 2px),
+    radial-gradient(circle at 81% 71%, rgb(196 255 238 / 65%) 0 1px, transparent 2px);
+  --arcana-art-effect:
+    linear-gradient(138deg, rgb(239 255 251 / 28%), transparent 34%),
+    radial-gradient(ellipse at 50% 110%, rgb(38 154 112 / 25%), transparent 60%);
+  --arcana-art-filter: saturate(0.92) contrast(1.05) brightness(1.05);
+}
+
+/* Unlocked + Foil + Seasonal: lava cutting through a glacier. */
+.tarot-card[data-arcana-theme="lava-glacier"] {
+  --arcana-bg:
+    linear-gradient(138deg, #edf9fa 0 30%, #4f5c5c 48%, #171414 65%, #070505),
+    #202526;
+  --arcana-metal: #d3ecec;
+  --arcana-metal-dark: #515c59;
+  --arcana-light: #ffffff;
+  --arcana-ink: #f8ffff;
+  --arcana-muted: #c5dedd;
+  --arcana-glow: rgb(255 98 28 / 56%);
+  --arcana-pattern:
+    linear-gradient(128deg, transparent 0 47%, #ff4d13 48% 49%, #ffc04a 50%, transparent 52%),
+    linear-gradient(42deg, transparent 0 62%, rgb(206 252 255 / 42%) 63% 64%, transparent 65%),
+    radial-gradient(circle at 18% 18%, #fff 0 1px, transparent 2px);
+  --arcana-aura:
+    radial-gradient(circle at 26% 76%, #ff7a23 0 1.2px, transparent 2.5px),
+    radial-gradient(circle at 76% 24%, #e8ffff 0 1.2px, transparent 2.5px);
+  --arcana-art-effect:
+    linear-gradient(135deg, rgb(225 255 255 / 31%) 0 39%, transparent 40% 54%, rgb(255 85 20 / 29%) 55% 60%, transparent 61%);
+  --arcana-art-filter: saturate(0.9) contrast(1.13) brightness(1.05);
+}
+
+/* Unlocked + Foil + Mint: forest-fire chaos. */
+.tarot-card[data-arcana-theme="forest-fire"] {
+  --arcana-bg:
+    radial-gradient(ellipse at 50% 100%, rgb(202 53 13 / 62%), transparent 54%),
+    linear-gradient(155deg, #334021, #151c12 50%, #170905);
+  --arcana-metal: #d2a84d;
+  --arcana-metal-dark: #4f3215;
+  --arcana-light: #ffe989;
+  --arcana-ink: #fff2bd;
+  --arcana-muted: #d5bd71;
+  --arcana-glow: rgb(255 91 20 / 60%);
+  --arcana-pattern:
+    radial-gradient(ellipse at 7% 95%, transparent 0 20%, rgb(104 179 69 / 19%) 21% 22%, transparent 23%),
+    radial-gradient(ellipse at 90% 106%, rgb(255 112 22 / 37%) 0 11%, transparent 31%),
+    linear-gradient(126deg, transparent 0 48%, rgb(255 88 17 / 25%) 49% 50%, transparent 51%);
+  --arcana-aura:
+    radial-gradient(circle at 23% 37%, #9add61 0 1px, transparent 2px),
+    radial-gradient(circle at 75% 69%, #ff7922 0 1.3px, transparent 2.6px);
+  --arcana-art-effect:
+    linear-gradient(126deg, rgb(105 185 77 / 17%), transparent 39%),
+    radial-gradient(ellipse at 54% 110%, rgb(244 56 13 / 32%), transparent 62%);
+  --arcana-art-filter: sepia(0.05) saturate(1.17) contrast(1.15);
+}
+
+/* Unlocked + Seasonal + Mint: exotic cave crystal. */
+.tarot-card[data-arcana-theme="cave-crystal"] {
+  --arcana-bg:
+    radial-gradient(circle at 50% 41%, rgb(88 239 213 / 19%), transparent 42%),
+    linear-gradient(150deg, #4a433e, #222329 58%, #101117);
+  --arcana-metal: #91d8cb;
+  --arcana-metal-dark: #48566a;
+  --arcana-light: #e9ffff;
+  --arcana-ink: #f3ffff;
+  --arcana-muted: #aedbd3;
+  --arcana-glow: rgb(78 235 220 / 58%);
+  --arcana-pattern:
+    conic-gradient(from 25deg at 16% 88%, transparent 0 37%, rgb(75 238 209 / 24%) 38% 43%, transparent 44%),
+    conic-gradient(from 205deg at 84% 16%, transparent 0 38%, rgb(170 108 255 / 22%) 39% 45%, transparent 46%),
+    linear-gradient(132deg, transparent 0 47%, rgb(231 255 255 / 14%) 48% 49%, transparent 50%);
+  --arcana-aura:
+    radial-gradient(circle at 21% 77%, #69efd8 0 1.2px, transparent 2.4px),
+    radial-gradient(circle at 78% 29%, #bf86ff 0 1.2px, transparent 2.4px);
+  --arcana-art-effect:
+    linear-gradient(120deg, transparent 23%, rgb(112 245 226 / 26%) 47%, transparent 62%),
+    linear-gradient(53deg, transparent 65%, rgb(177 117 255 / 22%) 67%, transparent 69%);
+  --arcana-art-filter: saturate(0.94) contrast(1.12) brightness(1.04);
+}
+
+/* Foil + Seasonal + Mint: bright snow orchid. */
+.tarot-card[data-arcana-theme="snow-orchid"] {
+  --arcana-bg:
+    radial-gradient(circle at 50% 36%, rgb(255 255 255 / 86%), transparent 46%),
+    linear-gradient(150deg, #fffafe, #d8f6fb 54%, #db8dce);
+  --arcana-metal: #b260aa;
+  --arcana-metal-dark: #f1d8ed;
+  --arcana-light: #ffffff;
+  --arcana-ink: #452b4b;
+  --arcana-muted: #745274;
+  --arcana-glow: rgb(255 125 223 / 57%);
+  --arcana-pattern:
+    radial-gradient(ellipse at 9% 91%, transparent 0 19%, rgb(78 182 140 / 16%) 20% 22%, transparent 23%),
+    radial-gradient(ellipse at 91% 15%, rgb(255 255 255 / 57%) 0 7%, transparent 18%),
+    repeating-conic-gradient(from 0deg at 50% 40%, transparent 0 43deg, rgb(109 199 219 / 12%) 44deg 45deg);
+  --arcana-aura:
+    radial-gradient(circle at 18% 30%, #fff 0 1px, transparent 2px),
+    radial-gradient(circle at 80% 68%, #ffbce9 0 1.3px, transparent 2.5px);
+  --arcana-art-effect:
+    linear-gradient(139deg, rgb(255 255 255 / 42%), transparent 34%),
+    radial-gradient(ellipse at 50% 110%, rgb(238 101 196 / 22%), transparent 62%);
+  --arcana-art-filter: saturate(0.88) contrast(1.04) brightness(1.09);
+}
+
+/* All four powers: divine pearlescence with Artfunkel pink. */
+.tarot-card[data-arcana-theme="divine"] {
+  --arcana-bg:
+    radial-gradient(circle at 50% 36%, rgb(255 255 255 / 96%), transparent 42%),
+    linear-gradient(135deg, #fff 0, #dffff3 24%, #dceeff 49%, #ffd8f5 72%, #fff);
+  --arcana-metal: #f3c;
+  --arcana-metal-dark: #f5e7f2;
+  --arcana-light: #ffffff;
+  --arcana-ink: #342741;
+  --arcana-muted: #6e5379;
+  --arcana-glow: rgb(255 51 204 / 56%);
+  --arcana-pattern:
+    conic-gradient(from 0deg at 50% 40%, rgb(255 51 204 / 13%), rgb(72 215 255 / 12%), rgb(101 235 157 / 14%), rgb(255 215 91 / 12%), rgb(255 51 204 / 13%)),
+    repeating-radial-gradient(circle at 50% 40%, transparent 0 24px, rgb(255 255 255 / 51%) 25px 26px),
+    repeating-conic-gradient(from 22.5deg at 50% 40%, transparent 0 21deg, rgb(255 255 255 / 39%) 22deg 23deg);
+  --arcana-aura:
+    radial-gradient(circle at 18% 28%, #f3c 0 1.2px, transparent 2.5px),
+    radial-gradient(circle at 78% 24%, #4bdcff 0 1.2px, transparent 2.5px),
+    radial-gradient(circle at 68% 78%, #64e99c 0 1.2px, transparent 2.5px),
+    radial-gradient(circle at 30% 72%, #fff091 0 1.2px, transparent 2.5px);
+  --arcana-art-effect:
+    linear-gradient(118deg, transparent 18%, rgb(255 255 255 / 48%) 41%, transparent 58%),
+    conic-gradient(from 30deg at 50% 50%, rgb(255 51 204 / 12%), rgb(63 214 255 / 13%), rgb(98 236 154 / 13%), rgb(255 51 204 / 12%));
+  --arcana-art-filter: saturate(0.94) contrast(1.04) brightness(1.08);
+}
+
+.tarot-card[data-arcana-theme="winter"] .tarot-card-attribute,
+.tarot-card[data-arcana-theme="glacier"] .tarot-card-attribute,
+.tarot-card[data-arcana-theme="snow-orchid"] .tarot-card-attribute,
+.tarot-card[data-arcana-theme="divine"] .tarot-card-attribute,
+.tarot-card[data-arcana-theme="winter"] .tarot-card-medallion,
+.tarot-card[data-arcana-theme="glacier"] .tarot-card-medallion,
+.tarot-card[data-arcana-theme="snow-orchid"] .tarot-card-medallion,
+.tarot-card[data-arcana-theme="divine"] .tarot-card-medallion,
+.tarot-card[data-arcana-theme="winter"] .tarot-card-state-icons span,
+.tarot-card[data-arcana-theme="glacier"] .tarot-card-state-icons span,
+.tarot-card[data-arcana-theme="snow-orchid"] .tarot-card-state-icons span,
+.tarot-card[data-arcana-theme="divine"] .tarot-card-state-icons span {
+  background: color-mix(in srgb, var(--arcana-metal-dark) 74%, transparent);
+}
+
+.tarot-card[data-arcana-theme="divine"] {
+  animation: arcana-divine-border 8s linear infinite;
+}
+
+.tarot-card[data-arcana-theme="fire"] .tarot-card-aura,
+.tarot-card[data-arcana-theme="magma"] .tarot-card-aura,
+.tarot-card[data-arcana-theme="blue-flame"] .tarot-card-aura,
+.tarot-card[data-arcana-theme="forest-fire"] .tarot-card-aura {
+  animation-duration: 3.8s;
+}
+
+@keyframes arcana-aura-pulse {
+  from {
+    opacity: 0.56;
+    transform: scale(1);
+  }
+
+  to {
+    opacity: 0.94;
+    transform: scale(1.035);
+  }
+}
+
+@keyframes arcana-art-shimmer {
+  0%,
+  68%,
+  100% {
+    opacity: 0.5;
+    transform: translateX(-3%);
+  }
+
+  @keyframes arcana-lottery-breathe {
+    from {
+      opacity: 0.58;
+      transform: scale(0.985);
+    }
+
+    to {
+      opacity: 1;
+      transform: scale(1.015);
+    }
+  }
+
+  @keyframes arcana-lottery-orbit {
+    0%,
+    100% {
+      box-shadow:
+        inset 7px -5px 11px var(--arcana-lottery-glow),
+        0 0 7px var(--arcana-lottery-glow);
+    }
+
+    50% {
+      box-shadow:
+        inset -7px 5px 11px var(--arcana-lottery-glow),
+        0 0 11px var(--arcana-lottery-glow);
+    }
+  }
+
+  @keyframes arcana-lottery-prismatic {
+    to {
+      filter: hue-rotate(360deg) drop-shadow(0 0 8px rgb(94 218 255 / 68%));
+    }
+  }
+
+  78% {
+    opacity: 0.92;
+    transform: translateX(3%);
+  }
+}
+
+@keyframes arcana-divine-border {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 0 0 2px var(--arcana-metal-dark),
+      inset 0 0 0 5px rgb(255 255 255 / 28%),
+      0 0 22px rgb(255 51 204 / 46%);
+  }
+
+  33% {
+    box-shadow:
+      inset 0 0 0 2px var(--arcana-metal-dark),
+      inset 0 0 0 5px rgb(255 255 255 / 28%),
+      0 0 22px rgb(61 211 255 / 48%);
+  }
+
+  66% {
+    box-shadow:
+      inset 0 0 0 2px var(--arcana-metal-dark),
+      inset 0 0 0 5px rgb(255 255 255 / 28%),
+      0 0 22px rgb(100 235 151 / 48%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tarot-card,
+  .tarot-card-aura,
+  .tarot-card-art-effect,
+  .tarot-card-lottery-effects,
+  .tarot-card-lottery-ring {
+    animation: none;
+  }
 }
 
 /* Collectible: an original layered trading-card silhouette with a foil window. */

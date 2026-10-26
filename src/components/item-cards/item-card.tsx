@@ -67,6 +67,7 @@ export default function ItemCard({
           : undefined
       }
       data-mint={currentItem.mint ? "true" : undefined}
+      data-unlocked={currentItem.unlocked ? "true" : undefined}
       data-lottery={currentItem.lottery || undefined}
       data-original={currentItem.original ? "true" : undefined}
       data-rarity={currentItem.artwork.rarity}
