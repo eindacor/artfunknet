@@ -734,7 +734,7 @@ function getDisplayMoneyPerHour(
   value = Math.floor(
     value + value * item.condition * item.artwork.value_scale,
   );
-  const base = Math.floor(value * 0.015);
+  const base = Math.floor(value * 0.03);
   let reward = Math.floor(
     base * Math.pow(1.07, getDisplayLevel(item, at, config)),
   );
