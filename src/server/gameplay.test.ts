@@ -230,7 +230,7 @@ test("lottery levels preserve the original value multiplier", () => {
     lootData as Parameters<typeof calculateItemValues>[2],
   );
 
-  assert.equal(lottery.actual, standard.actual * 14);
+  assert.equal(lottery.actual, standard.actual * 11);
 });
 
 test("item value property multipliers preserve configured economy values", () => {
@@ -263,7 +263,7 @@ test("item value property multipliers preserve configured economy values", () =>
   }
   assert.equal(
     getItemValuePropertyMultiplier({ ...neutral, lottery: 6 }, "common"),
-    14,
+    11,
   );
   assert.equal(
     getItemValuePropertyMultiplier({ ...neutral, original: true }, "common"),

@@ -1031,7 +1031,7 @@ export function getItemValuePropertyMultiplier(
   let multiplier = 1;
   if (item.foil) multiplier *= 5;
   if (item.seasonal) multiplier *= SEASONAL_VALUE_MULTIPLIERS[rarity];
-  if (item.lottery) multiplier *= 8 + item.lottery;
+  if (item.lottery) multiplier *= 2 + (item.lottery * 1.5);
   if (item.original) multiplier *= 10;
   if (item.vintage) multiplier *= 2;
   if (item.unlocked) multiplier *= 1.5;
