@@ -512,6 +512,7 @@ export default async function PlayerPage({
         tutorialSeen={player.tutorial_seen === true}
       />
       <GameDashboard
+        initialNow={new Date().getTime()}
         archiveArtStyleIds={cardRendererSettings.activeRendererIds.filter(
           (rendererId) => rendererId !== "museum",
         )}

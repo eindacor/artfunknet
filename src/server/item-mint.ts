@@ -8,10 +8,16 @@ import {
 } from "./gameplay.ts";
 import { getArtworkEffect } from "./artwork-effects.ts";
 import { MASTERPIECE_EFFECT_CODES } from "./masterpiece-effects.ts";
+import { getItemDropChanceUpdate } from "./item-drop-chance.ts";
 
 export type DemintUpdate = Pick<
   GameItem,
-  "condition" | "mint" | "mint_value_multiplier" | "values"
+  | "condition"
+  | "mint"
+  | "mint_value_multiplier"
+  | "values"
+  | "odds"
+  | "drop_chance_coefficient"
 >;
 
 export type MintSensitiveAction =
@@ -76,6 +82,7 @@ export async function getDemintUpdate(
 
   return {
     ...mintState,
+    ...(await getItemDropChanceUpdate(database, demintedItem, artwork)),
     values: calculateItemValues(
       demintedItem,
       { ...artwork, ...item.artwork_overrides },

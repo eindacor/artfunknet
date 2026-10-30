@@ -30,6 +30,7 @@ import {
   getDisplayedArtworkEffect,
 } from "@/server/artwork-effects";
 import { getMintStateAfterAction } from "@/server/item-mint";
+import { getItemDropChanceUpdate } from "@/server/item-drop-chance";
 
 type Player = {
   _id: string;
@@ -211,6 +212,7 @@ export async function POST(
       ...mintState,
     };
     const itemArtwork = { ...artwork, ...item.artwork_overrides };
+    const dropChance = await getItemDropChanceUpdate(database, nextItem, artwork);
     const values = calculateItemValues(
       nextItem,
       itemArtwork,
@@ -227,6 +229,7 @@ export async function POST(
     );
     responseItem = {
       ...nextItem,
+      ...dropChance,
       values,
       reroll_cost: rerollCost,
     };
@@ -245,6 +248,7 @@ export async function POST(
           condition: nextItem.condition,
           mint: nextItem.mint,
           mint_value_multiplier: nextItem.mint_value_multiplier,
+          ...dropChance,
           values,
           reroll_cost: baseRerollCost,
         },

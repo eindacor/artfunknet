@@ -1,4 +1,9 @@
 import type { Db } from "mongodb";
+import {
+  calculateItemDropChance,
+  getItemDropChanceContext,
+  getItemDropChanceUpdate,
+} from "./item-drop-chance.ts";
 
 import {
   getItemKarmaValue,
@@ -145,7 +150,13 @@ export async function grantPreservationistRepair(
       status: item.status,
       condition: item.condition,
     },
-    { $set: { condition: repair.condition, values } },
+    {
+      $set: {
+        condition: repair.condition,
+        values,
+        ...(await getItemDropChanceUpdate(database, item, artwork)),
+      },
+    },
     { returnDocument: "after" },
   );
   if (!updated) {
@@ -226,6 +237,7 @@ export async function settlePlayerItemRepairs(
   ]);
   if (!metadata) throw new Error("Loot metadata is not configured.");
   const artworkMap = new Map(artworks.map((artwork) => [artwork._id, artwork]));
+  const dropChanceContext = await getItemDropChanceContext(database);
 
   for (const { item, intervals } of dueItems) {
     try {
@@ -264,6 +276,7 @@ export async function settlePlayerItemRepairs(
           $set: {
             condition: nextCondition,
             values,
+            ...calculateItemDropChance(item, artwork, dropChanceContext),
             repairing: !repairCompleted,
             ...(!repairCompleted ? { repair_tick_at: nextTickAt } : {}),
           },

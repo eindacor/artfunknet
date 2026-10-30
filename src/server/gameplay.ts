@@ -5,8 +5,15 @@ import type { Db } from "mongodb";
 import type { ArtworkEffect } from "./artwork-effects-core.ts";
 import {
   getCardRendererSettings,
+  getCardStyleProbabilities,
   getSupporterAdjustedCardStyleWeights,
 } from "./card-renderer-settings.ts";
+import { getGameplaySettings } from "./game-settings.ts";
+import {
+  calculateItemDropChance,
+  createItemDropChanceContext,
+  type ItemDropChanceContext,
+} from "./item-drop-chance.ts";
 import { getItemAttributeCounts } from "./item-attribute-counts.ts";
 import { getRerollCost } from "./item-reroll.ts";
 import {
@@ -38,7 +45,7 @@ export type ArtworkDetailImageAdjustment = ArtworkArtStyleAdjustment & {
 
 export type ArtworkDetailImageAdjustments = ArtworkDetailImageAdjustment[];
 
-const PLAYER_LEVEL_MAX = 50;
+export const PLAYER_LEVEL_MAX = 50;
 const RARITY_LEVEL_RESTRICTIONS: Record<ArtworkRarity, number> = {
   common: 0,
   uncommon: 5,
@@ -182,6 +189,7 @@ export type GameItem = {
   vintage_operation_token?: string;
   time_displayed?: string;
   odds: string;
+  drop_chance_coefficient?: number;
   values: {
     sell: number;
     purchase: number;
@@ -401,11 +409,8 @@ export function rollGeneratedCardRenderer(
   random: () => number = Math.random,
   rendererWeights?: Readonly<Record<string, number>>,
 ): string | undefined {
-  const applicableRendererIds = activeRendererIds.filter(
-    (rendererId) =>
-      rendererId !== "museum" &&
-      (rendererWeights?.[rendererId] ?? 1) > 0,
-  );
+  const probabilities = getCardStyleProbabilities(activeRendererIds, rendererWeights);
+  const applicableRendererIds = Object.keys(probabilities);
   if (
     applicableRendererIds.length === 0 ||
     !rollProbability(probability, random)
@@ -416,7 +421,7 @@ export function rollGeneratedCardRenderer(
   return rollWeighted(
     applicableRendererIds.map((rendererId) => ({
       value: rendererId,
-      weight: rendererWeights?.[rendererId] ?? 1,
+      weight: probabilities[rendererId],
     })),
     random,
   );
@@ -512,9 +517,10 @@ export async function generateDailyDrop(
   if (attributes.length === 0) {
     throw new Error("Artwork attributes have not been seeded.");
   }
-  const [rendererSettings, playerSupporterStatus] = await Promise.all([
+  const [rendererSettings, playerSupporterStatus, settings] = await Promise.all([
     getCardRendererSettings(database),
     getPlayerSupporterStatus(database, playerId),
+    getGameplaySettings(database),
   ]);
   const cardStyleWeights = getSupporterAdjustedCardStyleWeights(
     generationMap.cardStyles,
@@ -561,6 +567,13 @@ export async function generateDailyDrop(
         .toArray()
     : [];
   const effectById = new Map(effects.map((effect) => [effect._id, effect]));
+  const dropChanceContext = createItemDropChanceContext(
+    settings.active,
+    metadata.loot_data,
+    activeArtworks,
+    rendererSettings.activeRendererIds,
+    effects,
+  );
   const artworksByRarity = new Map<ArtworkRarity, Artwork[]>();
   for (const rarity of ARTWORK_RARITIES) {
     artworksByRarity.set(
@@ -596,11 +609,6 @@ export async function generateDailyDrop(
           ),
         })),
       );
-    const artworkGenerationWeight = getArtworkGenerationWeight(
-      artwork,
-      metadata.loot_data,
-      seasonalArtworkScalar,
-    );
     const artworkEffect = artwork.effect_id
       ? effectById.get(artwork.effect_id) ?? null
       : null;
@@ -617,21 +625,10 @@ export async function generateDailyDrop(
       createItem({
         artwork,
         effect: artworkEffect,
-        artworkGenerationWeight,
+        dropChanceContext,
         attributes,
         lootData: metadata.loot_data,
         owner: playerId,
-        rarityMap,
-        artworkWeightTotal: rarityArtworks.reduce(
-          (sum, candidate) =>
-            sum +
-            getArtworkGenerationWeight(
-              candidate,
-              metadata.loot_data,
-              seasonalArtworkScalar,
-            ),
-          0,
-        ),
         now,
         activeRendererIds: rendererSettings.activeRendererIds,
         cardStyleProbability,
@@ -704,12 +701,10 @@ export function rollAvailableRarity(
 function createItem({
   artwork,
   effect,
-  artworkGenerationWeight,
+  dropChanceContext,
   attributes,
   lootData,
   owner,
-  rarityMap,
-  artworkWeightTotal,
   now,
   activeRendererIds,
   cardStyleProbability,
@@ -730,12 +725,10 @@ function createItem({
 }: {
   artwork: Artwork;
   effect: ArtworkEffect | null;
-  artworkGenerationWeight: number;
+  dropChanceContext: ItemDropChanceContext;
   attributes: ItemAttribute[];
   lootData: LootData;
   owner: string;
-  rarityMap: Record<ArtworkRarity, number>;
-  artworkWeightTotal: number;
   now: Date;
   activeRendererIds: readonly string[];
   cardStyleProbability: number;
@@ -838,15 +831,9 @@ function createItem({
     debug,
   };
   const values = calculateItemValues(base, itemArtwork, lootData);
-  const rarityOdds = rarityMap[artwork.rarity];
-  let odds = rarityOdds * (artworkGenerationWeight / artworkWeightTotal);
-  if (foil) odds *= foilProbability;
-  if (mint) odds *= mintProbability;
-  if (unlocked) odds *= unlockedProbability;
-
   return {
     ...base,
-    odds: odds > 0 ? `1 in ${Math.floor(1 / odds).toLocaleString("en-US")}` : "0",
+    ...calculateItemDropChance(base, artwork, dropChanceContext),
     values,
     reroll_cost: getRerollCost(base, artwork.rarity, lootData),
   };

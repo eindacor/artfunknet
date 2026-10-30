@@ -4,7 +4,11 @@ import {
   type GameItem,
   type ItemAttribute,
 } from "./gameplay.ts";
-import type { InventorySort } from "./player-view-settings.ts";
+import type {
+  InventorySort,
+  OfferSort,
+  OfferSortDirection,
+} from "./player-view-settings.ts";
 
 export const COLLECTION_STATUSES = [
   "claimed",
@@ -62,6 +66,7 @@ export type CollectionInventoryItem = Pick<
   | "attributes"
   | "authenticity"
   | "values"
+  | "drop_chance_coefficient"
 > & {
   artwork: {
     title: string;
@@ -209,9 +214,44 @@ export function getCollectionAttributeOptions(
   );
 }
 
+export function getOffersComparator(
+  sort: OfferSort,
+  direction: OfferSortDirection,
+): <T extends CollectionInventoryItem>(left: T, right: T) => number {
+  if (sort === "value") {
+    return getInventoryComparator(direction === "asc" ? "value-low" : "value-high");
+  }
+  if (sort === "rarity") {
+    return getInventoryComparator(direction === "asc" ? "rarity-low" : "rarity");
+  }
+  const tieBreak = getInventoryComparator("value-high");
+  return (left, right) => {
+    const leftChance = left.drop_chance_coefficient;
+    const rightChance = right.drop_chance_coefficient;
+    const hasLeft =
+      typeof leftChance === "number" &&
+      Number.isFinite(leftChance) && leftChance >= 0 && leftChance <= 1;
+    const hasRight =
+      typeof rightChance === "number" &&
+      Number.isFinite(rightChance) && rightChance >= 0 && rightChance <= 1;
+    if (hasLeft !== hasRight) return hasLeft ? -1 : 1;
+    const comparison =
+      hasLeft && hasRight
+        ? (leftChance - rightChance) * (direction === "asc" ? 1 : -1)
+        : 0;
+    return comparison || tieBreak(left, right);
+  };
+}
+
 export function getInventoryComparator(
   sort: InventorySort,
 ): <T extends CollectionInventoryItem>(left: T, right: T) => number {
+  if (sort === "drop-chance-high" || sort === "drop-chance-low") {
+    return getOffersComparator(
+      "drop-chance",
+      sort === "drop-chance-high" ? "desc" : "asc",
+    );
+  }
   const byNewest = (
     left: CollectionInventoryItem,
     right: CollectionInventoryItem,

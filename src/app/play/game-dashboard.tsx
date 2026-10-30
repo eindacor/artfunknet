@@ -59,6 +59,7 @@ import {
   getCollectionTags,
   getDefaultCollectionFilters,
   getInventoryComparator,
+  getOffersComparator,
   type CollectionAttributeOption,
   type CollectionFilters,
   type CollectionFlagKey,
@@ -111,6 +112,8 @@ import {
 import type { NpcRewardInteraction } from "@/server/standard-npc-rewards";
 import type {
   InventorySort,
+  OfferSort,
+  OfferSortDirection,
   PlayerViewSettings,
 } from "@/server/player-view-settings";
 import {
@@ -319,6 +322,7 @@ const ATTRIBUTE_TYPE_ICONS = {
 
 export default function GameDashboard({
   player,
+  initialNow,
   items,
   archiveArtStyleIds,
   archives,
@@ -354,6 +358,7 @@ export default function GameDashboard({
   commemorateItemCount = 4,
 }: {
   player: PlayerView;
+  initialNow: number;
   items: HydratedGameItem[];
   archiveArtStyleIds: string[];
   archives: HydratedPlayerArtworkArchive[];
@@ -444,7 +449,7 @@ export default function GameDashboard({
   const [exploreGalleryId, setExploreGalleryId] = useState<string | null>(
     initialGalleryId,
   );
-  const [now, setNow] = useState(0);
+  const [now, setNow] = useState(initialNow);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [actionDialog, setActionDialog] =
@@ -545,6 +550,11 @@ export default function GameDashboard({
   const [inventorySort, setInventorySort] = useState<InventorySort>(
     player.viewSettings.inventorySort,
   );
+  const [offersSort, setOffersSort] = useState<OfferSort>(
+    player.viewSettings.offersSort,
+  );
+  const [offersSortDirection, setOffersSortDirection] =
+    useState<OfferSortDirection>(player.viewSettings.offersSortDirection);
   const [collectionFilters, setCollectionFilters] = useState<CollectionFilters>(
     getDefaultCollectionFilters,
   );
@@ -599,6 +609,10 @@ export default function GameDashboard({
       window.removeEventListener("artfunkel:karma-change", updateKarma);
   }, []);
 
+  const compareOffers = useMemo(
+    () => getOffersComparator(offersSort, offersSortDirection),
+    [offersSort, offersSortDirection],
+  );
   const unclaimed = useMemo(
     () =>
       items
@@ -606,13 +620,8 @@ export default function GameDashboard({
           (item) =>
             item.status === "unclaimed" || item.status === "for_sale",
         )
-        .sort(
-          (left, right) =>
-            right.values.actual - left.values.actual ||
-            Date.parse(right.date_created) - Date.parse(left.date_created) ||
-            left._id.localeCompare(right._id),
-        ),
-    [items],
+        .sort(compareOffers),
+    [items, compareOffers],
   );
   const activePrivateAuctionLoot = useMemo(
     () => {
@@ -661,12 +670,10 @@ export default function GameDashboard({
         }))
         .sort(
           (left, right) =>
-            right.item.values.actual - left.item.values.actual ||
-            Date.parse(right.item.date_created) -
-              Date.parse(left.item.date_created) ||
+            compareOffers(left.item, right.item) ||
             left.key.localeCompare(right.key),
         ),
-    [activePrivateAuctionLoot],
+    [activePrivateAuctionLoot, compareOffers],
   );
   const lootEntries = useMemo(
     () =>
@@ -676,12 +683,15 @@ export default function GameDashboard({
         ...privateAuctionLootEntries,
       ].sort(
         (left, right) =>
-          right.item.values.actual - left.item.values.actual ||
-          Date.parse(right.item.date_created) -
-            Date.parse(left.item.date_created) ||
+          compareOffers(left.item, right.item) ||
           left.key.localeCompare(right.key),
       ),
-    [forSaleLootEntries, privateAuctionLootEntries, unclaimedLootEntries],
+    [
+      forSaleLootEntries,
+      privateAuctionLootEntries,
+      unclaimedLootEntries,
+      compareOffers,
+    ],
   );
   const availableLootCategories = (
     [
@@ -713,7 +723,7 @@ export default function GameDashboard({
   const activeLootEntries = activeLootCategory?.entries ?? [];
   const defaultLootEntryKey = activeLootEntries[0]?.key ?? null;
   const effectiveSelectedLootEntryKeys =
-    selectedLootEntryKeys ??
+    (selectedLootEntryKeys?.length ? selectedLootEntryKeys : null) ??
     (defaultLootEntryKey ? [defaultLootEntryKey] : []);
   let selectedLootEntries = effectiveSelectedLootEntryKeys
     .map((entryKey) =>
@@ -721,8 +731,6 @@ export default function GameDashboard({
     )
     .filter((entry): entry is LootEntry => Boolean(entry));
   if (
-    selectedLootEntryKeys &&
-    selectedLootEntryKeys.length > 0 &&
     selectedLootEntries.length === 0 &&
     activeLootEntries[0]
   ) {
@@ -1061,6 +1069,12 @@ export default function GameDashboard({
     return () => window.clearInterval(timer);
   }, []);
 
+  function selectDashboardSection(nextSection: typeof section) {
+    setSection(nextSection);
+    setRevealedLootIds([]);
+    if (nextSection === "loot") setSelectedLootEntryKeys(null);
+  }
+
   function act(url: string, onSuccess?: () => void) {
     setError("");
     setNotice("");
@@ -1186,6 +1200,7 @@ export default function GameDashboard({
     entries: LootEntry[];
   }) {
     setLootCategory(category.id);
+    setRevealedLootIds([]);
     setSelectedLootEntryKeys(
       category.entries[0] ? [category.entries[0].key] : [],
     );
@@ -2190,9 +2205,7 @@ export default function GameDashboard({
       setNotice(message);
       setRevealedLootIds(body.item_ids ?? []);
       setLootCategory("unclaimed");
-      setSelectedLootEntryKeys(
-        body.item_ids?.[0] ? [body.item_ids[0]] : [],
-      );
+      setSelectedLootEntryKeys(null);
       router.refresh();
       window.setTimeout(
         () =>
@@ -3036,7 +3049,7 @@ export default function GameDashboard({
         onPointerUp={cancelLootEntryLongPress}
         style={
           revealIndex >= 0
-            ? { animationDelay: `${revealIndex * 110}ms` }
+            ? { animationDelay: `${Math.min(revealIndex * 30, 300)}ms` }
             : undefined
         }
         title={`${item.artwork.title} by ${item.artwork.artist}`}
@@ -3134,7 +3147,7 @@ export default function GameDashboard({
                 router.replace(`/play?section=${sectionName}`, {
                   scroll: false,
                 });
-                setSection(tab.id);
+                selectDashboardSection(tab.id);
               }}
               type="button"
             >
@@ -3313,31 +3326,68 @@ export default function GameDashboard({
                 <section className="loot-items-panel">
                 <div className="loot-items-content">
                   <div className="loot-section-list">
-                    <div
-                      aria-label="Offer categories"
-                      className="loot-category-tabs"
-                      role="tablist"
-                    >
-                      {availableLootCategories.map((category) => (
-                        <button
-                          aria-controls="active-loot-category"
-                          aria-selected={
-                            activeLootCategory?.id === category.id
-                          }
-                          className={
-                            activeLootCategory?.id === category.id
-                              ? "current"
-                              : ""
-                          }
-                          key={category.id}
-                          onClick={() => selectLootCategory(category)}
-                          role="tab"
-                          type="button"
-                        >
-                          <span>{category.label}</span>
-                          <small>{category.entries.length.toLocaleString()}</small>
-                        </button>
-                      ))}
+                    <div className="loot-list-toolbar">
+                      <div className="loot-sort-controls">
+                        <label>
+                          <span>Sort offers by</span>
+                          <select
+                            onChange={(event) => {
+                              const next = event.target.value as OfferSort;
+                              setOffersSort(next);
+                              setSelectedLootEntryKeys(null);
+                              setRevealedLootIds([]);
+                              saveViewSettings({ offersSort: next });
+                            }}
+                            value={offersSort}
+                          >
+                            <option value="value">Value</option>
+                            <option value="drop-chance">Drop chance</option>
+                            <option value="rarity">Rarity</option>
+                          </select>
+                        </label>
+                        <label>
+                          <span>Order</span>
+                          <select
+                            onChange={(event) => {
+                              const next = event.target.value as OfferSortDirection;
+                              setOffersSortDirection(next);
+                              setSelectedLootEntryKeys(null);
+                              setRevealedLootIds([]);
+                              saveViewSettings({ offersSortDirection: next });
+                            }}
+                            value={offersSortDirection}
+                          >
+                            <option value="asc">Ascending</option>
+                            <option value="desc">Descending</option>
+                          </select>
+                        </label>
+                      </div>
+                      <div
+                        aria-label="Offer categories"
+                        className="loot-category-tabs"
+                        role="tablist"
+                      >
+                        {availableLootCategories.map((category) => (
+                          <button
+                            aria-controls="active-loot-category"
+                            aria-selected={
+                              activeLootCategory?.id === category.id
+                            }
+                            className={
+                              activeLootCategory?.id === category.id
+                                ? "current"
+                                : ""
+                            }
+                            key={category.id}
+                            onClick={() => selectLootCategory(category)}
+                            role="tab"
+                            type="button"
+                          >
+                            <span>{category.label}</span>
+                            <small>{category.entries.length.toLocaleString()}</small>
+                          </button>
+                        ))}
+                      </div>
                     </div>
                     <section
                       aria-label={activeLootCategory?.label}
@@ -3651,7 +3701,7 @@ export default function GameDashboard({
                   onClick={() => {
                     setExploreGalleryId(playerId);
                     setExploreResetKey((current) => current + 1);
-                    setSection("explore");
+                    selectDashboardSection("explore");
                     router.replace(
                       `/play?section=explore&gallery=${encodeURIComponent(playerId)}`,
                       { scroll: false },
@@ -3798,7 +3848,7 @@ export default function GameDashboard({
 
         {section === "collection" && collectionItems.length === 0 ? (
           <section className="collection-empty-state">
-            <button onClick={() => setSection("loot")} type="button">
+            <button onClick={() => selectDashboardSection("loot")} type="button">
               go here and come back when you collect some artwork!
             </button>
           </section>
@@ -4415,7 +4465,7 @@ export default function GameDashboard({
             onMeetNpc={meetNpc}
             onGoHome={() => {
               setExploreGalleryId(null);
-              setSection("collection");
+              selectDashboardSection("collection");
               router.replace("/play?section=home", { scroll: false });
             }}
             onViewSettingsChange={saveViewSettings}
@@ -6699,6 +6749,8 @@ function InventorySortOptions() {
       <option value="oldest">Acquired: oldest first</option>
       <option value="value-high">Value: high to low</option>
       <option value="value-low">Value: low to high</option>
+      <option value="drop-chance-high">Drop chance: most likely first</option>
+      <option value="drop-chance-low">Drop chance: least likely first</option>
       <option value="title">Title: A to Z</option>
       <option value="title-desc">Title: Z to A</option>
       <option value="artwork-newest">Artwork date: newest first</option>

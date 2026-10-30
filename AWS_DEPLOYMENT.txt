@@ -593,6 +593,11 @@ must not process gameplay requests against the partially migrated database.
 If snapshot creation fails, restart the existing service without running the
 migration and correct the backup tooling first.
 
+The migration command also refreshes stored card drop-chance coefficients and
+displayed odds using the current maximum-level rarity and variant settings.
+It scans all items, including unchanged Mint cards, and updates only the odds
+fields in batches. It is safe to rerun after probability or catalog changes.
+
 For reduced downtime, build a new AMI or deployment artifact, replace the
 instance through an Auto Scaling Group, wait for the new target to become
 healthy, and then terminate the old instance.

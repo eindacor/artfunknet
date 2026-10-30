@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { NextResponse } from "next/server";
+import { getItemDropChanceUpdate } from "@/server/item-drop-chance";
 
 import type { Auction } from "@/server/auction-gameplay";
 import {
@@ -303,8 +304,10 @@ export async function POST(request: Request) {
     { ...artwork, ...selectedItem.artwork_overrides },
     lootMetadata.loot_data,
   );
+  const selectedDropChance = await getItemDropChanceUpdate(database, selectedItem, artwork);
   const selectedItemSnapshot = {
     ...selectedItem,
+    ...selectedDropChance,
     vintage: true,
     status: "claimed" as const,
     values: selectedValues,
@@ -412,6 +415,7 @@ export async function POST(request: Request) {
           status: "claimed",
           repairing: false,
           values: selectedValues,
+          ...selectedDropChance,
           "authenticity.liable": player._id,
           "authenticity.liability_pending": false,
         },

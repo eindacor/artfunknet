@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import type { Db } from "mongodb";
+import { getItemDropChanceUpdate } from "./item-drop-chance.ts";
 
 import { deleteCommunityReactions } from "./community-reaction-cleanup.ts";
 import {
@@ -801,6 +802,7 @@ export async function setRafflePrizePotency(
     {
       $set: {
         lottery: potency,
+        ...(await getItemDropChanceUpdate(database, nextItem, artwork)),
         values: calculateItemValues(nextItem, artwork, metadata.loot_data),
       },
     },

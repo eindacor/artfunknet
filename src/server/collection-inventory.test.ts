@@ -5,6 +5,7 @@ import {
   filterCollectionItems,
   getDefaultCollectionFilters,
   getInventoryComparator,
+  getOffersComparator,
   type CollectionInventoryItem,
 } from "./collection-inventory.ts";
 
@@ -57,6 +58,75 @@ function item(
     ...overrides,
   };
 }
+
+test("Offers sort by value, drop probability and rarity in both directions", () => {
+  const offers = [
+    item({
+      _id: "common", artwork_id: "a", drop_chance_coefficient: 0.75,
+      values: { sell: 0, purchase: 0, actual: 300, auction_min: 0, collector: 0, dealer: 0 },
+    }),
+    item({
+      _id: "rare", artwork_id: "b", drop_chance_coefficient: 0.00000001,
+      artwork: { title: "Rare", artist: "Artist", rarity: "rare", date: 2000 },
+      values: { sell: 0, purchase: 0, actual: 200, auction_min: 0, collector: 0, dealer: 0 },
+    }),
+    item({
+      _id: "masterpiece", artwork_id: "c", drop_chance_coefficient: 0.000000010001,
+      artwork: { title: "Masterpiece", artist: "Artist", rarity: "masterpiece", date: 2000 },
+    }),
+  ];
+  for (const [sort, direction, expected] of [
+    ["value", "asc", ["masterpiece", "rare", "common"]],
+    ["value", "desc", ["common", "rare", "masterpiece"]],
+    ["drop-chance", "asc", ["rare", "masterpiece", "common"]],
+    ["drop-chance", "desc", ["common", "masterpiece", "rare"]],
+    ["rarity", "asc", ["common", "rare", "masterpiece"]],
+    ["rarity", "desc", ["masterpiece", "rare", "common"]],
+  ] as const) {
+    assert.deepEqual(
+      [...offers].sort(getOffersComparator(sort, direction)).map((offer) => offer._id),
+      expected,
+    );
+  }
+});
+
+test("Offers put unknown probabilities last, preserve valid zeroes, and break ties deterministically", () => {
+  const offers = [
+    item({ _id: "unknown", artwork_id: "a" }),
+    item({ _id: "invalid", artwork_id: "b", drop_chance_coefficient: NaN }),
+    item({ _id: "zero", artwork_id: "c", drop_chance_coefficient: 0 }),
+    item({ _id: "likely", artwork_id: "d", drop_chance_coefficient: 0.5 }),
+    item({ _id: "equal-a", artwork_id: "e", drop_chance_coefficient: 0.1 }),
+    item({ _id: "equal-b", artwork_id: "f", drop_chance_coefficient: 0.1 }),
+  ];
+  assert.deepEqual(
+    [...offers].sort(getOffersComparator("drop-chance", "asc")).map((offer) => offer._id),
+    ["zero", "equal-a", "equal-b", "likely", "invalid", "unknown"],
+  );
+  assert.deepEqual(
+    [...offers].sort(getOffersComparator("drop-chance", "desc")).map((offer) => offer._id),
+    ["likely", "equal-a", "equal-b", "zero", "invalid", "unknown"],
+  );
+});
+
+test("Inventory drop-chance sorting uses numeric probabilities with zeroes valid and unknowns last", () => {
+  const items = [
+    item({ _id: "unknown", artwork_id: "a" }),
+    item({ _id: "invalid", artwork_id: "b", drop_chance_coefficient: NaN }),
+    item({ _id: "zero", artwork_id: "c", drop_chance_coefficient: 0 }),
+    item({ _id: "likely", artwork_id: "d", drop_chance_coefficient: 0.75 }),
+    item({ _id: "rare", artwork_id: "e", drop_chance_coefficient: 0.00000001 }),
+    item({ _id: "almost-rare", artwork_id: "f", drop_chance_coefficient: 0.000000010001 }),
+  ];
+  assert.deepEqual(
+    [...items].sort(getInventoryComparator("drop-chance-high")).map((entry) => entry._id),
+    ["likely", "almost-rare", "rare", "zero", "invalid", "unknown"],
+  );
+  assert.deepEqual(
+    [...items].sort(getInventoryComparator("drop-chance-low")).map((entry) => entry._id),
+    ["zero", "rare", "almost-rare", "likely", "invalid", "unknown"],
+  );
+});
 
 test("collection search restores text, hashtag, and keyword filtering", () => {
   const first = item({

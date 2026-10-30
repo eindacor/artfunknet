@@ -25,6 +25,7 @@ import { requirePlayerApi } from "@/server/player-api";
 import { sanitizePlayerFacingAuthenticity } from "@/server/forgery-gameplay";
 import { getArtworkEffect } from "@/server/artwork-effects";
 import { getMintStateAfterAction } from "@/server/item-mint";
+import { getItemDropChanceUpdate } from "@/server/item-drop-chance";
 
 type Player = {
   _id: string;
@@ -169,6 +170,7 @@ export async function POST(
   try {
     const nextItem = prepareItemForLevelUp(item, mintState);
     const itemArtwork = { ...artwork, ...item.artwork_overrides };
+    const dropChance = await getItemDropChanceUpdate(database, nextItem, artwork);
     const values = calculateItemValues(
       nextItem,
       itemArtwork,
@@ -189,6 +191,7 @@ export async function POST(
         condition: nextItem.condition,
         mint: nextItem.mint,
         mint_value_multiplier: nextItem.mint_value_multiplier,
+        ...dropChance,
         values,
         reroll_cost: rerollCost,
       },

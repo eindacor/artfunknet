@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getItemDropChanceUpdate } from "@/server/item-drop-chance";
 import type { Db } from "mongodb";
 
 import { getCardCosmetic } from "@/components/item-cards/catalog";
@@ -135,6 +136,7 @@ export async function PUT(request: Request) {
       mintValueMultiplier: context.settings.active.mintValueMultiplier,
       owner: "admin-preview",
     });
+    Object.assign(item, await getItemDropChanceUpdate(database, item, context.artwork));
     return NextResponse.json({
       item: {
         ...item,
@@ -229,6 +231,7 @@ export async function POST(request: Request) {
       mintValueMultiplier: context.settings.active.mintValueMultiplier,
       owner,
     });
+    Object.assign(item, await getItemDropChanceUpdate(database, item, context.artwork));
   } catch (error) {
     return NextResponse.json(
       {

@@ -5,7 +5,8 @@ import {
   getCardCosmetic,
   getCardStyleInventory,
 } from "@/components/item-cards/catalog";
-import type { GameItem } from "@/server/gameplay";
+import type { Artwork, GameItem } from "@/server/gameplay";
+import { getItemDropChanceUpdate } from "@/server/item-drop-chance";
 import { getDemintUpdate } from "@/server/item-mint";
 import { getDatabase } from "@/server/mongodb";
 import { sanitizePlayerFacingAuthenticity } from "@/server/forgery-gameplay";
@@ -85,6 +86,17 @@ export async function POST(
   let mintUpdate = {};
   try {
     mintUpdate = (await getDemintUpdate(database, item)) ?? {};
+    const artwork = await database.collection<Artwork>("artworks")
+      .findOne({ _id: item.artwork_id });
+    if (!artwork) throw new Error("The item's artwork is unavailable.");
+    mintUpdate = {
+      ...mintUpdate,
+      ...(await getItemDropChanceUpdate(database, {
+        ...item,
+        ...mintUpdate,
+        card_renderer: removingStyle ? undefined : cosmetic!.id,
+      }, artwork)),
+    };
   } catch (error) {
     console.error("Unable to remove Mint before applying cosmetic", error);
     return NextResponse.json(

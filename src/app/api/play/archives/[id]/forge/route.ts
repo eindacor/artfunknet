@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
+import { getItemDropChanceUpdate } from "@/server/item-drop-chance";
 import { recordEconomyMetricsSafely } from "@/server/economy-metrics";
 
 import type { PlayerArtworkArchive } from "@/server/archive-gameplay";
@@ -176,6 +177,7 @@ export async function POST(
   });
   const item: GameItem = {
     ...base,
+    ...(await getItemDropChanceUpdate(database, base, artwork)),
     odds: "forged",
     values,
     reroll_cost: getRerollCost(base, artwork.rarity, metadata.loot_data),

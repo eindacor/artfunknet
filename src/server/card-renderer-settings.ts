@@ -26,6 +26,30 @@ export type CardRendererSettings = {
   rendererNames: CardRendererNames;
 };
 
+let styleProbabilityCache:
+  | { key: string; probabilities: Readonly<Record<string, number>> }
+  | undefined;
+
+export function getCardStyleProbabilities(
+  activeRendererIds: readonly string[],
+  weights?: Readonly<Record<string, number>>,
+): Readonly<Record<string, number>> {
+  const entries = activeRendererIds
+    .filter((id) => id !== "museum")
+    .map((id) => [id, weights?.[id] ?? 1] as const)
+    .filter(([, weight]) => Number.isFinite(weight) && weight > 0);
+  const key = JSON.stringify(entries);
+  if (styleProbabilityCache?.key === key) {
+    return styleProbabilityCache.probabilities;
+  }
+  const total = entries.reduce((sum, [, weight]) => sum + weight, 0);
+  const probabilities = Object.freeze(Object.fromEntries(
+    entries.map(([id, weight]) => [id, weight / total]),
+  ));
+  styleProbabilityCache = { key, probabilities };
+  return probabilities;
+}
+
 export async function getCardRendererSettings(
   database: Db,
 ): Promise<CardRendererSettings> {

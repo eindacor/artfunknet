@@ -37,6 +37,8 @@ export async function PATCH(request: Request) {
     "gallerySort",
     "galleryView",
     "inventorySort",
+    "offersSort",
+    "offersSortDirection",
     "bulkSaleProtections",
   ]);
   if (
@@ -76,6 +78,12 @@ export async function PATCH(request: Request) {
       body.inventorySort === undefined
         ? current.inventorySort
         : body.inventorySort,
+    offersSort:
+      body.offersSort === undefined ? current.offersSort : body.offersSort,
+    offersSortDirection:
+      body.offersSortDirection === undefined
+        ? current.offersSortDirection
+        : body.offersSortDirection,
     bulkSaleProtections:
       body.bulkSaleProtections === undefined
         ? current.bulkSaleProtections
@@ -100,6 +108,13 @@ export async function PATCH(request: Request) {
   }
   if (body.inventorySort !== undefined) {
     updates["profile.view_settings.inventorySort"] = normalized.inventorySort;
+  }
+  if (body.offersSort !== undefined) {
+    updates["profile.view_settings.offersSort"] = normalized.offersSort;
+  }
+  if (body.offersSortDirection !== undefined) {
+    updates["profile.view_settings.offersSortDirection"] =
+      normalized.offersSortDirection;
   }
   if (body.bulkSaleProtections !== undefined) {
     updates["profile.view_settings.bulkSaleProtections"] =

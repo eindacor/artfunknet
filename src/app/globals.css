@@ -2166,7 +2166,7 @@ a.welcome-button {
 
 .loot-item-reveal {
   opacity: 0;
-  animation: loot-item-fade-in 380ms ease-out forwards;
+  animation: loot-item-fade-in 180ms ease-out forwards;
 }
 
 .random-drop .loot-page-actions > button {
@@ -6629,6 +6629,32 @@ a.welcome-button {
   gap: 4px;
   align-items: end;
   border-bottom: 1px solid #c9c0b2;
+}
+
+.loot-sort-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding-bottom: 10px;
+}
+
+.loot-sort-controls label {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  color: #625d55;
+  font: 700 0.65rem Courier, "Courier New", monospace;
+}
+
+.loot-sort-controls select {
+  min-height: 32px;
+  min-width: 0;
+  border: 1px solid #c9c0b2;
+  border-radius: var(--game-button-radius);
+  padding: 4px 6px;
+  background: #f8f5ee;
+  color: #282722;
+  font: inherit;
 }
 
 .loot-category-tabs button {

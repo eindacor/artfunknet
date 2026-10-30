@@ -11,6 +11,8 @@ export const INVENTORY_SORTS = [
   "oldest",
   "value-high",
   "value-low",
+  "drop-chance-high",
+  "drop-chance-low",
   "title",
   "title-desc",
   "artist",
@@ -26,10 +28,17 @@ export const INVENTORY_SORTS = [
 ] as const;
 export type InventorySort = (typeof INVENTORY_SORTS)[number];
 
+export const OFFER_SORTS = ["value", "drop-chance", "rarity"] as const;
+export type OfferSort = (typeof OFFER_SORTS)[number];
+export const OFFER_SORT_DIRECTIONS = ["asc", "desc"] as const;
+export type OfferSortDirection = (typeof OFFER_SORT_DIRECTIONS)[number];
+
 export type PlayerViewSettings = {
   gallerySort: GallerySort;
   galleryView: GalleryViewMode;
   inventorySort: InventorySort;
+  offersSort: OfferSort;
+  offersSortDirection: OfferSortDirection;
   bulkSaleProtections: BulkSaleProtections;
 };
 
@@ -37,6 +46,8 @@ export const DEFAULT_PLAYER_VIEW_SETTINGS: PlayerViewSettings = {
   gallerySort: "value",
   galleryView: "expanded",
   inventorySort: "newest",
+  offersSort: "value",
+  offersSortDirection: "desc",
   bulkSaleProtections: {
     keepArtStyles: true,
     keepRares: true,
@@ -63,6 +74,15 @@ export function getPlayerViewSettings(value: unknown): PlayerViewSettings {
     inventorySort: includes(INVENTORY_SORTS, settings.inventorySort)
       ? settings.inventorySort
       : DEFAULT_PLAYER_VIEW_SETTINGS.inventorySort,
+    offersSort: includes(OFFER_SORTS, settings.offersSort)
+      ? settings.offersSort
+      : DEFAULT_PLAYER_VIEW_SETTINGS.offersSort,
+    offersSortDirection: includes(
+      OFFER_SORT_DIRECTIONS,
+      settings.offersSortDirection,
+    )
+      ? settings.offersSortDirection
+      : DEFAULT_PLAYER_VIEW_SETTINGS.offersSortDirection,
     bulkSaleProtections: {
       keepArtStyles: protections.keepArtStyles !== false,
       keepRares: protections.keepRares !== false,

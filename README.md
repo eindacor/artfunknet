@@ -274,6 +274,26 @@ The basic gameplay loop is active:
 - Each drop creates six `unclaimed` items using the original level-gated rarity,
   artwork weighting, condition, attribute, foil, unlocked, misprint, and value
   calculations.
+- Posted card drop odds use a standardized maximum-player-level baseline from
+  the active gameplay configuration, not the generating player's level or a
+  crate/NPC boost. The rarity probability is multiplied by `1 / active artworks
+  of that rarity` only for seasonal items, then by the global probabilities of
+  each present foil, unlocked, art-style, and Mint modifier. Masterpieces with
+  the active guaranteed-Mint effect skip the Mint probability, but retain their
+  art-style probabilities. Only Mint items
+  also multiply by their specific art style's normalized weight among active,
+  positively weighted styles, since styles can be transferred after Mint is
+  removed. Museum/default styling has no modifier. Absent modifiers do not
+  multiply by their inverse probabilities. Style distributions are cached by
+  their active IDs and weights, so configuration changes invalidate the cache.
+  Items store `drop_chance_coefficient` and matching `odds` text (`1 in
+  1/coefficient`, rounded to the nearest whole integer). If this would read
+  `1 in 1`, the coefficient is shown as a percentage instead (up to two decimal
+  places, such as `75%` or `71.4%`). A zero coefficient
+  displays `Not currently droppable`; forgery disclosure labels are preserved.
+  Creation and recalculation refresh these fields. Production migrations
+  backfill all existing items, including untouched Mint items, without changing
+  their properties or values; rerunning the migration refreshes stale odds.
 - Items can be claimed into the player's capacity-limited inventory or declined
   and removed from the game.
 - Mint items are generated at perfect condition with the configured value
@@ -285,6 +305,12 @@ The basic gameplay loop is active:
   Museum-style warning.
 - Unclaimed items can be sold individually or through the Loot tab's Sell All
   action, which excludes unresolved Art Dealer offers.
+- Offers can be sorted by value, drop chance, or rarity in either direction.
+  Sort choices persist per player alongside bulk-sale preferences. Drop-chance
+  sorting uses the numeric coefficient: ascending shows the least likely drops
+  first, while missing coefficients sort last in either direction.
+  Inventory also supports most/least-likely-first drop-chance sorting using the
+  same numeric probability and saved inventory-sort preference.
 - Generated items carry unlocked and locked NPC-attraction attributes. Artwork
   entry assigns a server-random value scale and server-derived attributes.
   Legendary and masterpiece special attributes come from the artwork's
@@ -295,8 +321,9 @@ The basic gameplay loop is active:
   to `museum`. The premium OG renderer retains the stable internal `legacy` ID
   for saved data and must match the original Meteor card whenever it is
   updated. Newly generated items can independently roll an item-level renderer
-  using the active gameplay profile; successful rolls select uniformly from
-  renderers currently marked Active. Nine other self-contained
+  using the active gameplay profile; successful rolls use configured weights
+  among renderers currently marked Active, with supporter restrictions applied.
+  Nine other self-contained
   renderers—Neon Inventory, Artist Postcard, Gilded Salon,
   Archive Terminal, Prismatic Showcase, Curator Blueprint, Downtown Zine,
   Celestial Orbit, and Boss Reliquary—are available at

@@ -3,6 +3,11 @@ import { LEGENDARY_ATTRIBUTE_PAIRS } from "./legendary-attribute-data.mjs";
 const LEGACY_D3_RENDERER_ID = "shader";
 const D3_RENDERER_ID = "d3";
 
+export async function migrateItemDropChances(database) {
+  const { backfillItemDropChances } = await import("../src/server/item-drop-chance.ts");
+  return backfillItemDropChances(database);
+}
+
 export async function migrateD3CardRendererId(database) {
   const renameIds = (ids) =>
     Array.isArray(ids)

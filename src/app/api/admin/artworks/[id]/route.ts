@@ -11,6 +11,10 @@ import {
 import type { ArtworkEffect } from "@/server/artwork-effects-core";
 import { getRerollCost } from "@/server/item-reroll";
 import { getDatabase } from "@/server/mongodb";
+import {
+  calculateItemDropChance,
+  getItemDropChanceContext,
+} from "@/server/item-drop-chance";
 
 type EditableArtwork = Artwork & {
   image_width?: number;
@@ -348,12 +352,14 @@ export async function PATCH(
   }
   try {
     if (items.length > 0) {
+      const dropChanceContext = await getItemDropChanceContext(database);
       await database.collection<GameItem>("items").bulkWrite(
         items.map((item) => ({
           updateOne: {
             filter: { _id: item._id, artwork_id: id },
             update: {
               $set: {
+                ...calculateItemDropChance(item, updatedArtwork, dropChanceContext),
                 values: calculateItemValues(
                   item,
                   updatedArtwork,
@@ -375,12 +381,14 @@ export async function PATCH(
     let itemsRestored = true;
     try {
       if (items.length > 0) {
+        const dropChanceContext = await getItemDropChanceContext(database);
         const rollback = await database.collection<GameItem>("items").bulkWrite(
           items.map((item) => ({
             updateOne: {
               filter: { _id: item._id, artwork_id: id },
               update: {
                 $set: {
+                  ...calculateItemDropChance(item, existing, dropChanceContext),
                   values: calculateItemValues(
                     item,
                     existing,

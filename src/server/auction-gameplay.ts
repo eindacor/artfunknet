@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { MongoServerError, type Db, type Filter, type Sort } from "mongodb";
+import { getItemDropChanceUpdate } from "./item-drop-chance.ts";
 
 import {
   getUnfulfilledHistorianTargetIds,
@@ -808,7 +809,10 @@ export async function settleAuction(
         )
       : 0;
     let conditionRestored = false;
-    let conditionUpdate: Partial<Pick<GameItem, "condition" | "values">> = {};
+    let conditionUpdate: Partial<Pick<
+      GameItem,
+      "condition" | "values" | "odds" | "drop_chance_coefficient"
+    >> = {};
     try {
       const conditionEffect =
         auctionItem.condition < 1
@@ -856,6 +860,7 @@ export async function settleAuction(
         }
         conditionUpdate = {
           condition: conditionTarget,
+          ...(await getItemDropChanceUpdate(database, auctionItem, artwork)),
           values: calculateItemValues(
             { ...auctionItem, condition: conditionTarget },
             { ...artwork, ...auctionItem.artwork_overrides },

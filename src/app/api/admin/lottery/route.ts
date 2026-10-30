@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getItemDropChanceUpdate } from "@/server/item-drop-chance";
 
 import { getCardCosmetic } from "@/components/item-cards/catalog";
 import { requireAdminApi } from "@/server/admin-api";
@@ -150,6 +151,7 @@ export async function PATCH(request: Request) {
     misprint: item.artwork_id === artwork._id ? item.misprint : false,
   };
   nextItem.card_renderer = cardRenderer.id;
+  Object.assign(nextItem, await getItemDropChanceUpdate(database, nextItem, artwork));
   nextItem.values = calculateItemValues(
     nextItem,
     { ...artwork, ...nextItem.artwork_overrides },
