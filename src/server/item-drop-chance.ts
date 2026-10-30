@@ -109,14 +109,18 @@ export function calculateItemDropChance(
   }
   if (item.foil) coefficient *= context.foil;
   if (item.unlocked) coefficient *= context.unlocked;
-  if (item.card_renderer && item.card_renderer !== "museum") {
-    coefficient *= context.artStyle;
-    if (item.mint) coefficient *= context.styles[item.card_renderer] ?? 0;
-  }
   const guaranteedMint =
     artwork.rarity === "masterpiece" &&
     artwork.effect_id !== undefined &&
     context.guaranteedMintEffectIds.has(artwork.effect_id);
+  if (
+    item.card_renderer &&
+    item.card_renderer !== "museum" &&
+    (item.mint || !guaranteedMint)
+  ) {
+    coefficient *= context.artStyle;
+    if (item.mint) coefficient *= context.styles[item.card_renderer] ?? 0;
+  }
   if (item.mint && !guaranteedMint) coefficient *= context.mint;
   return {
     drop_chance_coefficient: coefficient,

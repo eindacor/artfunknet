@@ -139,7 +139,7 @@ test("stored drop odds follow live configuration, generation, mutations and prod
     assert.deepEqual(await migrateItemDropChances(database), { updated: 0 });
   });
 
-  await t.test("guaranteed-Mint effect odds survive generation, recalculation and migration without losing style probabilities", async () => {
+  await t.test("guaranteed-Mint effect odds include styles only until de-minted, preserving original odds during migration", async () => {
     const database = client.db("guaranteed-mint-drop-odds");
     const original = await seed(database);
     const artwork: Artwork = {
@@ -178,7 +178,8 @@ test("stored drop odds follow live configuration, generation, mutations and prod
     assert.equal(chance.odds, item.odds);
     const deminted = await getDemintUpdate(database, item, { card_renderer: "postcard" });
     assert.equal(deminted?.mint, false);
-    assert.equal(deminted?.drop_chance_coefficient, 0.00025);
+    assert.equal(deminted?.drop_chance_coefficient, 0.001);
+    assert.equal(deminted?.odds, "1 in 1,000");
     const items = database.collection<GameItem>("items");
     await items.updateOne({ _id: item._id }, {
       $set: { drop_chance_coefficient: 0, odds: "Not currently droppable" },
@@ -189,6 +190,21 @@ test("stored drop odds follow live configuration, generation, mutations and prod
     assert.equal(backfilled?.drop_chance_coefficient, item.drop_chance_coefficient);
     assert.equal(backfilled?.odds, item.odds);
     assert.deepEqual(await migrateItemDropChances(database), { updated: 0 });
+    await items.updateOne({ _id: item._id }, {
+      $set: {
+        ...deminted!,
+        card_renderer: "postcard",
+        drop_chance_coefficient: 0.00025,
+        odds: "1 in 4,000",
+      },
+    });
+    assert.deepEqual(await migrateItemDropChances(database), { updated: 1 });
+    const updatedDeminted = await items.findOne({ _id: item._id });
+    assert.equal(updatedDeminted?.drop_chance_coefficient, 0.001);
+    assert.equal(updatedDeminted?.odds, "1 in 1,000");
+    assert.equal(updatedDeminted?.original_drop_chance_coefficient, item.original_drop_chance_coefficient);
+    assert.deepEqual(await migrateItemDropChances(database), { updated: 0 });
+    assert.deepEqual(await migrateOriginalItemDropChances(database), { updated: 0 });
     await database.collection<ArtworkEffect>("artwork_effects").updateOne(
       { _id: artwork.effect_id }, { $set: { active: false } },
     );

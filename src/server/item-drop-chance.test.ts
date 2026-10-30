@@ -97,7 +97,7 @@ test("seasonal, foil, unlocked, weighted art style, and Mint factors compound us
   );
 });
 
-test("specific style weights affect only Mint items, while all styled items use the global style chance", () => {
+test("specific style weights affect only Mint items, while ordinary styled items use the global style chance", () => {
   for (const card_renderer of ["legacy", "postcard", "arcade", "inactive"]) {
     assert.equal(
       calculateItemDropChance({ ...standard, card_renderer }, { rarity: "common" }, context)
@@ -137,6 +137,35 @@ test("guaranteed-Mint masterpieces skip only the Mint probability, even when ran
   }
 });
 
+test("de-minted guaranteed-Mint masterpieces ignore all style factors but retain other modifiers", () => {
+  const guaranteedContext = createItemDropChanceContext(
+    config,
+    lootData,
+    [
+      { rarity: "masterpiece", active: true },
+      { rarity: "masterpiece", active: true },
+    ],
+    ["legacy", "postcard"],
+    [mintEffect],
+  );
+  const artwork = { rarity: "masterpiece" as const, effect_id: mintEffect._id };
+  for (const artStyle of [guaranteedContext.artStyle, 0]) {
+    for (const card_renderer of [undefined, "museum", "legacy", "postcard", "inactive"]) {
+      assert.deepEqual(calculateItemDropChance({
+        ...standard, card_renderer,
+      }, artwork, { ...guaranteedContext, artStyle }), {
+        drop_chance_coefficient: 0.001,
+        odds: "1 in 1,000",
+      });
+    }
+  }
+  const modified = calculateItemDropChance({
+    ...standard, seasonal: true, foil: true, unlocked: true, card_renderer: "postcard",
+  }, artwork, guaranteedContext);
+  assert.ok(Math.abs(modified.drop_chance_coefficient - 0.00001) < 1e-18);
+  assert.equal(modified.odds, "1 in 100,000");
+});
+
 test("other, inactive, or unlinked effects do not exempt a masterpiece from the Mint probability", () => {
   for (const effects of [
     [],
@@ -153,6 +182,10 @@ test("other, inactive, or unlinked effects do not exempt a masterpiece from the 
     }, { rarity: "masterpiece", effect_id: mintEffect._id }, ordinaryContext);
     assert.ok(Math.abs(chance.drop_chance_coefficient - 0.00000125) < 1e-18);
     assert.equal(chance.odds, "1 in 800,000");
+    assert.equal(calculateItemDropChance({
+      ...standard, card_renderer: "postcard",
+    }, { rarity: "masterpiece", effect_id: mintEffect._id }, ordinaryContext)
+      .drop_chance_coefficient, 0.00025);
   }
 });
 

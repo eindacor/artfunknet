@@ -281,8 +281,9 @@ The basic gameplay loop is active:
   crate/NPC boost. The rarity probability is multiplied by `1 / active artworks
   of that rarity` only for seasonal items, then by the global probabilities of
   each present foil, unlocked, art-style, and Mint modifier. Masterpieces with
-  the active guaranteed-Mint effect skip the Mint probability, but retain their
-  art-style probabilities. Only Mint items
+  the active guaranteed-Mint effect skip the Mint probability. Once de-minted,
+  those masterpieces also skip all art-style probabilities; other styled items
+  still use the global art-style probability. Only Mint items
   also multiply by their specific art style's normalized weight among active,
   positively weighted styles, since styles can be transferred after Mint is
   removed. Museum/default styling has no modifier. Absent modifiers do not
