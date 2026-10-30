@@ -46,18 +46,13 @@ export default function PublicGallery({
   const [selectedItem, setSelectedItem] = useState<HydratedGameItem | null>(
     null,
   );
-  return (
-    <>
-      <div className="gallery-window public-gallery-window">
-        <GalleryView
-          disabled={navigationDisabled}
-          emptyMessage={`@${owner.screenName} has not put any artwork on display.`}
-          focusedItemId={focusedItemId}
-          finishes={finishes}
-          items={items}
-          onFocusItem={onSelectItem}
-          onSelectItem={setSelectedItem}
-        />
+  const navigation = onPreviousGallery || onNextGallery || onExitGallery ||
+    onGoHome || navigationError ? (
+      <nav
+        aria-label="Gallery navigation"
+        className="gallery-navigation-overlay"
+        onKeyDown={(event) => event.stopPropagation()}
+      >
         {onPreviousGallery || onNextGallery ? (
           <>
             <button
@@ -69,6 +64,7 @@ export default function PublicGallery({
               type="button"
             >
               <i aria-hidden="true" className="fa fa-chevron-left" />
+              <i aria-hidden="true" className="fa fa-solid fa-door-open" />
             </button>
             <button
               aria-label="Next gallery"
@@ -78,41 +74,61 @@ export default function PublicGallery({
               title="Next gallery"
               type="button"
             >
+              <i aria-hidden="true" className="fa fa-solid fa-door-open" />
               <i aria-hidden="true" className="fa fa-chevron-right" />
             </button>
           </>
         ) : null}
-        {onExitGallery ? (
-          <button
-            aria-label="Exit gallery"
-            className="gallery-navigation-control exit"
-            disabled={navigationDisabled}
-            onClick={onExitGallery}
-            title="Back to public galleries"
-            type="button"
-          >
-            <i aria-hidden="true" className="fa fa-solid fa-door-open" />
-            <span>Exit gallery</span>
-          </button>
-        ) : null}
-        {onGoHome ? (
-          <button
-            aria-label="Return home"
-            className="gallery-navigation-control home"
-            disabled={navigationDisabled}
-            onClick={onGoHome}
-            title="Return home"
-            type="button"
-          >
-            <i aria-hidden="true" className="fa fa-home" />
-            <span>Home</span>
-          </button>
+        {onExitGallery || onGoHome ? (
+          <div className="gallery-navigation-actions">
+            {onExitGallery ? (
+              <button
+                aria-label="Exit gallery"
+                className="gallery-navigation-control exit"
+                disabled={navigationDisabled}
+                onClick={onExitGallery}
+                title="Back to public galleries"
+                type="button"
+              >
+                <i aria-hidden="true" className="fa fa-solid fa-door-open" />
+                <span>Exit gallery</span>
+              </button>
+            ) : null}
+            {onGoHome ? (
+              <button
+                aria-label="Return home"
+                className="gallery-navigation-control home"
+                disabled={navigationDisabled}
+                onClick={onGoHome}
+                title="Return home"
+                type="button"
+              >
+                <i aria-hidden="true" className="fa fa-home" />
+                <span>Home</span>
+              </button>
+            ) : null}
+          </div>
         ) : null}
         {navigationError ? (
           <p className="gallery-navigation-error" role="alert">
             {navigationError}
           </p>
         ) : null}
+      </nav>
+    ) : null;
+  return (
+    <>
+      <div className="gallery-window public-gallery-window">
+        <GalleryView
+          disabled={navigationDisabled}
+          emptyMessage={`@${owner.screenName} has not put any artwork on display.`}
+          focusedItemId={focusedItemId}
+          finishes={finishes}
+          items={items}
+          navigation={navigation}
+          onFocusItem={onSelectItem}
+          onSelectItem={setSelectedItem}
+        />
         {visitorContent}
       </div>
       {selectedItem ? (

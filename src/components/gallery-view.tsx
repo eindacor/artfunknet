@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
 import {
   createGalleryLayout,
@@ -20,6 +20,7 @@ export default function GalleryView({
   finishes = DEFAULT_GALLERY_FINISHES,
   focusedItemId,
   items,
+  navigation,
   onFocusItem,
   onSelectItem,
 }: {
@@ -28,6 +29,7 @@ export default function GalleryView({
   finishes?: GalleryFinishes;
   focusedItemId?: string;
   items: HydratedGameItem[];
+  navigation?: ReactNode;
   onFocusItem?: (item: HydratedGameItem) => void;
   onSelectItem: (item: HydratedGameItem) => void;
 }) {
@@ -177,6 +179,7 @@ export default function GalleryView({
           }
         }}
         role="region"
+        style={{ "--gallery-overlay-opacity": finishes.brightness * 0.4 } as CSSProperties}
         tabIndex={0}
       >
         <div
@@ -184,6 +187,7 @@ export default function GalleryView({
           hidden={status === "unavailable"}
           ref={host}
         />
+        {navigation}
         {status === "loading" && activeItem ? (
           <p className="gallery-scene-message" role="status">
             Preparing the exhibition...
@@ -239,10 +243,7 @@ export default function GalleryView({
           </>
         ) : null}
         {activeItem ? (
-          <div
-            className="gallery-artwork-label"
-            style={{ "--gallery-label-opacity": finishes.brightness * 0.4 } as CSSProperties}
-          >
+          <div className="gallery-artwork-label">
             <div aria-atomic="true" aria-live="polite">
               <strong>{activeItem.artwork.title}</strong>
               <span>
