@@ -3287,19 +3287,19 @@ a.welcome-button {
   background: #f8f6f0;
 }
 
-.gallery-finish-width label,
-.gallery-finish-width-bounds {
+.gallery-finish-slider label,
+.gallery-finish-slider-bounds {
   font: 0.65rem Courier, "Courier New", monospace;
 }
 
-.gallery-finish-width input[type="range"] {
+.gallery-finish-slider input[type="range"] {
   display: block;
   width: 100%;
   margin: 6px 0;
   accent-color: #282722;
 }
 
-.gallery-finish-width-bounds {
+.gallery-finish-slider-bounds {
   display: flex;
   justify-content: space-between;
 }

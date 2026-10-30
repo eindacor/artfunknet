@@ -17,8 +17,11 @@ export const GALLERY_FINISH_WIDTH_LIMITS = {
   frame_width: { min: 0.01, max: 0.15, step: 0.001, default: 0.045 },
   matte_width: { min: 0, max: 0.2, step: 0.001, default: 0.06 },
 } as const;
+export const GALLERY_BRIGHTNESS_LIMITS = {
+  min: 0, max: 1, step: 0.01, default: 0.5,
+} as const;
 export type GalleryFinishes = Record<GalleryFinishSlot, GalleryColor> &
-  Record<GalleryFinishWidthSlot, number>;
+  Record<GalleryFinishWidthSlot, number> & { brightness: number };
 export type PlayerGalleryFinishes = Record<string, GalleryFinishes>;
 
 export const GALLERY_FINISH_PRESETS: Record<GalleryFinishSlot, readonly string[]> = {
@@ -56,6 +59,7 @@ export const DEFAULT_GALLERY_FINISHES: GalleryFinishes = {
   ) as Record<GalleryFinishSlot, GalleryColor>,
   frame_width: GALLERY_FINISH_WIDTH_LIMITS.frame_width.default,
   matte_width: GALLERY_FINISH_WIDTH_LIMITS.matte_width.default,
+  brightness: GALLERY_BRIGHTNESS_LIMITS.default,
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -75,6 +79,11 @@ function isGalleryWidth(slot: GalleryFinishWidthSlot, value: unknown): value is 
     value >= min && value <= max;
 }
 
+function isGalleryBrightness(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) &&
+    value >= GALLERY_BRIGHTNESS_LIMITS.min && value <= GALLERY_BRIGHTNESS_LIMITS.max;
+}
+
 export function getGalleryFinishes(value: unknown): GalleryFinishes {
   const record = isRecord(value) ? value : {};
   const colors = Object.fromEntries(GALLERY_FINISH_SLOTS.map((slot) => {
@@ -89,6 +98,8 @@ export function getGalleryFinishes(value: unknown): GalleryFinishes {
       ? record.frame_width : DEFAULT_GALLERY_FINISHES.frame_width,
     matte_width: isGalleryWidth("matte_width", record.matte_width)
       ? record.matte_width : DEFAULT_GALLERY_FINISHES.matte_width,
+    brightness: isGalleryBrightness(record.brightness)
+      ? record.brightness : DEFAULT_GALLERY_FINISHES.brightness,
   };
 }
 
@@ -113,13 +124,15 @@ export function parseGalleryFinishUpdate(value: unknown): {
   const finishes = value.finishes;
   if (
     Object.keys(finishes).length !==
-      GALLERY_FINISH_SLOTS.length + GALLERY_FINISH_WIDTH_SLOTS.length ||
+      GALLERY_FINISH_SLOTS.length + GALLERY_FINISH_WIDTH_SLOTS.length + 1 ||
     !GALLERY_FINISH_SLOTS.every((slot) =>
       Object.hasOwn(finishes, slot) && isGalleryColor(finishes[slot]),
     ) ||
     !GALLERY_FINISH_WIDTH_SLOTS.every((slot) =>
       Object.hasOwn(finishes, slot) && isGalleryWidth(slot, finishes[slot]),
-    )
+    ) ||
+    !Object.hasOwn(finishes, "brightness") ||
+    !isGalleryBrightness(finishes.brightness)
   ) return null;
   return {
     galleryId: value.galleryId,

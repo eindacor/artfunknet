@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import {
+  GALLERY_BRIGHTNESS_LIMITS,
   GALLERY_FINISH_PRESETS,
   GALLERY_FINISH_SLOTS,
   GALLERY_FINISH_WIDTH_LIMITS,
@@ -145,7 +146,7 @@ export default function GalleryFinishMenu({
           const { min, max, step } = GALLERY_FINISH_WIDTH_LIMITS[slot];
           const millimeters = Math.round(finishes[slot] * 1000);
           return (
-            <fieldset disabled={saving} key={slot} className="gallery-finish-width">
+            <fieldset disabled={saving} key={slot} className="gallery-finish-slider">
               <legend>{label}</legend>
               <label htmlFor={`${id}-${slot}`}>{millimeters} mm</label>
               <input
@@ -162,13 +163,34 @@ export default function GalleryFinishMenu({
                 type="range"
                 value={millimeters}
               />
-              <div className="gallery-finish-width-bounds">
+              <div className="gallery-finish-slider-bounds">
                 <span>{Math.round(min * 1000)} mm</span>
                 <span>{Math.round(max * 1000)} mm</span>
               </div>
             </fieldset>
           );
         })}
+        <fieldset disabled={saving} className="gallery-finish-slider">
+          <legend>Brightness</legend>
+          <label htmlFor={`${id}-brightness`}>{finishes.brightness.toFixed(2)}</label>
+          <input
+            aria-label="Brightness"
+            id={`${id}-brightness`}
+            min={GALLERY_BRIGHTNESS_LIMITS.min}
+            max={GALLERY_BRIGHTNESS_LIMITS.max}
+            step={GALLERY_BRIGHTNESS_LIMITS.step}
+            onChange={(event) => {
+              setError("");
+              onChange({ ...finishes, brightness: event.target.valueAsNumber });
+            }}
+            type="range"
+            value={finishes.brightness}
+          />
+          <div className="gallery-finish-slider-bounds">
+            <span>{GALLERY_BRIGHTNESS_LIMITS.min}</span>
+            <span>{GALLERY_BRIGHTNESS_LIMITS.max}</span>
+          </div>
+        </fieldset>
         <div className="gallery-finish-save">
           <button disabled={saving || !dirty || invalid} type="submit">
             {saving ? "Saving..." : "Save finishes"}

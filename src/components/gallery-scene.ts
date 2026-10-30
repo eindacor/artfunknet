@@ -16,6 +16,7 @@ import {
 
 const CEILING_TILE_SIZE = 0.6;
 const CEILING_GRID_OPACITY = 0.12;
+const mix = THREE.MathUtils.lerp;
 
 // Set a URL here after adding a tileable color texture to public\textures\gallery.
 const SURFACE_TEXTURES: Record<
@@ -57,8 +58,9 @@ export function mountGalleryScene(
   const scene = new THREE.Scene();
   const background = new THREE.Color();
   scene.background = background;
-  scene.add(new THREE.HemisphereLight("#fff5df", "#61513e", 1.4));
-  scene.add(new THREE.AmbientLight("#fff4e5", 0.15));
+  const hemiLight = new THREE.HemisphereLight("#fff5df", "#61513e", 0.6);
+  const ambientLight = new THREE.AmbientLight("#fff4e5", 0.05);
+  scene.add(hemiLight, ambientLight);
   const camera = new THREE.PerspectiveCamera(GALLERY_FIELD_OF_VIEW, 1, 0.05, 1000);
   const destination = new THREE.Vector3();
   const geometries = new Set<THREE.BufferGeometry>();
@@ -175,6 +177,8 @@ export function mountGalleryScene(
     for (const slot of GALLERY_FINISH_SLOTS) {
       surfaces[slot].color.setRGB(...nextFinishes[slot], THREE.SRGBColorSpace);
     }
+    hemiLight.intensity = mix(0.6, 2.2, nextFinishes.brightness);
+    ambientLight.intensity = mix(0.05, 0.5, nextFinishes.brightness);
     background.copy(surfaces.wall.color);
     invalidate();
   }

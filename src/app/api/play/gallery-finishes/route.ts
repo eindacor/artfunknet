@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import {
+  GALLERY_BRIGHTNESS_LIMITS,
   GALLERY_FINISH_WIDTH_LIMITS,
   parseGalleryFinishUpdate,
 } from "@/server/gallery-finishes";
@@ -19,7 +20,7 @@ export async function PATCH(request: Request) {
     const matte = GALLERY_FINISH_WIDTH_LIMITS.matte_width;
     return NextResponse.json(
       {
-        error: `Provide a gallery ID, all six RGB colors (three numbers between 0 and 1), frame_width (${frame.min}-${frame.max} meters), and matte_width (${matte.min}-${matte.max} meters).`,
+        error: `Provide a gallery ID, all six RGB colors (three numbers between 0 and 1), frame_width (${frame.min}-${frame.max} meters), matte_width (${matte.min}-${matte.max} meters), and brightness (${GALLERY_BRIGHTNESS_LIMITS.min}-${GALLERY_BRIGHTNESS_LIMITS.max}).`,
       },
       { status: 400 },
     );

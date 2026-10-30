@@ -36,7 +36,7 @@ test("legacy and partial finishes retain defaults without sharing mutable colors
   assert.notDeepEqual(finishes.floor, DEFAULT_GALLERY_FINISHES.floor);
 });
 
-test("finish updates require all colors and widths and a safe gallery ID", () => {
+test("finish updates require all colors, widths, brightness, and a safe gallery ID", () => {
   const finishes = getGalleryFinishes(undefined);
   const update = { galleryId: "legacy-gallery_1", finishes };
   assert.deepEqual(parseGalleryFinishUpdate(update), update);
@@ -95,4 +95,26 @@ test("color-only legacy galleries receive default widths without losing their sa
   assert.deepEqual(finishes.wall, [0.2, 0.4, 0.6]);
   assert.equal(finishes.frame_width, 0.045);
   assert.equal(finishes.matte_width, 0.06);
+});
+
+test("brightness accepts the full 0-1 range and rejects invalid or missing API values", () => {
+  for (const brightness of [0, 0.25, 0.5, 1]) {
+    const finishes = { ...getGalleryFinishes(null), brightness };
+    const update = { galleryId: "gallery", finishes };
+    assert.deepEqual(parseGalleryFinishUpdate(update), update);
+    assert.equal(getGalleryFinishes(finishes).brightness, brightness);
+  }
+  for (const brightness of [
+    -0.000001, 1.000001, NaN, Infinity, -Infinity,
+    "0.5", null, undefined, [], {}, true,
+  ]) {
+    const finishes = { ...getGalleryFinishes(null), brightness };
+    assert.equal(parseGalleryFinishUpdate({ galleryId: "gallery", finishes }), null);
+    assert.equal(getGalleryFinishes(finishes).brightness, DEFAULT_GALLERY_FINISHES.brightness);
+  }
+  const legacy = Object.fromEntries(
+    Object.entries(DEFAULT_GALLERY_FINISHES).filter(([key]) => key !== "brightness"),
+  );
+  assert.deepEqual(getGalleryFinishes(legacy), DEFAULT_GALLERY_FINISHES);
+  assert.equal(parseGalleryFinishUpdate({ galleryId: "gallery", finishes: legacy }), null);
 });
