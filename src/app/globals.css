@@ -7126,14 +7126,20 @@ a.welcome-button {
 }
 
 .gallery-artwork-label {
+  position: absolute;
+  z-index: 2;
+  right: 0;
+  bottom: 0;
+  left: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 12px;
-  padding: 14px 18px;
-  border-top: 1px solid rgb(255 255 255 / 15%);
-  background: #24271f;
+  gap: 8px 12px;
+  max-height: calc(100% - 20px);
+  overflow-y: auto;
+  padding: 6px 12px;
+  background: rgb(36 39 31 / var(--gallery-label-opacity, 0.2));
   color: #eee8db;
   font: 0.72rem/1.5 "Courier New", Courier, monospace;
 }
@@ -7217,6 +7223,12 @@ a.welcome-button {
   color: #eee8db;
   font-size: 0.65rem;
   text-align: center;
+}
+
+.gallery-artwork-label > .gallery-render-notice {
+  position: static;
+  flex: 1 1 100%;
+  background: transparent;
 }
 
 .gallery-navigation-control {

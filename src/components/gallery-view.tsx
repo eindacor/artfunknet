@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
 import {
   createGalleryLayout,
@@ -206,7 +206,7 @@ export default function GalleryView({
             />
           </button>
         ) : null}
-        {status === "unavailable" ? (
+        {status === "unavailable" && !activeItem ? (
           <p className="gallery-render-notice">
             3D is unavailable on this device. Artwork browsing is still available.
           </p>
@@ -238,48 +238,56 @@ export default function GalleryView({
             </button>
           </>
         ) : null}
-      </div>
-      {activeItem ? (
-        <div className="gallery-artwork-label">
-          <div aria-atomic="true" aria-live="polite">
-            <strong>{activeItem.artwork.title}</strong>
-            <span>
-              {activeItem.artwork.artist}, {activeItem.artwork.date}
-            </span>
-            <span>
-              {activeItem.artwork.width} &times; {activeItem.artwork.height} cm
-              {" / "}
-              <span className={`rarity-text ${activeItem.artwork.rarity}`}>
-                {activeItem.artwork.rarity}
+        {activeItem ? (
+          <div
+            className="gallery-artwork-label"
+            style={{ "--gallery-label-opacity": finishes.brightness * 0.4 } as CSSProperties}
+          >
+            <div aria-atomic="true" aria-live="polite">
+              <strong>{activeItem.artwork.title}</strong>
+              <span>
+                {activeItem.artwork.artist}, {activeItem.artwork.date}
               </span>
-            </span>
-          </div>
-          {status === "ready" ? (
+              <span>
+                {activeItem.artwork.width} &times; {activeItem.artwork.height} cm
+                {" / "}
+                <span className={`rarity-text ${activeItem.artwork.rarity}`}>
+                  {activeItem.artwork.rarity}
+                </span>
+              </span>
+            </div>
+            {status === "ready" ? (
+              <button
+                aria-pressed={zoomed}
+                disabled={disabled}
+                onClick={() => activateItem(activeItem)}
+                type="button"
+              >
+                <i
+                  aria-hidden="true"
+                  className={`fa ${zoomed ? "fa-magnifying-glass-minus" : "fa-magnifying-glass-plus"}`}
+                />{" "}
+                {zoomed ? "Zoom out" : "Zoom in"}
+              </button>
+            ) : null}
             <button
-              aria-pressed={zoomed}
               disabled={disabled}
-              onClick={() => activateItem(activeItem)}
+              onClick={() => onSelectItem(activeItem)}
               type="button"
             >
-              <i
-                aria-hidden="true"
-                className={`fa ${zoomed ? "fa-magnifying-glass-minus" : "fa-magnifying-glass-plus"}`}
-              />{" "}
-              {zoomed ? "Zoom out" : "Zoom in"}
+              View details
+              <span className="gallery-artwork-position">
+                {activeIndex + 1} / {items.length}
+              </span>
             </button>
-          ) : null}
-          <button
-            disabled={disabled}
-            onClick={() => onSelectItem(activeItem)}
-            type="button"
-          >
-            View details
-            <span className="gallery-artwork-position">
-              {activeIndex + 1} / {items.length}
-            </span>
-          </button>
-        </div>
-      ) : null}
+            {status === "unavailable" ? (
+              <p className="gallery-render-notice">
+                3D is unavailable on this device. Artwork browsing is still available.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
