@@ -9,6 +9,8 @@ import { CommunityReactionPicker } from "@/components/community-emotes";
 import ItemCard from "@/components/item-cards/item-card";
 import { ratingColor } from "@/components/item-cards/shared";
 import PublicGallery from "@/components/public-gallery";
+import GalleryFinishMenu from "@/components/gallery-finish-menu";
+import type { GalleryFinishes } from "@/server/gallery-finishes";
 import type { CardLegendaryAttribute } from "@/components/item-cards/types";
 import {
   type GalleryVisitorView,
@@ -67,6 +69,8 @@ export type GalleryNpcView = GalleryVisitorView;
 const EMPTY_GALLERY_VISITORS: GalleryNpcView[] = [];
 
 type GalleryDetailResponse = {
+  galleryId: string;
+  finishes: GalleryFinishes;
   owner: {
     playerId: string;
     screenName: string;
@@ -803,7 +807,19 @@ function VisitedGallery({
         </div>
       ) : null}
       <div className="visited-gallery-workspace">
-        <section className="visited-gallery-player-panel">
+        {ownerId === viewerId ? (
+          <GalleryFinishMenu
+            finishes={gallery.finishes}
+            galleryId={gallery.galleryId}
+            key={gallery.galleryId}
+            onChange={(finishes) => setGallery((current) =>
+              current?.galleryId === gallery.galleryId
+                ? { ...current, finishes }
+                : current,
+            )}
+          />
+        ) : (
+          <section className="visited-gallery-player-panel">
           <header className="visited-gallery-metadata-header">
             <div>
               <p>Collector exhibition</p>
@@ -924,7 +940,8 @@ function VisitedGallery({
               ))}
             </div>
           )}
-        </section>
+          </section>
+        )}
         {selectedPreviewItem ? (
           <section className="collection-preview visited-gallery-preview">
             <ItemCard
@@ -951,8 +968,14 @@ function VisitedGallery({
         )}
         <GalleryChat galleryOwnerId={ownerId} viewerId={viewerId} />
         <PublicGallery
-          floorContent={
-            <div className="npc-area gallery-npc-overlay">
+          finishes={gallery.finishes}
+          focusedItemId={selectedPreviewItem?._id}
+          visitorContent={
+            <div
+              aria-label="Gallery visitors"
+              className="npc-area gallery-visitor-tray"
+              role="group"
+            >
               {visitors.map((npc) => {
                 const socialBatteryCost = getVisitorSocialBatteryCost(
                   npc.quality,

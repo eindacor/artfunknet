@@ -332,6 +332,44 @@ The basic gameplay loop is active:
   Attribute and condition ratings expose separate light-card and dark-card
   palettes, allowing dark renderers to use a visible red-to-white scale instead
   of the OG design&apos;s original red-to-black scale.
+- Home and visited galleries share a Three.js room with simple matted frames,
+  individual nameplates, and soft artwork spotlights. Every work retains its
+  lighting and shadows while navigation only moves the camera; static shadow
+  maps are reused between camera moves. Wall base trim uses the floor texture
+  when enabled, with an independently editable color. The display wall turns
+  toward the viewer at both ends, with the wall finish and base trim continuing
+  around the corners. Artwork dimensions are centimeters, converted to meters
+  without resizing individual paintings.
+  Frames are spaced two meters apart. Previous/next painting arrows (or
+  Left/Right while the scene is focused) move along the wall, preserving the
+  current wide or zoomed-in view. Clicking another work selects it without
+  zooming. Clicking the selected work toggles between the wide view and a
+  close-up fitted to its mat and frame; its cursor changes between zoom-in and
+  zoom-out. The Zoom button,
+  or Enter/Space while the scene is focused, provides the same toggle.
+  View details opens the existing item details dialog. Visitors wrap into rows
+  beneath the scene without horizontal scrolling. Devices without WebGL retain
+  image browsing and item details.
+  When viewing their own gallery, players get finish controls in place of the
+  collector panel: six suggested colors per surface, a native color picker,
+  and hex input. Changes preview live; Save finishes persists them for visitors.
+  Player records store `gallery_finishes` as a map keyed by the actual gallery
+  record's `_id` (which can differ from its owner's player ID). Each entry has
+  `ceiling`, `wall`, `floor`, `trim`, `frame`, and `matte`, each a three-number
+  sRGB array in the range `[0, 1]`. Existing galleries receive the current
+  default colors on first view; saving one gallery preserves other entries.
+  Geometry uses solid colors initially. Put optional tileable color textures in
+  `public\textures\gallery\wall.jpg`, `floor.jpg`, `ceiling.jpg`, and `frame.jpg`.
+  Enable each supplied texture by setting its `SURFACE_TEXTURES` entry in
+  `src\components\gallery-scene.ts` to the corresponding public URL, for example
+  `/textures/gallery/wall.jpg`. Null entries keep the solid-color material;
+  uploaded textures remain disabled. Enabled textures are tinted by the saved
+  finish colors.
+  Surfaces use repeating, meter-based UVs (one tile per meter); use seamless
+  textures without baked lighting. Artwork images continue to come from the
+  artwork image API and do not belong in this texture directory. WebGL artwork
+  requests use `texture=1` to serve bytes from the app rather than redirecting to
+  the CDN, so existing deployments do not need new cross-origin texture rules.
 - WebGL card shaders use GLSL ES files under `public/shaders`. Shared functions
   live in `public/shaders/includes` as `.glsl` files and can be inserted before
   WebGL compilation with `{{{include_name}}}`. For example,

@@ -35,6 +35,7 @@ test("creates a new player with the standard starting profile", () => {
   });
 
   assert.equal(player._id, "0123456789abcdef01234567");
+  assert.deepEqual(player.gallery_finishes, {});
   assert.equal(player.profile.screen_name, "Player-One");
   assert.equal(player.profile.bank_balance, 100_000);
   assert.equal(player.profile.level, 0);

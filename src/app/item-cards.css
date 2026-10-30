@@ -73,14 +73,6 @@
   box-shadow: 0 24px 70px rgb(0 0 0 / 35%);
 }
 
-.public-gallery-window .gallery-floor {
-  margin-bottom: 0;
-}
-
-.public-gallery-window .framed-painting {
-  cursor: pointer;
-}
-
 .standard-item-dialog .complete-item-record a {
   color: #185b9d;
   font-weight: 700;

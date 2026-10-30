@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 
 import type { Db } from "mongodb";
 
+import type { PlayerGalleryFinishes } from "./gallery-finishes.ts";
 import { DEFAULT_PLAYER_VIEW_SETTINGS } from "./player-view-settings.ts";
 import {
   getNextSocialBatteryResetAt,
@@ -22,6 +23,7 @@ export type PlayerAccountRecord = {
   active: boolean;
   password_salt: string;
   password_hash: string;
+  gallery_finishes: PlayerGalleryFinishes;
   profile: Record<string, unknown>;
   created_at: Date;
   updated_at: Date;
@@ -85,6 +87,7 @@ export function createPlayerAccountRecord({
     active: true,
     password_salt: passwordSalt,
     password_hash: passwordHash,
+    gallery_finishes: {},
     profile: createDefaultPlayerProfile(screenName, now),
     created_at: now,
     updated_at: now,

@@ -29,13 +29,15 @@
     "next": "^16.3.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "sharp": "^0.35.4"
+    "sharp": "^0.35.4",
+    "three": "^0.187.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.5",
+    "@types/three": "^0.186.0",
     "eslint": "^9",
     "eslint-config-next": "^16.3.4",
     "husky": "^9.1.7",

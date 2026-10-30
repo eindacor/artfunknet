@@ -11,6 +11,7 @@ import { hydrateGameItems } from "@/server/item-artwork";
 import { getDatabase } from "@/server/mongodb";
 import { getGalleryNpcs } from "@/server/npc-gameplay";
 import { requirePlayerApi } from "@/server/player-api";
+import { getPlayerGalleryFinishes } from "@/server/player-gallery-finishes";
 import { getPublicGalleryView } from "@/server/public-showcase";
 import { prepareItemForPublicViewer } from "@/server/public-showcase-core";
 
@@ -87,7 +88,8 @@ export async function GET(
         .filter((id): id is string => Boolean(id)),
     ),
   ];
-  const [npcs, artworkEffects, reactions] = await Promise.all([
+  const galleryId = metadata?._id ?? playerId;
+  const [npcs, artworkEffects, reactions, finishes] = await Promise.all([
     getGalleryNpcs(database, playerId),
     getArtworkEffects(database, effectIds),
     getCommunityReactionSummary(
@@ -96,9 +98,12 @@ export async function GET(
       playerId,
       auth.session.playerId,
     ),
+    getPlayerGalleryFinishes(database, playerId, galleryId),
   ]);
 
   return NextResponse.json({
+    galleryId,
+    finishes,
     owner: gallery.owner,
     items: gallery.items,
     auctions,

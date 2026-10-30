@@ -64,6 +64,7 @@ import {
   getPlayerAuctionEscrow,
 } from "@/server/auction-gameplay";
 import { getPublicItemView } from "@/server/public-showcase";
+import { getPlayerGalleryFinishes } from "@/server/player-gallery-finishes";
 import { settlePlayerItemRepairs } from "@/server/preservationist-gameplay";
 import { getAdminSession, requirePlayer } from "@/server/session";
 import {
@@ -228,6 +229,11 @@ export default async function PlayerPage({
   if (!player) {
     notFound();
   }
+  const galleryFinishes = await getPlayerGalleryFinishes(
+    database,
+    player._id,
+    galleryMetadata?._id ?? player._id,
+  );
   const socialBattery = await refreshPlayerSocialBattery(
     database,
     player._id,
@@ -538,6 +544,7 @@ export default async function PlayerPage({
           ),
         }))}
         galleryRates={galleryRates}
+        galleryFinishes={galleryFinishes}
         galleryMetadata={
           galleryMetadata
             ? JSON.parse(JSON.stringify(galleryMetadata))

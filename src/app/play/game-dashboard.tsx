@@ -29,10 +29,7 @@ import EnterEraDialog from "@/components/enter-era-dialog";
 import PlayHistoryPanel from "@/components/play-history-panel";
 import type { PlaythroughSnapshot } from "@/server/playthrough-snapshots";
 import type { HallOfFameDisplayRecord } from "@/server/hall-of-fame";
-import {
-  getGalleryPaintingDimension,
-  getGalleryPixelsPerCentimeter,
-} from "@/components/gallery-layout";
+import GalleryView from "@/components/gallery-view";
 import ArchiveConfirmationDialog from "@/components/item-cards/archive-confirmation-dialog";
 import AuctionListingDialog from "@/components/item-cards/auction-listing-dialog";
 import ArtStyleDialog from "@/components/item-cards/art-style-dialog";
@@ -53,6 +50,7 @@ import {
   useGalleryVisitors,
 } from "@/components/use-gallery-visitors";
 import type { GalleryRates } from "@/server/collection-gameplay";
+import type { GalleryFinishes } from "@/server/gallery-finishes";
 import {
   COLLECTION_FLAG_KEYS,
   COLLECTION_STATUSES,
@@ -326,6 +324,7 @@ export default function GameDashboard({
   archives,
   galleryRates,
   galleryMetadata,
+  galleryFinishes,
   impersonating,
   canMakePrivateAuctionsPublic,
   canRerollDisplayed,
@@ -360,6 +359,7 @@ export default function GameDashboard({
   archives: HydratedPlayerArtworkArchive[];
   galleryRates: GalleryRates;
   galleryMetadata: GalleryMetadataSnapshot | null;
+  galleryFinishes: GalleryFinishes;
   impersonating: boolean;
   canMakePrivateAuctionsPublic: boolean;
   canRerollDisplayed: boolean;
@@ -1049,16 +1049,6 @@ export default function GameDashboard({
           .map((item) => item.artwork_id),
       ),
     [items],
-  );
-  const galleryPixelsPerCentimeter =
-    getGalleryPixelsPerCentimeter(
-      displayed.map((item) => item.artwork.height),
-    );
-  const galleryPaintingMargin = Math.floor(
-    80 * galleryPixelsPerCentimeter,
-  );
-  const galleryWallOffset = Math.floor(
-    120 * galleryPixelsPerCentimeter,
   );
   const inventoryFull = player.inventorySlotsUsed >= player.inventoryCap;
   const nextDrop =
@@ -4336,111 +4326,65 @@ export default function GameDashboard({
               </span>
               <span>{galleryRates.xpPerHour.toLocaleString()}xp/hr.</span>
             </div>
-            <div className="npc-area">
-              {galleryVisitors.map((npc) => {
-                const socialBatteryCost = getVisitorSocialBatteryCost(
-                  npc.quality,
-                  true,
-                );
-                const insufficientBattery =
-                  socialBattery < socialBatteryCost;
-                return (
-                  <span className="gallery-npc-slot" key={npc._id}>
-                    <button
-                      className={`gallery-npc ${npc.quality} ${
-                        npc.alreadyMet || insufficientBattery
-                          ? "disabled"
-                          : "enabled"
-                      } ${npcRewardEffects[npc._id] ? "rewarding" : ""}`}
-                      data-npc-id={npc._id}
-                      disabled={
-                        pending ||
-                        meetingNpc !== null ||
-                        npc.alreadyMet ||
-                        insufficientBattery ||
-                        Boolean(npcRewardEffects[npc._id])
-                      }
-                      onClick={async () => {
-                        if (await meetNpc(npc)) {
-                          markVisitorMet(npc._id);
-                        } else {
-                          removeVisitor(npc._id);
-                          void refreshVisitors();
-                        }
-                      }}
-                      title={
-                        npc.alreadyMet
-                          ? `${npc.npc_name} already met`
-                          : insufficientBattery
-                            ? `${socialBatteryCost} social battery required`
-                            : `meet ${npc.npc_name} (${socialBatteryCost} social battery)`
-                      }
-                      type="button"
-                    >
-                      <i aria-hidden="true" className={`fa ${npc.icon}`} />
-                      <span>{npc.npc_name}</span>
-                    </button>
-                  </span>
-                );
-              })}
-            </div>
             <div className="gallery-window">
-              <div className="gallery-scene">
-                <div
-                  className="gallery-wall"
-                  style={{
-                    paddingBottom: galleryWallOffset,
-                    paddingTop: galleryWallOffset,
-                  }}
-                >
-                  {displayed.length === 0 ? (
-                    <p className="empty-gallery">
-                      Your gallery walls are empty.
-                    </p>
-                  ) : (
-                    displayed.map((item) => (
-                      <div
-                        className="painting-container"
-                        key={item._id}
-                        style={{
-                          marginLeft: galleryPaintingMargin,
-                          marginRight: galleryPaintingMargin,
+              <GalleryView
+                disabled={pending}
+                emptyMessage="Your gallery walls are empty."
+                finishes={galleryFinishes}
+                items={displayed}
+                onSelectItem={setGalleryItemDetails}
+              />
+              <div
+                aria-label="Gallery visitors"
+                className="npc-area gallery-visitor-tray"
+                role="group"
+              >
+                {galleryVisitors.map((npc) => {
+                  const socialBatteryCost = getVisitorSocialBatteryCost(
+                    npc.quality,
+                    true,
+                  );
+                  const insufficientBattery =
+                    socialBattery < socialBatteryCost;
+                  return (
+                    <span className="gallery-npc-slot" key={npc._id}>
+                      <button
+                        className={`gallery-npc ${npc.quality} ${
+                          npc.alreadyMet || insufficientBattery
+                            ? "disabled"
+                            : "enabled"
+                        } ${npcRewardEffects[npc._id] ? "rewarding" : ""}`}
+                        data-npc-id={npc._id}
+                        disabled={
+                          pending ||
+                          meetingNpc !== null ||
+                          npc.alreadyMet ||
+                          insufficientBattery ||
+                          Boolean(npcRewardEffects[npc._id])
+                        }
+                        onClick={async () => {
+                          if (await meetNpc(npc)) {
+                            markVisitorMet(npc._id);
+                          } else {
+                            removeVisitor(npc._id);
+                            void refreshVisitors();
+                          }
                         }}
+                        title={
+                          npc.alreadyMet
+                            ? `${npc.npc_name} already met`
+                            : insufficientBattery
+                              ? `${socialBatteryCost} social battery required`
+                              : `meet ${npc.npc_name} (${socialBatteryCost} social battery)`
+                        }
+                        type="button"
                       >
-                        <button
-                          className="framed-painting"
-                          disabled={pending}
-                          onClick={() => setGalleryItemDetails(item)}
-                          style={{
-                            backgroundImage: `url("/api/artwork/${item.artwork_id}/image?variant=full")`,
-                            height: getGalleryPaintingDimension(
-                              item.artwork.height,
-                              galleryPixelsPerCentimeter,
-                            ),
-                            width: getGalleryPaintingDimension(
-                              item.artwork.width,
-                              galleryPixelsPerCentimeter,
-                            ),
-                          }}
-                          title={`View details for ${item.artwork.title}`}
-                          type="button"
-                        />
-                        <div className="placard">
-                          <p>{item.artwork.title}</p>
-                          <p>
-                            {item.artwork.artist}, {item.artwork.date}
-                          </p>
-                          <p
-                            className={`rarity-text ${item.artwork.rarity}`}
-                          >
-                            {item.artwork.rarity}
-                          </p>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-                <div className="gallery-floor" />
+                        <i aria-hidden="true" className={`fa ${npc.icon}`} />
+                        <span>{npc.npc_name}</span>
+                      </button>
+                    </span>
+                  );
+                })}
               </div>
             </div>
             <GalleryChat galleryOwnerId={playerId} viewerId={playerId} />

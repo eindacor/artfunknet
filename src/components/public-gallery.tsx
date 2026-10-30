@@ -2,10 +2,7 @@
 
 import { useState } from "react";
 
-import {
-  getGalleryPaintingDimension,
-  getGalleryPixelsPerCentimeter,
-} from "./gallery-layout";
+import GalleryView from "./gallery-view";
 import { resolveCardRendererId } from "./item-cards/selection";
 import StandardItemDialog from "./item-cards/standard-item-dialog";
 import type {
@@ -13,9 +10,12 @@ import type {
   ItemDisplayOwner,
 } from "./item-cards/types";
 import type { HydratedGameItem } from "@/server/item-artwork";
+import type { GalleryFinishes } from "@/server/gallery-finishes";
 
 export default function PublicGallery({
-  floorContent,
+  visitorContent,
+  focusedItemId,
+  finishes,
   items,
   legendaryAttributes,
   navigationDisabled = false,
@@ -28,7 +28,9 @@ export default function PublicGallery({
   owner,
   viewerId,
 }: {
-  floorContent?: React.ReactNode;
+  visitorContent?: React.ReactNode;
+  focusedItemId?: string;
+  finishes?: GalleryFinishes;
   items: HydratedGameItem[];
   legendaryAttributes: CardLegendaryAttribute[];
   navigationDisabled?: boolean;
@@ -44,75 +46,18 @@ export default function PublicGallery({
   const [selectedItem, setSelectedItem] = useState<HydratedGameItem | null>(
     null,
   );
-  const pixelsPerCentimeter = getGalleryPixelsPerCentimeter(
-    items.map((item) => item.artwork.height),
-  );
-  const paintingMargin = Math.floor(80 * pixelsPerCentimeter);
-  const wallOffset = Math.floor(120 * pixelsPerCentimeter);
-
   return (
     <>
       <div className="gallery-window public-gallery-window">
-        <div className="gallery-scroll-window">
-          <div className="gallery-scene">
-            <div
-              className="gallery-wall"
-              style={{
-                paddingBottom: wallOffset,
-                paddingTop: wallOffset,
-              }}
-            >
-              {items.length === 0 ? (
-                <p className="empty-gallery">
-                  @{owner.screenName} has not put any artwork on display.
-                </p>
-              ) : (
-                items.map((item) => (
-                  <div
-                    className="painting-container"
-                    key={item._id}
-                    style={{
-                      marginLeft: paintingMargin,
-                      marginRight: paintingMargin,
-                    }}
-                  >
-                    <button
-                      aria-label={`View ${item.artwork.title} by ${item.artwork.artist}`}
-                      className="framed-painting"
-                      onClick={() =>
-                        onSelectItem
-                          ? onSelectItem(item)
-                          : setSelectedItem(item)
-                      }
-                      style={{
-                        backgroundImage: `url("/api/artwork/${item.artwork_id}/image?variant=full")`,
-                        height: getGalleryPaintingDimension(
-                          item.artwork.height,
-                          pixelsPerCentimeter,
-                        ),
-                        width: getGalleryPaintingDimension(
-                          item.artwork.width,
-                          pixelsPerCentimeter,
-                        ),
-                      }}
-                      type="button"
-                    />
-                    <div className="placard">
-                      <p>{item.artwork.title}</p>
-                      <p>
-                        {item.artwork.artist}, {item.artwork.date}
-                      </p>
-                      <p className={`rarity-text ${item.artwork.rarity}`}>
-                        {item.artwork.rarity}
-                      </p>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-            <div className="gallery-floor" />
-          </div>
-        </div>
+        <GalleryView
+          disabled={navigationDisabled}
+          emptyMessage={`@${owner.screenName} has not put any artwork on display.`}
+          focusedItemId={focusedItemId}
+          finishes={finishes}
+          items={items}
+          onFocusItem={onSelectItem}
+          onSelectItem={setSelectedItem}
+        />
         {onPreviousGallery || onNextGallery ? (
           <>
             <button
@@ -168,9 +113,9 @@ export default function PublicGallery({
             {navigationError}
           </p>
         ) : null}
-        {floorContent}
+        {visitorContent}
       </div>
-      {!onSelectItem && selectedItem ? (
+      {selectedItem ? (
         <StandardItemDialog
           currentRendererId={resolveCardRendererId({
             itemRendererId: selectedItem.card_renderer,

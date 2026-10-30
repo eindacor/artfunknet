@@ -59,7 +59,8 @@ export async function GET(
   }
 
   const publicUrl = getArtworkObjectPublicUrl(image.storage);
-  if (publicUrl) {
+  // WebGL textures must stay same-origin when the CDN has no CORS policy.
+  if (publicUrl && new URL(request.url).searchParams.get("texture") !== "1") {
     return NextResponse.redirect(publicUrl, {
       status: 307,
       headers: {
