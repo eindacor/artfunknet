@@ -4,8 +4,6 @@ import {
   GALLERY_FIELD_OF_VIEW,
   GALLERY_FRAME_DEPTH,
   GALLERY_FRAME_FRONT_Z,
-  GALLERY_FRAME_WIDTH,
-  GALLERY_MAT_WIDTH,
   getGalleryCameraFraming,
   getGalleryWideCameraFraming,
   type GalleryLayout,
@@ -244,10 +242,9 @@ export function mountGalleryScene(
   const matZ = artworkZ - 0.001 - matDepth / 2;
 
   for (const painting of layout.paintings) {
-    const { width, height, x, y } = painting;
-    const border = GALLERY_FRAME_WIDTH;
-    const mattedWidth = width + GALLERY_MAT_WIDTH * 2;
-    const mattedHeight = height + GALLERY_MAT_WIDTH * 2;
+    const { width, height, x, y, frameWidth: border, matteWidth } = painting;
+    const mattedWidth = width + matteWidth * 2;
+    const mattedHeight = height + matteWidth * 2;
     const mat = box(
       mattedWidth, mattedHeight, matDepth, surfaces.matte, x, y, matZ,
     );

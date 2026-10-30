@@ -61,9 +61,15 @@ test("per-gallery finishes initialize and save only for the active owner", async
     );
   });
 
-  const first = getGalleryFinishes({ wall: [0.1, 0.2, 0.3], floor: [1, 0, 0], trim: [0, 0, 1] });
-  const second = getGalleryFinishes({ ceiling: [0.4, 0.5, 0.6], matte: [0, 1, 0] });
-  await t.test("concurrent saves preserve independent galleries and reload exact vec3 values", async () => {
+  const first = getGalleryFinishes({
+    wall: [0.1, 0.2, 0.3], floor: [1, 0, 0], trim: [0, 0, 1],
+    frame_width: 0.15, matte_width: 0,
+  });
+  const second = getGalleryFinishes({
+    ceiling: [0.4, 0.5, 0.6], matte: [0, 1, 0],
+    frame_width: 0.01, matte_width: 0.2,
+  });
+  await t.test("concurrent saves preserve independent galleries and reload exact colors and widths", async () => {
     assert.deepEqual(await Promise.all([
       savePlayerGalleryFinishes(database, "owner", "legacy-gallery", first),
       savePlayerGalleryFinishes(database, "owner", "second-gallery", second),
@@ -75,6 +81,26 @@ test("per-gallery finishes initialize and save only for the active owner", async
     assert.deepEqual(
       (await players.findOne({ _id: "owner" }))?.gallery_finishes,
       { "legacy-gallery": first, "second-gallery": second },
+    );
+  });
+
+  await t.test("invalid widths cannot be persisted even by direct calls to the save helper", async () => {
+    for (const finishes of [
+      { ...first, frame_width: 0.009 },
+      { ...first, frame_width: 0.151 },
+      { ...first, matte_width: -0.001 },
+      { ...first, matte_width: 0.201 },
+      { ...first, frame_width: NaN },
+      { ...first, matte_width: Infinity },
+    ]) {
+      assert.equal(
+        await savePlayerGalleryFinishes(database, "owner", "legacy-gallery", finishes),
+        false,
+      );
+    }
+    assert.deepEqual(
+      await getPlayerGalleryFinishes(database, "owner", "legacy-gallery"),
+      first,
     );
   });
 

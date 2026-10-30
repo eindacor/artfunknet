@@ -3,6 +3,7 @@ import type { Db } from "mongodb";
 import {
   getGalleryFinishes,
   isGalleryFinishId,
+  parseGalleryFinishUpdate,
   type GalleryFinishes,
   type PlayerGalleryFinishes,
 } from "./gallery-finishes.ts";
@@ -57,7 +58,8 @@ export async function savePlayerGalleryFinishes(
   galleryId: string,
   finishes: GalleryFinishes,
 ): Promise<boolean> {
-  if (!isGalleryFinishId(galleryId)) return false;
+  const update = parseGalleryFinishUpdate({ galleryId, finishes });
+  if (!update) return false;
   const gallery = await database.collection<FinishGallery>("galleries").findOne({
     _id: galleryId,
     owner_id: playerId,
@@ -74,7 +76,7 @@ export async function savePlayerGalleryFinishes(
     { _id: playerId, active: true },
     {
       $set: {
-        [`gallery_finishes.${galleryId}`]: finishes,
+        [`gallery_finishes.${galleryId}`]: update.finishes,
         updated_at: new Date(),
       },
     },

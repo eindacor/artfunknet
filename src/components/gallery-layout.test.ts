@@ -5,11 +5,15 @@ import {
   createGalleryLayout,
   GALLERY_FIELD_OF_VIEW,
   GALLERY_FRAME_FRONT_Z,
-  GALLERY_FRAME_WIDTH,
-  GALLERY_MAT_WIDTH,
   getGalleryCameraFraming,
   getGalleryWideCameraFraming,
 } from "./gallery-layout.ts";
+import { DEFAULT_GALLERY_FINISHES } from "../server/gallery-finishes.ts";
+
+const {
+  frame_width: GALLERY_FRAME_WIDTH,
+  matte_width: GALLERY_MAT_WIDTH,
+} = DEFAULT_GALLERY_FINISHES;
 
 test("gallery works retain their centimeter dimensions at one meter per world unit", () => {
   const layout = createGalleryLayout([
@@ -117,4 +121,43 @@ test("empty galleries and missing legacy dimensions produce finite room and came
     assert.ok(Number.isFinite(painting.x));
     assert.ok(Number.isFinite(getGalleryCameraFraming(painting, NaN, -1).z));
   }
+});
+
+test("custom borders preserve physical art sizes, clear spacing, and fitted camera views", () => {
+  const artworks = [
+    { id: "small", artworkId: "a", width: 20, height: 30 },
+    { id: "tall", artworkId: "b", width: 50, height: 450 },
+  ];
+  for (const widths of [
+    { frame_width: 0.01, matte_width: 0 },
+    { frame_width: 0.15, matte_width: 0.2 },
+  ]) {
+    const layout = createGalleryLayout(artworks, widths);
+    const surround = widths.frame_width + widths.matte_width;
+    const [first, second] = layout.paintings;
+    assert.equal(first.width, 0.2);
+    assert.equal(first.height, 0.3);
+    assert.equal(first.frameWidth, widths.frame_width);
+    assert.equal(first.matteWidth, widths.matte_width);
+    assert.ok(Math.abs(
+      second.x - second.width / 2 - surround -
+      (first.x + first.width / 2 + surround) - 2,
+    ) < 1e-10);
+    for (const aspect of [0.6, 2.5]) {
+      const wide = getGalleryWideCameraFraming(layout, aspect, 360);
+      for (const painting of layout.paintings) {
+        const close = getGalleryCameraFraming(painting, aspect, 360);
+        const halfView = (close.z - GALLERY_FRAME_FRONT_Z) *
+          Math.tan(GALLERY_FIELD_OF_VIEW * Math.PI / 360);
+        assert.ok(halfView * aspect > painting.width / 2 + surround);
+        assert.ok(halfView > painting.height / 2 + surround);
+        assert.ok(wide.z > close.z);
+      }
+    }
+  }
+  const smallBorders = createGalleryLayout(artworks, { frame_width: 0.01, matte_width: 0 });
+  const largeBorders = createGalleryLayout(artworks, { frame_width: 0.15, matte_width: 0.2 });
+  assert.ok(largeBorders.width > smallBorders.width);
+  assert.ok(getGalleryCameraFraming(largeBorders.paintings[0], 2).z >
+    getGalleryCameraFraming(smallBorders.paintings[0], 2).z);
 });

@@ -10,7 +10,15 @@ export const GALLERY_FINISH_SLOTS = [
 export type GalleryFinishSlot = (typeof GALLERY_FINISH_SLOTS)[number];
 // Components are normalized sRGB, matching browser color pickers and hex codes.
 export type GalleryColor = [number, number, number];
-export type GalleryFinishes = Record<GalleryFinishSlot, GalleryColor>;
+export const GALLERY_FINISH_WIDTH_SLOTS = ["frame_width", "matte_width"] as const;
+export type GalleryFinishWidthSlot = (typeof GALLERY_FINISH_WIDTH_SLOTS)[number];
+// Widths are stored in meters, matching the gallery scene.
+export const GALLERY_FINISH_WIDTH_LIMITS = {
+  frame_width: { min: 0.01, max: 0.15, step: 0.001, default: 0.045 },
+  matte_width: { min: 0, max: 0.2, step: 0.001, default: 0.06 },
+} as const;
+export type GalleryFinishes = Record<GalleryFinishSlot, GalleryColor> &
+  Record<GalleryFinishWidthSlot, number>;
 export type PlayerGalleryFinishes = Record<string, GalleryFinishes>;
 
 export const GALLERY_FINISH_PRESETS: Record<GalleryFinishSlot, readonly string[]> = {
@@ -39,12 +47,16 @@ export function galleryColorToHex(color: GalleryColor): string {
   ).join("")}`;
 }
 
-export const DEFAULT_GALLERY_FINISHES = Object.fromEntries(
-  GALLERY_FINISH_SLOTS.map((slot) => [
-    slot,
-    hexToGalleryColor(GALLERY_FINISH_PRESETS[slot][0])!,
-  ]),
-) as GalleryFinishes;
+export const DEFAULT_GALLERY_FINISHES: GalleryFinishes = {
+  ...Object.fromEntries(
+    GALLERY_FINISH_SLOTS.map((slot) => [
+      slot,
+      hexToGalleryColor(GALLERY_FINISH_PRESETS[slot][0])!,
+    ]),
+  ) as Record<GalleryFinishSlot, GalleryColor>,
+  frame_width: GALLERY_FINISH_WIDTH_LIMITS.frame_width.default,
+  matte_width: GALLERY_FINISH_WIDTH_LIMITS.matte_width.default,
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -57,14 +69,27 @@ function isGalleryColor(value: unknown): value is GalleryColor {
   );
 }
 
+function isGalleryWidth(slot: GalleryFinishWidthSlot, value: unknown): value is number {
+  const { min, max } = GALLERY_FINISH_WIDTH_LIMITS[slot];
+  return typeof value === "number" && Number.isFinite(value) &&
+    value >= min && value <= max;
+}
+
 export function getGalleryFinishes(value: unknown): GalleryFinishes {
   const record = isRecord(value) ? value : {};
-  return Object.fromEntries(GALLERY_FINISH_SLOTS.map((slot) => {
+  const colors = Object.fromEntries(GALLERY_FINISH_SLOTS.map((slot) => {
     const color = Object.hasOwn(record, slot) && isGalleryColor(record[slot])
       ? record[slot]
       : DEFAULT_GALLERY_FINISHES[slot];
     return [slot, [...color]];
-  })) as GalleryFinishes;
+  })) as Record<GalleryFinishSlot, GalleryColor>;
+  return {
+    ...colors,
+    frame_width: isGalleryWidth("frame_width", record.frame_width)
+      ? record.frame_width : DEFAULT_GALLERY_FINISHES.frame_width,
+    matte_width: isGalleryWidth("matte_width", record.matte_width)
+      ? record.matte_width : DEFAULT_GALLERY_FINISHES.matte_width,
+  };
 }
 
 export function isGalleryFinishId(value: unknown): value is string {
@@ -87,9 +112,13 @@ export function parseGalleryFinishUpdate(value: unknown): {
   ) return null;
   const finishes = value.finishes;
   if (
-    Object.keys(finishes).length !== GALLERY_FINISH_SLOTS.length ||
+    Object.keys(finishes).length !==
+      GALLERY_FINISH_SLOTS.length + GALLERY_FINISH_WIDTH_SLOTS.length ||
     !GALLERY_FINISH_SLOTS.every((slot) =>
       Object.hasOwn(finishes, slot) && isGalleryColor(finishes[slot]),
+    ) ||
+    !GALLERY_FINISH_WIDTH_SLOTS.every((slot) =>
+      Object.hasOwn(finishes, slot) && isGalleryWidth(slot, finishes[slot]),
     )
   ) return null;
   return {

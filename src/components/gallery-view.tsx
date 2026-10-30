@@ -64,9 +64,13 @@ export default function GalleryView({
       date: item.artwork.date,
     })),
   );
+  const { frame_width: frameWidth, matte_width: matteWidth } = finishes;
   const layout = useMemo(
-    () => createGalleryLayout(JSON.parse(sceneKey) as GalleryArtworkDimensions[]),
-    [sceneKey],
+    () => createGalleryLayout(JSON.parse(sceneKey) as GalleryArtworkDimensions[], {
+      frame_width: frameWidth,
+      matte_width: matteWidth,
+    }),
+    [sceneKey, frameWidth, matteWidth],
   );
 
   const focusItem = useCallback(

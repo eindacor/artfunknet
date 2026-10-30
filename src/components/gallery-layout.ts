@@ -1,7 +1,10 @@
-export const GALLERY_FRAME_WIDTH = 0.045;
+import {
+  DEFAULT_GALLERY_FINISHES,
+  type GalleryFinishes,
+} from "../server/gallery-finishes.ts";
+
 export const GALLERY_FRAME_DEPTH = .2;
 export const GALLERY_FRAME_FRONT_Z = 0.07;
-export const GALLERY_MAT_WIDTH = 0.06;
 export const GALLERY_FIELD_OF_VIEW = 48;
 
 export type GalleryArtworkDimensions = {
@@ -17,6 +20,8 @@ export type GalleryArtworkDimensions = {
 export type GalleryPaintingLayout = GalleryArtworkDimensions & {
   x: number;
   y: number;
+  frameWidth: number;
+  matteWidth: number;
 };
 
 export type GalleryLayout = {
@@ -34,6 +39,7 @@ function meters(centimeters: number): number {
 
 export function createGalleryLayout(
   artworks: GalleryArtworkDimensions[],
+  finishes: Pick<GalleryFinishes, "frame_width" | "matte_width"> = DEFAULT_GALLERY_FINISHES,
 ): GalleryLayout {
   const dimensions = artworks.map((artwork) => ({
     ...artwork,
@@ -43,7 +49,7 @@ export function createGalleryLayout(
   const tallest = Math.max(0, ...dimensions.map(({ height }) => height));
   const centerY = Math.max(1.55, tallest / 2 + 0.55);
   const gap = 2;
-  const surround = GALLERY_FRAME_WIDTH + GALLERY_MAT_WIDTH;
+  const surround = finishes.frame_width + finishes.matte_width;
   const width = dimensions.reduce(
     (total, painting) => total + painting.width + surround * 2,
     Math.max(0, dimensions.length - 1) * gap,
@@ -58,7 +64,11 @@ export function createGalleryLayout(
       const framedWidth = painting.width + surround * 2;
       const x = left + framedWidth / 2;
       left += framedWidth + gap;
-      return { ...painting, x, y: centerY };
+      return {
+        ...painting, x, y: centerY,
+        frameWidth: finishes.frame_width,
+        matteWidth: finishes.matte_width,
+      };
     }),
   };
 }
@@ -75,7 +85,7 @@ export function getGalleryCameraFraming(
   const safeWidth = Number.isFinite(viewportWidth) && viewportWidth > 0
     ? viewportWidth
     : 1100;
-  const surround = GALLERY_FRAME_WIDTH + GALLERY_MAT_WIDTH;
+  const surround = painting.frameWidth + painting.matteWidth;
   const framedWidth = painting.width + surround * 2;
   const framedHeight = painting.height + surround * 2;
   const horizontalFill = Math.max(0.1, Math.min(0.84, 1 - 128 / safeWidth));

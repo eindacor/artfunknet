@@ -352,12 +352,17 @@ The basic gameplay loop is active:
   image browsing and item details.
   When viewing their own gallery, players get finish controls in place of the
   collector panel: six suggested colors per surface, a native color picker,
-  and hex input. Changes preview live; Save finishes persists them for visitors.
+  and hex input. Frame width (10–150 mm) and matte width (0–200 mm) have sliders
+  with server-enforced bounds. Changes preview live; Save finishes persists them
+  for visitors.
   Player records store `gallery_finishes` as a map keyed by the actual gallery
   record's `_id` (which can differ from its owner's player ID). Each entry has
   `ceiling`, `wall`, `floor`, `trim`, `frame`, and `matte`, each a three-number
-  sRGB array in the range `[0, 1]`. Existing galleries receive the current
-  default colors on first view; saving one gallery preserves other entries.
+  sRGB array in the range `[0, 1]`, plus numeric `frame_width` and `matte_width`
+  in meters. Bounds, slider steps, and defaults live in
+  `src\server\gallery-finishes.ts` (`GALLERY_FINISH_WIDTH_LIMITS`).
+  Existing galleries use defaults of 45 mm and 60 mm for missing widths, with
+  no migration required; saving writes both widths and preserves other entries.
   Geometry uses solid colors initially. Put optional tileable color textures in
   `public\textures\gallery\wall.jpg`, `floor.jpg`, `ceiling.jpg`, and `frame.jpg`.
   Enable each supplied texture by setting its `SURFACE_TEXTURES` entry in

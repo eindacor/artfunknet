@@ -3,6 +3,8 @@ import test from "node:test";
 
 import {
   DEFAULT_GALLERY_FINISHES,
+  GALLERY_FINISH_WIDTH_LIMITS,
+  GALLERY_FINISH_WIDTH_SLOTS,
   galleryColorToHex,
   getGalleryFinishes,
   hexToGalleryColor,
@@ -34,7 +36,7 @@ test("legacy and partial finishes retain defaults without sharing mutable colors
   assert.notDeepEqual(finishes.floor, DEFAULT_GALLERY_FINISHES.floor);
 });
 
-test("finish updates require exactly six finite normalized RGB vectors and a safe gallery ID", () => {
+test("finish updates require all colors and widths and a safe gallery ID", () => {
   const finishes = getGalleryFinishes(undefined);
   const update = { galleryId: "legacy-gallery_1", finishes };
   assert.deepEqual(parseGalleryFinishUpdate(update), update);
@@ -60,4 +62,37 @@ test("finish updates require exactly six finite normalized RGB vectors and a saf
   ]) {
     assert.equal(parseGalleryFinishUpdate(value), null);
   }
+});
+
+test("width updates accept inclusive bounds and reject forged out-of-range or nonnumeric values", () => {
+  for (const slot of GALLERY_FINISH_WIDTH_SLOTS) {
+    const { min, max } = GALLERY_FINISH_WIDTH_LIMITS[slot];
+    for (const width of [min, max, (min + max) / 2]) {
+      const update = {
+        galleryId: "gallery",
+        finishes: { ...getGalleryFinishes(null), [slot]: width },
+      };
+      assert.deepEqual(parseGalleryFinishUpdate(update), update);
+      assert.equal(getGalleryFinishes(update.finishes)[slot], width);
+    }
+    for (const width of [
+      min - 0.000001, max + 0.000001, -1, NaN, Infinity, -Infinity,
+      `${min}`, null, undefined, [], {}, true,
+    ]) {
+      const finishes = { ...getGalleryFinishes(null), [slot]: width };
+      assert.equal(parseGalleryFinishUpdate({ galleryId: "gallery", finishes }), null);
+      assert.equal(getGalleryFinishes(finishes)[slot], DEFAULT_GALLERY_FINISHES[slot]);
+    }
+    const missing = Object.fromEntries(
+      Object.entries(getGalleryFinishes(null)).filter(([key]) => key !== slot),
+    );
+    assert.equal(parseGalleryFinishUpdate({ galleryId: "gallery", finishes: missing }), null);
+  }
+});
+
+test("color-only legacy galleries receive default widths without losing their saved colors", () => {
+  const finishes = getGalleryFinishes({ wall: [0.2, 0.4, 0.6] });
+  assert.deepEqual(finishes.wall, [0.2, 0.4, 0.6]);
+  assert.equal(finishes.frame_width, 0.045);
+  assert.equal(finishes.matte_width, 0.06);
 });

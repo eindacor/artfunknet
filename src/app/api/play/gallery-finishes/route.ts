@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { parseGalleryFinishUpdate } from "@/server/gallery-finishes";
+import {
+  GALLERY_FINISH_WIDTH_LIMITS,
+  parseGalleryFinishUpdate,
+} from "@/server/gallery-finishes";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
 import { savePlayerGalleryFinishes } from "@/server/player-gallery-finishes";
@@ -12,9 +15,11 @@ export async function PATCH(request: Request) {
   const body: unknown = await request.json().catch(() => null);
   const update = parseGalleryFinishUpdate(body);
   if (!update) {
+    const frame = GALLERY_FINISH_WIDTH_LIMITS.frame_width;
+    const matte = GALLERY_FINISH_WIDTH_LIMITS.matte_width;
     return NextResponse.json(
       {
-        error: "Provide a gallery ID and all six finish colors as RGB arrays with three numbers between 0 and 1.",
+        error: `Provide a gallery ID, all six RGB colors (three numbers between 0 and 1), frame_width (${frame.min}-${frame.max} meters), and matte_width (${matte.min}-${matte.max} meters).`,
       },
       { status: 400 },
     );
