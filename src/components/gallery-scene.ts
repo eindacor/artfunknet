@@ -56,8 +56,8 @@ export function mountGalleryScene(
   const scene = new THREE.Scene();
   const background = new THREE.Color();
   scene.background = background;
-  scene.add(new THREE.HemisphereLight("#fff5df", "#61513e", 2.6));
-  scene.add(new THREE.AmbientLight("#fff4e5", 0.45));
+  scene.add(new THREE.HemisphereLight("#fff5df", "#61513e", 1.4));
+  scene.add(new THREE.AmbientLight("#fff4e5", 0.15));
   const camera = new THREE.PerspectiveCamera(GALLERY_FIELD_OF_VIEW, 1, 0.05, 1000);
   const destination = new THREE.Vector3();
   const geometries = new Set<THREE.BufferGeometry>();
