@@ -319,24 +319,34 @@ export default function GalleryView({
             </div>
             {status === "ready" ? (
               <button
+                aria-label={zoomed ? "Zoom out" : "Zoom in"}
                 aria-pressed={zoomed}
                 disabled={disabled}
                 onClick={() => activateItem(activeItem)}
+                title={zoomed ? "Zoom out" : "Zoom in"}
                 type="button"
               >
                 <i
                   aria-hidden="true"
                   className={`fa ${zoomed ? "fa-magnifying-glass-minus" : "fa-magnifying-glass-plus"}`}
                 />{" "}
-                {zoomed ? "Zoom out" : "Zoom in"}
+                <span className="gallery-artwork-button-text">
+                  {zoomed ? "Zoom out" : "Zoom in"}
+                </span>
               </button>
             ) : null}
             <button
+              aria-label="View details"
               disabled={disabled}
               onClick={() => onSelectItem(activeItem)}
+              title="View details"
               type="button"
             >
-              View details
+              <i
+                aria-hidden="true"
+                className="fa fa-circle-info gallery-artwork-details-icon"
+              />
+              <span className="gallery-artwork-button-text">View details</span>
               <span className="gallery-artwork-position">
                 {activeIndex + 1} / {items.length}
               </span>

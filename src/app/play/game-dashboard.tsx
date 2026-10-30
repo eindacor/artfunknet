@@ -3659,7 +3659,7 @@ export default function GameDashboard({
                   }}
                   type="button"
                 >
-                  Go to gallery
+                  Go to my gallery
                 </button>
                 {player.level >= 50 ? (
                   <span

@@ -7065,6 +7065,7 @@ a.welcome-button {
 
 .gallery-viewport {
   position: relative;
+  container-type: inline-size;
   height: clamp(320px, 44vw, 560px);
   min-height: 280px;
   max-height: 65svh;
@@ -7131,10 +7132,9 @@ a.welcome-button {
   right: 0;
   bottom: 0;
   left: 0;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
   gap: 8px 12px;
   max-height: calc(100% - 20px);
   overflow-y: auto;
@@ -7145,7 +7145,6 @@ a.welcome-button {
 }
 
 .gallery-artwork-label > div {
-  flex: 1 1 180px;
   min-width: 0;
   overflow-wrap: anywhere;
 }
@@ -7164,6 +7163,7 @@ a.welcome-button {
   background: rgb(0 0 0 / 65%);
   color: inherit;
   font: inherit;
+  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -7180,6 +7180,30 @@ a.welcome-button {
 .gallery-artwork-position {
   display: block;
   font-size: 0.62rem;
+}
+
+.gallery-artwork-label .gallery-artwork-details-icon {
+  display: none;
+}
+
+@container (max-width: 600px) {
+  .gallery-artwork-label > button {
+    display: grid;
+    width: 40px;
+    height: 40px;
+    place-items: center;
+    padding: 0;
+    font-size: 1rem;
+  }
+
+  .gallery-artwork-button-text,
+  .gallery-artwork-position {
+    display: none;
+  }
+
+  .gallery-artwork-label .gallery-artwork-details-icon {
+    display: block;
+  }
 }
 
 .gallery-scene-message {
@@ -7227,7 +7251,7 @@ a.welcome-button {
 
 .gallery-artwork-label > .gallery-render-notice {
   position: static;
-  flex: 1 1 100%;
+  grid-column: 1 / -1;
   background: transparent;
 }
 
