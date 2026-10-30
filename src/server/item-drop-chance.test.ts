@@ -8,6 +8,7 @@ import {
   createItemDropChanceContext,
 } from "./item-drop-chance.ts";
 import { MASTERPIECE_EFFECT_CODES } from "./masterpiece-effects.ts";
+import { formatItemDropChance } from "./item-drop-chance-format.ts";
 
 const config = {
   ...DEFAULT_ACTUAL_GAMEPLAY_CONFIG,
@@ -182,5 +183,16 @@ test("recalculation preserves forgery disclosure labels while storing the coeffi
     assert.deepEqual(calculateItemDropChance({
       ...standard, odds,
     }, { rarity: "common" }, context), { drop_chance_coefficient: 0.714, odds });
+  }
+});
+
+test("original odds distinguish missing and zero snapshots and retain authenticity masking", () => {
+  assert.equal(formatItemDropChance(undefined), "Not recorded");
+  assert.equal(formatItemDropChance(0), "Not currently droppable");
+  assert.equal(formatItemDropChance(0.714), "71.4%");
+  assert.equal(formatItemDropChance(0.00026775), "1 in 3,735");
+  for (const odds of ["forged", "unknown"]) {
+    assert.equal(formatItemDropChance(0.714, odds), odds);
+    assert.equal(formatItemDropChance(undefined, odds), odds);
   }
 });

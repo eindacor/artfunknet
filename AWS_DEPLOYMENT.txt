@@ -597,6 +597,10 @@ The migration command also refreshes stored card drop-chance coefficients and
 displayed odds using the current maximum-level rarity and variant settings.
 It scans all items, including unchanged Mint cards, and updates only the odds
 fields in batches. It is safe to rerun after probability or catalog changes.
+After recalculation, it initializes missing original drop-chance snapshots from
+the current coefficients. Existing original snapshots, including zero, are never
+overwritten. For older items this captures a migration-time baseline, not their
+historical creation odds.
 
 For reduced downtime, build a new AMI or deployment artifact, replace the
 instance through an Auto Scaling Group, wait for the new target to become

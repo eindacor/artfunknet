@@ -190,6 +190,7 @@ export type GameItem = {
   time_displayed?: string;
   odds: string;
   drop_chance_coefficient?: number;
+  readonly original_drop_chance_coefficient?: number;
   values: {
     sell: number;
     purchase: number;
@@ -831,9 +832,11 @@ function createItem({
     debug,
   };
   const values = calculateItemValues(base, itemArtwork, lootData);
+  const dropChance = calculateItemDropChance(base, artwork, dropChanceContext);
   return {
     ...base,
-    ...calculateItemDropChance(base, artwork, dropChanceContext),
+    ...dropChance,
+    original_drop_chance_coefficient: dropChance.drop_chance_coefficient,
     values,
     reroll_cost: getRerollCost(base, artwork.rarity, lootData),
   };

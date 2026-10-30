@@ -8,6 +8,23 @@ export async function migrateItemDropChances(database) {
   return backfillItemDropChances(database);
 }
 
+export async function migrateOriginalItemDropChances(database) {
+  const result = await database.collection("items").updateMany(
+    {
+      original_drop_chance_coefficient: { $exists: false },
+      drop_chance_coefficient: { $type: "number", $gte: 0, $lte: 1 },
+    },
+    [
+      {
+        $set: {
+          original_drop_chance_coefficient: "$drop_chance_coefficient",
+        },
+      },
+    ],
+  );
+  return { updated: result.modifiedCount };
+}
+
 export async function migrateD3CardRendererId(database) {
   const renameIds = (ids) =>
     Array.isArray(ids)

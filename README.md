@@ -71,6 +71,8 @@ authoritative `effect_id`. The artwork-effect migration is idempotent and does
 not rewrite existing item attributes or values. It repairs missing, null,
 invalid, and wrong-type artwork effect references while preserving stable
 effect IDs and existing admin-tuned behavior parameters.
+For local data, `npm run db:migrate:local` runs the same migrations using
+`.env.local`, including initialization of missing original drop chances.
 
 ## Artwork administration
 
@@ -294,6 +296,12 @@ The basic gameplay loop is active:
   Creation and recalculation refresh these fields. Production migrations
   backfill all existing items, including untouched Mint items, without changing
   their properties or values; rerunning the migration refreshes stale odds.
+  New items also store an immutable `original_drop_chance_coefficient` snapshot.
+  Item details show original and current odds. After refreshing current odds,
+  migration initializes missing original snapshots from that coefficient once.
+  Existing snapshots, including zero, are never changed. For older items this
+  is a migration-time baseline, not a reconstruction of historical creation odds.
+  Items not yet migrated show `Not recorded`.
 - Items can be claimed into the player's capacity-limited inventory or declined
   and removed from the game.
 - Mint items are generated at perfect condition with the configured value

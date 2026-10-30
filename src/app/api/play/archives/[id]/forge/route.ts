@@ -175,9 +175,11 @@ export async function POST(
     modifiers: selection.modifiers,
     seasonal: base.seasonal,
   });
+  const dropChance = await getItemDropChanceUpdate(database, base, artwork);
   const item: GameItem = {
     ...base,
-    ...(await getItemDropChanceUpdate(database, base, artwork)),
+    ...dropChance,
+    original_drop_chance_coefficient: dropChance.drop_chance_coefficient,
     odds: "forged",
     values,
     reroll_cost: getRerollCost(base, artwork.rarity, metadata.loot_data),

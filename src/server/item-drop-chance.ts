@@ -16,6 +16,7 @@ import {
   type LootData,
 } from "./gameplay.ts";
 import { MASTERPIECE_EFFECT_CODES } from "./masterpiece-effects.ts";
+import { formatItemDropChance } from "./item-drop-chance-format.ts";
 
 type DropChanceItem = Pick<
   GameItem,
@@ -32,14 +33,6 @@ export type ItemDropChanceContext = {
   styles: Readonly<Record<string, number>>;
   guaranteedMintEffectIds: ReadonlySet<string>;
 };
-
-const oddsFormatter = new Intl.NumberFormat("en-US", {
-  maximumFractionDigits: 0,
-});
-const percentageFormatter = new Intl.NumberFormat("en-US", {
-  style: "percent",
-  maximumFractionDigits: 2,
-});
 
 export function createItemDropChanceContext(
   config: GameplayConfig,
@@ -127,13 +120,7 @@ export function calculateItemDropChance(
   if (item.mint && !guaranteedMint) coefficient *= context.mint;
   return {
     drop_chance_coefficient: coefficient,
-    odds: item.odds === "forged" || item.odds === "unknown"
-      ? item.odds
-      : coefficient > 0
-        ? Math.round(1 / coefficient) === 1
-          ? percentageFormatter.format(coefficient)
-          : `1 in ${oddsFormatter.format(1 / coefficient)}`
-        : "Not currently droppable",
+    odds: formatItemDropChance(coefficient, item.odds),
   };
 }
 

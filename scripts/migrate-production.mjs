@@ -5,6 +5,7 @@ import {
   migrateD3CardRendererId,
   migrateHallOfFameAndPlaythroughStorage,
   migrateItemDropChances,
+  migrateOriginalItemDropChances,
   migratePlayerOperationHistory,
   migratePlayerTutorialFlag,
 } from "./database-migrations.mjs";
@@ -34,6 +35,8 @@ try {
   await migrateArtworkEffects(client.db(databaseName));
   const dropChances = await migrateItemDropChances(client.db(databaseName));
   console.log(`Updated drop chances for ${dropChances.updated} items.`);
+  const originalDropChances = await migrateOriginalItemDropChances(client.db(databaseName));
+  console.log(`Initialized original drop chances for ${originalDropChances.updated} older items.`);
   console.log(
     JSON.stringify({
       timestamp: new Date().toISOString(),

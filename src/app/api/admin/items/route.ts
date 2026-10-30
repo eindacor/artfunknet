@@ -136,7 +136,10 @@ export async function PUT(request: Request) {
       mintValueMultiplier: context.settings.active.mintValueMultiplier,
       owner: "admin-preview",
     });
-    Object.assign(item, await getItemDropChanceUpdate(database, item, context.artwork));
+    const dropChance = await getItemDropChanceUpdate(database, item, context.artwork);
+    Object.assign(item, dropChance, {
+      original_drop_chance_coefficient: dropChance.drop_chance_coefficient,
+    });
     return NextResponse.json({
       item: {
         ...item,
@@ -231,7 +234,10 @@ export async function POST(request: Request) {
       mintValueMultiplier: context.settings.active.mintValueMultiplier,
       owner,
     });
-    Object.assign(item, await getItemDropChanceUpdate(database, item, context.artwork));
+    const dropChance = await getItemDropChanceUpdate(database, item, context.artwork);
+    Object.assign(item, dropChance, {
+      original_drop_chance_coefficient: dropChance.drop_chance_coefficient,
+    });
   } catch (error) {
     return NextResponse.json(
       {

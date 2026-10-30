@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ItemExpirationTime } from "../item-expiration-display";
 import type { GameItem } from "@/server/gameplay";
+import { formatItemDropChance } from "@/server/item-drop-chance-format";
 import { useRef, useState, type CSSProperties } from "react";
 
 import {
@@ -452,7 +453,14 @@ export function CompleteItemRecord({
             label="Auction minimum"
             value={`$${item.values.auction_min.toLocaleString()}`}
           />
-          <Fact label="Drop chance" value={item.odds} />
+          <Fact
+            label="Original drop chance"
+            value={formatItemDropChance(
+              item.original_drop_chance_coefficient,
+              item.odds,
+            )}
+          />
+          <Fact label="Current drop chance" value={item.odds} />
           <Fact label="Roll count" value={item.roll_count} />
           <Fact
             label="Reroll spending"
@@ -461,14 +469,6 @@ export function CompleteItemRecord({
           <Fact
             label="Status"
             value={statusValue ?? item.status.replaceAll("_", " ")}
-          />
-          <Fact label="Source" value={item.source} />
-          {item.expires_at ? (
-            <Fact label="Expires" value={<ItemExpirationTime item={item} />} />
-          ) : null}
-          <Fact
-            label="Tags"
-            value={item.tags.length > 0 ? item.tags.join(", ") : "none"}
           />
           <Fact
             label="Authenticity"
@@ -484,6 +484,14 @@ export function CompleteItemRecord({
                     )
                 : "unauthenticated"
             }
+          />
+          <Fact label="Source" value={item.source} />
+          {item.expires_at ? (
+            <Fact label="Expires" value={<ItemExpirationTime item={item} />} />
+          ) : null}
+          <Fact
+            label="Tags"
+            value={item.tags.length > 0 ? item.tags.join(", ") : "none"}
           />
           {showProperties ? (
             <Fact

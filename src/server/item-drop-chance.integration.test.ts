@@ -4,7 +4,10 @@ import test from "node:test";
 import { MongoClient, type Db } from "mongodb";
 import { MongoMemoryServer } from "mongodb-memory-server";
 
-import { migrateItemDropChances } from "../../scripts/database-migrations.mjs";
+import {
+  migrateItemDropChances,
+  migrateOriginalItemDropChances,
+} from "../../scripts/database-migrations.mjs";
 import type { ArtworkEffect } from "./artwork-effects.ts";
 import {
   DEFAULT_ACTUAL_GAMEPLAY_CONFIG,
@@ -117,10 +120,23 @@ test("stored drop odds follow live configuration, generation, mutations and prod
     assert.equal(item.odds, "1 in 3,735");
     const stored = await database.collection<GameItem>("items").findOne({ _id: item._id });
     assert.equal(stored?.drop_chance_coefficient, item.drop_chance_coefficient);
+    assert.equal(item.original_drop_chance_coefficient, item.drop_chance_coefficient);
+    assert.equal(stored?.original_drop_chance_coefficient, item.drop_chance_coefficient);
     const deminted = await getDemintUpdate(database, item, { card_renderer: "postcard" });
     assert.equal(deminted?.mint, false);
     assert.ok(Math.abs(deminted!.drop_chance_coefficient! - 0.01785) < 1e-18);
     assert.equal(deminted?.odds, "1 in 56");
+    assert.equal(Object.hasOwn(deminted!, "original_drop_chance_coefficient"), false);
+    const items = database.collection<GameItem>("items");
+    await items.updateOne({ _id: item._id }, { $set: deminted! });
+    await database.collection("metadata").updateOne({ _id: "gameplay-settings" }, {
+      $set: { "gameplay.configs.actual.foil_probability": 0.2 },
+    });
+    assert.deepEqual(await migrateItemDropChances(database), { updated: 1 });
+    const recalculated = await items.findOne({ _id: item._id });
+    assert.ok(Math.abs(recalculated!.drop_chance_coefficient! - 0.0357) < 1e-18);
+    assert.equal(recalculated?.original_drop_chance_coefficient, item.drop_chance_coefficient);
+    assert.deepEqual(await migrateItemDropChances(database), { updated: 0 });
   });
 
   await t.test("guaranteed-Mint effect odds survive generation, recalculation and migration without losing style probabilities", async () => {
@@ -186,6 +202,7 @@ test("stored drop odds follow live configuration, generation, mutations and prod
     const items = database.collection<{
       _id: string; artwork_id: string; mint: boolean; odds: string;
       drop_chance_coefficient?: number;
+      original_drop_chance_coefficient?: number;
     }>("items");
     const originals = Array.from({ length: 502 }, (_, index) => ({
       _id: `item-${index}`, artwork_id: "art", mint: true,
@@ -194,6 +211,12 @@ test("stored drop odds follow live configuration, generation, mutations and prod
       owner: "player", odds: "old odds", values: { actual: 123 },
     }));
     await items.insertMany(originals);
+    await items.updateOne({ _id: "item-1" }, {
+      $set: { original_drop_chance_coefficient: 0 },
+    });
+    await items.updateOne({ _id: "item-2" }, {
+      $set: { original_drop_chance_coefficient: 0.123 },
+    });
     await items.insertMany([
       { ...originals[0], _id: "seasonal", mint: false, seasonal: true },
       { ...originals[0], _id: "forged", odds: "forged" },
@@ -226,5 +249,75 @@ test("stored drop odds follow live configuration, generation, mutations and prod
     });
     assert.deepEqual(await migrateItemDropChances(database), { updated: 503 });
     assert.equal((await items.findOne({ _id: "item-501" }))?.drop_chance_coefficient, 0.00714);
+    assert.equal((await items.findOne({ _id: "item-1" }))?.original_drop_chance_coefficient, 0);
+    assert.equal((await items.findOne({ _id: "item-2" }))?.original_drop_chance_coefficient, 0.123);
+    assert.equal(Object.hasOwn((await items.findOne({ _id: "item-0" }))!,
+      "original_drop_chance_coefficient"), false);
+  });
+
+  await t.test("original-odds migration initializes only missing snapshots from refreshed coefficients once", async () => {
+    const database = client.db("legacy-original-drop-odds");
+    await seed(database);
+    const items = database.collection<{
+      _id: string;
+      artwork_id: string;
+      mint: boolean;
+      odds: string;
+      drop_chance_coefficient: number;
+      original_drop_chance_coefficient?: number;
+    }>("items");
+    const legacy = {
+      _id: "legacy-mint", artwork_id: "art", mint: true, foil: false,
+      unlocked: false, seasonal: false, odds: "Admin created",
+      drop_chance_coefficient: 0.99, condition: 1, values: { actual: 123 },
+    };
+    await items.insertMany([
+      legacy,
+      { ...legacy, _id: "seasonal", mint: false, seasonal: true },
+      { ...legacy, _id: "forged", mint: false, odds: "forged" },
+      { ...legacy, _id: "zero-chance", card_renderer: "inactive" },
+      { ...legacy, _id: "existing-zero", original_drop_chance_coefficient: 0 },
+      { ...legacy, _id: "existing-original", original_drop_chance_coefficient: 0.123 },
+    ]);
+    assert.deepEqual(await migrateItemDropChances(database), { updated: 6 });
+    const refreshed = await items.find({}).toArray();
+    assert.deepEqual(await migrateOriginalItemDropChances(database), { updated: 4 });
+    for (const before of refreshed) {
+      assert.deepEqual(await items.findOne({ _id: before._id }), {
+        ...before,
+        original_drop_chance_coefficient:
+          before.original_drop_chance_coefficient ?? before.drop_chance_coefficient,
+      });
+    }
+    assert.equal((await items.findOne({ _id: "legacy-mint" }))?.original_drop_chance_coefficient, 0.01428);
+    assert.equal((await items.findOne({ _id: "seasonal" }))?.original_drop_chance_coefficient, 0.357);
+    assert.equal((await items.findOne({ _id: "forged" }))?.original_drop_chance_coefficient, 0.714);
+    assert.equal((await items.findOne({ _id: "zero-chance" }))?.original_drop_chance_coefficient, 0);
+    assert.deepEqual(await migrateOriginalItemDropChances(database), { updated: 0 });
+
+    await database.collection("metadata").updateOne({ _id: "gameplay-settings" }, {
+      $set: { "gameplay.configs.actual.mint_probability": 0.01 },
+    });
+    assert.deepEqual(await migrateItemDropChances(database), { updated: 3 });
+    assert.deepEqual(await migrateOriginalItemDropChances(database), { updated: 0 });
+    const migrated = await items.findOne({ _id: "legacy-mint" });
+    assert.equal(migrated?.drop_chance_coefficient, 0.00714);
+    assert.equal(migrated?.original_drop_chance_coefficient, 0.01428);
+    assert.equal((await items.findOne({ _id: "existing-zero" }))?.original_drop_chance_coefficient, 0);
+    assert.equal((await items.findOne({ _id: "existing-original" }))?.original_drop_chance_coefficient, 0.123);
+    assert.equal((await items.findOne({ _id: "forged" }))?.odds, "forged");
+
+    const invalid = [
+      { _id: "missing-current" },
+      { _id: "null-current", drop_chance_coefficient: null },
+      { _id: "string-current", drop_chance_coefficient: "0.5" },
+      { _id: "negative-current", drop_chance_coefficient: -0.1 },
+      { _id: "large-current", drop_chance_coefficient: 1.1 },
+    ];
+    await database.collection("items").insertMany(invalid);
+    assert.deepEqual(await migrateOriginalItemDropChances(database), { updated: 0 });
+    for (const item of invalid) {
+      assert.deepEqual(await database.collection("items").findOne({ _id: item._id }), item);
+    }
   });
 });
