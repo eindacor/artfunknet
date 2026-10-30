@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { recordEconomyMetricsSafely } from "@/server/economy-metrics";
 import { checkItemForHallOfFameStatus } from "@/server/hall-of-fame";
 import type { GameItem } from "@/server/gameplay";
+import { hasInventorySpaceForItem } from "@/server/inventory-capacity";
 import {
   getDisplayedLegendaryEffect,
   getLegendaryNumberParameter,
@@ -22,7 +23,7 @@ type Player = {
   profile: {
     bank_balance: number;
     inventory_cap: number;
-    expansion_slots: number;
+    expansion_slots?: number;
     last_activity: string;
   };
 };
@@ -68,17 +69,7 @@ export async function POST(
     );
   }
 
-  const inventoryCount = await database
-    .collection<GameItem>("items")
-    .countDocuments({
-      owner: player._id,
-      status: { $in: ["claimed", "displayed"] },
-      original: { $ne: true },
-      vintage: { $ne: true },
-    });
-  const capacity =
-    player.profile.inventory_cap + player.profile.expansion_slots;
-  if (inventoryCount >= capacity && !item.original && !item.vintage) {
+  if (!(await hasInventorySpaceForItem(database, player, item))) {
     return NextResponse.json(
       { error: "Your inventory is currently full." },
       { status: 409 },
