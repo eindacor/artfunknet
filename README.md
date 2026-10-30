@@ -341,7 +341,8 @@ The basic gameplay loop is active:
   around the corners. Artwork dimensions are centimeters, converted to meters
   without resizing individual paintings.
   Frames are spaced two meters apart. Previous/next painting arrows (or
-  Left/Right while the scene is focused) move along the wall, preserving the
+  Left/Right while the scene is focused, or left/right swipes on touch devices)
+  move along the wall, preserving the
   current wide or zoomed-in view. Clicking another work selects it without
   zooming. Clicking the selected work toggles between the wide view and a
   close-up fitted to its mat and frame; its cursor changes between zoom-in and

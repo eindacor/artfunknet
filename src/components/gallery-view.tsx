@@ -41,6 +41,7 @@ export default function GalleryView({
     "loading",
   );
   const host = useRef<HTMLDivElement>(null);
+  const viewport = useRef<HTMLDivElement>(null);
   const controller = useRef<GallerySceneController | null>(null);
   const select = useRef<(id: string) => void>(() => {});
   const activeItem =
@@ -152,6 +153,64 @@ export default function GalleryView({
     controller.current?.setFinishes(finishes);
   }, [finishes]);
 
+  useEffect(() => {
+    const element = viewport.current;
+    if (!element || disabled) return;
+    let start: { x: number; y: number } | null = null;
+
+    function touchStart(event: TouchEvent) {
+      if (
+        event.touches.length !== 1 ||
+        (event.target instanceof Element && event.target.closest(
+          "button:not(.gallery-image-fallback), a, input, select, textarea",
+        ))
+      ) {
+        start = null;
+        return;
+      }
+      start = { x: event.touches[0].clientX, y: event.touches[0].clientY };
+    }
+
+    function touchMove(event: TouchEvent) {
+      if (event.touches.length !== 1) {
+        start = null;
+        return;
+      }
+      if (!start) return;
+      const x = Math.abs(event.touches[0].clientX - start.x);
+      const y = Math.abs(event.touches[0].clientY - start.y);
+      if (x > 12 && x > y * 1.5 && event.cancelable) event.preventDefault();
+    }
+
+    function touchEnd(event: TouchEvent) {
+      const origin = start;
+      start = null;
+      if (!origin || event.touches.length || event.changedTouches.length !== 1) return;
+      const x = event.changedTouches[0].clientX - origin.x;
+      const y = event.changedTouches[0].clientY - origin.y;
+      if (Math.abs(x) < 50 || Math.abs(x) <= Math.abs(y) * 1.5) return;
+      // A swipe must not also click the artwork and toggle zoom or open details.
+      if (event.cancelable) event.preventDefault();
+      const index = activeIndex + (x < 0 ? 1 : -1);
+      if (index >= 0 && index < items.length) focusItem(items[index], true);
+    }
+
+    function touchCancel() {
+      start = null;
+    }
+
+    element.addEventListener("touchstart", touchStart, { passive: true });
+    element.addEventListener("touchmove", touchMove, { passive: false });
+    element.addEventListener("touchend", touchEnd, { passive: false });
+    element.addEventListener("touchcancel", touchCancel, { passive: true });
+    return () => {
+      element.removeEventListener("touchstart", touchStart);
+      element.removeEventListener("touchmove", touchMove);
+      element.removeEventListener("touchend", touchEnd);
+      element.removeEventListener("touchcancel", touchCancel);
+    };
+  }, [activeIndex, disabled, focusItem, items]);
+
   return (
     <div className="gallery-view">
       <div
@@ -179,6 +238,7 @@ export default function GalleryView({
           }
         }}
         role="region"
+        ref={viewport}
         style={{ "--gallery-overlay-opacity": finishes.brightness * 0.4 } as CSSProperties}
         tabIndex={0}
       >
