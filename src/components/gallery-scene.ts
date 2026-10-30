@@ -16,6 +16,9 @@ import {
   type GalleryFinishes,
 } from "@/server/gallery-finishes";
 
+const CEILING_TILE_SIZE = 0.6;
+const CEILING_GRID_OPACITY = 0.12;
+
 // Set a URL here after adding a tileable color texture to public\textures\gallery.
 const SURFACE_TEXTURES: Record<
   "wall" | "floor" | "ceiling" | "frame",
@@ -206,6 +209,20 @@ export function mountGalleryScene(
     1, 0.12, 1, surfaces.ceiling,
     0, layout.height + 0.06, 0, "ceiling",
   );
+  const ceilingGridMaterial = new THREE.LineBasicMaterial({
+    color: "#000000",
+    transparent: true,
+    opacity: CEILING_GRID_OPACITY,
+    depthWrite: false,
+  });
+  materials.add(ceilingGridMaterial);
+  const ceilingGrid = new THREE.LineSegments(
+    new THREE.BufferGeometry(),
+    ceilingGridMaterial,
+  );
+  ceilingGrid.position.y = layout.height - 0.002;
+  geometries.add(ceilingGrid.geometry);
+  scene.add(ceilingGrid);
   box(
     roomWidth, 0.12, trimDepth, surfaces.trim,
     0, 0.06, trimDepth / 2, "floor",
@@ -368,6 +385,25 @@ export function mountGalleryScene(
     floor.scale.set(roomWidth, 1, roomDepth);
     ceiling.scale.copy(floor.scale);
     floor.position.z = ceiling.position.z = roomDepth / 2;
+    const gridVertices: number[] = [];
+    for (
+      let x = Math.ceil(-roomWidth / 2 / CEILING_TILE_SIZE) * CEILING_TILE_SIZE;
+      x < roomWidth / 2;
+      x += CEILING_TILE_SIZE
+    ) {
+      gridVertices.push(x, 0, 0, x, 0, roomDepth);
+    }
+    for (let z = CEILING_TILE_SIZE; z < roomDepth; z += CEILING_TILE_SIZE) {
+      gridVertices.push(-roomWidth / 2, 0, z, roomWidth / 2, 0, z);
+    }
+    geometries.delete(ceilingGrid.geometry);
+    ceilingGrid.geometry.dispose();
+    ceilingGrid.geometry = new THREE.BufferGeometry();
+    ceilingGrid.geometry.setAttribute(
+      "position",
+      new THREE.Float32BufferAttribute(gridVertices, 3),
+    );
+    geometries.add(ceilingGrid.geometry);
     const tiledSurfaces: [THREE.Mesh, number, number][] = [
       [floor, roomWidth, roomDepth],
       [ceiling, roomWidth, roomDepth],
