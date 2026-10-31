@@ -6591,8 +6591,11 @@
   text-transform: uppercase;
 }
 
-.forgery-style-select select {
+.forgery-style-select select,
+.forgery-style-select input {
   width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   min-height: 42px;
   border: 1px solid #d0cabe;
   border-radius: var(--game-button-radius);

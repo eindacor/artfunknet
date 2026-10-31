@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import type { UpdateResult } from "mongodb";
+import { assignItemSerialNumbers, isOriginalItemConflict } from "@/server/item-serials";
 import { getItemDropChanceUpdate } from "@/server/item-drop-chance";
 
 import { getCardCosmetic } from "@/components/item-cards/catalog";
@@ -127,6 +129,20 @@ export async function PATCH(request: Request) {
       { status: 404 },
     );
   }
+  if (
+    item.original &&
+    item.artwork_id !== artwork._id &&
+    await database.collection<GameItem>("items").findOne({
+      artwork_id: artwork._id,
+      original: true,
+      _id: { $ne: item._id },
+    })
+  ) {
+    return NextResponse.json(
+      { error: "That artwork already has an active Original item." },
+      { status: 409 },
+    );
+  }
 
   const regenerateAttributes =
     item.artwork_id !== artwork._id || item.unlocked !== body.unlocked;
@@ -162,11 +178,25 @@ export async function PATCH(request: Request) {
     artwork.rarity,
     metadata.loot_data,
   );
+  if (item.artwork_id !== artwork._id) {
+    await assignItemSerialNumbers(database, [nextItem]);
+  }
 
-  const updated = await database.collection<GameItem>("items").replaceOne(
-    { _id: item._id, owner: RAFFLE_OWNER_ID },
-    nextItem,
-  );
+  let updated: UpdateResult<GameItem>;
+  try {
+    updated = await database.collection<GameItem>("items").replaceOne(
+      { _id: item._id, owner: RAFFLE_OWNER_ID },
+      nextItem,
+    );
+  } catch (error) {
+    if (item.original && isOriginalItemConflict(error)) {
+      return NextResponse.json(
+        { error: "That artwork already has an active Original item." },
+        { status: 409 },
+      );
+    }
+    throw error;
+  }
   if (updated.matchedCount !== 1) {
     return NextResponse.json(
       { error: "The lottery item changed before it could be updated." },

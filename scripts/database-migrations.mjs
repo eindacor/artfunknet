@@ -25,6 +25,11 @@ export async function migrateOriginalItemDropChances(database) {
   return { updated: result.modifiedCount };
 }
 
+export async function migrateItemSerialNumbers(database) {
+  const { backfillItemSerialNumbers } = await import("../src/server/item-serials.ts");
+  return backfillItemSerialNumbers(database);
+}
+
 export async function migrateD3CardRendererId(database) {
   const renameIds = (ids) =>
     Array.isArray(ids)

@@ -122,6 +122,12 @@ test("stored drop odds follow live configuration, generation, mutations and prod
     assert.equal(stored?.drop_chance_coefficient, item.drop_chance_coefficient);
     assert.equal(item.original_drop_chance_coefficient, item.drop_chance_coefficient);
     assert.equal(stored?.original_drop_chance_coefficient, item.drop_chance_coefficient);
+    assert.equal(item.serial_number, 1);
+    assert.equal(stored?.serial_number, 1);
+    assert.equal(Object.hasOwn(stored!, "serial_prefix"), false);
+    assert.equal((await database.collection<Artwork>("artworks").findOne({
+      _id: item.artwork_id,
+    }))?.serial_counter, 1);
     const deminted = await getDemintUpdate(database, item, { card_renderer: "postcard" });
     assert.equal(deminted?.mint, false);
     assert.ok(Math.abs(deminted!.drop_chance_coefficient! - 0.01785) < 1e-18);

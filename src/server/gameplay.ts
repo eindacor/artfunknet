@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { assignItemSerialNumbers } from "./item-serials.ts";
 
 import type { Db } from "mongodb";
 
@@ -87,6 +88,7 @@ export type Artwork = {
   width: number;
   active: boolean;
   effect_id?: string;
+  serial_counter?: number;
   art_style_adjustments?: Record<string, ArtworkArtStyleAdjustment>;
   detail_image_adjustments?: ArtworkDetailImageAdjustments;
   // Rare artworks use one special attribute; legendary/masterpiece use effects.
@@ -154,6 +156,9 @@ export type GameItem = {
     | "bulk_donate_pending";
   source: string;
   date_created: string;
+  serial_number?: number;
+  // Only forgeries persist a prefix; public views resolve it for every item.
+  serial_prefix?: number;
   date_received: string;
   expires_at?: string;
   level: number;
@@ -655,6 +660,7 @@ export async function generateDailyDrop(
     );
   }
 
+  await assignItemSerialNumbers(database, items);
   await database.collection<GameItem>("items").insertMany(items);
   return items;
 }

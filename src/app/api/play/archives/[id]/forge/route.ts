@@ -2,6 +2,11 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { getItemDropChanceUpdate } from "@/server/item-drop-chance";
 import { recordEconomyMetricsSafely } from "@/server/economy-metrics";
+import {
+  createRandomForgerySerial,
+  INVALID_FORGERY_SERIAL_MESSAGE,
+  parseItemSerialNumber,
+} from "@/server/item-serial-format";
 
 import type { PlayerArtworkArchive } from "@/server/archive-gameplay";
 import {
@@ -54,6 +59,7 @@ export async function POST(
   const body = await request.json().catch(() => null) as {
     modifiers?: unknown;
     artStyle?: unknown;
+    serialNumber?: unknown;
   } | null;
   if (!body) {
     return NextResponse.json(
@@ -103,6 +109,15 @@ export async function POST(
     ),
   ]);
   if (!artwork) return NextResponse.json({ error: "The archived artwork is unavailable." }, { status: 404 });
+  const serial = body.serialNumber === undefined
+    ? createRandomForgerySerial(artwork._id)
+    : parseItemSerialNumber(body.serialNumber);
+  if (!serial) {
+    return NextResponse.json(
+      { error: INVALID_FORGERY_SERIAL_MESSAGE },
+      { status: 400 },
+    );
+  }
   const capacity =
     player.profile.inventory_cap + (player.profile.expansion_slots ?? 0);
   if (inventoryCount >= capacity && !selected.has("vintage")) {
@@ -123,6 +138,7 @@ export async function POST(
   const timestamp = new Date().toISOString();
   const base = {
     _id: randomUUID(),
+    ...serial,
     artwork_id: artwork._id,
     condition: getGeneratedItemCondition(mint, 0),
     mint,

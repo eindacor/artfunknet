@@ -14,6 +14,13 @@ import type {
   HydratedPlayerArtworkArchive,
 } from "@/server/item-artwork";
 import type { LootData } from "@/server/gameplay";
+import {
+  createRandomForgerySerial,
+  formatItemSerialNumber,
+  ITEM_SERIAL_INPUT_MAX_LENGTH,
+  INVALID_FORGERY_SERIAL_MESSAGE,
+  parseItemSerialNumber,
+} from "@/server/item-serial-format";
 
 import { getCardCosmetic } from "./item-cards/catalog";
 import { useCardCosmetics } from "./item-cards/card-cosmetics-provider";
@@ -238,6 +245,11 @@ function ForgeryEditor({
   const cardCosmetics = useCardCosmetics();
   const [modifiers, setModifiers] = useState<string[]>([]);
   const [artStyle, setArtStyle] = useState("museum");
+  const [serialNumber, setSerialNumber] = useState(() => {
+    const serial = createRandomForgerySerial(archive.artwork_id);
+    return formatItemSerialNumber(archive.artwork_id, serial.serial_number, serial.serial_prefix);
+  });
+  const serial = useMemo(() => parseItemSerialNumber(serialNumber), [serialNumber]);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const available = useMemo(
@@ -250,8 +262,11 @@ function ForgeryEditor({
   const previewCosmetic = findCosmetic(artStyle) ?? findCosmetic("museum")!;
   const PreviewRenderer = CARD_RENDERERS[previewCosmetic.id];
   const previewItem = useMemo(
-    () => createPreviewItem(archive, modifiers, previewCosmetic.id),
-    [archive, modifiers, previewCosmetic.id],
+    () => ({
+      ...createPreviewItem(archive, modifiers, previewCosmetic.id),
+      ...(serial ?? {}),
+    }),
+    [archive, modifiers, previewCosmetic.id, serial],
   );
   const heat = HEAT_CONTEXTS.map(({ context, label }) => ({
     context,
@@ -271,6 +286,9 @@ function ForgeryEditor({
         ? "Select Vintage to forge while your inventory is full."
         : "Your inventory is currently full."
       : "";
+  const serialError = serial
+    ? ""
+    : INVALID_FORGERY_SERIAL_MESSAGE;
 
   async function forge() {
     setPending(true);
@@ -279,7 +297,7 @@ function ForgeryEditor({
       const response = await fetch(`/api/play/archives/${archive._id}/forge`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ modifiers, artStyle }),
+        body: JSON.stringify({ modifiers, artStyle, serialNumber }),
       });
       const body = (await response.json()) as {
         error?: string;
@@ -356,6 +374,18 @@ function ForgeryEditor({
               ))}
             </select>
           </label>
+          <label className="forgery-style-select">
+            <span>Serial number</span>
+            <input
+              aria-invalid={!serial}
+              disabled={pending}
+              maxLength={ITEM_SERIAL_INPUT_MAX_LENGTH}
+              onChange={(event) => setSerialNumber(event.target.value)}
+              spellCheck={false}
+              type="text"
+              value={serialNumber}
+            />
+          </label>
         </div>
 
         <section className="art-style-dialog-preview forgery-dialog-preview">
@@ -415,9 +445,9 @@ function ForgeryEditor({
         </section>
       </div>
 
-      {error || inventoryError ? (
+      {error || inventoryError || serialError ? (
         <p className="reroll-dialog-error" role="alert">
-          {error || inventoryError}
+          {error || inventoryError || serialError}
         </p>
       ) : null}
       <footer className="art-style-dialog-actions">
@@ -427,7 +457,7 @@ function ForgeryEditor({
         </div>
         <button
           className="art-style-dialog-apply red"
-          disabled={pending || Boolean(inventoryError)}
+          disabled={pending || Boolean(inventoryError) || !serial}
           onClick={forge}
           type="button"
         >

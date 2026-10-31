@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ItemExpirationTime } from "../item-expiration-display";
 import type { GameItem } from "@/server/gameplay";
 import { formatItemDropChance } from "@/server/item-drop-chance-format";
+import { formatItemSerialNumber } from "@/server/item-serial-format";
 import { useRef, useState, type CSSProperties } from "react";
 
 import {
@@ -484,6 +485,10 @@ export function CompleteItemRecord({
                     )
                 : "unauthenticated"
             }
+          />
+          <Fact
+            label="Serial number"
+            value={formatItemSerialNumber(item.artwork_id, item.serial_number, item.serial_prefix)}
           />
           <Fact label="Source" value={item.source} />
           {item.expires_at ? (

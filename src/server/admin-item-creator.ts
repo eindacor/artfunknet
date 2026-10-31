@@ -113,6 +113,7 @@ export function buildAdminCreatedItem({
   const base = {
     _id: randomUUID(),
     artwork_id: artwork._id,
+    ...(customization.original ? { serial_number: 0 } : {}),
     condition,
     mint: customization.mint,
     mint_value_multiplier: customization.mint

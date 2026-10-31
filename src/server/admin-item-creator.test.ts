@@ -132,6 +132,20 @@ test("admin-created items accept negative roll counts", () => {
   assert.equal(item.roll_count, -25);
 });
 
+test("Original admin previews use zero without allocating a genuine sequence", () => {
+  const item = buildAdminCreatedItem({
+    artwork,
+    attributes,
+    customization: { ...customization, original: true },
+    lootData,
+    mintValueMultiplier: 2,
+    owner: "admin-preview",
+  });
+  assert.equal(item.original, true);
+  assert.equal(item.serial_number, 0);
+  assert.equal(artwork.serial_counter, undefined);
+});
+
 test("admin-created items reject duplicate attributes", () => {
   assert.throws(
     () =>

@@ -36,7 +36,7 @@ export async function hydrateGameItems(
   const artworks = await database
     .collection<Artwork>("artworks")
     .find({ _id: { $in: artworkIds } })
-    .project<Artwork>({ market_data: 0 })
+    .project<Artwork>({ market_data: 0, serial_counter: 0 })
     .toArray();
   const artworkById = new Map(
     artworks.map((artwork) => [artwork._id, artwork]),
@@ -69,7 +69,7 @@ export async function hydratePlayerArtworkArchives(
   const artworks = await database
     .collection<Artwork>("artworks")
     .find({ _id: { $in: artworkIds } })
-    .project<Artwork>({ market_data: 0 })
+    .project<Artwork>({ market_data: 0, serial_counter: 0 })
     .toArray();
   const artworkById = new Map(
     artworks.map((artwork) => [artwork._id, artwork]),

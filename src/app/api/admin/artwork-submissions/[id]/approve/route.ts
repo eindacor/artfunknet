@@ -194,6 +194,7 @@ export async function POST(
     const now = new Date();
     const baseArtwork = {
       _id: artworkId,
+      serial_counter: 0,
       artist_id: artist._id,
       artist: artist.artist_name,
       title: validation.value.title,

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getItemDropChanceUpdate } from "@/server/item-drop-chance";
+import { assignItemSerialNumbers, isOriginalItemConflict } from "@/server/item-serials";
 import type { Db } from "mongodb";
 
 import { getCardCosmetic } from "@/components/item-cards/catalog";
@@ -188,6 +189,18 @@ export async function POST(request: Request) {
       { status: 404 },
     );
   }
+  if (
+    parsed.customization.original &&
+    await database.collection<GameItem>("items").findOne(
+      { artwork_id: context.artwork._id, original: true },
+      { projection: { _id: 1 } },
+    )
+  ) {
+    return NextResponse.json(
+      { error: "That artwork already has an active Original item." },
+      { status: 409 },
+    );
+  }
 
   let owner: string;
   let player: AdminPlayerSearchResult | null = null;
@@ -249,7 +262,18 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-  await database.collection<GameItem>("items").insertOne(item);
+  try {
+    await assignItemSerialNumbers(database, [item]);
+    await database.collection<GameItem>("items").insertOne(item);
+  } catch (error) {
+    if (item.original && isOriginalItemConflict(error)) {
+      return NextResponse.json(
+        { error: "That artwork already has an active Original item." },
+        { status: 409 },
+      );
+    }
+    throw error;
+  }
 
   if (parsed.destination.type === "lottery_buffer" && raffleState) {
     const appended = await database.collection<RaffleState>("metadata").updateOne(

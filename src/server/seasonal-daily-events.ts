@@ -82,7 +82,7 @@ export async function getSeasonalEventView(
   const artworks = await database
     .collection<Artwork>("artworks")
     .find({ _id: { $in: artworkIds } })
-    .project<Artwork>({ market_data: 0 })
+    .project<Artwork>({ market_data: 0, serial_counter: 0 })
     .toArray();
   const artworkById = new Map(artworks.map((artwork) => [artwork._id, artwork]));
   return {
@@ -112,7 +112,7 @@ export async function settleSeasonalRotationIfDue(
   const artworks = await database
     .collection<Artwork>("artworks")
     .find({ active: true, rarity: { $in: [...ARTWORK_RARITIES] } })
-    .project<Artwork>({ market_data: 0 })
+    .project<Artwork>({ market_data: 0, serial_counter: 0 })
     .toArray();
   const nextSelections = {} as LootData["seasonal_items"];
   const nextRemaining = {} as Record<ArtworkRarity, string[]>;

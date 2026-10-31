@@ -6,6 +6,7 @@ import {
   migrateHallOfFameAndPlaythroughStorage,
   migrateItemDropChances,
   migrateOriginalItemDropChances,
+  migrateItemSerialNumbers,
   migratePlayerOperationHistory,
   migratePlayerTutorialFlag,
 } from "./database-migrations.mjs";
@@ -37,6 +38,9 @@ try {
   console.log(`Updated drop chances for ${dropChances.updated} items.`);
   const originalDropChances = await migrateOriginalItemDropChances(client.db(databaseName));
   console.log(`Initialized original drop chances for ${originalDropChances.updated} older items.`);
+  const serials = await migrateItemSerialNumbers(client.db(databaseName));
+  console.log(`Initialized ${serials.artworksInitialized} artwork serial counters and serialized ${serials.itemsUpdated} items.`);
+  console.log(`Demoted ${serials.originalsDemoted} duplicate Originals; the oldest Original per artwork retains serial zero.`);
   console.log(
     JSON.stringify({
       timestamp: new Date().toISOString(),

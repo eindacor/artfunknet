@@ -74,6 +74,50 @@ effect IDs and existing admin-tuned behavior parameters.
 For local data, `npm run db:migrate:local` runs the same migrations using
 `.env.local`, including initialization of missing original drop chances.
 
+## Item serial numbers
+
+Genuine items store only `serial_number`. Non-Original genuine items receive an
+atomic per-artwork sequence starting at one. Artwork records retain
+`serial_counter` even when items are deleted.
+Original variants reserve counter zero (`000000`) without advancing that counter.
+Only one Original per artwork may exist in the active `items` collection, across
+all owners and destinations. Admin creation checks this and a unique partial
+index also rejects concurrent duplicate requests. A replacement can be created
+after the previous Original has left the active collection.
+The client-safe `formatItemSerialNumber()` in
+`src/server/item-serial-format.ts` converts the first 12 hexadecimal artwork-ID
+characters to decimal and appends the sequence padded to at least six digits,
+for example `190742-000045`. Non-hexadecimal legacy IDs use a deterministic hash.
+Failed creations can leave gaps; reserved numbers are never reused. Synthetic
+admin previews do not allocate numbers.
+
+Forgeries do not advance artwork counters. They store a numeric `serial_prefix`
+and `serial_number`; the forge editor defaults to the real prefix and a random
+suffix but permits editing both. Forged copies can deliberately repeat another
+item's positive serial; non-Original forgeries cannot use the reserved zero
+suffix. No item stores a formatted serial string.
+
+Both migration commands above initialize missing artwork counters, reconcile
+existing genuine sequences without lowering counters, and backfill missing item
+serials by `date_created` with `_id` as the tie-breaker. They preserve assigned
+positive regular numbers, process items in batches, and create a unique genuine
+`(artwork_id, serial_number)` index. Keep gameplay writes stopped until migration
+finishes. Reruns preserve corrected assignments; legacy numbers reflect the
+chronological backfill rather than a recovered historical issuance record. The migration
+rejects artwork-prefix collisions instead of silently issuing ambiguous serials;
+12-character prefixes are very unlikely to collide but are not mathematically
+collision-free.
+For each artwork, the migration retains the oldest Original (`date_created`,
+then `_id`), removes the Original flag from extras, and recalculates those items'
+values without changing their other variants or original-odds snapshots. It
+repairs missing or incorrect Original serials to zero and assigns positive
+numbers to non-Original items previously using zero. Existing positive regular
+serials and counter high-water marks are preserved; an Original previously
+issued a positive serial can therefore leave a gap when moved to zero. The
+migration logs how many duplicate Originals it demoted. All records still in
+`items`, including offers, auctions and pending operations, count as active.
+Demoted items can now count toward their owner's inventory cap.
+
 ## Artwork administration
 
 The seed command also creates or updates the local administrator configured by

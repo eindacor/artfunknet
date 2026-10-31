@@ -90,6 +90,7 @@ export async function POST(request: Request) {
     const now = new Date();
     const baseArtwork = {
       _id: artworkId,
+      serial_counter: 0,
       ...validation.value,
       value_scale: Math.random(),
       artist: artist.artist_name,

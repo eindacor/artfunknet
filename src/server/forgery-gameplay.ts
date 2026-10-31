@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import type { Db } from "mongodb";
 import { recordEconomyMetricsSafely } from "./economy-metrics.ts";
+import { getArtworkSerialPrefix } from "./item-serial-format.ts";
 
 import {
   ARTWORK_RARITIES,
@@ -316,6 +317,9 @@ export function sanitizePlayerFacingAuthenticity<T extends GameItem>(
   const identified = !maskAll && item.authenticity.identified;
   return {
     ...item,
+    ...(item.serial_number !== undefined
+      ? { serial_prefix: item.serial_prefix ?? getArtworkSerialPrefix(item.artwork_id) }
+      : {}),
     ...(!identified
       ? {
           source: "unknown",

@@ -602,6 +602,28 @@ the current coefficients. Existing original snapshots, including zero, are never
 overwritten. For older items this captures a migration-time baseline, not their
 historical creation odds.
 
+The same migration initializes artwork serial counters and assigns missing item
+serials in creation-date order (_id breaks ties), in batches. It reconciles
+counters upward from existing genuine serials, never resets them, and preserves
+corrected assignments on reruns. It creates a unique genuine
+(artwork_id, serial_number) index; independent, editable forged serials are exempt.
+Only numeric parts are stored, and the client derives genuine artwork prefixes.
+Keep writes stopped for the entire backfill so older items receive numbers before
+new gameplay creates items. Reserved numbers can have gaps after failures and
+must never be reused. A detected artwork-prefix collision stops the migration
+for review rather than silently creating ambiguous visible serials.
+Original variants reserve zero (rendered as 000000) and do not advance artwork
+counters. The migration keeps the oldest Original per artwork by creation date
+and _id, demotes extra Originals without changing their other variants, and
+recalculates their values. Original drop-chance snapshots are preserved. Missing
+or incorrect Original serials become zero; non-Original zero serials are repaired
+to positive numbers. Existing positive regular serials/counter high-water marks
+are not reset, so correcting old Original numbers can leave gaps. A unique index
+permits only one Original per artwork in the active items collection; all owners,
+offers, auctions and pending statuses count. Admin requests reject duplicates,
+including simultaneous attempts, until the existing Original leaves items.
+Demoted duplicates can now count toward their owner's inventory cap.
+
 For reduced downtime, build a new AMI or deployment artifact, replace the
 instance through an Auto Scaling Group, wait for the new target to become
 healthy, and then terminate the old instance.
