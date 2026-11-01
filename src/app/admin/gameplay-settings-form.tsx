@@ -677,6 +677,40 @@ export default function GameplaySettingsForm({
       />
       </ConfigGroup>
 
+      <ConfigGroup title="Mystery offer reveals">
+        <p className="col-span-full text-sm">
+          Uses current drop chances, not original chances. Cutoffs are coefficients:
+          0.001 means 1 in 1,000. Level 3 must be no greater than Level 2, and
+          Level 2 no greater than Level 1. Equal cutoffs skip a tier; zero disables
+          that cutoff. Revealed items never become hidden again.
+        </p>
+        {(["level1", "level2", "level3"] as const).map((level, index) => (
+          <SettingField
+            description={[
+              "Below this cutoff: sparkling, shaking mystery thumbnails.",
+              "Below this cutoff: vibrant foil-like mystery thumbnails.",
+              "Below this cutoff: floating logo thumbnails and a gallery hallway reveal.",
+            ][index]}
+            key={level}
+            label={`Level ${index + 1} drop chance cutoff`}
+            max={1}
+            min={0}
+            onChange={(value) =>
+              updateConfig(selectedConfig, (config) => ({
+                ...config,
+                offerRevealThresholds: {
+                  ...config.offerRevealThresholds,
+                  [level]: value,
+                },
+              }))
+            }
+            step="any"
+            suffix="coefficient"
+            value={activeEditor.offerRevealThresholds[level]}
+          />
+        ))}
+      </ConfigGroup>
+
       <ConfigGroup title="Auctions">
       <SettingField
         description="Minimum remaining auction time after a bid is placed to prevent last-minute bid sniping."
@@ -1198,7 +1232,7 @@ function SettingField({
   value: number;
   max: number;
   min?: number;
-  step?: number;
+  step?: number | "any";
   suffix: string;
   onChange: (value: number) => void;
 }) {

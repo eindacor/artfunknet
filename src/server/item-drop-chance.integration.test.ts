@@ -103,6 +103,24 @@ test("stored drop odds follow live configuration, generation, mutations and prod
     assert.equal((await getItemDropChanceContext(database)).artworkCounts.common, 3);
   });
 
+  await t.test("new rare private auction stock stays unrevealed while public stock remains known", async () => {
+    const database = client.db("auction-stock-reveal-state");
+    await seed(database);
+    for (const source of ["private auction", "public auction"]) {
+      const [item] = await generateDailyDrop(database, "system:auction-house", 0, {
+        itemCount: 1,
+        source,
+        status: "auctioned",
+        generationMap: {
+          rarity: { common: 1, uncommon: 0, rare: 0, legendary: 0, masterpiece: 0 },
+          foil: 1, mint: 1, cardStyle: 1, cardStyles: { legacy: 1, postcard: 0 },
+        },
+      });
+      assert.equal(item.revealed, source !== "private auction");
+      assert.equal((await database.collection<GameItem>("items").findOne({ _id: item._id }))?.revealed, item.revealed);
+    }
+  });
+
   await t.test("generation saves baseline odds rather than boosted source or low-level odds, and deminting refreshes them", async () => {
     const database = client.db("generated-drop-odds");
     await seed(database);
@@ -118,8 +136,10 @@ test("stored drop odds follow live configuration, generation, mutations and prod
     assert.equal(item.card_renderer, "legacy");
     assert.ok(Math.abs(item.drop_chance_coefficient! - 0.00026775) < 1e-18);
     assert.equal(item.odds, "1 in 3,735");
+    assert.equal(item.revealed, false);
     const stored = await database.collection<GameItem>("items").findOne({ _id: item._id });
     assert.equal(stored?.drop_chance_coefficient, item.drop_chance_coefficient);
+    assert.equal(stored?.revealed, false);
     assert.equal(item.original_drop_chance_coefficient, item.drop_chance_coefficient);
     assert.equal(stored?.original_drop_chance_coefficient, item.drop_chance_coefficient);
     assert.equal(item.serial_number, 1);
@@ -145,6 +165,33 @@ test("stored drop odds follow live configuration, generation, mutations and prod
     assert.deepEqual(await migrateItemDropChances(database), { updated: 0 });
   });
 
+  await t.test("Legendary generation keeps items hidden even when reveal cutoffs are disabled", async () => {
+    const database = client.db("legendary-reveal-floor");
+    const original = await seed(database);
+    const artwork: Artwork = {
+      ...original, _id: "legendary", rarity: "legendary", effect_id: "legendary-test",
+    };
+    await database.collection<Artwork>("artworks").insertOne(artwork);
+    await database.collection<ArtworkEffect>("artwork_effects").insertOne({
+      _id: "legendary-test", effect_type: "legendary", code: "legendary-test",
+      active: true, title: "Test effect", description: "Test",
+      flavor_text: "", linked_attributes: ["attr-0"], parameters: {},
+    });
+    await database.collection("metadata").updateOne({ _id: "gameplay-settings" }, {
+      $set: { "gameplay.configs.actual.offer_reveal_thresholds": { level1: 0, level2: 0, level3: 0 } },
+    });
+    const [generated] = await generateDailyDrop(database, "player", 0, {
+      itemCount: 1, targetArtworkId: artwork._id,
+      generationMap: {
+        rarity: { common: 0, uncommon: 0, rare: 0, legendary: 1, masterpiece: 0 },
+        foil: 0, mint: 0, cardStyle: 0, unlocked: 0, misprint: 0,
+      },
+    });
+    assert.ok(generated.drop_chance_coefficient! > 0.00001);
+    assert.equal(generated.revealed, false);
+    assert.equal((await database.collection<GameItem>("items").findOne({ _id: generated._id }))?.revealed, false);
+  });
+
   await t.test("guaranteed-Mint effect odds include styles only until de-minted, preserving original odds during migration", async () => {
     const database = client.db("guaranteed-mint-drop-odds");
     const original = await seed(database);
@@ -164,7 +211,10 @@ test("stored drop odds follow live configuration, generation, mutations and prod
       parameters: {},
     });
     await database.collection("metadata").updateOne({ _id: "gameplay-settings" }, {
-      $set: { "gameplay.configs.actual.mint_probability": 0 },
+      $set: {
+        "gameplay.configs.actual.mint_probability": 0,
+        "gameplay.configs.actual.offer_reveal_thresholds": { level1: 0, level2: 0, level3: 0 },
+      },
     });
     const [item] = await generateDailyDrop(database, "player", 0, {
       itemCount: 1,
@@ -179,6 +229,10 @@ test("stored drop odds follow live configuration, generation, mutations and prod
     assert.equal(item.card_renderer, "legacy");
     assert.ok(Math.abs(item.drop_chance_coefficient! - 0.0001875) < 1e-18);
     assert.equal(item.odds, "1 in 5,333");
+    assert.equal(item.revealed, false);
+    const saved = await database.collection<GameItem>("items").findOne({ _id: item._id });
+    assert.equal(saved?.revealed, false);
+    assert.equal(Object.hasOwn(saved!, "artwork"), false);
     const chance = await getItemDropChanceUpdate(database, item, artwork);
     assert.equal(chance.drop_chance_coefficient, item.drop_chance_coefficient);
     assert.equal(chance.odds, item.odds);

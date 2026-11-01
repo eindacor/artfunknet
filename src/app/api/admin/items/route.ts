@@ -13,6 +13,7 @@ import {
   type AdminItemCustomization,
 } from "@/server/admin-item-creator";
 import { getGameplaySettings } from "@/server/game-settings";
+import { getInitialItemRevealState } from "@/server/offer-reveal";
 import type { ArtworkEffect } from "@/server/artwork-effects-core";
 import {
   type Artwork,
@@ -250,6 +251,10 @@ export async function POST(request: Request) {
     const dropChance = await getItemDropChanceUpdate(database, item, context.artwork);
     Object.assign(item, dropChance, {
       original_drop_chance_coefficient: dropChance.drop_chance_coefficient,
+      revealed: getInitialItemRevealState(
+        { ...item, ...dropChance, artwork: context.artwork },
+        context.settings.active.offerRevealThresholds,
+      ),
     });
   } catch (error) {
     return NextResponse.json(

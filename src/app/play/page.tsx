@@ -31,6 +31,7 @@ import {
 } from "@/server/forgery-gameplay";
 import { getDatabase } from "@/server/mongodb";
 import { removeExpiredTransientItems } from "@/server/item-expiration";
+import { ensureItemRevealStates } from "@/server/item-reveal";
 import type { GameItem, ItemAttribute, LootData } from "@/server/gameplay";
 import {
   hydrateGameItems,
@@ -498,6 +499,21 @@ export default async function PlayerPage({
     rareSupporterBonusCount: config.commemorateRareSupporterBonusCount,
     supporterStatus,
   });
+  const [revealedItems, revealedAuctionItems] = await Promise.all([
+    ensureItemRevealStates(
+      database,
+      items.map((item) => ({
+        ...sanitizePlayerFacingAuthenticity(item),
+        reroll_cost: Math.max(0, Math.floor(item.reroll_cost * rerollCostMultiplier)),
+      })),
+      config.offerRevealThresholds,
+    ),
+    ensureItemRevealStates(
+      database,
+      visiblePrivateAuctions.map((auction) => auction.item),
+      config.offerRevealThresholds,
+    ),
+  ]);
 
   return (
     <div className="game-shell">
@@ -513,6 +529,7 @@ export default async function PlayerPage({
       />
       <GameDashboard
         initialNow={new Date().getTime()}
+        offerRevealThresholds={config.offerRevealThresholds}
         archiveArtStyleIds={cardRendererSettings.activeRendererIds.filter(
           (rendererId) => rendererId !== "museum",
         )}
@@ -537,13 +554,7 @@ export default async function PlayerPage({
         dailyDropCount={config.dailyDropCount}
         debugEnabled={settings.debugEnabled}
         dealerPriceMultiplier={dealerPriceMultiplier}
-        items={items.map((item) => ({
-          ...JSON.parse(JSON.stringify(sanitizePlayerFacingAuthenticity(item))),
-          reroll_cost: Math.max(
-            0,
-            Math.floor(item.reroll_cost * rerollCostMultiplier),
-          ),
-        }))}
+        items={JSON.parse(JSON.stringify(revealedItems))}
         galleryRates={galleryRates}
         galleryFinishes={galleryFinishes}
         galleryMetadata={
@@ -608,7 +619,9 @@ export default async function PlayerPage({
           completedQuests: player.profile.completed_quests ?? 0,
           viewSettings: getPlayerViewSettings(player.profile.view_settings),
         }}
-        privateAuctions={JSON.parse(JSON.stringify(visiblePrivateAuctions))}
+        privateAuctions={JSON.parse(JSON.stringify(visiblePrivateAuctions.map(
+          (auction, index) => ({ ...auction, item: revealedAuctionItems[index] }),
+        )))}
         playthroughSnapshots={JSON.parse(JSON.stringify(playthroughSnapshots))}
         hallOfFameRecords={JSON.parse(JSON.stringify(hallOfFameRecords))}
         vintageConsiderationCount={config.vintageConsiderationCount}

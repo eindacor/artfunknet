@@ -220,6 +220,7 @@ export async function POST(
     );
     if (charge.modifiedCount !== 1) throw new Error("The forging cost could not be charged.");
     charged = true;
+    item.revealed = true;
     const itemsToInsert = [item];
     if (copyFits && rollEffectChance(forgeryCopyEffect)) {
       itemsToInsert.push({

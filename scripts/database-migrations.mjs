@@ -30,6 +30,11 @@ export async function migrateItemSerialNumbers(database) {
   return backfillItemSerialNumbers(database);
 }
 
+export async function migrateItemRevealStates(database) {
+  const { backfillItemRevealStates } = await import("../src/server/item-reveal.ts");
+  return backfillItemRevealStates(database);
+}
+
 export async function migrateD3CardRendererId(database) {
   const renameIds = (ids) =>
     Array.isArray(ids)

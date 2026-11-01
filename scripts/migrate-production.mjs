@@ -7,6 +7,7 @@ import {
   migrateItemDropChances,
   migrateOriginalItemDropChances,
   migrateItemSerialNumbers,
+  migrateItemRevealStates,
   migratePlayerOperationHistory,
   migratePlayerTutorialFlag,
 } from "./database-migrations.mjs";
@@ -41,6 +42,8 @@ try {
   const serials = await migrateItemSerialNumbers(client.db(databaseName));
   console.log(`Initialized ${serials.artworksInitialized} artwork serial counters and serialized ${serials.itemsUpdated} items.`);
   console.log(`Demoted ${serials.originalsDemoted} duplicate Originals; the oldest Original per artwork retains serial zero.`);
+  const reveals = await migrateItemRevealStates(client.db(databaseName));
+  console.log(`Initialized reveal state for ${reveals.updated} older items.`);
   console.log(
     JSON.stringify({
       timestamp: new Date().toISOString(),

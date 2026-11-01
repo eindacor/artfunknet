@@ -20,6 +20,21 @@ const validWeights = {
   masterpiece: 0.1,
 };
 
+test("offer cutoffs survive gameplay validation and storage without accepting reversed tiers", () => {
+  const cutoffs = { level1: 0.02, level2: 0.0004, level3: 1e-9 };
+  const result = validateGameplayConfig({
+    ...DEFAULT_ACTUAL_GAMEPLAY_CONFIG,
+    offerRevealThresholds: cutoffs,
+  });
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  assert.deepEqual(toStoredGameplayConfig(result.value).offer_reveal_thresholds, cutoffs);
+  assert.equal(validateGameplayConfig({
+    ...DEFAULT_DEBUG_GAMEPLAY_CONFIG,
+    offerRevealThresholds: { ...cutoffs, level3: 0.1 },
+  }).ok, false);
+});
+
 test("rarity weights accept arbitrary positive proportions", () => {
   assert.deepEqual(validateRarityWeights(validWeights), {
     ok: true,

@@ -80,6 +80,7 @@
 
 .rendered-item-card {
   --card-width: 280px;
+  --card-height: 390px;
   position: relative;
   width: max-content;
   max-width: 100%;
@@ -371,7 +372,7 @@
 .render-card {
   position: relative;
   width: var(--card-width);
-  height: 390px;
+  height: var(--card-height, 390px);
   margin: 0 auto;
   overflow: hidden;
   text-align: left;
@@ -952,12 +953,13 @@
 /* Postcard: landscape, tactile paper, asymmetric writing. */
 .rendered-item-card-postcard {
   --card-width: 390px;
+  --card-height: 280px;
 }
 
 .postcard-card {
   display: grid;
   grid-template-columns: 54% 46%;
-  height: 280px;
+  height: var(--card-height, 280px);
   border: 0;
   padding: 0.65rem;
   background:
@@ -1161,12 +1163,13 @@
 /* Gilded salon: ornate frame and classical symmetry. */
 .rendered-item-card-gilded {
   --card-width: 290px;
+  --card-height: 410px;
 }
 
 .gilded-card {
   --gilded-outer-color: #8a672f;
   --gilded-outer-light: #d0ae68;
-  height: 410px;
+  height: var(--card-height, 410px);
   border: 8px ridge var(--gilded-outer-color);
   padding: 0.75rem;
   background:
@@ -4062,6 +4065,7 @@
 /* Reliquary: angular looter-shooter boss drop with shader-powered energy. */
 .rendered-item-card-reliquary {
   --card-width: 300px;
+  --card-height: 420px;
 }
 
 @property --reliquary-beam-angle {
@@ -4072,7 +4076,7 @@
 
 .reliquary-card {
   isolation: isolate;
-  height: 420px;
+  height: var(--card-height, 420px);
   overflow: hidden;
   clip-path: polygon(
     7% 0,
@@ -10210,6 +10214,7 @@
 
 .rendered-item-card-commemorative {
   --card-width: 320px;
+  --card-height: var(--card-width);
 }
 
 .commemorative-card {
@@ -10223,7 +10228,7 @@
   --coin-lottery-radius: calc(var(--card-width) * 0.26);
   box-sizing: border-box;
   width: var(--card-width);
-  height: var(--card-width);
+  height: var(--card-height, var(--card-width));
   overflow: visible;
   border-radius: 50%;
   padding: 8px;

@@ -18,6 +18,12 @@ import CollectionBulkConfirmationDialog from "@/components/collection-bulk-confi
 import ForgeryDialog from "@/components/forgery-dialog";
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
 import ItemThumbnail from "@/components/item-thumbnail";
+import OfferThumbnail, {
+  MysteryOfferFace,
+  type OfferRevealTransition,
+} from "@/components/offer-thumbnail";
+import OfferRevealDialog from "@/components/offer-reveal-dialog";
+import offerRevealStyles from "@/components/offer-reveal.module.css";
 import ItemTagsDialog from "@/components/item-tags-dialog";
 import HallOfFamePanel from "@/components/hall-of-fame-panel";
 import DailyEventsPanel from "@/components/daily-events-panel";
@@ -51,6 +57,13 @@ import {
 } from "@/components/use-gallery-visitors";
 import type { GalleryRates } from "@/server/collection-gameplay";
 import type { GalleryFinishes } from "@/server/gallery-finishes";
+import {
+  DEFAULT_OFFER_REVEAL_THRESHOLDS,
+  canQuickSellItem,
+  getOfferRevealTier,
+  isOfferRevealed,
+  type OfferRevealThresholds,
+} from "@/server/offer-reveal";
 import {
   COLLECTION_FLAG_KEYS,
   COLLECTION_STATUSES,
@@ -323,6 +336,7 @@ const ATTRIBUTE_TYPE_ICONS = {
 export default function GameDashboard({
   player,
   initialNow,
+  offerRevealThresholds = DEFAULT_OFFER_REVEAL_THRESHOLDS,
   items,
   archiveArtStyleIds,
   archives,
@@ -359,6 +373,7 @@ export default function GameDashboard({
 }: {
   player: PlayerView;
   initialNow: number;
+  offerRevealThresholds?: OfferRevealThresholds;
   items: HydratedGameItem[];
   archiveArtStyleIds: string[];
   archives: HydratedPlayerArtworkArchive[];
@@ -460,6 +475,18 @@ export default function GameDashboard({
   } | null>(null);
   const [cratePurchaseCount, setCratePurchaseCount] = useState(1);
   const [revealedLootIds, setRevealedLootIds] = useState<string[]>([]);
+  const [revealedOfferIds, setRevealedOfferIds] = useState<Set<string>>(() => new Set());
+  const [offerRevealTransitions, setOfferRevealTransitions] = useState<Record<string, OfferRevealTransition>>({});
+  const [pendingOfferReveals, setPendingOfferReveals] = useState<Set<string>>(() => new Set());
+  const [offerRevealItem, setOfferRevealItem] = useState<HydratedGameItem | null>(null);
+  const [offerRevealError, setOfferRevealError] = useState("");
+  const [revealingOfferBatch, setRevealingOfferBatch] = useState(false);
+  const offerRevealQueue = useRef<HydratedGameItem[]>([]);
+  const offerRevealRequests = useRef(new Map<string, AbortController>());
+  const offerRevealTimers = useRef(new Map<string, number>());
+  const offerRevealMounted = useRef(true);
+  const offerRevealSection = useRef(section);
+  const offerRevealContext = useRef(0);
   const [sellAllEarnings, setSellAllEarnings] = useState<{
     amount: number;
     animationId: number;
@@ -723,26 +750,25 @@ export default function GameDashboard({
   const activeLootEntries = activeLootCategory?.entries ?? [];
   const defaultLootEntryKey = activeLootEntries[0]?.key ?? null;
   const effectiveSelectedLootEntryKeys =
-    (selectedLootEntryKeys?.length ? selectedLootEntryKeys : null) ??
+    selectedLootEntryKeys ??
     (defaultLootEntryKey ? [defaultLootEntryKey] : []);
-  let selectedLootEntries = effectiveSelectedLootEntryKeys
+  const selectedLootEntries = effectiveSelectedLootEntryKeys
     .map((entryKey) =>
       activeLootEntries.find((entry) => entry.key === entryKey),
     )
     .filter((entry): entry is LootEntry => Boolean(entry));
-  if (
-    selectedLootEntries.length === 0 &&
-    activeLootEntries[0]
-  ) {
-    selectedLootEntries = [activeLootEntries[0]];
-  }
   const selectedLootEntryKeysSet = new Set(
     selectedLootEntries.map((entry) => entry.key),
   );
   const selectedLootEntry =
     selectedLootEntries.length === 1 ? selectedLootEntries[0] : null;
   const selectedLootItem = selectedLootEntry?.item ?? null;
+  const selectedLootHiddenItem = selectedLootEntries.find(
+    (entry) => !offerIsRevealed(entry.item),
+  )?.item;
   const selectedLootAuction = selectedLootEntry?.auction ?? null;
+  const selectedLootUnrevealed = selectedLootItem
+    ? !offerIsRevealed(selectedLootItem) : false;
   const unfoundQuestTargetArtworkIds = useMemo(
     () =>
       new Set(
@@ -771,6 +797,12 @@ export default function GameDashboard({
           ),
       ),
     [bulkSaleProtections, unfoundQuestTargetArtworkIds, unclaimed],
+  );
+  const quickSellableLoot = useMemo(
+    () => bulkSellableLoot.filter((item) =>
+      revealedOfferIds.has(item._id) || canQuickSellItem(item, offerRevealThresholds),
+    ),
+    [bulkSellableLoot, offerRevealThresholds, revealedOfferIds],
   );
   const bulkDeclinableLoot = useMemo(
     () =>
@@ -964,6 +996,9 @@ export default function GameDashboard({
   );
   const selectedCollectionItem =
     selectedCollectionItems.length === 1 ? selectedCollectionItems[0] : null;
+  const selectedCollectionHiddenItem = selectedCollectionItems.find(
+    (item) => !offerIsRevealed(item),
+  );
   const collectionBulkTotalValue = selectedCollectionItems.reduce(
     (sum, item) => sum + item.values.actual,
     0,
@@ -982,7 +1017,9 @@ export default function GameDashboard({
         quests,
         repairingCap: player.repairingCap,
         repairingCount,
-        selectedItems: selectedCollectionItems,
+        selectedItems: selectedCollectionItems.map((item) =>
+          revealedOfferIds.has(item._id) ? { ...item, revealed: true } : item,
+        ),
       }),
     [
       collectionItems,
@@ -991,6 +1028,7 @@ export default function GameDashboard({
       quests,
       repairingCount,
       selectedCollectionItems,
+      revealedOfferIds,
     ],
   );
   const collectionBulkConfirmationCopy = collectionBulkConfirmation
@@ -1069,9 +1107,168 @@ export default function GameDashboard({
     return () => window.clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    offerRevealMounted.current = true;
+    const requests = offerRevealRequests.current;
+    const timers = offerRevealTimers.current;
+    return () => {
+      offerRevealMounted.current = false;
+      requests.forEach((request) => request.abort());
+      timers.forEach((timer) => window.clearTimeout(timer));
+      requests.clear();
+      timers.clear();
+    };
+  }, []);
+
+  function offerIsRevealed(item: HydratedGameItem) {
+    return revealedOfferIds.has(item._id) || isOfferRevealed(item, offerRevealThresholds);
+  }
+
+  function clearOfferRevealTransitions() {
+    offerRevealContext.current += 1;
+    offerRevealQueue.current = [];
+    setRevealingOfferBatch(false);
+    offerRevealTimers.current.forEach((timer) => window.clearTimeout(timer));
+    offerRevealTimers.current.clear();
+    setOfferRevealTransitions({});
+  }
+
+  async function revealOffer(item: HydratedGameItem, transition?: OfferRevealTransition) {
+    if (offerRevealRequests.current.has(item._id)) return false;
+    const request = new AbortController();
+    const revealContext = offerRevealContext.current;
+    offerRevealRequests.current.set(item._id, request);
+    setPendingOfferReveals((current) => new Set([...current, item._id]));
+    setOfferRevealError("");
+    setError("");
+    const imagesReady = Promise.all(["thumb", "card"].map((variant) =>
+      new Promise<void>((resolve) => {
+        const image = new window.Image();
+        const timer = window.setTimeout(ready, 1800);
+        function ready() {
+          window.clearTimeout(timer);
+          image.onload = null;
+          image.onerror = null;
+          request.signal.removeEventListener("abort", aborted);
+          resolve();
+        }
+        function aborted() { image.src = ""; ready(); }
+        image.onload = () => { void image.decode().then(ready, ready); };
+        image.onerror = ready;
+        request.signal.addEventListener("abort", aborted, { once: true });
+        image.src = `/api/artwork/${encodeURIComponent(item.artwork_id)}/image?variant=${variant}`;
+      }),
+    ));
+    try {
+      const response = await fetch(`/api/play/items/${encodeURIComponent(item._id)}/reveal`, {
+        method: "POST",
+        signal: request.signal,
+      });
+      const body = await response.json() as { itemId?: string; revealed?: boolean; error?: string };
+      if (!response.ok || body.itemId !== item._id || body.revealed !== true) {
+        throw new Error(body.error ?? "This offer could not be revealed.");
+      }
+      await imagesReady;
+      if (!offerRevealMounted.current || request.signal.aborted) return false;
+      const tier = getOfferRevealTier(item, offerRevealThresholds);
+      const effect = transition ?? tier;
+      setRevealedOfferIds((current) => new Set([...current, item._id]));
+      if (["loot", "collection", "inventory"].includes(offerRevealSection.current) && revealContext === offerRevealContext.current) {
+        setOfferRevealTransitions((current) => ({ ...current, [item._id]: effect }));
+        const previousTimer = offerRevealTimers.current.get(item._id);
+        if (previousTimer) window.clearTimeout(previousTimer);
+        offerRevealTimers.current.set(item._id, window.setTimeout(() => {
+          offerRevealTimers.current.delete(item._id);
+          setOfferRevealTransitions((current) => {
+            const next = { ...current };
+            delete next[item._id];
+            return next;
+          });
+        }, effect === "burst" ? 1800 : tier === 3 ? 2200 : tier === 2 ? 1200 : 600));
+      }
+      router.refresh();
+      return true;
+    } catch (cause) {
+      if (offerRevealMounted.current && !request.signal.aborted) {
+        const message = cause instanceof Error ? cause.message : "This offer could not be revealed.";
+        setOfferRevealError(message);
+        setError(message);
+      }
+      return false;
+    } finally {
+      request.abort();
+      offerRevealRequests.current.delete(item._id);
+      if (offerRevealMounted.current) setPendingOfferReveals((current) => {
+        const next = new Set(current);
+        next.delete(item._id);
+        return next;
+      });
+    }
+  }
+
+  function requestOfferReveal(item: HydratedGameItem) {
+    if (revealingOfferBatch || offerIsRevealed(item) || pendingOfferReveals.has(item._id)) return;
+    if (getOfferRevealTier(item, offerRevealThresholds) === 3) {
+      setOfferRevealError("");
+      setOfferRevealItem(item);
+    } else {
+      void revealOffer(item);
+    }
+  }
+
+  async function revealQueuedOffers() {
+    const context = offerRevealContext.current;
+    while (offerRevealQueue.current.length > 0) {
+      const item = offerRevealQueue.current.shift()!;
+      if (getOfferRevealTier(item, offerRevealThresholds) === 3) {
+        setOfferRevealError("");
+        setOfferRevealItem(item);
+        return;
+      }
+      const revealed = await revealOffer(item);
+      if (!offerRevealMounted.current || context !== offerRevealContext.current) return;
+      if (!revealed) {
+        offerRevealQueue.current = [];
+        break;
+      }
+    }
+    setRevealingOfferBatch(false);
+  }
+
+  async function revealSelectedOffers(selectedItems: HydratedGameItem[]) {
+    if (revealingOfferBatch || offerRevealRequests.current.size > 0) return;
+    const unrevealedItems = [...new Map(
+      selectedItems.filter((item) => !offerIsRevealed(item)).map((item) => [item._id, item]),
+    ).values()];
+    if (unrevealedItems.length === 0) return;
+    setRevealingOfferBatch(true);
+    if (unrevealedItems.filter((item) => getOfferRevealTier(item, offerRevealThresholds) === 3).length > 1) {
+      const context = offerRevealContext.current;
+      await Promise.all(unrevealedItems.map((item) => revealOffer(
+        item, getOfferRevealTier(item, offerRevealThresholds) === 3 ? "burst" : undefined,
+      )));
+      if (offerRevealMounted.current && context === offerRevealContext.current) setRevealingOfferBatch(false);
+      return;
+    }
+    offerRevealQueue.current = unrevealedItems;
+    void revealQueuedOffers();
+  }
+
+  async function confirmOfferReveal() {
+    const context = offerRevealContext.current;
+    if (offerRevealItem && await revealOffer(offerRevealItem) && offerRevealMounted.current &&
+      context === offerRevealContext.current) {
+      setOfferRevealItem(null);
+      if (revealingOfferBatch) void revealQueuedOffers();
+    }
+  }
+
   function selectDashboardSection(nextSection: typeof section) {
+    offerRevealSection.current = nextSection;
     setSection(nextSection);
     setRevealedLootIds([]);
+    clearOfferRevealTransitions();
+    setOfferRevealItem(null);
     if (nextSection === "loot") setSelectedLootEntryKeys(null);
   }
 
@@ -1201,6 +1398,7 @@ export default function GameDashboard({
   }) {
     setLootCategory(category.id);
     setRevealedLootIds([]);
+    clearOfferRevealTransitions();
     setSelectedLootEntryKeys(
       category.entries[0] ? [category.entries[0].key] : [],
     );
@@ -2133,6 +2331,10 @@ export default function GameDashboard({
     item: HydratedGameItem,
     action: "sell" | "donate",
   ) {
+    if (action === "sell" && !revealedOfferIds.has(item._id) && !canQuickSellItem(item, offerRevealThresholds)) {
+      setError("Reveal this item before selling it.");
+      return;
+    }
     if (
       item.artwork.rarity === "legendary" ||
       item.artwork.rarity === "masterpiece"
@@ -2898,7 +3100,7 @@ export default function GameDashboard({
         <button
           className="collection-gallery-action"
           disabled={pending}
-          onClick={() => act(`/api/play/items/${item._id}/purchase`)}
+          onClick={() => act(`/api/play/items/${item._id}/purchase`, () => setSelectedCollectionItemIds([item._id]))}
           type="button"
         >
           <i aria-hidden="true" className="fa fa-shopping-cart" />
@@ -2913,7 +3115,7 @@ export default function GameDashboard({
       <button
         className="collection-gallery-action"
         disabled={pending || inventoryFullForItem}
-        onClick={() => act(`/api/play/items/${item._id}/claim`)}
+        onClick={() => act(`/api/play/items/${item._id}/claim`, () => setSelectedCollectionItemIds([item._id]))}
         title={
           inventoryFullForItem
             ? "Your inventory is currently full."
@@ -3028,17 +3230,24 @@ export default function GameDashboard({
   }
 
   function renderLootThumbnail({ auction, item, key }: LootEntry) {
+    const tier = getOfferRevealTier(item, offerRevealThresholds);
+    const unrevealed = !offerIsRevealed(item);
     const revealIndex = auction
       ? -1
       : revealedLootIds.indexOf(item._id);
+    const arriving = revealIndex >= 0 && !(unrevealed && tier === 3);
+    const label = unrevealed ? `Select unrevealed level ${tier} offer`
+      : `Preview ${item.artwork.title} by ${item.artwork.artist}`;
     return (
-      <button
-        aria-label={`Preview ${item.artwork.title} by ${item.artwork.artist}`}
+      <OfferThumbnail
+        aria-busy={pendingOfferReveals.has(item._id)}
+        aria-label={label}
         aria-pressed={selectedLootEntryKeysSet.has(key)}
         className={`${selectedLootEntryKeysSet.has(key) ? "selected" : ""} ${
-          revealIndex >= 0 ? "loot-item-reveal" : ""
+          arriving ? "loot-item-reveal" : ""
         }`.trim()}
         data-rarity={item.artwork.rarity}
+        disabled={pendingOfferReveals.has(item._id)}
         key={key}
         onClick={(event) => toggleLootEntrySelection(key, event)}
         onContextMenu={(event) => event.preventDefault()}
@@ -3047,13 +3256,20 @@ export default function GameDashboard({
         onPointerLeave={cancelLootEntryLongPress}
         onPointerMove={moveLootEntryLongPress}
         onPointerUp={cancelLootEntryLongPress}
+        onReveal={() => {
+          setSelectedLootEntryKeys([key]);
+          requestOfferReveal(item);
+        }}
         style={
-          revealIndex >= 0
+          arriving
             ? { animationDelay: `${Math.min(revealIndex * 30, 300)}ms` }
             : undefined
         }
-        title={`${item.artwork.title} by ${item.artwork.artist}`}
+        tier={tier}
+        transitionTier={offerRevealTransitions[item._id]}
+        title={unrevealed ? label : `${item.artwork.title} by ${item.artwork.artist}`}
         type="button"
+        unrevealed={unrevealed}
       >
         <ItemThumbnail
           alt=""
@@ -3061,12 +3277,104 @@ export default function GameDashboard({
           researchTarget={unfoundQuestTargetArtworkIds.has(item.artwork_id)}
           size={82}
         />
-      </button>
+      </OfferThumbnail>
+    );
+  }
+
+  function renderCollectionThumbnail(item: HydratedGameItem, showDisplayStatus = false) {
+    const tier = getOfferRevealTier(item, offerRevealThresholds);
+    const unrevealed = !offerIsRevealed(item);
+    const label = unrevealed ? `Select unrevealed level ${tier} item`
+      : `Preview ${item.artwork.title} by ${item.artwork.artist}`;
+    return (
+      <OfferThumbnail
+        aria-label={label}
+        aria-pressed={selectedCollectionItemIdsSet.has(item._id)}
+        className={selectedCollectionItemIdsSet.has(item._id) ? "selected" : ""}
+        data-rarity={item.artwork.rarity}
+        key={item._id}
+        onClick={(event) => toggleCollectionItemSelection(item._id, event)}
+        onContextMenu={(event) => event.preventDefault()}
+        onPointerCancel={cancelCollectionItemLongPress}
+        onPointerDown={(event) => startCollectionItemLongPress(item._id, event)}
+        onPointerLeave={cancelCollectionItemLongPress}
+        onPointerMove={moveCollectionItemLongPress}
+        onPointerUp={cancelCollectionItemLongPress}
+        onReveal={() => {
+          setSelectedCollectionItemIds([item._id]);
+          requestOfferReveal(item);
+        }}
+        tier={tier}
+        title={unrevealed ? label : `${item.artwork.title} by ${item.artwork.artist}`}
+        transitionTier={offerRevealTransitions[item._id]}
+        type="button"
+        unrevealed={unrevealed}
+      >
+        <ItemThumbnail
+          alt=""
+          item={item}
+          researchTarget={unfoundQuestTargetArtworkIds.has(item.artwork_id)}
+          showDisplayStatus={showDisplayStatus}
+          size={82}
+        />
+      </OfferThumbnail>
+    );
+  }
+
+  function renderUnrevealedPreview(
+    item: HydratedGameItem,
+    acquisition?: React.ReactNode,
+    revealItems?: HydratedGameItem[],
+  ) {
+    const tier = getOfferRevealTier(item, offerRevealThresholds);
+    const revealing = revealingOfferBatch || (revealItems ?? [item]).some(
+      (target) => pendingOfferReveals.has(target._id),
+    );
+    const rendererId = resolveCardRendererId({ itemRendererId: item.card_renderer });
+    return (
+      <section
+        aria-label="Unrevealed item preview"
+        className={`collection-preview ${section === "loot" ? "loot-preview" : ""}`}
+        data-unrevealed-preview
+        key={item._id}
+      >
+        <article className={`item-info rendered-item-card rendered-item-card-${rendererId}`}>
+          <div className={`render-card ${offerRevealStyles.previewMystery}`}>
+            <div aria-hidden="true" className={offerRevealStyles.previewFace}>
+              <MysteryOfferFace tier={tier} />
+            </div>
+          </div>
+          <div className={`card-actions card-actions-with-primary ${offerRevealStyles.previewActions}`}>
+            <button
+              aria-busy={revealing}
+              className={offerRevealStyles.revealButton}
+              disabled={pending || revealing}
+              onClick={() => revealItems ? revealSelectedOffers(revealItems) : requestOfferReveal(item)}
+              type="button"
+            >{revealing ? "Revealing..." : revealItems ? "Reveal all" : "Reveal"}</button>
+            {acquisition}
+          </div>
+        </article>
+      </section>
     );
   }
 
   return (
     <main className="legacy-game">
+      {offerRevealItem ? (
+        <OfferRevealDialog
+          error={offerRevealError}
+          finishes={galleryFinishes}
+          item={offerRevealItem}
+          onCancel={() => {
+            setOfferRevealItem(null);
+            offerRevealQueue.current = [];
+            setRevealingOfferBatch(false);
+          }}
+          onConfirm={() => { void confirmOfferReveal(); }}
+          saving={pendingOfferReveals.has(offerRevealItem._id)}
+        />
+      ) : null}
       <div className="max-w-[1800px] m-auto">
         <section
           aria-label="Player progress"
@@ -3428,9 +3736,10 @@ export default function GameDashboard({
                             <button
                               className="sell-all-loot"
                               disabled={
-                                pending || bulkSellableLoot.length === 0
+                                pending || quickSellableLoot.length === 0
                               }
                               onClick={sellAllLoot}
+                              title="Unrevealed items are always kept."
                               type="button"
                             >
                               <i aria-hidden="true" className="fa fa-usd" />{" "}
@@ -3556,7 +3865,11 @@ export default function GameDashboard({
                       </div>
                     </section>
                   </div>
-                  {selectedLootEntries.length > 1 ? (
+                  {selectedLootEntries.length > 1 && selectedLootHiddenItem ? (
+                    renderUnrevealedPreview(
+                      selectedLootHiddenItem, undefined, selectedLootEntries.map((entry) => entry.item),
+                    )
+                  ) : selectedLootEntries.length > 1 ? (
                     <LootBulkActionsPanel
                       availability={lootBulkState.availability}
                       category={activeLootCategory?.id ?? "unclaimed"}
@@ -3566,10 +3879,21 @@ export default function GameDashboard({
                       purchaseCost={lootBulkState.totalPurchaseCost}
                       totalValue={lootBulkTotalValue}
                     />
+                  ) : selectedLootItem && selectedLootUnrevealed ? (
+                    renderUnrevealedPreview(selectedLootItem, selectedLootAuction ? (
+                      <button
+                        className="collection-gallery-action"
+                        disabled={pending}
+                        onClick={() => setSelectedPrivateAuction(selectedLootAuction)}
+                        type="button"
+                      >Bid on item · ${selectedLootAuction.minimum_bid.toLocaleString()}</button>
+                    ) : lootPrimaryAction(selectedLootItem))
                   ) : selectedLootItem ? (
                     <div
                       aria-live="polite"
-                      className="collection-preview loot-preview"
+                      className={`collection-preview loot-preview ${offerRevealTransitions[selectedLootItem._id]
+                        ? offerRevealStyles[`preview${offerRevealTransitions[selectedLootItem._id]}`] : ""}`}
+                      key={selectedLootItem._id}
                     >
                       <ItemCard
                         actions={
@@ -3805,41 +4129,7 @@ export default function GameDashboard({
                     No works are currently on display.
                   </p>
                 ) : (
-                  displayed.map((item) => (
-                    <button
-                      aria-label={`Open details for ${item.artwork.title} by ${item.artwork.artist}`}
-                      aria-pressed={selectedCollectionItemIdsSet.has(item._id)}
-                      className={
-                        selectedCollectionItemIdsSet.has(item._id)
-                          ? "selected"
-                          : ""
-                      }
-                      data-rarity={item.artwork.rarity}
-                      key={item._id}
-                      onClick={(event) =>
-                        toggleCollectionItemSelection(item._id, event)
-                      }
-                      onContextMenu={(event) => event.preventDefault()}
-                      onPointerCancel={cancelCollectionItemLongPress}
-                      onPointerDown={(event) =>
-                        startCollectionItemLongPress(item._id, event)
-                      }
-                      onPointerLeave={cancelCollectionItemLongPress}
-                      onPointerMove={moveCollectionItemLongPress}
-                      onPointerUp={cancelCollectionItemLongPress}
-                      title={`${item.artwork.title} by ${item.artwork.artist}`}
-                      type="button"
-                    >
-                      <ItemThumbnail
-                        alt=""
-                        item={item}
-                        researchTarget={unfoundQuestTargetArtworkIds.has(
-                          item.artwork_id,
-                        )}
-                        size={82}
-                      />
-                    </button>
-                  ))
+                  displayed.map((item) => renderCollectionThumbnail(item))
                 )}
               </div>
             </section>
@@ -3894,48 +4184,17 @@ export default function GameDashboard({
                   </p>
                 ) : (
                   <div className="collection-thumbnail-list">
-                    {sortedHomeInventory.map((item) => (
-                      <button
-                        aria-label={`Preview ${item.artwork.title} by ${item.artwork.artist}`}
-                        aria-pressed={selectedCollectionItemIdsSet.has(item._id)}
-                        data-rarity={item.artwork.rarity}
-                        className={
-                          selectedCollectionItemIdsSet.has(item._id)
-                            ? "selected"
-                            : ""
-                        }
-                        key={item._id}
-                        onClick={(event) =>
-                          toggleCollectionItemSelection(item._id, event)
-                        }
-                        onContextMenu={(event) => event.preventDefault()}
-                        onPointerCancel={cancelCollectionItemLongPress}
-                        onPointerDown={(event) =>
-                          startCollectionItemLongPress(item._id, event)
-                        }
-                        onPointerLeave={cancelCollectionItemLongPress}
-                        onPointerMove={moveCollectionItemLongPress}
-                        onPointerUp={cancelCollectionItemLongPress}
-                        title={`${item.artwork.title} by ${item.artwork.artist}`}
-                        type="button"
-                      >
-                        <ItemThumbnail
-                          alt=""
-                          item={item}
-                          researchTarget={unfoundQuestTargetArtworkIds.has(
-                            item.artwork_id,
-                          )}
-                          showDisplayStatus
-                          size={82}
-                        />
-                      </button>
-                    ))}
+                    {sortedHomeInventory.map((item) => renderCollectionThumbnail(item, true))}
                   </div>
                 )}
               </section>
             </aside>
             <div className="collection-main">
-              {selectedCollectionItems.length > 1 ? (
+              {selectedCollectionItems.length > 1 && selectedCollectionHiddenItem ? (
+                renderUnrevealedPreview(
+                  selectedCollectionHiddenItem, undefined, selectedCollectionItems,
+                )
+              ) : selectedCollectionItems.length > 1 ? (
                 <CollectionBulkActionsPanel
                   attributeScore={collectionBulkAttributeScore}
                   attributes={collectionBulkGalleryMetadata.attributes}
@@ -3946,8 +4205,15 @@ export default function GameDashboard({
                   pending={pending}
                   totalValue={collectionBulkTotalValue}
                 />
+              ) : selectedCollectionItem && !offerIsRevealed(selectedCollectionItem) ? (
+                renderUnrevealedPreview(selectedCollectionItem)
               ) : selectedCollectionItem ? (
-                <section className="collection-preview" aria-live="polite">
+                <section
+                  className={`collection-preview ${offerRevealTransitions[selectedCollectionItem._id]
+                    ? offerRevealStyles[`preview${offerRevealTransitions[selectedCollectionItem._id]}`] : ""}`}
+                  aria-live="polite"
+                  key={selectedCollectionItem._id}
+                >
                   <ItemCard
                     actions={
                       selectedCollectionItem.status === "displayed"
@@ -4005,6 +4271,7 @@ export default function GameDashboard({
               title={`on display (${displayed.length}/${player.displayCap})`}
               viewerId={playerId}
               actions={displayedItemActions}
+              unrevealedPreview={(item) => offerIsRevealed(item) ? null : renderUnrevealedPreview(item)}
             />
             <InventorySection
               emptyText="Your inventory is empty."
@@ -4015,6 +4282,7 @@ export default function GameDashboard({
               styleInventory={player.cardStyleInventory}
               donationEffects={donationEffects}
               title="inventory"
+              unrevealedPreview={(item) => offerIsRevealed(item) ? null : renderUnrevealedPreview(item)}
               controls={
                 <label className="inventory-sort">
                   <span>Sort</span>
@@ -5766,6 +6034,7 @@ function InventorySection({
   viewerId,
   actions,
   controls,
+  unrevealedPreview,
 }: {
   title: string;
   emptyText: string;
@@ -5781,6 +6050,7 @@ function InventorySection({
   viewerId: string;
   actions: (item: HydratedGameItem) => React.ReactNode;
   controls?: React.ReactNode;
+  unrevealedPreview?: (item: HydratedGameItem) => React.ReactNode;
 }) {
   return (
     <section className="inventory-section">
@@ -5792,7 +6062,7 @@ function InventorySection({
         <p className="empty-state">{emptyText}</p>
       ) : (
         <div className="item-grid">
-          {items.map((item) => (
+          {items.map((item) => unrevealedPreview?.(item) ?? (
             <ItemCard
               actions={actions(item)}
               consigned={item.status === "auctioned"}
@@ -6389,11 +6659,13 @@ function getCollectionBulkState({
 
   const sellInvalid = selectedItems.find(
     (item) =>
-      item.status !== "claimed" || item.permanent,
+      item.status !== "claimed" || item.permanent || !canQuickSellItem(item),
   );
   const sell = sellInvalid
     ? unavailable(
-        sellInvalid.status !== "claimed"
+        !canQuickSellItem(sellInvalid)
+          ? "Reveal every selected item before selling."
+          : sellInvalid.status !== "claimed"
           ? `${sellInvalid.artwork.title} must be taken down or removed from auction first.`
           : `${sellInvalid.artwork.title} cannot be sold.`,
       )

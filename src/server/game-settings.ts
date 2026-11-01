@@ -1,6 +1,11 @@
 import type { Db } from "mongodb";
 
 import {
+  DEFAULT_OFFER_REVEAL_THRESHOLDS,
+  type OfferRevealThresholds,
+  validateOfferRevealThresholds,
+} from "./offer-reveal.ts";
+import {
   DROPPABLE_CARD_RENDERER_IDS,
   type DroppableCardRendererId,
 } from "../components/item-cards/catalog.ts";
@@ -69,6 +74,7 @@ const DEBUG_CARD_STYLE_WEIGHTS = Object.fromEntries(
 ) as Record<DroppableCardRendererId, number>;
 
 export type GameplayConfig = {
+  offerRevealThresholds: OfferRevealThresholds;
   dailyDropCooldownMinutes: number;
   dailyDropCount: number;
   crateValueScalar: number;
@@ -119,6 +125,7 @@ export type GameplaySettings = {
 };
 
 export const DEFAULT_ACTUAL_GAMEPLAY_CONFIG: GameplayConfig = {
+  offerRevealThresholds: { ...DEFAULT_OFFER_REVEAL_THRESHOLDS },
   dailyDropCooldownMinutes: 1,
   dailyDropCount: 50,
   crateValueScalar: 1.8,
@@ -164,6 +171,7 @@ export const DEFAULT_ACTUAL_GAMEPLAY_CONFIG: GameplayConfig = {
 };
 
 export const DEFAULT_DEBUG_GAMEPLAY_CONFIG: GameplayConfig = {
+  offerRevealThresholds: { ...DEFAULT_OFFER_REVEAL_THRESHOLDS },
   dailyDropCooldownMinutes: 1,
   dailyDropCount: 20,
   crateValueScalar: 1,
@@ -225,6 +233,7 @@ export function getGameplayGenerationMap(
 }
 
 type StoredGameplayConfig = {
+  offer_reveal_thresholds?: OfferRevealThresholds;
   daily_drop_cooldown_minutes?: number;
   daily_drop_count?: number;
   crate_value_scalar?: number;
@@ -305,6 +314,7 @@ export function toStoredGameplayConfig(
   config: GameplayConfig,
 ): Required<StoredGameplayConfig> {
   return {
+    offer_reveal_thresholds: { ...config.offerRevealThresholds },
     daily_drop_cooldown_minutes: config.dailyDropCooldownMinutes,
     daily_drop_count: config.dailyDropCount,
     crate_value_scalar: config.crateValueScalar,
@@ -357,6 +367,8 @@ export function validateGameplayConfig(
     return { ok: false, error: "Gameplay configuration must be an object." };
   }
   const config = input as Record<string, unknown>;
+  const offerRevealThresholds = validateOfferRevealThresholds(config.offerRevealThresholds);
+  if (!offerRevealThresholds.ok) return offerRevealThresholds;
   const integerFields = [
     ["dailyDropCooldownMinutes", "Daily drop cooldown", 1, 10_080],
     ["dailyDropCount", "Daily drop count", 1, 100],
@@ -508,6 +520,7 @@ export function validateGameplayConfig(
   return {
     ok: true,
     value: {
+      offerRevealThresholds: offerRevealThresholds.value,
       dailyDropCooldownMinutes: values.dailyDropCooldownMinutes,
       dailyDropCount: values.dailyDropCount,
       crateValueScalar,
@@ -662,7 +675,11 @@ function readConfig(
   stored: StoredGameplayConfig | undefined,
   defaults: GameplayConfig,
 ): GameplayConfig {
+  const thresholds = validateOfferRevealThresholds(stored?.offer_reveal_thresholds);
   return {
+    offerRevealThresholds: thresholds.ok
+      ? thresholds.value
+      : { ...defaults.offerRevealThresholds },
     dailyDropCooldownMinutes:
       stored?.daily_drop_cooldown_minutes ??
       defaults.dailyDropCooldownMinutes,

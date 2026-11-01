@@ -10,6 +10,7 @@ import {
   getSupporterAdjustedCardStyleWeights,
 } from "./card-renderer-settings.ts";
 import { getGameplaySettings } from "./game-settings.ts";
+import { getInitialItemRevealState } from "./offer-reveal.ts";
 import {
   calculateItemDropChance,
   createItemDropChanceContext,
@@ -154,6 +155,7 @@ export type GameItem = {
     | "event_settlement_pending"
     | "bulk_sale_pending"
     | "bulk_donate_pending";
+  revealed?: boolean;
   source: string;
   date_created: string;
   serial_number?: number;
@@ -627,39 +629,40 @@ export async function generateDailyDrop(
         `${artwork.rarity} artwork ${artwork._id} has no active matching effect.`,
       );
     }
-    items.push(
-      createItem({
-        artwork,
-        effect: artworkEffect,
-        dropChanceContext,
-        attributes,
-        lootData: metadata.loot_data,
-        owner: playerId,
-        now,
-        activeRendererIds: rendererSettings.activeRendererIds,
-        cardStyleProbability,
-        cardStyleWeights,
-        foilProbability,
-        mintProbability,
-        mintValueMultiplier,
-        unlockedProbability,
-        forceFoil:
-          options.forceLegendaryMasterpieceFoil === true &&
-          (artwork.rarity === "legendary" || artwork.rarity === "masterpiece"),
-        forceUnlocked:
-          options.forceLegendaryMasterpieceUnlocked === true &&
-          (artwork.rarity === "legendary" || artwork.rarity === "masterpiece"),
-        misprintProbability,
-        debug,
-        source,
-        itemLevel,
-        conditionMinimum,
-        expiresAt,
-        status,
-      }),
+    const item = createItem({
+      artwork,
+      effect: artworkEffect,
+      dropChanceContext,
+      attributes,
+      lootData: metadata.loot_data,
+      owner: playerId,
+      now,
+      activeRendererIds: rendererSettings.activeRendererIds,
+      cardStyleProbability,
+      cardStyleWeights,
+      foilProbability,
+      mintProbability,
+      mintValueMultiplier,
+      unlockedProbability,
+      forceFoil:
+        options.forceLegendaryMasterpieceFoil === true &&
+        (artwork.rarity === "legendary" || artwork.rarity === "masterpiece"),
+      forceUnlocked:
+        options.forceLegendaryMasterpieceUnlocked === true &&
+        (artwork.rarity === "legendary" || artwork.rarity === "masterpiece"),
+      misprintProbability,
+      debug,
+      source,
+      itemLevel,
+      conditionMinimum,
+      expiresAt,
+      status,
+    });
+    item.revealed = getInitialItemRevealState(
+      { ...item, artwork }, settings.active.offerRevealThresholds,
     );
+    items.push(item);
   }
-
   await assignItemSerialNumbers(database, items);
   await database.collection<GameItem>("items").insertMany(items);
   return items;

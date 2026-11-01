@@ -478,6 +478,7 @@ export async function rewardUndetectedForgeryExit(
       owner: forgerId,
       status: "unclaimed" as const,
       source: "returned forgery",
+      revealed: true,
       date_received: returnedAt.toISOString(),
       expires_at: new Date(
         returnedAt.getTime() + expirationMinutes * 60_000,

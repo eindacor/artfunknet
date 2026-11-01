@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 
 import { recordEconomyMetricsSafely } from "@/server/economy-metrics";
 import type { GameItem } from "@/server/gameplay";
+import { getGameplaySettings } from "@/server/game-settings";
+import { canQuickSellItem } from "@/server/offer-reveal";
 import { deleteCommunityReactions } from "@/server/community-reaction-cleanup";
 import {
   punishForgeryQuality,
@@ -55,13 +57,20 @@ export async function POST(
       { status: 409 },
     );
   }
+  const settings = await getGameplaySettings(database);
+  const [hydrated] = await hydrateGameItems(database, [item]);
+  if (!canQuickSellItem(hydrated, settings.active.offerRevealThresholds)) {
+    return NextResponse.json(
+      { error: "Reveal this item before selling it." },
+      { status: 409 },
+    );
+  }
   if (item.authenticity.forgery) {
     await transferForgeryLiability(
       database,
       item,
       auth.session.playerId,
     );
-    const [hydrated] = await hydrateGameItems(database, [item]);
     if (rollForgeryDetected(hydrated, "sell")) {
       if (shouldDestroyDetectedForgery(item)) {
         const preserved = await transferIfHallOfFameItem(database, item);
@@ -71,6 +80,7 @@ export async function POST(
               _id: item._id,
               owner: auth.session.playerId,
               status: item.status,
+              revealed: { $ne: false },
               "authenticity.forgery": true,
               "authenticity.identified": true,
             });
@@ -136,6 +146,7 @@ export async function POST(
         _id: item._id,
         owner: auth.session.playerId,
         status: item.status,
+        revealed: { $ne: false },
       });
   if (!removed) {
     return NextResponse.json({ error: "This item changed before it could be sold." }, { status: 409 });
