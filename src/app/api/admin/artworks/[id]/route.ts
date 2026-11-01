@@ -11,6 +11,7 @@ import {
 import type { ArtworkEffect } from "@/server/artwork-effects-core";
 import { getRerollCost } from "@/server/item-reroll";
 import { getDatabase } from "@/server/mongodb";
+import { validateArtworkImageAdjustments } from "@/server/artwork-create-input";
 import {
   calculateItemDropChance,
   getItemDropChanceContext,
@@ -135,6 +136,17 @@ export async function PATCH(
   if (!existing) {
     return NextResponse.json({ error: "Artwork not found." }, { status: 404 });
   }
+  const adjustments = validateArtworkImageAdjustments({
+    art_style_adjustments: body.art_style_adjustments === undefined
+      ? existing.art_style_adjustments : body.art_style_adjustments,
+    detail_image_adjustments: body.detail_image_adjustments === undefined
+      ? existing.detail_image_adjustments : body.detail_image_adjustments,
+    thumbnail_adjustment: body.thumbnail_adjustment === undefined
+      ? existing.thumbnail_adjustment : body.thumbnail_adjustment,
+  });
+  if (!adjustments.ok) {
+    return NextResponse.json({ error: adjustments.error }, { status: 400 });
+  }
   const rarityValue =
     typeof body.rarity === "string" ? body.rarity : existing.rarity;
   const validRarities = [
@@ -226,6 +238,7 @@ export async function PATCH(
       : existing.width / existing.height;
   const updatedArtwork: EditableArtwork = {
     ...existing,
+    ...adjustments.value,
     artist_id: artist._id,
     artist: artist.artist_name,
     title,
@@ -267,6 +280,9 @@ export async function PATCH(
     width: updatedArtwork.width,
     active: updatedArtwork.active,
     nsfw: updatedArtwork.nsfw,
+    art_style_adjustments: updatedArtwork.art_style_adjustments,
+    detail_image_adjustments: updatedArtwork.detail_image_adjustments,
+    thumbnail_adjustment: updatedArtwork.thumbnail_adjustment,
     updated_at: updatedArtwork.updated_at,
     updated_by: updatedArtwork.updated_by,
     ...(artworkEffectId ? { effect_id: artworkEffectId } : {}),
@@ -297,6 +313,9 @@ export async function PATCH(
           width: existing.width,
           active: existing.active,
           nsfw: existing.nsfw ?? false,
+          ...(existing.art_style_adjustments ? { art_style_adjustments: existing.art_style_adjustments } : {}),
+          ...(existing.detail_image_adjustments ? { detail_image_adjustments: existing.detail_image_adjustments } : {}),
+          ...(existing.thumbnail_adjustment ? { thumbnail_adjustment: existing.thumbnail_adjustment } : {}),
           ...(existing.updated_at ? { updated_at: existing.updated_at } : {}),
           ...(existing.updated_by ? { updated_by: existing.updated_by } : {}),
           ...(existing.effect_id ? { effect_id: existing.effect_id } : {}),
@@ -305,6 +324,9 @@ export async function PATCH(
             : {}),
         },
         $unset: {
+          ...(!existing.art_style_adjustments ? { art_style_adjustments: "" } : {}),
+          ...(!existing.detail_image_adjustments ? { detail_image_adjustments: "" } : {}),
+          ...(!existing.thumbnail_adjustment ? { thumbnail_adjustment: "" } : {}),
           ...(!existing.effect_id ? { effect_id: "" } : {}),
           ...(!existing.special_attributes ? { special_attributes: "" } : {}),
           ...(!existing.updated_at ? { updated_at: "" } : {}),

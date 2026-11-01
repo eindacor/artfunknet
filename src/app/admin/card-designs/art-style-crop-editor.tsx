@@ -13,6 +13,7 @@ import {
   getArtworkDetailImageAdjustments,
   getArtworkDetailImageSlots,
   getArtworkImageAdjustment,
+  getArtworkThumbnailAdjustment,
   roundArtworkImageAdjustment,
   type ArtworkDetailImageSlot,
 } from "@/components/item-cards/artwork-image-adjustments";
@@ -143,6 +144,7 @@ export default function ArtStyleCropEditor({
               type="button"
             >
               <ArtworkThumbnail
+                adjustment={getArtworkThumbnailAdjustment(item.artwork)}
                 alt=""
                 artworkId={item.artwork_id}
                 size={52}

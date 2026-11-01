@@ -2,6 +2,7 @@
 import {
   ArtworkImage,
   AttributeIcons,
+  useArtworkImageSource,
 } from "./shared";
 import type { CSSProperties } from "react";
 import type { ItemCardRendererProps } from "./types";
@@ -12,6 +13,7 @@ export default function PrismaticCard({
   consigned,
   researchTarget,
 }: ItemCardRendererProps) {
+  const sourceUrl = useArtworkImageSource(item.artwork_id);
   const titleLength = Array.from(item.artwork.title).length;
   const titleSize =
     titleLength > 42 ? "long" : titleLength > 24 ? "medium" : "short";
@@ -33,7 +35,7 @@ export default function PrismaticCard({
               0,
               Math.min(1, 1 - item.condition),
             ),
-            "--comic-art": `url("/api/artwork/${item.artwork_id}/image?variant=card")`,
+            "--comic-art": `url("${sourceUrl}")`,
           } as CSSProperties
         }
       >

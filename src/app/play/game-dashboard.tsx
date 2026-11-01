@@ -17,9 +17,11 @@ import ArchiveEntryDialog from "@/components/archive-entry-dialog";
 import CollectionBulkConfirmationDialog from "@/components/collection-bulk-confirmation-dialog";
 import ForgeryDialog from "@/components/forgery-dialog";
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
+import { getArtworkThumbnailAdjustment } from "@/components/item-cards/artwork-image-adjustments";
 import ItemThumbnail from "@/components/item-thumbnail";
 import OfferThumbnail, {
   MysteryOfferFace,
+  MysteryOfferThumbnail,
   type OfferRevealTransition,
 } from "@/components/offer-thumbnail";
 import OfferRevealDialog from "@/components/offer-reveal-dialog";
@@ -748,6 +750,10 @@ export default function GameDashboard({
     availableLootCategories[0] ??
     null;
   const activeLootEntries = activeLootCategory?.entries ?? [];
+  const unrevealedLootItems = activeLootEntries
+    .map((entry) => entry.item)
+    .filter((item) => !offerIsRevealed(item));
+  const revealingLootOffers = revealingOfferBatch || pendingOfferReveals.size > 0;
   const defaultLootEntryKey = activeLootEntries[0]?.key ?? null;
   const effectiveSelectedLootEntryKeys =
     selectedLootEntryKeys ??
@@ -3235,7 +3241,7 @@ export default function GameDashboard({
     const revealIndex = auction
       ? -1
       : revealedLootIds.indexOf(item._id);
-    const arriving = revealIndex >= 0 && !(unrevealed && tier === 3);
+    const arriving = revealIndex >= 0 && !revealedOfferIds.has(item._id) && !(unrevealed && tier === 3);
     const label = unrevealed ? `Select unrevealed level ${tier} offer`
       : `Preview ${item.artwork.title} by ${item.artwork.artist}`;
     return (
@@ -3327,6 +3333,9 @@ export default function GameDashboard({
     revealItems?: HydratedGameItem[],
   ) {
     const tier = getOfferRevealTier(item, offerRevealThresholds);
+    const revealCount = new Set((revealItems ?? [item])
+      .filter((target) => !offerIsRevealed(target))
+      .map((target) => target._id)).size;
     const revealing = revealingOfferBatch || (revealItems ?? [item]).some(
       (target) => pendingOfferReveals.has(target._id),
     );
@@ -3340,9 +3349,18 @@ export default function GameDashboard({
       >
         <article className={`item-info rendered-item-card rendered-item-card-${rendererId}`}>
           <div className={`render-card ${offerRevealStyles.previewMystery}`}>
-            <div aria-hidden="true" className={offerRevealStyles.previewFace}>
-              <MysteryOfferFace tier={tier} />
-            </div>
+            {section === "loot" ? (
+              <MysteryOfferThumbnail
+                className={offerRevealStyles.previewFace}
+                rarity={item.artwork.rarity}
+                selected
+                tier={tier}
+              />
+            ) : (
+              <div aria-hidden="true" className={`${offerRevealStyles.previewFace} ${offerRevealStyles.previewStaticFace}`}>
+                <MysteryOfferFace tier={tier} />
+              </div>
+            )}
           </div>
           <div className={`card-actions card-actions-with-primary ${offerRevealStyles.previewActions}`}>
             <button
@@ -3351,7 +3369,7 @@ export default function GameDashboard({
               disabled={pending || revealing}
               onClick={() => revealItems ? revealSelectedOffers(revealItems) : requestOfferReveal(item)}
               type="button"
-            >{revealing ? "Revealing..." : revealItems ? "Reveal all" : "Reveal"}</button>
+            >{revealing ? "Revealing..." : revealItems ? `Reveal ${revealCount.toLocaleString()}` : "Reveal"}</button>
             {acquisition}
           </div>
         </article>
@@ -3363,9 +3381,12 @@ export default function GameDashboard({
     <main className="legacy-game">
       {offerRevealItem ? (
         <OfferRevealDialog
+          displayed={displayed}
           error={offerRevealError}
           finishes={galleryFinishes}
           item={offerRevealItem}
+          key={offerRevealItem._id}
+          legendaryAttributes={legendaryAttributes}
           onCancel={() => {
             setOfferRevealItem(null);
             offerRevealQueue.current = [];
@@ -4006,7 +4027,16 @@ export default function GameDashboard({
                     </div>
                   ) : (
                     <div className="loot-preview-empty">
-                      Select an artwork to preview it.
+                      <span>Select an artwork to preview it.</span>
+                      {unrevealedLootItems.length > 0 ? (
+                        <button
+                          aria-busy={revealingLootOffers}
+                          className={offerRevealStyles.revealButton}
+                          disabled={pending || revealingLootOffers}
+                          onClick={() => void revealSelectedOffers(unrevealedLootItems)}
+                          type="button"
+                        >{revealingLootOffers ? "Revealing..." : "Reveal all"}</button>
+                      ) : null}
                     </div>
                   )}
                 </div>
@@ -4612,6 +4642,7 @@ export default function GameDashboard({
                           type="button"
                         >
                           <ArtworkThumbnail
+                            adjustment={getArtworkThumbnailAdjustment(archive.artwork)}
                             alt=""
                             artworkId={archive.artwork_id}
                             size={82}
@@ -5247,6 +5278,7 @@ function QuestTargetGrid({
           key={target.artwork._id}
         >
           <ArtworkThumbnail
+            adjustment={getArtworkThumbnailAdjustment(target.artwork)}
             alt={`${target.artwork.title} by ${target.artwork.artist}`}
             artworkId={target.artwork._id}
             className="historian-target-image"

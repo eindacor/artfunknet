@@ -1,4 +1,4 @@
-import type { ArtworkRarity } from "./gameplay";
+import type { ArtworkArtStyleAdjustment, ArtworkRarity } from "./gameplay";
 import {
   COMMUNITY_EMOTES,
   isCommunityEmote,
@@ -22,6 +22,7 @@ export type GalleryChatItemReference = {
     title: string;
     artist: string;
     rarity: ArtworkRarity;
+    thumbnail_adjustment?: ArtworkArtStyleAdjustment;
   };
   values: {
     actual: number;
@@ -46,6 +47,7 @@ export type GalleryChatToken =
         artist: string;
         rarity: ArtworkRarity;
         value: number;
+        thumbnailAdjustment?: ArtworkArtStyleAdjustment;
       };
     }
   | {
@@ -118,6 +120,9 @@ export function tokenizeChatContent(
               artist: item.artwork.artist,
               rarity: item.artwork.rarity,
               value: item.values.actual,
+              ...(item.artwork.thumbnail_adjustment
+                ? { thumbnailAdjustment: item.artwork.thumbnail_adjustment }
+                : {}),
             },
           }
         : {

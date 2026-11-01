@@ -3,6 +3,7 @@
 import ArtworkThumbnail from "./artwork-thumbnail";
 import { ItemExpirationTint } from "./item-expiration-display";
 import type { HydratedGameItem } from "@/server/item-artwork";
+import { getArtworkThumbnailAdjustment } from "./item-cards/artwork-image-adjustments";
 
 export default function ItemThumbnail({
   alt = "",
@@ -25,7 +26,7 @@ export default function ItemThumbnail({
     | "repairing"
     | "status"
     | "tags"
-  >;
+  > & Partial<Pick<HydratedGameItem, "artwork">>;
   researchTarget?: boolean;
   showDisplayStatus?: boolean;
   size?: number;
@@ -41,6 +42,7 @@ export default function ItemThumbnail({
 
   return (
     <ArtworkThumbnail
+      adjustment={getArtworkThumbnailAdjustment(item.artwork ?? {})}
       alt={alt}
       artworkId={item.artwork_id}
       className={className}

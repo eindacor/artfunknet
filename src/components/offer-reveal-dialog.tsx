@@ -3,23 +3,28 @@
 import { useEffect, useRef, useState } from "react";
 
 import ItemThumbnail from "@/components/item-thumbnail";
+import ItemCard from "@/components/item-cards/item-card";
+import type { CardLegendaryAttribute } from "@/components/item-cards/types";
 import type { GalleryFinishes } from "@/server/gallery-finishes";
 import type { HydratedGameItem } from "@/server/item-artwork";
-import { createGalleryLayout } from "./gallery-layout";
-import type { HallwayPhase, OfferRevealSceneController } from "./offer-reveal-scene";
+import type { RoomRevealPhase, OfferRevealSceneController } from "./offer-reveal-scene";
 import styles from "./offer-reveal.module.css";
 
 export default function OfferRevealDialog({
+  displayed,
   error,
   finishes,
   item,
+  legendaryAttributes,
   onCancel,
   onConfirm,
   saving,
 }: {
+  displayed: HydratedGameItem[];
   error: string;
   finishes: GalleryFinishes;
   item: HydratedGameItem;
+  legendaryAttributes: CardLegendaryAttribute[];
   onCancel: () => void;
   onConfirm: () => void;
   saving: boolean;
@@ -28,7 +33,8 @@ export default function OfferRevealDialog({
   const host = useRef<HTMLDivElement>(null);
   const controller = useRef<OfferRevealSceneController | null>(null);
   const skipRequested = useRef(false);
-  const [phase, setPhase] = useState<HallwayPhase | "loading" | "fallback">("loading");
+  const [displayedSnapshot] = useState(displayed);
+  const [phase, setPhase] = useState<RoomRevealPhase | "loading" | "fallback">("loading");
   useEffect(() => {
     const element = dialog.current;
     if (!element) return;
@@ -42,14 +48,15 @@ export default function OfferRevealDialog({
   useEffect(() => {
     let active = true;
     let scene: OfferRevealSceneController | null = null;
-    const layout = createGalleryLayout([{
-      id: item._id,
-      artworkId: item.artwork_id,
-      width: item.artwork.width,
-      height: item.artwork.height,
-    }], finishes);
-    import("./offer-reveal-scene").then(({ mountOfferRevealScene }) => {
+    import("./offer-reveal-scene").then(({ createOfferRevealLayout, mountOfferRevealScene }) => {
       if (!active || !host.current) return;
+      const dimensions = (work: HydratedGameItem) => ({
+        id: work._id,
+        artworkId: work.artwork_id,
+        width: work.artwork.width,
+        height: work.artwork.height,
+      });
+      const layout = createOfferRevealLayout(dimensions(item), displayedSnapshot.map(dimensions), finishes);
       scene = mountOfferRevealScene(
         host.current, layout, finishes, item.artwork.rarity,
         (next) => { if (active) setPhase(next); },
@@ -63,8 +70,8 @@ export default function OfferRevealDialog({
       scene?.dispose();
       controller.current = null;
     };
-  }, [item, finishes]);
-  const ready = phase === "ready" || phase === "fallback";
+  }, [item, finishes, displayedSnapshot]);
+  const ready = phase === "presenting" || phase === "ready" || phase === "fallback";
   return (
     <dialog
       aria-labelledby="offer-reveal-title"
@@ -88,9 +95,12 @@ export default function OfferRevealDialog({
             <ItemThumbnail alt="The extraordinary artwork" item={item} size={400} />
           </div>
         ) : null}
+        <div aria-hidden={!ready} className={styles.revealCard} data-visible={ready || undefined}>
+          <ItemCard interactive={false} item={item} legendaryAttributes={legendaryAttributes} />
+        </div>
         <p aria-live="polite" className="sr-only">
           {phase === "loading" ? "Preparing your gallery..." :
-            phase === "walking" ? "Follow the lights." :
+            phase === "approaching" ? "Follow the lights." :
             phase === "loading-artwork" ? "Loading your artwork..." :
             phase === "revealing" ? "An extraordinary discovery." :
             phase === "fallback" ? "The 3D scene is unavailable. You can still reveal your artwork." :

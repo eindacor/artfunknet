@@ -108,6 +108,14 @@ test("chat tokens preserve text, longest player names, and item previews", () =>
   ]);
 });
 
+test("chat item previews carry saved thumbnail crops", () => {
+  const adjustment = { x: 25, y: -10, scale: 1.5 };
+  const cropped = { ...item, artwork: { ...item.artwork, thumbnail_adjustment: adjustment } };
+  const [token] = tokenizeChatContent("/items/item-1", [], new Map([[item._id, cropped]]));
+  assert.equal(token.kind, "item");
+  if (token.kind === "item") assert.deepEqual(token.item.thumbnailAdjustment, adjustment);
+});
+
 test("missing item references become disabled item tokens", () => {
   assert.deepEqual(
     tokenizeChatContent(

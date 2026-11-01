@@ -3132,8 +3132,8 @@ a.welcome-button {
 .visited-gallery-workspace {
   display: grid;
   grid-template-areas:
-    "gallery gallery chat"
-    "player player preview";
+    "gallery gallery preview"
+    "player player chat";
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
   align-items: start;
@@ -3635,9 +3635,9 @@ a.welcome-button {
   .visited-gallery-workspace {
     grid-template-areas:
       "gallery"
-      "chat"
+      "preview"
       "player"
-      "preview";
+      "chat";
     grid-template-columns: 1fr;
   }
 
@@ -6128,6 +6128,10 @@ a.welcome-button {
 
 .collection-thumbnail-list {
   --collection-thumbnail-size: 82px;
+  --thumbnail-idle-saturation: 0.75;
+  --thumbnail-idle-brightness: 1;
+  --thumbnail-selected-saturation: 1;
+  --thumbnail-selected-brightness: 1.06;
   display: grid;
   grid-template-columns: repeat(auto-fill, var(--collection-thumbnail-size));
   grid-auto-rows: var(--collection-thumbnail-size);
@@ -6138,23 +6142,27 @@ a.welcome-button {
   padding: 10px;
 }
 
-.collection-thumbnail-list button {
+.collection-thumbnail-list button,
+.mystery-thumbnail {
   --thumbnail-rarity-color: #39b54a;
   --thumbnail-shadow-color: var(--thumbnail-rarity-color);
   --thumbnail-shadow-offset: 4px;
+  border: 0;
+  padding: 0;
+  background: #f3eee1;
+  box-shadow:
+    4px 4px 0 var(--thumbnail-shadow-color),
+    6px 6px 0 #111;
+}
+
+.collection-thumbnail-list button {
   position: relative;
   display: block;
   overflow: visible;
   width: 100%;
   height: 100%;
   min-height: 0;
-  border: 0;
-  padding: 0;
-  background: #f3eee1;
   outline: none;
-  box-shadow:
-    4px 4px 0 var(--thumbnail-shadow-color),
-    6px 6px 0 #111;
   cursor: pointer;
   touch-action: pan-y;
   user-select: none;
@@ -6166,19 +6174,32 @@ a.welcome-button {
   -webkit-touch-callout: none;
 }
 
-.collection-thumbnail-list button[data-rarity="uncommon"] {
+.collection-thumbnail-list button > * {
+  filter: saturate(var(--thumbnail-idle-saturation)) brightness(var(--thumbnail-idle-brightness));
+  transition: filter 160ms ease-out;
+}
+
+.collection-thumbnail-list button.selected > * {
+  filter: saturate(var(--thumbnail-selected-saturation)) brightness(var(--thumbnail-selected-brightness));
+}
+
+.collection-thumbnail-list button[data-rarity="uncommon"],
+.mystery-thumbnail[data-rarity="uncommon"] {
   --thumbnail-rarity-color: #3e7bff;
 }
 
-.collection-thumbnail-list button[data-rarity="rare"] {
+.collection-thumbnail-list button[data-rarity="rare"],
+.mystery-thumbnail[data-rarity="rare"] {
   --thumbnail-rarity-color: #e1c429;
 }
 
-.collection-thumbnail-list button[data-rarity="legendary"] {
+.collection-thumbnail-list button[data-rarity="legendary"],
+.mystery-thumbnail[data-rarity="legendary"] {
   --thumbnail-rarity-color: #ff8a1f;
 }
 
-.collection-thumbnail-list button[data-rarity="masterpiece"] {
+.collection-thumbnail-list button[data-rarity="masterpiece"],
+.mystery-thumbnail[data-rarity="masterpiece"] {
   --thumbnail-rarity-color: #42e8f5;
 }
 
@@ -6187,11 +6208,13 @@ a.welcome-button {
   outline-offset: 2px;
 }
 
-.collection-thumbnail-list button.selected {
+.collection-thumbnail-list button.selected,
+.mystery-thumbnail.selected {
   --thumbnail-shadow-offset: 1px;
 }
 
-.collection-thumbnail-list button.selected {
+.collection-thumbnail-list button.selected,
+.mystery-thumbnail.selected {
   translate: 3px 3px;
   box-shadow:
     1px 1px 0 var(--thumbnail-shadow-color),
@@ -6199,7 +6222,8 @@ a.welcome-button {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .collection-thumbnail-list button {
+  .collection-thumbnail-list button,
+  .collection-thumbnail-list button > * {
     transition: none;
   }
 }
@@ -6816,11 +6840,13 @@ a.welcome-button {
   padding: 10px;
 }
 
-.loot-thumbnail-grid button[data-rarity="legendary"] {
+.loot-thumbnail-grid button[data-rarity="legendary"],
+.loot-preview .mystery-thumbnail[data-rarity="legendary"] {
   --thumbnail-rarity-color: #d76a00;
 }
 
-.loot-thumbnail-grid button[data-rarity="masterpiece"] {
+.loot-thumbnail-grid button[data-rarity="masterpiece"],
+.loot-preview .mystery-thumbnail[data-rarity="masterpiece"] {
   --thumbnail-rarity-color: #00a8b5;
 }
 

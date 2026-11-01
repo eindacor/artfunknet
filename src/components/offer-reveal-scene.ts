@@ -1,5 +1,4 @@
 import * as THREE from "three";
-import { RectAreaLightUniformsLib } from "three/addons/lights/RectAreaLightUniformsLib.js";
 
 import {
   galleryColorToHex,
@@ -10,16 +9,18 @@ import {
   GALLERY_FIELD_OF_VIEW,
   GALLERY_FRAME_DEPTH,
   GALLERY_FRAME_FRONT_Z,
+  createGalleryLayout,
   getGalleryCameraFraming,
+  type GalleryArtworkDimensions,
   type GalleryLayout,
 } from "./gallery-layout.ts";
 
 const WALK_DURATION = 14000;
+const ROOM_VIEW_DURATION = 1500;
 const ARTWORK_REVEAL_START = 9000;
 const LIGHT_REVEAL_DURATION = 2800;
-const LIGHT_COUNT = 6;
-const HALLWAY_LENGTH = 28;
-const ARTWORK_WALL_OFFSET = 0.18;
+const RARITY_LIGHT_REVEAL_DURATION = 6500;
+const PULLBACK_DURATION = 6500;
 const RARITY_COLORS: Record<ArtworkRarity, string> = {
   common: "#39b54a",
   uncommon: "#3e7bff",
@@ -29,45 +30,93 @@ const RARITY_COLORS: Record<ArtworkRarity, string> = {
 };
 const clamp = (value: number) => Math.max(0, Math.min(1, value));
 
-export type HallwayPhase = "walking" | "loading-artwork" | "revealing" | "ready";
+export type RoomRevealPhase = "approaching" | "loading-artwork" | "revealing" | "presenting" | "ready";
+export type OfferRevealLayout = GalleryLayout & { lightStages: number[] };
 export type OfferRevealSceneController = { skip: () => void; dispose: () => void };
 
-export function getHallwayRevealProgress(
+export function createOfferRevealLayout(
+  artwork: GalleryArtworkDimensions,
+  displayed: GalleryArtworkDimensions[],
+  finishes: Pick<GalleryFinishes, "frame_width" | "matte_width">,
+): OfferRevealLayout {
+  const seen = new Set([artwork.id]);
+  const companions = displayed.filter(({ id }) => {
+    if (seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+  const layout = createGalleryLayout([artwork, ...companions], finishes);
+  const halfWidth = (painting: GalleryLayout["paintings"][number]) =>
+    painting.width / 2 + painting.frameWidth + painting.matteWidth;
+  const center = layout.paintings[0];
+  center.x = 0;
+  const edges = [halfWidth(center), halfWidth(center)];
+  layout.paintings.slice(1).forEach((painting, index) => {
+    const side = index % 2;
+    const width = halfWidth(painting);
+    painting.x = (side === 0 ? -1 : 1) * (edges[side] + 2 + width);
+    edges[side] += 2 + width * 2;
+  });
+  const stages = Math.ceil(companions.length / 2);
+  return {
+    ...layout,
+    width: Math.max(...edges) * 2,
+    height: Math.max(5.5, layout.height),
+    lightStages: [stages, ...companions.map((_, index) => stages - 1 - Math.floor(index / 2))],
+  };
+}
+
+export function getRoomRevealProgress(
   elapsedMs: number,
   imageReadyAtMs = 0,
-  skipped = false,
+  lightStages = 0,
+  skippedAtMs: number | null = null,
+  reducedMotion = false,
 ) {
   const elapsed = Number.isFinite(elapsedMs) ? Math.max(0, elapsedMs) : 0;
-  const camera = skipped ? 1 : 1 - (1 - clamp(elapsed / WALK_DURATION)) ** 3;
+  const skipped = skippedAtMs !== null;
+  const camera = skipped ? 1
+    : 1 - (1 - clamp((elapsed - ROOM_VIEW_DURATION) / (WALK_DURATION - ROOM_VIEW_DURATION))) ** 3;
   const imageReady = Number.isFinite(imageReadyAtMs);
+  const revealStart = skipped
+    ? Math.max(skippedAtMs ?? 0, imageReadyAtMs)
+    : Math.max(ARTWORK_REVEAL_START, imageReadyAtMs);
   const artwork = !imageReady ? 0 : skipped ? 1
-    : clamp((elapsed - Math.max(ARTWORK_REVEAL_START, imageReadyAtMs)) / LIGHT_REVEAL_DURATION);
+    : clamp((elapsed - revealStart) / LIGHT_REVEAL_DURATION);
+  const readyAt = Math.max(
+    skippedAtMs ?? WALK_DURATION,
+    revealStart + (skipped ? 0 : LIGHT_REVEAL_DURATION),
+  );
+  const ready = imageReady && elapsed >= readyAt;
+  const pullback = !ready ? 0 : reducedMotion ? 1
+    : THREE.MathUtils.smoothstep(elapsed - readyAt, 0, PULLBACK_DURATION);
+  const lightDuration = Math.min(1800, (ARTWORK_REVEAL_START - 900) / Math.max(1, lightStages));
+  const lightInterval = lightStages > 1
+    ? (ARTWORK_REVEAL_START - 900 - lightDuration) / (lightStages - 1)
+    : 0;
   return {
     camera,
     artwork,
-    backlight: skipped ? 1 : THREE.MathUtils.smoothstep(camera, 0.5, 0.75),
-    lights: Array.from({ length: LIGHT_COUNT }, (_, index) => {
-      // Fade up each light while it is still 8 to 4 meters ahead of the camera.
-      const distanceAhead = HALLWAY_LENGTH * (index + 0.5) / LIGHT_COUNT
-        - 2 - (HALLWAY_LENGTH - 2) * camera;
-      return THREE.MathUtils.smoothstep(8 - distanceAhead, 0, 4)
-        * (skipped ? 1 : THREE.MathUtils.smoothstep(elapsed, 0, 900));
-    }),
-    complete: camera === 1 && artwork === 1,
+    pullback,
+    ready,
+    raritySpotlight: reducedMotion ? 1
+      : THREE.MathUtils.smoothstep(elapsed, 0, RARITY_LIGHT_REVEAL_DURATION),
+    lights: Array.from({ length: lightStages }, (_, index) => skipped ? 1
+      : THREE.MathUtils.smoothstep(elapsed - 900 - index * lightInterval, 0, lightDuration)),
+    complete: ready && pullback === 1,
   };
 }
 
 export function mountOfferRevealScene(
   host: HTMLDivElement,
-  layout: GalleryLayout,
+  layout: OfferRevealLayout,
   finishes: GalleryFinishes,
   rarity: ArtworkRarity,
-  onPhase: (phase: HallwayPhase) => void,
+  onPhase: (phase: RoomRevealPhase) => void,
   onUnavailable: () => void,
 ): OfferRevealSceneController {
   const painting = layout.paintings[0];
   if (!painting) throw new Error("There is no artwork to reveal.");
-  if (!("LTC_FLOAT_1" in THREE.UniformsLib)) RectAreaLightUniformsLib.init();
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -82,7 +131,7 @@ export function mountOfferRevealScene(
   const scene = new THREE.Scene();
   const darkness = new THREE.Color(galleryColorToHex(finishes.wall)).multiplyScalar(0.04);
   scene.background = darkness;
-  const fog = new THREE.FogExp2(darkness, 0.025);
+  const fog = new THREE.FogExp2(darkness, 0.005);
   scene.fog = fog;
   const camera = new THREE.PerspectiveCamera(GALLERY_FIELD_OF_VIEW, 1, 0.05, 1000);
   const geometries = new Set<THREE.BufferGeometry>();
@@ -90,16 +139,16 @@ export function mountOfferRevealScene(
   const textures = new Set<THREE.Texture>();
   const hemisphere = new THREE.HemisphereLight("#fff5e8", "#30231d", 0.025);
   scene.add(hemisphere);
-  const roomWidth = Math.max(3.8, layout.width + 2);
   const roomHeight = layout.height;
   const brightness = finishes.brightness;
   let disposed = false;
   let animation = 0;
-  let skipped = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  let skippedAt: number | null = reducedMotion.matches ? 0 : null;
   let imageReadyAt = Infinity;
   let finalZ = 4;
-  let hallwayLength = 32;
-  let lastPhase: HallwayPhase | null = null;
+  let startZ = 14;
+  let lastPhase: RoomRevealPhase | null = null;
   const started = performance.now();
 
   function material(color: string) {
@@ -129,90 +178,113 @@ export function mountOfferRevealScene(
     return mesh;
   }
 
-  const floor = box(roomWidth, 0.12, 1, surfaces.floor, 0, -0.06, 0);
-  const ceiling = box(roomWidth, 0.12, 1, surfaces.ceiling, 0, roomHeight + 0.06, 0);
-  const wallFront = GALLERY_FRAME_FRONT_Z - GALLERY_FRAME_DEPTH;
-  box(roomWidth + 0.24, roomHeight, 0.2, surfaces.wall, 0, roomHeight / 2, wallFront - 0.1);
-  box(roomWidth, 0.12, 0.035, surfaces.trim, 0, 0.06, wallFront + 0.0175);
+  const floor = box(1, 0.12, 1, surfaces.floor, 0, -0.06, 0);
+  const ceiling = box(1, 0.12, 1, surfaces.ceiling, 0, roomHeight + 0.06, 0);
+  const wallFront = 0;
+  const frontWall = box(1, roomHeight, 0.2, surfaces.wall, 0, roomHeight / 2, wallFront - 0.1);
+  const frontTrim = box(1, 0.12, 0.035, surfaces.trim, 0, 0.06, wallFront + 0.0175);
+  const backWall = box(1, roomHeight, 0.2, surfaces.wall, 0, roomHeight / 2, 0);
+  const backTrim = box(1, 0.12, 0.035, surfaces.trim, 0, 0.06, 0);
   const sides = [-1, 1].flatMap((direction) => [
-    box(0.12, roomHeight, 1, surfaces.wall, direction * (roomWidth / 2 + 0.06), roomHeight / 2, 0),
-    box(0.035, 0.12, 1, surfaces.trim, direction * (roomWidth / 2 - 0.0175), 0.06, 0),
+    box(0.12, roomHeight, 1, surfaces.wall, direction, roomHeight / 2, 0),
+    box(0.035, 0.12, 1, surfaces.trim, direction, 0.06, 0),
   ]);
 
-  const { width, height, y, frameWidth: border, matteWidth } = painting;
-  const mattedWidth = width + matteWidth * 2;
-  const mattedHeight = height + matteWidth * 2;
-  const frameZ = GALLERY_FRAME_FRONT_Z - GALLERY_FRAME_DEPTH / 2 + ARTWORK_WALL_OFFSET;
-  const artworkZ = GALLERY_FRAME_FRONT_Z - 0.005 + ARTWORK_WALL_OFFSET;
-  box(mattedWidth, mattedHeight, 0.004, surfaces.matte, 0, y, artworkZ - 0.003, true);
-  for (const direction of [-1, 1]) {
-    box(mattedWidth + border * 2, border, GALLERY_FRAME_DEPTH, surfaces.frame,
-      0, y + direction * (mattedHeight + border) / 2, frameZ, true);
-    box(border, mattedHeight, GALLERY_FRAME_DEPTH, surfaces.frame,
-      direction * (mattedWidth + border) / 2, y, frameZ, true);
-  }
-  const imageMaterial = material("#ffffff");
-  const imageGeometry = new THREE.PlaneGeometry(width, height);
-  geometries.add(imageGeometry);
-  const image = new THREE.Mesh(imageGeometry, imageMaterial);
-  image.position.set(0, y, artworkZ);
-  scene.add(image);
+  const frameZ = GALLERY_FRAME_FRONT_Z - GALLERY_FRAME_DEPTH / 2;
+  const artworkZ = GALLERY_FRAME_FRONT_Z - 0.005;
+  const imageMaterials = new Map<string, THREE.MeshStandardMaterial[]>();
+  const lights = layout.paintings.map((work, index) => {
+    const { width, height, x, y, frameWidth: border, matteWidth } = work;
+    const mattedWidth = width + matteWidth * 2;
+    const mattedHeight = height + matteWidth * 2;
+    box(mattedWidth, mattedHeight, 0.004, surfaces.matte, x, y, artworkZ - 0.003, true);
+    for (const direction of [-1, 1]) {
+      box(mattedWidth + border * 2, border, GALLERY_FRAME_DEPTH, surfaces.frame,
+        x, y + direction * (mattedHeight + border) / 2, frameZ, true);
+      box(border, mattedHeight, GALLERY_FRAME_DEPTH, surfaces.frame,
+        x + direction * (mattedWidth + border) / 2, y, frameZ, true);
+    }
+    const imageMaterial = material("#ffffff");
+    const imageGeometry = new THREE.PlaneGeometry(width, height);
+    geometries.add(imageGeometry);
+    const image = new THREE.Mesh(imageGeometry, imageMaterial);
+    image.position.set(x, y, artworkZ);
+    scene.add(image);
+    const matching = imageMaterials.get(work.artworkId) ?? [];
+    matching.push(imageMaterial);
+    imageMaterials.set(work.artworkId, matching);
 
-  const hallwayLights = Array.from({ length: LIGHT_COUNT }, () => {
-    const light = new THREE.SpotLight("#fff4df", 0, 0, 1.1, 1, 2);
-    light.position.y = roomHeight - 0.15;
-    light.target.position.y = 0;
+    const lightZ = Math.max(2.5, mattedHeight * 0.7, mattedWidth * 0.55);
+    const lightY = Math.min(roomHeight - 0.2, y + mattedHeight / 2 + 0.8);
+    const distance = Math.hypot(lightY - y, lightZ);
+    const angle = Math.min(1.2, Math.atan2(Math.max(mattedWidth, mattedHeight) + 0.8, distance));
+    const light = new THREE.SpotLight("#fff9ee", 0, distance * 3, angle, 1, 2);
+    light.position.set(x, lightY, lightZ);
+    light.target.position.set(x, y, artworkZ);
+    // Reserve texture units for the artwork and both uplight shadows.
+    light.castShadow = index < Math.max(1, renderer.capabilities.maxTextures - 3);
+    light.shadow.mapSize.set(index === 0 ? 1024 : 512, index === 0 ? 1024 : 512);
+    light.shadow.bias = -0.0003;
+    light.shadow.normalBias = 0.002;
+    light.shadow.camera.near = 0.1;
+    light.shadow.camera.far = Math.max(30, distance * 3);
     scene.add(light, light.target);
     return light;
   });
-  const artworkLight = new THREE.SpotLight("#fff9ee", 0, 0, 0.8, 1, 2);
-  artworkLight.castShadow = true;
-  artworkLight.shadow.mapSize.set(1024, 1024);
-  artworkLight.shadow.normalBias = 0.01;
-  artworkLight.target.position.set(0, y, artworkZ);
-  scene.add(artworkLight, artworkLight.target);
-  const backlightWidth = mattedWidth + border;
-  const backlightHeight = mattedHeight + border;
-  const backlights = [
-    [backlightWidth, 0.02, 0, -backlightHeight / 2],
-    [backlightWidth, 0.02, 0, backlightHeight / 2],
-    [0.02, backlightHeight, -backlightWidth / 2, 0],
-    [0.02, backlightHeight, backlightWidth / 2, 0],
-  ].map(([lightWidth, lightHeight, x, vertical]) => {
-    const light = new THREE.RectAreaLight(RARITY_COLORS[rarity], 0, lightWidth, lightHeight);
-    light.position.set(x, y + vertical, wallFront + ARTWORK_WALL_OFFSET / 2);
-    light.lookAt(x, y + vertical, wallFront);
-    scene.add(light);
+  const { width, height, y, matteWidth } = painting;
+  const mattedWidth = width + matteWidth * 2;
+  const mattedHeight = height + matteWidth * 2;
+  const rarityLightZ = Math.max(1.1, mattedWidth * 0.3, mattedHeight * 0.35);
+  const rarityLightY = Math.max(0.4, y - mattedHeight * 0.25);
+  const rarityLights = [-1, 1].map((direction) => {
+    const x = direction * Math.max(0.6, mattedWidth * 0.65);
+    const targetX = -direction * mattedWidth * 0.22;
+    const distance = Math.hypot(rarityLightY - 0.08, rarityLightZ, x - targetX);
+    const light = new THREE.SpotLight(
+      RARITY_COLORS[rarity], 0, distance * 3,
+      Math.min(1.1, Math.atan2(Math.max(mattedWidth, mattedHeight) + 0.6, distance)),
+      1, 2,
+    );
+    light.position.set(x, 0.08, rarityLightZ);
+    light.target.position.set(targetX, rarityLightY, wallFront);
+    light.castShadow = true;
+    light.shadow.mapSize.set(512, 512);
+    light.shadow.bias = -0.0003;
+    light.shadow.normalBias = 0.002;
+    light.shadow.camera.near = 0.1;
+    light.shadow.camera.far = Math.max(30, distance * 3);
+    scene.add(light, light.target);
     return light;
   });
 
   function invalidate() {
     if (!disposed && !animation) animation = window.requestAnimationFrame(render);
   }
-  function publish(phase: HallwayPhase) {
+  function publish(phase: RoomRevealPhase) {
     if (phase !== lastPhase) { lastPhase = phase; onPhase(phase); }
   }
   function render(time: number) {
     animation = 0;
     if (disposed) return;
-    const progress = getHallwayRevealProgress(time - started, imageReadyAt, skipped);
+    const progress = getRoomRevealProgress(
+      time - started, imageReadyAt, layout.lightStages[0], skippedAt, reducedMotion.matches,
+    );
     const travel = progress.camera;
-    camera.position.set(0,
-      THREE.MathUtils.lerp(Math.min(1.55, y), y, travel),
-      THREE.MathUtils.lerp(hallwayLength - 2, finalZ, travel));
+    camera.position.set(0, y,
+      THREE.MathUtils.lerp(startZ, finalZ, travel) + progress.pullback * Math.max(0.8, Math.min(2.5, finalZ * 0.24)));
     camera.lookAt(0, y, artworkZ);
-    hallwayLights.forEach((light, index) => {
-      light.intensity = progress.lights[index] * roomHeight ** 2 * (1.1 + brightness);
+    lights.forEach((light, index) => {
+      const illumination = index === 0 ? progress.artwork : progress.lights[layout.lightStages[index]];
+      light.intensity = illumination * light.position.distanceTo(light.target.position) ** 2 * (2.5 + brightness);
     });
     hemisphere.intensity = 0.025 + progress.camera * 0.045 + progress.artwork * (0.25 + brightness * 0.45);
-    fog.density = 0.025 * (1 - progress.artwork);
-    artworkLight.intensity = progress.artwork * artworkLight.position.distanceTo(artworkLight.target.position) ** 2 * 4;
-    backlights.forEach((light) => {
-      light.intensity = progress.backlight * 30;
+    fog.density = 0.005 * (1 - progress.artwork);
+    rarityLights.forEach((light) => {
+      light.intensity = progress.raritySpotlight * light.position.distanceToSquared(light.target.position) * 0.3;
     });
     renderer.render(scene, camera);
-    publish(progress.complete ? "ready" : progress.artwork > 0 ? "revealing"
-      : progress.camera < 1 ? "walking" : "loading-artwork");
+    publish(progress.complete ? "ready" : progress.ready ? "presenting" : progress.artwork > 0 ? "revealing"
+      : progress.camera < 1 ? "approaching" : "loading-artwork");
     if (!progress.complete && (progress.camera < 1 || Number.isFinite(imageReadyAt))) invalidate();
   }
   function resize() {
@@ -221,47 +293,37 @@ export function mountOfferRevealScene(
     const viewportWidth = Math.max(1, bounds.width);
     const viewportHeight = Math.max(1, bounds.height);
     camera.aspect = viewportWidth / viewportHeight;
-    finalZ = getGalleryCameraFraming(painting, camera.aspect, viewportWidth).z + ARTWORK_WALL_OFFSET;
-    hallwayLength = finalZ + HALLWAY_LENGTH;
-    camera.far = Math.max(1000, hallwayLength + 20);
+    finalZ = getGalleryCameraFraming(painting, camera.aspect, viewportWidth).z;
+    const halfView = Math.tan(GALLERY_FIELD_OF_VIEW * Math.PI / 360);
+    startZ = Math.max(finalZ + 8, artworkZ + layout.width / (2 * halfView * camera.aspect * 0.8),
+      ...layout.paintings.map((work) => getGalleryCameraFraming(work, camera.aspect, viewportWidth).z + 2));
+    const roomDepth = startZ + 4;
+    const roomWidth = Math.max(14, layout.width + 6, roomDepth);
+    camera.far = Math.max(1000, roomDepth + roomWidth);
     camera.updateProjectionMatrix();
     renderer.setSize(viewportWidth, viewportHeight);
-    for (const mesh of [floor, ceiling, ...sides]) {
-      mesh.scale.z = hallwayLength;
-      mesh.position.z = hallwayLength / 2;
+    for (const mesh of [floor, ceiling]) {
+      mesh.scale.set(roomWidth, 1, roomDepth - wallFront);
+      mesh.position.z = (roomDepth + wallFront) / 2;
     }
-    hallwayLights.forEach((light, index) => {
-      const z = finalZ + HALLWAY_LENGTH * (1 - (index + 0.5) / LIGHT_COUNT);
-      light.position.z = z;
-      light.target.position.z = z;
+    for (const mesh of [frontWall, frontTrim, backWall, backTrim]) mesh.scale.x = roomWidth;
+    backWall.position.z = roomDepth + 0.1;
+    backTrim.position.z = roomDepth - 0.0175;
+    sides.forEach((mesh, index) => {
+      const direction = index < 2 ? -1 : 1;
+      mesh.scale.z = roomDepth - wallFront;
+      mesh.position.z = (roomDepth + wallFront) / 2;
+      mesh.position.x = direction * (roomWidth / 2 + (index % 2 === 0 ? 0.06 : -0.0175));
     });
-    const distance = Math.max(3, height * 1.2);
-    artworkLight.position.set(-0.2, Math.min(roomHeight - 0.2, y + mattedHeight / 2 + 0.5), distance + ARTWORK_WALL_OFFSET);
-    artworkLight.angle = Math.max(0.45, Math.min(1.2, Math.atan2(Math.max(mattedWidth, mattedHeight), distance)));
-    artworkLight.shadow.camera.far = Math.max(30, distance * 3);
     renderer.shadowMap.needsUpdate = true;
     invalidate();
   }
 
-  const texture = new THREE.TextureLoader().load(
-    `/api/artwork/${encodeURIComponent(painting.artworkId)}/image?variant=card&texture=1`,
-    (loaded) => {
-      if (disposed) { loaded.dispose(); return; }
-      loaded.colorSpace = THREE.SRGBColorSpace;
-      loaded.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
-      renderer.initTexture(loaded);
-      imageMaterial.map = loaded;
-      imageMaterial.needsUpdate = true;
-      imageReadyAt = performance.now() - started;
-      invalidate();
-    },
-    undefined,
-    () => { if (!disposed) { dispose(); onUnavailable(); } },
-  );
-  textures.add(texture);
   const observer = new ResizeObserver(resize);
-  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-  function skip() { skipped = true; invalidate(); }
+  function skip() {
+    skippedAt ??= performance.now() - started;
+    invalidate();
+  }
   function motionChanged() { if (reducedMotion.matches) skip(); }
   function contextLost(event: Event) {
     event.preventDefault();
@@ -277,7 +339,7 @@ export function mountOfferRevealScene(
     for (const geometry of geometries) geometry.dispose();
     for (const surface of materials) surface.dispose();
     for (const loaded of textures) loaded.dispose();
-    for (const light of [...hallwayLights, artworkLight]) light.dispose();
+    for (const light of [...lights, ...rarityLights]) light.dispose();
     renderer.dispose();
     renderer.forceContextLoss();
     renderer.domElement.remove();
@@ -286,5 +348,27 @@ export function mountOfferRevealScene(
   reducedMotion.addEventListener("change", motionChanged);
   renderer.domElement.addEventListener("webglcontextlost", contextLost);
   resize();
+  for (const [artworkId, matchingMaterials] of imageMaterials) {
+    const texture = new THREE.TextureLoader().load(
+      `/api/artwork/${encodeURIComponent(artworkId)}/image?variant=card&texture=1`,
+      (loaded) => {
+        if (disposed) { loaded.dispose(); return; }
+        loaded.colorSpace = THREE.SRGBColorSpace;
+        loaded.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+        renderer.initTexture(loaded);
+        for (const surface of matchingMaterials) {
+          surface.map = loaded;
+          surface.needsUpdate = true;
+        }
+        if (artworkId === painting.artworkId) imageReadyAt = performance.now() - started;
+        invalidate();
+      },
+      undefined,
+      () => {
+        if (!disposed && artworkId === painting.artworkId) { dispose(); onUnavailable(); }
+      },
+    );
+    textures.add(texture);
+  }
   return { skip, dispose };
 }

@@ -5,7 +5,7 @@ import { ItemExpirationTime } from "../item-expiration-display";
 import type { GameItem } from "@/server/gameplay";
 import { formatItemDropChance } from "@/server/item-drop-chance-format";
 import { formatItemSerialNumber } from "@/server/item-serial-format";
-import { useRef, useState, type CSSProperties } from "react";
+import { createContext, useContext, useRef, useState, type CSSProperties } from "react";
 
 import {
   getArchiveArtStyle,
@@ -29,6 +29,13 @@ import type {
 export function ratingColor(value: number): string {
   const red = Math.round(255 * (1 - value));
   return `rgb(${red}, 0, 0)`;
+}
+
+export const ArtworkImageSourceContext = createContext<string | undefined>(undefined);
+
+export function useArtworkImageSource(artworkId: string): string {
+  return useContext(ArtworkImageSourceContext) ??
+    `/api/artwork/${artworkId}/image?variant=card`;
 }
 
 export function ratingColorOnDark(value: number): string {
@@ -66,6 +73,7 @@ export function ArtworkImage({
   item,
   className,
 }: Pick<ItemCardRendererProps, "item"> & { className: string }) {
+  const sourceUrl = useArtworkImageSource(item.artwork_id);
   const adjustment = getArtworkImageAdjustment(
     item.artwork,
     item.card_renderer ?? "museum",
@@ -92,7 +100,7 @@ export function ArtworkImage({
         aria-hidden="true"
         className="render-card-artwork-image-source"
         style={{
-          backgroundImage: `url("/api/artwork/${item.artwork_id}/image?variant=card")`,
+          backgroundImage: `url("${sourceUrl}")`,
         }}
       />
     </div>

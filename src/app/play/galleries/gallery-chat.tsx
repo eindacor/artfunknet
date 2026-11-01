@@ -503,6 +503,7 @@ function ChatItemToken({
         role="tooltip"
       >
         <ArtworkThumbnail
+          adjustment={token.item.thumbnailAdjustment}
           alt=""
           artworkId={token.item.artworkId}
           size={180}

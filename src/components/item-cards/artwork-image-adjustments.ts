@@ -32,6 +32,12 @@ export function getArtworkImageAdjustment(
   );
 }
 
+export function getArtworkThumbnailAdjustment(
+  artwork: Pick<Artwork, "thumbnail_adjustment">,
+): ArtworkArtStyleAdjustment {
+  return normalizeArtworkImageAdjustment(artwork.thumbnail_adjustment);
+}
+
 export function getArtworkDetailImageAdjustments(
   artwork: Pick<Artwork, "detail_image_adjustments">,
 ): ArtworkDetailImageAdjustments {

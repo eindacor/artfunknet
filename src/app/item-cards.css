@@ -5286,6 +5286,12 @@
   height: 100%;
 }
 
+.artwork-detail-crop-frame .artwork-thumbnail {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
 .artwork-detail-crop-grid label {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;

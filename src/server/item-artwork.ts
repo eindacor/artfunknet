@@ -68,7 +68,7 @@ export async function hydratePlayerArtworkArchives(
   ];
   const artworks = await database
     .collection<Artwork>("artworks")
-    .find({ _id: { $in: artworkIds } })
+    .find({ _id: { $in: artworkIds }, active: true })
     .project<Artwork>({ market_data: 0, serial_counter: 0 })
     .toArray();
   const artworkById = new Map(

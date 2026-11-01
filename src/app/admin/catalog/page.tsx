@@ -1,5 +1,8 @@
 import { getDatabase } from "@/server/mongodb";
 import { getArtworkEffects } from "@/server/artwork-effects";
+import { getConfiguredCardCosmetics } from "@/components/item-cards/catalog";
+import { SHOWCASE_CARD_RENDERER_IDS } from "@/components/item-cards/types";
+import { getCardRendererSettings } from "@/server/card-renderer-settings";
 
 import CatalogEditor, {
   type ArtistCatalogEntry,
@@ -19,6 +22,7 @@ export default async function CatalogPage() {
     effectCounts,
     attributeDocuments,
     artworkDocuments,
+    rendererSettings,
   ] =
     await Promise.all([
       database
@@ -70,14 +74,21 @@ export default async function CatalogPage() {
               active: 1,
               nsfw: 1,
               image: 1,
+              image_width: 1,
+              image_height: 1,
+              art_style_adjustments: 1,
+              detail_image_adjustments: 1,
+              thumbnail_adjustment: 1,
             },
           },
         )
         .sort({ artist: 1, title: 1 })
         .toArray(),
+      getCardRendererSettings(database),
     ]);
 
   const artworkCounts = new Map<string, number>();
+  const cosmetics = new Map(getConfiguredCardCosmetics(rendererSettings.rendererNames).map(option => [option.id, option]));
   for (const artwork of artworkDocuments) {
     artworkCounts.set(
       artwork.artist_id,
@@ -121,11 +132,12 @@ export default async function CatalogPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Catalog editor</h1>
         <p className="mt-2 text-[var(--muted)]">
-          Add artwork with its full image set, or modify approved artwork and
-          artist records.
+          Modify approved artwork and artist records. Use the Add artwork
+          panel to upload and configure new artwork.
         </p>
       </div>
       <CatalogEditor
+        rendererOptions={SHOWCASE_CARD_RENDERER_IDS.map(id => ({ id, name: cosmetics.get(id)?.name ?? id }))}
         attributeOptions={attributeOptions}
         effectDistribution={effectDistribution}
         effectOptions={effectOptions}

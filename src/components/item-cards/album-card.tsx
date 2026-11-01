@@ -1,11 +1,13 @@
 import {
   ArtworkImage,
   AttributeIcons,
+  useArtworkImageSource,
 } from "./shared";
 import type { CSSProperties } from "react";
 import type { ItemCardRendererProps } from "./types";
 
 export default function AlbumCard({ item }: ItemCardRendererProps) {
+  const sourceUrl = useArtworkImageSource(item.artwork_id);
   return (
     <div className="render-card album-card">
       <div className="album-card-object">
@@ -14,7 +16,7 @@ export default function AlbumCard({ item }: ItemCardRendererProps) {
           aria-label={`Vinyl record, ${Math.round(item.condition * 100)}% condition`}
           style={
             {
-              "--album-art": `url("/api/artwork/${item.artwork_id}/image?variant=card")`,
+              "--album-art": `url("${sourceUrl}")`,
               "--vinyl-wear": Math.max(
                 0,
                 Math.min(1, 1 - item.condition),

@@ -16,6 +16,7 @@ export default function AdminHeader({ email }: { email: string }) {
     { href: "/admin/items", label: "Item creator" },
     { href: "/admin/artfunkel-inventory", label: "Artfunkel inventory" },
     { href: "/admin/catalog", label: "Catalog" },
+    { href: "/admin/add-artwork", label: "Add artwork" },
     { href: "/admin/unique-effects", label: "Unique effects" },
     { href: "/admin/card-designs", label: "Card designs" },
     { href: "/admin/test-players", label: "Test players" },

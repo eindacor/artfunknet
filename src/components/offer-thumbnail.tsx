@@ -13,6 +13,49 @@ import styles from "./offer-reveal.module.css";
 
 export type OfferRevealTransition = OfferRevealTier | "burst";
 
+function useMysteryAnimationStyle(): CSSProperties {
+  const animationSeed = Array.from(useId()).reduce(
+    (hash, character) => Math.imul(hash ^ character.charCodeAt(0), 16777619),
+    2166136261,
+  ) >>> 0;
+  return {
+    "--mystery-animation-delay": `${-(animationSeed % 6000)}ms`,
+  } as CSSProperties;
+}
+
+function ThumbnailSelectionDecoration() {
+  return (
+    <span aria-hidden="true" className={styles.selectionShadow} />
+  );
+}
+
+export function MysteryOfferThumbnail({
+  tier,
+  rarity,
+  className = "",
+  selected = false,
+}: {
+  tier: OfferRevealTier;
+  rarity: string;
+  className?: string;
+  selected?: boolean;
+}) {
+  const animationStyle = useMysteryAnimationStyle();
+  return (
+    <div
+      aria-hidden="true"
+      className={`${styles.thumbnail} mystery-thumbnail ${className} ${selected ? "selected" : ""}`.trim()}
+      data-rarity={rarity}
+      data-reveal-tier={tier}
+      data-unrevealed
+      style={animationStyle}
+    >
+      <MysteryOfferFace tier={tier} />
+      {selected ? <ThumbnailSelectionDecoration /> : null}
+    </div>
+  );
+}
+
 export function MysteryOfferFace({ tier }: { tier: OfferRevealTier }) {
   return (
     <span
@@ -49,13 +92,7 @@ export default function OfferThumbnail({
   unrevealed: boolean;
   onReveal?: () => void;
 }) {
-  const animationSeed = Array.from(useId()).reduce(
-    (hash, character) => Math.imul(hash ^ character.charCodeAt(0), 16777619),
-    2166136261,
-  ) >>> 0;
-  const animationStyle = {
-    "--mystery-animation-delay": `${-(animationSeed % 6000)}ms`,
-  } as CSSProperties;
+  const animationStyle = useMysteryAnimationStyle();
   const touch = useRef<{
     start: ThumbnailTap | null;
     previous: ThumbnailTap | null;
@@ -63,12 +100,6 @@ export default function OfferThumbnail({
     lastTouch: number;
   }>({ start: null, previous: null, reveal: false, lastTouch: -Infinity });
   const pressed = buttonProps["aria-pressed"];
-  const selectionDecoration = pressed === true ? (
-    <>
-      <span aria-hidden="true" className={styles.selectionShadow} />
-      <span aria-hidden="true" className={styles.selectionTint} />
-    </>
-  ) : null;
   return (
     <button
       {...buttonProps}
@@ -149,7 +180,8 @@ export default function OfferThumbnail({
           <MysteryOfferFace tier={tier} />
         </span>
       ) : children}
-      {selectionDecoration}
+      {transitionTier ? <span aria-hidden="true" className={styles.revealGlint} /> : null}
+      {pressed === true ? <ThumbnailSelectionDecoration /> : null}
     </button>
   );
 }

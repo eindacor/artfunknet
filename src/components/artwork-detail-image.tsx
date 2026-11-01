@@ -11,11 +11,13 @@ export default function ArtworkDetailImage({
   alt,
   artworkId,
   className = "",
+  sourceUrl,
 }: {
   adjustment: ArtworkArtStyleAdjustment;
   alt: string;
   artworkId: string;
   className?: string;
+  sourceUrl?: string;
 }) {
   const backgroundPosition = getArtworkImageBackgroundPosition(adjustment);
   const zoomTranslation = getArtworkImageZoomTranslation(adjustment);
@@ -39,7 +41,7 @@ export default function ArtworkDetailImage({
         aria-hidden="true"
         className="artwork-detail-image-source"
         style={{
-          backgroundImage: `url("/api/artwork/${artworkId}/image?variant=full")`,
+          backgroundImage: `url("${sourceUrl ?? `/api/artwork/${artworkId}/image?variant=full`}")`,
         }}
       />
     </span>

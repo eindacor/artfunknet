@@ -6,6 +6,7 @@ import {
   getArtworkDetailImageAdjustments,
   getArtworkDetailImageSlots,
   getArtworkImageAdjustment,
+  getArtworkThumbnailAdjustment,
   getArtworkImageBackgroundPosition,
   getArtworkImageZoomTranslation,
   isValidArtworkImageAdjustment,
@@ -20,6 +21,15 @@ test("artwork image adjustments default by renderer", () => {
   );
 });
 
+test("thumbnail crops remain independent from art-style and detail crops", () => {
+  assert.deepEqual(getArtworkThumbnailAdjustment({}), DEFAULT_ARTWORK_IMAGE_ADJUSTMENT);
+  assert.deepEqual(getArtworkThumbnailAdjustment({
+    thumbnail_adjustment: { x: 25, y: -50, scale: 2 },
+  }), { x: 25, y: -50, scale: 2 });
+  assert.deepEqual(getArtworkThumbnailAdjustment({
+    thumbnail_adjustment: { x: 200, y: 0, scale: 8 },
+  }), { x: 100, y: 0, scale: 3 });
+});
 test("artwork image adjustments use the selected renderer values", () => {
   assert.deepEqual(
     getArtworkImageAdjustment(

@@ -8,10 +8,7 @@ import {
   publishArtworkUpload,
   type ArtworkImageRecord,
 } from "@/server/artwork-storage";
-import {
-  ARTWORK_RARITIES,
-  type ArtworkRarity,
-} from "@/server/gameplay";
+import { validateArtworkInput } from "@/server/artwork-create-input";
 import { withLeastRepresentedArtworkEffect } from "@/server/artwork-effects";
 import { getDatabase } from "@/server/mongodb";
 import {
@@ -20,18 +17,6 @@ import {
   logOperationalInfo,
 } from "@/server/operational-logging";
 import { withLeastRepresentedRareSpecialAttribute } from "@/server/rare-special-attributes";
-
-type ArtworkInput = {
-  artist_id?: unknown;
-  title?: unknown;
-  date?: unknown;
-  genre?: unknown;
-  medium?: unknown;
-  rarity?: unknown;
-  height?: unknown;
-  active?: unknown;
-  nsfw?: unknown;
-};
 
 export async function POST(request: Request) {
   const auth = await requireAdminApi();
@@ -56,9 +41,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Select an image to upload." }, { status: 400 });
   }
 
-  let input: ArtworkInput;
+  let input: unknown;
   try {
-    input = JSON.parse(String(metadata)) as ArtworkInput;
+    input = JSON.parse(String(metadata));
   } catch {
     return NextResponse.json(
       { error: "The artwork metadata is invalid." },
@@ -168,59 +153,4 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-}
-
-function validateArtworkInput(
-  input: ArtworkInput,
-):
-  | {
-      ok: true;
-      value: {
-        artist_id: string;
-        title: string;
-        date: number;
-        genre: string;
-        medium: string;
-        rarity: ArtworkRarity;
-        height: number;
-        active: boolean;
-        nsfw: boolean;
-      };
-    }
-  | { ok: false; error: string } {
-  const artistId = typeof input.artist_id === "string" ? input.artist_id.trim() : "";
-  const title = typeof input.title === "string" ? input.title.trim() : "";
-  const genre = typeof input.genre === "string" ? input.genre.trim() : "";
-  const medium = typeof input.medium === "string" ? input.medium.trim() : "";
-  const date = Number(input.date);
-  const height = Number(input.height);
-  const rarity = input.rarity as ArtworkRarity;
-  if (!artistId || !title || !genre || !medium) {
-    return { ok: false, error: "Complete all required artwork fields." };
-  }
-  if (
-    !Number.isFinite(date) ||
-    !Number.isFinite(height) ||
-    height <= 0 ||
-    !ARTWORK_RARITIES.includes(rarity)
-  ) {
-    return {
-      ok: false,
-      error: "Provide valid artwork dimensions, date, and rarity.",
-    };
-  }
-  return {
-    ok: true,
-    value: {
-      artist_id: artistId,
-      title,
-      date,
-      genre,
-      medium,
-      rarity,
-      height,
-      active: input.active !== false,
-      nsfw: input.nsfw === true,
-    },
-  };
 }

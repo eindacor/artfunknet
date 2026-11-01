@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
+import { getArtworkThumbnailAdjustment } from "./item-cards/artwork-image-adjustments";
 import {
   BASE_FORGERY_QUALITY,
   calculateForgeCostForSelection,
@@ -123,6 +124,7 @@ export default function ForgeryDialog({
           {selectedArchive ? (
             <div className="reroll-artwork-summary">
               <ArtworkThumbnail
+                adjustment={getArtworkThumbnailAdjustment(selectedArchive.artwork)}
                 alt={`${selectedArchive.artwork.title} by ${selectedArchive.artwork.artist}`}
                 artworkId={selectedArchive.artwork_id}
                 className="reroll-artwork-thumbnail"
@@ -184,6 +186,7 @@ export default function ForgeryDialog({
                   type="button"
                 >
                   <ArtworkThumbnail
+                    adjustment={getArtworkThumbnailAdjustment(archive.artwork)}
                     alt=""
                     artworkId={archive.artwork_id}
                     size={54}
