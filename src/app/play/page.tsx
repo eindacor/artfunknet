@@ -93,6 +93,7 @@ type Player = {
   active: boolean;
   email: string;
   screen_name: string;
+  artist_id?: string;
   test_account?: boolean;
   tutorial_seen?: boolean;
   oauth_screen_name_pending?: boolean;
@@ -538,6 +539,7 @@ export default async function PlayerPage({
         karma={player.profile.karma ?? 0}
         initialNotifications={notifications}
         impersonating={impersonating}
+        isArtist={Boolean(player.artist_id)}
         supporterStatus={supporterStatus}
         supporterPrompt={{
           ...getSupporterPromptState(player),

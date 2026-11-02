@@ -14,6 +14,7 @@ import CosmeticStore from "./cosmetic-store";
 type Player = {
   _id: string;
   screen_name: string;
+  artist_id?: string;
   test_account?: boolean;
   tutorial_seen?: boolean;
   profile: {
@@ -70,6 +71,7 @@ export default async function CardCosmeticStorePage() {
         bankBalance={player.profile.bank_balance}
         lotteryTickets={player.profile.lottery_tickets}
         impersonating={Boolean(adminSession && player.test_account)}
+        isArtist={Boolean(player.artist_id)}
         tutorialSeen={player.tutorial_seen === true}
       />
       <CosmeticStore

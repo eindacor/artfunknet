@@ -155,7 +155,11 @@ export async function refreshGalleryMetadata(
     return { ...record, _id: existing._id };
   }
 
-  await galleries.insertOne(record);
+  await galleries.updateOne(
+    { _id: record._id },
+    { $set: metadata },
+    { upsert: true },
+  );
   return record;
 }
 

@@ -25,6 +25,7 @@ type AuthenticatedHeaderContentProps = {
   lotteryTickets: number;
   initialNotifications?: PlayerNotification[];
   impersonating: boolean;
+  isArtist?: boolean;
   supporterStatus?: SupporterStatus | null;
   tutorialSeen?: boolean;
   supporterPrompt?: SupporterPromptState & { bonusCommemorationItems: number };
@@ -239,6 +240,7 @@ function AuthenticatedHeaderContent(props: AuthenticatedHeaderContentProps) {
         karma={props.karma}
         error={error}
         impersonating={impersonating}
+        isArtist={props.isArtist}
         notifications={
           <NotificationCenter initialNotifications={initialNotifications} />
         }

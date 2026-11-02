@@ -95,6 +95,42 @@ test("permanent collection actions refresh shared galleries without promoting ar
   t.after(async () => { await client.close(); await server.stop(); });
   await client.connect();
 
+  await t.test("concurrent first-page and directory refreshes create exactly one empty gallery", async (t) => {
+    const db = client.db("concurrent-first-gallery");
+    await seed(db, [item("starter")]);
+    const { metadata } = await routes(db);
+    const galleries = db.collection<GalleryMetadataModule.GalleryMetadata>("galleries");
+    const collection = db.collection.bind(db);
+    const findOne = galleries.findOne.bind(galleries);
+    let lookupCount = 0;
+    let releaseLookups!: () => void;
+    const lookupsReady = new Promise<void>(resolve => { releaseLookups = resolve; });
+    t.mock.method(galleries, "findOne", (async (...args: Parameters<typeof galleries.findOne>) => {
+      const existing = await findOne(...args);
+      assert.equal(existing, null);
+      if (++lookupCount === 3) releaseLookups();
+      await lookupsReady;
+      return existing;
+    }) as typeof galleries.findOne);
+    t.mock.method(db, "collection", ((name: string) =>
+      name === "galleries" ? galleries : collection(name)) as Db["collection"]);
+    const [first, second] = await Promise.all([
+      metadata.refreshGalleryMetadata(db, "player"),
+      metadata.refreshGalleryMetadata(db, "player"),
+      metadata.ensureGalleryMetadata(db),
+    ]);
+    assert.equal(lookupCount, 3);
+    assert.equal(first?._id, "player");
+    assert.equal(second?._id, "player");
+    assert.equal(await galleries.countDocuments(), 1);
+    const saved = await findOne({ _id: "player" });
+    assert.equal(saved?.owner_id, "player");
+    assert.equal(saved?.active, true);
+    assert.equal(saved?.schema_version, 4);
+    assert.equal(saved?.item_count, 0);
+    assert.equal(saved?.display_capacity, 5);
+  });
+
   await t.test("permanent actions do not depend on newly added exports in a cached permissions module", async () => {
     const db = client.db("permanent-cached-permissions");
     await seed(db, [item("favorite")]);

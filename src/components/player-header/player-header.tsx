@@ -9,6 +9,7 @@ export default function PlayerHeaderContent({
   bankBalance,
   error = "",
   impersonating = false,
+  isArtist = false,
   karma,
   lotteryTickets,
   notifications,
@@ -22,6 +23,7 @@ export default function PlayerHeaderContent({
   lotteryTickets: number;
   error?: string;
   impersonating?: boolean;
+  isArtist?: boolean;
   /** The notification centre, passed in so this stays free of its polling. */
   notifications?: ReactNode;
   onOpenTutorial?: () => void;
@@ -114,6 +116,11 @@ export default function PlayerHeaderContent({
             title="Patreon"
           />
         </nav>
+        {isArtist ? (
+          <Link className="player-signup inline-flex shrink-0 items-center gap-2" href="/artist">
+            <i aria-hidden="true" className="fa fa-paint-brush" /> Artist studio
+          </Link>
+        ) : null}
         {!impersonating ? (
           <ActionButton
             as={Link}
