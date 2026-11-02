@@ -20,7 +20,7 @@ function escapeRegex(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function playerRedactor(player: StoredDocument) {
+function playerEmails(player: StoredDocument) {
   const emails = new Set<string>();
   const collectEmails = (value: unknown) => {
     if (typeof value === "string" && value.includes("@")) emails.add(value);
@@ -34,6 +34,11 @@ function playerRedactor(player: StoredDocument) {
     collectEmails((account as { email?: string }).email);
   }
   collectEmails(player.patreon?.email);
+  return emails;
+}
+
+function playerRedactor(player: StoredDocument) {
+  const emails = playerEmails(player);
   const identifiers = new RegExp(
     [player._id, ...emails].sort((a, b) => b.length - a.length).map(escapeRegex).join("|"),
     "gi",
@@ -205,6 +210,14 @@ export async function deletePlayerAccount(
           { target_type: "message", target_id: { $in: messageIds } },
         ],
       }),
+      database.collection("artist_applications").deleteMany({
+        $or: [
+          { player_id: playerId },
+          { email: { $in: [...playerEmails(player)].map(email => new RegExp(`^${escapeRegex(email)}$`, "i")) } },
+        ],
+      }),
+      database.collection("artists").updateMany({ player_id: playerId }, { $unset: { player_id: "" } }),
+      database.collection("artworks").updateMany({ submitted_by: playerId }, { $unset: { submitted_by: "" } }),
     ]);
 
     const redact = playerRedactor(player);

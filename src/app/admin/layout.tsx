@@ -1,5 +1,6 @@
 import AdminHeader from "./admin-header";
 import { requireAdmin } from "@/server/session";
+import { AdminArtworkImages } from "@/components/artwork-image-scope";
 
 export default async function AdminLayout({
   children,
@@ -7,9 +8,11 @@ export default async function AdminLayout({
   const session = await requireAdmin();
 
   return (
-    <div className="min-h-screen">
-      <AdminHeader email={session.email} />
-      {children}
-    </div>
+    <AdminArtworkImages>
+      <div className="min-h-screen">
+        <AdminHeader email={session.email} />
+        {children}
+      </div>
+    </AdminArtworkImages>
   );
 }

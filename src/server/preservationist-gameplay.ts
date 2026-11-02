@@ -17,7 +17,7 @@ import {
 import type { GameplayConfig } from "./game-settings.ts";
 import { getDisplayedLegendaryEffect } from "./legendary-attributes.ts";
 import { ensurePlayerKarma } from "./karma.ts";
-import type { GalleryNpc, NpcQuality } from "./npc-gameplay.ts";
+import { visitorUsesOwnGalleryBenefits, type GalleryNpc, type NpcQuality } from "./npc-gameplay.ts";
 
 const OWN_GALLERY_MULTIPLIER = 1.75;
 const REPAIR_AMOUNTS: Record<NpcQuality, number> = {
@@ -136,7 +136,7 @@ export async function grantPreservationistRepair(
   const repair = calculatePreservationistRepair({
     condition: item.condition,
     quality: npc.quality,
-    ownGallery: npc.owner_id === playerId,
+    ownGallery: await visitorUsesOwnGalleryBenefits(database, npc, playerId),
   });
   const values = calculateItemValues(
     { ...item, condition: repair.condition },

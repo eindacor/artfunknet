@@ -53,6 +53,7 @@ export async function GET(request: Request) {
     now,
     settings.active.npcSpawnIntervalMinutes,
     player._id,
+    settings.active.featuredArtistVisitorChance,
   );
   let donorVisitor = (await getGalleryNpcs(database, player._id, now)).find(
     (visitor) =>

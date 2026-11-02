@@ -6,12 +6,16 @@ import { isOAuthProviderConfigured } from "@/server/oauth-player";
 import { getOAuthMessage } from "@/server/oauth-providers";
 
 import PlayerLoginForm from "./player-login-form";
+import { getDatabase } from "@/server/mongodb";
+import { getPlayerLandingPath } from "@/server/artist-types";
 
 export default async function PlayerLoginPage({ searchParams }: {
   searchParams: Promise<{ oauth?: string | string[]; provider?: string | string[] }>;
 }) {
-  if (await getPlayerSession()) {
-    redirect("/play");
+  const session = await getPlayerSession();
+  if (session) {
+    const player = await (await getDatabase()).collection<{ _id: string; artist_id?: string }>("players").findOne({ _id: session.playerId });
+    redirect(getPlayerLandingPath(player ?? {}));
   }
 
   const params = await searchParams;
@@ -39,6 +43,7 @@ export default async function PlayerLoginPage({ searchParams }: {
           steam: true,
         }}
       />
+      <Link className="rounded-md border border-[var(--accent)] px-4 py-3 text-center font-bold text-[var(--accent)]" href="/artists/apply">Become a contributing artist</Link>
       <p className="text-sm text-[var(--muted)]">
         <Link className="underline" href="/privacy">Privacy policy</Link>
         {" | "}

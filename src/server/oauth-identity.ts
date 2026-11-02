@@ -11,6 +11,7 @@ import {
 
 type OAuthAccount = {
   id: string;
+  username?: string;
   email: string | null;
   email_verified: boolean;
   email_verified_at?: Date;
@@ -25,6 +26,7 @@ export type OAuthPlayer = {
   password_hash?: string;
   screen_name: string;
   active: boolean;
+  artist_id?: string;
   google_sub?: string;
   email_verified?: boolean;
   email_verified_at?: Date;
@@ -41,6 +43,7 @@ export type OAuthIdentity = {
   email?: string;
   emailVerified: boolean;
   displayName?: string;
+  username?: string;
 };
 
 export class OAuthIdentityError extends Error {
@@ -117,6 +120,8 @@ export async function resolveOAuthIdentity(
 
   const account = (current?: OAuthAccount): OAuthAccount => ({
     id: accountId, email, email_verified: Boolean(email && emailVerified),
+    ...(provider === "instagram" && typeof identity.username === "string" && /^[a-zA-Z0-9._]{1,30}$/.test(identity.username)
+      ? { username: identity.username } : current?.username ? { username: current.username } : {}),
     ...(email && emailVerified ? { email_verified_at: now } : {}),
     linked_at: current?.linked_at ?? now, verified_at: now,
   });

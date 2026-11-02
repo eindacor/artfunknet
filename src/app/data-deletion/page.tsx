@@ -54,6 +54,14 @@ export default async function DataDeletionPage({
           accounts or their current items.
         </p>
         <p>
+          If you are a contributing artist, deletion also removes your artist
+          applications and player-account links. Your approved artist catalog
+          record, uploaded artwork, and submission agreement remain under the
+          artwork-use agreement; other players keep their copies. Request
+          artwork or artist-record removal from artfunkelgame@gmail.com so an
+          administrator can handle the separate removal process.
+        </p>
+        <p>
           Your old sessions no longer grant access after deletion. If an error
           interrupts cleanup after it starts, the account is locked for deletion rather than
           restored for play. Retry the Delete account action from Account settings

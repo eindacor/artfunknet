@@ -166,14 +166,6 @@ export async function uploadArtworkIntake(file: File) {
         upload.mimeType,
         upload.digest,
       );
-  const intakeStorage =
-    storage.provider === "s3"
-      ? {
-          provider: storage.provider,
-          bucket: storage.bucket,
-          key: storage.key,
-        }
-      : storage;
   logOperationalInfo("artwork_storage.intake_uploaded", {
     byteSize: upload.byteSize,
     contentType: upload.mimeType,
@@ -188,7 +180,7 @@ export async function uploadArtworkIntake(file: File) {
     mimeType: upload.mimeType,
     byteSize: upload.byteSize,
     originalFilename: upload.originalFilename,
-    storage: intakeStorage,
+    storage,
   };
 }
 
@@ -343,7 +335,7 @@ export async function deleteArtworkImageRecord(
     }
     return;
   }
-  await Promise.all(
+  const results = await Promise.allSettled(
     Object.values(image.variants)
       .map(({ storage }) => storage)
       .filter(
@@ -351,6 +343,8 @@ export async function deleteArtworkImageRecord(
       )
       .map((storage) => deleteArtworkObject(storage)),
   );
+  const failed = results.find((result) => result.status === "rejected");
+  if (failed?.status === "rejected") throw failed.reason;
 }
 
 export function getArtworkImageStorageKeys(
@@ -359,7 +353,11 @@ export function getArtworkImageStorageKeys(
   const storages = "variants" in image
     ? Object.values(image.variants).map(({ storage }) => storage)
     : [image.storage];
-  return new Set(storages.map(getStorageIdentity));
+  // Preserve unknown legacy versions without retaining superseded, known versions.
+  return new Set(storages.flatMap((storage) => [
+    getStorageIdentity(storage),
+    getStorageIdentity(storage, false),
+  ]));
 }
 
 export async function deleteArtworkObject(
@@ -519,9 +517,9 @@ function assertConfiguredBucket(bucket: string) {
   }
 }
 
-function getStorageIdentity(storage: ArtworkStorageReference): string {
+function getStorageIdentity(storage: ArtworkStorageReference, includeVersion = true): string {
   return storage.provider === "s3"
-    ? `s3:${storage.bucket}:${storage.key}`
+    ? `s3:${storage.bucket}:${storage.key}${includeVersion && storage.version_id ? `:${storage.version_id}` : ""}`
     : `mock-s3:${storage.key}`;
 }
 

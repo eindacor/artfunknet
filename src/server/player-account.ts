@@ -21,6 +21,10 @@ export type PlayerAccountRecord = {
   username: string;
   screen_name: string;
   role: "player";
+  account_type?: "player" | "artist";
+  artist_id?: string;
+  artist_featured?: boolean;
+  artist_featured_slot?: number;
   test_account: boolean;
   tutorial_seen: boolean;
   active: boolean;
@@ -88,6 +92,7 @@ export function createPlayerAccountRecord({
     username: email,
     screen_name: screenName,
     role: "player",
+    account_type: "player",
     test_account: false,
     tutorial_seen: false,
     active: true,

@@ -103,7 +103,7 @@ export async function POST(
     .collection<Submission>("artwork_submissions")
     .findOne({ _id: id });
 
-  if (!submission || submission.status === "approved") {
+  if (!submission || submission.status === "approved" || submission.status === "denying") {
     return NextResponse.json(
       { error: "Submission was not found or is already approved." },
       { status: 404 },
@@ -248,7 +248,7 @@ export async function POST(
     const submissionUpdate = await database
       .collection<Submission>("artwork_submissions")
       .updateOne(
-        { _id: submission._id, status: { $ne: "approved" } },
+        { _id: submission._id, status: { $nin: ["approved", "denying"] } },
         {
           $set: {
             status: "approved",

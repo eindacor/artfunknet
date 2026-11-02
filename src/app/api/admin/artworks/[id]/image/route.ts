@@ -19,7 +19,12 @@ type ArtworkDocument = {
   _id: string;
   title: string;
   image?: ArtworkImageRecord | LegacyArtworkImageRecord;
-  [key: string]: unknown;
+  image_width?: number;
+  image_height?: number;
+  updated_at?: Date;
+  updated_by?: string;
+  submission_status?: "pending" | "denying" | "approved";
+  retired_images?: Array<ArtworkImageRecord | LegacyArtworkImageRecord>;
 };
 
 export async function POST(
@@ -56,6 +61,9 @@ export async function POST(
   if (!artwork) {
     return NextResponse.json({ error: "Artwork not found." }, { status: 404 });
   }
+  if (artwork.submission_status === "denying") {
+    return NextResponse.json({ error: "This submission is being removed." }, { status: 409 });
+  }
 
   try {
     let updated: ArtworkDocument;
@@ -79,34 +87,56 @@ export async function POST(
       };
       const result = await database
         .collection<ArtworkDocument>("artworks")
-        .updateOne({ _id: id }, { $set: imageUpdate });
+        .updateOne(
+          {
+            _id: id,
+            submission_status: { $ne: "denying" },
+            image: "image" in artwork ? artwork.image : { $exists: false },
+          },
+          {
+            $set: imageUpdate,
+            ...(artwork.image ? { $push: { retired_images: artwork.image } } : {}),
+          },
+        );
       if (result.modifiedCount !== 1) {
         throw new Error("The artwork image metadata could not be updated.");
       }
     } catch (error) {
       if (published) {
-        await deleteArtworkImageRecord(published).catch((cleanupError) => {
+        try {
+          const current = await database.collection<ArtworkDocument>("artworks").findOne({ _id: id });
+          await deleteArtworkImageRecord(
+            published,
+            current?.image ? getArtworkImageStorageKeys(current.image) : undefined,
+          );
+        } catch (cleanupError) {
           logOperationalError(
             "artwork_image.new_variant_cleanup_failed",
             cleanupError,
             { artworkId: id, operationId },
           );
-        });
+        }
       }
       throw error;
     }
 
     if (artwork.image && published) {
-      await deleteArtworkImageRecord(
-        artwork.image,
-        getArtworkImageStorageKeys(published),
-      ).catch((cleanupError) => {
+      try {
+        await deleteArtworkImageRecord(
+          artwork.image,
+          getArtworkImageStorageKeys(published),
+        );
+        await database.collection<ArtworkDocument>("artworks").updateOne(
+          { _id: id },
+          { $pull: { retired_images: artwork.image } },
+        );
+      } catch (cleanupError) {
         logOperationalError(
           "artwork_image.old_variant_cleanup_failed",
           cleanupError,
           { artworkId: id, operationId },
         );
-      });
+      }
     }
     logOperationalInfo("artwork_image.replaced", {
       artworkId: id,

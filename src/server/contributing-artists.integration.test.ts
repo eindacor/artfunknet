@@ -1,0 +1,698 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import { createRequire } from "node:module";
+import test from "node:test";
+import { runInNewContext } from "node:vm";
+import { MongoClient, type Db, type Document } from "mongodb";
+import { MongoMemoryServer } from "mongodb-memory-server";
+import ts from "typescript";
+import * as artists from "./contributing-artists.ts";
+import * as artistTypes from "./artist-types.ts";
+import { createPlayerAccountRecord, normalizePlayerEmail } from "./player-account.ts";
+import { authenticatePlayerPassword } from "./player-password-auth.ts";
+import { verifyPassword } from "./password.ts";
+import {
+  createFeaturedArtistVisitors, getGalleryNpcs, refreshNpcSpawns, visitorUsesOwnGalleryBenefits,
+} from "./npc-gameplay.ts";
+import { deletePlayerAccount } from "./account-deletion.ts";
+import type { Artwork, ItemAttribute } from "./gameplay.ts";
+import * as gameplay from "./gameplay.ts";
+import { createArtistArtworkPreview } from "./artist-artwork-preview.ts";
+import * as artworkInput from "./artwork-create-input.ts";
+import { DEFAULT_ACTUAL_GAMEPLAY_CONFIG, getGameplaySettings, toStoredGameplayConfig, validateGameplayConfig } from "./game-settings.ts";
+import { MASTERPIECE_EFFECT_CODES } from "./masterpiece-effects.ts";
+import * as masterpieceEffects from "./masterpiece-effects.ts";
+import * as legendary from "./legendary-attributes.ts";
+import * as npcGameplay from "./npc-gameplay.ts";
+import * as artworkEffects from "./artwork-effects.ts";
+import * as rareSpecialAttributes from "./rare-special-attributes.ts";
+import * as itemArtwork from "./item-artwork.ts";
+import * as socialBattery from "./social-battery.ts";
+import * as settingsCore from "./game-settings.ts";
+import * as publicShowcaseCore from "./public-showcase-core.ts";
+import * as galleryMetadataCore from "./gallery-metadata-core.ts";
+import * as galleryFinishes from "./gallery-finishes.ts";
+import * as playerGalleryFinishes from "./player-gallery-finishes.ts";
+
+const require = createRequire(import.meta.url);
+const { NextResponse } = require("next/server");
+type Doc = Document & { _id: string };
+const documents = (database: Db, name: string) => database.collection<Doc>(name);
+const password = "An-example-password-for-tests-2026";
+const applicationInput = {
+  name: "Example Artist", email: "applicant@example.com", dateOfBirth: "2000-01-02",
+  portfolioUrl: "https://portfolio.example.com/", bio: "An artist biography.",
+  screenName: "Artist-Player", password, confirmPassword: password,
+};
+
+async function load<T>(relative: string, dependencies: Record<string, unknown>, globals: Record<string, unknown> = {}) {
+  const source = await readFile(new URL(relative, import.meta.url), "utf8");
+  const code = ts.transpileModule(source, {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
+  }).outputText;
+  return runInNewContext(`${code}\nexports`, {
+    exports: {}, console, URL, Date, Request, Response, FormData, File, ...globals,
+    require: (name: string) => {
+      assert.ok(name in dependencies, `Unexpected dependency: ${name}`);
+      return dependencies[name];
+    },
+  }) as T;
+}
+
+async function seedArtist(database: Db, index: number, featured = false) {
+  const id = `artist-player-${index}`;
+  const artistId = `artist-${index}`;
+  await documents(database, "players").insertOne({
+    ...createPlayerAccountRecord({
+      playerId: id, email: `artist-${index}@example.com`, screenName: `Artist-${index}`,
+      passwordHash: "fixture-hash", passwordSalt: "fixture-salt",
+    }),
+    account_type: "artist", artist_id: artistId,
+    ...(featured ? { artist_featured: true, artist_featured_slot: index + 1 } : {}),
+  });
+  await documents(database, "artists").insertOne({
+    _id: artistId, artist_name: `Artist ${index}`, player_id: id,
+    date_of_birth: "2000-01-01", portfolio_url: "https://example.com/", bio: "Biography", social_links: {},
+  });
+  return { id, artistId };
+}
+
+test("artist applications, publication and featured galleries persist without granting artist privileges to players", async t => {
+  const server = await MongoMemoryServer.create();
+  const client = await new MongoClient(server.getUri()).connect();
+  t.after(async () => { await client.close(); await server.stop(); });
+
+  await t.test("applications validate the eighteenth birthday boundary and safe portfolio URLs", () => {
+    const now = new Date("2026-11-02T12:00:00Z");
+    assert.equal(artists.validateArtistApplication({ ...applicationInput, dateOfBirth: "2008-11-02" }, now).date_of_birth, "2008-11-02");
+    for (const dateOfBirth of ["2008-11-03", "2020-01-01", "2000-02-31", "", "invalid"]) {
+      assert.throws(() => artists.validateArtistApplication({ ...applicationInput, dateOfBirth }, now), /at least 18/);
+    }
+    for (const portfolioUrl of ["", "javascript:alert(1)", "file:///private", "https://user:password@example.com/"]) {
+      assert.throws(() => artists.validateArtistApplication({ ...applicationInput, portfolioUrl }, now), /valid http or https/);
+    }
+  });
+
+  await t.test("new applicants have only hashed credentials pending approval; approval creates linked artist and playable account exactly once", async () => {
+    const db = client.db("artist-application-new");
+    const id = await artists.submitArtistApplication(db, applicationInput);
+    assert.equal(await documents(db, "players").countDocuments(), 0);
+    const pending = await documents(db, "artist_applications").findOne({ _id: id });
+    assert.ok(pending?.credentials.hash);
+    assert.equal(JSON.stringify(pending).includes(password), false);
+    assert.ok(await verifyPassword(password, pending.credentials.salt, pending.credentials.hash));
+    const approvals = await Promise.allSettled([
+      artists.approveArtistApplication(db, id, "admin@example.com"),
+      artists.approveArtistApplication(db, id, "admin@example.com"),
+    ]);
+    assert.equal(approvals.filter(result => result.status === "fulfilled").length, 1);
+    const player = await documents(db, "players").findOne({ email: applicationInput.email });
+    assert.equal(player?.account_type, "artist");
+    assert.equal(player?.role, "player");
+    assert.equal(player?.artist_id, id);
+    assert.equal(player?.screen_name, applicationInput.screenName);
+    assert.ok(player?.profile.inventory_cap > 0);
+    assert.equal(artistTypes.getPlayerLandingPath(player!), "/artist");
+    assert.ok(await documents(db, "artists").findOne({ _id: id, player_id: player!._id }));
+    assert.equal((await documents(db, "artist_applications").findOne({ _id: id }))?.credentials, undefined);
+    const login = await load<{ POST: (request: Request) => Promise<Response> }>("../app/api/auth/player/login/route.ts", {
+      "next/server": { NextResponse }, "@/server/mongodb": { getDatabase: async () => db },
+      "@/server/player-account": { normalizePlayerEmail }, "@/server/player-password-auth": { authenticatePlayerPassword },
+      "@/server/patreon": { syncPatreonMembershipAfterSignIn: async () => {} },
+      "@/server/session": { PLAYER_SESSION_COOKIE: "artfunkel_player_session", playerSessionCookieOptions: { path: "/" },
+        createPlayerSessionToken: async () => "artist-player-session" },
+    });
+    const signIn = await login.POST(new Request("http://localhost/api/auth/player/login", {
+      method: "POST", body: JSON.stringify({ email: applicationInput.email, password }),
+    }));
+    assert.equal(signIn.status, 200);
+    assert.equal((await signIn.json()).redirectTo, "/artist");
+  });
+
+  await t.test("existing-player applications ignore supplied account fields, block duplicates and preserve player progress", async () => {
+    const db = client.db("artist-application-existing");
+    const player = createPlayerAccountRecord({
+      email: "existing@example.com", screenName: "Existing-Player", passwordHash: "retained", passwordSalt: "retained",
+    });
+    await documents(db, "players").insertOne({
+      ...player, oauth_accounts: { discord: { id: "discord-test", email: "alias@example.com" } },
+      profile: { ...player.profile, bank_balance: 987654, xp: 123 },
+    });
+    await assert.rejects(artists.submitArtistApplication(db, { ...applicationInput, email: "ALIAS@example.com" }), /Log in.*Become a contributing artist/);
+    const id = await artists.submitArtistApplication(db, {
+      ...applicationInput, email: "attacker@example.com", screenName: "Replaced-Player", password: "ignored",
+    }, player._id);
+    const pending = await documents(db, "artist_applications").findOne({ _id: id });
+    assert.equal(pending?.email, player.email);
+    assert.equal(pending?.screen_name, player.screen_name);
+    assert.equal(pending?.credentials, undefined);
+    await assert.rejects(artists.submitArtistApplication(db, applicationInput, player._id), /already awaiting review/);
+    await artists.approveArtistApplication(db, id, "admin@example.com");
+    const upgraded = await documents(db, "players").findOne({ _id: player._id });
+    assert.equal(upgraded?.profile.bank_balance, 987654);
+    assert.equal(upgraded?.profile.xp, 123);
+    assert.equal(upgraded?.password_hash, "retained");
+    assert.equal(upgraded?.screen_name, player.screen_name);
+    assert.equal(upgraded?.artist_id, id);
+    assert.equal(await documents(db, "players").countDocuments(), 1);
+  });
+
+  await t.test("approval refuses an email acquired by another player after submission without merging accounts", async () => {
+    const db = client.db("artist-approval-email-race");
+    const id = await artists.submitArtistApplication(db, applicationInput);
+    const player = createPlayerAccountRecord({
+      email: applicationInput.email, screenName: "Different-Player", passwordSalt: "salt", passwordHash: "hash",
+    });
+    await documents(db, "players").insertOne(player);
+    await assert.rejects(artists.approveArtistApplication(db, id, "admin@example.com"), /apply from Account settings/);
+    assert.equal(await documents(db, "artists").countDocuments(), 0);
+    assert.equal((await documents(db, "players").findOne({ _id: player._id }))?.artist_id, undefined);
+    assert.equal((await documents(db, "artist_applications").findOne({ _id: id }))?.status, "pending");
+  });
+
+  await t.test("the three-featured-artist limit is enforced across concurrent requests and a removed flag frees a slot", async () => {
+    const db = client.db("artist-featured-limit");
+    const accounts = await Promise.all(Array.from({ length: 6 }, (_, index) => seedArtist(db, index)));
+    await documents(db, "npcs").insertMany(accounts.map(account => ({ _id: account.id, owner_id: account.id })));
+    const results = await Promise.allSettled(accounts.map(account => artists.setArtistFeatured(db, account.id, true)));
+    assert.equal(results.filter(result => result.status === "fulfilled").length, 3);
+    assert.equal(await documents(db, "players").countDocuments({ artist_featured: true }), 3);
+    const featured = await documents(db, "players").find({ artist_featured: true }).toArray();
+    assert.equal(new Set(featured.map(player => player.artist_featured_slot)).size, 3);
+    assert.equal(await documents(db, "npcs").countDocuments({ owner_id: { $in: featured.map(player => player._id) } }), 0);
+    await documents(db, "npcs").insertOne({ _id: "featured-visitor", owner_id: featured[0]._id, players_met: ["viewer"] });
+    await artists.setArtistFeatured(db, featured[0]._id, true);
+    assert.ok(await documents(db, "npcs").findOne({ _id: "featured-visitor" }));
+    const unfeatured = await documents(db, "players").findOne({ artist_featured: { $ne: true } });
+    await documents(db, "players").updateOne({ _id: featured[0]._id }, { $set: { active: false } });
+    await artists.setArtistFeatured(db, featured[0]._id, false);
+    assert.equal(await documents(db, "npcs").findOne({ _id: "featured-visitor" }), null);
+    await assert.rejects(artists.setArtistFeatured(db, featured[0]._id, true), /not found/);
+    await artists.setArtistFeatured(db, unfeatured!._id, true);
+    assert.equal(await documents(db, "players").countDocuments({ artist_featured: true }), 3);
+  });
+
+  await t.test("featured cards pick the rarest active work and expose no application, credential or licensing data", async () => {
+    const db = client.db("artist-public-data");
+    const account = await seedArtist(db, 0, true);
+    await documents(db, "players").updateOne({ _id: account.id }, {
+      $set: { oauth_accounts: { instagram: { id: "instagram-id", username: "test.artist" } } },
+    });
+    const works = [
+      { _id: "common", title: "Common", rarity: "common", active: true },
+      { _id: "rare", title: "Rare", rarity: "rare", active: true },
+      { _id: "pending-masterpiece", title: "Pending", rarity: "masterpiece", active: false },
+    ];
+    await documents(db, "artworks").insertMany(works.map(work => ({
+      ...work, artist_id: account.artistId, artist: "Artist 0", submitted_by: account.id,
+      artist_license: { private: true }, created_by: "admin-private@example.com",
+    })));
+    const [card] = await artists.getFeaturedArtistGalleries(db);
+    assert.equal(card.thumbnail?._id, "rare");
+    assert.equal(card.instagramUsername, "test.artist");
+    assert.equal(JSON.stringify(card).includes("date_of_birth"), false);
+    assert.equal(JSON.stringify(card).includes("artist-0@example.com"), false);
+    const publicWorks = await artists.getArtistWorks(db, account.artistId);
+    assert.deepEqual(publicWorks.map(work => work._id), ["rare", "common"]);
+    assert.doesNotMatch(JSON.stringify(publicWorks), /submitted_by|artist_license|admin-private/);
+  });
+
+  await t.test("artist galleries combine active uploads with featured and permanent game items and persist owner-only finishes", async () => {
+    const db = client.db("combined-artist-gallery");
+    const account = await seedArtist(db, 0, true);
+    await documents(db, "players").insertOne(createPlayerAccountRecord({
+      playerId: "ordinary-player", email: "ordinary@example.com", screenName: "Ordinary",
+      passwordSalt: "salt", passwordHash: "hash",
+    }));
+    const uploaded: Artwork = {
+      _id: "uploaded", artist_id: account.artistId, artist: "Artist 0", title: "Uploaded",
+      date: 2026, genre: "Abstract", medium: "Oil", rarity: "legendary", effect_id: "uploaded-effect",
+      height: 100, width: 80, active: true, value_scale: 0.5,
+    };
+    const acquired: Artwork = {
+      ...uploaded, _id: "acquired", title: "Acquired", artist_id: "another-artist",
+      artist: "Another Artist", effect_id: "game-effect",
+    };
+    await documents(db, "artworks").insertMany([
+      uploaded, acquired, { ...uploaded, _id: "pending", active: false, submission_status: "pending" },
+    ]);
+    await documents(db, "artwork_effects").insertMany(["uploaded-effect", "game-effect"].map(id => ({
+      _id: id, title: id, description: id, flavor_text: id, code: id, effect_type: "legendary", active: true,
+    })));
+    const featured = { ...createArtistArtworkPreview(acquired), _id: "featured-copy", owner: account.id };
+    const permanent = {
+      ...featured, _id: "permanent-copy", permanent: true, status: "claimed",
+      card_renderer: "museum", values: { ...featured.values, actual: 123 },
+    };
+    await documents(db, "items").insertMany([
+      featured, permanent, { ...featured, _id: "private-inventory", status: "claimed" },
+      { ...featured, _id: "ordinary-copy", owner: "ordinary-player" },
+    ]);
+    await documents(db, "galleries").insertOne({ _id: "artist-existing-gallery", owner_id: account.id, active: true });
+    const publicShowcase = await load<typeof import("./public-showcase.ts")>("./public-showcase.ts", {
+      "server-only": {}, "./item-artwork": itemArtwork, "./public-showcase-core": publicShowcaseCore,
+    });
+    const metadata = await load<typeof import("./gallery-metadata.ts")>("./gallery-metadata.ts", {
+      "server-only": {}, "./masterpiece-effects.ts": masterpieceEffects,
+      "./gallery-metadata-core": galleryMetadataCore, "./public-showcase-core.ts": publicShowcaseCore,
+    });
+    let viewerId = "ordinary-player";
+    const playerApi = { requirePlayerApi: async () => ({ ok: true, session: { playerId: viewerId } }) };
+    const route = await load<typeof import("../app/api/play/galleries/[playerId]/route.ts")>(
+      "../app/api/play/galleries/[playerId]/route.ts", {
+        "next/server": { NextResponse }, "@/server/gallery-metadata": metadata,
+        "@/server/community-reactions": { getCommunityReactionSummary: async () => ({ counts: [], viewerReaction: null }) },
+        "@/server/artwork-effects": artworkEffects, "@/server/item-artwork": itemArtwork,
+        "@/server/mongodb": { getDatabase: async () => db }, "@/server/npc-gameplay": { getGalleryNpcs },
+        "@/server/player-api": playerApi, "@/server/player-gallery-finishes": playerGalleryFinishes,
+        "@/server/public-showcase": publicShowcase, "@/server/public-showcase-core": publicShowcaseCore,
+        "@/server/contributing-artists": artists, "@/server/artist-artwork-preview": { createArtistArtworkPreview },
+      },
+    );
+    const get = async (playerId = account.id) => {
+      const response = await route.GET(new Request("http://localhost/api/play/galleries"), { params: Promise.resolve({ playerId }) });
+      assert.equal(response.status, 200);
+      return response.json();
+    };
+    const gallery = await get();
+    assert.deepEqual(gallery.items.map((item: { _id: string }) => item._id).sort(), ["artist-preview:uploaded", "featured-copy", "permanent-copy"]);
+    assert.deepEqual(gallery.artistWorks.map((work: { _id: string }) => work._id), ["uploaded"]);
+    assert.deepEqual(gallery.legendaryAttributes.map((effect: { id: string }) => effect.id).sort(), ["game-effect", "uploaded-effect"]);
+    assert.equal(gallery.items.find((item: { _id: string }) => item._id === "featured-copy").owner, "unknown");
+    assert.equal(gallery.items.find((item: { _id: string }) => item._id === "permanent-copy").permanent, true);
+    assert.equal(gallery.metadata.item_count, 2, "Unowned showcase previews do not boost game gallery metadata");
+    assert.equal(gallery.metadata.permanent_count, 1);
+    assert.equal(gallery.galleryId, "artist-existing-gallery");
+    const finishRoute = await load<typeof import("../app/api/play/gallery-finishes/route.ts")>(
+      "../app/api/play/gallery-finishes/route.ts", {
+        "next/server": { NextResponse }, "@/server/gallery-finishes": galleryFinishes,
+        "@/server/mongodb": { getDatabase: async () => db }, "@/server/player-api": playerApi,
+        "@/server/player-gallery-finishes": playerGalleryFinishes,
+      },
+    );
+    const finishes = galleryFinishes.getGalleryFinishes({
+      wall: [0.1, 0.2, 0.3], floor: [0.4, 0.5, 0.6], frame_width: 0.07, matte_width: 0.1, brightness: 0.8,
+    });
+    const saveRequest = () => new Request("http://localhost/api/play/gallery-finishes", {
+      method: "PATCH", body: JSON.stringify({ galleryId: gallery.galleryId, finishes }),
+    });
+    assert.equal((await finishRoute.PATCH(saveRequest())).status, 404);
+    viewerId = account.id;
+    assert.equal((await finishRoute.PATCH(saveRequest())).status, 200);
+    assert.deepEqual((await get()).finishes, finishes);
+    assert.deepEqual((await documents(db, "players").findOne({ _id: account.id }))?.gallery_finishes[gallery.galleryId], finishes);
+    await documents(db, "artworks").updateOne({ _id: uploaded._id }, { $set: { active: false } });
+    assert.deepEqual((await get()).items.map((item: { _id: string }) => item._id).sort(), ["featured-copy", "permanent-copy"]);
+    const ordinary = await get("ordinary-player");
+    assert.equal(ordinary.artist, null);
+    assert.deepEqual(ordinary.items.map((item: { _id: string }) => item._id), ["ordinary-copy"]);
+    const directory = await load<typeof import("../app/api/play/galleries/route.ts")>(
+      "../app/api/play/galleries/route.ts", {
+        "next/server": { NextResponse }, "@/server/gallery-metadata": metadata,
+        "@/server/community-reactions": { getCommunityReactionSummaries: async () => new Map() },
+        "@/server/mongodb": { getDatabase: async () => db }, "@/server/player-api": playerApi,
+        "@/server/contributing-artists": artists,
+      },
+    );
+    const getListings = async () => (await directory.GET(new Request("http://localhost/api/play/galleries"))).json();
+    for (const featured of [true, false]) {
+      await documents(db, "players").updateOne({ _id: account.id }, { $set: { artist_featured: featured } });
+      const listings = await getListings();
+      assert.equal(listings.galleries.find((entry: { owner_id: string }) => entry.owner_id === account.id)?.isArtist, true);
+      assert.equal(listings.galleries.find((entry: { owner_id: string }) => entry.owner_id === "ordinary-player")?.isArtist, false);
+      assert.doesNotMatch(JSON.stringify(listings), /password_hash|password_salt|artist-0@example.com/);
+    }
+    await documents(db, "players").updateOne({ _id: account.id }, { $unset: { artist_id: "" } });
+    const listings = await getListings();
+    assert.equal(listings.galleries.find((entry: { owner_id: string }) => entry.owner_id === account.id)?.isArtist, false);
+  });
+
+  await t.test("featured galleries add one independent visitor pass to normal gallery spawning without resetting met visitors", async () => {
+    const db = client.db("artist-visitors");
+    const account = await seedArtist(db, 0, true);
+    const attributes: ItemAttribute[] = Array.from({ length: 8 }, (_, index) => ({
+      _id: `visitor-${index}`, title: `Visitor ${index}`, type: "primary", active: index < 7,
+      npc_name: `Visitor ${index}`, icon: "fa-user", description: "", value: 1,
+    }));
+    await documents(db, "attributes").insertMany(attributes);
+    const now = new Date("2026-11-02T12:00:00Z");
+    const end = new Date(now.getTime() + 60_000);
+    assert.equal(createFeaturedArtistVisitors(account.id, "Artist", attributes, now, end, 0).length, 0);
+    assert.equal(createFeaturedArtistVisitors(account.id, "Artist", attributes, now, end, 1).length, 7);
+    await Promise.all([
+      refreshNpcSpawns(db, now, 1, account.id, 1),
+      refreshNpcSpawns(db, now, 1, account.id, 1),
+    ]);
+    const npcs = await getGalleryNpcs(db, account.id, now);
+    assert.equal(npcs.length, 7);
+    assert.equal(new Set(npcs.map(npc => npc.attribute_id)).size, 7);
+    const rareWork: Artwork = {
+      _id: "rare-work", artist_id: account.artistId, artist: "Artist", title: "Rare",
+      date: 2026, genre: "Abstract", medium: "Oil", rarity: "rare", value_scale: 0.5,
+      height: 100, width: 80, active: true,
+    };
+    const masterpiece: Artwork = { ...rareWork, _id: "masterpiece", rarity: "masterpiece", effect_id: "rare-double" };
+    await documents(db, "artworks").insertMany([rareWork, masterpiece]);
+    await documents(db, "artwork_effects").insertOne({
+      _id: "rare-double", code: MASTERPIECE_EFFECT_CODES.rareVisitorDouble, active: true,
+    });
+    await documents(db, "items").insertMany([rareWork, masterpiece].map(work => ({
+      ...createArtistArtworkPreview(work), owner: account.id, attributes: { locked: [attributes[0]], unlocked: [], special: [] },
+    })));
+    await documents(db, "players").updateOne({ _id: account.id }, {
+      $set: { artist_featured: false, "profile.level": 50, "profile.display_cap": 2 },
+    });
+    await refreshNpcSpawns(db, now, 1, account.id, 0);
+    const bonusIds = new Set(npcs.map(npc => npc._id));
+    const normalNpcs = (await getGalleryNpcs(db, account.id, now)).filter(npc => !bonusIds.has(npc._id));
+    assert.ok(normalNpcs.length > 0, "A nonfeatured artist's displayed game items must attract normal visitors");
+    const normalIds = new Set(normalNpcs.map(npc => npc._id));
+    await documents(db, "npcs").deleteMany({ owner_id: account.id });
+    await documents(db, "players").updateOne({ _id: account.id }, { $set: { artist_featured: true } });
+    await refreshNpcSpawns(db, now, 1, account.id);
+    const defaultBonus = createFeaturedArtistVisitors(account.id, "Artist", attributes, now, end);
+    const defaultNpcs = await getGalleryNpcs(db, account.id, now);
+    assert.deepEqual(defaultNpcs.map(npc => npc._id).sort(), [
+      ...normalIds, ...defaultBonus.map(npc => npc._id),
+    ].sort(), "The default 25% pass must supplement the same normal visitors, including artwork effects");
+    assert.deepEqual(defaultNpcs.filter(npc => normalIds.has(npc._id)), normalNpcs);
+    await documents(db, "npcs").updateMany({ owner_id: account.id }, { $addToSet: { players_met: "already-met" } });
+    await Promise.all([
+      refreshNpcSpawns(db, new Date(now.getTime() + 30_000), 1, account.id, 1),
+      refreshNpcSpawns(db, new Date(now.getTime() + 40_000), 1, account.id, 1),
+    ]);
+    const combinedNpcs = await getGalleryNpcs(db, account.id, now);
+    assert.deepEqual(combinedNpcs.map(npc => npc._id).sort(), [...normalIds, ...bonusIds].sort());
+    for (const npc of defaultNpcs) {
+      assert.deepEqual(combinedNpcs.find(current => current._id === npc._id)?.players_met, ["already-met"]);
+    }
+    await documents(db, "npcs").deleteMany({ owner_id: account.id });
+    await refreshNpcSpawns(db, new Date(now.getTime() + 45_000), 1, account.id, 0);
+    assert.deepEqual(await getGalleryNpcs(db, account.id, now), normalNpcs,
+      "Disabling the featured bonus must preserve exactly the ordinary gallery spawn results");
+    await refreshNpcSpawns(db, end, 1, account.id, 0);
+    const nextCycleNpcs = await getGalleryNpcs(db, account.id, end);
+    assert.ok(nextCycleNpcs.every(npc => npc.attribute_id === attributes[0]._id && npc.spawned_at.getTime() === end.getTime()));
+    assert.equal(await documents(db, "npcs").countDocuments({ owner_id: account.id, spawn_key: /^featured:/ }), 0);
+    assert.equal(await visitorUsesOwnGalleryBenefits(db, { owner_id: account.id }, "visiting-player"), true);
+    await artists.setArtistFeatured(db, account.id, false);
+    assert.equal(await visitorUsesOwnGalleryBenefits(db, { owner_id: account.id }, "visiting-player"), false);
+    assert.equal(await visitorUsesOwnGalleryBenefits(db, { owner_id: account.id }, account.id), true);
+    const stored = toStoredGameplayConfig({ ...DEFAULT_ACTUAL_GAMEPLAY_CONFIG, featuredArtistVisitorChance: 0.6 });
+    await documents(db, "metadata").insertOne({ _id: "gameplay-settings", gameplay: { configs: { actual: stored } } });
+    assert.equal((await getGameplaySettings(db)).active.featuredArtistVisitorChance, 0.6);
+    assert.equal(validateGameplayConfig({ ...DEFAULT_ACTUAL_GAMEPLAY_CONFIG, featuredArtistVisitorChance: 1.1 }).ok, false);
+  });
+
+  await t.test("artist upload authorization, submission agreement, forced inactive ownership, admin rarity editing and denial use real persisted records", async () => {
+    const db = client.db("artist-artwork-route");
+    const account = await seedArtist(db, 0);
+    let signedIn: string | null = null;
+    let isAdmin = false;
+    let removedImages = 0;
+    let cleanupFails = false;
+    const artistApi = await load<typeof import("./artist-api.ts")>("./artist-api.ts", {
+      "next/server": { NextResponse }, "./contributing-artists.ts": artists,
+      "./mongodb.ts": { getDatabase: async () => db },
+      "./public-url": { getPublicBaseUrl: () => "http://localhost/" },
+      "./player-api": { requirePlayerApi: async () => signedIn
+        ? { ok: true, session: { playerId: signedIn, email: "artist@example.com", screenName: "Artist", role: "player" } }
+        : { ok: false, response: NextResponse.json({ error: "Sign in" }, { status: 401 }) } },
+    });
+    const image = { version: 2, variants: { full: { width: 800, height: 1000 } } };
+    const storage = {
+      publishArtworkUpload: async () => image,
+      deleteArtworkImageRecord: async () => {
+        if (cleanupFails) throw new Error("Simulated storage outage.");
+        removedImages++;
+      },
+    };
+    const upload = await load<{ POST: (request: Request) => Promise<Response> }>("../app/api/artist/artworks/route.ts", {
+      "node:crypto": require("node:crypto"), "next/server": { NextResponse },
+      "@/server/artist-api": artistApi, "@/server/contributing-artists": artists,
+      "@/server/artist-types": artistTypes, "@/server/artwork-create-input": artworkInput,
+      "@/server/artwork-storage": storage,
+    });
+    const metadata = {
+      artist_id: "forged-artist", title: "Artist submission", date: 2026, genre: "Abstract",
+      medium: "Oil", height: 100, rarity: "masterpiece", active: true, effect_id: "forged-effect",
+      agreementAccepted: true, agreementVersion: artistTypes.ARTIST_AGREEMENT_VERSION,
+    };
+    const request = (changes = {}) => {
+      const body = new FormData();
+      body.set("image", new File(["test image"], "image.png", { type: "image/png" }));
+      body.set("metadata", JSON.stringify({ ...metadata, ...changes }));
+      return new Request("http://localhost/api/artist/artworks", { method: "POST", headers: { origin: "http://localhost" }, body });
+    };
+    assert.equal((await upload.POST(request())).status, 401);
+    signedIn = "ordinary-player";
+    await documents(db, "players").insertOne({ _id: signedIn, active: true });
+    assert.equal((await upload.POST(request())).status, 403);
+    signedIn = account.id;
+    assert.equal((await upload.POST(request({ agreementAccepted: false }))).status, 400);
+    assert.equal((await upload.POST(request({ agreementVersion: "unaccepted-version" }))).status, 400);
+    const response = await upload.POST(request());
+    assert.equal(response.status, 201);
+    const artwork = (await response.json()).artwork;
+    assert.equal(artwork.artist_id, account.artistId);
+    assert.equal(artwork.active, false);
+    assert.equal(artwork.rarity, "common");
+    assert.equal(artwork.effect_id, undefined);
+    assert.equal(artwork.width, 80);
+    assert.equal(artwork.submission_status, "pending");
+    assert.equal(artwork.artist_license.type, "until_removal_request");
+    assert.equal(artwork.artist_license.agreement_version, artistTypes.ARTIST_AGREEMENT_VERSION);
+    assert.equal((await artists.getArtistWorks(db, account.artistId)).length, 0);
+    await documents(db, "metadata").insertOne({ _id: "loot-data", loot_data: {} });
+    await documents(db, "attributes").insertOne({ _id: "rare-attribute", active: true });
+    const adminRoute = await load<{
+      PATCH: (request: Request, context: { params: Promise<{ id: string }> }) => Promise<Response>;
+      DELETE: (request: Request, context: { params: Promise<{ id: string }> }) => Promise<Response>;
+    }>("../app/api/admin/artworks/[id]/route.ts", {
+      "next/server": { NextResponse },
+      "@/server/admin-api": { requireAdminApi: async () => isAdmin ? { ok: true, session: { email: "admin@example.com" } }
+        : { ok: false, response: NextResponse.json({ error: "Admin required" }, { status: 403 }) } },
+      "@/server/artwork-storage": storage, "@/server/community-reaction-cleanup": { deleteCommunityReactions: async () => {} },
+      "@/server/gameplay": gameplay, "@/server/item-reroll": { getRerollCost: () => assert.fail("No real items exist yet") },
+      "@/server/mongodb": { getDatabase: async () => db }, "@/server/artwork-create-input": artworkInput,
+      "@/server/artwork-effects": artworkEffects, "@/server/rare-special-attributes": rareSpecialAttributes,
+      "@/server/item-drop-chance": {},
+    });
+    const context = { params: Promise.resolve({ id: artwork._id }) };
+    const approvalRequest = () => new Request("http://localhost/api/admin/artworks", {
+      method: "PATCH", body: JSON.stringify({ ...metadata, artist_id: account.artistId,
+        rarity: "rare", special_attributes: ["rare-attribute"], title: "Admin edited title", active: true }),
+    });
+    assert.equal((await adminRoute.PATCH(approvalRequest(), context)).status, 403);
+    isAdmin = true;
+    const approved = await adminRoute.PATCH(approvalRequest(), context);
+    assert.equal(approved.status, 200, JSON.stringify(await approved.clone().json()));
+    const saved = await documents(db, "artworks").findOne({ _id: artwork._id });
+    assert.equal(saved?.active, true);
+    assert.equal(saved?.submission_status, "approved");
+    assert.equal(saved?.rarity, "rare");
+    assert.equal(saved?.title, "Admin edited title");
+    assert.deepEqual(saved?.special_attributes, ["rare-attribute"]);
+    assert.equal((await artists.getArtistWorks(db, account.artistId)).length, 1);
+    const second = (await (await upload.POST(request())).json()).artwork;
+    const denied = await adminRoute.DELETE(new Request("http://localhost"), { params: Promise.resolve({ id: second._id }) });
+    assert.equal(denied.status, 200);
+    assert.equal(await documents(db, "artworks").findOne({ _id: second._id }), null);
+    assert.equal(removedImages, 1);
+    assert.ok(await documents(db, "artworks").findOne({ _id: artwork._id }));
+    const third = (await (await upload.POST(request())).json()).artwork;
+    const thirdContext = { params: Promise.resolve({ id: third._id }) };
+    cleanupFails = true;
+    assert.equal((await adminRoute.DELETE(new Request("http://localhost"), thirdContext)).status, 503);
+    assert.equal((await documents(db, "artworks").findOne({ _id: third._id }))?.submission_status, "denying");
+    assert.equal((await adminRoute.PATCH(approvalRequest(), thirdContext)).status, 409);
+    cleanupFails = false;
+    assert.equal((await adminRoute.DELETE(new Request("http://localhost"), thirdContext)).status, 200);
+    assert.equal(await documents(db, "artworks").findOne({ _id: third._id }), null);
+    assert.equal(removedImages, 2);
+  });
+
+  await t.test("review acceptance randomizes value, balances rarity effects, preserves the artist and leaves catalog assignments editable", async () => {
+    const db = client.db("artist-automatic-approval");
+    const account = await seedArtist(db, 0);
+    await documents(db, "artists").insertOne({ _id: "other-artist", artist_name: "Another artist" });
+    await documents(db, "metadata").insertOne({ _id: "loot-data", loot_data: {} });
+    for (const rarity of ["legendary", "masterpiece"]) {
+      await documents(db, "artwork_effects").insertMany(["popular", "least", "inactive"].map(id => ({
+        _id: `${rarity}-${id}`, effect_type: rarity, title: id, active: id !== "inactive",
+      })));
+      await documents(db, "artworks").insertMany([0, 1, 2].map(index => ({
+        _id: `${rarity}-existing-${index}`, rarity, effect_id: `${rarity}-popular`,
+      })));
+    }
+    await documents(db, "attributes").insertMany(["popular", "least", "inactive"].map(id => ({
+      _id: `rare-${id}`, title: id, active: id !== "inactive",
+    })));
+    await documents(db, "artworks").insertOne({
+      _id: "existing-rare", rarity: "rare", special_attributes: ["rare-popular"],
+    });
+    let randomCalls = 0;
+    const route = await load<{
+      PATCH: (request: Request, context: { params: Promise<{ id: string }> }) => Promise<Response>;
+    }>("../app/api/admin/artworks/[id]/route.ts", {
+      "next/server": { NextResponse },
+      "@/server/admin-api": { requireAdminApi: async () => ({ ok: true, session: { email: "admin@example.com" } }) },
+      "@/server/artwork-storage": {}, "@/server/community-reaction-cleanup": {},
+      "@/server/gameplay": gameplay, "@/server/item-reroll": {},
+      "@/server/mongodb": { getDatabase: async () => db }, "@/server/artwork-create-input": artworkInput,
+      "@/server/artwork-effects": artworkEffects, "@/server/rare-special-attributes": rareSpecialAttributes,
+      "@/server/item-drop-chance": {},
+    }, { Math: Object.assign(Object.create(Math), { random: () => { randomCalls++; return 0.375; } }) });
+    const pending = (id: string) => ({
+      _id: id, artist_id: account.artistId, artist: "Artist 0", title: id, date: 2026,
+      genre: "Abstract", medium: "Oil", rarity: "common", height: 100, width: 80,
+      image_width: 800, image_height: 1000, active: false, value_scale: 0.01,
+      submission_status: "pending",
+    });
+    const request = (body: Record<string, unknown>) => new Request("http://localhost/api/admin/artworks", {
+      method: "PATCH", body: JSON.stringify(body),
+    });
+    const approve = (id: string, rarity: string) => route.PATCH(request({
+      action: "approve", rarity, title: "Reviewed title", height: 120,
+      artist_id: "other-artist", value_scale: 0.99, effect_id: `${rarity}-popular`,
+      special_attributes: ["rare-popular"], thumbnail_adjustment: { x: 0.1, y: 0.2, scale: 1.5 },
+    }), { params: Promise.resolve({ id }) });
+    for (const rarity of ["common", "uncommon", "rare", "legendary", "masterpiece"]) {
+      const id = `submitted-${rarity}`;
+      await documents(db, "artworks").insertOne(pending(id));
+      const result = await approve(id, rarity);
+      assert.equal(result.status, 200, JSON.stringify(await result.clone().json()));
+      const saved = await documents(db, "artworks").findOne({ _id: id });
+      assert.equal(saved?.artist_id, account.artistId);
+      assert.equal(saved?.artist, "Artist 0");
+      assert.equal(saved?.rarity, rarity);
+      assert.equal(saved?.value_scale, 0.375);
+      assert.equal(saved?.active, true);
+      assert.equal(saved?.submission_status, "approved");
+      assert.equal(saved?.reviewed_by, "admin@example.com");
+      assert.equal(saved?.title, "Reviewed title");
+      assert.equal(saved?.width, 96);
+      assert.deepEqual(saved?.thumbnail_adjustment, { x: 0.1, y: 0.2, scale: 1.5 });
+      assert.equal(saved?.effect_id, rarity === "legendary" || rarity === "masterpiece" ? `${rarity}-least` : undefined);
+      assert.deepEqual(saved?.special_attributes, rarity === "rare" ? ["rare-least"] : undefined);
+      assert.equal((await approve(id, rarity)).status, 409);
+      assert.deepEqual(await documents(db, "artworks").findOne({ _id: id }), saved);
+    }
+    assert.equal(randomCalls, 5);
+    const catalogBody = {
+      ...pending("submitted-legendary"), artist_id: account.artistId, rarity: "legendary",
+      active: true, value_scale: 0.8, effect_id: "legendary-popular",
+    };
+    assert.equal((await route.PATCH(request(catalogBody), { params: Promise.resolve({ id: catalogBody._id }) })).status, 200);
+    const edited = await documents(db, "artworks").findOne({ _id: catalogBody._id });
+    assert.equal(edited?.effect_id, "legendary-popular");
+    assert.equal(edited?.value_scale, 0.8);
+    assert.equal(randomCalls, 5, "Catalog saves must not reroll value");
+
+    await documents(db, "artworks").insertOne(pending("concurrent"));
+    const simultaneous = await Promise.all([approve("concurrent", "masterpiece"), approve("concurrent", "masterpiece")]);
+    assert.deepEqual(simultaneous.map(response => response.status).sort(), [200, 409]);
+    await documents(db, "artworks").insertOne({ ...pending("being-denied"), submission_status: "denying" });
+    assert.equal((await approve("being-denied", "common")).status, 409);
+    await documents(db, "artwork_effects").deleteMany({ effect_type: "legendary" });
+    await documents(db, "artworks").insertOne(pending("missing-effect"));
+    assert.equal((await approve("missing-effect", "legendary")).status, 400);
+    assert.deepEqual(await documents(db, "artworks").findOne({ _id: "missing-effect" }), pending("missing-effect"));
+  });
+
+  await t.test("meeting featured-gallery visitors applies the visitor's own Legendary and Masterpiece effects and own-gallery battery cost", async () => {
+    const db = client.db("artist-visitor-effects");
+    const artist = await seedArtist(db, 0, true);
+    const viewer = createPlayerAccountRecord({
+      email: "viewer@example.com", screenName: "Viewer", passwordSalt: "salt", passwordHash: "hash",
+    });
+    await documents(db, "players").insertOne({
+      ...viewer, profile: { ...viewer.profile, social_battery: socialBattery.SOCIAL_BATTERY_MAX,
+        social_battery_reset_at: "2999-01-01T00:00:00.000Z" },
+    });
+    const works: Artwork[] = ["legendary", "masterpiece"].map((rarity, index) => ({
+      _id: `viewer-work-${index}`, artist_id: "catalog-artist", artist: "Catalog artist", title: "Viewer effect",
+      date: 2026, genre: "Abstract", medium: "Oil", rarity: rarity as Artwork["rarity"], value_scale: 0.5,
+      width: 80, height: 100, active: true, effect_id: `viewer-effect-${index}`,
+    }));
+    await documents(db, "artworks").insertMany(works);
+    await documents(db, "items").insertMany(works.map(work => ({ ...createArtistArtworkPreview(work), owner: viewer._id })));
+    await documents(db, "artwork_effects").insertMany([
+      { _id: "viewer-effect-0", effect_type: "legendary", code: "BONUS_DEALER_DONOR", active: true, parameters: { additional_items: 1 } },
+      { _id: "viewer-effect-1", effect_type: "masterpiece", code: MASTERPIECE_EFFECT_CODES.donorFoil, active: true, parameters: {} },
+    ]);
+    await documents(db, "metadata").insertOne({ _id: "loot-data", loot_data: {} });
+    const generated: { playerId: string; itemCount: number; forceLegendaryMasterpieceFoil: boolean }[] = [];
+    const meet = await load<{ POST: (request: Request, context: { params: Promise<{ id: string }> }) => Promise<Response> }>(
+      "../app/api/play/npcs/[id]/meet/route.ts", {
+        "next/server": { NextResponse }, "@/server/economy-metrics": {},
+        "@/server/game-settings": settingsCore, "@/server/collector-gameplay": {}, "@/server/art-expert-gameplay": {},
+        "@/server/karma": { ensurePlayerKarma: async () => {} }, "@/server/npc-quest-item": {},
+        "@/server/art-historian-gameplay": {}, "@/server/auctioneer-gameplay": {}, "@/server/auction-gameplay": {},
+        "@/server/collection-gameplay": {}, "@/server/community-reaction-cleanup": {},
+        "@/server/gameplay": {
+          ...gameplay, getVisitorRarityMap: () => ({ common: 1 }),
+          generateDailyDrop: async (_database: Db, playerId: string, _level: number, options: { itemCount: number; forceLegendaryMasterpieceFoil: boolean }) => {
+            generated.push({ playerId, itemCount: options.itemCount, forceLegendaryMasterpieceFoil: options.forceLegendaryMasterpieceFoil });
+            return [];
+          },
+        },
+        "@/server/item-artwork": itemArtwork, "@/server/hall-of-fame": {}, "@/server/legendary-attributes": legendary,
+        "@/server/item-reroll": {}, "@/server/forgery-gameplay": {}, "@/server/npc-gameplay": npcGameplay,
+        "@/server/social-battery": socialBattery, "@/server/mongodb": { getDatabase: async () => db },
+        "@/server/artwork-effects": artworkEffects, "@/server/masterpiece-effects": masterpieceEffects,
+        "@/server/item-expiration": { getNpcOfferItemExpiration: (now: Date) => new Date(now.getTime() + 60_000).toISOString() },
+        "@/server/player-api": { requirePlayerApi: async () => ({ ok: true, session: { playerId: viewer._id } }) },
+        "@/server/quest-item-sell": {}, "@/server/preservationist-gameplay": {}, "@/server/item-leveling": {},
+        "@/server/standard-npc-reward-service": { isStandardRewardNpc: () => false },
+      },
+    );
+    for (const [id, owner] of [["featured-donor", artist.id], ["ordinary-donor", viewer._id + "-other"]]) {
+      await documents(db, "npcs").insertOne({
+        _id: id, owner_id: owner, owner_name: "Gallery owner", quality: "platinum",
+        attribute_id: legendary.ART_DONOR_ATTRIBUTE_ID, players_met: [],
+        spawned_at: new Date(), expiration: new Date(Date.now() + 60_000), icon: "fa-gift", npc_name: "Art Donor", proc_chance: 1,
+      });
+      const before = (await documents(db, "players").findOne({ _id: viewer._id }))!.profile.social_battery;
+      const response = await meet.POST(new Request("http://localhost"), { params: Promise.resolve({ id }) });
+      assert.equal(response.status, 200, JSON.stringify(await response.clone().json()));
+      const after = (await documents(db, "players").findOne({ _id: viewer._id }))!.profile.social_battery;
+      const featured = id === "featured-donor";
+      assert.equal(before - after, socialBattery.getVisitorSocialBatteryCost("platinum", featured));
+      assert.deepEqual(generated.at(-1), {
+        playerId: viewer._id, itemCount: featured ? 3 : 1, forceLegendaryMasterpieceFoil: featured,
+      });
+      assert.equal((await meet.POST(new Request("http://localhost"), { params: Promise.resolve({ id }) })).status, 409);
+    }
+  });
+
+  await t.test("account deletion removes artist-player records and applications but preserves licensed artist records and works", async () => {
+    const db = client.db("artist-erasure-retention");
+    const account = await seedArtist(db, 0, true);
+    await documents(db, "artist_applications").insertOne({
+      _id: "application", player_id: account.id, email: "artist-0@example.com", status: "approved",
+    });
+    await documents(db, "artworks").insertOne({
+      _id: "licensed-artwork", artist_id: account.artistId, artist: "Artist 0", active: true,
+      submitted_by: account.id, artist_license: { type: "until_removal_request", artist_id: account.artistId },
+    });
+    await documents(db, "players").insertOne({
+      ...createPlayerAccountRecord({ email: "other@example.com", screenName: "Other", passwordHash: "hash", passwordSalt: "salt" }),
+      _id: "other-player",
+    });
+    await documents(db, "items").insertOne({ _id: "other-copy", owner: "other-player", artwork_id: "licensed-artwork" });
+    await deletePlayerAccount(db, account.id, async () => {});
+    assert.equal(await documents(db, "players").findOne({ _id: account.id }), null);
+    assert.equal(await documents(db, "artist_applications").countDocuments(), 0);
+    const artist = await documents(db, "artists").findOne({ _id: account.artistId });
+    assert.equal(artist?.artist_name, "Artist 0");
+    assert.equal(artist?.player_id, undefined);
+    const work = await documents(db, "artworks").findOne({ _id: "licensed-artwork" });
+    assert.equal(work?.active, true);
+    assert.equal(work?.submitted_by, undefined);
+    assert.equal(work?.artist_license.type, "until_removal_request");
+    assert.ok(await documents(db, "items").findOne({ _id: "other-copy" }));
+    assert.equal(await artists.getPublicArtistProfile(db, account.id), null);
+    assert.deepEqual(await artists.getFeaturedArtistGalleries(db), []);
+  });
+});

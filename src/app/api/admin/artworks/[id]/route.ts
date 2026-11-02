@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 
 import { requireAdminApi } from "@/server/admin-api";
+import {
+  deleteArtworkImageRecord,
+  type ArtworkImageRecord,
+  type LegacyArtworkImageRecord,
+} from "@/server/artwork-storage";
 import { deleteCommunityReactions } from "@/server/community-reaction-cleanup";
 import {
   calculateItemValues,
@@ -8,10 +13,11 @@ import {
   type GameItem,
   type LootData,
 } from "@/server/gameplay";
-import type { ArtworkEffect } from "@/server/artwork-effects-core";
+import { withLeastRepresentedArtworkEffect, type ArtworkEffect } from "@/server/artwork-effects";
 import { getRerollCost } from "@/server/item-reroll";
 import { getDatabase } from "@/server/mongodb";
-import { validateArtworkImageAdjustments } from "@/server/artwork-create-input";
+import { validateArtworkImageAdjustments, validateArtworkInput } from "@/server/artwork-create-input";
+import { withLeastRepresentedRareSpecialAttribute } from "@/server/rare-special-attributes";
 import {
   calculateItemDropChance,
   getItemDropChanceContext,
@@ -23,6 +29,8 @@ type EditableArtwork = Artwork & {
   nsfw?: boolean;
   updated_at?: Date;
   updated_by?: string;
+  submission_status?: "pending" | "denying" | "approved";
+  retired_images?: Array<ArtworkImageRecord | LegacyArtworkImageRecord>;
 };
 
 export async function DELETE(
@@ -61,8 +69,25 @@ export async function DELETE(
       { status: 409 },
     );
   }
+  const artistSubmission = artwork.submission_status === "pending" || artwork.submission_status === "denying";
+  if (artistSubmission) {
+    const claimed = artwork.submission_status === "denying" ? artwork : await database
+      .collection<EditableArtwork>("artworks").findOneAndUpdate(
+        { _id: id, submission_status: "pending", active: false },
+        { $set: { submission_status: "denying" } }, { returnDocument: "after" },
+      );
+    if (!claimed) return NextResponse.json({ error: "The submission changed before it could be denied." }, { status: 409 });
+    try {
+      if (claimed.image) await deleteArtworkImageRecord(claimed.image as ArtworkImageRecord);
+      for (const image of claimed.retired_images ?? []) {
+        await deleteArtworkImageRecord(image);
+      }
+    } catch {
+      return NextResponse.json({ error: "Image cleanup could not finish. Retry denying this submission." }, { status: 503 });
+    }
+  }
   const deleted = await database.collection<EditableArtwork>("artworks").deleteOne({
-    _id: id,
+    _id: id, ...(artistSubmission ? { submission_status: "denying", active: false } : {}),
   });
   if (deleted.deletedCount !== 1) {
     return NextResponse.json(
@@ -89,6 +114,9 @@ export async function PATCH(
   if (!auth.ok) return auth.response;
   const { id } = await params;
   const body = (await request.json()) as Record<string, unknown>;
+  if (body.action === "approve") {
+    return approveSubmission(id, body, auth.session.email);
+  }
   const title = typeof body.title === "string" ? body.title.trim() : "";
   const genre = typeof body.genre === "string" ? body.genre.trim() : "";
   const medium = typeof body.medium === "string" ? body.medium.trim() : "";
@@ -135,6 +163,9 @@ export async function PATCH(
   ]);
   if (!existing) {
     return NextResponse.json({ error: "Artwork not found." }, { status: 404 });
+  }
+  if (existing.submission_status === "denying") {
+    return NextResponse.json({ error: "This submission is being removed and cannot be accepted." }, { status: 409 });
   }
   const adjustments = validateArtworkImageAdjustments({
     art_style_adjustments: body.art_style_adjustments === undefined
@@ -285,6 +316,9 @@ export async function PATCH(
     thumbnail_adjustment: updatedArtwork.thumbnail_adjustment,
     updated_at: updatedArtwork.updated_at,
     updated_by: updatedArtwork.updated_by,
+    ...(existing.submission_status === "pending" && updatedArtwork.active
+      ? { submission_status: "approved" as const, reviewed_at: updatedArtwork.updated_at, reviewed_by: auth.session.email }
+      : {}),
     ...(artworkEffectId ? { effect_id: artworkEffectId } : {}),
     ...(rareSpecialAttributeId
       ? { special_attributes: [rareSpecialAttributeId] }
@@ -318,6 +352,7 @@ export async function PATCH(
           ...(existing.thumbnail_adjustment ? { thumbnail_adjustment: existing.thumbnail_adjustment } : {}),
           ...(existing.updated_at ? { updated_at: existing.updated_at } : {}),
           ...(existing.updated_by ? { updated_by: existing.updated_by } : {}),
+          ...(existing.submission_status ? { submission_status: existing.submission_status } : {}),
           ...(existing.effect_id ? { effect_id: existing.effect_id } : {}),
           ...(existing.special_attributes
             ? { special_attributes: existing.special_attributes }
@@ -337,7 +372,7 @@ export async function PATCH(
   const artworkUpdated = await database
     .collection<EditableArtwork>("artworks")
     .updateOne(
-      { _id: id },
+      { _id: id, ...(existing.submission_status ? { submission_status: existing.submission_status } : {}) },
       {
         $set: artworkFields,
         ...(Object.keys(artworkFieldsToUnset).length > 0
@@ -455,4 +490,74 @@ export async function PATCH(
       ? `Updated ${title} and recalculated ${items.length} item${items.length === 1 ? "" : "s"}.`
       : `Updated ${title}.`,
   });
+}
+
+async function approveSubmission(id: string, body: Record<string, unknown>, reviewer: string) {
+  const database = await getDatabase();
+  const collection = database.collection<EditableArtwork>("artworks");
+  const existing = await collection.findOne({ _id: id });
+  if (!existing) {
+    return NextResponse.json({ error: "Artwork not found." }, { status: 404 });
+  }
+  if (existing.submission_status !== "pending" || existing.active !== false) {
+    return NextResponse.json({ error: "This artwork is no longer awaiting acceptance." }, { status: 409 });
+  }
+  const validation = validateArtworkInput({
+    ...existing, ...body, artist_id: existing.artist_id, active: true,
+  });
+  if (!validation.ok) {
+    return NextResponse.json({ error: validation.error }, { status: 400 });
+  }
+  const artist = await database
+    .collection<{ _id: string; artist_name: string }>("artists")
+    .findOne({ _id: existing.artist_id });
+  if (!artist) {
+    return NextResponse.json({ error: "The submitting artist is unavailable." }, { status: 400 });
+  }
+  const input = validation.value;
+  const now = new Date();
+  const valueScale = Math.random();
+  const ratio = existing.image_width && existing.image_height
+    ? existing.image_width / existing.image_height : existing.width / existing.height;
+  const accept = (effect?: ArtworkEffect, rareAttributeId?: string) =>
+    collection.findOneAndUpdate(
+      { _id: id, submission_status: "pending", active: false },
+      {
+        $set: {
+          ...input,
+          artist: artist.artist_name,
+          width: Number((input.height * ratio).toFixed(2)),
+          value_scale: valueScale,
+          submission_status: "approved",
+          updated_at: now,
+          updated_by: reviewer,
+          reviewed_at: now,
+          reviewed_by: reviewer,
+          ...(effect ? { effect_id: effect._id } : {}),
+          ...(rareAttributeId ? { special_attributes: [rareAttributeId] } : {}),
+        },
+        $unset: {
+          ...(!effect ? { effect_id: "" as const } : {}),
+          ...(!rareAttributeId ? { special_attributes: "" as const } : {}),
+        },
+      },
+      { returnDocument: "after" },
+    );
+  try {
+    const saved = input.rarity === "legendary" || input.rarity === "masterpiece"
+      ? await withLeastRepresentedArtworkEffect(database, input.rarity, accept)
+      : input.rarity === "rare"
+        ? await withLeastRepresentedRareSpecialAttribute(database, attribute => accept(undefined, attribute._id))
+        : await accept();
+    if (!saved) {
+      return NextResponse.json({ error: "The submission changed before it could be accepted." }, { status: 409 });
+    }
+    return NextResponse.json({ artwork: saved, message: `Accepted ${saved.title}.` });
+  } catch (error) {
+    console.error("Unable to accept artwork submission", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "The submission could not be accepted." },
+      { status: 400 },
+    );
+  }
 }

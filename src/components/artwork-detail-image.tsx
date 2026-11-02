@@ -1,3 +1,5 @@
+"use client";
+
 import type { CSSProperties } from "react";
 
 import {
@@ -5,6 +7,8 @@ import {
   getArtworkImageZoomTranslation,
 } from "@/components/item-cards/artwork-image-adjustments";
 import type { ArtworkArtStyleAdjustment } from "@/server/gameplay";
+import { getArtworkImageUrl } from "@/server/artwork-image-url";
+import { useArtworkImageScope } from "./artwork-image-scope";
 
 export default function ArtworkDetailImage({
   adjustment,
@@ -19,6 +23,7 @@ export default function ArtworkDetailImage({
   className?: string;
   sourceUrl?: string;
 }) {
+  const scope = useArtworkImageScope();
   const backgroundPosition = getArtworkImageBackgroundPosition(adjustment);
   const zoomTranslation = getArtworkImageZoomTranslation(adjustment);
 
@@ -41,7 +46,7 @@ export default function ArtworkDetailImage({
         aria-hidden="true"
         className="artwork-detail-image-source"
         style={{
-          backgroundImage: `url("${sourceUrl ?? `/api/artwork/${artworkId}/image?variant=full`}")`,
+          backgroundImage: `url("${sourceUrl ?? getArtworkImageUrl(artworkId, "full", undefined, false, scope)}")`,
         }}
       />
     </span>

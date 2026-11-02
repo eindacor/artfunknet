@@ -1,4 +1,5 @@
 export type ArtworkImageVariant = "full" | "card" | "thumb";
+export type ArtworkImageScope = "public" | "admin";
 
 export type ArtworkImageMetadata = {
   variants?: Partial<Record<ArtworkImageVariant, { checksum?: string }>>;
@@ -29,10 +30,12 @@ export function getArtworkImageUrl(
   variant: ArtworkImageVariant = "card",
   image?: ArtworkImageMetadata,
   texture = false,
+  scope: ArtworkImageScope = "public",
 ): string {
   const query = new URLSearchParams({ variant });
   const version = getArtworkImageVersion(image, variant);
   if (version) query.set("v", version);
   if (texture) query.set("texture", "1");
+  if (scope === "admin") query.set("admin", "1");
   return `/api/artwork/${encodeURIComponent(artworkId)}/image?${query}`;
 }

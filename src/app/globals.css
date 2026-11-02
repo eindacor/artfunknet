@@ -2767,6 +2767,27 @@ a.welcome-button {
   cursor: pointer;
 }
 
+.gallery-explorer-card.gallery-explorer-artist {
+  border-color: #b6348c;
+  background: #fff9fd;
+  box-shadow: 5px 5px 0 #f7bce8;
+}
+
+.gallery-artist-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 0.35rem;
+  max-width: 100%;
+  margin-bottom: 0.25rem;
+  border: 1px solid #d88bbe;
+  border-radius: 3px;
+  padding: 0.2rem 0.4rem;
+  background: #ffe3f6;
+  color: #7c205e;
+  font: 700 0.62rem/1.35 Courier, "Courier New", monospace;
+}
+
 .gallery-explorer-card:hover,
 .gallery-explorer-card:focus-visible {
   outline: 0;
@@ -3039,6 +3060,210 @@ a.welcome-button {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
   align-items: start;
+}
+
+.featured-artist-galleries {
+  margin-bottom: 24px;
+  color: #242025;
+}
+
+.featured-artist-galleries > header p,
+.artist-gallery-introduction > p:first-child {
+  color: #a81182;
+  font: 700 0.75rem Courier, monospace;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.featured-artist-galleries h2,
+.artist-gallery-introduction h2 {
+  margin: 8px 0 18px;
+  font: 700 clamp(1.6rem, 3vw, 2.4rem) Georgia, serif;
+}
+
+.featured-artist-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 760px) {
+  .featured-artist-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .featured-artist-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.featured-artist-card {
+  min-width: 0;
+  border: 2px solid #252025;
+  background: #fff9fd;
+  box-shadow: 6px 6px 0 #ff33cc;
+}
+
+.featured-artist-preview .artwork-thumbnail,
+.artist-empty-thumbnail {
+  display: grid;
+  place-items: center;
+  width: 100% !important;
+  height: 144px !important;
+  overflow: hidden;
+  background: #f0e2ec;
+  font-size: 3rem;
+}
+
+.featured-artist-preview h3 {
+  margin: 0;
+  padding: 12px;
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.artist-social-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px;
+}
+
+.artist-social-links a,
+.artist-social-links button,
+.artist-instagram > a,
+.artist-instagram > button,
+.artist-work-preview > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  max-width: 100%;
+  border: 1px solid #292029;
+  padding: 10px 14px;
+  background: #fff;
+  color: #342032;
+  box-shadow: 3px 3px 0 #ff33cc;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.featured-artist-card .artist-social-links {
+  gap: 8px;
+  padding: 0 12px 12px;
+}
+
+.featured-artist-card .artist-social-links a,
+.featured-artist-card .artist-social-links button {
+  gap: 6px;
+  padding: 6px 8px;
+  font-size: 0.75rem;
+}
+
+.artist-social-links a:hover,
+.artist-social-links a:focus-visible,
+.artist-social-links button:hover,
+.artist-social-links button:focus-visible,
+.artist-instagram > button:hover,
+.artist-work-preview > button:hover {
+  background: #ffe4f8;
+}
+
+.visited-artist-gallery .visited-gallery-workspace {
+  grid-template-areas:
+    "gallery gallery preview"
+    "showcase showcase showcase"
+    "player player chat";
+}
+
+.visited-artist-gallery .visited-gallery-player-panel {
+  height: auto;
+  max-height: none;
+}
+
+.visited-artist-gallery .public-gallery-window {
+  scroll-margin-top: 120px;
+}
+
+.artist-gallery-introduction,
+.artist-gallery-showcase {
+  min-width: 0;
+  border: 2px solid #30222c;
+  padding: clamp(16px, 3vw, 32px);
+  background: #fff9fd;
+  color: #282228;
+  box-shadow: 6px 6px 0 #ff33cc;
+}
+
+.artist-gallery-showcase {
+  grid-area: showcase;
+  display: grid;
+  gap: 32px;
+}
+
+.artist-gallery-introduction .artist-social-links {
+  padding: 12px 0;
+}
+
+.artist-bio {
+  max-width: 78ch;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.7;
+}
+
+.artist-work-showcase h3,
+.artist-instagram h3 {
+  margin: 0 0 12px;
+  font: 700 1.5rem Georgia, serif;
+}
+
+.artist-work-showcase > p,
+.artist-instagram > p {
+  margin: 0 0 20px;
+  line-height: 1.6;
+}
+
+.artist-work-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 28px;
+}
+
+.artist-work-preview {
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  justify-self: center;
+  text-align: center;
+  gap: 16px;
+  min-width: 0;
+  width: 100%;
+  max-width: 340px;
+}
+
+.artist-instagram {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.artist-instagram-frame {
+  width: min(100%, 540px);
+  height: 680px;
+  border: 2px solid #30222c;
+  background: #fff;
+  box-shadow: 6px 6px 0 #ff33cc;
+}
+
+@media (max-width: 900px) {
+  .visited-artist-gallery .visited-gallery-workspace {
+    grid-template-areas: "gallery" "preview" "showcase" "player" "chat";
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .visited-gallery-metadata-header {
@@ -3416,8 +3641,13 @@ a.welcome-button {
   font: 0.62rem Courier, "Courier New", monospace;
 }
 
-.visited-gallery-preview {
+.visited-gallery .visited-gallery-preview {
   grid-area: preview;
+  height: var(--gallery-window-height, 480px);
+  min-height: 0;
+  align-items: safe center;
+  justify-content: safe center;
+  overflow: auto;
   margin: 0;
 }
 
@@ -3487,6 +3717,11 @@ a.welcome-button {
   padding: 0.5rem 0.75rem;
   font-size: 0.72rem;
   cursor: pointer;
+}
+
+.gallery-explorer-list-row.gallery-explorer-artist {
+  border-left-color: #d23aab;
+  background: linear-gradient(100deg, #ffe6f8, #fff9fd 65%);
 }
 
 .gallery-explorer-list-row:last-child {

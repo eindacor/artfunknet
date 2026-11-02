@@ -117,7 +117,7 @@ test("OAuth routes authenticate fresh identities and bind explicit sync to the c
     }
     if (input.includes("graph.instagram.com")) {
       assert.equal((options?.headers as Record<string, string>).authorization, "Bearer test-access-token");
-      const user = { id: "instagram-id", username: "instagram-player", account_type: instagramAccountType };
+      const user = { id: "instagram-id", username: "instagram.player", account_type: instagramAccountType };
       return Response.json(instagramNestedResponse ? { data: [user] } : user);
     }
     if (input.includes("openidconnect.googleapis.com")) {
@@ -206,6 +206,7 @@ test("OAuth routes authenticate fresh identities and bind explicit sync to the c
       assert.ok(response.headers.getSetCookie().some((value) => value.startsWith(`${sessionCookie}=`)));
       const player = await players.findOne({});
       assert.ok(player?.oauth_accounts?.[id]?.verified_at instanceof Date);
+      if (id === "instagram") assert.equal(player?.oauth_accounts?.instagram?.username, "instagram.player");
       assert.equal(player?.email_verified, id === "google" || id === "discord");
       assert.equal(await players.countDocuments(), 1);
     });
@@ -221,6 +222,18 @@ test("OAuth routes authenticate fresh identities and bind explicit sync to the c
       assert.equal(await players.countDocuments(), 1);
     });
   }
+
+  await t.test("approved artists sign in to Artist studio through every synced provider", async () => {
+    for (const { id } of OAUTH_PROVIDERS) {
+      await players.deleteMany({});
+      const token = await seed();
+      await players.updateOne({ _id: "current-player" }, { $set: { artist_id: "approved-artist", account_type: "artist" } });
+      await finish(id, await start(id, token), { [sessionCookie]: token });
+      const response = await finish(id, await start(id));
+      assert.equal(new URL(response.headers.get("location")!).pathname, "/artist", id);
+      assert.equal(await players.countDocuments(), 1);
+    }
+  });
 
   await t.test("sync start refuses anonymous or cross-origin POSTs", async () => {
     currentRequest = new Request("http://localhost/api/auth/player/google", { method: "POST", headers: { origin: "http://localhost" } });

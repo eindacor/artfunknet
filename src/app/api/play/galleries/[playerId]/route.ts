@@ -14,6 +14,8 @@ import { requirePlayerApi } from "@/server/player-api";
 import { getPlayerGalleryFinishes } from "@/server/player-gallery-finishes";
 import { getPublicGalleryView } from "@/server/public-showcase";
 import { prepareItemForPublicViewer } from "@/server/public-showcase-core";
+import { getArtistWorks, getPublicArtistProfile } from "@/server/contributing-artists";
+import { createArtistArtworkPreview } from "@/server/artist-artwork-preview";
 
 export async function GET(
   _request: Request,
@@ -37,6 +39,9 @@ export async function GET(
   }
 
   const metadata = await refreshGalleryMetadata(database, playerId);
+  const artist = await getPublicArtistProfile(database, playerId);
+  const artistWorks = artist ? await getArtistWorks(database, artist.id) : [];
+  const displayedItems = [...artistWorks.map(createArtistArtworkPreview), ...gallery.items];
   const activeAuctions = await database
     .collection<Auction>("auctions")
     .find({
@@ -83,7 +88,7 @@ export async function GET(
   });
   const effectIds = [
     ...new Set(
-      [...gallery.items, ...auctionItems]
+      [...displayedItems, ...auctionItems]
         .map((item) => item.artwork.effect_id)
         .filter((id): id is string => Boolean(id)),
     ),
@@ -105,7 +110,9 @@ export async function GET(
     galleryId,
     finishes,
     owner: gallery.owner,
-    items: gallery.items,
+    items: displayedItems,
+    artist,
+    artistWorks,
     auctions,
     metadata: metadata ? { ...metadata, reactions } : null,
     npcs: npcs.map((npc) => ({

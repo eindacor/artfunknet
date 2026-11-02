@@ -18,7 +18,7 @@ import {
 } from "./gameplay.ts";
 import { getGameplaySettings } from "./game-settings.ts";
 import { getDisplayedLegendaryEffect, getLegendaryNumberParameter } from "./legendary-attributes.ts";
-import type { GalleryNpc } from "./npc-gameplay.ts";
+import { visitorUsesOwnGalleryBenefits, type GalleryNpc } from "./npc-gameplay.ts";
 import type { Auction } from "./auction-gameplay.ts";
 
 export const ART_HISTORIAN_ATTRIBUTE_ID = "Z7wY5jXkDeckwfFLs";
@@ -204,7 +204,7 @@ export async function createArtHistorianQuest(
   npc: GalleryNpc,
   now: Date,
 ): Promise<ArtHistorianQuest> {
-  const ownGallery = npc.owner_id === player._id;
+  const ownGallery = await visitorUsesOwnGalleryBenefits(database, npc, player._id);
   const questCount = await database
     .collection<ArtHistorianQuest>("quests")
     .countDocuments({ owner_id: player._id });

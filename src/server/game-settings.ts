@@ -102,6 +102,7 @@ export type GameplayConfig = {
   repairIntervalMinutes: number;
   repairAmount: number;
   npcSpawnIntervalMinutes: number;
+  featuredArtistVisitorChance: number;
   auctionAntiSnipeExtensionMinutes: number;
   forgeryReturnWindowMinutes: number;
   forgeryReturnRefundCoefficient: number;
@@ -154,6 +155,7 @@ export const DEFAULT_ACTUAL_GAMEPLAY_CONFIG: GameplayConfig = {
   repairIntervalMinutes: 60,
   repairAmount: 0.1,
   npcSpawnIntervalMinutes: 1,
+  featuredArtistVisitorChance: 0.25,
   auctionAntiSnipeExtensionMinutes: 5,
   forgeryReturnWindowMinutes: 10,
   forgeryReturnRefundCoefficient: 0.9,
@@ -201,6 +203,7 @@ export const DEFAULT_DEBUG_GAMEPLAY_CONFIG: GameplayConfig = {
   repairIntervalMinutes: 1,
   repairAmount: 0.1,
   npcSpawnIntervalMinutes: 1,
+  featuredArtistVisitorChance: 0.25,
   auctionAntiSnipeExtensionMinutes: 5,
   forgeryReturnWindowMinutes: 10,
   forgeryReturnRefundCoefficient: 0.9,
@@ -264,6 +267,7 @@ type StoredGameplayConfig = {
   repair_interval_minutes?: number;
   repair_amount?: number;
   npc_spawn_interval_minutes?: number;
+  featured_artist_visitor_chance?: number;
   auction_anti_snipe_extension_minutes?: number;
   forgery_return_window_minutes?: number;
   forgery_return_refund_coefficient?: number;
@@ -347,6 +351,7 @@ export function toStoredGameplayConfig(
     repair_interval_minutes: config.repairIntervalMinutes,
     repair_amount: config.repairAmount,
     npc_spawn_interval_minutes: config.npcSpawnIntervalMinutes,
+    featured_artist_visitor_chance: config.featuredArtistVisitorChance,
     auction_anti_snipe_extension_minutes:
       config.auctionAntiSnipeExtensionMinutes,
     forgery_return_window_minutes: config.forgeryReturnWindowMinutes,
@@ -416,11 +421,12 @@ export function validateGameplayConfig(
     ["foilProbability", "Foil probability"],
     ["mintProbability", "Mint probability"],
     ["unlockedProbability", "Unlocked probability"],
+    ["featuredArtistVisitorChance", "Featured artist visitor chance"],
     ["forgeryReturnRefundCoefficient", "Forgery return refund coefficient"],
   ] as const;
   const probabilities: Record<string, number> = {};
   for (const [key, label] of probabilityFields) {
-    const value = Number(config[key]);
+    const value = Number(config[key] ?? (key === "featuredArtistVisitorChance" ? 0.25 : undefined));
     if (!Number.isFinite(value) || value < 0 || value > 1) {
       return {
         ok: false,
@@ -561,6 +567,7 @@ export function validateGameplayConfig(
       repairIntervalMinutes: values.repairIntervalMinutes,
       repairAmount,
       npcSpawnIntervalMinutes: values.npcSpawnIntervalMinutes,
+      featuredArtistVisitorChance: probabilities.featuredArtistVisitorChance,
       auctionAntiSnipeExtensionMinutes: values.auctionAntiSnipeExtensionMinutes,
       forgeryReturnWindowMinutes: values.forgeryReturnWindowMinutes,
       forgeryReturnRefundCoefficient: probabilities.forgeryReturnRefundCoefficient,
@@ -754,6 +761,8 @@ function readConfig(
     npcSpawnIntervalMinutes:
       stored?.npc_spawn_interval_minutes ??
       defaults.npcSpawnIntervalMinutes,
+    featuredArtistVisitorChance:
+      stored?.featured_artist_visitor_chance ?? defaults.featuredArtistVisitorChance,
     auctionAntiSnipeExtensionMinutes:
       stored?.auction_anti_snipe_extension_minutes ??
       defaults.auctionAntiSnipeExtensionMinutes,

@@ -841,6 +841,18 @@ export default function GameplaySettingsForm({
         suffix="minutes"
         value={activeEditor.npcSpawnIntervalMinutes}
       />
+      <SettingField
+        description="One independent spawn pass per active visitor type in each featured artist gallery, using the normal NPC cycle."
+        label="Featured artist visitor chance"
+        min={0}
+        max={100}
+        step={1}
+        suffix="%"
+        value={activeEditor.featuredArtistVisitorChance * 100}
+        onChange={value => updateConfig(selectedConfig, config => ({
+          ...config, featuredArtistVisitorChance: value / 100,
+        }))}
+      />
       </ConfigGroup>
 
       <ConfigGroup title="Drop distributions">

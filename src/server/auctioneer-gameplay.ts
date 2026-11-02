@@ -23,7 +23,7 @@ import {
   getDisplayedLegendaryEffect,
   getLegendaryNumberParameter,
 } from "./legendary-attributes.ts";
-import type { GalleryNpc, NpcQuality } from "./npc-gameplay.ts";
+import { visitorUsesOwnGalleryBenefits, type GalleryNpc, type NpcQuality } from "./npc-gameplay.ts";
 
 export type AuctioneerPlayer = {
   _id: string;
@@ -57,7 +57,7 @@ export async function processAuctioneerInteraction(
   const generatedAuctionIds: string[] = [];
 
   try {
-    const ownGallery = npc.owner_id === player._id;
+    const ownGallery = await visitorUsesOwnGalleryBenefits(database, npc, player._id);
     const qualityBonus: Record<NpcQuality, number> = {
       bronze: 2,
       silver: 3,

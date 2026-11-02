@@ -72,6 +72,7 @@ async function routes(db: Db, permissionModule: unknown = permissions) {
     "@/server/item-tags": itemTags,
     "@/server/item-mint": { getDemintUpdate: async () => ({ mint: false }) },
     "@/server/community-reactions": { getCommunityReactionSummaries: async () => new Map() },
+    "@/server/contributing-artists": { getFeaturedArtistGalleries: async () => [] },
   };
   const permanent = await loadModule<{ POST: ItemRoute }>("../app/api/play/items/[id]/permanent/route.ts", dependencies);
   const collector = await loadModule<{ POST: ItemRoute }>("../app/api/play/items/[id]/collector-sale/route.ts", dependencies);

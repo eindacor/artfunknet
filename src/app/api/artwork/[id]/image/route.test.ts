@@ -22,11 +22,17 @@ const image = {
 };
 
 function createRoute(t: TestContext, artworkImage: unknown = image, publicUrl: string | null = null) {
+  let active = true;
+  let admin = false;
   const readArtworkObject = t.mock.fn(async () => bytes);
-  const findOne = t.mock.fn(async () => ({ _id: "art", active: true, image: artworkImage }));
+  const findOne = t.mock.fn(async (filter: { active?: boolean }) =>
+    filter.active === true && !active ? null : { _id: "art", active, image: artworkImage });
   const dependencies: Record<string, unknown> = {
     "@/components/seed_image.png": { src: "/seed.png" },
     "@/server/artwork-image-url": imageUrls,
+    "@/server/admin-api": { requireAdminApi: async () => admin
+      ? { ok: true, session: { email: "admin@example.com" } }
+      : { ok: false, response: Response.json({ error: "Administrator authentication is required." }, { status: 401 }) } },
     "@/server/artwork-storage": {
       readArtworkObject,
       getArtworkObjectPublicUrl: () => publicUrl,
@@ -43,6 +49,8 @@ function createRoute(t: TestContext, artworkImage: unknown = image, publicUrl: s
   return {
     readArtworkObject,
     findOne,
+    setActive(value: boolean) { active = value; },
+    setAdmin(value: boolean) { admin = value; },
     get(query = "variant=thumb", headers?: HeadersInit) {
       return exports.GET(new Request(`http://localhost/api/artwork/art/image?${query}`, { headers }), {
         params: Promise.resolve({ id: "art" }),
@@ -137,4 +145,38 @@ test("fallbacks and storage errors are not cached as artwork versions", async (t
   const failed = await broken.get(`variant=thumb&v=${checksum}`);
   assert.equal(failed.status, 404);
   assert.equal(failed.headers.get("cache-control"), "no-store");
+});
+
+test("authenticated admin previews reveal inactive images privately without changing game placeholders", async t => {
+  const route = createRoute(t, image, "https://cdn.example/art.webp");
+  route.setActive(false);
+  route.setAdmin(true);
+  for (const variant of ["thumb", "card", "full"]) {
+    const preview = await route.get(`variant=${variant}&v=${checksum}&admin=1`);
+    assert.equal(preview.status, 200);
+    assert.deepEqual(Buffer.from(await preview.arrayBuffer()), bytes);
+    assert.equal(preview.headers.get("cache-control"), "private, no-store");
+    assert.equal(preview.headers.get("vary"), "Cookie");
+    assert.equal(preview.headers.get("location"), null);
+    const game = await route.get(`variant=${variant}&v=${checksum}`);
+    assert.equal(game.headers.get("x-artwork-image-variant"), "seed");
+    assert.equal(game.headers.get("cache-control"), "no-store");
+  }
+  assert.equal(route.readArtworkObject.mock.callCount(), 3);
+  const stale = await route.get("variant=card&v=old&admin=1");
+  assert.equal(stale.status, 307);
+  assert.equal(new URL(stale.headers.get("location")!).searchParams.get("admin"), "1");
+  assert.equal(stale.headers.get("cache-control"), "private, no-store");
+});
+
+test("the admin image flag never bypasses administrator authentication", async t => {
+  const route = createRoute(t);
+  route.setActive(false);
+  const response = await route.get("variant=card&admin=1");
+  assert.equal(response.status, 401);
+  assert.equal(response.headers.get("cache-control"), "private, no-store");
+  assert.equal(route.findOne.mock.callCount(), 0);
+  assert.equal(route.readArtworkObject.mock.callCount(), 0);
+  const game = await route.get("variant=card");
+  assert.equal(game.headers.get("x-artwork-image-variant"), "seed");
 });

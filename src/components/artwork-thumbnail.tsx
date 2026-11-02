@@ -1,7 +1,10 @@
+"use client";
+
 import Image from "next/image";
 import type { ReactNode } from "react";
 import type { ArtworkArtStyleAdjustment } from "@/server/gameplay";
 import { getArtworkImageUrl, type ArtworkImageMetadata } from "@/server/artwork-image-url";
+import { useArtworkImageScope } from "./artwork-image-scope";
 import {
   getArtworkImageBackgroundPosition,
   getArtworkImageZoomTranslation,
@@ -28,6 +31,7 @@ export default function ArtworkThumbnail({
   adjustment?: ArtworkArtStyleAdjustment;
   sourceUrl?: string;
 }) {
+  const scope = useArtworkImageScope();
   const imageVariant = variant ?? (size > 240 ? "card" : "thumb");
   const position = adjustment && getArtworkImageBackgroundPosition(adjustment);
   const translation = adjustment && getArtworkImageZoomTranslation(adjustment);
@@ -42,7 +46,7 @@ export default function ArtworkThumbnail({
         draggable={false}
         fill
         sizes={`${size}px`}
-        src={sourceUrl ?? getArtworkImageUrl(artworkId, imageVariant, image)}
+        src={sourceUrl ?? getArtworkImageUrl(artworkId, imageVariant, image, false, scope)}
         style={adjustment && position && translation ? {
           objectPosition: `${position.x} ${position.y}`,
           transform: `translate(${translation.x}, ${translation.y}) scale(${adjustment.scale})`,

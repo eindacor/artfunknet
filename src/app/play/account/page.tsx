@@ -19,6 +19,7 @@ type PlayerAccount = {
   oauth_accounts?: OAuthPlayer["oauth_accounts"];
   screen_name: string;
   active: boolean;
+  artist_id?: string;
   password_salt?: string;
   password_hash?: string;
   patreon?: {
@@ -81,6 +82,15 @@ export default async function PlayerAccountPage({
         Manage your player profile, connected accounts, reveal animations, and
         sign-in password.
       </p>
+      <section className="mb-6 space-y-3 rounded-lg border border-[var(--accent)]/40 bg-white/5 p-6">
+        <h2 className="text-xl font-bold">Contributing artist</h2>
+        <p className="text-sm text-[var(--muted)]">{player.artist_id
+          ? "Manage your artist profile and submit artwork for review."
+          : "Apply to share your own work in artfunkel while keeping your player account."}</p>
+        <Link className="inline-block rounded-md bg-[var(--accent)] px-4 py-2 font-bold text-black" href={player.artist_id ? "/artist" : "/artists/apply"}>
+          {player.artist_id ? "Open Artist studio" : "Become a contributing artist"}
+        </Link>
+      </section>
       <AccountForm
         email={player.email}
         emailVerified={player.email_verified === true}

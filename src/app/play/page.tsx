@@ -395,7 +395,7 @@ export default async function PlayerPage({
     new Date(),
     config,
   );
-  await refreshNpcSpawns(database, new Date(), config.npcSpawnIntervalMinutes);
+  await refreshNpcSpawns(database, new Date(), config.npcSpawnIntervalMinutes, undefined, config.featuredArtistVisitorChance);
   const { auctions: privateAuctions } = await getAuctionViews(
     database,
     player._id,

@@ -50,7 +50,7 @@ export async function GET(request: Request) {
     }
     const response = await completeOAuthPlayerSignIn({
       request, provider: "instagram", accountId: user.id,
-      emailVerified: false, displayName: user.name || user.username,
+      emailVerified: false, displayName: user.name || user.username, username: user.username,
     });
     response.cookies.set(INSTAGRAM_STATE_COOKIE, "", { ...oauthCookieOptions, maxAge: 0 });
     return response;

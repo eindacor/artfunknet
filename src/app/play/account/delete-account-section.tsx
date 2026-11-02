@@ -87,6 +87,11 @@ function DeleteAccountDialog({ onCancel }: { onCancel: () => void }) {
             will be redacted.
           </p>
           <p>
+            For contributing artists, the artist catalog record, submitted
+            artwork, and artwork-use agreement remain. Contact
+            artfunkelgame@gmail.com to arrange their removal with an administrator.
+          </p>
+          <p>
             Deletion is blocked while you are selling or winning auctions or an
             auction is settling. Game actions briefly pause during deletion.
             You will be signed out when it finishes.

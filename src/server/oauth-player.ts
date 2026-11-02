@@ -60,7 +60,7 @@ export async function completeOAuthPlayerSignIn({
     const response = flow.mode === "sync"
       ? resultRedirect("updated")
       : clearOAuthFlow(NextResponse.redirect(new URL(
-        accountCreated || player.oauth_screen_name_pending ? "/play/onboarding" : "/play",
+        player.artist_id ? "/artist" : accountCreated || player.oauth_screen_name_pending ? "/play/onboarding" : "/play",
         getPublicBaseUrl(request),
       )), provider);
     response.cookies.set(PLAYER_SESSION_COOKIE, await createPlayerSessionToken({

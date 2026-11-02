@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ItemExpirationTime } from "../item-expiration-display";
 import type { GameItem } from "@/server/gameplay";
 import { getArtworkImageUrl, type ArtworkImageMetadata } from "@/server/artwork-image-url";
+import { useArtworkImageScope } from "../artwork-image-scope";
 import { formatItemDropChance } from "@/server/item-drop-chance-format";
 import { formatItemSerialNumber } from "@/server/item-serial-format";
 import { createContext, useContext, useRef, useState, type CSSProperties } from "react";
@@ -35,8 +36,9 @@ export function ratingColor(value: number): string {
 export const ArtworkImageSourceContext = createContext<string | undefined>(undefined);
 
 export function useArtworkImageSource(artworkId: string, image?: ArtworkImageMetadata): string {
-  return useContext(ArtworkImageSourceContext) ??
-    getArtworkImageUrl(artworkId, "card", image);
+  const source = useContext(ArtworkImageSourceContext);
+  const scope = useArtworkImageScope();
+  return source ?? getArtworkImageUrl(artworkId, "card", image, false, scope);
 }
 
 export function ratingColorOnDark(value: number): string {

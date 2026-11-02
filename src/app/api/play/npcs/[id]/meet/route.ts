@@ -70,6 +70,7 @@ import {
 } from "@/server/forgery-gameplay";
 import {
   NPC_QUALITIES,
+  visitorUsesOwnGalleryBenefits,
   type GalleryNpc,
   type NpcQuality,
 } from "@/server/npc-gameplay";
@@ -140,6 +141,7 @@ export async function POST(
     );
   }
 
+  const ownGallery = await visitorUsesOwnGalleryBenefits(database, npc, player._id);
   const socialBattery = await refreshPlayerSocialBattery(
     database,
     player._id,
@@ -149,7 +151,7 @@ export async function POST(
   player.profile.social_battery_reset_at = socialBattery.resetAt;
   const socialBatteryCost = getVisitorSocialBatteryCost(
     npc.quality,
-    npc.owner_id === player._id,
+    ownGallery,
   );
 
   const result = await database.collection<GalleryNpc>("npcs").updateOne(
@@ -328,7 +330,6 @@ export async function POST(
 
   if (npc.attribute_id === ART_EXPERT_ATTRIBUTE_ID) {
     try {
-      const ownGallery = npc.owner_id === player._id;
       const [donorBonusEffect, zeroCountEffect, moneyForXpEffect, donorPresent] =
         ownGallery
           ? await Promise.all([
@@ -348,7 +349,7 @@ export async function POST(
                 "MONEY_FOR_XP",
               ),
               database.collection<GalleryNpc>("npcs").findOne({
-                owner_id: player._id,
+                owner_id: npc.owner_id,
                 attribute_id: ART_DONOR_ATTRIBUTE_ID,
                 expiration: { $gt: now },
               }),
@@ -618,7 +619,6 @@ export async function POST(
       const metadata = await database
         .collection<{ _id: string; loot_data: LootData }>("metadata")
         .findOne({ _id: "loot-data" });
-      const ownGallery = npc.owner_id === player._id;
       const [
         additionalOfferEffect,
         conditionEffect,
@@ -663,7 +663,7 @@ export async function POST(
       const auctioneerPresent =
         tradeEffect &&
         (await database.collection("npcs").findOne({
-          owner_id: player._id,
+          owner_id: npc.owner_id,
           attribute_id: AUCTIONEER_ATTRIBUTE_ID,
           expiration: { $gt: now },
         }));
@@ -851,7 +851,6 @@ export async function POST(
           .findOne({ _id: "loot-data" });
         if (!metadata) throw new Error("Loot metadata is not configured.");
 
-        const ownGallery = npc.owner_id === player._id;
         const [
           additionalOfferEffect,
           conditionBonusEffect,
@@ -1059,7 +1058,6 @@ export async function POST(
     let collectorResaleItem: HydratedGameItem | null = null;
 
     try {
-      const ownGallery = npc.owner_id === player._id;
       const [
         goodConditionEffect,
         rollCountEffect,
@@ -1535,7 +1533,7 @@ export async function POST(
       const enthusiastPresent =
         xpRewardEffect &&
         (await database.collection<GalleryNpc>("npcs").findOne({
-          owner_id: player._id,
+          owner_id: npc.owner_id,
           npc_name: "Art Enthusiast",
           expiration: { $gt: now },
         }));

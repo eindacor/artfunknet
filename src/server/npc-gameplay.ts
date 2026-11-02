@@ -50,6 +50,8 @@ type PlayerRecord = {
   _id: string;
   screen_name: string;
   active: boolean;
+  artist_id?: string;
+  artist_featured?: boolean;
   profile: {
     level: number;
     display_cap: number;
@@ -159,6 +161,7 @@ export async function refreshNpcSpawns(
   now = new Date(),
   spawnIntervalMinutes = 10,
   ownerId?: string,
+  featuredArtistVisitorChance = 0.25,
 ): Promise<void> {
   const spawnIntervalMs = spawnIntervalMinutes * 60 * 1000;
   const cycleStartMs =
@@ -173,6 +176,8 @@ export async function refreshNpcSpawns(
         _id: 1,
         screen_name: 1,
         active: 1,
+        artist_id: 1,
+        artist_featured: 1,
         "profile.level": 1,
         "profile.display_cap": 1,
       })
@@ -183,11 +188,10 @@ export async function refreshNpcSpawns(
       .toArray(),
     database
       .collection<ItemAttribute>("attributes")
-      .find({
-        _id: {
-          $in: [ART_COLLECTOR_ATTRIBUTE_ID, ART_DONOR_ATTRIBUTE_ID],
-        },
-      })
+      .find({ $or: [
+        { _id: { $in: [ART_COLLECTOR_ATTRIBUTE_ID, ART_DONOR_ATTRIBUTE_ID] } },
+        { active: true, npc_name: { $type: "string", $ne: "" } },
+      ] })
       .toArray(),
   ]);
   const displayedItems = await hydrateGameItems(database, rawDisplayedItems);
@@ -305,7 +309,7 @@ export async function refreshNpcSpawns(
       player.profile.display_cap,
       player.profile.level,
     );
-    return [...procMap].flatMap(([attributeId, { attribute, chance }]) => {
+    const normalOperations = [...procMap].flatMap(([attributeId, { attribute, chance }]) => {
       const baseSpawnKey = `${player._id}:${cycleStartMs}:${attributeId}`;
       const generationPasses = getVisitorGenerationPasses(
         hasRareDoubleEffect,
@@ -341,7 +345,7 @@ export async function refreshNpcSpawns(
         const npcOperations = [
           {
             updateOne: {
-              filter: { spawn_key: spawnKey },
+              filter: { _id: npc._id },
               update: { $setOnInsert: { ...npc, spawn_key: spawnKey } },
               upsert: true,
             },
@@ -379,7 +383,7 @@ export async function refreshNpcSpawns(
           };
           npcOperations.push({
             updateOne: {
-              filter: { spawn_key: companionSpawnKey },
+              filter: { _id: companion._id },
               update: {
                 $setOnInsert: {
                   ...companion,
@@ -393,10 +397,22 @@ export async function refreshNpcSpawns(
         return npcOperations;
       });
     });
+    const featuredOperations = player.artist_featured && player.artist_id
+      ? createFeaturedArtistVisitors(
+          player._id, player.screen_name, pairedAttributes, spawnedAt, expiration, featuredArtistVisitorChance,
+        ).map(npc => ({
+          updateOne: {
+            filter: { _id: npc._id },
+            update: { $setOnInsert: { ...npc, spawn_key: `featured:${npc._id}` } },
+            upsert: true,
+          },
+        }))
+      : [];
+    return [...normalOperations, ...featuredOperations];
   });
 
   if (operations.length > 0) {
-    await database.collection("npcs").bulkWrite(operations, { ordered: false });
+    await database.collection<GalleryNpc & { spawn_key: string }>("npcs").bulkWrite(operations, { ordered: false });
   }
 
   await database.collection("npcs").deleteMany({
@@ -415,6 +431,33 @@ export async function getGalleryNpcs(
     .find({ owner_id: ownerId, expiration: { $gt: now } })
     .sort({ quality: 1, npc_name: 1 })
     .toArray();
+}
+
+export function createFeaturedArtistVisitors(
+  ownerId: string, ownerName: string, attributes: ItemAttribute[],
+  spawnedAt: Date, expiration: Date, chance = 0.25,
+): GalleryNpc[] {
+  return attributes.filter(attribute => attribute.active && attribute.npc_name)
+    .flatMap(attribute => {
+      const key = `featured-artist:${ownerId}:${spawnedAt.getTime()}:${attribute._id}`;
+      if (seededRoll(`${key}:spawn`) >= chance) return [];
+      return [{
+        _id: createHash("sha256").update(key).digest("hex").slice(0, 32),
+        quality: getNpcQuality(seededRoll(`${key}:quality`)),
+        attribute_id: attribute._id, owner_id: ownerId, owner_name: ownerName,
+        spawned_at: spawnedAt, expiration, players_met: [],
+        icon: attribute.icon, npc_name: attribute.npc_name, proc_chance: chance,
+      }];
+    });
+}
+
+export async function visitorUsesOwnGalleryBenefits(database: Db, npc: Pick<GalleryNpc, "owner_id">, playerId: string) {
+  if (npc.owner_id === playerId) return true;
+  const owner = await database.collection<PlayerRecord>("players").findOne({
+    _id: npc.owner_id, active: true, account_deletion: { $ne: true },
+    artist_featured: true, artist_id: { $type: "string" },
+  }, { projection: { _id: 1, artist_featured: 1, artist_id: 1 } });
+  return owner?.artist_featured === true && typeof owner.artist_id === "string";
 }
 
 function seededRoll(seed: string): number {

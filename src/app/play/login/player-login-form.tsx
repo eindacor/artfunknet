@@ -56,7 +56,8 @@ export default function PlayerLoginForm({
       return;
     }
 
-    router.push("/play");
+    const result = await response.json() as { redirectTo?: string };
+    router.push(result.redirectTo === "/artist" ? "/artist" : "/play");
     router.refresh();
   }
 

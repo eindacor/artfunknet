@@ -35,6 +35,27 @@ export default function PrivacyPage() {
         </p>
       </section>
       <section className="space-y-3">
+        <h2 className="text-2xl font-bold">Artist applications and contributed artwork</h2>
+        <p>
+          Artist applications collect your name, email, date of birth, required
+          portfolio URL, and optional bio. New applicants also choose player
+          credentials; only a salted password hash is saved while the application
+          awaits review. Existing players apply using their stored account details.
+          Applicants must be 18 or older. Administrators review applications;
+          dates of birth, application emails, and password hashes are not published.
+          Denied applications are removed.
+        </p>
+        <p>
+          Approved artist names, bios, portfolio and social links, and approved
+          artwork may appear in artist galleries and the game. We save the
+          artwork submission agreement, its version, and acceptance date.
+          Under that agreement, the artist record and uploaded artwork are
+          retained after player-account deletion and may continue to be used
+          until the artist requests removal through an administrator.
+          Contact artfunkelgame@gmail.com for artwork or artist-record removal requests.
+        </p>
+      </section>
+      <section className="space-y-3">
         <h2 className="text-2xl font-bold">Connected accounts, Facebook, and Instagram</h2>
         <p>
           When you choose a sign-in or sync provider, we receive an account
@@ -48,7 +69,7 @@ export default function PrivacyPage() {
           permission. We request the Instagram account ID/user ID, username,
           name, and account type to verify the account and link it to your
           artfunkel player. We store the linked identifier and verification
-          dates; the returned name or username may initialize a new player&apos;s
+          dates and username; the returned name or username may initialize a new player&apos;s
           display name. Instagram does not provide an email address through this flow.
         </p>
         <p>
@@ -100,6 +121,10 @@ export default function PrivacyPage() {
           requests you choose to make and processes them under its own policy.
           Information may also be disclosed where legally required. Contacting
           us by email sends your message through the relevant email providers.
+          Artist galleries can offer an optional Instagram profile embed for a
+          synced account. No Instagram embed is loaded until you choose to load
+          it. Doing so connects your browser to Instagram under Meta&apos;s policies;
+          embedding depends on the artist&apos;s public-profile settings.
           Opening an embedded stream or loading artwork from an external asset
           host also sends normal browser request information to that service.
         </p>

@@ -19,6 +19,7 @@ test("artwork image URLs share stable content versions across thumbnail, card an
   assert.equal(getArtworkImageUrl("artwork", "card", image), `/api/artwork/artwork/image?variant=card&v=${card}`);
   assert.equal(getArtworkImageUrl("artwork", "card", image, true), `/api/artwork/artwork/image?variant=card&v=${card}&texture=1`);
   assert.equal(getArtworkImageUrl("artwork", "full", image), `/api/artwork/artwork/image?variant=full&v=${full}`);
+  assert.equal(getArtworkImageUrl("artwork", "card", image, false, "admin"), `/api/artwork/artwork/image?variant=card&v=${card}&admin=1`);
   const replacement = { variants: { ...image.variants, thumb: { checksum: "d".repeat(64) } } };
   assert.notEqual(getArtworkImageUrl("artwork", "thumb", replacement), getArtworkImageUrl("artwork", "thumb", image));
   assert.equal(getArtworkImageUrl("artwork", "card", replacement), getArtworkImageUrl("artwork", "card", image));

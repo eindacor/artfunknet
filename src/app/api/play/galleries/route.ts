@@ -10,6 +10,8 @@ import { getCommunityReactionSummaries } from "@/server/community-reactions";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
 import type { GallerySort } from "@/server/player-view-settings";
+import type { PlayerAccountRecord } from "@/server/player-account";
+import { getFeaturedArtistGalleries } from "@/server/contributing-artists";
 
 const EXPANDED_PAGE_SIZE = 12;
 const LIST_PAGE_SIZE = 30;
@@ -53,21 +55,26 @@ export async function GET(request: Request) {
       .toArray(),
     galleries.countDocuments(filter),
   ]);
-  const reactions = await getCommunityReactionSummaries(
-    database,
-    "gallery",
-    records.map((record) => record.owner_id),
-    auth.session.playerId,
-  );
+  const ownerIds = records.map((record) => record.owner_id);
+  const [reactions, artistPlayers] = await Promise.all([
+    getCommunityReactionSummaries(database, "gallery", ownerIds, auth.session.playerId),
+    database.collection<PlayerAccountRecord>("players")
+      .find({ _id: { $in: ownerIds }, active: true, artist_id: { $type: "string", $ne: "" } })
+      .project<Pick<PlayerAccountRecord, "_id">>({ _id: 1 })
+      .toArray(),
+  ]);
+  const artistOwnerIds = new Set(artistPlayers.map(player => player._id));
 
   return NextResponse.json({
     galleries: records.map((record) => ({
       ...record,
+      isArtist: artistOwnerIds.has(record.owner_id),
       reactions: reactions.get(record.owner_id),
     })),
     total,
     page,
     pageSize,
+    featuredArtists: await getFeaturedArtistGalleries(database),
   });
 }
 

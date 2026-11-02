@@ -14,7 +14,7 @@ import {
   getDisplayedLegendaryEffect,
   getLegendaryNumberParameter,
 } from "./legendary-attributes.ts";
-import type { GalleryNpc, NpcQuality } from "./npc-gameplay.ts";
+import { visitorUsesOwnGalleryBenefits, type GalleryNpc, type NpcQuality } from "./npc-gameplay.ts";
 import {
   calculateBenefactorReward,
   calculateEnthusiastReward,
@@ -61,7 +61,7 @@ async function grantBenefactorReward(
   npc: GalleryNpc,
   now: Date,
 ): Promise<NpcRewardInteraction> {
-  const ownGallery = npc.owner_id === player._id;
+  const ownGallery = await visitorUsesOwnGalleryBenefits(database, npc, player._id);
   const [averageDropValue, visitorBonus, conditionBonus, visitorCount] =
     await Promise.all([
       getAverageDropValueForLevel(database, player.profile.level),
@@ -81,7 +81,7 @@ async function grantBenefactorReward(
         : null,
       ownGallery
         ? database.collection<GalleryNpc>("npcs").countDocuments({
-            owner_id: player._id,
+            owner_id: npc.owner_id,
             expiration: { $gt: now },
           })
         : 0,
@@ -141,7 +141,7 @@ async function grantEnthusiastReward(
   npc: GalleryNpc,
   now: Date,
 ): Promise<NpcRewardInteraction> {
-  const ownGallery = npc.owner_id === player._id;
+  const ownGallery = await visitorUsesOwnGalleryBenefits(database, npc, player._id);
   const [visitorBonus, visitorCount, moneyForXp] = await Promise.all([
     ownGallery
       ? getDisplayedLegendaryEffect(
@@ -152,7 +152,7 @@ async function grantEnthusiastReward(
       : null,
     ownGallery
       ? database.collection<GalleryNpc>("npcs").countDocuments({
-          owner_id: player._id,
+          owner_id: npc.owner_id,
           expiration: { $gt: now },
         })
       : 0,

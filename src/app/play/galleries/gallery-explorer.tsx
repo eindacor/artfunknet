@@ -38,12 +38,16 @@ import {
 
 import { AuctionBidDialog } from "../auctions/auction-house";
 import GalleryChat from "./gallery-chat";
+import { ArtistGalleryIntroduction, ArtistGalleryShowcase, FeaturedArtistGalleries } from "@/components/artist-gallery";
+import type { FeaturedArtistGallery, PublicArtistProfile } from "@/server/artist-types";
+import type { Artwork } from "@/server/gameplay";
 
 type GalleryRecord = {
   _id: string;
   schema_version: 4;
   owner_id: string;
   owner: string;
+  isArtist?: boolean;
   value: number;
   score: number;
   display_count: number;
@@ -60,6 +64,7 @@ type GalleryRecord = {
 };
 
 type GalleryResponse = {
+  featuredArtists: FeaturedArtistGallery[];
   galleries: GalleryRecord[];
   total: number;
   page: number;
@@ -71,6 +76,8 @@ export type GalleryNpcView = GalleryVisitorView;
 const EMPTY_GALLERY_VISITORS: GalleryNpcView[] = [];
 
 type GalleryDetailResponse = {
+  artist?: PublicArtistProfile | null;
+  artistWorks?: Artwork[];
   galleryId: string;
   finishes: GalleryFinishes;
   owner: {
@@ -138,6 +145,7 @@ export default function GalleryExplorer({
   const [navigatingGallery, setNavigatingGallery] = useState(false);
   const skipNextQueryLoad = useRef<string | null>(null);
   const [data, setData] = useState<GalleryResponse>({
+    featuredArtists: [],
     galleries: [],
     total: 0,
     page: 1,
@@ -330,6 +338,7 @@ export default function GalleryExplorer({
 
   return (
     <main className="gallery-explorer">
+      <FeaturedArtistGalleries artists={data.featuredArtists ?? []} onVisit={showGallery} />
       {error ? <p className="auction-house-error">{error}</p> : null}
       <div className="auction-results-heading">
         <strong>
@@ -397,7 +406,7 @@ export default function GalleryExplorer({
             {data.galleries.map((gallery, index) => (
               <article
                 aria-label={`Visit ${gallery.owner}'s gallery`}
-                className="gallery-explorer-list-row"
+                className={`gallery-explorer-list-row${gallery.isArtist ? " gallery-explorer-artist" : ""}`}
                 key={gallery._id}
                 onClick={() => visitGallery(gallery)}
                 onKeyDown={(event) => {
@@ -413,6 +422,7 @@ export default function GalleryExplorer({
                   #{(page - 1) * data.pageSize + index + 1}
                 </strong>
                 <div role="cell">
+                  {gallery.isArtist ? <GalleryArtistBadge /> : null}
                   <strong>@{gallery.owner}</strong>
                   <span>Gallery score {gallery.score.toLocaleString()}</span>
                 </div>
@@ -449,7 +459,7 @@ export default function GalleryExplorer({
         <div className="gallery-explorer-grid">
           {data.galleries.map((gallery, index) => (
             <article
-              className="gallery-explorer-card"
+              className={`gallery-explorer-card${gallery.isArtist ? " gallery-explorer-artist" : ""}`}
               key={gallery._id}
               onClick={() => visitGallery(gallery)}
               onKeyDown={(event) => {
@@ -477,7 +487,7 @@ export default function GalleryExplorer({
               <div className="gallery-explorer-card-body">
                 <header>
                   <div>
-                    <p>Public exhibition</p>
+                    {gallery.isArtist ? <GalleryArtistBadge /> : <p>Public exhibition</p>}
                     <h2>@{gallery.owner}</h2>
                   </div>
                   <i aria-hidden="true" className="fa fa-chevron-right" />
@@ -575,6 +585,12 @@ export default function GalleryExplorer({
   );
 }
 
+function GalleryArtistBadge() {
+  return <small className="gallery-artist-badge">
+    <i aria-hidden="true" className="fa fa-paint-brush" /> Contributing artist
+  </small>;
+}
+
 function VisitedGallery({
   impersonating,
   initialBankBalance,
@@ -628,6 +644,7 @@ function VisitedGallery({
   const [refreshVersion, setRefreshVersion] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const workspaceRef = useRef<HTMLDivElement>(null);
   const {
     markVisitorMet,
     removeVisitor,
@@ -640,6 +657,19 @@ function VisitedGallery({
     ownerId,
     spawnIntervalMinutes: npcSpawnIntervalMinutes,
   });
+
+  useEffect(() => {
+    const workspace = workspaceRef.current;
+    const galleryWindow = workspace?.querySelector<HTMLElement>(".public-gallery-window");
+    if (!workspace || !galleryWindow) return;
+    const updateHeight = () => {
+      workspace.style.setProperty("--gallery-window-height", `${galleryWindow.getBoundingClientRect().height}px`);
+    };
+    updateHeight();
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(galleryWindow);
+    return () => observer.disconnect();
+  }, [gallery?.galleryId, loading]);
 
   async function spawnTestNpc(option: NpcSpawnOption) {
     setSpawningNpc(option.id);
@@ -758,7 +788,7 @@ function VisitedGallery({
     ) ?? null;
 
   return (
-    <section className="visited-gallery">
+    <section className={`visited-gallery${gallery.artist ? " visited-artist-gallery" : ""}`}>
       {impersonating ? (
         <div className="admin-gallery-controls">
           <strong>admin test controls</strong>
@@ -810,7 +840,8 @@ function VisitedGallery({
           ) : null}
         </div>
       ) : null}
-      <div className="visited-gallery-workspace">
+      {gallery.artist ? <ArtistGalleryIntroduction artist={gallery.artist} /> : null}
+      <div className="visited-gallery-workspace" ref={workspaceRef}>
         {ownerId === viewerId ? (
           <GalleryFinishMenu
             finishes={gallery.finishes}
@@ -826,11 +857,10 @@ function VisitedGallery({
           <section className="visited-gallery-player-panel">
           <header className="visited-gallery-metadata-header">
             <div>
-              <p>Collector exhibition</p>
-              <h1>{gallery.owner.screenName}&apos;s Gallery</h1>
+              <p>{gallery.artist ? "Contributing artist" : "Collector exhibition"}</p>
+              <h1>{gallery.artist?.name ?? gallery.owner.screenName}&apos;s Gallery</h1>
               <span>
-                Meet visitors and inspect the artwork this collector has put on
-                display.
+                {gallery.artist ? "Artist exhibition and player gallery information." : "Meet visitors and inspect the artwork this collector has put on display."}
               </span>
             </div>
           </header>
@@ -970,6 +1000,11 @@ function VisitedGallery({
             <p className="empty-state">No artwork is available to preview.</p>
           </section>
         )}
+        {gallery.artist ? <ArtistGalleryShowcase artist={gallery.artist} works={gallery.artistWorks ?? []}
+          legendaryAttributes={gallery.legendaryAttributes} onPreview={item => {
+            setSelectedPreviewItem(item);
+            document.querySelector(".visited-artist-gallery .public-gallery-window")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }} viewerId={viewerId} /> : null}
         <GalleryChat galleryOwnerId={ownerId} viewerId={viewerId} />
         <PublicGallery
           finishes={gallery.finishes}
@@ -983,7 +1018,7 @@ function VisitedGallery({
               {visitors.map((npc) => {
                 const socialBatteryCost = getVisitorSocialBatteryCost(
                   npc.quality,
-                  ownerId === viewerId,
+                  ownerId === viewerId || gallery.artist?.featured === true,
                 );
                 const insufficientBattery =
                   socialBattery < socialBatteryCost;

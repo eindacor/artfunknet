@@ -58,7 +58,7 @@ export async function POST(request: Request) {
   );
   await syncPatreonMembershipAfterSignIn(database, player._id);
 
-  const response = NextResponse.json({ status: "ok" });
+  const response = NextResponse.json({ status: "ok", redirectTo: player.artist_id ? "/artist" : "/play" });
   response.cookies.set(
     PLAYER_SESSION_COOKIE,
     await createPlayerSessionToken({

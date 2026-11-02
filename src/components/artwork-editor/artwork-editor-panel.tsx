@@ -7,7 +7,8 @@ import {
   getArtworkThumbnailAdjustment,
 } from "@/components/item-cards/artwork-image-adjustments";
 import type { Artwork } from "@/server/gameplay";
-import { getArtworkImageUrl } from "@/server/artwork-image-url";
+import { getArtworkImageUrl, type ArtworkImageScope } from "@/server/artwork-image-url";
+import { useArtworkImageScope } from "@/components/artwork-image-scope";
 import ArtworkCustomizationPanel from "./artwork-customization-panel";
 import {
   ARTWORK_EDITOR_RARITIES,
@@ -37,9 +38,9 @@ function initialDraft(artwork?: ArtworkCatalogEntry, artistId = "") {
 
 type ImagePreview = { url: string; width: number; height: number };
 
-function existingPreview(artwork: ArtworkCatalogEntry): ImagePreview {
+function existingPreview(artwork: ArtworkCatalogEntry, scope: ArtworkImageScope): ImagePreview {
   return {
-    url: getArtworkImageUrl(artwork._id, "card", artwork.image),
+    url: getArtworkImageUrl(artwork._id, "card", artwork.image, false, scope),
     width: artwork.image_width ?? artwork.width,
     height: artwork.image_height ?? artwork.height,
   };
@@ -47,15 +48,19 @@ function existingPreview(artwork: ArtworkCatalogEntry): ImagePreview {
 
 export default function ArtworkEditorPanel({
   mode, artwork, artists, rendererOptions, pending = false,
+  artistSubmission = false, submitLabel, deleteLabel = "Delete artwork",
   showRarity = true, showActiveInGame = true,
   effectOptions = [], attributeOptions = [],
   onSave, onDelete, onUploaded, onArtistCreated,
 }: {
-  mode: "add" | "edit";
+  mode: "add" | "edit" | "review";
   artwork?: ArtworkCatalogEntry;
   artists: ArtistCatalogEntry[];
   rendererOptions: { id: CardRendererId; name: string }[];
   pending?: boolean;
+  artistSubmission?: boolean;
+  submitLabel?: string;
+  deleteLabel?: string;
   showRarity?: boolean;
   showActiveInGame?: boolean;
   effectOptions?: { id: string; title: string; effectType: "legendary" | "masterpiece"; active: boolean }[];
@@ -65,9 +70,10 @@ export default function ArtworkEditorPanel({
   onUploaded?: (artwork: ArtworkCatalogEntry) => void;
   onArtistCreated?: (artist: ArtistCatalogEntry) => void;
 }) {
+  const scope = useArtworkImageScope();
   const [draft, setDraft] = useState(() => initialDraft(artwork, artists[0]?.id));
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<ImagePreview | null>(() => artwork ? existingPreview(artwork) : null);
+  const [preview, setPreview] = useState<ImagePreview | null>(() => artwork ? existingPreview(artwork, scope) : null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [creatingArtist, setCreatingArtist] = useState(false);
@@ -102,13 +108,13 @@ export default function ArtworkEditorPanel({
     try {
       const body = new FormData();
       body.set("image", file);
-      const response = await fetch(mode === "edit" && artwork
+      const response = await fetch(mode !== "add" && artwork
         ? `/api/admin/artworks/${encodeURIComponent(artwork._id)}/image`
-        : "/api/admin/artworks/preview", { method: "POST", body, signal: controller.signal });
-      if (mode === "edit") {
+        : artistSubmission ? "/api/artist/artworks/preview" : "/api/admin/artworks/preview", { method: "POST", body, signal: controller.signal });
+      if (mode !== "add") {
         const result = await readResponse<{ artwork: ArtworkCatalogEntry }>(response);
         if (controller.signal.aborted) return;
-        setPreview(existingPreview(result.artwork));
+        setPreview(existingPreview(result.artwork, scope));
         onUploaded?.(result.artwork);
         if (!onUploaded) setMessage(`Updated the image for ${result.artwork.title}.`);
       } else {
@@ -121,7 +127,7 @@ export default function ArtworkEditorPanel({
       }
     } catch (caught) {
       if (!controller.signal.aborted) {
-        if (mode === "edit") setImageFile(previousFile);
+        if (mode !== "add") setImageFile(previousFile);
         setError(caught instanceof Error ? caught.message : "Image preview failed.");
       }
     } finally {
@@ -150,7 +156,7 @@ export default function ArtworkEditorPanel({
       if (mode === "add") {
         setDraft(initialDraft(undefined, saved.artist_id));
         setImageFile(null); setPreview(null); form.reset();
-        setMessage(`Added artwork ${saved.title}.`);
+        setMessage(artistSubmission ? `Submitted ${saved.title} for admin review. It is not active in the game yet.` : `Added artwork ${saved.title}.`);
       } else {
         setDraft(initialDraft(saved));
       }
@@ -195,7 +201,7 @@ export default function ArtworkEditorPanel({
             : <><h2 className="text-2xl font-bold">{draft.title}</h2><p className="text-[var(--muted)]">{artwork?._id}</p></>}
           {mode === "add" ? <p className="text-sm text-[var(--muted)]">
             The upload creates full, card, and thumbnail images in artwork storage.
-            Crop changes preview live and are saved together when you accept.
+            Crop changes preview live and are saved together when you {artistSubmission ? "submit for review" : "accept"}.
           </p> : null}
         </div>
         <label className="grid gap-2">
@@ -205,7 +211,7 @@ export default function ArtworkEditorPanel({
             onChange={event => {
               const input = event.currentTarget;
               void chooseImage(input.files?.[0] ?? null).finally(() => {
-                if (mode === "edit") input.value = "";
+                if (mode !== "add") input.value = "";
               });
             }}
             required={mode === "add"} type="file" />
@@ -218,13 +224,13 @@ export default function ArtworkEditorPanel({
             unoptimized />
           {imageFile ? <figcaption className="text-sm text-[var(--muted)]">{imageFile.name}</figcaption> : null}
         </figure> : null}
-        {mode === "edit" ? <p className="break-all text-sm text-[var(--muted)]">
+        {mode !== "add" ? <p className="break-all text-sm text-[var(--muted)]">
           {storage ? storage.provider === "s3" ? `s3://${storage.bucket}/${storage.key}`
             : `storage/mock-s3/${storage.key}` : "No image stored; the seed image is shown."}
         </p> : null}
         <div className="grid min-w-0 gap-4 md:grid-cols-2">
           <ArtworkEditorField label="Title" value={draft.title} onChange={value => set("title", value)} />
-          <label className="grid gap-2">
+          {!artistSubmission && mode !== "review" ? <label className="grid gap-2">
             <span className="font-semibold">Artist</span>
             <select aria-label="Artist" className={ARTWORK_EDITOR_INPUT_CLASS} value={draft.artist_id} required
               onChange={event => set("artist_id", event.target.value)}>
@@ -235,7 +241,7 @@ export default function ArtworkEditorPanel({
               onClick={() => setShowArtistCreator(value => !value)} type="button">
               {showArtistCreator ? "Cancel new artist" : "Create new artist"}
             </button> : null}
-          </label>
+          </label> : null}
           {showArtistCreator ? <div className="grid gap-3 rounded-md border border-white/10 p-3 md:col-span-2">
             <ArtworkEditorField label="New artist name" value={newArtist.name} onChange={name => setNewArtist(current => ({ ...current, name }))} />
             <div className="grid gap-3 sm:grid-cols-2">
@@ -248,7 +254,7 @@ export default function ArtworkEditorPanel({
           <ArtworkEditorField label="Date" type="number" value={draft.date} onChange={value => set("date", value)} />
           <ArtworkEditorField label="Genre or style" value={draft.genre} onChange={value => set("genre", value)} />
           <ArtworkEditorField label="Medium" value={draft.medium} onChange={value => set("medium", value)} />
-          {showRarity ? <label className="grid gap-2">
+          {showRarity && !artistSubmission ? <label className="grid gap-2">
             <span className="font-semibold">Rarity</span>
             <select aria-label="Rarity" className={ARTWORK_EDITOR_INPUT_CLASS} value={draft.rarity} onChange={event => {
               const rarity = event.target.value as Artwork["rarity"];
@@ -280,10 +286,10 @@ export default function ArtworkEditorPanel({
             </select>
           </label> : null}
           <ArtworkEditorField label="Height (cm)" type="number" step="0.01" value={draft.height} onChange={value => set("height", value)} />
-          {mode === "edit" ? <p className="text-sm text-[var(--muted)]">Calculated width: {previewArtwork.width.toFixed(2)} cm</p> : null}
+          {mode !== "add" ? <p className="text-sm text-[var(--muted)]">Calculated width: {previewArtwork.width.toFixed(2)} cm</p> : null}
         </div>
         <div className="flex flex-wrap gap-4">
-          {showActiveInGame ? <label className="flex items-center gap-2">
+          {showActiveInGame && !artistSubmission ? <label className="flex items-center gap-2">
             <input checked={draft.active} onChange={event => set("active", event.target.checked)} type="checkbox" />Active in game
           </label> : null}
           <label className="flex items-center gap-2">
@@ -298,10 +304,10 @@ export default function ArtworkEditorPanel({
           onThumbnailChange={adjustment => set("thumbnail_adjustment", adjustment)} /> : null}
         <button className="justify-self-start rounded-md bg-[var(--accent)] px-4 py-2 font-bold text-black disabled:opacity-50"
           disabled={previewLoading || (mode === "add" && !preview)} type="submit">
-          {busy ? mode === "add" ? "Adding artwork..." : "Saving..." : mode === "add" ? "Accept" : "Save artwork"}
+          {busy ? artistSubmission ? "Submitting..." : mode === "add" ? "Adding artwork..." : mode === "review" ? "Accepting artwork..." : "Saving..." : submitLabel ?? (artistSubmission ? "Submit" : mode === "add" ? "Accept" : "Save artwork")}
         </button>
         {onDelete ? <button className="justify-self-start rounded-md border border-red-400/60 px-4 py-2 font-bold text-red-300"
-          onClick={onDelete} type="button">Delete artwork</button> : null}
+          onClick={onDelete} type="button">{deleteLabel}</button> : null}
       </fieldset>
       {error ? <p className="text-red-400">{error}</p> : null}
       {message ? <p className="text-green-400" role="status">{message}</p> : null}
