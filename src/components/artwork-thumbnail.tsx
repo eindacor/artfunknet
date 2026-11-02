@@ -1,6 +1,7 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
 import type { ArtworkArtStyleAdjustment } from "@/server/gameplay";
+import { getArtworkImageUrl, type ArtworkImageMetadata } from "@/server/artwork-image-url";
 import {
   getArtworkImageBackgroundPosition,
   getArtworkImageZoomTranslation,
@@ -8,6 +9,7 @@ import {
 
 export default function ArtworkThumbnail({
   artworkId,
+  image,
   alt,
   className = "",
   children,
@@ -17,6 +19,7 @@ export default function ArtworkThumbnail({
   sourceUrl,
 }: {
   artworkId: string;
+  image?: ArtworkImageMetadata;
   alt: string;
   className?: string;
   children?: ReactNode;
@@ -39,7 +42,7 @@ export default function ArtworkThumbnail({
         draggable={false}
         fill
         sizes={`${size}px`}
-        src={sourceUrl ?? `/api/artwork/${artworkId}/image?variant=${imageVariant}`}
+        src={sourceUrl ?? getArtworkImageUrl(artworkId, imageVariant, image)}
         style={adjustment && position && translation ? {
           objectPosition: `${position.x} ${position.y}`,
           transform: `translate(${translation.x}, ${translation.y}) scale(${adjustment.scale})`,

@@ -22,6 +22,7 @@ export async function ensureItemRevealStates<T extends GameItem & { artwork?: { 
   database: Db,
   records: T[],
   thresholds: OfferRevealThresholds,
+  enableReveals = true,
 ): Promise<T[]> {
   const artworkRarities = await getRevealArtworkRarities(
     database,
@@ -31,7 +32,7 @@ export async function ensureItemRevealStates<T extends GameItem & { artwork?: { 
   const operations: AnyBulkWriteOperation<GameItem>[] = [];
   const result = records.map((item) => {
     const rarity = artworkRarities.get(item.artwork_id);
-    const revealed = isOfferRevealed(
+    const revealed = !enableReveals || isOfferRevealed(
       rarity ? { ...item, artwork: { rarity } } : item,
       thresholds,
     );

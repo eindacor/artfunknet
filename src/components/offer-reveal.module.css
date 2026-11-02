@@ -3,11 +3,15 @@
   isolation: isolate;
 }
 
+.thumbnail[data-reveal-tier="3"][data-unrevealed] {
+  --thumbnail-shadow-color: #ff33cc;
+}
+
 .selectionShadow {
   position: absolute;
   inset: 0;
   translate: var(--thumbnail-shadow-offset) var(--thumbnail-shadow-offset);
-  background: var(--thumbnail-rarity-color, currentColor);
+  background: var(--thumbnail-shadow-color, var(--thumbnail-rarity-color, currentColor));
   clip-path: polygon(
     calc(100% - var(--thumbnail-shadow-offset)) 0,
     100% 0,
@@ -43,7 +47,7 @@
 }
 
 .thumbnail[data-reveal-tier="1"][data-unrevealed] {
-  animation: mysteryShake 5s ease-in-out infinite;
+  animation: mysteryShake 14s ease-in-out infinite;
   animation-delay: var(--mystery-animation-delay, 0ms) !important;
 }
 
@@ -51,12 +55,13 @@
 .face2::before {
   position: absolute;
   inset: 0;
+  width: 240%;
   z-index: -1;
   background-image: linear-gradient(110deg, transparent 43%, #fff8 49%, transparent 56%);
-  background-size: 240% 100%;
-  background-repeat: no-repeat;
   content: "";
-  animation: mysteryShine 4s ease-in-out infinite;
+  opacity: 0;
+  transform: translateX(-58.333333%);
+  animation: mysteryShine 16s ease-in-out infinite;
   animation-delay: var(--mystery-animation-delay, 0ms);
 }
 
@@ -73,26 +78,19 @@
     radial-gradient(ellipse at 80% 66%, #fff 0 1px, transparent 3px),
     radial-gradient(ellipse at 70% 14%, #ffdb83 0 1px, transparent 2px),
     radial-gradient(ellipse at 26% 81%, #fff 0 1px, transparent 2px);
-  animation: sparklePulse 2.5s ease-in-out infinite alternate;
+  animation: sparklePulse 8s ease-in-out infinite alternate;
   animation-delay: var(--mystery-animation-delay, 0ms);
 }
 
 .face2 {
-  background: conic-gradient(from 35deg, #fd36c7, #783bd1, #17bbdc, #ffe385, #f82bbf);
+  background: var(--mystery-foil-gradient);
   box-shadow: inset 0 0 20px #fff6, 0 0 14px #ff33cc80;
   color: #fff;
-  animation: foilMystery 6s ease-in-out infinite;
-  animation-delay: var(--mystery-animation-delay, 0ms);
 }
 
 .face2::before {
   background-image: linear-gradient(110deg, transparent 40%, #fff 49%, #ff9aff90 54%, transparent 61%);
-  animation-duration: 2.6s;
-}
-
-.face2 .sparkles {
-  filter: drop-shadow(0 0 3px #fff);
-  animation-duration: 1.2s;
+  animation-duration: 20s;
 }
 
 .face3 {
@@ -107,7 +105,7 @@
 }
 
 .thumbnail[data-reveal-tier="3"][data-unrevealed] {
-  animation: divineHover 6s ease-in-out infinite;
+  animation: divineHover 16s ease-in-out infinite;
   animation-delay: var(--mystery-animation-delay, 0ms) !important;
 }
 
@@ -152,25 +150,32 @@
   contain: paint;
   clip-path: inset(0);
   border-radius: inherit;
-  background-image: linear-gradient(110deg, transparent 35%, #fff9 50%, transparent 65%);
-  background-size: 240% 100%;
-  background-repeat: no-repeat;
   pointer-events: none;
+}
+
+.revealGlint::before {
+  position: absolute;
+  inset: 0;
+  width: 240%;
+  background-image: linear-gradient(110deg, transparent 35%, #fff9 50%, transparent 65%);
+  content: "";
+  opacity: 0;
+  transform: translateX(-58.333333%);
   animation: revealGlint 600ms ease-out both;
 }
 
-.unmask2 > .revealGlint,
-.unmask3 > .revealGlint {
+.unmask2 > .revealGlint::before,
+.unmask3 > .revealGlint::before {
   background-image: linear-gradient(110deg, transparent 24%, #ff33cc70 40%, #fff 50%, #67e4ff90 60%, transparent 78%);
   animation-duration: 1200ms;
 }
 
-.unmask3 > .revealGlint,
-.unmaskburst > .revealGlint {
+.unmask3 > .revealGlint::before,
+.unmaskburst > .revealGlint::before {
   animation-duration: 2200ms;
 }
 
-.unmaskburst > .revealGlint {
+.unmaskburst > .revealGlint::before {
   background-image: linear-gradient(110deg, transparent 20%, #ff33cc90 38%, #fff 50%, #67e4ffb0 62%, transparent 80%);
   animation-duration: 1800ms;
 }
@@ -362,6 +367,7 @@
 .revealCard[data-visible] {
   visibility: visible;
   opacity: 1;
+  pointer-events: auto;
 }
 
 .revealCard > :global(.rendered-item-card) {
@@ -380,6 +386,19 @@
 .fallback > * {
   max-width: 100%;
   max-height: 100%;
+}
+
+.dialog .fallbackArtwork {
+  width: min(400px, 100%);
+  aspect-ratio: 1;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.fallbackArtwork > :global(.artwork-thumbnail) {
+  width: 100% !important;
+  height: 100% !important;
 }
 
 .fallback img {
@@ -401,25 +420,20 @@
 }
 
 @keyframes mysteryShake {
-  0%, 84%, 100% { transform: rotate(0); }
-  87%, 93% { transform: rotate(-3deg); }
-  90%, 96% { transform: rotate(3deg); }
+  0%, 94%, 100% { transform: rotate(0); }
+  95%, 97% { transform: rotate(-3deg); }
+  96%, 98% { transform: rotate(3deg); }
 }
 
 @keyframes mysteryShine {
-  0%, 25% { background-position: 100% 0; opacity: 0; }
-  45% { opacity: 1; }
-  65%, 100% { background-position: 0 0; opacity: 0; }
+  0%, 60% { transform: translateX(-58.333333%); opacity: 0; }
+  72.5% { opacity: 1; }
+  85%, 100% { transform: translateX(0); opacity: 0; }
 }
 
 @keyframes sparklePulse {
   from { opacity: 0.35; transform: scale(0.98); }
   to { opacity: 1; transform: scale(1.03); }
-}
-
-@keyframes foilMystery {
-  0%, 100% { filter: hue-rotate(0deg) saturate(1.3); }
-  50% { filter: hue-rotate(35deg) saturate(1.8); }
 }
 
 @keyframes divineHover {
@@ -428,22 +442,22 @@
 }
 
 @keyframes thumbnailReveal {
-  0% { opacity: 0; transform: scale(0.7) rotate(-7deg); filter: brightness(2); }
+  0% { opacity: 0; transform: scale(0.7) rotate(-7deg); }
   70% { opacity: 1; transform: scale(1.04); }
-  100% { opacity: 1; transform: none; filter: none; }
+  100% { opacity: 1; transform: none; }
 }
 
 @keyframes divineReveal {
-  0% { opacity: 0; transform: scale(0.55); filter: brightness(4) blur(4px); }
-  35% { opacity: 1; transform: scale(1.12); filter: brightness(2); box-shadow: 0 0 55px #ff33cc; }
-  100% { opacity: 1; transform: none; filter: none; box-shadow: none; }
+  0% { opacity: 0; transform: scale(0.55); }
+  35% { opacity: 1; transform: scale(1.12); }
+  100% { opacity: 1; transform: none; }
 }
 
 @keyframes prismaticBurst {
-  0% { opacity: 0; transform: scale(0.72) rotateY(85deg); filter: brightness(4) blur(3px); }
-  22% { opacity: 1; transform: scale(1.1) rotateY(-12deg); filter: brightness(2); }
-  55% { transform: scale(0.97) rotateY(4deg); filter: brightness(1.2); }
-  100% { opacity: 1; transform: none; filter: none; }
+  0% { opacity: 0; transform: scale(0.72) rotateY(85deg); }
+  22% { opacity: 1; transform: scale(1.1) rotateY(-12deg); }
+  55% { transform: scale(0.97) rotateY(4deg); }
+  100% { opacity: 1; transform: none; }
 }
 
 @keyframes burstRing {
@@ -453,14 +467,14 @@
 }
 
 @keyframes revealGlint {
-  0% { opacity: 0; background-position: 100% 0; }
+  0% { opacity: 0; transform: translateX(-58.333333%); }
   35% { opacity: 1; }
-  100% { opacity: 0; background-position: 0 0; }
+  100% { opacity: 0; transform: translateX(0); }
 }
 
 @keyframes previewArrival {
-  from { opacity: 0; filter: brightness(1.5); transform: translateY(8px); }
-  to { opacity: 1; filter: none; transform: none; }
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
 }
 
 @media (max-width: 500px) {
@@ -476,7 +490,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .thumbnail, .mysteryFace, .mysteryFace::before, .sparkles,
-  .revealGlint,
+  .revealGlint::before,
   .preview1, .preview2, .preview3, .previewburst {
     animation: none !important;
   }

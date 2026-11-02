@@ -7,6 +7,7 @@ import {
   getArtworkThumbnailAdjustment,
 } from "@/components/item-cards/artwork-image-adjustments";
 import type { Artwork } from "@/server/gameplay";
+import { getArtworkImageUrl } from "@/server/artwork-image-url";
 import ArtworkCustomizationPanel from "./artwork-customization-panel";
 import {
   ARTWORK_EDITOR_RARITIES,
@@ -38,7 +39,7 @@ type ImagePreview = { url: string; width: number; height: number };
 
 function existingPreview(artwork: ArtworkCatalogEntry): ImagePreview {
   return {
-    url: `/api/artwork/${encodeURIComponent(artwork._id)}/image?variant=card&v=${artwork.image?.version ?? 0}`,
+    url: getArtworkImageUrl(artwork._id, "card", artwork.image),
     width: artwork.image_width ?? artwork.width,
     height: artwork.image_height ?? artwork.height,
   };
@@ -107,8 +108,7 @@ export default function ArtworkEditorPanel({
       if (mode === "edit") {
         const result = await readResponse<{ artwork: ArtworkCatalogEntry }>(response);
         if (controller.signal.aborted) return;
-        setPreview({ ...existingPreview(result.artwork),
-          url: `/api/artwork/${encodeURIComponent(result.artwork._id)}/image?variant=card&v=${Date.now()}` });
+        setPreview(existingPreview(result.artwork));
         onUploaded?.(result.artwork);
         if (!onUploaded) setMessage(`Updated the image for ${result.artwork.title}.`);
       } else {

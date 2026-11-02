@@ -39,5 +39,5 @@ test("creates a new player with the standard starting profile", () => {
   assert.equal(player.profile.screen_name, "Player-One");
   assert.equal(player.profile.bank_balance, 100_000);
   assert.equal(player.profile.level, 0);
-  assert.equal(player.profile.last_drop, "2026-09-03T12:00:00.000Z");
+  assert.deepEqual(player.profile.daily_crate, { time_zone: null, last_claimed_at: null });
 });

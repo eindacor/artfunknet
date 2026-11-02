@@ -77,6 +77,9 @@ export default async function PlayerAccountPage({
       </p>
       <AccountForm
         email={player.email}
+        enableReveals={
+          getPlayerViewSettings(player.profile?.view_settings).enableReveals
+        }
         hasPassword={Boolean(player.password_salt && player.password_hash)}
         preferredGalleryView={
           getPlayerViewSettings(player.profile?.view_settings).galleryView

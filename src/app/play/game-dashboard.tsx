@@ -81,7 +81,13 @@ import {
   type CollectionFlagMode,
   type CollectionStatus,
 } from "@/server/collection-inventory";
-import type { CrateOfferView } from "@/server/crate-gameplay";
+import {
+  getVisibleCrateOffers,
+  MAX_CRATE_PURCHASE_COUNT,
+  type CrateOfferView,
+} from "@/server/crate-gameplay";
+import { isDailyCrateReady, type DailyCrateState } from "@/server/daily-crate";
+import { getArtworkImageUrl } from "@/server/artwork-image-url";
 import {
   ARCHIVE_FILTER_CATEGORIES,
   filterAndSortArchiveEntries,
@@ -172,7 +178,7 @@ type PlayerView = {
   inventorySlotsUsed: number;
   displayCap: number;
   repairingCap: number;
-  lastDrop: string;
+  dailyCrate: DailyCrateState;
   xpGoal: number;
   socialBattery: number;
   socialBatteryResetAt: string;
@@ -335,6 +341,8 @@ const ATTRIBUTE_TYPE_ICONS = {
   unlocked: { icon: "fa-unlock-alt", label: "Unlocked attribute" },
 } as const;
 
+const CRATE_PURCHASE_COUNTS = [1, 5, 10, MAX_CRATE_PURCHASE_COUNT];
+
 export default function GameDashboard({
   player,
   initialNow,
@@ -356,7 +364,6 @@ export default function GameDashboard({
   crateOffers,
   raffle,
   dailyEventDay,
-  dailyDropCooldownMinutes,
   dailyDropCount,
   dealerPriceMultiplier,
   debugEnabled,
@@ -398,7 +405,6 @@ export default function GameDashboard({
     previousWinners: import("@/server/raffle-gameplay").RaffleWinner[];
   };
   dailyEventDay: number;
-  dailyDropCooldownMinutes: number;
   dailyDropCount: number;
   dealerPriceMultiplier: number;
   debugEnabled: boolean;
@@ -475,7 +481,14 @@ export default function GameDashboard({
     crateId: string;
     phase: "opening" | "opened" | "error";
   } | null>(null);
-  const [cratePurchaseCount, setCratePurchaseCount] = useState(1);
+  const [cratePurchaseCount, setCratePurchaseCount] = useState(
+    CRATE_PURCHASE_COUNTS.includes(player.viewSettings.cratePurchaseCount)
+      ? player.viewSettings.cratePurchaseCount
+      : 1,
+  );
+  const enableReveals = player.viewSettings.enableReveals;
+  const viewSettingsSaveQueue = useRef(Promise.resolve());
+  const [dailyCrateUpdate, setDailyCrateUpdate] = useState<DailyCrateState | null>(null);
   const [revealedLootIds, setRevealedLootIds] = useState<string[]>([]);
   const [revealedOfferIds, setRevealedOfferIds] = useState<Set<string>>(() => new Set());
   const [offerRevealTransitions, setOfferRevealTransitions] = useState<Record<string, OfferRevealTransition>>({});
@@ -806,9 +819,9 @@ export default function GameDashboard({
   );
   const quickSellableLoot = useMemo(
     () => bulkSellableLoot.filter((item) =>
-      revealedOfferIds.has(item._id) || canQuickSellItem(item, offerRevealThresholds),
+      !enableReveals || revealedOfferIds.has(item._id) || canQuickSellItem(item, offerRevealThresholds),
     ),
-    [bulkSellableLoot, offerRevealThresholds, revealedOfferIds],
+    [bulkSellableLoot, enableReveals, offerRevealThresholds, revealedOfferIds],
   );
   const bulkDeclinableLoot = useMemo(
     () =>
@@ -1024,11 +1037,12 @@ export default function GameDashboard({
         repairingCap: player.repairingCap,
         repairingCount,
         selectedItems: selectedCollectionItems.map((item) =>
-          revealedOfferIds.has(item._id) ? { ...item, revealed: true } : item,
+          !enableReveals || revealedOfferIds.has(item._id) ? { ...item, revealed: true } : item,
         ),
       }),
     [
       collectionItems,
+      enableReveals,
       player.displayCap,
       player.repairingCap,
       quests,
@@ -1103,10 +1117,37 @@ export default function GameDashboard({
     [items],
   );
   const inventoryFull = player.inventorySlotsUsed >= player.inventoryCap;
-  const nextDrop =
-    new Date(player.lastDrop).getTime() +
-    dailyDropCooldownMinutes * 60 * 1000;
-  const dropReady = now >= nextDrop;
+  const dailyCrateState: DailyCrateState = {
+    timeZone: player.dailyCrate.timeZone ?? dailyCrateUpdate?.timeZone ?? null,
+    lastClaimedAt:
+      dailyCrateUpdate?.lastClaimedAt &&
+      dailyCrateUpdate.lastClaimedAt > (player.dailyCrate.lastClaimedAt ?? "")
+        ? dailyCrateUpdate.lastClaimedAt
+        : player.dailyCrate.lastClaimedAt,
+  };
+  const dropReady = isDailyCrateReady(dailyCrateState, new Date(now));
+
+  useEffect(() => {
+    if (player.dailyCrate.timeZone) return;
+    const controller = new AbortController();
+    void fetch("/api/play/drop", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }),
+      signal: controller.signal,
+    }).then(async (response) => {
+      const body = await response.json() as { dailyCrate?: DailyCrateState; error?: string };
+      if (!response.ok || !body.dailyCrate) {
+        throw new Error(body.error ?? "Your daily crate timezone could not be saved.");
+      }
+      setDailyCrateUpdate(body.dailyCrate);
+    }).catch((error: unknown) => {
+      if (!controller.signal.aborted) {
+        setError(error instanceof Error ? error.message : "Your daily crate timezone could not be saved.");
+      }
+    });
+    return () => controller.abort();
+  }, [playerId, player.dailyCrate.timeZone]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
@@ -1127,7 +1168,7 @@ export default function GameDashboard({
   }, []);
 
   function offerIsRevealed(item: HydratedGameItem) {
-    return revealedOfferIds.has(item._id) || isOfferRevealed(item, offerRevealThresholds);
+    return !enableReveals || revealedOfferIds.has(item._id) || isOfferRevealed(item, offerRevealThresholds);
   }
 
   function clearOfferRevealTransitions() {
@@ -1139,74 +1180,104 @@ export default function GameDashboard({
     setOfferRevealTransitions({});
   }
 
-  async function revealOffer(item: HydratedGameItem, transition?: OfferRevealTransition) {
-    if (offerRevealRequests.current.has(item._id)) return false;
-    const request = new AbortController();
+  async function revealOffers(itemsToReveal: HydratedGameItem[], burst = false) {
+    if (!enableReveals) return false;
+    const requests = itemsToReveal
+      .filter((item) => !offerIsRevealed(item) && !offerRevealRequests.current.has(item._id))
+      .map((item) => {
+        const request = new AbortController();
+        offerRevealRequests.current.set(item._id, request);
+        return { item, request };
+      });
+    if (requests.length === 0) return false;
     const revealContext = offerRevealContext.current;
-    offerRevealRequests.current.set(item._id, request);
-    setPendingOfferReveals((current) => new Set([...current, item._id]));
+    setPendingOfferReveals((current) => new Set([...current, ...requests.map(({ item }) => item._id)]));
     setOfferRevealError("");
     setError("");
-    const imagesReady = Promise.all(["thumb", "card"].map((variant) =>
-      new Promise<void>((resolve) => {
-        const image = new window.Image();
-        const timer = window.setTimeout(ready, 1800);
-        function ready() {
-          window.clearTimeout(timer);
-          image.onload = null;
-          image.onerror = null;
-          request.signal.removeEventListener("abort", aborted);
-          resolve();
-        }
-        function aborted() { image.src = ""; ready(); }
-        image.onload = () => { void image.decode().then(ready, ready); };
-        image.onerror = ready;
-        request.signal.addEventListener("abort", aborted, { once: true });
-        image.src = `/api/artwork/${encodeURIComponent(item.artwork_id)}/image?variant=${variant}`;
-      }),
-    ));
     try {
-      const response = await fetch(`/api/play/items/${encodeURIComponent(item._id)}/reveal`, {
-        method: "POST",
-        signal: request.signal,
-      });
-      const body = await response.json() as { itemId?: string; revealed?: boolean; error?: string };
-      if (!response.ok || body.itemId !== item._id || body.revealed !== true) {
-        throw new Error(body.error ?? "This offer could not be revealed.");
-      }
-      await imagesReady;
-      if (!offerRevealMounted.current || request.signal.aborted) return false;
-      const tier = getOfferRevealTier(item, offerRevealThresholds);
-      const effect = transition ?? tier;
-      setRevealedOfferIds((current) => new Set([...current, item._id]));
-      if (["loot", "collection", "inventory"].includes(offerRevealSection.current) && revealContext === offerRevealContext.current) {
-        setOfferRevealTransitions((current) => ({ ...current, [item._id]: effect }));
-        const previousTimer = offerRevealTimers.current.get(item._id);
-        if (previousTimer) window.clearTimeout(previousTimer);
-        offerRevealTimers.current.set(item._id, window.setTimeout(() => {
-          offerRevealTimers.current.delete(item._id);
-          setOfferRevealTransitions((current) => {
-            const next = { ...current };
-            delete next[item._id];
-            return next;
+      const results = await Promise.all(requests.map(async ({ item, request }) => {
+        try {
+          const imagesReady = Promise.all((["thumb", "card"] as const).map((variant) =>
+            new Promise<void>((resolve) => {
+              const image = new window.Image();
+              const timer = window.setTimeout(ready, 1800);
+              function ready() {
+                window.clearTimeout(timer);
+                image.onload = null;
+                image.onerror = null;
+                request.signal.removeEventListener("abort", aborted);
+                resolve();
+              }
+              function aborted() { image.src = ""; ready(); }
+              image.onload = () => { void image.decode().then(ready, ready); };
+              image.onerror = ready;
+              request.signal.addEventListener("abort", aborted, { once: true });
+              image.src = getArtworkImageUrl(item.artwork_id, variant, item.artwork.image);
+            }),
+          ));
+          const response = await fetch(`/api/play/items/${encodeURIComponent(item._id)}/reveal`, {
+            method: "POST",
+            signal: request.signal,
           });
-        }, effect === "burst" ? 1800 : tier === 3 ? 2200 : tier === 2 ? 1200 : 600));
+          const body = await response.json() as { itemId?: string; revealed?: boolean; error?: string };
+          if (!response.ok || body.itemId !== item._id || body.revealed !== true) {
+            throw new Error(body.error ?? "This offer could not be revealed.");
+          }
+          await imagesReady;
+          return { item, request, error: null };
+        } catch (cause) {
+          return {
+            item, request,
+            error: cause instanceof Error ? cause.message : "This offer could not be revealed.",
+          };
+        }
+      }));
+      if (!offerRevealMounted.current) return false;
+      const completed = results.filter(({ request }) => !request.signal.aborted);
+      const error = completed.find((result) => result.error)?.error;
+      if (error) {
+        setOfferRevealError(error);
+        setError(error);
+      }
+      const revealed = completed.filter((result) => result.error === null);
+      if (revealed.length === 0) return false;
+
+      setRevealedOfferIds((current) => new Set([...current, ...revealed.map(({ item }) => item._id)]));
+      if (["loot", "collection", "inventory"].includes(offerRevealSection.current) &&
+        revealContext === offerRevealContext.current) {
+        const transitions = revealed.map(({ item }) => {
+          const tier = getOfferRevealTier(item, offerRevealThresholds);
+          const effect: OfferRevealTransition = burst && tier === 3 ? "burst" : tier;
+          const duration = effect === "burst" ? 1800 : tier === 3 ? 2200 : tier === 2 ? 1200 : 600;
+          return { id: item._id, effect, duration };
+        });
+        setOfferRevealTransitions((current) => ({
+          ...current,
+          ...Object.fromEntries(transitions.map(({ id, effect }) => [id, effect])),
+        }));
+        for (const duration of new Set(transitions.map((transition) => transition.duration))) {
+          const ids = transitions.filter((transition) => transition.duration === duration).map(({ id }) => id);
+          const timer = window.setTimeout(() => {
+            ids.forEach((id) => offerRevealTimers.current.delete(id));
+            setOfferRevealTransitions((current) => {
+              const next = { ...current };
+              ids.forEach((id) => { delete next[id]; });
+              return next;
+            });
+          }, duration);
+          ids.forEach((id) => offerRevealTimers.current.set(id, timer));
+        }
       }
       router.refresh();
-      return true;
-    } catch (cause) {
-      if (offerRevealMounted.current && !request.signal.aborted) {
-        const message = cause instanceof Error ? cause.message : "This offer could not be revealed.";
-        setOfferRevealError(message);
-        setError(message);
-      }
-      return false;
+      return revealed.length === itemsToReveal.length;
     } finally {
-      request.abort();
-      offerRevealRequests.current.delete(item._id);
+      requests.forEach(({ item, request }) => {
+        request.abort();
+        offerRevealRequests.current.delete(item._id);
+      });
       if (offerRevealMounted.current) setPendingOfferReveals((current) => {
         const next = new Set(current);
-        next.delete(item._id);
+        requests.forEach(({ item }) => next.delete(item._id));
         return next;
       });
     }
@@ -1218,7 +1289,7 @@ export default function GameDashboard({
       setOfferRevealError("");
       setOfferRevealItem(item);
     } else {
-      void revealOffer(item);
+      void revealOffers([item]);
     }
   }
 
@@ -1231,7 +1302,7 @@ export default function GameDashboard({
         setOfferRevealItem(item);
         return;
       }
-      const revealed = await revealOffer(item);
+      const revealed = await revealOffers([item]);
       if (!offerRevealMounted.current || context !== offerRevealContext.current) return;
       if (!revealed) {
         offerRevealQueue.current = [];
@@ -1250,9 +1321,7 @@ export default function GameDashboard({
     setRevealingOfferBatch(true);
     if (unrevealedItems.filter((item) => getOfferRevealTier(item, offerRevealThresholds) === 3).length > 1) {
       const context = offerRevealContext.current;
-      await Promise.all(unrevealedItems.map((item) => revealOffer(
-        item, getOfferRevealTier(item, offerRevealThresholds) === 3 ? "burst" : undefined,
-      )));
+      await revealOffers(unrevealedItems, true);
       if (offerRevealMounted.current && context === offerRevealContext.current) setRevealingOfferBatch(false);
       return;
     }
@@ -1262,7 +1331,7 @@ export default function GameDashboard({
 
   async function confirmOfferReveal() {
     const context = offerRevealContext.current;
-    if (offerRevealItem && await revealOffer(offerRevealItem) && offerRevealMounted.current &&
+    if (offerRevealItem && await revealOffers([offerRevealItem]) && offerRevealMounted.current &&
       context === offerRevealContext.current) {
       setOfferRevealItem(null);
       if (revealingOfferBatch) void revealQueuedOffers();
@@ -1921,17 +1990,31 @@ export default function GameDashboard({
   }
 
   function saveViewSettings(settings: Partial<PlayerViewSettings>) {
-    void fetch("/api/play/view-settings", {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(settings),
-    }).then(async (response) => {
-      if (response.ok) return;
-      const body = (await response.json().catch(() => ({}))) as {
-        error?: string;
-      };
-      setError(body.error ?? "Your view settings could not be saved.");
+    viewSettingsSaveQueue.current = viewSettingsSaveQueue.current.then(async () => {
+      try {
+        const response = await fetch("/api/play/view-settings", {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(settings),
+          keepalive: true,
+        });
+        if (response.ok) return;
+        const body = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        setError(body.error ?? "Your view settings could not be saved.");
+      } catch {
+        setError("Your view settings could not be saved.");
+      }
     });
+  }
+
+  function changeCratePurchaseCount(count: number) {
+    if (pending || crateOpening !== null) return;
+    const next = Math.min(MAX_CRATE_PURCHASE_COUNT, Math.max(1, count));
+    if (next === cratePurchaseCount) return;
+    setCratePurchaseCount(next);
+    saveViewSettings({ cratePurchaseCount: next });
   }
 
   function purchaseAndDonateAllLoot() {
@@ -2337,7 +2420,7 @@ export default function GameDashboard({
     item: HydratedGameItem,
     action: "sell" | "donate",
   ) {
-    if (action === "sell" && !revealedOfferIds.has(item._id) && !canQuickSellItem(item, offerRevealThresholds)) {
+    if (enableReveals && action === "sell" && !revealedOfferIds.has(item._id) && !canQuickSellItem(item, offerRevealThresholds)) {
       setError("Reveal this item before selling it.");
       return;
     }
@@ -2378,7 +2461,6 @@ export default function GameDashboard({
     setNotice("");
     setRevealedLootIds([]);
     setCrateOpening({ crateId: crate.id, phase: "opening" });
-    const animationStarted = Date.now();
     try {
       const response = await fetch(endpoint, {
         method: "POST",
@@ -2394,22 +2476,15 @@ export default function GameDashboard({
         itemCount?: number;
         item_ids?: string[];
         message?: string;
+        dailyCrate?: DailyCrateState;
       };
-      const remainingAnimation = Math.max(
-        0,
-        1500 - (Date.now() - animationStarted),
-      );
-      if (remainingAnimation > 0) {
-        await new Promise((resolve) =>
-          window.setTimeout(resolve, remainingAnimation),
-        );
-      }
       if (!response.ok || body.itemCount === undefined) {
         throw new Error(body.error ?? "The crate could not be opened.");
       }
       const message =
         body.message ?? `${body.itemCount} artworks were added to your loot.`;
       setCrateOpening({ crateId: crate.id, phase: "opened" });
+      if (body.dailyCrate) setDailyCrateUpdate(body.dailyCrate);
       setNotice(message);
       setRevealedLootIds(body.item_ids ?? []);
       setLootCategory("unclaimed");
@@ -3241,7 +3316,7 @@ export default function GameDashboard({
     const revealIndex = auction
       ? -1
       : revealedLootIds.indexOf(item._id);
-    const arriving = revealIndex >= 0 && !revealedOfferIds.has(item._id) && !(unrevealed && tier === 3);
+    const arriving = enableReveals && revealIndex >= 0 && !revealedOfferIds.has(item._id) && !(unrevealed && tier === 3);
     const label = unrevealed ? `Select unrevealed level ${tier} offer`
       : `Preview ${item.artwork.title} by ${item.artwork.artist}`;
     return (
@@ -3272,7 +3347,7 @@ export default function GameDashboard({
             : undefined
         }
         tier={tier}
-        transitionTier={offerRevealTransitions[item._id]}
+        transitionTier={enableReveals ? offerRevealTransitions[item._id] : undefined}
         title={unrevealed ? label : `${item.artwork.title} by ${item.artwork.artist}`}
         type="button"
         unrevealed={unrevealed}
@@ -3312,7 +3387,7 @@ export default function GameDashboard({
         }}
         tier={tier}
         title={unrevealed ? label : `${item.artwork.title} by ${item.artwork.artist}`}
-        transitionTier={offerRevealTransitions[item._id]}
+        transitionTier={enableReveals ? offerRevealTransitions[item._id] : undefined}
         type="button"
         unrevealed={unrevealed}
       >
@@ -3379,7 +3454,7 @@ export default function GameDashboard({
 
   return (
     <main className="legacy-game">
-      {offerRevealItem ? (
+      {enableReveals && offerRevealItem ? (
         <OfferRevealDialog
           displayed={displayed}
           error={offerRevealError}
@@ -3520,24 +3595,20 @@ export default function GameDashboard({
           <section className="random-drop">
             <div className="loot-dashboard">
               <section className="crate-store-panel">
-                <label className="crate-purchase-count">
-                  <span>Crates to buy</span>
-                  <input
-                    disabled={pending || crateOpening !== null}
-                    max={20}
-                    min={1}
-                    onChange={(event) => {
-                      const count = event.currentTarget.valueAsNumber;
-                      setCratePurchaseCount(
-                        Number.isFinite(count)
-                          ? Math.min(20, Math.max(1, Math.floor(count)))
-                          : 1,
-                      );
-                    }}
-                    type="number"
-                    value={cratePurchaseCount}
-                  />
-                </label>
+                <div aria-label="Crate quantity" className="crate-purchase-count" role="group">
+                  {CRATE_PURCHASE_COUNTS.map((count) => (
+                    <button
+                      aria-label={`${count} ${count === 1 ? "crate" : "crates"} per purchase`}
+                      aria-pressed={cratePurchaseCount === count}
+                      disabled={pending || crateOpening !== null}
+                      key={count}
+                      onClick={() => changeCratePurchaseCount(count)}
+                      type="button"
+                    >
+                      {count}
+                    </button>
+                  ))}
+                </div>
                 <div className="crate-store-grid">
                   <button
                     className="crate-store-card daily"
@@ -3555,11 +3626,10 @@ export default function GameDashboard({
                           name: "Daily crate",
                           quality: "daily",
                           description:
-                            "A complimentary collection assembled once per cooldown.",
+                            "A complimentary collection refreshed at noon in your saved timezone.",
                           highlights: [
                             `${dailyDropCount} artworks`,
                             "Free",
-                            "Refreshes automatically",
                           ],
                           itemCount: dailyDropCount,
                           cost: 0,
@@ -3570,16 +3640,21 @@ export default function GameDashboard({
                     }
                     type="button"
                   >
-                    <CrateCardArtwork quality="daily" />
-                    <span className="crate-card-copy">
-                      <strong>Daily crate</strong>
-                    </span>
-                    <strong className="crate-card-cost">
-                      {dropReady ? "Free" : countdown(nextDrop - now)}
-                    </strong>
+                    <CrateCardContent
+                      cost={!dailyCrateState.timeZone ? "..." : dropReady ? "Free" : "Claimed"}
+                      highlights={[]}
+                      itemCount={dailyDropCount}
+                      name="Daily crate"
+                      phase={
+                        crateOpening?.crateId === "daily"
+                          ? crateOpening.phase
+                          : undefined
+                      }
+                      quality="daily"
+                      status={!dailyCrateState.timeZone ? "Setting timezone" : dropReady ? "Ready" : "Resets at noon"}
+                    />
                   </button>
-                  {crateOffers.map((crate) => {
-                    const levelLocked = player.level < crate.levelRequirement;
+                  {getVisibleCrateOffers(crateOffers, player.level).map((crate) => {
                     const totalCost = crate.cost * cratePurchaseCount;
                     const cannotAfford = player.bankBalance < totalCost;
                     return (
@@ -3594,7 +3669,6 @@ export default function GameDashboard({
                         disabled={
                           pending ||
                           crateOpening !== null ||
-                          levelLocked ||
                           cannotAfford
                         }
                         key={crate.id}
@@ -3606,36 +3680,29 @@ export default function GameDashboard({
                           )
                         }
                         title={
-                          levelLocked
-                            ? `Requires level ${crate.levelRequirement}`
-                            : cannotAfford
-                              ? "Not enough money"
-                              : `Open ${crate.name}`
+                          cannotAfford
+                            ? "Not enough money"
+                            : `Open ${crate.name}`
                         }
                         type="button"
                       >
-                        <CrateCardArtwork quality={crate.quality} />
-                        <span className="crate-card-copy">
-                          <strong>
-                            {crate.name} × {cratePurchaseCount}
-                          </strong>
-                        </span>
-                          <strong className="crate-card-cost">
-                            ${totalCost.toLocaleString()}
-                          </strong>
-                          <small>
-                            {crateOpening?.crateId === crate.id
-                              ? crateOpening.phase === "opening"
-                                ? "Opening..."
-                                : crateOpening.phase === "opened"
-                                  ? "Opened!"
-                                  : "Failed"
-                              : levelLocked
-                                ? `Level ${crate.levelRequirement}`
-                                : `${(
-                                    crate.itemCount * cratePurchaseCount
-                                  ).toLocaleString()} artworks`}
-                          </small>
+                        <CrateCardContent
+                          cost={`$${totalCost.toLocaleString()}`}
+                          highlights={crate.highlights}
+                          itemCount={crate.itemCount}
+                          levelRequirement={crate.levelRequirement}
+                          name={crate.name}
+                          phase={
+                            crateOpening?.crateId === crate.id
+                              ? crateOpening.phase
+                              : undefined
+                          }
+                          quality={crate.quality}
+                          quantity={cratePurchaseCount}
+                          status={
+                            cannotAfford ? "Not enough money" : "Total price"
+                          }
+                        />
                       </button>
                     );
                   })}
@@ -3912,7 +3979,7 @@ export default function GameDashboard({
                   ) : selectedLootItem ? (
                     <div
                       aria-live="polite"
-                      className={`collection-preview loot-preview ${offerRevealTransitions[selectedLootItem._id]
+                      className={`collection-preview loot-preview ${enableReveals && offerRevealTransitions[selectedLootItem._id]
                         ? offerRevealStyles[`preview${offerRevealTransitions[selectedLootItem._id]}`] : ""}`}
                       key={selectedLootItem._id}
                     >
@@ -4239,7 +4306,7 @@ export default function GameDashboard({
                 renderUnrevealedPreview(selectedCollectionItem)
               ) : selectedCollectionItem ? (
                 <section
-                  className={`collection-preview ${offerRevealTransitions[selectedCollectionItem._id]
+                  className={`collection-preview ${enableReveals && offerRevealTransitions[selectedCollectionItem._id]
                     ? offerRevealStyles[`preview${offerRevealTransitions[selectedCollectionItem._id]}`] : ""}`}
                   aria-live="polite"
                   key={selectedCollectionItem._id}
@@ -4645,6 +4712,7 @@ export default function GameDashboard({
                             adjustment={getArtworkThumbnailAdjustment(archive.artwork)}
                             alt=""
                             artworkId={archive.artwork_id}
+                            image={archive.artwork.image}
                             size={82}
                           >
                             <span
@@ -7439,26 +7507,68 @@ function getItemCardKey(item: HydratedGameItem): string {
   return `${item._id}:${JSON.stringify(item)}`;
 }
 
-function CrateCardArtwork({
+function CrateCardContent({
+  cost,
+  highlights,
+  itemCount,
+  levelRequirement = 0,
+  name,
+  phase,
   quality,
+  quantity,
+  status,
 }: {
+  cost: string;
+  highlights: string[];
+  itemCount: number;
+  levelRequirement?: number;
+  name: string;
+  phase?: "opening" | "opened" | "error";
   quality: LootCrateOffer["quality"];
+  quantity?: number;
+  status: string;
 }) {
   return (
-    <span aria-hidden="true" className="crate-card-artwork">
-      <span className="crate-card-glow" />
-      <span className="crate-card-lid" />
-      <span className="crate-card-box">
-        <i className={quality === "daily" ? "fa fa-gift" : "fa fa-cube"} />
+    <>
+      {quality === "ultimate" ? (
+        <span aria-hidden="true" className="crate-card-shadow" />
+      ) : null}
+      {quality === "foil" || quality === "unlocked" ? (
+        <span aria-hidden="true" className="crate-card-shine thumbnail-foil-shine" />
+      ) : null}
+      <span className="crate-card-copy">
+        <strong>{name}</strong>
+        {quantity !== undefined ? (
+          <small>× {quantity.toLocaleString()}</small>
+        ) : null}
       </span>
-    </span>
+      <span className="crate-card-price">
+        <strong className="crate-card-cost">{cost}</strong>
+        <small role={phase ? "status" : undefined}>
+          {phase === "opening"
+            ? "Opening..."
+            : phase === "opened"
+              ? "Opened!"
+              : phase === "error"
+                ? "Failed"
+                : status}
+        </small>
+      </span>
+      <span className="crate-card-stats">
+        {levelRequirement > 0 ? <span>Level {levelRequirement}+</span> : null}
+        {highlights
+          .filter((highlight) => highlight !== `${itemCount} artworks`)
+          .map((highlight) => {
+            const rarity = highlight
+              .match(/\b(common|uncommon|rare|legendary|masterpiece)\b/i)?.[1]
+              .toLowerCase();
+            return (
+              <span className={rarity ? `rarity-text ${rarity}` : undefined} key={highlight}>
+                {highlight}
+              </span>
+            );
+          })}
+      </span>
+    </>
   );
-}
-
-function countdown(milliseconds: number): string {
-  const totalSeconds = Math.max(0, Math.ceil(milliseconds / 1000));
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  return `${hours}h ${minutes}m ${seconds}s`;
 }

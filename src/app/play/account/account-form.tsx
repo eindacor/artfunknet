@@ -6,12 +6,14 @@ import type { GalleryViewMode } from "@/server/player-view-settings";
 
 export default function AccountForm({
   email,
+  enableReveals,
   hasPassword,
   patreon,
   preferredGalleryView,
   screenName,
 }: {
   email: string;
+  enableReveals: boolean;
   hasPassword: boolean;
   patreon: {
     checkedAt: string | null;
@@ -100,6 +102,7 @@ export default function AccountForm({
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         galleryView: form.get("galleryView"),
+        enableReveals: form.has("enableReveals"),
       }),
     });
     const result = (await response.json()) as { error?: string };
@@ -231,6 +234,20 @@ export default function AccountForm({
               <option value="list">List</option>
             </select>
           </label>
+          <label className="flex items-center gap-3">
+            <input
+              defaultChecked={enableReveals}
+              disabled={preferencesBusy}
+              name="enableReveals"
+              type="checkbox"
+            />
+            <span className="font-semibold">Enable reveals</span>
+          </label>
+          <p className="text-sm text-[var(--muted)]">
+            When disabled, new and existing unrevealed items are revealed
+            immediately without reveal animations. Already-revealed items stay
+            revealed if you turn this back on.
+          </p>
           {preferencesMessage ? (
             <p aria-live="polite" className="text-sm">
               {preferencesMessage}

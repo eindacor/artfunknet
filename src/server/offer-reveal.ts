@@ -74,8 +74,10 @@ export function getOfferRevealTier(
 export function getInitialItemRevealState(
   item: RevealItem,
   thresholds: OfferRevealThresholds = DEFAULT_OFFER_REVEAL_THRESHOLDS,
+  enableReveals = true,
 ): boolean {
   return (
+    !enableReveals ||
     !(
       ["unclaimed", "won", "for_sale"].includes(item.status ?? "") ||
       (item.status === "auctioned" && item.source === "private auction")

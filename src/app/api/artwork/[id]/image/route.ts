@@ -1,8 +1,13 @@
+import { createHash } from "node:crypto";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { NextResponse } from "next/server";
 
 import seedImage from "@/components/seed_image.png";
+import {
+  ARTWORK_IMAGE_VARIANT_FALLBACKS,
+  getArtworkImageVersion,
+} from "@/server/artwork-image-url";
 import {
   getArtworkObjectPublicUrl,
   readArtworkObject,
@@ -44,7 +49,7 @@ export async function GET(
       return new NextResponse(seedBuffer, {
         headers: {
           "content-type": "image/png",
-          "cache-control": "public, max-age=3600",
+          "cache-control": "no-store",
           "x-artwork-image-variant": "seed",
         },
       });
@@ -58,26 +63,45 @@ export async function GET(
     }
   }
 
+  const url = new URL(request.url);
+  const version = getArtworkImageVersion(artwork?.image, requestedVariant);
+  if (version && url.searchParams.has("v") && url.searchParams.get("v") !== version) {
+    url.searchParams.set("v", version);
+    return NextResponse.redirect(url, { status: 307, headers: { "cache-control": "no-store" } });
+  }
+  const headers: Record<string, string> = {
+    "cache-control": version && url.searchParams.get("v") === version
+      ? "public, max-age=31536000, immutable"
+      : "public, max-age=0, must-revalidate",
+    "x-artwork-image-variant": image.variant,
+  };
+  if (version) {
+    headers.etag = `"${version}"`;
+    if (matchesETag(request, headers.etag)) {
+      return new NextResponse(null, { status: 304, headers });
+    }
+  }
+
   const publicUrl = getArtworkObjectPublicUrl(image.storage);
   // WebGL textures must stay same-origin when the CDN has no CORS policy.
-  if (publicUrl && new URL(request.url).searchParams.get("texture") !== "1") {
+  if (publicUrl && url.searchParams.get("texture") !== "1") {
     return NextResponse.redirect(publicUrl, {
       status: 307,
-      headers: {
-        "cache-control": "no-store",
-        "x-artwork-image-variant": image.variant,
-      },
+      headers,
     });
   }
 
   try {
     const bytes = await readArtworkObject(image.storage);
+    headers.etag ??= `"${createHash("sha256").update(bytes).digest("hex")}"`;
+    if (matchesETag(request, headers.etag)) {
+      return new NextResponse(null, { status: 304, headers });
+    }
 
     return new NextResponse(new Uint8Array(bytes), {
       headers: {
+        ...headers,
         "content-type": image.contentType,
-        "cache-control": "no-store",
-        "x-artwork-image-variant": image.variant,
       },
     });
   } catch (error) {
@@ -89,9 +113,15 @@ export async function GET(
     });
     return NextResponse.json(
       { error: "Artwork image was not found." },
-      { status: 404 },
+      { status: 404, headers: { "cache-control": "no-store" } },
     );
   }
+}
+
+function matchesETag(request: Request, etag: string): boolean {
+  return (request.headers.get("if-none-match") ?? "").split(",").some((value) =>
+    value.trim() === "*" || value.trim().replace(/^W\//, "") === etag,
+  );
 }
 
 function getRequestedVariant(
@@ -110,13 +140,7 @@ function resolveImageVariant(
   variant: "full" | "card" | "thumb" | "legacy";
 } | null {
   if ("variants" in image) {
-    const fallbackOrder =
-      requested === "thumb"
-        ? ["thumb", "card", "full"]
-        : requested === "card"
-          ? ["card", "full", "thumb"]
-          : ["full", "card", "thumb"];
-    for (const variant of fallbackOrder) {
+    for (const variant of ARTWORK_IMAGE_VARIANT_FALLBACKS[requested]) {
       const resolved =
         image.variants[variant as keyof ArtworkImageRecord["variants"]];
       if (resolved) {

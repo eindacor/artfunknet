@@ -127,6 +127,7 @@ export default function ForgeryDialog({
                 adjustment={getArtworkThumbnailAdjustment(selectedArchive.artwork)}
                 alt={`${selectedArchive.artwork.title} by ${selectedArchive.artwork.artist}`}
                 artworkId={selectedArchive.artwork_id}
+                image={selectedArchive.artwork.image}
                 className="reroll-artwork-thumbnail"
               />
               <div>
@@ -189,6 +190,7 @@ export default function ForgeryDialog({
                     adjustment={getArtworkThumbnailAdjustment(archive.artwork)}
                     alt=""
                     artworkId={archive.artwork_id}
+                    image={archive.artwork.image}
                     size={54}
                   />
                   <span>

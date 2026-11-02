@@ -147,6 +147,7 @@ export default function ArtStyleCropEditor({
                 adjustment={getArtworkThumbnailAdjustment(item.artwork)}
                 alt=""
                 artworkId={item.artwork_id}
+                image={item.artwork.image}
                 size={52}
                 variant="thumb"
               />

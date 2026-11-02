@@ -61,6 +61,7 @@ export default function ArchiveEntryDialog({
         <ArtworkThumbnail
           alt={`${archive.artwork.title} by ${archive.artwork.artist}`}
           artworkId={archive.artwork_id}
+          image={archive.artwork.image}
           className="archive-entry-dialog-artwork"
           size={480}
         />

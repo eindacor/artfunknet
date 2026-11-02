@@ -18,6 +18,8 @@ test("player view settings preserve valid saved choices", () => {
       inventorySort: "condition",
       offersSort: "drop-chance",
       offersSortDirection: "asc",
+      cratePurchaseCount: 7,
+      enableReveals: false,
       bulkSaleProtections: {
         keepArtStyles: true,
         keepRares: true,
@@ -33,6 +35,8 @@ test("player view settings preserve valid saved choices", () => {
       inventorySort: "condition",
       offersSort: "drop-chance",
       offersSortDirection: "asc",
+      cratePurchaseCount: 7,
+      enableReveals: false,
       bulkSaleProtections: {
         keepArtStyles: true,
         keepRares: true,
@@ -81,4 +85,47 @@ test("legacy view settings receive Offers defaults without losing saved bulk cho
   assert.equal(settings.inventorySort, "value-low");
   assert.equal(settings.bulkSaleProtections.keepRares, false);
   assert.equal(settings.bulkSaleProtections.keepArtStyles, false);
+  assert.equal(settings.cratePurchaseCount, 1);
+});
+
+test("preferred crate counts preserve whole-number choices within purchase limits", () => {
+  for (const cratePurchaseCount of [1, 7, 20]) {
+    assert.equal(
+      getPlayerViewSettings({ cratePurchaseCount }).cratePurchaseCount,
+      cratePurchaseCount,
+    );
+  }
+});
+
+test("invalid preferred crate counts fall back without resetting other options", () => {
+  for (const cratePurchaseCount of [0, -1, 21, 1.5, "7", null, Infinity, NaN]) {
+    const settings = getPlayerViewSettings({
+      cratePurchaseCount,
+      inventorySort: "value-low",
+      bulkSaleProtections: { keepRares: false },
+    });
+
+    assert.equal(settings.cratePurchaseCount, 1);
+    assert.equal(settings.inventorySort, "value-low");
+    assert.equal(settings.bulkSaleProtections.keepRares, false);
+  }
+});
+
+test("reveals remain enabled for legacy or malformed preferences", () => {
+  for (const enableReveals of [undefined, null, "false", 0, [], {}]) {
+    assert.equal(getPlayerViewSettings({ enableReveals }).enableReveals, true);
+  }
+});
+
+test("disabling reveals preserves other saved player preferences", () => {
+  const settings = getPlayerViewSettings({
+    enableReveals: false,
+    cratePurchaseCount: 7,
+    galleryView: "list",
+    bulkSaleProtections: { keepRares: false },
+  });
+  assert.equal(settings.enableReveals, false);
+  assert.equal(settings.cratePurchaseCount, 7);
+  assert.equal(settings.galleryView, "list");
+  assert.equal(settings.bulkSaleProtections.keepRares, false);
 });

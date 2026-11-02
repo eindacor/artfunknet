@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getPlayerAuctionEscrow } from "@/server/auction-gameplay";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
+import { getSupporterPromptState } from "@/server/supporter-prompt";
 import {
   resolvePlayerSupporterStatus,
   type SupporterStatusPlayer,
@@ -12,6 +13,7 @@ type PlayerAccount = SupporterStatusPlayer & {
   profile: {
     bank_balance: number;
     lottery_tickets: number;
+    supporter_prompt_acknowledged_at?: Date | string | null;
   };
 };
 
@@ -25,8 +27,10 @@ export async function GET() {
       { _id: auth.session.playerId, active: true },
       {
         projection: {
+          active: 1,
           "profile.bank_balance": 1,
           "profile.lottery_tickets": 1,
+          "profile.supporter_prompt_acknowledged_at": 1,
           supporter: 1,
           "patreon.is_supporter": 1,
           "patreon.requires_reauthorization": 1,
@@ -50,5 +54,6 @@ export async function GET() {
     bankBalance: player.profile.bank_balance,
     lotteryTickets: player.profile.lottery_tickets,
     supporterStatus: resolvePlayerSupporterStatus(player),
+    supporterPrompt: getSupporterPromptState(player),
   });
 }

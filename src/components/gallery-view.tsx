@@ -13,6 +13,7 @@ import {
   type GalleryFinishes,
 } from "@/server/gallery-finishes";
 import type { HydratedGameItem } from "@/server/item-artwork";
+import { getArtworkImageUrl } from "@/server/artwork-image-url";
 
 export default function GalleryView({
   disabled = false,
@@ -60,6 +61,7 @@ export default function GalleryView({
     items.map((item) => ({
       id: item._id,
       artworkId: item.artwork_id,
+      image: item.artwork.image,
       width: item.artwork.width,
       height: item.artwork.height,
       title: item.artwork.title,
@@ -265,7 +267,7 @@ export default function GalleryView({
               alt={activeItem.artwork.title}
               fill
               sizes="(max-width: 700px) 80vw, 900px"
-              src={`/api/artwork/${encodeURIComponent(activeItem.artwork_id)}/image?variant=card`}
+              src={getArtworkImageUrl(activeItem.artwork_id, "card", activeItem.artwork.image)}
               unoptimized
             />
           </button>

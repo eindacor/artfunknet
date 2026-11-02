@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { ArtworkImageMetadata } from "./artwork-image-url.ts";
 import { assignItemSerialNumbers } from "./item-serials.ts";
 
 import type { Db } from "mongodb";
@@ -88,6 +89,7 @@ export type Artwork = {
   height: number;
   width: number;
   active: boolean;
+  image?: ArtworkImageMetadata;
   effect_id?: string;
   serial_counter?: number;
   art_style_adjustments?: Record<string, ArtworkArtStyleAdjustment>;
@@ -526,10 +528,17 @@ export async function generateDailyDrop(
   if (attributes.length === 0) {
     throw new Error("Artwork attributes have not been seeded.");
   }
-  const [rendererSettings, playerSupporterStatus, settings] = await Promise.all([
+  const [rendererSettings, playerSupporterStatus, settings, player] = await Promise.all([
     getCardRendererSettings(database),
     getPlayerSupporterStatus(database, playerId),
     getGameplaySettings(database),
+    database.collection<{
+      _id: string;
+      profile?: { view_settings?: { enableReveals?: boolean } };
+    }>("players").findOne(
+      { _id: playerId },
+      { projection: { "profile.view_settings.enableReveals": 1 } },
+    ),
   ]);
   const cardStyleWeights = getSupporterAdjustedCardStyleWeights(
     generationMap.cardStyles,
@@ -661,6 +670,7 @@ export async function generateDailyDrop(
     });
     item.revealed = getInitialItemRevealState(
       { ...item, artwork }, settings.active.offerRevealThresholds,
+      player?.profile?.view_settings?.enableReveals !== false,
     );
     items.push(item);
   }

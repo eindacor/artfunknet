@@ -179,6 +179,13 @@ Configure `AWS_REGION`, `ARTWORK_S3_BUCKET`, and `ARTWORK_CDN_BASE_URL` in
 `.env.local`. AWS credentials are loaded through the standard AWS SDK
 credential chain and must not be added to the repository.
 
+Artwork thumbnail, card, and gallery URLs use each processed variant's checksum
+as a content version. Matching versioned images and CDN redirects are cached by
+the browser for one year, including local and same-origin WebGL image delivery.
+Unversioned and legacy images revalidate with ETags; placeholders and missing
+objects are not cached. Replacing an artwork image changes its content URL
+automatically. No database migration or browser-side image database is needed.
+
 For local development, enable the built-in mock:
 
 ```env
@@ -311,13 +318,28 @@ Deactivated players cannot use gameplay APIs or render the player interface.
 Their galleries are removed from Explore metadata and direct gallery links
 return unavailable.
 
+Non-supporters see a Patreon membership reminder once per UTC calendar month,
+after the tutorial and other open dialogs. Dismissing it records
+`profile.supporter_prompt_acknowledged_at`; calendar-month comparison makes a
+scheduled account-reset job unnecessary. Active Patreon memberships and resolved
+supporter statuses, including admin overrides, are excluded.
+
 The basic gameplay loop is active:
 
-- Daily drop cooldown, item count, foil, unlocked, Mint, and random card-style
+- Masterpiece effect flavor text is backfilled with distinct, short, original
+  art-critic praise during seeding and production/local migration. Missing text
+  and old description placeholders are replaced; authored quotes are preserved.
+  Legendary and masterpiece quotes share the existing art-style flavor areas.
+- Daily crates refresh at noon in the account's saved, browser-detected timezone,
+  including daylight-saving changes. `profile.daily_crate` stores the timezone
+  and last claim; no rolling cooldown or next-drop timestamp is stored.
+  The production migration moves legacy `profile.last_drop` history into this
+  metadata and removes obsolete cooldown settings.
+- Daily drop item count, foil, unlocked, Mint, and random card-style
   probabilities, Mint value multiplier, and gallery payout frequency are
   persisted in MongoDB and editable for both Actual and Debug profiles at
   <http://localhost:3000/admin>.
-- Each drop creates six `unclaimed` items using the original level-gated rarity,
+- Drops create `unclaimed` items using the original level-gated rarity,
   artwork weighting, condition, attribute, foil, unlocked, misprint, and value
   calculations.
 - Posted card drop odds use a standardized maximum-player-level baseline from

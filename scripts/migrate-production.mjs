@@ -3,11 +3,13 @@ import { MongoClient, ServerApiVersion } from "mongodb";
 import {
   migrateArtworkEffects,
   migrateD3CardRendererId,
+  migrateDailyCrateClaims,
   migrateHallOfFameAndPlaythroughStorage,
   migrateItemDropChances,
   migrateOriginalItemDropChances,
   migrateItemSerialNumbers,
   migrateItemRevealStates,
+  migrateMasterpieceFlavorTexts,
   migratePlayerOperationHistory,
   migratePlayerTutorialFlag,
 } from "./database-migrations.mjs";
@@ -33,8 +35,12 @@ try {
   await migrateD3CardRendererId(client.db(databaseName));
   await migratePlayerOperationHistory(client.db(databaseName));
   await migratePlayerTutorialFlag(client.db(databaseName));
+  const dailyCrates = await migrateDailyCrateClaims(client.db(databaseName));
+  console.log(`Migrated daily crate claim history for ${dailyCrates.playersUpdated} players and removed obsolete cooldown settings.`);
   await migrateHallOfFameAndPlaythroughStorage(client.db(databaseName));
   await migrateArtworkEffects(client.db(databaseName));
+  const masterpieceFlavors = await migrateMasterpieceFlavorTexts(client.db(databaseName));
+  console.log(`Added critic-style flavor text to ${masterpieceFlavors.updated} masterpiece effects.`);
   const dropChances = await migrateItemDropChances(client.db(databaseName));
   console.log(`Updated drop chances for ${dropChances.updated} items.`);
   const originalDropChances = await migrateOriginalItemDropChances(client.db(databaseName));

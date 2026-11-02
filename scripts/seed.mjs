@@ -15,6 +15,7 @@ import {
 } from "./legendary-attribute-data.mjs";
 import {
   migrateArtworkEffects,
+  migrateMasterpieceFlavorTexts,
   migrateHallOfFameAndPlaythroughStorage,
 } from "./database-migrations.mjs";
 
@@ -68,6 +69,9 @@ try {
   );
   await runSeedStep("artwork_effects.migrate", () =>
     migrateArtworkEffects(database),
+  );
+  await runSeedStep("masterpiece_flavor_texts.migrate", () =>
+    migrateMasterpieceFlavorTexts(database),
   );
   const adminSeeded = await runSeedStep("admin.seed", () =>
     seedAdmin(database),
@@ -470,7 +474,7 @@ async function seedPlayer(database) {
           active: true,
           bank_balance: 100_000,
           card_style_consumables: {},
-          last_drop: yesterdayIso,
+          daily_crate: { time_zone: null, last_claimed_at: null },
           level: 0,
           xp: 0,
           lottery_tickets: 1,
@@ -836,8 +840,6 @@ async function seedGameplaySettings(database) {
     Object.keys(actualCardStyleWeights).map((id) => [id, 1]),
   );
   const actual = {
-    daily_drop_cooldown_minutes:
-      legacy.daily_drop_cooldown_minutes ?? 1,
     daily_drop_count: legacy.daily_drop_count ?? 50,
     crate_value_scalar: 1.8,
     standard_crate_cost_scalar: 1,
@@ -883,7 +885,6 @@ async function seedGameplaySettings(database) {
     card_style_weights: actualCardStyleWeights,
   };
   const debug = {
-    daily_drop_cooldown_minutes: 1,
     daily_drop_count: 20,
     crate_value_scalar: 1,
     standard_crate_cost_scalar: 1,

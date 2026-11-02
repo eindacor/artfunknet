@@ -13,7 +13,7 @@ export default function PrismaticCard({
   consigned,
   researchTarget,
 }: ItemCardRendererProps) {
-  const sourceUrl = useArtworkImageSource(item.artwork_id);
+  const sourceUrl = useArtworkImageSource(item.artwork_id, item.artwork.image);
   const titleLength = Array.from(item.artwork.title).length;
   const titleSize =
     titleLength > 42 ? "long" : titleLength > 24 ? "medium" : "short";

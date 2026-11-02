@@ -121,7 +121,7 @@ export async function getPurchasableCrateOffers(
     name: "Standard collection crate",
     quality: "standard",
     description: "A standard collection priced for your current level.",
-    highlights: [`${itemCount} artworks`, "Level-adjusted rarity pool"],
+    highlights: [],
     itemCount,
     cost: getConfiguredCrateCost(
       standardExpectedValue,

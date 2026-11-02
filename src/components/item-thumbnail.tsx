@@ -45,6 +45,7 @@ export default function ItemThumbnail({
       adjustment={getArtworkThumbnailAdjustment(item.artwork ?? {})}
       alt={alt}
       artworkId={item.artwork_id}
+      image={item.artwork?.image}
       className={className}
       size={size}
     >

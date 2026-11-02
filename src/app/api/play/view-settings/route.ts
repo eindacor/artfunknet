@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getDatabase } from "@/server/mongodb";
+import type { GameItem } from "@/server/gameplay";
 import {
   getPlayerViewSettings,
 } from "@/server/player-view-settings";
@@ -39,6 +40,8 @@ export async function PATCH(request: Request) {
     "inventorySort",
     "offersSort",
     "offersSortDirection",
+    "cratePurchaseCount",
+    "enableReveals",
     "bulkSaleProtections",
   ]);
   if (
@@ -84,6 +87,14 @@ export async function PATCH(request: Request) {
       body.offersSortDirection === undefined
         ? current.offersSortDirection
         : body.offersSortDirection,
+    cratePurchaseCount:
+      body.cratePurchaseCount === undefined
+        ? current.cratePurchaseCount
+        : body.cratePurchaseCount,
+    enableReveals:
+      body.enableReveals === undefined
+        ? current.enableReveals
+        : body.enableReveals,
     bulkSaleProtections:
       body.bulkSaleProtections === undefined
         ? current.bulkSaleProtections
@@ -116,6 +127,13 @@ export async function PATCH(request: Request) {
     updates["profile.view_settings.offersSortDirection"] =
       normalized.offersSortDirection;
   }
+  if (body.cratePurchaseCount !== undefined) {
+    updates["profile.view_settings.cratePurchaseCount"] =
+      normalized.cratePurchaseCount;
+  }
+  if (body.enableReveals !== undefined) {
+    updates["profile.view_settings.enableReveals"] = normalized.enableReveals;
+  }
   if (body.bulkSaleProtections !== undefined) {
     updates["profile.view_settings.bulkSaleProtections"] =
       normalized.bulkSaleProtections;
@@ -124,6 +142,12 @@ export async function PATCH(request: Request) {
     { _id: player._id, active: true },
     { $set: updates },
   );
+  if (body.enableReveals === false) {
+    await database.collection<GameItem>("items").updateMany(
+      { owner: player._id, revealed: { $ne: true } },
+      { $set: { revealed: true } },
+    );
+  }
   return NextResponse.json({ status: "ok", settings: normalized });
 }
 

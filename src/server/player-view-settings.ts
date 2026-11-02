@@ -1,4 +1,5 @@
 import type { BulkSaleProtections } from "./bulk-sale.ts";
+import { parseCratePurchaseCount } from "./crate-gameplay.ts";
 
 export const GALLERY_SORTS = ["value", "score", "works", "name"] as const;
 export type GallerySort = (typeof GALLERY_SORTS)[number];
@@ -39,6 +40,8 @@ export type PlayerViewSettings = {
   inventorySort: InventorySort;
   offersSort: OfferSort;
   offersSortDirection: OfferSortDirection;
+  cratePurchaseCount: number;
+  enableReveals: boolean;
   bulkSaleProtections: BulkSaleProtections;
 };
 
@@ -48,6 +51,8 @@ export const DEFAULT_PLAYER_VIEW_SETTINGS: PlayerViewSettings = {
   inventorySort: "newest",
   offersSort: "value",
   offersSortDirection: "desc",
+  cratePurchaseCount: 1,
+  enableReveals: true,
   bulkSaleProtections: {
     keepArtStyles: true,
     keepRares: true,
@@ -83,6 +88,10 @@ export function getPlayerViewSettings(value: unknown): PlayerViewSettings {
     )
       ? settings.offersSortDirection
       : DEFAULT_PLAYER_VIEW_SETTINGS.offersSortDirection,
+    cratePurchaseCount:
+      parseCratePurchaseCount(settings.cratePurchaseCount) ??
+      DEFAULT_PLAYER_VIEW_SETTINGS.cratePurchaseCount,
+    enableReveals: settings.enableReveals !== false,
     bulkSaleProtections: {
       keepArtStyles: protections.keepArtStyles !== false,
       keepRares: protections.keepRares !== false,

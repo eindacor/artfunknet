@@ -461,9 +461,6 @@ export async function POST(request: Request) {
           "profile.xp": 0,
           "profile.bank_balance": VINTAGE_STARTING_BALANCE,
           "profile.expansion_slots": 0,
-          "profile.last_drop": new Date(
-            now.getTime() - 24 * 60 * 60 * 1000,
-          ).toISOString(),
           "profile.last_activity": now.toISOString(),
           "profile.last_gallery_payout": now.toISOString(),
           "profile.gallery_money_remainder": 0,

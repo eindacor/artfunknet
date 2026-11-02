@@ -1,3 +1,4 @@
+import type { ArtworkImageMetadata } from "../server/artwork-image-url.ts";
 import {
   DEFAULT_GALLERY_FINISHES,
   type GalleryFinishes,
@@ -10,6 +11,7 @@ export const GALLERY_FIELD_OF_VIEW = 48;
 export type GalleryArtworkDimensions = {
   id: string;
   artworkId: string;
+  image?: ArtworkImageMetadata;
   width: number;
   height: number;
   title?: string;

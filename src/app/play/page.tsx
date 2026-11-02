@@ -4,6 +4,11 @@ import { getCardStyleInventory } from "@/components/item-cards/catalog";
 import { getCardRendererSettings } from "@/server/card-renderer-settings";
 import { getDailyEventDayIndex } from "@/server/daily-event-time";
 import {
+  getDailyCrateState,
+  getPlayerDailyCrateState,
+  type DailyCrateMetadata,
+} from "@/server/daily-crate";
+import {
   getArchiveRecordArtStyles,
   getArchiveRecordModifiers,
   type PlayerArtworkArchive,
@@ -78,6 +83,7 @@ import {
   type SupporterStatus,
 } from "@/server/supporter-status";
 import { getCommemorateItemLimit } from "@/server/vintage-gameplay";
+import { getSupporterPromptState } from "@/server/supporter-prompt";
 
 import GameDashboard from "./game-dashboard";
 import PlayerHeader from "./player-header";
@@ -105,7 +111,7 @@ type Player = {
     xp: number;
     lottery_tickets: number;
     entry_fee: string;
-    last_drop: string;
+    daily_crate?: DailyCrateMetadata;
     inventory_cap: number;
     expansion_slots?: number;
     display_cap: number;
@@ -124,6 +130,7 @@ type Player = {
     market_expert?: { expiration?: string };
     dismissed_private_auction_ids?: string[];
     view_settings?: PlayerViewSettings;
+    supporter_prompt_acknowledged_at?: Date | string | null;
   };
 };
 
@@ -499,6 +506,7 @@ export default async function PlayerPage({
     rareSupporterBonusCount: config.commemorateRareSupporterBonusCount,
     supporterStatus,
   });
+  const viewSettings = getPlayerViewSettings(player.profile.view_settings);
   const [revealedItems, revealedAuctionItems] = await Promise.all([
     ensureItemRevealStates(
       database,
@@ -507,13 +515,18 @@ export default async function PlayerPage({
         reroll_cost: Math.max(0, Math.floor(item.reroll_cost * rerollCostMultiplier)),
       })),
       config.offerRevealThresholds,
+      viewSettings.enableReveals,
     ),
     ensureItemRevealStates(
       database,
       visiblePrivateAuctions.map((auction) => auction.item),
       config.offerRevealThresholds,
+      viewSettings.enableReveals,
     ),
   ]);
+
+  const dailyCrate = await getPlayerDailyCrateState(database, player._id)
+    ?? getDailyCrateState(undefined);
 
   return (
     <div className="game-shell">
@@ -525,6 +538,10 @@ export default async function PlayerPage({
         initialNotifications={notifications}
         impersonating={impersonating}
         supporterStatus={supporterStatus}
+        supporterPrompt={{
+          ...getSupporterPromptState(player),
+          bonusCommemorationItems: config.commemorateRareSupporterBonusCount,
+        }}
         tutorialSeen={player.tutorial_seen === true}
       />
       <GameDashboard
@@ -550,7 +567,6 @@ export default async function PlayerPage({
           prizes: rafflePrizes,
         }}
         dailyEventDay={getDailyEventDayIndex()}
-        dailyDropCooldownMinutes={config.dailyDropCooldownMinutes}
         dailyDropCount={config.dailyDropCount}
         debugEnabled={settings.debugEnabled}
         dealerPriceMultiplier={dealerPriceMultiplier}
@@ -607,7 +623,7 @@ export default async function PlayerPage({
             player.profile.inventory_cap +
             (player.profile.expansion_slots ?? 0),
           inventorySlotsUsed,
-          lastDrop: player.profile.last_drop,
+          dailyCrate,
           displayCap: player.profile.display_cap,
           repairingCap: player.profile.repairing_cap ?? 4,
           socialBattery: socialBattery.value,
@@ -617,7 +633,7 @@ export default async function PlayerPage({
             player.profile.card_style_consumables,
           ),
           completedQuests: player.profile.completed_quests ?? 0,
-          viewSettings: getPlayerViewSettings(player.profile.view_settings),
+          viewSettings,
         }}
         privateAuctions={JSON.parse(JSON.stringify(visiblePrivateAuctions.map(
           (auction, index) => ({ ...auction, item: revealedAuctionItems[index] }),

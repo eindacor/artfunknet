@@ -121,7 +121,6 @@ test("visitor rarity amplifiers require every quality and valid scalars", () => 
 });
 
 test("actual and debug gameplay configurations validate independently", () => {
-  assert.equal(DEFAULT_ACTUAL_GAMEPLAY_CONFIG.dailyDropCooldownMinutes, 1);
   assert.equal(DEFAULT_ACTUAL_GAMEPLAY_CONFIG.dailyDropCount, 50);
   assert.equal(DEFAULT_ACTUAL_GAMEPLAY_CONFIG.cardRendererProbability, 0.05);
   assert.equal(DEFAULT_ACTUAL_GAMEPLAY_CONFIG.crateValueScalar, 1.8);

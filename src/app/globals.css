@@ -5,6 +5,7 @@
   --foreground: #f5f3f7;
   --muted: #aaa4af;
   --accent: #ff33cc;
+  --mystery-foil-gradient: conic-gradient(from 35deg, #fd36c7, #783bd1, #17bbdc, #ffe385, #f82bbf);
   --game-button-background: #000;
   --game-button-text: #fff;
   --game-button-border: #000;
@@ -1960,79 +1961,78 @@ a.welcome-button {
 
 .crate-store-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
   align-content: start;
-  padding: 8px;
+  padding: 12px 14px 16px 10px;
 }
 
 .crate-store-card {
   --crate-color: #a96d3a;
-  --crate-bright: #dfaa72;
+  --crate-shadow-offset: 4px;
+  --crate-shadow-outline-offset: 6px;
   position: relative;
+  isolation: isolate;
   display: grid;
-  grid-template-rows: 64px minmax(34px, auto) auto;
-  gap: 6px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px 12px;
   align-items: center;
-  justify-items: center;
-  overflow: hidden;
   min-width: 0;
-  min-height: 148px;
-  border: 1px solid color-mix(in srgb, var(--crate-color) 65%, #222);
-  border-radius: 4px;
-  padding: 7px;
-  background:
-    linear-gradient(145deg, rgb(255 255 255 / 5%), transparent 45%),
-    #15120f;
-  color: #f4ede4;
-  text-align: center;
-  box-shadow: 0 12px 28px rgb(0 0 0 / 22%);
+  min-height: 96px;
+  border: 2px solid #111;
+  border-radius: 0;
+  padding: 12px;
+  background: #fff;
+  color: #111;
+  font-family: Courier, "Courier New", monospace;
+  text-align: left;
+  box-shadow:
+    var(--crate-shadow-offset) var(--crate-shadow-offset) 0 var(--crate-color),
+    var(--crate-shadow-outline-offset) var(--crate-shadow-outline-offset) 0 #111;
   cursor: pointer;
-  transition:
-    transform 180ms ease,
-    border-color 180ms ease,
-    box-shadow 180ms ease;
 }
 
 .crate-store-card[data-quality="daily"] {
   --crate-color: #3ba9b7;
-  --crate-bright: #8ce5ef;
 }
 
 .crate-store-card[data-quality="foil"] {
   --crate-color: #8593a0;
-  --crate-bright: #d5e0e8;
 }
 
 .crate-store-card[data-quality="unlocked"] {
-  --crate-color: #b58a1e;
-  --crate-bright: #ffe181;
+  --crate-color: #a3adb9;
+  background: linear-gradient(145deg, #fff, #e3e5e9 28%, #f9fafb 50%, #b8c0ca 78%, #f2f4f7);
 }
 
 .crate-store-card[data-quality="designer"] {
-  --crate-color: #397ca8;
-  --crate-bright: #93d7ff;
+  --crate-color: var(--accent);
 }
 
 .crate-store-card[data-quality="ultimate"] {
-  --crate-color: #7559b9;
-  --crate-bright: #d4c1ff;
+  --crate-color: transparent;
 }
 
 .crate-store-card[data-quality^="debug-"] {
   --crate-color: #b42a74;
-  --crate-bright: #ff9ed2;
   border-style: dashed;
 }
 
-.crate-store-card:hover:not(:disabled),
+.crate-store-card:hover:not(:disabled) {
+  --crate-shadow-offset: 5px;
+  --crate-shadow-outline-offset: 7px;
+  translate: -1px -1px;
+}
+
 .crate-store-card:focus-visible:not(:disabled) {
-  z-index: 1;
-  border-color: var(--crate-bright);
-  box-shadow:
-    0 18px 36px rgb(0 0 0 / 34%),
-    0 0 24px color-mix(in srgb, var(--crate-color) 35%, transparent);
-  transform: translateY(-5px);
+  outline: 2px dashed #111;
+  outline-offset: 4px;
+}
+
+.crate-store-card:active:not(:disabled) {
+  --crate-shadow-offset: 1px;
+  --crate-shadow-outline-offset: 3px;
+  translate: 3px 3px;
 }
 
 .crate-store-card:disabled {
@@ -2041,128 +2041,104 @@ a.welcome-button {
   opacity: 0.48;
 }
 
-.crate-card-artwork {
-  position: relative;
-  display: block;
-  width: 70px;
-  height: 62px;
-  margin: 1px auto 0;
-  perspective: 400px;
-}
-
-.crate-card-glow {
+.crate-card-shadow {
   position: absolute;
-  inset: 18px 8px 0;
-  border-radius: 50%;
-  background: var(--crate-color);
-  filter: blur(24px);
-  opacity: 0.42;
-  transition: opacity 180ms ease;
+  inset: -2px;
+  translate: var(--crate-shadow-offset) var(--crate-shadow-offset);
+  background: var(--mystery-foil-gradient);
+  clip-path: polygon(
+    calc(100% - var(--crate-shadow-offset)) 0,
+    100% 0,
+    100% 100%,
+    0 100%,
+    0 calc(100% - var(--crate-shadow-offset)),
+    calc(100% - var(--crate-shadow-offset)) calc(100% - var(--crate-shadow-offset))
+  );
+  pointer-events: none;
 }
 
-.crate-store-card:hover:not(:disabled) .crate-card-glow {
-  opacity: 0.8;
+.crate-card-shine.thumbnail-foil-shine {
+  z-index: 0;
+  clip-path: inset(0);
+  mix-blend-mode: multiply;
 }
 
-.crate-card-box,
-.crate-card-lid {
-  position: absolute;
-  left: 7px;
-  width: 56px;
-  border: 2px solid var(--crate-bright);
-  background:
-    linear-gradient(135deg, rgb(255 255 255 / 18%), transparent 40%),
-    var(--crate-color);
-  box-shadow: inset 0 0 0 5px rgb(0 0 0 / 15%);
-}
-
-.crate-card-box {
-  bottom: 2px;
-  display: grid;
-  place-items: center;
-  height: 40px;
-}
-
-.crate-card-box i {
-  color: rgb(20 15 10 / 64%);
-  font-size: 1.15rem;
-}
-
-.crate-card-lid {
-  z-index: 1;
-  top: 8px;
-  left: 3px;
-  width: 64px;
-  height: 16px;
-  transform-origin: left bottom;
-  transition: transform 220ms ease;
-}
-
-.crate-store-card:hover:not(:disabled) .crate-card-lid {
-  transform: rotate(-7deg) translateY(-5px);
+.crate-store-card[data-quality="unlocked"] .crate-card-shine {
+  background-image: linear-gradient(
+    115deg,
+    transparent 5%,
+    #fff9 25%,
+    #fff 42%,
+    #d2d8e0b8 55%,
+    #fff7 70%,
+    transparent 92%
+  );
+  mix-blend-mode: screen;
 }
 
 .crate-card-copy,
-.crate-card-copy > span,
-.crate-card-copy > strong,
-.crate-card-copy > small {
-  display: block;
+.crate-card-price,
+.crate-card-stats {
+  position: relative;
+  z-index: 1;
+}
+
+.crate-card-copy {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px 8px;
 }
 
 .crate-card-copy > small {
-  color: var(--crate-bright);
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  border: 1px solid #ddd;
+  padding: 2px 5px;
+  color: #555;
+  font-size: 0.62rem;
+  white-space: nowrap;
 }
 
 .crate-card-copy > strong {
-  margin: 2px 0;
-  font-size: 0.7rem;
-  line-height: 1.15;
-  text-align: center;
-}
-
-.crate-card-copy > span {
-  color: #baaea2;
-  font-size: 0.58rem;
-  line-height: 1.2;
-}
-
-.crate-card-copy .crate-card-highlights {
-  margin-top: 9px;
-  color: var(--crate-bright);
-  font-size: 0.72rem;
+  font-size: 0.78rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .crate-card-price {
   display: grid;
-  gap: 2px;
-  justify-self: start;
-  border: 1px solid var(--crate-color);
-  padding: 4px 6px;
-  background: color-mix(in srgb, var(--crate-color) 14%, transparent);
-  color: var(--crate-bright);
-  font-size: 0.62rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  gap: 4px;
+  max-width: 104px;
+  text-align: right;
+  overflow-wrap: anywhere;
 }
 
 .crate-card-cost {
-  color: var(--crate-bright);
-  font: 800 0.68rem Courier, "Courier New", monospace;
-  text-align: center;
-}
-
-.crate-card-price strong,
-.crate-card-price small {
-  font: inherit;
+  font-size: 0.8rem;
 }
 
 .crate-card-price small {
-  opacity: 0.72;
+  color: #666;
+  font-size: 0.56rem;
+  line-height: 1.3;
+}
+
+.crate-card-stats {
+  display: flex;
+  grid-column: 1 / -1;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.crate-card-stats > span {
+  max-width: 100%;
+  border: 1px solid #dedede;
+  padding: 3px 5px;
+  background: #f5f5f5;
+  font-size: 0.6rem;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 
 .loot-item-reveal {
@@ -2186,83 +2162,16 @@ a.welcome-button {
   opacity: 1;
 }
 
-.crate-store-card[data-phase="opening"] {
-  border-color: var(--crate-bright);
-  box-shadow:
-    0 18px 36px rgb(0 0 0 / 34%),
-    0 0 30px color-mix(in srgb, var(--crate-color) 55%, transparent);
+.crate-store-card[data-phase="opening"] .crate-card-price small {
+  color: #111;
 }
 
-.crate-store-card[data-phase="opening"] .crate-card-artwork {
-  animation: crate-rattle 420ms ease-in-out infinite;
+.crate-store-card[data-phase="opened"] .crate-card-price small {
+  color: #237a3b;
 }
 
-.crate-store-card[data-phase="opening"] .crate-card-glow {
-  animation: inline-crate-pulse 600ms ease-in-out infinite alternate;
-}
-
-.crate-store-card[data-phase="opened"] .crate-card-lid {
-  animation: inline-crate-lid-open 700ms cubic-bezier(0.2, 0.8, 0.2, 1)
-    forwards;
-}
-
-.crate-store-card[data-phase="opened"] .crate-card-glow {
-  opacity: 1;
-  transform: scale(1.65);
-}
-
-.crate-store-card[data-phase="opened"] {
-  border-color: var(--crate-bright);
-  box-shadow: 0 0 34px color-mix(in srgb, var(--crate-color) 65%, transparent);
-}
-
-.crate-store-card[data-phase="error"] {
-  border-color: #d04f4f;
-  animation: inline-crate-error 260ms ease-in-out 2;
-}
-
-@keyframes crate-rattle {
-  0%,
-  100% {
-    transform: rotate(0deg) translateX(0);
-  }
-  25% {
-    transform: rotate(-2deg) translateX(-4px);
-  }
-  75% {
-    transform: rotate(2deg) translateX(4px);
-  }
-}
-
-@keyframes inline-crate-lid-open {
-  0% {
-    transform: rotate(0deg) translateY(0);
-  }
-  65%,
-  100% {
-    transform: rotate(-24deg) translate(-8px, -18px);
-  }
-}
-
-@keyframes inline-crate-pulse {
-  from {
-    opacity: 0.45;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1.35);
-  }
-}
-
-@keyframes inline-crate-error {
-  from,
-  to {
-    transform: translateX(0);
-  }
-  50% {
-    transform: translateX(5px);
-  }
+.crate-store-card[data-phase="error"] .crate-card-price small {
+  color: #a12626;
 }
 
 @keyframes loot-item-fade-in {
@@ -2279,13 +2188,6 @@ a.welcome-button {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .crate-store-card[data-phase="opening"] .crate-card-artwork,
-  .crate-store-card[data-phase="opening"] .crate-card-glow,
-  .crate-store-card[data-phase="opened"] .crate-card-lid,
-  .crate-store-card[data-phase="error"] {
-    animation: none;
-  }
-
   .loot-item-reveal {
     opacity: 1;
     animation: none;
@@ -6167,19 +6069,18 @@ a.welcome-button {
   touch-action: pan-y;
   user-select: none;
   -webkit-touch-callout: none;
-  transition: translate 120ms ease-out, box-shadow 120ms ease-out;
+  transition: translate 120ms ease-out;
 }
 
 .collection-thumbnail-list button * {
   -webkit-touch-callout: none;
 }
 
-.collection-thumbnail-list button > * {
+.collection-thumbnail-list button .artwork-thumbnail > img {
   filter: saturate(var(--thumbnail-idle-saturation)) brightness(var(--thumbnail-idle-brightness));
-  transition: filter 160ms ease-out;
 }
 
-.collection-thumbnail-list button.selected > * {
+.collection-thumbnail-list button.selected .artwork-thumbnail > img {
   filter: saturate(var(--thumbnail-selected-saturation)) brightness(var(--thumbnail-selected-brightness));
 }
 
@@ -6222,8 +6123,7 @@ a.welcome-button {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .collection-thumbnail-list button,
-  .collection-thumbnail-list button > * {
+  .collection-thumbnail-list button {
     transition: none;
   }
 }
@@ -6251,7 +6151,15 @@ a.welcome-button {
   position: absolute;
   z-index: 1;
   inset: 0;
+  overflow: hidden;
   pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+.thumbnail-foil-shine::before {
+  position: absolute;
+  inset: 0;
+  width: 320%;
   background:
     linear-gradient(
       115deg,
@@ -6262,10 +6170,10 @@ a.welcome-button {
       rgb(139 92 246 / 28%) 70%,
       transparent 92%
     );
-  background-position: 100% 0;
-  background-size: 320% 100%;
-  mix-blend-mode: screen;
-  animation: thumbnail-foil-shimmer 5s ease-in-out infinite;
+  content: "";
+  opacity: 0;
+  transform: translateX(-68.75%);
+  animation: thumbnail-foil-shimmer 18s ease-in-out infinite;
 }
 
 .thumbnail-expiration-tint {
@@ -6281,26 +6189,26 @@ a.welcome-button {
 
 @keyframes thumbnail-foil-shimmer {
   0%,
-  12% {
-    background-position: 100% 0;
+  55% {
+    transform: translateX(-68.75%);
     opacity: 0;
   }
 
-  22%,
-  72% {
+  65%,
+  80% {
     opacity: 0.9;
   }
 
-  88%,
+  90%,
   100% {
-    background-position: 0% 0;
+    transform: translateX(0);
     opacity: 0;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .thumbnail-foil-shine {
-    background-position: 50% 0;
+  .thumbnail-foil-shine::before {
+    transform: translateX(-34.375%);
     opacity: 0.35;
     animation: none;
   }
@@ -6454,26 +6362,48 @@ a.welcome-button {
 }
 
 .crate-purchase-count {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin: 8px 8px 0;
-  border: 1px solid #c9c3b6;
-  padding: 8px 10px;
-  background: #fffdf7;
-  color: #282722;
-  font: 700 0.7rem Courier, "Courier New", monospace;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding: 16px 12px 4px;
+  color: #111;
 }
 
-.crate-purchase-count input {
-  width: 64px;
-  border: 1px solid #777168;
-  padding: 5px 7px;
-  background: #fff;
-  color: #171717;
-  font: inherit;
-  text-align: right;
+.crate-purchase-count button {
+  display: grid;
+  min-width: 44px;
+  min-height: 52px;
+  place-items: center;
+  border: 0;
+  padding: 12px 8px;
+  background: #e7e1d7;
+  color: #111;
+  font: 900 1.65rem/1 Courier, "Courier New", monospace;
+  cursor: pointer;
+}
+
+.crate-purchase-count button[aria-pressed="true"] {
+  background: #111;
+  color: #fff;
+}
+
+.crate-purchase-count button:hover:not(:disabled):not([aria-pressed="true"]) {
+  background: var(--accent);
+}
+
+.crate-purchase-count button:active:not(:disabled) {
+  background: #111;
+  color: #fff;
+}
+
+.crate-purchase-count button:focus-visible {
+  outline: 2px dashed #111;
+  outline-offset: 3px;
+}
+
+.crate-purchase-count button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 .loot-debug-drop {
@@ -6951,7 +6881,7 @@ a.welcome-button {
   }
 
   .crate-store-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     overflow-y: visible;
   }
 }
@@ -8553,7 +8483,7 @@ a.welcome-button {
   }
 
   .crate-store-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .loot-items-panel {

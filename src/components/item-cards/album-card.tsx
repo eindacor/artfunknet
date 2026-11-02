@@ -7,7 +7,7 @@ import type { CSSProperties } from "react";
 import type { ItemCardRendererProps } from "./types";
 
 export default function AlbumCard({ item }: ItemCardRendererProps) {
-  const sourceUrl = useArtworkImageSource(item.artwork_id);
+  const sourceUrl = useArtworkImageSource(item.artwork_id, item.artwork.image);
   return (
     <div className="render-card album-card">
       <div className="album-card-object">

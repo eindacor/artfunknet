@@ -19,7 +19,7 @@ function useMysteryAnimationStyle(): CSSProperties {
     2166136261,
   ) >>> 0;
   return {
-    "--mystery-animation-delay": `${-(animationSeed % 6000)}ms`,
+    "--mystery-animation-delay": `${-(animationSeed % 20000)}ms`,
   } as CSSProperties;
 }
 

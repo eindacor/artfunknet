@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { getArtworkImageUrl } from "../server/artwork-image-url.ts";
 
 import {
   GALLERY_FIELD_OF_VIEW,
@@ -263,9 +264,10 @@ export function mountGalleryScene(
     image.userData.itemId = painting.id;
     paintings.push(image);
     scene.add(image);
-    const matchingMaterials = imageMaterials.get(painting.artworkId) ?? [];
+    const imageUrl = getArtworkImageUrl(painting.artworkId, "card", painting.image, true);
+    const matchingMaterials = imageMaterials.get(imageUrl) ?? [];
     matchingMaterials.push(imageMaterial);
-    imageMaterials.set(painting.artworkId, matchingMaterials);
+    imageMaterials.set(imageUrl, matchingMaterials);
 
     for (const direction of [-1, 1]) {
       box(
@@ -339,9 +341,9 @@ export function mountGalleryScene(
     lights.push(light);
     scene.add(light, light.target);
   }
-  for (const [artworkId, matchingMaterials] of imageMaterials) {
+  for (const [imageUrl, matchingMaterials] of imageMaterials) {
     loadTexture(
-      `/api/artwork/${encodeURIComponent(artworkId)}/image?variant=card&texture=1`,
+      imageUrl,
       (texture) => {
         for (const surface of matchingMaterials) {
           surface.map = texture;

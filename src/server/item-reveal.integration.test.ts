@@ -5,14 +5,15 @@ import { MongoClient } from "mongodb";
 import { MongoMemoryServer } from "mongodb-memory-server";
 
 import { migrateItemRevealStates } from "../../scripts/database-migrations.mjs";
-import type { GameItem } from "./gameplay.ts";
+import { generateDailyDrop, type GameItem } from "./gameplay.ts";
 import { ensureItemRevealStates, revealPlayerItem } from "./item-reveal.ts";
 import {
   DEFAULT_ACTUAL_GAMEPLAY_CONFIG,
   getGameplaySettings,
   toStoredGameplayConfig,
 } from "./game-settings.ts";
-import { DEFAULT_OFFER_REVEAL_THRESHOLDS as cutoffs } from "./offer-reveal.ts";
+import { canQuickSellItem, DEFAULT_OFFER_REVEAL_THRESHOLDS as cutoffs } from "./offer-reveal.ts";
+import { setupTestDb } from "./test-utils/db-setup.ts";
 
 function item(id: string, overrides: Partial<GameItem> = {}): GameItem {
   return {
@@ -119,6 +120,77 @@ test("item reveal state is persistent, transferable, access-controlled and rerun
     const known = await ensureItemRevealStates(db, await items.find({}).toArray(), cutoffs);
     assert.ok(known.every((entry) => entry.revealed));
     assert.equal((await items.findOne({ _id: "pending" }))?.revealed, true);
+  });
+
+  await t.test("disabled reveals persist for sealed offers and collections without re-masking on re-enable", async () => {
+    const db = client.db("disabled-reveal-snapshots");
+    const items = db.collection<GameItem>("items");
+    await items.insertMany([
+      item("sealed-offer", { revealed: false }),
+      item("sealed-collection", { status: "claimed", revealed: false }),
+      item("legacy-offer"),
+      item("visible-auction", { owner: "system", status: "auctioned", revealed: false }),
+      item("another-player", { owner: "other", revealed: false }),
+    ]);
+    const visible = await items.find({ _id: { $ne: "another-player" } }).toArray();
+    const snapshots = await ensureItemRevealStates(db, visible, cutoffs, false);
+    assert.ok(snapshots.every((entry) => entry.revealed && canQuickSellItem(entry)));
+    assert.equal((await items.findOne({ _id: "another-player" }))?.revealed, false);
+    const saved = await items.findOne({ _id: "sealed-offer" });
+    assert.equal(saved?.authenticity.identified, false);
+    assert.equal(saved?.serial_number, 42);
+    assert.equal(saved?.original_drop_chance_coefficient, 0);
+    assert.ok((await ensureItemRevealStates(
+      db, await items.find({ _id: { $ne: "another-player" } }).toArray(), cutoffs,
+    )).every((entry) => entry.revealed));
+  });
+
+  await t.test("generation honors saved reveal preferences and keeps already-revealed drops known", async () => {
+    const db = client.db("disabled-reveal-generation");
+    await setupTestDb(db, "owner", {
+      artworks: [{
+        _id: "art-rare", active: true, rarity: "rare",
+        value_scale: 0.5, title: "Rare artwork", artist: "Test artist",
+      }],
+      attributes: Array.from({ length: 6 }, (_, index) => ({
+        _id: `attribute-${index}`,
+        title: `Attribute ${index}`,
+        type: "regular",
+        description: "Test attribute",
+        icon: "test",
+        npc_name: "Test visitor",
+        active: true,
+      })),
+    });
+    await db.collection<{ _id: string }>("metadata").insertOne({
+      _id: "gameplay-settings",
+      gameplay: { configs: { actual: toStoredGameplayConfig({
+        ...DEFAULT_ACTUAL_GAMEPLAY_CONFIG,
+        offerRevealThresholds: { level1: 1, level2: 1, level3: 1 },
+      }) } },
+    });
+    const options = {
+      itemCount: 1,
+      targetArtworkId: "art-rare",
+      generationMap: { rarity: { common: 0, uncommon: 0, rare: 1, legendary: 0, masterpiece: 0 } },
+    };
+    const [legacy] = await generateDailyDrop(db, "owner", 50, options);
+    assert.equal(legacy.revealed, false);
+    await db.collection<{ _id: string }>("players").updateOne(
+      { _id: "owner" }, { $set: { "profile.view_settings.enableReveals": false } },
+    );
+    for (const status of ["unclaimed", "for_sale", "auctioned"] as const) {
+      const [generated] = await generateDailyDrop(db, "owner", 50, { ...options, status });
+      assert.equal(generated.revealed, true);
+      assert.equal((await db.collection<GameItem>("items").findOne({ _id: generated._id }))?.revealed, true);
+      assert.equal(canQuickSellItem(generated), true);
+    }
+    await db.collection<{ _id: string }>("players").updateOne(
+      { _id: "owner" }, { $set: { "profile.view_settings.enableReveals": true } },
+    );
+    const [enabled] = await generateDailyDrop(db, "owner", 50, options);
+    assert.equal(enabled.revealed, false);
+    assert.equal(await db.collection<GameItem>("items").countDocuments({ revealed: true }), 3);
   });
 
   await t.test("old metadata gets safe defaults and actual/debug cutoffs are read independently", async () => {

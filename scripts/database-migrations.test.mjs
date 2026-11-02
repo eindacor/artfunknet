@@ -631,7 +631,7 @@ test("artwork effect migration backfills artwork without mutating item attribute
         description:
           "Private auctions can be made public and pay you a commission when sold.",
         flavor_text:
-          "Private auctions can be made public and pay you a commission when sold.",
+          "Reserved definition for transferable private auctions and public commission.",
         parameters: { commission_rate: 0.1 },
       },
     );

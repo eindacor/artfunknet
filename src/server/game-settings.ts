@@ -75,7 +75,6 @@ const DEBUG_CARD_STYLE_WEIGHTS = Object.fromEntries(
 
 export type GameplayConfig = {
   offerRevealThresholds: OfferRevealThresholds;
-  dailyDropCooldownMinutes: number;
   dailyDropCount: number;
   crateValueScalar: number;
   standardCrateCostScalar: number;
@@ -126,7 +125,6 @@ export type GameplaySettings = {
 
 export const DEFAULT_ACTUAL_GAMEPLAY_CONFIG: GameplayConfig = {
   offerRevealThresholds: { ...DEFAULT_OFFER_REVEAL_THRESHOLDS },
-  dailyDropCooldownMinutes: 1,
   dailyDropCount: 50,
   crateValueScalar: 1.8,
   standardCrateCostScalar: 1,
@@ -172,7 +170,6 @@ export const DEFAULT_ACTUAL_GAMEPLAY_CONFIG: GameplayConfig = {
 
 export const DEFAULT_DEBUG_GAMEPLAY_CONFIG: GameplayConfig = {
   offerRevealThresholds: { ...DEFAULT_OFFER_REVEAL_THRESHOLDS },
-  dailyDropCooldownMinutes: 1,
   dailyDropCount: 20,
   crateValueScalar: 1,
   standardCrateCostScalar: 1,
@@ -234,7 +231,6 @@ export function getGameplayGenerationMap(
 
 type StoredGameplayConfig = {
   offer_reveal_thresholds?: OfferRevealThresholds;
-  daily_drop_cooldown_minutes?: number;
   daily_drop_count?: number;
   crate_value_scalar?: number;
   standard_crate_cost_scalar?: number;
@@ -315,7 +311,6 @@ export function toStoredGameplayConfig(
 ): Required<StoredGameplayConfig> {
   return {
     offer_reveal_thresholds: { ...config.offerRevealThresholds },
-    daily_drop_cooldown_minutes: config.dailyDropCooldownMinutes,
     daily_drop_count: config.dailyDropCount,
     crate_value_scalar: config.crateValueScalar,
     standard_crate_cost_scalar: config.standardCrateCostScalar,
@@ -370,7 +365,6 @@ export function validateGameplayConfig(
   const offerRevealThresholds = validateOfferRevealThresholds(config.offerRevealThresholds);
   if (!offerRevealThresholds.ok) return offerRevealThresholds;
   const integerFields = [
-    ["dailyDropCooldownMinutes", "Daily drop cooldown", 1, 10_080],
     ["dailyDropCount", "Daily drop count", 1, 100],
     ["galleryPayoutIntervalMinutes", "Gallery payout interval", 1, 1_440],
     ["displayLevelIntervalMinutes", "Display level interval", 1, 10_080],
@@ -521,7 +515,6 @@ export function validateGameplayConfig(
     ok: true,
     value: {
       offerRevealThresholds: offerRevealThresholds.value,
-      dailyDropCooldownMinutes: values.dailyDropCooldownMinutes,
       dailyDropCount: values.dailyDropCount,
       crateValueScalar,
       standardCrateCostScalar: crateCostScalars.standardCrateCostScalar,
@@ -680,9 +673,6 @@ function readConfig(
     offerRevealThresholds: thresholds.ok
       ? thresholds.value
       : { ...defaults.offerRevealThresholds },
-    dailyDropCooldownMinutes:
-      stored?.daily_drop_cooldown_minutes ??
-      defaults.dailyDropCooldownMinutes,
     dailyDropCount: stored?.daily_drop_count ?? defaults.dailyDropCount,
     crateValueScalar:
       stored?.crate_value_scalar ?? defaults.crateValueScalar,

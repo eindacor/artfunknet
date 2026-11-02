@@ -40,6 +40,7 @@ type AdminPlayerSearchResult = {
   email: string;
   active: boolean;
   test_account?: boolean;
+  profile?: { view_settings?: { enableReveals?: boolean } };
 };
 
 type AdminItemDestination =
@@ -254,6 +255,7 @@ export async function POST(request: Request) {
       revealed: getInitialItemRevealState(
         { ...item, ...dropChance, artwork: context.artwork },
         context.settings.active.offerRevealThresholds,
+        player?.profile?.view_settings?.enableReveals !== false,
       ),
     });
   } catch (error) {

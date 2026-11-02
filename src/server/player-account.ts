@@ -104,9 +104,7 @@ export function createDefaultPlayerProfile(
     active: true,
     bank_balance: 100_000,
     card_style_consumables: {},
-    last_drop: new Date(
-      now.getTime() - 24 * 60 * 60 * 1000,
-    ).toISOString(),
+    daily_crate: { time_zone: null, last_claimed_at: null },
     last_login: now.toISOString(),
     level: 0,
     xp: 0,

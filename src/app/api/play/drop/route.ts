@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 
 import {
+  initializeDailyCrateTimeZone,
+  normalizeDailyCrateTimeZone,
+  releaseDailyCrateClaim,
+  reserveDailyCrateClaim,
+} from "@/server/daily-crate";
+import {
   getGameplayGenerationMap,
   getGameplaySettings,
 } from "@/server/game-settings";
@@ -9,14 +15,23 @@ import { getDatabase } from "@/server/mongodb";
 import { getUnclaimedItemExpiration } from "@/server/item-expiration";
 import { requirePlayerApi } from "@/server/player-api";
 
-type Player = {
-  _id: string;
-  active: boolean;
-  profile: {
-    level: number;
-    last_drop: string;
-  };
-};
+export async function PATCH(request: Request) {
+  const auth = await requirePlayerApi();
+  if (!auth.ok) return auth.response;
+  const body = await request.json().catch(() => null);
+  const timeZone = normalizeDailyCrateTimeZone(body?.timeZone);
+  if (!timeZone) {
+    return NextResponse.json({ error: "A valid local timezone is required." }, { status: 400 });
+  }
+  const dailyCrate = await initializeDailyCrateTimeZone(
+    await getDatabase(),
+    auth.session.playerId,
+    timeZone,
+  );
+  return dailyCrate
+    ? NextResponse.json({ dailyCrate })
+    : NextResponse.json({ error: "The player account is unavailable." }, { status: 404 });
+}
 
 export async function POST() {
   const auth = await requirePlayerApi();
@@ -26,21 +41,10 @@ export async function POST() {
   const settings = await getGameplaySettings(database);
   const config = settings.active;
   const now = new Date();
-  const cooldownMs = config.dailyDropCooldownMinutes * 60 * 1000;
-  const cutoff = new Date(now.getTime() - cooldownMs).toISOString();
-  const player = await database.collection<Player>("players").findOneAndUpdate(
-    {
-      _id: auth.session.playerId,
-      active: true,
-      "profile.last_drop": { $lte: cutoff },
-    },
-    { $set: { "profile.last_drop": now.toISOString() } },
-    { returnDocument: "before" },
-  );
-
-  if (!player) {
+  const claim = await reserveDailyCrateClaim(database, auth.session.playerId, now);
+  if (!claim) {
     return NextResponse.json(
-      { error: "Your next daily drop is not ready yet." },
+      { error: "Your daily crate is not ready. It refreshes at noon in your saved timezone." },
       { status: 409 },
     );
   }
@@ -48,8 +52,8 @@ export async function POST() {
   try {
     const items = await generateDailyDrop(
       database,
-      player._id,
-      player.profile.level,
+      claim.playerId,
+      claim.playerLevel,
       {
         now,
         itemCount: config.dailyDropCount,
@@ -61,15 +65,13 @@ export async function POST() {
     );
     return NextResponse.json({
       status: "ok",
+      dailyCrate: claim.state,
       item_ids: items.map((item) => item._id),
       itemCount: items.length,
       message: `Daily crate opened. ${items.length} artworks were added to your loot.`,
     });
   } catch (error) {
-    await database.collection<Player>("players").updateOne(
-      { _id: player._id, "profile.last_drop": now.toISOString() },
-      { $set: { "profile.last_drop": player.profile.last_drop } },
-    );
+    await releaseDailyCrateClaim(database, claim);
     console.error("Unable to generate daily drop", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Daily drop failed." },

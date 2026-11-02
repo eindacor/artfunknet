@@ -35,4 +35,17 @@ test("serializes native-client image paths and artwork dimensions", () => {
     cardImagePath: "/api/artwork/artwork-1/image?variant=card",
     thumbnailImagePath: "/api/artwork/artwork-1/image?variant=thumb",
   });
+
+});
+
+test("native clients reuse versioned artwork image paths when image metadata is available", () => {
+  const checksum = "a".repeat(64);
+  const item = {
+    _id: "item",
+    artwork_id: "art",
+    artwork: { image: { variants: { card: { checksum }, thumb: { checksum } } } },
+  } as HydratedGameItem;
+  const result = serializeGameClientItem(item);
+  assert.equal(result.cardImagePath, `/api/artwork/art/image?variant=card&v=${checksum}`);
+  assert.equal(result.thumbnailImagePath, `/api/artwork/art/image?variant=thumb&v=${checksum}`);
 });

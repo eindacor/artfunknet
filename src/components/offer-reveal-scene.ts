@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { getArtworkImageUrl } from "../server/artwork-image-url.ts";
 
 import {
   galleryColorToHex,
@@ -114,6 +115,7 @@ export function mountOfferRevealScene(
   rarity: ArtworkRarity,
   onPhase: (phase: RoomRevealPhase) => void,
   onUnavailable: () => void,
+  onSelect: () => void,
 ): OfferRevealSceneController {
   const painting = layout.paintings[0];
   if (!painting) throw new Error("There is no artwork to reveal.");
@@ -193,6 +195,7 @@ export function mountOfferRevealScene(
   const frameZ = GALLERY_FRAME_FRONT_Z - GALLERY_FRAME_DEPTH / 2;
   const artworkZ = GALLERY_FRAME_FRONT_Z - 0.005;
   const imageMaterials = new Map<string, THREE.MeshStandardMaterial[]>();
+  let revealedArtwork: THREE.Mesh | null = null;
   const lights = layout.paintings.map((work, index) => {
     const { width, height, x, y, frameWidth: border, matteWidth } = work;
     const mattedWidth = width + matteWidth * 2;
@@ -210,9 +213,11 @@ export function mountOfferRevealScene(
     const image = new THREE.Mesh(imageGeometry, imageMaterial);
     image.position.set(x, y, artworkZ);
     scene.add(image);
-    const matching = imageMaterials.get(work.artworkId) ?? [];
+    if (index === 0) revealedArtwork = image;
+    const imageUrl = getArtworkImageUrl(work.artworkId, "card", work.image, true);
+    const matching = imageMaterials.get(imageUrl) ?? [];
     matching.push(imageMaterial);
-    imageMaterials.set(work.artworkId, matching);
+    imageMaterials.set(imageUrl, matching);
 
     const lightZ = Math.max(2.5, mattedHeight * 0.7, mattedWidth * 0.55);
     const lightY = Math.min(roomHeight - 0.2, y + mattedHeight / 2 + 0.8);
@@ -320,6 +325,28 @@ export function mountOfferRevealScene(
   }
 
   const observer = new ResizeObserver(resize);
+  const raycaster = new THREE.Raycaster();
+  const pointer = new THREE.Vector2();
+  function pick(event: Pick<MouseEvent, "clientX" | "clientY">) {
+    if (disposed || !revealedArtwork || (lastPhase !== "presenting" && lastPhase !== "ready")) return false;
+    const bounds = renderer.domElement.getBoundingClientRect();
+    if (!bounds.width || !bounds.height) return false;
+    pointer.set(
+      (event.clientX - bounds.left) / bounds.width * 2 - 1,
+      -(event.clientY - bounds.top) / bounds.height * 2 + 1,
+    );
+    raycaster.setFromCamera(pointer, camera);
+    return raycaster.intersectObject(revealedArtwork).length > 0;
+  }
+  function click(event: MouseEvent) {
+    if (pick(event)) onSelect();
+  }
+  function hover(event: MouseEvent) {
+    renderer.domElement.style.cursor = pick(event) ? "pointer" : "";
+  }
+  function leave() {
+    renderer.domElement.style.cursor = "";
+  }
   function skip() {
     skippedAt ??= performance.now() - started;
     invalidate();
@@ -335,6 +362,9 @@ export function mountOfferRevealScene(
     window.cancelAnimationFrame(animation);
     observer.disconnect();
     reducedMotion.removeEventListener("change", motionChanged);
+    renderer.domElement.removeEventListener("click", click);
+    renderer.domElement.removeEventListener("mousemove", hover);
+    renderer.domElement.removeEventListener("mouseleave", leave);
     renderer.domElement.removeEventListener("webglcontextlost", contextLost);
     for (const geometry of geometries) geometry.dispose();
     for (const surface of materials) surface.dispose();
@@ -346,11 +376,15 @@ export function mountOfferRevealScene(
   }
   observer.observe(host);
   reducedMotion.addEventListener("change", motionChanged);
+  renderer.domElement.addEventListener("click", click);
+  renderer.domElement.addEventListener("mousemove", hover);
+  renderer.domElement.addEventListener("mouseleave", leave);
   renderer.domElement.addEventListener("webglcontextlost", contextLost);
   resize();
-  for (const [artworkId, matchingMaterials] of imageMaterials) {
+  const revealImageUrl = getArtworkImageUrl(painting.artworkId, "card", painting.image, true);
+  for (const [imageUrl, matchingMaterials] of imageMaterials) {
     const texture = new THREE.TextureLoader().load(
-      `/api/artwork/${encodeURIComponent(artworkId)}/image?variant=card&texture=1`,
+      imageUrl,
       (loaded) => {
         if (disposed) { loaded.dispose(); return; }
         loaded.colorSpace = THREE.SRGBColorSpace;
@@ -360,12 +394,12 @@ export function mountOfferRevealScene(
           surface.map = loaded;
           surface.needsUpdate = true;
         }
-        if (artworkId === painting.artworkId) imageReadyAt = performance.now() - started;
+        if (imageUrl === revealImageUrl) imageReadyAt = performance.now() - started;
         invalidate();
       },
       undefined,
       () => {
-        if (!disposed && artworkId === painting.artworkId) { dispose(); onUnavailable(); }
+        if (!disposed && imageUrl === revealImageUrl) { dispose(); onUnavailable(); }
       },
     );
     textures.add(texture);

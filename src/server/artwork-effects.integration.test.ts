@@ -10,6 +10,10 @@ import {
   type ArtworkEffect,
 } from "./artwork-effects.ts";
 import { settleDailyMasterpieceInterest } from "./masterpiece-effects.ts";
+import {
+  migrateArtworkEffects,
+  migrateMasterpieceFlavorTexts,
+} from "../../scripts/database-migrations.mjs";
 
 test("displayed duplicate effect references do not stack and daily interest is idempotent", async () => {
   const server = await MongoMemoryServer.create();
@@ -75,6 +79,91 @@ test("displayed duplicate effect references do not stack and daily interest is i
       }),
       1,
     );
+  } finally {
+    await client.close();
+    await server.stop();
+  }
+});
+
+test("masterpiece flavor backfill generates distinct short praise and preserves authored quotes", async () => {
+  const server = await MongoMemoryServer.create();
+  const client = await new MongoClient(server.getUri()).connect();
+  try {
+    const db = client.db("masterpiece-flavor");
+    const effects = db.collection<ArtworkEffect>("artwork_effects");
+    const base = {
+      effect_type: "masterpiece",
+      title: "Effect title",
+      description: "A gameplay effect description.",
+      code: "MP_TEST",
+      active: true,
+      linked_attributes: ["attribute"],
+      parameters: { chance: 0.5 },
+    };
+    const authored = "A stillness that speaks with extraordinary force.";
+    await db.collection<{ _id: string }>("artwork_effects").insertMany([
+      { ...base, _id: "missing" },
+      { ...base, _id: "null", flavor_text: null },
+      { ...base, _id: "invalid", flavor_text: { $eq: "not a quote" } },
+      { ...base, _id: "blank", flavor_text: "" },
+      { ...base, _id: "whitespace", flavor_text: "   " },
+      { ...base, _id: "placeholder", flavor_text: base.description },
+      { ...base, _id: "legacy", flavor_text: "Reserved definition for transferable private auctions and public commission." },
+      { ...base, _id: "inactive", active: false },
+      { ...base, _id: "authored", flavor_text: authored },
+      { ...base, _id: "legendary", effect_type: "legendary", flavor_text: base.description },
+    ]);
+    assert.deepEqual(await migrateMasterpieceFlavorTexts(db), { updated: 8 });
+    const saved = await effects.find({ effect_type: "masterpiece" }).toArray();
+    assert.equal(new Set(saved.map((effect) => effect.flavor_text)).size, saved.length);
+    for (const effect of saved.filter((effect) => effect._id !== "authored")) {
+      assert.ok(effect.flavor_text.length <= 120);
+      assert.ok(effect.flavor_text.split(/\s+/).length <= 20);
+      assert.notEqual(effect.flavor_text, base.description);
+      assert.deepEqual(effect.parameters, base.parameters);
+      assert.deepEqual(effect.linked_attributes, base.linked_attributes);
+      assert.equal(effect.description, base.description);
+      assert.equal(effect.code, base.code);
+    }
+    assert.equal((await effects.findOne({ _id: "authored" }))?.flavor_text, authored);
+    assert.equal((await effects.findOne({ _id: "inactive" }))?.active, false);
+    assert.equal((await effects.findOne({ _id: "legendary" }))?.flavor_text, base.description);
+    assert.deepEqual(await migrateMasterpieceFlavorTexts(db), { updated: 0 });
+    assert.deepEqual(await effects.find({ effect_type: "masterpiece" }).toArray(), saved);
+  } finally {
+    await client.close();
+    await server.stop();
+  }
+});
+
+test("effect registry and flavor migration preserve quotes across reruns and legacy description updates", async () => {
+  const server = await MongoMemoryServer.create();
+  const client = await new MongoClient(server.getUri()).connect();
+  try {
+    const db = client.db("masterpiece-flavor-registry");
+    const authored = "The surface sings; the silence answers.";
+    await db.collection<{ _id: string }>("artwork_effects").insertOne({
+      _id: "masterpiece-auctioneer-transferable",
+      effect_type: "masterpiece",
+      code: "MASTERPIECE_TRANSFERABLE_AUCTION",
+      title: "Public Commission",
+      description: "Reserved definition for transferable private auctions and public commission.",
+      flavor_text: authored,
+      linked_attributes: ["auctioneer"],
+      active: true,
+      parameters: { commission_rate: 0.1 },
+    });
+    await migrateArtworkEffects(db);
+    const count = await db.collection("artwork_effects").countDocuments({ effect_type: "masterpiece" });
+    assert.deepEqual(await migrateMasterpieceFlavorTexts(db), { updated: count - 1 });
+    const quotes = await db.collection<ArtworkEffect>("artwork_effects")
+      .find({ effect_type: "masterpiece" }).sort({ _id: 1 }).toArray();
+    assert.equal(quotes.find((effect) => effect._id === "masterpiece-auctioneer-transferable")?.flavor_text, authored);
+    assert.equal(new Set(quotes.map((effect) => effect.flavor_text)).size, quotes.length);
+    await migrateArtworkEffects(db);
+    assert.deepEqual(await migrateMasterpieceFlavorTexts(db), { updated: 0 });
+    assert.deepEqual(await db.collection<ArtworkEffect>("artwork_effects")
+      .find({ effect_type: "masterpiece" }).sort({ _id: 1 }).toArray(), quotes);
   } finally {
     await client.close();
     await server.stop();

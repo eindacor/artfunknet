@@ -6,10 +6,12 @@ import { useRouter } from "next/navigation";
 
 import type { PlayerNotification } from "@/server/player-notifications";
 import type { SupporterStatus } from "@/server/supporter-status";
+import type { SupporterPromptState } from "@/server/supporter-prompt";
 
 import NotificationCenter from "./notification-center";
 import PlayerHeaderContent from "@/components/player-header/player-header";
 import TutorialDialog from "@/components/tutorial-dialog/tutorial-dialog";
+import SupporterPromptDialog from "@/components/supporter-prompt-dialog";
 
 type PlayerHeaderProps =
   | { anonymous: true }
@@ -25,6 +27,7 @@ type AuthenticatedHeaderContentProps = {
   impersonating: boolean;
   supporterStatus?: SupporterStatus | null;
   tutorialSeen?: boolean;
+  supporterPrompt?: SupporterPromptState & { bonusCommemorationItems: number };
 };
 
 export default function PlayerHeader(props: PlayerHeaderProps) {
@@ -64,11 +67,14 @@ function AuthenticatedHeaderContent(props: AuthenticatedHeaderContentProps) {
   const [tutorialSeen, setTutorialSeen] = useState(
     props.tutorialSeen === true,
   );
+  const [acknowledgedSupporterPromptPeriod, setAcknowledgedSupporterPromptPeriod] =
+    useState<string | null>(null);
   const [accountSummary, setAccountSummary] = useState<{
     auctionEscrow: number;
     bankBalance: number;
     lotteryTickets: number;
     supporterStatus: SupporterStatus | null;
+    supporterPrompt: SupporterPromptState | null;
   } | null>(null);
   const refreshInFlight = useRef(false);
   const {
@@ -83,6 +89,12 @@ function AuthenticatedHeaderContent(props: AuthenticatedHeaderContentProps) {
   const displayedBankBalance = accountSummary?.bankBalance ?? bankBalance;
   const displayedLotteryTickets =
     accountSummary?.lotteryTickets ?? lotteryTickets;
+  const displayedSupporterStatus = accountSummary
+    ? accountSummary.supporterStatus
+    : props.supporterStatus ?? null;
+  const supporterPrompt = props.supporterPrompt
+    ? { ...props.supporterPrompt, ...accountSummary?.supporterPrompt }
+    : undefined;
 
   const refreshAccountSummary = useCallback(async () => {
     if (refreshInFlight.current) return;
@@ -96,6 +108,7 @@ function AuthenticatedHeaderContent(props: AuthenticatedHeaderContentProps) {
         bankBalance?: number;
         lotteryTickets?: number;
         supporterStatus?: SupporterStatus | null;
+        supporterPrompt?: SupporterPromptState;
       };
       if (
         response.ok &&
@@ -108,6 +121,7 @@ function AuthenticatedHeaderContent(props: AuthenticatedHeaderContentProps) {
           bankBalance: body.bankBalance,
           lotteryTickets: body.lotteryTickets,
           supporterStatus: body.supporterStatus ?? null,
+          supporterPrompt: body.supporterPrompt ?? null,
         });
       }
     } catch (refreshError) {
@@ -196,6 +210,26 @@ function AuthenticatedHeaderContent(props: AuthenticatedHeaderContentProps) {
     setTutorialOpen(false);
   }
 
+  async function acknowledgeSupporterPrompt() {
+    const response = await fetch("/api/play/supporter-prompt", {
+      method: "PATCH",
+    });
+    const body = (await response.json().catch(() => null)) as {
+      error?: string;
+      acknowledgedAt?: string;
+    } | null;
+    if (!response.ok || typeof body?.acknowledgedAt !== "string") {
+      throw new Error(
+        body?.error ?? "Your acknowledgment could not be saved.",
+      );
+    }
+    const acknowledgedPeriod = body.acknowledgedAt.slice(0, 7);
+    setAcknowledgedSupporterPromptPeriod((current) =>
+      current && current > acknowledgedPeriod ? current : acknowledgedPeriod,
+    );
+    void refreshAccountSummary();
+  }
+
   return (
     <>
       <PlayerHeaderContent
@@ -217,14 +251,20 @@ function AuthenticatedHeaderContent(props: AuthenticatedHeaderContentProps) {
               }
         }
         onSignOut={logout}
-        supporterStatus={
-          accountSummary
-            ? accountSummary.supporterStatus
-            : props.supporterStatus ?? null
-        }
+        supporterStatus={displayedSupporterStatus}
       />
       {tutorialOpen ? (
         <TutorialDialog onClose={closeTutorial} />
+      ) : null}
+      {supporterPrompt?.required &&
+      displayedSupporterStatus === null &&
+      !tutorialOpen &&
+      (!acknowledgedSupporterPromptPeriod ||
+        acknowledgedSupporterPromptPeriod < supporterPrompt.period) ? (
+        <SupporterPromptDialog
+          bonusCommemorationItems={supporterPrompt.bonusCommemorationItems}
+          onAcknowledge={acknowledgeSupporterPrompt}
+        />
       ) : null}
     </>
   );

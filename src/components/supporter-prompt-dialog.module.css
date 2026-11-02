@@ -1,0 +1,64 @@
+.dialog:global(.reroll-dialog) {
+  width: min(620px, calc(100vw - 32px));
+}
+
+.brandName {
+  color: #f3c;
+  font: 700 1em Courier, monospace;
+}
+
+.perks {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.perks > div {
+  border: 1px solid #c8c1b4;
+  padding: 14px 16px;
+  background: #fff;
+}
+
+.perks dt {
+  font: 700 1rem Courier, "Courier New", monospace;
+}
+
+.perks dd {
+  margin: 0.35rem 0 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.actions :is(a, button) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  border: 1px solid #000;
+  border-radius: var(--game-button-radius);
+  padding: 0.6rem 0.9rem;
+  background: #fff;
+  color: #111;
+  font: 700 0.78rem Courier, "Courier New", monospace;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.actions .membership,
+.actions :is(a, button):hover,
+.actions :is(a, button):focus-visible {
+  background: var(--accent);
+  color: #000;
+}
+
+.actions button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}

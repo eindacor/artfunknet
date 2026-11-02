@@ -5,6 +5,7 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 import type { PlayerArtworkArchive } from "./archive-gameplay.ts";
 import type { Artwork, GameItem } from "./gameplay.ts";
 import { hydrateGameItems, hydratePlayerArtworkArchives } from "./item-artwork.ts";
+import { getArtworkImageUrl } from "./artwork-image-url.ts";
 
 test("archives hide inactive and missing artworks without deleting archive records or hiding owned items", async t => {
   const server = await MongoMemoryServer.create();
@@ -30,4 +31,16 @@ test("archives hide inactive and missing artworks without deleting archive recor
   assert.equal((await hydrateGameItems(db, [{ _id: "item", artwork_id: "inactive" } as GameItem])).length, 1);
   await db.collection<Artwork>("artworks").updateOne({ _id: "inactive" }, { $set: { active: true } });
   assert.deepEqual((await hydratePlayerArtworkArchives(db, archives)).map(entry => entry.artwork_id), ["active", "inactive"]);
+
+  const owned = [{ _id: "item", artwork_id: "active" } as GameItem];
+  for (const checksum of ["a".repeat(64), "b".repeat(64)]) {
+    await db.collection<Artwork>("artworks").updateOne({ _id: "active" }, {
+      $set: { image: { variants: { thumb: { checksum } } } },
+    });
+    const [item] = await hydrateGameItems(db, owned);
+    const [archive] = await hydratePlayerArtworkArchives(db, archives);
+    const expected = `/api/artwork/active/image?variant=thumb&v=${checksum}`;
+    assert.equal(getArtworkImageUrl(item.artwork_id, "thumb", item.artwork.image), expected);
+    assert.equal(getArtworkImageUrl(archive.artwork_id, "thumb", archive.artwork.image), expected);
+  }
 });

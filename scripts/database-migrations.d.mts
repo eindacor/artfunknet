@@ -7,8 +7,13 @@ export function migrateItemSerialNumbers(database: Db): Promise<{
   itemsUpdated: number;
   originalsDemoted: number;
 }>;
+export function migrateDailyCrateClaims(database: Db): Promise<{
+  playersUpdated: number;
+  settingsUpdated: number;
+}>;
 
 export function migrateArtworkEffects(database: Db): Promise<void>;
+export function migrateMasterpieceFlavorTexts(database: Db): Promise<{ updated: number }>;
 export function migrateHallOfFameAndPlaythroughStorage(
   database: Db,
 ): Promise<void>;

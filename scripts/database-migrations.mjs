@@ -35,6 +35,11 @@ export async function migrateItemRevealStates(database) {
   return backfillItemRevealStates(database);
 }
 
+export async function migrateDailyCrateClaims(database) {
+  const { backfillDailyCrateMetadata } = await import("../src/server/daily-crate.ts");
+  return backfillDailyCrateMetadata(database);
+}
+
 export async function migrateD3CardRendererId(database) {
   const renameIds = (ids) =>
     Array.isArray(ids)
@@ -568,6 +573,56 @@ const LEGACY_TRANSFERABLE_AUCTION_DESCRIPTION =
   "Reserved definition for transferable private auctions and public commission.";
 const TRANSFERABLE_AUCTION_DESCRIPTION =
   "Private auctions can be made public and pay you a commission when sold.";
+
+const MASTERPIECE_FLAVOR_OPENINGS = [
+  "An extraordinary study in",
+  "A masterclass in",
+  "A luminous expression of",
+  "A rare triumph of",
+  "A quietly radical vision of",
+  "A magnificent meditation on",
+  "A work of astonishing",
+  "A revelation of",
+  "A singular display of",
+  "A remarkably assured command of",
+  "An exquisite balance of",
+  "A daring synthesis of",
+  "A deeply moving exploration of",
+  "A profound understanding of",
+  "A breathtaking orchestration of",
+  "A flawless interplay of",
+];
+
+const MASTERPIECE_FLAVOR_THEMES = [
+  "form and feeling",
+  "light and silence",
+  "color and restraint",
+  "gesture and grace",
+  "rhythm and balance",
+  "texture and atmosphere",
+  "intimacy and scale",
+  "discipline and imagination",
+  "beauty and complexity",
+  "presence and possibility",
+  "precision and poetry",
+  "space and tension",
+  "memory and sensation",
+  "clarity and depth",
+  "subtlety and conviction",
+  "structure and spontaneity",
+];
+
+const MASTERPIECE_FLAVOR_CLOSINGS = [
+  "",
+  " Every detail feels inevitable.",
+  " It rewards every return.",
+  " Nothing here is incidental.",
+  " Its confidence is unmistakable.",
+  " The restraint is exquisite.",
+  " Its presence is unforgettable.",
+  " A triumph without excess.",
+];
+
 const LEGACY_QUEST_CONDITION_EFFECT_CODE =
   "QUEST_TARGET_CONDITION_INCREASE";
 const QUEST_CONDITION_BONUS_EFFECT = {
@@ -709,7 +764,6 @@ async function migrateTransferableAuctionEffect(database, now) {
     {
       $set: {
         description: TRANSFERABLE_AUCTION_DESCRIPTION,
-        flavor_text: TRANSFERABLE_AUCTION_DESCRIPTION,
         updated_at: now,
       },
     },
@@ -995,6 +1049,56 @@ async function normalizeArtworkEffectParameters(database) {
       }
     }
   }
+}
+
+export async function migrateMasterpieceFlavorTexts(database) {
+  const collection = database.collection("artwork_effects");
+  const effects = await collection.find({ effect_type: "masterpiece" })
+    .project({ _id: 1, description: 1, flavor_text: 1 }).toArray();
+  const pending = effects.filter((effect) => {
+    const flavor = typeof effect.flavor_text === "string" ? effect.flavor_text.trim() : "";
+    return (
+      !flavor ||
+      flavor === effect.description?.trim() ||
+      flavor === LEGACY_TRANSFERABLE_AUCTION_DESCRIPTION
+    );
+  });
+  if (pending.length === 0) return { updated: 0 };
+
+  const existing = new Set(effects.map((effect) =>
+    typeof effect.flavor_text === "string" ? effect.flavor_text.trim() : "",
+  ));
+  const quotes = MASTERPIECE_FLAVOR_OPENINGS.flatMap((opening) =>
+    MASTERPIECE_FLAVOR_THEMES.flatMap((theme) =>
+      MASTERPIECE_FLAVOR_CLOSINGS.map((closing) => `${opening} ${theme}.${closing}`),
+    ),
+  ).filter((quote) => !existing.has(quote));
+  if (pending.length > quotes.length) {
+    throw new Error("There are not enough distinct critic quotes to backfill masterpiece effects.");
+  }
+  for (let index = quotes.length - 1; index > 0; index -= 1) {
+    const other = Math.floor(Math.random() * (index + 1));
+    [quotes[index], quotes[other]] = [quotes[other], quotes[index]];
+  }
+
+  const now = new Date().toISOString();
+  const operations = pending.map((effect) => ({
+    updateOne: {
+      filter: {
+        _id: effect._id,
+        effect_type: "masterpiece",
+        flavor_text: Object.hasOwn(effect, "flavor_text")
+          ? { $eq: effect.flavor_text }
+          : { $exists: false },
+      },
+      update: { $set: { flavor_text: quotes.pop(), updated_at: now } },
+    },
+  }));
+  let updated = 0;
+  for (let offset = 0; offset < operations.length; offset += 500) {
+    updated += (await collection.bulkWrite(operations.slice(offset, offset + 500))).modifiedCount;
+  }
+  return { updated };
 }
 
 export async function migrateArtworkEffects(database) {

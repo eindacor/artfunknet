@@ -103,3 +103,15 @@ test("reveal state stays with an item and never re-masks known items", () => {
   assert.equal(getInitialItemRevealState({ ...item, status: "claimed" }), true);
   assert.equal(getInitialItemRevealState({ status: "unclaimed", drop_chance_coefficient: 0.2 }), true);
 });
+
+test("disabling player reveals starts offers revealed across all reveal tiers", () => {
+  for (const artwork of [{ rarity: "rare" }, { rarity: "legendary" }, { rarity: "masterpiece" }]) {
+    for (const status of ["unclaimed", "for_sale", "auctioned"]) {
+      const item = { artwork, status, source: "private auction", drop_chance_coefficient: cutoffs.level1 / 2 };
+      assert.equal(getInitialItemRevealState(item), false);
+      const revealed = getInitialItemRevealState(item, cutoffs, false);
+      assert.equal(revealed, true);
+      assert.equal(canQuickSellItem({ ...item, revealed }), true);
+    }
+  }
+});

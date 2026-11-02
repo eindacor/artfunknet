@@ -1,4 +1,5 @@
 import type { HydratedGameItem } from "./item-artwork.ts";
+import { getArtworkImageUrl } from "./artwork-image-url.ts";
 
 export function serializeGameClientItem(item: HydratedGameItem) {
   return {
@@ -12,7 +13,7 @@ export function serializeGameClientItem(item: HydratedGameItem) {
     foil: item.foil,
     artworkWidth: item.artwork.width,
     artworkHeight: item.artwork.height,
-    cardImagePath: `/api/artwork/${item.artwork_id}/image?variant=card`,
-    thumbnailImagePath: `/api/artwork/${item.artwork_id}/image?variant=thumb`,
+    cardImagePath: getArtworkImageUrl(item.artwork_id, "card", item.artwork.image),
+    thumbnailImagePath: getArtworkImageUrl(item.artwork_id, "thumb", item.artwork.image),
   };
 }

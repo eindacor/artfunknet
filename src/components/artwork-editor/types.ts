@@ -1,4 +1,5 @@
 import type { Artwork } from "@/server/gameplay";
+import type { ArtworkImageMetadata } from "@/server/artwork-image-url";
 
 export type ArtistCatalogEntry = {
   id: string;
@@ -28,7 +29,7 @@ export type ArtworkCatalogEntry = Pick<Artwork,
   image_height?: number;
   active: boolean;
   nsfw?: boolean;
-  image?: {
+  image?: ArtworkImageMetadata & {
     version?: number;
     storage?: {
       provider: "mock-s3" | "s3";
