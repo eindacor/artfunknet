@@ -60,6 +60,7 @@ test("OAuth routes authenticate fresh identities and bind explicit sync to the c
     .split("; ").find((entry) => entry.startsWith(`${name}=`))?.slice(name.length + 1);
   const session = await load<typeof import("./session.ts")>("./session.ts", {
     "server-only": {}, jose, "./authorization.ts": authorization,
+    "./mongodb.ts": { getDatabase: async () => db },
     "next/headers": {
       cookies: async () => ({ get: (name: string) => cookie(name) ? { value: cookie(name) } : undefined }),
       headers: async () => currentRequest.headers,
@@ -325,9 +326,16 @@ test("OAuth routes authenticate fresh identities and bind explicit sync to the c
   });
 
   await t.test("account controls expose POST-based sync for all providers without a second gallery-format selector", async () => {
+    const deletionSection = await load<typeof import("../app/play/account/delete-account-section.tsx")>(
+      "../app/play/account/delete-account-section.tsx", {
+        react: require("react"), "react/jsx-runtime": require("react/jsx-runtime"),
+        "next/link": require("next/link"),
+      },
+    );
     const account = await load<typeof import("../app/play/account/account-form.tsx")>("../app/play/account/account-form.tsx", {
       react: require("react"), "react/jsx-runtime": require("react/jsx-runtime"),
       "next/navigation": { useRouter: () => ({ refresh() {} }) },
+      "./delete-account-section": deletionSection,
     });
     const html = renderToStaticMarkup(createElement(account.default, {
       email, emailVerified: true, enableReveals: true, hasPassword: true, screenName: "Current-Player",
@@ -343,6 +351,9 @@ test("OAuth routes authenticate fresh identities and bind explicit sync to the c
     assert.doesNotMatch(html, /View preferences|Preferred gallery format|name="galleryView"/);
     assert.match(html, /Enable reveals/);
     assert.match(html, /business and creator accounts only/);
+    assert.match(html, /Delete account/);
+    assert.match(html, /href="\/privacy"/);
+    assert.match(html, /href="\/data-deletion"/);
     for (const { id, name } of OAUTH_PROVIDERS) {
       assert.match(html, new RegExp(`action="/api/auth/player/${id}" method="post"`));
       assert.ok(html.includes(`Sync with ${name}`));

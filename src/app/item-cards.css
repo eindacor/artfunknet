@@ -5534,6 +5534,20 @@
   backdrop-filter: blur(3px);
 }
 
+.delete-account-dialog {
+  --mint-color: #b42318;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+}
+
+.delete-account-dialog .mint-loss-dialog-content {
+  justify-items: stretch;
+}
+
+.delete-account-dialog .mint-loss-dialog-actions {
+  flex-wrap: wrap;
+}
+
 .archive-confirmation-dialog::after {
   background: #405f50;
 }

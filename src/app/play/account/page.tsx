@@ -55,7 +55,7 @@ export default async function PlayerAccountPage({
 }: {
   searchParams: Promise<{ patreon?: string | string[]; oauth?: string | string[]; provider?: string | string[] }>;
 }) {
-  const session = await requirePlayer();
+  const session = await requirePlayer({ allowDeleting: true });
   const player = await (await getDatabase())
     .collection<PlayerAccount>("players")
     .findOne({ _id: session.playerId, active: true });

@@ -336,7 +336,7 @@ export async function POST(request: Request) {
     message:
       parsed.destination.type === "player"
         ? `${context.artwork.title} was sent to ${
-            player?.screen_name ?? "the player"
+            player?.screen_name ?? "[redacted]"
           }.`
         : parsed.destination.type === "lottery_buffer"
           ? `${context.artwork.title} was added to the lottery buffer.`

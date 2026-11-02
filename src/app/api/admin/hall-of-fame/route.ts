@@ -73,7 +73,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       item,
       artwork,
-      owner_screen_name: owner?.screen_name || item.owner,
+      owner_screen_name: owner?.screen_name || "[redacted]",
       existing_hall_of_fame: existingHoF,
       qualifier_matches: qualifierMatches.map((qualifier) => ({
         ...qualifier,
@@ -210,7 +210,7 @@ export async function POST(request: Request) {
     created_at: new Date().toISOString(),
     ...(qualifierId ? { qualifier_id: qualifierId } : {}),
     player_id: item.owner,
-    player_screen_name: owner?.screen_name || item.owner,
+    player_screen_name: owner?.screen_name || "[redacted]",
   };
 
   await database.collection<HallOfFameRecord>("hall_of_fame").insertOne(record);

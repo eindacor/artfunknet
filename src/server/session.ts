@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { jwtVerify, SignJWT } from "jose";
 
 import { getBearerToken } from "./authorization.ts";
+import { getDatabase } from "./mongodb.ts";
 
 export const ADMIN_SESSION_COOKIE = "artfunkel_admin_session";
 export const PLAYER_SESSION_COOKIE = "artfunkel_player_session";
@@ -94,7 +95,9 @@ export async function requireAdmin(): Promise<AdminSession> {
   return session;
 }
 
-export async function getPlayerSession(): Promise<PlayerSession | null> {
+export async function getPlayerSession(
+  options: { accountErasure?: boolean; allowDeleting?: boolean } = {},
+): Promise<PlayerSession | null> {
   const [cookieStore, requestHeaders] = await Promise.all([
     cookies(),
     headers(),
@@ -107,6 +110,7 @@ export async function getPlayerSession(): Promise<PlayerSession | null> {
     return null;
   }
 
+  let session: PlayerSession;
   try {
     const { payload } = await jwtVerify(token, getSecret(), {
       algorithms: ["HS256"],
@@ -121,7 +125,7 @@ export async function getPlayerSession(): Promise<PlayerSession | null> {
       return null;
     }
 
-    return {
+    session = {
       playerId: payload.sub,
       email: payload.email,
       screenName: payload.screenName,
@@ -130,10 +134,20 @@ export async function getPlayerSession(): Promise<PlayerSession | null> {
   } catch {
     return null;
   }
+  const player = await (await getDatabase(options))
+    .collection<{ _id: string; active: boolean; account_deletion?: boolean }>("players")
+    .findOne({
+      _id: session.playerId,
+      active: true,
+      ...(!options.allowDeleting ? { account_deletion: { $ne: true } } : {}),
+    }, { projection: { _id: 1 } });
+  return player ? session : null;
 }
 
-export async function requirePlayer(): Promise<PlayerSession> {
-  const session = await getPlayerSession();
+export async function requirePlayer(
+  options: { allowDeleting?: boolean } = {},
+): Promise<PlayerSession> {
+  const session = await getPlayerSession(options);
 
   if (!session) {
     redirect("/play/login");

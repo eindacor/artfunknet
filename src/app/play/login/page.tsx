@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 
 import { getPlayerSession } from "@/server/session";
 import { isOAuthProviderConfigured } from "@/server/oauth-player";
@@ -38,6 +39,11 @@ export default async function PlayerLoginPage({ searchParams }: {
           steam: true,
         }}
       />
+      <p className="text-sm text-[var(--muted)]">
+        <Link className="underline" href="/privacy">Privacy policy</Link>
+        {" | "}
+        <Link className="underline" href="/data-deletion">Data deletion</Link>
+      </p>
     </main>
   );
 }

@@ -391,6 +391,7 @@ async function hydrateChatMessages(
     .find({ active: true })
     .project<ChatPlayer>({ _id: 1, screen_name: 1, active: 1 })
     .toArray();
+  const playerNames = new Map(activePlayers.map((player) => [player._id, player.screen_name]));
   const itemMatches = messages.flatMap((message) =>
     findItemReferences(message.content),
   );
@@ -415,7 +416,9 @@ async function hydrateChatMessages(
     id: message._id,
     galleryOwnerId: message.gallery_owner_id,
     authorId: message.author_id,
-    authorName: message.author_name,
+    authorName: message.author_id === ARTFUNKEL_SYSTEM_AUTHOR_ID
+      ? message.author_name
+      : playerNames.get(message.author_id) ?? "[redacted]",
     content: message.content,
     createdAt: message.created_at.toISOString(),
     editedAt: message.edited_at?.toISOString() ?? null,

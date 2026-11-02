@@ -1,6 +1,10 @@
 import "server-only";
 
 import { Db, MongoClient, ServerApiVersion } from "mongodb";
+import { headers } from "next/headers";
+import { after } from "next/server";
+
+import { holdAccountDataAccess } from "./account-data-access.ts";
 
 const uri = process.env.MONGODB_URI;
 
@@ -37,7 +41,28 @@ function getClientPromise(): Promise<MongoClient> {
   return connection;
 }
 
-export async function getDatabase(): Promise<Db> {
+async function getRawDatabase(): Promise<Db> {
   const client = await getClientPromise();
   return client.db(process.env.MONGODB_DB ?? "artfunkel");
+}
+
+export async function getDatabase(
+  options: { accountErasure?: boolean } = {},
+): Promise<Db> {
+  const database = await getRawDatabase();
+  if (!options.accountErasure) {
+    await holdAccountDataAccess(database, await headers(), after);
+  }
+  return database;
+}
+
+export async function withDatabase<T>(operation: (database: Db) => Promise<T>): Promise<T> {
+  const database = await getRawDatabase();
+  let release!: () => Promise<void>;
+  await holdAccountDataAccess(database, {}, (callback) => { release = callback; });
+  try {
+    return await operation(database);
+  } finally {
+    await release();
+  }
 }

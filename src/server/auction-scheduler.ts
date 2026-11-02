@@ -1,5 +1,5 @@
 import { maintainPublicAuctions } from "./auction-gameplay.ts";
-import { getDatabase } from "./mongodb.ts";
+import { withDatabase } from "./mongodb.ts";
 
 const AUCTION_CHECK_INTERVAL_MS = 60 * 1000;
 
@@ -14,10 +14,9 @@ async function checkAuctions(): Promise<void> {
   if (schedulerGlobal.artfunkAuctionCheck) {
     return schedulerGlobal.artfunkAuctionCheck;
   }
-  schedulerGlobal.artfunkAuctionCheck = (async () => {
-    const database = await getDatabase();
+  schedulerGlobal.artfunkAuctionCheck = withDatabase(async (database) => {
     await maintainPublicAuctions(database);
-  })();
+  });
   try {
     await schedulerGlobal.artfunkAuctionCheck;
   } catch (error) {

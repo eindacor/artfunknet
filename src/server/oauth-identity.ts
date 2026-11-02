@@ -136,7 +136,7 @@ export async function resolveOAuthIdentity(
       const record: OAuthPlayer = {
         ...createPlayerAccountRecord({
           email: storedEmail, screenName, passwordSalt: "", passwordHash: "",
-          playerId: hash.slice(0, 24), now,
+          now,
         }),
         ...(email ? { account_emails: [email] } : {}),
         email_verified: Boolean(email && emailVerified),

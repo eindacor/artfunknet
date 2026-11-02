@@ -4,6 +4,8 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { OAuthProvider } from "@/server/oauth-providers";
 
+import DeleteAccountSection from "./delete-account-section";
+
 export default function AccountForm({
   email,
   emailVerified,
@@ -187,6 +189,7 @@ export default function AccountForm({
                   {provider.configured ? `Sync with ${provider.name}` : `${provider.name} sync unavailable`}
                 </button>
               </form>
+              <DeleteAccountSection />
             </div>
           ))}
         </div>

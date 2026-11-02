@@ -1,4 +1,4 @@
-import { getDatabase } from "./mongodb.ts";
+import { withDatabase } from "./mongodb.ts";
 import { settleDailyMasterpieceInterest } from "./masterpiece-effects.ts";
 
 const INTERVAL_MS = 5 * 60 * 1000;
@@ -12,10 +12,9 @@ async function check() {
   if (schedulerGlobal.artfunkMasterpieceEffectCheck) {
     return schedulerGlobal.artfunkMasterpieceEffectCheck;
   }
-  schedulerGlobal.artfunkMasterpieceEffectCheck = (async () => {
-    const database = await getDatabase();
+  schedulerGlobal.artfunkMasterpieceEffectCheck = withDatabase(async (database) => {
     await settleDailyMasterpieceInterest(database);
-  })();
+  });
   try {
     await schedulerGlobal.artfunkMasterpieceEffectCheck;
   } finally {

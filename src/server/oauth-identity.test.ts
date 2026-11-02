@@ -55,6 +55,15 @@ test("OAuth identities keep player ownership explicit and email claims unique", 
     }
   });
 
+  await t.test("signing up again after deletion never reuses the deleted player's session subject", async () => {
+    await players.deleteMany({});
+    const first = await resolveOAuthIdentity(db, identity());
+    await players.deleteOne({ _id: first.player._id });
+    const second = await resolveOAuthIdentity(db, identity());
+    assert.equal(second.accountCreated, true);
+    assert.notEqual(second.player._id, first.player._id);
+  });
+
   await t.test("matching primary or legacy provider emails require existing-account sign-in for every provider", async () => {
     for (const { id } of OAUTH_PROVIDERS) {
       await players.deleteMany({});

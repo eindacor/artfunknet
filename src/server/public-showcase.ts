@@ -46,8 +46,9 @@ export async function getPublicItemView(
   });
   if (!rawItem) return null;
 
+  const shared = rawItem.status === "displayed" || (rawItem.permanent && rawItem.status === "claimed");
   const displayOwnerRecord =
-    rawItem.status === "displayed" || (rawItem.permanent && rawItem.status === "claimed")
+    shared
       ? await database
           .collection<PublicPlayerRecord>("players")
           .findOne(
@@ -68,12 +69,12 @@ export async function getPublicItemView(
 
   return {
     item,
-    displayOwner: displayOwnerRecord
+    displayOwner: shared
       ? {
-          playerId: displayOwnerRecord._id,
-          screenName: displayOwnerRecord.screen_name,
-          level: displayOwnerRecord.profile.level,
-          vintageLevel: displayOwnerRecord.profile.vintage_count ?? 0,
+          playerId: rawItem.owner,
+          screenName: displayOwnerRecord?.screen_name ?? "[redacted]",
+          level: displayOwnerRecord?.profile.level ?? 1,
+          vintageLevel: displayOwnerRecord?.profile.vintage_count ?? 0,
         }
       : null,
   };

@@ -1,5 +1,5 @@
 import { removeExpiredTransientItems } from "./item-expiration.ts";
-import { getDatabase } from "./mongodb.ts";
+import { withDatabase } from "./mongodb.ts";
 
 const ITEM_EXPIRATION_CHECK_INTERVAL_MS = 10 * 1000;
 
@@ -14,9 +14,9 @@ async function checkItemExpirations(): Promise<void> {
   if (schedulerGlobal.artfunkItemExpirationCheck) {
     return schedulerGlobal.artfunkItemExpirationCheck;
   }
-  schedulerGlobal.artfunkItemExpirationCheck = (async () => {
-    await removeExpiredTransientItems(await getDatabase());
-  })();
+  schedulerGlobal.artfunkItemExpirationCheck = withDatabase(async (database) => {
+    await removeExpiredTransientItems(database);
+  });
   try {
     await schedulerGlobal.artfunkItemExpirationCheck;
   } catch (error) {

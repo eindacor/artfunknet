@@ -1,6 +1,6 @@
 import { settleForgeryContestIfDue } from "./forgery-contest.ts";
 import { getGameplaySettings } from "./game-settings.ts";
-import { getDatabase } from "./mongodb.ts";
+import { withDatabase } from "./mongodb.ts";
 import { settleRaffleIfDue } from "./raffle-gameplay.ts";
 import { settleSeasonalRotationIfDue } from "./seasonal-daily-events.ts";
 
@@ -17,15 +17,16 @@ async function checkDailyEvents(): Promise<void> {
   if (schedulerGlobal.artfunkDailyEventCheck) {
     return schedulerGlobal.artfunkDailyEventCheck;
   }
-  schedulerGlobal.artfunkDailyEventCheck = (async () => {
-    const database = await getDatabase();
+  schedulerGlobal.artfunkDailyEventCheck = withDatabase(async (database) => {
     const settings = await getGameplaySettings(database);
-    await Promise.all([
+    const results = await Promise.allSettled([
       settleForgeryContestIfDue(database),
       settleRaffleIfDue(database, settings.active),
       settleSeasonalRotationIfDue(database),
     ]);
-  })();
+    const failure = results.find((result) => result.status === "rejected");
+    if (failure?.status === "rejected") throw failure.reason;
+  });
   try {
     await schedulerGlobal.artfunkDailyEventCheck;
   } catch (error) {

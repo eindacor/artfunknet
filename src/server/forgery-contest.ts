@@ -320,7 +320,7 @@ export async function getForgeryContestPlayerView(
       id: entry._id,
       playerId: entry.player_id,
       playerScreenName:
-        playerById.get(entry.player_id)?.screen_name ?? entry.player_id,
+        playerById.get(entry.player_id)?.screen_name ?? "[redacted]",
       submittedAt: entry.submitted_at,
       voteCount: voteCountByEntryId.get(entry._id) ?? 0,
       viewerVoted: viewerVote === entry._id,
@@ -894,7 +894,7 @@ export async function settleForgeryContestIfDue(
         place,
         player_id: rank.playerId,
         player_screen_name:
-          playerById.get(rank.playerId)?.screen_name ?? rank.playerId,
+          playerById.get(rank.playerId)?.screen_name ?? "[redacted]",
         votes: rank.votes,
         won_at: now.toISOString(),
         money_reward: getForgeryContestMoneyReward(
