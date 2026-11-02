@@ -325,7 +325,7 @@ test("OAuth routes authenticate fresh identities and bind explicit sync to the c
     assert.equal(await players.countDocuments(), 1);
   });
 
-  await t.test("account controls expose POST-based sync for all providers without a second gallery-format selector", async () => {
+  await t.test("account controls expose provider sync and one standalone deletion control for the entire player", async () => {
     const deletionSection = await load<typeof import("../app/play/account/delete-account-section.tsx")>(
       "../app/play/account/delete-account-section.tsx", {
         react: require("react"), "react/jsx-runtime": require("react/jsx-runtime"),
@@ -337,26 +337,31 @@ test("OAuth routes authenticate fresh identities and bind explicit sync to the c
       "next/navigation": { useRouter: () => ({ refresh() {} }) },
       "./delete-account-section": deletionSection,
     });
-    const html = renderToStaticMarkup(createElement(account.default, {
+    const props = {
       email, emailVerified: true, enableReveals: true, hasPassword: true, screenName: "Current-Player",
       oauthMessage: getOAuthMessage("updated", "instagram"),
       providers: OAUTH_PROVIDERS.map(({ id, name }) => ({
-        id, name, configured: true, linked: false, email: null, emailVerified: false, verifiedAt: null,
+        id, name, configured: true, linked: true, email: null, emailVerified: false, verifiedAt: null,
       })),
       patreon: {
-        checkedAt: null, configured: false, email: null, emailMatchesPlayer: null, isSupporter: false,
-        linked: false, message: null, requiresReauthorization: false, tierAmountCents: null, tierName: null,
+        checkedAt: null, configured: true, email: null, emailMatchesPlayer: null, isSupporter: false,
+        linked: true, message: null, requiresReauthorization: false, tierAmountCents: null, tierName: null,
       },
-    }));
+    };
+    const html = renderToStaticMarkup(createElement(account.default, props));
     assert.doesNotMatch(html, /View preferences|Preferred gallery format|name="galleryView"/);
     assert.match(html, /Enable reveals/);
     assert.match(html, /business and creator accounts only/);
-    assert.match(html, /Delete account/);
+    assert.equal((html.match(/>Delete account<\/button>/g) ?? []).length, 1);
+    assert.ok(html.indexOf(">Delete account</button>") > html.indexOf("Save password"));
+    assert.match(html, /all synced-account information stored by artfunkel/);
     assert.match(html, /href="\/privacy"/);
     assert.match(html, /href="\/data-deletion"/);
     for (const { id, name } of OAUTH_PROVIDERS) {
       assert.match(html, new RegExp(`action="/api/auth/player/${id}" method="post"`));
       assert.ok(html.includes(`Sync with ${name}`));
     }
+    const withoutProviders = renderToStaticMarkup(createElement(account.default, { ...props, providers: [] }));
+    assert.equal((withoutProviders.match(/>Delete account<\/button>/g) ?? []).length, 1);
   });
 });

@@ -189,7 +189,6 @@ export default function AccountForm({
                   {provider.configured ? `Sync with ${provider.name}` : `${provider.name} sync unavailable`}
                 </button>
               </form>
-              <DeleteAccountSection />
             </div>
           ))}
         </div>
@@ -353,6 +352,7 @@ export default function AccountForm({
           </button>
         </form>
       </section>
+      <DeleteAccountSection />
     </div>
   );
 }

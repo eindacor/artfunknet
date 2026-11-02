@@ -105,6 +105,9 @@ test("the native confirmation dialog gates submission, prevents dismissal while 
   let view = render();
   const cleanup = effect?.();
   assert.equal(dialog.open, true);
+  const html = renderToStaticMarkup(view);
+  assert.match(html, /Deleting your player also removes all synced-account information stored by artfunkel/);
+  assert.match(html, /stored Patreon authorization/);
   const find = (type: string) => elements(view).find((element) => element.type === type)!;
   const confirmButton = () => elements(view).find((element) =>
     element.type === "button" && element.props.type === "submit")!;

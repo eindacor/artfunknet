@@ -11,7 +11,8 @@ export default function DeleteAccountSection() {
     <section className="rounded-lg border border-red-400/40 bg-white/5 p-6">
       <h2 className="text-xl font-bold">Delete account</h2>
       <p className="mt-2 text-sm text-[var(--muted)]">
-        Permanently delete your account, items, collections, and associated game data.
+        Permanently delete your player, all synced-account information stored by
+        artfunkel, items, collections, and associated game data.
       </p>
       <p className="mt-3 text-sm">
         <Link className="text-[var(--accent)] underline" href="/privacy">Privacy policy</Link>
@@ -77,10 +78,13 @@ function DeleteAccountDialog({ onCancel }: { onCancel: () => void }) {
         <h2 id="delete-account-title">Permanently delete your account?</h2>
         <div className="space-y-3 text-left" id="delete-account-description">
           <p>
-            This cannot be undone. Your profile, email addresses, linked accounts,
-            credentials, every owned item, featured and permanent collections,
-            galleries, quests, archives, chat messages, and other associated
-            live game data will be removed. Shared history will be redacted.
+            This cannot be undone. Deleting your player also removes all
+            synced-account information stored by artfunkel, including provider
+            IDs, email addresses, verification history, and stored Patreon
+            authorization. Your profile, credentials, every owned item, featured
+            and permanent collections, galleries, quests, archives, chat messages,
+            and other associated live game data will be removed. Shared history
+            will be redacted.
           </p>
           <p>
             Deletion is blocked while you are selling or winning auctions or an

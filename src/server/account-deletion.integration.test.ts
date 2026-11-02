@@ -18,6 +18,7 @@ import { settleExpiredAuctions } from "./auction-gameplay.ts";
 import * as chatCore from "./gallery-chat-core.ts";
 import * as publicCore from "./public-showcase-core.ts";
 import type { GameItem } from "./gameplay.ts";
+import { OAUTH_PROVIDERS } from "./oauth-providers.ts";
 
 const require = createRequire(import.meta.url);
 const { NextResponse } = require("next/server");
@@ -51,12 +52,18 @@ async function seed(db: Db) {
       _id: TARGET, active: true, email: "erase@example.com", username: "erase@example.com",
       screen_name: "ErasedCollector", account_emails: ["alias@example.com"],
       password_hash: "test-hash", password_salt: "test-salt",
-      oauth_accounts: { instagram: { id: "instagram-account", email: null } },
-      patreon: { email: "patreon@example.com", oauth: { encrypted_tokens: "test-ciphertext" } },
+      google_sub: "google-account",
+      oauth_accounts: Object.fromEntries(OAUTH_PROVIDERS.map(({ id }) => [id, {
+        id: `${id}-account`,
+        email: id === "steam" || id === "instagram" ? null : `${id}@example.com`,
+        linked_at: new Date(), verified_at: new Date(),
+      }])),
+      patreon: { patreon_id: "patreon-account", email: "patreon@example.com", oauth: { encrypted_tokens: "test-ciphertext" } },
       profile: { level: 1 },
     },
     {
       _id: OTHER, active: true, email: "other@example.com", screen_name: "OtherCollector",
+      oauth_accounts: { google: { id: "other-google-account", email: "other-google@example.com" } },
       password_hash: "other-hash", profile: {
         bank_balance: 200,
         references: [TARGET, OTHER],
@@ -178,7 +185,7 @@ test("account deletion removes live personal data and coordinates concurrent gam
     assert.equal(await collection(db, "items").countDocuments(), 0);
   });
 
-  await t.test("all owned states, galleries, credentials, history and shared references are erased; unrelated data survives", async () => {
+  await t.test("the player, all synced-account data, owned states and associated records are erased together; unrelated data survives", async () => {
     const db = client.db("delete-complete");
     await seed(db);
     const states = [
@@ -210,6 +217,9 @@ test("account deletion removes live personal data and coordinates concurrent gam
         { _id: `other-${name}`, [owner]: OTHER, retained: true },
       ]);
     }
+    await collection(db, "player_notifications").updateOne({ _id: "other-player_notifications" }, {
+      $set: { message: "google@example.com discord@example.com microsoft@example.com patreon@example.com" },
+    });
     await collection(db, "auctions").insertMany([
       { _id: "private-auction", viewer: TARGET, item_id: "private-lot", seller_id: null },
       { _id: "other-auction", viewer: "public", seller_id: OTHER, commission: { player_id: TARGET, coefficient: 0.1 } },
@@ -265,8 +275,16 @@ test("account deletion removes live personal data and coordinates concurrent gam
     assert.doesNotMatch(response.headers.get("set-cookie") ?? "", /artfunkel_admin_session=/);
     assert.equal(await api.oldSession(), null);
     assert.equal(await collection(db, "players").countDocuments(), 1);
+    for (const { id } of OAUTH_PROVIDERS) {
+      assert.equal(await collection(db, "players").countDocuments({
+        [`oauth_accounts.${id}.id`]: `${id}-account`,
+      }), 0, `${id} connection must be erased with the player`);
+    }
+    assert.equal(await collection(db, "players").countDocuments({ google_sub: "google-account" }), 0);
+    assert.equal(await collection(db, "players").countDocuments({ "patreon.patreon_id": "patreon-account" }), 0);
     const other = await collection(db, "players").findOne({ _id: OTHER });
     assert.equal(other?.password_hash, "other-hash");
+    assert.equal(other?.oauth_accounts.google.id, "other-google-account");
     assert.deepEqual(other?.profile.references, [OTHER]);
     assert.deepEqual(other?.profile.receipts, { retained: "other" });
     assert.equal(await collection(db, "items").countDocuments(), 1);
@@ -281,6 +299,9 @@ test("account deletion removes live personal data and coordinates concurrent gam
       assert.equal(await collection(db, name).countDocuments(), 1, name);
       assert.ok(await collection(db, name).findOne({ _id: `other-${name}` }), name);
     }
+    assert.equal((await collection(db, "player_notifications")
+      .findOne({ _id: "other-player_notifications" }))?.message,
+    "[redacted] [redacted] [redacted] [redacted]");
     assert.equal((await collection(db, "auctions").findOne({ _id: "other-auction" }))?.commission, null);
     assert.equal(await collection(db, "community_reactions").countDocuments(), 1);
     assert.equal(await collection(db, "forgery_contest_votes").countDocuments(), 1);
