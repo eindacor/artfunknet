@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import test, { type TestContext } from "node:test";
 import { runInNewContext } from "node:vm";
 import ts from "typescript";
+import * as React from "react";
 
 import type { HydratedGameItem } from "../../server/item-artwork.ts";
 import { getArtworkImageUrl } from "../../server/artwork-image-url.ts";
@@ -35,13 +36,58 @@ const handlerNames = new Set([
   "revealSelectedOffers",
   "confirmOfferReveal",
   "saveViewSettings",
+  "lootItemActions",
 ]);
 const handlers = ts.transpileModule(
-  dashboard.body!.statements.filter(
+  [...dashboard.body!.statements.filter(
     (statement) => ts.isFunctionDeclaration(statement) && handlerNames.has(statement.name!.text),
-  ).map((statement) => statement.getText(source)).join("\n"),
-  { compilerOptions: { target: ts.ScriptTarget.ES2022 } },
+  ), ...source.statements.filter(
+    (statement) => ts.isFunctionDeclaration(statement) && statement.name?.text === "ItemActionButton",
+  )].map((statement) => statement.getText(source)).join("\n"),
+  { compilerOptions: { target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React } },
 ).outputText;
+
+test("collect and set for sale follows claim capacity and blocks disabled clicks", async (t) => {
+  for (const scenario of [
+    { name: "available slot", full: false, pending: false, disabled: false },
+    { name: "full inventory", full: true, pending: false, disabled: true },
+    { name: "Original bypasses capacity", full: true, original: true, pending: false, disabled: false },
+    { name: "Vintage bypasses capacity", full: true, vintage: true, pending: false, disabled: false },
+    { name: "pending action", full: false, pending: true, disabled: true },
+    { name: "pending Original", full: true, original: true, pending: true, disabled: true },
+  ]) {
+    await t.test(scenario.name, () => {
+      const act = t.mock.fn();
+      const work = {
+        ...item("claimable"), values: { sell: 125 },
+        original: scenario.original ?? false, vintage: scenario.vintage ?? false,
+      };
+      const actions = runInNewContext(`${handlers}\nact = onAction;\nlootItemActions(work)`, {
+        React, work, onAction: act, pending: scenario.pending, inventoryFull: scenario.full,
+        historianQuestsForItem: () => [],
+        historianSubmissionDisabledReason: () => undefined,
+        archiveAction: () => null,
+      }) as React.ReactElement<{ children: React.ReactElement<{
+        label: string; disabled: boolean; disabledReason?: string; onClick: () => void;
+      }>[] }>;
+      const action = actions.props.children.find((child) =>
+        child?.props.label === "Collect and set for sale",
+      )!;
+      assert.equal(action.props.disabled, scenario.disabled);
+      if (scenario.full && !scenario.original && !scenario.vintage) {
+        assert.equal(action.props.disabledReason, "Your inventory is currently full.");
+      }
+      const button = (action.type as (props: typeof action.props) => React.ReactElement<{
+        onClick: () => void;
+      }>)(action.props);
+      button.props.onClick();
+      assert.equal(act.mock.callCount(), scenario.disabled ? 0 : 1);
+      if (!scenario.disabled) {
+        assert.equal(act.mock.calls[0].arguments[0], "/api/play/items/claimable/claim-and-set-for-sale");
+      }
+    });
+  }
+});
 
 test("gallery format changes update the section-remount preference and persist through the settings queue", async () => {
   const changed: string[] = [];

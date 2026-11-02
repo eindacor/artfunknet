@@ -3118,6 +3118,8 @@ export default function GameDashboard({
       item,
       historianQuests.length,
     );
+    const inventoryFullForItem =
+      inventoryFull && !item.original && !item.vintage;
     if (item.status === "for_sale") {
       const purchaseAmount = Math.floor(
         item.values.dealer * dealerPriceMultiplier,
@@ -3203,7 +3205,8 @@ export default function GameDashboard({
           gridSlot={4}
           icon="fa-binoculars"
           label="Collect and set for sale"
-          disabled={pending}
+          disabled={pending || inventoryFullForItem}
+          disabledReason={inventoryFullForItem ? "Your inventory is currently full." : undefined}
           onClick={() => act(`/api/play/items/${item._id}/claim-and-set-for-sale`)}
         />
         {archiveAction(item, 12)}
