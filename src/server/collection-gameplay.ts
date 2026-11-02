@@ -12,8 +12,8 @@ import {
   type GameplayConfig,
 } from "./game-settings.ts";
 import {
-  getDisplayedArtworkEffect,
   getDisplayedArtworkEffects,
+  type ArtworkEffect,
 } from "./artwork-effects.ts";
 import {
   getDisplayedLegendaryEffect,
@@ -151,25 +151,43 @@ export async function calculateGalleryRates(
   at: Date,
   config: GameplayConfig,
 ): Promise<GalleryRates> {
-  const averageDrop = await getAverageDropValueForLevel(
-    database,
+  const [averageDrop, effects] = await Promise.all([
+    getAverageDropValueForLevel(database, playerLevel),
+    items[0]
+      ? getDisplayedArtworkEffects(
+          database,
+          items[0].owner,
+          [
+            "DISPLAY_FORGERY_MONEY_BONUS",
+            MASTERPIECE_EFFECT_CODES.uncommonGalleryXp,
+          ],
+        )
+      : [],
+  ]);
+  return calculateGalleryRatesFromInputs(
     playerLevel,
+    items,
+    at,
+    config,
+    averageDrop,
+    effects,
   );
+}
 
-  const [forgeryMoneyBonus, uncommonXpEffect] = items[0]
-    ? await Promise.all([
-        getDisplayedLegendaryEffect(
-          database,
-          items[0].owner,
-          "DISPLAY_FORGERY_MONEY_BONUS",
-        ),
-        getDisplayedArtworkEffect(
-          database,
-          items[0].owner,
-          MASTERPIECE_EFFECT_CODES.uncommonGalleryXp,
-        ),
-      ])
-    : [null, null];
+function calculateGalleryRatesFromInputs(
+  playerLevel: number,
+  items: HydratedGameItem[],
+  at: Date,
+  config: GameplayConfig,
+  averageDrop: number,
+  effects: ArtworkEffect[],
+): GalleryRates {
+  const forgeryMoneyBonus = effects.some(
+    (effect) => effect.code === "DISPLAY_FORGERY_MONEY_BONUS",
+  );
+  const uncommonXpEffect = effects.find(
+    (effect) => effect.code === MASTERPIECE_EFFECT_CODES.uncommonGalleryXp,
+  ) ?? null;
   const rates = items.reduce<GalleryRates>(
     (totals, item) => {
       totals.value += item.values.actual;
@@ -203,6 +221,11 @@ export async function getAverageDropValueForLevel(
   database: Db,
   playerLevel: number,
 ): Promise<number> {
+  const calculateAverageDrop = await loadAverageDropCalculator(database);
+  return calculateAverageDrop(playerLevel);
+}
+
+async function loadAverageDropCalculator(database: Db) {
   const [metadata, settings] = await Promise.all([
     database
       .collection<{ _id: string; loot_data: LootData }>("metadata")
@@ -216,13 +239,20 @@ export async function getAverageDropValueForLevel(
     .find({ active: true })
     .project<ArtworkValue>({ rarity: 1, value_scale: 1 })
     .toArray();
-  const averageDrop = getAverageDropValue(
-    playerLevel,
-    metadata.loot_data,
-    artworks,
-    settings.active.rarityWeights,
-  );
-  return averageDrop;
+  const averagesByLevel = new Map<number, number>();
+  return (playerLevel: number): number => {
+    let average = averagesByLevel.get(playerLevel);
+    if (average === undefined) {
+      average = getAverageDropValue(
+        playerLevel,
+        metadata.loot_data,
+        artworks,
+        settings.active.rarityWeights,
+      );
+      averagesByLevel.set(playerLevel, average);
+    }
+    return average;
+  };
 }
 
 export async function settleGalleryEarnings(
@@ -351,19 +381,23 @@ export async function settleGalleryEarnings(
     .toArray();
 
   const displayed = await hydrateGameItems(database, displayedItems);
-  const preservationEffects = await getDisplayedArtworkEffects(
-    database,
-    playerId,
-    [MASTERPIECE_EFFECT_CODES.preservationMint],
-  );
+  const [calculateAverageDrop, effects, moneyForXp] = await Promise.all([
+    displayed.length > 0 ? loadAverageDropCalculator(database) : null,
+    displayed.length > 0
+      ? getDisplayedArtworkEffects(database, playerId, [
+          MASTERPIECE_EFFECT_CODES.preservationMint,
+          "DISPLAY_FORGERY_MONEY_BONUS",
+          MASTERPIECE_EFFECT_CODES.uncommonGalleryXp,
+        ])
+      : [],
+    displayed.length > 0
+      ? getDisplayedLegendaryEffect(database, playerId, "MONEY_FOR_XP")
+      : null,
+  ]);
   const preservationEffectIds = new Set(
-    preservationEffects.map((effect) => effect._id),
-  );
-
-  const moneyForXp = await getDisplayedLegendaryEffect(
-    database,
-    playerId,
-    "MONEY_FOR_XP",
+    effects
+      .filter((effect) => effect.code === MASTERPIECE_EFFECT_CODES.preservationMint)
+      .map((effect) => effect._id),
   );
 
   let level = player.profile.level;
@@ -401,13 +435,16 @@ export async function settleGalleryEarnings(
       return { money: 0, xp: 0, intervals: 0 };
     }
 
-    const rates = await calculateGalleryRates(
-      database,
-      level,
-      activeDisplayed,
-      tick,
-      config,
-    );
+    const rates = calculateAverageDrop && activeDisplayed.length > 0
+      ? calculateGalleryRatesFromInputs(
+          level,
+          activeDisplayed,
+          tick,
+          config,
+          calculateAverageDrop(level),
+          effects,
+        )
+      : { value: 0, moneyPerHour: 0, xpPerHour: 0 };
 
     for (const item of activeDisplayed) {
       activeIntervalsByItem.set(
@@ -455,6 +492,8 @@ export async function settleGalleryEarnings(
     level = progress.level;
     xp = progress.xp;
     lotteryTickets += progress.lotteryTickets;
+    // Carry has been settled; the remaining empty intervals cannot earn anything.
+    if (activeDisplayed.length === 0) break;
   }
 
   const payoutTimeMs =
@@ -612,13 +651,10 @@ export async function settleGalleryEarnings(
     if (!preservationEffectIds.has(item.artwork.effect_id ?? "")) {
       for (
         let interval = 0;
-        interval < activeIntervals;
+        interval < activeIntervals && condition >= 0.5;
         interval += 1
       ) {
-        if (
-          condition >= 0.5 &&
-          Math.random() < conditionDecayChance
-        ) {
+        if (Math.random() < conditionDecayChance) {
           condition = Number(
             (condition - 0.01).toFixed(2),
           );
