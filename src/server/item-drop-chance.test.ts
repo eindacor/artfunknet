@@ -97,13 +97,14 @@ test("seasonal, foil, unlocked, weighted art style, and Mint factors compound us
   );
 });
 
-test("specific style weights affect only Mint items, while ordinary styled items use the global style chance", () => {
-  for (const card_renderer of ["legacy", "postcard", "arcade", "inactive"]) {
-    assert.equal(
-      calculateItemDropChance({ ...standard, card_renderer }, { rarity: "common" }, context)
-        .drop_chance_coefficient,
-      0.1785,
-    );
+test("all art-style factors apply only to Mint items, including when style drops are disabled", () => {
+  for (const artStyle of [context.artStyle, 0]) {
+    for (const card_renderer of [undefined, "museum", "legacy", "postcard", "arcade", "inactive", "unknown-style"]) {
+      assert.deepEqual(
+        calculateItemDropChance({ ...standard, card_renderer }, { rarity: "common" }, { ...context, artStyle }),
+        { drop_chance_coefficient: 0.714, odds: "71.4%" },
+      );
+    }
   }
   const mintLegacy = calculateItemDropChance({
     ...standard, mint: true, card_renderer: "legacy",
@@ -185,7 +186,7 @@ test("other, inactive, or unlinked effects do not exempt a masterpiece from the 
     assert.equal(calculateItemDropChance({
       ...standard, card_renderer: "postcard",
     }, { rarity: "masterpiece", effect_id: mintEffect._id }, ordinaryContext)
-      .drop_chance_coefficient, 0.00025);
+      .drop_chance_coefficient, 0.001);
   }
 });
 

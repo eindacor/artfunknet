@@ -150,8 +150,8 @@ test("stored drop odds follow live configuration, generation, mutations and prod
     }))?.serial_counter, 1);
     const deminted = await getDemintUpdate(database, item, { card_renderer: "postcard" });
     assert.equal(deminted?.mint, false);
-    assert.ok(Math.abs(deminted!.drop_chance_coefficient! - 0.01785) < 1e-18);
-    assert.equal(deminted?.odds, "1 in 56");
+    assert.ok(Math.abs(deminted!.drop_chance_coefficient! - 0.0714) < 1e-18);
+    assert.equal(deminted?.odds, "1 in 14");
     assert.equal(Object.hasOwn(deminted!, "original_drop_chance_coefficient"), false);
     const items = database.collection<GameItem>("items");
     await items.updateOne({ _id: item._id }, { $set: deminted! });
@@ -160,7 +160,7 @@ test("stored drop odds follow live configuration, generation, mutations and prod
     });
     assert.deepEqual(await migrateItemDropChances(database), { updated: 1 });
     const recalculated = await items.findOne({ _id: item._id });
-    assert.ok(Math.abs(recalculated!.drop_chance_coefficient! - 0.0357) < 1e-18);
+    assert.ok(Math.abs(recalculated!.drop_chance_coefficient! - 0.1428) < 1e-18);
     assert.equal(recalculated?.original_drop_chance_coefficient, item.drop_chance_coefficient);
     assert.deepEqual(await migrateItemDropChances(database), { updated: 0 });
   });
@@ -314,8 +314,8 @@ test("stored drop odds follow live configuration, generation, mutations and prod
     assert.equal((await items.findOne({ _id: "seasonal" }))?.drop_chance_coefficient, 0.357);
     assert.equal((await items.findOne({ _id: "forged" }))?.odds, "forged");
     const styled = await items.findOne({ _id: "transferred-style" });
-    assert.equal(styled?.drop_chance_coefficient, 0.1785);
-    assert.equal(styled?.odds, "1 in 6");
+    assert.equal(styled?.drop_chance_coefficient, 0.714);
+    assert.equal(styled?.odds, "71.4%");
     const roundedOne = await items.findOne({ _id: "rounded-one" });
     assert.equal(roundedOne?.drop_chance_coefficient, 0.714);
     assert.equal(roundedOne?.odds, "71.4%");

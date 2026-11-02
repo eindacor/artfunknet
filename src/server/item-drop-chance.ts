@@ -114,12 +114,12 @@ export function calculateItemDropChance(
     artwork.effect_id !== undefined &&
     context.guaranteedMintEffectIds.has(artwork.effect_id);
   if (
+    item.mint &&
     item.card_renderer &&
-    item.card_renderer !== "museum" &&
-    (item.mint || !guaranteedMint)
+    item.card_renderer !== "museum"
   ) {
     coefficient *= context.artStyle;
-    if (item.mint) coefficient *= context.styles[item.card_renderer] ?? 0;
+    coefficient *= context.styles[item.card_renderer] ?? 0;
   }
   if (item.mint && !guaranteedMint) coefficient *= context.mint;
   return {
