@@ -27,7 +27,7 @@ export function FeaturedArtistGalleries({ artists, onVisit }: {
 }) {
   if (!artists.length) return null;
   return <section className="featured-artist-galleries" aria-label="Featured artist galleries">
-    <header><h2>Featured contributing {artists.length == 1 ? "artist" : "artists"}</h2></header>
+    <header><h2>Featured {artists.length == 1 ? "artist" : "artists"}</h2></header>
     <div className="featured-artist-grid">{artists.map(artist => <article className="featured-artist-card" key={artist.id}>
       <div className="featured-artist-preview">
         {artist.thumbnail ? <ArtworkThumbnail artworkId={artist.thumbnail._id} image={artist.thumbnail.image}
