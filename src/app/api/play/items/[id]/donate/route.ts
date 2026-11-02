@@ -30,6 +30,7 @@ import { getDisplayedArtworkEffect } from "@/server/artwork-effects";
 import { addItemToArchiveRecord } from "@/server/archive-storage";
 import { MASTERPIECE_EFFECT_CODES } from "@/server/masterpiece-effects";
 import { getCardRendererCatalog } from "@/server/card-renderer-settings";
+import { acquireForDisposal } from "@/server/acquire-for-disposal";
 
 type Player = {
   _id: string;
@@ -52,10 +53,10 @@ export async function POST(
   const database = await getDatabase();
   await removeExpiredTransientItems(database);
   await ensurePlayerKarma(database, auth.session.playerId);
-  const item = await database.collection<GameItem>("items").findOne({
+  let item = await database.collection<GameItem>("items").findOne({
     _id: id,
     owner: auth.session.playerId,
-    status: { $in: ["claimed", "unclaimed"] },
+    status: { $in: ["claimed", "unclaimed", "for_sale"] },
     permanent: { $ne: true },
   });
   if (!item) {
@@ -71,6 +72,16 @@ export async function POST(
       { error: "The artwork data needed for this donation is unavailable." },
       { status: 500 },
     );
+  }
+  if (item.status === "for_sale") {
+    try {
+      item = await acquireForDisposal(database, item);
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "The artwork could not be purchased for donation." },
+        { status: 409 },
+      );
+    }
   }
   await transferForgeryLiability(
     database,

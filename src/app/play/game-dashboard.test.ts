@@ -7,6 +7,8 @@ import * as React from "react";
 
 import type { HydratedGameItem } from "../../server/item-artwork.ts";
 import { getArtworkImageUrl } from "../../server/artwork-image-url.ts";
+import { getBulkAcquisitionRequirements } from "../../server/bulk-acquisition.ts";
+import { getUnfulfilledHistorianTargetIds } from "../../server/art-historian-gameplay.ts";
 import {
   DEFAULT_OFFER_REVEAL_THRESHOLDS,
   getOfferRevealTier,
@@ -37,12 +39,15 @@ const handlerNames = new Set([
   "confirmOfferReveal",
   "saveViewSettings",
   "lootItemActions",
+  "lootPrimaryAction",
+  "archiveAction",
 ]);
 const handlers = ts.transpileModule(
   [...dashboard.body!.statements.filter(
     (statement) => ts.isFunctionDeclaration(statement) && handlerNames.has(statement.name!.text),
   ), ...source.statements.filter(
-    (statement) => ts.isFunctionDeclaration(statement) && statement.name?.text === "ItemActionButton",
+    (statement) => ts.isFunctionDeclaration(statement) &&
+      ["ItemActionButton", "getLootBulkState", "assignHistorianQuests"].includes(statement.name?.text ?? ""),
   )].map((statement) => statement.getText(source)).join("\n"),
   { compilerOptions: { target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React } },
 ).outputText;
@@ -60,6 +65,7 @@ test("collect and set for sale follows claim capacity and blocks disabled clicks
       const act = t.mock.fn();
       const work = {
         ...item("claimable"), values: { sell: 125 },
+        archivePermission: { allowed: false, reason: "No new archive entries." },
         original: scenario.original ?? false, vintage: scenario.vintage ?? false,
       };
       const actions = runInNewContext(`${handlers}\nact = onAction;\nlootItemActions(work)`, {
@@ -86,6 +92,60 @@ test("collect and set for sale follows claim capacity and blocks disabled clicks
         assert.equal(act.mock.calls[0].arguments[0], "/api/play/items/claimable/claim-and-set-for-sale");
       }
     });
+  }
+});
+
+test("dealer purchase controls require space, but direct disposal controls do not", () => {
+  for (const flags of [{}, { original: true }, { vintage: true }]) {
+    const work = {
+      ...item("dealer"), ...flags, status: "for_sale", values: { dealer: 100 },
+      archivePermission: { allowed: true },
+    };
+    const context = {
+      React, work, inventoryFull: true, pending: false, dealerPriceMultiplier: 1,
+      player: { bankBalance: 1_000 },
+      historianQuestsForItem: () => [{}],
+      historianSubmissionDisabledReason: () => undefined,
+    };
+    type ActionProps = { label: string; disabled: boolean; disabledReason?: string };
+    const actions = runInNewContext(`${handlers}\nlootItemActions(work)`, context) as
+      React.ReactElement<{ children: React.ReactElement<ActionProps>[] }>;
+    const props = actions.props.children.filter(Boolean).map((child) => child.props);
+    const purchase = props.find(({ label }) => label === "Purchase and set for sale")!;
+    const exempt = "original" in flags || "vintage" in flags;
+    assert.equal(purchase.disabled, !exempt);
+    if (!exempt) assert.equal(purchase.disabledReason, "Your inventory is currently full.");
+    for (const name of ["Purchase and donate", "Purchase and archive", "Purchase and send to Historian"]) {
+      assert.equal(props.find(({ label }) => label.startsWith(name))!.disabled, false);
+    }
+    const primary = runInNewContext(`${handlers}\nlootPrimaryAction(work)`, context) as
+      React.ReactElement<{ disabled: boolean }>;
+    assert.equal(primary.props.disabled, !exempt);
+  }
+});
+
+test("bulk dealer disposal ignores capacity but still requires funds and eligibility", () => {
+  const work = {
+    ...item("dealer"), status: "for_sale", values: { dealer: 100 },
+    artwork: { title: "Test" }, archivePermission: { allowed: true },
+  };
+  const evaluate = (bankBalance: number) => runInNewContext(
+    `${handlers}\ngetLootBulkState(options)`,
+    {
+      getBulkAcquisitionRequirements, getUnfulfilledHistorianTargetIds,
+      options: {
+        availableInventorySlots: 0, bankBalance, dealerPriceMultiplier: 1,
+        quests: [{ _id: "quest", target: [work.artwork_id] }],
+        selectedEntries: [{ item: work }],
+      },
+    },
+  ) as { availability: Record<string, { allowed: boolean }> };
+  const { availability } = evaluate(100);
+  assert.equal(availability.acquire.allowed, false);
+  assert.equal(availability["collector-sale"].allowed, false);
+  for (const action of ["purchase-donate", "archive", "historian"]) {
+    assert.equal(availability[action].allowed, true);
+    assert.equal(evaluate(99).availability[action].allowed, false);
   }
 });
 

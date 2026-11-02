@@ -24,6 +24,7 @@ import {
 } from "@/server/legendary-attributes";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
+import { acquireForDisposal } from "@/server/acquire-for-disposal";
 
 type SendToHistorianRequest = {
   questId?: unknown;
@@ -60,16 +61,16 @@ export async function POST(
 
   const { id } = await params;
   const database = await getDatabase();
-  const item = await database.collection<GameItem>("items").findOne({
+  let item = await database.collection<GameItem>("items").findOne({
     _id: id,
     owner: auth.session.playerId,
-    status: { $in: ["claimed", "displayed"] },
+    status: { $in: ["claimed", "displayed", "unclaimed", "for_sale"] },
     permanent: { $ne: true },
     repairing: { $ne: true },
   });
   if (!item) {
     return NextResponse.json(
-      { error: "This item must be in your collection before it can be sent." },
+      { error: "This item is not available to send to the Historian." },
       { status: 409 },
     );
   }
@@ -129,6 +130,14 @@ export async function POST(
         rewardCoefficient,
       })
     : 0;
+  try {
+    item = await acquireForDisposal(database, item);
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "The artwork could not be acquired for the Historian." },
+      { status: 409 },
+    );
+  }
   const fulfilledTarget: ArtHistorianFulfilledTarget = {
     artwork_id: item.artwork_id,
     item_id: item._id,

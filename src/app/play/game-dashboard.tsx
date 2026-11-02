@@ -877,12 +877,11 @@ export default function GameDashboard({
     () =>
       selectBulkPurchaseItems(
         bulkDeclinableLoot,
-        availableInventorySlots > 0 ? bulkDeclinableLoot.length : 0,
+        bulkDeclinableLoot.length,
         player.bankBalance,
         (item) => Math.floor(item.values.dealer * dealerPriceMultiplier),
       ),
     [
-      availableInventorySlots,
       bulkDeclinableLoot,
       dealerPriceMultiplier,
       player.bankBalance,
@@ -1807,9 +1806,6 @@ export default function GameDashboard({
                 );
               }
             } else if (action === "purchase-donate") {
-              await postAction(
-                `/api/play/items/${entry.item._id}/purchase`,
-              );
               result = await postAction(
                 `/api/play/items/${entry.item._id}/donate`,
               );
@@ -1820,11 +1816,6 @@ export default function GameDashboard({
                   `${entry.item.artwork.title} no longer has an available Historian quest.`,
                 );
               }
-              const acquisitionAction =
-                entry.item.status === "for_sale" ? "purchase" : "claim";
-              await postAction(
-                `/api/play/items/${entry.item._id}/${acquisitionAction}`,
-              );
               result = await postAction(
                 `/api/play/items/${entry.item._id}/send-to-historian`,
                 { questId },
@@ -1943,28 +1934,6 @@ export default function GameDashboard({
     setError("");
     setNotice("");
     startTransition(async () => {
-      const acquisitionUrl =
-        item.status === "unclaimed"
-          ? `/api/play/items/${item._id}/claim`
-          : item.status === "for_sale"
-            ? `/api/play/items/${item._id}/purchase`
-            : null;
-      if (acquisitionUrl) {
-        const acquisitionResponse = await fetch(acquisitionUrl, {
-          method: "POST",
-        });
-        const acquisitionBody = (await acquisitionResponse.json()) as {
-          error?: string;
-        };
-        if (!acquisitionResponse.ok) {
-          setError(
-            acquisitionBody.error ??
-              "The artwork could not be added to your collection.",
-          );
-          return;
-        }
-      }
-
       const response = await fetch(
         `/api/play/items/${item._id}/send-to-historian`,
         {
@@ -2049,19 +2018,6 @@ export default function GameDashboard({
       const specialOutcomes: ActionDialogResult[] = [];
       try {
         for (const item of itemsToDonate) {
-          const purchaseResponse = await fetch(
-            `/api/play/items/${item._id}/purchase`,
-            { method: "POST" },
-          );
-          const purchaseBody = (await purchaseResponse
-            .json()
-            .catch(() => ({}))) as { error?: string };
-          if (!purchaseResponse.ok) {
-            throw new Error(
-              purchaseBody.error ?? "An offer could not be purchased.",
-            );
-          }
-
           const donationResponse = await fetch(
             `/api/play/items/${item._id}/donate`,
             { method: "POST" },
@@ -2368,22 +2324,6 @@ export default function GameDashboard({
     setError("");
     setNotice("");
     startTransition(async () => {
-      if (purchaseFirst) {
-        const purchaseResponse = await fetch(
-          `/api/play/items/${item._id}/purchase`,
-          { method: "POST" },
-        );
-        const purchaseBody = (await purchaseResponse
-          .json()
-          .catch(() => ({}))) as { error?: string };
-        if (!purchaseResponse.ok) {
-          setError(
-            purchaseBody.error ?? "The artwork could not be purchased.",
-          );
-          return;
-        }
-      }
-
       const response = await fetch(`/api/play/items/${item._id}/donate`, {
         method: "POST",
       });
@@ -2398,7 +2338,7 @@ export default function GameDashboard({
         const donationError =
           body.error ?? "The donation could not be completed.";
         const message = purchaseFirst
-          ? `The artwork was purchased, but it could not be donated. ${donationError}`
+          ? `The purchase and donation could not be completed. ${donationError}`
           : donationError;
         setError(message);
         if (purchaseFirst) router.refresh();
@@ -3124,13 +3064,16 @@ export default function GameDashboard({
       const purchaseAmount = Math.floor(
         item.values.dealer * dealerPriceMultiplier,
       );
+      const purchaseDisabledReason = inventoryFullForItem
+        ? "Your inventory is currently full."
+        : purchaseAmount > player.bankBalance
+          ? "You do not have enough money to purchase this artwork."
+          : undefined;
       const purchaseDonationDisabledReason = item.permanent
         ? "Permanent artwork cannot be donated."
-        : inventoryFull && !item.original && !item.vintage
-          ? "Your inventory needs one open slot to purchase and donate this artwork."
-          : purchaseAmount > player.bankBalance
-            ? "You do not have enough money to purchase this artwork."
-            : undefined;
+        : purchaseAmount > player.bankBalance
+          ? "You do not have enough money to purchase this artwork."
+          : undefined;
       return (
         <>
           <ItemActionButton
@@ -3146,7 +3089,8 @@ export default function GameDashboard({
             gridSlot={4}
             icon="fa-binoculars"
             label="Purchase and set for sale"
-            disabled={pending}
+            disabled={pending || Boolean(purchaseDisabledReason)}
+            disabledReason={purchaseDisabledReason}
             onClick={() =>
               act(
                 `/api/play/items/${item._id}/purchase-and-set-for-sale`,
@@ -3224,14 +3168,22 @@ export default function GameDashboard({
   }
 
   function lootPrimaryAction(item: HydratedGameItem) {
+    const inventoryFullForItem =
+      inventoryFull && !item.original && !item.vintage;
     if (item.status === "for_sale") {
       const purchaseAmount =
         (item as { price?: number }).price ??
         Math.floor(item.values.dealer * dealerPriceMultiplier);
+      const disabledReason = inventoryFullForItem
+        ? "Your inventory is currently full."
+        : purchaseAmount > player.bankBalance
+          ? "You do not have enough money to purchase this artwork."
+          : undefined;
       return (
         <button
           className="collection-gallery-action"
-          disabled={pending}
+          disabled={pending || Boolean(disabledReason)}
+          title={disabledReason}
           onClick={() => act(`/api/play/items/${item._id}/purchase`, () => setSelectedCollectionItemIds([item._id]))}
           type="button"
         >
@@ -3241,8 +3193,6 @@ export default function GameDashboard({
       );
     }
 
-    const inventoryFullForItem =
-      inventoryFull && !item.original && !item.vintage;
     return (
       <button
         className="collection-gallery-action"
@@ -6659,18 +6609,6 @@ function getLootBulkState({
             : `${purchaseDonateInvalid.item.artwork.title} cannot be donated.`,
       )
     : available();
-  const purchaseDonateNeedsSlot = selectedItems.some(
-    (item) => !item.original && !item.vintage,
-  );
-  if (
-    purchaseDonate.allowed &&
-    purchaseDonateNeedsSlot &&
-    availableInventorySlots < 1
-  ) {
-    purchaseDonate = unavailable(
-      "Your inventory needs one open slot to purchase and donate these offers.",
-    );
-  }
   if (
     purchaseDonate.allowed &&
     purchaseRequirements.totalCost > bankBalance
@@ -6701,18 +6639,6 @@ function getLootBulkState({
   );
   if (historian.allowed && historianAssignment.reason) {
     historian = unavailable(historianAssignment.reason);
-  }
-  const historianNeedsInventorySlot = selectedItems.some(
-    (item) => !item.original && !item.vintage,
-  );
-  if (
-    historian.allowed &&
-    historianNeedsInventorySlot &&
-    availableInventorySlots < 1
-  ) {
-    historian = unavailable(
-      "Your inventory needs one open slot to acquire and send these items.",
-    );
   }
   if (
     historian.allowed &&
