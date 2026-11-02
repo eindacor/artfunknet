@@ -5473,10 +5473,6 @@ a.welcome-button {
   background: rgb(57 181 74 / 25%);
   box-shadow: 0 5px 14px rgb(41 35 28 / 12%);
   cursor: pointer;
-  transition:
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    transform 160ms ease;
 }
 
 .archive-artwork-thumbnail[data-rarity="uncommon"] {
@@ -5499,10 +5495,9 @@ a.welcome-button {
   background: rgb(66 232 245 / 25%);
 }
 
-.archive-artwork-thumbnail:hover,
 .archive-artwork-thumbnail:focus-visible {
-  box-shadow: 0 12px 28px rgb(41 35 28 / 18%);
-  transform: translateY(-2px);
+  outline: 2px solid #111;
+  outline-offset: 2px;
 }
 
 .archive-artwork-thumbnail .artwork-thumbnail {
@@ -5512,6 +5507,7 @@ a.welcome-button {
 }
 
 .archive-artwork-thumbnail .artwork-thumbnail img {
+  filter: saturate(var(--thumbnail-idle-saturation));
   object-fit: cover;
 }
 
@@ -6034,12 +6030,16 @@ a.welcome-button {
   background: var(--accent);
 }
 
+.collection-thumbnail-list,
+.archive-artwork-thumbnail {
+  --thumbnail-idle-saturation: 0.8;
+}
+
 .collection-thumbnail-list {
   --collection-thumbnail-size: 82px;
-  --thumbnail-idle-saturation: 0.75;
   --thumbnail-idle-brightness: 1;
   --thumbnail-selected-saturation: 1;
-  --thumbnail-selected-brightness: 1.06;
+  --thumbnail-selected-brightness: 1.2;
   display: grid;
   grid-template-columns: repeat(auto-fill, var(--collection-thumbnail-size));
   grid-auto-rows: var(--collection-thumbnail-size);
@@ -6075,7 +6075,6 @@ a.welcome-button {
   touch-action: pan-y;
   user-select: none;
   -webkit-touch-callout: none;
-  transition: translate 120ms ease-out;
 }
 
 .collection-thumbnail-list button * {
@@ -6110,6 +6109,13 @@ a.welcome-button {
   --thumbnail-rarity-color: #42e8f5;
 }
 
+.collection-thumbnail-list button:hover:not(:disabled),
+.collection-thumbnail-list button:focus-visible,
+.archive-artwork-thumbnail:hover:not(:disabled),
+.archive-artwork-thumbnail:focus-visible {
+  --thumbnail-idle-saturation: 1;
+}
+
 .collection-thumbnail-list button:focus-visible {
   outline: 2px dashed #111;
   outline-offset: 2px;
@@ -6126,12 +6132,6 @@ a.welcome-button {
   box-shadow:
     1px 1px 0 var(--thumbnail-shadow-color),
     3px 3px 0 #111;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .collection-thumbnail-list button {
-    transition: none;
-  }
 }
 
 .collection-thumbnail-list .artwork-thumbnail,
@@ -6159,27 +6159,16 @@ a.welcome-button {
   inset: 0;
   overflow: hidden;
   pointer-events: none;
-  mix-blend-mode: screen;
-}
-
-.thumbnail-foil-shine::before {
-  position: absolute;
-  inset: 0;
-  width: 320%;
   background:
     linear-gradient(
       115deg,
-      transparent 5%,
-      rgb(255 75 205 / 12%) 25%,
-      rgb(90 225 255 / 50%) 42%,
-      rgb(255 238 90 / 42%) 55%,
-      rgb(139 92 246 / 28%) 70%,
-      transparent 92%
+      transparent 15%,
+      rgb(255 75 205 / 10%) 32%,
+      rgb(90 225 255 / 22%) 45%,
+      rgb(255 238 90 / 18%) 55%,
+      rgb(139 92 246 / 12%) 68%,
+      transparent 85%
     );
-  content: "";
-  opacity: 0;
-  transform: translateX(-68.75%);
-  animation: thumbnail-foil-shimmer 18s ease-in-out infinite;
 }
 
 .thumbnail-expiration-tint {
@@ -6190,34 +6179,6 @@ a.welcome-button {
   background: #d00000;
   mix-blend-mode: multiply;
   opacity: calc(var(--expiration-progress, 0) * 0.78);
-  transition: opacity 1s linear;
-}
-
-@keyframes thumbnail-foil-shimmer {
-  0%,
-  55% {
-    transform: translateX(-68.75%);
-    opacity: 0;
-  }
-
-  65%,
-  80% {
-    opacity: 0.9;
-  }
-
-  90%,
-  100% {
-    transform: translateX(0);
-    opacity: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .thumbnail-foil-shine::before {
-    transform: translateX(-34.375%);
-    opacity: 0.35;
-    animation: none;
-  }
 }
 
 .collection-sidebar-empty {

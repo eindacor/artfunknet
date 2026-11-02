@@ -166,11 +166,11 @@ test("large mixed top-tier batches publish results, animate, and refresh once", 
   for (const work of items) {
     assert.equal(h.state.offerRevealTransitions[work._id], work.artwork.rarity === "masterpiece" ? "burst" : 2);
   }
-  assert.deepEqual([...h.timers.values()].map(({ delay }) => delay).sort(), [1200, 1800]);
+  assert.deepEqual([...h.timers.values()].map(({ delay }) => delay), [120]);
   for (const timer of h.timers.values()) timer.callback();
   assert.equal(Object.keys(h.state.offerRevealTransitions).length, 0);
   assert.equal(h.offerRevealTimers.current.size, 0);
-  assert.equal(h.setOfferRevealTransitions.mock.callCount(), 3);
+  assert.equal(h.setOfferRevealTransitions.mock.callCount(), 2);
 });
 
 test("partial batch failures keep successful reveals and allow the failed item to retry", async (t) => {

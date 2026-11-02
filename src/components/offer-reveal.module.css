@@ -46,25 +46,6 @@
   isolation: isolate;
 }
 
-.thumbnail[data-reveal-tier="1"][data-unrevealed] {
-  animation: mysteryShake 14s ease-in-out infinite;
-  animation-delay: var(--mystery-animation-delay, 0ms) !important;
-}
-
-.face1::before,
-.face2::before {
-  position: absolute;
-  inset: 0;
-  width: 240%;
-  z-index: -1;
-  background-image: linear-gradient(110deg, transparent 43%, #fff8 49%, transparent 56%);
-  content: "";
-  opacity: 0;
-  transform: translateX(-58.333333%);
-  animation: mysteryShine 16s ease-in-out infinite;
-  animation-delay: var(--mystery-animation-delay, 0ms);
-}
-
 .question {
   font: bold 2.7rem/1 Courier, "Courier New", monospace;
   text-shadow: 0 0 15px #ffe4a0a6;
@@ -78,19 +59,13 @@
     radial-gradient(ellipse at 80% 66%, #fff 0 1px, transparent 3px),
     radial-gradient(ellipse at 70% 14%, #ffdb83 0 1px, transparent 2px),
     radial-gradient(ellipse at 26% 81%, #fff 0 1px, transparent 2px);
-  animation: sparklePulse 8s ease-in-out infinite alternate;
-  animation-delay: var(--mystery-animation-delay, 0ms);
+  opacity: 0.65;
 }
 
 .face2 {
   background: var(--mystery-foil-gradient);
   box-shadow: inset 0 0 20px #fff6, 0 0 14px #ff33cc80;
   color: #fff;
-}
-
-.face2::before {
-  background-image: linear-gradient(110deg, transparent 40%, #fff 49%, #ff9aff90 54%, transparent 61%);
-  animation-duration: 20s;
 }
 
 .face3 {
@@ -104,80 +79,22 @@
   font: bold 3rem/1 Courier, "Courier New", monospace;
 }
 
-.thumbnail[data-reveal-tier="3"][data-unrevealed] {
-  animation: divineHover 16s ease-in-out infinite;
-  animation-delay: var(--mystery-animation-delay, 0ms) !important;
-}
-
 .thumbnail[data-reveal-tier="3"]:not([data-unrevealed]) {
   background: #fff;
 }
 
-.unmask1,
-.unmask2,
-.unmask3 {
-  animation: thumbnailReveal 600ms ease-out both !important;
-}
-
-.unmask2 {
-  animation-duration: 1200ms !important;
-}
-
-.unmask3 {
-  animation: divineReveal 2200ms cubic-bezier(0.16, 1, 0.3, 1) both !important;
-}
-
-.unmaskburst {
-  animation: prismaticBurst 1800ms ease-out both !important;
-}
-
-.unmaskburst::before {
-  position: absolute;
-  inset: -2px;
-  z-index: 2;
-  border: 2px solid #fff;
-  box-shadow: 0 0 18px var(--thumbnail-rarity-color, currentColor), inset 0 0 14px #ff33cc;
-  pointer-events: none;
-  content: "";
-  animation: burstRing 1800ms ease-out both;
-}
-
-.revealGlint {
+.unmask1::after,
+.unmask2::after,
+.unmask3::after,
+.unmaskburst::after {
   position: absolute;
   inset: 0;
   z-index: 2;
-  overflow: hidden;
-  contain: paint;
-  clip-path: inset(0);
-  border-radius: inherit;
-  pointer-events: none;
-}
-
-.revealGlint::before {
-  position: absolute;
-  inset: 0;
-  width: 240%;
-  background-image: linear-gradient(110deg, transparent 35%, #fff9 50%, transparent 65%);
+  background: #fff;
   content: "";
   opacity: 0;
-  transform: translateX(-58.333333%);
-  animation: revealGlint 600ms ease-out both;
-}
-
-.unmask2 > .revealGlint::before,
-.unmask3 > .revealGlint::before {
-  background-image: linear-gradient(110deg, transparent 24%, #ff33cc70 40%, #fff 50%, #67e4ff90 60%, transparent 78%);
-  animation-duration: 1200ms;
-}
-
-.unmask3 > .revealGlint::before,
-.unmaskburst > .revealGlint::before {
-  animation-duration: 2200ms;
-}
-
-.unmaskburst > .revealGlint::before {
-  background-image: linear-gradient(110deg, transparent 20%, #ff33cc90 38%, #fff 50%, #67e4ffb0 62%, transparent 80%);
-  animation-duration: 1800ms;
+  pointer-events: none;
+  animation: thumbnailReveal 120ms ease-out;
 }
 
 .preview1,
@@ -419,57 +336,9 @@
   font-size: 0.8rem;
 }
 
-@keyframes mysteryShake {
-  0%, 94%, 100% { transform: rotate(0); }
-  95%, 97% { transform: rotate(-3deg); }
-  96%, 98% { transform: rotate(3deg); }
-}
-
-@keyframes mysteryShine {
-  0%, 60% { transform: translateX(-58.333333%); opacity: 0; }
-  72.5% { opacity: 1; }
-  85%, 100% { transform: translateX(0); opacity: 0; }
-}
-
-@keyframes sparklePulse {
-  from { opacity: 0.35; transform: scale(0.98); }
-  to { opacity: 1; transform: scale(1.03); }
-}
-
-@keyframes divineHover {
-  0%, 100% { transform: translateY(4px); }
-  50% { transform: translateY(-4px); }
-}
-
 @keyframes thumbnailReveal {
-  0% { opacity: 0; transform: scale(0.7) rotate(-7deg); }
-  70% { opacity: 1; transform: scale(1.04); }
-  100% { opacity: 1; transform: none; }
-}
-
-@keyframes divineReveal {
-  0% { opacity: 0; transform: scale(0.55); }
-  35% { opacity: 1; transform: scale(1.12); }
-  100% { opacity: 1; transform: none; }
-}
-
-@keyframes prismaticBurst {
-  0% { opacity: 0; transform: scale(0.72) rotateY(85deg); }
-  22% { opacity: 1; transform: scale(1.1) rotateY(-12deg); }
-  55% { transform: scale(0.97) rotateY(4deg); }
-  100% { opacity: 1; transform: none; }
-}
-
-@keyframes burstRing {
-  0% { opacity: 0; transform: scale(0.85); }
-  18% { opacity: 1; }
-  100% { opacity: 0; transform: scale(1.35); }
-}
-
-@keyframes revealGlint {
-  0% { opacity: 0; transform: translateX(-58.333333%); }
-  35% { opacity: 1; }
-  100% { opacity: 0; transform: translateX(0); }
+  from { opacity: 0.5; }
+  to { opacity: 0; }
 }
 
 @keyframes previewArrival {
@@ -489,14 +358,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .thumbnail, .mysteryFace, .mysteryFace::before, .sparkles,
-  .revealGlint::before,
   .preview1, .preview2, .preview3, .previewburst {
     animation: none !important;
   }
 
-  .unmaskburst::before,
-  .revealGlint {
+  .thumbnail::after {
     display: none;
   }
 

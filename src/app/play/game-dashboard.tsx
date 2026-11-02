@@ -1257,25 +1257,22 @@ export default function GameDashboard({
         const transitions = revealed.map(({ item }) => {
           const tier = getOfferRevealTier(item, offerRevealThresholds);
           const effect: OfferRevealTransition = burst && tier === 3 ? "burst" : tier;
-          const duration = effect === "burst" ? 1800 : tier === 3 ? 2200 : tier === 2 ? 1200 : 600;
-          return { id: item._id, effect, duration };
+          return { id: item._id, effect };
         });
         setOfferRevealTransitions((current) => ({
           ...current,
           ...Object.fromEntries(transitions.map(({ id, effect }) => [id, effect])),
         }));
-        for (const duration of new Set(transitions.map((transition) => transition.duration))) {
-          const ids = transitions.filter((transition) => transition.duration === duration).map(({ id }) => id);
-          const timer = window.setTimeout(() => {
-            ids.forEach((id) => offerRevealTimers.current.delete(id));
-            setOfferRevealTransitions((current) => {
-              const next = { ...current };
-              ids.forEach((id) => { delete next[id]; });
-              return next;
-            });
-          }, duration);
-          ids.forEach((id) => offerRevealTimers.current.set(id, timer));
-        }
+        const ids = transitions.map(({ id }) => id);
+        const timer = window.setTimeout(() => {
+          ids.forEach((id) => offerRevealTimers.current.delete(id));
+          setOfferRevealTransitions((current) => {
+            const next = { ...current };
+            ids.forEach((id) => { delete next[id]; });
+            return next;
+          });
+        }, 120);
+        ids.forEach((id) => offerRevealTimers.current.set(id, timer));
       }
       router.refresh();
       return revealed.length === itemsToReveal.length;

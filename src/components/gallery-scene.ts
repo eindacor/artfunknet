@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { getArtworkImageUrl } from "../server/artwork-image-url.ts";
+import { configureGalleryShadows } from "./gallery-lighting.ts";
 
 import {
   GALLERY_FIELD_OF_VIEW,
@@ -337,10 +338,10 @@ export function mountGalleryScene(
     light.shadow.bias = -0.0003;
     light.shadow.normalBias = 0.002;
     light.shadow.camera.near = 0.1;
-    light.castShadow = true;
     lights.push(light);
     scene.add(light, light.target);
   }
+  configureGalleryShadows(lights, renderer.capabilities.maxTextures);
   for (const [imageUrl, matchingMaterials] of imageMaterials) {
     loadTexture(
       imageUrl,

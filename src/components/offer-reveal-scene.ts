@@ -6,6 +6,7 @@ import {
   type GalleryFinishes,
 } from "../server/gallery-finishes.ts";
 import type { ArtworkRarity } from "../server/gameplay.ts";
+import { configureGalleryShadows } from "./gallery-lighting.ts";
 import {
   GALLERY_FIELD_OF_VIEW,
   GALLERY_FRAME_DEPTH,
@@ -226,8 +227,6 @@ export function mountOfferRevealScene(
     const light = new THREE.SpotLight("#fff9ee", 0, distance * 3, angle, 1, 2);
     light.position.set(x, lightY, lightZ);
     light.target.position.set(x, y, artworkZ);
-    // Reserve texture units for the artwork and both uplight shadows.
-    light.castShadow = index < Math.max(1, renderer.capabilities.maxTextures - 3);
     light.shadow.mapSize.set(index === 0 ? 1024 : 512, index === 0 ? 1024 : 512);
     light.shadow.bias = -0.0003;
     light.shadow.normalBias = 0.002;
@@ -252,7 +251,6 @@ export function mountOfferRevealScene(
     );
     light.position.set(x, 0.08, rarityLightZ);
     light.target.position.set(targetX, rarityLightY, wallFront);
-    light.castShadow = true;
     light.shadow.mapSize.set(512, 512);
     light.shadow.bias = -0.0003;
     light.shadow.normalBias = 0.002;
@@ -261,6 +259,7 @@ export function mountOfferRevealScene(
     scene.add(light, light.target);
     return light;
   });
+  configureGalleryShadows([...rarityLights, ...lights], renderer.capabilities.maxTextures);
 
   function invalidate() {
     if (!disposed && !animation) animation = window.requestAnimationFrame(render);

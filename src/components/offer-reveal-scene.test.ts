@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { SpotLight } from "three";
 
 import { DEFAULT_GALLERY_FINISHES } from "../server/gallery-finishes.ts";
+import { configureGalleryShadows } from "./gallery-lighting.ts";
 import { createOfferRevealLayout, getRoomRevealProgress } from "./offer-reveal-scene.ts";
 
 const reveal = { id: "reveal", artworkId: "main", width: 80, height: 120 };
@@ -12,6 +14,31 @@ const companions = [
   { id: "right-outer", artworkId: "d", width: 40, height: 400 },
   { id: "left-outer", artworkId: "e", width: 500, height: 90 },
 ];
+
+test("large rooms reserve material samplers while prioritizing rarity and reveal shadows", () => {
+  const uplights = [new SpotLight(), new SpotLight()];
+  const artworks = Array.from({ length: 23 }, () => new SpotLight());
+  const lights = [...uplights, ...artworks];
+  for (const maxTextures of [8, 16, 32]) {
+    lights.forEach((light) => { light.castShadow = true; });
+    configureGalleryShadows(lights, maxTextures);
+    const shadowed = lights.filter((light) => light.castShadow);
+    assert.ok(shadowed.length + 2 <= maxTextures);
+    assert.deepEqual(shadowed, lights.slice(0, maxTextures - 2));
+    assert.ok(uplights.every((light) => light.castShadow));
+    assert.equal(artworks[0].castShadow, true);
+    assert.ok(lights.every((light) => light.intensity === 1));
+  }
+});
+
+test("small rooms keep every shadow, and exhausted budgets disable existing shadow maps", () => {
+  const lights = Array.from({ length: 4 }, () => new SpotLight());
+  configureGalleryShadows(lights, 16);
+  assert.ok(lights.every((light) => light.castShadow));
+  configureGalleryShadows(lights, 2);
+  assert.ok(lights.every((light) => !light.castShadow));
+  assert.ok(lights.every((light) => light.intensity === 1));
+});
 
 test("room keeps the revealed artwork centered with physically sized companions on both sides", () => {
   const finishes = { ...DEFAULT_GALLERY_FINISHES, frame_width: 0.15, matte_width: 0.2 };

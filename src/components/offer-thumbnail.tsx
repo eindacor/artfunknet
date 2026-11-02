@@ -2,9 +2,7 @@
 
 import {
   type ComponentProps,
-  type CSSProperties,
   type ReactNode,
-  useId,
   useRef,
 } from "react";
 
@@ -12,16 +10,6 @@ import type { OfferRevealTier } from "@/server/offer-reveal";
 import styles from "./offer-reveal.module.css";
 
 export type OfferRevealTransition = OfferRevealTier | "burst";
-
-function useMysteryAnimationStyle(): CSSProperties {
-  const animationSeed = Array.from(useId()).reduce(
-    (hash, character) => Math.imul(hash ^ character.charCodeAt(0), 16777619),
-    2166136261,
-  ) >>> 0;
-  return {
-    "--mystery-animation-delay": `${-(animationSeed % 20000)}ms`,
-  } as CSSProperties;
-}
 
 function ThumbnailSelectionDecoration() {
   return (
@@ -40,7 +28,6 @@ export function MysteryOfferThumbnail({
   className?: string;
   selected?: boolean;
 }) {
-  const animationStyle = useMysteryAnimationStyle();
   return (
     <div
       aria-hidden="true"
@@ -48,7 +35,6 @@ export function MysteryOfferThumbnail({
       data-rarity={rarity}
       data-reveal-tier={tier}
       data-unrevealed
-      style={animationStyle}
     >
       <MysteryOfferFace tier={tier} />
       {selected ? <ThumbnailSelectionDecoration /> : null}
@@ -92,7 +78,6 @@ export default function OfferThumbnail({
   unrevealed: boolean;
   onReveal?: () => void;
 }) {
-  const animationStyle = useMysteryAnimationStyle();
   const touch = useRef<{
     start: ThumbnailTap | null;
     previous: ThumbnailTap | null;
@@ -106,7 +91,6 @@ export default function OfferThumbnail({
       className={`${className} ${styles.thumbnail} ${transitionTier ? styles[`unmask${transitionTier}`] : ""}`.trim()}
       data-reveal-tier={tier}
       data-unrevealed={unrevealed || undefined}
-      style={{ ...buttonProps.style, ...animationStyle }}
       onClick={(event) => {
         const reveal = touch.current.reveal;
         touch.current.reveal = false;
@@ -180,7 +164,6 @@ export default function OfferThumbnail({
           <MysteryOfferFace tier={tier} />
         </span>
       ) : children}
-      {transitionTier ? <span aria-hidden="true" className={styles.revealGlint} /> : null}
       {pressed === true ? <ThumbnailSelectionDecoration /> : null}
     </button>
   );
