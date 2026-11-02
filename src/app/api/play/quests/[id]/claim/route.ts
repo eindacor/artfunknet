@@ -22,6 +22,7 @@ import {
   type LootData,
 } from "@/server/gameplay";
 import {
+  notifyForgeryDetection,
   rollForgeryDetected,
   sanitizePlayerFacingAuthenticity,
 } from "@/server/forgery-gameplay";
@@ -261,6 +262,13 @@ export async function POST(
         source: "quest-reward",
       },
     ]);
+    if (caughtForgeries.length > 0) {
+      await notifyForgeryDetection(
+        database,
+        player._id,
+        `The Art Historian detected ${caughtForgeries.length === 1 ? "a forgery" : `${caughtForgeries.length} forgeries`} among your submissions: ${caughtForgeries.map((item) => item.artwork.title).join(", ")}. Your quest rewards were reduced.`,
+      );
+    }
     return NextResponse.json({
       status: "ok",
       message: `Quest complete: $${moneyReward.toLocaleString()} and ${xpReward.toLocaleString()} XP awarded${

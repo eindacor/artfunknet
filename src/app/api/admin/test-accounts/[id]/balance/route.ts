@@ -17,11 +17,10 @@ export async function PATCH(
   const body = (await request.json()) as BalanceRequest;
   if (
     typeof body.balance !== "number" ||
-    !Number.isSafeInteger(body.balance) ||
-    body.balance < 0
+    !Number.isSafeInteger(body.balance)
   ) {
     return NextResponse.json(
-      { error: "Test player balance must be a nonnegative whole number." },
+      { error: "Test player balance must be a finite safe whole number." },
       { status: 400 },
     );
   }

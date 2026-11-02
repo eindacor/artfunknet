@@ -6,6 +6,7 @@ import { getGameplaySettings } from "@/server/game-settings";
 import { canQuickSellItem } from "@/server/offer-reveal";
 import { deleteCommunityReactions } from "@/server/community-reaction-cleanup";
 import {
+  notifyForgeryDetection,
   punishForgeryQuality,
   rewardUndetectedForgeryExit,
   rollForgeryDetected,
@@ -99,6 +100,7 @@ export async function POST(
         const message = preserved
           ? "The buyer detected the forgery. The sale failed, and Artfunkel Inc. preserved the artwork."
           : "The buyer detected the forgery. The sale failed and the artwork was destroyed.";
+        await notifyForgeryDetection(database, auth.session.playerId, `${hydrated.artwork.title}: ${message}`);
         return NextResponse.json({
           status: "ok",
           amount: 0,
@@ -111,8 +113,8 @@ export async function POST(
           },
         });
       }
-      await database.collection<GameItem>("items").updateOne(
-        { _id: item._id, owner: auth.session.playerId },
+      const identified = await database.collection<GameItem>("items").updateOne(
+        { _id: item._id, owner: auth.session.playerId, status: item.status, "authenticity.identified": false },
         {
           $set: {
             status: "claimed",
@@ -124,8 +126,15 @@ export async function POST(
           $unset: { expires_at: "" },
         },
       );
+      if (identified.modifiedCount !== 1) {
+        return NextResponse.json(
+          { error: "The artwork changed before the forgery could be identified." },
+          { status: 409 },
+        );
+      }
       const message =
         "The buyer detected the forgery. It was identified and returned to your inventory.";
+      await notifyForgeryDetection(database, auth.session.playerId, `${hydrated.artwork.title}: ${message}`);
       return NextResponse.json({
         status: "ok",
         amount: 0,

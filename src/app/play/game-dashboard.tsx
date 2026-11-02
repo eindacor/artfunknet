@@ -3037,6 +3037,7 @@ export default function GameDashboard({
         />
         <AuthenticityActions
           act={act}
+          now={now}
           gridSlot={7}
           item={item}
           pending={pending}
@@ -3292,6 +3293,7 @@ export default function GameDashboard({
         />
         <AuthenticityActions
           act={act}
+          now={now}
           gridSlot={7}
           item={item}
           pending={pending}
@@ -4514,6 +4516,7 @@ export default function GameDashboard({
                     />
                     <AuthenticityActions
                       act={act}
+                      now={now}
                       gridSlot={8}
                       item={item}
                       pending={pending}
@@ -5825,7 +5828,7 @@ function RerollDialog({
         <dl className="reroll-summary">
           <div>
             <dt>bank balance</dt>
-            <dd className="reroll-bank-balance">
+            <dd className={`reroll-bank-balance${bankBalance < 0 ? " bank-balance-negative" : ""}`}>
               ${bankBalance.toLocaleString()}
               {recentSpend ? (
                 <span
@@ -6033,13 +6036,34 @@ function AuthenticityActions({
   item,
   pending,
   act,
+  now,
   gridSlot,
 }: {
   item: HydratedGameItem;
   pending: boolean;
   act: (url: string) => void;
+  now: number;
   gridSlot?: ActionGridSlot;
 }) {
+  const redemption = item.redemptionPermission;
+  if (item.authenticity.identified && item.authenticity.forgery && redemption) {
+    const expired = redemption.allowed && now >= Date.parse(redemption.expiresAt);
+    return (
+      <ItemActionButton
+        alwaysVisible
+        disabled={pending || !redemption.allowed || expired}
+        disabledReason={
+          !redemption.allowed
+            ? redemption.reason
+            : expired ? "The forgery return window has expired." : undefined
+        }
+        gridSlot={gridSlot}
+        icon="fa-undo"
+        label={redemption.allowed ? `Return for $${redemption.refund.toLocaleString()}` : "Return"}
+        onClick={() => act(`/api/play/items/${item._id}/return`)}
+      />
+    );
+  }
   const authenticate = item.authenticationPermission;
   const allowed = authenticate?.allowed === true;
   return (
@@ -6061,15 +6085,6 @@ function AuthenticityActions({
         }
         onClick={() => act(`/api/play/items/${item._id}/authenticate`)}
       />
-      {/*<ItemActionButton
-        disabled={pending || !report?.allowed}
-        disabledReason={
-          report && !report.allowed ? report.reason : undefined
-        }
-        icon="fa-flag"
-        label="Report suspicious artwork"
-        onClick={() => act(`/api/play/items/${item._id}/report`)}
-      />*/}
     </>
   );
 }

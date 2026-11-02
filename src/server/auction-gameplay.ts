@@ -202,6 +202,12 @@ export async function createAuction(
     now?: Date;
   },
 ): Promise<Auction> {
+  if (
+    item.authenticity.forgery &&
+    (sellerId === null || sellerId.startsWith("system:") || sellerId.startsWith("bot:"))
+  ) {
+    throw new Error("System auctions cannot sell forgeries.");
+  }
   const increment = Math.max(1, Math.floor(item.values.actual * 0.02));
   const auction: Auction = {
     _id: randomUUID(),
@@ -276,6 +282,9 @@ export async function createCollectorResaleAuction(
     now?: Date;
   },
 ): Promise<Auction> {
+  if (item.authenticity.forgery) {
+    throw new Error("Collectors cannot consign forgeries to system auctions.");
+  }
   const transferred = await database.collection<GameItem>("items").updateOne(
     {
       _id: item._id,

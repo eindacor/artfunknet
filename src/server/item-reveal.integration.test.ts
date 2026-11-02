@@ -182,6 +182,7 @@ test("item reveal state is persistent, transferable, access-controlled and rerun
     for (const status of ["unclaimed", "for_sale", "auctioned"] as const) {
       const [generated] = await generateDailyDrop(db, "owner", 50, { ...options, status });
       assert.equal(generated.revealed, true);
+      assert.equal(generated.authenticity.forgery, false);
       assert.equal((await db.collection<GameItem>("items").findOne({ _id: generated._id }))?.revealed, true);
       assert.equal(canQuickSellItem(generated), true);
     }

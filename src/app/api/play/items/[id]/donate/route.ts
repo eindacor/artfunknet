@@ -17,6 +17,7 @@ import { getDatabase } from "@/server/mongodb";
 import { removeExpiredTransientItems } from "@/server/item-expiration";
 import { requirePlayerApi } from "@/server/player-api";
 import {
+  notifyForgeryDetection,
   punishForgeryQuality,
   rewardUndetectedForgeryExit,
   rollForgeryDetected,
@@ -103,6 +104,7 @@ export async function POST(
       const message = preserved
         ? "The recipient detected the forgery. The donation failed, and Artfunkel Inc. preserved the artwork."
         : "The recipient detected the forgery. The donation failed and the artwork was destroyed.";
+      await notifyForgeryDetection(database, auth.session.playerId, `${hydratedItem.artwork.title}: ${message}`);
       return NextResponse.json({
         status: "ok",
         karma: 0,
@@ -115,8 +117,8 @@ export async function POST(
         },
       });
     }
-    await database.collection<GameItem>("items").updateOne(
-      { _id: item._id, owner: auth.session.playerId, status: item.status },
+    const identified = await database.collection<GameItem>("items").updateOne(
+      { _id: item._id, owner: auth.session.playerId, status: item.status, "authenticity.identified": false },
       {
         $set: {
           status: "claimed",
@@ -128,8 +130,15 @@ export async function POST(
         $unset: { expires_at: "" },
       },
     );
+    if (identified.modifiedCount !== 1) {
+      return NextResponse.json(
+        { error: "The artwork changed before the forgery could be identified." },
+        { status: 409 },
+      );
+    }
     const message =
       "The museum detected the forgery. It was identified, returned to your inventory, and yielded no Karma.";
+    await notifyForgeryDetection(database, auth.session.playerId, `${hydratedItem.artwork.title}: ${message}`);
     return NextResponse.json({
       status: "ok",
       karma: 0,

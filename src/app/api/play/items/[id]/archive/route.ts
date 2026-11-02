@@ -30,7 +30,7 @@ import {
 import { getDatabase } from "@/server/mongodb";
 import { removeExpiredTransientItems } from "@/server/item-expiration";
 import { requirePlayerApi } from "@/server/player-api";
-import { transferForgeryLiability } from "@/server/forgery-gameplay";
+import { notifyForgeryDetection, transferForgeryLiability } from "@/server/forgery-gameplay";
 
 type ArchivePlayer = {
   _id: string;
@@ -156,6 +156,7 @@ export async function POST(
       const message = preservedForgery
         ? "Archive inspection detected a forgery. It was not archived, but the Hall of Fame preserved it."
         : "Archive inspection detected a forgery. It was destroyed without adding anything to your archive.";
+      await notifyForgeryDetection(database, lockedPlayer._id, message);
       return NextResponse.json({
         status: "ok",
         forgeryDestroyed: !preservedForgery,

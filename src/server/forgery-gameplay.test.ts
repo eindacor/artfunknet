@@ -11,8 +11,7 @@ import {
   getForgedDisplayRewardMultiplier,
   getForgeryValueEstimate,
   getUndetectedForgeryExitRecipient,
-  getPlayerFacingRedemptionPermission,
-  getRedemptionPermission,
+  getForgeryReturnPermission,
   punishForgeryQuality,
   sanitizePlayerFacingAuthenticity,
   shouldDestroyDetectedForgery,
@@ -20,6 +19,7 @@ import {
 } from "./forgery-gameplay.ts";
 import type { GameItem } from "./gameplay.ts";
 import type { PlayerArtworkArchive } from "./archive-gameplay.ts";
+import { DEFAULT_ACTUAL_GAMEPLAY_CONFIG } from "./game-settings.ts";
 
 const authenticity = {
   forgery: true,
@@ -224,7 +224,7 @@ test("forgery selection is limited to represented archive features", () => {
   assert.throws(() => validateForgerySelection(archive, [], "unknown"));
 });
 
-test("authentication, reporting, and sanitization preserve privacy", () => {
+test("authentication, returns, and sanitization preserve privacy", () => {
   const item = {
     owner: "claimant",
     status: "claimed",
@@ -245,15 +245,16 @@ test("authentication, reporting, and sanitization preserve privacy", () => {
     allowed: true,
     cost: 20,
   });
-  assert.deepEqual(getRedemptionPermission(item, "claimant"), { allowed: true });
+  const permission = getForgeryReturnPermission(item, "claimant", DEFAULT_ACTUAL_GAMEPLAY_CONFIG);
+  assert.equal(permission.allowed, false);
   const sanitized = sanitizePlayerFacingAuthenticity(item);
   assert.deepEqual(sanitized.authenticity, { identified: false });
   assert.equal(sanitized.source, "unknown");
   assert.equal(sanitized.odds, "unknown");
   assert.equal(sanitized.transaction_history[0].source, "unknown");
   assert.deepEqual(
-    getPlayerFacingRedemptionPermission(item, "claimant"),
-    { allowed: true },
+    getForgeryReturnPermission({ ...item, authenticity: { ...authenticity, forgery: false } }, "claimant", DEFAULT_ACTUAL_GAMEPLAY_CONFIG),
+    permission,
   );
   const identified = sanitizePlayerFacingAuthenticity({
     ...item,
@@ -266,6 +267,74 @@ test("authentication, reporting, and sanitization preserve privacy", () => {
   assert.equal(identified.source, "forgery");
   assert.equal(identified.odds, "forged");
   assert.equal(identified.transaction_history[0].source, "forgery");
+});
+
+test("auction forgery returns use the latest purchase and an exclusive delivery deadline", () => {
+  const received = "2026-09-04T12:00:00.000Z";
+  const now = new Date("2026-09-04T12:05:00.000Z");
+  const config = DEFAULT_ACTUAL_GAMEPLAY_CONFIG;
+  const item = {
+    owner: "buyer", status: "claimed", date_received: received,
+    authenticity: { ...authenticity, identified: true, liable: "buyer", fee: 99_999 },
+    transaction_history: [{
+      type: "auction", from_owner: "seller", to_owner: "buyer",
+      occurred_at: received, source: "auction house", amount: 1_001,
+    }],
+  } as GameItem;
+  const permission = getForgeryReturnPermission(item, "buyer", config, now);
+  assert.deepEqual(permission, {
+    allowed: true, refund: 900, purchasePrice: 1_001,
+    expiresAt: "2026-09-04T12:10:00.000Z",
+  });
+  assert.equal(getForgeryReturnPermission(item, "buyer", config, new Date("2026-09-04T12:09:59.999Z")).allowed, true);
+  assert.equal(getForgeryReturnPermission(item, "buyer", config, new Date("2026-09-04T12:10:00.000Z")).allowed, false);
+  assert.equal(getForgeryReturnPermission(item, "buyer", config, new Date("2026-09-04T11:59:59.999Z")).allowed, false);
+  assert.equal(getForgeryReturnPermission(item, "buyer", { ...config, forgeryReturnWindowMinutes: 0 }, now).allowed, false);
+  assert.equal(getForgeryReturnPermission(item, "buyer", { ...config, forgeryReturnWindowMinutes: 4 }, now).allowed, false);
+  const half = getForgeryReturnPermission(item, "buyer", { ...config, forgeryReturnRefundCoefficient: 0.5 }, now);
+  assert.ok(half.allowed);
+  assert.equal(half.refund, 500);
+
+  const invalid: Partial<GameItem>[] = [
+    { status: "displayed" }, { permanent: true }, { repairing: true },
+    { authenticity: { ...item.authenticity, forgery: false } },
+    { authenticity: { ...item.authenticity, identified: false } },
+    { authenticity: { ...item.authenticity, original_owner: "buyer" } },
+    { date_received: now.toISOString() },
+    { transaction_history: [] },
+    ...[
+      { type: "generation" as const },
+      { from_owner: null }, { from_owner: "buyer" }, { from_owner: "system:auction-house" },
+      { from_owner: "bot:dealer" }, { to_owner: "someone-else" }, { amount: -1 },
+      { amount: 0 }, { amount: Number.NaN }, { amount: 1.5 }, { amount: undefined },
+    ].map((purchase) => ({ transaction_history: [{ ...item.transaction_history[0], ...purchase }] })),
+    {
+      date_received: "invalid",
+      transaction_history: [{ ...item.transaction_history[0], occurred_at: "invalid" }],
+    },
+    { transaction_history: [...item.transaction_history, {
+      type: "transfer", from_owner: "someone-else", to_owner: "buyer",
+      occurred_at: received, source: "gift",
+    }] },
+  ];
+  for (const change of invalid) {
+    assert.equal(getForgeryReturnPermission({ ...item, ...change }, "buyer", config, now).allowed, false, JSON.stringify(change));
+  }
+  assert.equal(getForgeryReturnPermission(item, "stranger", config, now).allowed, false);
+});
+
+test("being identified and losing quality makes a forgery harder to offload", () => {
+  const item = {
+    mint: false, foil: false, unlocked: false, seasonal: false, vintage: false,
+    lottery: 0, level: 1, authenticity,
+    artwork: { rarity: "rare" as const },
+  };
+  const identified = { ...item, authenticity: { ...authenticity, identified: true } };
+  const caught = { ...identified, authenticity: {
+    ...identified.authenticity, forgery_quality: punishForgeryQuality(authenticity.forgery_quality),
+  } };
+  assert.ok(calculateForgeryHeat(identified, "sell") > calculateForgeryHeat(item, "sell"));
+  assert.ok(calculateForgeryHeat(caught, "sell") > calculateForgeryHeat(identified, "sell"));
 });
 
 test("forced masking hides provenance even for authenticated items", () => {

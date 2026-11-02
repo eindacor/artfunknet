@@ -156,6 +156,7 @@ export type GameItem = {
     | "collector_pending"
     | "auctioned"
     | "event_settlement_pending"
+    | "forgery_return_pending"
     | "bulk_sale_pending"
     | "bulk_donate_pending";
   revealed?: boolean;
@@ -196,6 +197,7 @@ export type GameItem = {
   bulk_acquisition_operation?: string;
   bulk_sale_operation?: string;
   bulk_donation_operation?: string;
+  forgery_return_operation?: string;
   vintage_operation_token?: string;
   time_displayed?: string;
   odds: string;

@@ -5,7 +5,6 @@ import {
   Fragment,
   isValidElement,
   type MouseEventHandler,
-  type ReactElement,
   type ReactNode,
 } from "react";
 
@@ -80,26 +79,27 @@ function partitionActions(actions: ReactNode): {
     nonDestructive: [] as ReactNode[],
   };
 
-  function visit(children: ReactNode) {
-    Children.forEach(children, (child) => {
+  function flatten(children: ReactNode): ReactNode {
+    return Children.map(children, (child) => {
       if (
         isValidElement<GroupableActionProps>(child) &&
         child.type === Fragment
       ) {
-        visit(child.props.children);
-        return;
+        return flatten(child.props.children);
       }
-      if (
-        isValidElement<GroupableActionProps>(child) &&
-        child.props.destructive
-      ) {
-        groups.destructive.push(child as ReactElement<GroupableActionProps>);
-      } else if (child !== null && child !== undefined && child !== false) {
-        groups.nonDestructive.push(child);
-      }
+      return child;
     });
   }
 
-  visit(actions);
+  Children.forEach(flatten(actions), (child) => {
+    if (
+      isValidElement<GroupableActionProps>(child) &&
+      child.props.destructive
+    ) {
+      groups.destructive.push(child);
+    } else if (child !== null && child !== undefined && child !== false) {
+      groups.nonDestructive.push(child);
+    }
+  });
   return groups;
 }

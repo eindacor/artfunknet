@@ -281,7 +281,7 @@ export default function TestAccountList({
               </div>
               <div>
                 <dt>balance</dt>
-                <dd>${account.bankBalance.toLocaleString()}</dd>
+                <dd className={account.bankBalance < 0 ? "bank-balance-negative" : undefined}>${account.bankBalance.toLocaleString()}</dd>
               </div>
               <div>
                 <dt>items</dt>
@@ -328,7 +328,6 @@ export default function TestAccountList({
               <input
                 disabled={pendingId.length > 0}
                 id={`test-balance-${account.id}`}
-                min={0}
                 onChange={(event) =>
                   setBalanceInputs((current) => ({
                     ...current,

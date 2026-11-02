@@ -30,6 +30,7 @@ import {
 import {
   awardForgeryXpAmount,
   getForgedDisplayRewardMultiplier,
+  notifyForgeryDetection,
   punishForgeryQuality,
   rollForgeryDetected,
 } from "./forgery-gameplay.ts";
@@ -626,7 +627,7 @@ export async function settleGalleryEarnings(
     }
 
     if (caughtForgeryIds.has(item._id)) {
-      await database.collection<GameItem>("items").updateOne(
+      const identified = await database.collection<GameItem>("items").updateOne(
         {
           _id: item._id,
           owner: playerId,
@@ -646,6 +647,13 @@ export async function settleGalleryEarnings(
           },
         },
       );
+      if (identified.modifiedCount === 1) {
+        await notifyForgeryDetection(
+          database,
+          playerId,
+          `Gallery visitors detected ${item.artwork.title} as a forgery. It was taken off display and returned to your inventory.`,
+        );
+      }
     } else if (condition !== item.condition) {
       await database
         .collection<GameItem>("items")

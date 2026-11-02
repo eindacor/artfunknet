@@ -8,6 +8,7 @@ import {
 } from "./archive-gameplay.ts";
 import type { Artwork, GameItem } from "./gameplay.ts";
 import type { ItemPermission } from "./item-permissions.ts";
+import type { ForgeryReturnPermission } from "./forgery-gameplay.ts";
 
 export type HydratedGameItem = GameItem & {
   artwork: Artwork;
@@ -15,7 +16,7 @@ export type HydratedGameItem = GameItem & {
   authenticationPermission?:
     | { allowed: true; cost: number }
     | { allowed: false; reason: string };
-  redemptionPermission?: ItemPermission;
+  redemptionPermission?: ForgeryReturnPermission;
   archivedArtStyles?: string[];
   archivedCategories?: ArchiveCategory[];
 };

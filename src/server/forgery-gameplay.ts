@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import type { Db } from "mongodb";
+import type { GameplayConfig } from "./game-settings.ts";
 import { recordEconomyMetricsSafely } from "./economy-metrics.ts";
 import { getArtworkSerialPrefix } from "./item-serial-format.ts";
 
@@ -223,6 +224,22 @@ export function shouldDestroyDetectedForgery(
   return item.authenticity.forgery && item.authenticity.identified;
 }
 
+export async function notifyForgeryDetection(
+  database: Db,
+  playerId: string,
+  message: string,
+): Promise<void> {
+  try {
+    await createPlayerNotification(database, playerId, {
+      kind: "warning",
+      message,
+      dedupeUnread: false,
+    });
+  } catch (error) {
+    console.error("Unable to notify player of forgery detection", error);
+  }
+}
+
 export function getAuthenticationPermission(
   item: Pick<GameItem, "owner" | "status" | "authenticity">,
   playerId: string,
@@ -245,39 +262,69 @@ export function getAuthenticationPermission(
   };
 }
 
-export function getRedemptionPermission(
-  item: Pick<GameItem, "owner" | "status" | "authenticity">,
+export type ForgeryReturnConfig = Pick<
+  GameplayConfig,
+  "forgeryReturnWindowMinutes" | "forgeryReturnRefundCoefficient"
+>;
+
+export type ForgeryReturnPermission =
+  | { allowed: true; refund: number; purchasePrice: number; expiresAt: string }
+  | { allowed: false; reason: string };
+
+export function getForgeryReturnPermission(
+  item: Pick<GameItem, "owner" | "status" | "authenticity" | "date_received" | "transaction_history" | "permanent" | "repairing">,
   playerId: string,
-) {
+  config: ForgeryReturnConfig,
+  now = new Date(),
+): ForgeryReturnPermission {
   if (item.owner !== playerId || item.status !== "claimed") {
-    return { allowed: false as const, reason: "Only owned inventory artwork can be reported." };
+    return { allowed: false, reason: "Only owned inventory artwork can be returned." };
   }
-  if (item.authenticity.identified && !item.authenticity.forgery) {
-    return { allowed: false as const, reason: "Identified legitimate artwork cannot be reported." };
+  if (!item.authenticity.identified) {
+    return { allowed: false, reason: "Authenticate this artwork before returning it." };
   }
-  if (item.authenticity.liable === playerId) {
-    return { allowed: false as const, reason: "You are liable for this artwork." };
+  if (!item.authenticity.forgery) {
+    return { allowed: false, reason: "Authentic artwork cannot be returned." };
+  }
+  if (item.permanent || item.repairing) {
+    return { allowed: false, reason: "Permanent artwork and artwork under repair cannot be returned." };
   }
   if (item.authenticity.original_owner === playerId) {
-    return { allowed: false as const, reason: "You cannot report artwork you originally introduced." };
+    return { allowed: false, reason: "You cannot return artwork you originally introduced." };
   }
-  return { allowed: true as const };
-}
-
-export function getPlayerFacingRedemptionPermission(
-  item: Pick<GameItem, "owner" | "status" | "authenticity">,
-  playerId: string,
-) {
-  if (!item.authenticity.identified) {
-    if (item.owner !== playerId || item.status !== "claimed") {
-      return {
-        allowed: false as const,
-        reason: "Only owned inventory artwork can be reported.",
-      };
-    }
-    return { allowed: true as const };
+  const purchase = item.transaction_history?.at(-1);
+  if (
+    purchase?.type !== "auction" ||
+    purchase.to_owner !== playerId ||
+    !purchase.from_owner ||
+    purchase.from_owner === playerId ||
+    purchase.from_owner.startsWith("system:") ||
+    purchase.from_owner.startsWith("bot:") ||
+    !Number.isSafeInteger(purchase.amount) ||
+    purchase.amount! <= 0 ||
+    purchase.occurred_at !== item.date_received
+  ) {
+    return { allowed: false, reason: "Only purchases from another player's auction can be returned." };
   }
-  return getRedemptionPermission(item, playerId);
+  const receivedAt = Date.parse(purchase.occurred_at);
+  const window = config.forgeryReturnWindowMinutes;
+  const coefficient = config.forgeryReturnRefundCoefficient;
+  if (
+    !Number.isInteger(window) || window <= 0 || window > 1_440 ||
+    !Number.isFinite(coefficient) || coefficient < 0 || coefficient > 1
+  ) {
+    return { allowed: false, reason: "Forgery returns are currently disabled." };
+  }
+  const expiresAt = receivedAt + window * 60_000;
+  if (!Number.isFinite(receivedAt) || !Number.isFinite(now.getTime()) || receivedAt > now.getTime() || now.getTime() >= expiresAt) {
+    return { allowed: false, reason: "The forgery return window has expired or the delivery date is invalid." };
+  }
+  return {
+    allowed: true,
+    purchasePrice: purchase.amount!,
+    refund: Math.floor(purchase.amount! * coefficient),
+    expiresAt: new Date(expiresAt).toISOString(),
+  };
 }
 
 export function validateForgerySelection(

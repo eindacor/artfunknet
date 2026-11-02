@@ -4,6 +4,7 @@ import { recordEconomyMetricsSafely } from "@/server/economy-metrics";
 import {
   calculateAuthenticationCost,
   getAuthenticationPermission,
+  notifyForgeryDetection,
 } from "@/server/forgery-gameplay";
 import type { GameItem } from "@/server/gameplay";
 import { getDatabase } from "@/server/mongodb";
@@ -87,13 +88,17 @@ export async function POST(
     direction: "spent",
     source: "authentication",
   });
+  const message = item.authenticity.forgery
+    ? `Authentication confirmed a forgery ($${cost.toLocaleString()} fee).`
+    : `Authentication confirmed legitimate artwork ($${cost.toLocaleString()} fee).`;
+  if (item.authenticity.forgery) {
+    await notifyForgeryDetection(database, auth.session.playerId, message);
+  }
   return NextResponse.json({
     status: "ok",
     cost,
     forgery: item.authenticity.forgery,
-    message: item.authenticity.forgery
-      ? `Authentication confirmed a forgery ($${cost.toLocaleString()} fee).`
-      : `Authentication confirmed legitimate artwork ($${cost.toLocaleString()} fee).`,
+    message,
     ...(!item.authenticity.forgery
       ? {
           actionDialog: {

@@ -63,6 +63,7 @@ import {
 import { getRerollCost } from "@/server/item-reroll";
 import {
   punishForgeryQuality,
+  notifyForgeryDetection,
   rewardUndetectedForgeryExit,
   sanitizePlayerFacingAuthenticity,
   shouldDestroyDetectedForgery,
@@ -1227,22 +1228,26 @@ export async function POST(
                 Boolean(forgeryReductionEffect),
               );
           if (caught) {
-            detectedCount += 1;
+            let outcome: string;
             if (shouldDestroyDetectedForgery(candidate)) {
               const preserved = await transferIfHallOfFameItem(database, {
                 ...candidate,
                 status: "collector_pending",
               });
               if (!preserved) {
-                await database.collection<GameItem>("items").deleteOne({
+                const destroyed = await database.collection<GameItem>("items").deleteOne({
                   _id: candidate._id,
                   owner: player._id,
                   status: "collector_pending",
                 });
+                if (destroyed.deletedCount !== 1) continue;
                 await deleteCommunityReactions(database, "item", [candidate._id]);
               }
+              outcome = preserved
+                ? "The sale failed, and the Hall of Fame preserved the artwork."
+                : "The sale failed and the artwork was destroyed.";
             } else {
-              await database.collection<GameItem>("items").updateOne(
+              const identified = await database.collection<GameItem>("items").updateOne(
                 {
                   _id: candidate._id,
                   owner: player._id,
@@ -1258,7 +1263,15 @@ export async function POST(
                   },
                 },
               );
+              if (identified.modifiedCount !== 1) continue;
+              outcome = "The sale failed. It was identified and returned to your inventory.";
             }
+            detectedCount += 1;
+            await notifyForgeryDetection(
+              database,
+              player._id,
+              `${npc.npc_name} detected ${hydrated.artwork.title} as a forgery. ${outcome}`,
+            );
             continue;
           }
           const reward = calculateCollectorReward({
@@ -1277,7 +1290,7 @@ export async function POST(
             getCollectorAuctionCommissionCoefficient(collectorAuctionEffect);
           let collectorAuction: Auction | null = null;
           let preserved = false;
-          if (commissionCoefficient !== null) {
+          if (commissionCoefficient !== null && !hydrated.authenticity.forgery) {
             collectorAuction = await createCollectorResaleAuction(
               database,
               hydrated,
@@ -1448,11 +1461,13 @@ export async function POST(
             await deleteCommunityReactions(database, "item", [target._id]);
           }
           reservedTarget = null;
+          const message = hallOfFameTransferred
+            ? `${npc.npc_name} detected the forgery. The sale failed, and the Hall of Fame preserved the artwork.`
+            : `${npc.npc_name} detected the forgery. The sale failed and the artwork was destroyed.`;
+          await notifyForgeryDetection(database, player._id, `${hydratedTarget.artwork.title}: ${message}`);
           return NextResponse.json({
             status: "ok",
-            message: hallOfFameTransferred
-              ? `${npc.npc_name} detected the forgery. The sale failed, and the Hall of Fame preserved the artwork.`
-              : `${npc.npc_name} detected the forgery. The sale failed and the artwork was destroyed.`,
+            message,
             interaction: {
               type: "art-collector-result",
               npcId: npc._id,
@@ -1486,6 +1501,11 @@ export async function POST(
           throw new Error("The forged artwork could not be identified.");
         }
         reservedTarget = null;
+        await notifyForgeryDetection(
+          database,
+          player._id,
+          `${npc.npc_name} detected ${hydratedTarget.artwork.title} as a forgery. The sale failed. It was identified and returned to your inventory.`,
+        );
         // TODO AI: Apply the legacy temporary visitor reputation penalty once
         // the reputation and visitor-ignore systems are ported.
         return NextResponse.json({
@@ -1555,7 +1575,7 @@ export async function POST(
           throw new Error("The Collector could not release the artwork.");
         }
         reservedTarget = null;
-      } else if (commissionCoefficient !== null) {
+      } else if (commissionCoefficient !== null && !hydratedTarget.authenticity.forgery) {
         collectorResaleItem = hydratedTarget;
         collectorResaleAuction = await createCollectorResaleAuction(
           database,

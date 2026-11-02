@@ -4944,6 +4944,12 @@ a.welcome-button {
   width: fit-content;
 }
 
+.bank-balance-negative,
+.reroll-summary .bank-balance-negative,
+.test-account-card .bank-balance-negative {
+  color: #b00020;
+}
+
 .reroll-spend-indicator {
   position: absolute;
   top: calc(100% + 0.15rem);

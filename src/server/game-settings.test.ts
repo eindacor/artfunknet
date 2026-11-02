@@ -20,6 +20,30 @@ const validWeights = {
   masterpiece: 0.1,
 };
 
+test("forgery return settings validate and persist independently", () => {
+  const result = validateGameplayConfig({
+    ...DEFAULT_ACTUAL_GAMEPLAY_CONFIG,
+    forgeryReturnWindowMinutes: 30,
+    forgeryReturnRefundCoefficient: 0.65,
+  });
+  assert.ok(result.ok);
+  const stored = toStoredGameplayConfig(result.value);
+  assert.equal(stored.forgery_return_window_minutes, 30);
+  assert.equal(stored.forgery_return_refund_coefficient, 0.65);
+  for (const value of [-1, 0.5, 1441, Number.NaN, Number.POSITIVE_INFINITY]) {
+    assert.equal(validateGameplayConfig({ ...DEFAULT_ACTUAL_GAMEPLAY_CONFIG, forgeryReturnWindowMinutes: value }).ok, false);
+  }
+  for (const value of [-0.1, 1.1, Number.NaN, Number.POSITIVE_INFINITY, undefined]) {
+    assert.equal(validateGameplayConfig({ ...DEFAULT_ACTUAL_GAMEPLAY_CONFIG, forgeryReturnRefundCoefficient: value }).ok, false);
+  }
+  for (const coefficient of [0, 1]) {
+    assert.equal(validateGameplayConfig({
+      ...DEFAULT_ACTUAL_GAMEPLAY_CONFIG, forgeryReturnWindowMinutes: 0,
+      forgeryReturnRefundCoefficient: coefficient,
+    }).ok, true);
+  }
+});
+
 test("offer cutoffs survive gameplay validation and storage without accepting reversed tiers", () => {
   const cutoffs = { level1: 0.02, level2: 0.0004, level3: 1e-9 };
   const result = validateGameplayConfig({

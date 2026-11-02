@@ -11,6 +11,7 @@ import {
 } from "./art-historian-gameplay.ts";
 import { deleteCommunityReactions } from "./community-reaction-cleanup.ts";
 import {
+  notifyForgeryDetection,
   punishForgeryQuality,
   rollForgeryDetected,
   shouldDestroyDetectedForgery,
@@ -276,17 +277,28 @@ export async function processBulkForgeries(
     await deleteCommunityReactions(database, "item", destroyedIds);
   }
 
-  const identifiedIds = new Set(
-    caughtItems
-      .filter((item) => !shouldDestroyDetectedForgery(item))
-      .map((item) => item._id),
-  );
-
-  for (const item of items.filter((candidate) =>
-    identifiedIds.has(candidate._id),
+  for (const item of caughtItems.filter((candidate) =>
+    shouldDestroyDetectedForgery(candidate),
   )) {
-    await database.collection<GameItem>("items").updateOne(
-      { _id: item._id, owner: playerId, status: "unclaimed" },
+    await notifyForgeryDetection(
+      database,
+      playerId,
+      `${item.artwork.title}: A bulk ${context === "sell" ? "sale" : "donation"} inspection detected this known forgery. ${
+        preservedIds.has(item._id)
+          ? "The Hall of Fame preserved the artwork."
+          : "The artwork was destroyed."
+      }`,
+    );
+  }
+
+  const identifiedItems = caughtItems.filter(
+    (item) => !shouldDestroyDetectedForgery(item),
+  );
+  const identifiedIds = new Set(identifiedItems.map((item) => item._id));
+
+  for (const item of identifiedItems) {
+    const identified = await database.collection<GameItem>("items").updateOne(
+      { _id: item._id, owner: playerId, status: "unclaimed", "authenticity.identified": false },
       {
         $set: {
           status: "claimed",
@@ -300,6 +312,13 @@ export async function processBulkForgeries(
         $unset: { expires_at: "" },
       },
     );
+    if (identified.modifiedCount === 1) {
+      await notifyForgeryDetection(
+        database,
+        playerId,
+        `${item.artwork.title}: A bulk ${context === "sell" ? "sale" : "donation"} inspection detected a forgery. It was identified and returned to your inventory.`,
+      );
+    }
   }
 
   const validItems = items.filter((item) => !caughtIds.has(item._id));

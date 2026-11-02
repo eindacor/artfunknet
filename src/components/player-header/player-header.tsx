@@ -46,7 +46,7 @@ export default function PlayerHeaderContent({
             />
           ) : null}
           <span
-            className="text-sm font-bold text-[#222] font-['Courier_New',Courier,monospace]"
+            className={`text-sm font-bold ${bankBalance < 0 ? "bank-balance-negative" : "text-[#222]"} font-['Courier_New',Courier,monospace]`}
             aria-label={`Available bank balance $${bankBalance.toLocaleString()}`}
           >
             ${bankBalance.toLocaleString()}

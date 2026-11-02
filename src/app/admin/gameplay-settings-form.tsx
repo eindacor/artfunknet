@@ -713,6 +713,35 @@ export default function GameplaySettingsForm({
         suffix="minutes"
         value={activeEditor.auctionAntiSnipeExtensionMinutes}
       />
+      <SettingField
+        description="Time after auction delivery to identify and return a forgery. Zero disables returns."
+        label="Forgery return window"
+        max={1440}
+        min={0}
+        onChange={(value) =>
+          updateConfig(selectedConfig, (config) => ({
+            ...config,
+            forgeryReturnWindowMinutes: value,
+          }))
+        }
+        suffix="minutes"
+        value={activeEditor.forgeryReturnWindowMinutes}
+      />
+      <SettingField
+        description="Fraction of the auction purchase price refunded to the buyer (0.9 = 90%). The liable seller is charged the full purchase price."
+        label="Forgery return refund"
+        max={1}
+        min={0}
+        onChange={(value) =>
+          updateConfig(selectedConfig, (config) => ({
+            ...config,
+            forgeryReturnRefundCoefficient: value,
+          }))
+        }
+        step="any"
+        suffix="coefficient"
+        value={activeEditor.forgeryReturnRefundCoefficient}
+      />
       </ConfigGroup>
 
       <ConfigGroup title="Gallery and item condition">

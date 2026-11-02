@@ -103,6 +103,8 @@ export type GameplayConfig = {
   repairAmount: number;
   npcSpawnIntervalMinutes: number;
   auctionAntiSnipeExtensionMinutes: number;
+  forgeryReturnWindowMinutes: number;
+  forgeryReturnRefundCoefficient: number;
   npcMeetingResetIntervalMinutes: number;
   npcMeetingLimits: Record<NpcQuality, number>;
   visitorRarityAmplifiers: Record<NpcQuality, number>;
@@ -153,6 +155,8 @@ export const DEFAULT_ACTUAL_GAMEPLAY_CONFIG: GameplayConfig = {
   repairAmount: 0.1,
   npcSpawnIntervalMinutes: 1,
   auctionAntiSnipeExtensionMinutes: 5,
+  forgeryReturnWindowMinutes: 10,
+  forgeryReturnRefundCoefficient: 0.9,
   npcMeetingResetIntervalMinutes: 1_440,
   npcMeetingLimits: {
     bronze: 120,
@@ -198,6 +202,8 @@ export const DEFAULT_DEBUG_GAMEPLAY_CONFIG: GameplayConfig = {
   repairAmount: 0.1,
   npcSpawnIntervalMinutes: 1,
   auctionAntiSnipeExtensionMinutes: 5,
+  forgeryReturnWindowMinutes: 10,
+  forgeryReturnRefundCoefficient: 0.9,
   npcMeetingResetIntervalMinutes: 1,
   npcMeetingLimits: {
     bronze: 120,
@@ -259,6 +265,8 @@ type StoredGameplayConfig = {
   repair_amount?: number;
   npc_spawn_interval_minutes?: number;
   auction_anti_snipe_extension_minutes?: number;
+  forgery_return_window_minutes?: number;
+  forgery_return_refund_coefficient?: number;
   npc_meeting_reset_interval_minutes?: number;
   npc_meeting_limits?: Partial<Record<NpcQuality, number>>;
   visitor_rarity_amplifiers?: Partial<Record<NpcQuality, number>>;
@@ -341,6 +349,8 @@ export function toStoredGameplayConfig(
     npc_spawn_interval_minutes: config.npcSpawnIntervalMinutes,
     auction_anti_snipe_extension_minutes:
       config.auctionAntiSnipeExtensionMinutes,
+    forgery_return_window_minutes: config.forgeryReturnWindowMinutes,
+    forgery_return_refund_coefficient: config.forgeryReturnRefundCoefficient,
     npc_meeting_reset_interval_minutes: config.npcMeetingResetIntervalMinutes,
     npc_meeting_limits: config.npcMeetingLimits,
     visitor_rarity_amplifiers: config.visitorRarityAmplifiers,
@@ -373,6 +383,7 @@ export function validateGameplayConfig(
     ["repairIntervalMinutes", "Repair interval", 1, 10_080],
     ["npcSpawnIntervalMinutes", "NPC spawn interval", 1, 10_080],
     ["auctionAntiSnipeExtensionMinutes", "Auction anti-snipe extension", 1, 1_440],
+    ["forgeryReturnWindowMinutes", "Forgery return window", 0, 1_440],
     [
       "npcMeetingResetIntervalMinutes",
       "Visitor meeting reset interval",
@@ -405,6 +416,7 @@ export function validateGameplayConfig(
     ["foilProbability", "Foil probability"],
     ["mintProbability", "Mint probability"],
     ["unlockedProbability", "Unlocked probability"],
+    ["forgeryReturnRefundCoefficient", "Forgery return refund coefficient"],
   ] as const;
   const probabilities: Record<string, number> = {};
   for (const [key, label] of probabilityFields) {
@@ -550,6 +562,8 @@ export function validateGameplayConfig(
       repairAmount,
       npcSpawnIntervalMinutes: values.npcSpawnIntervalMinutes,
       auctionAntiSnipeExtensionMinutes: values.auctionAntiSnipeExtensionMinutes,
+      forgeryReturnWindowMinutes: values.forgeryReturnWindowMinutes,
+      forgeryReturnRefundCoefficient: probabilities.forgeryReturnRefundCoefficient,
       npcMeetingResetIntervalMinutes: values.npcMeetingResetIntervalMinutes,
       npcMeetingLimits: npcMeetingLimits.value,
       visitorRarityAmplifiers: visitorRarityAmplifiers.value,
@@ -743,6 +757,10 @@ function readConfig(
     auctionAntiSnipeExtensionMinutes:
       stored?.auction_anti_snipe_extension_minutes ??
       defaults.auctionAntiSnipeExtensionMinutes,
+    forgeryReturnWindowMinutes:
+      stored?.forgery_return_window_minutes ?? defaults.forgeryReturnWindowMinutes,
+    forgeryReturnRefundCoefficient:
+      stored?.forgery_return_refund_coefficient ?? defaults.forgeryReturnRefundCoefficient,
     npcMeetingResetIntervalMinutes:
       stored?.npc_meeting_reset_interval_minutes ??
       defaults.npcMeetingResetIntervalMinutes,

@@ -30,7 +30,7 @@ import { getGameplaySettings } from "@/server/game-settings";
 import { refreshGalleryMetadata } from "@/server/gallery-metadata";
 import {
   getAuthenticationPermission,
-  getPlayerFacingRedemptionPermission,
+  getForgeryReturnPermission,
   sanitizePlayerFacingAuthenticity,
   settlePendingForgeryLiability,
 } from "@/server/forgery-gameplay";
@@ -377,9 +377,10 @@ export default async function PlayerPage({
       ...item,
       archivePermission,
       authenticationPermission: getAuthenticationPermission(item, player._id),
-      redemptionPermission: getPlayerFacingRedemptionPermission(
+      redemptionPermission: getForgeryReturnPermission(
         item,
         player._id,
+        config,
       ),
       archivedArtStyles,
       archivedCategories,
