@@ -2,19 +2,32 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { GalleryViewMode } from "@/server/player-view-settings";
+import type { OAuthProvider } from "@/server/oauth-providers";
 
 export default function AccountForm({
   email,
+  emailVerified,
   enableReveals,
   hasPassword,
+  oauthMessage,
   patreon,
-  preferredGalleryView,
+  providers,
   screenName,
 }: {
   email: string;
+  emailVerified: boolean;
   enableReveals: boolean;
   hasPassword: boolean;
+  oauthMessage: string | null;
+  providers: {
+    id: OAuthProvider;
+    name: string;
+    configured: boolean;
+    linked: boolean;
+    email: string | null;
+    emailVerified: boolean;
+    verifiedAt: string | null;
+  }[];
   patreon: {
     checkedAt: string | null;
     configured: boolean;
@@ -27,7 +40,6 @@ export default function AccountForm({
     tierAmountCents: number | null;
     tierName: string | null;
   };
-  preferredGalleryView: GalleryViewMode;
   screenName: string;
 }) {
   const router = useRouter();
@@ -101,14 +113,13 @@ export default function AccountForm({
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        galleryView: form.get("galleryView"),
         enableReveals: form.has("enableReveals"),
       }),
     });
     const result = (await response.json()) as { error?: string };
     setPreferencesMessage(
       response.ok
-        ? "View preferences updated."
+        ? "Reveal settings updated."
         : result.error ?? "Update failed.",
     );
     setPreferencesBusy(false);
@@ -119,7 +130,11 @@ export default function AccountForm({
     <div className="grid gap-8">
       <section className="rounded-lg border border-white/15 bg-white/5 p-6">
         <h2 className="text-xl font-bold">Profile</h2>
-        <p className="mt-2 text-sm text-[var(--muted)]">{email}</p>
+        <p className="mt-2 text-sm text-[var(--muted)]">
+          {email.endsWith("@oauth.artfunkel.invalid")
+            ? "Your sign-in provider did not supply an email address."
+            : `${email} (${emailVerified ? "verified" : "not verified"})`}
+        </p>
         <form className="mt-5 grid gap-4" onSubmit={updateProfile}>
           <label className="grid gap-2">
             <span className="font-semibold">Player name</span>
@@ -145,6 +160,36 @@ export default function AccountForm({
             {profileBusy ? "Saving..." : "Save profile"}
           </button>
         </form>
+      </section>
+
+      <section className="rounded-lg border border-white/15 bg-white/5 p-6">
+        <h2 className="text-xl font-bold">Connected sign-in accounts</h2>
+        <p className="mt-2 text-sm text-[var(--muted)]">
+          Sync verifies your account with that platform before linking it to this player.
+          Accounts belonging to another player cannot be merged yet.
+        </p>
+        {oauthMessage ? <p aria-live="polite" className="mt-3 text-sm">{oauthMessage}</p> : null}
+        <div className="mt-5 grid gap-5">
+          {providers.map((provider) => (
+            <div className="grid gap-2 text-sm" key={provider.id}>
+              <p className="font-semibold">{provider.name}: {provider.linked ? "Linked" : "Not linked"}</p>
+              {provider.email ? (
+                <p>{provider.email} ({provider.emailVerified ? "verified by provider" : "not verified by provider"})</p>
+              ) : provider.linked ? <p>No provider email recorded for this connection.</p> : null}
+              {provider.verifiedAt ? <p>Last verified: <time dateTime={provider.verifiedAt}>{formatPatreonTimestamp(provider.verifiedAt)}</time></p> : null}
+              {provider.id === "instagram" ? <p>Instagram business and creator accounts only. Instagram does not supply an email address.</p> : null}
+              <form action={`/api/auth/player/${provider.id}`} method="post">
+                <button
+                  className="w-full rounded-md bg-[var(--accent)] px-4 py-2 font-semibold text-black disabled:opacity-60"
+                  disabled={!provider.configured}
+                  type="submit"
+                >
+                  {provider.configured ? `Sync with ${provider.name}` : `${provider.name} sync unavailable`}
+                </button>
+              </form>
+            </div>
+          ))}
+        </div>
       </section>
 
       <section className="rounded-lg border border-white/15 bg-white/5 p-6">
@@ -221,19 +266,8 @@ export default function AccountForm({
       </section>
 
       <section className="rounded-lg border border-white/15 bg-white/5 p-6">
-        <h2 className="text-xl font-bold">View preferences</h2>
+        <h2 className="text-xl font-bold">Reveal animations</h2>
         <form className="mt-5 grid gap-4" onSubmit={updatePreferences}>
-          <label className="grid gap-2">
-            <span className="font-semibold">Preferred gallery format</span>
-            <select
-              className="rounded-md border border-white/20 bg-black/20 px-3 py-2"
-              defaultValue={preferredGalleryView}
-              name="galleryView"
-            >
-              <option value="expanded">Expanded</option>
-              <option value="list">List</option>
-            </select>
-          </label>
           <label className="flex items-center gap-3">
             <input
               defaultChecked={enableReveals}
@@ -258,7 +292,7 @@ export default function AccountForm({
             disabled={preferencesBusy}
             type="submit"
           >
-            {preferencesBusy ? "Saving..." : "Save preferences"}
+            {preferencesBusy ? "Saving..." : "Save reveal settings"}
           </button>
         </form>
       </section>

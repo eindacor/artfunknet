@@ -601,6 +601,9 @@ export default function GameDashboard({
   );
   const [offersSortDirection, setOffersSortDirection] =
     useState<OfferSortDirection>(player.viewSettings.offersSortDirection);
+  const [preferredGalleryView, setPreferredGalleryView] = useState(
+    player.viewSettings.galleryView,
+  );
   const [collectionFilters, setCollectionFilters] = useState<CollectionFilters>(
     getDefaultCollectionFilters,
   );
@@ -2008,6 +2011,7 @@ export default function GameDashboard({
   }
 
   function saveViewSettings(settings: Partial<PlayerViewSettings>) {
+    if (settings.galleryView !== undefined) setPreferredGalleryView(settings.galleryView);
     viewSettingsSaveQueue.current = viewSettingsSaveQueue.current.then(async () => {
       try {
         const response = await fetch("/api/play/view-settings", {
@@ -4877,7 +4881,7 @@ export default function GameDashboard({
             initialBankBalance={player.bankBalance}
             initialGalleryId={exploreGalleryId}
             initialSort={player.viewSettings.gallerySort}
-            initialViewMode={player.viewSettings.galleryView}
+            initialViewMode={preferredGalleryView}
             key={`gallery-explorer-${exploreResetKey}`}
             meetingNpc={meetingNpc}
             npcSpawnOptions={npcSpawnOptions}

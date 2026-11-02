@@ -339,6 +339,7 @@ export default function GalleryExplorer({
         <div className="auction-results-actions">
           <div aria-label="Gallery view" className="auction-view-toggle">
             <button
+              aria-label="Expanded gallery format"
               aria-pressed={viewMode === "expanded"}
               onClick={() => {
                 setPage(1);
@@ -350,6 +351,7 @@ export default function GalleryExplorer({
               <i aria-hidden="true" className="fa fa-th" />
             </button>
             <button
+              aria-label="List gallery format"
               aria-pressed={viewMode === "list"}
               onClick={() => {
                 setPage(1);

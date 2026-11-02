@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 
 import { oauthCookieOptions } from "@/server/oauth-player";
 import { getPublicCallbackUrl } from "@/server/public-url";
+import { beginOAuthFlow } from "@/server/oauth-flow";
 
 export const DISCORD_STATE_COOKIE = "artfunkel_discord_oauth_state";
 
@@ -33,7 +34,11 @@ export async function GET(request: Request) {
   authorization.searchParams.set("state", state);
   authorization.searchParams.set("prompt", "consent");
 
-  const response = NextResponse.redirect(authorization);
+  const response = NextResponse.redirect(authorization, { status: 303 });
   response.cookies.set(DISCORD_STATE_COOKIE, state, oauthCookieOptions);
-  return response;
+  return beginOAuthFlow(request, "discord", state, response);
+}
+
+export async function POST(request: Request) {
+  return GET(request);
 }

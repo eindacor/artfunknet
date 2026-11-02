@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 
 import { oauthCookieOptions } from "@/server/oauth-player";
 import { getPublicCallbackUrl } from "@/server/public-url";
+import { beginOAuthFlow } from "@/server/oauth-flow";
 
 export const MICROSOFT_STATE_COOKIE = "artfunkel_microsoft_oauth_state";
 export const MICROSOFT_VERIFIER_COOKIE = "artfunkel_microsoft_oauth_verifier";
@@ -45,10 +46,15 @@ export async function GET(request: Request) {
   authorization.searchParams.set("nonce", nonce);
   authorization.searchParams.set("code_challenge", challenge);
   authorization.searchParams.set("code_challenge_method", "S256");
+  authorization.searchParams.set("prompt", "select_account");
 
-  const response = NextResponse.redirect(authorization);
+  const response = NextResponse.redirect(authorization, { status: 303 });
   response.cookies.set(MICROSOFT_STATE_COOKIE, state, oauthCookieOptions);
   response.cookies.set(MICROSOFT_VERIFIER_COOKIE, verifier, oauthCookieOptions);
   response.cookies.set(MICROSOFT_NONCE_COOKIE, nonce, oauthCookieOptions);
-  return response;
+  return beginOAuthFlow(request, "microsoft", state, response);
+}
+
+export async function POST(request: Request) {
+  return GET(request);
 }

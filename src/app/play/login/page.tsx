@@ -1,14 +1,19 @@
 import { redirect } from "next/navigation";
 
 import { getPlayerSession } from "@/server/session";
+import { isOAuthProviderConfigured } from "@/server/oauth-player";
+import { getOAuthMessage } from "@/server/oauth-providers";
 
 import PlayerLoginForm from "./player-login-form";
 
-export default async function PlayerLoginPage() {
+export default async function PlayerLoginPage({ searchParams }: {
+  searchParams: Promise<{ oauth?: string | string[]; provider?: string | string[] }>;
+}) {
   if (await getPlayerSession()) {
     redirect("/play");
   }
 
+  const params = await searchParams;
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-8 px-6">
       <div>
@@ -21,19 +26,15 @@ export default async function PlayerLoginPage() {
         </p>
       </div>
       <PlayerLoginForm
+        message={getOAuthMessage(
+          Array.isArray(params.oauth) ? params.oauth[0] : params.oauth,
+          Array.isArray(params.provider) ? params.provider[0] : params.provider,
+        )}
         providers={{
-          discord: Boolean(
-            process.env.DISCORD_OAUTH_CLIENT_ID &&
-              process.env.DISCORD_OAUTH_CLIENT_SECRET,
-          ),
-          google: Boolean(
-            process.env.GOOGLE_OAUTH_CLIENT_ID &&
-              process.env.GOOGLE_OAUTH_CLIENT_SECRET,
-          ),
-          microsoft: Boolean(
-            process.env.MICROSOFT_OAUTH_CLIENT_ID &&
-              process.env.MICROSOFT_OAUTH_CLIENT_SECRET,
-          ),
+          discord: isOAuthProviderConfigured("discord"),
+          google: isOAuthProviderConfigured("google"),
+          microsoft: isOAuthProviderConfigured("microsoft"),
+          instagram: isOAuthProviderConfigured("instagram"),
           steam: true,
         }}
       />

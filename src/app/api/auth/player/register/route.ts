@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getDatabase } from "@/server/mongodb";
 import { hashPassword, validatePassword } from "@/server/password";
+import { findPlayerByAuthEmail } from "@/server/oauth-identity";
 import {
   createPlayerAccountRecord,
   ensurePlayerAccountIndexes,
@@ -61,6 +62,12 @@ export async function POST(request: Request) {
     const password = body.password as string;
     const database = await getDatabase();
     await ensurePlayerAccountIndexes(database);
+    if (await findPlayerByAuthEmail(database, email)) {
+      return NextResponse.json(
+        { error: "That email or player name is already in use." },
+        { status: 409 },
+      );
+    }
     const passwordCredentials = await hashPassword(password);
     const player = createPlayerAccountRecord({
       email,

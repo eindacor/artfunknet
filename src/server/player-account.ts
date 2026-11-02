@@ -15,6 +15,9 @@ export type PlayerAccountRecord = {
   [key: string]: unknown;
   _id: string;
   email: string;
+  email_verified: boolean;
+  account_emails?: string[];
+  verified_emails: string[];
   username: string;
   screen_name: string;
   role: "player";
@@ -79,6 +82,9 @@ export function createPlayerAccountRecord({
   return {
     _id: playerId,
     email,
+    email_verified: false,
+    account_emails: [email.trim().toLowerCase()],
+    verified_emails: [],
     username: email,
     screen_name: screenName,
     role: "player",
@@ -140,6 +146,10 @@ export function ensurePlayerAccountIndexes(database: Db): Promise<void> {
     database
       .collection("players")
       .createIndex({ screen_name: 1 }, { unique: true }),
+    database.collection("players").createIndex(
+      { account_emails: 1 },
+      { unique: true, partialFilterExpression: { active: true, "account_emails.0": { $exists: true } } },
+    ),
   ])
     .then(() => undefined)
     .catch((error) => {

@@ -34,6 +34,7 @@ const handlerNames = new Set([
   "revealQueuedOffers",
   "revealSelectedOffers",
   "confirmOfferReveal",
+  "saveViewSettings",
 ]);
 const handlers = ts.transpileModule(
   dashboard.body!.statements.filter(
@@ -41,6 +42,30 @@ const handlers = ts.transpileModule(
   ).map((statement) => statement.getText(source)).join("\n"),
   { compilerOptions: { target: ts.ScriptTarget.ES2022 } },
 ).outputText;
+
+test("gallery format changes update the section-remount preference and persist through the settings queue", async () => {
+  const changed: string[] = [];
+  const requests: { url: string; settings: unknown }[] = [];
+  const queue = { current: Promise.resolve() };
+  const save = runInNewContext(`${handlers}\nsaveViewSettings`, {
+    setPreferredGalleryView: (mode: string) => changed.push(mode),
+    viewSettingsSaveQueue: queue,
+    setError: (message: string) => assert.fail(message),
+    fetch: async (url: string, options: { body: string }) => {
+      requests.push({ url, settings: JSON.parse(options.body) });
+      return Response.json({ status: "ok" });
+    },
+  }) as (settings: Record<string, unknown>) => void;
+  save({ galleryView: "list" });
+  save({ galleryView: "expanded" });
+  save({ gallerySort: "name" });
+  assert.deepEqual(changed, ["list", "expanded"]);
+  await queue.current;
+  assert.deepEqual(requests.map(({ settings }) => settings), [
+    { galleryView: "list" }, { galleryView: "expanded" }, { gallerySort: "name" },
+  ]);
+  assert.ok(requests.every(({ url }) => url === "/api/play/view-settings"));
+});
 
 function item(id: string, rarity = "masterpiece") {
   return {

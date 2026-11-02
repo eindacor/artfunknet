@@ -5,12 +5,18 @@ import { getDatabase } from "@/server/mongodb";
 import { isPatreonIntegrationConfigured } from "@/server/patreon";
 import { getPlayerViewSettings } from "@/server/player-view-settings";
 import { requirePlayer } from "@/server/session";
+import { isOAuthProviderConfigured } from "@/server/oauth-player";
+import { getOAuthMessage, OAUTH_PROVIDERS } from "@/server/oauth-providers";
+import type { OAuthPlayer } from "@/server/oauth-identity";
 
 import AccountForm from "./account-form";
 
 type PlayerAccount = {
   _id: string;
   email: string;
+  email_verified?: boolean;
+  google_sub?: string;
+  oauth_accounts?: OAuthPlayer["oauth_accounts"];
   screen_name: string;
   active: boolean;
   password_salt?: string;
@@ -47,7 +53,7 @@ const PATREON_MESSAGES: Record<string, string> = {
 export default async function PlayerAccountPage({
   searchParams,
 }: {
-  searchParams: Promise<{ patreon?: string | string[] }>;
+  searchParams: Promise<{ patreon?: string | string[]; oauth?: string | string[]; provider?: string | string[] }>;
 }) {
   const session = await requirePlayer();
   const player = await (await getDatabase())
@@ -72,18 +78,30 @@ export default async function PlayerAccountPage({
       </Link>
       <h1 className="mt-6 text-4xl font-bold">Account</h1>
       <p className="mt-3 mb-8 text-[var(--muted)]">
-        Manage your player profile, connected accounts, view preferences, and
+        Manage your player profile, connected accounts, reveal animations, and
         sign-in password.
       </p>
       <AccountForm
         email={player.email}
+        emailVerified={player.email_verified === true}
         enableReveals={
           getPlayerViewSettings(player.profile?.view_settings).enableReveals
         }
         hasPassword={Boolean(player.password_salt && player.password_hash)}
-        preferredGalleryView={
-          getPlayerViewSettings(player.profile?.view_settings).galleryView
-        }
+        oauthMessage={getOAuthMessage(
+          Array.isArray(params.oauth) ? params.oauth[0] : params.oauth,
+          Array.isArray(params.provider) ? params.provider[0] : params.provider,
+        )}
+        providers={OAUTH_PROVIDERS.map(({ id, name }) => {
+          const account = player.oauth_accounts?.[id];
+          const verifiedAt = account?.verified_at ? new Date(account.verified_at) : null;
+          return {
+            id, name, configured: isOAuthProviderConfigured(id),
+            linked: Boolean(account?.id || (id === "google" && player.google_sub)),
+            email: account?.email ?? null, emailVerified: account?.email_verified === true,
+            verifiedAt: verifiedAt && Number.isFinite(verifiedAt.getTime()) ? verifiedAt.toISOString() : null,
+          };
+        })}
         patreon={{
           checkedAt:
             checkedAt && Number.isFinite(checkedAt.getTime())

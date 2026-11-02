@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
 
 import { oauthCookieOptions } from "@/server/oauth-player";
+import { beginOAuthFlow } from "@/server/oauth-flow";
 import {
   getPublicBaseUrl,
   getPublicCallbackUrl,
@@ -50,7 +51,11 @@ export async function GET(request: Request) {
     "http://specs.openid.net/auth/2.0/identifier_select",
   );
 
-  const response = NextResponse.redirect(authorization);
+  const response = NextResponse.redirect(authorization, { status: 303 });
   response.cookies.set(STEAM_STATE_COOKIE, state, oauthCookieOptions);
-  return response;
+  return beginOAuthFlow(request, "steam", state, response);
+}
+
+export async function POST(request: Request) {
+  return GET(request);
 }

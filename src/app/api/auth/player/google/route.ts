@@ -3,6 +3,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
 
 import { getPublicCallbackUrl } from "@/server/public-url";
+import { beginOAuthFlow } from "@/server/oauth-flow";
 
 const STATE_COOKIE = "artfunkel_google_oauth_state";
 const VERIFIER_COOKIE = "artfunkel_google_oauth_verifier";
@@ -45,12 +46,17 @@ export async function GET(request: Request) {
   authorization.searchParams.set("state", state);
   authorization.searchParams.set("code_challenge", challenge);
   authorization.searchParams.set("code_challenge_method", "S256");
+  authorization.searchParams.set("prompt", "select_account");
 
-  const response = NextResponse.redirect(authorization);
+  const response = NextResponse.redirect(authorization, { status: 303 });
   const options = oauthCookieOptions();
   response.cookies.set(STATE_COOKIE, state, options);
   response.cookies.set(VERIFIER_COOKIE, verifier, options);
-  return response;
+  return beginOAuthFlow(request, "google", state, response);
+}
+
+export async function POST(request: Request) {
+  return GET(request);
 }
 
 export { STATE_COOKIE, VERIFIER_COOKIE, getRedirectUri, oauthCookieOptions };

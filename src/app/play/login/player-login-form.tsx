@@ -2,26 +2,17 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-
-type LoginProvider = "discord" | "google" | "microsoft" | "steam";
-
-const PROVIDERS: {
-  id: LoginProvider;
-  label: string;
-}[] = [
-  { id: "google", label: "Continue with Google" },
-  { id: "discord", label: "Continue with Discord" },
-  { id: "microsoft", label: "Continue with Microsoft" },
-  { id: "steam", label: "Sign in through Steam" },
-];
+import { OAUTH_PROVIDERS, type OAuthProvider } from "@/server/oauth-providers";
 
 export default function PlayerLoginForm({
+  message,
   providers,
 }: {
-  providers: Record<LoginProvider, boolean>;
+  message: string | null;
+  providers: Record<OAuthProvider, boolean>;
 }) {
   const router = useRouter();
-  const [error, setError] = useState("");
+  const [error, setError] = useState(message ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [registering, setRegistering] = useState(false);
 
@@ -161,14 +152,15 @@ export default function PlayerLoginForm({
       <div className="relative py-1 text-center text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
         <span className="bg-[#19171d] px-3">or</span>
       </div>
-      {PROVIDERS.filter((provider) => providers[provider.id]).map(
+      {OAUTH_PROVIDERS.filter((provider) => providers[provider.id]).map(
         (provider) => (
           <a
             className="rounded-md border border-white/20 px-4 py-2 text-center font-semibold hover:border-[var(--accent)]"
             href={`/api/auth/player/${provider.id}`}
             key={provider.id}
           >
-            {provider.label}
+            {provider.id === "steam" ? "Sign in through Steam" : `Continue with ${provider.name}`}
+            {provider.id === "instagram" ? " (business/creator)" : ""}
           </a>
         ),
       )}
