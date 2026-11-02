@@ -177,7 +177,7 @@ export default function AccountForm({
                 <p>{provider.email} ({provider.emailVerified ? "verified by provider" : "not verified by provider"})</p>
               ) : provider.linked ? <p>No provider email recorded for this connection.</p> : null}
               {provider.verifiedAt ? <p>Last verified: <time dateTime={provider.verifiedAt}>{formatPatreonTimestamp(provider.verifiedAt)}</time></p> : null}
-              {provider.id === "instagram" ? <p>Instagram business and creator accounts only. Instagram does not supply an email address.</p> : null}
+              {provider.id === "instagram" ? <p>Instagram business and creator accounts only.</p> : null}
               <form action={`/api/auth/player/${provider.id}`} method="post">
                 <button
                   className="w-full rounded-md bg-[var(--accent)] px-4 py-2 font-semibold text-black disabled:opacity-60"
