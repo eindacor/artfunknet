@@ -51,7 +51,7 @@ export function mountGalleryScene(
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
   // The room and lights are static; camera movement can reuse every shadow map.
   renderer.shadowMap.autoUpdate = false;
   renderer.domElement.setAttribute("aria-hidden", "true");
