@@ -26,7 +26,7 @@ export default function ItemThumbnail({
     | "repairing"
     | "status"
     | "tags"
-  > & Partial<Pick<HydratedGameItem, "artwork">>;
+  > & Partial<Pick<HydratedGameItem, "artwork" | "permanent">>;
   researchTarget?: boolean;
   showDisplayStatus?: boolean;
   size?: number;
@@ -60,14 +60,18 @@ export default function ItemThumbnail({
       isDealerOffer ||
       isCollectorSale ||
       isArchivable ||
+      item.permanent ||
       isDisplayed ? (
         <span className="thumbnail-status-watermarks">
           {isDisplayed ? (
             <i
-              aria-label="On display"
+              aria-label="Promoted"
               className="fa fa-eye thumbnail-displayed"
               role="img"
             />
+          ) : null}
+          {item.permanent ? (
+            <i aria-label="Permanent collection" className="fa fa-heart" role="img" />
           ) : null}
           {researchTarget ? (
             <i

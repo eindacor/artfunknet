@@ -121,7 +121,7 @@ export default function PublicGallery({
       <div className="gallery-window public-gallery-window">
         <GalleryView
           disabled={navigationDisabled}
-          emptyMessage={`@${owner.screenName} has not put any artwork on display.`}
+          emptyMessage={`@${owner.screenName} has not shared any artwork in this gallery.`}
           focusedItemId={focusedItemId}
           finishes={finishes}
           items={items}

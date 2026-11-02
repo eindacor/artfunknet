@@ -387,7 +387,7 @@ export default async function PlayerPage({
     };
   });
   const archives = await hydratePlayerArtworkArchives(database, rawArchives);
-  const displayedItems = items.filter((item) => item.status === "displayed");
+  const displayedItems = items.filter((item) => item.status === "displayed" && !item.permanent);
   const galleryRates = await calculateGalleryRates(
     database,
     player.profile.level,
@@ -626,6 +626,7 @@ export default async function PlayerPage({
           inventorySlotsUsed,
           dailyCrate,
           displayCap: player.profile.display_cap,
+          permanentCap: player.profile.pc_cap ?? 12,
           repairingCap: player.profile.repairing_cap ?? 4,
           socialBattery: socialBattery.value,
           socialBatteryResetAt: socialBattery.resetAt,

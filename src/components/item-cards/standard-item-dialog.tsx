@@ -241,9 +241,9 @@ export function StandardItemDetails({
       <span>
         unclaimed · <Link href="/play?section=raffle">View lottery</Link>
       </span>
-    ) : item.status === "displayed" && displayOwner ? (
+    ) : (item.status === "displayed" || item.permanent) && displayOwner ? (
       <span>
-        On display in{" "}
+        In{" "}
         <Link href={`/gallery/${encodeURIComponent(displayOwner.playerId)}`}>
           @{displayOwner.screenName}&apos;s gallery
         </Link>

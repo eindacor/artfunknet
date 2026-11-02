@@ -47,7 +47,7 @@ export async function getPublicItemView(
   if (!rawItem) return null;
 
   const displayOwnerRecord =
-    rawItem.status === "displayed"
+    rawItem.status === "displayed" || (rawItem.permanent && rawItem.status === "claimed")
       ? await database
           .collection<PublicPlayerRecord>("players")
           .findOne(

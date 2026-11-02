@@ -19,6 +19,9 @@ export type GalleryMetadataSnapshot = {
   value: number;
   score: number;
   display_count: number;
+  permanent_count: number;
+  permanent_item_ids: string[];
+  item_count: number;
   display_capacity: number;
   attributes: GalleryAttributeAggregate[];
   display_rarities: ArtworkRarity[];
@@ -40,18 +43,21 @@ export function buildGalleryMetadataSnapshot(
   const activeUniqueAttributes = new Set<string>();
   let value = 0;
   let ratingTotal = 0;
-  let featuredItem: GameItem | null = null;
+  const permanentItems = items.filter(
+    (item) =>
+      item.permanent &&
+      (item.status === "claimed" || item.status === "displayed"),
+  );
+  const displayedItems = items.filter((item) => !item.permanent);
+  const featuredItem =
+    [...(permanentItems.length > 0 ? permanentItems : displayedItems)].sort(
+      (left, right) =>
+        right.values.actual - left.values.actual ||
+        left._id.localeCompare(right._id),
+    )[0] ?? null;
 
-  for (const item of items) {
+  for (const item of displayedItems) {
     value += item.values.actual;
-    if (
-      !featuredItem ||
-      item.values.actual > featuredItem.values.actual ||
-      (item.values.actual === featuredItem.values.actual &&
-        item._id.localeCompare(featuredItem._id) < 0)
-    ) {
-      featuredItem = item;
-    }
     if (item.active_unique_attribute) {
       activeUniqueAttributes.add(item.active_unique_attribute);
     }
@@ -95,7 +101,7 @@ export function buildGalleryMetadataSnapshot(
         right.count - left.count ||
         left.title.localeCompare(right.title),
     );
-  const displayRarities = items
+  const displayRarities = displayedItems
     .flatMap((item) => {
       const rarity = rarityByArtworkId.get(item.artwork_id);
       return rarity ? [rarity] : [];
@@ -108,7 +114,10 @@ export function buildGalleryMetadataSnapshot(
   return {
     value,
     score: Math.floor(Number(ratingTotal.toFixed(6)) * 100),
-    display_count: items.length,
+    display_count: displayedItems.length,
+    permanent_count: permanentItems.length,
+    permanent_item_ids: permanentItems.map((item) => item._id).sort(),
+    item_count: displayedItems.length + permanentItems.length,
     display_capacity: Math.max(0, Math.floor(displayCapacity)),
     attributes,
     display_rarities: displayRarities,

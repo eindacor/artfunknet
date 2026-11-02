@@ -138,3 +138,33 @@ test("effective attraction uses the full gallery display capacity", () => {
   );
   assert.equal(getEffectiveGalleryAttributeRating(4.5, 5), 0.9);
 });
+
+test("permanent works are shared and featured without contributing gallery statistics", () => {
+  const promoted = item("promoted", "promoted-art", 1_000, [attribute("earning", "Earning", 0.5)]);
+  const permanent = {
+    ...item("permanent", "permanent-art", 100, [attribute("showcase", "Showcase", 1)]),
+    status: "claimed" as const,
+    permanent: true,
+    active_unique_attribute: "showcase-effect",
+  };
+  const baseline = buildGalleryMetadataSnapshot([promoted], 5);
+  for (const status of ["claimed", "displayed"] as const) {
+    const snapshot = buildGalleryMetadataSnapshot([promoted, { ...permanent, status }], 5);
+    assert.equal(snapshot.value, baseline.value);
+    assert.equal(snapshot.score, baseline.score);
+    assert.deepEqual(snapshot.attributes, baseline.attributes);
+    assert.deepEqual(snapshot.active_unique_attributes, []);
+    assert.equal(snapshot.display_count, 1);
+    assert.equal(snapshot.permanent_count, 1);
+    assert.equal(snapshot.item_count, 2);
+    assert.deepEqual(snapshot.permanent_item_ids, ["permanent"]);
+    assert.equal(snapshot.featured_item_id, "permanent");
+    assert.equal(snapshot.featured_artwork_id, "permanent-art");
+    assert.equal(snapshot.featured_value, 100);
+  }
+  const onlyPermanent = buildGalleryMetadataSnapshot([permanent], 5);
+  assert.equal(onlyPermanent.item_count, 1);
+  assert.equal(onlyPermanent.display_count, 0);
+  assert.equal(onlyPermanent.value, 0);
+  assert.equal(onlyPermanent.featured_item_id, "permanent");
+});

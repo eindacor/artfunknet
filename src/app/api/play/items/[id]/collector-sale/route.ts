@@ -31,6 +31,12 @@ export async function POST(
   } | null;
   const nextOffered =
     typeof body?.offered === "boolean" ? body.offered : !offered;
+  if (nextOffered && item.permanent) {
+    return NextResponse.json(
+      { error: "Remove this item from your permanent collection before offering it to Collectors." },
+      { status: 409 },
+    );
+  }
   if (nextOffered === offered) {
     return NextResponse.json({
       status: "ok",
@@ -46,6 +52,7 @@ export async function POST(
       status: "claimed",
       mint: item.mint,
       tags: nextOffered ? { $ne: "for sale" } : "for sale",
+      ...(nextOffered ? { permanent: { $ne: true } } : {}),
     },
     nextOffered
       ? { $addToSet: { tags: "for sale" } }

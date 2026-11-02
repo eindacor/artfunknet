@@ -8,7 +8,10 @@ export function getPublicGalleryItemFilter(
 ): Filter<GameItem> {
   return {
     owner: playerId,
-    status: "displayed",
+    $or: [
+      { status: "displayed" },
+      { permanent: true, status: "claimed" },
+    ],
   };
 }
 

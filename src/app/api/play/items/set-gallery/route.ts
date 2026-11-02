@@ -132,7 +132,7 @@ export async function POST(request: Request) {
         },
       );
       if (takenDown.modifiedCount !== plan.takeDownIds.length) {
-        throw new Error("Displayed artworks changed before replacement.");
+        throw new Error("Promoted artworks changed before replacement.");
       }
     }
 
@@ -144,6 +144,7 @@ export async function POST(request: Request) {
           owner: player._id,
           status: "claimed",
           repairing: { $ne: true },
+          permanent: { $ne: true },
         },
         {
           $set: {
@@ -155,7 +156,7 @@ export async function POST(request: Request) {
         },
       );
       if (displayed.modifiedCount !== 1) {
-        throw new Error("A selected artwork changed before it was displayed.");
+        throw new Error("A selected artwork changed before it was promoted.");
       }
     }
 

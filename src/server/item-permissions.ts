@@ -27,6 +27,9 @@ export function getDisplayPermission(
       reason: "This item is currently being repaired.",
     };
   }
+  if (item.permanent) {
+    return { allowed: false, reason: "Remove this item from your permanent collection before promoting it." };
+  }
 
   const duplicate = ownedItems.some(
     (candidate) =>
@@ -36,17 +39,17 @@ export function getDisplayPermission(
   if (duplicate) {
     return {
       allowed: false,
-      reason: "An item of this artwork is already on display.",
+      reason: "An item of this artwork is already promoted or in your permanent collection.",
     };
   }
 
   const displayCount = ownedItems.filter(
-    (candidate) => candidate.status === "displayed",
+    (candidate) => candidate.status === "displayed" && !candidate.permanent,
   ).length;
   if (displayCount >= displayCap) {
     return {
       allowed: false,
-      reason: "You have reached your display limit.",
+      reason: "You have reached your promotion limit.",
     };
   }
 
@@ -67,10 +70,13 @@ export function getArchivePermission(
     | "unlocked"
     | "vintage"
     | "authenticity"
-  >,
+  > & Partial<Pick<GameItem, "permanent">>,
   archivedModifiers: readonly ArchiveCategory[],
   archivedArtStyles: readonly string[],
 ): ItemPermission {
+  if (item.permanent) {
+    return { allowed: false, reason: "Remove this item from your permanent collection before archiving it." };
+  }
   if (!["claimed", "unclaimed", "for_sale"].includes(item.status)) {
     return {
       allowed: false,

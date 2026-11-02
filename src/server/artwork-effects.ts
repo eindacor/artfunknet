@@ -78,7 +78,7 @@ export async function getDisplayedArtworkEffects(
 ): Promise<ArtworkEffect[]> {
   const displayed = await database
     .collection<GameItem>("items")
-    .find({ owner: playerId, status: "displayed" })
+    .find({ owner: playerId, status: "displayed", permanent: { $ne: true } })
     .project<Pick<GameItem, "artwork_id">>({ artwork_id: 1 })
     .toArray();
   const artworkIds = [...new Set(displayed.map((item) => item.artwork_id))];

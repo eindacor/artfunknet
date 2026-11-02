@@ -126,6 +126,7 @@ import {
   getArchivePermission,
   getDisplayPermission,
 } from "@/server/item-permissions";
+import { getPermanentCollectionPermission } from "@/server/permanent-collection";
 import { getRerollMinimum } from "@/server/item-reroll";
 import {
   type NpcQuality,
@@ -177,6 +178,7 @@ type PlayerView = {
   inventoryCap: number;
   inventorySlotsUsed: number;
   displayCap: number;
+  permanentCap: number;
   repairingCap: number;
   dailyCrate: DailyCrateState;
   xpGoal: number;
@@ -533,8 +535,10 @@ export default function GameDashboard({
     bankBalance: number;
     karma: number;
   } | null>(null);
-  const [galleryItemDetails, setGalleryItemDetails] =
-    useState<HydratedGameItem | null>(null);
+  const [galleryItemDetailsId, setGalleryItemDetailsId] =
+    useState<string | null>(null);
+  const galleryItemDetails =
+    items.find((item) => item._id === galleryItemDetailsId) ?? null;
   const [selectedCollectionItemIds, setSelectedCollectionItemIds] = useState<
     string[] | null
   >(null);
@@ -884,7 +888,8 @@ export default function GameDashboard({
   const inventory = useMemo(
     () =>
       items.filter(
-        (item) => item.status === "claimed" || item.status === "auctioned",
+        (item) => item.status === "claimed" || item.status === "auctioned" ||
+          (item.permanent && item.status === "displayed"),
       ),
     [items],
   );
@@ -893,9 +898,13 @@ export default function GameDashboard({
     [inventory, inventorySort],
   );
   const displayed = useMemo(
-    () => items.filter((item) => item.status === "displayed"),
+    () => items.filter((item) => item.status === "displayed" && !item.permanent),
     [items],
   );
+  const galleryItems = useMemo(() => {
+    const permanentIds = new Set(galleryMetadata?.permanent_item_ids ?? []);
+    return items.filter((item) => item.status === "displayed" || permanentIds.has(item._id));
+  }, [items, galleryMetadata]);
   const collectionItems = useMemo(
     () => [...displayed, ...inventory],
     [displayed, inventory],
@@ -1351,26 +1360,38 @@ export default function GameDashboard({
     setError("");
     setNotice("");
     startTransition(async () => {
-      const response = await fetch(url, { method: "POST" });
-      const body = (await response.json()) as {
-        actionDialog?: ActionDialogResult;
-        error?: string;
-        message?: string;
-      };
-      if (!response.ok) {
-        const message = body.error ?? "The action could not be completed.";
-        setError(message);
-        return;
-      }
+      try {
+        const response = await fetch(url, { method: "POST" });
+        const body = (await response.json().catch(() => null)) as {
+          actionDialog?: ActionDialogResult;
+          error?: string;
+          message?: string;
+        } | null;
+        if (!body || typeof body !== "object" || Array.isArray(body)) {
+          setError(
+            `The server returned an invalid response (HTTP ${response.status}). Please refresh the page before trying again.`,
+          );
+          return;
+        }
+        if (!response.ok) {
+          const message = body.error ?? "The action could not be completed.";
+          setError(message);
+          return;
+        }
 
-      if (body.message) {
-        setNotice(body.message);
+        if (body.message) {
+          setNotice(body.message);
+        }
+        if (body.actionDialog) {
+          setActionDialog(body.actionDialog);
+        }
+        onSuccess?.();
+        router.refresh();
+      } catch {
+        setError(
+          "The action could not be completed. Please refresh the page and try again.",
+        );
       }
-      if (body.actionDialog) {
-        setActionDialog(body.actionDialog);
-      }
-      onSuccess?.();
-      router.refresh();
     });
   }
 
@@ -2866,7 +2887,7 @@ export default function GameDashboard({
         <ItemActionButton
           gridSlot={1}
           icon="fa-picture-o"
-          label="Remove from gallery"
+          label="Stop promoting"
           disabled={pending}
           onClick={() => act(`/api/play/items/${item._id}/undisplay`)}
           variant="gallery"
@@ -2875,7 +2896,7 @@ export default function GameDashboard({
           <ItemActionButton
             gridSlot={2}
             icon="fa-magic"
-            label="Modify displayed artwork"
+            label="Modify promoted artwork"
             disabled={pending}
             onClick={() =>
               setRerollSession({
@@ -2896,6 +2917,7 @@ export default function GameDashboard({
           onClick={() => requestHistorianSubmission(item)}
         />
         {tagItemAction(item)}
+        {permanentItemAction(item)}
       </>
     );
   }
@@ -2910,7 +2932,7 @@ export default function GameDashboard({
           type="button"
         >
           <i aria-hidden="true" className="fa fa-picture-o" />
-          Take down
+          Stop promoting
         </button>
       );
     }
@@ -2929,7 +2951,7 @@ export default function GameDashboard({
         onClick={() =>
           requestMintMutation(
             item,
-            "Displaying this artwork",
+            "Promoting this artwork",
             () =>
               act(`/api/play/items/${item._id}/display`, () =>
                 setSelectedCollectionItemIds(
@@ -2940,13 +2962,13 @@ export default function GameDashboard({
         }
         title={
           displayPermission.allowed
-            ? "Display in gallery"
+            ? "Promote in gallery"
             : displayPermission.reason
         }
         type="button"
       >
         <i aria-hidden="true" className="fa fa-picture-o" />
-        Display
+        Promote
       </button>
     );
   }
@@ -2967,9 +2989,32 @@ export default function GameDashboard({
     );
   }
 
+  function permanentItemAction(item: HydratedGameItem) {
+    const permission = getPermanentCollectionPermission(
+      item,
+      items,
+      player.permanentCap,
+    );
+    return (
+      <ItemActionButton
+        gridSlot={12}
+        icon="fa-heart"
+        label={
+          item.permanent
+            ? "Remove from permanent collection"
+            : "Add to permanent collection (shared without gallery earnings)"
+        }
+        disabled={pending || !permission.allowed}
+        disabledReason={permission.allowed ? undefined : permission.reason}
+        onClick={() => act(`/api/play/items/${item._id}/permanent`)}
+        variant={item.permanent ? "enabled" : "default"}
+      />
+    );
+  }
+
   function collectionDisplayedItemActions(item: HydratedGameItem) {
     const inventoryOnlyReason =
-      "Take this artwork down before using this action.";
+      "Stop promoting this artwork before using this action.";
     const historianQuests = historianQuestsForItem(item);
     const historianDisabledReason = historianSubmissionDisabledReason(
       item,
@@ -3043,6 +3088,7 @@ export default function GameDashboard({
           pending={pending}
         />
         {tagItemAction(item)}
+        {permanentItemAction(item)}
         <ItemActionButton
           disabled
           disabledReason={inventoryOnlyReason}
@@ -3263,8 +3309,9 @@ export default function GameDashboard({
               ? "Stop offering to Art Collectors"
               : "Offer to Art Collectors"
           }
-          disabled={pending}
+          disabled={pending || (item.permanent && !item.tags.includes("for sale"))}
           onClick={() => act(`/api/play/items/${item._id}/collector-sale`)}
+          disabledReason={item.permanent && !item.tags.includes("for sale") ? "Remove this item from your permanent collection before offering it to Collectors." : undefined}
           variant={item.tags.includes("for sale") ? "collector" : "default"}
         />
         <ItemActionButton
@@ -3299,6 +3346,7 @@ export default function GameDashboard({
           pending={pending}
         />
         {tagItemAction(item)}
+        {permanentItemAction(item)}
         <ItemActionButton
           destructive
           gridSlot={10}
@@ -3458,7 +3506,7 @@ export default function GameDashboard({
     <main className="legacy-game">
       {enableReveals && offerRevealItem ? (
         <OfferRevealDialog
-          displayed={displayed}
+          displayed={galleryItems}
           error={offerRevealError}
           finishes={galleryFinishes}
           item={offerRevealItem}
@@ -4175,7 +4223,7 @@ export default function GameDashboard({
                   value={`$${(galleryMetadata?.value ?? 0).toLocaleString()}`}
                 />
                 <GalleryStat
-                  label="On display"
+                  label="Promoting"
                   value={
                     <DisplayedSummary
                       displayCapacity={player.displayCap}
@@ -4185,6 +4233,10 @@ export default function GameDashboard({
                       theme="museum"
                     />
                   }
+                />
+                <GalleryStat
+                  label="Permanent collection"
+                  value={`${galleryMetadata?.permanent_count ?? 0}/${player.permanentCap}`}
                 />
                 <GalleryStat
                   label="Attribute score"
@@ -4220,12 +4272,12 @@ export default function GameDashboard({
                 />
               </GalleryStats>
               <div
-                aria-label="Artwork on display"
+                aria-label="Artwork being promoted"
                 className="home-gallery-display-items collection-thumbnail-list"
               >
                 {displayed.length === 0 ? (
                   <p className="collection-sidebar-empty">
-                    No works are currently on display.
+                    No works are currently being promoted.
                   </p>
                 ) : (
                   displayed.map((item) => renderCollectionThumbnail(item))
@@ -4361,13 +4413,13 @@ export default function GameDashboard({
         {section === "inventory" ? (
           <section className="inventory">
             <InventorySection
-              emptyText="No works are currently on display."
+              emptyText="No works are currently being promoted."
               items={displayed}
               legendaryAttributes={legendaryAttributes}
               researchArtworkIds={unfoundQuestTargetArtworkIds}
               canCustomize
               styleInventory={player.cardStyleInventory}
-              title={`on display (${displayed.length}/${player.displayCap})`}
+              title={`promoting (${displayed.length}/${player.displayCap})`}
               viewerId={playerId}
               actions={displayedItemActions}
               unrevealedPreview={(item) => offerIsRevealed(item) ? null : renderUnrevealedPreview(item)}
@@ -4427,7 +4479,7 @@ export default function GameDashboard({
                     <ItemActionButton
                       gridSlot={1}
                       icon="fa-picture-o"
-                      label="Display in gallery"
+                      label="Promote in gallery"
                       disabled={pending || !displayPermission.allowed}
                       disabledReason={
                         displayPermission.allowed
@@ -4442,7 +4494,7 @@ export default function GameDashboard({
                       onClick={() =>
                         requestMintMutation(
                           item,
-                          "Displaying this artwork",
+                          "Promoting this artwork",
                           () => act(`/api/play/items/${item._id}/display`),
                         )
                       }
@@ -4483,10 +4535,11 @@ export default function GameDashboard({
                           ? "Stop offering to Art Collectors"
                           : "Offer to Art Collectors"
                       }
-                      disabled={pending}
+                      disabled={pending || (item.permanent && !item.tags.includes("for sale"))}
                       onClick={() =>
                         act(`/api/play/items/${item._id}/collector-sale`)
                       }
+                      disabledReason={item.permanent && !item.tags.includes("for sale") ? "Remove this item from your permanent collection before offering it to Collectors." : undefined}
                       variant={
                         item.tags.includes("for sale") ? "collector" : "default"
                       }
@@ -4522,6 +4575,7 @@ export default function GameDashboard({
                       pending={pending}
                     />
                     {tagItemAction(item)}
+                    {permanentItemAction(item)}
                     {archiveAction(item, 6)}
                     <ItemActionButton
                       destructive
@@ -4751,8 +4805,8 @@ export default function GameDashboard({
                 disabled={pending}
                 emptyMessage="Your gallery walls are empty."
                 finishes={galleryFinishes}
-                items={displayed}
-                onSelectItem={setGalleryItemDetails}
+                items={galleryItems}
+                onSelectItem={(item) => setGalleryItemDetailsId(item._id)}
               />
               <div
                 aria-label="Gallery visitors"
@@ -4997,7 +5051,9 @@ export default function GameDashboard({
         ) : null}
         {galleryItemDetails ? (
           <StandardItemDialog
-            actions={displayedItemActions(galleryItemDetails)}
+            actions={galleryItemDetails.status === "displayed"
+              ? displayedItemActions(galleryItemDetails)
+              : collectionItemActions(galleryItemDetails)}
             currentRendererId={resolveCardRendererId({
               itemRendererId: galleryItemDetails.card_renderer,
             })}
@@ -5007,7 +5063,7 @@ export default function GameDashboard({
             }}
             item={galleryItemDetails}
             legendaryAttributes={legendaryAttributes}
-            onClose={() => setGalleryItemDetails(null)}
+            onClose={() => setGalleryItemDetailsId(null)}
             onOpenArtStyle={() =>
               setGalleryArtStyleItem(galleryItemDetails)
             }
@@ -6395,9 +6451,9 @@ function CollectionBulkActionsPanel({
       ? {
           action: "take-down",
           icon: "fa-picture-o",
-          label: "Take down",
+          label: "Stop promoting",
         }
-      : { action: "display", icon: "fa-picture-o", label: "Display" },
+      : { action: "display", icon: "fa-picture-o", label: "Promote" },
     { action: "set-gallery", icon: "fa-th", label: "Set gallery" },
     { action: "tag", icon: "fa-tags", label: "Tag" },
     {
@@ -6711,10 +6767,12 @@ function getCollectionBulkState({
 
   let display = available();
   const nonDisplayable = selectedItems.find(
-    (item) => item.status !== "claimed" && item.status !== "displayed",
+    (item) => item.permanent || (item.status !== "claimed" && item.status !== "displayed"),
   );
   if (nonDisplayable) {
-    display = unavailable("Auctioned items cannot be displayed.");
+    display = unavailable(nonDisplayable.permanent
+      ? "Remove selected artwork from your permanent collection before promoting it."
+      : "Auctioned items cannot be promoted.");
   } else {
     const repairing = selectedItems.find(
       (item) => item.status === "claimed" && item.repairing,
@@ -6725,7 +6783,7 @@ function getCollectionBulkState({
       );
     } else if (duplicateArtworkId) {
       display = unavailable(
-        "The gallery cannot display two copies of the same artwork.",
+        "The gallery cannot promote two copies of the same artwork.",
       );
     } else {
       const conflictingItem = selectedItems
@@ -6740,18 +6798,18 @@ function getCollectionBulkState({
         );
       if (conflictingItem) {
         display = unavailable(
-          `${conflictingItem.artwork.title} is already represented on display.`,
+          `${conflictingItem.artwork.title} is already promoted or in your permanent collection.`,
         );
       } else {
         const displayedCount = collectionItems.filter(
-          (item) => item.status === "displayed",
+          (item) => item.status === "displayed" && !item.permanent,
         ).length;
         const additions = selectedItems.filter(
           (item) => item.status === "claimed",
         ).length;
         if (displayedCount + additions > displayCap) {
           display = unavailable(
-            `Displaying this selection would exceed the ${displayCap}-item gallery limit.`,
+            `Promoting this selection would exceed the ${displayCap}-item gallery limit.`,
           );
         }
       }
@@ -6770,7 +6828,7 @@ function getCollectionBulkState({
     (item) => item.status === "displayed",
   )
     ? available()
-    : unavailable("Every selected item must currently be on display.");
+    : unavailable("Every selected item must currently be promoted.");
 
   const sellInvalid = selectedItems.find(
     (item) =>
@@ -6781,7 +6839,7 @@ function getCollectionBulkState({
         !canQuickSellItem(sellInvalid)
           ? "Reveal every selected item before selling."
           : sellInvalid.status !== "claimed"
-          ? `${sellInvalid.artwork.title} must be taken down or removed from auction first.`
+          ? `Stop promoting ${sellInvalid.artwork.title} or remove it from auction first.`
           : `${sellInvalid.artwork.title} cannot be sold.`,
       )
     : available();
@@ -6793,19 +6851,21 @@ function getCollectionBulkState({
   const donate = donateInvalid
     ? unavailable(
         donateInvalid.status !== "claimed"
-          ? `${donateInvalid.artwork.title} must be taken down or removed from auction first.`
+          ? `Stop promoting ${donateInvalid.artwork.title} or remove it from auction first.`
           : `${donateInvalid.artwork.title} cannot be donated.`,
       )
     : available();
 
   const collectorSaleInvalid = selectedItems.find(
     (item) =>
-      item.status !== "claimed" || item.tags.includes("for sale"),
+      item.status !== "claimed" || item.permanent || item.tags.includes("for sale"),
   );
   const collectorSale = collectorSaleInvalid
     ? unavailable(
         collectorSaleInvalid.status !== "claimed"
           ? `${collectorSaleInvalid.artwork.title} must be in inventory before it can be offered.`
+          : collectorSaleInvalid.permanent
+          ? `Remove ${collectorSaleInvalid.artwork.title} from your permanent collection before offering it to Collectors.`
           : `${collectorSaleInvalid.artwork.title} is already offered to Art Collectors.`,
       )
     : available();
@@ -7093,9 +7153,9 @@ function getCollectionBulkSuccessMessage(
 ): string {
   switch (action) {
     case "display":
-      return `Displayed ${itemCount} selected ${itemCount === 1 ? "artwork" : "artworks"}.`;
+      return `Promoted ${itemCount} selected ${itemCount === 1 ? "artwork" : "artworks"}.`;
     case "take-down":
-      return `Took down ${itemCount} selected ${itemCount === 1 ? "artwork" : "artworks"}.`;
+      return `Stopped promoting ${itemCount} selected ${itemCount === 1 ? "artwork" : "artworks"}.`;
     case "collector-sale":
       return `Set ${itemCount} selected ${itemCount === 1 ? "artwork" : "artworks"} for sale to Art Collectors.`;
     case "repair":
@@ -7321,7 +7381,7 @@ function CollectionInventoryControls({
                       {status === "claimed"
                         ? "Inventory"
                         : status === "displayed"
-                          ? "On display"
+                          ? "Promoted"
                           : "Auctioned"}
                     </span>
                   </label>

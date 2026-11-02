@@ -179,7 +179,7 @@ export async function refreshNpcSpawns(
       .toArray(),
     database
       .collection<GameItem>("items")
-      .find(ownerId ? { owner: ownerId, status: "displayed" } : { status: "displayed" })
+      .find({ ...(ownerId ? { owner: ownerId } : {}), status: "displayed", permanent: { $ne: true } })
       .toArray(),
     database
       .collection<ItemAttribute>("attributes")

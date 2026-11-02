@@ -5,6 +5,7 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 
 import {
   applyXp,
+  calculateGalleryRates,
   getCapsForLevel,
   getXpChunk,
   getXpGoal,
@@ -12,6 +13,8 @@ import {
 } from "./collection-gameplay.ts";
 import { DEFAULT_ACTUAL_GAMEPLAY_CONFIG as config } from "./game-settings.ts";
 import type { Artwork, GameItem } from "./gameplay.ts";
+import type { HydratedGameItem } from "./item-artwork.ts";
+import { getDisplayedArtworkEffects } from "./artwork-effects.ts";
 import { setupTestDb } from "./test-utils/db-setup.ts";
 
 test("legacy XP goals and chunks are preserved", () => {
@@ -261,5 +264,47 @@ test("gallery catch-up preserves earnings without per-interval database reads", 
     assert.equal(profile.bank_balance, -500);
     assert.equal(profile.gallery_money_remainder, 0.75);
     assert.equal(profile.gallery_xp_remainder, 0.8);
+  });
+
+  await t.test("permanent works earn nothing and never decay, trigger effects, or expose forgeries", async (t) => {
+    t.mock.method(Math, "random", () => 0);
+    for (const status of ["claimed", "displayed"]) {
+      const db = client.db(`gallery-permanent-${status}`);
+      await seedGallery(db, true);
+      await db.collection("items").updateMany({}, { $set: { permanent: true, status } });
+      const before = await db.collection<GameItem>("items").find().sort({ _id: 1 }).toArray();
+      const now = new Date(payoutStart.getTime() + 4_320 * payoutIntervalMs);
+      const rates = await calculateGalleryRates(db, 4, before.map((item) => ({
+        ...item, artwork: { rarity: "common" },
+      })) as HydratedGameItem[], now, config);
+      assert.deepEqual(rates, { value: 0, moneyPerHour: 0, xpPerHour: 0 });
+      assert.deepEqual(await getDisplayedArtworkEffects(db, "player"), []);
+      assert.deepEqual(await settleGalleryEarnings(db, "player", config, now), {
+        money: 0, xp: 0, intervals: 4_320,
+      });
+      assert.deepEqual(await db.collection<GameItem>("items").find().sort({ _id: 1 }).toArray(), before);
+      const player = await db.collection("players").findOne({ _id: "player" });
+      assert.equal(player?.profile.bank_balance, -500);
+      assert.equal(player?.profile.xp, getXpGoal(4) - 2);
+      assert.equal((await db.collection("players").findOne({ _id: "forger" }))?.profile.xp, 20);
+      assert.equal(await db.collection("player_notifications").countDocuments(), 0);
+    }
+  });
+
+  await t.test("adding permanent works does not change promoted-work payouts or bonuses", async (t) => {
+    t.mock.method(Math, "random", () => 0);
+    const results = [];
+    for (const permanent of [false, true]) {
+      const db = client.db(`gallery-mixed-permanent-${permanent}`);
+      await seedGallery(db, true);
+      if (permanent) {
+        await db.collection("items").updateMany({ _id: { $ne: "common" } }, { $set: { permanent: true } });
+      } else {
+        await db.collection("items").deleteMany({ _id: { $ne: "common" } });
+      }
+      const payout = await settleGalleryEarnings(db, "player", config, new Date(payoutStart.getTime() + 36 * payoutIntervalMs));
+      results.push({ payout, profile: (await db.collection("players").findOne({ _id: "player" }))?.profile });
+    }
+    assert.deepEqual(results[1], results[0]);
   });
 });

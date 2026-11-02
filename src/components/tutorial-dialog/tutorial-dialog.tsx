@@ -163,12 +163,12 @@ function Slide({ index }: { index: number }) {
         <h2 id="tutorial-slide-title">Add artwork to your gallery</h2>
         <p id="tutorial-slide-description">
           Go to the &quot;Home&quot; section where you&apos;ll find your
-          inventory. Select the item you want to put on display and press the
-          &quot;Display&quot; button. That puts the artwork you collected up in
-          your gallery for other players to see!
+          inventory. Select an item and press &quot;Promote&quot; to put it in
+          your gallery and earn income. Use the heart button to share a work
+          in your permanent collection instead, without gallery earnings or bonuses.
         </p>
         <TutorialImage
-          alt="The Display button for an inventory item"
+          alt="The Promote button for an inventory item"
           height={1588}
           src="/img/tutorial/inventory_display_button.png"
           width={1707}

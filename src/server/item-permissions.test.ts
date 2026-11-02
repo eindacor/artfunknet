@@ -6,6 +6,7 @@ import {
   getDisplayPermission,
   getPlayerFacingArchivePermission,
 } from "./item-permissions.ts";
+import { getPermanentCollectionPermission } from "./permanent-collection.ts";
 
 const item = {
   _id: "inventory-copy",
@@ -32,7 +33,7 @@ test("display permission explains duplicate artwork and capacity failures", () =
     ),
     {
       allowed: false,
-      reason: "An item of this artwork is already on display.",
+      reason: "An item of this artwork is already promoted or in your permanent collection.",
     },
   );
 
@@ -52,7 +53,7 @@ test("display permission explains duplicate artwork and capacity failures", () =
     ),
     {
       allowed: false,
-      reason: "You have reached your display limit.",
+      reason: "You have reached your promotion limit.",
     },
   );
 });
@@ -68,9 +69,26 @@ test("display permission preserves repairing and permanent-copy restrictions", (
       [{ ...item, permanent: true }],
       5,
     ).reason,
-    "An item of this artwork is already on display.",
+    "An item of this artwork is already promoted or in your permanent collection.",
   );
   assert.deepEqual(getDisplayPermission(item, [item], 5), { allowed: true });
+  assert.equal(getDisplayPermission({ ...item, permanent: true }, [item], 5).allowed, false);
+});
+
+test("permanent collection requires collected, unpromoted artwork and honors duplicates and capacity", () => {
+  assert.deepEqual(getPermanentCollectionPermission(item, [item], 12), { allowed: true });
+  for (const status of ["unclaimed", "for_sale", "auctioned", "displayed"] as const) {
+    assert.equal(getPermanentCollectionPermission({ ...item, status }, [item], 12).allowed, false);
+  }
+  for (const duplicate of [
+    { ...item, _id: "other", permanent: true },
+    { ...item, _id: "other", status: "displayed" as const },
+  ]) {
+    assert.equal(getPermanentCollectionPermission(item, [item, duplicate], 12).allowed, false);
+  }
+  const permanent = { ...item, _id: "other", artwork_id: "other-art", permanent: true };
+  assert.equal(getPermanentCollectionPermission(item, [item, permanent], 1).allowed, false);
+  assert.deepEqual(getPermanentCollectionPermission(permanent, [item, permanent], 0), { allowed: true });
 });
 
 const archiveItem = {
@@ -96,6 +114,7 @@ const archiveItem = {
 };
 
 test("archive permission requires a new modifier or art style", () => {
+  assert.equal(getArchivePermission({ ...archiveItem, permanent: true }, [], []).allowed, false);
   assert.deepEqual(getArchivePermission(archiveItem, ["mint"], ["abstract"]), {
     allowed: false,
     reason:

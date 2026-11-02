@@ -25,6 +25,7 @@ const dashboard = source.statements.find(
     ts.isFunctionDeclaration(statement) && statement.name?.text === "GameDashboard",
 )!;
 const handlerNames = new Set([
+  "act",
   "offerIsRevealed",
   "clearOfferRevealTransitions",
   "revealOffer",
@@ -225,4 +226,72 @@ test("unmounting aborts a pending batch without publishing results or refreshing
   assert.equal(h.router.refresh.mock.callCount(), 0);
   assert.equal(h.offerRevealRequests.current.size, 0);
   assert.equal(h.timers.size, 0);
+});
+
+async function dashboardAction(fetchResponse: () => Promise<Response>) {
+  const errors: string[] = [];
+  const notices: string[] = [];
+  const dialogs: unknown[] = [];
+  const transitions: Promise<void>[] = [];
+  let refreshed = 0;
+  let succeeded = 0;
+  const act = runInNewContext(`${handlers}\nact`, {
+    fetch: fetchResponse,
+    setError: (message: string) => errors.push(message),
+    setNotice: (message: string) => notices.push(message),
+    setActionDialog: (dialog: unknown) => dialogs.push(dialog),
+    startTransition: (work: () => Promise<void>) => transitions.push(work()),
+    router: { refresh: () => { refreshed++; } },
+  }) as (url: string, onSuccess: () => void) => void;
+  act("/api/play/items/favorite/permanent", () => { succeeded++; });
+  await Promise.all(transitions);
+  return { errors, notices, dialogs, refreshed, succeeded };
+}
+
+test("dashboard actions report empty or malformed server responses without crashing", async (t) => {
+  for (const [label, body, status] of [
+    ["empty error", null, 500],
+    ["HTML error", "<html>Bad gateway</html>", 502],
+    ["empty success", null, 200],
+    ["invalid JSON success", "{", 200],
+    ["JSON null", "null", 200],
+  ] as const) {
+    await t.test(label, async () => {
+      const result = await dashboardAction(async () => new Response(body, { status }));
+      assert.match(result.errors.at(-1) ?? "", new RegExp(`HTTP ${status}`));
+      assert.match(result.errors.at(-1) ?? "", /refresh/i);
+      assert.equal(result.succeeded, 0);
+      assert.equal(result.refreshed, 0);
+      assert.deepEqual(result.dialogs, []);
+      assert.deepEqual(result.notices, [""]);
+    });
+  }
+});
+
+test("dashboard actions retain structured server errors", async () => {
+  const result = await dashboardAction(async () => Response.json({
+    error: "Your 12-item permanent collection is full.",
+  }, { status: 409 }));
+  assert.equal(result.errors.at(-1), "Your 12-item permanent collection is full.");
+  assert.equal(result.succeeded, 0);
+  assert.equal(result.refreshed, 0);
+});
+
+test("dashboard actions preserve successful notices, dialogs, callbacks and refreshes", async () => {
+  const actionDialog = { title: "Artwork updated", message: "Done." };
+  const result = await dashboardAction(async () => Response.json({
+    message: "Added to your permanent collection.", actionDialog,
+  }));
+  assert.deepEqual(result.errors, [""]);
+  assert.equal(result.notices.at(-1), "Added to your permanent collection.");
+  assert.deepEqual(result.dialogs, [actionDialog]);
+  assert.equal(result.succeeded, 1);
+  assert.equal(result.refreshed, 1);
+});
+
+test("dashboard actions handle network failures without rejecting the React transition", async () => {
+  const result = await dashboardAction(async () => { throw new TypeError("fetch failed"); });
+  assert.match(result.errors.at(-1) ?? "", /could not be completed/i);
+  assert.equal(result.succeeded, 0);
+  assert.equal(result.refreshed, 0);
 });

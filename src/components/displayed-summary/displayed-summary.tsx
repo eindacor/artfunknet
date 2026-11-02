@@ -19,7 +19,7 @@ export default function DisplayedSummary({
   const gap = flavor ? 'gap-1.5' : 'gap-1';
 
   return (
-    <div aria-label="Displayed artwork rarities" className={`inline-flex flex-wrap ${gap}`}>
+    <div aria-label="Promoted artwork rarities" className={`inline-flex flex-wrap ${gap}`}>
       {rarities.map((rarity, index) => (
         <span
           aria-label={`${rarity} artwork`}

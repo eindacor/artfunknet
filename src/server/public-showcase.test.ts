@@ -66,10 +66,10 @@ function createItem(): GameItem {
   };
 }
 
-test("public galleries query displayed items owned by the requested player", () => {
+test("public galleries query promoted and collected permanent items owned by the requested player", () => {
   assert.deepEqual(getPublicGalleryItemFilter("player-1"), {
     owner: "player-1",
-    status: "displayed",
+    $or: [{ status: "displayed" }, { permanent: true, status: "claimed" }],
   });
 });
 

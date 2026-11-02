@@ -9,6 +9,7 @@ import {
   buildGalleryMetadataSnapshot,
   type GalleryAttributeAggregate,
 } from "./gallery-metadata-core";
+import { getPublicGalleryItemFilter } from "./public-showcase-core.ts";
 
 type GalleryPlayer = {
   _id: string;
@@ -21,13 +22,16 @@ type GalleryPlayer = {
 
 export type GalleryMetadata = {
   _id: string;
-  schema_version: 3;
+  schema_version: 4;
   active: boolean;
   owner_id: string;
   owner: string;
   value: number;
   score: number;
   display_count: number;
+  permanent_count: number;
+  permanent_item_ids: string[];
+  item_count: number;
   display_capacity: number;
   attributes: GalleryAttributeAggregate[];
   display_rarities: ArtworkRarity[];
@@ -68,7 +72,7 @@ export async function refreshGalleryMetadata(
 
   const items = await database
     .collection<GameItem>("items")
-    .find({ owner: playerId, status: "displayed" })
+    .find(getPublicGalleryItemFilter(playerId))
     .toArray();
   const artworkIds = [...new Set(items.map((item) => item.artwork_id))];
   const artworks =
@@ -103,6 +107,7 @@ export async function refreshGalleryMetadata(
   const effectCodeById = new Map(effects.map((effect) => [effect._id, effect.code]));
   const substitutionItem = items
     .filter((item) => {
+      if (item.permanent) return false;
       const effectId = artworkById.get(item.artwork_id)?.effect_id;
       return (
         effectId &&
@@ -128,7 +133,7 @@ export async function refreshGalleryMetadata(
     };
   });
   const metadata: Omit<GalleryMetadata, "_id"> = {
-    schema_version: 3,
+    schema_version: 4,
     active: true,
     owner_id: playerId,
     owner: player.screen_name,
@@ -174,7 +179,7 @@ export async function ensureGalleryMetadata(
   ]);
   const currentOwnerIds = new Set(
     galleries
-      .filter((gallery) => gallery.schema_version === 3)
+      .filter((gallery) => gallery.schema_version === 4)
       .map((gallery) => gallery.owner_id),
   );
   const activePlayerIds = players.map((player) => player._id);

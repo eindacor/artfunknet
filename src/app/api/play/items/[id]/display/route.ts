@@ -29,10 +29,11 @@ export async function POST(
     owner: auth.session.playerId,
     status: "claimed",
     repairing: { $ne: true },
+    permanent: { $ne: true },
   });
   if (!player || !item) {
     return NextResponse.json(
-      { error: "This item cannot currently be displayed." },
+      { error: "This item cannot currently be promoted." },
       { status: 409 },
     );
   }
@@ -40,7 +41,7 @@ export async function POST(
   const [displayCount, duplicate] = await Promise.all([
     database
       .collection<GameItem>("items")
-      .countDocuments({ owner: player._id, status: "displayed" }),
+      .countDocuments({ owner: player._id, status: "displayed", permanent: { $ne: true } }),
     database.collection<GameItem>("items").findOne({
       owner: player._id,
       artwork_id: item.artwork_id,
@@ -49,13 +50,13 @@ export async function POST(
   ]);
   if (duplicate) {
     return NextResponse.json(
-      { error: "An item of this artwork is already on display." },
+      { error: "An item of this artwork is already promoted or in your permanent collection." },
       { status: 409 },
     );
   }
   if (displayCount >= player.profile.display_cap) {
     return NextResponse.json(
-      { error: "You have reached your display limit." },
+      { error: "You have reached your promotion limit." },
       { status: 409 },
     );
   }
@@ -73,7 +74,7 @@ export async function POST(
     );
   }
   const result = await database.collection<GameItem>("items").updateOne(
-    { _id: item._id, owner: player._id, status: "claimed" },
+    { _id: item._id, owner: player._id, status: "claimed", permanent: { $ne: true } },
     {
       $set: {
         ...mintUpdate,
@@ -85,7 +86,7 @@ export async function POST(
   );
   if (result.modifiedCount !== 1) {
     return NextResponse.json(
-      { error: "This item changed before it could be displayed." },
+      { error: "This item changed before it could be promoted." },
       { status: 409 },
     );
   }

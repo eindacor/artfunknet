@@ -48,6 +48,7 @@ export async function PATCH(
       _id: id,
       owner: auth.session.playerId,
       status: { $in: ["claimed", "displayed", "auctioned"] },
+      ...(normalized.tags.includes("for sale") ? { permanent: { $ne: true } } : {}),
     },
     { $set: { tags: normalized.tags } },
   );

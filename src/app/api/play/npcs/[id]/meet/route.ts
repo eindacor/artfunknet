@@ -522,7 +522,7 @@ export async function POST(
         return NextResponse.json({
           status: "ok",
           message:
-            "You met an Art Expert, but you have no items on display for them to discuss.",
+            "You met an Art Expert, but you have no promoted items for them to discuss.",
         });
       }
 
@@ -1183,6 +1183,7 @@ export async function POST(
             owner: player._id,
             status: "claimed",
             tags: "for sale",
+            permanent: { $ne: true },
           })
           .toArray();
         const currentPlayer = await database
@@ -1202,6 +1203,7 @@ export async function POST(
               owner: player._id,
               status: "claimed",
               tags: "for sale",
+              permanent: { $ne: true },
             },
             {
               $set: {
@@ -1393,6 +1395,7 @@ export async function POST(
               owner: player._id,
               status: "claimed",
               tags: "for sale",
+              permanent: { $ne: true },
             },
           },
           { $sample: { size: 1 } },
@@ -1413,6 +1416,7 @@ export async function POST(
           owner: player._id,
           status: "claimed",
           tags: "for sale",
+          permanent: { $ne: true },
         },
         {
           $set: {

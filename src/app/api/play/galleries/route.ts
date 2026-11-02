@@ -38,7 +38,7 @@ export async function GET(request: Request) {
 
   const filter = {
     active: true,
-    display_count: { $gt: 0 },
+    item_count: { $gt: 0 },
     ...(search
       ? { owner: { $regex: escapeRegex(search), $options: "i" } }
       : {}),
@@ -84,7 +84,7 @@ function getGallerySortDocument(sort: GallerySort): Sort {
     case "score":
       return { score: -1 as const, owner: 1 as const };
     case "works":
-      return { display_count: -1 as const, owner: 1 as const };
+      return { item_count: -1 as const, owner: 1 as const };
     case "name":
       return { owner: 1 as const };
     case "value":

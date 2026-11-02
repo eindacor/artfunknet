@@ -41,12 +41,14 @@ import GalleryChat from "./gallery-chat";
 
 type GalleryRecord = {
   _id: string;
-  schema_version: 3;
+  schema_version: 4;
   owner_id: string;
   owner: string;
   value: number;
   score: number;
   display_count: number;
+  permanent_count: number;
+  item_count: number;
   display_capacity: number;
   attributes: GalleryAttributeAggregate[];
   display_rarities: ArtworkRarity[];
@@ -377,7 +379,7 @@ export default function GalleryExplorer({
         <p className="empty-state">Reviewing the gallery registry...</p>
       ) : data.galleries.length === 0 ? (
         <p className="empty-state">
-          No public galleries currently have artwork on display.
+          No public galleries currently have shared artwork.
         </p>
       ) : viewMode === "list" ? (
         <div className="gallery-explorer-list-scroll">
@@ -387,7 +389,7 @@ export default function GalleryExplorer({
               <span role="columnheader">Player</span>
               <span role="columnheader">Gallery value</span>
               <span role="columnheader">Works</span>
-              <span role="columnheader">Attributes on display</span>
+              <span role="columnheader">Promoted attributes</span>
               <span aria-hidden="true" />
             </div>
             {data.galleries.map((gallery, index) => (
@@ -415,7 +417,7 @@ export default function GalleryExplorer({
                 <strong role="cell">
                   ${gallery.value.toLocaleString()}
                 </strong>
-                <span role="cell">{gallery.display_count}</span>
+                <span role="cell">{gallery.item_count}</span>
                 <div className="gallery-explorer-signature">
                   <GalleryAttributeSummary
                     attributes={gallery.attributes}
@@ -460,7 +462,7 @@ export default function GalleryExplorer({
               <div className="gallery-explorer-feature">
                 {gallery.featured_artwork_id ? (
                   <ArtworkThumbnail
-                    alt={`Most valuable work in ${gallery.owner}'s gallery`}
+                    alt={`Featured work in ${gallery.owner}'s gallery`}
                     artworkId={gallery.featured_artwork_id}
                     size={520}
                   />
@@ -484,8 +486,8 @@ export default function GalleryExplorer({
                     <dd>${gallery.value.toLocaleString()}</dd>
                   </div>
                   <div>
-                    <dt>Works displayed</dt>
-                    <dd>{gallery.display_count}</dd>
+                    <dt>Shared works</dt>
+                    <dd>{gallery.item_count}</dd>
                   </div>
                   <div>
                     <dt>Attribute score</dt>
@@ -562,7 +564,7 @@ export default function GalleryExplorer({
           >
             <option value="score">Attribute score</option>
             <option value="value">Gallery value</option>
-            <option value="works">Works displayed</option>
+            <option value="works">Shared works</option>
             <option value="name">Player name</option>
           </select>
         </label>
@@ -840,7 +842,7 @@ function VisitedGallery({
               <dd>{gallery.owner.vintageLevel}</dd>
             </div>
             <div>
-              <dt>Works displayed</dt>
+              <dt>Shared works</dt>
               <dd>{gallery.items.length}</dd>
             </div>
             {gallery.metadata ? (
@@ -1119,7 +1121,7 @@ export function GalleryRaritySummary({
   rarities: ArtworkRarity[];
 }) {
   return (
-    <div aria-label="Displayed artwork rarities" className="gallery-rarity-summary">
+    <div aria-label="Promoted artwork rarities" className="gallery-rarity-summary">
       {rarities.map((rarity, index) => (
         <span
           aria-label={`${rarity} artwork`}
