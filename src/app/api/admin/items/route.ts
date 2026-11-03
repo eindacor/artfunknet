@@ -13,6 +13,7 @@ import {
   type AdminItemCustomization,
 } from "@/server/admin-item-creator";
 import { getGameplaySettings } from "@/server/game-settings";
+import { getItemAttributeCounts } from "@/server/item-attribute-counts";
 import { getInitialItemRevealState } from "@/server/offer-reveal";
 import type { ArtworkEffect } from "@/server/artwork-effects-core";
 import {
@@ -39,12 +40,15 @@ type AdminPlayerSearchResult = {
   screen_name: string;
   email: string;
   active: boolean;
+  artist_id?: string;
+  account_deletion?: boolean;
   test_account?: boolean;
   profile?: { view_settings?: { enableReveals?: boolean } };
 };
 
 type AdminItemDestination =
   | { type: "player"; playerId: string }
+  | { type: "artist_original" }
   | { type: "lottery_buffer" }
   | { type: "live_auction_buffer" };
 
@@ -58,7 +62,31 @@ export async function GET(request: Request) {
   const auth = await requireAdminApi();
   if (!auth.ok) return auth.response;
 
-  const query = new URL(request.url).searchParams.get("q")?.trim() ?? "";
+  const searchParams = new URL(request.url).searchParams;
+  const artworkId = searchParams.get("artworkId")?.trim();
+  if (artworkId) {
+    const database = await getDatabase();
+    const artwork = await database.collection<Artwork>("artworks").findOne(
+      { _id: artworkId },
+      { projection: { artist_id: 1 } },
+    );
+    if (!artwork) {
+      return NextResponse.json({ error: "The selected artwork is unavailable." }, { status: 404 });
+    }
+    const [player, original] = await Promise.all([
+      getArtistPlayer(database, artwork.artist_id),
+      database.collection<GameItem>("items").findOne(
+        { artwork_id: artworkId, original: true },
+        { projection: { _id: 1 } },
+      ),
+    ]);
+    return NextResponse.json({
+      artistOriginalRecipient: player && !original
+        ? { id: player._id, screenName: player.screen_name }
+        : null,
+    }, { headers: { "Cache-Control": "no-store" } });
+  }
+  const query = searchParams.get("q")?.trim() ?? "";
   if (!query) return NextResponse.json({ players: [] });
   const escapedQuery = query.slice(0, 100).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const database = await getDatabase();
@@ -191,6 +219,23 @@ export async function POST(request: Request) {
       { status: 404 },
     );
   }
+  if (parsed.destination.type === "artist_original") {
+    const groups = parsed.customization.attributes;
+    const regularAttributes = [...groups.locked, ...groups.unlocked];
+    const { locked } = getItemAttributeCounts(context.artwork.rarity, false);
+    Object.assign(parsed.customization, {
+      original: true,
+      foil: false,
+      unlocked: false,
+      mint: false,
+      cardRenderer: "museum",
+      attributes: {
+        locked: regularAttributes.slice(0, locked),
+        unlocked: regularAttributes.slice(locked),
+        special: groups.special,
+      },
+    });
+  }
   if (
     parsed.customization.original &&
     await database.collection<GameItem>("items").findOne(
@@ -207,16 +252,20 @@ export async function POST(request: Request) {
   let owner: string;
   let player: AdminPlayerSearchResult | null = null;
   let raffleState: RaffleState | null = null;
-  if (parsed.destination.type === "player") {
-    player = await database
-      .collection<AdminPlayerSearchResult>("players")
-      .findOne({
-        _id: parsed.destination.playerId,
-        active: true,
-      });
+  if (parsed.destination.type === "player" || parsed.destination.type === "artist_original") {
+    player = parsed.destination.type === "artist_original"
+      ? await getArtistPlayer(database, context.artwork.artist_id)
+      : await database
+          .collection<AdminPlayerSearchResult>("players")
+          .findOne({
+            _id: parsed.destination.playerId,
+            active: true,
+          });
     if (!player) {
       return NextResponse.json(
-        { error: "The selected player is unavailable." },
+        { error: parsed.destination.type === "artist_original"
+          ? "The artwork's artist/player account is unavailable."
+          : "The selected player is unavailable." },
         { status: 404 },
       );
     }
@@ -334,7 +383,7 @@ export async function POST(request: Request) {
     status: "ok",
     itemId: item._id,
     message:
-      parsed.destination.type === "player"
+      parsed.destination.type === "player" || parsed.destination.type === "artist_original"
         ? `${context.artwork.title} was sent to ${
             player?.screen_name ?? "[redacted]"
           }.`
@@ -448,6 +497,9 @@ function parseDestination(value: Record<string, unknown>): AdminItemDestination 
   if (value.type === "lottery_buffer") {
     return { type: "lottery_buffer" };
   }
+  if (value.type === "artist_original") {
+    return { type: "artist_original" };
+  }
   if (value.type === "live_auction_buffer") {
     return { type: "live_auction_buffer" };
   }
@@ -535,4 +587,13 @@ async function getAdminItemContext(database: Db, artworkId: string) {
         .findOne({ _id: artwork.effect_id })
     : null;
   return { artwork, attributes, metadata, settings, effect };
+}
+
+async function getArtistPlayer(database: Db, artistId: string) {
+  if (!artistId) return null;
+  return database.collection<AdminPlayerSearchResult>("players").findOne({
+    artist_id: artistId,
+    active: true,
+    account_deletion: { $ne: true },
+  });
 }

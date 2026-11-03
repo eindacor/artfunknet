@@ -68,6 +68,12 @@ export async function POST(
       { status: 409 },
     );
   }
+  if (item.original) {
+    return NextResponse.json(
+      { error: "Original artwork cannot be offered to Art Collectors." },
+      { status: 409 },
+    );
+  }
 
   if (!(await hasInventorySpaceForItem(database, player, item))) {
     return NextResponse.json(
@@ -122,6 +128,7 @@ export async function POST(
       _id: item._id,
       owner: player._id,
       status: "for_sale",
+      original: { $ne: true },
       ...unexpiredFilter,
     },
     { $set: setter, $unset: { expires_at: "" }, $addToSet: { tags: "for sale" } },

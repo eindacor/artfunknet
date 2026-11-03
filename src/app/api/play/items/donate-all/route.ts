@@ -44,8 +44,9 @@ export async function POST(request: Request) {
   await ensurePlayerKarma(database, auth.session.playerId);
   await recoverPendingBulkOperations(database, auth.session.playerId);
 
-  const { candidates, hydratedCandidates, items } =
+  const { candidates, hydratedCandidates, items: filteredItems } =
     await getFilteredBulkLootCandidates(database, auth.session.playerId, protections);
+  const items = filteredItems.filter((item) => !item.original);
 
   if (candidates.length === 0) {
     return NextResponse.json(
@@ -158,6 +159,7 @@ export async function POST(request: Request) {
         _id: { $in: ids },
         owner: auth.session.playerId,
         status: "unclaimed",
+        original: { $ne: true },
       },
       {
         $set: {

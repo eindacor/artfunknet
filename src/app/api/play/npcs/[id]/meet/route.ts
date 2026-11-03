@@ -1182,6 +1182,7 @@ export async function POST(
             status: "claimed",
             tags: "for sale",
             permanent: { $ne: true },
+            original: { $ne: true },
           })
           .toArray();
         const currentPlayer = await database
@@ -1202,6 +1203,7 @@ export async function POST(
               status: "claimed",
               tags: "for sale",
               permanent: { $ne: true },
+              original: { $ne: true },
             },
             {
               $set: {
@@ -1394,6 +1396,7 @@ export async function POST(
               status: "claimed",
               tags: "for sale",
               permanent: { $ne: true },
+              original: { $ne: true },
             },
           },
           { $sample: { size: 1 } },
@@ -1415,6 +1418,7 @@ export async function POST(
           status: "claimed",
           tags: "for sale",
           permanent: { $ne: true },
+          original: { $ne: true },
         },
         {
           $set: {

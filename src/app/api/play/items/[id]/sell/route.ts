@@ -51,6 +51,7 @@ export async function POST(
     owner: auth.session.playerId,
     status: { $in: ["claimed", "unclaimed"] },
     permanent: { $ne: true },
+    original: { $ne: true },
   });
   if (!item) {
     return NextResponse.json(
@@ -82,6 +83,7 @@ export async function POST(
               owner: auth.session.playerId,
               status: item.status,
               revealed: { $ne: false },
+              original: { $ne: true },
               "authenticity.forgery": true,
               "authenticity.identified": true,
             });
@@ -156,6 +158,7 @@ export async function POST(
         owner: auth.session.playerId,
         status: item.status,
         revealed: { $ne: false },
+        original: { $ne: true },
       });
   if (!removed) {
     return NextResponse.json({ error: "This item changed before it could be sold." }, { status: 409 });

@@ -1,5 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFile } from "node:fs/promises";
+import { runInNewContext } from "node:vm";
+import { MongoClient } from "mongodb";
+import { MongoMemoryServer } from "mongodb-memory-server";
+import ts from "typescript";
 
 import {
   calculateCollectorReward,
@@ -22,6 +27,45 @@ const item = {
     dealer: 0,
   },
 };
+
+test("Collector selections and reservations preserve tagged Originals during ordinary visits and buyouts", async t => {
+  const source = ts.createSourceFile("route.ts",
+    await readFile(new URL("../app/api/play/npcs/[id]/meet/route.ts", import.meta.url), "utf8"),
+    ts.ScriptTarget.Latest, true,
+  );
+  const filters: ts.ObjectLiteralExpression[] = [];
+  function visit(node: ts.Node) {
+    if (ts.isObjectLiteralExpression(node) && node.properties.some(property =>
+      ts.isPropertyAssignment(property) && property.name.getText(source) === "tags" &&
+      ts.isStringLiteral(property.initializer) && property.initializer.text === "for sale",
+    )) filters.push(node);
+    ts.forEachChild(node, visit);
+  }
+  visit(source);
+  assert.equal(filters.length, 4);
+  const server = await MongoMemoryServer.create();
+  const client = await new MongoClient(server.getUri()).connect();
+  t.after(async () => { await client.close(); await server.stop(); });
+  const items = client.db("original-collector-filters").collection<{ _id: string }>("items");
+  await items.insertMany([
+    { _id: "original", owner: "player", status: "claimed", tags: ["for sale"], original: true, permanent: false },
+    { _id: "ordinary", owner: "player", status: "claimed", tags: ["for sale"], original: false, permanent: false },
+  ]);
+  for (const expression of filters) {
+    const filterFor = (id: string) => runInNewContext(`(${expression.getText(source)})`, {
+      player: { _id: "player" }, candidate: { _id: id }, target: { _id: id },
+    });
+    const filter = filterFor("original");
+    if ("_id" in filter) {
+      assert.equal((await items.updateOne(filter, { $set: { status: "collector_pending" } })).modifiedCount, 0);
+      assert.equal((await items.updateOne(filterFor("ordinary"), { $set: { status: "collector_pending" } })).modifiedCount, 1);
+      await items.updateOne({ _id: "ordinary" }, { $set: { status: "claimed" } });
+    } else {
+      assert.deepEqual((await items.find(filter).toArray()).map(candidate => candidate._id), ["ordinary"]);
+    }
+  }
+  assert.equal((await items.findOne({ _id: "original" }))?.status, "claimed");
+});
 
 test("collector rewards preserve quality, own-gallery, and additive bonuses", () => {
   assert.deepEqual(

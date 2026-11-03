@@ -127,6 +127,13 @@ export async function POST(request: Request) {
     );
   }
 
+  if (setForSale && candidates.some((item) => item.original)) {
+    return NextResponse.json(
+      { error: "Original artwork cannot be offered to Art Collectors." },
+      { status: 409 },
+    );
+  }
+
   const consignedAuctions = await database
     .collection<{ item_id: string }>("auctions")
     .find({ seller_id: player._id })
@@ -253,6 +260,7 @@ export async function POST(request: Request) {
             _id: item._id,
             owner: player._id,
             status: item.status,
+            ...(setForSale ? { original: { $ne: true } } : {}),
             ...unexpiredFilter,
           },
           update: {

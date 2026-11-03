@@ -15,7 +15,7 @@ import {
   createFeaturedArtistVisitors, getGalleryNpcs, refreshNpcSpawns, visitorUsesOwnGalleryBenefits,
 } from "./npc-gameplay.ts";
 import { deletePlayerAccount } from "./account-deletion.ts";
-import type { Artwork, ItemAttribute } from "./gameplay.ts";
+import type { Artwork, GameItem, ItemAttribute, LootData } from "./gameplay.ts";
 import * as gameplay from "./gameplay.ts";
 import { createArtistArtworkPreview } from "./artist-artwork-preview.ts";
 import * as artworkInput from "./artwork-create-input.ts";
@@ -33,6 +33,12 @@ import * as publicShowcaseCore from "./public-showcase-core.ts";
 import * as galleryMetadataCore from "./gallery-metadata-core.ts";
 import * as galleryFinishes from "./gallery-finishes.ts";
 import * as playerGalleryFinishes from "./player-gallery-finishes.ts";
+import * as adminItemCreator from "./admin-item-creator.ts";
+import * as itemAttributeCounts from "./item-attribute-counts.ts";
+import * as itemDropChance from "./item-drop-chance.ts";
+import * as itemSerials from "./item-serials.ts";
+import * as offerReveal from "./offer-reveal.ts";
+import * as cardCatalog from "../components/item-cards/catalog.ts";
 
 const require = createRequire(import.meta.url);
 const { NextResponse } = require("next/server");
@@ -251,6 +257,130 @@ test("artist applications, publication and featured galleries persist without gr
     assert.deepEqual(await lookup(account.artistId), { playerId: null });
   });
 
+  await t.test("admin artist Originals go only to the linked artist without random variants and remain unique across concurrent creation", async () => {
+    const db = client.db("artist-admin-originals");
+    const account = await seedArtist(db, 0);
+    await documents(db, "players").insertOne(createPlayerAccountRecord({
+      playerId: "unrelated-player", email: "other@example.com", screenName: "Other",
+      passwordHash: "hash", passwordSalt: "salt",
+    }));
+    const work: Artwork = {
+      _id: "eligible", artist_id: account.artistId, artist: "Artist 0", title: "Artist work",
+      date: 2026, genre: "Abstract", medium: "Oil", rarity: "rare", value_scale: 0.5,
+      width: 80, height: 100, active: true, special_attributes: ["special"],
+    };
+    await documents(db, "artworks").insertMany([
+      work, { ...work, _id: "already-original" }, { ...work, _id: "concurrent" },
+      { ...work, _id: "legacy", artist_id: "unlinked-artist" },
+      { ...work, _id: "inactive-work", active: false },
+    ]);
+    await documents(db, "attributes").insertMany(["first", "second", "special"].map(id => ({
+      _id: id, title: id, type: "test", active: true, description: id, icon: "fa-star", npc_name: id,
+    })));
+    const lootData: LootData = {
+      basic_crate_cost: 1, items_per_basic_crate: 1, crate_expense_per_masterpiece: 1,
+      rarity_values: {
+        common: { min: 1, max: 10 }, uncommon: { min: 10, max: 20 }, rare: { min: 20, max: 30 },
+        legendary: { min: 30, max: 40 }, masterpiece: { min: 40, max: 50 },
+      },
+      seasonal_items: { common: [], uncommon: [], rare: [], legendary: [], masterpiece: [] },
+      global_foil_chance: 1, global_unlocked_chance: 1, global_patreon_chance: 0, global_misprint_chance: 0,
+    };
+    const config = {
+      ...DEFAULT_ACTUAL_GAMEPLAY_CONFIG,
+      foilProbability: 1, mintProbability: 1, unlockedProbability: 1, cardRendererProbability: 1,
+    };
+    await documents(db, "metadata").insertMany([
+      { _id: "loot-data", loot_data: lootData },
+      { _id: "gameplay-settings", gameplay: { configs: { actual: toStoredGameplayConfig(config) } } },
+    ]);
+    let authorized = true;
+    const route = await load<typeof import("../app/api/admin/items/route.ts")>(
+      "../app/api/admin/items/route.ts", {
+        "next/server": { NextResponse }, "@/server/mongodb": { getDatabase: async () => db },
+        "@/server/admin-api": { requireAdminApi: async () => authorized
+          ? { ok: true, session: { email: "admin@example.com" } }
+          : { ok: false, response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) } },
+        "@/components/item-cards/catalog": cardCatalog, "@/server/admin-item-creator": adminItemCreator,
+        "@/server/item-attribute-counts": itemAttributeCounts, "@/server/item-drop-chance": itemDropChance,
+        "@/server/item-serials": itemSerials, "@/server/game-settings": settingsCore,
+        "@/server/offer-reveal": offerReveal, "@/server/raffle-gameplay": { RAFFLE_MAX_POTENCY: 10 },
+        "@/server/live-auction-event": {},
+      },
+    );
+    const lookup = (artworkId: string) => route.GET(new Request(`http://localhost/api/admin/items?artworkId=${artworkId}`));
+    const draft: adminItemCreator.AdminItemCustomization = {
+      condition: 0.6, mint: true, foil: true, unlocked: true, cardRenderer: "legacy",
+      original: false, level: 1, rollCount: 0, rerollSpent: 0, seasonal: false, lottery: 0,
+      patreon: false, vintage: false, permanent: false, debug: false, source: "admin grant", tags: [],
+      misprint: false, forgery: false, forgeryQuality: 0.5, forgeryIdentified: false,
+      attributes: {
+        locked: [], unlocked: [{ attributeId: "first", value: 0.6 }, { attributeId: "second", value: 0.7 }],
+        special: [{ attributeId: "special", value: 0.9 }],
+      },
+    };
+    const create = (artworkId: string, type = "artist_original") => route.POST(new Request("http://localhost/api/admin/items", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ destination: { type, playerId: "unrelated-player" }, item: { ...draft, artworkId } }),
+    }));
+    const eligibility = await lookup(work._id);
+    assert.equal(eligibility.headers.get("cache-control"), "no-store");
+    assert.deepEqual(await eligibility.json(), { artistOriginalRecipient: { id: account.id, screenName: "Artist-0" } });
+    const created = await create(work._id);
+    assert.equal(created.status, 200, JSON.stringify(await created.clone().json()));
+    const { itemId } = await created.json();
+    const saved = await db.collection<GameItem>("items").findOne({ _id: itemId });
+    assert.ok(saved);
+    assert.equal(saved.owner, account.id);
+    assert.equal(saved.original, true);
+    assert.equal(saved.serial_number, 0);
+    assert.equal(saved.status, "claimed");
+    assert.equal(saved.foil, false);
+    assert.equal(saved.unlocked, false);
+    assert.equal(saved.mint, false);
+    assert.equal(saved.mint_value_multiplier, 1);
+    assert.equal(saved.condition, draft.condition);
+    assert.equal(saved.card_renderer, "museum");
+    assert.equal(saved.transaction_history[0].to_owner, account.id);
+    assert.deepEqual(saved.attributes.locked.map(attribute => attribute._id), ["first"]);
+    assert.deepEqual(saved.attributes.unlocked.map(attribute => attribute._id), ["second"]);
+    assert.deepEqual(saved.attributes.special.map(attribute => attribute._id), ["special"]);
+    assert.equal((await documents(db, "artworks").findOne({ _id: work._id }))?.serial_counter, undefined);
+    assert.deepEqual(await (await lookup(work._id)).json(), { artistOriginalRecipient: null });
+    assert.equal((await create(work._id)).status, 409);
+
+    await db.collection<GameItem>("items").insertOne({
+      ...saved, _id: "existing-original", artwork_id: "already-original", owner: "unrelated-player", status: "auctioned",
+    });
+    assert.deepEqual(await (await lookup("already-original")).json(), { artistOriginalRecipient: null });
+    assert.equal((await create("already-original")).status, 409);
+    assert.equal((await create("inactive-work")).status, 200, "The admin creator still supports inactive catalog artwork");
+    const simultaneous = await Promise.all([create("concurrent"), create("concurrent")]);
+    assert.deepEqual(simultaneous.map(result => result.status).sort(), [200, 409]);
+    assert.equal(await db.collection<GameItem>("items").countDocuments({ artwork_id: "concurrent", original: true }), 1);
+    assert.deepEqual(await (await lookup("legacy")).json(), { artistOriginalRecipient: null });
+    assert.equal((await create("legacy")).status, 404);
+    for (const changes of [{ active: false }, { active: true, account_deletion: true }]) {
+      await documents(db, "players").updateOne({ _id: account.id }, { $set: changes });
+      await documents(db, "items").deleteMany({ artwork_id: "concurrent" });
+      assert.deepEqual(await (await lookup("concurrent")).json(), { artistOriginalRecipient: null });
+      assert.equal((await create("concurrent")).status, 404);
+    }
+
+    const ordinary = await create("legacy", "player");
+    assert.equal(ordinary.status, 200);
+    const ordinaryItem = await db.collection<GameItem>("items").findOne({ _id: (await ordinary.json()).itemId });
+    assert.equal(ordinaryItem?.owner, "unrelated-player");
+    assert.equal(ordinaryItem?.original, false);
+    assert.equal(ordinaryItem?.foil, true);
+    assert.equal(ordinaryItem?.unlocked, true);
+    assert.equal(ordinaryItem?.mint, true);
+    assert.equal(ordinaryItem?.card_renderer, "legacy");
+    authorized = false;
+    assert.equal((await lookup("eligible")).status, 401);
+    assert.equal((await create("legacy")).status, 401);
+  });
+
   await t.test("artist galleries combine active uploads with featured and permanent game items and persist owner-only finishes", async () => {
     const db = client.db("combined-artist-gallery");
     const account = await seedArtist(db, 0, true);
@@ -317,6 +447,35 @@ test("artist applications, publication and featured galleries persist without gr
     assert.equal(gallery.metadata.item_count, 2, "Unowned showcase previews do not boost game gallery metadata");
     assert.equal(gallery.metadata.permanent_count, 1);
     assert.equal(gallery.galleryId, "artist-existing-gallery");
+    const ownWork = {
+      ...createArtistArtworkPreview(uploaded), _id: "own-work-copy", owner: account.id,
+      status: "claimed", original: true, values: { ...featured.values, actual: 456 },
+    };
+    await documents(db, "items").insertOne(ownWork);
+    assert.deepEqual((await get()).items.map((item: { _id: string }) => item._id).sort(),
+      ["artist-preview:uploaded", "featured-copy", "permanent-copy"],
+      "Private inventory must not suppress the artist preview");
+    for (const display of [{ status: "displayed", permanent: false }, { status: "claimed", permanent: true }]) {
+      await documents(db, "items").updateOne({ _id: ownWork._id }, { $set: display });
+      for (const viewer of ["ordinary-player", account.id]) {
+        viewerId = viewer;
+        const displayed = await get();
+        assert.deepEqual(displayed.items.map((item: { _id: string }) => item._id).sort(),
+          ["featured-copy", "own-work-copy", "permanent-copy"],
+          "Displayed own works must replace, not accompany, their artist previews");
+        const realItem = displayed.items.find((item: { _id: string }) => item._id === ownWork._id);
+        assert.equal(realItem.original, true);
+        assert.equal(realItem.values.actual, 456);
+        assert.equal(realItem.permanent, display.permanent);
+        assert.deepEqual(displayed.artistWorks.map((work: { _id: string }) => work._id), ["uploaded"]);
+        assert.equal(displayed.metadata.item_count, 3);
+      }
+    }
+    viewerId = "ordinary-player";
+    await documents(db, "items").updateOne({ _id: ownWork._id }, { $set: { status: "claimed", permanent: false } });
+    assert.deepEqual((await get()).items.map((item: { _id: string }) => item._id).sort(),
+      ["artist-preview:uploaded", "featured-copy", "permanent-copy"],
+      "Taking down the real item must restore the artist preview");
     const finishRoute = await load<typeof import("../app/api/play/gallery-finishes/route.ts")>(
       "../app/api/play/gallery-finishes/route.ts", {
         "next/server": { NextResponse }, "@/server/gallery-finishes": galleryFinishes,

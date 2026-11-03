@@ -12,6 +12,7 @@ import { createArtistArtworkPreview } from "./artist-artwork-preview.ts";
 import type { FeaturedArtistGallery, PublicArtistProfile } from "./artist-types.ts";
 import { formatItemDropChance } from "./item-drop-chance-format.ts";
 import { formatItemSerialNumber } from "./item-serial-format.ts";
+import { getItemAttributeCounts } from "./item-attribute-counts.ts";
 import type { Artwork } from "./gameplay.ts";
 import * as galleryFinishes from "./gallery-finishes.ts";
 
@@ -464,6 +465,119 @@ test("item details link both artist credits to the artist gallery for signed-in 
   }
 });
 
+test("the admin item creator offers artist Originals only for eligible artwork and sends them without selecting a recipient", async () => {
+  const work: Artwork = {
+    _id: "eligible", artist_id: "artist-id", artist: "Artist", title: "Artist work", date: 2026,
+    rarity: "rare", genre: "Abstract", medium: "Oil", value_scale: 0.5, width: 80, height: 100, active: true,
+  };
+  const props = {
+    artworks: ["eligible", "unlinked", "has-original"].map(id => ({ ...work, _id: id, effectAttributeIds: [] })),
+    attributes: ["first", "second"].map(id => ({ _id: id, title: id, type: "test", active: true })),
+    legendaryAttributes: [],
+  };
+  const states: unknown[] = [];
+  let stateIndex = 0;
+  let eligibilityEffect: React.EffectCallback | undefined;
+  let cleanup: ReturnType<React.EffectCallback>;
+  let originalExists = false;
+  let finishCreation: (() => void) | undefined;
+  let sent: { destination: { type: string; playerId?: string }; item: { artworkId: string } } | undefined;
+  const creator = await load<typeof import("../app/admin/items/item-creator.tsx")>("../app/admin/items/item-creator.tsx", {
+    react: {
+      ...React,
+      useState: (initial: unknown) => {
+        const index = stateIndex++;
+        if (!(index in states)) states[index] = typeof initial === "function" ? initial() : initial;
+        return [states[index], (value: unknown) => {
+          states[index] = typeof value === "function" ? value(states[index]) : value;
+        }];
+      },
+      useMemo: (calculate: () => unknown) => calculate(),
+      useEffect: (effect: React.EffectCallback, dependencies?: React.DependencyList) => {
+        if (dependencies?.length === 3 && typeof dependencies[2] === "string") eligibilityEffect = effect;
+      },
+    },
+    "@/components/item-cards/card-cosmetics-provider": { useCardCosmetics: () => [{ id: "museum", name: "Museum" }] },
+    "@/components/item-cards/item-card": { default: () => null },
+    "@/server/item-attribute-counts": { getItemAttributeCounts },
+  }, {
+    AbortController,
+    fetch: async (url: string, options: RequestInit = {}) => {
+      if (options.method === "POST") {
+        assert.equal(url, "/api/admin/items");
+        sent = JSON.parse(String(options.body));
+        return new Promise(resolve => { finishCreation = () => {
+          originalExists = true;
+          resolve({ ok: true, json: async () => ({ itemId: "new-original", message: "Artist work was sent to Artist." }) });
+        }; });
+      }
+      const artworkId = new URL(url, "http://localhost").searchParams.get("artworkId");
+      assert.equal(options.cache, "no-store");
+      return { ok: true, json: async () => ({
+        artistOriginalRecipient: artworkId === "eligible" && !originalExists ? { id: "artist-player", screenName: "Artist" } : null,
+      }) };
+    },
+  });
+  type Element = React.ReactElement<{ children?: React.ReactNode } & Record<string, unknown>>;
+  function find(node: React.ReactNode, predicate: (element: Element) => boolean): Element | undefined {
+    for (const child of React.Children.toArray(node)) {
+      if (!React.isValidElement(child)) continue;
+      const element = child as Element;
+      if (predicate(element)) return element;
+      const match = find(element.props.children, predicate);
+      if (match) return match;
+    }
+  }
+  let tree: React.ReactNode;
+  const render = () => {
+    stateIndex = 0;
+    tree = creator.default(props);
+    return renderToStaticMarkup(tree);
+  };
+  const refreshEligibility = async () => {
+    assert.ok(eligibilityEffect);
+    if (typeof cleanup === "function") cleanup();
+    cleanup = eligibilityEffect();
+    await new Promise<void>(resolve => setImmediate(resolve));
+    return render();
+  };
+  const selectArtwork = (id: string) => {
+    const select = find(tree, element => element.type === "select" && typeof element.props.size === "number");
+    assert.ok(select);
+    (select.props.onChange as (event: { target: { value: string } }) => void)({ target: { value: id } });
+    return render();
+  };
+  assert.doesNotMatch(render(), /Create original/);
+  assert.match(await refreshEligibility(), /Create original/);
+  assert.match(render(), /Send an Original to <strong>@Artist<\/strong>/);
+  const normalSend = find(tree, element => element.type === "button" && element.props.children === "Send item");
+  assert.equal(normalSend?.props["aria-disabled"], true);
+  for (const id of ["unlinked", "has-original"]) {
+    assert.doesNotMatch(selectArtwork(id), /Create original/, "Previous artwork eligibility must not leak into another selection");
+    assert.doesNotMatch(await refreshEligibility(), /Create original/);
+  }
+  selectArtwork("eligible");
+  await refreshEligibility();
+  const button = find(tree, element => element.type === "button" && element.props.children === "Create original");
+  assert.ok(button);
+  (button.props.onClick as () => void)();
+  assert.ok(sent);
+  assert.deepEqual(sent.destination, { type: "artist_original" });
+  assert.equal(sent.item.artworkId, "eligible");
+  render();
+  assert.equal(find(tree, element => element.type === "button" && element.props.children === "Create original")?.props.disabled, true);
+  assert.ok(finishCreation);
+  finishCreation();
+  await new Promise<void>(resolve => setImmediate(resolve));
+  assert.match(render(), /Item sent/);
+  const again = find(tree, element => element.type === "button" && element.props.children === "Create another item");
+  assert.ok(again);
+  (again.props.onClick as () => void)();
+  assert.doesNotMatch(render(), /Create original/);
+  assert.doesNotMatch(await refreshEligibility(), /Create original/);
+  if (typeof cleanup === "function") cleanup();
+});
+
 test("gallery previews track window height while artist introductions and owner controls keep their layout", async () => {
   const finishMenu = await load<typeof import("../components/gallery-finish-menu.tsx")>("../components/gallery-finish-menu.tsx", {
     "next/navigation": { useRouter: () => ({ refresh() {} }) },
@@ -601,6 +715,10 @@ test("featured artist galleries open on an artist work while other galleries and
     _id: "valuable-collected-item", owner: "artist-player",
     values: { ...artistPreview.values, actual: 500_000 },
   };
+  const displayedArtistItem = {
+    ...artistPreview, _id: "displayed-artist-work", owner: "artist-player", original: true,
+    values: { ...artistPreview.values, actual: 123 },
+  };
   const artist: PublicArtistProfile = {
     id: "artist-id", playerId: "artist-player", name: "Artist", bio: "",
     portfolioUrl: "https://portfolio.example.com/", socialLinks: {}, instagramUsername: null, featured: true,
@@ -612,6 +730,7 @@ test("featured artist galleries open on an artist work while other galleries and
   };
   const cases = [
     { gallery: baseGallery, expected: artistPreview._id },
+    { gallery: { ...baseGallery, items: [displayedArtistItem, collectedItem] }, expected: displayedArtistItem._id },
     { gallery: { ...baseGallery, artist: { ...artist, featured: false } }, expected: collectedItem._id },
     { gallery: { ...baseGallery, artist: null, artistWorks: [], items: [collectedItem] }, expected: collectedItem._id },
     { gallery: { ...baseGallery, artistWorks: [], items: [collectedItem] }, expected: collectedItem._id },
@@ -626,6 +745,7 @@ test("featured artist galleries open on an artist work while other galleries and
     let stateIndex = 0;
     let loadEffect: React.EffectCallback | undefined;
     let selectItem: ((item: typeof artistPreview) => void) | undefined;
+    let previewArtistWork: ((item: typeof artistPreview) => void) | undefined;
     const explorer = await load<typeof import("../app/play/galleries/gallery-explorer.tsx")>(
       "../app/play/galleries/gallery-explorer.tsx", {
         react: {
@@ -658,8 +778,14 @@ test("featured artist galleries open on an artist work while other galleries and
         "@/components/use-gallery-visitors": { useGalleryVisitors: () => ({ visitors: [], replaceVisitors: noop }) },
         "@/server/social-battery": {}, "@/server/npc-gameplay": { NPC_QUALITIES: [] },
         "../auctions/auction-house": {}, "./gallery-chat": { default: () => null },
-        "@/components/artist-gallery": { ArtistGalleryIntroduction: () => null, ArtistGalleryShowcase: () => null },
-      }, { URLSearchParams, fetch: async () => ({ ok: true, json: async () => gallery }) },
+        "@/components/artist-gallery": {
+          ArtistGalleryIntroduction: () => null,
+          ArtistGalleryShowcase: ({ onPreview }: { onPreview: typeof previewArtistWork }) => {
+            previewArtistWork = onPreview;
+            return null;
+          },
+        },
+      }, { URLSearchParams, document: { querySelector: () => null }, fetch: async () => ({ ok: true, json: async () => gallery }) },
     );
     const render = () => {
       stateIndex = 0;
@@ -685,6 +811,14 @@ test("featured artist galleries open on an artist work while other galleries and
       const navigated = render();
       assert.ok(navigated.includes(`data-initial-preview="${collectedItem._id}"`));
       assert.ok(navigated.includes(`data-initial-focus="${collectedItem._id}"`));
+    }
+    if (gallery.artist && gallery.artistWorks.length) {
+      assert.ok(previewArtistWork);
+      previewArtistWork(artistPreview);
+      const previewed = render();
+      const displayedId = gallery.items.find(item => item.artwork_id === work._id)!._id;
+      assert.ok(previewed.includes(`data-initial-preview="${displayedId}"`));
+      assert.ok(previewed.includes(`data-initial-focus="${displayedId}"`));
     }
     if (typeof cleanup === "function") cleanup();
   }

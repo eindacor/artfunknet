@@ -52,7 +52,7 @@ export async function POST(request: Request) {
   const settings = await getGameplaySettings(database);
   const revealCandidatesById = new Map(hydratedCandidates.map((item) => [item._id, item]));
   const items = filteredItems.filter((item) =>
-    canQuickSellItem(revealCandidatesById.get(item._id) ?? item, settings.active.offerRevealThresholds),
+    !item.original && canQuickSellItem(revealCandidatesById.get(item._id) ?? item, settings.active.offerRevealThresholds),
   );
 
   if (candidates.length === 0) {
@@ -164,6 +164,7 @@ export async function POST(request: Request) {
         owner: auth.session.playerId,
         status: "unclaimed",
         revealed: { $ne: false },
+        original: { $ne: true },
       },
       {
         $set: {

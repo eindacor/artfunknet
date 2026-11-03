@@ -812,6 +812,7 @@ export default function GameDashboard({
         (item) =>
           item.status === "unclaimed" &&
           !item.permanent &&
+          !item.original &&
           !shouldPreserveBulkSaleItem(
             {
               ...item,
@@ -2382,6 +2383,10 @@ export default function GameDashboard({
     item: HydratedGameItem,
     action: "sell" | "donate",
   ) {
+    if (item.original) {
+      setError(action === "sell" ? "Original artwork cannot be sold." : "Original artwork cannot be donated.");
+      return;
+    }
     if (enableReveals && action === "sell" && !revealedOfferIds.has(item._id) && !canQuickSellItem(item, offerRevealThresholds)) {
       setError("Reveal this item before selling it.");
       return;
@@ -2401,6 +2406,10 @@ export default function GameDashboard({
   }
 
   function requestPurchaseDonation(item: HydratedGameItem) {
+    if (item.original) {
+      setError("Original artwork cannot be donated.");
+      return;
+    }
     if (
       item.artwork.rarity === "legendary" ||
       item.artwork.rarity === "masterpiece"
@@ -3069,11 +3078,13 @@ export default function GameDashboard({
         : purchaseAmount > player.bankBalance
           ? "You do not have enough money to purchase this artwork."
           : undefined;
-      const purchaseDonationDisabledReason = item.permanent
-        ? "Permanent artwork cannot be donated."
-        : purchaseAmount > player.bankBalance
-          ? "You do not have enough money to purchase this artwork."
-          : undefined;
+      const purchaseDonationDisabledReason = item.original
+        ? "Original artwork cannot be donated."
+        : item.permanent
+          ? "Permanent artwork cannot be donated."
+          : purchaseAmount > player.bankBalance
+            ? "You do not have enough money to purchase this artwork."
+            : undefined;
       return (
         <>
           <ItemActionButton
@@ -3089,8 +3100,8 @@ export default function GameDashboard({
             gridSlot={4}
             icon="fa-binoculars"
             label="Purchase and set for sale"
-            disabled={pending || Boolean(purchaseDisabledReason)}
-            disabledReason={purchaseDisabledReason}
+            disabled={pending || item.original || Boolean(purchaseDisabledReason)}
+            disabledReason={item.original ? "Original artwork cannot be offered to Art Collectors." : purchaseDisabledReason}
             onClick={() =>
               act(
                 `/api/play/items/${item._id}/purchase-and-set-for-sale`,
@@ -3126,7 +3137,8 @@ export default function GameDashboard({
           gridSlot={3}
           icon="fa-usd"
           label={`Sell immediately for $${item.values.sell.toLocaleString()}`}
-          disabled={pending}
+          disabled={pending || item.original}
+          disabledReason={item.original ? "Original artwork cannot be sold." : undefined}
           onClick={() => requestItemRemoval(item, "sell")}
         />
         <ItemActionButton
@@ -3134,7 +3146,8 @@ export default function GameDashboard({
           gridSlot={9}
           icon="fa-share-square"
           label="Donate for Karma"
-          disabled={pending || item.permanent}
+          disabled={pending || item.permanent || item.original}
+          disabledReason={item.original ? "Original artwork cannot be donated." : undefined}
           onClick={() => requestItemRemoval(item, "donate")}
         />
         <ItemActionButton
@@ -3149,8 +3162,8 @@ export default function GameDashboard({
           gridSlot={4}
           icon="fa-binoculars"
           label="Collect and set for sale"
-          disabled={pending || inventoryFullForItem}
-          disabledReason={inventoryFullForItem ? "Your inventory is currently full." : undefined}
+          disabled={pending || item.original || inventoryFullForItem}
+          disabledReason={item.original ? "Original artwork cannot be offered to Art Collectors." : inventoryFullForItem ? "Your inventory is currently full." : undefined}
           onClick={() => act(`/api/play/items/${item._id}/claim-and-set-for-sale`)}
         />
         {archiveAction(item, 12)}
@@ -3263,9 +3276,17 @@ export default function GameDashboard({
               ? "Stop offering to Art Collectors"
               : "Offer to Art Collectors"
           }
-          disabled={pending || (item.permanent && !item.tags.includes("for sale"))}
+          disabled={pending || ((item.permanent || item.original) && !item.tags.includes("for sale"))}
           onClick={() => act(`/api/play/items/${item._id}/collector-sale`)}
-          disabledReason={item.permanent && !item.tags.includes("for sale") ? "Remove this item from your permanent collection before offering it to Collectors." : undefined}
+          disabledReason={
+            item.tags.includes("for sale")
+              ? undefined
+              : item.original
+                ? "Original artwork cannot be offered to Art Collectors."
+                : item.permanent
+                  ? "Remove this item from your permanent collection before offering it to Collectors."
+                  : undefined
+          }
           variant={item.tags.includes("for sale") ? "collector" : "default"}
         />
         <ItemActionButton
@@ -3280,7 +3301,8 @@ export default function GameDashboard({
           gridSlot={3}
           icon="fa-usd"
           label={`Sell for $${item.values.sell.toLocaleString()}`}
-          disabled={pending}
+          disabled={pending || item.original}
+          disabledReason={item.original ? "Original artwork cannot be sold." : undefined}
           onClick={() => requestItemRemoval(item, "sell")}
         />
         {archiveAction(item, 6)}
@@ -3289,7 +3311,8 @@ export default function GameDashboard({
           gridSlot={9}
           icon="fa-share-square"
           label="Donate for Karma"
-          disabled={pending || item.permanent}
+          disabled={pending || item.permanent || item.original}
+          disabledReason={item.original ? "Original artwork cannot be donated." : undefined}
           onClick={() => requestItemRemoval(item, "donate")}
         />
         <AuthenticityActions
@@ -4489,11 +4512,19 @@ export default function GameDashboard({
                           ? "Stop offering to Art Collectors"
                           : "Offer to Art Collectors"
                       }
-                      disabled={pending || (item.permanent && !item.tags.includes("for sale"))}
+                      disabled={pending || ((item.permanent || item.original) && !item.tags.includes("for sale"))}
                       onClick={() =>
                         act(`/api/play/items/${item._id}/collector-sale`)
                       }
-                      disabledReason={item.permanent && !item.tags.includes("for sale") ? "Remove this item from your permanent collection before offering it to Collectors." : undefined}
+                      disabledReason={
+                        item.tags.includes("for sale")
+                          ? undefined
+                          : item.original
+                            ? "Original artwork cannot be offered to Art Collectors."
+                            : item.permanent
+                              ? "Remove this item from your permanent collection before offering it to Collectors."
+                              : undefined
+                      }
                       variant={
                         item.tags.includes("for sale") ? "collector" : "default"
                       }
@@ -4510,7 +4541,8 @@ export default function GameDashboard({
                       gridSlot={3}
                       icon="fa-usd"
                       label={`Sell for $${item.values.sell.toLocaleString()}`}
-                      disabled={pending}
+                      disabled={pending || item.original}
+                      disabledReason={item.original ? "Original artwork cannot be sold." : undefined}
                       onClick={() => requestItemRemoval(item, "sell")}
                     />
                     <ItemActionButton
@@ -4518,7 +4550,8 @@ export default function GameDashboard({
                       gridSlot={9}
                       icon="fa-share-square"
                       label="Donate for Karma"
-                      disabled={pending || item.permanent}
+                      disabled={pending || item.permanent || item.original}
+                      disabledReason={item.original ? "Original artwork cannot be donated." : undefined}
                       onClick={() => requestItemRemoval(item, "donate")}
                     />
                     <AuthenticityActions
@@ -6582,6 +6615,7 @@ function getLootBulkState({
     (entry) =>
       entry.auction ||
       entry.item.status !== "unclaimed" ||
+      entry.item.original ||
       entry.item.permanent,
   );
   const donate = donateInvalid
@@ -6598,6 +6632,7 @@ function getLootBulkState({
     (entry) =>
       entry.auction ||
       entry.item.status !== "for_sale" ||
+      entry.item.original ||
       entry.item.permanent,
   );
   let purchaseDonate = purchaseDonateInvalid
@@ -6622,7 +6657,7 @@ function getLootBulkState({
     (entry) =>
       !entry.auction &&
       entry.item.status === "unclaimed" &&
-      entry.item.permanent,
+      (entry.item.permanent || entry.item.original),
   );
   const remove = removeInvalid
     ? unavailable(`${removeInvalid.item.artwork.title} cannot be sold.`)
@@ -6657,7 +6692,9 @@ function getLootBulkState({
       remove,
       historian,
       "purchase-donate": purchaseDonate,
-      "collector-sale": acquire,
+      "collector-sale": selectedItems.some((item) => item.original)
+        ? unavailable("Original artwork cannot be offered to Art Collectors.")
+        : acquire,
     },
     historianQuestByItemId: historianAssignment.questByItemId,
     totalPurchaseCost: purchaseRequirements.totalCost,
@@ -6762,41 +6799,47 @@ function getCollectionBulkState({
 
   const sellInvalid = selectedItems.find(
     (item) =>
-      item.status !== "claimed" || item.permanent || !canQuickSellItem(item),
+      item.status !== "claimed" || item.permanent || item.original || !canQuickSellItem(item),
   );
   const sell = sellInvalid
     ? unavailable(
-        !canQuickSellItem(sellInvalid)
-          ? "Reveal every selected item before selling."
-          : sellInvalid.status !== "claimed"
-          ? `Stop promoting ${sellInvalid.artwork.title} or remove it from auction first.`
-          : `${sellInvalid.artwork.title} cannot be sold.`,
+        sellInvalid.original
+          ? "Original artwork cannot be sold."
+          : !canQuickSellItem(sellInvalid)
+            ? "Reveal every selected item before selling."
+            : sellInvalid.status !== "claimed"
+              ? `Stop promoting ${sellInvalid.artwork.title} or remove it from auction first.`
+              : `${sellInvalid.artwork.title} cannot be sold.`,
       )
     : available();
 
   const donateInvalid = selectedItems.find(
     (item) =>
-      item.status !== "claimed" || item.permanent,
+      item.status !== "claimed" || item.permanent || item.original,
   );
   const donate = donateInvalid
     ? unavailable(
-        donateInvalid.status !== "claimed"
-          ? `Stop promoting ${donateInvalid.artwork.title} or remove it from auction first.`
-          : `${donateInvalid.artwork.title} cannot be donated.`,
+        donateInvalid.original
+          ? "Original artwork cannot be donated."
+          : donateInvalid.status !== "claimed"
+            ? `Stop promoting ${donateInvalid.artwork.title} or remove it from auction first.`
+            : `${donateInvalid.artwork.title} cannot be donated.`,
       )
     : available();
 
   const collectorSaleInvalid = selectedItems.find(
     (item) =>
-      item.status !== "claimed" || item.permanent || item.tags.includes("for sale"),
+      item.status !== "claimed" || item.permanent || item.original || item.tags.includes("for sale"),
   );
   const collectorSale = collectorSaleInvalid
     ? unavailable(
-        collectorSaleInvalid.status !== "claimed"
-          ? `${collectorSaleInvalid.artwork.title} must be in inventory before it can be offered.`
-          : collectorSaleInvalid.permanent
-          ? `Remove ${collectorSaleInvalid.artwork.title} from your permanent collection before offering it to Collectors.`
-          : `${collectorSaleInvalid.artwork.title} is already offered to Art Collectors.`,
+        collectorSaleInvalid.original
+          ? "Original artwork cannot be offered to Art Collectors."
+          : collectorSaleInvalid.status !== "claimed"
+            ? `${collectorSaleInvalid.artwork.title} must be in inventory before it can be offered.`
+            : collectorSaleInvalid.permanent
+              ? `Remove ${collectorSaleInvalid.artwork.title} from your permanent collection before offering it to Collectors.`
+              : `${collectorSaleInvalid.artwork.title} is already offered to Art Collectors.`,
       )
     : available();
 

@@ -8,9 +8,12 @@ import * as React from "react";
 import type { HydratedGameItem } from "../../server/item-artwork.ts";
 import { getArtworkImageUrl } from "../../server/artwork-image-url.ts";
 import { getBulkAcquisitionRequirements } from "../../server/bulk-acquisition.ts";
+import { planGallerySelection } from "../../server/gallery-selection.ts";
+import { getArchivePermission } from "../../server/item-permissions.ts";
 import { getUnfulfilledHistorianTargetIds } from "../../server/art-historian-gameplay.ts";
 import {
   DEFAULT_OFFER_REVEAL_THRESHOLDS,
+  canQuickSellItem,
   getOfferRevealTier,
   isOfferRevealed,
 } from "../../server/offer-reveal.ts";
@@ -41,13 +44,15 @@ const handlerNames = new Set([
   "lootItemActions",
   "lootPrimaryAction",
   "archiveAction",
+  "requestItemRemoval",
+  "requestPurchaseDonation",
 ]);
 const handlers = ts.transpileModule(
   [...dashboard.body!.statements.filter(
     (statement) => ts.isFunctionDeclaration(statement) && handlerNames.has(statement.name!.text),
   ), ...source.statements.filter(
     (statement) => ts.isFunctionDeclaration(statement) &&
-      ["ItemActionButton", "getLootBulkState", "assignHistorianQuests"].includes(statement.name?.text ?? ""),
+      ["ItemActionButton", "getLootBulkState", "getCollectionBulkState", "assignHistorianQuests"].includes(statement.name?.text ?? ""),
   )].map((statement) => statement.getText(source)).join("\n"),
   { compilerOptions: { target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React } },
 ).outputText;
@@ -56,7 +61,7 @@ test("collect and set for sale follows claim capacity and blocks disabled clicks
   for (const scenario of [
     { name: "available slot", full: false, pending: false, disabled: false },
     { name: "full inventory", full: true, pending: false, disabled: true },
-    { name: "Original bypasses capacity", full: true, original: true, pending: false, disabled: false },
+    { name: "Original cannot be offered to Collectors", full: true, original: true, pending: false, disabled: true },
     { name: "Vintage bypasses capacity", full: true, vintage: true, pending: false, disabled: false },
     { name: "pending action", full: false, pending: true, disabled: true },
     { name: "pending Original", full: true, original: true, pending: true, disabled: true },
@@ -113,10 +118,10 @@ test("dealer purchase controls require space, but direct disposal controls do no
     const props = actions.props.children.filter(Boolean).map((child) => child.props);
     const purchase = props.find(({ label }) => label === "Purchase and set for sale")!;
     const exempt = "original" in flags || "vintage" in flags;
-    assert.equal(purchase.disabled, !exempt);
+    assert.equal(purchase.disabled, Boolean("original" in flags) || !exempt);
     if (!exempt) assert.equal(purchase.disabledReason, "Your inventory is currently full.");
     for (const name of ["Purchase and donate", "Purchase and archive", "Purchase and send to Historian"]) {
-      assert.equal(props.find(({ label }) => label.startsWith(name))!.disabled, false);
+      assert.equal(props.find(({ label }) => label.startsWith(name))!.disabled, name === "Purchase and donate" && "original" in flags);
     }
     const primary = runInNewContext(`${handlers}\nlootPrimaryAction(work)`, context) as
       React.ReactElement<{ disabled: boolean }>;
@@ -146,6 +151,51 @@ test("bulk dealer disposal ignores capacity but still requires funds and eligibi
   for (const action of ["purchase-donate", "archive", "historian"]) {
     assert.equal(availability[action].allowed, true);
     assert.equal(evaluate(99).availability[action].allowed, false);
+  }
+});
+
+test("Original selections cannot be sold, donated, or offered to Collectors, but may still be acquired", () => {
+  const original = {
+    ...item("original", "common"), original: true, permanent: false, status: "claimed",
+    condition: 0.5, tags: [], artwork: { title: "Original", rarity: "common" },
+    archivePermission: { allowed: false, reason: "Original artwork cannot be archived." },
+  };
+  const { availability } = runInNewContext(`${handlers}\ngetCollectionBulkState(options)`, {
+    canQuickSellItem, planGallerySelection, getArchivePermission,
+    options: {
+      collectionItems: [original], selectedItems: [original], displayCap: 5,
+      quests: [], repairingCap: 5, repairingCount: 0,
+    },
+  }) as { availability: Record<string, { allowed: boolean; reason?: string }> };
+  for (const action of ["sell", "donate", "collector-sale"]) {
+    assert.equal(availability[action].allowed, false);
+    assert.match(availability[action].reason!, /Original/);
+  }
+  assert.equal(availability.display.allowed, true);
+  for (const status of ["unclaimed", "for_sale"]) {
+    const { availability: loot } = runInNewContext(`${handlers}\ngetLootBulkState(options)`, {
+      getBulkAcquisitionRequirements, getUnfulfilledHistorianTargetIds,
+      options: {
+        selectedEntries: [{ item: { ...original, status, values: { dealer: 10 } } }],
+        availableInventorySlots: 0, bankBalance: 100, dealerPriceMultiplier: 1, quests: [],
+      },
+    }) as { availability: Record<string, { allowed: boolean }> };
+    assert.equal(loot.acquire.allowed, true);
+    assert.equal(loot["collector-sale"].allowed, false);
+    assert.equal(loot.donate.allowed, false);
+    assert.equal(loot["purchase-donate"].allowed, false);
+    if (status === "unclaimed") assert.equal(loot.remove.allowed, false);
+  }
+});
+
+test("Original removal requests stop before confirmation or network actions", () => {
+  for (const operation of ['requestItemRemoval(work, "sell")', 'requestItemRemoval(work, "donate")', "requestPurchaseDonation(work)"]) {
+    const errors: string[] = [];
+    runInNewContext(`${handlers}\n${operation}`, {
+      work: { original: true }, setError: (message: string) => errors.push(message),
+    });
+    assert.equal(errors.length, 1);
+    assert.match(errors[0], /Original artwork cannot/);
   }
 });
 

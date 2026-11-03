@@ -58,6 +58,7 @@ export async function POST(
     owner: auth.session.playerId,
     status: { $in: ["claimed", "unclaimed", "for_sale"] },
     permanent: { $ne: true },
+    original: { $ne: true },
   });
   if (!item) {
     return NextResponse.json(
@@ -185,6 +186,7 @@ export async function POST(
           lottery: item.lottery,
           vintage: item.vintage,
           permanent: { $ne: true },
+          original: { $ne: true },
           ...rendererFilter,
         });
   if (!donatedItem) {

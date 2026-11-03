@@ -102,8 +102,36 @@ export default function ItemCreator({
   const [previewItem, setPreviewItem] = useState<HydratedGameItem | null>(null);
   const [previewError, setPreviewError] = useState("");
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [artistOriginalRecipient, setArtistOriginalRecipient] = useState<{
+    artworkId: string;
+    screenName: string;
+  } | null>(null);
   const selectedArtwork =
     artworks.find((artwork) => artwork._id === artworkId) ?? firstArtwork;
+  const selectedArtworkId = selectedArtwork?._id;
+
+  useEffect(() => {
+    if (!selectedArtworkId || completedStatus || pending) return;
+    const controller = new AbortController();
+    const loadOriginalRecipient = async () => {
+      try {
+        const response = await fetch(`/api/admin/items?artworkId=${encodeURIComponent(selectedArtworkId)}`, {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        const body = await response.json() as { artistOriginalRecipient?: { screenName: string } | null };
+        if (!controller.signal.aborted) {
+          setArtistOriginalRecipient(response.ok && body.artistOriginalRecipient
+            ? { artworkId: selectedArtworkId, screenName: body.artistOriginalRecipient.screenName }
+            : null);
+        }
+      } catch {
+        if (!controller.signal.aborted) setArtistOriginalRecipient(null);
+      }
+    };
+    void loadOriginalRecipient();
+    return () => controller.abort();
+  }, [completedStatus, pending, selectedArtworkId]);
 
   const filteredArtworks = useMemo(() => {
     const query = artworkQuery.trim().toLocaleLowerCase();
@@ -292,9 +320,9 @@ export default function ItemCreator({
     }));
   }
 
-  async function sendItem() {
+  async function sendItem(createArtistOriginal = false) {
     if (!selectedArtwork) return;
-    if (destinationType === "player" && !selectedPlayer) {
+    if (!createArtistOriginal && destinationType === "player" && !selectedPlayer) {
       setStatus("Choose a player before sending the item.");
       return;
     }
@@ -306,9 +334,11 @@ export default function ItemCreator({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           destination:
-            destinationType === "player"
-              ? { type: "player", playerId: selectedPlayer?.id }
-              : { type: destinationType },
+            createArtistOriginal
+              ? { type: "artist_original" }
+              : destinationType === "player"
+                ? { type: "player", playerId: selectedPlayer?.id }
+                : { type: destinationType },
           item: itemPayload,
         }),
       });
@@ -323,6 +353,7 @@ export default function ItemCreator({
       setCompletedStatus(
         `${body.message ?? "Item created."} Item ID: ${body.itemId}`,
       );
+      setArtistOriginalRecipient(null);
       setSelectedPlayer(null);
       setPlayerQuery("");
       setPlayerResults([]);
@@ -612,6 +643,17 @@ export default function ItemCreator({
                 ? "Send to lottery buffer"
                 : "Send to live auction buffer"}
         </button>
+        {artistOriginalRecipient?.artworkId === selectedArtwork._id ? (
+          <>
+            <p>
+              Send an Original to <strong>@{artistOriginalRecipient.screenName}</strong>.
+              {" "}Foil, unlocked, mint, and alternate art styles are disabled.
+            </p>
+            <button disabled={pending} onClick={() => void sendItem(true)} type="button">
+              Create original
+            </button>
+          </>
+        ) : null}
         {status ? <p className="admin-item-status">{status}</p> : null}
       </section>
       </div>

@@ -31,6 +31,12 @@ export async function POST(
   } | null;
   const nextOffered =
     typeof body?.offered === "boolean" ? body.offered : !offered;
+  if (nextOffered && item.original) {
+    return NextResponse.json(
+      { error: "Original artwork cannot be offered to Art Collectors." },
+      { status: 409 },
+    );
+  }
   if (nextOffered && item.permanent) {
     return NextResponse.json(
       { error: "Remove this item from your permanent collection before offering it to Collectors." },
@@ -52,7 +58,7 @@ export async function POST(
       status: "claimed",
       mint: item.mint,
       tags: nextOffered ? { $ne: "for sale" } : "for sale",
-      ...(nextOffered ? { permanent: { $ne: true } } : {}),
+      ...(nextOffered ? { permanent: { $ne: true }, original: { $ne: true } } : {}),
     },
     nextOffered
       ? { $addToSet: { tags: "for sale" } }

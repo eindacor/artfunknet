@@ -41,7 +41,13 @@ export async function GET(
   const metadata = await refreshGalleryMetadata(database, playerId);
   const artist = await getPublicArtistProfile(database, playerId);
   const artistWorks = artist ? await getArtistWorks(database, artist.id) : [];
-  const displayedItems = [...artistWorks.map(createArtistArtworkPreview), ...gallery.items];
+  const displayedArtworkIds = new Set(gallery.items.map((item) => item.artwork_id));
+  const displayedItems = [
+    ...artistWorks
+      .filter((work) => !displayedArtworkIds.has(work._id))
+      .map(createArtistArtworkPreview),
+    ...gallery.items,
+  ];
   const activeAuctions = await database
     .collection<Auction>("auctions")
     .find({

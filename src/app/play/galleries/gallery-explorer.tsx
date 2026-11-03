@@ -1006,7 +1006,9 @@ function VisitedGallery({
         )}
         {gallery.artist ? <ArtistGalleryShowcase artist={gallery.artist} works={gallery.artistWorks ?? []}
           legendaryAttributes={gallery.legendaryAttributes} onPreview={item => {
-            setSelectedPreviewItem(item);
+            setSelectedPreviewItem(
+              gallery.items.find(displayedItem => displayedItem.artwork_id === item.artwork_id) ?? item,
+            );
             document.querySelector(".visited-artist-gallery .public-gallery-window")?.scrollIntoView({ behavior: "smooth", block: "start" });
           }} viewerId={viewerId} /> : null}
         <GalleryChat galleryOwnerId={ownerId} viewerId={viewerId} />

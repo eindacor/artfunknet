@@ -62,6 +62,12 @@ export async function POST(
       { status: 409 },
     );
   }
+  if (item.original) {
+    return NextResponse.json(
+      { error: "Original artwork cannot be offered to Art Collectors." },
+      { status: 409 },
+    );
+  }
 
   const consignedAuctions = await database
     .collection<{ item_id: string }>("auctions")
@@ -105,6 +111,7 @@ export async function POST(
       _id: id,
       owner: player._id,
       status: { $in: ["unclaimed", "won"] },
+      original: { $ne: true },
       ...unexpiredFilter,
     },
     {
