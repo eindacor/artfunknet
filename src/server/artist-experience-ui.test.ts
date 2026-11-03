@@ -730,6 +730,8 @@ test("featured artist galleries open on an artist work while other galleries and
   };
   const cases = [
     { gallery: baseGallery, expected: artistPreview._id },
+    { gallery: baseGallery, initialItemId: collectedItem._id, expected: collectedItem._id },
+    { gallery: baseGallery, initialItemId: "no-longer-featured", expected: artistPreview._id },
     { gallery: { ...baseGallery, items: [displayedArtistItem, collectedItem] }, expected: displayedArtistItem._id },
     { gallery: { ...baseGallery, artist: { ...artist, featured: false } }, expected: collectedItem._id },
     { gallery: { ...baseGallery, artist: null, artistWorks: [], items: [collectedItem] }, expected: collectedItem._id },
@@ -740,7 +742,7 @@ test("featured artist galleries open on an artist work while other galleries and
     { gallery: { ...baseGallery, artistWorks: [], items: [] }, expected: undefined },
   ];
   const noop = () => {};
-  for (const { gallery, expected } of cases) {
+  for (const { gallery, initialItemId, expected } of cases) {
     const states: unknown[] = [];
     let stateIndex = 0;
     let loadEffect: React.EffectCallback | undefined;
@@ -791,6 +793,7 @@ test("featured artist galleries open on an artist work while other galleries and
       stateIndex = 0;
       return renderToStaticMarkup(React.createElement(explorer.default, {
         impersonating: false, initialBankBalance: 0, initialGalleryId: gallery.owner.playerId,
+        initialItemId,
         initialSort: "score", initialViewMode: "grid", meetingNpc: null, npcSpawnIntervalMinutes: 5,
         npcSpawnOptions: [], npcRewardEffects: {}, onMeetNpc: async () => false, onGoHome: noop,
         onViewSettingsChange: noop, socialBattery: 100, viewerId: "visitor",

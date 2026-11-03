@@ -29,6 +29,11 @@ import offerRevealStyles from "@/components/offer-reveal.module.css";
 import ItemTagsDialog from "@/components/item-tags-dialog";
 import HallOfFamePanel from "@/components/hall-of-fame-panel";
 import DailyEventsPanel from "@/components/daily-events-panel";
+import FeaturedWorksPanel from "@/components/featured-works-panel";
+import InfoPanel from "@/components/info-panel/info-panel";
+import Attribute from "@/components/attribute/attribute";
+import GalleryStats from "@/components/gallery-stats/gallery-stats";
+import GalleryStat from "@/components/gallery-stat/gallery-stat";
 import {
   type RafflePrizeView,
 } from "@/components/raffle-panel";
@@ -165,12 +170,7 @@ import {
   type GalleryAttributeAggregate,
   type GalleryMetadataSnapshot,
 } from "@/server/gallery-metadata-core";
-import InfoPanel from "@/components/info-panel/info-panel";
 import ProgressBar from "@/components/progress-bar/progress-bar";
-import Attribute from "@/components/attribute/attribute";
-import GalleryStats from "@/components/gallery-stats/gallery-stats";
-import GalleryStat from "@/components/gallery-stat/gallery-stat";
-import DisplayedSummary from "@/components/displayed-summary/displayed-summary";
 
 type PlayerView = {
   screenName: string;
@@ -182,6 +182,7 @@ type PlayerView = {
   inventoryCap: number;
   inventorySlotsUsed: number;
   displayCap: number;
+  maxDisplayCap: number;
   permanentCap: number;
   repairingCap: number;
   dailyCrate: DailyCrateState;
@@ -475,6 +476,9 @@ export default function GameDashboard({
   const [exploreResetKey, setExploreResetKey] = useState(0);
   const [exploreGalleryId, setExploreGalleryId] = useState<string | null>(
     initialGalleryId,
+  );
+  const [exploreFocusedItemId, setExploreFocusedItemId] = useState<string | null>(
+    initialGalleryId ? searchParams.get("galleryItem") : null,
   );
   const [now, setNow] = useState(initialNow);
   const [error, setError] = useState("");
@@ -1355,6 +1359,16 @@ export default function GameDashboard({
     clearOfferRevealTransitions();
     setOfferRevealItem(null);
     if (nextSection === "loot") setSelectedLootEntryKeys(null);
+  }
+
+  function visitOwnGallery(itemId?: string) {
+    setExploreGalleryId(playerId);
+    setExploreFocusedItemId(itemId ?? null);
+    setExploreResetKey((current) => current + 1);
+    selectDashboardSection("explore");
+    const params = new URLSearchParams({ section: "explore", gallery: playerId });
+    if (itemId) params.set("galleryItem", itemId);
+    router.replace(`/play?${params}`, { scroll: false });
   }
 
   function act(url: string, onSuccess?: () => void) {
@@ -3293,6 +3307,70 @@ export default function GameDashboard({
     );
   }
 
+  function renderFeaturedWork(item: HydratedGameItem) {
+    const tier = getOfferRevealTier(item, offerRevealThresholds);
+    const unrevealed = !offerIsRevealed(item);
+    const artworkLabel = unrevealed
+      ? `unrevealed level ${tier} work`
+      : `${item.artwork.title} by ${item.artwork.artist}`;
+    return (
+      <article
+        className="home-featured-card"
+        data-rarity={item.artwork.rarity}
+        data-selected={selectedCollectionItemIdsSet.has(item._id) || undefined}
+      >
+        <OfferThumbnail
+          aria-label={`Preview ${artworkLabel}`}
+          aria-pressed={selectedCollectionItemIdsSet.has(item._id)}
+          className="home-featured-select"
+          onClick={(event) => toggleCollectionItemSelection(item._id, event)}
+          onContextMenu={(event) => event.preventDefault()}
+          onPointerCancel={cancelCollectionItemLongPress}
+          onPointerDown={(event) => startCollectionItemLongPress(item._id, event)}
+          onPointerLeave={cancelCollectionItemLongPress}
+          onPointerMove={moveCollectionItemLongPress}
+          onPointerUp={cancelCollectionItemLongPress}
+          onReveal={() => {
+            setSelectedCollectionItemIds([item._id]);
+            requestOfferReveal(item);
+          }}
+          tier={tier}
+          type="button"
+          unrevealed={unrevealed}
+        >
+          {!unrevealed ? (
+            <ArtworkThumbnail
+              adjustment={getArtworkThumbnailAdjustment(item.artwork)}
+              alt=""
+              artworkId={item.artwork_id}
+              className="home-featured-image"
+              image={item.artwork.image}
+              size={360}
+              variant="card"
+            />
+          ) : null}
+          <span className="home-featured-copy">
+            <small className="home-featured-rarity">{item.artwork.rarity}</small>
+            <strong>{unrevealed ? "Unrevealed featured work" : item.artwork.title}</strong>
+            <span>{unrevealed ? "Select to reveal this artwork" : item.artwork.artist}</span>
+            {!unrevealed ? (
+              <small>{item.artwork.date} · ${item.values.actual.toLocaleString()}</small>
+            ) : null}
+          </span>
+        </OfferThumbnail>
+        <button
+          aria-label={`View ${artworkLabel} in your gallery`}
+          className="home-featured-visit"
+          onClick={() => visitOwnGallery(item._id)}
+          title="View this work in your gallery"
+          type="button"
+        >
+          <i aria-hidden="true" className="fa fa-eye" />
+        </button>
+      </article>
+    );
+  }
+
   function renderUnrevealedPreview(
     item: HydratedGameItem,
     acquisition?: React.ReactNode,
@@ -4002,183 +4080,59 @@ export default function GameDashboard({
           </section>
         ) : null}
 
-        {section === "collection" && collectionItems.length > 0 ? (
-          <InfoPanel className="home-gallery-overview">
-            <section className="home-overview-section">
-              <div className="home-overview-actions">
-                <button
-                  className="home-gallery-button"
-                  onClick={() => {
-                    setExploreGalleryId(playerId);
-                    setExploreResetKey((current) => current + 1);
-                    selectDashboardSection("explore");
-                    router.replace(
-                      `/play?section=explore&gallery=${encodeURIComponent(playerId)}`,
-                      { scroll: false },
-                    );
-                  }}
-                  type="button"
-                >
-                  Go to my gallery
-                </button>
-                {player.level >= 50 ? (
-                  <span
-                    className="vintage-runback-button-wrap"
-                    title={
-                      activeAuctionCount > 0
-                        ? "Resolve all active auctions before entering a new era"
-                        : vintageCandidates.length < vintageConsiderationCount
-                          ? `Collect ${vintageConsiderationCount} eligible items before entering a new era`
-                          : "Enter a new era"
-                    }
+        {section === "collection" ? (
+          <section className="collection-workspace">
+            <FeaturedWorksPanel
+              actions={
+                <>
+                  <button
+                    className="home-gallery-button"
+                    onClick={() => visitOwnGallery()}
+                    type="button"
                   >
-                    <button
-                      aria-label={
+                    Go to my gallery
+                  </button>
+                  {player.level >= 50 ? (
+                    <span
+                      className="vintage-runback-button-wrap"
+                      title={
                         activeAuctionCount > 0
                           ? "Resolve all active auctions before entering a new era"
                           : vintageCandidates.length < vintageConsiderationCount
                             ? `Collect ${vintageConsiderationCount} eligible items before entering a new era`
                             : "Enter a new era"
                       }
-                      className="vintage-runback-button home-new-era-button"
-                      disabled={
-                        activeAuctionCount > 0 ||
-                        vintageCandidates.length < vintageConsiderationCount
-                      }
-                      onClick={() => setCommemorateDialogOpen(true)}
-                      type="button"
                     >
-                      Enter a new era
-                    </button>
-                  </span>
-                ) : null}
-              </div>
-              <header className="home-overview-section-heading">
-                <h2 className="info-panel-title">Gallery overview</h2>
-              </header>
-              <GalleryStats>
-                <GalleryStat
-                  label="Gallery value"
-                  value={`$${(galleryMetadata?.value ?? 0).toLocaleString()}`}
-                />
-                <GalleryStat
-                  label="Featured"
-                  value={
-                    <DisplayedSummary
-                      displayCapacity={player.displayCap}
-                      rarities={displayed.map(
-                        (item) => item.artwork.rarity,
-                      )}
-                      theme="museum"
-                    />
-                  }
-                />
-                <GalleryStat
-                  label="Permanent collection"
-                  value={`${galleryMetadata?.permanent_count ?? 0}/${player.permanentCap}`}
-                />
-                <GalleryStat
-                  label="Attribute score"
-                  value={(galleryMetadata?.score ?? 0).toLocaleString()}
-                />
-                <GalleryStat
-                  label="Featured value"
-                  value={`$${(
-                    galleryMetadata?.featured_value ?? 0
-                  ).toLocaleString()}`}
-                />
-                <GalleryStat
-                  label="Earnings per hour"
-                  value={`$${galleryRates.moneyPerHour.toLocaleString()}`}
-                />
-                <GalleryStat
-                  label="Experience per hour"
-                  value={galleryRates.xpPerHour.toLocaleString()}
-                />
-                <GalleryStat
-                  label="Attributes"
-                  value={
-                    galleryMetadata && galleryMetadata.attributes.length > 0
-                      ? galleryMetadata.attributes.map((attribute, i) => (
-                          <Attribute
-                            attribute={attribute}
-                            displayCapacity={galleryMetadata.display_capacity}
-                            key={`${attribute.id}_${i}`}
-                          />
-                        ))
-                      : "None"
-                  }
-                />
-              </GalleryStats>
-              <div
-                aria-label="Featured artwork"
-                className="home-gallery-display-items collection-thumbnail-list"
-              >
-                {displayed.length === 0 ? (
-                  <p className="collection-sidebar-empty">
-                    No works are currently featured.
-                  </p>
-                ) : (
-                  displayed.map((item) => renderCollectionThumbnail(item))
-                )}
-              </div>
-            </section>
-          </InfoPanel>
-        ) : null}
-
-        {section === "collection" && collectionItems.length === 0 ? (
-          <section className="collection-empty-state">
-            <button onClick={() => selectDashboardSection("loot")} type="button">
-              go here and come back when you collect some artwork!
-            </button>
-          </section>
-        ) : null}
-
-        {section === "collection" && collectionItems.length > 0 ? (
-          <section className="collection-workspace">
-            <aside className="collection-inventory-panel">
-              <section className="collection-sidebar-section">
-                <header className="collection-panel-heading">
-                  <div>
-                    <span className="collection-kicker">your collection</span>
-                    <h2>
-                      inventory{" "}
-                    </h2>
-                  </div>
-                  <span
-                    aria-label={`${player.inventorySlotsUsed.toLocaleString()} of ${player.inventoryCap.toLocaleString()} inventory slots used`}
-                    className="collection-count"
-                    title="Inventory slots used"
-                  >
-                    {player.inventorySlotsUsed}/{player.inventoryCap}
-                  </span>
-                </header>
-                <CollectionInventoryControls
-                  artStyleOptions={collectionArtStyleOptions}
-                  attributeOptions={collectionAttributeOptions}
-                  filters={normalizedCollectionFilters}
-                  matchCount={sortedHomeInventory.length}
-                  onFiltersChange={setCollectionFilters}
-                  onSortChange={(next) => {
-                    setInventorySort(next);
-                    saveViewSettings({ inventorySort: next });
-                  }}
-                  sort={inventorySort}
-                  specialAttributeOptions={collectionSpecialAttributeOptions}
-                  tags={collectionTags}
-                  totalCount={collectionItems.length}
-                />
-                {sortedHomeInventory.length === 0 ? (
-                  <p className="collection-sidebar-empty">
-                    No artworks match the current filters.
-                  </p>
-                ) : (
-                  <div className="collection-thumbnail-list">
-                    {sortedHomeInventory.map((item) => renderCollectionThumbnail(item, true))}
-                  </div>
-                )}
-              </section>
-            </aside>
+                      <button
+                        aria-label={
+                          activeAuctionCount > 0
+                            ? "Resolve all active auctions before entering a new era"
+                            : vintageCandidates.length < vintageConsiderationCount
+                              ? `Collect ${vintageConsiderationCount} eligible items before entering a new era`
+                              : "Enter a new era"
+                        }
+                        className="vintage-runback-button home-new-era-button"
+                        disabled={
+                          activeAuctionCount > 0 ||
+                          vintageCandidates.length < vintageConsiderationCount
+                        }
+                        onClick={() => setCommemorateDialogOpen(true)}
+                        type="button"
+                      >
+                        Enter a new era
+                      </button>
+                    </span>
+                  ) : null}
+                </>
+              }
+              attributeScore={galleryMetadata?.score ?? 0}
+              attributes={galleryMetadata?.attributes ?? []}
+              displayCapacity={player.displayCap}
+              items={displayed}
+              maxDisplayCapacity={player.maxDisplayCap}
+              rates={galleryRates}
+              renderItem={renderFeaturedWork}
+            />
             <div className="collection-main">
               {selectedCollectionItems.length > 1 && selectedCollectionHiddenItem ? (
                 renderUnrevealedPreview(
@@ -4244,6 +4198,50 @@ export default function GameDashboard({
                 </section>
               )}
             </div>
+            <section className="collection-inventory-panel">
+              <section className="collection-sidebar-section">
+                <header className="collection-panel-heading">
+                  <h2 className="collection-kicker">your collection</h2>
+                  <span
+                    aria-label={`${player.inventorySlotsUsed.toLocaleString()} of ${player.inventoryCap.toLocaleString()} inventory slots used`}
+                    className="collection-count"
+                    title="Inventory slots used"
+                  >
+                    {player.inventorySlotsUsed}/{player.inventoryCap}
+                  </span>
+                </header>
+                {collectionItems.length === 0 ? (
+                  <div className="collection-empty-state">
+                    <button onClick={() => selectDashboardSection("loot")} type="button">
+                      Collect your first artwork
+                    </button>
+                  </div>
+                ) : sortedHomeInventory.length === 0 ? (
+                  <p className="collection-sidebar-empty">
+                    No artworks match the current filters.
+                  </p>
+                ) : (
+                  <div className="collection-thumbnail-list">
+                    {sortedHomeInventory.map((item) => renderCollectionThumbnail(item, true))}
+                  </div>
+                )}
+                <CollectionInventoryControls
+                  artStyleOptions={collectionArtStyleOptions}
+                  attributeOptions={collectionAttributeOptions}
+                  filters={normalizedCollectionFilters}
+                  matchCount={sortedHomeInventory.length}
+                  onFiltersChange={setCollectionFilters}
+                  onSortChange={(next) => {
+                    setInventorySort(next);
+                    saveViewSettings({ inventorySort: next });
+                  }}
+                  sort={inventorySort}
+                  specialAttributeOptions={collectionSpecialAttributeOptions}
+                  tags={collectionTags}
+                  totalCount={collectionItems.length}
+                />
+              </section>
+            </section>
           </section>
         ) : null}
 
@@ -4581,6 +4579,7 @@ export default function GameDashboard({
             impersonating={impersonating}
             initialBankBalance={player.bankBalance}
             initialGalleryId={exploreGalleryId}
+            initialItemId={exploreFocusedItemId}
             initialSort={player.viewSettings.gallerySort}
             initialViewMode={preferredGalleryView}
             key={`gallery-explorer-${exploreResetKey}`}
@@ -4591,6 +4590,7 @@ export default function GameDashboard({
             onMeetNpc={meetNpc}
             onGoHome={() => {
               setExploreGalleryId(null);
+              setExploreFocusedItemId(null);
               selectDashboardSection("collection");
               router.replace("/play?section=home", { scroll: false });
             }}

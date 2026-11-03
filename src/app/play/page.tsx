@@ -19,7 +19,9 @@ import { ensureArchiveStorage } from "@/server/archive-storage";
 import { getArtHistorianQuestViews } from "@/server/art-historian-gameplay";
 import {
   calculateGalleryRates,
+  getCapsForLevel,
   getXpGoal,
+  MAX_PLAYER_LEVEL,
   settleGalleryEarnings,
 } from "@/server/collection-gameplay";
 import {
@@ -626,6 +628,7 @@ export default async function PlayerPage({
           inventorySlotsUsed,
           dailyCrate,
           displayCap: player.profile.display_cap,
+          maxDisplayCap: getCapsForLevel(MAX_PLAYER_LEVEL).display_cap,
           permanentCap: player.profile.pc_cap ?? 12,
           repairingCap: player.profile.repairing_cap ?? 4,
           socialBattery: socialBattery.value,

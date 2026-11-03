@@ -103,6 +103,7 @@ export default function GalleryExplorer({
   impersonating,
   initialBankBalance,
   initialGalleryId,
+  initialItemId = null,
   initialSort,
   initialViewMode,
   meetingNpc,
@@ -118,6 +119,7 @@ export default function GalleryExplorer({
   impersonating: boolean;
   initialBankBalance: number;
   initialGalleryId: string | null;
+  initialItemId?: string | null;
   initialSort: GallerySort;
   initialViewMode: GalleryViewMode;
   meetingNpc: string | null;
@@ -310,6 +312,7 @@ export default function GalleryExplorer({
       <VisitedGallery
         impersonating={impersonating}
         initialBankBalance={initialBankBalance}
+        initialItemId={selectedGalleryId === initialGalleryId ? initialItemId : null}
         key={selectedGalleryId}
         meetingNpc={meetingNpc}
         navigationError={error}
@@ -594,6 +597,7 @@ function GalleryArtistBadge() {
 function VisitedGallery({
   impersonating,
   initialBankBalance,
+  initialItemId,
   meetingNpc,
   navigationError,
   npcSpawnIntervalMinutes,
@@ -611,6 +615,7 @@ function VisitedGallery({
 }: {
   impersonating: boolean;
   initialBankBalance: number;
+  initialItemId: string | null;
   meetingNpc: string | null;
   navigationError: string;
   npcSpawnIntervalMinutes: number;
@@ -732,6 +737,7 @@ function VisitedGallery({
         if (!cancelled) {
           setGallery(body);
           replaceVisitors(body.npcs);
+          const requestedItem = body.items.find(item => item._id === initialItemId);
           const firstArtistArtworkId = body.artist?.featured ? body.artistWorks?.[0]?._id : undefined;
           const artistPreview = firstArtistArtworkId
             ? body.items.find(item => item.artwork_id === firstArtistArtworkId)
@@ -745,7 +751,7 @@ function VisitedGallery({
             null,
           );
           setSelectedPreviewItem(
-            artistPreview ?? mostValuableItem ?? body.auctions[0]?.item ?? null,
+            requestedItem ?? artistPreview ?? mostValuableItem ?? body.auctions[0]?.item ?? null,
           );
         }
       } catch (loadError) {
@@ -765,7 +771,7 @@ function VisitedGallery({
     return () => {
       cancelled = true;
     };
-  }, [ownerId, refreshVersion, replaceVisitors]);
+  }, [ownerId, initialItemId, refreshVersion, replaceVisitors]);
 
   if (loading) {
     return (

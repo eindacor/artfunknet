@@ -62,6 +62,10 @@ const handlerNames = new Set([
   "requestItemRemoval",
   "requestPurchaseDonation",
   "historianSubmissionDisabledReason",
+  "renderFeaturedWork",
+  "visitOwnGallery",
+  "toggleCollectionItemSelection",
+  "updateCollectionItemSelection",
 ]);
 const handlers = ts.transpileModule(
   [...dashboard.body!.statements.filter(
@@ -72,6 +76,105 @@ const handlers = ts.transpileModule(
   )].map((statement) => statement.getText(source)).join("\n"),
   { compilerOptions: { target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React } },
 ).outputText;
+
+test("featured cards select filtered-out works for the preview and visit their exact gallery position independently", () => {
+  const featured = {
+    ...item("featured"), status: "displayed", revealed: true,
+    artwork: { title: "Featured Artwork", artist: "Artist", rarity: "rare", date: 2026 },
+    values: { actual: 100 },
+  };
+  const other = { ...featured, _id: "other" };
+  const states: Record<string, unknown> = {
+    selectedCollectionItemIds: null, exploreResetKey: 3,
+  };
+  const replace = test.mock.fn();
+  const event = { ctrlKey: false, metaKey: false };
+  const selectionSource = dashboard.body!.statements.filter(statement =>
+    ts.isVariableStatement(statement) && statement.declarationList.declarations.some(declaration =>
+      ts.isIdentifier(declaration.name) && [
+        "defaultCollectionItemId", "effectiveSelectedCollectionItemIds",
+        "selectedCollectionItems", "selectedCollectionItem",
+      ].includes(declaration.name.text),
+    ),
+  ).map(statement => statement.getText(source)).join("\n");
+  const context = {
+    React, getOfferRevealTier,
+    offerRevealThresholds: DEFAULT_OFFER_REVEAL_THRESHOLDS,
+    enableReveals: true, revealedOfferIds: new Set<string>(), isOfferRevealed,
+    OfferThumbnail: () => null, ArtworkThumbnail: () => null,
+    getArtworkThumbnailAdjustment: () => undefined,
+    selectedCollectionItemIdsSet: new Set<string>(),
+    suppressedCollectionClickRef: { current: null },
+    defaultCollectionItemId: other._id,
+    setSelectedCollectionItemIds: (update: (current: unknown) => unknown) => {
+      states.selectedCollectionItemIds = update(states.selectedCollectionItemIds);
+    },
+    cancelCollectionItemLongPress() {},
+    moveCollectionItemLongPress() {},
+    playerId: "player/with spaces",
+    setExploreGalleryId: (id: string) => { states.galleryId = id; },
+    setExploreFocusedItemId: (id: string | null) => { states.focusedItemId = id; },
+    setExploreResetKey: (update: (current: number) => number) => {
+      states.exploreResetKey = update(states.exploreResetKey as number);
+    },
+    selectDashboardSection: (section: string) => { states.section = section; },
+    router: { replace }, URLSearchParams, featured,
+  };
+  const card = runInNewContext(`${handlers}\nrenderFeaturedWork(featured)`, context) as
+    React.ReactElement<{ children: React.ReactElement<{
+      "aria-pressed": boolean; onClick: (event: typeof event) => void;
+    }>[] }>;
+  const [select, visit] = card.props.children;
+  assert.equal(select.props["aria-pressed"], false);
+  visit.props.onClick(event);
+  assert.equal(states.selectedCollectionItemIds, null, "Visiting does not change collection selection");
+  assert.equal(states.galleryId, context.playerId);
+  assert.equal(states.focusedItemId, featured._id);
+  assert.equal(states.section, "explore");
+  assert.equal(states.exploreResetKey, 4);
+  const navigation = replace.mock.calls[0].arguments as [string, { scroll: boolean }];
+  const url = new URL(navigation[0], "https://example.test");
+  assert.equal(url.searchParams.get("gallery"), context.playerId);
+  assert.equal(url.searchParams.get("galleryItem"), featured._id);
+  assert.equal(url.searchParams.has("item"), false, "Gallery focus must not open the item-details deep link");
+  assert.equal(navigation[1].scroll, false);
+
+  select.props.onClick(event);
+  const preview = runInNewContext(`${ts.transpileModule(selectionSource, {
+    compilerOptions: { target: ts.ScriptTarget.ES2022 },
+  }).outputText}\nselectedCollectionItem`, {
+    selectedCollectionItemIds: states.selectedCollectionItemIds,
+    sortedHomeInventory: [other], collectionItems: [featured, other],
+  }) as typeof featured;
+  assert.equal(preview._id, featured._id);
+
+  select.props.onClick({ ctrlKey: true, metaKey: false });
+  assert.equal((states.selectedCollectionItemIds as string[]).length, 0);
+  runInNewContext(`${handlers}\nvisitOwnGallery()`, context);
+  assert.equal(states.focusedItemId, null, "The general gallery button clears a previous item target");
+  const generalUrl = new URL(replace.mock.calls[1].arguments[0] as string, "https://example.test");
+  assert.equal(generalUrl.searchParams.has("galleryItem"), false);
+});
+
+test("unrevealed featured cards do not expose artwork names, artists, images, or values", () => {
+  const featured = {
+    ...item("hidden-featured"), status: "displayed", drop_chance_coefficient: 0.0001,
+    artwork: { title: "Secret Title", artist: "Secret Artist", rarity: "rare", date: 2026 },
+    values: { actual: 987_654 },
+  };
+  const card = runInNewContext(`${handlers}\nrenderFeaturedWork(featured)`, {
+    React, getOfferRevealTier, featured,
+    offerRevealThresholds: DEFAULT_OFFER_REVEAL_THRESHOLDS,
+    enableReveals: true, revealedOfferIds: new Set<string>(), isOfferRevealed,
+    selectedCollectionItemIdsSet: new Set([featured._id]),
+    OfferThumbnail: ({ children }: { children: React.ReactNode }) => React.createElement("button", null, children),
+    cancelCollectionItemLongPress() {}, moveCollectionItemLongPress() {},
+  }) as React.ReactElement;
+  const html = renderToStaticMarkup(card);
+  assert.doesNotMatch(html, /Secret Title|Secret Artist|987,654|<img|artwork-thumbnail/);
+  assert.match(html, /Unrevealed featured work/);
+  assert.match(html, /data-selected="true"/);
+});
 
 test("collect and set for sale follows claim capacity and blocks disabled clicks", async (t) => {
   for (const scenario of [

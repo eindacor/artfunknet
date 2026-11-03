@@ -66,7 +66,7 @@ export default function ItemThumbnail({
           {isDisplayed ? (
             <i
               aria-label="Featured"
-              className="fa fa-eye thumbnail-displayed"
+              className="fa fa-arrow-up thumbnail-displayed"
               role="img"
             />
           ) : null}
