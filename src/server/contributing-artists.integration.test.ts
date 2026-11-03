@@ -217,6 +217,40 @@ test("artist applications, publication and featured galleries persist without gr
     assert.doesNotMatch(JSON.stringify(publicWorks), /submitted_by|artist_license|admin-private/);
   });
 
+  await t.test("public artist gallery lookup uses live artist-player links without exposing private account data", async () => {
+    const db = client.db("artist-gallery-links");
+    const account = await seedArtist(db, 0);
+    await documents(db, "artists").insertOne({
+      _id: "historical-artist", artist_name: "Historical Artist", player_id: account.id,
+    });
+    const route = await load<typeof import("../app/api/artists/[artistId]/gallery/route.ts")>(
+      "../app/api/artists/[artistId]/gallery/route.ts", {
+        "next/server": { NextResponse }, "@/server/mongodb": { getDatabase: async () => db },
+      },
+    );
+    const lookup = async (artistId: string) => {
+      const result = await route.GET(new Request("http://localhost/api/artists/artist/gallery"), {
+        params: Promise.resolve({ artistId }),
+      });
+      assert.equal(result.status, 200);
+      assert.equal(result.headers.get("cache-control"), "no-store");
+      return result.json();
+    };
+    assert.deepEqual(await lookup(account.artistId), { playerId: account.id });
+    await documents(db, "players").updateOne({ _id: account.id }, { $set: { artist_featured: true } });
+    assert.deepEqual(await lookup(account.artistId), { playerId: account.id });
+    for (const artistId of ["historical-artist", "unknown-artist", account.id]) {
+      assert.deepEqual(await lookup(artistId), { playerId: null });
+    }
+    await documents(db, "players").updateOne({ _id: account.id }, { $set: { active: false } });
+    assert.deepEqual(await lookup(account.artistId), { playerId: null });
+    await documents(db, "players").updateOne({ _id: account.id }, { $set: { active: true, account_deletion: true } });
+    assert.deepEqual(await lookup(account.artistId), { playerId: null });
+    await documents(db, "players").deleteOne({ _id: account.id });
+    assert.ok(await documents(db, "artists").findOne({ _id: account.artistId }));
+    assert.deepEqual(await lookup(account.artistId), { playerId: null });
+  });
+
   await t.test("artist galleries combine active uploads with featured and permanent game items and persist owner-only finishes", async () => {
     const db = client.db("combined-artist-gallery");
     const account = await seedArtist(db, 0, true);

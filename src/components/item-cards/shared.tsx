@@ -383,11 +383,13 @@ export function CompleteItemRecord({
   showProperties = true,
   owner,
   statusValue,
+  artistValue,
 }: Pick<ItemCardRendererProps, "item" | "legendaryAttributes"> & {
   owner?: ItemOwner;
   showAttributeDetails?: boolean;
   showProperties?: boolean;
   statusValue?: React.ReactNode;
+  artistValue?: React.ReactNode;
 }) {
   const legendary = getActiveLegendaryAttribute(item, legendaryAttributes);
   const properties = [
@@ -405,7 +407,7 @@ export function CompleteItemRecord({
   return (
     <div className="complete-item-record">
       <dl>
-          <Fact label="Artist" value={item.artwork.artist} />
+          <Fact label="Artist" value={artistValue ?? item.artwork.artist} />
           <Fact
             label="Owner"
             value={

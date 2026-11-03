@@ -44,6 +44,17 @@
   opacity: 0.58;
 }
 
+.item-artist-link {
+  color: #185b9d;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.item-artist-link:focus-visible {
+  outline: 2px solid var(--rarity-color);
+  outline-offset: 3px;
+}
+
 .standard-item-community-reactions {
   display: flex;
   flex-wrap: wrap;

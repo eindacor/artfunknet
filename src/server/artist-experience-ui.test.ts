@@ -10,6 +10,8 @@ import * as imageAdjustments from "../components/item-cards/artwork-image-adjust
 import * as imageUrls from "./artwork-image-url.ts";
 import { createArtistArtworkPreview } from "./artist-artwork-preview.ts";
 import type { FeaturedArtistGallery, PublicArtistProfile } from "./artist-types.ts";
+import { formatItemDropChance } from "./item-drop-chance-format.ts";
+import { formatItemSerialNumber } from "./item-serial-format.ts";
 import type { Artwork } from "./gameplay.ts";
 import * as galleryFinishes from "./gallery-finishes.ts";
 
@@ -360,6 +362,105 @@ test("the admin layout scopes inactive editor, thumbnail, detail, and item-card 
     const adminHtml = renderToStaticMarkup(await layout.default({ children: component })).replaceAll("&amp;", "&");
     assert.ok(adminHtml.includes(imageUrls.getArtworkImageUrl(work._id, variant, undefined, false, "admin")));
     if (variant === "thumb" || component.type === editor.default) assert.match(adminHtml, /data-unoptimized="true"/);
+  }
+});
+
+test("item details link both artist credits to the artist gallery for signed-in and anonymous visitors without a discovery button", async () => {
+  const shared = await load<typeof import("../components/item-cards/shared.tsx")>("../components/item-cards/shared.tsx", {
+    "../item-expiration-display": {}, "@/server/artwork-image-url": imageUrls,
+    "../artwork-image-scope": {}, "@/server/item-drop-chance-format": { formatItemDropChance },
+    "@/server/item-serial-format": { formatItemSerialNumber }, "@/server/archive-gameplay": {},
+    "@/components/floating-popover": {}, "./card-cosmetics-provider": {}, "./catalog": {},
+    "./artwork-image-adjustments": imageAdjustments,
+  });
+  const work: Artwork = {
+    _id: "artist-work", artist_id: "artist / id", artist: "Contributing Artist", title: "Artist work", date: 2026,
+    rarity: "rare", genre: "Abstract", medium: "Oil", value_scale: 0.5, width: 80, height: 100, active: true,
+  };
+  type GalleryResponse = { ok: boolean; json: () => Promise<{ playerId: string | null }> };
+  const response = (playerId: string | null): GalleryResponse => ({ ok: true, json: async () => ({ playerId }) });
+  const noop = () => null;
+  for (const viewerId of [null, "visitor"]) {
+    for (const outcome of ["linked", "unlinked", "failed"] as const) {
+      const states: unknown[] = [];
+      let stateIndex = 0;
+      let effect: React.EffectCallback | undefined;
+      let item = { ...createArtistArtworkPreview(work), owner: "unrelated-owner" };
+      let fetchGallery = async (): Promise<GalleryResponse> => {
+        if (outcome === "failed") throw new Error("Gallery lookup unavailable");
+        return response(outcome === "linked" ? "artist/player" : null);
+      };
+      const details = await load<typeof import("../components/item-cards/standard-item-dialog.tsx")>(
+        "../components/item-cards/standard-item-dialog.tsx", {
+          react: {
+            ...React,
+            useState: (initial: unknown) => {
+              const index = stateIndex++;
+              if (!(index in states)) states[index] = initial;
+              return [states[index], (value: unknown) => { states[index] = value; }];
+            },
+            useEffect: (callback: React.EffectCallback) => { effect = callback; },
+          },
+          "@/components/artwork-thumbnail": { default: noop }, "@/components/artwork-detail-image": { default: noop },
+          "@/components/community-emotes": { CommunityReactionLoader: noop },
+          "@/components/item-expiration-display": { ItemExpirationBadge: noop },
+          "./art-style-action-button": {}, "./item-action-layout": {},
+          "./auction-watermark": { default: noop }, "./known-forgery-watermark": { default: noop },
+          "./render-card-preview": { default: noop }, "./registry": { CARD_RENDERERS: { museum: noop } },
+          "./artwork-image-adjustments": imageAdjustments,
+          "./shared": { ...shared, AttributeIcons: noop, ItemVariantBadges: noop },
+          "@/server/raffle-core": { RAFFLE_OWNER_ID: "raffle" },
+        }, { fetch: async (url: string, options: RequestInit) => {
+          assert.equal(url, `/api/artists/${encodeURIComponent(item.artwork.artist_id)}/gallery`);
+          assert.equal(options.cache, "no-store");
+          return fetchGallery();
+        } },
+      );
+      const render = () => {
+        stateIndex = 0;
+        return renderToStaticMarkup(React.createElement(details.StandardItemDetails, {
+          item, legendaryAttributes: [], currentRendererId: "museum", viewerId,
+          permissions: { canManageItem: false, canCustomizeCosmetic: false },
+        }));
+      };
+      const galleryLinks = (html: string) => [...html.matchAll(/<a\b[^>]*href="(\/gallery\/[^"]+)"[^>]*>(.*?)<\/a>/g)];
+      assert.equal(galleryLinks(render()).length, 0);
+      assert.ok(effect);
+      const cleanup = effect();
+      await new Promise<void>(resolve => setImmediate(resolve));
+      const html = render();
+      const links = galleryLinks(html);
+      assert.equal(links.length, outcome === "linked" ? 2 : 0, `${viewerId}: ${outcome}`);
+      assert.doesNotMatch(html, /See more from this artist|standard-item-artist-gallery-link/);
+      if (outcome === "linked") {
+        assert.ok(links.every(link => link[1] === "/gallery/artist%2Fplayer"));
+        assert.equal(links.filter(link => link[2] === work.artist).length, 2);
+      } else {
+        assert.match(html, /<p>Contributing Artist<\/p>/);
+      }
+      if (typeof cleanup === "function") cleanup();
+
+      if (outcome === "linked") {
+        let resolvePrevious!: (value: GalleryResponse) => void;
+        const previous = new Promise<GalleryResponse>(resolve => { resolvePrevious = resolve; });
+        item = createArtistArtworkPreview({ ...work, artist_id: "previous-artist" });
+        fetchGallery = () => previous;
+        assert.equal(galleryLinks(render()).length, 0, "Changing artists must immediately hide the old gallery link");
+        const cancelPrevious = effect!();
+        if (typeof cancelPrevious === "function") cancelPrevious();
+        item = createArtistArtworkPreview({ ...work, artist_id: "current-artist" });
+        fetchGallery = async () => response("current-player");
+        render();
+        const cancelCurrent = effect!();
+        await new Promise<void>(resolve => setImmediate(resolve));
+        resolvePrevious(response("previous-player"));
+        await new Promise<void>(resolve => setImmediate(resolve));
+        const currentLinks = galleryLinks(render());
+        assert.equal(currentLinks.length, 2);
+        assert.ok(currentLinks.every(link => link[1] === "/gallery/current-player"), "Late artist lookups must not replace the current artist's links");
+        if (typeof cancelCurrent === "function") cancelCurrent();
+      }
+    }
   }
 });
 

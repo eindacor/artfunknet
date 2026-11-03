@@ -234,6 +234,36 @@ export function StandardItemDetails({
   headerDetails?: React.ReactNode;
   viewerId?: string | null;
 }) {
+  const artistId = item.artwork.artist_id;
+  const [artistGallery, setArtistGallery] = useState<{ artistId: string; playerId: string } | null>(null);
+
+  useEffect(() => {
+    if (!artistId) return;
+    let cancelled = false;
+    async function loadArtistGallery() {
+      try {
+        const response = await fetch(`/api/artists/${encodeURIComponent(artistId)}/gallery`, { cache: "no-store" });
+        if (!response.ok) return;
+        const body = await response.json() as { playerId: string | null };
+        if (!cancelled) {
+          setArtistGallery(body.playerId ? { artistId, playerId: body.playerId } : null);
+        }
+      } catch {
+        if (!cancelled) setArtistGallery(null);
+      }
+    }
+    void loadArtistGallery();
+    return () => { cancelled = true; };
+  }, [artistId]);
+
+  const artistGalleryHref = artistGallery?.artistId === artistId
+    ? `/gallery/${encodeURIComponent(artistGallery.playerId)}`
+    : undefined;
+  const artistValue = artistGalleryHref ? (
+    <Link className="item-artist-link" href={artistGalleryHref} onClick={onClose}>
+      {item.artwork.artist}
+    </Link>
+  ) : item.artwork.artist;
   const Renderer = CARD_RENDERERS[currentRendererId];
   const detailImageAdjustments = getArtworkDetailImageAdjustments(item.artwork);
   const displayedStatus =
@@ -274,7 +304,7 @@ export function StandardItemDetails({
                 <h2 id={`standard-item-title-${item._id}`}>
                   {item.artwork.title}
                 </h2>
-                <p>{item.artwork.artist}</p>
+                <p>{artistValue}</p>
                 <p className="standard-item-dialog-workline">
                   {item.artwork.date} · {item.artwork.medium}
                 </p>
@@ -461,6 +491,7 @@ export function StandardItemDetails({
             ) : null}
           </div>
           <CompleteItemRecord
+            artistValue={artistValue}
             item={item}
             legendaryAttributes={legendaryAttributes}
             owner={owner}
