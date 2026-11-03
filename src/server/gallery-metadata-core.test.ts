@@ -139,7 +139,7 @@ test("effective attraction uses the full gallery display capacity", () => {
   assert.equal(getEffectiveGalleryAttributeRating(4.5, 5), 0.9);
 });
 
-test("permanent works are shared and featured without contributing gallery statistics", () => {
+test("permanent works contribute promotion statistics only while promoted and are counted once", () => {
   const promoted = item("promoted", "promoted-art", 1_000, [attribute("earning", "Earning", 0.5)]);
   const permanent = {
     ...item("permanent", "permanent-art", 100, [attribute("showcase", "Showcase", 1)]),
@@ -150,11 +150,14 @@ test("permanent works are shared and featured without contributing gallery stati
   const baseline = buildGalleryMetadataSnapshot([promoted], 5);
   for (const status of ["claimed", "displayed"] as const) {
     const snapshot = buildGalleryMetadataSnapshot([promoted, { ...permanent, status }], 5);
-    assert.equal(snapshot.value, baseline.value);
-    assert.equal(snapshot.score, baseline.score);
-    assert.deepEqual(snapshot.attributes, baseline.attributes);
-    assert.deepEqual(snapshot.active_unique_attributes, []);
-    assert.equal(snapshot.display_count, 1);
+    const isPromoted = status === "displayed";
+    assert.equal(snapshot.value, baseline.value + (isPromoted ? 100 : 0));
+    assert.equal(snapshot.score, baseline.score + (isPromoted ? 100 : 0));
+    assert.deepEqual(snapshot.attributes, isPromoted
+      ? buildGalleryMetadataSnapshot([promoted, { ...permanent, status, permanent: false }], 5).attributes
+      : baseline.attributes);
+    assert.deepEqual(snapshot.active_unique_attributes, isPromoted ? ["showcase-effect"] : []);
+    assert.equal(snapshot.display_count, isPromoted ? 2 : 1);
     assert.equal(snapshot.permanent_count, 1);
     assert.equal(snapshot.item_count, 2);
     assert.deepEqual(snapshot.permanent_item_ids, ["permanent"]);

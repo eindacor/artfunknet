@@ -11,6 +11,7 @@ import { getDemintUpdate } from "@/server/item-mint";
 import { getDatabase } from "@/server/mongodb";
 import { sanitizePlayerFacingAuthenticity } from "@/server/forgery-gameplay";
 import { requirePlayerApi } from "@/server/player-api";
+import { refreshGalleryMetadata } from "@/server/gallery-metadata";
 
 type Player = {
   _id: string;
@@ -175,6 +176,9 @@ export async function POST(
     );
   }
 
+  if (item.status === "displayed" || item.permanent) {
+    await refreshGalleryMetadata(database, player._id);
+  }
   return NextResponse.json({
     status: "ok",
     ...(cosmetic ? { rendererId: cosmetic.id } : {}),

@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import type { GameItem } from "@/server/gameplay";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
+import { refreshGalleryMetadata } from "@/server/gallery-metadata";
+import { getItemDisposalFilter, getItemDisposalPermission } from "@/server/item-permissions";
 
 export async function POST(
   request: Request,
@@ -16,7 +18,7 @@ export async function POST(
   const item = await database.collection<GameItem>("items").findOne({
     _id: id,
     owner: auth.session.playerId,
-    status: "claimed",
+    status: { $in: ["claimed", "displayed"] },
   });
   if (!item) {
     return NextResponse.json(
@@ -31,17 +33,9 @@ export async function POST(
   } | null;
   const nextOffered =
     typeof body?.offered === "boolean" ? body.offered : !offered;
-  if (nextOffered && item.original) {
-    return NextResponse.json(
-      { error: "Original artwork cannot be offered to Art Collectors." },
-      { status: 409 },
-    );
-  }
-  if (nextOffered && item.permanent) {
-    return NextResponse.json(
-      { error: "Remove this item from your permanent collection before offering it to Collectors." },
-      { status: 409 },
-    );
+  const permission = getItemDisposalPermission(item, "collector-sale");
+  if (nextOffered && !permission.allowed) {
+    return NextResponse.json({ error: permission.reason }, { status: 409 });
   }
   if (nextOffered === offered) {
     return NextResponse.json({
@@ -55,10 +49,10 @@ export async function POST(
     {
       _id: item._id,
       owner: auth.session.playerId,
-      status: "claimed",
+      status: item.status,
       mint: item.mint,
       tags: nextOffered ? { $ne: "for sale" } : "for sale",
-      ...(nextOffered ? { permanent: { $ne: true }, original: { $ne: true } } : {}),
+      ...(nextOffered ? getItemDisposalFilter("collector-sale", item.status) : {}),
     },
     nextOffered
       ? { $addToSet: { tags: "for sale" } }
@@ -71,6 +65,9 @@ export async function POST(
     );
   }
 
+  if (item.status === "displayed") {
+    await refreshGalleryMetadata(database, auth.session.playerId);
+  }
   return NextResponse.json({
     status: "ok",
     message: nextOffered

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { refreshGalleryMetadata } from "@/server/gallery-metadata";
 import { recordEconomyMetricsSafely } from "@/server/economy-metrics";
+import { getItemDisposalFilter } from "@/server/item-permissions";
 
 import {
   getGameplayGenerationMap,
@@ -523,7 +525,7 @@ export async function POST(
         return NextResponse.json({
           status: "ok",
           message:
-            "You met an Art Expert, but you have no promoted items for them to discuss.",
+            "You met an Art Expert, but you have no featured items for them to discuss.",
         });
       }
 
@@ -1056,6 +1058,7 @@ export async function POST(
     let removedTarget: GameItem | null = null;
     let collectorResaleAuction: Auction | null = null;
     let collectorResaleItem: HydratedGameItem | null = null;
+    let galleryChanged = false;
 
     try {
       const [
@@ -1179,10 +1182,8 @@ export async function POST(
           .collection<GameItem>("items")
           .find({
             owner: player._id,
-            status: "claimed",
             tags: "for sale",
-            permanent: { $ne: true },
-            original: { $ne: true },
+            ...getItemDisposalFilter("collector-sale", "claimed"),
           })
           .toArray();
         const currentPlayer = await database
@@ -1200,10 +1201,8 @@ export async function POST(
             {
               _id: candidate._id,
               owner: player._id,
-              status: "claimed",
               tags: "for sale",
-              permanent: { $ne: true },
-              original: { $ne: true },
+              ...getItemDisposalFilter("collector-sale", candidate.status),
             },
             {
               $set: {
@@ -1214,12 +1213,15 @@ export async function POST(
             },
           );
           if (reserved.modifiedCount !== 1) continue;
+          reservedTarget = candidate;
+          galleryChanged ||= candidate.status === "displayed";
           const [hydrated] = await hydrateGameItems(database, [candidate]);
           if (!hydrated) {
             await database.collection<GameItem>("items").updateOne(
               { _id: candidate._id, status: "collector_pending" },
-              { $set: { status: "claimed" } },
+              { $set: { status: candidate.status } },
             );
+            reservedTarget = null;
             continue;
           }
           const caught =
@@ -1257,7 +1259,7 @@ export async function POST(
                 },
                 {
                   $set: {
-                    status: "claimed",
+                    status: candidate.status,
                     "authenticity.identified": true,
                     "authenticity.forgery_quality": punishForgeryQuality(
                       candidate.authenticity.forgery_quality,
@@ -1266,8 +1268,11 @@ export async function POST(
                 },
               );
               if (identified.modifiedCount !== 1) continue;
-              outcome = "The sale failed. It was identified and returned to your inventory.";
+              outcome = candidate.status === "displayed"
+                ? "The sale failed. It was identified and remains featured."
+                : "The sale failed. It was identified and returned to your inventory.";
             }
+            reservedTarget = null;
             detectedCount += 1;
             await notifyForgeryDetection(
               database,
@@ -1335,21 +1340,22 @@ export async function POST(
                   owner: player._id,
                   status: "collector_pending",
                 },
-                { $set: { status: "claimed" } },
+                { $set: { status: candidate.status } },
               );
             } else if (preserved) {
               await restoreTransferredHallOfFameItem(database, {
                 ...candidate,
-                status: "claimed",
+                status: candidate.status,
               });
             } else {
               await database.collection<GameItem>("items").insertOne({
                 ...candidate,
-                status: "claimed",
+                status: candidate.status,
               });
             }
             throw new Error("The Collector buyout reward could not be paid.");
           }
+          reservedTarget = null;
           if (collectorAuction) {
             collectorAuctionIds.push(collectorAuction._id);
           } else if (!preserved) {
@@ -1393,10 +1399,8 @@ export async function POST(
           {
             $match: {
               owner: player._id,
-              status: "claimed",
               tags: "for sale",
-              permanent: { $ne: true },
-              original: { $ne: true },
+              ...getItemDisposalFilter("collector-sale", "claimed"),
             },
           },
           { $sample: { size: 1 } },
@@ -1415,10 +1419,8 @@ export async function POST(
         {
           _id: target._id,
           owner: player._id,
-          status: "claimed",
           tags: "for sale",
-          permanent: { $ne: true },
-          original: { $ne: true },
+          ...getItemDisposalFilter("collector-sale", target.status),
         },
         {
           $set: {
@@ -1432,6 +1434,7 @@ export async function POST(
         throw new Error("That artwork is no longer available to the Collector.");
       }
       reservedTarget = target;
+      galleryChanged ||= target.status === "displayed";
 
       const [hydratedTarget] = await hydrateGameItems(database, [target]);
       if (!hydratedTarget) throw new Error("The Collector artwork is unavailable.");
@@ -1493,7 +1496,7 @@ export async function POST(
           { _id: target._id, owner: player._id, status: "collector_pending" },
           {
             $set: {
-              status: "claimed",
+              status: target.status,
               "authenticity.liability_pending": false,
               "authenticity.liable": player._id,
               "authenticity.identified": true,
@@ -1510,7 +1513,7 @@ export async function POST(
         await notifyForgeryDetection(
           database,
           player._id,
-          `${npc.npc_name} detected ${hydratedTarget.artwork.title} as a forgery. The sale failed. It was identified and returned to your inventory.`,
+          `${npc.npc_name} detected ${hydratedTarget.artwork.title} as a forgery. The sale failed. It was identified and ${target.status === "displayed" ? "remains featured" : "returned to your inventory"}.`,
         );
         // TODO AI: Apply the legacy temporary visitor reputation penalty once
         // the reputation and visitor-ignore systems are ported.
@@ -1575,7 +1578,7 @@ export async function POST(
             owner: player._id,
             status: "collector_pending",
           },
-          { $set: { status: "claimed" } },
+          { $set: { status: target.status } },
         );
         if (restored.modifiedCount !== 1) {
           throw new Error("The Collector could not release the artwork.");
@@ -1765,7 +1768,7 @@ export async function POST(
               owner: player._id,
               status: "collector_pending",
             },
-            { $set: { status: "claimed" } },
+            { $set: { status: reservedTarget.status } },
           ),
         );
       } else if (removedTarget) {
@@ -1773,11 +1776,11 @@ export async function POST(
           hallOfFameTransferred
             ? restoreTransferredHallOfFameItem(database, {
                 ...removedTarget,
-                status: "claimed",
+                status: removedTarget.status,
               })
             : database.collection<GameItem>("items").insertOne({
                 ...removedTarget,
-                status: "claimed",
+                status: removedTarget.status,
               }),
         );
       }
@@ -1792,6 +1795,10 @@ export async function POST(
         },
         { status: 500 },
       );
+    } finally {
+      if (galleryChanged) {
+        await refreshGalleryMetadata(database, player._id);
+      }
     }
   }
 

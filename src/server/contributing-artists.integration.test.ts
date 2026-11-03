@@ -38,6 +38,7 @@ import * as itemAttributeCounts from "./item-attribute-counts.ts";
 import * as itemDropChance from "./item-drop-chance.ts";
 import * as itemSerials from "./item-serials.ts";
 import * as offerReveal from "./offer-reveal.ts";
+import { getItemDisposalFilter } from "./item-permissions.ts";
 import * as cardCatalog from "../components/item-cards/catalog.ts";
 
 const require = createRequire(import.meta.url);
@@ -560,6 +561,11 @@ test("artist applications, publication and featured galleries persist without gr
     const normalNpcs = (await getGalleryNpcs(db, account.id, now)).filter(npc => !bonusIds.has(npc._id));
     assert.ok(normalNpcs.length > 0, "A nonfeatured artist's displayed game items must attract normal visitors");
     const normalIds = new Set(normalNpcs.map(npc => npc._id));
+    await documents(db, "items").updateMany({ owner: account.id }, { $set: { permanent: true } });
+    await documents(db, "npcs").deleteMany({ owner_id: account.id });
+    await refreshNpcSpawns(db, now, 1, account.id, 0);
+    assert.deepEqual(await getGalleryNpcs(db, account.id, now), normalNpcs,
+      "Promoted permanent works must retain normal visitor attraction and artwork effects");
     await documents(db, "npcs").deleteMany({ owner_id: account.id });
     await documents(db, "players").updateOne({ _id: account.id }, { $set: { artist_featured: true } });
     await refreshNpcSpawns(db, now, 1, account.id);
@@ -819,6 +825,8 @@ test("artist applications, publication and featured galleries persist without gr
     const meet = await load<{ POST: (request: Request, context: { params: Promise<{ id: string }> }) => Promise<Response> }>(
       "../app/api/play/npcs/[id]/meet/route.ts", {
         "next/server": { NextResponse }, "@/server/economy-metrics": {},
+        "@/server/item-permissions": { getItemDisposalFilter },
+        "@/server/gallery-metadata": { refreshGalleryMetadata: async () => {} },
         "@/server/game-settings": settingsCore, "@/server/collector-gameplay": {}, "@/server/art-expert-gameplay": {},
         "@/server/karma": { ensurePlayerKarma: async () => {} }, "@/server/npc-quest-item": {},
         "@/server/art-historian-gameplay": {}, "@/server/auctioneer-gameplay": {}, "@/server/auction-gameplay": {},

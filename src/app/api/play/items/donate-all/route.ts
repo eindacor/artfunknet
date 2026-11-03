@@ -24,6 +24,7 @@ import { ensurePlayerKarma } from "@/server/karma";
 import { getDisplayedLegendaryEffect } from "@/server/legendary-attributes";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
+import { getItemDisposalFilter, getItemDisposalPermission } from "@/server/item-permissions";
 
 export async function POST(request: Request) {
   const auth = await requirePlayerApi();
@@ -46,7 +47,9 @@ export async function POST(request: Request) {
 
   const { candidates, hydratedCandidates, items: filteredItems } =
     await getFilteredBulkLootCandidates(database, auth.session.playerId, protections);
-  const items = filteredItems.filter((item) => !item.original);
+  const items = filteredItems.filter((item) =>
+    getItemDisposalPermission(item, "donate").allowed,
+  );
 
   if (candidates.length === 0) {
     return NextResponse.json(
@@ -158,8 +161,7 @@ export async function POST(request: Request) {
       {
         _id: { $in: ids },
         owner: auth.session.playerId,
-        status: "unclaimed",
-        original: { $ne: true },
+        ...getItemDisposalFilter("donate", "unclaimed"),
       },
       {
         $set: {

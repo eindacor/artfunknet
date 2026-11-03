@@ -23,6 +23,7 @@ export async function GET() {
       submissionsOpen: contest.submissionsOpen,
       votingOpen: contest.votingOpen,
       nextSettlementAt: contest.nextSettlementAt,
+      prizes: contest.prizes,
       currentEntryId: contest.currentEntry?.id ?? null,
       eligibleItems: contest.eligibleForgeries,
       entries: contest.entries.map((entry) => ({

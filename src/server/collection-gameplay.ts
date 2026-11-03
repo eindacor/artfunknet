@@ -151,7 +151,7 @@ export async function calculateGalleryRates(
   at: Date,
   config: GameplayConfig,
 ): Promise<GalleryRates> {
-  items = items.filter((item) => !item.permanent);
+  items = items.filter((item) => item.status === "displayed");
   const [averageDrop, effects] = await Promise.all([
     getAverageDropValueForLevel(database, playerLevel),
     items[0]
@@ -378,7 +378,7 @@ export async function settleGalleryEarnings(
 
   const displayedItems = await database
     .collection<GameItem>("items")
-    .find({ owner: playerId, status: "displayed", permanent: { $ne: true } })
+    .find({ owner: playerId, status: "displayed" })
     .toArray();
 
   const displayed = await hydrateGameItems(database, displayedItems);

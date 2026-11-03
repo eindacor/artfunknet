@@ -100,7 +100,7 @@ export default function PlayHistoryPanel({
                     Submitted gallery wall ({snap.gallery_snapshot?.length || 0} items)
                   </h4>
                   {snap.gallery_snapshot.length === 0 ? (
-                    <p>No items were being promoted when this era ended.</p>
+                    <p>No items were featured when this era ended.</p>
                   ) : (
                     <div className="play-history-gallery-items">
                       {snap.gallery_snapshot.map((item) => (

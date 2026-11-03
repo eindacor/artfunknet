@@ -48,7 +48,7 @@ export function buildGalleryMetadataSnapshot(
       item.permanent &&
       (item.status === "claimed" || item.status === "displayed"),
   );
-  const displayedItems = items.filter((item) => !item.permanent);
+  const displayedItems = items.filter((item) => item.status === "displayed");
   const featuredItem =
     [...(permanentItems.length > 0 ? permanentItems : displayedItems)].sort(
       (left, right) =>
@@ -117,7 +117,8 @@ export function buildGalleryMetadataSnapshot(
     display_count: displayedItems.length,
     permanent_count: permanentItems.length,
     permanent_item_ids: permanentItems.map((item) => item._id).sort(),
-    item_count: displayedItems.length + permanentItems.length,
+    item_count: displayedItems.length +
+      permanentItems.filter((item) => item.status !== "displayed").length,
     display_capacity: Math.max(0, Math.floor(displayCapacity)),
     attributes,
     display_rarities: displayRarities,

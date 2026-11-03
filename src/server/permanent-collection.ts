@@ -6,13 +6,10 @@ export function getPermanentCollectionPermission(
   ownedItems: readonly Pick<GameItem, "_id" | "artwork_id" | "status" | "permanent">[],
   permanentCap: number,
 ): ItemPermission {
-  if (item.status !== "claimed") {
+  if (!["claimed", "displayed"].includes(item.status)) {
     return {
       allowed: false,
-      reason:
-        item.status === "displayed"
-          ? "Stop promoting this artwork before changing its permanent collection status."
-          : "Collect this artwork before adding it to your permanent collection.",
+      reason: "Collect this artwork before adding it to your permanent collection.",
     };
   }
   if (item.permanent) return { allowed: true };
@@ -24,7 +21,7 @@ export function getPermanentCollectionPermission(
         (candidate.status === "displayed" || candidate.permanent),
     )
   ) {
-    return { allowed: false, reason: "This artwork is already promoted or in your permanent collection." };
+    return { allowed: false, reason: "This artwork is already featured or in your permanent collection." };
   }
   if (ownedItems.filter((candidate) => candidate.permanent).length >= permanentCap) {
     return { allowed: false, reason: `Your ${permanentCap}-item permanent collection is full.` };

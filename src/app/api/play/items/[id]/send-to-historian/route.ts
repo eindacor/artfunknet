@@ -25,6 +25,7 @@ import {
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
 import { acquireForDisposal } from "@/server/acquire-for-disposal";
+import { getItemDisposalFilter, getItemDisposalPermission } from "@/server/item-permissions";
 
 type SendToHistorianRequest = {
   questId?: unknown;
@@ -64,15 +65,16 @@ export async function POST(
   let item = await database.collection<GameItem>("items").findOne({
     _id: id,
     owner: auth.session.playerId,
-    status: { $in: ["claimed", "displayed", "unclaimed", "for_sale"] },
-    permanent: { $ne: true },
-    repairing: { $ne: true },
   });
   if (!item) {
     return NextResponse.json(
       { error: "This item is not available to send to the Historian." },
       { status: 409 },
     );
+  }
+  const permission = getItemDisposalPermission(item, "historian");
+  if (!permission.allowed) {
+    return NextResponse.json({ error: permission.reason }, { status: 409 });
   }
 
   const quest = await database
@@ -172,9 +174,7 @@ export async function POST(
       const removal = await database.collection<GameItem>("items").deleteOne({
         _id: item._id,
         owner: auth.session.playerId,
-        status: item.status,
-        permanent: { $ne: true },
-        repairing: { $ne: true },
+        ...getItemDisposalFilter("historian", item.status),
       });
       if (removal.deletedCount !== 1) {
         throw new Error("The item changed before the Historian received it.");

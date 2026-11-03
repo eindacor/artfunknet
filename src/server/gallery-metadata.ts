@@ -107,7 +107,7 @@ export async function refreshGalleryMetadata(
   const effectCodeById = new Map(effects.map((effect) => [effect._id, effect.code]));
   const substitutionItem = items
     .filter((item) => {
-      if (item.permanent) return false;
+      if (item.status !== "displayed") return false;
       const effectId = artworkById.get(item.artwork_id)?.effect_id;
       return (
         effectId &&

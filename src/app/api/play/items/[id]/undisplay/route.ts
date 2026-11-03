@@ -30,7 +30,7 @@ export async function POST(
   );
   if (result.modifiedCount !== 1) {
     return NextResponse.json(
-      { error: "This item is not currently being promoted." },
+      { error: "This item is not currently being featured." },
       { status: 409 },
     );
   }

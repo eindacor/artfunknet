@@ -14,6 +14,17 @@ import * as inventoryCapacity from "./inventory-capacity.ts";
 import * as bulkSale from "./bulk-sale.ts";
 import * as offerReveal from "./offer-reveal.ts";
 import * as itemTags from "./item-tags.ts";
+import * as gameplay from "./gameplay.ts";
+import * as itemReroll from "./item-reroll.ts";
+import * as itemLeveling from "./item-leveling.ts";
+import * as itemMint from "./item-mint.ts";
+import * as masterpieceEffects from "./masterpiece-effects.ts";
+import * as forgeryRules from "./forgery-gameplay.ts";
+import * as auctionGameplay from "./auction-gameplay.ts";
+import * as galleryCore from "./gallery-metadata-core.ts";
+import * as showcase from "./public-showcase-core.ts";
+import { setupTestDb } from "./test-utils/db-setup.ts";
+import * as gallerySelection from "./gallery-selection.ts";
 
 type Route = (request: Request, context: { params: Promise<{ id: string }> }) => Promise<Response>;
 type Acquisition = { acquireForDisposal: (db: Db, item: GameItem) => Promise<GameItem> };
@@ -24,7 +35,7 @@ async function load<T>(path: string, dependencies: Record<string, unknown>): Pro
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText;
   return runInNewContext(`${code}\nexports`, {
-    exports: {}, console, Date,
+    exports: {}, console, Date, structuredClone,
     require: (name: string) => {
       assert.ok(name in dependencies, `Unexpected dependency: ${name}`);
       return dependencies[name];
@@ -98,14 +109,22 @@ async function routes(db: Db, overrides: Record<string, unknown> = {}) {
       items.map((item) => ({ ...item, artwork: { title: "Test", rarity: "common" } })) },
     "@/server/art-expert-gameplay": { calculateDonationKarma: () => 7, getItemKarmaValue: () => 0 },
     "@/server/art-historian-gameplay": { isHistorianSpecialItem: () => false },
-    "@/server/forgery-gameplay": { transferForgeryLiability: noop, rewardUndetectedForgeryExit: noop },
+    "@/server/forgery-gameplay": { ...forgeryRules, transferForgeryLiability: noop, rewardUndetectedForgeryExit: noop },
     "@/server/karma": { ensurePlayerKarma: noop },
-    "@/server/artwork-effects": { getDisplayedArtworkEffect: async () => null },
-    "@/server/masterpiece-effects": { MASTERPIECE_EFFECT_CODES: { historianArchive: "archive" } },
+    "@/server/artwork-effects": { getDisplayedArtworkEffect: async () => null, getArtworkEffect: async () => null },
+    "@/server/masterpiece-effects": masterpieceEffects,
+    "@/server/gameplay": gameplay,
+    "@/server/item-reroll": itemReroll,
+    "@/server/item-leveling": itemLeveling,
+    "@/server/item-mint": itemMint,
+    "@/server/item-drop-chance": { getItemDropChanceUpdate: async () => ({}) },
+    "@/server/auction-gameplay": { ...auctionGameplay, settleExpiredAuctions: noop },
+    "@/server/preservationist-gameplay": { settlePlayerItemRepairs: async () => ({ completedItems: 0, karma: 0 }) },
     "@/server/card-renderer-settings": { getCardRendererCatalog: async () => [] },
     "@/components/item-cards/catalog": { getCardStyleInventory: () => ({}), getCardCosmetic: () => undefined },
     "@/server/gallery-metadata": { refreshGalleryMetadata: noop },
     "@/server/item-permissions": permissions,
+    "@/server/gallery-selection": gallerySelection,
     "@/server/item-tags": itemTags,
     "@/server/bulk-sale": bulkSale,
     "@/server/game-settings": { getGameplaySettings: async () => ({ active: {
@@ -136,6 +155,11 @@ async function routes(db: Db, overrides: Record<string, unknown> = {}) {
     setForSale: await route("purchase-and-set-for-sale"),
     claimForSale: await route("claim-and-set-for-sale"),
     sell: await route("sell"), collector: await route("collector-sale"),
+    reroll: await route("reroll"), level: await route("level"),
+    authenticate: await route("authenticate"), auction: await route("auction"), repair: await route("repair"),
+    display: await route("display"), undisplay: await route("undisplay"),
+    cardRenderer: await route("card-renderer"),
+    setGallery: (await load<{ POST: (request: Request) => Promise<Response> }>("../app/api/play/items/set-gallery/route.ts", dependencies)).POST,
     tags: (await load<{ PATCH: Route }>("../app/api/play/items/[id]/tags/route.ts", dependencies)).PATCH,
     sellAll: (await load<{ POST: (request: Request) => Promise<Response> }>("../app/api/play/items/sell-all/route.ts", dependencies)).POST,
     donateAll: (await load<{ POST: (request: Request) => Promise<Response> }>("../app/api/play/items/donate-all/route.ts", dependencies)).POST,
@@ -149,14 +173,211 @@ function invoke(route: Route, questId = "quest") {
   }), { params: Promise.resolve({ id: "offer" }) });
 }
 
-test("direct disposal can acquire offers with a full inventory without bypassing ordinary purchase limits", async (t) => {
+async function promotedGallery(db: Db, overrides: Record<string, unknown> = {}) {
+  const artwork: gameplay.Artwork = {
+    _id: "art", active: true, rarity: "common", value_scale: 0.5,
+    title: "Promoted work", artist: "Artist", artist_id: "artist",
+    date: 2026, genre: "Abstract", medium: "Oil", width: 80, height: 100,
+  };
+  const attribute: gameplay.ItemAttribute = {
+    _id: "chosen", title: "Chosen", type: "regular", value: 0.6,
+    description: "", icon: "fa-user", npc_name: "Visitor", active: true,
+  };
+  await setupTestDb(db, "player", {
+    playerProfile: { bankBalance: 100_000 }, artworks: [artwork],
+    attributes: [attribute, { ...attribute, _id: "replacement", title: "Replacement" }],
+  });
+  await db.collection("players").updateOne({ _id: "player" }, {
+    $set: { screen_name: "Player", "profile.karma": 50_000, "profile.display_cap": 5, "profile.auction_cap": 5 },
+  });
+  const work = {
+    ...offer("displayed"), revealed: true, roll_count: 0, tags: ["favorite"],
+    time_displayed: new Date(Date.now() - 60_000).toISOString(),
+    authenticity: { ...offer().authenticity, fee: 100 },
+    attributes: { locked: [], unlocked: [attribute], special: [] },
+  };
+  const loot = await db.collection<{ _id: string; loot_data: gameplay.LootData }>("metadata").findOne({ _id: "loot-data" });
+  work.values = gameplay.calculateItemValues(work, artwork, loot!.loot_data);
+  await db.collection<GameItem>("items").insertOne(work);
+  await db.collection<{ _id: string }>("quests").insertOne({
+    _id: "quest", owner_id: "player", target: ["art"], fulfilled_targets: [], reward: { money: 100 },
+  });
+  const metadata = await load<typeof import("./gallery-metadata.ts")>("./gallery-metadata.ts", {
+    "server-only": {}, "./gallery-metadata-core": galleryCore,
+    "./masterpiece-effects.ts": masterpieceEffects, "./public-showcase-core.ts": showcase,
+  });
+  await metadata.refreshGalleryMetadata(db, "player");
+  return { work, api: await routes(db, { "@/server/gallery-metadata": metadata, ...overrides }) };
+}
+
+test("item actions preserve acquisition limits, Original protections and promoted gallery metadata", async (t) => {
   const server = await MongoMemoryServer.create();
   const client = new MongoClient(server.getUri());
   t.after(async () => { await client.close(); await server.stop(); });
   await client.connect();
 
+  for (const action of ["display", "setGallery"] as const) {
+    await t.test(`${action} preserves existing Collector offerings when promoting artwork`, async () => {
+      const db = client.db(`promote-for-sale-${action}`);
+      const { api, work } = await promotedGallery(db);
+      await db.collection<GameItem>("items").updateOne({ _id: work._id }, {
+        $set: { status: "claimed", tags: ["favorite", "for sale"] }, $unset: { time_displayed: "" },
+      });
+      const request = new Request("http://localhost", { method: "POST", body: JSON.stringify({ itemIds: [work._id] }) });
+      const response = action === "display"
+        ? await api.display(request, { params: Promise.resolve({ id: work._id }) })
+        : await api.setGallery(request);
+      assert.equal(response.status, 200);
+      assert.deepEqual((await db.collection<GameItem>("items").findOne({ _id: work._id }))?.tags, ["favorite", "for sale"]);
+      assert.equal((await db.collection("galleries").findOne({ owner_id: "player" }))?.display_count, 1);
+    });
+  }
+  await t.test("art style changes refresh promoted Mint values in gallery metadata", async () => {
+    const db = client.db("promoted-art-style");
+    const { api, work } = await promotedGallery(db, {
+      "@/components/item-cards/catalog": { getCardCosmetic: () => ({ id: "zine" }), getCardStyleInventory: () => ({}) },
+      "@/server/item-mint": { getDemintUpdate: async () => ({
+        mint: false, mint_value_multiplier: 1, values: { ...offer().values, actual: 321 },
+      }) },
+    });
+    await db.collection<GameItem>("items").updateOne({ _id: work._id }, {
+      $set: { mint: true, mint_value_multiplier: 2, card_renderer: "zine" },
+    });
+    const response = await api.cardRenderer(new Request("http://localhost", {
+      method: "POST", body: JSON.stringify({ removeStyle: true }),
+    }), { params: Promise.resolve({ id: work._id }) });
+    assert.equal(response.status, 200);
+    const saved = await db.collection<GameItem>("items").findOne({ _id: work._id });
+    assert.equal(saved?.status, "displayed");
+    assert.equal(saved?.mint, false);
+    assert.equal(saved?.card_renderer, undefined);
+    assert.equal((await db.collection("galleries").findOne({ owner_id: "player" }))?.value, 321);
+  });
+
+  for (const action of ["sell", "donate", "historian", "archive", "collector", "authenticate", "reroll", "level", "auction", "repair"] as const) {
+    await t.test(`promoted artwork enforces ${action} permissions without stale gallery metadata`, async () => {
+      const db = client.db(`promoted-${action}`);
+      const { api, work } = await promotedGallery(db);
+      const body = action === "reroll" ? { mode: "attribute", attributeId: "chosen" }
+        : action === "auction" ? { startingBid: work.values.auction_min, buyNow: null, durationMinutes: 60 }
+          : { questId: "quest" };
+      const response = await api[action](new Request("http://localhost", {
+        method: "POST", body: JSON.stringify(body),
+      }), { params: Promise.resolve({ id: work._id }) });
+      const disposalAction = action === "collector" ? "collector-sale" : action;
+      const restricted = ["sell", "donate", "historian", "collector", "auction", "repair"].includes(action);
+      assert.equal(response.status, restricted ? 409 : 200, JSON.stringify(await response.clone().json()));
+      if (restricted && disposalAction !== "repair") {
+        assert.equal((await response.json()).error, permissions.getItemDisposalPermission(
+          work, disposalAction as permissions.ItemDisposalAction,
+        ).reason);
+      }
+      const saved = await db.collection<GameItem>("items").findOne({ _id: work._id });
+      const gallery = await db.collection("galleries").findOne({ owner_id: "player" });
+      if (action === "archive") {
+        assert.equal(saved?.status ?? null, null);
+        assert.equal(gallery?.item_count, 0);
+        assert.equal(gallery?.value, 0);
+        assert.equal(gallery?.score, 0);
+        assert.equal(gallery?.featured_item_id, null);
+      } else {
+        assert.ok(saved);
+        assert.equal(saved.status, "displayed");
+        assert.equal(saved.time_displayed, work.time_displayed);
+        assert.equal(saved.repairing, false);
+        assert.equal(gallery?.item_count, 1);
+        assert.equal(gallery?.value, saved.values.actual);
+        assert.equal(gallery?.featured_value, saved.values.actual);
+        if (action === "reroll") {
+          assert.equal(saved.attributes.unlocked[0]._id, "replacement");
+          assert.equal(gallery?.attributes[0].id, "replacement");
+          assert.equal(gallery?.score, Math.floor(Number(saved.attributes.unlocked[0].value!.toFixed(6)) * 100));
+        }
+        if (action === "level") assert.equal(saved.level, 2);
+        if (action === "authenticate") assert.equal(saved.authenticity.identified, true);
+        if (action === "collector") assert.equal(saved.tags.includes("for sale"), false);
+        if (action === "auction") assert.equal(await db.collection("auctions").countDocuments({ item_id: work._id }), 0);
+      }
+    });
+  }
+  await t.test("eligible auctions still restore inventory and sale tags when creation fails", async () => {
+    const db = client.db("eligible-auction-failure");
+    const { api, work } = await promotedGallery(db, {
+      "@/server/auction-gameplay": {
+        ...auctionGameplay, settleExpiredAuctions: async () => {},
+        createAuction: async () => { throw new Error("Auction creation failed"); },
+      },
+    });
+    assert.equal((await invoke(api.undisplay)).status, 200);
+    await db.collection<GameItem>("items").updateOne({ _id: work._id }, { $addToSet: { tags: "for sale" } });
+    const response = await api.auction(new Request("http://localhost", {
+      method: "POST", body: JSON.stringify({ startingBid: work.values.auction_min, durationMinutes: 60 }),
+    }), { params: Promise.resolve({ id: work._id }) });
+    assert.equal(response.status, 500);
+    const saved = await db.collection<GameItem>("items").findOne({ _id: work._id });
+    assert.equal(saved?.status, "claimed");
+    assert.equal(saved?.time_displayed, undefined);
+    assert.deepEqual(saved?.tags, ["favorite", "for sale"]);
+    const gallery = await db.collection("galleries").findOne({ owner_id: "player" });
+    assert.equal(gallery?.item_count, 0);
+    assert.equal(gallery?.value, 0);
+  });
+
+  await t.test("promoted and permanent works reject every destructive endpoint and custom sale tag without side effects", async () => {
+    for (const flags of [
+      { status: "displayed", permanent: false },
+      { status: "claimed", permanent: true },
+      { status: "displayed", permanent: true },
+    ] as const) {
+      const db = client.db(`protected-actions-${flags.status}-${flags.permanent}`);
+      const work = { ...offer(flags.status), ...flags, tags: [] };
+      await seed(db, work);
+      const api = await routes(db);
+      const playerBefore = await db.collection("players").findOne({ _id: "player" });
+      for (const action of ["sell", "donate", "historian", "auction", "collector"] as const) {
+        const body = action === "auction"
+          ? { startingBid: work.values.auction_min, durationMinutes: 60 }
+          : { questId: "quest", offered: true };
+        const response = await api[action](new Request("http://localhost", {
+          method: "POST", body: JSON.stringify(body),
+        }), { params: Promise.resolve({ id: work._id }) });
+        assert.equal(response.status, 409, action);
+        assert.equal((await response.json()).error, permissions.getItemDisposalPermission(
+          work, action === "collector" ? "collector-sale" : action,
+        ).reason, action);
+      }
+      const tagResponse = await api.tags(new Request("http://localhost", {
+        method: "PATCH", body: JSON.stringify({ tags: ["for sale"] }),
+      }), { params: Promise.resolve({ id: work._id }) });
+      assert.equal(tagResponse.status, 409);
+      assert.equal((await tagResponse.json()).error, permissions.getItemDisposalPermission(work, "collector-sale").reason);
+      assert.deepEqual(await db.collection<GameItem>("items").findOne({ _id: work._id }), work);
+      assert.deepEqual(await db.collection("players").findOne({ _id: "player" }), playerBefore);
+      assert.equal(await db.collection("auctions").countDocuments(), 0);
+      assert.deepEqual((await db.collection("quests").findOne({ _id: "quest" }))?.fulfilled_targets, []);
+      await db.collection<GameItem>("items").updateOne({ _id: work._id }, { $set: { tags: ["for sale"] } });
+      assert.equal((await invoke(api.collector)).status, 200);
+      assert.deepEqual((await db.collection<GameItem>("items").findOne({ _id: work._id }))?.tags, []);
+    }
+  });
+
+  await t.test("stopping promotion restores ordinary disposal and sale actions", async () => {
+    for (const action of ["sell", "donate", "historian", "auction", "collector"] as const) {
+      const db = client.db(`unprotected-${action}`);
+      const { api, work } = await promotedGallery(db);
+      assert.equal((await invoke(api.undisplay)).status, 200);
+      const response = await api[action](new Request("http://localhost", {
+        method: "POST",
+        body: JSON.stringify(action === "auction"
+          ? { startingBid: work.values.auction_min, durationMinutes: 60 }
+          : { questId: "quest" }),
+      }), { params: Promise.resolve({ id: work._id }) });
+      assert.equal(response.status, 200, JSON.stringify(await response.clone().json()));
+    }
+  });
+
   await t.test("Originals cannot be quick sold or donated, including unclaimed loot and dealer offers", async () => {
-    for (const status of ["claimed", "unclaimed", "for_sale"] as const) {
+    for (const status of ["claimed", "displayed", "unclaimed", "for_sale"] as const) {
       const db = client.db(`original-disposal-${status}`);
       const original = { ...offer(status), original: true };
       await seed(db, original);
@@ -174,23 +395,25 @@ test("direct disposal can acquire offers with a full inventory without bypassing
       }
     }
   });
-  await t.test("quick sale and donation recheck Original protection before removing an item", async () => {
+  await t.test("quick sale and donation recheck Original and gallery protections before removing an item", async () => {
     for (const action of ["sell", "donate"] as const) {
-      const db = client.db(`original-before-removal-${action}`);
-      const item = offer("claimed");
-      await seed(db, item);
-      const playerBefore = await db.collection("players").findOne({ _id: "player" });
-      const api = await routes(db, {
-        "@/server/item-artwork": {
-          hydrateGameItems: async (_db: Db, items: GameItem[]) => {
-            await db.collection<GameItem>("items").updateOne({ _id: item._id }, { $set: { original: true } });
-            return items.map((item) => ({ ...item, artwork: { title: "Test", rarity: "common" } }));
+      for (const protection of [{ original: true }, { permanent: true }, { status: "displayed" }] as const) {
+        const db = client.db(`protected-before-removal-${action}-${Object.keys(protection)[0]}`);
+        const item = offer("claimed");
+        await seed(db, item);
+        const playerBefore = await db.collection("players").findOne({ _id: "player" });
+        const api = await routes(db, {
+          "@/server/item-artwork": {
+            hydrateGameItems: async (_db: Db, items: GameItem[]) => {
+              await db.collection<GameItem>("items").updateOne({ _id: item._id }, { $set: protection });
+              return items.map((item) => ({ ...item, artwork: { title: "Test", rarity: "common" } }));
+            },
           },
-        },
-      });
-      assert.equal((await invoke(api[action])).status, 409);
-      assert.deepEqual(await db.collection<GameItem>("items").findOne({ _id: item._id }), { ...item, original: true });
-      assert.deepEqual(await db.collection("players").findOne({ _id: "player" }), playerBefore);
+        });
+        assert.equal((await invoke(api[action])).status, 409);
+        assert.deepEqual(await db.collection<GameItem>("items").findOne({ _id: item._id }), { ...item, ...protection });
+        assert.deepEqual(await db.collection("players").findOne({ _id: "player" }), playerBefore);
+      }
     }
   });
   await t.test("Originals cannot be offered through Collector toggles or custom tags, but existing offerings can be removed", async () => {

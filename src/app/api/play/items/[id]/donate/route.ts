@@ -31,6 +31,8 @@ import { addItemToArchiveRecord } from "@/server/archive-storage";
 import { MASTERPIECE_EFFECT_CODES } from "@/server/masterpiece-effects";
 import { getCardRendererCatalog } from "@/server/card-renderer-settings";
 import { acquireForDisposal } from "@/server/acquire-for-disposal";
+import { refreshGalleryMetadata } from "@/server/gallery-metadata";
+import { getItemDisposalFilter, getItemDisposalPermission } from "@/server/item-permissions";
 
 type Player = {
   _id: string;
@@ -56,15 +58,16 @@ export async function POST(
   let item = await database.collection<GameItem>("items").findOne({
     _id: id,
     owner: auth.session.playerId,
-    status: { $in: ["claimed", "unclaimed", "for_sale"] },
-    permanent: { $ne: true },
-    original: { $ne: true },
   });
   if (!item) {
     return NextResponse.json(
       { error: "This item cannot currently be donated." },
       { status: 409 },
     );
+  }
+  const permission = getItemDisposalPermission(item, "donate");
+  if (!permission.allowed) {
+    return NextResponse.json({ error: permission.reason }, { status: 409 });
   }
 
   const [hydratedItem] = await hydrateGameItems(database, [item]);
@@ -97,7 +100,7 @@ export async function POST(
         : await database.collection<GameItem>("items").deleteOne({
             _id: item._id,
             owner: auth.session.playerId,
-            status: item.status,
+            ...getItemDisposalFilter("donate", item.status),
             "authenticity.forgery": true,
             "authenticity.identified": true,
           });
@@ -112,6 +115,9 @@ export async function POST(
       }
       if (!preserved) {
         await deleteCommunityReactions(database, "item", [item._id]);
+      }
+      if (item.status === "displayed") {
+        await refreshGalleryMetadata(database, auth.session.playerId);
       }
       const message = preserved
         ? "The recipient detected the forgery. The donation failed, and Artfunkel Inc. preserved the artwork."
@@ -130,10 +136,10 @@ export async function POST(
       });
     }
     const identified = await database.collection<GameItem>("items").updateOne(
-      { _id: item._id, owner: auth.session.playerId, status: item.status, "authenticity.identified": false },
+      { _id: item._id, owner: auth.session.playerId, ...getItemDisposalFilter("donate", item.status), "authenticity.identified": false },
       {
         $set: {
-          status: "claimed",
+          status: item.status === "displayed" ? "displayed" : "claimed",
           "authenticity.liable": auth.session.playerId,
           "authenticity.liability_pending": false,
           "authenticity.identified": true,
@@ -148,8 +154,12 @@ export async function POST(
         { status: 409 },
       );
     }
-    const message =
-      "The museum detected the forgery. It was identified, returned to your inventory, and yielded no Karma.";
+    const message = item.status === "displayed"
+      ? "The museum detected the forgery. It was identified and remains featured, and yielded no Karma."
+      : "The museum detected the forgery. It was identified, returned to your inventory, and yielded no Karma.";
+    if (item.status === "displayed") {
+      await refreshGalleryMetadata(database, auth.session.playerId);
+    }
     await notifyForgeryDetection(database, auth.session.playerId, `${hydratedItem.artwork.title}: ${message}`);
     return NextResponse.json({
       status: "ok",
@@ -176,7 +186,7 @@ export async function POST(
         .findOneAndDelete({
           _id: item._id,
           owner: auth.session.playerId,
-          status: item.status,
+          ...getItemDisposalFilter("donate", item.status),
           level: item.level,
           foil: item.foil,
           unlocked: item.unlocked,
@@ -185,8 +195,6 @@ export async function POST(
           seasonal: item.seasonal,
           lottery: item.lottery,
           vintage: item.vintage,
-          permanent: { $ne: true },
-          original: { $ne: true },
           ...rendererFilter,
         });
   if (!donatedItem) {
@@ -250,6 +258,9 @@ export async function POST(
   }
   if (!isHoF) {
     await deleteCommunityReactions(database, "item", [item._id]);
+  }
+  if (item.status === "displayed") {
+    await refreshGalleryMetadata(database, auth.session.playerId);
   }
   const historianArchiveEffect = await getDisplayedArtworkEffect(
     database,

@@ -38,6 +38,28 @@ test("archive categories preserve the original modifier order", () => {
   );
 });
 
+test("Original variants do not add archive categories or completion statistics", () => {
+  const original = {
+    _id: "original",
+    ...standard,
+    original: true,
+    foil: true,
+    card_renderer: "museum",
+    values: { actual: 120 },
+  };
+  const entry = createArchiveEntry(original, "2026-11-03T00:00:00.000Z");
+  const modifiers = getArchiveRecordModifiers({ entries: [entry] });
+  assert.deepEqual(entry.modifiers, ["standard", "foil"]);
+  assert.deepEqual(modifiers, ["standard", "foil"]);
+  assert.deepEqual(
+    getArchivePropertyProgress(
+      { modifiers, artStyles: [] },
+      { activeArtStyles: ["museum"], seasonalEligible: true },
+    ),
+    { archived: 2, total: 7 },
+  );
+});
+
 test("archive records aggregate modifiers, styles, and values", () => {
   const first = createArchiveEntry(
     {

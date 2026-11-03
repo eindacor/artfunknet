@@ -244,10 +244,10 @@ export function getAuthenticationPermission(
   item: Pick<GameItem, "owner" | "status" | "authenticity">,
   playerId: string,
 ) {
-  if (item.owner !== playerId || item.status !== "claimed") {
+  if (item.owner !== playerId || !["claimed", "displayed"].includes(item.status)) {
     return {
       allowed: false as const,
-      reason: "Only owned inventory artwork can be authenticated.",
+      reason: "Only owned collection artwork can be authenticated.",
     };
   }
   if (item.authenticity.identified) {
@@ -277,8 +277,8 @@ export function getForgeryReturnPermission(
   config: ForgeryReturnConfig,
   now = new Date(),
 ): ForgeryReturnPermission {
-  if (item.owner !== playerId || item.status !== "claimed") {
-    return { allowed: false, reason: "Only owned inventory artwork can be returned." };
+  if (item.owner !== playerId || !["claimed", "displayed"].includes(item.status)) {
+    return { allowed: false, reason: "Only owned collection artwork can be returned." };
   }
   if (!item.authenticity.identified) {
     return { allowed: false, reason: "Authenticate this artwork before returning it." };

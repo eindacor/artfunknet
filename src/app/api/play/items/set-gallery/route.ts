@@ -132,7 +132,7 @@ export async function POST(request: Request) {
         },
       );
       if (takenDown.modifiedCount !== plan.takeDownIds.length) {
-        throw new Error("Promoted artworks changed before replacement.");
+        throw new Error("Featured artworks changed before replacement.");
       }
     }
 
@@ -144,7 +144,6 @@ export async function POST(request: Request) {
           owner: player._id,
           status: "claimed",
           repairing: { $ne: true },
-          permanent: { $ne: true },
         },
         {
           $set: {
@@ -152,11 +151,10 @@ export async function POST(request: Request) {
             status: "displayed",
             time_displayed: now,
           },
-          $pull: { tags: "for sale" },
         },
       );
       if (displayed.modifiedCount !== 1) {
-        throw new Error("A selected artwork changed before it was promoted.");
+        throw new Error("A selected artwork changed before it was featured.");
       }
     }
 
@@ -251,15 +249,6 @@ async function restoreGalleryItems(
       status: "displayed" as const,
       time_displayed: operationTime,
     };
-    if (item.tags.includes("for sale")) {
-      await database.collection<GameItem>("items").updateOne(filter, {
-        ...restoreUpdate,
-        $addToSet: { tags: "for sale" },
-      });
-    } else {
-      await database
-        .collection<GameItem>("items")
-        .updateOne(filter, restoreUpdate);
-    }
+    await database.collection<GameItem>("items").updateOne(filter, restoreUpdate);
   }
 }

@@ -14,6 +14,7 @@ import {
   removeExpiredTransientItems,
 } from "@/server/item-expiration";
 import { requirePlayerApi } from "@/server/player-api";
+import { getItemDisposalFilter, getItemDisposalPermission } from "@/server/item-permissions";
 
 type Player = {
   _id: string;
@@ -68,11 +69,9 @@ export async function POST(
       { status: 409 },
     );
   }
-  if (item.original) {
-    return NextResponse.json(
-      { error: "Original artwork cannot be offered to Art Collectors." },
-      { status: 409 },
-    );
+  const permission = getItemDisposalPermission(item, "collector-sale");
+  if (!permission.allowed) {
+    return NextResponse.json({ error: permission.reason }, { status: 409 });
   }
 
   if (!(await hasInventorySpaceForItem(database, player, item))) {
@@ -127,8 +126,7 @@ export async function POST(
     {
       _id: item._id,
       owner: player._id,
-      status: "for_sale",
-      original: { $ne: true },
+      ...getItemDisposalFilter("collector-sale", "for_sale"),
       ...unexpiredFilter,
     },
     { $set: setter, $unset: { expires_at: "" }, $addToSet: { tags: "for sale" } },

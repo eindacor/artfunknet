@@ -216,11 +216,21 @@ export function ItemVariantBadges({
   const archivedCategories = new Set(item.archivedCategories ?? []);
   const archivedArtStyles = new Set(item.archivedArtStyles ?? []);
   const currentCategories = getArchiveCategories(item);
+
   const currentArtStyle = getArchiveArtStyle(item);
   const artStyles = currentArtStyle !== "museum" ? [currentArtStyle] : [];
 
   return (
     <span className="item-property-badges item-variant-badges">
+      {item.original ? (
+        <span
+          aria-label="original"
+          className="item-property-badge property-original"
+        >
+          original
+        </span>
+      ) : null}
+
       {currentCategories.map((category) => (
         <span
           aria-label={`${category}${archivedCategories.has(category) ? ", archived" : ""}`}

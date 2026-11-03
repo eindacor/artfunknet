@@ -27,7 +27,7 @@ export function planGallerySelection(
   if (selectedItems.length > displayCap) {
     return {
       ok: false,
-      reason: `Your gallery can promote at most ${displayCap} ${
+      reason: `Your gallery can feature at most ${displayCap} ${
         displayCap === 1 ? "artwork" : "artworks"
       }.`,
     };
@@ -38,25 +38,19 @@ export function planGallerySelection(
     if (item.status !== "claimed" && item.status !== "displayed") {
       return {
         ok: false,
-        reason: "Auctioned items cannot be promoted.",
-      };
-    }
-    if (item.permanent) {
-      return {
-        ok: false,
-        reason: "Remove artwork from your permanent collection before promoting it.",
+        reason: "Auctioned items cannot be featured.",
       };
     }
     if (item.status === "claimed" && item.repairing) {
       return {
         ok: false,
-        reason: "Stop repairing every selected artwork before promoting it.",
+        reason: "Stop repairing every selected artwork before featuring it.",
       };
     }
     if (artworkIds.has(item.artwork_id)) {
       return {
         ok: false,
-        reason: "The gallery cannot promote two copies of the same artwork.",
+        reason: "The gallery cannot feature two copies of the same artwork.",
       };
     }
     artworkIds.add(item.artwork_id);

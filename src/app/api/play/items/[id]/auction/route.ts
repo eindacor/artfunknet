@@ -11,6 +11,8 @@ import type { GameItem } from "@/server/gameplay";
 import { hydrateGameItems } from "@/server/item-artwork";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
+import { refreshGalleryMetadata } from "@/server/gallery-metadata";
+import { getItemDisposalFilter, getItemDisposalPermission } from "@/server/item-permissions";
 
 type Player = {
   _id: string;
@@ -68,9 +70,6 @@ export async function POST(
     database.collection<GameItem>("items").findOne({
       _id: id,
       owner: auth.session.playerId,
-      status: "claimed",
-      permanent: { $ne: true },
-      repairing: { $ne: true },
     }),
   ]);
   if (!player || !item) {
@@ -78,6 +77,10 @@ export async function POST(
       { error: "This artwork cannot currently be auctioned." },
       { status: 409 },
     );
+  }
+  const permission = getItemDisposalPermission(item, "auction");
+  if (!permission.allowed) {
+    return NextResponse.json({ error: permission.reason }, { status: 409 });
   }
   if (startingBid < item.values.auction_min) {
     return NextResponse.json(
@@ -117,9 +120,7 @@ export async function POST(
     {
       _id: item._id,
       owner: player._id,
-      status: "claimed",
-      permanent: { $ne: true },
-      repairing: { $ne: true },
+      ...getItemDisposalFilter("auction", item.status),
     },
     {
       $set: { status: "auctioned" },
@@ -155,12 +156,16 @@ export async function POST(
   } catch (error) {
     await database.collection<GameItem>("items").updateOne(
       { _id: item._id, owner: player._id, status: "auctioned" },
-      { $set: { status: "claimed" } },
+      { $set: { status: item.status, tags: item.tags } },
     );
     console.error("Unable to create auction", error);
     return NextResponse.json(
       { error: "The auction could not be created." },
       { status: 500 },
     );
+  } finally {
+    if (item.status === "displayed") {
+      await refreshGalleryMetadata(database, player._id);
+    }
   }
 }

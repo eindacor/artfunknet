@@ -9,6 +9,7 @@ import {
   removeExpiredTransientItems,
 } from "@/server/item-expiration";
 import { requirePlayerApi } from "@/server/player-api";
+import { getItemDisposalFilter, getItemDisposalPermission } from "@/server/item-permissions";
 
 type Player = {
   _id: string;
@@ -23,8 +24,9 @@ type Player = {
 type ItemRecord = {
   _id: string;
   owner: string;
-  status: string;
+  status: GameItem["status"];
   original?: boolean;
+  permanent?: boolean;
   vintage?: boolean;
   date_received?: string;
   expires_at?: string;
@@ -62,11 +64,9 @@ export async function POST(
       { status: 409 },
     );
   }
-  if (item.original) {
-    return NextResponse.json(
-      { error: "Original artwork cannot be offered to Art Collectors." },
-      { status: 409 },
-    );
+  const permission = getItemDisposalPermission(item, "collector-sale");
+  if (!permission.allowed) {
+    return NextResponse.json({ error: permission.reason }, { status: 409 });
   }
 
   const consignedAuctions = await database
@@ -110,8 +110,7 @@ export async function POST(
     {
       _id: id,
       owner: player._id,
-      status: { $in: ["unclaimed", "won"] },
-      original: { $ne: true },
+      ...getItemDisposalFilter("collector-sale", item.status),
       ...unexpiredFilter,
     },
     {

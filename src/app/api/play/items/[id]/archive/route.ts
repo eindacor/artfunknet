@@ -31,6 +31,7 @@ import { getDatabase } from "@/server/mongodb";
 import { removeExpiredTransientItems } from "@/server/item-expiration";
 import { requirePlayerApi } from "@/server/player-api";
 import { notifyForgeryDetection, transferForgeryLiability } from "@/server/forgery-gameplay";
+import { refreshGalleryMetadata } from "@/server/gallery-metadata";
 
 type ArchivePlayer = {
   _id: string;
@@ -99,7 +100,7 @@ export async function POST(
     item = await database.collection<GameItem>("items").findOne({
       _id: id,
       owner: lockedPlayer._id,
-      status: { $in: ["claimed", "unclaimed", "for_sale"] },
+      status: { $in: ["claimed", "displayed", "unclaimed", "for_sale"] },
     });
     if (!item) {
       return NextResponse.json(
@@ -345,6 +346,9 @@ export async function POST(
       .catch((error) => {
         console.error("Unable to release archive operation lock", error);
       });
+    if (archiveCompleted && item?.status === "displayed") {
+      await refreshGalleryMetadata(database, lockedPlayer._id);
+    }
   }
 }
 

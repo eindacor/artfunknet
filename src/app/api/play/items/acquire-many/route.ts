@@ -20,6 +20,7 @@ import {
 } from "@/server/legendary-attributes";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
+import { getItemDisposalFilter, getItemDisposalPermission } from "@/server/item-permissions";
 
 type AcquireManyRequest = {
   itemIds?: unknown;
@@ -127,11 +128,12 @@ export async function POST(request: Request) {
     );
   }
 
-  if (setForSale && candidates.some((item) => item.original)) {
-    return NextResponse.json(
-      { error: "Original artwork cannot be offered to Art Collectors." },
-      { status: 409 },
-    );
+  const salePermission = setForSale
+    ? candidates.map((item) => getItemDisposalPermission(item, "collector-sale"))
+      .find((permission) => !permission.allowed)
+    : undefined;
+  if (salePermission && !salePermission.allowed) {
+    return NextResponse.json({ error: salePermission.reason }, { status: 409 });
   }
 
   const consignedAuctions = await database
@@ -260,7 +262,7 @@ export async function POST(request: Request) {
             _id: item._id,
             owner: player._id,
             status: item.status,
-            ...(setForSale ? { original: { $ne: true } } : {}),
+            ...(setForSale ? getItemDisposalFilter("collector-sale", item.status) : {}),
             ...unexpiredFilter,
           },
           update: {

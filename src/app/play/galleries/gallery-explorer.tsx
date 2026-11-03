@@ -400,7 +400,7 @@ export default function GalleryExplorer({
               <span role="columnheader">Player</span>
               <span role="columnheader">Gallery value</span>
               <span role="columnheader">Works</span>
-              <span role="columnheader">Promoted attributes</span>
+              <span role="columnheader">Featured attributes</span>
               <span aria-hidden="true" />
             </div>
             {data.galleries.map((gallery, index) => (
@@ -1164,7 +1164,7 @@ export function GalleryRaritySummary({
   rarities: ArtworkRarity[];
 }) {
   return (
-    <div aria-label="Promoted artwork rarities" className="gallery-rarity-summary">
+    <div aria-label="Featured artwork rarities" className="gallery-rarity-summary">
       {rarities.map((rarity, index) => (
         <span
           aria-label={`${rarity} artwork`}

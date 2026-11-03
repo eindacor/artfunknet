@@ -29,11 +29,10 @@ export async function POST(
     owner: auth.session.playerId,
     status: "claimed",
     repairing: { $ne: true },
-    permanent: { $ne: true },
   });
   if (!player || !item) {
     return NextResponse.json(
-      { error: "This item cannot currently be promoted." },
+      { error: "This item cannot currently be featured." },
       { status: 409 },
     );
   }
@@ -41,8 +40,9 @@ export async function POST(
   const [displayCount, duplicate] = await Promise.all([
     database
       .collection<GameItem>("items")
-      .countDocuments({ owner: player._id, status: "displayed", permanent: { $ne: true } }),
+      .countDocuments({ owner: player._id, status: "displayed" }),
     database.collection<GameItem>("items").findOne({
+      _id: { $ne: item._id },
       owner: player._id,
       artwork_id: item.artwork_id,
       $or: [{ status: "displayed" }, { permanent: true }],
@@ -50,13 +50,13 @@ export async function POST(
   ]);
   if (duplicate) {
     return NextResponse.json(
-      { error: "An item of this artwork is already promoted or in your permanent collection." },
+      { error: "An item of this artwork is already featured or in your permanent collection." },
       { status: 409 },
     );
   }
   if (displayCount >= player.profile.display_cap) {
     return NextResponse.json(
-      { error: "You have reached your promotion limit." },
+      { error: "You have reached your featured-work limit." },
       { status: 409 },
     );
   }
@@ -74,19 +74,18 @@ export async function POST(
     );
   }
   const result = await database.collection<GameItem>("items").updateOne(
-    { _id: item._id, owner: player._id, status: "claimed", permanent: { $ne: true } },
+    { _id: item._id, owner: player._id, status: "claimed" },
     {
       $set: {
         ...mintUpdate,
         status: "displayed",
         time_displayed: now,
       },
-      $pull: { tags: "for sale" },
     },
   );
   if (result.modifiedCount !== 1) {
     return NextResponse.json(
-      { error: "This item changed before it could be promoted." },
+      { error: "This item changed before it could be featured." },
       { status: 409 },
     );
   }

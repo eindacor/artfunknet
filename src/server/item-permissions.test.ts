@@ -4,7 +4,9 @@ import test from "node:test";
 import {
   getArchivePermission,
   getDisplayPermission,
+  getItemDisposalPermission,
   getPlayerFacingArchivePermission,
+  type ItemDisposalAction,
 } from "./item-permissions.ts";
 import { getPermanentCollectionPermission } from "./permanent-collection.ts";
 
@@ -15,6 +17,42 @@ const item = {
   repairing: false,
   permanent: false,
 };
+
+test("destructive permissions share protected-work messages for every sale and disposal action", () => {
+  const verbs: Record<ItemDisposalAction, string> = {
+    sell: "sold", donate: "donated", historian: "sent to the Historian",
+    "collector-sale": "sold to Art Collectors", auction: "auctioned",
+  };
+  for (const action of Object.keys(verbs) as ItemDisposalAction[]) {
+    assert.deepEqual(getItemDisposalPermission(item, action), { allowed: true });
+    for (const flags of [
+      { status: "displayed", permanent: false },
+      { status: "claimed", permanent: true },
+      { status: "displayed", permanent: true, original: true },
+    ] as const) {
+      assert.deepEqual(getItemDisposalPermission({ ...item, ...flags }, action), {
+        allowed: false,
+        reason: `Featured works and works in your permanent collection can't be ${verbs[action]}.`,
+      });
+    }
+  }
+});
+
+test("shared disposal gates retain Original, repair, offer and auction eligibility", () => {
+  for (const action of ["sell", "donate", "collector-sale"] as const) {
+    assert.match(getItemDisposalPermission({ ...item, original: true }, action).reason!, /Original artwork/);
+  }
+  for (const action of ["historian", "auction"] as const) {
+    assert.equal(getItemDisposalPermission({ ...item, original: true }, action).allowed, true);
+    assert.match(getItemDisposalPermission({ ...item, repairing: true }, action).reason!, /being repaired/);
+  }
+  assert.equal(getItemDisposalPermission({ ...item, status: "for_sale" }, "donate").allowed, true);
+  assert.equal(getItemDisposalPermission({ ...item, status: "for_sale" }, "historian").allowed, true);
+  assert.equal(getItemDisposalPermission({ ...item, status: "won" }, "collector-sale").allowed, true);
+  for (const action of ["sell", "donate", "historian", "collector-sale", "auction"] as const) {
+    assert.equal(getItemDisposalPermission({ ...item, status: "auctioned" }, action).allowed, false);
+  }
+});
 
 test("display permission explains duplicate artwork and capacity failures", () => {
   assert.deepEqual(
@@ -33,7 +71,7 @@ test("display permission explains duplicate artwork and capacity failures", () =
     ),
     {
       allowed: false,
-      reason: "An item of this artwork is already promoted or in your permanent collection.",
+      reason: "An item of this artwork is already featured or in your permanent collection.",
     },
   );
 
@@ -46,14 +84,14 @@ test("display permission explains duplicate artwork and capacity failures", () =
           _id: "other",
           artwork_id: "other-artwork",
           status: "displayed",
-          permanent: false,
+          permanent: true,
         },
       ],
       1,
     ),
     {
       allowed: false,
-      reason: "You have reached your promotion limit.",
+      reason: "You have reached your featured-work limit.",
     },
   );
 });
@@ -66,20 +104,22 @@ test("display permission preserves repairing and permanent-copy restrictions", (
   assert.equal(
     getDisplayPermission(
       item,
-      [{ ...item, permanent: true }],
+      [{ ...item, _id: "permanent-copy", permanent: true }],
       5,
     ).reason,
-    "An item of this artwork is already promoted or in your permanent collection.",
+    "An item of this artwork is already featured or in your permanent collection.",
   );
   assert.deepEqual(getDisplayPermission(item, [item], 5), { allowed: true });
-  assert.equal(getDisplayPermission({ ...item, permanent: true }, [item], 5).allowed, false);
+  const permanent = { ...item, permanent: true };
+  assert.deepEqual(getDisplayPermission(permanent, [permanent], 5), { allowed: true });
 });
 
-test("permanent collection requires collected, unpromoted artwork and honors duplicates and capacity", () => {
+test("permanent collection accepts collected or promoted artwork and honors duplicates and capacity", () => {
   assert.deepEqual(getPermanentCollectionPermission(item, [item], 12), { allowed: true });
-  for (const status of ["unclaimed", "for_sale", "auctioned", "displayed"] as const) {
+  for (const status of ["unclaimed", "for_sale", "auctioned"] as const) {
     assert.equal(getPermanentCollectionPermission({ ...item, status }, [item], 12).allowed, false);
   }
+  assert.equal(getPermanentCollectionPermission({ ...item, status: "displayed" }, [item], 1).allowed, true);
   for (const duplicate of [
     { ...item, _id: "other", permanent: true },
     { ...item, _id: "other", status: "displayed" as const },
@@ -114,7 +154,13 @@ const archiveItem = {
 };
 
 test("archive permission requires a new modifier or art style", () => {
-  assert.equal(getArchivePermission({ ...archiveItem, permanent: true }, [], []).allowed, false);
+  assert.deepEqual(getArchivePermission({ ...archiveItem, status: "displayed" }, [], []), { allowed: true });
+  assert.equal(getArchivePermission({ ...archiveItem, status: "displayed", original: true }, [], []).allowed, false);
+  assert.equal(getArchivePermission({ ...archiveItem, status: "displayed", repairing: true }, [], []).allowed, false);
+  assert.deepEqual(getArchivePermission({ ...archiveItem, permanent: true }, [], []), {
+    allowed: false,
+    reason: "Works in your permanent collection can't be archived.",
+  });
   assert.deepEqual(getArchivePermission(archiveItem, ["mint"], ["abstract"]), {
     allowed: false,
     reason:

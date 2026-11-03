@@ -10,6 +10,7 @@ import RafflePanel, {
   type RafflePrizeView,
 } from "@/components/raffle-panel";
 import type { HydratedGameItem } from "@/server/item-artwork";
+import type { ForgeryContestPrizeView } from "@/server/forgery-contest";
 import type { RaffleWinner } from "@/server/raffle-gameplay";
 
 const DAYS = [
@@ -42,6 +43,7 @@ type ForgeryContestView = {
   submissionsOpen: boolean;
   votingOpen: boolean;
   nextSettlementAt: string;
+  prizes: ForgeryContestPrizeView[];
   currentEntryId: string | null;
   eligibleItems: HydratedGameItem[];
   entries: ForgeryEntryView[];
@@ -385,7 +387,7 @@ function ForgeryContestPanel({
     ];
 
   return (
-    <section className="daily-event-content">
+    <section className="daily-event-content forgery-contest-event">
       <header>
         <h3>Forgery Contest</h3>
         <span>
@@ -409,191 +411,240 @@ function ForgeryContestPanel({
           </button>
         </div>
       ) : null}
-      {visibleEntries.length > 0 ? (
-        <div className="daily-event-contest-browser">
-          <button
-            aria-label="Show previous contestants"
-            className="daily-event-contest-navigation"
-            disabled={view.entries.length <= visibleEntryCount}
-            onClick={() =>
-              setIndex(
-                (current) =>
-                  (current - 1 + view.entries.length) % view.entries.length,
-              )
-            }
-            type="button"
-          >
-            <i aria-hidden="true" className="fa fa-chevron-left" />
-          </button>
-          <div className="daily-event-contest-grid">
-            {visibleEntries.map((entry) => {
-              const isOwnEntry = entry.playerId === playerId;
-              const isCurrentVote = view.votedEntryId === entry.id;
-              return (
-                <article
-                  className={`daily-event-contest-card ${
-                    isCurrentVote ? "selected" : ""
-                  }`}
-                  key={entry.id}
-                >
-                  <div className="daily-event-contest-card-art">
-                    <ItemCard
-                      hideForgeryWatermark
-                      item={entry.item}
-                      legendaryAttributes={legendaryAttributes}
-                      permissions={{
-                        canManageItem: false,
-                        canCustomizeCosmetic: false,
-                      }}
-                      viewerId={playerId}
-                    />
-                  </div>
-                  <div className="daily-event-entry-details">
-                    <strong>{entry.playerName}</strong>
+      <div className="forgery-contest-overview">
+        <section aria-label="Your submission" className="forgery-contest-section daily-event-submission">
+          <header>
+            <h4>Your submission</h4>
+            <span>{view.currentEntryId ? "Submitted" : "One entry per player"}</span>
+          </header>
+          {view.currentEntryId !== null ? (
+            <p className="forgery-contest-section-note">
+              Your forgery is entered. You can still vote for another player&apos;s work below.
+            </p>
+          ) : (
+            <>
+              <p className="forgery-contest-section-note">
+                Submissions permanently leave your inventory and join the Artfunkel Inc. collection after the drawing.
+              </p>
+              {submissionItem ? (
+                <div className="daily-event-browser">
+                  <button
+                    aria-label="Previous owned forgery"
+                    disabled={view.eligibleItems.length < 2}
+                    onClick={() =>
+                      setSubmissionIndex(
+                        (current) =>
+                          (current - 1 + view.eligibleItems.length) %
+                          view.eligibleItems.length,
+                      )
+                    }
+                    type="button"
+                  >
+                    <i aria-hidden="true" className="fa fa-chevron-left" />
+                  </button>
+                  <div>
+                    <div className="forgery-contest-card-art">
+                      <ItemCard
+                        interactive={false}
+                        item={submissionItem}
+                        key={submissionItem._id}
+                        legendaryAttributes={legendaryAttributes}
+                        permissions={{
+                          canManageItem: false,
+                          canCustomizeCosmetic: false,
+                        }}
+                        viewerId={playerId}
+                      />
+                    </div>
                     <button
-                      aria-pressed={isCurrentVote}
-                      className={`daily-event-vote-button ${
-                        isCurrentVote ? "selected" : ""
-                      }`}
-                      disabled={
-                        busy ||
-                        !view.votingOpen ||
-                        isOwnEntry ||
-                        isCurrentVote
-                      }
+                      className="daily-event-submit-button"
+                      disabled={busy || !view.submissionsOpen}
                       onClick={() =>
-                        void act("PATCH", { entryId: entry.id })
-                      }
-                      title={
-                        isOwnEntry
-                          ? "You cannot vote for your own entry."
-                          : isCurrentVote
-                            ? "This is your current vote."
-                            : view.votedEntryId
-                              ? "Move your vote to this entry."
-                              : "Vote for this entry."
+                        void act("POST", { itemId: submissionItem._id })
                       }
                       type="button"
                     >
-                      {isOwnEntry
-                        ? "Your entry"
-                        : isCurrentVote
-                          ? "Your vote"
-                          : view.votedEntryId
-                            ? "Change vote"
-                            : "Vote"}
+                      Submit this forgery
                     </button>
                   </div>
-                </article>
-              );
-            })}
-          </div>
-          <button
-            aria-label="Show next contestants"
-            className="daily-event-contest-navigation"
-            disabled={view.entries.length <= visibleEntryCount}
-            onClick={() =>
-              setIndex((current) => (current + 1) % view.entries.length)
-            }
-            type="button"
-          >
-            <i aria-hidden="true" className="fa fa-chevron-right" />
-          </button>
-        </div>
-      ) : (
-        <p className="daily-event-empty">
-          No works have been submitted yet.
-        </p>
-      )}
-      {view.currentEntryId === null ? (
-        <div className="daily-event-submission">
-          <h4>Submit a forgery</h4>
-          <p>
-            Submitted works permanently leave your inventory and become part
-            of the Artfunkel Inc. collection after the drawing.
-          </p>
-          {submissionItem ? (
-            <div className="daily-event-browser">
-              <button
-                aria-label="Previous owned forgery"
-                disabled={view.eligibleItems.length < 2}
-                onClick={() =>
-                  setSubmissionIndex(
-                    (current) =>
-                      (current - 1 + view.eligibleItems.length) %
-                      view.eligibleItems.length,
-                  )
-                }
-                type="button"
-              >
-                <i aria-hidden="true" className="fa fa-chevron-left" />
-              </button>
-              <div>
-                <ItemCard
-                  interactive={false}
-                  item={submissionItem}
-                  key={submissionItem._id}
-                  legendaryAttributes={legendaryAttributes}
-                  permissions={{
-                    canManageItem: false,
-                    canCustomizeCosmetic: false,
-                  }}
-                  viewerId={playerId}
-                />
-                <button
-                  className="daily-event-submit-button"
-                  disabled={busy || !view.submissionsOpen}
-                  onClick={() =>
-                    void act("POST", { itemId: submissionItem._id })
-                  }
-                  type="button"
-                >
-                  Submit this forgery
-                </button>
-              </div>
-              <button
-                aria-label="Next owned forgery"
-                disabled={view.eligibleItems.length < 2}
-                onClick={() =>
-                  setSubmissionIndex(
-                    (current) =>
-                      (current + 1) % view.eligibleItems.length,
-                  )
-                }
-                type="button"
-              >
-                <i aria-hidden="true" className="fa fa-chevron-right" />
-              </button>
-            </div>
-          ) : (
-            <p className="daily-event-empty">
-              You do not have a forgery available to submit. Forgeries can be created from the archive.
-            </p>
+                  <button
+                    aria-label="Next owned forgery"
+                    disabled={view.eligibleItems.length < 2}
+                    onClick={() =>
+                      setSubmissionIndex(
+                        (current) =>
+                          (current + 1) % view.eligibleItems.length,
+                      )
+                    }
+                    type="button"
+                  >
+                    <i aria-hidden="true" className="fa fa-chevron-right" />
+                  </button>
+                </div>
+              ) : (
+                <p className="daily-event-empty">
+                  No eligible forgeries. Create one from your archive to enter.
+                </p>
+              )}
+            </>
           )}
-        </div>
-      ) : null}
+        </section>
+        <section aria-label="Contest rewards" className="forgery-contest-section forgery-contest-rewards">
+          <header>
+            <h4>Contest rewards</h4>
+            <span>Top three entries</span>
+          </header>
+          <p className="forgery-contest-section-note">
+            Winners receive a share of their submission&apos;s estimated value plus the prize below.
+          </p>
+          <div className="forgery-contest-reward-grid">
+            {view.prizes.map(({ place, item }) => (
+              <article key={place}>
+                <h5>{place === 1 ? "First" : place === 2 ? "Second" : "Third"} place</h5>
+                <div className="forgery-contest-card-art">
+                  <ItemCard
+                    item={item}
+                    legendaryAttributes={legendaryAttributes}
+                    permissions={{ canManageItem: false, canCustomizeCosmetic: false }}
+                    viewerId={playerId}
+                  />
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      </div>
+      <section aria-label="Current entries and voting" className="forgery-contest-section forgery-contest-entries">
+        <header>
+          <h4>Entries &amp; voting</h4>
+          <span>
+            {view.entries.length.toLocaleString()} {view.entries.length === 1 ? "entry" : "entries"}
+          </span>
+        </header>
+        <p className="forgery-contest-section-note">
+          Choose another player&apos;s work. You can move your vote until the drawing.
+        </p>
+        {visibleEntries.length > 0 ? (
+          <div className="daily-event-contest-browser">
+            <button
+              aria-label="Show previous contestants"
+              className="daily-event-contest-navigation"
+              disabled={view.entries.length <= visibleEntryCount}
+              onClick={() =>
+                setIndex(
+                  (current) =>
+                    (current - 1 + view.entries.length) % view.entries.length,
+                )
+              }
+              type="button"
+            >
+              <i aria-hidden="true" className="fa fa-chevron-left" />
+            </button>
+            <div className="daily-event-contest-grid">
+              {visibleEntries.map((entry) => {
+                const isOwnEntry = entry.playerId === playerId;
+                const isCurrentVote = view.votedEntryId === entry.id;
+                return (
+                  <article
+                    className={`daily-event-contest-card ${
+                      isCurrentVote ? "selected" : ""
+                    }`}
+                    key={entry.id}
+                  >
+                    <div className="daily-event-contest-card-art">
+                      <ItemCard
+                        hideForgeryWatermark
+                        item={entry.item}
+                        legendaryAttributes={legendaryAttributes}
+                        permissions={{
+                          canManageItem: false,
+                          canCustomizeCosmetic: false,
+                        }}
+                        viewerId={playerId}
+                      />
+                    </div>
+                    <div className="daily-event-entry-details">
+                      <strong>{entry.playerName}</strong>
+                      <button
+                        aria-pressed={isCurrentVote}
+                        className={`daily-event-vote-button ${
+                          isCurrentVote ? "selected" : ""
+                        }`}
+                        disabled={
+                          busy ||
+                          !view.votingOpen ||
+                          isOwnEntry ||
+                          isCurrentVote
+                        }
+                        onClick={() =>
+                          void act("PATCH", { entryId: entry.id })
+                        }
+                        title={
+                          isOwnEntry
+                            ? "You cannot vote for your own entry."
+                            : isCurrentVote
+                              ? "This is your current vote."
+                              : view.votedEntryId
+                                ? "Move your vote to this entry."
+                                : "Vote for this entry."
+                        }
+                        type="button"
+                      >
+                        {isOwnEntry
+                          ? "Your entry"
+                          : isCurrentVote
+                            ? "Your vote"
+                            : view.votedEntryId
+                              ? "Change vote"
+                              : "Vote"}
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+            <button
+              aria-label="Show next contestants"
+              className="daily-event-contest-navigation"
+              disabled={view.entries.length <= visibleEntryCount}
+              onClick={() =>
+                setIndex((current) => (current + 1) % view.entries.length)
+              }
+              type="button"
+            >
+              <i aria-hidden="true" className="fa fa-chevron-right" />
+            </button>
+          </div>
+        ) : (
+          <p className="daily-event-empty">
+            No works have been submitted yet.
+          </p>
+        )}
+      </section>
       {view.lastWinners.length > 0 ? (
-        <div className="daily-event-winners">
-          <h4>Last week&apos;s winners</h4>
-          <div>
+        <details className="forgery-contest-section forgery-contest-history">
+          <summary>Last week&apos;s winners</summary>
+          <div className="forgery-contest-reward-grid">
             {view.lastWinners.map((winner) => (
               <article key={`${winner.place}:${winner.item._id}`}>
                 <strong>#{winner.place} · {winner.playerName}</strong>
-                <ItemCard
-                  interactive={false}
-                  item={winner.item}
-                  legendaryAttributes={legendaryAttributes}
-                  permissions={{
-                    canManageItem: false,
-                    canCustomizeCosmetic: false,
-                  }}
-                  viewerId={playerId}
-                />
+                <div className="forgery-contest-card-art">
+                  <ItemCard
+                    interactive={false}
+                    item={winner.item}
+                    legendaryAttributes={legendaryAttributes}
+                    permissions={{
+                      canManageItem: false,
+                      canCustomizeCosmetic: false,
+                    }}
+                    viewerId={playerId}
+                  />
+                </div>
                 <span>{winner.votes.toLocaleString()} votes</span>
               </article>
             ))}
           </div>
-        </div>
+        </details>
       ) : null}
       <ActionMessages error={error} message={message} />
     </section>

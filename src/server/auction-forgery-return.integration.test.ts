@@ -21,6 +21,7 @@ import type { HydratedGameItem } from "./item-artwork.ts";
 import type { PlayerNotification } from "./player-notifications.ts";
 import { setupTestDb } from "./test-utils/db-setup.ts";
 import * as forgeryRules from "./forgery-gameplay.ts";
+import * as itemPermissions from "./item-permissions.ts";
 
 const now = new Date("2026-09-04T12:05:00.000Z");
 
@@ -57,6 +58,7 @@ async function itemRoute(action: string, db: Db) {
     "@/server/player-api": { requirePlayerApi: async () => ({ ok: true, session: { playerId: "buyer" } }) },
     "@/server/mongodb": { getDatabase: async () => db },
     "@/server/forgery-gameplay": { ...forgeryRules, rollForgeryDetected: () => true },
+    "@/server/item-permissions": itemPermissions,
     "@/server/economy-metrics": { recordEconomyMetricsSafely: async () => {} },
     "@/server/game-settings": { getGameplaySettings },
     "@/server/item-artwork": { hydrateGameItems: async (_db: Db, items: GameItem[]) => items.map((item) => ({
@@ -68,6 +70,7 @@ async function itemRoute(action: string, db: Db) {
     "@/server/hall-of-fame": {},
     "@/server/legendary-attributes": {},
     "@/server/quest-item-sell": {},
+    "@/server/gallery-metadata": { refreshGalleryMetadata: async () => {} },
   };
   return runInNewContext(`${code}\nexports.POST`, {
     exports: {}, console, Date,
@@ -122,6 +125,17 @@ test("auction forgery returns settle once, compensate failures, and preserve pro
   const client = new MongoClient(server.getUri());
   t.after(async () => { await client.close(); await server.stop(); });
   await client.connect();
+
+  await t.test("promoted forgeries can be returned without transferring their promotion state", async () => {
+    const db = client.db("return-promoted");
+    await seed(db, { ...forgery(), status: "displayed", time_displayed: now.toISOString() });
+    const result = await returnAuctionForgery(db, "buyer", "forgery", config, now);
+    assert.ok(result.ok);
+    const saved = await db.collection<GameItem>("items").findOne({ _id: "forgery" });
+    assert.equal(saved?.owner, "seller");
+    assert.equal(saved?.status, "claimed");
+    assert.equal(saved?.time_displayed, undefined);
+  });
 
   await t.test("a stale permission contract cannot corrupt a balance or strand an item", async (t) => {
     const db = client.db("return-stale-permission");

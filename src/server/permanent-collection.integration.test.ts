@@ -15,6 +15,7 @@ import * as permanentCollection from "./permanent-collection.ts";
 import * as masterpieceEffects from "./masterpiece-effects.ts";
 import * as showcase from "./public-showcase-core.ts";
 import * as itemTags from "./item-tags.ts";
+import * as gallerySelection from "./gallery-selection.ts";
 
 type ItemRoute = (request: Request, context: { params: Promise<{ id: string }> }) => Promise<Response>;
 
@@ -71,15 +72,18 @@ async function routes(db: Db, permissionModule: unknown = permissions) {
     "@/server/permanent-collection": permanentCollection,
     "@/server/item-tags": itemTags,
     "@/server/item-mint": { getDemintUpdate: async () => ({ mint: false }) },
+    "@/server/gallery-selection": gallerySelection,
     "@/server/community-reactions": { getCommunityReactionSummaries: async () => new Map() },
     "@/server/contributing-artists": { getFeaturedArtistGalleries: async () => [] },
   };
   const permanent = await loadModule<{ POST: ItemRoute }>("../app/api/play/items/[id]/permanent/route.ts", dependencies);
   const collector = await loadModule<{ POST: ItemRoute }>("../app/api/play/items/[id]/collector-sale/route.ts", dependencies);
   const display = await loadModule<{ POST: ItemRoute }>("../app/api/play/items/[id]/display/route.ts", dependencies);
+  const undisplay = await loadModule<{ POST: ItemRoute }>("../app/api/play/items/[id]/undisplay/route.ts", dependencies);
+  const setGallery = await loadModule<{ POST: (request: Request) => Promise<Response> }>("../app/api/play/items/set-gallery/route.ts", dependencies);
   const tags = await loadModule<{ PATCH: ItemRoute }>("../app/api/play/items/[id]/tags/route.ts", dependencies);
   const directory = await loadModule<{ GET: (request: Request) => Promise<Response> }>("../app/api/play/galleries/route.ts", dependencies);
-  return { metadata, directory, permanent, collector, display, tags };
+  return { metadata, directory, permanent, collector, display, undisplay, setGallery, tags };
 }
 
 function invoke(route: ItemRoute, id: string, body?: unknown) {
@@ -208,10 +212,130 @@ test("permanent collection actions refresh shared galleries without promoting ar
       item("duplicate-permanent", { artwork_id: "art-permanent" }),
     ]);
     const { permanent } = await routes(db);
-    for (const id of ["foreign", "unclaimed", "for_sale", "auctioned", "displayed", "duplicate-promoted", "duplicate-permanent"]) {
+    for (const id of ["foreign", "unclaimed", "for_sale", "auctioned", "duplicate-promoted", "duplicate-permanent"]) {
       assert.equal((await invoke(permanent.POST, id)).status, 409, id);
     }
     assert.equal((await invoke(permanent.POST, "eligible")).status, 200);
+  });
+
+  await t.test("permanent membership preserves promotion and promotion can stop and restart independently", async () => {
+    const db = client.db("promoted-to-permanent");
+    const promoted = item("promoted", { status: "displayed", time_displayed: "2026-11-02T00:00:00.000Z" });
+    await seed(db, [promoted]);
+    const { permanent, metadata, display, undisplay } = await routes(db);
+    await metadata.refreshGalleryMetadata(db, "player");
+    const response = await invoke(permanent.POST, promoted._id);
+    assert.equal(response.status, 200);
+    assert.match((await response.json()).message, /featuring remains active/i);
+    let saved = await db.collection<GameItem>("items").findOne({ _id: promoted._id });
+    assert.equal(saved?.status, "displayed");
+    assert.equal(saved?.permanent, true);
+    assert.equal(saved?.time_displayed, promoted.time_displayed);
+    assert.deepEqual(saved?.tags, ["keep"]);
+    let gallery = await db.collection("galleries").findOne({ owner_id: "player" });
+    assert.equal(gallery?.display_count, 1);
+    assert.equal(gallery?.permanent_count, 1);
+    assert.equal(gallery?.item_count, 1);
+    assert.equal(gallery?.value, promoted.values.actual);
+    assert.equal(gallery?.featured_item_id, promoted._id);
+
+    const removed = await invoke(permanent.POST, promoted._id, { permanent: false });
+    assert.equal(removed.status, 200);
+    assert.match((await removed.json()).message, /remains featured/i);
+    saved = await db.collection<GameItem>("items").findOne({ _id: promoted._id });
+    assert.equal(saved?.status, "displayed");
+    assert.equal(saved?.permanent, false);
+    assert.equal(saved?.time_displayed, promoted.time_displayed);
+    gallery = await db.collection("galleries").findOne({ owner_id: "player" });
+    assert.equal(gallery?.display_count, 1);
+    assert.equal(gallery?.permanent_count, 0);
+    assert.equal(gallery?.item_count, 1);
+    assert.equal(gallery?.value, promoted.values.actual);
+
+    assert.equal((await invoke(permanent.POST, promoted._id, { permanent: true })).status, 200);
+    assert.equal((await invoke(undisplay.POST, promoted._id)).status, 200);
+    saved = await db.collection<GameItem>("items").findOne({ _id: promoted._id });
+    assert.equal(saved?.status, "claimed");
+    assert.equal(saved?.permanent, true);
+    assert.equal(saved?.time_displayed, undefined);
+    gallery = await db.collection("galleries").findOne({ owner_id: "player" });
+    assert.equal(gallery?.display_count, 0);
+    assert.equal(gallery?.permanent_count, 1);
+    assert.equal(gallery?.item_count, 1);
+    assert.equal(gallery?.value, 0);
+    assert.equal(await db.collection("items").countDocuments(showcase.getPublicGalleryItemFilter("player")), 1);
+    assert.equal((await invoke(display.POST, promoted._id)).status, 200);
+    saved = await db.collection<GameItem>("items").findOne({ _id: promoted._id });
+    assert.equal(saved?.status, "displayed");
+    assert.equal(saved?.permanent, true);
+    assert.ok(saved?.time_displayed);
+    gallery = await db.collection("galleries").findOne({ owner_id: "player" });
+    assert.equal(gallery?.display_count, 1);
+    assert.equal(gallery?.permanent_count, 1);
+    assert.equal(gallery?.item_count, 1);
+    assert.equal(gallery?.value, promoted.values.actual);
+  });
+
+  await t.test("promoted permanent works consume promotion capacity and Set Gallery preserves permanent membership", async () => {
+    const db = client.db("permanent-promotion-capacity");
+    await seed(db, [
+      item("first", { permanent: true }),
+      item("second", { permanent: true }),
+      item("duplicate", { artwork_id: "art-first" }),
+    ]);
+    await db.collection("players").updateOne({ _id: "player" }, { $set: { "profile.display_cap": 1 } });
+    const { display, setGallery } = await routes(db);
+    assert.equal((await invoke(display.POST, "duplicate")).status, 409);
+    assert.equal((await invoke(display.POST, "first")).status, 200);
+    assert.equal((await invoke(display.POST, "second")).status, 409);
+    const response = await setGallery.POST(new Request("http://localhost", {
+      method: "POST", body: JSON.stringify({ itemIds: ["second"] }),
+    }));
+    assert.equal(response.status, 200);
+    const first = await db.collection<GameItem>("items").findOne({ _id: "first" });
+    const second = await db.collection<GameItem>("items").findOne({ _id: "second" });
+    assert.equal(first?.status, "claimed");
+    assert.equal(first?.permanent, true);
+    assert.equal(first?.time_displayed, undefined);
+    assert.equal(second?.status, "displayed");
+    assert.equal(second?.permanent, true);
+    const gallery = await db.collection("galleries").findOne({ owner_id: "player" });
+    assert.equal(gallery?.display_count, 1);
+    assert.equal(gallery?.permanent_count, 2);
+    assert.equal(gallery?.item_count, 2);
+    assert.equal(gallery?.value, second?.values.actual);
+  });
+
+  await t.test("promoted permanent Masterpieces activate common substitution only while promoted", async () => {
+    const db = client.db("permanent-common-substitution");
+    const attribute = {
+      _id: "attraction", title: "Attraction", type: "regular", description: "",
+      icon: "fa-user", npc_name: "Visitor", active: true, value: 0.4,
+    };
+    await seed(db, [
+      item("source", { permanent: true, status: "displayed",
+        attributes: { locked: [], unlocked: [attribute], special: [] } }),
+      item("common", { status: "displayed",
+        attributes: { locked: [], unlocked: [{ ...attribute, value: 0.9 }], special: [] } }),
+    ]);
+    await db.collection("artworks").updateOne({ _id: "art-source" }, {
+      $set: { rarity: "masterpiece", effect_id: "substitution" },
+    });
+    await db.collection<{ _id: string }>("artwork_effects").insertOne({
+      _id: "substitution", active: true, code: masterpieceEffects.MASTERPIECE_EFFECT_CODES.commonSubstitution,
+    });
+    const { metadata, undisplay } = await routes(db);
+    const active = await metadata.refreshGalleryMetadata(db, "player");
+    assert.equal(active?.score, 80);
+    assert.equal(active?.attributes[0].totalRating, 0.8);
+    assert.deepEqual(active?.active_unique_attributes, ["substitution"]);
+    assert.equal(active?.item_count, 2);
+    assert.equal((await invoke(undisplay.POST, "source")).status, 200);
+    const inactive = await db.collection("galleries").findOne({ owner_id: "player" });
+    assert.equal(inactive?.score, 90);
+    assert.equal(inactive?.attributes[0].totalRating, 0.9);
+    assert.deepEqual(inactive?.active_unique_attributes, []);
+    assert.equal(inactive?.item_count, 2);
   });
 
   await t.test("concurrent last-slot requests cannot exceed capacity and removal still works over capacity", async () => {
@@ -230,12 +354,12 @@ test("permanent collection actions refresh shared galleries without promoting ar
     assert.equal((await db.collection("players").findOne({ _id: "player" }))?.profile.permanent_collection_operation, undefined);
   });
 
-  await t.test("permanent works cannot be promoted or offered for sale through either state control", async () => {
+  await t.test("permanent works can be promoted but cannot be offered for sale through either state control", async () => {
     const db = client.db("permanent-protection");
     await seed(db, [item("favorite", { permanent: true, tags: ["keep"] })]);
     const { collector, display, tags } = await routes(db);
     assert.equal((await invoke(collector.POST, "favorite")).status, 409);
-    assert.equal((await invoke(display.POST, "favorite")).status, 409);
+    assert.equal((await invoke(display.POST, "favorite")).status, 200);
     assert.equal((await invoke(tags.PATCH, "favorite", { tags: ["keep", "for sale"] })).status, 409);
     assert.equal((await invoke(tags.PATCH, "favorite", { tags: ["keep", "landscape"] })).status, 200);
     assert.equal((await db.collection<GameItem>("items").findOne({ _id: "favorite" }))?.permanent, true);

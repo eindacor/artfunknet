@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import type { HydratedGameItem } from "@/server/item-artwork";
+import { getItemDisposalPermission } from "@/server/item-permissions";
 import {
   normalizeItemTags,
   parseItemTagInput,
@@ -72,6 +73,14 @@ export default function ItemTagsDialog({
       setError(normalized.error);
       return;
     }
+    if (normalized.tags.includes("for sale")) {
+      const permission = items.map((item) => getItemDisposalPermission(item, "collector-sale"))
+        .find((candidate) => !candidate.allowed);
+      if (permission && !permission.allowed) {
+        setError(permission.reason);
+        return;
+      }
+    }
     setAddedTags(normalized.tags);
     setRemovedTags((current) =>
       current.filter((tag) => !normalized.tags.includes(tag)),
@@ -104,6 +113,14 @@ export default function ItemTagsDialog({
         `${invalidUpdate.item.artwork.title}: ${invalidUpdate.normalized.error}`,
       );
       return;
+    }
+    for (const update of updates) {
+      if (!update.normalized.ok || !update.normalized.tags.includes("for sale")) continue;
+      const permission = getItemDisposalPermission(update.item, "collector-sale");
+      if (!permission.allowed) {
+        setError(permission.reason);
+        return;
+      }
     }
 
     setSaving(true);

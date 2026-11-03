@@ -9,6 +9,7 @@ import {
 import type { GameItem } from "@/server/gameplay";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
+import { refreshGalleryMetadata } from "@/server/gallery-metadata";
 
 type Player = {
   _id: string;
@@ -62,7 +63,7 @@ export async function POST(
     {
       _id: id,
       owner: auth.session.playerId,
-      status: "claimed",
+      status: item.status,
       "authenticity.identified": false,
     },
     { $set: { "authenticity.identified": true } },
@@ -81,6 +82,9 @@ export async function POST(
       { error: "The artwork changed before it could be authenticated." },
       { status: 409 },
     );
+  }
+  if (item.status === "displayed" || item.permanent) {
+    await refreshGalleryMetadata(database, auth.session.playerId);
   }
   await recordEconomyMetricsSafely(database, {
     amount: cost,

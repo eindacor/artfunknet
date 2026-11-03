@@ -4,7 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import ItemCard from "@/components/item-cards/item-card";
+import { PrizeEditor } from "../raffle-reward-form";
 import type { ForgeryContestPlace } from "@/server/forgery-contest";
+import type { Artwork } from "@/server/gameplay";
 import type { HydratedGameItem } from "@/server/item-artwork";
 
 const PLACE_NAMES: Record<ForgeryContestPlace, string> = {
@@ -14,9 +16,15 @@ const PLACE_NAMES: Record<ForgeryContestPlace, string> = {
 };
 
 export default function ForgeryContestAdmin({
+  artworks,
+  bufferPrizes,
+  minimumBufferCount,
   nextSettlementAt,
   prizes,
 }: {
+  artworks: Artwork[];
+  bufferPrizes: Array<{ place: ForgeryContestPlace; item: HydratedGameItem }>;
+  minimumBufferCount: number;
   nextSettlementAt: string;
   prizes: Array<{
     place: ForgeryContestPlace;
@@ -29,7 +37,7 @@ export default function ForgeryContestAdmin({
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  async function replacePrize(place: ForgeryContestPlace) {
+  async function changePrize(place: ForgeryContestPlace) {
     setPendingPlace(place);
     setMessage("");
     setError("");
@@ -39,7 +47,7 @@ export default function ForgeryContestAdmin({
         {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ place }),
+          body: JSON.stringify({ place, action: "replace" }),
         },
       );
       const body = (await response.json()) as {
@@ -48,16 +56,16 @@ export default function ForgeryContestAdmin({
       };
       if (!response.ok) {
         throw new Error(
-          body.error ?? "The Forgery Contest prize could not be replaced.",
+          body.error ?? "The Forgery Contest prizes could not be updated.",
         );
       }
-      setMessage(body.message ?? "Forgery Contest prize replaced.");
+      setMessage(body.message ?? "Forgery Contest prizes updated.");
       router.refresh();
     } catch (replacementError) {
       setError(
         replacementError instanceof Error
           ? replacementError.message
-          : "The Forgery Contest prize could not be replaced.",
+          : "The Forgery Contest prizes could not be updated.",
       );
     } finally {
       setPendingPlace(null);
@@ -73,8 +81,11 @@ export default function ForgeryContestAdmin({
         </time>
       </p>
       <p>
-        Prizes are mint items generated with elevated foil and unlocked odds,
-        using a random active non-museum art style.
+        Each place has its own two-prize replacement queue. Buffered prizes become active
+        in order after the drawing, and the buffer automatically replenishes.
+        Newly generated prizes are Mint, with elevated foil and unlocked odds
+        and a random active non-museum art style. Edit buffered prizes below;
+        active prizes cannot be edited.
       </p>
       {message ? <p>{message}</p> : null}
       {error ? <p className="admin-error">{error}</p> : null}
@@ -92,16 +103,36 @@ export default function ForgeryContestAdmin({
             />
             <button
               disabled={pendingPlace !== null}
-              onClick={() => replacePrize(place)}
+              onClick={() => changePrize(place)}
               type="button"
             >
               {pendingPlace === place
                 ? "Generating..."
-                : `Replace ${PLACE_NAMES[place].toLowerCase()} prize`}
+                : "Use next buffered prize"}
             </button>
           </article>
         ))}
       </div>
+      {([1, 2, 3] as const).map((place) => {
+        const buffer = bufferPrizes.filter((prize) => prize.place === place);
+        return (
+          <section className="admin-raffle-generation" key={place}>
+            <h2>{PLACE_NAMES[place]} replacement buffer ({buffer.length}/{minimumBufferCount})</h2>
+            <div className="admin-raffle-grid">
+              {buffer.map(({ item }, index) => (
+                <PrizeEditor
+                  artworks={artworks}
+                  canRemove={false}
+                  contestPlace={place}
+                  index={index}
+                  key={`${item._id}:${JSON.stringify(item)}`}
+                  prize={{ item, potency: item.lottery }}
+                />
+              ))}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }

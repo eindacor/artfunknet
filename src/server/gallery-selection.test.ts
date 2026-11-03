@@ -42,7 +42,7 @@ test("set gallery rejects selections over capacity or with duplicate artworks", 
     ),
     {
       ok: false,
-      reason: "The gallery cannot promote two copies of the same artwork.",
+      reason: "The gallery cannot feature two copies of the same artwork.",
     },
   );
   assert.deepEqual(
@@ -53,12 +53,12 @@ test("set gallery rejects selections over capacity or with duplicate artworks", 
     ),
     {
       ok: false,
-      reason: "Your gallery can promote at most 1 artwork.",
+      reason: "Your gallery can feature at most 1 artwork.",
     },
   );
 });
 
-test("set gallery rejects permanent artwork conflicts", () => {
+test("set gallery accepts permanent works but rejects other permanent copies", () => {
   const selected = item("selected", "art-a", "claimed");
   const permanent = {
     ...item("permanent", "art-a", "claimed"),
@@ -70,6 +70,11 @@ test("set gallery rejects permanent artwork conflicts", () => {
     reason: "A selected artwork is already represented by a permanent copy.",
   });
   for (const status of ["claimed", "displayed"] as const) {
-    assert.equal(planGallerySelection([{ ...permanent, status }], [permanent], 2).ok, false);
+    const work = { ...permanent, status };
+    assert.deepEqual(planGallerySelection([work], [work], 2), {
+      ok: true,
+      takeDownIds: [],
+      displayIds: status === "claimed" ? [work._id] : [],
+    });
   }
 });

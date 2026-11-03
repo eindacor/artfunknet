@@ -31,6 +31,7 @@ import {
 } from "@/server/artwork-effects";
 import { getMintStateAfterAction } from "@/server/item-mint";
 import { getItemDropChanceUpdate } from "@/server/item-drop-chance";
+import { refreshGalleryMetadata } from "@/server/gallery-metadata";
 
 type Player = {
   _id: string;
@@ -71,7 +72,7 @@ export async function POST(
     database.collection<GameItem>("items").findOne({
       _id: id,
       owner: auth.session.playerId,
-      status: "claimed",
+      status: { $in: ["claimed", "displayed"] },
     }),
     database.collection<Player>("players").findOne({
       _id: auth.session.playerId,
@@ -290,6 +291,9 @@ export async function POST(
     );
   }
 
+  if (item.status === "displayed" || item.permanent) {
+    await refreshGalleryMetadata(database, player._id);
+  }
   await recordEconomyMetricsSafely(database, {
     amount: cost,
     currency: "money",

@@ -213,23 +213,25 @@ test("effects activate only while an effect-bearing item is displayed", async ()
       null,
     );
 
-    await db.collection("items").updateOne(
-      { _id: "claimed-effect" },
-      { $set: { status: "displayed" } },
-    );
-    assert.equal(
-      (await getDisplayedArtworkEffect(db, "player", effect.code))?._id,
-      effect._id,
-    );
+    for (const permanent of [false, true]) {
+      await db.collection("items").updateOne(
+        { _id: "claimed-effect" },
+        { $set: { status: "displayed", permanent } },
+      );
+      assert.equal(
+        (await getDisplayedArtworkEffect(db, "player", effect.code))?._id,
+        effect._id,
+      );
 
-    await db.collection("items").updateOne(
-      { _id: "claimed-effect" },
-      { $set: { status: "claimed" } },
-    );
-    assert.equal(
-      await getDisplayedArtworkEffect(db, "player", effect.code),
-      null,
-    );
+      await db.collection("items").updateOne(
+        { _id: "claimed-effect" },
+        { $set: { status: "claimed" } },
+      );
+      assert.equal(
+        await getDisplayedArtworkEffect(db, "player", effect.code),
+        null,
+      );
+    }
   } finally {
     await client.close();
     await server.stop();

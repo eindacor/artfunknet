@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { returnAuctionForgery } from "@/server/auction-forgery-return";
 import { getGameplaySettings } from "@/server/game-settings";
 import { getDatabase } from "@/server/mongodb";
+import { refreshGalleryMetadata } from "@/server/gallery-metadata";
 import { requirePlayerApi } from "@/server/player-api";
 
 export async function POST(
@@ -18,6 +19,7 @@ export async function POST(
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: result.status });
   }
+  await refreshGalleryMetadata(database, auth.session.playerId);
   return NextResponse.json({
     status: "ok",
     refund: result.refund,

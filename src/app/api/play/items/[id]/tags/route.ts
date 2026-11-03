@@ -4,6 +4,7 @@ import type { GameItem } from "@/server/gameplay";
 import { normalizeItemTags } from "@/server/item-tags";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
+import { getItemDisposalFilter, getItemDisposalPermission } from "@/server/item-permissions";
 
 export async function PATCH(
   request: Request,
@@ -43,12 +44,28 @@ export async function PATCH(
 
   const { id } = await params;
   const database = await getDatabase();
+  const item = await database.collection<GameItem>("items").findOne({
+    _id: id,
+    owner: auth.session.playerId,
+    status: { $in: ["claimed", "displayed", "auctioned"] },
+  });
+  if (!item) {
+    return NextResponse.json(
+      { error: "This item cannot currently be tagged." },
+      { status: 409 },
+    );
+  }
+  const forSale = normalized.tags.includes("for sale");
+  const permission = getItemDisposalPermission(item, "collector-sale");
+  if (forSale && !permission.allowed) {
+    return NextResponse.json({ error: permission.reason }, { status: 409 });
+  }
   const result = await database.collection<GameItem>("items").updateOne(
     {
       _id: id,
       owner: auth.session.playerId,
-      status: { $in: ["claimed", "displayed", "auctioned"] },
-      ...(normalized.tags.includes("for sale") ? { permanent: { $ne: true }, original: { $ne: true } } : {}),
+      status: item.status,
+      ...(forSale ? getItemDisposalFilter("collector-sale", item.status) : {}),
     },
     { $set: { tags: normalized.tags } },
   );

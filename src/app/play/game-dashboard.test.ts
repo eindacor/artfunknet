@@ -1,15 +1,22 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import test, { type TestContext } from "node:test";
-import { runInNewContext } from "node:vm";
+import { runInNewContext as runInVm } from "node:vm";
 import ts from "typescript";
 import * as React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 
 import type { HydratedGameItem } from "../../server/item-artwork.ts";
 import { getArtworkImageUrl } from "../../server/artwork-image-url.ts";
 import { getBulkAcquisitionRequirements } from "../../server/bulk-acquisition.ts";
 import { planGallerySelection } from "../../server/gallery-selection.ts";
-import { getArchivePermission } from "../../server/item-permissions.ts";
+import {
+  FEATURE_ARTWORK_DESCRIPTION,
+  getArchivePermission,
+  getDisplayPermission,
+  getItemDisposalPermission,
+} from "../../server/item-permissions.ts";
 import { getUnfulfilledHistorianTargetIds } from "../../server/art-historian-gameplay.ts";
 import {
   DEFAULT_OFFER_REVEAL_THRESHOLDS,
@@ -17,6 +24,12 @@ import {
   getOfferRevealTier,
   isOfferRevealed,
 } from "../../server/offer-reveal.ts";
+
+function runInNewContext(code: string, context: Record<string, unknown>) {
+  context.getItemDisposalPermission = getItemDisposalPermission;
+  context.FEATURE_ARTWORK_DESCRIPTION = FEATURE_ARTWORK_DESCRIPTION;
+  return runInVm(code, context);
+}
 
 // Execute the actual dashboard handlers without mounting unrelated browser-only sections.
 const source = ts.createSourceFile(
@@ -42,17 +55,20 @@ const handlerNames = new Set([
   "confirmOfferReveal",
   "saveViewSettings",
   "lootItemActions",
+  "collectionItemActions",
+  "collectionGalleryAction",
   "lootPrimaryAction",
   "archiveAction",
   "requestItemRemoval",
   "requestPurchaseDonation",
+  "historianSubmissionDisabledReason",
 ]);
 const handlers = ts.transpileModule(
   [...dashboard.body!.statements.filter(
     (statement) => ts.isFunctionDeclaration(statement) && handlerNames.has(statement.name!.text),
   ), ...source.statements.filter(
     (statement) => ts.isFunctionDeclaration(statement) &&
-      ["ItemActionButton", "getLootBulkState", "getCollectionBulkState", "assignHistorianQuests"].includes(statement.name?.text ?? ""),
+      ["ItemActionButton", "AuthenticityActions", "CollectionBulkActionsPanel", "getLootBulkState", "getCollectionBulkState", "assignHistorianQuests"].includes(statement.name?.text ?? ""),
   )].map((statement) => statement.getText(source)).join("\n"),
   { compilerOptions: { target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React } },
 ).outputText;
@@ -100,6 +116,74 @@ test("collect and set for sale follows claim capacity and blocks disabled clicks
   }
 });
 
+test("Feature buttons explain visitor attraction and earnings while keeping unavailable reasons visible", () => {
+  const description = "Featured works attract visitors to your gallery and earn money and XP over time.";
+  const limitReason = "You have reached your featured-work limit.";
+  const work = {
+    ...item("work"), status: "claimed", permanent: false, original: false, repairing: false,
+    tags: [], values: { sell: 125 }, condition: 0.5, archivePermission: { allowed: true },
+  };
+  type ActionProps = {
+    label: string; description?: string; disabled: boolean; disabledReason?: string; onClick: () => void;
+  };
+  for (const full of [false, true]) {
+    const context = {
+      React, work, pending: false, now: Date.now(), inventory: [work],
+      items: full ? [work, { ...work, _id: "other", artwork_id: "other-art", status: "displayed" }] : [work],
+      player: { displayCap: 1, repairingCap: 5 }, repairingCount: 0, getDisplayPermission,
+      historianQuestsForItem: () => [{}],
+      tagItemAction: () => null, permanentItemAction: () => null,
+    };
+    const primary = runInNewContext(`${handlers}\ncollectionGalleryAction(work)`, { ...context }) as
+      React.ReactElement<{ title: string; disabled: boolean; children: React.ReactNode }>;
+    assert.equal(primary.props.disabled, full);
+    assert.equal(primary.props.title, full ? limitReason : description);
+    assert.ok(React.Children.toArray(primary.props.children).some(child =>
+      typeof child === "string" && child.trim() === "Feature",
+    ));
+    const actions = runInNewContext(`${handlers}\ncollectionItemActions(work, true)`, { ...context }) as
+      React.ReactElement<{ children: React.ReactElement<ActionProps>[] }>;
+    const feature = actions.props.children.find(child => child?.props.label === "Feature in gallery")!;
+    assert.ok(feature);
+    const button = (feature.type as (props: ActionProps) => React.ReactElement<{
+      "data-tooltip": string; "aria-label": string; "aria-disabled": boolean;
+    }>)(feature.props);
+    assert.equal(button.props["aria-disabled"], full);
+    assert.equal(button.props["data-tooltip"], full ? limitReason : description);
+    assert.equal(button.props["aria-label"], full
+      ? `Feature in gallery. Unavailable: ${limitReason}`
+      : `Feature in gallery. ${description}`);
+  }
+});
+
+test("bulk Feature actions share the explanatory tooltip and use Stop featuring when already featured", () => {
+  const availability = Object.fromEntries(
+    ["display", "take-down", "set-gallery", "tag", "collector-sale", "repair", "sell", "historian", "archive", "donate"]
+      .map(action => [action, { allowed: action !== "take-down" }]),
+  ) as Record<string, { allowed: boolean; reason?: string }>;
+  type ButtonProps = { "aria-label": string; title: string; disabled: boolean };
+  const render = () => {
+    const tree = runInNewContext(`${handlers}\nCollectionBulkActionsPanel(props)`, {
+      React,
+      props: {
+        attributeScore: 0, attributes: [], availability, displayCapacity: 5,
+        itemCount: 2, onAction: () => {}, pending: false, totalValue: 250,
+      },
+    }) as React.ReactElement<{ children: React.ReactElement<{
+      children: React.ReactElement<ButtonProps>[];
+    }>[] }>;
+    return tree.props.children[1].props.children;
+  };
+  assert.equal(render().find(button => button.props["aria-label"] === "Feature")?.props.title,
+    "Featured works attract visitors to your gallery and earn money and XP over time.");
+  availability.display = { allowed: false, reason: "Your gallery is full." };
+  const unavailable = render().find(button => button.props["aria-label"].startsWith("Feature."))!;
+  assert.equal(unavailable.props.disabled, true);
+  assert.equal(unavailable.props.title, "Your gallery is full.");
+  availability["take-down"] = { allowed: true };
+  assert.ok(render().some(button => button.props["aria-label"] === "Stop featuring"));
+});
+
 test("dealer purchase controls require space, but direct disposal controls do not", () => {
   for (const flags of [{}, { original: true }, { vintage: true }]) {
     const work = {
@@ -126,6 +210,45 @@ test("dealer purchase controls require space, but direct disposal controls do no
     const primary = runInNewContext(`${handlers}\nlootPrimaryAction(work)`, context) as
       React.ReactElement<{ disabled: boolean }>;
     assert.equal(primary.props.disabled, !exempt);
+  }
+});
+
+test("auction and Collector sale actions render after the divider in previews and shared dialog actions", async () => {
+  const layoutSource = await readFile(new URL("../../components/item-cards/item-action-layout.tsx", import.meta.url), "utf8");
+  const layoutCode = ts.transpileModule(layoutSource, {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
+  }).outputText;
+  const ItemActionLayout = runInNewContext(`${layoutCode}\nexports.default`, {
+    exports: {}, require: createRequire(import.meta.url),
+  }) as (props: { actions: React.ReactNode }) => React.ReactElement;
+  for (const render of [
+    "collectionItemActions(work)", "collectionItemActions(work, true)",
+    "lootItemActions({ ...work, status: 'unclaimed' })",
+    "lootItemActions({ ...work, status: 'for_sale' })",
+  ]) {
+    const work = {
+      ...item("work"), status: "claimed", original: false, permanent: false, tags: [],
+      condition: 0.5, values: { sell: 125, dealer: 10 },
+      authenticity: { identified: false, forgery: false },
+      archivePermission: { allowed: true }, authenticationPermission: { allowed: true, cost: 10 },
+    };
+    const actions = runInNewContext(`${handlers}\n${render}`, {
+      React, work, pending: false, now: Date.now(), items: [work],
+      inventoryFull: false, dealerPriceMultiplier: 1,
+      player: { displayCap: 5, repairingCap: 5, bankBalance: 1_000 },
+      repairingCount: 0, getDisplayPermission,
+      historianQuestsForItem: () => [], tagItemAction: () => null, permanentItemAction: () => null,
+    }) as React.ReactElement;
+    const html = renderToStaticMarkup(React.createElement(ItemActionLayout, { actions }));
+    const left = html.match(/<section aria-label="Non-destructive actions"[^>]*>(.*?)<\/section>/)![1];
+    const right = html.match(/<section aria-label="Destructive actions"[^>]*>(.*?)<\/section>/)![1];
+    assert.match(right, /(?:Offer to Art Collectors|Collect and set for sale|Purchase and set for sale)/, render);
+    assert.doesNotMatch(left, /(?:Offer to Art Collectors|Collect and set for sale|Purchase and set for sale|Put up for auction)/, render);
+    if (render.startsWith("collection")) {
+      assert.match(right, /Put up for auction/, render);
+      assert.match(left, /Repair item/, render);
+      assert.match(left, /Modify attributes/, render);
+    }
   }
 });
 
@@ -197,6 +320,246 @@ test("Original removal requests stop before confirmation or network actions", ()
     assert.equal(errors.length, 1);
     assert.match(errors[0], /Original artwork cannot/);
   }
+});
+
+test("promoted artwork disables disposal and repair while retaining modification and authentication", (t) => {
+  const work = {
+    ...item("promoted"), status: "displayed", revealed: true, tags: [], original: false,
+    values: { sell: 125 }, condition: 0.5, repairing: false,
+    authenticity: { identified: false },
+    archivePermission: { allowed: true }, authenticationPermission: { allowed: true, cost: 10 },
+  };
+  type ActionProps = {
+    label: string; disabled: boolean; disabledReason?: string; onClick: () => void;
+    item?: typeof work; act?: unknown;
+  };
+  const onAction = t.mock.fn();
+  const actions = runInNewContext(`${handlers}\nact = onAction;\ncollectionItemActions(work)`, {
+    React, work, pending: false, now: Date.now(), player: { repairingCap: 5 }, repairingCount: 0,
+    onAction,
+    historianQuestsForItem: () => [{}], historianSubmissionDisabledReason: () => undefined,
+    tagItemAction: () => null, permanentItemAction: () => null,
+  }) as React.ReactElement<{ children: React.ReactElement<ActionProps>[] }>;
+  const props = actions.props.children.filter(Boolean).map(child => child.props);
+  assert.equal(props.find(action => action.label === "Modify attributes")?.disabled, false);
+  for (const label of ["Offer to Art Collectors", "Put up for auction",
+    "Sell for $125", "Donate for Karma", "Send to Historian"]) {
+    assert.equal(props.find(action => action.label === label)?.disabled, true, label);
+    assert.match(props.find(action => action.label === label)?.disabledReason ?? "", /^Featured works and works in your permanent collection can't be /);
+  }
+  assert.equal(props.some(action => action.label === "Stop featuring"), false);
+  const repair = actions.props.children.find(child => child?.props.label === "Repair item")!;
+  assert.equal(repair.props.disabled, true);
+  assert.match(repair.props.disabledReason!, /cannot be repaired while being featured/i);
+  const repairButton = (repair.type as (props: typeof repair.props) => React.ReactElement<{
+    onClick: () => void; "aria-disabled": boolean; "aria-label": string; "data-tooltip": string;
+  }>)(repair.props);
+  assert.equal(repairButton.props["aria-disabled"], true);
+  assert.match(repairButton.props["aria-label"], /cannot be repaired while being featured/i);
+  assert.match(repairButton.props["data-tooltip"], /cannot be repaired while being featured/i);
+  repairButton.props.onClick();
+  assert.equal(onAction.mock.callCount(), 0);
+  const authentic = actions.props.children.find(child => child?.props.item === work)!;
+  const authenticated = (authentic.type as (props: typeof authentic.props) => React.ReactElement<{
+    children: React.ReactElement<ActionProps>;
+  }>)(authentic.props);
+  assert.equal(authenticated.props.children.props.disabled, false);
+});
+
+test("promoted selections block bulk disposal and Collector offerings without changing archive permissions", () => {
+  for (const { original, permanent } of [
+    { original: false, permanent: false }, { original: true, permanent: false },
+    { original: false, permanent: true },
+  ]) {
+    const work = {
+      ...item("promoted"), status: "displayed", revealed: true, original, permanent, tags: [],
+      condition: 0.5, artwork: { title: "Work" }, archivePermission: { allowed: !original && !permanent },
+    };
+    const { availability } = runInNewContext(`${handlers}\ngetCollectionBulkState(options)`, {
+      canQuickSellItem, planGallerySelection, getArchivePermission, getUnfulfilledHistorianTargetIds,
+      options: { collectionItems: [work], selectedItems: [work], displayCap: 5,
+        quests: [{ _id: "quest", target: [work.artwork_id] }], repairingCap: 5, repairingCount: 0 },
+    }) as { availability: Record<string, { allowed: boolean; reason?: string }> };
+    for (const action of ["sell", "donate", "collector-sale", "historian"]) {
+      assert.equal(availability[action].allowed, false, action);
+      assert.match(availability[action].reason!, /^Featured works and works in your permanent collection can't be /);
+    }
+    assert.equal(availability.archive.allowed, !original && !permanent);
+    assert.equal(availability.repair.allowed, false);
+    assert.match(availability.repair.reason!, /cannot be repaired while being featured/i);
+  }
+});
+
+test("protected work buttons share action-specific hover and accessibility messages in both layouts", () => {
+  let inventoryActions: ts.ArrowFunction | undefined;
+  function findInventoryActions(node: ts.Node) {
+    if (ts.isJsxSelfClosingElement(node) && node.tagName.getText(source) === "InventorySection") {
+      const actions = node.attributes.properties.find(
+        (attribute) => ts.isJsxAttribute(attribute) && attribute.name.getText(source) === "actions",
+      );
+      if (actions && ts.isJsxAttribute(actions) && actions.initializer &&
+        ts.isJsxExpression(actions.initializer) && actions.initializer.expression &&
+        ts.isArrowFunction(actions.initializer.expression)) {
+        inventoryActions = actions.initializer.expression;
+      }
+    }
+    ts.forEachChild(node, findInventoryActions);
+  }
+  findInventoryActions(dashboard);
+  assert.ok(inventoryActions);
+  const inventoryRenderer = ts.transpileModule(
+    `const inventoryActions = ${inventoryActions.getText(source)};`,
+    { compilerOptions: { target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React } },
+  ).outputText;
+  type ActionProps = { label: string; disabled: boolean; disabledReason?: string; onClick: () => void };
+  type ButtonProps = {
+    "aria-disabled": boolean; "aria-label": string; "data-tooltip": string; onClick: () => void;
+  };
+  for (const { status, original, permanent, pending } of [
+    { status: "claimed", original: false, permanent: true, pending: false },
+    { status: "displayed", original: false, permanent: false, pending: false },
+    { status: "displayed", original: false, permanent: true, pending: true },
+    { status: "claimed", original: true, permanent: true, pending: true },
+  ]) {
+    const work = {
+      ...item("permanent"), status, original, permanent, tags: [], condition: 0.5,
+      repairing: false, values: { sell: 125 },
+      archivePermission: { allowed: false, reason: "Works in your permanent collection can't be archived." },
+    };
+    const context = {
+      React, work, pending, items: [work], now: Date.now(),
+      player: { displayCap: 5, repairingCap: 5, bankBalance: 1_000 },
+      repairingCount: 0, historianQuestsForItem: () => [],
+      getDisplayPermission: () => ({ allowed: true }),
+      tagItemAction: () => null, permanentItemAction: () => null,
+    };
+    for (const render of ["collectionItemActions(work)", "inventoryActions(work)"]) {
+      const actions = runInNewContext(`${handlers}\n${inventoryRenderer}\n${render}`, { ...context }) as
+        React.ReactElement<{ children: React.ReactElement<ActionProps>[] }>;
+      const expected = {
+        "Sell for $125": "Featured works and works in your permanent collection can't be sold.",
+        "Donate for Karma": "Featured works and works in your permanent collection can't be donated.",
+        "Offer to Art Collectors": "Featured works and works in your permanent collection can't be sold to Art Collectors.",
+        "Put up for auction": "Featured works and works in your permanent collection can't be auctioned.",
+        "Send to Historian": "Featured works and works in your permanent collection can't be sent to the Historian.",
+        ...(status === "claimed" ? {
+          "Archive permanently": "Works in your permanent collection can't be archived.",
+        } : {}),
+      };
+      for (const [label, reason] of Object.entries(expected)) {
+        const action = actions.props.children.find(child => child?.props.label === label)!;
+        assert.ok(action, `${render}: ${label}`);
+        assert.equal(action.props.disabled, true, label);
+        assert.equal(action.props.disabledReason, reason, label);
+        const button = (action.type as (props: ActionProps) => React.ReactElement<ButtonProps>)(action.props);
+        assert.equal(button.props["aria-disabled"], true);
+        assert.equal(button.props["data-tooltip"], reason);
+        assert.equal(button.props["aria-label"], `${label}. Unavailable: ${reason}`);
+        button.props.onClick();
+      }
+    }
+  }
+});
+
+test("bulk permanent restrictions use the same action-specific wording, including Originals", () => {
+  for (const status of ["claimed", "displayed"]) {
+    for (const original of [false, true]) {
+      const work = {
+        ...item("permanent"), status, original, permanent: true, tags: [], revealed: true,
+        condition: 0.5, artwork: { title: "Work" },
+      };
+      const { availability } = runInNewContext(`${handlers}\ngetCollectionBulkState(options)`, {
+        canQuickSellItem, planGallerySelection, getArchivePermission, getUnfulfilledHistorianTargetIds,
+        options: { collectionItems: [work], selectedItems: [work], displayCap: 5,
+          quests: [], repairingCap: 5, repairingCount: 0 },
+      }) as { availability: Record<string, { allowed: boolean; reason?: string }> };
+      for (const [action, reason] of Object.entries({
+        sell: "Featured works and works in your permanent collection can't be sold.",
+        donate: "Featured works and works in your permanent collection can't be donated.",
+        "collector-sale": "Featured works and works in your permanent collection can't be sold to Art Collectors.",
+        historian: "Featured works and works in your permanent collection can't be sent to the Historian.",
+        archive: "Works in your permanent collection can't be archived.",
+      })) {
+        assert.equal(availability[action].allowed, false, action);
+        assert.equal(availability[action].reason, reason, action);
+      }
+    }
+  }
+});
+
+test("Collector offer removal stays available and ordinary pending actions retain their busy reason", () => {
+  const work = {
+    ...item("work"), status: "claimed", permanent: true, original: true,
+    tags: ["for sale"], values: { sell: 125 }, condition: 0.5,
+    archivePermission: { allowed: false },
+  };
+  const context = {
+    React, work, pending: false, now: Date.now(), player: { repairingCap: 5 }, repairingCount: 0,
+    historianQuestsForItem: () => [{}], tagItemAction: () => null, permanentItemAction: () => null,
+  };
+  type ActionProps = { label: string; disabled: boolean; disabledReason?: string; onClick: () => void };
+  function donationAndCollectorActions() {
+    return runInNewContext(`${handlers}\ncollectionItemActions(work)`, context) as
+      React.ReactElement<{ children: React.ReactElement<ActionProps>[] }>;
+  }
+  const stopOffering = donationAndCollectorActions().props.children.find(
+    child => child?.props.label === "Stop offering to Art Collectors",
+  )!;
+  assert.equal(stopOffering.props.disabled, false);
+  assert.equal(stopOffering.props.disabledReason, undefined);
+  Object.assign(work, { permanent: false, original: false });
+  context.pending = true;
+  const donation = donationAndCollectorActions().props.children.find(
+    child => child?.props.label === "Donate for Karma",
+  )!;
+  assert.equal(donation.props.disabled, true);
+  const button = (donation.type as (props: ActionProps) => React.ReactElement<{
+    "data-tooltip": string;
+  }>)(donation.props);
+  assert.equal(button.props["data-tooltip"], "Another action is being processed.");
+});
+
+test("permanent selections can be promoted and promoted permanent works consume capacity", () => {
+  const work = {
+    ...item("permanent"), status: "claimed", permanent: true, tags: [],
+    condition: 0.5, artwork: { title: "Work" }, archivePermission: { allowed: false },
+  };
+  const evaluate = (collectionItems: unknown[]) => runInNewContext(`${handlers}\ngetCollectionBulkState(options)`, {
+    canQuickSellItem, planGallerySelection, getArchivePermission, getUnfulfilledHistorianTargetIds,
+    options: { collectionItems, selectedItems: [work], displayCap: 1,
+      quests: [], repairingCap: 5, repairingCount: 0 },
+  }) as { availability: Record<string, { allowed: boolean; reason?: string }> };
+  const available = evaluate([work]).availability;
+  assert.equal(available.display.allowed, true);
+  assert.equal(available["set-gallery"].allowed, true);
+  const full = evaluate([work, { ...work, _id: "other", artwork_id: "other-art", status: "displayed" }]).availability;
+  assert.equal(full.display.allowed, false);
+  assert.match(full.display.reason!, /gallery limit/i);
+  assert.equal(full["set-gallery"].allowed, true);
+});
+
+test("promoted permanent works appear once in the collection and in the promoting section", () => {
+  const statements = dashboard.body!.statements.filter(statement =>
+    ts.isVariableStatement(statement) && statement.declarationList.declarations.some(declaration =>
+      ["inventory", "displayed", "collectionItems"].includes(declaration.name.getText(source)),
+    ),
+  ).map(statement => statement.getText(source)).join("\n");
+  const code = ts.transpileModule(statements, {
+    compilerOptions: { target: ts.ScriptTarget.ES2022 },
+  }).outputText;
+  const items = [
+    { ...item("permanent"), status: "displayed", permanent: true },
+    { ...item("promoted"), status: "displayed", permanent: false },
+    { ...item("stored"), status: "claimed", permanent: true },
+    { ...item("auctioned"), status: "auctioned", permanent: false },
+  ];
+  const state = runInNewContext(`${code}\n({ inventory, displayed, collectionItems })`, {
+    items, useMemo: (getItems: () => unknown) => getItems(),
+  }) as Record<string, HydratedGameItem[]>;
+  assert.deepEqual([...state.displayed].map(item => item._id), ["permanent", "promoted"]);
+  assert.deepEqual([...state.inventory].map(item => item._id), ["stored", "auctioned"]);
+  assert.equal(state.collectionItems.length, 4);
+  assert.equal(new Set(state.collectionItems.map(item => item._id)).size, 4);
 });
 
 test("gallery format changes update the section-remount preference and persist through the settings queue", async () => {

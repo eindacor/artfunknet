@@ -67,7 +67,7 @@ export async function returnAuctionForgery(
     {
       _id: item._id,
       owner: playerId,
-      status: "claimed",
+      status: item.status,
       date_received: item.date_received,
       transaction_history: item.transaction_history,
       "authenticity.forgery": true,
@@ -113,7 +113,7 @@ export async function returnAuctionForgery(
           "authenticity.liability_pending": false,
           "authenticity.forgery_quality": punishForgeryQuality(item.authenticity.forgery_quality),
         },
-        $unset: { forgery_return_operation: "", expires_at: "" },
+        $unset: { forgery_return_operation: "", expires_at: "", time_displayed: "" },
         $push: {
           transaction_history: {
             type: "transfer",
@@ -145,7 +145,7 @@ export async function returnAuctionForgery(
         if (reverted.matchedCount !== 1) throw new Error("The seller charge could not be reversed.");
       }
       await items.updateOne(locked, {
-        $set: { status: "claimed" },
+        $set: { status: item.status },
         $unset: { forgery_return_operation: "" },
       });
     } catch (rollbackError) {

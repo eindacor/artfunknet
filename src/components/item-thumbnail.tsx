@@ -65,7 +65,7 @@ export default function ItemThumbnail({
         <span className="thumbnail-status-watermarks">
           {isDisplayed ? (
             <i
-              aria-label="Promoted"
+              aria-label="Featured"
               className="fa fa-eye thumbnail-displayed"
               role="img"
             />

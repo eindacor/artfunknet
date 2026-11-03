@@ -511,17 +511,41 @@ The basic gameplay loop is active:
   price, artwork, and market-analysis sort choices. Bids escrow funds, refund
   outbid players, settle lazily without a background worker, transfer sold
   items, and return unsold consignments.
-- Claimed items can be modified through an accessible reroll dialog. Attraction
+- Claimed and featured items can be modified through an accessible reroll dialog. Attraction
   values can be rerolled, unlocked attributes can be replaced, and each roll
   charges the original rarity-scaled cost before recalculating item value.
   Items retain their cumulative reroll spending even if a future NPC reward
   reduces their roll count.
 - Legendary effects currently modify supported gameplay paths for gallery
   XP-to-money conversion, unclaimed-item sale bonuses, reroll discounts,
-  Marketing Manager-gated rerolls of displayed items, supported Donor,
-  Dealer, Collector, Auctioneer, auction, and quest interactions. Effects
+  and supported Donor, Dealer, Collector, Auctioneer, auction, and quest interactions. Effects
   involving repairs or other unported rewards remain stored and configurable
   until those systems are migrated.
+- Featured artwork supports rerolls, level increases, authentication, archival,
+  and eligible forgery returns. Featured works and works in the permanent
+  collection cannot be offered to Collectors, quick sold, donated, submitted to
+  a Historian, or auctioned. Buttons, bulk controls, API checks, and atomic
+  disposal filters share these permissions and their explanatory messages.
+  Repairs still require taking the item down. Original protections remain in
+  force. In-place changes retain featuring; permitted removal or transfer actions
+  update gallery metadata.
+  Permanent collection membership is independent of featuring. A work can count
+  toward both capacities and earns normal income, visitor attraction, and bonuses
+  while featured. Stopping featuring keeps permanent works publicly visible,
+  without featuring income or bonuses. Repair controls remain visible but disabled
+  with an explanation while artwork is featured.
+  Featuring an item preserves existing Collector tags, but Collectors ignore
+  featured and permanent works, including legacy sale-tagged items.
+  Feature-action hover text explains visitor attraction and money/XP earnings
+  over time; unavailable actions retain the specific permission explanation.
+  The legacy `REROLL_DISPLAY_ENABLE` / Marketing Manager gate is not required.
+- Forgery Contest prizes have separate first-, second-, and third-place
+  replacement buffers, each retaining exactly two items. Administrators can
+  edit queued rewards at `/admin/forgery-contest`; active prizes
+  remain read-only. Drawings advance each queue in order and replenish it.
+  The contest's Daily Events page shows all three current artwork rewards and
+  the cash-reward rules in separate submission, voting, and reward sections.
+  Existing queues automatically retain their first two prizes per place.
 - Displayed artwork generates the original hourly money and XP rewards. Rewards
   settle automatically when the player returns, without requiring a local
   background worker. Clicking artwork on the gallery wall opens the shared
@@ -549,7 +573,7 @@ The basic gameplay loop is active:
   dealer offer count, pricing, starting level, and displayed-condition bonuses
   honor the currently applicable Legendary Attributes. Unresolved offers
   remain available in the Loot tab.
-- Claimed inventory artwork can be tagged for Art Collectors independently
+- Claimed, non-permanent artwork can be tagged for Art Collectors independently
   from Dealer `for_sale` offers. Meeting a Collector immediately selects one
   tagged work, applies the original quality and own-gallery payout formula,
   awards money or XP, and normally removes the item before showing an

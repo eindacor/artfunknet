@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import ItemCard from "@/components/item-cards/item-card";
 import { useCardCosmetics } from "@/components/item-cards/card-cosmetics-provider";
 import type { Artwork } from "@/server/gameplay";
+import type { ForgeryContestPlace } from "@/server/forgery-contest";
 import type { HydratedGameItem } from "@/server/item-artwork";
 
 type ArtworkOption = Artwork;
@@ -146,19 +147,23 @@ export default function RaffleRewardForm({
   );
 }
 
-function PrizeEditor({
+export function PrizeEditor({
   artworks,
   canRemove,
+  contestPlace,
   index,
   prize,
 }: {
   artworks: ArtworkOption[];
   canRemove: boolean;
+  contestPlace?: ForgeryContestPlace;
   index: number;
   prize: { item: HydratedGameItem; potency: number };
 }) {
   const cardCosmetics = useCardCosmetics();
   const router = useRouter();
+  const endpoint = contestPlace ? "/api/admin/daily-events/forgery-contest" : "/api/admin/lottery";
+  const rewardName = contestPlace ? "Forgery Contest" : "lottery";
   const [item, setItem] = useState(prize.item);
   const [artworkId, setArtworkId] = useState(prize.item.artwork_id);
   const [condition, setCondition] = useState(
@@ -180,12 +185,13 @@ function PrizeEditor({
     setPending(true);
     setError("");
     try {
-      const response = await fetch("/api/admin/lottery", {
+      const response = await fetch(endpoint, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           itemId: prize.item._id,
           pool: "buffer",
+          ...(contestPlace ? { place: contestPlace } : {}),
           artworkId,
           condition: mint ? 1 : condition / 100,
           itemLevel,
@@ -203,7 +209,7 @@ function PrizeEditor({
       };
       if (!response.ok || !body.item) {
         throw new Error(
-          body.error ?? "The lottery item could not be updated.",
+          body.error ?? `The ${rewardName} item could not be updated.`,
         );
       }
       setItem(body.item);
@@ -211,7 +217,7 @@ function PrizeEditor({
       setError(
         saveError instanceof Error
           ? saveError.message
-          : "The lottery item could not be updated.",
+          : `The ${rewardName} item could not be updated.`,
       );
     } finally {
       setPending(false);
@@ -222,17 +228,18 @@ function PrizeEditor({
     setPending(true);
     setError("");
     try {
-      const response = await fetch("/api/admin/lottery", {
+      const response = await fetch(endpoint, {
         method: "DELETE",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           itemId: prize.item._id,
+          ...(contestPlace ? { place: contestPlace } : {}),
         }),
       });
       const body = (await response.json()) as { error?: string };
       if (!response.ok) {
         throw new Error(
-          body.error ?? "The lottery item could not be removed.",
+          body.error ?? `The ${rewardName} item could not be removed.`,
         );
       }
       router.refresh();
@@ -240,7 +247,7 @@ function PrizeEditor({
       setError(
         removeError instanceof Error
           ? removeError.message
-          : "The lottery item could not be removed.",
+          : `The ${rewardName} item could not be removed.`,
       );
     } finally {
       setPending(false);
@@ -306,17 +313,19 @@ function PrizeEditor({
               value={itemLevel}
             />
           </label>
-          <label>
-            Lottery level
-            <input
-              disabled={pending}
-              max={10}
-              min={1}
-              onChange={(event) => setPotency(Number(event.target.value))}
-              type="number"
-              value={potency}
-            />
-          </label>
+          {!contestPlace ? (
+            <label>
+              Lottery level
+              <input
+                disabled={pending}
+                max={10}
+                min={1}
+                onChange={(event) => setPotency(Number(event.target.value))}
+                type="number"
+                value={potency}
+              />
+            </label>
+          ) : null}
         </div>
         <div className="admin-raffle-flags">
           <Flag checked={foil} disabled={pending} label="Foil" set={setFoil} />
@@ -346,8 +355,8 @@ function PrizeEditor({
           onClick={removeFromBuffer}
           title={
             canRemove
-              ? "Remove this item from the lottery buffer"
-              : "The lottery buffer must retain its minimum item count"
+              ? `Remove this item from the ${rewardName} buffer`
+              : `The ${rewardName} buffer must retain its minimum item count`
           }
           type="button"
         >

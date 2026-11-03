@@ -25,7 +25,9 @@ import {
 import { getDatabase } from "@/server/mongodb";
 import { removeExpiredTransientItems } from "@/server/item-expiration";
 import { requirePlayerApi } from "@/server/player-api";
+import { getItemDisposalFilter, getItemDisposalPermission } from "@/server/item-permissions";
 import { evaluateQuestItemSellBonus } from "@/server/quest-item-sell";
+import { refreshGalleryMetadata } from "@/server/gallery-metadata";
 
 type Player = {
   _id: string;
@@ -49,15 +51,16 @@ export async function POST(
   const item = await database.collection<GameItem>("items").findOne({
     _id: id,
     owner: auth.session.playerId,
-    status: { $in: ["claimed", "unclaimed"] },
-    permanent: { $ne: true },
-    original: { $ne: true },
   });
   if (!item) {
     return NextResponse.json(
       { error: "This item cannot currently be sold." },
       { status: 409 },
     );
+  }
+  const permission = getItemDisposalPermission(item, "sell");
+  if (!permission.allowed) {
+    return NextResponse.json({ error: permission.reason }, { status: 409 });
   }
   const settings = await getGameplaySettings(database);
   const [hydrated] = await hydrateGameItems(database, [item]);
@@ -81,9 +84,8 @@ export async function POST(
           : await database.collection<GameItem>("items").deleteOne({
               _id: item._id,
               owner: auth.session.playerId,
-              status: item.status,
+              ...getItemDisposalFilter("sell", item.status),
               revealed: { $ne: false },
-              original: { $ne: true },
               "authenticity.forgery": true,
               "authenticity.identified": true,
             });
@@ -98,6 +100,9 @@ export async function POST(
         }
         if (!preserved) {
           await deleteCommunityReactions(database, "item", [item._id]);
+        }
+        if (item.status === "displayed") {
+          await refreshGalleryMetadata(database, auth.session.playerId);
         }
         const message = preserved
           ? "The buyer detected the forgery. The sale failed, and Artfunkel Inc. preserved the artwork."
@@ -116,10 +121,10 @@ export async function POST(
         });
       }
       const identified = await database.collection<GameItem>("items").updateOne(
-        { _id: item._id, owner: auth.session.playerId, status: item.status, "authenticity.identified": false },
+        { _id: item._id, owner: auth.session.playerId, ...getItemDisposalFilter("sell", item.status), "authenticity.identified": false },
         {
           $set: {
-            status: "claimed",
+            status: item.status === "displayed" ? "displayed" : "claimed",
             "authenticity.liable": auth.session.playerId,
             "authenticity.liability_pending": false,
             "authenticity.identified": true,
@@ -134,8 +139,12 @@ export async function POST(
           { status: 409 },
         );
       }
-      const message =
-        "The buyer detected the forgery. It was identified and returned to your inventory.";
+      const message = item.status === "displayed"
+        ? "The buyer detected the forgery. It was identified and remains featured."
+        : "The buyer detected the forgery. It was identified and returned to your inventory.";
+      if (item.status === "displayed") {
+        await refreshGalleryMetadata(database, auth.session.playerId);
+      }
       await notifyForgeryDetection(database, auth.session.playerId, `${hydrated.artwork.title}: ${message}`);
       return NextResponse.json({
         status: "ok",
@@ -156,9 +165,8 @@ export async function POST(
     : await database.collection<GameItem>("items").findOneAndDelete({
         _id: item._id,
         owner: auth.session.playerId,
-        status: item.status,
+        ...getItemDisposalFilter("sell", item.status),
         revealed: { $ne: false },
-        original: { $ne: true },
       });
   if (!removed) {
     return NextResponse.json({ error: "This item changed before it could be sold." }, { status: 409 });
@@ -205,6 +213,9 @@ export async function POST(
   }
   if (!isHoF) {
     await deleteCommunityReactions(database, "item", [item._id]);
+  }
+  if (item.status === "displayed") {
+    await refreshGalleryMetadata(database, auth.session.playerId);
   }
   const [hydratedItem] = await hydrateGameItems(database, [item]);
   await rewardUndetectedForgeryExit(database, hydratedItem, {

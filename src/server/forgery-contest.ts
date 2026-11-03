@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import type { Db } from "mongodb";
 
+import { getArtworkEffect } from "./artwork-effects.ts";
 import { deleteCommunityReactions } from "./community-reaction-cleanup.ts";
 import {
   getDailyEventDayIndex,
@@ -10,15 +11,23 @@ import {
 import { recordEconomyMetricsSafely } from "./economy-metrics.ts";
 import { getGameplaySettings, type GameplayConfig } from "./game-settings.ts";
 import {
+  calculateItemValues,
   generateDailyDrop,
+  getItemAttributes,
+  type Artwork,
   type ArtworkRarity,
   type GameItem,
+  type ItemAttribute,
+  type LootData,
 } from "./gameplay.ts";
 import { HALL_OF_FAME_OWNER_ID } from "./hall-of-fame.ts";
 import {
   hydrateGameItems,
   type HydratedGameItem,
 } from "./item-artwork.ts";
+import { getItemDropChanceUpdate } from "./item-drop-chance.ts";
+import { getRerollCost } from "./item-reroll.ts";
+import { assignItemSerialNumbers, isOriginalItemConflict } from "./item-serials.ts";
 import {
   createPlayerNotification,
   type PlayerNotification,
@@ -29,6 +38,7 @@ export const FORGERY_CONTEST_STATE_ID = "forgery-contest-state";
 export const FORGERY_CONTEST_DAY_INDEX = 2;
 export const FORGERY_CONTEST_SETTLEMENT_HOUR = 12;
 export const FORGERY_CONTEST_PRIZE_SOURCE = "forgery contest prize";
+export const FORGERY_CONTEST_DEFAULT_BUFFER_COUNT = 2;
 
 const ENTRY_PENDING_MILLISECONDS = 5 * 60 * 1000;
 const SETTLEMENT_LOCK_MILLISECONDS = 10 * 60 * 1000;
@@ -41,6 +51,22 @@ export type ForgeryContestPlace = 1 | 2 | 3;
 export type ForgeryContestPrize = {
   place: ForgeryContestPlace;
   item_id: string;
+};
+
+export type ForgeryContestPrizeView = {
+  place: ForgeryContestPlace;
+  item: HydratedGameItem;
+};
+
+export type ForgeryContestPrizeProperties = {
+  artworkId: string;
+  condition: number;
+  itemLevel: number;
+  foil: boolean;
+  unlocked: boolean;
+  mint: boolean;
+  seasonal: boolean;
+  cardRenderer: string;
 };
 
 export type ForgeryContestItemSnapshot = HydratedGameItem;
@@ -61,6 +87,7 @@ export type ForgeryContestState = {
   cycle_id: string;
   next_settlement_at: string;
   prizes: ForgeryContestPrize[];
+  buffer_prizes: ForgeryContestPrize[];
   last_winners: ForgeryContestWinner[];
   settlement_lock?: {
     token: string;
@@ -110,6 +137,7 @@ export type ForgeryContestPlayerView = {
   submissionsOpen: boolean;
   votingOpen: boolean;
   nextSettlementAt: string;
+  prizes: ForgeryContestPrizeView[];
   currentEntry: ForgeryContestEntryView | null;
   eligibleForgeries: HydratedGameItem[];
   entries: ForgeryContestEntryView[];
@@ -119,10 +147,9 @@ export type ForgeryContestPlayerView = {
 
 export type ForgeryContestAdminView = {
   nextSettlementAt: string;
-  prizes: Array<{
-    place: ForgeryContestPlace;
-    item: HydratedGameItem;
-  }>;
+  prizes: ForgeryContestPrizeView[];
+  bufferPrizes: ForgeryContestPrizeView[];
+  minimumBufferCount: number;
 };
 
 export class ForgeryContestError extends Error {
@@ -255,7 +282,7 @@ export async function getForgeryContestPlayerView(
   const state = await settleForgeryContestIfDue(database, now);
   await cleanupContestDocuments(database, state, now);
 
-  const [entries, votes, eligibleItems] = await Promise.all([
+  const [entries, votes, eligibleItems, prizes] = await Promise.all([
     database
       .collection<ForgeryContestEntry>("forgery_contest_entries")
       .find({ cycle_id: state.cycle_id, pending: false })
@@ -275,6 +302,7 @@ export async function getForgeryContestPlayerView(
       })
       .sort({ date_received: -1, _id: 1 })
       .toArray(),
+    hydrateContestPrizes(database, state.prizes),
   ]);
 
   const entryItems = await database
@@ -332,6 +360,7 @@ export async function getForgeryContestPlayerView(
     submissionsOpen: !hasActiveSettlementLock(state, now),
     votingOpen: !hasActiveSettlementLock(state, now),
     nextSettlementAt: state.next_settlement_at,
+    prizes,
     currentEntry:
       entryViews.find((entry) => entry.playerId === playerId) ?? null,
     eligibleForgeries: hydratedEligibleItems,
@@ -553,27 +582,40 @@ export async function getForgeryContestAdminView(
   now = new Date(),
 ): Promise<ForgeryContestAdminView> {
   const state = await settleForgeryContestIfDue(database, now);
+  const [prizes, bufferPrizes] = await Promise.all([
+    hydrateContestPrizes(database, state.prizes),
+    hydrateContestPrizes(database, state.buffer_prizes ?? []),
+  ]);
+  return {
+    nextSettlementAt: state.next_settlement_at,
+    prizes,
+    bufferPrizes,
+    minimumBufferCount: FORGERY_CONTEST_DEFAULT_BUFFER_COUNT,
+  };
+}
+
+async function hydrateContestPrizes(
+  database: Db,
+  prizes: ForgeryContestPrize[],
+): Promise<ForgeryContestPrizeView[]> {
   const items = await database
     .collection<GameItem>("items")
-    .find({ _id: { $in: state.prizes.map((prize) => prize.item_id) } })
+    .find({ _id: { $in: prizes.map((prize) => prize.item_id) } })
     .toArray();
-  if (items.length !== state.prizes.length) {
+  if (items.length !== prizes.length) {
     throw new Error("One or more Forgery Contest prizes are unavailable.");
   }
   const hydrated = await hydrateGameItems(database, items);
   const itemById = new Map(hydrated.map((item) => [item._id, item]));
-  return {
-    nextSettlementAt: state.next_settlement_at,
-    prizes: state.prizes.map((prize) => {
-      const item = itemById.get(prize.item_id);
-      if (!item) {
-        throw new Error(
-          `Forgery Contest prize ${prize.item_id} is unavailable.`,
-        );
-      }
-      return { place: prize.place, item };
-    }),
-  };
+  return prizes.map((prize) => {
+    const item = itemById.get(prize.item_id);
+    if (!item) {
+      throw new Error(
+        `Forgery Contest prize ${prize.item_id} is unavailable.`,
+      );
+    }
+    return { place: prize.place, item };
+  });
 }
 
 export async function replaceForgeryContestPrize(
@@ -581,35 +623,225 @@ export async function replaceForgeryContestPrize(
   place: ForgeryContestPlace,
   now = new Date(),
 ): Promise<void> {
-  const state = await settleForgeryContestIfDue(database, now);
-  if (hasActiveSettlementLock(state, now)) {
-    throw new ForgeryContestError(
-      "Forgery Contest prizes cannot be replaced during settlement.",
+  await withContestPrizeLock(database, now, async (state, token) => {
+    const currentPrize = state.prizes.find((prize) => prize.place === place);
+    const replacement = state.buffer_prizes.find(
+      (prize) => prize.place === place,
     );
-  }
-  const currentPrize = state.prizes.find((prize) => prize.place === place);
-  if (!currentPrize) {
-    throw new ForgeryContestError("That prize place is unavailable.", 404);
-  }
-  const config = (await getGameplaySettings(database)).active;
-  const replacement = await generateForgeryContestPrize(
-    database,
-    config,
-    place,
-    now,
-  );
-  const nextPrizes = state.prizes.map((prize) =>
-    prize.place === place
-      ? { place, item_id: replacement._id }
-      : prize,
-  );
-  const replaced = await database
+    if (!currentPrize || !replacement) {
+      throw new ForgeryContestError("That prize place is unavailable.", 404);
+    }
+    const config = (await getGameplaySettings(database)).active;
+    const refill = await generateForgeryContestPrize(
+      database, config, place, now,
+    );
+    const replaced = await database
+      .collection<ForgeryContestState>("metadata")
+      .updateOne(
+        { _id: FORGERY_CONTEST_STATE_ID, "settlement_lock.token": token },
+        {
+          $set: {
+            prizes: state.prizes.map((prize) =>
+              prize.place === place ? replacement : prize,
+            ),
+            buffer_prizes: [
+              ...state.buffer_prizes.filter(
+                (prize) => prize.item_id !== replacement.item_id,
+              ),
+              { place, item_id: refill._id },
+            ],
+            updated_at: now.toISOString(),
+          },
+        },
+      );
+    if (replaced.modifiedCount !== 1) {
+      await database.collection<GameItem>("items").deleteOne({
+        _id: refill._id,
+        owner: FORGERY_CONTEST_OWNER_ID,
+      });
+      throw new ForgeryContestError(
+        "The Forgery Contest prizes changed before replacement completed.",
+      );
+    }
+    await database.collection<GameItem>("items").deleteOne({
+      _id: currentPrize.item_id,
+      owner: FORGERY_CONTEST_OWNER_ID,
+    });
+    await deleteCommunityReactions(database, "item", [currentPrize.item_id]);
+  });
+}
+
+export async function createForgeryContestBufferedPrize(
+  database: Db,
+  place: ForgeryContestPlace,
+  now = new Date(),
+): Promise<void> {
+  await withContestPrizeLock(database, now, async (state, token) => {
+    if (state.buffer_prizes.filter((prize) => prize.place === place).length >=
+      FORGERY_CONTEST_DEFAULT_BUFFER_COUNT) {
+      throw new ForgeryContestError(
+        `Each place is limited to ${FORGERY_CONTEST_DEFAULT_BUFFER_COUNT} buffered prizes.`,
+      );
+    }
+    const config = (await getGameplaySettings(database)).active;
+    const item = await generateForgeryContestPrize(database, config, place, now);
+    const appended = await database
+      .collection<ForgeryContestState>("metadata")
+      .updateOne(
+        { _id: FORGERY_CONTEST_STATE_ID, "settlement_lock.token": token },
+        { $push: { buffer_prizes: { place, item_id: item._id } } },
+      );
+    if (appended.modifiedCount !== 1) {
+      await database.collection<GameItem>("items").deleteOne({
+        _id: item._id,
+        owner: FORGERY_CONTEST_OWNER_ID,
+      });
+      throw new ForgeryContestError(
+        "The Forgery Contest buffer changed before the item could be added.",
+      );
+    }
+  });
+}
+
+export async function removeForgeryContestBufferedPrize(
+  database: Db,
+  place: ForgeryContestPlace,
+  itemId: string,
+  now = new Date(),
+): Promise<void> {
+  await withContestPrizeLock(database, now, async (state, token) => {
+    const buffer = state.buffer_prizes.filter((prize) => prize.place === place);
+    if (!buffer.some((prize) => prize.item_id === itemId)) {
+      throw new ForgeryContestError("Choose a buffered prize for this place.", 404);
+    }
+    if (buffer.length <= FORGERY_CONTEST_DEFAULT_BUFFER_COUNT) {
+      throw new ForgeryContestError(
+        `Each place must retain at least ${FORGERY_CONTEST_DEFAULT_BUFFER_COUNT} buffered prizes.`,
+      );
+    }
+    const removed = await database
+      .collection<ForgeryContestState>("metadata")
+      .updateOne(
+        { _id: FORGERY_CONTEST_STATE_ID, "settlement_lock.token": token },
+        { $pull: { buffer_prizes: { place, item_id: itemId } } },
+      );
+    if (removed.modifiedCount !== 1) {
+      throw new ForgeryContestError(
+        "The Forgery Contest buffer changed before the item could be removed.",
+      );
+    }
+    await database.collection<GameItem>("items").deleteOne({
+      _id: itemId,
+      owner: FORGERY_CONTEST_OWNER_ID,
+    });
+    await deleteCommunityReactions(database, "item", [itemId]);
+  });
+}
+
+export async function updateForgeryContestBufferedPrize(
+  database: Db,
+  place: ForgeryContestPlace,
+  itemId: string,
+  properties: ForgeryContestPrizeProperties,
+  now = new Date(),
+): Promise<HydratedGameItem> {
+  return withContestPrizeLock(database, now, async (state) => {
+    if (!state.buffer_prizes.some(
+      (prize) => prize.place === place && prize.item_id === itemId,
+    )) {
+      throw new ForgeryContestError(
+        "Only buffered prizes for this place can be edited.",
+      );
+    }
+    const [item, artwork, metadata, attributes, settings] = await Promise.all([
+      database.collection<GameItem>("items").findOne({
+        _id: itemId, owner: FORGERY_CONTEST_OWNER_ID, status: "claimed",
+      }),
+      database.collection<Artwork>("artworks").findOne({
+        _id: properties.artworkId, active: true,
+      }),
+      database.collection<{ _id: string; loot_data: LootData }>("metadata")
+        .findOne({ _id: "loot-data" }),
+      database.collection<ItemAttribute>("attributes")
+        .find({ active: true }).toArray(),
+      getGameplaySettings(database),
+    ]);
+    if (!item || !artwork || !metadata || attributes.length === 0) {
+      throw new ForgeryContestError(
+        "Forgery Contest prize data is unavailable.", 404,
+      );
+    }
+    const regenerateAttributes =
+      item.artwork_id !== artwork._id || item.unlocked !== properties.unlocked;
+    const nextItem: GameItem = {
+      ...item,
+      artwork_id: artwork._id,
+      condition: properties.mint ? 1 : properties.condition,
+      level: properties.itemLevel,
+      foil: properties.foil,
+      unlocked: properties.unlocked,
+      mint: properties.mint,
+      mint_value_multiplier: properties.mint ? settings.active.mintValueMultiplier : 1,
+      seasonal: properties.seasonal,
+      card_renderer: properties.cardRenderer,
+      attributes: regenerateAttributes
+        ? getItemAttributes(
+            artwork, properties.unlocked, attributes,
+            await getArtworkEffect(database, artwork),
+          )
+        : item.attributes,
+      artwork_overrides:
+        item.artwork_id === artwork._id ? item.artwork_overrides : undefined,
+      misprint: item.artwork_id === artwork._id ? item.misprint : false,
+    };
+    Object.assign(
+      nextItem, await getItemDropChanceUpdate(database, nextItem, artwork),
+    );
+    nextItem.values = calculateItemValues(
+      nextItem, { ...artwork, ...nextItem.artwork_overrides }, metadata.loot_data,
+    );
+    nextItem.reroll_cost = getRerollCost(
+      nextItem, artwork.rarity, metadata.loot_data,
+    );
+    if (item.artwork_id !== artwork._id) {
+      await assignItemSerialNumbers(database, [nextItem]);
+    }
+    try {
+      const updated = await database.collection<GameItem>("items").replaceOne(
+        { _id: item._id, owner: FORGERY_CONTEST_OWNER_ID, status: "claimed" },
+        nextItem,
+      );
+      if (updated.matchedCount !== 1) {
+        throw new ForgeryContestError(
+          "The buffered prize changed before it could be updated.",
+        );
+      }
+    } catch (error) {
+      if (isOriginalItemConflict(error)) {
+        throw new ForgeryContestError(
+          "That artwork already has an active Original item.",
+        );
+      }
+      throw error;
+    }
+    const [hydrated] = await hydrateGameItems(database, [nextItem]);
+    return hydrated;
+  });
+}
+
+async function withContestPrizeLock<T>(
+  database: Db,
+  now: Date,
+  operation: (state: ForgeryContestState, token: string) => Promise<T>,
+): Promise<T> {
+  const state = await settleForgeryContestIfDue(database, now);
+  const token = randomUUID();
+  const locked = await database
     .collection<ForgeryContestState>("metadata")
-    .updateOne(
+    .findOneAndUpdate(
       {
         _id: FORGERY_CONTEST_STATE_ID,
         cycle_id: state.cycle_id,
-        prizes: state.prizes,
         $or: [
           { settlement_lock: { $exists: false } },
           { "settlement_lock.expires_at": { $lte: now.toISOString() } },
@@ -617,26 +849,27 @@ export async function replaceForgeryContestPrize(
       },
       {
         $set: {
-          prizes: nextPrizes,
-          updated_at: now.toISOString(),
+          settlement_lock: {
+            token,
+            cycle_id: state.cycle_id,
+            expires_at: new Date(
+              now.getTime() + SETTLEMENT_LOCK_MILLISECONDS,
+            ).toISOString(),
+          },
         },
       },
+      { returnDocument: "after" },
     );
-  if (replaced.modifiedCount !== 1) {
-    await database.collection<GameItem>("items").deleteOne({
-      _id: replacement._id,
-      owner: FORGERY_CONTEST_OWNER_ID,
-    });
+  if (!locked) {
     throw new ForgeryContestError(
-      "The Forgery Contest prizes changed before replacement completed.",
+      "Forgery Contest prizes cannot be changed during settlement or another prize update.",
     );
   }
-
-  await database.collection<GameItem>("items").deleteOne({
-    _id: currentPrize.item_id,
-    owner: FORGERY_CONTEST_OWNER_ID,
-  });
-  await deleteCommunityReactions(database, "item", [currentPrize.item_id]);
+  try {
+    return await operation(locked, token);
+  } finally {
+    await releaseSettlementLock(database, token);
+  }
 }
 
 export async function settleForgeryContestIfDue(
@@ -767,6 +1000,8 @@ export async function settleForgeryContestIfDue(
   const entryById = new Map(entries.map((entry) => [entry._id, entry]));
   const config = (await getGameplaySettings(database)).active;
   const generatedPrizes: GameItem[] = [];
+  const nextPrizes: ForgeryContestPrize[] = [];
+  const nextBufferPrizes = [...state.buffer_prizes];
   const originalsToRestore: Array<{
     item: GameItem;
     expectedOwner: string;
@@ -775,9 +1010,12 @@ export async function settleForgeryContestIfDue(
 
   try {
     for (const place of [1, 2, 3] as const) {
-      generatedPrizes.push(
-        await generateForgeryContestPrize(database, config, place, now),
-      );
+      const index = nextBufferPrizes.findIndex((prize) => prize.place === place);
+      if (index < 0) throw new Error(`The ${PLACE_LABELS[place - 1]} place prize buffer was exhausted.`);
+      nextPrizes.push(...nextBufferPrizes.splice(index, 1));
+      const refill = await generateForgeryContestPrize(database, config, place, now);
+      generatedPrizes.push(refill);
+      nextBufferPrizes.push({ place, item_id: refill._id });
     }
 
     for (const entry of entries) {
@@ -909,10 +1147,6 @@ export async function settleForgeryContestIfDue(
       state.cycle_id,
       now,
     );
-    const nextPrizes = generatedPrizes.map((item, index) => ({
-      place: (index + 1) as ForgeryContestPlace,
-      item_id: item._id,
-    }));
     const advanced = await database
       .collection<ForgeryContestState>("metadata")
       .updateOne(
@@ -927,6 +1161,7 @@ export async function settleForgeryContestIfDue(
             cycle_id: nextSettlement.toISOString(),
             next_settlement_at: nextSettlement.toISOString(),
             prizes: nextPrizes,
+            buffer_prizes: nextBufferPrizes,
             last_winners: winners,
             ...(winners.length > 0
               ? { pending_winner_notifications: state.cycle_id }
@@ -1112,6 +1347,7 @@ async function ensureForgeryContestState(
           place: (index + 1) as ForgeryContestPlace,
           item_id: item._id,
         })),
+        buffer_prizes: [],
         last_winners: [],
         updated_at: now.toISOString(),
       };
@@ -1141,8 +1377,94 @@ async function ensureForgeryContestState(
   if (!state) {
     throw new Error("Forgery Contest state could not be initialized.");
   }
+  state = await ensureForgeryContestBuffers(database, state, now);
   await cleanupOrphanedContestPrizes(database, state, now);
   return state;
+}
+
+async function ensureForgeryContestBuffers(
+  database: Db,
+  state: ForgeryContestState,
+  now: Date,
+): Promise<ForgeryContestState> {
+  if (hasActiveSettlementLock(state, now)) return state;
+  const current = state.buffer_prizes ?? [];
+  const bufferedItems = await database.collection<GameItem>("items")
+    .find({
+      _id: { $in: current.map((prize) => prize.item_id) },
+      owner: FORGERY_CONTEST_OWNER_ID,
+      status: "claimed",
+    })
+    .project<Pick<GameItem, "_id">>({ _id: 1 })
+    .toArray();
+  const availableIds = new Set(bufferedItems.map((item) => item._id));
+  const referencedIds = new Set(state.prizes.map((prize) => prize.item_id));
+  const buffer: ForgeryContestPrize[] = [];
+  const generated: GameItem[] = [];
+  try {
+    for (const place of [1, 2, 3] as const) {
+      const prizes = current.filter((prize) => prize.place === place);
+      const valid: ForgeryContestPrize[] = [];
+      for (const prize of prizes) {
+        if (valid.length >= FORGERY_CONTEST_DEFAULT_BUFFER_COUNT) break;
+        if (!availableIds.has(prize.item_id) || referencedIds.has(prize.item_id)) {
+          continue;
+        }
+        referencedIds.add(prize.item_id);
+        valid.push(prize);
+      }
+      while (valid.length < FORGERY_CONTEST_DEFAULT_BUFFER_COUNT) {
+        const config = (await getGameplaySettings(database)).active;
+        const item = await generateForgeryContestPrize(
+          database, config, place, now,
+        );
+        generated.push(item);
+        valid.push({ place, item_id: item._id });
+      }
+      buffer.push(...valid);
+    }
+  } catch (error) {
+    await database.collection<GameItem>("items").deleteMany({
+      _id: { $in: generated.map((item) => item._id) },
+      owner: FORGERY_CONTEST_OWNER_ID,
+    });
+    throw error;
+  }
+  if (
+    state.buffer_prizes &&
+    buffer.length === current.length &&
+    buffer.every((prize, index) =>
+      prize.item_id === current[index].item_id &&
+      prize.place === current[index].place,
+    )
+  ) {
+    return state;
+  }
+  const updated = await database
+    .collection<ForgeryContestState>("metadata")
+    .findOneAndUpdate(
+      {
+        _id: FORGERY_CONTEST_STATE_ID,
+        cycle_id: state.cycle_id,
+        prizes: state.prizes,
+        buffer_prizes: state.buffer_prizes ?? { $exists: false },
+        $or: [
+          { settlement_lock: { $exists: false } },
+          { "settlement_lock.expires_at": { $lte: now.toISOString() } },
+        ],
+      },
+      { $set: { buffer_prizes: buffer, updated_at: now.toISOString() } },
+      { returnDocument: "after" },
+    );
+  if (updated) return updated;
+  await database.collection<GameItem>("items").deleteMany({
+    _id: { $in: generated.map((item) => item._id) },
+    owner: FORGERY_CONTEST_OWNER_ID,
+  });
+  return (
+    (await database.collection<ForgeryContestState>("metadata")
+      .findOne({ _id: FORGERY_CONTEST_STATE_ID })) ?? state
+  );
 }
 
 async function ensureForgeryContestIndexes(database: Db): Promise<void> {
@@ -1346,7 +1668,8 @@ async function cleanupOrphanedContestPrizes(
   now: Date,
 ): Promise<void> {
   if (hasActiveSettlementLock(state, now)) return;
-  const referenced = state.prizes.map((prize) => prize.item_id);
+  const referenced = [...state.prizes, ...(state.buffer_prizes ?? [])]
+    .map((prize) => prize.item_id);
   const orphaned = await database
     .collection<GameItem>("items")
     .find({

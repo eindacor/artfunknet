@@ -245,6 +245,9 @@ test("authentication, returns, and sanitization preserve privacy", () => {
     allowed: true,
     cost: 20,
   });
+  assert.deepEqual(getAuthenticationPermission({ ...item, status: "displayed" }, "claimant"), {
+    allowed: true, cost: 20,
+  });
   const permission = getForgeryReturnPermission(item, "claimant", DEFAULT_ACTUAL_GAMEPLAY_CONFIG);
   assert.equal(permission.allowed, false);
   const sanitized = sanitizePlayerFacingAuthenticity(item);
@@ -291,12 +294,13 @@ test("auction forgery returns use the latest purchase and an exclusive delivery 
   assert.equal(getForgeryReturnPermission(item, "buyer", config, new Date("2026-09-04T11:59:59.999Z")).allowed, false);
   assert.equal(getForgeryReturnPermission(item, "buyer", { ...config, forgeryReturnWindowMinutes: 0 }, now).allowed, false);
   assert.equal(getForgeryReturnPermission(item, "buyer", { ...config, forgeryReturnWindowMinutes: 4 }, now).allowed, false);
+  assert.equal(getForgeryReturnPermission({ ...item, status: "displayed" }, "buyer", config, now).allowed, true);
   const half = getForgeryReturnPermission(item, "buyer", { ...config, forgeryReturnRefundCoefficient: 0.5 }, now);
   assert.ok(half.allowed);
   assert.equal(half.refund, 500);
 
   const invalid: Partial<GameItem>[] = [
-    { status: "displayed" }, { permanent: true }, { repairing: true },
+    { status: "auctioned" }, { permanent: true }, { repairing: true },
     { authenticity: { ...item.authenticity, forgery: false } },
     { authenticity: { ...item.authenticity, identified: false } },
     { authenticity: { ...item.authenticity, original_owner: "buyer" } },

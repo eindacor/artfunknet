@@ -91,7 +91,7 @@ export async function POST(
       {
         _id: item._id,
         owner: player._id,
-        status: "claimed",
+        status: item.status,
         permanent: item.permanent ? true : { $ne: true },
       },
       {
@@ -114,8 +114,8 @@ export async function POST(
       status: "ok",
       permanent,
       message: permanent
-        ? "Added to your permanent collection. Visitors can see this artwork, but it does not earn gallery income or activate gallery bonuses."
-        : "Removed from your permanent collection. This artwork is no longer shared in your gallery.",
+        ? `Added to your permanent collection. Visitors can see this artwork.${item.status === "displayed" ? " Featuring remains active." : " Feature it to earn gallery income and activate gallery bonuses."}`
+        : `Removed from your permanent collection.${item.status === "displayed" ? " This artwork remains featured." : " This artwork is no longer shared in your gallery."}`,
     });
   } catch (error) {
     console.error("Unable to update permanent collection", error);

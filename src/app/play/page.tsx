@@ -388,7 +388,7 @@ export default async function PlayerPage({
     };
   });
   const archives = await hydratePlayerArtworkArchives(database, rawArchives);
-  const displayedItems = items.filter((item) => item.status === "displayed" && !item.permanent);
+  const displayedItems = items.filter((item) => item.status === "displayed");
   const galleryRates = await calculateGalleryRates(
     database,
     player.profile.level,
@@ -498,7 +498,6 @@ export default async function PlayerPage({
     typeof dealerDiscount?.parameters.cost_multiplier === "number"
       ? dealerDiscount.parameters.cost_multiplier
       : 1;
-  const canRerollDisplayed = false;
 
   const isMaxLevel = player.profile.level >= 50;
   const xpGoal = getXpGoal(player.profile.level);
@@ -583,7 +582,6 @@ export default async function PlayerPage({
         }
         impersonating={impersonating}
         canMakePrivateAuctionsPublic={Boolean(transferableAuctionEffect)}
-        canRerollDisplayed={canRerollDisplayed}
         levelUpDiscountAvailable={levelUpDiscountAvailable}
         levelUpConditionMinimum={levelUpConditionMinimum}
         legendaryAttributes={legendaryAttributes.map((attribute) => ({

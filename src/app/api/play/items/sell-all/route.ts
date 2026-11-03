@@ -27,6 +27,7 @@ import {
 } from "@/server/legendary-attributes";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
+import { getItemDisposalFilter, getItemDisposalPermission } from "@/server/item-permissions";
 import { getActiveQuestTargetIds } from "@/server/quest-item-sell";
 
 export async function POST(request: Request) {
@@ -52,7 +53,8 @@ export async function POST(request: Request) {
   const settings = await getGameplaySettings(database);
   const revealCandidatesById = new Map(hydratedCandidates.map((item) => [item._id, item]));
   const items = filteredItems.filter((item) =>
-    !item.original && canQuickSellItem(revealCandidatesById.get(item._id) ?? item, settings.active.offerRevealThresholds),
+    getItemDisposalPermission(item, "sell").allowed &&
+    canQuickSellItem(revealCandidatesById.get(item._id) ?? item, settings.active.offerRevealThresholds),
   );
 
   if (candidates.length === 0) {
@@ -162,9 +164,8 @@ export async function POST(request: Request) {
       {
         _id: { $in: ids },
         owner: auth.session.playerId,
-        status: "unclaimed",
+        ...getItemDisposalFilter("sell", "unclaimed"),
         revealed: { $ne: false },
-        original: { $ne: true },
       },
       {
         $set: {
