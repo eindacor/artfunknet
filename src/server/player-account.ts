@@ -4,6 +4,7 @@ import type { Db } from "mongodb";
 
 import type { PlayerGalleryFinishes } from "./gallery-finishes.ts";
 import { DEFAULT_PLAYER_VIEW_SETTINGS } from "./player-view-settings.ts";
+import { generateStartingInventory } from "./starting-inventory.ts";
 import {
   getNextSocialBatteryResetAt,
   SOCIAL_BATTERY_MAX,
@@ -141,6 +142,19 @@ export function createDefaultPlayerProfile(
       },
     },
   };
+}
+
+export async function insertPlayerAccountRecord(
+  database: Db,
+  player: { _id: string; [key: string]: unknown },
+) {
+  await database.collection<{ _id: string }>("players").insertOne(player);
+  try {
+    await generateStartingInventory(database, player._id);
+  } catch (error) {
+    await database.collection<{ _id: string }>("players").deleteOne({ _id: player._id });
+    throw error;
+  }
 }
 
 export function ensurePlayerAccountIndexes(database: Db): Promise<void> {

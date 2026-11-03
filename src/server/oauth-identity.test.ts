@@ -9,12 +9,14 @@ import {
 } from "./oauth-identity.ts";
 import { createPlayerAccountRecord, ensurePlayerAccountIndexes } from "./player-account.ts";
 import { OAUTH_PROVIDERS } from "./oauth-providers.ts";
+import { setupTestDb, STARTING_INVENTORY_TEST_OPTIONS } from "./test-utils/db-setup.ts";
 
 test("OAuth identities keep player ownership explicit and email claims unique", async (t) => {
   const server = await MongoMemoryServer.create();
   const client = await new MongoClient(server.getUri()).connect();
   t.after(async () => { await client.close(); await server.stop(); });
   const db = client.db("oauth-identities");
+  await setupTestDb(db, null, STARTING_INVENTORY_TEST_OPTIONS);
   const players = db.collection<OAuthPlayer>("players");
   await ensurePlayerAccountIndexes(db);
   await ensureOAuthIdentityIndexes(db);
@@ -45,6 +47,7 @@ test("OAuth identities keep player ownership explicit and email claims unique", 
         emailVerified: verified,
       }));
       assert.equal(accountCreated, true);
+      assert.equal(await db.collection("items").countDocuments({ owner: player._id }), 12);
       assert.equal(player.email_verified, verified);
       assert.deepEqual(player.verified_emails, verified ? ["player@example.com"] : []);
       if (hasEmail) assert.equal(player.email, "player@example.com");

@@ -27,9 +27,20 @@ import {
   isOfferRevealed,
 } from "../../server/offer-reveal.ts";
 
+const sharedSource = ts.createSourceFile("shared.tsx",
+  await readFile(new URL("../../components/item-cards/shared.tsx", import.meta.url), "utf8"),
+  ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+const activeEffectSource = sharedSource.statements.find(statement =>
+  ts.isFunctionDeclaration(statement) && statement.name?.text === "getActiveLegendaryAttribute",
+)!;
+const getActiveLegendaryAttribute = runInVm(`${ts.transpileModule(activeEffectSource.getText(sharedSource), {
+  compilerOptions: { module: ts.ModuleKind.CommonJS },
+}).outputText}\ngetActiveLegendaryAttribute`, { exports: {} });
+
 function runInNewContext(code: string, context: Record<string, unknown>) {
   context.getItemDisposalPermission = getItemDisposalPermission;
   context.FEATURE_ARTWORK_DESCRIPTION = FEATURE_ARTWORK_DESCRIPTION;
+  context.getActiveLegendaryAttribute = getActiveLegendaryAttribute;
   return runInVm(code, context);
 }
 
@@ -143,7 +154,7 @@ test("featured cards select filtered-out works for the preview and visit their e
   const featured = {
     ...item("featured"), status: "displayed", revealed: true,
     artwork: {
-      title: "Featured Artwork", artist: "Artist", rarity: "rare", date: 2026,
+      title: "Featured Artwork", artist: "Artist", rarity: "legendary", date: 2026, effect_id: "effect",
       thumbnail_adjustment: { x: 25, y: 30, scale: 1.5 },
       feature_card_adjustment: { x: -40, y: -20, scale: 2 },
     },
@@ -165,6 +176,7 @@ test("featured cards select filtered-out works for the preview and visit their e
   ).map(statement => statement.getText(source)).join("\n");
   const context = {
     React, getOfferRevealTier,
+    legendaryAttributes: [{ id: "effect", title: "Golden Touch", description: "Earn more money.", active: true }],
     offerRevealThresholds: DEFAULT_OFFER_REVEAL_THRESHOLDS,
     enableReveals: true, revealedOfferIds: new Set<string>(), isOfferRevealed,
     OfferThumbnail: () => null, ArtworkThumbnail: () => null,
@@ -226,14 +238,52 @@ test("featured cards select filtered-out works for the preview and visit their e
   assert.equal(generalUrl.searchParams.has("galleryItem"), false);
 });
 
-test("unrevealed featured cards do not expose artwork names, artists, images, or values", () => {
+test("featured cards show matching active effects between the artwork details and gallery button", () => {
+  const effects = [
+    { id: "active", title: "Golden Touch", description: "Featured works earn more money.", active: true },
+    { id: "inactive", title: "Dormant Effect", description: "This effect is disabled.", active: false },
+  ];
+  for (const [rarity, effectId, expected] of [
+    ["legendary", "active", true], ["masterpiece", "active", true],
+    ["rare", undefined, false], ["legendary", "missing", false], ["masterpiece", "inactive", false],
+  ] as const) {
+    const featured = {
+      ...item(`featured-${rarity}-${effectId}`, rarity), revealed: true,
+      artwork: { title: "Featured Artwork", artist: "Artist", rarity, date: 2026, effect_id: effectId },
+      values: { actual: 100 },
+    };
+    const html = renderToStaticMarkup(runInNewContext(`${handlers}\nrenderFeaturedWork(featured)`, {
+      React, getOfferRevealTier, featured, legendaryAttributes: effects, getArtworkFeatureCardAdjustment,
+      offerRevealThresholds: DEFAULT_OFFER_REVEAL_THRESHOLDS,
+      enableReveals: true, revealedOfferIds: new Set<string>(), isOfferRevealed,
+      selectedCollectionItemIdsSet: new Set<string>(), ArtworkThumbnail: () => null,
+      OfferThumbnail: ({ children, title, "aria-describedby": description }: React.ComponentProps<"button">) =>
+        React.createElement("button", { title, "aria-describedby": description }, children),
+      cancelCollectionItemLongPress() {}, moveCollectionItemLongPress() {},
+    }) as React.ReactElement);
+    if (expected) {
+      const effectId = `featured-effect-${featured._id}`;
+      assert.ok(html.includes(`aria-describedby="${effectId}"`));
+      assert.ok(html.includes(`class="home-featured-effect" id="${effectId}"`));
+      assert.match(html, /<strong>Golden Touch<\/strong><span>Featured works earn more money\.<\/span>/);
+      assert.match(html, /title="Golden Touch: Featured works earn more money\."/);
+      assert.ok(html.indexOf('class="home-featured-details"') < html.indexOf('class="home-featured-effect"'));
+      assert.ok(html.indexOf('class="home-featured-effect"') < html.indexOf('class="home-featured-visit"'));
+    } else {
+      assert.doesNotMatch(html, /home-featured-effect|data-has-effect|aria-describedby|Golden Touch|Dormant Effect/);
+    }
+  }
+});
+
+test("unrevealed featured cards do not expose artwork names, artists, images, values, or unique effects", () => {
   const featured = {
     ...item("hidden-featured"), status: "displayed", drop_chance_coefficient: 0.0001,
-    artwork: { title: "Secret Title", artist: "Secret Artist", rarity: "rare", date: 2026 },
+    artwork: { title: "Secret Title", artist: "Secret Artist", rarity: "masterpiece", date: 2026, effect_id: "secret" },
     values: { actual: 987_654 },
   };
   const card = runInNewContext(`${handlers}\nrenderFeaturedWork(featured)`, {
     React, getOfferRevealTier, featured,
+    legendaryAttributes: [{ id: "secret", title: "Secret Effect", description: "Secret bonus.", active: true }],
     offerRevealThresholds: DEFAULT_OFFER_REVEAL_THRESHOLDS,
     enableReveals: true, revealedOfferIds: new Set<string>(), isOfferRevealed,
     selectedCollectionItemIdsSet: new Set([featured._id]),
@@ -241,7 +291,7 @@ test("unrevealed featured cards do not expose artwork names, artists, images, or
     cancelCollectionItemLongPress() {}, moveCollectionItemLongPress() {},
   }) as React.ReactElement;
   const html = renderToStaticMarkup(card);
-  assert.doesNotMatch(html, /Secret Title|Secret Artist|987,654|<img|artwork-thumbnail/);
+  assert.doesNotMatch(html, /Secret Title|Secret Artist|987,654|<img|artwork-thumbnail|Secret Effect|Secret bonus|home-featured-effect|aria-describedby/);
   assert.match(html, /Unrevealed featured work/);
   assert.match(html, /data-selected="true"/);
 });

@@ -4,6 +4,7 @@ import type { Db, Filter } from "mongodb";
 import { OAUTH_PROVIDERS, type OAuthProvider } from "./oauth-providers.ts";
 import {
   createPlayerAccountRecord,
+  insertPlayerAccountRecord,
   isDuplicateKeyError,
   normalizePlayerEmail,
   normalizeScreenName,
@@ -152,7 +153,7 @@ export async function resolveOAuthIdentity(
         oauth_accounts: { [provider]: account() },
       };
       try {
-        await players.insertOne(record);
+        await insertPlayerAccountRecord(database, record);
         return { player: record, accountCreated: true };
       } catch (error) {
         if (!isDuplicateKeyError(error)) throw error;

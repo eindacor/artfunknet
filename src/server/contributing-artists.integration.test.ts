@@ -40,6 +40,7 @@ import * as itemSerials from "./item-serials.ts";
 import * as offerReveal from "./offer-reveal.ts";
 import { getItemDisposalFilter } from "./item-permissions.ts";
 import * as cardCatalog from "../components/item-cards/catalog.ts";
+import { setupTestDb, STARTING_INVENTORY_TEST_OPTIONS } from "./test-utils/db-setup.ts";
 
 const require = createRequire(import.meta.url);
 const { NextResponse } = require("next/server");
@@ -102,6 +103,7 @@ test("artist applications, publication and featured galleries persist without gr
 
   await t.test("new applicants have only hashed credentials pending approval; approval creates linked artist and playable account exactly once", async () => {
     const db = client.db("artist-application-new");
+    await setupTestDb(db, null, STARTING_INVENTORY_TEST_OPTIONS);
     const id = await artists.submitArtistApplication(db, applicationInput);
     assert.equal(await documents(db, "players").countDocuments(), 0);
     const pending = await documents(db, "artist_applications").findOne({ _id: id });
@@ -119,6 +121,7 @@ test("artist applications, publication and featured galleries persist without gr
     assert.equal(player?.artist_id, id);
     assert.equal(player?.screen_name, applicationInput.screenName);
     assert.ok(player?.profile.inventory_cap > 0);
+    assert.equal(await documents(db, "items").countDocuments({ owner: player!._id }), 12);
     assert.equal(artistTypes.getPlayerLandingPath(player!), "/artist");
     assert.ok(await documents(db, "artists").findOne({ _id: id, player_id: player!._id }));
     assert.equal((await documents(db, "artist_applications").findOne({ _id: id }))?.credentials, undefined);

@@ -17,16 +17,28 @@ export type SetupTestDbOptions = {
   uniqueAttributes?: Partial<LegendaryAttribute>[];
 };
 
+export const STARTING_INVENTORY_TEST_OPTIONS: SetupTestDbOptions = {
+  artworks: (["common", "uncommon", "rare"] as const).map(rarity => ({
+    _id: `starter-${rarity}`, active: true, rarity, value_scale: 0.5,
+    title: `${rarity} artwork`, artist: "Test artist",
+    ...(rarity === "rare" ? { special_attributes: ["starter-attribute-0"] } : {}),
+  })),
+  attributes: Array.from({ length: 6 }, (_, index) => ({
+    _id: `starter-attribute-${index}`, title: `Attribute ${index}`, type: "regular",
+    description: "Test attribute", icon: "fa-star", npc_name: "Test visitor", active: true,
+  })),
+};
+
 export async function setupTestDb(
   db: Db,
-  playerId: string,
+  playerId: string | null,
   options: SetupTestDbOptions = {},
 ) {
   const now = new Date();
   const futureTime = new Date(now.getTime() + 60 * 60 * 1000);
 
   // 1. Seed player
-  await db.collection<any>("players").insertOne({
+  if (playerId !== null) await db.collection<any>("players").insertOne({
     _id: playerId,
     active: true,
     profile: {

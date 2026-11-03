@@ -16,6 +16,7 @@ import * as identities from "./oauth-identity.ts";
 import * as playerAccount from "./player-account.ts";
 import { getOAuthMessage, OAUTH_PROVIDERS, type OAuthProvider } from "./oauth-providers.ts";
 import * as steamOpenId from "./steam-openid.ts";
+import { setupTestDb, STARTING_INVENTORY_TEST_OPTIONS } from "./test-utils/db-setup.ts";
 
 type Route = {
   GET: (request: Request) => Promise<Response>;
@@ -45,6 +46,7 @@ test("OAuth routes authenticate fresh identities and bind explicit sync to the c
   const client = await new MongoClient(server.getUri()).connect();
   t.after(async () => { await client.close(); await server.stop(); });
   const db = client.db("oauth-flow");
+  await setupTestDb(db, null, STARTING_INVENTORY_TEST_OPTIONS);
   const players = db.collection<identities.OAuthPlayer>("players");
   const env: Record<string, string> = {
     SESSION_SECRET: "test-only-oauth-secret-not-a-real-credential",
@@ -206,6 +208,7 @@ test("OAuth routes authenticate fresh identities and bind explicit sync to the c
       assert.ok(response.headers.getSetCookie().some((value) => value.startsWith(`${sessionCookie}=`)));
       const player = await players.findOne({});
       assert.ok(player?.oauth_accounts?.[id]?.verified_at instanceof Date);
+      assert.equal(await db.collection("items").countDocuments({ owner: player!._id }), 12);
       if (id === "instagram") assert.equal(player?.oauth_accounts?.instagram?.username, "instagram.player");
       assert.equal(player?.email_verified, id === "google" || id === "discord");
       assert.equal(await players.countDocuments(), 1);

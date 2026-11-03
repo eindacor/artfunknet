@@ -443,13 +443,11 @@ export default async function PlayerPage({
     await Promise.all([
     getGalleryNpcs(database, player._id),
     getPlayerNotifications(database, player._id),
-    impersonating
-      ? database
-          .collection<ItemAttribute>("attributes")
-          .find({ active: true })
-          .sort({ npc_name: 1 })
-          .toArray()
-      : Promise.resolve([]),
+    database
+      .collection<ItemAttribute>("attributes")
+      .find({ active: true })
+      .sort({ npc_name: 1 })
+      .toArray(),
     getArtworkEffects(database, legendaryAttributeIds),
     getDisplayedArtworkEffect(
       database,
@@ -594,11 +592,14 @@ export default async function PlayerPage({
           code: attribute.code,
           active: attribute.active,
         }))}
-        npcSpawnOptions={npcSpawnAttributes.map((attribute) => ({
+        npcSpawnOptions={impersonating ? npcSpawnAttributes.map((attribute) => ({
           id: attribute._id,
           icon: attribute.icon,
           name: attribute.npc_name,
-        }))}
+        })) : []}
+        visitorTypes={npcSpawnAttributes
+          .filter(attribute => typeof attribute.npc_name === "string" && attribute.npc_name.trim().length > 0)
+          .map(attribute => ({ id: attribute._id, icon: attribute.icon, name: attribute.npc_name }))}
         npcSpawnIntervalMinutes={config.npcSpawnIntervalMinutes}
         npcs={npcs.map((npc) => ({
           ...JSON.parse(JSON.stringify(npc)),

@@ -52,7 +52,7 @@ import ItemCard from "@/components/item-cards/item-card";
 import MintLossConfirmationDialog from "@/components/item-cards/mint-loss-confirmation-dialog";
 import ValuableItemConfirmationDialog from "@/components/item-cards/valuable-item-confirmation-dialog";
 import { resolveCardRendererId } from "@/components/item-cards/selection";
-import { ratingColor } from "@/components/item-cards/shared";
+import { getActiveLegendaryAttribute, ratingColor } from "@/components/item-cards/shared";
 import StandardItemDialog from "@/components/item-cards/standard-item-dialog";
 import type {
   CardLegendaryAttribute,
@@ -366,6 +366,7 @@ export default function GameDashboard({
   levelUpConditionMinimum,
   legendaryAttributes,
   npcSpawnOptions,
+  visitorTypes,
   npcSpawnIntervalMinutes,
   crateOffers,
   raffle,
@@ -401,6 +402,7 @@ export default function GameDashboard({
   levelUpConditionMinimum: number;
   legendaryAttributes: LegendaryAttributeView[];
   npcSpawnOptions: NpcSpawnOption[];
+  visitorTypes: NpcSpawnOption[];
   npcSpawnIntervalMinutes: number;
   crateOffers: CrateOfferView[];
   raffle: {
@@ -3312,6 +3314,7 @@ export default function GameDashboard({
   function renderFeaturedWork(item: HydratedGameItem) {
     const tier = getOfferRevealTier(item, offerRevealThresholds);
     const unrevealed = !offerIsRevealed(item);
+    const legendaryEffect = unrevealed ? undefined : getActiveLegendaryAttribute(item, legendaryAttributes);
     const artworkLabel = unrevealed
       ? `unrevealed level ${tier} work`
       : `${item.artwork.title} by ${item.artwork.artist}`;
@@ -3322,6 +3325,7 @@ export default function GameDashboard({
         data-selected={selectedCollectionItemIdsSet.has(item._id) || undefined}
       >
         <OfferThumbnail
+          aria-describedby={legendaryEffect ? `featured-effect-${item._id}` : undefined}
           aria-label={`Preview ${artworkLabel}`}
           aria-pressed={selectedCollectionItemIdsSet.has(item._id)}
           className="home-featured-select"
@@ -3337,6 +3341,7 @@ export default function GameDashboard({
             requestOfferReveal(item);
           }}
           tier={tier}
+          title={legendaryEffect ? `${legendaryEffect.title}: ${legendaryEffect.description}` : undefined}
           type="button"
           unrevealed={unrevealed}
         >
@@ -3351,12 +3356,20 @@ export default function GameDashboard({
               variant="card"
             />
           ) : null}
-          <span className="home-featured-copy">
-            <small className="home-featured-rarity">{item.artwork.rarity}</small>
-            <strong>{unrevealed ? "Unrevealed featured work" : item.artwork.title}</strong>
-            <span>{unrevealed ? "Select to reveal this artwork" : item.artwork.artist}</span>
-            {!unrevealed ? (
-              <small>{item.artwork.date} · ${item.values.actual.toLocaleString()}</small>
+          <span className="home-featured-copy" data-has-effect={legendaryEffect ? true : undefined}>
+            <span className="home-featured-details">
+              <small className="home-featured-rarity">{item.artwork.rarity}</small>
+              <strong>{unrevealed ? "Unrevealed featured work" : item.artwork.title}</strong>
+              <span>{unrevealed ? "Select to reveal this artwork" : item.artwork.artist}</span>
+              {!unrevealed ? (
+                <small>{item.artwork.date} · ${item.values.actual.toLocaleString()}</small>
+              ) : null}
+            </span>
+            {legendaryEffect ? (
+              <span className="home-featured-effect" id={`featured-effect-${item._id}`}>
+                <strong>{legendaryEffect.title}</strong>
+                <span>{legendaryEffect.description}</span>
+              </span>
             ) : null}
           </span>
         </OfferThumbnail>
@@ -4056,6 +4069,7 @@ export default function GameDashboard({
               maxDisplayCapacity={player.maxDisplayCap}
               rates={galleryRates}
               renderItem={renderFeaturedWork}
+              visitorTypes={visitorTypes}
             />
             <div className="collection-main">
               {selectedCollectionItems.length > 1 && selectedCollectionHiddenItem ? (

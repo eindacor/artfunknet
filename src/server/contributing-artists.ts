@@ -5,7 +5,7 @@ import { ARTWORK_RARITIES, type Artwork } from "./gameplay.ts";
 import { findPlayerByAuthEmail } from "./oauth-identity.ts";
 import { hashPassword, validatePassword } from "./password.ts";
 import {
-  createPlayerAccountRecord, ensurePlayerAccountIndexes, isDuplicateKeyError,
+  createPlayerAccountRecord, ensurePlayerAccountIndexes, insertPlayerAccountRecord, isDuplicateKeyError,
   normalizePlayerEmail, normalizeScreenName, type PlayerAccountRecord,
 } from "./player-account.ts";
 import {
@@ -154,7 +154,7 @@ export async function approveArtistApplication(database: Db, id: string, adminEm
         playerId: application.player_id, email: application.email, screenName: application.screen_name,
         passwordSalt: application.credentials.salt, passwordHash: application.credentials.hash, now,
       });
-      await players.insertOne({ ...player, account_type: "artist", artist_id: id });
+      await insertPlayerAccountRecord(database, { ...player, account_type: "artist", artist_id: id });
     } else {
       const linked = await players.updateOne({
         _id: application.player_id, active: true, account_deletion: { $ne: true },

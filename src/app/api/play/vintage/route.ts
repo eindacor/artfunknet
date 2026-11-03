@@ -21,6 +21,7 @@ import { transferIfHallOfFameItem } from "@/server/hall-of-fame";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
 import { savePlaythroughSnapshot } from "@/server/playthrough-snapshots";
+import { generateStartingInventory } from "@/server/starting-inventory";
 import {
   resolvePlayerSupporterStatus,
   type SupporterStatusPlayer,
@@ -317,6 +318,7 @@ export async function POST(request: Request) {
   };
 
   let snapshotId: string | null = null;
+  let startingItems: GameItem[] = [];
   const deletedItemIds: string[] = [];
   try {
     const reserved = await database.collection<GameItem>("items").bulkWrite(
@@ -354,6 +356,7 @@ export async function POST(request: Request) {
     });
     snapshotId = snapshot._id;
 
+    startingItems = await generateStartingInventory(database, player._id, now);
     for (const removedItem of removedItems) {
       const isHoF = await transferIfHallOfFameItem(database, removedItem);
       if (!isHoF) {
@@ -490,6 +493,14 @@ export async function POST(request: Request) {
       throw new Error("The player profile could not be reset for the new era.");
     }
   } catch (error) {
+    if (startingItems.length > 0) {
+      await database.collection<GameItem>("items").deleteMany({
+        _id: { $in: startingItems.map(item => item._id) },
+        owner: player._id,
+      }).catch((cleanupError) => {
+        console.error("Unable to remove failed era starting inventory", cleanupError);
+      });
+    }
     if (snapshotId) {
       await database
         .collection<{ _id: string }>("playthrough_snapshots")

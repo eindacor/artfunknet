@@ -1,6 +1,15 @@
 import { ratingColor } from "@/components/item-cards/shared";
 import type { GalleryAttributeAggregate } from "@/server/gallery-metadata-core";
 
+export function getGalleryAttributeLabel(attribute: GalleryAttributeAggregate, displayCapacity: number): string {
+  const effectiveRating = Math.min(1, Math.max(0, attribute.effectiveRating));
+  return `${attribute.title}: ${attribute.count} ${
+    attribute.count === 1 ? "work" : "works"
+  }, ${Math.round(effectiveRating * 100)}% effective attraction (${Math.round(
+    attribute.totalRating * 100,
+  )} total ÷ ${displayCapacity} display slots)`;
+}
+
 /**
  * A single gallery attribute, rendered as its Font Awesome glyph tinted by how
  * much of its rating the gallery is actually realising. Copied from the icon
@@ -14,11 +23,7 @@ export default function Attribute({
   displayCapacity: number;
 }) {
   const effectiveRating = Math.min(1, Math.max(0, attribute.effectiveRating));
-  const label = `${attribute.title}: ${attribute.count} ${
-    attribute.count === 1 ? "work" : "works"
-  }, ${Math.round(effectiveRating * 100)}% effective attraction (${Math.round(
-    attribute.totalRating * 100,
-  )} total ÷ ${displayCapacity} display slots)`;
+  const label = getGalleryAttributeLabel(attribute, displayCapacity);
 
   return (
     <i

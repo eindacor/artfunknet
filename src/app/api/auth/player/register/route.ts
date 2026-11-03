@@ -8,9 +8,9 @@ import {
   ensurePlayerAccountIndexes,
   getDuplicateKeyFields,
   isDuplicateKeyError,
+  insertPlayerAccountRecord,
   normalizePlayerEmail,
   normalizeScreenName,
-  type PlayerAccountRecord,
 } from "@/server/player-account";
 import {
   createOperationId,
@@ -80,9 +80,7 @@ export async function POST(request: Request) {
       email: player.email,
       screenName: player.screen_name,
     });
-    await database
-      .collection<PlayerAccountRecord>("players")
-      .insertOne(player);
+    await insertPlayerAccountRecord(database, player);
     logOperationalInfo("player_registration.created", {
       operationId,
       playerId: player._id,
