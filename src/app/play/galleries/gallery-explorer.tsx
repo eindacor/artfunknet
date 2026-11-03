@@ -732,6 +732,10 @@ function VisitedGallery({
         if (!cancelled) {
           setGallery(body);
           replaceVisitors(body.npcs);
+          const firstArtistArtworkId = body.artist?.featured ? body.artistWorks?.[0]?._id : undefined;
+          const artistPreview = firstArtistArtworkId
+            ? body.items.find(item => item.artwork_id === firstArtistArtworkId)
+            : undefined;
           const mostValuableItem = body.items.reduce<HydratedGameItem | null>(
             (mostValuable, item) =>
               !mostValuable ||
@@ -741,7 +745,7 @@ function VisitedGallery({
             null,
           );
           setSelectedPreviewItem(
-            mostValuableItem ?? body.auctions[0]?.item ?? null,
+            artistPreview ?? mostValuableItem ?? body.auctions[0]?.item ?? null,
           );
         }
       } catch (loadError) {

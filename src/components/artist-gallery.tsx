@@ -12,7 +12,7 @@ import type { HydratedGameItem } from "@/server/item-artwork";
 export function ArtistSocialLinks({ artist, onVisit }: { artist: PublicArtistProfile; onVisit?: () => void }) {
   const instagram = artist.instagramUsername ? `https://www.instagram.com/${encodeURIComponent(artist.instagramUsername)}/` : artist.socialLinks.instagram;
   const links = [
-    { label: "Visit portfolio", url: artist.portfolioUrl },
+    { label: "Visit website", url: artist.portfolioUrl },
     ...Object.entries({ ...artist.socialLinks, ...(instagram ? { instagram } : {}) })
       .map(([label, url]) => ({ label, url })),
   ].filter(link => link.url);

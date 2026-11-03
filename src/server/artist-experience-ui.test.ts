@@ -489,6 +489,106 @@ test("gallery previews track window height while artist introductions and owner 
   }
 });
 
+test("featured artist galleries open on an artist work while other galleries and empty exhibitions retain their defaults", async () => {
+  const work: Artwork = {
+    _id: "artist-work", artist_id: "artist-id", artist: "Artist", title: "Artist work", date: 2026,
+    rarity: "rare", genre: "Abstract", medium: "Oil", value_scale: 0.5, width: 80, height: 100, active: true,
+  };
+  const artistPreview = createArtistArtworkPreview(work);
+  const collectedItem = {
+    ...createArtistArtworkPreview({ ...work, _id: "collected-work", artist_id: "other-artist", artist: "Other Artist" }),
+    _id: "valuable-collected-item", owner: "artist-player",
+    values: { ...artistPreview.values, actual: 500_000 },
+  };
+  const artist: PublicArtistProfile = {
+    id: "artist-id", playerId: "artist-player", name: "Artist", bio: "",
+    portfolioUrl: "https://portfolio.example.com/", socialLinks: {}, instagramUsername: null, featured: true,
+  };
+  const baseGallery = {
+    artist, artistWorks: [work], items: [artistPreview, collectedItem], auctions: [], npcs: [],
+    galleryId: "artist-gallery", finishes: galleryFinishes.DEFAULT_GALLERY_FINISHES, legendaryAttributes: [], metadata: null,
+    owner: { playerId: "artist-player", screenName: "Artist-Player", level: 1, vintageLevel: 0 },
+  };
+  const cases = [
+    { gallery: baseGallery, expected: artistPreview._id },
+    { gallery: { ...baseGallery, artist: { ...artist, featured: false } }, expected: collectedItem._id },
+    { gallery: { ...baseGallery, artist: null, artistWorks: [], items: [collectedItem] }, expected: collectedItem._id },
+    { gallery: { ...baseGallery, artistWorks: [], items: [collectedItem] }, expected: collectedItem._id },
+    { gallery: { ...baseGallery, artistWorks: [], items: [], auctions: [
+      { _id: "auction", item: collectedItem, current_bid: 100, buy_now: null },
+    ] }, expected: collectedItem._id },
+    { gallery: { ...baseGallery, artistWorks: [], items: [] }, expected: undefined },
+  ];
+  const noop = () => {};
+  for (const { gallery, expected } of cases) {
+    const states: unknown[] = [];
+    let stateIndex = 0;
+    let loadEffect: React.EffectCallback | undefined;
+    let selectItem: ((item: typeof artistPreview) => void) | undefined;
+    const explorer = await load<typeof import("../app/play/galleries/gallery-explorer.tsx")>(
+      "../app/play/galleries/gallery-explorer.tsx", {
+        react: {
+          ...React,
+          useState: (initial: unknown) => {
+            const index = stateIndex++;
+            if (!(index in states)) states[index] = initial;
+            return [states[index], (value: unknown) => {
+              states[index] = typeof value === "function" ? value(states[index]) : value;
+            }];
+          },
+          useEffect: (effect: React.EffectCallback, dependencies?: React.DependencyList) => {
+            if (dependencies?.[0] === gallery.owner.playerId) loadEffect = effect;
+          },
+        },
+        "next/navigation": { useRouter: () => ({ replace: noop }) },
+        "@/components/artwork-thumbnail": {}, "@/components/item-thumbnail": { default: () => null },
+        "@/components/community-emotes": {}, "@/components/item-cards/shared": {},
+        "@/components/item-cards/item-card": { default: ({ item }: { item: typeof artistPreview }) =>
+          React.createElement("article", { "data-initial-preview": item._id }) },
+        "@/components/public-gallery": { default: ({ focusedItemId, items, onSelectItem }: {
+          focusedItemId?: string; items: typeof artistPreview[]; onSelectItem: typeof selectItem;
+        }) => {
+          selectItem = onSelectItem;
+          return React.createElement("div", {
+            "data-initial-focus": focusedItemId, "data-gallery-items": items.map(item => item._id).join(","),
+          });
+        } },
+        "@/components/gallery-finish-menu": {},
+        "@/components/use-gallery-visitors": { useGalleryVisitors: () => ({ visitors: [], replaceVisitors: noop }) },
+        "@/server/social-battery": {}, "@/server/npc-gameplay": { NPC_QUALITIES: [] },
+        "../auctions/auction-house": {}, "./gallery-chat": { default: () => null },
+        "@/components/artist-gallery": { ArtistGalleryIntroduction: () => null, ArtistGalleryShowcase: () => null },
+      }, { URLSearchParams, fetch: async () => ({ ok: true, json: async () => gallery }) },
+    );
+    const render = () => {
+      stateIndex = 0;
+      return renderToStaticMarkup(React.createElement(explorer.default, {
+        impersonating: false, initialBankBalance: 0, initialGalleryId: gallery.owner.playerId,
+        initialSort: "score", initialViewMode: "grid", meetingNpc: null, npcSpawnIntervalMinutes: 5,
+        npcSpawnOptions: [], npcRewardEffects: {}, onMeetNpc: async () => false, onGoHome: noop,
+        onViewSettingsChange: noop, socialBattery: 100, viewerId: "visitor",
+      }));
+    };
+    render();
+    assert.ok(loadEffect);
+    const cleanup = loadEffect();
+    await new Promise<void>(resolve => setImmediate(resolve));
+    const html = render();
+    for (const attribute of ["data-initial-preview", "data-initial-focus"]) {
+      assert.equal(html.match(new RegExp(`${attribute}="([^"]*)"`))?.[1], expected);
+    }
+    if (expected === artistPreview._id) {
+      assert.ok(html.includes(`data-gallery-items="${artistPreview._id},${collectedItem._id}"`));
+      assert.ok(selectItem);
+      selectItem(collectedItem);
+      const navigated = render();
+      assert.ok(navigated.includes(`data-initial-preview="${collectedItem._id}"`));
+      assert.ok(navigated.includes(`data-initial-focus="${collectedItem._id}"`));
+    }
+    if (typeof cleanup === "function") cleanup();
+  }
+});
+
 test("gallery directory cards and rows distinguish contributing artists without changing player-only listings", async () => {
   const noop = () => {};
   const baseGallery = {
