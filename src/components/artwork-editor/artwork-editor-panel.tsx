@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { CardRendererId } from "@/components/item-cards/types";
 import {
+  getArtworkFeatureCardAdjustment,
   getArtworkThumbnailAdjustment,
 } from "@/components/item-cards/artwork-image-adjustments";
 import type { Artwork } from "@/server/gameplay";
@@ -33,6 +34,7 @@ function initialDraft(artwork?: ArtworkCatalogEntry, artistId = "") {
     art_style_adjustments: artwork?.art_style_adjustments ?? {},
     detail_image_adjustments: artwork?.detail_image_adjustments ?? [],
     thumbnail_adjustment: getArtworkThumbnailAdjustment(artwork ?? {}),
+    feature_card_adjustment: getArtworkFeatureCardAdjustment(artwork ?? {}),
   };
 }
 
@@ -148,6 +150,7 @@ export default function ArtworkEditorPanel({
         art_style_adjustments: draft.art_style_adjustments,
         detail_image_adjustments: draft.detail_image_adjustments,
         thumbnail_adjustment: draft.thumbnail_adjustment,
+        feature_card_adjustment: draft.feature_card_adjustment,
         ...(mode === "edit" ? { value_scale: Number(draft.value_scale),
           effect_id: draft.effect_id, special_attributes: draft.special_attributes } : {}),
       };
@@ -195,7 +198,7 @@ export default function ArtworkEditorPanel({
   const storage = artwork?.image?.variants?.full?.storage ?? artwork?.image?.storage;
   return (
     <form className="grid min-w-0 gap-5" onSubmit={submit}>
-      <fieldset className="grid min-w-0 gap-5" disabled={busy}>
+      <fieldset className="grid min-w-0 grid-cols-1 gap-5" disabled={busy}>
         <div>
           {mode === "add" ? <h1 className="text-3xl font-bold">Add artwork</h1>
             : <><h2 className="text-2xl font-bold">{draft.title}</h2><p className="text-[var(--muted)]">{artwork?._id}</p></>}
@@ -301,6 +304,7 @@ export default function ArtworkEditorPanel({
           onStyleChange={(id, adjustment) => setDraft(current => ({ ...current,
             art_style_adjustments: { ...current.art_style_adjustments, [id]: adjustment } }))}
           onDetailChange={adjustments => set("detail_image_adjustments", adjustments)}
+          onFeatureCardChange={adjustment => set("feature_card_adjustment", adjustment)}
           onThumbnailChange={adjustment => set("thumbnail_adjustment", adjustment)} /> : null}
         <button className="justify-self-start rounded-md bg-[var(--accent)] px-4 py-2 font-bold text-black disabled:opacity-50"
           disabled={previewLoading || (mode === "add" && !preview)} type="submit">

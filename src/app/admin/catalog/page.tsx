@@ -79,6 +79,7 @@ export default async function CatalogPage() {
               art_style_adjustments: 1,
               detail_image_adjustments: 1,
               thumbnail_adjustment: 1,
+              feature_card_adjustment: 1,
             },
           },
         )

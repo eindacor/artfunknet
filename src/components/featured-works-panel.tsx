@@ -55,7 +55,7 @@ export default function FeaturedWorksPanel({
                 value={`$${rates.value.toLocaleString()}`}
               />
               <GalleryStat
-                label="Attribute score"
+                label="Visitor attraction score"
                 value={attributeScore.toLocaleString()}
               />
               <div className="home-featured-attributes">

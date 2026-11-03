@@ -81,6 +81,24 @@ export type CollectionAttributeOption = {
   label: string;
 };
 
+export function getRemainingOfferSelection(
+  selection: string[] | null,
+  previousKeys: readonly string[],
+  currentKeys: readonly string[],
+): string[] | null {
+  if (!selection?.length) return selection;
+  const available = new Set(currentKeys);
+  const remaining = selection.filter(key => available.has(key));
+  if (remaining.length === selection.length) return selection;
+  if (remaining.length > 0) return remaining;
+  const removed = new Set(selection);
+  const index = previousKeys.findIndex(key => removed.has(key));
+  const adjacent = previousKeys.slice(index + 1).find(key => available.has(key)) ??
+    previousKeys.slice(0, Math.max(0, index)).reverse().find(key => available.has(key)) ??
+    currentKeys[0];
+  return adjacent ? [adjacent] : null;
+}
+
 export function getDefaultCollectionFilters(): CollectionFilters {
   return {
     search: "",

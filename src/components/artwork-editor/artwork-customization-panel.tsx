@@ -5,6 +5,7 @@ import ArtworkDetailImage from "@/components/artwork-detail-image";
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
 import {
   getArtworkDetailImageSlots,
+  getArtworkFeatureCardAdjustment,
   getArtworkImageAdjustment,
   getArtworkThumbnailAdjustment,
 } from "@/components/item-cards/artwork-image-adjustments";
@@ -18,7 +19,7 @@ import ArtworkCropControl from "./artwork-crop-control";
 
 export default function ArtworkCustomizationPanel({
   artwork, sourceUrl, rendererOptions, disabled,
-  onStyleChange, onDetailChange, onThumbnailChange,
+  onStyleChange, onDetailChange, onThumbnailChange, onFeatureCardChange,
 }: {
   artwork: Artwork;
   sourceUrl: string;
@@ -27,11 +28,13 @@ export default function ArtworkCustomizationPanel({
   onStyleChange: (id: CardRendererId, adjustment: ArtworkArtStyleAdjustment) => void;
   onDetailChange: (adjustments: ArtworkDetailImageAdjustments) => void;
   onThumbnailChange: (adjustment: ArtworkArtStyleAdjustment) => void;
+  onFeatureCardChange: (adjustment: ArtworkArtStyleAdjustment) => void;
 }) {
   const [rendererId, setRendererId] = useState<CardRendererId>("museum");
   const Renderer = CARD_RENDERERS[rendererId];
   const [slots, setSlots] = useState(() => getArtworkDetailImageSlots(artwork.detail_image_adjustments ?? []));
   const thumbnail = getArtworkThumbnailAdjustment(artwork);
+  const featureCard = getArtworkFeatureCardAdjustment(artwork);
   const item: HydratedGameItem = {
     _id: "draft", artwork_id: artwork._id, artwork, card_renderer: rendererId,
     condition: 1, mint: false, mint_value_multiplier: 1,
@@ -64,7 +67,7 @@ export default function ArtworkCustomizationPanel({
             {rendererOptions.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
           </select>
         </label>
-        <p>Drag each preview to reposition its image and adjust its zoom. Each art style keeps its own crop.</p>
+        <p>Drag each preview to reposition its image and adjust its zoom. Art styles, thumbnails, and feature cards keep separate crops.</p>
         <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)]">
           <ArtworkCropControl label="Art style crop" card disabled={disabled}
             adjustment={getArtworkImageAdjustment(artwork, rendererId)}
@@ -83,6 +86,15 @@ export default function ArtworkCustomizationPanel({
               adjustment={thumbnail} alt={`${artwork.title} thumbnail`} size={240} />
           </ArtworkCropControl>
         </div>
+        <ArtworkCropControl label="Feature card crop" disabled={disabled}
+          frameClassName="home-featured-card w-full max-w-[360px]"
+          adjustment={featureCard} onChange={onFeatureCardChange}>
+          <ArtworkThumbnail artworkId={artwork._id} sourceUrl={sourceUrl}
+            adjustment={featureCard} alt={`${artwork.title} feature card`}
+            className="home-featured-image" size={360} variant="card" />
+          <span aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 top-1/2 z-10 -translate-y-1/2 border-t border-dashed border-white/90 [filter:drop-shadow(0_1px_1px_#000)]" />
+        </ArtworkCropControl>
         <section className="grid gap-4" aria-label="Full-image details">
           <h2 className="text-xl font-bold">Full-image details</h2>
           <div className="grid gap-5 [grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))]">

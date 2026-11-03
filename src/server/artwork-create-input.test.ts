@@ -7,12 +7,13 @@ const metadata = {
   genre: "Painting", medium: "Oil", rarity: "common", height: 100,
 };
 
-test("artwork creation preserves independent rounded style, detail and thumbnail drafts", () => {
+test("artwork creation preserves independent rounded style, detail, thumbnail and feature card drafts", () => {
   const result = validateArtworkInput({
     ...metadata, active: false, nsfw: true,
     art_style_adjustments: { museum: { x: 1.23456, y: -20, scale: 1.5 }, arcade: { x: -30, y: 5, scale: 2 } },
     detail_image_adjustments: [{ slot: 2, x: 15, y: -7, scale: 2.45678 }],
     thumbnail_adjustment: { x: 40, y: -10, scale: 1.67891 },
+    feature_card_adjustment: { x: -25.67891, y: 30, scale: 2.12345 },
     previewUrl: "must-not-be-stored",
   });
   assert.equal(result.ok, true);
@@ -22,6 +23,7 @@ test("artwork creation preserves independent rounded style, detail and thumbnail
   });
   assert.deepEqual(result.value.detail_image_adjustments, [{ slot: 2, x: 15, y: -7, scale: 2.457 }]);
   assert.deepEqual(result.value.thumbnail_adjustment, { x: 40, y: -10, scale: 1.679 });
+  assert.deepEqual(result.value.feature_card_adjustment, { x: -25.679, y: 30, scale: 2.123 });
   assert.equal(result.value.active, false);
   assert.equal(result.value.nsfw, true);
   assert.equal("previewUrl" in result.value, false);
@@ -34,6 +36,15 @@ test("existing artwork creation requests receive neutral optional crops", () => 
   assert.deepEqual(result.value.art_style_adjustments, {});
   assert.deepEqual(result.value.detail_image_adjustments, []);
   assert.deepEqual(result.value.thumbnail_adjustment, { x: 0, y: 0, scale: 1 });
+  assert.deepEqual(result.value.feature_card_adjustment, { x: 0, y: 0, scale: 1 });
+});
+
+test("legacy crop requests preserve thumbnail framing for feature cards", () => {
+  const thumbnail = { x: 17, y: -35, scale: 1.25 };
+  const result = validateArtworkImageAdjustments({ thumbnail_adjustment: thumbnail });
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  assert.deepEqual(result.value.feature_card_adjustment, thumbnail);
 });
 
 test("catalog crop validation does not require creation fields or persist unrelated metadata", () => {
@@ -42,6 +53,7 @@ test("catalog crop validation does not require creation fields or persist unrela
     art_style_adjustments: { museum: { x: 12.34567, y: -8, scale: 1.5 } },
     detail_image_adjustments: [{ slot: 3, x: -7, y: 22, scale: 2 }],
     thumbnail_adjustment: { x: 18, y: 9, scale: 1.75 },
+    feature_card_adjustment: { x: -22, y: 13, scale: 2 },
   });
   assert.equal(result.ok, true);
   if (!result.ok) return;
@@ -49,10 +61,11 @@ test("catalog crop validation does not require creation fields or persist unrela
     art_style_adjustments: { museum: { x: 12.346, y: -8, scale: 1.5 } },
     detail_image_adjustments: [{ slot: 3, x: -7, y: 22, scale: 2 }],
     thumbnail_adjustment: { x: 18, y: 9, scale: 1.75 },
+    feature_card_adjustment: { x: -22, y: 13, scale: 2 },
   });
 });
 
-test("creation rejects invalid styles, duplicate detail slots and malformed thumbnail crops", () => {
+test("creation rejects invalid styles, duplicate detail slots and malformed thumbnail or feature card crops", () => {
   for (const changes of [
     { art_style_adjustments: { unknown: { x: 0, y: 0, scale: 1 } } },
     { art_style_adjustments: [] },
@@ -61,6 +74,9 @@ test("creation rejects invalid styles, duplicate detail slots and malformed thum
     { detail_image_adjustments: [{ slot: 4, x: 0, y: 0, scale: 1 }] },
     { thumbnail_adjustment: { x: "20", y: 0, scale: 1 } },
     { thumbnail_adjustment: { x: 0, y: 0, scale: 0.5 } },
+    { feature_card_adjustment: { x: "20", y: 0, scale: 1 } },
+    { feature_card_adjustment: { x: 0, y: 101, scale: 1 } },
+    { feature_card_adjustment: { x: 0, y: 0, scale: 4 } },
   ]) assert.equal(validateArtworkInput({ ...metadata, ...changes }).ok, false);
   assert.equal(validateArtworkInput(null).ok, false);
 });

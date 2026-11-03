@@ -755,6 +755,7 @@ test("artist applications, publication and featured galleries persist without gr
       action: "approve", rarity, title: "Reviewed title", height: 120,
       artist_id: "other-artist", value_scale: 0.99, effect_id: `${rarity}-popular`,
       special_attributes: ["rare-popular"], thumbnail_adjustment: { x: 0.1, y: 0.2, scale: 1.5 },
+      feature_card_adjustment: { x: -25, y: 30, scale: 1.8 },
     }), { params: Promise.resolve({ id }) });
     for (const rarity of ["common", "uncommon", "rare", "legendary", "masterpiece"]) {
       const id = `submitted-${rarity}`;
@@ -772,6 +773,7 @@ test("artist applications, publication and featured galleries persist without gr
       assert.equal(saved?.title, "Reviewed title");
       assert.equal(saved?.width, 96);
       assert.deepEqual(saved?.thumbnail_adjustment, { x: 0.1, y: 0.2, scale: 1.5 });
+      assert.deepEqual(saved?.feature_card_adjustment, { x: -25, y: 30, scale: 1.8 });
       assert.equal(saved?.effect_id, rarity === "legendary" || rarity === "masterpiece" ? `${rarity}-least` : undefined);
       assert.deepEqual(saved?.special_attributes, rarity === "rare" ? ["rare-least"] : undefined);
       assert.equal((await approve(id, rarity)).status, 409);
@@ -786,6 +788,27 @@ test("artist applications, publication and featured galleries persist without gr
     const edited = await documents(db, "artworks").findOne({ _id: catalogBody._id });
     assert.equal(edited?.effect_id, "legendary-popular");
     assert.equal(edited?.value_scale, 0.8);
+    assert.deepEqual(edited?.feature_card_adjustment, { x: -25, y: 30, scale: 1.8 });
+    const featureCard = { x: 40, y: -10, scale: 2 };
+    const context = { params: Promise.resolve({ id: catalogBody._id }) };
+    assert.equal((await route.PATCH(request({
+      ...catalogBody, feature_card_adjustment: featureCard,
+    }), context)).status, 200);
+    const cropped = await documents(db, "artworks").findOne({ _id: catalogBody._id });
+    assert.deepEqual(cropped?.feature_card_adjustment, featureCard);
+    assert.deepEqual(cropped?.thumbnail_adjustment, { x: 0.1, y: 0.2, scale: 1.5 });
+    assert.equal((await route.PATCH(request({
+      ...catalogBody, feature_card_adjustment: { ...featureCard, scale: 4 },
+    }), context)).status, 400);
+    assert.deepEqual(await documents(db, "artworks").findOne({ _id: catalogBody._id }), cropped);
+    const legacy = { ...pending("legacy-crop"), thumbnail_adjustment: { x: -15, y: 40, scale: 1.75 } };
+    await documents(db, "artworks").insertOne(legacy);
+    assert.equal((await route.PATCH(request({
+      ...legacy, thumbnail_adjustment: { x: 20, y: 0, scale: 1 },
+    }), { params: Promise.resolve({ id: legacy._id }) })).status, 200);
+    const legacySaved = await documents(db, "artworks").findOne({ _id: legacy._id });
+    assert.deepEqual(legacySaved?.feature_card_adjustment, legacy.thumbnail_adjustment);
+    assert.deepEqual(legacySaved?.thumbnail_adjustment, { x: 20, y: 0, scale: 1 });
     assert.equal(randomCalls, 5, "Catalog saves must not reroll value");
 
     await documents(db, "artworks").insertOne(pending("concurrent"));

@@ -38,6 +38,14 @@ export function getArtworkThumbnailAdjustment(
   return normalizeArtworkImageAdjustment(artwork.thumbnail_adjustment);
 }
 
+export function getArtworkFeatureCardAdjustment(
+  artwork: Pick<Artwork, "feature_card_adjustment" | "thumbnail_adjustment">,
+): ArtworkArtStyleAdjustment {
+  return normalizeArtworkImageAdjustment(
+    artwork.feature_card_adjustment ?? artwork.thumbnail_adjustment,
+  );
+}
+
 export function getArtworkDetailImageAdjustments(
   artwork: Pick<Artwork, "detail_image_adjustments">,
 ): ArtworkDetailImageAdjustments {

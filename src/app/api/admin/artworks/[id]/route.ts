@@ -174,6 +174,8 @@ export async function PATCH(
       ? existing.detail_image_adjustments : body.detail_image_adjustments,
     thumbnail_adjustment: body.thumbnail_adjustment === undefined
       ? existing.thumbnail_adjustment : body.thumbnail_adjustment,
+    feature_card_adjustment: body.feature_card_adjustment === undefined
+      ? existing.feature_card_adjustment ?? existing.thumbnail_adjustment : body.feature_card_adjustment,
   });
   if (!adjustments.ok) {
     return NextResponse.json({ error: adjustments.error }, { status: 400 });
@@ -314,6 +316,7 @@ export async function PATCH(
     art_style_adjustments: updatedArtwork.art_style_adjustments,
     detail_image_adjustments: updatedArtwork.detail_image_adjustments,
     thumbnail_adjustment: updatedArtwork.thumbnail_adjustment,
+    feature_card_adjustment: updatedArtwork.feature_card_adjustment,
     updated_at: updatedArtwork.updated_at,
     updated_by: updatedArtwork.updated_by,
     ...(existing.submission_status === "pending" && updatedArtwork.active
@@ -350,6 +353,7 @@ export async function PATCH(
           ...(existing.art_style_adjustments ? { art_style_adjustments: existing.art_style_adjustments } : {}),
           ...(existing.detail_image_adjustments ? { detail_image_adjustments: existing.detail_image_adjustments } : {}),
           ...(existing.thumbnail_adjustment ? { thumbnail_adjustment: existing.thumbnail_adjustment } : {}),
+          ...(existing.feature_card_adjustment ? { feature_card_adjustment: existing.feature_card_adjustment } : {}),
           ...(existing.updated_at ? { updated_at: existing.updated_at } : {}),
           ...(existing.updated_by ? { updated_by: existing.updated_by } : {}),
           ...(existing.submission_status ? { submission_status: existing.submission_status } : {}),
@@ -362,6 +366,7 @@ export async function PATCH(
           ...(!existing.art_style_adjustments ? { art_style_adjustments: "" } : {}),
           ...(!existing.detail_image_adjustments ? { detail_image_adjustments: "" } : {}),
           ...(!existing.thumbnail_adjustment ? { thumbnail_adjustment: "" } : {}),
+          ...(!existing.feature_card_adjustment ? { feature_card_adjustment: "" } : {}),
           ...(!existing.effect_id ? { effect_id: "" } : {}),
           ...(!existing.special_attributes ? { special_attributes: "" } : {}),
           ...(!existing.updated_at ? { updated_at: "" } : {}),

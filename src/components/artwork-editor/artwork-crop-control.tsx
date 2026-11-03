@@ -10,7 +10,7 @@ import {
 import type { ArtworkArtStyleAdjustment } from "@/server/gameplay";
 
 export default function ArtworkCropControl({
-  label, adjustment, onChange, children, disabled = false, card = false,
+  label, adjustment, onChange, children, disabled = false, card = false, frameClassName = "",
 }: {
   label: string;
   adjustment: ArtworkArtStyleAdjustment;
@@ -18,6 +18,7 @@ export default function ArtworkCropControl({
   children: ReactNode;
   disabled?: boolean;
   card?: boolean;
+  frameClassName?: string;
 }) {
   const id = useId();
   const drag = useRef<{
@@ -35,7 +36,7 @@ export default function ArtworkCropControl({
   return (
     <section aria-label={label} className="grid min-w-0 grid-cols-1 gap-3">
       <h3 className="font-semibold">{label}</h3>
-      <div className={card ? "art-style-crop-stage" : `artwork-detail-crop-frame${disabled ? " disabled" : ""}`}
+      <div className={`${card ? "art-style-crop-stage" : `artwork-detail-crop-frame${disabled ? " disabled" : ""}`} ${frameClassName}`.trim()}
         onPointerDown={event => {
           if (disabled || event.button !== 0) return;
           const image = event.currentTarget.querySelector(".render-card-artwork-image") ?? event.currentTarget;

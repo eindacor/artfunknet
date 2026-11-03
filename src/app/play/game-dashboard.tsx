@@ -17,7 +17,7 @@ import ArchiveEntryDialog from "@/components/archive-entry-dialog";
 import CollectionBulkConfirmationDialog from "@/components/collection-bulk-confirmation-dialog";
 import ForgeryDialog from "@/components/forgery-dialog";
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
-import { getArtworkThumbnailAdjustment } from "@/components/item-cards/artwork-image-adjustments";
+import { getArtworkFeatureCardAdjustment, getArtworkThumbnailAdjustment } from "@/components/item-cards/artwork-image-adjustments";
 import ItemThumbnail from "@/components/item-thumbnail";
 import OfferThumbnail, {
   MysteryOfferFace,
@@ -80,6 +80,7 @@ import {
   getDefaultCollectionFilters,
   getInventoryComparator,
   getOffersComparator,
+  getRemainingOfferSelection,
   type CollectionAttributeOption,
   type CollectionFilters,
   type CollectionFlagKey,
@@ -149,7 +150,6 @@ import type {
 } from "@/server/player-view-settings";
 import {
   getVisitorSocialBatteryCost,
-  SOCIAL_BATTERY_MAX,
 } from "@/server/social-battery";
 import {
   getBulkAcquisitionRequirements,
@@ -170,7 +170,7 @@ import {
   type GalleryAttributeAggregate,
   type GalleryMetadataSnapshot,
 } from "@/server/gallery-metadata-core";
-import ProgressBar from "@/components/progress-bar/progress-bar";
+import PlayerDashboardToolbar from "@/components/player-dashboard-toolbar";
 
 type PlayerView = {
   screenName: string;
@@ -560,6 +560,7 @@ export default function GameDashboard({
   const [selectedLootEntryKeys, setSelectedLootEntryKeys] = useState<
     string[] | null
   >(null);
+  const [previousLootEntryKeys, setPreviousLootEntryKeys] = useState<string[]>([]);
   const [lootCategory, setLootCategory] =
     useState<LootCategory>("unclaimed");
   const lootLongPressRef = useRef<{
@@ -776,6 +777,15 @@ export default function GameDashboard({
     availableLootCategories[0] ??
     null;
   const activeLootEntries = activeLootCategory?.entries ?? [];
+  const currentLootEntryKeys = activeLootEntries.map(entry => entry.key);
+  if (currentLootEntryKeys.length !== previousLootEntryKeys.length ||
+    currentLootEntryKeys.some((key, index) => key !== previousLootEntryKeys[index])) {
+    setPreviousLootEntryKeys(currentLootEntryKeys);
+    const remainingSelection = getRemainingOfferSelection(
+      selectedLootEntryKeys, previousLootEntryKeys, currentLootEntryKeys,
+    );
+    if (remainingSelection !== selectedLootEntryKeys) setSelectedLootEntryKeys(remainingSelection);
+  }
   const unrevealedLootItems = activeLootEntries
     .map((entry) => entry.item)
     .filter((item) => !offerIsRevealed(item));
@@ -1893,7 +1903,6 @@ export default function GameDashboard({
             ...new Set([...current, ...dismissedAuctionIds]),
           ]);
         }
-        setSelectedLootEntryKeys([]);
         router.refresh();
       } catch (bulkError) {
         const message =
@@ -1905,7 +1914,6 @@ export default function GameDashboard({
             ? `${completed} of ${selectedEntries.length} offers were processed before the action stopped. ${message}`
             : message,
         );
-        setSelectedLootEntryKeys([]);
         router.refresh();
       }
     });
@@ -2070,7 +2078,6 @@ export default function GameDashboard({
             completed === 1 ? "artwork" : "artworks"
           } for ${totalKarma.toLocaleString()} Karma.`,
         );
-        setSelectedLootEntryKeys([]);
         router.refresh();
       } catch (donationError) {
         const message =
@@ -2082,7 +2089,6 @@ export default function GameDashboard({
             ? `${completed} of ${itemsToDonate.length} offers were purchased and donated before the action stopped. ${message}`
             : message,
         );
-        setSelectedLootEntryKeys([]);
         router.refresh();
       }
     });
@@ -2215,7 +2221,6 @@ export default function GameDashboard({
         return;
       }
       setNotice(body.message ?? "Offers declined.");
-      setSelectedLootEntryKeys([]);
       router.refresh();
     });
   }
@@ -2240,7 +2245,6 @@ export default function GameDashboard({
         return;
       }
       setNotice(body.message ?? "Private auctions dismissed.");
-      setSelectedLootEntryKeys([]);
       const dismissedAuctionIds = new Set(
         body.dismissedPrivateAuctionIds ?? [],
       );
@@ -2259,7 +2263,6 @@ export default function GameDashboard({
     message = "Private auction converted to a public auction.",
   ) {
     setNotice(message);
-    setSelectedLootEntryKeys([]);
     setSelectedPrivateAuction(null);
     setMadePublicPrivateAuctionIds((current) => [
       ...new Set([...current, auctionId]),
@@ -2320,7 +2323,6 @@ export default function GameDashboard({
       }
       const auctionIds = body.madePublicAuctionIds ?? [];
       setNotice(body.message ?? "Private auctions made public.");
-      setSelectedLootEntryKeys([]);
       setMadePublicPrivateAuctionIds((current) => [
         ...new Set([...current, ...auctionIds]),
       ]);
@@ -3340,7 +3342,7 @@ export default function GameDashboard({
         >
           {!unrevealed ? (
             <ArtworkThumbnail
-              adjustment={getArtworkThumbnailAdjustment(item.artwork)}
+              adjustment={getArtworkFeatureCardAdjustment(item.artwork)}
               alt=""
               artworkId={item.artwork_id}
               className="home-featured-image"
@@ -3441,103 +3443,26 @@ export default function GameDashboard({
         />
       ) : null}
       <div className="max-w-[1800px] m-auto">
-        <section
-          aria-label="Player progress"
-          className="dashboard-resource-bars"
-        >
-          <div className="dashboard-resource-bar">
-            <div>
-              <span>
-                Level {player.level.toLocaleString()}
-                {player.isMaxLevel ? " · Next lottery ticket" : ""}
-              </span>
-              <strong>
-                {player.xp.toLocaleString()} /{" "}
-                {player.xpGoal.toLocaleString()} XP
-              </strong>
-            </div>
-            <ProgressBar
-              value={player.xp}
-              goal={player.xpGoal}
-              maxed={player.isMaxLevel}
-            />
-          </div>
-          <div className="dashboard-resource-bar social-battery-resource">
-            <div>
-              <span>Social battery</span>
-              <strong>
-                {socialBattery.toLocaleString()} /{" "}
-                {SOCIAL_BATTERY_MAX.toLocaleString()}
-              </strong>
-            </div>
-            <div
-              aria-label={`${socialBattery.toLocaleString()} of ${SOCIAL_BATTERY_MAX.toLocaleString()} social battery remaining`}
-              aria-valuemax={SOCIAL_BATTERY_MAX}
-              aria-valuemin={0}
-              aria-valuenow={socialBattery}
-              className="social-battery-meter"
-              role="progressbar"
-            >
-              <span
-                style={{
-                  width: `${Math.max(
-                    0,
-                    Math.min(100, (socialBattery / SOCIAL_BATTERY_MAX) * 100),
-                  )}%`,
-                }}
-              />
-            </div>
-          </div>
-        </section>
-        <nav className="dashboard-tabs" aria-label="Player dashboard">
-          {(
-            [
-              { id: "collection", label: "Home", icon: "fa-home" },
-              { id: "explore", label: "Visit Galleries", icon: "fa-picture-o" },
-              { id: "loot", label: "Offers", icon: "fa-gift" },
-              { id: "quests", label: "Quests", icon: "fa-map-signs" },
-              { id: "auctions", label: "Auction House", icon: "fa-gavel" },
-              { id: "archive", label: "Archive", icon: "fa-archive" },
-              { id: "daily", label: "Daily Events", icon: "fa-calendar" },
-              { id: "profile", label: "Social", icon: "fa-comments" },
-              { id: "history", label: "Legacy", icon: "fa-history" },
-            ] as const
-          ).map((tab) => (
-            <button
-              className={section === tab.id ? "current" : ""}
-              key={tab.id}
-              onClick={() => {
-                if (tab.id === "explore") {
-                  setExploreGalleryId(null);
-                  setExploreResetKey((current) => current + 1);
-                }
-                const sectionName =
-                  tab.id === "collection"
-                    ? "home"
-                    : tab.id === "profile"
-                      ? "social"
-                      : tab.id;
-                router.replace(`/play?section=${sectionName}`, {
-                  scroll: false,
-                });
-                selectDashboardSection(tab.id);
-              }}
-              type="button"
-            >
-              <i aria-hidden="true" className={`fa ${tab.icon}`} />
-              <span>{tab.label}</span>
-              {tab.id === "loot" && unclaimed.length > 0
-                ? ` (${unclaimed.length})`
-                : ""}
-              {tab.id === "archive" && archives.length > 0
-                ? ` (${archives.length})`
-                : ""}
-              {tab.id === "quests" && quests.length > 0
-                ? ` (${quests.length})`
-                : ""}
-            </button>
-          ))}
-        </nav>
+        <PlayerDashboardToolbar
+          archiveCount={archives.length}
+          level={player.level}
+          isMaxLevel={player.isMaxLevel}
+          offerCount={unclaimed.length}
+          questCount={quests.length}
+          section={section}
+          socialBattery={socialBattery}
+          xp={player.xp}
+          xpGoal={player.xpGoal}
+          onSelect={tab => {
+            if (tab === "explore") {
+              setExploreGalleryId(null);
+              setExploreResetKey(current => current + 1);
+            }
+            const sectionName = tab === "collection" ? "home" : tab === "profile" ? "social" : tab;
+            router.replace(`/play?section=${sectionName}`, { scroll: false });
+            selectDashboardSection(tab);
+          }}
+        />
 
         <p
           aria-live={error ? "assertive" : "polite"}
@@ -3986,7 +3911,6 @@ export default function GameDashboard({
                                               ]),
                                             ],
                                           );
-                                          setSelectedLootEntryKeys([]);
                                         },
                                       )
                                     }
@@ -4090,7 +4014,7 @@ export default function GameDashboard({
                     onClick={() => visitOwnGallery()}
                     type="button"
                   >
-                    Go to my gallery
+                    Go to your gallery
                   </button>
                   {player.level >= 50 ? (
                     <span
@@ -6197,7 +6121,7 @@ function CollectionBulkActionsPanel({
             <dd>${totalValue.toLocaleString()}</dd>
           </div>
           <div>
-            <dt>Attribute score</dt>
+            <dt>Visitor attraction score</dt>
             <dd>{attributeScore.toLocaleString()}</dd>
           </div>
           <div>

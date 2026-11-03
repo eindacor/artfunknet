@@ -265,6 +265,157 @@ test("submission reviews keep rarity but omit artist, value and effect controls 
   }
 });
 
+test("artwork creation and catalog editing save feature card crops independently of thumbnail crops", async () => {
+  for (const mode of ["add", "edit"] as const) {
+    const states: unknown[] = [];
+    let stateIndex = 0;
+    const artwork: Artwork = {
+      _id: "work", artist_id: "artist-id", artist: "Artist", title: "Artwork", date: 2026,
+      genre: "Abstract", medium: "Oil", height: 100, width: 80, active: true,
+      rarity: "common", value_scale: 0.5, thumbnail_adjustment: { x: 25, y: -30, scale: 1.5 },
+    };
+    const customization = { default: () => null };
+    const editor = await load<typeof import("../components/artwork-editor/artwork-editor-panel.tsx")>(
+      "../components/artwork-editor/artwork-editor-panel.tsx", {
+        react: {
+          ...React, useEffect: () => {}, useRef: () => ({ current: null }),
+          useState: (initial: unknown) => {
+            const index = stateIndex++;
+            if (!(index in states)) {
+              states[index] = typeof initial === "function" ? initial() : initial;
+              if (mode === "add" && index === 1) states[index] = new File(["image"], "art.png");
+              if (mode === "add" && index === 2) states[index] = { url: "data:image/png;base64,test", width: 80, height: 100 };
+            }
+            return [states[index], (next: unknown) => {
+              states[index] = typeof next === "function" ? next(states[index]) : next;
+            }];
+          },
+        },
+        "next/image": { default: () => null },
+        "@/components/item-cards/artwork-image-adjustments": imageAdjustments,
+        "@/server/artwork-image-url": imageUrls,
+        "@/components/artwork-image-scope": { useArtworkImageScope: () => "admin" },
+        "./artwork-customization-panel": customization,
+        "./types": { ARTWORK_EDITOR_RARITIES: ["common", "uncommon", "rare", "legendary", "masterpiece"] },
+      },
+    );
+    let sent: unknown;
+    const props = {
+      mode, artwork: mode === "edit" ? artwork : undefined,
+      artists: [{ id: "artist-id", name: "Artist", dateOfBirth: "", dateOfDeath: "", artworkCount: 0 }],
+      rendererOptions: [], onSave: async (metadata: unknown) => { sent = metadata; return undefined; },
+    };
+    const render = () => { stateIndex = 0; return editor.default(props); };
+    type Element = React.ReactElement<{ children?: React.ReactNode }>;
+    function elements(node: React.ReactNode): Element[] {
+      if (Array.isArray(node)) return node.flatMap(elements);
+      if (!React.isValidElement<{ children?: React.ReactNode }>(node)) return [];
+      return [node, ...elements(node.props.children)];
+    }
+    let form = render();
+    const panel = elements(form).find(element => element.type === customization.default) as
+      React.ReactElement<Parameters<typeof import("../components/artwork-editor/artwork-customization-panel.tsx").default>[0]>;
+    assert.ok(panel, mode);
+    assert.deepEqual(panel.props.artwork.feature_card_adjustment,
+      mode === "add" ? { x: 0, y: 0, scale: 1 } : artwork.thumbnail_adjustment);
+    const featureCard = { x: -40, y: 12, scale: 2 };
+    const thumbnail = { x: 30, y: -10, scale: 1.75 };
+    panel.props.onFeatureCardChange(featureCard);
+    panel.props.onThumbnailChange(thumbnail);
+    form = render();
+    await form.props.onSubmit({ preventDefault() {}, currentTarget: {} });
+    const saved = sent as Artwork;
+    assert.deepEqual(saved.feature_card_adjustment, featureCard, mode);
+    assert.deepEqual(saved.thumbnail_adjustment, thumbnail, mode);
+    assert.deepEqual(Object.keys(saved.art_style_adjustments ?? {}), []);
+    assert.deepEqual(Array.from(saved.detail_image_adjustments ?? []), []);
+  }
+});
+
+test("feature card crop previews support dragging, zoom, reset and disabled controls", async () => {
+  const hooks = {
+    ...React, useId: () => "crop",
+    useRef: () => ({ current: null }),
+    useState: (initial: unknown) => [typeof initial === "function" ? initial() : initial, () => {}],
+  };
+  const crop = await load<typeof import("../components/artwork-editor/artwork-crop-control.tsx")>(
+    "../components/artwork-editor/artwork-crop-control.tsx", {
+      react: hooks, "@/components/item-cards/artwork-image-adjustments": imageAdjustments,
+    },
+  );
+  const customization = await load<typeof import("../components/artwork-editor/artwork-customization-panel.tsx")>(
+    "../components/artwork-editor/artwork-customization-panel.tsx", {
+      react: hooks,
+      "@/components/artwork-detail-image": { default: () => null },
+      "@/components/artwork-thumbnail": { default: () => null },
+      "@/components/item-cards/artwork-image-adjustments": imageAdjustments,
+      "@/components/item-cards/registry": { CARD_RENDERERS: { museum: () => null } },
+      "@/components/item-cards/render-card-preview": { default: () => null },
+      "@/components/item-cards/shared": { ArtworkImageSourceContext: () => null },
+      "./artwork-crop-control": crop,
+    },
+  );
+  const artwork: Artwork = {
+    _id: "work", artist_id: "artist", artist: "Artist", title: "Artwork", date: 2026,
+    genre: "Abstract", medium: "Oil", height: 100, width: 80, active: true,
+    rarity: "common", value_scale: 0.5,
+    thumbnail_adjustment: { x: 25, y: -30, scale: 1.5 },
+    feature_card_adjustment: { x: -20, y: 10, scale: 1.5 },
+  };
+  type Element = React.ReactElement<Record<string, unknown>>;
+  function elements(node: React.ReactNode): Element[] {
+    if (Array.isArray(node)) return node.flatMap(elements);
+    if (!React.isValidElement<Record<string, unknown>>(node)) return [];
+    return [node, ...elements(node.props.children as React.ReactNode)];
+  }
+  function preview(disabled = false) {
+    const panel = customization.default({
+      artwork, sourceUrl: "data:image/png;base64,test", rendererOptions: [], disabled,
+      onStyleChange: () => assert.fail("Feature crops cannot change art style crops"),
+      onDetailChange: () => assert.fail("Feature crops cannot change detail crops"),
+      onThumbnailChange: () => assert.fail("Feature crops cannot change thumbnails"),
+      onFeatureCardChange: adjustment => { artwork.feature_card_adjustment = adjustment; },
+    });
+    const feature = elements(panel).find(element => element.props.label === "Feature card crop") as
+      React.ReactElement<Parameters<typeof crop.default>[0]>;
+    assert.ok(feature);
+    assert.match(feature.props.frameClassName!, /home-featured-card/);
+    const image = elements(feature.props.children).find(element => element.props.variant === "card") as
+      React.ReactElement<{ adjustment: Artwork["feature_card_adjustment"]; variant: string; sourceUrl: string }>;
+    assert.deepEqual({ ...image.props.adjustment }, { ...artwork.feature_card_adjustment });
+    assert.equal(image.props.variant, "card");
+    assert.equal(image.props.sourceUrl, "data:image/png;base64,test");
+    return elements(crop.default(feature.props));
+  }
+  let controls = preview();
+  const stage = controls.find(element => element.props.onPointerDown)!;
+  const event = {
+    button: 0, pointerId: 1, clientX: 0, clientY: 0,
+    currentTarget: {
+      querySelector: () => null, getBoundingClientRect: () => ({ width: 360, height: 118 }),
+      setPointerCapture() {}, hasPointerCapture: () => true, releasePointerCapture() {},
+    },
+  };
+  (stage.props.onPointerDown as (event: unknown) => void)(event);
+  (stage.props.onPointerMove as (event: unknown) => void)({ ...event, clientX: 36, clientY: -11.8 });
+  (stage.props.onPointerUp as (event: unknown) => void)(event);
+  assert.deepEqual(artwork.feature_card_adjustment, { x: -10, y: 0, scale: 1.5 });
+  controls = preview();
+  (controls.find(element => element.type === "input")!.props.onChange as (event: unknown) => void)({ target: { value: "2" } });
+  assert.deepEqual(artwork.feature_card_adjustment, { x: -10, y: 0, scale: 2 });
+  controls = preview();
+  (controls.find(element => element.type === "button")!.props.onClick as () => void)();
+  assert.deepEqual({ ...artwork.feature_card_adjustment }, { x: 0, y: 0, scale: 1 });
+  controls = preview(true);
+  const disabledStage = controls.find(element => element.props.onPointerDown)!;
+  (disabledStage.props.onPointerDown as (event: unknown) => void)(event);
+  (disabledStage.props.onPointerMove as (event: unknown) => void)({ ...event, clientX: 100, clientY: 100 });
+  assert.deepEqual({ ...artwork.feature_card_adjustment }, { x: 0, y: 0, scale: 1 });
+  assert.equal(controls.find(element => element.type === "input")!.props.disabled, true);
+  assert.equal(controls.find(element => element.type === "button")!.props.disabled, true);
+  assert.deepEqual(artwork.thumbnail_adjustment, { x: 25, y: -30, scale: 1.5 });
+});
+
 test("review acceptance sends its approval action without manual value or effect assignments", async () => {
   const artwork = {
     _id: "submission", artist_id: "artist-id", artist: "Artist", title: "Pending work", date: 2026,
@@ -898,7 +1049,7 @@ test("featured artist cards show names and external links, while Instagram stays
   assert.match(cards, /Rarest work by Test Artist/);
   assert.match(cards, /href="https:\/\/portfolio.example.com\/"/);
   assert.match(cards, /href="https:\/\/www.instagram.com\/test.artist\/"/);
-  assert.doesNotMatch(cards, /Gallery value|Gallery score|Shared works|Attribute score/);
+  assert.doesNotMatch(cards, /Gallery value|Gallery score|Shared works|Visitor attraction score/);
   assert.doesNotMatch(cards, /fa-arrow-right/);
   for (const [card] of cards.matchAll(/<article class="featured-artist-card"[\s\S]*?<\/article>/g)) {
     const firstAction = card.match(/<(button|a)\b[^>]*>[\s\S]*?<\/\1>/)?.[0];

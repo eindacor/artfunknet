@@ -61,7 +61,7 @@ test("featured slots remain visible for empty, partially filled, fully unlocked,
   }
 });
 
-test("featured information shows earnings, value, attribute score, visitor help, and gallery actions", () => {
+test("featured information shows earnings, value, visitor attraction score, visitor help, and gallery actions", () => {
   const html = renderToStaticMarkup(React.createElement(FeaturedWorksPanel, {
     items: [], displayCapacity: 5, maxDisplayCapacity: 10,
     rates: { value: 15_000, moneyPerHour: 125, xpPerHour: 42 }, attributeScore: 1_234,
@@ -69,14 +69,14 @@ test("featured information shows earnings, value, attribute score, visitor help,
       id: "visitor", title: "Art Collector", icon: "fa-eye", type: "npc",
       count: 2, totalRating: 1.5, effectiveRating: 0.3,
     }],
-    actions: React.createElement("button", null, "Go to my gallery"),
+    actions: React.createElement("button", null, "Go to your gallery"),
     renderItem: () => null,
   }));
-  for (const value of ["Money per hour", "$125", "XP per hour", "42", "Total featured value", "$15,000", "Attribute score", "1,234"]) {
+  for (const value of ["Money per hour", "$125", "XP per hour", "42", "Total featured value", "$15,000", "Visitor attraction score", "1,234"]) {
     assert.ok(html.includes(value), value);
   }
   assert.match(html, /Art Collector: 2 works, 30% effective attraction \(150 total \u00f7 5 display slots\)/);
-  assert.match(html, /Go to my gallery/);
+  assert.match(html, /Go to your gallery/);
   assert.match(html, /Visitors you attract/);
   const helpButton = html.match(/<button[^>]*aria-label="How featuring attracts visitors"[^>]*>/)?.[0];
   const descriptionId = helpButton?.match(/aria-describedby="([^"]+)"/)?.[1];

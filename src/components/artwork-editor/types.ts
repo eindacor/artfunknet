@@ -10,7 +10,7 @@ export type ArtistCatalogEntry = {
 };
 
 export type ArtworkCatalogEntry = Pick<Artwork,
-  "art_style_adjustments" | "detail_image_adjustments" | "thumbnail_adjustment"
+  "art_style_adjustments" | "detail_image_adjustments" | "thumbnail_adjustment" | "feature_card_adjustment"
 > & {
   _id: string;
   artist_id: string;
@@ -51,7 +51,7 @@ export type ArtworkCatalogEntry = Pick<Artwork,
 
 export type ArtworkEditorMetadata = Pick<Artwork,
   "artist_id" | "title" | "date" | "genre" | "medium" | "rarity" | "height" |
-  "active" | "art_style_adjustments" | "detail_image_adjustments" | "thumbnail_adjustment"
+  "active" | "art_style_adjustments" | "detail_image_adjustments" | "thumbnail_adjustment" | "feature_card_adjustment"
 > & { nsfw: boolean; value_scale?: number; effect_id?: string; special_attributes?: string[] };
 
 export const ARTWORK_EDITOR_RARITIES: Artwork["rarity"][] = [

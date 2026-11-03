@@ -11,7 +11,7 @@ import { ARTWORK_RARITIES, type Artwork, type ArtworkRarity } from "./gameplay.t
 export type ArtworkCreationMetadata = Pick<
   Artwork,
   "artist_id" | "title" | "date" | "genre" | "medium" | "rarity" | "height" |
-  "active" | "art_style_adjustments" | "detail_image_adjustments" | "thumbnail_adjustment"
+  "active" | "art_style_adjustments" | "detail_image_adjustments" | "thumbnail_adjustment" | "feature_card_adjustment"
 > & { nsfw: boolean };
 
 export function validateArtworkInput(input: unknown):
@@ -49,7 +49,7 @@ export function validateArtworkInput(input: unknown):
 }
 
 export function validateArtworkImageAdjustments(data: Record<string, unknown>):
-  | { ok: true; value: Pick<Artwork, "art_style_adjustments" | "detail_image_adjustments" | "thumbnail_adjustment"> }
+  | { ok: true; value: Pick<Artwork, "art_style_adjustments" | "detail_image_adjustments" | "thumbnail_adjustment" | "feature_card_adjustment"> }
   | { ok: false; error: string } {
   const styles = data.art_style_adjustments ?? {};
   if (!styles || typeof styles !== "object" || Array.isArray(styles) ||
@@ -67,6 +67,10 @@ export function validateArtworkImageAdjustments(data: Record<string, unknown>):
   if (!isValidArtworkImageAdjustment(thumbnail)) {
     return { ok: false, error: "The thumbnail image adjustment is invalid." };
   }
+  const featureCard = data.feature_card_adjustment ?? thumbnail;
+  if (!isValidArtworkImageAdjustment(featureCard)) {
+    return { ok: false, error: "The feature card image adjustment is invalid." };
+  }
   return {
     ok: true,
     value: {
@@ -77,6 +81,7 @@ export function validateArtworkImageAdjustments(data: Record<string, unknown>):
       )),
       detail_image_adjustments: roundArtworkDetailImageAdjustments(details),
       thumbnail_adjustment: roundArtworkImageAdjustment(thumbnail),
+      feature_card_adjustment: roundArtworkImageAdjustment(featureCard),
     },
   };
 }

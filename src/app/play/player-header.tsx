@@ -33,16 +33,16 @@ type AuthenticatedHeaderContentProps = {
 
 export default function PlayerHeader(props: PlayerHeaderProps) {
   return (
-    <header className="sticky top-0 z-100 py-3 px-[5%] bg-white">
-      <div className="@container grid grid-cols-12 items-center gap-2 gap-y-4">
+    <header className="player-header sticky top-0 z-100 py-3 px-[5%] bg-white">
+      <div className="player-header-layout @container grid grid-cols-12 items-center gap-2 gap-y-4">
         {props.anonymous ? (
           <>
-            <div className="col-span-12 @2xs:col-span-4">
+            <div className="player-header-brand col-span-12 @2xs:col-span-4">
               <Link href="/">
                 <span className="font-bold text-2xl @md:text-4xl text-[#ff33cc]">artfunkel</span>
               </Link>
             </div>
-            <div className="col-span-6 col-end-13 order-2 flex justify-end gap-1 @2xs:gap-3">
+            <div className="player-header-anonymous col-span-6 col-end-13 order-2 flex justify-end gap-1 @2xs:gap-3">
               <Link className="player-signup" href="/play/login">
                 Sign up
               </Link>

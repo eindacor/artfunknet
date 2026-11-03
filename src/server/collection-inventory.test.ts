@@ -6,8 +6,32 @@ import {
   getDefaultCollectionFilters,
   getInventoryComparator,
   getOffersComparator,
+  getRemainingOfferSelection,
   type CollectionInventoryItem,
 } from "./collection-inventory.ts";
+
+test("removed offers select the next adjacent item, or the previous item at the end", () => {
+  const previous = ["first", "middle", "last"];
+  assert.deepEqual(getRemainingOfferSelection(["middle"], previous, ["first", "last"]), ["last"]);
+  assert.deepEqual(getRemainingOfferSelection(["last"], previous, ["first", "middle"]), ["middle"]);
+  assert.deepEqual(getRemainingOfferSelection(["first", "middle"], previous, ["last"]), ["last"]);
+  assert.deepEqual(getRemainingOfferSelection(["middle", "last"], previous, ["first"]), ["first"]);
+});
+
+test("offer selection preserves remaining selections, manual deselection, and unchanged failed actions", () => {
+  const previous = ["first", "middle", "last"];
+  assert.deepEqual(getRemainingOfferSelection(["first", "middle"], previous, ["middle", "last"]), ["middle"]);
+  const selected = ["middle"];
+  assert.equal(getRemainingOfferSelection(selected, previous, previous), selected);
+  assert.deepEqual(getRemainingOfferSelection([], previous, ["first", "last"]), []);
+  assert.equal(getRemainingOfferSelection(null, previous, ["first", "last"]), null);
+});
+
+test("offer selection follows sorted order, crosses emptied categories, and handles an empty offers list", () => {
+  assert.deepEqual(getRemainingOfferSelection(["middle"], ["last", "middle", "first"], ["last", "first"]), ["first"]);
+  assert.deepEqual(getRemainingOfferSelection(["auction:old"], ["auction:old"], ["dealer"]), ["dealer"]);
+  assert.equal(getRemainingOfferSelection(["only"], ["only"], []), null);
+});
 
 function item(
   overrides: Partial<CollectionInventoryItem> & {

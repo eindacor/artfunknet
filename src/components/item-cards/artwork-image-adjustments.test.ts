@@ -5,6 +5,7 @@ import {
   DEFAULT_ARTWORK_IMAGE_ADJUSTMENT,
   getArtworkDetailImageAdjustments,
   getArtworkDetailImageSlots,
+  getArtworkFeatureCardAdjustment,
   getArtworkImageAdjustment,
   getArtworkThumbnailAdjustment,
   getArtworkImageBackgroundPosition,
@@ -30,6 +31,26 @@ test("thumbnail crops remain independent from art-style and detail crops", () =>
     thumbnail_adjustment: { x: 200, y: 0, scale: 8 },
   }), { x: 100, y: 0, scale: 3 });
 });
+
+test("feature card crops override thumbnails while preserving legacy framing", () => {
+  const thumbnail = { x: 25, y: -50, scale: 2 };
+  assert.deepEqual(getArtworkFeatureCardAdjustment({}), DEFAULT_ARTWORK_IMAGE_ADJUSTMENT);
+  assert.deepEqual(getArtworkFeatureCardAdjustment({
+    thumbnail_adjustment: thumbnail,
+  }), thumbnail);
+  assert.deepEqual(getArtworkFeatureCardAdjustment({
+    thumbnail_adjustment: thumbnail,
+    feature_card_adjustment: { x: -40, y: 30, scale: 1.5 },
+  }), { x: -40, y: 30, scale: 1.5 });
+  assert.deepEqual(getArtworkFeatureCardAdjustment({
+    thumbnail_adjustment: thumbnail,
+    feature_card_adjustment: { x: 0, y: 0, scale: 1 },
+  }), DEFAULT_ARTWORK_IMAGE_ADJUSTMENT);
+  assert.deepEqual(getArtworkFeatureCardAdjustment({
+    feature_card_adjustment: { x: -200, y: 0, scale: 8 },
+  }), { x: -100, y: 0, scale: 3 });
+});
+
 test("artwork image adjustments use the selected renderer values", () => {
   assert.deepEqual(
     getArtworkImageAdjustment(

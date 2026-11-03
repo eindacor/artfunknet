@@ -505,7 +505,7 @@ export default function GalleryExplorer({
                     <dd>{gallery.item_count}</dd>
                   </div>
                   <div>
-                    <dt>Attribute score</dt>
+                    <dt>Visitor attraction score</dt>
                     <dd>{gallery.score.toLocaleString()}</dd>
                   </div>
                 </dl>
@@ -577,7 +577,7 @@ export default function GalleryExplorer({
             }}
             value={sort}
           >
-            <option value="score">Attribute score</option>
+            <option value="score">Visitor attraction score</option>
             <option value="value">Gallery value</option>
             <option value="works">Shared works</option>
             <option value="name">Player name</option>

@@ -7,9 +7,11 @@ import ts from "typescript";
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
+import { getArtworkFeatureCardAdjustment } from "../../components/item-cards/artwork-image-adjustments.ts";
 import type { HydratedGameItem } from "../../server/item-artwork.ts";
 import { getArtworkImageUrl } from "../../server/artwork-image-url.ts";
 import { getBulkAcquisitionRequirements } from "../../server/bulk-acquisition.ts";
+import { getRemainingOfferSelection } from "../../server/collection-inventory.ts";
 import { planGallerySelection } from "../../server/gallery-selection.ts";
 import {
   FEATURE_ARTWORK_DESCRIPTION,
@@ -66,6 +68,7 @@ const handlerNames = new Set([
   "visitOwnGallery",
   "toggleCollectionItemSelection",
   "updateCollectionItemSelection",
+  "performLootBulkAction",
 ]);
 const handlers = ts.transpileModule(
   [...dashboard.body!.statements.filter(
@@ -77,10 +80,73 @@ const handlers = ts.transpileModule(
   { compilerOptions: { target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React } },
 ).outputText;
 
+test("refreshed offers replace a removed preview with its adjacent item without clearing failed or partial selections", () => {
+  const names = new Set([
+    "currentLootEntryKeys", "defaultLootEntryKey", "effectiveSelectedLootEntryKeys",
+    "selectedLootEntries", "selectedLootEntry", "selectedLootItem",
+  ]);
+  const selectionSource = dashboard.body!.statements.filter(statement =>
+    ts.isVariableStatement(statement) && statement.declarationList.declarations.some(declaration =>
+      ts.isIdentifier(declaration.name) && names.has(declaration.name.text),
+    ) || ts.isIfStatement(statement) && statement.expression.getText(source).includes("currentLootEntryKeys.length"),
+  ).map(statement => statement.getText(source)).join("\n");
+  const code = ts.transpileModule(selectionSource, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+  for (const scenario of [
+    { selected: ["middle"], remaining: ["first", "last"], expected: "last" },
+    { selected: ["last"], remaining: ["first", "middle"], expected: "middle" },
+    { selected: ["middle"], remaining: ["first", "middle", "last"], expected: "middle" },
+    { selected: ["first", "middle"], remaining: ["middle", "last"], expected: "middle" },
+  ]) {
+    let selected = scenario.selected as string[] | null;
+    let previous = ["first", "middle", "last"];
+    let preview: { _id: string };
+    for (let render = 0; render < 2; render++) {
+      preview = runInNewContext(`${code}\nselectedLootItem`, {
+        activeLootEntries: scenario.remaining.map(key => ({ key, item: { _id: key } })),
+        previousLootEntryKeys: previous, selectedLootEntryKeys: selected, getRemainingOfferSelection,
+        setPreviousLootEntryKeys: (next: string[]) => { previous = next; },
+        setSelectedLootEntryKeys: (next: string[] | null) => { selected = next; },
+      }) as { _id: string };
+    }
+    assert.equal(preview!._id, scenario.expected);
+  }
+});
+
+test("bulk offer removal preserves selection until refresh, including failed and partially completed actions", async () => {
+  for (const failAt of [null, 1, 2]) {
+    let transition: Promise<void> | undefined;
+    let requests = 0;
+    const resetSelection = test.mock.fn();
+    const refresh = test.mock.fn();
+    const entries = ["first", "middle"].map(key => ({ key, item: item(key), auction: null }));
+    runInNewContext(`${handlers}\nperformLootBulkAction("remove")`, {
+      selectedLootEntries: entries, lootBulkState: { historianQuestByItemId: [] },
+      startTransition: (action: () => Promise<void>) => { transition = action(); },
+      fetch: async () => {
+        requests++;
+        return requests === failAt ? Response.json({ error: "Cannot remove offer" }, { status: 409 }) : Response.json({});
+      },
+      setSelectedLootEntryKeys: resetSelection, setNotice() {}, setError() {},
+      getLootBulkSuccessMessage: () => "Removed offers", isActionDialogResult: () => false,
+      router: { refresh },
+    });
+    await transition;
+    assert.equal(resetSelection.mock.callCount(), 0, `Failure at ${failAt} must not erase the selection`);
+    assert.equal(refresh.mock.callCount(), 1);
+    const remaining = failAt === null ? ["last"] : failAt === 1 ? ["first", "middle", "last"] : ["middle", "last"];
+    assert.deepEqual(getRemainingOfferSelection(["first", "middle"], ["first", "middle", "last"], remaining),
+      failAt === null ? ["last"] : failAt === 1 ? ["first", "middle"] : ["middle"]);
+  }
+});
+
 test("featured cards select filtered-out works for the preview and visit their exact gallery position independently", () => {
   const featured = {
     ...item("featured"), status: "displayed", revealed: true,
-    artwork: { title: "Featured Artwork", artist: "Artist", rarity: "rare", date: 2026 },
+    artwork: {
+      title: "Featured Artwork", artist: "Artist", rarity: "rare", date: 2026,
+      thumbnail_adjustment: { x: 25, y: 30, scale: 1.5 },
+      feature_card_adjustment: { x: -40, y: -20, scale: 2 },
+    },
     values: { actual: 100 },
   };
   const other = { ...featured, _id: "other" };
@@ -102,7 +168,7 @@ test("featured cards select filtered-out works for the preview and visit their e
     offerRevealThresholds: DEFAULT_OFFER_REVEAL_THRESHOLDS,
     enableReveals: true, revealedOfferIds: new Set<string>(), isOfferRevealed,
     OfferThumbnail: () => null, ArtworkThumbnail: () => null,
-    getArtworkThumbnailAdjustment: () => undefined,
+    getArtworkFeatureCardAdjustment,
     selectedCollectionItemIdsSet: new Set<string>(),
     suppressedCollectionClickRef: { current: null },
     defaultCollectionItemId: other._id,
@@ -122,10 +188,14 @@ test("featured cards select filtered-out works for the preview and visit their e
   };
   const card = runInNewContext(`${handlers}\nrenderFeaturedWork(featured)`, context) as
     React.ReactElement<{ children: React.ReactElement<{
-      "aria-pressed": boolean; onClick: (event: typeof event) => void;
+      "aria-pressed": boolean; onClick: (event: typeof event) => void; children: React.ReactNode;
     }>[] }>;
   const [select, visit] = card.props.children;
   assert.equal(select.props["aria-pressed"], false);
+  const image = React.Children.toArray(select.props.children).find(child =>
+    React.isValidElement(child) && child.type === context.ArtworkThumbnail,
+  ) as React.ReactElement<{ adjustment: unknown }>;
+  assert.deepEqual(image.props.adjustment, featured.artwork.feature_card_adjustment);
   visit.props.onClick(event);
   assert.equal(states.selectedCollectionItemIds, null, "Visiting does not change collection selection");
   assert.equal(states.galleryId, context.playerId);
