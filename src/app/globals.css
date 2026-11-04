@@ -3402,9 +3402,7 @@ a.welcome-button {
   justify-items: center;
   gap: 12px;
   margin-bottom: 24px;
-  border: 2px solid #30222c;
   padding: clamp(18px, 3vw, 32px);
-  background: #fff2fc;
   color: #30222c;
   text-align: center;
 }
