@@ -677,6 +677,59 @@ test("item details link both artist credits to the artist gallery for signed-in 
   }
 });
 
+test("public item pages show the current owner name and public gallery link in the shared item details", async () => {
+  const shared = await load<typeof import("../components/item-cards/shared.tsx")>("../components/item-cards/shared.tsx", {
+    "../item-expiration-display": {}, "@/server/artwork-image-url": imageUrls,
+    "../artwork-image-scope": {}, "@/server/item-drop-chance-format": { formatItemDropChance },
+    "@/server/item-serial-format": { formatItemSerialNumber }, "@/server/archive-gameplay": {},
+    "@/components/floating-popover": {}, "./card-cosmetics-provider": {}, "./catalog": {},
+    "./artwork-image-adjustments": imageAdjustments,
+  });
+  const anonymous = await load<typeof import("../app/items/[id]/anonymous-item-view.tsx")>(
+    "../app/items/[id]/anonymous-item-view.tsx", {
+      "../../play/player-header": { default: () => null },
+      "@/components/item-cards/item-card": { default: (props: React.ComponentProps<typeof import("../components/item-cards/item-card.tsx").default>) => {
+        assert.equal(props.viewerId, null);
+        assert.equal(props.permissions?.canManageItem, false);
+        assert.equal(props.permissions?.canCustomizeCosmetic, false);
+        return React.createElement(shared.CompleteItemRecord, {
+          ...props, showAttributeDetails: false, showProperties: false,
+        });
+      } },
+    });
+  const artwork: Artwork = {
+    _id: "public-work", artist_id: "artist", artist: "Artist", title: "Shared Artwork", date: 2026,
+    rarity: "common", genre: "Abstract", medium: "Oil", value_scale: 0.5, width: 80, height: 100, active: true,
+  };
+  let owner: { playerId: string; screenName: string } | null = null;
+  const page = await load<typeof import("../app/items/[id]/page.tsx")>("../app/items/[id]/page.tsx", {
+    "next/navigation": { redirect: () => assert.fail("Anonymous viewers must not be redirected"), notFound: () => assert.fail("The item exists") },
+    "@/server/artwork-effects": {}, "@/server/mongodb": { getDatabase: async () => ({}) },
+    "@/server/session": { getPlayerSession: async () => null },
+    "@/server/public-showcase": { getPublicItemView: async () => ({
+      item: { ...createArtistArtworkPreview(artwork), owner: "unknown", status: "claimed" }, owner, displayOwner: null,
+    }) },
+    "./anonymous-item-view": anonymous,
+  });
+  for (const currentOwner of [
+    { playerId: "collector / id", screenName: "Actual Collector" },
+    { playerId: "new-owner", screenName: "New Collector" },
+    null,
+  ]) {
+    owner = currentOwner;
+    const html = renderToStaticMarkup(await page.default({ params: Promise.resolve({ id: "shared-item" }) }));
+    if (owner) {
+      assert.ok(html.includes(`href="/gallery/${encodeURIComponent(owner.playerId)}"`));
+      assert.ok(html.includes(`@${owner.screenName}</a>`));
+      assert.match(html, /class="item-owner-link"/);
+      assert.doesNotMatch(html, /artfunkel inc\.|unknown/);
+    } else {
+      assert.match(html, /class="item-owner-default">artfunkel inc\./);
+      assert.doesNotMatch(html, /item-owner-link|Actual Collector|New Collector/);
+    }
+  }
+});
+
 test("the admin item creator offers artist Originals only for eligible artwork and sends them without selecting a recipient", async () => {
   const work: Artwork = {
     _id: "eligible", artist_id: "artist-id", artist: "Artist", title: "Artist work", date: 2026,

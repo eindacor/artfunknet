@@ -63,6 +63,12 @@ export default function DiabloDetailCard({
             <div className="d3-item-attributes">
               <AttributeIcons item={item} />
             </div>
+            {item.lottery > 0 ? (
+              <div className="d3-item-stat-line">
+                <span aria-hidden="true" className="d3-gray-diamond" />
+                Critical Hit Chance Increased by {item.lottery}%
+              </div>
+            ) : null}
           </div>
 
           <div className="d3-item-stat-group">

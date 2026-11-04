@@ -452,6 +452,36 @@ test("account deletion removes live personal data and coordinates concurrent gam
     assert.equal((await collection(db, "metadata").findOne({ _id: "account-erasure-gate" }))?.readers.length, 0);
   });
 
+  await t.test("public item owner links follow the current active owner independently of gallery display status", async () => {
+    const db = client.db("public-item-current-owner");
+    await seed(db);
+    const showcase = await load<typeof import("./public-showcase.ts")>("./public-showcase.ts", {
+      "server-only": {}, "./public-showcase-core": publicCore,
+      "./item-artwork": { hydrateGameItems: async (_db: Db, items: GameItem[]) =>
+        items.map(item => ({ ...item, artwork: { title: "Test", rarity: "common" } })) },
+    });
+    await collection(db, "items").insertOne({
+      _id: "owned-item", owner: TARGET, status: "displayed", authenticity: { identified: false },
+      transaction_history: [], source: "test", odds: "test",
+    });
+    for (const status of ["displayed", "claimed", "auctioned"]) {
+      await collection(db, "items").updateOne({ _id: "owned-item" }, { $set: { status } });
+      const view = await showcase.getPublicItemView(db, "owned-item", null);
+      assert.deepEqual(JSON.parse(JSON.stringify(view?.owner)), { playerId: TARGET, screenName: "ErasedCollector" });
+      assert.equal(view?.item.owner, "unknown");
+      assert.equal(view?.displayOwner !== null, status === "displayed", "Ownership must not imply the work is in a gallery");
+    }
+    await collection(db, "items").updateOne({ _id: "owned-item" }, { $set: { owner: OTHER } });
+    assert.deepEqual(JSON.parse(JSON.stringify((await showcase.getPublicItemView(db, "owned-item", null))?.owner)),
+      { playerId: OTHER, screenName: "OtherCollector" });
+    for (const state of [{ active: true, account_deletion: true }, { active: false, account_deletion: false }]) {
+      await collection(db, "players").updateOne({ _id: OTHER }, { $set: state });
+      assert.equal((await showcase.getPublicItemView(db, "owned-item", null))?.owner, null);
+    }
+    await collection(db, "items").updateOne({ _id: "owned-item" }, { $set: { owner: "system:auction-house" } });
+    assert.equal((await showcase.getPublicItemView(db, "owned-item", null))?.owner, null);
+  });
+
   await t.test("missing player lookups expose [redacted] instead of cached names or silently hiding the owner", async () => {
     const db = client.db("delete-missing-player");
     await seed(db);

@@ -1,7 +1,7 @@
 "use client";
 
 import ItemCard from "@/components/item-cards/item-card";
-import type { CardLegendaryAttribute } from "@/components/item-cards/types";
+import type { CardLegendaryAttribute, ItemOwner } from "@/components/item-cards/types";
 import type { HydratedGameItem } from "@/server/item-artwork";
 
 import PlayerHeader from "../../play/player-header";
@@ -9,9 +9,11 @@ import PlayerHeader from "../../play/player-header";
 export default function AnonymousItemView({
   item,
   legendaryAttributes,
+  owner,
 }: {
   item: HydratedGameItem;
   legendaryAttributes: CardLegendaryAttribute[];
+  owner: ItemOwner | null;
 }) {
   return (
     <div className="game-shell" data-player-state="null">
@@ -23,10 +25,12 @@ export default function AnonymousItemView({
               interactive
               item={item}
               legendaryAttributes={legendaryAttributes}
+              owner={owner ?? undefined}
               permissions={{
                 canManageItem: false,
                 canCustomizeCosmetic: false,
               }}
+              viewerId={null}
             />
           </div>
         </div>

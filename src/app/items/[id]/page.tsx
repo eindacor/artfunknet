@@ -107,6 +107,7 @@ export default async function PublicItemPage({
   return (
     <AnonymousItemView
       item={JSON.parse(JSON.stringify(itemView.item))}
+      owner={itemView.owner}
       legendaryAttributes={legendaryAttributes.map((attribute) => ({
         id: attribute._id,
         title: attribute.title,

@@ -28,6 +28,7 @@ type PublicPlayerRecord = {
 
 export type PublicItemView = {
   item: HydratedGameItem;
+  owner: Pick<PublicGalleryOwner, "playerId" | "screenName"> | null;
   displayOwner: PublicGalleryOwner | null;
 };
 
@@ -47,34 +48,32 @@ export async function getPublicItemView(
   if (!rawItem) return null;
 
   const shared = rawItem.status === "displayed" || (rawItem.permanent && rawItem.status === "claimed");
-  const displayOwnerRecord =
-    shared
-      ? await database
-          .collection<PublicPlayerRecord>("players")
-          .findOne(
-            { _id: rawItem.owner, active: true },
-            {
-              projection: {
-                _id: 1,
-                screen_name: 1,
-                "profile.level": 1,
-                "profile.vintage_count": 1,
-              },
-            },
-          )
-      : null;
+  const ownerRecord = await database
+    .collection<PublicPlayerRecord>("players")
+    .findOne(
+      { _id: rawItem.owner, active: true, account_deletion: { $ne: true } },
+      {
+        projection: {
+          _id: 1,
+          screen_name: 1,
+          "profile.level": 1,
+          "profile.vintage_count": 1,
+        },
+      },
+    );
   const [item] = await hydrateGameItems(database, [
     prepareItemForPublicViewer(rawItem, viewerId),
   ]);
 
   return {
     item,
+    owner: ownerRecord ? { playerId: ownerRecord._id, screenName: ownerRecord.screen_name } : null,
     displayOwner: shared
       ? {
           playerId: rawItem.owner,
-          screenName: displayOwnerRecord?.screen_name ?? "[redacted]",
-          level: displayOwnerRecord?.profile.level ?? 1,
-          vintageLevel: displayOwnerRecord?.profile.vintage_count ?? 0,
+          screenName: ownerRecord?.screen_name ?? "[redacted]",
+          level: ownerRecord?.profile.level ?? 1,
+          vintageLevel: ownerRecord?.profile.vintage_count ?? 0,
         }
       : null,
   };
