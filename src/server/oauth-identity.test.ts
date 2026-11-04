@@ -47,7 +47,7 @@ test("OAuth identities keep player ownership explicit and email claims unique", 
         emailVerified: verified,
       }));
       assert.equal(accountCreated, true);
-      assert.equal(await db.collection("items").countDocuments({ owner: player._id }), 12);
+      assert.equal(await db.collection("items").countDocuments({ owner: player._id }), 6);
       assert.equal(player.email_verified, verified);
       assert.deepEqual(player.verified_emails, verified ? ["player@example.com"] : []);
       if (hasEmail) assert.equal(player.email, "player@example.com");

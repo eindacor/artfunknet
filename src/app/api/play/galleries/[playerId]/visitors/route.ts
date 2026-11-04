@@ -23,7 +23,7 @@ export async function GET(
     playerId,
     settings.active.featuredArtistVisitorChance,
   );
-  const visitors = await getGalleryNpcs(database, playerId, now);
+  const visitors = await getGalleryNpcs(database, playerId, now, auth.session.playerId);
 
   return NextResponse.json(
     {
@@ -34,7 +34,8 @@ export async function GET(
         owner_id: visitor.owner_id,
         owner_name: visitor.owner_name,
         spawned_at: visitor.spawned_at.toISOString(),
-        expiration: visitor.expiration.toISOString(),
+        expiration: visitor.expiration?.toISOString() ?? null,
+        tutorial: visitor.tutorial,
         icon: visitor.icon,
         npc_name: visitor.npc_name,
         proc_chance: visitor.proc_chance,

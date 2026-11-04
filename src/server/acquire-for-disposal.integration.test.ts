@@ -25,6 +25,9 @@ import * as galleryCore from "./gallery-metadata-core.ts";
 import * as showcase from "./public-showcase-core.ts";
 import { setupTestDb } from "./test-utils/db-setup.ts";
 import * as gallerySelection from "./gallery-selection.ts";
+import * as npcGameplay from "./npc-gameplay.ts";
+import * as tutorial from "./tutorial.ts";
+import * as tutorialElements from "../shared/tutorial.ts";
 
 type Route = (request: Request, context: { params: Promise<{ id: string }> }) => Promise<Response>;
 type Acquisition = { acquireForDisposal: (db: Db, item: GameItem) => Promise<GameItem> };
@@ -125,6 +128,9 @@ async function routes(db: Db, overrides: Record<string, unknown> = {}) {
     "@/server/gallery-metadata": { refreshGalleryMetadata: noop },
     "@/server/item-permissions": permissions,
     "@/server/gallery-selection": gallerySelection,
+    "@/server/npc-gameplay": npcGameplay,
+    "@/server/tutorial": tutorial,
+    "@/shared/tutorial": tutorialElements,
     "@/server/item-tags": itemTags,
     "@/server/bulk-sale": bulkSale,
     "@/server/game-settings": { getGameplaySettings: async () => ({ active: {
@@ -136,6 +142,7 @@ async function routes(db: Db, overrides: Record<string, unknown> = {}) {
       getActiveQuestTargetIds: async () => new Set<string>(),
     },
     "@/server/bulk-acquisition": await import("./bulk-acquisition.ts"),
+    "@/server/bulk-claim": await import("./bulk-claim.ts"),
     "@/server/archive-gameplay": archiveGameplay,
     "@/server/archive-storage": {
       ensureArchiveStorage: noop,
@@ -164,6 +171,7 @@ async function routes(db: Db, overrides: Record<string, unknown> = {}) {
     sellAll: (await load<{ POST: (request: Request) => Promise<Response> }>("../app/api/play/items/sell-all/route.ts", dependencies)).POST,
     donateAll: (await load<{ POST: (request: Request) => Promise<Response> }>("../app/api/play/items/donate-all/route.ts", dependencies)).POST,
     acquireMany: (await load<{ POST: (request: Request) => Promise<Response> }>("../app/api/play/items/acquire-many/route.ts", dependencies)).POST,
+    claimAll: (await load<{ POST: (request: Request) => Promise<Response> }>("../app/api/play/items/claim-all/route.ts", dependencies)).POST,
   };
 }
 
@@ -252,6 +260,46 @@ test("item actions preserve acquisition limits, Original protections and promote
     assert.equal(saved?.mint, false);
     assert.equal(saved?.card_renderer, undefined);
     assert.equal((await db.collection("galleries").findOne({ owner_id: "player" }))?.value, 321);
+  });
+
+  await t.test("claim shortcuts and bulk claims count as collecting offers, but dealer purchases do not", async () => {
+    const { TutorialElement: Step } = tutorialElements;
+    for (const kind of ["claimForSale", "claimAll", "acquireMany", "dealer"] as const) {
+      const db = client.db(`walkthrough-acquire-${kind}`);
+      await seed(db, offer(kind === "dealer" ? "for_sale" : "unclaimed"));
+      await db.collection("players").updateOne({ _id: "player" }, {
+        $set: { "profile.inventory_cap": 3, tutorial: { step: Step.TUTORIAL_CLAIM_ITEM, revision: 6 } },
+      });
+      const api = await routes(db);
+      const response = kind === "claimForSale" ? await invoke(api.claimForSale)
+        : kind === "claimAll" ? await api.claimAll(new Request("http://localhost", { method: "POST" }))
+          : await api.acquireMany(new Request("http://localhost", {
+            method: "POST", body: JSON.stringify({ mode: "selected", itemIds: ["offer"] }),
+          }));
+      const result = await response.json();
+      assert.equal(response.status, 200, JSON.stringify(result));
+      const saved = await db.collection<{ _id: string; tutorial: tutorialElements.TutorialProgress }>("players")
+        .findOne({ _id: "player" });
+      assert.equal(saved?.tutorial.step, kind === "dealer" ? Step.TUTORIAL_CLAIM_ITEM : Step.TUTORIAL_DAILY_CRATE);
+      if (kind !== "dealer") assert.equal(result.tutorial.step, Step.TUTORIAL_DAILY_CRATE);
+    }
+  });
+
+  await t.test("reroll tutorial steps advance only for the active successful mode", async () => {
+    const db = client.db("walkthrough-reroll");
+    const { api, work } = await promotedGallery(db);
+    const { TutorialElement: Step } = tutorialElements;
+    await db.collection("players").updateOne({ _id: "player" }, {
+      $set: { tutorial: { step: Step.TUTORIAL_REROLL_ATTRIBUTE, revision: 10 } },
+    });
+    const reroll = (mode: string, attributeId: string) => api.reroll(new Request("http://localhost", {
+      method: "POST", body: JSON.stringify({ mode, attributeId }),
+    }), { params: Promise.resolve({ id: work._id }) });
+    assert.equal((await (await reroll("value", "chosen")).json()).tutorial.step, Step.TUTORIAL_REROLL_ATTRIBUTE);
+    assert.equal((await reroll("attribute", "missing")).status, 409);
+    assert.equal((await (await reroll("attribute", "chosen")).json()).tutorial.step, Step.TUTORIAL_REROLL_VALUE);
+    assert.equal((await (await reroll("value", "replacement")).json()).tutorial.step, Step.TUTORIAL_SEE_ACTION_INFO);
+    assert.equal((await (await reroll("value", "replacement")).json()).tutorial.step, Step.TUTORIAL_SEE_ACTION_INFO);
   });
 
   for (const action of ["sell", "donate", "historian", "archive", "collector", "authenticate", "reroll", "level", "auction", "repair"] as const) {

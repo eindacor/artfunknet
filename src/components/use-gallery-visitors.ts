@@ -13,13 +13,14 @@ export type GalleryVisitorView = Omit<
   "expiration" | "players_met" | "spawned_at"
 > & {
   alreadyMet: boolean;
-  expiration: string;
+  expiration: string | null;
   spawned_at: string;
 };
 
 function filterUnexpired(list: GalleryVisitorView[]): GalleryVisitorView[] {
   const now = Date.now();
   return list.filter((visitor) => {
+    if (visitor.tutorial && visitor.alreadyMet) return false;
     if (!visitor.expiration) return true;
     const exp = new Date(visitor.expiration).getTime();
     return Number.isNaN(exp) || exp > now;

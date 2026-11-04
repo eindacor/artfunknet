@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { recordTutorialAction } from "@/server/tutorial";
+import { TutorialElement } from "@/shared/tutorial";
 import { refreshGalleryMetadata } from "@/server/gallery-metadata";
 import { recordEconomyMetricsSafely } from "@/server/economy-metrics";
 import { getItemDisposalFilter } from "@/server/item-permissions";
@@ -72,6 +74,8 @@ import {
 } from "@/server/forgery-gameplay";
 import {
   NPC_QUALITIES,
+  getNpcAvailabilityFilter,
+  getNpcDisplayName,
   visitorUsesOwnGalleryBenefits,
   type GalleryNpc,
   type NpcQuality,
@@ -134,7 +138,7 @@ export async function POST(
       .findOne({ _id: auth.session.playerId, active: true }),
     database
       .collection<GalleryNpc>("npcs")
-      .findOne({ _id: id, expiration: { $gt: now } }),
+      .findOne({ _id: id, ...getNpcAvailabilityFilter(now, auth.session.playerId) }),
   ]);
   if (!player || !npc || !NPC_QUALITIES.includes(npc.quality)) {
     return NextResponse.json(
@@ -143,6 +147,52 @@ export async function POST(
     );
   }
 
+  npc.npc_name = getNpcDisplayName(npc);
+  if (npc.tutorial) {
+    const revisionFilter = { tutorial_revision: npc.tutorial_revision ?? { $exists: false } };
+    const reserved = await database.collection<GalleryNpc>("npcs").findOneAndUpdate(
+      { _id: npc._id, ...getNpcAvailabilityFilter(now, player._id), ...revisionFilter },
+      { $addToSet: { players_met: player._id }, $set: { tutorial_reward_claimed: true } },
+      { returnDocument: "before" },
+    );
+    if (!reserved) return NextResponse.json({ error: "You have already met this visitor." }, { status: 409 });
+    try {
+      const alreadyRewarded = reserved.tutorial_reward_claimed || reserved.players_met.includes(player._id);
+      const generated = alreadyRewarded ? [] : await generateDailyDrop(database, player._id, player.profile.level, {
+        now, itemCount: 1,
+        generationMap: { rarity: { common: 1, uncommon: 0, rare: 0, legendary: 0, masterpiece: 0 } },
+        useRawRarityMap: true,
+        debug: false,
+        source: "tutorial donor",
+        expiresAt: getNpcOfferItemExpiration(now),
+      });
+      const offers = generated.length ? await hydrateGameItems(database, generated) : [];
+      const alreadyOwned = offers[0] ? Boolean(await database.collection<GameItem>("items").findOne({
+        owner: player._id, artwork_id: offers[0].artwork_id, status: { $in: ["claimed", "displayed"] },
+      }, { projection: { _id: 1 } })) : false;
+      return NextResponse.json({
+        status: "ok",
+        socialBatteryCost: 0,
+        message: alreadyRewarded
+          ? `${npc.npc_name} greeted you. You have already received this visitor's one-time artwork.`
+          : `${npc.npc_name} offered you one Common artwork.`,
+        tutorial: await recordTutorialAction(database, player._id, TutorialElement.TUTORIAL_MEET_VISITOR),
+        ...(offers.length ? { interaction: {
+          type: "art-donor-offer", npcId: npc._id, npcName: npc.npc_name, quality: npc.quality,
+          items: offers.map(item => ({ ...sanitizePlayerFacingAuthenticity(item), alreadyOwned })),
+        } } : {}),
+      });
+    } catch (error) {
+      // Keep the lifetime reward reservation even if delivery failed: retries must not mint duplicates.
+      await database.collection<GalleryNpc>("npcs").updateOne(
+        { _id: npc._id, ...revisionFilter }, { $pull: { players_met: player._id } },
+      );
+      console.error("Unable to deliver tutorial Donor reward", error);
+      return NextResponse.json({
+        error: "The visitor's reward could not be delivered. Retry to continue without another reward attempt.",
+      }, { status: 500 });
+    }
+  }
   const ownGallery = await visitorUsesOwnGalleryBenefits(database, npc, player._id);
   const socialBattery = await refreshPlayerSocialBattery(
     database,
@@ -159,7 +209,7 @@ export async function POST(
   const result = await database.collection<GalleryNpc>("npcs").updateOne(
     {
       _id: npc._id,
-      expiration: { $gt: now },
+      ...getNpcAvailabilityFilter(now, player._id),
       players_met: { $ne: player._id },
     },
     { $addToSet: { players_met: player._id } },
@@ -789,6 +839,8 @@ export async function POST(
       return NextResponse.json({
         status: "ok",
         message: `${npc.npc_name} offered you ${offers.length} ${offers.length === 1 ? "artwork" : "artworks"}.`,
+        tutorial: npc.owner_id === player._id
+          ? await recordTutorialAction(database, player._id, TutorialElement.TUTORIAL_MEET_VISITOR) : undefined,
         interaction: {
           type: "art-donor-offer",
           npcId: npc._id,

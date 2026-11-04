@@ -2,33 +2,21 @@ import { NextResponse } from "next/server";
 
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
+import { fulfillTutorial, restartTutorial } from "@/server/tutorial";
+import { isTutorialElement } from "@/shared/tutorial";
 
-type Player = {
-  _id: string;
-  active: boolean;
-  tutorial_seen?: boolean;
-  updated_at: Date;
-};
-
-export async function PATCH() {
+export async function POST(request: Request) {
   const auth = await requirePlayerApi();
   if (!auth.ok) return auth.response;
-
-  const database = await getDatabase();
-  const result = await database.collection<Player>("players").updateOne(
-    { _id: auth.session.playerId, active: true },
-    {
-      $set: {
-        tutorial_seen: true,
-        updated_at: new Date(),
-      },
-    },
-  );
-  if (result.matchedCount !== 1) {
-    return NextResponse.json(
-      { error: "The player account is unavailable." },
-      { status: 404 },
-    );
+  const body = await request.json().catch(() => null);
+  if (body?.action !== "restart" && (body?.action !== "skip" || !isTutorialElement(body.element) ||
+      !Number.isSafeInteger(body.revision) || body.revision < 0)) {
+    return NextResponse.json({ error: "A valid tutorial action is required." }, { status: 400 });
   }
-  return NextResponse.json({ status: "ok" });
+  const database = await getDatabase();
+  const tutorial = body.action === "restart"
+    ? await restartTutorial(database, auth.session.playerId)
+    : await fulfillTutorial(database, auth.session.playerId, body.element, body.revision);
+  if (!tutorial) return NextResponse.json({ error: "This account cannot start a walkthrough." }, { status: 403 });
+  return NextResponse.json({ tutorial });
 }

@@ -560,11 +560,6 @@ async function seedPlayer(database) {
               keepUnarchived: true,
             },
           },
-          tutorial_data: {
-            current_tutorial: "artfunkel basics",
-            step: 0,
-            completed: [],
-          },
           crate_purchases: {},
           karma: 0,
           gallery_finishes: {

@@ -3088,6 +3088,13 @@ a.welcome-button {
   background: #19171b;
 }
 
+.gallery-explorer-feature > .artwork-thumbnail {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+
 .gallery-explorer-feature > div,
 .gallery-explorer-feature img {
   width: 100%;
@@ -3098,7 +3105,7 @@ a.welcome-button {
   object-fit: cover;
 }
 
-.gallery-explorer-feature > span {
+.gallery-explorer-rank {
   position: absolute;
   top: 0.65rem;
   left: 0.65rem;
@@ -6135,36 +6142,39 @@ a.welcome-button {
 
 .home-featured-attraction {
   grid-area: chart;
+}
+
+.gallery-attraction {
   display: grid;
   min-width: 0;
   gap: 10px;
   margin: 0;
 }
 
-.home-featured-chart {
+.gallery-attraction-chart {
   display: grid;
   grid-template-columns: 28px minmax(0, 1fr);
   gap: 4px;
 }
 
-.home-featured-chart-scale {
+.gallery-attraction-chart-scale {
   position: relative;
   height: 88px;
   color: #817a70;
   font: 0.5rem/1 Courier, "Courier New", monospace;
 }
 
-.home-featured-chart-scale span {
+.gallery-attraction-chart-scale span {
   position: absolute;
   right: 0;
   transform: translateY(-50%);
 }
 
-.home-featured-chart-scale span:nth-child(1) { top: 0; }
-.home-featured-chart-scale span:nth-child(2) { top: 50%; }
-.home-featured-chart-scale span:nth-child(3) { top: 100%; }
+.gallery-attraction-chart-scale span:nth-child(1) { top: 0; }
+.gallery-attraction-chart-scale span:nth-child(2) { top: 50%; }
+.gallery-attraction-chart-scale span:nth-child(3) { top: 100%; }
 
-.home-featured-chart-bars {
+.gallery-attraction-chart-bars {
   position: relative;
   display: grid;
   grid-auto-columns: minmax(0, 1fr);
@@ -6175,7 +6185,7 @@ a.welcome-button {
   list-style: none;
 }
 
-.home-featured-chart-bars::before {
+.gallery-attraction-chart-bars::before {
   position: absolute;
   top: 0;
   right: 0;
@@ -6187,7 +6197,7 @@ a.welcome-button {
   content: "";
 }
 
-.home-featured-chart-column {
+.gallery-attraction-chart-column {
   position: relative;
   display: grid;
   min-width: 0;
@@ -6196,29 +6206,29 @@ a.welcome-button {
   text-align: center;
 }
 
-.home-featured-chart-column:focus-visible {
+.gallery-attraction-chart-column:focus-visible {
   outline: 1px dashed #817a70;
   outline-offset: 2px;
 }
 
-.home-featured-chart-track {
+.gallery-attraction-chart-track {
   display: flex;
   height: 100%;
   align-items: flex-end;
   justify-content: center;
 }
 
-.home-featured-chart-bar {
+.gallery-attraction-chart-bar {
   width: min(14px, 70%);
   background: currentColor;
 }
 
-.home-featured-chart-icon {
+.gallery-attraction-chart-icon {
   font-size: 0.85rem;
   line-height: 18px;
 }
 
-.home-featured-chart-value {
+.gallery-attraction-chart-value {
   position: absolute;
   z-index: 1;
   top: 0;
@@ -6232,18 +6242,18 @@ a.welcome-button {
   visibility: hidden;
 }
 
-.home-featured-chart-column:hover .home-featured-chart-value,
-.home-featured-chart-column:focus .home-featured-chart-value {
+.gallery-attraction-chart-column:hover .gallery-attraction-chart-value,
+.gallery-attraction-chart-column:focus .gallery-attraction-chart-value {
   visibility: visible;
 }
 
-.home-featured-chart-empty {
+.gallery-attraction-chart-empty {
   margin: 0;
   color: #817a70;
   font-size: 0.7rem;
 }
 
-.home-featured-visitor-label {
+.gallery-attraction-label {
   position: relative;
   display: flex;
   align-items: center;
@@ -6254,7 +6264,7 @@ a.welcome-button {
   text-transform: uppercase;
 }
 
-.home-featured-help {
+.gallery-attraction-help {
   display: inline-grid;
   width: 18px;
   height: 18px;
@@ -6268,17 +6278,17 @@ a.welcome-button {
   cursor: help;
 }
 
-.home-featured-help:hover,
-.home-featured-help:focus-visible {
+.gallery-attraction-help:hover,
+.gallery-attraction-help:focus-visible {
   color: #185b9d;
 }
 
-.home-featured-help:focus-visible {
+.gallery-attraction-help:focus-visible {
   outline: 2px solid #185b9d;
   outline-offset: 2px;
 }
 
-.home-featured-help-tooltip {
+.gallery-attraction-help-tooltip {
   position: absolute;
   z-index: 20;
   top: 100%;
@@ -6296,9 +6306,9 @@ a.welcome-button {
   visibility: hidden;
 }
 
-.home-featured-help:hover + .home-featured-help-tooltip,
-.home-featured-help:focus + .home-featured-help-tooltip,
-.home-featured-help-tooltip:hover {
+.gallery-attraction-help:hover + .gallery-attraction-help-tooltip,
+.gallery-attraction-help:focus + .gallery-attraction-help-tooltip,
+.gallery-attraction-help-tooltip:hover {
   visibility: visible;
 }
 
@@ -7898,6 +7908,78 @@ a.welcome-button {
 
 .loot-preview .card-action-nondestructive {
   grid-template-columns: 34px;
+}
+
+.collection-preview > .rendered-item-card > .card-actions-with-primary.card-actions-with-help {
+  grid-template-columns: minmax(90px, 1fr) max-content 18px;
+  gap: 6px;
+}
+
+.card-action-help {
+  align-self: start;
+}
+
+.card-action-help-button {
+  display: grid;
+  width: 18px;
+  height: 24px;
+  place-items: center;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: #676158;
+  font-size: 0.9rem;
+  cursor: help;
+}
+
+.card-action-help-button:hover,
+.card-action-help-button:focus-visible {
+  color: #185b9d;
+}
+
+.card-action-help-button:focus-visible {
+  outline: 2px solid #185b9d;
+  outline-offset: 2px;
+}
+
+.card-action-help-popover {
+  position: fixed;
+  inset: auto;
+  width: min(380px, calc(100vw - 32px));
+  margin: 0;
+  border: 1px solid var(--game-action-tooltip-border);
+  padding: 12px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: var(--game-action-tooltip-background);
+  color: var(--game-action-tooltip-text);
+  box-shadow: 0 4px 12px rgb(41 35 28 / 25%);
+  font: 400 0.72rem/1.45 Courier, "Courier New", monospace;
+  text-align: left;
+}
+
+.card-action-help-popover ul {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card-action-help-popover li {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 8px;
+  align-items: baseline;
+}
+
+.card-action-help-popover li > i {
+  text-align: left;
+}
+
+.card-action-help-popover p {
+  margin: 0;
+  opacity: 0.8;
 }
 
 .collection-gallery-action {

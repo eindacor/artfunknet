@@ -8,6 +8,7 @@ import { createElement, type ReactElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import ts from "typescript";
 import { SOCIAL_BATTERY_MAX } from "../../server/social-battery.ts";
+import * as tutorialElements from "../../shared/tutorial.ts";
 
 const source = await readFile(new URL("./player-header.tsx", import.meta.url), "utf8");
 const compiled = ts.transpileModule(source, {
@@ -30,7 +31,8 @@ const PlayerHeader = runInNewContext(`${compiled}\nexports.default`, {
       return { default: (props: { href: string; children: ReactNode }) => createElement("a", props) };
     }
     if (["../action-button/action-button", "../icon-button/icon-button"].includes(name)) {
-      return { default: () => null };
+      return { default: (props: { "aria-label"?: string; disabled?: boolean }) =>
+        props["aria-label"] === "Start or restart the guided walkthrough" ? createElement("button", props) : null };
     }
     return require(name);
   },
@@ -41,6 +43,8 @@ const PlayerHeader = runInNewContext(`${compiled}\nexports.default`, {
   lotteryTickets: number;
   isArtist?: boolean;
   onSignOut: () => void;
+  onRestartTutorial?: () => void;
+  tutorialRestarting?: boolean;
 }) => ReactElement;
 
 const toolbarSource = await readFile(new URL("../player-dashboard-toolbar.tsx", import.meta.url), "utf8");
@@ -51,6 +55,7 @@ const PlayerDashboardToolbar = runInNewContext(`${ts.transpileModule(toolbarSour
     if (name === "./responsive-menu") return { default: ResponsiveMenu };
     if (name === "./progress-bar/progress-bar") return { default: () => null };
     if (name === "@/server/social-battery") return { SOCIAL_BATTERY_MAX };
+    if (name === "@/shared/tutorial") return tutorialElements;
     return require(name);
   },
 }) as typeof import("../player-dashboard-toolbar.tsx").default;
@@ -78,6 +83,58 @@ test("the header exposes a collapsed, labeled account menu without duplicating r
   assert.match(html, /data-label="Karma"/);
   assert.match(html, /data-label="Tickets"/);
   assert.equal((html.match(/Available bank balance/g) ?? []).length, 1);
+});
+
+test("the account menu uses one question-mark control to restart the walkthrough, disabled while saving", () => {
+  for (const tutorialRestarting of [false, true]) {
+    const html = renderToStaticMarkup(createElement(PlayerHeader, {
+      bankBalance: 0, auctionEscrow: 0, karma: 0, lotteryTickets: 0, onSignOut: () => {},
+      onRestartTutorial: () => {}, tutorialRestarting,
+    }));
+    assert.match(html, /class="responsive-menu player-header-menu"[\s\S]*aria-label="Start or restart the guided walkthrough"/);
+    assert.match(html, /icon="fa-question"/);
+    assert.doesNotMatch(html, /fa-compass/);
+    assert.equal((html.match(/aria-label="Start or restart the guided walkthrough"/g) ?? []).length, 1);
+    assert.equal(html.includes('disabled=""'), tutorialRestarting);
+  }
+});
+
+test("restarting the walkthrough posts once and refreshes the player route only after success", async () => {
+  const text = await readFile(new URL("../../app/play/player-header.tsx", import.meta.url), "utf8");
+  const source = ts.createSourceFile("player-header.tsx", text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  let handler: ts.FunctionDeclaration | undefined;
+  const visit = (node: ts.Node) => {
+    if (ts.isFunctionDeclaration(node) && node.name?.text === "restartWalkthrough") handler = node;
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  assert.ok(handler);
+  const code = ts.transpileModule(handler.getText(source), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  }).outputText;
+  for (const success of [true, false]) {
+    const requests: { url: string; body: unknown }[] = [], navigation: string[] = [], busy: boolean[] = [], errors: string[] = [];
+    let release!: () => void;
+    const pending = new Promise<void>(resolve => { release = resolve; });
+    const restart = runInNewContext(`${code}\nrestartWalkthrough`, {
+      tutorialRestartInFlight: { current: false }, setTutorialRestarting: (value: boolean) => busy.push(value),
+      setError: (value: string) => errors.push(value),
+      router: { push: (url: string) => navigation.push(url), refresh: () => navigation.push("refresh") },
+      fetch: async (url: string, init: RequestInit) => {
+        requests.push({ url, body: JSON.parse(String(init.body)) });
+        await pending;
+        return Response.json(success ? { tutorial: { step: "TUTORIAL_SELECT_ITEM", revision: 1 } } : { error: "Not available" },
+          { status: success ? 200 : 403 });
+      },
+    }) as () => Promise<void>;
+    const first = restart(), duplicate = restart();
+    release();
+    await Promise.all([first, duplicate]);
+    assert.deepEqual(requests, [{ url: "/api/play/tutorial", body: { action: "restart" } }]);
+    assert.deepEqual(busy, [true, false]);
+    assert.deepEqual(navigation, success ? ["/play", "refresh"] : []);
+    assert.deepEqual(errors, success ? [""] : ["", "Not available"]);
+  }
 });
 
 test("the responsive dashboard retains all destinations, counts, and accessible progress values", () => {
@@ -129,7 +186,7 @@ test("the authenticated navbar exposes a labeled artist studio link only for art
     require: (name: string) => {
       if (name === "@/components/player-header/player-header") return { default: PlayerHeader };
       if (name === "next/navigation") return { useRouter: () => ({ replace() {}, refresh() {} }) };
-      if (["./notification-center", "@/components/tutorial-dialog/tutorial-dialog", "@/components/supporter-prompt-dialog"].includes(name)) {
+      if (["./notification-center", "@/components/supporter-prompt-dialog"].includes(name)) {
         return { default: () => null };
       }
       if (name === "next/link") return { default: (props: { href: string; children: ReactNode }) => createElement("a", props) };
@@ -141,11 +198,12 @@ test("the authenticated navbar exposes a labeled artist studio link only for art
       isArtist, impersonating: false, bankBalance: 1000, auctionEscrow: 0, karma: 0, lotteryTickets: 0,
     }));
     const studio = html.match(/<a\b[^>]*href="\/artist"[^>]*>[\s\S]*?<\/a>/)?.[0];
+    assert.equal(html.includes('aria-label="Start or restart the guided walkthrough"'), isArtist !== true);
     assert.equal(Boolean(studio), isArtist === true);
     if (studio) {
       assert.match(studio, /Artist studio/);
       assert.match(studio, /aria-hidden="true" class="fa fa-paint-brush"/);
     }
   }
-  assert.doesNotMatch(renderToStaticMarkup(createElement(wrapper, { anonymous: true })), /href="\/artist"|Artist studio/);
+  assert.doesNotMatch(renderToStaticMarkup(createElement(wrapper, { anonymous: true })), /href="\/artist"|Artist studio|guided walkthrough/);
 });

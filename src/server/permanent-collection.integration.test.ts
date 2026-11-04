@@ -16,6 +16,9 @@ import * as masterpieceEffects from "./masterpiece-effects.ts";
 import * as showcase from "./public-showcase-core.ts";
 import * as itemTags from "./item-tags.ts";
 import * as gallerySelection from "./gallery-selection.ts";
+import * as npcGameplay from "./npc-gameplay.ts";
+import * as tutorial from "./tutorial.ts";
+import * as tutorialElements from "../shared/tutorial.ts";
 
 type ItemRoute = (request: Request, context: { params: Promise<{ id: string }> }) => Promise<Response>;
 
@@ -73,6 +76,9 @@ async function routes(db: Db, permissionModule: unknown = permissions) {
     "@/server/item-tags": itemTags,
     "@/server/item-mint": { getDemintUpdate: async () => ({ mint: false }) },
     "@/server/gallery-selection": gallerySelection,
+    "@/server/npc-gameplay": npcGameplay,
+    "@/server/tutorial": tutorial,
+    "@/shared/tutorial": tutorialElements,
     "@/server/community-reactions": { getCommunityReactionSummaries: async () => new Map() },
     "@/server/contributing-artists": { getFeaturedArtistGalleries: async () => [] },
   };
@@ -181,6 +187,41 @@ test("permanent collection actions refresh shared galleries without promoting ar
     assert.equal(player?.profile.bank_balance, 500);
     assert.equal(player?.profile.xp, 20);
     assert.equal(player?.profile.permanent_collection_operation, undefined);
+  });
+
+  await t.test("directory cards read current existing artwork crops without extra stored settings or list payloads", async () => {
+    const db = client.db("directory-feature-crops");
+    const featured = item("featured", { status: "displayed" });
+    await seed(db, [featured]);
+    const { directory, metadata } = await routes(db);
+    await metadata.refreshGalleryMetadata(db, "player");
+    const artwork = db.collection<{ _id: string }>("artworks");
+    const featureCrop = { x: 40, y: -20, scale: 2 };
+    const thumbnailCrop = { x: -25, y: 30, scale: 1.5 };
+    await artwork.updateOne({ _id: featured.artwork_id }, { $set: {
+      feature_card_adjustment: featureCrop, thumbnail_adjustment: thumbnailCrop, title: "Not needed for directory crops",
+    } });
+    const savedMetadata = await db.collection("galleries").findOne({ owner_id: "player" });
+    const get = async (view = "expanded") => {
+      const response = await directory.GET(new Request(`http://localhost/api/play/galleries?view=${view}`));
+      assert.equal(response.status, 200);
+      return (await response.json()).galleries[0];
+    };
+    assert.deepEqual((await get()).featured_artwork, {
+      _id: featured.artwork_id, feature_card_adjustment: featureCrop, thumbnail_adjustment: thumbnailCrop,
+    });
+    const updatedCrop = { x: 10, y: 50, scale: 1.2 };
+    await artwork.updateOne({ _id: featured.artwork_id }, { $set: { feature_card_adjustment: updatedCrop } });
+    assert.deepEqual((await get()).featured_artwork.feature_card_adjustment, updatedCrop,
+      "Editing the existing artwork crop must not require refreshing stored gallery metadata");
+    await artwork.updateOne({ _id: featured.artwork_id }, { $unset: { feature_card_adjustment: "" } });
+    assert.deepEqual((await get()).featured_artwork, {
+      _id: featured.artwork_id, thumbnail_adjustment: thumbnailCrop,
+    }, "The thumbnail crop remains available for the existing Feature card fallback");
+    assert.equal(Object.hasOwn(await get("list"), "featured_artwork"), false);
+    await artwork.deleteOne({ _id: featured.artwork_id });
+    assert.equal((await get()).featured_artwork, null, "Missing artwork metadata falls back safely");
+    assert.deepEqual(await db.collection("galleries").findOne({ owner_id: "player" }), savedMetadata);
   });
 
   await t.test("permanent previews take priority and revert to promoted previews when removed", async () => {

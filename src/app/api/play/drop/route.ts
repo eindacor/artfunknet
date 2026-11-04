@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import {
+  getDailyCrateItemCount,
   initializeDailyCrateTimeZone,
   normalizeDailyCrateTimeZone,
   releaseDailyCrateClaim,
@@ -14,6 +15,8 @@ import { generateDailyDrop } from "@/server/gameplay";
 import { getDatabase } from "@/server/mongodb";
 import { getUnclaimedItemExpiration } from "@/server/item-expiration";
 import { requirePlayerApi } from "@/server/player-api";
+import { recordTutorialAction } from "@/server/tutorial";
+import { TutorialElement } from "@/shared/tutorial";
 
 export async function PATCH(request: Request) {
   const auth = await requirePlayerApi();
@@ -56,7 +59,7 @@ export async function POST() {
       claim.playerLevel,
       {
         now,
-        itemCount: config.dailyDropCount,
+        itemCount: getDailyCrateItemCount(claim.previousClaimedAt, config.dailyDropCount),
         generationMap: getGameplayGenerationMap(config),
         mintValueMultiplier: config.mintValueMultiplier,
         debug: settings.debugEnabled,
@@ -65,6 +68,7 @@ export async function POST() {
     );
     return NextResponse.json({
       status: "ok",
+      tutorial: await recordTutorialAction(database, claim.playerId, TutorialElement.TUTORIAL_DAILY_CRATE),
       dailyCrate: claim.state,
       item_ids: items.map((item) => item._id),
       itemCount: items.length,

@@ -11,7 +11,6 @@ import {
   migrateItemRevealStates,
   migrateMasterpieceFlavorTexts,
   migratePlayerOperationHistory,
-  migratePlayerTutorialFlag,
 } from "./database-migrations.mjs";
 
 const uri = process.env.MONGODB_URI;
@@ -34,7 +33,6 @@ try {
   await client.connect();
   await migrateD3CardRendererId(client.db(databaseName));
   await migratePlayerOperationHistory(client.db(databaseName));
-  await migratePlayerTutorialFlag(client.db(databaseName));
   const dailyCrates = await migrateDailyCrateClaims(client.db(databaseName));
   console.log(`Migrated daily crate claim history for ${dailyCrates.playersUpdated} players and removed obsolete cooldown settings.`);
   await migrateHallOfFameAndPlaythroughStorage(client.db(databaseName));

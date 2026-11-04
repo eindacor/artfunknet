@@ -12,6 +12,9 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
+import { TutorialElement, type TutorialProgress } from "@/shared/tutorial";
+import { useTutorial } from "@/components/tutorial/tutorial-provider";
+import { ART_DONOR_ATTRIBUTE_ID } from "@/server/legendary-attributes";
 
 import ArchiveEntryDialog from "@/components/archive-entry-dialog";
 import CollectionBulkConfirmationDialog from "@/components/collection-bulk-confirmation-dialog";
@@ -92,7 +95,7 @@ import {
   MAX_CRATE_PURCHASE_COUNT,
   type CrateOfferView,
 } from "@/server/crate-gameplay";
-import { isDailyCrateReady, type DailyCrateState } from "@/server/daily-crate";
+import { getDailyCrateItemCount, isDailyCrateReady, type DailyCrateState } from "@/server/daily-crate";
 import { getArtworkImageUrl } from "@/server/artwork-image-url";
 import {
   ARCHIVE_FILTER_CATEGORIES,
@@ -433,6 +436,7 @@ export default function GameDashboard({
   commemorateItemCount?: number;
 }) {
   const cardCosmetics = useCardCosmetics();
+  const { showTutorial, fulfillTutorial, updateTutorial } = useTutorial();
   const router = useRouter();
   const hydrated = useSyncExternalStore(
     subscribeToHydration,
@@ -1030,7 +1034,8 @@ export default function GameDashboard({
       filterAndSortArchiveEntries(archiveEntries, normalizedArchiveFilters),
     [archiveEntries, normalizedArchiveFilters],
   );
-  const defaultCollectionItemId = sortedHomeInventory[0]?._id ?? null;
+  const defaultCollectionItemId = showTutorial(TutorialElement.TUTORIAL_SELECT_ITEM)
+    ? null : sortedHomeInventory[0]?._id ?? null;
   const effectiveSelectedCollectionItemIds =
     selectedCollectionItemIds ??
     (defaultCollectionItemId ? [defaultCollectionItemId] : []);
@@ -1155,6 +1160,7 @@ export default function GameDashboard({
         : player.dailyCrate.lastClaimedAt,
   };
   const dropReady = isDailyCrateReady(dailyCrateState, new Date(now));
+  const dailyCrateItemCount = getDailyCrateItemCount(dailyCrateState.lastClaimedAt, dailyDropCount);
 
   useEffect(() => {
     if (player.dailyCrate.timeZone) return;
@@ -1364,6 +1370,10 @@ export default function GameDashboard({
     }
   }
 
+  useEffect(() => {
+    if (section === "loot") void fulfillTutorial(TutorialElement.TUTORIAL_SEE_OFFERS);
+  }, [section, fulfillTutorial]);
+
   function selectDashboardSection(nextSection: typeof section) {
     offerRevealSection.current = nextSection;
     setSection(nextSection);
@@ -1391,6 +1401,7 @@ export default function GameDashboard({
         const response = await fetch(url, { method: "POST" });
         const body = (await response.json().catch(() => null)) as {
           actionDialog?: ActionDialogResult;
+          tutorial?: TutorialProgress;
           error?: string;
           message?: string;
         } | null;
@@ -1412,6 +1423,7 @@ export default function GameDashboard({
         if (body.actionDialog) {
           setActionDialog(body.actionDialog);
         }
+        updateTutorial(body.tutorial);
         onSuccess?.();
         router.refresh();
       } catch {
@@ -1426,6 +1438,11 @@ export default function GameDashboard({
     itemId: string,
     extendSelection: boolean,
   ) {
+    const selecting = !selectedCollectionItemIdsSet.has(itemId) ||
+      (!extendSelection && selectedCollectionItemIdsSet.size !== 1);
+    if (selecting && inventory.some(item => item._id === itemId)) {
+      void fulfillTutorial(TutorialElement.TUTORIAL_SELECT_ITEM);
+    }
     setSelectedCollectionItemIds((current) => {
       const selection =
         current ?? (defaultCollectionItemId ? [defaultCollectionItemId] : []);
@@ -1638,6 +1655,7 @@ export default function GameDashboard({
               : "The bulk action could not be completed.",
           );
         }
+        updateTutorial(result.tutorial as TutorialProgress | undefined);
         return result;
       }
 
@@ -1801,6 +1819,7 @@ export default function GameDashboard({
               : "The bulk offer action could not be completed.",
           );
         }
+        updateTutorial(result.tutorial as TutorialProgress | undefined);
         return result;
       }
 
@@ -2465,10 +2484,12 @@ export default function GameDashboard({
         item_ids?: string[];
         message?: string;
         dailyCrate?: DailyCrateState;
+        tutorial?: TutorialProgress;
       };
       if (!response.ok || body.itemCount === undefined) {
         throw new Error(body.error ?? "The crate could not be opened.");
       }
+      updateTutorial(body.tutorial);
       const message =
         body.message ?? `${body.itemCount} artworks were added to your loot.`;
       setCrateOpening({ crateId: crate.id, phase: "opened" });
@@ -2591,18 +2612,20 @@ export default function GameDashboard({
           | ArtHistorianResult
           | PreservationistResult
           | NpcRewardInteraction;
+        tutorial?: TutorialProgress;
       };
       if (!response.ok) {
         throw new Error(body.error ?? "The visitor interaction failed.");
       }
+      updateTutorial(body.tutorial);
       setSocialBattery((current) =>
         Math.max(
           0,
           current -
-            getVisitorSocialBatteryCost(
+            (npc.tutorial ? 0 : getVisitorSocialBatteryCost(
               npc.quality,
               npc.owner_id === playerId,
-            ),
+            )),
         ),
       );
       let showedAnimatedResult = false;
@@ -2866,6 +2889,7 @@ export default function GameDashboard({
       <button
         className="collection-gallery-action"
         disabled={pending || !displayPermission.allowed}
+        data-tutorial-element={TutorialElement.TUTORIAL_FEATURE_ITEM}
         onClick={() =>
           requestMintMutation(
             item,
@@ -3070,6 +3094,7 @@ export default function GameDashboard({
       <button
         className="collection-gallery-action"
         disabled={pending || inventoryFullForItem}
+        data-tutorial-element={TutorialElement.TUTORIAL_CLAIM_ITEM}
         onClick={() => act(`/api/play/items/${item._id}/claim`, () => setSelectedCollectionItemIds([item._id]))}
         title={
           inventoryFullForItem
@@ -3152,6 +3177,7 @@ export default function GameDashboard({
         <ItemActionButton
           icon="fa-magic"
           label="Modify attributes"
+          tutorialElement={TutorialElement.TUTORIAL_MODIFY_ITEM}
           disabled={pending}
           onClick={() =>
             setRerollSession({
@@ -3237,6 +3263,7 @@ export default function GameDashboard({
           arriving ? "loot-item-reveal" : ""
         }`.trim()}
         data-rarity={item.artwork.rarity}
+        data-tutorial-element={!auction && item.status === "unclaimed" ? TutorialElement.TUTORIAL_CLAIM_ITEM : undefined}
         disabled={pendingOfferReveals.has(item._id)}
         key={key}
         onClick={(event) => toggleLootEntrySelection(key, event)}
@@ -3519,6 +3546,7 @@ export default function GameDashboard({
                 <div className="crate-store-grid">
                   <button
                     className="crate-store-card daily"
+                    data-tutorial-element={TutorialElement.TUTORIAL_DAILY_CRATE}
                     data-phase={
                       crateOpening?.crateId === "daily"
                         ? crateOpening.phase
@@ -3535,10 +3563,10 @@ export default function GameDashboard({
                           description:
                             "A complimentary collection refreshed at noon in your saved timezone.",
                           highlights: [
-                            `${dailyDropCount} artworks`,
+                            `${dailyCrateItemCount} artworks`,
                             "Free",
                           ],
-                          itemCount: dailyDropCount,
+                          itemCount: dailyCrateItemCount,
                           cost: 0,
                           levelRequirement: 0,
                         },
@@ -3550,7 +3578,7 @@ export default function GameDashboard({
                     <CrateCardContent
                       cost={!dailyCrateState.timeZone ? "..." : dropReady ? "Free" : "Claimed"}
                       highlights={[]}
-                      itemCount={dailyDropCount}
+                      itemCount={dailyCrateItemCount}
                       name="Daily crate"
                       phase={
                         crateOpening?.crateId === "daily"
@@ -3682,6 +3710,7 @@ export default function GameDashboard({
                                 : ""
                             }
                             key={category.id}
+                            data-tutorial-loot-category={category.id}
                             onClick={() => selectLootCategory(category)}
                             role="tab"
                             type="button"
@@ -3992,6 +4021,7 @@ export default function GameDashboard({
                         researchTarget={unfoundQuestTargetArtworkIds.has(
                           selectedLootItem.artwork_id,
                         )}
+                        showActionHelp
                         styleInventory={player.cardStyleInventory}
                         viewerId={playerId}
                       />
@@ -4024,6 +4054,7 @@ export default function GameDashboard({
                 <>
                   <button
                     className="home-gallery-button"
+                    data-tutorial-element={TutorialElement.TUTORIAL_GO_TO_GALLERY}
                     onClick={() => visitOwnGallery()}
                     type="button"
                   >
@@ -4123,6 +4154,7 @@ export default function GameDashboard({
                     researchTarget={unfoundQuestTargetArtworkIds.has(
                       selectedCollectionItem.artwork_id,
                     )}
+                    showActionHelp
                     styleInventory={player.cardStyleInventory}
                     viewerId={playerId}
                   />
@@ -4136,7 +4168,10 @@ export default function GameDashboard({
                 </section>
               )}
             </div>
-            <section className="collection-inventory-panel">
+            <section className="collection-inventory-panel" data-tutorial-element={TutorialElement.TUTORIAL_SELECT_ITEM}
+              data-tutorial-unavailable={collectionItems.length === 0 ? "Your collection is empty. Collect an offer first."
+                : sortedHomeInventory.length === 0 ? "No works match your collection filters. Clear the filters to see your works."
+                : undefined}>
               <section className="collection-sidebar-section">
                 <header className="collection-panel-heading">
                   <h2 className="collection-kicker">your collection</h2>
@@ -4452,7 +4487,7 @@ export default function GameDashboard({
                 role="group"
               >
                 {galleryVisitors.map((npc) => {
-                  const socialBatteryCost = getVisitorSocialBatteryCost(
+                  const socialBatteryCost = npc.tutorial ? 0 : getVisitorSocialBatteryCost(
                     npc.quality,
                     true,
                   );
@@ -4467,6 +4502,8 @@ export default function GameDashboard({
                             : "enabled"
                         } ${npcRewardEffects[npc._id] ? "rewarding" : ""}`}
                         data-npc-id={npc._id}
+                        data-tutorial-element={npc.attribute_id === ART_DONOR_ATTRIBUTE_ID && !npc.alreadyMet
+                          ? TutorialElement.TUTORIAL_MEET_VISITOR : undefined}
                         disabled={
                           pending ||
                           meetingNpc !== null ||
@@ -4478,7 +4515,7 @@ export default function GameDashboard({
                           if (await meetNpc(npc)) {
                             markVisitorMet(npc._id);
                           } else {
-                            removeVisitor(npc._id);
+                            if (!npc.tutorial) removeVisitor(npc._id);
                             void refreshVisitors();
                           }
                         }}
@@ -4535,6 +4572,7 @@ export default function GameDashboard({
             onViewSettingsChange={saveViewSettings}
             socialBattery={socialBattery}
             viewerId={playerId}
+            visitorTypes={visitorTypes}
           />
         ) : null}
 
@@ -5309,6 +5347,7 @@ function RerollDialog({
     onConfirm: () => void;
   } | null>(null);
   const canAfford = bankBalance >= item.reroll_cost;
+  const { fulfillTutorial, updateTutorial } = useTutorial();
   const levelUpDiscounted =
     levelUpDiscountAvailable && item.condition > levelUpConditionMinimum;
   const levelUpCost = getItemLevelUpCost(item.level, levelUpDiscounted);
@@ -5331,6 +5370,10 @@ function RerollDialog({
       if (dialog?.open) dialog.close();
     };
   }, []);
+
+  useEffect(() => {
+    void fulfillTutorial(TutorialElement.TUTORIAL_MODIFY_ITEM);
+  }, [fulfillTutorial]);
 
   function closeDialog() {
     if (dialogRef.current?.open) dialogRef.current.close();
@@ -5383,6 +5426,7 @@ function RerollDialog({
         cost?: number;
         bankBalance?: number;
         item?: GameItem;
+        tutorial?: TutorialProgress;
       };
       if (
         !response.ok ||
@@ -5398,6 +5442,7 @@ function RerollDialog({
         ...body.item,
         artwork: item.artwork,
       };
+      updateTutorial(body.tutorial);
       const cost = body.cost;
       onRerolled(nextItem, body.bankBalance);
       setRecentSpend((current) => ({
@@ -5507,6 +5552,7 @@ function RerollDialog({
           <button
             aria-label="Close reroll dialog"
             className="reroll-dialog-close"
+            data-tutorial-close-modify
             onClick={closeDialog}
             type="button"
           >
@@ -5626,7 +5672,7 @@ function RerollDialog({
           </fieldset>
         ) : null}
 
-        <div className="reroll-attributes">
+        <div className="reroll-attributes" data-tutorial-element={TutorialElement.TUTORIAL_SEE_MODIFY_ATTRIBUTES}>
           <h3>Attributes</h3>
           <p id="reroll-description" className="reroll-dialog-description">
             These determine which type of visitor the work is most likely to attract.
@@ -5679,6 +5725,7 @@ function RerollDialog({
                       disabled={Boolean(disabledReason)}
                       disabledReason={disabledReason}
                       icon="fa-refresh"
+                      tutorialElement={TutorialElement.TUTORIAL_REROLL_VALUE}
                       label={`Reroll ${attribute.npc_name} value`}
                       onClick={() => reroll("value", attribute._id)}
                     />
@@ -5687,6 +5734,7 @@ function RerollDialog({
                         disabled={Boolean(disabledReason)}
                         disabledReason={disabledReason}
                         icon="fa-exchange"
+                        tutorialElement={TutorialElement.TUTORIAL_REROLL_ATTRIBUTE}
                         label={`Replace ${attribute.npc_name} attribute`}
                         onClick={() => reroll("attribute", attribute._id)}
                       />
@@ -5787,6 +5835,7 @@ function ItemActionButton({
   onDisabledClick,
   onClick,
   variant = "default",
+  tutorialElement,
 }: {
   icon: string;
   label: string;
@@ -5798,6 +5847,7 @@ function ItemActionButton({
   onDisabledClick?: () => void | Promise<void>;
   onClick: () => void;
   variant?: "default" | "collector" | "enabled" | "gallery";
+  tutorialElement?: TutorialElement;
 }) {
   const reason =
     disabledReason ?? (disabled ? "Another action is being processed." : "");
@@ -5813,6 +5863,7 @@ function ItemActionButton({
         alwaysVisible ? " item-action-always-visible" : ""
       }`}
       data-tooltip={reason || description || label}
+      data-tutorial-element={tutorialElement}
       onClick={() => {
         if (disabled) {
           void onDisabledClick?.();

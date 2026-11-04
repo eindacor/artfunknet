@@ -185,7 +185,7 @@ export async function setArtistFeatured(database: Db, playerId: string, featured
   if (!featured) {
     const updated = await players.updateOne(filter, { $set: { artist_featured: false }, $unset: { artist_featured_slot: "" } });
     if (!updated.matchedCount) throw new ArtistExperienceError("Artist account not found.", 404);
-    if (updated.modifiedCount) await database.collection("npcs").deleteMany({ owner_id: playerId });
+    if (updated.modifiedCount) await database.collection("npcs").deleteMany({ owner_id: playerId, tutorial: { $ne: true } });
     return;
   }
   for (let slot = 1; slot <= MAX_FEATURED_ARTISTS; slot++) {
@@ -194,7 +194,7 @@ export async function setArtistFeatured(database: Db, playerId: string, featured
         $set: { artist_featured: true, artist_featured_slot: slot },
       });
       if (updated.matchedCount) {
-        await database.collection("npcs").deleteMany({ owner_id: playerId });
+        await database.collection("npcs").deleteMany({ owner_id: playerId, tutorial: { $ne: true } });
         return;
       }
       if (await players.findOne({ ...filter, active: true, artist_featured: true })) return;

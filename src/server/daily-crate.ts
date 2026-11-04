@@ -26,6 +26,10 @@ export type DailyCrateClaim = {
   previousClaimedAt: string | null;
 };
 
+export function getDailyCrateItemCount(lastClaimedAt: string | null, normalCount: number): number {
+  return lastClaimedAt === null ? 8 : normalCount;
+}
+
 export function normalizeDailyCrateTimeZone(value: unknown): string | null {
   if (typeof value !== "string" || !value || /^[+-]/.test(value)) return null;
   try {

@@ -12,7 +12,7 @@ export async function generateStartingInventory(
   const source = "starting inventory";
   const items: GameItem[] = [];
   try {
-    for (const [rarity, itemCount] of [["common", 9], ["uncommon", 2], ["rare", 1]] as const) {
+    for (const [rarity, itemCount] of [["common", 4], ["uncommon", 2]] as const) {
       items.push(...await generateDailyDrop(database, playerId, 0, {
         now,
         itemCount,
@@ -23,7 +23,7 @@ export async function generateStartingInventory(
           rarity: {
             common: rarity === "common" ? 1 : 0,
             uncommon: rarity === "uncommon" ? 1 : 0,
-            rare: rarity === "rare" ? 1 : 0,
+            rare: 0,
             legendary: 0,
             masterpiece: 0,
           },

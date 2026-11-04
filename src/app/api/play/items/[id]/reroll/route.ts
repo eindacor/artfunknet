@@ -32,6 +32,8 @@ import {
 import { getMintStateAfterAction } from "@/server/item-mint";
 import { getItemDropChanceUpdate } from "@/server/item-drop-chance";
 import { refreshGalleryMetadata } from "@/server/gallery-metadata";
+import { recordTutorialAction } from "@/server/tutorial";
+import { TutorialElement } from "@/shared/tutorial";
 
 type Player = {
   _id: string;
@@ -302,6 +304,8 @@ export async function POST(
   });
   return NextResponse.json({
     status: "ok",
+    tutorial: await recordTutorialAction(database, player._id, body.mode === "attribute"
+      ? TutorialElement.TUTORIAL_REROLL_ATTRIBUTE : TutorialElement.TUTORIAL_REROLL_VALUE),
     cost,
     bankBalance: chargedPlayer.profile.bank_balance,
     item: sanitizePlayerFacingAuthenticity(responseItem),

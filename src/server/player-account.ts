@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 
 import type { Db } from "mongodb";
+import { TutorialElement, type TutorialProgress } from "../shared/tutorial.ts";
 
 import type { PlayerGalleryFinishes } from "./gallery-finishes.ts";
 import { DEFAULT_PLAYER_VIEW_SETTINGS } from "./player-view-settings.ts";
@@ -27,7 +28,7 @@ export type PlayerAccountRecord = {
   artist_featured?: boolean;
   artist_featured_slot?: number;
   test_account: boolean;
-  tutorial_seen: boolean;
+  tutorial: TutorialProgress;
   active: boolean;
   password_salt: string;
   password_hash: string;
@@ -95,7 +96,7 @@ export function createPlayerAccountRecord({
     role: "player",
     account_type: "player",
     test_account: false,
-    tutorial_seen: false,
+    tutorial: { step: TutorialElement.TUTORIAL_SELECT_ITEM, revision: 0 },
     active: true,
     password_salt: passwordSalt,
     password_hash: passwordHash,

@@ -14,7 +14,8 @@ export default function PlayerHeaderContent({
   karma,
   lotteryTickets,
   notifications,
-  onOpenTutorial,
+  onRestartTutorial,
+  tutorialRestarting = false,
   onSignOut,
   supporterStatus,
 }: {
@@ -27,7 +28,8 @@ export default function PlayerHeaderContent({
   isArtist?: boolean;
   /** The notification centre, passed in so this stays free of its polling. */
   notifications?: ReactNode;
-  onOpenTutorial?: () => void;
+  onRestartTutorial?: () => void;
+  tutorialRestarting?: boolean;
   onSignOut: () => void;
   supporterStatus?: SupporterStatus | null;
 }) {
@@ -79,12 +81,13 @@ export default function PlayerHeaderContent({
         </div>
         <div className="player-header-notifications">{notifications}</div>
         <ResponsiveMenu className="player-header-menu" label="Account">
-          {onOpenTutorial ? (
+          {onRestartTutorial ? (
             <IconButton
-              aria-label="Open the Artfunkel tutorial"
+              aria-label="Start or restart the guided walkthrough"
+              disabled={tutorialRestarting}
               icon="fa-question"
-              onClick={onOpenTutorial}
-              title="How to play"
+              onClick={onRestartTutorial}
+              title="Restart walkthrough"
             />
           ) : null}
           <nav

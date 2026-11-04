@@ -9,6 +9,8 @@ import ts from "typescript";
 
 import type { HydratedGameItem } from "../server/item-artwork.ts";
 import type FeaturedWorksPanelComponent from "./featured-works-panel.tsx";
+import type GalleryAttractionChartComponent from "./gallery-attraction-chart.tsx";
+import * as tutorialElements from "../shared/tutorial.ts";
 
 const require = createRequire(import.meta.url);
 const sharedSource = ts.createSourceFile("shared.tsx",
@@ -29,6 +31,7 @@ async function load(relative: string, dependencies: Record<string, unknown> = {}
     exports: {},
     require: (id: string) => {
       if (id === "react" || id === "react/jsx-runtime") return require(id);
+      if (id === "@/shared/tutorial") return tutorialElements;
       assert.ok(id in dependencies, `Unexpected component dependency: ${id}`);
       return dependencies[id];
     },
@@ -37,6 +40,11 @@ async function load(relative: string, dependencies: Record<string, unknown> = {}
 const attributeModule = await load("./attribute/attribute.tsx", {
   "@/components/item-cards/shared": { ratingColor },
 });
+const attractionChartModule = await load("./gallery-attraction-chart.tsx", {
+  "./item-cards/shared": { ratingColor },
+  "./attribute/attribute": attributeModule,
+});
+const GalleryAttractionChart = attractionChartModule.default as typeof GalleryAttractionChartComponent;
 const FeaturedWorksPanel = (await load("./featured-works-panel.tsx", {
   "./info-panel/info-panel": await load("./info-panel/info-panel.tsx", {
     "./info-panel.module.css": { default: { panel: "panel" } },
@@ -44,8 +52,7 @@ const FeaturedWorksPanel = (await load("./featured-works-panel.tsx", {
   }),
   "./gallery-stats/gallery-stats": await load("./gallery-stats/gallery-stats.tsx"),
   "./gallery-stat/gallery-stat": await load("./gallery-stat/gallery-stat.tsx"),
-  "./item-cards/shared": { ratingColor },
-  "./attribute/attribute": attributeModule,
+  "./gallery-attraction-chart": attractionChartModule,
 })).default as typeof FeaturedWorksPanelComponent;
 
 test("featured slots remain visible for empty, partially filled, fully unlocked, and legacy collections", () => {
@@ -119,7 +126,7 @@ test("the attraction chart joins every active visitor to its effective rating on
       rates: { value: 0, moneyPerHour: 0, xpPerHour: 0 }, attributeScore: 0,
       attributes: empty ? [] : attributes, visitorTypes, actions: null, renderItem: () => null,
     }));
-    const columns = [...html.matchAll(/<li\b[^>]*class="home-featured-chart-column"[\s\S]*?<\/li>/g)].map(match => match[0]);
+    const columns = [...html.matchAll(/<li\b[^>]*class="gallery-attraction-chart-column"[\s\S]*?<\/li>/g)].map(match => match[0]);
     assert.equal(columns.length, visitorTypes.length, "Unrepresented visitor types must not disappear");
     assert.match(html, /100%<\/span><span>50%<\/span><span>0%<\/span>/);
     assert.ok(!html.includes("Inactive visitor"), "Only the active visitor catalog defines chart columns");
@@ -133,7 +140,7 @@ test("the attraction chart joins every active visitor to its effective rating on
       assert.equal((column.match(/style="color:([^"]+)"/g) ?? []).length, 2);
       assert.equal((column.match(/style="color:([^"]+)"/g) ?? []).every(style =>
         style === `style="color:${ratingColor(effectiveRating)}"`), true, "The bar and icon share the existing rating gradient");
-      const height = Number.parseFloat(column.match(/class="home-featured-chart-bar" style="height:([^"]+)"/)![1]);
+      const height = Number.parseFloat(column.match(/class="gallery-attraction-chart-bar" style="height:([^"]+)"/)![1]);
       assert.ok(Math.abs(height - effectiveRating * 100) < 0.001, "Bars use effective attraction, not raw rating or a relative maximum");
     }
   }
@@ -153,7 +160,7 @@ test("bars and icons share the full original attribute hover text, including sin
       attributes: scenario.attributes, visitorTypes: [{ id: "collector", name: "Art Collector", icon: "fa-eye" }],
       actions: null, renderItem: () => null,
     }));
-    const column = html.match(/<li\b[^>]*class="home-featured-chart-column"[^>]*>/)![0];
+    const column = html.match(/<li\b[^>]*class="gallery-attraction-chart-column"[^>]*>/)![0];
     const icon = html.match(/<i\b[^>]*class="fa fa-eye"[^>]*>/)![0];
     for (const element of [column, icon]) {
       assert.ok(element.includes(`title="${scenario.expected}"`), "Both hover targets show the complete rating breakdown");
@@ -169,5 +176,25 @@ test("the attraction chart handles an empty active visitor catalog without inven
     attributes: [], visitorTypes: [], actions: null, renderItem: () => null,
   }));
   assert.match(html, /No active visitor types\./);
-  assert.ok(!html.includes("home-featured-chart-column"));
+  assert.ok(!html.includes("gallery-attraction-chart-column"));
+});
+
+test("the shared chart supports independent galleries and unique accessible help without a Home layout", () => {
+  const visitorTypes = [{ id: "collector", name: "Art Collector", icon: "fa-eye" }];
+  const html = renderToStaticMarkup(React.createElement(React.Fragment, null,
+    ...[0.2, 0.8].map((effectiveRating, index) => React.createElement(GalleryAttractionChart, {
+      key: index, displayCapacity: 5, visitorTypes,
+      attributes: [{ id: "collector", title: "Collector", icon: "fa-eye", type: "npc",
+        count: 1, totalRating: effectiveRating * 5, effectiveRating }],
+    })),
+  ));
+  assert.doesNotMatch(html, /home-featured/);
+  assert.match(html, /height:20%/);
+  assert.match(html, /height:80%/);
+  const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]);
+  assert.equal(ids.length, 4);
+  assert.equal(new Set(ids).size, ids.length);
+  for (const match of html.matchAll(/aria-(?:labelledby|describedby)="([^"]+)"/g)) {
+    assert.ok(ids.includes(match[1]), "Each chart's caption and help refer to its own content");
+  }
 });

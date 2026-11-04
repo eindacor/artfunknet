@@ -5,7 +5,10 @@ import { planGallerySelection } from "@/server/gallery-selection";
 import type { GameItem } from "@/server/gameplay";
 import { getDemintUpdate } from "@/server/item-mint";
 import { getDatabase } from "@/server/mongodb";
+import { ensureTutorialDonor } from "@/server/npc-gameplay";
 import { requirePlayerApi } from "@/server/player-api";
+import { recordTutorialAction } from "@/server/tutorial";
+import { TutorialElement } from "@/shared/tutorial";
 
 type SetGalleryRequest = {
   itemIds?: unknown;
@@ -175,6 +178,7 @@ export async function POST(request: Request) {
       throw new Error("The gallery change could not be applied to the player.");
     }
     await refreshGalleryMetadata(database, player._id);
+    if (plan.displayIds.length > 0) await ensureTutorialDonor(database, player._id);
   } catch (error) {
     console.error("Unable to set gallery; restoring previous display", error);
     await restoreGalleryItems(
@@ -202,6 +206,8 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     status: "ok",
+    tutorial: plan.displayIds.length > 0
+      ? await recordTutorialAction(database, player._id, TutorialElement.TUTORIAL_FEATURE_ITEM) : undefined,
     displayed: selectedItems.length,
     added: plan.displayIds.length,
     removed: plan.takeDownIds.length,

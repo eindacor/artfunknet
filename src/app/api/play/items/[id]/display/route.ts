@@ -1,10 +1,14 @@
+import type { Db } from "mongodb";
 import { NextResponse } from "next/server";
 
 import type { GameItem } from "@/server/gameplay";
 import { refreshGalleryMetadata } from "@/server/gallery-metadata";
 import { getDemintUpdate } from "@/server/item-mint";
 import { getDatabase } from "@/server/mongodb";
+import { ensureTutorialDonor } from "@/server/npc-gameplay";
 import { requirePlayerApi } from "@/server/player-api";
+import { recordTutorialAction } from "@/server/tutorial";
+import { TutorialElement } from "@/shared/tutorial";
 
 type Player = {
   _id: string;
@@ -27,7 +31,7 @@ export async function POST(
   const item = await database.collection<GameItem>("items").findOne({
     _id: id,
     owner: auth.session.playerId,
-    status: "claimed",
+    status: { $in: ["claimed", "displayed"] },
     repairing: { $ne: true },
   });
   if (!player || !item) {
@@ -36,6 +40,7 @@ export async function POST(
       { status: 409 },
     );
   }
+  if (item.status === "displayed") return completeFeaturing(database, player._id);
 
   const [displayCount, duplicate] = await Promise.all([
     database
@@ -104,7 +109,12 @@ export async function POST(
     },
     { $set: { "profile.last_gallery_payout": now } },
   );
-  await refreshGalleryMetadata(database, player._id);
+  return completeFeaturing(database, player._id);
+}
 
-  return NextResponse.json({ status: "ok" });
+async function completeFeaturing(database: Db, playerId: string) {
+  await refreshGalleryMetadata(database, playerId);
+  await ensureTutorialDonor(database, playerId);
+  const tutorial = await recordTutorialAction(database, playerId, TutorialElement.TUTORIAL_FEATURE_ITEM);
+  return NextResponse.json({ status: "ok", tutorial });
 }

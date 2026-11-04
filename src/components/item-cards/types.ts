@@ -60,6 +60,7 @@ export type ItemCardProps = Omit<ItemCardRendererProps, "alreadyOwned"> & {
   permissions?: ItemDialogPermissions;
   primaryAction?: React.ReactNode;
   rendererId?: string;
+  showActionHelp?: boolean;
   styleInventory?: CardStyleInventory;
   viewerId?: string | null;
 };

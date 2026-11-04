@@ -2,8 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { TutorialElement } from "@/shared/tutorial";
+import { useTutorial } from "@/components/tutorial/tutorial-provider";
+import { ART_DONOR_ATTRIBUTE_ID } from "@/server/legendary-attributes";
 
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
+import GalleryAttractionChart from "@/components/gallery-attraction-chart";
+import { getArtworkFeatureCardAdjustment } from "@/components/item-cards/artwork-image-adjustments";
 import ItemThumbnail from "@/components/item-thumbnail";
 import { CommunityReactionPicker } from "@/components/community-emotes";
 import ItemCard from "@/components/item-cards/item-card";
@@ -58,6 +63,7 @@ type GalleryRecord = {
   display_rarities: ArtworkRarity[];
   featured_item_id: string | null;
   featured_artwork_id: string | null;
+  featured_artwork?: Pick<Artwork, "_id" | "feature_card_adjustment" | "thumbnail_adjustment"> | null;
   featured_value: number;
   reactions: CommunityReactionSummary;
   updated_at: string;
@@ -115,6 +121,7 @@ export default function GalleryExplorer({
   onViewSettingsChange,
   socialBattery,
   viewerId,
+  visitorTypes,
 }: {
   impersonating: boolean;
   initialBankBalance: number;
@@ -134,6 +141,7 @@ export default function GalleryExplorer({
   onViewSettingsChange: (settings: Partial<PlayerViewSettings>) => void;
   socialBattery: number;
   viewerId: string;
+  visitorTypes: readonly NpcSpawnOption[];
 }) {
   const router = useRouter();
   const [selectedGalleryId, setSelectedGalleryId] = useState<string | null>(
@@ -466,6 +474,7 @@ export default function GalleryExplorer({
               key={gallery._id}
               onClick={() => visitGallery(gallery)}
               onKeyDown={(event) => {
+                if (event.target !== event.currentTarget) return;
                 if (event.key === "Enter" || event.key === " ") {
                   event.preventDefault();
                   visitGallery(gallery);
@@ -479,10 +488,11 @@ export default function GalleryExplorer({
                   <ArtworkThumbnail
                     alt={`Featured work in ${gallery.owner}'s gallery`}
                     artworkId={gallery.featured_artwork_id}
+                    adjustment={getArtworkFeatureCardAdjustment(gallery.featured_artwork ?? {})}
                     size={520}
                   />
                 ) : null}
-                <span>
+                <span className="gallery-explorer-rank">
                   #{(page - 1) * data.pageSize + index + 1}
                 </span>
                 <em>Featured value ${gallery.featured_value.toLocaleString()}</em>
@@ -509,11 +519,12 @@ export default function GalleryExplorer({
                     <dd>{gallery.score.toLocaleString()}</dd>
                   </div>
                 </dl>
+                <GalleryAttractionChart
+                  attributes={gallery.attributes}
+                  displayCapacity={gallery.display_capacity}
+                  visitorTypes={visitorTypes}
+                />
                 <div className="gallery-explorer-signature">
-                  <GalleryAttributeSummary
-                    attributes={gallery.attributes}
-                    displayCapacity={gallery.display_capacity}
-                  />
                   <GalleryRaritySummary
                     rarities={gallery.display_rarities ?? []}
                   />
@@ -635,6 +646,11 @@ function VisitedGallery({
   viewerId: string;
 }) {
   const [gallery, setGallery] = useState<GalleryDetailResponse | null>(null);
+  const { fulfillTutorial, showTutorial } = useTutorial();
+  const meetingTutorial = ownerId === viewerId && showTutorial(TutorialElement.TUTORIAL_MEET_VISITOR);
+  useEffect(() => {
+    if (gallery && ownerId === viewerId) void fulfillTutorial(TutorialElement.TUTORIAL_GO_TO_GALLERY);
+  }, [gallery, ownerId, viewerId, fulfillTutorial]);
   const [selectedPreviewItem, setSelectedPreviewItem] =
     useState<HydratedGameItem | null>(null);
   const [selectedAuction, setSelectedAuction] = useState<AuctionView | null>(
@@ -771,7 +787,7 @@ function VisitedGallery({
     return () => {
       cancelled = true;
     };
-  }, [ownerId, initialItemId, refreshVersion, replaceVisitors]);
+  }, [ownerId, initialItemId, refreshVersion, replaceVisitors, meetingTutorial]);
 
   if (loading) {
     return (
@@ -1028,7 +1044,7 @@ function VisitedGallery({
               role="group"
             >
               {visitors.map((npc) => {
-                const socialBatteryCost = getVisitorSocialBatteryCost(
+                const socialBatteryCost = npc.tutorial ? 0 : getVisitorSocialBatteryCost(
                   npc.quality,
                   ownerId === viewerId || gallery.artist?.featured === true,
                 );
@@ -1043,6 +1059,8 @@ function VisitedGallery({
                           : "enabled"
                       } ${npcRewardEffects[npc._id] ? "rewarding" : ""}`}
                       data-npc-id={npc._id}
+                      data-tutorial-element={ownerId === viewerId && npc.attribute_id === ART_DONOR_ATTRIBUTE_ID && !npc.alreadyMet
+                        ? TutorialElement.TUTORIAL_MEET_VISITOR : undefined}
                       disabled={
                         meetingNpc !== null ||
                         npc.alreadyMet ||
@@ -1053,7 +1071,7 @@ function VisitedGallery({
                         if (await onMeetNpc(npc)) {
                           markVisitorMet(npc._id);
                         } else {
-                          removeVisitor(npc._id);
+                          if (!npc.tutorial) removeVisitor(npc._id);
                           void refreshVisitors();
                         }
                       }}

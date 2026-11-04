@@ -40,12 +40,12 @@ async function loadRoute(relative: string, dependencies: Record<string, unknown>
 async function assertStartingInventory(database: Db, playerId: string) {
   const items = await database.collection<gameplay.GameItem>("items")
     .find({ owner: playerId, source: "starting inventory" }).toArray();
-  assert.equal(items.length, 12);
+  assert.equal(items.length, 6);
   const artworks = await database.collection<gameplay.Artwork>("artworks").find({}).toArray();
   const rarityById = new Map(artworks.map(artwork => [artwork._id, artwork.rarity]));
   assert.deepEqual(Object.fromEntries(["common", "uncommon", "rare"].map(rarity => [
     rarity, items.filter(item => rarityById.get(item.artwork_id) === rarity).length,
-  ])), { common: 9, uncommon: 2, rare: 1 });
+  ])), { common: 4, uncommon: 2, rare: 0 });
   for (const item of items) {
     assert.equal(item.status, "claimed");
     assert.equal(item.level, 1);
@@ -102,7 +102,7 @@ const eraRequest = (items: gameplay.GameItem[]) => new Request("http://localhost
   method: "POST", body: JSON.stringify({ itemIds: items.slice(2).map(item => item._id) }),
 });
 
-test("new players and new eras receive the same randomized twelve-item starting collection", async t => {
+test("new players and new eras receive the same randomized six-item starting collection", async t => {
   const server = await MongoMemoryServer.create();
   const client = await new MongoClient(server.getUri()).connect();
   t.after(async () => { await client.close(); await server.stop(); });
@@ -173,7 +173,7 @@ test("new players and new eras receive the same randomized twelve-item starting 
   await t.test("a missing rarity rolls back partial starting items and failed account creation", async () => {
     const database = client.db("starter-missing-rarity");
     await setupTestDb(database, null, STARTING_INVENTORY_TEST_OPTIONS);
-    await database.collection<gameplay.Artwork>("artworks").updateOne({ _id: "starter-rare" }, { $set: { active: false } });
+    await database.collection<gameplay.Artwork>("artworks").updateOne({ _id: "starter-uncommon" }, { $set: { active: false } });
     const player = playerAccount.createPlayerAccountRecord({
       playerId: "failed", email: "failed@example.com", screenName: "Failed-Player", passwordSalt: "", passwordHash: "",
     });
@@ -182,7 +182,7 @@ test("new players and new eras receive the same randomized twelve-item starting 
     assert.equal(await database.collection("items").countDocuments(), 0);
   });
 
-  await t.test("a new era adds twelve fresh items while retaining originals and vintage works, without repeat grants", async () => {
+  await t.test("a new era adds six fresh items while retaining originals and vintage works, without repeat grants", async () => {
     const database = client.db("starter-era-success");
     const previous = await seedEra(database);
     const route = await vintageRoute(database);
@@ -200,7 +200,7 @@ test("new players and new eras receive the same randomized twelve-item starting 
     assert.equal(await database.collection("quests").countDocuments(), 0);
     assert.equal(await database.collection("playthrough_snapshots").countDocuments(), 1);
     assert.equal((await route.POST(eraRequest(previous))).status, 409);
-    assert.equal(await database.collection("items").countDocuments(), 15);
+    assert.equal(await database.collection("items").countDocuments(), 9);
   });
 
   for (const failure of ["generation", "profile reset"]) {
@@ -209,7 +209,7 @@ test("new players and new eras receive the same randomized twelve-item starting 
       const previous = await seedEra(database);
       const before = await database.collection<gameplay.GameItem>("items").find({}).sort({ _id: 1 }).toArray();
       if (failure === "generation") {
-        await database.collection<gameplay.Artwork>("artworks").updateOne({ _id: "starter-rare" }, { $set: { active: false } });
+        await database.collection<gameplay.Artwork>("artworks").updateOne({ _id: "starter-uncommon" }, { $set: { active: false } });
       } else {
         const updateOne = Collection.prototype.updateOne;
         t.mock.method(Collection.prototype, "updateOne", function (this: Collection, ...args: Parameters<Collection["updateOne"]>) {

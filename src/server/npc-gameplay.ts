@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
-import type { Db } from "mongodb";
+import type { Db, Filter } from "mongodb";
+import { TutorialElement } from "../shared/tutorial.ts";
 
 import type { ArtworkRarity, GameItem, ItemAttribute } from "./gameplay.ts";
 import { getEffectiveGalleryAttributeRating } from "./gallery-metadata-core.ts";
@@ -29,12 +30,16 @@ export type NpcQuality = (typeof NPC_QUALITIES)[number];
 
 export type GalleryNpc = {
   _id: string;
+  spawn_key?: string;
   quality: NpcQuality;
   attribute_id: string;
   owner_id: string;
   owner_name: string;
   spawned_at: Date;
-  expiration: Date;
+  expiration: Date | null;
+  tutorial?: true;
+  tutorial_revision?: number;
+  tutorial_reward_claimed?: boolean;
   players_met: string[];
   icon: string;
   npc_name: string;
@@ -58,6 +63,7 @@ type PlayerRecord = {
     npcs_met?: Partial<Record<NpcQuality, number>>;
     npcs_met_reset_at?: string;
   };
+  tutorial?: { step: string | null; revision: number };
 };
 
 const PLAYER_LEVEL_MAX = 50;
@@ -154,6 +160,71 @@ export function getNpcQuality(roll: number): NpcQuality {
     if (remaining < 0) return quality;
   }
   return "platinum";
+}
+
+export async function ensureTutorialDonor(
+  database: Db,
+  playerId: string,
+  now = new Date(),
+  tutorialRevision?: number,
+): Promise<void> {
+  const id = createHash("sha256").update(`first-feature-tutorial:${playerId}`).digest("hex").slice(0, 32);
+  const npcs = database.collection<GalleryNpc>("npcs");
+  const existing = await npcs.findOne({ _id: id }, { projection: { _id: 1, tutorial_revision: 1 } });
+  if (existing && (tutorialRevision === undefined || (existing.tutorial_revision ?? -1) >= tutorialRevision)) return;
+  const [player, attribute] = await Promise.all([
+    database.collection<PlayerRecord>("players").findOne({ _id: playerId, active: true,
+      ...(tutorialRevision === undefined ? {} : {
+        "tutorial.step": TutorialElement.TUTORIAL_MEET_VISITOR, "tutorial.revision": tutorialRevision,
+      }) }),
+    database.collection<ItemAttribute>("attributes").findOne({ _id: ART_DONOR_ATTRIBUTE_ID }),
+  ]);
+  if (!player) return;
+  // Keep the met record as the one-time tutorial marker, including across eras.
+  await npcs.updateOne({ _id: id }, { $setOnInsert: {
+    _id: id,
+    spawn_key: `tutorial:${id}`,
+    quality: "bronze",
+    attribute_id: ART_DONOR_ATTRIBUTE_ID,
+    owner_id: playerId,
+    owner_name: player.screen_name,
+    spawned_at: now,
+    expiration: null,
+    tutorial: true,
+    players_met: [],
+    icon: attribute?.icon || "fa-share-square fa-flip-horizontal",
+    npc_name: attribute?.npc_name || "Art Donor",
+    proc_chance: 1,
+  } }, { upsert: true });
+  if (tutorialRevision !== undefined) {
+    await npcs.updateOne({
+      _id: id,
+      $or: [{ tutorial_revision: { $exists: false } }, { tutorial_revision: { $lt: tutorialRevision } }],
+    }, [{ $set: {
+      tutorial_revision: tutorialRevision,
+      spawned_at: now,
+      // Preserve the lifetime reward marker when reopening a previously met Donor.
+      tutorial_reward_claimed: { $or: [
+        { $eq: ["$tutorial_reward_claimed", true] }, { $in: [playerId, "$players_met"] },
+      ] },
+      players_met: [],
+    } }]);
+  }
+}
+
+export function getNpcAvailabilityFilter(now: Date, viewerId?: string): Filter<GalleryNpc> {
+  if (!viewerId) return { tutorial: { $ne: true }, expiration: { $gt: now } };
+  return {
+    $or: [
+      { tutorial: { $ne: true }, expiration: { $gt: now } },
+      {
+        tutorial: true,
+        owner_id: viewerId,
+        expiration: null,
+        players_met: { $ne: viewerId },
+      },
+    ],
+  };
 }
 
 export async function refreshNpcSpawns(
@@ -417,6 +488,7 @@ export async function refreshNpcSpawns(
 
   await database.collection("npcs").deleteMany({
     ...(ownerId ? { owner_id: ownerId } : {}),
+    tutorial: { $ne: true },
     expiration: { $lte: now },
   });
 }
@@ -425,12 +497,18 @@ export async function getGalleryNpcs(
   database: Db,
   ownerId: string,
   now = new Date(),
+  viewerId?: string,
 ): Promise<GalleryNpc[]> {
-  return database
+  const visitors = await database
     .collection<GalleryNpc>("npcs")
-    .find({ owner_id: ownerId, expiration: { $gt: now } })
+    .find({ owner_id: ownerId, ...getNpcAvailabilityFilter(now, viewerId) })
     .sort({ quality: 1, npc_name: 1 })
     .toArray();
+  return visitors.map(visitor => ({ ...visitor, npc_name: getNpcDisplayName(visitor) }));
+}
+
+export function getNpcDisplayName(npc: Pick<GalleryNpc, "tutorial" | "npc_name">): string {
+  return npc.tutorial ? npc.npc_name.replace(/^Tutorial /, "") : npc.npc_name;
 }
 
 export function createFeaturedArtistVisitors(

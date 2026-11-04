@@ -208,7 +208,7 @@ test("OAuth routes authenticate fresh identities and bind explicit sync to the c
       assert.ok(response.headers.getSetCookie().some((value) => value.startsWith(`${sessionCookie}=`)));
       const player = await players.findOne({});
       assert.ok(player?.oauth_accounts?.[id]?.verified_at instanceof Date);
-      assert.equal(await db.collection("items").countDocuments({ owner: player!._id }), 12);
+      assert.equal(await db.collection("items").countDocuments({ owner: player!._id }), 6);
       if (id === "instagram") assert.equal(player?.oauth_accounts?.instagram?.username, "instagram.player");
       assert.equal(player?.email_verified, id === "google" || id === "discord");
       assert.equal(await players.countDocuments(), 1);

@@ -20,6 +20,8 @@ import {
 } from "@/server/legendary-attributes";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
+import { recordTutorialAction } from "@/server/tutorial";
+import { TutorialElement } from "@/shared/tutorial";
 import { getItemDisposalFilter, getItemDisposalPermission } from "@/server/item-permissions";
 
 type AcquireManyRequest = {
@@ -414,6 +416,8 @@ export async function POST(request: Request) {
       : "Collected";
   return NextResponse.json({
     status: "ok",
+    tutorial: selectedItems.some(item => item.status === "unclaimed")
+      ? await recordTutorialAction(database, player._id, TutorialElement.TUTORIAL_CLAIM_ITEM) : undefined,
     acquired: selectedItems.length,
     purchased: purchasedCount,
     amount: totalCost,

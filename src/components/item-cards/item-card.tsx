@@ -36,6 +36,7 @@ export default function ItemCard({
   primaryAction,
   rendererId,
   researchTarget = false,
+  showActionHelp = false,
   styleInventory,
   viewerId,
 }: ItemCardProps) {
@@ -150,6 +151,7 @@ export default function ItemCard({
             ) : null
           }
           primaryAction={primaryAction}
+          showHelp={showActionHelp}
         />
       ) : null}
       {interactive && dialogOpen ? (

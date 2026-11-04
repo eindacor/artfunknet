@@ -101,7 +101,7 @@ export async function GET(
   ];
   const galleryId = metadata?._id ?? playerId;
   const [npcs, artworkEffects, reactions, finishes] = await Promise.all([
-    getGalleryNpcs(database, playerId),
+    getGalleryNpcs(database, playerId, new Date(), auth.session.playerId),
     getArtworkEffects(database, effectIds),
     getCommunityReactionSummary(
       database,

@@ -55,7 +55,7 @@ export async function GET(request: Request) {
     player._id,
     settings.active.featuredArtistVisitorChance,
   );
-  let donorVisitor = (await getGalleryNpcs(database, player._id, now)).find(
+  let donorVisitor = (await getGalleryNpcs(database, player._id, now, player._id)).find(
     (visitor) =>
       visitor.attribute_id === ART_DONOR_ATTRIBUTE_ID &&
       !visitor.players_met.includes(player._id),

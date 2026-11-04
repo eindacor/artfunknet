@@ -8,11 +8,13 @@ import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { getArtworkFeatureCardAdjustment } from "../../components/item-cards/artwork-image-adjustments.ts";
+import { getDailyCrateItemCount } from "../../server/daily-crate.ts";
 import type { HydratedGameItem } from "../../server/item-artwork.ts";
 import { getArtworkImageUrl } from "../../server/artwork-image-url.ts";
 import { getBulkAcquisitionRequirements } from "../../server/bulk-acquisition.ts";
 import { getRemainingOfferSelection } from "../../server/collection-inventory.ts";
 import { planGallerySelection } from "../../server/gallery-selection.ts";
+import { TutorialElement } from "../../shared/tutorial.ts";
 import {
   FEATURE_ARTWORK_DESCRIPTION,
   getArchivePermission,
@@ -41,6 +43,12 @@ function runInNewContext(code: string, context: Record<string, unknown>) {
   context.getItemDisposalPermission = getItemDisposalPermission;
   context.FEATURE_ARTWORK_DESCRIPTION = FEATURE_ARTWORK_DESCRIPTION;
   context.getActiveLegendaryAttribute = getActiveLegendaryAttribute;
+  context.TutorialElement = TutorialElement;
+  context.updateTutorial ??= () => {};
+  context.fulfillTutorial ??= async () => {};
+  context.showTutorial ??= () => false;
+  context.inventory ??= [];
+  context.selectedCollectionItemIdsSet ??= new Set<string>();
   return runInVm(code, context);
 }
 
@@ -90,6 +98,44 @@ const handlers = ts.transpileModule(
   )].map((statement) => statement.getText(source)).join("\n"),
   { compilerOptions: { target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React } },
 ).outputText;
+
+test("the daily crate card and opening action show the first-drop count and switch to the normal count after claiming", () => {
+  const stateSource = dashboard.body!.statements.filter(statement =>
+    ts.isVariableStatement(statement) && statement.declarationList.declarations.some(declaration =>
+      ts.isIdentifier(declaration.name) && ["dailyCrateState", "dailyCrateItemCount"].includes(declaration.name.text),
+    ),
+  ).map(statement => statement.getText(source)).join("\n");
+  let dailyButton: ts.JsxElement | undefined;
+  function findButton(node: ts.Node) {
+    if (ts.isJsxElement(node) && node.openingElement.tagName.getText(source) === "button" &&
+        node.openingElement.attributes.properties.some(attribute =>
+          ts.isJsxAttribute(attribute) && attribute.name.text === "data-tutorial-element" &&
+          attribute.initializer?.getText(source).includes("TUTORIAL_DAILY_CRATE"))) dailyButton = node;
+    ts.forEachChild(node, findButton);
+  }
+  findButton(dashboard);
+  assert.ok(dailyButton);
+  const code = ts.transpileModule(`${stateSource}\nconst render = () => (${dailyButton.getText(source)}); render()`, {
+    compilerOptions: { target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React },
+  }).outputText;
+  const claimedAt = "2026-11-04T12:00:00.000Z";
+  for (const [lastClaimedAt, update, normal, expected] of [
+    [null, null, 50, 8], [null, null, 20, 8], [claimedAt, null, 50, 50],
+    [null, claimedAt, 50, 50], [claimedAt, null, 20, 20],
+  ] as const) {
+    let openedCount: number | undefined;
+    const button = runInNewContext(code, {
+      React, getDailyCrateItemCount, dailyDropCount: normal,
+      player: { dailyCrate: { timeZone: "UTC", lastClaimedAt } },
+      dailyCrateUpdate: update ? { timeZone: "UTC", lastClaimedAt: update } : null,
+      crateOpening: null, pending: false, dropReady: true, CrateCardContent: () => null,
+      openCrate: (crate: { itemCount: number }) => { openedCount = crate.itemCount; },
+    }) as React.ReactElement<{ onClick: () => void; children: React.ReactElement<{ itemCount: number }> }>;
+    assert.equal(button.props.children.props.itemCount, expected);
+    button.props.onClick();
+    assert.equal(openedCount, expected);
+  }
+});
 
 test("refreshed offers replace a removed preview with its adjacent item without clearing failed or partial selections", () => {
   const names = new Set([
@@ -442,7 +488,8 @@ test("auction and Collector sale actions render after the divider in previews an
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
   }).outputText;
   const ItemActionLayout = runInNewContext(`${layoutCode}\nexports.default`, {
-    exports: {}, require: createRequire(import.meta.url),
+    exports: {}, require: (id: string) => id === "@/shared/tutorial"
+      ? { TutorialElement } : createRequire(import.meta.url)(id),
   }) as (props: { actions: React.ReactNode }) => React.ReactElement;
   for (const render of [
     "collectionItemActions(work)", "collectionItemActions(work, true)",

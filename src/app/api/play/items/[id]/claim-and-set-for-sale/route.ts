@@ -9,6 +9,8 @@ import {
   removeExpiredTransientItems,
 } from "@/server/item-expiration";
 import { requirePlayerApi } from "@/server/player-api";
+import { recordTutorialAction } from "@/server/tutorial";
+import { TutorialElement } from "@/shared/tutorial";
 import { getItemDisposalFilter, getItemDisposalPermission } from "@/server/item-permissions";
 
 type Player = {
@@ -152,5 +154,6 @@ export async function POST(
     );
   }
 
-  return NextResponse.json({ status: "ok" });
+  const tutorial = await recordTutorialAction(database, player._id, TutorialElement.TUTORIAL_CLAIM_ITEM);
+  return NextResponse.json({ status: "ok", tutorial });
 }

@@ -12,6 +12,7 @@ import { requirePlayerApi } from "@/server/player-api";
 import type { GallerySort } from "@/server/player-view-settings";
 import type { PlayerAccountRecord } from "@/server/player-account";
 import { getFeaturedArtistGalleries } from "@/server/contributing-artists";
+import type { Artwork } from "@/server/gameplay";
 
 const EXPANDED_PAGE_SIZE = 12;
 const LIST_PAGE_SIZE = 30;
@@ -56,18 +57,31 @@ export async function GET(request: Request) {
     galleries.countDocuments(filter),
   ]);
   const ownerIds = records.map((record) => record.owner_id);
-  const [reactions, artistPlayers] = await Promise.all([
+  const featuredArtworkIds = view === "expanded"
+    ? [...new Set(records.flatMap(record => record.featured_artwork_id ? [record.featured_artwork_id] : []))]
+    : [];
+  const [reactions, artistPlayers, featuredArtworks] = await Promise.all([
     getCommunityReactionSummaries(database, "gallery", ownerIds, auth.session.playerId),
     database.collection<PlayerAccountRecord>("players")
       .find({ _id: { $in: ownerIds }, active: true, artist_id: { $type: "string", $ne: "" } })
       .project<Pick<PlayerAccountRecord, "_id">>({ _id: 1 })
       .toArray(),
+    featuredArtworkIds.length > 0
+      ? database.collection<Artwork>("artworks")
+        .find({ _id: { $in: featuredArtworkIds } })
+        .project<Pick<Artwork, "_id" | "feature_card_adjustment" | "thumbnail_adjustment">>({
+          _id: 1, feature_card_adjustment: 1, thumbnail_adjustment: 1,
+        })
+        .toArray()
+      : [],
   ]);
   const artistOwnerIds = new Set(artistPlayers.map(player => player._id));
+  const artworksById = new Map(featuredArtworks.map(artwork => [artwork._id, artwork]));
 
   return NextResponse.json({
     galleries: records.map((record) => ({
       ...record,
+      ...(view === "expanded" ? { featured_artwork: artworksById.get(record.featured_artwork_id ?? "") ?? null } : {}),
       isArtist: artistOwnerIds.has(record.owner_id),
       reactions: reactions.get(record.owner_id),
     })),

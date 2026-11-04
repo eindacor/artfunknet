@@ -12,6 +12,8 @@ import {
 } from "@/server/item-expiration";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
+import { recordTutorialAction } from "@/server/tutorial";
+import { TutorialElement } from "@/shared/tutorial";
 
 type PlayerRecord = {
   _id: string;
@@ -222,6 +224,7 @@ export async function POST() {
 
   return NextResponse.json({
     status: "ok",
+    tutorial: await recordTutorialAction(database, player._id, TutorialElement.TUTORIAL_CLAIM_ITEM),
     claimed: claimedItems.length,
     skipped,
     message,

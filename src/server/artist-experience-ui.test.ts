@@ -15,6 +15,8 @@ import { formatItemSerialNumber } from "./item-serial-format.ts";
 import { getItemAttributeCounts } from "./item-attribute-counts.ts";
 import type { Artwork } from "./gameplay.ts";
 import * as galleryFinishes from "./gallery-finishes.ts";
+import * as tutorialElements from "../shared/tutorial.ts";
+import { ART_DONOR_ATTRIBUTE_ID } from "./legendary-attributes.ts";
 
 const require = createRequire(import.meta.url);
 async function load<T>(relative: string, dependencies: Record<string, unknown> = {}, globals: Record<string, unknown> = {}) {
@@ -25,7 +27,15 @@ async function load<T>(relative: string, dependencies: Record<string, unknown> =
   return runInNewContext(`${code}\nexports`, {
     exports: {}, URL, Date, console, ...globals,
     require: (name: string) => {
-      const modules = { react: React, "react/jsx-runtime": require("react/jsx-runtime"), "next/link": require("next/link"), ...dependencies };
+      const modules = {
+        react: React, "react/jsx-runtime": require("react/jsx-runtime"), "next/link": require("next/link"),
+        "@/shared/tutorial": tutorialElements,
+        "@/server/legendary-attributes": { ART_DONOR_ATTRIBUTE_ID },
+        "@/components/tutorial/tutorial-provider": {
+          useTutorial: () => ({ showTutorial: () => false, fulfillTutorial: async () => false }),
+        },
+        ...dependencies,
+      };
       assert.ok(name in modules, `Unexpected dependency: ${name}`);
       return modules[name as keyof typeof modules];
     },
@@ -786,6 +796,8 @@ test("gallery previews track window height while artist introductions and owner 
       },
       "next/navigation": { useRouter: () => ({ replace: noop }) },
       "@/components/artwork-thumbnail": {}, "@/components/item-thumbnail": {},
+      "@/components/gallery-attraction-chart": {},
+      "@/components/item-cards/artwork-image-adjustments": imageAdjustments,
       "@/components/community-emotes": {}, "@/components/item-cards/item-card": {},
       "@/components/item-cards/shared": {},
       "@/components/public-gallery": { default: () => React.createElement("section", { className: "public-gallery-window" }) },
@@ -814,7 +826,7 @@ test("gallery previews track window height while artist introductions and owner 
     const html = renderToStaticMarkup(React.createElement(explorer.default, {
       impersonating: false, initialBankBalance: 0, initialGalleryId: "artist-player",
       initialSort: "score", initialViewMode: "grid", meetingNpc: null, npcSpawnIntervalMinutes: 5,
-      npcSpawnOptions: [], npcRewardEffects: {}, onMeetNpc: async () => false, onGoHome: noop,
+      npcSpawnOptions: [], visitorTypes: [], npcRewardEffects: {}, onMeetNpc: async () => false, onGoHome: noop,
       onViewSettingsChange: noop, socialBattery: 100, viewerId,
     }));
     if (viewerId === "artist-player") {
@@ -916,6 +928,8 @@ test("featured artist galleries open on an artist work while other galleries and
         },
         "next/navigation": { useRouter: () => ({ replace: noop }) },
         "@/components/artwork-thumbnail": {}, "@/components/item-thumbnail": { default: () => null },
+        "@/components/gallery-attraction-chart": {},
+        "@/components/item-cards/artwork-image-adjustments": imageAdjustments,
         "@/components/community-emotes": {}, "@/components/item-cards/shared": {},
         "@/components/item-cards/item-card": { default: ({ item }: { item: typeof artistPreview }) =>
           React.createElement("article", { "data-initial-preview": item._id }) },
@@ -946,7 +960,7 @@ test("featured artist galleries open on an artist work while other galleries and
         impersonating: false, initialBankBalance: 0, initialGalleryId: gallery.owner.playerId,
         initialItemId,
         initialSort: "score", initialViewMode: "grid", meetingNpc: null, npcSpawnIntervalMinutes: 5,
-        npcSpawnOptions: [], npcRewardEffects: {}, onMeetNpc: async () => false, onGoHome: noop,
+        npcSpawnOptions: [], visitorTypes: [], npcRewardEffects: {}, onMeetNpc: async () => false, onGoHome: noop,
         onViewSettingsChange: noop, socialBattery: 100, viewerId: "visitor",
       }));
     };
@@ -980,6 +994,34 @@ test("featured artist galleries open on an artist work while other galleries and
 
 test("gallery directory cards and rows distinguish contributing artists without changing player-only listings", async () => {
   const noop = () => {};
+  const navigations: string[] = [];
+  const cards: React.HTMLAttributes<HTMLElement>[] = [];
+  const helpButtons: React.ButtonHTMLAttributes<HTMLButtonElement>[] = [];
+  const jsxRuntime = require("react/jsx-runtime");
+  const captureElement = (type: unknown, props: React.HTMLAttributes<HTMLElement>, key?: string, staticChildren = false) => {
+    if (type === "article" && props.className?.startsWith("gallery-explorer-card")) cards.push(props);
+    if (type === "button" && props.className === "gallery-attraction-help") {
+      helpButtons.push(props as React.ButtonHTMLAttributes<HTMLButtonElement>);
+    }
+    return jsxRuntime[staticChildren ? "jsxs" : "jsx"](type, props, key);
+  };
+  const capturedRuntime = {
+    ...jsxRuntime, jsx: captureElement,
+    jsxs: (type: unknown, props: React.HTMLAttributes<HTMLElement>, key?: string) => captureElement(type, props, key, true),
+  };
+  const visitorTypes = [
+    { id: "collector", name: "Art Collector", icon: "fa-eye" },
+    { id: "donor", name: "Art Donor", icon: "fa-share-square" },
+  ];
+  const ratingColors = { ratingColor: () => "#f00" };
+  const chart = await load("../components/gallery-attraction-chart.tsx", {
+    "react/jsx-runtime": capturedRuntime,
+    "./item-cards/shared": ratingColors,
+    "./attribute/attribute": await load("../components/attribute/attribute.tsx", {
+      "@/components/item-cards/shared": ratingColors,
+    }),
+  });
+  const crops = [{ x: 40, y: -20, scale: 2 }, { x: -25, y: 30, scale: 1.5 }];
   const baseGallery = {
     schema_version: 4, value: 1000, score: 10, item_count: 2, display_count: 2,
     permanent_count: 0, display_capacity: 2, attributes: [], display_rarities: [],
@@ -989,8 +1031,18 @@ test("gallery directory cards and rows distinguish contributing artists without 
   const data = {
     featuredArtists: [], total: 2, page: 1, pageSize: 12,
     galleries: [
-      { ...baseGallery, _id: "artist-gallery", owner_id: "artist-player", owner: "Artist-Player", isArtist: true },
-      { ...baseGallery, _id: "ordinary-gallery", owner_id: "ordinary-player", owner: "Collector", isArtist: false },
+      { ...baseGallery, _id: "artist-gallery", owner_id: "artist-player", owner: "Artist-Player", isArtist: true,
+        featured_artwork_id: "feature-crop", featured_artwork: {
+          _id: "feature-crop", feature_card_adjustment: crops[0], thumbnail_adjustment: crops[1],
+        },
+        attributes: [{ id: "collector", title: "Collector", type: "npc", icon: "fa-eye",
+          count: 1, totalRating: 0.4, effectiveRating: 0.2 }] },
+      { ...baseGallery, _id: "ordinary-gallery", owner_id: "ordinary-player", owner: "Collector", isArtist: false,
+        featured_artwork_id: "thumbnail-fallback", featured_artwork: {
+          _id: "thumbnail-fallback", thumbnail_adjustment: crops[1],
+        },
+        attributes: [{ id: "collector", title: "Collector", type: "npc", icon: "fa-eye",
+          count: 2, totalRating: 1.6, effectiveRating: 0.8 }] },
     ],
   };
   const explorer = await load<typeof import("../app/play/galleries/gallery-explorer.tsx")>(
@@ -999,10 +1051,15 @@ test("gallery directory cards and rows distinguish contributing artists without 
         initial !== null && typeof initial === "object" && "galleries" in initial
           ? data : initial === true ? false : initial,
       ) },
-      "next/navigation": { useRouter: () => ({ replace: noop }) },
-      "@/components/artwork-thumbnail": {}, "@/components/item-thumbnail": {},
+      "react/jsx-runtime": capturedRuntime,
+      "next/navigation": { useRouter: () => ({ replace: (href: string) => navigations.push(href) }) },
+      "@/components/artwork-thumbnail": { default: ({ adjustment }: { adjustment: unknown }) =>
+        React.createElement("span", { "data-feature-crop": JSON.stringify(adjustment) }) },
+      "@/components/item-thumbnail": {},
+      "@/components/gallery-attraction-chart": chart,
+      "@/components/item-cards/artwork-image-adjustments": imageAdjustments,
       "@/components/community-emotes": { CommunityReactionPicker: () => null },
-      "@/components/item-cards/item-card": {}, "@/components/item-cards/shared": {},
+      "@/components/item-cards/item-card": {}, "@/components/item-cards/shared": ratingColors,
       "@/components/public-gallery": {}, "@/components/gallery-finish-menu": {},
       "@/components/use-gallery-visitors": {}, "@/server/social-battery": {},
       "@/server/npc-gameplay": { NPC_QUALITIES: [] }, "../auctions/auction-house": {},
@@ -1010,10 +1067,12 @@ test("gallery directory cards and rows distinguish contributing artists without 
     }, { URLSearchParams },
   );
   for (const initialViewMode of ["grid", "list"] as const) {
+    cards.length = 0;
+    helpButtons.length = 0;
     const html = renderToStaticMarkup(React.createElement(explorer.default, {
       impersonating: false, initialBankBalance: 0, initialGalleryId: null,
       initialSort: "score", initialViewMode, meetingNpc: null, npcSpawnIntervalMinutes: 5,
-      npcSpawnOptions: [], npcRewardEffects: {}, onMeetNpc: async () => false, onGoHome: noop,
+      npcSpawnOptions: [], visitorTypes, npcRewardEffects: {}, onMeetNpc: async () => false, onGoHome: noop,
       onViewSettingsChange: noop, socialBattery: 100, viewerId: "viewer",
     }));
     const articles = [...html.matchAll(/<article\b[^>]*>[\s\S]*?<\/article>/g)].map(match => match[0]);
@@ -1025,7 +1084,36 @@ test("gallery directory cards and rows distinguish contributing artists without 
     assert.match(articles[0], /@Artist-Player/);
     assert.doesNotMatch(articles[1], /gallery-explorer-artist|gallery-artist-badge|Contributing artist/);
     assert.match(articles[1], /@Collector/);
-    for (const article of articles) assert.match(article, /\$1,000/);
+    for (const [index, article] of articles.entries()) {
+      assert.match(article, /\$1,000/);
+      if (initialViewMode === "grid") {
+        assert.ok(article.includes(`data-feature-crop="${JSON.stringify(crops[index]).replaceAll('"', "&quot;")}"`),
+          "Cards reuse the Feature card adjustment, including its thumbnail fallback");
+        assert.ok(article.includes(`height:${index === 0 ? 20 : 80}%`), "Each card uses its own gallery's attraction");
+        assert.match(article, /Art Donor: 0 works, 0% effective attraction/);
+      } else {
+        assert.doesNotMatch(article, /gallery-attraction-chart|data-feature-crop/);
+      }
+    }
+    if (initialViewMode === "grid") {
+      const currentTarget = {} as HTMLElement;
+      const event = (target: HTMLElement, key: string) => ({
+        currentTarget, target, key, preventDefault: noop,
+      }) as React.KeyboardEvent<HTMLElement>;
+      for (const key of ["Enter", " "]) cards[0].onKeyDown!(event({} as HTMLElement, key));
+      assert.equal(navigations.length, 0, "Exploring chart controls must not open the gallery");
+      for (const key of ["Enter", " "]) cards[0].onKeyDown!(event(currentTarget, key));
+      assert.deepEqual(navigations, [
+        "/play?gallery=artist-player", "/play?gallery=artist-player",
+      ], "The card itself still opens with Enter and Space");
+      let stopped = false;
+      let focused = false;
+      helpButtons[0].onClick!({
+        stopPropagation: () => { stopped = true; },
+        currentTarget: { focus: () => { focused = true; } },
+      } as unknown as React.MouseEvent<HTMLButtonElement>);
+      assert.ok(stopped && focused, "Tapping chart help focuses its tooltip without clicking the surrounding card");
+    }
   }
 });
 

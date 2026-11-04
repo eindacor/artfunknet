@@ -3,6 +3,7 @@
 import ResponsiveMenu from "./responsive-menu";
 import ProgressBar from "./progress-bar/progress-bar";
 import { SOCIAL_BATTERY_MAX } from "@/server/social-battery";
+import { TutorialElement } from "@/shared/tutorial";
 
 const compactNumber = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 });
 
@@ -85,7 +86,10 @@ export default function PlayerDashboardToolbar({
             const count = tab.id === "loot" ? offerCount : tab.id === "archive" ? archiveCount : tab.id === "quests" ? questCount : 0;
             return (
               <button aria-current={section === tab.id ? "page" : undefined}
-                className={section === tab.id ? "current" : ""} key={tab.id}
+                className={section === tab.id ? "current" : ""}
+                data-tutorial-navigation={tab.id}
+                data-tutorial-element={tab.id === "loot" ? TutorialElement.TUTORIAL_SEE_OFFERS : undefined}
+                key={tab.id}
                 onClick={() => onSelect(tab.id)} type="button">
                 <i aria-hidden="true" className={`fa ${tab.icon}`} />
                 <span>{tab.label}</span>

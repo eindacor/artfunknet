@@ -10,7 +10,6 @@ import type { SupporterPromptState } from "@/server/supporter-prompt";
 
 import NotificationCenter from "./notification-center";
 import PlayerHeaderContent from "@/components/player-header/player-header";
-import TutorialDialog from "@/components/tutorial-dialog/tutorial-dialog";
 import SupporterPromptDialog from "@/components/supporter-prompt-dialog";
 
 type PlayerHeaderProps =
@@ -27,7 +26,6 @@ type AuthenticatedHeaderContentProps = {
   impersonating: boolean;
   isArtist?: boolean;
   supporterStatus?: SupporterStatus | null;
-  tutorialSeen?: boolean;
   supporterPrompt?: SupporterPromptState & { bonusCommemorationItems: number };
 };
 
@@ -59,15 +57,8 @@ export default function PlayerHeader(props: PlayerHeaderProps) {
 function AuthenticatedHeaderContent(props: AuthenticatedHeaderContentProps) {
   const router = useRouter();
   const [error, setError] = useState("");
-  const [tutorialMode, setTutorialMode] = useState<"automatic" | "replay">(
-    "automatic",
-  );
-  const [tutorialOpen, setTutorialOpen] = useState(
-    props.tutorialSeen === false,
-  );
-  const [tutorialSeen, setTutorialSeen] = useState(
-    props.tutorialSeen === true,
-  );
+  const [tutorialRestarting, setTutorialRestarting] = useState(false);
+  const tutorialRestartInFlight = useRef(false);
   const [acknowledgedSupporterPromptPeriod, setAcknowledgedSupporterPromptPeriod] =
     useState<string | null>(null);
   const [accountSummary, setAccountSummary] = useState<{
@@ -193,22 +184,26 @@ function AuthenticatedHeaderContent(props: AuthenticatedHeaderContentProps) {
     }
   }
 
-  async function closeTutorial() {
-    if (tutorialMode === "automatic" && !tutorialSeen) {
+  async function restartWalkthrough() {
+    if (tutorialRestartInFlight.current) return;
+    tutorialRestartInFlight.current = true;
+    setTutorialRestarting(true);
+    setError("");
+    try {
       const response = await fetch("/api/play/tutorial", {
-        method: "PATCH",
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "restart" }),
       });
-      if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as {
-          error?: string;
-        } | null;
-        throw new Error(
-          body?.error ?? "The tutorial completion could not be saved.",
-        );
-      }
-      setTutorialSeen(true);
+      const body = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(body.error ?? "The walkthrough could not be started.");
+      router.push("/play");
+      router.refresh();
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : "The walkthrough could not be started.");
+    } finally {
+      tutorialRestartInFlight.current = false;
+      setTutorialRestarting(false);
     }
-    setTutorialOpen(false);
   }
 
   async function acknowledgeSupporterPrompt() {
@@ -244,23 +239,13 @@ function AuthenticatedHeaderContent(props: AuthenticatedHeaderContentProps) {
         notifications={
           <NotificationCenter initialNotifications={initialNotifications} />
         }
-        onOpenTutorial={
-          props.tutorialSeen === undefined
-            ? undefined
-            : () => {
-                setTutorialMode("replay");
-                setTutorialOpen(true);
-              }
-        }
         onSignOut={logout}
+        onRestartTutorial={!props.isArtist ? restartWalkthrough : undefined}
+        tutorialRestarting={tutorialRestarting}
         supporterStatus={displayedSupporterStatus}
       />
-      {tutorialOpen ? (
-        <TutorialDialog onClose={closeTutorial} />
-      ) : null}
       {supporterPrompt?.required &&
       displayedSupporterStatus === null &&
-      !tutorialOpen &&
       (!acknowledgedSupporterPromptPeriod ||
         acknowledgedSupporterPromptPeriod < supporterPrompt.period) ? (
         <SupporterPromptDialog

@@ -88,6 +88,10 @@ import { getCommemorateItemLimit } from "@/server/vintage-gameplay";
 import { getSupporterPromptState } from "@/server/supporter-prompt";
 
 import GameDashboard from "./game-dashboard";
+import { getPlayerTutorial, type TutorialProgress } from "@/shared/tutorial";
+import { resumeTutorial } from "@/server/tutorial";
+import { TutorialProvider } from "@/components/tutorial/tutorial-provider";
+import TutorialCoach from "@/components/tutorial/tutorial-coach";
 import PlayerHeader from "./player-header";
 
 type Player = {
@@ -97,7 +101,7 @@ type Player = {
   screen_name: string;
   artist_id?: string;
   test_account?: boolean;
-  tutorial_seen?: boolean;
+  tutorial?: TutorialProgress;
   oauth_screen_name_pending?: boolean;
   patreon?: {
     is_supporter?: boolean;
@@ -123,10 +127,6 @@ type Player = {
     auction_cap: number;
     completed_quests?: number;
     karma?: number;
-    tutorial_data: {
-      current_tutorial?: string;
-      step: number;
-    };
     card_style_consumables?: Record<string, number>;
     social_battery?: number;
     social_battery_reset_at?: string;
@@ -240,6 +240,7 @@ export default async function PlayerPage({
   if (!player) {
     notFound();
   }
+  const tutorialProgress = await resumeTutorial(database, player._id, getPlayerTutorial(player));
   const galleryFinishes = await getPlayerGalleryFinishes(
     database,
     player._id,
@@ -441,7 +442,7 @@ export default async function PlayerPage({
     auctionEscrow,
   ] =
     await Promise.all([
-    getGalleryNpcs(database, player._id),
+    getGalleryNpcs(database, player._id, new Date(), player._id),
     getPlayerNotifications(database, player._id),
     database
       .collection<ItemAttribute>("attributes")
@@ -544,8 +545,8 @@ export default async function PlayerPage({
           ...getSupporterPromptState(player),
           bonusCommemorationItems: config.commemorateRareSupporterBonusCount,
         }}
-        tutorialSeen={player.tutorial_seen === true}
       />
+      <TutorialProvider initialProgress={tutorialProgress} key={player._id}>
       <GameDashboard
         initialNow={new Date().getTime()}
         offerRevealThresholds={config.offerRevealThresholds}
@@ -649,6 +650,8 @@ export default async function PlayerPage({
         vintageConsiderationCount={config.vintageConsiderationCount}
         commemorateItemCount={commemorateItemCount}
       />
+      <TutorialCoach />
+      </TutorialProvider>
     </div>
   );
 }

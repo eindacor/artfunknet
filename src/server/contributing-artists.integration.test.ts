@@ -24,6 +24,8 @@ import { MASTERPIECE_EFFECT_CODES } from "./masterpiece-effects.ts";
 import * as masterpieceEffects from "./masterpiece-effects.ts";
 import * as legendary from "./legendary-attributes.ts";
 import * as npcGameplay from "./npc-gameplay.ts";
+import * as tutorial from "./tutorial.ts";
+import * as tutorialElements from "../shared/tutorial.ts";
 import * as artworkEffects from "./artwork-effects.ts";
 import * as rareSpecialAttributes from "./rare-special-attributes.ts";
 import * as itemArtwork from "./item-artwork.ts";
@@ -121,7 +123,7 @@ test("artist applications, publication and featured galleries persist without gr
     assert.equal(player?.artist_id, id);
     assert.equal(player?.screen_name, applicationInput.screenName);
     assert.ok(player?.profile.inventory_cap > 0);
-    assert.equal(await documents(db, "items").countDocuments({ owner: player!._id }), 12);
+    assert.equal(await documents(db, "items").countDocuments({ owner: player!._id }), 6);
     assert.equal(artistTypes.getPlayerLandingPath(player!), "/artist");
     assert.ok(await documents(db, "artists").findOne({ _id: id, player_id: player!._id }));
     assert.equal((await documents(db, "artist_applications").findOne({ _id: id }))?.credentials, undefined);
@@ -851,6 +853,7 @@ test("artist applications, publication and featured galleries persist without gr
     const meet = await load<{ POST: (request: Request, context: { params: Promise<{ id: string }> }) => Promise<Response> }>(
       "../app/api/play/npcs/[id]/meet/route.ts", {
         "next/server": { NextResponse }, "@/server/economy-metrics": {},
+        "@/server/tutorial": tutorial, "@/shared/tutorial": tutorialElements,
         "@/server/item-permissions": { getItemDisposalFilter },
         "@/server/gallery-metadata": { refreshGalleryMetadata: async () => {} },
         "@/server/game-settings": settingsCore, "@/server/collector-gameplay": {}, "@/server/art-expert-gameplay": {},

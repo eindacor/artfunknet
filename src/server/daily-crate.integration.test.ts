@@ -1,12 +1,18 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { MongoClient } from "mongodb";
+import { runInNewContext } from "node:vm";
+import { MongoClient, type Db } from "mongodb";
 import { MongoMemoryServer } from "mongodb-memory-server";
+import ts from "typescript";
 
 import { migrateDailyCrateClaims } from "../../scripts/database-migrations.mjs";
+import * as tutorialElements from "../shared/tutorial.ts";
 import {
+  getDailyCrateItemCount,
   getPlayerDailyCrateState,
   initializeDailyCrateTimeZone,
+  normalizeDailyCrateTimeZone,
   releaseDailyCrateClaim,
   reserveDailyCrateClaim,
   type DailyCrateMetadata,
@@ -22,6 +28,40 @@ type Player = {
     view_settings?: { cratePurchaseCount: number };
   };
 };
+
+async function loadDropRoute(
+  database: Db,
+  generateDailyDrop: (db: Db, playerId: string, level: number, options: { itemCount: number }) => Promise<{ _id: string }[]>,
+) {
+  const dependencies: Record<string, unknown> = {
+    "next/server": { NextResponse: { json: (body: unknown, init?: ResponseInit) => Response.json(body, init) } },
+    "@/server/daily-crate": {
+      getDailyCrateItemCount, initializeDailyCrateTimeZone, normalizeDailyCrateTimeZone,
+      releaseDailyCrateClaim, reserveDailyCrateClaim,
+    },
+    "@/server/game-settings": {
+      getGameplaySettings: async () => ({ active: { dailyDropCount: 50, mintValueMultiplier: 1 }, debugEnabled: false }),
+      getGameplayGenerationMap: () => ({}),
+    },
+    "@/server/gameplay": { generateDailyDrop },
+    "@/server/mongodb": { getDatabase: async () => database },
+    "@/server/item-expiration": { getUnclaimedItemExpiration: () => "2999-01-01T00:00:00.000Z" },
+    "@/server/player-api": { requirePlayerApi: async () => ({ ok: true, session: { playerId: "owner" } }) },
+    "@/server/tutorial": { recordTutorialAction: async () => undefined },
+    "@/shared/tutorial": tutorialElements,
+  };
+  const code = ts.transpileModule(
+    await readFile(new URL("../app/api/play/drop/route.ts", import.meta.url), "utf8"),
+    { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } },
+  ).outputText;
+  return runInNewContext(`${code}\nexports.POST`, {
+    exports: {}, Date, console: { error() {} },
+    require: (name: string) => {
+      assert.ok(name in dependencies, `Unexpected daily-drop dependency: ${name}`);
+      return dependencies[name];
+    },
+  }) as () => Promise<Response>;
+}
 
 test("daily crates migrate legacy history, save one timezone and reserve one claim per local-noon period", async (t) => {
   const server = await MongoMemoryServer.create();
@@ -105,6 +145,44 @@ test("daily crates migrate legacy history, save one timezone and reserve one cla
     assert.ok(next);
     await releaseDailyCrateClaim(db, retried);
     assert.equal((await getPlayerDailyCrateState(db, "owner"))?.lastClaimedAt, next.state.lastClaimedAt);
+  });
+
+  await t.test("the first successful drop gives eight items, retries preserve it, and later or legacy claims use normal counts", async () => {
+    const db = client.db("daily-crate-item-counts");
+    const players = db.collection<Player>("players");
+    await players.insertOne({
+      _id: "owner", active: true, profile: { level: 0, daily_crate: { time_zone: "UTC", last_claimed_at: null } },
+    });
+    const counts: number[] = [];
+    let fail = true;
+    const drop = await loadDropRoute(db, async (_database, _playerId, _level, { itemCount }) => {
+      counts.push(itemCount);
+      if (fail) throw new Error("Generation failed");
+      return Array.from({ length: itemCount }, (_, index) => ({ _id: `item-${index}` }));
+    });
+    assert.equal((await drop()).status, 500);
+    assert.equal((await getPlayerDailyCrateState(db, "owner"))?.lastClaimedAt, null);
+    fail = false;
+    const responses = await Promise.all(Array.from({ length: 10 }, () => drop()));
+    assert.equal(responses.filter(response => response.status === 200).length, 1);
+    assert.equal(responses.filter(response => response.status === 409).length, 9);
+    const first = await responses.find(response => response.status === 200)!.json();
+    assert.equal(first.itemCount, 8);
+    assert.equal(first.item_ids.length, 8);
+    assert.deepEqual(counts, [8, 8], "Only a failed attempt and the successful retry may generate the first drop");
+    assert.ok((await getPlayerDailyCrateState(db, "owner"))?.lastClaimedAt);
+
+    const previous = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+    await players.updateOne({ _id: "owner" }, { $set: { "profile.daily_crate.last_claimed_at": previous } });
+    assert.equal((await (await drop()).json()).itemCount, 50);
+    await players.updateOne({ _id: "owner" }, {
+      $unset: { "profile.daily_crate.last_claimed_at": "" }, $set: { "profile.last_drop": previous },
+    });
+    assert.equal((await (await drop()).json()).itemCount, 50, "Migrated legacy claims must not count as a first drop");
+    assert.equal((await players.findOne({ _id: "owner" }))?.profile.last_drop, undefined);
+    await players.updateOne({ _id: "owner" }, { $unset: { "profile.daily_crate.last_claimed_at": "" } });
+    assert.equal((await (await drop()).json()).itemCount, 8, "An absent claim timestamp also means no prior drop");
+    assert.deepEqual(counts, [8, 8, 50, 50, 8]);
   });
 
   await t.test("missing, inactive or unconfigured accounts cannot reserve crates", async () => {

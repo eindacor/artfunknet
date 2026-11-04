@@ -16,7 +16,6 @@ type Player = {
   screen_name: string;
   artist_id?: string;
   test_account?: boolean;
-  tutorial_seen?: boolean;
   profile: {
     bank_balance: number;
     lottery_tickets: number;
@@ -72,7 +71,6 @@ export default async function CardCosmeticStorePage() {
         lotteryTickets={player.profile.lottery_tickets}
         impersonating={Boolean(adminSession && player.test_account)}
         isArtist={Boolean(player.artist_id)}
-        tutorialSeen={player.tutorial_seen === true}
       />
       <CosmeticStore
         activeRendererIds={rendererSettings.activeRendererIds}
