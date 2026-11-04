@@ -1,7 +1,20 @@
 import type { Filter } from "mongodb";
 
 import { sanitizePlayerFacingAuthenticity } from "./forgery-gameplay.ts";
-import type { GameItem } from "./gameplay.ts";
+import type { Artwork, GameItem } from "./gameplay.ts";
+
+export function prepareArtworkForPublicViewer(artwork: Artwork): Artwork {
+  const {
+    _id, artist_id, artist, title, date, genre, medium, rarity, value_scale, height, width, active,
+    image, effect_id, art_style_adjustments, detail_image_adjustments, thumbnail_adjustment,
+    feature_card_adjustment, special_attributes, unique_attributes,
+  } = artwork;
+  return {
+    _id, artist_id, artist, title, date, genre, medium, rarity, value_scale, height, width, active,
+    image, effect_id, art_style_adjustments, detail_image_adjustments, thumbnail_adjustment,
+    feature_card_adjustment, special_attributes, unique_attributes,
+  };
+}
 
 export function getPublicGalleryItemFilter(
   playerId: string,

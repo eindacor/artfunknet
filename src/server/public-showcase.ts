@@ -88,7 +88,7 @@ export async function getPublicGalleryView(
   const owner = await database
     .collection<PublicPlayerRecord>("players")
     .findOne(
-      { _id: playerId, active: true },
+      { _id: playerId, active: true, account_deletion: { $ne: true } },
       {
         projection: {
           _id: 1,

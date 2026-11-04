@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -19,10 +19,12 @@ import {
 export default function GalleryFinishMenu({
   finishes,
   galleryId,
+  header,
   onChange,
 }: {
   finishes: GalleryFinishes;
   galleryId: string;
+  header?: ReactNode;
   onChange: (finishes: GalleryFinishes) => void;
 }) {
   const router = useRouter();
@@ -87,6 +89,7 @@ export default function GalleryFinishMenu({
       aria-label="Gallery finishes"
       className="visited-gallery-player-panel gallery-finish-panel"
     >
+      {header}
       <form onSubmit={(event) => {
         event.preventDefault();
         void save();

@@ -10,7 +10,7 @@ import { getDatabase } from "@/server/mongodb";
 import { getPlayerLandingPath } from "@/server/artist-types";
 
 export default async function PlayerLoginPage({ searchParams }: {
-  searchParams: Promise<{ oauth?: string | string[]; provider?: string | string[] }>;
+  searchParams: Promise<{ oauth?: string | string[]; provider?: string | string[]; mode?: string | string[] }>;
 }) {
   const session = await getPlayerSession();
   if (session) {
@@ -31,6 +31,7 @@ export default async function PlayerLoginPage({ searchParams }: {
         </p>
       </div>
       <PlayerLoginForm
+        initialRegistering={params.mode === "register"}
         message={getOAuthMessage(
           Array.isArray(params.oauth) ? params.oauth[0] : params.oauth,
           Array.isArray(params.provider) ? params.provider[0] : params.provider,

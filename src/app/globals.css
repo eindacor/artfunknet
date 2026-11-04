@@ -3345,6 +3345,71 @@ a.welcome-button {
   margin: 0;
 }
 
+.gallery-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gallery-title h1 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.gallery-share {
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  padding: 6px;
+  background: transparent;
+  color: #676158;
+  cursor: pointer;
+}
+
+.gallery-share:hover,
+.gallery-share:focus-visible {
+  color: var(--accent);
+}
+
+.gallery-share:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.visited-gallery-metadata-header .gallery-share-error {
+  margin: 8px 0;
+  color: #a12b35;
+  font: 0.75rem Courier, monospace;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.gallery-share-error a {
+  text-decoration: underline;
+}
+
+.public-gallery-join {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  border: 2px solid #30222c;
+  padding: clamp(18px, 3vw, 32px);
+  background: #fff2fc;
+  color: #30222c;
+  text-align: center;
+}
+
+.public-gallery-join p {
+  margin: 0;
+}
+
+.public-gallery-join .player-signup {
+  padding: 16px 24px;
+  font-size: clamp(1rem, 2vw, 1.25rem);
+}
+
 .visited-gallery-workspace {
   display: grid;
   grid-template-areas:
@@ -3469,6 +3534,14 @@ a.welcome-button {
     "gallery gallery preview"
     "showcase showcase showcase"
     "player player chat";
+}
+
+.anonymous-gallery-page .visited-gallery-workspace {
+  grid-template-areas: "gallery gallery preview" "player player player";
+}
+
+.anonymous-gallery-page .visited-artist-gallery .visited-gallery-workspace {
+  grid-template-areas: "gallery gallery preview" "showcase showcase showcase" "player player player";
 }
 
 .visited-artist-gallery .visited-gallery-player-panel {
@@ -4069,6 +4142,14 @@ a.welcome-button {
       "player"
       "chat";
     grid-template-columns: 1fr;
+  }
+
+  .anonymous-gallery-page .visited-gallery-workspace {
+    grid-template-areas: "gallery" "preview" "player";
+  }
+
+  .anonymous-gallery-page .visited-artist-gallery .visited-gallery-workspace {
+    grid-template-areas: "gallery" "preview" "showcase" "player";
   }
 
   .visited-gallery-player-panel {

@@ -430,8 +430,7 @@ test("artist applications, publication and featured galleries persist without gr
     });
     let viewerId = "ordinary-player";
     const playerApi = { requirePlayerApi: async () => ({ ok: true, session: { playerId: viewerId } }) };
-    const route = await load<typeof import("../app/api/play/galleries/[playerId]/route.ts")>(
-      "../app/api/play/galleries/[playerId]/route.ts", {
+    const galleryDependencies = {
         "next/server": { NextResponse }, "@/server/gallery-metadata": metadata,
         "@/server/community-reactions": { getCommunityReactionSummary: async () => ({ counts: [], viewerReaction: null }) },
         "@/server/artwork-effects": artworkEffects, "@/server/item-artwork": itemArtwork,
@@ -439,8 +438,14 @@ test("artist applications, publication and featured galleries persist without gr
         "@/server/player-api": playerApi, "@/server/player-gallery-finishes": playerGalleryFinishes,
         "@/server/public-showcase": publicShowcase, "@/server/public-showcase-core": publicShowcaseCore,
         "@/server/contributing-artists": artists, "@/server/artist-artwork-preview": { createArtistArtworkPreview },
-      },
-    );
+    };
+    const exhibition = await load<typeof import("./gallery-exhibition.ts")>("./gallery-exhibition.ts", {
+      "server-only": {}, ...galleryDependencies,
+    });
+    const route = await load<typeof import("../app/api/play/galleries/[playerId]/route.ts")>(
+      "../app/api/play/galleries/[playerId]/route.ts", {
+        ...galleryDependencies, "@/server/gallery-exhibition": exhibition,
+      });
     const get = async (playerId = account.id) => {
       const response = await route.GET(new Request("http://localhost/api/play/galleries"), { params: Promise.resolve({ playerId }) });
       assert.equal(response.status, 200);
@@ -455,6 +460,47 @@ test("artist applications, publication and featured galleries persist without gr
     assert.equal(gallery.metadata.item_count, 2, "Unowned showcase previews do not boost game gallery metadata");
     assert.equal(gallery.metadata.permanent_count, 1);
     assert.equal(gallery.galleryId, "artist-existing-gallery");
+    await documents(db, "artworks").updateOne({ _id: acquired._id }, { $set: {
+      artist_license: { private: "private-license" }, submitted_by: "private-submitter", created_by: "private-admin",
+    } });
+    const anonymous = await exhibition.getGalleryExhibition(db, account.id, null);
+    assert.ok(anonymous);
+    assert.deepEqual(Array.from(anonymous.items, item => item._id).sort(), ["artist-preview:uploaded", "featured-copy", "permanent-copy"]);
+    assert.equal(anonymous.items.find(item => item._id === "featured-copy")?.owner, "unknown");
+    assert.equal(anonymous.metadata?.reactions, null);
+    assert.doesNotMatch(JSON.stringify(anonymous), /private-inventory|private-license|private-submitter|private-admin|password_hash|password_salt/);
+    assert.equal("npcs" in anonymous, false);
+    let signedIn: string | null = null;
+    const page = await load<typeof import("../app/gallery/[playerId]/page.tsx")>("../app/gallery/[playerId]/page.tsx", {
+      "next/navigation": {
+        redirect: (href: string) => { throw new Error(`Redirect: ${href}`); },
+        notFound: () => { throw new Error("Not found"); },
+      },
+      "react/jsx-runtime": require("react/jsx-runtime"),
+      "@/server/mongodb": { getDatabase: async () => db },
+      "@/server/session": { getPlayerSession: async () => signedIn ? { playerId: signedIn } : null },
+      "@/server/gallery-exhibition": exhibition,
+      "./anonymous-gallery-view": { default: () => null },
+    });
+    for (const id of [account.id, "ordinary-player"]) {
+      const element = await page.default({ params: Promise.resolve({ playerId: id }) });
+      assert.equal(element.props.gallery.owner.playerId, id);
+      assert.equal(element.props.gallery.artist?.id ?? null, id === account.id ? account.artistId : null);
+      signedIn = "ordinary-player";
+      await assert.rejects(page.default({ params: Promise.resolve({ playerId: id }) }), {
+        message: `Redirect: /play?gallery=${encodeURIComponent(id)}`,
+      });
+      signedIn = null;
+    }
+    await assert.rejects(page.default({ params: Promise.resolve({ playerId: "missing" }) }), /Not found/);
+    for (const fields of [{ active: false }, { active: true, account_deletion: true }]) {
+      await documents(db, "players").updateOne({ _id: "ordinary-player" }, { $set: fields });
+      await assert.rejects(page.default({ params: Promise.resolve({ playerId: "ordinary-player" }) }), /Not found/);
+      assert.equal(await exhibition.getGalleryExhibition(db, "ordinary-player", null), null);
+    }
+    await documents(db, "players").updateOne({ _id: "ordinary-player" }, {
+      $set: { active: true }, $unset: { account_deletion: "" },
+    });
     const ownWork = {
       ...createArtistArtworkPreview(uploaded), _id: "own-work-copy", owner: account.id,
       status: "claimed", original: true, values: { ...featured.values, actual: 456 },

@@ -95,6 +95,7 @@ async function routes(db: Db, overrides: Record<string, unknown> = {}) {
     "@/server/community-reactions": { getCommunityReactionSummary: async () => ({ counts: [] }) },
     "@/server/player-gallery-finishes": { getPlayerGalleryFinishes: async () => ({}) },
     "@/server/public-showcase": { getPublicGalleryView: async () => ({ items: [], owner: { playerId: "player" } }) },
+    "@/server/gallery-exhibition": { getGalleryExhibition: async () => ({ items: [], owner: { playerId: "player" } }) },
     "@/server/public-showcase-core": {},
     "@/server/contributing-artists": { getPublicArtistProfile: async () => null, getArtistWorks: async () => [] },
     "@/server/artist-artwork-preview": { createArtistArtworkPreview },

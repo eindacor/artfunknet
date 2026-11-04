@@ -7,14 +7,16 @@ import { OAUTH_PROVIDERS, type OAuthProvider } from "@/server/oauth-providers";
 export default function PlayerLoginForm({
   message,
   providers,
+  initialRegistering = false,
 }: {
   message: string | null;
   providers: Record<OAuthProvider, boolean>;
+  initialRegistering?: boolean;
 }) {
   const router = useRouter();
   const [error, setError] = useState(message ?? "");
   const [submitting, setSubmitting] = useState(false);
-  const [registering, setRegistering] = useState(false);
+  const [registering, setRegistering] = useState(initialRegistering);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

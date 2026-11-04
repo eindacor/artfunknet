@@ -51,7 +51,7 @@ export function ArtistGalleryIntroduction({ artist }: { artist: PublicArtistProf
 
 export function ArtistGalleryShowcase({ artist, works, legendaryAttributes, onPreview, viewerId }: {
   artist: PublicArtistProfile; works: Artwork[]; legendaryAttributes: CardLegendaryAttribute[];
-  onPreview: (item: HydratedGameItem) => void; viewerId: string;
+  onPreview: (item: HydratedGameItem) => void; viewerId: string | null;
 }) {
   return <section className="artist-gallery-showcase" aria-label={`${artist.name}'s artist showcase`}>
     <section className="artist-work-showcase">

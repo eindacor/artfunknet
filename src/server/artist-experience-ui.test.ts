@@ -17,9 +17,17 @@ import type { Artwork } from "./gameplay.ts";
 import * as galleryFinishes from "./gallery-finishes.ts";
 import * as tutorialElements from "../shared/tutorial.ts";
 import { ART_DONOR_ATTRIBUTE_ID } from "./legendary-attributes.ts";
+import * as galleryLayout from "../components/gallery-layout.ts";
+import * as oauthProviders from "./oauth-providers.ts";
 
 const require = createRequire(import.meta.url);
 async function load<T>(relative: string, dependencies: Record<string, unknown> = {}, globals: Record<string, unknown> = {}) {
+  if (relative === "../app/play/galleries/gallery-explorer.tsx") {
+    dependencies = {
+      ...dependencies,
+      "@/components/gallery-exhibition": await load("../components/gallery-exhibition.tsx", dependencies, globals),
+    };
+  }
   const source = await readFile(new URL(relative, import.meta.url), "utf8");
   const code = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
@@ -838,6 +846,8 @@ test("gallery previews track window height while artist introductions and owner 
       assert.doesNotMatch(html, /Gallery finishes|Save finishes/);
       assert.match(html, isArtist ? /Artist&#x27;s Gallery/ : /Artist-Player&#x27;s Gallery/);
     }
+    assert.match(html, /<h1>[^<]+&#x27;s Gallery<\/h1><button aria-label="Copy gallery link" class="gallery-share"/);
+    assert.doesNotMatch(html, /Public gallery link|>Copy gallery link<\/button>/);
     if (isArtist) {
       const introductionIndex = html.indexOf('class="artist-gallery-introduction"');
       assert.ok(introductionIndex >= 0);
@@ -989,6 +999,148 @@ test("featured artist galleries open on an artist work while other galleries and
       assert.ok(previewed.includes(`data-initial-focus="${displayedId}"`));
     }
     if (typeof cleanup === "function") cleanup();
+  }
+});
+
+test("the discreet gallery link copies the public URL and offers a link if clipboard access fails", async () => {
+  const states: unknown[] = [];
+  let stateIndex = 0;
+  let clipboardUrl = "";
+  let failCopy = false;
+  const exhibition = await load<typeof import("../components/gallery-exhibition.tsx")>("../components/gallery-exhibition.tsx", {
+    react: {
+      ...React,
+      useState: (initial: unknown) => {
+        const index = stateIndex++;
+        if (!(index in states)) states[index] = initial;
+        return [states[index], (value: unknown) => { states[index] = value; }];
+      },
+      useEffect: () => {},
+      useRef: () => ({ current: null }),
+    },
+    "@/components/artist-gallery": {}, "@/components/community-emotes": {},
+    "@/components/item-cards/item-card": {}, "@/components/item-cards/shared": {},
+    "@/components/item-thumbnail": {}, "@/components/public-gallery": { default: () => null },
+  }, {
+    window: { location: { origin: "https://gallery.example" } },
+    navigator: { clipboard: { writeText: async (value: string) => {
+      if (failCopy) throw new Error("Clipboard permission denied");
+      clipboardUrl = value;
+    } } },
+  });
+  const props: React.ComponentProps<typeof exhibition.default> = {
+    gallery: {
+      galleryId: "gallery", owner: { playerId: "owner / id", screenName: "Collector", level: 1, vintageLevel: 0 },
+      finishes: galleryFinishes.DEFAULT_GALLERY_FINISHES, artist: null, artistWorks: [],
+      items: [], auctions: [], legendaryAttributes: [], metadata: null,
+    },
+    viewerId: null, selectedItem: null, onSelectItem: () => {},
+  };
+  type Element = React.ReactElement<Record<string, unknown>>;
+  function elements(node: React.ReactNode): Element[] {
+    if (Array.isArray(node)) return node.flatMap(elements);
+    if (!React.isValidElement<Record<string, unknown>>(node)) return [];
+    return [node, ...elements(node.props.children as React.ReactNode)];
+  }
+  const render = () => {
+    stateIndex = 0;
+    return exhibition.default(props);
+  };
+  for (const denied of [false, true, false]) {
+    failCopy = denied;
+    const button = elements(render()).find(element => element.props["aria-label"] === "Copy gallery link");
+    assert.ok(button);
+    await (button.props.onClick as () => Promise<void>)();
+    const html = renderToStaticMarkup(render());
+    if (denied) {
+      assert.match(html, /role="alert"/);
+      assert.match(html, /href="\/gallery\/owner%20%2F%20id"/);
+      assert.doesNotMatch(html, /fa-check|Gallery link copied/);
+    } else {
+      assert.equal(clipboardUrl, "https://gallery.example/gallery/owner%20%2F%20id");
+      assert.match(html, /fa-check/);
+      assert.match(html, /role="status">Gallery link copied\./);
+      assert.doesNotMatch(html, /role="alert"/);
+    }
+  }
+});
+
+test("anonymous galleries reuse the exhibition and painting controls without visitors, chat, bidding, or gallery navigation", async () => {
+  const view = await load<typeof import("../components/gallery-view.tsx")>("../components/gallery-view.tsx", {
+    "next/image": require("next/image"), "./gallery-layout": galleryLayout,
+    "@/server/gallery-finishes": galleryFinishes, "@/server/artwork-image-url": imageUrls,
+  });
+  const publicGallery = await load<typeof import("../components/public-gallery.tsx")>("../components/public-gallery.tsx", {
+    "./gallery-view": view,
+    "./item-cards/selection": {},
+    "./item-cards/standard-item-dialog": {},
+  });
+  const card = { default: ({ item }: { item: ReturnType<typeof createArtistArtworkPreview> }) =>
+    React.createElement("article", { "data-preview": item._id }, item.artwork.title) };
+  const artistComponents = await load<typeof import("../components/artist-gallery.tsx")>("../components/artist-gallery.tsx", {
+    "./artwork-thumbnail": {}, "./item-cards/item-card": card,
+    "@/server/artist-artwork-preview": { createArtistArtworkPreview },
+  });
+  const exhibition = await load<typeof import("../components/gallery-exhibition.tsx")>("../components/gallery-exhibition.tsx", {
+    "@/components/artist-gallery": artistComponents,
+    "@/components/community-emotes": {}, "@/components/item-cards/item-card": card,
+    "@/components/item-cards/shared": {}, "@/components/item-thumbnail": {},
+    "@/components/public-gallery": publicGallery,
+  });
+  const header = await load<typeof import("../app/play/player-header.tsx")>("../app/play/player-header.tsx", {
+    "next/navigation": { useRouter: () => ({}) }, "./notification-center": {},
+    "@/components/player-header/player-header": {}, "@/components/supporter-prompt-dialog": {},
+  });
+  const anonymous = await load<typeof import("../app/gallery/[playerId]/anonymous-gallery-view.tsx")>(
+    "../app/gallery/[playerId]/anonymous-gallery-view.tsx", {
+      "@/components/gallery-exhibition": exhibition, "../../play/player-header": header,
+    });
+  const work: Artwork = {
+    _id: "public-work", artist_id: "artist-id", artist: "Public Artist", title: "Public Artwork", date: 2026,
+    rarity: "common", genre: "Abstract", medium: "Oil", value_scale: 0.5, width: 80, height: 100, active: true,
+  };
+  const artist: PublicArtistProfile = {
+    id: "artist-id", playerId: "gallery-owner", name: "Public Artist", bio: "A public portfolio.",
+    portfolioUrl: "https://portfolio.example.com/", socialLinks: {}, instagramUsername: null, featured: false,
+  };
+  for (const profile of [artist, null]) {
+    const html = renderToStaticMarkup(React.createElement(anonymous.default, { gallery: {
+      artist: profile, artistWorks: profile ? [work] : [],
+      galleryId: "public-gallery", finishes: galleryFinishes.DEFAULT_GALLERY_FINISHES,
+      owner: { playerId: "gallery-owner", screenName: "Collector", level: 1, vintageLevel: 0 },
+      items: [createArtistArtworkPreview(work)], auctions: [], legendaryAttributes: [], metadata: null,
+    } }));
+    assert.match(html, /Public Artwork/);
+    assert.match(html, /Previous painting/);
+    assert.match(html, /Next painting/);
+    assert.match(html, /Copy gallery link/);
+    assert.match(html, /<h1>[^<]+&#x27;s Gallery<\/h1><button aria-label="Copy gallery link" class="gallery-share"/);
+    assert.doesNotMatch(html, /Public gallery link|>Copy gallery link<\/button>/);
+    assert.match(html, /Join artfunkel - create a free account/);
+    assert.match(html, /href="\/play\/login\?mode=register"/);
+    assert.doesNotMatch(html, /Gallery visitors|gallery-chat|Gallery navigation|Previous gallery|Next gallery|Exit gallery|Return home|Gallery finishes/);
+    if (profile) {
+      assert.match(html, /A public portfolio\./);
+      assert.match(html, /href="https:\/\/portfolio.example.com\/"/);
+      assert.match(html, /artist-gallery-showcase/);
+    } else assert.match(html, /Collector&#x27;s Gallery/);
+  }
+});
+
+test("the public gallery Join link opens the existing account form in registration mode", async () => {
+  const form = await load<typeof import("../app/play/login/player-login-form.tsx")>("../app/play/login/player-login-form.tsx", {
+    "next/navigation": { useRouter: () => ({}) }, "@/server/oauth-providers": oauthProviders,
+  });
+  const page = await load<typeof import("../app/play/login/page.tsx")>("../app/play/login/page.tsx", {
+    "next/navigation": {}, "@/server/session": { getPlayerSession: async () => null },
+    "@/server/oauth-player": { isOAuthProviderConfigured: () => false },
+    "@/server/oauth-providers": oauthProviders, "./player-login-form": form,
+    "@/server/mongodb": {}, "@/server/artist-types": {},
+  });
+  for (const mode of [undefined, "register"]) {
+    const html = renderToStaticMarkup(await page.default({ searchParams: Promise.resolve({ mode }) }));
+    assert.equal(html.includes('name="screenName"'), mode === "register");
+    assert.equal(html.includes('name="confirmPassword"'), mode === "register");
   }
 });
 

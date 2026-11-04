@@ -9,14 +9,12 @@ import { ART_DONOR_ATTRIBUTE_ID } from "@/server/legendary-attributes";
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
 import GalleryAttractionChart from "@/components/gallery-attraction-chart";
 import { getArtworkFeatureCardAdjustment } from "@/components/item-cards/artwork-image-adjustments";
-import ItemThumbnail from "@/components/item-thumbnail";
 import { CommunityReactionPicker } from "@/components/community-emotes";
-import ItemCard from "@/components/item-cards/item-card";
-import { ratingColor } from "@/components/item-cards/shared";
-import PublicGallery from "@/components/public-gallery";
+import GalleryExhibition, {
+  getGalleryPreviewItem, GalleryAttributeSummary, GalleryRaritySummary,
+} from "@/components/gallery-exhibition";
 import GalleryFinishMenu from "@/components/gallery-finish-menu";
-import type { GalleryFinishes } from "@/server/gallery-finishes";
-import type { CardLegendaryAttribute } from "@/components/item-cards/types";
+import type { GalleryExhibitionData } from "@/server/gallery-exhibition";
 import {
   type GalleryVisitorView,
   useGalleryVisitors,
@@ -43,8 +41,8 @@ import {
 
 import { AuctionBidDialog } from "../auctions/auction-house";
 import GalleryChat from "./gallery-chat";
-import { ArtistGalleryIntroduction, ArtistGalleryShowcase, FeaturedArtistGalleries } from "@/components/artist-gallery";
-import type { FeaturedArtistGallery, PublicArtistProfile } from "@/server/artist-types";
+import { FeaturedArtistGalleries } from "@/components/artist-gallery";
+import type { FeaturedArtistGallery } from "@/server/artist-types";
 import type { Artwork } from "@/server/gameplay";
 
 type GalleryRecord = {
@@ -81,22 +79,8 @@ export type GalleryNpcView = GalleryVisitorView;
 
 const EMPTY_GALLERY_VISITORS: GalleryNpcView[] = [];
 
-type GalleryDetailResponse = {
-  artist?: PublicArtistProfile | null;
-  artistWorks?: Artwork[];
-  galleryId: string;
-  finishes: GalleryFinishes;
-  owner: {
-    playerId: string;
-    screenName: string;
-    level: number;
-    vintageLevel: number;
-  };
-  items: HydratedGameItem[];
-  auctions: AuctionView[];
-  metadata: GalleryRecord | null;
+type GalleryDetailResponse = GalleryExhibitionData & {
   npcs: GalleryNpcView[];
-  legendaryAttributes: CardLegendaryAttribute[];
 };
 
 type NpcSpawnOption = {
@@ -665,7 +649,6 @@ function VisitedGallery({
   const [refreshVersion, setRefreshVersion] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const workspaceRef = useRef<HTMLDivElement>(null);
   const {
     markVisitorMet,
     removeVisitor,
@@ -678,19 +661,6 @@ function VisitedGallery({
     ownerId,
     spawnIntervalMinutes: npcSpawnIntervalMinutes,
   });
-
-  useEffect(() => {
-    const workspace = workspaceRef.current;
-    const galleryWindow = workspace?.querySelector<HTMLElement>(".public-gallery-window");
-    if (!workspace || !galleryWindow) return;
-    const updateHeight = () => {
-      workspace.style.setProperty("--gallery-window-height", `${galleryWindow.getBoundingClientRect().height}px`);
-    };
-    updateHeight();
-    const observer = new ResizeObserver(updateHeight);
-    observer.observe(galleryWindow);
-    return () => observer.disconnect();
-  }, [gallery?.galleryId, loading]);
 
   async function spawnTestNpc(option: NpcSpawnOption) {
     setSpawningNpc(option.id);
@@ -753,22 +723,7 @@ function VisitedGallery({
         if (!cancelled) {
           setGallery(body);
           replaceVisitors(body.npcs);
-          const requestedItem = body.items.find(item => item._id === initialItemId);
-          const firstArtistArtworkId = body.artist?.featured ? body.artistWorks?.[0]?._id : undefined;
-          const artistPreview = firstArtistArtworkId
-            ? body.items.find(item => item.artwork_id === firstArtistArtworkId)
-            : undefined;
-          const mostValuableItem = body.items.reduce<HydratedGameItem | null>(
-            (mostValuable, item) =>
-              !mostValuable ||
-              item.values.actual > mostValuable.values.actual
-                ? item
-                : mostValuable,
-            null,
-          );
-          setSelectedPreviewItem(
-            requestedItem ?? artistPreview ?? mostValuableItem ?? body.auctions[0]?.item ?? null,
-          );
+          setSelectedPreviewItem(getGalleryPreviewItem(body, initialItemId));
         }
       } catch (loadError) {
         if (!cancelled) {
@@ -808,11 +763,6 @@ function VisitedGallery({
       </section>
     );
   }
-  const selectedPreviewAuction =
-    gallery.auctions.find(
-      (auction) => auction.item._id === selectedPreviewItem?._id,
-    ) ?? null;
-
   return (
     <section className={`visited-gallery${gallery.artist ? " visited-artist-gallery" : ""}`}>
       {impersonating ? (
@@ -866,12 +816,19 @@ function VisitedGallery({
           ) : null}
         </div>
       ) : null}
-      {gallery.artist ? <ArtistGalleryIntroduction artist={gallery.artist} /> : null}
-      <div className="visited-gallery-workspace" ref={workspaceRef}>
-        {ownerId === viewerId ? (
+      <GalleryExhibition
+        gallery={gallery}
+        viewerId={viewerId}
+        selectedItem={selectedPreviewItem}
+        onSelectItem={setSelectedPreviewItem}
+        onSelectAuction={setSelectedAuction}
+        onReactionsChange={(reactions) => setGallery(current => current?.metadata
+          ? { ...current, metadata: { ...current.metadata, reactions } } : current)}
+        sidebar={ownerId === viewerId ? (header) => (
           <GalleryFinishMenu
             finishes={gallery.finishes}
             galleryId={gallery.galleryId}
+            header={header}
             key={gallery.galleryId}
             onChange={(finishes) => setGallery((current) =>
               current?.galleryId === gallery.galleryId
@@ -879,165 +836,13 @@ function VisitedGallery({
                 : current,
             )}
           />
-        ) : (
-          <section className="visited-gallery-player-panel">
-          <header className="visited-gallery-metadata-header">
-            <div>
-              <p>{gallery.artist ? "Contributing artist" : "Collector exhibition"}</p>
-              <h1>{gallery.artist?.name ?? gallery.owner.screenName}&apos;s Gallery</h1>
-              <span>
-                {gallery.artist ? "Artist exhibition and player gallery information." : "Meet visitors and inspect the artwork this collector has put on display."}
-              </span>
-            </div>
-          </header>
-          <dl className="visited-gallery-overview-stats">
-            <div>
-              <dt>Player level</dt>
-              <dd>{gallery.owner.level}</dd>
-            </div>
-            <div>
-              <dt>Vintage level</dt>
-              <dd>{gallery.owner.vintageLevel}</dd>
-            </div>
-            <div>
-              <dt>Shared works</dt>
-              <dd>{gallery.items.length}</dd>
-            </div>
-            {gallery.metadata ? (
-              <>
-                <div>
-                  <dt>Gallery value</dt>
-                  <dd>${gallery.metadata.value.toLocaleString()}</dd>
-                </div>
-                <div>
-                  <dt>Attribute score</dt>
-                  <dd>{gallery.metadata.score.toLocaleString()}</dd>
-                </div>
-                <div>
-                  <dt>Featured value</dt>
-                  <dd>${gallery.metadata.featured_value.toLocaleString()}</dd>
-                </div>
-              </>
-            ) : null}
-            <div>
-              <dt>Active auctions</dt>
-              <dd>{gallery.auctions.length}</dd>
-            </div>
-          </dl>
-          {gallery.metadata ? (
-            <div className="visited-gallery-metadata-strip">
-              <div>
-                <span>Attributes</span>
-                <GalleryAttributeSummary
-                  attributes={gallery.metadata.attributes}
-                  displayCapacity={gallery.metadata.display_capacity}
-                />
-              </div>
-              <div>
-                <span>Rarities</span>
-                <GalleryRaritySummary
-                  rarities={gallery.metadata.display_rarities}
-                />
-              </div>
-              <div className="visited-gallery-reactions">
-                <span>Reactions</span>
-                <CommunityReactionPicker
-                  className="gallery-emote-reactions"
-                  onChange={(reactions) =>
-                    setGallery((current) =>
-                      current?.metadata
-                        ? {
-                            ...current,
-                            metadata: {
-                              ...current.metadata,
-                              reactions,
-                            },
-                          }
-                        : current,
-                    )
-                  }
-                  reactions={gallery.metadata.reactions}
-                  targetId={ownerId}
-                  targetType="gallery"
-                />
-              </div>
-            </div>
-          ) : null}
-          <header className="visited-gallery-auction-heading">
-            <span>Items up for auction</span>
-          </header>
-          {gallery.auctions.length === 0 ? (
-            <p className="collection-sidebar-empty">
-              This player has no public auctions.
-            </p>
-          ) : (
-            <div className="visited-gallery-auctions">
-              {gallery.auctions.map((auction) => (
-                <button
-                  aria-label={`Preview auction for ${auction.item.artwork.title}`}
-                  key={auction._id}
-                  onClick={() => setSelectedPreviewItem(auction.item)}
-                  type="button"
-                >
-                  <ItemThumbnail
-                    alt=""
-                    item={auction.item}
-                    researchTarget={auction.questTarget && !auction.owned}
-                    size={82}
-                  />
-                  <span className="visited-gallery-auction-copy">
-                    <strong>{auction.item.artwork.title}</strong>
-                    <small>
-                      ${auction.current_bid.toLocaleString()} current bid
-                    </small>
-                    {auction.buy_now !== null ? (
-                      <small>
-                        ${auction.buy_now.toLocaleString()} buy now
-                      </small>
-                    ) : null}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-          </section>
-        )}
-        {selectedPreviewItem ? (
-          <section className="collection-preview visited-gallery-preview">
-            <ItemCard
-              item={selectedPreviewItem}
-              key={`${selectedPreviewItem._id}:${selectedPreviewItem.status}`}
-              legendaryAttributes={gallery.legendaryAttributes}
-              owner={gallery.owner}
-              permissions={{
-                canManageItem: false,
-                canCustomizeCosmetic: false,
-              }}
-              onActivate={
-                selectedPreviewAuction && ownerId !== viewerId
-                  ? () => setSelectedAuction(selectedPreviewAuction)
-                  : undefined
-              }
-              viewerId={viewerId}
-            />
-          </section>
-        ) : (
-          <section className="collection-preview visited-gallery-preview">
-            <p className="empty-state">No artwork is available to preview.</p>
-          </section>
-        )}
-        {gallery.artist ? <ArtistGalleryShowcase artist={gallery.artist} works={gallery.artistWorks ?? []}
-          legendaryAttributes={gallery.legendaryAttributes} onPreview={item => {
-            setSelectedPreviewItem(
-              gallery.items.find(displayedItem => displayedItem.artwork_id === item.artwork_id) ?? item,
-            );
-            document.querySelector(".visited-artist-gallery .public-gallery-window")?.scrollIntoView({ behavior: "smooth", block: "start" });
-          }} viewerId={viewerId} /> : null}
-        <GalleryChat galleryOwnerId={ownerId} viewerId={viewerId} />
-        <PublicGallery
-          finishes={gallery.finishes}
-          focusedItemId={selectedPreviewItem?._id}
-          visitorContent={
+        ) : undefined}
+        chatContent={<GalleryChat galleryOwnerId={ownerId} viewerId={viewerId} />}
+        navigation={{
+          navigationDisabled, navigationError, onExitGallery: onBack, onGoHome,
+          onNextGallery, onPreviousGallery,
+        }}
+        visitorContent={
             <div
               aria-label="Gallery visitors"
               className="npc-area gallery-visitor-tray"
@@ -1092,19 +897,7 @@ function VisitedGallery({
               })}
             </div>
           }
-          items={gallery.items}
-          legendaryAttributes={gallery.legendaryAttributes}
-          navigationDisabled={navigationDisabled}
-          navigationError={navigationError}
-          onExitGallery={onBack}
-          onGoHome={onGoHome}
-          onNextGallery={onNextGallery}
-          onPreviousGallery={onPreviousGallery}
-          onSelectItem={setSelectedPreviewItem}
-          owner={gallery.owner}
-          viewerId={viewerId}
-        />
-      </div>
+      />
       {selectedAuction ? (
         <AuctionBidDialog
           auction={selectedAuction}
@@ -1135,70 +928,4 @@ function VisitedGalleryExitButton({ onExit }: { onExit: () => void }) {
   );
 }
 
-export function GalleryAttributeSummary({
-  attributes,
-  displayCapacity,
-}: {
-  attributes: GalleryAttributeAggregate[];
-  displayCapacity: number;
-}) {
-  return (
-    <div
-      aria-label="Gallery attributes"
-      className="gallery-attribute-summary"
-      role="cell"
-    >
-      {attributes.length > 0 ? (
-        attributes.map((attribute) => {
-          const effectiveRating = Math.min(
-            1,
-            Math.max(0, attribute.effectiveRating),
-          );
-          const label = `${attribute.title}: ${attribute.count} ${
-            attribute.count === 1 ? "work" : "works"
-          }, ${Math.round(effectiveRating * 100)}% effective attraction (${
-            Math.round(attribute.totalRating * 100)
-          } total ÷ ${displayCapacity} display slots)`;
-          return (
-            <i
-              aria-label={label}
-              className={`fa ${attribute.icon || "fa-tag"}`}
-              key={attribute.id}
-              role="img"
-              style={{ color: ratingColor(effectiveRating) }}
-              title={label}
-            />
-          );
-        })
-      ) : (
-        <i
-          aria-label="No attributes"
-          className="fa fa-times"
-          role="img"
-          title="No attributes"
-        />
-      )}
-    </div>
-  );
-}
-
-export function GalleryRaritySummary({
-  rarities,
-}: {
-  rarities: ArtworkRarity[];
-}) {
-  return (
-    <div aria-label="Featured artwork rarities" className="gallery-rarity-summary">
-      {rarities.map((rarity, index) => (
-        <span
-          aria-label={`${rarity} artwork`}
-          className="gallery-rarity-square"
-          data-rarity={rarity}
-          key={`${rarity}-${index}`}
-          role="img"
-          title={rarity}
-        />
-      ))}
-    </div>
-  );
-}
+export { GalleryAttributeSummary, GalleryRaritySummary };
