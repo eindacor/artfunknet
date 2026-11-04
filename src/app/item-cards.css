@@ -8887,20 +8887,33 @@
   justify-content: flex-end;
 }
 
-/* Seasonal Collector Series cards use a multicolor reverse-holo body. */
+/* Seasonal Collector Series cards use an iridescent metallic foil body. */
 .collectible-card[data-seasonal="true"] {
-  border-color: rgb(245 247 255 / 92%);
-  background:
-    linear-gradient(135deg, rgb(255 255 255 / 34%), transparent 28%),
-    repeating-linear-gradient(
-      115deg,
-      rgb(255 89 178 / 62%) 0 12%,
-      rgb(255 220 96 / 64%) 12% 24%,
-      rgb(101 235 191 / 62%) 24% 36%,
-      rgb(88 191 255 / 64%) 36% 48%,
-      rgb(177 116 255 / 62%) 48% 60%
+  --collectible-seasonal-foil:
+    radial-gradient(ellipse at 18% 8%, rgb(255 255 255 / 74%), transparent 42%),
+    radial-gradient(ellipse at 85% 78%, rgb(143 236 255 / 38%), transparent 47%),
+    linear-gradient(
+      125deg,
+      transparent 15%,
+      rgb(233 240 255 / 25%) 28%,
+      rgb(253 255 255 / 92%) 34%,
+      rgb(35 39 56 / 60%) 47%,
+      transparent 63%
     ),
-    #26345a;
+    conic-gradient(
+      from 25deg at 48% 45%,
+      #eff2f8,
+      #566481 12%,
+      #72e0df 23%,
+      #e994d8 38%,
+      #f5d984 54%,
+      #5e78a1 66%,
+      #90b8f0 78%,
+      #eda8cf 90%,
+      #eff2f8
+    );
+  border-color: rgb(245 247 255 / 92%);
+  background: var(--collectible-seasonal-foil);
   box-shadow:
     0 8px 18px rgb(0 0 0 / 46%),
     inset 0 0 0 2px rgb(255 255 255 / 68%),
@@ -8912,22 +8925,26 @@
   z-index: 0;
   inset: 0.35rem;
   border-radius: 9px;
+  opacity: 0.65;
   background:
-    radial-gradient(circle at 18% 18%, rgb(255 255 255 / 62%) 0 1px, transparent 2px),
-    radial-gradient(circle at 76% 28%, rgb(255 255 255 / 52%) 0 1px, transparent 2px),
-    radial-gradient(circle at 32% 76%, rgb(255 255 255 / 48%) 0 1px, transparent 2px),
-    repeating-radial-gradient(
-      circle at 50% 50%,
-      transparent 0 11px,
-      rgb(255 255 255 / 13%) 12px 13px,
-      transparent 14px 23px
+    radial-gradient(ellipse at 25% 25%, rgb(255 255 255 / 45%), transparent 50%),
+    linear-gradient(
+      110deg,
+      transparent 30%,
+      rgb(202 235 255 / 24%) 42%,
+      rgb(255 255 255 / 86%) 50%,
+      rgb(255 211 247 / 24%) 58%,
+      transparent 70%
     );
+  background-size: 180% 180%, 300% 100%;
   content: "";
   mix-blend-mode: screen;
   pointer-events: none;
+  animation: shared-foil-shimmer 8s ease-in-out infinite;
 }
 
-.collectible-card[data-seasonal="true"] > header {
+.collectible-card[data-seasonal="true"] > header,
+.collectible-card[data-seasonal="true"] > footer {
   color: #fff;
   text-shadow: 0 1px 3px #000;
 }
@@ -8980,17 +8997,7 @@
 
 .collectible-card[data-mint="true"][data-seasonal="true"]::before {
   border-color: rgb(245 247 255 / 92%);
-  background:
-    linear-gradient(135deg, rgb(255 255 255 / 34%), transparent 28%),
-    repeating-linear-gradient(
-      115deg,
-      rgb(255 89 178 / 62%) 0 12%,
-      rgb(255 220 96 / 64%) 12% 24%,
-      rgb(101 235 191 / 62%) 24% 36%,
-      rgb(88 191 255 / 64%) 36% 48%,
-      rgb(177 116 255 / 62%) 48% 60%
-    ),
-    #26345a;
+  background: var(--collectible-seasonal-foil);
   box-shadow:
     inset 0 0 0 2px rgb(255 255 255 / 68%),
     inset 0 0 20px rgb(255 255 255 / 38%),
@@ -9171,14 +9178,14 @@
   right: calc(0px - var(--wheel-outset));
 }
 
-.skateboard-card-truck.lottery .skateboard-card-truck-hanger,
-.skateboard-card-truck.lottery .skateboard-card-truck-baseplate {
+.skateboard-card-truck.seasonal .skateboard-card-truck-hanger,
+.skateboard-card-truck.seasonal .skateboard-card-truck-baseplate {
   border-color: #835d12;
   background: linear-gradient(#ffe48b, #b47a14);
   box-shadow: 0 0 9px rgb(255 211 75 / 72%);
 }
 
-.skateboard-card-truck.lottery .skateboard-card-truck-kingpin {
+.skateboard-card-truck.seasonal .skateboard-card-truck-kingpin {
   background: #895a09;
 }
 
@@ -10766,6 +10773,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .collectible-card-holo,
+  .collectible-card[data-seasonal="true"]::after,
   .album-card-record-foil,
   .commemorative-card-proof-shine,
   .commemorative-card-sparkles {

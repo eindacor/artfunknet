@@ -18,11 +18,12 @@ export default function SkateboardCard({
         <span className="skateboard-card-scuffs" aria-label="Deck scuffs" />
         <SkateboardTruck
           position="front"
-          raffle={Boolean(item.lottery)}
+          seasonal={item.seasonal}
+          missingWheel={item.unlocked}
         />
         <SkateboardTruck
           position="back"
-          raffle={Boolean(item.lottery)}
+          seasonal={item.seasonal}
         />
         <section className="skateboard-card-label">
           <h3>{item.artwork.title}</h3>
@@ -52,23 +53,25 @@ export default function SkateboardCard({
 
 function SkateboardTruck({
   position,
-  raffle,
+  seasonal,
+  missingWheel = false,
 }: {
   position: "front" | "back";
-  raffle: boolean;
+  seasonal: boolean;
+  missingWheel?: boolean;
 }) {
   return (
     <span
       aria-hidden="true"
       className={`skateboard-card-truck skateboard-card-truck-${position}${
-        raffle ? " lottery" : ""
+        seasonal ? " seasonal" : ""
       }`}
     >
       <span className="skateboard-card-wheel wheel-left" />
       <span className="skateboard-card-truck-hanger" />
       <span className="skateboard-card-truck-baseplate" />
       <span className="skateboard-card-truck-kingpin" />
-      <span className="skateboard-card-wheel wheel-right" />
+      {missingWheel ? null : <span className="skateboard-card-wheel wheel-right" />}
     </span>
   );
 }
