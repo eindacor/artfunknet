@@ -20,7 +20,7 @@ import ArchiveEntryDialog from "@/components/archive-entry-dialog";
 import CollectionBulkConfirmationDialog from "@/components/collection-bulk-confirmation-dialog";
 import ForgeryDialog from "@/components/forgery-dialog";
 import ArtworkThumbnail from "@/components/artwork-thumbnail";
-import { getArtworkFeatureCardAdjustment, getArtworkThumbnailAdjustment } from "@/components/item-cards/artwork-image-adjustments";
+import { getArtworkThumbnailAdjustment } from "@/components/item-cards/artwork-image-adjustments";
 import ItemThumbnail from "@/components/item-thumbnail";
 import OfferThumbnail, {
   MysteryOfferFace,
@@ -33,6 +33,7 @@ import ItemTagsDialog from "@/components/item-tags-dialog";
 import HallOfFamePanel from "@/components/hall-of-fame-panel";
 import DailyEventsPanel from "@/components/daily-events-panel";
 import FeaturedWorksPanel from "@/components/featured-works-panel";
+import FeaturedWorkContent from "@/components/featured-work-content";
 import InfoPanel from "@/components/info-panel/info-panel";
 import Attribute from "@/components/attribute/attribute";
 import GalleryStats from "@/components/gallery-stats/gallery-stats";
@@ -3370,33 +3371,7 @@ export default function GameDashboard({
           type="button"
           unrevealed={unrevealed}
         >
-          {!unrevealed ? (
-            <ArtworkThumbnail
-              adjustment={getArtworkFeatureCardAdjustment(item.artwork)}
-              alt=""
-              artworkId={item.artwork_id}
-              className="home-featured-image"
-              image={item.artwork.image}
-              size={360}
-              variant="card"
-            />
-          ) : null}
-          <span className="home-featured-copy" data-has-effect={legendaryEffect ? true : undefined}>
-            <span className="home-featured-details">
-              <small className="home-featured-rarity">{item.artwork.rarity}</small>
-              <strong>{unrevealed ? "Unrevealed featured work" : item.artwork.title}</strong>
-              <span>{unrevealed ? "Select to reveal this artwork" : item.artwork.artist}</span>
-              {!unrevealed ? (
-                <small>{item.artwork.date} · ${item.values.actual.toLocaleString()}</small>
-              ) : null}
-            </span>
-            {legendaryEffect ? (
-              <span className="home-featured-effect" id={`featured-effect-${item._id}`}>
-                <strong>{legendaryEffect.title}</strong>
-                <span>{legendaryEffect.description}</span>
-              </span>
-            ) : null}
-          </span>
+          <FeaturedWorkContent item={item} legendaryEffect={legendaryEffect} unrevealed={unrevealed} />
         </OfferThumbnail>
         <button
           aria-label={`View ${artworkLabel} in your gallery`}
@@ -4094,6 +4069,7 @@ export default function GameDashboard({
               attributeScore={galleryMetadata?.score ?? 0}
               attributes={galleryMetadata?.attributes ?? []}
               displayCapacity={player.displayCap}
+              galleryOwnerId={playerId}
               items={displayed}
               maxDisplayCapacity={player.maxDisplayCap}
               rates={galleryRates}

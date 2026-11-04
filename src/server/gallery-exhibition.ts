@@ -5,8 +5,10 @@ import type { Auction, AuctionView } from "@/server/auction-gameplay";
 import { getArtworkEffects } from "@/server/artwork-effects";
 import { createArtistArtworkPreview } from "@/server/artist-artwork-preview";
 import { getCommunityReactionSummary } from "@/server/community-reactions";
+import { calculateGalleryRates, type GalleryRates } from "@/server/collection-gameplay";
 import { getArtistWorks, getPublicArtistProfile } from "@/server/contributing-artists";
 import { refreshGalleryMetadata } from "@/server/gallery-metadata";
+import { getGameplaySettings } from "@/server/game-settings";
 import type { GameItem } from "@/server/gameplay";
 import { hydrateGameItems } from "@/server/item-artwork";
 import { getPlayerGalleryFinishes } from "@/server/player-gallery-finishes";
@@ -25,12 +27,12 @@ export async function getGalleryExhibition(database: Db, playerId: string, viewe
     ...artistWorks.filter(work => !displayedArtworkIds.has(work._id)).map(createArtistArtworkPreview),
     ...gallery.items,
   ];
-  const activeAuctions = await database.collection<Auction>("auctions").find({
+  const activeAuctions = viewerId ? await database.collection<Auction>("auctions").find({
     seller_id: playerId,
     viewer: "public",
     expiration: { $gt: new Date().toISOString() },
     settlement_status: { $ne: "settling" },
-  }).sort({ expiration: 1 }).toArray();
+  }).sort({ expiration: 1 }).toArray() : [];
   const auctionItems = await hydrateGameItems(database,
     (await database.collection<GameItem>("items").find({
       _id: { $in: activeAuctions.map(auction => auction.item_id) },
@@ -54,14 +56,24 @@ export async function getGalleryExhibition(database: Db, playerId: string, viewe
   const effectIds = [...new Set([...items, ...auctionItems]
     .map(item => item.artwork.effect_id).filter((id): id is string => Boolean(id)))];
   const galleryId = metadata?._id ?? playerId;
+  let rates: GalleryRates | null = null;
+  if (viewerId) {
+    const [displayedItems, settings] = await Promise.all([
+      database.collection<GameItem>("items").find({ owner: playerId, status: "displayed" }).toArray(),
+      getGameplaySettings(database),
+    ]);
+    rates = await calculateGalleryRates(
+      database, gallery.owner.level, await hydrateGameItems(database, displayedItems), new Date(), settings.active,
+    );
+  }
   const [effects, reactions, finishes] = await Promise.all([
     getArtworkEffects(database, effectIds),
     viewerId ? getCommunityReactionSummary(database, "gallery", playerId, viewerId) : null,
     getPlayerGalleryFinishes(database, playerId, galleryId),
   ]);
   return {
-    galleryId, finishes, owner: gallery.owner, items: items.map(publicItem), artist, artistWorks, auctions,
-    metadata: metadata ? { ...metadata, reactions } : null,
+    galleryId, finishes, owner: gallery.owner, items: items.map(publicItem), artist, artistWorks, auctions, rates,
+    metadata: viewerId && metadata ? { ...metadata, reactions } : null,
     legendaryAttributes: effects.map(effect => ({
       id: effect._id, title: effect.title, description: effect.description,
       flavorText: effect.flavor_text, code: effect.code, active: effect.active,

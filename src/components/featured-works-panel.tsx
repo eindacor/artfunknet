@@ -5,8 +5,11 @@ import { TutorialElement } from "@/shared/tutorial";
 
 import type { GalleryRates } from "@/server/collection-gameplay";
 import type { GalleryAttributeAggregate } from "@/server/gallery-metadata-core";
+import type { ArtworkRarity } from "@/server/gameplay";
 import type { HydratedGameItem } from "@/server/item-artwork";
 import GalleryAttractionChart from "./gallery-attraction-chart";
+import GalleryRaritySummary from "./gallery-rarity-summary";
+import GalleryShareButton from "./gallery-share-button";
 import GalleryStat from "./gallery-stat/gallery-stat";
 import GalleryStats from "./gallery-stats/gallery-stats";
 import InfoPanel from "./info-panel/info-panel";
@@ -15,32 +18,43 @@ export default function FeaturedWorksPanel({
   actions,
   attributeScore,
   attributes,
+  className = "",
   displayCapacity,
+  galleryOwnerId,
   items,
   maxDisplayCapacity,
   rates,
+  rarities = items.map(item => item.artwork.rarity),
+  readOnly = false,
   renderItem,
+  title = "Your featured works",
   visitorTypes,
 }: {
   actions: ReactNode;
   attributeScore: number;
   attributes: GalleryAttributeAggregate[];
+  className?: string;
   displayCapacity: number;
+  galleryOwnerId?: string;
   items: readonly HydratedGameItem[];
   maxDisplayCapacity: number;
   rates: GalleryRates;
+  rarities?: readonly ArtworkRarity[];
+  readOnly?: boolean;
   renderItem: (item: HydratedGameItem) => ReactNode;
+  title?: ReactNode;
   visitorTypes: readonly { id: string; name: string; icon: string }[];
 }) {
-  const slotCount = Math.max(maxDisplayCapacity, displayCapacity, items.length);
-  const emptySlotCount = Math.max(0, displayCapacity - items.length);
+  const slotCount = readOnly ? items.length : Math.max(maxDisplayCapacity, displayCapacity, items.length);
+  const emptySlotCount = readOnly ? 0 : Math.max(0, displayCapacity - items.length);
 
   return (
-    <InfoPanel className="home-featured-panel">
+    <InfoPanel className={`home-featured-panel ${className}`.trim()}>
       <section aria-label="Featured works" className="home-featured-content"
-        data-tutorial-element={TutorialElement.TUTORIAL_FILL_FEATURES}>
-        <header className="home-featured-heading">
-          <h2 className="info-panel-title">Your featured works</h2>
+        data-tutorial-element={readOnly ? undefined : TutorialElement.TUTORIAL_FILL_FEATURES}>
+        <header className={`home-featured-heading${galleryOwnerId ? " gallery-title" : ""}`}>
+          <h2 className="info-panel-title">{title}</h2>
+          {galleryOwnerId ? <GalleryShareButton key={galleryOwnerId} playerId={galleryOwnerId} /> : null}
         </header>
         <div className="home-featured-top">
           <div className="home-featured-info">
@@ -62,6 +76,7 @@ export default function FeaturedWorksPanel({
                 value={attributeScore.toLocaleString()}
               />
             </GalleryStats>
+            <GalleryRaritySummary rarities={rarities} />
           </div>
           <GalleryAttractionChart
             attributes={attributes}
@@ -81,6 +96,7 @@ export default function FeaturedWorksPanel({
           </p>
         ) : null}
         <div aria-label="Featured artwork slots" className="home-featured-slots">
+          {readOnly && items.length === 0 ? <p className="collection-sidebar-empty">No works are currently featured.</p> : null}
           {Array.from({ length: slotCount }, (_, index) => {
             const item = items[index];
             if (item) {

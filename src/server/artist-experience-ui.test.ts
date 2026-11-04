@@ -19,13 +19,56 @@ import * as tutorialElements from "../shared/tutorial.ts";
 import { ART_DONOR_ATTRIBUTE_ID } from "./legendary-attributes.ts";
 import * as galleryLayout from "../components/gallery-layout.ts";
 import * as oauthProviders from "./oauth-providers.ts";
+import { buildGalleryMetadataSnapshot } from "./gallery-metadata-core.ts";
+import type { AuctionView } from "./auction-gameplay.ts";
 
 const require = createRequire(import.meta.url);
+const cardSharedSource = ts.createSourceFile("shared.tsx",
+  await readFile(new URL("../components/item-cards/shared.tsx", import.meta.url), "utf8"),
+  ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+const cardHelpers = runInNewContext(`${ts.transpileModule(cardSharedSource.statements
+  .filter(statement => ts.isFunctionDeclaration(statement) &&
+    ["ratingColor", "getActiveLegendaryAttribute"].includes(statement.name?.text ?? ""))
+  .map(statement => statement.getText(cardSharedSource)).join("\n"), {
+  compilerOptions: { module: ts.ModuleKind.CommonJS },
+}).outputText}\nexports`, { exports: {} });
+
 async function load<T>(relative: string, dependencies: Record<string, unknown> = {}, globals: Record<string, unknown> = {}) {
   if (relative === "../app/play/galleries/gallery-explorer.tsx") {
     dependencies = {
       ...dependencies,
       "@/components/gallery-exhibition": await load("../components/gallery-exhibition.tsx", dependencies, globals),
+    };
+  }
+  if (relative === "../components/gallery-exhibition.tsx") {
+    const raritySummary = await load("../components/gallery-rarity-summary.tsx");
+    const shareButton = await load("../components/gallery-share-button.tsx", { react: dependencies.react ?? React }, globals);
+    const chart = await load("../components/gallery-attraction-chart.tsx", {
+      "./item-cards/shared": cardHelpers,
+      "./attribute/attribute": await load("../components/attribute/attribute.tsx", {
+        "@/components/item-cards/shared": cardHelpers,
+      }),
+    });
+    dependencies = {
+      ...dependencies,
+      "@/components/item-cards/shared": { ...cardHelpers, ...dependencies["@/components/item-cards/shared"] as object },
+      "@/components/gallery-rarity-summary": raritySummary,
+      "@/components/gallery-share-button": shareButton,
+      "@/components/featured-work-content": await load("../components/featured-work-content.tsx", {
+        "@/components/artwork-thumbnail": { default: () => null },
+        "@/components/item-cards/artwork-image-adjustments": imageAdjustments,
+      }),
+      "@/components/featured-works-panel": await load("../components/featured-works-panel.tsx", {
+        "./info-panel/info-panel": await load("../components/info-panel/info-panel.tsx", {
+          "./info-panel.module.css": { default: { panel: "panel" } },
+          "./info-panel.brash.module.css": { default: { panel: "brash" } },
+        }),
+        "./gallery-stats/gallery-stats": await load("../components/gallery-stats/gallery-stats.tsx"),
+        "./gallery-stat/gallery-stat": await load("../components/gallery-stat/gallery-stat.tsx"),
+        "./gallery-attraction-chart": chart,
+        "./gallery-rarity-summary": raritySummary,
+        "./gallery-share-button": shareButton,
+      }),
     };
   }
   const source = await readFile(new URL(relative, import.meta.url), "utf8");
@@ -846,7 +889,8 @@ test("gallery previews track window height while artist introductions and owner 
       assert.doesNotMatch(html, /Gallery finishes|Save finishes/);
       assert.match(html, isArtist ? /Artist&#x27;s Gallery/ : /Artist-Player&#x27;s Gallery/);
     }
-    assert.match(html, /<h1>[^<]+&#x27;s Gallery<\/h1><button aria-label="Copy gallery link" class="gallery-share"/);
+    assert.match(html, /<h2 class="info-panel-title">[^<]+&#x27;s Gallery<\/h2><button aria-label="Copy gallery link" class="gallery-share"/);
+    assert.doesNotMatch(html, /visited-gallery-metadata-header/);
     assert.doesNotMatch(html, /Public gallery link|>Copy gallery link<\/button>/);
     if (isArtist) {
       const introductionIndex = html.indexOf('class="artist-gallery-introduction"');
@@ -1007,7 +1051,7 @@ test("the discreet gallery link copies the public URL and offers a link if clipb
   let stateIndex = 0;
   let clipboardUrl = "";
   let failCopy = false;
-  const exhibition = await load<typeof import("../components/gallery-exhibition.tsx")>("../components/gallery-exhibition.tsx", {
+  const shareButton = await load<typeof import("../components/gallery-share-button.tsx")>("../components/gallery-share-button.tsx", {
     react: {
       ...React,
       useState: (initial: unknown) => {
@@ -1018,9 +1062,6 @@ test("the discreet gallery link copies the public URL and offers a link if clipb
       useEffect: () => {},
       useRef: () => ({ current: null }),
     },
-    "@/components/artist-gallery": {}, "@/components/community-emotes": {},
-    "@/components/item-cards/item-card": {}, "@/components/item-cards/shared": {},
-    "@/components/item-thumbnail": {}, "@/components/public-gallery": { default: () => null },
   }, {
     window: { location: { origin: "https://gallery.example" } },
     navigator: { clipboard: { writeText: async (value: string) => {
@@ -1028,14 +1069,6 @@ test("the discreet gallery link copies the public URL and offers a link if clipb
       clipboardUrl = value;
     } } },
   });
-  const props: React.ComponentProps<typeof exhibition.default> = {
-    gallery: {
-      galleryId: "gallery", owner: { playerId: "owner / id", screenName: "Collector", level: 1, vintageLevel: 0 },
-      finishes: galleryFinishes.DEFAULT_GALLERY_FINISHES, artist: null, artistWorks: [],
-      items: [], auctions: [], legendaryAttributes: [], metadata: null,
-    },
-    viewerId: null, selectedItem: null, onSelectItem: () => {},
-  };
   type Element = React.ReactElement<Record<string, unknown>>;
   function elements(node: React.ReactNode): Element[] {
     if (Array.isArray(node)) return node.flatMap(elements);
@@ -1044,7 +1077,7 @@ test("the discreet gallery link copies the public URL and offers a link if clipb
   }
   const render = () => {
     stateIndex = 0;
-    return exhibition.default(props);
+    return shareButton.default({ playerId: "owner / id" });
   };
   for (const denied of [false, true, false]) {
     failCopy = denied;
@@ -1063,6 +1096,78 @@ test("the discreet gallery link copies the public URL and offers a link if clipb
       assert.doesNotMatch(html, /role="alert"/);
     }
   }
+});
+
+test("visited galleries reuse Home's featured works with owner rates, rarity squares, selectable works, and auctions underneath", async () => {
+  let selectedId = "";
+  let scrolled = false;
+  const exhibition = await load<typeof import("../components/gallery-exhibition.tsx")>("../components/gallery-exhibition.tsx", {
+    react: {
+      ...React, useEffect: () => {}, useState: (initial: unknown) => [initial, () => {}],
+      useRef: () => ({ current: { querySelector: () => ({ scrollIntoView: () => { scrolled = true; } }) } }),
+    },
+    "@/components/artist-gallery": {}, "@/components/community-emotes": {},
+    "@/components/item-cards/item-card": { default: () => null },
+    "@/components/item-thumbnail": { default: () => null },
+    "@/components/public-gallery": { default: () => null },
+  });
+  const artwork: Artwork = {
+    _id: "featured-work", artist_id: "artist", artist: "Artist", title: "Featured Artwork", date: 2026,
+    rarity: "rare", genre: "Abstract", medium: "Oil", value_scale: 0.5, width: 80, height: 100, active: true,
+  };
+  const featured = { ...createArtistArtworkPreview(artwork), _id: "featured-item", owner: "unknown" };
+  const permanent = { ...featured, _id: "permanent", permanent: true, status: "claimed" };
+  const auctionItem = { ...featured, _id: "auction-item", artwork: { ...artwork, title: "Auction Artwork" } };
+  const auction = {
+    _id: "auction", item: auctionItem, current_bid: 250, buy_now: 500, questTarget: false, owned: false,
+  } as AuctionView;
+  const props: React.ComponentProps<typeof exhibition.default> = {
+    gallery: {
+      galleryId: "gallery", owner: { playerId: "owner", screenName: "Collector", level: 2, vintageLevel: 0 },
+      finishes: galleryFinishes.DEFAULT_GALLERY_FINISHES, artist: null, artistWorks: [],
+      items: [featured, permanent, createArtistArtworkPreview(artwork)], auctions: [auction], legendaryAttributes: [],
+      rates: { moneyPerHour: 125, xpPerHour: 42, value: 15_000 },
+      metadata: {
+        _id: "gallery", schema_version: 4, active: true, owner_id: "owner", owner: "Collector",
+        ...buildGalleryMetadataSnapshot([featured, permanent], 5, new Map([[artwork._id, artwork.rarity]])),
+        attributes: [{ id: "collector", title: "Art Collector", icon: "fa-eye", type: "npc",
+          count: 1, totalRating: 0.9, effectiveRating: 0.18 }],
+        score: 90, reactions: null, updated_at: "2026-11-04",
+      },
+    },
+    viewerId: "visitor", selectedItem: featured, onSelectItem: item => { selectedId = item._id; },
+    visitorTypes: [{ id: "collector", name: "Art Collector", icon: "fa-eye" }],
+  };
+  const tree = exhibition.default(props);
+  const html = renderToStaticMarkup(tree);
+  assert.match(html, /<header class="home-featured-heading gallery-title"><h2 class="info-panel-title">Collector&#x27;s Gallery<\/h2><button aria-label="Copy gallery link"/);
+  assert.doesNotMatch(html, /visited-gallery-metadata-header/);
+  for (const text of ["Money per hour", "$125", "XP per hour", "42", "Total featured value", "$15,000",
+    "Visitor attraction score", "90", "18% effective attraction", "Auction Artwork"]) assert.ok(html.includes(text), text);
+  assert.equal((html.match(/class="home-featured-card"/g) ?? []).length, 1, "Only real displayed works appear in feature cards");
+  assert.match(html, /class="gallery-rarity-square" data-rarity="rare"/);
+  assert.ok(html.indexOf("Visitor attraction score") < html.indexOf('aria-label="Featured artwork rarities"'));
+  assert.ok(html.indexOf('class="home-featured-card"') < html.indexOf('aria-label="Gallery auctions"'));
+  assert.doesNotMatch(html, /Your featured works|Empty feature slot|Locked feature slot|unoccupied|data-tutorial-element/);
+  type Element = React.ReactElement<Record<string, unknown>>;
+  function elements(node: React.ReactNode): Element[] {
+    if (Array.isArray(node)) return node.flatMap(elements);
+    if (!React.isValidElement<Record<string, unknown>>(node)) return [];
+    return [node, ...elements(node.props.children as React.ReactNode)];
+  }
+  const panel = elements(tree).find(element => element.props.className === "visited-gallery-featured-panel")!;
+  const card = (panel.props.renderItem as (item: typeof featured) => React.ReactNode)(featured);
+  const select = elements(card).find(element => element.type === "button")!;
+  (select.props.onClick as () => void)();
+  assert.equal(selectedId, featured._id);
+  assert.equal(scrolled, true);
+  const auctionButton = elements(tree).find(element => element.props["aria-label"] === "Preview auction for Auction Artwork")!;
+  (auctionButton.props.onClick as () => void)();
+  assert.equal(selectedId, auctionItem._id);
+  const anonymousHtml = renderToStaticMarkup(exhibition.default({ ...props, viewerId: null }));
+  assert.match(anonymousHtml, /Collector&#x27;s Gallery/);
+  assert.match(anonymousHtml, /aria-label="Copy gallery link"/);
+  assert.doesNotMatch(anonymousHtml, /visited-gallery-player-panel|home-featured-panel|Gallery auctions|Auction Artwork|Money per hour|Visitor attraction score|gallery-rarity-square/);
 });
 
 test("anonymous galleries reuse the exhibition and painting controls without visitors, chat, bidding, or gallery navigation", async () => {
@@ -1108,7 +1213,7 @@ test("anonymous galleries reuse the exhibition and painting controls without vis
       artist: profile, artistWorks: profile ? [work] : [],
       galleryId: "public-gallery", finishes: galleryFinishes.DEFAULT_GALLERY_FINISHES,
       owner: { playerId: "gallery-owner", screenName: "Collector", level: 1, vintageLevel: 0 },
-      items: [createArtistArtworkPreview(work)], auctions: [], legendaryAttributes: [], metadata: null,
+      items: [createArtistArtworkPreview(work)], auctions: [], legendaryAttributes: [], metadata: null, rates: null,
     } }));
     assert.match(html, /Public Artwork/);
     assert.match(html, /Previous painting/);
@@ -1116,6 +1221,7 @@ test("anonymous galleries reuse the exhibition and painting controls without vis
     assert.match(html, /Copy gallery link/);
     assert.match(html, /<h1>[^<]+&#x27;s Gallery<\/h1><button aria-label="Copy gallery link" class="gallery-share"/);
     assert.doesNotMatch(html, /Public gallery link|>Copy gallery link<\/button>/);
+    assert.doesNotMatch(html, /visited-gallery-player-panel|home-featured-panel|Gallery auctions|Items up for auction|Money per hour|Visitor attraction score|gallery-rarity-square/);
     assert.match(html, /Join artfunkel - create a free account/);
     assert.match(html, /href="\/play\/login\?mode=register"/);
     assert.doesNotMatch(html, /Gallery visitors|gallery-chat|Gallery navigation|Previous gallery|Next gallery|Exit gallery|Return home|Gallery finishes/);

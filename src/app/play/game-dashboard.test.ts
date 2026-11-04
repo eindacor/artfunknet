@@ -39,11 +39,21 @@ const activeEffectSource = sharedSource.statements.find(statement =>
 const getActiveLegendaryAttribute = runInVm(`${ts.transpileModule(activeEffectSource.getText(sharedSource), {
   compilerOptions: { module: ts.ModuleKind.CommonJS },
 }).outputText}\ngetActiveLegendaryAttribute`, { exports: {} });
+const featuredContentSource = ts.createSourceFile("featured-work-content.tsx",
+  await readFile(new URL("../../components/featured-work-content.tsx", import.meta.url), "utf8"),
+  ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+const featuredContentFunction = featuredContentSource.statements.find(ts.isFunctionDeclaration)!;
+const FeaturedWorkContent = runInVm(`${ts.transpileModule(featuredContentFunction.getText(featuredContentSource), {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.React },
+}).outputText}\nFeaturedWorkContent`, {
+  exports: {}, React, ArtworkThumbnail: () => null, getArtworkFeatureCardAdjustment,
+});
 
 function runInNewContext(code: string, context: Record<string, unknown>) {
   context.getItemDisposalPermission = getItemDisposalPermission;
   context.FEATURE_ARTWORK_DESCRIPTION = FEATURE_ARTWORK_DESCRIPTION;
   context.getActiveLegendaryAttribute = getActiveLegendaryAttribute;
+  context.FeaturedWorkContent = FeaturedWorkContent;
   context.TutorialElement = TutorialElement;
   context.updateTutorial ??= () => {};
   context.fulfillTutorial ??= async () => {};
@@ -276,8 +286,9 @@ test("featured cards select filtered-out works for the preview and visit their e
     }>[] }>;
   const [select, visit] = card.props.children;
   assert.equal(select.props["aria-pressed"], false);
-  const image = React.Children.toArray(select.props.children).find(child =>
-    React.isValidElement(child) && child.type === context.ArtworkThumbnail,
+  const content = React.Children.only(select.props.children) as React.ReactElement<Parameters<typeof FeaturedWorkContent>[0]>;
+  const image = React.Children.toArray(FeaturedWorkContent(content.props).props.children).find(child =>
+    React.isValidElement<{ variant?: string }>(child) && child.props.variant === "card",
   ) as React.ReactElement<{ adjustment: unknown }>;
   assert.deepEqual(image.props.adjustment, featured.artwork.feature_card_adjustment);
   visit.props.onClick(event);

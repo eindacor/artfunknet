@@ -326,6 +326,7 @@ export default function GalleryExplorer({
         ownerId={selectedGalleryId}
         navigationDisabled={navigatingGallery}
         socialBattery={socialBattery}
+        visitorTypes={visitorTypes}
         viewerId={viewerId}
       />
     );
@@ -606,6 +607,7 @@ function VisitedGallery({
   ownerId,
   navigationDisabled,
   socialBattery,
+  visitorTypes,
   viewerId,
 }: {
   impersonating: boolean;
@@ -627,6 +629,7 @@ function VisitedGallery({
   ownerId: string;
   navigationDisabled: boolean;
   socialBattery: number;
+  visitorTypes: readonly { id: string; name: string; icon: string }[];
   viewerId: string;
 }) {
   const [gallery, setGallery] = useState<GalleryDetailResponse | null>(null);
@@ -819,16 +822,16 @@ function VisitedGallery({
       <GalleryExhibition
         gallery={gallery}
         viewerId={viewerId}
+        visitorTypes={visitorTypes}
         selectedItem={selectedPreviewItem}
         onSelectItem={setSelectedPreviewItem}
         onSelectAuction={setSelectedAuction}
         onReactionsChange={(reactions) => setGallery(current => current?.metadata
           ? { ...current, metadata: { ...current.metadata, reactions } } : current)}
-        sidebar={ownerId === viewerId ? (header) => (
+        sidebar={ownerId === viewerId ? (
           <GalleryFinishMenu
             finishes={gallery.finishes}
             galleryId={gallery.galleryId}
-            header={header}
             key={gallery.galleryId}
             onChange={(finishes) => setGallery((current) =>
               current?.galleryId === gallery.galleryId

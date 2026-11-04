@@ -3346,18 +3346,26 @@ a.welcome-button {
 }
 
 .gallery-title {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, max-content) 32px;
   align-items: center;
   gap: 8px;
 }
 
-.gallery-title h1 {
+.gallery-title h1,
+.gallery-title h2 {
   min-width: 0;
+  margin: 0;
   overflow-wrap: anywhere;
 }
 
+.gallery-title h1 {
+  color: #171717;
+  font: 500 clamp(1.35rem, 2.5vw, 2rem) Georgia, "Times New Roman", serif;
+  line-height: 1;
+}
+
 .gallery-share {
-  flex: 0 0 32px;
   width: 32px;
   height: 32px;
   border: 0;
@@ -3377,8 +3385,8 @@ a.welcome-button {
   outline-offset: 2px;
 }
 
-.visited-gallery-metadata-header .gallery-share-error {
-  margin: 8px 0;
+.gallery-share-error {
+  grid-column: 1 / -1;
   color: #a12b35;
   font: 0.75rem Courier, monospace;
   letter-spacing: normal;
@@ -3537,11 +3545,11 @@ a.welcome-button {
 }
 
 .anonymous-gallery-page .visited-gallery-workspace {
-  grid-template-areas: "gallery gallery preview" "player player player";
+  grid-template-areas: "gallery gallery preview";
 }
 
 .anonymous-gallery-page .visited-artist-gallery .visited-gallery-workspace {
-  grid-template-areas: "gallery gallery preview" "showcase showcase showcase" "player player player";
+  grid-template-areas: "gallery gallery preview" "showcase showcase showcase";
 }
 
 .visited-artist-gallery .visited-gallery-player-panel {
@@ -3630,40 +3638,10 @@ a.welcome-button {
     grid-template-areas: "gallery" "preview" "showcase" "player" "chat";
     grid-template-columns: minmax(0, 1fr);
   }
-}
 
-.visited-gallery-metadata-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1.5rem;
-  border-bottom: 1px solid #d2cdc2;
-  padding: 14px 16px;
-}
-
-.visited-gallery-metadata-header p,
-.visited-gallery-metadata-header h1,
-.visited-gallery-metadata-header span {
-  margin: 0;
-}
-
-.visited-gallery-metadata-header p {
-  color: var(--accent);
-  font: 700 0.65rem Courier, "Courier New", monospace;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.visited-gallery-metadata-header h1 {
-  margin: 0.2rem 0;
-  color: #171717;
-  font: 500 clamp(1.35rem, 2.5vw, 2rem) Georgia, "Times New Roman", serif;
-  line-height: 1;
-}
-
-.visited-gallery-metadata-header span {
-  color: #676158;
-  font-size: 0.78rem;
+  .anonymous-gallery-page .visited-artist-gallery .visited-gallery-workspace {
+    grid-template-areas: "gallery" "preview" "showcase";
+  }
 }
 
 .visited-gallery-player-panel {
@@ -3674,14 +3652,6 @@ a.welcome-button {
   background: #f8f6f0;
   color: #282722;
   box-shadow: 0 8px 22px rgb(41 35 28 / 10%);
-}
-
-.visited-gallery-overview-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-  margin: 0;
-  border-bottom: 1px solid #d8d2c7;
-  padding: 8px 10px;
 }
 
 .gallery-finish-panel {
@@ -3818,55 +3788,6 @@ a.welcome-button {
 
 .gallery-finish-save [role="alert"] {
   color: #a12b35;
-}
-
-.visited-gallery-overview-stats > div {
-  display: grid;
-  gap: 4px;
-  border-right: 1px solid #d8d2c7;
-  padding: 7px 10px;
-}
-
-.visited-gallery-overview-stats > div:last-child {
-  border-right: 0;
-}
-
-.visited-gallery-overview-stats dt,
-.visited-gallery-metadata-strip > div > span {
-  color: #817a70;
-  font: 0.56rem Courier, "Courier New", monospace;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.visited-gallery-overview-stats dd {
-  margin: 0;
-  color: #282722;
-  font: 700 0.95rem Georgia, "Times New Roman", serif;
-}
-
-.visited-gallery-metadata-strip {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
-  gap: 12px;
-  align-items: center;
-  border-bottom: 1px solid #d8d2c7;
-  padding: 10px 14px;
-}
-
-.visited-gallery-metadata-strip > div {
-  display: grid;
-  gap: 5px;
-  min-width: 0;
-}
-
-.visited-gallery-metadata-strip .gallery-attribute-summary,
-.visited-gallery-metadata-strip .gallery-rarity-summary {
-  justify-content: flex-start;
-}
-
-.visited-gallery-reactions {
-  justify-items: end;
 }
 
 .visited-gallery-auction-heading {
@@ -4130,11 +4051,6 @@ a.welcome-button {
     flex-direction: column;
   }
 
-  .visited-gallery-metadata-header {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
   .visited-gallery-workspace {
     grid-template-areas:
       "gallery"
@@ -4145,32 +4061,16 @@ a.welcome-button {
   }
 
   .anonymous-gallery-page .visited-gallery-workspace {
-    grid-template-areas: "gallery" "preview" "player";
+    grid-template-areas: "gallery" "preview";
   }
 
   .anonymous-gallery-page .visited-artist-gallery .visited-gallery-workspace {
-    grid-template-areas: "gallery" "preview" "showcase" "player";
+    grid-template-areas: "gallery" "preview" "showcase";
   }
 
   .visited-gallery-player-panel {
     height: auto;
     max-height: none;
-  }
-
-  .visited-gallery-overview-stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .visited-gallery-overview-stats > div:nth-child(even) {
-    border-right: 0;
-  }
-
-  .visited-gallery-metadata-strip {
-    grid-template-columns: 1fr;
-  }
-
-  .visited-gallery-reactions {
-    justify-items: start;
   }
 
   .gallery-explorer-card-body > dl {
@@ -6219,6 +6119,53 @@ a.welcome-button {
   color: #282722;
   font: 700 0.9rem Georgia, "Times New Roman", serif;
   overflow-wrap: anywhere;
+}
+
+.home-featured-info > .gallery-rarity-summary {
+  justify-content: flex-start;
+  margin-top: 12px;
+}
+
+.visited-gallery-featured-panel {
+  border: 0;
+  box-shadow: none;
+}
+
+.visited-gallery-featured-panel .home-featured-top {
+  grid-template-areas: "info chart" "actions actions";
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+}
+
+.visited-gallery-featured-panel .home-featured-slots {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+}
+
+.visited-gallery-featured-panel .home-featured-copy {
+  padding-right: 12px;
+}
+
+.visited-gallery-finish-controls {
+  border-top: 1px solid #d8d2c7;
+  padding: 12px;
+}
+
+.visited-gallery-finish-controls > summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.visited-gallery-finish-controls .gallery-finish-panel {
+  height: auto;
+  max-height: none;
+  border: 0;
+  box-shadow: none;
+}
+
+@container (max-width: 500px) {
+  .visited-gallery-featured-panel .home-featured-top {
+    grid-template-areas: "info" "chart" "actions";
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .home-featured-attraction {

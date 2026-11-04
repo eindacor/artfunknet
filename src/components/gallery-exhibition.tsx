@@ -1,17 +1,20 @@
 "use client";
 
-import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
+import { useEffect, useRef, type ComponentProps, type ReactNode } from "react";
 import { ArtistGalleryIntroduction, ArtistGalleryShowcase } from "@/components/artist-gallery";
 import { CommunityReactionPicker } from "@/components/community-emotes";
+import FeaturedWorkContent from "@/components/featured-work-content";
+import FeaturedWorksPanel from "@/components/featured-works-panel";
+import GalleryRaritySummary from "@/components/gallery-rarity-summary";
+import GalleryShareButton from "@/components/gallery-share-button";
 import ItemCard from "@/components/item-cards/item-card";
-import { ratingColor } from "@/components/item-cards/shared";
+import { getActiveLegendaryAttribute, ratingColor } from "@/components/item-cards/shared";
 import ItemThumbnail from "@/components/item-thumbnail";
 import PublicGallery from "@/components/public-gallery";
 import type { AuctionView } from "@/server/auction-gameplay";
 import type { CommunityReactionSummary } from "@/server/community-reactions-core";
 import type { GalleryExhibitionData } from "@/server/gallery-exhibition";
 import type { GalleryAttributeAggregate } from "@/server/gallery-metadata-core";
-import type { ArtworkRarity } from "@/server/gameplay";
 import type { HydratedGameItem } from "@/server/item-artwork";
 
 type GalleryNavigation = Pick<ComponentProps<typeof PublicGallery>,
@@ -31,7 +34,7 @@ export function getGalleryPreviewItem(gallery: GalleryExhibitionData, initialIte
 
 export default function GalleryExhibition({
   gallery, viewerId, selectedItem, onSelectItem, onSelectAuction, onReactionsChange,
-  sidebar, chatContent, visitorContent, navigation,
+  sidebar, chatContent, visitorContent, navigation, visitorTypes = [],
 }: {
   gallery: GalleryExhibitionData;
   viewerId: string | null;
@@ -39,14 +42,13 @@ export default function GalleryExhibition({
   onSelectItem: (item: HydratedGameItem) => void;
   onSelectAuction?: (auction: AuctionView) => void;
   onReactionsChange?: (reactions: CommunityReactionSummary) => void;
-  sidebar?: (header: ReactNode) => ReactNode;
+  sidebar?: ReactNode;
   chatContent?: ReactNode;
   visitorContent?: ReactNode;
   navigation?: GalleryNavigation;
+  visitorTypes?: readonly { id: string; name: string; icon: string }[];
 }) {
   const workspaceRef = useRef<HTMLDivElement>(null);
-  const [copied, setCopied] = useState(false);
-  const [shareError, setShareError] = useState(false);
   useEffect(() => {
     const workspace = workspaceRef.current;
     const galleryWindow = workspace?.querySelector<HTMLElement>(".public-gallery-window");
@@ -60,77 +62,69 @@ export default function GalleryExhibition({
     return () => observer.disconnect();
   }, [gallery.galleryId]);
   const selectedAuction = gallery.auctions.find(auction => auction.item._id === selectedItem?._id);
-  const sharePath = `/gallery/${encodeURIComponent(gallery.owner.playerId)}`;
-  const header = <header className="visited-gallery-metadata-header">
-    <div>
-      <p>{gallery.artist ? "Contributing artist" : "Collector exhibition"}</p>
-      <div className="gallery-title">
-        <h1>{gallery.artist?.name ?? gallery.owner.screenName}&apos;s Gallery</h1>
-        <button aria-label="Copy gallery link" className="gallery-share"
-          title={copied ? "Gallery link copied" : "Copy gallery link"} type="button" onClick={async () => {
-            try {
-              await navigator.clipboard.writeText(new URL(sharePath, window.location.origin).href);
-              setCopied(true);
-              setShareError(false);
-            } catch {
-              setCopied(false);
-              setShareError(true);
-            }
-          }}><i aria-hidden="true" className={`fa ${copied ? "fa-check" : "fa-link"}`} /></button>
-        <span className="sr-only" role="status">{copied ? "Gallery link copied." : ""}</span>
-      </div>
-      {shareError ? <p className="gallery-share-error" role="alert">
-        Could not copy. <a href={sharePath}>Copy the gallery link</a> instead.
-      </p> : null}
-      <span>{gallery.artist ? "Artist exhibition and player gallery information." : "Explore the artwork this collector has put on display."}</span>
-    </div>
-  </header>;
+  const galleryTitle = `${gallery.artist?.name ?? gallery.owner.screenName}'s Gallery`;
 
   return <>
     {gallery.artist ? <ArtistGalleryIntroduction artist={gallery.artist} /> : null}
+    {!viewerId ? <div className="gallery-title">
+      <h1>{galleryTitle}</h1>
+      <GalleryShareButton key={gallery.owner.playerId} playerId={gallery.owner.playerId} />
+    </div> : null}
     <div className="visited-gallery-workspace" ref={workspaceRef}>
-      {sidebar?.(header) ?? <section className="visited-gallery-player-panel">
-        {header}
-        <dl className="visited-gallery-overview-stats">
-          <div><dt>Player level</dt><dd>{gallery.owner.level}</dd></div>
-          <div><dt>Vintage level</dt><dd>{gallery.owner.vintageLevel}</dd></div>
-          <div><dt>Shared works</dt><dd>{gallery.items.length}</dd></div>
-          {gallery.metadata ? <>
-            <div><dt>Gallery value</dt><dd>${gallery.metadata.value.toLocaleString()}</dd></div>
-            <div><dt>Attribute score</dt><dd>{gallery.metadata.score.toLocaleString()}</dd></div>
-            <div><dt>Featured value</dt><dd>${gallery.metadata.featured_value.toLocaleString()}</dd></div>
-          </> : null}
-          <div><dt>Active auctions</dt><dd>{gallery.auctions.length}</dd></div>
-        </dl>
-        {gallery.metadata ? <div className="visited-gallery-metadata-strip">
-          <div>
-            <span>Attributes</span>
-            <GalleryAttributeSummary attributes={gallery.metadata.attributes} displayCapacity={gallery.metadata.display_capacity} />
-          </div>
-          <div>
-            <span>Rarities</span>
-            <GalleryRaritySummary rarities={gallery.metadata.display_rarities} />
-          </div>
-          {gallery.metadata.reactions && onReactionsChange ? <div className="visited-gallery-reactions">
-            <span>Reactions</span>
+      {viewerId ? <section className="visited-gallery-player-panel">
+        <FeaturedWorksPanel
+          actions={gallery.metadata?.reactions && onReactionsChange ? (
             <CommunityReactionPicker className="gallery-emote-reactions" onChange={onReactionsChange}
               reactions={gallery.metadata.reactions} targetId={gallery.owner.playerId} targetType="gallery" />
-          </div> : null}
-        </div> : null}
-        <header className="visited-gallery-auction-heading"><span>Items up for auction</span></header>
-        {gallery.auctions.length === 0 ? <p className="collection-sidebar-empty">This player has no public auctions.</p>
-          : <div className="visited-gallery-auctions">{gallery.auctions.map(auction => (
-            <button aria-label={`Preview auction for ${auction.item.artwork.title}`} key={auction._id}
-              onClick={() => onSelectItem(auction.item)} type="button">
-              <ItemThumbnail alt="" item={auction.item} researchTarget={auction.questTarget && !auction.owned} size={82} />
-              <span className="visited-gallery-auction-copy">
-                <strong>{auction.item.artwork.title}</strong>
-                <small>${auction.current_bid.toLocaleString()} current bid</small>
-                {auction.buy_now !== null ? <small>${auction.buy_now.toLocaleString()} buy now</small> : null}
-              </span>
-            </button>
-          ))}</div>}
-      </section>}
+          ) : null}
+          attributeScore={gallery.metadata?.score ?? 0}
+          attributes={gallery.metadata?.attributes ?? []}
+          className="visited-gallery-featured-panel"
+          displayCapacity={gallery.metadata?.display_capacity ?? 0}
+          galleryOwnerId={gallery.owner.playerId}
+          items={gallery.items.filter(item => item.status === "displayed" && item.owner !== "preview")}
+          maxDisplayCapacity={gallery.metadata?.display_capacity ?? 0}
+          rates={gallery.rates ?? { value: 0, moneyPerHour: 0, xpPerHour: 0 }}
+          rarities={gallery.metadata?.display_rarities ?? []}
+          readOnly
+          renderItem={item => {
+            const effect = getActiveLegendaryAttribute(item, gallery.legendaryAttributes);
+            return <article className="home-featured-card" data-rarity={item.artwork.rarity}
+              data-selected={selectedItem?._id === item._id || undefined} key={item._id}>
+              <button aria-describedby={effect ? `featured-effect-${item._id}` : undefined}
+                aria-label={`Preview ${item.artwork.title} by ${item.artwork.artist}`}
+                aria-pressed={selectedItem?._id === item._id} className="home-featured-select"
+                onClick={() => {
+                  onSelectItem(item);
+                  workspaceRef.current?.querySelector(".public-gallery-window")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }} type="button">
+                <FeaturedWorkContent item={item} legendaryEffect={effect} />
+              </button>
+            </article>;
+          }}
+          title={galleryTitle}
+          visitorTypes={visitorTypes}
+        />
+        {sidebar ? <details className="visited-gallery-finish-controls">
+          <summary>Gallery finishes</summary>
+          {sidebar}
+        </details> : null}
+        <section aria-label="Gallery auctions">
+          <header className="visited-gallery-auction-heading"><span>Items up for auction</span></header>
+          {gallery.auctions.length === 0 ? <p className="collection-sidebar-empty">This player has no public auctions.</p>
+            : <div className="visited-gallery-auctions">{gallery.auctions.map(auction => (
+              <button aria-label={`Preview auction for ${auction.item.artwork.title}`} key={auction._id}
+                onClick={() => onSelectItem(auction.item)} type="button">
+                <ItemThumbnail alt="" item={auction.item} researchTarget={auction.questTarget && !auction.owned} size={82} />
+                <span className="visited-gallery-auction-copy">
+                  <strong>{auction.item.artwork.title}</strong>
+                  <small>${auction.current_bid.toLocaleString()} current bid</small>
+                  {auction.buy_now !== null ? <small>${auction.buy_now.toLocaleString()} buy now</small> : null}
+                </span>
+              </button>
+            ))}</div>}
+        </section>
+      </section> : null}
       <section className="collection-preview visited-gallery-preview">
         {selectedItem ? <ItemCard item={selectedItem} key={`${selectedItem._id}:${selectedItem.status}`}
           legendaryAttributes={gallery.legendaryAttributes} owner={gallery.owner}
@@ -166,9 +160,4 @@ export function GalleryAttributeSummary({ attributes, displayCapacity }: {
   </div>;
 }
 
-export function GalleryRaritySummary({ rarities }: { rarities: ArtworkRarity[] }) {
-  return <div aria-label="Featured artwork rarities" className="gallery-rarity-summary">
-    {rarities.map((rarity, index) => <span aria-label={`${rarity} artwork`} className="gallery-rarity-square"
-      data-rarity={rarity} key={`${rarity}-${index}`} role="img" title={rarity} />)}
-  </div>;
-}
+export { GalleryRaritySummary };

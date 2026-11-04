@@ -30,7 +30,7 @@ import * as artworkEffects from "./artwork-effects.ts";
 import * as rareSpecialAttributes from "./rare-special-attributes.ts";
 import * as itemArtwork from "./item-artwork.ts";
 import * as socialBattery from "./social-battery.ts";
-import { getAverageDropValueForLevel, getXpChunk } from "./collection-gameplay.ts";
+import { calculateGalleryRates, getAverageDropValueForLevel, getXpChunk } from "./collection-gameplay.ts";
 import { grantStandardNpcReward } from "./standard-npc-reward-service.ts";
 import * as settingsCore from "./game-settings.ts";
 import * as publicShowcaseCore from "./public-showcase-core.ts";
@@ -391,6 +391,7 @@ test("artist applications, publication and featured galleries persist without gr
 
   await t.test("artist galleries combine active uploads with featured and permanent game items and persist owner-only finishes", async () => {
     const db = client.db("combined-artist-gallery");
+    await setupTestDb(db, null, STARTING_INVENTORY_TEST_OPTIONS);
     const account = await seedArtist(db, 0, true);
     await documents(db, "players").insertOne(createPlayerAccountRecord({
       playerId: "ordinary-player", email: "ordinary@example.com", screenName: "Ordinary",
@@ -419,7 +420,13 @@ test("artist applications, publication and featured galleries persist without gr
     await documents(db, "items").insertMany([
       featured, permanent, { ...featured, _id: "private-inventory", status: "claimed" },
       { ...featured, _id: "ordinary-copy", owner: "ordinary-player" },
+      { ...featured, _id: "auction-copy", status: "auctioned" },
     ]);
+    await documents(db, "auctions").insertOne({
+      _id: "gallery-auction", item_id: "auction-copy", seller_id: account.id, seller_name: "Artist",
+      viewer: "public", current_bid: 250, buy_now: 500, current_winner_id: null,
+      expiration: new Date(Date.now() + 60_000).toISOString(),
+    });
     await documents(db, "galleries").insertOne({ _id: "artist-existing-gallery", owner_id: account.id, active: true });
     const publicShowcase = await load<typeof import("./public-showcase.ts")>("./public-showcase.ts", {
       "server-only": {}, "./item-artwork": itemArtwork, "./public-showcase-core": publicShowcaseCore,
@@ -438,6 +445,8 @@ test("artist applications, publication and featured galleries persist without gr
         "@/server/player-api": playerApi, "@/server/player-gallery-finishes": playerGalleryFinishes,
         "@/server/public-showcase": publicShowcase, "@/server/public-showcase-core": publicShowcaseCore,
         "@/server/contributing-artists": artists, "@/server/artist-artwork-preview": { createArtistArtworkPreview },
+        "@/server/collection-gameplay": { calculateGalleryRates },
+        "@/server/game-settings": { getGameplaySettings },
     };
     const exhibition = await load<typeof import("./gallery-exhibition.ts")>("./gallery-exhibition.ts", {
       "server-only": {}, ...galleryDependencies,
@@ -460,6 +469,20 @@ test("artist applications, publication and featured galleries persist without gr
     assert.equal(gallery.metadata.item_count, 2, "Unowned showcase previews do not boost game gallery metadata");
     assert.equal(gallery.metadata.permanent_count, 1);
     assert.equal(gallery.galleryId, "artist-existing-gallery");
+    assert.deepEqual(gallery.auctions.map((auction: { item: { _id: string } }) => auction.item._id), ["auction-copy"]);
+    const expectedRates = await calculateGalleryRates(db, gallery.owner.level,
+      await itemArtwork.hydrateGameItems(db, [featured]), new Date(), (await getGameplaySettings(db)).active);
+    assert.deepEqual(gallery.rates, expectedRates, "Rates use the owner's real featured items, not artist previews or permanent works");
+    const forgery = { ...featured, authenticity: { ...featured.authenticity, forgery: true, forgery_quality: 0.25 } };
+    await documents(db, "items").updateOne({ _id: featured._id }, { $set: { authenticity: forgery.authenticity } });
+    const forgedGallery = await get();
+    assert.deepEqual(forgedGallery.rates, await calculateGalleryRates(db, gallery.owner.level,
+      await itemArtwork.hydrateGameItems(db, [forgery]), new Date(), (await getGameplaySettings(db)).active),
+    "Rates must be calculated before public authenticity masking hides the forgery penalty");
+    assert.ok(forgedGallery.rates.moneyPerHour < gallery.rates.moneyPerHour);
+    assert.ok(forgedGallery.rates.xpPerHour < gallery.rates.xpPerHour);
+    assert.equal(forgedGallery.items.find((item: { _id: string }) => item._id === featured._id).authenticity.forgery, undefined);
+    await documents(db, "items").updateOne({ _id: featured._id }, { $set: { authenticity: featured.authenticity } });
     await documents(db, "artworks").updateOne({ _id: acquired._id }, { $set: {
       artist_license: { private: "private-license" }, submitted_by: "private-submitter", created_by: "private-admin",
     } });
@@ -467,7 +490,9 @@ test("artist applications, publication and featured galleries persist without gr
     assert.ok(anonymous);
     assert.deepEqual(Array.from(anonymous.items, item => item._id).sort(), ["artist-preview:uploaded", "featured-copy", "permanent-copy"]);
     assert.equal(anonymous.items.find(item => item._id === "featured-copy")?.owner, "unknown");
-    assert.equal(anonymous.metadata?.reactions, null);
+    assert.equal(anonymous.metadata, null);
+    assert.equal(anonymous.rates, null);
+    assert.deepEqual(Array.from(anonymous.auctions), []);
     assert.doesNotMatch(JSON.stringify(anonymous), /private-inventory|private-license|private-submitter|private-admin|password_hash|password_salt/);
     assert.equal("npcs" in anonymous, false);
     let signedIn: string | null = null;

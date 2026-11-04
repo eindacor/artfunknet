@@ -53,6 +53,8 @@ const FeaturedWorksPanel = (await load("./featured-works-panel.tsx", {
   "./gallery-stats/gallery-stats": await load("./gallery-stats/gallery-stats.tsx"),
   "./gallery-stat/gallery-stat": await load("./gallery-stat/gallery-stat.tsx"),
   "./gallery-attraction-chart": attractionChartModule,
+  "./gallery-rarity-summary": await load("./gallery-rarity-summary.tsx"),
+  "./gallery-share-button": await load("./gallery-share-button.tsx"),
 })).default as typeof FeaturedWorksPanelComponent;
 
 test("featured slots remain visible for empty, partially filled, fully unlocked, and legacy collections", () => {
@@ -60,7 +62,9 @@ test("featured slots remain visible for empty, partially filled, fully unlocked,
     [0, 5, 5, 5], [3, 7, 4, 3], [4, 5, 1, 5], [5, 5, 0, 5],
     [10, 10, 0, 0], [11, 10, 0, 0], [0, 12, 12, 0],
   ]) {
-    const items = Array.from({ length: count }, (_, index) => ({ _id: `item-${index}` })) as HydratedGameItem[];
+    const items = Array.from({ length: count }, (_, index) => ({
+      _id: `item-${index}`, artwork: { rarity: "common" },
+    })) as HydratedGameItem[];
     const html = renderToStaticMarkup(React.createElement(FeaturedWorksPanel, {
       items, displayCapacity: capacity, maxDisplayCapacity: 10,
       rates: { value: 0, moneyPerHour: 0, xpPerHour: 0 }, attributeScore: 0, attributes: [], visitorTypes: [], actions: null,
@@ -89,6 +93,7 @@ test("featured information shows earnings, value, visitor attraction score, visi
       count: 2, totalRating: 1.5, effectiveRating: 0.3,
     }],
     visitorTypes: [{ id: "visitor", name: "Art Collector", icon: "fa-eye" }],
+    galleryOwnerId: "home-player",
     actions: React.createElement("button", null, "Go to your gallery"),
     renderItem: () => null,
   }));
@@ -97,6 +102,7 @@ test("featured information shows earnings, value, visitor attraction score, visi
   }
   assert.match(html, /Art Collector: 2 works, 30% effective attraction \(150 total \u00f7 5 display slots\)/);
   assert.match(html, /Go to your gallery/);
+  assert.match(html, /<h2 class="info-panel-title">Your featured works<\/h2><button aria-label="Copy gallery link"/);
   assert.match(html, /Effective attraction/);
   const helpButton = html.match(/<button[^>]*aria-label="How featuring attracts visitors"[^>]*>/)?.[0];
   const descriptionId = helpButton?.match(/aria-describedby="([^"]+)"/)?.[1];
@@ -104,6 +110,21 @@ test("featured information shows earnings, value, visitor attraction score, visi
   assert.ok(html.includes(`id="${descriptionId}" role="tooltip"`));
   assert.match(html, /symbols on each card show which visitor types are attracted/);
   assert.match(html, /Visitors in your own gallery\s+give bigger bonuses!/);
+});
+
+test("rarity squares appear below the featured statistics and read-only galleries omit management prompts", () => {
+  const items = [{ _id: "featured", artwork: { rarity: "rare" } }] as HydratedGameItem[];
+  const html = renderToStaticMarkup(React.createElement(FeaturedWorksPanel, {
+    items, displayCapacity: 5, maxDisplayCapacity: 10, readOnly: true, title: "Featured works",
+    rates: { value: 100, moneyPerHour: 20, xpPerHour: 5 }, attributeScore: 60,
+    attributes: [], visitorTypes: [], actions: null,
+    renderItem: item => React.createElement("article", { "data-featured-item": item._id }),
+  }));
+  assert.ok(html.indexOf("Money per hour") < html.indexOf('aria-label="Featured artwork rarities"'));
+  assert.ok(html.indexOf("Visitor attraction score") < html.indexOf('aria-label="Featured artwork rarities"'));
+  assert.match(html, /class="gallery-rarity-square" data-rarity="rare"/);
+  assert.match(html, /data-featured-item="featured"/);
+  assert.doesNotMatch(html, /Your featured works|Empty feature slot|Locked feature slot|unoccupied|data-tutorial-element/);
 });
 
 test("the attraction chart joins every active visitor to its effective rating on a fixed percent scale", () => {
