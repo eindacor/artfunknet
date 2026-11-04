@@ -2590,6 +2590,7 @@ export default function GameDashboard({
       const body = (await response.json()) as {
         error?: string;
         message?: string;
+        socialBatteryCost?: number;
         interaction?:
           | {
               type: "art-donor-offer" | "art-dealer-offer";
@@ -2618,15 +2619,12 @@ export default function GameDashboard({
         throw new Error(body.error ?? "The visitor interaction failed.");
       }
       updateTutorial(body.tutorial);
+      const socialBatteryCost = body.socialBatteryCost ?? (npc.tutorial ? 0 : getVisitorSocialBatteryCost(
+        npc.quality,
+        npc.owner_id === playerId,
+      ));
       setSocialBattery((current) =>
-        Math.max(
-          0,
-          current -
-            (npc.tutorial ? 0 : getVisitorSocialBatteryCost(
-              npc.quality,
-              npc.owner_id === playerId,
-            )),
-        ),
+        Math.max(0, current - socialBatteryCost),
       );
       let showedAnimatedResult = false;
       if (

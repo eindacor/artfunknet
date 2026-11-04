@@ -20,6 +20,7 @@ import {
 } from "./auction-gameplay.ts";
 import { hydrateGameItems } from "./item-artwork.ts";
 import {
+  ART_DONOR_ATTRIBUTE_ID,
   getDisplayedLegendaryEffect,
   getLegendaryNumberParameter,
 } from "./legendary-attributes.ts";
@@ -121,19 +122,26 @@ export async function processAuctioneerInteraction(
       ]);
     if (!metadata) throw new Error("Loot metadata is not configured.");
 
+    const donorPresent = donorPair && await database.collection<GalleryNpc>("npcs").findOne({
+      owner_id: npc.owner_id,
+      attribute_id: ART_DONOR_ATTRIBUTE_ID,
+      expiration: { $gt: now },
+    });
     const auctionCount =
       AUCTIONEER_BASE_PRIVATE_LOTS +
       (ownGallery ? 1 : 0) +
-      Math.max(
-        0,
-        Math.floor(
-          getLegendaryNumberParameter(
-            donorPair,
-            "auctioneer_item_delta",
-            donorPair ? 1 : 0,
-          ),
-        ),
-      );
+      (donorPresent
+        ? Math.max(
+            0,
+            Math.floor(
+              getLegendaryNumberParameter(
+                donorPair,
+                "auctioneer_item_delta",
+                1,
+              ),
+            ),
+          )
+        : 0);
     const priceMultiplier = getLegendaryNumberParameter(
       privatePriceReduction,
       "price_multiplier",

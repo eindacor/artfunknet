@@ -30,6 +30,8 @@ import * as artworkEffects from "./artwork-effects.ts";
 import * as rareSpecialAttributes from "./rare-special-attributes.ts";
 import * as itemArtwork from "./item-artwork.ts";
 import * as socialBattery from "./social-battery.ts";
+import { getAverageDropValueForLevel, getXpChunk } from "./collection-gameplay.ts";
+import { grantStandardNpcReward } from "./standard-npc-reward-service.ts";
 import * as settingsCore from "./game-settings.ts";
 import * as publicShowcaseCore from "./public-showcase-core.ts";
 import * as galleryMetadataCore from "./gallery-metadata-core.ts";
@@ -827,8 +829,51 @@ test("artist applications, publication and featured galleries persist without gr
     assert.deepEqual(await documents(db, "artworks").findOne({ _id: "missing-effect" }), pending("missing-effect"));
   });
 
-  await t.test("meeting featured-gallery visitors applies the visitor's own Legendary and Masterpiece effects and own-gallery battery cost", async () => {
+  await t.test("featured Benefactors and Enthusiasts apply the player's effects and count visitors in the visited gallery", async t => {
+    t.mock.method(Math, "random", () => 0);
+    for (const ownerId of ["viewer", "artist-player-0", "ordinary"]) {
+      const db = client.db(`artist-standard-rewards-${ownerId}`);
+      const effects = ["BENEFACTOR_VISITOR_COUNT_BONUS", "ENTHUSIAST_VISITOR_COUNT_BONUS", "MONEY_FOR_XP"];
+      const { now, futureTime } = await setupTestDb(db, "viewer", {
+        uniqueAttributes: effects.map(code => ({
+          _id: code, code, active: true, parameters: { multiplier_per_visitor: 0.1, money_per_xp: 2 },
+        })),
+      });
+      await seedArtist(db, 0, true);
+      for (const [index, code] of effects.entries()) {
+        await documents(db, "artworks").updateOne({ _id: `art-${index + 1}` }, { $set: { rarity: "legendary", effect_id: code } });
+        await documents(db, "items").insertOne({
+          _id: `displayed-${index}`, artwork_id: `art-${index + 1}`, owner: "viewer", status: "displayed",
+        });
+      }
+      const [benefactor, enthusiast] = [legendary.BENEFACTOR_ATTRIBUTE_ID, legendary.ART_ENTHUSIAST_ATTRIBUTE_ID]
+        .map((attribute_id, index) => ({
+          _id: `visitor-${index}`, owner_id: ownerId, owner_name: "Gallery",
+          attribute_id, quality: "bronze" as const, npc_name: "Visitor", icon: "fa-user",
+          spawned_at: now, expiration: futureTime, players_met: [], proc_chance: 1,
+        }));
+      await db.collection<npcGameplay.GalleryNpc>("npcs").insertMany([
+        benefactor, enthusiast,
+        ...Array.from({ length: 10 }, (_, index) => ({ ...benefactor, _id: `elsewhere-${index}`, owner_id: "elsewhere" })),
+        { ...benefactor, _id: "expired", expiration: new Date(now.getTime() - 1) },
+      ]);
+      const player = (await db.collection<Parameters<typeof grantStandardNpcReward>[1]>("players")
+        .findOne({ _id: "viewer" }))!;
+      const ownBenefits = ownerId !== "ordinary";
+      const average = await getAverageDropValueForLevel(db, player.profile.level);
+      const donation = await grantStandardNpcReward(db, player, benefactor, now);
+      assert.equal(donation.rewardAmount, Math.floor(average * 5 * 0.8 * (ownBenefits ? 1.75 * 1.2 : 1)));
+      const xp = await grantStandardNpcReward(db, player, enthusiast, now);
+      assert.equal(xp.rewardAmount, Math.floor(getXpChunk(player.profile.level) * (ownBenefits ? 0.2 * 1.75 * 1.2 : 0.2)));
+      assert.equal(xp.bonusMoney, ownBenefits ? xp.rewardAmount * 2 : 0);
+      const saved = (await documents(db, "players").findOne({ _id: "viewer" }))!;
+      assert.equal(saved.profile.bank_balance, player.profile.bank_balance + donation.rewardAmount + xp.bonusMoney);
+    }
+  });
+
+  await t.test("featured Donors and Dealers match own-gallery drop settings and the player's Legendary and Masterpiece effects", async () => {
     const db = client.db("artist-visitor-effects");
+    await setupTestDb(db, null, STARTING_INVENTORY_TEST_OPTIONS);
     const artist = await seedArtist(db, 0, true);
     const viewer = createPlayerAccountRecord({
       email: "viewer@example.com", screenName: "Viewer", passwordSalt: "salt", passwordHash: "hash",
@@ -837,19 +882,23 @@ test("artist applications, publication and featured galleries persist without gr
       ...viewer, profile: { ...viewer.profile, social_battery: socialBattery.SOCIAL_BATTERY_MAX,
         social_battery_reset_at: "2999-01-01T00:00:00.000Z" },
     });
-    const works: Artwork[] = ["legendary", "masterpiece"].map((rarity, index) => ({
+    const effects = [
+      { effect_type: "legendary", code: "BONUS_DEALER_DONOR", parameters: { additional_items: 1 } },
+      { effect_type: "masterpiece", code: MASTERPIECE_EFFECT_CODES.donorFoil, parameters: {} },
+      { effect_type: "masterpiece", code: MASTERPIECE_EFFECT_CODES.dealerUnlocked, parameters: {} },
+      { effect_type: "legendary", code: "DONOR_AUCTIONEER_TRADE", parameters: { donor_item_delta: -1 } },
+    ];
+    const works: Artwork[] = effects.map(({ effect_type }, index) => ({
       _id: `viewer-work-${index}`, artist_id: "catalog-artist", artist: "Catalog artist", title: "Viewer effect",
-      date: 2026, genre: "Abstract", medium: "Oil", rarity: rarity as Artwork["rarity"], value_scale: 0.5,
+      date: 2026, genre: "Abstract", medium: "Oil", rarity: effect_type as Artwork["rarity"], value_scale: 0.5,
       width: 80, height: 100, active: true, effect_id: `viewer-effect-${index}`,
     }));
     await documents(db, "artworks").insertMany(works);
     await documents(db, "items").insertMany(works.map(work => ({ ...createArtistArtworkPreview(work), owner: viewer._id })));
-    await documents(db, "artwork_effects").insertMany([
-      { _id: "viewer-effect-0", effect_type: "legendary", code: "BONUS_DEALER_DONOR", active: true, parameters: { additional_items: 1 } },
-      { _id: "viewer-effect-1", effect_type: "masterpiece", code: MASTERPIECE_EFFECT_CODES.donorFoil, active: true, parameters: {} },
-    ]);
-    await documents(db, "metadata").insertOne({ _id: "loot-data", loot_data: {} });
-    const generated: { playerId: string; itemCount: number; forceLegendaryMasterpieceFoil: boolean }[] = [];
+    await documents(db, "artwork_effects").insertMany(effects.map((effect, index) => ({
+      ...effect, _id: `viewer-effect-${index}`, active: true,
+    })));
+    const generated: { playerId: string; options: NonNullable<Parameters<typeof gameplay.generateDailyDrop>[3]> }[] = [];
     const meet = await load<{ POST: (request: Request, context: { params: Promise<{ id: string }> }) => Promise<Response> }>(
       "../app/api/play/npcs/[id]/meet/route.ts", {
         "next/server": { NextResponse }, "@/server/economy-metrics": {},
@@ -861,9 +910,9 @@ test("artist applications, publication and featured galleries persist without gr
         "@/server/art-historian-gameplay": {}, "@/server/auctioneer-gameplay": {}, "@/server/auction-gameplay": {},
         "@/server/collection-gameplay": {}, "@/server/community-reaction-cleanup": {},
         "@/server/gameplay": {
-          ...gameplay, getVisitorRarityMap: () => ({ common: 1 }),
-          generateDailyDrop: async (_database: Db, playerId: string, _level: number, options: { itemCount: number; forceLegendaryMasterpieceFoil: boolean }) => {
-            generated.push({ playerId, itemCount: options.itemCount, forceLegendaryMasterpieceFoil: options.forceLegendaryMasterpieceFoil });
+          ...gameplay,
+          generateDailyDrop: async (_database: Db, playerId: string, _level: number, options: NonNullable<Parameters<typeof gameplay.generateDailyDrop>[3]>) => {
+            generated.push({ playerId, options });
             return [];
           },
         },
@@ -877,21 +926,47 @@ test("artist applications, publication and featured galleries persist without gr
         "@/server/standard-npc-reward-service": { isStandardRewardNpc: () => false },
       },
     );
-    for (const [id, owner] of [["featured-donor", artist.id], ["ordinary-donor", viewer._id + "-other"]]) {
+    await documents(db, "npcs").insertOne({
+      _id: "companion-auctioneer", owner_id: viewer._id, attribute_id: legendary.AUCTIONEER_ATTRIBUTE_ID,
+      expiration: new Date(Date.now() + 60_000),
+    });
+    const rarityByVisitor = new Map<string, unknown>();
+    for (const { id, owner, attributeId, paired, expired } of [
+      { id: "own-donor", owner: viewer._id, attributeId: legendary.ART_DONOR_ATTRIBUTE_ID, paired: true },
+      { id: "featured-donor", owner: artist.id, attributeId: legendary.ART_DONOR_ATTRIBUTE_ID },
+      { id: "ordinary-donor", owner: "ordinary", attributeId: legendary.ART_DONOR_ATTRIBUTE_ID },
+      { id: "own-dealer", owner: viewer._id, attributeId: legendary.ART_DEALER_ATTRIBUTE_ID },
+      { id: "featured-dealer", owner: artist.id, attributeId: legendary.ART_DEALER_ATTRIBUTE_ID },
+      { id: "ordinary-dealer", owner: "ordinary", attributeId: legendary.ART_DEALER_ATTRIBUTE_ID },
+      { id: "featured-paired-donor", owner: artist.id, attributeId: legendary.ART_DONOR_ATTRIBUTE_ID, paired: true },
+      { id: "featured-expired-pair", owner: artist.id, attributeId: legendary.ART_DONOR_ATTRIBUTE_ID, expired: true },
+    ]) {
+      if (paired && owner === artist.id || expired) await documents(db, "npcs").updateOne(
+        { _id: "companion-auctioneer" },
+        { $set: { owner_id: artist.id, expiration: new Date(Date.now() + (expired ? -1 : 60_000)) } },
+      );
       await documents(db, "npcs").insertOne({
         _id: id, owner_id: owner, owner_name: "Gallery owner", quality: "platinum",
-        attribute_id: legendary.ART_DONOR_ATTRIBUTE_ID, players_met: [],
+        attribute_id: attributeId, players_met: [],
         spawned_at: new Date(), expiration: new Date(Date.now() + 60_000), icon: "fa-gift", npc_name: "Art Donor", proc_chance: 1,
       });
       const before = (await documents(db, "players").findOne({ _id: viewer._id }))!.profile.social_battery;
       const response = await meet.POST(new Request("http://localhost"), { params: Promise.resolve({ id }) });
       assert.equal(response.status, 200, JSON.stringify(await response.clone().json()));
       const after = (await documents(db, "players").findOne({ _id: viewer._id }))!.profile.social_battery;
-      const featured = id === "featured-donor";
-      assert.equal(before - after, socialBattery.getVisitorSocialBatteryCost("platinum", featured));
-      assert.deepEqual(generated.at(-1), {
-        playerId: viewer._id, itemCount: featured ? 3 : 1, forceLegendaryMasterpieceFoil: featured,
-      });
+      const ownBenefits = owner !== "ordinary";
+      const donor = attributeId === legendary.ART_DONOR_ATTRIBUTE_ID;
+      const cost = socialBattery.getVisitorSocialBatteryCost("platinum", ownBenefits);
+      assert.equal(before - after, cost);
+      assert.equal((await response.json()).socialBatteryCost, cost);
+      const drop = generated.at(-1)!;
+      assert.equal(drop.playerId, viewer._id);
+      assert.equal(drop.options.itemCount, (donor ? 1 : 2) + (ownBenefits ? 2 : 0) - (paired ? 1 : 0), id);
+      assert.equal(donor ? drop.options.forceLegendaryMasterpieceFoil : drop.options.forceLegendaryMasterpieceUnlocked, ownBenefits);
+      assert.equal(drop.options.useRawRarityMap, true);
+      if (!rarityByVisitor.has(attributeId)) rarityByVisitor.set(attributeId, drop.options.generationMap?.rarity);
+      assert.deepEqual(drop.options.generationMap?.rarity, rarityByVisitor.get(attributeId),
+        "Featured visits must preserve the same player-level and visitor-quality rarity boosts as own-gallery visits");
       assert.equal((await meet.POST(new Request("http://localhost"), { params: Promise.resolve({ id }) })).status, 409);
     }
   });

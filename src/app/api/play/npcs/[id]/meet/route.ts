@@ -255,7 +255,7 @@ export async function POST(
         npc,
         now,
       );
-      return NextResponse.json({ status: "ok", interaction });
+      return NextResponse.json({ status: "ok", socialBatteryCost, interaction });
     } catch (error) {
       await Promise.all([
         database
@@ -289,12 +289,14 @@ export async function POST(
       if (!interaction) {
         return NextResponse.json({
           status: "ok",
+          socialBatteryCost,
           message:
             "You met a Preservationist, but none of your inventory or displayed artwork currently needs refurbishment.",
         });
       }
       return NextResponse.json({
         status: "ok",
+        socialBatteryCost,
         message: `${interaction.npcName} refurbished ${interaction.itemTitle} from ${Math.floor(interaction.previousCondition * 100)}% to ${Math.floor(interaction.condition * 100)}% condition (+${Math.floor(interaction.repairedAmount * 100)}%).`,
         interaction: {
           ...interaction,
@@ -342,6 +344,7 @@ export async function POST(
       }
       return NextResponse.json({
         status: "ok",
+        socialBatteryCost,
         message:
           "The Art Historian gave you a new collection objective.",
         interaction: {
@@ -546,6 +549,7 @@ export async function POST(
         }
         return NextResponse.json({
           status: "ok",
+          socialBatteryCost,
           message:
             `An Art Expert was impressed by your collection and spread the word about your gallery. ` +
             `${hydratedItem.artwork.title} by ${hydratedItem.artwork.artist} had its roll count reduced to ${newRollCount}.`,
@@ -574,6 +578,7 @@ export async function POST(
       if (!target) {
         return NextResponse.json({
           status: "ok",
+          socialBatteryCost,
           message:
             "You met an Art Expert, but you have no featured items for them to discuss.",
         });
@@ -631,6 +636,7 @@ export async function POST(
 
       return NextResponse.json({
         status: "ok",
+        socialBatteryCost,
         interaction: {
           type: "art-expert-karma",
           npcId: npc._id,
@@ -838,6 +844,7 @@ export async function POST(
 
       return NextResponse.json({
         status: "ok",
+        socialBatteryCost,
         message: `${npc.npc_name} offered you ${offers.length} ${offers.length === 1 ? "artwork" : "artworks"}.`,
         tutorial: npc.owner_id === player._id
           ? await recordTutorialAction(database, player._id, TutorialElement.TUTORIAL_MEET_VISITOR) : undefined,
@@ -885,6 +892,7 @@ export async function POST(
       );
       return NextResponse.json({
         status: "ok",
+        socialBatteryCost,
         message: result.message,
         interaction: result.interaction,
       });
@@ -1067,6 +1075,7 @@ export async function POST(
 
         return NextResponse.json({
           status: "ok",
+          socialBatteryCost,
           message: `${npc.npc_name} offered you ${offers.length} ${offers.length === 1 ? "artwork" : "artworks"} for sale.`,
           interaction: {
             type: "art-dealer-offer",
@@ -1431,6 +1440,7 @@ export async function POST(
         });
         return NextResponse.json({
           status: "ok",
+          socialBatteryCost,
           message: `${npc.npc_name} bought ${soldCount} for-sale artwork${soldCount === 1 ? "" : "s"} for $${totalReward.toLocaleString()}${detectedCount ? ` and detected ${detectedCount} ${detectedCount === 1 ? "forgery" : "forgeries"}` : ""}.`,
           interaction: {
             type: "art-collector-buyout",
@@ -1462,6 +1472,7 @@ export async function POST(
       if (!target) {
         return NextResponse.json({
           status: "ok",
+          socialBatteryCost,
           message:
             'A collector wanders into your gallery, but can\'t find anything you\'re willing to sell. The two of you share a deep conversation about butterflies instead. To do business with collectors in the future, try adding the "for sale" tag to items in your inventory.',
         });
@@ -1528,6 +1539,7 @@ export async function POST(
           await notifyForgeryDetection(database, player._id, `${hydratedTarget.artwork.title}: ${message}`);
           return NextResponse.json({
             status: "ok",
+            socialBatteryCost,
             message,
             interaction: {
               type: "art-collector-result",
@@ -1571,6 +1583,7 @@ export async function POST(
         // the reputation and visitor-ignore systems are ported.
         return NextResponse.json({
           status: "ok",
+          socialBatteryCost,
           message:
             "You have met a collector, who has identified an item you're selling to be a forgery!",
           interaction: {
@@ -1757,6 +1770,7 @@ export async function POST(
 
       return NextResponse.json({
         status: "ok",
+        socialBatteryCost,
         message: keptItem
           ? `${npc.npc_name} rewarded you and let you keep the artwork.`
           : collectorResaleAuction
@@ -1856,6 +1870,7 @@ export async function POST(
 
   return NextResponse.json({
     status: "ok",
+    socialBatteryCost,
     message: `You met ${npc.npc_name}. Their full interaction will be added as NPC rewards are ported.`,
   });
 }

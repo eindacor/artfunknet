@@ -8,10 +8,66 @@ import {
 } from "./auctioneer-gameplay.ts";
 import type { GameItem } from "./gameplay.ts";
 import type { LegendaryAttribute } from "./legendary-attributes.ts";
-import { AUCTIONEER_ATTRIBUTE_ID } from "./legendary-attributes.ts";
+import { ART_DONOR_ATTRIBUTE_ID, AUCTIONEER_ATTRIBUTE_ID } from "./legendary-attributes.ts";
 import type { GalleryNpc } from "./npc-gameplay.ts";
 
-import { setupTestDb } from "./test-utils/db-setup.ts";
+import { setupTestDb, STARTING_INVENTORY_TEST_OPTIONS } from "./test-utils/db-setup.ts";
+
+test("featured Auctioneers use own-gallery effects and require a live Donor in the visited gallery for the pair bonus", async t => {
+  const server = await MongoMemoryServer.create();
+  const client = await new MongoClient(server.getUri()).connect();
+  t.after(async () => { await client.close(); await server.stop(); });
+  const cases = [
+    { owner: "player", donor: null, paired: false },
+    { owner: "player", donor: "player", paired: true },
+    { owner: "artist", donor: "player", paired: false },
+    { owner: "artist", donor: "elsewhere", paired: false },
+    { owner: "artist", donor: "artist", paired: true },
+    { owner: "artist", donor: "artist", paired: false, expired: true },
+    { owner: "ordinary", donor: "ordinary", paired: false },
+  ];
+  for (const [index, scenario] of cases.entries()) {
+    const db = client.db(`auctioneer-gallery-context-${index}`);
+    const { now, futureTime } = await setupTestDb(db, "player", {
+      attributes: STARTING_INVENTORY_TEST_OPTIONS.attributes,
+      uniqueAttributes: [
+        { _id: "pair", code: "DONOR_AUCTIONEER_TRADE", active: true, parameters: { auctioneer_item_delta: 2 } },
+        { ...AUCTION_BUY_NOW_ATTRIBUTE, _id: "buy-now" },
+        { ...PRIVATE_AUCTION_UNIQUE_ATTRIBUTE, _id: "price" },
+      ],
+    });
+    await db.collection<{ _id: string }>("players").insertOne({
+      _id: "artist", active: true, artist_featured: true, artist_id: "artist-record",
+    });
+    for (const [offset, effectId] of ["pair", "buy-now", "price"].entries()) {
+      const artworkId = `art-${offset + 1}`;
+      await db.collection<{ _id: string }>("artworks").updateOne({ _id: artworkId }, {
+        $set: { rarity: "legendary", effect_id: effectId },
+      });
+      await db.collection<GameItem>("items").insertOne({
+        _id: `effect-item-${offset}`, artwork_id: artworkId, owner: "player", status: "displayed",
+      } as GameItem);
+    }
+    const npc: GalleryNpc = {
+      _id: "auctioneer", attribute_id: AUCTIONEER_ATTRIBUTE_ID, owner_id: scenario.owner,
+      owner_name: "Gallery", npc_name: "Auctioneer", quality: "platinum",
+      spawned_at: now, expiration: futureTime, players_met: [], icon: "fa-gavel", proc_chance: 1,
+    };
+    if (scenario.donor) await db.collection<GalleryNpc>("npcs").insertOne({
+      ...npc, _id: "donor", owner_id: scenario.donor, attribute_id: ART_DONOR_ATTRIBUTE_ID,
+      expiration: scenario.expired ? new Date(now.getTime() - 1) : futureTime,
+    });
+    const result = await processAuctioneerInteraction(db, { _id: "player", profile: { level: 1 } }, npc, now);
+    const ownBenefits = scenario.owner !== "ordinary";
+    assert.equal(result.interaction.auctionCount, 4 + (ownBenefits ? 1 : 0) + (scenario.paired ? 2 : 0),
+      JSON.stringify(scenario));
+    assert.equal(result.priceMultiplier, ownBenefits ? 2.5 : 4);
+    assert.equal(new Date(result.interaction.expiration).getTime() - now.getTime(), (ownBenefits ? 37 : 15) * 60_000);
+    for (const auction of result.auctions) {
+      assert.equal(auction.buy_now, ownBenefits ? Math.ceil(auction.starting_bid * 1.1) : null);
+    }
+  }
+});
 
 const PRIVATE_AUCTION_UNIQUE_ATTRIBUTE: LegendaryAttribute = {
   _id: "attr-private-auction-price-reduction",

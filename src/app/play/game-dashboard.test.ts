@@ -9,6 +9,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { getArtworkFeatureCardAdjustment } from "../../components/item-cards/artwork-image-adjustments.ts";
 import { getDailyCrateItemCount } from "../../server/daily-crate.ts";
+import { getVisitorSocialBatteryCost } from "../../server/social-battery.ts";
 import type { HydratedGameItem } from "../../server/item-artwork.ts";
 import { getArtworkImageUrl } from "../../server/artwork-image-url.ts";
 import { getBulkAcquisitionRequirements } from "../../server/bulk-acquisition.ts";
@@ -88,6 +89,7 @@ const handlerNames = new Set([
   "toggleCollectionItemSelection",
   "updateCollectionItemSelection",
   "performLootBulkAction",
+  "meetNpc",
 ]);
 const handlers = ts.transpileModule(
   [...dashboard.body!.statements.filter(
@@ -98,6 +100,30 @@ const handlers = ts.transpileModule(
   )].map((statement) => statement.getText(source)).join("\n"),
   { compilerOptions: { target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React } },
 ).outputText;
+
+test("visitor meetings use the server's charged battery cost, including featured-gallery discounts and free tutorial meetings", async () => {
+  for (const [ownerId, cost, ok] of [
+    ["player", 6, true], ["featured-artist", 6, true], ["other-player", 12, true],
+    ["player", 0, true], ["featured-artist", 6, false],
+  ] as const) {
+    let battery = 6_000;
+    const refresh = test.mock.fn();
+    const meet = runInNewContext(`${handlers}\nmeetNpc`, {
+      playerId: "player", getVisitorSocialBatteryCost,
+      setMeetingNpc() {}, setNotice() {}, setError() {},
+      setSocialBattery: (update: (value: number) => number) => { battery = update(battery); },
+      fetch: async () => Response.json(ok
+        ? { status: "ok", socialBatteryCost: cost }
+        : { error: "Visitor unavailable" }, { status: ok ? 200 : 409 }),
+      router: { refresh },
+    }) as (npc: { _id: string; owner_id: string; quality: string; tutorial?: true }) => Promise<boolean>;
+    assert.equal(await meet({
+      _id: "visitor", owner_id: ownerId, quality: "bronze", ...(cost === 0 ? { tutorial: true } : {}),
+    }), ok);
+    assert.equal(battery, ok ? 6_000 - cost : 6_000);
+    assert.equal(refresh.mock.callCount(), ok ? 1 : 0);
+  }
+});
 
 test("the daily crate card and opening action show the first-drop count and switch to the normal count after claiming", () => {
   const stateSource = dashboard.body!.statements.filter(statement =>
