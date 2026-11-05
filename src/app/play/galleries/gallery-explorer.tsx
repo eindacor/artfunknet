@@ -472,6 +472,7 @@ export default function GalleryExplorer({
                 {gallery.featured_artwork_id ? (
                   <ArtworkThumbnail
                     alt={`Featured work in ${gallery.owner}'s gallery`}
+                    fixedFocalPoint
                     artworkId={gallery.featured_artwork_id}
                     adjustment={getArtworkFeatureCardAdjustment(gallery.featured_artwork ?? {})}
                     size={520}

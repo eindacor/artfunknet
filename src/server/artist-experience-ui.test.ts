@@ -442,8 +442,9 @@ test("feature card crop previews support dragging, zoom, reset and disabled cont
     assert.ok(feature);
     assert.match(feature.props.frameClassName!, /home-featured-card/);
     const image = elements(feature.props.children).find(element => element.props.variant === "card") as
-      React.ReactElement<{ adjustment: Artwork["feature_card_adjustment"]; variant: string; sourceUrl: string }>;
+      React.ReactElement<{ adjustment: Artwork["feature_card_adjustment"]; variant: string; sourceUrl: string; fixedFocalPoint: boolean }>;
     assert.deepEqual({ ...image.props.adjustment }, { ...artwork.feature_card_adjustment });
+    assert.equal(image.props.fixedFocalPoint, true);
     assert.equal(image.props.variant, "card");
     assert.equal(image.props.sourceUrl, "data:image/png;base64,test");
     return elements(crop.default(feature.props));
@@ -575,6 +576,31 @@ test("the admin layout scopes inactive editor, thumbnail, detail, and item-card 
     const adminHtml = renderToStaticMarkup(await layout.default({ children: component })).replaceAll("&amp;", "&");
     assert.ok(adminHtml.includes(imageUrls.getArtworkImageUrl(work._id, variant, undefined, false, "admin")));
     if (variant === "thumb" || component.type === editor.default) assert.match(adminHtml, /data-unoptimized="true"/);
+  }
+});
+
+test("fixed feature crops use intrinsic image sizing after load while ordinary thumbnails retain fill sizing", async () => {
+  for (const aspect of [null, 0.5, 1, 2]) {
+    const thumbnail = await load<typeof import("../components/artwork-thumbnail.tsx")>("../components/artwork-thumbnail.tsx", {
+      react: { ...React, useState: () => [aspect, () => {}] },
+      "next/image": require("next/image"),
+      "@/server/artwork-image-url": imageUrls,
+      "./artwork-image-scope": { useArtworkImageScope: () => "public" },
+      "./item-cards/artwork-image-adjustments": imageAdjustments,
+    });
+    for (const fixedFocalPoint of [false, true]) {
+      const html = renderToStaticMarkup(React.createElement(thumbnail.default, {
+        artworkId: "test", alt: "", adjustment: { x: 35, y: -60, scale: 1.5 }, fixedFocalPoint,
+      }));
+      if (fixedFocalPoint && aspect) {
+        assert.match(html, /data-nimg="1"/);
+        assert.match(html, /width:max\([^"]+cqw[^"]+cqh\)/);
+        assert.match(html, /height:auto/);
+      } else {
+        assert.match(html, /data-nimg="fill"/);
+        assert.doesNotMatch(html, /cqw|cqh/);
+      }
+    }
   }
 });
 
@@ -1364,8 +1390,10 @@ test("gallery directory cards and rows distinguish contributing artists without 
       ) },
       "react/jsx-runtime": capturedRuntime,
       "next/navigation": { useRouter: () => ({ replace: (href: string) => navigations.push(href) }) },
-      "@/components/artwork-thumbnail": { default: ({ adjustment }: { adjustment: unknown }) =>
-        React.createElement("span", { "data-feature-crop": JSON.stringify(adjustment) }) },
+      "@/components/artwork-thumbnail": { default: ({ adjustment, fixedFocalPoint }: { adjustment: unknown; fixedFocalPoint: boolean }) => {
+        assert.equal(fixedFocalPoint, true);
+        return React.createElement("span", { "data-feature-crop": JSON.stringify(adjustment) });
+      } },
       "@/components/item-thumbnail": {},
       "@/components/gallery-attraction-chart": chart,
       "@/components/item-cards/artwork-image-adjustments": imageAdjustments,

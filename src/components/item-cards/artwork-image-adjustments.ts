@@ -192,6 +192,32 @@ export function getArtworkImageZoomTranslation(
   };
 }
 
+export function getArtworkFeatureCardImageStyle(
+  adjustment: ArtworkArtStyleAdjustment,
+  imageAspectRatio: number,
+) {
+  // Resolve saved offsets in the editor's 360x118 reference frame.
+  const referenceAspectRatio = 360 / 118;
+  const x = 0.5 - adjustment.x / 200 *
+    (1 - 1 / (Math.max(1, imageAspectRatio / referenceAspectRatio) * adjustment.scale));
+  const y = 0.5 - adjustment.y / 200 *
+    (1 - 1 / (Math.max(1, referenceAspectRatio / imageAspectRatio) * adjustment.scale));
+  const widthScale = Math.max(adjustment.scale, 1 / (2 * Math.min(x, 1 - x)));
+  const heightScale = Math.max(adjustment.scale, 1 / (2 * Math.min(y, 1 - y)));
+
+  return {
+    position: "absolute" as const,
+    left: "50%",
+    top: "50%",
+    right: "auto",
+    bottom: "auto",
+    width: `max(${widthScale * 100}cqw, ${heightScale * imageAspectRatio * 100}cqh)`,
+    height: "auto",
+    maxWidth: "none",
+    transform: `translate(${-x * 100}%, ${-y * 100}%)`,
+  };
+}
+
 function clampFiniteNumber(
   value: number | undefined,
   fallback: number,

@@ -6,6 +6,7 @@ import {
   getArtworkDetailImageAdjustments,
   getArtworkDetailImageSlots,
   getArtworkFeatureCardAdjustment,
+  getArtworkFeatureCardImageStyle,
   getArtworkImageAdjustment,
   getArtworkThumbnailAdjustment,
   getArtworkImageBackgroundPosition,
@@ -149,4 +150,45 @@ test("artwork image adjustments round persisted values", () => {
     }),
     { x: 1.235, y: -7.891, scale: 1.457 },
   );
+});
+
+test("feature card focal points preserve the editor crop across viewport heights, widths, and image proportions", () => {
+  for (const aspect of [0.5, 1, 2, 6]) {
+    for (const adjustment of [
+      { x: 0, y: 0, scale: 1 },
+      { x: 35, y: -60, scale: 1.5 },
+      { x: -100, y: 100, scale: 3 },
+    ]) {
+      const style = getArtworkFeatureCardImageStyle(adjustment, aspect);
+      const position = getArtworkImageBackgroundPosition(adjustment);
+      const translation = getArtworkImageZoomTranslation(adjustment);
+      const referenceImageHeight = Math.max(360 / aspect, 118);
+      const referenceImageWidth = referenceImageHeight * aspect;
+      const referencePoint = [
+        [360, referenceImageWidth, position.x, translation.x],
+        [118, referenceImageHeight, position.y, translation.y],
+      ] as const;
+      const expectedPoint = referencePoint.map(([viewport, image, position, translation]) => {
+        const offset = (viewport - image) * Number.parseFloat(position) / 100 * adjustment.scale +
+          (1 - adjustment.scale) * viewport / 2 + Number.parseFloat(translation) / 100 * viewport;
+        return (viewport / 2 - offset) / (image * adjustment.scale);
+      });
+      const [widthScale, heightScale] = [...style.width.matchAll(/([\d.]+)cq[wh]/g)].map(match => Number(match[1]) / 100);
+      const [x, y] = [...style.transform.matchAll(/(-?[\d.]+)%/g)].map(match => -Number(match[1]) / 100);
+      for (const [width, height] of [[360, 118], [360, 210], [240, 118], [240, 320], [120, 500]]) {
+        const imageWidth = Math.max(widthScale * width, heightScale * height);
+        const imageHeight = imageWidth / aspect;
+        const left = width / 2 - x * imageWidth;
+        const top = height / 2 - y * imageHeight;
+        assert.ok(Math.abs((width / 2 - left) / imageWidth - expectedPoint[0]) < 1e-10);
+        assert.ok(Math.abs((height / 2 - top) / imageHeight - expectedPoint[1]) < 1e-10);
+        assert.ok(left <= 1e-10 && top <= 1e-10, "Centering must not expose empty borders");
+        assert.ok(left + imageWidth >= width - 1e-10 && top + imageHeight >= height - 1e-10);
+        if (width === 360 && height === 118) {
+          assert.ok(Math.abs(imageWidth - referenceImageWidth * adjustment.scale) < 1e-10,
+            "Existing editor crops and zoom levels must remain unchanged");
+        }
+      }
+    }
+  }
 });

@@ -289,8 +289,9 @@ test("featured cards select filtered-out works for the preview and visit their e
   const content = React.Children.only(select.props.children) as React.ReactElement<Parameters<typeof FeaturedWorkContent>[0]>;
   const image = React.Children.toArray(FeaturedWorkContent(content.props).props.children).find(child =>
     React.isValidElement<{ variant?: string }>(child) && child.props.variant === "card",
-  ) as React.ReactElement<{ adjustment: unknown }>;
+  ) as React.ReactElement<{ adjustment: unknown; fixedFocalPoint: boolean }>;
   assert.deepEqual(image.props.adjustment, featured.artwork.feature_card_adjustment);
+  assert.equal(image.props.fixedFocalPoint, true);
   visit.props.onClick(event);
   assert.equal(states.selectedCollectionItemIds, null, "Visiting does not change collection selection");
   assert.equal(states.galleryId, context.playerId);

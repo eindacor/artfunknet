@@ -14,6 +14,7 @@ export default function FeaturedWorkContent({ item, legendaryEffect, unrevealed 
       alt=""
       artworkId={item.artwork_id}
       className="home-featured-image"
+      fixedFocalPoint
       image={item.artwork.image}
       size={360}
       variant="card"

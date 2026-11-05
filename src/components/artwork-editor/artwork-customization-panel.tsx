@@ -90,6 +90,7 @@ export default function ArtworkCustomizationPanel({
           frameClassName="home-featured-card w-full max-w-[360px]"
           adjustment={featureCard} onChange={onFeatureCardChange}>
           <ArtworkThumbnail artworkId={artwork._id} sourceUrl={sourceUrl}
+            fixedFocalPoint
             adjustment={featureCard} alt={`${artwork.title} feature card`}
             className="home-featured-image" size={360} variant="card" />
           <span aria-hidden="true"
