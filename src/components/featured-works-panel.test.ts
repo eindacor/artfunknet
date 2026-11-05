@@ -219,3 +219,16 @@ test("the shared chart supports independent galleries and unique accessible help
     assert.ok(ids.includes(match[1]), "Each chart's caption and help refer to its own content");
   }
 });
+
+test("the shared chart can hide its caption and help while preserving accessible attraction values", () => {
+  const html = renderToStaticMarkup(React.createElement(GalleryAttractionChart, {
+    showInfo: false, displayCapacity: 5,
+    visitorTypes: [{ id: "collector", name: "Art Collector", icon: "fa-eye" }],
+    attributes: [{ id: "collector", title: "Collector", icon: "fa-eye", type: "npc",
+      count: 1, totalRating: 1, effectiveRating: 0.2 }],
+  }));
+  assert.match(html, /<figure aria-label="Effective attraction"/);
+  assert.doesNotMatch(html, /figcaption|gallery-attraction-help|aria-labelledby|How featuring attracts visitors/);
+  assert.match(html, /height:20%/);
+  assert.match(html, /aria-label="Art Collector: 1 work, 20% effective attraction/);
+});

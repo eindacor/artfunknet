@@ -509,6 +509,7 @@ export default function GalleryExplorer({
                   attributes={gallery.attributes}
                   displayCapacity={gallery.display_capacity}
                   visitorTypes={visitorTypes}
+                  showInfo={false}
                 />
                 <div className="gallery-explorer-signature">
                   <GalleryRaritySummary

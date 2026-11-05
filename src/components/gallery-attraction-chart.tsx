@@ -11,11 +11,13 @@ export default function GalleryAttractionChart({
   className = "",
   displayCapacity,
   visitorTypes,
+  showInfo = true,
 }: {
   attributes: readonly GalleryAttributeAggregate[];
   className?: string;
   displayCapacity: number;
   visitorTypes: readonly { id: string; name: string; icon: string }[];
+  showInfo?: boolean;
 }) {
   const visitorHelpId = useId();
   const chartTitleId = useId();
@@ -30,27 +32,33 @@ export default function GalleryAttractionChart({
   });
 
   return (
-    <figure aria-labelledby={chartTitleId} className={`gallery-attraction ${className}`.trim()}>
-      <figcaption className="gallery-attraction-label">
-        <span id={chartTitleId}>Effective attraction</span>
-        <button
-          aria-describedby={visitorHelpId}
-          aria-label="How featuring attracts visitors"
-          className="gallery-attraction-help"
-          onClick={(event) => {
-            event.stopPropagation();
-            event.currentTarget.focus();
-          }}
-          type="button"
-        >
-          <i aria-hidden="true" className="fa fa-info-circle" />
-        </button>
-        <span className="gallery-attraction-help-tooltip" id={visitorHelpId} role="tooltip">
-          The symbols on each card show which visitor types are attracted to your gallery when that item is featured.
-          Interact with visitors in galleries to earn money, items, and other bonuses. Visitors in your own gallery
-          give bigger bonuses!
-        </span>
-      </figcaption>
+    <figure
+      aria-label={showInfo ? undefined : "Effective attraction"}
+      aria-labelledby={showInfo ? chartTitleId : undefined}
+      className={`gallery-attraction ${className}`.trim()}
+    >
+      {showInfo ? (
+        <figcaption className="gallery-attraction-label">
+          <span id={chartTitleId}>Effective attraction</span>
+          <button
+            aria-describedby={visitorHelpId}
+            aria-label="How featuring attracts visitors"
+            className="gallery-attraction-help"
+            onClick={(event) => {
+              event.stopPropagation();
+              event.currentTarget.focus();
+            }}
+            type="button"
+          >
+            <i aria-hidden="true" className="fa fa-info-circle" />
+          </button>
+          <span className="gallery-attraction-help-tooltip" id={visitorHelpId} role="tooltip">
+            The symbols on each card show which visitor types are attracted to your gallery when that item is featured.
+            Interact with visitors in galleries to earn money, items, and other bonuses. Visitors in your own gallery
+            give bigger bonuses!
+          </span>
+        </figcaption>
+      ) : null}
       {visitorAttributes.length > 0 ? (
         <div className="gallery-attraction-chart">
           <div aria-hidden="true" className="gallery-attraction-chart-scale">

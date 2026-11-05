@@ -1430,6 +1430,8 @@ test("gallery directory cards and rows distinguish contributing artists without 
           "Cards reuse the Feature card adjustment, including its thumbnail fallback");
         assert.ok(article.includes(`height:${index === 0 ? 20 : 80}%`), "Each card uses its own gallery's attraction");
         assert.match(article, /Art Donor: 0 works, 0% effective attraction/);
+        assert.doesNotMatch(article, /gallery-attraction-label|gallery-attraction-help/);
+        assert.match(article, /<figure aria-label="Effective attraction"/);
       } else {
         assert.doesNotMatch(article, /gallery-attraction-chart|data-feature-crop/);
       }
@@ -1445,13 +1447,7 @@ test("gallery directory cards and rows distinguish contributing artists without 
       assert.deepEqual(navigations, [
         "/play?gallery=artist-player", "/play?gallery=artist-player",
       ], "The card itself still opens with Enter and Space");
-      let stopped = false;
-      let focused = false;
-      helpButtons[0].onClick!({
-        stopPropagation: () => { stopped = true; },
-        currentTarget: { focus: () => { focused = true; } },
-      } as unknown as React.MouseEvent<HTMLButtonElement>);
-      assert.ok(stopped && focused, "Tapping chart help focuses its tooltip without clicking the surrounding card");
+      assert.equal(helpButtons.length, 0, "Directory cards omit chart help without hiding the graph");
     }
   }
 });
