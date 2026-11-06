@@ -662,16 +662,19 @@ export default function ItemCreator({
         {previewLoading ? <p>Refreshing preview...</p> : null}
         {previewError ? <p className="admin-error">{previewError}</p> : null}
         {previewItem ? (
-          <ItemCard
-            interactive={false}
-            item={previewItem}
-            key={JSON.stringify(previewItem)}
-            legendaryAttributes={legendaryAttributes}
-            permissions={{
-              canManageItem: false,
-              canCustomizeCosmetic: false,
-            }}
-          />
+          <>
+            <p>Drop chance: <strong>{previewItem.odds}</strong></p>
+            <ItemCard
+              interactive={false}
+              item={previewItem}
+              key={JSON.stringify(previewItem)}
+              legendaryAttributes={legendaryAttributes}
+              permissions={{
+                canManageItem: false,
+                canCustomizeCosmetic: false,
+              }}
+            />
+          </>
         ) : null}
       </aside>
     </div>

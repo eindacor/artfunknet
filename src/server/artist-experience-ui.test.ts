@@ -203,6 +203,108 @@ test("admin gallery settings edit and submit independent Actual and Debug values
   assert.equal(saved?.actual.featuredArtistVisitorChance, 0.35);
 });
 
+test("admin decimal settings preserve typing drafts, allow long decimals, and submit numeric values without changing integer fields", async () => {
+  const settings = {
+    actual: settingsCore.DEFAULT_ACTUAL_GAMEPLAY_CONFIG, debug: settingsCore.DEFAULT_DEBUG_GAMEPLAY_CONFIG,
+    debugEnabled: false, activeConfigName: "actual" as const, active: settingsCore.DEFAULT_ACTUAL_GAMEPLAY_CONFIG,
+  };
+  const ranges = Object.fromEntries(rarityValues.RARITY_VALUE_TIERS.map(
+    (rarity, index) => [rarity, { min: index * 100 + 1, max: (index + 1) * 100 }],
+  )) as rarityValues.RarityValueRanges;
+  const states = new Map<string, unknown[]>();
+  let scope = "form";
+  let stateIndex = 0;
+  let saved: { actual: settingsCore.GameplayConfig; debug: settingsCore.GameplayConfig } | undefined;
+  const form = await load<typeof import("../app/admin/gameplay-settings-form.tsx")>("../app/admin/gameplay-settings-form.tsx", {
+    react: {
+      ...React, useState: (initial: unknown) => {
+        if (!states.has(scope)) states.set(scope, []);
+        const values = states.get(scope)!;
+        const index = stateIndex++;
+        if (!(index in values)) values[index] = initial;
+        return [values[index], (next: unknown) => { values[index] = typeof next === "function" ? next(values[index]) : next; }];
+      },
+    },
+    "@/components/gallery-layout": galleryLayout,
+    "@/components/item-cards/catalog": cardCatalog,
+    "@/components/item-cards/card-cosmetics-provider": { useCardCosmetics: () => [] },
+    "@/server/rarity-values": rarityValues,
+  }, {
+    window: { confirm: () => true },
+    fetch: async (_url: string, init: RequestInit) => {
+      saved = JSON.parse(String(init.body));
+      assert.equal(settingsCore.validateGameplayConfig(saved!.actual).ok, true);
+      return Response.json({ settings: { ...settings, ...saved }, rarityValues: ranges });
+    },
+  });
+  type Element = React.ReactElement<Record<string, unknown>>;
+  function elements(node: React.ReactNode): Element[] {
+    if (Array.isArray(node)) return node.flatMap(elements);
+    if (!React.isValidElement<Record<string, unknown>>(node)) return [];
+    return [node, ...elements(node.props.children as React.ReactNode)];
+  }
+  function render() {
+    scope = "form";
+    stateIndex = 0;
+    return form.default({ initialSettings: settings, initialRarityValues: ranges });
+  }
+  function field(label: string) {
+    return elements(render()).find(element => element.props.label === label)!;
+  }
+  function renderInput(element: Element) {
+    scope = String(element.props.label);
+    stateIndex = 0;
+    const tree = (element.type as (props: Record<string, unknown>) => React.ReactNode)(element.props);
+    return elements(tree).find(child => child.type === "input")!.props;
+  }
+  function input(label: string) {
+    return renderInput(field(label));
+  }
+  function type(label: string, text: string) {
+    (input(label).onChange as (event: unknown) => void)({ target: { value: text } });
+    assert.equal(input(label).value, text, "Typing must preserve decimal points and trailing zeros");
+  }
+  const cutoff = "Level 1 drop chance cutoff";
+  type(cutoff, "");
+  assert.equal(field(cutoff).props.value, settings.actual.offerRevealThresholds.level1, "Clearing must not silently set zero");
+  for (const text of ["0", "0.", "0.0", "0.00", "0.000000", "0.0000001234567890123"]) type(cutoff, text);
+  type("Level 2 drop chance cutoff", "0.0000000001234567890123");
+  type("Level 3 drop chance cutoff", "0.0000000000001234567890123");
+  type("Foil probability", "0.000000123456789");
+  type("Featured artist visitor chance", "0.123456789");
+  type("Crate value scalar", "1.1234567890123");
+  type("Mint value multiplier", "1.1234567890123");
+  type("Item repair amount", "1.1234567890123");
+  type("Forgery return refund", "0.91234567890123");
+  type("Visitor scale coefficient", "0.81234567890123");
+  const floats = elements(render()).filter(element => ["%", "coefficient", "×"].includes(String(element.props.suffix)));
+  for (const element of floats) {
+    const label = String(element.props.label);
+    assert.equal(renderInput(element).step, "any", label);
+  }
+  assert.equal(input("Daily drop item count").step, 1);
+  assert.equal(input(cutoff).min, 0);
+  assert.equal(input(cutoff).max, 1);
+  (input(cutoff).onBlur as (event: unknown) => void)({ currentTarget: { validity: { valid: true } } });
+  assert.equal(Number(input(cutoff).value), 0.0000001234567890123);
+  type(cutoff, "2");
+  (input(cutoff).onBlur as (event: unknown) => void)({ currentTarget: { validity: { valid: false } } });
+  assert.equal(input(cutoff).value, "2", "Out-of-range drafts remain visible for native validation");
+  type(cutoff, "0.0000001234567890123");
+  await render().props.onSubmit({ preventDefault() {} } as React.FormEvent<HTMLFormElement>);
+  assert.deepEqual(saved?.actual.offerRevealThresholds, {
+    level1: 0.0000001234567890123, level2: 0.0000000001234567890123, level3: 0.0000000000001234567890123,
+  });
+  assert.equal(saved?.actual.foilProbability, Number("0.000000123456789") / 100);
+  assert.equal(saved?.actual.featuredArtistVisitorChance, Number("0.123456789") / 100);
+  assert.equal(saved?.actual.crateValueScalar, 1.1234567890123);
+  assert.equal(saved?.actual.mintValueMultiplier, 1.1234567890123);
+  assert.equal(saved?.actual.repairAmount, Number("1.1234567890123") / 100);
+  assert.equal(saved?.actual.forgeryReturnRefundCoefficient, 0.91234567890123);
+  assert.equal(saved?.actual.galleryVisitorScale, 0.81234567890123);
+  assert.deepEqual(saved?.debug, settings.debug);
+});
+
 test("the artist application requires new-player credentials and clearly displays locked account details for signed-in players", async () => {
   const datePicker = await load<typeof import("../components/date-picker.tsx")>("../components/date-picker.tsx");
   const form = await load<typeof import("../app/artists/apply/application-form.tsx")>("../app/artists/apply/application-form.tsx", {
@@ -984,6 +1086,107 @@ test("the admin item creator offers artist Originals only for eligible artwork a
   (again.props.onClick as () => void)();
   assert.doesNotMatch(render(), /Create original/);
   assert.doesNotMatch(await refreshEligibility(), /Create original/);
+  if (typeof cleanup === "function") cleanup();
+});
+
+test("the admin item creator displays calculated preview drop chances and refreshes them after item edits", async () => {
+  const artwork: Artwork = {
+    _id: "preview-work", artist_id: "artist-id", artist: "Artist", title: "Preview work", date: 2026,
+    rarity: "common", genre: "Abstract", medium: "Oil", value_scale: 0.5, width: 80, height: 100, active: true,
+  };
+  const props = {
+    artworks: [artwork, { ...artwork, _id: "inactive-work", active: false }]
+      .map(work => ({ ...work, effectAttributeIds: [] })),
+    attributes: [{ _id: "first", title: "First", type: "test", active: true }],
+    legendaryAttributes: [],
+  };
+  const states: unknown[] = [];
+  let stateIndex = 0;
+  let previewEffect: React.EffectCallback | undefined;
+  let cleanup: ReturnType<React.EffectCallback>;
+  let runPreview: (() => Promise<void>) | undefined;
+  let coefficient = 0.0025;
+  const requests: { artworkId: string; foil: boolean }[] = [];
+  const creator = await load<typeof import("../app/admin/items/item-creator.tsx")>("../app/admin/items/item-creator.tsx", {
+    react: {
+      ...React,
+      useState: (initial: unknown) => {
+        const index = stateIndex++;
+        if (!(index in states)) states[index] = typeof initial === "function" ? initial() : initial;
+        return [states[index], (value: unknown) => {
+          states[index] = typeof value === "function" ? value(states[index]) : value;
+        }];
+      },
+      useMemo: (calculate: () => unknown) => calculate(),
+      useEffect: (effect: React.EffectCallback, dependencies?: React.DependencyList) => {
+        if (dependencies?.length === 3 && typeof dependencies[2] === "object") previewEffect = effect;
+      },
+    },
+    "@/components/item-cards/card-cosmetics-provider": { useCardCosmetics: () => [{ id: "museum", name: "Museum" }] },
+    "@/components/item-cards/item-card": { default: () => null },
+    "@/server/item-attribute-counts": { getItemAttributeCounts },
+  }, {
+    AbortController,
+    window: {
+      setTimeout: (callback: () => Promise<void>) => { runPreview = callback; return 1; },
+      clearTimeout() {},
+    },
+    fetch: async (url: string, options: RequestInit) => {
+      assert.equal(url, "/api/admin/items");
+      assert.equal(options.method, "PUT");
+      const { item } = JSON.parse(String(options.body));
+      requests.push(item);
+      return { ok: true, json: async () => ({ item: {
+        ...createArtistArtworkPreview(artwork),
+        foil: item.foil,
+        drop_chance_coefficient: coefficient,
+        odds: formatItemDropChance(coefficient),
+      } }) };
+    },
+  });
+  type Element = React.ReactElement<{ children?: React.ReactNode } & Record<string, unknown>>;
+  function find(node: React.ReactNode, predicate: (element: Element) => boolean): Element | undefined {
+    for (const child of React.Children.toArray(node)) {
+      if (!React.isValidElement(child)) continue;
+      const element = child as Element;
+      if (predicate(element)) return element;
+      const match = find(element.props.children, predicate);
+      if (match) return match;
+    }
+  }
+  let tree: React.ReactNode;
+  const render = () => {
+    stateIndex = 0;
+    tree = creator.default(props);
+    return renderToStaticMarkup(tree);
+  };
+  const refreshPreview = async () => {
+    assert.ok(previewEffect);
+    if (typeof cleanup === "function") cleanup();
+    cleanup = previewEffect();
+    assert.ok(runPreview);
+    await runPreview();
+    return render();
+  };
+  assert.doesNotMatch(render(), /Drop chance:/);
+  assert.match(await refreshPreview(), /Drop chance: <strong>1 in 400<\/strong>/);
+  assert.equal(requests.at(-1)?.foil, false);
+
+  const foil = find(tree, element => element.props.label === "Foil");
+  assert.ok(foil);
+  (foil.props.set as (value: boolean) => void)(true);
+  render();
+  coefficient = 0.000025;
+  assert.match(await refreshPreview(), /Drop chance: <strong>1 in 40,000<\/strong>/);
+  assert.equal(requests.at(-1)?.foil, true);
+
+  const select = find(tree, element => element.type === "select" && typeof element.props.size === "number");
+  assert.ok(select);
+  (select.props.onChange as (event: { target: { value: string } }) => void)({ target: { value: "inactive-work" } });
+  render();
+  coefficient = 0;
+  assert.match(await refreshPreview(), /Drop chance: <strong>Not currently droppable<\/strong>/);
+  assert.equal(requests.at(-1)?.artworkId, "inactive-work");
   if (typeof cleanup === "function") cleanup();
 });
 

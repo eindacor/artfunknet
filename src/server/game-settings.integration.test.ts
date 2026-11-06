@@ -11,7 +11,7 @@ import * as rarityValues from "./rarity-values.ts";
 
 const require = createRequire(import.meta.url);
 
-test("admin gallery settings persist independently for Actual and Debug with safe legacy defaults", async t => {
+test("admin gameplay settings persist independent Actual and Debug values and long decimals with safe legacy defaults", async t => {
   const server = await MongoMemoryServer.create();
   const client = await new MongoClient(server.getUri()).connect();
   t.after(async () => { await client.close(); await server.stop(); });
@@ -62,6 +62,10 @@ test("admin gallery settings persist independently for Actual and Debug with saf
     actual: {
       ...settingsCore.DEFAULT_ACTUAL_GAMEPLAY_CONFIG, galleryOverviewDistanceCm: 1250, galleryVisitorScale: 0.55,
       galleryCameraHeightCm: 175, galleryArtworkCenterHeightCm: 160,
+      offerRevealThresholds: { level1: 0.0000001234567890123, level2: 0.0000000001234567890123, level3: 0.0000000000001234567890123 },
+      foilProbability: 0.000000001234567890123,
+      crateValueScalar: 1.1234567890123,
+      mintValueMultiplier: 1.1234567890123,
     },
     debug: {
       ...settingsCore.DEFAULT_DEBUG_GAMEPLAY_CONFIG, galleryOverviewDistanceCm: 450, galleryVisitorScale: 1.35,
@@ -86,6 +90,10 @@ test("admin gallery settings persist independently for Actual and Debug with saf
   assert.equal(gameplay.configs.debug.gallery_camera_height_cm, 185);
   assert.equal(gameplay.configs.debug.gallery_artwork_center_height_cm, 170);
   const savedActual = (await (await loadRoute().GET()).json()).active;
+  assert.deepEqual(savedActual.offerRevealThresholds, body.actual.offerRevealThresholds);
+  assert.equal(savedActual.foilProbability, body.actual.foilProbability);
+  assert.equal(savedActual.crateValueScalar, body.actual.crateValueScalar);
+  assert.equal(savedActual.mintValueMultiplier, body.actual.mintValueMultiplier);
   assert.equal(savedActual.galleryCameraHeightCm, 175);
   assert.equal(savedActual.galleryArtworkCenterHeightCm, 160);
   assert.equal((await (await loadRoute().GET()).json()).active.galleryOverviewDistanceCm, 1250);
