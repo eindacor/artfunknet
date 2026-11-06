@@ -383,6 +383,13 @@ function ArtworkEffectForm({
           rows={3}
         />
       </label>
+      {["MP_BANK_INTEREST", "MP_ESCROW_INTEREST"].includes(record.code) ? (
+        <p>
+          Set <code>rate</code> to the weekly interest coefficient
+          (for example, <code>{'{"rate": 0.03}'}</code> pays 3% per week).
+          Interest resets Monday at 7 AM America/New_York.
+        </p>
+      ) : null}
       <div className="unique-effect-actions">
         <button disabled={busy} type="submit">
           {saving ? "Saving..." : record.id ? "Save" : "Create inactive"}

@@ -577,8 +577,8 @@ const MASTERPIECE_EFFECTS = [
   ["masterpiece-preservation-mint", "zR2KgxYe4LQZKBAiE", "MP_PRESERVATION_MINT", "Perfect Preservation", "This artwork is always mint and may be displayed without breaking its seal.", {}],
   ["masterpiece-expert-perfect-reroll", "nwMiN3DFBgsKBNSar", "MP_FREE_PERFECT_REROLL", "Perfect Revision", "The first reroll of an item with no prior reroll spending is free and rolls 100%.", {}],
   ["masterpiece-historian-forgery-return", "Z7wY5jXkDeckwfFLs", "MP_FORGERY_RETURN", "Persistent Provenance", "An undetected forgery that leaves play may return briefly to its creator.", { chance: 0.2, expiration_minutes: 10 }],
-  ["masterpiece-benefactor-bank-interest", "Lacw8fkPYvSQrmpQN", "MP_BANK_INTEREST", "Patronage Dividend", "Earn daily interest on bank balance excluding escrow.", { rate: 0.03 }],
-  ["masterpiece-auctioneer-escrow-interest", "FgRMQA6s24wmTRyrx", "MP_ESCROW_INTEREST", "Escrow Yield", "Earn daily interest on active auction escrow.", { rate: 0.06 }],
+  ["masterpiece-benefactor-bank-interest", "Lacw8fkPYvSQrmpQN", "MP_BANK_INTEREST", "Patronage Dividend", "Earn weekly interest on bank balance excluding escrow.", { rate: 0.03 }],
+  ["masterpiece-auctioneer-escrow-interest", "FgRMQA6s24wmTRyrx", "MP_ESCROW_INTEREST", "Escrow Yield", "Earn weekly interest on active auction escrow.", { rate: 0.06 }],
   ["masterpiece-collector-buyout", "dTSjqBx45mRTvFJeh", "MP_COLLECTOR_BUYOUT", "Total Acquisition", "Platinum Collectors may buy every item offered for sale.", { chance: 0.2 }],
   ["masterpiece-donor-foil", "Yk2kk2mZtHetvbrY5", "MP_DONOR_FOIL", "Gilded Gift", "Legendary and masterpiece gifts from platinum Donors are always foil.", {}],
   ["masterpiece-dealer-unlocked", "mZH58WpgbKP9o9WZR", "MP_DEALER_UNLOCKED", "Open Edition", "Legendary and masterpiece offers from platinum Dealers are always unlocked.", {}],
@@ -790,6 +790,31 @@ async function migrateTransferableAuctionEffect(database, now) {
       },
     },
   );
+}
+
+async function migrateWeeklyInterestEffects(database, now) {
+  for (const [, , code, , description] of MASTERPIECE_EFFECTS.filter(
+    ([, , code]) => code === "MP_BANK_INTEREST" || code === "MP_ESCROW_INTEREST",
+  )) {
+    const legacyDescription = description.replace("weekly", "daily");
+    await database.collection("artwork_effects").updateMany(
+      {
+        effect_type: "masterpiece",
+        code,
+        description: legacyDescription,
+        flavor_text: legacyDescription,
+      },
+      { $set: { flavor_text: description } },
+    );
+    await database.collection("artwork_effects").updateMany(
+      {
+        effect_type: "masterpiece",
+        code,
+        description: legacyDescription,
+      },
+      { $set: { description, updated_at: now } },
+    );
+  }
 }
 
 async function migrateQuestConditionBonusEffect(database, now) {
@@ -1175,6 +1200,7 @@ export async function migrateArtworkEffects(database) {
   await migrateArtCollectorAuctionEffect(database, now);
   await migrateMasterpieceEffectCodes(database, now);
   await migrateTransferableAuctionEffect(database, now);
+  await migrateWeeklyInterestEffects(database, now);
   await normalizeArtworkEffectParameters(database);
 
   await database.collection("artwork_effects").createIndex(

@@ -9,6 +9,7 @@ import {
 } from "./art-historian-gameplay.ts";
 import { getItemKarmaValue } from "./art-expert-gameplay.ts";
 import { getAuctionSettlementDisposition } from "./auction-settlement.ts";
+import { getAuctionBidRestriction } from "./auction-bid-permissions.ts";
 import { deleteCommunityReactions } from "./community-reaction-cleanup.ts";
 import { recordEconomyMetricsSafely } from "./economy-metrics.ts";
 import {
@@ -1512,7 +1513,8 @@ export async function validateBidder(
   player: AuctionPlayer,
   auction: Auction,
 ): Promise<string | null> {
-  if (auction.seller_id === player._id) return "You are the seller.";
+  const restriction = getAuctionBidRestriction(auction, player._id);
+  if (restriction) return restriction;
   if (auction.viewer !== "public" && auction.viewer !== player._id) {
     return "This is a private auction.";
   }

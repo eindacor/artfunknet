@@ -21,6 +21,7 @@ import * as galleryLayout from "../components/gallery-layout.ts";
 import * as oauthProviders from "./oauth-providers.ts";
 import { buildGalleryMetadataSnapshot } from "./gallery-metadata-core.ts";
 import type { AuctionView } from "./auction-gameplay.ts";
+import * as auctionBidPermissions from "./auction-bid-permissions.ts";
 import * as artistFeatureLinks from "../shared/artist-feature-link.ts";
 import * as settingsCore from "./game-settings.ts";
 import * as cardCatalog from "../components/item-cards/catalog.ts";
@@ -972,6 +973,81 @@ test("public item pages show the current owner name and public gallery link in t
     } else {
       assert.match(html, /class="item-owner-default">artfunkel inc\./);
       assert.doesNotMatch(html, /item-owner-link|Actual Collector|New Collector/);
+    }
+  }
+});
+
+test("auction controls prevent sellers and commission recipients from bidding in either view or a linked dialog", async () => {
+  const artwork: Artwork = {
+    _id: "auction-work", artist_id: "artist", artist: "Artist", title: "Auction work", date: 2026,
+    rarity: "common", genre: "Abstract", medium: "Oil", value_scale: 0.5, width: 80, height: 100, active: true,
+  };
+  let auction: AuctionView = {
+    _id: "auction", item_id: "auction-item", seller_id: null, seller_name: "Auction House", viewer: "public",
+    starting_bid: 100, current_bid: 100, minimum_bid: 100, increment: 10, buy_now: 500,
+    commission: { player_id: "player", coefficient: 0.1 }, current_winner_id: null, current_winner_name: null,
+    has_bid: false, date_posted: new Date().toISOString(), expiration: new Date(Date.now() + 60_000).toISOString(),
+    item_snapshot: {
+      artwork_id: artwork._id, title: artwork.title, artist: artwork.artist, rarity: artwork.rarity,
+      rarity_value: 0, medium: artwork.medium, date: artwork.date, condition: 1, level: 1, roll_count: 0,
+      foil: false, seasonal: false, lottery: 0, original: false,
+    },
+    item: createArtistArtworkPreview(artwork), owned: false, questTarget: false,
+    currentlyWinning: false, privateAuction: false,
+  };
+  let mode = "list";
+  let requests = 0;
+  const house = await load<typeof import("../app/play/auctions/auction-house.tsx")>("../app/play/auctions/auction-house.tsx", {
+    react: {
+      ...React, useEffect() {},
+      useMemo: (calculate: () => unknown) => calculate(),
+      useCallback: (callback: unknown) => callback,
+      useState: (initial: unknown) => {
+        const value = initial && typeof initial === "object" && "auctions" in initial
+          ? { auctions: [auction], total: 1 }
+          : initial === "list" ? mode : initial === true ? false : initial;
+        return [value, () => {}];
+      },
+    },
+    "next/navigation": { useRouter: () => ({ refresh() {} }) },
+    "@/components/item-thumbnail": { default: () => null },
+    "@/components/item-cards/item-card": { default: () => null },
+    "@/components/item-cards/selection": { resolveCardRendererId: () => "museum" },
+    "@/components/item-cards/standard-item-dialog": { default: (props: { headerDetails: React.ReactNode }) => props.headerDetails },
+    "@/server/gameplay": { ARTWORK_RARITIES: rarityValues.RARITY_VALUE_TIERS },
+    "@/server/auction-bid-permissions": auctionBidPermissions,
+  }, {
+    URLSearchParams,
+    fetch: async () => { requests++; return { ok: true, json: async () => ({ bankBalance: 900 }) }; },
+  });
+  const props = {
+    initialAuctionId: null, initialBankBalance: 1_000, legendaryAttributes: [],
+    marketExpertExpiration: null, playerId: "player",
+  };
+  for (const scenario of [
+    { seller_id: "player", commission: null, blocked: true, label: "Your listing" },
+    { seller_id: null, commission: { player_id: "player", coefficient: 0.1 }, blocked: true, label: "Commission listing" },
+    { seller_id: null, commission: { player_id: "other-player", coefficient: 0.1 }, blocked: false, label: "Bid" },
+  ]) {
+    auction = { ...auction, seller_id: scenario.seller_id, commission: scenario.commission };
+    for (mode of ["list", "expanded"]) {
+      const html = renderToStaticMarkup(React.createElement(house.default, props));
+      assert.ok(html.includes(scenario.label), `${mode}: ${scenario.label}`);
+      if (scenario.blocked) assert.match(html, /class="auction-bid-action"[^]*?<button disabled=""/);
+      else assert.match(html, /class="auction-bid-action"[^]*?<button type="button"/);
+    }
+    const dialog = house.AuctionBidDialog({
+      auction, bankBalance: 1_000, legendaryAttributes: [], playerId: "player", onClose() {}, onSuccess() {},
+    });
+    const html = renderToStaticMarkup(dialog);
+    if (scenario.blocked) {
+      assert.doesNotMatch(html, /Place bid|Buy now|Bid amount/);
+      const form = dialog.props.headerDetails as React.ReactElement<{ onSubmit: (event: { preventDefault: () => void }) => void }>;
+      form.props.onSubmit({ preventDefault() {} });
+      assert.equal(requests, 0, "Even a programmatic form submission must not send a self-bid");
+    } else {
+      assert.match(html, /Place bid/);
+      assert.match(html, /Buy now/);
     }
   }
 });

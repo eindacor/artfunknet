@@ -1,8 +1,12 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import test from "node:test";
+import { runInNewContext } from "node:vm";
 
 import { MongoClient } from "mongodb";
 import { MongoMemoryServer } from "mongodb-memory-server";
+import ts from "typescript";
 
 import {
   getPublicAuctionReplenishmentCount,
@@ -73,8 +77,136 @@ import {
   makePrivateAuctionsPublic,
   removeSettledAuctionRecord,
   settleAuction,
+  settleExpiredAuctions,
+  validateBidder,
   type Auction,
 } from "./auction-gameplay.ts";
+import { getGameplaySettings } from "./game-settings.ts";
+
+test("auction bid API rejects sellers and commission recipients before charging, including buy-now and concurrent changes", async t => {
+  const server = await MongoMemoryServer.create();
+  const client = await new MongoClient(server.getUri()).connect();
+  t.after(async () => { await client.close(); await server.stop(); });
+  const database = client.db("auction-self-bids");
+  const player = {
+    _id: "player", screen_name: "Player", active: true,
+    profile: { bank_balance: 10_000, level: 1, auction_cap: 10, inventory_cap: 10 },
+  };
+  await database.collection("players").insertMany([
+    player, { ...player, _id: "other-player", screen_name: "Other Player" },
+  ]);
+  const base: Auction = {
+    _id: "base", item_id: "auction-item", seller_id: null, seller_name: "Auction House", viewer: "public",
+    starting_bid: 100, current_bid: 100, minimum_bid: 100, increment: 10, buy_now: 500,
+    commission: null, current_winner_id: null, current_winner_name: null, has_bid: false,
+    date_posted: new Date().toISOString(), expiration: new Date(Date.now() + 60 * 60_000).toISOString(),
+    settlement_status: "active",
+    item_snapshot: {
+      artwork_id: "artwork", title: "Auction artwork", artist: "Artist", rarity: "common", rarity_value: 0,
+      medium: "Oil", date: 2026, condition: 1, level: 1, roll_count: 0,
+      foil: false, seasonal: false, lottery: 0, original: false,
+    },
+  };
+  await database.collection("items").insertOne({
+    _id: base.item_id, owner: AUCTION_HOUSE_OWNER_ID, status: "auctioned",
+  });
+  let playerId = player._id;
+  let concurrentAuctionId: string | null = null;
+  let recordedMetrics = 0;
+  const dependencies: Record<string, unknown> = {
+    "next/server": createRequire(import.meta.url)("next/server"),
+    "@/server/auction-gameplay": { calculateAntiSnipeExpiration, settleAuction, settleExpiredAuctions, validateBidder },
+    "@/server/game-settings": { getGameplaySettings: async () => {
+      if (concurrentAuctionId) {
+        await database.collection<Auction>("auctions").updateOne({ _id: concurrentAuctionId }, {
+          $set: { commission: { player_id: playerId, coefficient: 0.1 } },
+        });
+      }
+      return getGameplaySettings(database);
+    } },
+    "@/server/mongodb": { getDatabase: async () => database },
+    "@/server/player-api": { requirePlayerApi: async () => ({ ok: true, session: { playerId } }) },
+    "@/server/player-notifications": { createPlayerNotification: async () => assert.fail("No outbid notifications expected") },
+    "@/server/economy-metrics": { recordEconomyMetricsSafely: async () => { recordedMetrics++; } },
+  };
+  const code = ts.transpileModule(await readFile(
+    new URL("../app/api/play/auctions/[id]/bid/route.ts", import.meta.url), "utf8",
+  ), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+  const route = runInNewContext(`${code}\nexports`, {
+    exports: {}, Date, Error, console,
+    require: (name: string) => {
+      assert.ok(name in dependencies, `Unexpected dependency: ${name}`);
+      return dependencies[name];
+    },
+  }) as typeof import("../app/api/play/auctions/[id]/bid/route.ts");
+  const bid = (auction: Auction, buyNow = false) => route.POST(new Request("http://localhost/api/play/auctions/bid", {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ amount: auction.minimum_bid, buyNow }),
+  }), { params: Promise.resolve({ id: auction._id }) });
+  const beforeItems = await database.collection("items").find({}).toArray();
+  const restrictions = [
+    { name: "seller", seller_id: player._id, commission: null },
+    { name: "Collector commission recipient", seller_id: null, commission: { player_id: player._id, coefficient: 0.1 } },
+  ];
+  for (const restriction of restrictions) {
+    for (const buyNow of [false, true]) {
+      await t.test(`${restriction.name}: ${buyNow ? "buy now" : "bid"}`, async () => {
+        const auction = { ...base, ...restriction, _id: `${restriction.name}-${buyNow}` };
+        await database.collection<Auction>("auctions").insertOne(auction);
+        const beforePlayer = await database.collection("players").findOne({ _id: playerId });
+        const beforeAuction = await database.collection<Auction>("auctions").findOne({ _id: auction._id });
+        const response = await bid(auction, buyNow);
+        assert.equal(response.status, 409);
+        assert.match((await response.json()).error, /seller|commission/);
+        assert.deepEqual(await database.collection("players").findOne({ _id: playerId }), beforePlayer);
+        assert.deepEqual(await database.collection<Auction>("auctions").findOne({ _id: auction._id }), beforeAuction);
+        assert.deepEqual(await database.collection("items").find({}).toArray(), beforeItems);
+        assert.equal(recordedMetrics, 0);
+      });
+    }
+  }
+  await t.test("an existing winning commission recipient cannot raise their bid", async () => {
+    const auction: Auction = {
+      ...base, _id: "existing-self-bid", has_bid: true, current_winner_id: player._id,
+      current_winner_name: player.screen_name, minimum_bid: 110,
+      commission: { player_id: player._id, coefficient: 0 },
+    };
+    await database.collection<Auction>("auctions").insertOne(auction);
+    assert.equal((await bid(auction)).status, 409);
+    assert.equal((await database.collection("players").findOne({ _id: playerId }))?.profile.bank_balance, 10_000);
+    assert.deepEqual(await database.collection<Auction>("auctions").findOne({ _id: auction._id }), auction);
+  });
+  for (const buyNow of [false, true]) {
+    await t.test(`commission added during ${buyNow ? "buy now" : "bid"} rejects and refunds the charge`, async () => {
+      const auction = { ...base, _id: `concurrent-${buyNow}` };
+      await database.collection<Auction>("auctions").insertOne(auction);
+      concurrentAuctionId = auction._id;
+      assert.equal((await bid(auction, buyNow)).status, 409);
+      concurrentAuctionId = null;
+      assert.equal((await database.collection("players").findOne({ _id: playerId }))?.profile.bank_balance, 10_000);
+      const saved = await database.collection<Auction>("auctions").findOne({ _id: auction._id });
+      assert.deepEqual(saved, { ...auction, commission: { player_id: playerId, coefficient: 0.1 } });
+      assert.deepEqual(await database.collection("items").find({}).toArray(), beforeItems);
+      assert.equal(recordedMetrics, 0);
+    });
+  }
+  await t.test("other players can bid on commissioned lots", async () => {
+    playerId = "other-player";
+    const auction = { ...base, _id: "allowed-commission", commission: { player_id: player._id, coefficient: 0.1 } };
+    await database.collection<Auction>("auctions").insertOne(auction);
+    assert.equal((await bid(auction)).status, 200);
+    assert.equal((await database.collection("players").findOne({ _id: playerId }))?.profile.bank_balance, 9_900);
+    assert.equal((await database.collection<Auction>("auctions").findOne({ _id: auction._id }))?.current_winner_id, playerId);
+    assert.equal((await database.collection("players").findOne({ _id: player._id }))?.profile.bank_balance, 10_000);
+  });
+  await t.test("private auction access alone does not prohibit bidding", async () => {
+    playerId = player._id;
+    const auction = { ...base, _id: "private-allowed", viewer: playerId };
+    await database.collection<Auction>("auctions").insertOne(auction);
+    assert.equal((await bid(auction)).status, 200);
+    assert.equal((await database.collection<Auction>("auctions").findOne({ _id: auction._id }))?.current_winner_id, playerId);
+  });
+});
 
 test("auction commissions use a clamped coefficient of the final price", () => {
   assert.equal(

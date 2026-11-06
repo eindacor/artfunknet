@@ -27,7 +27,7 @@ export const MASTERPIECE_EFFECT_CODES = {
   auctionAuthentication: "MP_AUCTION_AUTHENTICATION_REFUND",
 } as const;
 
-type DailyInterestMarker = {
+type WeeklyInterestMarker = {
   date: string;
   effect_id: string;
   base: number;
@@ -116,11 +116,11 @@ export function getTransferableAuctionCommissionCoefficient(
   );
 }
 
-export async function settleDailyMasterpieceInterest(
+export async function settleWeeklyMasterpieceInterest(
   database: Db,
   now = new Date(),
 ): Promise<{ settlements: number; awarded: number }> {
-  const settlementDate = getNewYorkSettlementDate(now);
+  const settlementDate = getNewYorkWeeklySettlementDate(now);
   if (!settlementDate) return { settlements: 0, awarded: 0 };
   const players = await database
     .collection<{ _id: string; active: boolean; profile: { bank_balance: number } }>(
@@ -153,7 +153,7 @@ export async function settleDailyMasterpieceInterest(
           : await getPlayerEscrow(database, player._id);
       const amount = Math.floor(base * rate);
       const markerPath = `profile.artwork_effect_settlements.${effect.code}`;
-      const marker: DailyInterestMarker = {
+      const marker: WeeklyInterestMarker = {
         date: settlementDate,
         effect_id: effect._id,
         base,
@@ -164,7 +164,11 @@ export async function settleDailyMasterpieceInterest(
         {
           _id: player._id,
           active: true,
-          [`${markerPath}.date`]: { $ne: settlementDate },
+          // A daily payout earlier this week also blocks a transition-time payout.
+          $or: [
+            { [`${markerPath}.date`]: { $lt: settlementDate } },
+            { [`${markerPath}.date`]: { $exists: false } },
+          ],
         },
         {
           $inc: { "profile.bank_balance": amount },
@@ -178,7 +182,7 @@ export async function settleDailyMasterpieceInterest(
           {
             _id: player._id,
             active: true,
-            [`${markerPath}.date`]: settlementDate,
+            [`${markerPath}.date`]: { $gte: settlementDate },
           },
           { projection: { [markerPath]: 1 } },
         ) as
@@ -186,16 +190,17 @@ export async function settleDailyMasterpieceInterest(
               profile?: {
                 artwork_effect_settlements?: Record<
                   string,
-                  DailyInterestMarker
+                  WeeklyInterestMarker
                 >;
               };
             }
           | null;
         const storedMarker =
           alreadyApplied?.profile?.artwork_effect_settlements?.[effect.code];
-        if (!storedMarker || storedMarker.date !== settlementDate) {
+        if (!storedMarker) {
           throw new Error(`Player ${player._id} could not receive interest.`);
         }
+        if (storedMarker.date !== settlementDate) continue;
         appliedMarker = storedMarker;
       }
       await database
@@ -230,7 +235,7 @@ export async function settleDailyMasterpieceInterest(
         });
         await createPlayerNotification(database, player._id, {
           kind: "success",
-          message: `${effect.title} paid $${amount.toLocaleString()} in daily interest.`,
+          message: `${effect.title} paid $${amount.toLocaleString()} in weekly interest.`,
           dedupeUnread: false,
         }).catch((error) => {
           console.error(
@@ -263,6 +268,14 @@ export function getNewYorkSettlementDate(now: Date): string | null {
   const previous = new Date(`${date}T12:00:00Z`);
   previous.setUTCDate(previous.getUTCDate() - 1);
   return previous.toISOString().slice(0, 10);
+}
+
+export function getNewYorkWeeklySettlementDate(now: Date): string | null {
+  const date = getNewYorkSettlementDate(now);
+  if (!date) return null;
+  const monday = new Date(`${date}T12:00:00Z`);
+  monday.setUTCDate(monday.getUTCDate() - (monday.getUTCDay() + 6) % 7);
+  return monday.toISOString().slice(0, 10);
 }
 
 async function getPlayerEscrow(database: Db, playerId: string): Promise<number> {

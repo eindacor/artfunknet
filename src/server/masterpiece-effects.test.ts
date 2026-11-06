@@ -6,6 +6,7 @@ import {
   getAuctionForgeryRefund,
   getMasterpieceGalleryXpChunks,
   getNewYorkSettlementDate,
+  getNewYorkWeeklySettlementDate,
   getTransferableAuctionCommissionCoefficient,
   getVisitorGenerationPasses,
   MASTERPIECE_EFFECT_CODES,
@@ -85,4 +86,21 @@ test("daily settlement key changes at 7 AM New York", () => {
     getNewYorkSettlementDate(new Date("2026-10-01T11:00:00Z")),
     "2026-10-01",
   );
+});
+
+test("weekly interest resets Monday at 7 AM New York across DST and year boundaries", () => {
+  for (const [time, week] of [
+    ["2026-10-05T10:59:59Z", "2026-09-28"],
+    ["2026-10-05T11:00:00Z", "2026-10-05"],
+    ["2026-10-06T11:00:00Z", "2026-10-05"],
+    ["2026-10-11T16:00:00Z", "2026-10-05"],
+    ["2026-11-02T11:59:59Z", "2026-10-26"],
+    ["2026-11-02T12:00:00Z", "2026-11-02"],
+    ["2026-03-09T10:59:59Z", "2026-03-02"],
+    ["2026-03-09T11:00:00Z", "2026-03-09"],
+    ["2027-01-04T11:59:59Z", "2026-12-28"],
+    ["2027-01-04T12:00:00Z", "2027-01-04"],
+  ]) {
+    assert.equal(getNewYorkWeeklySettlementDate(new Date(time)), week, time);
+  }
 });

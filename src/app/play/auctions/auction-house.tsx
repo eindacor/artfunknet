@@ -8,6 +8,7 @@ import ItemCard from "@/components/item-cards/item-card";
 import { resolveCardRendererId } from "@/components/item-cards/selection";
 import StandardItemDialog from "@/components/item-cards/standard-item-dialog";
 import type { AuctionView } from "@/server/auction-gameplay";
+import { getAuctionBidRestriction } from "@/server/auction-bid-permissions";
 import { ARTWORK_RARITIES, type ArtworkRarity } from "@/server/gameplay";
 import type { CardLegendaryAttribute } from "@/components/item-cards/types";
 
@@ -559,15 +560,20 @@ function AuctionBidButton({
   onSelect: (auction: AuctionView) => void;
   playerId: string;
 }) {
+  const restriction = getAuctionBidRestriction(auction, playerId);
   return (
     <div className="auction-bid-action" role="cell">
       <button
-        disabled={auction.seller_id === playerId}
+        disabled={restriction !== null}
         onClick={() => onSelect(auction)}
         type="button"
       >
         <i aria-hidden="true" className="fa fa-gavel" />{" "}
-        {auction.seller_id === playerId ? "Your listing" : "Bid"}
+        {auction.seller_id === playerId
+          ? "Your listing"
+          : restriction
+            ? "Commission listing"
+            : "Bid"}
       </button>
     </div>
   );
@@ -608,8 +614,10 @@ export function AuctionBidDialog({
   const [submitting, setSubmitting] = useState(false);
   const available =
     bankBalance + (auction.currentlyWinning ? auction.current_bid : 0);
+  const restriction = getAuctionBidRestriction(auction, playerId);
 
   async function submit(buyNow = false) {
+    if (restriction) return;
     setSubmitting(true);
     setError("");
     try {
@@ -716,8 +724,8 @@ export function AuctionBidDialog({
               <dd>{formatRemaining(auction.expiration)}</dd>
             </div>
           </dl>
-          {auction.seller_id === playerId ? (
-            <p>Your listing</p>
+          {restriction ? (
+            <p>{auction.seller_id === playerId ? "Your listing" : restriction}</p>
           ) : (
             <>
               <p>

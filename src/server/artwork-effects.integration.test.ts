@@ -9,13 +9,13 @@ import {
   getDisplayedArtworkEffects,
   type ArtworkEffect,
 } from "./artwork-effects.ts";
-import { settleDailyMasterpieceInterest } from "./masterpiece-effects.ts";
+import { settleWeeklyMasterpieceInterest } from "./masterpiece-effects.ts";
 import {
   migrateArtworkEffects,
   migrateMasterpieceFlavorTexts,
 } from "../../scripts/database-migrations.mjs";
 
-test("displayed duplicate effect references do not stack and daily interest is idempotent", async () => {
+test("displayed duplicate effect references do not stack and weekly interest is idempotent", async () => {
   const server = await MongoMemoryServer.create();
   const client = new MongoClient(server.getUri());
   try {
@@ -50,12 +50,12 @@ test("displayed duplicate effect references do not stack and daily interest is i
     const displayed = await getDisplayedArtworkEffects(db, "player");
     assert.deepEqual(displayed.map((entry) => entry._id), ["interest"]);
     const now = new Date("2026-10-01T12:00:00Z");
-    assert.deepEqual(await settleDailyMasterpieceInterest(db, now), {
+    assert.deepEqual(await settleWeeklyMasterpieceInterest(db, now), {
       settlements: 1,
       awarded: 30,
     });
     await db.collection("artwork_effect_settlements").deleteMany({});
-    assert.deepEqual(await settleDailyMasterpieceInterest(db, now), {
+    assert.deepEqual(await settleWeeklyMasterpieceInterest(db, new Date("2026-10-02T12:00:00Z")), {
       settlements: 0,
       awarded: 0,
     });
@@ -64,7 +64,7 @@ test("displayed duplicate effect references do not stack and daily interest is i
     assert.deepEqual(
       player?.profile.artwork_effect_settlements.MP_BANK_INTEREST,
       {
-        date: "2026-10-01",
+        date: "2026-09-28",
         effect_id: effect._id,
         base: 1000,
         rate: 0.03,
@@ -73,16 +73,148 @@ test("displayed duplicate effect references do not stack and daily interest is i
     );
     assert.equal(
       await db.collection("artwork_effect_settlements").countDocuments({
-        _id: "2026-10-01:player:MP_BANK_INTEREST",
+        _id: "2026-09-28:player:MP_BANK_INTEREST",
         status: "completed",
         amount: 30,
       }),
       1,
     );
+    assert.deepEqual(await settleWeeklyMasterpieceInterest(db, new Date("2026-10-05T10:59:59Z")), {
+      settlements: 0, awarded: 0,
+    });
+    assert.deepEqual(await settleWeeklyMasterpieceInterest(db, new Date("2026-10-05T11:00:00Z")), {
+      settlements: 1, awarded: 30,
+    });
+    assert.equal((await db.collection("players").findOne({ _id: "player" }))?.profile.bank_balance, 1060);
   } finally {
     await client.close();
     await server.stop();
   }
+});
+
+test("weekly bank and escrow interest use configurable rates and pay once under concurrent settlement", async t => {
+  const server = await MongoMemoryServer.create();
+  const client = await new MongoClient(server.getUri()).connect();
+  t.after(async () => { await client.close(); await server.stop(); });
+  const db = client.db("weekly-interest-rates");
+  const effects = [
+    { _id: "bank", code: "MP_BANK_INTEREST", rate: 0.0125 },
+    { _id: "escrow", code: "MP_ESCROW_INTEREST", rate: 0.025 },
+  ].map(({ _id, code, rate }) => ({
+    _id, code, effect_type: "masterpiece" as const, title: _id, description: _id, flavor_text: _id,
+    linked_attributes: ["attribute"], active: true, parameters: { rate },
+  }));
+  await db.collection<ArtworkEffect>("artwork_effects").insertMany(effects);
+  await db.collection("artworks").insertMany(effects.map(effect => ({
+    _id: `art-${effect._id}`, rarity: "masterpiece", effect_id: effect._id,
+  })));
+  await db.collection("items").insertMany(effects.map(effect => ({
+    _id: `item-${effect._id}`, artwork_id: `art-${effect._id}`, owner: "player", status: "displayed",
+  })));
+  await db.collection("players").insertOne({ _id: "player", active: true, profile: { bank_balance: 1000 } });
+  await db.collection("auctions").insertMany([
+    { _id: "winning", current_winner_id: "player", has_bid: true, current_bid: 500 },
+    { _id: "not-winning", current_winner_id: "other-player", has_bid: true, current_bid: 1000 },
+  ]);
+  const now = new Date("2026-10-05T11:00:00Z");
+  const results = await Promise.all([
+    settleWeeklyMasterpieceInterest(db, now), settleWeeklyMasterpieceInterest(db, now),
+  ]);
+  assert.equal(results.reduce((sum, result) => sum + result.settlements, 0), 2);
+  assert.equal(results.reduce((sum, result) => sum + result.awarded, 0), 24);
+  assert.equal((await db.collection("players").findOne({ _id: "player" }))?.profile.bank_balance, 1024);
+  const ledger = await db.collection("artwork_effect_settlements").find({}).sort({ effect_code: 1 }).toArray();
+  assert.deepEqual(ledger.map(({ effect_code, base, rate, amount }) => ({ effect_code, base, rate, amount })), [
+    { effect_code: "MP_BANK_INTEREST", base: 1000, rate: 0.0125, amount: 12 },
+    { effect_code: "MP_ESCROW_INTEREST", base: 500, rate: 0.025, amount: 12 },
+  ]);
+  const notifications = await db.collection("player_notifications").find({ user_id: "player" }).toArray();
+  assert.equal(notifications.length, 2);
+  assert.ok(notifications.every(notification => notification.message.includes("weekly interest")));
+  await db.collection<ArtworkEffect>("artwork_effects").updateOne({ _id: "bank" }, { $set: { "parameters.rate": 0.02 } });
+  await db.collection<ArtworkEffect>("artwork_effects").updateOne({ _id: "escrow" }, { $set: { "parameters.rate": 0 } });
+  assert.deepEqual(await settleWeeklyMasterpieceInterest(db, new Date("2026-10-08T11:00:00Z")), {
+    settlements: 0, awarded: 0,
+  });
+  assert.deepEqual(await settleWeeklyMasterpieceInterest(db, new Date("2026-10-12T11:00:00Z")), {
+    settlements: 2, awarded: 20,
+  });
+  assert.equal((await db.collection("players").findOne({ _id: "player" }))?.profile.bank_balance, 1044);
+});
+
+test("weekly interest preserves daily history and does not repay a week already paid", async t => {
+  const server = await MongoMemoryServer.create();
+  const client = await new MongoClient(server.getUri()).connect();
+  t.after(async () => { await client.close(); await server.stop(); });
+  const db = client.db("weekly-interest-transition");
+  const marker = { date: "2026-09-30", effect_id: "bank", base: 1000, rate: 0.03, amount: 30 };
+  await db.collection<ArtworkEffect>("artwork_effects").insertOne({
+    _id: "bank", code: "MP_BANK_INTEREST", effect_type: "masterpiece", title: "Bank", description: "Bank",
+    flavor_text: "Bank", linked_attributes: ["attribute"], active: true, parameters: { rate: 0.03 },
+  });
+  await db.collection("artworks").insertOne({ _id: "art", rarity: "masterpiece", effect_id: "bank" });
+  await db.collection("items").insertOne({ _id: "item", artwork_id: "art", owner: "player", status: "displayed" });
+  await db.collection("players").insertOne({
+    _id: "player", active: true, profile: { bank_balance: 1030, artwork_effect_settlements: { MP_BANK_INTEREST: marker } },
+  });
+  const dailyLedger = {
+    _id: "2026-09-30:player:MP_BANK_INTEREST", player_id: "player", effect_code: "MP_BANK_INTEREST",
+    settlement_date: marker.date, status: "completed", ...marker,
+  };
+  await db.collection("artwork_effect_settlements").insertOne(dailyLedger);
+  assert.deepEqual(await settleWeeklyMasterpieceInterest(db, new Date("2026-10-01T12:00:00Z")), {
+    settlements: 0, awarded: 0,
+  });
+  assert.equal((await db.collection("players").findOne({ _id: "player" }))?.profile.bank_balance, 1030);
+  assert.deepEqual((await db.collection("players").findOne({ _id: "player" }))?.profile.artwork_effect_settlements.MP_BANK_INTEREST, marker);
+  assert.deepEqual(await db.collection("artwork_effect_settlements").find({}).toArray(), [dailyLedger]);
+  assert.deepEqual(await settleWeeklyMasterpieceInterest(db, new Date("2026-10-05T11:00:00Z")), {
+    settlements: 1, awarded: 30,
+  });
+  assert.deepEqual(await db.collection("artwork_effect_settlements").findOne({ _id: dailyLedger._id }), dailyLedger);
+});
+
+test("interest registry migration updates default weekly descriptions without resetting editable rates or authored text", async t => {
+  const server = await MongoMemoryServer.create();
+  const client = await new MongoClient(server.getUri()).connect();
+  t.after(async () => { await client.close(); await server.stop(); });
+  const db = client.db("weekly-interest-metadata");
+  const bankId = "masterpiece-benefactor-bank-interest";
+  const escrowId = "masterpiece-auctioneer-escrow-interest";
+  const legacyDescription = "Earn daily interest on bank balance excluding escrow.";
+  await db.collection<ArtworkEffect>("artwork_effects").insertMany([
+    {
+      _id: bankId, code: "MP_BANK_INTEREST", effect_type: "masterpiece", title: "Custom bank",
+      description: legacyDescription, flavor_text: legacyDescription, active: false,
+      linked_attributes: ["bank"], parameters: { rate: 0.01234567890123, extra: true },
+    },
+    {
+      _id: escrowId, code: "MP_ESCROW_INTEREST", effect_type: "masterpiece", title: "Custom escrow",
+      description: "Custom weekly escrow terms.", flavor_text: "An authored quote.", active: true,
+      linked_attributes: ["escrow"], parameters: { rate: 0 },
+    },
+  ]);
+  await migrateArtworkEffects(db);
+  const bank = await db.collection<ArtworkEffect>("artwork_effects").findOne({ _id: bankId });
+  const escrow = await db.collection<ArtworkEffect>("artwork_effects").findOne({ _id: escrowId });
+  assert.equal(bank?.description, "Earn weekly interest on bank balance excluding escrow.");
+  assert.deepEqual(bank?.parameters, { rate: 0.01234567890123, extra: true });
+  assert.equal(bank?.title, "Custom bank");
+  assert.equal(bank?.active, false);
+  assert.equal(escrow?.description, "Custom weekly escrow terms.");
+  assert.equal(escrow?.flavor_text, "An authored quote.");
+  assert.deepEqual(escrow?.parameters, { rate: 0 });
+  await migrateMasterpieceFlavorTexts(db);
+  const weeklyBank = await db.collection<ArtworkEffect>("artwork_effects").findOne({ _id: bankId });
+  assert.notEqual(weeklyBank?.flavor_text, legacyDescription);
+  assert.notEqual(weeklyBank?.flavor_text, weeklyBank?.description);
+  await migrateArtworkEffects(db);
+  await migrateMasterpieceFlavorTexts(db);
+  assert.deepEqual(await db.collection<ArtworkEffect>("artwork_effects").findOne({ _id: bankId }), weeklyBank);
+  const fresh = client.db("weekly-interest-defaults");
+  await migrateArtworkEffects(fresh);
+  assert.deepEqual((await fresh.collection<ArtworkEffect>("artwork_effects").findOne({ _id: bankId }))?.parameters, { rate: 0.03 });
+  assert.deepEqual((await fresh.collection<ArtworkEffect>("artwork_effects").findOne({ _id: escrowId }))?.parameters, { rate: 0.06 });
 });
 
 test("masterpiece flavor backfill generates distinct short praise and preserves authored quotes", async () => {

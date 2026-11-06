@@ -115,6 +115,8 @@ export async function POST(
   const updated = await database.collection<Auction>("auctions").updateOne(
     {
       _id: auction._id,
+      seller_id: { $ne: player._id },
+      "commission.player_id": { $ne: player._id },
       current_bid: auction.current_bid,
       current_winner_id: auction.current_winner_id,
       expiration: { $gt: bidTime },

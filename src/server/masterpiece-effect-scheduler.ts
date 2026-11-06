@@ -1,5 +1,5 @@
 import { withDatabase } from "./mongodb.ts";
-import { settleDailyMasterpieceInterest } from "./masterpiece-effects.ts";
+import { settleWeeklyMasterpieceInterest } from "./masterpiece-effects.ts";
 
 const INTERVAL_MS = 5 * 60 * 1000;
 type SchedulerGlobal = typeof globalThis & {
@@ -13,7 +13,7 @@ async function check() {
     return schedulerGlobal.artfunkMasterpieceEffectCheck;
   }
   schedulerGlobal.artfunkMasterpieceEffectCheck = withDatabase(async (database) => {
-    await settleDailyMasterpieceInterest(database);
+    await settleWeeklyMasterpieceInterest(database);
   });
   try {
     await schedulerGlobal.artfunkMasterpieceEffectCheck;
@@ -25,11 +25,11 @@ async function check() {
 export function startMasterpieceEffectScheduler() {
   if (schedulerGlobal.artfunkMasterpieceEffectTimer) return;
   void check().catch((error) =>
-    console.error("Unable to settle daily masterpiece effects", error),
+    console.error("Unable to settle weekly masterpiece effects", error),
   );
   schedulerGlobal.artfunkMasterpieceEffectTimer = setInterval(() => {
     void check().catch((error) =>
-      console.error("Unable to settle daily masterpiece effects", error),
+      console.error("Unable to settle weekly masterpiece effects", error),
     );
   }, INTERVAL_MS);
   schedulerGlobal.artfunkMasterpieceEffectTimer.unref();
