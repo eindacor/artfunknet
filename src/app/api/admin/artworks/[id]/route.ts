@@ -30,6 +30,8 @@ type EditableArtwork = Artwork & {
   nsfw?: boolean;
   updated_at?: Date;
   updated_by?: string;
+  reviewed_at?: Date;
+  reviewed_by?: string;
   submission_status?: "pending" | "denying" | "approved";
   retired_images?: Array<ArtworkImageRecord | LegacyArtworkImageRecord>;
 };
@@ -115,14 +117,26 @@ export async function PATCH(
   const auth = await requireAdminApi();
   if (!auth.ok) return auth.response;
   const { id } = await params;
-  let body = (await request.json()) as Record<string, unknown>;
+  const body = (await request.json()) as Record<string, unknown>;
   if (body.action === "approve") {
     return approveSubmission(id, body, auth.session.email);
   }
+  return updateArtwork(id, body, auth.session.email);
+}
+
+async function updateArtwork(
+  id: string,
+  body: Record<string, unknown>,
+  reviewer: string,
+  approving = false,
+) {
   const database = await getDatabase();
   const existing = await database.collection<EditableArtwork>("artworks").findOne({ _id: id });
   if (!existing) {
     return NextResponse.json({ error: "Artwork not found." }, { status: 404 });
+  }
+  if (approving && (existing.submission_status !== "pending" || existing.active !== false)) {
+    return NextResponse.json({ error: "The submission changed before it could be accepted." }, { status: 409 });
   }
   if (existing.submission_status === "denying") {
     return NextResponse.json({ error: "This submission is being removed and cannot be accepted." }, { status: 409 });
@@ -300,7 +314,7 @@ export async function PATCH(
     active: body.active === true,
     nsfw: body.nsfw === true,
     updated_at: new Date(),
-    updated_by: auth.session.email,
+    updated_by: reviewer,
   };
   const items =
     rarityChanged || valueScaleChanged
@@ -336,7 +350,7 @@ export async function PATCH(
     updated_at: updatedArtwork.updated_at,
     updated_by: updatedArtwork.updated_by,
     ...(existing.submission_status === "pending" && updatedArtwork.active
-      ? { submission_status: "approved" as const, reviewed_at: updatedArtwork.updated_at, reviewed_by: auth.session.email }
+      ? { submission_status: "approved" as const, reviewed_at: updatedArtwork.updated_at, reviewed_by: reviewer }
       : {}),
     ...(artworkEffectId ? { effect_id: artworkEffectId } : {}),
     ...(rareSpecialAttributeId
@@ -365,13 +379,15 @@ export async function PATCH(
           height: existing.height,
           width: existing.width,
           active: existing.active,
-          nsfw: existing.nsfw ?? false,
+          ...(existing.nsfw !== undefined ? { nsfw: existing.nsfw } : {}),
           ...(existing.art_style_adjustments ? { art_style_adjustments: existing.art_style_adjustments } : {}),
           ...(existing.detail_image_adjustments ? { detail_image_adjustments: existing.detail_image_adjustments } : {}),
           ...(existing.thumbnail_adjustment ? { thumbnail_adjustment: existing.thumbnail_adjustment } : {}),
           ...(existing.feature_card_adjustment ? { feature_card_adjustment: existing.feature_card_adjustment } : {}),
           ...(existing.updated_at ? { updated_at: existing.updated_at } : {}),
           ...(existing.updated_by ? { updated_by: existing.updated_by } : {}),
+          ...(existing.reviewed_at ? { reviewed_at: existing.reviewed_at } : {}),
+          ...(existing.reviewed_by ? { reviewed_by: existing.reviewed_by } : {}),
           ...(existing.submission_status ? { submission_status: existing.submission_status } : {}),
           ...(existing.effect_id ? { effect_id: existing.effect_id } : {}),
           ...(existing.special_attributes
@@ -379,6 +395,7 @@ export async function PATCH(
             : {}),
         },
         $unset: {
+          ...(existing.nsfw === undefined ? { nsfw: "" } : {}),
           ...(!existing.art_style_adjustments ? { art_style_adjustments: "" } : {}),
           ...(!existing.detail_image_adjustments ? { detail_image_adjustments: "" } : {}),
           ...(!existing.thumbnail_adjustment ? { thumbnail_adjustment: "" } : {}),
@@ -387,13 +404,19 @@ export async function PATCH(
           ...(!existing.special_attributes ? { special_attributes: "" } : {}),
           ...(!existing.updated_at ? { updated_at: "" } : {}),
           ...(!existing.updated_by ? { updated_by: "" } : {}),
+          ...(!existing.reviewed_at ? { reviewed_at: "" } : {}),
+          ...(!existing.reviewed_by ? { reviewed_by: "" } : {}),
         },
       },
     );
   const artworkUpdated = await database
     .collection<EditableArtwork>("artworks")
     .updateOne(
-      { _id: id, ...(existing.submission_status ? { submission_status: existing.submission_status } : {}) },
+      {
+        _id: id,
+        ...(existing.submission_status ? { submission_status: existing.submission_status } : {}),
+        ...(approving ? { active: false } : {}),
+      },
       {
         $set: artworkFields,
         ...(Object.keys(artworkFieldsToUnset).length > 0
@@ -509,9 +532,11 @@ export async function PATCH(
 
   return NextResponse.json({
     artwork: savedArtwork,
-    message: items.length
-      ? `Updated ${title} and recalculated ${items.length} item${items.length === 1 ? "" : "s"}.`
-      : `Updated ${title}.`,
+    message: approving
+      ? `Accepted ${title}.`
+      : items.length
+        ? `Updated ${title} and recalculated ${items.length} item${items.length === 1 ? "" : "s"}.`
+        : `Updated ${title}.`,
   });
 }
 
@@ -538,44 +563,26 @@ async function approveSubmission(id: string, body: Record<string, unknown>, revi
     return NextResponse.json({ error: "The submitting artist is unavailable." }, { status: 400 });
   }
   const input = validation.value;
-  const now = new Date();
   const valueScale = Math.random();
-  const ratio = existing.image_width && existing.image_height
-    ? existing.image_width / existing.image_height : existing.width / existing.height;
   const accept = (effect?: ArtworkEffect, rareAttributeId?: string) =>
-    collection.findOneAndUpdate(
-      { _id: id, submission_status: "pending", active: false },
+    updateArtwork(
+      id,
       {
-        $set: {
-          ...input,
-          artist: artist.artist_name,
-          width: Number((input.height * ratio).toFixed(2)),
-          value_scale: valueScale,
-          submission_status: "approved",
-          updated_at: now,
-          updated_by: reviewer,
-          reviewed_at: now,
-          reviewed_by: reviewer,
-          ...(effect ? { effect_id: effect._id } : {}),
-          ...(rareAttributeId ? { special_attributes: [rareAttributeId] } : {}),
-        },
-        $unset: {
-          ...(!effect ? { effect_id: "" as const } : {}),
-          ...(!rareAttributeId ? { special_attributes: "" as const } : {}),
-        },
+        ...input,
+        value_scale: valueScale,
+        effect_id: effect?._id,
+        special_attributes: rareAttributeId ? [rareAttributeId] : [],
       },
-      { returnDocument: "after" },
+      reviewer,
+      true,
     );
   try {
-    const saved = input.rarity === "legendary" || input.rarity === "masterpiece"
+    const response = input.rarity === "legendary" || input.rarity === "masterpiece"
       ? await withLeastRepresentedArtworkEffect(database, input.rarity, accept)
       : input.rarity === "rare"
         ? await withLeastRepresentedRareSpecialAttribute(database, attribute => accept(undefined, attribute._id))
         : await accept();
-    if (!saved) {
-      return NextResponse.json({ error: "The submission changed before it could be accepted." }, { status: 409 });
-    }
-    return NextResponse.json({ artwork: saved, message: `Accepted ${saved.title}.` });
+    return response;
   } catch (error) {
     console.error("Unable to accept artwork submission", error);
     return NextResponse.json(

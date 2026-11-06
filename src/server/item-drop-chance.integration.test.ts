@@ -27,12 +27,12 @@ import * as dropChances from "./item-drop-chance.ts";
 import * as artworkInput from "./artwork-create-input.ts";
 import * as reroll from "./item-reroll.ts";
 
-async function loadArtworkRoute(database: Db) {
+async function loadArtworkRoute(database: Db, globals: Record<string, unknown> = {}) {
   const require = createRequire(import.meta.url);
   const source = await readFile(new URL("../app/api/admin/artworks/[id]/route.ts", import.meta.url), "utf8");
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
   return runInNewContext(`${code}\nexports`, {
-    exports: {}, console, Date,
+    exports: {}, console, Date, Error, ...globals,
     require: (id: string) => ({
       "next/server": require("next/server"),
       "@/server/admin-api": { requireAdminApi: async () => ({ ok: true, session: { email: "admin@example.com" } }) },
@@ -272,6 +272,138 @@ test("stored drop odds follow live configuration, generation, mutations and prod
     }), { params: Promise.resolve({ id: "art" }) }), /Simulated peer-odds write failure/);
     assert.equal((await database.collection<Artwork>("artworks").findOne({ _id: "art" }))?.value_scale, 1);
     assert.deepEqual(await database.collection<GameItem>("items").find({}).toArray(), itemsBeforeFailure);
+  });
+
+  for (const action of ["value-scale", "catalog", "approve"] as const) {
+    await t.test(`${action} refreshes every artwork item's values and current odds across owners and statuses`, async () => {
+      const database = client.db(`value-scale-refresh-${action}`);
+      const artwork = await seed(database);
+      await database.collection("artists").insertOne({ _id: "artist", artist_name: "Artist" });
+      const [generated] = await generateDailyDrop(database, "player", 0, {
+        itemCount: 1, targetArtworkId: artwork._id,
+        generationMap: {
+          rarity: { common: 1, uncommon: 0, rare: 0, legendary: 0, masterpiece: 0 },
+          foil: 0, mint: 0, unlocked: 0, cardStyle: 0, misprint: 0,
+        },
+      });
+      const metadata = await database.collection<{ _id: string; loot_data: LootData }>("metadata").findOne({ _id: "loot-data" });
+      const items = database.collection<GameItem>("items");
+      await items.deleteOne({ _id: generated._id });
+      const variants: Partial<GameItem>[] = [
+        { _id: "claimed", owner: "first-player", status: "claimed" },
+        { _id: "displayed", owner: "second-player", status: "displayed", foil: true },
+        { _id: "auction", owner: "system:auction-house", status: "auctioned", mint: true, mint_value_multiplier: 3, card_renderer: "postcard" },
+        { _id: "shop", owner: "system:shop", status: "for_sale", odds: "forged" },
+      ];
+      const originals = variants.map((variant, index) => {
+        const item: GameItem = {
+          ...generated, condition: 1, level: 0,
+          attributes: { locked: [], unlocked: [], special: [] },
+          original_drop_chance_coefficient: index === 0 ? 0 : 0.123,
+          ...variant,
+        };
+        return { ...item, values: gameplay.calculateItemValues(item, artwork, metadata!.loot_data) };
+      });
+      const peer: GameItem = { ...originals[0], _id: "peer", artwork_id: "second-art" };
+      await items.insertMany([...originals, peer]);
+      if (action === "approve") {
+        await database.collection("artworks").updateOne({ _id: artwork._id }, {
+          $set: { active: false, submission_status: "pending" },
+        });
+        await dropChances.backfillItemDropChances(database);
+      }
+      const request = () => new Request("http://localhost/api/admin/artworks/art", {
+        method: "PATCH", headers: { "content-type": "application/json" },
+        body: JSON.stringify(action === "catalog" ? { ...artwork, value_scale: 1 }
+          : action === "approve" ? { action, rarity: "common" } : { action, value_scale: 1 }),
+      });
+      const globals = { Math: Object.assign(Object.create(Math), { random: () => 0.9 }) };
+      if (action === "approve") {
+        const beforeArtwork = await database.collection("artworks").findOne({ _id: artwork._id });
+        const beforeItems = await items.find({}).toArray();
+        let failed = false;
+        const failingDatabase = {
+          collection(name: string) {
+            const collection = database.collection(name);
+            if (name !== "items") return collection;
+            return new Proxy(collection, {
+              get(target, key) {
+                if (key === "bulkWrite") return async (...args: Parameters<typeof collection.bulkWrite>) => {
+                  if (!failed) {
+                    failed = true;
+                    await target.bulkWrite(args[0].slice(0, 1));
+                    throw new Error("Simulated approval item refresh failure");
+                  }
+                  return target.bulkWrite(...args);
+                };
+                const value = Reflect.get(target, key);
+                return typeof value === "function" ? value.bind(target) : value;
+              },
+            });
+          },
+        } as unknown as Db;
+        const failingRoute = await loadArtworkRoute(failingDatabase, globals);
+        const failure = await failingRoute.PATCH(request(), { params: Promise.resolve({ id: artwork._id }) });
+        assert.equal(failure.status, 400);
+        assert.match((await failure.json()).error, /Simulated approval item refresh failure/);
+        assert.deepEqual(await database.collection("artworks").findOne({ _id: artwork._id }), beforeArtwork);
+        assert.deepEqual(await items.find({}).toArray(), beforeItems);
+      }
+      const { PATCH } = await loadArtworkRoute(database, globals);
+      const response = await PATCH(request(), { params: Promise.resolve({ id: artwork._id }) });
+      assert.equal(response.status, 200);
+      const savedArtwork = await database.collection<Artwork>("artworks").findOne({ _id: artwork._id });
+      assert.equal(savedArtwork?.value_scale, action === "approve" ? 0.9 : 1);
+      const expectedValues = action === "approve" ? [7, 36, 21, 7] : [8, 40, 24, 8];
+      const weight = gameplay.getArtworkGenerationWeight(savedArtwork!, metadata!.loot_data);
+      const baseOdds = 0.714 * weight / (weight + 75);
+      for (const [index, original] of originals.entries()) {
+        const saved = await items.findOne({ _id: original._id });
+        assert.equal(saved!.values.actual, expectedValues[index]);
+        assert.deepEqual(saved!.values, gameplay.calculateItemValues(original, savedArtwork!, metadata!.loot_data));
+        assert.equal(saved!.reroll_cost, reroll.getRerollCost(original, "common", metadata!.loot_data));
+        const factor = index === 1 ? 0.1 : index === 2 ? 0.02 * 0.25 * 0.25 : 1;
+        assert.ok(Math.abs(saved!.drop_chance_coefficient! - baseOdds * factor) < 1e-15);
+        assert.deepEqual(saved, {
+          ...original, values: saved!.values, reroll_cost: saved!.reroll_cost,
+          drop_chance_coefficient: saved!.drop_chance_coefficient, odds: saved!.odds,
+        });
+      }
+      assert.equal((await items.findOne({ _id: "shop" }))?.odds, "forged");
+      const updatedPeer = await items.findOne({ _id: peer._id });
+      assert.deepEqual(updatedPeer!.values, peer.values);
+      assert.ok(Math.abs(updatedPeer!.drop_chance_coefficient! - 0.714 * 75 / (weight + 75)) < 1e-15);
+    });
+  }
+
+  await t.test("generation rebuilds artwork selection weights and new item values immediately after value-scale edits", async t => {
+    const database = client.db("generation-after-value-scale-edit");
+    const artwork = await seed(database);
+    await database.collection("artists").insertOne({ _id: "artist", artist_name: "Artist" });
+    t.mock.method(Math, "random", () => 0.45);
+    const generate = () => generateDailyDrop(database, "player", 0, {
+      itemCount: 1,
+      generationMap: {
+        rarity: { common: 1, uncommon: 0, rare: 0, legendary: 0, masterpiece: 0 },
+        foil: 0, mint: 0, unlocked: 0, cardStyle: 0, misprint: 0,
+      },
+    });
+    assert.equal((await generate())[0].artwork_id, "art");
+    const { PATCH } = await loadArtworkRoute(database);
+    const update = (value: number) => PATCH(new Request("http://localhost/api/admin/artworks/art", {
+      method: "PATCH", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "value-scale", value_scale: value }),
+    }), { params: Promise.resolve({ id: "art" }) });
+    assert.equal((await update(1)).status, 200);
+    const [after] = await generate();
+    assert.equal(after.artwork_id, "second-art", "The same roll must use the changed artwork weights");
+    assert.ok(Math.abs(after.original_drop_chance_coefficient! - 0.714 * 75 / 125) < 1e-15);
+    assert.equal((await update(0)).status, 200);
+    const [restored] = await generate();
+    assert.equal(restored.artwork_id, "art");
+    assert.ok(Math.abs(restored.original_drop_chance_coefficient! - 0.714 * 100 / 175) < 1e-15);
+    assert.deepEqual(restored.values, gameplay.calculateItemValues(restored, { ...artwork, value_scale: 0 },
+      (await database.collection<{ _id: string; loot_data: LootData }>("metadata").findOne({ _id: "loot-data" }))!.loot_data));
   });
 
   await t.test("configuration and active catalog changes invalidate derived probabilities", async () => {
