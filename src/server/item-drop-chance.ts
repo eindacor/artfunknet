@@ -8,6 +8,7 @@ import {
 import { getGameplaySettings, type GameplayConfig } from "./game-settings.ts";
 import {
   ARTWORK_RARITIES,
+  getArtworkGenerationWeight,
   getRarityMap,
   PLAYER_LEVEL_MAX,
   type Artwork,
@@ -26,6 +27,7 @@ type DropChanceItem = Pick<
 export type ItemDropChanceContext = {
   rarity: Record<ArtworkRarity, number>;
   artworkCounts: Record<ArtworkRarity, number>;
+  artworkProbabilities: ReadonlyMap<string, number>;
   foil: number;
   unlocked: number;
   mint: number;
@@ -37,19 +39,27 @@ export type ItemDropChanceContext = {
 export function createItemDropChanceContext(
   config: GameplayConfig,
   lootData: LootData,
-  artworks: readonly Pick<Artwork, "rarity" | "active">[],
+  artworks: readonly Pick<Artwork, "_id" | "rarity" | "active" | "value_scale">[],
   activeRendererIds: readonly string[],
   effects: readonly Pick<ArtworkEffect, "_id" | "active" | "code" | "effect_type">[] = [],
 ): ItemDropChanceContext {
   const artworkCounts = Object.fromEntries(
     ARTWORK_RARITIES.map((rarity) => [rarity, 0]),
   ) as Record<ArtworkRarity, number>;
-  for (const artwork of artworks) {
-    if (artwork.active) artworkCounts[artwork.rarity] += 1;
-  }
+  const weightTotals = { ...artworkCounts };
+  const weights = artworks.filter(artwork => artwork.active).map(artwork => {
+    const weight = getArtworkGenerationWeight(artwork, lootData);
+    artworkCounts[artwork.rarity] += 1;
+    weightTotals[artwork.rarity] += weight;
+    return { artwork, weight };
+  });
   return {
     rarity: getRarityMap(PLAYER_LEVEL_MAX, lootData, config.rarityWeights),
     artworkCounts,
+    artworkProbabilities: new Map(weights.map(({ artwork, weight }) => [
+      artwork._id,
+      weightTotals[artwork.rarity] > 0 ? weight / weightTotals[artwork.rarity] : 0,
+    ])),
     foil: config.foilProbability,
     unlocked: config.unlockedProbability,
     mint: config.mintProbability,
@@ -76,7 +86,7 @@ export async function getItemDropChanceContext(
       .findOne({ _id: "loot-data" }),
     database.collection<Artwork>("artworks")
       .find({ active: true })
-      .project<Pick<Artwork, "rarity" | "active">>({ rarity: 1, active: 1 })
+      .project<Pick<Artwork, "_id" | "rarity" | "active" | "value_scale">>({ rarity: 1, active: 1, value_scale: 1 })
       .toArray(),
     getCardRendererSettings(database),
     database.collection<ArtworkEffect>("artwork_effects")
@@ -99,14 +109,10 @@ export async function getItemDropChanceContext(
 
 export function calculateItemDropChance(
   item: DropChanceItem,
-  artwork: Pick<Artwork, "rarity" | "effect_id">,
+  artwork: Pick<Artwork, "_id" | "rarity" | "effect_id">,
   context: ItemDropChanceContext,
 ): { drop_chance_coefficient: number; odds: string } {
-  let coefficient = context.rarity[artwork.rarity];
-  if (item.seasonal) {
-    const count = context.artworkCounts[artwork.rarity];
-    coefficient *= count > 0 ? 1 / count : 0;
-  }
+  let coefficient = context.rarity[artwork.rarity] * (context.artworkProbabilities.get(artwork._id) ?? 0);
   if (item.foil) coefficient *= context.foil;
   if (item.unlocked) coefficient *= context.unlocked;
   const guaranteedMint =
@@ -131,15 +137,15 @@ export function calculateItemDropChance(
 export async function getItemDropChanceUpdate(
   database: Db,
   item: DropChanceItem,
-  artwork: Pick<Artwork, "rarity" | "effect_id">,
+  artwork: Pick<Artwork, "_id" | "rarity" | "effect_id">,
 ) {
   return calculateItemDropChance(item, artwork, await getItemDropChanceContext(database));
 }
 
-export async function backfillItemDropChances(database: Db) {
+export async function backfillItemDropChances(database: Db, rarities?: readonly ArtworkRarity[]) {
   const context = await getItemDropChanceContext(database);
   const artworks = await database.collection<Artwork>("artworks")
-    .find({})
+    .find(rarities ? { rarity: { $in: [...rarities] } } : {})
     .project<Pick<Artwork, "_id" | "rarity" | "effect_id">>({
       rarity: 1,
       effect_id: 1,
@@ -149,7 +155,7 @@ export async function backfillItemDropChances(database: Db) {
   const items = database.collection<GameItem>("items");
   let operations: AnyBulkWriteOperation<GameItem>[] = [];
   let updated = 0;
-  for await (const item of items.find({}).project<GameItem>({
+  for await (const item of items.find(rarities ? { artwork_id: { $in: [...artworkById.keys()] } } : {}).project<GameItem>({
     artwork_id: 1,
     foil: 1,
     unlocked: 1,

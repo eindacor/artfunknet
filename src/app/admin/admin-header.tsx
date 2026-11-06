@@ -8,6 +8,7 @@ export default function AdminHeader({ email }: { email: string }) {
   const pathname = usePathname();
   const links = [
     { href: "/admin", label: "Gameplay config" },
+    { href: "/admin/loot-pool", label: "Loot pool" },
     { href: "/admin/game-state", label: "Game state" },
     { href: "/admin/metrics", label: "Metrics" },
     { href: "/admin/lottery", label: "Lottery" },

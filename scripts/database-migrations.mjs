@@ -25,6 +25,35 @@ export async function migrateOriginalItemDropChances(database) {
   return { updated: result.modifiedCount };
 }
 
+export async function migrateWeightedOriginalItemDropChances(database) {
+  const migrationId = "weighted-original-drop-chances-v1";
+  const itemMarker = "migration_flags.weighted_original_drop_chances_v1";
+  const metadata = database.collection("metadata");
+  if (await metadata.findOne({ _id: migrationId, completed_at: { $exists: true } })) {
+    return { updated: 0, skipped: true };
+  }
+
+  // Current odds are refreshed first by the migration runner; item flags protect interrupted retries.
+  const result = await database.collection("items").updateMany(
+    {
+      [itemMarker]: { $ne: true },
+      drop_chance_coefficient: { $type: "number", $gte: 0, $lte: 1 },
+    },
+    [{
+      $set: {
+        original_drop_chance_coefficient: "$drop_chance_coefficient",
+        [itemMarker]: true,
+      },
+    }],
+  );
+  await metadata.updateOne(
+    { _id: migrationId },
+    { $setOnInsert: { completed_at: new Date() } },
+    { upsert: true },
+  );
+  return { updated: result.modifiedCount, skipped: false };
+}
+
 export async function migrateItemSerialNumbers(database) {
   const { backfillItemSerialNumbers } = await import("../src/server/item-serials.ts");
   return backfillItemSerialNumbers(database);

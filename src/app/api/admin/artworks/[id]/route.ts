@@ -19,6 +19,7 @@ import { getDatabase } from "@/server/mongodb";
 import { validateArtworkImageAdjustments, validateArtworkInput } from "@/server/artwork-create-input";
 import { withLeastRepresentedRareSpecialAttribute } from "@/server/rare-special-attributes";
 import {
+  backfillItemDropChances,
   calculateItemDropChance,
   getItemDropChanceContext,
 } from "@/server/item-drop-chance";
@@ -96,6 +97,7 @@ export async function DELETE(
     );
   }
   await deleteCommunityReactions(database, "artwork", [id]);
+  if (artwork.active) await backfillItemDropChances(database, [artwork.rarity]);
   console.info("Deleted artwork catalog record", {
     artworkId: id,
     title: artwork.title,
@@ -113,9 +115,24 @@ export async function PATCH(
   const auth = await requireAdminApi();
   if (!auth.ok) return auth.response;
   const { id } = await params;
-  const body = (await request.json()) as Record<string, unknown>;
+  let body = (await request.json()) as Record<string, unknown>;
   if (body.action === "approve") {
     return approveSubmission(id, body, auth.session.email);
+  }
+  const database = await getDatabase();
+  const existing = await database.collection<EditableArtwork>("artworks").findOne({ _id: id });
+  if (!existing) {
+    return NextResponse.json({ error: "Artwork not found." }, { status: 404 });
+  }
+  if (existing.submission_status === "denying") {
+    return NextResponse.json({ error: "This submission is being removed and cannot be accepted." }, { status: 409 });
+  }
+  const valueScaleOnly = body.action === "value-scale";
+  if (valueScaleOnly) {
+    if (typeof body.value_scale !== "number" || !Number.isFinite(body.value_scale) || body.value_scale < 0 || body.value_scale > 1) {
+      return NextResponse.json({ error: "Value scale must be a number between 0 and 1." }, { status: 400 });
+    }
+    body = { ...existing, value_scale: body.value_scale };
   }
   const title = typeof body.title === "string" ? body.title.trim() : "";
   const genre = typeof body.genre === "string" ? body.genre.trim() : "";
@@ -151,9 +168,7 @@ export async function PATCH(
     );
   }
 
-  const database = await getDatabase();
-  const [existing, artist, metadata] = await Promise.all([
-    database.collection<EditableArtwork>("artworks").findOne({ _id: id }),
+  const [artist, metadata] = await Promise.all([
     database
       .collection<{ _id: string; artist_name: string }>("artists")
       .findOne({ _id: artistId }),
@@ -161,12 +176,6 @@ export async function PATCH(
       .collection<{ _id: string; loot_data: LootData }>("metadata")
       .findOne({ _id: "loot-data" }),
   ]);
-  if (!existing) {
-    return NextResponse.json({ error: "Artwork not found." }, { status: 404 });
-  }
-  if (existing.submission_status === "denying") {
-    return NextResponse.json({ error: "This submission is being removed and cannot be accepted." }, { status: 409 });
-  }
   const adjustments = validateArtworkImageAdjustments({
     art_style_adjustments: body.art_style_adjustments === undefined
       ? existing.art_style_adjustments : body.art_style_adjustments,
@@ -300,7 +309,14 @@ export async function PATCH(
           .find({ artwork_id: id })
           .toArray()
       : [];
-  const artworkFields = {
+  const affectedRarities = rarityChanged || valueScaleChanged || updatedArtwork.active !== existing.active
+    ? [...new Set([existing.rarity, rarity])]
+    : [];
+  const artworkFields = valueScaleOnly ? {
+    value_scale: valueScale,
+    updated_at: updatedArtwork.updated_at,
+    updated_by: updatedArtwork.updated_by,
+  } : {
     artist_id: updatedArtwork.artist_id,
     artist: updatedArtwork.artist,
     title: updatedArtwork.title,
@@ -329,7 +345,7 @@ export async function PATCH(
   };
   const artworkFieldsToUnset: Partial<
     Record<"effect_id" | "special_attributes", "">
-  > = {
+  > = valueScaleOnly ? {} : {
     ...(!artworkEffectId ? { effect_id: "" } : {}),
     ...(!rareSpecialAttributeId ? { special_attributes: "" } : {}),
   };
@@ -438,6 +454,7 @@ export async function PATCH(
         })),
       );
     }
+    if (affectedRarities.length > 0) await backfillItemDropChances(database, affectedRarities);
   } catch (error) {
     const restored = await restoreArtwork();
     let itemsRestored = true;
@@ -468,6 +485,7 @@ export async function PATCH(
         );
         itemsRestored = rollback.matchedCount === items.length;
       }
+      if (affectedRarities.length > 0) await backfillItemDropChances(database, affectedRarities);
     } catch {
       itemsRestored = false;
     }

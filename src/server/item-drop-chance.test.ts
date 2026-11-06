@@ -43,12 +43,14 @@ const lootData: LootData = {
   global_unlocked_chance: 0.9,
   global_misprint_chance: 0,
 };
+const common = { _id: "common", rarity: "common" as const, active: true, value_scale: 0.5 };
+const rare = { ...common, _id: "rare", rarity: "rare" as const };
+const masterpiece = { ...common, _id: "masterpiece", rarity: "masterpiece" as const };
 const context = createItemDropChanceContext(config, lootData, [
-  { rarity: "common", active: true },
-  { rarity: "common", active: true },
-  { rarity: "rare", active: true },
-  { rarity: "rare", active: true },
-  { rarity: "rare", active: false },
+  common,
+  rare,
+  { ...rare, _id: "second-rare" },
+  { ...rare, _id: "inactive-rare", active: false },
 ], ["legacy", "postcard", "museum", "arcade"]);
 const standard = { foil: false, unlocked: false, seasonal: false, mint: false };
 const mintEffect = {
@@ -58,16 +60,21 @@ const mintEffect = {
   code: MASTERPIECE_EFFECT_CODES.preservationMint,
 };
 
-test("posted odds use maximum-level rarity and do not divide ordinary items by the artwork pool", () => {
-  assert.deepEqual(calculateItemDropChance(standard, { rarity: "common" }, context), {
-    drop_chance_coefficient: 0.714,
-    odds: "71.4%",
-  });
-  assert.equal(
-    calculateItemDropChance({ ...standard, seasonal: true }, { rarity: "common" }, context)
-      .drop_chance_coefficient,
-    0.357,
-  );
+test("posted odds normalize exact artwork weights within the rarity for ordinary and seasonal items", () => {
+  const artworks = [0, 0.5, 1].map(value_scale => ({ ...common, _id: String(value_scale), value_scale }));
+  const weighted = createItemDropChanceContext(config, lootData, [
+    ...artworks, { ...common, _id: "inactive", active: false }, rare,
+  ], []);
+  for (const [index, weight] of [100, 75, 50].entries()) {
+    for (const seasonal of [false, true]) {
+      const result = calculateItemDropChance({ ...standard, seasonal }, artworks[index], weighted);
+      assert.ok(Math.abs(result.drop_chance_coefficient - 0.714 * weight / 225) < 1e-15);
+    }
+  }
+  assert.equal(calculateItemDropChance(standard, { ...common, _id: "inactive" }, weighted).drop_chance_coefficient, 0);
+  assert.equal(calculateItemDropChance(standard, { ...common, _id: "missing" }, weighted).drop_chance_coefficient, 0);
+  assert.ok(Math.abs(artworks.reduce((sum, artwork) =>
+    sum + calculateItemDropChance(standard, artwork, weighted).drop_chance_coefficient, 0) - 0.714) < 1e-15);
 });
 
 test("odds that would round to one use percentages, while a denominator rounding to two stays one-in", () => {
@@ -77,21 +84,21 @@ test("odds that would round to one use percentages, while a denominator rounding
     [2 / 3, "1 in 2"],
     [1, "100%"],
   ] as const) {
-    assert.deepEqual(calculateItemDropChance(standard, { rarity: "common" }, {
+    assert.deepEqual(calculateItemDropChance(standard, common, {
       ...context,
       rarity: { ...context.rarity, common: coefficient },
     }), { drop_chance_coefficient: coefficient, odds });
   }
 });
 
-test("seasonal, foil, unlocked, weighted art style, and Mint factors compound using global settings", () => {
+test("artwork weight, foil, unlocked, art style, and Mint factors compound using global settings", () => {
   const chance = calculateItemDropChance({
     seasonal: true, foil: true, unlocked: true, mint: true, card_renderer: "postcard",
-  }, { rarity: "rare" }, context);
+  }, rare, context);
   assert.ok(Math.abs(chance.drop_chance_coefficient! - 0.000000875) < 1e-18);
   assert.equal(chance.odds, "1 in 1,142,857");
   assert.equal(
-    calculateItemDropChance({ ...standard, foil: true }, { rarity: "common" }, context)
+    calculateItemDropChance({ ...standard, foil: true }, common, context)
       .drop_chance_coefficient,
     0.0714,
   );
@@ -101,17 +108,17 @@ test("all art-style factors apply only to Mint items, including when style drops
   for (const artStyle of [context.artStyle, 0]) {
     for (const card_renderer of [undefined, "museum", "legacy", "postcard", "arcade", "inactive", "unknown-style"]) {
       assert.deepEqual(
-        calculateItemDropChance({ ...standard, card_renderer }, { rarity: "common" }, { ...context, artStyle }),
+        calculateItemDropChance({ ...standard, card_renderer }, common, { ...context, artStyle }),
         { drop_chance_coefficient: 0.714, odds: "71.4%" },
       );
     }
   }
   const mintLegacy = calculateItemDropChance({
     ...standard, mint: true, card_renderer: "legacy",
-  }, { rarity: "common" }, context);
+  }, common, context);
   const mintPostcard = calculateItemDropChance({
     ...standard, mint: true, card_renderer: "postcard",
-  }, { rarity: "common" }, context);
+  }, common, context);
   assert.ok(Math.abs(mintLegacy.drop_chance_coefficient - 0.0026775) < 1e-18);
   assert.ok(Math.abs(mintPostcard.drop_chance_coefficient - 0.0008925) < 1e-18);
 });
@@ -120,7 +127,7 @@ test("guaranteed-Mint masterpieces skip only the Mint probability, even when ran
   const guaranteedContext = createItemDropChanceContext(
     { ...config, mintProbability: 0 },
     lootData,
-    [],
+    [masterpiece],
     ["legacy", "postcard"],
     [mintEffect],
   );
@@ -132,7 +139,7 @@ test("guaranteed-Mint masterpieces skip only the Mint probability, even when ran
   ] as const) {
     const chance = calculateItemDropChance({
       ...standard, mint: true, card_renderer,
-    }, { rarity: "masterpiece", effect_id: mintEffect._id }, guaranteedContext);
+    }, { ...masterpiece, effect_id: mintEffect._id }, guaranteedContext);
     assert.ok(Math.abs(chance.drop_chance_coefficient - expected) < 1e-18);
     assert.equal(chance.odds, odds);
   }
@@ -143,20 +150,20 @@ test("de-minted guaranteed-Mint masterpieces ignore all style factors but retain
     config,
     lootData,
     [
-      { rarity: "masterpiece", active: true },
-      { rarity: "masterpiece", active: true },
+      masterpiece,
+      { ...masterpiece, _id: "second-masterpiece" },
     ],
     ["legacy", "postcard"],
     [mintEffect],
   );
-  const artwork = { rarity: "masterpiece" as const, effect_id: mintEffect._id };
+  const artwork = { ...masterpiece, effect_id: mintEffect._id };
   for (const artStyle of [guaranteedContext.artStyle, 0]) {
     for (const card_renderer of [undefined, "museum", "legacy", "postcard", "inactive"]) {
       assert.deepEqual(calculateItemDropChance({
         ...standard, card_renderer,
       }, artwork, { ...guaranteedContext, artStyle }), {
-        drop_chance_coefficient: 0.001,
-        odds: "1 in 1,000",
+        drop_chance_coefficient: 0.0005,
+        odds: "1 in 2,000",
       });
     }
   }
@@ -176,47 +183,47 @@ test("other, inactive, or unlinked effects do not exempt a masterpiece from the 
     [{ ...mintEffect, _id: "another-effect" }],
   ]) {
     const ordinaryContext = createItemDropChanceContext(
-      config, lootData, [], ["legacy", "postcard"], effects,
+      config, lootData, [masterpiece], ["legacy", "postcard"], effects,
     );
     const chance = calculateItemDropChance({
       ...standard, mint: true, card_renderer: "postcard",
-    }, { rarity: "masterpiece", effect_id: mintEffect._id }, ordinaryContext);
+    }, { ...masterpiece, effect_id: mintEffect._id }, ordinaryContext);
     assert.ok(Math.abs(chance.drop_chance_coefficient - 0.00000125) < 1e-18);
     assert.equal(chance.odds, "1 in 800,000");
     assert.equal(calculateItemDropChance({
       ...standard, card_renderer: "postcard",
-    }, { rarity: "masterpiece", effect_id: mintEffect._id }, ordinaryContext)
+    }, { ...masterpiece, effect_id: mintEffect._id }, ordinaryContext)
       .drop_chance_coefficient, 0.001);
   }
 });
 
 test("museum is unstyled, while unavailable Mint variants produce zero instead of infinite odds", () => {
   assert.equal(
-    calculateItemDropChance({ ...standard, card_renderer: "museum" }, { rarity: "common" }, context)
+    calculateItemDropChance({ ...standard, card_renderer: "museum" }, common, context)
       .drop_chance_coefficient,
     0.714,
   );
   for (const card_renderer of ["arcade", "inactive", "unknown-style"]) {
     assert.deepEqual(calculateItemDropChance({
       ...standard, mint: true, card_renderer,
-    }, { rarity: "common" }, context), {
+    }, common, context), {
       drop_chance_coefficient: 0,
       odds: "Not currently droppable",
     });
   }
   assert.equal(calculateItemDropChance({
     ...standard, seasonal: true,
-  }, { rarity: "masterpiece" }, context).drop_chance_coefficient, 0);
+  }, masterpiece, context).drop_chance_coefficient, 0);
   assert.equal(calculateItemDropChance({
     ...standard, mint: true,
-  }, { rarity: "common" }, { ...context, mint: 0 }).drop_chance_coefficient, 0);
+  }, common, { ...context, mint: 0 }).drop_chance_coefficient, 0);
 });
 
 test("recalculation preserves forgery disclosure labels while storing the coefficient", () => {
   for (const odds of ["forged", "unknown"]) {
     assert.deepEqual(calculateItemDropChance({
       ...standard, odds,
-    }, { rarity: "common" }, context), { drop_chance_coefficient: 0.714, odds });
+    }, common, context), { drop_chance_coefficient: 0.714, odds });
   }
 });
 

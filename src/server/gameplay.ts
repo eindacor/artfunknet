@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { ArtworkImageMetadata } from "./artwork-image-url.ts";
 import { assignItemSerialNumbers } from "./item-serials.ts";
+import { getArtworkBaseGenerationWeight } from "./artwork-generation-weight.ts";
 
 import type { Db } from "mongodb";
 
@@ -687,7 +688,7 @@ export function getArtworkGenerationWeight(
   lootData: Pick<LootData, "seasonal_items">,
   seasonalArtworkScalar = 1,
 ): number {
-  const baseWeight = 50 + Math.floor((1 - artwork.value_scale) * 50);
+  const baseWeight = getArtworkBaseGenerationWeight(artwork.value_scale);
   return (
     baseWeight *
     (isSeasonalArtwork(lootData, artwork)

@@ -7,6 +7,7 @@ import {
   migrateHallOfFameAndPlaythroughStorage,
   migrateItemDropChances,
   migrateOriginalItemDropChances,
+  migrateWeightedOriginalItemDropChances,
   migrateItemSerialNumbers,
   migrateItemRevealStates,
   migrateMasterpieceFlavorTexts,
@@ -43,6 +44,10 @@ try {
   console.log(`Updated drop chances for ${dropChances.updated} items.`);
   const originalDropChances = await migrateOriginalItemDropChances(client.db(databaseName));
   console.log(`Initialized original drop chances for ${originalDropChances.updated} older items.`);
+  const weightedOriginals = await migrateWeightedOriginalItemDropChances(client.db(databaseName));
+  console.log(weightedOriginals.skipped
+    ? "Skipped the completed weighted original drop chance migration."
+    : `Rebased original drop chances for ${weightedOriginals.updated} items using weighted artwork odds (one-time migration).`);
   const serials = await migrateItemSerialNumbers(client.db(databaseName));
   console.log(`Initialized ${serials.artworksInitialized} artwork serial counters and serialized ${serials.itemsUpdated} items.`);
   console.log(`Demoted ${serials.originalsDemoted} duplicate Originals; the oldest Original per artwork retains serial zero.`);

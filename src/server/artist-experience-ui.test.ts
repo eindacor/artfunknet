@@ -496,11 +496,16 @@ test("artwork creation and catalog editing save feature card crops independently
     const thumbnail = { x: 30, y: -10, scale: 1.75 };
     panel.props.onFeatureCardChange(featureCard);
     panel.props.onThumbnailChange(thumbnail);
+    if (mode === "edit") {
+      props.artwork = { ...artwork, value_scale: 0.8 };
+      render();
+    }
     form = render();
     await form.props.onSubmit({ preventDefault() {}, currentTarget: {} });
     const saved = sent as Artwork;
     assert.deepEqual(saved.feature_card_adjustment, featureCard, mode);
     assert.deepEqual(saved.thumbnail_adjustment, thumbnail, mode);
+    if (mode === "edit") assert.equal(saved.value_scale, 0.8, "Chart updates must not discard other unsaved edits");
     assert.deepEqual(Object.keys(saved.art_style_adjustments ?? {}), []);
     assert.deepEqual(Array.from(saved.detail_image_adjustments ?? []), []);
   }

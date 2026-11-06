@@ -805,7 +805,7 @@ test("artist applications, publication and featured galleries persist without gr
     assert.equal(artwork.artist_license.type, "until_removal_request");
     assert.equal(artwork.artist_license.agreement_version, artistTypes.ARTIST_AGREEMENT_VERSION);
     assert.equal((await artists.getArtistWorks(db, account.artistId)).length, 0);
-    await documents(db, "metadata").insertOne({ _id: "loot-data", loot_data: {} });
+    await documents(db, "metadata").insertOne({ _id: "loot-data", loot_data: { seasonal_items: {} } });
     await documents(db, "attributes").insertOne({ _id: "rare-attribute", active: true });
     const adminRoute = await load<{
       PATCH: (request: Request, context: { params: Promise<{ id: string }> }) => Promise<Response>;
@@ -818,7 +818,7 @@ test("artist applications, publication and featured galleries persist without gr
       "@/server/gameplay": gameplay, "@/server/item-reroll": { getRerollCost: () => assert.fail("No real items exist yet") },
       "@/server/mongodb": { getDatabase: async () => db }, "@/server/artwork-create-input": artworkInput,
       "@/server/artwork-effects": artworkEffects, "@/server/rare-special-attributes": rareSpecialAttributes,
-      "@/server/item-drop-chance": {},
+      "@/server/item-drop-chance": itemDropChance,
     });
     const context = { params: Promise.resolve({ id: artwork._id }) };
     const approvalRequest = () => new Request("http://localhost/api/admin/artworks", {
@@ -858,7 +858,7 @@ test("artist applications, publication and featured galleries persist without gr
     const db = client.db("artist-automatic-approval");
     const account = await seedArtist(db, 0);
     await documents(db, "artists").insertOne({ _id: "other-artist", artist_name: "Another artist" });
-    await documents(db, "metadata").insertOne({ _id: "loot-data", loot_data: {} });
+    await documents(db, "metadata").insertOne({ _id: "loot-data", loot_data: { seasonal_items: {} } });
     for (const rarity of ["legendary", "masterpiece"]) {
       await documents(db, "artwork_effects").insertMany(["popular", "least", "inactive"].map(id => ({
         _id: `${rarity}-${id}`, effect_type: rarity, title: id, active: id !== "inactive",
@@ -883,7 +883,7 @@ test("artist applications, publication and featured galleries persist without gr
       "@/server/gameplay": gameplay, "@/server/item-reroll": {},
       "@/server/mongodb": { getDatabase: async () => db }, "@/server/artwork-create-input": artworkInput,
       "@/server/artwork-effects": artworkEffects, "@/server/rare-special-attributes": rareSpecialAttributes,
-      "@/server/item-drop-chance": {},
+      "@/server/item-drop-chance": itemDropChance,
     }, { Math: Object.assign(Object.create(Math), { random: () => { randomCalls++; return 0.375; } }) });
     const pending = (id: string) => ({
       _id: id, artist_id: account.artistId, artist: "Artist 0", title: id, date: 2026,

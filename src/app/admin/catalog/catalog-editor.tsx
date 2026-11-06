@@ -1,17 +1,10 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useMemo, useRef, useState } from "react";
 import ArtworkEditorPanel, { ArtworkEditorField as EditorField } from "@/components/artwork-editor/artwork-editor-panel";
-import { ARTWORK_EDITOR_RARITIES as RARITIES, type ArtistCatalogEntry, type ArtworkCatalogEntry, type ArtworkEditorMetadata } from "@/components/artwork-editor/types";
+import type { ArtistCatalogEntry, ArtworkCatalogEntry, ArtworkEditorMetadata } from "@/components/artwork-editor/types";
 import type { CardRendererId } from "@/components/item-cards/types";
 export type { ArtistCatalogEntry, ArtworkCatalogEntry } from "@/components/artwork-editor/types";
-
-export type ArtworkEffectDistribution = {
-  id: string;
-  title: string;
-  effectType: "legendary" | "masterpiece";
-  artworkCount: number;
-};
 
 export type ArtworkEffectOption = {
   id: string;
@@ -29,22 +22,18 @@ export type ArtworkAttributeOption = {
 export default function CatalogEditor({
   initialArtists,
   initialArtworks,
-  effectDistribution,
   effectOptions,
   attributeOptions,
   rendererOptions,
 }: {
   initialArtists: ArtistCatalogEntry[];
   initialArtworks: ArtworkCatalogEntry[];
-  effectDistribution: ArtworkEffectDistribution[];
   effectOptions: ArtworkEffectOption[];
   attributeOptions: ArtworkAttributeOption[];
   rendererOptions: { id: CardRendererId; name: string }[];
 }) {
   const [artists, setArtists] = useState(initialArtists);
   const [artworks, setArtworks] = useState(initialArtworks);
-  const [displayedEffectDistribution, setDisplayedEffectDistribution] =
-    useState(effectDistribution);
   const [mode, setMode] = useState<"artworks" | "artists">(
     "artworks",
   );
@@ -61,6 +50,7 @@ export default function CatalogEditor({
   const [artworkForm, setArtworkForm] = useState(initialArtworks[0] ?? null);
   const [artistForm, setArtistForm] = useState(initialArtists[0] ?? null);
   const [pending, setPending] = useState(false);
+  const saving = useRef(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -141,19 +131,6 @@ export default function CatalogEditor({
       setArtworkForm((current) =>
         current?._id === savedArtwork._id ? savedArtwork : current,
       );
-      if (previousArtwork?.effect_id !== savedArtwork.effect_id) {
-        setDisplayedEffectDistribution((current) =>
-          current.map((effect) => ({
-            ...effect,
-            artworkCount:
-              effect.id === previousArtwork?.effect_id
-                ? Math.max(0, effect.artworkCount - 1)
-                : effect.id === savedArtwork.effect_id
-                  ? effect.artworkCount + 1
-                  : effect.artworkCount,
-          })),
-        );
-      }
       if (
         previousArtistId &&
         previousArtistId !== result.artwork.artist_id
@@ -265,57 +242,26 @@ export default function CatalogEditor({
   }
 
   async function save(action: () => Promise<void>) {
+    if (saving.current) return false;
+    saving.current = true;
     setPending(true);
     clearStatus();
     try {
       await action();
+      return true;
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Update failed.");
+      return false;
     } finally {
       setPending(false);
+      saving.current = false;
     }
   }
 
   const entries = mode === "artworks" ? filteredArtworks : filteredArtists;
-  const rarityCounts = RARITIES.map((rarity) => ({
-    rarity,
-    count: artworks.filter((artwork) => artwork.rarity === rarity).length,
-  }));
 
   return (
     <section className="grid gap-5">
-      <div className="rounded-lg border border-white/10 bg-white/5 p-4">
-        <h2 className="font-semibold">Artwork breakdown</h2>
-        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-5">
-          {rarityCounts.map(({ rarity, count }) => (
-            <div
-              className="rounded-md border border-white/10 bg-black/10 px-3 py-2"
-              key={rarity}
-            >
-              <p className={`rarity-text ${rarity}`}>{capitalize(rarity)}</p>
-              <p className="mt-1 text-2xl font-bold">{count}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-      <details className="rounded-lg border border-white/10 bg-white/5">
-        <summary className="cursor-pointer px-4 py-3 text-sm font-semibold">
-          Artwork effect distribution
-        </summary>
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-1 border-t border-white/10 p-2">
-          {displayedEffectDistribution.map((effect) => (
-            <span
-              className={`rarity-text ${effect.effectType} grid grid-cols-[minmax(0,1fr)_2.25rem] items-center rounded border border-white/10 bg-black/10 px-2 py-1 text-xs font-semibold`}
-              key={effect.id}
-            >
-              <span className="break-words">{effect.title}</span>
-              <span className="border-l border-white/10 pl-2 text-right text-white">
-                {effect.artworkCount}
-              </span>
-            </span>
-          ))}
-        </div>
-      </details>
       <div className="flex flex-wrap gap-2">
         <button
           className={mode === "artworks" ? activeTabClass : tabClass}
@@ -534,10 +480,6 @@ function compareArtworks(
     left.artist.localeCompare(right.artist) ||
     left.title.localeCompare(right.title)
   );
-}
-
-function capitalize(value: string) {
-  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 function entryClass(current: boolean) {

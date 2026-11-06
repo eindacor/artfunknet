@@ -85,6 +85,14 @@ export default function ArtworkEditorPanel({
   const [message, setMessage] = useState("");
   const previewRequest = useRef<AbortController | null>(null);
   const busy = pending || saving || creatingArtist;
+  const savedValueScale = artwork?.value_scale;
+  const [lastSavedValueScale, setLastSavedValueScale] = useState(savedValueScale);
+  if (savedValueScale !== lastSavedValueScale) {
+    setLastSavedValueScale(savedValueScale);
+    if (savedValueScale !== undefined) {
+      setDraft(current => ({ ...current, value_scale: String(savedValueScale) }));
+    }
+  }
   useEffect(() => () => {
     // Replacement uploads persist immediately and must finish updating the catalog after navigation.
     if (mode === "add") previewRequest.current?.abort();
