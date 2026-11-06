@@ -4514,6 +4514,7 @@ export default function GameDashboard({
                   return (
                     <span className="gallery-npc-slot" key={npc._id}>
                       <button
+                        aria-busy={meetingNpc === npc._id || undefined}
                         className={`gallery-npc ${npc.quality} ${
                           npc.alreadyMet || insufficientBattery
                             ? "disabled"

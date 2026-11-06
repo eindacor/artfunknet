@@ -8502,7 +8502,7 @@ a.welcome-button {
   --npc-shadow-offset: 3px;
   --npc-shadow-outline-offset: 5px;
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr);
+  grid-template-columns: 36px minmax(0, 1fr);
   gap: 2px 6px;
   align-items: center;
   width: 100%;
@@ -8522,16 +8522,13 @@ a.welcome-button {
 }
 
 .gallery-npc > i {
-  display: grid;
   grid-row: 1 / span 2;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  border: 1px solid #111;
-  border-radius: 4px;
-  background: var(--npc-color);
-  color: #111;
-  font-size: 16px;
+  justify-self: center;
+  color: var(--npc-color);
+  font-size: 32px;
+  line-height: 1;
+  -webkit-text-stroke: 1px #111;
+  paint-order: stroke fill;
 }
 
 .gallery-npc-type {
@@ -8579,11 +8576,17 @@ a.welcome-button {
   translate: 2px 2px;
 }
 
-.gallery-npc:disabled,
+.gallery-npc:disabled {
+  cursor: not-allowed;
+}
+
+.gallery-npc[aria-busy="true"] {
+  cursor: progress;
+}
+
 .gallery-npc.disabled,
 .gallery-npc.rewarding {
   cursor: not-allowed;
-  filter: grayscale(0.65);
   opacity: 0.45;
 }
 

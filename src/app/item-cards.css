@@ -1012,16 +1012,6 @@
   image-rendering: pixelated;
 }
 
-.arcade-cover-shade {
-  position: absolute;
-  top: 0;
-  right: 0;
-  left: 0;
-  height: 40%;
-  background: linear-gradient(to bottom, rgb(16 18 28 / 78%), rgb(16 18 28 / 32%) 45%, transparent);
-  pointer-events: none;
-}
-
 .arcade-title-filter {
   position: absolute;
   pointer-events: none;

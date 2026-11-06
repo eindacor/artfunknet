@@ -162,22 +162,26 @@ test("visitor buttons retain their icon, type and actual stamina cost at home, i
       { _id: "met", quality: "gold" as const, npc_name: "Met visitor", icon: "fa-user", alreadyMet: true },
     ];
     for (const [ownerId, featured] of [["player", false], ["other", false], ["artist", true]] as const) {
-      const discounted = listName === "galleryVisitors" || ownerId === "player" || featured;
-      const rendered = runInNewContext(code, {
-        React, getVisitorSocialBatteryCost, galleryVisitors: visitors, visitors, ownerId, viewerId: "player",
-        gallery: { artist: { featured } }, socialBattery: 7, pending: false, meetingNpc: null,
-        npcRewardEffects: {}, ART_DONOR_ATTRIBUTE_ID: "donor",
-      }) as React.ReactNode;
-      const html = renderToStaticMarkup(React.createElement(React.Fragment, null, rendered));
-      for (const npc of visitors) {
-        const cost = npc._id === "tutorial" ? 0 : getVisitorSocialBatteryCost(npc.quality, discounted);
-        const button = html.match(new RegExp(`<button\\b[^>]*data-npc-id="${npc._id}"[^>]*>[\\s\\S]*?</button>`))?.[0];
-        assert.ok(button, `${listName}: ${npc._id}`);
-        assert.ok(button.includes(`<i aria-hidden="true" class="fa ${npc.icon}"></i>`));
-        assert.ok(button.includes(`<span class="gallery-npc-type">${npc.npc_name}</span>`));
-        assert.ok(button.includes(`aria-label="Costs ${cost} social battery"`));
-        assert.ok(button.includes(`<i aria-hidden="true" class="fa fa-bolt"></i>${cost}</small>`));
-        assert.equal(button.includes('disabled=""'), npc.alreadyMet || cost > 7);
+      for (const [pending, meetingNpc] of [[false, null], [false, "tutorial"], [true, null]] as const) {
+        const discounted = listName === "galleryVisitors" || ownerId === "player" || featured;
+        const rendered = runInNewContext(code, {
+          React, getVisitorSocialBatteryCost, galleryVisitors: visitors, visitors, ownerId, viewerId: "player",
+          gallery: { artist: { featured } }, socialBattery: 7, pending, meetingNpc,
+          npcRewardEffects: {}, ART_DONOR_ATTRIBUTE_ID: "donor",
+        }) as React.ReactNode;
+        const html = renderToStaticMarkup(React.createElement(React.Fragment, null, rendered));
+        for (const npc of visitors) {
+          const cost = npc._id === "tutorial" ? 0 : getVisitorSocialBatteryCost(npc.quality, discounted);
+          const button = html.match(new RegExp(`<button\\b[^>]*data-npc-id="${npc._id}"[^>]*>[\\s\\S]*?</button>`))?.[0];
+          assert.ok(button, `${listName}: ${npc._id}`);
+          assert.match(button, new RegExp(`^<button\\b[^>]*><i aria-hidden="true" class="fa ${npc.icon}"></i>`), "Visitor icons are direct children, without an inner wrapper");
+          assert.ok(button.includes(`<span class="gallery-npc-type">${npc.npc_name}</span>`));
+          assert.ok(button.includes(`aria-label="Costs ${cost} social battery"`));
+          assert.ok(button.includes(`<i aria-hidden="true" class="fa fa-bolt"></i>${cost}</small>`));
+          assert.equal(button.includes('disabled=""'), npc.alreadyMet || cost > 7 || meetingNpc !== null || (pending && listName === "galleryVisitors"));
+          assert.equal(button.includes('aria-busy="true"'), meetingNpc === npc._id, "Only the visitor being met is busy");
+          assert.equal(/\bclass="gallery-npc [^"]*\bdisabled\b/.test(button), npc.alreadyMet || cost > 7, "Request locks must not use the dimmed unavailable state");
+        }
       }
     }
   }
