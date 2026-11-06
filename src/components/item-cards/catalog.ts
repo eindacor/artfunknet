@@ -53,7 +53,7 @@ export const CARD_COSMETICS: CardCosmetic[] = [
     number: 6,
     id: "arcade",
     name: "Neon Inventory",
-    description: "Animated game-inventory HUD with scanlines.",
+    description: "Retro ARTFUNKEL GAME SYSTEM box art with collectible editions and 16-bit seasonal graphics.",
   },
   {
     number: 7,
