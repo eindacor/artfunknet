@@ -16,6 +16,7 @@ import type { CommunityReactionSummary } from "@/server/community-reactions-core
 import type { GalleryExhibitionData } from "@/server/gallery-exhibition";
 import type { GalleryAttributeAggregate } from "@/server/gallery-metadata-core";
 import type { HydratedGameItem } from "@/server/item-artwork";
+import type { GallerySceneVisitor } from "./gallery-visitors";
 
 type GalleryNavigation = Pick<ComponentProps<typeof PublicGallery>,
   "navigationDisabled" | "navigationError" | "onExitGallery" | "onGoHome" | "onNextGallery" | "onPreviousGallery">;
@@ -34,7 +35,8 @@ export function getGalleryPreviewItem(gallery: GalleryExhibitionData, initialIte
 
 export default function GalleryExhibition({
   gallery, viewerId, selectedItem, onSelectItem, onSelectAuction, onReactionsChange,
-  sidebar, chatContent, visitorContent, navigation, visitorTypes = [],
+  finishControls, chatContent, visitorContent, navigation, visitorTypes = [],
+  visitors, onMeetVisitor, visitorsVisible, onVisitorsVisibleChange,
 }: {
   gallery: GalleryExhibitionData;
   viewerId: string | null;
@@ -42,11 +44,15 @@ export default function GalleryExhibition({
   onSelectItem: (item: HydratedGameItem) => void;
   onSelectAuction?: (auction: AuctionView) => void;
   onReactionsChange?: (reactions: CommunityReactionSummary) => void;
-  sidebar?: ReactNode;
+  finishControls?: ReactNode;
   chatContent?: ReactNode;
   visitorContent?: ReactNode;
   navigation?: GalleryNavigation;
   visitorTypes?: readonly { id: string; name: string; icon: string }[];
+  visitors?: readonly GallerySceneVisitor[];
+  onMeetVisitor?: (id: string) => void;
+  visitorsVisible?: boolean;
+  onVisitorsVisibleChange?: (visible: boolean) => void;
 }) {
   const workspaceRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -105,10 +111,6 @@ export default function GalleryExhibition({
           title={galleryTitle}
           visitorTypes={visitorTypes}
         />
-        {sidebar ? <details className="visited-gallery-finish-controls">
-          <summary>Gallery finishes</summary>
-          {sidebar}
-        </details> : null}
         <section aria-label="Gallery auctions">
           <header className="visited-gallery-auction-heading"><span>Items up for auction</span></header>
           {gallery.auctions.length === 0 ? <p className="collection-sidebar-empty">This player has no public auctions.</p>
@@ -140,9 +142,18 @@ export default function GalleryExhibition({
           workspaceRef.current?.querySelector(".public-gallery-window")?.scrollIntoView({ behavior: "smooth", block: "start" });
         }} viewerId={viewerId} /> : null}
       {chatContent}
-      <PublicGallery {...navigation} finishes={gallery.finishes} focusedItemId={selectedItem?._id}
-        visitorContent={visitorContent} items={gallery.items} legendaryAttributes={gallery.legendaryAttributes}
-        onSelectItem={onSelectItem} owner={gallery.owner} viewerId={viewerId} />
+      <div className="visited-gallery-display">
+        <PublicGallery {...navigation} finishes={gallery.finishes} focusedItemId={selectedItem?._id}
+          overviewDistanceCm={gallery.overviewDistanceCm}
+          visitorScale={gallery.visitorScale}
+          cameraHeightCm={gallery.cameraHeightCm}
+          artworkCenterHeightCm={gallery.artworkCenterHeightCm}
+          visitorContent={visitorContent} items={gallery.items} legendaryAttributes={gallery.legendaryAttributes}
+          onSelectItem={onSelectItem} owner={gallery.owner} viewerId={viewerId}
+          visitors={visitors} onMeetVisitor={onMeetVisitor}
+          visitorsVisible={visitorsVisible} onVisitorsVisibleChange={onVisitorsVisibleChange} />
+        {viewerId === gallery.owner.playerId ? finishControls : null}
+      </div>
     </div>
   </>;
 }

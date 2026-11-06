@@ -1,6 +1,12 @@
 "use client";
 
 import { FormEvent, type ReactNode, useState } from "react";
+import {
+  GALLERY_CAMERA_HEIGHT_CM,
+  GALLERY_ARTWORK_CENTER_HEIGHT_CM,
+  GALLERY_OVERVIEW_DISTANCE_CM,
+  GALLERY_VISITOR_SCALE,
+} from "@/components/gallery-layout";
 
 import {
   DROPPABLE_CARD_RENDERER_IDS,
@@ -744,7 +750,77 @@ export default function GameplaySettingsForm({
       />
       </ConfigGroup>
 
-      <ConfigGroup title="Gallery and item condition">
+      <ConfigGroup title="Gallery">
+      <SettingField
+        description="Camera height above the floor when zoomed out. Zooming in moves the camera to the selected artwork's center."
+        label="Camera height"
+        min={GALLERY_CAMERA_HEIGHT_CM.min}
+        max={GALLERY_CAMERA_HEIGHT_CM.max}
+        onChange={value => updateConfig(selectedConfig, config => ({
+          ...config, galleryCameraHeightCm: value,
+        }))}
+        suffix="cm"
+        value={activeEditor.galleryCameraHeightCm}
+      />
+      <SettingField
+        description="Nominal artwork centerline above the floor. Large works are raised as needed to keep the full frame clear of the floor."
+        label="Artwork centerline height"
+        min={GALLERY_ARTWORK_CENTER_HEIGHT_CM.min}
+        max={GALLERY_ARTWORK_CENTER_HEIGHT_CM.max}
+        onChange={value => updateConfig(selectedConfig, config => ({
+          ...config, galleryArtworkCenterHeightCm: value,
+        }))}
+        suffix="cm"
+        value={activeEditor.galleryArtworkCenterHeightCm}
+      />
+      <SettingField
+        description={`Fixed camera distance from the display wall when zoomed out (${GALLERY_OVERVIEW_DISTANCE_CM.min}-${GALLERY_OVERVIEW_DISTANCE_CM.max} cm). Zooming in automatically fits the selected artwork to the viewport.`}
+        label="Zoomed-out camera distance"
+        min={GALLERY_OVERVIEW_DISTANCE_CM.min}
+        max={GALLERY_OVERVIEW_DISTANCE_CM.max}
+        onChange={value => updateConfig(selectedConfig, config => ({
+          ...config, galleryOverviewDistanceCm: value,
+        }))}
+        suffix="cm"
+        value={activeEditor.galleryOverviewDistanceCm}
+      />
+      <SettingField
+        description="Size multiplier for all visitor silhouettes, including ambient figures. 0.8 is 20% smaller than the previous size; 1 restores that size. Does not affect visitor icons."
+        label="Visitor scale coefficient"
+        min={GALLERY_VISITOR_SCALE.min}
+        max={GALLERY_VISITOR_SCALE.max}
+        onChange={value => updateConfig(selectedConfig, config => ({
+          ...config, galleryVisitorScale: value,
+        }))}
+        step="any"
+        suffix="coefficient"
+        value={activeEditor.galleryVisitorScale}
+      />
+      <SettingField
+        description="Length of each NPC generation cycle and visitor lifetime."
+        label="NPC spawn interval"
+        max={10080}
+        onChange={(value) =>
+          updateConfig(selectedConfig, (config) => ({
+            ...config,
+            npcSpawnIntervalMinutes: value,
+          }))
+        }
+        suffix="minutes"
+        value={activeEditor.npcSpawnIntervalMinutes}
+      />
+      <SettingField
+        description="One independent spawn pass per active visitor type in each featured artist gallery, using the normal NPC cycle."
+        label="Featured artist visitor chance"
+        min={0}
+        max={100}
+        step={1}
+        suffix="%"
+        value={activeEditor.featuredArtistVisitorChance * 100}
+        onChange={value => updateConfig(selectedConfig, config => ({
+          ...config, featuredArtistVisitorChance: value / 100,
+        }))}
+      />
       <SettingField
         description="How often displayed artwork settles prorated money and XP."
         label="Gallery money/XP payout interval"
@@ -784,6 +860,9 @@ export default function GameplaySettingsForm({
         suffix="levels"
         value={activeEditor.displayLevelCap}
       />
+      </ConfigGroup>
+
+      <ConfigGroup title="Item condition">
       <SettingField
         description="Equivalent interval for each 20% displayed-art condition decay roll."
         label="Condition decay interval"
@@ -824,34 +903,6 @@ export default function GameplaySettingsForm({
         step={0.1}
         suffix="%"
         value={activeEditor.repairAmount * 100}
-      />
-      </ConfigGroup>
-
-      <ConfigGroup title="Gallery visitors">
-      <SettingField
-        description="Length of each NPC generation cycle and visitor lifetime."
-        label="NPC spawn interval"
-        max={10080}
-        onChange={(value) =>
-          updateConfig(selectedConfig, (config) => ({
-            ...config,
-            npcSpawnIntervalMinutes: value,
-          }))
-        }
-        suffix="minutes"
-        value={activeEditor.npcSpawnIntervalMinutes}
-      />
-      <SettingField
-        description="One independent spawn pass per active visitor type in each featured artist gallery, using the normal NPC cycle."
-        label="Featured artist visitor chance"
-        min={0}
-        max={100}
-        step={1}
-        suffix="%"
-        value={activeEditor.featuredArtistVisitorChance * 100}
-        onChange={value => updateConfig(selectedConfig, config => ({
-          ...config, featuredArtistVisitorChance: value / 100,
-        }))}
       />
       </ConfigGroup>
 

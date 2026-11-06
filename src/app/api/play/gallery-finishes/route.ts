@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import {
   GALLERY_BRIGHTNESS_LIMITS,
   GALLERY_FINISH_WIDTH_LIMITS,
+  GALLERY_SPACING_LIMITS,
   parseGalleryFinishUpdate,
 } from "@/server/gallery-finishes";
 import { getDatabase } from "@/server/mongodb";
@@ -20,7 +21,7 @@ export async function PATCH(request: Request) {
     const matte = GALLERY_FINISH_WIDTH_LIMITS.matte_width;
     return NextResponse.json(
       {
-        error: `Provide a gallery ID, all six RGB colors (three numbers between 0 and 1), frame_width (${frame.min}-${frame.max} meters), matte_width (${matte.min}-${matte.max} meters), and brightness (${GALLERY_BRIGHTNESS_LIMITS.min}-${GALLERY_BRIGHTNESS_LIMITS.max}).`,
+        error: `Provide a gallery ID, all six RGB colors (three numbers between 0 and 1), frame_width (${frame.min}-${frame.max} meters), matte_width (${matte.min}-${matte.max} meters), spacing (${GALLERY_SPACING_LIMITS.min}-${GALLERY_SPACING_LIMITS.max} meters), and brightness (${GALLERY_BRIGHTNESS_LIMITS.min}-${GALLERY_BRIGHTNESS_LIMITS.max}).`,
       },
       { status: 400 },
     );

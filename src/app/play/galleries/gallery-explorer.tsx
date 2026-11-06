@@ -96,6 +96,7 @@ export default function GalleryExplorer({
   initialItemId = null,
   initialSort,
   initialViewMode,
+  visitorsVisible = true,
   meetingNpc,
   npcSpawnIntervalMinutes,
   npcSpawnOptions,
@@ -113,6 +114,7 @@ export default function GalleryExplorer({
   initialItemId?: string | null;
   initialSort: GallerySort;
   initialViewMode: GalleryViewMode;
+  visitorsVisible?: boolean;
   meetingNpc: string | null;
   npcSpawnIntervalMinutes: number;
   npcSpawnOptions: NpcSpawnOption[];
@@ -328,6 +330,8 @@ export default function GalleryExplorer({
         socialBattery={socialBattery}
         visitorTypes={visitorTypes}
         viewerId={viewerId}
+        visitorsVisible={visitorsVisible}
+        onVisitorsVisibleChange={visible => onViewSettingsChange({ showGalleryVisitors: visible })}
       />
     );
   }
@@ -611,6 +615,8 @@ function VisitedGallery({
   socialBattery,
   visitorTypes,
   viewerId,
+  visitorsVisible,
+  onVisitorsVisibleChange,
 }: {
   impersonating: boolean;
   initialBankBalance: number;
@@ -633,6 +639,8 @@ function VisitedGallery({
   socialBattery: number;
   visitorTypes: readonly { id: string; name: string; icon: string }[];
   viewerId: string;
+  visitorsVisible: boolean;
+  onVisitorsVisibleChange: (visible: boolean) => void;
 }) {
   const [gallery, setGallery] = useState<GalleryDetailResponse | null>(null);
   const { fulfillTutorial, showTutorial } = useTutorial();
@@ -666,6 +674,30 @@ function VisitedGallery({
     ownerId,
     spawnIntervalMinutes: npcSpawnIntervalMinutes,
   });
+  const meetingVisitor = useRef(false);
+
+  function visitorDisabled(npc: GalleryNpcView) {
+    const cost = npc.tutorial ? 0 : getVisitorSocialBatteryCost(
+      npc.quality, ownerId === viewerId || gallery?.artist?.featured === true,
+    );
+    return meetingNpc !== null || npc.alreadyMet || socialBattery < cost || Boolean(npcRewardEffects[npc._id]);
+  }
+
+  async function meetVisitor(id: string) {
+    const npc = visitors.find(visitor => visitor._id === id);
+    if (!npc || visitorDisabled(npc) || meetingVisitor.current) return;
+    meetingVisitor.current = true;
+    try {
+      if (await onMeetNpc(npc)) {
+        markVisitorMet(npc._id);
+      } else {
+        if (!npc.tutorial) removeVisitor(npc._id);
+        void refreshVisitors();
+      }
+    } finally {
+      meetingVisitor.current = false;
+    }
+  }
 
   async function spawnTestNpc(option: NpcSpawnOption) {
     setSpawningNpc(option.id);
@@ -823,6 +855,10 @@ function VisitedGallery({
       ) : null}
       <GalleryExhibition
         gallery={gallery}
+        visitors={visitors.map(npc => ({ ...npc, disabled: visitorDisabled(npc) }))}
+        onMeetVisitor={meetVisitor}
+        visitorsVisible={visitorsVisible}
+        onVisitorsVisibleChange={onVisitorsVisibleChange}
         viewerId={viewerId}
         visitorTypes={visitorTypes}
         selectedItem={selectedPreviewItem}
@@ -830,7 +866,7 @@ function VisitedGallery({
         onSelectAuction={setSelectedAuction}
         onReactionsChange={(reactions) => setGallery(current => current?.metadata
           ? { ...current, metadata: { ...current.metadata, reactions } } : current)}
-        sidebar={ownerId === viewerId ? (
+        finishControls={ownerId === viewerId ? (
           <GalleryFinishMenu
             finishes={gallery.finishes}
             galleryId={gallery.galleryId}
@@ -877,14 +913,7 @@ function VisitedGallery({
                         insufficientBattery ||
                         Boolean(npcRewardEffects[npc._id])
                       }
-                      onClick={async () => {
-                        if (await onMeetNpc(npc)) {
-                          markVisitorMet(npc._id);
-                        } else {
-                          if (!npc.tutorial) removeVisitor(npc._id);
-                          void refreshVisitors();
-                        }
-                      }}
+                      onClick={() => void meetVisitor(npc._id)}
                       title={
                         npc.alreadyMet
                           ? `${npc.npc_name} already met`
@@ -895,7 +924,11 @@ function VisitedGallery({
                       type="button"
                     >
                       <i aria-hidden="true" className={`fa ${npc.icon}`} />
-                      <span>{npc.npc_name}</span>
+                      <span className="gallery-npc-type">{npc.npc_name}</span>
+                      <small className="gallery-npc-cost" aria-label={`Costs ${socialBatteryCost} social battery`}>
+                        <i aria-hidden="true" className="fa fa-bolt" />
+                        {socialBatteryCost}
+                      </small>
                     </button>
                   </span>
                 );

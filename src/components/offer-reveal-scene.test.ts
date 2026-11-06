@@ -4,6 +4,7 @@ import { SpotLight } from "three";
 
 import { DEFAULT_GALLERY_FINISHES } from "../server/gallery-finishes.ts";
 import { configureGalleryShadows } from "./gallery-lighting.ts";
+import { toGalleryUnits } from "./gallery-layout.ts";
 import { createOfferRevealLayout, getRoomRevealProgress } from "./offer-reveal-scene.ts";
 
 const reveal = { id: "reveal", artworkId: "main", width: 80, height: 120 };
@@ -40,15 +41,15 @@ test("small rooms keep every shadow, and exhausted budgets disable existing shad
   assert.ok(lights.every((light) => light.intensity === 1));
 });
 
-test("room keeps the revealed artwork centered with physically sized companions on both sides", () => {
+test("room keeps the revealed artwork centered with consistently scaled companions on both sides", () => {
   const finishes = { ...DEFAULT_GALLERY_FINISHES, frame_width: 0.15, matte_width: 0.2 };
   const layout = createOfferRevealLayout(reveal, companions, finishes);
   assert.equal(layout.paintings[0].x, 0);
-  assert.deepEqual(layout.paintings.map(({ width }) => width), [0.8, 0.5, 3, 1, 0.4, 5]);
+  assert.deepEqual(layout.paintings.map(({ width }) => width), [0.8, 0.5, 3, 1, 0.4, 5].map(toGalleryUnits));
   assert.deepEqual(layout.lightStages, [3, 2, 2, 1, 1, 0]);
-  assert.ok(layout.height >= 5.5);
-  assert.ok(layout.paintings.every((painting) => painting.y === layout.centerY));
-  const surround = finishes.frame_width + finishes.matte_width;
+  assert.ok(layout.height >= toGalleryUnits(5.5));
+  assert.equal(layout.centerY, 1.4);
+  const surround = toGalleryUnits(finishes.frame_width + finishes.matte_width);
   for (const direction of [-1, 1]) {
     const side = layout.paintings.filter(({ x }) => x * direction >= 0)
       .sort((a, b) => Math.abs(a.x) - Math.abs(b.x));
@@ -57,12 +58,23 @@ test("room keeps the revealed artwork centered with physically sized companions 
       const current = side[index];
       const gap = Math.abs(current.x) - current.width / 2 - surround
         - (Math.abs(previous.x) + previous.width / 2 + surround);
-      assert.ok(Math.abs(gap - 2) < 1e-10);
+      assert.ok(Math.abs(gap - toGalleryUnits(2)) < 1e-10);
     }
   }
   for (const painting of layout.paintings) {
-    assert.ok(Math.abs(painting.x) + painting.width / 2 + surround <= layout.width / 2);
+    assert.ok(Math.abs(painting.x) + painting.width / 2 + surround <= layout.width / 2 + 1e-10);
+    assert.ok(painting.y - painting.height / 2 - surround >= 0.4 - 1e-10);
+    assert.ok(painting.y + painting.height / 2 + surround < layout.height);
   }
+});
+
+test("reveal galleries use configured heights without changing artwork geometry", () => {
+  const layout = createOfferRevealLayout(reveal, companions, DEFAULT_GALLERY_FINISHES,
+    { cameraHeightCm: 175, artworkCenterHeightCm: 165 });
+  assert.equal(layout.cameraHeight, 1.75);
+  assert.equal(layout.paintings[0].y, 1.65);
+  assert.equal(layout.paintings[0].height, 1.2);
+  assert.ok(layout.height > layout.cameraHeight);
 });
 
 test("empty, single and even companion groups remain centered and exclude duplicate item IDs", () => {

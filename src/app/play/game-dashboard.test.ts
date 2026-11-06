@@ -135,6 +135,112 @@ test("visitor meetings use the server's charged battery cost, including featured
   }
 });
 
+test("visitor buttons retain their icon, type and actual stamina cost at home, in other galleries and in featured exhibitions", async () => {
+  const explorerSource = ts.createSourceFile("gallery-explorer.tsx",
+    await readFile(new URL("./galleries/gallery-explorer.tsx", import.meta.url), "utf8"),
+    ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  for (const [file, listName] of [[source, "galleryVisitors"], [explorerSource, "visitors"]] as const) {
+    let visitorMap: ts.CallExpression | undefined;
+    function findVisitorMap(node: ts.Node) {
+      if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) &&
+          node.expression.name.text === "map" && node.expression.expression.getText(file) === listName &&
+          node.getText(file).includes("data-npc-id")) {
+        visitorMap = node;
+      }
+      ts.forEachChild(node, findVisitorMap);
+    }
+    findVisitorMap(file);
+    assert.ok(visitorMap);
+    const code = ts.transpileModule(`const render = () => (${visitorMap.getText(file)}); render()`, {
+      compilerOptions: { target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React },
+    }).outputText;
+    const visitors = [
+      ...(["bronze", "silver", "gold", "platinum"] as const).map(quality => ({
+        _id: quality, quality, npc_name: `${quality} visitor`, icon: "fa-user", alreadyMet: false,
+      })),
+      { _id: "tutorial", quality: "platinum" as const, npc_name: "Tutorial visitor", icon: "fa-user", tutorial: true, alreadyMet: false },
+      { _id: "met", quality: "gold" as const, npc_name: "Met visitor", icon: "fa-user", alreadyMet: true },
+    ];
+    for (const [ownerId, featured] of [["player", false], ["other", false], ["artist", true]] as const) {
+      const discounted = listName === "galleryVisitors" || ownerId === "player" || featured;
+      const rendered = runInNewContext(code, {
+        React, getVisitorSocialBatteryCost, galleryVisitors: visitors, visitors, ownerId, viewerId: "player",
+        gallery: { artist: { featured } }, socialBattery: 7, pending: false, meetingNpc: null,
+        npcRewardEffects: {}, ART_DONOR_ATTRIBUTE_ID: "donor",
+      }) as React.ReactNode;
+      const html = renderToStaticMarkup(React.createElement(React.Fragment, null, rendered));
+      for (const npc of visitors) {
+        const cost = npc._id === "tutorial" ? 0 : getVisitorSocialBatteryCost(npc.quality, discounted);
+        const button = html.match(new RegExp(`<button\\b[^>]*data-npc-id="${npc._id}"[^>]*>[\\s\\S]*?</button>`))?.[0];
+        assert.ok(button, `${listName}: ${npc._id}`);
+        assert.ok(button.includes(`<i aria-hidden="true" class="fa ${npc.icon}"></i>`));
+        assert.ok(button.includes(`<span class="gallery-npc-type">${npc.npc_name}</span>`));
+        assert.ok(button.includes(`aria-label="Costs ${cost} social battery"`));
+        assert.ok(button.includes(`<i aria-hidden="true" class="fa fa-bolt"></i>${cost}</small>`));
+        assert.equal(button.includes('disabled=""'), npc.alreadyMet || cost > 7);
+      }
+    }
+  }
+});
+
+test("scene and tray visitor meetings share stamina guards, met updates, failure handling and duplicate-request protection", async () => {
+  const explorerSource = ts.createSourceFile("gallery-explorer.tsx",
+    await readFile(new URL("./galleries/gallery-explorer.tsx", import.meta.url), "utf8"),
+    ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  for (const [file, home, name, guard] of [
+    [source, true, "meetGalleryVisitor", "galleryVisitorDisabled"],
+    [explorerSource, false, "meetVisitor", "visitorDisabled"],
+  ] as const) {
+    const functions: string[] = [];
+    function collect(node: ts.Node) {
+      if (ts.isFunctionDeclaration(node) && [name, guard].includes(node.name?.text ?? "")) {
+        functions.push(node.getText(file));
+      }
+      ts.forEachChild(node, collect);
+    }
+    collect(file);
+    const code = ts.transpileModule(`${functions.join("\n")}\n${name}`, {
+      compilerOptions: { target: ts.ScriptTarget.ES2022 },
+    }).outputText;
+    for (const scenario of [
+      { battery: 10, featured: true },
+      { battery: 10, featured: false, blocked: !home },
+      { battery: 9, featured: true, blocked: true },
+      { battery: 20, met: true, blocked: true },
+      { battery: 20, meeting: true, blocked: true },
+      { battery: 20, pending: true, blocked: home },
+      { battery: 20, rewards: true, blocked: true },
+      { battery: 0, tutorial: true },
+      { battery: 20, failed: true },
+      { battery: 0, tutorial: true, failed: true },
+    ]) {
+      const npc = { _id: "visitor", quality: "gold", alreadyMet: Boolean(scenario.met), tutorial: scenario.tutorial };
+      let finish: ((success: boolean) => void) | undefined;
+      const backend = test.mock.fn(() => new Promise<boolean>(resolve => { finish = resolve; }));
+      const mark = test.mock.fn();
+      const remove = test.mock.fn();
+      const refresh = test.mock.fn();
+      const meet = runInNewContext(code, {
+        galleryVisitors: [npc], visitors: [npc], pending: Boolean(scenario.pending), meetingNpc: scenario.meeting ? "another" : null,
+        socialBattery: scenario.battery, npcRewardEffects: scenario.rewards ? { visitor: true } : {},
+        gallery: { artist: { featured: scenario.featured } }, ownerId: "other", viewerId: "player",
+        meetingGalleryVisitor: { current: false }, meetingVisitor: { current: false },
+        getVisitorSocialBatteryCost, meetNpc: backend, onMeetNpc: backend,
+        markVisitorMet: mark, removeVisitor: remove, refreshVisitors: refresh,
+      }) as (id: string) => Promise<void>;
+      await meet("missing");
+      const request = meet(npc._id);
+      await meet(npc._id);
+      assert.equal(backend.mock.callCount(), scenario.blocked ? 0 : 1, `${name}: ${JSON.stringify(scenario)}`);
+      finish?.(!scenario.failed);
+      await request;
+      assert.equal(mark.mock.callCount(), scenario.blocked || scenario.failed ? 0 : 1);
+      assert.equal(remove.mock.callCount(), !scenario.blocked && scenario.failed && !scenario.tutorial ? 1 : 0);
+      assert.equal(refresh.mock.callCount(), !scenario.blocked && scenario.failed ? 1 : 0);
+    }
+  }
+});
+
 test("the daily crate card and opening action show the first-drop count and switch to the normal count after claiming", () => {
   const stateSource = dashboard.body!.statements.filter(statement =>
     ts.isVariableStatement(statement) && statement.declarationList.declarations.some(declaration =>
@@ -870,12 +976,14 @@ test("promoted permanent works appear once in the collection and in the promotin
   assert.equal(new Set(state.collectionItems.map(item => item._id)).size, 4);
 });
 
-test("gallery format changes update the section-remount preference and persist through the settings queue", async () => {
+test("gallery format and visitor visibility changes update shared preferences and persist through the settings queue", async () => {
   const changed: string[] = [];
+  const visibility: boolean[] = [];
   const requests: { url: string; settings: unknown }[] = [];
   const queue = { current: Promise.resolve() };
   const save = runInNewContext(`${handlers}\nsaveViewSettings`, {
     setPreferredGalleryView: (mode: string) => changed.push(mode),
+    setGalleryVisitorsVisible: (visible: boolean) => visibility.push(visible),
     viewSettingsSaveQueue: queue,
     setError: (message: string) => assert.fail(message),
     fetch: async (url: string, options: { body: string }) => {
@@ -886,10 +994,14 @@ test("gallery format changes update the section-remount preference and persist t
   save({ galleryView: "list" });
   save({ galleryView: "expanded" });
   save({ gallerySort: "name" });
+  save({ showGalleryVisitors: false });
+  save({ showGalleryVisitors: true });
   assert.deepEqual(changed, ["list", "expanded"]);
+  assert.deepEqual(visibility, [false, true]);
   await queue.current;
   assert.deepEqual(requests.map(({ settings }) => settings), [
     { galleryView: "list" }, { galleryView: "expanded" }, { gallerySort: "name" },
+    { showGalleryVisitors: false }, { showGalleryVisitors: true },
   ]);
   assert.ok(requests.every(({ url }) => url === "/api/play/view-settings"));
 });

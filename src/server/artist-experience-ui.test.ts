@@ -21,6 +21,10 @@ import * as galleryLayout from "../components/gallery-layout.ts";
 import * as oauthProviders from "./oauth-providers.ts";
 import { buildGalleryMetadataSnapshot } from "./gallery-metadata-core.ts";
 import type { AuctionView } from "./auction-gameplay.ts";
+import * as artistFeatureLinks from "../shared/artist-feature-link.ts";
+import * as settingsCore from "./game-settings.ts";
+import * as cardCatalog from "../components/item-cards/catalog.ts";
+import * as rarityValues from "./rarity-values.ts";
 
 const require = createRequire(import.meta.url);
 const cardSharedSource = ts.createSourceFile("shared.tsx",
@@ -34,6 +38,12 @@ const cardHelpers = runInNewContext(`${ts.transpileModule(cardSharedSource.state
 }).outputText}\nexports`, { exports: {} });
 
 async function load<T>(relative: string, dependencies: Record<string, unknown> = {}, globals: Record<string, unknown> = {}) {
+  if (relative === "../components/artist-gallery.tsx") {
+    dependencies = {
+      ...dependencies,
+      "./artist-feature": await load("../components/artist-feature.tsx", dependencies, globals),
+    };
+  }
   if (relative === "../app/play/galleries/gallery-explorer.tsx") {
     dependencies = {
       ...dependencies,
@@ -81,6 +91,7 @@ async function load<T>(relative: string, dependencies: Record<string, unknown> =
       const modules = {
         react: React, "react/jsx-runtime": require("react/jsx-runtime"), "next/link": require("next/link"),
         "@/shared/tutorial": tutorialElements,
+        "@/shared/artist-feature-link": artistFeatureLinks,
         "@/server/legendary-attributes": { ART_DONOR_ATTRIBUTE_ID },
         "@/components/tutorial/tutorial-provider": {
           useTutorial: () => ({ showTutorial: () => false, fulfillTutorial: async () => false }),
@@ -93,6 +104,105 @@ async function load<T>(relative: string, dependencies: Record<string, unknown> =
   }) as T;
 }
 
+test("admin gallery settings edit and submit independent Actual and Debug values", async () => {
+  const settings = {
+    actual: settingsCore.DEFAULT_ACTUAL_GAMEPLAY_CONFIG, debug: settingsCore.DEFAULT_DEBUG_GAMEPLAY_CONFIG,
+    debugEnabled: false, activeConfigName: "actual" as const, active: settingsCore.DEFAULT_ACTUAL_GAMEPLAY_CONFIG,
+  };
+  const ranges = Object.fromEntries(rarityValues.RARITY_VALUE_TIERS.map(
+    (rarity, index) => [rarity, { min: index * 100 + 1, max: (index + 1) * 100 }],
+  )) as rarityValues.RarityValueRanges;
+  const states: unknown[] = [];
+  let stateIndex = 0;
+  let saved: { actual: settingsCore.GameplayConfig; debug: settingsCore.GameplayConfig } | undefined;
+  const form = await load<typeof import("../app/admin/gameplay-settings-form.tsx")>("../app/admin/gameplay-settings-form.tsx", {
+    react: {
+      ...React, useState: (initial: unknown) => {
+        const index = stateIndex++;
+        if (!(index in states)) states[index] = initial;
+        return [states[index], (next: unknown) => { states[index] = typeof next === "function" ? next(states[index]) : next; }];
+      },
+    },
+    "@/components/gallery-layout": galleryLayout,
+    "@/components/item-cards/catalog": cardCatalog,
+    "@/components/item-cards/card-cosmetics-provider": { useCardCosmetics: () => [] },
+    "@/server/rarity-values": rarityValues,
+  }, {
+    window: { confirm: () => true },
+    fetch: async (_url: string, init: RequestInit) => {
+      saved = JSON.parse(String(init.body));
+      return Response.json({ settings: { ...settings, ...saved }, rarityValues: ranges });
+    },
+  });
+  type Element = React.ReactElement<Record<string, unknown>>;
+  function elements(node: React.ReactNode): Element[] {
+    if (Array.isArray(node)) return node.flatMap(elements);
+    if (!React.isValidElement<Record<string, unknown>>(node)) return [];
+    return [node, ...elements(node.props.children as React.ReactNode)];
+  }
+  function render() {
+    stateIndex = 0;
+    return form.default({ initialSettings: settings, initialRarityValues: ranges });
+  }
+  function cameraField(tree: React.ReactNode) {
+    return elements(tree).find(element => element.props.label === "Zoomed-out camera distance")!;
+  }
+  function visitorField(tree: React.ReactNode) {
+    return elements(tree).find(element => element.props.label === "Visitor scale coefficient")!;
+  }
+  function field(tree: React.ReactNode, label: string) {
+    return elements(tree).find(element => element.props.label === label)!;
+  }
+  let tree = render();
+  const galleryGroup = elements(tree).find(element => element.props.title === "Gallery");
+  assert.ok(galleryGroup);
+  for (const label of ["Camera height", "Artwork centerline height", "Zoomed-out camera distance",
+    "Visitor scale coefficient", "NPC spawn interval", "Featured artist visitor chance"]) {
+    assert.ok(field(galleryGroup, label), `${label} belongs to the Gallery section`);
+    assert.equal(elements(tree).filter(element => element.props.label === label).length, 1);
+  }
+  assert.equal(field(tree, "Camera height").props.value, 158);
+  assert.equal(field(tree, "Artwork centerline height").props.value, 140);
+  assert.equal(cameraField(tree).props.value, 600);
+  assert.equal(visitorField(tree).props.value, 0.8);
+  (cameraField(tree).props.onChange as (value: number) => void)(1250);
+  (visitorField(tree).props.onChange as (value: number) => void)(0.55);
+  (field(tree, "Camera height").props.onChange as (value: number) => void)(175);
+  (field(tree, "Artwork centerline height").props.onChange as (value: number) => void)(160);
+  (field(tree, "NPC spawn interval").props.onChange as (value: number) => void)(7);
+  (field(tree, "Featured artist visitor chance").props.onChange as (value: number) => void)(35);
+  tree = render();
+  assert.equal(cameraField(tree).props.value, 1250);
+  assert.equal(visitorField(tree).props.value, 0.55);
+  assert.equal(field(tree, "Camera height").props.value, 175);
+  assert.equal(field(tree, "Artwork centerline height").props.value, 160);
+  const debugTab = elements(tree).find(element => element.props.role === "tab" && element.props.children === "debug")!;
+  (debugTab.props.onClick as () => void)();
+  tree = render();
+  assert.equal(cameraField(tree).props.value, 600);
+  assert.equal(visitorField(tree).props.value, 0.8);
+  assert.equal(field(tree, "Camera height").props.value, 158);
+  assert.equal(field(tree, "Artwork centerline height").props.value, 140);
+  (cameraField(tree).props.onChange as (value: number) => void)(450);
+  (visitorField(tree).props.onChange as (value: number) => void)(1.35);
+  (field(tree, "Camera height").props.onChange as (value: number) => void)(185);
+  (field(tree, "Artwork centerline height").props.onChange as (value: number) => void)(170);
+  tree = render();
+  assert.equal(cameraField(tree).props.value, 450);
+  assert.equal(visitorField(tree).props.value, 1.35);
+  await tree.props.onSubmit({ preventDefault() {} } as React.FormEvent<HTMLFormElement>);
+  assert.equal(saved?.actual.galleryOverviewDistanceCm, 1250);
+  assert.equal(saved?.debug.galleryOverviewDistanceCm, 450);
+  assert.equal(saved?.actual.galleryVisitorScale, 0.55);
+  assert.equal(saved?.debug.galleryVisitorScale, 1.35);
+  assert.equal(saved?.actual.galleryCameraHeightCm, 175);
+  assert.equal(saved?.actual.galleryArtworkCenterHeightCm, 160);
+  assert.equal(saved?.debug.galleryCameraHeightCm, 185);
+  assert.equal(saved?.debug.galleryArtworkCenterHeightCm, 170);
+  assert.equal(saved?.actual.npcSpawnIntervalMinutes, 7);
+  assert.equal(saved?.actual.featuredArtistVisitorChance, 0.35);
+});
+
 test("the artist application requires new-player credentials and clearly displays locked account details for signed-in players", async () => {
   const datePicker = await load<typeof import("../components/date-picker.tsx")>("../components/date-picker.tsx");
   const form = await load<typeof import("../app/artists/apply/application-form.tsx")>("../app/artists/apply/application-form.tsx", {
@@ -100,7 +210,10 @@ test("the artist application requires new-player credentials and clearly display
   });
   for (const existingPlayer of [null, { email: "existing@example.com", screenName: "Existing-Player" }]) {
     const html = renderToStaticMarkup(React.createElement(form.default, { existingPlayer, latestBirthDate: "2008-11-02" }));
-    for (const name of ["name", "dateOfBirth", "portfolioUrl", "bio"]) assert.ok(html.includes(`name="${name}"`), name);
+    for (const name of ["name", "dateOfBirth", "portfolioUrl", "featureLink", "bio"]) assert.ok(html.includes(`name="${name}"`), name);
+    const featureInput = html.match(/<input\b[^>]*name="featureLink"[^>]*>/)?.[0];
+    assert.ok(featureInput);
+    assert.doesNotMatch(featureInput, /required=""/);
     for (const name of ["email", "screenName"]) {
       const input = html.match(new RegExp(`<input\\b[^>]*name="${name}"[^>]*>`))?.[0];
       assert.ok(input, name);
@@ -869,6 +982,167 @@ test("the admin item creator offers artist Originals only for eligible artwork a
   if (typeof cleanup === "function") cleanup();
 });
 
+test("gallery finish sliders keep responsive drafts, update the scene only on release and save bounded values", async () => {
+  let finishes = galleryFinishes.getGalleryFinishes(null);
+  const states: unknown[] = [];
+  const refs: { current: unknown }[] = [];
+  let stateIndex = 0;
+  let refIndex = 0;
+  let sceneChanges = 0;
+  const requests: { galleryId: string; finishes: typeof finishes }[] = [];
+  let refreshes = 0;
+  const menu = await load<typeof import("../components/gallery-finish-menu.tsx")>("../components/gallery-finish-menu.tsx", {
+    "next/navigation": { useRouter: () => ({ refresh: () => { refreshes++; } }) },
+    "@/server/gallery-finishes": galleryFinishes,
+    react: {
+      ...React, useId: () => "finishes", useEffect() {},
+      useRef: (current: unknown) => {
+        const index = refIndex++;
+        if (!(index in refs)) refs[index] = { current };
+        return refs[index];
+      },
+      useState: (initial: unknown) => {
+        const index = stateIndex++;
+        if (!(index in states)) states[index] = initial;
+        return [states[index], (next: unknown) => {
+          states[index] = typeof next === "function" ? next(states[index]) : next;
+        }];
+      },
+    },
+  }, {
+    AbortController,
+    fetch: async (url: string, options: { method: string; body: string }) => {
+      assert.equal(url, "/api/play/gallery-finishes");
+      assert.equal(options.method, "PATCH");
+      const update = JSON.parse(options.body);
+      requests.push(update);
+      return Response.json(update);
+    },
+  });
+  let memo: { dependencies: React.DependencyList; value: unknown } | undefined;
+  const layouts: galleryLayout.GalleryLayout[] = [];
+  const view = await load<typeof import("../components/gallery-view.tsx")>("../components/gallery-view.tsx", {
+    "next/image": {}, "@/server/gallery-finishes": galleryFinishes, "@/server/artwork-image-url": imageUrls,
+    "./gallery-layout": {
+      ...galleryLayout,
+      createGalleryLayout: (...args: Parameters<typeof galleryLayout.createGalleryLayout>) => {
+        const layout = galleryLayout.createGalleryLayout(...args);
+        layouts.push(layout);
+        return layout;
+      },
+    },
+    react: {
+      ...React, useState: (initial: unknown) => [initial, () => {}], useRef: (current: unknown) => ({ current }),
+      useCallback: (callback: unknown) => callback, useEffect() {},
+      useMemo: (create: () => unknown, dependencies: React.DependencyList) => {
+        if (!memo || dependencies.some((value, index) => !Object.is(value, memo!.dependencies[index]))) {
+          memo = { dependencies, value: create() };
+        }
+        return memo.value;
+      },
+    },
+  });
+  const work: Artwork = {
+    _id: "first", artist: "Artist", title: "Artwork", date: 2026, rarity: "common",
+    genre: "Abstract", medium: "Oil", value_scale: 0.5, width: 80, height: 100, active: true,
+  };
+  const items = [createArtistArtworkPreview(work), createArtistArtworkPreview({ ...work, _id: "second" })];
+  type Element = React.ReactElement<{
+    children?: React.ReactNode; "aria-label"?: string; type?: string; min?: number; max?: number; step?: number; value?: number;
+    onChange?: (event: { target: { valueAsNumber: number } }) => void;
+    onPointerDown?: (event: { pointerId: number; currentTarget: { setPointerCapture: (id: number) => void } }) => void;
+    onPointerUp?: () => void; onPointerCancel?: () => void; onLostPointerCapture?: () => void;
+    onKeyUp?: () => void; onBlur?: () => void;
+    onSubmit?: (event: { preventDefault: () => void }) => void;
+  }>;
+  function elements(node: React.ReactNode): Element[] {
+    if (Array.isArray(node)) return node.flatMap(elements);
+    if (!React.isValidElement<Element["props"]>(node)) return [];
+    return [node, ...elements(node.props.children)];
+  }
+  function render() {
+    stateIndex = refIndex = 0;
+    view.default({ items, finishes, emptyMessage: "", onSelectItem() {} });
+    return menu.default({ finishes, galleryId: "gallery", onChange: next => { finishes = next; sceneChanges++; } });
+  }
+  let tree = render();
+  let control = elements(tree).find(element => element.props["aria-label"] === "Spacing");
+  assert.ok(control?.props.onChange);
+  assert.equal(control.props.type, "range");
+  assert.equal(control.props.min, 50);
+  assert.equal(control.props.max, 400);
+  assert.equal(control.props.step, 1);
+  assert.equal(control.props.value, 100);
+  let capturedPointer: number | undefined;
+  control.props.onPointerDown!({ pointerId: 7, currentTarget: { setPointerCapture: id => { capturedPointer = id; } } });
+  assert.equal(capturedPointer, 7, "Capture pointer releases even outside the slider");
+  for (const [centimeters, expected] of [[-1, 0.5], [50, 0.5], [400, 4], [401, 4], [238, 2.38], [NaN, 2.38]]) {
+    const previous = finishes;
+    const changes = sceneChanges;
+    const previousLayout = layouts.at(-1);
+    control.props.onChange!({ target: { valueAsNumber: centimeters } });
+    tree = render();
+    control = elements(tree).find(element => element.props["aria-label"] === "Spacing");
+    assert.ok(control?.props.onChange);
+    assert.equal(finishes, previous, "Dragging does not forward draft finishes to the scene");
+    assert.equal(sceneChanges, changes);
+    assert.equal(layouts.at(-1), previousLayout);
+    assert.equal(control.props.value, Math.round(expected * 100));
+    assert.match(renderToStaticMarkup(tree), new RegExp(`${Math.round(expected * 100)} cm</label>`));
+    control.props.onPointerUp!();
+    control.props.onLostPointerCapture!();
+    control.props.onBlur!();
+    tree = render();
+    control = elements(tree).find(element => element.props["aria-label"] === "Spacing");
+    assert.ok(control?.props.onChange);
+    assert.equal(finishes.spacing, expected);
+    assert.equal(sceneChanges, changes + Number(previous.spacing !== expected), "Release commits once; redundant completion events do not update the scene");
+    const [first, second] = layouts.at(-1)!.paintings;
+    const frameGap = second.x - second.width / 2 - second.frameWidth - second.matteWidth -
+      (first.x + first.width / 2 + first.frameWidth + first.matteWidth);
+    assert.ok(Math.abs(frameGap - expected) < 1e-10, "Releasing the slider rebuilds the scene with the final gap");
+  }
+  for (const [label, slot, inputs, units, completion] of [
+    ["Frame width", "frame_width", [70, 80], 1000, "onKeyUp"],
+    ["Matte width", "matte_width", [130, 140], 1000, "onPointerCancel"],
+    ["Brightness", "brightness", [0.7, 0.9], 1, "onBlur"],
+    ["Spacing", "spacing", [300, 238], 100, "onLostPointerCapture"],
+  ] as const) {
+    const previous = finishes;
+    const changes = sceneChanges;
+    const previousLayout = layouts.at(-1);
+    let slider = elements(tree).find(element => element.props["aria-label"] === label)!;
+    for (const input of inputs) {
+      slider.props.onChange!({ target: { valueAsNumber: input } });
+      tree = render();
+      slider = elements(tree).find(element => element.props["aria-label"] === label)!;
+      assert.equal(slider.props.value, input, "Each slider stays responsive throughout a drag or held key");
+      assert.equal(finishes, previous);
+      assert.equal(sceneChanges, changes);
+      assert.equal(layouts.at(-1), previousLayout);
+    }
+    slider.props[completion]!();
+    slider.props.onBlur!();
+    tree = render();
+    const expected = inputs[1] / units;
+    assert.equal(finishes[slot], expected);
+    assert.equal(sceneChanges, changes + Number(previous[slot] !== expected), "Returning to the original value does not need a scene update");
+  }
+  const layoutCount = layouts.length;
+  finishes = { ...finishes, wall: [0.1, 0.2, 0.3] };
+  tree = render();
+  assert.equal(layouts.length, layoutCount, "Color changes alone still avoid rebuilding geometry");
+  assert.match(renderToStaticMarkup(tree), /Unsaved changes/);
+  const form = elements(tree).find(element => element.type === "form");
+  assert.ok(form?.props.onSubmit);
+  form.props.onSubmit({ preventDefault() {} });
+  await new Promise<void>(resolve => setImmediate(resolve));
+  assert.deepEqual(requests, [{ galleryId: "gallery", finishes }]);
+  assert.equal(requests[0].finishes.spacing, 2.38);
+  assert.equal(refreshes, 1);
+  assert.match(renderToStaticMarkup(render()), /Finishes saved/);
+});
+
 test("gallery previews track window height while artist introductions and owner controls keep their layout", async () => {
   const finishMenu = await load<typeof import("../components/gallery-finish-menu.tsx")>("../components/gallery-finish-menu.tsx", {
     "next/navigation": { useRouter: () => ({ refresh() {} }) },
@@ -876,6 +1150,7 @@ test("gallery previews track window height while artist introductions and owner 
   });
   const artist: PublicArtistProfile = {
     id: "artist-id", playerId: "artist-player", name: "Artist", bio: "An artist biography.",
+    featureLink: "",
     portfolioUrl: "https://portfolio.example.com/", socialLinks: { bluesky: "https://bsky.app/profile/artist.example" },
     featured: true,
   };
@@ -891,7 +1166,8 @@ test("gallery previews track window height while artist introductions and owner 
   });
   const gallery = {
     artist: artist as PublicArtistProfile | null, artistWorks: [work],
-    galleryId: "artist-gallery", finishes: galleryFinishes.DEFAULT_GALLERY_FINISHES,
+    galleryId: "artist-gallery", finishes: galleryFinishes.DEFAULT_GALLERY_FINISHES, overviewDistanceCm: 1250, visitorScale: 0.55,
+    cameraHeightCm: 175, artworkCenterHeightCm: 160,
     owner: { playerId: "artist-player", screenName: "Artist-Player", level: 1, vintageLevel: 0 },
     items: [], auctions: [], legendaryAttributes: [], npcs: [], metadata: null,
   };
@@ -909,6 +1185,11 @@ test("gallery previews track window height while artist introductions and owner 
     },
     style: { setProperty: (name: string, value: string) => properties.set(name, value) },
   };
+  let scenePreference: {
+    visitorsVisible?: boolean; onVisitorsVisibleChange?: (visible: boolean) => void;
+    overviewDistanceCm?: number; visitorScale?: number; cameraHeightCm?: number; artworkCenterHeightCm?: number;
+  } | undefined;
+  const preferenceUpdates: { showGalleryVisitors?: boolean }[] = [];
   const noop = () => {};
   const explorer = await load<typeof import("../app/play/galleries/gallery-explorer.tsx")>(
     "../app/play/galleries/gallery-explorer.tsx", {
@@ -930,7 +1211,10 @@ test("gallery previews track window height while artist introductions and owner 
       "@/components/item-cards/artwork-image-adjustments": imageAdjustments,
       "@/components/community-emotes": {}, "@/components/item-cards/item-card": {},
       "@/components/item-cards/shared": {},
-      "@/components/public-gallery": { default: () => React.createElement("section", { className: "public-gallery-window" }) },
+      "@/components/public-gallery": { default: (props: typeof scenePreference) => {
+        scenePreference = props;
+        return React.createElement("section", { className: "public-gallery-window" });
+      } },
       "@/components/gallery-finish-menu": finishMenu,
       "@/components/use-gallery-visitors": { useGalleryVisitors: () => ({
         visitors: [], markVisitorMet: noop, removeVisitor: noop, refreshVisitors: noop, replaceVisitors: noop,
@@ -947,23 +1231,38 @@ test("gallery previews track window height while artist introductions and owner 
       },
     },
   );
-  for (const [viewerId, isArtist] of [["artist-player", true], ["visitor", true], ["visitor", false]] as const) {
+  for (const [viewerId, isArtist] of [
+    ["artist-player", true], ["artist-player", false], ["visitor", true], ["visitor", false],
+  ] as const) {
     gallery.artist = isArtist ? artist : null;
     seedGallery = true;
     heightEffects.length = 0;
     windowHeight = 560;
     disconnected = false;
+    const showVisitors = viewerId === "artist-player";
     const html = renderToStaticMarkup(React.createElement(explorer.default, {
       impersonating: false, initialBankBalance: 0, initialGalleryId: "artist-player",
       initialSort: "score", initialViewMode: "grid", meetingNpc: null, npcSpawnIntervalMinutes: 5,
       npcSpawnOptions: [], visitorTypes: [], npcRewardEffects: {}, onMeetNpc: async () => false, onGoHome: noop,
-      onViewSettingsChange: noop, socialBattery: 100, viewerId,
+      onViewSettingsChange: settings => preferenceUpdates.push(settings), socialBattery: 100, viewerId,
+      visitorsVisible: showVisitors,
     }));
+    assert.equal(scenePreference?.visitorsVisible, showVisitors);
+    assert.equal(scenePreference?.overviewDistanceCm, 1250);
+    assert.equal(scenePreference?.visitorScale, 0.55);
+    assert.equal(scenePreference?.cameraHeightCm, 175);
+    assert.equal(scenePreference?.artworkCenterHeightCm, 160);
+    assert.ok(scenePreference?.onVisitorsVisibleChange);
+    scenePreference.onVisitorsVisibleChange(!showVisitors);
+    assert.deepEqual({ ...preferenceUpdates.at(-1) }, { showGalleryVisitors: !showVisitors });
     if (viewerId === "artist-player") {
       assert.match(html, /aria-label="Gallery finishes"/);
       assert.match(html, /Save finishes/);
       assert.match(html, /aria-label="Wall color picker"/);
       assert.match(html, /aria-label="Frame width"/);
+      assert.match(html, /aria-label="Spacing"/);
+      assert.match(html, /<div class="visited-gallery-display"><section class="public-gallery-window"><\/section><section aria-label="Gallery finishes"/);
+      assert.doesNotMatch(html, /<summary>Gallery finishes<\/summary>|visited-gallery-finish-controls/);
     } else {
       assert.doesNotMatch(html, /Gallery finishes|Save finishes/);
       assert.match(html, isArtist ? /Artist&#x27;s Gallery/ : /Artist-Player&#x27;s Gallery/);
@@ -1017,6 +1316,7 @@ test("featured artist galleries open on an artist work while other galleries and
   };
   const artist: PublicArtistProfile = {
     id: "artist-id", playerId: "artist-player", name: "Artist", bio: "",
+    featureLink: "",
     portfolioUrl: "https://portfolio.example.com/", socialLinks: {}, instagramUsername: null, featured: true,
   };
   const baseGallery = {
@@ -1249,13 +1549,32 @@ test("visited galleries reuse Home's featured works with owner rates, rarity squ
   assert.doesNotMatch(anonymousHtml, /visited-gallery-player-panel|home-featured-panel|Gallery auctions|Auction Artwork|Money per hour|Visitor attraction score|gallery-rarity-square/);
 });
 
-test("anonymous galleries reuse the exhibition and painting controls without visitors, chat, bidding, or gallery navigation", async () => {
+test("anonymous galleries reuse exhibition controls without visitor interactions, chat, bidding, or gallery navigation", async () => {
+  const cameraDistances: (number | undefined)[] = [];
+  const visitorScales: (number | undefined)[] = [];
+  const cameraHeights: (number | undefined)[] = [];
+  const mountingHeights: (number | undefined)[] = [];
+  const ambientCounts: (number | undefined)[] = [];
   const view = await load<typeof import("../components/gallery-view.tsx")>("../components/gallery-view.tsx", {
-    "next/image": require("next/image"), "./gallery-layout": galleryLayout,
+    "next/image": require("next/image"), "./gallery-layout": {
+      ...galleryLayout,
+      createGalleryLayout: (...args: Parameters<typeof galleryLayout.createGalleryLayout>) => {
+        cameraDistances.push(args[2]?.overviewDistanceCm);
+        visitorScales.push(args[2]?.visitorScale);
+        cameraHeights.push(args[2]?.cameraHeightCm);
+        mountingHeights.push(args[2]?.artworkCenterHeightCm);
+        return galleryLayout.createGalleryLayout(...args);
+      },
+    },
     "@/server/gallery-finishes": galleryFinishes, "@/server/artwork-image-url": imageUrls,
   });
   const publicGallery = await load<typeof import("../components/public-gallery.tsx")>("../components/public-gallery.tsx", {
-    "./gallery-view": view,
+    "./gallery-view": { default: (props: Parameters<typeof view.default>[0]) => {
+      ambientCounts.push(props.ambientVisitorCount);
+      assert.equal(props.visitors, undefined, "Public link scenes never receive quality-colored NPCs");
+      assert.equal(props.onMeetVisitor, undefined);
+      return React.createElement(view.default, props);
+    } },
     "./item-cards/selection": {},
     "./item-cards/standard-item-dialog": {},
   });
@@ -1285,18 +1604,21 @@ test("anonymous galleries reuse the exhibition and painting controls without vis
   };
   const artist: PublicArtistProfile = {
     id: "artist-id", playerId: "gallery-owner", name: "Public Artist", bio: "A public portfolio.",
+    featureLink: "https://youtu.be/M7lc1UVf-VE",
     portfolioUrl: "https://portfolio.example.com/", socialLinks: {}, instagramUsername: null, featured: false,
   };
   for (const profile of [artist, null]) {
     const html = renderToStaticMarkup(React.createElement(anonymous.default, { gallery: {
       artist: profile, artistWorks: profile ? [work] : [],
-      galleryId: "public-gallery", finishes: galleryFinishes.DEFAULT_GALLERY_FINISHES,
+      galleryId: "public-gallery", finishes: galleryFinishes.DEFAULT_GALLERY_FINISHES, overviewDistanceCm: 900, visitorScale: 1.2,
+      cameraHeightCm: 185, artworkCenterHeightCm: 170,
       owner: { playerId: "gallery-owner", screenName: "Collector", level: 1, vintageLevel: 0 },
       items: [createArtistArtworkPreview(work)], auctions: [], legendaryAttributes: [], metadata: null, rates: null,
     } }));
     assert.match(html, /Public Artwork/);
     assert.match(html, /Previous painting/);
     assert.match(html, /Next painting/);
+    assert.match(html, /Hide visitors/);
     assert.match(html, /Copy gallery link/);
     assert.match(html, /<h1>[^<]+&#x27;s Gallery<\/h1><button aria-label="Copy gallery link" class="gallery-share"/);
     assert.doesNotMatch(html, /Public gallery link|>Copy gallery link<\/button>/);
@@ -1305,11 +1627,197 @@ test("anonymous galleries reuse the exhibition and painting controls without vis
     assert.match(html, /href="\/play\/login\?mode=register"/);
     assert.doesNotMatch(html, /Gallery visitors|gallery-chat|Gallery navigation|Previous gallery|Next gallery|Exit gallery|Return home|Gallery finishes/);
     if (profile) {
+      assert.match(html, /src="https:\/\/www.youtube-nocookie.com\/embed\/M7lc1UVf-VE"/);
+      assert.doesNotMatch(html, /Featured on YouTube|Load YouTube content/);
       assert.match(html, /A public portfolio\./);
       assert.match(html, /href="https:\/\/portfolio.example.com\/"/);
       assert.match(html, /artist-gallery-showcase/);
     } else assert.match(html, /Collector&#x27;s Gallery/);
   }
+  assert.deepEqual(cameraDistances, [900, 900], "Anonymous exhibition settings reach the actual gallery layout");
+  assert.deepEqual(visitorScales, [1.2, 1.2], "Anonymous exhibitions apply the configured visitor scale");
+  assert.deepEqual(cameraHeights, [185, 185]);
+  assert.deepEqual(mountingHeights, [170, 170]);
+  assert.deepEqual(ambientCounts, [4, 4], "Artist and player public links both create four default visitors per artwork");
+});
+
+test("Hide visitors sits beside Exit gallery and toggles only the scene, not the visitor icon tray", async () => {
+  const states: unknown[] = [];
+  const refs: { current: unknown }[] = [];
+  let stateIndex = 0;
+  let refIndex = 0;
+  let nullRefs = 0;
+  let visibilityEffect: React.EffectCallback | undefined;
+  let visitorEffect: React.EffectCallback | undefined;
+  const visibility: boolean[] = [];
+  const sceneVisitors: unknown[] = [];
+  const ambientCounts: number[] = [];
+  const controller = {
+    setVisitorsVisible: (visible: boolean) => visibility.push(visible),
+    setVisitors: (visitors: unknown, ambientCount: number) => {
+      sceneVisitors.push(visitors);
+      ambientCounts.push(ambientCount);
+    },
+  };
+  const view = await load<typeof import("../components/gallery-view.tsx")>("../components/gallery-view.tsx", {
+    "next/image": {}, "./gallery-layout": galleryLayout,
+    "@/server/gallery-finishes": galleryFinishes, "@/server/artwork-image-url": imageUrls,
+    react: {
+      ...React, useCallback: (callback: unknown) => callback, useMemo: (callback: () => unknown) => callback(),
+      useState: (initial: unknown) => {
+        const index = stateIndex++;
+        if (!(index in states)) states[index] = initial;
+        return [states[index], (next: unknown) => { states[index] = typeof next === "function" ? next(states[index]) : next; }];
+      },
+      useRef: (initial: unknown) => {
+        const index = refIndex++;
+        if (!(index in refs)) refs[index] = { current: initial === null && ++nullRefs === 3 ? controller : initial };
+        return refs[index];
+      },
+      useEffect: (effect: React.EffectCallback, dependencies: unknown[]) => {
+        if (dependencies.length === 1 && typeof dependencies[0] === "boolean") visibilityEffect = effect;
+        if (dependencies.length === 4 && Array.isArray(dependencies[0])) visitorEffect = effect;
+      },
+    },
+  });
+  const publicGallery = await load<typeof import("../components/public-gallery.tsx")>("../components/public-gallery.tsx", {
+    "./gallery-view": view, "./item-cards/selection": {}, "./item-cards/standard-item-dialog": {},
+    react: { ...React, useState: () => [null, () => {}] },
+  });
+  const visitorContent = React.createElement("div", { className: "gallery-visitor-tray" },
+    React.createElement("button", { "data-npc-id": "real-visitor" }, "Donor"));
+  const tree = publicGallery.default({
+    items: [], legendaryAttributes: [], owner: { playerId: "owner", screenName: "Owner", level: 1, vintageLevel: 0 },
+    viewerId: "viewer", visitorContent, onExitGallery() {}, onGoHome() {},
+    visitors: [{ _id: "real-visitor", quality: "gold", alreadyMet: false }], onMeetVisitor() {},
+  });
+  const window = React.Children.toArray(tree.props.children)[0] as React.ReactElement<{ children: React.ReactNode }>;
+  const content = React.Children.toArray(window.props.children);
+  const scene = content[0] as React.ReactElement<Parameters<typeof view.default>[0]>;
+  type Element = React.ReactElement<{ children?: React.ReactNode; className?: string; onClick?: () => void }>;
+  function elements(node: React.ReactNode): Element[] {
+    if (Array.isArray(node)) return node.flatMap(elements);
+    if (!React.isValidElement<{ children?: React.ReactNode }>(node)) return [];
+    return [node, ...elements(node.props.children)];
+  }
+  for (const hidden of [false, true, false]) {
+    stateIndex = refIndex = 0;
+    const rendered = view.default(scene.props);
+    assert.ok(visibilityEffect);
+    visibilityEffect();
+    assert.ok(visitorEffect);
+    visitorEffect();
+    const html = renderToStaticMarkup(React.createElement(React.Fragment, null, rendered, content[1]));
+    assert.match(html, /data-npc-id="real-visitor">Donor<\/button>/);
+    assert.ok(html.includes(`aria-pressed="${hidden}" class="gallery-navigation-control visitors"`));
+    const label = hidden ? "Show visitors" : "Hide visitors";
+    assert.ok(html.includes(label));
+    assert.ok(html.indexOf("Exit gallery</span>") < html.indexOf(`${label}</span>`));
+    assert.ok(html.indexOf(`${label}</span>`) < html.indexOf("Home</span>"));
+    const toggle = elements(rendered).find(element => element.props.className === "gallery-navigation-control visitors");
+    assert.ok(toggle?.props.onClick);
+    toggle.props.onClick();
+  }
+  assert.deepEqual(visibility, [true, false, true]);
+  assert.equal(sceneVisitors.length, 3);
+  assert.deepEqual(ambientCounts, [0, 0, 0], "Signed-in gallery crowds remain based on real visitors");
+  for (const visitors of sceneVisitors) {
+    assert.ok(Array.isArray(visitors));
+    assert.deepEqual(Array.from(visitors, visitor => ({ ...visitor })),
+      [{ _id: "real-visitor", quality: "gold", alreadyMet: false, disabled: false }]);
+  }
+  const changes: boolean[] = [];
+  for (const visible of [false, true]) {
+    stateIndex = refIndex = 0;
+    const rendered = view.default({
+      ...scene.props, visitorsVisible: visible, onVisitorsVisibleChange: next => changes.push(next),
+    });
+    visibilityEffect();
+    assert.equal(visibility.at(-1), visible, "The stored preference must override local toggle state");
+    const toggle = elements(rendered).find(element => element.props.className === "gallery-navigation-control visitors");
+    assert.ok(toggle?.props.onClick);
+    toggle.props.onClick();
+  }
+  assert.deepEqual(changes, [true, false]);
+
+  const work: Artwork = {
+    _id: "public-work", artist: "Artist", title: "Artwork", date: 2026, rarity: "common",
+    genre: "Abstract", medium: "Oil", value_scale: 0.5, width: 80, height: 100, active: true,
+  };
+  for (const itemCount of [0, 1, 3, 1, 0]) {
+    const publicTree = publicGallery.default({
+      ...scene.props, items: Array.from({ length: itemCount }, (_, index) => createArtistArtworkPreview({ ...work, _id: `work-${index}` })),
+      owner: { playerId: "owner", screenName: "Owner", level: 1, vintageLevel: 0 },
+      legendaryAttributes: [], viewerId: null, visitorsVisible: true,
+      visitors: [{ _id: "should-not-show", quality: "gold", alreadyMet: false }], onMeetVisitor() {},
+    });
+    const galleryWindow = React.Children.toArray(publicTree.props.children)[0] as React.ReactElement<{ children: React.ReactNode }>;
+    const publicScene = React.Children.toArray(galleryWindow.props.children)[0] as React.ReactElement<Parameters<typeof view.default>[0]>;
+    assert.equal(publicScene.props.ambientVisitorCount, itemCount * 4);
+    assert.equal(publicScene.props.visitors, undefined);
+    assert.equal(publicScene.props.onMeetVisitor, undefined);
+    stateIndex = refIndex = 0;
+    view.default(publicScene.props);
+    visitorEffect();
+    visibilityEffect();
+    assert.equal(visibility.at(-1), true);
+    assert.equal(ambientCounts.at(-1), itemCount * 4, "Changing artwork counts updates the mounted crowd");
+    assert.equal((sceneVisitors.at(-1) as unknown[]).length, 0, "Public figures never become interactable NPCs");
+  }
+});
+
+test("account display preferences show saved visitor visibility and save both checkbox states", async () => {
+  const requests: { url: string; settings: unknown }[] = [];
+  const refresh = test.mock.fn();
+  const account = await load<typeof import("../app/play/account/account-form.tsx")>("../app/play/account/account-form.tsx", {
+    "next/navigation": { useRouter: () => ({ refresh }) },
+    "./delete-account-section": { default: () => null },
+    react: { ...React, useState: (initial: unknown) => [initial, () => {}] },
+  }, {
+    FormData: class {
+      values: Set<string>;
+      constructor(values: Set<string>) { this.values = values; }
+      has(name: string) { return this.values.has(name); }
+    },
+    fetch: async (url: string, options: { body: string }) => {
+      requests.push({ url, settings: JSON.parse(options.body) });
+      return Response.json({ status: "ok" });
+    },
+  });
+  type Element = React.ReactElement<{
+    children?: React.ReactNode; name?: string; defaultChecked?: boolean; onSubmit?: (event: unknown) => Promise<void>;
+  }>;
+  function elements(node: React.ReactNode): Element[] {
+    if (Array.isArray(node)) return node.flatMap(elements);
+    if (!React.isValidElement<Element["props"]>(node)) return [];
+    return [node, ...elements(node.props.children)];
+  }
+  for (const [showGalleryVisitors, enableReveals] of [[true, false], [false, true]] as const) {
+    const tree = account.default({
+      email: "player@example.test", emailVerified: true, enableReveals, showGalleryVisitors,
+      hasPassword: true, oauthMessage: null, providers: [], screenName: "Player",
+      patreon: {
+        checkedAt: null, configured: false, email: null, emailMatchesPlayer: null, isSupporter: false,
+        linked: false, message: null, requiresReauthorization: false, tierAmountCents: null, tierName: null,
+      },
+    });
+    const checkbox = elements(tree).find(element => element.props.name === "showGalleryVisitors");
+    assert.ok(checkbox);
+    assert.equal(checkbox.props.defaultChecked, showGalleryVisitors);
+    const form = elements(tree).find(element =>
+      element.type === "form" && elements(element).some(child => child.props.name === "showGalleryVisitors"));
+    assert.ok(form?.props.onSubmit);
+    const checked = new Set([
+      ...(enableReveals ? ["enableReveals"] : []),
+      ...(!showGalleryVisitors ? ["showGalleryVisitors"] : []),
+    ]);
+    await form.props.onSubmit({ preventDefault() {}, currentTarget: checked });
+  }
+  assert.deepEqual(requests, [
+    { url: "/api/play/view-settings", settings: { enableReveals: false, showGalleryVisitors: false } },
+    { url: "/api/play/view-settings", settings: { enableReveals: true, showGalleryVisitors: true } },
+  ]);
+  assert.equal(refresh.mock.callCount(), 2);
 });
 
 test("the public gallery Join link opens the existing account form in registration mode", async () => {
@@ -1452,7 +1960,7 @@ test("gallery directory cards and rows distinguish contributing artists without 
   }
 });
 
-test("featured artist cards show names and external links, while Instagram stays unloaded until explicitly requested", async () => {
+test("featured artist cards keep their links while synced Instagram profiles embed without extra text or controls", async () => {
   const gallery = await load<typeof import("../components/artist-gallery.tsx")>("../components/artist-gallery.tsx", {
     "./artwork-thumbnail": { default: ({ alt }: { alt: string }) => React.createElement("span", { "data-thumbnail": alt }) },
     "./item-cards/item-card": { default: ({ item }: { item: ReturnType<typeof createArtistArtworkPreview> }) =>
@@ -1461,6 +1969,7 @@ test("featured artist cards show names and external links, while Instagram stays
   });
   const artist: FeaturedArtistGallery = {
     id: "artist-id", playerId: "artist-player", name: "Test Artist", bio: "The artist's biography.",
+    featureLink: "",
     portfolioUrl: "https://portfolio.example.com/", socialLinks: { bluesky: "https://bsky.app/profile/test.example" },
     instagramUsername: "test.artist", featured: true, thumbnail: { _id: "rarest-work", title: "Rarest work" },
   };
@@ -1505,7 +2014,116 @@ test("featured artist cards show names and external links, while Instagram stays
   assert.match(introduction, /href="https:\/\/www.instagram.com\/test.artist\/"/);
   assert.doesNotMatch(showcase, /artist-gallery-introduction|artist-bio|artist-social-links/);
   assert.match(showcase, /data-preview="artist-preview:work"/);
-  assert.match(showcase, /Load Instagram feed/);
-  assert.doesNotMatch(showcase, /<iframe/);
+  assert.match(showcase, /<iframe[^>]*src="https:\/\/www.instagram.com\/test.artist\/embed\/"/);
+  const instagram = showcase.slice(showcase.indexOf('<section class="artist-instagram">'));
+  assert.doesNotMatch(instagram, /<h3|<p|<a\b|<button|loading="lazy"/);
   assert.doesNotMatch(JSON.stringify(createArtistArtworkPreview(work)), /"owner":"viewer"/);
+});
+
+test("artist feature content embeds immediately without labels, descriptions, links or load buttons", async () => {
+  const cases = [
+    ["https://youtu.be/M7lc1UVf-VE", "YouTube"],
+    ["https://vimeo.com/76979871", "Vimeo"],
+    ["https://www.instagram.com/test.artist/", "Instagram"],
+    ["https://www.twitch.tv/artist", "Twitch"],
+    ["https://www.facebook.com/ArtistPage", "Facebook"],
+    ["https://www.tiktok.com/@artist/video/6718335390845095173", "TikTok"],
+    ["https://open.spotify.com/track/0123456789abcdefghijkl", "Spotify"],
+    ["https://soundcloud.com/artist/track", "SoundCloud"],
+  ];
+  for (const [link, provider] of cases) {
+    const component = await load<typeof import("../components/artist-feature.tsx")>("../components/artist-feature.tsx", {
+      react: {
+        ...React, useSyncExternalStore: (_subscribe: unknown, getSnapshot: () => string) => getSnapshot(),
+        useRef: () => ({ current: null }), useState: () => [280, () => {}], useEffect: () => {},
+      },
+    }, { window: { location: { hostname: "artfunkel.example" } } });
+    const html = renderToStaticMarkup(component.default({ link, artistName: "Test Artist" }));
+    assert.match(html, /<iframe[^>]*src="https:\/\//);
+    assert.match(html, /referrerPolicy="strict-origin-when-cross-origin"/);
+    assert.doesNotMatch(html, /<h[1-6]|<p\b|<a\b|<button|loading="lazy"/);
+    const src = new URL(html.match(/src="([^"]+)"/)![1].replaceAll("&amp;", "&"));
+    if (provider === "Twitch") assert.equal(src.searchParams.get("parent"), "artfunkel.example");
+    if (provider === "Facebook") assert.equal(src.searchParams.get("width"), "280");
+    if (provider === "YouTube") assert.equal(src.hostname, "www.youtube-nocookie.com");
+  }
+  const component = await load<typeof import("../components/artist-feature.tsx")>("../components/artist-feature.tsx");
+  for (const link of ["https://portfolio.example.com/feature", "javascript:alert(1)", ""]) {
+    assert.equal(renderToStaticMarkup(React.createElement(component.default, { link, artistName: "Test Artist" })), "");
+  }
+});
+
+test("Facebook embeds load automatically after measuring their container and stay responsive", async () => {
+  let width: number | null = null;
+  let effect: React.EffectCallback | undefined;
+  let resize: ((entries: { contentRect: { width: number } }[]) => void) | undefined;
+  let disconnected = false;
+  const container = {};
+  const component = await load<typeof import("../components/artist-feature.tsx")>("../components/artist-feature.tsx", {
+    react: {
+      ...React, useSyncExternalStore: () => "artfunkel.example", useRef: () => ({ current: container }),
+      useState: () => [width, (value: number) => { width = value; }],
+      useEffect: (callback: React.EffectCallback) => { effect = callback; },
+    },
+  }, {
+    ResizeObserver: class {
+      constructor(callback: typeof resize) { resize = callback; }
+      observe(node: unknown) { assert.equal(node, container); }
+      disconnect() { disconnected = true; }
+    },
+  });
+  const props = { link: "https://www.facebook.com/ArtistPage", artistName: "Test Artist" };
+  assert.doesNotMatch(renderToStaticMarkup(component.default(props)), /src="/);
+  assert.ok(effect);
+  const cleanup = effect();
+  assert.ok(resize);
+  for (const measuredWidth of [280, 220, 600]) {
+    resize([{ contentRect: { width: measuredWidth } }]);
+    const html = renderToStaticMarkup(component.default(props));
+    assert.ok(html.includes(`width=${Math.min(500, measuredWidth)}`));
+    assert.doesNotMatch(html, /<button/);
+  }
+  if (typeof cleanup === "function") cleanup();
+  assert.equal(disconnected, true);
+});
+
+test("the artist portal saves and removes the feature link through the profile API", async () => {
+  let sent: Record<string, unknown> | undefined;
+  const workspace = await load<typeof import("../app/artist/artist-workspace.tsx")>("../app/artist/artist-workspace.tsx", {
+    "@/components/artwork-editor/artwork-editor-panel": { default: () => null },
+    "@/server/artist-types": {},
+    react: { ...React, useState: (value: unknown) => [value, () => {}] },
+  }, {
+    FormData: class {
+      values: Record<string, string>;
+      constructor(values: Record<string, string>) { this.values = values; }
+      get(name: string) { return this.values[name] ?? ""; }
+    },
+    fetch: async (url: string, request: { body: string }) => {
+      assert.equal(url, "/api/artist/profile");
+      sent = JSON.parse(request.body);
+      return { ok: true, json: async () => ({ status: "ok" }) };
+    },
+  });
+  const artist: PublicArtistProfile = {
+    id: "artist", playerId: "player", name: "Test Artist", bio: "Bio",
+    portfolioUrl: "https://portfolio.example.com/", featureLink: "https://youtu.be/M7lc1UVf-VE",
+    socialLinks: {}, instagramUsername: null, featured: false,
+  };
+  const tree = workspace.default({ artist, initialWorks: [], rendererOptions: [] });
+  const profile = React.Children.toArray(tree.props.children)[1] as React.ReactElement<{ artist: PublicArtistProfile }>;
+  const profileComponent = profile.type as (props: typeof profile.props) => React.ReactElement<{ children: React.ReactNode }>;
+  const section = profileComponent(profile.props);
+  const form = React.Children.toArray(section.props.children).find(child =>
+    React.isValidElement(child) && child.type === "form") as React.ReactElement<{ onSubmit: (event: unknown) => Promise<void> }>;
+  const html = renderToStaticMarkup(section);
+  assert.match(html, /name="featureLink"/);
+  assert.ok(html.includes(`value="${artist.featureLink}"`));
+  for (const featureLink of ["https://vimeo.com/76979871", ""]) {
+    await form.props.onSubmit({ preventDefault() {}, currentTarget: {
+      featureLink, portfolioUrl: artist.portfolioUrl, bio: artist.bio,
+    } });
+    assert.equal(sent?.featureLink, featureLink);
+    assert.equal(sent?.portfolioUrl, artist.portfolioUrl);
+  }
 });

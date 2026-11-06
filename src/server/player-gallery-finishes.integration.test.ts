@@ -63,11 +63,11 @@ test("per-gallery finishes initialize and save only for the active owner", async
 
   const first = getGalleryFinishes({
     wall: [0.1, 0.2, 0.3], floor: [1, 0, 0], trim: [0, 0, 1],
-    frame_width: 0.15, matte_width: 0, brightness: 0,
+    frame_width: 0.15, matte_width: 0, spacing: 0.5, brightness: 0,
   });
   const second = getGalleryFinishes({
     ceiling: [0.4, 0.5, 0.6], matte: [0, 1, 0],
-    frame_width: 0.01, matte_width: 0.2, brightness: 1,
+    frame_width: 0.01, matte_width: 0.2, spacing: 4, brightness: 1,
   });
   await t.test("concurrent saves preserve independent galleries and reload exact finishes", async () => {
     assert.deepEqual(await Promise.all([
@@ -84,7 +84,7 @@ test("per-gallery finishes initialize and save only for the active owner", async
     );
   });
 
-  await t.test("invalid widths and brightness cannot be persisted even by direct calls to the save helper", async () => {
+  await t.test("invalid widths, spacing and brightness cannot be persisted even by direct calls to the save helper", async () => {
     for (const finishes of [
       { ...first, frame_width: 0.009 },
       { ...first, frame_width: 0.151 },
@@ -92,6 +92,10 @@ test("per-gallery finishes initialize and save only for the active owner", async
       { ...first, matte_width: 0.201 },
       { ...first, frame_width: NaN },
       { ...first, matte_width: Infinity },
+      { ...first, spacing: 0.499 },
+      { ...first, spacing: 4.001 },
+      { ...first, spacing: NaN },
+      { ...first, spacing: Infinity },
       { ...first, brightness: -0.001 },
       { ...first, brightness: 1.001 },
       { ...first, brightness: NaN },

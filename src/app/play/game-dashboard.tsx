@@ -364,6 +364,10 @@ export default function GameDashboard({
   galleryRates,
   galleryMetadata,
   galleryFinishes,
+  galleryOverviewDistanceCm,
+  galleryVisitorScale,
+  galleryCameraHeightCm,
+  galleryArtworkCenterHeightCm,
   impersonating,
   canMakePrivateAuctionsPublic,
   levelUpDiscountAvailable,
@@ -400,6 +404,10 @@ export default function GameDashboard({
   galleryRates: GalleryRates;
   galleryMetadata: GalleryMetadataSnapshot | null;
   galleryFinishes: GalleryFinishes;
+  galleryOverviewDistanceCm?: number;
+  galleryVisitorScale?: number;
+  galleryCameraHeightCm?: number;
+  galleryArtworkCenterHeightCm?: number;
   impersonating: boolean;
   canMakePrivateAuctionsPublic: boolean;
   levelUpDiscountAvailable: boolean;
@@ -618,6 +626,9 @@ export default function GameDashboard({
   const [preferredGalleryView, setPreferredGalleryView] = useState(
     player.viewSettings.galleryView,
   );
+  const [galleryVisitorsVisible, setGalleryVisitorsVisible] = useState(
+    player.viewSettings.showGalleryVisitors,
+  );
   const [collectionFilters, setCollectionFilters] = useState<CollectionFilters>(
     getDefaultCollectionFilters,
   );
@@ -661,6 +672,7 @@ export default function GameDashboard({
     ownerId: playerId,
     spawnIntervalMinutes: npcSpawnIntervalMinutes,
   });
+  const meetingGalleryVisitor = useRef(false);
 
   useEffect(() => {
     function updateKarma(event: Event) {
@@ -2023,6 +2035,7 @@ export default function GameDashboard({
 
   function saveViewSettings(settings: Partial<PlayerViewSettings>) {
     if (settings.galleryView !== undefined) setPreferredGalleryView(settings.galleryView);
+    if (settings.showGalleryVisitors !== undefined) setGalleryVisitorsVisible(settings.showGalleryVisitors);
     viewSettingsSaveQueue.current = viewSettingsSaveQueue.current.then(async () => {
       try {
         const response = await fetch("/api/play/view-settings", {
@@ -2578,6 +2591,27 @@ export default function GameDashboard({
         onClick={() => setArchiveConfirmationItem(item)}
       />
     );
+  }
+
+  function galleryVisitorDisabled(npc: NpcView | GalleryNpcView) {
+    const cost = npc.tutorial ? 0 : getVisitorSocialBatteryCost(npc.quality, true);
+    return pending || meetingNpc !== null || npc.alreadyMet || socialBattery < cost || Boolean(npcRewardEffects[npc._id]);
+  }
+
+  async function meetGalleryVisitor(id: string) {
+    const npc = galleryVisitors.find(visitor => visitor._id === id);
+    if (!npc || galleryVisitorDisabled(npc) || meetingGalleryVisitor.current) return;
+    meetingGalleryVisitor.current = true;
+    try {
+      if (await meetNpc(npc)) {
+        markVisitorMet(npc._id);
+      } else {
+        if (!npc.tutorial) removeVisitor(npc._id);
+        void refreshVisitors();
+      }
+    } finally {
+      meetingGalleryVisitor.current = false;
+    }
   }
 
   async function meetNpc(npc: NpcView | GalleryNpcView): Promise<boolean> {
@@ -3443,6 +3477,8 @@ export default function GameDashboard({
           displayed={galleryItems}
           error={offerRevealError}
           finishes={galleryFinishes}
+          cameraHeightCm={galleryCameraHeightCm}
+          artworkCenterHeightCm={galleryArtworkCenterHeightCm}
           item={offerRevealItem}
           key={offerRevealItem._id}
           legendaryAttributes={legendaryAttributes}
@@ -4452,8 +4488,16 @@ export default function GameDashboard({
                 disabled={pending}
                 emptyMessage="Your gallery walls are empty."
                 finishes={galleryFinishes}
+                overviewDistanceCm={galleryOverviewDistanceCm}
+                visitorScale={galleryVisitorScale}
+                cameraHeightCm={galleryCameraHeightCm}
+                artworkCenterHeightCm={galleryArtworkCenterHeightCm}
                 items={galleryItems}
                 onSelectItem={(item) => setGalleryItemDetailsId(item._id)}
+                visitors={galleryVisitors.map(npc => ({ ...npc, disabled: galleryVisitorDisabled(npc) }))}
+                onMeetVisitor={meetGalleryVisitor}
+                visitorsVisible={galleryVisitorsVisible}
+                onVisitorsVisibleChange={visible => saveViewSettings({ showGalleryVisitors: visible })}
               />
               <div
                 aria-label="Gallery visitors"
@@ -4485,14 +4529,7 @@ export default function GameDashboard({
                           insufficientBattery ||
                           Boolean(npcRewardEffects[npc._id])
                         }
-                        onClick={async () => {
-                          if (await meetNpc(npc)) {
-                            markVisitorMet(npc._id);
-                          } else {
-                            if (!npc.tutorial) removeVisitor(npc._id);
-                            void refreshVisitors();
-                          }
-                        }}
+                        onClick={() => void meetGalleryVisitor(npc._id)}
                         title={
                           npc.alreadyMet
                             ? `${npc.npc_name} already met`
@@ -4503,7 +4540,11 @@ export default function GameDashboard({
                         type="button"
                       >
                         <i aria-hidden="true" className={`fa ${npc.icon}`} />
-                        <span>{npc.npc_name}</span>
+                        <span className="gallery-npc-type">{npc.npc_name}</span>
+                        <small className="gallery-npc-cost" aria-label={`Costs ${socialBatteryCost} social battery`}>
+                          <i aria-hidden="true" className="fa fa-bolt" />
+                          {socialBatteryCost}
+                        </small>
                       </button>
                     </span>
                   );
@@ -4531,6 +4572,7 @@ export default function GameDashboard({
             initialItemId={exploreFocusedItemId}
             initialSort={player.viewSettings.gallerySort}
             initialViewMode={preferredGalleryView}
+            visitorsVisible={galleryVisitorsVisible}
             key={`gallery-explorer-${exploreResetKey}`}
             meetingNpc={meetingNpc}
             npcSpawnOptions={npcSpawnOptions}

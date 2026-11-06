@@ -18,6 +18,7 @@ import { prepareArtworkForPublicViewer, prepareItemForPublicViewer } from "@/ser
 export async function getGalleryExhibition(database: Db, playerId: string, viewerId: string | null) {
   const gallery = await getPublicGalleryView(database, playerId, viewerId);
   if (!gallery) return null;
+  const settings = await getGameplaySettings(database);
 
   const metadata = await refreshGalleryMetadata(database, playerId);
   const artist = await getPublicArtistProfile(database, playerId);
@@ -58,10 +59,8 @@ export async function getGalleryExhibition(database: Db, playerId: string, viewe
   const galleryId = metadata?._id ?? playerId;
   let rates: GalleryRates | null = null;
   if (viewerId) {
-    const [displayedItems, settings] = await Promise.all([
-      database.collection<GameItem>("items").find({ owner: playerId, status: "displayed" }).toArray(),
-      getGameplaySettings(database),
-    ]);
+    const displayedItems = await database.collection<GameItem>("items")
+      .find({ owner: playerId, status: "displayed" }).toArray();
     rates = await calculateGalleryRates(
       database, gallery.owner.level, await hydrateGameItems(database, displayedItems), new Date(), settings.active,
     );
@@ -72,6 +71,10 @@ export async function getGalleryExhibition(database: Db, playerId: string, viewe
     getPlayerGalleryFinishes(database, playerId, galleryId),
   ]);
   return {
+    overviewDistanceCm: settings.active.galleryOverviewDistanceCm,
+    visitorScale: settings.active.galleryVisitorScale,
+    cameraHeightCm: settings.active.galleryCameraHeightCm,
+    artworkCenterHeightCm: settings.active.galleryArtworkCenterHeightCm,
     galleryId, finishes, owner: gallery.owner, items: items.map(publicItem), artist, artistWorks, auctions, rates,
     metadata: viewerId && metadata ? { ...metadata, reactions } : null,
     legendaryAttributes: effects.map(effect => ({

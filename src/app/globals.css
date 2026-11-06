@@ -3432,7 +3432,7 @@ a.welcome-button {
 }
 
 .featured-artist-galleries > header p,
-.artist-gallery-introduction > p:first-child {
+.artist-gallery-info > p:first-child {
   color: #a81182;
   font: 700 0.75rem Courier, monospace;
   letter-spacing: 0.12em;
@@ -3497,8 +3497,6 @@ a.welcome-button {
 
 .artist-social-links a,
 .artist-social-links button,
-.artist-instagram > a,
-.artist-instagram > button,
 .artist-work-preview > button {
   display: inline-flex;
   align-items: center;
@@ -3530,7 +3528,6 @@ a.welcome-button {
 .artist-social-links a:focus-visible,
 .artist-social-links button:hover,
 .artist-social-links button:focus-visible,
-.artist-instagram > button:hover,
 .artist-work-preview > button:hover {
   background: #ffe4f8;
 }
@@ -3569,6 +3566,64 @@ a.welcome-button {
   box-shadow: 6px 6px 0 #ff33cc;
 }
 
+.artist-gallery-introduction {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  gap: 32px;
+}
+
+.artist-gallery-info {
+  flex: 1 1 360px;
+  min-width: 0;
+}
+
+.artist-feature {
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  flex: 1 1 400px;
+  gap: 12px;
+  min-width: 0;
+  max-width: 500px;
+  width: 100%;
+}
+
+.artist-feature-frame-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.artist-feature-frame {
+  display: block;
+  width: 100%;
+  border: 1px solid #30222c;
+  background: #fff;
+}
+
+.artist-feature-frame-video {
+  aspect-ratio: 16 / 9;
+  min-height: 200px;
+}
+
+.artist-feature-frame-twitch {
+  min-width: 400px;
+  min-height: 300px;
+}
+
+.artist-feature-frame-portrait {
+  aspect-ratio: 9 / 16;
+  max-height: 680px;
+}
+
+.artist-feature-frame-social {
+  height: 600px;
+}
+
+.artist-feature-frame-audio {
+  height: 352px;
+}
+
 .artist-gallery-showcase {
   grid-area: showcase;
   display: grid;
@@ -3586,14 +3641,12 @@ a.welcome-button {
   line-height: 1.7;
 }
 
-.artist-work-showcase h3,
-.artist-instagram h3 {
+.artist-work-showcase h3 {
   margin: 0 0 12px;
   font: 700 1.5rem Georgia, serif;
 }
 
-.artist-work-showcase > p,
-.artist-instagram > p {
+.artist-work-showcase > p {
   margin: 0 0 20px;
   line-height: 1.6;
 }
@@ -3947,7 +4000,7 @@ a.welcome-button {
   margin: 0;
 }
 
-.visited-gallery-workspace > .public-gallery-window {
+.visited-gallery-workspace > .visited-gallery-display {
   grid-area: gallery;
   min-width: 0;
 }
@@ -6142,21 +6195,9 @@ a.welcome-button {
   padding-right: 12px;
 }
 
-.visited-gallery-finish-controls {
-  border-top: 1px solid #d8d2c7;
-  padding: 12px;
-}
-
-.visited-gallery-finish-controls > summary {
-  cursor: pointer;
-  font-weight: 700;
-}
-
-.visited-gallery-finish-controls .gallery-finish-panel {
-  height: auto;
+.visited-gallery-display > .gallery-finish-panel {
+  margin-top: 16px;
   max-height: none;
-  border: 0;
-  box-shadow: none;
 }
 
 @container (max-width: 500px) {
@@ -8299,7 +8340,8 @@ a.welcome-button {
 }
 
 .gallery-navigation-control.exit,
-.gallery-navigation-control.home {
+.gallery-navigation-control.home,
+.gallery-navigation-control.visitors {
   flex: 0 1 120px;
   flex-direction: column;
   width: auto;
@@ -8428,12 +8470,12 @@ a.welcome-button {
 
 .gallery-visitor-tray {
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 12px 8px;
+  gap: 10px;
   min-height: 0;
-  padding: 16px 12px;
+  padding: 10px 14px 15px 10px;
   background: #1d201a;
 }
 
@@ -8442,31 +8484,11 @@ a.welcome-button {
 }
 
 .gallery-visitor-tray .gallery-npc-slot {
-  flex: 0 1 88px;
+  display: flex;
+  flex: 0 1 128px;
   min-width: 0;
   max-width: 100%;
   margin: 0;
-}
-
-.gallery-visitor-tray .gallery-npc {
-  width: 100%;
-  padding: 4px 2px;
-}
-
-.gallery-visitor-tray .gallery-npc > i {
-  font-size: 2.4em;
-}
-
-.gallery-visitor-tray .gallery-npc > span {
-  margin-top: 2px;
-  color: #f3f3f3;
-  text-shadow: 1px 1px 2px #111;
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
-
-.gallery-visitor-tray .gallery-npc.disabled {
-  opacity: 0.5;
 }
 
 .gallery-npc-slot {
@@ -8476,44 +8498,93 @@ a.welcome-button {
 }
 
 .gallery-npc {
-  display: flex;
-  flex-direction: column;
+  --npc-color: #aaa;
+  --npc-shadow-offset: 3px;
+  --npc-shadow-outline-offset: 5px;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 2px 6px;
   align-items: center;
-  border: 0;
-  background: transparent;
-  font: inherit;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  border: 2px solid #111;
+  border-radius: 8px;
+  padding: 6px 8px;
+  background: #fff;
+  color: #111;
+  font-family: Courier, "Courier New", monospace;
   overflow: visible;
-  text-align: center;
+  text-align: left;
+  box-shadow:
+    var(--npc-shadow-offset) var(--npc-shadow-offset) 0 var(--npc-color),
+    var(--npc-shadow-outline-offset) var(--npc-shadow-outline-offset) 0 #111;
 }
 
 .gallery-npc > i {
-  display: block;
-  font-size: 3em;
-  text-shadow: 1px 1px 2px black;
+  display: grid;
+  grid-row: 1 / span 2;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid #111;
+  border-radius: 4px;
+  background: var(--npc-color);
+  color: #111;
+  font-size: 16px;
 }
 
-.gallery-npc > span {
+.gallery-npc-type {
   display: block;
-  margin-top: 5px;
-  color: #777;
-  font-size: 0.75rem;
+  min-width: 0;
+  color: #111;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.gallery-npc-cost {
+  grid-column: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: #55594f;
+  font: 0.625rem/1.1 Courier, monospace;
+  white-space: nowrap;
+}
+
+.gallery-npc-cost > i {
+  font-size: 0.9em;
 }
 
 .gallery-npc.enabled {
-  opacity: 0.8;
   cursor: pointer;
 }
 
-.gallery-npc.enabled:hover {
-  opacity: 1;
+.gallery-npc:hover:not(:disabled) {
+  --npc-shadow-offset: 4px;
+  --npc-shadow-outline-offset: 6px;
+  translate: -1px -1px;
 }
 
-.gallery-npc.disabled {
-  opacity: 0.2;
+.gallery-npc:focus-visible:not(:disabled) {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
 }
 
+.gallery-npc:active:not(:disabled) {
+  --npc-shadow-offset: 1px;
+  --npc-shadow-outline-offset: 3px;
+  translate: 2px 2px;
+}
+
+.gallery-npc:disabled,
+.gallery-npc.disabled,
 .gallery-npc.rewarding {
-  opacity: 0.2;
+  cursor: not-allowed;
+  filter: grayscale(0.65);
+  opacity: 0.45;
 }
 
 .npc-effect-layer {
@@ -8669,19 +8740,19 @@ a.welcome-button {
 }
 
 .gallery-npc.bronze {
-  color: #e8a48d;
+  --npc-color: #e8a48d;
 }
 
 .gallery-npc.silver {
-  color: #aaa;
+  --npc-color: #aaa;
 }
 
 .gallery-npc.gold {
-  color: #e8bf6c;
+  --npc-color: #e8bf6c;
 }
 
 .gallery-npc.platinum {
-  color: #dfdfdf;
+  --npc-color: #dfdfdf;
 }
 
 @keyframes legacy-card-effect {

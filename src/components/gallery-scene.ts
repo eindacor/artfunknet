@@ -1,13 +1,17 @@
 import * as THREE from "three";
 import { getArtworkImageUrl } from "../server/artwork-image-url.ts";
 import { configureGalleryShadows } from "./gallery-lighting.ts";
+import { createGalleryVisitors, type GallerySceneVisitor } from "./gallery-visitors.ts";
 
 import {
   GALLERY_FIELD_OF_VIEW,
   GALLERY_FRAME_DEPTH,
   GALLERY_FRAME_FRONT_Z,
+  GALLERY_SCENE_SCALE,
   getGalleryCameraFraming,
+  getGalleryPlacardLayout,
   getGalleryWideCameraFraming,
+  toGalleryUnits,
   type GalleryLayout,
 } from "./gallery-layout";
 import {
@@ -16,7 +20,7 @@ import {
   type GalleryFinishes,
 } from "@/server/gallery-finishes";
 
-const CEILING_TILE_SIZE = 0.6;
+const CEILING_TILE_SIZE = toGalleryUnits(0.6);
 const CEILING_GRID_OPACITY = 0.12;
 const mix = THREE.MathUtils.lerp;
 
@@ -34,6 +38,8 @@ const SURFACE_TEXTURES: Record<
 export type GallerySceneController = {
   focus: (id: string, zoomed?: boolean) => void;
   setFinishes: (finishes: GalleryFinishes) => void;
+  setVisitorsVisible: (visible: boolean) => void;
+  setVisitors: (visitors: readonly GallerySceneVisitor[], ambientVisitorCount?: number) => void;
   dispose: () => void;
 };
 
@@ -45,6 +51,7 @@ export function mountGalleryScene(
   onUnavailable: () => void,
   initiallyZoomed = false,
   finishes: GalleryFinishes = DEFAULT_GALLERY_FINISHES,
+  onMeetVisitor: (id: string) => void = () => {},
 ): GallerySceneController {
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -63,8 +70,10 @@ export function mountGalleryScene(
   const hemiLight = new THREE.HemisphereLight("#fff5df", "#61513e", 0.6);
   const ambientLight = new THREE.AmbientLight("#fff4e5", 0.05);
   scene.add(hemiLight, ambientLight);
-  const camera = new THREE.PerspectiveCamera(GALLERY_FIELD_OF_VIEW, 1, 0.05, 1000);
+  const camera = new THREE.PerspectiveCamera(GALLERY_FIELD_OF_VIEW, 1, toGalleryUnits(0.05), toGalleryUnits(1000));
   const destination = new THREE.Vector3();
+  const target = new THREE.Vector3();
+  const targetDestination = new THREE.Vector3();
   const geometries = new Set<THREE.BufferGeometry>();
   const materials = new Set<THREE.Material>();
   const textures = new Set<THREE.Texture>();
@@ -94,17 +103,27 @@ export function mountGalleryScene(
   function render(time: number) {
     animation = 0;
     if (disposed || unavailable) return;
-    const delta = Math.min((time - lastTime) / 1000 || 1 / 60, 0.05);
+    const delta = lastTime ? Math.min((time - lastTime) / 1000, 0.05) : 1 / 60;
     lastTime = time;
-    if (reducedMotion.matches || camera.position.distanceTo(destination) < 0.001) {
-      camera.position.copy(destination);
-    } else {
-      camera.position.lerp(destination, 1 - Math.exp(-delta * 10));
+    if (!reducedMotion.matches) {
+      const blend = 1 - Math.exp(-delta * 10);
+      target.lerp(targetDestination, blend);
+      camera.position.lerp(destination, blend);
     }
-    camera.lookAt(camera.position.x, camera.position.y, 0);
+    if (!zoomed) camera.position.y = layout.cameraHeight;
+    const moving = !reducedMotion.matches
+      && (camera.position.distanceTo(destination) > toGalleryUnits(0.001)
+        || target.distanceTo(targetDestination) > toGalleryUnits(0.001));
+    if (!moving) {
+      camera.position.copy(destination);
+      target.copy(targetDestination);
+    }
+    camera.lookAt(target);
+    visitors.setCameraDepth(camera.position.z);
     renderer.render(scene, camera);
     updateCursor();
-    if (camera.position.distanceTo(destination) > 0.001) invalidate();
+    if (moving) invalidate();
+    else lastTime = 0;
   }
 
   function loadTexture(url: string, ready: (texture: THREE.Texture) => void) {
@@ -146,7 +165,7 @@ export function mountGalleryScene(
   ) {
     const geometry = new THREE.BoxGeometry(width, height, depth);
     geometries.add(geometry);
-    // Meter-based UVs keep surface textures tileable instead of stretching them.
+    // Scene-unit UVs and the texture repeat keep surface tiles at the shared scale.
     if (textureSlot) {
       const uv = geometry.getAttribute("uv");
       for (let face = 0; face < 6; face++) {
@@ -191,6 +210,7 @@ export function mountGalleryScene(
     if (url) {
       loadTexture(url, (texture) => {
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set(1 / GALLERY_SCENE_SCALE, 1 / GALLERY_SCENE_SCALE);
         surfaces[slot].map = texture;
         surfaces[slot].needsUpdate = true;
         if (slot === "floor") {
@@ -200,18 +220,18 @@ export function mountGalleryScene(
       });
     }
   }
-  const endPadding = 2;
-  const wallThickness = 0.15;
-  const trimDepth = 0.04;
+  const endPadding = toGalleryUnits(2);
+  const wallThickness = toGalleryUnits(0.15);
+  const trimDepth = toGalleryUnits(0.04);
   const roomWidth = layout.width + endPadding * 2;
   box(
     roomWidth, layout.height, wallThickness, surfaces.wall,
     0, layout.height / 2, -wallThickness / 2, "wall",
   );
-  const floor = box(1, 0.12, 1, surfaces.floor, 0, -0.06, 0, "floor");
+  const floor = box(1, toGalleryUnits(0.12), 1, surfaces.floor, 0, toGalleryUnits(-0.06), 0, "floor");
   const ceiling = box(
-    1, 0.12, 1, surfaces.ceiling,
-    0, layout.height + 0.06, 0, "ceiling",
+    1, toGalleryUnits(0.12), 1, surfaces.ceiling,
+    0, layout.height + toGalleryUnits(0.06), 0, "ceiling",
   );
   const ceilingGridMaterial = new THREE.LineBasicMaterial({
     color: "#000000",
@@ -224,12 +244,12 @@ export function mountGalleryScene(
     new THREE.BufferGeometry(),
     ceilingGridMaterial,
   );
-  ceilingGrid.position.y = layout.height - 0.002;
+  ceilingGrid.position.y = layout.height - toGalleryUnits(0.002);
   geometries.add(ceilingGrid.geometry);
   scene.add(ceilingGrid);
   box(
-    roomWidth, 0.12, trimDepth, surfaces.trim,
-    0, 0.06, trimDepth / 2, "floor",
+    roomWidth, toGalleryUnits(0.12), trimDepth, surfaces.trim,
+    0, toGalleryUnits(0.06), trimDepth / 2, "floor",
   );
   const wallReturns = [-1, 1].map((direction) => ({
     wall: box(
@@ -237,15 +257,15 @@ export function mountGalleryScene(
       direction * (roomWidth + wallThickness) / 2, layout.height / 2, 0, "wall",
     ),
     trim: box(
-      trimDepth, 0.12, 1, surfaces.trim,
-      direction * (roomWidth - trimDepth) / 2, 0.06, 0, "floor",
+      trimDepth, toGalleryUnits(0.12), 1, surfaces.trim,
+      direction * (roomWidth - trimDepth) / 2, toGalleryUnits(0.06), 0, "floor",
     ),
   }));
   const imageMaterials = new Map<string, THREE.MeshStandardMaterial[]>();
   const frameZ = GALLERY_FRAME_FRONT_Z - GALLERY_FRAME_DEPTH / 2;
-  const artworkZ = GALLERY_FRAME_FRONT_Z - 0.005;
-  const matDepth = 0.004;
-  const matZ = artworkZ - 0.001 - matDepth / 2;
+  const artworkZ = GALLERY_FRAME_FRONT_Z - toGalleryUnits(0.005);
+  const matDepth = toGalleryUnits(0.004);
+  const matZ = artworkZ - toGalleryUnits(0.001) - matDepth / 2;
 
   for (const painting of layout.paintings) {
     const { width, height, x, y, frameWidth: border, matteWidth } = painting;
@@ -313,21 +333,21 @@ export function mountGalleryScene(
       plateMaterial.map = texture;
       plateMaterial.color.set("#ffffff");
     }
+    const placard = getGalleryPlacardLayout(painting);
     const plate = box(
-      0.36, 0.18, 0.012, plateMaterial,
-      x + mattedWidth / 2 + border + 0.28,
-      y - mattedHeight / 2 + 0.06, 0.018,
+      placard.width, placard.height, placard.depth, plateMaterial,
+      placard.x, placard.y, placard.z,
     );
     plate.castShadow = true;
     plate.userData.itemId = painting.id;
     paintings.push(plate);
 
-    const lightZ = Math.max(1.7, mattedHeight * 0.7, mattedWidth * 0.55);
-    const lightY = y + mattedHeight / 2 + 0.8;
+    const lightZ = Math.max(toGalleryUnits(1.7), mattedHeight * 0.7, mattedWidth * 0.55);
+    const lightY = y + mattedHeight / 2 + toGalleryUnits(0.8);
     const distance = Math.hypot(lightY - y, lightZ);
     const angle = Math.min(
       1.2,
-      Math.atan2(Math.max(mattedWidth, mattedHeight) + 0.8, distance),
+      Math.atan2(Math.max(mattedWidth, mattedHeight) + toGalleryUnits(0.8), distance),
     );
     const light = new THREE.SpotLight(
       "#fff0d9", 1.75 * distance * distance, distance * 3, angle, 1, 2,
@@ -336,8 +356,8 @@ export function mountGalleryScene(
     light.target.position.set(x, y, 0);
     light.shadow.mapSize.set(1024, 1024);
     light.shadow.bias = -0.0003;
-    light.shadow.normalBias = 0.002;
-    light.shadow.camera.near = 0.1;
+    light.shadow.normalBias = toGalleryUnits(0.002);
+    light.shadow.camera.near = toGalleryUnits(0.1);
     lights.push(light);
     scene.add(light, light.target);
   }
@@ -354,19 +374,29 @@ export function mountGalleryScene(
       },
     );
   }
+  const visitors = createGalleryVisitors(layout, invalidate);
+  scene.add(visitors.group);
+  let visitorsVisible = true;
+
+  function setVisitorsVisible(visible: boolean) {
+    visitorsVisible = visible;
+    visitors.setVisible(visible && !zoomed);
+  }
 
   function updateDestination() {
     const painting = layout.paintings[activeIndex];
     const framing = zoomed
       ? getGalleryCameraFraming(painting, camera.aspect, host.clientWidth)
-      : getGalleryWideCameraFraming(layout, camera.aspect, host.clientWidth);
+      : getGalleryWideCameraFraming(layout);
     destination.set(painting?.x ?? 0, framing.y, framing.z);
+    targetDestination.set(painting?.x ?? destination.x, painting?.y ?? destination.y, artworkZ);
   }
 
   function focus(id: string, nextZoomed = false) {
     const index = layout.paintings.findIndex((painting) => painting.id === id);
     if (index >= 0) activeIndex = index;
     zoomed = nextZoomed;
+    setVisitorsVisible(visitorsVisible);
     updateDestination();
     updateCursor();
     invalidate();
@@ -378,14 +408,14 @@ export function mountGalleryScene(
     camera.aspect = width / height;
     updateDestination();
     // Size the room for every possible view so focusing never changes geometry.
-    const maximumDistance = getGalleryWideCameraFraming(
-      layout,
-      camera.aspect,
-      width,
-    ).z;
-    camera.far = Math.max(100, maximumDistance * 4, layout.width * 2);
+    const maximumDistance = Math.max(
+      layout.overviewDistance,
+      getGalleryCameraFraming(undefined, camera.aspect, width).z,
+      ...layout.paintings.map(painting => getGalleryCameraFraming(painting, camera.aspect, width).z),
+    );
+    camera.far = Math.max(toGalleryUnits(100), maximumDistance * 4, layout.width * 2);
     camera.updateProjectionMatrix();
-    const roomDepth = maximumDistance + 8;
+    const roomDepth = maximumDistance + toGalleryUnits(8);
     floor.scale.set(roomWidth, 1, roomDepth);
     ceiling.scale.copy(floor.scale);
     floor.position.z = ceiling.position.z = roomDepth / 2;
@@ -434,6 +464,10 @@ export function mountGalleryScene(
     }
     renderer.setSize(width, height);
     camera.position.copy(destination);
+    target.copy(targetDestination);
+    camera.lookAt(target);
+    lastTime = 0;
+    visitors.setCameraDepth(camera.position.z);
     renderer.shadowMap.needsUpdate = true;
     invalidate();
   }
@@ -445,20 +479,27 @@ export function mountGalleryScene(
       -(event.clientY - bounds.top) / bounds.height * 2 + 1,
     );
     raycaster.setFromCamera(pointer, camera);
-    return raycaster.intersectObjects(paintings)[0]?.object.userData.itemId as string | undefined;
+    const visitor = visitors.pick(raycaster);
+    if (visitor) return { type: "visitor" as const, ...visitor };
+    const id = raycaster.intersectObjects(paintings)[0]?.object.userData.itemId as string | undefined;
+    return id ? { type: "painting" as const, id } : undefined;
   }
   function click(event: MouseEvent) {
-    const id = pick(event);
-    if (id) onSelect(id);
+    const target = pick(event);
+    if (target?.type === "visitor") {
+      if (target.interactive && target.visitorId) onMeetVisitor(target.visitorId);
+    } else if (target) onSelect(target.id);
   }
   function hover(event: MouseEvent) {
     hoverPosition = { clientX: event.clientX, clientY: event.clientY };
     updateCursor();
   }
   function updateCursor() {
-    const id = hoverPosition ? pick(hoverPosition) : undefined;
-    renderer.domElement.style.cursor = id
-      ? id === layout.paintings[activeIndex]?.id
+    const target = hoverPosition ? pick(hoverPosition) : undefined;
+    renderer.domElement.style.cursor = target?.type === "visitor"
+      ? target.interactive ? "pointer" : ""
+      : target
+      ? target.id === layout.paintings[activeIndex]?.id
         ? zoomed ? "zoom-out" : "zoom-in"
         : "pointer"
       : "";
@@ -486,6 +527,8 @@ export function mountGalleryScene(
   return {
     focus,
     setFinishes,
+    setVisitorsVisible,
+    setVisitors: visitors.setVisitors,
     dispose() {
       disposed = true;
       window.cancelAnimationFrame(animation);
@@ -494,6 +537,7 @@ export function mountGalleryScene(
       renderer.domElement.removeEventListener("mousemove", hover);
       renderer.domElement.removeEventListener("mouseleave", leave);
       renderer.domElement.removeEventListener("webglcontextlost", contextLost);
+      visitors.dispose();
       geometries.forEach((geometry) => geometry.dispose());
       materials.forEach((surface) => surface.dispose());
       textures.forEach((texture) => texture.dispose());

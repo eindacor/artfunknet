@@ -11,11 +11,16 @@ import type {
 } from "./item-cards/types";
 import type { HydratedGameItem } from "@/server/item-artwork";
 import type { GalleryFinishes } from "@/server/gallery-finishes";
+import type { GallerySceneVisitor } from "./gallery-visitors";
 
 export default function PublicGallery({
   visitorContent,
   focusedItemId,
   finishes,
+  overviewDistanceCm,
+  visitorScale,
+  cameraHeightCm,
+  artworkCenterHeightCm,
   items,
   legendaryAttributes,
   navigationDisabled = false,
@@ -27,10 +32,18 @@ export default function PublicGallery({
   onSelectItem,
   owner,
   viewerId,
+  visitors,
+  onMeetVisitor,
+  visitorsVisible,
+  onVisitorsVisibleChange,
 }: {
   visitorContent?: React.ReactNode;
   focusedItemId?: string;
   finishes?: GalleryFinishes;
+  overviewDistanceCm?: number;
+  visitorScale?: number;
+  cameraHeightCm?: number;
+  artworkCenterHeightCm?: number;
   items: HydratedGameItem[];
   legendaryAttributes: CardLegendaryAttribute[];
   navigationDisabled?: boolean;
@@ -42,14 +55,18 @@ export default function PublicGallery({
   onSelectItem?: (item: HydratedGameItem) => void;
   owner: ItemDisplayOwner;
   viewerId: string | null;
+  visitors?: readonly GallerySceneVisitor[];
+  onMeetVisitor?: (id: string) => void;
+  visitorsVisible?: boolean;
+  onVisitorsVisibleChange?: (visible: boolean) => void;
 }) {
   const [selectedItem, setSelectedItem] = useState<HydratedGameItem | null>(
     null,
   );
-  const navigation = onPreviousGallery || onNextGallery || onExitGallery ||
-    onGoHome || navigationError ? (
+  const navigation = (visitorToggle: React.ReactNode) => (
       <nav
-        aria-label="Gallery navigation"
+        aria-label={onPreviousGallery || onNextGallery || onExitGallery || onGoHome
+          ? "Gallery navigation" : "Gallery display controls"}
         className="gallery-navigation-overlay"
         onKeyDown={(event) => event.stopPropagation()}
       >
@@ -79,7 +96,6 @@ export default function PublicGallery({
             </button>
           </>
         ) : null}
-        {onExitGallery || onGoHome ? (
           <div className="gallery-navigation-actions">
             {onExitGallery ? (
               <button
@@ -94,6 +110,7 @@ export default function PublicGallery({
                 <span>Exit gallery</span>
               </button>
             ) : null}
+            {visitorToggle}
             {onGoHome ? (
               <button
                 aria-label="Return home"
@@ -108,14 +125,13 @@ export default function PublicGallery({
               </button>
             ) : null}
           </div>
-        ) : null}
         {navigationError ? (
           <p className="gallery-navigation-error" role="alert">
             {navigationError}
           </p>
         ) : null}
       </nav>
-    ) : null;
+    );
   return (
     <>
       <div className="gallery-window public-gallery-window">
@@ -124,10 +140,19 @@ export default function PublicGallery({
           emptyMessage={`@${owner.screenName} has not shared any artwork in this gallery.`}
           focusedItemId={focusedItemId}
           finishes={finishes}
+          overviewDistanceCm={overviewDistanceCm}
+          visitorScale={visitorScale}
+          cameraHeightCm={cameraHeightCm}
+          artworkCenterHeightCm={artworkCenterHeightCm}
           items={items}
           navigation={navigation}
           onFocusItem={onSelectItem}
           onSelectItem={setSelectedItem}
+          visitors={viewerId === null ? undefined : visitors}
+          ambientVisitorCount={viewerId === null ? items.length * 4 : 0}
+          onMeetVisitor={viewerId === null ? undefined : onMeetVisitor}
+          visitorsVisible={visitorsVisible}
+          onVisitorsVisibleChange={onVisitorsVisibleChange}
         />
         {visitorContent}
       </div>

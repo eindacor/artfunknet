@@ -576,6 +576,10 @@ export default async function PlayerPage({
         items={JSON.parse(JSON.stringify(revealedItems))}
         galleryRates={galleryRates}
         galleryFinishes={galleryFinishes}
+        galleryOverviewDistanceCm={config.galleryOverviewDistanceCm}
+        galleryVisitorScale={config.galleryVisitorScale}
+        galleryCameraHeightCm={config.galleryCameraHeightCm}
+        galleryArtworkCenterHeightCm={config.galleryArtworkCenterHeightCm}
         galleryMetadata={
           galleryMetadata
             ? JSON.parse(JSON.stringify(galleryMetadata))

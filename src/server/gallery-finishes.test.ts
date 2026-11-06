@@ -5,6 +5,7 @@ import {
   DEFAULT_GALLERY_FINISHES,
   GALLERY_FINISH_WIDTH_LIMITS,
   GALLERY_FINISH_WIDTH_SLOTS,
+  GALLERY_SPACING_LIMITS,
   galleryColorToHex,
   getGalleryFinishes,
   hexToGalleryColor,
@@ -36,7 +37,7 @@ test("legacy and partial finishes retain defaults without sharing mutable colors
   assert.notDeepEqual(finishes.floor, DEFAULT_GALLERY_FINISHES.floor);
 });
 
-test("finish updates require all colors, widths, brightness, and a safe gallery ID", () => {
+test("finish updates require all colors, widths, spacing, brightness, and a safe gallery ID", () => {
   const finishes = getGalleryFinishes(undefined);
   const update = { galleryId: "legacy-gallery_1", finishes };
   assert.deepEqual(parseGalleryFinishUpdate(update), update);
@@ -62,6 +63,30 @@ test("finish updates require all colors, widths, brightness, and a safe gallery 
   ]) {
     assert.equal(parseGalleryFinishUpdate(value), null);
   }
+});
+
+test("spacing accepts inclusive bounds, defaults legacy galleries, and rejects invalid updates", () => {
+  const { min, max } = GALLERY_SPACING_LIMITS;
+  for (const spacing of [min, 2.38, max]) {
+    const finishes = { ...getGalleryFinishes(null), spacing };
+    const update = { galleryId: "gallery", finishes };
+    assert.deepEqual(parseGalleryFinishUpdate(update), update);
+    assert.equal(getGalleryFinishes(finishes).spacing, spacing);
+  }
+  for (const spacing of [
+    min - 0.000001, max + 0.000001, 0, NaN, Infinity, -Infinity,
+    "1", null, undefined, [], {}, true,
+  ]) {
+    const finishes = { ...getGalleryFinishes(null), spacing };
+    assert.equal(parseGalleryFinishUpdate({ galleryId: "gallery", finishes }), null);
+    assert.equal(getGalleryFinishes(finishes).spacing, DEFAULT_GALLERY_FINISHES.spacing);
+  }
+  const legacy = Object.fromEntries(
+    Object.entries({ ...DEFAULT_GALLERY_FINISHES, wall: [0.1, 0.2, 0.3] }).filter(([key]) => key !== "spacing"),
+  );
+  assert.equal(getGalleryFinishes(legacy).spacing, 1, "Existing galleries keep their one-meter spacing");
+  assert.deepEqual(getGalleryFinishes(legacy).wall, legacy.wall);
+  assert.equal(parseGalleryFinishUpdate({ galleryId: "gallery", finishes: legacy }), null);
 });
 
 test("width updates accept inclusive bounds and reject forged out-of-range or nonnumeric values", () => {

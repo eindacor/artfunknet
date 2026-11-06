@@ -17,6 +17,7 @@ export default async function ArtistApplicationsPage() {
       return {
         id: application._id, name: application.name, email: application.email,
         dateOfBirth: application.date_of_birth, portfolioUrl: application.portfolio_url,
+        featureLink: application.feature_link ?? "",
         bio: application.bio, screenName: application.screen_name, existingPlayer: application.existing_player,
         submittedAt: date && Number.isFinite(date.getTime()) ? date.toISOString() : null, status: application.status,
       };

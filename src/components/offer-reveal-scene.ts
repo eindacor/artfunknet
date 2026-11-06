@@ -11,10 +11,13 @@ import {
   GALLERY_FIELD_OF_VIEW,
   GALLERY_FRAME_DEPTH,
   GALLERY_FRAME_FRONT_Z,
+  GALLERY_SCENE_SCALE,
   createGalleryLayout,
   getGalleryCameraFraming,
+  toGalleryUnits,
   type GalleryArtworkDimensions,
   type GalleryLayout,
+  type GallerySceneSettings,
 } from "./gallery-layout.ts";
 
 const WALK_DURATION = 14000;
@@ -40,6 +43,7 @@ export function createOfferRevealLayout(
   artwork: GalleryArtworkDimensions,
   displayed: GalleryArtworkDimensions[],
   finishes: Pick<GalleryFinishes, "frame_width" | "matte_width">,
+  settings: Pick<GallerySceneSettings, "cameraHeightCm" | "artworkCenterHeightCm"> = {},
 ): OfferRevealLayout {
   const seen = new Set([artwork.id]);
   const companions = displayed.filter(({ id }) => {
@@ -47,7 +51,7 @@ export function createOfferRevealLayout(
     seen.add(id);
     return true;
   });
-  const layout = createGalleryLayout([artwork, ...companions], finishes);
+  const layout = createGalleryLayout([artwork, ...companions], finishes, settings);
   const halfWidth = (painting: GalleryLayout["paintings"][number]) =>
     painting.width / 2 + painting.frameWidth + painting.matteWidth;
   const center = layout.paintings[0];
@@ -56,14 +60,14 @@ export function createOfferRevealLayout(
   layout.paintings.slice(1).forEach((painting, index) => {
     const side = index % 2;
     const width = halfWidth(painting);
-    painting.x = (side === 0 ? -1 : 1) * (edges[side] + 2 + width);
-    edges[side] += 2 + width * 2;
+    painting.x = (side === 0 ? -1 : 1) * (edges[side] + toGalleryUnits(2) + width);
+    edges[side] += toGalleryUnits(2) + width * 2;
   });
   const stages = Math.ceil(companions.length / 2);
   return {
     ...layout,
     width: Math.max(...edges) * 2,
-    height: Math.max(5.5, layout.height),
+    height: Math.max(toGalleryUnits(5.5), layout.height),
     lightStages: [stages, ...companions.map((_, index) => stages - 1 - Math.floor(index / 2))],
   };
 }
@@ -134,9 +138,9 @@ export function mountOfferRevealScene(
   const scene = new THREE.Scene();
   const darkness = new THREE.Color(galleryColorToHex(finishes.wall)).multiplyScalar(0.04);
   scene.background = darkness;
-  const fog = new THREE.FogExp2(darkness, 0.005);
+  const fog = new THREE.FogExp2(darkness, 0.005 / GALLERY_SCENE_SCALE);
   scene.fog = fog;
-  const camera = new THREE.PerspectiveCamera(GALLERY_FIELD_OF_VIEW, 1, 0.05, 1000);
+  const camera = new THREE.PerspectiveCamera(GALLERY_FIELD_OF_VIEW, 1, toGalleryUnits(0.05), toGalleryUnits(1000));
   const geometries = new Set<THREE.BufferGeometry>();
   const materials = new Set<THREE.Material>();
   const textures = new Set<THREE.Texture>();
@@ -149,8 +153,8 @@ export function mountOfferRevealScene(
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   let skippedAt: number | null = reducedMotion.matches ? 0 : null;
   let imageReadyAt = Infinity;
-  let finalZ = 4;
-  let startZ = 14;
+  let finalZ = toGalleryUnits(4);
+  let startZ = toGalleryUnits(14);
   let lastPhase: RoomRevealPhase | null = null;
   const started = performance.now();
 
@@ -181,27 +185,27 @@ export function mountOfferRevealScene(
     return mesh;
   }
 
-  const floor = box(1, 0.12, 1, surfaces.floor, 0, -0.06, 0);
-  const ceiling = box(1, 0.12, 1, surfaces.ceiling, 0, roomHeight + 0.06, 0);
+  const floor = box(1, toGalleryUnits(0.12), 1, surfaces.floor, 0, toGalleryUnits(-0.06), 0);
+  const ceiling = box(1, toGalleryUnits(0.12), 1, surfaces.ceiling, 0, roomHeight + toGalleryUnits(0.06), 0);
   const wallFront = 0;
-  const frontWall = box(1, roomHeight, 0.2, surfaces.wall, 0, roomHeight / 2, wallFront - 0.1);
-  const frontTrim = box(1, 0.12, 0.035, surfaces.trim, 0, 0.06, wallFront + 0.0175);
-  const backWall = box(1, roomHeight, 0.2, surfaces.wall, 0, roomHeight / 2, 0);
-  const backTrim = box(1, 0.12, 0.035, surfaces.trim, 0, 0.06, 0);
+  const frontWall = box(1, roomHeight, toGalleryUnits(0.2), surfaces.wall, 0, roomHeight / 2, wallFront - toGalleryUnits(0.1));
+  const frontTrim = box(1, toGalleryUnits(0.12), toGalleryUnits(0.035), surfaces.trim, 0, toGalleryUnits(0.06), wallFront + toGalleryUnits(0.0175));
+  const backWall = box(1, roomHeight, toGalleryUnits(0.2), surfaces.wall, 0, roomHeight / 2, 0);
+  const backTrim = box(1, toGalleryUnits(0.12), toGalleryUnits(0.035), surfaces.trim, 0, toGalleryUnits(0.06), 0);
   const sides = [-1, 1].flatMap((direction) => [
-    box(0.12, roomHeight, 1, surfaces.wall, direction, roomHeight / 2, 0),
-    box(0.035, 0.12, 1, surfaces.trim, direction, 0.06, 0),
+    box(toGalleryUnits(0.12), roomHeight, 1, surfaces.wall, direction, roomHeight / 2, 0),
+    box(toGalleryUnits(0.035), toGalleryUnits(0.12), 1, surfaces.trim, direction, toGalleryUnits(0.06), 0),
   ]);
 
   const frameZ = GALLERY_FRAME_FRONT_Z - GALLERY_FRAME_DEPTH / 2;
-  const artworkZ = GALLERY_FRAME_FRONT_Z - 0.005;
+  const artworkZ = GALLERY_FRAME_FRONT_Z - toGalleryUnits(0.005);
   const imageMaterials = new Map<string, THREE.MeshStandardMaterial[]>();
   let revealedArtwork: THREE.Mesh | null = null;
   const lights = layout.paintings.map((work, index) => {
     const { width, height, x, y, frameWidth: border, matteWidth } = work;
     const mattedWidth = width + matteWidth * 2;
     const mattedHeight = height + matteWidth * 2;
-    box(mattedWidth, mattedHeight, 0.004, surfaces.matte, x, y, artworkZ - 0.003, true);
+    box(mattedWidth, mattedHeight, toGalleryUnits(0.004), surfaces.matte, x, y, artworkZ - toGalleryUnits(0.003), true);
     for (const direction of [-1, 1]) {
       box(mattedWidth + border * 2, border, GALLERY_FRAME_DEPTH, surfaces.frame,
         x, y + direction * (mattedHeight + border) / 2, frameZ, true);
@@ -220,42 +224,42 @@ export function mountOfferRevealScene(
     matching.push(imageMaterial);
     imageMaterials.set(imageUrl, matching);
 
-    const lightZ = Math.max(2.5, mattedHeight * 0.7, mattedWidth * 0.55);
-    const lightY = Math.min(roomHeight - 0.2, y + mattedHeight / 2 + 0.8);
+    const lightZ = Math.max(toGalleryUnits(2.5), mattedHeight * 0.7, mattedWidth * 0.55);
+    const lightY = Math.min(roomHeight - toGalleryUnits(0.2), y + mattedHeight / 2 + toGalleryUnits(0.8));
     const distance = Math.hypot(lightY - y, lightZ);
-    const angle = Math.min(1.2, Math.atan2(Math.max(mattedWidth, mattedHeight) + 0.8, distance));
+    const angle = Math.min(1.2, Math.atan2(Math.max(mattedWidth, mattedHeight) + toGalleryUnits(0.8), distance));
     const light = new THREE.SpotLight("#fff9ee", 0, distance * 3, angle, 1, 2);
     light.position.set(x, lightY, lightZ);
     light.target.position.set(x, y, artworkZ);
     light.shadow.mapSize.set(index === 0 ? 1024 : 512, index === 0 ? 1024 : 512);
     light.shadow.bias = -0.0003;
-    light.shadow.normalBias = 0.002;
-    light.shadow.camera.near = 0.1;
-    light.shadow.camera.far = Math.max(30, distance * 3);
+    light.shadow.normalBias = toGalleryUnits(0.002);
+    light.shadow.camera.near = toGalleryUnits(0.1);
+    light.shadow.camera.far = Math.max(toGalleryUnits(30), distance * 3);
     scene.add(light, light.target);
     return light;
   });
   const { width, height, y, matteWidth } = painting;
   const mattedWidth = width + matteWidth * 2;
   const mattedHeight = height + matteWidth * 2;
-  const rarityLightZ = Math.max(1.1, mattedWidth * 0.3, mattedHeight * 0.35);
-  const rarityLightY = Math.max(0.4, y - mattedHeight * 0.25);
+  const rarityLightZ = Math.max(toGalleryUnits(1.1), mattedWidth * 0.3, mattedHeight * 0.35);
+  const rarityLightY = Math.max(toGalleryUnits(0.4), y - mattedHeight * 0.25);
   const rarityLights = [-1, 1].map((direction) => {
-    const x = direction * Math.max(0.6, mattedWidth * 0.65);
+    const x = direction * Math.max(toGalleryUnits(0.6), mattedWidth * 0.65);
     const targetX = -direction * mattedWidth * 0.22;
-    const distance = Math.hypot(rarityLightY - 0.08, rarityLightZ, x - targetX);
+    const distance = Math.hypot(rarityLightY - toGalleryUnits(0.08), rarityLightZ, x - targetX);
     const light = new THREE.SpotLight(
       RARITY_COLORS[rarity], 0, distance * 3,
-      Math.min(1.1, Math.atan2(Math.max(mattedWidth, mattedHeight) + 0.6, distance)),
+      Math.min(1.1, Math.atan2(Math.max(mattedWidth, mattedHeight) + toGalleryUnits(0.6), distance)),
       1, 2,
     );
-    light.position.set(x, 0.08, rarityLightZ);
+    light.position.set(x, toGalleryUnits(0.08), rarityLightZ);
     light.target.position.set(targetX, rarityLightY, wallFront);
     light.shadow.mapSize.set(512, 512);
     light.shadow.bias = -0.0003;
-    light.shadow.normalBias = 0.002;
-    light.shadow.camera.near = 0.1;
-    light.shadow.camera.far = Math.max(30, distance * 3);
+    light.shadow.normalBias = toGalleryUnits(0.002);
+    light.shadow.camera.near = toGalleryUnits(0.1);
+    light.shadow.camera.far = Math.max(toGalleryUnits(30), distance * 3);
     scene.add(light, light.target);
     return light;
   });
@@ -274,15 +278,15 @@ export function mountOfferRevealScene(
       time - started, imageReadyAt, layout.lightStages[0], skippedAt, reducedMotion.matches,
     );
     const travel = progress.camera;
-    camera.position.set(0, y,
-      THREE.MathUtils.lerp(startZ, finalZ, travel) + progress.pullback * Math.max(0.8, Math.min(2.5, finalZ * 0.24)));
-    camera.lookAt(0, y, artworkZ);
+    camera.position.set(0, layout.cameraHeight,
+      THREE.MathUtils.lerp(startZ, finalZ, travel) + progress.pullback * Math.max(toGalleryUnits(0.8), Math.min(toGalleryUnits(2.5), finalZ * 0.24)));
+    camera.lookAt(0, layout.cameraHeight, artworkZ);
     lights.forEach((light, index) => {
       const illumination = index === 0 ? progress.artwork : progress.lights[layout.lightStages[index]];
       light.intensity = illumination * light.position.distanceTo(light.target.position) ** 2 * (2.5 + brightness);
     });
     hemisphere.intensity = 0.025 + progress.camera * 0.045 + progress.artwork * (0.25 + brightness * 0.45);
-    fog.density = 0.005 * (1 - progress.artwork);
+    fog.density = 0.005 / GALLERY_SCENE_SCALE * (1 - progress.artwork);
     rarityLights.forEach((light) => {
       light.intensity = progress.raritySpotlight * light.position.distanceToSquared(light.target.position) * 0.3;
     });
@@ -297,13 +301,13 @@ export function mountOfferRevealScene(
     const viewportWidth = Math.max(1, bounds.width);
     const viewportHeight = Math.max(1, bounds.height);
     camera.aspect = viewportWidth / viewportHeight;
-    finalZ = getGalleryCameraFraming(painting, camera.aspect, viewportWidth).z;
+    finalZ = getGalleryCameraFraming(painting, camera.aspect, viewportWidth, layout.cameraHeight).z;
     const halfView = Math.tan(GALLERY_FIELD_OF_VIEW * Math.PI / 360);
-    startZ = Math.max(finalZ + 8, artworkZ + layout.width / (2 * halfView * camera.aspect * 0.8),
-      ...layout.paintings.map((work) => getGalleryCameraFraming(work, camera.aspect, viewportWidth).z + 2));
-    const roomDepth = startZ + 4;
-    const roomWidth = Math.max(14, layout.width + 6, roomDepth);
-    camera.far = Math.max(1000, roomDepth + roomWidth);
+    startZ = Math.max(finalZ + toGalleryUnits(8), artworkZ + layout.width / (2 * halfView * camera.aspect * 0.8),
+      ...layout.paintings.map((work) => getGalleryCameraFraming(work, camera.aspect, viewportWidth, layout.cameraHeight).z + toGalleryUnits(2)));
+    const roomDepth = startZ + toGalleryUnits(4);
+    const roomWidth = Math.max(toGalleryUnits(14), layout.width + toGalleryUnits(6), roomDepth);
+    camera.far = Math.max(toGalleryUnits(1000), roomDepth + roomWidth);
     camera.updateProjectionMatrix();
     renderer.setSize(viewportWidth, viewportHeight);
     for (const mesh of [floor, ceiling]) {
@@ -311,13 +315,13 @@ export function mountOfferRevealScene(
       mesh.position.z = (roomDepth + wallFront) / 2;
     }
     for (const mesh of [frontWall, frontTrim, backWall, backTrim]) mesh.scale.x = roomWidth;
-    backWall.position.z = roomDepth + 0.1;
-    backTrim.position.z = roomDepth - 0.0175;
+    backWall.position.z = roomDepth + toGalleryUnits(0.1);
+    backTrim.position.z = roomDepth - toGalleryUnits(0.0175);
     sides.forEach((mesh, index) => {
       const direction = index < 2 ? -1 : 1;
       mesh.scale.z = roomDepth - wallFront;
       mesh.position.z = (roomDepth + wallFront) / 2;
-      mesh.position.x = direction * (roomWidth / 2 + (index % 2 === 0 ? 0.06 : -0.0175));
+      mesh.position.x = direction * (roomWidth / 2 + toGalleryUnits(index % 2 === 0 ? 0.06 : -0.0175));
     });
     renderer.shadowMap.needsUpdate = true;
     invalidate();

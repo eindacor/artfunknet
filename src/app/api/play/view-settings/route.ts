@@ -42,6 +42,7 @@ export async function PATCH(request: Request) {
     "offersSortDirection",
     "cratePurchaseCount",
     "enableReveals",
+    "showGalleryVisitors",
     "bulkSaleProtections",
   ]);
   if (
@@ -95,6 +96,10 @@ export async function PATCH(request: Request) {
       body.enableReveals === undefined
         ? current.enableReveals
         : body.enableReveals,
+    showGalleryVisitors:
+      body.showGalleryVisitors === undefined
+        ? current.showGalleryVisitors
+        : body.showGalleryVisitors,
     bulkSaleProtections:
       body.bulkSaleProtections === undefined
         ? current.bulkSaleProtections
@@ -133,6 +138,9 @@ export async function PATCH(request: Request) {
   }
   if (body.enableReveals !== undefined) {
     updates["profile.view_settings.enableReveals"] = normalized.enableReveals;
+  }
+  if (body.showGalleryVisitors !== undefined) {
+    updates["profile.view_settings.showGalleryVisitors"] = normalized.showGalleryVisitors;
   }
   if (body.bulkSaleProtections !== undefined) {
     updates["profile.view_settings.bulkSaleProtections"] =

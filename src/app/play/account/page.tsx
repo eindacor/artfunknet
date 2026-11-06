@@ -71,6 +71,7 @@ export default async function PlayerAccountPage({
   const hasStoredPatreonAuthorization = Boolean(
     player.patreon?.oauth?.encrypted_tokens,
   );
+  const viewSettings = getPlayerViewSettings(player.profile?.view_settings);
 
   return (
     <main className="mx-auto min-h-screen max-w-xl px-6 py-12">
@@ -79,7 +80,7 @@ export default async function PlayerAccountPage({
       </Link>
       <h1 className="mt-6 text-4xl font-bold">Account</h1>
       <p className="mt-3 mb-8 text-[var(--muted)]">
-        Manage your player profile, connected accounts, reveal animations, and
+        Manage your player profile, connected accounts, display preferences, and
         sign-in password.
       </p>
       <section className="mb-6 space-y-3 rounded-lg border border-[var(--accent)]/40 bg-white/5 p-6">
@@ -94,9 +95,8 @@ export default async function PlayerAccountPage({
       <AccountForm
         email={player.email}
         emailVerified={player.email_verified === true}
-        enableReveals={
-          getPlayerViewSettings(player.profile?.view_settings).enableReveals
-        }
+        enableReveals={viewSettings.enableReveals}
+        showGalleryVisitors={viewSettings.showGalleryVisitors}
         hasPassword={Boolean(player.password_salt && player.password_hash)}
         oauthMessage={getOAuthMessage(
           Array.isArray(params.oauth) ? params.oauth[0] : params.oauth,

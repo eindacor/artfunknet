@@ -42,6 +42,7 @@ export type PlayerViewSettings = {
   offersSortDirection: OfferSortDirection;
   cratePurchaseCount: number;
   enableReveals: boolean;
+  showGalleryVisitors: boolean;
   bulkSaleProtections: BulkSaleProtections;
 };
 
@@ -53,6 +54,7 @@ export const DEFAULT_PLAYER_VIEW_SETTINGS: PlayerViewSettings = {
   offersSortDirection: "desc",
   cratePurchaseCount: 1,
   enableReveals: true,
+  showGalleryVisitors: true,
   bulkSaleProtections: {
     keepArtStyles: true,
     keepRares: true,
@@ -92,6 +94,7 @@ export function getPlayerViewSettings(value: unknown): PlayerViewSettings {
       parseCratePurchaseCount(settings.cratePurchaseCount) ??
       DEFAULT_PLAYER_VIEW_SETTINGS.cratePurchaseCount,
     enableReveals: settings.enableReveals !== false,
+    showGalleryVisitors: settings.showGalleryVisitors !== false,
     bulkSaleProtections: {
       keepArtStyles: protections.keepArtStyles !== false,
       keepRares: protections.keepRares !== false,

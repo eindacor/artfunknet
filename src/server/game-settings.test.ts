@@ -20,6 +20,49 @@ const validWeights = {
   masterpiece: 0.1,
 };
 
+test("gallery overview distance validates centimeters and preserves them in storage", () => {
+  for (const defaults of [DEFAULT_ACTUAL_GAMEPLAY_CONFIG, DEFAULT_DEBUG_GAMEPLAY_CONFIG]) {
+    for (const galleryOverviewDistanceCm of [50, 600, 1250, 10_000]) {
+      const result = validateGameplayConfig({ ...defaults, galleryOverviewDistanceCm });
+      assert.ok(result.ok);
+      assert.equal(toStoredGameplayConfig(result.value).gallery_overview_distance_cm, galleryOverviewDistanceCm);
+    }
+    for (const galleryOverviewDistanceCm of [-1, 0, 49, 10_001, 600.5, NaN, Infinity, undefined, null]) {
+      assert.equal(validateGameplayConfig({ ...defaults, galleryOverviewDistanceCm }).ok, false);
+    }
+  }
+});
+
+test("gallery camera and mounting heights validate and persist independently in centimeters", () => {
+  for (const defaults of [DEFAULT_ACTUAL_GAMEPLAY_CONFIG, DEFAULT_DEBUG_GAMEPLAY_CONFIG]) {
+    for (const [galleryCameraHeightCm, galleryArtworkCenterHeightCm] of [[158, 140], [175, 160], [10, 1000], [1000, 10]]) {
+      const result = validateGameplayConfig({ ...defaults, galleryCameraHeightCm, galleryArtworkCenterHeightCm });
+      assert.ok(result.ok);
+      const stored = toStoredGameplayConfig(result.value);
+      assert.equal(stored.gallery_camera_height_cm, galleryCameraHeightCm);
+      assert.equal(stored.gallery_artwork_center_height_cm, galleryArtworkCenterHeightCm);
+    }
+    for (const field of ["galleryCameraHeightCm", "galleryArtworkCenterHeightCm"]) {
+      for (const value of [undefined, null, "", NaN, Infinity, -1, 0, 9, 1001, 158.5]) {
+        assert.equal(validateGameplayConfig({ ...defaults, [field]: value }).ok, false);
+      }
+    }
+  }
+});
+
+test("gallery visitor scale validates fractional coefficients and persists them without unit conversion", () => {
+  for (const defaults of [DEFAULT_ACTUAL_GAMEPLAY_CONFIG, DEFAULT_DEBUG_GAMEPLAY_CONFIG]) {
+    for (const galleryVisitorScale of [0.1, 0.55, 0.8, 1, 1.35, 3]) {
+      const result = validateGameplayConfig({ ...defaults, galleryVisitorScale });
+      assert.ok(result.ok);
+      assert.equal(toStoredGameplayConfig(result.value).gallery_visitor_scale, galleryVisitorScale);
+    }
+    for (const galleryVisitorScale of [-1, 0, 0.09, 3.01, NaN, Infinity, undefined, null, ""]) {
+      assert.equal(validateGameplayConfig({ ...defaults, galleryVisitorScale }).ok, false);
+    }
+  }
+});
+
 test("forgery return settings validate and persist independently", () => {
   const result = validateGameplayConfig({
     ...DEFAULT_ACTUAL_GAMEPLAY_CONFIG,

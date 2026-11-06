@@ -10,6 +10,7 @@ export default function AccountForm({
   email,
   emailVerified,
   enableReveals,
+  showGalleryVisitors = true,
   hasPassword,
   oauthMessage,
   patreon,
@@ -19,6 +20,7 @@ export default function AccountForm({
   email: string;
   emailVerified: boolean;
   enableReveals: boolean;
+  showGalleryVisitors?: boolean;
   hasPassword: boolean;
   oauthMessage: string | null;
   providers: {
@@ -116,12 +118,13 @@ export default function AccountForm({
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         enableReveals: form.has("enableReveals"),
+        showGalleryVisitors: form.has("showGalleryVisitors"),
       }),
     });
     const result = (await response.json()) as { error?: string };
     setPreferencesMessage(
       response.ok
-        ? "Reveal settings updated."
+        ? "Display preferences updated."
         : result.error ?? "Update failed.",
     );
     setPreferencesBusy(false);
@@ -268,7 +271,7 @@ export default function AccountForm({
       </section>
 
       <section className="rounded-lg border border-white/15 bg-white/5 p-6">
-        <h2 className="text-xl font-bold">Reveal animations</h2>
+        <h2 className="text-xl font-bold">Display preferences</h2>
         <form className="mt-5 grid gap-4" onSubmit={updatePreferences}>
           <label className="flex items-center gap-3">
             <input
@@ -284,6 +287,19 @@ export default function AccountForm({
             immediately without reveal animations. Already-revealed items stay
             revealed if you turn this back on.
           </p>
+          <label className="flex items-center gap-3">
+            <input
+              defaultChecked={showGalleryVisitors}
+              disabled={preferencesBusy}
+              name="showGalleryVisitors"
+              type="checkbox"
+            />
+            <span className="font-semibold">Show gallery visitors</span>
+          </label>
+          <p className="text-sm text-[var(--muted)]">
+            Show visitor figures in galleries. Figures are always hidden while
+            zoomed in; visitor icons remain available.
+          </p>
           {preferencesMessage ? (
             <p aria-live="polite" className="text-sm">
               {preferencesMessage}
@@ -294,7 +310,7 @@ export default function AccountForm({
             disabled={preferencesBusy}
             type="submit"
           >
-            {preferencesBusy ? "Saving..." : "Save reveal settings"}
+            {preferencesBusy ? "Saving..." : "Save display preferences"}
           </button>
         </form>
       </section>

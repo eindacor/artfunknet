@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type PointerEvent } from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -9,12 +9,16 @@ import {
   GALLERY_FINISH_SLOTS,
   GALLERY_FINISH_WIDTH_LIMITS,
   GALLERY_FINISH_WIDTH_SLOTS,
+  GALLERY_SPACING_LIMITS,
   galleryColorToHex,
   hexToGalleryColor,
   parseGalleryFinishUpdate,
   type GalleryFinishSlot,
+  type GalleryFinishWidthSlot,
   type GalleryFinishes,
 } from "@/server/gallery-finishes";
+
+type SliderSlot = GalleryFinishWidthSlot | "spacing" | "brightness";
 
 export default function GalleryFinishMenu({
   finishes,
@@ -29,6 +33,8 @@ export default function GalleryFinishMenu({
   const id = useId();
   const [saved, setSaved] = useState(finishes);
   const [hexDrafts, setHexDrafts] = useState<Partial<Record<GalleryFinishSlot, string>>>({});
+  const [sliderDrafts, setSliderDrafts] = useState<Partial<Record<SliderSlot, number>>>({});
+  const pendingSliders = useRef<Partial<Record<SliderSlot, number>>>({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const request = useRef<AbortController | null>(null);
@@ -36,8 +42,34 @@ export default function GalleryFinishMenu({
   const invalid = Object.values(hexDrafts).some(
     (hex) => hexToGalleryColor(hex) === null,
   );
+  const spacingCm = Math.round((sliderDrafts.spacing ?? finishes.spacing) * 100);
+  const brightness = sliderDrafts.brightness ?? finishes.brightness;
 
   useEffect(() => () => request.current?.abort(), []);
+
+  function commitSlider(slot: SliderSlot) {
+    const value = pendingSliders.current[slot];
+    if (value === undefined) return;
+    delete pendingSliders.current[slot];
+    setSliderDrafts(current => {
+      const next = { ...current };
+      delete next[slot];
+      return next;
+    });
+    if (value !== finishes[slot]) onChange({ ...finishes, [slot]: value });
+  }
+
+  function changeSlider(slot: SliderSlot, input: number, limits: { min: number; max: number }) {
+    if (!Number.isFinite(input)) return;
+    const value = Math.min(limits.max, Math.max(limits.min, input));
+    pendingSliders.current[slot] = value;
+    setSliderDrafts(current => ({ ...current, [slot]: value }));
+    setError("");
+  }
+
+  function captureSlider(event: PointerEvent<HTMLInputElement>) {
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
 
   function changeColor(slot: GalleryFinishSlot, hex: string) {
     setHexDrafts((current) => ({ ...current, [slot]: hex }));
@@ -144,7 +176,7 @@ export default function GalleryFinishMenu({
         {GALLERY_FINISH_WIDTH_SLOTS.map((slot) => {
           const label = slot === "frame_width" ? "Frame width" : "Matte width";
           const { min, max, step } = GALLERY_FINISH_WIDTH_LIMITS[slot];
-          const millimeters = Math.round(finishes[slot] * 1000);
+          const millimeters = Math.round((sliderDrafts[slot] ?? finishes[slot]) * 1000);
           return (
             <fieldset disabled={saving} key={slot} className="gallery-finish-slider">
               <legend>{label}</legend>
@@ -156,10 +188,13 @@ export default function GalleryFinishMenu({
                 min={Math.round(min * 1000)}
                 max={Math.round(max * 1000)}
                 step={step * 1000}
-                onChange={(event) => {
-                  setError("");
-                  onChange({ ...finishes, [slot]: event.target.valueAsNumber / 1000 });
-                }}
+                onChange={event => changeSlider(slot, event.target.valueAsNumber / 1000, GALLERY_FINISH_WIDTH_LIMITS[slot])}
+                onPointerDown={captureSlider}
+                onPointerUp={() => commitSlider(slot)}
+                onPointerCancel={() => commitSlider(slot)}
+                onLostPointerCapture={() => commitSlider(slot)}
+                onKeyUp={() => commitSlider(slot)}
+                onBlur={() => commitSlider(slot)}
                 type="range"
                 value={millimeters}
               />
@@ -171,20 +206,48 @@ export default function GalleryFinishMenu({
           );
         })}
         <fieldset disabled={saving} className="gallery-finish-slider">
+          <legend>Spacing</legend>
+          <label htmlFor={`${id}-spacing`}>{spacingCm} cm</label>
+          <input
+            aria-label="Spacing"
+            aria-valuetext={`${spacingCm} centimeters between frames`}
+            id={`${id}-spacing`}
+            min={GALLERY_SPACING_LIMITS.min * 100}
+            max={GALLERY_SPACING_LIMITS.max * 100}
+            step={GALLERY_SPACING_LIMITS.step * 100}
+            onChange={event => changeSlider("spacing", event.target.valueAsNumber / 100, GALLERY_SPACING_LIMITS)}
+            onPointerDown={captureSlider}
+            onPointerUp={() => commitSlider("spacing")}
+            onPointerCancel={() => commitSlider("spacing")}
+            onLostPointerCapture={() => commitSlider("spacing")}
+            onKeyUp={() => commitSlider("spacing")}
+            onBlur={() => commitSlider("spacing")}
+            type="range"
+            value={spacingCm}
+          />
+          <div className="gallery-finish-slider-bounds">
+            <span>{GALLERY_SPACING_LIMITS.min * 100} cm</span>
+            <span>{GALLERY_SPACING_LIMITS.max * 100} cm</span>
+          </div>
+        </fieldset>
+        <fieldset disabled={saving} className="gallery-finish-slider">
           <legend>Brightness</legend>
-          <label htmlFor={`${id}-brightness`}>{finishes.brightness.toFixed(2)}</label>
+          <label htmlFor={`${id}-brightness`}>{brightness.toFixed(2)}</label>
           <input
             aria-label="Brightness"
             id={`${id}-brightness`}
             min={GALLERY_BRIGHTNESS_LIMITS.min}
             max={GALLERY_BRIGHTNESS_LIMITS.max}
             step={GALLERY_BRIGHTNESS_LIMITS.step}
-            onChange={(event) => {
-              setError("");
-              onChange({ ...finishes, brightness: event.target.valueAsNumber });
-            }}
+            onChange={event => changeSlider("brightness", event.target.valueAsNumber, GALLERY_BRIGHTNESS_LIMITS)}
+            onPointerDown={captureSlider}
+            onPointerUp={() => commitSlider("brightness")}
+            onPointerCancel={() => commitSlider("brightness")}
+            onLostPointerCapture={() => commitSlider("brightness")}
+            onKeyUp={() => commitSlider("brightness")}
+            onBlur={() => commitSlider("brightness")}
             type="range"
-            value={finishes.brightness}
+            value={brightness}
           />
           <div className="gallery-finish-slider-bounds">
             <span>{GALLERY_BRIGHTNESS_LIMITS.min}</span>

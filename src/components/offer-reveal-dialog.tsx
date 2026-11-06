@@ -16,6 +16,8 @@ export default function OfferRevealDialog({
   displayed,
   error,
   finishes,
+  cameraHeightCm,
+  artworkCenterHeightCm,
   item,
   legendaryAttributes,
   onCancel,
@@ -25,6 +27,8 @@ export default function OfferRevealDialog({
   displayed: HydratedGameItem[];
   error: string;
   finishes: GalleryFinishes;
+  cameraHeightCm?: number;
+  artworkCenterHeightCm?: number;
   item: HydratedGameItem;
   legendaryAttributes: CardLegendaryAttribute[];
   onCancel: () => void;
@@ -60,7 +64,9 @@ export default function OfferRevealDialog({
         width: work.artwork.width,
         height: work.artwork.height,
       });
-      const layout = createOfferRevealLayout(dimensions(item), displayedSnapshot.map(dimensions), finishes);
+      const layout = createOfferRevealLayout(dimensions(item), displayedSnapshot.map(dimensions), finishes, {
+        cameraHeightCm, artworkCenterHeightCm,
+      });
       scene = mountOfferRevealScene(
         host.current, layout, finishes, item.artwork.rarity,
         (next) => { if (active) setPhase(next); },
@@ -75,7 +81,7 @@ export default function OfferRevealDialog({
       scene?.dispose();
       controller.current = null;
     };
-  }, [item, finishes, displayedSnapshot]);
+  }, [item, finishes, displayedSnapshot, cameraHeightCm, artworkCenterHeightCm]);
   const ready = phase === "presenting" || phase === "ready" || phase === "fallback";
   const detailsLabel = `Open details for ${item.artwork.title} by ${item.artwork.artist}`;
   function openDetails() {

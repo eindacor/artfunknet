@@ -12,6 +12,7 @@ export type ArtistRecord = {
   artist_name: string;
   date_of_birth: string;
   portfolio_url: string;
+  feature_link?: string;
   bio: string;
   social_links: ArtistSocialLinks;
   player_id?: string;
@@ -25,6 +26,7 @@ export type ArtistApplication = {
   email: string;
   date_of_birth: string;
   portfolio_url: string;
+  feature_link?: string;
   bio: string;
   player_id: string;
   existing_player: boolean;
@@ -43,6 +45,7 @@ export type PublicArtistProfile = {
   name: string;
   bio: string;
   portfolioUrl: string;
+  featureLink: string;
   socialLinks: ArtistSocialLinks;
   instagramUsername: string | null;
   featured: boolean;

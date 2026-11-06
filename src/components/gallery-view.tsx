@@ -8,6 +8,7 @@ import {
   type GalleryArtworkDimensions,
 } from "./gallery-layout";
 import type { GallerySceneController } from "./gallery-scene";
+import type { GallerySceneVisitor } from "./gallery-visitors";
 import {
   DEFAULT_GALLERY_FINISHES,
   type GalleryFinishes,
@@ -15,24 +16,44 @@ import {
 import type { HydratedGameItem } from "@/server/item-artwork";
 import { getArtworkImageUrl } from "@/server/artwork-image-url";
 
+const EMPTY_VISITORS: GallerySceneVisitor[] = [];
+
 export default function GalleryView({
   disabled = false,
   emptyMessage,
   finishes = DEFAULT_GALLERY_FINISHES,
+  overviewDistanceCm,
+  visitorScale,
+  cameraHeightCm,
+  artworkCenterHeightCm,
   focusedItemId,
   items,
   navigation,
   onFocusItem,
   onSelectItem,
+  visitors = EMPTY_VISITORS,
+  ambientVisitorCount = 0,
+  onMeetVisitor,
+  visitorsVisible: savedVisitorsVisible,
+  onVisitorsVisibleChange,
 }: {
   disabled?: boolean;
   emptyMessage: string;
   finishes?: GalleryFinishes;
+  overviewDistanceCm?: number;
+  visitorScale?: number;
+  cameraHeightCm?: number;
+  artworkCenterHeightCm?: number;
   focusedItemId?: string;
   items: HydratedGameItem[];
-  navigation?: ReactNode;
+  navigation?: (visitorToggle: ReactNode) => ReactNode;
   onFocusItem?: (item: HydratedGameItem) => void;
   onSelectItem: (item: HydratedGameItem) => void;
+  visitors?: readonly GallerySceneVisitor[];
+  ambientVisitorCount?: number;
+  onMeetVisitor?: (id: string) => void;
+  visitorsVisible?: boolean;
+  onVisitorsVisibleChange?: (visible: boolean) => void;
 }) {
   const [view, setView] = useState({
     itemId: focusedItemId ?? items[0]?._id ?? null,
@@ -41,6 +62,9 @@ export default function GalleryView({
   const [status, setStatus] = useState<"loading" | "ready" | "unavailable">(
     "loading",
   );
+  const [localVisitorsVisible, setVisitorsVisible] = useState(true);
+  const visitorsVisible = savedVisitorsVisible ?? localVisitorsVisible;
+  const initialVisitorsVisible = useRef(visitorsVisible);
   const host = useRef<HTMLDivElement>(null);
   const viewport = useRef<HTMLDivElement>(null);
   const controller = useRef<GallerySceneController | null>(null);
@@ -57,6 +81,7 @@ export default function GalleryView({
   const activeIndex = activeItem ? items.indexOf(activeItem) : -1;
   const initialView = useRef({ id: activeItem?._id, zoomed });
   const initialFinishes = useRef(finishes);
+  const visitorInteraction = useRef({ visitors, onMeetVisitor, disabled, ambientVisitorCount });
   const sceneKey = JSON.stringify(
     items.map((item) => ({
       id: item._id,
@@ -69,13 +94,14 @@ export default function GalleryView({
       date: item.artwork.date,
     })),
   );
-  const { frame_width: frameWidth, matte_width: matteWidth } = finishes;
+  const { frame_width: frameWidth, matte_width: matteWidth, spacing } = finishes;
   const layout = useMemo(
     () => createGalleryLayout(JSON.parse(sceneKey) as GalleryArtworkDimensions[], {
       frame_width: frameWidth,
       matte_width: matteWidth,
-    }),
-    [sceneKey, frameWidth, matteWidth],
+      spacing,
+    }, { overviewDistanceCm, visitorScale, cameraHeightCm, artworkCenterHeightCm }),
+    [sceneKey, frameWidth, matteWidth, spacing, overviewDistanceCm, visitorScale, cameraHeightCm, artworkCenterHeightCm],
   );
 
   const focusItem = useCallback(
@@ -129,7 +155,17 @@ export default function GalleryView({
             },
             initialView.current.zoomed,
             initialFinishes.current,
+            id => {
+              const current = visitorInteraction.current;
+              const visitor = current.visitors.find(visitor => visitor._id === id);
+              if (!current.disabled && visitor && !visitor.disabled && !visitor.alreadyMet) current.onMeetVisitor?.(id);
+            },
           );
+          scene.setVisitorsVisible(initialVisitorsVisible.current);
+          const current = visitorInteraction.current;
+          scene.setVisitors(current.visitors.map(visitor => ({
+            ...visitor, disabled: visitor.disabled || current.disabled || !current.onMeetVisitor,
+          })), current.ambientVisitorCount);
           controller.current = scene;
           setStatus("ready");
         } catch {
@@ -154,6 +190,18 @@ export default function GalleryView({
     initialFinishes.current = finishes;
     controller.current?.setFinishes(finishes);
   }, [finishes]);
+
+  useEffect(() => {
+    initialVisitorsVisible.current = visitorsVisible;
+    controller.current?.setVisitorsVisible(visitorsVisible);
+  }, [visitorsVisible]);
+
+  useEffect(() => {
+    visitorInteraction.current = { visitors, onMeetVisitor, disabled, ambientVisitorCount };
+    controller.current?.setVisitors(visitors.map(visitor => ({
+      ...visitor, disabled: visitor.disabled || disabled || !onMeetVisitor,
+    })), ambientVisitorCount);
+  }, [visitors, onMeetVisitor, disabled, ambientVisitorCount]);
 
   useEffect(() => {
     const element = viewport.current;
@@ -213,6 +261,21 @@ export default function GalleryView({
     };
   }, [activeIndex, disabled, focusItem, items]);
 
+  const visitorToggle = <button
+    aria-pressed={!visitorsVisible}
+    className="gallery-navigation-control visitors"
+    disabled={status === "unavailable"}
+    onClick={() => {
+      const visible = !visitorsVisible;
+      setVisitorsVisible(visible);
+      onVisitorsVisibleChange?.(visible);
+    }}
+    type="button"
+  >
+    <i aria-hidden="true" className="fa fa-users" />
+    <span>{visitorsVisible ? "Hide visitors" : "Show visitors"}</span>
+  </button>;
+
   return (
     <div className="gallery-view">
       <div
@@ -249,7 +312,13 @@ export default function GalleryView({
           hidden={status === "unavailable"}
           ref={host}
         />
-        {navigation}
+        {navigation ? navigation(visitorToggle) : <nav
+          aria-label="Gallery display controls"
+          className="gallery-navigation-overlay"
+          onKeyDown={event => event.stopPropagation()}
+        >
+          <div className="gallery-navigation-actions">{visitorToggle}</div>
+        </nav>}
         {status === "loading" && activeItem ? (
           <p className="gallery-scene-message" role="status">
             Preparing the exhibition...

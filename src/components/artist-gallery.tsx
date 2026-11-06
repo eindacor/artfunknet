@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import ArtistFeature from "./artist-feature";
 import ArtworkThumbnail from "./artwork-thumbnail";
 import ItemCard from "./item-cards/item-card";
 import type { CardLegendaryAttribute } from "./item-cards/types";
@@ -42,10 +42,13 @@ export function FeaturedArtistGalleries({ artists, onVisit }: {
 
 export function ArtistGalleryIntroduction({ artist }: { artist: PublicArtistProfile }) {
   return <header className="artist-gallery-introduction">
-    <p>Contributing artist {artist.featured ? "/ featured exhibition" : "/ exhibition"}</p>
-    <h2>{artist.name}</h2>
-    {artist.bio ? <p className="artist-bio">{artist.bio}</p> : null}
-    <ArtistSocialLinks artist={artist} />
+    <div className="artist-gallery-info">
+      <p>Contributing artist {artist.featured ? "/ featured exhibition" : "/ exhibition"}</p>
+      <h2>{artist.name}</h2>
+      {artist.bio ? <p className="artist-bio">{artist.bio}</p> : null}
+      <ArtistSocialLinks artist={artist} />
+    </div>
+    {artist.featureLink ? <ArtistFeature key={artist.featureLink} link={artist.featureLink} artistName={artist.name} /> : null}
   </header>;
 }
 
@@ -70,14 +73,9 @@ export function ArtistGalleryShowcase({ artist, works, legendaryAttributes, onPr
 }
 
 function InstagramProfile({ username }: { username: string }) {
-  const [loaded, setLoaded] = useState(false);
   const profileUrl = `https://www.instagram.com/${encodeURIComponent(username)}/`;
   return <section className="artist-instagram">
-    <h3>From Instagram</h3>
-    <p>Loading this feed connects your browser to Instagram. Public profiles must allow embedding; browser privacy settings may also prevent it from loading.</p>
-    <a href={profileUrl} rel="noopener noreferrer" target="_blank">Open @{username} on Instagram <i aria-hidden="true" className="fa fa-external-link" /></a>
-    {loaded ? <iframe className="artist-instagram-frame" title={`Instagram profile for ${username}`} src={`${profileUrl}embed/`}
-      loading="lazy" referrerPolicy="no-referrer" allow="encrypted-media" />
-      : <button type="button" onClick={() => setLoaded(true)}>Load Instagram feed</button>}
+    <iframe className="artist-instagram-frame" title={`Instagram profile for ${username}`} src={`${profileUrl}embed/`}
+      referrerPolicy="no-referrer" allow="encrypted-media" />
   </section>;
 }

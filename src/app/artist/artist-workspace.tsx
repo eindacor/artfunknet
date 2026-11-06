@@ -5,6 +5,7 @@ import ArtworkEditorPanel from "@/components/artwork-editor/artwork-editor-panel
 import type { ArtworkCatalogEntry, ArtworkEditorMetadata } from "@/components/artwork-editor/types";
 import type { CardRendererId } from "@/components/item-cards/types";
 import { ARTIST_AGREEMENT_VERSION, ARTIST_UPLOAD_AGREEMENT, type PublicArtistProfile } from "@/server/artist-types";
+import { ARTIST_FEATURE_LINK_HELP } from "@/shared/artist-feature-link";
 
 type WorkSummary = { id: string; title: string; status: string };
 export default function ArtistWorkspace({ artist, initialWorks, rendererOptions }: {
@@ -53,7 +54,7 @@ function ArtistProfileForm({ artist }: { artist: PublicArtistProfile }) {
     const form = new FormData(event.currentTarget);
     try {
       const response = await fetch("/api/artist/profile", { method: "PATCH", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ portfolioUrl: form.get("portfolioUrl"), bio: form.get("bio"),
+        body: JSON.stringify({ portfolioUrl: form.get("portfolioUrl"), featureLink: form.get("featureLink"), bio: form.get("bio"),
           socialLinks: Object.fromEntries(["instagram", "facebook", "bluesky", "youtube"].map(kind => [kind, form.get(kind)])) }) });
       const result = await response.json() as { error?: string };
       if (!response.ok) throw new Error(result.error ?? "Profile update failed.");
@@ -68,6 +69,8 @@ function ArtistProfileForm({ artist }: { artist: PublicArtistProfile }) {
     <form className="grid max-w-3xl gap-4" onSubmit={save}>
       <fieldset className="grid gap-4" disabled={busy}>
         <label className="grid gap-2">Portfolio website URL<input className="rounded border border-white/20 bg-white/5 p-3" defaultValue={artist.portfolioUrl} name="portfolioUrl" type="url" required /></label>
+        <label className="grid gap-2">Feature link (optional)<input className="rounded border border-white/20 bg-white/5 p-3" defaultValue={artist.featureLink} name="featureLink" type="url" maxLength={2048} placeholder="https://..." aria-describedby="feature-link-help" /></label>
+        <p className="text-sm text-[var(--muted)]" id="feature-link-help">{ARTIST_FEATURE_LINK_HELP} Leave blank to remove it from your gallery.</p>
         <label className="grid gap-2">Bio<textarea className="rounded border border-white/20 bg-white/5 p-3" defaultValue={artist.bio} maxLength={5000} name="bio" rows={5} /></label>
         {(["instagram", "facebook", "bluesky", "youtube"] as const).map(kind => <label className="grid gap-2 capitalize" key={kind}>
           {kind} URL (optional)<input className="rounded border border-white/20 bg-white/5 p-3" name={kind} type="url" defaultValue={artist.socialLinks[kind] ?? ""} placeholder="https://..." />

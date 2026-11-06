@@ -4,6 +4,7 @@ import { useState } from "react";
 
 type ApplicationView = {
   id: string; name: string; email: string; dateOfBirth: string; portfolioUrl: string;
+  featureLink?: string;
   bio: string; screenName: string; existingPlayer: boolean; submittedAt: string | null; status: string;
 };
 
@@ -34,6 +35,7 @@ export default function ApplicationReviews({ applications }: { applications: App
         <div><dt className="text-[var(--muted)]">Submitted</dt><dd>{application.submittedAt ? new Date(application.submittedAt).toLocaleDateString() : "Unknown"}</dd></div>
       </dl>
       <a className="inline-block break-all rounded-md border border-[var(--accent)] px-4 py-2 font-bold text-[var(--accent)]" href={application.portfolioUrl} target="_blank" rel="noopener noreferrer">Open portfolio: {application.portfolioUrl}</a>
+      {application.featureLink ? <a className="block break-all font-bold text-[var(--accent)] underline" href={application.featureLink} target="_blank" rel="noopener noreferrer">Open feature link: {application.featureLink}</a> : null}
       {application.bio ? <p className="whitespace-pre-wrap">{application.bio}</p> : null}
       {application.status === "approving" ? <p className="text-sm text-[var(--muted)]">Approval is processing. If interrupted, retry after two minutes.</p> : null}
       <div className="flex gap-4">

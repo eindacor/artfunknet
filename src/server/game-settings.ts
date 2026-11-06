@@ -1,4 +1,14 @@
 import type { Db } from "mongodb";
+import {
+  GALLERY_CAMERA_HEIGHT_CM,
+  GALLERY_ARTWORK_CENTER_HEIGHT_CM,
+  GALLERY_OVERVIEW_DISTANCE_CM,
+  GALLERY_VISITOR_SCALE,
+  normalizeGalleryOverviewDistanceCm,
+  normalizeGalleryVisitorScale,
+  normalizeGalleryCameraHeightCm,
+  normalizeGalleryArtworkCenterHeightCm,
+} from "../components/gallery-layout.ts";
 
 import {
   DEFAULT_OFFER_REVEAL_THRESHOLDS,
@@ -74,6 +84,10 @@ const DEBUG_CARD_STYLE_WEIGHTS = Object.fromEntries(
 ) as Record<DroppableCardRendererId, number>;
 
 export type GameplayConfig = {
+  galleryCameraHeightCm: number;
+  galleryArtworkCenterHeightCm: number;
+  galleryOverviewDistanceCm: number;
+  galleryVisitorScale: number;
   offerRevealThresholds: OfferRevealThresholds;
   dailyDropCount: number;
   crateValueScalar: number;
@@ -127,6 +141,10 @@ export type GameplaySettings = {
 };
 
 export const DEFAULT_ACTUAL_GAMEPLAY_CONFIG: GameplayConfig = {
+  galleryCameraHeightCm: GALLERY_CAMERA_HEIGHT_CM.default,
+  galleryArtworkCenterHeightCm: GALLERY_ARTWORK_CENTER_HEIGHT_CM.default,
+  galleryOverviewDistanceCm: GALLERY_OVERVIEW_DISTANCE_CM.default,
+  galleryVisitorScale: GALLERY_VISITOR_SCALE.default,
   offerRevealThresholds: { ...DEFAULT_OFFER_REVEAL_THRESHOLDS },
   dailyDropCount: 50,
   crateValueScalar: 1.8,
@@ -175,6 +193,10 @@ export const DEFAULT_ACTUAL_GAMEPLAY_CONFIG: GameplayConfig = {
 };
 
 export const DEFAULT_DEBUG_GAMEPLAY_CONFIG: GameplayConfig = {
+  galleryCameraHeightCm: GALLERY_CAMERA_HEIGHT_CM.default,
+  galleryArtworkCenterHeightCm: GALLERY_ARTWORK_CENTER_HEIGHT_CM.default,
+  galleryOverviewDistanceCm: GALLERY_OVERVIEW_DISTANCE_CM.default,
+  galleryVisitorScale: GALLERY_VISITOR_SCALE.default,
   offerRevealThresholds: { ...DEFAULT_OFFER_REVEAL_THRESHOLDS },
   dailyDropCount: 20,
   crateValueScalar: 1,
@@ -239,6 +261,11 @@ export function getGameplayGenerationMap(
 }
 
 type StoredGameplayConfig = {
+  gallery_camera_height_cm?: number;
+  gallery_artwork_center_height_cm?: number;
+  gallery_overview_distance_cm?: number;
+  gallery_zoom_distance_cm?: number;
+  gallery_visitor_scale?: number;
   offer_reveal_thresholds?: OfferRevealThresholds;
   daily_drop_count?: number;
   crate_value_scalar?: number;
@@ -320,8 +347,12 @@ export async function getGameplaySettings(
 
 export function toStoredGameplayConfig(
   config: GameplayConfig,
-): Required<StoredGameplayConfig> {
+): Required<Omit<StoredGameplayConfig, "gallery_zoom_distance_cm">> {
   return {
+    gallery_camera_height_cm: config.galleryCameraHeightCm,
+    gallery_artwork_center_height_cm: config.galleryArtworkCenterHeightCm,
+    gallery_overview_distance_cm: config.galleryOverviewDistanceCm,
+    gallery_visitor_scale: config.galleryVisitorScale,
     offer_reveal_thresholds: { ...config.offerRevealThresholds },
     daily_drop_count: config.dailyDropCount,
     crate_value_scalar: config.crateValueScalar,
@@ -380,6 +411,9 @@ export function validateGameplayConfig(
   const offerRevealThresholds = validateOfferRevealThresholds(config.offerRevealThresholds);
   if (!offerRevealThresholds.ok) return offerRevealThresholds;
   const integerFields = [
+    ["galleryCameraHeightCm", "Gallery camera height (cm)", GALLERY_CAMERA_HEIGHT_CM.min, GALLERY_CAMERA_HEIGHT_CM.max],
+    ["galleryArtworkCenterHeightCm", "Gallery artwork centerline height (cm)", GALLERY_ARTWORK_CENTER_HEIGHT_CM.min, GALLERY_ARTWORK_CENTER_HEIGHT_CM.max],
+    ["galleryOverviewDistanceCm", "Gallery overview distance (cm)", GALLERY_OVERVIEW_DISTANCE_CM.min, GALLERY_OVERVIEW_DISTANCE_CM.max],
     ["dailyDropCount", "Daily drop count", 1, 100],
     ["galleryPayoutIntervalMinutes", "Gallery payout interval", 1, 1_440],
     ["displayLevelIntervalMinutes", "Display level interval", 1, 10_080],
@@ -414,6 +448,16 @@ export function validateGameplayConfig(
       };
     }
     values[key] = value;
+  }
+
+  const galleryVisitorScale = Number(config.galleryVisitorScale);
+  if (!Number.isFinite(galleryVisitorScale)
+    || galleryVisitorScale < GALLERY_VISITOR_SCALE.min
+    || galleryVisitorScale > GALLERY_VISITOR_SCALE.max) {
+    return {
+      ok: false,
+      error: `Gallery visitor scale must be a number from ${GALLERY_VISITOR_SCALE.min} to ${GALLERY_VISITOR_SCALE.max}.`,
+    };
   }
 
   const probabilityFields = [
@@ -532,6 +576,10 @@ export function validateGameplayConfig(
   return {
     ok: true,
     value: {
+      galleryCameraHeightCm: values.galleryCameraHeightCm,
+      galleryArtworkCenterHeightCm: values.galleryArtworkCenterHeightCm,
+      galleryOverviewDistanceCm: values.galleryOverviewDistanceCm,
+      galleryVisitorScale,
       offerRevealThresholds: offerRevealThresholds.value,
       dailyDropCount: values.dailyDropCount,
       crateValueScalar,
@@ -691,6 +739,10 @@ function readConfig(
 ): GameplayConfig {
   const thresholds = validateOfferRevealThresholds(stored?.offer_reveal_thresholds);
   return {
+    galleryCameraHeightCm: normalizeGalleryCameraHeightCm(stored?.gallery_camera_height_cm),
+    galleryArtworkCenterHeightCm: normalizeGalleryArtworkCenterHeightCm(stored?.gallery_artwork_center_height_cm),
+    galleryOverviewDistanceCm: normalizeGalleryOverviewDistanceCm(stored?.gallery_overview_distance_cm ?? stored?.gallery_zoom_distance_cm),
+    galleryVisitorScale: normalizeGalleryVisitorScale(stored?.gallery_visitor_scale),
     offerRevealThresholds: thresholds.ok
       ? thresholds.value
       : { ...defaults.offerRevealThresholds },

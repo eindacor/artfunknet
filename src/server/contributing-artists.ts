@@ -74,7 +74,10 @@ export function validateArtistApplication(input: Record<string, unknown>, now = 
       birthday.toISOString().slice(0, 10) !== dateOfBirth || dateOfBirth < "1900-01-01" || dateOfBirth > adultCutoff) {
     throw new ArtistExperienceError("Artist applicants must be at least 18. Enter your complete date of birth.");
   }
-  return { name, bio, date_of_birth: dateOfBirth, portfolio_url: validateArtistUrl(input.portfolioUrl) };
+  return {
+    name, bio, date_of_birth: dateOfBirth, portfolio_url: validateArtistUrl(input.portfolioUrl),
+    feature_link: validateArtistUrl(input.featureLink, false),
+  };
 }
 
 export async function submitArtistApplication(database: Db, input: Record<string, unknown>, sessionPlayerId?: string) {
@@ -146,6 +149,7 @@ export async function approveArtistApplication(database: Db, id: string, adminEm
     await database.collection<ArtistRecord>("artists").updateOne({ _id: id }, { $setOnInsert: {
       _id: id, artist_name: application.name, date_of_birth: application.date_of_birth,
       portfolio_url: application.portfolio_url, bio: application.bio, social_links: {},
+      feature_link: application.feature_link ?? "",
       player_id: application.player_id, created_from_application: id, created_at: now,
     } }, { upsert: true });
     if (!application.existing_player && !existing) {
@@ -217,6 +221,7 @@ export async function getPublicArtistProfile(database: Db, playerId: string): Pr
   return {
     id: artist._id, playerId, name: artist.artist_name, bio: artist.bio ?? "",
     portfolioUrl: artist.portfolio_url ?? "", socialLinks: artist.social_links ?? {},
+    featureLink: artist.feature_link ?? "",
     instagramUsername: player.oauth_accounts?.instagram?.id && username && /^[a-zA-Z0-9._]{1,30}$/.test(username) ? username : null,
     featured: player.artist_featured === true,
   };
@@ -260,5 +265,8 @@ export function validateArtistProfile(input: Record<string, unknown>) {
     const url = validateArtistUrl(links[kind], false);
     if (url) socialLinks[kind] = url;
   }
-  return { bio, portfolio_url: validateArtistUrl(input.portfolioUrl), social_links: socialLinks };
+  return {
+    bio, portfolio_url: validateArtistUrl(input.portfolioUrl), social_links: socialLinks,
+    feature_link: validateArtistUrl(input.featureLink, false),
+  };
 }

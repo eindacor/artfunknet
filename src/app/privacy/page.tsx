@@ -38,7 +38,7 @@ export default function PrivacyPage() {
         <h2 className="text-2xl font-bold">Artist applications and contributed artwork</h2>
         <p>
           Artist applications collect your name, email, date of birth, required
-          portfolio URL, and optional bio. New applicants also choose player
+          portfolio URL, optional feature link, and optional bio. New applicants also choose player
           credentials; only a salted password hash is saved while the application
           awaits review. Existing players apply using their stored account details.
           Applicants must be 18 or older. Administrators review applications;
@@ -46,7 +46,7 @@ export default function PrivacyPage() {
           Denied applications are removed.
         </p>
         <p>
-          Approved artist names, bios, portfolio and social links, and approved
+          Approved artist names, bios, portfolio, feature and social links, and approved
           artwork may appear in artist galleries and the game. We save the
           artwork submission agreement, its version, and acceptance date.
           Under that agreement, the artist record and uploaded artwork are
@@ -121,10 +121,12 @@ export default function PrivacyPage() {
           requests you choose to make and processes them under its own policy.
           Information may also be disclosed where legally required. Contacting
           us by email sends your message through the relevant email providers.
-          Artist galleries can offer an optional Instagram profile embed for a
-          synced account. No Instagram embed is loaded until you choose to load
-          it. Doing so connects your browser to Instagram under Meta&apos;s policies;
-          embedding depends on the artist&apos;s public-profile settings.
+          Artist galleries can offer optional feature embeds from YouTube, Vimeo,
+          Instagram, Twitch, Facebook, TikTok, Spotify, and SoundCloud, as well as
+          an Instagram profile embed for a synced account. These embeds load
+          automatically when you view an artist gallery, connecting your browser
+          to that provider under its own policies; embedding depends on the
+          artist&apos;s public-content settings and the provider&apos;s restrictions.
           Opening an embedded stream or loading artwork from an external asset
           host also sends normal browser request information to that service.
         </p>

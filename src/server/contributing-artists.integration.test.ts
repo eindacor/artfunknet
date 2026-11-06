@@ -54,6 +54,7 @@ const password = "An-example-password-for-tests-2026";
 const applicationInput = {
   name: "Example Artist", email: "applicant@example.com", dateOfBirth: "2000-01-02",
   portfolioUrl: "https://portfolio.example.com/", bio: "An artist biography.",
+  featureLink: "https://www.youtube.com/watch?v=M7lc1UVf-VE",
   screenName: "Artist-Player", password, confirmPassword: password,
 };
 
@@ -96,6 +97,12 @@ test("artist applications, publication and featured galleries persist without gr
 
   await t.test("applications validate the eighteenth birthday boundary and safe portfolio URLs", () => {
     const now = new Date("2026-11-02T12:00:00Z");
+    assert.equal(artists.validateArtistApplication({ ...applicationInput, featureLink: "" }, now).feature_link, "");
+    assert.equal(artists.validateArtistApplication({ ...applicationInput, featureLink: undefined }, now).feature_link, "");
+    for (const featureLink of ["javascript:alert(1)", "https://user:password@example.com", `https://example.com/${"a".repeat(2048)}`]) {
+      assert.throws(() => artists.validateArtistApplication({ ...applicationInput, featureLink }, now), /valid http or https/);
+      assert.throws(() => artists.validateArtistProfile({ portfolioUrl: applicationInput.portfolioUrl, featureLink }), /valid http or https/);
+    }
     assert.equal(artists.validateArtistApplication({ ...applicationInput, dateOfBirth: "2008-11-02" }, now).date_of_birth, "2008-11-02");
     for (const dateOfBirth of ["2008-11-03", "2020-01-01", "2000-02-31", "", "invalid"]) {
       assert.throws(() => artists.validateArtistApplication({ ...applicationInput, dateOfBirth }, now), /at least 18/);
@@ -111,6 +118,7 @@ test("artist applications, publication and featured galleries persist without gr
     const id = await artists.submitArtistApplication(db, applicationInput);
     assert.equal(await documents(db, "players").countDocuments(), 0);
     const pending = await documents(db, "artist_applications").findOne({ _id: id });
+    assert.equal(pending?.feature_link, applicationInput.featureLink);
     assert.ok(pending?.credentials.hash);
     assert.equal(JSON.stringify(pending).includes(password), false);
     assert.ok(await verifyPassword(password, pending.credentials.salt, pending.credentials.hash));
@@ -128,6 +136,7 @@ test("artist applications, publication and featured galleries persist without gr
     assert.equal(await documents(db, "items").countDocuments({ owner: player!._id }), 6);
     assert.equal(artistTypes.getPlayerLandingPath(player!), "/artist");
     assert.ok(await documents(db, "artists").findOne({ _id: id, player_id: player!._id }));
+    assert.equal((await artists.getPublicArtistProfile(db, player!._id))?.featureLink, applicationInput.featureLink);
     assert.equal((await documents(db, "artist_applications").findOne({ _id: id }))?.credentials, undefined);
     const login = await load<{ POST: (request: Request) => Promise<Response> }>("../app/api/auth/player/login/route.ts", {
       "next/server": { NextResponse }, "@/server/mongodb": { getDatabase: async () => db },
@@ -141,6 +150,39 @@ test("artist applications, publication and featured galleries persist without gr
     }));
     assert.equal(signIn.status, 200);
     assert.equal((await signIn.json()).redirectTo, "/artist");
+  });
+
+  await t.test("artist profile updates persist, replace and clear feature links while legacy records default to no feature", async () => {
+    const db = client.db("artist-feature-profile");
+    const account = await seedArtist(db, 0);
+    assert.equal((await artists.getPublicArtistProfile(db, account.id))?.featureLink, "");
+    const route = await load<typeof import("../app/api/artist/profile/route.ts")>("../app/api/artist/profile/route.ts", {
+      "next/server": { NextResponse },
+      "@/server/artist-api": {
+        requireArtistApi: async () => ({ ok: true, database: db, artist: { _id: account.artistId } }),
+        artistErrorResponse: (error: Error) => NextResponse.json({ error: error.message }, { status: 400 }),
+      },
+      "@/server/contributing-artists": { validateArtistProfile: artists.validateArtistProfile },
+    });
+    for (const featureLink of [applicationInput.featureLink, " https://vimeo.com/76979871 ", "https://portfolio.example.com/feature", ""]) {
+      const result = await route.PATCH(new Request("http://localhost/api/artist/profile", {
+        method: "PATCH", body: JSON.stringify({
+          portfolioUrl: applicationInput.portfolioUrl, bio: applicationInput.bio, featureLink,
+          socialLinks: { instagram: "https://www.instagram.com/test.artist/" },
+        }),
+      }));
+      assert.equal(result.status, 200);
+      assert.equal((await documents(db, "artists").findOne({ _id: account.artistId }))?.feature_link, featureLink.trim());
+      const profile = await artists.getPublicArtistProfile(db, account.id);
+      assert.equal(profile?.featureLink, featureLink.trim());
+      assert.equal(profile?.bio, applicationInput.bio);
+      assert.equal(profile?.socialLinks.instagram, "https://www.instagram.com/test.artist/");
+    }
+    const invalid = await route.PATCH(new Request("http://localhost/api/artist/profile", {
+      method: "PATCH", body: JSON.stringify({ portfolioUrl: applicationInput.portfolioUrl, featureLink: "javascript:alert(1)" }),
+    }));
+    assert.equal(invalid.status, 400);
+    assert.equal((await artists.getPublicArtistProfile(db, account.id))?.featureLink, "");
   });
 
   await t.test("existing-player applications ignore supplied account fields, block duplicates and preserve player progress", async () => {
@@ -392,6 +434,14 @@ test("artist applications, publication and featured galleries persist without gr
   await t.test("artist galleries combine active uploads with featured and permanent game items and persist owner-only finishes", async () => {
     const db = client.db("combined-artist-gallery");
     await setupTestDb(db, null, STARTING_INVENTORY_TEST_OPTIONS);
+    await documents(db, "metadata").updateOne({ _id: "gameplay-settings" }, {
+      $set: {
+        "gameplay.configs.actual.gallery_overview_distance_cm": 1250,
+        "gameplay.configs.actual.gallery_visitor_scale": 0.65,
+        "gameplay.configs.actual.gallery_camera_height_cm": 175,
+        "gameplay.configs.actual.gallery_artwork_center_height_cm": 160,
+      },
+    }, { upsert: true });
     const account = await seedArtist(db, 0, true);
     await documents(db, "players").insertOne(createPlayerAccountRecord({
       playerId: "ordinary-player", email: "ordinary@example.com", screenName: "Ordinary",
@@ -461,6 +511,10 @@ test("artist applications, publication and featured galleries persist without gr
       return response.json();
     };
     const gallery = await get();
+    assert.equal(gallery.overviewDistanceCm, 1250);
+    assert.equal(gallery.visitorScale, 0.65);
+    assert.equal(gallery.cameraHeightCm, 175);
+    assert.equal(gallery.artworkCenterHeightCm, 160);
     assert.deepEqual(gallery.items.map((item: { _id: string }) => item._id).sort(), ["artist-preview:uploaded", "featured-copy", "permanent-copy"]);
     assert.deepEqual(gallery.artistWorks.map((work: { _id: string }) => work._id), ["uploaded"]);
     assert.deepEqual(gallery.legendaryAttributes.map((effect: { id: string }) => effect.id).sort(), ["game-effect", "uploaded-effect"]);
@@ -488,6 +542,10 @@ test("artist applications, publication and featured galleries persist without gr
     } });
     const anonymous = await exhibition.getGalleryExhibition(db, account.id, null);
     assert.ok(anonymous);
+    assert.equal(anonymous.overviewDistanceCm, 1250);
+    assert.equal(anonymous.visitorScale, 0.65);
+    assert.equal(anonymous.cameraHeightCm, 175);
+    assert.equal(anonymous.artworkCenterHeightCm, 160);
     assert.deepEqual(Array.from(anonymous.items, item => item._id).sort(), ["artist-preview:uploaded", "featured-copy", "permanent-copy"]);
     assert.equal(anonymous.items.find(item => item._id === "featured-copy")?.owner, "unknown");
     assert.equal(anonymous.metadata, null);
@@ -563,15 +621,22 @@ test("artist applications, publication and featured galleries persist without gr
       },
     );
     const finishes = galleryFinishes.getGalleryFinishes({
-      wall: [0.1, 0.2, 0.3], floor: [0.4, 0.5, 0.6], frame_width: 0.07, matte_width: 0.1, brightness: 0.8,
+      wall: [0.1, 0.2, 0.3], floor: [0.4, 0.5, 0.6], frame_width: 0.07, matte_width: 0.1, spacing: 2.38, brightness: 0.8,
     });
-    const saveRequest = () => new Request("http://localhost/api/play/gallery-finishes", {
-      method: "PATCH", body: JSON.stringify({ galleryId: gallery.galleryId, finishes }),
+    const saveRequest = (spacing = finishes.spacing) => new Request("http://localhost/api/play/gallery-finishes", {
+      method: "PATCH", body: JSON.stringify({ galleryId: gallery.galleryId, finishes: { ...finishes, spacing } }),
     });
     assert.equal((await finishRoute.PATCH(saveRequest())).status, 404);
     viewerId = account.id;
     assert.equal((await finishRoute.PATCH(saveRequest())).status, 200);
+    for (const spacing of [0.499, 4.001]) {
+      const response = await finishRoute.PATCH(saveRequest(spacing));
+      assert.equal(response.status, 400);
+      assert.match((await response.json()).error, /spacing \(0.5-4 meters\)/);
+    }
     assert.deepEqual((await get()).finishes, finishes);
+    assert.deepEqual((await exhibition.getGalleryExhibition(db, account.id, null))?.finishes, finishes,
+      "Public links use the owner's saved spacing along with their other finishes");
     assert.deepEqual((await documents(db, "players").findOne({ _id: account.id }))?.gallery_finishes[gallery.galleryId], finishes);
     await documents(db, "artworks").updateOne({ _id: uploaded._id }, { $set: { active: false } });
     assert.deepEqual((await get()).items.map((item: { _id: string }) => item._id).sort(), ["featured-copy", "permanent-copy"]);
