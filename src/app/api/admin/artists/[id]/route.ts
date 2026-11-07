@@ -8,6 +8,7 @@ import { getDatabase } from "@/server/mongodb";
 type Artist = {
   _id: string;
   artist_name: string;
+  player_id?: string | null;
   date_of_birth?: string | null;
   date_of_death?: string | null;
   updated_at?: Date;
@@ -26,6 +27,15 @@ export async function DELETE(
   if (!artist) {
     return NextResponse.json({ error: "Artist not found." }, { status: 404 });
   }
+  if (
+    artist.player_id ||
+    await database.collection("players").findOne({ artist_id: id }, { projection: { _id: 1 } })
+  ) {
+    return NextResponse.json(
+      { error: "Cannot delete an artist linked to a player account." },
+      { status: 409 },
+    );
+  }
   const artworkCount = await database
     .collection("artworks")
     .countDocuments({ artist_id: id });
@@ -40,6 +50,7 @@ export async function DELETE(
   const deleted = await database.collection<Artist>("artists").deleteOne({
     _id: id,
     artist_name: artist.artist_name,
+    player_id: { $in: [null, ""] },
   });
   if (deleted.deletedCount !== 1) {
     return NextResponse.json(
@@ -104,12 +115,16 @@ export async function PATCH(
     date_of_death: body.date_of_death?.trim() || null,
   };
   try {
-    const updated = await database.collection<Artist>("artists").replaceOne(
+    const updated = await database.collection<Artist>("artists").updateOne(
       { _id: id, artist_name: existing.artist_name },
       {
-        ...updatedArtist,
-        updated_at: new Date(),
-        updated_by: auth.session.email,
+        $set: {
+          artist_name: updatedArtist.artist_name,
+          date_of_birth: updatedArtist.date_of_birth,
+          date_of_death: updatedArtist.date_of_death,
+          updated_at: new Date(),
+          updated_by: auth.session.email,
+        },
       },
     );
     if (updated.matchedCount !== 1) {
@@ -130,10 +145,13 @@ export async function PATCH(
         },
       );
     } catch (error) {
+      const restoreFields = ["artist_name", "date_of_birth", "date_of_death", "updated_at", "updated_by"] as const;
+      const restoreSet = Object.fromEntries(restoreFields.filter(field => field in existing).map(field => [field, existing[field]]));
+      const restoreUnset = Object.fromEntries(restoreFields.filter(field => !(field in existing)).map(field => [field, ""] as const));
       const [restored, artworksRestored] = await Promise.all([
         database
           .collection<Artist>("artists")
-          .replaceOne({ _id: id, artist_name: name }, existing),
+          .updateOne({ _id: id, artist_name: name }, { $set: restoreSet, $unset: restoreUnset }),
         database
           .collection("artworks")
           .updateMany({ artist_id: id }, { $set: { artist: existing.artist_name } }),

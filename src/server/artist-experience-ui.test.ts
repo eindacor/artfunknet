@@ -977,6 +977,204 @@ test("public item pages show the current owner name and public gallery link in t
   }
 });
 
+test("player-account admin searches live, ignores stale responses, and creates and links catalog artists", async () => {
+  const states: unknown[] = [];
+  const refs: { current: unknown }[] = [];
+  let stateIndex = 0;
+  let refIndex = 0;
+  let effects: React.EffectCallback[] = [];
+  const cleanups: ReturnType<React.EffectCallback>[] = [];
+  const timers: { callback: () => Promise<void>; delay: number; cancelled: boolean; used: boolean }[] = [];
+  const requests: { url: string; options: RequestInit; complete: (body: unknown, ok?: boolean) => void }[] = [];
+  class TestFormData {
+    values: Record<string, string>;
+    constructor(values: Record<string, string>) { this.values = values; }
+    get(name: string) { return this.values[name] ?? null; }
+  }
+  const panel = await load<typeof import("../app/admin/player-accounts/player-account-admin.tsx")>("../app/admin/player-accounts/player-account-admin.tsx", {
+    react: {
+      ...React,
+      useState: (initial: unknown) => {
+        const index = stateIndex++;
+        if (!(index in states)) states[index] = typeof initial === "function" ? initial() : initial;
+        return [states[index], (value: unknown) => { states[index] = typeof value === "function" ? value(states[index]) : value; }];
+      },
+      useRef: (current: unknown) => {
+        const index = refIndex++;
+        if (!(index in refs)) refs[index] = { current };
+        return refs[index];
+      },
+      useEffect: (effect: React.EffectCallback) => { effects.push(effect); },
+    },
+  }, {
+    AbortController, FormData: TestFormData,
+    window: {
+      setTimeout: (callback: () => Promise<void>, delay: number) => {
+        timers.push({ callback, delay, cancelled: false, used: false });
+        return timers.length - 1;
+      },
+      clearTimeout: (id: number) => { timers[id].cancelled = true; },
+    },
+    fetch: (url: string, options: RequestInit = {}) => new Promise(resolve => {
+      requests.push({ url, options, complete: (body, ok = true) => resolve({ ok, json: async () => body }) });
+    }),
+  });
+  const props = { initialArtists: [
+    { id: "catalog", name: "Existing artist", playerId: null },
+    { id: "taken", name: "Another artist", playerId: "another-player" },
+  ] };
+  type Element = React.ReactElement<{ children?: React.ReactNode } & Record<string, unknown>>;
+  function find(node: React.ReactNode, predicate: (element: Element) => boolean): Element | undefined {
+    for (const child of React.Children.toArray(node)) {
+      if (!React.isValidElement(child)) continue;
+      const element = child as Element;
+      if (predicate(element)) return element;
+      const match = find(element.props.children, predicate);
+      if (match) return match;
+    }
+  }
+  function text(node: React.ReactNode): string {
+    return React.Children.toArray(node).map(child =>
+      React.isValidElement(child) ? text((child as Element).props.children) : String(child)).join("");
+  }
+  let tree: React.ReactNode;
+  const render = () => {
+    stateIndex = 0; refIndex = 0; effects = [];
+    tree = panel.default(props);
+    return renderToStaticMarkup(tree);
+  };
+  const startEffect = (index: number, delay: number) => {
+    if (typeof cleanups[index] === "function") cleanups[index]();
+    cleanups[index] = effects[index]();
+    const timer = timers.find(timer => !timer.cancelled && !timer.used);
+    assert.ok(timer);
+    assert.equal(timer.delay, delay);
+    timer.used = true;
+    return timer.callback();
+  };
+  const input = (id: string, value: string) => {
+    const element = find(tree, element => element.props.id === id);
+    assert.ok(element);
+    (element.props.onChange as (event: { target: { value: string } }) => void)({ target: { value } });
+    return render();
+  };
+  const button = (label: string) => {
+    const element = find(tree, element => element.type === "button" && text(element.props.children).includes(label));
+    assert.ok(element, label);
+    return element;
+  };
+  const complete = async (body: unknown, ok = true) => {
+    requests.at(-1)!.complete(body, ok);
+    await new Promise<void>(resolve => setImmediate(resolve));
+    return render();
+  };
+  assert.match(render(), /Search by player name or email/);
+  const searchInput = find(tree, element => element.props.id === "player-account-search");
+  assert.equal(searchInput?.props.type, "search");
+  assert.match(String(searchInput?.props.className), /border.*bg-black/);
+  assert.equal(requests.length, 0);
+  input("player-account-search", "alice");
+  const oldSearch = startEffect(0, 200);
+  assert.equal(requests[0].url, "/api/admin/player-accounts?q=alice");
+  assert.equal(requests[0].options.cache, "no-store");
+  input("player-account-search", "player");
+  requests[0].complete({ accounts: [{ id: "stale", email: "stale@example.com", screenName: "Stale result" }] });
+  await oldSearch;
+  assert.doesNotMatch(render(), /Stale result/);
+  assert.match(render(), /Searching/);
+  const search = startEffect(0, 200);
+  const alice = { id: "alice", email: "alice@example.com", screenName: "Alice-Player", active: true, artistId: null };
+  const bob = { id: "bob", email: "bob@example.com", screenName: "Bob-Player", active: true, artistId: null };
+  requests.at(-1)!.complete({ accounts: [alice, bob] });
+  await search;
+  assert.match(render(), /Alice-Player/);
+  (button("Alice-Player").props.onClick as () => void)();
+  render();
+  const oldDetails = startEffect(1, 0);
+  assert.equal(requests.at(-1)?.url, "/api/admin/player-accounts?id=alice");
+  (button("Bob-Player").props.onClick as () => void)();
+  render();
+  const details = {
+    hasPassword: true, hasOAuth: true, supporterStatus: null, supporterOverride: null,
+    artistName: null, createdAt: null, updatedAt: null, metadata: { profile: { bank_balance: 1000 } },
+  };
+  requests.at(-1)!.complete({ account: { ...alice, ...details } });
+  await oldDetails;
+  render();
+  assert.equal(find(tree, element => element.type === "article"), undefined, "An old account response cannot replace the new selection");
+  const selected = startEffect(1, 0);
+  requests.at(-1)!.complete({ account: { ...bob, ...details } });
+  await selected;
+  assert.match(render(), /Not linked to an artist/);
+  assert.equal(find(tree, element => element.type === "option" && element.props.value === "taken")?.props.disabled, true);
+  input("player-account-artist", "catalog");
+  const linkForm = () => {
+    const form = find(tree, element => element.type === "form" &&
+      Boolean(find(element.props.children, child => child.props.id === "player-account-artist")));
+    assert.ok(form);
+    return form.props.onSubmit as (event: { preventDefault: () => void }) => void;
+  };
+  linkForm()({ preventDefault() {} });
+  const linkRequest = requests.at(-1)!;
+  assert.deepEqual(JSON.parse(String(linkRequest.options.body)), {
+    action: "link-artist", email: bob.email, playerId: bob.id, artistId: "catalog",
+  });
+  const beforeDuplicate = requests.length;
+  linkForm()({ preventDefault() {} });
+  render();
+  (button("Alice-Player").props.onClick as () => void)();
+  assert.equal(requests.length, beforeDuplicate);
+  await complete({ error: "Artist is already linked." }, false);
+  assert.match(render(), /Artist is already linked/);
+  (button("Create new artist").props.onClick as () => void)();
+  render();
+  const creator = find(tree, element => element.type === "form" &&
+    Boolean(find(element.props.children, child => child.props.name === "artistName")));
+  assert.ok(creator);
+  const creation = (creator.props.onSubmit as (event: unknown) => Promise<void>)({
+    preventDefault() {}, currentTarget: { artistName: "New artist", dateOfBirth: "1990", dateOfDeath: "" },
+  });
+  assert.equal(requests.at(-1)?.url, "/api/admin/artists");
+  assert.deepEqual(JSON.parse(String(requests.at(-1)?.options.body)), {
+    artist_name: "New artist", date_of_birth: "1990", date_of_death: "",
+  });
+  requests.at(-1)!.complete({ artist: { _id: "new-artist", artist_name: "New artist" } });
+  await creation;
+  render();
+  assert.equal(find(tree, element => element.props.id === "player-account-artist")?.props.value, "new-artist");
+  linkForm()({ preventDefault() {} });
+  assert.equal(JSON.parse(String(requests.at(-1)?.options.body)).artistId, "new-artist");
+  const linked = { ...bob, ...details, artistId: "new-artist", artistName: "New artist" };
+  await complete({ account: linked, message: "Artist portal enabled." });
+  assert.match(render(), /Artist portal enabled/);
+  assert.equal(find(tree, element => element.props.id === "player-account-artist")?.props.disabled, true);
+  assert.doesNotMatch(render(), /Create new artist/);
+  const supporter = find(tree, element => element.type === "form" &&
+    Boolean(find(element.props.children, child => child.props.name === "supporterStatus")));
+  assert.ok(supporter);
+  const savingSupporter = (supporter.props.onSubmit as (event: unknown) => Promise<void>)({
+    preventDefault() {}, currentTarget: { supporterStatus: "rare" },
+  });
+  assert.equal(JSON.parse(String(requests.at(-1)?.options.body)).action, "set-supporter-override");
+  requests.at(-1)!.complete({ account: { ...linked, supporterStatus: "rare", supporterOverride: "rare" } });
+  await savingSupporter;
+  render();
+  const recovery = find(tree, element => element.type === "form" &&
+    Boolean(find(element.props.children, child => child.props.name === "confirmPassword")));
+  assert.ok(recovery);
+  let reset = false;
+  const recoveryForm = { password: "New-password-2026", confirmPassword: "New-password-2026", reset() { reset = true; } };
+  const resetting = (recovery.props.onSubmit as (event: unknown) => Promise<void>)({ preventDefault() {}, currentTarget: recoveryForm });
+  assert.equal(JSON.parse(String(requests.at(-1)?.options.body)).action, "reset-password");
+  requests.at(-1)!.complete({ account: linked });
+  await resetting;
+  assert.equal(reset, true);
+  render();
+  input("player-account-search", "");
+  assert.doesNotMatch(renderToStaticMarkup(find(tree, element => element.type === "section")), /Alice-Player|Bob-Player|Searching/);
+  for (const cleanup of cleanups) if (typeof cleanup === "function") cleanup();
+});
+
 test("auction controls prevent sellers and commission recipients from bidding in either view or a linked dialog", async () => {
   const artwork: Artwork = {
     _id: "auction-work", artist_id: "artist", artist: "Artist", title: "Auction work", date: 2026,

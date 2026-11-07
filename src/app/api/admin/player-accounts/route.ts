@@ -4,7 +4,12 @@ import { requireAdminApi } from "@/server/admin-api";
 import { getDatabase } from "@/server/mongodb";
 import { hashPassword, validatePassword } from "@/server/password";
 import { normalizePlayerEmail } from "@/server/player-account";
-import { redactPlayerMetadata } from "@/server/player-account-admin";
+import {
+  linkPlayerAccountToArtist,
+  PlayerArtistLinkError,
+  redactPlayerMetadata,
+} from "@/server/player-account-admin";
+import type { Db } from "mongodb";
 import {
   normalizeSupporterStatus,
   resolvePlayerSupporterStatus,
@@ -21,31 +26,52 @@ type PlayerAccount = SupporterStatusPlayer & {
   google_sub?: string;
   created_at?: Date;
   updated_at?: Date;
+  artist_id?: string;
 };
+
+type AccountArtist = { _id: string; artist_name: string };
+const NO_STORE = { headers: { "Cache-Control": "no-store" } };
 
 export async function GET(request: Request) {
   const auth = await requireAdminApi();
   if (!auth.ok) return auth.response;
 
-  const email = normalizePlayerEmail(
-    new URL(request.url).searchParams.get("email"),
-  );
-  if (!email) {
+  const params = new URL(request.url).searchParams;
+  const database = await getDatabase();
+  if (params.has("q")) {
+    const query = (params.get("q") ?? "").trim().slice(0, 254);
+    if (!query) return NextResponse.json({ accounts: [] }, NO_STORE);
+    const match = { $regex: query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" };
+    const players = await database.collection<PlayerAccount>("players")
+      .find({ $or: [
+        { email: match }, { account_emails: match }, { verified_emails: match },
+        { screen_name: match }, { "profile.screen_name": match },
+      ] })
+      .project<PlayerAccount>({ email: 1, screen_name: 1, active: 1, artist_id: 1 })
+      .sort({ screen_name: 1, _id: 1 }).limit(20).toArray();
+    return NextResponse.json({ accounts: players.map(player => ({
+      id: player._id, email: player.email, screenName: player.screen_name,
+      active: player.active, artistId: player.artist_id ?? null,
+    })) }, NO_STORE);
+  }
+  const id = params.get("id")?.trim();
+  const email = normalizePlayerEmail(params.get("email"));
+  if (!id && !email) {
     return NextResponse.json(
-      { error: "Enter a valid player email address." },
+      { error: "Choose a player account or enter a valid email address." },
       { status: 400 },
     );
   }
 
-  const player = await findPlayerByEmail(email);
+  const player = await database.collection<PlayerAccount>("players").findOne(id ? { _id: id } : { email: email! });
   if (!player) {
     return NextResponse.json(
-      { error: "No player account uses that email address." },
+      { error: "The player account could not be found." },
       { status: 404 },
     );
   }
 
-  return NextResponse.json({ account: toPlayerAccountView(player) });
+  return NextResponse.json({ account: await toPlayerAccountView(player, database) }, NO_STORE);
 }
 
 export async function PATCH(request: Request) {
@@ -55,11 +81,35 @@ export async function PATCH(request: Request) {
   let body: Record<string, unknown>;
   try {
     body = (await request.json()) as Record<string, unknown>;
+    if (!body || typeof body !== "object" || Array.isArray(body)) throw new Error();
   } catch {
     return NextResponse.json(
       { error: "The player-account update request is invalid." },
       { status: 400 },
     );
+  }
+
+  if (body.action === "link-artist") {
+    const playerId = typeof body.playerId === "string" ? body.playerId.trim() : "";
+    const artistId = typeof body.artistId === "string" ? body.artistId.trim() : "";
+    if (!playerId || !artistId) {
+      return NextResponse.json({ error: "Choose a player and a catalog artist." }, { status: 400 });
+    }
+    const database = await getDatabase();
+    try {
+      await linkPlayerAccountToArtist(database, playerId, artistId, auth.session.email);
+    } catch (error) {
+      if (error instanceof PlayerArtistLinkError) {
+        return NextResponse.json({ error: error.message }, { status: error.status });
+      }
+      throw error;
+    }
+    const player = await database.collection<PlayerAccount>("players").findOne({ _id: playerId });
+    if (!player) return NextResponse.json({ error: "The player account is unavailable." }, { status: 404 });
+    return NextResponse.json({
+      status: "ok", message: `${player.screen_name} now has access to the artist portal.`,
+      account: await toPlayerAccountView(player, database),
+    }, NO_STORE);
   }
 
   const email = normalizePlayerEmail(body.email);
@@ -119,7 +169,7 @@ export async function PATCH(request: Request) {
   return NextResponse.json({
     status: "ok",
     message: `A new password was set for ${email}.`,
-    ...(player ? { account: toPlayerAccountView(player) } : {}),
+    ...(player ? { account: await toPlayerAccountView(player, database) } : {}),
   });
 }
 
@@ -183,22 +233,21 @@ async function updateSupporterOverride({
     message: supporterStatus
       ? `${email} now has a ${supporterStatus} supporter override.`
       : `The supporter override for ${email} was cleared.`,
-    account: toPlayerAccountView(player),
+    account: await toPlayerAccountView(player, database),
   });
 }
 
-async function findPlayerByEmail(email: string) {
-  return (await getDatabase())
-    .collection<PlayerAccount>("players")
-    .findOne({ email });
-}
-
-function toPlayerAccountView(player: PlayerAccount) {
+async function toPlayerAccountView(player: PlayerAccount, database: Db) {
+  const artist = player.artist_id
+    ? await database.collection<AccountArtist>("artists").findOne({ _id: player.artist_id })
+    : null;
   return {
     id: player._id,
     email: player.email,
     screenName: player.screen_name,
     active: player.active,
+    artistId: player.artist_id ?? null,
+    artistName: artist?.artist_name ?? null,
     hasPassword: Boolean(player.password_salt && player.password_hash),
     hasOAuth: Boolean(
       player.google_sub ||
