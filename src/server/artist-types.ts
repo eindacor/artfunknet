@@ -52,7 +52,7 @@ export type PublicArtistProfile = {
 };
 
 export type FeaturedArtistGallery = PublicArtistProfile & {
-  thumbnail: Pick<Artwork, "_id" | "title" | "image" | "thumbnail_adjustment"> | null;
+  thumbnail: Pick<Artwork, "_id" | "title" | "image" | "feature_card_adjustment" | "thumbnail_adjustment"> | null;
 };
 
 export function getPlayerLandingPath(player: { artist_id?: string }): "/artist" | "/play" {

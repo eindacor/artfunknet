@@ -233,6 +233,7 @@ export async function getArtistWorks(database: Db, artistId: string): Promise<Ar
       _id: 1, artist_id: 1, artist: 1, title: 1, date: 1, genre: 1, medium: 1, rarity: 1,
       value_scale: 1, height: 1, width: 1, active: 1, image: 1, effect_id: 1,
       art_style_adjustments: 1, detail_image_adjustments: 1, thumbnail_adjustment: 1,
+      feature_card_adjustment: 1,
       special_attributes: 1, image_width: 1, image_height: 1, nsfw: 1,
     },
   }).toArray();
@@ -250,6 +251,7 @@ export async function getFeaturedArtistGalleries(database: Db): Promise<Featured
     const [rarest] = await getArtistWorks(database, profile.id);
     return { ...profile, thumbnail: rarest ? {
       _id: rarest._id, title: rarest.title, image: rarest.image, thumbnail_adjustment: rarest.thumbnail_adjustment,
+      feature_card_adjustment: rarest.feature_card_adjustment,
     } : null };
   }));
   return profiles.filter((profile): profile is FeaturedArtistGallery => profile !== null);

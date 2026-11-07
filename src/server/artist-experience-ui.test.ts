@@ -93,6 +93,7 @@ async function load<T>(relative: string, dependencies: Record<string, unknown> =
         react: React, "react/jsx-runtime": require("react/jsx-runtime"), "next/link": require("next/link"),
         "@/shared/tutorial": tutorialElements,
         "@/shared/artist-feature-link": artistFeatureLinks,
+        "./item-cards/artwork-image-adjustments": imageAdjustments,
         "@/server/legendary-attributes": { ART_DONOR_ATTRIBUTE_ID },
         "@/components/tutorial/tutorial-provider": {
           useTutorial: () => ({ showTutorial: () => false, fulfillTutorial: async () => false }),
@@ -2443,8 +2444,12 @@ test("gallery directory cards and rows distinguish contributing artists without 
 });
 
 test("featured artist cards keep their links while synced Instagram profiles embed without extra text or controls", async () => {
+  const thumbnails: Parameters<typeof import("../components/artwork-thumbnail.tsx").default>[0][] = [];
   const gallery = await load<typeof import("../components/artist-gallery.tsx")>("../components/artist-gallery.tsx", {
-    "./artwork-thumbnail": { default: ({ alt }: { alt: string }) => React.createElement("span", { "data-thumbnail": alt }) },
+    "./artwork-thumbnail": { default: (props: (typeof thumbnails)[number]) => {
+      thumbnails.push(props);
+      return React.createElement("span", { "data-thumbnail": props.alt });
+    } },
     "./item-cards/item-card": { default: ({ item }: { item: ReturnType<typeof createArtistArtworkPreview> }) =>
       React.createElement("article", { "data-preview": item._id }, item.artwork.title) },
     "@/server/artist-artwork-preview": { createArtistArtworkPreview },
@@ -2453,12 +2458,30 @@ test("featured artist cards keep their links while synced Instagram profiles emb
     id: "artist-id", playerId: "artist-player", name: "Test Artist", bio: "The artist's biography.",
     featureLink: "",
     portfolioUrl: "https://portfolio.example.com/", socialLinks: { bluesky: "https://bsky.app/profile/test.example" },
-    instagramUsername: "test.artist", featured: true, thumbnail: { _id: "rarest-work", title: "Rarest work" },
+    instagramUsername: "test.artist", featured: true, thumbnail: {
+      _id: "rarest-work", title: "Rarest work",
+      feature_card_adjustment: { x: -45, y: 60, scale: 1.8 },
+      thumbnail_adjustment: { x: 30, y: -70, scale: 1.2 },
+    },
   };
-  const artists = [artist, { ...artist, id: "another-artist", playerId: "another-player", name: "Another Artist", thumbnail: undefined }];
+  const artists: FeaturedArtistGallery[] = [
+    artist,
+    { ...artist, id: "another-artist", playerId: "another-player", name: "Another Artist", thumbnail: null },
+    { ...artist, id: "legacy-artist", playerId: "legacy-player", name: "Legacy Artist", thumbnail: {
+      _id: "legacy-work", title: "Legacy work", thumbnail_adjustment: { x: 25, y: -30, scale: 1.5 },
+    } },
+  ];
   const visited: string[] = [];
   const props = { artists, onVisit: (playerId: string) => visited.push(playerId) };
   const cards = renderToStaticMarkup(React.createElement(gallery.FeaturedArtistGalleries, props));
+  assert.equal(thumbnails.length, 2);
+  for (const [index, thumbnail] of thumbnails.entries()) {
+    assert.equal(thumbnail.fixedFocalPoint, true);
+    assert.equal(thumbnail.variant, "card");
+    assert.deepEqual(thumbnail.adjustment, index === 0
+      ? artist.thumbnail!.feature_card_adjustment
+      : artists[2].thumbnail!.thumbnail_adjustment);
+  }
   assert.match(cards, /aria-label="Visit gallery: Test Artist"/);
   assert.match(cards, /Rarest work by Test Artist/);
   assert.match(cards, /href="https:\/\/portfolio.example.com\/"/);

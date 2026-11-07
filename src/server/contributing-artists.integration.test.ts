@@ -254,9 +254,12 @@ test("artist applications, publication and featured galleries persist without gr
     await documents(db, "players").updateOne({ _id: account.id }, {
       $set: { oauth_accounts: { instagram: { id: "instagram-id", username: "test.artist" } } },
     });
+    const featureAdjustment = { x: -45, y: 60, scale: 1.8 };
+    const thumbnailAdjustment = { x: 30, y: -70, scale: 1.2 };
     const works = [
       { _id: "common", title: "Common", rarity: "common", active: true },
-      { _id: "rare", title: "Rare", rarity: "rare", active: true },
+      { _id: "rare", title: "Rare", rarity: "rare", active: true,
+        feature_card_adjustment: featureAdjustment, thumbnail_adjustment: thumbnailAdjustment },
       { _id: "pending-masterpiece", title: "Pending", rarity: "masterpiece", active: false },
     ];
     await documents(db, "artworks").insertMany(works.map(work => ({
@@ -265,11 +268,14 @@ test("artist applications, publication and featured galleries persist without gr
     })));
     const [card] = await artists.getFeaturedArtistGalleries(db);
     assert.equal(card.thumbnail?._id, "rare");
+    assert.deepEqual(card.thumbnail?.feature_card_adjustment, featureAdjustment);
+    assert.deepEqual(card.thumbnail?.thumbnail_adjustment, thumbnailAdjustment);
     assert.equal(card.instagramUsername, "test.artist");
     assert.equal(JSON.stringify(card).includes("date_of_birth"), false);
     assert.equal(JSON.stringify(card).includes("artist-0@example.com"), false);
     const publicWorks = await artists.getArtistWorks(db, account.artistId);
     assert.deepEqual(publicWorks.map(work => work._id), ["rare", "common"]);
+    assert.deepEqual(publicWorks[0].feature_card_adjustment, featureAdjustment);
     assert.doesNotMatch(JSON.stringify(publicWorks), /submitted_by|artist_license|admin-private/);
   });
 

@@ -3,6 +3,7 @@
 import ArtistFeature from "./artist-feature";
 import ArtworkThumbnail from "./artwork-thumbnail";
 import ItemCard from "./item-cards/item-card";
+import { getArtworkFeatureCardAdjustment } from "./item-cards/artwork-image-adjustments";
 import type { CardLegendaryAttribute } from "./item-cards/types";
 import type { FeaturedArtistGallery, PublicArtistProfile } from "@/server/artist-types";
 import type { Artwork } from "@/server/gameplay";
@@ -31,7 +32,8 @@ export function FeaturedArtistGalleries({ artists, onVisit }: {
     <div className="featured-artist-grid">{artists.map(artist => <article className="featured-artist-card" key={artist.id}>
       <div className="featured-artist-preview">
         {artist.thumbnail ? <ArtworkThumbnail artworkId={artist.thumbnail._id} image={artist.thumbnail.image}
-          adjustment={artist.thumbnail.thumbnail_adjustment} alt={`${artist.thumbnail.title} by ${artist.name}`} size={320} />
+          adjustment={getArtworkFeatureCardAdjustment(artist.thumbnail)} fixedFocalPoint variant="card"
+          alt={`${artist.thumbnail.title} by ${artist.name}`} size={320} />
           : <span className="artist-empty-thumbnail"><i aria-hidden="true" className="fa fa-paint-brush" /></span>}
         <h3>{artist.name}</h3>
       </div>
