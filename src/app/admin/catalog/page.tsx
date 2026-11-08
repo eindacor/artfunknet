@@ -53,6 +53,7 @@ export default async function CatalogPage() {
               artist_id: 1,
               artist: 1,
               title: 1,
+              created_at: 1,
               date: 1,
               genre: 1,
               medium: 1,

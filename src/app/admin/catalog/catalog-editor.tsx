@@ -40,6 +40,7 @@ export default function CatalogEditor({
   const [artworkFilter, setArtworkFilter] = useState<"all" | "missing">(
     "all",
   );
+  const [artworkSort, setArtworkSort] = useState<"default" | "recent">("default");
   const [query, setQuery] = useState("");
   const [selectedArtworkId, setSelectedArtworkId] = useState(
     initialArtworks[0]?._id ?? "",
@@ -56,7 +57,7 @@ export default function CatalogEditor({
 
   const filteredArtworks = useMemo(() => {
     const search = query.trim().toLowerCase();
-    return artworks.filter((artwork) => {
+    const filtered = artworks.filter((artwork) => {
       const matchesFilter =
         artworkFilter === "all" ||
         artwork.hasImage === false ||
@@ -68,7 +69,8 @@ export default function CatalogEditor({
           .includes(search);
       return matchesFilter && matchesSearch;
     });
-  }, [artworkFilter, artworks, query]);
+    return artworkSort === "recent" ? filtered.sort(compareRecentArtworks) : filtered;
+  }, [artworkFilter, artworkSort, artworks, query]);
   const filteredArtists = useMemo(() => {
     const search = query.trim().toLowerCase();
     return search
@@ -319,6 +321,19 @@ export default function CatalogEditor({
             value={query}
           />
       </label>
+      {mode === "artworks" ? (
+        <label className="grid gap-2">
+          <span className="font-semibold">Sort artworks</span>
+          <select
+            className={inputClass}
+            onChange={(event) => setArtworkSort(event.target.value === "recent" ? "recent" : "default")}
+            value={artworkSort}
+          >
+            <option value="default">Artist / title</option>
+            <option value="recent">Recently added</option>
+          </select>
+        </label>
+      ) : null}
         <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
         <aside className="max-h-[70vh] space-y-2 overflow-y-auto pr-2">
           <p className="text-sm text-[var(--muted)]">
@@ -480,6 +495,14 @@ function compareArtworks(
     left.artist.localeCompare(right.artist) ||
     left.title.localeCompare(right.title)
   );
+}
+
+function compareRecentArtworks(left: ArtworkCatalogEntry, right: ArtworkCatalogEntry) {
+  const leftTime = Date.parse(left.created_at ?? "");
+  const rightTime = Date.parse(right.created_at ?? "");
+  if (!Number.isFinite(leftTime)) return Number.isFinite(rightTime) ? 1 : compareArtworks(left, right);
+  if (!Number.isFinite(rightTime)) return -1;
+  return rightTime - leftTime || compareArtworks(left, right);
 }
 
 function entryClass(current: boolean) {

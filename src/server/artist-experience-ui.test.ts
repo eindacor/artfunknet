@@ -978,6 +978,110 @@ test("public item pages show the current owner name and public gallery link in t
   }
 });
 
+test("admin catalog sorts recently added artwork using persisted creation dates without changing selection or filters", async () => {
+  const base = {
+    artist_id: "artist", title: "Artwork", date: 1900, genre: "Abstract", medium: "Oil",
+    rarity: "common" as const, value_scale: 0.5, width: 80, height: 100, active: true,
+    image: { storage: { provider: "mock-s3" as const, key: "artwork.png" } },
+  };
+  const records = [
+    { ...base, _id: "older", artist: "A", title: "Older", date: 3000, created_at: new Date("2026-10-01T12:00:00Z") },
+    { ...base, _id: "tied", artist: "B", title: "Tied", created_at: new Date("2026-11-06T12:00:00Z") },
+    { ...base, _id: "legacy", artist: "C", title: "Legacy", image: undefined },
+    { ...base, _id: "invalid", artist: "D", title: "Invalid", created_at: "invalid-date" },
+    { ...base, _id: "newest", artist: "Z", title: "Newest", image: undefined, created_at: new Date("2026-11-06T12:00:00Z") },
+  ];
+  type Props = Parameters<typeof import("../app/admin/catalog/catalog-editor.tsx").default>[0];
+  let props: Props | undefined;
+  const page = await load<typeof import("../app/admin/catalog/page.tsx")>("../app/admin/catalog/page.tsx", {
+    "@/server/mongodb": { getDatabase: async () => ({
+      collection: (name: string) => ({
+        find: (_filter?: unknown, options?: { projection?: Record<string, number> }) => ({
+          sort: () => ({
+            toArray: async () => name === "artworks" ? records.map(record => Object.fromEntries(
+              Object.entries(record).filter(([key]) => options?.projection?.[key] === 1),
+            )) : [],
+          }),
+        }),
+      }),
+    }) },
+    "@/server/artwork-effects": { getArtworkEffects: async () => [] },
+    "@/components/item-cards/catalog": { getConfiguredCardCosmetics: () => [] },
+    "@/components/item-cards/types": { SHOWCASE_CARD_RENDERER_IDS: [] },
+    "@/server/card-renderer-settings": { getCardRendererSettings: async () => ({ rendererNames: {} }) },
+    "./catalog-editor": { default: (input: Props) => { props = input; return null; } },
+  });
+  renderToStaticMarkup(await page.default());
+  assert.ok(props);
+  assert.equal(props.initialArtworks[0].created_at, "2026-10-01T12:00:00.000Z");
+  const states: unknown[] = [];
+  let stateIndex = 0;
+  let editedId: string | undefined;
+  const catalog = await load<typeof import("../app/admin/catalog/catalog-editor.tsx")>("../app/admin/catalog/catalog-editor.tsx", {
+    react: {
+      ...React, useMemo: (calculate: () => unknown) => calculate(), useRef: () => ({ current: false }),
+      useState: (initial: unknown) => {
+        const index = stateIndex++;
+        if (!(index in states)) states[index] = initial;
+        return [states[index], (value: unknown) => { states[index] = typeof value === "function" ? value(states[index]) : value; }];
+      },
+    },
+    "@/components/artwork-editor/artwork-editor-panel": {
+      default: ({ artwork }: { artwork: { _id: string } }) => { editedId = artwork._id; return null; },
+      ArtworkEditorField: () => null,
+    },
+  });
+  type Element = React.ReactElement<{ children?: React.ReactNode } & Record<string, unknown>>;
+  function find(node: React.ReactNode, predicate: (element: Element) => boolean): Element | undefined {
+    for (const child of React.Children.toArray(node)) {
+      if (!React.isValidElement(child)) continue;
+      const element = child as Element;
+      if (predicate(element)) return element;
+      const match = find(element.props.children, predicate);
+      if (match) return match;
+    }
+  }
+  let tree: React.ReactNode;
+  const render = () => {
+    stateIndex = 0;
+    tree = catalog.default(props!);
+    renderToStaticMarkup(tree);
+    const aside = find(tree, element => element.type === "aside");
+    assert.ok(aside);
+    return React.Children.toArray(aside.props.children).filter(child =>
+      React.isValidElement(child) && child.type === "button") as Element[];
+  };
+  const titles = () => render().map(button => (React.Children.toArray(button.props.children)[0] as Element).props.children);
+  const sort = (value: string) => {
+    const select = find(tree, element => element.type === "select" && element.props.value !== undefined);
+    assert.ok(select);
+    (select.props.onChange as (event: { target: { value: string } }) => void)({ target: { value } });
+    return titles();
+  };
+  const initialOrder = ["Older", "Tied", "Legacy", "Invalid", "Newest"];
+  assert.deepEqual(titles(), initialOrder);
+  assert.equal(editedId, "older");
+  assert.deepEqual(sort("recent"), ["Tied", "Newest", "Older", "Legacy", "Invalid"]);
+  const newest = render().find(button =>
+    (React.Children.toArray(button.props.children)[0] as Element).props.children === "Newest");
+  assert.ok(newest);
+  (newest.props.onClick as () => void)();
+  render();
+  assert.equal(editedId, "newest");
+  assert.deepEqual(sort("default"), initialOrder);
+  assert.equal(editedId, "newest");
+  sort("recent");
+  const search = find(tree, element => element.type === "input" && element.props.placeholder === "Title, artist, or rarity");
+  assert.ok(search);
+  (search.props.onChange as (event: { target: { value: string } }) => void)({ target: { value: "newest" } });
+  assert.deepEqual(titles(), ["Newest"]);
+  const missing = find(tree, element => element.type === "button" &&
+    React.Children.toArray(element.props.children).some(child => typeof child === "string" && child.startsWith("Missing images")));
+  assert.ok(missing);
+  (missing.props.onClick as () => void)();
+  assert.deepEqual(titles(), ["Newest", "Legacy"]);
+});
+
 test("player-account admin searches live, ignores stale responses, and creates and links catalog artists", async () => {
   const states: unknown[] = [];
   const refs: { current: unknown }[] = [];

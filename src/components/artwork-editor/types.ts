@@ -16,6 +16,7 @@ export type ArtworkCatalogEntry = Pick<Artwork,
   artist_id: string;
   artist: string;
   title: string;
+  created_at?: string | null;
   date: number;
   genre: string;
   medium: string;
