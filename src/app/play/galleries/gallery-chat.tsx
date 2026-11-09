@@ -33,6 +33,7 @@ export default function GalleryChat({
   );
   const [error, setError] = useState("");
   const messageListRef = useRef<HTMLOListElement>(null);
+  const knownMessageIdsRef = useRef(new Set<string>());
   const endpoint = global
     ? "/api/play/chat"
     : `/api/play/galleries/${encodeURIComponent(galleryOwnerId ?? "")}/chat`;
@@ -76,8 +77,14 @@ export default function GalleryChat({
   }, [loadMessages]);
 
   useEffect(() => {
+    const knownMessageIds = knownMessageIdsRef.current;
+    const hasNewMessages = messages.some(
+      (message) => !knownMessageIds.has(message.id),
+    );
+    for (const message of messages) knownMessageIds.add(message.id);
+
     const list = messageListRef.current;
-    if (list) list.scrollTop = list.scrollHeight;
+    if (list && hasNewMessages) list.scrollTop = list.scrollHeight;
   }, [messages]);
 
   useEffect(() => {

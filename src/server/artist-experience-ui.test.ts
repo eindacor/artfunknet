@@ -27,6 +27,7 @@ import * as settingsCore from "./game-settings.ts";
 import * as cardCatalog from "../components/item-cards/catalog.ts";
 import * as rarityValues from "./rarity-values.ts";
 import { getAdminReviewCounts } from "./admin-review-counts.ts";
+import type { GalleryChatMessageView } from "./gallery-chat.ts";
 
 const require = createRequire(import.meta.url);
 const cardSharedSource = ts.createSourceFile("shared.tsx",
@@ -2503,6 +2504,99 @@ test("the discreet gallery link copies the public URL and offers a link if clipb
       assert.doesNotMatch(html, /role="alert"/);
     }
   }
+});
+
+test("chat keeps its scroll position until a previously unseen message arrives", async () => {
+  const states: unknown[] = [];
+  const refs: Array<{ current: unknown }> = [];
+  let stateIndex = 0;
+  let refIndex = 0;
+  let effects: Array<() => void | (() => void)> = [];
+  const messageList = { scrollHeight: 500, scrollTop: 0 };
+  const chat = await load<typeof import("../app/play/galleries/gallery-chat.tsx")>(
+    "../app/play/galleries/gallery-chat.tsx",
+    {
+      react: {
+        ...React,
+        useCallback: (callback: unknown) => callback,
+        useEffect: (effect: () => void | (() => void)) => {
+          effects.push(effect);
+        },
+        useRef: (initial: unknown) => {
+          const index = refIndex++;
+          if (!(index in refs)) {
+            refs[index] = {
+              current: index === 0 ? messageList : initial,
+            };
+          }
+          return refs[index];
+        },
+        useState: (initial: unknown) => {
+          const index = stateIndex++;
+          if (!(index in states)) states[index] = initial;
+          return [
+            states[index],
+            (next: unknown) => {
+              states[index] = typeof next === "function"
+                ? (next as (current: unknown) => unknown)(states[index])
+                : next;
+            },
+          ];
+        },
+      },
+      "@/components/artwork-thumbnail": { default: () => null },
+      "@/components/floating-popover": { FloatingPopover: () => null },
+      "@/components/community-emotes": {
+        COMMUNITY_EMOTE_DETAILS: {},
+        CommunityReactionPicker: () => null,
+        CommunityEmoteSymbol: () => null,
+      },
+      "@/server/gallery-chat-core": { ARTFUNKEL_SYSTEM_AUTHOR_ID: "artfunkel-system" },
+    },
+  );
+  const createMessage = (id: string, content: string): GalleryChatMessageView => ({
+    id,
+    galleryOwnerId: "gallery",
+    authorId: "other-player",
+    authorName: "Other Player",
+    content,
+    createdAt: "2026-11-09T12:00:00.000Z",
+    editedAt: null,
+    reactions: {} as GalleryChatMessageView["reactions"],
+    reportedByViewer: false,
+    tokens: [{ kind: "text", text: content }],
+  });
+  function render(messages: GalleryChatMessageView[]) {
+    states[0] = messages;
+    stateIndex = 0;
+    refIndex = 0;
+    effects = [];
+    chat.default({ galleryOwnerId: "gallery", viewerId: "viewer" });
+    effects[1]();
+  }
+
+  const first = createMessage("first", "First");
+  const second = createMessage("second", "Second");
+  render([]);
+  assert.equal(messageList.scrollTop, 0);
+  render([first, second]);
+  assert.equal(messageList.scrollTop, 500);
+
+  messageList.scrollTop = 120;
+  messageList.scrollHeight = 620;
+  render([{ ...first }, { ...second }]);
+  assert.equal(messageList.scrollTop, 120, "Polling the same messages preserves the user's position");
+  render([first, { ...second, content: "Edited", editedAt: "2026-11-09T12:05:00.000Z" }]);
+  assert.equal(messageList.scrollTop, 120, "Editing an existing message does not scroll");
+
+  const third = createMessage("third", "New message");
+  messageList.scrollHeight = 740;
+  render([first, second, third]);
+  assert.equal(messageList.scrollTop, 740, "A new message scrolls to the latest chat");
+
+  messageList.scrollTop = 80;
+  render([first, second]);
+  assert.equal(messageList.scrollTop, 80, "Deleting a message does not scroll");
 });
 
 test("visited galleries reuse Home's featured works with owner rates, rarity squares, selectable works, and auctions underneath", async () => {
