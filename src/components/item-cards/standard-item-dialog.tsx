@@ -8,6 +8,7 @@ import ArtworkDetailImage from "@/components/artwork-detail-image";
 import { CommunityReactionLoader } from "@/components/community-emotes";
 import { ItemExpirationBadge } from "@/components/item-expiration-display";
 
+import { AuctionBidPanelLoader } from "./auction-bid-panel";
 import ArtStyleActionButton from "./art-style-action-button";
 import ItemActionLayout from "./item-action-layout";
 import AuctionWatermark from "./auction-watermark";
@@ -37,6 +38,7 @@ export default function StandardItemDialog({
   legendaryAttributes,
   currentRendererId,
   actions,
+  actionPanel,
   primaryAction,
   permissions,
   onClose,
@@ -50,6 +52,7 @@ export default function StandardItemDialog({
   legendaryAttributes: CardLegendaryAttribute[];
   currentRendererId: CardRendererId;
   actions?: React.ReactNode;
+  actionPanel?: React.ReactNode;
   primaryAction?: React.ReactNode;
   permissions: ItemDialogPermissions;
   onClose: () => void;
@@ -109,6 +112,16 @@ export default function StandardItemDialog({
       >
         <StandardItemDetails
           actions={actions}
+          actionPanel={
+            actionPanel ??
+            (item.status === "auctioned" && viewerId ? (
+              <AuctionBidPanelLoader
+                itemId={item._id}
+                onClose={closeDialog}
+                playerId={viewerId}
+              />
+            ) : undefined)
+          }
           primaryAction={primaryAction}
           currentRendererId={currentRendererId}
           displayOwner={displayOwner}
@@ -210,6 +223,7 @@ export function StandardItemDetails({
   legendaryAttributes,
   currentRendererId,
   actions,
+  actionPanel,
   primaryAction,
   permissions,
   onClose,
@@ -224,6 +238,7 @@ export function StandardItemDetails({
   legendaryAttributes: CardLegendaryAttribute[];
   currentRendererId: CardRendererId;
   actions?: React.ReactNode;
+  actionPanel?: React.ReactNode;
   primaryAction?: React.ReactNode;
   permissions: ItemDialogPermissions;
   onClose?: () => void;
@@ -457,7 +472,11 @@ export function StandardItemDetails({
               <span>Variants</span>
               <ItemVariantBadges item={item} />
             </section>
-            {permissions.canManageItem &&
+            {actionPanel ? (
+              <div className="standard-item-dialog-actions standard-item-dialog-action-panel">
+                {actionPanel}
+              </div>
+            ) : permissions.canManageItem &&
             (primaryAction || actions || permissions.canCustomizeCosmetic) ? (
               <ItemActionLayout
                 actions={actions}

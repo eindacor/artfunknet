@@ -4,11 +4,27 @@ import test from "node:test";
 import {
   filterCollectionItems,
   getDefaultCollectionFilters,
+  hasActiveCollectionFilters,
   getInventoryComparator,
   getOffersComparator,
   getRemainingOfferSelection,
   type CollectionInventoryItem,
 } from "./collection-inventory.ts";
+
+test("collection filters report whether any filtering constraint is active", () => {
+  const filters = getDefaultCollectionFilters();
+  assert.equal(hasActiveCollectionFilters(filters), false);
+  filters.search = "   ";
+  assert.equal(hasActiveCollectionFilters(filters), false);
+  filters.search = "Monet";
+  assert.equal(hasActiveCollectionFilters(filters), true);
+  filters.search = "";
+  filters.rarities = ["rare"];
+  assert.equal(hasActiveCollectionFilters(filters), true);
+  filters.rarities = [...getDefaultCollectionFilters().rarities];
+  filters.flags.foil = "only";
+  assert.equal(hasActiveCollectionFilters(filters), true);
+});
 
 test("removed offers select the next adjacent item, or the previous item at the end", () => {
   const previous = ["first", "middle", "last"];

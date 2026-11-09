@@ -2588,28 +2588,29 @@ a.welcome-button {
   color: #5b4618;
 }
 
-.auction-filters {
-  display: grid;
-  grid-template-columns: minmax(240px, 2fr) repeat(4, minmax(130px, 1fr));
-  gap: 0.9rem;
+.auction-filter-controls {
   margin: 1.5rem 0;
   border: 1px solid #ddd;
   padding: 1rem;
   background: #f7f5f7;
 }
 
-.auction-filters > label,
+.auction-filter-controls .collection-control-row {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.auction-context-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 260px));
+  gap: 12px;
+}
+
+.auction-context-filters label,
 .auction-dialog-content > label {
   display: grid;
   gap: 0.35rem;
-  color: #333;
-  font-size: 0.72rem;
-  font-weight: bold;
-  text-transform: uppercase;
 }
 
-.auction-filters input,
-.auction-filters select,
 .auction-dialog input,
 .auction-dialog select {
   width: 100%;
@@ -2620,37 +2621,6 @@ a.welcome-button {
   background: #fff;
   color: #222;
   font: inherit;
-}
-
-.auction-filters fieldset {
-  display: flex;
-  grid-column: span 2;
-  flex-wrap: wrap;
-  gap: 0.5rem 1rem;
-  border: 0;
-  margin: 0;
-  padding: 0.4rem 0 0;
-}
-
-.auction-filters legend {
-  margin-bottom: 0.35rem;
-  color: #333;
-  font-size: 0.72rem;
-  font-weight: bold;
-  text-transform: uppercase;
-}
-
-.auction-filters fieldset label {
-  display: flex;
-  gap: 0.3rem;
-  align-items: center;
-  font-size: 0.72rem;
-  text-transform: capitalize;
-}
-
-.auction-filters fieldset input {
-  width: auto;
-  min-height: auto;
 }
 
 .auction-results-heading {
@@ -2707,14 +2677,14 @@ a.welcome-button {
 
 .auction-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
-  gap: 0.85rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 560px), 1fr));
+  gap: 1.15rem;
 }
 
 .auction-lot {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(210px, 1fr) 300px;
+  overflow: visible;
   border: 1px solid #ccc;
   background: #fff;
   box-shadow: 5px 5px 0 #eee;
@@ -2723,16 +2693,17 @@ a.welcome-button {
 .auction-lot-card {
   display: grid;
   place-items: center;
-  height: 270px;
+  min-height: 370px;
   min-width: 0;
-  padding: 0.5rem;
-  overflow: hidden;
+  border-left: 1px solid #3a363c;
+  padding: 0.7rem;
+  overflow: visible;
   background: #19171b;
 }
 
 .auction-lot-card > .rendered-item-card {
-  max-width: 100%;
-  scale: 0.64;
+  max-width: none;
+  scale: 0.88;
   transform-origin: center;
 }
 
@@ -2806,7 +2777,11 @@ a.welcome-button {
 .auction-lot-details dd {
   margin: 0.1rem 0 0;
   color: #222;
-  font-weight: bold;
+  font-weight: normal;
+}
+
+.auction-current-bid {
+  font-weight: 800;
 }
 
 .auction-lot-details .auction-bid-action {
@@ -2830,7 +2805,7 @@ a.welcome-button {
 }
 
 .auction-list {
-  min-width: 1180px;
+  min-width: 1080px;
 }
 
 .auction-list-header,
@@ -2841,7 +2816,6 @@ a.welcome-button {
     minmax(145px, 1.1fr)
     minmax(130px, 1fr)
     minmax(100px, 0.75fr)
-    minmax(90px, 0.7fr)
     minmax(90px, 0.7fr)
     minmax(90px, 0.7fr)
     minmax(80px, 0.6fr)
@@ -2905,7 +2879,7 @@ a.welcome-button {
 
 .auction-list-artwork {
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
+  grid-template-columns: 88px minmax(0, 1fr);
   gap: 0.7rem;
   align-items: center;
   min-width: 0;
@@ -2938,17 +2912,44 @@ a.welcome-button {
 }
 
 .auction-list-card {
-  width: 70px;
-  height: 84px;
-  overflow: hidden;
-  border: 1px solid #c9c3b6;
-  background: #19171b;
+  width: 82px;
+  height: 82px;
+  overflow: visible;
 }
 
-.auction-list-card img {
+.auction-list-thumbnail {
+  position: relative;
+  display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  min-height: 0;
+  border: 0;
+  padding: 0;
+  background: #f3eee1;
+  outline: none;
+  cursor: pointer;
+}
+
+.auction-list-thumbnail .artwork-thumbnail {
+  width: 100% !important;
+  height: 100% !important;
+  background: #e8e3d9;
+  pointer-events: none;
+}
+
+.auction-list-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.auction-list-current-bid {
+  font-weight: 400;
+}
+
+.auction-list-current-bid[data-has-bid="true"] {
+  font-family: "Courier New", Courier, monospace;
+  font-weight: 900;
 }
 
 .auction-list-details > strong {
@@ -4325,18 +4326,13 @@ a.welcome-button {
     flex-direction: column;
   }
 
-  .auction-filters {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .auction-search,
-  .auction-filters fieldset {
-    grid-column: 1 / -1;
+  .auction-filter-controls {
+    grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 560px) {
-  .auction-filters {
+  .auction-context-filters {
     grid-template-columns: 1fr;
   }
 
@@ -4349,8 +4345,14 @@ a.welcome-button {
     justify-content: space-between;
   }
 
+  .auction-lot {
+    grid-template-columns: 1fr;
+  }
+
   .auction-lot-card {
-    height: 250px;
+    min-height: 370px;
+    border-top: 1px solid #3a363c;
+    border-left: 0;
   }
 }
 
@@ -4722,6 +4724,15 @@ a.welcome-button {
   gap: 4px;
   width: 280px;
   margin: 8px auto 0;
+}
+
+.item-card-auction-panel.card-actions {
+  display: block;
+  font-family: Courier, "Courier New", monospace;
+}
+
+.item-card-auction-panel .standard-item-auction-panel {
+  margin-top: 0;
 }
 
 .inventory .rendered-item-card > .card-actions button:disabled,
@@ -6018,46 +6029,19 @@ a.welcome-button {
 
 .archive-artwork-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, 96px);
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, 82px);
+  grid-auto-rows: 82px;
+  gap: 12px;
   margin-top: 18px;
 }
 
 .archive-artwork-thumbnail {
-  display: grid;
-  place-items: center;
-  width: 96px;
-  height: 96px;
-  padding: 6px;
-  border: 3px solid #39b54a;
-  background: rgb(57 181 74 / 25%);
-  box-shadow: 0 5px 14px rgb(41 35 28 / 12%);
+  display: block;
+  width: 82px;
+  height: 82px;
+  min-height: 0;
+  outline: none;
   cursor: pointer;
-}
-
-.archive-artwork-thumbnail[data-rarity="uncommon"] {
-  border-color: #3e7bff;
-  background: rgb(62 123 255 / 25%);
-}
-
-.archive-artwork-thumbnail[data-rarity="rare"] {
-  border-color: #e1c429;
-  background: rgb(225 196 41 / 25%);
-}
-
-.archive-artwork-thumbnail[data-rarity="legendary"] {
-  border-color: #ff8a1f;
-  background: rgb(255 138 31 / 25%);
-}
-
-.archive-artwork-thumbnail[data-rarity="masterpiece"] {
-  border-color: #42e8f5;
-  background: rgb(66 232 245 / 25%);
-}
-
-.archive-artwork-thumbnail:focus-visible {
-  outline: 2px solid #111;
-  outline-offset: 2px;
 }
 
 .archive-artwork-thumbnail .artwork-thumbnail {
@@ -6947,9 +6931,14 @@ a.welcome-button {
   border-bottom: 1px solid #d8d0c3;
 }
 
-.collection-filter-details > summary span {
+.collection-filter-count {
   margin-left: auto;
   color: #817a70;
+}
+
+.collection-filter-indicator {
+  margin-left: 2px;
+  color: var(--accent);
 }
 
 .collection-filter-details > summary::after {
@@ -7111,6 +7100,8 @@ a.welcome-button {
 }
 
 .collection-thumbnail-list button,
+.auction-list-thumbnail,
+.archive-artwork-thumbnail,
 .mystery-thumbnail {
   --thumbnail-rarity-color: #39b54a;
   --thumbnail-shadow-color: var(--thumbnail-rarity-color);
@@ -7150,33 +7141,45 @@ a.welcome-button {
 }
 
 .collection-thumbnail-list button[data-rarity="uncommon"],
+.auction-list-thumbnail[data-rarity="uncommon"],
+.archive-artwork-thumbnail[data-rarity="uncommon"],
 .mystery-thumbnail[data-rarity="uncommon"] {
   --thumbnail-rarity-color: #3e7bff;
 }
 
 .collection-thumbnail-list button[data-rarity="rare"],
+.auction-list-thumbnail[data-rarity="rare"],
+.archive-artwork-thumbnail[data-rarity="rare"],
 .mystery-thumbnail[data-rarity="rare"] {
   --thumbnail-rarity-color: #e1c429;
 }
 
 .collection-thumbnail-list button[data-rarity="legendary"],
+.auction-list-thumbnail[data-rarity="legendary"],
+.archive-artwork-thumbnail[data-rarity="legendary"],
 .mystery-thumbnail[data-rarity="legendary"] {
   --thumbnail-rarity-color: #ff8a1f;
 }
 
 .collection-thumbnail-list button[data-rarity="masterpiece"],
+.auction-list-thumbnail[data-rarity="masterpiece"],
+.archive-artwork-thumbnail[data-rarity="masterpiece"],
 .mystery-thumbnail[data-rarity="masterpiece"] {
   --thumbnail-rarity-color: #42e8f5;
 }
 
 .collection-thumbnail-list button:hover:not(:disabled),
 .collection-thumbnail-list button:focus-visible,
+.auction-list-thumbnail:hover:not(:disabled),
+.auction-list-thumbnail:focus-visible,
 .archive-artwork-thumbnail:hover:not(:disabled),
 .archive-artwork-thumbnail:focus-visible {
   --thumbnail-idle-saturation: 1;
 }
 
-.collection-thumbnail-list button:focus-visible {
+.collection-thumbnail-list button:focus-visible,
+.auction-list-thumbnail:focus-visible,
+.archive-artwork-thumbnail:focus-visible {
   outline: 2px dashed #111;
   outline-offset: 2px;
 }

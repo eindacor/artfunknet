@@ -59,26 +59,41 @@ test("item reveal state is persistent, transferable, access-controlled and rerun
     assert.equal(await revealPlayerItem(db, "buyer", "sealed-transfer"), true);
   });
 
-  await t.test("only available, undismissed private auction offers can be revealed by nonowners", async () => {
+  await t.test("private auction offers can be revealed by active market experts and prior bidders", async () => {
     const db = client.db("reveal-auction-access");
     const items = db.collection<GameItem>("items");
-    await items.insertMany(["valid", "expired", "dismissed", "settling", "public"].map(
+    await items.insertMany(["expert", "bidder", "origin", "expired", "dismissed", "settling", "public"].map(
       (id) => item(id, { owner: "system", status: "auctioned", revealed: false }),
     ));
-    await db.collection<{ _id: string }>("players").insertOne({
-      _id: "viewer", profile: { dismissed_private_auction_ids: ["dismissed"] },
-    });
+    await db.collection<{ _id: string; profile?: Record<string, unknown> }>("players").insertMany([
+      {
+        _id: "expert",
+        profile: {
+          dismissed_private_auction_ids: ["dismissed"],
+          market_expert: { expiration: new Date(Date.now() + 60_000).toISOString() },
+        },
+      },
+      { _id: "bidder", profile: {} },
+      { _id: "origin", profile: {} },
+      { _id: "stranger", profile: {} },
+    ]);
     await db.collection<{ _id: string }>("auctions").insertMany(
-      ["valid", "expired", "dismissed", "settling", "public"].map((id) => ({
-        _id: id, item_id: id, viewer: id === "public" ? "public" : "viewer",
-        expiration: new Date(Date.now() + (id === "expired" ? -1000 : 60000)).toISOString(),
+      ["expert", "bidder", "origin", "expired", "dismissed", "settling", "public"].map((id) => ({
+        _id: id, item_id: id, viewer: id === "public" ? "public" : "origin",
+        date_posted: new Date(
+          Date.now() - (id === "origin" ? 0 : 6 * 60_000),
+        ).toISOString(),
+        expiration: new Date(Date.now() + (id === "expired" ? -1000 : 10 * 60_000)).toISOString(),
+        ...(id === "bidder" ? { bidder_ids: ["bidder"] } : {}),
         ...(id === "settling" ? { settlement_status: "settling" } : {}),
       })),
     );
-    assert.equal(await revealPlayerItem(db, "other-viewer", "valid"), false);
-    assert.equal(await revealPlayerItem(db, "viewer", "valid"), true);
+    assert.equal(await revealPlayerItem(db, "expert", "expert"), true);
+    assert.equal(await revealPlayerItem(db, "bidder", "bidder"), true);
+    assert.equal(await revealPlayerItem(db, "origin", "origin"), true);
+    assert.equal(await revealPlayerItem(db, "stranger", "origin"), false);
     for (const id of ["expired", "dismissed", "settling", "public"]) {
-      assert.equal(await revealPlayerItem(db, "viewer", id), false);
+      assert.equal(await revealPlayerItem(db, "expert", id), false);
       assert.equal((await items.findOne({ _id: id }))?.revealed, false);
     }
     await items.insertOne(item("expired-drop", { expires_at: new Date(Date.now() - 1000).toISOString() }));

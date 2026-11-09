@@ -44,6 +44,8 @@ export async function PATCH(request: Request) {
     "enableReveals",
     "showGalleryVisitors",
     "bulkSaleProtections",
+    "auctionFilters",
+    "auctionView",
   ]);
   if (
     Object.keys(body).length === 0 ||
@@ -104,6 +106,12 @@ export async function PATCH(request: Request) {
       body.bulkSaleProtections === undefined
         ? current.bulkSaleProtections
         : body.bulkSaleProtections,
+    auctionFilters:
+      body.auctionFilters === undefined
+        ? current.auctionFilters
+        : body.auctionFilters,
+    auctionView:
+      body.auctionView === undefined ? current.auctionView : body.auctionView,
   };
   const normalized = getPlayerViewSettings(candidate);
   if (JSON.stringify(candidate) !== JSON.stringify(normalized)) {
@@ -145,6 +153,13 @@ export async function PATCH(request: Request) {
   if (body.bulkSaleProtections !== undefined) {
     updates["profile.view_settings.bulkSaleProtections"] =
       normalized.bulkSaleProtections;
+  }
+  if (body.auctionFilters !== undefined) {
+    updates["profile.view_settings.auctionFilters"] =
+      normalized.auctionFilters;
+  }
+  if (body.auctionView !== undefined) {
+    updates["profile.view_settings.auctionView"] = normalized.auctionView;
   }
   await players.updateOne(
     { _id: player._id, active: true },

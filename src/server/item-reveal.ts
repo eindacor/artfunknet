@@ -1,6 +1,10 @@
 import type { AnyBulkWriteOperation, Db } from "mongodb";
 
-import type { Auction } from "./auction-gameplay.ts";
+import {
+  getAuctionAccessFilter,
+  hasActiveMarketExpertAccess,
+  type Auction,
+} from "./auction-gameplay.ts";
 import { getGameplaySettings } from "./game-settings.ts";
 import type { Artwork, GameItem } from "./gameplay.ts";
 import { getUnexpiredItemFilter } from "./item-expiration.ts";
@@ -70,14 +74,22 @@ export async function revealPlayerItem(
     if (item.status !== "auctioned") return false;
     const player = await database.collection<{
       _id: string;
-      profile?: { dismissed_private_auction_ids?: string[] };
+      profile?: {
+        dismissed_private_auction_ids?: string[];
+        market_expert?: { expiration?: string };
+      };
     }>("players").findOne({ _id: playerId });
+    const hasMarketExpert = hasActiveMarketExpertAccess(
+      player?.profile?.market_expert?.expiration,
+      now,
+    );
     const auction = await database.collection<Auction>("auctions").findOne({
       item_id: itemId,
-      viewer: playerId,
+      viewer: { $ne: "public" },
       expiration: { $gt: now.toISOString() },
       settlement_status: { $ne: "settling" },
       _id: { $nin: player?.profile?.dismissed_private_auction_ids ?? [] },
+      ...getAuctionAccessFilter(playerId, hasMarketExpert, now),
     });
     if (!auction) return false;
   }

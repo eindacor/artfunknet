@@ -4,6 +4,7 @@ import { recordEconomyMetricsSafely } from "@/server/economy-metrics";
 import {
   type Auction,
   calculateAntiSnipeExpiration,
+  getInitialPrivateAuctionBidContribution,
   settleAuction,
   settleExpiredAuctions,
   validateBidder,
@@ -83,7 +84,14 @@ export async function POST(
   }
 
   const sameWinner = auction.current_winner_id === player._id;
-  const charge = sameWinner ? amount - auction.current_bid : amount;
+  const contribution = await getInitialPrivateAuctionBidContribution(
+    database,
+    player._id,
+    auction,
+    amount,
+  );
+  const charge =
+    (sameWinner ? amount - auction.current_bid : amount) - contribution;
   const bidTime = new Date().toISOString();
   const charged = await database.collection<Player>("players").findOneAndUpdate(
     {
@@ -116,7 +124,11 @@ export async function POST(
     {
       _id: auction._id,
       seller_id: { $ne: player._id },
-      "commission.player_id": { $ne: player._id },
+      $or: [
+        { "commission.player_id": { $ne: player._id } },
+        { viewer: player._id },
+      ],
+      ...(contribution > 0 ? { viewer: { $ne: "public" } } : {}),
       current_bid: auction.current_bid,
       current_winner_id: auction.current_winner_id,
       expiration: { $gt: bidTime },
@@ -131,6 +143,7 @@ export async function POST(
         has_bid: true,
         expiration: nextExpiration,
       },
+      $addToSet: { bidder_ids: player._id },
     },
   );
   if (updated.modifiedCount !== 1) {
@@ -206,8 +219,14 @@ export async function POST(
   return NextResponse.json({
     status: "ok",
     bankBalance: charged.profile.bank_balance,
-    message: buyingNow
-      ? `Purchased ${auction.item_snapshot.title} for $${amount.toLocaleString()}.`
-      : `Bid $${amount.toLocaleString()} on ${auction.item_snapshot.title}.`,
+    message: `${
+      buyingNow
+        ? `Purchased ${auction.item_snapshot.title} for $${amount.toLocaleString()}.`
+        : `Bid $${amount.toLocaleString()} on ${auction.item_snapshot.title}.`
+    }${
+      contribution > 0
+        ? ` The game contributed $${contribution.toLocaleString()} toward your first bid.`
+        : ""
+    }`,
   });
 }

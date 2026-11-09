@@ -405,6 +405,7 @@ export default async function PlayerPage({
     player._id,
     {
       exclusivity: "private",
+      originatedPrivateOnly: true,
       pageSize: 48,
     },
   );

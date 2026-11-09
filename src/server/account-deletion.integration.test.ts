@@ -169,6 +169,25 @@ test("account deletion removes live personal data and coordinates concurrent gam
     });
   }
 
+  await t.test("shared private lots with bids block their originating player from deleting the auction", async () => {
+    const db = client.db("delete-block-shared-private-origin");
+    await seed(db);
+    await collection(db, "auctions").insertOne({
+      _id: "shared-private",
+      viewer: TARGET,
+      seller_id: null,
+      current_winner_id: OTHER,
+      current_winner_name: "OtherCollector",
+      has_bid: true,
+      expiration: new Date(Date.now() + 60_000).toISOString(),
+    });
+    const response = await (await routeHarness(db)).invoke();
+    assert.equal(response.status, 409);
+    assert.match((await response.json()).error, /auction/);
+    assert.ok(await collection(db, "players").findOne({ _id: TARGET }));
+    assert.ok(await collection(db, "auctions").findOne({ _id: "shared-private" }));
+  });
+
   await t.test("expired unsold auctions settle before deletion instead of permanently blocking it", async () => {
     const db = client.db("delete-expired");
     await seed(db);

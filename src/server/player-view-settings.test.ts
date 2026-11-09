@@ -7,6 +7,7 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 import ts from "typescript";
 
 import {
+  DEFAULT_AUCTION_FILTER_SETTINGS,
   DEFAULT_PLAYER_VIEW_SETTINGS,
   getPlayerViewSettings,
 } from "./player-view-settings.ts";
@@ -26,6 +27,25 @@ test("player view settings preserve valid saved choices", () => {
       cratePurchaseCount: 7,
       enableReveals: false,
       showGalleryVisitors: false,
+      auctionFilters: {
+        ...DEFAULT_AUCTION_FILTER_SETTINGS,
+        search: "Monet",
+        sort: "dropChance",
+        order: "desc",
+        exclusivity: "public",
+        quest: "quest",
+        rarities: ["rare", "legendary"],
+        artStyle: "archive",
+        properties: {
+          ...DEFAULT_AUCTION_FILTER_SETTINGS.properties,
+          foil: "only",
+          mint: "exclude",
+        },
+        attributeIds: ["attribute-1", "attribute-2"],
+        attributeMinimum: 2,
+        specialAttributeIds: ["special-1"],
+      },
+      auctionView: "expanded",
       bulkSaleProtections: {
         keepArtStyles: true,
         keepRares: true,
@@ -44,6 +64,25 @@ test("player view settings preserve valid saved choices", () => {
       cratePurchaseCount: 7,
       enableReveals: false,
       showGalleryVisitors: false,
+      auctionFilters: {
+        ...DEFAULT_AUCTION_FILTER_SETTINGS,
+        search: "Monet",
+        sort: "dropChance",
+        order: "desc",
+        exclusivity: "public",
+        quest: "quest",
+        rarities: ["rare", "legendary"],
+        artStyle: "archive",
+        properties: {
+          ...DEFAULT_AUCTION_FILTER_SETTINGS.properties,
+          foil: "only",
+          mint: "exclude",
+        },
+        attributeIds: ["attribute-1", "attribute-2"],
+        attributeMinimum: 2,
+        specialAttributeIds: ["special-1"],
+      },
+      auctionView: "expanded",
       bulkSaleProtections: {
         keepArtStyles: true,
         keepRares: true,
@@ -64,6 +103,12 @@ test("player view settings replace invalid values with safe defaults", () => {
       inventorySort: "random",
       offersSort: "title",
       offersSortDirection: "sideways",
+      auctionFilters: {
+        sort: "acquired",
+        rarities: [],
+        properties: { foil: "sometimes" },
+      },
+      auctionView: "cards",
       bulkSaleProtections: {
         keepArtStyles: "yes",
         keepLegendaries: 1,
@@ -93,6 +138,43 @@ test("legacy view settings receive Offers defaults without losing saved bulk cho
   assert.equal(settings.bulkSaleProtections.keepRares, false);
   assert.equal(settings.bulkSaleProtections.keepArtStyles, false);
   assert.equal(settings.cratePurchaseCount, 1);
+  assert.deepEqual(settings.auctionFilters, DEFAULT_AUCTION_FILTER_SETTINGS);
+  assert.equal(settings.auctionView, "list");
+});
+
+test("auction filters restore portable item filters and reject malformed values", () => {
+  const valid = getPlayerViewSettings({
+    auctionFilters: {
+      ...DEFAULT_AUCTION_FILTER_SETTINGS,
+      search: "seller",
+      properties: {
+        ...DEFAULT_AUCTION_FILTER_SETTINGS.properties,
+        seasonal: "only",
+      },
+      attributeIds: ["one", "two"],
+      attributeMinimum: 2,
+    },
+  }).auctionFilters;
+  assert.equal(valid.search, "seller");
+  assert.equal(valid.properties.seasonal, "only");
+  assert.deepEqual(valid.attributeIds, ["one", "two"]);
+  assert.equal(valid.attributeMinimum, 2);
+
+  const invalid = getPlayerViewSettings({
+    auctionFilters: {
+      ...DEFAULT_AUCTION_FILTER_SETTINGS,
+      rarities: [],
+      properties: {
+        ...DEFAULT_AUCTION_FILTER_SETTINGS.properties,
+        seasonal: "sometimes",
+      },
+      attributeIds: ["one"],
+      attributeMinimum: 2,
+    },
+  }).auctionFilters;
+  assert.deepEqual(invalid.rarities, DEFAULT_AUCTION_FILTER_SETTINGS.rarities);
+  assert.equal(invalid.properties.seasonal, "any");
+  assert.equal(invalid.attributeMinimum, 1);
 });
 
 test("preferred crate counts preserve whole-number choices within purchase limits", () => {
@@ -191,6 +273,33 @@ test("visitor visibility is saved on the player profile and restored by independ
   assert.equal((await savedSettings()).showGalleryVisitors, true);
   const refreshed = await firstBrowser({ gallerySort: "score" });
   assert.equal((await refreshed.json()).settings.showGalleryVisitors, true);
+  const auctionFilters = {
+    ...DEFAULT_AUCTION_FILTER_SETTINGS,
+    search: "Kahlo",
+    sort: "price" as const,
+    order: "desc" as const,
+    properties: {
+      ...DEFAULT_AUCTION_FILTER_SETTINGS.properties,
+      original: "only" as const,
+    },
+  };
+  assert.equal(
+    (await firstBrowser({
+      auctionFilters,
+      auctionView: "expanded",
+    })).status,
+    200,
+  );
+  assert.deepEqual((await savedSettings()).auctionFilters, auctionFilters);
+  assert.equal((await savedSettings()).auctionView, "expanded");
+  assert.equal((await savedSettings()).showGalleryVisitors, true);
+  assert.equal(
+    (await firstBrowser({
+      auctionFilters: { ...auctionFilters, sort: "acquired" },
+    })).status,
+    400,
+  );
+  assert.deepEqual((await savedSettings()).auctionFilters, auctionFilters);
   for (const showGalleryVisitors of [null, "false", 0]) {
     assert.equal((await firstBrowser({ showGalleryVisitors })).status, 400);
     assert.equal((await savedSettings()).showGalleryVisitors, true);

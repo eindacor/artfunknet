@@ -24,6 +24,15 @@ test("public auctions replenish only the missing system lots", () => {
   assert.equal(getPublicAuctionReplenishmentCount(24), 0);
 });
 
+test("auction sorting supports item drop chance", () => {
+  assert.deepEqual(getAuctionSort("dropChance", "asc"), {
+    "item_snapshot.drop_chance_coefficient": 1,
+  });
+  assert.deepEqual(getAuctionSort("dropChance", "desc"), {
+    "item_snapshot.drop_chance_coefficient": -1,
+  });
+});
+
 test("settlement never classifies recorded bids as unsold", () => {
   assert.equal(
     getAuctionSettlementDisposition({
@@ -70,9 +79,13 @@ test("settlement never classifies recorded bids as unsold", () => {
 import {
   AUCTION_HOUSE_OWNER_ID,
   calculateAntiSnipeExpiration,
+  canPlayerAccessAuction,
   createAuction,
   createCollectorResaleAuction,
+  getAuctionAccessFilter,
   getAuctionCommissionAmount,
+  getAuctionSort,
+  getInitialPrivateAuctionBidContribution,
   grantAuctionXpReward,
   makePrivateAuctionsPublic,
   removeSettledAuctionRecord,
@@ -83,7 +96,7 @@ import {
 } from "./auction-gameplay.ts";
 import { getGameplaySettings } from "./game-settings.ts";
 
-test("auction bid API rejects sellers and commission recipients before charging, including buy-now and concurrent changes", async t => {
+test("auction bid API enforces restrictions and first-bid contributions", async t => {
   const server = await MongoMemoryServer.create();
   const client = await new MongoClient(server.getUri()).connect();
   t.after(async () => { await client.close(); await server.stop(); });
@@ -112,21 +125,30 @@ test("auction bid API rejects sellers and commission recipients before charging,
   });
   let playerId = player._id;
   let concurrentAuctionId: string | null = null;
+  let concurrentAuctionUpdate: Record<string, unknown> | null = null;
   let recordedMetrics = 0;
   const dependencies: Record<string, unknown> = {
     "next/server": createRequire(import.meta.url)("next/server"),
-    "@/server/auction-gameplay": { calculateAntiSnipeExpiration, settleAuction, settleExpiredAuctions, validateBidder },
+    "@/server/auction-gameplay": {
+      calculateAntiSnipeExpiration,
+      getInitialPrivateAuctionBidContribution,
+      settleAuction,
+      settleExpiredAuctions,
+      validateBidder,
+    },
     "@/server/game-settings": { getGameplaySettings: async () => {
       if (concurrentAuctionId) {
         await database.collection<Auction>("auctions").updateOne({ _id: concurrentAuctionId }, {
-          $set: { commission: { player_id: playerId, coefficient: 0.1 } },
+          $set: concurrentAuctionUpdate ?? {
+            commission: { player_id: playerId, coefficient: 0.1 },
+          },
         });
       }
       return getGameplaySettings(database);
     } },
     "@/server/mongodb": { getDatabase: async () => database },
     "@/server/player-api": { requirePlayerApi: async () => ({ ok: true, session: { playerId } }) },
-    "@/server/player-notifications": { createPlayerNotification: async () => assert.fail("No outbid notifications expected") },
+    "@/server/player-notifications": { createPlayerNotification: async () => undefined },
     "@/server/economy-metrics": { recordEconomyMetricsSafely: async () => { recordedMetrics++; } },
   };
   const code = ts.transpileModule(await readFile(
@@ -139,9 +161,9 @@ test("auction bid API rejects sellers and commission recipients before charging,
       return dependencies[name];
     },
   }) as typeof import("../app/api/play/auctions/[id]/bid/route.ts");
-  const bid = (auction: Auction, buyNow = false) => route.POST(new Request("http://localhost/api/play/auctions/bid", {
+  const bid = (auction: Auction, buyNow = false, amount = auction.minimum_bid) => route.POST(new Request("http://localhost/api/play/auctions/bid", {
     method: "POST", headers: { "content-type": "application/json" },
-    body: JSON.stringify({ amount: auction.minimum_bid, buyNow }),
+    body: JSON.stringify({ amount, buyNow }),
   }), { params: Promise.resolve({ id: auction._id }) });
   const beforeItems = await database.collection("items").find({}).toArray();
   const restrictions = [
@@ -183,6 +205,7 @@ test("auction bid API rejects sellers and commission recipients before charging,
       concurrentAuctionId = auction._id;
       assert.equal((await bid(auction, buyNow)).status, 409);
       concurrentAuctionId = null;
+      concurrentAuctionUpdate = null;
       assert.equal((await database.collection("players").findOne({ _id: playerId }))?.profile.bank_balance, 10_000);
       const saved = await database.collection<Auction>("auctions").findOne({ _id: auction._id });
       assert.deepEqual(saved, { ...auction, commission: { player_id: playerId, coefficient: 0.1 } });
@@ -197,14 +220,209 @@ test("auction bid API rejects sellers and commission recipients before charging,
     assert.equal((await bid(auction)).status, 200);
     assert.equal((await database.collection("players").findOne({ _id: playerId }))?.profile.bank_balance, 9_900);
     assert.equal((await database.collection<Auction>("auctions").findOne({ _id: auction._id }))?.current_winner_id, playerId);
+    assert.deepEqual((await database.collection<Auction>("auctions").findOne({ _id: auction._id }))?.bidder_ids, [playerId]);
     assert.equal((await database.collection("players").findOne({ _id: player._id }))?.profile.bank_balance, 10_000);
   });
-  await t.test("private auction access alone does not prohibit bidding", async () => {
-    playerId = player._id;
-    const auction = { ...base, _id: "private-allowed", viewer: playerId };
+  await t.test("active market experts cannot bid during another player's preview", async () => {
+    playerId = "other-player";
+    await database.collection("players").updateOne(
+      { _id: playerId },
+      {
+        $set: {
+          "profile.market_expert.expiration":
+            new Date(Date.now() + 60_000).toISOString(),
+        },
+      },
+    );
+    const auction = {
+      ...base,
+      _id: "private-hidden",
+      viewer: player._id,
+    };
+    await database.collection<Auction>("auctions").insertOne(auction);
+    assert.equal((await bid(auction)).status, 409);
+    assert.equal(
+      (await database.collection("players").findOne({ _id: playerId }))?.profile.bank_balance,
+      9_900,
+    );
+  });
+  await t.test("former bidders retain private-lot bidding access after market access expires", async () => {
+    playerId = "other-player";
+    await database.collection("players").updateOne(
+      { _id: playerId },
+      {
+        $set: {
+          "profile.market_expert.expiration":
+            new Date(Date.now() - 60_000).toISOString(),
+        },
+      },
+    );
+    const auction = {
+      ...base,
+      _id: "private-returning-bidder",
+      viewer: player._id,
+      bidder_ids: [playerId],
+      date_posted: new Date(Date.now() - 6 * 60_000).toISOString(),
+    };
     await database.collection<Auction>("auctions").insertOne(auction);
     assert.equal((await bid(auction)).status, 200);
-    assert.equal((await database.collection<Auction>("auctions").findOne({ _id: auction._id }))?.current_winner_id, playerId);
+    assert.deepEqual(
+      (await database.collection<Auction>("auctions").findOne({ _id: auction._id }))?.bidder_ids,
+      [playerId],
+    );
+  });
+  await t.test("origin players can bid on commissioned lots during their exclusive preview", async () => {
+    playerId = player._id;
+    await database.collection("players").updateOne(
+      { _id: playerId },
+      { $set: { "profile.market_expert.expiration": new Date(Date.now() - 60_000).toISOString() } },
+    );
+    const auction = {
+      ...base,
+      _id: "private-allowed",
+      viewer: playerId,
+      commission: { player_id: playerId, coefficient: 0.1 },
+    };
+    await database.collection<Auction>("auctions").insertOne(auction);
+    assert.equal((await bid(auction)).status, 200);
+    const saved = await database.collection<Auction>("auctions").findOne({ _id: auction._id });
+    assert.equal(saved?.current_winner_id, playerId);
+    assert.deepEqual(saved?.bidder_ids, [playerId]);
+  });
+  await t.test("the displayed effect contributes only to the first private-auction bid", async () => {
+    const expiration = new Date(Date.now() + 60_000).toISOString();
+    await database.collection("players").updateMany(
+      { _id: { $in: [player._id, "other-player"] } },
+      {
+        $set: {
+          "profile.bank_balance": 10_000,
+          "profile.market_expert.expiration": expiration,
+        },
+      },
+    );
+    await database.collection("artwork_effects").insertOne({
+      _id: "private-bid-contribution",
+      effect_type: "legendary",
+      code: "PRIVATE_AUCTION_PRICE_REDUCTION",
+      active: true,
+      linked_attributes: ["benefactor", "auctioneer"],
+      parameters: { contribution_coefficient: 0.25 },
+    });
+    await database.collection("artworks").insertOne({
+      _id: "contribution-artwork",
+      rarity: "legendary",
+      effect_id: "private-bid-contribution",
+    });
+    await database.collection("items").insertOne({
+      _id: "displayed-contribution-item",
+      artwork_id: "contribution-artwork",
+      owner: player._id,
+      status: "displayed",
+    });
+    const auction: Auction = {
+      ...base,
+      _id: "private-bid-contribution",
+      viewer: "origin-player",
+      bidder_ids: [],
+      date_posted: new Date(Date.now() - 6 * 60_000).toISOString(),
+    };
+    await database.collection<Auction>("auctions").insertOne(auction);
+
+    playerId = player._id;
+    const firstBid = await bid(auction, false, 7_000);
+    assert.equal(firstBid.status, 200);
+    assert.match((await firstBid.json()).message, /contributed \$1,750/);
+    assert.equal(
+      (await database.collection("players").findOne({ _id: playerId }))
+        ?.profile.bank_balance,
+      4_750,
+    );
+    assert.deepEqual(
+      await database.collection<Auction>("auctions").findOne(
+        { _id: auction._id },
+        { projection: { _id: 0, current_bid: 1, bidder_ids: 1 } },
+      ),
+      { current_bid: 7_000, bidder_ids: [playerId] },
+    );
+
+    playerId = "other-player";
+    assert.equal((await bid(auction, false, 7_010)).status, 200);
+    assert.equal(
+      (await database.collection("players").findOne({ _id: player._id }))
+        ?.profile.bank_balance,
+      11_750,
+    );
+
+    playerId = player._id;
+    assert.equal((await bid(auction, false, 7_020)).status, 200);
+    assert.equal(
+      (await database.collection("players").findOne({ _id: playerId }))
+        ?.profile.bank_balance,
+      4_730,
+    );
+    assert.deepEqual(
+      (
+        await database.collection<Auction>("auctions").findOne({
+          _id: auction._id,
+        })
+      )?.bidder_ids,
+      [player._id, "other-player"],
+    );
+  });
+  await t.test("a private-to-public race refunds the reduced first-bid charge", async () => {
+    playerId = player._id;
+    await database.collection("players").updateOne(
+      { _id: playerId },
+      { $set: { "profile.bank_balance": 10_000 } },
+    );
+    const auction: Auction = {
+      ...base,
+      _id: "private-contribution-public-race",
+      viewer: "origin-player",
+      bidder_ids: [],
+      date_posted: new Date(Date.now() - 6 * 60_000).toISOString(),
+    };
+    await database.collection<Auction>("auctions").insertOne(auction);
+    concurrentAuctionId = auction._id;
+    concurrentAuctionUpdate = { viewer: "public" };
+
+    assert.equal((await bid(auction, false, 7_000)).status, 409);
+    concurrentAuctionId = null;
+    concurrentAuctionUpdate = null;
+    assert.equal(
+      (await database.collection("players").findOne({ _id: playerId }))
+        ?.profile.bank_balance,
+      10_000,
+    );
+    assert.deepEqual(
+      await database.collection<Auction>("auctions").findOne(
+        { _id: auction._id },
+        { projection: { _id: 0, viewer: 1, bidder_ids: 1 } },
+      ),
+      { viewer: "public", bidder_ids: [] },
+    );
+  });
+  await t.test("the effect does not contribute to public-auction bids", async () => {
+    playerId = player._id;
+    await database.collection("players").updateOne(
+      { _id: playerId },
+      { $set: { "profile.bank_balance": 10_000 } },
+    );
+    const auction: Auction = {
+      ...base,
+      _id: "public-no-contribution",
+      bidder_ids: [],
+    };
+    await database.collection<Auction>("auctions").insertOne(auction);
+
+    const response = await bid(auction, false, 7_000);
+    assert.equal(response.status, 200);
+    assert.doesNotMatch((await response.json()).message, /contributed/);
+    assert.equal(
+      (await database.collection("players").findOne({ _id: playerId }))
+        ?.profile.bank_balance,
+      3_000,
+    );
   });
 });
 
@@ -230,6 +448,103 @@ test("auction commissions use a clamped coefficient of the final price", () => {
     }),
     0,
   );
+  assert.equal(
+    getAuctionCommissionAmount({
+      current_bid: 1_000,
+      current_winner_id: "player-1",
+      commission: { player_id: "player-1", coefficient: 0.1 },
+    }),
+    0,
+  );
+});
+
+test("private auction access preserves the origin preview before entering the expert market", async () => {
+  const server = await MongoMemoryServer.create();
+  const client = await new MongoClient(server.getUri()).connect();
+  try {
+    const database = client.db("shared-private-auction-access");
+    const now = new Date("2026-11-09T20:00:00.000Z");
+    const previewDate = new Date(now.getTime() - 60_000).toISOString();
+    const sharedDate = new Date(now.getTime() - 6 * 60_000).toISOString();
+    await database.collection<Auction>("auctions").insertMany([
+      { _id: "public", viewer: "public", date_posted: previewDate },
+      { _id: "origin-preview", viewer: "player", date_posted: previewDate },
+      { _id: "other-preview", viewer: "origin", date_posted: previewDate },
+      { _id: "shared", viewer: "origin", date_posted: sharedDate },
+      {
+        _id: "former-bidder",
+        viewer: "origin",
+        bidder_ids: ["player"],
+        date_posted: sharedDate,
+      },
+      {
+        _id: "legacy-winner",
+        viewer: "origin",
+        current_winner_id: "player",
+        date_posted: sharedDate,
+      },
+    ] as Auction[]);
+
+    assert.deepEqual(
+      (await database.collection<Auction>("auctions")
+        .find(getAuctionAccessFilter("player", false, now))
+        .project({ _id: 1 }).sort({ _id: 1 }).toArray())
+        .map((auction) => auction._id),
+      ["former-bidder", "legacy-winner", "origin-preview", "public"],
+    );
+    assert.deepEqual(
+      (await database.collection<Auction>("auctions")
+        .find(getAuctionAccessFilter("player", true, now))
+        .project({ _id: 1 }).sort({ _id: 1 }).toArray())
+        .map((auction) => auction._id),
+      ["former-bidder", "legacy-winner", "origin-preview", "public", "shared"],
+    );
+    assert.equal(
+      canPlayerAccessAuction(
+        {
+          viewer: "origin",
+          bidder_ids: ["player"],
+          current_winner_id: "other",
+          date_posted: sharedDate,
+        },
+        "player",
+        false,
+        now,
+      ),
+      true,
+    );
+    assert.equal(
+      canPlayerAccessAuction(
+        {
+          viewer: "origin",
+          bidder_ids: ["player"],
+          current_winner_id: "other",
+          date_posted: previewDate,
+        },
+        "player",
+        true,
+        now,
+      ),
+      false,
+    );
+    assert.equal(
+      canPlayerAccessAuction(
+        {
+          viewer: "player",
+          bidder_ids: [],
+          current_winner_id: null,
+          date_posted: previewDate,
+        },
+        "player",
+        false,
+        now,
+      ),
+      true,
+    );
+  } finally {
+    await client.close();
+    await server.stop();
+  }
 });
 
 test("private auctions become public with commission for their viewer", async () => {
@@ -342,6 +657,7 @@ test("auction settlement pays the attached commission recipient", async () => {
       condition: 1,
       level: 1,
       roll_count: 0,
+      drop_chance_coefficient: 0.00025,
       tags: ["for sale"],
       values: {
         actual: 1_000,
@@ -386,6 +702,10 @@ test("auction settlement pays the attached commission recipient", async () => {
       player_id: "commission-player",
       coefficient: 0.1,
     });
+    assert.equal(
+      createdAuction.item_snapshot.drop_chance_coefficient,
+      item.drop_chance_coefficient,
+    );
     assert.equal(
       (
         await database.collection<GameItem>("items").findOne({

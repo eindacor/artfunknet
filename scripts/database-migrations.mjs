@@ -583,7 +583,7 @@ const MASTERPIECE_EFFECTS = [
   ["masterpiece-donor-foil", "Yk2kk2mZtHetvbrY5", "MP_DONOR_FOIL", "Gilded Gift", "Legendary and masterpiece gifts from platinum Donors are always foil.", {}],
   ["masterpiece-dealer-unlocked", "mZH58WpgbKP9o9WZR", "MP_DEALER_UNLOCKED", "Open Edition", "Legendary and masterpiece offers from platinum Dealers are always unlocked.", {}],
   ["masterpiece-enthusiast-uncommon-xp", "T8v35e75v4Hh2JpxQ", "MP_UNCOMMON_GALLERY_XP", "Accessible Enthusiasm", "Displayed uncommon artwork adds an extra gallery XP chunk.", { xp_chunks: 0.5 }],
-  ["masterpiece-auctioneer-transferable", "FgRMQA6s24wmTRyrx", "MP_TRANSFERABLE_AUCTION", "Public Commission", "Private auctions can be made public and pay you a commission when sold.", { commission_rate: 0.1 }],
+  ["masterpiece-auctioneer-transferable", "FgRMQA6s24wmTRyrx", "MP_TRANSFERABLE_AUCTION", "Public Commission", "Private Auctioneer lots pay you a commission when another player wins, and can be opened to everyone.", { commission_rate: 0.1 }],
   ["masterpiece-enthusiast-common-substitution", "T8v35e75v4Hh2JpxQ", "MP_COMMON_ATTRIBUTE_SUBSTITUTION", "Curated Commons", "Common displays contribute this effect item's attributes instead of their own.", {}],
   ["masterpiece-enthusiast-rare-double", "T8v35e75v4Hh2JpxQ", "MP_RARE_VISITOR_DOUBLE", "Rare Appeal", "Attributes on rare displays receive two visitor generation passes.", {}],
   ["masterpiece-auctioneer-authentication", "FgRMQA6s24wmTRyrx", "MP_AUCTION_AUTHENTICATION_REFUND", "Guaranteed Provenance", "Auction wins authenticate freely; detected forgeries are destroyed and partially refunded.", { refund_rate: 0.75 }],
@@ -593,8 +593,10 @@ const LEGACY_MP_CODE_PREFIX = "MASTERPIECE_";
 const MP_CODE_PREFIX = "MP_";
 const LEGACY_TRANSFERABLE_AUCTION_DESCRIPTION =
   "Reserved definition for transferable private auctions and public commission.";
-const TRANSFERABLE_AUCTION_DESCRIPTION =
+const PREVIOUS_TRANSFERABLE_AUCTION_DESCRIPTION =
   "Private auctions can be made public and pay you a commission when sold.";
+const TRANSFERABLE_AUCTION_DESCRIPTION =
+  "Private Auctioneer lots pay you a commission when another player wins, and can be opened to everyone.";
 
 const MASTERPIECE_FLAVOR_OPENINGS = [
   "An extraordinary study in",
@@ -670,17 +672,27 @@ const COLLECTOR_QUEST_ITEM_EFFECT = {
 };
 const LEGACY_AUCTION_BUY_NOW_EFFECT_CODE =
   "AUCTION_COUNT_DEALER_BONUS";
+const PREVIOUS_AUCTION_BUY_NOW_DESCRIPTION =
+  "Private auctions created by Auctioneers in your gallery have a buy-now price 10% above the starting bid.";
 const AUCTION_BUY_NOW_EFFECT = {
   _id: "w7ZrD4oEn4Ti6DpZX",
   code: "AUCTION_BUY_NOW",
   title: "Auction Buy Now",
   description:
-    "Private auctions created by Auctioneers in your gallery have a buy-now price 10% above the starting bid.",
+    "Each private auction created by Auctioneers in your gallery has a 50% chance to receive a buy-now price 10% above the starting bid.",
   flavor_text: "More than deserving of its praise.",
   linked_attributes: ["FgRMQA6s24wmTRyrx", "mZH58WpgbKP9o9WZR"],
   parameters: {
+    chance: 0.5,
     buy_now_multiplier: 1.1,
   },
+};
+const PRIVATE_AUCTION_BID_CONTRIBUTION_EFFECT = {
+  code: "PRIVATE_AUCTION_PRICE_REDUCTION",
+  legacy_description: "Private auction items have a reduced starting price.",
+  description:
+    "The game contributes 37.5% toward your first bid on each private auction; outbid refunds still return the full bid.",
+  contribution_coefficient: 0.375,
 };
 const LEGACY_ART_COLLECTOR_AUCTION_EFFECT_CODE =
   "ART_COLLECTOR_AUCTION_BONUS";
@@ -781,7 +793,12 @@ async function migrateTransferableAuctionEffect(database, now) {
     {
       effect_type: "masterpiece",
       code: "MP_TRANSFERABLE_AUCTION",
-      description: LEGACY_TRANSFERABLE_AUCTION_DESCRIPTION,
+      description: {
+        $in: [
+          LEGACY_TRANSFERABLE_AUCTION_DESCRIPTION,
+          PREVIOUS_TRANSFERABLE_AUCTION_DESCRIPTION,
+        ],
+      },
     },
     {
       $set: {
@@ -814,6 +831,63 @@ async function migrateWeeklyInterestEffects(database, now) {
       },
       { $set: { description, updated_at: now } },
     );
+  }
+}
+
+async function migratePrivateAuctionBidContributionEffect(database, now) {
+  for (const collectionName of ["artwork_effects", "unique_attributes"]) {
+    const effects = database.collection(collectionName);
+    const matches = await effects
+      .find({ code: PRIVATE_AUCTION_BID_CONTRIBUTION_EFFECT.code })
+      .toArray();
+    for (const effect of matches) {
+      const parameters =
+        effect.parameters &&
+        typeof effect.parameters === "object" &&
+        !Array.isArray(effect.parameters)
+          ? { ...effect.parameters }
+          : {};
+      const configuredContribution = parameters.contribution_coefficient;
+      const legacyMultiplier = parameters.price_multiplier;
+      const clampedConfiguredContribution =
+        typeof configuredContribution === "number" &&
+        Number.isFinite(configuredContribution)
+          ? Math.min(Math.max(configuredContribution, 0), 1)
+          : null;
+      const contributionCoefficient =
+        clampedConfiguredContribution !== null
+          ? clampedConfiguredContribution
+          : typeof legacyMultiplier === "number" &&
+              Number.isFinite(legacyMultiplier)
+            ? Math.min(Math.max(1 - legacyMultiplier / 4, 0), 1)
+            : PRIVATE_AUCTION_BID_CONTRIBUTION_EFFECT.contribution_coefficient;
+      const descriptionChanged =
+        effect.description ===
+        PRIVATE_AUCTION_BID_CONTRIBUTION_EFFECT.legacy_description;
+      const parametersChanged =
+        Object.hasOwn(parameters, "price_multiplier") ||
+        configuredContribution !== contributionCoefficient;
+      if (!descriptionChanged && !parametersChanged) continue;
+
+      delete parameters.price_multiplier;
+      parameters.contribution_coefficient = contributionCoefficient;
+
+      await effects.updateOne(
+        { _id: effect._id },
+        {
+          $set: {
+            ...(descriptionChanged
+              ? {
+                  description:
+                    PRIVATE_AUCTION_BID_CONTRIBUTION_EFFECT.description,
+                }
+              : {}),
+            parameters,
+            updated_at: now,
+          },
+        },
+      );
+    }
   }
 }
 
@@ -959,6 +1033,16 @@ async function migrateAuctionBuyNowEffect(database, now) {
         },
       },
     );
+  } else if (existing.description === PREVIOUS_AUCTION_BUY_NOW_DESCRIPTION) {
+    await effects.updateOne(
+      { _id: effectId },
+      {
+        $set: {
+          description: AUCTION_BUY_NOW_EFFECT.description,
+          updated_at: now,
+        },
+      },
+    );
   }
 
   await database.collection("unique_attributes").updateMany(
@@ -979,6 +1063,18 @@ async function migrateAuctionBuyNowEffect(database, now) {
         linked_pair: AUCTION_BUY_NOW_EFFECT.linked_attributes.join(":"),
         parameters: AUCTION_BUY_NOW_EFFECT.parameters,
         catalog_version: 6,
+        updated_at: now,
+      },
+    },
+  );
+  await database.collection("unique_attributes").updateMany(
+    {
+      code: AUCTION_BUY_NOW_EFFECT.code,
+      description: PREVIOUS_AUCTION_BUY_NOW_DESCRIPTION,
+    },
+    {
+      $set: {
+        description: AUCTION_BUY_NOW_EFFECT.description,
         updated_at: now,
       },
     },
@@ -1201,6 +1297,7 @@ export async function migrateArtworkEffects(database) {
   await migrateMasterpieceEffectCodes(database, now);
   await migrateTransferableAuctionEffect(database, now);
   await migrateWeeklyInterestEffects(database, now);
+  await migratePrivateAuctionBidContributionEffect(database, now);
   await normalizeArtworkEffectParameters(database);
 
   await database.collection("artwork_effects").createIndex(

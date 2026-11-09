@@ -24,6 +24,11 @@ import {
   getDisplayedLegendaryEffect,
   getLegendaryNumberParameter,
 } from "./legendary-attributes.ts";
+import { getDisplayedArtworkEffect } from "./artwork-effects.ts";
+import {
+  getTransferableAuctionCommissionCoefficient,
+  MASTERPIECE_EFFECT_CODES,
+} from "./masterpiece-effects.ts";
 import { visitorUsesOwnGalleryBenefits, type GalleryNpc, type NpcQuality } from "./npc-gameplay.ts";
 
 export type AuctioneerPlayer = {
@@ -48,23 +53,43 @@ export type AuctioneerInteractionResult = {
   priceMultiplier: number;
 };
 
+export const AUCTIONEER_MARKET_ACCESS_MINUTES: Record<
+  NpcQuality,
+  { initial: number; extension: number }
+> = {
+  bronze: { initial: 12, extension: 7 },
+  silver: { initial: 13, extension: 8 },
+  gold: { initial: 14, extension: 9 },
+  platinum: { initial: 15, extension: 10 },
+};
+
+export const AUCTIONEER_HOME_ACCESS_MULTIPLIER = 2.5;
+
+export function getAuctioneerMarketAccessMinutes(
+  quality: NpcQuality,
+  ownGalleryBenefits: boolean,
+  extending: boolean,
+): number {
+  const minutes = AUCTIONEER_MARKET_ACCESS_MINUTES[quality][
+    extending ? "extension" : "initial"
+  ];
+  return ownGalleryBenefits
+    ? Math.floor(minutes * AUCTIONEER_HOME_ACCESS_MULTIPLIER)
+    : minutes;
+}
+
 export async function processAuctioneerInteraction(
   database: Db,
   player: AuctioneerPlayer,
   npc: GalleryNpc,
   now: Date,
+  random = Math.random,
 ): Promise<AuctioneerInteractionResult> {
   const generatedItemIds: string[] = [];
   const generatedAuctionIds: string[] = [];
 
   try {
     const ownGallery = await visitorUsesOwnGalleryBenefits(database, npc, player._id);
-    const qualityBonus: Record<NpcQuality, number> = {
-      bronze: 2,
-      silver: 3,
-      gold: 4,
-      platinum: 5,
-    };
     const currentExpiration = new Date(
       (
         await database.collection<AuctioneerPlayer>("players").findOne(
@@ -73,25 +98,22 @@ export async function processAuctioneerInteraction(
         )
       )?.profile.market_expert?.expiration ?? 0,
     );
-    const baseMinutes = 10 + qualityBonus[npc.quality];
-    const extensionMinutes = 5 + qualityBonus[npc.quality];
-    const durationMinutes = ownGallery
-      ? Math.floor(baseMinutes * 2.5)
-      : baseMinutes;
-    const extension = ownGallery
-      ? Math.floor(extensionMinutes * 2.5)
-      : extensionMinutes;
-    const marketExpertExpiration =
-      currentExpiration.getTime() > now.getTime()
-        ? new Date(currentExpiration.getTime() + extension * 60_000)
-        : new Date(now.getTime() + durationMinutes * 60_000);
+    const extendingAccess = currentExpiration.getTime() > now.getTime();
+    const accessMinutes = getAuctioneerMarketAccessMinutes(
+      npc.quality,
+      ownGallery,
+      extendingAccess,
+    );
+    const marketExpertExpiration = extendingAccess
+      ? new Date(currentExpiration.getTime() + accessMinutes * 60_000)
+      : new Date(now.getTime() + accessMinutes * 60_000);
 
     const [
       settings,
       metadata,
       donorPair,
-      privatePriceReduction,
       auctionBuyNowEffect,
+      transferableAuctionEffect,
     ] =
       await Promise.all([
         getGameplaySettings(database),
@@ -109,16 +131,14 @@ export async function processAuctioneerInteraction(
           ? getDisplayedLegendaryEffect(
               database,
               player._id,
-              "PRIVATE_AUCTION_PRICE_REDUCTION",
-            )
-          : Promise.resolve(null),
-        ownGallery
-          ? getDisplayedLegendaryEffect(
-              database,
-              player._id,
               "AUCTION_BUY_NOW",
             )
           : Promise.resolve(null),
+        getDisplayedArtworkEffect(
+          database,
+          player._id,
+          MASTERPIECE_EFFECT_CODES.transferableAuction,
+        ),
       ]);
     if (!metadata) throw new Error("Loot metadata is not configured.");
 
@@ -142,15 +162,18 @@ export async function processAuctioneerInteraction(
             ),
           )
         : 0);
-    const priceMultiplier = getLegendaryNumberParameter(
-      privatePriceReduction,
-      "price_multiplier",
-      privatePriceReduction ? 2.5 : 4,
-    );
+    const priceMultiplier = 4;
     const buyNowMultiplier = getLegendaryNumberParameter(
       auctionBuyNowEffect,
       "buy_now_multiplier",
       1.1,
+    );
+    const buyNowChance = Math.min(
+      Math.max(
+        getLegendaryNumberParameter(auctionBuyNowEffect, "chance", 0.5),
+        0,
+      ),
+      1,
     );
     const generated = await generateDailyDrop(
       database,
@@ -180,7 +203,7 @@ export async function processAuctioneerInteraction(
     const createdAuctions: Auction[] = [];
     for (const item of hydrated) {
       const startingBid = Math.floor(item.values.actual * priceMultiplier);
-      const buyNow = auctionBuyNowEffect
+      const buyNow = auctionBuyNowEffect && random() < buyNowChance
         ? Math.max(startingBid + 1, Math.ceil(startingBid * buyNowMultiplier))
         : null;
       const auction = await createAuction(database, item, {
@@ -189,6 +212,15 @@ export async function processAuctioneerInteraction(
         viewer: player._id,
         startingBid,
         buyNow,
+        commission: transferableAuctionEffect
+          ? {
+              player_id: player._id,
+              coefficient:
+                getTransferableAuctionCommissionCoefficient(
+                  transferableAuctionEffect,
+                ),
+            }
+          : null,
         durationMinutes: PRIVATE_AUCTION_DURATION_MINUTES,
         now,
       });
@@ -205,8 +237,8 @@ export async function processAuctioneerInteraction(
       },
     );
     const message =
-      `The Auctioneer activated market analysis until ${marketExpertExpiration.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} ` +
-      `and opened ${auctionCount} private ${auctionCount === 1 ? "lot" : "lots"} for you.`;
+      `The ${npc.quality} Auctioneer ${extendingAccess ? "extended" : "activated"} market analysis ${extendingAccess ? "by" : "for"} ${accessMinutes} minutes, until ${marketExpertExpiration.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}, ` +
+      `and gave you a five-minute preview of ${auctionCount} ten-minute private ${auctionCount === 1 ? "lot" : "lots"} before their final five minutes in the expert market.`;
 
     const { auctions: privateAuctionViews } = await getAuctionViews(
       database,

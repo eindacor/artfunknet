@@ -116,6 +116,21 @@ export function getDefaultCollectionFilters(): CollectionFilters {
   };
 }
 
+export function hasActiveCollectionFilters(
+  filters: CollectionFilters,
+): boolean {
+  return (
+    filters.search.trim().length > 0 ||
+    filters.tag.length > 0 ||
+    filters.artStyle.length > 0 ||
+    !hasSameSelection(filters.statuses, COLLECTION_STATUSES) ||
+    !hasSameSelection(filters.rarities, ARTWORK_RARITIES) ||
+    COLLECTION_FLAG_KEYS.some((key) => filters.flags[key] !== "any") ||
+    filters.attributeIds.length > 0 ||
+    filters.specialAttributeIds.length > 0
+  );
+}
+
 export function filterCollectionItems<T extends CollectionInventoryItem>(
   items: readonly T[],
   filters: CollectionFilters,
@@ -408,4 +423,14 @@ function compareText(left: string, right: string): number {
     numeric: true,
     sensitivity: "base",
   });
+}
+
+function hasSameSelection(
+  selected: readonly string[],
+  defaults: readonly string[],
+): boolean {
+  return (
+    selected.length === defaults.length &&
+    defaults.every((value) => selected.includes(value))
+  );
 }

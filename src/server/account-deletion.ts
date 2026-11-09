@@ -131,6 +131,7 @@ export async function deletePlayerAccount(
           { seller_id: playerId },
           { current_winner_id: playerId },
           { current_winner_id: null, current_winner_name: player.screen_name, has_bid: true },
+          { viewer: playerId, has_bid: true },
         ],
       }),
       database.collection<StoredDocument>("metadata").findOne({
@@ -142,7 +143,7 @@ export async function deletePlayerAccount(
     ]);
     if (auction || liveAuction) {
       throw new AccountDeletionError(
-        "You cannot delete your account while selling or winning an active auction, or while an auction is still settling.",
+        "You cannot delete your account while participating in an active auction or while an auction is still settling.",
       );
     }
     if (player.profile?.vintage_operation &&

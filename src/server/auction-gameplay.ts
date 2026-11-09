@@ -50,6 +50,11 @@ import {
 import { createPlayerNotification } from "./player-notifications.ts";
 import { sanitizePlayerFacingAuthenticity } from "./forgery-gameplay.ts";
 import {
+  AUCTION_PROPERTY_KEYS,
+  type AuctionPropertyKey,
+  type ItemFilterMode,
+} from "./player-view-settings.ts";
+import {
   getArchiveRecordArtStyles,
   getArchiveRecordModifiers,
   type PlayerArtworkArchive,
@@ -61,7 +66,8 @@ import {
 } from "./live-auction-event.ts";
 
 export const PUBLIC_AUCTION_DURATIONS = [60, 360, 720, 1440] as const;
-export const PRIVATE_AUCTION_DURATION_MINUTES = 5;
+export const PRIVATE_AUCTION_DURATION_MINUTES = 10;
+export const PRIVATE_AUCTION_PREVIEW_MINUTES = 5;
 export const AUCTIONEER_BASE_PRIVATE_LOTS = 4;
 export const AUCTION_HOUSE_OWNER_ID = "system:auction-house";
 const AUCTION_REPLENISHMENT_LEASE_MS = 2 * 60 * 1000;
@@ -86,6 +92,7 @@ export type Auction = {
   commission?: AuctionCommission | null;
   current_winner_id: string | null;
   current_winner_name: string | null;
+  bidder_ids?: string[];
   has_bid: boolean;
   date_posted: string;
   expiration: string;
@@ -102,12 +109,31 @@ export type Auction = {
     condition: number;
     level: number;
     roll_count: number;
+    drop_chance_coefficient?: number;
+    card_renderer?: string;
+    mint?: boolean;
     foil: boolean;
+    unlocked?: boolean;
     seasonal: boolean;
     lottery: number;
     original: boolean;
     vintage?: boolean;
+    attribute_ids?: string[];
+    special_attribute_ids?: string[];
+    attribute_options?: AuctionAttributeOption[];
   };
+};
+
+export type AuctionAttributeOption = {
+  id: string;
+  label: string;
+  special: boolean;
+};
+
+export type AuctionFilterOptions = {
+  artStyleIds: string[];
+  attributes: Array<Pick<AuctionAttributeOption, "id" | "label">>;
+  specialAttributes: Array<Pick<AuctionAttributeOption, "id" | "label">>;
 };
 
 export type AuctionView = Auction & {
@@ -117,6 +143,99 @@ export type AuctionView = Auction & {
   currentlyWinning: boolean;
   privateAuction: boolean;
 };
+
+export function hasActiveMarketExpertAccess(
+  expiration: string | undefined,
+  now = new Date(),
+): boolean {
+  return new Date(expiration ?? 0).getTime() > now.getTime();
+}
+
+export function getAuctionAccessFilter(
+  playerId: string,
+  marketExpert: boolean,
+  now = new Date(),
+): Filter<Auction> {
+  const sharedBefore = new Date(
+    now.getTime() - PRIVATE_AUCTION_PREVIEW_MINUTES * 60_000,
+  ).toISOString();
+  return {
+    $or: [
+      { viewer: "public" },
+      { viewer: playerId },
+      {
+        $and: [
+          { date_posted: { $lte: sharedBefore } },
+          {
+            $or: [
+              ...(marketExpert ? [{ viewer: { $ne: "public" } }] : []),
+              { bidder_ids: playerId },
+              { current_winner_id: playerId },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+}
+
+export function canPlayerAccessAuction(
+  auction: Pick<
+    Auction,
+    "viewer" | "bidder_ids" | "current_winner_id" | "date_posted"
+  >,
+  playerId: string,
+  marketExpert: boolean,
+  now = new Date(),
+): boolean {
+  if (auction.viewer === "public" || auction.viewer === playerId) return true;
+  const postedAt = new Date(auction.date_posted).getTime();
+  if (
+    !Number.isFinite(postedAt) ||
+    postedAt + PRIVATE_AUCTION_PREVIEW_MINUTES * 60_000 > now.getTime()
+  ) {
+    return false;
+  }
+  return (
+    marketExpert ||
+    auction.current_winner_id === playerId ||
+    auction.bidder_ids?.includes(playerId) === true
+  );
+}
+
+export async function getInitialPrivateAuctionBidContribution(
+  database: Db,
+  playerId: string,
+  auction: Pick<Auction, "viewer" | "bidder_ids" | "current_winner_id">,
+  bidAmount: number,
+): Promise<number> {
+  if (
+    auction.viewer === "public" ||
+    auction.current_winner_id === playerId ||
+    auction.bidder_ids?.includes(playerId)
+  ) {
+    return 0;
+  }
+  const effect = await getDisplayedLegendaryEffect(
+    database,
+    playerId,
+    "PRIVATE_AUCTION_PRICE_REDUCTION",
+  );
+  if (!effect) return 0;
+
+  const coefficient = Math.min(
+    Math.max(
+      getLegendaryNumberParameter(
+        effect,
+        "contribution_coefficient",
+        0.375,
+      ),
+      0,
+    ),
+    1,
+  );
+  return Math.floor(Math.max(0, bidAmount) * coefficient);
+}
 
 type AuctionPlayer = {
   _id: string;
@@ -224,6 +343,7 @@ export async function createAuction(
     commission,
     current_winner_id: null,
     current_winner_name: null,
+    bidder_ids: [],
     has_bid: false,
     date_posted: now.toISOString(),
     expiration: new Date(
@@ -247,11 +367,19 @@ export async function createAuction(
       condition: item.condition,
       level: item.level,
       roll_count: item.roll_count,
+      ...(typeof item.drop_chance_coefficient === "number" &&
+      Number.isFinite(item.drop_chance_coefficient)
+        ? { drop_chance_coefficient: item.drop_chance_coefficient }
+        : {}),
+      card_renderer: item.card_renderer ?? "museum",
+      mint: item.mint,
       foil: item.foil,
+      unlocked: item.unlocked,
       seasonal: item.seasonal,
       lottery: item.lottery,
       original: item.original,
       vintage: item.vintage,
+      ...getAuctionAttributeSnapshot(item),
     },
   };
   await database.collection<Auction>("auctions").insertOne(auction);
@@ -259,9 +387,11 @@ export async function createAuction(
 }
 
 export function getAuctionCommissionAmount(
-  auction: Pick<Auction, "commission" | "current_bid">,
+  auction: Pick<Auction, "commission" | "current_bid"> &
+    Partial<Pick<Auction, "current_winner_id">>,
 ): number {
   if (!auction.commission) return 0;
+  if (auction.current_winner_id === auction.commission.player_id) return 0;
   const coefficient = Number.isFinite(auction.commission.coefficient)
     ? Math.min(Math.max(auction.commission.coefficient, 0), 1)
     : 0;
@@ -1315,43 +1445,88 @@ export function calculateAntiSnipeExpiration(
     : currentExpiration.toISOString();
 }
 
+export function getAuctionSort(
+  sortOption: string | undefined,
+  order: "asc" | "desc" | undefined,
+): Sort {
+  const sortFields: Record<string, string> = {
+    remaining: "expiration",
+    price: "current_bid",
+    seller: "seller_name",
+    title: "item_snapshot.title",
+    artist: "item_snapshot.artist",
+    date: "item_snapshot.date",
+    medium: "item_snapshot.medium",
+    rarity: "item_snapshot.rarity_value",
+    dropChance: "item_snapshot.drop_chance_coefficient",
+    condition: "item_snapshot.condition",
+    rolls: "item_snapshot.roll_count",
+    level: "item_snapshot.level",
+  };
+  return {
+    [sortFields[sortOption ?? "remaining"] ?? "expiration"]:
+      order === "desc" ? -1 : 1,
+  };
+}
+
 export async function getAuctionViews(
   database: Db,
   playerId: string,
   options: {
     auctionId?: string;
     auctionIds?: string[];
+    itemId?: string;
     search?: string;
     sort?: string;
     order?: "asc" | "desc";
     rarities?: ArtworkRarity[];
     types?: string[];
+    artStyle?: string;
+    properties?: Partial<Record<AuctionPropertyKey, ItemFilterMode>>;
+    attributeIds?: string[];
+    attributeMinimum?: number;
+    specialAttributeIds?: string[];
+    specialAttributeMinimum?: number;
     exclusivity?: "all" | "public" | "private";
     quest?: "all" | "quest" | "sought";
     page?: number;
     pageSize?: number;
+    originatedPrivateOnly?: boolean;
+    now?: Date;
   } = {},
-): Promise<{ auctions: AuctionView[]; total: number }> {
+): Promise<{
+  auctions: AuctionView[];
+  total: number;
+  filterOptions: AuctionFilterOptions;
+}> {
   try {
     await maintainPublicAuctions(database);
   } catch (error) {
     console.error("Unable to replenish public auctions", error);
   }
 
-  const filter: Filter<Auction> = {
-    expiration: { $gt: new Date().toISOString() },
-    viewer: { $in: ["public", playerId] },
-    settlement_status: { $ne: "settling" },
-  };
-  if (options.auctionId) filter._id = options.auctionId;
-  if (options.auctionIds?.length) filter._id = { $in: options.auctionIds };
+  const now = options.now ?? new Date();
+  await backfillAuctionFilterSnapshots(database, now);
   const player = await database.collection<AuctionPlayer>("players").findOne({
     _id: playerId,
     active: true,
   });
-  const hasMarketExpert =
-    new Date(player?.profile.market_expert?.expiration ?? 0).getTime() >
-    Date.now();
+  const hasMarketExpert = hasActiveMarketExpertAccess(
+    player?.profile.market_expert?.expiration,
+    now,
+  );
+  const filter: Filter<Auction> = {
+    expiration: { $gt: now.toISOString() },
+    settlement_status: { $ne: "settling" },
+  };
+  const optionFilter: Filter<Auction> = {
+    expiration: { $gt: now.toISOString() },
+    settlement_status: { $ne: "settling" },
+  };
+  const andFilters: Filter<Auction>[] = [];
+  if (options.auctionId) filter._id = options.auctionId;
+  if (options.auctionIds?.length) filter._id = { $in: options.auctionIds };
+  if (options.itemId) filter.item_id = options.itemId;
   if (!hasMarketExpert && options.quest === "sought") options.quest = "all";
   if (
     !hasMarketExpert &&
@@ -1359,19 +1534,58 @@ export async function getAuctionViews(
   ) {
     options.sort = "remaining";
   }
-  if (options.exclusivity === "public") filter.viewer = "public";
-  if (options.exclusivity === "private") filter.viewer = playerId;
+  if (options.originatedPrivateOnly) {
+    filter.viewer = playerId;
+    optionFilter.viewer = playerId;
+  } else {
+    if (options.exclusivity === "public") filter.viewer = "public";
+    if (options.exclusivity === "private") filter.viewer = { $ne: "public" };
+    if (options.exclusivity === "public") optionFilter.viewer = "public";
+    if (options.exclusivity === "private") {
+      optionFilter.viewer = { $ne: "public" };
+    }
+    const accessFilter = getAuctionAccessFilter(
+      playerId,
+      hasMarketExpert,
+      now,
+    );
+    andFilters.push(accessFilter);
+    optionFilter.$and = [accessFilter];
+  }
   if (options.rarities?.length) {
     filter["item_snapshot.rarity"] = { $in: options.rarities };
   }
   if (options.search?.trim()) {
     const escaped = options.search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    filter.$or = [
-      { "item_snapshot.title": { $regex: escaped, $options: "i" } },
-      { "item_snapshot.artist": { $regex: escaped, $options: "i" } },
-      { seller_name: { $regex: escaped, $options: "i" } },
-    ];
+    andFilters.push({
+      $or: [
+        { "item_snapshot.title": { $regex: escaped, $options: "i" } },
+        { "item_snapshot.artist": { $regex: escaped, $options: "i" } },
+        { seller_name: { $regex: escaped, $options: "i" } },
+      ],
+    });
   }
+  if (options.artStyle) {
+    filter["item_snapshot.card_renderer"] = options.artStyle;
+  }
+  for (const key of AUCTION_PROPERTY_KEYS) {
+    const mode = options.properties?.[key];
+    if (!mode || mode === "any") continue;
+    const propertyFilter = getAuctionPropertyFilter(key, mode);
+    if (propertyFilter) andFilters.push(propertyFilter);
+  }
+  addAttributeSelectionFilter(
+    andFilters,
+    "item_snapshot.attribute_ids",
+    options.attributeIds,
+    options.attributeMinimum,
+  );
+  addAttributeSelectionFilter(
+    andFilters,
+    "item_snapshot.special_attribute_ids",
+    options.specialAttributeIds,
+    options.specialAttributeMinimum,
+  );
   const typeFilters = (options.types ?? []).map((type): Filter<Auction> => {
     if (type === "standard") {
       return {
@@ -1385,8 +1599,9 @@ export async function getAuctionViews(
     return { [`item_snapshot.${type}`]: true };
   });
   if (typeFilters.length) {
-    filter.$and = [{ $or: typeFilters }];
+    andFilters.push({ $or: typeFilters });
   }
+  if (andFilters.length) filter.$and = andFilters;
   if (options.quest === "quest") {
     const quests = await database
       .collection<ArtHistorianQuest>("quests")
@@ -1421,26 +1636,17 @@ export async function getAuctionViews(
     filter["item_snapshot.artwork_id"] = { $in: [...new Set(sought)] };
   }
 
-  const sortFields: Record<string, string> = {
-    remaining: "expiration",
-    price: "current_bid",
-    seller: "seller_name",
-    title: "item_snapshot.title",
-    artist: "item_snapshot.artist",
-    date: "item_snapshot.date",
-    medium: "item_snapshot.medium",
-    rarity: "item_snapshot.rarity_value",
-    condition: "item_snapshot.condition",
-    rolls: "item_snapshot.roll_count",
-    level: "item_snapshot.level",
-  };
-  const sort: Sort = {
-    [sortFields[options.sort ?? "remaining"] ?? "expiration"]:
-      options.order === "desc" ? -1 : 1,
-  };
+  const sort = getAuctionSort(options.sort, options.order);
   const pageSize = Math.min(Math.max(options.pageSize ?? 12, 1), 48);
   const page = Math.max(options.page ?? 1, 1);
-  const [auctions, total, ownedItems, quests, archiveRecords] = await Promise.all([
+  const [
+    auctions,
+    total,
+    ownedItems,
+    quests,
+    archiveRecords,
+    filterOptions,
+  ] = await Promise.all([
     database.collection<Auction>("auctions").find(filter).sort(sort)
       .skip((page - 1) * pageSize).limit(pageSize).toArray(),
     database.collection<Auction>("auctions").countDocuments(filter),
@@ -1457,6 +1663,7 @@ export async function getAuctionViews(
       .collection<PlayerArtworkArchive>("player_artwork_archives")
       .find({ owner: playerId })
       .toArray(),
+    getAuctionFilterOptions(database, optionFilter),
   ]);
   const rawItems = await database.collection<GameItem>("items").find({
     _id: { $in: auctions.map((auction) => auction.item_id) },
@@ -1473,6 +1680,7 @@ export async function getAuctionViews(
 
   return {
     total,
+    filterOptions,
     auctions: auctions.flatMap((auction) => {
       const item = itemById.get(auction.item_id);
       if (!item) return [];
@@ -1508,6 +1716,144 @@ export async function getAuctionViews(
   };
 }
 
+function getAuctionAttributeSnapshot(
+  item: {
+    attributes?: Partial<GameItem["attributes"]>;
+  },
+): Pick<
+  Auction["item_snapshot"],
+  "attribute_ids" | "special_attribute_ids" | "attribute_options"
+> {
+  const locked = item.attributes?.locked ?? [];
+  const unlocked = item.attributes?.unlocked ?? [];
+  const special = item.attributes?.special ?? [];
+  const regular = locked.concat(unlocked);
+  const all = regular.concat(special);
+  const specialIds = new Set(
+    special.map((attribute) => attribute._id),
+  );
+  const options = new Map<string, AuctionAttributeOption>();
+  for (const attribute of all) {
+    options.set(attribute._id, {
+      id: attribute._id,
+      label: attribute.npc_name || attribute.title,
+      special: specialIds.has(attribute._id),
+    });
+  }
+  return {
+    attribute_ids: [...options.keys()],
+    special_attribute_ids: [...specialIds],
+    attribute_options: [...options.values()],
+  };
+}
+
+async function backfillAuctionFilterSnapshots(database: Db, now: Date) {
+  const auctions = await database.collection<Auction>("auctions").find({
+    expiration: { $gt: now.toISOString() },
+    $or: [
+      { "item_snapshot.card_renderer": { $exists: false } },
+      { "item_snapshot.mint": { $exists: false } },
+      { "item_snapshot.unlocked": { $exists: false } },
+      { "item_snapshot.attribute_ids": { $exists: false } },
+    ],
+  }).project<Pick<Auction, "_id" | "item_id">>({
+    _id: 1,
+    item_id: 1,
+  }).toArray();
+  if (auctions.length === 0) return;
+
+  const items = await database.collection<GameItem>("items").find({
+    _id: { $in: auctions.map((auction) => auction.item_id) },
+  }).toArray();
+  const itemById = new Map(items.map((item) => [item._id, item]));
+  const operations = auctions.flatMap((auction) => {
+    const item = itemById.get(auction.item_id);
+    if (!item) return [];
+    const attributeSnapshot = getAuctionAttributeSnapshot(item);
+    return [{
+      updateOne: {
+        filter: { _id: auction._id },
+        update: {
+          $set: {
+            "item_snapshot.card_renderer": item.card_renderer ?? "museum",
+            "item_snapshot.mint": item.mint,
+            "item_snapshot.unlocked": item.unlocked,
+            "item_snapshot.attribute_ids":
+              attributeSnapshot.attribute_ids,
+            "item_snapshot.special_attribute_ids":
+              attributeSnapshot.special_attribute_ids,
+            "item_snapshot.attribute_options":
+              attributeSnapshot.attribute_options,
+          },
+        },
+      },
+    }];
+  });
+  if (operations.length > 0) {
+    await database.collection<Auction>("auctions").bulkWrite(operations);
+  }
+}
+
+function getAuctionPropertyFilter(
+  key: AuctionPropertyKey,
+  mode: Exclude<ItemFilterMode, "any">,
+): Filter<Auction> | null {
+  if (key === "lottery") {
+    return mode === "only"
+      ? { "item_snapshot.lottery": { $gt: 0 } }
+      : { "item_snapshot.lottery": { $in: [0, null] } };
+  }
+  return {
+    [`item_snapshot.${key}`]: mode === "only" ? true : { $ne: true },
+  } as Filter<Auction>;
+}
+
+function addAttributeSelectionFilter(
+  filters: Filter<Auction>[],
+  field: "item_snapshot.attribute_ids" | "item_snapshot.special_attribute_ids",
+  ids: string[] | undefined,
+  minimum: number | undefined,
+) {
+  if (!ids?.length) return;
+  filters.push({
+    $expr: {
+      $gte: [
+        { $size: { $setIntersection: [`$${field}`, ids] } },
+        Math.min(Math.max(1, minimum ?? 1), ids.length),
+      ],
+    },
+  });
+}
+
+async function getAuctionFilterOptions(
+  database: Db,
+  filter: Filter<Auction>,
+): Promise<AuctionFilterOptions> {
+  const auctions = await database.collection<Auction>("auctions")
+    .find(filter)
+    .project<Pick<Auction, "item_snapshot">>({ item_snapshot: 1 })
+    .toArray();
+  const attributes = new Map<string, string>();
+  const specialAttributes = new Map<string, string>();
+  const artStyleIds = new Set<string>();
+  for (const auction of auctions) {
+    artStyleIds.add(auction.item_snapshot.card_renderer ?? "museum");
+    for (const option of auction.item_snapshot.attribute_options ?? []) {
+      attributes.set(option.id, option.label);
+      if (option.special) specialAttributes.set(option.id, option.label);
+    }
+  }
+  const toOptions = (options: Map<string, string>) =>
+    [...options].map(([id, label]) => ({ id, label })).sort((left, right) =>
+      left.label.localeCompare(right.label),
+    );
+  return {
+    artStyleIds: [...artStyleIds].sort(),
+    attributes: toOptions(attributes),
+    specialAttributes: toOptions(specialAttributes),
+  };
+}
+
 export async function validateBidder(
   database: Db,
   player: AuctionPlayer,
@@ -1515,12 +1861,12 @@ export async function validateBidder(
 ): Promise<string | null> {
   const restriction = getAuctionBidRestriction(auction, player._id);
   if (restriction) return restriction;
-  if (auction.viewer !== "public" && auction.viewer !== player._id) {
+  const marketExpert = hasActiveMarketExpertAccess(
+    player.profile.market_expert?.expiration,
+  );
+  if (!canPlayerAccessAuction(auction, player._id, marketExpert)) {
     return "This is a private auction.";
   }
-  const marketExpert =
-    new Date(player.profile.market_expert?.expiration ?? 0).getTime() >
-    Date.now();
   const cap = Math.floor(player.profile.auction_cap * (marketExpert ? 1.5 : 1));
   const winning = await database.collection<Auction>("auctions").countDocuments({
     current_winner_id: player._id,

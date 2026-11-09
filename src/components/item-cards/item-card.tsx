@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 
+import { AuctionBidPanelLoader } from "./auction-bid-panel";
 import AuctionWatermark from "./auction-watermark";
 import ArtStyleDialog from "./art-style-dialog";
 import ArtStyleActionButton from "./art-style-action-button";
@@ -137,7 +138,16 @@ export default function ItemCard({
         </RenderCardPreview>
       </div>
       {overlay}
-      {permissions.canManageItem &&
+      {currentItem.status === "auctioned" &&
+      viewerId &&
+      permissions.canManageItem ? (
+        <div className="card-actions item-card-auction-panel">
+          <AuctionBidPanelLoader
+            itemId={currentItem._id}
+            playerId={viewerId}
+          />
+        </div>
+      ) : permissions.canManageItem &&
       (primaryAction || actions || permissions.canCustomizeCosmetic) ? (
         <ItemActionLayout
           actions={actions}

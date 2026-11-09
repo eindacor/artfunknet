@@ -294,10 +294,10 @@ test("artwork effect migration backfills artwork without mutating item attribute
       linked_pair: "FgRMQA6s24wmTRyrx:Lacw8fkPYvSQrmpQN",
       code: "PRIVATE_AUCTION_PRICE_REDUCTION",
       title: "Admin-edited private auction price",
-      description: "Admin-edited private auction price description",
+      description: "Private auction items have a reduced starting price.",
       flavor_text: "Admin-edited private auction price flavor",
       active: false,
-      parameters: null,
+      parameters: { price_multiplier: 1.8, admin_tuning: 7 },
     });
     await database.collection("artwork_effects").insertOne({
       _id: "xp-for-auctions",
@@ -499,8 +499,8 @@ test("artwork effect migration backfills artwork without mutating item attribute
         code: "AUCTION_BUY_NOW",
         title: "Auction Buy Now",
         description:
-          "Private auctions created by Auctioneers in your gallery have a buy-now price 10% above the starting bid.",
-        parameters: { buy_now_multiplier: 1.1 },
+          "Each private auction created by Auctioneers in your gallery has a 50% chance to receive a buy-now price 10% above the starting bid.",
+        parameters: { chance: 0.5, buy_now_multiplier: 1.1 },
       },
     );
     assert.deepEqual(
@@ -545,8 +545,12 @@ test("artwork effect migration backfills artwork without mutating item attribute
       {
         active: false,
         title: "Admin-edited private auction price",
-        description: "Admin-edited private auction price description",
-        parameters: { price_multiplier: 2.5 },
+        description:
+          "The game contributes 37.5% toward your first bid on each private auction; outbid refunds still return the full bid.",
+        parameters: {
+          admin_tuning: 7,
+          contribution_coefficient: 0.55,
+        },
       },
     );
     assert.deepEqual(
@@ -629,7 +633,7 @@ test("artwork effect migration backfills artwork without mutating item attribute
       {
         active: false,
         description:
-          "Private auctions can be made public and pay you a commission when sold.",
+          "Private Auctioneer lots pay you a commission when another player wins, and can be opened to everyone.",
         flavor_text:
           "Reserved definition for transferable private auctions and public commission.",
         parameters: { commission_rate: 0.1 },
@@ -803,7 +807,7 @@ test("artwork effect migration backfills artwork without mutating item attribute
         active: false,
         code: "AUCTION_BUY_NOW",
         title: "Admin-edited auction buy now",
-        parameters: { buy_now_multiplier: 1.25 },
+        parameters: { chance: 0.5, buy_now_multiplier: 1.25 },
       },
     );
     assert.deepEqual(

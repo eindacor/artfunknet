@@ -3,66 +3,225 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import ItemFilterControls, {
+  type ItemFilterSortOption,
+} from "@/components/item-filter-controls";
 import ItemThumbnail from "@/components/item-thumbnail";
+import OfferThumbnail from "@/components/offer-thumbnail";
+import AuctionBidPanel, {
+  formatAuctionRemaining,
+  hasPlacedAuctionBid,
+} from "@/components/item-cards/auction-bid-panel";
 import ItemCard from "@/components/item-cards/item-card";
 import { resolveCardRendererId } from "@/components/item-cards/selection";
 import StandardItemDialog from "@/components/item-cards/standard-item-dialog";
-import type { AuctionView } from "@/server/auction-gameplay";
+import type {
+  AuctionFilterOptions,
+  AuctionView,
+} from "@/server/auction-gameplay";
 import { getAuctionBidRestriction } from "@/server/auction-bid-permissions";
-import { ARTWORK_RARITIES, type ArtworkRarity } from "@/server/gameplay";
+import {
+  getDefaultCollectionFilters,
+  type CollectionAttributeOption,
+  type CollectionFilters,
+  type CollectionFlagKey,
+} from "@/server/collection-inventory";
 import type { CardLegendaryAttribute } from "@/components/item-cards/types";
+import { getOfferRevealTier } from "@/server/offer-reveal";
+import {
+  AUCTION_PROPERTY_KEYS,
+  DEFAULT_AUCTION_FILTER_SETTINGS,
+  type AuctionFilterSettings,
+  type AuctionSort,
+  type AuctionSortDirection,
+  type AuctionViewMode,
+  type PlayerViewSettings,
+} from "@/server/player-view-settings";
 
 type AuctionResponse = {
   auctions: AuctionView[];
+  filterOptions: AuctionFilterOptions;
   total: number;
 };
 
-type AuctionViewMode = "expanded" | "list";
+const EMPTY_FILTER_OPTIONS: AuctionFilterOptions = {
+  artStyleIds: [],
+  attributes: [],
+  specialAttributes: [],
+};
+const AUCTION_FILTER_PROPERTIES =
+  AUCTION_PROPERTY_KEYS as readonly CollectionFlagKey[];
+const MARKET_EXPERT_SORTS: readonly AuctionSort[] = [
+  "condition",
+  "rolls",
+  "level",
+];
 
-const CARD_TYPES = ["standard", "foil", "seasonal", "lottery", "original"];
+function getAuctionCollectionFilters(
+  settings: AuctionFilterSettings,
+): CollectionFilters {
+  const filters = getDefaultCollectionFilters();
+  return {
+    ...filters,
+    search: settings.search,
+    artStyle: settings.artStyle,
+    rarities: [...settings.rarities],
+    flags: {
+      ...filters.flags,
+      ...settings.properties,
+    },
+    attributeIds: [...settings.attributeIds],
+    attributeMinimum: settings.attributeMinimum,
+    specialAttributeIds: [...settings.specialAttributeIds],
+    specialAttributeMinimum: settings.specialAttributeMinimum,
+  };
+}
+
+function getAuctionSortOptions(
+  marketExpert: boolean,
+): readonly ItemFilterSortOption[] {
+  return [
+    { value: "remaining:asc", label: "Ending soonest" },
+    { value: "remaining:desc", label: "Ending latest" },
+    { value: "price:desc", label: "Current bid: high to low" },
+    { value: "price:asc", label: "Current bid: low to high" },
+    { value: "dropChance:desc", label: "Drop chance: most likely first" },
+    { value: "dropChance:asc", label: "Drop chance: least likely first" },
+    { value: "title:asc", label: "Title: A to Z" },
+    { value: "title:desc", label: "Title: Z to A" },
+    { value: "date:desc", label: "Artwork date: newest first" },
+    { value: "date:asc", label: "Artwork date: oldest first" },
+    { value: "artist:asc", label: "Artist: A to Z" },
+    { value: "artist:desc", label: "Artist: Z to A" },
+    { value: "rarity:desc", label: "Rarity: highest first" },
+    { value: "rarity:asc", label: "Rarity: lowest first" },
+    { value: "seller:asc", label: "Seller: A to Z" },
+    { value: "seller:desc", label: "Seller: Z to A" },
+    { value: "medium:asc", label: "Medium: A to Z" },
+    { value: "medium:desc", label: "Medium: Z to A" },
+    ...(marketExpert
+      ? [
+          { value: "condition:desc", label: "Condition: highest first" },
+          { value: "condition:asc", label: "Condition: lowest first" },
+          { value: "rolls:desc", label: "Roll count: highest first" },
+          { value: "rolls:asc", label: "Roll count: lowest first" },
+          { value: "level:desc", label: "Promotion level: highest first" },
+          { value: "level:asc", label: "Promotion level: lowest first" },
+        ]
+      : []),
+  ];
+}
 
 export default function AuctionHouse({
+  artStyleOptions = [],
   canMakePrivateAuctionsPublic = false,
+  initialAuctionFilters = DEFAULT_AUCTION_FILTER_SETTINGS,
   initialAuctionId,
   initialBankBalance,
+  initialMarketExpert = false,
+  initialViewMode = "list",
   legendaryAttributes,
   marketExpertExpiration,
+  onViewSettingsChange = () => undefined,
   playerId,
 }: {
+  artStyleOptions?: CollectionAttributeOption[];
   canMakePrivateAuctionsPublic?: boolean;
+  initialAuctionFilters?: AuctionFilterSettings;
   initialAuctionId: string | null;
   initialBankBalance: number;
+  initialMarketExpert?: boolean;
+  initialViewMode?: AuctionViewMode;
   legendaryAttributes: CardLegendaryAttribute[];
   marketExpertExpiration: string | null;
+  onViewSettingsChange?: (settings: Partial<PlayerViewSettings>) => void;
   playerId: string;
 }) {
   const router = useRouter();
   const [linkedAuctionId, setLinkedAuctionId] = useState(initialAuctionId);
   const [bankBalance, setBankBalance] = useState(initialBankBalance);
-  const [search, setSearch] = useState("");
-  const [sort, setSort] = useState("remaining");
-  const [order, setOrder] = useState<"asc" | "desc">("asc");
-  const [rarities, setRarities] = useState<ArtworkRarity[]>([
-    ...ARTWORK_RARITIES,
-  ]);
-  const [types, setTypes] = useState([...CARD_TYPES]);
-  const [exclusivity, setExclusivity] = useState("all");
-  const [quest, setQuest] = useState("all");
+  const [filters, setFilters] = useState<CollectionFilters>(() =>
+    getAuctionCollectionFilters(initialAuctionFilters),
+  );
+  const [sort, setSort] = useState<AuctionSort>(
+    !initialMarketExpert &&
+      MARKET_EXPERT_SORTS.includes(initialAuctionFilters.sort)
+      ? "remaining"
+      : initialAuctionFilters.sort,
+  );
+  const [order, setOrder] = useState<AuctionSortDirection>(
+    !initialMarketExpert &&
+      MARKET_EXPERT_SORTS.includes(initialAuctionFilters.sort)
+      ? "asc"
+      : initialAuctionFilters.order,
+  );
+  const [exclusivity, setExclusivity] = useState(
+    initialAuctionFilters.exclusivity,
+  );
+  const [quest, setQuest] = useState(
+    !initialMarketExpert && initialAuctionFilters.quest === "sought"
+      ? "all"
+      : initialAuctionFilters.quest,
+  );
   const [page, setPage] = useState(1);
   const [data, setData] = useState<AuctionResponse>({
     auctions: [],
+    filterOptions: EMPTY_FILTER_OPTIONS,
     total: 0,
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selected, setSelected] = useState<AuctionView | null>(null);
-  const [marketExpert, setMarketExpert] = useState(false);
-  const [viewMode, setViewMode] = useState<AuctionViewMode>("list");
+  const [marketExpert, setMarketExpert] = useState(initialMarketExpert);
+  const [viewMode, setViewMode] =
+    useState<AuctionViewMode>(initialViewMode);
   const pageSize = viewMode === "expanded" ? 20 : 30;
+  const auctionSortOptions = useMemo(
+    () => getAuctionSortOptions(marketExpert),
+    [marketExpert],
+  );
+  const availableArtStyleOptions = useMemo(() => {
+    const available = new Set(data.filterOptions.artStyleIds);
+    return artStyleOptions.filter((option) => available.has(option.id));
+  }, [artStyleOptions, data.filterOptions.artStyleIds]);
+  const persistAuctionFilters = useCallback(
+    (
+      nextFilters: CollectionFilters,
+      overrides: Partial<
+        Pick<
+          AuctionFilterSettings,
+          "sort" | "order" | "exclusivity" | "quest"
+        >
+      > = {},
+    ) => {
+      onViewSettingsChange({
+        auctionFilters: {
+          search: nextFilters.search,
+          sort: overrides.sort ?? sort,
+          order: overrides.order ?? order,
+          exclusivity: overrides.exclusivity ?? exclusivity,
+          quest: overrides.quest ?? quest,
+          rarities: nextFilters.rarities,
+          artStyle: nextFilters.artStyle,
+          properties: Object.fromEntries(
+            AUCTION_PROPERTY_KEYS.map((key) => [
+              key,
+              nextFilters.flags[key],
+            ]),
+          ) as AuctionFilterSettings["properties"],
+          attributeIds: nextFilters.attributeIds,
+          attributeMinimum: nextFilters.attributeMinimum,
+          specialAttributeIds: nextFilters.specialAttributeIds,
+          specialAttributeMinimum: nextFilters.specialAttributeMinimum,
+        },
+      });
+    },
+    [exclusivity, onViewSettingsChange, order, quest, sort],
+  );
 
   const query = useMemo(() => {
     const params = new URLSearchParams({
-      search,
+      search: filters.search,
       sort,
       order,
       exclusivity,
@@ -71,19 +230,30 @@ export default function AuctionHouse({
       pageSize: pageSize.toString(),
     });
     if (linkedAuctionId) params.set("auction", linkedAuctionId);
-    rarities.forEach((rarity) => params.append("rarity", rarity));
-    types.forEach((type) => params.append("type", type));
+    filters.rarities.forEach((rarity) => params.append("rarity", rarity));
+    if (filters.artStyle) params.set("artStyle", filters.artStyle);
+    for (const key of AUCTION_PROPERTY_KEYS) {
+      const mode = filters.flags[key];
+      if (mode !== "any") params.set(`property-${key}`, mode);
+    }
+    filters.attributeIds.forEach((id) => params.append("attribute", id));
+    params.set("attributeMinimum", filters.attributeMinimum.toString());
+    filters.specialAttributeIds.forEach((id) =>
+      params.append("specialAttribute", id),
+    );
+    params.set(
+      "specialAttributeMinimum",
+      filters.specialAttributeMinimum.toString(),
+    );
     return params.toString();
   }, [
     exclusivity,
+    filters,
     order,
     page,
     pageSize,
     quest,
-    rarities,
-    search,
     sort,
-    types,
     linkedAuctionId,
   ]);
 
@@ -98,7 +268,10 @@ export default function AuctionHouse({
         error?: string;
       };
       if (!response.ok) throw new Error(body.error ?? "Auctions unavailable.");
-      setData(body);
+      setData({
+        ...body,
+        filterOptions: body.filterOptions ?? EMPTY_FILTER_OPTIONS,
+      });
       if (linkedAuctionId) {
         setSelected(
           body.auctions.find((auction) => auction._id === linkedAuctionId) ??
@@ -118,158 +291,150 @@ export default function AuctionHouse({
   }, [linkedAuctionId, query]);
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      setMarketExpert(
-        marketExpertExpiration !== null &&
-          new Date(marketExpertExpiration).getTime() > Date.now(),
-      );
-    }, 0);
-    return () => window.clearTimeout(timeout);
-  }, [marketExpertExpiration]);
+    const expiration = new Date(marketExpertExpiration ?? 0).getTime();
+    const timeout = window.setTimeout(
+      () => setMarketExpert(expiration > Date.now()),
+      0,
+    );
+    const accessTimeout = expiration > Date.now()
+      ? window.setTimeout(() => {
+          setMarketExpert(false);
+          const resetSort = MARKET_EXPERT_SORTS.includes(sort);
+          const nextSort = resetSort ? "remaining" : sort;
+          const nextOrder = resetSort ? "asc" : order;
+          const nextQuest = quest === "sought" ? "all" : quest;
+          if (resetSort) {
+            setSort(nextSort);
+            setOrder(nextOrder);
+          }
+          if (quest === "sought") setQuest(nextQuest);
+          if (resetSort || quest === "sought") {
+            setPage(1);
+            persistAuctionFilters(filters, {
+              sort: nextSort,
+              order: nextOrder,
+              quest: nextQuest,
+            });
+          }
+          void load();
+        }, expiration - Date.now() + 50)
+      : undefined;
+    return () => {
+      window.clearTimeout(timeout);
+      if (accessTimeout !== undefined) window.clearTimeout(accessTimeout);
+    };
+  }, [
+    filters,
+    load,
+    marketExpertExpiration,
+    order,
+    persistAuctionFilters,
+    quest,
+    sort,
+  ]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => void load(), 180);
     return () => window.clearTimeout(timeout);
   }, [load]);
 
-  function toggleRarity(rarity: ArtworkRarity) {
-    if (rarities.length === 1 && rarities.includes(rarity)) return;
+  function updateFilters(next: CollectionFilters) {
     setPage(1);
-    setRarities((current) =>
-      current.includes(rarity)
-        ? current.filter((value) => value !== rarity)
-        : [...current, rarity],
-    );
+    setFilters(next);
+    persistAuctionFilters(next);
   }
 
-  function toggleType(type: string) {
-    if (types.length === 1 && types.includes(type)) return;
+  function updateSort(value: string) {
+    const [nextSort, nextOrder] = value.split(":") as [
+      AuctionSort,
+      AuctionSortDirection,
+    ];
     setPage(1);
-    setTypes((current) =>
-      current.includes(type)
-        ? current.filter((value) => value !== type)
-        : [...current, type],
-    );
+    setSort(nextSort);
+    setOrder(nextOrder);
+    persistAuctionFilters(filters, {
+      sort: nextSort,
+      order: nextOrder,
+    });
+  }
+
+  function clearFilters() {
+    const next = getAuctionCollectionFilters(DEFAULT_AUCTION_FILTER_SETTINGS);
+    setPage(1);
+    setFilters(next);
+    setSort(DEFAULT_AUCTION_FILTER_SETTINGS.sort);
+    setOrder(DEFAULT_AUCTION_FILTER_SETTINGS.order);
+    setExclusivity(DEFAULT_AUCTION_FILTER_SETTINGS.exclusivity);
+    setQuest(DEFAULT_AUCTION_FILTER_SETTINGS.quest);
+    onViewSettingsChange({
+      auctionFilters: DEFAULT_AUCTION_FILTER_SETTINGS,
+    });
   }
 
   const pages = Math.max(1, Math.ceil(data.total / pageSize));
 
   return (
     <main className="auction-house">
-      {marketExpert ? (
-        <p className="auctioneer-access">
-          <i aria-hidden="true" className="fa fa-area-chart" /> Auctioneer
-          market analysis is active until{" "}
-          {marketExpertExpiration
-            ? new Date(marketExpertExpiration).toLocaleTimeString([], {
-                hour: "numeric",
-                minute: "2-digit",
-              })
-            : ""}
-          .
-        </p>
-      ) : null}
-
-      <section className="auction-filters">
-        <label className="auction-search">
-          <span>Search</span>
-          <input
-            onChange={(event) => {
-              setPage(1);
-              setSearch(event.target.value);
-            }}
-            placeholder="title, artist, or seller"
-            type="search"
-            value={search}
-          />
-        </label>
-        <label>
-          <span>Sort</span>
-          <select
-            onChange={(event) => {
-              setPage(1);
-              setSort(event.target.value);
-            }}
-            value={sort}
-          >
-            <option value="remaining">time remaining</option>
-            <option value="price">current bid</option>
-            <option value="seller">seller</option>
-            <option value="title">title</option>
-            <option value="artist">artist</option>
-            <option value="date">artwork date</option>
-            <option value="medium">medium</option>
-            <option value="rarity">rarity</option>
-            {marketExpert ? <option value="condition">condition</option> : null}
-            {marketExpert ? <option value="rolls">roll count</option> : null}
-            {marketExpert ? <option value="level">level</option> : null}
-          </select>
-        </label>
-        <label>
-          <span>Order</span>
-          <select
-            onChange={(event) => setOrder(event.target.value as "asc" | "desc")}
-            value={order}
-          >
-            <option value="asc">ascending</option>
-            <option value="desc">descending</option>
-          </select>
-        </label>
-        <label>
-          <span>Access</span>
-          <select
-            onChange={(event) => {
-              setPage(1);
-              setExclusivity(event.target.value);
-            }}
-            value={exclusivity}
-          >
-            <option value="all">all auctions</option>
-            <option value="public">public only</option>
-            <option value="private">private only</option>
-          </select>
-        </label>
-        <label>
-          <span>Research</span>
-          <select
-            onChange={(event) => {
-              setPage(1);
-              setQuest(event.target.value);
-            }}
-            value={quest}
-          >
-            <option value="all">all artwork</option>
-            <option value="quest">quest targets</option>
-            {marketExpert ? <option value="sought">sought by others</option> : null}
-          </select>
-        </label>
-        <fieldset>
-          <legend>Rarity</legend>
-          {ARTWORK_RARITIES.map((rarity) => (
-            <label key={rarity}>
-              <input
-                checked={rarities.includes(rarity)}
-                onChange={() => toggleRarity(rarity)}
-                type="checkbox"
-              />
-              {rarity}
+      <ItemFilterControls
+        additionalFilters={
+          <div className="auction-context-filters">
+            <label>
+              <span>Access</span>
+              <select
+                onChange={(event) => {
+                  const next = event.target.value as AuctionFilterSettings["exclusivity"];
+                  setPage(1);
+                  setExclusivity(next);
+                  persistAuctionFilters(filters, { exclusivity: next });
+                }}
+                value={exclusivity}
+              >
+                <option value="all">All auctions</option>
+                <option value="public">Public only</option>
+                <option value="private">Private only</option>
+              </select>
             </label>
-          ))}
-        </fieldset>
-        <fieldset>
-          <legend>Card type</legend>
-          {CARD_TYPES.map((type) => (
-            <label key={type}>
-              <input
-                checked={types.includes(type)}
-                onChange={() => toggleType(type)}
-                type="checkbox"
-              />
-              {type}
+            <label>
+              <span>Research</span>
+              <select
+                onChange={(event) => {
+                  const next = event.target.value as AuctionFilterSettings["quest"];
+                  setPage(1);
+                  setQuest(next);
+                  persistAuctionFilters(filters, { quest: next });
+                }}
+                value={quest}
+              >
+                <option value="all">All artwork</option>
+                <option value="quest">Quest targets</option>
+                {marketExpert ? (
+                  <option value="sought">Sought by others</option>
+                ) : null}
+              </select>
             </label>
-          ))}
-        </fieldset>
-      </section>
+          </div>
+        }
+        artStyleOptions={availableArtStyleOptions}
+        attributeOptions={data.filterOptions.attributes}
+        className="auction-filter-controls"
+        contextFiltersActive={exclusivity !== "all" || quest !== "all"}
+        filters={filters}
+        matchCount={data.total}
+        onClearFilters={clearFilters}
+        onFiltersChange={updateFilters}
+        onSortChange={updateSort}
+        searchHint="Searches artwork title, artist, or seller."
+        searchLabel="Search auctions"
+        searchPlaceholder="Title, artist, or seller"
+        sort={`${sort}:${order}`}
+        sortOptions={auctionSortOptions}
+        specialAttributeOptions={data.filterOptions.specialAttributes}
+        visibility={{
+          properties: AUCTION_FILTER_PROPERTIES,
+          status: false,
+          tag: false,
+        }}
+      />
 
       {error ? <p className="auction-house-error">{error}</p> : null}
       <div className="auction-results-heading">
@@ -281,6 +446,7 @@ export default function AuctionHouse({
               onClick={() => {
                 setPage(1);
                 setViewMode("expanded");
+                onViewSettingsChange({ auctionView: "expanded" });
               }}
               type="button"
             >
@@ -291,6 +457,7 @@ export default function AuctionHouse({
               onClick={() => {
                 setPage(1);
                 setViewMode("list");
+                onViewSettingsChange({ auctionView: "list" });
               }}
               type="button"
             >
@@ -315,7 +482,6 @@ export default function AuctionHouse({
               <span role="columnheader">Seller</span>
               <span role="columnheader">Estimated value</span>
               <span role="columnheader">Current</span>
-              <span role="columnheader">Next bid</span>
               <span role="columnheader">Buy now</span>
               <span role="columnheader">Remaining</span>
               <span aria-hidden="true" />
@@ -338,11 +504,26 @@ export default function AuctionHouse({
               >
                 <div className="auction-list-artwork" role="cell">
                   <div className="auction-list-card">
-                    <ItemThumbnail
-                      alt=""
-                      item={auction.item}
-                      researchTarget={auction.questTarget && !auction.owned}
-                    />
+                    <OfferThumbnail
+                      aria-label={`Preview ${auction.item.artwork.title} by ${auction.item.artwork.artist}`}
+                      className="auction-list-thumbnail"
+                      data-rarity={auction.item.artwork.rarity}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setSelected(auction);
+                      }}
+                      tier={getOfferRevealTier(auction.item)}
+                      title={`${auction.item.artwork.title} by ${auction.item.artwork.artist}`}
+                      type="button"
+                      unrevealed={false}
+                    >
+                      <ItemThumbnail
+                        alt=""
+                        item={auction.item}
+                        researchTarget={auction.questTarget && !auction.owned}
+                        size={82}
+                      />
+                    </OfferThumbnail>
                   </div>
                   <div>
                     <strong>{auction.item.artwork.title}</strong>
@@ -371,24 +552,23 @@ export default function AuctionHouse({
                 <strong role="cell">
                   ${auction.item.values.actual.toLocaleString()}
                 </strong>
-                {auction.has_bid ? (
-                  <strong role="cell">
-                    ${auction.current_bid.toLocaleString()}
-                  </strong>
-                ) : (
-                  <span role="cell">
-                    ${auction.current_bid.toLocaleString()}
-                  </span>
-                )}
-                <strong role="cell">
-                  ${auction.minimum_bid.toLocaleString()}
-                </strong>
+                <span
+                  className="auction-list-current-bid"
+                  data-has-bid={hasPlacedAuctionBid(auction) || undefined}
+                  role="cell"
+                >
+                  {hasPlacedAuctionBid(auction)
+                    ? `$${auction.current_bid.toLocaleString()}`
+                    : "-"}
+                </span>
                 <span role="cell">
                   {auction.buy_now === null
                     ? "—"
                     : `$${auction.buy_now.toLocaleString()}`}
                 </span>
-                <strong role="cell">{formatRemaining(auction.expiration)}</strong>
+                <strong role="cell">
+                  {formatAuctionRemaining(auction.expiration)}
+                </strong>
                 <AuctionBidButton
                   auction={auction}
                   onSelect={setSelected}
@@ -402,13 +582,6 @@ export default function AuctionHouse({
         <div className="auction-grid">
           {data.auctions.map((auction) => (
             <article className="auction-lot" key={auction._id}>
-              <div className="auction-lot-card">
-                <AuctionItemCard
-                  auction={auction}
-                  legendaryAttributes={legendaryAttributes}
-                  playerId={playerId}
-                />
-              </div>
               <div className="auction-lot-details">
                 <div>
                   <span className={auction.privateAuction ? "private" : ""}>
@@ -423,20 +596,20 @@ export default function AuctionHouse({
                 </p>
                 <dl>
                   <div>
-                    <dt>{auction.has_bid ? "Current bid" : "Starting bid"}</dt>
+                    <dt>
+                      {hasPlacedAuctionBid(auction)
+                        ? "Current bid"
+                        : "Starting bid"}
+                    </dt>
                     <dd>
-                      {auction.has_bid ? (
-                        <strong>
+                      {hasPlacedAuctionBid(auction) ? (
+                        <strong className="auction-current-bid">
                           ${auction.current_bid.toLocaleString()}
                         </strong>
                       ) : (
                         `$${auction.current_bid.toLocaleString()}`
                       )}
                     </dd>
-                  </div>
-                  <div>
-                    <dt>Next bid</dt>
-                    <dd>${auction.minimum_bid.toLocaleString()}</dd>
                   </div>
                   <div>
                     <dt>Buy now</dt>
@@ -448,11 +621,19 @@ export default function AuctionHouse({
                   </div>
                   <div>
                     <dt>Remaining</dt>
-                    <dd>{formatRemaining(auction.expiration)}</dd>
+                    <dd>{formatAuctionRemaining(auction.expiration)}</dd>
                   </div>
                 </dl>
                 <AuctionBidButton
                   auction={auction}
+                  onSelect={setSelected}
+                  playerId={playerId}
+                />
+              </div>
+              <div className="auction-lot-card">
+                <AuctionItemCard
+                  auction={auction}
+                  legendaryAttributes={legendaryAttributes}
                   onSelect={setSelected}
                   playerId={playerId}
                 />
@@ -507,11 +688,13 @@ function AuctionItemCard({
   auction,
   interactive = true,
   legendaryAttributes,
+  onSelect,
   playerId,
 }: {
   auction: AuctionView;
   interactive?: boolean;
   legendaryAttributes: CardLegendaryAttribute[];
+  onSelect: (auction: AuctionView) => void;
   playerId: string;
 }) {
   return (
@@ -521,6 +704,7 @@ function AuctionItemCard({
       interactive={interactive}
       item={auction.item}
       legendaryAttributes={legendaryAttributes}
+      onActivate={() => onSelect(auction)}
       overlay={
         auction.currentlyWinning ? <WinningAuctionWatermark /> : undefined
       }
@@ -609,72 +793,6 @@ export function AuctionBidDialog({
   onSuccess: (bankBalance: number) => void;
   playerId: string;
 }) {
-  const [amount, setAmount] = useState(auction.minimum_bid.toString());
-  const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const available =
-    bankBalance + (auction.currentlyWinning ? auction.current_bid : 0);
-  const restriction = getAuctionBidRestriction(auction, playerId);
-
-  async function submit(buyNow = false) {
-    if (restriction) return;
-    setSubmitting(true);
-    setError("");
-    try {
-      const response = await fetch(`/api/play/auctions/${auction._id}/bid`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: Number(amount), buyNow }),
-      });
-      const body = (await response.json()) as {
-        error?: string;
-        bankBalance?: number;
-      };
-      if (!response.ok) throw new Error(body.error ?? "The bid failed.");
-      onSuccess(body.bankBalance ?? bankBalance);
-    } catch (bidError) {
-      setError(
-        bidError instanceof Error ? bidError.message : "The bid failed.",
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function makePublic() {
-    setSubmitting(true);
-    setError("");
-    try {
-      const response = await fetch(
-        `/api/play/auctions/${auction._id}/make-public`,
-        { method: "POST" },
-      );
-      const body = (await response.json()) as {
-        error?: string;
-        madePublicAuctionId?: string;
-        message?: string;
-      };
-      if (!response.ok || !body.madePublicAuctionId) {
-        throw new Error(
-          body.error ?? "The private auction could not be made public.",
-        );
-      }
-      onMadePublic?.(
-        body.madePublicAuctionId,
-        body.message ?? "Private auction converted to a public auction.",
-      );
-      onClose();
-    } catch (makePublicError) {
-      setError(
-        makePublicError instanceof Error
-          ? makePublicError.message
-          : "The private auction could not be made public.",
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
   return (
     <StandardItemDialog
       currentRendererId={resolveCardRendererId({
@@ -688,93 +806,16 @@ export function AuctionBidDialog({
             }
           : undefined
       }
-      headerDetails={
-        <form
-          className="standard-item-auction-panel"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void submit();
-          }}
-        >
-          <div className="standard-item-auction-heading">
-            <span>
-              {auction.privateAuction ? "Private auction" : "Public auction"}
-            </span>
-            {auction.currentlyWinning ? (
-              <strong>
-                <i aria-hidden="true" className="fa fa-trophy" /> Winning
-              </strong>
-            ) : null}
-          </div>
-          <dl className="standard-item-auction-facts">
-            <div>
-              <dt>Seller</dt>
-              <dd>{auction.seller_name}</dd>
-            </div>
-            <div>
-              <dt>{auction.has_bid ? "Current" : "Starting"}</dt>
-              <dd>${auction.current_bid.toLocaleString()}</dd>
-            </div>
-            <div>
-              <dt>Next bid</dt>
-              <dd>${auction.minimum_bid.toLocaleString()}</dd>
-            </div>
-            <div>
-              <dt>Remaining</dt>
-              <dd>{formatRemaining(auction.expiration)}</dd>
-            </div>
-          </dl>
-          {restriction ? (
-            <p>{auction.seller_id === playerId ? "Your listing" : restriction}</p>
-          ) : (
-            <>
-              <p>
-                Available ${available.toLocaleString()}
-                {auction.currentlyWinning ? " including your current bid" : ""}
-              </p>
-              <label>
-                <span className="sr-only">Bid amount</span>
-                <i aria-hidden="true" className="fa fa-usd" />
-                <input
-                  aria-label="Bid amount"
-                  min={auction.minimum_bid}
-                  onChange={(event) => setAmount(event.target.value)}
-                  required
-                  step="1"
-                  type="number"
-                  value={amount}
-                />
-              </label>
-              {error ? <p className="auction-dialog-error">{error}</p> : null}
-              <footer>
-                <button
-                  disabled={submitting || available < Number(amount)}
-                  type="submit"
-                >
-                  Place bid
-                </button>
-                {auction.buy_now !== null ? (
-                  <button
-                    disabled={submitting || available < auction.buy_now}
-                    onClick={() => void submit(true)}
-                    type="button"
-                  >
-                    Buy now · ${auction.buy_now.toLocaleString()}
-                  </button>
-                ) : null}
-                {canMakePublic && auction.privateAuction ? (
-                  <button
-                    disabled={submitting}
-                    onClick={() => void makePublic()}
-                    type="button"
-                  >
-                    <i aria-hidden="true" className="fa fa-globe" /> Make public
-                  </button>
-                ) : null}
-              </footer>
-            </>
-          )}
-        </form>
+      actionPanel={
+        <AuctionBidPanel
+          auction={auction}
+          bankBalance={bankBalance}
+          canMakePublic={canMakePublic}
+          onClose={onClose}
+          onMadePublic={onMadePublic}
+          onSuccess={onSuccess}
+          playerId={playerId}
+        />
       }
       item={auction.item}
       legendaryAttributes={legendaryAttributes}
@@ -786,13 +827,4 @@ export function AuctionBidDialog({
       viewerId={playerId}
     />
   );
-}
-
-function formatRemaining(expiration: string): string {
-  const milliseconds = Math.max(0, new Date(expiration).getTime() - Date.now());
-  const totalMinutes = Math.ceil(milliseconds / 60_000);
-  if (totalMinutes < 60) return `${totalMinutes}m`;
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  return `${hours}h ${minutes}m`;
 }

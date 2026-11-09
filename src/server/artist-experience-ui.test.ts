@@ -1307,6 +1307,7 @@ test("item details link both artist credits to the artist gallery for signed-in 
           "@/components/artwork-thumbnail": { default: noop }, "@/components/artwork-detail-image": { default: noop },
           "@/components/community-emotes": { CommunityReactionLoader: noop },
           "@/components/item-expiration-display": { ItemExpirationBadge: noop },
+          "./auction-bid-panel": { AuctionBidPanelLoader: noop },
           "./art-style-action-button": {}, "./item-action-layout": {},
           "./auction-watermark": { default: noop }, "./known-forgery-watermark": { default: noop },
           "./render-card-preview": { default: noop }, "./registry": { CARD_RENDERERS: { museum: noop } },
@@ -1365,6 +1366,149 @@ test("item details link both artist credits to the artist gallery for signed-in 
       }
     }
   }
+});
+
+test("shared dialogs load bidding controls for signed-in viewers of auctioned items", async () => {
+  let loaderProps: { itemId: string; playerId: string } | null = null;
+  const noop = () => null;
+  const details = await load<typeof import("../components/item-cards/standard-item-dialog.tsx")>(
+    "../components/item-cards/standard-item-dialog.tsx",
+    {
+      react: React,
+      "@/components/artwork-thumbnail": { default: noop },
+      "@/components/artwork-detail-image": { default: noop },
+      "@/components/community-emotes": { CommunityReactionLoader: noop },
+      "@/components/item-expiration-display": { ItemExpirationBadge: noop },
+      "./auction-bid-panel": {
+        AuctionBidPanelLoader: (props: {
+          itemId: string;
+          playerId: string;
+        }) => {
+          loaderProps = props;
+          return React.createElement("span", { "data-auction-bid-panel": true });
+        },
+      },
+      "./art-style-action-button": { default: noop },
+      "./item-action-layout": { default: noop },
+      "./auction-watermark": { default: noop },
+      "./known-forgery-watermark": { default: noop },
+      "./render-card-preview": { default: noop },
+      "./registry": { CARD_RENDERERS: { museum: noop } },
+      "./artwork-image-adjustments": imageAdjustments,
+      "./shared": {
+        AttributeIcons: noop,
+        CompleteItemRecord: noop,
+        ItemVariantBadges: noop,
+      },
+      "@/server/raffle-core": { RAFFLE_OWNER_ID: "raffle" },
+    },
+  );
+  const item = {
+    ...createArtistArtworkPreview({
+      _id: "auction-dialog-work",
+      artist_id: "artist",
+      artist: "Artist",
+      title: "Auction dialog work",
+      date: 2026,
+      rarity: "common",
+      genre: "Abstract",
+      medium: "Oil",
+      value_scale: 0.5,
+      width: 80,
+      height: 100,
+      active: true,
+    }),
+    status: "auctioned" as const,
+  };
+  const html = renderToStaticMarkup(
+    React.createElement(details.default, {
+      currentRendererId: "museum",
+      item,
+      legendaryAttributes: [],
+      onClose() {},
+      permissions: {
+        canManageItem: false,
+        canCustomizeCosmetic: false,
+      },
+      viewerId: "viewer",
+    }),
+  );
+  assert.match(html, /data-auction-bid-panel="true"/);
+  assert.equal(loaderProps?.itemId, item._id);
+  assert.equal(loaderProps?.playerId, "viewer");
+});
+
+test("auctioned item previews replace action buttons and help with active auction information", async () => {
+  let loaderProps: { itemId: string; playerId: string } | null = null;
+  const noop = () => null;
+  const itemCard = await load<typeof import("../components/item-cards/item-card.tsx")>(
+    "../components/item-cards/item-card.tsx",
+    {
+      react: React,
+      "next/navigation": { useRouter: () => ({ refresh() {} }) },
+      "./auction-bid-panel": {
+        AuctionBidPanelLoader: (props: {
+          itemId: string;
+          playerId: string;
+        }) => {
+          loaderProps = props;
+          return React.createElement("span", { "data-active-auction": true });
+        },
+      },
+      "./auction-watermark": { default: noop },
+      "./art-style-dialog": { default: noop },
+      "./art-style-action-button": { default: noop },
+      "./item-action-layout": {
+        default: () =>
+          React.createElement("span", {
+            "data-item-actions": true,
+            "data-item-action-help": true,
+          }),
+      },
+      "./known-forgery-watermark": { default: noop },
+      "./render-card-preview": {
+        default: ({ children }: { children: React.ReactNode }) => children,
+      },
+      "./registry": { CARD_RENDERERS: { museum: noop } },
+      "./selection": { resolveCardRendererId: () => "museum" },
+      "./standard-item-dialog": { default: noop },
+      "../item-expiration-display": { ItemExpirationBadge: noop },
+    },
+  );
+  const item = {
+    ...createArtistArtworkPreview({
+      _id: "auction-preview-work",
+      artist_id: "artist",
+      artist: "Artist",
+      title: "Auction preview work",
+      date: 2026,
+      rarity: "common",
+      genre: "Abstract",
+      medium: "Oil",
+      value_scale: 0.5,
+      width: 80,
+      height: 100,
+      active: true,
+    }),
+    status: "auctioned" as const,
+  };
+  const html = renderToStaticMarkup(
+    React.createElement(itemCard.default, {
+      actions: React.createElement("button", null, "Tag"),
+      item,
+      legendaryAttributes: [],
+      permissions: {
+        canManageItem: true,
+        canCustomizeCosmetic: false,
+      },
+      showActionHelp: true,
+      viewerId: "owner",
+    }),
+  );
+  assert.match(html, /data-active-auction="true"/);
+  assert.doesNotMatch(html, /data-item-actions|data-item-action-help/);
+  assert.equal(loaderProps?.itemId, item._id);
+  assert.equal(loaderProps?.playerId, "owner");
 });
 
 test("public item pages show the current owner name and public gallery link in the shared item details", async () => {
@@ -1742,29 +1886,138 @@ test("auction controls prevent sellers and commission recipients from bidding in
   };
   let mode = "list";
   let requests = 0;
+  let auctionFilterProps: {
+    contextFiltersActive: boolean;
+    sortOptions: Array<{ label: string; value: string }>;
+    visibility: {
+      properties: string[];
+      status: boolean;
+      tag: boolean;
+    };
+  } | null = null;
+  let auctionThumbnailProps: {
+    className: string;
+    "data-rarity": string;
+    unrevealed: boolean;
+  } | null = null;
+  let auctionItemCardProps: {
+    onActivate?: () => void;
+  } | null = null;
+  const defaultAuctionFilters = {
+    search: "", sort: "remaining", order: "asc", exclusivity: "all", quest: "all",
+    rarities: rarityValues.RARITY_VALUE_TIERS, artStyle: "",
+    properties: {
+      mint: "any", foil: "any", unlocked: "any", seasonal: "any",
+      lottery: "any", original: "any", vintage: "any",
+    },
+    attributeIds: [], attributeMinimum: 1,
+    specialAttributeIds: [], specialAttributeMinimum: 1,
+  };
+  const auctionActionFetch = async () => {
+    requests++;
+    return { ok: true, json: async () => ({ bankBalance: 900 }) };
+  };
+  const bidPanel = await load<typeof import("../components/item-cards/auction-bid-panel.tsx")>(
+    "../components/item-cards/auction-bid-panel.tsx",
+    {
+      react: React,
+      "next/navigation": { useRouter: () => ({ refresh() {} }) },
+      "@/server/auction-bid-permissions": auctionBidPermissions,
+    },
+    { fetch: auctionActionFetch },
+  );
   const house = await load<typeof import("../app/play/auctions/auction-house.tsx")>("../app/play/auctions/auction-house.tsx", {
     react: {
       ...React, useEffect() {},
       useMemo: (calculate: () => unknown) => calculate(),
       useCallback: (callback: unknown) => callback,
       useState: (initial: unknown) => {
-        const value = initial && typeof initial === "object" && "auctions" in initial
-          ? { auctions: [auction], total: 1 }
-          : initial === "list" ? mode : initial === true ? false : initial;
+        const resolved = typeof initial === "function"
+          ? (initial as () => unknown)()
+          : initial;
+        const value = resolved && typeof resolved === "object" && "auctions" in resolved
+          ? {
+              auctions: [auction],
+              filterOptions: {
+                artStyleIds: [],
+                attributes: [],
+                specialAttributes: [],
+              },
+              total: 1,
+            }
+          : resolved === "list" ? mode : resolved === true ? false : resolved;
         return [value, () => {}];
       },
     },
     "next/navigation": { useRouter: () => ({ refresh() {} }) },
+    "@/components/item-filter-controls": {
+      default: (props: typeof auctionFilterProps) => {
+        auctionFilterProps = props;
+        return React.createElement(
+          "section",
+          { className: "mock-auction-filters" },
+          props?.sortOptions.map(option =>
+            React.createElement("option", { key: option.value, value: option.value }, option.label),
+          ),
+        );
+      },
+    },
     "@/components/item-thumbnail": { default: () => null },
-    "@/components/item-cards/item-card": { default: () => null },
+    "@/components/offer-thumbnail": {
+      default: (props: {
+        className: string;
+        "data-rarity": string;
+        unrevealed: boolean;
+        children?: React.ReactNode;
+      }) => {
+        auctionThumbnailProps = props;
+        return React.createElement(
+          "button",
+          {
+            className: props?.className,
+            "data-rarity": props?.["data-rarity"],
+            "data-unrevealed": props?.unrevealed || undefined,
+          },
+          props?.children,
+        );
+      },
+    },
+    "@/components/item-cards/auction-bid-panel": bidPanel,
+    "@/components/item-cards/item-card": {
+      default: (props: typeof auctionItemCardProps) => {
+        auctionItemCardProps = props;
+        return null;
+      },
+    },
     "@/components/item-cards/selection": { resolveCardRendererId: () => "museum" },
-    "@/components/item-cards/standard-item-dialog": { default: (props: { headerDetails: React.ReactNode }) => props.headerDetails },
+    "@/components/item-cards/standard-item-dialog": {
+      default: (props: {
+        actionPanel: React.ReactNode;
+        headerDetails?: React.ReactNode;
+      }) => props.actionPanel,
+    },
     "@/server/gameplay": { ARTWORK_RARITIES: rarityValues.RARITY_VALUE_TIERS },
+    "@/server/collection-inventory": {
+      getDefaultCollectionFilters: () => ({
+        search: "", tag: "", artStyle: "",
+        statuses: ["claimed", "displayed", "auctioned"],
+        rarities: rarityValues.RARITY_VALUE_TIERS,
+        flags: {
+          repairing: "any", "for-sale": "any", mint: "any", foil: "any",
+          unlocked: "any", seasonal: "any", lottery: "any", original: "any",
+          vintage: "any", forgery: "any",
+        },
+        attributeIds: [], attributeMinimum: 1,
+        specialAttributeIds: [], specialAttributeMinimum: 1,
+      }),
+    },
+    "@/server/player-view-settings": {
+      AUCTION_PROPERTY_KEYS: ["mint", "foil", "unlocked", "seasonal", "lottery", "original", "vintage"],
+      DEFAULT_AUCTION_FILTER_SETTINGS: defaultAuctionFilters,
+    },
+    "@/server/offer-reveal": { getOfferRevealTier: () => 3 },
     "@/server/auction-bid-permissions": auctionBidPermissions,
-  }, {
-    URLSearchParams,
-    fetch: async () => { requests++; return { ok: true, json: async () => ({ bankBalance: 900 }) }; },
-  });
+  }, { URLSearchParams, fetch: auctionActionFetch });
   const props = {
     initialAuctionId: null, initialBankBalance: 1_000, legendaryAttributes: [],
     marketExpertExpiration: null, playerId: "player",
@@ -1785,16 +2038,171 @@ test("auction controls prevent sellers and commission recipients from bidding in
       auction, bankBalance: 1_000, legendaryAttributes: [], playerId: "player", onClose() {}, onSuccess() {},
     });
     const html = renderToStaticMarkup(dialog);
+    assert.equal(
+      dialog.props.headerDetails,
+      undefined,
+      "Auction controls should not render beside the item heading",
+    );
     if (scenario.blocked) {
       assert.doesNotMatch(html, /Place bid|Buy now|Bid amount/);
-      const form = dialog.props.headerDetails as React.ReactElement<{ onSubmit: (event: { preventDefault: () => void }) => void }>;
-      form.props.onSubmit({ preventDefault() {} });
-      assert.equal(requests, 0, "Even a programmatic form submission must not send a self-bid");
+      assert.equal(
+        requests,
+        0,
+        "Rendering restricted auction controls must not send a bid",
+      );
     } else {
       assert.match(html, /Place bid/);
       assert.match(html, /Buy now/);
+      assert.match(html, /Available: \$1,000/);
+      assert.match(html, /Next bid minimum: \$100/);
+      assert.doesNotMatch(html, /<dt>Next bid<\/dt>/);
+      assert.equal(
+        typeof auctionItemCardProps?.onActivate,
+        "function",
+        "Expanded auction card previews should open the auction-aware dialog",
+      );
     }
   }
+  mode = "list";
+  let html = renderToStaticMarkup(React.createElement(house.default, props));
+  assert.match(
+    html,
+    /<span class="auction-list-current-bid" role="cell">-<\/span>/,
+  );
+  assert.doesNotMatch(html, /<span role="columnheader">Next bid<\/span>/);
+  auction = {
+    ...auction,
+    seller_id: null,
+    commission: null,
+    starting_bid: 100,
+    current_bid: 120,
+    has_bid: true,
+  };
+  html = renderToStaticMarkup(React.createElement(house.default, props));
+  assert.ok(
+    auctionFilterProps?.sortOptions.some(
+      option => option.value === "dropChance:desc",
+    ),
+  );
+  assert.equal(auctionFilterProps?.visibility.status, false);
+  assert.equal(auctionFilterProps?.visibility.tag, false);
+  assert.equal(auctionFilterProps?.contextFiltersActive, false);
+  assert.deepEqual(auctionFilterProps?.visibility.properties, [
+    "mint", "foil", "unlocked", "seasonal", "lottery", "original", "vintage",
+  ]);
+  assert.ok(
+    auctionFilterProps?.sortOptions.every(
+      option => !option.label.toLowerCase().includes("acquired"),
+    ),
+  );
+  renderToStaticMarkup(React.createElement(house.default, {
+    ...props,
+    initialAuctionFilters: {
+      ...defaultAuctionFilters,
+      exclusivity: "private",
+    },
+  }));
+  assert.equal(auctionFilterProps?.contextFiltersActive, true);
+  assert.equal(auctionThumbnailProps?.className, "auction-list-thumbnail");
+  assert.equal(auctionThumbnailProps?.["data-rarity"], "common");
+  assert.equal(auctionThumbnailProps?.unrevealed, false);
+  assert.match(
+    html,
+    /<span class="auction-list-current-bid" data-has-bid="true" role="cell">\$120<\/span>/,
+  );
+  mode = "expanded";
+  html = renderToStaticMarkup(React.createElement(house.default, props));
+  assert.ok(
+    html.indexOf('class="auction-lot-details"') <
+      html.indexOf('class="auction-lot-card"'),
+    "Expanded auction details and bid controls should precede the attached card preview",
+  );
+  assert.match(
+    html,
+    /<strong class="auction-current-bid">\$120<\/strong>/,
+  );
+  assert.doesNotMatch(html, /<dt>Next bid<\/dt>/);
+  const auctionCss = await readFile(
+    new URL("../app/globals.css", import.meta.url),
+    "utf8",
+  );
+  assert.match(
+    auctionCss,
+    /\.auction-list-thumbnail img \{[^}]*object-fit: contain;/,
+  );
+  assert.match(
+    auctionCss,
+    /\.auction-list-current-bid\[data-has-bid="true"\] \{[^}]*font-weight: 900;/,
+  );
+  assert.match(
+    auctionCss,
+    /\.auction-lot \{[^}]*grid-template-columns: minmax\(210px, 1fr\) 300px;/,
+  );
+  const [dashboardSource, filterSource] = await Promise.all([
+    readFile(
+      new URL("../app/play/game-dashboard.tsx", import.meta.url),
+      "utf8",
+    ),
+    readFile(
+      new URL("../components/item-filter-controls.tsx", import.meta.url),
+      "utf8",
+    ),
+  ]);
+  assert.match(dashboardSource, /<ItemFilterControls/);
+  assert.match(filterSource, /export default function ItemFilterControls/);
+  assert.match(filterSource, /visibility\.properties/);
+  assert.match(filterSource, /className="collection-filter-indicator"/);
+  auction = {
+    ...auction,
+    viewer: "player",
+    privateAuction: true,
+    seller_id: null,
+    commission: { player_id: "player", coefficient: 0.1 },
+  };
+  html = renderToStaticMarkup(house.AuctionBidDialog({
+    auction, bankBalance: 1_000, canMakePublic: true, legendaryAttributes: [],
+    playerId: "player", onClose() {}, onSuccess() {},
+  }));
+  assert.match(html, /Place bid/);
+  assert.match(html, /Make public/);
+
+  auction = {
+    ...auction,
+    viewer: "other-player",
+    commission: { player_id: "other-player", coefficient: 0.1 },
+  };
+  html = renderToStaticMarkup(house.AuctionBidDialog({
+    auction, bankBalance: 1_000, canMakePublic: true, legendaryAttributes: [],
+    playerId: "player", onClose() {}, onSuccess() {},
+  }));
+  assert.match(html, /Place bid/);
+  assert.doesNotMatch(html, /Make public/);
+});
+
+test("archive entries use shared cropped thumbnails without losing variant progress", async () => {
+  const [dashboardSource, globalCss] = await Promise.all([
+    readFile(
+      new URL("../app/play/game-dashboard.tsx", import.meta.url),
+      "utf8",
+    ),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+  assert.match(
+    dashboardSource,
+    /<OfferThumbnail[^]*className="archive-artwork-thumbnail"[^]*unrevealed=\{false\}/,
+  );
+  assert.match(
+    dashboardSource,
+    /adjustment=\{getArtworkThumbnailAdjustment\(archive\.artwork\)\}/,
+  );
+  assert.match(
+    dashboardSource,
+    /className="archive-property-progress"[^]*\{progress\.archived\}\/\{progress\.total\}/,
+  );
+  assert.match(
+    globalCss,
+    /\.collection-thumbnail-list button,\s*\.auction-list-thumbnail,\s*\.archive-artwork-thumbnail,\s*\.mystery-thumbnail \{/,
+  );
 });
 
 test("the admin item creator offers artist Originals only for eligible artwork and sends them without selecting a recipient", async () => {
