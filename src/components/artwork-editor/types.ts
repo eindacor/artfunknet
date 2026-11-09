@@ -17,6 +17,7 @@ export type ArtworkCatalogEntry = Pick<Artwork,
   artist: string;
   title: string;
   created_at?: string | null;
+  submission_status?: "pending" | "denying" | "approved";
   date: number;
   genre: string;
   medium: string;

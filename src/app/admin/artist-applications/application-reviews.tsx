@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 type ApplicationView = {
   id: string; name: string; email: string; dateOfBirth: string; portfolioUrl: string;
@@ -9,6 +10,7 @@ type ApplicationView = {
 };
 
 export default function ApplicationReviews({ applications }: { applications: ApplicationView[] }) {
+  const router = useRouter();
   const [pending, setPending] = useState(applications);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -21,6 +23,7 @@ export default function ApplicationReviews({ applications }: { applications: App
       const result = await response.json() as { error?: string };
       if (!response.ok) throw new Error(result.error ?? "Review failed.");
       setPending(current => current.filter(application => application.id !== id));
+      router.refresh();
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Review failed."); }
     finally { setBusy(null); }
   }

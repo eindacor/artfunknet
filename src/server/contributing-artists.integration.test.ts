@@ -8,7 +8,7 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 import ts from "typescript";
 import * as artists from "./contributing-artists.ts";
 import * as artistTypes from "./artist-types.ts";
-import { createPlayerAccountRecord, normalizePlayerEmail } from "./player-account.ts";
+import { createPlayerAccountRecord, isDuplicateKeyError, normalizePlayerEmail } from "./player-account.ts";
 import { authenticatePlayerPassword } from "./player-password-auth.ts";
 import { verifyPassword } from "./password.ts";
 import {
@@ -969,6 +969,230 @@ test("artist applications, publication and featured galleries persist without gr
     await documents(db, "artworks").insertOne(pending("missing-effect"));
     assert.equal((await approve("missing-effect", "legendary")).status, 400);
     assert.deepEqual(await documents(db, "artworks").findOne({ _id: "missing-effect" }), pending("missing-effect"));
+  });
+
+  await t.test("artist artwork changes require ownership and admin review, preserve gameplay settings, and isolate replacement images", async () => {
+    const db = client.db("artist-artwork-changes");
+    const account = await seedArtist(db, 0);
+    const other = await seedArtist(db, 1);
+    let signedIn: string | null = null;
+    let isAdmin = false;
+    let cleanupFails = false;
+    const uploads: string[] = [], removed: string[] = [];
+    const image = (key: string, width = 800, height = 1000) => ({
+      version: 2, variants: Object.fromEntries(["full", "card", "thumb"].map(variant => [variant, {
+        width, height, content_type: "image/png", storage: { provider: "mock-s3", key: `${key}-${variant}` },
+      }])),
+    });
+    const original = {
+      _id: "existing-artwork", artist_id: account.artistId, artist: "Artist 0", title: "Original title",
+      date: 2020, genre: "Abstract", medium: "Oil", height: 100, width: 80, nsfw: false,
+      active: true, rarity: "masterpiece", value_scale: 0.75, effect_id: "existing-effect",
+      serial_counter: 42, image: image("original"), image_width: 800, image_height: 1000,
+      thumbnail_adjustment: { x: 10, y: -20, scale: 1.5 }, submission_status: "approved",
+      artist_license: { type: "until_removal_request", agreement_version: artistTypes.ARTIST_AGREEMENT_VERSION },
+    };
+    await documents(db, "artworks").insertOne(original);
+    await documents(db, "items").insertOne({ _id: "existing-item", artwork_id: original._id, owner: "collector", values: { actual: 500 } });
+    const item = await documents(db, "items").findOne({});
+    const storage = {
+      publishArtworkUpload: async ({ artworkId }: { artworkId: string }) => {
+        const key = `${artworkId}-upload-${uploads.length + 1}`;
+        uploads.push(key);
+        return image(key, 1200, 600);
+      },
+      deleteArtworkImageRecord: async (record: ReturnType<typeof image>) => {
+        if (cleanupFails) throw new Error("Storage unavailable");
+        removed.push(record.variants.full.storage.key);
+      },
+      getArtworkImageStorageKeys: () => new Set(),
+      readArtworkObject: async (reference: { key: string }) => Buffer.from(reference.key),
+    };
+    const artistApi = await load<typeof import("./artist-api.ts")>("./artist-api.ts", {
+      "next/server": { NextResponse }, "./contributing-artists.ts": artists,
+      "./mongodb.ts": { getDatabase: async () => db }, "./public-url": { getPublicBaseUrl: () => "http://localhost/" },
+      "./player-api": { requirePlayerApi: async () => signedIn
+        ? { ok: true, session: { playerId: signedIn } }
+        : { ok: false, response: NextResponse.json({ error: "Sign in" }, { status: 401 }) } },
+    });
+    const changes = await load<typeof import("./artist-artwork-changes.ts")>("./artist-artwork-changes.ts", {
+      "node:crypto": require("node:crypto"), "./artwork-create-input.ts": artworkInput,
+      "./artwork-storage.ts": storage, "./contributing-artists.ts": artists,
+      "./player-account.ts": { isDuplicateKeyError },
+    });
+    const submit = await load<typeof import("../app/api/artist/artworks/[id]/changes/route.ts")>(
+      "../app/api/artist/artworks/[id]/changes/route.ts", {
+        "next/server": { NextResponse }, "@/server/artist-api": artistApi,
+        "@/server/contributing-artists": artists, "@/server/artist-artwork-changes": changes,
+      });
+    const adminAuth = { requireAdminApi: async () => isAdmin ? { ok: true, session: { email: "admin@example.com" } }
+      : { ok: false, response: NextResponse.json({ error: "Admin required" }, { status: 403 }) } };
+    const admin = await load<typeof import("../app/api/admin/artwork-changes/[id]/route.ts")>(
+      "../app/api/admin/artwork-changes/[id]/route.ts", {
+        "next/server": { NextResponse }, "@/server/admin-api": adminAuth,
+        "@/server/artist-api": artistApi, "@/server/artist-artwork-changes": changes,
+        "@/server/mongodb": { getDatabase: async () => db },
+      });
+    const preview = await load<typeof import("../app/api/admin/artwork-changes/[id]/image/route.ts")>(
+      "../app/api/admin/artwork-changes/[id]/image/route.ts", {
+        "next/server": { NextResponse }, "@/server/admin-api": adminAuth,
+        "@/server/artwork-storage": storage, "@/server/mongodb": { getDatabase: async () => db },
+      });
+    const ownImage = await load<typeof import("../app/api/artist/artworks/[id]/image/route.ts")>(
+      "../app/api/artist/artworks/[id]/image/route.ts", {
+        "next/server": { NextResponse }, "@/server/artist-api": artistApi, "@/server/artwork-storage": storage,
+      });
+    const proposedImage = await load<typeof import("../app/api/artist/artworks/[id]/changes/image/route.ts")>(
+      "../app/api/artist/artworks/[id]/changes/image/route.ts", {
+        "next/server": { NextResponse }, "@/server/artist-api": artistApi,
+        "@/server/artist-artwork-changes": changes, "@/server/artwork-storage": storage,
+      });
+    const context = (id: string) => ({ params: Promise.resolve({ id }) });
+    const request = (metadata: unknown = {}, withImage = false, origin = "http://localhost") => {
+      const body = new FormData();
+      body.set("metadata", JSON.stringify(metadata));
+      if (withImage) body.set("image", new File(["replacement"], "replacement.png", { type: "image/png" }));
+      return new Request("http://localhost/api/artist/artworks/existing-artwork/changes", { method: "POST", headers: { origin }, body });
+    };
+    const review = (input: unknown = {}) => new Request("http://localhost", { method: "PATCH", body: JSON.stringify(input) });
+    const artContext = context(original._id);
+    assert.equal((await submit.POST(request(), artContext)).status, 401);
+    signedIn = other.id;
+    assert.equal((await submit.POST(request({}, true), artContext)).status, 404);
+    assert.equal((await ownImage.GET(new Request("http://localhost"), artContext)).status, 404);
+    assert.equal((await proposedImage.GET(new Request("http://localhost"), artContext)).status, 404);
+    signedIn = account.id;
+    assert.equal((await submit.POST(request({}, false, "https://other.example"), artContext)).status, 403);
+    assert.equal((await submit.POST(request({ height: 0 }), artContext)).status, 400);
+    assert.equal(uploads.length, 0);
+    const source = await ownImage.GET(new Request("http://localhost"), artContext);
+    assert.equal(source.status, 200);
+    assert.equal(source.headers.get("cache-control"), "private, no-store");
+    assert.equal(await source.text(), "original-card");
+
+    const proposal = { title: "Proposed title", date: 2026, genre: "Portrait", medium: "Acrylic", height: 120, nsfw: true };
+    const submitted = await submit.POST(request({ ...proposal, active: false, rarity: "common", value_scale: 0,
+      artist_id: other.artistId, effect_id: "forged" }), artContext);
+    assert.equal(submitted.status, 201);
+    const id = (await submitted.json()).change.id;
+    const pending = await documents(db, "artwork_change_requests").findOne({ _id: id });
+    assert.deepEqual(pending?.metadata, proposal);
+    assert.equal(pending?.artist_id, account.artistId);
+    assert.equal(pending?.submitted_by, account.id);
+    assert.deepEqual(await documents(db, "artworks").findOne({ _id: original._id }), original);
+    const revisedProposal = { ...proposal, date: 2027, genre: "Updated portrait", height: 130 };
+    const revised = await submit.POST(request(revisedProposal), artContext);
+    assert.equal(revised.status, 201);
+    assert.equal((await revised.json()).change.id, id);
+    assert.equal(await documents(db, "artwork_change_requests").countDocuments({ artwork_id: original._id }), 1);
+    assert.deepEqual((await documents(db, "artwork_change_requests").findOne({ _id: id }))?.metadata, revisedProposal);
+    assert.equal((await admin.PATCH(review(), context(id))).status, 403);
+    isAdmin = true;
+    assert.equal((await admin.PATCH(review({ expectedRevision: 1 }), context(id))).status, 409);
+    assert.equal((await admin.PATCH(review({ height: -1, expectedRevision: 2 }), context(id))).status, 400);
+    const approved = await admin.PATCH(review({ title: "Admin refined title", active: false,
+      artist_id: other.artistId, rarity: "common", value_scale: 0, effect_id: "forged", expectedRevision: 2 }), context(id));
+    assert.equal(approved.status, 200);
+    const saved = (await approved.json()).artwork;
+    assert.equal(saved.title, "Admin refined title");
+    for (const key of ["date", "genre", "medium", "height", "nsfw"] as const) assert.equal(saved[key], revisedProposal[key]);
+    assert.equal(saved.width, 104);
+    for (const key of ["artist_id", "rarity", "value_scale", "effect_id", "serial_counter", "active", "submission_status"] as const) {
+      assert.equal(saved[key], original[key], key);
+    }
+    assert.deepEqual(saved.image, original.image);
+    assert.deepEqual(saved.thumbnail_adjustment, original.thumbnail_adjustment);
+    assert.deepEqual(saved.artist_license, original.artist_license);
+    assert.equal(await documents(db, "artwork_change_requests").findOne({ _id: id }), null);
+    assert.equal((await admin.PATCH(review(), context(id))).status, 404);
+
+    const withImage = await submit.POST(request({}, true), artContext);
+    const imageId = (await withImage.json()).change.id;
+    const firstProposalImage = uploads.at(-1)!;
+    assert.notEqual(firstProposalImage, original._id, "Unreviewed uploads must not replace the live artwork's storage keys");
+    const updatedImageProposal = await submit.POST(request({ title: "Updated image proposal", height: 150 }, true), artContext);
+    assert.equal(updatedImageProposal.status, 201);
+    assert.equal((await updatedImageProposal.json()).change.id, imageId);
+    const replacementProposalImage = uploads.at(-1)!;
+    assert.notEqual(replacementProposalImage, firstProposalImage);
+    assert.equal(await documents(db, "artwork_change_requests").countDocuments({ artwork_id: original._id }), 1);
+    assert.equal((await documents(db, "artwork_change_requests").findOne({ _id: imageId }))?.metadata.title,
+      "Updated image proposal");
+    assert.ok(removed.includes(`${firstProposalImage}-full`));
+    const artistPreview = await proposedImage.GET(new Request("http://localhost"), artContext);
+    assert.equal(artistPreview.status, 200);
+    assert.equal(await artistPreview.text(), `${replacementProposalImage}-card`);
+    assert.equal(artistPreview.headers.get("cache-control"), "private, no-store");
+    isAdmin = false;
+    assert.equal((await preview.GET(new Request("http://localhost"), context(imageId))).status, 403);
+    isAdmin = true;
+    const imagePreview = await preview.GET(new Request("http://localhost"), context(imageId));
+    assert.equal(await imagePreview.text(), `${replacementProposalImage}-card`);
+    assert.equal(imagePreview.headers.get("cache-control"), "private, no-store");
+    const beforeDenial = await documents(db, "artworks").findOne({ _id: original._id });
+    cleanupFails = true;
+    assert.equal((await admin.DELETE(new Request("http://localhost"), context(imageId))).status, 503);
+    assert.equal((await admin.PATCH(review(), context(imageId))).status, 409);
+    cleanupFails = false;
+    assert.equal((await admin.DELETE(new Request("http://localhost"), context(imageId))).status, 200);
+    assert.deepEqual(await documents(db, "artworks").findOne({ _id: original._id }), beforeDenial);
+    assert.ok(removed.includes(`${replacementProposalImage}-full`));
+
+    const concurrent = await Promise.all([submit.POST(request({ height: 200 }, true), artContext),
+      submit.POST(request({ height: 200 }, true), artContext)]);
+    assert.deepEqual(concurrent.map(response => response.status), [201, 201]);
+    const replacementId = (await concurrent.find(response => response.status === 201)!.json()).change.id;
+    assert.equal(await documents(db, "artwork_change_requests").countDocuments({ artwork_id: original._id }), 1);
+    const finalProposalImage = (await documents(db, "artwork_change_requests").findOne({ _id: replacementId }))!
+      .image.variants.full.storage.key.replace(/-full$/, "");
+    const accepts = await Promise.all([admin.PATCH(review(), context(replacementId)), admin.PATCH(review(), context(replacementId))]);
+    assert.ok(accepts.some(response => response.status === 200));
+    assert.ok(accepts.every(response => [200, 404, 409].includes(response.status)));
+    const replaced = await documents(db, "artworks").findOne({ _id: original._id });
+    assert.equal(replaced?.image.variants.full.storage.key, `${finalProposalImage}-full`);
+    assert.equal(replaced?.image_width, 1200);
+    assert.equal(replaced?.image_height, 600);
+    assert.equal(replaced?.height, 200);
+    assert.equal(replaced?.width, 400);
+    assert.equal(replaced?.value_scale, original.value_scale);
+    assert.ok(removed.includes("original-full"));
+    assert.ok(!removed.includes(`${finalProposalImage}-full`));
+    assert.deepEqual(await documents(db, "items").findOne({ _id: "existing-item" }), item);
+    assert.equal(await documents(db, "artwork_change_requests").countDocuments(), 0);
+
+    await documents(db, "artworks").insertOne({ ...original, _id: "unapproved", active: false, submission_status: "pending" });
+    const pendingEdit = await submit.POST(request({ title: "Revised pending upload" }), context("unapproved"));
+    const pendingEditId = (await pendingEdit.json()).change.id;
+    const pendingApproval = await admin.PATCH(review(), context(pendingEditId));
+    assert.equal(pendingApproval.status, 200);
+    const pendingArtwork = (await pendingApproval.json()).artwork;
+    assert.equal(pendingArtwork.title, "Revised pending upload");
+    assert.equal(pendingArtwork.active, false);
+    assert.equal(pendingArtwork.submission_status, "pending");
+
+    const interruptedEdit = await submit.POST(request({ title: "Recoverable update" }, true), artContext);
+    const interruptedId = (await interruptedEdit.json()).change.id;
+    const requests = documents(db, "artwork_change_requests");
+    const nativeCollection = db.collection.bind(db);
+    const remove = requests.deleteOne.bind(requests);
+    let interrupted = false;
+    const deletion = t.mock.method(requests, "deleteOne", async (...args: Parameters<typeof remove>) => {
+      if (!interrupted) { interrupted = true; throw new Error("Review cleanup interrupted after artwork update"); }
+      return remove(...args);
+    });
+    const collections = t.mock.method(db, "collection", (name: string) =>
+      name === "artwork_change_requests" ? requests : nativeCollection(name));
+    try {
+      assert.equal((await admin.PATCH(review(), context(interruptedId))).status, 500);
+      assert.equal((await documents(db, "artworks").findOne({ _id: original._id }))?.title, "Recoverable update");
+      assert.equal((await admin.DELETE(new Request("http://localhost"), context(interruptedId))).status, 409);
+      const recovered = await admin.PATCH(review({ title: "Must not apply twice" }), context(interruptedId));
+      assert.equal(recovered.status, 200);
+      assert.equal((await recovered.json()).artwork.title, "Recoverable update");
+      assert.equal(await requests.countDocuments(), 0);
+      const interruptedImage = uploads.find(key => key.startsWith(`${interruptedId}-upload-`))!;
+      assert.ok(!removed.includes(`${interruptedImage}-full`));
+    } finally { collections.mock.restore(); deletion.mock.restore(); }
   });
 
   await t.test("featured Benefactors and Enthusiasts apply the player's effects and count visitors in the visited gallery", async t => {

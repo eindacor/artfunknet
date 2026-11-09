@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 
 import type { GalleryChatReportView } from "@/server/gallery-chat";
 
@@ -9,6 +10,7 @@ export default function ChatReportList({
 }: {
   reports: GalleryChatReportView[];
 }) {
+  const router = useRouter();
   const [currentReports, setCurrentReports] = useState(reports);
   const [pendingId, setPendingId] = useState("");
   const [error, setError] = useState("");
@@ -49,6 +51,7 @@ export default function ChatReportList({
           candidate.id === report.id ? { ...candidate, hidden } : candidate,
         ),
       );
+      router.refresh();
     }
     setPendingId("");
   }

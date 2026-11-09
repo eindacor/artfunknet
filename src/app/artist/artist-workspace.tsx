@@ -7,12 +7,21 @@ import type { CardRendererId } from "@/components/item-cards/types";
 import { ARTIST_AGREEMENT_VERSION, ARTIST_UPLOAD_AGREEMENT, type PublicArtistProfile } from "@/server/artist-types";
 import { ARTIST_FEATURE_LINK_HELP } from "@/shared/artist-feature-link";
 
-type WorkSummary = { id: string; title: string; status: string };
+export type WorkSummary = {
+  id: string;
+  title: string;
+  status: string;
+  artwork: ArtworkCatalogEntry;
+  pendingChange: boolean;
+  proposedImage: boolean;
+};
 export default function ArtistWorkspace({ artist, initialWorks, rendererOptions }: {
   artist: PublicArtistProfile; initialWorks: WorkSummary[]; rendererOptions: { id: CardRendererId; name: string }[];
 }) {
   const [agreed, setAgreed] = useState(false);
   const [works, setWorks] = useState(initialWorks);
+  const [message, setMessage] = useState("");
+  const [submittingId, setSubmittingId] = useState("");
   async function submit(metadata: ArtworkEditorMetadata, file: File | null) {
     if (!file || !agreed) throw new Error("Select an image and accept the submission agreement.");
     const body = new FormData();
@@ -21,9 +30,32 @@ export default function ArtistWorkspace({ artist, initialWorks, rendererOptions 
     const response = await fetch("/api/artist/artworks", { method: "POST", body });
     const result = await response.json() as { artwork: ArtworkCatalogEntry; error?: string };
     if (!response.ok) throw new Error(result.error ?? "Submission failed.");
-    setWorks(current => [{ id: result.artwork._id, title: result.artwork.title, status: "Awaiting review" }, ...current]);
+    setWorks(current => [{ id: result.artwork._id, title: result.artwork.title, status: "Awaiting review",
+      artwork: result.artwork, pendingChange: false, proposedImage: false }, ...current]);
     setAgreed(false);
     return result.artwork;
+  }
+  async function proposeChanges(work: WorkSummary, metadata: ArtworkEditorMetadata, file: File | null) {
+    const body = new FormData();
+    body.set("metadata", JSON.stringify({
+      title: metadata.title, date: metadata.date, genre: metadata.genre, medium: metadata.medium,
+      height: metadata.height, nsfw: metadata.nsfw,
+    }));
+    if (file) body.set("image", file);
+    setSubmittingId(work.id);
+    try {
+      const response = await fetch(`/api/artist/artworks/${encodeURIComponent(work.id)}/changes`, { method: "POST", body });
+      const result = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(result.error ?? "The changes could not be submitted.");
+      setWorks(current => current.map(currentWork => currentWork.id === work.id ? {
+        ...currentWork,
+        pendingChange: true,
+        proposedImage: currentWork.proposedImage || Boolean(file),
+        artwork: { ...currentWork.artwork, ...metadata },
+      } : currentWork));
+      setMessage(`${work.pendingChange ? "Updated the proposed changes" : "Submitted changes"} for ${work.title}. The current artwork has not changed.`);
+      return undefined;
+    } finally { setSubmittingId(""); }
   }
   return <div className="grid gap-10">
     <section className="space-y-5 rounded-xl border border-[var(--accent)]/40 p-5 sm:p-8" id="add-artwork">
@@ -37,10 +69,32 @@ export default function ArtistWorkspace({ artist, initialWorks, rendererOptions 
     </section>
     <ArtistProfileForm artist={artist} />
     <section className="space-y-4"><h2 className="text-2xl font-bold">Your artwork</h2>
-      {!works.length ? <p>No artwork submitted yet.</p> : <ul className="grid gap-3">{works.map(work =>
-        <li className="flex flex-wrap justify-between gap-3 rounded-lg border border-white/20 p-4" key={work.id}>
-          <strong>{work.title}</strong><span>{work.status}</span>
-        </li>)}</ul>}
+      <p className="text-sm text-[var(--muted)]">Propose changes to an image or its details. An administrator must accept them before the artwork is updated.</p>
+      {message ? <p className="text-green-400" role="status">{message}</p> : null}
+      {!works.length ? <p>No artwork submitted yet.</p> : <div className="grid gap-3">{works.map(work =>
+        <details className="rounded-lg border border-white/20 open:border-[var(--accent)]/50" key={work.id}>
+          <summary className="flex cursor-pointer flex-wrap items-center justify-between gap-3 p-4">
+            <strong>{work.title}</strong>
+            <span className="flex flex-wrap items-center gap-2">
+              <span>{work.status}</span>
+              {work.pendingChange ? <span className="rounded-full bg-[var(--accent)]/15 px-2 py-1 text-xs font-bold text-[var(--accent)]">
+                Proposed changes awaiting review
+              </span> : null}
+            </span>
+          </summary>
+          <div className="border-t border-white/10 p-4 sm:p-5">
+            <ArtworkEditorPanel key={`${work.id}-${work.pendingChange ? "pending" : "current"}`}
+              mode="edit" artistSubmission artwork={work.artwork}
+              pending={submittingId === work.id}
+              imagePreviewUrl={work.proposedImage
+                ? `/api/artist/artworks/${encodeURIComponent(work.id)}/changes/image`
+                : `/api/artist/artworks/${encodeURIComponent(work.id)}/image`}
+              artists={[{ id: artist.id, name: artist.name, dateOfBirth: "", dateOfDeath: "", artworkCount: works.length }]}
+              rendererOptions={rendererOptions}
+              submitLabel={work.pendingChange ? "Update proposed changes" : "Submit changes for review"}
+              onSave={(metadata, file) => proposeChanges(work, metadata, file)} />
+          </div>
+        </details>)}</div>}
     </section>
   </div>;
 }

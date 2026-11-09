@@ -12,7 +12,7 @@ export function artistOriginError(request: Request) {
 }
 
 export async function requireArtistApi(request: Request) {
-  const originError = artistOriginError(request);
+  const originError = request.method === "GET" ? null : artistOriginError(request);
   if (originError) return { ok: false as const, response: originError };
   const auth = await requirePlayerApi();
   if (!auth.ok) return auth;

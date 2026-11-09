@@ -26,6 +26,7 @@ import * as artistFeatureLinks from "../shared/artist-feature-link.ts";
 import * as settingsCore from "./game-settings.ts";
 import * as cardCatalog from "../components/item-cards/catalog.ts";
 import * as rarityValues from "./rarity-values.ts";
+import { getAdminReviewCounts } from "./admin-review-counts.ts";
 
 const require = createRequire(import.meta.url);
 const cardSharedSource = ts.createSourceFile("shared.tsx",
@@ -91,6 +92,7 @@ async function load<T>(relative: string, dependencies: Record<string, unknown> =
     require: (name: string) => {
       const modules = {
         react: React, "react/jsx-runtime": require("react/jsx-runtime"), "next/link": require("next/link"),
+        "next/navigation": { useRouter: () => ({ refresh() {} }), usePathname: () => "" },
         "@/shared/tutorial": tutorialElements,
         "@/shared/artist-feature-link": artistFeatureLinks,
         "./item-cards/artwork-image-adjustments": imageAdjustments,
@@ -105,6 +107,93 @@ async function load<T>(relative: string, dependencies: Record<string, unknown> =
     },
   }) as T;
 }
+
+test("admin navigation shows review indicators only for pending applications, reports, and artwork submissions", async () => {
+  const queries: Array<{ collection: string; filter: Record<string, unknown> }> = [];
+  const counts = { artist_applications: 2, artworks: 3, artwork_change_requests: 4, gallery_chat_messages: 5 };
+  const database = {
+    collection: (collection: keyof typeof counts) => ({
+      countDocuments: async (filter: Record<string, unknown>) => {
+        queries.push({ collection, filter });
+        return counts[collection];
+      },
+    }),
+  } as unknown as Parameters<typeof getAdminReviewCounts>[0];
+  const reviewCounts = await getAdminReviewCounts(database);
+  assert.deepEqual(reviewCounts, { artistApplications: 2, artworkSubmissions: 7, chatReports: 5 });
+  assert.deepEqual(queries, [
+    { collection: "artist_applications", filter: { status: { $in: ["pending", "approving"] } } },
+    { collection: "artworks", filter: { submission_status: "pending", active: false } },
+    { collection: "artwork_change_requests", filter: { status: { $in: ["pending", "approving"] } } },
+    { collection: "gallery_chat_messages", filter: { reported: true, moderated_at: { $exists: false } } },
+  ]);
+
+  const header = await load<typeof import("../app/admin/admin-header.tsx")>("../app/admin/admin-header.tsx", {
+    "next/navigation": { usePathname: () => "/admin/artist-applications", useRouter: () => ({}) },
+  });
+  const html = renderToStaticMarkup(React.createElement(header.default, { email: "admin@example.com", reviewCounts }));
+  assert.match(html, /Artist applications<span[^>]*aria-label="2 pending artist applications"[^>]*>2<\/span>/);
+  assert.match(html, /Artwork submissions<span[^>]*aria-label="7 pending artwork submissions"[^>]*>7<\/span>/);
+  assert.match(html, /Chat reports<span[^>]*aria-label="5 pending chat reports"[^>]*>5<\/span>/);
+  const empty = renderToStaticMarkup(React.createElement(header.default, {
+    email: "admin@example.com",
+    reviewCounts: { artistApplications: 0, artworkSubmissions: 0, chatReports: 0 },
+  }));
+  assert.doesNotMatch(empty, /pending artist applications|pending artwork submissions|pending chat reports/);
+
+  const Header = (props: Record<string, unknown>) => React.createElement("header", props);
+  const databaseToken = {};
+  const layout = await load<typeof import("../app/admin/layout.tsx")>("../app/admin/layout.tsx", {
+    "./admin-header": { default: Header },
+    "@/server/session": { requireAdmin: async () => ({ email: "admin@example.com" }) },
+    "@/components/artwork-image-scope": { AdminArtworkImages: ({ children }: { children: React.ReactNode }) => children },
+    "@/server/admin-review-counts": { getAdminReviewCounts: async (value: unknown) => {
+      assert.equal(value, databaseToken);
+      return reviewCounts;
+    } },
+    "@/server/mongodb": { getDatabase: async () => databaseToken },
+  });
+  const tree = await layout.default({ children: React.createElement("main") });
+  const container = tree.props.children as React.ReactElement<{ children: React.ReactNode }>;
+  const renderedHeader = React.Children.toArray(container.props.children)[0] as React.ReactElement<Record<string, unknown>>;
+  assert.equal(renderedHeader.type, Header);
+  assert.deepEqual(renderedHeader.props.reviewCounts, reviewCounts);
+});
+
+test("admin review actions refresh the pending indicators after successful moderation", async () => {
+  let refreshes = 0;
+  const hooks = { ...React, useState: (initial: unknown) => [initial, () => {}] };
+  const navigation = { useRouter: () => ({ refresh: () => { refreshes++; } }) };
+  type Element = React.ReactElement<Record<string, unknown>>;
+  function elements(node: React.ReactNode): Element[] {
+    if (Array.isArray(node)) return node.flatMap(elements);
+    if (!React.isValidElement<Record<string, unknown>>(node)) return [];
+    return [node, ...elements(node.props.children as React.ReactNode)];
+  }
+  const applications = await load<typeof import("../app/admin/artist-applications/application-reviews.tsx")>(
+    "../app/admin/artist-applications/application-reviews.tsx", { react: hooks, "next/navigation": navigation }, {
+      fetch: async () => Response.json({ status: "ok" }),
+    });
+  const application = applications.default({ applications: [{
+    id: "application", name: "Artist", email: "artist@example.com", dateOfBirth: "2000-01-01",
+    portfolioUrl: "https://example.com", bio: "", screenName: "Artist", existingPlayer: true,
+    submittedAt: null, status: "pending",
+  }] });
+  (elements(application).find(element => element.props.children === "Approve")!.props.onClick as () => void)();
+
+  const chat = await load<typeof import("../app/admin/chat-reports/chat-report-list.tsx")>(
+    "../app/admin/chat-reports/chat-report-list.tsx", { react: hooks, "next/navigation": navigation }, {
+      fetch: async () => Response.json({ status: "ok" }),
+    });
+  const reports = chat.default({ reports: [{
+    id: "report", galleryOwnerId: "global", galleryOwnerName: "Global", authorId: "player",
+    authorName: "Player", content: "Message", createdAt: new Date().toISOString(),
+    reportCount: 1, hidden: false, moderatedAt: null, moderatedBy: null,
+  }] });
+  (elements(reports).find(element => element.props.children === "Hide message")!.props.onClick as () => void)();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(refreshes, 2);
+});
 
 test("admin gallery settings edit and submit independent Actual and Debug values", async () => {
   const settings = {
@@ -521,6 +610,7 @@ test("submission reviews keep rarity but omit artist, value and effect controls 
   const reviews = await load<typeof import("../app/admin/artwork-submissions/artwork-submission-reviews.tsx")>(
     "../app/admin/artwork-submissions/artwork-submission-reviews.tsx", {
       "@/components/artwork-editor/artwork-editor-panel": editor,
+      "next/image": { default: () => null }, "@/server/artwork-image-url": imageUrls,
     },
   );
   for (const rarity of ["rare", "legendary", "masterpiece"] as const) {
@@ -723,9 +813,12 @@ test("review acceptance sends its approval action without manual value or effect
     },
   );
   let sent: Record<string, unknown> | undefined;
+  let refreshes = 0;
   const reviews = await load<typeof import("../app/admin/artwork-submissions/artwork-submission-reviews.tsx")>(
     "../app/admin/artwork-submissions/artwork-submission-reviews.tsx", {
       react: hooks, "@/components/artwork-editor/artwork-editor-panel": editor,
+      "next/image": { default: () => null }, "@/server/artwork-image-url": imageUrls,
+      "next/navigation": { useRouter: () => ({ refresh: () => { refreshes++; } }) },
     }, {
       fetch: async (url: string, options: RequestInit) => {
         assert.equal(url, "/api/admin/artworks/submission");
@@ -737,7 +830,8 @@ test("review acceptance sends its approval action without manual value or effect
   );
   const tree = reviews.default({ initialWorks: [artwork], artists: [], rendererOptions: [] });
   const children = React.Children.toArray(tree.props.children);
-  const panel = children.find(child => React.isValidElement(child) && child.type === editor.default) as
+  const content = children[1] as React.ReactElement<{ children: React.ReactNode }>;
+  const panel = React.Children.toArray(content.props.children).find(child => React.isValidElement(child) && child.type === editor.default) as
     React.ReactElement<Parameters<typeof editor.default>[0]>;
   assert.ok(panel);
   const form = editor.default(panel.props);
@@ -747,6 +841,283 @@ test("review acceptance sends its approval action without manual value or effect
   assert.equal(sent.rarity, "legendary");
   assert.equal(sent.artist_id, "artist-id");
   for (const key of ["value_scale", "effect_id", "special_attributes"]) assert.equal(key in sent, false, key);
+  assert.equal(refreshes, 1);
+});
+
+test("Your artwork uses collapsible editors and keeps pending proposals editable and visibly identified", async () => {
+  for (const withImage of [false, true]) {
+    const artwork = {
+      _id: "existing", artist_id: "artist", artist: "Artist", title: "Current artwork", date: 2020,
+      genre: "Abstract", medium: "Oil", height: 100, width: 80, active: true,
+      rarity: "masterpiece" as const, value_scale: 0.75,
+    };
+    const states: unknown[] = [];
+    let index = 0;
+    const hooks = { ...React, useState: (initial: unknown) => {
+      const position = index++;
+      if (!(position in states)) states[position] = typeof initial === "function" ? initial() : initial;
+      return [states[position], (next: unknown) => { states[position] = typeof next === "function" ? next(states[position]) : next; }];
+    } };
+    const editor = { default: () => null };
+    let sent: FormData | undefined;
+    const workspace = await load<typeof import("../app/artist/artist-workspace.tsx")>("../app/artist/artist-workspace.tsx", {
+      react: hooks, "@/components/artwork-editor/artwork-editor-panel": editor, "@/server/artist-types": {},
+    }, {
+      FormData, fetch: async (url: string, init: RequestInit) => {
+        assert.equal(url, "/api/artist/artworks/existing/changes");
+        assert.equal(init.method, "POST");
+        sent = init.body as FormData;
+        return Response.json({ change: { id: "proposal" } }, { status: 201 });
+      },
+    });
+    const props = {
+      artist: { id: "artist", name: "Artist" } as PublicArtistProfile, rendererOptions: [],
+      initialWorks: [{ id: artwork._id, title: artwork.title, status: "Active",
+        artwork, pendingChange: false, proposedImage: false }],
+    };
+    type Element = React.ReactElement<Record<string, unknown>>;
+    function elements(node: React.ReactNode): Element[] {
+      if (Array.isArray(node)) return node.flatMap(elements);
+      if (!React.isValidElement<Record<string, unknown>>(node)) return [];
+      return [node, ...elements(node.props.children as React.ReactNode)];
+    }
+    const render = () => { index = 0; return workspace.default(props); };
+    let tree = render();
+    assert.equal(elements(tree).filter(element => element.type === "details").length, 1);
+    assert.equal(elements(tree).filter(element => element.type === "summary").length, 1);
+    assert.ok(!elements(tree).some(element => element.props.children === "Propose changes"));
+    const panel = elements(tree).find(element => element.type === editor.default && element.props.mode === "edit") as
+      React.ReactElement<Parameters<typeof import("../components/artwork-editor/artwork-editor-panel.tsx").default>[0]>;
+    assert.ok(panel);
+    assert.equal(panel.props.artistSubmission, true);
+    assert.equal(panel.props.imagePreviewUrl, "/api/artist/artworks/existing/image");
+    assert.equal(panel.props.submitLabel, "Submit changes for review");
+    const metadata = { ...artwork, title: "Proposed title", height: 120, nsfw: true };
+    const file = withImage ? new File(["replacement"], "replacement.png") : null;
+    await panel.props.onSave(metadata, file);
+    assert.ok(sent);
+    assert.deepEqual(JSON.parse(String(sent.get("metadata"))), {
+      title: "Proposed title", date: 2020, genre: "Abstract", medium: "Oil", height: 120, nsfw: true,
+    });
+    assert.equal(sent.has("image"), withImage);
+    if (withImage) assert.equal((sent.get("image") as File).name, "replacement.png");
+    tree = render();
+    assert.ok(elements(tree).some(element => element.props.children === "Current artwork"));
+    assert.ok(elements(tree).some(element => element.props.children === "Proposed changes awaiting review"));
+    assert.ok(elements(tree).some(element => element.props.role === "status"));
+    const pendingPanel = elements(tree).find(element => element.type === editor.default && element.props.mode === "edit") as typeof panel;
+    assert.equal(pendingPanel.props.submitLabel, "Update proposed changes");
+    assert.equal(pendingPanel.props.imagePreviewUrl, withImage
+      ? "/api/artist/artworks/existing/changes/image" : "/api/artist/artworks/existing/image");
+    await pendingPanel.props.onSave({ ...metadata, title: "Updated proposal" }, null);
+    assert.equal(sent.get("image"), null);
+    assert.equal(JSON.parse(String(sent.get("metadata"))).title, "Updated proposal");
+  }
+});
+
+test("artist artwork edits preview replacement files without uploading them to the live admin image endpoint", async () => {
+  const states: unknown[] = [];
+  let index = 0;
+  const requests: string[] = [];
+  let savedFile: File | null = null;
+  const editor = await load<typeof import("../components/artwork-editor/artwork-editor-panel.tsx")>(
+    "../components/artwork-editor/artwork-editor-panel.tsx", {
+      react: {
+        ...React, useEffect: () => {}, useRef: () => ({ current: null }),
+        useState: (initial: unknown) => {
+          const position = index++;
+          if (!(position in states)) states[position] = typeof initial === "function" ? initial() : initial;
+          return [states[position], (next: unknown) => { states[position] = typeof next === "function" ? next(states[position]) : next; }];
+        },
+      },
+      "next/image": { default: () => null }, "@/components/item-cards/artwork-image-adjustments": imageAdjustments,
+      "@/server/artwork-image-url": imageUrls, "@/components/artwork-image-scope": { useArtworkImageScope: () => "public" },
+      "./artwork-customization-panel": { default: () => null },
+      "./types": { ARTWORK_EDITOR_RARITIES: ["masterpiece"] },
+    }, {
+      FormData, AbortController, fetch: async (url: string) => {
+        requests.push(url);
+        return new Response(new Uint8Array([1, 2, 3]), {
+          headers: { "content-type": "image/png", "x-artwork-width": "1200", "x-artwork-height": "600" },
+        });
+      },
+    });
+  const props: Parameters<typeof editor.default>[0] = {
+    mode: "edit", artistSubmission: true, imagePreviewUrl: "/api/artist/artworks/existing/image",
+    artwork: { _id: "existing", artist_id: "artist", artist: "Artist", title: "Current", date: 2020,
+      genre: "Abstract", medium: "Oil", height: 100, width: 80, active: true, rarity: "masterpiece", value_scale: 0.75 },
+    artists: [], rendererOptions: [], onSave: async (_metadata, file) => { savedFile = file; return undefined; },
+  };
+  type Element = React.ReactElement<Record<string, unknown>>;
+  function elements(node: React.ReactNode): Element[] {
+    if (Array.isArray(node)) return node.flatMap(elements);
+    if (!React.isValidElement<Record<string, unknown>>(node)) return [];
+    return [node, ...elements(node.props.children as React.ReactNode)];
+  }
+  const render = () => { index = 0; return editor.default(props); };
+  let form = render();
+  const markup = renderToStaticMarkup(form);
+  assert.doesNotMatch(markup, /Value scale|Unique effect|Special attribute|Active in game|aria-label="Artist"|aria-label="Rarity"/);
+  const input = elements(form).find(element => element.props.name === "image")!;
+  const file = new File(["replacement"], "replacement.png", { type: "image/png" });
+  (input.props.onChange as (event: unknown) => void)({ currentTarget: { files: [file], value: "replacement.png" } });
+  await new Promise(resolve => setImmediate(resolve));
+  form = render();
+  assert.deepEqual(requests, ["/api/artist/artworks/preview"]);
+  await form.props.onSubmit({ preventDefault() {}, currentTarget: {} });
+  assert.equal(savedFile, file);
+  for (const value of states) {
+    if (value && typeof value === "object" && "url" in value && String(value.url).startsWith("blob:")) {
+      URL.revokeObjectURL(String(value.url));
+    }
+  }
+});
+
+test("the artist portal reopens pending proposal metadata and replacement images in its artwork dropdown", async () => {
+  const current = {
+    _id: "existing", artist_id: "artist", artist: "Artist", title: "Current artwork", date: 2020,
+    genre: "Abstract", medium: "Oil", height: 100, width: 80, active: true,
+    rarity: "masterpiece" as const, value_scale: 0.75,
+  };
+  const change = {
+    artwork_id: current._id, artist_id: current.artist_id,
+    metadata: { title: "Pending title", date: 2026, genre: "Portrait", medium: "Acrylic", height: 150, nsfw: true },
+    image: { variants: { full: { width: 1200, height: 600 } } },
+  };
+  const workspace = { default: () => React.createElement("div") };
+  const page = await load<typeof import("../app/artist/page.tsx")>("../app/artist/page.tsx", {
+    "next/navigation": { redirect: () => assert.fail("Artist should be available") },
+    "@/components/item-cards/catalog": { getConfiguredCardCosmetics: () => [] },
+    "@/components/item-cards/types": { SHOWCASE_CARD_RENDERER_IDS: [] },
+    "@/server/card-renderer-settings": { getCardRendererSettings: async () => ({ rendererNames: {} }) },
+    "@/server/contributing-artists": { getPublicArtistProfile: async () => ({
+      id: "artist", playerId: "player", name: "Artist", bio: "", portfolioUrl: "",
+      featureLink: "", socialLinks: {}, instagramUsername: null, featured: false,
+    }) },
+    "@/server/mongodb": { getDatabase: async () => ({
+      collection: (name: string) => ({ find: () => {
+        const values = name === "artworks" ? [current] : name === "artwork_change_requests" ? [change] : [];
+        return { toArray: async () => values, sort: () => ({ toArray: async () => values }) };
+      } }),
+    }) },
+    "@/server/session": { requirePlayer: async () => ({ playerId: "player" }) },
+    "./artist-workspace": workspace,
+  });
+  const tree = await page.default();
+  const renderedWorkspace = React.Children.toArray(tree.props.children).find(child =>
+    React.isValidElement(child) && child.type === workspace.default) as React.ReactElement<{
+      initialWorks: Array<Record<string, unknown>>;
+    }>;
+  const work = renderedWorkspace.props.initialWorks[0];
+  assert.equal(work.title, current.title);
+  assert.equal(work.pendingChange, true);
+  assert.equal(work.proposedImage, true);
+  assert.deepEqual(JSON.parse(JSON.stringify(work.artwork)), {
+    ...current, ...change.metadata, image: change.image, image_width: 1200, image_height: 600, width: 300,
+  });
+});
+
+test("artwork submissions load proposed changes alongside the current artwork and use change-only review actions", async () => {
+  const current = {
+    _id: "existing", artist_id: "artist", artist: "Artist", title: "Current artwork", date: 2020,
+    genre: "Abstract", medium: "Oil", height: 100, width: 80, active: true, rarity: "masterpiece", value_scale: 0.75,
+  };
+  const proposal = { _id: "change", artwork_id: current._id, metadata: { title: "Proposed artwork", height: 120, nsfw: true },
+    original: current, image: { variants: { full: { width: 1200, height: 600 } } } };
+  const requests: { url: string; method: string }[] = [];
+  const editor = { default: () => null };
+  const hooks = { ...React, useState: (initial: unknown) => [typeof initial === "function" ? initial() : initial, () => {}] };
+  const reviews = await load<typeof import("../app/admin/artwork-submissions/artwork-submission-reviews.tsx")>(
+    "../app/admin/artwork-submissions/artwork-submission-reviews.tsx", {
+      react: hooks, "@/components/artwork-editor/artwork-editor-panel": editor,
+      "next/image": { default: () => null }, "@/server/artwork-image-url": imageUrls,
+    }, { fetch: async (url: string, init: RequestInit) => {
+      requests.push({ url, method: String(init.method) });
+      return Response.json({ artwork: current });
+    } });
+  const page = await load<typeof import("../app/admin/artwork-submissions/page.tsx")>("../app/admin/artwork-submissions/page.tsx", {
+    "@/components/item-cards/catalog": { getConfiguredCardCosmetics: () => [] },
+    "@/components/item-cards/types": { SHOWCASE_CARD_RENDERER_IDS: [] },
+    "@/server/card-renderer-settings": { getCardRendererSettings: async () => ({ rendererNames: {} }) },
+    "@/server/mongodb": { getDatabase: async () => ({
+      collection: (name: string) => ({ find: (query: Record<string, unknown>) => {
+        const values = name === "artwork_change_requests" ? [proposal] : name === "artworks" && query._id ? [current] : [];
+        return { toArray: async () => values, sort: () => ({ toArray: async () => values }) };
+      } }),
+    }) }, "./artwork-submission-reviews": reviews,
+  });
+  const tree = await page.default();
+  const review = React.Children.toArray(tree.props.children).find(child => React.isValidElement(child) && child.type === reviews.default) as
+    React.ReactElement<Parameters<typeof reviews.default>[0]>;
+  assert.ok(review);
+  assert.equal(review.props.initialChanges?.[0].artwork.width, 240);
+  assert.equal(review.props.initialChanges?.[0].current?.title, current.title);
+  const rendered = reviews.default(review.props);
+  const markup = renderToStaticMarkup(rendered);
+  assert.match(markup, /Current artwork|Proposed changes/);
+  const content = React.Children.toArray(rendered.props.children)[1] as React.ReactElement<{ children: React.ReactNode }>;
+  const panel = React.Children.toArray(content.props.children).find(child => React.isValidElement(child) && child.type === editor.default) as
+    React.ReactElement<Parameters<typeof import("../components/artwork-editor/artwork-editor-panel.tsx").default>[0]>;
+  assert.equal(panel.props.artwork?.title, "Proposed artwork");
+  assert.equal(panel.props.imagePreviewUrl, "/api/admin/artwork-changes/change/image");
+  assert.equal(panel.props.allowImageUpload, false);
+  assert.equal(panel.props.showRarity, false);
+  assert.equal(panel.props.deleteLabel, "Deny changes");
+  await panel.props.onSave({ ...current, nsfw: true } as Parameters<NonNullable<typeof panel.props.onSave>>[0], null);
+  panel.props.onDelete!();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(requests, [
+    { url: "/api/admin/artwork-changes/change", method: "PATCH" },
+    { url: "/api/admin/artwork-changes/change", method: "DELETE" },
+  ]);
+});
+
+test("accepting edits to an unapproved upload refreshes its remaining initial review rather than restoring old metadata", async () => {
+  const original = {
+    _id: "pending", artist_id: "artist", artist: "Artist", title: "Original upload", date: 2020,
+    genre: "Abstract", medium: "Oil", height: 100, width: 80, active: false,
+    rarity: "common" as const, value_scale: 0.25, submission_status: "pending" as const,
+  };
+  const proposed = { ...original, title: "Revised upload", height: 120, width: 96 };
+  const states: unknown[] = [];
+  let index = 0;
+  const editor = { default: () => null };
+  const reviews = await load<typeof import("../app/admin/artwork-submissions/artwork-submission-reviews.tsx")>(
+    "../app/admin/artwork-submissions/artwork-submission-reviews.tsx", {
+      react: { ...React, useState: (initial: unknown) => {
+        const position = index++;
+        if (!(position in states)) states[position] = typeof initial === "function" ? initial() : initial;
+        return [states[position], (next: unknown) => { states[position] = typeof next === "function" ? next(states[position]) : next; }];
+      } },
+      "@/components/artwork-editor/artwork-editor-panel": editor, "next/image": { default: () => null },
+      "@/server/artwork-image-url": imageUrls,
+    }, { fetch: async () => Response.json({ artwork: proposed }) });
+  const props: Parameters<typeof reviews.default>[0] = {
+    initialWorks: [original], initialChanges: [{
+      changeId: "change", artwork: proposed, current: original, hasNewImage: false, revision: 1,
+    }],
+    artists: [], rendererOptions: [],
+  };
+  type Element = React.ReactElement<Record<string, unknown>>;
+  function elements(node: React.ReactNode): Element[] {
+    if (Array.isArray(node)) return node.flatMap(elements);
+    if (!React.isValidElement<Record<string, unknown>>(node)) return [];
+    return [node, ...elements(node.props.children as React.ReactNode)];
+  }
+  const render = () => { index = 0; return reviews.default(props); };
+  let tree = render();
+  const buttons = elements(tree).filter(element => element.type === "button");
+  (buttons[1].props.onClick as () => void)();
+  tree = render();
+  const panel = elements(tree).find(element => element.type === editor.default) as
+    React.ReactElement<Parameters<typeof import("../components/artwork-editor/artwork-editor-panel.tsx").default>[0]>;
+  await panel.props.onSave({ ...proposed, nsfw: false }, null);
+  tree = render();
+  const refreshed = elements(tree).find(element => element.type === editor.default) as typeof panel;
+  assert.equal(refreshed.props.artwork?.title, proposed.title);
+  assert.equal(refreshed.props.artwork?.height, proposed.height);
+  assert.equal(refreshed.props.artwork?.active, false);
+  assert.equal(refreshed.props.submitLabel, "Accept artwork");
 });
 
 test("the admin layout scopes inactive editor, thumbnail, detail, and item-card images without changing game views", async () => {
@@ -778,6 +1149,10 @@ test("the admin layout scopes inactive editor, thumbnail, detail, and item-card 
   const layout = await load<typeof import("../app/admin/layout.tsx")>("../app/admin/layout.tsx", {
     "./admin-header": { default: () => null }, "@/server/session": { requireAdmin: async () => ({ email: "admin@example.com" }) },
     "@/components/artwork-image-scope": scope,
+    "@/server/admin-review-counts": { getAdminReviewCounts: async () => ({
+      artistApplications: 0, artworkSubmissions: 0, chatReports: 0,
+    }) },
+    "@/server/mongodb": { getDatabase: async () => ({}) },
   });
   const work: Artwork = {
     _id: "inactive-work", artist_id: "artist-id", artist: "Artist", title: "Inactive work", date: 2026,

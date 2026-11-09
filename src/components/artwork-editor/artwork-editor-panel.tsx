@@ -52,6 +52,7 @@ export default function ArtworkEditorPanel({
   mode, artwork, artists, rendererOptions, pending = false,
   artistSubmission = false, submitLabel, deleteLabel = "Delete artwork",
   showRarity = true, showActiveInGame = true,
+  allowImageUpload = true, imagePreviewUrl,
   effectOptions = [], attributeOptions = [],
   onSave, onDelete, onUploaded, onArtistCreated,
 }: {
@@ -65,6 +66,8 @@ export default function ArtworkEditorPanel({
   deleteLabel?: string;
   showRarity?: boolean;
   showActiveInGame?: boolean;
+  allowImageUpload?: boolean;
+  imagePreviewUrl?: string;
   effectOptions?: { id: string; title: string; effectType: "legendary" | "masterpiece"; active: boolean }[];
   attributeOptions?: { id: string; title: string; active: boolean }[];
   onSave: (metadata: ArtworkEditorMetadata, file: File | null) => Promise<ArtworkCatalogEntry | undefined>;
@@ -75,7 +78,8 @@ export default function ArtworkEditorPanel({
   const scope = useArtworkImageScope();
   const [draft, setDraft] = useState(() => initialDraft(artwork, artists[0]?.id));
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<ImagePreview | null>(() => artwork ? existingPreview(artwork, scope) : null);
+  const [preview, setPreview] = useState<ImagePreview | null>(() => artwork
+    ? { ...existingPreview(artwork, scope), ...(imagePreviewUrl ? { url: imagePreviewUrl } : {}) } : null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [creatingArtist, setCreatingArtist] = useState(false);
@@ -94,9 +98,9 @@ export default function ArtworkEditorPanel({
     }
   }
   useEffect(() => () => {
-    // Replacement uploads persist immediately and must finish updating the catalog after navigation.
-    if (mode === "add") previewRequest.current?.abort();
-  }, [mode]);
+    // Admin replacement uploads persist immediately and must finish after navigation.
+    if (mode === "add" || artistSubmission) previewRequest.current?.abort();
+  }, [mode, artistSubmission]);
   useEffect(() => () => {
     if (preview?.url.startsWith("blob:")) URL.revokeObjectURL(preview.url);
   }, [preview]);
@@ -106,6 +110,7 @@ export default function ArtworkEditorPanel({
   }
 
   async function chooseImage(file: File | null) {
+    const previewOnly = mode === "add" || artistSubmission;
     const previousFile = imageFile;
     previewRequest.current?.abort();
     const controller = new AbortController();
@@ -118,10 +123,10 @@ export default function ArtworkEditorPanel({
     try {
       const body = new FormData();
       body.set("image", file);
-      const response = await fetch(mode !== "add" && artwork
+      const response = await fetch(!previewOnly && artwork
         ? `/api/admin/artworks/${encodeURIComponent(artwork._id)}/image`
         : artistSubmission ? "/api/artist/artworks/preview" : "/api/admin/artworks/preview", { method: "POST", body, signal: controller.signal });
-      if (mode !== "add") {
+      if (!previewOnly) {
         const result = await readResponse<{ artwork: ArtworkCatalogEntry }>(response);
         if (controller.signal.aborted) return;
         setPreview(existingPreview(result.artwork, scope));
@@ -137,7 +142,7 @@ export default function ArtworkEditorPanel({
       }
     } catch (caught) {
       if (!controller.signal.aborted) {
-        if (mode !== "add") setImageFile(previousFile);
+        setImageFile(previousFile);
         setError(caught instanceof Error ? caught.message : "Image preview failed.");
       }
     } finally {
@@ -215,7 +220,7 @@ export default function ArtworkEditorPanel({
             Crop changes preview live and are saved together when you {artistSubmission ? "submit for review" : "accept"}.
           </p> : null}
         </div>
-        <label className="grid gap-2">
+        {allowImageUpload ? <label className="grid gap-2">
           <span className="font-semibold">{mode === "add" ? "Artwork image" : "Replace image"}</span>
           <input accept="image/bmp,image/gif,image/jpeg,image/png,image/tiff,image/webp"
             className={ARTWORK_EDITOR_INPUT_CLASS} name="image" disabled={previewLoading}
@@ -226,7 +231,7 @@ export default function ArtworkEditorPanel({
               });
             }}
             required={mode === "add"} type="file" />
-        </label>
+        </label> : null}
         {previewLoading ? <p role="status">{mode === "add" ? "Preparing artwork preview..." : "Uploading..."}</p> : null}
         {preview ? <figure className="grid min-w-0 gap-2" aria-label={mode === "add" ? "Upload preview" : "Image preview"}>
           <Image alt={`${draft.title || "Uploaded artwork"} by ${previewArtwork.artist}`}
@@ -235,7 +240,7 @@ export default function ArtworkEditorPanel({
             unoptimized />
           {imageFile ? <figcaption className="text-sm text-[var(--muted)]">{imageFile.name}</figcaption> : null}
         </figure> : null}
-        {mode !== "add" ? <p className="break-all text-sm text-[var(--muted)]">
+        {mode !== "add" && !artistSubmission && allowImageUpload ? <p className="break-all text-sm text-[var(--muted)]">
           {storage ? storage.provider === "s3" ? `s3://${storage.bucket}/${storage.key}`
             : `storage/mock-s3/${storage.key}` : "No image stored; the seed image is shown."}
         </p> : null}
@@ -278,9 +283,9 @@ export default function ArtworkEditorPanel({
               {ARTWORK_EDITOR_RARITIES.map(rarity => <option key={rarity} value={rarity}>{rarity.charAt(0).toUpperCase() + rarity.slice(1)}</option>)}
             </select>
           </label> : null}
-          {mode === "edit" ? <ArtworkEditorField label="Value scale" type="number" min="0" max="1" step="any"
+          {mode === "edit" && !artistSubmission ? <ArtworkEditorField label="Value scale" type="number" min="0" max="1" step="any"
             value={draft.value_scale} onChange={value => set("value_scale", value)} /> : null}
-          {mode === "edit" && (draft.rarity === "legendary" || draft.rarity === "masterpiece") ? <label className="grid gap-2">
+          {mode === "edit" && !artistSubmission && (draft.rarity === "legendary" || draft.rarity === "masterpiece") ? <label className="grid gap-2">
             <span className="font-semibold">Unique effect</span>
             <select aria-label="Unique effect" className={ARTWORK_EDITOR_INPUT_CLASS} value={draft.effect_id ?? ""}
               onChange={event => set("effect_id", event.target.value)}>
@@ -288,7 +293,7 @@ export default function ArtworkEditorPanel({
                 <option key={effect.id} value={effect.id}>{effect.title}{effect.active ? "" : " (inactive)"}</option>)}
             </select>
           </label> : null}
-          {mode === "edit" && draft.rarity === "rare" ? <label className="grid gap-2">
+          {mode === "edit" && !artistSubmission && draft.rarity === "rare" ? <label className="grid gap-2">
             <span className="font-semibold">Special attribute</span>
             <select aria-label="Special attribute" className={ARTWORK_EDITOR_INPUT_CLASS} value={draft.special_attributes?.[0] ?? ""} required
               onChange={event => set("special_attributes", event.target.value ? [event.target.value] : [])}>
@@ -307,7 +312,7 @@ export default function ArtworkEditorPanel({
             <input checked={draft.nsfw} onChange={event => set("nsfw", event.target.checked)} type="checkbox" />NSFW
           </label>
         </div>
-        {preview ? <ArtworkCustomizationPanel key={preview.url} artwork={previewArtwork}
+        {preview && (!artistSubmission || mode === "add") ? <ArtworkCustomizationPanel key={preview.url} artwork={previewArtwork}
           disabled={busy || previewLoading} sourceUrl={preview.url} rendererOptions={rendererOptions}
           onStyleChange={(id, adjustment) => setDraft(current => ({ ...current,
             art_style_adjustments: { ...current.art_style_adjustments, [id]: adjustment } }))}
