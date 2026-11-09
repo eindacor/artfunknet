@@ -240,7 +240,7 @@ function AuthenticatedHeaderContent(props: AuthenticatedHeaderContentProps) {
           <NotificationCenter initialNotifications={initialNotifications} />
         }
         onSignOut={logout}
-        onRestartTutorial={!props.isArtist ? restartWalkthrough : undefined}
+        onRestartTutorial={restartWalkthrough}
         tutorialRestarting={tutorialRestarting}
         supporterStatus={displayedSupporterStatus}
       />

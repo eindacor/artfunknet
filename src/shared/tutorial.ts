@@ -74,7 +74,7 @@ export function getNextTutorialStep(step: TutorialElement): TutorialElement | nu
 export function getPlayerTutorial(player: {
   tutorial?: TutorialProgress | null; account_type?: string; artist_id?: string;
 }): TutorialProgress {
-  if (player.account_type === "artist" || player.artist_id || !player.tutorial) return { step: null, revision: 0 };
+  if (!player.tutorial) return { step: null, revision: 0 };
   return {
     step: isTutorialElement(player.tutorial.step) ? player.tutorial.step : null,
     revision: Number.isSafeInteger(player.tutorial.revision) && player.tutorial.revision >= 0

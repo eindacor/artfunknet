@@ -46,7 +46,7 @@ export async function resumeTutorial(
 
 export async function restartTutorial(database: Db, playerId: string): Promise<TutorialProgress | null> {
   const updated = await database.collection<TutorialPlayer>("players").findOneAndUpdate(
-    { _id: playerId, active: true, account_type: { $ne: "artist" }, artist_id: { $exists: false } },
+    { _id: playerId, active: true },
     [{ $set: { tutorial: {
       step: TUTORIAL_ORDER[0],
       revision: { $add: [{ $ifNull: ["$tutorial.revision", 0] }, 1] },
@@ -61,7 +61,7 @@ export async function fulfillTutorial(
 ): Promise<TutorialProgress> {
   const players = database.collection<TutorialPlayer>("players");
   const updated = await players.findOneAndUpdate(
-    { _id: playerId, active: true, account_type: { $ne: "artist" }, artist_id: { $exists: false }, "tutorial.step": element,
+    { _id: playerId, active: true, "tutorial.step": element,
       ...(expectedRevision === undefined ? {} : { "tutorial.revision": expectedRevision }) },
     { $set: { "tutorial.step": getNextTutorialStep(element) }, $inc: { "tutorial.revision": 1 } },
     { returnDocument: "after" },

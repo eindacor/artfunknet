@@ -26,8 +26,7 @@ export default async function ArtistStudioPage() {
     <header className="flex flex-wrap items-center justify-between gap-5 border-b border-[var(--accent)]/40 pb-6">
       <div><p className="font-bold text-[var(--accent)]">artfunkel artist studio</p><h1 className="text-3xl font-bold">{artist.name}</h1></div>
       <nav className="flex flex-wrap gap-5 font-semibold text-[var(--accent)]">
-        <a href="#add-artwork">Add artwork</a><a href="#artist-profile">Artist profile</a>
-        <Link href={`/play?gallery=${encodeURIComponent(session.playerId)}`}>Artist gallery</Link>
+        <Link href={`/play?gallery=${encodeURIComponent(session.playerId)}`}>My gallery</Link>
         <Link href="/play">Play artfunkel</Link><Link href="/play/account">Account settings</Link>
       </nav>
     </header>

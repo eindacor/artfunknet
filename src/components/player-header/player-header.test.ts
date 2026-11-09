@@ -176,7 +176,7 @@ test("compact progress figures abbreviate large totals without changing exact va
   }
 });
 
-test("the authenticated navbar exposes a labeled artist studio link only for artist/player accounts", async () => {
+test("the authenticated navbar offers tutorials to every player and artist studio links to artist/player accounts", async () => {
   const wrapperSource = await readFile(new URL("../../app/play/player-header.tsx", import.meta.url), "utf8");
   const wrapperCode = ts.transpileModule(wrapperSource, {
     compilerOptions: { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
@@ -198,7 +198,7 @@ test("the authenticated navbar exposes a labeled artist studio link only for art
       isArtist, impersonating: false, bankBalance: 1000, auctionEscrow: 0, karma: 0, lotteryTickets: 0,
     }));
     const studio = html.match(/<a\b[^>]*href="\/artist"[^>]*>[\s\S]*?<\/a>/)?.[0];
-    assert.equal(html.includes('aria-label="Start or restart the guided walkthrough"'), isArtist !== true);
+    assert.ok(html.includes('aria-label="Start or restart the guided walkthrough"'));
     assert.equal(Boolean(studio), isArtist === true);
     if (studio) {
       assert.match(studio, /Artist studio/);

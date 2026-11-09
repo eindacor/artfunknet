@@ -53,7 +53,7 @@ test("ordered walkthrough persistence and action guards", async t => {
   const client = await new MongoClient(server.getUri()).connect();
   t.after(async () => { await client.close(); await server.stop(); });
 
-  await t.test("new players start at selection, legacy and artist accounts do not start a walkthrough", async () => {
+  await t.test("new players start at selection, legacy accounts wait for restart, and artists retain and advance saved progress", async () => {
     const db = client.db("walkthrough-eligibility");
     const players = await seed(db);
     assert.deepEqual(getPlayerTutorial((await players.findOne({ _id: "player" }))!),
@@ -63,10 +63,16 @@ test("ordered walkthrough persistence and action guards", async t => {
       tutorial: { step: Step.TUTORIAL_SELECT_ITEM, revision: 0 } });
     await players.insertOne({ _id: "artist-id", active: true, artist_id: "artist",
       tutorial: { step: Step.TUTORIAL_SELECT_ITEM, revision: 0 } });
-    for (const id of ["legacy", "artist", "artist-id"]) {
-      assert.deepEqual(await tutorial.fulfillTutorial(db, id, Step.TUTORIAL_SELECT_ITEM), { step: null, revision: 0 });
-      assert.equal((await players.findOne({ _id: "legacy" }))?.tutorial, undefined);
-      assert.equal((await players.findOne({ _id: id }))?.tutorial?.revision ?? 0, 0);
+    await players.insertOne({ _id: "artist-player", active: true, account_type: "artist", artist_id: "artist",
+      tutorial: { step: Step.TUTORIAL_SELECT_ITEM, revision: 0 } });
+    assert.deepEqual(await tutorial.fulfillTutorial(db, "legacy", Step.TUTORIAL_SELECT_ITEM), { step: null, revision: 0 });
+    assert.equal((await players.findOne({ _id: "legacy" }))?.tutorial, undefined);
+    for (const id of ["artist", "artist-id", "artist-player"]) {
+      assert.deepEqual(await tutorial.resumeTutorial(db, id), { step: Step.TUTORIAL_SELECT_ITEM, revision: 0 });
+      assert.deepEqual(await tutorial.fulfillTutorial(db, id, Step.TUTORIAL_SELECT_ITEM, 0),
+        { step: Step.TUTORIAL_FEATURE_ITEM, revision: 1 });
+      assert.deepEqual((await players.findOne({ _id: id }))?.tutorial,
+        { step: Step.TUTORIAL_FEATURE_ITEM, revision: 1 });
     }
   });
 
@@ -227,7 +233,24 @@ test("ordered walkthrough persistence and action guards", async t => {
     assert.deepEqual((await players.findOne({ _id: "player" }))!.profile, before.profile);
     assert.equal(await db.collection("items").countDocuments(), 0);
     assert.equal(await db.collection("npcs").countDocuments(), 0);
-    await players.updateOne({ _id: "player" }, { $set: { account_type: "artist" } });
+    await players.updateOne({ _id: "player" }, { $set: { account_type: "artist", artist_id: "linked-artist" } });
+    assert.deepEqual(await tutorial.resumeTutorial(db, "player"), next.tutorial);
+    const restarted = await post({ action: "restart" });
+    assert.equal(restarted.status, 200);
+    const artistProgress = (await restarted.json()).tutorial as elements.TutorialProgress;
+    assert.deepEqual(artistProgress, { step: Step.TUTORIAL_SELECT_ITEM, revision: 13 });
+    const advanced = await fulfill(new Request("http://localhost", { method: "POST",
+      body: JSON.stringify({ element: artistProgress.step, revision: artistProgress.revision }) }));
+    assert.equal(advanced.status, 200);
+    assert.deepEqual((await advanced.json()).tutorial, { step: Step.TUTORIAL_FEATURE_ITEM, revision: 14 });
+    const skipped = await post({ action: "skip", element: Step.TUTORIAL_FEATURE_ITEM, revision: 14 });
+    assert.equal(skipped.status, 200);
+    assert.deepEqual((await skipped.json()).tutorial, { step: Step.TUTORIAL_FILL_FEATURES, revision: 15 });
+    const artistPlayer = (await players.findOne({ _id: "player" }))!;
+    assert.deepEqual(artistPlayer.profile, before.profile);
+    assert.equal(artistPlayer.account_type, "artist");
+    assert.equal(artistPlayer.artist_id, "linked-artist");
+    await players.updateOne({ _id: "player" }, { $set: { active: false } });
     assert.equal((await post({ action: "restart" })).status, 403);
   });
 
