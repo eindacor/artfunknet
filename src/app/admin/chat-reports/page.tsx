@@ -16,7 +16,8 @@ export default async function ChatReportsAdminPage() {
         <h2>Reported gallery messages</h2>
         <p>
           Reported messages do not expire automatically. Hide messages that
-          should no longer be visible in gallery chat.
+          should no longer be visible in gallery chat, or dismiss reports that
+          require no action.
         </p>
         <ChatReportList reports={reports} />
       </section>

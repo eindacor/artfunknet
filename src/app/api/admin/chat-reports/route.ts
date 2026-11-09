@@ -59,39 +59,61 @@ export async function PATCH(request: Request) {
   const auth = await requireAdminApi();
   if (!auth.ok) return auth.response;
 
-  let body: { id?: unknown; hidden?: unknown };
+  let body: { id?: unknown; hidden?: unknown; action?: unknown };
   try {
-    body = (await request.json()) as { id?: unknown; hidden?: unknown };
+    body = (await request.json()) as {
+      id?: unknown;
+      hidden?: unknown;
+      action?: unknown;
+    };
   } catch {
     return NextResponse.json(
       { error: "The moderation request is invalid." },
       { status: 400 },
     );
   }
-  if (
-    typeof body.id !== "string" ||
-    body.id.length === 0 ||
-    typeof body.hidden !== "boolean"
-  ) {
+  if (typeof body.id !== "string" || body.id.length === 0) {
     return NextResponse.json(
-      { error: "A message and visibility state are required." },
+      { error: "A reported message is required." },
+      { status: 400 },
+    );
+  }
+  const dismissing = body.action === "dismiss";
+  if (!dismissing && typeof body.hidden !== "boolean") {
+    return NextResponse.json(
+      { error: "A message visibility state is required." },
       { status: 400 },
     );
   }
 
   const database = await getDatabase();
   await ensureGalleryChatIndexes(database);
+  const moderatedAt = new Date();
   const result = await database
     .collection<GalleryChatDocument>("gallery_chat_messages")
     .updateOne(
-      { _id: body.id, reported: true },
       {
-        $set: {
-          hidden: body.hidden,
-          moderated_at: new Date(),
-          moderated_by: auth.session.email,
-        },
+        _id: body.id,
+        reported: true,
+        dismissed_at: { $exists: false },
+        ...(dismissing ? { hidden: { $ne: true } } : {}),
       },
+      dismissing
+        ? {
+            $set: {
+              dismissed_at: moderatedAt,
+              dismissed_by: auth.session.email,
+              moderated_at: moderatedAt,
+              moderated_by: auth.session.email,
+            },
+          }
+        : {
+            $set: {
+              hidden: body.hidden as boolean,
+              moderated_at: moderatedAt,
+              moderated_by: auth.session.email,
+            },
+        },
     );
   if (result.matchedCount !== 1) {
     return NextResponse.json(
@@ -100,5 +122,9 @@ export async function PATCH(request: Request) {
     );
   }
 
-  return NextResponse.json({ status: "ok", hidden: body.hidden });
+  return NextResponse.json({
+    status: "ok",
+    dismissed: dismissing,
+    ...(dismissing ? {} : { hidden: body.hidden }),
+  });
 }

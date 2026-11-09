@@ -89,7 +89,13 @@ export function getGalleryChatReportUpdate(reporterId: string, now: Date) {
       reported_at: now,
     },
     $addToSet: { reporter_ids: reporterId },
-    $unset: { expires_at: "" as const },
+    $unset: {
+      dismissed_at: "" as const,
+      dismissed_by: "" as const,
+      expires_at: "" as const,
+      moderated_at: "" as const,
+      moderated_by: "" as const,
+    },
   };
 }
 

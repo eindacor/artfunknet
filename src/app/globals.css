@@ -9935,6 +9935,13 @@ a.welcome-button {
   gap: 12px;
 }
 
+.admin-chat-report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .admin-chat-report-card button {
   border: 1px solid #ff33cc;
   border-radius: 3px;
@@ -9943,6 +9950,17 @@ a.welcome-button {
   color: #ff33cc;
   font-weight: 700;
   cursor: pointer;
+}
+
+.admin-chat-report-card button.dismiss {
+  border-color: #aaa4af;
+  color: #d3ced6;
+}
+
+.admin-chat-report-card button.dismiss:hover,
+.admin-chat-report-card button.dismiss:focus-visible {
+  background: #d3ced6;
+  color: #211b20;
 }
 
 .admin-chat-report-card button:hover,

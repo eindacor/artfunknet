@@ -162,6 +162,7 @@ test("admin navigation shows review indicators only for pending applications, re
 
 test("admin review actions refresh the pending indicators after successful moderation", async () => {
   let refreshes = 0;
+  const chatRequests: Array<Record<string, unknown>> = [];
   const hooks = { ...React, useState: (initial: unknown) => [initial, () => {}] };
   const navigation = { useRouter: () => ({ refresh: () => { refreshes++; } }) };
   type Element = React.ReactElement<Record<string, unknown>>;
@@ -183,7 +184,10 @@ test("admin review actions refresh the pending indicators after successful moder
 
   const chat = await load<typeof import("../app/admin/chat-reports/chat-report-list.tsx")>(
     "../app/admin/chat-reports/chat-report-list.tsx", { react: hooks, "next/navigation": navigation }, {
-      fetch: async () => Response.json({ status: "ok" }),
+      fetch: async (_url: string, options: RequestInit) => {
+        chatRequests.push(JSON.parse(String(options.body)) as Record<string, unknown>);
+        return Response.json({ status: "ok" });
+      },
     });
   const reports = chat.default({ reports: [{
     id: "report", galleryOwnerId: "global", galleryOwnerName: "Global", authorId: "player",
@@ -192,7 +196,69 @@ test("admin review actions refresh the pending indicators after successful moder
   }] });
   (elements(reports).find(element => element.props.children === "Hide message")!.props.onClick as () => void)();
   await new Promise(resolve => setImmediate(resolve));
-  assert.equal(refreshes, 2);
+  (elements(reports).find(element => element.props.children === "Dismiss")!.props.onClick as () => void)();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(chatRequests, [
+    { id: "report", hidden: true },
+    { id: "report", action: "dismiss" },
+  ]);
+  assert.equal(refreshes, 3);
+});
+
+test("dismissing a chat report records a no-action review without hiding the message", async () => {
+  let filter: unknown;
+  let update: unknown;
+  const route = await load<typeof import("../app/api/admin/chat-reports/route.ts")>(
+    "../app/api/admin/chat-reports/route.ts",
+    {
+      "next/server": {
+        NextResponse: {
+          json: (body: unknown, init?: ResponseInit) => Response.json(body, init),
+        },
+      },
+      "@/server/admin-api": {
+        requireAdminApi: async () => ({
+          ok: true,
+          session: { email: "admin@example.test" },
+        }),
+      },
+      "@/server/gallery-chat": {
+        createGlobalSystemChatMessage: async () => {},
+        ensureGalleryChatIndexes: async () => {},
+        getGalleryChatReports: async () => [],
+      },
+      "@/server/mongodb": {
+        getDatabase: async () => ({
+          collection: () => ({
+            updateOne: async (nextFilter: unknown, nextUpdate: unknown) => {
+              filter = nextFilter;
+              update = nextUpdate;
+              return { matchedCount: 1 };
+            },
+          }),
+        }),
+      },
+    },
+  );
+  const response = await route.PATCH(new Request("http://localhost/api/admin/chat-reports", {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ id: "report", action: "dismiss" }),
+  }));
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { status: "ok", dismissed: true });
+  assert.deepEqual(JSON.parse(JSON.stringify(filter)), {
+    _id: "report",
+    reported: true,
+    dismissed_at: { $exists: false },
+    hidden: { $ne: true },
+  });
+  const set = (update as { $set: Record<string, unknown> }).$set;
+  assert.equal(set.dismissed_by, "admin@example.test");
+  assert.equal(set.moderated_by, "admin@example.test");
+  assert.equal(set.hidden, undefined);
+  assert.ok(set.dismissed_at instanceof Date);
+  assert.equal(set.moderated_at, set.dismissed_at);
 });
 
 test("admin gallery settings edit and submit independent Actual and Debug values", async () => {

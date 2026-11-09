@@ -56,6 +56,26 @@ export default function ChatReportList({
     setPendingId("");
   }
 
+  async function dismissReport(report: GalleryChatReportView) {
+    setPendingId(report.id);
+    setError("");
+    const response = await fetch("/api/admin/chat-reports", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id: report.id, action: "dismiss" }),
+    });
+    const body = (await response.json()) as { error?: string };
+    if (!response.ok) {
+      setError(body.error ?? "The chat report could not be dismissed.");
+    } else {
+      setCurrentReports((current) =>
+        current.filter((candidate) => candidate.id !== report.id),
+      );
+      router.refresh();
+    }
+    setPendingId("");
+  }
+
   if (currentReports.length === 0) {
     return <p>No chat messages have been reported.</p>;
   }
@@ -101,17 +121,29 @@ export default function ChatReportList({
               <time dateTime={report.createdAt}>
                 {new Date(report.createdAt).toLocaleString()}
               </time>
-              <button
-                disabled={pendingId.length > 0}
-                onClick={() => void setVisibility(report, !report.hidden)}
-                type="button"
-              >
-                {pendingId === report.id
-                  ? "Saving..."
-                  : report.hidden
-                    ? "Restore visibility"
-                    : "Hide message"}
-              </button>
+              <span className="admin-chat-report-actions">
+                {!report.hidden ? (
+                  <button
+                    className="dismiss"
+                    disabled={pendingId.length > 0}
+                    onClick={() => void dismissReport(report)}
+                    type="button"
+                  >
+                    {pendingId === report.id ? "Dismissing..." : "Dismiss"}
+                  </button>
+                ) : null}
+                <button
+                  disabled={pendingId.length > 0}
+                  onClick={() => void setVisibility(report, !report.hidden)}
+                  type="button"
+                >
+                  {pendingId === report.id
+                    ? "Saving..."
+                    : report.hidden
+                      ? "Restore visibility"
+                      : "Hide message"}
+                </button>
+              </span>
             </footer>
             {report.hidden ? (
               <small>

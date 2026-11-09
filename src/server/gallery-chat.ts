@@ -54,6 +54,8 @@ export type GalleryChatDocument = {
   hidden: boolean;
   moderated_at?: Date;
   moderated_by?: string;
+  dismissed_at?: Date;
+  dismissed_by?: string;
   system_event_key?: string;
 };
 
@@ -360,7 +362,7 @@ export async function getGalleryChatReports(
   await ensureGalleryChatIndexes(database);
   const reports = await database
     .collection<GalleryChatDocument>("gallery_chat_messages")
-    .find({ reported: true })
+    .find({ reported: true, dismissed_at: { $exists: false } })
     .sort({ created_at: -1 })
     .limit(250)
     .toArray();

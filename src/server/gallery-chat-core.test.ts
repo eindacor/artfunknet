@@ -57,7 +57,13 @@ test("reporting preserves a message by removing its expiration", () => {
   assert.deepEqual(getGalleryChatReportUpdate("reporter-1", reportedAt), {
     $set: { reported: true, reported_at: reportedAt },
     $addToSet: { reporter_ids: "reporter-1" },
-    $unset: { expires_at: "" },
+    $unset: {
+      dismissed_at: "",
+      dismissed_by: "",
+      expires_at: "",
+      moderated_at: "",
+      moderated_by: "",
+    },
   });
 });
 
