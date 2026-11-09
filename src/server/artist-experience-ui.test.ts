@@ -2788,7 +2788,7 @@ test("the public gallery Join link opens the existing account form in registrati
   });
   const page = await load<typeof import("../app/play/login/page.tsx")>("../app/play/login/page.tsx", {
     "next/navigation": {}, "@/server/session": { getPlayerSession: async () => null },
-    "@/server/oauth-player": { isOAuthProviderConfigured: () => false },
+    "@/server/oauth-player": { isOAuthProviderConfigured: () => true },
     "@/server/oauth-providers": oauthProviders, "./player-login-form": form,
     "@/server/mongodb": {}, "@/server/artist-types": {},
   });
@@ -2796,6 +2796,9 @@ test("the public gallery Join link opens the existing account form in registrati
     const html = renderToStaticMarkup(await page.default({ searchParams: Promise.resolve({ mode }) }));
     assert.equal(html.includes('name="screenName"'), mode === "register");
     assert.equal(html.includes('name="confirmPassword"'), mode === "register");
+    for (const provider of ["Google", "Discord", "Microsoft"]) assert.match(html, new RegExp(`Continue with ${provider}`));
+    assert.match(html, /Sign in through Steam/);
+    assert.doesNotMatch(html, /Instagram|\/api\/auth\/player\/instagram/);
   }
 });
 
