@@ -2796,10 +2796,40 @@ test("the public gallery Join link opens the existing account form in registrati
     const html = renderToStaticMarkup(await page.default({ searchParams: Promise.resolve({ mode }) }));
     assert.equal(html.includes('name="screenName"'), mode === "register");
     assert.equal(html.includes('name="confirmPassword"'), mode === "register");
-    for (const provider of ["Google", "Discord", "Microsoft"]) assert.match(html, new RegExp(`Continue with ${provider}`));
+    for (const provider of ["Google", "Discord"]) assert.match(html, new RegExp(`Continue with ${provider}`));
     assert.match(html, /Sign in through Steam/);
-    assert.doesNotMatch(html, /Instagram|\/api\/auth\/player\/instagram/);
+    assert.doesNotMatch(html, /Instagram|Microsoft|\/api\/auth\/player\/(?:instagram|microsoft)/);
   }
+});
+
+test("the player account hides Microsoft synchronization while retaining other providers", async () => {
+  let providers: Array<{ id: string }> | undefined;
+  const page = await load<typeof import("../app/play/account/page.tsx")>("../app/play/account/page.tsx", {
+    "@/server/mongodb": {
+      getDatabase: async () => ({
+        collection: () => ({
+          findOne: async () => ({
+            _id: "player-1", active: true, email: "player@example.test", screen_name: "Player",
+          }),
+        }),
+      }),
+    },
+    "@/server/patreon": { isPatreonIntegrationConfigured: () => false },
+    "@/server/player-view-settings": {
+      getPlayerViewSettings: () => ({ enableReveals: true, showGalleryVisitors: true }),
+    },
+    "@/server/session": { requirePlayer: async () => ({ playerId: "player-1" }) },
+    "@/server/oauth-player": { isOAuthProviderConfigured: () => true },
+    "@/server/oauth-providers": oauthProviders,
+    "./account-form": {
+      default: (props: { providers: Array<{ id: string }> }) => {
+        providers = props.providers;
+        return null;
+      },
+    },
+  });
+  renderToStaticMarkup(await page.default({ searchParams: Promise.resolve({}) }));
+  assert.deepEqual(providers?.map(({ id }) => id), ["google", "discord", "steam", "instagram"]);
 });
 
 test("gallery directory cards and rows distinguish contributing artists without changing player-only listings", async () => {

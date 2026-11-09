@@ -11,6 +11,9 @@ import type { OAuthPlayer } from "@/server/oauth-identity";
 
 import AccountForm from "./account-form";
 
+// TODO: Re-enable Microsoft account synchronization after its OAuth flow is debugged.
+const ACCOUNT_OAUTH_PROVIDERS = OAUTH_PROVIDERS.filter(({ id }) => id !== "microsoft");
+
 type PlayerAccount = {
   _id: string;
   email: string;
@@ -102,7 +105,7 @@ export default async function PlayerAccountPage({
           Array.isArray(params.oauth) ? params.oauth[0] : params.oauth,
           Array.isArray(params.provider) ? params.provider[0] : params.provider,
         )}
-        providers={OAUTH_PROVIDERS.map(({ id, name }) => {
+        providers={ACCOUNT_OAUTH_PROVIDERS.map(({ id, name }) => {
           const account = player.oauth_accounts?.[id];
           const verifiedAt = account?.verified_at ? new Date(account.verified_at) : null;
           return {

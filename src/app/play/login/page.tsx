@@ -39,7 +39,8 @@ export default async function PlayerLoginPage({ searchParams }: {
         providers={{
           discord: isOAuthProviderConfigured("discord"),
           google: isOAuthProviderConfigured("google"),
-          microsoft: isOAuthProviderConfigured("microsoft"),
+          // TODO: Re-enable Microsoft login/account creation after its OAuth flow is debugged.
+          microsoft: false,
           // TODO: Re-enable Instagram login/account creation after its OAuth flow is debugged.
           instagram: false,
           steam: true,
