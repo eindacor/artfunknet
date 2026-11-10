@@ -7,6 +7,41 @@ import {
 import type { CSSProperties } from "react";
 import type { ItemCardRendererProps } from "./types";
 
+function getComicTitleLayout(title: string) {
+  const characters = Array.from(title.trim().toUpperCase());
+  const widthUnits = Math.max(
+    1,
+    characters.reduce((total, character) => {
+      if (/\s/.test(character)) return total + 0.45;
+      if (/[MW@%&]/.test(character)) return total + 1.25;
+      if (/[I1JL]/.test(character)) return total + 0.6;
+      return total + 1;
+    }, 0),
+  );
+  const lines = widthUnits <= 16 ? 1 : 2;
+  const fontSizeCqw = Math.min(
+    lines === 1 ? 60 : 15,
+    Math.max(lines === 1 ? 8.5 : 5.2, (lines === 1 ? 154 : 300) / widthUnits),
+  );
+  const letterSpacingEm =
+    lines === 1 && widthUnits < 10
+      ? Math.min(0.18, (10 - widthUnits) * 0.025)
+      : -0.025;
+  const estimatedLineWidth =
+    (
+      widthUnits * 0.6 * fontSizeCqw +
+      Math.max(0, characters.length - 1) *
+        letterSpacingEm *
+        fontSizeCqw
+    ) / lines;
+  const scaleX = Math.min(
+    lines === 1 ? 2.5 : 1.2,
+    Math.max(0.85, 92 / Math.max(1, estimatedLineWidth)),
+  );
+
+  return { fontSizeCqw, letterSpacingEm, lines, scaleX };
+}
+
 export default function PrismaticCard({
   item,
   alreadyOwned,
@@ -14,9 +49,7 @@ export default function PrismaticCard({
   researchTarget,
 }: ItemCardRendererProps) {
   const sourceUrl = useArtworkImageSource(item.artwork_id, item.artwork.image);
-  const titleLength = Array.from(item.artwork.title).length;
-  const titleSize =
-    titleLength > 42 ? "long" : titleLength > 24 ? "medium" : "short";
+  const titleLayout = getComicTitleLayout(item.artwork.title);
 
   return (
     <div className="render-card comic-card">
@@ -75,15 +108,19 @@ export default function PrismaticCard({
 
         {/* Main title treatment */}
         <section data-rarity={item.artwork.rarity} className="comic-card-title-block">
-          <p className="comic-card-kicker">
-            THE ARTWORK COLLECTION
-          </p>
-          <h3 className="comic-card-title" data-title-size={titleSize}>
+          <h3
+            className="comic-card-title"
+            data-title-lines={titleLayout.lines}
+            style={
+              {
+                "--comic-title-font-size": `${titleLayout.fontSizeCqw}cqw`,
+                "--comic-title-letter-spacing": `${titleLayout.letterSpacingEm}em`,
+                "--comic-title-scale-x": titleLayout.scaleX,
+              } as CSSProperties
+            }
+          >
             {item.artwork.title}
           </h3>
-          <p className="comic-card-artist render-card-artist">
-            BY {item.artwork.artist}
-          </p>
         </section>
 
         {/* Classic comic-book burst */}
@@ -120,9 +157,14 @@ export default function PrismaticCard({
           </span>
         </div>
 
-        {/* Existing item attributes */}
-        <div className="comic-card-attributes">
-          <AttributeIcons item={item} />
+        <div className="comic-card-lower-left">
+          <p className="comic-card-byline">
+            by {item.artwork.artist}
+          </p>
+          {/* Existing item attributes */}
+          <div className="comic-card-attributes">
+            <AttributeIcons item={item} />
+          </div>
         </div>
 
         {item.mint ? (
