@@ -112,9 +112,12 @@ const handlers = ts.transpileModule(
 ).outputText;
 
 test("visitor meetings use the server's charged battery cost, including featured-gallery discounts and free tutorial meetings", async () => {
-  for (const [ownerId, cost, ok] of [
-    ["player", 6, true], ["featured-artist", 6, true], ["other-player", 12, true],
-    ["player", 0, true], ["featured-artist", 6, false],
+  for (const [ownerId, cost, ok, hasInteraction] of [
+    ["player", 6, true, false],
+    ["featured-artist", 6, true, false],
+    ["other-player", 12, true, false],
+    ["player", 0, true, true],
+    ["featured-artist", 6, false, false],
   ] as const) {
     let battery = 6_000;
     const refresh = test.mock.fn();
@@ -123,7 +126,11 @@ test("visitor meetings use the server's charged battery cost, including featured
       setMeetingNpc() {}, setNotice() {}, setError() {},
       setSocialBattery: (update: (value: number) => number) => { battery = update(battery); },
       fetch: async () => Response.json(ok
-        ? { status: "ok", socialBatteryCost: cost }
+        ? {
+            status: "ok",
+            socialBatteryCost: cost,
+            ...(hasInteraction ? { interaction: { type: "test-result" } } : {}),
+          }
         : { error: "Visitor unavailable" }, { status: ok ? 200 : 409 }),
       router: { refresh },
     }) as (npc: { _id: string; owner_id: string; quality: string; tutorial?: true }) => Promise<boolean>;
@@ -131,7 +138,7 @@ test("visitor meetings use the server's charged battery cost, including featured
       _id: "visitor", owner_id: ownerId, quality: "bronze", ...(cost === 0 ? { tutorial: true } : {}),
     }), ok);
     assert.equal(battery, ok ? 6_000 - cost : 6_000);
-    assert.equal(refresh.mock.callCount(), ok ? 1 : 0);
+    assert.equal(refresh.mock.callCount(), ok && hasInteraction ? 1 : 0);
   }
 });
 

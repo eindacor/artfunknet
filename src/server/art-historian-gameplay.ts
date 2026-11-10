@@ -26,6 +26,13 @@ export const DEFAULT_HISTORIAN_QUEST_LIMIT = 8;
 export const DEFAULT_HISTORIAN_TARGET_COUNT = 4;
 export const DEFAULT_HISTORIAN_MINIMUM = 3;
 
+export class ArtHistorianQuestLimitError extends Error {
+  constructor() {
+    super("The Art Historian has a new objective, but your quest list is full.");
+    this.name = "ArtHistorianQuestLimitError";
+  }
+}
+
 const REWARD_MULTIPLIERS: Record<
   ArtworkRarity,
   { money: number; xp: number; item?: { rarity: ArtworkRarity; foil: boolean } }
@@ -209,9 +216,7 @@ export async function createArtHistorianQuest(
     .collection<ArtHistorianQuest>("quests")
     .countDocuments({ owner_id: player._id });
   if (questCount >= DEFAULT_HISTORIAN_QUEST_LIMIT) {
-    throw new Error(
-      "The Art Historian has a new objective, but your quest list is full.",
-    );
+    throw new ArtHistorianQuestLimitError();
   }
 
   const [metadata, settings] = await Promise.all([

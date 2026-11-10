@@ -24,6 +24,7 @@ import {
   evaluateDonorQuestItemChance,
 } from "@/server/npc-quest-item";
 import {
+  ArtHistorianQuestLimitError,
   ART_HISTORIAN_ATTRIBUTE_ID,
   createArtHistorianQuest,
   getArtHistorianQuestViews,
@@ -356,6 +357,13 @@ export async function POST(
         },
       });
     } catch (error) {
+      if (error instanceof ArtHistorianQuestLimitError) {
+        return NextResponse.json({
+          status: "ok",
+          socialBatteryCost,
+          message: error.message,
+        });
+      }
       await Promise.all([
         questId
           ? database

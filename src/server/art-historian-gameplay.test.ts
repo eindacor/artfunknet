@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { runInNewContext } from "node:vm";
+import ts from "typescript";
 
 import {
+  ArtHistorianQuestLimitError,
   calculateHistorianClaimXp,
   calculateHistorianConditionSubmissionBonus,
   calculateHistorianReward,
@@ -9,6 +13,68 @@ import {
   getUnfulfilledHistorianTargetIds,
   isHistorianSpecialItem,
 } from "./art-historian-gameplay.ts";
+
+test("a full Historian quest list returns a successful no-result meeting", async () => {
+  const source = ts.createSourceFile(
+    "route.ts",
+    await readFile(
+      new URL("../app/api/play/npcs/[id]/meet/route.ts", import.meta.url),
+      "utf8",
+    ),
+    ts.ScriptTarget.Latest,
+    true,
+  );
+  let historian: ts.IfStatement | undefined;
+  function visit(node: ts.Node) {
+    if (
+      ts.isIfStatement(node) &&
+      node.expression.getText(source) ===
+        "npc.attribute_id === ART_HISTORIAN_ATTRIBUTE_ID"
+    ) {
+      historian = node;
+    }
+    ts.forEachChild(node, visit);
+  }
+  visit(source);
+  assert.ok(historian);
+  const code = ts.transpileModule(
+    `async function meetHistorian() { ${historian.getText(source)} }\nmeetHistorian`,
+    { compilerOptions: { target: ts.ScriptTarget.ES2022 } },
+  ).outputText;
+  const loggedErrors: unknown[] = [];
+  const response = await (runInNewContext(code, {
+    ART_HISTORIAN_ATTRIBUTE_ID: "historian",
+    ArtHistorianQuestLimitError,
+    NextResponse: {
+      json: (body: unknown, init?: ResponseInit) => Response.json(body, init),
+    },
+    console: { error: (...args: unknown[]) => loggedErrors.push(args) },
+    createArtHistorianQuest: async () => {
+      throw new ArtHistorianQuestLimitError();
+    },
+    database: {},
+    getArtHistorianQuestViews: async () => [],
+    getNpcInteractionRollbackUpdate: () => ({}),
+    now: new Date(),
+    npc: {
+      _id: "historian",
+      attribute_id: "historian",
+      npc_name: "Art Historian",
+      quality: "bronze",
+    },
+    player: { _id: "player" },
+    socialBatteryCost: 5,
+  }) as () => Promise<Response>)();
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    status: "ok",
+    socialBatteryCost: 5,
+    message:
+      "The Art Historian has a new objective, but your quest list is full.",
+  });
+  assert.deepEqual(loggedErrors, []);
+});
 
 test("Historian condition bonus requires condition strictly above the threshold", () => {
   assert.equal(

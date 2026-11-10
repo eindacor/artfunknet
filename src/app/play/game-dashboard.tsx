@@ -2862,7 +2862,7 @@ export default function GameDashboard({
         setNotice(body.message);
       }
 
-      router.refresh();
+      if (body.interaction) router.refresh();
       return true;
     } catch (meetError) {
       const message =
