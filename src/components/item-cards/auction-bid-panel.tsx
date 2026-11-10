@@ -75,19 +75,21 @@ export default function AuctionBidPanel({
       };
       if (!response.ok || !body.madePublicAuctionId) {
         throw new Error(
-          body.error ?? "The private auction could not be made public.",
+          body.error ??
+            "The limited-access auction could not be made public.",
         );
       }
       onMadePublic?.(
         body.madePublicAuctionId,
-        body.message ?? "Private auction converted to a public auction.",
+        body.message ??
+          "Limited-access auction converted to a public auction.",
       );
       onClose();
     } catch (makePublicError) {
       setError(
         makePublicError instanceof Error
           ? makePublicError.message
-          : "The private auction could not be made public.",
+          : "The limited-access auction could not be made public.",
       );
     } finally {
       setSubmitting(false);
@@ -104,7 +106,9 @@ export default function AuctionBidPanel({
     >
       <div className="standard-item-auction-heading">
         <span>
-          {auction.privateAuction ? "Private auction" : "Public auction"}
+          {auction.privateAuction
+            ? "Limited-access auction"
+            : "Public auction"}
         </span>
         {auction.currentlyWinning ? (
           <strong>

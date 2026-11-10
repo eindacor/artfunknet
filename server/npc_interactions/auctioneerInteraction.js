@@ -80,7 +80,7 @@ auctioneerInteraction = function(npc_object, player_interface) {
 		createAuction(item_object._id, Math.floor(getItemObjectValueByType(item_object, 'actual', player_interface.getId()) * auction_price_adjustment), -1, PRIVATE_AUCTION_DURATION, player_interface.getId());
 	});
 	
-	message += " They have also given you exclusive access to some items available in a private auction. Visit the auction house to make a bid.";
+	message += " They have also given you exclusive access to some items available in a limited-access auction. Visit the auction house to make a bid.";
 
 	return {'message': message};
 }

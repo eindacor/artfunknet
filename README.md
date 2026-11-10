@@ -609,7 +609,7 @@ The basic gameplay loop is active:
 - Auctioneers activate time-limited market analysis, increasing active auction
   capacity and revealing condition, roll-count, level, and sought-item tools.
   Each encounter also creates short invitation-only auctions visible only to
-  that player. Private lots retain the original rarity amplification, quality
+  that player. Limited-access lots retain the original rarity amplification, quality
   duration bonuses, competitive bot bidding, own-gallery extensions, and
   supported Legendary count and starting-price adjustments.
 - Benefactors grant the original quality-scaled, randomized cash donations,

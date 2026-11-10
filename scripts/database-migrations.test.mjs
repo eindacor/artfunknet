@@ -499,7 +499,7 @@ test("artwork effect migration backfills artwork without mutating item attribute
         code: "AUCTION_BUY_NOW",
         title: "Auction Buy Now",
         description:
-          "Each private auction created by Auctioneers in your gallery has a 50% chance to receive a buy-now price 10% above the starting bid.",
+          "Each limited-access auction created by Auctioneers in your gallery has a 50% chance to receive a buy-now price 10% above the starting bid.",
         parameters: { chance: 0.5, buy_now_multiplier: 1.1 },
       },
     );
@@ -546,7 +546,7 @@ test("artwork effect migration backfills artwork without mutating item attribute
         active: false,
         title: "Admin-edited private auction price",
         description:
-          "The game contributes 37.5% toward your first bid on each private auction; outbid refunds still return the full bid.",
+          "The game contributes 37.5% toward your first bid on each limited-access auction; outbid refunds still return the full bid.",
         parameters: {
           admin_tuning: 7,
           contribution_coefficient: 0.55,

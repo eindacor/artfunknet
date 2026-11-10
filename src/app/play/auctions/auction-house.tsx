@@ -391,7 +391,7 @@ export default function AuctionHouse({
               >
                 <option value="all">All auctions</option>
                 <option value="public">Public only</option>
-                <option value="private">Private only</option>
+                <option value="private">Limited-access only</option>
               </select>
             </label>
             <label>
@@ -545,7 +545,9 @@ export default function AuctionHouse({
                 <div className="auction-list-seller" role="cell">
                   <strong>{auction.seller_name}</strong>
                   <span>
-                    {auction.privateAuction ? "Private lot" : "Public lot"}
+                    {auction.privateAuction
+                      ? "Limited-access lot"
+                      : "Public lot"}
                   </span>
                   {auction.currentlyWinning ? <em>Winning</em> : null}
                 </div>
@@ -585,7 +587,9 @@ export default function AuctionHouse({
               <div className="auction-lot-details">
                 <div>
                   <span className={auction.privateAuction ? "private" : ""}>
-                    {auction.privateAuction ? "PRIVATE LOT" : "PUBLIC LOT"}
+                    {auction.privateAuction
+                      ? "LIMITED-ACCESS LOT"
+                      : "PUBLIC LOT"}
                   </span>
                   {auction.currentlyWinning ? <strong>WINNING</strong> : null}
                 </div>

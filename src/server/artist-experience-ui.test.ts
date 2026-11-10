@@ -1499,7 +1499,7 @@ test("auctioned item previews replace action buttons and help with active auctio
       auctionPanelActions: React.createElement(
         "button",
         null,
-        "Dismiss private auction",
+        "Dismiss limited-access auction",
       ),
       item,
       legendaryAttributes: [],
@@ -1512,7 +1512,7 @@ test("auctioned item previews replace action buttons and help with active auctio
     }),
   );
   assert.match(html, /data-active-auction="true"/);
-  assert.match(html, /Dismiss private auction/);
+  assert.match(html, /Dismiss limited-access auction/);
   assert.doesNotMatch(html, /data-item-actions|data-item-action-help/);
   assert.equal(loaderProps?.itemId, item._id);
   assert.equal(loaderProps?.playerId, "owner");

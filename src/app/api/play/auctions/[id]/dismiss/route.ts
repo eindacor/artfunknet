@@ -29,7 +29,7 @@ export async function POST(
   });
   if (!auction) {
     return NextResponse.json(
-      { error: "This private auction is no longer available." },
+      { error: "This limited-access auction is no longer available." },
       { status: 409 },
     );
   }
@@ -46,7 +46,7 @@ export async function POST(
     );
   if (dismissed.matchedCount !== 1) {
     return NextResponse.json(
-      { error: "This private auction could not be dismissed." },
+      { error: "This limited-access auction could not be dismissed." },
       { status: 409 },
     );
   }
@@ -54,6 +54,6 @@ export async function POST(
   return NextResponse.json({
     status: "ok",
     dismissedAuctionId: auction._id,
-    message: "Private auction dismissed from Loot.",
+    message: "Limited-access auction dismissed from Offers.",
   });
 }

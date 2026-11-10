@@ -92,14 +92,15 @@ export async function POST(request: Request) {
   );
   if (filtered.candidates.length === 0) {
     return NextResponse.json(
-      { error: "There are no private auctions to make public." },
+      { error: "There are no limited-access auctions to make public." },
       { status: 409 },
     );
   }
   if (filtered.items.length === 0) {
     return NextResponse.json(
       {
-        error: "No private auctions match the selected bulk-action options.",
+        error:
+          "No limited-access auctions match the selected bulk-action options.",
       },
       { status: 409 },
     );
@@ -122,7 +123,7 @@ export async function POST(request: Request) {
   );
   if (madePublicAuctionIds.length === 0) {
     return NextResponse.json(
-      { error: "The private auctions could not be made public." },
+      { error: "The limited-access auctions could not be made public." },
       { status: 409 },
     );
   }
@@ -132,7 +133,7 @@ export async function POST(request: Request) {
     madePublic: madePublicAuctionIds.length,
     madePublicAuctionIds,
     commissionCoefficient,
-    message: `${madePublicAuctionIds.length} private ${
+    message: `${madePublicAuctionIds.length} limited-access ${
       madePublicAuctionIds.length === 1 ? "auction was" : "auctions were"
     } made public.`,
   });

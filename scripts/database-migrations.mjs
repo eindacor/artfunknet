@@ -676,12 +676,14 @@ const LEGACY_AUCTION_BUY_NOW_EFFECT_CODE =
   "AUCTION_COUNT_DEALER_BONUS";
 const PREVIOUS_AUCTION_BUY_NOW_DESCRIPTION =
   "Private auctions created by Auctioneers in your gallery have a buy-now price 10% above the starting bid.";
+const CURRENT_AUCTION_BUY_NOW_DESCRIPTION =
+  "Each private auction created by Auctioneers in your gallery has a 50% chance to receive a buy-now price 10% above the starting bid.";
 const AUCTION_BUY_NOW_EFFECT = {
   _id: "w7ZrD4oEn4Ti6DpZX",
   code: "AUCTION_BUY_NOW",
   title: "Auction Buy Now",
   description:
-    "Each private auction created by Auctioneers in your gallery has a 50% chance to receive a buy-now price 10% above the starting bid.",
+    "Each limited-access auction created by Auctioneers in your gallery has a 50% chance to receive a buy-now price 10% above the starting bid.",
   flavor_text: "More than deserving of its praise.",
   linked_attributes: ["FgRMQA6s24wmTRyrx", "mZH58WpgbKP9o9WZR"],
   parameters: {
@@ -692,8 +694,10 @@ const AUCTION_BUY_NOW_EFFECT = {
 const PRIVATE_AUCTION_BID_CONTRIBUTION_EFFECT = {
   code: "PRIVATE_AUCTION_PRICE_REDUCTION",
   legacy_description: "Private auction items have a reduced starting price.",
-  description:
+  previous_description:
     "The game contributes 37.5% toward your first bid on each private auction; outbid refunds still return the full bid.",
+  description:
+    "The game contributes 37.5% toward your first bid on each limited-access auction; outbid refunds still return the full bid.",
   contribution_coefficient: 0.375,
 };
 const LEGACY_ART_COLLECTOR_AUCTION_EFFECT_CODE =
@@ -877,7 +881,9 @@ async function migratePrivateAuctionBidContributionEffect(database, now) {
             : PRIVATE_AUCTION_BID_CONTRIBUTION_EFFECT.contribution_coefficient;
       const descriptionChanged =
         effect.description ===
-        PRIVATE_AUCTION_BID_CONTRIBUTION_EFFECT.legacy_description;
+          PRIVATE_AUCTION_BID_CONTRIBUTION_EFFECT.legacy_description ||
+        effect.description ===
+          PRIVATE_AUCTION_BID_CONTRIBUTION_EFFECT.previous_description;
       const parametersChanged =
         Object.hasOwn(parameters, "price_multiplier") ||
         configuredContribution !== contributionCoefficient;
@@ -1047,7 +1053,10 @@ async function migrateAuctionBuyNowEffect(database, now) {
         },
       },
     );
-  } else if (existing.description === PREVIOUS_AUCTION_BUY_NOW_DESCRIPTION) {
+  } else if (
+    existing.description === PREVIOUS_AUCTION_BUY_NOW_DESCRIPTION ||
+    existing.description === CURRENT_AUCTION_BUY_NOW_DESCRIPTION
+  ) {
     await effects.updateOne(
       { _id: effectId },
       {

@@ -678,7 +678,8 @@ function VisitedGallery({
 
   function visitorDisabled(npc: GalleryNpcView) {
     const cost = npc.tutorial ? 0 : getVisitorSocialBatteryCost(
-      npc.quality, ownerId === viewerId || gallery?.artist?.featured === true,
+      npc.quality,
+      ownerId === viewerId || gallery?.artist?.featured === true,
     );
     return meetingNpc !== null || npc.alreadyMet || socialBattery < cost || Boolean(npcRewardEffects[npc._id]);
   }
@@ -855,7 +856,12 @@ function VisitedGallery({
       ) : null}
       <GalleryExhibition
         gallery={gallery}
-        visitors={visitors.map(npc => ({ ...npc, disabled: visitorDisabled(npc) }))}
+        visitors={visitors.map(npc => ({
+          ...npc,
+          disabled: visitorDisabled(npc),
+          galleryBenefit:
+            ownerId === viewerId || gallery.artist?.featured === true,
+        }))}
         onMeetVisitor={meetVisitor}
         visitorsVisible={visitorsVisible}
         onVisitorsVisibleChange={onVisitorsVisibleChange}
@@ -890,10 +896,13 @@ function VisitedGallery({
               role="group"
             >
               {visitors.map((npc) => {
-                const socialBatteryCost = npc.tutorial ? 0 : getVisitorSocialBatteryCost(
-                  npc.quality,
-                  ownerId === viewerId || gallery.artist?.featured === true,
-                );
+                const socialBatteryCost = npc.tutorial
+                  ? 0
+                  : getVisitorSocialBatteryCost(
+                      npc.quality,
+                      ownerId === viewerId ||
+                        gallery.artist?.featured === true,
+                    );
                 const insufficientBattery =
                   socialBattery < socialBatteryCost;
                 return (
@@ -904,7 +913,14 @@ function VisitedGallery({
                         npc.alreadyMet || insufficientBattery
                           ? "disabled"
                           : "enabled"
-                      } ${npcRewardEffects[npc._id] ? "rewarding" : ""}`}
+                      } ${
+                        ownerId === viewerId ||
+                        gallery.artist?.featured === true
+                          ? "gallery-benefit"
+                          : ""
+                      } ${
+                        npcRewardEffects[npc._id] ? "rewarding" : ""
+                      }`}
                       data-npc-id={npc._id}
                       data-tutorial-element={ownerId === viewerId && npc.attribute_id === ART_DONOR_ATTRIBUTE_ID && !npc.alreadyMet
                         ? TutorialElement.TUTORIAL_MEET_VISITOR : undefined}

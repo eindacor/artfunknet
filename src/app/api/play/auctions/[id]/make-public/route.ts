@@ -46,7 +46,7 @@ export async function POST(
   );
   if (!convertedIds.includes(id)) {
     return NextResponse.json(
-      { error: "This private auction is no longer available." },
+      { error: "This limited-access auction is no longer available." },
       { status: 409 },
     );
   }
@@ -55,6 +55,6 @@ export async function POST(
     status: "ok",
     madePublicAuctionId: id,
     commissionCoefficient,
-    message: "Private auction converted to a public auction.",
+    message: "Limited-access auction converted to a public auction.",
   });
 }

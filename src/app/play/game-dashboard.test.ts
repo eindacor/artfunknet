@@ -181,10 +181,23 @@ test("visitor buttons retain their icon, type and actual stamina cost at home, i
           assert.equal(button.includes('disabled=""'), npc.alreadyMet || cost > 7 || meetingNpc !== null || (pending && listName === "galleryVisitors"));
           assert.equal(button.includes('aria-busy="true"'), meetingNpc === npc._id, "Only the visitor being met is busy");
           assert.equal(/\bclass="gallery-npc [^"]*\bdisabled\b/.test(button), npc.alreadyMet || cost > 7, "Request locks must not use the dimmed unavailable state");
+          assert.equal(
+            /\bgallery-benefit\b/.test(button),
+            discounted,
+            "Only own-gallery and featured-gallery visitors receive the foil treatment",
+          );
         }
       }
     }
   }
+  const globalCss = await readFile(
+    new URL("../globals.css", import.meta.url),
+    "utf8",
+  );
+  assert.match(
+    globalCss,
+    /\.gallery-npc\.gallery-benefit::before \{[^}]*animation: gallery-npc-foil-shimmer/s,
+  );
 });
 
 test("scene and tray visitor meetings share stamina guards, met updates, failure handling and duplicate-request protection", async () => {

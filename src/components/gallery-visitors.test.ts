@@ -41,7 +41,12 @@ test("each visitor gets a quality-colored interactive figure and three ambient f
     else Reflect.deleteProperty(globalThis, "document");
   });
   const visitors = [
-    { _id: "bronze", quality: "bronze" as const, alreadyMet: false },
+    {
+      _id: "bronze",
+      quality: "bronze" as const,
+      alreadyMet: false,
+      galleryBenefit: true,
+    },
     { _id: "silver", quality: "silver" as const, alreadyMet: false, disabled: true },
     { _id: "gold", quality: "gold" as const, alreadyMet: true },
     { _id: "platinum", quality: "platinum" as const, alreadyMet: false },
@@ -69,6 +74,12 @@ test("each visitor gets a quality-colored interactive figure and three ambient f
       assert.equal(colored.material.color.getHexString(), colors[index]);
       assert.equal(colored.material.opacity, visitor.alreadyMet ? 0.2 : 0.8);
       assert.equal(colored.userData.interactive, !visitor.alreadyMet && !visitor.disabled);
+      const foil = colored.children[0] as THREE.Mesh<
+        THREE.PlaneGeometry,
+        THREE.ShaderMaterial
+      >;
+      assert.ok(foil.material instanceof THREE.ShaderMaterial);
+      assert.equal(foil.visible, visitor.galleryBenefit === true);
       for (const mesh of ambient) {
         assert.equal(mesh.userData.visitorId, undefined);
         assert.equal(mesh.material.color.getHexString(), "302c28");
@@ -122,12 +133,20 @@ test("each visitor gets a quality-colored interactive figure and three ambient f
     assert.deepEqual(meshes.map(mesh => mesh.position.toArray()), positions, "Toggling must not reshuffle visitors");
   }
   const first = layers[0];
+  assert.equal(first.update(1_000), false);
+  const firstFoil = (first.group.children[0] as VisitorMesh)
+    .children[0] as THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
+  assert.equal(firstFoil.material.uniforms.time.value, 1_000 / 5_500);
+  assert.equal(first.update(2_000, true), false);
+  assert.equal(firstFoil.material.uniforms.time.value, 0.35);
   const firstMesh = first.group.children[0] as VisitorMesh;
   let textureDisposals = 0;
   let materialDisposals = 0;
+  let foilMaterialDisposals = 0;
   let geometryDisposals = 0;
   firstMesh.material.alphaMap!.addEventListener("dispose", () => { textureDisposals++; });
   firstMesh.material.addEventListener("dispose", () => { materialDisposals++; });
+  firstFoil.material.addEventListener("dispose", () => { foilMaterialDisposals++; });
   const firstGeometries = new Set((first.group.children as VisitorMesh[]).map(mesh => mesh.geometry));
   firstGeometries.forEach(geometry => geometry.addEventListener("dispose", () => { geometryDisposals++; }));
   first.dispose();
@@ -142,8 +161,10 @@ test("each visitor gets a quality-colored interactive figure and three ambient f
   assert.equal(layers[1].group.visible, true);
   assert.equal(textureDisposals, 1);
   assert.equal(materialDisposals, 1);
+  assert.equal(foilMaterialDisposals, 1);
   assert.equal(geometryDisposals, firstGeometries.size);
   const activeLayer = layers[2];
+  assert.equal(activeLayer.update(1_000), true);
   const meshes = activeLayer.group.children as VisitorMesh[];
   const colored = meshes[0];
   const previousPositions = meshes.map(mesh => mesh.position.toArray());
@@ -440,7 +461,12 @@ test("camera and target glide together horizontally without timing offsets and s
         scene: {}, camera, destination, target, targetDestination, toGalleryUnits, reducedMotion: { matches: reducedMotion },
         layout, activeIndex: 0, artworkZ, zoomed, host: { clientWidth: 1100 }, visitorsVisible: true,
         getGalleryWideCameraFraming, getGalleryCameraFraming,
-        visitors: { setVisible() {}, setCameraDepth: (depth: number) => { visitorDepth = depth; } }, updateCursor() {},
+        visitors: {
+          setVisible() {},
+          setCameraDepth: (depth: number) => { visitorDepth = depth; },
+          update: () => false,
+        },
+        updateCursor() {},
         renderer: { render: () => {
           lastRenderedHeight = camera.position.y;
           if (overview) assert.equal(camera.position.y, layout.cameraHeight, "Every zoomed-out frame uses the static configured height");

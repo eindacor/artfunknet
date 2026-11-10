@@ -49,7 +49,7 @@ await db.collection("players").updateOne(
 );
 
 console.log("=========================================================");
-console.log("Auctioneer Private Auctions Seeding Complete!");
+console.log("Auctioneer Limited-Access Auctions Seeding Complete!");
 console.log("=========================================================");
 console.log(`- Player: ${playerEmail} (${player._id})`);
 console.log(`- Spawned Auctioneer NPC ID: ${auctioneerNpcId}`);
@@ -58,7 +58,7 @@ console.log("\n--- Verification Instructions ---");
 console.log(`1. Ensure dev server is running (npm run dev)`);
 console.log(`2. Login as ${playerEmail} and navigate to /play`);
 console.log(`3. Meet the "Auctioneer (Dev Test)" visitor in your gallery`);
-console.log(`4. Verify that the private auctions modal window opens showing each generated item!`);
+console.log(`4. Verify that the limited-access auctions modal window opens showing each generated item!`);
 console.log(`5. Click on an item or "Bid" button in the modal to open item details & place a bid.`);
 console.log("=========================================================");
 

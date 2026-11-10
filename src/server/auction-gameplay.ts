@@ -1872,7 +1872,7 @@ export async function validateBidder(
     player.profile.market_expert?.expiration,
   );
   if (!canPlayerAccessAuction(auction, player._id, marketExpert)) {
-    return "This is a private auction.";
+    return "This is a limited-access auction.";
   }
   const cap = Math.floor(player.profile.auction_cap * (marketExpert ? 1.5 : 1));
   const winning = await database.collection<Auction>("auctions").countDocuments({

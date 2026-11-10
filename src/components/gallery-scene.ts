@@ -111,6 +111,7 @@ export function mountGalleryScene(
       camera.position.lerp(destination, blend);
     }
     if (!zoomed) camera.position.y = layout.cameraHeight;
+    const visitorAnimating = visitors.update(time, reducedMotion.matches);
     const moving = !reducedMotion.matches
       && (camera.position.distanceTo(destination) > toGalleryUnits(0.001)
         || target.distanceTo(targetDestination) > toGalleryUnits(0.001));
@@ -122,7 +123,7 @@ export function mountGalleryScene(
     visitors.setCameraDepth(camera.position.z);
     renderer.render(scene, camera);
     updateCursor();
-    if (moving) invalidate();
+    if (moving || visitorAnimating) invalidate();
     else lastTime = 0;
   }
 

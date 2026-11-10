@@ -8518,6 +8518,8 @@ a.welcome-button {
   --npc-color: #aaa;
   --npc-shadow-offset: 3px;
   --npc-shadow-outline-offset: 5px;
+  position: relative;
+  isolation: isolate;
   display: grid;
   grid-template-columns: 36px minmax(0, 1fr);
   gap: 2px 6px;
@@ -8536,6 +8538,53 @@ a.welcome-button {
   box-shadow:
     var(--npc-shadow-offset) var(--npc-shadow-offset) 0 var(--npc-color),
     var(--npc-shadow-outline-offset) var(--npc-shadow-outline-offset) 0 #111;
+}
+
+.gallery-npc.gallery-benefit::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  border-radius: 6px;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      115deg,
+      transparent 5%,
+      rgb(255 75 205 / 12%) 20%,
+      rgb(255 75 205 / 35%) 32%,
+      rgb(90 225 255 / 42%) 45%,
+      rgb(255 238 90 / 38%) 57%,
+      rgb(139 92 246 / 31%) 70%,
+      transparent 90%
+    );
+  background-position: 100% 0;
+  background-size: 360% 100%;
+  animation: gallery-npc-foil-shimmer 5.5s ease-in-out infinite;
+}
+
+.gallery-npc.gallery-benefit > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes gallery-npc-foil-shimmer {
+  0%,
+  12% {
+    background-position: 100% 0;
+    opacity: 0.08;
+  }
+
+  24%,
+  72% {
+    opacity: 0.8;
+  }
+
+  88%,
+  100% {
+    background-position: 0% 0;
+    opacity: 0.08;
+  }
 }
 
 .gallery-npc > i {
@@ -8605,6 +8654,14 @@ a.welcome-button {
 .gallery-npc.rewarding {
   cursor: not-allowed;
   opacity: 0.45;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gallery-npc.gallery-benefit::before {
+    background-position: 50% 0;
+    animation: none;
+    opacity: 0.35;
+  }
 }
 
 .npc-effect-layer {

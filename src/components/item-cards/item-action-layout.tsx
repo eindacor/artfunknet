@@ -95,8 +95,8 @@ const ACTION_GUIDE = [
   ["fa-museum", "Historian", "Submit the item toward a matching Historian quest."],
   ["fa-plus", "Collect", "Add the offered work to your collection."],
   ["fa-shopping-cart", "Purchase", "Buy the offered work at its listed price."],
-  ["fa-times", "Decline / dismiss", "Discard an offer or dismiss a private auction."],
-  ["fa-globe", "Make public", "Move a private auction into the public auction house."],
+  ["fa-times", "Decline / dismiss", "Discard an offer or dismiss a limited-access auction."],
+  ["fa-globe", "Make public", "Move a limited-access auction into the public auction house."],
 ] as const;
 
 function getRenderedActionGuide(container: Element | null) {

@@ -249,7 +249,7 @@ export async function processAuctioneerInteraction(
     );
     const message =
       `The ${npc.quality} Auctioneer ${extendingAccess ? "extended" : "activated"} market analysis ${extendingAccess ? "by" : "for"} ${accessMinutes} minutes, until ${marketExpertExpiration.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}, ` +
-      `and gave you a five-minute preview of ${auctionCount} ten-minute private ${auctionCount === 1 ? "lot" : "lots"} before their final five minutes in the expert market.` +
+      `and gave you a five-minute preview of ${auctionCount} ten-minute limited-access ${auctionCount === 1 ? "lot" : "lots"} before their final five minutes in the expert market.` +
       (commissionCoefficient !== null
         ? ` These lots pay you a ${formatCommissionPercentage(commissionCoefficient)} commission when another player wins.`
         : "");

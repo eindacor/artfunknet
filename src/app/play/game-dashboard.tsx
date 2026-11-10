@@ -799,7 +799,7 @@ export default function GameDashboard({
       },
       {
         id: "private-auctions",
-        label: "Private Auctions",
+        label: "Limited-Access Auctions",
         entries: privateAuctionLootEntries,
       },
     ] satisfies Array<{
@@ -2300,10 +2300,12 @@ export default function GameDashboard({
         message?: string;
       };
       if (!response.ok || body.dismissed === undefined) {
-        setError(body.error ?? "The private auctions could not be dismissed.");
+        setError(
+          body.error ?? "The limited-access auctions could not be dismissed.",
+        );
         return;
       }
-      setNotice(body.message ?? "Private auctions dismissed.");
+      setNotice(body.message ?? "Limited-access auctions dismissed.");
       const dismissedAuctionIds = new Set(
         body.dismissedPrivateAuctionIds ?? [],
       );
@@ -2319,7 +2321,7 @@ export default function GameDashboard({
 
   function handlePrivateAuctionMadePublic(
     auctionId: string,
-    message = "Private auction converted to a public auction.",
+    message = "Limited-access auction converted to a public auction.",
   ) {
     setNotice(message);
     setSelectedPrivateAuction(null);
@@ -2346,12 +2348,14 @@ export default function GameDashboard({
         message?: string;
       };
       if (!response.ok || !body.madePublicAuctionId) {
-        setError(body.error ?? "The private auction could not be made public.");
+        setError(
+          body.error ?? "The limited-access auction could not be made public.",
+        );
         return;
       }
       handlePrivateAuctionMadePublic(
         body.madePublicAuctionId,
-        body.message ?? "Private auction converted to a public auction.",
+        body.message ?? "Limited-access auction converted to a public auction.",
       );
     });
   }
@@ -2376,12 +2380,12 @@ export default function GameDashboard({
       };
       if (!response.ok || body.madePublic === undefined) {
         setError(
-          body.error ?? "The private auctions could not be made public.",
+          body.error ?? "The limited-access auctions could not be made public.",
         );
         return;
       }
       const auctionIds = body.madePublicAuctionIds ?? [];
-      setNotice(body.message ?? "Private auctions made public.");
+      setNotice(body.message ?? "Limited-access auctions made public.");
       setMadePublicPrivateAuctionIds((current) => [
         ...new Set([...current, ...auctionIds]),
       ]);
@@ -3981,7 +3985,7 @@ export default function GameDashboard({
                                 destructive
                                 disabled={pending}
                                 icon="fa-times"
-                                label="Dismiss private auction"
+                                label="Dismiss limited-access auction"
                                 onClick={() =>
                                   act(
                                     `/api/play/auctions/${selectedLootAuction._id}/dismiss`,
@@ -4532,7 +4536,11 @@ export default function GameDashboard({
                 artworkCenterHeightCm={galleryArtworkCenterHeightCm}
                 items={galleryItems}
                 onSelectItem={(item) => setGalleryItemDetailsId(item._id)}
-                visitors={galleryVisitors.map(npc => ({ ...npc, disabled: galleryVisitorDisabled(npc) }))}
+                visitors={galleryVisitors.map(npc => ({
+                  ...npc,
+                  disabled: galleryVisitorDisabled(npc),
+                  galleryBenefit: true,
+                }))}
                 onMeetVisitor={meetGalleryVisitor}
                 visitorsVisible={galleryVisitorsVisible}
                 onVisitorsVisibleChange={visible => saveViewSettings({ showGalleryVisitors: visible })}
@@ -4557,7 +4565,9 @@ export default function GameDashboard({
                           npc.alreadyMet || insufficientBattery
                             ? "disabled"
                             : "enabled"
-                        } ${npcRewardEffects[npc._id] ? "rewarding" : ""}`}
+                        } gallery-benefit ${
+                          npcRewardEffects[npc._id] ? "rewarding" : ""
+                        }`}
                         data-npc-id={npc._id}
                         data-tutorial-element={npc.attribute_id === ART_DONOR_ATTRIBUTE_ID && !npc.alreadyMet
                           ? TutorialElement.TUTORIAL_MEET_VISITOR : undefined}
@@ -6343,7 +6353,9 @@ function getLootBulkState({
   );
 
   let acquire = privateAuctionEntry
-    ? unavailable("Private auction items must be acquired through bidding.")
+    ? unavailable(
+        "Limited-access auction items must be acquired through bidding.",
+      )
     : available();
   if (
     acquire.allowed &&
@@ -6363,7 +6375,7 @@ function getLootBulkState({
   }
 
   let archive = privateAuctionEntry
-    ? unavailable("Private auction items cannot be archived.")
+    ? unavailable("Limited-access auction items cannot be archived.")
     : available();
   const archiveInvalid = selectedItems.find(
     (item) => item.archivePermission?.allowed !== true,
@@ -6392,7 +6404,7 @@ function getLootBulkState({
   const donate = donateInvalid
     ? unavailable(
         donateInvalid.auction
-          ? "Private auction items cannot be donated."
+          ? "Limited-access auction items cannot be donated."
           : getItemDisposalPermission(donateInvalid.item, "donate").reason ??
             `${donateInvalid.item.artwork.title} is not unclaimed loot.`,
       )
@@ -6407,7 +6419,7 @@ function getLootBulkState({
   let purchaseDonate = purchaseDonateInvalid
     ? unavailable(
         purchaseDonateInvalid.auction
-          ? "Private auction items cannot be purchased and donated."
+          ? "Limited-access auction items cannot be purchased and donated."
           : getItemDisposalPermission(purchaseDonateInvalid.item, "donate").reason ??
             `${purchaseDonateInvalid.item.artwork.title} is not a dealer offer.`,
       )
@@ -6435,7 +6447,9 @@ function getLootBulkState({
     : available();
 
   let historian = privateAuctionEntry
-    ? unavailable("Private auction items cannot be sent to the Historian.")
+    ? unavailable(
+        "Limited-access auction items cannot be sent to the Historian.",
+      )
     : available();
   const historianAssignment = assignHistorianQuests(
     selectedItems,
@@ -6743,7 +6757,7 @@ function getLootBulkConfirmationCopy(
         actionLabel: "Remove",
         confirmLabel: "Process selected",
         description:
-          `Unclaimed items will be sold, dealer offers will be declined, and private auctions will be dismissed.${highRarityWarning}`,
+          `Unclaimed items will be sold, dealer offers will be declined, and limited-access auctions will be dismissed.${highRarityWarning}`,
       };
     case "historian":
       return {

@@ -70,14 +70,15 @@ export async function POST(request: Request) {
   );
   if (privateResult.candidates.length === 0) {
     return NextResponse.json(
-      { error: "There are no private auctions to dismiss." },
+      { error: "There are no limited-access auctions to dismiss." },
       { status: 409 },
     );
   }
   if (privateResult.items.length === 0) {
     return NextResponse.json(
       {
-        error: "No private auctions match the selected bulk-action options.",
+        error:
+          "No limited-access auctions match the selected bulk-action options.",
       },
       { status: 409 },
     );
@@ -102,7 +103,7 @@ export async function POST(request: Request) {
     );
   if (dismissed.matchedCount !== 1) {
     return NextResponse.json(
-      { error: "The private auctions could not be dismissed." },
+      { error: "The limited-access auctions could not be dismissed." },
       { status: 409 },
     );
   }
@@ -111,7 +112,7 @@ export async function POST(request: Request) {
     status: "ok",
     dismissed: dismissedAuctionIds.length,
     dismissedPrivateAuctionIds: dismissedAuctionIds,
-    message: `${dismissedAuctionIds.length} private ${
+    message: `${dismissedAuctionIds.length} limited-access ${
       dismissedAuctionIds.length === 1 ? "auction was" : "auctions were"
     } dismissed.`,
   });
