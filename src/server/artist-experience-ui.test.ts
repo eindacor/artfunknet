@@ -1496,6 +1496,11 @@ test("auctioned item previews replace action buttons and help with active auctio
   const html = renderToStaticMarkup(
     React.createElement(itemCard.default, {
       actions: React.createElement("button", null, "Tag"),
+      auctionPanelActions: React.createElement(
+        "button",
+        null,
+        "Dismiss private auction",
+      ),
       item,
       legendaryAttributes: [],
       permissions: {
@@ -1507,6 +1512,7 @@ test("auctioned item previews replace action buttons and help with active auctio
     }),
   );
   assert.match(html, /data-active-auction="true"/);
+  assert.match(html, /Dismiss private auction/);
   assert.doesNotMatch(html, /data-item-actions|data-item-action-help/);
   assert.equal(loaderProps?.itemId, item._id);
   assert.equal(loaderProps?.playerId, "owner");
@@ -2211,6 +2217,7 @@ test("auction controls prevent sellers and commission recipients from bidding in
     ...auction,
     viewer: "player",
     privateAuction: true,
+    transferable: true,
     seller_id: null,
     commission: { player_id: "player", coefficient: 0.1 },
   };
@@ -2223,6 +2230,17 @@ test("auction controls prevent sellers and commission recipients from bidding in
 
   auction = {
     ...auction,
+    transferable: false,
+  };
+  html = renderToStaticMarkup(house.AuctionBidDialog({
+    auction, bankBalance: 1_000, canMakePublic: true, legendaryAttributes: [],
+    playerId: "player", onClose() {}, onSuccess() {},
+  }));
+  assert.doesNotMatch(html, /Make public/);
+
+  auction = {
+    ...auction,
+    transferable: true,
     viewer: "other-player",
     commission: { player_id: "other-player", coefficient: 0.1 },
   };

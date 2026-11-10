@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getDisplayedArtworkEffect } from "@/server/artwork-effects";
 import {
+  DEFAULT_AUCTIONEER_COMMISSION_COEFFICIENT,
   makePrivateAuctionsPublic,
   type Auction,
 } from "@/server/auction-gameplay";
@@ -68,6 +69,7 @@ export async function POST(request: Request) {
     .collection<Auction>("auctions")
     .find({
       viewer: auth.session.playerId,
+      transferable: true,
       _id: { $nin: dismissedIds },
       expiration: { $gt: new Date().toISOString() },
       settlement_status: { $ne: "settling" },
@@ -108,7 +110,10 @@ export async function POST(request: Request) {
     .filter((auction) => eligibleItemIds.has(auction.item_id))
     .map((auction) => auction._id);
   const commissionCoefficient =
-    getTransferableAuctionCommissionCoefficient(effect);
+    getTransferableAuctionCommissionCoefficient(
+      effect,
+      DEFAULT_AUCTIONEER_COMMISSION_COEFFICIENT,
+    );
   const madePublicAuctionIds = await makePrivateAuctionsPublic(
     database,
     auth.session.playerId,

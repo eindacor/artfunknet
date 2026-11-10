@@ -70,8 +70,9 @@ test("masterpiece behavior decisions use configured parameters", () => {
   assert.equal(
     getTransferableAuctionCommissionCoefficient(
       effect(MASTERPIECE_EFFECT_CODES.transferableAuction, {
-        commission_rate: 0.2,
+        commission_multiplier: 2,
       }),
+      0.1,
     ),
     0.2,
   );

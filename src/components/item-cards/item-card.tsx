@@ -21,6 +21,7 @@ import { ItemStatusIcons } from "../item-thumbnail";
 export default function ItemCard({
   item,
   actions,
+  auctionPanelActions,
   forceRendererId,
   hideAuctionWatermark = false,
   hideForgeryWatermark = false,
@@ -155,6 +156,11 @@ export default function ItemCard({
             itemId={currentItem._id}
             playerId={viewerId}
           />
+          {auctionPanelActions ? (
+            <div className="item-card-auction-actions">
+              {auctionPanelActions}
+            </div>
+          ) : null}
         </div>
       ) : permissions.canManageItem &&
       (primaryAction || actions || permissions.canCustomizeCosmetic) ? (

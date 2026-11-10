@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { getDisplayedArtworkEffect } from "@/server/artwork-effects";
-import { makePrivateAuctionsPublic } from "@/server/auction-gameplay";
+import {
+  DEFAULT_AUCTIONEER_COMMISSION_COEFFICIENT,
+  makePrivateAuctionsPublic,
+} from "@/server/auction-gameplay";
 import {
   getTransferableAuctionCommissionCoefficient,
   MASTERPIECE_EFFECT_CODES,
@@ -31,7 +34,10 @@ export async function POST(
 
   const { id } = await params;
   const commissionCoefficient =
-    getTransferableAuctionCommissionCoefficient(effect);
+    getTransferableAuctionCommissionCoefficient(
+      effect,
+      DEFAULT_AUCTIONEER_COMMISSION_COEFFICIENT,
+    );
   const convertedIds = await makePrivateAuctionsPublic(
     database,
     auth.session.playerId,

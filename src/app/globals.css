@@ -4742,6 +4742,13 @@ a.welcome-button {
   margin-top: 0;
 }
 
+.item-card-auction-actions {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 8px;
+}
+
 .inventory .rendered-item-card > .card-actions button:disabled,
 .inventory
   .rendered-item-card

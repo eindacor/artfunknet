@@ -557,12 +557,23 @@ test("private auctions become public with commission for their viewer", async ()
     await database.collection("players").insertOne({
       _id: "player-1",
       profile: {
-        dismissed_private_auction_ids: ["private-1", "other-private"],
+        dismissed_private_auction_ids: [
+          "private-1",
+          "non-transferable",
+          "other-private",
+        ],
       },
     });
     await database.collection("auctions").insertMany([
       {
         _id: "private-1",
+        viewer: "player-1",
+        transferable: true,
+        expiration,
+        settlement_status: "active",
+      },
+      {
+        _id: "non-transferable",
         viewer: "player-1",
         expiration,
         settlement_status: "active",
@@ -579,7 +590,7 @@ test("private auctions become public with commission for their viewer", async ()
       await makePrivateAuctionsPublic(
         database,
         "player-1",
-        ["private-1", "other-private"],
+        ["private-1", "non-transferable", "other-private"],
         0.25,
       ),
       ["private-1"],
@@ -600,6 +611,14 @@ test("private auctions become public with commission for their viewer", async ()
     assert.equal(
       (
         await database.collection("auctions").findOne({
+          _id: "non-transferable",
+        })
+      )?.viewer,
+      "player-1",
+    );
+    assert.equal(
+      (
+        await database.collection("auctions").findOne({
           _id: "other-private",
         })
       )?.viewer,
@@ -611,7 +630,7 @@ test("private auctions become public with commission for their viewer", async ()
           _id: "player-1",
         })
       )?.profile.dismissed_private_auction_ids,
-      ["other-private"],
+      ["non-transferable", "other-private"],
     );
   } finally {
     await client.close();

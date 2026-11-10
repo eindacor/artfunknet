@@ -13,6 +13,7 @@ import {
   AUCTIONEER_BASE_PRIVATE_LOTS,
   AUCTION_HOUSE_OWNER_ID,
   createAuction,
+  DEFAULT_AUCTIONEER_COMMISSION_COEFFICIENT,
   getAuctionViews,
   PRIVATE_AUCTION_DURATION_MINUTES,
   type Auction,
@@ -134,11 +135,13 @@ export async function processAuctioneerInteraction(
               "AUCTION_BUY_NOW",
             )
           : Promise.resolve(null),
-        getDisplayedArtworkEffect(
-          database,
-          player._id,
-          MASTERPIECE_EFFECT_CODES.transferableAuction,
-        ),
+        ownGallery
+          ? getDisplayedArtworkEffect(
+              database,
+              player._id,
+              MASTERPIECE_EFFECT_CODES.transferableAuction,
+            )
+          : Promise.resolve(null),
       ]);
     if (!metadata) throw new Error("Loot metadata is not configured.");
 
@@ -175,6 +178,16 @@ export async function processAuctioneerInteraction(
       ),
       1,
     );
+    const transferableAuctionCommission = transferableAuctionEffect
+      ? getTransferableAuctionCommissionCoefficient(
+          transferableAuctionEffect,
+          DEFAULT_AUCTIONEER_COMMISSION_COEFFICIENT,
+        )
+      : null;
+    const commissionCoefficient = ownGallery
+      ? transferableAuctionCommission ??
+        DEFAULT_AUCTIONEER_COMMISSION_COEFFICIENT
+      : null;
     const generated = await generateDailyDrop(
       database,
       AUCTION_HOUSE_OWNER_ID,
@@ -212,15 +225,13 @@ export async function processAuctioneerInteraction(
         viewer: player._id,
         startingBid,
         buyNow,
-        commission: transferableAuctionEffect
+        commission: commissionCoefficient !== null
           ? {
               player_id: player._id,
-              coefficient:
-                getTransferableAuctionCommissionCoefficient(
-                  transferableAuctionEffect,
-                ),
+              coefficient: commissionCoefficient,
             }
           : null,
+        transferable: Boolean(transferableAuctionEffect),
         durationMinutes: PRIVATE_AUCTION_DURATION_MINUTES,
         now,
       });
@@ -238,7 +249,10 @@ export async function processAuctioneerInteraction(
     );
     const message =
       `The ${npc.quality} Auctioneer ${extendingAccess ? "extended" : "activated"} market analysis ${extendingAccess ? "by" : "for"} ${accessMinutes} minutes, until ${marketExpertExpiration.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}, ` +
-      `and gave you a five-minute preview of ${auctionCount} ten-minute private ${auctionCount === 1 ? "lot" : "lots"} before their final five minutes in the expert market.`;
+      `and gave you a five-minute preview of ${auctionCount} ten-minute private ${auctionCount === 1 ? "lot" : "lots"} before their final five minutes in the expert market.` +
+      (commissionCoefficient !== null
+        ? ` These lots pay you a ${formatCommissionPercentage(commissionCoefficient)} commission when another player wins.`
+        : "");
 
     const { auctions: privateAuctionViews } = await getAuctionViews(
       database,
@@ -284,4 +298,8 @@ export async function processAuctioneerInteraction(
     ]);
     throw error;
   }
+}
+
+function formatCommissionPercentage(coefficient: number): string {
+  return `${Math.round(coefficient * 10_000) / 100}%`;
 }

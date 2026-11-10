@@ -30,7 +30,10 @@ export default function AuctionBidPanel({
     bankBalance + (auction.currentlyWinning ? auction.current_bid : 0);
   const restriction = getAuctionBidRestriction(auction, playerId);
   const canPublishAuction =
-    canMakePublic && auction.privateAuction && auction.viewer === playerId;
+    canMakePublic &&
+    auction.transferable === true &&
+    auction.privateAuction &&
+    auction.viewer === playerId;
 
   async function submit(buyNow = false) {
     if (restriction) return;

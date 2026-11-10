@@ -922,6 +922,13 @@ export default function GameDashboard({
       unfoundQuestTargetArtworkIds,
     ],
   );
+  const bulkTransferablePrivateAuctions = useMemo(
+    () =>
+      bulkDismissiblePrivateAuctions.filter(
+        (auction) => auction.transferable === true,
+      ),
+    [bulkDismissiblePrivateAuctions],
+  );
   const availableInventorySlots = Math.max(
     0,
     player.inventoryCap - player.inventorySlotsUsed,
@@ -3847,7 +3854,7 @@ export default function GameDashboard({
                                 className="make-all-public-loot"
                                 disabled={
                                   pending ||
-                                  bulkDismissiblePrivateAuctions.length === 0
+                                  bulkTransferablePrivateAuctions.length === 0
                                 }
                                 onClick={makeAllPrivateAuctionsPublic}
                                 type="button"
@@ -3948,48 +3955,52 @@ export default function GameDashboard({
                       <ItemCard
                         actions={
                           selectedLootAuction
-                            ? (
-                                <>
-                                  {canMakePrivateAuctionsPublic ? (
-                                    <ItemActionButton
-                                      disabled={pending}
-                                      icon="fa-globe"
-                                      label="Make public"
-                                      onClick={() =>
-                                        makePrivateAuctionPublic(
-                                          selectedLootAuction,
-                                        )
-                                      }
-                                    />
-                                  ) : null}
-                                  <ItemActionButton
-                                    destructive
-                                    disabled={pending}
-                                    icon="fa-times"
-                                    label="Dismiss private auction"
-                                    onClick={() =>
-                                      act(
-                                        `/api/play/auctions/${selectedLootAuction._id}/dismiss`,
-                                        () => {
-                                          setDismissedPrivateAuctionIds(
-                                            (current) => [
-                                              ...new Set([
-                                                ...current,
-                                                selectedLootAuction._id,
-                                              ]),
-                                            ],
-                                          );
-                                        },
-                                      )
-                                    }
-                                  />
-                                </>
-                              )
+                            ? undefined
                             : lootItemActions(selectedLootItem)
                         }
                         alreadyOwned={ownedArtworkIds.has(
                           selectedLootItem.artwork_id,
                         )}
+                        auctionPanelActions={
+                          selectedLootAuction ? (
+                            <>
+                              {canMakePrivateAuctionsPublic &&
+                              selectedLootAuction.transferable === true ? (
+                                <ItemActionButton
+                                  disabled={pending}
+                                  icon="fa-globe"
+                                  label="Make public"
+                                  onClick={() =>
+                                    makePrivateAuctionPublic(
+                                      selectedLootAuction,
+                                    )
+                                  }
+                                />
+                              ) : null}
+                              <ItemActionButton
+                                destructive
+                                disabled={pending}
+                                icon="fa-times"
+                                label="Dismiss private auction"
+                                onClick={() =>
+                                  act(
+                                    `/api/play/auctions/${selectedLootAuction._id}/dismiss`,
+                                    () => {
+                                      setDismissedPrivateAuctionIds(
+                                        (current) => [
+                                          ...new Set([
+                                            ...current,
+                                            selectedLootAuction._id,
+                                          ]),
+                                        ],
+                                      );
+                                    },
+                                  )
+                                }
+                              />
+                            </>
+                          ) : undefined
+                        }
                         item={selectedLootItem}
                         owner={
                           selectedLootAuction

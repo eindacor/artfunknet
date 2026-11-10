@@ -50,6 +50,7 @@ export type ItemCardRendererProps = {
 export type ItemCardProps = Omit<ItemCardRendererProps, "alreadyOwned"> & {
   actions?: React.ReactNode;
   alreadyOwned?: boolean;
+  auctionPanelActions?: React.ReactNode;
   forceRendererId?: string;
   hideAuctionWatermark?: boolean;
   hideForgeryWatermark?: boolean;

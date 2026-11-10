@@ -70,6 +70,7 @@ export const PRIVATE_AUCTION_DURATION_MINUTES = 10;
 export const PRIVATE_AUCTION_PREVIEW_MINUTES = 5;
 export const AUCTIONEER_BASE_PRIVATE_LOTS = 4;
 export const AUCTION_HOUSE_OWNER_ID = "system:auction-house";
+export const DEFAULT_AUCTIONEER_COMMISSION_COEFFICIENT = 0.1;
 const AUCTION_REPLENISHMENT_LEASE_MS = 2 * 60 * 1000;
 const AUCTION_HOUSE_STATE_ID = "auction-house-state";
 
@@ -90,6 +91,7 @@ export type Auction = {
   increment: number;
   buy_now: number | null;
   commission?: AuctionCommission | null;
+  transferable?: boolean;
   current_winner_id: string | null;
   current_winner_name: string | null;
   bidder_ids?: string[];
@@ -309,6 +311,7 @@ export async function createAuction(
     startingBid,
     buyNow,
     commission = null,
+    transferable = false,
     durationMinutes,
     now = new Date(),
   }: {
@@ -318,6 +321,7 @@ export async function createAuction(
     startingBid: number;
     buyNow: number | null;
     commission?: AuctionCommission | null;
+    transferable?: boolean;
     durationMinutes: number;
     now?: Date;
   },
@@ -341,6 +345,7 @@ export async function createAuction(
     increment,
     buy_now: buyNow,
     commission,
+    ...(transferable ? { transferable: true } : {}),
     current_winner_id: null,
     current_winner_name: null,
     bidder_ids: [],
@@ -527,6 +532,7 @@ export async function makePrivateAuctionsPublic(
     .find({
       _id: { $in: uniqueAuctionIds },
       viewer: playerId,
+      transferable: true,
       expiration: { $gt: now.toISOString() },
       settlement_status: { $ne: "settling" },
     })
@@ -539,6 +545,7 @@ export async function makePrivateAuctionsPublic(
     {
       _id: { $in: eligibleIds },
       viewer: playerId,
+      transferable: true,
       expiration: { $gt: now.toISOString() },
       settlement_status: { $ne: "settling" },
     },

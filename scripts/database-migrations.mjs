@@ -583,7 +583,7 @@ const MASTERPIECE_EFFECTS = [
   ["masterpiece-donor-foil", "Yk2kk2mZtHetvbrY5", "MP_DONOR_FOIL", "Gilded Gift", "Legendary and masterpiece gifts from platinum Donors are always foil.", {}],
   ["masterpiece-dealer-unlocked", "mZH58WpgbKP9o9WZR", "MP_DEALER_UNLOCKED", "Open Edition", "Legendary and masterpiece offers from platinum Dealers are always unlocked.", {}],
   ["masterpiece-enthusiast-uncommon-xp", "T8v35e75v4Hh2JpxQ", "MP_UNCOMMON_GALLERY_XP", "Accessible Enthusiasm", "Displayed uncommon artwork adds an extra gallery XP chunk.", { xp_chunks: 0.5 }],
-  ["masterpiece-auctioneer-transferable", "FgRMQA6s24wmTRyrx", "MP_TRANSFERABLE_AUCTION", "Public Commission", "Private Auctioneer lots pay you a commission when another player wins, and can be opened to everyone.", { commission_rate: 0.1 }],
+  ["masterpiece-auctioneer-transferable", "FgRMQA6s24wmTRyrx", "MP_TRANSFERABLE_AUCTION", "Public Commission", "Auctioneer lots created in your gallery or a featured gallery pay double commission when another player wins and can be made public immediately.", { commission_multiplier: 2 }],
   ["masterpiece-enthusiast-common-substitution", "T8v35e75v4Hh2JpxQ", "MP_COMMON_ATTRIBUTE_SUBSTITUTION", "Curated Commons", "Common displays contribute this effect item's attributes instead of their own.", {}],
   ["masterpiece-enthusiast-rare-double", "T8v35e75v4Hh2JpxQ", "MP_RARE_VISITOR_DOUBLE", "Rare Appeal", "Attributes on rare displays receive two visitor generation passes.", {}],
   ["masterpiece-auctioneer-authentication", "FgRMQA6s24wmTRyrx", "MP_AUCTION_AUTHENTICATION_REFUND", "Guaranteed Provenance", "Auction wins authenticate freely; detected forgeries are destroyed and partially refunded.", { refund_rate: 0.75 }],
@@ -595,8 +595,10 @@ const LEGACY_TRANSFERABLE_AUCTION_DESCRIPTION =
   "Reserved definition for transferable private auctions and public commission.";
 const PREVIOUS_TRANSFERABLE_AUCTION_DESCRIPTION =
   "Private auctions can be made public and pay you a commission when sold.";
-const TRANSFERABLE_AUCTION_DESCRIPTION =
+const CURRENT_TRANSFERABLE_AUCTION_DESCRIPTION =
   "Private Auctioneer lots pay you a commission when another player wins, and can be opened to everyone.";
+const TRANSFERABLE_AUCTION_DESCRIPTION =
+  "Auctioneer lots created in your gallery or a featured gallery pay double commission when another player wins and can be made public immediately.";
 
 const MASTERPIECE_FLAVOR_OPENINGS = [
   "An extraordinary study in",
@@ -797,6 +799,7 @@ async function migrateTransferableAuctionEffect(database, now) {
         $in: [
           LEGACY_TRANSFERABLE_AUCTION_DESCRIPTION,
           PREVIOUS_TRANSFERABLE_AUCTION_DESCRIPTION,
+          CURRENT_TRANSFERABLE_AUCTION_DESCRIPTION,
         ],
       },
     },
@@ -805,6 +808,17 @@ async function migrateTransferableAuctionEffect(database, now) {
         description: TRANSFERABLE_AUCTION_DESCRIPTION,
         updated_at: now,
       },
+    },
+  );
+  await database.collection("artwork_effects").updateMany(
+    {
+      effect_type: "masterpiece",
+      code: "MP_TRANSFERABLE_AUCTION",
+      "parameters.commission_rate": { $exists: true },
+    },
+    {
+      $unset: { "parameters.commission_rate": "" },
+      $set: { updated_at: now },
     },
   );
 }

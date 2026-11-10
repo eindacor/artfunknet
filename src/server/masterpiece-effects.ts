@@ -105,14 +105,17 @@ export function getAuctionForgeryRefund(
 
 export function getTransferableAuctionCommissionCoefficient(
   effect: ArtworkEffect | null,
+  defaultCommissionCoefficient: number,
 ): number {
   if (effect?.code !== MASTERPIECE_EFFECT_CODES.transferableAuction) return 0;
+  const baseline = Math.min(Math.max(defaultCommissionCoefficient, 0), 1);
+  const multiplier = Math.max(
+    0,
+    getArtworkEffectNumberParameter(effect, "commission_multiplier", 2),
+  );
   return Math.min(
     1,
-    Math.max(
-      0,
-      getArtworkEffectNumberParameter(effect, "commission_rate", 0.1),
-    ),
+    baseline * multiplier,
   );
 }
 

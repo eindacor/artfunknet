@@ -105,10 +105,25 @@ test("featured Auctioneers use own-gallery effects and require a live Donor in t
     assert.equal(new Date(result.interaction.expiration).getTime() - now.getTime(), (ownBenefits ? 37 : 15) * 60_000);
     for (const auction of result.auctions) {
       assert.equal(auction.buy_now, ownBenefits ? Math.ceil(auction.starting_bid * 1.1) : null);
+      assert.deepEqual(
+        auction.commission,
+        ownBenefits
+          ? {
+              player_id: "player",
+              coefficient: 0.1,
+            }
+          : null,
+        JSON.stringify(scenario),
+      );
       assert.equal(
         new Date(auction.expiration).getTime() - now.getTime(),
         10 * 60_000,
       );
+    }
+    if (ownBenefits) {
+      assert.match(result.message, /10% commission/);
+    } else {
+      assert.doesNotMatch(result.message, /commission/);
     }
   }
 });
@@ -499,7 +514,7 @@ test("Integration: Public Commission automatically applies to Auctioneer lots wo
       description: "Auctioneer lots pay commission.",
       flavor_text: "The market remembers its patron.",
       linked_attributes: [AUCTIONEER_ATTRIBUTE_ID],
-      parameters: { commission_rate: 0.2 },
+      parameters: { commission_multiplier: 2 },
     });
     await db.collection("artworks").updateOne(
       { _id: "art-1" },
@@ -539,8 +554,48 @@ test("Integration: Public Commission automatically applies to Auctioneer lots wo
         player_id: playerId,
         coefficient: 0.2,
       });
+      assert.equal(auction.transferable, true);
     }
     assert.match(result.message, /five-minute preview/);
+    assert.match(result.message, /20% commission/);
+    await db.collection("players").insertOne({
+      _id: "featured-artist",
+      active: true,
+      artist_featured: true,
+      artist_id: "featured-artist-record",
+    });
+    const featuredResult = await processAuctioneerInteraction(
+      db,
+      { _id: playerId, profile: { level: 1 } },
+      {
+        ...npc,
+        _id: "npc-auctioneer-featured-commission",
+        owner_id: "featured-artist",
+      },
+      now,
+    );
+    for (const auction of featuredResult.auctions) {
+      assert.deepEqual(auction.commission, {
+        player_id: playerId,
+        coefficient: 0.2,
+      });
+      assert.equal(auction.transferable, true);
+    }
+    const ordinaryResult = await processAuctioneerInteraction(
+      db,
+      { _id: playerId, profile: { level: 1 } },
+      {
+        ...npc,
+        _id: "npc-auctioneer-ordinary-commission",
+        owner_id: "ordinary-player",
+      },
+      now,
+    );
+    for (const auction of ordinaryResult.auctions) {
+      assert.equal(auction.commission, null);
+      assert.equal(auction.transferable, undefined);
+    }
+    assert.doesNotMatch(ordinaryResult.message, /commission/);
     await db.collection("players").insertMany([
       {
         _id: "active-expert",

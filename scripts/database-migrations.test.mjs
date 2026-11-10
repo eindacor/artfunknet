@@ -633,10 +633,10 @@ test("artwork effect migration backfills artwork without mutating item attribute
       {
         active: false,
         description:
-          "Private Auctioneer lots pay you a commission when another player wins, and can be opened to everyone.",
+          "Auctioneer lots created in your gallery or a featured gallery pay double commission when another player wins and can be made public immediately.",
         flavor_text:
           "Reserved definition for transferable private auctions and public commission.",
-        parameters: { commission_rate: 0.1 },
+        parameters: { commission_multiplier: 2 },
       },
     );
     const normalizedEffects = await Promise.all([
@@ -850,7 +850,7 @@ test("artwork effect migration backfills artwork without mutating item attribute
         active: false,
         description: "Admin-edited public commission",
         flavor_text: "Admin-edited public commission flavor",
-        parameters: { commission_rate: 0.3 },
+        parameters: { commission_multiplier: 2 },
       },
     );
     assert.deepEqual(
