@@ -3952,6 +3952,13 @@ a.welcome-button {
   border-color: #fff200;
 }
 
+.item-card-status-watermarks {
+  z-index: 20;
+  right: 8px;
+  bottom: 8px;
+  left: 8px;
+}
+
 .visited-gallery-auctions button:hover,
 .visited-gallery-auctions button:focus-visible {
   border-color: var(--accent);

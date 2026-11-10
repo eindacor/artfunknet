@@ -16,6 +16,7 @@ import { resolveCardRendererId } from "./selection";
 import StandardItemDialog from "./standard-item-dialog";
 import type { ItemCardProps } from "./types";
 import { ItemExpirationBadge } from "../item-expiration-display";
+import { ItemStatusIcons } from "../item-thumbnail";
 
 export default function ItemCard({
   item,
@@ -38,6 +39,7 @@ export default function ItemCard({
   rendererId,
   researchTarget = false,
   showActionHelp = false,
+  showStatusIcons = false,
   styleInventory,
   viewerId,
 }: ItemCardProps) {
@@ -136,6 +138,13 @@ export default function ItemCard({
             researchTarget={researchTarget}
           />
         </RenderCardPreview>
+        {showStatusIcons ? (
+          <ItemStatusIcons
+            className="item-card-status-watermarks"
+            item={currentItem}
+            researchTarget={researchTarget}
+          />
+        ) : null}
       </div>
       {overlay}
       {currentItem.status === "auctioned" &&

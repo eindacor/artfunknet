@@ -1473,6 +1473,7 @@ test("auctioned item previews replace action buttons and help with active auctio
       "./selection": { resolveCardRendererId: () => "museum" },
       "./standard-item-dialog": { default: noop },
       "../item-expiration-display": { ItemExpirationBadge: noop },
+      "../item-thumbnail": { ItemStatusIcons: noop },
     },
   );
   const item = {
@@ -1866,6 +1867,43 @@ test("player-account admin searches live, ignores stale responses, and creates a
   for (const cleanup of cleanups) if (typeof cleanup === "function") cleanup();
 });
 
+test("shared item status icons render every applicable auction marker", async () => {
+  const thumbnail = await load<typeof import("../components/item-thumbnail.tsx")>(
+    "../components/item-thumbnail.tsx",
+    {
+      "./artwork-thumbnail": {
+        default: ({ children }: { children?: React.ReactNode }) =>
+          React.createElement("div", null, children),
+      },
+      "./item-expiration-display": { ItemExpirationTint: () => null },
+    },
+  );
+  const html = renderToStaticMarkup(
+    React.createElement(thumbnail.ItemStatusIcons, {
+      item: {
+        archivePermission: { allowed: true },
+        card_renderer: "retro-game-box",
+        permanent: true,
+        repairing: true,
+        status: "auctioned",
+        tags: [],
+      },
+      researchTarget: true,
+    }),
+  );
+
+  for (const label of [
+    "Permanent collection",
+    "Quest target",
+    "Art style applied",
+    "Being repaired",
+    "Up for auction",
+    "Can be archived",
+  ]) {
+    assert.match(html, new RegExp(`aria-label="${label}"`));
+  }
+});
+
 test("auction controls prevent sellers and commission recipients from bidding in either view or a linked dialog", async () => {
   const artwork: Artwork = {
     _id: "auction-work", artist_id: "artist", artist: "Artist", title: "Auction work", date: 2026,
@@ -1881,7 +1919,7 @@ test("auction controls prevent sellers and commission recipients from bidding in
       rarity_value: 0, medium: artwork.medium, date: artwork.date, condition: 1, level: 1, roll_count: 0,
       foil: false, seasonal: false, lottery: 0, original: false,
     },
-    item: createArtistArtworkPreview(artwork), owned: false, questTarget: false,
+    item: createArtistArtworkPreview(artwork), owned: true, questTarget: true,
     currentlyWinning: false, privateAuction: false,
   };
   let mode = "list";
@@ -1900,8 +1938,13 @@ test("auction controls prevent sellers and commission recipients from bidding in
     "data-rarity": string;
     unrevealed: boolean;
   } | null = null;
+  let auctionItemThumbnailProps: {
+    researchTarget?: boolean;
+  } | null = null;
   let auctionItemCardProps: {
     onActivate?: () => void;
+    researchTarget?: boolean;
+    showStatusIcons?: boolean;
   } | null = null;
   const defaultAuctionFilters = {
     search: "", sort: "remaining", order: "asc", exclusivity: "all", quest: "all",
@@ -1962,7 +2005,12 @@ test("auction controls prevent sellers and commission recipients from bidding in
         );
       },
     },
-    "@/components/item-thumbnail": { default: () => null },
+    "@/components/item-thumbnail": {
+      default: (props: typeof auctionItemThumbnailProps) => {
+        auctionItemThumbnailProps = props;
+        return null;
+      },
+    },
     "@/components/offer-thumbnail": {
       default: (props: {
         className: string;
@@ -2106,12 +2154,15 @@ test("auction controls prevent sellers and commission recipients from bidding in
   assert.equal(auctionThumbnailProps?.className, "auction-list-thumbnail");
   assert.equal(auctionThumbnailProps?.["data-rarity"], "common");
   assert.equal(auctionThumbnailProps?.unrevealed, false);
+  assert.equal(auctionItemThumbnailProps?.researchTarget, true);
   assert.match(
     html,
     /<span class="auction-list-current-bid" data-has-bid="true" role="cell">\$120<\/span>/,
   );
   mode = "expanded";
   html = renderToStaticMarkup(React.createElement(house.default, props));
+  assert.equal(auctionItemCardProps?.researchTarget, true);
+  assert.equal(auctionItemCardProps?.showStatusIcons, true);
   assert.ok(
     html.indexOf('class="auction-lot-details"') <
       html.indexOf('class="auction-lot-card"'),
@@ -2137,6 +2188,10 @@ test("auction controls prevent sellers and commission recipients from bidding in
   assert.match(
     auctionCss,
     /\.auction-lot \{[^}]*grid-template-columns: minmax\(210px, 1fr\) 300px;/,
+  );
+  assert.match(
+    auctionCss,
+    /\.item-card-status-watermarks \{[^}]*z-index: 20;/,
   );
   const [dashboardSource, filterSource] = await Promise.all([
     readFile(

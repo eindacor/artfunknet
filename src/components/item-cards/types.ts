@@ -61,6 +61,7 @@ export type ItemCardProps = Omit<ItemCardRendererProps, "alreadyOwned"> & {
   primaryAction?: React.ReactNode;
   rendererId?: string;
   showActionHelp?: boolean;
+  showStatusIcons?: boolean;
   styleInventory?: CardStyleInventory;
   viewerId?: string | null;
 };

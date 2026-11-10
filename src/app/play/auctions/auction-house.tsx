@@ -520,7 +520,7 @@ export default function AuctionHouse({
                       <ItemThumbnail
                         alt=""
                         item={auction.item}
-                        researchTarget={auction.questTarget && !auction.owned}
+                        researchTarget={auction.questTarget}
                         size={82}
                       />
                     </OfferThumbnail>
@@ -720,7 +720,8 @@ function AuctionItemCard({
         canManageItem: false,
         canCustomizeCosmetic: false,
       }}
-      researchTarget={auction.questTarget && !auction.owned}
+      researchTarget={auction.questTarget}
+      showStatusIcons
       viewerId={playerId}
     />
   );
