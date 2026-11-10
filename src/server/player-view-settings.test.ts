@@ -6,6 +6,7 @@ import { MongoClient } from "mongodb";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import ts from "typescript";
 
+import { DROPPABLE_CARD_RENDERER_IDS } from "../components/item-cards/catalog.ts";
 import {
   DEFAULT_AUCTION_FILTER_SETTINGS,
   DEFAULT_PLAYER_VIEW_SETTINGS,
@@ -47,7 +48,7 @@ test("player view settings preserve valid saved choices", () => {
       },
       auctionView: "expanded",
       bulkSaleProtections: {
-        keepArtStyles: true,
+        keptArtStyleIds: ["arcade", "zine"],
         keepRares: true,
         keepLegendaries: true,
         keepMasterpieces: true,
@@ -84,7 +85,7 @@ test("player view settings preserve valid saved choices", () => {
       },
       auctionView: "expanded",
       bulkSaleProtections: {
-        keepArtStyles: true,
+        keptArtStyleIds: ["arcade", "zine"],
         keepRares: true,
         keepLegendaries: true,
         keepMasterpieces: true,
@@ -110,11 +111,17 @@ test("player view settings replace invalid values with safe defaults", () => {
       },
       auctionView: "cards",
       bulkSaleProtections: {
-        keepArtStyles: "yes",
+        keptArtStyleIds: ["museum", "unknown", "zine", "zine"],
         keepLegendaries: 1,
       },
     }),
-    DEFAULT_PLAYER_VIEW_SETTINGS,
+    {
+      ...DEFAULT_PLAYER_VIEW_SETTINGS,
+      bulkSaleProtections: {
+        ...DEFAULT_PLAYER_VIEW_SETTINGS.bulkSaleProtections,
+        keptArtStyleIds: ["zine"],
+      },
+    },
   );
 });
 
@@ -136,10 +143,21 @@ test("legacy view settings receive Offers defaults without losing saved bulk cho
   assert.equal(settings.offersSortDirection, "desc");
   assert.equal(settings.inventorySort, "value-low");
   assert.equal(settings.bulkSaleProtections.keepRares, false);
-  assert.equal(settings.bulkSaleProtections.keepArtStyles, false);
+  assert.deepEqual(settings.bulkSaleProtections.keptArtStyleIds, []);
   assert.equal(settings.cratePurchaseCount, 1);
   assert.deepEqual(settings.auctionFilters, DEFAULT_AUCTION_FILTER_SETTINGS);
   assert.equal(settings.auctionView, "list");
+});
+
+test("legacy enabled art-style protection selects every droppable renderer", () => {
+  const settings = getPlayerViewSettings({
+    bulkSaleProtections: { keepArtStyles: true },
+  });
+
+  assert.deepEqual(
+    settings.bulkSaleProtections.keptArtStyleIds,
+    DROPPABLE_CARD_RENDERER_IDS,
+  );
 });
 
 test("auction filters restore portable item filters and reject malformed values", () => {

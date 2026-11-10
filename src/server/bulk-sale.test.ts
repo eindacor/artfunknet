@@ -3,6 +3,7 @@ import test from "node:test";
 import { MongoClient, type Db } from "mongodb";
 import { MongoMemoryServer } from "mongodb-memory-server";
 
+import { DROPPABLE_CARD_RENDERER_IDS } from "../components/item-cards/catalog.ts";
 import {
   filterBulkLootCandidates,
   getFilteredBulkLootCandidates,
@@ -12,13 +13,14 @@ import {
   parseBulkSaleProtections,
   isBulkLootCandidate,
   shouldPreserveBulkSaleItem,
+  type BulkSaleProtections,
 } from "./bulk-sale.ts";
 import type { ArtHistorianQuest } from "./art-historian-gameplay.ts";
 import type { GameItem } from "./gameplay.ts";
 import { setupTestDb } from "./test-utils/db-setup.ts";
 
 const protections = {
-  keepArtStyles: true,
+  keptArtStyleIds: [...DROPPABLE_CARD_RENDERER_IDS],
   keepRares: true,
   keepLegendaries: true,
   keepMasterpieces: true,
@@ -95,7 +97,7 @@ test("bulk sale protection preserves unfound quest targets", () => {
         artwork: { rarity: "common" },
         unfoundQuestTarget: false,
       },
-      { ...protections, keepArtStyles: false, keepUnarchived: false },
+      { ...protections, keptArtStyleIds: [], keepUnarchived: false },
     ),
     false,
   );
@@ -170,7 +172,7 @@ test("bulk sale protection ignores targets already submitted to the Historian", 
       database,
       playerId,
       {
-        keepArtStyles: false,
+        keptArtStyleIds: [],
         keepRares: false,
         keepLegendaries: false,
         keepMasterpieces: false,
@@ -238,7 +240,7 @@ test("bulk protections can filter auction-house-owned private auction items", as
       database,
       playerId,
       {
-        keepArtStyles: false,
+        keptArtStyleIds: [],
         keepRares: false,
         keepLegendaries: false,
         keepMasterpieces: false,
@@ -257,14 +259,19 @@ test("bulk protections can filter auction-house-owned private auction items", as
   }
 });
 
-test("bulk sale protection preserves applied art styles", () => {
+test("bulk sale protection preserves only selected applied art styles", () => {
+  const selectiveProtections: BulkSaleProtections = {
+    ...protections,
+    keptArtStyleIds: ["zine"],
+    keepUnarchived: false,
+  };
   assert.equal(
     shouldPreserveBulkSaleItem(
       {
         artwork: { rarity: "common" },
         card_renderer: "zine",
       },
-      protections,
+      selectiveProtections,
     ),
     true,
   );
@@ -272,24 +279,67 @@ test("bulk sale protection preserves applied art styles", () => {
     shouldPreserveBulkSaleItem(
       {
         artwork: { rarity: "common" },
+        card_renderer: "arcade",
+      },
+      selectiveProtections,
+    ),
+    false,
+  );
+  assert.equal(
+    shouldPreserveBulkSaleItem(
+      {
+        artwork: { rarity: "common" },
         card_renderer: "museum",
       },
-      { ...protections, keepUnarchived: false },
+      selectiveProtections,
     ),
     false,
   );
 });
 
 test("parseBulkSaleProtections handles valid JSON and invalid bodies safely", () => {
-  const valid = parseBulkSaleProtections(JSON.stringify({ keepLegendaries: true }));
+  const valid = parseBulkSaleProtections(
+    JSON.stringify({
+      keptArtStyleIds: ["zine", "museum", "unknown", "zine", "arcade"],
+      keepLegendaries: true,
+    }),
+  );
   assert.equal(valid.ok, true);
   if (valid.ok) {
     assert.equal(valid.protections.keepLegendaries, true);
     assert.equal(valid.protections.keepMasterpieces, false);
+    assert.deepEqual(valid.protections.keptArtStyleIds, ["arcade", "zine"]);
   }
 
   const invalid = parseBulkSaleProtections("{invalid-json");
   assert.equal(invalid.ok, false);
+});
+
+test("parseBulkSaleProtections supports legacy art-style booleans", () => {
+  const enabled = parseBulkSaleProtections(
+    JSON.stringify({ keepArtStyles: true }),
+  );
+  assert.equal(enabled.ok, true);
+  if (enabled.ok) {
+    assert.deepEqual(
+      enabled.protections.keptArtStyleIds,
+      DROPPABLE_CARD_RENDERER_IDS,
+    );
+    assert.equal(
+      (enabled.protections.keptArtStyleIds as readonly string[]).includes(
+        "museum",
+      ),
+      false,
+    );
+  }
+
+  const disabled = parseBulkSaleProtections(
+    JSON.stringify({ keepArtStyles: false }),
+  );
+  assert.equal(disabled.ok, true);
+  if (disabled.ok) {
+    assert.deepEqual(disabled.protections.keptArtStyleIds, []);
+  }
 });
 
 test("getBulkForgeryMessage formats messages for sale and donation actions", () => {

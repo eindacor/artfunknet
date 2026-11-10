@@ -54,7 +54,10 @@ import { useCardCosmetics } from "@/components/item-cards/card-cosmetics-provide
 import ItemFilterControls, {
   type ItemFilterSortOption,
 } from "@/components/item-filter-controls";
-import { type CardStyleInventory } from "@/components/item-cards/catalog";
+import {
+  DROPPABLE_CARD_RENDERER_IDS,
+  type CardStyleInventory,
+} from "@/components/item-cards/catalog";
 import ItemCard from "@/components/item-cards/item-card";
 import MintLossConfirmationDialog from "@/components/item-cards/mint-loss-confirmation-dialog";
 import ValuableItemConfirmationDialog from "@/components/item-cards/valuable-item-confirmation-dialog";
@@ -462,6 +465,18 @@ export default function GameDashboard({
   commemorateItemCount?: number;
 }) {
   const cardCosmetics = useCardCosmetics();
+  const bulkArtStyleOptions = useMemo(() => {
+    const cosmeticsById = new Map(
+      cardCosmetics.map((cosmetic) => [cosmetic.id, cosmetic]),
+    );
+    const activeIds = new Set(archiveArtStyleIds);
+    return DROPPABLE_CARD_RENDERER_IDS.filter((id) => activeIds.has(id)).map(
+      (id) => ({
+        id,
+        label: cosmeticsById.get(id)?.name ?? id,
+      }),
+    );
+  }, [archiveArtStyleIds, cardCosmetics]);
   const { showTutorial, fulfillTutorial, updateTutorial } = useTutorial();
   const router = useRouter();
   const hydrated = useSyncExternalStore(
@@ -632,6 +647,9 @@ export default function GameDashboard({
   }, [player.socialBatteryResetAt, router]);
   const [bulkSaleProtections, setBulkSaleProtections] =
     useState<BulkSaleProtections>(player.viewSettings.bulkSaleProtections);
+  const keptActiveArtStyleCount = bulkArtStyleOptions.filter((style) =>
+    bulkSaleProtections.keptArtStyleIds.includes(style.id),
+  ).length;
   const [inventorySort, setInventorySort] = useState<InventorySort>(
     player.viewSettings.inventorySort,
   );
@@ -3900,7 +3918,6 @@ export default function GameDashboard({
                                   "keepUnfoundQuestTargets",
                                   "Keep unfound quest targets",
                                 ],
-                                ["keepArtStyles", "Keep art styles"],
                               ] as const
                             ).map(([key, label]) => (
                               <label key={key}>
@@ -3921,6 +3938,53 @@ export default function GameDashboard({
                                 <span>{label}</span>
                               </label>
                             ))}
+                            <details className="bulk-art-style-options">
+                              <summary>
+                                <span>Keep art styles</span>
+                                <small>
+                                  {keptActiveArtStyleCount === 0
+                                    ? "none"
+                                    : keptActiveArtStyleCount ===
+                                        bulkArtStyleOptions.length
+                                      ? "all"
+                                      : `${keptActiveArtStyleCount}/${bulkArtStyleOptions.length}`}
+                                </small>
+                              </summary>
+                              <div className="bulk-art-style-options-menu">
+                                {bulkArtStyleOptions.map((style) => (
+                                  <label key={style.id}>
+                                    <input
+                                      checked={bulkSaleProtections.keptArtStyleIds.includes(
+                                        style.id,
+                                      )}
+                                      onChange={(event) => {
+                                        const selected = new Set(
+                                          bulkSaleProtections.keptArtStyleIds,
+                                        );
+                                        if (event.target.checked) {
+                                          selected.add(style.id);
+                                        } else {
+                                          selected.delete(style.id);
+                                        }
+                                        const next = {
+                                          ...bulkSaleProtections,
+                                          keptArtStyleIds:
+                                            DROPPABLE_CARD_RENDERER_IDS.filter(
+                                              (id) => selected.has(id),
+                                            ),
+                                        };
+                                        setBulkSaleProtections(next);
+                                        saveViewSettings({
+                                          bulkSaleProtections: next,
+                                        });
+                                      }}
+                                      type="checkbox"
+                                    />
+                                    <span>{style.label}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </details>
                           </fieldset>
                         </div>
                       </div>

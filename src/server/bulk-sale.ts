@@ -1,6 +1,10 @@
 import type { Db } from "mongodb";
 
 import {
+  DROPPABLE_CARD_RENDERER_IDS,
+  type DroppableCardRendererId,
+} from "../components/item-cards/catalog.ts";
+import {
   getArchiveRecordArtStyles,
   getArchiveRecordModifiers,
   type PlayerArtworkArchive,
@@ -23,13 +27,23 @@ import { hydrateGameItems, type HydratedGameItem } from "./item-artwork.ts";
 import { getPlayerFacingArchivePermission, type ItemPermission } from "./item-permissions.ts";
 
 export type BulkSaleProtections = {
-  keepArtStyles: boolean;
+  keptArtStyleIds: DroppableCardRendererId[];
   keepRares: boolean;
   keepLegendaries: boolean;
   keepMasterpieces: boolean;
   keepUnfoundQuestTargets: boolean;
   keepUnarchived: boolean;
 };
+
+export function normalizeBulkKeptArtStyleIds(
+  value: unknown,
+): DroppableCardRendererId[] {
+  if (!Array.isArray(value)) return [];
+  const selected = new Set(
+    value.filter((id): id is string => typeof id === "string"),
+  );
+  return DROPPABLE_CARD_RENDERER_IDS.filter((id) => selected.has(id));
+}
 
 export type BulkOperationKind = "sale" | "donation";
 
@@ -52,7 +66,7 @@ export function isBulkLootCandidate(
 export function parseBulkSaleProtections(
   rawBody: string,
 ): { ok: true; protections: BulkSaleProtections } | { ok: false } {
-  let body: Partial<BulkSaleProtections> = {};
+  let body: Partial<BulkSaleProtections> & { keepArtStyles?: unknown } = {};
   if (rawBody) {
     try {
       body = JSON.parse(rawBody) as Partial<BulkSaleProtections>;
@@ -63,7 +77,11 @@ export function parseBulkSaleProtections(
   return {
     ok: true,
     protections: {
-      keepArtStyles: body.keepArtStyles === true,
+      keptArtStyleIds: Array.isArray(body.keptArtStyleIds)
+        ? normalizeBulkKeptArtStyleIds(body.keptArtStyleIds)
+        : body.keepArtStyles === true
+          ? [...DROPPABLE_CARD_RENDERER_IDS]
+          : [],
       keepRares: body.keepRares === true,
       keepLegendaries: body.keepLegendaries === true,
       keepMasterpieces: body.keepMasterpieces === true,
@@ -83,9 +101,10 @@ export function shouldPreserveBulkSaleItem(
   protections: BulkSaleProtections,
 ): boolean {
   return (
-    (protections.keepArtStyles &&
-      Boolean(item.card_renderer) &&
-      item.card_renderer !== "museum") ||
+    (Boolean(item.card_renderer) &&
+      protections.keptArtStyleIds.includes(
+        item.card_renderer as DroppableCardRendererId,
+      )) ||
     (protections.keepRares && item.artwork.rarity === "rare") ||
     (protections.keepLegendaries && item.artwork.rarity === "legendary") ||
     (protections.keepMasterpieces && item.artwork.rarity === "masterpiece") ||

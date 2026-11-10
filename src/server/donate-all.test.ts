@@ -2,12 +2,15 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { calculateDonationKarma } from "./art-expert-gameplay.ts";
-import { shouldPreserveBulkSaleItem } from "./bulk-sale.ts";
+import {
+  shouldPreserveBulkSaleItem,
+  type BulkSaleProtections,
+} from "./bulk-sale.ts";
 import { getCardCosmetic } from "../components/item-cards/catalog.ts";
 
 test("donate all respects bulk sale protection filters", () => {
-  const protections = {
-    keepArtStyles: true,
+  const protections: BulkSaleProtections = {
+    keptArtStyleIds: ["zine"],
     keepRares: true,
     keepLegendaries: true,
     keepMasterpieces: true,

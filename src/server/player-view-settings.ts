@@ -1,4 +1,8 @@
-import type { BulkSaleProtections } from "./bulk-sale.ts";
+import { DROPPABLE_CARD_RENDERER_IDS } from "../components/item-cards/catalog.ts";
+import {
+  normalizeBulkKeptArtStyleIds,
+  type BulkSaleProtections,
+} from "./bulk-sale.ts";
 import { parseCratePurchaseCount } from "./crate-gameplay.ts";
 import {
   ARTWORK_RARITIES,
@@ -135,7 +139,7 @@ export const DEFAULT_PLAYER_VIEW_SETTINGS: PlayerViewSettings = {
   enableReveals: true,
   showGalleryVisitors: true,
   bulkSaleProtections: {
-    keepArtStyles: true,
+    keptArtStyleIds: [...DROPPABLE_CARD_RENDERER_IDS],
     keepRares: true,
     keepLegendaries: true,
     keepMasterpieces: true,
@@ -180,7 +184,11 @@ export function getPlayerViewSettings(value: unknown): PlayerViewSettings {
     enableReveals: settings.enableReveals !== false,
     showGalleryVisitors: settings.showGalleryVisitors !== false,
     bulkSaleProtections: {
-      keepArtStyles: protections.keepArtStyles !== false,
+      keptArtStyleIds: Array.isArray(protections.keptArtStyleIds)
+        ? normalizeBulkKeptArtStyleIds(protections.keptArtStyleIds)
+        : protections.keepArtStyles !== false
+          ? [...DROPPABLE_CARD_RENDERER_IDS]
+          : [],
       keepRares: protections.keepRares !== false,
       keepLegendaries: protections.keepLegendaries !== false,
       keepMasterpieces: protections.keepMasterpieces !== false,
