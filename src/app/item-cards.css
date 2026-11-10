@@ -1983,6 +1983,7 @@
   position: absolute;
   z-index: 4;
   top: 9%;
+  height: 16%;
   left: 1.5%;
   right: 1.5%;
   max-width: 97%;
@@ -2018,6 +2019,8 @@
 }
 
 .comic-card-title {
+  position: relative;
+  isolation: isolate;
   display: block;
   margin: 0;
   padding: 0;
@@ -2030,21 +2033,45 @@
   text-wrap: balance;
   overflow-wrap: anywhere;
   -webkit-text-stroke: 0.045em var(--comic-ink);
-  filter:
-    drop-shadow(0 0.045em 0 var(--comic-title-side))
-    drop-shadow(0 0.045em 0 var(--comic-title-side))
-    drop-shadow(0 0.045em 0 var(--comic-title-side))
-    drop-shadow(0 0.045em 0 var(--comic-title-side))
-    drop-shadow(0 0.04em 0 var(--comic-ink))
-    drop-shadow(0 0.035em 0.01em rgb(0 0 0 / 32%));
   paint-order: stroke fill;
   text-align: center;
   transform:
     perspective(7em)
     rotateX(18deg)
-    scaleY(1.05)
+    scaleY(var(--comic-title-scale-y))
     scaleX(var(--comic-title-scale-x));
-  transform-origin: center bottom;
+  transform-origin: center top;
+}
+
+.comic-card-title::before,
+.comic-card-title::after {
+  position: absolute;
+  inset: 0;
+  content: attr(data-title);
+  pointer-events: none;
+  text-wrap: inherit;
+  overflow-wrap: inherit;
+  white-space: inherit;
+  -webkit-text-stroke: 0.045em var(--comic-ink);
+  paint-order: stroke fill;
+  transform-origin: center top;
+}
+
+.comic-card-title::before {
+  z-index: 0;
+  color: var(--comic-ink);
+  transform: translateY(0.28em) scaleX(0.84) scaleY(0.94);
+}
+
+.comic-card-title::after {
+  z-index: 1;
+  color: var(--comic-title-side);
+  transform: translateY(0.14em) scaleX(0.92) scaleY(0.97);
+}
+
+.comic-card-title > span {
+  position: relative;
+  z-index: 2;
 }
 
 .comic-card-title[data-title-lines="1"] {

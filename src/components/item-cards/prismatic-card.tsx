@@ -38,8 +38,14 @@ function getComicTitleLayout(title: string) {
     lines === 1 ? 2.5 : 1.2,
     Math.max(0.85, 92 / Math.max(1, estimatedLineWidth)),
   );
+  const estimatedHeight =
+    fontSizeCqw * (lines === 1 ? 0.8 : 0.86) * lines;
+  const scaleY = Math.min(
+    2.35,
+    Math.max(0.45, 22 / Math.max(1, estimatedHeight)),
+  );
 
-  return { fontSizeCqw, letterSpacingEm, lines, scaleX };
+  return { fontSizeCqw, letterSpacingEm, lines, scaleX, scaleY };
 }
 
 export default function PrismaticCard({
@@ -110,16 +116,18 @@ export default function PrismaticCard({
         <section data-rarity={item.artwork.rarity} className="comic-card-title-block">
           <h3
             className="comic-card-title"
+            data-title={item.artwork.title}
             data-title-lines={titleLayout.lines}
             style={
               {
                 "--comic-title-font-size": `${titleLayout.fontSizeCqw}cqw`,
                 "--comic-title-letter-spacing": `${titleLayout.letterSpacingEm}em`,
                 "--comic-title-scale-x": titleLayout.scaleX,
+                "--comic-title-scale-y": titleLayout.scaleY,
               } as CSSProperties
             }
           >
-            {item.artwork.title}
+            <span>{item.artwork.title}</span>
           </h3>
         </section>
 
