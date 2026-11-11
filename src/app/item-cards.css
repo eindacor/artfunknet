@@ -456,7 +456,7 @@
     .arcade-card,
     .blueprint-card,
     .gilded-card,
-    .terminal-card,
+    .vaporwave-card,
     .comic-card,
     .celestial-card,
     .abstract-card,
@@ -482,7 +482,7 @@
     .arcade-card,
     .blueprint-card,
     .gilded-card,
-    .terminal-card,
+    .vaporwave-card,
     .comic-card,
     .celestial-card,
     .abstract-card,
@@ -496,7 +496,7 @@
     .arcade-card,
     .blueprint-card,
     .gilded-card,
-    .terminal-card,
+    .vaporwave-card,
     .comic-card,
     .celestial-card,
     .abstract-card,
@@ -509,7 +509,7 @@
 
 :is(
     .arcade-card,
-    .terminal-card,
+    .vaporwave-card,
     .comic-card,
     .celestial-card,
     .abstract-card
@@ -1670,144 +1670,472 @@
     radial-gradient(circle at center, #4f1421, #1b090d 72%);
 }
 
-/* Terminal: deliberately simple, flat, monochrome. */
-.terminal-card {
-  border: 1px solid var(--rarity-color);
-  background: #020704;
-  color: var(--rarity-color);
-  box-shadow: 0 0 12px var(--rarity-glow);
-  font-family: "Courier New", Courier, monospace;
+.rendered-item-card-terminal {
+  --card-width: 390px;
+  --card-height: calc(var(--card-width) * 2 / 3);
 }
 
-.terminal-card > * {
-  position: relative;
-  z-index: 1;
+.vaporwave-card {
+  isolation: isolate;
+  container-type: inline-size;
+  border: 0;
+  border-radius: 2px;
+  background: #0c0815;
+  color: #f4edff;
+  box-shadow: 0 8px 24px rgb(4 2 12 / 35%);
+  font-family: Arial, sans-serif;
 }
 
-.terminal-card::after {
-  content: "";
+.vaporwave-card::after {
   position: absolute;
-  z-index: 2;
+  z-index: 8;
   inset: 0;
-  pointer-events: none;
-  background: repeating-linear-gradient(
-    transparent 0,
-    transparent 3px,
-    rgb(51 255 122 / 4%) 3px,
-    rgb(51 255 122 / 4%) 4px
-  );
-}
-
-.terminal-card-state-readout {
-  position: absolute;
-  z-index: 3;
-  top: 2.15rem;
-  right: 0.55rem;
-  left: 0.55rem;
-  display: grid;
-  gap: 0.25rem;
-  margin: 0;
+  content: "";
+  background:
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.87' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Cpath fill='%23fff' opacity='.18' filter='url(%23n)' d='M0 0h160v160H0z'/%3E%3C/svg%3E"),
+    repeating-linear-gradient(0deg, transparent 0 2px, rgb(8 3 18 / 10%) 3px);
+  background-size: 110px 110px, auto;
+  mix-blend-mode: soft-light;
   pointer-events: none;
 }
 
-.terminal-card-state {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid currentColor;
-  padding: 0.24rem 0.35rem;
-  font-size: 0.48rem;
-  font-weight: 700;
-  letter-spacing: 0.07em;
-  text-shadow: 0 0 6px currentColor;
-}
-
-.terminal-card-state i {
-  width: 1rem;
-  margin-right: 0.2rem;
-  text-align: center;
-}
-
-.terminal-card-state-unlocked {
-  border-color: var(--unlocked-color);
-  background: rgb(24 27 31 / 94%);
-  color: var(--unlocked-color);
-  box-shadow:
-    0 0 8px var(--unlocked-glow),
-    inset 0 0 12px rgb(199 203 209 / 12%);
-  animation: terminal-access-pulse 1.4s steps(2) infinite;
-}
-
-.terminal-card-state-unlocked::after {
-  content: "";
+.vaporwave-card-background {
   position: absolute;
+  z-index: 0;
   inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgb(199 203 209 / 38%),
-    transparent
-  );
-  transform: translateX(-110%);
-  animation: terminal-access-scan 2.4s linear infinite;
-}
-
-.terminal-card-unlocked {
-  box-shadow:
-    0 0 12px var(--unlocked-glow),
-    inset 0 0 18px color-mix(in srgb, var(--unlocked-color) 12%, transparent);
-}
-
-.terminal-card > header {
-  display: flex;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--rarity-color);
-  padding: 0.45rem 0.55rem;
-  font-size: 0.52rem;
-}
-
-.terminal-card-cursor {
-  animation: terminal-blink 0.8s steps(1) infinite;
-}
-
-.terminal-card-image {
-  height: 150px;
-  margin: 0.55rem;
   background-position: center;
   background-size: cover;
-  filter: grayscale(1) contrast(1.2);
-  opacity: 0.78;
+  filter: grayscale(0.35) saturate(1.2) hue-rotate(300deg) contrast(1.16) brightness(0.8);
 }
 
-.terminal-card-copy {
-  display: grid;
-  gap: 0.2rem;
-  padding: 0 0.55rem 0.55rem;
-  font-size: 0.55rem;
+.vaporwave-card-color-wash {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgb(6 3 15 / 78%), transparent 42%, transparent 65%, rgb(8 4 22 / 40%)),
+    linear-gradient(115deg, rgb(104 14 111 / 40%), transparent 45%, rgb(18 14 65 / 45%)),
+    radial-gradient(ellipse at 82% 25%, rgb(73 23 146 / 40%), transparent 58%),
+    radial-gradient(ellipse at 2% 83%, rgb(244 41 190 / 50%), transparent 48%);
+  pointer-events: none;
 }
 
-.terminal-card-copy > p {
+.vaporwave-card-refraction,
+.vaporwave-card-refracted-art,
+.vaporwave-card-liquid,
+.vaporwave-card-atmosphere,
+.vaporwave-card-geometry {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.vaporwave-card-refraction {
+  z-index: 2;
+  clip-path: polygon(5% 28%, 106% -2%, 94% 108%, -7% 138%);
+}
+
+.vaporwave-card-refracted-art {
+  filter: saturate(1.5) hue-rotate(305deg) contrast(1.2);
+  transform: translate(2%, -1%) scale(1.06);
+}
+
+.vaporwave-card-refraction::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: linear-gradient(155deg, rgb(114 255 227 / 65%), transparent 38%, rgb(249 40 170 / 55%));
+  mix-blend-mode: color;
+}
+
+.vaporwave-card-liquid {
+  z-index: 3;
+  background:
+    conic-gradient(from 220deg at 20% 75%, #161a31, #59ffd4 8%, #a690fe 12%, #f5a1f5 15%, #fc543f 19%, #2c113f 24%, #121322 35%, #63eddc 42%, #c653ff 46%, #261331 52%, #ff56b4 60%, #8af7da 64%, #251836 70%, #161a31);
+  clip-path: polygon(0 42%, 8% 58%, 20% 62%, 27% 76%, 44% 88%, 35% 100%, 0 100%);
+  opacity: 0.72;
+  mix-blend-mode: screen;
+  mask-image: linear-gradient(135deg, transparent, #000 40%, #000 80%, transparent);
+}
+
+.vaporwave-card-atmosphere {
+  z-index: 4;
+  opacity: 0;
+  mix-blend-mode: screen;
+  mask-image:
+    linear-gradient(105deg, #000, transparent 38%, transparent 63%, #000),
+    linear-gradient(0deg, #000, transparent 38%);
+}
+
+.vaporwave-card-atmosphere[data-ready="true"] { opacity: 0.85; }
+
+.vaporwave-card-geometry {
+  z-index: 5;
+  stroke-linejoin: bevel;
+}
+
+.vaporwave-card-prism {
+  stroke: #f29ade;
+  stroke-width: 1.1;
+}
+
+.vaporwave-card-prism-echo {
+  stroke: #80ffe9;
+  stroke-width: 0.65;
+  opacity: 0.65;
+}
+
+.vaporwave-card-hairlines {
+  stroke: #e8beff;
+  stroke-width: 0.7;
+  opacity: 0.65;
+}
+
+.vaporwave-card-mesh {
+  stroke: #a4ffe9;
+  stroke-width: 0.6;
+  opacity: 0.28;
+}
+
+.vaporwave-card-serial {
+  position: absolute;
+  z-index: 9;
+  top: 1.5%;
+  left: 4%;
+  max-width: 80%;
+  overflow: hidden;
+  color: #2d1f36;
+  font: 700 1.8cqw/1 Courier, "Courier New", monospace;
+  letter-spacing: 0.12em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vaporwave-card-heading {
+  position: absolute;
+  z-index: 9;
+  top: 5%;
+  left: 4%;
+  width: 80%;
+  min-width: 0;
+}
+
+.vaporwave-card-heading h3 {
+  position: relative;
+  display: -webkit-box;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  color: #f3edff;
+  font-family: var(--font-orbitron, "Arial Black"), Arial, sans-serif;
+  font-size: 6.1cqw;
+  font-weight: 900;
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+  padding: 0.3cqw 0.6cqw 0.9cqw 0;
+  background: linear-gradient(
+    180deg, #fff 0%, #efe6ff 20%, #8b73ab 42%, #35224c 47%,
+    #f7efff 50%, #befff2 58%, #b392de 72%, #f7eaff 90%
+  );
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: 0.07cqw #e3c9f8;
+  paint-order: stroke fill;
+  filter: drop-shadow(0.25cqw 0.5cqw 0 #3b194e) drop-shadow(0 1px 2px #090411);
+  text-transform: uppercase;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.vaporwave-card-heading p {
+  margin-top: 0.8cqw;
+  color: #dfd6ed;
+  font: italic 500 3cqw/1.1 Georgia, "Times New Roman", serif;
+  letter-spacing: 0.03em;
+  text-shadow: 0 1px 3px #090411, 0 0 4px #090411;
+}
+
+.vaporwave-card-heading .render-card-artist {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.terminal-card .render-card-details > summary {
-  margin-top: 0.3rem;
-  border: 1px dashed var(--rarity-color);
-  padding: 0.28rem;
-  color: var(--rarity-color);
+.vaporwave-card-rarity {
+  color: var(--rarity-light);
+  font-size: 1.85cqw;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
-@keyframes terminal-access-pulse {
-  50% {
-    color: #ff9a9a;
-  }
+.vaporwave-card-info,
+.vaporwave-card-attributes {
+  background: linear-gradient(115deg, rgb(12 7 25 / 92%), rgb(14 8 28 / 76%));
+  backdrop-filter: blur(7px);
 }
 
-@keyframes terminal-access-scan {
-  to {
-    transform: translateX(110%);
-  }
+.vaporwave-card-info {
+  position: absolute;
+  z-index: 9;
+  right: 0;
+  bottom: 5%;
+  width: 22%;
+  display: grid;
+  gap: 1.8cqw;
+  border-left: 1px solid rgb(222 190 255 / 75%);
+  padding: 2cqw 2.2cqw 2cqw 2.8cqw;
+  clip-path: polygon(10% 0, 100% 0, 100% 100%, 0 100%, 0 6%);
+}
+
+.vaporwave-card-info-heading {
+  display: grid;
+  gap: 1cqw;
+  min-width: 0;
+}
+
+.vaporwave-card-variants {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.8cqw;
+  color: #c9f8ff;
+  font-size: 2cqw;
+}
+
+.vaporwave-card-variants:empty { display: none; }
+
+.vaporwave-card-variants > span {
+  color: #ffe4a0;
+  white-space: nowrap;
+}
+
+.vaporwave-card-stats {
+  display: grid;
+  border-top: 1px solid rgb(209 171 247 / 35%);
+  padding-top: 0.5cqw;
+}
+
+.vaporwave-card-stats > span {
+  display: flex;
+  align-items: center;
+  gap: 1.4cqw;
+  min-width: 0;
+  padding: 0.8cqw 0;
+  color: #f2eaff;
+  font-size: 3cqw;
+  line-height: 1.2;
+}
+
+.vaporwave-card-stats > span + span {
+  border-top: 1px solid rgb(219 152 255 / 14%);
+}
+
+.vaporwave-card-stats i {
+  flex: 0 0 2.7cqw;
+  color: #c3b0da;
+  font-size: 2.5cqw;
+  text-align: center;
+}
+
+.vaporwave-card-stats strong {
+  overflow: hidden;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vaporwave-card-record {
+  display: grid;
+  gap: 0.8cqw;
+  min-width: 0;
+  color: #f4e3ff;
+  font-size: 1.9cqw;
+  line-height: 1.25;
+}
+
+.vaporwave-card-record > span {
+  display: flex;
+  align-items: center;
+  gap: 1cqw;
+  min-width: 0;
+}
+
+.vaporwave-card-record i {
+  flex: 0 0 2cqw;
+  text-align: center;
+  color: #a994bf;
+}
+
+.vaporwave-card-record > span > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vaporwave-card-attributes {
+  position: absolute;
+  z-index: 10;
+  left: 0;
+  bottom: 5%;
+  width: max-content;
+  max-width: 70%;
+  border-right: 1px solid rgb(222 190 255 / 75%);
+  padding: 1.1cqw 3cqw 1.1cqw 4cqw;
+  font-size: 4cqw;
+  line-height: 1;
+}
+
+.vaporwave-card-attributes:has(> [data-attribute-count="0"]) { display: none; }
+
+.vaporwave-card-attributes .render-card-attribute-icons {
+  gap: 1.5cqw;
+  font-size: inherit;
+}
+
+.vaporwave-card .attribute-group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 1.5cqw;
+  max-width: 100%;
+}
+
+.vaporwave-card .attribute {
+  margin-right: 0;
+  font-size: inherit;
+  -webkit-text-stroke: 0.2cqw #08060d;
+  paint-order: stroke fill;
+  text-shadow: 0 1px 2px #170726, 0 0 3px #170726;
+  filter: none;
+}
+
+.vaporwave-card .attribute.locked {
+  color: #cfc0e2;
+  opacity: 1;
+}
+
+.vaporwave-card .attribute-group + .attribute-group::before {
+  margin-right: 0;
+  text-shadow: 0 1px 3px #170726, 0 0 2px #170726;
+}
+
+.vaporwave-card-seasonal-weave {
+  position: absolute;
+  z-index: 6;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  stroke: #b7ffe6;
+  stroke-width: 0.7;
+  opacity: 0.65;
+  mask-image: linear-gradient(100deg, transparent 52%, #000 82%);
+  pointer-events: none;
+}
+
+.vaporwave-card-seasonal-weave path:nth-child(3n) { stroke: #f994e1; }
+
+.vaporwave-card[data-seasonal="true"] .vaporwave-card-atmosphere {
+  mask-image:
+    linear-gradient(100deg, #000, transparent 36%, transparent 50%, #000 82%),
+    linear-gradient(0deg, #000, transparent 48%);
+}
+
+.vaporwave-card[data-mint="true"] .vaporwave-card-heading h3 {
+  background-image: linear-gradient(
+    180deg, #fff 0%, #b4e1d7 28%, #324e5e 45%, #fff 49%,
+    #d3fff2 57%, #7795b4 74%, #fff 95%
+  );
+  -webkit-text-stroke-color: #e3fff6;
+}
+
+.vaporwave-card-mint-facet {
+  position: absolute;
+  z-index: 6;
+  top: 11%;
+  right: -3%;
+  width: 27%;
+  height: 40%;
+  stroke: #ceffef;
+  stroke-width: 0.65;
+  fill: rgb(135 255 219 / 5%);
+  transform: rotate(12deg);
+  pointer-events: none;
+}
+
+.vaporwave-card-mint-facet path:first-child {
+  fill: rgb(184 255 235 / 10%);
+  stroke-width: 1;
+}
+
+.vaporwave-card-signal-slices {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  mask-image:
+    linear-gradient(#000, #000), linear-gradient(#000, #000),
+    linear-gradient(#000, #000), linear-gradient(#000, #000);
+  mask-size: 37% 3%, 50% 1%, 25% 2%, 36% 1%;
+  mask-position: left 43%, left 65%, right 34%, right 24%;
+  mask-repeat: no-repeat;
+  pointer-events: none;
+}
+
+.vaporwave-card-sliced-art {
+  position: absolute;
+  inset: 0;
+  filter: hue-rotate(280deg) saturate(2);
+  transform: translateX(3%);
+}
+
+.vaporwave-card[data-unlocked="true"] .vaporwave-card-heading h3 {
+  filter: drop-shadow(-0.2cqw 0 0 #86ffe1) drop-shadow(0.3cqw 0.4cqw 0 #841c79);
+}
+
+.vaporwave-card .render-card-foil-sheen {
+  z-index: 7;
+  background-image:
+    repeating-linear-gradient(125deg, transparent 0 14%, rgb(183 255 239 / 18%) 18%, rgb(251 116 238 / 22%) 23%, rgb(255 233 131 / 20%) 28%, transparent 34%),
+    radial-gradient(ellipse at 70% 30%, rgb(154 159 255 / 16%), transparent 62%);
+  background-size: 300% 100%;
+  mix-blend-mode: screen;
+}
+
+.vaporwave-card[data-foil="true"] .vaporwave-card-info,
+.vaporwave-card[data-foil="true"] .vaporwave-card-attributes {
+  border-color: #bcffeb;
+  background: linear-gradient(125deg, rgb(38 14 49 / 92%), rgb(12 30 39 / 85%), rgb(34 13 45 / 90%));
+}
+
+.vaporwave-card-lottery-seal {
+  position: absolute;
+  z-index: 6;
+  top: 6%;
+  right: 3%;
+  width: 16%;
+  aspect-ratio: 1;
+  stroke: #f3d9ff;
+  stroke-width: 0.7;
+  fill: rgb(193 134 234 / 15%);
+  filter: drop-shadow(0 1px 2px #14071e);
+  animation: vaporwave-seal-turn 36s linear infinite;
+  pointer-events: none;
+}
+
+.vaporwave-card-lottery-seal g:nth-child(2n) {
+  stroke: #a7ffe5;
+  fill: rgb(174 255 230 / 17%);
+}
+
+.vaporwave-card-seal-core { fill: #f4e3ff; }
+
+@keyframes vaporwave-seal-turn {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vaporwave-card-lottery-seal { animation: none; }
 }
 
 
@@ -6223,10 +6551,12 @@
   grid-column: 1 / -1;
   grid-row: 2;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 280px;
+  grid-template-columns: minmax(0, 1fr) max-content;
   align-items: center;
+  justify-self: stretch;
   gap: 1.25rem;
   min-width: 0;
+  container-type: inline-size;
 }
 
 .standard-item-dialog-artwork-presentation {
@@ -6362,6 +6692,14 @@
 
 .standard-item-dialog-card {
   justify-self: end;
+  zoom: min(1, calc(100cqw / var(--card-width)));
+}
+
+.standard-item-dialog-card:is(
+    .rendered-item-card-postcard,
+    .rendered-item-card-terminal
+  ) {
+  --card-width: 390px;
 }
 
 .standard-item-dialog-feature > .standard-item-dialog-kicker {
@@ -7462,12 +7800,6 @@
   inherits: false;
 }
 
-@keyframes terminal-blink {
-  50% {
-    opacity: 0;
-  }
-}
-
 @keyframes shared-foil-shimmer {
   0%,
   10% {
@@ -7582,6 +7914,20 @@
 }
 
 @media (max-width: 700px) {
+  .standard-item-dialog-visuals:has(
+      > :is(.rendered-item-card-postcard, .rendered-item-card-terminal)
+    ) {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+  }
+
+  .standard-item-dialog-card:is(
+      .rendered-item-card-postcard,
+      .rendered-item-card-terminal
+    ) {
+    justify-self: center;
+  }
+
   .standard-item-dialog-artwork {
     width: 120px;
     max-height: 125px;
@@ -7699,15 +8045,12 @@
     padding: 1.5rem 0.5rem;
   }
 
-  .rendered-item-card-postcard {
+  :is(.rendered-item-card-postcard, .rendered-item-card-terminal) {
     --card-width: min(390px, calc(100vw - 48px));
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .terminal-card-cursor,
-  .terminal-card-state-unlocked,
-  .terminal-card-state-unlocked::after,
   .comic-card,
   .render-card-foil-sheen,
   .celestial-card,

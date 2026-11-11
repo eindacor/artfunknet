@@ -34,8 +34,9 @@ export const CARD_COSMETICS: CardCosmetic[] = [
   {
     number: 3,
     id: "terminal",
-    name: "Archive Terminal",
-    description: "Minimal monochrome database readout.",
+    name: "Vaporwave Archive",
+    description:
+      "Liquid-chrome typography, refracted artwork, spectral shaders, and sculptural wireframe editions.",
   },
   {
     number: 4,
