@@ -768,14 +768,14 @@ test("Tuesday results are an expanded winner celebration, not entries or a colla
     return elements(panel({ impersonating: false, legendaryAttributes: [], playerId: "viewer" }));
   };
   const children = render();
-  assert.ok(children.some(child => child.type === "section" && child.props["aria-label"] === "Duper Tuesday winners"));
+  assert.ok(children.some(child => child.type === "section" && child.props["aria-label"] === "Today's winners"));
   assert.ok(!children.some(child => child.type === "details" || child.type === "summary"));
   assert.ok(!children.some(child => child.props["aria-label"] === "Your submission" || child.props["aria-label"] === "Current entries and voting"));
   assert.deepEqual(children.filter(child => child.type === ItemCard).map(child => (child.props.item as GameItem)._id), ["winning-work"]);
   view.phase = "submissions";
   view.submissionsOpen = true;
   const reopened = render();
-  assert.ok(!reopened.some(child => child.props["aria-label"] === "Duper Tuesday winners"));
+  assert.ok(!reopened.some(child => child.props["aria-label"] === "Today's winners"));
   assert.ok(reopened.some(child => child.props["aria-label"] === "Your submission"));
   assert.deepEqual(reopened.filter(child => child.type === ItemCard).map(child => (child.props.item as GameItem)._id), ["owned", "next-prize"]);
 });

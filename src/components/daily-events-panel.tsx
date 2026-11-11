@@ -670,9 +670,9 @@ function ForgeryContestPanel({
         </section>
       ) : null}
       {view.phase === "results" ? (
-        <section aria-label="Duper Tuesday winners" className="forgery-contest-section forgery-contest-celebration">
+        <section aria-label="Today's winners" className="forgery-contest-section forgery-contest-celebration">
           <header>
-            <h4><i aria-hidden="true" className="fa fa-trophy" /> Duper Tuesday Winners</h4>
+            <h4><i aria-hidden="true" className="fa fa-trophy" /> Today&apos;s Winners</h4>
           </header>
           {view.lastWinners.length === 0 ? (
             <p className="daily-event-empty">
