@@ -3,11 +3,12 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 export default function ResponsiveMenu({
-  children, className = "", label,
+  children, className = "", label, notification,
 }: {
   children: ReactNode;
   className?: string;
   label: string;
+  notification?: { count: number; label: string };
 }) {
   const [open, setOpen] = useState(false);
   const id = useId();
@@ -41,11 +42,17 @@ export default function ResponsiveMenu({
       onBlur={event => {
         if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
       }}>
-      <button aria-controls={id} aria-expanded={open} aria-label={`${label} menu`}
+      <button aria-controls={id} aria-expanded={open}
+        aria-label={`${label} menu${notification ? `. ${notification.label}` : ""}`}
         className="responsive-menu-toggle" onClick={() => setOpen(current => !current)}
         ref={toggle} type="button">
         <i aria-hidden="true" className={`fa ${open ? "fa-times" : "fa-bars"}`} />
         <span>{label}</span>
+        {notification ? (
+          <span aria-hidden="true" className="navigation-attention-badge" title={notification.label}>
+            {notification.count}
+          </span>
+        ) : null}
       </button>
       <div className="responsive-menu-content" data-open={open || undefined} id={id}
         onClick={event => {

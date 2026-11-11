@@ -353,6 +353,7 @@ function ForgeryEditor({
         message?: string;
       };
       if (!response.ok) throw new Error(body.error ?? "The forgery failed.");
+      if (submitToContest) window.dispatchEvent(new Event("artfunkel:daily-events-change"));
       onForged(body.message ?? "Artwork forged.");
     } catch (caught) {
       setError(

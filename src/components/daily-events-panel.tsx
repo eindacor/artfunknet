@@ -13,6 +13,7 @@ import type { HydratedGameItem } from "@/server/item-artwork";
 import type { ForgeryContestPrizeView } from "@/server/forgery-contest";
 import type { ForgeryContestPhase } from "@/server/forgery-contest-schedule";
 import type { RaffleWinner } from "@/server/raffle-gameplay";
+import type { DailyEventCallToAction } from "@/server/daily-event-attention";
 
 const DAYS = [
   { short: "SUN", title: "Bonus XP" },
@@ -85,12 +86,14 @@ type FridayCrateView = {
 };
 
 export default function DailyEventsPanel({
+  callsToAction = [],
   currentDay,
   impersonating,
   legendaryAttributes,
   playerId,
   raffle,
 }: {
+  callsToAction?: DailyEventCallToAction[];
   currentDay: number;
   impersonating: boolean;
   legendaryAttributes: CardLegendaryAttribute[];
@@ -184,25 +187,34 @@ export default function DailyEventsPanel({
         </section>
       ) : null}
       <div aria-label="Daily events" className="daily-event-calendar" role="tablist">
-        {DAYS.map((day, index) => (
-          <button
-            aria-label={`${day.short}: ${day.title}`}
-            aria-selected={selectedDay === index}
-            className={`${selectedDay === index ? "selected" : ""} ${
-              (impersonating
-                ? debugDayMode === "today" && selectedDay === index
-                : currentDay === index)
-                ? "today"
-                : ""
-            }`}
-            key={day.short}
-            onClick={() => setSelectedDay(index)}
-            role="tab"
-            type="button"
-          >
-            <span>{day.short}</span>
-          </button>
-        ))}
+        {DAYS.map((day, index) => {
+          const action = callsToAction.find(action => action.day === index);
+          return (
+            <button
+              aria-label={`${day.short}: ${day.title}${action ? `. ${action.description}` : ""}`}
+              aria-selected={selectedDay === index}
+              className={`${selectedDay === index ? "selected" : ""} ${action ? "has-attention" : ""} ${
+                (impersonating
+                  ? debugDayMode === "today" && selectedDay === index
+                  : currentDay === index)
+                  ? "today"
+                  : ""
+              }`}
+              key={day.short}
+              onClick={() => setSelectedDay(index)}
+              role="tab"
+              title={action?.description}
+              type="button"
+            >
+              <span>{day.short}</span>
+              {action ? (
+                <span aria-hidden="true" className="daily-event-cta">
+                  {action.label}
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
       </div>
       <div className="daily-event-stage" role="tabpanel">
         {selectedDay === 0 ? (
@@ -351,6 +363,7 @@ function ForgeryContestPanel({
       setMessage(body.message ?? "Contest entry saved.");
       setIndex(0);
       setSubmissionIndex(0);
+      window.dispatchEvent(new Event("artfunkel:daily-events-change"));
       await load();
     } catch (actionError) {
       setError(
@@ -382,6 +395,7 @@ function ForgeryContestPanel({
       }
       setMessage(body.message ?? "Duper Tuesday winners drawn.");
       setIndex(0);
+      window.dispatchEvent(new Event("artfunkel:daily-events-change"));
       await load();
     } catch (actionError) {
       setError(
@@ -1042,6 +1056,7 @@ function FridayCratePanel({
       const body = (await response.json()) as { error?: string; message?: string };
       if (!response.ok) throw new Error(body.error ?? "The crate could not be opened.");
       setMessage(body.message ?? "Ultimate crate opened.");
+      window.dispatchEvent(new Event("artfunkel:daily-events-change"));
       await load();
       router.refresh();
     } catch (openError) {

@@ -32,6 +32,7 @@ import offerRevealStyles from "@/components/offer-reveal.module.css";
 import ItemTagsDialog from "@/components/item-tags-dialog";
 import HallOfFamePanel from "@/components/hall-of-fame-panel";
 import DailyEventsPanel from "@/components/daily-events-panel";
+import { useDailyEventAttention } from "@/components/use-daily-event-attention";
 import FeaturedWorksPanel from "@/components/featured-works-panel";
 import FeaturedWorkContent from "@/components/featured-work-content";
 import InfoPanel from "@/components/info-panel/info-panel";
@@ -528,6 +529,7 @@ export default function GameDashboard({
     initialGalleryId ? searchParams.get("galleryItem") : null,
   );
   const [now, setNow] = useState(initialNow);
+  const dailyEventAttention = useDailyEventAttention(playerId, now);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [actionDialog, setActionDialog] =
@@ -3540,6 +3542,7 @@ export default function GameDashboard({
       <div className="max-w-[1800px] m-auto">
         <PlayerDashboardToolbar
           archiveCount={archives.length}
+          dailyEventCallsToAction={dailyEventAttention.callsToAction}
           level={player.level}
           isMaxLevel={player.isMaxLevel}
           offerCount={unclaimed.length}
@@ -4731,7 +4734,8 @@ export default function GameDashboard({
 
         {section === "daily" ? (
           <DailyEventsPanel
-            currentDay={dailyEventDay}
+            callsToAction={dailyEventAttention.callsToAction}
+            currentDay={dailyEventAttention.currentDay ?? dailyEventDay}
             impersonating={impersonating}
             legendaryAttributes={legendaryAttributes}
             playerId={playerId}

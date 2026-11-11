@@ -640,7 +640,7 @@ async function loadComponent(path: string, name: string, context: Record<string,
   const code = ts.transpileModule(component.getText(source), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React },
   }).outputText;
-  return runInNewContext(`${code}\n${name}`, { exports: {}, React, ...context }) as
+  return runInNewContext(`${code}\n${name}`, { exports: {}, React, window: new EventTarget(), Event, ...context }) as
     (props: Record<string, unknown>) => React.ReactElement;
 }
 

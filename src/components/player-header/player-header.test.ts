@@ -8,6 +8,7 @@ import { createElement, type ReactElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import ts from "typescript";
 import { SOCIAL_BATTERY_MAX } from "../../server/social-battery.ts";
+import type { DailyEventCallToAction } from "../../server/daily-event-attention.ts";
 import * as tutorialElements from "../../shared/tutorial.ts";
 
 const source = await readFile(new URL("./player-header.tsx", import.meta.url), "utf8");
@@ -173,6 +174,32 @@ test("compact progress figures abbreviate large totals without changing exact va
     assert.ok(html.includes(`<strong title="${socialBattery.toLocaleString()} / ${SOCIAL_BATTERY_MAX.toLocaleString()}">`));
     assert.ok(html.includes(`aria-valuemax="${xpGoal}" aria-valuemin="0" aria-valuenow="${xp}" role="progressbar"`));
     assert.ok(html.includes(`aria-valuenow="${socialBattery}" class="social-battery-meter" role="progressbar"`));
+  }
+});
+
+test("daily event CTAs appear on their tab and the collapsed mobile menu, and disappear when cleared", () => {
+  const actions: DailyEventCallToAction[] = [
+    { day: 2, label: "Enter", description: "Submit a forgery to Duper Tuesday", expiresAt: null },
+    { day: 3, label: "Live", description: "Join the live auction", expiresAt: null },
+    { day: 5, label: "Claim", description: "Claim your free Ultimate crate", expiresAt: null },
+  ];
+  for (const callsToAction of [[], actions.slice(0, 1), actions]) {
+    const html = renderToStaticMarkup(createElement(PlayerDashboardToolbar, {
+      archiveCount: 0, level: 1, isMaxLevel: false, offerCount: 0, questCount: 0,
+      section: "collection", socialBattery: 0, xp: 0, xpGoal: 1000, onSelect: () => {},
+      dailyEventCallsToAction: callsToAction,
+    }));
+    const dailyTab = html.match(/<button[^>]*data-tutorial-navigation="daily"[\s\S]*?<\/button>/)![0];
+    assert.equal(dailyTab.includes("navigation-attention-badge"), callsToAction.length > 0);
+    if (callsToAction.length) {
+      assert.match(dailyTab, new RegExp(`>${callsToAction.length}</span>`));
+      assert.ok(html.includes('aria-label="Home menu. Daily Events:'));
+      for (const action of callsToAction) assert.ok(dailyTab.includes(action.description));
+      assert.equal((html.match(/class="navigation-attention-badge"/g) ?? []).length, 2);
+    } else {
+      assert.doesNotMatch(html, /navigation-attention-badge/);
+      assert.match(html, /aria-label="Home menu"/);
+    }
   }
 });
 

@@ -4,6 +4,7 @@ import ResponsiveMenu from "./responsive-menu";
 import ProgressBar from "./progress-bar/progress-bar";
 import { SOCIAL_BATTERY_MAX } from "@/server/social-battery";
 import { TutorialElement } from "@/shared/tutorial";
+import type { DailyEventCallToAction } from "@/server/daily-event-attention";
 
 const compactNumber = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 });
 
@@ -23,9 +24,10 @@ export type DashboardTabId = typeof TABS[number]["id"];
 
 export default function PlayerDashboardToolbar({
   archiveCount, level, isMaxLevel, offerCount, onSelect, questCount,
-  section, socialBattery, xp, xpGoal,
+  section, socialBattery, xp, xpGoal, dailyEventCallsToAction = [],
 }: {
   archiveCount: number;
+  dailyEventCallsToAction?: DailyEventCallToAction[];
   level: number;
   isMaxLevel: boolean;
   offerCount: number;
@@ -39,6 +41,12 @@ export default function PlayerDashboardToolbar({
   const current = TABS.find(tab => tab.id === section) ?? TABS[0];
   const xpText = `${xp.toLocaleString()} / ${xpGoal.toLocaleString()} XP`;
   const batteryText = `${socialBattery.toLocaleString()} / ${SOCIAL_BATTERY_MAX.toLocaleString()}`;
+  const eventAttention = dailyEventCallsToAction.length > 0
+    ? {
+      count: dailyEventCallsToAction.length,
+      label: `Daily Events: ${dailyEventCallsToAction.map(action => action.description).join("; ")}`,
+    }
+    : undefined;
   return (
     <>
       <section aria-label="Player progress" className="dashboard-resource-bars">
@@ -80,20 +88,27 @@ export default function PlayerDashboardToolbar({
           </div>
         </div>
       </section>
-      <ResponsiveMenu className="dashboard-navigation" label={current.label}>
+      <ResponsiveMenu className="dashboard-navigation" label={current.label} notification={eventAttention}>
         <nav className="dashboard-tabs" aria-label="Player dashboard">
           {TABS.map(tab => {
             const count = tab.id === "loot" ? offerCount : tab.id === "archive" ? archiveCount : tab.id === "quests" ? questCount : 0;
             return (
               <button aria-current={section === tab.id ? "page" : undefined}
+                aria-label={tab.id === "daily" ? eventAttention?.label : undefined}
                 className={section === tab.id ? "current" : ""}
                 data-tutorial-navigation={tab.id}
                 data-tutorial-element={tab.id === "loot" ? TutorialElement.TUTORIAL_SEE_OFFERS : undefined}
                 key={tab.id}
+                title={tab.id === "daily" ? eventAttention?.label : undefined}
                 onClick={() => onSelect(tab.id)} type="button">
                 <i aria-hidden="true" className={`fa ${tab.icon}`} />
                 <span>{tab.label}</span>
                 {count > 0 ? ` (${count.toLocaleString()})` : ""}
+                {tab.id === "daily" && eventAttention ? (
+                  <span aria-hidden="true" className="navigation-attention-badge">
+                    {eventAttention.count}
+                  </span>
+                ) : null}
               </button>
             );
           })}

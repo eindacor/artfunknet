@@ -791,6 +791,24 @@ a.welcome-button {
   color: #ff33cc;
 }
 
+.navigation-attention-badge {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  border: 1px solid #ffc9e6;
+  border-radius: 999px;
+  padding: 0 5px;
+  background: #a52e69;
+  color: #fff;
+  font: 800 0.7rem/1 Courier, "Courier New", monospace;
+}
+
+.dashboard-navigation .responsive-menu-toggle .navigation-attention-badge {
+  margin-left: auto;
+}
+
 .af-color {
   color: #ff33cc !important;
 }
@@ -9007,6 +9025,27 @@ a.welcome-button {
   box-shadow:
     0 0 0 1px #b94f89,
     inset 0 0 18px rgb(255 55 158 / 8%);
+}
+
+.daily-event-calendar button.has-attention {
+  gap: 1px;
+  border-color: #b94f89;
+}
+
+.daily-event-calendar button.has-attention > span:first-child {
+  line-height: 1.1;
+}
+
+.daily-event-calendar button .daily-event-cta {
+  justify-self: center;
+  max-width: 100%;
+  border-radius: 2px;
+  padding: 1px 2px;
+  background: #a52e69;
+  color: #fff;
+  font: 800 clamp(0.52rem, 2.4vw, 0.68rem)/1.15 Courier, "Courier New", monospace;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .daily-event-stage {
