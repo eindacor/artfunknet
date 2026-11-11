@@ -6,8 +6,10 @@ import { getArtworkEffect } from "./artwork-effects.ts";
 import { deleteCommunityReactions } from "./community-reaction-cleanup.ts";
 import {
   getDailyEventDayIndex,
+  getMostRecentDailyEventAt,
   getNextDailyEventAt,
 } from "./daily-event-time.ts";
+import { getForgeryContestSchedule, type ForgeryContestPhase } from "./forgery-contest-schedule.ts";
 import { recordEconomyMetricsSafely } from "./economy-metrics.ts";
 import { getGameplaySettings, type GameplayConfig } from "./game-settings.ts";
 import {
@@ -37,7 +39,8 @@ export const FORGERY_CONTEST_OWNER_ID = "system:forgery-contest";
 export const FORGERY_CONTEST_STATE_ID = "forgery-contest-state";
 export const FORGERY_CONTEST_DAY_INDEX = 2;
 export const FORGERY_CONTEST_SETTLEMENT_HOUR = 12;
-export const FORGERY_CONTEST_PRIZE_SOURCE = "forgery contest prize";
+export const FORGERY_CONTEST_PRIZE_SOURCE = "duper tuesday prize";
+const LEGACY_PRIZE_SOURCE = "forgery contest prize";
 export const FORGERY_CONTEST_DEFAULT_BUFFER_COUNT = 2;
 
 const ENTRY_PENDING_MILLISECONDS = 5 * 60 * 1000;
@@ -134,11 +137,14 @@ export type ForgeryContestEntryView = {
 };
 
 export type ForgeryContestPlayerView = {
+  phase: ForgeryContestPhase;
+  nextPhaseAt: string;
+  settling: boolean;
   submissionsOpen: boolean;
   votingOpen: boolean;
   nextSettlementAt: string;
   prizes: ForgeryContestPrizeView[];
-  currentEntry: ForgeryContestEntryView | null;
+  currentEntry: Pick<ForgeryContestEntryView, "id"> | null;
   eligibleForgeries: HydratedGameItem[];
   entries: ForgeryContestEntryView[];
   viewerVoteEntryId: string | null;
@@ -229,7 +235,7 @@ export function getForgeryContestSubmissionPermission({
   if (alreadyEntered) {
     return {
       allowed: false,
-      reason: "You have already submitted a forgery for this contest cycle.",
+      reason: "You have already submitted a forgery for this Duper Tuesday round.",
     };
   }
   if (!itemEligible) {
@@ -251,13 +257,13 @@ export function getForgeryContestVotePermission({
   if (!entryExists) {
     return {
       allowed: false,
-      reason: "That Forgery Contest entry is no longer available.",
+      reason: "That Duper Tuesday entry is no longer available.",
     };
   }
   if (ownsEntry) {
     return {
       allowed: false,
-      reason: "You cannot vote for your own Forgery Contest entry.",
+      reason: "You cannot vote for your own Duper Tuesday entry.",
     };
   }
   return { allowed: true };
@@ -281,18 +287,20 @@ export async function getForgeryContestPlayerView(
 ): Promise<ForgeryContestPlayerView> {
   const state = await settleForgeryContestIfDue(database, now);
   await cleanupContestDocuments(database, state, now);
+  const schedule = getForgeryContestSchedule(now);
+  const settling = hasActiveSettlementLock(state, now);
 
-  const [entries, votes, eligibleItems, prizes] = await Promise.all([
-    database
+  const [entries, votes, eligibleItems, prizes, currentEntry] = await Promise.all([
+    schedule.votingOpen ? database
       .collection<ForgeryContestEntry>("forgery_contest_entries")
       .find({ cycle_id: state.cycle_id, pending: false })
       .sort({ submitted_at: 1, _id: 1 })
-      .toArray(),
-    database
+      .toArray() : [],
+    schedule.votingOpen ? database
       .collection<ForgeryContestVote>("forgery_contest_votes")
       .find({ cycle_id: state.cycle_id })
-      .toArray(),
-    database
+      .toArray() : [],
+    schedule.submissionsOpen ? database
       .collection<GameItem>("items")
       .find({
         owner: playerId,
@@ -301,8 +309,10 @@ export async function getForgeryContestPlayerView(
         "authenticity.identified": true,
       })
       .sort({ date_received: -1, _id: 1 })
-      .toArray(),
+      .toArray() : [],
     hydrateContestPrizes(database, state.prizes),
+    database.collection<ForgeryContestEntry>("forgery_contest_entries")
+      .findOne({ cycle_id: state.cycle_id, player_id: playerId, pending: false }),
   ]);
 
   const entryItems = await database
@@ -310,7 +320,7 @@ export async function getForgeryContestPlayerView(
     .find({ _id: { $in: entries.map((entry) => entry.item_id) } })
     .toArray();
   if (entryItems.length !== entries.length) {
-    throw new Error("One or more Forgery Contest entries are unavailable.");
+    throw new Error("One or more Duper Tuesday entries are unavailable.");
   }
 
   const [hydratedEntryItems, hydratedEligibleItems, players] =
@@ -342,7 +352,7 @@ export async function getForgeryContestPlayerView(
   const entryViews = entries.map((entry): ForgeryContestEntryView => {
     const item = itemById.get(entry.item_id);
     if (!item) {
-      throw new Error(`Forgery Contest item ${entry.item_id} is unavailable.`);
+      throw new Error(`Duper Tuesday item ${entry.item_id} is unavailable.`);
     }
     return {
       id: entry._id,
@@ -357,16 +367,21 @@ export async function getForgeryContestPlayerView(
   });
 
   return {
-    submissionsOpen: !hasActiveSettlementLock(state, now),
-    votingOpen: !hasActiveSettlementLock(state, now),
+    ...schedule,
+    settling,
+    submissionsOpen: schedule.submissionsOpen && !settling,
+    votingOpen: schedule.votingOpen && !settling,
     nextSettlementAt: state.next_settlement_at,
     prizes,
-    currentEntry:
-      entryViews.find((entry) => entry.playerId === playerId) ?? null,
+    currentEntry: currentEntry ? { id: currentEntry._id } : null,
     eligibleForgeries: hydratedEligibleItems,
     entries: entryViews,
     viewerVoteEntryId: viewerVote,
-    lastWinners: state.last_winners,
+    lastWinners: schedule.phase === "results"
+      ? state.last_winners.filter((winner) =>
+        new Date(winner.won_at) >= getMostRecentDailyEventAt(2, 12, now) &&
+        new Date(winner.won_at) <= now)
+      : [],
   };
 }
 
@@ -376,11 +391,16 @@ export async function submitForgeryContestEntry(
   itemId: string,
   now = new Date(),
 ): Promise<void> {
+  if (!getForgeryContestSchedule(now).submissionsOpen) {
+    throw new ForgeryContestError(
+      "Duper Tuesday entries are closed on Tuesdays. Submissions reopen Wednesday at 12am New York time.",
+    );
+  }
   const state = await settleForgeryContestIfDue(database, now);
   await cleanupContestDocuments(database, state, now);
   if (hasActiveSettlementLock(state, now)) {
     throw new ForgeryContestError(
-      "Forgery Contest settlement is currently in progress.",
+      "Duper Tuesday settlement is currently in progress.",
     );
   }
   const entries = database.collection<ForgeryContestEntry>(
@@ -431,7 +451,7 @@ export async function submitForgeryContestEntry(
   } catch (error) {
     if (isDuplicateKeyError(error)) {
       throw new ForgeryContestError(
-        "You have already submitted a forgery for this contest cycle.",
+        "You have already submitted a forgery for this Duper Tuesday round.",
       );
     }
     throw error;
@@ -463,7 +483,7 @@ export async function submitForgeryContestEntry(
             from_owner: playerId,
             to_owner: FORGERY_CONTEST_OWNER_ID,
             occurred_at: submittedAt,
-            source: "forgery contest submission",
+            source: "duper tuesday submission",
           },
         },
       },
@@ -496,7 +516,7 @@ export async function submitForgeryContestEntry(
   if (activated.modifiedCount !== 1) {
     await rollbackSubmittedItem(database, item, entryId);
     throw new Error(
-      "The Forgery Contest entry could not be activated and was restored.",
+      "The Duper Tuesday entry could not be activated and was restored.",
     );
   }
   const stateAfterActivation = await database
@@ -520,10 +540,15 @@ export async function setForgeryContestVote(
   entryId: string,
   now = new Date(),
 ): Promise<void> {
+  if (!getForgeryContestSchedule(now).votingOpen) {
+    throw new ForgeryContestError(
+      "Duper Tuesday voting is only open Tuesday from 12am to noon New York time.",
+    );
+  }
   const state = await settleForgeryContestIfDue(database, now);
   if (hasActiveSettlementLock(state, now)) {
     throw new ForgeryContestError(
-      "Forgery Contest settlement is currently in progress.",
+      "Duper Tuesday settlement is currently in progress.",
     );
   }
   const entry = await database
@@ -603,7 +628,7 @@ async function hydrateContestPrizes(
     .find({ _id: { $in: prizes.map((prize) => prize.item_id) } })
     .toArray();
   if (items.length !== prizes.length) {
-    throw new Error("One or more Forgery Contest prizes are unavailable.");
+    throw new Error("One or more Duper Tuesday prizes are unavailable.");
   }
   const hydrated = await hydrateGameItems(database, items);
   const itemById = new Map(hydrated.map((item) => [item._id, item]));
@@ -611,7 +636,7 @@ async function hydrateContestPrizes(
     const item = itemById.get(prize.item_id);
     if (!item) {
       throw new Error(
-        `Forgery Contest prize ${prize.item_id} is unavailable.`,
+        `Duper Tuesday prize ${prize.item_id} is unavailable.`,
       );
     }
     return { place: prize.place, item };
@@ -660,7 +685,7 @@ export async function replaceForgeryContestPrize(
         owner: FORGERY_CONTEST_OWNER_ID,
       });
       throw new ForgeryContestError(
-        "The Forgery Contest prizes changed before replacement completed.",
+        "The Duper Tuesday prizes changed before replacement completed.",
       );
     }
     await database.collection<GameItem>("items").deleteOne({
@@ -697,7 +722,7 @@ export async function createForgeryContestBufferedPrize(
         owner: FORGERY_CONTEST_OWNER_ID,
       });
       throw new ForgeryContestError(
-        "The Forgery Contest buffer changed before the item could be added.",
+        "The Duper Tuesday buffer changed before the item could be added.",
       );
     }
   });
@@ -727,7 +752,7 @@ export async function removeForgeryContestBufferedPrize(
       );
     if (removed.modifiedCount !== 1) {
       throw new ForgeryContestError(
-        "The Forgery Contest buffer changed before the item could be removed.",
+        "The Duper Tuesday buffer changed before the item could be removed.",
       );
     }
     await database.collection<GameItem>("items").deleteOne({
@@ -768,7 +793,7 @@ export async function updateForgeryContestBufferedPrize(
     ]);
     if (!item || !artwork || !metadata || attributes.length === 0) {
       throw new ForgeryContestError(
-        "Forgery Contest prize data is unavailable.", 404,
+        "Duper Tuesday prize data is unavailable.", 404,
       );
     }
     const regenerateAttributes =
@@ -862,7 +887,7 @@ async function withContestPrizeLock<T>(
     );
   if (!locked) {
     throw new ForgeryContestError(
-      "Forgery Contest prizes cannot be changed during settlement or another prize update.",
+      "Duper Tuesday prizes cannot be changed during settlement or another prize update.",
     );
   }
   try {
@@ -880,7 +905,7 @@ export async function settleForgeryContestIfDue(
   state = await ensureWinnerMoneyRewards(database, state, now);
   await deliverPendingWinnerNotifications(database, state).catch((error) => {
     console.error(
-      "Unable to deliver Forgery Contest winner notifications",
+      "Unable to deliver Duper Tuesday winner notifications",
       error,
     );
   });
@@ -953,7 +978,7 @@ export async function settleForgeryContestIfDue(
   ) {
     await releaseSettlementLock(database, token);
     throw new Error(
-      "Forgery Contest settlement stopped because an entry or prize disappeared.",
+      "Duper Tuesday settlement stopped because an entry or prize disappeared.",
     );
   }
 
@@ -1045,7 +1070,7 @@ export async function settleForgeryContestIfDue(
                   from_owner: item.owner,
                   to_owner: HALL_OF_FAME_OWNER_ID,
                   occurred_at: now.toISOString(),
-                  source: "forgery contest submission",
+                  source: "duper tuesday submission",
                 },
               },
             },
@@ -1102,7 +1127,7 @@ export async function settleForgeryContestIfDue(
                   from_owner: FORGERY_CONTEST_OWNER_ID,
                   to_owner: winner.playerId,
                   occurred_at: now.toISOString(),
-                  source: "forgery contest prize",
+                  source: FORGERY_CONTEST_PRIZE_SOURCE,
                 },
               },
             },
@@ -1178,7 +1203,7 @@ export async function settleForgeryContestIfDue(
       );
     if (advanced.modifiedCount !== 1) {
       throw new Error(
-        "Forgery Contest state changed before settlement could finish.",
+        "Duper Tuesday state changed before settlement could finish.",
       );
     }
     stateAdvanced = true;
@@ -1201,7 +1226,7 @@ export async function settleForgeryContestIfDue(
     ]);
     for (const result of cleanupResults) {
       if (result.status === "rejected") {
-        console.error("Forgery Contest post-settlement cleanup failed", result.reason);
+        console.error("Duper Tuesday post-settlement cleanup failed", result.reason);
       }
     }
     const unawardedIds = state.prizes
@@ -1210,7 +1235,7 @@ export async function settleForgeryContestIfDue(
     await deleteCommunityReactions(database, "item", unawardedIds).catch(
       (error) => {
         console.error(
-          "Unable to clean reactions for old Forgery Contest prizes",
+          "Unable to clean reactions for old Duper Tuesday prizes",
           error,
         );
       },
@@ -1222,7 +1247,7 @@ export async function settleForgeryContestIfDue(
     await deliverPendingWinnerNotifications(database, settled).catch(
       (error) => {
         console.error(
-          "Unable to deliver Forgery Contest winner notifications",
+          "Unable to deliver Duper Tuesday winner notifications",
           error,
         );
       },
@@ -1234,7 +1259,7 @@ export async function settleForgeryContestIfDue(
     );
   } catch (error) {
     if (stateAdvanced) {
-      console.error("Forgery Contest post-settlement work failed", error);
+      console.error("Duper Tuesday post-settlement work failed", error);
       return (
         (await database
           .collection<ForgeryContestState>("metadata")
@@ -1271,7 +1296,7 @@ export async function settleForgeryContestIfDue(
     if (rollbackErrors.length > 0) {
       throw new AggregateError(
         [error, ...rollbackErrors],
-        "Forgery Contest settlement and rollback both failed.",
+        "Duper Tuesday settlement and rollback both failed.",
       );
     }
     throw error;
@@ -1291,7 +1316,7 @@ export async function drawForgeryContestForDebug(
     });
   if (entryCount === 0) {
     throw new ForgeryContestError(
-      "The Forgery Contest has no active entries to draw.",
+      "The Duper Tuesday has no active entries to draw.",
     );
   }
   const dueAt = new Date(now.getTime() - 1).toISOString();
@@ -1315,7 +1340,7 @@ export async function drawForgeryContestForDebug(
     );
   if (prepared.modifiedCount !== 1) {
     throw new ForgeryContestError(
-      "The Forgery Contest is already settling.",
+      "The Duper Tuesday is already settling.",
     );
   }
   return settleForgeryContestIfDue(database, now);
@@ -1375,7 +1400,7 @@ async function ensureForgeryContestState(
     }
   }
   if (!state) {
-    throw new Error("Forgery Contest state could not be initialized.");
+    throw new Error("Duper Tuesday state could not be initialized.");
   }
   state = await ensureForgeryContestBuffers(database, state, now);
   await cleanupOrphanedContestPrizes(database, state, now);
@@ -1540,7 +1565,7 @@ async function generateForgeryContestPrize(
       });
     }
     throw new Error(
-      "Forgery Contest prizes require an active non-museum card renderer.",
+      "Duper Tuesday prizes require an active non-museum card renderer.",
     );
   }
   return item;
@@ -1582,7 +1607,7 @@ async function cleanupContestDocuments(
               from_owner: FORGERY_CONTEST_OWNER_ID,
               to_owner: entry.player_id,
               occurred_at: now.toISOString(),
-              source: "forgery contest submission recovery",
+              source: "duper tuesday submission recovery",
             },
           },
         },
@@ -1622,7 +1647,7 @@ async function cleanupContestDocuments(
             from_owner: FORGERY_CONTEST_OWNER_ID,
             to_owner: originalOwner,
             occurred_at: now.toISOString(),
-            source: "forgery contest recovery",
+            source: "duper tuesday recovery",
           },
         },
       },
@@ -1657,7 +1682,7 @@ async function rollbackSubmittedItem(
       .findOne({ _id: original._id });
     if (current?.owner === original.owner) return;
     throw new Error(
-      "The Forgery Contest submission failed and its item could not be restored.",
+      "The Duper Tuesday submission failed and its item could not be restored.",
     );
   }
 }
@@ -1674,7 +1699,7 @@ async function cleanupOrphanedContestPrizes(
     .collection<GameItem>("items")
     .find({
       owner: FORGERY_CONTEST_OWNER_ID,
-      source: FORGERY_CONTEST_PRIZE_SOURCE,
+      source: { $in: [FORGERY_CONTEST_PRIZE_SOURCE, LEGACY_PRIZE_SOURCE] },
       date_created: {
         $lte: new Date(
           now.getTime() - ORPHANED_PRIZE_GRACE_MILLISECONDS,
@@ -1689,7 +1714,7 @@ async function cleanupOrphanedContestPrizes(
   await database.collection<GameItem>("items").deleteMany({
     _id: { $in: ids },
     owner: FORGERY_CONTEST_OWNER_ID,
-    source: FORGERY_CONTEST_PRIZE_SOURCE,
+    source: { $in: [FORGERY_CONTEST_PRIZE_SOURCE, LEGACY_PRIZE_SOURCE] },
   });
   await deleteCommunityReactions(database, "item", ids);
 }
@@ -1734,7 +1759,7 @@ async function deliverPendingWinnerNotifications(
         : "";
     await createPlayerNotification(database, winner.player_id, {
       kind: "success",
-      message: `You won ${PLACE_LABELS[winner.place - 1]} place in the Forgery Contest with ${winner.votes} ${winner.votes === 1 ? "vote" : "votes"}. Your prize was added to your collection.${cashText}`,
+      message: `You won ${PLACE_LABELS[winner.place - 1]} place in Duper Tuesday with ${winner.votes} ${winner.votes === 1 ? "vote" : "votes"}. Your prize was added to your collection.${cashText}`,
       notificationId: `forgery-contest-winner:${state.pending_winner_notifications}:${winner.won_at}:${winner.player_id}`,
     });
   }
@@ -1810,7 +1835,7 @@ async function awardForgeryContestMoney(
       });
     if (player) return;
     throw new Error(
-      `Forgery Contest cash reward could not be awarded to ${winner.player_id}.`,
+      `Duper Tuesday cash reward could not be awarded to ${winner.player_id}.`,
     );
   }
   if (amount > 0) {

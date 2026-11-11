@@ -20,6 +20,9 @@ export async function GET() {
       auth.session.playerId,
     );
     return NextResponse.json({
+      phase: contest.phase,
+      nextPhaseAt: contest.nextPhaseAt,
+      settling: contest.settling,
       submissionsOpen: contest.submissionsOpen,
       votingOpen: contest.votingOpen,
       nextSettlementAt: contest.nextSettlementAt,
@@ -99,7 +102,7 @@ export async function PATCH(request: Request) {
     );
     return NextResponse.json({
       status: "ok",
-      message: "Your Forgery Contest vote was saved.",
+      message: "Your Duper Tuesday vote was saved.",
     });
   } catch (error) {
     return contestErrorResponse(error);
@@ -113,9 +116,9 @@ function contestErrorResponse(error: unknown) {
       { status: error.status },
     );
   }
-  console.error("Forgery Contest request failed", error);
+  console.error("Duper Tuesday request failed", error);
   return NextResponse.json(
-    { error: "The Forgery Contest is temporarily unavailable." },
+    { error: "The Duper Tuesday is temporarily unavailable." },
     { status: 500 },
   );
 }

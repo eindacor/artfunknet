@@ -18,7 +18,7 @@ export default async function ForgeryContestAdminPage() {
 
   return (
     <main className="admin-tools">
-      <h1>Forgery Contest</h1>
+      <h1>Duper Tuesday</h1>
       <ForgeryContestAdmin
         artworks={JSON.parse(JSON.stringify(artworks))}
         bufferPrizes={JSON.parse(JSON.stringify(contest.bufferPrizes))}

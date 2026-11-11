@@ -17,7 +17,7 @@ export default function AdminHeader({ email, reviewCounts = {
     { href: "/admin/game-state", label: "Game state" },
     { href: "/admin/metrics", label: "Metrics" },
     { href: "/admin/lottery", label: "Lottery" },
-    { href: "/admin/forgery-contest", label: "Forgery contest" },
+    { href: "/admin/forgery-contest", label: "Duper Tuesday" },
     { href: "/admin/live-auction", label: "Live auction" },
     { href: "/admin/items", label: "Item creator" },
     { href: "/admin/artfunkel-inventory", label: "Artfunkel inventory" },

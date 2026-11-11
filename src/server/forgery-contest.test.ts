@@ -8,9 +8,11 @@ import * as React from "react";
 import ts from "typescript";
 
 import * as contest from "./forgery-contest.ts";
+import { getForgeryContestSchedule } from "./forgery-contest-schedule.ts";
 import * as cardCatalog from "../components/item-cards/catalog.ts";
 import { calculateItemValues, type GameItem, type ItemAttribute, type LootData } from "./gameplay.ts";
 import { setupTestDb } from "./test-utils/db-setup.ts";
+import { ITEM_SERIAL_INPUT_MAX_LENGTH } from "./item-serial-format.ts";
 import {
   getForgeryContestFollowingSettlementAt,
   getForgeryContestMoneyReward,
@@ -21,7 +23,7 @@ import {
   rankForgeryContestEntries,
 } from "./forgery-contest.ts";
 
-test("Forgery Contest voting day is Tuesday in New York", () => {
+test("Duper Tuesday voting day is Tuesday in New York", () => {
   assert.equal(
     isForgeryContestActionDay(new Date("2026-10-06T14:00:00.000Z")),
     true,
@@ -36,7 +38,27 @@ test("Forgery Contest voting day is Tuesday in New York", () => {
   );
 });
 
-test("Forgery Contest settlement advances from Tuesday noon to Tuesday noon", () => {
+test("Duper Tuesday phases switch at local midnight and noon across daylight saving time", () => {
+  for (const [time, phase, nextPhaseAt] of [
+    ["2026-10-06T03:59:59.999Z", "submissions", "2026-10-06T04:00:00.000Z"],
+    ["2026-10-06T04:00:00.000Z", "voting", "2026-10-06T16:00:00.000Z"],
+    ["2026-10-06T15:59:59.999Z", "voting", "2026-10-06T16:00:00.000Z"],
+    ["2026-10-06T16:00:00.000Z", "results", "2026-10-07T04:00:00.000Z"],
+    ["2026-10-07T03:59:59.999Z", "results", "2026-10-07T04:00:00.000Z"],
+    ["2026-10-07T04:00:00.000Z", "submissions", "2026-10-13T04:00:00.000Z"],
+    ["2026-11-03T04:59:59.999Z", "submissions", "2026-11-03T05:00:00.000Z"],
+    ["2026-11-03T05:00:00.000Z", "voting", "2026-11-03T17:00:00.000Z"],
+    ["2026-11-03T17:00:00.000Z", "results", "2026-11-04T05:00:00.000Z"],
+    ["2026-11-04T05:00:00.000Z", "submissions", "2026-11-10T05:00:00.000Z"],
+  ] as const) {
+    const schedule = getForgeryContestSchedule(new Date(time));
+    assert.deepEqual(schedule, {
+      phase, nextPhaseAt, submissionsOpen: phase === "submissions", votingOpen: phase === "voting",
+    }, time);
+  }
+});
+
+test("Duper Tuesday settlement advances from Tuesday noon to Tuesday noon", () => {
   assert.equal(
     getForgeryContestNextSettlementAt(
       new Date("2026-10-06T14:00:00.000Z"),
@@ -67,13 +89,13 @@ test("forced settlement advances beyond the current contest cycle", () => {
   );
 });
 
-test("Forgery Contest cash rewards use submitted estimated value", () => {
+test("Duper Tuesday cash rewards use submitted estimated value", () => {
   assert.equal(getForgeryContestMoneyReward(1, 17_613.9), 17_613);
   assert.equal(getForgeryContestMoneyReward(2, 17_613.9), 8_806);
   assert.equal(getForgeryContestMoneyReward(3, 17_613.9), 0);
 });
 
-test("Forgery Contest ranking uses votes, submission time, then id", () => {
+test("Duper Tuesday ranking uses votes, submission time, then id", () => {
   const ranked = rankForgeryContestEntries([
     {
       id: "later",
@@ -218,12 +240,18 @@ type AdminContestRoutes = {
   DELETE: (request: Request) => Promise<Response>;
 };
 
-async function contestRoutes(db: Db) {
+async function contestRoutes(db: Db, now?: Date) {
   let admin = true;
   const dependencies: Record<string, unknown> = {
     "next/server": { NextResponse: { json: (body: unknown, init?: ResponseInit) => Response.json(body, init) } },
     "@/components/item-cards/catalog": cardCatalog,
-    "@/server/forgery-contest": contest,
+    "@/server/forgery-contest": {
+      ...contest,
+      getForgeryContestPlayerView: (database: Db, playerId: string) => contest.getForgeryContestPlayerView(database, playerId, now),
+      submitForgeryContestEntry: (database: Db, playerId: string, itemId: string) => contest.submitForgeryContestEntry(database, playerId, itemId, now),
+      setForgeryContestVote: (database: Db, playerId: string, entryId: string) => contest.setForgeryContestVote(database, playerId, entryId, now),
+    },
+    "@/server/forgery-contest-schedule": { getForgeryContestSchedule: () => getForgeryContestSchedule(now) },
     "@/server/mongodb": { getDatabase: async () => db },
     "@/server/admin-api": { requireAdminApi: async () => admin
       ? { ok: true, session: { email: "admin@example.com" } }
@@ -235,8 +263,15 @@ async function contestRoutes(db: Db) {
     const code = ts.transpileModule(source, {
       compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
     }).outputText;
+    for (const [, name] of code.matchAll(/require\("([^"]+)"\)/g)) {
+      if (name in dependencies) continue;
+      assert.ok(name.startsWith("@/server/") || name === "node:crypto", `Unexpected dependency: ${name}`);
+      dependencies[name] = await import(name === "node:crypto"
+        ? name
+        : new URL(`./${name.slice("@/server/".length)}.ts`, import.meta.url).href);
+    }
     return runInNewContext(`${code}\nexports`, {
-      exports: {}, console,
+      exports: {}, console, Date, structuredClone,
       require: (name: string) => {
         assert.ok(name in dependencies, `Unexpected dependency: ${name}`);
         return dependencies[name];
@@ -245,7 +280,14 @@ async function contestRoutes(db: Db) {
   }
   return {
     admin: await load<AdminContestRoutes>("../app/api/admin/daily-events/forgery-contest/route.ts"),
-    player: await load<{ GET: () => Promise<Response> }>("../app/api/play/daily-events/forgery-contest/route.ts"),
+    player: await load<{
+      GET: () => Promise<Response>;
+      POST: (request: Request) => Promise<Response>;
+      PATCH: (request: Request) => Promise<Response>;
+    }>("../app/api/play/daily-events/forgery-contest/route.ts"),
+    forge: await load<{
+      POST: (request: Request, context: { params: Promise<{ id: string }> }) => Promise<Response>;
+    }>("../app/api/play/archives/[id]/forge/route.ts"),
     setAdmin: (allowed: boolean) => { admin = allowed; },
   };
 }
@@ -276,11 +318,111 @@ async function enterContest(db: Db, count: number, now: Date) {
   }
 }
 
-test("Forgery Contest buffers preserve editable rewards through replacement and settlement", async (t) => {
+test("Duper Tuesday buffers preserve editable rewards through replacement and settlement", async (t) => {
+  const now = new Date("2026-11-09T15:00:00.000Z");
+  t.mock.timers.enable({ apis: ["Date"], now: now.getTime() });
   const server = await MongoMemoryServer.create();
   const client = await new MongoClient(server.getUri()).connect();
   t.after(async () => { await client.close(); await server.stop(); });
-  const now = new Date();
+
+  await t.test("entries and votes are private until Tuesday, winners replace them at noon, and Wednesday starts a new round", async () => {
+    const db = client.db("contest-phase-boundaries");
+    await seedContest(db);
+    await enterContest(db, 2, now);
+    const entered = await db.collection<contest.ForgeryContestEntry>("forgery_contest_entries").find().toArray();
+    const candidate = entered.find(entry => entry.player_id === "player-2")!;
+    const before = await contestRoutes(db, new Date("2026-11-10T04:59:59.999Z"));
+    const hidden = await (await before.player.GET()).json();
+    assert.equal(hidden.phase, "submissions");
+    assert.equal(hidden.submissionsOpen, true);
+    assert.equal(hidden.votingOpen, false);
+    assert.deepEqual(hidden.entries, []);
+    assert.deepEqual(hidden.lastWinners, []);
+    assert.ok(hidden.currentEntryId);
+    assert.equal((await before.player.PATCH(prizeRequest("PATCH", { entryId: candidate._id }))).status, 409);
+
+    const voting = await contestRoutes(db, new Date("2026-11-10T05:00:00.000Z"));
+    const revealed = await (await voting.player.GET()).json();
+    assert.equal(revealed.phase, "voting");
+    assert.equal(revealed.submissionsOpen, false);
+    assert.equal(revealed.votingOpen, true);
+    assert.equal(revealed.entries.length, 2);
+    assert.deepEqual(revealed.eligibleItems, []);
+    assert.equal((await voting.player.POST(prizeRequest("POST", { itemId: "entry-1" }))).status, 409);
+    assert.equal((await voting.player.PATCH(prizeRequest("PATCH", { entryId: candidate._id }))).status, 200);
+
+    const noon = await contestRoutes(db, new Date("2026-11-10T17:00:00.000Z"));
+    const results = await (await noon.player.GET()).json();
+    assert.equal(results.phase, "results");
+    assert.equal(results.submissionsOpen, false);
+    assert.equal(results.votingOpen, false);
+    assert.deepEqual(results.entries, []);
+    assert.equal(results.lastWinners.length, 2);
+    assert.equal(results.lastWinners[0].playerId, "player-2");
+    assert.equal(results.currentEntryId, null);
+    assert.equal((await noon.player.POST(prizeRequest("POST", { itemId: "entry-1" }))).status, 409);
+    assert.equal((await noon.player.PATCH(prizeRequest("PATCH", { entryId: candidate._id }))).status, 409);
+
+    const late = await contest.getForgeryContestPlayerView(db, "player-1", new Date("2026-11-11T04:59:59.999Z"));
+    assert.equal(late.lastWinners.length, 2);
+    const reopenedAt = new Date("2026-11-11T05:00:00.000Z");
+    const wednesday = await contestRoutes(db, reopenedAt);
+    const reopened = await (await wednesday.player.GET()).json();
+    assert.equal(reopened.phase, "submissions");
+    assert.equal(reopened.submissionsOpen, true);
+    assert.equal(reopened.votingOpen, false);
+    assert.equal(reopened.prizes.length, 3);
+    assert.deepEqual(reopened.entries, []);
+    assert.deepEqual(reopened.lastWinners, []);
+    const work = (await db.collection<GameItem>("items").findOne({ _id: "entry-1" }))!;
+    await db.collection<GameItem>("items").insertOne({ ...work, _id: "next-round-entry", owner: "player-1" });
+    assert.equal((await wednesday.player.POST(prizeRequest("POST", { itemId: "next-round-entry" }))).status, 200);
+    assert.ok((await (await wednesday.player.GET()).json()).currentEntryId);
+    const state = await db.collection<contest.ForgeryContestState>("metadata").findOne({ _id: contest.FORGERY_CONTEST_STATE_ID });
+    assert.equal(state?.last_winners.length, 2, "past awards remain stored, not visible to players");
+  });
+
+  await t.test("create-and-submit charges once, transfers the created work, and rejects duplicate or Tuesday entry before forging", async () => {
+    const db = client.db("contest-forge-entry");
+    await seedContest(db);
+    await db.collection("players").updateOne({ _id: "player-1" }, {
+      $set: { "profile.bank_balance": 1_000_000, "profile.inventory_cap": 20 },
+    });
+    await db.collection<{ _id: string }>("player_artwork_archives").insertOne({
+      _id: "archive", owner: "player-1", artwork_id: "common-art",
+      entries: [{ source_item_id: "original", modifiers: ["standard"], art_style: "museum", value: 1000, archived_at: now.toISOString() }],
+      combined_value: 1000, archived_count: 1, created_at: now.toISOString(), updated_at: now.toISOString(),
+    });
+    const api = await contestRoutes(db, now);
+    const context = { params: Promise.resolve({ id: "archive" }) };
+    const payload = { modifiers: [], artStyle: "museum", serialNumber: "123-000042", submitToContest: true };
+    const createdResponse = await api.forge.POST(prizeRequest("POST", payload), context);
+    const created = await createdResponse.json();
+    assert.equal(createdResponse.status, 200, JSON.stringify(created));
+    assert.equal(created.submittedToContest, true);
+    assert.match(created.message, /submitted to Duper Tuesday/);
+    const entry = await db.collection<contest.ForgeryContestEntry>("forgery_contest_entries").findOne({ player_id: "player-1", pending: false });
+    assert.ok(entry);
+    const work = await db.collection<GameItem>("items").findOne({ _id: entry.item_id });
+    assert.equal(work?.owner, contest.FORGERY_CONTEST_OWNER_ID);
+    assert.equal(work?.serial_number, 42);
+    assert.equal(work?.serial_prefix, 123);
+    assert.equal((await db.collection("players").findOne({ _id: "player-1" }))?.profile.bank_balance, 1_000_000 - created.cost);
+    const itemCount = await db.collection("items").countDocuments();
+    const duplicate = await api.forge.POST(prizeRequest("POST", payload), context);
+    assert.equal(duplicate.status, 409);
+    assert.match((await duplicate.json()).error, /already submitted/);
+    const tuesday = await contestRoutes(db, new Date("2026-11-10T05:00:00.000Z"));
+    const closed = await tuesday.forge.POST(prizeRequest("POST", payload), context);
+    assert.equal(closed.status, 409);
+    assert.match((await closed.json()).error, /closed on Tuesdays/);
+    assert.equal(await db.collection("items").countDocuments(), itemCount);
+    assert.equal((await db.collection("players").findOne({ _id: "player-1" }))?.profile.bank_balance, 1_000_000 - created.cost);
+    const regular = await tuesday.forge.POST(prizeRequest("POST", { ...payload, submitToContest: false }), context);
+    assert.equal(regular.status, 200, JSON.stringify(await regular.clone().json()));
+    assert.equal((await regular.json()).submittedToContest, false);
+    assert.equal(await db.collection("items").countDocuments({ owner: "player-1" }), 1);
+  });
 
   await t.test("concurrent initialization and legacy upgrades preserve active prizes and protect buffered items from cleanup", async () => {
     const db = client.db("contest-buffer-bootstrap");
@@ -384,12 +526,13 @@ test("Forgery Contest buffers preserve editable rewards through replacement and 
     const beforeDraw = await contest.getForgeryContestAdminView(db, now);
     const nextIds = ([1, 2, 3] as const).map(place => beforeDraw.bufferPrizes.find(prize => prize.place === place)!.item._id);
     await enterContest(db, 3, now);
-    const playerView = await contest.getForgeryContestPlayerView(db, "player-1", now);
+    const votingAt = new Date("2026-11-10T05:00:00.000Z");
+    const playerView = await contest.getForgeryContestPlayerView(db, "player-1", votingAt);
     const entry = (id: string) => playerView.entries.find(entry => entry.playerId === id)!.id;
-    await contest.setForgeryContestVote(db, "player-2", entry("player-1"), now);
-    await contest.setForgeryContestVote(db, "player-3", entry("player-1"), now);
-    await contest.setForgeryContestVote(db, "player-1", entry("player-2"), now);
-    const settled = await contest.drawForgeryContestForDebug(db, now);
+    await contest.setForgeryContestVote(db, "player-2", entry("player-1"), votingAt);
+    await contest.setForgeryContestVote(db, "player-3", entry("player-1"), votingAt);
+    await contest.setForgeryContestVote(db, "player-1", entry("player-2"), votingAt);
+    const settled = await contest.drawForgeryContestForDebug(db, votingAt);
     assert.deepEqual(settled.prizes.map(prize => prize.item_id), nextIds);
     assert.equal(settled.buffer_prizes.length, 6);
     for (const winner of settled.last_winners) {
@@ -405,7 +548,7 @@ test("Forgery Contest buffers preserve editable rewards through replacement and 
     }
     assert.equal(settled.last_winners.length, 3);
     assert.deepEqual(settled.last_winners.map(winner => winner.money_reward), [1_000, 1_000, 0]);
-    await contest.settleForgeryContestIfDue(db, now);
+    await contest.settleForgeryContestIfDue(db, votingAt);
     const balances = await db.collection("players").find().sort({ _id: 1 }).toArray();
     assert.deepEqual(balances.map(player => player.profile.bank_balance), [1_000, 1_000, 0]);
     assert.equal(await db.collection("player_notifications").countDocuments(), 3);
@@ -512,12 +655,13 @@ function elements(node: React.ReactNode): React.ReactElement<Record<string, unkn
   return result;
 }
 
-test("the Forgery Contest daily-event panel displays all current rewards as read-only cards", async () => {
+test("the Duper Tuesday daily-event panel displays all current rewards as read-only cards", async () => {
   const ItemCard = () => null;
   const prizes = [1, 2, 3].map(place => ({ place, item: { _id: `prize-${place}` } }));
   const view = {
+    phase: "submissions", nextPhaseAt: "2026-11-10T05:00:00.000Z",
     prizes, entries: [], eligibleItems: [], currentEntryId: null, lastWinners: [],
-    submissionsOpen: true, votingOpen: true, nextSettlementAt: new Date().toISOString(),
+    submissionsOpen: true, votingOpen: false, nextSettlementAt: new Date().toISOString(),
   };
   let stateIndex = 0;
   const panel = await loadComponent("../components/daily-events-panel.tsx", "ForgeryContestPanel", {
@@ -530,12 +674,13 @@ test("the Forgery Contest daily-event panel displays all current rewards as read
   const children = elements(panel({ impersonating: false, legendaryAttributes: [], playerId: "viewer" }));
   const headings = children.filter(child => child.type === "h4" || child.type === "h5")
     .map(child => React.Children.toArray(child.props.children as React.ReactNode).join(""));
-  for (const heading of ["Your submission", "Entries & voting", "Contest rewards", "First place", "Second place", "Third place"]) {
+  for (const heading of ["Your submission", "Contest rewards", "First place", "Second place", "Third place"]) {
     assert.ok(headings.includes(heading), heading);
   }
-  for (const label of ["Your submission", "Current entries and voting", "Contest rewards"]) {
+  for (const label of ["Your submission", "Contest rewards"]) {
     assert.ok(children.some(child => child.type === "section" && child.props["aria-label"] === label), label);
   }
+  assert.ok(!children.some(child => child.props["aria-label"] === "Current entries and voting"));
   const cards = children.filter(child => child.type === ItemCard);
   assert.deepEqual(cards.map(card => (card.props.item as GameItem)._id), ["prize-1", "prize-2", "prize-3"]);
   for (const card of cards) {
@@ -547,8 +692,9 @@ test("the Forgery Contest daily-event panel displays all current rewards as read
 
 test("the compact contest panel preserves submission and voting controls and shows submitted state", async () => {
   const view = {
+    phase: "submissions", nextPhaseAt: "2026-11-10T05:00:00.000Z",
     prizes: [], lastWinners: [], currentEntryId: null as string | null, votedEntryId: "voted",
-    submissionsOpen: true, votingOpen: true, nextSettlementAt: new Date().toISOString(),
+    submissionsOpen: true, votingOpen: false, nextSettlementAt: new Date().toISOString(),
     eligibleItems: [{ _id: "owned-forgery" }],
     entries: [
       { id: "own", playerId: "viewer", playerName: "You", item: { _id: "own-item" } },
@@ -563,20 +709,26 @@ test("the compact contest panel preserves submission and voting controls and sho
     useState: (initial: unknown) => [stateIndex++ === 0 ? view : initial, () => {}],
     useCallback: (callback: unknown) => callback, useEffect: () => {},
     fetch: async (_url: string, options?: { method: string; body: string }) => {
-      if (options) requests.push({ method: options.method, body: JSON.parse(options.body) });
-      return Response.json(options ? { message: "Saved." } : view);
+      if (options?.method) requests.push({ method: options.method, body: JSON.parse(options.body) });
+      return Response.json(options?.method ? { message: "Saved." } : view);
     },
   });
   const render = () => {
     stateIndex = 0;
     return elements(panel({ impersonating: false, legendaryAttributes: [], playerId: "viewer" }));
   };
-  const children = render();
+  let children = render();
   const button = (label: string) => children.find(child => child.type === "button" && child.props.children === label)!;
+  assert.equal(button("Change vote"), undefined);
+  await (button("Submit this forgery").props.onClick as () => Promise<void>)();
+  view.phase = "voting";
+  view.submissionsOpen = false;
+  view.votingOpen = true;
+  children = render();
+  assert.equal(button("Submit this forgery"), undefined);
   assert.equal(button("Your entry").props.disabled, true);
   assert.equal(button("Your vote").props.disabled, true);
   assert.equal(button("Change vote").props.disabled, false);
-  await (button("Submit this forgery").props.onClick as () => Promise<void>)();
   await (button("Change vote").props.onClick as () => Promise<void>)();
   assert.deepEqual(requests, [
     { method: "POST", body: { itemId: "owned-forgery" } },
@@ -589,10 +741,94 @@ test("the compact contest panel preserves submission and voting controls and sho
     ["Submit this forgery", "Change vote"].includes(child.props.children as string))
     .every(child => child.props.disabled));
   view.currentEntryId = "own";
+  view.phase = "submissions";
   const submitted = render();
   const submission = submitted.find(child => child.type === "section" && child.props["aria-label"] === "Your submission")!;
   assert.ok(elements(submission).some(child => child.type === "span" && child.props.children === "Submitted"));
   assert.ok(!submitted.some(child => child.type === "button" && child.props.children === "Submit this forgery"));
+});
+
+test("Tuesday results are an expanded winner celebration, not entries or a collapsible history", async () => {
+  const ItemCard = () => null;
+  const view = {
+    phase: "results", nextPhaseAt: "2026-11-11T05:00:00.000Z",
+    submissionsOpen: false, votingOpen: false, nextSettlementAt: "2026-11-17T17:00:00.000Z",
+    prizes: [{ place: 1, item: { _id: "next-prize" } }],
+    currentEntryId: null, eligibleItems: [{ _id: "owned" }], entries: [],
+    lastWinners: [{ place: 1, playerName: "Winner", votes: 42, item: { _id: "winning-work" } }],
+  };
+  let index = 0;
+  const panel = await loadComponent("../components/daily-events-panel.tsx", "ForgeryContestPanel", {
+    ItemCard, ActionMessages: () => null,
+    useState: (initial: unknown) => [index++ === 0 ? view : initial, () => {}],
+    useCallback: (callback: unknown) => callback, useEffect: () => {},
+  });
+  const render = () => {
+    index = 0;
+    return elements(panel({ impersonating: false, legendaryAttributes: [], playerId: "viewer" }));
+  };
+  const children = render();
+  assert.ok(children.some(child => child.type === "section" && child.props["aria-label"] === "Duper Tuesday winners"));
+  assert.ok(!children.some(child => child.type === "details" || child.type === "summary"));
+  assert.ok(!children.some(child => child.props["aria-label"] === "Your submission" || child.props["aria-label"] === "Current entries and voting"));
+  assert.deepEqual(children.filter(child => child.type === ItemCard).map(child => (child.props.item as GameItem)._id), ["winning-work"]);
+  view.phase = "submissions";
+  view.submissionsOpen = true;
+  const reopened = render();
+  assert.ok(!reopened.some(child => child.props["aria-label"] === "Duper Tuesday winners"));
+  assert.ok(reopened.some(child => child.props["aria-label"] === "Your submission"));
+  assert.deepEqual(reopened.filter(child => child.type === ItemCard).map(child => (child.props.item as GameItem)._id), ["owned", "next-prize"]);
+});
+
+test("forging offers a direct Duper Tuesday entry only outside Tuesdays and before the player has entered", async () => {
+  for (const [time, entered, allowed] of [
+    ["2026-11-10T04:59:59.999Z", false, true],
+    ["2026-11-10T05:00:00.000Z", false, false],
+    ["2026-11-10T17:00:00.000Z", false, false],
+    ["2026-11-11T04:59:59.999Z", false, false],
+    ["2026-11-11T05:00:00.000Z", false, true],
+    ["2026-11-09T15:00:00.000Z", true, false],
+  ] as const) {
+    let state = 0;
+    const requests: Record<string, unknown>[] = [];
+    const editor = await loadComponent("../components/forgery-dialog.tsx", "ForgeryEditor", {
+      useState: (initial: unknown) => {
+        state++;
+        return [state === 7
+          ? { submissionsOpen: true, currentEntryId: entered ? "submitted" : null }
+          : typeof initial === "function" ? initial() : initial, () => {}];
+      },
+      useMemo: (callback: () => unknown) => callback(), useEffect: () => {},
+      useCardCosmetics: () => [], getCardCosmetic: cardCatalog.getCardCosmetic,
+      getForgeryContestSchedule: () => getForgeryContestSchedule(new Date(time)),
+      createRandomForgerySerial: () => ({ serial_number: 42, serial_prefix: 123 }),
+      formatItemSerialNumber: () => "123-000042",
+      parseItemSerialNumber: () => ({ serial_number: 42, serial_prefix: 123 }),
+      ITEM_SERIAL_INPUT_MAX_LENGTH,
+      createPreviewItem: () => ({ artwork: { rarity: "common" }, authenticity: {} }),
+      calculateForgeCostForSelection: () => 100,
+      MODIFIERS: [], HEAT_CONTEXTS: [],
+      CARD_RENDERERS: { museum: () => null },
+      KnownForgeryWatermark: () => null, RenderCardPreview: () => null,
+      fetch: async (_url: string, options: { body: string }) => {
+        requests.push(JSON.parse(options.body));
+        return Response.json({ message: "Created." });
+      },
+    });
+    const children = elements(editor({
+      archive: { _id: "archive", artwork_id: "art", modifiers: [], artStyles: [] },
+      inventoryFull: false, legendaryAttributes: [], onForged: () => {},
+      pricing: { seasonalArtworkIds: [] },
+    }));
+    const direct = children.find(child => child.type === "button" && child.props.children === "Create and submit to Duper Tuesday")!;
+    const regular = children.find(child => child.type === "button" && child.props.className === "art-style-dialog-apply red")!;
+    assert.equal(direct.props.disabled, !allowed, time);
+    assert.equal(regular.props.disabled, false, "regular forging remains available on Tuesdays");
+    if (allowed) {
+      await (direct.props.onClick as () => Promise<void>)();
+      assert.deepEqual(requests[0], { modifiers: [], artStyle: "museum", serialNumber: "123-000042", submitToContest: true });
+    }
+  }
 });
 
 test("contest admin retains editable two-prize buffers without expansion or removal controls", async () => {

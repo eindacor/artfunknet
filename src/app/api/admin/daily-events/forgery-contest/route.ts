@@ -83,7 +83,7 @@ export async function PATCH(request: Request) {
   } | null;
   if (body?.pool !== undefined && body.pool !== "buffer") {
     return NextResponse.json(
-      { error: "Live Forgery Contest prizes cannot be edited." },
+      { error: "Live Duper Tuesday prizes cannot be edited." },
       { status: 409 },
     );
   }
@@ -113,7 +113,7 @@ export async function PATCH(request: Request) {
     cardRenderer.id === "museum"
   ) {
     return NextResponse.json(
-      { error: "Provide valid buffered Forgery Contest prize properties." },
+      { error: "Provide valid buffered Duper Tuesday prize properties." },
       { status: 400 },
     );
   }
@@ -135,7 +135,7 @@ export async function PATCH(request: Request) {
     );
     return NextResponse.json({
       status: "ok",
-      message: "Buffered Forgery Contest prize updated.",
+      message: "Buffered Duper Tuesday prize updated.",
       item,
     });
   } catch (error) {
@@ -165,7 +165,7 @@ export async function DELETE(request: Request) {
     );
     return NextResponse.json({
       status: "ok",
-      message: "Buffered Forgery Contest prize removed.",
+      message: "Buffered Duper Tuesday prize removed.",
     });
   } catch (error) {
     return contestErrorResponse(error);
@@ -187,9 +187,9 @@ function contestErrorResponse(error: unknown) {
       { status: error.status },
     );
   }
-  console.error("Forgery Contest admin request failed", error);
+  console.error("Duper Tuesday admin request failed", error);
   return NextResponse.json(
-    { error: "The Forgery Contest is temporarily unavailable." },
+    { error: "The Duper Tuesday is temporarily unavailable." },
     { status: 500 },
   );
 }

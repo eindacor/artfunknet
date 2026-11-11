@@ -84,6 +84,6 @@ async function runDebugAction(
   await drawForgeryContestForDebug(database);
   return NextResponse.json({
     status: "ok",
-    message: "Forgery Contest winners were drawn from the current vote totals.",
+    message: "Duper Tuesday winners were drawn from the current vote totals.",
   });
 }

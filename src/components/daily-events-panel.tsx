@@ -11,12 +11,13 @@ import RafflePanel, {
 } from "@/components/raffle-panel";
 import type { HydratedGameItem } from "@/server/item-artwork";
 import type { ForgeryContestPrizeView } from "@/server/forgery-contest";
+import type { ForgeryContestPhase } from "@/server/forgery-contest-schedule";
 import type { RaffleWinner } from "@/server/raffle-gameplay";
 
 const DAYS = [
   { short: "SUN", title: "Bonus XP" },
   { short: "MON", title: "Weekly Lottery" },
-  { short: "TUE", title: "Forgery Contest" },
+  { short: "TUE", title: "Duper Tuesday" },
   { short: "WED", title: "Live Auction" },
   { short: "THU", title: "Seasonals" },
   { short: "FRI", title: "Free Ultimate Crate" },
@@ -40,6 +41,9 @@ type ForgeryWinnerView = {
 };
 
 type ForgeryContestView = {
+  phase: ForgeryContestPhase;
+  nextPhaseAt: string;
+  settling: boolean;
   submissionsOpen: boolean;
   votingOpen: boolean;
   nextSettlementAt: string;
@@ -299,7 +303,7 @@ function ForgeryContestPanel({
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const load = useCallback(async () => {
-    const response = await fetch("/api/play/daily-events/forgery-contest");
+    const response = await fetch("/api/play/daily-events/forgery-contest", { cache: "no-store" });
     const body = (await response.json()) as ForgeryContestView & {
       error?: string;
     };
@@ -308,13 +312,29 @@ function ForgeryContestPanel({
   }, []);
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => {
+    const refresh = () => {
       void load().catch((loadError) =>
         setError(loadError instanceof Error ? loadError.message : "Unable to load the contest."),
       );
-    }, 0);
-    return () => window.clearTimeout(timeout);
+    };
+    const timeout = window.setTimeout(refresh, 0);
+    const interval = window.setInterval(refresh, 30_000);
+    window.addEventListener("focus", refresh);
+    return () => {
+      window.clearTimeout(timeout);
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refresh);
+    };
   }, [load]);
+
+  const nextPhaseAt = view?.nextPhaseAt;
+  useEffect(() => {
+    if (!nextPhaseAt) return;
+    const timeout = window.setTimeout(() => {
+      void load().catch(() => setError("Unable to refresh Duper Tuesday."));
+    }, Math.max(100, new Date(nextPhaseAt).getTime() - Date.now() + 100));
+    return () => window.clearTimeout(timeout);
+  }, [load, nextPhaseAt]);
 
   async function act(method: "POST" | "PATCH", payload: object) {
     setBusy(true);
@@ -360,7 +380,7 @@ function ForgeryContestPanel({
       if (!response.ok) {
         throw new Error(body.error ?? "The contest could not be settled.");
       }
-      setMessage(body.message ?? "Forgery Contest winners drawn.");
+      setMessage(body.message ?? "Duper Tuesday winners drawn.");
       setIndex(0);
       await load();
     } catch (actionError) {
@@ -374,7 +394,7 @@ function ForgeryContestPanel({
     }
   }
 
-  if (!view) return <EventLoading title="Forgery Contest" error={error} />;
+  if (!view) return <EventLoading title="Duper Tuesday" error={error} />;
   const visibleEntryCount = Math.min(5, view.entries.length);
   const visibleEntries = Array.from(
     { length: visibleEntryCount },
@@ -387,20 +407,28 @@ function ForgeryContestPanel({
     ];
 
   return (
-    <section className="daily-event-content forgery-contest-event">
+    <section className="daily-event-content forgery-contest-event" data-phase={view.phase}>
       <header>
-        <h3>Forgery Contest</h3>
+        <h3>Duper Tuesday</h3>
         <span>
-          Drawing {new Date(view.nextSettlementAt).toLocaleString()}.
+          {view.phase === "results"
+            ? null
+            : `Drawing ${new Date(view.nextSettlementAt).toLocaleString("en-US", { timeZone: "America/New_York", timeZoneName: "short" })}.`}
         </span>
       </header>
-      {!view.votingOpen || !view.submissionsOpen ? (
+      <p className="forgery-contest-section-note">
+        {view.phase === "submissions"
+          ? "Submit through Monday night. Entries stay hidden until voting opens Tuesday at 12am. Winners are drawn at noon. All times are New York time."
+          : view.phase === "voting"
+            ? "Entries are closed. Vote for your favorite until noon on Tuesday (EST)."
+            : "Entries reopen Wednesday at 12am EST."}
+      </p>
+      {view.settling ? (
         <p className="daily-event-callout">
-          The Forgery Contest is settling. Voting and submissions will reopen
-          shortly.
+          The Duper Tuesday drawing is in progress. Results will appear shortly.
         </p>
       ) : null}
-      {impersonating ? (
+      {impersonating && view.phase === "voting" ? (
         <div className="daily-event-debug-action">
           <button
             disabled={busy || view.entries.length === 0}
@@ -411,15 +439,17 @@ function ForgeryContestPanel({
           </button>
         </div>
       ) : null}
-      <div className="forgery-contest-overview">
-        <section aria-label="Your submission" className="forgery-contest-section daily-event-submission">
+      {view.phase !== "results" ? (
+        <div className="forgery-contest-overview">
+        {view.phase === "submissions" ? (
+          <section aria-label="Your submission" className="forgery-contest-section daily-event-submission">
           <header>
             <h4>Your submission</h4>
             <span>{view.currentEntryId ? "Submitted" : "One entry per player"}</span>
           </header>
           {view.currentEntryId !== null ? (
             <p className="forgery-contest-section-note">
-              Your forgery is entered. You can still vote for another player&apos;s work below.
+              Your forgery is entered. Come back Tuesday at 12am to see the entries and vote.
             </p>
           ) : (
             <>
@@ -488,7 +518,8 @@ function ForgeryContestPanel({
               )}
             </>
           )}
-        </section>
+          </section>
+        ) : null}
         <section aria-label="Contest rewards" className="forgery-contest-section forgery-contest-rewards">
           <header>
             <h4>Contest rewards</h4>
@@ -513,8 +544,10 @@ function ForgeryContestPanel({
             ))}
           </div>
         </section>
-      </div>
-      <section aria-label="Current entries and voting" className="forgery-contest-section forgery-contest-entries">
+        </div>
+      ) : null}
+      {view.phase === "voting" ? (
+        <section aria-label="Current entries and voting" className="forgery-contest-section forgery-contest-entries">
         <header>
           <h4>Entries &amp; voting</h4>
           <span>
@@ -620,13 +653,24 @@ function ForgeryContestPanel({
             No works have been submitted yet.
           </p>
         )}
-      </section>
-      {view.lastWinners.length > 0 ? (
-        <details className="forgery-contest-section forgery-contest-history">
-          <summary>Last week&apos;s winners</summary>
+        </section>
+      ) : null}
+      {view.phase === "results" ? (
+        <section aria-label="Duper Tuesday winners" className="forgery-contest-section forgery-contest-celebration">
+          <header>
+            <h4><i aria-hidden="true" className="fa fa-trophy" /> Duper Tuesday Winners</h4>
+          </header>
+          {view.lastWinners.length === 0 ? (
+            <p className="daily-event-empty">
+              {view.settling ? "Counting the votes..." : "No winning entries this week. Bring your best forgery to the next round!"}
+            </p>
+          ) : null}
           <div className="forgery-contest-reward-grid">
             {view.lastWinners.map((winner) => (
               <article key={`${winner.place}:${winner.item._id}`}>
+                <span className="forgery-contest-winner-place">
+                  {winner.place === 1 ? "First" : winner.place === 2 ? "Second" : "Third"} place
+                </span>
                 <strong>#{winner.place} · {winner.playerName}</strong>
                 <div className="forgery-contest-card-art">
                   <ItemCard
@@ -644,7 +688,7 @@ function ForgeryContestPanel({
               </article>
             ))}
           </div>
-        </details>
+        </section>
       ) : null}
       <ActionMessages error={error} message={message} />
     </section>

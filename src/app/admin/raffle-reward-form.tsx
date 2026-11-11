@@ -163,7 +163,7 @@ export function PrizeEditor({
   const cardCosmetics = useCardCosmetics();
   const router = useRouter();
   const endpoint = contestPlace ? "/api/admin/daily-events/forgery-contest" : "/api/admin/lottery";
-  const rewardName = contestPlace ? "Forgery Contest" : "lottery";
+  const rewardName = contestPlace ? "Duper Tuesday" : "lottery";
   const [item, setItem] = useState(prize.item);
   const [artworkId, setArtworkId] = useState(prize.item.artwork_id);
   const [condition, setCondition] = useState(

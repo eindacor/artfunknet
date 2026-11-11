@@ -539,12 +539,16 @@ The basic gameplay loop is active:
   Feature-action hover text explains visitor attraction and money/XP earnings
   over time; unavailable actions retain the specific permission explanation.
   The legacy `REROLL_DISPLAY_ENABLE` / Marketing Manager gate is not required.
-- Forgery Contest prizes have separate first-, second-, and third-place
+- Duper Tuesday prizes have separate first-, second-, and third-place
   replacement buffers, each retaining exactly two items. Administrators can
   edit queued rewards at `/admin/forgery-contest`; active prizes
   remain read-only. Drawings advance each queue in order and replenish it.
   The contest's Daily Events page shows all three current artwork rewards and
   the cash-reward rules in separate submission, voting, and reward sections.
+  In New York time, entries are accepted Wednesday through Monday and remain
+  hidden until Tuesday at midnight. Voting runs until Tuesday noon; winners
+  stay visible until Wednesday at 12am, when the entry form returns.
+  The forge dialog can create and submit an entry directly outside Tuesdays.
   Existing queues automatically retain their first two prizes per place.
 - Displayed artwork generates the original hourly money and XP rewards. Rewards
   settle automatically when the player returns, without requiring a local

@@ -56,16 +56,16 @@ export default function ForgeryContestAdmin({
       };
       if (!response.ok) {
         throw new Error(
-          body.error ?? "The Forgery Contest prizes could not be updated.",
+          body.error ?? "The Duper Tuesday prizes could not be updated.",
         );
       }
-      setMessage(body.message ?? "Forgery Contest prizes updated.");
+      setMessage(body.message ?? "Duper Tuesday prizes updated.");
       router.refresh();
     } catch (replacementError) {
       setError(
         replacementError instanceof Error
           ? replacementError.message
-          : "The Forgery Contest prizes could not be updated.",
+          : "The Duper Tuesday prizes could not be updated.",
       );
     } finally {
       setPendingPlace(null);

@@ -34,6 +34,13 @@ import { getRerollCost } from "@/server/item-reroll";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
 import {
+  ForgeryContestError,
+  getForgeryContestPlayerView,
+  getForgeryContestSubmissionPermission,
+  submitForgeryContestEntry,
+} from "@/server/forgery-contest";
+import { getForgeryContestSchedule } from "@/server/forgery-contest-schedule";
+import {
   MASTERPIECE_EFFECT_CODES,
   rollEffectChance,
 } from "@/server/masterpiece-effects";
@@ -60,8 +67,9 @@ export async function POST(
     modifiers?: unknown;
     artStyle?: unknown;
     serialNumber?: unknown;
+    submitToContest?: unknown;
   } | null;
-  if (!body) {
+  if (!body || (body.submitToContest !== undefined && typeof body.submitToContest !== "boolean")) {
     return NextResponse.json(
       { error: "Choose valid archived forgery properties." },
       { status: 400 },
@@ -70,6 +78,29 @@ export async function POST(
 
   const { id } = await params;
   const database = await getDatabase();
+  const submitToContest = body.submitToContest === true;
+  if (submitToContest) {
+    try {
+      if (!getForgeryContestSchedule().submissionsOpen) {
+        throw new ForgeryContestError("Duper Tuesday entries are closed on Tuesdays. Submissions reopen Wednesday at 12am New York time.");
+      }
+      const contest = await getForgeryContestPlayerView(database, auth.session.playerId);
+      if (!contest.submissionsOpen) {
+        throw new ForgeryContestError("Duper Tuesday is currently settling. Please try again shortly.");
+      }
+      const permission = getForgeryContestSubmissionPermission({
+        alreadyEntered: contest.currentEntry !== null,
+        itemEligible: true,
+      });
+      if (!permission.allowed) throw new ForgeryContestError(permission.reason);
+    } catch (error) {
+      if (error instanceof ForgeryContestError) {
+        return NextResponse.json({ error: error.message }, { status: error.status });
+      }
+      console.error("Unable to check Duper Tuesday entry availability", error);
+      return NextResponse.json({ error: "Duper Tuesday is temporarily unavailable. No forging cost was charged." }, { status: 503 });
+    }
+  }
   const [player, archive, settings, metadata, attributes] = await Promise.all([
     database.collection<Player>("players").findOne({ _id: auth.session.playerId, active: true }),
     database.collection<PlayerArtworkArchive>("player_artwork_archives").findOne({ _id: id, owner: auth.session.playerId }),
@@ -272,12 +303,27 @@ export async function POST(
       ),
     ),
   );
+  let submittedToContest = false;
+  let submissionMessage = "";
+  if (submitToContest) {
+    try {
+      await submitForgeryContestEntry(database, player._id, item._id);
+      submittedToContest = true;
+      submissionMessage = " It was submitted to Duper Tuesday and permanently removed from your inventory.";
+    } catch (error) {
+      console.error("Created a forgery but could not submit it to Duper Tuesday", error);
+      submissionMessage = error instanceof ForgeryContestError
+        ? ` It could not be submitted to Duper Tuesday: ${error.message} Your created artwork was not discarded.`
+        : " Duper Tuesday submission could not be confirmed. Check your entry and inventory before trying again.";
+    }
+  }
   return NextResponse.json({
     status: "ok",
     cost,
+    submittedToContest,
     message:
-      forgedItems.length > 1
+      (forgedItems.length > 1
         ? `${artwork.title} was forged for $${cost.toLocaleString()}, and the effect created a second copy.`
-        : `${artwork.title} was forged for $${cost.toLocaleString()}.`,
+        : `${artwork.title} was forged for $${cost.toLocaleString()}.`) + submissionMessage,
   });
 }

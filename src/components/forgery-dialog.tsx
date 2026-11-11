@@ -15,6 +15,7 @@ import type {
   HydratedPlayerArtworkArchive,
 } from "@/server/item-artwork";
 import type { LootData } from "@/server/gameplay";
+import { getForgeryContestSchedule } from "@/server/forgery-contest-schedule";
 import {
   createRandomForgerySerial,
   formatItemSerialNumber,
@@ -257,6 +258,40 @@ function ForgeryEditor({
   const serial = useMemo(() => parseItemSerialNumber(serialNumber), [serialNumber]);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  const [contestSchedule, setContestSchedule] = useState(() => getForgeryContestSchedule());
+  const [contestEntry, setContestEntry] = useState<{
+    submissionsOpen: boolean;
+    currentEntryId: string | null;
+  } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = async () => {
+      try {
+        const response = await fetch("/api/play/daily-events/forgery-contest", { cache: "no-store" });
+        if (!response.ok) throw new Error("Duper Tuesday is unavailable.");
+        const view = await response.json() as { submissionsOpen: boolean; currentEntryId: string | null };
+        if (!cancelled) setContestEntry(view);
+      } catch {
+        if (!cancelled) setContestEntry(null);
+      }
+    };
+    const initial = window.setTimeout(() => void refresh(), 0);
+    const interval = window.setInterval(() => void refresh(), 30_000);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(initial);
+      window.clearInterval(interval);
+    };
+  }, [contestSchedule.nextPhaseAt]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setContestSchedule(getForgeryContestSchedule());
+    }, Math.max(100, new Date(contestSchedule.nextPhaseAt).getTime() - Date.now() + 100));
+    return () => window.clearTimeout(timeout);
+  }, [contestSchedule.nextPhaseAt]);
+
   const available = useMemo(
     () => MODIFIERS.filter((modifier) => archive.modifiers.includes(modifier)),
     [archive.modifiers],
@@ -294,15 +329,24 @@ function ForgeryEditor({
   const serialError = serial
     ? ""
     : INVALID_FORGERY_SERIAL_MESSAGE;
+  const contestUnavailable = !contestSchedule.submissionsOpen
+    ? "Duper Tuesday entries are closed on Tuesdays."
+    : !contestEntry
+      ? "Checking Duper Tuesday entry availability..."
+      : contestEntry.currentEntryId
+        ? "You have already entered this week's Duper Tuesday."
+        : !contestEntry.submissionsOpen
+          ? "Duper Tuesday entries are temporarily unavailable."
+          : "";
 
-  async function forge() {
+  async function forge(submitToContest = false) {
     setPending(true);
     setError("");
     try {
       const response = await fetch(`/api/play/archives/${archive._id}/forge`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ modifiers, artStyle, serialNumber }),
+        body: JSON.stringify({ modifiers, artStyle, serialNumber, submitToContest }),
       });
       const body = (await response.json()) as {
         error?: string;
@@ -460,16 +504,30 @@ function ForgeryEditor({
           <span>Forge cost</span>
           <strong>${cost.toLocaleString()}</strong>
         </div>
-        <button
-          className="art-style-dialog-apply red"
-          disabled={pending || Boolean(inventoryError) || !serial}
-          onClick={forge}
-          type="button"
-        >
-          {pending
-            ? "Forging..."
-            : `Forge artwork · $${cost.toLocaleString()}`}
-        </button>
+        <div className="forgery-forge-actions">
+          <button
+            className="art-style-dialog-apply red"
+            disabled={pending || Boolean(inventoryError) || !serial}
+            onClick={() => void forge()}
+            type="button"
+          >
+            {pending
+              ? "Forging..."
+              : `Forge artwork · $${cost.toLocaleString()}`}
+          </button>
+          <button
+            className="art-style-dialog-apply"
+            disabled={pending || Boolean(inventoryError) || !serial || Boolean(contestUnavailable)}
+            onClick={() => void forge(true)}
+            title={contestUnavailable || "Forge this artwork and permanently submit it as your one entry this round."}
+            type="button"
+          >
+            Create and submit to Duper Tuesday
+          </button>
+          <small>
+            {contestUnavailable || "Submitted artwork permanently leaves your inventory. One entry per round."}
+          </small>
+        </div>
       </footer>
     </>
   );
