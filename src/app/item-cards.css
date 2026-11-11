@@ -4505,235 +4505,328 @@
   transform: rotate(3deg);
 }
 
-/* Circle: the complete card treated as a concentric information system. */
-.circle-card {
+/* Pop Art: burst-cut originals over oversized four-color screenprints. */
+.pop-art-card {
+  --pop-art-paper: #fff3bd;
+  --pop-art-burst: polygon(
+    50% 0, 56% 9%, 69% 1%, 72% 13%, 88% 4%, 86% 22%, 100% 17%, 93% 35%,
+    100% 42%, 93% 50%, 100% 63%, 89% 67%, 98% 84%, 82% 81%, 85% 97%,
+    67% 89%, 60% 100%, 49% 91%, 36% 100%, 31% 89%, 15% 98%, 17% 80%,
+    2% 86%, 10% 66%, 0 60%, 7% 48%, 0 36%, 11% 31%, 3% 13%, 23% 18%,
+    25% 1%, 41% 11%
+  );
+  isolation: isolate;
+  container-type: inline-size;
   display: grid;
-  grid-template-rows: 292px 1fr;
-  justify-items: center;
-  padding: 10px 8px;
-  background:
-    radial-gradient(circle at 50% 36%, var(--rarity-glow), transparent 42%),
-    #11151a;
-  color: #f4f2e9;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 6px;
+  border: 3px solid #111;
+  padding: 8px;
+  background: var(--pop-art-paper);
+  color: #111;
+  box-shadow: 5px 5px 0 #111;
   font-family: Arial, Helvetica, sans-serif;
 }
 
-.circle-card-system {
-  position: relative;
-  width: 272px;
-  height: 272px;
-}
-
-.circle-card-ring {
+.pop-art-card::before {
   position: absolute;
-  border: 1px solid rgb(255 255 255 / 24%);
-  border-radius: 50%;
-}
-
-.circle-card-ring::before,
-.circle-card-ring::after {
-  position: absolute;
-  border-radius: 50%;
-  background: var(--rarity-color);
-  content: "";
-}
-
-.circle-card-ring::before {
-  top: 50%;
-  left: -3px;
-  width: 6px;
-  height: 6px;
-}
-
-.circle-card-ring::after {
-  top: -2px;
-  left: 50%;
-  width: 4px;
-  height: 4px;
-}
-
-.circle-card-ring.ring-outer {
+  z-index: -1;
   inset: 0;
-  border-color: var(--rarity-color);
-}
-
-.circle-card-ring.ring-middle {
-  inset: 24px;
-  border-style: dashed;
-}
-
-.circle-card-ring.ring-inner {
-  inset: 48px;
-}
-
-.circle-card-image-frame {
-  position: absolute;
-  z-index: 2;
-  inset: 62px;
-  overflow: hidden;
-  border: 3px solid var(--rarity-light);
-  border-radius: 50%;
-  box-shadow: 0 0 22px var(--rarity-glow);
-}
-
-.circle-card-image {
-  height: 100%;
-  background-position: center;
-  background-size: cover;
-}
-
-.circle-card-rarity,
-.circle-card-level,
-.circle-card-lottery {
-  position: absolute;
-  z-index: 4;
-  font-size: 0.47rem;
-  font-weight: 900;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.circle-card-rarity {
-  top: 16px;
-  left: 50%;
-  color: var(--rarity-light);
-  transform: translateX(-50%);
-}
-
-.circle-card-level {
-  bottom: 15px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.circle-card-lottery {
-  top: 50%;
-  right: 20px;
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border: 1px solid #ffe279;
-  border-radius: 50%;
-  background: #745512;
-  color: #fff1a6;
-  box-shadow: 0 0 10px rgb(255 214 91 / 55%);
-  transform: translateY(-50%);
-}
-
-.circle-card-orbiter {
-  position: absolute;
-  z-index: 5;
-  inset: 15px;
-  border-radius: 50%;
-  animation: circle-card-orbit 120s linear infinite;
-}
-
-.circle-card-orbiter .fa {
-  position: absolute;
-  top: -7px;
-  left: calc(50% - 7px);
-  display: grid;
-  place-items: center;
-  width: 17px;
-  height: 17px;
-  border-radius: 50%;
-  background: #11151a;
-  font-size: 0.7rem;
-  box-shadow: 0 0 8px currentColor;
-}
-
-.circle-card-orbiter.orbiter-mint {
-  color: var(--mint-color);
-}
-
-.circle-card-orbiter.orbiter-unlocked {
-  inset: 36px;
-  color: var(--unlocked-color);
-  animation-direction: reverse;
-  animation-duration: 90s;
-}
-
-.circle-card-attribute-ring {
-  position: absolute;
-  z-index: 3;
-  inset: var(--circle-attribute-inset);
-  border: 1px solid rgb(255 255 255 / 19%);
-  border-radius: 50%;
-  animation: circle-card-orbit var(--circle-attribute-duration) linear infinite;
+  content: "";
+  background:
+    linear-gradient(155deg, transparent 44%, #111 44% 44.6%, var(--rarity-color) 44.6% 48%, transparent 48%),
+    linear-gradient(24deg, transparent 62%, var(--rarity-light) 62% 67%, #111 67% 67.6%, transparent 67.6%);
+  opacity: 0.8;
   pointer-events: none;
 }
 
-.circle-card-attribute-ring.orbit-counterclockwise {
-  animation-direction: reverse;
-}
-
-.circle-card-attribute-ring .attribute {
+.pop-art-card-backdrop {
   position: absolute;
-  top: -8px;
-  left: calc(50% - 8px);
-  display: grid;
-  width: 17px;
-  height: 17px;
-  place-items: center;
-  border: 1px solid currentColor;
-  border-radius: 50%;
-  background: #11151a;
-  font-size: 0.62rem;
-  box-shadow: 0 0 7px currentColor;
-}
-
-.circle-card-attribute-ring .attribute.unlocked {
-  color: var(--unlocked-color);
-}
-
-.circle-card-attribute-ring .attribute.locked {
-  color: #ef6572;
-}
-
-.circle-card-attribute-ring .attribute.special {
-  color: #e7c764;
-}
-
-.circle-card > section {
-  align-self: center;
-  max-width: 240px;
-  text-align: center;
-}
-
-.circle-card h3 {
+  z-index: -2;
+  inset: 0;
   overflow: hidden;
-  color: var(--rarity-light);
-  font-size: 0.78rem;
-  line-height: 1;
-  text-overflow: ellipsis;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.pop-art-card-backdrop-image {
+  position: absolute;
+  inset: -62%;
+  width: 200%;
+  height: 200%;
+  mix-blend-mode: multiply;
+  transform: rotate(-9deg);
+}
+
+.pop-art-card-backdrop:not([data-halftone]) .render-card-artwork-image-source {
+  filter: contrast(1.45) saturate(1.7);
+}
+
+.pop-art-card-backdrop:not([data-halftone]) .pop-art-card-panel::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: radial-gradient(#111 3.8px, transparent 4.5px) 0 0 / 14px 14px;
+  opacity: 0.35;
+  mix-blend-mode: multiply;
+}
+
+.pop-art-card-heading { position: relative; z-index: 2; min-width: 0; }
+
+.pop-art-card-imprint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2cqw;
+  font: 900 3cqw/1 Courier, "Courier New", monospace;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
+}
+
+.pop-art-card-imprint strong {
+  border: 1.5px solid #111;
+  padding: 1.2cqw 2.3cqw;
+  background: var(--rarity-color);
+  box-shadow: 0.8cqw 0.8cqw 0 #111;
+  transform: rotate(-3deg);
+}
+
+.pop-art-card-registration {
+  display: flex;
+  gap: 1cqw;
+  border: 1px solid #111;
+  padding: 1cqw;
+  background: #fffdf0;
+  transform: rotate(3deg);
+}
+
+.pop-art-card-registration i {
+  width: 2.6cqw;
+  height: 2.6cqw;
+  border: 1px solid #111;
+  background: #00cce5;
+}
+
+.pop-art-card-registration i:nth-child(2) { background: #ed257b; }
+.pop-art-card-registration i:nth-child(3) { background: #ffe532; }
+.pop-art-card-registration i:nth-child(4) { background: #111; }
+
+.pop-art-card h3 {
+  display: -webkit-box;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  padding: 0 1.5cqw 1.7cqw 0.6cqw;
+  color: #fffdf0;
+  font: italic 900 10.8cqw/0.98 Impact, "Arial Black", sans-serif;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  -webkit-text-stroke: 1.2cqw #111;
+  paint-order: stroke fill;
+  text-shadow: 1.4cqw 1.3cqw 0 var(--rarity-color);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.pop-art-card h3[data-title-size="medium"] { font-size: 9.2cqw; }
+.pop-art-card h3[data-title-size="long"] { font-size: 7.8cqw; }
+
+.pop-art-card-heading .render-card-artist {
+  display: block;
+  width: fit-content;
+  max-width: 95%;
+  overflow: hidden;
+  margin-top: 1cqw;
+  border: 1.5px solid #111;
+  padding: 0.8cqw 2cqw;
+  background: #fffdf0;
+  color: #111;
+  box-shadow: 1cqw 1cqw 0 #111;
+  font: italic 700 3.8cqw/1.1 Georgia, "Times New Roman", serif;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.circle-card section p {
-  margin-top: 3px;
-  font-size: 0.52rem;
+.pop-art-card-print {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  min-height: 0;
+  margin: 1.4cqw 0 2cqw;
 }
 
-.circle-card section small {
-  color: rgb(255 255 255 / 62%);
-  font-size: 0.45rem;
-}
-
-.circle-card > .render-card-badges {
+.pop-art-card-print::before,
+.pop-art-card-print::after {
   position: absolute;
-  z-index: 6;
-  right: 8px;
-  bottom: 8px;
-  left: 8px;
-  justify-content: center;
+  inset: -1.6cqw;
+  content: "";
+  clip-path: var(--pop-art-burst);
+  background: #111;
+  transform: rotate(-2deg) translate(0, 0.5cqw);
+  pointer-events: none;
 }
 
-@keyframes circle-card-orbit {
-  to {
-    transform: rotate(360deg);
-  }
+.pop-art-card-print::after {
+  inset: -0.7cqw;
+  background: var(--rarity-color);
+}
+
+.pop-art-card-burst {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  clip-path: var(--pop-art-burst);
+  background: #111;
+}
+
+.pop-art-card-panels {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #111;
+}
+
+.pop-art-card-panel {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--pop-art-paper);
+}
+
+.pop-art-card-image {
+  position: absolute;
+  inset: 3px;
+  width: calc(100% - 6px);
+  height: calc(100% - 6px);
+  clip-path: var(--pop-art-burst);
+  background-size: cover;
+  filter: saturate(1.25) contrast(1.06);
+}
+
+.pop-art-card-caption {
+  position: absolute;
+  z-index: 2;
+  bottom: 4cqw;
+  left: 6cqw;
+  max-width: calc(100% - 12cqw);
+  overflow: hidden;
+  border: 1.5px solid #111;
+  padding: 1.2cqw 2cqw;
+  background: #fffdf0;
+  font: 700 2.6cqw/1.15 Courier, "Courier New", monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pop-art-card-footer {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: 1cqw;
+  min-width: 0;
+  border: 1.5px solid #111;
+  padding: 0.9cqw 1.5cqw;
+  background: #fffdf0;
+  box-shadow: 0.8cqw 0.8cqw 0 #111;
+}
+
+.pop-art-card-editions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.7cqw;
+  font: 900 2.3cqw/1 Arial, sans-serif;
+}
+
+.pop-art-card-editions:empty { display: none; }
+.pop-art-card-editions > span { white-space: nowrap; }
+.pop-art-card-editions i { margin-right: 0.5cqw; }
+
+.pop-art-card .render-card-attribute-icons {
+  gap: 1.5cqw;
+  font-size: 4.7cqw;
+}
+
+.pop-art-card [data-attribute-count="0"] { display: none; }
+.pop-art-card .attribute { margin-right: 0; font-size: inherit; }
+
+.pop-art-card .attribute-group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 1cqw;
+  max-width: 100%;
+}
+
+.pop-art-card-stats {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2cqw;
+  border: 2px solid #111;
+  padding: 1.5cqw 2cqw;
+  background: var(--rarity-light);
+  font: 900 3.6cqw/1 Courier, "Courier New", monospace;
+}
+
+.pop-art-card-stats > * { white-space: nowrap; }
+.pop-art-card-stats > strong { color: #d3184f; }
+
+.pop-art-card-serial {
+  overflow: hidden;
+  font: 700 2cqw/1 Courier, "Courier New", monospace;
+  letter-spacing: 0.1em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pop-art-card-lottery {
+  position: absolute;
+  z-index: 3;
+  top: 2cqw;
+  right: 2cqw;
+  display: grid;
+  justify-items: center;
+  gap: 0.8cqw;
+  border: 2px solid #111;
+  padding: 1.5cqw 2.5cqw;
+  background: #ed285d;
+  color: #fffdf0;
+  box-shadow: 1cqw 1cqw 0 #111;
+  font: 900 6cqw/1 Impact, "Arial Black", sans-serif;
+  transform: rotate(5deg);
+}
+
+.pop-art-card-lottery i { font-size: 3cqw; }
+
+.pop-art-card[data-mint="true"] { --pop-art-paper: #dcffaf; }
+
+.pop-art-card[data-unlocked="true"] .pop-art-card-print::after {
+  transform: rotate(3deg) translate(-0.6cqw, 0.5cqw);
+}
+
+.pop-art-card[data-seasonal="true"] .pop-art-card-panels {
+  grid-template: repeat(2, minmax(0, 1fr)) / repeat(2, minmax(0, 1fr));
+  gap: 2px;
+}
+
+.pop-art-card[data-seasonal="true"] .pop-art-card-panel:nth-child(1) { background: #ffdf39; }
+.pop-art-card[data-seasonal="true"] .pop-art-card-panel:nth-child(2) { background: #f77eb7; }
+.pop-art-card[data-seasonal="true"] .pop-art-card-panel:nth-child(3) { background: #52d8ef; }
+.pop-art-card[data-seasonal="true"] .pop-art-card-panel:nth-child(4) { background: #b9ef62; }
+
+.pop-art-card[data-seasonal="true"] .pop-art-card-backdrop .render-card-artwork-image-source {
+  filter: grayscale(1) contrast(1.2);
+}
+
+.pop-art-card[data-foil="true"] .pop-art-card-stats {
+  background: linear-gradient(110deg, #d5fff3, #fff5b1, #ffd8ef, #c8efff);
+}
+
+.pop-art-card .render-card-foil-sheen {
+  z-index: 1;
+  mix-blend-mode: color;
+  opacity: 0.65;
 }
 
 /* Reliquary: angular looter-shooter boss drop with shader-powered energy. */
@@ -8056,8 +8149,6 @@
   .celestial-card,
   .celestial-card-stars,
   .celestial-card-orbit,
-  .circle-card-orbiter,
-  .circle-card-attribute-ring,
   .reliquary-card,
   .reliquary-card-border-beam,
   .reliquary-card-frame-beam,

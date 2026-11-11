@@ -4,7 +4,7 @@ import BaseballCard from "./baseball-card";
 import BauhausCard from "./bauhaus-card";
 import BlueprintCard from "./blueprint-card";
 import CelestialCard from "./celestial-card";
-import CircleCard from "./circle-card";
+import PopArtCard from "./circle-card";
 import GildedCard from "./gilded-card";
 import MinimalistCard from "./minimalist-card";
 import MuseumCard from "./museum-card";
@@ -44,7 +44,7 @@ export const CARD_RENDERERS: Record<
   minimalist: MinimalistCard,
   bauhaus: BauhausCard,
   abstract: AbstractCard,
-  circle: CircleCard,
+  circle: PopArtCard,
   tarot: TarotCard,
   collectible: CollectibleCard,
   skateboard: SkateboardCard,

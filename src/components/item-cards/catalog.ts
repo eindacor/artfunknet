@@ -113,8 +113,8 @@ export const CARD_COSMETICS: CardCosmetic[] = [
   {
     number: 16,
     id: "circle",
-    name: "Concentric",
-    description: "Artwork and information arranged as a system of orbiting circles.",
+    name: "Pop Art",
+    description: "Burst-framed artwork over enlarged CMYK halftones, rarity-colored ink plates, and four-up seasonal backgrounds.",
   },
   {
     number: 17,

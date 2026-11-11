@@ -1,92 +1,72 @@
-import type { CSSProperties } from "react";
-
-import {
-  ArtworkImage
-} from "./shared";
+import { formatItemSerialNumber } from "@/server/item-serial-format";
+import { ArtworkImage, AttributeIcons } from "./shared";
+import PopArtBackdrop from "./pop-art-artwork";
 import type { ItemCardRendererProps } from "./types";
 
-export default function CircleCard({
-  item,
-  alreadyOwned,
-  consigned,
-  researchTarget,
-}: ItemCardRendererProps) {
-  const attributes = [
-    ...item.attributes.unlocked.map((attribute) => ({
-      ...attribute,
-      type: "unlocked",
-    })),
-    ...item.attributes.locked.map((attribute) => ({
-      ...attribute,
-      type: "locked",
-    })),
-    ...item.attributes.special.map((attribute) => ({
-      ...attribute,
-      type: "special",
-    })),
-  ];
+const compactValue = new Intl.NumberFormat("en-US", {
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
+
+export default function PopArtCard({ item }: ItemCardRendererProps) {
+  const serial = formatItemSerialNumber(item.artwork_id, item.serial_number, item.serial_prefix);
+  const titleSize = item.artwork.title.length > 42 ? "long" : item.artwork.title.length > 22 ? "medium" : "short";
 
   return (
-    <div className="render-card circle-card">
-      <div className="circle-card-system">
-        <span className="circle-card-ring ring-outer" />
-        <span className="circle-card-ring ring-middle" />
-        <span className="circle-card-ring ring-inner" />
-        {attributes.map((attribute, index) => (
-          <span
-            className={`circle-card-attribute-ring ${
-              index % 2 === 0 ? "orbit-clockwise" : "orbit-counterclockwise"
-            }`}
-            key={`${attribute.type}-${attribute._id}`}
-            style={
-              {
-                "--circle-attribute-inset": `${Math.max(
-                  5,
-                  54 - index * 8,
-                )}px`,
-                "--circle-attribute-duration": `${90 + index * 18}s`,
-              } as CSSProperties
-            }
-          >
-            <i
-              aria-label={`${attribute.npc_name}, ${Math.round(
-                (attribute.value ?? 0) * 100,
-              )}%, ${attribute.type}`}
-              className={`fa ${attribute.icon} attribute ${attribute.type}`}
-            />
+    <div
+      className="render-card pop-art-card"
+      data-mint={item.mint || undefined}
+      data-unlocked={item.unlocked || undefined}
+      data-seasonal={item.seasonal || undefined}
+      data-foil={item.foil || undefined}
+    >
+      <PopArtBackdrop item={item} />
+      <header className="pop-art-card-heading">
+        <div className="pop-art-card-imprint">
+          <strong>{item.artwork.rarity}</strong>
+          <span aria-hidden="true" className="pop-art-card-registration">
+            <i /><i /><i /><i />
           </span>
-        ))}
-        <span className="circle-card-rarity">{item.artwork.rarity}</span>
-        <span className="circle-card-level">PROMOTION {item.level}</span>
-        <div className="circle-card-image-frame">
-          <ArtworkImage className="circle-card-image" item={item} />
         </div>
-        {item.mint ? (
-          <span className="circle-card-orbiter orbiter-mint">
-            <i aria-label="Mint" className="fa fa-leaf" />
-          </span>
-        ) : null}
-        {item.unlocked ? (
-          <span className="circle-card-orbiter orbiter-unlocked">
-            <i aria-label="Unlocked" className="fa fa-unlock-alt" />
-          </span>
-        ) : null}
-        {item.lottery ? (
+        <h3 data-title-size={titleSize} title={item.artwork.title}>{item.artwork.title}</h3>
+        <p className="render-card-artist" title={item.artwork.artist}>by {item.artwork.artist}</p>
+      </header>
+      <figure className="pop-art-card-print">
+        <div className="pop-art-card-burst">
+          <ArtworkImage className="pop-art-card-image" item={item} />
+        </div>
+        <figcaption
+          className="pop-art-card-caption"
+          title={`${item.artwork.medium} / ${item.artwork.date}`}
+        >
+          {item.artwork.medium} / {item.artwork.date}
+        </figcaption>
+        {item.lottery > 0 ? (
           <span
+            className="pop-art-card-lottery"
             aria-label={`Lottery level ${item.lottery}`}
-            className="circle-card-lottery"
+            title={`Lottery level ${item.lottery}`}
           >
-            L{item.lottery}
+            <i aria-hidden="true" className="fa fa-star" />
+            <strong>{item.lottery}</strong>
           </span>
         ) : null}
-      </div>
-      <section>
-        <h3>{item.artwork.title}</h3>
-        <p>{item.artwork.artist}</p>
-        <small>
-          {item.artwork.date} · {Math.round(item.condition * 100)}%
-        </small>
-      </section>
+      </figure>
+      <footer className="pop-art-card-footer">
+        <div className="pop-art-card-editions">
+          {item.mint ? <span aria-label="Mint" title="Mint"><i aria-hidden="true" className="fa fa-leaf" /> MINT</span> : null}
+          {item.unlocked ? <span aria-label="Unlocked" title="Unlocked"><i aria-hidden="true" className="fa fa-unlock-alt" /> UNLOCKED</span> : null}
+          {item.seasonal ? <span aria-label="Seasonal" title="Seasonal"><i aria-hidden="true" className="fa fa-th-large" /> SERIES</span> : null}
+          {item.foil ? <span aria-label="Foil" title="Foil"><i aria-hidden="true" className="fa fa-diamond" /> FOIL</span> : null}
+        </div>
+        <AttributeIcons item={item} />
+        <div className="pop-art-card-stats">
+          <span title={`Level: ${item.level.toLocaleString("en-US")}`}>LV. {compactValue.format(item.level)}</span>
+          <span title={`Condition: ${Math.round(item.condition * 100)}%`}>{Math.round(item.condition * 100)}%</span>
+          <strong title={`$${item.values.actual.toLocaleString("en-US")}`}>${compactValue.format(item.values.actual)}</strong>
+        </div>
+        <small className="pop-art-card-serial" title={`Serial number: ${serial}`}>{serial}</small>
+      </footer>
     </div>
   );
 }
